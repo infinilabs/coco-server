@@ -1,0 +1,4 @@
+env:
+  ES_ENDPOINT: http://localhost:58000
+  ES_USERNAME: admin
+  ES_PASSWORD: passwd
