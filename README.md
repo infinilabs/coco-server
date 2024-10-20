@@ -4,7 +4,6 @@
 
 Coco is a unified search platform that connects all your enterprise applications and data—Google Workspace, Dropbox, Confluent Wiki, GitHub, and more—into a single, powerful search interface. This repository contains the **Coco App**, built for both **desktop and mobile**. The app allows users to search and interact with their enterprise data across platforms.
 
-> **Note**: Backend services, including data indexing and search functionality, are handled in a separate repository.
 
 ## Vision
 
