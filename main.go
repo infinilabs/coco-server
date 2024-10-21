@@ -22,7 +22,6 @@ func main() {
 	terminalHeader += ("/ /__/ \\_// /__/ \\_//  /  _  \\/\\/ /_  \n")
 	terminalHeader += ("\\____|___/\\____|___/   \\_/ \\_/\\____/  \n")
 
-
 	terminalFooter := ("")
 
 	app := framework.NewApp("coco", "Search, connect, collaborate – all in one place.",

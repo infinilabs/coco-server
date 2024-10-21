@@ -6,22 +6,10 @@ package rag
 
 import (
 	"infini.sh/framework/core/api"
-	httprouter "infini.sh/framework/core/api/router"
-	"net/http"
 )
 
 type APIHandler struct {
 	api.Handler
-}
-
-func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-
-}
-
-
-
-func (h APIHandler) recommend(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-
 }
 
 func init() {

@@ -18,10 +18,11 @@ type Suggestion struct {
 	Source                string      `json:"source,omitempty"`                  // Optional, Source of the Suggestion
 	Time                  int         `json:"time,omitempty"`                    // Optional, Time of the Suggestion
 	LastAccessTime        int         `json:"last_access_time,omitempty"`        // Optional, Time of Last Access
-	Links                 []Link      `json:"links,omitempty"`                   // Optional, Link to the Suggestion
+	Breadcrumbs           []Link      `json:"breadcrumbs,omitempty"`             // Optional, breadcrumb navigation links
 	Context               interface{} `json:"context,omitempty"`                 // Optional, Context of the Suggestion
 	EstimateNumberOfHits  int         `json:"estimate_number_of_hits,omitempty"` // Optional, Estimate Number of Hits
 	Payload               interface{} `json:"payload,omitempty"`                 // Optional, Payload of the Suggestion
+	URL                   string      `json:"url,omitempty"`                     // URL to the entity
 }
 
 // SuggestResponse represents the response structure for the suggest API
@@ -29,7 +30,7 @@ type SuggestResponse struct {
 	Query          string       `json:"query,omitempty"`
 	RecentSearches []Suggestion `json:"recent_searches,omitempty"`
 	Suggestions    []Suggestion `json:"suggestions,omitempty"`
-	Banner         *Link         `json:"banner,omitempty"`
+	Banner         *Link        `json:"banner,omitempty"`
 }
 
 type Link struct {
@@ -41,10 +42,10 @@ type Link struct {
 
 func (h APIHandler) suggest(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
-	query:=h.MustGetParameter(w,req,"query")
-	size:=h.GetIntOrDefault(req,"size",10)
+	query := h.MustGetParameter(w, req, "query")
+	size := h.GetIntOrDefault(req, "size", 10)
 
-	context := h.GetParameterOrDefault(req,"context","")
+	context := h.GetParameterOrDefault(req, "context", "")
 	//sources := req.URL.Query()["sources"] // Optional slice of sources
 
 	// If query is missing, return an error
@@ -52,7 +53,6 @@ func (h APIHandler) suggest(w http.ResponseWriter, req *http.Request, ps httprou
 		http.Error(w, "query parameter is required", http.StatusBadRequest)
 		return
 	}
-
 
 	// Placeholder: Generate some suggestions (In practice, this would query your data source)
 	suggestions := []Suggestion{
@@ -71,7 +71,9 @@ func (h APIHandler) suggest(w http.ResponseWriter, req *http.Request, ps httprou
 		Suggestions: suggestions,
 	}
 
-	// Set response headers and encode the response as JSON
-	h.WriteJSON(w, response, 200)
+	err := h.WriteJSON(w, response,200)
+	if err != nil {
+		h.Error(w,err)
+	}
 
 }
