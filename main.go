@@ -6,9 +6,11 @@ package main
 
 import (
 	"infini.sh/coco/config"
+	_ "infini.sh/coco/plugins"
 	"infini.sh/framework"
 	"infini.sh/framework/core/module"
 	"infini.sh/framework/core/util"
+	"infini.sh/framework/modules/api"
 	stats "infini.sh/framework/plugins/stats_statsd"
 )
 
@@ -32,6 +34,7 @@ func main() {
 	defer app.Shutdown()
 
 	if app.Setup(func() {
+		module.RegisterSystemModule(&api.APIModule{})
 		module.RegisterUserPlugin(&stats.StatsDModule{})
 		module.Start()
 	}, func() {
