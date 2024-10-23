@@ -24,7 +24,7 @@ func main() {
 
 	terminalFooter := ("")
 
-	app := framework.NewApp("coco", "Search, connect, collaborate – all in one place.",
+	app := framework.NewApp("coco", "Coco AI - search, connect, collaborate – all in one place.",
 		util.TrimSpaces(config.Version), util.TrimSpaces(config.BuildNumber), util.TrimSpaces(config.LastCommitLog), util.TrimSpaces(config.BuildDate), util.TrimSpaces(config.EOLDate), terminalHeader, terminalFooter)
 
 	app.IgnoreMainConfigMissing()
