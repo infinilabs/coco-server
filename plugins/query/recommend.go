@@ -2,7 +2,7 @@
  * Web: https://infinilabs.com
  * Email: hello#infini.ltd */
 
-package rag
+package query
 
 import (
 	httprouter "infini.sh/framework/core/api/router"
