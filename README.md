@@ -44,18 +44,18 @@ ollama pull mistral:latest
 
 Install Easysearch
 ```
-docker run -itd --name qdrant -p 9200:9200 infinilabs/easysearch:1.8.3-265
+docker run -itd --name easysearch -p 9200:9200 infinilabs/easysearch:1.8.3-265
 ```
 
 Setup Easysearch
 ```
-curl -X PUT http://localhost:9200/langchaingo-ollama-rag   -H 'Content-Type: application/json'   --data-raw '{
+curl -X PUT -u admin:YOUR_PASSWORD https://localhost:9200/coco   -H 'Content-Type: application/json'   --data-raw '{
    "settings": {
      "index.knn": true
    },
    "mappings": {
      "properties": {
-       "my_vec": {
+       "content_embedding": {
          "type": "knn_dense_float_vector",
          "knn": {
            "dims": 50,
