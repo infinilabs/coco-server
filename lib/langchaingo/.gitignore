@@ -1,0 +1,21 @@
+go.work
+go.work.sum
+
+# Test outputs
+coverage.out
+cover.cov
+
+# macOS Specific
+.DS_Store
+
+# IDE
+.idea
+.vscode
+
+# dev
+.env
+vendor/*
+service-account.json
+
+embeddings/cybertron/models/*
+examples/cybertron-embedding-example/models/*
