@@ -17,25 +17,79 @@ At Coco, we aim to streamline workplace collaboration by centralizing access to 
 - **Simplified Data Access**: By removing the friction between various tools, Coco enhances your workflow and increases productivity.
 
 
+## Getting Started
 
+### Ollama
+
+Install Ollama
 ```
 curl -fsSL https://ollama.com/install.sh | sh
+```
+
+Start Ollama server
+```
+OLLAMA_HOST=0.0.0.0:11434 ollama serve
+```
+
+Pull the following models
+```
 ollama pull nomic-embed-text:latest
 ollama pull llama2-chinese:13b
 ollama pull llama3.2:latest
 ollama pull llama3.2:1b
 ollama pull mistral:latest
-
-OLLAMA_HOST=0.0.0.0:11434 ollama serve
 ```
 
+### Easysearch
+
+Install Easysearch
 ```
-docker pull qdrant/qdrant
-docker run -itd --name qdrant -p 6333:6333 qdrant/qdrant
-curl -X PUT http://localhost:6333/collections/langchaingo-ollama-rag   -H 'Content-Type: application/json'   --data-raw '{
-    "vectors": {
-      "size": 768,
-      "distance": "Dot"
-    }
-  }'
+docker run -itd --name qdrant -p 9200:9200 infinilabs/easysearch:1.8.3-265
+```
+
+Setup Easysearch
+```
+curl -X PUT http://localhost:9200/langchaingo-ollama-rag   -H 'Content-Type: application/json'   --data-raw '{
+   "settings": {
+     "index.knn": true
+   },
+   "mappings": {
+     "properties": {
+       "my_vec": {
+         "type": "knn_dense_float_vector",
+         "knn": {
+           "dims": 50,
+           "model": "lsh",
+           "similarity": "cosine",
+           "L": 99,
+           "k": 1
+         }
+       }
+     }
+   }
+ }'
+```
+
+### Coco AI
+
+```
+➜  coco git:(main) ✗ ./bin/coco
+   ___  ___  ___  ___     _     _____
+  / __\/___\/ __\/___\   /_\    \_   \
+ / /  //  // /  //  //  //_\\    / /\/
+/ /__/ \_// /__/ \_//  /  _  \/\/ /_
+\____|___/\____|___/   \_/ \_/\____/
+[COCO] Coco AI - search, connect, collaborate – all in one place.
+[COCO] 1.0.0_SNAPSHOT#001, 2024-10-23 08:37:05, 2025-12-31 10:10:10, 9b54198e04e905406db90d145f4c01fca0139861
+[10-23 17:17:36] [INF] [env.go:179] configuration auto reload enabled
+[10-23 17:17:36] [INF] [env.go:185] watching config: /Users/medcl/go/src/infini.sh/coco/config
+[10-23 17:17:36] [INF] [app.go:285] initializing coco, pid: 13764
+[10-23 17:17:36] [INF] [app.go:286] using config: /Users/medcl/go/src/infini.sh/coco/coco.yml
+[10-23 17:17:36] [INF] [api.go:196] local ips: 192.168.3.10
+[10-23 17:17:36] [INF] [api.go:360] api listen at: http://0.0.0.0:2900
+[10-23 17:17:36] [INF] [module.go:136] started module: api
+[10-23 17:17:36] [INF] [module.go:155] started plugin: statsd
+[10-23 17:17:36] [INF] [module.go:161] all modules are started
+[10-23 17:17:36] [INF] [instance.go:78] workspace: /Users/medcl/go/src/infini.sh/coco/data/coco/nodes/csai3njq50k2c4tcb4vg
+[10-23 17:17:36] [INF] [app.go:511] coco is up and running now.
 ```
