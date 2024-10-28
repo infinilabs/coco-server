@@ -20,7 +20,7 @@ func main() {
 	terminalHeader += ("  / __\\/___\\/ __\\/___\\   /_\\    \\_   \\\n")
 	terminalHeader += (" / /  //  // /  //  //  //_\\\\    / /\\/\n")
 	terminalHeader += ("/ /__/ \\_// /__/ \\_//  /  _  \\/\\/ /_  \n")
-	terminalHeader += ("\\____|___/\\____|___/   \\_/ \\_/\\____/  \n")
+	terminalHeader += ("\\____|___/\\____|___/   \\_/ \\_/\\____/  \n\n")
 
 	terminalFooter := ("")
 
