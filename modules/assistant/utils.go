@@ -1,4 +1,4 @@
-package chat
+package assistant
 
 import (
 	"bufio"
@@ -12,21 +12,21 @@ import (
 	"infini.sh/coco/lib/langchaingo/textsplitter"
 )
 
-// TextToChunks 函数将文本文件转换为文档块
+// The TextToChunks function converts a text file into document chunks
 func TextToChunks(dirFile string, chunkSize, chunkOverlap int) ([]schema.Document, error) {
 	file, err := os.Open(dirFile)
 	if err != nil {
 		return nil, err
 	}
-	// 创建一个新的文本文档加载器
+	// Create a new text document loader
 	docLoaded := documentloaders.NewText(file)
-	// 创建一个新的递归字符文本分割器
+	// Create a new recursive character text splitter
 	split := textsplitter.NewRecursiveCharacter()
-	// 设置块大小
+	// Set the chunk size
 	split.ChunkSize = chunkSize
-	// 设置块重叠大小
+	// Set the chunk overlap size
 	split.ChunkOverlap = chunkOverlap
-	// 加载并分割文档
+	// Load and split the document
 	docs, err := docLoaded.LoadAndSplit(context.Background(), split)
 	if err != nil {
 		return nil, err
@@ -34,7 +34,7 @@ func TextToChunks(dirFile string, chunkSize, chunkOverlap int) ([]schema.Documen
 	return docs, nil
 }
 
-// GetUserInput 获取用户输入
+// GetUserInput retrieves user input
 func GetUserInput(promptString string) (string, error) {
 	fmt.Print(promptString, ": ")
 	var Input string

@@ -6,11 +6,11 @@ package main
 
 import (
 	"infini.sh/coco/config"
-	_ "infini.sh/coco/plugins"
+	_ "infini.sh/coco/modules"
 	"infini.sh/framework"
 	"infini.sh/framework/core/module"
 	"infini.sh/framework/core/util"
-	"infini.sh/framework/modules/api"
+	apiModule "infini.sh/framework/modules/api"
 	stats "infini.sh/framework/plugins/stats_statsd"
 )
 
@@ -33,8 +33,14 @@ func main() {
 	defer app.Shutdown()
 
 	if app.Setup(func() {
-		module.RegisterSystemModule(&api.APIModule{})
+		module.RegisterSystemModule(&apiModule.APIModule{})
 		module.RegisterUserPlugin(&stats.StatsDModule{})
+
+		//vfs.RegisterFS(ui.StaticFS{StaticFolder: global.Env().SystemConfig.WebAppConfig.UI.LocalPath,
+		//	TrimLeftPath:    global.Env().SystemConfig.WebAppConfig.UI.LocalPath,
+		//	CheckLocalFirst: global.Env().SystemConfig.WebAppConfig.UI.LocalEnabled,
+		//	SkipVFS:         !global.Env().SystemConfig.WebAppConfig.UI.VFSEnabled})
+
 		module.Start()
 	}, func() {
 	}, nil) {

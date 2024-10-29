@@ -19,7 +19,7 @@ func TestConversationalWithMemory(t *testing.T) {
 		t.Skip("OPENAI_API_KEY not set")
 	}
 
-	llm, err := openai.New(openai.WithModel("gpt-4"))
+	llm, err := openai.New(openai.WithModel("gpt-4o"))
 	require.NoError(t, err)
 
 	executor, err := Initialize(

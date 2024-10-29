@@ -2,4 +2,4 @@
  * Web: https://infinilabs.com
  * Email: hello#infini.ltd */
 
-package chat
+package indexing
