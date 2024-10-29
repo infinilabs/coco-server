@@ -132,7 +132,7 @@ curl  -H 'Content-Type: application/json'   -XPOST http://localhost:2900/chat/_n
 }
 ```
 
-### Open a Exist Chat Session
+### Open a Existing Chat Session
 
 ```shell
 //request
