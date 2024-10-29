@@ -3,6 +3,7 @@ package ollama
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -94,6 +95,7 @@ func TestWithStreaming(t *testing.T) {
 	rsp, err := llm.GenerateContent(context.Background(), content,
 		llms.WithStreamingFunc(func(_ context.Context, chunk []byte) error {
 			sb.Write(chunk)
+			fmt.Println("chunk:", string(chunk))
 			return nil
 		}))
 	require.NoError(t, err)

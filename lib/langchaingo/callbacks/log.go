@@ -4,10 +4,9 @@ package callbacks
 import (
 	"context"
 	"fmt"
-	"strings"
-
 	"infini.sh/coco/lib/langchaingo/llms"
 	"infini.sh/coco/lib/langchaingo/schema"
+	"strings"
 )
 
 // LogHandler is a callback handler that prints to the standard output.

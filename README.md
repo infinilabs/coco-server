@@ -93,3 +93,102 @@ curl -X PUT -u admin:YOUR_PASSWORD https://localhost:9200/coco   -H 'Content-Typ
 [10-23 17:17:36] [INF] [instance.go:78] workspace: /Users/medcl/go/src/infini.sh/coco/data/coco/nodes/csai3njq50k2c4tcb4vg
 [10-23 17:17:36] [INF] [app.go:511] coco is up and running now.
 ```
+
+
+## Assistant API Reference
+
+### Retrieve Chat History (sessions)
+
+```shell
+//request
+curl -XGET http://localhost:2900/chat/_history'
+
+//response
+{
+    "sessions": [
+        {
+            "session_id": "csai3njq50k2c4tcb4vg",
+            "created": "2024-10-23T17:17:36.000Z",
+            "updated": "2024-10-23T17:17:36.000Z",
+            "status": "active",
+            "title": "John Doe",
+            "summary": "Hello",
+        }
+    ]
+}
+```
+
+### Create a Chat Session
+
+```shell
+//request
+curl  -H 'Content-Type: application/json'   -XPOST http://localhost:2900/chat/_new'
+
+//response
+{
+    "session_id": "csai3njq50k2c4tcb4vg",
+    "created": "2024-10-23T17:17:36.000Z",
+    "status": "active",
+}
+```
+
+### Open a Exist Chat Session
+
+```shell
+//request
+curl  -H 'Content-Type: application/json'   -XPOST http://localhost:2900/chat/csai3njq50k2c4tcb4vg/_open'
+
+//response
+{
+    "session_id": "csai3njq50k2c4tcb4vg",
+    "status": "active",
+}
+```
+
+
+### Retrieve a Chat History
+
+```shell
+//request
+curl -XGET http://localhost:2900/chat/csai3njq50k2c4tcb4vg/_history'
+
+//response
+{
+    "messages": [
+        {
+            "sequence": 1234,
+            "created": "2024-10-23T17:17:36.000Z",
+            "message": "Hello",
+            "response": "Hi, how can I help you?"
+        }
+    ]
+}
+```
+
+### Send a Message
+
+```shell
+//request
+curl  -H 'Content-Type: application/json'   -XPOST http://localhost:2900/chat/csai3njq50k2c4tcb4vg/_send' -d '{"message":"Hello"}'
+
+//response
+{
+    "sequence": 1234, //sort each chat message by this field
+    "created": "2024-10-23T17:17:36.000Z",
+    "message": "Hello",
+    "response": "Hi, how can I help you?"
+}
+```
+
+### Close a Chat Session
+
+```shell
+//request
+curl  -H 'Content-Type: application/json'   -XPOST http://localhost:2900/chat/csai3njq50k2c4tcb4vg/_close'
+
+//response
+{
+    "session_id": "csai3njq50k2c4tcb4vg",
+    "status": "closed",
+}
+```
