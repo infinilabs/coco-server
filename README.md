@@ -101,7 +101,7 @@ curl -X PUT -u admin:YOUR_PASSWORD https://localhost:9200/coco   -H 'Content-Typ
 
 ```shell
 //request
-curl -XGET http://localhost:2900/chat/_history'
+curl -XGET http://localhost:2900/chat/_history
 
 //response
 {
@@ -122,7 +122,7 @@ curl -XGET http://localhost:2900/chat/_history'
 
 ```shell
 //request
-curl  -H 'Content-Type: application/json'   -XPOST http://localhost:2900/chat/_new'
+curl  -H 'Content-Type: application/json'   -XPOST http://localhost:2900/chat/_new
 
 //response
 {
@@ -136,7 +136,7 @@ curl  -H 'Content-Type: application/json'   -XPOST http://localhost:2900/chat/_n
 
 ```shell
 //request
-curl  -H 'Content-Type: application/json'   -XPOST http://localhost:2900/chat/csai3njq50k2c4tcb4vg/_open'
+curl  -H 'Content-Type: application/json'   -XPOST http://localhost:2900/chat/csai3njq50k2c4tcb4vg/_open
 
 //response
 {
@@ -150,7 +150,7 @@ curl  -H 'Content-Type: application/json'   -XPOST http://localhost:2900/chat/cs
 
 ```shell
 //request
-curl -XGET http://localhost:2900/chat/csai3njq50k2c4tcb4vg/_history'
+curl -XGET http://localhost:2900/chat/csai3njq50k2c4tcb4vg/_history
 
 //response
 {
@@ -169,7 +169,7 @@ curl -XGET http://localhost:2900/chat/csai3njq50k2c4tcb4vg/_history'
 
 ```shell
 //request
-curl  -H 'Content-Type: application/json'   -XPOST http://localhost:2900/chat/csai3njq50k2c4tcb4vg/_send' -d '{"message":"Hello"}'
+curl  -H 'Content-Type: application/json'   -XPOST http://localhost:2900/chat/csai3njq50k2c4tcb4vg/_send -d '{"message":"Hello"}'
 
 //response
 {
@@ -184,7 +184,7 @@ curl  -H 'Content-Type: application/json'   -XPOST http://localhost:2900/chat/cs
 
 ```shell
 //request
-curl  -H 'Content-Type: application/json'   -XPOST http://localhost:2900/chat/csai3njq50k2c4tcb4vg/_close'
+curl  -H 'Content-Type: application/json'   -XPOST http://localhost:2900/chat/csai3njq50k2c4tcb4vg/_close
 
 //response
 {
