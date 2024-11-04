@@ -25,6 +25,6 @@ func init() {
 
 
 	// Websockets
-	api.HandleWebSocketCommand("/CHAT/_SEND","send a message to AI assistant", handler.sendChatMessageToAIbot)
+	api.HandleWebSocketCommand("CHAT","send a message to AI assistant", handler.sendChatMessageToAIbot)
 }
 

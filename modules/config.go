@@ -7,6 +7,9 @@ package modules
 
 type Config struct {
 	collectionName string
-	ollamaServer string
-	searchService string
+	searchService  string
+}
+
+type OllamaConfig struct {
+	Endpoint string
 }
