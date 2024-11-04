@@ -5,10 +5,16 @@
 package assistant
 
 import (
+	"context"
+	log "github.com/cihub/seelog"
+	"infini.sh/coco/lib/langchaingo/llms"
+	"infini.sh/coco/lib/langchaingo/llms/ollama"
 	httprouter "infini.sh/framework/core/api/router"
+	"infini.sh/framework/core/api/websocket"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
 	"net/http"
+	"strings"
 )
 
 type Session struct {
@@ -21,6 +27,13 @@ type Session struct {
 type MessageRequest struct {
 	Message string `json:"message"`
 }
+
+type ChatSession struct {
+	ChatSessionID string
+	WebsocketSessionID string
+}
+
+var sessions = map[string]ChatSession{} //chat_session_id => session_object
 
 const MessageTypeUser string = "user"
 const MessageTypeAssistant string = "assistant"
@@ -70,6 +83,8 @@ func (h APIHandler) newChatSession(w http.ResponseWriter, req *http.Request, ps 
 		"_source": obj,
 	}, 200)
 
+	sessions[obj.ID]=ChatSession{ChatSessionID: obj.ID}
+
 	if err != nil {
 		h.Error(w, err)
 	}
@@ -80,7 +95,7 @@ func (h APIHandler) openChatSession(w http.ResponseWriter, req *http.Request, ps
 
 	obj := Session{}
 	obj.ID = id
-
+	
 	exists, err := orm.Get(&obj)
 	if !exists || err != nil {
 		h.WriteJSON(w, util.MapStr{
@@ -127,6 +142,8 @@ func (h APIHandler) getChatHistoryBySession(w http.ResponseWriter, req *http.Req
 
 func (h APIHandler) sendChatMessage(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
+	webSocketID:=req.Header.Get("WEBSOCKET_SESSION_ID")
+
 	sessionID := ps.MustGetParameter("session_id")
 	var request MessageRequest
 	if err := h.DecodeJSON(req, &request); err != nil {
@@ -146,11 +163,78 @@ func (h APIHandler) sendChatMessage(w http.ResponseWriter, req *http.Request, ps
 		return
 	}
 
-	err = h.WriteJSON(w, util.MapStr{
+	response:=[]util.MapStr{util.MapStr{
 		"_id":     obj.ID,
 		"result":  "created",
 		"_source": obj,
-	}, 200)
+	}}
+
+
+	if webSocketID!=""{
+		//de-duplicate background task per-session, cancelable
+		go func() { //TODO, send to task framework
+			//timeout for 30 seconds
+
+			//TODO
+			//1. retrieve related documents from background server
+			//2. summary previous history chat as context
+			//3. assemble with the agent's role setting
+			//4. send to LLM
+
+			llm, err := ollama.New(ollama.WithModel("llama3.2:1b"))
+			if err != nil {
+				log.Error(err)
+				return
+			}
+			ctx := context.Background()
+
+			content := []llms.MessageContent{
+				//llms.TextParts(llms.ChatMessageTypeSystem, "You are a company branding design wizard."),
+				//llms.TextParts(llms.ChatMessageTypeHuman, "What would be a good company name for a comapny that produces Go-backed LLM tools?"),
+				llms.TextParts(llms.ChatMessageTypeHuman, request.Message),
+			}
+
+			chunkSeq:=0
+			messageID:=util.GetUUID()
+			messageBuffer:=strings.Builder{}
+			completion, err := llm.GenerateContent(ctx, content, llms.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
+				chunkSeq+=1
+				msg:=util.MustToJSON(util.MapStr{
+					"session_id": sessionID,
+					"message_type": MessageTypeAssistant,
+					"message_id": messageID,
+					"chunk_sequence":chunkSeq,
+					"message_chunk":string(chunk),
+				})
+				messageBuffer.Write(chunk)
+				websocket.SendPrivateMessage(webSocketID,msg)
+				return nil
+			}))
+			if err != nil {
+				log.Error(err)
+				return
+			}
+			_ = completion
+
+			//save message to system
+			if messageBuffer.Len()>0{
+				obj = ChatMessage{
+					SessionID: sessionID,
+					MessageType: MessageTypeAssistant,
+					Message:   messageBuffer.String(),
+				}
+				obj.ID=messageID
+
+				err=orm.Save(nil,&obj)
+				if err != nil {
+					log.Error(err)
+				}
+			}
+
+		}()
+	}
+
+	err = h.WriteJSON(w, response, 200)
 
 	if err != nil {
 		h.Error(w, err)

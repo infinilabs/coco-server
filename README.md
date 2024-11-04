@@ -33,11 +33,11 @@ OLLAMA_HOST=0.0.0.0:11434 ollama serve
 
 Pull the following models
 ```
-ollama pull nomic-embed-text:latest
+ollama pull llama3.2:1b
 ollama pull llama2-chinese:13b
 ollama pull llama3.2:latest
-ollama pull llama3.2:1b
 ollama pull mistral:latest
+ollama pull nomic-embed-text:latest
 ```
 
 ### Easysearch
@@ -159,10 +159,10 @@ curl -XGET http://localhost:2900/chat/csk30fjq50k7l4akku9g/_history
 
 ```shell
 //request
-curl  -H 'Content-Type: application/json'   -XPOST http://localhost:2900/chat/csk30fjq50k7l4akku9g/_send -d '{"message":"Hello"}'
+curl  -H'WEBSOCKET_SESSION_ID: csk88l3q50kb4hr5unn0'  -H 'Content-Type: application/json'   -XPOST http://localhost:2900/chat/csk30fjq50k7l4akku9g/_send -d '{"message":"Hello"}'
 
 //response
-{
+[{
   "_id": "csk325rq50k85fc5u0j0",
   "_source": {
     "id": "csk325rq50k85fc5u0j0",
@@ -173,7 +173,7 @@ curl  -H 'Content-Type: application/json'   -XPOST http://localhost:2900/chat/cs
     "message": "Hello"
   },
   "result": "created"
-}
+}]
 ```
 
 ### Close a Chat Session

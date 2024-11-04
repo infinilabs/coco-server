@@ -22,6 +22,11 @@ func (this *Coco) Setup() {
 	if err != nil {
 		panic(err)
 	}
+
+
+
+
+
 }
 
 func (this *Coco) Start() error {
