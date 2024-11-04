@@ -6,11 +6,13 @@ package main
 
 import (
 	"infini.sh/coco/config"
+	"infini.sh/coco/modules"
 	_ "infini.sh/coco/modules"
 	"infini.sh/framework"
 	"infini.sh/framework/core/module"
 	"infini.sh/framework/core/util"
 	apiModule "infini.sh/framework/modules/api"
+	"infini.sh/framework/modules/elastic"
 	stats "infini.sh/framework/plugins/stats_statsd"
 )
 
@@ -34,12 +36,9 @@ func main() {
 
 	if app.Setup(func() {
 		module.RegisterSystemModule(&apiModule.APIModule{})
+		module.RegisterSystemModule(&elastic.ElasticModule{})
 		module.RegisterUserPlugin(&stats.StatsDModule{})
-
-		//vfs.RegisterFS(ui.StaticFS{StaticFolder: global.Env().SystemConfig.WebAppConfig.UI.LocalPath,
-		//	TrimLeftPath:    global.Env().SystemConfig.WebAppConfig.UI.LocalPath,
-		//	CheckLocalFirst: global.Env().SystemConfig.WebAppConfig.UI.LocalEnabled,
-		//	SkipVFS:         !global.Env().SystemConfig.WebAppConfig.UI.VFSEnabled})
+		module.RegisterUserPlugin(&modules.Coco{})
 
 		module.Start()
 	}, func() {
