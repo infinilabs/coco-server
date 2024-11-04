@@ -21,7 +21,7 @@ func init() {
 	api.HandleAPIMethod(api.POST, "/chat/:session_id/_open", handler.openChatSession)
 	api.HandleAPIMethod(api.POST, "/chat/:session_id/_send", handler.sendChatMessage)
 	api.HandleAPIMethod(api.POST, "/chat/:session_id/_close", handler.closeChatSession)
-	api.HandleAPIMethod(api.POST, "/chat/:session_id/_history", handler.getChatHistoryBySession)
+	api.HandleAPIMethod(api.GET, "/chat/:session_id/_history", handler.getChatHistoryBySession)
 
 
 	// Websockets

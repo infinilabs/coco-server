@@ -97,27 +97,6 @@ curl -X PUT -u admin:YOUR_PASSWORD https://localhost:9200/coco   -H 'Content-Typ
 
 ## Assistant API Reference
 
-### Retrieve Chat History (sessions)
-
-```shell
-//request
-curl -XGET http://localhost:2900/chat/_history
-
-//response
-{
-    "sessions": [
-        {
-            "session_id": "csai3njq50k2c4tcb4vg",
-            "created": "2024-10-23T17:17:36.000Z",
-            "updated": "2024-10-23T17:17:36.000Z",
-            "status": "active",
-            "title": "John Doe",
-            "summary": "Hello",
-        }
-    ]
-}
-```
-
 ### Create a Chat Session
 
 ```shell
@@ -126,57 +105,74 @@ curl  -H 'Content-Type: application/json'   -XPOST http://localhost:2900/chat/_n
 
 //response
 {
-    "session_id": "csai3njq50k2c4tcb4vg",
-    "created": "2024-10-23T17:17:36.000Z",
-    "status": "active",
+  "_id": "csk30fjq50k7l4akku9g",
+  "_source": {
+    "id": "csk30fjq50k7l4akku9g",
+    "created": "2024-11-04T10:23:58.980669+08:00",
+    "updated": "2024-11-04T10:23:58.980678+08:00",
+    "status": "active"
+  },
+  "result": "created"
 }
+```
+
+### Retrieve Chat History (sessions)
+
+```shell
+//request
+curl -XGET http://localhost:2900/chat/_history
+
+//response
+{"took":997,"timed_out":false,"_shards":{"total":1,"successful":1,"skipped":0,"failed":0},"hits":{"total":{"value":1,"relation":"eq"},"max_score":1.0,"hits":[{"_index":".infini_session","_type":"_doc","_id":"csk30fjq50k7l4akku9g","_score":1.0,"_source":{"id":"csk30fjq50k7l4akku9g","created":"2024-11-04T10:23:58.980669+08:00","updated":"2024-11-04T10:23:58.980678+08:00","status":"active"}}]}}
 ```
 
 ### Open a Existing Chat Session
 
 ```shell
 //request
-curl  -H 'Content-Type: application/json'   -XPOST http://localhost:2900/chat/csai3njq50k2c4tcb4vg/_open
+curl  -H 'Content-Type: application/json'   -XPOST http://localhost:2900/chat/csk30fjq50k7l4akku9g/_open
 
 //response
 {
-    "session_id": "csai3njq50k2c4tcb4vg",
-    "status": "active",
+  "_id": "csk30fjq50k7l4akku9g",
+  "_source": {
+    "id": "csk30fjq50k7l4akku9g",
+    "created": "2024-11-04T10:23:58.980669+08:00",
+    "updated": "2024-11-04T10:25:20.541856+08:00",
+    "status": "active"
+  },
+  "found": true
 }
 ```
-
 
 ### Retrieve a Chat History
 
 ```shell
 //request
-curl -XGET http://localhost:2900/chat/csai3njq50k2c4tcb4vg/_history
+curl -XGET http://localhost:2900/chat/csk30fjq50k7l4akku9g/_history
 
 //response
-{
-    "messages": [
-        {
-            "sequence": 1234,
-            "created": "2024-10-23T17:17:36.000Z",
-            "message": "Hello",
-            "response": "Hi, how can I help you?"
-        }
-    ]
-}
+{"took":4,"timed_out":false,"_shards":{"total":1,"successful":1,"skipped":0,"failed":0},"hits":{"total":{"value":0,"relation":"eq"},"max_score":null,"hits":[]}}
 ```
 
 ### Send a Message
 
 ```shell
 //request
-curl  -H 'Content-Type: application/json'   -XPOST http://localhost:2900/chat/csai3njq50k2c4tcb4vg/_send -d '{"message":"Hello"}'
+curl  -H 'Content-Type: application/json'   -XPOST http://localhost:2900/chat/csk30fjq50k7l4akku9g/_send -d '{"message":"Hello"}'
 
 //response
 {
-    "sequence": 1234, //sort each chat message by this field
-    "created": "2024-10-23T17:17:36.000Z",
-    "message": "Hello",
-    "response": "Hi, how can I help you?"
+  "_id": "csk325rq50k85fc5u0j0",
+  "_source": {
+    "id": "csk325rq50k85fc5u0j0",
+    "type": "user",
+    "created": "2024-11-04T10:27:35.211502+08:00",
+    "updated": "2024-11-04T10:27:35.211508+08:00",
+    "session_id": "csk30fjq50k7l4akku9g",
+    "message": "Hello"
+  },
+  "result": "created"
 }
 ```
 
@@ -184,11 +180,17 @@ curl  -H 'Content-Type: application/json'   -XPOST http://localhost:2900/chat/cs
 
 ```shell
 //request
-curl  -H 'Content-Type: application/json'   -XPOST http://localhost:2900/chat/csai3njq50k2c4tcb4vg/_close
+curl  -H 'Content-Type: application/json'   -XPOST http://localhost:2900/chat/csk30fjq50k7l4akku9g/_close
 
 //response
 {
-    "session_id": "csai3njq50k2c4tcb4vg",
-    "status": "closed",
+  "_id": "csk30fjq50k7l4akku9g",
+  "_source": {
+    "id": "csk30fjq50k7l4akku9g",
+    "created": "2024-11-04T10:23:58.980669+08:00",
+    "updated": "2024-11-04T10:28:47.461033+08:00",
+    "status": "closed"
+  },
+  "found": true
 }
 ```

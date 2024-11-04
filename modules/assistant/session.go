@@ -5,183 +5,187 @@
 package assistant
 
 import (
-	"context"
 	httprouter "infini.sh/framework/core/api/router"
+	"infini.sh/framework/core/orm"
+	"infini.sh/framework/core/util"
 	"net/http"
-	"time"
 )
 
-// Session represents a single chat session
 type Session struct {
-	SessionID string    `json:"session_id"`
-	Created   *time.Time `json:"created"`
-	Updated   *time.Time `json:"updated,omitempty"`
-	Status    string    `json:"status"`
-	Title     string    `json:"title,omitempty"`
-	Summary   string    `json:"summary,omitempty"`
+	orm.ORMObjectBase
+	Status  string `config:"status" json:"status,omitempty" elastic_mapping:"status:{type:keyword}"`
+	Title   string `config:"title" json:"title,omitempty" elastic_mapping:"title:{type:keyword}"`
+	Summary string `config:"summary" json:"summary,omitempty" elastic_mapping:"summary:{type:keyword}"`
 }
 
-// ChatSessions represents the response for retrieving all chat sessions
-type Sessions struct {
-	Sessions []Session `json:"sessions"`
-}
-
-
-// MessageRequest represents the request payload for sending a message
 type MessageRequest struct {
 	Message string `json:"message"`
 }
 
-// ChatMessage represents an individual message within a chat session history
-type ChatMessage struct {
-	SessionID  string     `json:"session_id"`
-	SequenceID string        `json:"sequence_id"`
-	Created    *time.Time `json:"created"`
-	Message    string     `json:"message"`
-	Response   string     `json:"response"`
-}
+const MessageTypeUser string = "user"
+const MessageTypeAssistant string = "assistant"
+const MessageTypeSystem string = "system"
 
-// ChatSessionHistoryResponse represents the response for retrieving chat session history
-type ChatSessionHistoryResponse struct {
-	Messages []ChatMessage `json:"messages"`
+type ChatMessage struct {
+	orm.ORMObjectBase
+	MessageType string `json:"type"` // user, assistant, system
+	SessionID   string `json:"session_id"`
+	From        string `json:"from"`
+	To          string `json:"to,omitempty"`
+	Message     string `config:"message" json:"message,omitempty" elastic_mapping:"message:{type:keyword}"`
 }
 
 func (h APIHandler) getChatSessions(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	t:= time.Now()
-	response := Sessions{
-		Sessions: []Session{
-			{
-				SessionID: "1",
-				Created:  &t,
-				Status:   "active",
-				Title:    "Chat SessionID 1",
-				Summary:  "This is a summary of the chat session",
-			},
-		},
+
+	q := orm.Query{}
+	q.From = h.GetIntOrDefault(req, "from", 0)
+	q.Size = h.GetIntOrDefault(req, "size", 20)
+
+	err, res := orm.Search(&Session{}, &q)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
-	err := h.WriteJSON(w, response, 200)
+	_, err = h.Write(w, res.Raw)
 	if err != nil {
 		h.Error(w, err)
 	}
 }
 
 func (h APIHandler) newChatSession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	t:= time.Now()
-	response := Session{
-		SessionID: "1",
-		Created:  &t,
-		Status:   "active",
+	obj := Session{
+		Status: "active",
 	}
 
-	err := h.WriteJSON(w, response, 200)
+	err := orm.Create(nil, &obj)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	err = h.WriteJSON(w, util.MapStr{
+		"_id":     obj.ID,
+		"result":  "created",
+		"_source": obj,
+	}, 200)
+
 	if err != nil {
 		h.Error(w, err)
 	}
 }
 
 func (h APIHandler) openChatSession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	sessionID:=ps.MustGetParameter("session_id")
+	id := ps.MustGetParameter("session_id")
 
-	t:= time.Now()
-	response := Session{
-		SessionID: sessionID,
-		Updated:  &t,
-		Status:   "active",
+	obj := Session{}
+	obj.ID = id
+
+	exists, err := orm.Get(&obj)
+	if !exists || err != nil {
+		h.WriteJSON(w, util.MapStr{
+			"_id":   id,
+			"found": false,
+		}, http.StatusNotFound)
+		return
 	}
 
-	err := h.WriteJSON(w, response, 200)
+	obj.Status = "active"
+	err = orm.Update(nil, &obj)
+	if err != nil {
+		h.Error(w, err)
+		return
+	}
+
+	err = h.WriteJSON(w, util.MapStr{
+		"found":   true,
+		"_id":     id,
+		"_source": obj,
+	}, 200)
 	if err != nil {
 		h.Error(w, err)
 	}
 }
 
 func (h APIHandler) getChatHistoryBySession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	sessionID:=ps.MustGetParameter("session_id")
+	q := orm.Query{}
+	q.Conds = orm.And(orm.Eq("session_id", ps.MustGetParameter("session_id")))
+	q.From = h.GetIntOrDefault(req, "from", 0)
+	q.Size = h.GetIntOrDefault(req, "size", 20)
 
-	t:= time.Now()
-	response := ChatSessionHistoryResponse{
-		Messages: []ChatMessage{
-			{
-				SequenceID: sessionID,
-				Created:    &t,
-				Message:    "Hello",
-				Response:   "Hi",
-			},
-		},
+	err, res := orm.Search(&ChatMessage{}, &q)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
-	err := h.WriteJSON(w, response, 200)
+	_, err = h.Write(w, res.Raw)
 	if err != nil {
 		h.Error(w, err)
 	}
 }
 
-
-type PromoteRequest struct {
-	Prompt string  `json:"prompt"`
-}
-
 func (h APIHandler) sendChatMessage(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
-	sessionID:=ps.MustGetParameter("session_id")
-
+	sessionID := ps.MustGetParameter("session_id")
 	var request MessageRequest
 	if err := h.DecodeJSON(req, &request); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	topk:=5
+	obj := ChatMessage{
+		SessionID: sessionID,
+		MessageType: MessageTypeUser,
+		Message:   request.Message,
+	}
 
-	rst, err := useRetriaver(getStore(), request.Message, topk)
+	err := orm.Create(nil, &obj)
 	if err != nil {
-		h.WriteError(w,err.Error(),500)
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	llm:=getOllamaMistral()
-	answer, err := GetAnswer(context.Background(), llm, rst, request.Message)
-	if err != nil {
-		h.WriteError(w,err.Error(),500)
-		return
-	}
+	err = h.WriteJSON(w, util.MapStr{
+		"_id":     obj.ID,
+		"result":  "created",
+		"_source": obj,
+	}, 200)
 
-	rst1, err1:= Translate(getOllamaLlama2(), answer)
-	if err1 != nil {
-		h.WriteError(w,err.Error(),500)
-		return
-	}
-
-	// websocket.SendPrivateMessage(ps.MustGetParameter("session_id"),rst1)
-
-	t:= time.Now()
-	response:=ChatMessage{
-		SequenceID: sessionID,
-		Created:    &t,
-		Message:    request.Message,
-		Response:   rst1,
-	}
-
-	err = h.WriteJSON(w, response, 200)
 	if err != nil {
 		h.Error(w, err)
 	}
 }
 
-
 func (h APIHandler) closeChatSession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	sessionID :=ps.MustGetParameter("session_id")
 
-	t:= time.Now()
-	response := Session{
-		SessionID: sessionID,
-		Created:   &t,
-		Status:    "closed",
+	id := ps.MustGetParameter("session_id")
+	obj := Session{}
+	obj.ID = id
+
+	exists, err := orm.Get(&obj)
+	if !exists || err != nil {
+		h.WriteJSON(w, util.MapStr{
+			"_id":   id,
+			"found": false,
+		}, http.StatusNotFound)
+		return
 	}
 
-	err := h.WriteJSON(w, response, 200)
+	obj.Status = "closed"
+	err = orm.Update(nil, &obj)
+	if err != nil {
+		h.Error(w, err)
+		return
+	}
+
+	err = h.WriteJSON(w, util.MapStr{
+		"found":   true,
+		"_id":     id,
+		"_source": obj,
+	}, 200)
 	if err != nil {
 		h.Error(w, err)
 	}
+
 }
