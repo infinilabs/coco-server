@@ -35,4 +35,5 @@ type Config struct {
 type OllamaConfig struct {
 	Model string   `config:"model"`
 	Endpoint string   `config:"endpoint"`
+	Keepalive string   `config:"keepalive"`
 }

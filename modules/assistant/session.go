@@ -183,7 +183,11 @@ func (h APIHandler) sendChatMessage(w http.ResponseWriter, req *http.Request, ps
 			//4. send to LLM
 
 			ollamaConfig:=common.AppConfig().OllamaConfig
-			llm, err := ollama.New(ollama.WithServerURL(ollamaConfig.Endpoint),ollama.WithModel(ollamaConfig.Model))
+			llm, err := ollama.New(
+				ollama.WithServerURL(ollamaConfig.Endpoint),
+				ollama.WithModel(ollamaConfig.Model),
+				ollama.WithKeepAlive(ollamaConfig.Keepalive))
+			//TODO, more options exposed to config
 			if err != nil {
 				log.Error(err)
 				return
@@ -199,7 +203,9 @@ func (h APIHandler) sendChatMessage(w http.ResponseWriter, req *http.Request, ps
 			chunkSeq:=0
 			messageID:=util.GetUUID()
 			messageBuffer:=strings.Builder{}
-			completion, err := llm.GenerateContent(ctx, content, llms.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
+			completion, err := llm.GenerateContent(ctx, content,
+				llms.WithTemperature(0.8),
+				llms.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
 				chunkSeq+=1
 				msg:=util.MustToJSON(util.MapStr{
 					"session_id": sessionID,
