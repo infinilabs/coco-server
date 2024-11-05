@@ -14,9 +14,8 @@ import (
 )
 
 type Coco struct {
+	
 }
-
-
 
 func (this *Coco) Setup() {
 	err := orm.RegisterSchemaWithIndexName(assistant.Session{}, "session")
@@ -28,14 +27,20 @@ func (this *Coco) Setup() {
 		panic(err)
 	}
 
-	cocoConfig := common.Config{}
+	cocoConfig := common.Config{
+		OllamaConfig: common.OllamaConfig{
+			Model:     "llama3.2:1b",
+			Keepalive: "-1",
+			Endpoint:  "http://localhost:11434",
+		},
+	}
 
 	ok, err := env.ParseConfig("coco", &cocoConfig)
 	if ok && err != nil {
 		panic(err)
 	}
 	//update coco's config
-	global.Register("APP_CONFIG",&cocoConfig)
+	global.Register("APP_CONFIG", &cocoConfig)
 
 	log.Debugf("config: %v", cocoConfig)
 }
