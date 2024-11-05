@@ -22,9 +22,5 @@ func init() {
 	api.HandleAPIMethod(api.POST, "/chat/:session_id/_send", handler.sendChatMessage)
 	api.HandleAPIMethod(api.POST, "/chat/:session_id/_close", handler.closeChatSession)
 	api.HandleAPIMethod(api.GET, "/chat/:session_id/_history", handler.getChatHistoryBySession)
-
-
-	// Websockets
-	api.HandleWebSocketCommand("CHAT","send a message to AI assistant", handler.sendChatMessageToAIbot)
 }
 
