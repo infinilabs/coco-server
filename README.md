@@ -7,6 +7,8 @@ Coco AI is a unified search platform that connects all your enterprise applicati
 
 ## Vision
 
+![](https://github.com/infinilabs/coco-website/blob/main/public/github-banner.gif)
+
 At Coco, we aim to streamline workplace collaboration by centralizing access to enterprise data. The Coco App provides a seamless, cross-platform experience, enabling teams to easily search, connect, and collaborate within their workspace.
 
 ## Use Cases
