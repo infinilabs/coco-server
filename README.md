@@ -51,8 +51,10 @@ docker run -itd --name easysearch -p 9200:9200 infinilabs/easysearch:1.8.3-265
 
 ### Coco AI
 
+Modify `coco.yml` with correct `env` settings, or start the coco server with the correct environments like this:
+
 ```
-➜  coco git:(main) ✗ ./bin/coco
+➜  coco git:(main) ✗ OLLAMA_MODEL=llama3.2:1b ES_PASSWORD=45ff432a5428ade77c7b  ./bin/coco
    ___  ___  ___  ___     _     _____
   / __\/___\/ __\/___\   /_\    \_   \
  / /  //  // /  //  //  //_\\    / /\/
