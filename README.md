@@ -49,29 +49,6 @@ Install Easysearch
 docker run -itd --name easysearch -p 9200:9200 infinilabs/easysearch:1.8.3-265
 ```
 
-Setup Easysearch
-```
-curl -X PUT -u admin:YOUR_PASSWORD https://localhost:9200/coco   -H 'Content-Type: application/json'   --data-raw '{
-   "settings": {
-     "index.knn": true
-   },
-   "mappings": {
-     "properties": {
-       "content_embedding": {
-         "type": "knn_dense_float_vector",
-         "knn": {
-           "dims": 50,
-           "model": "lsh",
-           "similarity": "cosine",
-           "L": 99,
-           "k": 1
-         }
-       }
-     }
-   }
- }'
-```
-
 ### Coco AI
 
 ```
