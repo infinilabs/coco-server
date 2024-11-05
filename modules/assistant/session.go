@@ -9,6 +9,7 @@ import (
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/lib/langchaingo/llms"
 	"infini.sh/coco/lib/langchaingo/llms/ollama"
+	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/api/websocket"
 	"infini.sh/framework/core/orm"
@@ -181,7 +182,8 @@ func (h APIHandler) sendChatMessage(w http.ResponseWriter, req *http.Request, ps
 			//3. assemble with the agent's role setting
 			//4. send to LLM
 
-			llm, err := ollama.New(ollama.WithModel("llama3.2:1b"))
+			ollamaConfig:=common.AppConfig().OllamaConfig
+			llm, err := ollama.New(ollama.WithServerURL(ollamaConfig.Endpoint),ollama.WithModel(ollamaConfig.Model))
 			if err != nil {
 				log.Error(err)
 				return

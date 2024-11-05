@@ -5,13 +5,18 @@
 package modules
 
 import (
+	log "github.com/cihub/seelog"
 	"infini.sh/coco/modules/assistant"
+	"infini.sh/coco/modules/common"
+	"infini.sh/framework/core/env"
+	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/orm"
 )
 
 type Coco struct {
-	
 }
+
+
 
 func (this *Coco) Setup() {
 	err := orm.RegisterSchemaWithIndexName(assistant.Session{}, "session")
@@ -23,10 +28,16 @@ func (this *Coco) Setup() {
 		panic(err)
 	}
 
+	cocoConfig := common.Config{}
 
+	ok, err := env.ParseConfig("coco", &cocoConfig)
+	if ok && err != nil {
+		panic(err)
+	}
+	//update coco's config
+	global.Register("APP_CONFIG",&cocoConfig)
 
-
-
+	log.Debugf("config: %v", cocoConfig)
 }
 
 func (this *Coco) Start() error {

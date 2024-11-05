@@ -1,13 +1,14 @@
 env:
   OLLAMA_ENDPOINT: http://localhost:11434
+  OLLAMA_MODEL: llama3.2:1b
   ES_ENDPOINT: https://localhost:9200
   ES_USERNAME: admin
   ES_PASSWORD: 45ff432a5428ade77c7b
 
 coco:
-  collection_name: coco
   ollama:
     endpoint: $[[env.OLLAMA_ENDPOINT]]
+    model: $[[env.OLLAMA_MODEL]]
 
 elastic:
   elasticsearch: prod
