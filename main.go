@@ -11,8 +11,8 @@ import (
 	"infini.sh/framework"
 	"infini.sh/framework/core/module"
 	"infini.sh/framework/core/util"
-	apiModule "infini.sh/framework/modules/api"
 	"infini.sh/framework/modules/elastic"
+	"infini.sh/framework/modules/ui"
 	stats "infini.sh/framework/plugins/stats_statsd"
 )
 
@@ -35,7 +35,7 @@ func main() {
 	defer app.Shutdown()
 
 	if app.Setup(func() {
-		module.RegisterSystemModule(&apiModule.APIModule{})
+		module.RegisterSystemModule(&ui.UIModule{})
 		module.RegisterSystemModule(&elastic.ElasticModule{})
 		module.RegisterUserPlugin(&stats.StatsDModule{})
 		module.RegisterUserPlugin(&modules.Coco{})

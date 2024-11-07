@@ -4,6 +4,7 @@ env:
   ES_ENDPOINT: https://localhost:9200
   ES_USERNAME: admin
   ES_PASSWORD: 45ff432a5428ade77c7b
+  SERV_BINDING: localhost:2900
 
 coco:
   ollama:
@@ -29,3 +30,21 @@ elasticsearch:
       username:  $[[env.ES_USERNAME]]
       password:  $[[env.ES_PASSWORD]]
 
+web:
+  enabled: true
+  network:
+    binding: $[[env.SERV_BINDING]]
+  tls:
+    enabled: true
+    skip_insecure_verify: true
+    default_domain: "api.coco.rs"
+    auto_issue:
+      enabled: false
+      email: "hello@infinilabs.com"
+      include_default_domain: true
+      domains:
+        - "www.coco.rs"
+      provider:
+        tencent_dns:
+          secret_id: $[[keystore.TENCENT_DNS_ID]] #./bin/coco keystore add TENCENT_DNS_KEY
+          secret_key: $[[keystore.TENCENT_DNS_KEY]] #./bin/coco keystore add TENCENT_DNS_ID
