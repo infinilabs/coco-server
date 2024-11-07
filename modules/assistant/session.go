@@ -224,6 +224,17 @@ func (h APIHandler) sendChatMessage(w http.ResponseWriter, req *http.Request, ps
 			}
 			_ = completion
 
+			chunkSeq+=1
+			msg:=util.MustToJSON(util.MapStr{
+				"session_id": sessionID,
+				"message_type": MessageTypeSystem,
+				"message_id": messageID,
+				"chunk_sequence":chunkSeq,
+				"message_chunk":string("assistant finished output"),
+			})
+			websocket.SendPrivateMessage(webSocketID,msg)
+
+
 			//save message to system
 			if messageBuffer.Len()>0{
 				obj = ChatMessage{
