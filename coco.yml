@@ -10,6 +10,7 @@ coco:
   ollama:
     endpoint: $[[env.OLLAMA_ENDPOINT]]
     model: $[[env.OLLAMA_MODEL]]
+    keepalive: 30m
 
 elastic:
   elasticsearch: prod

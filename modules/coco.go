@@ -30,7 +30,7 @@ func (this *Coco) Setup() {
 	cocoConfig := common.Config{
 		OllamaConfig: common.OllamaConfig{
 			Model:     "llama3.2:1b",
-			Keepalive: "-1",
+			Keepalive: "30m",
 			Endpoint:  "http://localhost:11434",
 		},
 	}
