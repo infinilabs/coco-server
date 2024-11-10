@@ -18,14 +18,9 @@ type Coco struct {
 }
 
 func (this *Coco) Setup() {
-	err := orm.RegisterSchemaWithIndexName(assistant.Session{}, "session")
-	if err != nil {
-		panic(err)
-	}
-	err = orm.RegisterSchemaWithIndexName(assistant.ChatMessage{}, "message")
-	if err != nil {
-		panic(err)
-	}
+	orm.MustRegisterSchemaWithIndexName(assistant.Session{}, "session")
+	orm.MustRegisterSchemaWithIndexName(common.Document{}, "document")
+	orm.MustRegisterSchemaWithIndexName(assistant.ChatMessage{}, "message")
 
 	cocoConfig := common.Config{
 		OllamaConfig: common.OllamaConfig{
