@@ -37,7 +37,7 @@ web:
   network:
     binding: $[[env.SERV_BINDING]]
   tls:
-    enabled: true
+    enabled: false
     skip_insecure_verify: true
     default_domain: "api.coco.rs"
     auto_issue:

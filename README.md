@@ -42,6 +42,15 @@ ollama pull mistral:latest
 ollama pull nomic-embed-text:latest
 ```
 
+
+### OCR Server
+
+Coco use a [OCR Server](https://github.com/otiai10/ocrserver) to processing image files.
+
+```
+docker run -p 8080:8080 otiai10/ocrserver
+```
+
 ### Easysearch
 
 Install Easysearch
@@ -173,5 +182,98 @@ curl  -H 'Content-Type: application/json'   -XPOST http://localhost:2900/chat/cs
     "status": "closed"
   },
   "found": true
+}
+```
+
+## Indexing API Reference
+
+### Index a Document
+
+```shell
+//request
+curl  -H 'Content-Type: application/json'   -XPOST http://localhost:2900/document/ -d'{ "source": "google_drive", "category": "report", "categories": ["business", "quarterly_reports"], "cover": "https://example.com/images/report_cover.jpg", "title": "Q3 Business Report", "summary": "An overview of the company financial performance for Q3.", "type": "PDF", "lang": "en", "content": "This quarters revenue increased by 15%, driven by strong sales in the APAC region...", "thumbnail": "https://example.com/images/report_thumbnail.jpg", "owner": "jdoe", "tags": ["finance", "quarterly", "business", "report"], "url": "https://drive.google.com/file/d/abc123/view", "size": 1048576, "metadata": { "version": "1.2", "department": "Finance", "last_reviewed": "2024-10-20" }, "last_updated_by": { "user": { "username": "jdoe", "userid": "user123" }, "timestamp": "2024-11-01T15:30:00Z" } }'
+
+//response
+{
+  "_id": "cso9vr3q50k38nobvmcg",
+  "result": "created"
+}
+```
+
+### Get a Document
+
+```shell
+//request
+curl   -XGET http://localhost:2900/document/cso9vr3q50k38nobvmcg
+
+//response
+{
+  "_id": "cso9vr3q50k38nobvmcg",
+  "_source": {
+    "id": "cso9vr3q50k38nobvmcg",
+    "created": "2024-11-10T19:58:36.009086+08:00",
+    "updated": "2024-11-10T19:58:36.009092+08:00",
+    "source": "google_drive",
+    "category": "report",
+    "categories": [
+      "business",
+      "quarterly_reports"
+    ],
+    "cover": "https://example.com/images/report_cover.jpg",
+    "title": "Q3 Business Report",
+    "summary": "An overview of the company financial performance for Q3.",
+    "type": "PDF",
+    "lang": "en",
+    "content": "This quarters revenue increased by 15%, driven by strong sales in the APAC region...",
+    "thumbnail": "https://example.com/images/report_thumbnail.jpg",
+    "owner": "jdoe",
+    "tags": [
+      "finance",
+      "quarterly",
+      "business",
+      "report"
+    ],
+    "url": "https://drive.google.com/file/d/abc123/view",
+    "size": 1048576,
+    "metadata": {
+      "department": "Finance",
+      "last_reviewed": "2024-10-20",
+      "version": "1.2"
+    },
+    "last_updated_by": {
+      "user": {
+        "username": "jdoe",
+        "userid": "user123"
+      },
+      "timestamp": "2024-11-01T15:30:00Z"
+    }
+  },
+  "found": true
+}
+```
+
+### Update a Document
+
+```shell
+//request
+curl  -H 'Content-Type: application/json'   -XPUT http://localhost:2900/document/cso9vr3q50k38nobvmcg -d'{ "source": "google_drive", "category": "report", "categories": ["business", "quarterly_reports"], "cover": "https://example.com/images/report_cover.jpg", "title": "Q3 Business Report", "summary": "An overview of the company financial performance for Q3.", "type": "PDF", "lang": "en", "content": "This quarters revenue increased by 15%, driven by strong sales in the APAC region...", "thumbnail": "https://example.com/images/report_thumbnail.jpg", "owner": "jdoe", "tags": ["finance", "quarterly", "business", "report"], "url": "https://drive.google.com/file/d/abc123/view", "size": 1048576, "metadata": { "version": "1.2", "department": "Finance", "last_reviewed": "2024-10-20" }, "last_updated_by": { "user": { "username": "jdoe", "userid": "user123" }, "timestamp": "2024-11-01T15:30:00Z" } }'
+
+//response
+{
+  "_id": "cso9vr3q50k38nobvmcg",
+  "result": "updated"
+}
+```
+
+### Delete a Document
+
+```shell
+//request
+curl  -XDELETE http://localhost:2900/document/cso9vr3q50k38nobvmcg
+
+//response
+{
+  "_id": "cso9vr3q50k38nobvmcg",
+  "result": "deleted"
 }
 ```
