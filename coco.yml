@@ -19,6 +19,32 @@ elastic:
     enabled: true
   orm:
     enabled: true
+    index_prefix: "coco_"
+    override_exists_template: true
+    templates:
+      "coco-search": |
+        {
+          "order": 10,
+          "index_patterns": [
+            "coco_*"
+          ],
+          "settings": {
+            "index": {
+              "analysis": {
+                "analyzer": {
+                  "suggest_text_search": {
+                    "filter": [
+                     "lowercase",
+                      "word_delimiter"
+                    ],
+                    "tokenizer": "classic"
+                  }
+                }
+              }
+            }
+          },
+          "mappings": {}
+        }
 
 elasticsearch:
   - name: prod
