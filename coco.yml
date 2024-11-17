@@ -84,6 +84,7 @@ elastic:
             "source": {
               "from": "{{from}}",
               "size": "{{size}}",
+              "_source": [ "{{#source}}","{{.}}","{{/source}}" ],
               "query": {
                 "bool": {
                   "must": [],

@@ -280,6 +280,28 @@ curl  -XDELETE http://localhost:2900/document/cso9vr3q50k38nobvmcg
 
 ## Search API Reference
 
+
+### Get Query Suggestions
+
+```shell
+//request
+curl  -XGET http://localhost:2900/query/_suggest\?query\=buss
+
+//response
+{
+  "query": "buss",
+  "suggestions": [
+    {
+      "suggestion": "Q3 Business Report",
+      "score": 0.99,
+      "source": "google_drive"
+    }
+  ]
+}
+```
+
+### Get Search Results
+
 ```shell
 //request
 curl  -XGET http://localhost:2900/query/_search\?query\=Business
@@ -287,3 +309,4 @@ curl  -XGET http://localhost:2900/query/_search\?query\=Business
 //response
 {"took":15,"timed_out":false,"_shards":{"total":1,"successful":1,"skipped":0,"failed":0},"hits":{"total":{"value":1,"relation":"eq"},"max_score":3.0187376,"hits":[{"_index":"coco_document","_type":"_doc","_id":"csstf6rq50k5sqipjaa0","_score":3.0187376,"_source":{"id":"csstf6rq50k5sqipjaa0","created":"2024-11-17T19:46:35.79141+08:00","updated":"2024-11-17T19:46:35.79142+08:00","source":"google_drive","category":"report","categories":["business","quarterly_reports"],"cover":"https://example.com/images/report_cover.jpg","title":"Q3 Business Report","summary":"An overview of the company financial performance for Q3.","type":"PDF","lang":"en","content":"This quarters revenue increased by 15%, driven by strong sales in the APAC region...","thumbnail":"https://example.com/images/report_thumbnail.jpg","owner":"jdoe","tags":["finance","quarterly","business","report"],"url":"https://drive.google.com/file/d/abc123/view","size":1048576,"metadata":{"department":"Finance","last_reviewed":"2024-10-20","version":"1.2"},"last_updated_by":{"user":{"username":"jdoe","userid":"user123"},"timestamp":"2024-11-01T15:30:00Z"}}}]}}
 ```
+

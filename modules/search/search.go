@@ -10,6 +10,7 @@ import (
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
 	"net/http"
+	"strings"
 )
 
 // MatchQuery represents a match query in Elasticsearch
@@ -73,7 +74,8 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		query = h.GetParameterOrDefault(req, "query", "")
 		from  = h.GetIntOrDefault(req, "from", 0)
 		size  = h.GetIntOrDefault(req, "size", 20)
-		field = h.GetParameterOrDefault(req, "field", "title")
+		field = h.GetParameterOrDefault(req, "search_field", "title")
+		source = h.GetParameterOrDefault(req, "source_fields", "*")
 	)
 
 	q := orm.Query{}
@@ -85,6 +87,7 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 			"size":  size,
 			"field": field,
 			"query": query,
+			"source": strings.Split(source,","),
 		}
 		q.TemplatedQuery = &templatedQuery
 	} else {
