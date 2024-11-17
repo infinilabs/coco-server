@@ -12,6 +12,11 @@ coco:
     model: $[[env.OLLAMA_MODEL]]
     keepalive: 30m
 
+## Cleanup exists data:
+# curl -u admin:45ff432a5428ade77c7b -k -XDELETE   https://localhost:9200/_template/coco-search
+# curl -u admin:45ff432a5428ade77c7b -k -XDELETE   https://localhost:9200/_template/coco
+# curl -u admin:45ff432a5428ade77c7b -k -XDELETE  https://localhost:9200/_scripts/coco-query-string
+# curl -u admin:45ff432a5428ade77c7b -k -XDELETE   https://localhost:9200/coco_*
 elastic:
   elasticsearch: prod
   enabled: true
@@ -21,7 +26,7 @@ elastic:
     enabled: true
     index_prefix: "coco_"
     override_exists_template: true
-    templates:
+    index_templates:
       "coco-search": |
         {
           "order": 10,
@@ -31,11 +36,36 @@ elastic:
           "settings": {
             "index": {
               "analysis": {
+                "char_filter": {
+                    "tsconvert" : {
+                        "type" : "stconvert",
+                        "delimiter" : ",",
+                        "keep_both" : false,
+                        "convert_type" : "t2s"
+                    }
+                 },
+                "tokenizer": {
+                      "my_pinyin": {
+                        "type": "pinyin",
+                        "keep_first_letter": true,
+                        "keep_separate_first_letter": true,
+                        "keep_full_pinyin": true,
+                        "keep_original": false,
+                        "limit_first_letter_length": 16,
+                        "lowercase": true
+                      }
+                    },
                 "analyzer": {
-                  "suggest_text_search": {
+                  "pinyin_analyzer": {
+                     "tokenizer": "my_pinyin"
+                   },
+                  "combined_text_analyzer": {
+                    "char_filter": ["tsconvert"],
                     "filter": [
-                     "lowercase",
-                      "word_delimiter"
+                      "lowercase",
+                      "asciifolding",
+                      "word_delimiter",
+                      "unique"
                     ],
                     "tokenizer": "classic"
                   }
@@ -46,6 +76,64 @@ elastic:
           "mappings": {}
         }
 
+    search_templates:
+      "coco-query-string": |
+        {
+          "script": {
+            "lang": "mustache",
+            "source": {
+              "from": "{{from}}",
+              "size": "{{size}}",
+              "query": {
+                "bool": {
+                  "must": [],
+                  "should": [
+                    {
+                      "prefix": {
+                        "{{field}}.keyword": {
+                          "value": "{{query}}",
+                          "boost": 10
+                        }
+                      }
+                    },
+                    {
+                      "match_phrase_prefix": {
+                        "{{field}}": {
+                          "query": "{{query}}",
+                          "boost": 2
+                        }
+                      }
+                    },
+                    {
+                      "match": {
+                        "{{field}}": {
+                          "query": "{{query}}",
+                          "fuzziness": "AUTO",
+                          "max_expansions": 10,
+                          "prefix_length": 2,
+                          "fuzzy_transpositions": true
+                        }
+                      }
+                    },
+                    {
+                      "query_string": {
+                        "fields": ["{{field}}","{{field}}.keyword^10","combined_fulltext"],
+                        "query": "{{query}}",
+                        "fuzziness": "AUTO",
+                        "fuzzy_prefix_length": 2,
+                        "fuzzy_max_expansions": 10,
+                        "fuzzy_transpositions": true,
+                        "allow_leading_wildcard": false
+                      }
+                    },{"match": {
+                      "{{field}}.pinyin": "{{query}}"
+                      }}
+                  ]
+                }
+              }
+            }
+          }
+        }
 elasticsearch:
   - name: prod
     enabled: true
@@ -76,3 +164,5 @@ web:
         tencent_dns:
           secret_id: $[[keystore.TENCENT_DNS_ID]] #./bin/coco keystore add TENCENT_DNS_ID
           secret_key: $[[keystore.TENCENT_DNS_KEY]] #./bin/coco keystore add TENCENT_DNS_KEY
+
+
