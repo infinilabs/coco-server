@@ -5,8 +5,12 @@
 package search
 
 import (
+	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
+	"infini.sh/framework/core/orm"
+	"infini.sh/framework/core/util"
 	"net/http"
+	"strings"
 )
 
 // Suggestion represents an individual suggestion returned by the API
@@ -42,22 +46,52 @@ type Link struct {
 
 func (h APIHandler) suggest(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
-	query := h.MustGetParameter(w, req, "query")
-	size := h.GetIntOrDefault(req, "size", 10)
+	var (
+		//context = h.GetParameterOrDefault(req, "context", "")
+		query  = h.GetParameterOrDefault(req, "query", "")
+		from   = h.GetIntOrDefault(req, "from", 0)
+		size   = h.GetIntOrDefault(req, "size", 20)
+		field  = h.GetParameterOrDefault(req, "search_field", "title")
+		source = h.GetParameterOrDefault(req, "source_fields", "title,source,url")
+	)
 
-	context := h.GetParameterOrDefault(req, "context", "")
-	//sources := req.URL.Query()["sources"] // Optional slice of sources
+	q := orm.Query{}
+	if query != "" {
+		templatedQuery := orm.TemplatedQuery{}
+		templatedQuery.TemplateID = "coco-query-string"
+		templatedQuery.Parameters = util.MapStr{
+			"from":   from,
+			"size":   size,
+			"field":  field,
+			"query":  query,
+			"source": strings.Split(source,","),
+		}
+		q.TemplatedQuery = &templatedQuery
+	} else {
+		body, err := h.GetRawBody(req)
+		if err != nil {
+			http.Error(w, "query must be provided", http.StatusBadRequest)
+			return
+		}
+		q.RawQuery = body
+	}
 
-	// If query is missing, return an error
-	if query == "" {
-		http.Error(w, "query parameter is required", http.StatusBadRequest)
+	err, res := orm.Search(&common.Document{}, &q)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// Placeholder: Generate some suggestions (In practice, this would query your data source)
-	suggestions := []Suggestion{
-		{Suggestion: "search engine", Score: 0.99, Source: "auto-complete"},
-		{Suggestion: "search suggest api", Score: 0.95, Source: "recent-search", Context: context},
+	suggestions := []Suggestion{}
+	for _,item:= range res.Result{
+		i,ok:=item.(map[string]interface{})
+		if ok{
+			v,ok:=i["title"]
+			if ok{
+				x,_:=i["source"]
+				suggestions=append(suggestions,Suggestion{Suggestion: v.(string), Score: 0.99,Source: x.(string)})
+			}
+		}
 	}
 
 	// Limit the number of suggestions based on the size parameter
@@ -71,7 +105,7 @@ func (h APIHandler) suggest(w http.ResponseWriter, req *http.Request, ps httprou
 		Suggestions: suggestions,
 	}
 
-	err := h.WriteJSON(w, response,200)
+	err = h.WriteJSON(w, response,200)
 	if err != nil {
 		h.Error(w,err)
 	}
