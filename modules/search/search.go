@@ -5,7 +5,10 @@
 package search
 
 import (
+	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
+	"infini.sh/framework/core/orm"
+	"infini.sh/framework/core/util"
 	"net/http"
 )
 
@@ -21,6 +24,11 @@ type TermQuery struct {
 	Value string `json:"value"`
 }
 
+type QueryStringQuery struct {
+	Field string `json:"field"`
+	Value string `json:"query"`
+}
+
 // RangeQuery represents a range query in Elasticsearch
 type RangeQuery struct {
 	Field string `json:"field"`
@@ -30,10 +38,10 @@ type RangeQuery struct {
 
 // BoolQuery supports combining multiple queries
 type BoolQuery struct {
-	Must     []interface{} `json:"must,omitempty"`
-	Should   []interface{} `json:"should,omitempty"`
-	MustNot  []interface{} `json:"must_not,omitempty"`
-	Filter   []interface{} `json:"filter,omitempty"`
+	Must    []interface{} `json:"must,omitempty"`
+	Should  []interface{} `json:"should,omitempty"`
+	MustNot []interface{} `json:"must_not,omitempty"`
+	Filter  []interface{} `json:"filter,omitempty"`
 }
 
 // Aggregation represents a basic metric aggregation
@@ -47,16 +55,6 @@ type SortOption struct {
 	Order string `json:"order"` // "asc" or "desc"
 }
 
-// SearchRequest mirrors the structure of Elasticsearch's search request
-type SearchRequest struct {
-	Query  interface{}     `json:"query,omitempty"`   // Query DSL for search
-	From   int             `json:"from,omitempty"`    // Pagination: start offset
-	Size   int             `json:"size,omitempty"`    // Pagination: number of results
-	Sort   []SortOption    `json:"sort,omitempty"`    // Sorting options
-	Source []string        `json:"_source,omitempty"` // Fields to include in response
-	Aggs   map[string]Aggregation `json:"aggs,omitempty"` // Aggregations for analytics
-}
-
 // TotalHits represents the total number of hits in the search response
 type TotalHits struct {
 	Value    int    `json:"value"`
@@ -65,53 +63,47 @@ type TotalHits struct {
 
 // SearchResponse represents the response to a search query
 type SearchResponse struct {
-	Took     int                    `json:"took"`
-	Hits     []map[string]interface{} `json:"hits"`
-	Total    TotalHits              `json:"total"`
+	Took  int                      `json:"took"`
+	Hits  []map[string]interface{} `json:"hits"`
+	Total TotalHits                `json:"total"`
 }
 
-
 func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	var (
+		query = h.GetParameterOrDefault(req, "query", "")
+		from  = h.GetIntOrDefault(req, "from", 0)
+		size  = h.GetIntOrDefault(req, "size", 20)
+		field = h.GetParameterOrDefault(req, "field", "title")
+	)
 
-	var searchReq SearchRequest
-	if err:=h.DecodeJSON(req, &searchReq);err != nil {
-		http.Error(w, "invalid request body", http.StatusBadRequest)
-		return
+	q := orm.Query{}
+	if query != "" {
+		templatedQuery := orm.TemplatedQuery{}
+		templatedQuery.TemplateID = "coco-query-string"
+		templatedQuery.Parameters = util.MapStr{
+			"from":  from,
+			"size":  size,
+			"field": field,
+			"query": query,
+		}
+		q.TemplatedQuery = &templatedQuery
+	} else {
+		body, err := h.GetRawBody(req)
+		if err != nil {
+			http.Error(w, "query must be provided", http.StatusBadRequest)
+			return
+		}
+		q.RawQuery = body
 	}
 
-	// Validate the presence of a query
-	if searchReq.Query == nil {
-		http.Error(w, "query must be provided", http.StatusBadRequest)
-		return
-	}
-
-	// Simulate some search hits and response
-	hits := []map[string]interface{}{
-		{
-			"title": "Sample Search Result 1",
-			"content": "This is a sample content for result 1",
-		},
-		{
-			"title": "Sample Search Result 2",
-			"content": "This is a sample content for result 2",
-		},
-	}
-
-	// Simulate total hits with approximate count
-	totalHits := TotalHits{
-		Value:    100,
-		Relation: "gte", // Indicating an approximate result count
-	}
-
-	// Create the response
-	response := SearchResponse{
-		Took:  15,   // Placeholder for query time in milliseconds
-		Hits:  hits, // Simulated search results
-		Total: totalHits,
-	}
-
-	err := h.WriteJSON(w, response,200)
+	err, res := orm.Search(&common.Document{}, &q)
 	if err != nil {
-		h.Error(w,err)
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	_,err=h.Write(w, res.Raw)
+	if err != nil {
+		h.Error(w, err)
 	}
 }
