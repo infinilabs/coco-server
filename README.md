@@ -58,6 +58,11 @@ Install Easysearch
 docker run -itd --name easysearch -p 9200:9200 infinilabs/easysearch:1.8.3-265
 ```
 
+Get the bootstrap password of the Easysearch:
+```
+docker logs easysearch | grep "admin:"
+```
+
 ### Coco AI
 
 Modify `coco.yml` with correct `env` settings, or start the coco server with the correct environments like this:
