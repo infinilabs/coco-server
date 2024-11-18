@@ -171,7 +171,7 @@ curl  -H'WEBSOCKET_SESSION_ID: csk88l3q50kb4hr5unn0'  -H 'Content-Type: applicat
 }]
 ```
 
-Tips: `WEBSOCKET_SESSION_ID` should be replaced to the actually websocket session, you will be received message each time you connect to Coco AI websocket server, eg: `ws://localhost:2900/ws` or `wss://localhost:2900/ws` if you are enabled TLS.
+Tips: `WEBSOCKET_SESSION_ID` should be replaced with the actual WebSocket session ID. You will receive a message each time you connect to the Coco AI WebSocket server. For example: `ws://localhost:2900/ws` or `wss://localhost:2900/ws` if TLS is enabled.
 
 ![](https://github.com/infinilabs/coco-server/blob/main/docs/static/img/websocket-on-connect.jpg?raw=true)
 
