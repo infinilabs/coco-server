@@ -194,6 +194,18 @@ curl  -H 'Content-Type: application/json'   -XPOST http://localhost:2900/chat/cs
 }
 ```
 
+### Cancel a Message
+
+```shell
+//request
+curl   -H 'Content-Type: application/json'   -XPOST http://localhost:2900/chat/csk30fjq50k7l4akku9g/_cancel
+
+//response
+{
+  "acknowledged": true
+}
+```
+
 ## Indexing API Reference
 
 ### Index a Document
