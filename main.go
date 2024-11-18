@@ -8,12 +8,21 @@ import (
 	"infini.sh/coco/config"
 	"infini.sh/coco/modules"
 	_ "infini.sh/coco/modules"
+	_ "infini.sh/coco/plugins"
 	"infini.sh/framework"
 	"infini.sh/framework/core/module"
 	"infini.sh/framework/core/util"
 	"infini.sh/framework/modules/elastic"
+	"infini.sh/framework/modules/pipeline"
+	"infini.sh/framework/modules/queue"
+	queue2 "infini.sh/framework/modules/queue/disk_queue"
 	"infini.sh/framework/modules/task"
 	"infini.sh/framework/modules/ui"
+	_ "infini.sh/framework/plugins/badger"
+	_ "infini.sh/framework/plugins/elastic/bulk_indexing"
+	_ "infini.sh/framework/plugins/elastic/indexing_merge"
+	_ "infini.sh/framework/plugins/http"
+	_ "infini.sh/framework/plugins/queue/consumer"
 	stats "infini.sh/framework/plugins/stats_statsd"
 )
 
@@ -40,6 +49,9 @@ func main() {
 		module.RegisterSystemModule(&elastic.ElasticModule{})
 		module.RegisterUserPlugin(&stats.StatsDModule{})
 		module.RegisterUserPlugin(&task.TaskModule{})
+		module.RegisterSystemModule(&queue2.DiskQueue{})
+		module.RegisterUserPlugin(&queue.Module{})
+		module.RegisterUserPlugin(&pipeline.PipeModule{})
 		module.RegisterUserPlugin(&modules.Coco{})
 
 		module.Start()

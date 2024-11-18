@@ -8,6 +8,6 @@ APP_EOLDate ?= "2025-12-31T10:10:10Z"
 APP_STATIC_FOLDER := .public
 APP_STATIC_PACKAGE := public
 APP_UI_FOLDER := ui
-APP_PLUGIN_FOLDER := modules
+APP_PLUGIN_FOLDER := plugins
 
 include ../framework/Makefile

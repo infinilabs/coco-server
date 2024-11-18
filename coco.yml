@@ -167,3 +167,43 @@ web:
           secret_key: $[[keystore.TENCENT_DNS_KEY]] #./bin/coco keystore add TENCENT_DNS_KEY
 
 
+connector:
+  google_drive: # get your token here: https://developers.google.com/drive/api/quickstart/go
+    enabled: true
+    queue:
+      name: indexing_documents
+    credentials: config/google/drive/credentials.json
+    token: config/google/drive/token.json #token will be generated automatically
+
+
+##background jobs
+pipeline:
+  - name: merge_documents
+    auto_start: true
+    keep_running: true
+    processor:
+      - indexing_merge:
+          input_queue: "indexing_documents"
+          idle_timeout_in_seconds: 1
+          elasticsearch: "prod"
+          index_name: "coco_document"
+          output_queue:
+            name: "merged_documents"
+            label:
+              tag: "merged"
+          worker_size: 1
+          bulk_size_in_kb: 10240
+  - name: ingest_documents
+    auto_start: true
+    keep_running: true
+    processor:
+      - bulk_indexing:
+          bulk:
+            compress: true
+            batch_size_in_mb: 10
+            batch_size_in_docs: 10240
+          consumer:
+            fetch_max_messages: 100
+          queues:
+            type: indexing_merge
+            tag: "merged"
