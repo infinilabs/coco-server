@@ -221,7 +221,7 @@ curl -H 'Content-Type: application/json' -XPOST http://localhost:2900/document/ 
   "summary": "An overview of the company financial performance for Q3.",
   "type": "PDF",
   "lang": "en",
-  "content": "This quarter's revenue increased by 15%, driven by strong sales in the APAC region...",
+  "content": "This quarters revenue increased by 15%, driven by strong sales in the APAC region...",
   "icon": "https://example.com/images/icon.png",
   "thumbnail": "https://example.com/images/report_thumbnail.jpg",
   "tags": ["finance", "quarterly", "business", "report"],
