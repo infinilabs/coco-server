@@ -212,7 +212,52 @@ curl   -H 'Content-Type: application/json'   -XPOST http://localhost:2900/chat/c
 
 ```shell
 //request
-curl  -H 'Content-Type: application/json'   -XPOST http://localhost:2900/document/ -d'{ "source": "google_drive", "category": "report", "categories": ["business", "quarterly_reports"], "cover": "https://example.com/images/report_cover.jpg", "title": "Q3 Business Report", "summary": "An overview of the company financial performance for Q3.", "type": "PDF", "lang": "en", "content": "This quarters revenue increased by 15%, driven by strong sales in the APAC region...", "thumbnail": "https://example.com/images/report_thumbnail.jpg", "owner": "jdoe", "tags": ["finance", "quarterly", "business", "report"], "url": "https://drive.google.com/file/d/abc123/view", "size": 1048576, "metadata": { "version": "1.2", "department": "Finance", "last_reviewed": "2024-10-20" }, "last_updated_by": { "user": { "username": "jdoe", "userid": "user123" }, "timestamp": "2024-11-01T15:30:00Z" } }'
+curl -H 'Content-Type: application/json' -XPOST http://localhost:2900/document/ -d '{
+  "source": "google_drive",
+  "category": "report",
+  "categories": ["business", "quarterly_reports"],
+  "cover": "https://example.com/images/report_cover.jpg",
+  "title": "Q3 Business Report",
+  "summary": "An overview of the company financial performance for Q3.",
+  "type": "PDF",
+  "lang": "en",
+  "content": "This quarter's revenue increased by 15%, driven by strong sales in the APAC region...",
+  "icon": "https://example.com/images/icon.png",
+  "thumbnail": "https://example.com/images/report_thumbnail.jpg",
+  "tags": ["finance", "quarterly", "business", "report"],
+  "url": "https://drive.google.com/file/d/abc123/view",
+  "size": 1048576,
+  "owner": {
+    "avatar": "https://example.com/images/user_avatar.jpg",
+    "username": "jdoe",
+    "userid": "user123"
+  },
+  "metadata": {
+    "version": "1.2",
+    "department": "Finance",
+    "last_reviewed": "2024-10-20",
+    "file_extension": "pdf",
+    "icon_link": "https://example.com/images/file_icon.png",
+    "has_thumbnail": true,
+    "kind": "drive#file",
+    "parents": ["folder123"],
+    "properties": { "shared": "true" },
+    "spaces": ["drive"],
+    "starred": false,
+    "driveId": "drive123",
+    "thumbnail_link": "https://example.com/images/file_thumbnail.jpg",
+    "video_media_metadata": { "durationMillis": "60000", "width": 1920, "height": 1080 },
+    "image_media_metadata": { "width": 1024, "height": 768 }
+  },
+  "last_updated_by": {
+    "user": {
+      "avatar": "https://example.com/images/editor_avatar.jpg",
+      "username": "editor123",
+      "userid": "editor123@example.com"
+    },
+    "timestamp": "2024-11-01T15:30:00Z"
+  }
+}'
 
 //response
 {
@@ -235,40 +280,8 @@ curl   -XGET http://localhost:2900/document/cso9vr3q50k38nobvmcg
     "created": "2024-11-10T19:58:36.009086+08:00",
     "updated": "2024-11-10T19:58:36.009092+08:00",
     "source": "google_drive",
-    "category": "report",
-    "categories": [
-      "business",
-      "quarterly_reports"
-    ],
-    "cover": "https://example.com/images/report_cover.jpg",
-    "title": "Q3 Business Report",
-    "summary": "An overview of the company financial performance for Q3.",
-    "type": "PDF",
-    "lang": "en",
-    "content": "This quarters revenue increased by 15%, driven by strong sales in the APAC region...",
-    "thumbnail": "https://example.com/images/report_thumbnail.jpg",
-    "owner": "jdoe",
-    "tags": [
-      "finance",
-      "quarterly",
-      "business",
-      "report"
-    ],
-    "url": "https://drive.google.com/file/d/abc123/view",
-    "size": 1048576,
-    "metadata": {
-      "department": "Finance",
-      "last_reviewed": "2024-10-20",
-      "version": "1.2"
-    },
-    "last_updated_by": {
-      "user": {
-        "username": "jdoe",
-        "userid": "user123"
-      },
-      "timestamp": "2024-11-01T15:30:00Z"
-    }
-  },
+    ...OMITTED...
+   ,
   "found": true
 }
 ```
@@ -277,7 +290,7 @@ curl   -XGET http://localhost:2900/document/cso9vr3q50k38nobvmcg
 
 ```shell
 //request
-curl  -H 'Content-Type: application/json'   -XPUT http://localhost:2900/document/cso9vr3q50k38nobvmcg -d'{ "source": "google_drive", "category": "report", "categories": ["business", "quarterly_reports"], "cover": "https://example.com/images/report_cover.jpg", "title": "Q3 Business Report", "summary": "An overview of the company financial performance for Q3.", "type": "PDF", "lang": "en", "content": "This quarters revenue increased by 15%, driven by strong sales in the APAC region...", "thumbnail": "https://example.com/images/report_thumbnail.jpg", "owner": "jdoe", "tags": ["finance", "quarterly", "business", "report"], "url": "https://drive.google.com/file/d/abc123/view", "size": 1048576, "metadata": { "version": "1.2", "department": "Finance", "last_reviewed": "2024-10-20" }, "last_updated_by": { "user": { "username": "jdoe", "userid": "user123" }, "timestamp": "2024-11-01T15:30:00Z" } }'
+curl  -H 'Content-Type: application/json'   -XPUT http://localhost:2900/document/cso9vr3q50k38nobvmcg -d'{ "source": "google_drive", ...OMITTED... , "timestamp": "2024-11-01T15:30:00Z" } }'
 
 //response
 {
@@ -328,6 +341,6 @@ curl  -XGET http://localhost:2900/query/_suggest\?query\=buss
 curl  -XGET http://localhost:2900/query/_search\?query\=Business
 
 //response
-{"took":15,"timed_out":false,"_shards":{"total":1,"successful":1,"skipped":0,"failed":0},"hits":{"total":{"value":1,"relation":"eq"},"max_score":3.0187376,"hits":[{"_index":"coco_document","_type":"_doc","_id":"csstf6rq50k5sqipjaa0","_score":3.0187376,"_source":{"id":"csstf6rq50k5sqipjaa0","created":"2024-11-17T19:46:35.79141+08:00","updated":"2024-11-17T19:46:35.79142+08:00","source":"google_drive","category":"report","categories":["business","quarterly_reports"],"cover":"https://example.com/images/report_cover.jpg","title":"Q3 Business Report","summary":"An overview of the company financial performance for Q3.","type":"PDF","lang":"en","content":"This quarters revenue increased by 15%, driven by strong sales in the APAC region...","thumbnail":"https://example.com/images/report_thumbnail.jpg","owner":"jdoe","tags":["finance","quarterly","business","report"],"url":"https://drive.google.com/file/d/abc123/view","size":1048576,"metadata":{"department":"Finance","last_reviewed":"2024-10-20","version":"1.2"},"last_updated_by":{"user":{"username":"jdoe","userid":"user123"},"timestamp":"2024-11-01T15:30:00Z"}}}]}}
+{"took":15,"timed_out":false,"_shards":{"total":1,"successful":1,"skipped":0,"failed":0},"hits":{"total":{"value":1,"relation":"eq"},"max_score":3.0187376,"hits":[{"_index":"coco_document","_type":"_doc","_id":"csstf6rq50k5sqipjaa0","_score":3.0187376,"_source":{"id":"csstf6rq50k5sqipjaa0", ...OMITTED...}}}]}}
 ```
 
