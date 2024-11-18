@@ -21,6 +21,14 @@ At Coco, we aim to streamline workplace collaboration by centralizing access to 
 
 ## Getting Started
 
+### Quickstart
+
+```shell
+./Install.sh
+```
+
+You should be ready to go, or follow the step by step instructions manually if you encounter any issue.
+
 ### Ollama
 
 Install Ollama
