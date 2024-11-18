@@ -12,6 +12,7 @@ import (
 	"infini.sh/framework/core/module"
 	"infini.sh/framework/core/util"
 	"infini.sh/framework/modules/elastic"
+	"infini.sh/framework/modules/task"
 	"infini.sh/framework/modules/ui"
 	stats "infini.sh/framework/plugins/stats_statsd"
 )
@@ -38,6 +39,7 @@ func main() {
 		module.RegisterSystemModule(&ui.UIModule{})
 		module.RegisterSystemModule(&elastic.ElasticModule{})
 		module.RegisterUserPlugin(&stats.StatsDModule{})
+		module.RegisterUserPlugin(&task.TaskModule{})
 		module.RegisterUserPlugin(&modules.Coco{})
 
 		module.Start()

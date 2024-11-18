@@ -13,9 +13,11 @@ import (
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/api/websocket"
 	"infini.sh/framework/core/orm"
+	"infini.sh/framework/core/task"
 	"infini.sh/framework/core/util"
 	"net/http"
 	"strings"
+	"sync"
 )
 
 type Session struct {
@@ -141,6 +143,20 @@ func (h APIHandler) getChatHistoryBySession(w http.ResponseWriter, req *http.Req
 	}
 }
 
+var inflightMessages=sync.Map{}
+
+func (h APIHandler) cancelReplyMessage(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	sessionID := ps.MustGetParameter("session_id")
+	v,ok:=inflightMessages.Load(sessionID)
+	if ok{
+		task.StopTask(v.(string))
+	}
+	err:=h.WriteAckOKJSON(w)
+	if err != nil {
+		h.Error(w, err)
+	}
+}
+
 func (h APIHandler) sendChatMessage(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
 	webSocketID:=req.Header.Get("WEBSOCKET_SESSION_ID")
@@ -170,10 +186,9 @@ func (h APIHandler) sendChatMessage(w http.ResponseWriter, req *http.Request, ps
 		"_source": obj,
 	}}
 
-
 	if webSocketID!=""{
 		//de-duplicate background task per-session, cancelable
-		go func() { //TODO, send to task framework
+		taskID:=task.RunWithinGroup("assistant-session", func(taskCtx context.Context) error {
 			//timeout for 30 seconds
 
 			//TODO
@@ -187,10 +202,11 @@ func (h APIHandler) sendChatMessage(w http.ResponseWriter, req *http.Request, ps
 				ollama.WithServerURL(ollamaConfig.Endpoint),
 				ollama.WithModel(ollamaConfig.Model),
 				ollama.WithKeepAlive(ollamaConfig.Keepalive))
+
 			//TODO, more options exposed to config
 			if err != nil {
 				log.Error(err)
-				return
+				return err
 			}
 			ctx := context.Background()
 
@@ -206,21 +222,21 @@ func (h APIHandler) sendChatMessage(w http.ResponseWriter, req *http.Request, ps
 			completion, err := llm.GenerateContent(ctx, content,
 				llms.WithTemperature(0.8),
 				llms.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
-				chunkSeq+=1
-				msg:=util.MustToJSON(util.MapStr{
-					"session_id": sessionID,
-					"message_type": MessageTypeAssistant,
-					"message_id": messageID,
-					"chunk_sequence":chunkSeq,
-					"message_chunk":string(chunk),
-				})
-				messageBuffer.Write(chunk)
-				websocket.SendPrivateMessage(webSocketID,msg)
-				return nil
-			}))
+					chunkSeq+=1
+					msg:=util.MustToJSON(util.MapStr{
+						"session_id": sessionID,
+						"message_type": MessageTypeAssistant,
+						"message_id": messageID,
+						"chunk_sequence":chunkSeq,
+						"message_chunk":string(chunk),
+					})
+					messageBuffer.Write(chunk)
+					websocket.SendPrivateMessage(webSocketID,msg)
+					return nil
+				}))
 			if err != nil {
 				log.Error(err)
-				return
+				return err
 			}
 			_ = completion
 
@@ -234,7 +250,6 @@ func (h APIHandler) sendChatMessage(w http.ResponseWriter, req *http.Request, ps
 			})
 			websocket.SendPrivateMessage(webSocketID,msg)
 
-
 			//save message to system
 			if messageBuffer.Len()>0{
 				obj = ChatMessage{
@@ -247,10 +262,12 @@ func (h APIHandler) sendChatMessage(w http.ResponseWriter, req *http.Request, ps
 				err=orm.Save(nil,&obj)
 				if err != nil {
 					log.Error(err)
+					return err
 				}
 			}
-
-		}()
+			return nil
+		})
+		inflightMessages.Store(sessionID,taskID)
 	}
 
 	err = h.WriteJSON(w, response, 200)
