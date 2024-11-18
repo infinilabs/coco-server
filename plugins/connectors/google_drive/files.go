@@ -134,7 +134,7 @@ func startIndexingFiles(credentialsPath,tokenPath string, outputQueue *queue.Que
 				Icon:      i.IconLink,
 				Thumbnail: i.ThumbnailLink,
 				Metadata: util.MapStr{
-					"driveId":        i.DriveId,
+					"drive_id":        i.DriveId,
 					"file_id":        i.Id,
 					"email":          i.Owners[0].EmailAddress,
 					"file_extension": i.FileExtension,
