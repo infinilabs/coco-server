@@ -55,6 +55,11 @@ func (h *Plugin) connect(w http.ResponseWriter, req *http.Request, _ httprouter.
 	// Encode customArgs into a single string
 	state := encodeState(customArgs)
 
+
+	if h.oAuthConfig==nil{
+		panic("invalid oauth config")
+	}
+
 	// Generate OAuth URL
 	authURL := h.oAuthConfig.AuthCodeURL(state, oauth2.AccessTypeOffline)
 	http.Redirect(w, req, authURL, http.StatusFound)
