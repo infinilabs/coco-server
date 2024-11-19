@@ -82,6 +82,7 @@ Modify `coco.yml` with correct `env` settings, or start the coco server with the
  / /  //  // /  //  //  //_\\    / /\/
 / /__/ \_// /__/ \_//  /  _  \/\/ /_
 \____|___/\____|___/   \_/ \_/\____/
+
 [COCO] Coco AI - search, connect, collaborate – all in one place.
 [COCO] 1.0.0_SNAPSHOT#001, 2024-10-23 08:37:05, 2025-12-31 10:10:10, 9b54198e04e905406db90d145f4c01fca0139861
 [10-23 17:17:36] [INF] [env.go:179] configuration auto reload enabled

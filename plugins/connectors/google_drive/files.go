@@ -2,122 +2,115 @@ package google_drive
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	log "github.com/cihub/seelog"
 	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
 	"google.golang.org/api/drive/v3"
 	"google.golang.org/api/option"
-	"google.golang.org/api/slides/v1"
 	"infini.sh/coco/modules/common"
+	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/queue"
 	"infini.sh/framework/core/util"
 	"io"
-	"net/http"
 	"os"
+	"runtime"
 	"time"
 )
 
-// Retrieve a token, saves the token, then returns the generated client.
-func getClient(config *oauth2.Config, tokenPath string) *http.Client {
-	// The file token.json stores the user's access and refresh tokens, and is
-	// created automatically when the authorization flow completes for the first
-	// time.
-	tok, err := tokenFromFile(tokenPath)
-	if err != nil {
-		tok = getTokenFromWeb(config)
-		saveToken(tokenPath, tok)
-	}
-	return config.Client(context.Background(), tok)
-}
 
-// Request a token from the web, then returns the retrieved token.
-func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
-	authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
-	fmt.Printf("Go to the following link in your browser then type the "+
-		"authorization code: \n%v\n", authURL)
+func (this *Plugin) startIndexingFiles(tenantID,userID string,tok *oauth2.Token) {
+	var filesProcessed =0
+	defer func() {
+		if !global.Env().IsDebug {
+			if r := recover(); r != nil {
+				var v string
+				switch r.(type) {
+				case error:
+					v = r.(error).Error()
+				case runtime.Error:
+					v = r.(runtime.Error).Error()
+				case string:
+					v = r.(string)
+				}
+				log.Error("error on indexing google drive files,", v)
+			}
+		}
 
-	var authCode string
-	if _, err := fmt.Scan(&authCode); err != nil {
-		panic(err)
-	}
+		if filesProcessed>0{
+			log.Infof("[connector][google_drive] successfully indexed [%v]  files",filesProcessed)//TODO unify logging format
+		}
+	}()
 
-	tok, err := config.Exchange(context.TODO(), authCode)
-	if err != nil {
-		panic(err)
-	}
-	return tok
-}
-
-// Retrieves a token from a local file.
-func tokenFromFile(file string) (*oauth2.Token, error) {
-	f, err := os.Open(file)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-	tok := &oauth2.Token{}
-	err = json.NewDecoder(f).Decode(tok)
-	return tok, err
-}
-
-// Saves a token to a file path.
-func saveToken(path string, token *oauth2.Token) {
-	log.Debug("Saving credential file to: %s", path)
-	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
-	if err != nil {
-		panic(err)
-	}
-	defer f.Close()
-	json.NewEncoder(f).Encode(token)
-}
-
-func startIndexingFiles(credentialsPath,tokenPath string, outputQueue *queue.QueueConfig) {
+	client := this.oAuthConfig.Client(context.Background(), tok)
 	ctx := context.Background()
-	b, err := os.ReadFile(credentialsPath)
-	if err != nil {
-		panic(err)
-	}
-
-	// If modifying these scopes, delete your previously saved token.json.
-	config, err := google.ConfigFromJSON(b, slides.DriveScope) //drive.DriveMetadataReadonlyScope
-	if err != nil {
-		panic(err)
-	}
-	client := getClient(config,tokenPath)
-
 	srv, err := drive.NewService(ctx, option.WithHTTPClient(client))
 	if err != nil {
 		panic(err)
 	}
 
-	r, err := srv.Files.List().PageSize(10).
-		Fields("nextPageToken, files(id, name, mimeType, size, owners(emailAddress, displayName), createdTime, " +
-			"modifiedTime, lastModifyingUser(emailAddress, displayName), iconLink, fileExtension, description, hasThumbnail," +
-			" kind, labelInfo, parents, properties, shared, sharingUser(emailAddress, displayName), spaces, " +
-			"starred, driveId, thumbnailLink, videoMediaMetadata, webViewLink, imageMediaMetadata)").Do()
-	if err != nil {
-		panic(err)
+	var query string
+
+	//get last access time from kv
+	lastModifiedTimeStr,_ := this.getLastModifiedTime(tenantID,userID)
+
+	log.Tracef("get last modified time: %v",lastModifiedTimeStr)
+
+	if lastModifiedTimeStr !=""{
+		// Parse last indexed time
+		parsedTime, err := time.Parse(time.RFC3339Nano, lastModifiedTimeStr)
+		if err != nil {
+			panic(errors.Errorf("Invalid time format: %v", err))
+		}
+		lastModifiedTimeStr = parsedTime.Format(time.RFC3339Nano)
+		query = fmt.Sprintf("modifiedTime > '%s'", lastModifiedTimeStr)
 	}
-	if len(r.Files) == 0 {
-		log.Debug("No files found.")
-	} else {
+
+	var lastModifyTime *time.Time
+
+
+	// Start pagination loop
+	var nextPageToken string
+	for {
+		call:=srv.Files.List().PageSize(this.PageSize).OrderBy("modifiedTime asc")
+
+		if query!=""{
+			call=call.Q(query)
+		}
+
+		r, err :=call.
+			PageToken(nextPageToken).
+			Fields("nextPageToken, files(id, name, mimeType, size, owners(emailAddress, displayName), createdTime, " +
+				"modifiedTime, lastModifyingUser(emailAddress, displayName), iconLink, fileExtension, description, hasThumbnail," +
+				"kind, labelInfo, parents, properties, shared, sharingUser(emailAddress, displayName), spaces, " +
+				"starred, driveId, thumbnailLink, videoMediaMetadata, webViewLink, imageMediaMetadata)").Do()
+		if err != nil {
+			panic(err)
+		}
+
+		// Process files in the current page
 		for _, i := range r.Files {
 			var createdAt, updatedAt *time.Time
 			if i.CreatedTime != "" {
-				parsedTime, err := time.Parse(time.RFC3339, i.CreatedTime)
+				parsedTime, err := time.Parse(time.RFC3339Nano, i.CreatedTime)
 				if err == nil {
 					createdAt = &parsedTime
 				}
 			}
 			if i.ModifiedTime != "" {
-				parsedTime, err := time.Parse(time.RFC3339, i.ModifiedTime)
+				parsedTime, err := time.Parse(time.RFC3339Nano, i.ModifiedTime)
 				if err == nil {
 					updatedAt = &parsedTime
 				}
+
+				// Track the most recent "ModifiedTime"
+				if updatedAt != nil && (lastModifyTime == nil || updatedAt.After(*lastModifyTime)) {
+					lastModifyTime = updatedAt
+				}
 			}
+
+			log.Infof("File: %s (ID: %s) | CreatedAt: %s | UpdatedAt: %s", i.Name, i.Id, createdAt, updatedAt)
+
 			// Map Google Drive file to Document struct
 			document := common.Document{
 				Source:  "google_drive",
@@ -135,23 +128,23 @@ func startIndexingFiles(credentialsPath,tokenPath string, outputQueue *queue.Que
 				Thumbnail: i.ThumbnailLink,
 				Metadata: util.MapStr{
 					"drive_id":        i.DriveId,
-					"file_id":        i.Id,
-					"email":          i.Owners[0].EmailAddress,
-					"file_extension": i.FileExtension,
-					"kind":           i.Kind,
-					"shared":         i.Shared,
-					"spaces":         i.Spaces,
-					"starred":        i.Starred,
-					"web_view_link":  i.WebViewLink,
-					"labels":         i.LabelInfo,
-					"parents":        i.Parents,
-					"permissions":    i.Permissions,
-					"permission_ids": i.PermissionIds,
-					"properties":     i.Properties,
+					"file_id":         i.Id,
+					"email":           i.Owners[0].EmailAddress,
+					"file_extension":  i.FileExtension,
+					"kind":            i.Kind,
+					"shared":          i.Shared,
+					"spaces":          i.Spaces,
+					"starred":         i.Starred,
+					"web_view_link":   i.WebViewLink,
+					"labels":          i.LabelInfo,
+					"parents":         i.Parents,
+					"permissions":     i.Permissions,
+					"permission_ids":  i.PermissionIds,
+					"properties":      i.Properties,
 				},
 			}
 
-			document.ID=i.Id
+			document.ID = i.Id
 			document.Created = createdAt
 			document.Updated = updatedAt
 
@@ -166,7 +159,7 @@ func startIndexingFiles(credentialsPath,tokenPath string, outputQueue *queue.Que
 				}
 			}
 
-			// Handle optional fields like VideoMediaMetadata and ImageMediaMetadata
+			// Handle optional fields
 			if i.SharingUser != nil {
 				document.Metadata["sharingUser"] = common.UserInfo{
 					UserAvatar: i.SharingUser.PhotoLink,
@@ -183,17 +176,35 @@ func startIndexingFiles(credentialsPath,tokenPath string, outputQueue *queue.Que
 				document.Metadata["image_metadata"] = i.ImageMediaMetadata
 			}
 
-			data:=util.MustToJSONBytes(document)
-			if global.Env().IsDebug{
+			// Convert to JSON and push to queue
+			data := util.MustToJSONBytes(document)
+			if global.Env().IsDebug {
 				log.Tracef(string(data))
 			}
-			err:=queue.Push(queue.SmartGetOrInitConfig(outputQueue),data)
+			err := queue.Push(queue.SmartGetOrInitConfig(this.Queue), data)
+			if err != nil {
+				panic(err)
+			}
+			filesProcessed++
+		}
+
+		// After processing all files, save the most recent modified time for next indexing
+		if lastModifyTime != nil {
+			// Save the lastModifyTime (for example, in a KV store or file)
+			lastModifiedTimeStr = lastModifyTime.Format(time.RFC3339Nano)
+			err:=this.saveLastModifiedTime(tenantID,userID, lastModifiedTimeStr)
 			if err!=nil{
 				panic(err)
 			}
+			log.Infof("Last modified time to be saved: %s", lastModifiedTimeStr)
 		}
-	}
 
+		// Break the loop if no next page token
+		if r.NextPageToken == "" {
+			break
+		}
+		nextPageToken = r.NextPageToken
+	}
 }
 
 // downloadOrExportFile downloads or exports a Google Drive file based on its MIME type
