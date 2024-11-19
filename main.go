@@ -17,7 +17,7 @@ import (
 	"infini.sh/framework/modules/queue"
 	queue2 "infini.sh/framework/modules/queue/disk_queue"
 	"infini.sh/framework/modules/task"
-	"infini.sh/framework/modules/ui"
+	"infini.sh/framework/modules/web"
 	_ "infini.sh/framework/plugins/badger"
 	_ "infini.sh/framework/plugins/elastic/bulk_indexing"
 	_ "infini.sh/framework/plugins/elastic/indexing_merge"
@@ -45,7 +45,7 @@ func main() {
 	defer app.Shutdown()
 
 	if app.Setup(func() {
-		module.RegisterSystemModule(&ui.UIModule{})
+		module.RegisterSystemModule(&web.WebModule{})
 		module.RegisterSystemModule(&elastic.ElasticModule{})
 		module.RegisterUserPlugin(&stats.StatsDModule{})
 		module.RegisterUserPlugin(&task.TaskModule{})
