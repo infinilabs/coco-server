@@ -172,8 +172,8 @@ connector:
     enabled: true
     queue:
       name: indexing_documents
-    credentials: config/google/drive/credentials.json
-    token: config/google/drive/token.json #token will be generated automatically
+    credential_file: credentials.json
+    interval: 60s
 
 
 ##background jobs
@@ -187,6 +187,7 @@ pipeline:
           idle_timeout_in_seconds: 1
           elasticsearch: "prod"
           index_name: "coco_document"
+          key_field: "id"
           output_queue:
             name: "merged_documents"
             label:
