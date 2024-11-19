@@ -196,7 +196,7 @@ func (this *Plugin) startIndexingFiles(tenantID,userID string,tok *oauth2.Token)
 			if err!=nil{
 				panic(err)
 			}
-			log.Infof("Last modified time to be saved: %s", lastModifiedTimeStr)
+			log.Debugf("Last modified time to be saved: %s", lastModifiedTimeStr)
 		}
 
 		// Break the loop if no next page token
