@@ -78,6 +78,8 @@ func (this *Plugin) Setup() {
 			Scopes:       []string{"https://www.googleapis.com/auth/drive.metadata.readonly"},
 			Endpoint:     google.Endpoint,
 		}
+	}else{
+		panic("Missing Google OAuth credentials")
 	}
 
 	api.HandleAPIMethod(api.GET, "/connector/google_drive/connect", this.connect)
