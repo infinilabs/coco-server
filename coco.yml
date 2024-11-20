@@ -1,9 +1,9 @@
 env:
   OLLAMA_ENDPOINT: http://localhost:11434
-  OLLAMA_MODEL: llama3.2:1b
+  OLLAMA_MODEL: llama3.2
   ES_ENDPOINT: https://localhost:9200
   ES_USERNAME: admin
-  ES_PASSWORD: 45ff432a5428ade77c7b
+  ES_PASSWORD: %ES_PASSWD%
   SERV_BINDING: localhost:2900
 
 coco:
