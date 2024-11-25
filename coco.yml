@@ -3,7 +3,7 @@ env:
   OLLAMA_MODEL: llama3.2
   ES_ENDPOINT: https://localhost:9200
   ES_USERNAME: admin
-  ES_PASSWORD: %ES_PASSWD%
+  ES_PASSWORD: $[[keystore.ES_PASSWORD]]
   SERV_BINDING: localhost:2900
 
 coco:
