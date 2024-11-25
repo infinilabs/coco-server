@@ -16,7 +16,7 @@ __ocr_server() {
         otiai10/ocrserver
 }
 
-__easyserch() {
+__easysearch() {
     [ -d $pwd/easysearch ] || mkdir -p $pwd/easysearch/{data,logs}
     sudo chown -R 602:602 $pwd/easysearch
 
@@ -32,16 +32,15 @@ __easyserch() {
     espw=$(docker logs easysearch | grep "admin:" | head -n 1 | cut -d ':' -f 2 | cut -d ' ' -f 1)
     echo Easysearch admin password: $espw
 
-    [ -f coco.yml ] && cp coco.yml coco.yml.bak
+    coco_exe=`find ~+  -maxdepth 1 -perm -111 -type f -name "*coco*"`
 
-    egrep -lZ "\%ES_PASSWD\%" ${pwd}/coco.yml \
-      | xargs -0 -l sed -i -e "s/\%ES_PASSWD\%/${espw}/g"
+    echo $espw | $coco_exe keystore add --force --stdin  ES_PASSWORD
 }
 
 __main() {
     __ollama
     __ocr_server
-    __easyserch
+    __easysearch
 
     if [ $? -eq 0 ]; then
         echo "all set"

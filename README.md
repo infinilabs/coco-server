@@ -23,6 +23,14 @@ At Coco, we aim to streamline workplace collaboration by centralizing access to 
 
 ### Quickstart
 
+#### Prerequisite
+
+- [Docker](https://docs.docker.com/engine/install/)
+
+Download the server [executables](https://github.com/infinilabs/coco-server/releases/) accordingly.
+
+#### Quick setup to get started
+
 ```shell
 ./Install.sh
 ```
