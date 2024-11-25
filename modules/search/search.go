@@ -73,7 +73,7 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 	var (
 		query = h.GetParameterOrDefault(req, "query", "")
 		from  = h.GetIntOrDefault(req, "from", 0)
-		size  = h.GetIntOrDefault(req, "size", 20)
+		size  = h.GetIntOrDefault(req, "size", 10)
 		field = h.GetParameterOrDefault(req, "search_field", "title")
 		source = h.GetParameterOrDefault(req, "source_fields", "*")
 	)
