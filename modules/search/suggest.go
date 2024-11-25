@@ -50,7 +50,7 @@ func (h APIHandler) suggest(w http.ResponseWriter, req *http.Request, ps httprou
 		//context = h.GetParameterOrDefault(req, "context", "")
 		query  = h.GetParameterOrDefault(req, "query", "")
 		from   = h.GetIntOrDefault(req, "from", 0)
-		size   = h.GetIntOrDefault(req, "size", 20)
+		size   = h.GetIntOrDefault(req, "size", 10)
 		field  = h.GetParameterOrDefault(req, "search_field", "title")
 		source = h.GetParameterOrDefault(req, "source_fields", "title,source,url")
 	)
