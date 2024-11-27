@@ -82,6 +82,7 @@ func (this *Plugin) Setup() {
 		panic("Missing Google OAuth credentials")
 	}
 
+	api.HandleAPIMethod(api.POST, "/connector/google_drive/reset", this.reset)
 	api.HandleAPIMethod(api.GET, "/connector/google_drive/connect", this.connect)
 	api.HandleAPIMethod(api.GET, "/connector/google_drive/oauth_redirect", this.oAuthRedirect)
 

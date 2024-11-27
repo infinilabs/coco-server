@@ -41,7 +41,6 @@ func decodeState(state string) (map[string]string, error) {
 	return args, nil
 }
 
-// Endpoint to initiate the OAuth flow
 func (h *Plugin) connect(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 
 	//TODO handle tenant info
@@ -106,18 +105,37 @@ func (h *Plugin) oAuthRedirect(w http.ResponseWriter, req *http.Request, _ httpr
 	h.Redirect(w,req,newRedirectUrl)
 }
 
+func (h *Plugin) getTenantKey(tenantID,userID string) string {
+	return 	strings.Join([]string{tenantID, userID}, ",")
+}
 
+func (h *Plugin) reset(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	//from context
+	tenantID:=   "test"
+	userID:=     "test"
+
+	tenantKey := h.getTenantKey(tenantID, userID)
+	err:=kv.DeleteKey("/connector/google_drive/lastModifiedTime",[]byte(tenantKey))
+	if err != nil {
+		panic(err)
+	}
+	err=kv.DeleteKey("/connector/google_drive/token",[]byte(tenantKey))
+	if err != nil {
+		panic(err)
+	}
+
+	h.WriteAckOKJSON(w)
+}
 
 func (this *Plugin) saveLastModifiedTime(tenantID,userID string,lastModifiedTime string) error  {
-	key := strings.Join([]string{tenantID, userID}, ",")
-	err:= kv.AddValue("/connector/google_drive/lastModifiedTime", []byte(key), []byte(lastModifiedTime))
+	tenantKey := this.getTenantKey(tenantID, userID)
+	err:= kv.AddValue("/connector/google_drive/lastModifiedTime", []byte(tenantKey), []byte(lastModifiedTime))
 	return err
 }
 
 func (this *Plugin) getLastModifiedTime(tenantID,userID string) (string,error) {
-	key := strings.Join([]string{tenantID, userID}, ",")
-
-	data,err := kv.GetValue("/connector/google_drive/lastModifiedTime", []byte(key))
+	tenantKey := this.getTenantKey(tenantID, userID)
+	data,err := kv.GetValue("/connector/google_drive/lastModifiedTime", []byte(tenantKey))
 	if err != nil {
 		return "", err
 	}
@@ -126,15 +144,14 @@ func (this *Plugin) getLastModifiedTime(tenantID,userID string) (string,error) {
 }
 
 func (this *Plugin) saveToken(tenantID,userID string,token *oauth2.Token) error  {
-	key := strings.Join([]string{tenantID, userID}, ",")
-	err:= kv.AddValue("/connector/google_drive/token", []byte(key), util.MustToJSONBytes(token))
+	tenantKey := this.getTenantKey(tenantID, userID)
+	err:= kv.AddValue("/connector/google_drive/token", []byte(tenantKey), util.MustToJSONBytes(token))
 	return err
 }
 
 func (this *Plugin) getToken(tenantID,userID string) (bool,*oauth2.Token,error) {
-	key := strings.Join([]string{tenantID, userID}, ",")
-
-	data,err := kv.GetValue("/connector/google_drive/token", []byte(key))
+	tenantKey := this.getTenantKey(tenantID, userID)
+	data,err := kv.GetValue("/connector/google_drive/token", []byte(tenantKey))
 	if err != nil {
 		return false,nil, err
 	}
