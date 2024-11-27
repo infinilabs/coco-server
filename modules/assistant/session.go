@@ -218,6 +218,7 @@ func (h APIHandler) sendChatMessage(w http.ResponseWriter, req *http.Request, ps
 
 			chunkSeq:=0
 			messageID:=util.GetUUID()
+			requestMessageID:=obj.ID
 			messageBuffer:=strings.Builder{}
 			completion, err := llm.GenerateContent(ctx, content,
 				llms.WithTemperature(0.8),
@@ -225,8 +226,9 @@ func (h APIHandler) sendChatMessage(w http.ResponseWriter, req *http.Request, ps
 					chunkSeq+=1
 					msg:=util.MustToJSON(util.MapStr{
 						"session_id": sessionID,
-						"message_type": MessageTypeAssistant,
 						"message_id": messageID,
+						"message_type": MessageTypeAssistant,
+						"reply_to_message": requestMessageID,
 						"chunk_sequence":chunkSeq,
 						"message_chunk":string(chunk),
 					})
@@ -243,8 +245,9 @@ func (h APIHandler) sendChatMessage(w http.ResponseWriter, req *http.Request, ps
 			chunkSeq+=1
 			msg:=util.MustToJSON(util.MapStr{
 				"session_id": sessionID,
-				"message_type": MessageTypeSystem,
 				"message_id": messageID,
+				"message_type": MessageTypeSystem,
+				"reply_to_message": requestMessageID,
 				"chunk_sequence":chunkSeq,
 				"message_chunk":string("assistant finished output"),
 			})
