@@ -78,6 +78,11 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		source = h.GetParameterOrDefault(req, "source_fields", "*")
 	)
 
+	if query==""{
+		//TODO handle response or suggestion
+		return
+	}
+
 	q := orm.Query{}
 	if query != "" {
 		templatedQuery := orm.TemplatedQuery{}
