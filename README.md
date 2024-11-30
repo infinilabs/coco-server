@@ -51,20 +51,11 @@ OLLAMA_HOST=0.0.0.0:11434 ollama serve
 
 Pull the following models
 ```
-ollama pull llama3.2:1b
+ollama pull llama3.2
+ollama pull llama3.2-vision
 ollama pull llama2-chinese:13b
-ollama pull llama3.2:latest
 ollama pull mistral:latest
 ollama pull nomic-embed-text:latest
-```
-
-
-### OCR Server
-
-Coco use a [OCR Server](https://github.com/otiai10/ocrserver) to processing image files.
-
-```
-docker run -p 8080:8080 otiai10/ocrserver
 ```
 
 ### Easysearch
