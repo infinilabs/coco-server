@@ -6,14 +6,8 @@ __ollama() {
     which ollama || curl -fsSL https://ollama.com/install.sh | sh
     OLLAMA_HOST=0.0.0.0:11434 ollama serve
     ollama pull llama3.2
+    ollama pull llama3.2-vision
     ollama pull llama2-chinese:13b
-}
-
-__ocr_server() {
-    docker run --name ocrserver \
-        -p 8080:8080 \
-        -d \
-        otiai10/ocrserver
 }
 
 __easysearch() {
