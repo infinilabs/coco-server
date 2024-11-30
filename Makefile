@@ -9,5 +9,6 @@ APP_STATIC_FOLDER := .public
 APP_STATIC_PACKAGE := public
 APP_UI_FOLDER := ui
 APP_PLUGIN_FOLDER := plugins
+PREFER_MANAGED_VENDOR=fase
 
 include ../framework/Makefile
