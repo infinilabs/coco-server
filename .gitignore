@@ -35,3 +35,4 @@ web/report*
 log/
 .env
 generated_*.go
+/assets/static.go
