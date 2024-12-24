@@ -7,5 +7,6 @@
 - [ ] The PR title is descriptive
 - [ ] The commit messages are [semantic](https://www.conventionalcommits.org/)
 - [ ] Necessary tests are added
-- [ ] Performance tests checked, no obvious performance degradation
+- [ ] Updated the release notes
 - [ ] Necessary documents have been added if this is a new feature
+- [ ] Performance tests checked, no obvious performance degradation
