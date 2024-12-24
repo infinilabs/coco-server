@@ -6,7 +6,6 @@ package google_drive
 
 import (
 	"context"
-	log "github.com/cihub/seelog"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/drive/v3"
@@ -50,6 +49,11 @@ func (this *Plugin) Setup() {
 	if ok && err != nil && global.Env().SystemConfig.Configs.PanicOnConfigError {
 		panic(err)
 	}
+
+	if !this.Enabled{
+		return
+	}
+
 	if this.Queue == nil {
 		this.Queue = &queue.QueueConfig{Name: "indexing_documents"}
 	}
@@ -82,8 +86,8 @@ func (this *Plugin) Setup() {
 		panic("Missing Google OAuth credentials")
 	}
 
-	api.HandleAPIMethod(api.POST, "/connector/google_drive/reset", this.reset)
 	api.HandleAPIMethod(api.GET, "/connector/google_drive/connect", this.connect)
+	api.HandleAPIMethod(api.POST, "/connector/google_drive/reset", this.reset)
 	api.HandleAPIMethod(api.GET, "/connector/google_drive/oauth_redirect", this.oAuthRedirect)
 
 }
