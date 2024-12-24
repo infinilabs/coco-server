@@ -5,13 +5,16 @@
 package main
 
 import (
+	"infini.sh/coco/assets"
 	"infini.sh/coco/config"
 	"infini.sh/coco/modules"
 	_ "infini.sh/coco/modules"
 	_ "infini.sh/coco/plugins"
 	"infini.sh/framework"
+	api1 "infini.sh/framework/core/api"
 	"infini.sh/framework/core/module"
-	"infini.sh/framework/core/util"
+	"infini.sh/framework/core/vfs"
+	"infini.sh/framework/modules/api"
 	"infini.sh/framework/modules/elastic"
 	"infini.sh/framework/modules/pipeline"
 	"infini.sh/framework/modules/queue"
@@ -37,15 +40,21 @@ func main() {
 	terminalFooter := ("")
 
 	app := framework.NewApp("coco", "Coco AI - search, connect, collaborate – all in one place.",
-		util.TrimSpaces(config.Version), util.TrimSpaces(config.BuildNumber), util.TrimSpaces(config.LastCommitLog), util.TrimSpaces(config.BuildDate), util.TrimSpaces(config.EOLDate), terminalHeader, terminalFooter)
+		config.Version, config.BuildNumber, config.LastCommitLog, config.BuildDate, config.EOLDate, terminalHeader, terminalFooter)
 
 	app.IgnoreMainConfigMissing()
 	app.Init(nil)
+
+	//register vfs, eg: /assets/connector/google_drive.png
+	urlPath:="/assets/"
+	vfs.RegisterFS(assets.StaticFS{StaticFolder: "assets",TrimLeftPath: urlPath, CheckLocalFirst: true, SkipVFS: false})
+	api1.HandleUI(urlPath, vfs.FileServer(vfs.VFS()))
 
 	defer app.Shutdown()
 
 	if app.Setup(func() {
 		module.RegisterSystemModule(&web.WebModule{})
+		module.RegisterSystemModule(&api.APIModule{})
 		module.RegisterSystemModule(&elastic.ElasticModule{})
 		module.RegisterUserPlugin(&stats.StatsDModule{})
 		module.RegisterUserPlugin(&task.TaskModule{})
