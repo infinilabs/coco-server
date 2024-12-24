@@ -71,34 +71,33 @@ type SearchResponse struct {
 
 func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	var (
-		query = h.GetParameterOrDefault(req, "query", "")
-		from  = h.GetIntOrDefault(req, "from", 0)
-		size  = h.GetIntOrDefault(req, "size", 10)
-		field = h.GetParameterOrDefault(req, "search_field", "title")
+		query  = h.GetParameterOrDefault(req, "query", "")
+		from   = h.GetIntOrDefault(req, "from", 0)
+		size   = h.GetIntOrDefault(req, "size", 10)
+		field  = h.GetParameterOrDefault(req, "search_field", "title")
 		source = h.GetParameterOrDefault(req, "source_fields", "*")
 	)
-
-	if query==""{
-		//TODO handle response or suggestion
-		return
-	}
 
 	q := orm.Query{}
 	if query != "" {
 		templatedQuery := orm.TemplatedQuery{}
 		templatedQuery.TemplateID = "coco-query-string"
 		templatedQuery.Parameters = util.MapStr{
-			"from":  from,
-			"size":  size,
-			"field": field,
-			"query": query,
-			"source": strings.Split(source,","),
+			"from":   from,
+			"size":   size,
+			"field":  field,
+			"query":  query,
+			"source": strings.Split(source, ","),
 		}
 		q.TemplatedQuery = &templatedQuery
 	} else {
 		body, err := h.GetRawBody(req)
 		if err != nil {
 			http.Error(w, "query must be provided", http.StatusBadRequest)
+			return
+		}
+		if len(body) == 0 {
+			//ignore empty query
 			return
 		}
 		q.RawQuery = body
@@ -110,7 +109,7 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		return
 	}
 
-	_,err=h.Write(w, res.Raw)
+	_, err = h.Write(w, res.Raw)
 	if err != nil {
 		h.Error(w, err)
 	}
