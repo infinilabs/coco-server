@@ -15,7 +15,7 @@ const YuqueKey = "yuque"
 type Config struct {
 	Enabled bool `config:"enabled"`
 
-	Token              string             `config:"token"`
+	Token              string             `config:"token"` //TODO move to db
 	Interval           string             `config:"interval"`
 	Queue              *queue.QueueConfig `config:"queue"`
 	IncludePrivateBook bool               `config:"include_private_book"`
@@ -33,15 +33,15 @@ type Plugin struct {
 }
 
 func (this *Plugin) Setup() {
-	this.cfg=Config{
-		Enabled: false,
-		Interval: "10s",
-		IncludePrivateDoc: false,
+	this.cfg = Config{
+		Enabled:            false,
+		Interval:           "10s",
+		IncludePrivateDoc:  false,
 		IncludePrivateBook: false,
-		IndexingBooks: true,
-		IndexingDocs: true,
-		IndexingUsers: true,
-		Queue: &queue.QueueConfig{Name: "indexing_documents"},
+		IndexingBooks:      true,
+		IndexingDocs:       true,
+		IndexingUsers:      true,
+		Queue:              &queue.QueueConfig{Name: "indexing_documents"},
 	}
 
 	ok, err := env.ParseConfig("connector.yuque", &this.cfg)
@@ -53,11 +53,11 @@ func (this *Plugin) Setup() {
 		return
 	}
 
-	if this.cfg.Queue==nil{
-		this.cfg.Queue=queue.GetOrInitConfig("indexing_documents")
-	}else{
-		queueCfg:=queue.SmartGetOrInitConfig(this.cfg.Queue)
-		this.cfg.Queue=queueCfg
+	if this.cfg.Queue == nil {
+		this.cfg.Queue = queue.GetOrInitConfig("indexing_documents")
+	} else {
+		queueCfg := queue.SmartGetOrInitConfig(this.cfg.Queue)
+		this.cfg.Queue = queueCfg
 	}
 
 	if this.cfg.Token == "" {
