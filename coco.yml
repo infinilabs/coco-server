@@ -197,10 +197,8 @@ connector:
     indexing_docs: true
     indexing_groups: true
     indexing_users: true
-#    include_private_group: false
-#    include_private_user: false
-#    include_private_book: false
-#    include_private_doc: false
+    include_private_book: false
+    include_private_doc: false
 
 ##background jobs
 pipeline:
