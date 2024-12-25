@@ -51,9 +51,6 @@ func (this *Plugin) getIconLink(connector,category,iconType string) string {
 
 	icon:= fmt.Sprintf("%s/assets/connector/%s/%s/%s.png",
 			baseURL,this.cleanupIconName(connector),this.cleanupIconName(category),this.cleanupIconName(iconType))
-
-	log.Infof("get icon: %v",icon)
-
 	return icon
 
 		////TODO cache and checking vfs and if not exists and then return the default icon
