@@ -9,6 +9,7 @@ import (
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/global"
+	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/queue"
 	"infini.sh/framework/core/util"
 	"strings"
@@ -31,7 +32,7 @@ func get(path, token string) *util.Result {
 	return res
 }
 
-func (this *Plugin) getIconLink(connector,category,iconType string) string {
+func (this *Plugin) getIconLink(connector, category, iconType string) string {
 	// Retrieve the environment's configuration
 	env := global.Env()
 	tlsEnabled := env.SystemConfig.WebAppConfig.TLSConfig.TLSEnabled
@@ -49,21 +50,20 @@ func (this *Plugin) getIconLink(connector,category,iconType string) string {
 	}
 	baseURL := protocol + "://" + domain
 
-	icon:= fmt.Sprintf("%s/assets/connector/%s/%s/%s.png",
-			baseURL,this.cleanupIconName(connector),this.cleanupIconName(category),this.cleanupIconName(iconType))
+	icon := fmt.Sprintf("%s/assets/connector/%s/%s/%s.png",
+		baseURL, this.cleanupIconName(connector), this.cleanupIconName(category), this.cleanupIconName(iconType))
 	return icon
 
-		////TODO cache and checking vfs and if not exists and then return the default icon
-		//return baseURL + "/assets/connector/default.png"
+	////TODO cache and checking vfs and if not exists and then return the default icon
+	//return baseURL + "/assets/connector/default.png"
 }
 
-func (this *Plugin) cleanupIconName(name string)string  {
-	name=strings.ReplaceAll(name,"/","_")
-	name=strings.ReplaceAll(name,"\\","_")
-	name=strings.ReplaceAll(name,".","_")
+func (this *Plugin) cleanupIconName(name string) string {
+	name = strings.ReplaceAll(name, "/", "_")
+	name = strings.ReplaceAll(name, "\\", "_")
+	name = strings.ReplaceAll(name, ".", "_")
 	return strings.ToLower(name)
 }
-
 
 func (this *Plugin) save(obj interface{}) {
 
@@ -80,7 +80,7 @@ func (this *Plugin) save(obj interface{}) {
 
 func (this *Plugin) collect() {
 
-	token:=this.cfg.Token
+	token := this.cfg.Token
 
 	//for groups only
 	res := get("/api/v2/user", token)
@@ -97,75 +97,94 @@ func (this *Plugin) collect() {
 	}
 
 	//get users in group, TODO handle pagination
-	res = get(fmt.Sprintf("/api/v2/groups/%s/users", user.Group.Login), token)
-	users := struct {
-		GroupUsers []GroupUser `json:"data"`
-	}{}
-	err = util.FromJSONBytes(res.Body, &users)
-	if err != nil {
-		panic(err)
-	}
-
 	if this.cfg.IndexingUsers || this.cfg.IndexingGroups {
-		//get all users
-		for _, user := range users.GroupUsers {
-			if user.User != nil && this.cfg.IndexingUsers {
-				document := common.Document{
-					Source:  YuqueKey,
-					Title:   user.User.Name,
-					Summary: user.User.Description,
-					Type:    user.User.Type,
-					URL:     fmt.Sprintf("https://infini.yuque.com/%v", user.User.Login),
-					Icon:     user.User.AvatarURL,
-					Thumbnail: user.User.AvatarURL,
-					Metadata: util.MapStr{
-						"user_id":            user.User.ID,
-						"user_login":         user.User.Login,
-						"public":             user.User.Public,
-						"books_count":        user.User.BooksCount,
-						"follower_count":     user.User.FollowersCount,
-						"following_count":    user.User.FollowingCount,
-						"public_books_count": user.User.PublicBooksCount,
-					},
-				}
+		const pageSize = 100
+		offset := 0
 
-				document.ID = util.MD5digest(fmt.Sprintf("%v-%v-%v", "test", "yuque-user", user.User.ID))
-
-				log.Debug("indexing user:", document.ID, user.User.Login, user.User.Name)
-
-				document.Created = &user.User.CreatedAt
-				document.Updated = &user.User.UpdatedAt
-
-				this.save(document)
-
-			} else if user.Group != nil && this.cfg.IndexingGroups {
-				document := common.Document{
-					Source:  YuqueKey,
-					Title:   user.Group.Name,
-					Summary: user.Group.Description,
-					Type:    user.Group.Type,
-					URL:     fmt.Sprintf("https://infini.yuque.com/%v", user.Group.ID),
-					Icon:      user.Group.AvatarURL,
-					Thumbnail: user.Group.AvatarURL,
-					Metadata: util.MapStr{
-						"user_id":            user.Group.ID,
-						"user_login":         user.Group.Login,
-						"public":             user.Group.Public,
-						"books_count":        user.Group.BooksCount,
-						"member_count":       user.Group.MembersCount,
-						"public_books_count": user.Group.PublicBooksCount,
-					},
-				}
-
-				document.ID = util.MD5digest(fmt.Sprintf("%v-%v-%v", "test", "yuque-group", user.Group.ID))
-
-				log.Debug("indexing group:", document.ID, user.Group.Login, user.Group.Name)
-
-				document.Created = &user.Group.CreatedAt
-				document.Updated = &user.Group.UpdatedAt
-
-				this.save(document)
+		for {
+			// Fetch users in the current group with pagination
+			res := get(fmt.Sprintf("/api/v2/groups/%s/users?offset=%d", user.Group.Login, offset), token)
+			var users struct {
+				GroupUsers []GroupUser `json:"data"`
 			}
+
+			if err := util.FromJSONBytes(res.Body, &users); err != nil {
+				panic(err)
+			}
+
+			// Process users or groups in the response
+			for _, groupUser := range users.GroupUsers {
+				var document common.Document
+				var idPrefix, docType string
+				var metadata util.MapStr
+
+				if groupUser.User != nil && this.cfg.IndexingUsers {
+					idPrefix, docType = "yuque-user", groupUser.User.Type
+					metadata = util.MapStr{
+						"user_id":            groupUser.User.ID,
+						"user_login":         groupUser.User.Login,
+						"public":             groupUser.User.Public,
+						"books_count":        groupUser.User.BooksCount,
+						"follower_count":     groupUser.User.FollowersCount,
+						"following_count":    groupUser.User.FollowingCount,
+						"public_books_count": groupUser.User.PublicBooksCount,
+					}
+
+					document = common.Document{
+						Source:    YuqueKey,
+						Title:     groupUser.User.Name,
+						Summary:   groupUser.User.Description,
+						Type:      docType,
+						URL:       fmt.Sprintf("https://infini.yuque.com/%v", groupUser.User.Login),
+						Icon:      groupUser.User.AvatarURL,
+						Thumbnail: groupUser.User.AvatarURL,
+						Metadata:  metadata,
+						ORMObjectBase: orm.ORMObjectBase{
+							Created: &groupUser.User.CreatedAt,
+							Updated: &groupUser.User.UpdatedAt,
+						},
+					}
+
+				} else if groupUser.Group != nil && this.cfg.IndexingGroups {
+					idPrefix, docType = "yuque-group", groupUser.Group.Type
+					metadata = util.MapStr{
+						"user_id":            groupUser.Group.ID,
+						"user_login":         groupUser.Group.Login,
+						"public":             groupUser.Group.Public,
+						"books_count":        groupUser.Group.BooksCount,
+						"member_count":       groupUser.Group.MembersCount,
+						"public_books_count": groupUser.Group.PublicBooksCount,
+					}
+
+					document = common.Document{
+						Source:    YuqueKey,
+						Title:     groupUser.Group.Name,
+						Summary:   groupUser.Group.Description,
+						Type:      docType,
+						URL:       fmt.Sprintf("https://infini.yuque.com/%v", groupUser.Group.ID),
+						Icon:      groupUser.Group.AvatarURL,
+						Thumbnail: groupUser.Group.AvatarURL,
+						Metadata:  metadata,
+						ORMObjectBase: orm.ORMObjectBase{
+							Created: &groupUser.Group.CreatedAt,
+							Updated: &groupUser.Group.UpdatedAt,
+						},
+					}
+				}
+
+				// Generate document ID and save
+				if document.Title != "" {
+					document.ID = util.MD5digest(fmt.Sprintf("%v-%v-%v", "test", idPrefix, metadata["user_id"]))
+					log.Debug("indexing:", document.ID, metadata["user_login"], document.Title)
+					this.save(document)
+				}
+			}
+
+			// Exit loop if no more pages
+			if len(users.GroupUsers) < pageSize {
+				break
+			}
+			offset += pageSize
 		}
 	}
 
@@ -192,7 +211,7 @@ func (this *Plugin) collect() {
 			panic(err)
 		}
 
-		if this.cfg.IndexingBooks && ( bookDetail.Book.Public > 0 || (this.cfg.IncludePrivateBook) ){
+		if this.cfg.IndexingBooks && (bookDetail.Book.Public > 0 || (this.cfg.IncludePrivateBook)) {
 
 			//index repo
 			document := common.Document{
@@ -207,7 +226,7 @@ func (this *Plugin) collect() {
 					UserName:   bookDetail.Book.User.Name,
 					UserID:     bookDetail.Book.User.Login,
 				},
-				Icon: this.getIconLink(YuqueKey,"book",bookDetail.Book.Type),
+				Icon: this.getIconLink(YuqueKey, "book", bookDetail.Book.Type),
 				//Thumbnail: bookDetail.Book.,
 				Metadata: util.MapStr{
 					"public":        bookDetail.Book.Public,
@@ -259,7 +278,7 @@ func (this *Plugin) collect() {
 				panic(err)
 			}
 
-			if this.cfg.IndexingDocs && (  doc.Doc.Public > 0 || (this.cfg.IncludePrivateDoc) ){
+			if this.cfg.IndexingDocs && (doc.Doc.Public > 0 || (this.cfg.IncludePrivateDoc)) {
 				//index doc
 				document := common.Document{
 					Source:  YuqueKey,
@@ -275,7 +294,7 @@ func (this *Plugin) collect() {
 						UserName:   doc.Doc.User.Name,
 						UserID:     doc.Doc.User.Login,
 					},
-					Icon:      this.getIconLink(YuqueKey,"doc",doc.Doc.Type),
+					Icon:      this.getIconLink(YuqueKey, "doc", doc.Doc.Type),
 					Thumbnail: doc.Doc.Cover,
 					Metadata: util.MapStr{
 						"public":         doc.Doc.Public,
@@ -312,4 +331,5 @@ func (this *Plugin) collect() {
 			}
 		}
 	}
+
 }
