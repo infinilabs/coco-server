@@ -4,7 +4,8 @@ env:
   ES_ENDPOINT: https://localhost:9200
   ES_USERNAME: admin
   ES_PASSWORD: $[[keystore.ES_PASSWORD]]
-  SERV_BINDING: localhost:2900
+  SERV_BINDING: 0.0.0.0:2900
+  API_BINDING: 0.0.0.0:1900
 
 coco:
   ollama:
@@ -21,7 +22,7 @@ elastic:
   elasticsearch: prod
   enabled: true
   store:
-    enabled: true
+    enabled: false
   orm:
     enabled: true
     index_prefix: "coco_"
@@ -87,7 +88,10 @@ elastic:
               "_source": [ "{{#source}}","{{.}}","{{/source}}" ],
               "query": {
                 "bool": {
-                  "must": [],
+                  "must": [
+                  ],
+                  "must_not": [
+                       ],
                   "should": [
                     {
                       "prefix": {
@@ -146,6 +150,14 @@ elasticsearch:
       username:  $[[env.ES_USERNAME]]
       password:  $[[env.ES_PASSWORD]]
 
+api:
+  enabled: true
+  websocket:
+    enabled: false
+
+  network:
+    binding: $[[env.API_BINDING]]
+
 web:
   enabled: true
   embedding_api: true
@@ -154,7 +166,8 @@ web:
   tls:
     enabled: false
     skip_insecure_verify: true
-    default_domain: "api.coco.rs"
+    default_domain: "localhost:2900"
+#    default_domain: "api.coco.rs"
     auto_issue:
       enabled: false
       email: "hello@infinilabs.com"
@@ -173,8 +186,19 @@ connector:
     queue:
       name: indexing_documents
     credential_file: credentials.json
-    interval: 60s
-
+    interval: 10s
+  yuque:
+    enabled: true
+    queue:
+      name: indexing_documents
+    token: $[[keystore.YUQUE_TOKEN]]
+    interval: 10s
+    indexing_books: true
+    indexing_docs: true
+    indexing_groups: true
+    indexing_users: true
+    include_private_book: false
+    include_private_doc: false
 
 ##background jobs
 pipeline:
