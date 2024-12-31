@@ -36,10 +36,11 @@ func main() {
 	terminalHeader += (" / /  //  // /  //  //  //_\\\\    / /\\/\n")
 	terminalHeader += ("/ /__/ \\_// /__/ \\_//  /  _  \\/\\/ /_  \n")
 	terminalHeader += ("\\____|___/\\____|___/   \\_/ \\_/\\____/  \n\n")
+	terminalHeader += ("HOME: https://coco.rs/\n\n")
 
 	terminalFooter := ("")
 
-	app := framework.NewApp("coco", "Coco AI - search, connect, collaborate – all in one place.",
+	app := framework.NewApp("coco", "Coco AI - search, connect, collaborate – all in one place, open-sourced under the GNU AGPLv3.",
 		config.Version, config.BuildNumber, config.LastCommitLog, config.BuildDate, config.EOLDate, terminalHeader, terminalFooter)
 
 	app.IgnoreMainConfigMissing()
