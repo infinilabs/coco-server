@@ -17,6 +17,7 @@ import (
 	"infini.sh/framework/core/task"
 	"infini.sh/framework/core/util"
 	"os"
+	log "github.com/cihub/seelog"
 	"time"
 )
 
