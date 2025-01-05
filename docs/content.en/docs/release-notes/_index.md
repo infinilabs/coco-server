@@ -22,3 +22,5 @@ Information about release notes of Coco Server is provided here.
 ### Bug fix
 
 ### Improvements
+- Update header key to avoid using underscores #48
+
