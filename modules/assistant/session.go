@@ -159,7 +159,9 @@ func (h APIHandler) cancelReplyMessage(w http.ResponseWriter, req *http.Request,
 
 func (h APIHandler) sendChatMessage(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
-	webSocketID:=req.Header.Get("WEBSOCKET_SESSION_ID")
+	webSocketID:=req.Header.Get("WEBSOCKET-SESSION-ID")
+
+	log.Info(req.Header)
 
 	sessionID := ps.MustGetParameter("session_id")
 	var request MessageRequest
@@ -190,6 +192,8 @@ func (h APIHandler) sendChatMessage(w http.ResponseWriter, req *http.Request, ps
 		//de-duplicate background task per-session, cancelable
 		taskID:=task.RunWithinGroup("assistant-session", func(taskCtx context.Context) error {
 			//timeout for 30 seconds
+
+			log.Debugf("place a assistant background job for session: %v, websocket: %v ",sessionID,webSocketID)
 
 			//TODO
 			//1. retrieve related documents from background server
@@ -271,6 +275,8 @@ func (h APIHandler) sendChatMessage(w http.ResponseWriter, req *http.Request, ps
 			return nil
 		})
 		inflightMessages.Store(sessionID,taskID)
+	}else{
+		log.Debugf("no websocket: %v found for session: %v ",webSocketID,sessionID)
 	}
 
 	err = h.WriteJSON(w, response, 200)
