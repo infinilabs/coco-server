@@ -31,30 +31,8 @@ func get(path, token string) *util.Result {
 	return res
 }
 
-func (this *Plugin) getIconLink(connector, category, iconType string) string {
-	// Retrieve the environment's configuration
-	env := global.Env()
-	tlsEnabled := env.SystemConfig.WebAppConfig.TLSConfig.TLSEnabled
-	domain := env.SystemConfig.WebAppConfig.Domain
-
-	// Fallback to publish address if domain is empty
-	if domain == "" {
-		domain = env.SystemConfig.WebAppConfig.NetworkConfig.GetPublishAddr()
-	}
-
-	// Construct the base URL
-	protocol := "http"
-	if tlsEnabled {
-		protocol = "https"
-	}
-	baseURL := protocol + "://" + domain
-
-	icon := fmt.Sprintf("%s/assets/connector/%s/%s/%s.png",
-		baseURL, this.cleanupIconName(connector), this.cleanupIconName(category), this.cleanupIconName(iconType))
-	return icon
-
-	////TODO cache and checking vfs and if not exists and then return the default icon
-	//return baseURL + "/assets/connector/default.png"
+func (this *Plugin) getIconKey(category, iconType string) string {
+	return fmt.Sprintf("%v_%v",strings.TrimSpace(strings.ToLower(category)),strings.TrimSpace(strings.ToLower(iconType)))
 }
 
 func (this *Plugin) cleanupIconName(name string) string {
@@ -158,7 +136,7 @@ func (this *Plugin) collectBooks(login, token string) {
 						UserName:   bookDetail.Book.User.Name,
 						UserID:     bookDetail.Book.User.Login,
 					},
-					Icon: this.getIconLink(YuqueKey, "book", bookDetail.Book.Type),
+					Icon: this.getIconKey("book", bookDetail.Book.Type),
 					//Thumbnail: bookDetail.Book.,
 				}
 
@@ -270,7 +248,7 @@ func (this *Plugin) collectDocDetails(bookID int64, docID int64, token string) {
 				UserName:   doc.Doc.User.Name,
 				UserID:     doc.Doc.User.Login,
 			},
-			Icon:      this.getIconLink(YuqueKey, "doc", doc.Doc.Type),
+			Icon:      this.getIconKey("doc", doc.Doc.Type),
 			Thumbnail: doc.Doc.Cover,
 
 		}
@@ -353,7 +331,7 @@ func (this *Plugin) collectUsers(login, token string) {
 					Summary:   groupUser.User.Description,
 					Type:      docType,
 					URL:       fmt.Sprintf("https://infini.yuque.com/%v", groupUser.User.Login),
-					Icon:      groupUser.User.AvatarURL,
+					Icon:      groupUser.User.AvatarURL, //TODO save to local store
 					Thumbnail: groupUser.User.AvatarURL,
 				}
 				document.Created=&groupUser.User.CreatedAt
@@ -377,7 +355,7 @@ func (this *Plugin) collectUsers(login, token string) {
 					Summary:   groupUser.Group.Description,
 					Type:      docType,
 					URL:       fmt.Sprintf("https://infini.yuque.com/%v", groupUser.Group.ID),
-					Icon:      groupUser.Group.AvatarURL,
+					Icon:      groupUser.Group.AvatarURL, //TODO save to local store
 					Thumbnail: groupUser.Group.AvatarURL,
 				}
 				document.Created=&groupUser.Group.CreatedAt

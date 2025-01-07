@@ -18,6 +18,22 @@ import (
 	"time"
 )
 
+func getIcon(fileType string) string {
+	switch fileType {
+	case "application/vnd.google-apps.document":
+		return "document"
+	case "application/vnd.google-apps.form":
+		return "form"
+	case "application/pdf":
+		return "pdf"
+	case "application/vnd.google-apps.presentation":
+		return "presentation"
+	case "application/vnd.google-apps.spreadsheet":
+		return "spreadsheet"
+	default:
+		return "default" // default fallback
+	}
+}
 
 func (this *Plugin) startIndexingFiles(tenantID,userID string,tok *oauth2.Token) {
 	var filesProcessed =0
@@ -124,7 +140,7 @@ func (this *Plugin) startIndexingFiles(tenantID,userID string,tok *oauth2.Token)
 					UserName:   i.Owners[0].DisplayName,
 					UserID:     i.Owners[0].EmailAddress,
 				},
-				Icon:      i.IconLink,
+				Icon:      getIcon(i.MimeType),
 				Thumbnail: i.ThumbnailLink,
 
 			}
