@@ -64,7 +64,6 @@ func (h APIHandler) suggest(w http.ResponseWriter, req *http.Request, ps httprou
 			"size":   size,
 			"field":  field,
 			"query":  query,
-			"_source_excludes": "payload.*",
 			"source": strings.Split(source,","),
 		}
 		q.TemplatedQuery = &templatedQuery

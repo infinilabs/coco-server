@@ -22,7 +22,7 @@ type DataSource struct {
 type Document struct {
 	CombinedFullText
 
-	Source string `json:"source,omitempty" elastic_mapping:"source:{type:object}"` // Source of the document
+	Source DataSource `json:"source,omitempty" elastic_mapping:"source:{type:object}"` // Source of the document
 
 	Type string `json:"type,omitempty" elastic_mapping:"type:{type:keyword,copy_to:combined_fulltext}"` // Document type, such as PDF, Docx, etc.
 

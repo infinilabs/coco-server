@@ -116,7 +116,11 @@ curl   -XGET http://localhost:2900/document/cso9vr3q50k38nobvmcg
     "id": "cso9vr3q50k38nobvmcg",
     "created": "2024-11-10T19:58:36.009086+08:00",
     "updated": "2024-11-10T19:58:36.009092+08:00",
-    "source": "google_drive",
+     "source": {
+        "type":"connector",
+        "name":"google_drive",
+        "id":"e806831dacc3",
+      }
     ...OMITTED...
    ,
   "found": true
