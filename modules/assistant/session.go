@@ -161,7 +161,7 @@ func (h APIHandler) sendChatMessage(w http.ResponseWriter, req *http.Request, ps
 
 	webSocketID:=req.Header.Get("WEBSOCKET-SESSION-ID")
 
-	log.Info(req.Header)
+	log.Trace(req.Header)
 
 	sessionID := ps.MustGetParameter("session_id")
 	var request MessageRequest

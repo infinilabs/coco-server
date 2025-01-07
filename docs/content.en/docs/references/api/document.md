@@ -13,7 +13,7 @@ Below is the field description for the document.
 
 | **Field**              | **Type**           | **Description**                                                                                     |
 |-------------------------|--------------------|-----------------------------------------------------------------------------------------------------|
-| `source`               | `string`          | The source of the document, e.g., `google_drive`.                                                  |
+| `source`               | `object`          | The source of the document.                                                  |
 | `category`             | `string`          | Primary category of the document, e.g., `report`.                                                  |
 | `categories`           | `array[string]`   | List of categories the document belongs to, e.g., `["business", "quarterly_reports"]`.             |
 | `cover`                | `string` (URL)    | URL to the cover image of the document.                                                            |
@@ -46,7 +46,11 @@ Below is the field description for the document.
 ```shell
 //request
 curl -H 'Content-Type: application/json' -XPOST http://localhost:2900/document/ -d '{
-  "source": "google_drive",
+  "source": {
+    "type":"connector",
+    "name":"google_drive",
+    "id":"e806831dacc3",
+  },
   "category": "report",
   "categories": ["business", "quarterly_reports"],
   "cover": "https://example.com/images/report_cover.jpg",
