@@ -59,6 +59,11 @@ func (this *Plugin) collect() {
 
 	token := this.cfg.Token
 
+	if token==""{
+		panic("invalid yuque token")
+	}
+
+
 	//for groups only
 	res := get("/api/v2/user", token)
 	currentUser := struct {
@@ -125,7 +130,11 @@ func (this *Plugin) collectBooks(login, token string) {
 
 				//index books
 				document := common.Document{
-					Source:  YuqueKey,
+					Source:  common.DataSource{
+						//ID: "",//TODO
+						Name: YuqueKey,
+						Type: "connector",
+					},
 					Title:   bookDetail.Book.Name,
 					Summary: bookDetail.Book.Description,
 					Type:    book.Type,
@@ -235,7 +244,11 @@ func (this *Plugin) collectDocDetails(bookID int64, docID int64, token string) {
 	if this.cfg.IndexingDocs && (doc.Doc.Public > 0 || (this.cfg.IncludePrivateDoc)) {
 		//index doc
 		document := common.Document{
-			Source:  YuqueKey,
+			Source:  common.DataSource{
+				//ID: "",//TODO
+				Name: YuqueKey,
+				Type: "connector",
+			},
 			Title:   doc.Doc.Title,
 			Summary: doc.Doc.Description,
 			Cover:   doc.Doc.Cover,
@@ -326,7 +339,11 @@ func (this *Plugin) collectUsers(login, token string) {
 				}
 
 				document = common.Document{
-					Source:    YuqueKey,
+					Source:  common.DataSource{
+						//ID: "",//TODO
+						Name: YuqueKey,
+						Type: "connector",
+					},
 					Title:     groupUser.User.Name,
 					Summary:   groupUser.User.Description,
 					Type:      docType,
@@ -350,7 +367,11 @@ func (this *Plugin) collectUsers(login, token string) {
 				}
 
 				document = common.Document{
-					Source:    YuqueKey,
+					Source:  common.DataSource{
+						//ID: "",//TODO
+						Name: YuqueKey,
+						Type: "connector",
+					},
 					Title:     groupUser.Group.Name,
 					Summary:   groupUser.Group.Description,
 					Type:      docType,

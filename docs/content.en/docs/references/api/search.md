@@ -22,7 +22,11 @@ curl  -XGET http://localhost:2900/query/_suggest\?query\=buss
     {
       "suggestion": "Q3 Business Report",
       "score": 0.99,
-      "source": "google_drive"
+      "source": {
+         "type":"connector",
+         "name":"google_drive",
+         "id":"e806831dacc3",
+       }
     }
   ]
 }

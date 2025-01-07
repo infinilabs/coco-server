@@ -87,7 +87,6 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 			"size":             size,
 			"field":            field,
 			"query":            query,
-			"_source_excludes": "payload.*",
 			"source":           strings.Split(source, ","),
 		}
 		q.TemplatedQuery = &templatedQuery
