@@ -9,7 +9,6 @@ import (
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/global"
-	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/queue"
 	"infini.sh/framework/core/util"
 	"strings"
@@ -161,18 +160,19 @@ func (this *Plugin) collectBooks(login, token string) {
 					},
 					Icon: this.getIconLink(YuqueKey, "book", bookDetail.Book.Type),
 					//Thumbnail: bookDetail.Book.,
-					Metadata: util.MapStr{
-						"public":        bookDetail.Book.Public,
-						"slug":          bookDetail.Book.Slug,
-						"creator_id":    bookDetail.Book.CreatorID,
-						"user_id":       bookDetail.Book.UserID,
-						"toc_yml":       bookDetail.Book.TocYML,
-						"items_count":   bookDetail.Book.ItemsCount,
-						"likes_count":   bookDetail.Book.LikesCount,
-						"watches_count": bookDetail.Book.WatchesCount,
-						"namespace":     bookDetail.Book.Namespace,
-						"user":          bookDetail.Book.User,
-					},
+				}
+
+				document.Metadata= util.MapStr{
+					"public":        bookDetail.Book.Public,
+					"slug":          bookDetail.Book.Slug,
+					"creator_id":    bookDetail.Book.CreatorID,
+					"user_id":       bookDetail.Book.UserID,
+					"toc_yml":       bookDetail.Book.TocYML,
+					"items_count":   bookDetail.Book.ItemsCount,
+					"likes_count":   bookDetail.Book.LikesCount,
+					"watches_count": bookDetail.Book.WatchesCount,
+					"namespace":     bookDetail.Book.Namespace,
+					"user":          bookDetail.Book.User,
 				}
 
 				document.ID = util.MD5digest(fmt.Sprintf("%v-%v-%v", "test", "yuque-book", bookID))
@@ -272,28 +272,33 @@ func (this *Plugin) collectDocDetails(bookID int64, docID int64, token string) {
 			},
 			Icon:      this.getIconLink(YuqueKey, "doc", doc.Doc.Type),
 			Thumbnail: doc.Doc.Cover,
-			Metadata: util.MapStr{
-				"public":         doc.Doc.Public,
-				"slug":           doc.Doc.Slug,
-				"user_id":        doc.Doc.UserID,
-				"book_id":        doc.Doc.BookID,
-				"last_editor_id": doc.Doc.LastEditorID,
-				"format":         doc.Doc.Format,
-				"body_draft":     doc.Doc.BodyDraft,
-				"body_html":      doc.Doc.BodyHTML,
-				"body_sheet":     doc.Doc.BodySheet,
-				"body_lake":      doc.Doc.BodyLake,
-				"body_table":     doc.Doc.BodyTable,
-				"status":         doc.Doc.Status,
-				"likes_count":    doc.Doc.LikesCount,
-				"read_count":     doc.Doc.ReadCount,
-				"comments_count": doc.Doc.CommentsCount,
-				"word_count":     doc.Doc.WordCount,
-				"user":           doc.Doc.User,
-				"creator":        doc.Doc.Creator,
-				"book":           doc.Doc.Book,
-				"tags":           doc.Doc.Tags,
-			},
+
+		}
+
+		document.Metadata=util.MapStr{
+			"public":         doc.Doc.Public,
+			"slug":           doc.Doc.Slug,
+			"user_id":        doc.Doc.UserID,
+			"book_id":        doc.Doc.BookID,
+			"last_editor_id": doc.Doc.LastEditorID,
+			"format":         doc.Doc.Format,
+			"status":         doc.Doc.Status,
+			"likes_count":    doc.Doc.LikesCount,
+			"read_count":     doc.Doc.ReadCount,
+			"comments_count": doc.Doc.CommentsCount,
+			"word_count":     doc.Doc.WordCount,
+			"user":           doc.Doc.User,
+			"creator":        doc.Doc.Creator,
+			"book":           doc.Doc.Book,
+			"tags":           doc.Doc.Tags,
+		}
+
+		document.Payload=util.MapStr{
+			"body_draft":     doc.Doc.BodyDraft,
+			"body_html":      doc.Doc.BodyHTML,
+			"body_sheet":     doc.Doc.BodySheet,
+			"body_lake":      doc.Doc.BodyLake,
+			"body_table":     doc.Doc.BodyTable,
 		}
 
 		document.ID = util.MD5digest(fmt.Sprintf("%v-%v-%v", "test", "yuque-doc", doc.Doc.ID))
@@ -350,12 +355,10 @@ func (this *Plugin) collectUsers(login, token string) {
 					URL:       fmt.Sprintf("https://infini.yuque.com/%v", groupUser.User.Login),
 					Icon:      groupUser.User.AvatarURL,
 					Thumbnail: groupUser.User.AvatarURL,
-					Metadata:  metadata,
-					ORMObjectBase: orm.ORMObjectBase{
-						Created: &groupUser.User.CreatedAt,
-						Updated: &groupUser.User.UpdatedAt,
-					},
 				}
+				document.Created=&groupUser.User.CreatedAt
+				document.Updated=&groupUser.User.UpdatedAt
+				document.Metadata=metadata
 
 			} else if groupUser.Group != nil && this.cfg.IndexingGroups {
 				idPrefix, docType = "yuque-group", groupUser.Group.Type
@@ -376,12 +379,10 @@ func (this *Plugin) collectUsers(login, token string) {
 					URL:       fmt.Sprintf("https://infini.yuque.com/%v", groupUser.Group.ID),
 					Icon:      groupUser.Group.AvatarURL,
 					Thumbnail: groupUser.Group.AvatarURL,
-					Metadata:  metadata,
-					ORMObjectBase: orm.ORMObjectBase{
-						Created: &groupUser.Group.CreatedAt,
-						Updated: &groupUser.Group.UpdatedAt,
-					},
 				}
+				document.Created=&groupUser.Group.CreatedAt
+				document.Updated=&groupUser.Group.UpdatedAt
+				document.Metadata=metadata
 			}
 
 			// Generate document ID and save
