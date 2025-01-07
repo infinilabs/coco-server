@@ -161,6 +161,8 @@ func (this *Plugin) startIndexingFiles(tenantID,userID string,tok *oauth2.Token)
 				}
 			}
 
+			document.Payload= util.MapStr{}
+
 			// Handle optional fields
 			if i.SharingUser != nil {
 				document.Payload["sharingUser"] = common.UserInfo{
