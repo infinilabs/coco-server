@@ -56,7 +56,7 @@ func (this *Plugin) startIndexingFiles(tenantID,userID string,tok *oauth2.Token)
 
 	log.Tracef("get last modified time: %v",lastModifiedTimeStr)
 
-	if lastModifiedTimeStr !=""{
+	if lastModifiedTimeStr !=""{ //TODO, if the files are newly shared and with old timestamp and we may missed
 		// Parse last indexed time
 		parsedTime, err := time.Parse(time.RFC3339Nano, lastModifiedTimeStr)
 		if err != nil {
@@ -126,27 +126,29 @@ func (this *Plugin) startIndexingFiles(tenantID,userID string,tok *oauth2.Token)
 				},
 				Icon:      i.IconLink,
 				Thumbnail: i.ThumbnailLink,
-				Metadata: util.MapStr{
-					"drive_id":        i.DriveId,
-					"file_id":         i.Id,
-					"email":           i.Owners[0].EmailAddress,
-					"file_extension":  i.FileExtension,
-					"kind":            i.Kind,
-					"shared":          i.Shared,
-					"spaces":          i.Spaces,
-					"starred":         i.Starred,
-					"web_view_link":   i.WebViewLink,
-					"labels":          i.LabelInfo,
-					"parents":         i.Parents,
-					"permissions":     i.Permissions,
-					"permission_ids":  i.PermissionIds,
-					"properties":      i.Properties,
-				},
+
 			}
 
-			document.ID = i.Id
+			document.ID = i.Id //add tenant namespace and then hash
 			document.Created = createdAt
 			document.Updated = updatedAt
+
+			document.Metadata= util.MapStr{
+				"drive_id":        i.DriveId,
+				"file_id":         i.Id,
+				"email":           i.Owners[0].EmailAddress,
+				"file_extension":  i.FileExtension,
+				"kind":            i.Kind,
+				"shared":          i.Shared,
+				"spaces":          i.Spaces,
+				"starred":         i.Starred,
+				"web_view_link":   i.WebViewLink,
+				"labels":          i.LabelInfo,
+				"parents":         i.Parents,
+				"permissions":     i.Permissions,
+				"permission_ids":  i.PermissionIds,
+				"properties":      i.Properties,
+			}
 
 			if i.LastModifyingUser != nil {
 				document.LastUpdatedBy = &common.EditorInfo{
@@ -161,7 +163,7 @@ func (this *Plugin) startIndexingFiles(tenantID,userID string,tok *oauth2.Token)
 
 			// Handle optional fields
 			if i.SharingUser != nil {
-				document.Metadata["sharingUser"] = common.UserInfo{
+				document.Payload["sharingUser"] = common.UserInfo{
 					UserAvatar: i.SharingUser.PhotoLink,
 					UserName:   i.SharingUser.DisplayName,
 					UserID:     i.SharingUser.EmailAddress,
@@ -169,11 +171,11 @@ func (this *Plugin) startIndexingFiles(tenantID,userID string,tok *oauth2.Token)
 			}
 
 			if i.VideoMediaMetadata != nil {
-				document.Metadata["video_metadata"] = i.VideoMediaMetadata
+				document.Payload["video_metadata"] = i.VideoMediaMetadata
 			}
 
 			if i.ImageMediaMetadata != nil {
-				document.Metadata["image_metadata"] = i.ImageMediaMetadata
+				document.Payload["image_metadata"] = i.ImageMediaMetadata
 			}
 
 			// Convert to JSON and push to queue

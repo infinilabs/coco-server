@@ -31,7 +31,8 @@ Below is the field description for the document.
 | `owner.avatar`         | `string` (URL)    | URL to the owner's avatar image.                                                                   |
 | `owner.username`       | `string`          | Username of the owner, e.g., `jdoe`.                                                               |
 | `owner.userid`         | `string`          | User ID of the owner, e.g., `user123`.                                                             |
-| `metadata`             | `object`          | Additional metadata about the document.                                                            |
+| `metadata`             | `object`          | Additional accessible metadata (e.g., file version, permissions).                                    |
+| `payload`              | `object`          | Additional store-only metadata (e.g., file binary data).                                             |
 | `last_updated_by`      | `object`          | Information about the last user who updated the document.                                          |
 | `last_updated_by.user` | `object`          | Details about the user who last updated the document.                                              |
 | `last_updated_by.user.avatar` | `string` (URL) | URL to the avatar of the last editor.                                                              |
