@@ -24,6 +24,7 @@ type Config struct {
 	IndexingDocs       bool               `config:"indexing_docs"`
 	IndexingUsers      bool               `config:"indexing_users"`
 	IndexingGroups     bool               `config:"indexing_groups"`
+	SkipInvalidToken   bool               `config:"skip_invalid_token"`
 }
 
 type Plugin struct {
@@ -60,8 +61,8 @@ func (this *Plugin) Setup() {
 		this.cfg.Queue = queueCfg
 	}
 
-	if this.cfg.Token == "" {
-		panic("invalid token")
+	if !this.cfg.SkipInvalidToken &&this.cfg.Token == "" {
+		panic("invalid yuque token")
 	}
 
 	api.HandleAPIMethod(api.GET, "/connector/yuque/connect", this.connect)
