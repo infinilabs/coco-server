@@ -36,3 +36,6 @@ log/
 .env
 generated_*.go
 /assets/static.go
+
+# SonarQube scanner
+.scannerwork/
