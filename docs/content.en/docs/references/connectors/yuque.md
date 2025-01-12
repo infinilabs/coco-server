@@ -23,10 +23,10 @@ curl -XPUT http://localhost:9000/connector/yuque?replace=true -d '{
         "icons": {
             "default": "https://coco.infini.cloud/assets/connector/yuque/icon.png", 
             "book": "https://coco.infini.cloud/assets/connector/yuque/book.png", 
-            "board": "https://coco.infini.cloud/assets/connector/yuque/icon.png", 
+            "board": "https://coco.infini.cloud/assets/connector/yuque/board.png", 
             "sheet": "https://coco.infini.cloud/assets/connector/yuque/sheet.png", 
             "table": "https://coco.infini.cloud/assets/connector/yuque/table.png", 
-            "doc": "https://coco.infini.cloud/assets/connector/yuque/icon.png"
+            "doc": "https://coco.infini.cloud/assets/connector/yuque/doc.png"
         }
     }
 }'
