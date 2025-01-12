@@ -46,4 +46,5 @@ curl -XPUT http://localhost:9000/connector/google_drive?replace=true -d '{
 ```
 
 > Use `google_drive` as a unique identifier, or substitute it with any ID of your choice.
+>
 > Replace `https://coco.infini.cloud` to your coco-server's endpoint.
