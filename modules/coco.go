@@ -11,6 +11,7 @@ import (
 	"infini.sh/coco/modules/common"
 	_ "infini.sh/coco/modules/indexing"
 	_ "infini.sh/coco/modules/search"
+	_ "infini.sh/coco/modules/connector"
 	"infini.sh/framework/core/env"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/orm"

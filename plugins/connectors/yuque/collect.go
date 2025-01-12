@@ -130,7 +130,7 @@ func (this *Plugin) collectBooks(login, token string) {
 
 				//index books
 				document := common.Document{
-					Source:  common.DataSource{
+					Source:  common.DataSourceReference{
 						//ID: "",//TODO
 						Name: YuqueKey,
 						Type: "connector",
@@ -244,7 +244,7 @@ func (this *Plugin) collectDocDetails(bookID int64, docID int64, token string) {
 	if this.cfg.IndexingDocs && (doc.Doc.Public > 0 || (this.cfg.IncludePrivateDoc)) {
 		//index doc
 		document := common.Document{
-			Source:  common.DataSource{
+			Source:  common.DataSourceReference{
 				//ID: "",//TODO
 				Name: YuqueKey,
 				Type: "connector",
@@ -339,7 +339,7 @@ func (this *Plugin) collectUsers(login, token string) {
 				}
 
 				document = common.Document{
-					Source:  common.DataSource{
+					Source:  common.DataSourceReference{
 						//ID: "",//TODO
 						Name: YuqueKey,
 						Type: "connector",
@@ -367,7 +367,7 @@ func (this *Plugin) collectUsers(login, token string) {
 				}
 
 				document = common.Document{
-					Source:  common.DataSource{
+					Source:  common.DataSourceReference{
 						//ID: "",//TODO
 						Name: YuqueKey,
 						Type: "connector",

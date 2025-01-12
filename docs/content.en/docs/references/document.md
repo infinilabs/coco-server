@@ -15,6 +15,7 @@ Below is the field description for the document.
 |-------------------------|--------------------|-----------------------------------------------------------------------------------------------------|
 | `source`               | `object`          | The source of the document.                                                  |
 | `category`             | `string`          | Primary category of the document, e.g., `report`.                                                  |
+| `subcategory`          | `string`          | Secondary category of the document, e.g., `2024`.                                                  |
 | `categories`           | `array[string]`   | List of categories the document belongs to, e.g., `["business", "quarterly_reports"]`.             |
 | `cover`                | `string` (URL)    | URL to the cover image of the document.                                                            |
 | `title`                | `string`          | Title of the document, e.g., `Q3 Business Report`.                                                 |

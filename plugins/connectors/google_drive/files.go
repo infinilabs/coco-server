@@ -129,7 +129,7 @@ func (this *Plugin) startIndexingFiles(tenantID,userID string,tok *oauth2.Token)
 
 			// Map Google Drive file to Document struct
 			document := common.Document{
-				Source:  common.DataSource{
+				Source:  common.DataSourceReference{
 					//ID: "",//TODO
 					Name: "google_drive",
 					Type: "connector",
