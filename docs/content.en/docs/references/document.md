@@ -46,7 +46,7 @@ Below is the field description for the document.
 
 ```shell
 //request
-curl -H 'Content-Type: application/json' -XPOST http://localhost:2900/document/ -d '{
+curl -H 'Content-Type: application/json' -XPOST http://localhost:9000/document/ -d '{
   "source": {
     "type":"connector",
     "name":"google_drive",
@@ -108,7 +108,7 @@ curl -H 'Content-Type: application/json' -XPOST http://localhost:2900/document/ 
 
 ```shell
 //request
-curl   -XGET http://localhost:2900/document/cso9vr3q50k38nobvmcg
+curl   -XGET http://localhost:9000/document/cso9vr3q50k38nobvmcg
 
 //response
 {
@@ -132,7 +132,7 @@ curl   -XGET http://localhost:2900/document/cso9vr3q50k38nobvmcg
 
 ```shell
 //request
-curl  -H 'Content-Type: application/json'   -XPUT http://localhost:2900/document/cso9vr3q50k38nobvmcg -d'{ "source": "google_drive", ...OMITTED... , "timestamp": "2024-11-01T15:30:00Z" } }'
+curl  -H 'Content-Type: application/json'   -XPUT http://localhost:9000/document/cso9vr3q50k38nobvmcg -d'{ "source": "google_drive", ...OMITTED... , "timestamp": "2024-11-01T15:30:00Z" } }'
 
 //response
 {
@@ -145,7 +145,7 @@ curl  -H 'Content-Type: application/json'   -XPUT http://localhost:2900/document
 
 ```shell
 //request
-curl  -XDELETE http://localhost:2900/document/cso9vr3q50k38nobvmcg
+curl  -XDELETE http://localhost:9000/document/cso9vr3q50k38nobvmcg
 
 //response
 {
