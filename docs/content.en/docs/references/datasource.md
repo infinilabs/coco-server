@@ -21,7 +21,7 @@ curl  -H 'Content-Type: application/json'   -XPOST http://localhost:9000/datasou
     "name":"My Hugo Site",
     "type":"connector",
     "connector":{
-        "id":"cu0caqt3q95r66at41o0",
+        "id":"hugo_site",
          "config":{
             "urls": [ "https://pizza.rs/index.json" ]
         }
@@ -61,7 +61,7 @@ curl -XPUT http://localhost:9000/datasource/cu1rf03q50k43nn2pi6g?replace=true -d
     "name":"My Hugo Site",
     "type":"connector",
     "connector":{
-        "id":"cu0caqt3q95r66at41o0",
+        "id":"hugo_site",
          "config":{
             "urls": [ "https://pizza.rs/index.json" ]
         }
