@@ -31,3 +31,8 @@ curl -XPUT http://localhost:9000/connector/yuque?replace=true -d '{
     }
 }'
 ```
+
+
+> Use `yuque` as a unique identifier, or substitute it with any ID of your choice.
+>
+> Replace `https://coco.infini.cloud` to your coco-server's endpoint.

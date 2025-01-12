@@ -30,3 +30,8 @@ curl -XPUT http://localhost:9000/connector/hugo_site?replace=true -d '{
     }
 }'
 ```
+
+
+> Use `hugo_site` as a unique identifier, or substitute it with any ID of your choice.
+>
+> Replace `https://coco.infini.cloud` to your coco-server's endpoint.
