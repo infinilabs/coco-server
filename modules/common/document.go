@@ -10,19 +10,20 @@ import (
 
 type RichLabel struct {
 	Label string `json:"label,omitempty" elastic_mapping:"label:{type:keyword,copy_to:combined_fulltext}"`
+	Key   string `json:"key,omitempty" elastic_mapping:"key:{type:keyword}"`
 	Icon  string `json:"icon,omitempty" elastic_mapping:"icon:{enabled:false}"` // Icon Key, need work with datasource's assets to get the icon url
 }
 
-type DataSource struct {
-	Type string `json:"type,omitempty" elastic_mapping:"type:{type:keyword}"` // Type of the datasource, eg: connector
-	Name string `json:"name,omitempty" elastic_mapping:"name:{type:keyword}"` // Source of the document (e.g., "github", "google_drive", "dropbox")
-	ID   string `json:"id,omitempty" elastic_mapping:"id:{type:keyword}"`     // ID of this connector instance
+type DataSourceReference struct {
+	Type string `json:"type,omitempty" elastic_mapping:"type:{type:keyword}"` // ID of the datasource, eg: connector
+	Name string `json:"name,omitempty" elastic_mapping:"name:{type:keyword}"` // Source of the document (e.g., "Github", "Google Drive", "Dropbox")
+	ID   string `json:"id,omitempty" elastic_mapping:"id:{type:keyword}"`     // ID of this the datasource, eg: google_drive
 }
 
 type Document struct {
 	CombinedFullText
 
-	Source DataSource `json:"source,omitempty" elastic_mapping:"source:{type:object}"` // Source of the document
+	Source DataSourceReference `json:"source,omitempty" elastic_mapping:"source:{type:object}"` // Source of the document
 
 	Type string `json:"type,omitempty" elastic_mapping:"type:{type:keyword,copy_to:combined_fulltext}"` // Document type, such as PDF, Docx, etc.
 

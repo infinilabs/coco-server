@@ -4,6 +4,7 @@
 
 package common
 
+// registered connectors
 type Connector struct {
 	CombinedFullText
 	Name        string   `json:"name,omitempty" elastic_mapping:"name:{type:keyword,copy_to:combined_fulltext}"`               // Source of the document (e.g., "github", "google_drive", "dropbox")
@@ -14,6 +15,7 @@ type Connector struct {
 	URL         string   `json:"url,omitempty" elastic_mapping:"url:{enabled:false}"`                                          // Direct link to the document, if available
 
 	Assets struct {
-		Icons map[string]string //icon_key -> URL
-	}
+		Icons map[string]string  `json:"icons,omitempty" elastic_mapping:"icons:{enabled:false}"` //icon_key -> URL
+	} `json:"assets,omitempty" elastic_mapping:"assets:{enabled:false}"`
 }
+

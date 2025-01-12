@@ -81,7 +81,7 @@ func (this *Plugin) Start() error {
 
 						// Output the parsed data
 						for i, v := range documents {
-							doc:=common.Document{Source: common.DataSource{Type: "connector",Name: "hugo_site"}}
+							doc:=common.Document{Source: common.DataSourceReference{Type: "connector",Name: "hugo_site"}}
 							doc.Type="web_page"
 							doc.Icon="web"
 							doc.Title=v.Title
