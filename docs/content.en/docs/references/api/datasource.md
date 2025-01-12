@@ -35,8 +35,6 @@ curl  -H 'Content-Type: application/json'   -XPOST http://localhost:9000/datasou
 }
 ```
 
-> `config` specifies the necessary configurations for this connector. For detailed information, refer to the [connector reference documentation](./connectors/).
-
 ### View a Datasource
 ```shell
 curl -XGET http://localhost:9000/datasource/cu1rf03q50k43nn2pi6g

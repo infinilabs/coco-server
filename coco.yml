@@ -4,8 +4,8 @@ env:
   ES_ENDPOINT: https://localhost:9200
   ES_USERNAME: admin
   ES_PASSWORD: $[[keystore.ES_PASSWORD]]
-  SERV_BINDING: 0.0.0.0:2900
-  API_BINDING: 0.0.0.0:1900
+  WEB_BINDING: 0.0.0.0:9000
+  API_BINDING: 0.0.0.0:2900
 
 coco:
   ollama:
@@ -88,10 +88,8 @@ elastic:
               "_source": [ "{{#source}}","{{.}}","{{/source}}" ],
               "query": {
                 "bool": {
-                  "must": [
-                  ],
-                  "must_not": [
-                       ],
+                  "must": [],
+                  "must_not": [],
                   "should": [
                     {
                       "prefix": {
@@ -147,8 +145,8 @@ elasticsearch:
     discovery:
       enabled: false
     basic_auth:
-      username:  $[[env.ES_USERNAME]]
-      password:  $[[env.ES_PASSWORD]]
+      username: $[[env.ES_USERNAME]]
+      password: $[[env.ES_PASSWORD]]
 
 api:
   enabled: true
@@ -162,7 +160,7 @@ web:
   enabled: true
   embedding_api: true
   network:
-    binding: $[[env.SERV_BINDING]]
+    binding: $[[env.WEB_BINDING]]
   tls:
     enabled: false
     skip_insecure_verify: true
@@ -182,13 +180,14 @@ web:
 
 connector:
   google_drive: # get your token here: https://developers.google.com/drive/api/quickstart/go
-    enabled: true
+    enabled: false
     queue:
       name: indexing_documents
     credential_file: credentials.json
     interval: 10s
+    skip_invalid_token: true
   yuque:
-    enabled: true
+    enabled: false
     queue:
       name: indexing_documents
     token: $[[keystore.YUQUE_TOKEN]]
@@ -199,8 +198,9 @@ connector:
     indexing_users: true
     include_private_book: false
     include_private_doc: false
+    skip_invalid_token: true
   hugo_site:
-    enabled: true
+    enabled: false
     interval: 60s
     queue:
       name: indexing_documents
@@ -241,3 +241,25 @@ pipeline:
           queues:
             type: indexing_merge
             tag: "merged"
+
+
+http_client:
+  default:
+    proxy:
+      enabled: true
+      default_config:
+        http_proxy: http://127.0.0.1:7890
+        socket5_proxy: socks5://127.0.0.1:7890
+      override_system_proxy_env: true #override system proxy's environment settings with this proxy settings
+      permitted:
+        - "google.com"
+      denied:
+        - "localhost"
+        - "www.yuque.com"
+        - "yuque.com"
+        - "infinilabs.com"
+        - "api.coco.rs"
+      domains:
+        "github.com":
+          http_proxy: http://127.0.0.1:7890
+          socket5_proxy: socks5://127.0.0.1:7890
