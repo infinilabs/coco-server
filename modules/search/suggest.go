@@ -64,7 +64,7 @@ func (h APIHandler) suggest(w http.ResponseWriter, req *http.Request, ps httprou
 			"size":   size,
 			"field":  field,
 			"query":  query,
-			"source": strings.Split(source,","),
+			"source": strings.Split(source, ","),
 		}
 		q.TemplatedQuery = &templatedQuery
 	} else {
@@ -83,13 +83,13 @@ func (h APIHandler) suggest(w http.ResponseWriter, req *http.Request, ps httprou
 	}
 
 	suggestions := []Suggestion{}
-	for _,item:= range res.Result{
-		i,ok:=item.(map[string]interface{})
-		if ok{
-			v,ok:=i["title"]
-			if ok{
-				x,_:=i["source"]
-				suggestions=append(suggestions,Suggestion{Suggestion: v.(string), Score: 0.99,Source: x.(string)})
+	for _, item := range res.Result {
+		i, ok := item.(map[string]interface{})
+		if ok {
+			v, ok := i["title"]
+			if ok {
+				x, _ := i["source"]
+				suggestions = append(suggestions, Suggestion{Suggestion: v.(string), Score: 0.99, Source: x.(string)})
 			}
 		}
 	}
@@ -105,9 +105,9 @@ func (h APIHandler) suggest(w http.ResponseWriter, req *http.Request, ps httprou
 		Suggestions: suggestions,
 	}
 
-	err = h.WriteJSON(w, response,200)
+	err = h.WriteJSON(w, response, 200)
 	if err != nil {
-		h.Error(w,err)
+		h.Error(w, err)
 	}
 
 }

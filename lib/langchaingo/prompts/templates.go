@@ -8,9 +8,9 @@ import (
 
 	"github.com/Masterminds/sprig"
 	"github.com/nikolalohinski/gonja"
-	"infini.sh/coco/lib/langchaingo/prompts/internal/fstring"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
+	"infini.sh/coco/lib/langchaingo/prompts/internal/fstring"
 )
 
 // ErrInvalidTemplateFormat is the error when the template format is invalid and

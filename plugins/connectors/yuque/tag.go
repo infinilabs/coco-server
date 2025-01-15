@@ -3,6 +3,7 @@
  * Email: hello#infini.ltd */
 
 package yuque
+
 import "time"
 
 // Tag represents detailed information about a tag.
@@ -15,4 +16,3 @@ type Tag struct {
 	CreatedAt time.Time `json:"created_at"` // Creation timestamp (ISO 8601 format)
 	UpdatedAt time.Time `json:"updated_at"` // Last update timestamp (ISO 8601 format)
 }
-

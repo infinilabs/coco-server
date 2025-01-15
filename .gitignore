@@ -39,3 +39,5 @@ generated_*.go
 
 # SonarQube scanner
 .scannerwork/
+
+docs/.hugo_build.lock

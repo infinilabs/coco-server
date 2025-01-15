@@ -10,9 +10,9 @@ import (
 	"strings"
 
 	"github.com/google/generative-ai-go/genai"
+	"google.golang.org/api/iterator"
 	"infini.sh/coco/lib/langchaingo/internal/imageutil"
 	"infini.sh/coco/lib/langchaingo/llms"
-	"google.golang.org/api/iterator"
 )
 
 var (

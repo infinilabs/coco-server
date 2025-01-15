@@ -4,11 +4,11 @@ import (
 	"context"
 	"encoding/json"
 
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 	"infini.sh/coco/lib/langchaingo/internal/mongodb"
 	"infini.sh/coco/lib/langchaingo/llms"
 	"infini.sh/coco/lib/langchaingo/schema"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 const (

@@ -83,11 +83,11 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		templatedQuery := orm.TemplatedQuery{}
 		templatedQuery.TemplateID = "coco-query-string"
 		templatedQuery.Parameters = util.MapStr{
-			"from":             from,
-			"size":             size,
-			"field":            field,
-			"query":            query,
-			"source":           strings.Split(source, ","),
+			"from":   from,
+			"size":   size,
+			"field":  field,
+			"query":  query,
+			"source": strings.Split(source, ","),
 		}
 		q.TemplatedQuery = &templatedQuery
 	} else {

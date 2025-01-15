@@ -32,7 +32,7 @@ func get(path, token string) *util.Result {
 }
 
 func (this *Plugin) getIconKey(category, iconType string) string {
-	return fmt.Sprintf("%v_%v",strings.TrimSpace(strings.ToLower(category)),strings.TrimSpace(strings.ToLower(iconType)))
+	return fmt.Sprintf("%v_%v", strings.TrimSpace(strings.ToLower(category)), strings.TrimSpace(strings.ToLower(iconType)))
 }
 
 func (this *Plugin) cleanupIconName(name string) string {
@@ -59,10 +59,9 @@ func (this *Plugin) collect() {
 
 	token := this.cfg.Token
 
-	if token==""{
+	if token == "" {
 		panic("invalid yuque token")
 	}
-
 
 	//for groups only
 	res := get("/api/v2/user", token)
@@ -130,7 +129,7 @@ func (this *Plugin) collectBooks(login, token string) {
 
 				//index books
 				document := common.Document{
-					Source:  common.DataSourceReference{
+					Source: common.DataSourceReference{
 						//ID: "",//TODO
 						Name: YuqueKey,
 						Type: "connector",
@@ -149,7 +148,7 @@ func (this *Plugin) collectBooks(login, token string) {
 					//Thumbnail: bookDetail.Book.,
 				}
 
-				document.Metadata= util.MapStr{
+				document.Metadata = util.MapStr{
 					"public":        bookDetail.Book.Public,
 					"slug":          bookDetail.Book.Slug,
 					"creator_id":    bookDetail.Book.CreatorID,
@@ -244,7 +243,7 @@ func (this *Plugin) collectDocDetails(bookID int64, docID int64, token string) {
 	if this.cfg.IndexingDocs && (doc.Doc.Public > 0 || (this.cfg.IncludePrivateDoc)) {
 		//index doc
 		document := common.Document{
-			Source:  common.DataSourceReference{
+			Source: common.DataSourceReference{
 				//ID: "",//TODO
 				Name: YuqueKey,
 				Type: "connector",
@@ -263,10 +262,9 @@ func (this *Plugin) collectDocDetails(bookID int64, docID int64, token string) {
 			},
 			Icon:      this.getIconKey("doc", doc.Doc.Type),
 			Thumbnail: doc.Doc.Cover,
-
 		}
 
-		document.Metadata=util.MapStr{
+		document.Metadata = util.MapStr{
 			"public":         doc.Doc.Public,
 			"slug":           doc.Doc.Slug,
 			"user_id":        doc.Doc.UserID,
@@ -284,12 +282,12 @@ func (this *Plugin) collectDocDetails(bookID int64, docID int64, token string) {
 			"tags":           doc.Doc.Tags,
 		}
 
-		document.Payload=util.MapStr{
-			"body_draft":     doc.Doc.BodyDraft,
-			"body_html":      doc.Doc.BodyHTML,
-			"body_sheet":     doc.Doc.BodySheet,
-			"body_lake":      doc.Doc.BodyLake,
-			"body_table":     doc.Doc.BodyTable,
+		document.Payload = util.MapStr{
+			"body_draft": doc.Doc.BodyDraft,
+			"body_html":  doc.Doc.BodyHTML,
+			"body_sheet": doc.Doc.BodySheet,
+			"body_lake":  doc.Doc.BodyLake,
+			"body_table": doc.Doc.BodyTable,
 		}
 
 		document.ID = util.MD5digest(fmt.Sprintf("%v-%v-%v", "test", "yuque-doc", doc.Doc.ID))
@@ -339,7 +337,7 @@ func (this *Plugin) collectUsers(login, token string) {
 				}
 
 				document = common.Document{
-					Source:  common.DataSourceReference{
+					Source: common.DataSourceReference{
 						//ID: "",//TODO
 						Name: YuqueKey,
 						Type: "connector",
@@ -351,9 +349,9 @@ func (this *Plugin) collectUsers(login, token string) {
 					Icon:      groupUser.User.AvatarURL, //TODO save to local store
 					Thumbnail: groupUser.User.AvatarURL,
 				}
-				document.Created=&groupUser.User.CreatedAt
-				document.Updated=&groupUser.User.UpdatedAt
-				document.Metadata=metadata
+				document.Created = &groupUser.User.CreatedAt
+				document.Updated = &groupUser.User.UpdatedAt
+				document.Metadata = metadata
 
 			} else if groupUser.Group != nil && this.cfg.IndexingGroups {
 				idPrefix, docType = "yuque-group", groupUser.Group.Type
@@ -367,7 +365,7 @@ func (this *Plugin) collectUsers(login, token string) {
 				}
 
 				document = common.Document{
-					Source:  common.DataSourceReference{
+					Source: common.DataSourceReference{
 						//ID: "",//TODO
 						Name: YuqueKey,
 						Type: "connector",
@@ -379,9 +377,9 @@ func (this *Plugin) collectUsers(login, token string) {
 					Icon:      groupUser.Group.AvatarURL, //TODO save to local store
 					Thumbnail: groupUser.Group.AvatarURL,
 				}
-				document.Created=&groupUser.Group.CreatedAt
-				document.Updated=&groupUser.Group.UpdatedAt
-				document.Metadata=metadata
+				document.Created = &groupUser.Group.CreatedAt
+				document.Updated = &groupUser.Group.UpdatedAt
+				document.Metadata = metadata
 			}
 
 			// Generate document ID and save

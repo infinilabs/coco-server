@@ -61,7 +61,7 @@ func (this *Plugin) Setup() {
 		this.cfg.Queue = queueCfg
 	}
 
-	if !this.cfg.SkipInvalidToken &&this.cfg.Token == "" {
+	if !this.cfg.SkipInvalidToken && this.cfg.Token == "" {
 		panic("invalid yuque token")
 	}
 

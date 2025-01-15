@@ -125,7 +125,7 @@ func (h *APIHandler) searchDocs(w http.ResponseWriter, req *http.Request, ps htt
 
 	var err error
 	q := orm.Query{}
-	q.RawQuery,err=h.GetRawBody(req)
+	q.RawQuery, err = h.GetRawBody(req)
 
 	//TODO handle url query args
 

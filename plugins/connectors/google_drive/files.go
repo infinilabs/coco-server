@@ -35,8 +35,8 @@ func getIcon(fileType string) string {
 	}
 }
 
-func (this *Plugin) startIndexingFiles(tenantID,userID string,tok *oauth2.Token) {
-	var filesProcessed =0
+func (this *Plugin) startIndexingFiles(tenantID, userID string, tok *oauth2.Token) {
+	var filesProcessed = 0
 	defer func() {
 		if !global.Env().IsDebug {
 			if r := recover(); r != nil {
@@ -53,8 +53,8 @@ func (this *Plugin) startIndexingFiles(tenantID,userID string,tok *oauth2.Token)
 			}
 		}
 
-		if filesProcessed>0{
-			log.Infof("[connector][google_drive] successfully indexed [%v]  files",filesProcessed)//TODO unify logging format
+		if filesProcessed > 0 {
+			log.Infof("[connector][google_drive] successfully indexed [%v]  files", filesProcessed) //TODO unify logging format
 		}
 	}()
 
@@ -68,11 +68,11 @@ func (this *Plugin) startIndexingFiles(tenantID,userID string,tok *oauth2.Token)
 	var query string
 
 	//get last access time from kv
-	lastModifiedTimeStr,_ := this.getLastModifiedTime(tenantID,userID)
+	lastModifiedTimeStr, _ := this.getLastModifiedTime(tenantID, userID)
 
-	log.Tracef("get last modified time: %v",lastModifiedTimeStr)
+	log.Tracef("get last modified time: %v", lastModifiedTimeStr)
 
-	if lastModifiedTimeStr !=""{ //TODO, if the files are newly shared and with old timestamp and we may missed
+	if lastModifiedTimeStr != "" { //TODO, if the files are newly shared and with old timestamp and we may missed
 		// Parse last indexed time
 		parsedTime, err := time.Parse(time.RFC3339Nano, lastModifiedTimeStr)
 		if err != nil {
@@ -84,17 +84,16 @@ func (this *Plugin) startIndexingFiles(tenantID,userID string,tok *oauth2.Token)
 
 	var lastModifyTime *time.Time
 
-
 	// Start pagination loop
 	var nextPageToken string
 	for {
-		call:=srv.Files.List().PageSize(this.PageSize).OrderBy("modifiedTime asc")
+		call := srv.Files.List().PageSize(this.PageSize).OrderBy("modifiedTime asc")
 
-		if query!=""{
-			call=call.Q(query)
+		if query != "" {
+			call = call.Q(query)
 		}
 
-		r, err :=call.
+		r, err := call.
 			PageToken(nextPageToken).
 			Fields("nextPageToken, files(id, name, mimeType, size, owners(emailAddress, displayName), createdTime, " +
 				"modifiedTime, lastModifyingUser(emailAddress, displayName), iconLink, fileExtension, description, hasThumbnail," +
@@ -129,7 +128,7 @@ func (this *Plugin) startIndexingFiles(tenantID,userID string,tok *oauth2.Token)
 
 			// Map Google Drive file to Document struct
 			document := common.Document{
-				Source:  common.DataSourceReference{
+				Source: common.DataSourceReference{
 					//ID: "",//TODO
 					Name: "google_drive",
 					Type: "connector",
@@ -146,28 +145,27 @@ func (this *Plugin) startIndexingFiles(tenantID,userID string,tok *oauth2.Token)
 				},
 				Icon:      getIcon(i.MimeType),
 				Thumbnail: i.ThumbnailLink,
-
 			}
 
 			document.ID = i.Id //add tenant namespace and then hash
 			document.Created = createdAt
 			document.Updated = updatedAt
 
-			document.Metadata= util.MapStr{
-				"drive_id":        i.DriveId,
-				"file_id":         i.Id,
-				"email":           i.Owners[0].EmailAddress,
-				"file_extension":  i.FileExtension,
-				"kind":            i.Kind,
-				"shared":          i.Shared,
-				"spaces":          i.Spaces,
-				"starred":         i.Starred,
-				"web_view_link":   i.WebViewLink,
-				"labels":          i.LabelInfo,
-				"parents":         i.Parents,
-				"permissions":     i.Permissions,
-				"permission_ids":  i.PermissionIds,
-				"properties":      i.Properties,
+			document.Metadata = util.MapStr{
+				"drive_id":       i.DriveId,
+				"file_id":        i.Id,
+				"email":          i.Owners[0].EmailAddress,
+				"file_extension": i.FileExtension,
+				"kind":           i.Kind,
+				"shared":         i.Shared,
+				"spaces":         i.Spaces,
+				"starred":        i.Starred,
+				"web_view_link":  i.WebViewLink,
+				"labels":         i.LabelInfo,
+				"parents":        i.Parents,
+				"permissions":    i.Permissions,
+				"permission_ids": i.PermissionIds,
+				"properties":     i.Properties,
 			}
 
 			if i.LastModifyingUser != nil {
@@ -181,7 +179,7 @@ func (this *Plugin) startIndexingFiles(tenantID,userID string,tok *oauth2.Token)
 				}
 			}
 
-			document.Payload= util.MapStr{}
+			document.Payload = util.MapStr{}
 
 			// Handle optional fields
 			if i.SharingUser != nil {
@@ -216,8 +214,8 @@ func (this *Plugin) startIndexingFiles(tenantID,userID string,tok *oauth2.Token)
 		if lastModifyTime != nil {
 			// Save the lastModifyTime (for example, in a KV store or file)
 			lastModifiedTimeStr = lastModifyTime.Format(time.RFC3339Nano)
-			err:=this.saveLastModifiedTime(tenantID,userID, lastModifiedTimeStr)
-			if err!=nil{
+			err := this.saveLastModifiedTime(tenantID, userID, lastModifiedTimeStr)
+			if err != nil {
 				panic(err)
 			}
 			log.Debugf("Last modified time to be saved: %s", lastModifiedTimeStr)

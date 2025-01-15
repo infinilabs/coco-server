@@ -47,8 +47,8 @@ func main() {
 	app.Init(nil)
 
 	//register vfs, eg: /assets/connector/google_drive.png
-	urlPath:="/assets/"
-	vfs.RegisterFS(assets.StaticFS{StaticFolder: "assets",TrimLeftPath: urlPath, CheckLocalFirst: true, SkipVFS: false})
+	urlPath := "/assets/"
+	vfs.RegisterFS(assets.StaticFS{StaticFolder: "assets", TrimLeftPath: urlPath, CheckLocalFirst: true, SkipVFS: false})
 	api1.HandleUI(urlPath, vfs.FileServer(vfs.VFS()))
 
 	defer app.Shutdown()

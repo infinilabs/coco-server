@@ -6,6 +6,7 @@ package google_drive
 
 import (
 	"context"
+	log "github.com/cihub/seelog"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/drive/v3"
@@ -17,7 +18,6 @@ import (
 	"infini.sh/framework/core/task"
 	"infini.sh/framework/core/util"
 	"os"
-	log "github.com/cihub/seelog"
 	"time"
 )
 
@@ -26,7 +26,7 @@ type Plugin struct {
 
 	Enabled          bool               `config:"enabled"`
 	Interval         string             `config:"interval"`
-	PageSize         int64                `config:"page_size"`
+	PageSize         int64              `config:"page_size"`
 	CredentialFile   string             `config:"credential_file"`
 	Credential       *Credential        `config:"credential"`
 	SkipInvalidToken bool               `config:"skip_invalid_token"`
@@ -51,7 +51,7 @@ func (this *Plugin) Setup() {
 		panic(err)
 	}
 
-	if !this.Enabled{
+	if !this.Enabled {
 		return
 	}
 
@@ -83,7 +83,7 @@ func (this *Plugin) Setup() {
 			Scopes:       []string{"https://www.googleapis.com/auth/drive.metadata.readonly"},
 			Endpoint:     google.Endpoint,
 		}
-	}else{
+	} else {
 		panic("Missing Google OAuth credentials")
 	}
 
@@ -112,12 +112,12 @@ func (this *Plugin) Start() error {
 				var tenantID = "test"
 				var userID = "test"
 
-				exists,tok, err := this.getToken(tenantID, userID)
+				exists, tok, err := this.getToken(tenantID, userID)
 				if err != nil {
 					panic(err)
 				}
 
-				if !exists{
+				if !exists {
 					return
 				}
 
@@ -126,10 +126,10 @@ func (this *Plugin) Start() error {
 					if !this.SkipInvalidToken && !tok.Valid() {
 						panic("token is invalid")
 					}
-					log.Warnf("skip invalid token: %v",tok)
+					log.Warnf("skip invalid token: %v", tok)
 				} else {
 					log.Debug("start processing google drive files")
-					this.startIndexingFiles(tenantID,userID,tok)
+					this.startIndexingFiles(tenantID, userID, tok)
 					log.Debug("finished process google drive files")
 				}
 			},
@@ -149,5 +149,5 @@ func (this *Plugin) Name() string {
 }
 
 func init() {
-	module.RegisterUserPlugin(&Plugin{SkipInvalidToken: true,PageSize: 10})
+	module.RegisterUserPlugin(&Plugin{SkipInvalidToken: true, PageSize: 10})
 }
