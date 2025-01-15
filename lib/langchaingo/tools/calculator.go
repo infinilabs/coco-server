@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"infini.sh/coco/lib/langchaingo/callbacks"
 	"go.starlark.net/lib/math"
 	"go.starlark.net/starlark"
+	"infini.sh/coco/lib/langchaingo/callbacks"
 )
 
 // Calculator is a tool that can do math.

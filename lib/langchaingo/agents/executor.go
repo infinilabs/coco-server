@@ -34,7 +34,7 @@ var (
 func NewExecutor(agent Agent, opts ...Option) *Executor {
 	options := executorDefaultOptions()
 	for _, opt := range opts {
-		if opt!=nil{
+		if opt != nil {
 			opt(&options)
 		}
 	}

@@ -32,7 +32,7 @@ type MessageRequest struct {
 }
 
 type ChatSession struct {
-	ChatSessionID string
+	ChatSessionID      string
 	WebsocketSessionID string
 }
 
@@ -86,7 +86,7 @@ func (h APIHandler) newChatSession(w http.ResponseWriter, req *http.Request, ps 
 		"_source": obj,
 	}, 200)
 
-	sessions[obj.ID]=ChatSession{ChatSessionID: obj.ID}
+	sessions[obj.ID] = ChatSession{ChatSessionID: obj.ID}
 
 	if err != nil {
 		h.Error(w, err)
@@ -98,7 +98,7 @@ func (h APIHandler) openChatSession(w http.ResponseWriter, req *http.Request, ps
 
 	obj := Session{}
 	obj.ID = id
-	
+
 	exists, err := orm.Get(&obj)
 	if !exists || err != nil {
 		h.WriteJSON(w, util.MapStr{
@@ -143,15 +143,15 @@ func (h APIHandler) getChatHistoryBySession(w http.ResponseWriter, req *http.Req
 	}
 }
 
-var inflightMessages=sync.Map{}
+var inflightMessages = sync.Map{}
 
 func (h APIHandler) cancelReplyMessage(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	sessionID := ps.MustGetParameter("session_id")
-	v,ok:=inflightMessages.Load(sessionID)
-	if ok{
+	v, ok := inflightMessages.Load(sessionID)
+	if ok {
 		task.StopTask(v.(string))
 	}
-	err:=h.WriteAckOKJSON(w)
+	err := h.WriteAckOKJSON(w)
 	if err != nil {
 		h.Error(w, err)
 	}
@@ -159,7 +159,7 @@ func (h APIHandler) cancelReplyMessage(w http.ResponseWriter, req *http.Request,
 
 func (h APIHandler) sendChatMessage(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
-	webSocketID:=req.Header.Get("WEBSOCKET-SESSION-ID")
+	webSocketID := req.Header.Get("WEBSOCKET-SESSION-ID")
 
 	log.Trace(req.Header)
 
@@ -171,9 +171,9 @@ func (h APIHandler) sendChatMessage(w http.ResponseWriter, req *http.Request, ps
 	}
 
 	obj := ChatMessage{
-		SessionID: sessionID,
+		SessionID:   sessionID,
 		MessageType: MessageTypeUser,
-		Message:   request.Message,
+		Message:     request.Message,
 	}
 
 	err := orm.Create(nil, &obj)
@@ -182,18 +182,18 @@ func (h APIHandler) sendChatMessage(w http.ResponseWriter, req *http.Request, ps
 		return
 	}
 
-	response:=[]util.MapStr{util.MapStr{
+	response := []util.MapStr{util.MapStr{
 		"_id":     obj.ID,
 		"result":  "created",
 		"_source": obj,
 	}}
 
-	if webSocketID!=""{
+	if webSocketID != "" {
 		//de-duplicate background task per-session, cancelable
-		taskID:=task.RunWithinGroup("assistant-session", func(taskCtx context.Context) error {
+		taskID := task.RunWithinGroup("assistant-session", func(taskCtx context.Context) error {
 			//timeout for 30 seconds
 
-			log.Debugf("place a assistant background job for session: %v, websocket: %v ",sessionID,webSocketID)
+			log.Debugf("place a assistant background job for session: %v, websocket: %v ", sessionID, webSocketID)
 
 			//TODO
 			//1. retrieve related documents from background server
@@ -201,7 +201,7 @@ func (h APIHandler) sendChatMessage(w http.ResponseWriter, req *http.Request, ps
 			//3. assemble with the agent's role setting
 			//4. send to LLM
 
-			ollamaConfig:=common.AppConfig().OllamaConfig
+			ollamaConfig := common.AppConfig().OllamaConfig
 			llm, err := ollama.New(
 				ollama.WithServerURL(ollamaConfig.Endpoint),
 				ollama.WithModel(ollamaConfig.Model),
@@ -220,24 +220,24 @@ func (h APIHandler) sendChatMessage(w http.ResponseWriter, req *http.Request, ps
 				llms.TextParts(llms.ChatMessageTypeHuman, request.Message),
 			}
 
-			chunkSeq:=0
-			messageID:=util.GetUUID()
-			requestMessageID:=obj.ID
-			messageBuffer:=strings.Builder{}
+			chunkSeq := 0
+			messageID := util.GetUUID()
+			requestMessageID := obj.ID
+			messageBuffer := strings.Builder{}
 			completion, err := llm.GenerateContent(ctx, content,
 				llms.WithTemperature(0.8),
 				llms.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
-					chunkSeq+=1
-					msg:=util.MustToJSON(util.MapStr{
-						"session_id": sessionID,
-						"message_id": messageID,
-						"message_type": MessageTypeAssistant,
+					chunkSeq += 1
+					msg := util.MustToJSON(util.MapStr{
+						"session_id":       sessionID,
+						"message_id":       messageID,
+						"message_type":     MessageTypeAssistant,
 						"reply_to_message": requestMessageID,
-						"chunk_sequence":chunkSeq,
-						"message_chunk":string(chunk),
+						"chunk_sequence":   chunkSeq,
+						"message_chunk":    string(chunk),
 					})
 					messageBuffer.Write(chunk)
-					websocket.SendPrivateMessage(webSocketID,msg)
+					websocket.SendPrivateMessage(webSocketID, msg)
 					return nil
 				}))
 			if err != nil {
@@ -246,27 +246,27 @@ func (h APIHandler) sendChatMessage(w http.ResponseWriter, req *http.Request, ps
 			}
 			_ = completion
 
-			chunkSeq+=1
-			msg:=util.MustToJSON(util.MapStr{
-				"session_id": sessionID,
-				"message_id": messageID,
-				"message_type": MessageTypeSystem,
+			chunkSeq += 1
+			msg := util.MustToJSON(util.MapStr{
+				"session_id":       sessionID,
+				"message_id":       messageID,
+				"message_type":     MessageTypeSystem,
 				"reply_to_message": requestMessageID,
-				"chunk_sequence":chunkSeq,
-				"message_chunk":string("assistant finished output"),
+				"chunk_sequence":   chunkSeq,
+				"message_chunk":    string("assistant finished output"),
 			})
-			websocket.SendPrivateMessage(webSocketID,msg)
+			websocket.SendPrivateMessage(webSocketID, msg)
 
 			//save message to system
-			if messageBuffer.Len()>0{
+			if messageBuffer.Len() > 0 {
 				obj = ChatMessage{
-					SessionID: sessionID,
+					SessionID:   sessionID,
 					MessageType: MessageTypeAssistant,
-					Message:   messageBuffer.String(),
+					Message:     messageBuffer.String(),
 				}
-				obj.ID=messageID
+				obj.ID = messageID
 
-				err=orm.Save(nil,&obj)
+				err = orm.Save(nil, &obj)
 				if err != nil {
 					log.Error(err)
 					return err
@@ -274,9 +274,9 @@ func (h APIHandler) sendChatMessage(w http.ResponseWriter, req *http.Request, ps
 			}
 			return nil
 		})
-		inflightMessages.Store(sessionID,taskID)
-	}else{
-		log.Debugf("no websocket: %v found for session: %v ",webSocketID,sessionID)
+		inflightMessages.Store(sessionID, taskID)
+	} else {
+		log.Debugf("no websocket: %v found for session: %v ", webSocketID, sessionID)
 	}
 
 	err = h.WriteJSON(w, response, 200)

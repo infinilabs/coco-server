@@ -12,7 +12,6 @@ type APIHandler struct {
 	api.Handler
 }
 
-
 func init() {
 	handler := APIHandler{}
 

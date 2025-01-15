@@ -6,10 +6,10 @@ import (
 	"sort"
 	"strconv"
 
+	"golang.org/x/exp/maps"
 	"infini.sh/coco/lib/langchaingo/memory"
 	"infini.sh/coco/lib/langchaingo/outputparser"
 	"infini.sh/coco/lib/langchaingo/schema"
-	"golang.org/x/exp/maps"
 )
 
 const (

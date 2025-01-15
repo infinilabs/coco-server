@@ -15,7 +15,6 @@ type Connector struct {
 	URL         string   `json:"url,omitempty" elastic_mapping:"url:{enabled:false}"`                                          // Direct link to the document, if available
 
 	Assets struct {
-		Icons map[string]string  `json:"icons,omitempty" elastic_mapping:"icons:{enabled:false}"` //icon_key -> URL
+		Icons map[string]string `json:"icons,omitempty" elastic_mapping:"icons:{enabled:false}"` //icon_key -> URL
 	} `json:"assets,omitempty" elastic_mapping:"assets:{enabled:false}"`
 }
-

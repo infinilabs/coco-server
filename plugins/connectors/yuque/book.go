@@ -8,7 +8,7 @@ import "time"
 
 type Book struct {
 	ID               int64     `json:"id"`
-	Type             string    `json:"type"`  // Document type (e.g., Book, Design, Sheet, Resource)
+	Type             string    `json:"type"` // Document type (e.g., Book, Design, Sheet, Resource)
 	Slug             string    `json:"slug"`
 	Name             string    `json:"name"`
 	UserID           int64     `json:"user_id"`
@@ -21,10 +21,9 @@ type Book struct {
 	ContentUpdatedAt time.Time `json:"content_updated_at"`
 	CreatedAt        time.Time `json:"created_at"`
 	UpdatedAt        time.Time `json:"updated_at"`
-	User             User     `json:"user"`
+	User             User      `json:"user"`
 	Namespace        string    `json:"namespace"`
 }
-
 
 type BookDetail struct {
 	ID               int64     `json:"id"`                 // Knowledge base ID
@@ -42,6 +41,6 @@ type BookDetail struct {
 	ContentUpdatedAt time.Time `json:"content_updated_at"` // Last update time of the META data (ISO 8601 format)
 	CreatedAt        time.Time `json:"created_at"`         // Creation time (ISO 8601 format)
 	UpdatedAt        time.Time `json:"updated_at"`         // Last update time (ISO 8601 format)
-	User             User    `json:"user"`               // Associated user information
+	User             User      `json:"user"`               // Associated user information
 	Namespace        string    `json:"namespace"`          // Full path or namespace
 }

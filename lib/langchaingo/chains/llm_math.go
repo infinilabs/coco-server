@@ -7,12 +7,12 @@ import (
 	"regexp"
 	"strings"
 
+	"go.starlark.net/lib/math"
+	"go.starlark.net/starlark"
 	"infini.sh/coco/lib/langchaingo/llms"
 	"infini.sh/coco/lib/langchaingo/memory"
 	"infini.sh/coco/lib/langchaingo/prompts"
 	"infini.sh/coco/lib/langchaingo/schema"
-	"go.starlark.net/lib/math"
-	"go.starlark.net/starlark"
 )
 
 //go:embed prompts/llm_math.txt
