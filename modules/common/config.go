@@ -10,12 +10,12 @@ var config *Config
 
 func AppConfig() *Config {
 
-	if config==nil{
-		v:=	global.Lookup("APP_CONFIG")
-		c,ok:=v.(*Config)
-		if ok{
-			if c!=nil{
-				config=c
+	if config == nil {
+		v := global.Lookup("APP_CONFIG")
+		c, ok := v.(*Config)
+		if ok {
+			if c != nil {
+				config = c
 			}
 		}
 	}
@@ -33,7 +33,7 @@ type Config struct {
 }
 
 type OllamaConfig struct {
-	Model string   `config:"model"`
-	Endpoint string   `config:"endpoint"`
-	Keepalive string   `config:"keepalive"`
+	Model     string `config:"model"`
+	Endpoint  string `config:"endpoint"`
+	Keepalive string `config:"keepalive"`
 }

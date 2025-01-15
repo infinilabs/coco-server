@@ -8,9 +8,9 @@ import (
 	"io"
 	"strings"
 
+	"golang.org/x/exp/slices"
 	"infini.sh/coco/lib/langchaingo/schema"
 	"infini.sh/coco/lib/langchaingo/textsplitter"
-	"golang.org/x/exp/slices"
 )
 
 // CSV represents a CSV document loader.

@@ -8,9 +8,9 @@ import (
 
 	aiplatform "cloud.google.com/go/aiplatform/apiv1"
 	"cloud.google.com/go/aiplatform/apiv1/aiplatformpb"
-	"infini.sh/coco/lib/langchaingo/llms"
 	"google.golang.org/api/option"
 	"google.golang.org/protobuf/types/known/structpb"
+	"infini.sh/coco/lib/langchaingo/llms"
 )
 
 var (

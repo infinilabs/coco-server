@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
+	"golang.org/x/exp/slices"
 	"infini.sh/coco/lib/langchaingo/llms"
 	"infini.sh/coco/lib/langchaingo/schema"
-	"golang.org/x/exp/slices"
 )
 
 // BooleanParser is an output parser used to parse the output of an LLM as a boolean.

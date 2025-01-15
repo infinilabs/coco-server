@@ -13,9 +13,9 @@ import (
 	"strings"
 
 	"cloud.google.com/go/vertexai/genai"
+	"google.golang.org/api/iterator"
 	"infini.sh/coco/lib/langchaingo/internal/imageutil"
 	"infini.sh/coco/lib/langchaingo/llms"
-	"google.golang.org/api/iterator"
 )
 
 var (

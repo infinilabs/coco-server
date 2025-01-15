@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	"golang.org/x/exp/maps"
 	"infini.sh/coco/lib/langchaingo/memory"
 	"infini.sh/coco/lib/langchaingo/schema"
-	"golang.org/x/exp/maps"
 )
 
 // MapReduceDocuments is a chain that combines documents by mapping a chain over them, then
