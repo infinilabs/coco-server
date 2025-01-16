@@ -49,7 +49,7 @@ Below is the field description for the document.
 curl -H 'Content-Type: application/json' -XPOST http://localhost:9000/document/ -d '{
   "source": {
     "type":"connector",
-    "name":"google_drive",
+    "name":"My Hugo Site",
     "id":"e806831dacc3",
   },
   "category": "report",
@@ -119,7 +119,7 @@ curl   -XGET http://localhost:9000/document/cso9vr3q50k38nobvmcg
     "updated": "2024-11-10T19:58:36.009092+08:00",
      "source": {
         "type":"connector",
-        "name":"google_drive",
+        "name":"My Hugo Site",
         "id":"e806831dacc3",
       }
     ...OMITTED...

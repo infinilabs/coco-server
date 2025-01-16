@@ -204,10 +204,6 @@ connector:
     interval: 60s
     queue:
       name: indexing_documents
-    urls:
-      - "https://pizza.rs/index.json"
-      - "https://infinilabs.cn/index.json"
-      - "https://blog.infinilabs.com/index.json"
 
 ##background jobs
 pipeline:

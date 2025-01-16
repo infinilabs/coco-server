@@ -13,7 +13,6 @@ import (
 	"time"
 )
 
-
 func (h *APIHandler) create(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	var obj = &common.Connector{}
 	err := h.DecodeJSON(req, obj)
@@ -61,11 +60,11 @@ func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprou
 	id := ps.MustGetParameter("id")
 	obj := common.Connector{}
 
-	replace:=h.GetBoolOrDefault(req,"replace",false)
+	replace := h.GetBoolOrDefault(req, "replace", false)
 
 	var err error
-	var create  *time.Time
-	if !replace{
+	var create *time.Time
+	if !replace {
 		obj.ID = id
 		exists, err := orm.Get(&obj)
 		if !exists || err != nil {
@@ -77,9 +76,9 @@ func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprou
 		}
 		id = obj.ID
 		create = obj.Created
-	}else{
-		t:=time.Now()
-		create=&t
+	} else {
+		t := time.Now()
+		create = &t
 	}
 
 	obj = common.Connector{}
@@ -135,7 +134,7 @@ func (h *APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprou
 
 	var err error
 	q := orm.Query{}
-	q.RawQuery,err=h.GetRawBody(req)
+	q.RawQuery, err = h.GetRawBody(req)
 
 	//TODO handle url query args
 
@@ -150,4 +149,3 @@ func (h *APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprou
 		h.Error(w, err)
 	}
 }
-

@@ -16,8 +16,8 @@ type RichLabel struct {
 
 type DataSourceReference struct {
 	Type string `json:"type,omitempty" elastic_mapping:"type:{type:keyword}"` // ID of the datasource, eg: connector
-	Name string `json:"name,omitempty" elastic_mapping:"name:{type:keyword}"` // Source of the document (e.g., "Github", "Google Drive", "Dropbox")
-	ID   string `json:"id,omitempty" elastic_mapping:"id:{type:keyword}"`     // ID of this the datasource, eg: google_drive
+	Name string `json:"name,omitempty" elastic_mapping:"name:{type:keyword}"` // Name of the datasource (e.g., "My Github", "My Google Drive", "My Dropbox")
+	ID   string `json:"id,omitempty" elastic_mapping:"id:{type:keyword}"`     // ID of this the datasource, eg: 8ca2fe8cf5027b0f1b5f932b429e38c3
 }
 
 type Document struct {
@@ -27,14 +27,14 @@ type Document struct {
 
 	Type string `json:"type,omitempty" elastic_mapping:"type:{type:keyword,copy_to:combined_fulltext}"` // Document type, such as PDF, Docx, etc.
 
-	Category       string      `json:"category,omitempty" elastic_mapping:"category:{type:keyword,copy_to:combined_fulltext}"`       // Primary category of the document (e.g., "report", "article")
-	Subcategory    string      `json:"subcategory,omitempty" elastic_mapping:"subcategory:{type:keyword,copy_to:combined_fulltext}"` // Secondary category of the document (e.g., "report", "article")
+	Category    string `json:"category,omitempty" elastic_mapping:"category:{type:keyword,copy_to:combined_fulltext}"`       // Primary category of the document (e.g., "report", "article")
+	Subcategory string `json:"subcategory,omitempty" elastic_mapping:"subcategory:{type:keyword,copy_to:combined_fulltext}"` // Secondary category of the document (e.g., "report", "article")
 
 	//use categories for very complex hierarchy categories
-	Categories     []string    `json:"categories,omitempty" elastic_mapping:"categories:{type:keyword,copy_to:combined_fulltext}"`   // Full hierarchy of categories, useful for detailed classification
+	Categories []string `json:"categories,omitempty" elastic_mapping:"categories:{type:keyword,copy_to:combined_fulltext}"` // Full hierarchy of categories, useful for detailed classification
 
 	//use rich_categories for icon need to display for each category
-	RichCategories []RichLabel `json:"rich_categories,omitempty" elastic_mapping:"rich_categories:{type:object}"`                    // Full hierarchy of categories, useful for detailed classification, with icon decoration
+	RichCategories []RichLabel `json:"rich_categories,omitempty" elastic_mapping:"rich_categories:{type:object}"` // Full hierarchy of categories, useful for detailed classification, with icon decoration
 
 	Title   string `json:"title,omitempty" elastic_mapping:"title:{type:text,copy_to:combined_fulltext,fields:{keyword: {type: keyword}, pinyin: {type: text, analyzer: pinyin_analyzer}}}"` // Document title
 	Summary string `json:"summary,omitempty" elastic_mapping:"summary:{type:text,copy_to:combined_fulltext}"`                                                                                // Brief summary or description of the document
