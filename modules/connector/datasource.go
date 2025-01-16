@@ -21,17 +21,17 @@ func (h *APIHandler) createDatasource(w http.ResponseWriter, req *http.Request, 
 		return
 	}
 
-	if obj.Type=="connector"{
+	if obj.Type == "connector" {
 
-		if obj.Connector.ConnectorID==""{
+		if obj.Connector.ConnectorID == "" {
 			panic("invalid connector")
 		}
 
 		//check connector
-		connector:=common.Connector{}
-		connector.ID=obj.Connector.ConnectorID
-		exists,err:=orm.Get(&connector)
-		if !exists||err!=nil{
+		connector := common.Connector{}
+		connector.ID = obj.Connector.ConnectorID
+		exists, err := orm.Get(&connector)
+		if !exists || err != nil {
 			panic("invalid connector")
 		}
 
@@ -50,7 +50,6 @@ func (h *APIHandler) createDatasource(w http.ResponseWriter, req *http.Request, 
 
 	h.WriteError(w, "invalid datasource", http.StatusInternalServerError)
 }
-
 
 func (h *APIHandler) deleteDatasource(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("id")
@@ -79,7 +78,6 @@ func (h *APIHandler) deleteDatasource(w http.ResponseWriter, req *http.Request, 
 	}, 200)
 }
 
-
 func (h *APIHandler) getDatasource(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("id")
 
@@ -106,11 +104,11 @@ func (h *APIHandler) updateDatasource(w http.ResponseWriter, req *http.Request, 
 	id := ps.MustGetParameter("id")
 	obj := common.DataSource{}
 
-	replace:=h.GetBoolOrDefault(req,"replace",false)
+	replace := h.GetBoolOrDefault(req, "replace", false)
 
 	var err error
-	var create  *time.Time
-	if !replace{
+	var create *time.Time
+	if !replace {
 		obj.ID = id
 		exists, err := orm.Get(&obj)
 		if !exists || err != nil {
@@ -122,9 +120,9 @@ func (h *APIHandler) updateDatasource(w http.ResponseWriter, req *http.Request, 
 		}
 		id = obj.ID
 		create = obj.Created
-	}else{
-		t:=time.Now()
-		create=&t
+	} else {
+		t := time.Now()
+		create = &t
 	}
 
 	obj = common.DataSource{}
@@ -149,12 +147,11 @@ func (h *APIHandler) updateDatasource(w http.ResponseWriter, req *http.Request, 
 	}, 200)
 }
 
-
 func (h *APIHandler) searchDatasource(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
 	var err error
 	q := orm.Query{}
-	q.RawQuery,err=h.GetRawBody(req)
+	q.RawQuery, err = h.GetRawBody(req)
 
 	//TODO handle url query args
 
@@ -169,4 +166,3 @@ func (h *APIHandler) searchDatasource(w http.ResponseWriter, req *http.Request, 
 		h.Error(w, err)
 	}
 }
-
