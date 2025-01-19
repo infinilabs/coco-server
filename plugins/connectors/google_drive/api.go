@@ -113,11 +113,6 @@ func (h *Plugin) oAuthRedirect(w http.ResponseWriter, req *http.Request, _ httpr
 		panic(err)
 	}
 
-	//err = h.saveToken(tenantID, userID, token)
-	//if err != nil {
-	//	panic(err)
-	//}
-
 	newRedirectUrl := util.JoinPath(redirectPath, "?source=google_drive")
 	h.Redirect(w, req, newRedirectUrl)
 }
