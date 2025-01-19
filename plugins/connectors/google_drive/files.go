@@ -30,12 +30,40 @@ func getIcon(fileType string) string {
 		return "presentation"
 	case "application/vnd.google-apps.spreadsheet":
 		return "spreadsheet"
+	case "application/vnd.google-apps.drawing":
+		return "drawing"
+	case "application/vnd.google-apps.folder":
+		return "folder"
+	case "application/vnd.google-apps.fusiontable":
+		return "fusiontable"
+	case "application/vnd.google-apps.jam":
+		return "jam"
+	case "application/vnd.google-apps.map":
+		return "map"
+	case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": // MS Excel
+		return "ms_excel"
+	case "application/vnd.openxmlformats-officedocument.presentationml.presentation": // MS PowerPoint
+		return "ms_powerpoint"
+	case "application/vnd.openxmlformats-officedocument.wordprocessingml.document": // MS Word
+		return "ms_word"
+	case "application/vnd.google-apps.script":
+		return "script"
+	case "application/vnd.google-apps.site":
+		return "site"
+	case "application/vnd.google-apps.video":
+		return "video"
+	case "application/zip":
+		return "zip"
+	case "image/jpeg", "image/png", "image/gif", "image/tiff", "image/bmp": // Image formats
+		return "photo"
+	case "audio/mpeg", "audio/wav", "audio/mp3", "audio/ogg": // Audio formats
+		return "audio"
 	default:
-		return "default" // default fallback
+		return "default" // Default fallback
 	}
 }
 
-func (this *Plugin) startIndexingFiles(tenantID, userID string, tok *oauth2.Token) {
+func (this *Plugin) startIndexingFiles(tenantID, userID, datasourceID string, tok *oauth2.Token) {
 	var filesProcessed = 0
 	defer func() {
 		if !global.Env().IsDebug {
@@ -68,7 +96,7 @@ func (this *Plugin) startIndexingFiles(tenantID, userID string, tok *oauth2.Toke
 	var query string
 
 	//get last access time from kv
-	lastModifiedTimeStr, _ := this.getLastModifiedTime(tenantID, userID)
+	lastModifiedTimeStr, _ := this.getLastModifiedTime(tenantID, userID, datasourceID)
 
 	log.Tracef("get last modified time: %v", lastModifiedTimeStr)
 
@@ -216,7 +244,7 @@ func (this *Plugin) startIndexingFiles(tenantID, userID string, tok *oauth2.Toke
 		if lastModifyTime != nil {
 			// Save the lastModifyTime (for example, in a KV store or file)
 			lastModifiedTimeStr = lastModifyTime.Format(time.RFC3339Nano)
-			err := this.saveLastModifiedTime(tenantID, userID, lastModifiedTimeStr)
+			err := this.saveLastModifiedTime(tenantID, userID, lastModifiedTimeStr, datasourceID)
 			if err != nil {
 				panic(err)
 			}
