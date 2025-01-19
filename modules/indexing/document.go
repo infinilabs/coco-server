@@ -128,8 +128,8 @@ func (h *APIHandler) searchDocs(w http.ResponseWriter, req *http.Request, ps htt
 	q.RawQuery, err = h.GetRawBody(req)
 
 	//TODO handle url query args
-
-	err, res := orm.Search(&common.Document{}, &q)
+	docs := []common.Document{}
+	err, res := orm.SearchWithJSONMapper(&docs, &q)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return

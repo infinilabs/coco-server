@@ -154,8 +154,8 @@ func (h *APIHandler) searchDatasource(w http.ResponseWriter, req *http.Request, 
 	q.RawQuery, err = h.GetRawBody(req)
 
 	//TODO handle url query args
-
-	err, res := orm.Search(&common.DataSource{}, &q)
+	docs := []common.DataSource{}
+	err, res := orm.SearchWithJSONMapper(&docs, &q)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return

@@ -87,7 +87,7 @@ func (this *Plugin) startIndexingFiles(tenantID, userID string, tok *oauth2.Toke
 	// Start pagination loop
 	var nextPageToken string
 	for {
-		call := srv.Files.List().PageSize(this.PageSize).OrderBy("modifiedTime asc")
+		call := srv.Files.List().PageSize(int64(this.PageSize)).OrderBy("modifiedTime asc")
 
 		if query != "" {
 			call = call.Q(query)
@@ -102,6 +102,8 @@ func (this *Plugin) startIndexingFiles(tenantID, userID string, tok *oauth2.Toke
 		if err != nil {
 			panic(err)
 		}
+
+		log.Debugf("fetched %v files", len(r.Files))
 
 		// Process files in the current page
 		for _, i := range r.Files {

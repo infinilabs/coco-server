@@ -10,10 +10,13 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/drive/v3"
+	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/api"
+	config3 "infini.sh/framework/core/config"
 	"infini.sh/framework/core/env"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/module"
+	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/queue"
 	"infini.sh/framework/core/task"
 	"infini.sh/framework/core/util"
@@ -26,7 +29,7 @@ type Plugin struct {
 
 	Enabled          bool               `config:"enabled"`
 	Interval         string             `config:"interval"`
-	PageSize         int64              `config:"page_size"`
+	PageSize         int                `config:"page_size"`
 	CredentialFile   string             `config:"credential_file"`
 	Credential       *Credential        `config:"credential"`
 	SkipInvalidToken bool               `config:"skip_invalid_token"`
@@ -87,56 +90,46 @@ func (this *Plugin) Setup() {
 		panic("Missing Google OAuth credentials")
 	}
 
-	api.HandleAPIMethod(api.GET, "/connector/google_drive/connect", this.connect)
-	api.HandleAPIMethod(api.POST, "/connector/google_drive/reset", this.reset)
-	api.HandleAPIMethod(api.GET, "/connector/google_drive/oauth_redirect", this.oAuthRedirect)
+	api.HandleUIMethod(api.GET, "/connector/google_drive/connect", this.connect)
+	api.HandleUIMethod(api.POST, "/connector/google_drive/reset", this.reset)
+	api.HandleUIMethod(api.GET, "/connector/google_drive/oauth_redirect", this.oAuthRedirect)
 
 }
 
 func (this *Plugin) Start() error {
 
 	if this.Enabled {
-		//get all accounts which enabled google drive connector
-
 		task.RegisterScheduleTask(task.ScheduleTask{
 			ID:          util.GetUUID(),
 			Group:       "connectors",
 			Singleton:   true,
-			Interval:    util.GetDurationOrDefault(this.Interval, time.Second*30).String(),
+			Interval:    util.GetDurationOrDefault(this.Interval, time.Second*30).String(), //connector's task interval
 			Description: "indexing google drive files",
 			Task: func(ctx context.Context) {
+				connector := common.Connector{}
+				connector.ID = "google_drive"
+				exists, err := orm.Get(&connector)
+				if !exists || err != nil {
+					panic("invalid hugo_site connector")
+				}
 
-				log.Tracef("entering task, indexing google drive files")
+				q := orm.Query{}
+				q.Size = this.PageSize //TODO
+				q.Conds = orm.And(orm.Eq("connector.id", connector.ID))
+				var results []common.DataSource
 
-				//TODO
-				var tenantID = "test"
-				var userID = "test"
-
-				exists, tok, err := this.getToken(tenantID, userID)
+				err, _ = orm.SearchWithJSONMapper(&results, &q)
 				if err != nil {
 					panic(err)
 				}
 
-				if !exists {
-					return
-				}
-
-				if !tok.Valid() {
-					//continue //TODO
-					if !this.SkipInvalidToken && !tok.Valid() {
-						panic("token is invalid")
-					}
-					log.Warnf("skip invalid token: %v", tok)
-				} else {
-					log.Debug("start processing google drive files")
-					this.startIndexingFiles(tenantID, userID, tok)
-					log.Debug("finished process google drive files")
+				for _, item := range results {
+					log.Debugf("ID: %s, Name: %s, Other: %s", item.ID, item.Name, util.MustToJSON(item))
+					this.fetch_google_drive(&connector, &item)
 				}
 			},
 		})
-
 	}
-
 	return nil
 }
 
@@ -148,6 +141,54 @@ func (this *Plugin) Name() string {
 	return "google_drive"
 }
 
+type Config struct {
+	Token string `config:"token"`
+}
+
+func (this *Plugin) fetch_google_drive(connector *common.Connector, datasource *common.DataSource) {
+	if connector == nil || datasource == nil {
+		panic("invalid connector config")
+	}
+
+	cfg, err := config3.NewConfigFrom(datasource.Connector.Config)
+	if err != nil {
+		panic(err)
+	}
+
+	datasourceCfg := Config{}
+	err = cfg.Unpack(&datasourceCfg)
+	if err != nil {
+		panic(err)
+	}
+
+	log.Tracef("handle google_drive's datasource: %v", datasourceCfg)
+
+	if datasourceCfg.Token != "" {
+		tok := oauth2.Token{}
+		err = util.FromJSONBytes([]byte(datasourceCfg.Token), &tok)
+		if err != nil {
+			panic(err)
+		}
+
+		//TODO
+		var tenantID = "test"
+		var userID = "test"
+
+		if !tok.Valid() {
+			//continue //TODO
+			if !this.SkipInvalidToken && !tok.Valid() {
+				panic("token is invalid")
+			}
+			log.Warnf("skip invalid token: %v", tok)
+		} else {
+			log.Debug("start processing google drive files")
+			this.startIndexingFiles(tenantID, userID, &tok)
+			log.Debug("finished process google drive files")
+		}
+	}
+
+}
+
 func init() {
-	module.RegisterUserPlugin(&Plugin{SkipInvalidToken: true, PageSize: 10})
+	module.RegisterUserPlugin(&Plugin{SkipInvalidToken: true, PageSize: 100})
 }
