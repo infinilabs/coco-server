@@ -76,22 +76,17 @@ func (h APIHandler) suggest(w http.ResponseWriter, req *http.Request, ps httprou
 		q.RawQuery = body
 	}
 
-	err, res := orm.Search(&common.Document{}, &q)
+	docs := []common.Document{}
+	err, _ := orm.SearchWithJSONMapper(&docs, &q)
+
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	suggestions := []Suggestion{}
-	for _, item := range res.Result {
-		i, ok := item.(map[string]interface{})
-		if ok {
-			v, ok := i["title"]
-			if ok {
-				x, _ := i["source"]
-				suggestions = append(suggestions, Suggestion{Suggestion: v.(string), Score: 0.99, Source: x.(string)})
-			}
-		}
+	for _, item := range docs {
+		suggestions = append(suggestions, Suggestion{Suggestion: item.Title, Score: 0.99, Source: item.Source.Name})
 	}
 
 	// Limit the number of suggestions based on the size parameter
