@@ -80,63 +80,67 @@ elastic:
     search_templates:
       "coco-query-string": |
         {
-          "script": {
-            "lang": "mustache",
-            "source": {
-              "from": "{{from}}",
-              "size": "{{size}}",
-              "_source": [ "{{#source}}","{{.}}","{{/source}}" ],
-              "query": {
-                "bool": {
-                  "must": [],
-                  "must_not": [],
-                  "should": [
-                    {
-                      "prefix": {
-                        "{{field}}.keyword": {
-                          "value": "{{query}}",
-                          "boost": 10
-                        }
+            "from": "{{from}}",
+            "size": "{{size}}",
+            "_source": {
+                "includes": [ "{{#source}}","{{.}}","{{/source}}"],
+                "excludes": [ "payload.*","content" ]
+            },
+            "query": {
+              "bool": {
+                "must": {{#toJson}}must_clauses{{/toJson}},
+                "must_not": [],
+                "should": [
+
+                  {{#query}}
+                  {
+                    "prefix": {
+                      "{{field}}.keyword": {
+                        "value": "{{query}}",
+                        "boost": 10
                       }
-                    },
-                    {
-                      "match_phrase_prefix": {
-                        "{{field}}": {
-                          "query": "{{query}}",
-                          "boost": 2
-                        }
+                    }
+                  },
+                  {
+                    "match_phrase_prefix": {
+                      "{{field}}": {
+                        "query": "{{query}}",
+                        "boost": 2
                       }
-                    },
-                    {
-                      "match": {
-                        "{{field}}": {
-                          "query": "{{query}}",
-                          "fuzziness": "AUTO",
-                          "max_expansions": 10,
-                          "prefix_length": 2,
-                          "fuzzy_transpositions": true
-                        }
-                      }
-                    },
-                    {
-                      "query_string": {
-                        "fields": ["{{field}}","{{field}}.keyword^10","combined_fulltext"],
+                    }
+                  },
+                  {
+                    "match": {
+                      "{{field}}": {
                         "query": "{{query}}",
                         "fuzziness": "AUTO",
-                        "fuzzy_prefix_length": 2,
-                        "fuzzy_max_expansions": 10,
-                        "fuzzy_transpositions": true,
-                        "allow_leading_wildcard": false
+                        "max_expansions": 10,
+                        "prefix_length": 2,
+                        "fuzzy_transpositions": true
                       }
-                    },{"match": {
-                      "{{field}}.pinyin": "{{query}}"
-                      }}
-                  ]
-                }
+                    }
+                  },
+                  {
+                    "query_string": {
+                      "fields": ["{{field}}","{{field}}.keyword^10","combined_fulltext"],
+                      "query": "{{query}}",
+                      "fuzziness": "AUTO",
+                      "fuzzy_prefix_length": 2,
+                      "fuzzy_max_expansions": 10,
+                      "fuzzy_transpositions": true,
+                      "allow_leading_wildcard": false
+                    }
+                  },{"match": {
+                    "{{field}}.pinyin": "{{query}}"
+                    }}
+                  {{/query}}
+
+                
+                ]
               }
             }
-          }
         }
+
 elasticsearch:
   - name: prod
     enabled: true
@@ -165,7 +169,7 @@ web:
     enabled: false
     skip_insecure_verify: true
     default_domain: "localhost:2900"
-#    default_domain: "api.coco.rs"
+    #    default_domain: "api.coco.rs"
     auto_issue:
       enabled: false
       email: "hello@infinilabs.com"
@@ -180,10 +184,19 @@ web:
 
 connector:
   google_drive: # get your token here: https://developers.google.com/drive/api/quickstart/go
-    enabled: false
+    enabled: true
     queue:
       name: indexing_documents
-    credential_file: credentials.json
+#    credential_file: credentials.json
+    credential:
+      "client_id": "XXXX"
+      "project_id": "XXXX"
+      "auth_uri": "https://accounts.google.com/o/oauth2/auth"
+      "token_uri": "https://oauth2.googleapis.com/token"
+      "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs"
+      "client_secret": "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"
+      "redirect_uris":  "http://localhost:9000/connector/google_drive/oauth_redirect"
+      "javascript_origins": [ "http://localhost:9000" ]
     interval: 10s
     skip_invalid_token: true
   yuque:
@@ -259,3 +272,22 @@ http_client:
         "github.com":
           http_proxy: http://127.0.0.1:7890
           socket5_proxy: socks5://127.0.0.1:7890
+
+security:
+  enabled: true
+  oauth:
+    enabled: true
+    #provider:
+    # github:
+        # xxx
+    client_id: "Ov23liMDumMpcItvIzLx"
+    client_secret: "f732709afc30ff6aeacff21bb6df30edef92e4cd"
+#    default_roles: ["ReadonlyUI","DATA"] #default for all sso users if no specify roles was defined
+    role_mapping:
+      medcl: ["Administrator"]
+    authorize_url: "https://github.com/login/oauth/authorize"
+    token_url: "https://github.com/login/oauth/access_token"
+    redirect_url: ""
+    success_page: "/auth/sso_success"
+    failed_page: "/auth/sso_failure"
+    scopes: []

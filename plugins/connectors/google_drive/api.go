@@ -8,9 +8,11 @@ import (
 	"encoding/base64"
 	"fmt"
 	"golang.org/x/oauth2"
+	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/kv"
+	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
 	"net/http"
 	"net/url"
@@ -91,6 +93,22 @@ func (h *Plugin) oAuthRedirect(w http.ResponseWriter, req *http.Request, _ httpr
 
 	// Exchange the authorization code for an access token
 	token, err := h.oAuthConfig.Exchange(req.Context(), code)
+	if err != nil {
+		panic(err)
+	}
+
+	datasource := common.DataSource{}
+	datasource.ID = util.GetUUID()
+	datasource.Type = "connector"
+	datasource.Name = "My Google Drive" //TODO, input from user
+	datasource.Connector = common.ConnectorConfig{
+		ConnectorID: "google_drive",
+		Config: util.MapStr{
+			"token": util.MustToJSON(token),
+		},
+	}
+
+	err = orm.Save(nil, &datasource)
 	if err != nil {
 		panic(err)
 	}
