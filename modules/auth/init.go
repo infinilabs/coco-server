@@ -21,24 +21,21 @@ func init() {
 	api.HandleUIMethod(api.GET, "/auth/sso_success", handler.ssoSuccess)
 }
 
-
-
-
 func (h *APIHandler) ssoSuccess(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
-	payload:=h.MustGetParameter(w,req,"payload")
-	json:=util.UrlDecode(payload)
+	payload := h.MustGetParameter(w, req, "payload")
+	json := util.UrlDecode(payload)
 	//log.Error(json)
 	//id := ps.MustGetParameter("id")
-	obj:=util.MapStr{}
-	util.MustFromJSONBytes([]byte(json),&obj)
+	obj := util.MapStr{}
+	util.MustFromJSONBytes([]byte(json), &obj)
 
-	v,err:=obj.GetValue("code")
-	if err!=nil{
+	v, err := obj.GetValue("code")
+	if err != nil {
 		panic(err)
 	}
 
-	h.WriteBytes(w,[]byte(fmt.Sprintf("<a href=coco://oauth_callback?code=%v&provider=coco-cloud>In order to continue, please click here to launch Coco AI</a>",v)),200)
+	h.WriteBytes(w, []byte(fmt.Sprintf("<a href=coco://oauth_callback?code=%v&provider=coco-cloud>In order to continue, please click here to launch Coco AI</a>", v)), 200)
 
 	//obj := common.Connector{}
 	//obj.ID = id

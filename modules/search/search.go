@@ -71,23 +71,75 @@ type SearchResponse struct {
 
 func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	var (
-		query  = h.GetParameterOrDefault(req, "query", "")
-		from   = h.GetIntOrDefault(req, "from", 0)
-		size   = h.GetIntOrDefault(req, "size", 10)
-		field  = h.GetParameterOrDefault(req, "search_field", "title")
-		source = h.GetParameterOrDefault(req, "source_fields", "*")
+		query       = h.GetParameterOrDefault(req, "query", "")
+		from        = h.GetIntOrDefault(req, "from", 0)
+		size        = h.GetIntOrDefault(req, "size", 10)
+		datasource  = h.GetParameterOrDefault(req, "datasource", "")
+		category    = h.GetParameterOrDefault(req, "category", "")
+		username    = h.GetParameterOrDefault(req, "username", "")
+		userid      = h.GetParameterOrDefault(req, "userid", "")
+		tags        = h.GetParameterOrDefault(req, "tags", "")
+		subcategory = h.GetParameterOrDefault(req, "subcategory", "")
+		field       = h.GetParameterOrDefault(req, "search_field", "title")
+		source      = h.GetParameterOrDefault(req, "source_fields", "*")
 	)
 
+	mustClauses := []interface{}{}
+
+	// Check and add conditions to mustClauses
+	if datasource != "" {
+		mustClauses = append(mustClauses, map[string]interface{}{
+			"term": map[string]interface{}{
+				"source.id": datasource,
+			},
+		})
+	}
+
+	if category != "" {
+		mustClauses = append(mustClauses, map[string]interface{}{
+			"term": map[string]interface{}{
+				"category": category,
+			},
+		})
+	}
+
+	if subcategory != "" {
+		mustClauses = append(mustClauses, map[string]interface{}{
+			"term": map[string]interface{}{
+				"subcategory": subcategory,
+			},
+		})
+	}
+
+	if username != "" {
+		mustClauses = append(mustClauses, map[string]interface{}{
+			"term": map[string]interface{}{
+				"owner.username": username,
+			},
+		})
+	}
+
+	if userid != "" {
+		mustClauses = append(mustClauses, map[string]interface{}{
+			"term": map[string]interface{}{
+				"owner.userid": userid,
+			},
+		})
+	}
+
 	q := orm.Query{}
-	if query != "" {
+	if query != "" || len(mustClauses) > 0 {
 		templatedQuery := orm.TemplatedQuery{}
 		templatedQuery.TemplateID = "coco-query-string"
+
 		templatedQuery.Parameters = util.MapStr{
-			"from":   from,
-			"size":   size,
-			"field":  field,
-			"query":  query,
-			"source": strings.Split(source, ","),
+			"from":         from,
+			"size":         size,
+			"must_clauses": mustClauses,
+			"field":        field,
+			"query":        query,
+			"source":       strings.Split(source, ","),
+			"tags":         strings.Split(tags, ","),
 		}
 		q.TemplatedQuery = &templatedQuery
 	} else {
@@ -103,7 +155,8 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		q.RawQuery = body
 	}
 
-	err, res := orm.Search(&common.Document{}, &q)
+	docs := []common.Document{}
+	err, res := orm.SearchWithJSONMapper(&docs, &q)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
