@@ -56,14 +56,13 @@ To use the Google Drive Connector, follow these steps to obtain your token:
 
 1. Set the **Authorized Redirect URIs** as shown in the following screenshot:
 
-   ![Authorized Redirect URIs](/img/google_drive_token.jpg)
+{{% load-img "/img/google_drive_token.jpg" "Authorized Redirect URIs" %}}
 
 2. The Google Drive connector uses `/connector/google_drive/oauth_redirect` as the callback URL to receive authorization responses.
 
 3. Once the token is successfully obtained, download the `credentials.json` file.
 
-   ![credentials.json](/img/download_google_drive_token.png)
-
+{{% load-img "/img/download_google_drive_token.png" "credentials.json" %}}
 
 ### Important Notes:
 - If you deploy the **coco-server** in your production environment, ensure you:

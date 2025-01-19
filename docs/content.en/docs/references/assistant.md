@@ -88,7 +88,7 @@ curl  -H'WEBSOCKET-SESSION-ID: csk88l3q50kb4hr5unn0'  -H 'Content-Type: applicat
 
 Tips: `WEBSOCKET-SESSION-ID` should be replaced with the actual WebSocket session ID. You will receive a message each time you connect to the Coco AI WebSocket server. For example: `ws://localhost:2900/ws` or `wss://localhost:2900/ws` if TLS is enabled.
 
-![](/img/websocket-on-connect.jpg?raw=true)
+{{% load-img "/img/websocket-on-connect.jpg?raw=true" "WebSocket ID" %}}
 
 ### Close a Chat Session
 
