@@ -32,7 +32,7 @@ func get(path, token string) *util.Result {
 }
 
 func (this *Plugin) getIconKey(category, iconType string) string {
-	return fmt.Sprintf("%v_%v", strings.TrimSpace(strings.ToLower(category)), strings.TrimSpace(strings.ToLower(iconType)))
+	return strings.TrimSpace(strings.ToLower(iconType))
 }
 
 func (this *Plugin) cleanupIconName(name string) string {

@@ -185,7 +185,7 @@ func (this *Plugin) fetch_google_drive(connector *common.Connector, datasource *
 			log.Warnf("skip invalid google_drive token: %v", tok)
 		} else {
 			log.Debug("start processing google drive files")
-			this.startIndexingFiles(tenantID, userID, &tok)
+			this.startIndexingFiles(tenantID, userID, datasource.ID, &tok)
 			log.Debug("finished process google drive files")
 		}
 	}
