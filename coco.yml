@@ -255,7 +255,7 @@ pipeline:
 http_client:
   default:
     proxy:
-      enabled: true
+      enabled: false
       default_config:
         http_proxy: http://127.0.0.1:7890
         socket5_proxy: socks5://127.0.0.1:7890
@@ -272,22 +272,3 @@ http_client:
         "github.com":
           http_proxy: http://127.0.0.1:7890
           socket5_proxy: socks5://127.0.0.1:7890
-
-security:
-  enabled: true
-  oauth:
-    enabled: true
-    #provider:
-    # github:
-        # xxx
-    client_id: "Ov23liMDumMpcItvIzLx"
-    client_secret: "f732709afc30ff6aeacff21bb6df30edef92e4cd"
-#    default_roles: ["ReadonlyUI","DATA"] #default for all sso users if no specify roles was defined
-    role_mapping:
-      medcl: ["Administrator"]
-    authorize_url: "https://github.com/login/oauth/authorize"
-    token_url: "https://github.com/login/oauth/access_token"
-    redirect_url: ""
-    success_page: "/auth/sso_success"
-    failed_page: "/auth/sso_failure"
-    scopes: []
