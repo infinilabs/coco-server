@@ -34,6 +34,28 @@ curl -XPUT http://localhost:9000/connector/hugo_site?replace=true -d '{
 
 > Use `hugo_site` as a unique identifier, as it is a builtin connector.
 
+Make sure hugo generated the json format with this:
+```
+[
+    {
+    "category": "Product",
+    "content": "INFINI Console v1.28 Released We’re excited to announce INFINI Console v1.28, the latest update from INFINI Labs! This release brings the powerful TopN feature to help you identify key metrics efficiently, alongside other performance improvements and bug fixes. Read on for all the details and enhancements in this release.\nWhat is INFINI Console? Great question! INFINI Console is a lightweight, cross-version, unified management platform designed specifically for search infrastructures. It empowers enterprises to:\nManage multiple search clusters across different versions seamlessly. Gain centralized control for efficient cluster monitoring and maintenance. INFINI Console – The Choice of Elasticsearch Professionals. Be an Elasticsearch Pro Today!\nWith INFINI Console, you can streamline the management of your search ecosystem like never before! 🚀\nLearn more here: ",
+    "created": "2025-01-11T17:00:00+08:00",
+    "lang": "en",
+    "subcategory": "Released",
+    "summary": "Discover the new TopN feature and other enhancements in INFINI Console v1.28.",
+    "tags": [
+        "Console",
+        "TopN",
+        "Release"
+    ],
+    "title": "INFINI Console v1.28 Released",
+    "updated": null,
+    "url": "/posts/2025/01-11-produc-released-console-topn/"
+    }
+]
+```
+
 ## Update coco-server's config
 
 Below is an example configuration for enabling the Hugo Site Drive Connector in coco-server:

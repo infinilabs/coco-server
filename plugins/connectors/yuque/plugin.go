@@ -122,7 +122,7 @@ func (this *Plugin) fetch_yuque(connector *common.Connector, datasource *common.
 	}
 
 	log.Debugf("handle hugo_site's datasource: %v", obj)
-	this.collect(&obj)
+	this.collect(connector, datasource, &obj)
 }
 
 func init() {
