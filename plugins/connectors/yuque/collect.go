@@ -49,15 +49,15 @@ func (this *Plugin) save(obj interface{}) {
 	if global.Env().IsDebug {
 		log.Tracef(string(data))
 	}
-	err := queue.Push(this.cfg.Queue, data)
+	err := queue.Push(this.Queue, data)
 	if err != nil {
 		panic(err)
 	}
 }
 
-func (this *Plugin) collect() {
+func (this *Plugin) collect(cfg *YuqueConfig) {
 
-	token := this.cfg.Token
+	token := cfg.Token
 
 	if token == "" {
 		panic("invalid yuque token")
@@ -81,19 +81,19 @@ func (this *Plugin) collect() {
 	log.Infof("start collecting for %v", currentUser.Group.Login)
 
 	//get users in group
-	if this.cfg.IndexingUsers || this.cfg.IndexingGroups {
-		this.collectUsers(currentUser.Group.Login, token)
+	if cfg.IndexingUsers || cfg.IndexingGroups {
+		this.collectUsers(currentUser.Group.Login, token, cfg)
 	}
 
 	//get all books
-	if this.cfg.IndexingBooks || this.cfg.IndexingDocs {
-		this.collectBooks(currentUser.Group.Login, token)
+	if cfg.IndexingBooks || cfg.IndexingDocs {
+		this.collectBooks(currentUser.Group.Login, token, cfg)
 	}
 
 	log.Infof("finished collecting for %v", currentUser.Group.Login)
 }
 
-func (this *Plugin) collectBooks(login, token string) {
+func (this *Plugin) collectBooks(login, token string, cfg *YuqueConfig) {
 
 	const limit = 100
 	offset := 0
@@ -125,7 +125,7 @@ func (this *Plugin) collectBooks(login, token string) {
 
 			bookID := bookDetail.Book.ID
 
-			if this.cfg.IndexingBooks && (bookDetail.Book.Public > 0 || (this.cfg.IncludePrivateBook)) {
+			if cfg.IndexingBooks && (bookDetail.Book.Public > 0 || (cfg.IncludePrivateBook)) {
 
 				//index books
 				document := common.Document{
@@ -174,8 +174,8 @@ func (this *Plugin) collectBooks(login, token string) {
 			}
 
 			//get docs in repo
-			if this.cfg.IndexingDocs {
-				this.collectDocs(login, bookID, token)
+			if cfg.IndexingDocs {
+				this.collectDocs(login, bookID, token, cfg)
 			}
 		}
 
@@ -188,7 +188,7 @@ func (this *Plugin) collectBooks(login, token string) {
 
 }
 
-func (this *Plugin) collectDocs(login string, bookID int64, token string) {
+func (this *Plugin) collectDocs(login string, bookID int64, token string, cfg *YuqueConfig) {
 
 	const limit = 100
 	offset := 0
@@ -211,9 +211,9 @@ func (this *Plugin) collectDocs(login string, bookID int64, token string) {
 		log.Infof("fetched %v docs for %v, book: %v, offset: %v, total: %v", len(doc.Docs), login, bookID, offset, doc.Meta.Total)
 
 		for _, doc := range doc.Docs {
-			if this.cfg.IndexingDocs && (doc.Public > 0 || (this.cfg.IncludePrivateDoc)) {
+			if cfg.IndexingDocs && (doc.Public > 0 || (cfg.IncludePrivateDoc)) {
 				//get doc details
-				this.collectDocDetails(bookID, doc.ID, token)
+				this.collectDocDetails(bookID, doc.ID, token, cfg)
 			} else {
 				log.Debug("skip doc:", doc.Title, ",", doc.Public)
 			}
@@ -228,7 +228,7 @@ func (this *Plugin) collectDocs(login string, bookID int64, token string) {
 
 }
 
-func (this *Plugin) collectDocDetails(bookID int64, docID int64, token string) {
+func (this *Plugin) collectDocDetails(bookID int64, docID int64, token string, cfg *YuqueConfig) {
 
 	res := get(fmt.Sprintf("/api/v2/repos/%v/docs/%v", bookID, docID), token)
 	doc := struct {
@@ -240,7 +240,7 @@ func (this *Plugin) collectDocDetails(bookID int64, docID int64, token string) {
 		panic(err)
 	}
 
-	if this.cfg.IndexingDocs && (doc.Doc.Public > 0 || (this.cfg.IncludePrivateDoc)) {
+	if cfg.IndexingDocs && (doc.Doc.Public > 0 || (cfg.IncludePrivateDoc)) {
 		//index doc
 		document := common.Document{
 			Source: common.DataSourceReference{
@@ -301,7 +301,7 @@ func (this *Plugin) collectDocDetails(bookID int64, docID int64, token string) {
 	}
 }
 
-func (this *Plugin) collectUsers(login, token string) {
+func (this *Plugin) collectUsers(login, token string, cfg *YuqueConfig) {
 	const pageSize = 100
 	offset := 0
 
@@ -324,7 +324,7 @@ func (this *Plugin) collectUsers(login, token string) {
 			var idPrefix, docType string
 			var metadata util.MapStr
 
-			if groupUser.User != nil && this.cfg.IndexingUsers {
+			if groupUser.User != nil && cfg.IndexingUsers {
 				idPrefix, docType = "yuque-user", groupUser.User.Type
 				metadata = util.MapStr{
 					"user_id":            groupUser.User.ID,
@@ -353,7 +353,7 @@ func (this *Plugin) collectUsers(login, token string) {
 				document.Updated = &groupUser.User.UpdatedAt
 				document.Metadata = metadata
 
-			} else if groupUser.Group != nil && this.cfg.IndexingGroups {
+			} else if groupUser.Group != nil && cfg.IndexingGroups {
 				idPrefix, docType = "yuque-group", groupUser.Group.Type
 				metadata = util.MapStr{
 					"user_id":            groupUser.Group.ID,
