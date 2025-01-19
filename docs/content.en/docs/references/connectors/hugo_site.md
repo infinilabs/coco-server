@@ -34,6 +34,25 @@ curl -XPUT http://localhost:9000/connector/hugo_site?replace=true -d '{
 
 > Use `hugo_site` as a unique identifier, as it is a builtin connector.
 
+## Update coco-server's config
+
+Below is an example configuration for enabling the Hugo Site Drive Connector in coco-server:
+
+```shell
+connector:
+  hugo_site:
+    enabled: true
+    interval: 60s
+    queue:
+      name: indexing_documents
+```
+### Explanation of Config Parameters
+
+| **Field**      | **Type**  | **Description**                                                                 |
+|-----------------|-----------|---------------------------------------------------------------------------------|
+| `enabled`      | `boolean` | Enables or disables the Hugo Site connector. Set to `true` to activate it.      |
+| `interval`     | `string`  | Specifies the time interval (e.g., `60s`) at which the connector will check for updates. |
+| `queue.name`   | `string`  | Defines the name of the queue where indexing tasks will be added.               |
 
 ## Use the Hugo Site Connector
 

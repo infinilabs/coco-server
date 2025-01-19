@@ -62,6 +62,8 @@ func (this *Plugin) Setup() {
 		this.Queue = &queue.QueueConfig{Name: "indexing_documents"}
 	}
 
+	this.Queue = queue.SmartGetOrInitConfig(this.Queue)
+
 	if this.CredentialFile != "" {
 		b, err := os.ReadFile(this.CredentialFile)
 		if err != nil {
@@ -179,7 +181,8 @@ func (this *Plugin) fetch_google_drive(connector *common.Connector, datasource *
 			if !this.SkipInvalidToken && !tok.Valid() {
 				panic("token is invalid")
 			}
-			log.Warnf("skip invalid token: %v", tok)
+			//TODO, update the datasource's config, avoid access before fix
+			log.Warnf("skip invalid google_drive token: %v", tok)
 		} else {
 			log.Debug("start processing google drive files")
 			this.startIndexingFiles(tenantID, userID, &tok)

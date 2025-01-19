@@ -100,6 +100,8 @@ Below is the config parameters supported by this connector.
 |-------------------------------|--------------|--------------------------------------------------------------------------------------------------|
 | `enabled`                     | `bool`       | Set to `true` to enable the Google Drive Connector.                                             |
 | `queue.name`                  | `string`     | Specifies the queue name for indexing documents.                                                |
+| `interval`                    | `duration`   | Interval for polling the Google Drive API.                                                     |
+| `skip_invalid_token`          | `bool`       | Skip errors caused by invalid tokens if set to `true`.                                         |
 | `credential`                  | `object`     | Inline Google Drive API credentials.                                                            |
 | `credential_file`             | `string`     | Path to the `credentials.json` file (optional if `credential` is used).                         |
 | `client_id`                   | `string`     | Google Drive client ID obtained from Google API Console.                                        |
@@ -110,8 +112,6 @@ Below is the config parameters supported by this connector.
 | `client_secret`               | `string`     | Client secret for Google Drive API.                                                             |
 | `redirect_uris`               | `string`     | Callback URI for authorization responses.                                                       |
 | `javascript_origins`          | `[]string`   | List of allowed JavaScript origins for the application.                                         |
-| `interval`                    | `duration`   | Interval for polling the Google Drive API.                                                     |
-| `skip_invalid_token`          | `bool`       | Skip errors caused by invalid tokens if set to `true`.                                         |
 
 > **Notes**:
 > - Use either `credential_file` or `credential` for providing credentials.

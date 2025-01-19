@@ -54,6 +54,8 @@ func (this *Plugin) Setup() {
 	if this.Queue == nil {
 		this.Queue = &queue.QueueConfig{Name: "indexing_documents"}
 	}
+
+	this.Queue = queue.SmartGetOrInitConfig(this.Queue)
 }
 
 // ParseTimestamp safely parses a timestamp string into a *time.Time.

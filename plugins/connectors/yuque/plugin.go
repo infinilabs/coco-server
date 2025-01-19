@@ -1,120 +1,98 @@
 package yuque
 
 import (
+	"context"
+	log "github.com/cihub/seelog"
+	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/api"
-	httprouter "infini.sh/framework/core/api/router"
+	config3 "infini.sh/framework/core/config"
 	"infini.sh/framework/core/env"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/module"
+	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/queue"
-	"net/http"
+	"infini.sh/framework/core/task"
+	"infini.sh/framework/core/util"
+	"time"
 )
 
 const YuqueKey = "yuque"
 
-type Config struct {
-	Enabled bool `config:"enabled"`
-
-	Token              string             `config:"token"` //TODO move to db
-	Interval           string             `config:"interval"`
-	Queue              *queue.QueueConfig `config:"queue"`
-	IncludePrivateBook bool               `config:"include_private_book"`
-	IncludePrivateDoc  bool               `config:"include_private_doc"`
-	IndexingBooks      bool               `config:"indexing_books"`
-	IndexingDocs       bool               `config:"indexing_docs"`
-	IndexingUsers      bool               `config:"indexing_users"`
-	IndexingGroups     bool               `config:"indexing_groups"`
-	SkipInvalidToken   bool               `config:"skip_invalid_token"`
+type YuqueConfig struct {
+	Token              string `config:"token"`
+	IncludePrivateBook bool   `config:"include_private_book"`
+	IncludePrivateDoc  bool   `config:"include_private_doc"`
+	IndexingBooks      bool   `config:"indexing_books"`
+	IndexingDocs       bool   `config:"indexing_docs"`
+	IndexingUsers      bool   `config:"indexing_users"`
+	IndexingGroups     bool   `config:"indexing_groups"`
 }
 
 type Plugin struct {
 	api.Handler
 
-	cfg Config
+	Enabled          bool               `config:"enabled"`
+	PageSize         int                `config:"page_size"`
+	Interval         string             `config:"interval"`
+	Queue            *queue.QueueConfig `config:"queue"`
+	SkipInvalidToken bool               `config:"skip_invalid_token"`
 }
 
 func (this *Plugin) Setup() {
-	this.cfg = Config{
-		Enabled:            false,
-		Interval:           "10s",
-		IncludePrivateDoc:  false,
-		IncludePrivateBook: false,
-		IndexingBooks:      true,
-		IndexingDocs:       true,
-		IndexingUsers:      true,
-		Queue:              &queue.QueueConfig{Name: "indexing_documents"},
-	}
 
-	ok, err := env.ParseConfig("connector.yuque", &this.cfg)
+	ok, err := env.ParseConfig("connector.yuque", &this)
 	if ok && err != nil && global.Env().SystemConfig.Configs.PanicOnConfigError {
 		panic(err)
 	}
 
-	if !this.cfg.Enabled {
+	if !this.Enabled {
 		return
 	}
 
-	if this.cfg.Queue == nil {
-		this.cfg.Queue = queue.GetOrInitConfig("indexing_documents")
-	} else {
-		queueCfg := queue.SmartGetOrInitConfig(this.cfg.Queue)
-		this.cfg.Queue = queueCfg
+	if this.PageSize <= 0 {
+		this.PageSize = 1000
 	}
 
-	if !this.cfg.SkipInvalidToken && this.cfg.Token == "" {
-		panic("invalid yuque token")
+	if this.Queue == nil {
+		this.Queue = &queue.QueueConfig{Name: "indexing_documents"}
 	}
 
-	api.HandleAPIMethod(api.GET, "/connector/yuque/connect", this.connect)
-
-	//api.HandleAPIMethod(api.POST, "/connector/yuque/reset", this.reset)
-	//api.HandleAPIMethod(api.GET, "/connector/yuque/oauth_redirect", this.oAuthRedirect)
-
+	this.Queue = queue.SmartGetOrInitConfig(this.Queue)
 }
 
 func (this *Plugin) Start() error {
-	//
-	//if this.cfg.Enabled {
-	//	//get all accounts which enabled google drive connector
-	//
-	//	task.RegisterScheduleTask(task.ScheduleTask{
-	//		ID:          util.GetUUID(),
-	//		Group:       "connectors",
-	//		Singleton:   true,
-	//		Interval:    util.GetDurationOrDefault(this.Interval, time.Second*30).String(),
-	//		Description: "indexing google drive files",
-	//		Task: func(ctx context.Context) {
-	//
-	//			log.Tracef("entering task, indexing google drive files")
-	//
-	//			//TODO
-	//			var tenantID = "test"
-	//			var userID = "test"
-	//
-	//			exists, tok, err := this.getToken(tenantID, userID)
-	//			if err != nil {
-	//				panic(err)
-	//			}
-	//
-	//			if !exists {
-	//				return
-	//			}
-	//
-	//			if !tok.Valid() {
-	//				//continue //TODO
-	//				if !this.SkipInvalidToken && !tok.Valid() {
-	//					panic("token is invalid")
-	//				}
-	//				log.Warnf("skip invalid token: %v", tok)
-	//			} else {
-	//				log.Debug("start processing google drive files")
-	//				this.startIndexingFiles(tenantID, userID, tok)
-	//				log.Debug("finished process google drive files")
-	//			}
-	//		},
-	//	})
-	//
-	//}
+	if this.Enabled {
+		task.RegisterScheduleTask(task.ScheduleTask{
+			ID:          util.GetUUID(),
+			Group:       "connectors",
+			Singleton:   true,
+			Interval:    util.GetDurationOrDefault(this.Interval, time.Second*30).String(), //connector's task interval
+			Description: "indexing yuque docs",
+			Task: func(ctx context.Context) {
+				connector := common.Connector{}
+				connector.ID = YuqueKey
+				exists, err := orm.Get(&connector)
+				if !exists || err != nil {
+					panic("invalid hugo_site connector")
+				}
+
+				q := orm.Query{}
+				q.Size = this.PageSize
+				q.Conds = orm.And(orm.Eq("connector.id", connector.ID))
+				var results []common.DataSource
+
+				err, _ = orm.SearchWithJSONMapper(&results, &q)
+				if err != nil {
+					panic(err)
+				}
+
+				for _, item := range results {
+					log.Debugf("ID: %s, Name: %s, Other: %s", item.ID, item.Name, util.MustToJSON(item))
+					this.fetch_yuque(&connector, &item)
+				}
+			},
+		})
+	}
 
 	return nil
 }
@@ -127,8 +105,24 @@ func (this *Plugin) Name() string {
 	return YuqueKey
 }
 
-func (this *Plugin) connect(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	this.collect()
+func (this *Plugin) fetch_yuque(connector *common.Connector, datasource *common.DataSource) {
+	if connector == nil || datasource == nil {
+		panic("invalid connector config")
+	}
+
+	cfg, err := config3.NewConfigFrom(datasource.Connector.Config)
+	if err != nil {
+		panic(err)
+	}
+
+	obj := YuqueConfig{}
+	err = cfg.Unpack(&obj)
+	if err != nil {
+		panic(err)
+	}
+
+	log.Debugf("handle hugo_site's datasource: %v", obj)
+	this.collect(&obj)
 }
 
 func init() {

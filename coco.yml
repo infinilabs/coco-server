@@ -184,34 +184,17 @@ web:
 
 connector:
   google_drive: # get your token here: https://developers.google.com/drive/api/quickstart/go
-    enabled: true
+    enabled: false
     queue:
       name: indexing_documents
-#    credential_file: credentials.json
-    credential:
-      "client_id": "XXXX"
-      "project_id": "XXXX"
-      "auth_uri": "https://accounts.google.com/o/oauth2/auth"
-      "token_uri": "https://oauth2.googleapis.com/token"
-      "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs"
-      "client_secret": "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"
-      "redirect_uris":  "http://localhost:9000/connector/google_drive/oauth_redirect"
-      "javascript_origins": [ "http://localhost:9000" ]
-    interval: 10s
+    credential_file: credentials.json
+    interval: 60s
     skip_invalid_token: true
   yuque:
     enabled: false
     queue:
       name: indexing_documents
-    token: $[[keystore.YUQUE_TOKEN]]
-    interval: 10s
-    indexing_books: true
-    indexing_docs: true
-    indexing_groups: true
-    indexing_users: true
-    include_private_book: false
-    include_private_doc: false
-    skip_invalid_token: true
+    interval: 60s
   hugo_site:
     enabled: false
     interval: 60s
