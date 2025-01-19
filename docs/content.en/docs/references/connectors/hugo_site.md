@@ -11,7 +11,7 @@ weight: 20
 curl -XPUT http://localhost:9000/connector/hugo_site?replace=true -d '{
     "name": "Hugo Site Connector", 
     "description": "Fetch the index.json file from a specified Hugo site.", 
-    "icon": "http://coco.infini.cloud/assets/hugo.png", 
+    "icon": "/assets/connector/hugo_site/icon.png", 
     "category": "website", 
     "tags": [
         "static_site", 
@@ -21,11 +21,11 @@ curl -XPUT http://localhost:9000/connector/hugo_site?replace=true -d '{
     "url": "http://coco.rs/connectors/hugo_site", 
     "assets": {
         "icons": {
-            "default": "http://coco.infini.cloud/assets/web.png", 
-            "blog": "http://coco.infini.cloud/assets/hugo/blog.png", 
-            "web": "http://coco.infini.cloud/assets/hugo/web.png", 
-            "web_page": "http://coco.infini.cloud/assets/hugo/web_page.png", 
-            "news": "http://coco.infini.cloud/assets/hugo/news.png"
+            "default": "/assets/connector/hugo_site/web.png", 
+            "blog": "/assets/connector/hugo_site/blog.png", 
+            "web": "/assets/connector/hugo_site/web.png", 
+            "web_page": "/assets/connector/hugo_site/web_page.png", 
+            "news": "/assets/connector/hugo_site/news.png"
         }
     }
 }'
@@ -33,5 +33,27 @@ curl -XPUT http://localhost:9000/connector/hugo_site?replace=true -d '{
 
 
 > Use `hugo_site` as a unique identifier, as it is a builtin connector.
->
-> Replace `https://coco.infini.cloud` to your coco-server's endpoint.
+
+
+## Use the Hugo Site Connector
+
+```shell
+//request
+curl  -H 'Content-Type: application/json'   -XPOST http://localhost:9000/datasource/ -d'
+{
+    "name":"My Hugo Site",
+    "type":"connector",
+    "connector":{
+        "id":"hugo_site",
+         "config":{
+            "urls": [ "https://pizza.rs/index.json" ]
+        }
+    }
+}'
+```
+
+Below is the config parameters supported by this connector.
+
+| **Field**              | **Type**           | **Description**                                                                                     |
+|-------------------------|--------------------|-----------------------------------------------------------------------------------------------------|
+| `urls`               |  []string          | The array list of the hugo's site, support more than one url.                                                  |
