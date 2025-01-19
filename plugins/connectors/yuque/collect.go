@@ -55,7 +55,7 @@ func (this *Plugin) save(obj interface{}) {
 	}
 }
 
-func (this *Plugin) collect(cfg *YuqueConfig) {
+func (this *Plugin) collect(connector *common.Connector, datasource *common.DataSource, cfg *YuqueConfig) {
 
 	token := cfg.Token
 
@@ -82,18 +82,18 @@ func (this *Plugin) collect(cfg *YuqueConfig) {
 
 	//get users in group
 	if cfg.IndexingUsers || cfg.IndexingGroups {
-		this.collectUsers(currentUser.Group.Login, token, cfg)
+		this.collectUsers(connector, datasource, currentUser.Group.Login, token, cfg)
 	}
 
 	//get all books
 	if cfg.IndexingBooks || cfg.IndexingDocs {
-		this.collectBooks(currentUser.Group.Login, token, cfg)
+		this.collectBooks(connector, datasource, currentUser.Group.Login, token, cfg)
 	}
 
 	log.Infof("finished collecting for %v", currentUser.Group.Login)
 }
 
-func (this *Plugin) collectBooks(login, token string, cfg *YuqueConfig) {
+func (this *Plugin) collectBooks(connector *common.Connector, datasource *common.DataSource, login, token string, cfg *YuqueConfig) {
 
 	const limit = 100
 	offset := 0
@@ -130,8 +130,8 @@ func (this *Plugin) collectBooks(login, token string, cfg *YuqueConfig) {
 				//index books
 				document := common.Document{
 					Source: common.DataSourceReference{
-						//ID: "",//TODO
-						Name: YuqueKey,
+						ID:   datasource.ID,
+						Name: datasource.Name,
 						Type: "connector",
 					},
 					Title:   bookDetail.Book.Name,
@@ -175,7 +175,7 @@ func (this *Plugin) collectBooks(login, token string, cfg *YuqueConfig) {
 
 			//get docs in repo
 			if cfg.IndexingDocs {
-				this.collectDocs(login, bookID, token, cfg)
+				this.collectDocs(connector, datasource, login, bookID, token, cfg)
 			}
 		}
 
@@ -188,7 +188,7 @@ func (this *Plugin) collectBooks(login, token string, cfg *YuqueConfig) {
 
 }
 
-func (this *Plugin) collectDocs(login string, bookID int64, token string, cfg *YuqueConfig) {
+func (this *Plugin) collectDocs(connector *common.Connector, datasource *common.DataSource, login string, bookID int64, token string, cfg *YuqueConfig) {
 
 	const limit = 100
 	offset := 0
@@ -213,7 +213,7 @@ func (this *Plugin) collectDocs(login string, bookID int64, token string, cfg *Y
 		for _, doc := range doc.Docs {
 			if cfg.IndexingDocs && (doc.Public > 0 || (cfg.IncludePrivateDoc)) {
 				//get doc details
-				this.collectDocDetails(bookID, doc.ID, token, cfg)
+				this.collectDocDetails(connector, datasource, bookID, doc.ID, token, cfg)
 			} else {
 				log.Debug("skip doc:", doc.Title, ",", doc.Public)
 			}
@@ -228,7 +228,7 @@ func (this *Plugin) collectDocs(login string, bookID int64, token string, cfg *Y
 
 }
 
-func (this *Plugin) collectDocDetails(bookID int64, docID int64, token string, cfg *YuqueConfig) {
+func (this *Plugin) collectDocDetails(connector *common.Connector, datasource *common.DataSource, bookID int64, docID int64, token string, cfg *YuqueConfig) {
 
 	res := get(fmt.Sprintf("/api/v2/repos/%v/docs/%v", bookID, docID), token)
 	doc := struct {
@@ -244,8 +244,8 @@ func (this *Plugin) collectDocDetails(bookID int64, docID int64, token string, c
 		//index doc
 		document := common.Document{
 			Source: common.DataSourceReference{
-				//ID: "",//TODO
-				Name: YuqueKey,
+				ID:   datasource.ID,
+				Name: datasource.Name,
 				Type: "connector",
 			},
 			Title:   doc.Doc.Title,
@@ -301,7 +301,7 @@ func (this *Plugin) collectDocDetails(bookID int64, docID int64, token string, c
 	}
 }
 
-func (this *Plugin) collectUsers(login, token string, cfg *YuqueConfig) {
+func (this *Plugin) collectUsers(connector *common.Connector, datasource *common.DataSource, login, token string, cfg *YuqueConfig) {
 	const pageSize = 100
 	offset := 0
 
@@ -338,8 +338,8 @@ func (this *Plugin) collectUsers(login, token string, cfg *YuqueConfig) {
 
 				document = common.Document{
 					Source: common.DataSourceReference{
-						//ID: "",//TODO
-						Name: YuqueKey,
+						ID:   datasource.ID,
+						Name: datasource.Name,
 						Type: "connector",
 					},
 					Title:     groupUser.User.Name,
@@ -366,8 +366,8 @@ func (this *Plugin) collectUsers(login, token string, cfg *YuqueConfig) {
 
 				document = common.Document{
 					Source: common.DataSourceReference{
-						//ID: "",//TODO
-						Name: YuqueKey,
+						ID:   datasource.ID,
+						Name: datasource.Name,
 						Type: "connector",
 					},
 					Title:     groupUser.Group.Name,

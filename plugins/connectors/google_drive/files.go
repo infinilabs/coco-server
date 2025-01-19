@@ -63,7 +63,7 @@ func getIcon(fileType string) string {
 	}
 }
 
-func (this *Plugin) startIndexingFiles(tenantID, userID, datasourceID string, tok *oauth2.Token) {
+func (this *Plugin) startIndexingFiles(connector *common.Connector, datasource *common.DataSource, tenantID, userID string, tok *oauth2.Token) {
 	var filesProcessed = 0
 	defer func() {
 		if !global.Env().IsDebug {
@@ -96,7 +96,7 @@ func (this *Plugin) startIndexingFiles(tenantID, userID, datasourceID string, to
 	var query string
 
 	//get last access time from kv
-	lastModifiedTimeStr, _ := this.getLastModifiedTime(tenantID, userID, datasourceID)
+	lastModifiedTimeStr, _ := this.getLastModifiedTime(tenantID, userID, datasource.ID)
 
 	log.Tracef("get last modified time: %v", lastModifiedTimeStr)
 
@@ -159,8 +159,8 @@ func (this *Plugin) startIndexingFiles(tenantID, userID, datasourceID string, to
 			// Map Google Drive file to Document struct
 			document := common.Document{
 				Source: common.DataSourceReference{
-					//ID: "",//TODO
-					Name: "google_drive",
+					ID:   datasource.ID,
+					Name: datasource.Name,
 					Type: "connector",
 				},
 				Title:   i.Name,
@@ -244,7 +244,7 @@ func (this *Plugin) startIndexingFiles(tenantID, userID, datasourceID string, to
 		if lastModifyTime != nil {
 			// Save the lastModifyTime (for example, in a KV store or file)
 			lastModifiedTimeStr = lastModifyTime.Format(time.RFC3339Nano)
-			err := this.saveLastModifiedTime(tenantID, userID, lastModifiedTimeStr, datasourceID)
+			err := this.saveLastModifiedTime(tenantID, userID, lastModifiedTimeStr, datasource.ID)
 			if err != nil {
 				panic(err)
 			}
