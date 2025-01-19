@@ -86,6 +86,7 @@ func (this *Plugin) Start() error {
 
 				q := orm.Query{}
 				q.Size = this.PageSize
+				q.Conds = orm.And(orm.Eq("connector.id", connector.ID))
 				var results []common.DataSource
 
 				err, _ = orm.SearchWithJSONMapper(&results, &q)
@@ -95,7 +96,7 @@ func (this *Plugin) Start() error {
 
 				for _, item := range results {
 					log.Debugf("ID: %s, Name: %s, Other: %s", item.ID, item.Name, util.MustToJSON(item))
-					this.fetch(&connector, &item)
+					this.fetch_site(&connector, &item)
 				}
 			},
 		})
@@ -104,7 +105,7 @@ func (this *Plugin) Start() error {
 	return nil
 }
 
-func (this *Plugin) fetch(connector *common.Connector, datasource *common.DataSource) {
+func (this *Plugin) fetch_site(connector *common.Connector, datasource *common.DataSource) {
 
 	if connector == nil || datasource == nil {
 		panic("invalid connector config")
@@ -121,7 +122,7 @@ func (this *Plugin) fetch(connector *common.Connector, datasource *common.DataSo
 		panic(err)
 	}
 
-	log.Debugf("handle hugo_site's datasource:", obj)
+	log.Debugf("handle hugo_site's datasource: %v", obj)
 
 	for _, myURL := range obj.Urls {
 		log.Debugf("connect to hugo site: %v", myURL)
