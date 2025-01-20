@@ -8,7 +8,7 @@ weight: 20
 ## Register Hugo Site Connector
 
 ```shell
-curl -XPUT http://localhost:9000/connector/hugo_site?replace=true -d '{
+curl -XPUT "http://localhost:9000/connector/hugo_site?replace=true" -d '{
     "name": "Hugo Site Connector", 
     "description": "Fetch the index.json file from a specified Hugo site.", 
     "icon": "/assets/connector/hugo_site/icon.png", 
@@ -80,7 +80,7 @@ connector:
 
 ```shell
 //request
-curl  -H 'Content-Type: application/json'   -XPOST http://localhost:9000/datasource/ -d'
+curl  -H 'Content-Type: application/json'   -XPOST "http://localhost:9000/datasource/" -d'
 {
     "name":"My Hugo Site",
     "type":"connector",
