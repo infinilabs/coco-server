@@ -63,6 +63,15 @@ func getIcon(fileType string) string {
 	}
 }
 
+// Function to get the root folder ID
+func getRootFolderID(srv *drive.Service) (string, string) {
+	rootFolder, err := srv.Files.Get("root").Fields("id, name").Do()
+	if err != nil {
+		panic(errors.Errorf("Unable to get root folder ID: %v", err))
+	}
+	return rootFolder.Id, rootFolder.Name
+}
+
 func (this *Plugin) startIndexingFiles(connector *common.Connector, datasource *common.DataSource, tenantID, userID string, tok *oauth2.Token) {
 	var filesProcessed = 0
 	defer func() {
@@ -93,6 +102,43 @@ func (this *Plugin) startIndexingFiles(connector *common.Connector, datasource *
 		panic(err)
 	}
 
+	// All directories
+	var directoryMap = map[string]common.RichLabel{}
+
+	// Root Folder
+	rootFolderID, rootFolderName := getRootFolderID(srv)
+	directoryMap[rootFolderID] = common.RichLabel{Key: rootFolderID, Label: rootFolderName, Icon: "folder"}
+
+	// Fetch all directories
+	var nextPageToken string
+	for {
+		call := srv.Files.List().
+			PageSize(int64(this.PageSize)).
+			OrderBy("name").
+			Q("mimeType='application/vnd.google-apps.folder' and trashed=false").
+			Fields("nextPageToken, files(id, name, parents)")
+
+		r, err := call.PageToken(nextPageToken).Do()
+		if err != nil {
+			panic(errors.Errorf("Failed to fetch directories: %v", err))
+		}
+
+		// Save directories in the map
+		for _, i := range r.Files {
+			//TODO, should save to store in case there are so many crazy directories, OOM risk
+			directoryMap[i.Id] = common.RichLabel{Key: i.Id, Label: i.Name, Icon: "folder"}
+			log.Debugf("google drive directory: ID=%s, Name=%s, Parents=%v", i.Id, i.Name, i.Parents)
+		}
+
+		nextPageToken = r.NextPageToken
+		if nextPageToken == "" {
+			break
+		}
+	}
+
+	log.Infof("fetched %d google drive directories", len(directoryMap))
+
+	// Fetch all files
 	var query string
 
 	//get last access time from kv
@@ -113,7 +159,7 @@ func (this *Plugin) startIndexingFiles(connector *common.Connector, datasource *
 	var lastModifyTime *time.Time
 
 	// Start pagination loop
-	var nextPageToken string
+	nextPageToken = ""
 	for {
 		call := srv.Files.List().PageSize(int64(this.PageSize)).OrderBy("modifiedTime asc")
 
@@ -154,7 +200,24 @@ func (this *Plugin) startIndexingFiles(connector *common.Connector, datasource *
 				}
 			}
 
-			log.Infof("File: %s (ID: %s) | CreatedAt: %s | UpdatedAt: %s", i.Name, i.Id, createdAt, updatedAt)
+			if i.MimeType == "application/vnd.google-apps.folder" {
+				directoryMap[i.Id] = common.RichLabel{Key: i.Id, Label: i.Name, Icon: "folder"}
+			}
+			categories := []common.RichLabel{}
+			if len(i.Parents) > 0 {
+				for _, v := range i.Parents {
+					folderName, ok := directoryMap[v]
+					if ok {
+						//log.Debugf("folder: %v, %v", folderName, v)
+						categories = append(categories, folderName)
+					} else {
+						log.Errorf("missing folder info: %v", v)
+						//TODO, if the parent_id is not found, delay to handle this file, maybe newly added file, and the folder meta is aware
+					}
+				}
+			}
+
+			log.Debugf("Google Drive File: %s (ID: %s) | CreatedAt: %s | UpdatedAt: %s", i.Name, i.Id, createdAt, updatedAt)
 
 			// Map Google Drive file to Document struct
 			document := common.Document{
@@ -175,6 +238,10 @@ func (this *Plugin) startIndexingFiles(connector *common.Connector, datasource *
 				},
 				Icon:      getIcon(i.MimeType),
 				Thumbnail: i.ThumbnailLink,
+			}
+
+			if len(categories) > 0 {
+				document.RichCategories = categories
 			}
 
 			document.ID = i.Id //add tenant namespace and then hash

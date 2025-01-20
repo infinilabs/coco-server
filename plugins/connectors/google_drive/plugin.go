@@ -85,11 +85,16 @@ func (this *Plugin) Setup() {
 			ClientID:     this.Credential.ClientId,
 			ClientSecret: this.Credential.ClientSecret,
 			RedirectURL:  this.Credential.RedirectUri,
-			Scopes:       []string{"https://www.googleapis.com/auth/drive.metadata.readonly"},
 			Endpoint:     google.Endpoint,
 		}
 	} else {
 		panic("Missing Google OAuth credentials")
+	}
+
+	this.oAuthConfig.Scopes = []string{
+		"https://www.googleapis.com/auth/drive.metadata.readonly", // Access Drive metadata
+		"https://www.googleapis.com/auth/userinfo.email",          // Access the user's profile information
+		"https://www.googleapis.com/auth/userinfo.profile",        // Access the user's profile information
 	}
 
 	api.HandleUIMethod(api.GET, "/connector/google_drive/connect", this.connect)
@@ -119,14 +124,15 @@ func (this *Plugin) Start() error {
 				q.Size = this.PageSize //TODO
 				q.Conds = orm.And(orm.Eq("connector.id", connector.ID))
 				var results []common.DataSource
-
 				err, _ = orm.SearchWithJSONMapper(&results, &q)
 				if err != nil {
 					panic(err)
 				}
 
+				log.Infof("total %v google_drives pending to fetch", len(results))
+
 				for _, item := range results {
-					log.Debugf("ID: %s, Name: %s, Other: %s", item.ID, item.Name, util.MustToJSON(item))
+					log.Infof("fetch google_drive: ID: %s, Name: %s", item.ID, item.Name)
 					this.fetch_google_drive(&connector, &item)
 				}
 			},
@@ -145,6 +151,11 @@ func (this *Plugin) Name() string {
 
 type Config struct {
 	Token string `config:"token"`
+
+	AccessToken  string      `config:"access_token"`
+	RefreshToken string      `config:"refresh_token"`
+	TokenExpiry  string      `config:"token_expiry"`
+	Profile      util.MapStr `config:"profile"`
 }
 
 func (this *Plugin) fetch_google_drive(connector *common.Connector, datasource *common.DataSource) {
@@ -165,31 +176,74 @@ func (this *Plugin) fetch_google_drive(connector *common.Connector, datasource *
 
 	log.Tracef("handle google_drive's datasource: %v", datasourceCfg)
 
-	if datasourceCfg.Token != "" {
-		tok := oauth2.Token{}
-		err = util.FromJSONBytes([]byte(datasourceCfg.Token), &tok)
-		if err != nil {
-			panic(err)
+	if datasourceCfg.AccessToken != "" && datasourceCfg.RefreshToken != "" {
+		// Initialize the token using AccessToken and RefreshToken
+		tok := oauth2.Token{
+			AccessToken:  datasourceCfg.AccessToken,
+			RefreshToken: datasourceCfg.RefreshToken,
+			Expiry:       parseExpiry(datasourceCfg.TokenExpiry),
 		}
 
-		//TODO
+		//TODO: Define tenantID and userID, possibly based on your context
 		var tenantID = "test"
 		var userID = "test"
 
+		// Check if the token is valid
 		if !tok.Valid() {
-			//continue //TODO
+			// Check if SkipInvalidToken is false, which means token must be valid
 			if !this.SkipInvalidToken && !tok.Valid() {
 				panic("token is invalid")
 			}
-			//TODO, update the datasource's config, avoid access before fix
-			log.Warnf("skip invalid google_drive token: %v", tok)
+
+			// If the token is invalid, attempt to refresh it
+			log.Warnf("Token is invalid or expired, attempting to refresh...")
+
+			// Refresh the token using the refresh token
+			if tok.RefreshToken != "" {
+				log.Debug("Attempting to refresh the token")
+				tokenSource := this.oAuthConfig.TokenSource(context.Background(), &tok)
+				refreshedToken, err := tokenSource.Token()
+				if err != nil {
+					log.Errorf("Failed to refresh token: %v", err)
+					panic("Failed to refresh token")
+				}
+
+				// Save the refreshed token
+				datasourceCfg.AccessToken = refreshedToken.AccessToken
+				datasourceCfg.RefreshToken = refreshedToken.RefreshToken
+				datasourceCfg.TokenExpiry = refreshedToken.Expiry.Format(time.RFC3339) // Format using RFC3339
+
+				// Optionally, save the new tokens in your store (e.g., database or config)
+				err = orm.Save(nil, &datasourceCfg)
+				if err != nil {
+					log.Errorf("Failed to save updated datasource configuration: %v", err)
+					panic("Failed to save updated configuration")
+				}
+
+				log.Debug("Token refreshed successfully")
+			} else {
+				log.Warnf("No refresh token available, unable to refresh token.")
+			}
+
 		} else {
+			// Token is valid, proceed with indexing files
 			log.Debug("start processing google drive files")
 			this.startIndexingFiles(connector, datasource, tenantID, userID, &tok)
-			log.Debug("finished process google drive files")
+			log.Debug("finished processing google drive files")
 		}
 	}
 
+}
+
+// Helper function to parse token expiry time
+func parseExpiry(expiryStr string) time.Time {
+	// Parse the expiry time string into a time.Time object
+	expiry, err := time.Parse(time.RFC3339, expiryStr)
+	if err != nil {
+		log.Errorf("Failed to parse token expiry: %v", err)
+		return time.Time{} // Return zero value time on error
+	}
+	return expiry
 }
 
 func init() {

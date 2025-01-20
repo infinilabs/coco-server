@@ -6,7 +6,9 @@ package google_drive
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	log "github.com/cihub/seelog"
 	"golang.org/x/oauth2"
 	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
@@ -17,6 +19,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 )
 
 func encodeState(args map[string]string) string {
@@ -62,6 +65,21 @@ func (h *Plugin) connect(w http.ResponseWriter, req *http.Request, _ httprouter.
 
 	// Generate OAuth URL
 	authURL := h.oAuthConfig.AuthCodeURL(state, oauth2.AccessTypeOffline)
+
+	// Parse the generated URL to append additional parameters
+	parsedURL, err := url.Parse(authURL)
+	if err != nil {
+		panic("Failed to parse auth URL")
+	}
+
+	// Add the `approval_prompt=force` parameter to ensure the refresh token is returned
+	query := parsedURL.Query()
+	query.Set("approval_prompt", "force")
+	parsedURL.RawQuery = query.Encode()
+
+	// Return the updated URL with the necessary parameters
+	authURL = parsedURL.String()
+
 	http.Redirect(w, req, authURL, http.StatusFound)
 }
 
@@ -97,15 +115,63 @@ func (h *Plugin) oAuthRedirect(w http.ResponseWriter, req *http.Request, _ httpr
 		panic(err)
 	}
 
+	//Handle Token Expiry
+	if token.Expiry.Before(time.Now()) {
+		tokenSource := h.oAuthConfig.TokenSource(req.Context(), token)
+		token, err = tokenSource.Token()
+		if err != nil {
+			panic(errors.Errorf("Failed to refresh token: %v", err))
+		}
+		//TODO, save new token
+	}
+
+	// Retrieve user info from Google
+	client := h.oAuthConfig.Client(req.Context(), token)
+	resp, err := client.Get("https://www.googleapis.com/oauth2/v3/userinfo")
+	if err != nil {
+		panic(fmt.Errorf("failed to fetch user info: %w", err))
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		panic(fmt.Errorf("unexpected status code fetching user info: %d", resp.StatusCode))
+	}
+
+	// Parse the user info
+	var userInfo struct {
+		Sub           string `json:"sub"`            // Unique Google user ID
+		Email         string `json:"email"`          // User's email address
+		VerifiedEmail bool   `json:"email_verified"` // Whether email is verified
+		Name          string `json:"name"`           // User's full name
+		Picture       string `json:"picture"`        // User's profile picture URL
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&userInfo); err != nil {
+		panic(fmt.Errorf("failed to parse user info: %w", err))
+	}
+	// Use the unique user ID (userInfo.Sub) or email (userInfo.Email) as the unique identifier
+	log.Infof("google drive authenticated user: ID=%s, Email=%s", userInfo.Sub, userInfo.Email)
+
 	datasource := common.DataSource{}
-	datasource.ID = util.GetUUID() //TODO routing to single task, if connect multi-times
+	datasource.ID = util.MD5digest(fmt.Sprintf("%v,%v,%v", "google_drive", userInfo.Sub, userInfo.VerifiedEmail))
 	datasource.Type = "connector"
-	datasource.Name = "My Google Drive" //TODO, input from user
+	if userInfo.Name != "" {
+		datasource.Name = userInfo.Name + "'s Google Drive"
+	} else {
+		datasource.Name = "My Google Drive"
+	}
 	datasource.Connector = common.ConnectorConfig{
 		ConnectorID: "google_drive",
 		Config: util.MapStr{
-			"token": util.MustToJSON(token),
+			"access_token":  token.AccessToken,                 // Store access token
+			"refresh_token": token.RefreshToken,                // Store refresh token
+			"token_expiry":  token.Expiry.Format(time.RFC3339), // Format using RFC3339
+			"profile":       userInfo,
 		},
+	}
+
+	// Check if refresh token is missing or empty
+	if token.RefreshToken == "" {
+		log.Warnf("refresh token was not granted for: %v", datasource.Name)
 	}
 
 	err = orm.Save(nil, &datasource)
