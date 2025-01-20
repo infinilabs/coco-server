@@ -115,16 +115,6 @@ func (h *Plugin) oAuthRedirect(w http.ResponseWriter, req *http.Request, _ httpr
 		panic(err)
 	}
 
-	//Handle Token Expiry
-	if token.Expiry.Before(time.Now()) {
-		tokenSource := h.oAuthConfig.TokenSource(req.Context(), token)
-		token, err = tokenSource.Token()
-		if err != nil {
-			panic(errors.Errorf("Failed to refresh token: %v", err))
-		}
-		//TODO, save new token
-	}
-
 	// Retrieve user info from Google
 	client := h.oAuthConfig.Client(req.Context(), token)
 	resp, err := client.Get("https://www.googleapis.com/oauth2/v3/userinfo")
@@ -152,7 +142,7 @@ func (h *Plugin) oAuthRedirect(w http.ResponseWriter, req *http.Request, _ httpr
 	log.Infof("google drive authenticated user: ID=%s, Email=%s", userInfo.Sub, userInfo.Email)
 
 	datasource := common.DataSource{}
-	datasource.ID = util.MD5digest(fmt.Sprintf("%v,%v,%v", "google_drive", userInfo.Sub, userInfo.VerifiedEmail))
+	datasource.ID = util.MD5digest(fmt.Sprintf("%v,%v,%v", "google_drive", userInfo.Sub, userInfo.Email))
 	datasource.Type = "connector"
 	if userInfo.Name != "" {
 		datasource.Name = userInfo.Name + "'s Google Drive"
