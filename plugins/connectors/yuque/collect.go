@@ -8,9 +8,11 @@ import (
 	"fmt"
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/modules/common"
+	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/queue"
 	"infini.sh/framework/core/util"
+	"sort"
 	"strings"
 )
 
@@ -24,7 +26,7 @@ func get(path, token string) *util.Result {
 
 	if res != nil {
 		if res.StatusCode > 300 {
-			panic(res.Body)
+			panic(errors.Errorf("%v,%v", res.StatusCode, string(res.Body)))
 		}
 	}
 
@@ -93,12 +95,23 @@ func (this *Plugin) collect(connector *common.Connector, datasource *common.Data
 	log.Infof("finished collecting for %v", currentUser.Group.Login)
 }
 
+// Define a temporary struct for sorting that includes the Level
+type FolderInfo struct {
+	// Temporary struct with RichLabel and Level
+	RichLabel common.RichLabel
+	Level     int
+}
+
 func (this *Plugin) collectBooks(connector *common.Connector, datasource *common.DataSource, login, token string, cfg *YuqueConfig) {
 
 	const limit = 100
 	offset := 0
 
 	for {
+		if global.ShuttingDown() {
+			break
+		}
+
 		res := get(fmt.Sprintf("/api/v2/groups/%s/repos?offse=%v&limit=%v", login, offset, limit), token)
 		books := struct {
 			Books []Book `json:"data"`
@@ -124,6 +137,83 @@ func (this *Plugin) collectBooks(connector *common.Connector, datasource *common
 			}
 
 			bookID := bookDetail.Book.ID
+			bookSlug := bookDetail.Book.Slug
+
+			//index toc
+			// Create a map to store folder info by doc's slug, now using RichLabel
+			bookTocMap := make(map[string][]common.RichLabel)
+			if !cfg.SkipIndexingBookToc {
+				res = get(fmt.Sprintf("/api/v2/repos/%v/toc", bookID), token)
+				bookToc := struct {
+					BookToc []BookToc `json:"data"`
+				}{}
+				err = util.FromJSONBytes(res.Body, &bookToc)
+				if err != nil {
+					panic(err)
+				}
+
+				log.Debug("book:", bookSlug, ",", bookID, ",toc:", len(bookToc.BookToc))
+
+				// Create a map for quick lookup by UUID to find parent-child relationships
+				lookup := make(map[string]BookToc)
+
+				// Populate lookup map
+				for _, doc := range bookToc.BookToc {
+					lookup[doc.UUID] = doc
+				}
+
+				// Iterate over documents to build the folder info for docs
+				for _, doc := range bookToc.BookToc {
+					if doc.Type == "DOC" {
+						// Create a slice to store the folder path for the document
+						folderPath := []FolderInfo{}
+						currentDoc := doc
+						// Traverse upwards to construct the folder path
+						for currentDoc.ParentUUID != "" {
+							folderPath = append([]FolderInfo{
+								{
+									RichLabel: common.RichLabel{
+										Key:   currentDoc.Slug,
+										Label: currentDoc.Title,
+										Icon:  "folder",
+									},
+									Level: currentDoc.Level,
+								},
+							}, folderPath...) // Prepend to the path
+							currentDoc = lookup[currentDoc.ParentUUID]
+						}
+						// Add the current document itself to the path
+						folderPath = append([]FolderInfo{
+							{
+								RichLabel: common.RichLabel{
+									Key:   currentDoc.Slug,
+									Label: currentDoc.Title,
+									Icon:  "folder",
+								},
+								Level: currentDoc.Level,
+							},
+						}, folderPath...)
+
+						// Sort the folderPath array by the Level field
+						sort.SliceStable(folderPath, func(i, j int) bool {
+							return folderPath[i].Level < folderPath[j].Level
+						})
+
+						// Extract the RichLabel part of the sorted folder path and store in bookTocMap
+						var sortedLabels []common.RichLabel
+						sortedLabels = append(sortedLabels, common.RichLabel{
+							Key:   bookDetail.Book.Slug,
+							Label: bookDetail.Book.Name,
+							Icon:  "folder",
+						})
+						for _, folderInfo := range folderPath {
+							sortedLabels = append(sortedLabels, folderInfo.RichLabel)
+						}
+						bookTocMap[doc.Slug] = sortedLabels
+					}
+				}
+
+			}
 
 			if cfg.IndexingBooks && (bookDetail.Book.Public > 0 || (cfg.IncludePrivateBook)) {
 
@@ -148,6 +238,16 @@ func (this *Plugin) collectBooks(connector *common.Connector, datasource *common
 					//Thumbnail: bookDetail.Book.,
 				}
 
+				if !cfg.SkipIndexingBookToc {
+					if v, ok := bookTocMap[bookDetail.Book.Slug]; ok {
+						document.RichCategories = v
+					} else {
+						log.Debug("missing toc info:", bookDetail.Book.Slug, ",", bookDetail.Book.Name)
+					}
+				}
+
+				log.Debug(bookDetail.Book.Slug, ", folders:", len(document.RichCategories))
+
 				document.Metadata = util.MapStr{
 					"public":        bookDetail.Book.Public,
 					"slug":          bookDetail.Book.Slug,
@@ -170,12 +270,13 @@ func (this *Plugin) collectBooks(connector *common.Connector, datasource *common
 
 				this.save(document)
 			} else {
-				log.Debug("skip book:", bookDetail.Book.Name, ",", bookDetail.Book.Public)
+				log.Info("skip book:", bookDetail.Book.Name, ",", bookDetail.Book.Public)
 			}
 
 			//get docs in repo
 			if cfg.IndexingDocs {
-				this.collectDocs(connector, datasource, login, bookID, token, cfg)
+				log.Debugf("collecting docs in book: %v, toc: %v", bookSlug, len(bookTocMap))
+				this.collectDocs(connector, datasource, login, bookSlug, bookID, token, cfg, &bookTocMap)
 			}
 		}
 
@@ -188,12 +289,16 @@ func (this *Plugin) collectBooks(connector *common.Connector, datasource *common
 
 }
 
-func (this *Plugin) collectDocs(connector *common.Connector, datasource *common.DataSource, login string, bookID int64, token string, cfg *YuqueConfig) {
+func (this *Plugin) collectDocs(connector *common.Connector, datasource *common.DataSource, login string, bookSlug string, bookID int64, token string, cfg *YuqueConfig, toc *map[string][]common.RichLabel) {
 
 	const limit = 100
 	offset := 0
 
 	for {
+
+		if global.ShuttingDown() {
+			break
+		}
 
 		res := get(fmt.Sprintf("/api/v2/repos/%v/docs?offse=%v&limit=%v&optional_properties=tags,hits,latest_version_id", bookID, offset, limit), token)
 		doc := struct {
@@ -208,12 +313,17 @@ func (this *Plugin) collectDocs(connector *common.Connector, datasource *common.
 			panic(err)
 		}
 
-		log.Infof("fetched %v docs for %v, book: %v, offset: %v, total: %v", len(doc.Docs), login, bookID, offset, doc.Meta.Total)
+		log.Infof("fetched %v docs for %v, book: %v, offset: %v, total: %v", len(doc.Docs), login, bookSlug, offset, doc.Meta.Total)
 
 		for _, doc := range doc.Docs {
+
+			if global.ShuttingDown() {
+				break
+			}
+
 			if cfg.IndexingDocs && (doc.Public > 0 || (cfg.IncludePrivateDoc)) {
 				//get doc details
-				this.collectDocDetails(connector, datasource, bookID, doc.ID, token, cfg)
+				this.collectDocDetails(connector, datasource, bookID, doc.ID, token, cfg, toc)
 			} else {
 				log.Debug("skip doc:", doc.Title, ",", doc.Public)
 			}
@@ -228,7 +338,7 @@ func (this *Plugin) collectDocs(connector *common.Connector, datasource *common.
 
 }
 
-func (this *Plugin) collectDocDetails(connector *common.Connector, datasource *common.DataSource, bookID int64, docID int64, token string, cfg *YuqueConfig) {
+func (this *Plugin) collectDocDetails(connector *common.Connector, datasource *common.DataSource, bookID int64, docID int64, token string, cfg *YuqueConfig, toc *map[string][]common.RichLabel) {
 
 	res := get(fmt.Sprintf("/api/v2/repos/%v/docs/%v", bookID, docID), token)
 	doc := struct {
@@ -262,6 +372,14 @@ func (this *Plugin) collectDocDetails(connector *common.Connector, datasource *c
 			},
 			Icon:      this.getIconKey("doc", doc.Doc.Type),
 			Thumbnail: doc.Doc.Cover,
+		}
+
+		if !cfg.SkipIndexingBookToc && toc != nil {
+			if v, ok := (*toc)[doc.Doc.Slug]; ok {
+				document.RichCategories = v
+			} else {
+				log.Debug("missing toc info:", doc.Doc.Title, ",", doc.Doc.Slug, ",", document.URL)
+			}
 		}
 
 		document.Metadata = util.MapStr{
@@ -306,6 +424,11 @@ func (this *Plugin) collectUsers(connector *common.Connector, datasource *common
 	offset := 0
 
 	for {
+
+		if global.ShuttingDown() {
+			break
+		}
+
 		// Fetch users in the current group with pagination
 		res := get(fmt.Sprintf("/api/v2/groups/%s/users?offset=%d", login, offset), token)
 		var users struct {

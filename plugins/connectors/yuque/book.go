@@ -44,3 +44,21 @@ type BookDetail struct {
 	User             User      `json:"user"`               // Associated user information
 	Namespace        string    `json:"namespace"`          // Full path or namespace
 }
+
+type BookToc struct {
+	UUID        string      `json:"uuid"`                  // Unique ID of the node
+	Type        string      `json:"type"`                  // Node type (DOC: document, LINK: external link, TITLE: group)
+	Title       string      `json:"title"`                 // Name of the node
+	URL         string      `json:"url"`                   // URL of the node
+	Slug        string      `json:"slug"`                  // Deprecated: URL slug of the node
+	ID          interface{} `json:"id,omitempty"`          // Deprecated: Document ID
+	DocID       interface{} `json:"doc_id,omitempty"`      // Document ID
+	Level       int         `json:"level,omitempty"`       // Level of the node in the hierarchy
+	Depth       int         `json:"depth,omitempty"`       // Deprecated: Depth of the node in the hierarchy
+	OpenWindow  int         `json:"open_window,omitempty"` // Whether to open in a new window (0: current page, 1: new window)
+	Visible     int         `json:"visible,omitempty"`     // Visibility of the node (0: not visible, 1: visible)
+	PrevUUID    string      `json:"prev_uuid"`             // UUID of the previous sibling node at the same level
+	SiblingUUID string      `json:"sibling_uuid"`          // UUID of the next sibling node at the same level
+	ChildUUID   string      `json:"child_uuid"`            // UUID of the first child node
+	ParentUUID  string      `json:"parent_uuid"`           // UUID of the parent node
+}

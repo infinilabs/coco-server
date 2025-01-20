@@ -19,13 +19,14 @@ import (
 const YuqueKey = "yuque"
 
 type YuqueConfig struct {
-	Token              string `config:"token"`
-	IncludePrivateBook bool   `config:"include_private_book"`
-	IncludePrivateDoc  bool   `config:"include_private_doc"`
-	IndexingBooks      bool   `config:"indexing_books"`
-	IndexingDocs       bool   `config:"indexing_docs"`
-	IndexingUsers      bool   `config:"indexing_users"`
-	IndexingGroups     bool   `config:"indexing_groups"`
+	Token               string `config:"token"`
+	IncludePrivateBook  bool   `config:"include_private_book"`
+	IncludePrivateDoc   bool   `config:"include_private_doc"`
+	IndexingBooks       bool   `config:"indexing_books"`
+	SkipIndexingBookToc bool   `config:"skip_indexing_book_toc"`
+	IndexingDocs        bool   `config:"indexing_docs"`
+	IndexingUsers       bool   `config:"indexing_users"`
+	IndexingGroups      bool   `config:"indexing_groups"`
 }
 
 type Plugin struct {
