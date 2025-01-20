@@ -14,6 +14,6 @@ type DataSource struct {
 }
 
 type ConnectorConfig struct {
-	ConnectorID string                 `json:"id,omitempty" elastic_mapping:"id:{type:keyword}"`          // Connector ID for the datasource
-	Config      map[string]interface{} `json:"config,omitempty" elastic_mapping:"config:{enabled:false}"` // Configs for this Connector
+	ConnectorID string      `json:"id,omitempty" elastic_mapping:"id:{type:keyword}"`          // Connector ID for the datasource
+	Config      interface{} `json:"config,omitempty" elastic_mapping:"config:{enabled:false}"` // Configs for this Connector
 }

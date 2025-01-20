@@ -213,8 +213,9 @@ func (this *Plugin) fetch_google_drive(connector *common.Connector, datasource *
 				datasourceCfg.RefreshToken = refreshedToken.RefreshToken
 				datasourceCfg.TokenExpiry = refreshedToken.Expiry.Format(time.RFC3339) // Format using RFC3339
 
+				datasource.Connector.Config = datasource
 				// Optionally, save the new tokens in your store (e.g., database or config)
-				err = orm.Save(nil, &datasourceCfg)
+				err = orm.Update(nil, &datasourceCfg)
 				if err != nil {
 					log.Errorf("Failed to save updated datasource configuration: %v", err)
 					panic("Failed to save updated configuration")
