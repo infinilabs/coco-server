@@ -54,13 +54,17 @@ To use the Google Drive Connector, follow these steps to obtain your token:
 
 ## Obtain Google Drive credentials
 
-1. Set the **Authorized Redirect URIs** as shown in the following screenshot:
+1. Create your own Google OAuth App, set the **Data Access** as shown in the following screenshot:
+
+{{% load-img "/img/google_drive_scopes.png" "Create a APP" %}}
+
+2. Set the **Authorized Redirect URIs** as shown in the following screenshot:
 
 {{% load-img "/img/google_drive_token.jpg" "Authorized Redirect URIs" %}}
 
-2. The Google Drive connector uses `/connector/google_drive/oauth_redirect` as the callback URL to receive authorization responses.
+3. The Google Drive connector uses `/connector/google_drive/oauth_redirect` as the callback URL to receive authorization responses.
 
-3. Once the token is successfully obtained, download the `credentials.json` file.
+4. Once the token is successfully obtained, download the `credentials.json` file.
 
 {{% load-img "/img/download_google_drive_token.png" "credentials.json" %}}
 
@@ -79,16 +83,7 @@ connector:
     enabled: true
     queue:
       name: indexing_documents
-#    credential_file: credentials.json
-    credential:
-      "client_id": "YOUR_XXX.apps.googleusercontent.com"
-      "project_id": "infini-YOUR_XXX"
-      "auth_uri": "https://accounts.google.com/o/oauth2/auth"
-      "token_uri": "https://oauth2.googleapis.com/token"
-      "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs"
-      "client_secret": "YOUR_XXX-YOUR_XXX"
-      "redirect_uris":  "http://localhost:9000/connector/google_drive/oauth_redirect"
-      "javascript_origins": [ "http://localhost:9000" ]
+    credential_file: credentials.json
     interval: 10s
     skip_invalid_token: true
 ```

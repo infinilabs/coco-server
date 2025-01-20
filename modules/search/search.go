@@ -71,17 +71,18 @@ type SearchResponse struct {
 
 func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	var (
-		query       = h.GetParameterOrDefault(req, "query", "")
-		from        = h.GetIntOrDefault(req, "from", 0)
-		size        = h.GetIntOrDefault(req, "size", 10)
-		datasource  = h.GetParameterOrDefault(req, "datasource", "")
-		category    = h.GetParameterOrDefault(req, "category", "")
-		username    = h.GetParameterOrDefault(req, "username", "")
-		userid      = h.GetParameterOrDefault(req, "userid", "")
-		tags        = h.GetParameterOrDefault(req, "tags", "")
-		subcategory = h.GetParameterOrDefault(req, "subcategory", "")
-		field       = h.GetParameterOrDefault(req, "search_field", "title")
-		source      = h.GetParameterOrDefault(req, "source_fields", "*")
+		query        = h.GetParameterOrDefault(req, "query", "")
+		from         = h.GetIntOrDefault(req, "from", 0)
+		size         = h.GetIntOrDefault(req, "size", 10)
+		datasource   = h.GetParameterOrDefault(req, "datasource", "")
+		category     = h.GetParameterOrDefault(req, "category", "")
+		username     = h.GetParameterOrDefault(req, "username", "")
+		userid       = h.GetParameterOrDefault(req, "userid", "")
+		tags         = h.GetParameterOrDefault(req, "tags", "")
+		subcategory  = h.GetParameterOrDefault(req, "subcategory", "")
+		richCategory = h.GetParameterOrDefault(req, "rich_category", "")
+		field        = h.GetParameterOrDefault(req, "search_field", "title")
+		source       = h.GetParameterOrDefault(req, "source_fields", "*")
 	)
 
 	mustClauses := []interface{}{}
@@ -107,6 +108,14 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		mustClauses = append(mustClauses, map[string]interface{}{
 			"term": map[string]interface{}{
 				"subcategory": subcategory,
+			},
+		})
+	}
+
+	if richCategory != "" {
+		mustClauses = append(mustClauses, map[string]interface{}{
+			"term": map[string]interface{}{
+				"rich_categories.key": richCategory,
 			},
 		})
 	}
