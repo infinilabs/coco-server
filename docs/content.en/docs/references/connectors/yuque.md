@@ -8,7 +8,7 @@ weight: 30
 ## Register Yuque Connector
 
 ```shell
-curl -XPUT http://localhost:9000/connector/yuque?replace=true -d '{
+curl -XPUT "http://localhost:9000/connector/yuque?replace=true" -d '{
     "name": "Yuque Docs Connector", 
     "description": "Fetch the docs metadata for yuque.", 
     "icon": "/assets/connector/yuque/icon.png", 
@@ -70,7 +70,7 @@ Before using this connector, you need to obtain your Yuque API token. Refer to t
 Here is an example request to configure the Yuque Connector:
 
 ```shell
-curl -H 'Content-Type: application/json' -XPOST http://localhost:9000/datasource/ -d '
+curl -H 'Content-Type: application/json' -XPOST "http://localhost:9000/datasource/" -d '
 {
     "name": "My Yuque",
     "type": "connector",

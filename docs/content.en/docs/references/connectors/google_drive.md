@@ -8,7 +8,7 @@ weight: 10
 ## Register Google Drive Connector
 
 ```shell
-curl -XPUT http://localhost:9000/connector/google_drive?replace=true -d '{
+curl -XPUT "http://localhost:9000/connector/google_drive?replace=true" -d '{
     "name": "Google Drive Connector", 
     "description": "Fetch the files metadata from Google Drive.", 
     "icon": "/assets/connector/google_drive/icon.png", 
