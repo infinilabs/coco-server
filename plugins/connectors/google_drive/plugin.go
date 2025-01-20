@@ -132,6 +132,10 @@ func (this *Plugin) Start() error {
 				log.Infof("total %v google_drives pending to fetch", len(results))
 
 				for _, item := range results {
+					if global.ShuttingDown() {
+						break
+					}
+
 					log.Infof("fetch google_drive: ID: %s, Name: %s", item.ID, item.Name)
 					this.fetch_google_drive(&connector, &item)
 				}
@@ -150,10 +154,10 @@ func (this *Plugin) Name() string {
 }
 
 type Config struct {
-	AccessToken  string      `config:"access_token"`
-	RefreshToken string      `config:"refresh_token"`
-	TokenExpiry  string      `config:"token_expiry"`
-	Profile      util.MapStr `config:"profile"`
+	AccessToken  string      `config:"access_token" json:"access_token"`
+	RefreshToken string      `config:"refresh_token" json:"refresh_token"`
+	TokenExpiry  string      `config:"token_expiry" json:"token_expiry"`
+	Profile      util.MapStr `config:"profile" json:"profile"`
 }
 
 func (this *Plugin) fetch_google_drive(connector *common.Connector, datasource *common.DataSource) {
@@ -211,9 +215,12 @@ func (this *Plugin) fetch_google_drive(connector *common.Connector, datasource *
 				datasourceCfg.RefreshToken = refreshedToken.RefreshToken
 				datasourceCfg.TokenExpiry = refreshedToken.Expiry.Format(time.RFC3339) // Format using RFC3339
 
-				datasource.Connector.Config = datasource
+				datasource.Connector.Config = datasourceCfg
+
+				log.Debugf("updating datasource with new refresh token: %v", datasource.ID)
+
 				// Optionally, save the new tokens in your store (e.g., database or config)
-				err = orm.Update(nil, &datasourceCfg)
+				err = orm.Update(nil, datasource)
 				if err != nil {
 					log.Errorf("Failed to save updated datasource configuration: %v", err)
 					panic("Failed to save updated configuration")

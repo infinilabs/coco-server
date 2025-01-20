@@ -112,6 +112,10 @@ func (this *Plugin) startIndexingFiles(connector *common.Connector, datasource *
 	// Fetch all directories
 	var nextPageToken string
 	for {
+		if global.ShuttingDown() {
+			break
+		}
+
 		call := srv.Files.List().
 			PageSize(int64(this.PageSize)).
 			OrderBy("name").
@@ -161,6 +165,10 @@ func (this *Plugin) startIndexingFiles(connector *common.Connector, datasource *
 	// Start pagination loop
 	nextPageToken = ""
 	for {
+		if global.ShuttingDown() {
+			break
+		}
+
 		call := srv.Files.List().PageSize(int64(this.PageSize)).OrderBy("modifiedTime asc")
 
 		if query != "" {

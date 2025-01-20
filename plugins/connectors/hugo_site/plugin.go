@@ -127,6 +127,11 @@ func (this *Plugin) fetch_site(connector *common.Connector, datasource *common.D
 	log.Debugf("handle hugo_site's datasource: %v", obj)
 
 	for _, myURL := range obj.Urls {
+
+		if global.ShuttingDown() {
+			break
+		}
+
 		log.Debugf("connect to hugo site: %v", myURL)
 
 		res, err := util.HttpGet(myURL)
@@ -145,6 +150,11 @@ func (this *Plugin) fetch_site(connector *common.Connector, datasource *common.D
 
 			// Output the parsed data
 			for i, v := range documents {
+
+				if global.ShuttingDown() {
+					break
+				}
+
 				doc := common.Document{Source: common.DataSourceReference{ID: datasource.ID, Type: "connector", Name: datasource.Name}}
 
 				if v.Created != "" {
