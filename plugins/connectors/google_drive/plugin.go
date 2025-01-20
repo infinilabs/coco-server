@@ -150,8 +150,6 @@ func (this *Plugin) Name() string {
 }
 
 type Config struct {
-	Token string `config:"token"`
-
 	AccessToken  string      `config:"access_token"`
 	RefreshToken string      `config:"refresh_token"`
 	TokenExpiry  string      `config:"token_expiry"`
