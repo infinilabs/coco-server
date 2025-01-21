@@ -239,9 +239,12 @@ func (this *Plugin) collectBooks(connector *common.Connector, datasource *common
 				}
 
 				if !cfg.SkipIndexingBookToc {
+					// Check if the book's Table of Contents (ToC) exists in the map
 					if v, ok := bookTocMap[bookDetail.Book.Slug]; ok {
+						// Assign the ToC to the document's RichCategories
 						document.RichCategories = v
 					} else {
+						// Log a warning if the ToC information is missing
 						log.Debug("missing toc info:", bookDetail.Book.Slug, ",", bookDetail.Book.Name)
 					}
 				}
@@ -267,6 +270,8 @@ func (this *Plugin) collectBooks(connector *common.Connector, datasource *common
 
 				document.Created = &bookDetail.Book.CreatedAt
 				document.Updated = &bookDetail.Book.UpdatedAt
+
+				document.Cleanup()
 
 				this.save(document)
 			} else {
@@ -414,6 +419,8 @@ func (this *Plugin) collectDocDetails(connector *common.Connector, datasource *c
 
 		document.Created = &doc.Doc.CreatedAt
 		document.Updated = &doc.Doc.UpdatedAt
+
+		document.Cleanup()
 
 		this.save(document)
 	}

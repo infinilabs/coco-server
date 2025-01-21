@@ -5,6 +5,7 @@
 package common
 
 import (
+	"strings"
 	"time"
 )
 
@@ -54,6 +55,19 @@ type Document struct {
 
 	LastUpdatedBy *EditorInfo `json:"last_updated_by,omitempty" elastic_mapping:"last_updated_by:{type:object}"` // Struct containing last update information
 
+}
+
+func (document *Document) Cleanup() {
+	document.TrimLastDuplicatedCategory()
+}
+
+func (document *Document) TrimLastDuplicatedCategory() {
+	// Ensure RichCategories is not empty before accessing the last element
+	if len(document.RichCategories) > 0 &&
+		strings.TrimSpace(document.RichCategories[len(document.RichCategories)-1].Label) == strings.TrimSpace(document.Title) {
+		// Remove the last category if it matches the book's title (it's redundant)
+		document.RichCategories = document.RichCategories[:len(document.RichCategories)-1]
+	}
 }
 
 type EditorInfo struct {
