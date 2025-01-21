@@ -200,6 +200,11 @@ connector:
     interval: 60s
     queue:
       name: indexing_documents
+  notion:
+    enabled: false
+    interval: 60s
+    queue:
+      name: indexing_documents
 
 ##background jobs
 pipeline:
