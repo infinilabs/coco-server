@@ -5,13 +5,14 @@
 package main
 
 import (
-	"infini.sh/coco/assets"
+	public "infini.sh/coco/.public"
 	"infini.sh/coco/config"
 	"infini.sh/coco/modules"
 	_ "infini.sh/coco/modules"
 	_ "infini.sh/coco/plugins"
 	"infini.sh/framework"
 	api1 "infini.sh/framework/core/api"
+	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/module"
 	"infini.sh/framework/core/vfs"
 	"infini.sh/framework/modules/api"
@@ -46,10 +47,12 @@ func main() {
 	app.IgnoreMainConfigMissing()
 	app.Init(nil)
 
-	//register vfs, eg: /assets/connector/google_drive.png
-	urlPath := "/assets/"
-	vfs.RegisterFS(assets.StaticFS{StaticFolder: "assets", TrimLeftPath: urlPath, CheckLocalFirst: true, SkipVFS: false})
-	api1.HandleUI(urlPath, vfs.FileServer(vfs.VFS()))
+	vfs.RegisterFS(public.StaticFS{StaticFolder: global.Env().SystemConfig.WebAppConfig.UI.LocalPath,
+		TrimLeftPath:    global.Env().SystemConfig.WebAppConfig.UI.LocalPath,
+		CheckLocalFirst: global.Env().SystemConfig.WebAppConfig.UI.LocalEnabled,
+		SkipVFS:         !global.Env().SystemConfig.WebAppConfig.UI.VFSEnabled})
+
+	api1.HandleUI("/", vfs.FileServer(vfs.VFS()))
 
 	defer app.Shutdown()
 
