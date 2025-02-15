@@ -224,12 +224,34 @@ connector:
 
 ##background jobs
 pipeline:
+  - name: enrich_documents
+    auto_start: true
+    keep_running: true
+    processor:
+      - consumer:
+          auto_commit_offset: true
+          queue_selector:
+            keys:
+              - indexing_documents
+          consumer:
+            group: enriched_documents
+            fetch_max_messages: 10
+          processor:
+            - document_enrichment:
+                model: $[[env.ENRICHMENT_MODEL]]
+                input_queue: "indexing_documents"
+                min_input_document_length: 500
+                output_queue:
+                  name: "enriched_documents"
+                  label:
+                    tag: "enriched"
+
   - name: merge_documents
     auto_start: true
     keep_running: true
     processor:
       - indexing_merge:
-          input_queue: "indexing_documents"
+          input_queue: "enriched_documents"
           idle_timeout_in_seconds: 1
           elasticsearch: "prod"
           index_name: "coco_document"
