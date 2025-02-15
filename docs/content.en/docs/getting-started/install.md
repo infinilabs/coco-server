@@ -43,11 +43,7 @@ OLLAMA_HOST=0.0.0.0:11434 ollama serve
 
 Pull the following models
 ```
-ollama pull llama3.2
-ollama pull llama3.2-vision
-ollama pull llama2-chinese:13b
-ollama pull mistral:latest
-ollama pull nomic-embed-text:latest
+ollama pull deepseek-r1:1.5b 
 ```
 
 ### Easysearch
@@ -67,7 +63,7 @@ docker logs easysearch | grep "admin:"
 Modify `coco.yml` with correct `env` settings, or start the coco server with the correct environments like this:
 
 ```
-➜  coco git:(main) ✗ OLLAMA_MODEL=llama3.2:1b ES_PASSWORD=45ff432a5428ade77c7b  ./bin/coco
+➜  coco git:(main) ✗ OLLAMA_MODEL=deepseek-r1:1.5b ES_PASSWORD=45ff432a5428ade77c7b  ./bin/coco
    ___  ___  ___  ___     _     _____
   / __\/___\/ __\/___\   /_\    \_   \
  / /  //  // /  //  //  //_\\    / /\/

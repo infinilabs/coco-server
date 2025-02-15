@@ -5,9 +5,7 @@ pwd=`pwd`
 __ollama() {
     which ollama || curl -fsSL https://ollama.com/install.sh | sh
     OLLAMA_HOST=0.0.0.0:11434 ollama serve
-    ollama pull llama3.2
-    ollama pull llama3.2-vision
-    ollama pull llama2-chinese:13b
+    ollama pull deepseek-r1:1.5b
 }
 
 __easysearch() {
