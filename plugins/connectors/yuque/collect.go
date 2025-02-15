@@ -6,14 +6,15 @@ package yuque
 
 import (
 	"fmt"
+	"sort"
+	"strings"
+
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/queue"
 	"infini.sh/framework/core/util"
-	"sort"
-	"strings"
 )
 
 func get(path, token string) *util.Result {
@@ -256,12 +257,15 @@ func (this *Plugin) collectBooks(connector *common.Connector, datasource *common
 					"slug":          bookDetail.Book.Slug,
 					"creator_id":    bookDetail.Book.CreatorID,
 					"user_id":       bookDetail.Book.UserID,
-					"toc_yml":       bookDetail.Book.TocYML,
 					"items_count":   bookDetail.Book.ItemsCount,
 					"likes_count":   bookDetail.Book.LikesCount,
 					"watches_count": bookDetail.Book.WatchesCount,
 					"namespace":     bookDetail.Book.Namespace,
-					"user":          bookDetail.Book.User,
+				}
+
+				document.Payload = util.MapStr{
+					"user":    bookDetail.Book.User,
+					"toc_yml": bookDetail.Book.TocYML,
 				}
 
 				document.ID = util.MD5digest(fmt.Sprintf("%v-%v-%v", "test", "yuque-book", bookID))
