@@ -30,10 +30,12 @@ func AppConfig() *Config {
 
 type Config struct {
 	OllamaConfig OllamaConfig `config:"ollama"`
+	ServerInfo   ServerInfo   `config:"server"`
 }
 
 type OllamaConfig struct {
-	Model     string `config:"model"`
-	Endpoint  string `config:"endpoint"`
-	Keepalive string `config:"keepalive"`
+	Model         string `config:"model"`
+	Endpoint      string `config:"endpoint"`
+	ContextLength int    `config:"context_length"`
+	Keepalive     string `config:"keepalive"`
 }

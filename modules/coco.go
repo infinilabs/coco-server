@@ -15,6 +15,7 @@ import (
 	"infini.sh/framework/core/env"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/orm"
+	"time"
 )
 
 type Coco struct {
@@ -27,10 +28,12 @@ func (this *Coco) Setup() {
 
 	cocoConfig := common.Config{
 		OllamaConfig: common.OllamaConfig{
-			Model:     "llama3.2:1b",
-			Keepalive: "30m",
-			Endpoint:  "http://localhost:11434",
+			Model:         "deepseek-r1:1.5b",
+			ContextLength: 131072,
+			Keepalive:     "30m",
+			Endpoint:      "http://localhost:11434",
 		},
+		ServerInfo: common.ServerInfo{Version: common.Version{Number: global.Env().GetVersion()}, Updated: time.Now()},
 	}
 
 	ok, err := env.ParseConfig("coco", &cocoConfig)
