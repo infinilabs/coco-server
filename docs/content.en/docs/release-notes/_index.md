@@ -17,6 +17,7 @@ Information about release notes of Coco Server is provided here.
 -  Google Drive Connector
 -  Yuque Connector
 -  Notion Connector
+-  RAG based Chat
 
 ### Breaking changes
 

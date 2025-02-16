@@ -57,6 +57,37 @@ type Document struct {
 
 }
 
+func (document *Document) GetAllCategories() string {
+	// Initialize a slice to hold all category strings
+	var allCategories []string
+
+	// Add the primary category if available
+	if document.Category != "" {
+		allCategories = append(allCategories, document.Category)
+	}
+
+	// Add the subcategory if available
+	if document.Subcategory != "" {
+		allCategories = append(allCategories, document.Subcategory)
+	}
+
+	// Add all categories if available
+	if len(document.Categories) > 0 {
+		allCategories = append(allCategories, document.Categories...)
+	}
+
+	// Add rich category labels if available (only the text)
+	if len(document.RichCategories) > 0 {
+		for _, richCategory := range document.RichCategories {
+			// Assuming RichLabel has a `Label` field to hold the category text
+			allCategories = append(allCategories, richCategory.Label)
+		}
+	}
+
+	// Join all the categories with a comma
+	return strings.Join(allCategories, ", ")
+}
+
 func (document *Document) Cleanup() {
 	document.TrimLastDuplicatedCategory()
 }
@@ -77,7 +108,7 @@ type EditorInfo struct {
 
 // UserInfo represents information about a user in relation to document edits or ownership.
 type UserInfo struct {
-	UserAvatar string `json:"avatar,omitempty" elastic_mapping:"avatar:{enabled:false}"`                              // Username of the user
-	UserName   string `json:"username,omitempty" elastic_mapping:"username:{type:keyword,copy_to:combined_fulltext}"` // Username of the user
+	UserAvatar string `json:"avatar,omitempty" elastic_mapping:"avatar:{enabled:false}"`                              // Login of the user
+	UserName   string `json:"username,omitempty" elastic_mapping:"username:{type:keyword,copy_to:combined_fulltext}"` // Login of the user
 	UserID     string `json:"userid,omitempty" elastic_mapping:"userid:{type:keyword,copy_to:combined_fulltext}"`     // Unique identifier for the user
 }
