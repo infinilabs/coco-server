@@ -31,7 +31,6 @@ __easysearch() {
 
 __main() {
     __ollama
-    __ocr_server
     __easysearch
 
     if [ $? -eq 0 ]; then
