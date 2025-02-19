@@ -65,6 +65,10 @@ Before using this connector, you need to obtain your Notion API token. Refer to 
 
 {{% load-img "/img/notion-create-app.png" "Notion integrations" %}}
 
+You should also integrate your Notion workspace with the app by establishing the necessary connections. This way, the API token will have access to your Notion content.
+
+{{% load-img "/img/integrated-with-notion-api-key.png" "Notion integrations" %}}
+
 
 ### Example Request
 

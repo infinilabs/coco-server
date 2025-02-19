@@ -11,7 +11,7 @@ Datasource defines where the data comes from, usually we can use a specify conne
 
 ### Create a Datasource
 
-We can use the connector to connect a specify datasource.
+We can use the connector to connect specify datasource.
 
 
 ```shell

@@ -31,7 +31,7 @@ The `Profile` endpoint retrieves information about a user profile. Below is the 
 #### Request
 
 ```bash
-curl -XGET http://localhost:9000/profile
+curl -XGET http://localhost:9000/account/profile
 ```
 #### Response
 

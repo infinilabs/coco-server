@@ -116,7 +116,10 @@ Below is the config parameters supported by this connector.
 To connect your Google Drive, follow these steps:
 
 1. Visit the URL: `http://localhost:9000/connector/google_drive/connect`.
-2. You will be redirected to Google's authentication page.
+```shell
+curl -H'X-API-TOKEN: YOUR_ACCESS_TOKEN' http://localhost:9000/connector/google_drive/connect
+```
+2. You will get a link and please copy and open that link with your browser, it will be redirected to Google's authentication page.
 3. After successfully authenticating, the connector will begin indexing your Google Drive files.
 
 > **Note**:

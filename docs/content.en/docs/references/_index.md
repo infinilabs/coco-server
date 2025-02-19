@@ -19,7 +19,7 @@ Use Basic Authentication by passing a `Authorization` header with the value `Bas
 Example request:
 
 ```bash
-curl -XGET http://localhost:9000/profile \
+curl -XGET http://localhost:9000/account/profile \
   -H "Authorization: Basic <base64-encoded-username:password>"
 ```
 
@@ -29,6 +29,6 @@ Use the X-API-TOKEN header with your token value.
 
 Example request:
 ```
-curl -XGET http://localhost:9000/profile \
+curl -XGET http://localhost:9000/account/profile \
   -H "X-API-TOKEN: xxxxx"
 ```
