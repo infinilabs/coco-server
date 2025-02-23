@@ -10,10 +10,11 @@ import (
 )
 
 func (h *APIHandler) requestToken(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	token := req.Header.Get("X-API-TOKEN")
+	//check url first, as it is in higher priory
+	token := h.GetParameter(req, "token")
 	if token == "" {
-		token= h.GetParameter(req, "token")
-		if token==""{
+		token = req.Header.Get("X-API-TOKEN")
+		if token == "" {
 			panic("invalid token")
 		}
 	}
@@ -51,6 +52,7 @@ func (h *APIHandler) requestToken(w http.ResponseWriter, req *http.Request, ps h
 				res["expire_at"] = expiredAT
 
 				newPayload := util.MapStr{}
+				newPayload["access_token"] = accessToken
 				newPayload["provider"] = provider
 				newPayload["login"] = username
 				newPayload["userid"] = userid
@@ -60,9 +62,9 @@ func (h *APIHandler) requestToken(w http.ResponseWriter, req *http.Request, ps h
 					panic("invalid user info")
 				}
 
-				log.Trace("save:", util.MustToJSON(newPayload))
+				log.Trace("generate and save access_token:", util.MustToJSON(newPayload))
 
-				//TODO save access token to store
+				// save access token to store
 				err := kv.AddValue("access_token", []byte(accessToken), util.MustToJSONBytes(newPayload))
 				if err != nil {
 					panic(err)
