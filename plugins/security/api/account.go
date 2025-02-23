@@ -29,6 +29,7 @@ package api
 
 import (
 	"infini.sh/coco/plugins/security/core"
+	"infini.sh/framework/core/api"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/util"
 	"net/http"
@@ -48,6 +49,11 @@ func (h APIHandler) Logout(w http.ResponseWriter, r *http.Request, ps httprouter
 }
 
 func (h APIHandler) Profile(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+
+	if !api.IsAuthEnable() {
+		panic("auth is not enabled")
+	}
+
 	reqUser, err := core.FromUserContext(r.Context())
 	if err != nil || reqUser == nil {
 		panic("invalid user")
