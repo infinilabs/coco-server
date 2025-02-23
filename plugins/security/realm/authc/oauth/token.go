@@ -10,10 +10,12 @@ import (
 )
 
 func (h *APIHandler) requestToken(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-
 	token := req.Header.Get("X-API-TOKEN")
 	if token == "" {
-		panic("invalid token")
+		token= h.GetParameter(req, "token")
+		if token==""{
+			panic("invalid token")
+		}
 	}
 
 	log.Trace("request access token, old token: ", token)
