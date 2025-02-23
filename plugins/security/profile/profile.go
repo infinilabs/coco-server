@@ -40,19 +40,29 @@ func (h *APIHandler) ssoSuccess(w http.ResponseWriter, req *http.Request, ps htt
 		panic(err)
 	}
 
+	callbackUrl := fmt.Sprintf("coco://oauth_callback?code=%v&request_id=%v&provider=coco-cloud", v, requestId)
+
 	// Generate the HTML response with auto-redirect
 	htmlContent := fmt.Sprintf(
 		`<html>
         <head>
             <title>SSO Success</title>
-            <meta http-equiv="refresh" content="5;url=coco://oauth_callback?code=%v&request_id=%v&provider=coco-cloud">
+            <meta http-equiv="refresh" content="5;url=%v">
         </head>
         <body>
             <p>In order to continue, please click the link below if you are not redirected automatically within 5 seconds:</p>
-            <a href="coco://oauth_callback?code=%v&request_id=%v&provider=coco-cloud">Launch Coco AI</a>
+            <a href="%v">Launch Coco AI</a>
+
+
+<p>
+If the redirect doesn’t work, you can copy the following URL and paste it into the Connect settings window in Coco AI.
+<pre>
+				%v
+			</pre>
+</p>
         </body>
     </html>`,
-		v, requestId, v, requestId,
+		callbackUrl, callbackUrl, callbackUrl,
 	)
 
 	// Write the HTML content to the response with the appropriate Content-Type
