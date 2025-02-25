@@ -7,9 +7,9 @@ import (
 	"os"
 	"strings"
 
-	"infini.sh/coco/lib/langchaingo/documentloaders"
-	"infini.sh/coco/lib/langchaingo/schema"
-	"infini.sh/coco/lib/langchaingo/textsplitter"
+	"github.com/tmc/langchaingo/documentloaders"
+	"github.com/tmc/langchaingo/schema"
+	"github.com/tmc/langchaingo/textsplitter"
 )
 
 // The TextToChunks function converts a text file into document chunks
