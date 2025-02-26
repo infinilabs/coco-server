@@ -21,23 +21,39 @@ export const authSlice = createAppSlice({
   reducers: create => ({
     login: create.asyncThunk(
       async ({ password, userName }: { password: string; userName: string }) => {
-        const { data: loginToken, error } = await fetchLogin(userName, password);
-        // 1. stored in the localStorage, the later requests need it in headers
-        if (!error) {
-          localStg.set('token', loginToken.token);
-          localStg.set('refreshToken', loginToken.refreshToken);
-
-          const { data: info, error: userInfoError } = await fetchGetUserInfo();
-
-          if (!userInfoError) {
-            // 2. store user info
-            localStg.set('userInfo', info);
-            return {
-              token: loginToken.token,
-              userInfo: info
-            };
-          }
+        const u = 'Soybean';
+        const p = '123456';
+        const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjpbeyJ1c2VyTmFtZSI6IlNveWJlYW4ifV0sImlhdCI6MTY5ODQ4NDg2MywiZXhwIjoxNzMwMDQ0Nzk5LCJhdWQiOiJzb3liZWFuLWFkbWluIiwiaXNzIjoiU295YmVhbiIsInN1YiI6IlNveWJlYW4ifQ._w5wmPm6HVJc5fzkSrd_j-92d5PBRzWUfnrTF1bAmfk"
+        localStg.set('token', token)
+        localStg.set('refreshToken', token)
+        const info = {
+          buttons: [],
+          roles: ['R_SUPER'],
+          userId: "0",
+          userName: "InfiniLabs"
         }
+        localStg.set('userInfo', info);
+        return {
+          token,
+          userInfo: info
+        };
+        // const { data: loginToken, error } = await fetchLogin(u, p);
+        // // 1. stored in the localStorage, the later requests need it in headers
+        // if (!error) {
+        //   localStg.set('token', loginToken.token);
+        //   localStg.set('refreshToken', loginToken.refreshToken);
+
+        //   const { data: info, error: userInfoError } = await fetchGetUserInfo();
+
+        //   if (!userInfoError) {
+        //     // 2. store user info
+        //     localStg.set('userInfo', info);
+        //     return {
+        //       token: loginToken.token,
+        //       userInfo: info
+        //     };
+        //   }
+        // }
 
         return false;
       },

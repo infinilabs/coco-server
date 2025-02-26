@@ -1,7 +1,7 @@
 import { getPaletteColorByNumber, mixColor } from '@sa/color';
 import { getDarkMode, getThemeSettings } from '@/store/slice/theme';
-import Introduce from '../guide/modules/Introduce';
-import LoginForm from './modules/LoginForm';
+import Guide from './modules/Guide';
+import Introduce from './modules/Introduce';
 
 const COLOR_WHITE = '#ffffff';
 
@@ -32,11 +32,7 @@ export function Component() {
                 <Introduce />
             </div>
             <div className="h-100% w-2/3 bg-white">
-              <div className="size-full flex flex-col items-left justify-center px-10%">
-                <div className="w-440px">
-                      <LoginForm />
-                  </div>
-              </div>
+                <Guide />
             </div>
         </div>
     );

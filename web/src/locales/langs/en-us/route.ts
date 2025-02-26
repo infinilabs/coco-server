@@ -49,7 +49,8 @@ const route: App.I18n.Schema['translation']['route'] = {
   'server': 'Server',
   'ai-assistant': 'AI Assistant',
   'data-source': 'Data source',
-  'settings': 'Settings'
+  'settings': 'Settings',
+  'guide': 'Guide'
 };
 
 export default route;

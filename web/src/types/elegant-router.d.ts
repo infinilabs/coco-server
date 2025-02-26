@@ -37,11 +37,8 @@ declare module "@elegant-router/types" {
     "500": "/500";
     "ai-assistant": "/ai-assistant";
     "data-source": "/data-source";
+    "guide": "/guide";
     "login": "/login";
-    "login_code-login": "code-login";
-    "login_pwd-login": "pwd-login";
-    "login_register": "register";
-    "login_reset-pwd": "reset-pwd";
     "server": "/server";
     "settings": "/settings";
   };
@@ -93,6 +90,7 @@ declare module "@elegant-router/types" {
     | "500"
     | "ai-assistant"
     | "data-source"
+    | "guide"
     | "login"
     | "server"
     | "settings"
@@ -120,11 +118,8 @@ declare module "@elegant-router/types" {
     | "500"
     | "ai-assistant"
     | "data-source"
-    | "login_code-login"
+    | "guide"
     | "login"
-    | "login_pwd-login"
-    | "login_register"
-    | "login_reset-pwd"
     | "server"
     | "settings"
   >;

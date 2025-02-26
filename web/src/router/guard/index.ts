@@ -22,7 +22,7 @@ export const init: Init = async currentFullPath => {
   const isLogin = Boolean(localStg.get('token'));
 
   if (!isLogin) {
-    if (currentFullPath.includes('login')) {
+    if (['guide', 'login'].some((path) => currentFullPath.includes(path))) {
       return currentFullPath;
     }
 

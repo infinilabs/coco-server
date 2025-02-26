@@ -62,55 +62,26 @@ export const generatedRoutes: GeneratedRoute[] = [
     }
   },
   {
+    name: 'guide',
+    path: '/guide',
+    component: 'layout.blank$view.guide',
+    meta: {
+      title: 'guide',
+      i18nKey: 'route.guide',
+      constant: true,
+      hideInMenu: true
+    }
+  },
+  {
     name: 'login',
     path: '/login',
-    component: 'layout.blank',
-    redirect: 'pwd-login',
-    layout: 'blank',
+    component: 'layout.blank$view.login',
     meta: {
       title: 'login',
       i18nKey: 'route.login',
       constant: true,
       hideInMenu: true
-    },
-    children: [
-      {
-        name: 'login_code-login',
-        path: 'code-login',
-        component: 'view.login_code-login',
-        meta: {
-          title: 'login_code-login',
-          i18nKey: 'route.login_code-login'
-        }
-      },
-      {
-        name: 'login_pwd-login',
-        path: 'pwd-login',
-        component: 'view.login_pwd-login',
-        meta: {
-          title: 'login_pwd-login',
-          i18nKey: 'route.login_pwd-login'
-        }
-      },
-      {
-        name: 'login_register',
-        path: 'register',
-        component: 'view.login_register',
-        meta: {
-          title: 'login_register',
-          i18nKey: 'route.login_register'
-        }
-      },
-      {
-        name: 'login_reset-pwd',
-        path: 'reset-pwd',
-        component: 'view.login_reset-pwd',
-        meta: {
-          title: 'login_reset-pwd',
-          i18nKey: 'route.login_reset-pwd'
-        }
-      }
-    ]
+    }
   },
   {
     name: 'server',

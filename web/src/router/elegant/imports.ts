@@ -22,11 +22,8 @@ export const pages: Record<LastLevelRouteKey, LazyRouteFunction<CustomRouteObjec
   500: () => import("@/pages/_builtin/500/index.tsx"),
   "ai-assistant": () => import("@/pages/ai-assistant/index.tsx"),
   "data-source": () => import("@/pages/data-source/index.tsx"),
-  "login_code-login": () => import("@/pages/login/code-login/index.tsx"),
+  guide: () => import("@/pages/guide/index.tsx"),
   login: () => import("@/pages/login/index.tsx"),
-  "login_pwd-login": () => import("@/pages/login/pwd-login/index.tsx"),
-  login_register: () => import("@/pages/login/register/index.tsx"),
-  "login_reset-pwd": () => import("@/pages/login/reset-pwd/index.tsx"),
   server: () => import("@/pages/server/index.tsx"),
   settings: () => import("@/pages/settings/index.tsx"),
 };
