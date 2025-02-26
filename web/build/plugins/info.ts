@@ -3,7 +3,7 @@ import gradientString from 'gradient-string';
 import type { Plugin } from 'vite';
 
 const welcomeMessage = gradientString('#646cff', 'magenta').multiline(
-  `您好! 欢迎使用 react-soybean 开源项目\n我们为您精心准备了精美的保姆级文档\nhttps://react-soybean-docs.pages.dev/index-cn?theme=dark`
+  `Welcome to Coco Server!`
 );
 
 const boxenOptions: BoxenOptions = {
