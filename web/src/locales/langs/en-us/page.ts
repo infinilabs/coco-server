@@ -247,6 +247,16 @@ const page: App.I18n.Schema['translation']['page'] = {
       content: `The loader allows network requests and lazy-loaded files to be triggered almost simultaneously, enabling the lazy-loaded files to be parsed while waiting for the network request to complete. Once the network request finishes, the page is displayed all at once. Leveraging React's Fiber architecture, if users find the waiting time too long, they can switch to different pages during the wait. This is an advantage of the React framework and React Router's data loader, as it avoids the conventional sequence of: request lazy-loaded file -> parse -> mount -> send network request -> render page -> display, and eliminates the need for manually adding a loading effect.`,
       explain: `This page is solely for demonstrating the powerful capabilities of react-router-dom's loader. The data is random and may not match.`
     }
+  },
+  datasource: {
+    columns: {
+      name: "Name",
+      type: "Type",
+      sync_policy: "Sync Policy",
+      latest_sync_time: "Latest Sync Time",
+      sync_status: "Sync Status",
+      enabled: "Enabled",
+    }
   }
 };
 

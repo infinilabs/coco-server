@@ -251,6 +251,16 @@ const page: App.I18n.Schema['translation']['page'] = {
         还要自己加loading效果`,
       explain: '这个页面仅仅是为了展示 react-router-dom 的 loader 的强大能力，数据是随机的对不上很正常'
     }
+  },
+  datasource: {
+    columns: {
+      name: "名称",
+      type: "类型",
+      sync_policy: "同步策略",
+      latest_sync_time: "最近同步",
+      sync_status: "同步状态",
+      enabled: "启用状态",
+    }
   }
 };
 

@@ -37,6 +37,8 @@ declare module "@elegant-router/types" {
     "500": "/500";
     "ai-assistant": "/ai-assistant";
     "data-source": "/data-source";
+    "data-source_list": "list";
+    "data-source_new": "new";
     "login": "/login";
     "login_code-login": "code-login";
     "login_pwd-login": "pwd-login";
@@ -119,7 +121,8 @@ declare module "@elegant-router/types" {
     | "404"
     | "500"
     | "ai-assistant"
-    | "data-source"
+    | "data-source_list"
+    | "data-source_new"
     | "login_code-login"
     | "login"
     | "login_pwd-login"

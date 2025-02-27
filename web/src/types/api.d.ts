@@ -221,4 +221,17 @@ declare namespace Api {
       pId: number;
     };
   }
+
+  namespace Datasource {
+    type Item = Common.CommonRecord<{
+      /** datasource display name */
+      name: string;
+      /** type of the datasource */
+      type: string;
+      /** sync policy */
+      connector: any;
+    }>;
+    /** datasource list */
+    type ItemList = Common.PaginatingQueryRecord<Item>;
+  }
 }

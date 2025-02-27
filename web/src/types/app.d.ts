@@ -360,6 +360,16 @@ declare namespace App {
           unpin: string;
         };
         page: {
+          datasource: {
+            columns: {
+              name: string;
+              type: string;
+              sync_policy: string;
+              latest_sync_time: string;
+              sync_status: string;
+              enabled: string;
+            };
+          };
           about: {
             devDep: string;
             introduction: string;
