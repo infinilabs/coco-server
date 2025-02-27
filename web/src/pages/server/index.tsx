@@ -7,7 +7,7 @@ const SETTINGS = [
     title: 'LLMs',
     desc: 'Connect the large model to enable AI chat, intelligent search, and a work assistant.',
     icon: <SvgIcon icon="mdi:settings-outline"/>,
-    link: ''
+    link: '/settings?tab=llm'
   },
   {
     key: 'data-source',
@@ -28,6 +28,7 @@ const SETTINGS = [
 export function Component() {
 
     const userInfo = useAppSelector(selectUserInfo);
+    const routerPush = useRouterPush();
 
     return (
       <div>
@@ -61,7 +62,7 @@ export function Component() {
               <div key={item.key} className="basis-1/3">
                 <div className="text-20px color-#333 m-b-16px">{item.title}</div>
                 <div className="color-#888 m-b-45px">{item.desc}</div>
-                <Button type="primary" className="w-40px h-40px rounded-12px text-24px p-0">{item.icon}</Button>
+                <Button onClick={() => item.link && routerPush.routerPush(item.link)} type="primary" className="w-40px h-40px rounded-12px text-24px p-0">{item.icon}</Button>
               </div>
             ))
           }

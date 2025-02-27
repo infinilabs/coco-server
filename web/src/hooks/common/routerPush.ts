@@ -85,7 +85,7 @@ export function useRouterPush() {
       redirect
     };
 
-    return routerPushByKey(`login_${module}`, options);
+    return routerPushByKey(`login`, options);
   }
 
   /**

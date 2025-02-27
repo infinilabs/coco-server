@@ -39,7 +39,7 @@ function useTheme() {
     toggleCssDarkMode(darkMode);
   }, [darkMode]);
 
-  console.info(`%c${info}`, `color: ${colors.primary}`);
+  // console.info(`%c${info}`, `color: ${colors.primary}`);
 
   return { antdTheme, themeSettings };
 }
