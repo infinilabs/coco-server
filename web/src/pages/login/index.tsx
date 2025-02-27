@@ -1,7 +1,7 @@
 import { getPaletteColorByNumber, mixColor } from '@sa/color';
 import { getDarkMode, getThemeSettings } from '@/store/slice/theme';
-import Introduce from '../guide/modules/Introduce';
 import LoginForm from './modules/LoginForm';
+import bg from "@/assets/svg-icon/login.svg"
 
 const COLOR_WHITE = '#ffffff';
 
@@ -28,8 +28,8 @@ export function Component() {
             className="relative size-full flex-center overflow-hidden bg-layout"
             style={{ backgroundColor: bgThemeColor }}
         >
-            <div className="w-1/3 ">
-                <Introduce />
+            <div className="w-1/3 h-100% bg-top-left sm:bg-center-left md:bg-center-left bg-[size:100%_auto] bg-no-repeat" style={{ backgroundImage: `url(${bg})` }}>
+                
             </div>
             <div className="h-100% w-2/3 bg-white">
               <div className="size-full flex flex-col items-left justify-center px-10%">

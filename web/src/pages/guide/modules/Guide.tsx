@@ -7,13 +7,14 @@ const Guide = memo(() => {
     const router = useRouter();
     const [form] = Form.useForm();
     const [step, setStep] = useState(0);
+    const routerPush = useRouterPush();
 
     const renderContent = () => {
       switch (step) {
         case 0:
           return <UserForm form={form} onSubmit={() => setStep(1)}/>
         case 1:
-          return <LLMForm form={form} onSubmit={() => router.push('/login')}/>
+          return <LLMForm form={form} onSubmit={() => routerPush.routerPush('/login')}/>
         default:
           break;
       }
