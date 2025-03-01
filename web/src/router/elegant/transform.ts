@@ -219,8 +219,8 @@ const routeMap: RouteMap = {
   "ai-assistant": "/ai-assistant",
   "data-source": "/data-source",
   "guide": "/guide",
+  "home": "/home",
   "login": "/login",
-  "server": "/server",
   "settings": "/settings"
 };
 

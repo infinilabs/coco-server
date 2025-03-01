@@ -55,13 +55,13 @@ const GlobalBreadcrumb: FC<Omit<BreadcrumbProps, 'items'>> = props => {
   return (
     <Breadcrumb
       {...props}
-      items={[{
+      items={items.some((item) => item?.title?.key === import.meta.env.VITE_ROUTE_HOME) ? items : [{
         path: '/',
         title: (
           <BreadcrumbContent
-            icon={<SvgIcon icon={'mdi:home'}/>}
+            icon={<SvgIcon className='mr-4px text-14px' icon={'mdi:home'}/>}
             key={'home'}
-            label={<>{$t('route.home')}</>}
+            label={<span>{$t('route.home')}</span>}
           />
         ),
       }].concat(items)}

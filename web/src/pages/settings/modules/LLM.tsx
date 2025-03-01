@@ -21,24 +21,24 @@ const ADVANCED = [
         input: <InputNumber min={1} step={1} precision={0} defaultValue={40000} />
     },
     {
-        key: '3',
+        key: '4',
         label: '话题新鲜度(presence_penalty)',
         desc: '值越大，越有可能扩展到新话题',
         input: <InputNumber min={0.1} step={0.1} defaultValue={0.1} />
     },
     {
-        key: '4',
+        key: '5',
         label: '频率惩罚度 (frequency_penalty)',
         desc: '值越大，越有可能降低重复字词',
         input: <InputNumber min={0.1} step={0.1} defaultValue={0.1} />
     },
     {
-        key: '5',
+        key: '6',
         label: '开启推理强度调整',
         input: <Switch size="small" defaultChecked />
     },
     {
-        key: '6',
+        key: '7',
         label: '推理强度',
         desc: '值越大，推理能力越强，但可能会增加响应时间和 Token 消耗',
         input: (

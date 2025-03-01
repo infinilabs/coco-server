@@ -48,7 +48,7 @@ const route: App.I18n.Schema['translation']['route'] = {
   'user-center': 'User Center',
   'server': 'Server',
   'ai-assistant': 'AI Assistant',
-  'data-source': 'Data source',
+  'data-source': 'Data Source',
   'settings': 'Settings',
   'guide': 'Guide'
 };

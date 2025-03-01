@@ -11,6 +11,7 @@ const common: App.I18n.Schema['translation']['common'] = {
   config: 'Config',
   confirm: 'Confirm',
   confirmDelete: 'Are you sure you want to delete?',
+  copySuccess: 'Copy success',
   delete: 'Delete',
   deleteSuccess: 'Delete Success',
   edit: 'Edit',

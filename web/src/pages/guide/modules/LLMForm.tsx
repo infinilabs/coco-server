@@ -30,14 +30,14 @@ const LLMForm = memo(({ form, onSubmit }: { form: FormInstance, onSubmit: () => 
                 </Form.Item>
                 <Form.Item
                     name="ollama_host"
-                    label="Ollama Host"
+                    label="Endpoint"
                     className={formItemClassNames}
                 >
                     <Input className={inputClassNames}/>
                 </Form.Item>
                 <Form.Item
                     name="ollama_model"
-                    label="Full Model"
+                    label="Default Model"
                     className={formItemClassNames}
                 >
                     <Input className={inputClassNames}/>

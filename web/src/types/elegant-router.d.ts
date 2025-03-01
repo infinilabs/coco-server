@@ -38,8 +38,8 @@ declare module "@elegant-router/types" {
     "ai-assistant": "/ai-assistant";
     "data-source": "/data-source";
     "guide": "/guide";
+    "home": "/home";
     "login": "/login";
-    "server": "/server";
     "settings": "/settings";
   };
 
@@ -91,8 +91,8 @@ declare module "@elegant-router/types" {
     | "ai-assistant"
     | "data-source"
     | "guide"
+    | "home"
     | "login"
-    | "server"
     | "settings"
   >;
 
@@ -119,8 +119,8 @@ declare module "@elegant-router/types" {
     | "ai-assistant"
     | "data-source"
     | "guide"
+    | "home"
     | "login"
-    | "server"
     | "settings"
   >;
 

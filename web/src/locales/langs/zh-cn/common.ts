@@ -11,6 +11,7 @@ const common: App.I18n.Schema['translation']['common'] = {
   config: '配置',
   confirm: '确认',
   confirmDelete: '确认删除吗？',
+  copySuccess: '复制成功',
   delete: '删除',
   deleteSuccess: '删除成功',
   edit: '编辑',

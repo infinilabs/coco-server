@@ -1,10 +1,8 @@
 import { Button, Flex, Form } from "antd";
 import UserForm from "./UserForm";
 import LLMForm from "./LLMForm";
-import { useRouter } from '@sa/simple-router';
 
 const Guide = memo(() => {
-    const router = useRouter();
     const [form] = Form.useForm();
     const [step, setStep] = useState(0);
     const routerPush = useRouterPush();

@@ -73,6 +73,17 @@ export const generatedRoutes: GeneratedRoute[] = [
     }
   },
   {
+    name: 'home',
+    path: '/home',
+    component: 'layout.base$view.home',
+    meta: {
+      i18nKey: 'route.home',
+      title: 'home',
+      icon: 'mdi:home',
+      order: 1
+    }
+  },
+  {
     name: 'login',
     path: '/login',
     component: 'layout.blank$view.login',
@@ -81,17 +92,6 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.login',
       constant: true,
       hideInMenu: true
-    }
-  },
-  {
-    name: 'server',
-    path: '/server',
-    component: 'layout.base$view.server',
-    meta: {
-      i18nKey: 'route.server',
-      title: 'server',
-      icon: 'mdi:server-outline',
-      order: 1
     }
   },
   {

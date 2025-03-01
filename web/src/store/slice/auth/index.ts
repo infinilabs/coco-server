@@ -10,6 +10,20 @@ import { cacheTabs } from '../tab';
 
 import { clearAuthStorage, getToken, getUserInfo } from './shared';
 
+export const userInfo = {
+  "id": "user123",
+  "username": "InfiniLabs",
+  "email": "InfiniLabs@example.com",
+  "avatar": "https://example.com/images/avatar.jpg",
+  "created": "2024-01-01T10:00:00Z",
+  "updated": "2025-01-01T10:00:00Z",
+  "roles": ["admin", "editor"],
+  "preferences": {
+    "theme": "light",
+    "language": "en"
+  }
+}
+
 const initialState = {
   token: getToken(),
   userInfo: getUserInfo()
@@ -26,16 +40,10 @@ export const authSlice = createAppSlice({
         const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjpbeyJ1c2VyTmFtZSI6IlNveWJlYW4ifV0sImlhdCI6MTY5ODQ4NDg2MywiZXhwIjoxNzMwMDQ0Nzk5LCJhdWQiOiJzb3liZWFuLWFkbWluIiwiaXNzIjoiU295YmVhbiIsInN1YiI6IlNveWJlYW4ifQ._w5wmPm6HVJc5fzkSrd_j-92d5PBRzWUfnrTF1bAmfk"
         localStg.set('token', token)
         localStg.set('refreshToken', token)
-        const info = {
-          buttons: [],
-          roles: ['R_SUPER'],
-          userId: "0",
-          userName: "InfiniLabs"
-        }
-        localStg.set('userInfo', info);
+        localStg.set('userInfo', userInfo);
         return {
           token,
-          userInfo: info
+          userInfo: userInfo
         };
         // const { data: loginToken, error } = await fetchLogin(u, p);
         // // 1. stored in the localStorage, the later requests need it in headers
@@ -81,7 +89,7 @@ export const { login, resetAuth } = authSlice.actions;
 export const getUerName = (): AppThunk<string> => (_, getState) => {
   const pass = selectToken(getState());
 
-  return pass ? selectUserInfo(getState()).userName : '';
+  return pass ? selectUserInfo(getState()).username : '';
 };
 
 /** is super role in static route */

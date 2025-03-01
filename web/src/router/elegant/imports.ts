@@ -23,7 +23,7 @@ export const pages: Record<LastLevelRouteKey, LazyRouteFunction<CustomRouteObjec
   "ai-assistant": () => import("@/pages/ai-assistant/index.tsx"),
   "data-source": () => import("@/pages/data-source/index.tsx"),
   guide: () => import("@/pages/guide/index.tsx"),
+  home: () => import("@/pages/home/index.tsx"),
   login: () => import("@/pages/login/index.tsx"),
-  server: () => import("@/pages/server/index.tsx"),
   settings: () => import("@/pages/settings/index.tsx"),
 };

@@ -31,7 +31,7 @@ const UserAvatar = memo(() => {
     if (key === '1') {
       logout();
     } else {
-      router.routerPushByKey('user-center');
+      // router.routerPushByKey('user-center');
     }
   }
   function loginOrRegister() {
@@ -79,7 +79,7 @@ const UserAvatar = memo(() => {
             className="text-icon-large"
             icon="ph:user-circle"
           />
-          <span className="text-16px font-medium">{userInfo.userName}</span>
+          <span className="text-16px font-medium">{userInfo.username}</span>
         </ButtonIcon>
       </div>
     </Dropdown>

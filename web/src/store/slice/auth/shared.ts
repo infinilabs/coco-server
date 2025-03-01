@@ -1,4 +1,5 @@
 import { localStg } from '@/utils/storage';
+import { userInfo } from '.'
 /** Get token */
 export function getToken() {
   return localStg.get('token') || '';
@@ -6,18 +7,20 @@ export function getToken() {
 
 /** Get user info */
 export function getUserInfo() {
-  const emptyInfo: Api.Auth.UserInfo = {
-    buttons: [],
-    roles: [],
-    userId: '',
-    userName: ''
-  };
-  const userInfo = localStg.get('userInfo') || emptyInfo;
+  // const emptyInfo: Api.Auth.UserInfo = {
+  //   buttons: [],
+  //   roles: [],
+  //   userId: '',
+  //   userName: ''
+  // };
+  // const userInfo = localStg.get('userInfo') || emptyInfo;
 
-  // fix new property: buttons, this will be removed in the next version `1.1.0`
-  if (!userInfo.buttons) {
-    userInfo.buttons = [];
-  }
+  // // fix new property: buttons, this will be removed in the next version `1.1.0`
+  // if (!userInfo.buttons) {
+  //   userInfo.buttons = [];
+  // }
+
+  // return userInfo;
 
   return userInfo;
 }
