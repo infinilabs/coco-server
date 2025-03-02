@@ -26,6 +26,7 @@ package filter
 import (
 	"infini.sh/coco/core"
 	"infini.sh/framework/core/api"
+	common "infini.sh/framework/core/api/common"
 	httprouter "infini.sh/framework/core/api/router"
 	"net/http"
 )
@@ -49,7 +50,7 @@ func (f *AuthFilter) ApplyFilter(
 ) httprouter.Handle {
 
 	//option not enabled
-	if options == nil || !options.RequireLogin {
+	if options == nil || !options.RequireLogin || !common.IsAuthEnable() {
 		return next
 	}
 
