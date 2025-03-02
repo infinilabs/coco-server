@@ -25,42 +25,29 @@
  * web: https://infinilabs.com
  * mail: hello#infini.ltd */
 
-package core
+package security
 
 import (
-	"context"
-	"fmt"
-	"github.com/golang-jwt/jwt"
+	"infini.sh/framework/core/api"
 )
 
-const ctxUserKey = "user"
-
-type UserClaims struct {
-	*jwt.RegisteredClaims
-	*ShortUser
+type APIHandler struct {
+	api.Handler
 }
 
-type ShortUser struct {
-	Provider string   `json:"provider"`
-	Login    string   `json:"login"`
-	UserId   string   `json:"user_id"`
-	Roles    []string `json:"roles"`
-}
+var apiHandler = APIHandler{}
 
-const Secret = "coco"
+func init() {
 
-func NewUserContext(ctx context.Context, clam *UserClaims) context.Context {
-	return context.WithValue(ctx, ctxUserKey, clam)
-}
+	//login page
+	api.HandleUIMethod(api.GET, "/login/", apiHandler.LoginPage)
+	api.HandleUIMethod(api.GET, "/login/success", apiHandler.LoginSuccess)
 
-func FromUserContext(ctx context.Context) (*ShortUser, error) {
-	ctxUser := ctx.Value(ctxUserKey)
-	if ctxUser == nil {
-		return nil, fmt.Errorf("user not found")
-	}
-	reqUser, ok := ctxUser.(*UserClaims)
-	if !ok {
-		return nil, fmt.Errorf("invalid context user")
-	}
-	return reqUser.ShortUser, nil
+	api.HandleUIMethod(api.POST, "/account/login", apiHandler.Login)
+	api.HandleUIMethod(api.POST, "/account/logout", apiHandler.Logout)
+
+	api.HandleUIMethod(api.GET, "/account/profile", apiHandler.Profile, api.RequireLogin())
+	api.HandleUIMethod(api.PUT, "/account/password", apiHandler.UpdatePassword, api.RequireLogin())
+	api.HandleUIMethod(api.POST, "/auth/request_access_token", apiHandler.RequestAccessToken, api.RequireLogin())
+
 }
