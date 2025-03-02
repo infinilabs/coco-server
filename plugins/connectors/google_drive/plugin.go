@@ -11,6 +11,7 @@ import (
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/drive/v3"
 	"infini.sh/coco/modules/common"
+	"infini.sh/coco/plugins/security/core"
 	"infini.sh/framework/core/api"
 	config3 "infini.sh/framework/core/config"
 	"infini.sh/framework/core/env"
@@ -97,9 +98,9 @@ func (this *Plugin) Setup() {
 		"https://www.googleapis.com/auth/userinfo.profile",        // Access the user's profile information
 	}
 
-	api.HandleUIMethod(api.GET, "/connector/google_drive/connect", this.connect)
-	api.HandleUIMethod(api.POST, "/connector/google_drive/reset", this.reset)
-	api.HandleUIMethod(api.GET, "/connector/google_drive/oauth_redirect", this.oAuthRedirect)
+	api.HandleUIMethod(api.GET, "/connector/google_drive/connect", core.RequireLogin(this.connect))
+	api.HandleUIMethod(api.POST, "/connector/google_drive/reset", core.RequireLogin(this.reset))
+	api.HandleUIMethod(api.GET, "/connector/google_drive/oauth_redirect", core.RequireLogin(this.oAuthRedirect))
 
 }
 

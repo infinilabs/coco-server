@@ -5,6 +5,7 @@
 package assistant
 
 import (
+	"infini.sh/coco/plugins/security/core"
 	"infini.sh/framework/core/api"
 )
 
@@ -15,11 +16,11 @@ type APIHandler struct {
 func init() {
 	handler := APIHandler{}
 
-	api.HandleAPIMethod(api.GET, "/chat/_history", handler.getChatSessions)
-	api.HandleAPIMethod(api.POST, "/chat/_new", handler.newChatSession)
-	api.HandleAPIMethod(api.POST, "/chat/:session_id/_open", handler.openChatSession)
-	api.HandleAPIMethod(api.POST, "/chat/:session_id/_send", handler.sendChatMessage)
-	api.HandleAPIMethod(api.POST, "/chat/:session_id/_cancel", handler.cancelReplyMessage)
-	api.HandleAPIMethod(api.POST, "/chat/:session_id/_close", handler.closeChatSession)
-	api.HandleAPIMethod(api.GET, "/chat/:session_id/_history", handler.getChatHistoryBySession)
+	api.HandleUIMethod(api.GET, "/chat/_history", core.RequireLogin(handler.getChatSessions))
+	api.HandleUIMethod(api.POST, "/chat/_new", core.RequireLogin(handler.newChatSession))
+	api.HandleUIMethod(api.POST, "/chat/:session_id/_open", core.RequireLogin(handler.openChatSession))
+	api.HandleUIMethod(api.POST, "/chat/:session_id/_send", core.RequireLogin(handler.sendChatMessage))
+	api.HandleUIMethod(api.POST, "/chat/:session_id/_cancel", core.RequireLogin(handler.cancelReplyMessage))
+	api.HandleUIMethod(api.POST, "/chat/:session_id/_close", core.RequireLogin(handler.closeChatSession))
+	api.HandleUIMethod(api.GET, "/chat/:session_id/_history", core.RequireLogin(handler.getChatHistoryBySession))
 }
