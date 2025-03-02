@@ -11,7 +11,9 @@ weight: 50
 
 ```shell
 //request
-curl  -H 'Content-Type: application/json'   -XPOST http://localhost:9000/chat/_new
+curl  -H 'Content-Type: application/json'   -XPOST http://localhost:9000/chat/_new -d'{
+  "message":"how are you doing?"
+}'
 
 //response
 {
@@ -23,6 +25,9 @@ curl  -H 'Content-Type: application/json'   -XPOST http://localhost:9000/chat/_n
     "status": "active"
   },
   "result": "created"
+  "payload": {
+    //first chat message
+  }
 }
 ```
 
@@ -69,7 +74,7 @@ curl -XGET http://localhost:9000/chat/csk30fjq50k7l4akku9g/_history
 
 ```shell
 //request
-curl  -H'WEBSOCKET-SESSION-ID: csk88l3q50kb4hr5unn0'  -H 'Content-Type: application/json'   -XPOST http://localhost:9000/chat/csk30fjq50k7l4akku9g/_send -d '{"message":"Hello"}'
+curl -H 'Content-Type: application/json'   -XPOST http://localhost:9000/chat/csk30fjq50k7l4akku9g/_send -d '{"message":"Hello"}'
 
 //response
 [{
@@ -85,10 +90,6 @@ curl  -H'WEBSOCKET-SESSION-ID: csk88l3q50kb4hr5unn0'  -H 'Content-Type: applicat
   "result": "created"
 }]
 ```
-
-Tips: `WEBSOCKET-SESSION-ID` should be replaced with the actual WebSocket session ID. You will receive a message each time you connect to the Coco AI WebSocket server. For example: `ws://localhost:2900/ws` or `wss://localhost:2900/ws` if TLS is enabled.
-
-{{% load-img "/img/websocket-on-connect.jpg?raw=true" "WebSocket ID" %}}
 
 ### Close a Chat Session
 
