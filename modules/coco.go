@@ -6,15 +6,21 @@ package modules
 
 import (
 	log "github.com/cihub/seelog"
+	"infini.sh/coco/core"
 	"infini.sh/coco/modules/assistant"
 	_ "infini.sh/coco/modules/assistant"
 	"infini.sh/coco/modules/common"
 	_ "infini.sh/coco/modules/connector"
 	_ "infini.sh/coco/modules/indexing"
 	_ "infini.sh/coco/modules/search"
+	_ "infini.sh/coco/modules/system"
+	cfg "infini.sh/framework/core/api/common"
+	"infini.sh/framework/core/api/websocket"
 	"infini.sh/framework/core/env"
 	"infini.sh/framework/core/global"
+	"infini.sh/framework/core/kv"
 	"infini.sh/framework/core/orm"
+	"net/http"
 	"time"
 )
 
@@ -43,7 +49,63 @@ func (this *Coco) Setup() {
 	//update coco's config
 	global.Register("APP_CONFIG", &cocoConfig)
 
-	log.Debugf("config: %v", cocoConfig)
+	websocket.RegisterConnectCallback(func(sessionID string, w http.ResponseWriter, r *http.Request) {
+		log.Debug("websocket established: ", sessionID)
+		if cfg.IsAuthEnable() {
+			claims, err := core.ValidateLogin(r)
+			if err != nil {
+				log.Error(err)
+				return
+			}
+			if claims != nil {
+
+				//log.Info(claims.Provider)
+				//log.Info(claims.Login)  //external login within provider
+				//log.Info(claims.UserId) //internal system user's id
+				//log.Info(claims.Roles)
+
+				if claims.UserId != "" {
+
+					err := kv.AddValue(common.WEBSOCKET_USER_SESSION, []byte(claims.UserId), []byte(sessionID))
+					if err != nil {
+						log.Error(err)
+					}
+					err = kv.AddValue(common.WEBSOCKET_SESSION_USER, []byte(sessionID), []byte(claims.UserId))
+					if err != nil {
+						log.Error(err)
+					}
+
+					log.Infof("established websocket: %v for user: %v", sessionID, claims.UserId)
+
+				} else {
+					log.Error("invalid claims") //TODO should panic?
+				}
+			}
+		}
+	})
+
+	websocket.RegisterDisconnectCallback(func(sessionID string) {
+		v, err := kv.GetValue(common.WEBSOCKET_SESSION_USER, []byte(sessionID))
+		if err != nil {
+			log.Error(err)
+			return
+		}
+
+		if v != nil && len(v) > 0 {
+			err := kv.DeleteKey(common.WEBSOCKET_USER_SESSION, v)
+			if err != nil {
+				log.Error(err)
+			}
+
+			err = kv.DeleteKey("websocket-session-user", []byte(sessionID))
+			if err != nil {
+				log.Error(err)
+			}
+		}
+
+		log.Debug("websocket disconnected: ", sessionID)
+	})
+
 }
 
 func (this *Coco) Start() error {

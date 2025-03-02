@@ -15,8 +15,8 @@ type APIHandler struct {
 func init() {
 	handler := APIHandler{}
 
-	api.HandleAPIMethod(api.GET, "/query/_suggest", handler.suggest)
-	api.HandleAPIMethod(api.GET, "/query/_recommend", handler.recommend)
-	api.HandleAPIMethod(api.GET, "/query/_search", handler.search)
+	api.HandleUIMethod(api.GET, "/query/_suggest", handler.suggest, api.RequireLogin())
+	api.HandleUIMethod(api.GET, "/query/_recommend", handler.recommend, api.RequireLogin())
+	api.HandleUIMethod(api.GET, "/query/_search", handler.search, api.RequireLogin())
 
 }

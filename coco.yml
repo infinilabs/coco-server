@@ -179,6 +179,8 @@ api:
 web:
   enabled: true
   embedding_api: false
+  auth:
+    enabled: true
   network:
     binding: $[[env.WEB_BINDING]]
   tls:
