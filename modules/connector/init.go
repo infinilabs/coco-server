@@ -5,7 +5,6 @@
 package connector
 
 import (
-	"infini.sh/coco/plugins/security/core"
 	"infini.sh/framework/core/api"
 )
 
@@ -16,16 +15,16 @@ type APIHandler struct {
 func init() {
 	handler := APIHandler{}
 
-	api.HandleUIMethod(api.POST, "/connector/", core.RequireLogin(handler.create))
-	api.HandleUIMethod(api.GET, "/connector/:id", core.RequireLogin(handler.get))
-	api.HandleUIMethod(api.PUT, "/connector/:id", core.RequireLogin(handler.update))
-	api.HandleUIMethod(api.DELETE, "/connector/:id", core.RequireLogin(handler.delete))
-	api.HandleUIMethod(api.GET, "/connector/_search", core.RequireLogin(handler.search))
+	api.HandleUIMethod(api.POST, "/connector/", handler.create, api.RequireLogin())
+	api.HandleUIMethod(api.GET, "/connector/:id", handler.get, api.RequireLogin())
+	api.HandleUIMethod(api.PUT, "/connector/:id", handler.update, api.RequireLogin())
+	api.HandleUIMethod(api.DELETE, "/connector/:id", handler.delete, api.RequireLogin())
+	api.HandleUIMethod(api.GET, "/connector/_search", handler.search, api.RequireLogin())
 
-	api.HandleUIMethod(api.POST, "/datasource/", core.RequireLogin(handler.createDatasource))
-	api.HandleUIMethod(api.DELETE, "/datasource/:id", core.RequireLogin(handler.deleteDatasource))
-	api.HandleUIMethod(api.GET, "/datasource/:id", core.RequireLogin(handler.getDatasource))
-	api.HandleUIMethod(api.PUT, "/datasource/:id", core.RequireLogin(handler.updateDatasource))
-	api.HandleUIMethod(api.GET, "/datasource/_search", core.RequireLogin(handler.searchDatasource))
+	api.HandleUIMethod(api.POST, "/datasource/", handler.createDatasource, api.RequireLogin())
+	api.HandleUIMethod(api.DELETE, "/datasource/:id", handler.deleteDatasource, api.RequireLogin())
+	api.HandleUIMethod(api.GET, "/datasource/:id", handler.getDatasource, api.RequireLogin())
+	api.HandleUIMethod(api.PUT, "/datasource/:id", handler.updateDatasource, api.RequireLogin())
+	api.HandleUIMethod(api.GET, "/datasource/_search", handler.searchDatasource, api.RequireLogin())
 
 }

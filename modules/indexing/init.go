@@ -5,7 +5,6 @@
 package indexing
 
 import (
-	"infini.sh/coco/plugins/security/core"
 	"infini.sh/framework/core/api"
 )
 
@@ -17,9 +16,9 @@ func init() {
 	handler := APIHandler{}
 
 	//for internal document management, security should be enabled
-	api.HandleUIMethod(api.POST, "/document/", core.RequireLogin(handler.createDoc))
-	api.HandleUIMethod(api.GET, "/document/:doc_id", core.RequireLogin(handler.getDoc))
-	api.HandleUIMethod(api.PUT, "/document/:doc_id", core.RequireLogin(handler.updateDoc))
-	api.HandleUIMethod(api.DELETE, "/document/:doc_id", core.RequireLogin(handler.deleteDoc))
-	api.HandleUIMethod(api.GET, "/document/_search", core.RequireLogin(handler.searchDocs))
+	api.HandleUIMethod(api.POST, "/document/", handler.createDoc, api.RequireLogin())
+	api.HandleUIMethod(api.GET, "/document/:doc_id", handler.getDoc, api.RequireLogin())
+	api.HandleUIMethod(api.PUT, "/document/:doc_id", handler.updateDoc, api.RequireLogin())
+	api.HandleUIMethod(api.DELETE, "/document/:doc_id", handler.deleteDoc, api.RequireLogin())
+	api.HandleUIMethod(api.GET, "/document/_search", handler.searchDocs, api.RequireLogin())
 }

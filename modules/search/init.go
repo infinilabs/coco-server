@@ -5,7 +5,6 @@
 package search
 
 import (
-	"infini.sh/coco/plugins/security/core"
 	"infini.sh/framework/core/api"
 )
 
@@ -16,8 +15,8 @@ type APIHandler struct {
 func init() {
 	handler := APIHandler{}
 
-	api.HandleUIMethod(api.GET, "/query/_suggest", core.RequireLogin(handler.suggest))
-	api.HandleUIMethod(api.GET, "/query/_recommend", core.RequireLogin(handler.recommend))
-	api.HandleUIMethod(api.GET, "/query/_search", core.RequireLogin(handler.search))
+	api.HandleUIMethod(api.GET, "/query/_suggest", handler.suggest, api.RequireLogin())
+	api.HandleUIMethod(api.GET, "/query/_recommend", handler.recommend, api.RequireLogin())
+	api.HandleUIMethod(api.GET, "/query/_search", handler.search, api.RequireLogin())
 
 }
