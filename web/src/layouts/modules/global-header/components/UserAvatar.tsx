@@ -21,7 +21,7 @@ const UserAvatar = memo(() => {
       onOk: () => {
         let needRedirect = false;
         if (!route.meta?.constant) needRedirect = true;
-        submit({ needRedirect, redirectFullPath: route.fullPath }, { action: '/logout', method: 'post' });
+        submit({ needRedirect, redirectFullPath: route.fullPath }, { action: '/account/logout', method: 'post' });
       },
       title: t('common.tip')
     });
