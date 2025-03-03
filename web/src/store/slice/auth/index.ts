@@ -10,20 +10,6 @@ import { cacheTabs } from '../tab';
 
 import { clearAuthStorage, getToken, getUserInfo } from './shared';
 
-export const userInfo = {
-  "id": "user123",
-  "username": "InfiniLabs",
-  "email": "InfiniLabs@example.com",
-  "avatar": "https://example.com/images/avatar.jpg",
-  "created": "2024-01-01T10:00:00Z",
-  "updated": "2025-01-01T10:00:00Z",
-  "roles": ["admin", "editor"],
-  "preferences": {
-    "theme": "light",
-    "language": "en"
-  }
-}
-
 const initialState = {
   token: getToken(),
   userInfo: getUserInfo()
@@ -34,34 +20,25 @@ export const authSlice = createAppSlice({
   name: 'auth',
   reducers: create => ({
     login: create.asyncThunk(
-      async ({ password, userName }: { password: string; userName: string }) => {
-        const u = 'Soybean';
-        const p = '123456';
+      async ({ password }: { password: string; userName: string }) => {
         const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjpbeyJ1c2VyTmFtZSI6IlNveWJlYW4ifV0sImlhdCI6MTY5ODQ4NDg2MywiZXhwIjoxNzMwMDQ0Nzk5LCJhdWQiOiJzb3liZWFuLWFkbWluIiwiaXNzIjoiU295YmVhbiIsInN1YiI6IlNveWJlYW4ifQ._w5wmPm6HVJc5fzkSrd_j-92d5PBRzWUfnrTF1bAmfk"
-        localStg.set('token', token)
-        localStg.set('refreshToken', token)
-        localStg.set('userInfo', userInfo);
-        return {
-          token,
-          userInfo: userInfo
-        };
-        // const { data: loginToken, error } = await fetchLogin(u, p);
-        // // 1. stored in the localStorage, the later requests need it in headers
-        // if (!error) {
-        //   localStg.set('token', loginToken.token);
-        //   localStg.set('refreshToken', loginToken.refreshToken);
+        const { data: loginToken, error } = await fetchLogin(password);
+        // 1. stored in the localStorage, the later requests need it in headers
+        if (!error) {
+          localStg.set('token', token);
+          localStg.set('refreshToken', token);
 
-        //   const { data: info, error: userInfoError } = await fetchGetUserInfo();
+          const { data: info, error: userInfoError } = await fetchGetUserInfo();
 
-        //   if (!userInfoError) {
-        //     // 2. store user info
-        //     localStg.set('userInfo', info);
-        //     return {
-        //       token: loginToken.token,
-        //       userInfo: info
-        //     };
-        //   }
-        // }
+          if (!userInfoError) {
+            // 2. store user info
+            localStg.set('userInfo', info);
+            return {
+              token: token,
+              userInfo: info
+            };
+          }
+        }
 
         return false;
       },

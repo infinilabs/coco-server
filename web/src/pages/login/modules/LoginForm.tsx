@@ -15,6 +15,7 @@ type LoginParams = Pick<Account, 'password' | 'userName'>;
 const LoginForm = memo(() => {
   const [form] = Form.useForm<LoginParams>();
   const { loading, toLogin } = useLogin();
+  const { t } = useTranslation();
 
   async function handleSubmit() {
     const params = await form.validateFields();
@@ -28,10 +29,10 @@ const LoginForm = memo(() => {
   return (
     <>
       <div className="text-28px color-#333 m-b-16px">
-        Welcome
+        {t('page.login.title')}
       </div>
       <div className="text-14px color-#999 m-b-64px">
-        Enter your credentials to access your account.
+        {t('page.login.desc')}
       </div>
       <Form
         form={form}
@@ -42,7 +43,7 @@ const LoginForm = memo(() => {
       >
         <Form.Item
           name="password"
-          label="Password"
+          label={t('page.login.password')}
           className="m-b-32px"
         >
             <Input.Password className="h-40px"/>

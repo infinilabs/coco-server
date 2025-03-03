@@ -3,23 +3,21 @@ import { request } from '../request';
 /**
  * Login
  *
- * @param userName User name
  * @param password Password
  */
-export function fetchLogin(userName: string, password: string) {
+export function fetchLogin(password: string) {
   return request<Api.Auth.LoginToken>({
     data: {
       password,
-      userName
     },
     method: 'post',
-    url: '/auth/login'
+    url: '/account/login'
   });
 }
 
 /** Get user info */
 export function fetchGetUserInfo() {
-  return request<Api.Auth.UserInfo>({ url: '/auth/getUserInfo' });
+  return request<Api.Auth.UserInfo>({ url: '/account/profile' });
 }
 
 /**
