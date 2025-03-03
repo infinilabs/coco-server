@@ -23,6 +23,10 @@ const form: App.I18n.Schema['translation']['form'] = {
   userName: {
     invalid: '用户名格式不正确',
     required: '请输入用户名'
+  },
+  endpoint: {
+    invalid: 'Endpoint格式不正确',
+    required: '请输入endpoint'
   }
 };
 

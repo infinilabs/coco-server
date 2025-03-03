@@ -1,7 +1,7 @@
 const page: App.I18n.Schema['translation']['page'] = {
   home: {
     server: {
-      title: `'s `,
+      title: `{{user}}'s Coco Server`,
       address: 'Server address',
       addressDesc: 'In the connect settings of Coco AI, adding the Server address to the service list will allow you to access the service in Coco AI.',
       downloadCocoAI: 'Download Coco AI'
@@ -39,6 +39,20 @@ const page: App.I18n.Schema['translation']['page'] = {
     desc: 'Enter your credentials to access your account.',
     password: 'Password'
   },
+  guide: {
+    user: {
+      title: 'Create a user account',
+      desc: 'Set up a new user account to manage access and permissions.',
+      name: 'Full Name',
+      email: 'Email',
+      password: 'Password'
+    },
+    llm: {
+      title: 'Connect to a Large Model',
+      desc: 'After integrating a large model, you will unlock the AI chat feature, providing intelligent search and an efficient work assistant.',
+    },
+    setupLater: 'Set Up Later',
+  }
 };
 
 export default page;

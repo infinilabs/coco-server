@@ -5,6 +5,7 @@ import OpenAISvg from '@/assets/svg-icon/openai.svg'
 import { ReactSVG } from 'react-svg';
 import { useLoading } from '@sa/hooks';
 import { updateSettings } from "@/service/api/server";
+import ButtonRadio from "@/components/button-radio";
 
 const ADVANCED = [
     {
@@ -50,15 +51,17 @@ const ADVANCED = [
     // },
 ]
 
+type ModelType = 'ollama' | 'openai'
+
 const LLM = memo(() => {
     const [form] = Form.useForm();
     const { t } = useTranslation();
 
-    const [type, setType] = useState<'ollama' | 'openai'>('ollama')
+    const [type, setType] = useState<ModelType>('ollama')
     const [showAdvanced, setShowAdvanced] = useState(false)
 
     const { endLoading, loading, startLoading } = useLoading();
-    const { defaultRequiredRule } = useFormRules();
+    const { defaultRequiredRule, formRules } = useFormRules();
 
     const models = {
         'ollama': [
@@ -87,14 +90,13 @@ const LLM = memo(() => {
                 colon={false}
                 initialValues={{ 
                     type,
-                    "endpoint":"http://127.0.0.1:8000",
                     "default_model":"deepseek_r1",
                     "parameters":{
-                            "top_p":111,
-                            "max_tokens":32000,
-                            "presence_penalty":0.9,
-                            "frequency_penalty":0.9,
-                            "enhanced_inference":true,
+                            "top_p": 100,
+                            "max_tokens": 32000,
+                            "presence_penalty": 0.9,
+                            "frequency_penalty": 0.9,
+                            "enhanced_inference": true,
                     } 
                 }}
             >
@@ -103,22 +105,21 @@ const LLM = memo(() => {
                     label={t(`page.settings.llm.type`)}
                     rules={[defaultRequiredRule]}
                 >
-                    <Radio.Group onChange={(e) => {
-                        setType(e.target.value)
-                        form.setFieldsValue({ default_model: '' })
-                    }}>
-                        <Radio.Button value="ollama">
-                            <span className="flex items-center"><ReactSVG src={OllamaSvg} className="m-r-4px"/>Ollama</span>
-                        </Radio.Button>
-                        <Radio.Button value="openai">
-                            <span className="flex items-center"><ReactSVG src={OpenAISvg} className="m-r-4px"/>OpenAI</span>
-                        </Radio.Button>
-                    </Radio.Group>
+                    <ButtonRadio
+                        options={[
+                            { value: 'ollama', label: <span className="flex items-center"><ReactSVG src={OllamaSvg} className="m-r-4px"/>Ollama</span>},
+                            { value: 'openai', label: <span className="flex items-center"><ReactSVG src={OpenAISvg} className="m-r-4px"/>OpenAI</span>}
+                        ]}
+                        onChange={(value: ModelType) => {
+                            setType(value)
+                            form.setFieldsValue({ default_model: '' })
+                        }}
+                    />
                 </Form.Item>
                 <Form.Item
                     name="endpoint"
                     label={t(`page.settings.llm.endpoint`)}
-                    rules={[defaultRequiredRule]}
+                    rules={formRules.endpoint}
                 >
                     <Input />
                 </Form.Item>

@@ -4,37 +4,42 @@ import { FormInstance } from "antd/lib";
 const UserForm = memo(({ form, onSubmit }: { form: FormInstance, onSubmit: () => void }) => {
     const formItemClassNames = "m-b-32px"
     const inputClassNames = "h-40px"
+    const { t } = useTranslation();
+    const { defaultRequiredRule, formRules } = useFormRules();
 
     return (
         <>
             <div className="text-28px color-#333 m-b-16px">
-                Create a user account
+                {t('page.guide.user.title')}
             </div>
             <div className="text-14px color-#999 m-b-64px">
-                Set up a new user account to manage access and permissions.
+                {t('page.guide.user.desc')}
             </div>
             <Form
                 form={form}
                 layout="vertical"
             >
                 <Form.Item
-                    name="full_name"
-                    label="Full Name"
+                    name="name"
+                    label={t('page.guide.user.name')}
                     className={formItemClassNames}
+                    rules={[defaultRequiredRule]}
                 >
                     <Input className={inputClassNames}/>
                 </Form.Item>
                 <Form.Item
                     name="email"
-                    label="Email"
+                    label={t('page.guide.user.email')}
                     className={formItemClassNames}
+                    rules={formRules.email}
                 >
                     <Input className={inputClassNames}/>
                 </Form.Item>
                 <Form.Item
                     name="password"
-                    label="Password"
+                    label={t('page.guide.user.password')}
                     className={formItemClassNames}
+                    rules={formRules.pwd}
                 >
                     <Input.Password className={inputClassNames}/>
                 </Form.Item>

@@ -348,6 +348,7 @@ declare namespace App {
           pwd: FormMsg;
           required: string;
           userName: FormMsg;
+          endpoint: FormMsg;
         };
         icon: {
           collapse: string;
@@ -402,6 +403,20 @@ declare namespace App {
             desc: string;
             password: string;
           };
+          guide: {
+            user: {
+              title: string;
+              desc: string;
+              name: string;
+              email: string;
+              password: string;
+            };
+            llm: {
+              title: string;
+              desc: string;
+            };
+            setupLater: string;
+          }
         };
         request: {
           logout: string;

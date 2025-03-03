@@ -1,50 +1,85 @@
-import { Button, Form, Input } from "antd";
+import { Button, Form, Input, Radio, Select } from "antd";
 import { FormInstance } from "antd/lib";
+import { ReactSVG } from "react-svg";
+import OllamaSvg from '@/assets/svg-icon/ollama.svg'
+import OpenAISvg from '@/assets/svg-icon/openai.svg'
+import ButtonRadio from "@/components/button-radio";
 
-const LLMForm = memo(({ form, onSubmit }: { form: FormInstance, onSubmit: () => void }) => {
+type ModelType = 'ollama' | 'openai'
+
+const LLMForm = memo(({ form, onSubmit, loading }: { form: FormInstance, onSubmit: () => void; loading: boolean }) => {
     const formItemClassNames = "m-b-32px"
     const inputClassNames = "h-40px"
+    const { t } = useTranslation();
+    const { defaultRequiredRule, formRules } = useFormRules();
+    const [type, setType] = useState<ModelType>('ollama')
+
+    const models = {
+        'ollama': [
+            { 'value': 'deepseek_r1', 'label': 'DeepSeek-R1'}
+        ],
+        'openai': [
+            { 'value': 'openai', 'label': 'OpenAI'}
+        ]
+    }
 
     return (
         <>
             <div className="text-28px color-#333 m-b-16px">
-                Connect to a Large Model
+                {t('page.guide.llm.title')}
             </div>
             <div className="text-14px color-#999 m-b-64px">
-              After integrating a large model, you will unlock the AI chat feature, providing intelligent search and an efficient work assistant.
+                {t('page.guide.llm.desc')}
             </div>
             <Form
-                className=""
                 form={form}
                 layout="vertical"
+                initialValues={{
+                    llm: { 
+                        type,
+                        "default_model":"deepseek_r1",
+                    }
+                }}
               >
                 <Form.Item
-                    name="integration_method"
-                    label="Integration method"
+                    name={['llm', 'type']}
+                    label={t(`page.settings.llm.type`)}
                     className={formItemClassNames}
+                    rules={[defaultRequiredRule]}
                 >
-                  <div className="flex justify-between gap-24px">
-                    <Button className="h-40px w-[calc((100%-24px)/2)]">Self-built model</Button>
-                    <Button className="h-40px w-[calc((100%-24px)/2)]">API call</Button>
-                  </div>
+                    <ButtonRadio
+                        options={[
+                            { value: 'ollama', label: <span className="flex items-center"><ReactSVG src={OllamaSvg} className="m-r-4px"/>Ollama</span>},
+                            { value: 'openai', label: <span className="flex items-center"><ReactSVG src={OpenAISvg} className="m-r-4px"/>OpenAI</span>}
+                        ]}
+                        onChange={(value: ModelType) => {
+                            setType(value)
+                            form.setFieldsValue({ default_model: '' })
+                        }}
+                    />
                 </Form.Item>
                 <Form.Item
-                    name="ollama_host"
-                    label="Endpoint"
+                    name={['llm', 'endpoint']}
+                    label={t(`page.settings.llm.endpoint`)}
                     className={formItemClassNames}
+                    rules={formRules.endpoint}
                 >
                     <Input className={inputClassNames}/>
                 </Form.Item>
                 <Form.Item
-                    name="ollama_model"
-                    label="Default Model"
+                    name={['llm', 'default_model']}
+                    label={t(`page.settings.llm.defaultModel`)}
                     className={formItemClassNames}
+                    rules={[defaultRequiredRule]}
                 >
-                    <Input className={inputClassNames}/>
+                    <Select 
+                        options={models[type] as never[]}
+                        className={inputClassNames}
+                    />
                 </Form.Item>
                 <div className="flex justify-between">
-                    <Button type="link" size="large" className="h-56px text-14px px-0" onClick={() => onSubmit()}>Set Up Later</Button>
-                    <Button type="primary" size="large" className="w-56px h-56px text-24px" onClick={() => onSubmit()}>
+                    <Button type="link" size="large" className="h-56px text-14px px-0" onClick={() => onSubmit()}>{t('page.guide.setupLater')}</Button>
+                    <Button loading={loading} type="primary" size="large" className="w-56px h-56px text-24px" onClick={() => onSubmit()}>
                       <SvgIcon icon="mdi:check" />
                     </Button>
                 </div>

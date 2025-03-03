@@ -91,6 +91,7 @@ declare global {
   const TableHeaderOperation: typeof import('../components/advanced/TableHeaderOperation')['default']
   const ThemeSchemaSwitch: typeof import('../components/stateful/ThemeSchemaSwitch')['default']
   const WaveBg: typeof import('../components/stateless/custom/WaveBg')['default']
+  const buttonRadio: typeof import('../components/button-radio/index')['default']
   const createRef: typeof import('react')['createRef']
   const forwardRef: typeof import('react')['forwardRef']
   const lazy: typeof import('react')['lazy']

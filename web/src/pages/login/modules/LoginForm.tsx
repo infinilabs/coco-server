@@ -16,6 +16,7 @@ const LoginForm = memo(() => {
   const [form] = Form.useForm<LoginParams>();
   const { loading, toLogin } = useLogin();
   const { t } = useTranslation();
+  const { formRules } = useFormRules();
 
   async function handleSubmit() {
     const params = await form.validateFields();
@@ -45,6 +46,7 @@ const LoginForm = memo(() => {
           name="password"
           label={t('page.login.password')}
           className="m-b-32px"
+          rules={formRules.pwd}
         >
             <Input.Password className="h-40px"/>
         </Form.Item>
