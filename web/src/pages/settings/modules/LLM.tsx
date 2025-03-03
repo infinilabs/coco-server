@@ -1,109 +1,161 @@
-import { Button, Form, Input, InputNumber, Select, Switch, Upload } from "antd";
+import { Button, Form, Input, InputNumber, Radio, Select, Spin, Switch } from "antd";
 import "../index.scss"
+import OllamaSvg from '@/assets/svg-icon/ollama.svg'
+import OpenAISvg from '@/assets/svg-icon/openai.svg'
+import { ReactSVG } from 'react-svg';
+import { useLoading } from '@sa/hooks';
+import { updateSettings } from "@/service/api/server";
 
 const ADVANCED = [
     {
-        key: '1',
-        label: '随机性 (temperature)',
-        desc: '值越大，回复越随机',
+        key: 'temperature',
         input: <InputNumber min={0.1} step={0.1} defaultValue={0.1} />
     },
     {
-        key: '2',
-        label: '核采样 (top_p)',
-        desc: '与随机性类似，但不要和随机性一起更改',
+        key: 'topP',
         input: <InputNumber min={0.1} step={0.1} defaultValue={0.1} />
     },
     {
-        key: '3',
-        label: '单次回复限制(max tokens)',
-        desc: '单次交互所用的最大 Token 数',
+        key: 'maxTokens',
         input: <InputNumber min={1} step={1} precision={0} defaultValue={40000} />
     },
     {
-        key: '4',
-        label: '话题新鲜度(presence_penalty)',
-        desc: '值越大，越有可能扩展到新话题',
+        key: 'presencePenalty',
         input: <InputNumber min={0.1} step={0.1} defaultValue={0.1} />
     },
     {
-        key: '5',
-        label: '频率惩罚度 (frequency_penalty)',
-        desc: '值越大，越有可能降低重复字词',
+        key: 'frequencyPenalty',
         input: <InputNumber min={0.1} step={0.1} defaultValue={0.1} />
     },
     {
-        key: '6',
-        label: '开启推理强度调整',
-        input: <Switch size="small" defaultChecked />
+        key: 'enhancedInference',
+        input: <Switch size="small" defaultChecked />,
+        hideDesc: true
     },
-    {
-        key: '7',
-        label: '推理强度',
-        desc: '值越大，推理能力越强，但可能会增加响应时间和 Token 消耗',
-        input: (
-            <Select
-                defaultValue="低"
-                style={{ width: 88 }}
-                options={[
-                    { value: '低', label: '低' },
-                    { value: '中', label: '中' },
-                    { value: '高', label: '高' },
-                ]}
-            />
-        )
-    },
+    // {
+    //     key: '7',
+    //     label: '推理强度',
+    //     desc: '值越大，推理能力越强，但可能会增加响应时间和 Token 消耗',
+    //     input: (
+    //         <Select
+    //             defaultValue="低"
+    //             style={{ width: 88 }}
+    //             options={[
+    //                 { value: '低', label: '低' },
+    //                 { value: '中', label: '中' },
+    //                 { value: '高', label: '高' },
+    //             ]}
+    //         />
+    //     )
+    // },
 ]
 
 const LLM = memo(() => {
     const [form] = Form.useForm();
+    const { t } = useTranslation();
+
+    const [type, setType] = useState<'ollama' | 'openai'>('ollama')
+    const [showAdvanced, setShowAdvanced] = useState(false)
+
+    const { endLoading, loading, startLoading } = useLoading();
+    const { defaultRequiredRule } = useFormRules();
+
+    const models = {
+        'ollama': [
+            { 'value': 'deepseek_r1', 'label': 'DeepSeek-R1'}
+        ],
+        'openai': [
+            { 'value': 'openai', 'label': 'OpenAI'}
+        ]
+    }
+
+    const handleSubmit = async () => {
+        const params = await form.validateFields();
+        startLoading()
+        await updateSettings({
+            llm: params
+        });
+        endLoading()
+    }
 
     return (
-        <>
+        <Spin spinning={loading}>
             <Form 
                 form={form}
                 labelAlign="left"
                 className="settings-form"
                 colon={false}
+                initialValues={{ 
+                    type,
+                    "endpoint":"http://127.0.0.1:8000",
+                    "default_model":"deepseek_r1",
+                    "parameters":{
+                            "top_p":111,
+                            "max_tokens":32000,
+                            "presence_penalty":0.9,
+                            "frequency_penalty":0.9,
+                            "enhanced_inference":true,
+                    } 
+                }}
             >
                 <Form.Item
-                    name="access_mode"
-                    label="Access Mode"
+                    name="type"
+                    label={t(`page.settings.llm.type`)}
+                    rules={[defaultRequiredRule]}
                 >
-                    <Button className="w-104px m-r-10px">Builtin</Button>
-                    <Button className="w-104px">API</Button>
+                    <Radio.Group onChange={(e) => {
+                        setType(e.target.value)
+                        form.setFieldsValue({ default_model: '' })
+                    }}>
+                        <Radio.Button value="ollama">
+                            <span className="flex items-center"><ReactSVG src={OllamaSvg} className="m-r-4px"/>Ollama</span>
+                        </Radio.Button>
+                        <Radio.Button value="openai">
+                            <span className="flex items-center"><ReactSVG src={OpenAISvg} className="m-r-4px"/>OpenAI</span>
+                        </Radio.Button>
+                    </Radio.Group>
                 </Form.Item>
                 <Form.Item
-                    name="ollama_host"
-                    label="Ollama Host"
+                    name="endpoint"
+                    label={t(`page.settings.llm.endpoint`)}
+                    rules={[defaultRequiredRule]}
                 >
                     <Input />
                 </Form.Item>
                 <Form.Item
-                    name="ollama_model"
-                    label="Full Model"
+                    name="default_model"
+                    label={t(`page.settings.llm.defaultModel`)}
+                    rules={[defaultRequiredRule]}
                 >
-                    <Input />
+                    <Select 
+                        options={models[type] as never[]}
+                    />
                 </Form.Item>
                 <Form.Item
                     label=" "
                 >
-                    <Button type="link" className="p-0">
-                        Advanced <SvgIcon icon="mdi:chevron-down"/>
+                    <Button type="link" className="p-0" onClick={() => setShowAdvanced(!showAdvanced)}>
+                        {t('common.advanced')} <SvgIcon icon={`${showAdvanced ? "mdi:chevron-down" : "mdi:chevron-up"}`}/>
                     </Button>
                 </Form.Item>
                 <Form.Item
-                    label="Request Params"
+                    label={t(`page.settings.llm.requestParams`)}
+                    className={`${showAdvanced ? '' : 'h-0px m-0px overflow-hidden'}`}
                 >
                     {
-                        ADVANCED.map((item, index) => (
-                            <div key={item.key} className={`flex justify-between items-center ${index !== ADVANCED.length - 1 ? 'm-b-24px' : ''} `}>
-                                <div>
-                                    <div className="color-#333">{item.label}</div>
-                                    <div className="color-#999">{item.desc}</div>
+                        ADVANCED.map((item) => (
+                            <div key={item.key} className={`flex justify-between items-center`}>
+                                <div className="[flex:1]">
+                                    <div className="color-#333">{t(`page.settings.llm.${item.key}`)}</div>
+                                    {!item.hideDesc && <div className="color-#999">{t(`page.settings.llm.${item.key}Desc`)}</div>}
                                 </div>
-                                <div>
-                                    {item.input}
+                                <div >
+                                    <Form.Item
+                                        name={['parameters', item.key]}
+                                        label=""
+                                    >
+                                        {item.input}
+                                    </Form.Item>
                                 </div>
                             </div>
                         ))
@@ -112,10 +164,10 @@ const LLM = memo(() => {
                 <Form.Item
                     label=" "
                 >
-                    <Button type="primary">Update</Button>
+                    <Button type="primary" onClick={() => handleSubmit()}>{t('common.update')}</Button>
                 </Form.Item>
             </Form>
-        </>
+        </Spin>
     )
 })
 

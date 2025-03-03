@@ -15,6 +15,25 @@ const page: App.I18n.Schema['translation']['page'] = {
       aiAssistantDesc: 'Set a personalized AI assistant to handle tasks efficiently and provide intelligent suggestions.'
     },
   },
+  settings: {
+    llm: {
+      type: 'Type',
+      endpoint: 'Endpoint',
+      defaultModel: 'Default Model',
+      requestParams: 'Request Params',
+      temperature: 'Temperature',
+      temperatureDesc: 'the larger the value, the more random the response',
+      topP: 'Top P',
+      topPDesc: `similar to temperature, don't change them simultaneously`,
+      maxTokens: 'Max Tokens',
+      maxTokensDesc: 'maximum number of tokens used in a single interaction',
+      presencePenalty: 'Presence Penalty',
+      presencePenaltyDesc: 'the larger the value, the more likely it is to expand to new topics',
+      frequencyPenalty: 'Frequency Penalty',
+      frequencyPenaltyDesc: 'the larger the value, the more likely it is to reduce repeated words',
+      enhancedInference: 'Enhanced Inference',
+    }
+  },
   login: {
     bindWeChat: {
       title: 'Bind WeChat'

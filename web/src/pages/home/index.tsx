@@ -1,5 +1,5 @@
 import { selectUserInfo } from "@/store/slice/auth";
-import { Button, Card, Form, Input } from "antd";
+import { Button, Card, Form, Input, Spin } from "antd";
 import { useLoading, useRequest } from '@sa/hooks';
 import { fetchServer, updateSettings } from "@/service/api/server";
 import Clipboard from 'clipboard';
@@ -37,7 +37,7 @@ export function Component() {
 
     const [isNameEditing, setIsNameEditing] = useState(false)
 
-    const { data, run } = useRequest(fetchServer, {
+    const { data, run, loading: dataLoading } = useRequest(fetchServer, {
       manual: true
     });
 
@@ -81,7 +81,7 @@ export function Component() {
     }, [JSON.stringify(data)])
 
     return (
-      <div>
+      <Spin spinning={dataLoading || loading}>
         <Card className="m-b-12px px-32px py-40px" classNames={{ body: "!p-0" }}>
           <div className={`flex ${isNameEditing ? '[align-items:self-end]' : 'items-center'} m-b-48px`}>
             <div className="h-40px leading-40px m-r-16px text-32px color-#333">
@@ -100,7 +100,6 @@ export function Component() {
               </span>
             </div>
             <Button 
-              loading={isNameEditing && loading}
               onClick={() => {
                 if (isNameEditing) {
                   handleSubmit('name', () => setIsNameEditing(!isNameEditing))
@@ -131,7 +130,6 @@ export function Component() {
               </Form>
               <Button 
                 id="endpoint-save"
-                loading={!isNameEditing && loading}
                 onClick={() => {
                   handleSubmit('endpoint')
                 }} 
@@ -162,6 +160,6 @@ export function Component() {
             ))
           }
         </Card>
-      </div>
+      </Spin>
     );
 }

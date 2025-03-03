@@ -334,6 +334,7 @@ declare namespace App {
             no: string;
             yes: string;
           };
+          advanced: string;
         };
         datatable: {
           itemCount: string;
@@ -376,6 +377,25 @@ declare namespace App {
               aiAssistant: string;
               aiAssistantDesc: string;
             };
+          };
+          settings: {
+            llm: {
+              type: string;
+              endpoint: string;
+              defaultModel: string;
+              requestParams: string;
+              temperature: string;
+              temperatureDesc: string;
+              topP: string;
+              topPDesc: string;
+              maxTokens: string;
+              maxTokensDesc: string;
+              presencePenalty: string;
+              presencePenaltyDesc: string;
+              frequencyPenalty: string;
+              frequencyPenaltyDesc: string;
+              enhancedInference: string;
+            }
           };
           login: {
             bindWeChat: {
