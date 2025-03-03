@@ -251,6 +251,32 @@ const page: App.I18n.Schema['translation']['page'] = {
         还要自己加loading效果`,
       explain: '这个页面仅仅是为了展示 react-router-dom 的 loader 的强大能力，数据是随机的对不上很正常'
     }
+  },
+  datasource: {
+    columns: {
+      name: "名称",
+      type: "类型",
+      sync_policy: "同步策略",
+      latest_sync_time: "最近同步",
+      sync_status: "同步状态",
+      enabled: "启用状态",
+    },
+    new:{
+      title: "连接数据源",
+      labels: {
+        name: "数据源名称",
+        type: "数据源类型",
+        indexing_scope: "索引范围",
+        data_sync: "数据同步",
+        manual_sync: "手动同步",
+        manual_sync_desc: '仅在用户点击 "同步" 按钮时同步',
+        scheduled_sync: "定时同步",
+        scheduled_sync_desc: "每隔固定时间同步一次",
+        realtime_sync: "实时同步",
+        realtime_sync_desc: "文件修改立即同步",
+        immediate_sync: "立即同步"
+      }
+    }
   }
 };
 

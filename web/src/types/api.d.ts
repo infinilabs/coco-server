@@ -221,4 +221,24 @@ declare namespace Api {
       pId: number;
     };
   }
+
+  namespace Datasource {
+    interface ConnectorConfig {
+      urls: string[];
+    }
+    
+    interface Connector {
+      id: string;
+      config: ConnectorConfig;
+    }
+    interface Datasource {
+      id: string;
+      created: string; // ISO 8601 timestamp
+      updated: string; // ISO 8601 timestamp
+      type: "connector";
+      name: string;
+      connector: Connector;
+      sync_config: any;
+    }
+  }
 }

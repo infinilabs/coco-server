@@ -41,7 +41,10 @@ const common: App.I18n.Schema['translation']['common'] = {
   yesOrNo: {
     no: 'No',
     yes: 'Yes'
-  }
+  },
+  save: 'Save',
+  testConnection: 'Test Connection',
+  operation: 'Operation',
 };
 
 export default common;

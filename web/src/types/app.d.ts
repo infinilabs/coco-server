@@ -333,6 +333,8 @@ declare namespace App {
             no: string;
             yes: string;
           };
+          save: string,
+          testConnection: string,
         };
         datatable: {
           itemCount: string;
@@ -360,6 +362,25 @@ declare namespace App {
           unpin: string;
         };
         page: {
+          datasource: {
+            columns: {
+              name: string;
+              type: string;
+              sync_policy: string;
+              latest_sync_time: string;
+              sync_status: string;
+              enabled: string;
+            };
+            new: {
+              title: string;
+              labels: {
+                name: string;
+                type: string,
+                indexing_scope: string,
+                data_sync: string,
+              }
+            }
+          };
           about: {
             devDep: string;
             introduction: string;

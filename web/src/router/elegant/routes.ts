@@ -53,13 +53,49 @@ export const generatedRoutes: GeneratedRoute[] = [
   {
     name: 'data-source',
     path: '/data-source',
-    component: 'layout.base$view.data-source',
+    component: 'layout.base',
+    redirect: 'list',
     meta: {
       i18nKey: 'route.data-source',
       title: 'data-source',
       icon: 'mdi:folder-open-outline',
       order: 3
-    }
+    },
+    children: [
+      {
+        name: 'data-source_detail',
+        path: 'detail/:id',
+        component: 'view.data-source_detail',
+        meta: {
+          i18nKey: 'route.data-source_detail',
+          title: 'data-source_detail',
+          hideInMenu: true,
+          activeMenu: 'data-source'
+        }
+      },
+      {
+        name: 'data-source_list',
+        path: 'list',
+        component: 'view.data-source_list',
+        meta: {
+          i18nKey: 'route.data-source_list',
+          title: 'data-source_list',
+          hideInMenu: true,
+          activeMenu: 'data-source'
+        }
+      },
+      {
+        name: 'data-source_new',
+        path: 'new',
+        component: 'view.data-source_new',
+        meta: {
+          i18nKey: 'route.data-source_new',
+          title: 'data-source_new',
+          hideInMenu: true,
+          activeMenu: 'data-source'
+        }
+      }
+    ]
   },
   {
     name: 'login',
