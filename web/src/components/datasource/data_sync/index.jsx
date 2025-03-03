@@ -1,6 +1,5 @@
 import { Radio } from "antd"
 import { useState } from "react";
-import WorkTime from "../work_time";
 import { InputNumber } from "antd";
 import { Select } from "antd";
 import "./index.scss";
