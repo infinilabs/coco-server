@@ -256,6 +256,22 @@ const page: App.I18n.Schema['translation']['page'] = {
       latest_sync_time: "Latest Sync Time",
       sync_status: "Sync Status",
       enabled: "Enabled",
+    },
+    new:{
+      title: "Data Source Connection",
+      labels: {
+        name: "Name",
+        type: "Type",
+        indexing_scope: "Indexing Scope",
+        data_sync: "Data Synchronization",
+        manual_sync: "Manual Sync",
+        manual_sync_desc: "Sync only when the user clicks the 'Sync' button",
+        scheduled_sync: "Scheduled Sync",
+        scheduled_sync_desc: "Sync at fixed intervals",
+        realtime_sync: "Real-time Sync",
+        realtime_sync_desc: "Sync immediately upon file modification",
+        immediate_sync: "Immediate Sync"
+      }
     }
   }
 };

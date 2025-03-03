@@ -63,6 +63,17 @@ export const generatedRoutes: GeneratedRoute[] = [
     },
     children: [
       {
+        name: 'data-source_detail',
+        path: 'detail/:id',
+        component: 'view.data-source_detail',
+        meta: {
+          i18nKey: 'route.data-source_detail',
+          title: 'data-source_detail',
+          hideInMenu: true,
+          activeMenu: 'data-source'
+        }
+      },
+      {
         name: 'data-source_list',
         path: 'list',
         component: 'view.data-source_list',

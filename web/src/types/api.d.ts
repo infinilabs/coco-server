@@ -223,15 +223,22 @@ declare namespace Api {
   }
 
   namespace Datasource {
-    type Item = Common.CommonRecord<{
-      /** datasource display name */
+    interface ConnectorConfig {
+      urls: string[];
+    }
+    
+    interface Connector {
+      id: string;
+      config: ConnectorConfig;
+    }
+    interface Datasource {
+      id: string;
+      created: string; // ISO 8601 timestamp
+      updated: string; // ISO 8601 timestamp
+      type: "connector";
       name: string;
-      /** type of the datasource */
-      type: string;
-      /** sync policy */
-      connector: any;
-    }>;
-    /** datasource list */
-    type ItemList = Common.PaginatingQueryRecord<Item>;
+      connector: Connector;
+      sync_config: any;
+    }
   }
 }
