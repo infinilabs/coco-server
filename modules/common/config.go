@@ -29,8 +29,10 @@ func AppConfig() *Config {
 }
 
 type Config struct {
-	OllamaConfig OllamaConfig `config:"ollama"`
-	ServerInfo   ServerInfo   `config:"server"`
+	OllamaConfig   OllamaConfig   `config:"ollama"`
+	OpenAIConfig   OpenAIConfig   `config:"openai"`
+	GenerateConfig GenerateConfig `config:"generate"`
+	ServerInfo     ServerInfo     `config:"server"`
 }
 
 type OllamaConfig struct {
@@ -39,3 +41,19 @@ type OllamaConfig struct {
 	ContextLength int    `config:"context_length"`
 	Keepalive     string `config:"keepalive"`
 }
+
+type OpenAIConfig struct {
+	Model         string `config:"model"`
+	Endpoint      string `config:"endpoint"`
+	Token         string `config:"token"`
+	ContextLength int    `config:"context_length"`
+	Keepalive     string `config:"keepalive"`
+}
+
+type GenerateConfig struct {
+	MaxLength int `config:"max_length"`
+	MaxTokens int `config:"max_tokens"`
+}
+
+const WEBSOCKET_USER_SESSION = "websocket-user-session"
+const WEBSOCKET_SESSION_USER = "websocket-session-user"

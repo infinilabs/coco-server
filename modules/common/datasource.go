@@ -9,6 +9,7 @@ type DataSource struct {
 
 	Type string `json:"type,omitempty" elastic_mapping:"type:{type:keyword}"` // Type of the datasource, eg: connector
 	Name string `json:"name,omitempty" elastic_mapping:"name:{type:keyword}"` // Display name of this datasource
+	Icon string `json:"icon,omitempty" elastic_mapping:"icon:{type:keyword}"` // Display name of this datasource
 
 	Connector ConnectorConfig `json:"connector,omitempty" elastic_mapping:"connector:{type:keyword}"`
 }

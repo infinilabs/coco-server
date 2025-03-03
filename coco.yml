@@ -2,6 +2,9 @@ env:
   OLLAMA_ENDPOINT: http://localhost:11434
   OLLAMA_MODEL: deepseek-r1:8b
   ENRICHMENT_MODEL: deepseek-r1:1.5b
+  OPENAI_ENDPOINT: https://dashscope.aliyuncs.com/compatible-mode/v1
+  OPENAI_TOKEN: ""
+  OPENAI_MODEL: deepseek-r1
   ES_ENDPOINT: https://localhost:9200
   ES_USERNAME: admin
   ES_PASSWORD: $[[keystore.ES_PASSWORD]]
@@ -13,13 +16,20 @@ coco:
     endpoint: $[[env.OLLAMA_ENDPOINT]]
     model: $[[env.OLLAMA_MODEL]]
     keepalive: 30m
+  openai:
+    endpoint:  $[[env.OPENAI_ENDPOINT]]
+    token:  $[[env.OPENAI_TOKEN]]
+    model:  $[[env.OPENAI_MODEL]]
+    keepalive: 30m
   server:
     public: false
     name: "My Coco Server"
     endpoint: "http://localhost:9000"
+    minimal_client_version:
+      number: "0.2"
     auth_provider:
       sso:
-        url: "http://localhost:9000/sso/login/"
+        url: "http://localhost:9000/login/"
     provider:
       name: "INFINI Labs"
       description: "Coco AI Server - Search, Connect, Collaborate, AI-powered enterprise search, all in one space."
@@ -107,7 +117,6 @@ elastic:
                 "must": {{#toJson}}must_clauses{{/toJson}},
                 "must_not": [],
                 "should": [
-
                   {{#query}}
                   {
                     "prefix": {
@@ -150,8 +159,66 @@ elastic:
                     "{{field}}.pinyin": "{{query}}"
                     }}
                   {{/query}}
-
-                
+                ]
+              }
+            }
+        }
+      "coco-query-string-extra-should": |
+        {
+            "from": "{{from}}",
+            "size": "{{size}}",
+            "_source": {
+                "includes": [ "{{#source}}","{{.}}","{{/source}}"],
+                "excludes": [ "payload.*","content" ]
+            },
+            "query": {
+              "bool": {
+                "must": {{#toJson}}must_clauses{{/toJson}},
+                "must_not": [],
+                "should": [
+                  {{#query}}
+                  {
+                    "prefix": {
+                      "{{field}}.keyword": {
+                        "value": "{{query}}",
+                        "boost": 10
+                      }
+                    }
+                  },
+                  {
+                    "match_phrase_prefix": {
+                      "{{field}}": {
+                        "query": "{{query}}",
+                        "boost": 2
+                      }
+                    }
+                  },
+                  {
+                    "match": {
+                      "{{field}}": {
+                        "query": "{{query}}",
+                        "fuzziness": "AUTO",
+                        "max_expansions": 10,
+                        "prefix_length": 2,
+                        "fuzzy_transpositions": true
+                      }
+                    }
+                  },
+                  {
+                    "query_string": {
+                      "fields": ["{{field}}","{{field}}.keyword^10","combined_fulltext"],
+                      "query": "{{query}}",
+                      "fuzziness": "AUTO",
+                      "fuzzy_prefix_length": 2,
+                      "fuzzy_max_expansions": 10,
+                      "fuzzy_transpositions": true,
+                      "allow_leading_wildcard": false
+                    }
+                  },{"match": {
+                    "{{field}}.pinyin": "{{query}}"
+                    }}
+                  {{/query}}
+                   ,{{#toJson}}extra_should_clauses{{/toJson}}
                 ]
               }
             }
@@ -227,7 +294,7 @@ connector:
 ##background jobs
 pipeline:
   - name: enrich_documents
-    auto_start: true
+    auto_start: false
     keep_running: true
     processor:
       - consumer:
@@ -253,7 +320,8 @@ pipeline:
     keep_running: true
     processor:
       - indexing_merge:
-          input_queue: "enriched_documents"
+          input_queue: "indexing_documents"
+#          input_queue: "enriched_documents"
           idle_timeout_in_seconds: 1
           elasticsearch: "prod"
           index_name: "coco_document"

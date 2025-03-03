@@ -149,6 +149,7 @@ func (this *Plugin) fetch_notion(connector *common.Connector, datasource *common
 			//doc.Subcategory = v.Subcategory
 			//doc.Summary = v.Summary
 			//doc.Tags = v.Tags
+			doc.Payload = res.Properties
 			doc.URL = res.Url
 
 			log.Debugf("save document: %d: %+v %v", i+1, doc.Title, doc.URL)
