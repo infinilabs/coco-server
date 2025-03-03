@@ -4,6 +4,9 @@ import type { MenuProps } from 'antd';
 import { useSubmit } from 'react-router-dom';
 
 import { selectToken, selectUserInfo } from '@/store/slice/auth';
+import { Suspense } from 'react';
+
+const PasswordModal = lazy(() => import('./PasswordModal'));
 
 const UserAvatar = memo(() => {
   const token = useAppSelector(selectToken);
@@ -13,23 +16,30 @@ const UserAvatar = memo(() => {
   const route = useRoute();
   const router = useRouterPush();
 
+  const [passwordVisible, setPasswordVisible] = useState(false)
+
+  function handleLogout() {
+    let needRedirect = false;
+    if (!route.meta?.constant) needRedirect = true;
+    submit({ needRedirect, redirectFullPath: route.fullPath }, { action: '/account/logout', method: 'post' });
+  }
+
   function logout() {
     window?.$modal?.confirm({
       cancelText: t('common.cancel'),
       content: t('common.logoutConfirm'),
       okText: t('common.confirm'),
-      onOk: () => {
-        let needRedirect = false;
-        if (!route.meta?.constant) needRedirect = true;
-        submit({ needRedirect, redirectFullPath: route.fullPath }, { action: '/account/logout', method: 'post' });
-      },
+      onOk: () => handleLogout(),
       title: t('common.tip')
     });
   }
 
   function onClick({ key }: { key: string }) {
-    if (key === '1') {
+    if (key === 'logout') {
       logout();
+    } else if (key === 'password') {
+      setPasswordVisible(true)
+      // router.routerPushByKey('user-center');
     } else {
       // router.routerPushByKey('user-center');
     }
@@ -39,23 +49,23 @@ const UserAvatar = memo(() => {
   }
 
   const items: MenuProps['items'] = [
-    // {
-    //   key: '0',
-    //   label: (
-    //     <div className="flex-center gap-8px">
-    //       <SvgIcon
-    //         className="text-icon"
-    //         icon="ph:user-circle"
-    //       />
-    //       {t('common.userCenter')}
-    //     </div>
-    //   )
-    // },
-    // {
-    //   type: 'divider'
-    // },
     {
-      key: '1',
+      key: 'password',
+      label: (
+        <div className="flex-center gap-8px">
+          <SvgIcon
+            className="text-icon"
+            icon="mdi:password"
+          />
+          {t('common.password')}
+        </div>
+      )
+    },
+    {
+      type: 'divider'
+    },
+    {
+      key: 'logout',
       label: (
         <div className="flex-center gap-8px">
           <SvgIcon
@@ -67,25 +77,35 @@ const UserAvatar = memo(() => {
       )
     }
   ];
-  return token ? (
-    <Dropdown
-      menu={{ items, onClick }}
-      placement="bottomRight"
-      trigger={['click']}
-    >
-      <div>
-        <ButtonIcon className="px-12px">
-          <SvgIcon
-            className="text-icon-large"
-            icon="ph:user-circle"
-          />
-          <span className="text-16px font-medium">{userInfo.username}</span>
-        </ButtonIcon>
-      </div>
-    </Dropdown>
-  ) : (
-    <Button onClick={loginOrRegister}>{t('page.login.common.loginOrRegister')}</Button>
-  );
+  
+  return (
+    <>
+      {
+        token ? (
+          <Dropdown
+            menu={{ items, onClick }}
+            placement="bottomRight"
+            trigger={['click']}
+          >
+            <div>
+              <ButtonIcon className="px-12px">
+                <SvgIcon
+                  className="text-icon-large"
+                  icon="ph:user-circle"
+                />
+                <span className="text-16px font-medium">{userInfo.username}</span>
+              </ButtonIcon>
+            </div>
+          </Dropdown>
+        ) : (
+          <Button onClick={loginOrRegister}>{t('page.login.common.loginOrRegister')}</Button>
+        )
+      }
+      <Suspense>
+        <PasswordModal open={passwordVisible} onClose={() => setPasswordVisible(false)} onSuccess={() => handleLogout()}/>
+      </Suspense>
+    </>
+  )
 });
 
 export default UserAvatar;

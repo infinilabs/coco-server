@@ -38,6 +38,11 @@ const common: App.I18n.Schema['translation']['common'] = {
   update: '更新',
   updateSuccess: '更新成功',
   userCenter: '个人中心',
+  password: '密码',
+  modifyPassword: '修改密码',
+  oldPassword: '旧密码',
+  newPassword: '新密码',
+  loginAgain: '请重新登录！',
   warning: '警告',
   yesOrNo: {
     no: '否',

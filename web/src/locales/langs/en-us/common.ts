@@ -38,6 +38,11 @@ const common: App.I18n.Schema['translation']['common'] = {
   update: 'Update',
   updateSuccess: 'Update Success',
   userCenter: 'User Center',
+  password: 'Password',
+  modifyPassword: 'Modify Password',
+  oldPassword: 'Old Password',
+  newPassword: 'New Password',
+  loginAgain: 'Please login again!',
   warning: 'Warning',
   yesOrNo: {
     no: 'No',

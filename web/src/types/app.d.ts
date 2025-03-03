@@ -329,6 +329,11 @@ declare namespace App {
           update: string;
           updateSuccess: string;
           userCenter: string;
+          password: string;
+          modifyPassword: string;
+          oldPassword: string;
+          newPassword: string;
+          loginAgain: string;
           warning: string;
           yesOrNo: {
             no: string;

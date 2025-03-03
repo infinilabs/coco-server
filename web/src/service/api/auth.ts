@@ -21,6 +21,23 @@ export function fetchGetUserInfo() {
 }
 
 /**
+ * Modify password
+ *
+ * @param old_password Password
+ * @param new_password Password
+ */
+export function modifyPassword(old_password: string, new_password: string) {
+  return request({
+    data: {
+      old_password,
+      new_password
+    },
+    method: 'put',
+    url: '/account/password'
+  });
+}
+
+/**
  * Refresh token
  *
  * @param refreshToken Refresh token

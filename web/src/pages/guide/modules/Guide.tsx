@@ -7,7 +7,7 @@ import { setup } from "@/service/api/guide";
 const Guide = memo(() => {
     const [form] = Form.useForm();
     const [step, setStep] = useState(0);
-    const routerPush = useRouterPush();
+    const router = useRouterPush();
     const { endLoading, loading, startLoading } = useLoading();
     const [editValue, setEditValue] = useState()
 
@@ -24,7 +24,7 @@ const Guide = memo(() => {
         });
         endLoading()
         if (!error) {
-          routerPush.routerPush('/login')
+          router.routerPushByKey('login');
         }
       }
     }
