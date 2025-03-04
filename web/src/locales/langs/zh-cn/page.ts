@@ -37,7 +37,21 @@ const page: App.I18n.Schema['translation']['page'] = {
   login: {
     title: '欢迎',
     desc: '输入您的凭证信息以访问您的账户。',
-    password: '密码'
+    password: '密码',
+    common: {
+      back: '返回',
+      codeLogin: '验证码登录',
+      codePlaceholder: '请输入验证码',
+      confirm: '确定',
+      confirmPasswordPlaceholder: '请再次输入密码',
+      loginOrRegister: '登录 / 注册',
+      loginSuccess: '登录成功',
+      passwordPlaceholder: '请输入密码',
+      phonePlaceholder: '请输入手机号',
+      userNamePlaceholder: '请输入用户名',
+      validateSuccess: '验证成功',
+      welcomeBack: '欢迎回来，{{userName}} ！'
+    },
   },
   guide: {
     user: {
@@ -52,14 +66,6 @@ const page: App.I18n.Schema['translation']['page'] = {
       desc: '集成大模型后，您将解锁人工智能聊天功能，还能获得智能搜索服务和高效的工作助手。',
     },
     setupLater: '稍后设置',
-    userDetail: {
-      content: `loader 会让网络请求跟懒加载的文件几乎一起发出请求 然后 一边解析懒加载的文件 一边去等待 网络请求
-        待到网络请求完成页面 一起显示 配合react的fiber架构 可以做到 用户如果嫌弃等待时间较长 在等待期间用户可以去
-        切换不同的页面 这是react 框架和react-router数据路由器的优势 而不用非得等到 页面的显现 而不是常规的
-        请求懒加载的文件 - 解析 - 请求懒加载的文件 - 挂载之后去发出网络请求 - 然后渲染页面 - 渲染完成
-        还要自己加loading效果`,
-      explain: '这个页面仅仅是为了展示 react-router-dom 的 loader 的强大能力，数据是随机的对不上很正常'
-    }
   },
   datasource: {
     columns: {

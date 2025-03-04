@@ -372,33 +372,6 @@ declare namespace App {
         page: {
           home: {
             server: {
-          datasource: {
-            columns: {
-              name: string;
-              type: string;
-              sync_policy: string;
-              latest_sync_time: string;
-              sync_status: string;
-              enabled: string;
-            };
-            new: {
-              title: string;
-              labels: {
-                name: string;
-                type: string,
-                indexing_scope: string,
-                data_sync: string,
-              }
-            }
-          };
-          about: {
-            devDep: string;
-            introduction: string;
-            prdDep: string;
-            projectInfo: {
-              githubLink: string;
-              latestBuildTime: string;
-              previewLink: string;
               title: string;
               address: string;
               addressDesc: string;
@@ -412,6 +385,32 @@ declare namespace App {
               aiAssistant: string;
               aiAssistantDesc: string;
             };
+          },
+          datasource: {
+            columns: {
+              name: string;
+              type: string;
+              sync_policy: string;
+              latest_sync_time: string;
+              sync_status: string;
+              enabled: string;
+            };
+            new: {
+              title: string;
+              labels: {
+                name: string;
+                type: string;
+                indexing_scope: string;
+                data_sync: string;
+                manual_sync: string;
+                manual_sync_desc: string;
+                scheduled_sync: string;
+                scheduled_sync_desc: string;
+                realtime_sync: string;
+                realtime_sync_desc: string;
+                immediate_sync: string;
+              }
+            }
           };
           settings: {
             llm: {
@@ -436,6 +435,20 @@ declare namespace App {
             title: string;
             desc: string;
             password: string;
+            common: {
+              back: string;
+              codeLogin: string;
+              codePlaceholder: string;
+              confirm: string;
+              confirmPasswordPlaceholder: string;
+              loginOrRegister: string;
+              loginSuccess: string;
+              passwordPlaceholder: string;
+              phonePlaceholder: string;
+              userNamePlaceholder: string;
+              validateSuccess: string;
+              welcomeBack: string;
+            };
           };
           guide: {
             user: {
