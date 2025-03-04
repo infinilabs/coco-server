@@ -113,6 +113,8 @@ func (h APIHandler) handleMessage(req *http.Request, sessionID, message string) 
 			messageID := util.GetUUID()
 			requestMessageID := obj.ID
 
+			details := []ProcessingDetails{}
+
 			//query intent
 			var queryIntentStr string
 
@@ -182,11 +184,14 @@ func (h APIHandler) handleMessage(req *http.Request, sessionID, message string) 
 				if queryIntentBuffer.Len() > 0 {
 					//extract the category and query
 					queryIntentStr = queryIntentBuffer.String()
-					log.Info("意图识别结果:\n", queryIntentStr)
+					//log.Info("意图识别结果:\n", queryIntentStr)
 					queryIntent, err = rag.QueryAnalysisFromString(queryIntentStr)
 					if err != nil {
 						panic(err)
 					}
+					detail := ProcessingDetails{Order: 10, Type: QueryIntent, Payload: queryIntent}
+					details = append(details, detail)
+
 				}
 			}
 
@@ -208,6 +213,7 @@ func (h APIHandler) handleMessage(req *http.Request, sessionID, message string) 
 
 			var references string
 			var pickedDocIDS []string
+			var historyStr = strings.Builder{}
 
 			//Retrieve related documents from background server
 			if searchDB && query != nil {
@@ -230,17 +236,59 @@ func (h APIHandler) handleMessage(req *http.Request, sessionID, message string) 
 					}
 
 					{
+						fetchedDocs := formatDocumentForPick(docs)
+						var simpleDocsStr string
+						{
+							var sb strings.Builder
+							sb.WriteString(fmt.Sprintf("<Payload total=%v>\n", len(docs)))
+							sb.WriteString(util.MustToJSON(fetchedDocs))
+							sb.WriteString("</Payload>")
+							simpleDocsStr = sb.String()
+						}
 
-						simpleDocsStr := formatDocumentForPick(docs)
+						detail := ProcessingDetails{Order: 20, Type: FetchSource, Payload: fetchedDocs}
+						details = append(details, detail)
+
+						//get chat history
+						history, err := getChatHistoryBySessionInternal(sessionID)
+						log.Error("history:", history, err)
+						historyStr.WriteString("<conversation>")
+						//<summary>
+						//session history summary within 500 words TODO
+						//</summary>
+						//<recent>
+						//recent 10 Q&A history records //TODO configurable
+						//</recent>
+						for _, v := range history {
+							historyStr.WriteString(v.MessageType + ": " + util.SubStringWithSuffix(v.Message, 500, "...")) //TODO 问题是否准确来判断是否采用
+							if v.DownVote > 0 {
+								historyStr.WriteString(fmt.Sprintf("(%v people up voted this answer)", v.UpVote))
+							}
+							if v.DownVote > 0 {
+								historyStr.WriteString(fmt.Sprintf("(%v people down voted this answer)", v.DownVote))
+							}
+							historyStr.WriteString("\n")
+						}
+						historyStr.WriteString("</conversation>")
 
 						content := []llms.MessageContent{
-							llms.TextParts(llms.ChatMessageTypeSystem, "You are an AI assistant trained to understand and analyze user queries. The user has provided the following query:"),
+							llms.TextParts(llms.ChatMessageTypeSystem, "You are an AI assistant trained to understand and analyze user queries. "),
+
+							//get history
+							llms.TextParts(llms.ChatMessageTypeSystem, "You will be given a conversation below and a follow up question. "+
+								"You need to rephrase the follow-up question if needed so it is a standalone question that can be used by the LLM to search the knowledge base for information.\n"+
+								"Conversation: "),
+							llms.TextParts(llms.ChatMessageTypeSystem, historyStr.String()),
+							//end history
+
+							llms.TextParts(llms.ChatMessageTypeSystem, "The user has provided the following query:"),
 							llms.TextParts(llms.ChatMessageTypeHuman, message),
 
 							llms.TextParts(llms.ChatMessageTypeSystem, "The primary intent behind this query is:"),
 							llms.TextParts(llms.ChatMessageTypeSystem, string(queryIntentStr)),
 
 							llms.TextParts(llms.ChatMessageTypeSystem, "The following documents might be related to answering the user's query:"),
+
 							llms.TextParts(llms.ChatMessageTypeSystem, string(simpleDocsStr)),
 
 							llms.TextParts(llms.ChatMessageTypeSystem, "\nPlease review these documents and identify which ones best match the user's query. "+
@@ -284,6 +332,10 @@ func (h APIHandler) handleMessage(req *http.Request, sessionID, message string) 
 						}
 
 						log.Info("筛选文档结果:", pickedDocsBuffer.String())
+						{
+							detail := ProcessingDetails{Order: 30, Type: PickSource, Payload: pickeDocs}
+							details = append(details, detail)
+						}
 
 						docsMap := map[string]common.Document{}
 						for _, v := range docs {
@@ -313,14 +365,19 @@ func (h APIHandler) handleMessage(req *http.Request, sessionID, message string) 
 
 							pickedFullDoc, err := fetchDocuments(&query)
 
+							strBuilder := strings.Builder{}
 							for _, v := range pickedFullDoc {
-								log.Info("正在获取并深度分析文档:  " + string(v.Title))
-								msg = NewMessageChunk(sessionID, messageID, MessageTypeAssistant, requestMessageID, DeepRead, "正在获取并深度分析文档:  "+string(v.Title), chunkSeq)
+								str := "Obtaining and analyzing documents in depth:  " + string(v.Title) + "\n"
+								strBuilder.WriteString(str)
+								msg = NewMessageChunk(sessionID, messageID, MessageTypeAssistant, requestMessageID, DeepRead, str, chunkSeq)
 								err = websocket.SendPrivateMessage(webSocketID, util.MustToJSON(msg))
 								if err != nil {
 									panic(err)
 								}
 							}
+
+							detail := ProcessingDetails{Order: 40, Type: DeepRead, Description: strBuilder.String()}
+							details = append(details, detail)
 
 							references = formatDocumentForReplyReferences(pickedFullDoc)
 						}
@@ -329,12 +386,16 @@ func (h APIHandler) handleMessage(req *http.Request, sessionID, message string) 
 				log.Infof("Fetched %v docs with query: %v", len(docs), query)
 			}
 
-			prompt := fmt.Sprintf(`You are a friendly assistant designed to help users access and understand their personal or company data. Your responses should be clear, concise, and based solely on the information provided below. If the information is insufficient, please indicate that you need more details to assist effectively.
+			prompt := fmt.Sprintf(`You are a friendly assistant designed to help users access and understand their personal or company data. 
+Your responses should be clear, concise, and based solely on the information provided below. 
+If the information is insufficient, please indicate that you need more details to assist effectively.
+
+Conversation: %s
 
 Query: %s
 
 Data:
-%s`, message, references)
+%s`, historyStr.String(), message, references)
 
 			// Prepare the system message
 			content := []llms.MessageContent{
@@ -344,9 +405,10 @@ Data:
 			// Append the user's message
 			content = append(content, llms.TextParts(llms.ChatMessageTypeHuman, prompt))
 
-			log.Debug(content)
+			//log.Debug(content)
 
 			//response
+			reasoningBuffer := strings.Builder{}
 			messageBuffer := strings.Builder{}
 
 			llm := getLLM("deepseek-r1") //deepseek-r1 /deepseek-v3
@@ -368,6 +430,7 @@ Data:
 						//Handle the <Think> part
 						if len(reasoningChunk) > 0 {
 							chunkSeq += 1
+							reasoningBuffer.Write(reasoningChunk)
 							msg := NewMessageChunk(sessionID, messageID, MessageTypeAssistant, requestMessageID, Think, string(reasoningChunk), chunkSeq)
 							//log.Info(util.MustToJSON(msg))
 							err = websocket.SendPrivateMessage(webSocketID, util.MustToJSON(msg))
@@ -434,18 +497,31 @@ Data:
 
 			chunkSeq += 1
 
+			{
+				detail := ProcessingDetails{Order: 50, Type: Think, Description: reasoningBuffer.String()}
+				details = append(details, detail)
+			}
+
+			{
+				detail := ProcessingDetails{Order: 60, Type: Response, Description: messageBuffer.String()}
+				details = append(details, detail)
+			}
+
 			msg := NewMessageChunk(sessionID, messageID, MessageTypeSystem, requestMessageID, ReplyEnd, "assistant finished output", chunkSeq)
 			err = websocket.SendPrivateMessage(webSocketID, util.MustToJSON(msg))
 			if err != nil {
 				panic(err)
 			}
 
-			//save message to system
-			if messageBuffer.Len() > 0 {
+			log.Info(util.MustToJSON(details))
+
+			//save response message to system
+			if len(details) > 0 || messageBuffer.Len() > 0 {
 				obj = ChatMessage{
 					SessionID:   sessionID,
 					MessageType: MessageTypeAssistant,
 					Message:     messageBuffer.String(),
+					Details:     details,
 				}
 				obj.ID = messageID
 
@@ -483,7 +559,7 @@ func formatDocumentForReplyReferences(docs []common.Document) string {
 		sb.WriteString(fmt.Sprintf("Source: %s\n", doc.Source))
 		sb.WriteString(fmt.Sprintf("Updated: %s\n", doc.Updated))
 		sb.WriteString(fmt.Sprintf("Category: %s\n", doc.GetAllCategories()))
-		sb.WriteString(fmt.Sprintf("Summary: %s\n", doc.Summary))
+		//sb.WriteString(fmt.Sprintf("Summary: %s\n", doc.Summary))
 		sb.WriteString(fmt.Sprintf("Content: %s\n", doc.Content))
 		sb.WriteString(fmt.Sprintf("</Doc>\n"))
 
@@ -515,9 +591,7 @@ func formatDocumentReferencesToDisplay(docs []common.Document) string {
 	return sb.String()
 }
 
-func formatDocumentForPick(docs []common.Document) string {
-	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("<Payload total=%v>\n", len(docs)))
+func formatDocumentForPick(docs []common.Document) []util.MapStr {
 	outDocs := []util.MapStr{}
 	for _, doc := range docs {
 		item := util.MapStr{}
@@ -528,9 +602,7 @@ func formatDocumentForPick(docs []common.Document) string {
 		item["summary"] = util.SubString(doc.Summary, 0, 500)
 		outDocs = append(outDocs, item)
 	}
-	sb.WriteString(util.MustToJSON(outDocs))
-	sb.WriteString("</Payload>")
-	return sb.String()
+	return outDocs
 }
 
 func fetchDocuments(query *orm.Query) ([]common.Document, error) {

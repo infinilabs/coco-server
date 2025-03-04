@@ -40,6 +40,8 @@ func init() {
 	handler := APIHandler{}
 	api.HandleUIMethod(api.GET, "/provider/_info", handler.providerInfo, api.AllowPublicAccess())
 	api.HandleUIMethod(api.POST, "/setup/_initialize", handler.setupServer, api.AllowPublicAccess())
+	api.HandleUIMethod(api.GET, "/settings", handler.getServerSettings, api.RequireLogin())
+	api.HandleUIMethod(api.PUT, "/settings", handler.updateServerSettings, api.RequireLogin())
 }
 
 func (h *APIHandler) providerInfo(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -62,8 +64,9 @@ func (h *APIHandler) providerInfo(w http.ResponseWriter, req *http.Request, ps h
 		obj["services"] = services
 	}
 
-	if global.Env().SetupRequired() {
-		output["setup_required"] = global.Env().SetupRequired()
+	isSetup := checkSetupStatus()
+	if !isSetup {
+		output["setup_required"] = true
 	}
 	output["health"] = obj
 

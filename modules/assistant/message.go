@@ -41,13 +41,15 @@ type ChatMessage struct {
 	To          string              `json:"to,omitempty"`
 	Message     string              `config:"message" json:"message,omitempty" elastic_mapping:"message:{type:keyword}"`
 	Details     []ProcessingDetails `json:"details"`
+	UpVote      int                 `json:"up_vote"`
+	DownVote    int                 `json:"down_vote"`
 }
 
 type ProcessingDetails struct {
 	Order       int         `json:"order"`
 	Type        string      `json:"type"` //chunk_type
 	Description string      `json:"description"`
-	Payload     util.MapStr `json:"payload"` //<Payload>{JSON}</Payload>
+	Payload     interface{} `json:"payload"` //<Payload>{JSON}</Payload>
 }
 
 type MessageChunk struct {

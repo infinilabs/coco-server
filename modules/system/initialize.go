@@ -28,6 +28,7 @@ import (
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/plugins/security"
 	httprouter "infini.sh/framework/core/api/router"
+	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/kv"
 	"infini.sh/framework/core/util"
 	"net/http"
@@ -47,15 +48,24 @@ type SetupConfig struct {
 
 var SetupLock = ".setup_lock"
 
-func (h *APIHandler) setupServer(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-
+func checkSetupStatus() bool {
 	exists, err := kv.ExistsKey(core.DefaultSettingBucketKey, []byte(SetupLock))
 	if exists || err != nil {
-		panic("the coco server has already been initialized")
+		global.Env().EnableSetup(false)
+		return true
+	}
+	global.Env().EnableSetup(true)
+	return false
+}
+
+func (h *APIHandler) setupServer(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	isSetup := checkSetupStatus()
+	if isSetup {
+		panic("the server has already been initialized")
 	}
 
 	input := SetupConfig{}
-	err = h.DecodeJSON(req, &input)
+	err := h.DecodeJSON(req, &input)
 	if err != nil {
 		panic(err)
 	}
@@ -98,4 +108,11 @@ func (h *APIHandler) setupServer(w http.ResponseWriter, req *http.Request, ps ht
 	}
 
 	h.WriteAckOKJSON(w)
+}
+
+func clearSetupLock() {
+	err := kv.DeleteKey(core.DefaultSettingBucketKey, []byte(SetupLock))
+	if err != nil {
+		panic(err)
+	}
 }

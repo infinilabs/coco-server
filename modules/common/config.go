@@ -29,10 +29,17 @@ func AppConfig() *Config {
 }
 
 type Config struct {
-	OllamaConfig   OllamaConfig   `config:"ollama"`
-	OpenAIConfig   OpenAIConfig   `config:"openai"`
-	GenerateConfig GenerateConfig `config:"generate"`
-	ServerInfo     ServerInfo     `config:"server"`
+	OllamaConfig   OllamaConfig   `config:"ollama" json:"ollama_config"`
+	OpenAIConfig   OpenAIConfig   `config:"openai" json:"open_ai_config"`
+	GenerateConfig GenerateConfig `config:"generate" json:"generate_config"`
+	ServerInfo     ServerInfo     `config:"server" json:"server_info"`
+}
+
+type LLMConfig struct {
+	Type string `config:"type"`
+}
+
+type ModelConfig struct {
 }
 
 type OllamaConfig struct {

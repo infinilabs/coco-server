@@ -119,6 +119,20 @@ func (h APIHandler) openChatSession(w http.ResponseWriter, req *http.Request, ps
 	}
 }
 
+func getChatHistoryBySessionInternal(sessionID string) ([]ChatMessage, error) {
+	q := orm.Query{}
+	q.Conds = orm.And(orm.Eq("session_id", sessionID))
+	q.From = 0
+	q.Size = 5
+	q.AddSort("created", orm.DESC)
+	docs := []ChatMessage{}
+	err, _ := orm.SearchWithJSONMapper(&docs, &q)
+	if err != nil {
+		return nil, err
+	}
+	return docs, nil
+}
+
 func (h APIHandler) getChatHistoryBySession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	q := orm.Query{}
 	q.Conds = orm.And(orm.Eq("session_id", ps.MustGetParameter("session_id")))
