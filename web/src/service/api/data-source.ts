@@ -28,9 +28,27 @@ export function createDatasource(body: any){
   });
 }
 
+export function updateDatasource(id:string, body: any){
+  return request({
+    method: 'put',
+    headers: {
+      "Content-Type": "application/json",
+    },
+    data: body,
+    url: `/datasource/${id}`
+  });
+}
+
 export function deleteDatasource(dataourceID: string){
   return request({
     method: 'delete',
     url: `/datasource/${dataourceID}`
+  });
+}
+
+export function deleteDocument(documentID: string){
+  return request({
+    method: 'delete',
+    url: `/document/${documentID}`
   });
 }

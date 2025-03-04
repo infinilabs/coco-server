@@ -219,6 +219,7 @@ const routeMap: RouteMap = {
   "ai-assistant": "/ai-assistant",
   "data-source": "/data-source",
   "data-source_detail": "detail/:id",
+  "data-source_edit": "edit/:id",
   "data-source_list": "list",
   "data-source_new": "new",
   "login": "/login",

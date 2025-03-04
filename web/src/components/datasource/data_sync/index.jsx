@@ -3,6 +3,7 @@ import { useState } from "react";
 import { InputNumber } from "antd";
 import { Select } from "antd";
 import "./index.scss";
+import { useCallback } from "react";
 
 const style = {
   display: 'flex',
@@ -27,9 +28,21 @@ export const DataSync = ({
       return newV;
     })
   }
+  const onIntervalChange = useCallback((interval)=>{
+    setValue(oldV=>{
+      const newV = {
+        ...oldV,
+        interval: interval,
+      }
+      if(typeof onChange === "function"){
+        onChange(newV);
+      }
+      return newV;
+    })
+  }, [])
   return <div id="data-sync-comp">
      <Radio.Group value={innerV.sync_type} onChange={onInnerChange} style={style}>
-        <Radio  className="mb-10px flex" value="manual">
+        <Radio disabled={true} className="mb-10px flex" value="manual">
           <div>
           <div className="mb-5px">{t('page.datasource.new.labels.manual_sync')}</div>
           <div className="text-gray-400">{t('page.datasource.new.labels.manual_sync_desc')}</div>
@@ -41,8 +54,8 @@ export const DataSync = ({
             <div className="text-gray-400">{t('page.datasource.new.labels.scheduled_sync_desc')}</div> 
           </div>
         </Radio>
-        <div className="ml-25px mb-10px"><SyncTime value={innerV.interval}/></div>
-        <Radio className="mb-10px" value="realtime">
+        <div className="ml-25px mb-10px"><SyncTime value={innerV.interval} onChange={onIntervalChange}/></div>
+        <Radio disabled={true} className="mb-10px" value="realtime">
           <div>
           <div className="mb-5px">{t('page.datasource.new.labels.realtime_sync')}</div>
           <div className="text-gray-400">{t('page.datasource.new.labels.realtime_sync_desc')}</div> 

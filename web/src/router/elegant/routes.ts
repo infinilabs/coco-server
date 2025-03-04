@@ -74,6 +74,17 @@ export const generatedRoutes: GeneratedRoute[] = [
         }
       },
       {
+        name: 'data-source_edit',
+        path: 'edit/:id',
+        component: 'view.data-source_edit',
+        meta: {
+          i18nKey: 'route.data-source_edit',
+          title: 'data-source_edit',
+          hideInMenu: true,
+          activeMenu: 'data-source'
+        }
+      },
+      {
         name: 'data-source_list',
         path: 'list',
         component: 'view.data-source_list',
