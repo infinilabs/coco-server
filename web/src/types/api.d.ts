@@ -251,6 +251,8 @@ declare namespace Api {
           url: string
         }
       };
+    }
+  }
   namespace Datasource {
     interface ConnectorConfig {
       urls: string[];

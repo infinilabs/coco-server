@@ -29,18 +29,15 @@ const LoginForm = memo(() => {
 
   return (
     <>
-      <div className="text-28px color-#333 m-b-16px">
+      <div className="text-32px color-#333 m-b-16px">
         {t('page.login.title')}
       </div>
-      <div className="text-14px color-#999 m-b-64px">
+      <div className="text-16px color-#999 m-b-64px">
         {t('page.login.desc')}
       </div>
       <Form
         form={form}
         layout="vertical"
-        initialValues={{
-          password: '123456',
-        }}
       >
         <Form.Item
           name="password"

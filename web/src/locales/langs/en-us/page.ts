@@ -37,7 +37,21 @@ const page: App.I18n.Schema['translation']['page'] = {
   login: {
     title: 'Welcome',
     desc: 'Enter your credentials to access your account.',
-    password: 'Password'
+    password: 'Password',
+    common: {
+      back: 'Back',
+      codeLogin: 'Verification code login',
+      codePlaceholder: 'Please enter verification code',
+      confirm: 'Confirm',
+      confirmPasswordPlaceholder: 'Please enter password again',
+      loginOrRegister: 'Login / Register',
+      loginSuccess: 'Login successfully',
+      passwordPlaceholder: 'Please enter password',
+      phonePlaceholder: 'Please enter phone number',
+      userNamePlaceholder: 'Please enter user name',
+      validateSuccess: 'Verification passed',
+      welcomeBack: 'Welcome back, {{userName}} !'
+    },
   },
   guide: {
     user: {
@@ -52,10 +66,6 @@ const page: App.I18n.Schema['translation']['page'] = {
       desc: 'After integrating a large model, you will unlock the AI chat feature, providing intelligent search and an efficient work assistant.',
     },
     setupLater: 'Set Up Later',
-    userDetail: {
-      content: `The loader allows network requests and lazy-loaded files to be triggered almost simultaneously, enabling the lazy-loaded files to be parsed while waiting for the network request to complete. Once the network request finishes, the page is displayed all at once. Leveraging React's Fiber architecture, if users find the waiting time too long, they can switch to different pages during the wait. This is an advantage of the React framework and React Router's data loader, as it avoids the conventional sequence of: request lazy-loaded file -> parse -> mount -> send network request -> render page -> display, and eliminates the need for manually adding a loading effect.`,
-      explain: `This page is solely for demonstrating the powerful capabilities of react-router-dom's loader. The data is random and may not match.`
-    }
   },
   datasource: {
     columns: {
