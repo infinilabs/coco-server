@@ -9,7 +9,7 @@ weight: 50
 
 ### Profile
 
-The `Profile` endpoint retrieves information about a user profile. Below is the field description for the profile object.
+Below is the field description for the profile object.
 
 | **Field**            | **Type**            | **Description**                                                                                      |
 |----------------------|---------------------|------------------------------------------------------------------------------------------------------|

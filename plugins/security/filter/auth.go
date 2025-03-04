@@ -21,25 +21,56 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-package provider
+package filter
 
 import (
-	"infini.sh/coco/modules/common"
+	"infini.sh/coco/core"
 	"infini.sh/framework/core/api"
+	common "infini.sh/framework/core/api/common"
 	httprouter "infini.sh/framework/core/api/router"
 	"net/http"
 )
 
-type APIHandler struct {
+func init() {
+	api.RegisterUIFilter(&AuthFilter{})
+}
+
+type AuthFilter struct {
 	api.Handler
 }
 
-func init() {
-	handler := APIHandler{}
-	api.HandleUIMethod(api.GET, "/provider/_info", handler.providerInfo)
+func (f *AuthFilter) GetPriority() int {
+	return 200
 }
+func (f *AuthFilter) ApplyFilter(
+	method string,
+	pattern string,
+	options *api.HandlerOptions,
+	next httprouter.Handle,
+) httprouter.Handle {
 
-func (h *APIHandler) providerInfo(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	info := common.AppConfig()
-	h.WriteJSON(w, &info.ServerInfo, 200)
+	//option not enabled
+	if options == nil || !options.RequireLogin || !common.IsAuthEnable() {
+		return next
+	}
+
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+
+		claims, err1 := core.ValidateLogin(r)
+
+		if claims == nil {
+			o := api.PrepareErrorJson("invalid login", 401)
+			f.WriteJSON(w, o, 401)
+			return
+		}
+
+		if err1 != nil {
+			f.WriteErrorObject(w, err1, 401)
+			return
+		}
+
+		r = r.WithContext(core.AddUserToContext(r.Context(), claims))
+
+		next(w, r, ps)
+	}
 }

@@ -340,6 +340,8 @@ declare namespace App {
             yes: string;
           };
           advanced: string;
+          save: string,
+          testConnection: string,
         };
         datatable: {
           itemCount: string;
@@ -370,6 +372,33 @@ declare namespace App {
         page: {
           home: {
             server: {
+          datasource: {
+            columns: {
+              name: string;
+              type: string;
+              sync_policy: string;
+              latest_sync_time: string;
+              sync_status: string;
+              enabled: string;
+            };
+            new: {
+              title: string;
+              labels: {
+                name: string;
+                type: string,
+                indexing_scope: string,
+                data_sync: string,
+              }
+            }
+          };
+          about: {
+            devDep: string;
+            introduction: string;
+            prdDep: string;
+            projectInfo: {
+              githubLink: string;
+              latestBuildTime: string;
+              previewLink: string;
               title: string;
               address: string;
               addressDesc: string;

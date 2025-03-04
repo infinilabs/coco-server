@@ -15,7 +15,7 @@ asciinema: true
 ## Quickstart Script
 
 ### Download the Server
-   Get the appropriate [executables](https://github.com/infinilabs/coco-server/releases/) for your platform.
+   Get the appropriate [executables](https://coco.rs/) for your platform.
 
 ### Run the Quick Setup
    Simply execute the installation script:

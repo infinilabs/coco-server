@@ -220,6 +220,10 @@ const routeMap: RouteMap = {
   "data-source": "/data-source",
   "guide": "/guide",
   "home": "/home",
+  "data-source_detail": "detail/:id",
+  "data-source_edit": "edit/:id",
+  "data-source_list": "list",
+  "data-source_new": "new",
   "login": "/login",
   "settings": "/settings"
 };

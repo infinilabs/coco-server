@@ -49,6 +49,9 @@ const common: App.I18n.Schema['translation']['common'] = {
     yes: '是'
   },
   advanced: '高级',
+  save: '保存',
+  testConnection: '测试连接',
+  operation: '操作',
 };
 
 export default common;
