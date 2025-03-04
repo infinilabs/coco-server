@@ -51,7 +51,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       title: '创建一个账户',
       desc: '集成大模型后，您将解锁人工智能聊天功能，还能获得智能搜索服务和高效的工作助手。',
     },
-    setupLater: '稍后设置'
+    setupLater: '稍后设置',
     userDetail: {
       content: `loader 会让网络请求跟懒加载的文件几乎一起发出请求 然后 一边解析懒加载的文件 一边去等待 网络请求
         待到网络请求完成页面 一起显示 配合react的fiber架构 可以做到 用户如果嫌弃等待时间较长 在等待期间用户可以去
