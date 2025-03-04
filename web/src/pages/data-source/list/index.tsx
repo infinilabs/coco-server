@@ -1,10 +1,12 @@
 import Search from 'antd/es/input/Search';
-import { FilterOutlined, PlusOutlined, EllipsisOutlined} from '@ant-design/icons';
-import { Button, Dropdown, Table, GetProp, message } from 'antd';
+import { FilterOutlined, PlusOutlined, EllipsisOutlined, ExclamationCircleOutlined} from '@ant-design/icons';
+import { Button, Dropdown, Table, GetProp, message,Modal } from 'antd';
 import type { TableColumnsType, TableProps, MenuProps } from "antd";
 import type { SorterResult } from 'antd/es/table/interface';
 import {fetchDataSourceList, deleteDatasource} from '@/service/api'
 import { formatESSearchResult } from '@/service/request/es';
+
+const { confirm } = Modal;
 type Datasource = Api.Datasource.Datasource;
 
 
@@ -27,28 +29,41 @@ export function Component() {
     {
       label: t('common.delete'),
       key: "1",
-      onClick: ()=>{
-
-      }
+    },
+    {
+      label: t('common.edit'),
+      key: "2",
     },
   ];
 
   const onMenuClick = ({key, record}: any)=>{
     switch(key){
       case "1":
-        //todo delete datasource
-        deleteDatasource(record.id).then((res)=>{
-          if(res.data?.result === "deleted"){
-            message.success("deleted success")
-          }
-          //reload data
-          setReqParams((old)=>{
-            return {
-              ...old,
-            }
-          })
-        })
-        
+        confirm({
+          icon: <ExclamationCircleOutlined />,
+          content: 'Are you sure you want to delete this datasource?',
+          onOk() {
+             //delete datasource by datasource id
+            deleteDatasource(record.id).then((res)=>{
+              if(res.data?.result === "deleted"){
+                message.success("deleted success")
+              }
+              //reload data
+              setReqParams((old)=>{
+                return {
+                  ...old,
+                }
+              })
+            });
+          },
+          onCancel() {
+          },
+        });
+       
+        break;
+      case "2":
+        nav(`/data-source/edit/${record.id}`, {state:record});
+        break;
     }
   }
   const columns: TableColumnsType<Datasource> = [
@@ -57,7 +72,7 @@ export function Component() {
       dataIndex: "name",
       minWidth: 200,
       render: (value: string, record: Datasource)=>{
-        return <a className='text-blue-500' onClick={()=>nav(`/data-source/detail/${record.id}`, {state:{datasource_name: record.name}})}>{value}</a>
+        return <a className='text-blue-500' onClick={()=>nav(`/data-source/detail/${record.id}`, {state:{datasource_name: record.name, connector_id: record.connector?.id || ''}})}>{value}</a>
       }
     },
     {

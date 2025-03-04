@@ -124,7 +124,7 @@ export const TypeList =  ({
       </div>
     </div>}
     { v.id === Types.Yuque && <IndexingScope value={scope} onChange={onIndexingScopeChange}/>}
-    {v.id === Types.HugoSite && <div className='my-20px'><MultiURLInput onChange={onSiteURLsChange}/></div>}
+    {v.id === Types.HugoSite && <div className='my-20px'><MultiURLInput value={v.config?.urls || ['']} onChange={onSiteURLsChange}/></div>}
     { v.id === Types.GoogleDrive &&<div className='my-20px'>
       <div className='pb-8px text-gray-400'>Credential JSON File</div>
       <div className='flex gap-5px'>

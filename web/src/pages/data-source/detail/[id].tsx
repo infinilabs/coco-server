@@ -1,10 +1,12 @@
 import { type LoaderFunctionArgs, useLoaderData } from "react-router-dom";
 import type { TableColumnsType, TableProps, MenuProps } from "antd";
-import { Switch, Table, Dropdown} from "antd";
+import { Switch, Table, Dropdown, message, Modal} from "antd";
 import Search from "antd/es/input/Search";
-import Icon, { FilterOutlined, DownOutlined, FolderOpenOutlined, FileWordOutlined, FileOutlined, EllipsisOutlined } from "@ant-design/icons";
-import {fetchDatasourceDetail} from '@/service/api';
+import Icon, { FilterOutlined, DownOutlined, ExclamationCircleOutlined, EllipsisOutlined } from "@ant-design/icons";
+import {fetchDatasourceDetail, deleteDocument} from '@/service/api';
 import { formatESSearchResult } from '@/service/request/es';
+import {ConnectorImageIcon} from '@/components/icons/connector';
+const { confirm } = Modal;
 
 interface DataType {
   id: string;
@@ -18,39 +20,6 @@ interface DataType {
   is_dir: boolean;
   type: string;
 }
-
-const columns: TableColumnsType<DataType> = [
-  {
-    title: "Name",
-    dataIndex: "title",
-    render: (text: string, record: DataType) =>{
-      if(record.type == "web_page"){
-        return <span><FileOutlined className="mr-3px" /><a target="_blank" href={record.url} className="text-blue-500">{text}</a></span>
-      }
-      if(record.is_dir){
-        return <span><FolderOpenOutlined className="mr-3px text-yellow-500" /><a>{text}</a></span>
-      }
-      return <span>{record.type =="word" ? <FileWordOutlined className="mr-3px text-blue-500"/>: <FileOutlined className="mr-3px"/>}{text}</span>
-    },
-  },
-  {
-    title: "Searchable",
-    dataIndex: "searchable",
-    render: (text: boolean) => {
-      return <Switch value={text} />;
-    },
-  },
-  {
-    title: "Operations",
-    fixed: 'right',
-    width: "90px",
-    render: () => {
-      return <Dropdown menu={{ items }}>
-        <EllipsisOutlined/>
-      </Dropdown>
-    },
-  },
-];
 
 // rowSelection object indicates the need for row selection
 const rowSelection: TableProps<DataType>["rowSelection"] = {
@@ -79,7 +48,60 @@ export function Component() {
   const { t } = useTranslation();
   const nav = useNavigate();
   const location = useLocation();
-  const { datasource_name} = location.state || {}; 
+  const { datasource_name, connector_id} = location.state || {}; 
+  const onMenuClick = ({key, record}: any)=>{
+    switch(key){
+      case "1":
+        confirm({
+          icon: <ExclamationCircleOutlined />,
+          content: 'Are you sure you want to delete this document?',
+          onOk() {
+            deleteDocument(record.id).then((res)=>{
+              if(res.data?.result === "deleted"){
+                message.success("deleted success")
+              }
+              //reload data
+              setReqParams((old)=>{
+                return {
+                  ...old,
+                }
+              })
+            });
+          },
+          onCancel() {
+          },
+        });
+       
+        break;
+    }
+  }
+
+  const columns: TableColumnsType<DataType> = useMemo(()=>[
+    {
+      title: t('page.datasource.columns.name'),
+      dataIndex: "title",
+      render: (text: string, record: DataType) =>{
+        return <span> <Icon component={() => <ConnectorImageIcon connector={connector_id} doc_type={record.type}/>} className="mr-3px" /><a target="_blank" href={record.url} className="text-blue-500">{text}</a></span>
+      },
+    },
+    {
+      title: "Searchable",
+      dataIndex: "searchable",
+      render: (text: boolean) => {
+        return <Switch value={text} />;
+      },
+    },
+    {
+      title: t('common.operation'),
+      fixed: 'right',
+      width: "90px",
+      render: (_, record) => {
+        return <Dropdown menu={{ items, onClick:({key})=>onMenuClick({key, record}) }}>
+          <EllipsisOutlined/>
+        </Dropdown>
+      },
+    },
+  ], [connector_id, t]);
 
   if (!datasourceID) return <LookForward />;
 
@@ -136,7 +158,7 @@ export function Component() {
             addonBefore={<FilterOutlined />}
             className="max-w-500px"
             placeholder="input search text"
-            enterButton="Refresh"
+            enterButton= {t('common.refresh')}
             onSearch={onRefreshClick}
           />
           <div>
