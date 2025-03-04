@@ -54,15 +54,21 @@ declare namespace Api {
    */
   namespace Auth {
     interface LoginToken {
-      refreshToken: string;
-      token: string;
+      access_token: string;
     }
 
     interface UserInfo {
-      buttons: string[];
+      id: string;
+      name: string;
+      email: string;
+      avatar: string;
+      created: string;
+      updated: string;
       roles: string[];
-      userId: string;
-      userName: string;
+      preferences: {
+        theme: string;
+        language: string;
+      }
     }
   }
 
@@ -222,6 +228,29 @@ declare namespace Api {
     };
   }
 
+  namespace Server {
+    type Info = {
+      name: string;
+      endpoint: string;
+      provider: {
+        name: string;
+        icon: string;
+        website: string;
+        eula: string;
+        privacy_policy: string;
+        banner: string;
+        description: string;
+      };
+      version: {
+        number: string
+      };
+      updated: string;
+      public: boolean;
+      auth_provider: {
+        sso: {
+          url: string
+        }
+      };
   namespace Datasource {
     interface ConnectorConfig {
       urls: string[];

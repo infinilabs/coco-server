@@ -4,6 +4,11 @@ import type { MenuProps } from 'antd';
 import { useSubmit } from 'react-router-dom';
 
 import { selectToken, selectUserInfo } from '@/store/slice/auth';
+import { Suspense } from 'react';
+import { logout } from '@/service/api';
+import { localStg } from '@/utils/storage';
+
+const PasswordModal = lazy(() => import('./PasswordModal'));
 
 const UserAvatar = memo(() => {
   const token = useAppSelector(selectToken);
@@ -13,25 +18,38 @@ const UserAvatar = memo(() => {
   const route = useRoute();
   const router = useRouterPush();
 
-  function logout() {
+  const [passwordVisible, setPasswordVisible] = useState(false)
+
+  async function handleLogout() {
+    let needRedirect = false;
+    if (!route.meta?.constant) needRedirect = true;
+    const result = await logout()
+    if (result?.data?.status === 'ok') {
+      localStg.remove('token');
+      localStg.remove('refreshToken');
+      router.toLogin()
+    }
+    // submit({ needRedirect, redirectFullPath: route.fullPath }, { action: '/account/logout', method: 'post' });
+  }
+
+  function onLogout() {
     window?.$modal?.confirm({
       cancelText: t('common.cancel'),
       content: t('common.logoutConfirm'),
       okText: t('common.confirm'),
-      onOk: () => {
-        let needRedirect = false;
-        if (!route.meta?.constant) needRedirect = true;
-        submit({ needRedirect, redirectFullPath: route.fullPath }, { action: '/logout', method: 'post' });
-      },
+      onOk: () => handleLogout(),
       title: t('common.tip')
     });
   }
 
   function onClick({ key }: { key: string }) {
-    if (key === '1') {
-      logout();
+    if (key === 'logout') {
+      onLogout();
+    } else if (key === 'password') {
+      setPasswordVisible(true)
+      // router.routerPushByKey('user-center');
     } else {
-      router.routerPushByKey('user-center');
+      // router.routerPushByKey('user-center');
     }
   }
   function loginOrRegister() {
@@ -39,23 +57,23 @@ const UserAvatar = memo(() => {
   }
 
   const items: MenuProps['items'] = [
-    // {
-    //   key: '0',
-    //   label: (
-    //     <div className="flex-center gap-8px">
-    //       <SvgIcon
-    //         className="text-icon"
-    //         icon="ph:user-circle"
-    //       />
-    //       {t('common.userCenter')}
-    //     </div>
-    //   )
-    // },
-    // {
-    //   type: 'divider'
-    // },
     {
-      key: '1',
+      key: 'password',
+      label: (
+        <div className="flex-center gap-8px">
+          <SvgIcon
+            className="text-icon"
+            icon="mdi:password"
+          />
+          {t('common.password')}
+        </div>
+      )
+    },
+    {
+      type: 'divider'
+    },
+    {
+      key: 'logout',
       label: (
         <div className="flex-center gap-8px">
           <SvgIcon
@@ -67,25 +85,35 @@ const UserAvatar = memo(() => {
       )
     }
   ];
-  return token ? (
-    <Dropdown
-      menu={{ items, onClick }}
-      placement="bottomRight"
-      trigger={['click']}
-    >
-      <div>
-        <ButtonIcon className="px-12px">
-          <SvgIcon
-            className="text-icon-large"
-            icon="ph:user-circle"
-          />
-          <span className="text-16px font-medium">{userInfo.userName}</span>
-        </ButtonIcon>
-      </div>
-    </Dropdown>
-  ) : (
-    <Button onClick={loginOrRegister}>{t('page.login.common.loginOrRegister')}</Button>
-  );
+  
+  return (
+    <>
+      {
+        token ? (
+          <Dropdown
+            menu={{ items, onClick }}
+            placement="bottomRight"
+            trigger={['click']}
+          >
+            <div>
+              <ButtonIcon className="px-12px">
+                <SvgIcon
+                  className="text-icon-large"
+                  icon="ph:user-circle"
+                />
+                <span className="text-16px font-medium">{userInfo.name}</span>
+              </ButtonIcon>
+            </div>
+          </Dropdown>
+        ) : (
+          <Button onClick={loginOrRegister}>{t('page.login.common.loginOrRegister')}</Button>
+        )
+      }
+      <Suspense>
+        <PasswordModal open={passwordVisible} onClose={() => setPasswordVisible(false)} onSuccess={() => handleLogout()}/>
+      </Suspense>
+    </>
+  )
 });
 
 export default UserAvatar;

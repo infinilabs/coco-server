@@ -218,16 +218,13 @@ const routeMap: RouteMap = {
   "500": "/500",
   "ai-assistant": "/ai-assistant",
   "data-source": "/data-source",
+  "guide": "/guide",
+  "home": "/home",
   "data-source_detail": "detail/:id",
   "data-source_edit": "edit/:id",
   "data-source_list": "list",
   "data-source_new": "new",
   "login": "/login",
-  "login_code-login": "code-login",
-  "login_pwd-login": "pwd-login",
-  "login_register": "register",
-  "login_reset-pwd": "reset-pwd",
-  "server": "/server",
   "settings": "/settings"
 };
 

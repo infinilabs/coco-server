@@ -104,6 +104,7 @@ declare global {
   const TypeList: typeof import('../components/datasource/type/index.jsx')['TypeList']
   const TypeListComponent: typeof import('../components/datasource/type/index.jsx')['TypeListComponent']
   const WaveBg: typeof import('../components/stateless/custom/WaveBg')['default']
+  const buttonRadio: typeof import('../components/button-radio/index')['default']
   const YuqueSVG: typeof import('../components/icons/index.jsx')['YuqueSVG']
   const bucket: typeof import('../components/icons/bucket.jsx')['default']
   const createRef: typeof import('react')['createRef']

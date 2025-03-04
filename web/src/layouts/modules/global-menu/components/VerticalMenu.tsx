@@ -115,7 +115,7 @@ const VerticalMenu = memo(() => {
         openKeys={stateOpenKeys}
         selectedKeys={selectKey}
         onOpenChange={onOpenChange}
-        onSelect={handleClickMenu}
+        onClick={handleClickMenu}
       />
     </SimpleScrollbar>
   );

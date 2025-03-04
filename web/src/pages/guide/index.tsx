@@ -1,8 +1,8 @@
 import { getPaletteColorByNumber, mixColor } from '@sa/color';
 import { getDarkMode, getThemeSettings } from '@/store/slice/theme';
-import LoginForm from './modules/LoginForm';
-import bg from "@/assets/svg-icon/login.svg"
-import bgZH from "@/assets/svg-icon/login-zh.svg"
+import Guide from './modules/Guide';
+import bg from "@/assets/svg-icon/guide.svg"
+import bgZH from "@/assets/svg-icon/guide-zh.svg"
 import { getLocale } from '@/store/slice/app';
 
 const COLOR_WHITE = '#ffffff';
@@ -40,11 +40,7 @@ export function Component() {
                 
             </div>
             <div className="h-100% w-2/3 bg-white">
-              <div className="size-full flex flex-col items-left justify-center px-10%">
-                <div className="w-440px">
-                      <LoginForm />
-                  </div>
-              </div>
+                <Guide />
             </div>
         </div>
     );
