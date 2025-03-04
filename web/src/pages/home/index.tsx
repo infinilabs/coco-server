@@ -23,7 +23,7 @@ const SETTINGS = [
 ]
 
 export function Component() {
-
+    
     const userInfo = useAppSelector(selectUserInfo);
     const routerPush = useRouterPush();
     const { t } = useTranslation();
@@ -85,7 +85,7 @@ export function Component() {
       <Spin spinning={dataLoading || loading}>
         <Card className="m-b-12px px-32px py-40px" classNames={{ body: "!p-0" }}>
           <div className={`flex ${isNameEditing ? '[align-items:self-end]' : 'items-center'} m-b-48px`}>
-            <div className="h-40px leading-40px m-r-16px text-32px color-#333 relative">
+            <div className={`h-40px leading-40px m-r-16px text-32px color-#333 relative ${isNameEditing ? 'w-344px' : ''}`}>
               {
                 isNameEditing && (
                   <Form
@@ -93,13 +93,13 @@ export function Component() {
                     form={form}
                   >
                     <Form.Item className="m-b-0" name="name" rules={[defaultRequiredRule]}>
-                      <Input autoFocus className="w-100% h-40px"/>
+                      <Input autoFocus className="w-100% h-40px [min-width:344px] m-r-16px "/>
                     </Form.Item>
                   </Form>
                 )
               }
               {
-                data?.name ? data?.name : <span>{t('page.home.server.title',  { user: userInfo.username })}</span>
+                data?.name ? data?.name : <span>{t('page.home.server.title',  { user: userInfo.name })}</span>
               }
             </div>
             <Button 

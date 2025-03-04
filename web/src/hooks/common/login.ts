@@ -23,7 +23,7 @@ export function useLogin() {
 
       if (userName) {
         await dispatch(initAuthRoute());
-  
+        
         if (redirect) {
           await redirectFromLogin(redirect);
         }

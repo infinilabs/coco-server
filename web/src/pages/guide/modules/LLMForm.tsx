@@ -7,7 +7,7 @@ import ButtonRadio from "@/components/button-radio";
 
 type ModelType = 'ollama' | 'openai'
 
-const LLMForm = memo(({ form, onSubmit, loading }: { form: FormInstance, onSubmit: () => void; loading: boolean }) => {
+const LLMForm = memo(({ form, onSubmit, loading }: { form: FormInstance, onSubmit: (isPass?: boolean) => void; loading: boolean }) => {
     const formItemClassNames = "m-b-32px"
     const inputClassNames = "h-40px"
     const { t } = useTranslation();
@@ -78,7 +78,7 @@ const LLMForm = memo(({ form, onSubmit, loading }: { form: FormInstance, onSubmi
                     />
                 </Form.Item>
                 <div className="flex justify-between">
-                    <Button type="link" size="large" className="h-56px text-14px px-0" onClick={() => onSubmit()}>{t('page.guide.setupLater')}</Button>
+                    <Button type="link" size="large" className="h-56px text-14px px-0" onClick={() => onSubmit(true)}>{t('page.guide.setupLater')}</Button>
                     <Button loading={loading} type="primary" size="large" className="w-56px h-56px text-24px" onClick={() => onSubmit()}>
                       <SvgIcon icon="mdi:check" />
                     </Button>

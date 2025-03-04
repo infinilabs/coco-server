@@ -82,7 +82,7 @@ export const createRouteGuard: BeforeEach = (to, _, blockerOrJump) => {
   const needLogin = !to.meta.constant;
   const routeRoles = to.meta.roles || [];
 
-  const hasRole = selectUserInfo(store.getState()).roles.some(role => routeRoles.includes(role));
+  const hasRole = selectUserInfo(store.getState()).roles?.some(role => routeRoles.includes(role));
 
   const hasAuth = store.dispatch(isStaticSuper()) || !routeRoles.length || hasRole;
 

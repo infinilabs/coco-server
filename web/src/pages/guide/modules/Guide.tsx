@@ -11,17 +11,24 @@ const Guide = memo(() => {
     const { endLoading, loading, startLoading } = useLoading();
     const [editValue, setEditValue] = useState()
 
-    const handleSubmit = async () => {
-      const params = await form.validateFields();
+    const handleSubmit = async (isPass?: boolean) => {
       if (step === 0) {
+        const params = await form.validateFields();
         setStep(1)
         setEditValue(params)
       } else if (step === 1) {
+        let body
+        if (isPass) {
+          body = editValue
+        } else {
+          const params = await form.validateFields();
+          body = {
+            ...(editValue || {}),
+            ...params
+          }
+        }
         startLoading()
-        const { error } = await setup({
-          ...(editValue || {}),
-          ...params
-        });
+        const { error } = await setup(body);
         endLoading()
         if (!error) {
           router.routerPushByKey('login');
@@ -32,9 +39,9 @@ const Guide = memo(() => {
     const renderContent = () => {
       switch (step) {
         case 0:
-          return <UserForm form={form} onSubmit={() => handleSubmit()}/>
+          return <UserForm form={form} onSubmit={handleSubmit}/>
         case 1:
-          return <LLMForm form={form} onSubmit={() => handleSubmit()} loading={loading}/>
+          return <LLMForm form={form} onSubmit={handleSubmit} loading={loading}/>
         default:
           break;
       }

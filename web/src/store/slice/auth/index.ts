@@ -21,12 +21,11 @@ export const authSlice = createAppSlice({
   reducers: create => ({
     login: create.asyncThunk(
       async ({ password }: { password: string; userName: string }) => {
-        const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjpbeyJ1c2VyTmFtZSI6IlNveWJlYW4ifV0sImlhdCI6MTY5ODQ4NDg2MywiZXhwIjoxNzMwMDQ0Nzk5LCJhdWQiOiJzb3liZWFuLWFkbWluIiwiaXNzIjoiU295YmVhbiIsInN1YiI6IlNveWJlYW4ifQ._w5wmPm6HVJc5fzkSrd_j-92d5PBRzWUfnrTF1bAmfk"
-        const { data: loginToken, error } = await fetchLogin(password);
+        const { data, error } = await fetchLogin(password);
         // 1. stored in the localStorage, the later requests need it in headers
         if (!error) {
-          localStg.set('token', token);
-          localStg.set('refreshToken', token);
+          localStg.set('token', data.access_token);
+          localStg.set('refreshToken', data.access_token);
 
           const { data: info, error: userInfoError } = await fetchGetUserInfo();
 
@@ -34,7 +33,7 @@ export const authSlice = createAppSlice({
             // 2. store user info
             localStg.set('userInfo', info);
             return {
-              token: token,
+              token: data.access_token,
               userInfo: info
             };
           }
@@ -66,16 +65,17 @@ export const { login, resetAuth } = authSlice.actions;
 export const getUerName = (): AppThunk<string> => (_, getState) => {
   const pass = selectToken(getState());
 
-  return pass ? selectUserInfo(getState()).username : '';
+  return pass ? selectUserInfo(getState()).name : '';
 };
 
 /** is super role in static route */
 
 export const isStaticSuper = (): AppThunk<boolean> => (_, getState) => {
-  const { roles } = selectUserInfo(getState());
+  const { roles = [] } = selectUserInfo(getState());
 
   const { VITE_AUTH_ROUTE_MODE, VITE_STATIC_SUPER_ROLE } = import.meta.env;
-  return VITE_AUTH_ROUTE_MODE === 'static' && roles.includes(VITE_STATIC_SUPER_ROLE);
+  // return VITE_AUTH_ROUTE_MODE === 'static' && roles.includes(VITE_STATIC_SUPER_ROLE);
+  return VITE_AUTH_ROUTE_MODE === 'static';
 };
 
 /** Reset auth store */

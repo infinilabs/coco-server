@@ -54,13 +54,12 @@ declare namespace Api {
    */
   namespace Auth {
     interface LoginToken {
-      refreshToken: string;
-      token: string;
+      access_token: string;
     }
 
     interface UserInfo {
       id: string;
-      username: string;
+      name: string;
       email: string;
       avatar: string;
       created: string;

@@ -73,7 +73,7 @@ export const themeSettings: App.Theme.ThemeSetting = {
     }
   },
   watermark: {
-    text: 'SoybeanAdmin',
+    text: '',
     visible: false
   }
 };
@@ -85,7 +85,7 @@ export const themeSettings: App.Theme.ThemeSetting = {
  */
 export const overrideThemeSettings: Partial<App.Theme.ThemeSetting> = {
   watermark: {
-    text: 'SoybeanAdmin',
+    text: '',
     visible: false
   }
 };

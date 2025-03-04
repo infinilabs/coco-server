@@ -106,7 +106,7 @@ export function useRouterPush() {
    */
   async function redirectFromLogin(needRedirect = true) {
     const redirect = searchParams.get('redirect');
-
+    
     if (needRedirect && redirect) {
       routerPush(redirect);
     } else {

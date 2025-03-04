@@ -59,7 +59,7 @@ const App = () => {
       <AppProvider>
         <AWatermark
           className="h-full"
-          content={themeSettings.watermark.visible ? themeSettings.watermark?.text || 'Soybean' : ''}
+          content={themeSettings.watermark.visible ? themeSettings.watermark?.text || 'InfiniLabs' : ''}
           {...watermarkProps}
         >
           <RouterProvider

@@ -5,6 +5,8 @@ import { useSubmit } from 'react-router-dom';
 
 import { selectToken, selectUserInfo } from '@/store/slice/auth';
 import { Suspense } from 'react';
+import { logout } from '@/service/api';
+import { localStg } from '@/utils/storage';
 
 const PasswordModal = lazy(() => import('./PasswordModal'));
 
@@ -18,13 +20,19 @@ const UserAvatar = memo(() => {
 
   const [passwordVisible, setPasswordVisible] = useState(false)
 
-  function handleLogout() {
+  async function handleLogout() {
     let needRedirect = false;
     if (!route.meta?.constant) needRedirect = true;
-    submit({ needRedirect, redirectFullPath: route.fullPath }, { action: '/account/logout', method: 'post' });
+    const result = await logout()
+    if (result?.data?.status === 'ok') {
+      localStg.remove('token');
+      localStg.remove('refreshToken');
+      router.toLogin()
+    }
+    // submit({ needRedirect, redirectFullPath: route.fullPath }, { action: '/account/logout', method: 'post' });
   }
 
-  function logout() {
+  function onLogout() {
     window?.$modal?.confirm({
       cancelText: t('common.cancel'),
       content: t('common.logoutConfirm'),
@@ -36,7 +44,7 @@ const UserAvatar = memo(() => {
 
   function onClick({ key }: { key: string }) {
     if (key === 'logout') {
-      logout();
+      onLogout();
     } else if (key === 'password') {
       setPasswordVisible(true)
       // router.routerPushByKey('user-center');
@@ -93,7 +101,7 @@ const UserAvatar = memo(() => {
                   className="text-icon-large"
                   icon="ph:user-circle"
                 />
-                <span className="text-16px font-medium">{userInfo.username}</span>
+                <span className="text-16px font-medium">{userInfo.name}</span>
               </ButtonIcon>
             </div>
           </Dropdown>

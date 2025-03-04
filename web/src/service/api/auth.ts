@@ -38,6 +38,17 @@ export function modifyPassword(old_password: string, new_password: string) {
 }
 
 /**
+ * Logout
+ *
+ */
+export function logout() {
+  return request({
+    method: 'post',
+    url: '/account/logout'
+  });
+}
+
+/**
  * Refresh token
  *
  * @param refreshToken Refresh token
@@ -50,14 +61,4 @@ export function fetchRefreshToken(refreshToken: string) {
     method: 'post',
     url: '/auth/refreshToken'
   });
-}
-
-/**
- * return custom backend error
- *
- * @param code error code
- * @param msg error message
- */
-export function fetchCustomBackendError(code: string, msg: string) {
-  return request({ params: { code, msg }, url: '/auth/error' });
 }
