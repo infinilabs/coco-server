@@ -36,6 +36,7 @@ export function Component() {
     } = useFormRules();
 
     const [isNameEditing, setIsNameEditing] = useState(false)
+    const [isEndpointEditing, setIsEndpointEditing] = useState(false)
 
     const { data, run, loading: dataLoading } = useRequest(fetchServer, {
       manual: true
@@ -85,14 +86,18 @@ export function Component() {
         <Card className="m-b-12px px-32px py-40px" classNames={{ body: "!p-0" }}>
           <div className={`flex ${isNameEditing ? '[align-items:self-end]' : 'items-center'} m-b-48px`}>
             <div className="h-40px leading-40px m-r-16px text-32px color-#333 relative">
-              <Form
-                className={`w-100% z-1 absolute top-2px left-0 ${isNameEditing ? 'visible' : 'invisible'}`}
-                form={form}
-              >
-                <Form.Item className="m-b-0" name="name" rules={[defaultRequiredRule]}>
-                  <Input className="w-100% h-40px"/>
-                </Form.Item>
-              </Form>
+              {
+                isNameEditing && (
+                  <Form
+                    className={`w-100% z-1 absolute top-2px left-0`}
+                    form={form}
+                  >
+                    <Form.Item className="m-b-0" name="name" rules={[defaultRequiredRule]}>
+                      <Input autoFocus className="w-100% h-40px"/>
+                    </Form.Item>
+                  </Form>
+                )
+              }
               {
                 data?.name ? data?.name : <span>{t('page.home.server.title',  { user: userInfo.username })}</span>
               }
@@ -115,25 +120,33 @@ export function Component() {
           </div>
           <div className="flex m-b-16px">
             <div className="w-400px h-48px color-#333 m-r-8px bg-#F7F9FC leading-48px rounded-4px relative p-r-30px"> 
-              <Form
-                form={form}
-              >
-                <Form.Item name="endpoint" rules={[defaultRequiredRule]}>
-                  <Input variant="borderless" className="h-48px p-r-0" onBlur={(e) => {
-                    if (e.relatedTarget?.id !== 'endpoint-save') {
-                      form.setFieldsValue({ endpoint: data?.endpoint})
-                    }
-                  }}/>
-                </Form.Item>
-              </Form>
+              {
+                isEndpointEditing ? (
+                  <Form
+                    form={form}
+                  >
+                    <Form.Item name="endpoint" rules={[defaultRequiredRule]}>
+                      <Input autoFocus className="h-48px p-r-32px w-[calc(100%+30px)]" onBlur={(e) => {
+                        if (e.relatedTarget?.id !== 'endpoint-save') {
+                          form.setFieldsValue({ endpoint: data?.endpoint})
+                        }
+                      }}/>
+                    </Form.Item>
+                  </Form>
+                ) : <div className="p-l-11px">{data?.endpoint}</div>
+              }
               <Button 
                 id="endpoint-save"
                 onClick={() => {
-                  handleSubmit('endpoint')
+                  if (isEndpointEditing) {
+                    handleSubmit('endpoint', () => setIsEndpointEditing(!isEndpointEditing))
+                  } else {
+                    setIsEndpointEditing(!isEndpointEditing)
+                  }
                 }} 
                 type="link" 
-                className="w-30px h-48px bg-#F7F9FC !hover:bg-#F7F9FC rounded-12px p-0 absolute top-0 right-0">
-                <SvgIcon className="text-24px" icon="mdi:content-save"/>
+                className="w-30px h-48px rounded-12px p-0 absolute top-0 right-0 z-1">
+                <SvgIcon className="text-24px" icon={isEndpointEditing ? "mdi:content-save" : "mdi:square-edit-outline"}/>
               </Button>
             </div>
             <div ref={domRef} >

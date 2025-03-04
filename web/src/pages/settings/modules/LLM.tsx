@@ -4,7 +4,7 @@ import OllamaSvg from '@/assets/svg-icon/ollama.svg'
 import OpenAISvg from '@/assets/svg-icon/openai.svg'
 import { ReactSVG } from 'react-svg';
 import { useLoading } from '@sa/hooks';
-import { updateSettings } from "@/service/api/server";
+import { fetchSettings, updateSettings } from "@/service/api/server";
 import ButtonRadio from "@/components/button-radio";
 
 const ADVANCED = [
@@ -72,6 +72,10 @@ const LLM = memo(() => {
         ]
     }
 
+    const { data, run, loading: dataLoading } = useRequest(fetchSettings, {
+        manual: true
+    });
+
     const handleSubmit = async () => {
         const params = await form.validateFields();
         startLoading()
@@ -81,14 +85,18 @@ const LLM = memo(() => {
         endLoading()
     }
 
+    useMount(() => {
+        run();
+    });
+
     return (
-        <Spin spinning={loading}>
+        <Spin spinning={dataLoading || loading}>
             <Form 
                 form={form}
                 labelAlign="left"
                 className="settings-form"
                 colon={false}
-                initialValues={{ 
+                initialValues={data?.llm || { 
                     type,
                     "default_model":"deepseek_r1",
                     "parameters":{

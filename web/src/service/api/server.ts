@@ -12,6 +12,17 @@ export function fetchServer() {
 }
 
 /**
+ * Get settings
+ *
+ */
+export function fetchSettings() {
+  return request({
+    method: 'get',
+    url: '/settings'
+  });
+}
+
+/**
  * Update server's settings
  *
  */
