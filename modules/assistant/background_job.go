@@ -514,7 +514,7 @@ Data:
 				panic(err)
 			}
 
-			log.Info(util.MustToJSON(details))
+			//log.Info(util.MustToJSON(details))
 
 			//save response message to system
 			if len(details) > 0 || messageBuffer.Len() > 0 {
