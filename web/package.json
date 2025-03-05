@@ -125,10 +125,6 @@
     "vite-plugin-remove-console": "2.2.0",
     "vite-plugin-svg-icons": "2.0.1"
   },
-  "simple-git-hooks": {
-    "commit-msg": "cd web && pnpm sa git-commit-verify",
-    "pre-commit": "cd web && pnpm typecheck && pnpm lint-staged"
-  },
   "lint-staged": {
     "*": "eslint --fix"
   },
