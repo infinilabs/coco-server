@@ -79,15 +79,24 @@ const LLM = memo(() => {
     const handleSubmit = async () => {
         const params = await form.validateFields();
         startLoading()
-        await updateSettings({
+        const result = await updateSettings({
             llm: params
         });
+        if (result.data.acknowledged) {
+          window.$message?.success(t('common.updateSuccess'));
+        }
         endLoading()
     }
 
     useMount(() => {
         run();
     });
+
+    useEffect(() => {
+      if (data?.data?.llm) {
+        form.setFieldsValue(data.data.llm);
+      }
+    }, [JSON.stringify(data)]);
 
     return (
         <Spin spinning={dataLoading || loading}>
@@ -96,7 +105,7 @@ const LLM = memo(() => {
                 labelAlign="left"
                 className="settings-form"
                 colon={false}
-                initialValues={data?.llm || { 
+                initialValues={{ 
                     type,
                     "default_model":"deepseek_r1",
                     "parameters":{

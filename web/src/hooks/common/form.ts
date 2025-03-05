@@ -31,7 +31,7 @@ export function useFormRules() {
       validateTrigger: 'onChange'
     },
     endpoint: {
-      message: $t('form.userName.invalid'),
+      message: $t('form.endpoint.invalid'),
       pattern: REG_ENDPOINT,
       validateTrigger: 'onChange'
     }

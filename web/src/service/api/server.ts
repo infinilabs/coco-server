@@ -29,7 +29,7 @@ export function fetchSettings() {
 export function updateSettings(data: { server?: any; llm?: any }) {
   return request({
     data: data,
-    method: 'post',
+    method: 'put',
     url: '/settings'
   });
 }
