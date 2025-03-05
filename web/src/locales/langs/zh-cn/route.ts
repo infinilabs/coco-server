@@ -49,7 +49,8 @@ const route: App.I18n.Schema['translation']['route'] = {
   'server': '服务端',
   'ai-assistant': 'AI 助手',
   'data-source': '数据源',
-  'settings': '设置'
+  'settings': '设置',
+  'guide': '初始化向导'
 };
 
 export default route;

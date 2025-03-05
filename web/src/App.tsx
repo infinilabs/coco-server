@@ -39,7 +39,7 @@ function useTheme() {
     toggleCssDarkMode(darkMode);
   }, [darkMode]);
 
-  console.info(`%c${info}`, `color: ${colors.primary}`);
+  // console.info(`%c${info}`, `color: ${colors.primary}`);
 
   return { antdTheme, themeSettings };
 }
@@ -59,7 +59,7 @@ const App = () => {
       <AppProvider>
         <AWatermark
           className="h-full"
-          content={themeSettings.watermark.visible ? themeSettings.watermark?.text || 'Soybean' : ''}
+          content={themeSettings.watermark.visible ? themeSettings.watermark?.text || 'InfiniLabs' : ''}
           {...watermarkProps}
         >
           <RouterProvider

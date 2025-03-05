@@ -36,7 +36,7 @@ const local: App.I18n.Schema['translation'] = {
   system: {
     errorReason: 'Cause Error',
     reload: 'Reload Page',
-    title: 'SoybeanAdmin',
+    title: 'Coco Server',
     updateCancel: 'Later',
     updateConfirm: 'Refresh immediately',
     updateContent: 'A new version of the system has been detected. Do you want to refresh the page immediately?',

@@ -3,23 +3,49 @@ import { request } from '../request';
 /**
  * Login
  *
- * @param userName User name
  * @param password Password
  */
-export function fetchLogin(userName: string, password: string) {
+export function fetchLogin(password: string) {
   return request<Api.Auth.LoginToken>({
     data: {
       password,
-      userName
     },
     method: 'post',
-    url: '/auth/login'
+    url: '/account/login'
   });
 }
 
 /** Get user info */
 export function fetchGetUserInfo() {
-  return request<Api.Auth.UserInfo>({ url: '/auth/getUserInfo' });
+  return request<Api.Auth.UserInfo>({ url: '/account/profile' });
+}
+
+/**
+ * Modify password
+ *
+ * @param old_password Password
+ * @param new_password Password
+ */
+export function modifyPassword(old_password: string, new_password: string) {
+  return request({
+    data: {
+      old_password,
+      new_password
+    },
+    method: 'put',
+    url: '/account/password'
+  });
+}
+
+/**
+ * Logout
+ *
+ */
+export function logout() {
+  return request({
+    method: 'post',
+    url: '/account/logout'
+  });
 }
 
 /**
@@ -35,14 +61,4 @@ export function fetchRefreshToken(refreshToken: string) {
     method: 'post',
     url: '/auth/refreshToken'
   });
-}
-
-/**
- * return custom backend error
- *
- * @param code error code
- * @param msg error message
- */
-export function fetchCustomBackendError(code: string, msg: string) {
-  return request({ params: { code, msg }, url: '/auth/error' });
 }

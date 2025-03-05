@@ -1,6 +1,6 @@
 import type { FormInstance } from 'antd';
 
-import { REG_CODE_SIX, REG_EMAIL, REG_PHONE, REG_PWD, REG_USER_NAME } from '@/constants/reg';
+import { REG_CODE_SIX, REG_EMAIL, REG_ENDPOINT, REG_PHONE, REG_PWD, REG_USER_NAME } from '@/constants/reg';
 import { $t } from '@/locales';
 
 export function useFormRules() {
@@ -29,6 +29,11 @@ export function useFormRules() {
       message: $t('form.userName.invalid'),
       pattern: REG_USER_NAME,
       validateTrigger: 'onChange'
+    },
+    endpoint: {
+      message: $t('form.endpoint.invalid'),
+      pattern: REG_ENDPOINT,
+      validateTrigger: 'onChange'
     }
   } satisfies Record<string, App.Global.FormRule>;
 
@@ -37,7 +42,8 @@ export function useFormRules() {
     email: [createRequiredRule($t('form.email.required')), patternRules.email],
     phone: [createRequiredRule($t('form.phone.required')), patternRules.phone],
     pwd: [createRequiredRule($t('form.pwd.required')), patternRules.pwd],
-    userName: [createRequiredRule($t('form.userName.required')), patternRules.userName]
+    userName: [createRequiredRule($t('form.userName.required')), patternRules.userName],
+    endpoint: [createRequiredRule($t('form.endpoint.required')), patternRules.endpoint]
   } satisfies Record<string, App.Global.FormRule[]>;
 
   /** the default required rule */

@@ -302,6 +302,7 @@ declare namespace App {
           config: string;
           confirm: string;
           confirmDelete: string;
+          copySuccess: string;
           delete: string;
           deleteSuccess: string;
           edit: string;
@@ -328,11 +329,19 @@ declare namespace App {
           update: string;
           updateSuccess: string;
           userCenter: string;
+          password: string;
+          modifyPassword: string;
+          oldPassword: string;
+          newPassword: string;
+          loginAgain: string;
           warning: string;
           yesOrNo: {
             no: string;
             yes: string;
           };
+          advanced: string;
+          save: string,
+          testConnection: string,
         };
         datatable: {
           itemCount: string;
@@ -346,6 +355,7 @@ declare namespace App {
           pwd: FormMsg;
           required: string;
           userName: FormMsg;
+          endpoint: FormMsg;
         };
         icon: {
           collapse: string;
@@ -360,96 +370,71 @@ declare namespace App {
           unpin: string;
         };
         page: {
-          about: {
-            devDep: string;
-            introduction: string;
-            prdDep: string;
-            projectInfo: {
-              githubLink: string;
-              latestBuildTime: string;
-              previewLink: string;
-              title: string;
-              version: string;
-            };
-            title: string;
-          };
-          function: {
-            multiTab: {
-              backTab: string;
-              routeParam: string;
-            };
-            request: {
-              repeatedError: string;
-              repeatedErrorMsg1: string;
-              repeatedErrorMsg2: string;
-              repeatedErrorOccurOnce: string;
-            };
-            tab: {
-              tabOperate: {
-                addMultiTab: string;
-                addMultiTabDesc1: string;
-                addMultiTabDesc2: string;
-                addTab: string;
-                addTabDesc: string;
-                closeAboutTab: string;
-                closeCurrentTab: string;
-                closeTab: string;
-                title: string;
-              };
-              tabTitle: {
-                change: string;
-                changeTitle: string;
-                reset: string;
-                resetTitle: string;
-                title: string;
-              };
-            };
-            toggleAuth: {
-              adminOrUserVisible: string;
-              adminVisible: string;
-              authHook: string;
-              superAdminVisible: string;
-              toggleAccount: string;
-            };
-          };
           home: {
-            creativity: string;
-            dealCount: string;
-            downloadCount: string;
-            entertainment: string;
-            greeting: string;
-            message: string;
-            projectCount: string;
-            projectNews: {
-              desc1: string;
-              desc2: string;
-              desc3: string;
-              desc4: string;
-              desc5: string;
-              moreNews: string;
+            server: {
               title: string;
+              address: string;
+              addressDesc: string;
+              downloadCocoAI: string;
             };
-            registerCount: string;
-            rest: string;
-            schedule: string;
-            study: string;
-            todo: string;
-            turnover: string;
-            visitCount: string;
-            weatherDesc: string;
-            work: string;
+            settings: {
+              llm: string;
+              llmDesc: string;
+              dataSource: string;
+              dataSourceDesc: string;
+              aiAssistant: string;
+              aiAssistantDesc: string;
+            };
+          },
+          datasource: {
+            columns: {
+              name: string;
+              type: string;
+              sync_policy: string;
+              latest_sync_time: string;
+              sync_status: string;
+              enabled: string;
+            };
+            new: {
+              title: string;
+              labels: {
+                name: string;
+                type: string;
+                indexing_scope: string;
+                data_sync: string;
+                manual_sync: string;
+                manual_sync_desc: string;
+                scheduled_sync: string;
+                scheduled_sync_desc: string;
+                realtime_sync: string;
+                realtime_sync_desc: string;
+                immediate_sync: string;
+              }
+            }
+          };
+          settings: {
+            llm: {
+              type: string;
+              endpoint: string;
+              defaultModel: string;
+              requestParams: string;
+              temperature: string;
+              temperatureDesc: string;
+              topP: string;
+              topPDesc: string;
+              maxTokens: string;
+              maxTokensDesc: string;
+              presencePenalty: string;
+              presencePenaltyDesc: string;
+              frequencyPenalty: string;
+              frequencyPenaltyDesc: string;
+              enhancedInference: string;
+            }
           };
           login: {
-            bindWeChat: {
-              title: string;
-            };
-            codeLogin: {
-              getCode: string;
-              imageCodePlaceholder: string;
-              reGetCode: string;
-              sendCodeSuccess: string;
-              title: string;
-            };
+            title: string;
+            desc: string;
+            password: string;
             common: {
               back: string;
               codeLogin: string;
@@ -464,151 +449,21 @@ declare namespace App {
               validateSuccess: string;
               welcomeBack: string;
             };
-            pwdLogin: {
-              admin: string;
-              forgetPassword: string;
-              otherAccountLogin: string;
-              otherLoginMode: string;
-              register: string;
-              rememberMe: string;
-              superAdmin: string;
-              title: string;
-              user: string;
-            };
-            register: {
-              agreement: string;
-              policy: string;
-              protocol: string;
-              title: string;
-            };
-            resetPwd: {
-              title: string;
-            };
           };
-          manage: {
-            common: {
-              status: {
-                disable: string;
-                enable: string;
-              };
-            };
-            menu: {
-              activeMenu: string;
-              addChildMenu: string;
-              addMenu: string;
-              button: string;
-              buttonCode: string;
-              buttonDesc: string;
-              constant: string;
-              editMenu: string;
-              fixedIndexInTab: string;
-              form: {
-                activeMenu: string;
-                button: string;
-                buttonCode: string;
-                buttonDesc: string;
-                fixedIndexInTab: string;
-                fixedInTab: string;
-                hideInMenu: string;
-                home: string;
-                href: string;
-                i18nKey: string;
-                icon: string;
-                keepAlive: string;
-                layout: string;
-                localIcon: string;
-                menuName: string;
-                menuStatus: string;
-                menuType: string;
-                multiTab: string;
-                order: string;
-                page: string;
-                parent: string;
-                pathParam: string;
-                queryKey: string;
-                queryValue: string;
-                routeName: string;
-                routePath: string;
-              };
-              hideInMenu: string;
-              home: string;
-              href: string;
-              i18nKey: string;
-              icon: string;
-              iconType: {
-                iconify: string;
-                local: string;
-              };
-              iconTypeTitle: string;
-              id: string;
-              keepAlive: string;
-              layout: string;
-              localIcon: string;
-              menuName: string;
-              menuStatus: string;
-              menuType: string;
-              multiTab: string;
-              order: string;
-              page: string;
-              parent: string;
-              parentId: string;
-              pathParam: string;
-              query: string;
-              routeName: string;
-              routePath: string;
-              title: string;
-              type: {
-                directory: string;
-                menu: string;
-              };
-            };
-            role: {
-              addRole: string;
-              buttonAuth: string;
-              editRole: string;
-              form: {
-                roleCode: string;
-                roleDesc: string;
-                roleName: string;
-                roleStatus: string;
-              };
-              menuAuth: string;
-              roleCode: string;
-              roleDesc: string;
-              roleName: string;
-              roleStatus: string;
-              title: string;
-            };
+          guide: {
             user: {
-              addUser: string;
-              editUser: string;
-              form: {
-                nickName: string;
-                userEmail: string;
-                userGender: string;
-                userName: string;
-                userPhone: string;
-                userRole: string;
-                userStatus: string;
-              };
-              gender: {
-                female: string;
-                male: string;
-              };
-              nickName: string;
               title: string;
-              userEmail: string;
-              userGender: string;
-              userName: string;
-              userPhone: string;
-              userRole: string;
-              userStatus: string;
+              desc: string;
+              name: string;
+              email: string;
+              password: string;
             };
-            userDetail: {
-              content: string;
-              explain: string;
+            llm: {
+              title: string;
+              desc: string;
             };
-          };
+            setupLater: string;
+          }
         };
         request: {
           logout: string;

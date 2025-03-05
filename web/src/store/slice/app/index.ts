@@ -24,15 +24,15 @@ const initialState: InitialStateType = {
   fullContent: false,
   /** Is mobile layout */
   isMobile: false,
-  locale: localStg.get('lang') || 'zh-CN',
+  locale: localStg.get('lang') || 'en-US',
   localeOptions: [
-    {
-      key: 'zh-CN',
-      label: '中文'
-    },
     {
       key: 'en-US',
       label: 'English'
+    },
+    {
+      key: 'zh-CN',
+      label: '中文'
     }
   ],
   mixSiderFixed: false,

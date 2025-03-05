@@ -6,20 +6,23 @@ export function getToken() {
 
 /** Get user info */
 export function getUserInfo() {
-  const emptyInfo: Api.Auth.UserInfo = {
-    buttons: [],
-    roles: [],
-    userId: '',
-    userName: ''
-  };
-  const userInfo = localStg.get('userInfo') || emptyInfo;
 
-  // fix new property: buttons, this will be removed in the next version `1.1.0`
-  if (!userInfo.buttons) {
-    userInfo.buttons = [];
+  const userInfo = localStg.get('userInfo') || {
+    "id": "",
+    "name": "",
+    "email": "",
+    "avatar": "",
+    "created": "",
+    "updated": "",
+    "roles": [],
+    "preferences": {
+      "theme": "",
+      "language": ""
+    }
   }
 
   return userInfo;
+
 }
 
 /** Clear auth storage */

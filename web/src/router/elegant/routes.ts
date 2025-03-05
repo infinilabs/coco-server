@@ -53,74 +53,92 @@ export const generatedRoutes: GeneratedRoute[] = [
   {
     name: 'data-source',
     path: '/data-source',
-    component: 'layout.base$view.data-source',
+    component: 'layout.base',
+    redirect: 'list',
     meta: {
       i18nKey: 'route.data-source',
       title: 'data-source',
       icon: 'mdi:folder-open-outline',
       order: 3
-    }
-  },
-  {
-    name: 'login',
-    path: '/login',
-    component: 'layout.blank',
-    redirect: 'pwd-login',
-    layout: 'blank',
-    meta: {
-      title: 'login',
-      i18nKey: 'route.login',
-      constant: true,
-      hideInMenu: true
     },
     children: [
       {
-        name: 'login_code-login',
-        path: 'code-login',
-        component: 'view.login_code-login',
+        name: 'data-source_detail',
+        path: 'detail/:id',
+        component: 'view.data-source_detail',
         meta: {
-          title: 'login_code-login',
-          i18nKey: 'route.login_code-login'
+          i18nKey: 'route.data-source_detail',
+          title: 'data-source_detail',
+          hideInMenu: true,
+          activeMenu: 'data-source'
         }
       },
       {
-        name: 'login_pwd-login',
-        path: 'pwd-login',
-        component: 'view.login_pwd-login',
+        name: 'data-source_edit',
+        path: 'edit/:id',
+        component: 'view.data-source_edit',
         meta: {
-          title: 'login_pwd-login',
-          i18nKey: 'route.login_pwd-login'
+          i18nKey: 'route.data-source_edit',
+          title: 'data-source_edit',
+          hideInMenu: true,
+          activeMenu: 'data-source'
         }
       },
       {
-        name: 'login_register',
-        path: 'register',
-        component: 'view.login_register',
+        name: 'data-source_list',
+        path: 'list',
+        component: 'view.data-source_list',
         meta: {
-          title: 'login_register',
-          i18nKey: 'route.login_register'
+          i18nKey: 'route.data-source_list',
+          title: 'data-source_list',
+          hideInMenu: true,
+          activeMenu: 'data-source'
         }
       },
       {
-        name: 'login_reset-pwd',
-        path: 'reset-pwd',
-        component: 'view.login_reset-pwd',
+        name: 'data-source_new',
+        path: 'new',
+        component: 'view.data-source_new',
         meta: {
-          title: 'login_reset-pwd',
-          i18nKey: 'route.login_reset-pwd'
+          i18nKey: 'route.data-source_new',
+          title: 'data-source_new',
+          hideInMenu: true,
+          activeMenu: 'data-source'
         }
       }
     ]
   },
   {
-    name: 'server',
-    path: '/server',
-    component: 'layout.base$view.server',
+    name: 'guide',
+    path: '/guide',
+    component: 'layout.blank$view.guide',
     meta: {
-      i18nKey: 'route.server',
-      title: 'server',
-      icon: 'mdi:server-outline',
+      title: 'guide',
+      i18nKey: 'route.guide',
+      constant: true,
+      hideInMenu: true
+    }
+  },
+  {
+    name: 'home',
+    path: '/home',
+    component: 'layout.base$view.home',
+    meta: {
+      i18nKey: 'route.home',
+      title: 'home',
+      icon: 'mdi:home',
       order: 1
+    }
+  },
+  {
+    name: 'login',
+    path: '/login',
+    component: 'layout.blank$view.login',
+    meta: {
+      title: 'login',
+      i18nKey: 'route.login',
+      constant: true,
+      hideInMenu: true
     }
   },
   {

@@ -1,11 +1,9 @@
 import { getPaletteColorByNumber, mixColor } from '@sa/color';
-import { Card } from 'antd';
-import { Outlet } from 'react-router-dom';
-
-import WaveBg from '@/components/stateless/custom/WaveBg';
 import { getDarkMode, getThemeSettings } from '@/store/slice/theme';
-
-import Header from './modules/Header';
+import LoginForm from './modules/LoginForm';
+import bg from "@/assets/svg-icon/login.svg"
+import bgZH from "@/assets/svg-icon/login-zh.svg"
+import { getLocale } from '@/store/slice/app';
 
 const COLOR_WHITE = '#ffffff';
 
@@ -24,26 +22,30 @@ function useBgColor() {
 }
 
 export function Component() {
-  const { bgColor, bgThemeColor } = useBgColor();
+      
+    const { bgThemeColor } = useBgColor();
+    const locale = useAppSelector(getLocale);
 
-  return (
-    <div
-      className="relative size-full flex-center overflow-hidden bg-layout"
-      style={{ backgroundColor: bgColor }}
-    >
-      <WaveBg themeColor={bgThemeColor} />
+    const backgroundImage = locale === 'zh-CN' ? bgZH : bg
 
-      <Card
-        bordered={false}
-        className="relative z-4 w-auto rd-12px"
-      >
-        <div className="w-400px lt-sm:w-300px">
-          <Header />
-          <main className="pt-24px">
-            <Outlet />
-          </main>
+    return (
+        <div
+            className="relative size-full flex-center overflow-hidden bg-layout"
+            style={{ backgroundColor: bgThemeColor }}
+        >
+            <div className="p-10px absolute right-0 top-0">
+              <LangSwitch className="px-12px" />
+            </div>
+            <div className="w-1/3 h-100% bg-top-left sm:bg-center-left md:bg-center-left bg-[size:100%_auto] bg-no-repeat" style={{ backgroundImage: `url(${backgroundImage})` }}>
+                
+            </div>
+            <div className="h-100% w-2/3 bg-white">
+              <div className="size-full flex flex-col items-left justify-center px-10%">
+                <div className="w-440px">
+                      <LoginForm />
+                  </div>
+              </div>
+            </div>
         </div>
-      </Card>
-    </div>
-  );
+    );
 }

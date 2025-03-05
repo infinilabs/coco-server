@@ -11,6 +11,7 @@ const common: App.I18n.Schema['translation']['common'] = {
   config: '配置',
   confirm: '确认',
   confirmDelete: '确认删除吗？',
+  copySuccess: '复制成功',
   delete: '删除',
   deleteSuccess: '删除成功',
   edit: '编辑',
@@ -37,11 +38,20 @@ const common: App.I18n.Schema['translation']['common'] = {
   update: '更新',
   updateSuccess: '更新成功',
   userCenter: '个人中心',
+  password: '密码',
+  modifyPassword: '修改密码',
+  oldPassword: '旧密码',
+  newPassword: '新密码',
+  loginAgain: '请重新登录！',
   warning: '警告',
   yesOrNo: {
     no: '否',
     yes: '是'
-  }
+  },
+  advanced: '高级',
+  save: '保存',
+  testConnection: '测试连接',
+  operation: '操作',
 };
 
 export default common;
