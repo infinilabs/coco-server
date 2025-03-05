@@ -1,5 +1,5 @@
 import { selectUserInfo } from "@/store/slice/auth";
-import { Button, Card, Form, Input, Spin } from "antd";
+import { Button, Card, Col, Form, Input, Row, Spin } from "antd";
 import { useLoading, useRequest } from '@sa/hooks';
 import { fetchServer, updateSettings } from "@/service/api/server";
 import Clipboard from 'clipboard';
@@ -18,7 +18,7 @@ const SETTINGS = [
   {
     key: 'aiAssistant',
     icon: <SvgIcon icon="mdi:plus-thick"/>,
-    link: ''
+    link: '/ai-assistant'
   }
 ]
 
@@ -161,15 +161,18 @@ export function Component() {
           </Button>
         </Card>
         <Card className="p-32px" classNames={{ body: "flex gap-32px justify-start !p-0 -mx-32px" }}>
-          {
-            SETTINGS.map((item) => (
-              <div key={item.key} className="basis-1/3">
-                <div className="text-20px color-#333 m-b-16px">{t(`page.home.settings.${item.key}`)}</div>
-                <div className="color-#888 m-b-45px">{t(`page.home.settings.${item.key}Desc`)}</div>
-                <Button onClick={() => item.link && routerPush.routerPush(item.link)} type="primary" className="w-40px h-40px rounded-12px text-24px p-0">{item.icon}</Button>
-              </div>
-            ))
-          }
+          <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }} className="w-100%">
+            {
+              SETTINGS.map((item) => (
+                <Col key={item.key} md={12} lg={8} className="m-b-24px">
+                  <div className="text-20px color-#333 m-b-16px">{t(`page.home.settings.${item.key}`)}</div>
+                  <div className="color-#888 m-b-45px h-60px">{t(`page.home.settings.${item.key}Desc`)}</div>
+                  <Button disabled={!item.link} onClick={() => item.link && routerPush.routerPush(item.link)} type="primary" className="w-40px h-40px rounded-12px text-24px p-0">{item.icon}</Button>
+                </Col>
+              ))
+            }
+          </Row>
+          
         </Card>
       </Spin>
     );

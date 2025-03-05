@@ -340,8 +340,10 @@ declare namespace App {
             yes: string;
           };
           advanced: string;
-          save: string,
-          testConnection: string,
+          save: string;
+          testConnection: string;
+          operation: string;
+          comingSoon: string;
         };
         datatable: {
           itemCount: string;
