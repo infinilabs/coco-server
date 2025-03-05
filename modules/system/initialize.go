@@ -71,6 +71,12 @@ func (h *APIHandler) setupServer(w http.ResponseWriter, req *http.Request, ps ht
 	}
 
 	info := common.AppConfig()
+	if info.LLMConfig == nil {
+		info.LLMConfig = &common.LLMConfig{}
+	}
+	info.LLMConfig.Endpoint = input.LLM.Endpoint
+	info.LLMConfig.DefaultModel = input.LLM.DefaultModel
+	info.LLMConfig.Type = input.LLM.Type
 	if input.Name != "" {
 		info.ServerInfo.Name = input.Name
 	} else if info.ServerInfo.Name == "" {
@@ -95,17 +101,14 @@ func (h *APIHandler) setupServer(w http.ResponseWriter, req *http.Request, ps ht
 	if err != nil {
 		panic(err)
 	}
-	//save server's config
-	err = kv.AddValue(core.DefaultSettingBucketKey, []byte(core.DefaultServerConfigKey), util.MustToJSONBytes(info.ServerInfo))
-	if err != nil {
-		panic(err)
-	}
 
 	//setup lock
 	err = kv.AddValue(core.DefaultSettingBucketKey, []byte(SetupLock), []byte(time.Now().String()))
 	if err != nil {
 		panic(err)
 	}
+	//save app config
+	common.SetAppConfig(&info)
 
 	h.WriteAckOKJSON(w)
 }

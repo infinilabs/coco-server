@@ -33,13 +33,13 @@ func (this *Coco) Setup() {
 	orm.MustRegisterSchemaWithIndexName(assistant.ChatMessage{}, "message")
 
 	cocoConfig := common.Config{
-		OllamaConfig: common.OllamaConfig{
-			Model:         "deepseek-r1:1.5b",
+		LLMConfig: &common.LLMConfig{
+			DefaultModel:  "deepseek-r1:1.5b",
 			ContextLength: 131072,
 			Keepalive:     "30m",
 			Endpoint:      "http://localhost:11434",
 		},
-		ServerInfo: common.ServerInfo{Version: common.Version{Number: global.Env().GetVersion()}, Updated: time.Now()},
+		ServerInfo: &common.ServerInfo{Version: common.Version{Number: global.Env().GetVersion()}, Updated: time.Now()},
 	}
 
 	ok, err := env.ParseConfig("coco", &cocoConfig)

@@ -65,9 +65,7 @@ func (h *APIHandler) providerInfo(w http.ResponseWriter, req *http.Request, ps h
 	}
 
 	isSetup := checkSetupStatus()
-	if !isSetup {
-		output["setup_required"] = true
-	}
+	output["setup_required"] = !isSetup
 	output["health"] = obj
 
 	h.WriteJSON(w, output, 200)

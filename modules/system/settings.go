@@ -24,6 +24,8 @@
 package system
 
 import (
+	log "github.com/cihub/seelog"
+	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
 	"net/http"
 )
@@ -32,9 +34,24 @@ type ServerSettings struct {
 }
 
 func (h *APIHandler) getServerSettings(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-
+	appConfig := common.AppConfig()
+	h.WriteJSON(w, appConfig, http.StatusOK)
 }
 
 func (h *APIHandler) updateServerSettings(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-
+	appConfig := common.Config{}
+	if err := h.DecodeJSON(req, &appConfig); err != nil {
+		log.Error(err)
+		h.WriteError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	oldAppConfig := common.AppConfig()
+	if appConfig.LLMConfig != nil {
+		oldAppConfig.LLMConfig = appConfig.LLMConfig
+	}
+	if appConfig.ServerInfo != nil {
+		oldAppConfig.ServerInfo = appConfig.ServerInfo
+	}
+	common.SetAppConfig(&oldAppConfig)
+	h.WriteAckOKJSON(w)
 }

@@ -412,9 +412,10 @@ Data:
 			messageBuffer := strings.Builder{}
 
 			llm := getLLM("deepseek-r1") //deepseek-r1 /deepseek-v3
+			appConfig := common.AppConfig()
 			completion, err := llm.GenerateContent(ctx, content,
-				llms.WithMaxTokens(common.AppConfig().GenerateConfig.MaxTokens),
-				llms.WithMaxLength(common.AppConfig().GenerateConfig.MaxLength),
+				llms.WithMaxTokens(appConfig.LLMConfig.Parameters.MaxTokens),
+				llms.WithMaxLength(appConfig.LLMConfig.Parameters.MaxLength),
 
 				llms.WithStreamingReasoningFunc(func(ctx context.Context, reasoningChunk []byte, chunk []byte) error {
 					// Use taskCtx here to check for cancellation or other context-specific logic
@@ -616,11 +617,11 @@ func fetchDocuments(query *orm.Query) ([]common.Document, error) {
 
 func getLLM(model string) *openai.LLM {
 	if model == "" {
-		model = common.AppConfig().OpenAIConfig.Model
+		model = common.AppConfig().LLMConfig.DefaultModel
 	}
 	llm, err := openai.New(
-		openai.WithToken(common.AppConfig().OpenAIConfig.Token),
-		openai.WithBaseURL(common.AppConfig().OpenAIConfig.Endpoint),
+		openai.WithToken(common.AppConfig().LLMConfig.Token),
+		openai.WithBaseURL(common.AppConfig().LLMConfig.Endpoint),
 		openai.WithModel(model),
 	)
 	if err != nil {
