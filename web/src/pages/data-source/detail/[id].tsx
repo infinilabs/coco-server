@@ -3,7 +3,7 @@ import type { TableColumnsType, TableProps, MenuProps } from "antd";
 import { Switch, Table, Dropdown, message, Modal} from "antd";
 import Search from "antd/es/input/Search";
 import Icon, { FilterOutlined, DownOutlined, ExclamationCircleOutlined, EllipsisOutlined } from "@ant-design/icons";
-import {fetchDatasourceDetail, deleteDocument} from '@/service/api';
+import {fetchDatasourceDetail, deleteDocument, updateDocument} from '@/service/api';
 import { formatESSearchResult } from '@/service/request/es';
 import {ConnectorImageIcon} from '@/components/icons/connector';
 const { confirm } = Modal;
@@ -19,6 +19,7 @@ interface DataType {
   icon: string;
   is_dir: boolean;
   type: string;
+  disabled: boolean;
 }
 
 // rowSelection object indicates the need for row selection
@@ -75,20 +76,37 @@ export function Component() {
         break;
     }
   }
+  const onSearchableChange = (checked: boolean, record: DataType)=>{
+    //update searchable status
+    record.disabled = !checked
+    updateDocument(record.id, record).then((res)=>{
+      if(res.data?.result === "updated"){
+        message.success("updated success")
+      }
+      //reload data
+      setReqParams((old)=>{
+        return {
+          ...old,
+        }
+      })
+    });
+  }
 
   const columns: TableColumnsType<DataType> = useMemo(()=>[
     {
       title: t('page.datasource.columns.name'),
       dataIndex: "title",
       render: (text: string, record: DataType) =>{
-        return <span> <Icon component={() => <ConnectorImageIcon connector={connector_id} doc_type={record.type}/>} className="mr-3px" /><a target="_blank" href={record.url} className="text-blue-500">{text}</a></span>
+        return <span> <Icon component={() => <ConnectorImageIcon connector={connector_id} doc_type={record.icon}/>} className="mr-3px" /><a target="_blank" href={record.url} className="text-blue-500">{text}</a></span>
       },
     },
     {
       title: "Searchable",
-      dataIndex: "searchable",
-      render: (text: boolean) => {
-        return <Switch value={text} />;
+      dataIndex: "disabled",
+      render: (text: boolean, record: DataType) => {
+        return <Switch value={!text} onChange={(v)=>{
+          onSearchableChange(v, record)
+        }}/>;
       },
     },
     {

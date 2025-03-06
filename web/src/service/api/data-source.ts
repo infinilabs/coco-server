@@ -13,7 +13,7 @@ export function fetchDatasourceDetail(params?: any){
   return request({
     method: 'get',
     params,
-    url: '/query/_search'
+    url: '/document/_search'
   });
 }
 
@@ -50,5 +50,13 @@ export function deleteDocument(documentID: string){
   return request({
     method: 'delete',
     url: `/document/${documentID}`
+  });
+}
+
+export function updateDocument(documentID: string, body: any){
+  return request({
+    method: 'put',
+    url: `/document/${documentID}`,
+    data: body,
   });
 }
