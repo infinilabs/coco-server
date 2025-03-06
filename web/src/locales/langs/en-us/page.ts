@@ -104,6 +104,9 @@ const page: App.I18n.Schema['translation']['page'] = {
         client_secret: "Client Secret",
         redirect_uri: "Redirect URI",
       }
+    },
+    delete: {
+      confirm: 'Are you sure you want to delete this datasource?'
     }
   }
 };
