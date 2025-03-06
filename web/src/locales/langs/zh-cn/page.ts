@@ -98,7 +98,10 @@ const page: App.I18n.Schema['translation']['page'] = {
         scheduled_sync_desc: "每隔固定时间同步一次",
         realtime_sync: "实时同步",
         realtime_sync_desc: "文件修改立即同步",
-        immediate_sync: "立即同步"
+        immediate_sync: "立即同步",
+        client_id: "客户端 ID",
+        client_secret: "客户端密钥",
+        redirect_uri: "重定向 URI",
       }
     }
   }

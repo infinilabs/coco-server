@@ -98,7 +98,10 @@ const page: App.I18n.Schema['translation']['page'] = {
         scheduled_sync_desc: "Sync at fixed intervals",
         realtime_sync: "Real-time Sync",
         realtime_sync_desc: "Sync immediately upon file modification",
-        immediate_sync: "Immediate Sync"
+        immediate_sync: "Immediate Sync",
+        client_id: "Client ID",
+        client_secret: "Client Secret",
+        redirect_uri: "Redirect URI",
       }
     }
   }

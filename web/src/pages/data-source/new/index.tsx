@@ -11,24 +11,11 @@ import {DataSync} from '@/components/datasource/data_sync';
 import {createDatasource} from '@/service/api/data-source'
 
 //gogole_drive
-// credential_file: credentials.json
-//     interval: 10s
-//     skip_invalid_token: true
-
-//hugo site
-// "urls": [ "https://pizza.rs/index.json" ]
-
-//notion
-// token
-
-//yuque
-// token	string	Your Yuque API token. This is required to access Yuque’s API.
-// include_private_book	bool	Whether to include private books in indexing. Defaults to false.
-// include_private_doc	bool	Whether to include private documents in indexing. Defaults to false.
-// indexing_books	bool	Whether to index books in Yuque. Defaults to false.
-// indexing_docs	bool	Whether to index documents in Yuque. Defaults to false.
-// indexing_users	bool	Whether to index user data from Yuque. Defaults to false.
-// indexing_groups	bool	Whether to index group data from Yuque. Defaults to false.
+// credential:
+//     client_id
+//     client_secret
+//     redirect_uri
+//     endpoint
 
 export function Component() {
   const { t } = useTranslation();
