@@ -41,9 +41,9 @@ export const init: Init = async currentFullPath => {
 
   await store.dispatch(initAuthRoute());
 
-  if (currentFullPath.includes('login')) {
-    return '/';
-  }
+  // if (currentFullPath.includes('login')) {
+  //   return '/';
+  // }
 
   return null;
 };
@@ -88,12 +88,12 @@ export const createRouteGuard: BeforeEach = (to, _, blockerOrJump) => {
 
   const routeSwitches: CommonType.StrategicPattern[] = [
     // if it is login route when logged in, then switch to the root page
-    {
-      callback: () => {
-        return blockerOrJump({ name: rootRoute });
-      },
-      condition: isLogin && to.path.includes('login')
-    },
+    // {
+    //   callback: () => {
+    //     return blockerOrJump({ name: rootRoute });
+    //   },
+    //   condition: isLogin && to.path.includes('login')
+    // },
     // if it is constant route, then it is allowed to access directly
     {
       callback: () => {
