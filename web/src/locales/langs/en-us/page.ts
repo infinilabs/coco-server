@@ -20,6 +20,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       type: 'Type',
       endpoint: 'Endpoint',
       defaultModel: 'Default Model',
+      keepalive: 'Keepalive',
       requestParams: 'Request Params',
       temperature: 'Temperature',
       temperatureDesc: 'the larger the value, the more random the response',
