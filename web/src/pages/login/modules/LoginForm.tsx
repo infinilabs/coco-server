@@ -12,7 +12,7 @@ interface Account {
 
 type LoginParams = Pick<Account, 'password' | 'userName'>;
 
-const LoginForm = memo(() => {
+const LoginForm = memo(({ onProvider } : { onProvider?: () => void }) => {
   const [form] = Form.useForm<LoginParams>();
   const { loading, toLogin } = useLogin();
   const { t } = useTranslation();
@@ -20,7 +20,12 @@ const LoginForm = memo(() => {
 
   async function handleSubmit() {
     const params = await form.validateFields();
-    toLogin(params);
+    if (onProvider) {
+      toLogin(params, false);
+      onProvider()
+    } else {
+      toLogin(params);
+    }
   }
 
   useKeyPress('enter', () => {

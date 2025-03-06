@@ -20,6 +20,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       type: '类型',
       endpoint: 'Endpoint',
       defaultModel: '默认模型',
+      keepalive: '保持连接',
       requestParams: '请求参数',
       temperature: '随机性',
       temperatureDesc: '值越大，回复越随机',
@@ -52,6 +53,14 @@ const page: App.I18n.Schema['translation']['page'] = {
       validateSuccess: '验证成功',
       welcomeBack: '欢迎回来，{{userName}} ！'
     },
+    cocoAI: {
+      title: '打开 Coco AI',
+      autoDesc: '为了继续操作，如果 5 秒内未自动重定向，请点击以下链接：',
+      launchCocoAI: '启动 Coco AI',
+      copyDesc: '如果重定向不起作用，您可以复制以下 URL 并将其粘贴到 Coco AI 的连接设置窗口中：',
+      enterCocoServer: '进入 Coco Server',
+      enterCocoServerDesc: '或者，您也可以：'
+    }
   },
   guide: {
     user: {
@@ -75,6 +84,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       latest_sync_time: "最近同步",
       sync_status: "同步状态",
       enabled: "启用状态",
+      searchable: "可搜索",
     },
     new:{
       title: "连接数据源",
@@ -89,7 +99,10 @@ const page: App.I18n.Schema['translation']['page'] = {
         scheduled_sync_desc: "每隔固定时间同步一次",
         realtime_sync: "实时同步",
         realtime_sync_desc: "文件修改立即同步",
-        immediate_sync: "立即同步"
+        immediate_sync: "立即同步",
+        client_id: "客户端 ID",
+        client_secret: "客户端密钥",
+        redirect_uri: "重定向 URI",
       }
     }
   }

@@ -80,7 +80,7 @@ func mergeSettings(old, new, merged interface{}) error {
 	buf = util.MustToJSONBytes(old)
 	oldSettings := util.MapStr{}
 	util.MustFromJSONBytes(buf, &oldSettings)
-	err := util.MergeFields(oldSettings, newSettings, false)
+	err := util.MergeFields(oldSettings, newSettings, true)
 	if err != nil {
 		return err
 	}

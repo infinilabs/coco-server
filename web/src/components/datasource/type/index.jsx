@@ -1,9 +1,10 @@
 import Icon, {UploadOutlined} from '@ant-design/icons';
-import { useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { GoogleDriveSVG, HugoSVG, YuqueSVG,NotionSVG,SearchSVG,BucketSVG } from '../../icons';
 import { Button, Input, Upload } from 'antd';
 import {IndexingScope} from "../indexing_scope"
 import {MultiURLInput} from './urls';
+import { Form } from 'antd';
 
 const Types = {
   GoogleDrive: "google_drive",
@@ -126,11 +127,12 @@ export const TypeList =  ({
     { v.id === Types.Yuque && <IndexingScope value={scope} onChange={onIndexingScopeChange}/>}
     {v.id === Types.HugoSite && <div className='my-20px'><MultiURLInput value={v.config?.urls || ['']} onChange={onSiteURLsChange}/></div>}
     { v.id === Types.GoogleDrive &&<div className='my-20px'>
-      <div className='pb-8px text-gray-400'>Credential JSON File</div>
-      <div className='flex gap-5px'>
-      <FileUploader onChange={onCredentialChange}/>
-      <Button onClick={onInnerTestClick}>{t('common.testConnection')}</Button>
-      </div>
+      {/* <div className='pb-8px text-gray-400'>Credential</div>
+      <div> */}
+      <Credential value={v.config.credential || {}} onChange={onCredentialChange}/>
+      {/* <FileUploader onChange={onCredentialChange}/>
+      <Button onClick={onInnerTestClick}>{t('common.testConnection')}</Button> */}
+      {/* </div> */}
       </div>}
   </div>
   
@@ -150,6 +152,44 @@ const TypeComponent = ({
   <Icon component={icon}/>
   <span className="ml-2">{text}</span>
 </div>
+}
+
+const Credential = ({value, onChange})=>{
+  const { t } = useTranslation();
+  const [v, setValue] = useState(value);
+  const onCredentialChange = (e, key)=>{
+    setValue((oldV)=>{
+      const newV = {
+        ...oldV,
+        [key]: e.target.value,
+      }
+      if(typeof onChange === "function"){
+        onChange(newV);
+      }
+      return newV;
+    });
+  }
+  const fields = [
+    { label: t('page.datasource.new.labels.client_id'), key: "client_id" },
+    { label: t('page.datasource.new.labels.client_secret'), key: "client_secret" },
+    { label: t('page.datasource.new.labels.redirect_uri'), key: "redirect_uri" },
+    { label: "Endpoint", key: "endpoint" },
+  ];
+  
+  return (
+    <div className="grid grid-cols-[100px_1fr] gap-x-4 gap-y-2 items-center">
+      {fields.map(({ label, key }) => (
+        <React.Fragment key={key}>
+          <div className="text-gray-400 text-left">{label}</div>
+            <Input 
+            value={v[key]} 
+            onChange={(e) => onCredentialChange(e, key)} 
+            className="w-full max-w-[485px]" 
+          />
+        </React.Fragment>
+      ))}
+    </div>
+  );
 }
 
 const FileUploader = ({onChange})=>{

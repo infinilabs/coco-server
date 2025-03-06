@@ -24,15 +24,28 @@
 package system
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
+	"github.com/valyala/fasttemplate"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/plugins/security"
 	httprouter "infini.sh/framework/core/api/router"
+	"infini.sh/framework/core/elastic"
+	"infini.sh/framework/core/env"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/kv"
+	"infini.sh/framework/core/pipeline"
 	"infini.sh/framework/core/util"
+	"infini.sh/framework/lib/fasthttp"
+	elastic1 "infini.sh/framework/modules/elastic/common"
+	"infini.sh/framework/plugins/replay"
+	"io"
 	"net/http"
+	"path"
+	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -72,12 +85,15 @@ func (h *APIHandler) setupServer(w http.ResponseWriter, req *http.Request, ps ht
 	}
 
 	info := common.AppConfig()
-	if info.LLMConfig == nil {
-		info.LLMConfig = &common.LLMConfig{}
+	if input.LLM.Endpoint != "" {
+		if info.LLMConfig == nil {
+			info.LLMConfig = &common.LLMConfig{}
+		}
+		info.LLMConfig.Endpoint = input.LLM.Endpoint
+		info.LLMConfig.DefaultModel = input.LLM.DefaultModel
+		info.LLMConfig.Type = input.LLM.Type
 	}
-	info.LLMConfig.Endpoint = input.LLM.Endpoint
-	info.LLMConfig.DefaultModel = input.LLM.DefaultModel
-	info.LLMConfig.Type = input.LLM.Type
+
 	if input.Name != "" {
 		info.ServerInfo.Name = fmt.Sprintf("%s's Coco Server", input.Name)
 	} else if info.ServerInfo.Name == "" {
@@ -102,6 +118,11 @@ func (h *APIHandler) setupServer(w http.ResponseWriter, req *http.Request, ps ht
 	if err != nil {
 		panic(err)
 	}
+	//initialize connector
+	err = h.initializeConnector()
+	if err != nil {
+		panic(err)
+	}
 
 	//setup lock
 	err = kv.AddValue(core.DefaultSettingBucketKey, []byte(SetupLock), []byte(time.Now().String()))
@@ -119,4 +140,80 @@ func clearSetupLock() {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func (h *APIHandler) initializeConnector() error {
+	var dsl []byte
+	baseDir := path.Join(global.Env().GetConfigDir(), "setup")
+	dslTplFile := filepath.Join(baseDir, "connector.tpl")
+	dsl, err := util.FileGetContent(dslTplFile)
+	if err != nil {
+		return err
+	}
+	if len(dsl) == 0 {
+		return fmt.Errorf("got empty template [%s]", dslTplFile)
+	}
+
+	var tpl *fasttemplate.Template
+	tpl, err = fasttemplate.NewTemplate(string(dsl), "$[[", "]]")
+	cfg1 := elastic1.ORMConfig{}
+	exist, err := env.ParseConfig("elastic.orm", &cfg1)
+	if exist && err != nil && global.Env().SystemConfig.Configs.PanicOnConfigError {
+		panic(err)
+	}
+
+	if cfg1.IndexPrefix == "" {
+		cfg1.IndexPrefix = "coco_"
+	}
+	esClient := elastic.GetClient(global.MustLookupString(elastic.GlobalSystemElasticsearchID))
+	var docType = "_doc"
+	version := esClient.GetVersion()
+	if v := esClient.GetMajorVersion(); v > 0 && v < 7 && version.Distribution == elastic.Elasticsearch {
+		docType = "doc"
+	}
+	output := tpl.ExecuteFuncString(func(w io.Writer, tag string) (int, error) {
+		switch tag {
+		case "SETUP_INDEX_PREFIX":
+			return w.Write([]byte(cfg1.IndexPrefix))
+		case "SETUP_DOC_TYPE":
+			return w.Write([]byte(docType))
+		}
+		//ignore unresolved variable
+		return w.Write([]byte("$[[" + tag + "]]"))
+	})
+	br := bytes.NewReader([]byte(output))
+	scanner := bufio.NewScanner(br)
+	scanner.Buffer(make([]byte, 10*1024*1024), 10*1024*1024)
+	scanner.Split(bufio.ScanLines)
+	var lines []string
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+
+	var setupHTTPPool = fasthttp.NewRequestResponsePool("setup")
+	req := setupHTTPPool.AcquireRequest()
+	res := setupHTTPPool.AcquireResponse()
+
+	defer setupHTTPPool.ReleaseRequest(req)
+	defer setupHTTPPool.ReleaseResponse(res)
+	esConfig := elastic.GetConfig(global.MustLookupString(elastic.GlobalSystemElasticsearchID))
+	var endpoint = esConfig.Endpoint
+	if endpoint == "" && len(esConfig.Endpoints) > 0 {
+		endpoint = esConfig.Endpoints[0]
+	}
+	parts := strings.Split(endpoint, "://")
+	if len(parts) != 2 {
+		return fmt.Errorf("invalid elasticsearch endpoint [%s]", endpoint)
+	}
+	var (
+		username = ""
+		password = ""
+	)
+	if esConfig.BasicAuth != nil {
+		username = esConfig.BasicAuth.Username
+		password = esConfig.BasicAuth.Password.Get()
+	}
+
+	_, err, _ = replay.ReplayLines(req, res, pipeline.AcquireContext(pipeline.PipelineConfigV2{}), lines, parts[0], parts[1], username, password)
+	return err
 }

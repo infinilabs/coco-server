@@ -1,4 +1,4 @@
-import { Button, Form, Input, InputNumber, Radio, Select, Spin, Switch } from "antd";
+import { Button, Form, Input, InputNumber, Spin, Switch } from "antd";
 import "../index.scss"
 import OllamaSvg from '@/assets/svg-icon/ollama.svg'
 import OpenAISvg from '@/assets/svg-icon/openai.svg'
@@ -10,26 +10,26 @@ import ButtonRadio from "@/components/button-radio";
 const ADVANCED = [
     {
         key: 'temperature',
-        input: <InputNumber min={0.1} step={0.1} defaultValue={0.1} />
+        input: <InputNumber min={0} step={0.1} />
     },
     {
-        key: 'topP',
-        input: <InputNumber min={0.1} step={0.1} defaultValue={0.1} />
+        key: 'top_p',
+        input: <InputNumber min={0} step={0.1} />
     },
     {
-        key: 'maxTokens',
-        input: <InputNumber min={1} step={1} precision={0} defaultValue={40000} />
+        key: 'max_tokens',
+        input: <InputNumber min={0} step={1} precision={0} />
     },
     {
-        key: 'presencePenalty',
-        input: <InputNumber min={0.1} step={0.1} defaultValue={0.1} />
+        key: 'presence_penalty',
+        input: <InputNumber min={0} step={0.1} />
     },
     {
-        key: 'frequencyPenalty',
-        input: <InputNumber min={0.1} step={0.1} defaultValue={0.1} />
+        key: 'frequency_penalty',
+        input: <InputNumber min={0} step={0.1} />
     },
     {
-        key: 'enhancedInference',
+        key: 'enhanced_inference',
         input: <Switch size="small" defaultChecked />,
         hideDesc: true
     },
@@ -57,20 +57,11 @@ const LLM = memo(() => {
     const [form] = Form.useForm();
     const { t } = useTranslation();
 
-    const [type, setType] = useState<ModelType>('ollama')
+    const [type, setType] = useState<ModelType>()
     const [showAdvanced, setShowAdvanced] = useState(false)
 
     const { endLoading, loading, startLoading } = useLoading();
     const { defaultRequiredRule, formRules } = useFormRules();
-
-    const models = {
-        'ollama': [
-            { 'value': 'deepseek_r1', 'label': 'DeepSeek-R1'}
-        ],
-        'openai': [
-            { 'value': 'openai', 'label': 'OpenAI'}
-        ]
-    }
 
     const { data, run, loading: dataLoading } = useRequest(fetchSettings, {
         manual: true
@@ -94,7 +85,8 @@ const LLM = memo(() => {
 
     useEffect(() => {
       if (data?.data?.llm) {
-        form.setFieldsValue(data.data.llm);
+        form.setFieldsValue(data.data.llm || { type: 'ollama', keepalive: '30m'});
+        setType(data?.data?.llm?.type || 'ollama')
       }
     }, [JSON.stringify(data)]);
 
@@ -105,17 +97,6 @@ const LLM = memo(() => {
                 labelAlign="left"
                 className="settings-form"
                 colon={false}
-                initialValues={{ 
-                    type,
-                    "default_model":"deepseek_r1",
-                    "parameters":{
-                            "top_p": 100,
-                            "max_tokens": 32000,
-                            "presence_penalty": 0.9,
-                            "frequency_penalty": 0.9,
-                            "enhanced_inference": true,
-                    } 
-                }}
             >
                 <Form.Item
                     name="type"
@@ -129,7 +110,7 @@ const LLM = memo(() => {
                         ]}
                         onChange={(value: ModelType) => {
                             setType(value)
-                            form.setFieldsValue({ default_model: '' })
+                            form.setFieldsValue({ token: undefined })
                         }}
                     />
                 </Form.Item>
@@ -145,10 +126,26 @@ const LLM = memo(() => {
                     label={t(`page.settings.llm.defaultModel`)}
                     rules={[defaultRequiredRule]}
                 >
-                    <Select 
-                        options={models[type] as never[]}
-                    />
+                    <Input />
                 </Form.Item>
+                <Form.Item
+                    name={'keepalive'}
+                    label={t(`page.settings.llm.keepalive`)}
+                    rules={[defaultRequiredRule]}
+                >
+                    <Input />
+                </Form.Item>
+                {
+                    type === 'openai' && (
+                        <Form.Item
+                            name={'token'}
+                            label={'Token'}
+                            rules={[defaultRequiredRule]}
+                        >
+                            <Input />
+                        </Form.Item>
+                    )
+                }
                 <Form.Item
                     label=" "
                 >

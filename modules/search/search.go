@@ -86,6 +86,27 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 	)
 
 	mustClauses := BuildMustClauses(datasource, category, subcategory, richCategory, username, userid)
+	mustClauses = append(mustClauses, map[string]interface{}{
+		"bool": map[string]interface{}{
+			"minimum_should_match": 1,
+			"should": []interface{}{
+				map[string]interface{}{
+					"term": map[string]interface{}{
+						"disabled": false,
+					},
+				},
+				map[string]interface{}{
+					"bool": map[string]interface{}{
+						"must_not": map[string]interface{}{
+							"exists": map[string]interface{}{
+								"field": "disabled",
+							},
+						},
+					},
+				},
+			},
+		},
+	})
 
 	var q *orm.Query
 	if query != "" || len(mustClauses) > 0 {

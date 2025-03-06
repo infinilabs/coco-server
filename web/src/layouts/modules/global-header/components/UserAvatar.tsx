@@ -3,10 +3,10 @@ import { Button, Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
 import { useSubmit } from 'react-router-dom';
 
-import { selectToken, selectUserInfo } from '@/store/slice/auth';
+import { resetStore, selectToken, selectUserInfo } from '@/store/slice/auth';
 import { Suspense } from 'react';
 import { logout } from '@/service/api';
-import { localStg } from '@/utils/storage';
+import { store } from '@/store';
 
 const PasswordModal = lazy(() => import('./PasswordModal'));
 
@@ -25,11 +25,10 @@ const UserAvatar = memo(() => {
     if (!route.meta?.constant) needRedirect = true;
     const result = await logout()
     if (result?.data?.status === 'ok') {
-      localStg.remove('token');
-      localStg.remove('refreshToken');
+      store.dispatch(resetStore());
       router.toLogin()
     }
-    // submit({ needRedirect, redirectFullPath: route.fullPath }, { action: '/account/logout', method: 'post' });
+    // submit({ needRedirect, redirectFullPath: route.fullPath }, { action: 'logout', method: 'post' });
   }
 
   function onLogout() {
