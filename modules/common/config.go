@@ -56,6 +56,9 @@ func AppConfig() Config {
 	if retCfg.LLMConfig.Parameters.MaxTokens <= 0 {
 		retCfg.LLMConfig.Parameters.MaxTokens = 32000
 	}
+
+	retCfg.ServerInfo.AuthProvider.SSO.URL = util.JoinPath(retCfg.ServerInfo.Endpoint, "/#/login")
+
 	return *config
 }
 func SetAppConfig(c *Config) {
