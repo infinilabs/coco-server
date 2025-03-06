@@ -1,6 +1,6 @@
 import type { FormInstance } from 'antd';
 
-import { REG_CODE_SIX, REG_EMAIL, REG_ENDPOINT, REG_PHONE, REG_PWD, REG_USER_NAME } from '@/constants/reg';
+import { REG_CODE_SIX, REG_EMAIL, REG_PHONE, REG_PWD, REG_URL, REG_USER_NAME } from '@/constants/reg';
 import { $t } from '@/locales';
 
 export function useFormRules() {
@@ -32,7 +32,7 @@ export function useFormRules() {
     },
     endpoint: {
       message: $t('form.endpoint.invalid'),
-      pattern: REG_ENDPOINT,
+      pattern: REG_URL,
       validateTrigger: 'onChange'
     }
   } satisfies Record<string, App.Global.FormRule>;
