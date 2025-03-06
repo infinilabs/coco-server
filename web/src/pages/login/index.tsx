@@ -58,7 +58,7 @@ export function Component() {
                 
             </div>
             <div className="h-100% w-2/3 bg-white">
-              <div className="size-full flex flex-col items-left justify-center px-10%">
+              <div className="size-full flex flex-col items-left justify-center px-10% overflow-auto">
                 {
                   cocoAIVisible ? (
                     <div className="w-550px">
