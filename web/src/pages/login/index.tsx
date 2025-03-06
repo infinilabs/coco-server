@@ -4,6 +4,8 @@ import LoginForm from './modules/LoginForm';
 import bg from "@/assets/svg-icon/login.svg"
 import bgZH from "@/assets/svg-icon/login-zh.svg"
 import { getLocale } from '@/store/slice/app';
+import { getIsLogin } from '@/store/slice/auth';
+import CocoAI from './modules/CocoAI';
 
 const COLOR_WHITE = '#ffffff';
 
@@ -25,8 +27,24 @@ export function Component() {
       
     const { bgThemeColor } = useBgColor();
     const locale = useAppSelector(getLocale);
+    const [searchParams] = useSearchParams();
+    const isLogin = useAppSelector(getIsLogin);
+    const provider = searchParams.get('provider');
+    const requestID = searchParams.get('request_id');
+    const product = searchParams.get('product');
+    const [cocoAIVisible, setCocoAIVisible] = useState(false)
 
     const backgroundImage = locale === 'zh-CN' ? bgZH : bg
+
+    const isToProvider = useMemo(() => {
+      return !!(provider && requestID && product)
+    }, [provider, requestID, product])
+    
+    useEffect(() => {
+      if (isLogin && isToProvider) {
+        setCocoAIVisible(true)
+      }
+    }, [isLogin, isToProvider])
 
     return (
         <div
@@ -41,9 +59,17 @@ export function Component() {
             </div>
             <div className="h-100% w-2/3 bg-white">
               <div className="size-full flex flex-col items-left justify-center px-10%">
-                <div className="w-440px">
-                      <LoginForm />
-                  </div>
+                {
+                  cocoAIVisible ? (
+                    <div className="w-550px">
+                      <CocoAI provider={provider} requestID={requestID} />
+                    </div>
+                  ) : (
+                    <div className="w-440px">
+                      <LoginForm onProvider={isToProvider ? () => setCocoAIVisible(true) : undefined}/>
+                    </div>
+                  )
+                }
               </div>
             </div>
         </div>

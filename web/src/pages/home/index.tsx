@@ -74,8 +74,10 @@ export function Component() {
     });
 
     useEffect(() => {
-      initClipboard(data?.endpoint)
-    }, [data?.endpoint])
+      if (domRef.current) {
+        initClipboard(data?.endpoint)
+      }
+    }, [data?.endpoint, domRef.current])
 
     useEffect(() => {
       form.setFieldsValue({ name: data?.name, endpoint: data?.endpoint })

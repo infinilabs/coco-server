@@ -52,6 +52,14 @@ const page: App.I18n.Schema['translation']['page'] = {
       validateSuccess: 'Verification passed',
       welcomeBack: 'Welcome back, {{userName}} !'
     },
+    cocoAI: {
+      title: 'Open Coco AI',
+      autoDesc: 'In order to continue, please click the link below if you are not redirected automatically within 5 seconds:',
+      launchCocoAI: 'Launch Coco AI',
+      copyDesc: 'If the redirect doesn’t work, you can copy the following URL and paste it into the Connect settings window in Coco AI:',
+      enterCocoServer: 'Enter Coco Server',
+      enterCocoServerDesc: 'Or, you can also:'
+    }
   },
   guide: {
     user: {

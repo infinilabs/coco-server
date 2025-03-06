@@ -52,6 +52,14 @@ const page: App.I18n.Schema['translation']['page'] = {
       validateSuccess: '验证成功',
       welcomeBack: '欢迎回来，{{userName}} ！'
     },
+    cocoAI: {
+      title: '打开 Coco AI',
+      autoDesc: '为了继续操作，如果 5 秒内未自动重定向，请点击以下链接：',
+      launchCocoAI: '启动 Coco AI',
+      copyDesc: '如果重定向不起作用，您可以复制以下 URL 并将其粘贴到 Coco AI 的连接设置窗口中：',
+      enterCocoServer: '进入 Coco Server',
+      enterCocoServerDesc: '或者，您也可以：'
+    }
   },
   guide: {
     user: {
