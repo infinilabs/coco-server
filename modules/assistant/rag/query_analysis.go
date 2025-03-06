@@ -25,17 +25,17 @@ package rag
 
 import "infini.sh/framework/core/util"
 
-type QueryAnalysis struct {
+type QueryIntent struct {
 	Category string   `json:"category"`
 	Query    []string `json:"query"`
 	Keyword  []string `json:"keyword"`
 }
 
-func QueryAnalysisFromString(str string) (*QueryAnalysis, error) {
+func QueryAnalysisFromString(str string) (*QueryIntent, error) {
 	str = util.TrimLeftStr(str, "<JSON>")
 	str = util.TrimRightStr(str, "</JSON>")
 	str = util.TrimSpaces(str)
-	obj := QueryAnalysis{}
+	obj := QueryIntent{}
 	err := util.FromJSONBytes([]byte(str), &obj)
 	if err != nil {
 		return nil, err

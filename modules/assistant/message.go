@@ -34,15 +34,16 @@ type MessageRequest struct {
 
 type ChatMessage struct {
 	orm.ORMObjectBase
-	MessageType string              `json:"type"` // user, assistant, system
-	SessionID   string              `json:"session_id"`
-	Parameters  util.MapStr         `json:"parameters,omitempty"`
-	From        string              `json:"from"`
-	To          string              `json:"to,omitempty"`
-	Message     string              `config:"message" json:"message,omitempty" elastic_mapping:"message:{type:keyword}"`
-	Details     []ProcessingDetails `json:"details"`
-	UpVote      int                 `json:"up_vote"`
-	DownVote    int                 `json:"down_vote"`
+	MessageType    string              `json:"type"` // user, assistant, system
+	SessionID      string              `json:"session_id"`
+	Parameters     util.MapStr         `json:"parameters,omitempty"`
+	From           string              `json:"from"`
+	To             string              `json:"to,omitempty"`
+	Message        string              `config:"message" json:"message,omitempty" elastic_mapping:"message:{type:keyword}"`
+	ReplyMessageID string              `config:"reply_to_message" json:"reply_to_message,omitempty" elastic_mapping:"reply_to_message:{type:keyword}"`
+	Details        []ProcessingDetails `json:"details"`
+	UpVote         int                 `json:"up_vote"`
+	DownVote       int                 `json:"down_vote"`
 }
 
 type ProcessingDetails struct {

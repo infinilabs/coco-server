@@ -96,6 +96,7 @@ func ValidateLoginByAPITokenHeader(r *http.Request) (claims *UserClaims, err err
 	// Set default roles
 	claims.Roles = []string{}
 
+	claims.Provider = "token"
 	return claims, nil
 }
 
@@ -140,6 +141,7 @@ func ValidateLoginByAuthorizationHeader(r *http.Request) (claims *UserClaims, er
 	if claims == nil {
 		return nil, errors.Error("invalid claims")
 	}
+	claims.Provider = "bearer"
 	return claims, nil
 }
 
@@ -181,7 +183,7 @@ func ValidateLoginBySession(r *http.Request) (claims *UserClaims, err error) {
 			return
 		}
 	}
-
+	claims.Provider = "session"
 	return claims, nil
 }
 

@@ -2,9 +2,11 @@ env:
   OLLAMA_ENDPOINT: http://localhost:11434
   OLLAMA_MODEL: deepseek-r1:8b
   ENRICHMENT_MODEL: deepseek-r1:1.5b
+
   OPENAI_ENDPOINT: https://dashscope.aliyuncs.com/compatible-mode/v1
   OPENAI_TOKEN: ""
-  OPENAI_MODEL: deepseek-r1
+  OPENAI__MODEL: deepseek-r1
+
   ES_ENDPOINT: https://localhost:9200
   ES_USERNAME: admin
   ES_PASSWORD: $[[keystore.ES_PASSWORD]]
@@ -13,16 +15,17 @@ env:
 
 coco:
   llm:
-    type: ollama
-  ollama:
-    endpoint: $[[env.OLLAMA_ENDPOINT]]
-    model: $[[env.OLLAMA_MODEL]]
     keepalive: 30m
-  openai:
-    endpoint:  $[[env.OPENAI_ENDPOINT]]
-    token:  $[[env.OPENAI_TOKEN]]
-    model:  $[[env.OPENAI_MODEL]]
-    keepalive: 30m
+## comment out if you are using ollama
+#    type: ollama
+#    endpoint: $[[env.OLLAMA_ENDPOINT]]
+#    default_model: $[[env.OLLAMA_MODEL]]
+## comment out if you are using any OPENAI API compatible's services
+    type: openai
+    endpoint: $[[env.OPENAI_ENDPOINT]]
+    token: $[[env.OPENAI_TOKEN]]
+    default_model: $[[env.OPENAI_MODEL]]
+
   server:
     public: false
     name: "My Coco Server"

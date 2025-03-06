@@ -47,18 +47,7 @@ func (this *Coco) Setup() {
 	if ok && err != nil {
 		panic(err)
 	}
-	if cocoConfig.LLMConfig.Type == "ollama" && cocoConfig.OllamaConfig != nil {
-		cocoConfig.LLMConfig.DefaultModel = cocoConfig.OllamaConfig.Model
-		cocoConfig.LLMConfig.Endpoint = cocoConfig.OllamaConfig.Endpoint
-		cocoConfig.LLMConfig.Keepalive = cocoConfig.OllamaConfig.Keepalive
-		cocoConfig.LLMConfig.ContextLength = uint64(cocoConfig.OllamaConfig.ContextLength)
-	} else if cocoConfig.LLMConfig.Type == "openai" && cocoConfig.OpenAIConfig != nil {
-		cocoConfig.LLMConfig.DefaultModel = cocoConfig.OpenAIConfig.Model
-		cocoConfig.LLMConfig.Endpoint = cocoConfig.OpenAIConfig.Endpoint
-		cocoConfig.LLMConfig.Keepalive = cocoConfig.OpenAIConfig.Keepalive
-		cocoConfig.LLMConfig.ContextLength = uint64(cocoConfig.OpenAIConfig.ContextLength)
-		cocoConfig.LLMConfig.Token = cocoConfig.OpenAIConfig.Token
-	}
+
 	//update coco's config
 	global.Register("APP_CONFIG", &cocoConfig)
 

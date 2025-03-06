@@ -75,10 +75,8 @@ func SetAppConfig(c *Config) {
 }
 
 type Config struct {
-	LLMConfig    *LLMConfig    `config:"llm" json:"llm,omitempty"`
-	ServerInfo   *ServerInfo   `config:"server" json:"server,omitempty"`
-	OllamaConfig *OllamaConfig `config:"ollama" json:"ollama_config,omitempty"`
-	OpenAIConfig *OpenAIConfig `config:"openai" json:"open_ai_config,omitempty"`
+	LLMConfig  *LLMConfig  `config:"llm" json:"llm,omitempty"`
+	ServerInfo *ServerInfo `config:"server" json:"server,omitempty"`
 }
 
 type LLMConfig struct {
@@ -100,29 +98,6 @@ type LLMParameters struct {
 	FrequencyPenalty  float64 `config:"frequency_penalty" json:"frequency_penalty"`
 	EnhancedInference bool    `config:"enhanced_inference" json:"enhanced_inference"`
 	MaxLength         int     `config:"max_length" json:"max_length"`
-}
-
-type ModelConfig struct {
-}
-
-type OllamaConfig struct {
-	Model         string `config:"model"`
-	Endpoint      string `config:"endpoint"`
-	ContextLength int    `config:"context_length"`
-	Keepalive     string `config:"keepalive"`
-}
-
-type OpenAIConfig struct {
-	Model         string `config:"model"`
-	Endpoint      string `config:"endpoint"`
-	Token         string `config:"token"`
-	ContextLength int    `config:"context_length"`
-	Keepalive     string `config:"keepalive"`
-}
-
-type GenerateConfig struct {
-	MaxLength int `config:"max_length"`
-	MaxTokens int `config:"max_tokens"`
 }
 
 const WEBSOCKET_USER_SESSION = "websocket-user-session"
