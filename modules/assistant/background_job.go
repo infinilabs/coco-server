@@ -599,8 +599,12 @@ func formatDocumentForPick(docs []common.Document) []util.MapStr {
 		item["id"] = doc.ID
 		item["title"] = doc.Title
 		item["updated"] = doc.Updated
+		item["icon"] = doc.Icon
+		item["size"] = doc.Size
+		item["thumbnail"] = doc.Thumbnail
 		item["category"] = doc.Category
 		item["summary"] = util.SubString(doc.Summary, 0, 500)
+		item["url"] = doc.URL
 		outDocs = append(outDocs, item)
 	}
 	return outDocs
