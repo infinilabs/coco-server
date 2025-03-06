@@ -1,10 +1,11 @@
 import Search from 'antd/es/input/Search';
-import { FilterOutlined, PlusOutlined, EllipsisOutlined, ExclamationCircleOutlined} from '@ant-design/icons';
+import Icon, { FilterOutlined, PlusOutlined, EllipsisOutlined, ExclamationCircleOutlined} from '@ant-design/icons';
 import { Button, Dropdown, Table, GetProp, message,Modal } from 'antd';
 import type { TableColumnsType, TableProps, MenuProps } from "antd";
 import type { SorterResult } from 'antd/es/table/interface';
 import {fetchDataSourceList, deleteDatasource} from '@/service/api'
 import { formatESSearchResult } from '@/service/request/es';
+import { GoogleDriveSVG, HugoSVG, YuqueSVG,NotionSVG } from '@/components/icons';
 
 const { confirm } = Modal;
 type Datasource = Api.Datasource.Datasource;
@@ -18,6 +19,26 @@ interface TableParams {
   sortOrder?: SorterResult<any>['order'];
   filters?: Parameters<GetProp<TableProps, 'onChange'>>[1];
 }
+
+const TYPES = {
+  'google_drive': {
+    name: 'Google Drive',
+    icon: GoogleDriveSVG
+  },
+  'hugo_site': {
+    name: 'Hugo Site',
+    icon: HugoSVG
+  },
+  'yuque': {
+    name: 'Yuque',
+    icon: YuqueSVG
+  },
+  'notion': {
+    name: 'Notion',
+    icon: NotionSVG
+  },
+}
+
 
 export function Component() {
   const { t } = useTranslation();
@@ -72,14 +93,22 @@ export function Component() {
       dataIndex: "name",
       minWidth: 200,
       render: (value: string, record: Datasource)=>{
-        return <a className='text-blue-500' onClick={()=>nav(`/data-source/detail/${record.id}`, {state:{datasource_name: record.name, connector_id: record.connector?.id || ''}})}>{value}</a>
+        const type = TYPES[record?.connector?.id]
+        return (
+          <a className='text-blue-500' onClick={()=>nav(`/data-source/detail/${record.id}`, {state:{datasource_name: record.name, connector_id: record.connector?.id || ''}})}>
+            { type && <Icon component={type.icon} className='m-r-6px'/> }
+            {value}
+          </a>
+        )
       }
     },
     {
       title: t('page.datasource.columns.type'),
       minWidth: 100,
       render: (text: string, record: Datasource)=>{
-        return record.connector.id
+        const type = TYPES[record?.connector?.id]
+        if (!type) return record?.connector?.id
+        return type.name
       },
     },
     // {
