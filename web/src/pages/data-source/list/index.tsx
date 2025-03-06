@@ -111,17 +111,14 @@ export function Component() {
         return type.name
       },
     },
-    // {
-    //   dataIndex: 'sync_config.type',
-    //   width: 200,
-    //   title: t('page.datasource.columns.sync_policy')
-    // },
-    // {
-    //   dataIndex: 'latest_sync_time',
-    //   key: 'latest_sync_time',
-    //   title: t('page.datasource.columns.latest_sync_time'),
-    //   width: 200
-    // },
+    {
+      dataIndex: 'sync_enabled',
+      title: t('page.datasource.new.labels.sync_enabled'),
+      width: 200,
+      render: (value: boolean)=>{
+        return value ? t('common.yesOrNo.yes') : t('common.yesOrNo.no')
+      }
+    },
     // {
     //   dataIndex: 'sync_status',
     //   key: 'sync_status',

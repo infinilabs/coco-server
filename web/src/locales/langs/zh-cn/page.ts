@@ -103,6 +103,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         client_id: "客户端 ID",
         client_secret: "客户端密钥",
         redirect_uri: "重定向 URI",
+        sync_enabled: "是否启用同步",
       }
     }
   }

@@ -4,6 +4,7 @@ import {
   Form,
   Input,
   message,
+  Switch,
 } from 'antd';
 import type { FormProps } from 'antd';
 import {TypeList} from '@/components/datasource/type';
@@ -21,6 +22,8 @@ export function Component() {
     const sValues = {
       name: values.name,
       type: "connector",
+      enabled: values.enabled,
+      sync_enabled: values.sync_enabled,
       connector: {
         id: values.connector.id,
         config: {
@@ -75,6 +78,9 @@ export function Component() {
             </Form.Item>
             <Form.Item label={t('page.datasource.new.labels.data_sync')} name="sync_config">
              <DataSync/>
+            </Form.Item>
+            <Form.Item label={t('page.datasource.new.labels.sync_enabled')} name="sync_enabled">
+              <Switch />
             </Form.Item>
             <Form.Item label=" ">
               <Button type='primary' loading={loading}  htmlType="submit">{t('common.save')}</Button>
