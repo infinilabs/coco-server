@@ -30,7 +30,7 @@ export const themeSettings: App.Theme.ThemeSetting = {
     warning: '#faad14'
   },
   page: {
-    animate: true,
+    animate: false,
     animateMode: 'fade'
   },
   recommendColor: false,

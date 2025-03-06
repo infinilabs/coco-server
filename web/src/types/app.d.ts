@@ -340,8 +340,10 @@ declare namespace App {
             yes: string;
           };
           advanced: string;
-          save: string,
-          testConnection: string,
+          save: string;
+          testConnection: string;
+          operation: string;
+          comingSoon: string;
         };
         datatable: {
           itemCount: string;
@@ -417,6 +419,7 @@ declare namespace App {
               type: string;
               endpoint: string;
               defaultModel: string;
+              keepalive: string;
               requestParams: string;
               temperature: string;
               temperatureDesc: string;
@@ -449,6 +452,14 @@ declare namespace App {
               validateSuccess: string;
               welcomeBack: string;
             };
+            cocoAI: {
+              title: string;
+              autoDesc: string;
+              launchCocoAI: string;
+              copyDesc: string;
+              enterCocoServer: string;
+              enterCocoServerDesc: string;
+            }
           };
           guide: {
             user: {

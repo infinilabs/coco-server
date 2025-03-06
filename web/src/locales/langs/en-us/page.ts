@@ -20,6 +20,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       type: 'Type',
       endpoint: 'Endpoint',
       defaultModel: 'Default Model',
+      keepalive: 'Keepalive',
       requestParams: 'Request Params',
       temperature: 'Temperature',
       temperatureDesc: 'the larger the value, the more random the response',
@@ -52,6 +53,14 @@ const page: App.I18n.Schema['translation']['page'] = {
       validateSuccess: 'Verification passed',
       welcomeBack: 'Welcome back, {{userName}} !'
     },
+    cocoAI: {
+      title: 'Open Coco AI',
+      autoDesc: 'In order to continue, please click the link below if you are not redirected automatically within 5 seconds:',
+      launchCocoAI: 'Launch Coco AI',
+      copyDesc: 'If the redirect doesn’t work, you can copy the following URL and paste it into the Connect settings window in Coco AI:',
+      enterCocoServer: 'Enter Coco Server',
+      enterCocoServerDesc: 'Or, you can also:'
+    }
   },
   guide: {
     user: {
@@ -75,6 +84,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       latest_sync_time: "Latest Sync Time",
       sync_status: "Sync Status",
       enabled: "Enabled",
+      searchable: "Searchable",
     },
     new:{
       title: "Data Source Connection",
@@ -89,7 +99,10 @@ const page: App.I18n.Schema['translation']['page'] = {
         scheduled_sync_desc: "Sync at fixed intervals",
         realtime_sync: "Real-time Sync",
         realtime_sync_desc: "Sync immediately upon file modification",
-        immediate_sync: "Immediate Sync"
+        immediate_sync: "Immediate Sync",
+        client_id: "Client ID",
+        client_secret: "Client Secret",
+        redirect_uri: "Redirect URI",
       }
     }
   }

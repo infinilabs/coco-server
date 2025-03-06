@@ -46,6 +46,7 @@ func (h APIHandler) Logout(w http.ResponseWriter, r *http.Request, ps httprouter
 	}
 
 	DeleteUserToken(reqUser.UserId)
+	api.DestroySession(w, r)
 	h.WriteOKJSON(w, util.MapStr{
 		"status": "ok",
 	})

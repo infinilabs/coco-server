@@ -21,4 +21,5 @@ func init() {
 	api.HandleUIMethod(api.PUT, "/document/:doc_id", handler.updateDoc, api.RequireLogin())
 	api.HandleUIMethod(api.DELETE, "/document/:doc_id", handler.deleteDoc, api.RequireLogin())
 	api.HandleUIMethod(api.GET, "/document/_search", handler.searchDocs, api.RequireLogin())
+	api.HandleUIMethod(api.DELETE, "/document/", handler.batchDeleteDoc, api.RequireLogin())
 }

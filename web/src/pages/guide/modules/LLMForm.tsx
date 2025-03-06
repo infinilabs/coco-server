@@ -1,4 +1,4 @@
-import { Button, Form, Input, Radio, Select } from "antd";
+import { Button, Form, Input } from "antd";
 import { FormInstance } from "antd/lib";
 import { ReactSVG } from "react-svg";
 import OllamaSvg from '@/assets/svg-icon/ollama.svg'
@@ -14,15 +14,6 @@ const LLMForm = memo(({ form, onSubmit, loading }: { form: FormInstance, onSubmi
     const { defaultRequiredRule, formRules } = useFormRules();
     const [type, setType] = useState<ModelType>('ollama')
 
-    const models = {
-        'ollama': [
-            { 'value': 'deepseek_r1', 'label': 'DeepSeek-R1'}
-        ],
-        'openai': [
-            { 'value': 'openai', 'label': 'OpenAI'}
-        ]
-    }
-
     return (
         <>
             <div className="text-32px color-#333 m-b-16px">
@@ -37,7 +28,7 @@ const LLMForm = memo(({ form, onSubmit, loading }: { form: FormInstance, onSubmi
                 initialValues={{
                     llm: { 
                         type,
-                        "default_model":"deepseek_r1",
+                        keepalive: '30m'
                     }
                 }}
               >
@@ -54,7 +45,7 @@ const LLMForm = memo(({ form, onSubmit, loading }: { form: FormInstance, onSubmi
                         ]}
                         onChange={(value: ModelType) => {
                             setType(value)
-                            form.setFieldsValue({ default_model: '' })
+                            form.setFieldsValue({ token: undefined })
                         }}
                     />
                 </Form.Item>
@@ -72,11 +63,28 @@ const LLMForm = memo(({ form, onSubmit, loading }: { form: FormInstance, onSubmi
                     className={formItemClassNames}
                     rules={[defaultRequiredRule]}
                 >
-                    <Select 
-                        options={models[type] as never[]}
-                        className={inputClassNames}
-                    />
+                    <Input />
                 </Form.Item>
+                <Form.Item
+                    name={['llm', 'keepalive']}
+                    label={t(`page.settings.llm.keepalive`)}
+                    className={formItemClassNames}
+                    rules={[defaultRequiredRule]}
+                >
+                    <Input />
+                </Form.Item>
+                {
+                    type === 'openai' && (
+                        <Form.Item
+                            name={['llm', 'token']}
+                            label={'Token'}
+                            className={formItemClassNames}
+                            rules={[defaultRequiredRule]}
+                        >
+                            <Input />
+                        </Form.Item>
+                    )
+                }
                 <div className="flex justify-between">
                     <Button type="link" size="large" className="h-56px text-14px px-0" onClick={() => onSubmit(true)}>{t('page.guide.setupLater')}</Button>
                     <Button loading={loading} type="primary" size="large" className="w-56px h-56px text-24px" onClick={() => onSubmit()}>

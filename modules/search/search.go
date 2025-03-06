@@ -86,10 +86,31 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 	)
 
 	mustClauses := BuildMustClauses(datasource, category, subcategory, richCategory, username, userid)
+	mustClauses = append(mustClauses, map[string]interface{}{
+		"bool": map[string]interface{}{
+			"minimum_should_match": 1,
+			"should": []interface{}{
+				map[string]interface{}{
+					"term": map[string]interface{}{
+						"disabled": false,
+					},
+				},
+				map[string]interface{}{
+					"bool": map[string]interface{}{
+						"must_not": map[string]interface{}{
+							"exists": map[string]interface{}{
+								"field": "disabled",
+							},
+						},
+					},
+				},
+			},
+		},
+	})
 
 	var q *orm.Query
 	if query != "" || len(mustClauses) > 0 {
-		q = BuildTemplatedQuery(from, size, mustClauses, field, query, source, tags)
+		q = BuildTemplatedQuery(from, size, mustClauses, nil, field, query, source, tags)
 	} else {
 		body, err := h.GetRawBody(req)
 		if err != nil {
@@ -117,18 +138,22 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 	}
 }
 
-func BuildTemplatedQuery(from int, size int, mustClauses []interface{}, field string, query string, source string, tags string) *orm.Query {
+func BuildTemplatedQuery(from int, size int, mustClauses []interface{}, shouldClauses interface{}, field string, query string, source string, tags string) *orm.Query {
 	templatedQuery := orm.TemplatedQuery{}
 	templatedQuery.TemplateID = "coco-query-string"
+	if shouldClauses != nil {
+		templatedQuery.TemplateID = "coco-query-string-extra-should"
+	}
 
 	templatedQuery.Parameters = util.MapStr{
-		"from":         from,
-		"size":         size,
-		"must_clauses": mustClauses,
-		"field":        field,
-		"query":        query,
-		"source":       strings.Split(source, ","),
-		"tags":         strings.Split(tags, ","),
+		"from":                 from,
+		"size":                 size,
+		"must_clauses":         mustClauses,
+		"extra_should_clauses": shouldClauses,
+		"field":                field,
+		"query":                query,
+		"source":               strings.Split(source, ","),
+		"tags":                 strings.Split(tags, ","),
 	}
 	q := orm.Query{}
 	q.TemplatedQuery = &templatedQuery
@@ -140,11 +165,20 @@ func BuildMustClauses(datasource string, category string, subcategory string, ri
 
 	// Check and add conditions to mustClauses
 	if datasource != "" {
-		mustClauses = append(mustClauses, map[string]interface{}{
-			"term": map[string]interface{}{
-				"source.id": datasource,
-			},
-		})
+		if strings.Contains(datasource, ",") {
+			arr := strings.Split(datasource, ",")
+			mustClauses = append(mustClauses, map[string]interface{}{
+				"terms": map[string]interface{}{
+					"source.id": arr,
+				},
+			})
+		} else {
+			mustClauses = append(mustClauses, map[string]interface{}{
+				"term": map[string]interface{}{
+					"source.id": datasource,
+				},
+			})
+		}
 	}
 
 	if category != "" {
@@ -187,4 +221,38 @@ func BuildMustClauses(datasource string, category string, subcategory string, ri
 		})
 	}
 	return mustClauses
+}
+
+func BuildShouldClauses(query []string, keyword []string) interface{} {
+	clauses := []interface{}{}
+
+	if len(query) > 0 {
+		for _, v := range query {
+			clauses = append(clauses, map[string]interface{}{
+				"match": map[string]interface{}{
+					"combined_fulltext": v,
+				},
+			})
+		}
+	}
+
+	if len(keyword) > 0 {
+		clauses = append(clauses, map[string]interface{}{
+			"terms": map[string]interface{}{
+				"combined_fulltext": keyword,
+			},
+		})
+	}
+
+	if len(clauses) > 0 {
+
+	}
+
+	clause := util.MapStr{}
+	clause["bool"] = util.MapStr{
+		"should": clauses,
+		"boost":  100,
+	}
+
+	return clause
 }

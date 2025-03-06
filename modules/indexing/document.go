@@ -6,6 +6,7 @@ package indexing
 
 import (
 	"infini.sh/coco/modules/common"
+	"infini.sh/coco/modules/search"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
@@ -20,7 +21,10 @@ func (h *APIHandler) createDoc(w http.ResponseWriter, req *http.Request, ps http
 		return
 	}
 
-	err = orm.Create(nil, obj)
+	ctx := orm.Context{
+		Refresh: "wait_for",
+	}
+	err = orm.Create(&ctx, obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -82,7 +86,10 @@ func (h *APIHandler) updateDoc(w http.ResponseWriter, req *http.Request, ps http
 	//protect
 	obj.ID = id
 	obj.Created = create
-	err = orm.Update(nil, &obj)
+	ctx := orm.Context{
+		Refresh: "wait_for",
+	}
+	err = orm.Update(&ctx, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -109,7 +116,10 @@ func (h *APIHandler) deleteDoc(w http.ResponseWriter, req *http.Request, ps http
 		return
 	}
 
-	err = orm.Delete(nil, &obj)
+	ctx := orm.Context{
+		Refresh: "wait_for",
+	}
+	err = orm.Delete(&ctx, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -123,13 +133,27 @@ func (h *APIHandler) deleteDoc(w http.ResponseWriter, req *http.Request, ps http
 
 func (h *APIHandler) searchDocs(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
-	var err error
-	q := orm.Query{}
-	q.RawQuery, err = h.GetRawBody(req)
+	var (
+		query      = h.GetParameterOrDefault(req, "query", "")
+		from       = h.GetIntOrDefault(req, "from", 0)
+		size       = h.GetIntOrDefault(req, "size", 10)
+		datasource = h.GetParameterOrDefault(req, "datasource", "")
+		field      = h.GetParameterOrDefault(req, "search_field", "title")
+		tags       = h.GetParameterOrDefault(req, "tags", "")
+		source     = h.GetParameterOrDefault(req, "source_fields", "*")
+	)
+	mustClauses := search.BuildMustClauses(datasource, "", "", "", "", "")
 
-	//TODO handle url query args
+	var err error
+	q := &orm.Query{}
+	if req.Method == http.MethodPost {
+		q.RawQuery, err = h.GetRawBody(req)
+	} else if query != "" || len(mustClauses) > 0 {
+		q = search.BuildTemplatedQuery(from, size, mustClauses, nil, field, query, source, tags)
+	}
+
 	docs := []common.Document{}
-	err, res := orm.SearchWithJSONMapper(&docs, &q)
+	err, res := orm.SearchWithJSONMapper(&docs, q)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -139,4 +163,32 @@ func (h *APIHandler) searchDocs(w http.ResponseWriter, req *http.Request, ps htt
 	if err != nil {
 		h.Error(w, err)
 	}
+}
+
+func (h *APIHandler) batchDeleteDoc(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	var ids []string
+	err := h.DecodeJSON(req, &ids)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if len(ids) == 0 {
+		h.WriteError(w, "document ids can not be empty", http.StatusBadRequest)
+		return
+	}
+	query := util.MapStr{
+		"query": util.MapStr{
+			"terms": util.MapStr{
+				"id": ids,
+			},
+		},
+	}
+	err = orm.DeleteBy(common.Document{}, util.MustToJSONBytes(query))
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	h.WriteAckOKJSON(w)
 }

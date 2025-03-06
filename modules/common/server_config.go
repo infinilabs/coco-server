@@ -27,13 +27,14 @@ import "time"
 
 // ServerInfo represents the main structure for server configuration.
 type ServerInfo struct {
-	Name         string       `json:"name" config:"name"`                   // Config key for the server name
-	Endpoint     string       `json:"endpoint" config:"endpoint"`           // Config key for the server endpoint
-	Provider     Provider     `json:"provider" config:"provider"`           // Config key for the provider
-	Version      Version      `json:"version" config:"version"`             // Config key for the version
-	Updated      time.Time    `json:"updated" config:"updated"`             // Config key for the updated time
-	Public       bool         `json:"public" config:"public"`               // Config key for public visibility
-	AuthProvider AuthProvider `json:"auth_provider" config:"auth_provider"` // Config key for auth provider
+	Name                 string       `json:"name" config:"name"`                                     // Config key for the server name
+	Endpoint             string       `json:"endpoint" config:"endpoint"`                             // Config key for the server endpoint
+	Provider             Provider     `json:"provider" config:"provider"`                             // Config key for the provider
+	Version              Version      `json:"version" config:"version"`                               // Config key for the version
+	MinimalClientVersion Version      `json:"minimal_client_version" config:"minimal_client_version"` // Config key for the version
+	Updated              time.Time    `json:"updated" config:"updated"`                               // Config key for the updated time
+	Public               bool         `json:"public" config:"public"`                                 // Config key for public visibility
+	AuthProvider         AuthProvider `json:"auth_provider" config:"auth_provider"`                   // Config key for auth provider
 }
 
 // Provider represents the "provider" section of the configuration.

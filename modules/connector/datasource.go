@@ -10,6 +10,7 @@ import (
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
 	"net/http"
+	log "src/github.com/cihub/seelog"
 	"time"
 )
 
@@ -70,6 +71,18 @@ func (h *APIHandler) deleteDatasource(w http.ResponseWriter, req *http.Request, 
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+	// deleting related documents
+	query := util.MapStr{
+		"query": util.MapStr{
+			"term": util.MapStr{
+				"source.id": id,
+			},
+		},
+	}
+	err = orm.DeleteBy(&common.Document{}, util.MustToJSONBytes(query))
+	if err != nil {
+		log.Errorf("delete related documents with datasource [%s] error: %v", obj.Name, err)
 	}
 
 	h.WriteJSON(w, util.MapStr{

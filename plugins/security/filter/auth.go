@@ -57,7 +57,7 @@ func (f *AuthFilter) ApplyFilter(
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 		claims, err1 := core.ValidateLogin(r)
-
+		//log.Info(util.MustToJSON(claims), err1)
 		if claims == nil {
 			o := api.PrepareErrorJson("invalid login", 401)
 			f.WriteJSON(w, o, 401)
