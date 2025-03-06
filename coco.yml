@@ -12,6 +12,8 @@ env:
   API_BINDING: 0.0.0.0:2900
 
 coco:
+  llm:
+    type: ollama
   ollama:
     endpoint: $[[env.OLLAMA_ENDPOINT]]
     model: $[[env.OLLAMA_MODEL]]

@@ -27,6 +27,7 @@ import (
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
+	"infini.sh/framework/core/util"
 	"net/http"
 )
 
@@ -47,11 +48,43 @@ func (h *APIHandler) updateServerSettings(w http.ResponseWriter, req *http.Reque
 	}
 	oldAppConfig := common.AppConfig()
 	if appConfig.LLMConfig != nil {
-		oldAppConfig.LLMConfig = appConfig.LLMConfig
+		//merge settings
+		llmCfg := common.LLMConfig{}
+		err := mergeSettings(oldAppConfig.LLMConfig, appConfig.LLMConfig, &llmCfg)
+		if err != nil {
+			log.Error(err)
+			h.WriteError(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		oldAppConfig.LLMConfig = &llmCfg
 	}
 	if appConfig.ServerInfo != nil {
-		oldAppConfig.ServerInfo = appConfig.ServerInfo
+		//merge settings
+		serverCfg := common.ServerInfo{}
+		err := mergeSettings(oldAppConfig.ServerInfo, appConfig.ServerInfo, &serverCfg)
+		if err != nil {
+			log.Error(err)
+			h.WriteError(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		oldAppConfig.ServerInfo = &serverCfg
 	}
 	common.SetAppConfig(&oldAppConfig)
 	h.WriteAckOKJSON(w)
+}
+
+func mergeSettings(old, new, merged interface{}) error {
+	newSettings := util.MapStr{}
+	buf := util.MustToJSONBytes(new)
+	util.MustFromJSONBytes(buf, &newSettings)
+	buf = util.MustToJSONBytes(old)
+	oldSettings := util.MapStr{}
+	util.MustFromJSONBytes(buf, &oldSettings)
+	err := util.MergeFields(oldSettings, newSettings, false)
+	if err != nil {
+		return err
+	}
+	buf = util.MustToJSONBytes(oldSettings)
+	util.MustFromJSONBytes(buf, merged)
+	return nil
 }

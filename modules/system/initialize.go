@@ -24,6 +24,7 @@
 package system
 
 import (
+	"fmt"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/plugins/security"
@@ -78,7 +79,7 @@ func (h *APIHandler) setupServer(w http.ResponseWriter, req *http.Request, ps ht
 	info.LLMConfig.DefaultModel = input.LLM.DefaultModel
 	info.LLMConfig.Type = input.LLM.Type
 	if input.Name != "" {
-		info.ServerInfo.Name = input.Name
+		info.ServerInfo.Name = fmt.Sprintf("%s's Coco Server", input.Name)
 	} else if info.ServerInfo.Name == "" {
 		info.ServerInfo.Name = "My Coco Server"
 	}

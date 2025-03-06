@@ -75,19 +75,21 @@ func SetAppConfig(c *Config) {
 }
 
 type Config struct {
-	LLMConfig  *LLMConfig  `config:"llm" json:"llm,omitempty"`
-	ServerInfo *ServerInfo `config:"server" json:"server,omitempty"`
+	LLMConfig    *LLMConfig    `config:"llm" json:"llm,omitempty"`
+	ServerInfo   *ServerInfo   `config:"server" json:"server,omitempty"`
+	OllamaConfig *OllamaConfig `config:"ollama" json:"ollama_config,omitempty"`
+	OpenAIConfig *OpenAIConfig `config:"openai" json:"open_ai_config,omitempty"`
 }
 
 type LLMConfig struct {
 	// LLM type, optional value "ollama" or "openai"
 	Type          string        `config:"type" json:"type"`
 	Endpoint      string        `config:"endpoint" json:"endpoint"`
-	DefaultModel  string        `config:"default_model" json:"default_model"`
+	DefaultModel  string        `config:"default_model" json:"default_model,omitempty"`
 	Parameters    LLMParameters `config:"parameters" json:"parameters"`
-	Keepalive     string        `config:"keepalive" json:"keepalive"`
-	ContextLength uint64        `config:"context_length" json:"context_length"`
-	Token         string        `config:"token" json:"token"`
+	Keepalive     string        `config:"keepalive" json:"keepalive,omitempty"`
+	ContextLength uint64        `config:"context_length" json:"context_length,omitempty"`
+	Token         string        `config:"token" json:"token,omitempty"`
 }
 
 type LLMParameters struct {
