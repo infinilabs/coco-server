@@ -28,7 +28,6 @@ const LLMForm = memo(({ form, onSubmit, loading }: { form: FormInstance, onSubmi
                 initialValues={{
                     llm: { 
                         type,
-                        "default_model":"deepseek_r1",
                     }
                 }}
               >
