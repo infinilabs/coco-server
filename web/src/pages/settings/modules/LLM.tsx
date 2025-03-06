@@ -1,4 +1,4 @@
-import { Button, Form, Input, InputNumber, Radio, Select, Spin, Switch } from "antd";
+import { Button, Form, Input, InputNumber, Spin, Switch } from "antd";
 import "../index.scss"
 import OllamaSvg from '@/assets/svg-icon/ollama.svg'
 import OpenAISvg from '@/assets/svg-icon/openai.svg'
@@ -62,15 +62,6 @@ const LLM = memo(() => {
 
     const { endLoading, loading, startLoading } = useLoading();
     const { defaultRequiredRule, formRules } = useFormRules();
-
-    const models = {
-        'ollama': [
-            { 'value': 'deepseek_r1', 'label': 'DeepSeek-R1'}
-        ],
-        'openai': [
-            { 'value': 'openai', 'label': 'OpenAI'}
-        ]
-    }
 
     const { data, run, loading: dataLoading } = useRequest(fetchSettings, {
         manual: true
@@ -145,9 +136,7 @@ const LLM = memo(() => {
                     label={t(`page.settings.llm.defaultModel`)}
                     rules={[defaultRequiredRule]}
                 >
-                    <Select 
-                        options={models[type] as never[]}
-                    />
+                    <Input />
                 </Form.Item>
                 <Form.Item
                     label=" "
