@@ -83,6 +83,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       latest_sync_time: "最近同步",
       sync_status: "同步状态",
       enabled: "启用状态",
+      searchable: "可搜索",
     },
     new:{
       title: "连接数据源",

@@ -3,7 +3,7 @@ import type { TableColumnsType, TableProps, MenuProps } from "antd";
 import { Switch, Table, Dropdown, message, Modal} from "antd";
 import Search from "antd/es/input/Search";
 import Icon, { FilterOutlined, DownOutlined, ExclamationCircleOutlined, EllipsisOutlined } from "@ant-design/icons";
-import {fetchDatasourceDetail, deleteDocument, updateDocument} from '@/service/api';
+import {fetchDatasourceDetail, deleteDocument, updateDocument, batchDeleteDocument} from '@/service/api';
 import { formatESSearchResult } from '@/service/request/es';
 import {ConnectorImageIcon} from '@/components/icons/connector';
 const { confirm } = Modal;
@@ -21,27 +21,6 @@ interface DataType {
   type: string;
   disabled: boolean;
 }
-
-// rowSelection object indicates the need for row selection
-const rowSelection: TableProps<DataType>["rowSelection"] = {
-  onChange: (selectedRowKeys: React.Key[], selectedRows: DataType[]) => {
-    console.log(
-      `selectedRowKeys: ${selectedRowKeys}`,
-      "selectedRows: ",
-      selectedRows,
-    );
-  },
-  getCheckboxProps: (record: DataType) => ({// Column configuration not to be checked
-    name: record.title,
-  }),
-};
-
-const items: MenuProps["items"] = [
-  {
-    label: "Delete",
-    key: "1",
-  },
-];
 
 export function Component() {
   const datasourceID = useLoaderData();
@@ -76,6 +55,24 @@ export function Component() {
         break;
     }
   }
+const [state, setState] = useState({
+  selectedRowKeys: [],
+});
+// rowSelection object indicates the need for row selection
+const rowSelection: TableProps<DataType>["rowSelection"] = {
+  selectedRowKeys: state.selectedRowKeys,
+  onChange: (selectedRowKeys: React.Key[], selectedRows: DataType[]) => {
+    setState((st: any)=>{
+      return {
+        ...st,
+        selectedRowKeys: selectedRowKeys,
+      }
+    })
+  },
+  getCheckboxProps: (record: DataType) => ({// Column configuration not to be checked
+    name: record.title,
+  }),
+};
   const onSearchableChange = (checked: boolean, record: DataType)=>{
     //update searchable status
     record.disabled = !checked
@@ -91,6 +88,53 @@ export function Component() {
       })
     });
   }
+  const items: MenuProps["items"] = [
+    {
+      label: t('common.delete'),
+      key: "1",
+    },
+  ];
+  const onBatchMenuClick = useCallback(({key}: any)=>{
+    switch(key){
+      case "1":
+        confirm({
+          icon: <ExclamationCircleOutlined />,
+          content: 'Are you sure you want to delete theses documents?',
+          onOk() {
+            if (state.selectedRowKeys?.length === 0) {
+              message.error("Please select at least one document")
+              return;
+            }
+            setLoading(true);
+            batchDeleteDocument(state.selectedRowKeys).then((res)=>{
+              if(res.data?.result === "acknowledged"){
+                setState((st: any)=>{
+                  return {
+                    ...st,
+                    selectedRowKeys: [],
+                  }
+                })
+                message.success("submit success")
+              }
+              //reload data
+              setTimeout(()=>{
+                setReqParams((old)=>{
+                  return {
+                    ...old,
+                  }
+                })
+              }, 1000);
+            }).finally(()=>{
+              setLoading(false);
+            });
+          },
+          onCancel() {
+          },
+        });
+       
+        break;
+    }
+  }, [state.selectedRowKeys]);
 
   const columns: TableColumnsType<DataType> = useMemo(()=>[
     {
@@ -101,7 +145,7 @@ export function Component() {
       },
     },
     {
-      title: "Searchable",
+      title: t('page.datasource.columns.searchable'),
       dataIndex: "disabled",
       render: (text: boolean, record: DataType) => {
         return <Switch value={!text} onChange={(v)=>{
@@ -182,9 +226,8 @@ export function Component() {
           <div>
             <Dropdown.Button
               icon={<DownOutlined />}
-              menu={{ items }}
+              menu={{ items, onClick: onBatchMenuClick }}
               type="primary"
-              onClick={() => {}}
             >
               {t('common.operation')}
             </Dropdown.Button>

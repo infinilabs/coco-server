@@ -164,3 +164,31 @@ func (h *APIHandler) searchDocs(w http.ResponseWriter, req *http.Request, ps htt
 		h.Error(w, err)
 	}
 }
+
+func (h *APIHandler) batchDeleteDoc(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	var ids []string
+	err := h.DecodeJSON(req, &ids)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if len(ids) == 0 {
+		h.WriteError(w, "document ids can not be empty", http.StatusBadRequest)
+		return
+	}
+	query := util.MapStr{
+		"query": util.MapStr{
+			"terms": util.MapStr{
+				"id": ids,
+			},
+		},
+	}
+	err = orm.DeleteBy(common.Document{}, util.MustToJSONBytes(query))
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	h.WriteAckOKJSON(w)
+}

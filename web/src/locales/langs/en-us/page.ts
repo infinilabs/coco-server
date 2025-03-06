@@ -83,6 +83,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       latest_sync_time: "Latest Sync Time",
       sync_status: "Sync Status",
       enabled: "Enabled",
+      searchable: "Searchable",
     },
     new:{
       title: "Data Source Connection",

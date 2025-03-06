@@ -278,17 +278,17 @@ connector:
     interval: 60s
     skip_invalid_token: true
   yuque:
-    enabled: false
+    enabled: true
     queue:
       name: indexing_documents
     interval: 60s
   hugo_site:
-    enabled: false
+    enabled: true
     interval: 60s
     queue:
       name: indexing_documents
   notion:
-    enabled: false
+    enabled: true
     interval: 60s
     queue:
       name: indexing_documents

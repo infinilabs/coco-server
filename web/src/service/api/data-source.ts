@@ -60,3 +60,11 @@ export function updateDocument(documentID: string, body: any){
     data: body,
   });
 }
+
+export function batchDeleteDocument(body: any){
+  return request({
+    method: 'delete',
+    url: `/document/`,
+    data: body,
+  });
+}
