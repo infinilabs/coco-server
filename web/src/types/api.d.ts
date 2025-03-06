@@ -251,6 +251,7 @@ declare namespace Api {
           url: string
         }
       };
+      setup_required: boolean;
     }
   }
   namespace Datasource {

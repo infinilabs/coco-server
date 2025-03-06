@@ -15,9 +15,17 @@ import { store } from '@/store';
 import { isStaticSuper, selectUserInfo } from '@/store/slice/auth';
 import { getRouteHome, initAuthRoute, initConstantRoute } from '@/store/slice/route';
 import { localStg } from '@/utils/storage';
+import { fetchServer } from '@/service/api/server';
 
 export const init: Init = async currentFullPath => {
   await store.dispatch(initConstantRoute());
+
+  const result = await fetchServer();
+  if (result.data?.setup_required) {
+    return {
+      name: 'guide',
+    };
+  }
 
   const isLogin = Boolean(localStg.get('token'));
 
