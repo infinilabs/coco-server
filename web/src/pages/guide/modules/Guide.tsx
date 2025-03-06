@@ -48,7 +48,7 @@ const Guide = memo(() => {
     }
 
     return (
-      <div className="size-full flex flex-col items-left justify-center px-10%">
+      <div className="size-full flex flex-col items-left justify-center px-10% overflow-auto">
         <Flex gap="8px" wrap className="m-b-32px">
             <Button onClick={() => setStep(0)} type={step === 0 ? "primary" : "default"} size="small" className="h-24px rounded-8px">1</Button>
             <Button onClick={() => handleSubmit()} type={step === 1 ? "primary" : "default"} size="small" className="h-24px rounded-8px">2</Button>
