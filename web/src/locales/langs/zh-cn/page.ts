@@ -20,6 +20,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       type: '类型',
       endpoint: 'Endpoint',
       defaultModel: '默认模型',
+      keepalive: '保持连接',
       requestParams: '请求参数',
       temperature: '随机性',
       temperatureDesc: '值越大，回复越随机',

@@ -85,8 +85,8 @@ const LLM = memo(() => {
 
     useEffect(() => {
       if (data?.data?.llm) {
-        form.setFieldsValue(data.data.llm);
-        setType(data?.data?.llm?.type)
+        form.setFieldsValue(data.data.llm || { type: 'ollama', keepalive: '30m'});
+        setType(data?.data?.llm?.type || 'ollama')
       }
     }, [JSON.stringify(data)]);
 
@@ -110,7 +110,7 @@ const LLM = memo(() => {
                         ]}
                         onChange={(value: ModelType) => {
                             setType(value)
-                            form.setFieldsValue({ default_model: '' })
+                            form.setFieldsValue({ token: undefined })
                         }}
                     />
                 </Form.Item>
@@ -128,6 +128,24 @@ const LLM = memo(() => {
                 >
                     <Input />
                 </Form.Item>
+                <Form.Item
+                    name={'keepalive'}
+                    label={t(`page.settings.llm.keepalive`)}
+                    rules={[defaultRequiredRule]}
+                >
+                    <Input />
+                </Form.Item>
+                {
+                    type === 'openai' && (
+                        <Form.Item
+                            name={'token'}
+                            label={'Token'}
+                            rules={[defaultRequiredRule]}
+                        >
+                            <Input />
+                        </Form.Item>
+                    )
+                }
                 <Form.Item
                     label=" "
                 >

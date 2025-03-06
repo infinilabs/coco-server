@@ -419,6 +419,7 @@ declare namespace App {
               type: string;
               endpoint: string;
               defaultModel: string;
+              keepalive: string;
               requestParams: string;
               temperature: string;
               temperatureDesc: string;
