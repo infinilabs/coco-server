@@ -32,9 +32,9 @@ coco:
     endpoint: "http://localhost:9000"
     minimal_client_version:
       number: "0.2"
-    auth_provider:
-      sso:
-        url: "http://localhost:9000/login/"
+#    auth_provider:
+#      sso:
+#        url: "/#/login"
     provider:
       name: "INFINI Labs"
       description: "Coco AI Server - Search, Connect, Collaborate, AI-powered enterprise search, all in one space."
@@ -274,17 +274,17 @@ web:
 
 connector:
   google_drive: # get your token here: https://developers.google.com/drive/api/quickstart/go
-    enabled: false
+    enabled: true
     queue:
       name: indexing_documents
     credential_file: credentials.json
-    interval: 60s
+    interval: 360s
     skip_invalid_token: true
   yuque:
     enabled: true
     queue:
       name: indexing_documents
-    interval: 60s
+    interval: 360s
   hugo_site:
     enabled: true
     interval: 60s
@@ -292,7 +292,7 @@ connector:
       name: indexing_documents
   notion:
     enabled: true
-    interval: 60s
+    interval: 360s
     queue:
       name: indexing_documents
 
@@ -356,7 +356,7 @@ pipeline:
 http_client:
   default:
     proxy:
-      enabled: false
+      enabled: true
       default_config:
         http_proxy: http://127.0.0.1:7890
         socket5_proxy: socks5://127.0.0.1:7890

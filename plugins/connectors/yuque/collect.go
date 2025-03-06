@@ -270,7 +270,7 @@ func (this *Plugin) collectBooks(connector *common.Connector, datasource *common
 
 				document.ID = util.MD5digest(fmt.Sprintf("%v-%v-%v", "test", "yuque-book", bookID))
 
-				log.Debug("indexing book: %v, %v, %v, %v", document.ID, bookDetail.Book.Slug, bookDetail.Book.Namespace, bookDetail.Book.Name)
+				log.Debugf("indexing book: %v, %v, %v, %v", document.ID, bookDetail.Book.Slug, bookDetail.Book.Namespace, bookDetail.Book.Name)
 
 				document.Created = &bookDetail.Book.CreatedAt
 				document.Updated = &bookDetail.Book.UpdatedAt
