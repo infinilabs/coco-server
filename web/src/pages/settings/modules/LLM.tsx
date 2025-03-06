@@ -7,7 +7,7 @@ import { useLoading } from '@sa/hooks';
 import { fetchSettings, updateSettings } from "@/service/api/server";
 import ButtonRadio from "@/components/button-radio";
 
-const ADVANCED = [
+const PARAMETERS = [
     {
         key: 'temperature',
         input: <InputNumber min={0} step={0.1} />
@@ -158,7 +158,7 @@ const LLM = memo(() => {
                     className={`${showAdvanced ? '' : 'h-0px m-0px overflow-hidden'}`}
                 >
                     {
-                        ADVANCED.map((item) => (
+                        PARAMETERS.map((item) => (
                             <div key={item.key} className={`flex justify-between items-center`}>
                                 <div className="[flex:1]">
                                     <div className="color-#333">{t(`page.settings.llm.${item.key}`)}</div>
