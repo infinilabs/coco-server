@@ -422,16 +422,16 @@ declare namespace App {
               keepalive: string;
               requestParams: string;
               temperature: string;
-              temperatureDesc: string;
-              topP: string;
-              topPDesc: string;
-              maxTokens: string;
-              maxTokensDesc: string;
-              presencePenalty: string;
-              presencePenaltyDesc: string;
-              frequencyPenalty: string;
-              frequencyPenaltyDesc: string;
-              enhancedInference: string;
+              temperature_desc: string;
+              top_p: string;
+              top_p_desc: string;
+              max_tokens: string;
+              max_tokens_desc: string;
+              presence_penalty: string;
+              presence_penalty_desc: string;
+              frequency_penalty: string;
+              frequency_penalty_desc: string;
+              enhanced_inference: string;
             }
           };
           login: {

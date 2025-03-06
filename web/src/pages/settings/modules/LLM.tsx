@@ -162,7 +162,7 @@ const LLM = memo(() => {
                             <div key={item.key} className={`flex justify-between items-center`}>
                                 <div className="[flex:1]">
                                     <div className="color-#333">{t(`page.settings.llm.${item.key}`)}</div>
-                                    {!item.hideDesc && <div className="color-#999">{t(`page.settings.llm.${item.key}Desc`)}</div>}
+                                    {!item.hideDesc && <div className="color-#999">{t(`page.settings.llm.${item.key}_desc`)}</div>}
                                 </div>
                                 <div >
                                     <Form.Item
