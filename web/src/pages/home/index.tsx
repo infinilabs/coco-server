@@ -47,11 +47,14 @@ export function Component() {
       startLoading()
       const { error } = await updateSettings({
         server: {
+          ...(data || {}),
           [field]: params[field]
         }
       });
       if (error) {
         form.setFieldsValue({ [field]: data?.[field]})
+      } else {
+        run()
       }
       endLoading()
       if (callback) callback()
