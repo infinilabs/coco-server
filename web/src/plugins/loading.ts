@@ -19,7 +19,7 @@ export function setupLoading() {
     'right-0 bottom-0 animate-delay-1500'
   ];
 
-  const logoWithClass = systemLogo.replace('<svg', `<svg class="size-128px text-primary"`);
+  const logoWithClass = systemLogo.replace('<svg', `<svg class="w-500px h-200px text-primary"`);
 
   const dot = loadingClasses
     .map(item => {
@@ -35,7 +35,6 @@ export function setupLoading() {
       ${dot}
     </div>
   </div>
-  <h2 class="text-28px font-500 text-#646464">${$t('system.title')}</h2>
 </div>`;
 
   const app = document.getElementById('root');
