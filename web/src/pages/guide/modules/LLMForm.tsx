@@ -1,4 +1,4 @@
-import { Button, Form, Input, Radio, Select } from "antd";
+import { Button, Form, Input } from "antd";
 import { FormInstance } from "antd/lib";
 import { ReactSVG } from "react-svg";
 import OllamaSvg from '@/assets/svg-icon/ollama.svg'
@@ -13,15 +13,6 @@ const LLMForm = memo(({ form, onSubmit, loading }: { form: FormInstance, onSubmi
     const { t } = useTranslation();
     const { defaultRequiredRule, formRules } = useFormRules();
     const [type, setType] = useState<ModelType>('ollama')
-
-    const models = {
-        'ollama': [
-            { 'value': 'deepseek_r1', 'label': 'DeepSeek-R1'}
-        ],
-        'openai': [
-            { 'value': 'openai', 'label': 'OpenAI'}
-        ]
-    }
 
     return (
         <>
@@ -72,10 +63,7 @@ const LLMForm = memo(({ form, onSubmit, loading }: { form: FormInstance, onSubmi
                     className={formItemClassNames}
                     rules={[defaultRequiredRule]}
                 >
-                    <Select 
-                        options={models[type] as never[]}
-                        className={inputClassNames}
-                    />
+                    <Input />
                 </Form.Item>
                 <div className="flex justify-between">
                     <Button type="link" size="large" className="h-56px text-14px px-0" onClick={() => onSubmit(true)}>{t('page.guide.setupLater')}</Button>
