@@ -4,6 +4,7 @@ import (
 	"context"
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/modules/common"
+	"infini.sh/coco/plugins/connectors"
 	"infini.sh/framework/core/api"
 	config3 "infini.sh/framework/core/config"
 	"infini.sh/framework/core/env"
@@ -88,6 +89,14 @@ func (this *Plugin) Start() error {
 				}
 
 				for _, item := range results {
+					toSync, err := connectors.CanDoSync(item)
+					if err != nil {
+						log.Errorf("error checking syncable with datasource [%s]: %v", item.Name, err)
+						continue
+					}
+					if !toSync {
+						continue
+					}
 					log.Debugf("ID: %s, Name: %s, Other: %s", item.ID, item.Name, util.MustToJSON(item))
 					this.fetch_yuque(&connector, &item)
 				}

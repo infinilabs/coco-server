@@ -108,9 +108,9 @@ export const TypeList =  ({
       return newV;
     });
   }
-  const onConnectGoogleDrive = ()=>{
-    window.open(location.host+"/connector/google_drive/connect", "_blank");
-  }
+  // const onConnectGoogleDrive = ()=>{
+  //   window.open(location.host+"/connector/google_drive/connect", "_self");
+  // }
   return <div>
     <div className='flex gap-10px'>
       <TypeComponent onChange={onItemClick} icon={GoogleDriveSVG} text="Google Drive" selected={v.id===Types.GoogleDrive}  name={Types.GoogleDrive}/>
@@ -131,7 +131,7 @@ export const TypeList =  ({
     {v.id === Types.HugoSite && <div className='my-20px'><MultiURLInput value={v.config?.urls || ['']} onChange={onSiteURLsChange}/></div>}
     { v.id === Types.GoogleDrive &&<div className='my-20px'>
      
-      <Button onClick={onConnectGoogleDrive}>{t('page.datasource.connect')}</Button>
+      <Button><a href={location.origin+"/connector/google_drive/connect"}>Connect</a></Button>
       {/* <FileUploader onChange={onCredentialChange}/>
       <Button onClick={onInnerTestClick}>{t('common.testConnection')}</Button> */}
       {/* </div> */}

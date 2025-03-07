@@ -42,7 +42,7 @@ export function Component() {
     })
   };
   initialDatasource.sync_config = {
-    interval: initialDatasource?.connector?.config?.interval,
+    interval: initialDatasource?.connector?.config?.interval || '1h',
     sync_type: initialDatasource?.connector?.config?.sync_type || ''
   } 
   const onFinishFailed: FormProps<any>['onFinishFailed'] = (errorInfo) => {

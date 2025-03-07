@@ -29,6 +29,7 @@ import (
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/util"
 	"net/http"
+	"time"
 )
 
 type ServerSettings struct {
@@ -68,6 +69,18 @@ func (h *APIHandler) updateServerSettings(w http.ResponseWriter, req *http.Reque
 			return
 		}
 		oldAppConfig.ServerInfo = &serverCfg
+	}
+	if appConfig.Connector != nil {
+		//merge settings
+		connectorCfg := common.ConnectorInfo{}
+		err := mergeSettings(oldAppConfig.Connector, appConfig.Connector, &connectorCfg)
+		if err != nil {
+			log.Error(err)
+			h.WriteError(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		connectorCfg.Updated = time.Now()
+		oldAppConfig.Connector = &connectorCfg
 	}
 	common.SetAppConfig(&oldAppConfig)
 	h.WriteAckOKJSON(w)

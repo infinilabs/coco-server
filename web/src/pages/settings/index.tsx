@@ -2,6 +2,7 @@ import { Tabs } from "antd";
 import "./index.scss";
 import Server from "./modules/Server";
 import LLM from "./modules/LLM";
+import ConnectorSettings from "./modules/Connector";
 
 export function Component() {
 
@@ -22,6 +23,11 @@ export function Component() {
       key: 'llm',
       label: 'LLMs',
       children: <LLM />,
+    },
+    {
+      key: 'connector',
+      label: 'Connector',
+      children: <ConnectorSettings />,
     },
   ];
 
