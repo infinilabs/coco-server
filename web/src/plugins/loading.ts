@@ -6,7 +6,7 @@ import { $t } from '@/locales';
 import { localStg } from '@/utils/storage';
 
 export function setupLoading() {
-  const themeColor = localStg.get('themeColor') || '#646cff';
+  const themeColor = localStg.get('themeColor') || '#0087FF';
 
   const { b, g, r } = getRgb(themeColor);
 
