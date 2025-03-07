@@ -103,6 +103,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         client_id: "Client ID",
         client_secret: "Client Secret",
         redirect_uri: "Redirect URI",
+        sync_enabled: "Sync Enabled",
       }
     },
     delete: {

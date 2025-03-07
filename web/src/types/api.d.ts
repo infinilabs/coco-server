@@ -271,6 +271,8 @@ declare namespace Api {
       name: string;
       connector: Connector;
       sync_config: any;
+      enabled: boolean;
+      sync_enabled: boolean;
     }
   }
 }

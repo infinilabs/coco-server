@@ -57,6 +57,7 @@ type SetupConfig struct {
 		Type         string `json:"type,omitempty"`
 		Endpoint     string `json:"endpoint,omitempty"`
 		DefaultModel string `json:"default_model,omitempty"`
+		Token        string `json:"token,omitempty"`
 	} `json:"llm,omitempty"`
 }
 
@@ -92,6 +93,7 @@ func (h *APIHandler) setupServer(w http.ResponseWriter, req *http.Request, ps ht
 		info.LLMConfig.Endpoint = input.LLM.Endpoint
 		info.LLMConfig.DefaultModel = input.LLM.DefaultModel
 		info.LLMConfig.Type = input.LLM.Type
+		info.LLMConfig.Token = input.LLM.Token
 	}
 
 	if input.Name != "" {

@@ -36,7 +36,10 @@ func (h *APIHandler) createDatasource(w http.ResponseWriter, req *http.Request, 
 			panic("invalid connector")
 		}
 
-		err = orm.Create(nil, obj)
+		ctx := orm.Context{
+			Refresh: "wait_for",
+		}
+		err = orm.Create(&ctx, obj)
 		if err != nil {
 			h.WriteError(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -67,7 +70,10 @@ func (h *APIHandler) deleteDatasource(w http.ResponseWriter, req *http.Request, 
 		return
 	}
 
-	err = orm.Delete(nil, &obj)
+	ctx := &orm.Context{
+		Refresh: "wait_for",
+	}
+	err = orm.Delete(ctx, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -148,7 +154,10 @@ func (h *APIHandler) updateDatasource(w http.ResponseWriter, req *http.Request, 
 	//protect
 	obj.ID = id
 	obj.Created = create
-	err = orm.Update(nil, &obj)
+	ctx := &orm.Context{
+		Refresh: "wait_for",
+	}
+	err = orm.Update(ctx, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return

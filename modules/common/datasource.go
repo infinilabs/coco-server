@@ -12,6 +12,8 @@ type DataSource struct {
 	Icon string `json:"icon,omitempty" elastic_mapping:"icon:{type:keyword}"` // Display name of this datasource
 
 	Connector ConnectorConfig `json:"connector,omitempty" elastic_mapping:"connector:{type:keyword}"`
+	// Whether synchronization is allowed
+	SyncEnabled bool `json:"sync_enabled" elastic_mapping:"sync_enabled:{type:keyword}"`
 }
 
 type ConnectorConfig struct {

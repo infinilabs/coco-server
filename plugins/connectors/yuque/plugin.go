@@ -79,7 +79,7 @@ func (this *Plugin) Start() error {
 
 				q := orm.Query{}
 				q.Size = this.PageSize
-				q.Conds = orm.And(orm.Eq("connector.id", connector.ID))
+				q.Conds = orm.And(orm.Eq("connector.id", connector.ID), orm.Eq("sync_enabled", true))
 				var results []common.DataSource
 
 				err, _ = orm.SearchWithJSONMapper(&results, &q)
