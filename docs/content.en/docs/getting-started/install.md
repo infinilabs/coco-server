@@ -16,58 +16,58 @@ asciinema: true
 
 ```bash
 # --------------------------------------------------
-# Coco Server Docker 部署脚本及相关命令
+# Coco Server Docker Deployment Script and Commands
 # --------------------------------------------------
 
-# 快速启动 Coco Server (使用默认配置)
+# Quick Start Coco Server (using default configuration)
 #
-# 命令解释:
-#   docker run:       创建并运行一个新的 Docker 容器
-#   -d:               在后台运行容器 (detached mode)
-#   --name cocoserver:  为容器指定一个名称 (cocoserver)
-#   -p 9000:9000:     将容器的 9000 端口映射到主机的 9000 端口 (Web UI 端口)
-#   infinilabs/coco:0.2.0-1992:  使用的 Docker 镜像名称和标签 (版本号)
+# Command Explanation:
+#   docker run:       Create and run a new Docker container
+#   -d:               Run the container in the background (detached mode)
+#   --name cocoserver:  Assign a name to the container (cocoserver)
+#   -p 9000:9000:     Map the container's port 9000 to the host's port 9000 (Web UI port)
+#   infinilabs/coco:0.2.0-1992:  The Docker image name and tag (version) to use
 docker run -d --name cocoserver -p 9000:9000 infinilabs/coco:0.2.0-1992
 
-# 停止并删除 Coco Server 容器
+# Stop and Remove Coco Server Container
 #
-# 命令解释:
-#   docker stop cocoserver:   停止名为 cocoserver 的容器
-#   &&:                     逻辑与操作符，确保前一个命令成功执行后才执行下一个命令
-#   docker rm cocoserver:     删除名为 cocoserver 的容器 (只有停止的容器才能被删除)
+# Command Explanation:
+#   docker stop cocoserver:   Stop the container named cocoserver
+#   &&:                     Logical AND operator, ensures the previous command succeeds before executing the next
+#   docker rm cocoserver:     Remove the container named cocoserver (only stopped containers can be removed)
 docker stop cocoserver && docker rm cocoserver
 
-# 删除 Coco Server Docker 镜像
+# Remove Coco Server Docker Image
 #
-# 命令解释:
-#   docker rmi infinilabs/coco:0.2.0-1992: 删除名为 infinilabs/coco，标签为 0.2.0-1992 的镜像
-#   注意: 只有当没有容器使用该镜像时，才能删除镜像。如果有容器正在使用，需要先停止并删除容器。
+# Command Explanation:
+#   docker rmi infinilabs/coco:0.2.0-1992: Remove the image named infinilabs/coco with the tag 0.2.0-1992
+#   Note: You can only remove an image if no containers are using it.  If a container is using the image, you must first stop and remove the container.
 docker rmi infinilabs/coco:0.2.0-1992
 
 # --------------------------------------------------
-# 个性化自定义配置启动 Coco Server
-# (根据需求自行调整参数)
+# Customized Configuration to Start Coco Server
+# (Adjust parameters according to your needs)
 # --------------------------------------------------
 
-# 命令解释:
-#   docker run:       创建并运行一个新的 Docker 容器
-#   -d:               在后台运行容器 (detached mode)
-#   --name cocoserver:  为容器指定一个名称 (cocoserver)
-#   --hostname coco-server: 设置容器的主机名为 coco-server
-#   --restart unless-stopped:  设置容器的重启策略为 "除非手动停止，否则自动重启"
-#   -m 4g:            限制容器的内存使用量为 4GB
-#   --cpus="2":       限制容器可以使用的 CPU 核心数为 2
-#   -p 9000:9000:     将容器的 9000 端口映射到主机的 9000 端口 (Web UI 端口)
-#   -v $(pwd)/cocoserver/data:/app/easysearch/data:  将主机的 ./cocoserver/data 目录挂载到容器的 /app/easysearch/data 目录 (用于持久化数据)
-#        - $(pwd) 获取当前目录的绝对路径
-#        - 确保 ./cocoserver/data 目录存在。  你可以手动创建，或者使用 mkdir -p cocoserver/data 命令创建。
-#   -v $(pwd)/cocoserver/logs:/app/easysearch/logs:  将主机的 ./cocoserver/logs 目录挂载到容器的 /app/easysearch/logs 目录 (用于存储日志)
-#        - 确保 ./cocoserver/logs 目录存在。 你可以手动创建，或者使用 mkdir -p cocoserver/logs 命令创建。
-#   -e EASYSEARCH_INITIAL_ADMIN_PASSWORD=coco-server: 设置 Easysearch 管理员的初始密码为 coco-server (重要: 建议修改为强密码)
-#   -e ES_JAVA_OPTS="-Xms2g -Xmx2g":  设置 Easysearch 的 JVM 参数:
-#        - -Xms2g:  设置 JVM 初始堆内存大小为 2GB
-#        - -Xmx2g:  设置 JVM 最大堆内存大小为 2GB
-#   infinilabs/coco:0.2.0-1992: 使用的 Docker 镜像名称和标签
+# Command Explanation:
+#   docker run:       Create and run a new Docker container
+#   -d:               Run the container in the background (detached mode)
+#   --name cocoserver:  Assign a name to the container (cocoserver)
+#   --hostname coco-server: Set the container's hostname to coco-server
+#   --restart unless-stopped:  Set the container's restart policy to "restart unless manually stopped"
+#   -m 4g:            Limit the container's memory usage to 4GB
+#   --cpus="2":       Limit the number of CPU cores the container can use to 2
+#   -p 9000:9000:     Map the container's port 9000 to the host's port 9000 (Web UI port)
+#   -v $(pwd)/cocoserver/data:/app/easysearch/data:  Mount the host's ./cocoserver/data directory to the container's /app/easysearch/data directory (for data persistence)
+#        - $(pwd) gets the absolute path of the current directory.
+#        - Make sure the ./cocoserver/data directory exists. You can create it manually or use the `mkdir -p cocoserver/data` command.
+#   -v $(pwd)/cocoserver/logs:/app/easysearch/logs:  Mount the host's ./cocoserver/logs directory to the container's /app/easysearch/logs directory (for storing logs)
+#        - Make sure the ./cocoserver/logs directory exists. You can create it manually or use the `mkdir -p cocoserver/logs` command.
+#   -e EASYSEARCH_INITIAL_ADMIN_PASSWORD=coco-server: Set the initial password for the Easysearch administrator to coco-server (Important: Change this to a strong password)
+#   -e ES_JAVA_OPTS="-Xms2g -Xmx2g":  Set the JVM parameters for Easysearch:
+#        - -Xms2g:  Set the initial JVM heap size to 2GB
+#        - -Xmx2g:  Set the maximum JVM heap size to 2GB
+#   infinilabs/coco:0.2.0-1992: The Docker image name and tag to use
 
 docker run -d \
            --name cocoserver \
