@@ -19,7 +19,7 @@ export function setupLoading() {
     'right-0 bottom-0 animate-delay-1500'
   ];
 
-  const logoWithClass = systemLogo.replace('<svg', `<svg class="w-500px h-200px text-primary"`);
+  const logoWithClass = systemLogo.replace('<svg', `<svg class="w-320px h-128px text-primary"`);
 
   const dot = loadingClasses
     .map(item => {
@@ -30,7 +30,7 @@ export function setupLoading() {
   const loading = `
 <div class="fixed-center flex-col" style="${primaryColor}">
   ${logoWithClass}
-  <div class="w-56px h-56px my-36px">
+  <div class="w-48px h-48px my-24px">
     <div class="relative h-full animate-spin">
       ${dot}
     </div>

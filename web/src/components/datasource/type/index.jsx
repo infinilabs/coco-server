@@ -124,7 +124,7 @@ export const TypeList =  ({
     <div className='my-20px'>
       <div className='pb-8px text-gray-400'>Token</div>
       <div className='flex gap-5px'>
-      <Input value={v.config.token} onChange={onTokenChange} className='max-w-500px'/><Button onClick={onInnerTestClick}>{t('common.testConnection')}</Button>
+      <Input.Password value={v.config.token} onChange={onTokenChange} className='max-w-500px'/><Button onClick={onInnerTestClick}>{t('common.testConnection')}</Button>
       </div>
     </div>}
     { v.id === Types.Yuque && <IndexingScope value={scope} onChange={onIndexingScopeChange}/>}

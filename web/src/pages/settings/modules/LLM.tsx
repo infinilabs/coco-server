@@ -142,7 +142,7 @@ const LLM = memo(() => {
                             label={'Token'}
                             rules={[defaultRequiredRule]}
                         >
-                            <Input />
+                            <Input.Password />
                         </Form.Item>
                     )
                 }

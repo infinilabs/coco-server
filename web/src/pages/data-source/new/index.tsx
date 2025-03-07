@@ -69,7 +69,7 @@ export function Component() {
             onFinishFailed={onFinishFailed}
           >
             <Form.Item label={t('page.datasource.new.labels.name')} rules={[{ required: true, message: 'Please input datasource name!' }]} name="name">
-              <Input className='max-w-600px' placeholder='Please input datasource name'/>
+              <Input className='max-w-600px' />
             </Form.Item>
             <Form.Item rules={[{ required: true, message: 'Please select datasource type!' }]} label={t('page.datasource.new.labels.type')} name="connector">
               <TypeList/>
