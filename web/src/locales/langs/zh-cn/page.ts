@@ -33,6 +33,9 @@ const page: App.I18n.Schema['translation']['page'] = {
       frequency_penalty: '频率惩罚度',
       frequency_penalty_desc: '值越大，越有可能降低重复字词',
       enhanced_inference: '开启推理强度调整',
+      intent_analysis_model: "意图识别模型",
+      picking_doc_model: "文档预选模型",
+      answering_model: "应答模型",
     }
   },
   login: {
@@ -104,9 +107,6 @@ const page: App.I18n.Schema['translation']['page'] = {
         client_secret: "客户端密钥",
         redirect_uri: "重定向 URI",
         sync_enabled: "是否启用同步",
-        intent_analysis_model: "意图分析模型",
-        picking_doc_model: "筛选文档模型",
-        answering_model: "回答模型",
       }
     },
     edit:{
