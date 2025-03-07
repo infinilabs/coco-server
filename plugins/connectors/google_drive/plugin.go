@@ -35,6 +35,7 @@ type Plugin struct {
 	SkipInvalidToken bool               `config:"skip_invalid_token"`
 	Queue            *queue.QueueConfig `config:"queue"`
 	oAuthConfig      *oauth2.Config
+	oauthUpdated     time.Time
 }
 
 type Credential struct {
@@ -114,6 +115,16 @@ func (this *Plugin) Start() error {
 			Interval:    util.GetDurationOrDefault(this.Interval, time.Second*30).String(), //connector's task interval
 			Description: "indexing google drive files",
 			Task: func(ctx context.Context) {
+				cfg := common.AppConfig()
+				if cfg.Connector != nil && cfg.Connector.GoogleDrive.ClientID != "" {
+					if this.oauthUpdated.Before(cfg.Connector.Updated) {
+						this.oAuthConfig.ClientID = cfg.Connector.GoogleDrive.ClientID
+						this.oAuthConfig.ClientSecret = cfg.Connector.GoogleDrive.ClientSecret
+						this.oAuthConfig.Endpoint.AuthURL = cfg.Connector.GoogleDrive.AuthURL
+						this.oAuthConfig.Endpoint.TokenURL = cfg.Connector.GoogleDrive.TokenURL
+						this.oAuthConfig.RedirectURL = cfg.Connector.GoogleDrive.RedirectURL
+					}
+				}
 				if this.oAuthConfig.ClientID == "" {
 					log.Debugf("skipping google_drive connector task since empty client_id")
 					return
