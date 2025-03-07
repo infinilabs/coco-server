@@ -244,7 +244,6 @@ api:
   enabled: true
   websocket:
     enabled: false
-
   network:
     binding: $[[env.API_BINDING]]
 
@@ -277,22 +276,22 @@ connector:
     enabled: true
     queue:
       name: indexing_documents
-    credential_file: credentials.json
-    interval: 360s
+#    credential_file: credentials.json
+    interval: 1h
     skip_invalid_token: true
   yuque:
     enabled: true
     queue:
       name: indexing_documents
-    interval: 360s
+    interval: 1h
   hugo_site:
     enabled: true
-    interval: 60s
+    interval: 1h
     queue:
       name: indexing_documents
   notion:
     enabled: true
-    interval: 360s
+    interval: 1h
     queue:
       name: indexing_documents
 

@@ -46,12 +46,12 @@ export const IndexingScope = ({
         onPartChange("indexing_users", v)
       }} value={innerV.indexing_users}/>
       </div>
-    <div className="flex justify-between max-w-200px py-10px"><span className="text-gray-400">Icnlude Private Book</span>
+    <div className="flex justify-between max-w-200px py-10px"><span className="text-gray-400">Include Private Book</span>
      <Switch onChange={(v)=>{
         onPartChange("include_private_book", v)
       }} value={innerV.include_private_book}/>
       </div>
-      <div className="flex justify-between max-w-200px py-10px"><span className="text-gray-400">Icnlude Private Doc</span>
+      <div className="flex justify-between max-w-200px py-10px"><span className="text-gray-400">Include Private Doc</span>
      <Switch onChange={(v)=>{
         onPartChange("include_private_doc", v)
       }} value={innerV.include_private_doc}/>
