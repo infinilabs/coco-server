@@ -66,15 +66,15 @@ func AppConfig() Config {
 		retCfg.LLMConfig.Parameters.MaxTokens = 32000
 	}
 
-	if retCfg.LLMConfig.DefaultModel!=""{
-		if retCfg.LLMConfig.IntentAnalysisModel==""{
-			retCfg.LLMConfig.IntentAnalysisModel=retCfg.LLMConfig.DefaultModel
+	if retCfg.LLMConfig.DefaultModel != "" {
+		if retCfg.LLMConfig.IntentAnalysisModel == "" {
+			retCfg.LLMConfig.IntentAnalysisModel = retCfg.LLMConfig.DefaultModel
 		}
-		if retCfg.LLMConfig.PickingDocModel==""{
-			retCfg.LLMConfig.PickingDocModel=retCfg.LLMConfig.DefaultModel
+		if retCfg.LLMConfig.PickingDocModel == "" {
+			retCfg.LLMConfig.PickingDocModel = retCfg.LLMConfig.DefaultModel
 		}
-		if retCfg.LLMConfig.AnsweringModel==""{
-			retCfg.LLMConfig.AnsweringModel=retCfg.LLMConfig.DefaultModel
+		if retCfg.LLMConfig.AnsweringModel == "" {
+			retCfg.LLMConfig.AnsweringModel = retCfg.LLMConfig.DefaultModel
 		}
 	}
 
@@ -124,6 +124,10 @@ type GoogleDriveConfig struct {
 	AuthURL     string `json:"auth_url"`
 	TokenURL    string `json:"token_url"`
 }
+
+const OLLAMA = "ollama"
+const OPENAI = "openai"
+const DEEPSEEK = "deepseek"
 
 type LLMConfig struct {
 	// LLM type, optional value "ollama" or "openai"

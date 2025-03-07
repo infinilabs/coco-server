@@ -34,14 +34,14 @@ func (this *Coco) Setup() {
 
 	cocoConfig := common.Config{
 		LLMConfig: &common.LLMConfig{
-			Type:                "ollama",
-			DefaultModel:        "deepseek-r1:1.5b",
-			IntentAnalysisModel: "tongyi-intent-detect-v3",
-			PickingDocModel:     "deepseek-r1-distill-qwen-32b",
-			AnsweringModel:      "deepseek-r1",
-			ContextLength:       131072,
-			Keepalive:           "30m",
-			Endpoint:            "http://localhost:11434",
+			Type:         "ollama",
+			DefaultModel: "deepseek-r1:1.5b",
+			//IntentAnalysisModel: "tongyi-intent-detect-v3",
+			//PickingDocModel:     "deepseek-r1-distill-qwen-32b",
+			//AnsweringModel:      "deepseek-r1",
+			ContextLength: 131072,
+			Keepalive:     "30m",
+			Endpoint:      "http://localhost:11434",
 		},
 		ServerInfo: &common.ServerInfo{Version: common.Version{Number: global.Env().GetVersion()}, Updated: time.Now()},
 	}

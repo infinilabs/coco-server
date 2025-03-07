@@ -28,6 +28,7 @@ import (
 	"fmt"
 	log "github.com/cihub/seelog"
 	"github.com/tmc/langchaingo/llms"
+	"github.com/tmc/langchaingo/llms/ollama"
 	"github.com/tmc/langchaingo/llms/openai"
 	"infini.sh/coco/modules/assistant/rag"
 	"infini.sh/coco/modules/common"
@@ -76,7 +77,7 @@ type processingParams struct {
 }
 
 func (h APIHandler) extractParameters(req *http.Request) *processingParams {
-	cfg:=common.AppConfig()
+	cfg := common.AppConfig()
 	return &processingParams{
 		searchDB:        h.GetBoolOrDefault(req, "search", false),
 		deepThink:       h.GetBoolOrDefault(req, "deep_thinking", false),
@@ -91,7 +92,7 @@ func (h APIHandler) extractParameters(req *http.Request) *processingParams {
 		richCategory:    h.GetParameterOrDefault(req, "rich_category", ""),
 		field:           h.GetParameterOrDefault(req, "search_field", "title"),
 		source:          h.GetParameterOrDefault(req, "source_fields", "*"),
-		intentModel:    cfg.LLMConfig.IntentAnalysisModel,
+		intentModel:     cfg.LLMConfig.IntentAnalysisModel,
 		pickingDocModel: cfg.LLMConfig.PickingDocModel,
 		answeringModel:  cfg.LLMConfig.AnsweringModel,
 	}
@@ -124,12 +125,6 @@ func (h APIHandler) launchBackgroundTask(msg *ChatMessage, params *processingPar
 	//2. summary previous history chat as context, update as memory
 	//3. assemble with the agent's role setting
 	//4. send to LLM
-
-	//ollamaConfig := common.AppConfig().OllamaConfig
-	//llm, err := ollama.New(
-	//	ollama.WithServerURL(ollamaConfig.Endpoint),
-	//	ollama.WithModel(ollamaConfig.Model),
-	//	ollama.WithKeepAlive(ollamaConfig.Keepalive))
 
 	taskID := task.RunWithinGroup("assistant-session", func(taskCtx context.Context) error {
 		return h.processMessageAsync(taskCtx, msg, params)
@@ -524,10 +519,14 @@ Data:
 
 	llm := getLLM(params.answeringModel) //deepseek-r1 /deepseek-v3
 	appConfig := common.AppConfig()
-	completion, err := llm.GenerateContent(taskCtx, content,
-		llms.WithMaxTokens(appConfig.LLMConfig.Parameters.MaxTokens),
-		llms.WithMaxLength(appConfig.LLMConfig.Parameters.MaxLength),
+	log.Info(params.answeringModel, ",", util.MustToJSON(appConfig))
 
+	options := []llms.CallOption{}
+	options = append(options, llms.WithMaxTokens(appConfig.LLMConfig.Parameters.MaxTokens))
+	options = append(options, llms.WithMaxLength(appConfig.LLMConfig.Parameters.MaxLength))
+	options = append(options, llms.WithTemperature(0.8))
+
+	if appConfig.LLMConfig.Type == "deepseek" {
 		llms.WithStreamingReasoningFunc(func(ctx context.Context, reasoningChunk []byte, chunk []byte) error {
 			// Use taskCtx here to check for cancellation or other context-specific logic
 			select {
@@ -569,36 +568,19 @@ Data:
 				return nil
 			}
 
-		}),
+		})
+	} else {
+		//this part works for ollama
+		options = append(options, llms.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
+			chunkSeq += 1
+			msg := NewMessageChunk(params.sessionID, replyMsg.ID, MessageTypeAssistant, reqMsg.ID, Response, string(chunk), chunkSeq)
+			err = websocket.SendPrivateMessage(params.websocketID, util.MustToJSON(msg))
+			messageBuffer.Write(chunk)
+			return nil
+		}))
+	}
 
-		////this part works for ollama
-		//llms.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
-		//
-		//	var txtMsg string
-		//	if !sentSource {
-		//		if simpliedReferences != "" {
-		//			txtMsg = simpliedReferences
-		//		}
-		//		sentSource = true
-		//	}
-		//	txtMsg += string(chunk)
-		//
-		//	chunkSeq += 1
-		//	msg := util.MustToJSON(util.MapStr{
-		//		"session_id":       sessionID,
-		//		"message_id":       messageID,
-		//		"message_type":     MessageTypeAssistant,
-		//		"reply_to_message": requestMessageID,
-		//		"chunk_sequence":   chunkSeq,
-		//		"message_chunk":    txtMsg,
-		//	})
-		//	messageBuffer.Write(chunk)
-		//	websocket.SendPrivateMessage(webSocketID, msg)
-		//	return nil
-		//}),
-
-		llms.WithTemperature(0.8),
-	)
+	completion, err := llm.GenerateContent(taskCtx, content, options...)
 	if err != nil {
 		log.Error(err)
 		return err
@@ -727,17 +709,33 @@ func fetchDocuments(query *orm.Query) ([]common.Document, error) {
 	return docs, nil
 }
 
-func getLLM(model string) *openai.LLM {
+func getLLM(model string) llms.Model {
+	cfg := common.AppConfig()
 	if model == "" {
-		model = common.AppConfig().LLMConfig.DefaultModel
+		model = cfg.LLMConfig.DefaultModel
 	}
-	llm, err := openai.New(
-		openai.WithToken(common.AppConfig().LLMConfig.Token),
-		openai.WithBaseURL(common.AppConfig().LLMConfig.Endpoint),
-		openai.WithModel(model),
-	)
-	if err != nil {
-		panic(err)
+
+	log.Debug("use model:", model)
+
+	if cfg.LLMConfig.Type == common.OLLAMA {
+		llm, err := ollama.New(
+			ollama.WithServerURL(cfg.LLMConfig.Endpoint),
+			ollama.WithModel(model),
+			ollama.WithKeepAlive(cfg.LLMConfig.Keepalive))
+		if err != nil {
+			panic(err)
+		}
+		return llm
+
+	} else {
+		llm, err := openai.New(
+			openai.WithToken(cfg.LLMConfig.Token),
+			openai.WithBaseURL(cfg.LLMConfig.Endpoint),
+			openai.WithModel(model),
+		)
+		if err != nil {
+			panic(err)
+		}
+		return llm
 	}
-	return llm
 }
