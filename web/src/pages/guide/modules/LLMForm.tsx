@@ -3,16 +3,17 @@ import { FormInstance } from "antd/lib";
 import { ReactSVG } from "react-svg";
 import OllamaSvg from '@/assets/svg-icon/ollama.svg'
 import OpenAISvg from '@/assets/svg-icon/openai.svg'
+import DeepseekSvg from '@/assets/svg-icon/deepseek.svg'
 import ButtonRadio from "@/components/button-radio";
 
-type ModelType = 'ollama' | 'openai'
+type ModelType = 'deepseek' | 'ollama' | 'openai'
 
 const LLMForm = memo(({ form, onSubmit, loading }: { form: FormInstance, onSubmit: (isPass?: boolean) => void; loading: boolean }) => {
     const formItemClassNames = "m-b-32px"
     const inputClassNames = "h-40px"
     const { t } = useTranslation();
     const { defaultRequiredRule, formRules } = useFormRules();
-    const [type, setType] = useState<ModelType>('ollama')
+    const [type, setType] = useState<ModelType>('deepseek')
 
     return (
         <>
@@ -40,6 +41,7 @@ const LLMForm = memo(({ form, onSubmit, loading }: { form: FormInstance, onSubmi
                 >
                     <ButtonRadio
                         options={[
+                            { value: 'deepseek', label: <span className="flex items-center deepseek-icon"><ReactSVG src={DeepseekSvg} className="m-r-4px"/>Deepseek</span>},
                             { value: 'ollama', label: <span className="flex items-center"><ReactSVG src={OllamaSvg} className="m-r-4px"/>Ollama</span>},
                             { value: 'openai', label: <span className="flex items-center"><ReactSVG src={OpenAISvg} className="m-r-4px"/>OpenAI</span>}
                         ]}

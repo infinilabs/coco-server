@@ -28,9 +28,14 @@
 
 .settings-form {
     .ant-form-item-label {
-        width: 132px;
+        width: 160px;
     }
     .ant-form-item-control {
         max-width: 480px;
+    }
+    .deepseek-icon >div>div{
+        font-size: 32px;
+        padding-top: 3px;
+        margin-right: -8px;
     }
 }

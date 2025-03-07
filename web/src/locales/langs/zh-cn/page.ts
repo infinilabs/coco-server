@@ -104,6 +104,9 @@ const page: App.I18n.Schema['translation']['page'] = {
         client_secret: "客户端密钥",
         redirect_uri: "重定向 URI",
         sync_enabled: "是否启用同步",
+        intent_analysis_model: "意图分析模型",
+        picking_doc_model: "筛选文档模型",
+        answering_model: "回答模型",
       }
     },
     edit:{
