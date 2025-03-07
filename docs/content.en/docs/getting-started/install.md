@@ -94,7 +94,7 @@ Enter your username, email, and password, then click Next, as shown:
 - Select the LLM type: DeepSeek, Ollama, or OpenAI
 - Configure the LLM endpoint
 - Set the default model
-- Enable keepalive
+- Enable keepalive and set an appropriate interval
 - Provide the token
 - Click Next to complete the initialization.
 
