@@ -1,9 +1,9 @@
 import Search from 'antd/es/input/Search';
 import Icon, { FilterOutlined, PlusOutlined, EllipsisOutlined, ExclamationCircleOutlined} from '@ant-design/icons';
-import { Button, Dropdown, Table, GetProp, message,Modal } from 'antd';
+import { Button, Dropdown, Table, GetProp, message,Modal, Switch } from 'antd';
 import type { TableColumnsType, TableProps, MenuProps } from "antd";
 import type { SorterResult } from 'antd/es/table/interface';
-import {fetchDataSourceList, deleteDatasource} from '@/service/api'
+import {fetchDataSourceList, deleteDatasource, updateDatasource} from '@/service/api'
 import { formatESSearchResult } from '@/service/request/es';
 import { GoogleDriveSVG, HugoSVG, YuqueSVG,NotionSVG } from '@/components/icons';
 
@@ -88,6 +88,23 @@ export function Component() {
         break;
     }
   }
+  const onSyncEnabledChange = (value: boolean, record: Datasource)=>{
+    record.sync_enabled = value;
+    setLoading(true);
+    updateDatasource(record.id, record).then((res)=>{
+      if(res.data?.result === "updated"){
+        message.success(t('common.updateSuccess'))
+      }
+      //reload data
+      setReqParams((old)=>{
+        return {
+          ...old,
+        }
+      })
+    }).finally(()=>{
+      setLoading(false);
+    });
+  }
   const columns: TableColumnsType<Datasource> = [
     {
       title: t('page.datasource.columns.name'),
@@ -116,8 +133,8 @@ export function Component() {
       dataIndex: 'sync_enabled',
       title: t('page.datasource.new.labels.sync_enabled'),
       width: 200,
-      render: (value: boolean)=>{
-        return value ? t('common.yesOrNo.yes') : t('common.yesOrNo.no')
+      render: (value: boolean, record: Datasource)=>{
+       return <Switch value={value} onChange={(v)=>onSyncEnabledChange(v, record)}/>
       }
     },
     // {
