@@ -107,9 +107,19 @@ const page: App.I18n.Schema['translation']['page'] = {
         sync_enabled: "Sync Enabled",
       }
     },
+    edit:{
+      title: "Edit Datasource",
+    },
     delete: {
       confirm: 'Are you sure you want to delete this datasource?'
-    }
+    },
+    every: 'Every',
+    seconds: 'seconds',
+    minutes: 'minutes',
+    hours: 'hours',
+    connect: 'Connect',
+    site_urls: 'Site URLs',
+    site_urls_add: 'Add URL'
   }
 };
 

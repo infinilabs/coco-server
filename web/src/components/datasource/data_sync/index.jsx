@@ -68,6 +68,7 @@ export const DataSync = ({
 
 const SyncTime = ({ value, onChange }) => {
   // Extract number and unit from value (default to "10s")
+  const { t } = useTranslation();
   const match = value?.match(/^(\d+)([smh])$/);
   const initialNumber = match ? parseInt(match[1], 10) : 10;
   const initialUnit = match ? match[2] : "s";
@@ -82,7 +83,7 @@ const SyncTime = ({ value, onChange }) => {
 
   return (
     <InputNumber
-      addonBefore="Every"
+      addonBefore={t('page.datasource.every')}
       value={num}
       min={1}
       onChange={(newNum) => setNum(newNum || 1)}
@@ -92,9 +93,9 @@ const SyncTime = ({ value, onChange }) => {
           value={unit}
           onChange={(newUnit) => setUnit(newUnit)}
           options={[
-            { value: "s", label: "second" },
-            { value: "m", label: "minutes" },
-            { value: "h", label: "hour" },
+            { value: "s", label: t('page.datasource.seconds') },
+            { value: "m", label: t('page.datasource.minutes') },
+            { value: "h", label: t('page.datasource.hours') },
           ]}
         />
       }

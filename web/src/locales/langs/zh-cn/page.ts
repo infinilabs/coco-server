@@ -106,9 +106,19 @@ const page: App.I18n.Schema['translation']['page'] = {
         sync_enabled: "是否启用同步",
       }
     },
+    edit:{
+      title: "编辑数据源",
+    },
     delete: {
       confirm: '确定删除这个数据源？'
-    }
+    },
+    every: '每',
+    seconds: '秒',
+    minutes: '分钟',
+    hours: '小时',
+    connect: '连接',
+    site_urls: '站点地址',
+    site_urls_add: '新增站点地址'
   }
 };
 
