@@ -141,7 +141,9 @@ func (h *Plugin) oAuthRedirect(w http.ResponseWriter, req *http.Request, _ httpr
 	// Use the unique user ID (userInfo.Sub) or email (userInfo.Email) as the unique identifier
 	log.Infof("google drive authenticated user: ID=%s, Email=%s", userInfo.Sub, userInfo.Email)
 
-	datasource := common.DataSource{}
+	datasource := common.DataSource{
+		SyncEnabled: true,
+	}
 	datasource.ID = util.MD5digest(fmt.Sprintf("%v,%v,%v", "google_drive", userInfo.Sub, userInfo.Email))
 	datasource.Type = "connector"
 	if userInfo.Name != "" {
