@@ -38,11 +38,11 @@ coco:
     provider:
       name: "INFINI Labs"
       description: "Coco AI Server - Search, Connect, Collaborate, AI-powered enterprise search, all in one space."
-      icon: "http://localhost:9000/icon.png"
+      icon: "https://coco.infini.cloud/icon.png"
       website: "http://infinilabs.com"
       eula: "http://infinilabs.com/eula.txt"
       privacy_policy: "http://infinilabs.com/privacy_policy.txt"
-      banner: "http://localhost:9000/banner2.jpg"
+      banner: "https://coco.infini.cloud/banner.jpg"
 
 ## Cleanup exists data:
 # curl -u admin:45ff432a5428ade77c7b -k -XDELETE   https://localhost:9200/_template/coco-search
