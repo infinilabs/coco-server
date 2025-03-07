@@ -11,6 +11,7 @@ import (
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/drive/v3"
 	"infini.sh/coco/modules/common"
+	"infini.sh/coco/plugins/connectors"
 	"infini.sh/framework/core/api"
 	config3 "infini.sh/framework/core/config"
 	"infini.sh/framework/core/env"
@@ -145,13 +146,21 @@ func (this *Plugin) Start() error {
 					panic(err)
 				}
 
-				log.Infof("total %v google_drives pending to fetch", len(results))
+				log.Debugf("total %v google_drives pending to fetch", len(results))
 
 				for _, item := range results {
 					if global.ShuttingDown() {
 						break
 					}
 
+					toSync, err := connectors.CanDoSync(item)
+					if err != nil {
+						log.Errorf("error checking syncable with datasource [%s]: %v", item.Name, err)
+						continue
+					}
+					if !toSync {
+						continue
+					}
 					log.Infof("fetch google_drive: ID: %s, Name: %s", item.ID, item.Name)
 					this.fetch_google_drive(&connector, &item)
 				}

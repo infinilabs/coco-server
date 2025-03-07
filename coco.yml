@@ -277,21 +277,21 @@ connector:
     queue:
       name: indexing_documents
 #    credential_file: credentials.json
-    interval: 1h
+    interval: 10s
     skip_invalid_token: true
   yuque:
     enabled: true
     queue:
       name: indexing_documents
-    interval: 1h
+    interval: 10s
   hugo_site:
     enabled: true
-    interval: 1h
+    interval: 10s
     queue:
       name: indexing_documents
   notion:
     enabled: true
-    interval: 1h
+    interval: 10s
     queue:
       name: indexing_documents
 

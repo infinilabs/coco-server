@@ -11,7 +11,7 @@ const style = {
   gap: 8,
 };
 export const DataSync = ({
-  value = {sync_type: "interval", interval: "60s"},
+  value = {sync_type: "interval", interval: "1h"},
   onChange,
 })=>{
   const { t } = useTranslation();
