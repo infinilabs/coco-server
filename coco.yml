@@ -5,7 +5,7 @@ env:
 
   OPENAI_ENDPOINT: https://dashscope.aliyuncs.com/compatible-mode/v1
   OPENAI_TOKEN: ""
-  OPENAI__MODEL: deepseek-r1
+  OPENAI_MODEL: deepseek-r1
 
   ES_ENDPOINT: https://localhost:9200
   ES_USERNAME: admin
@@ -368,6 +368,7 @@ http_client:
         - "yuque.com"
         - "infinilabs.com"
         - "api.coco.rs"
+        - "dashscope.aliyuncs.com"
       domains:
         "github.com":
           http_proxy: http://127.0.0.1:7890
