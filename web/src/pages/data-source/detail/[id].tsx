@@ -219,7 +219,6 @@ const rowSelection: TableProps<DataType>["rowSelection"] = {
           <Search
             addonBefore={<FilterOutlined />}
             className="max-w-500px"
-            placeholder="input search text"
             enterButton= {t('common.refresh')}
             onSearch={onRefreshClick}
           />
