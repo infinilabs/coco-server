@@ -66,6 +66,18 @@ func AppConfig() Config {
 		retCfg.LLMConfig.Parameters.MaxTokens = 32000
 	}
 
+	if retCfg.LLMConfig.DefaultModel!=""{
+		if retCfg.LLMConfig.IntentAnalysisModel==""{
+			retCfg.LLMConfig.IntentAnalysisModel=retCfg.LLMConfig.DefaultModel
+		}
+		if retCfg.LLMConfig.PickingDocModel==""{
+			retCfg.LLMConfig.PickingDocModel=retCfg.LLMConfig.DefaultModel
+		}
+		if retCfg.LLMConfig.AnsweringModel==""{
+			retCfg.LLMConfig.AnsweringModel=retCfg.LLMConfig.DefaultModel
+		}
+	}
+
 	retCfg.ServerInfo.AuthProvider.SSO.URL = util.JoinPath(retCfg.ServerInfo.Endpoint, "/#/login")
 
 	return *config
@@ -122,6 +134,10 @@ type LLMConfig struct {
 	Keepalive     string        `config:"keepalive" json:"keepalive,omitempty"`
 	ContextLength uint64        `config:"context_length" json:"context_length,omitempty"`
 	Token         string        `config:"token" json:"token,omitempty"`
+
+	IntentAnalysisModel string `config:"intent_analysis_model" json:"intent_analysis_model,omitempty"`
+	PickingDocModel     string `config:"picking_doc_model" json:"picking_doc_model,omitempty"`
+	AnsweringModel      string `config:"answering_model" json:"answering_model,omitempty"`
 }
 
 type LLMParameters struct {

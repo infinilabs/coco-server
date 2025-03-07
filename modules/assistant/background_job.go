@@ -76,6 +76,7 @@ type processingParams struct {
 }
 
 func (h APIHandler) extractParameters(req *http.Request) *processingParams {
+	cfg:=common.AppConfig()
 	return &processingParams{
 		searchDB:        h.GetBoolOrDefault(req, "search", false),
 		deepThink:       h.GetBoolOrDefault(req, "deep_thinking", false),
@@ -90,9 +91,9 @@ func (h APIHandler) extractParameters(req *http.Request) *processingParams {
 		richCategory:    h.GetParameterOrDefault(req, "rich_category", ""),
 		field:           h.GetParameterOrDefault(req, "search_field", "title"),
 		source:          h.GetParameterOrDefault(req, "source_fields", "*"),
-		intentModel:     "tongyi-intent-detect-v3",
-		pickingDocModel: "deepseek-r1-distill-qwen-32b",
-		answeringModel:  "deepseek-r1",
+		intentModel:    cfg.LLMConfig.IntentAnalysisModel,
+		pickingDocModel: cfg.LLMConfig.PickingDocModel,
+		answeringModel:  cfg.LLMConfig.AnsweringModel,
 	}
 
 }
