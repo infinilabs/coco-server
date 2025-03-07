@@ -49,6 +49,10 @@ docker rmi infinilabs/coco:0.2.0-1992
 # (Adjust parameters according to your needs)
 # --------------------------------------------------
 
+# Create data and logs directories and set ownership for the Easysearch user (UID/GID 602).
+mkdir -p $(pwd)/cocoserver/{data,logs}
+sudo chown -R 602:602 $(pwd)/cocoserver
+
 # Command Explanation:
 #   docker run:       Create and run a new Docker container
 #   -d:               Run the container in the background (detached mode)
