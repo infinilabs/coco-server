@@ -77,6 +77,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     setupLater: 'Set Up Later',
   },
   datasource: {
+    title: "Datasource",
     columns: {
       name: "Name",
       type: "Type",

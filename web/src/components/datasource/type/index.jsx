@@ -89,7 +89,7 @@ export const TypeList =  ({
     indexing_docs: !!v.config.indexing_docs,
     indexing_groups:!!v.config.indexing_groups,
     indexing_users: !!v.config.indexing_users,
-    include_private_book: !!v.config.private_book,
+    include_private_book: !!v.config.include_private_book,
     include_private_doc: !!v.config.include_private_doc,
   }
 
@@ -107,6 +107,9 @@ export const TypeList =  ({
       }
       return newV;
     });
+  }
+  const onConnectGoogleDrive = ()=>{
+    window.open(location.host+"/connector/google_drive/connect", "_blank");
   }
   return <div>
     <div className='flex gap-10px'>
@@ -127,9 +130,8 @@ export const TypeList =  ({
     { v.id === Types.Yuque && <IndexingScope value={scope} onChange={onIndexingScopeChange}/>}
     {v.id === Types.HugoSite && <div className='my-20px'><MultiURLInput value={v.config?.urls || ['']} onChange={onSiteURLsChange}/></div>}
     { v.id === Types.GoogleDrive &&<div className='my-20px'>
-      {/* <div className='pb-8px text-gray-400'>Credential</div>
-      <div> */}
-      <Credential value={v.config.credential || {}} onChange={onCredentialChange}/>
+     
+      <Button onClick={onConnectGoogleDrive}>Connect</Button>
       {/* <FileUploader onChange={onCredentialChange}/>
       <Button onClick={onInnerTestClick}>{t('common.testConnection')}</Button> */}
       {/* </div> */}
