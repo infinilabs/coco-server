@@ -49,6 +49,9 @@ const route: App.I18n.Schema['translation']['route'] = {
   'server': 'Server',
   'ai-assistant': 'AI Assistant',
   'data-source': 'Data Source',
+  'data-source_list': 'Data Source',
+  'data-source_new': 'New Data Source',
+  'data-source_edit': 'Edit Data Source',
   'settings': 'Settings',
   'guide': 'Guide'
 };

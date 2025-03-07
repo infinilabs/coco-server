@@ -36,7 +36,7 @@ export function Component() {
     }
     createDatasource(sValues).then((res)=>{
       if(res.data?.result == "created"){
-        message.success("submitted successfully!")
+        message.success(t('common.addSuccess'))
         nav('/data-source/list', {});
       }
     })

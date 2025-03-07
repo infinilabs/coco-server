@@ -104,6 +104,9 @@ const page: App.I18n.Schema['translation']['page'] = {
         client_secret: "客户端密钥",
         redirect_uri: "重定向 URI",
       }
+    },
+    delete: {
+      confirm: '确定删除这个数据源？'
     }
   }
 };

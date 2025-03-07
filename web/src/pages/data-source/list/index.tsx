@@ -62,12 +62,13 @@ export function Component() {
       case "1":
         confirm({
           icon: <ExclamationCircleOutlined />,
-          content: 'Are you sure you want to delete this datasource?',
+          title: t('common.tip'),
+          content: t('page.datasource.delete.confirm'),
           onOk() {
              //delete datasource by datasource id
             deleteDatasource(record.id).then((res)=>{
               if(res.data?.result === "deleted"){
-                message.success("deleted success")
+                message.success(t('common.deleteSuccess'))
               }
               //reload data
               setReqParams((old)=>{

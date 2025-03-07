@@ -33,7 +33,7 @@ export function Component() {
     updateDatasource(datasourceID, sValues).then((res)=>{
       if(res.data?.result == "updated"){
         setLoading(false);
-        message.success("submitted successfully!")
+        message.success(t('common.modifySuccess'))
         nav('/data-source/list', {});
       }
     })
