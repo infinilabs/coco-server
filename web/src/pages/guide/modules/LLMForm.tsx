@@ -81,7 +81,7 @@ const LLMForm = memo(({ form, onSubmit, loading }: { form: FormInstance, onSubmi
                             className={formItemClassNames}
                             rules={[defaultRequiredRule]}
                         >
-                            <Input />
+                            <Input.Password />
                         </Form.Item>
                     )
                 }

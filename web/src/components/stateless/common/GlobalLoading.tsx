@@ -14,8 +14,8 @@ const GlobalLoading = memo(() => {
 
   return (
     <div className="fixed-center flex-col">
-      <SystemLogo className="w-500px h-200px text-primary" />
-      <div className="my-36px h-56px w-56px">
+      <SystemLogo className="w-320px h-128px text-primary" />
+      <div className="w-48px h-48px my-24px">
         <div className="relative h-full animate-spin">
           {loadingClasses.map(item => {
             return (
