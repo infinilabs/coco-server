@@ -28,7 +28,7 @@ function HookSupportChecker() {
   }
 }
 
-const theme = localStg.get('themeColor') || '#646cff'
+const theme = localStg.get('themeColor') || '#0087FF'
 const ErrorPage: FC<Props> = ({ error, resetErrorBoundary }) => {
 
   // 可以在这里根据不同的业务逻辑处理错误或者上报给日志服务

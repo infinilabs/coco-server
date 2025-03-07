@@ -2,12 +2,12 @@ import boxen, { type Options as BoxenOptions } from 'boxen';
 import gradientString from 'gradient-string';
 import type { Plugin } from 'vite';
 
-const welcomeMessage = gradientString('#646cff', 'magenta').multiline(
+const welcomeMessage = gradientString('#0087FF', 'magenta').multiline(
   `Welcome to Coco Server!`
 );
 
 const boxenOptions: BoxenOptions = {
-  borderColor: '#646cff',
+  borderColor: '#0087FF',
   borderStyle: 'round',
   padding: 0.5
 };
