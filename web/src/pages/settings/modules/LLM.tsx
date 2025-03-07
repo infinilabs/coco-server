@@ -87,8 +87,8 @@ const LLM = memo(() => {
 
     useEffect(() => {
       if (data?.data?.llm) {
-        form.setFieldsValue(data.data.llm || { type: 'ollama', keepalive: '30m'});
-        setType(data?.data?.llm?.type || 'ollama')
+        form.setFieldsValue(data.data.llm || { type: 'deepseek', keepalive: '30m'});
+        setType(data?.data?.llm?.type || 'deepseek')
       }
     }, [JSON.stringify(data)]);
 
@@ -160,7 +160,7 @@ const LLM = memo(() => {
                     <Input />
                 </Form.Item>
                 {
-                    type === 'openai' && (
+                    (type === 'openai' || type === 'deepseek') && (
                         <Form.Item
                             name={'token'}
                             label={'Token'}
