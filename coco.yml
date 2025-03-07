@@ -355,7 +355,7 @@ pipeline:
 http_client:
   default:
     proxy:
-      enabled: true
+      enabled: false
       default_config:
         http_proxy: http://127.0.0.1:7890
         socket5_proxy: socks5://127.0.0.1:7890
