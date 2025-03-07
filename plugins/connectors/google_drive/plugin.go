@@ -87,10 +87,11 @@ func (this *Plugin) Setup() {
 			RedirectURL:  this.Credential.RedirectUri,
 			Endpoint:     google.Endpoint,
 		}
-	} else {
-		panic("Missing Google OAuth credentials")
 	}
 
+	if this.oAuthConfig == nil {
+		this.oAuthConfig = &oauth2.Config{}
+	}
 	this.oAuthConfig.Scopes = []string{
 		"https://www.googleapis.com/auth/drive.metadata.readonly", // Access Drive metadata
 		"https://www.googleapis.com/auth/userinfo.email",          // Access the user's profile information
@@ -113,6 +114,10 @@ func (this *Plugin) Start() error {
 			Interval:    util.GetDurationOrDefault(this.Interval, time.Second*30).String(), //connector's task interval
 			Description: "indexing google drive files",
 			Task: func(ctx context.Context) {
+				if this.oAuthConfig.ClientID == "" {
+					log.Debugf("skipping google_drive connector task since empty client_id")
+					return
+				}
 				connector := common.Connector{}
 				connector.ID = "google_drive"
 				exists, err := orm.Get(&connector)
