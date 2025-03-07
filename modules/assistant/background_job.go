@@ -370,6 +370,9 @@ func (h APIHandler) processPickDocuments(ctx context.Context, reqMsg, replyMsg *
 		return nil, nil
 	}
 
+	echoMsg := NewMessageChunk(params.sessionID, replyMsg.ID, MessageTypeAssistant, reqMsg.ID, PickSource, string(""), 0)
+	websocket.SendPrivateMessage(params.websocketID, util.MustToJSON(echoMsg))
+
 	content := []llms.MessageContent{
 		llms.TextParts(llms.ChatMessageTypeSystem, "You are an AI assistant trained to understand and analyze user queries. "),
 
