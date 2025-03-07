@@ -76,7 +76,7 @@ type processingParams struct {
 }
 
 func (h APIHandler) extractParameters(req *http.Request) *processingParams {
-	cfg:=common.AppConfig()
+	cfg := common.AppConfig()
 	return &processingParams{
 		searchDB:        h.GetBoolOrDefault(req, "search", false),
 		deepThink:       h.GetBoolOrDefault(req, "deep_thinking", false),
@@ -91,7 +91,7 @@ func (h APIHandler) extractParameters(req *http.Request) *processingParams {
 		richCategory:    h.GetParameterOrDefault(req, "rich_category", ""),
 		field:           h.GetParameterOrDefault(req, "search_field", "title"),
 		source:          h.GetParameterOrDefault(req, "source_fields", "*"),
-		intentModel:    cfg.LLMConfig.IntentAnalysisModel,
+		intentModel:     cfg.LLMConfig.IntentAnalysisModel,
 		pickingDocModel: cfg.LLMConfig.PickingDocModel,
 		answeringModel:  cfg.LLMConfig.AnsweringModel,
 	}

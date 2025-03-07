@@ -66,15 +66,15 @@ func AppConfig() Config {
 		retCfg.LLMConfig.Parameters.MaxTokens = 32000
 	}
 
-	if retCfg.LLMConfig.DefaultModel!=""{
-		if retCfg.LLMConfig.IntentAnalysisModel==""{
-			retCfg.LLMConfig.IntentAnalysisModel=retCfg.LLMConfig.DefaultModel
+	if retCfg.LLMConfig.DefaultModel != "" {
+		if retCfg.LLMConfig.IntentAnalysisModel == "" {
+			retCfg.LLMConfig.IntentAnalysisModel = retCfg.LLMConfig.DefaultModel
 		}
-		if retCfg.LLMConfig.PickingDocModel==""{
-			retCfg.LLMConfig.PickingDocModel=retCfg.LLMConfig.DefaultModel
+		if retCfg.LLMConfig.PickingDocModel == "" {
+			retCfg.LLMConfig.PickingDocModel = retCfg.LLMConfig.DefaultModel
 		}
-		if retCfg.LLMConfig.AnsweringModel==""{
-			retCfg.LLMConfig.AnsweringModel=retCfg.LLMConfig.DefaultModel
+		if retCfg.LLMConfig.AnsweringModel == "" {
+			retCfg.LLMConfig.AnsweringModel = retCfg.LLMConfig.DefaultModel
 		}
 	}
 

@@ -33,6 +33,9 @@ const page: App.I18n.Schema['translation']['page'] = {
       frequency_penalty: 'Frequency Penalty',
       frequency_penalty_desc: 'the larger the value, the more likely it is to reduce repeated words',
       enhanced_inference: 'Enhanced Inference',
+      intent_analysis_model: "Intent Analysis Model",
+      picking_doc_model: "Picking Doc Model",
+      answering_model: "Answering Model",
     }
   },
   login: {

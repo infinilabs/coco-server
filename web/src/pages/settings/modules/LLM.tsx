@@ -2,6 +2,7 @@ import { Button, Form, Input, InputNumber, Spin, Switch } from "antd";
 import "../index.scss"
 import OllamaSvg from '@/assets/svg-icon/ollama.svg'
 import OpenAISvg from '@/assets/svg-icon/openai.svg'
+import DeepseekSvg from '@/assets/svg-icon/deepseek.svg'
 import { ReactSVG } from 'react-svg';
 import { useLoading } from '@sa/hooks';
 import { fetchSettings, updateSettings } from "@/service/api/server";
@@ -51,7 +52,8 @@ const PARAMETERS = [
     // },
 ]
 
-type ModelType = 'ollama' | 'openai'
+
+type ModelType = 'deepseek' | 'ollama' | 'openai'
 
 const LLM = memo(() => {
     const [form] = Form.useForm();
@@ -105,6 +107,7 @@ const LLM = memo(() => {
                 >
                     <ButtonRadio
                         options={[
+                            { value: 'deepseek', label: <span className="flex items-center deepseek-icon"><ReactSVG src={DeepseekSvg} className="m-r-4px"/>Deepseek</span>},
                             { value: 'ollama', label: <span className="flex items-center"><ReactSVG src={OllamaSvg} className="m-r-4px"/>Ollama</span>},
                             { value: 'openai', label: <span className="flex items-center"><ReactSVG src={OpenAISvg} className="m-r-4px"/>OpenAI</span>}
                         ]}
@@ -131,6 +134,27 @@ const LLM = memo(() => {
                 <Form.Item
                     name={'keepalive'}
                     label={t(`page.settings.llm.keepalive`)}
+                    rules={[defaultRequiredRule]}
+                >
+                    <Input />
+                </Form.Item>
+                <Form.Item
+                    name={'intent_analysis_model'}
+                    label={t(`page.settings.llm.intent_analysis_model`)}
+                    rules={[defaultRequiredRule]}
+                >
+                    <Input />
+                </Form.Item>
+                <Form.Item
+                    name={'picking_doc_model'}
+                    label={t(`page.settings.llm.picking_doc_model`)}
+                    rules={[defaultRequiredRule]}
+                >
+                    <Input />
+                </Form.Item>
+                <Form.Item
+                    name={'answering_model'}
+                    label={t(`page.settings.llm.answering_model`)}
                     rules={[defaultRequiredRule]}
                 >
                     <Input />
