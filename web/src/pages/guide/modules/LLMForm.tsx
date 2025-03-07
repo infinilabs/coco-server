@@ -76,7 +76,7 @@ const LLMForm = memo(({ form, onSubmit, loading }: { form: FormInstance, onSubmi
                     <Input />
                 </Form.Item>
                 {
-                    type === 'openai' && (
+                    (type === 'openai' || type === 'deepseek') && (
                         <Form.Item
                             name={['llm', 'token']}
                             label={'Token'}
