@@ -26,8 +26,8 @@ asciinema: true
 #   -d:               Run the container in the background (detached mode)
 #   --name cocoserver:  Assign a name to the container (cocoserver)
 #   -p 9000:9000:     Map the container's port 9000 to the host's port 9000 (Web UI port)
-#   infinilabs/coco:0.2.0-1992:  The Docker image name and tag (version) to use
-docker run -d --name cocoserver -p 9000:9000 infinilabs/coco:0.2.0-1992
+#   infinilabs/coco:0.2.1-1998:  The Docker image name and tag (version) to use
+docker run -d --name cocoserver -p 9000:9000 infinilabs/coco:0.2.1-1998
 
 # Stop and Remove Coco Server Container
 #
@@ -40,9 +40,9 @@ docker stop cocoserver && docker rm cocoserver
 # Remove Coco Server Docker Image
 #
 # Command Explanation:
-#   docker rmi infinilabs/coco:0.2.0-1992: Remove the image named infinilabs/coco with the tag 0.2.0-1992
+#   docker rmi infinilabs/coco:0.2.1-1998: Remove the image named infinilabs/coco with the tag 0.2.1-1998
 #   Note: You can only remove an image if no containers are using it.  If a container is using the image, you must first stop and remove the container.
-docker rmi infinilabs/coco:0.2.0-1992
+docker rmi infinilabs/coco:0.2.1-1998
 
 # --------------------------------------------------
 # Customized Configuration to Start Coco Server
@@ -71,7 +71,7 @@ sudo chown -R 602:602 $(pwd)/cocoserver
 #   -e ES_JAVA_OPTS="-Xms2g -Xmx2g":  Set the JVM parameters for Easysearch:
 #        - -Xms2g:  Set the initial JVM heap size to 2GB
 #        - -Xmx2g:  Set the maximum JVM heap size to 2GB
-#   infinilabs/coco:0.2.0-1992: The Docker image name and tag to use
+#   infinilabs/coco:0.2.1-1998: The Docker image name and tag to use
 
 docker run -d \
            --name cocoserver \
@@ -84,7 +84,7 @@ docker run -d \
            -v $(pwd)/cocoserver/logs:/app/easysearch/logs \
            -e EASYSEARCH_INITIAL_ADMIN_PASSWORD=coco-server \
            -e ES_JAVA_OPTS="-Xms2g -Xmx2g" \
-           infinilabs/coco:0.2.0-1992
+           infinilabs/coco:0.2.1-1998
 ```
 
 ### Download the Server
