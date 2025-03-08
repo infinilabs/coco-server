@@ -247,9 +247,14 @@ func (h APIHandler) processQueryIntent(ctx context.Context, reqMsg, replyMsg *Ch
 
 		queryIntentBuffer := strings.Builder{}
 		content := []llms.MessageContent{
-			llms.TextParts(llms.ChatMessageTypeSystem, "You are an AI assistant trained to understand and analyze user queries. The user has provided the following query:"),
+			llms.TextParts(llms.ChatMessageTypeSystem, "You are an AI assistant trained to understand and analyze user queries.\n"),
+			llms.TextParts(llms.ChatMessageTypeSystem, "You will be given a conversation below and a follow up question. "+
+				"You need to rephrase the follow-up question if needed so it is a standalone question that can be used by the LLM to search the knowledge base for information.\n"+
+				"Conversation: \n"),
+			llms.TextParts(llms.ChatMessageTypeSystem, params.historyBlock),
+			llms.TextParts(llms.ChatMessageTypeSystem, "The user has provided the following query:"),
 			llms.TextParts(llms.ChatMessageTypeHuman, reqMsg.Message),
-			llms.TextParts(llms.ChatMessageTypeSystem, "Please analyze the query and identify the user's primary intent. "+
+			llms.TextParts(llms.ChatMessageTypeSystem, "\nPlease analyze the query and identify the user's primary intent. "+
 				"Determine if they are looking for information, making a request, or seeking clarification. "+
 				"Category the intent in </Category>, brief the </Intent>, and rephrase the query in several different forms to improve clarity. "+
 				"Provide possible variations of the query in <Query/> and identify relevant keywords in </Keyword> in JSON array format. "+
@@ -267,16 +272,19 @@ func (h APIHandler) processQueryIntent(ctx context.Context, reqMsg, replyMsg *Ch
 				"    \"<新的查询 1>\",\n"+
 				"    \"<Rephrased Query 2>\",\n"+
 				"    \"<Rephrased Query 3>\"\n"+
+				"    \"<Rephrased Query N>\"\n"+
 				"  ],\n"+
 				"  \"keyword\": [\n"+
 				"    \"<关键字 1>\",\n"+
 				"    \"<Keyword 2>\",\n"+
 				"    \"<Keyword 3>\"\n"+
+				"    \"<Keyword N>\"\n"+
 				"  ],\n"+
 				"  \"suggestion\": [\n"+
 				"    \"<Suggest Query 1>\",\n"+
 				"    \"<Suggest Query 2>\",\n"+
 				"    \"<Suggest Query 3>\"\n"+
+				"    \"<Suggest Query N>\"\n"+
 				"  ]\n"+
 				"}"+
 				"</JSON>"),
@@ -488,7 +496,9 @@ func (h APIHandler) fetchDocumentInDepth(ctx context.Context, reqMsg, replyMsg *
 }
 
 func (h APIHandler) generateFinalResponse(taskCtx context.Context, reqMsg, replyMsg *ChatMessage, params *processingParams) error {
-	//Retrieve related documents from background server
+
+	echoMsg := NewMessageChunk(params.sessionID, replyMsg.ID, MessageTypeAssistant, reqMsg.ID, Response, string(""), 0)
+	websocket.SendPrivateMessage(params.websocketID, util.MustToJSON(echoMsg))
 
 	prompt := fmt.Sprintf(`You are a friendly assistant designed to help users access and understand their personal or company data. 
 Your responses should be clear, concise, and based solely on the information provided below. 
@@ -526,8 +536,9 @@ Data:
 	options = append(options, llms.WithMaxLength(appConfig.LLMConfig.Parameters.MaxLength))
 	options = append(options, llms.WithTemperature(0.8))
 
-	if appConfig.LLMConfig.Type == "deepseek" {
-		llms.WithStreamingReasoningFunc(func(ctx context.Context, reasoningChunk []byte, chunk []byte) error {
+	if appConfig.LLMConfig.Type == common.DEEPSEEK {
+		options = append(options, llms.WithStreamingReasoningFunc(func(ctx context.Context, reasoningChunk []byte, chunk []byte) error {
+			log.Trace(string(reasoningChunk), ",", string(chunk))
 			// Use taskCtx here to check for cancellation or other context-specific logic
 			select {
 			case <-ctx.Done(): // Check if the task has been canceled or has expired
@@ -568,10 +579,13 @@ Data:
 				return nil
 			}
 
-		})
+		}))
 	} else {
 		//this part works for ollama
 		options = append(options, llms.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
+
+			log.Trace(string(chunk))
+
 			chunkSeq += 1
 			msg := NewMessageChunk(params.sessionID, replyMsg.ID, MessageTypeAssistant, reqMsg.ID, Response, string(chunk), chunkSeq)
 			err = websocket.SendPrivateMessage(params.websocketID, util.MustToJSON(msg))
@@ -579,6 +593,7 @@ Data:
 			return nil
 		}))
 	}
+
 
 	completion, err := llm.GenerateContent(taskCtx, content, options...)
 	if err != nil {
@@ -591,11 +606,6 @@ Data:
 
 	{
 		detail := ProcessingDetails{Order: 50, Type: Think, Description: reasoningBuffer.String()}
-		replyMsg.Details = append(replyMsg.Details, detail)
-	}
-
-	{
-		detail := ProcessingDetails{Order: 60, Type: Response, Description: messageBuffer.String()}
 		replyMsg.Details = append(replyMsg.Details, detail)
 	}
 
@@ -715,7 +725,7 @@ func getLLM(model string) llms.Model {
 		model = cfg.LLMConfig.DefaultModel
 	}
 
-	log.Debug("use model:", model)
+	log.Debug("use model:", model, ",type:", cfg.LLMConfig.Type)
 
 	if cfg.LLMConfig.Type == common.OLLAMA {
 		llm, err := ollama.New(
