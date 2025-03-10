@@ -15,10 +15,12 @@ export async function backEndFail(
   instance: AxiosInstance,
   request: FlatRequestInstance<RequestInstanceState, App.Service.Response<unknown>>
 ) {
-  const responseCode = String(response.data.code);
+  const responseCode = String(response.data.status);
 
   function handleLogout() {
     store.dispatch(resetStore());
+    const currentPath = window.location.hash.replace('#', '')
+    window.location.href = `/#/login?redirect=${currentPath}`
   }
 
   function logoutAndCleanup() {
@@ -30,7 +32,7 @@ export async function backEndFail(
 
   // when the backend response code is in `logoutCodes`, it means the user will be logged out and redirected to login page
   const logoutCodes = import.meta.env.VITE_SERVICE_LOGOUT_CODES?.split(',') || [];
-  if (logoutCodes.includes(responseCode)) {
+  if (logoutCodes.includes(`${responseCode}`)) {
     handleLogout();
     return null;
   }
@@ -86,12 +88,25 @@ export function handleError(
   // when the request is fail, you can show error message
 
   let message = error.message;
-  let backendErrorCode = '';
+  let backendErrorCode = String(error.status || '');
+
+  function handleLogout() {
+    store.dispatch(resetStore());
+    const currentPath = window.location.hash.replace('#', '')
+    window.location.href = `/#/login?redirect=${currentPath}`
+  }
+
+  // when the backend response code is in `logoutCodes`, it means the user will be logged out and redirected to login page
+  const logoutCodes = import.meta.env.VITE_SERVICE_LOGOUT_CODES?.split(',') || [];
+  if (logoutCodes.includes(`${backendErrorCode}`)) {
+    handleLogout();
+    return null;
+  }
 
   // get backend error message and code
   if (error.code === BACKEND_ERROR_CODE) {
     message = error.response?.data?.msg || message;
-    backendErrorCode = String(error.response?.data?.code || '');
+    backendErrorCode = String(error.response?.data?.status || '');
   }
 
   // the error message is displayed in the modal

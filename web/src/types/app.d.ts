@@ -606,8 +606,9 @@ declare namespace App {
 
     /** The backend service response data */
     type Response<T = unknown> = {
+      error: T;
       /** The backend service response code */
-      code: string;
+      status: number;
       /** The backend service response data */
       data: T;
       /** The backend service response message */
