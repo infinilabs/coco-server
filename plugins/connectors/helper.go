@@ -6,6 +6,7 @@ package connectors
 
 import (
 	"infini.sh/coco/modules/common"
+	"sync"
 	"time"
 )
 
@@ -17,7 +18,11 @@ var (
 	datasourceSyncState = make(map[string]DatasourceSyncState) // datasource id => state
 )
 
+var locker =sync.RWMutex{}
 func CanDoSync(datasource common.DataSource) (bool, error) {
+	locker.Lock()
+	defer locker.Unlock()
+
 	datasourceID := datasource.ID
 	var strInterval = "1h"
 	if v, ok := datasource.Connector.Config.(map[string]interface{}); ok {
