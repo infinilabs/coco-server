@@ -9,12 +9,147 @@ Information about release notes of Coco Server is provided here.
 
 ## Latest (In development)
 
-### Features
 ### Breaking changes
+
+### Features
+
 ### Bug fix
+
+- Fix: fatal error: concurrent map writes #125
+
 ### Improvements
 
-## 0.1.0 (2015-02-16)
+## 0.2.0 (2025-03-07)
+
+### 🚀 Features
+
+- Add default index template and schema to document
+- Implement docoument serach api
+- Implement suggest api
+- Support cancel inflight background job
+- Add google drive connector
+- Incremental indexing google drive files, connect via url
+- Ignore empty query (#35)
+- Add new field  to push messages (#34)
+- Add reset api to google_drive's connector (#36)
+- Add yuque connector #41
+- Allow to skip invalid token for yuque connector
+- Add hugo site connector (#51)
+- Add datasource and connector
+- Add notion connector (#63)
+- Add document enrichment processor
+- Init support for RAG
+- Add web #77
+- Add a simple security feature to Coco Server (#79)
+- Init commit for Datasource management UI (#81)
+- *(datasource)* Support CRUD management (#82)
+- Add guide, login, home, and settings (#83)
+- Add field `SyncEnabled` to control datasource synchronization (#103)
+- Add google drive connector settings (#109)
+- Support toggling synchronization in datasource list (#112)
+- Add LLM config (intent_analysis_model, picking_doc_model, answe… (#114)
+
+### 🐛 Bug Fixes
+
+- Update header key to avoid using underscores (#48)
+- Init the payload
+- Adjust locales (#85)
+- Adjust endpoint validation (#96)
+- Adjust styles of guide (#97)
+- Adjust locales of llm (#100)
+- Adjust loading
+- Update settings of yuque datasource not work (#104)
+- Override theme settings (#105)
+- Avoid panic when Google Drive credential config is missing (#106)
+- Empty response (#121)
+- Redirect to the login page when the token expires (#124)
+- Fatal error: concurrent map writes
+
+### 🚜 Refactor
+
+- Split metadata and payload
+- Refactoring datasource
+- Refactoring icon management
+- Refactoring hugo_site connector to support mutlti datasource (#56)
+- Refactoring google_drive connector
+- Refactoring query and suggest
+- Refactoring connectors
+- Refactoring connectors
+- Refactoring google_drive connector, support token_refresh, … (#61)
+- Refactoring yuque connector (#62)
+- Refactoring static assets (#65)
+- Refactoring default config
+- Refactoring search api
+- Refactoring rag based chat (#94)
+
+### 📚 Documentation
+
+- Update search document
+- Init docs (#47)
+- Add connectors
+- Fix images
+- Update docker install guide (#118)
+- Update install docs (#119)
+- Typo update docker install guide (#120)
+- Upgrade to 0.2.1 (#122)
+- Add outputs json (#123)
+
+### ⚙️ Miscellaneous Tasks
+
+- Update default templates
+- Update README
+- Add tips about websocket (#16)
+- Fix typo (#17)
+- Naming style
+- Update readme
+- Remove single quotes from example
+- Update import reflect to refactoring
+- Update logging level
+- Check oauth config
+- Update github PR template
+- Update default page size to 10
+- Update license
+- Update Makefile
+- Ignore empty query
+- Skip setup early
+- Disable metadata for indexing
+- Update pull request template (#39)
+- Update terminal header (#43)
+- Update missing import (#44)
+- Add subcategory
+- Update tips
+- Update default port to 9000
+- Builtin connectors should use builtin id
+- Update code sample
+- Update code format (#55)
+- Update default config
+- Update docs
+- Remove unused code
+- Fix icon link
+- Update api docs (#60)
+- Remove redundant last category if it matches the document title (#64)
+- Update yuque connector
+- Add missing provider
+- Remove osv-scanner.yml
+- Update docs
+- Remove langchaingo from source
+- Update docs (#80)
+- Fix build web (#84)
+- Update settings (#86)
+- Add icon to datesource list (#95)
+- Minor fix (#98)
+- Remove basic auth doc (#99)
+- Update locales of data source (#101)
+- Adjust locales in data source (#107)
+- Adjust styles of loading (#108)
+- Echo message before pick docs (#110)
+- Expose models to config (#111)
+- Update to support ollama (#113)
+- Update default proxy enabled to `false` (#115)
+- Default banner (#116)
+- Show token config when LLM type is deepseek (#117)
+
+## 0.1.0 (2025-02-16)
 
 ### Features
 - Indexing API
