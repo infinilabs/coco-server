@@ -36,16 +36,15 @@ import (
 	"infini.sh/framework/core/kv"
 	"infini.sh/framework/core/util"
 	"net/http"
+	log "github.com/cihub/seelog"
 	"strings"
 )
 
 func (h APIHandler) Logout(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	reqUser, err := core.UserFromContext(r.Context())
-	if err != nil {
-		panic(err)
+	reqUser, _ := core.UserFromContext(r.Context())
+	if reqUser != nil {
+		DeleteUserToken(reqUser.UserId)
 	}
-
-	DeleteUserToken(reqUser.UserId)
 	api.DestroySession(w, r)
 	h.WriteOKJSON(w, util.MapStr{
 		"status": "ok",

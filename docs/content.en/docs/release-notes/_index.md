@@ -19,6 +19,7 @@ Information about release notes of Coco Server is provided here.
 
 ### Improvements
 - Enhance UI for Adding a New Data Source (#126)
+- Add option login flag to logout api
 
 ## 0.2.0 (2025-03-07)
 

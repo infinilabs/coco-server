@@ -44,7 +44,7 @@ func init() {
 	api.HandleUIMethod(api.GET, "/login/success", apiHandler.LoginSuccess)
 
 	api.HandleUIMethod(api.POST, "/account/login", apiHandler.Login)
-	api.HandleUIMethod(api.POST, "/account/logout", apiHandler.Logout, api.RequireLogin())
+	api.HandleUIMethod(api.POST, "/account/logout", apiHandler.Logout, api.OptionLogin())
 
 	api.HandleUIMethod(api.GET, "/account/profile", apiHandler.Profile, api.RequireLogin())
 	api.HandleUIMethod(api.PUT, "/account/password", apiHandler.UpdatePassword, api.RequireLogin())
