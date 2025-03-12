@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Input, Button, Space } from "antd";
 import { PlusOutlined, MinusCircleOutlined } from "@ant-design/icons";
 
-export const MultiURLInput = ({value = [""], onChange}) => {
+export const MultiURLInput = ({value = [""], onChange, showLabel=true}) => {
   const [urls, setUrls] = useState(value);
   const { t } = useTranslation();
 
@@ -23,10 +23,10 @@ export const MultiURLInput = ({value = [""], onChange}) => {
 
   return (
     <div>
-      <div className="text-gray-400">{t('page.datasource.site_urls')}</div>
+      {showLabel && <div className="text-gray-400 mb-3">{t('page.datasource.site_urls')}</div>}
       <div>
       {urls.map((url, index) => (
-        <div key={index} className="flex align-middle my-3">
+        <div key={index} className="flex align-middle mb-3">
           <Input
             value={url}
             onChange={(e) => handleChange(index, e.target.value)}

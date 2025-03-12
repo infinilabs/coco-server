@@ -90,7 +90,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       searchable: "可搜索",
     },
     new:{
-      title: "连接数据源",
+      title: "连接 {{connector}}",
       labels: {
         name: "数据源名称",
         type: "数据源类型",
@@ -107,6 +107,8 @@ const page: App.I18n.Schema['translation']['page'] = {
         client_secret: "客户端密钥",
         redirect_uri: "重定向 URI",
         sync_enabled: "是否启用同步",
+        site_urls: "站点地址",
+        connect: "连接",
       }
     },
     edit:{

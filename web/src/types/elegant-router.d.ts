@@ -41,6 +41,7 @@ declare module "@elegant-router/types" {
     "data-source_edit": "edit/:id";
     "data-source_list": "list";
     "data-source_new": "new";
+    "data-source_new-first": "new-first";
     "guide": "/guide";
     "home": "/home";
     "login": "/login";
@@ -124,6 +125,7 @@ declare module "@elegant-router/types" {
     | "data-source_detail"
     | "data-source_edit"
     | "data-source_list"
+    | "data-source_new-first"
     | "data-source_new"
     | "guide"
     | "home"

@@ -6,7 +6,7 @@ import {IndexingScope} from "../indexing_scope"
 import {MultiURLInput} from './urls';
 import { Form } from 'antd';
 
-const Types = {
+export const Types = {
   GoogleDrive: "google_drive",
   HugoSite: "hugo_site",
   Yuque: "yuque",
@@ -22,6 +22,7 @@ export const TypeList =  ({
   }, 
   onChange=()=>{},
   onTestClick,
+  mode = "edit"
 })=>{
   const { t } = useTranslation();
   const [v, setValue] = useState(value);
@@ -108,28 +109,25 @@ export const TypeList =  ({
       return newV;
     });
   }
-  // const onConnectGoogleDrive = ()=>{
-  //   window.open(location.host+"/connector/google_drive/connect", "_self");
-  // }
   return <div>
-    <div className='flex gap-10px'>
+    {mode === "edit" && <div className='flex gap-10px'>
       <TypeComponent onChange={onItemClick} icon={GoogleDriveSVG} text="Google Drive" selected={v.id===Types.GoogleDrive}  name={Types.GoogleDrive}/>
       <TypeComponent onChange={onItemClick} icon={HugoSVG} text="HUGO Site" selected={v.id===Types.HugoSite} name={Types.HugoSite}/>
       <TypeComponent onChange={onItemClick} icon={YuqueSVG} text="Yuque" selected={v.id===Types.Yuque} name={Types.Yuque}/>
       <TypeComponent onChange={onItemClick} icon={NotionSVG} text="Notion" selected={v.id===Types.Notion} name={Types.Notion}/>
       {/* <TypeComponent onChange={onItemClick} icon={BucketSVG} text="Object Storage" selected={v===Types.ObjectStorage} name={Types.ObjectStorage}/>
       <TypeComponent onChange={onItemClick} icon={SearchSVG} text="Search" selected={v===Types.Search} name={Types.Search}/> */}
-    </div>
+    </div>}
     {(v.id === Types.Notion || v.id === Types.Yuque) &&
-    <div className='my-20px'>
+    <div className={mode==="edit" ?'my-20px' : ''}>
       <div className='pb-8px text-gray-400'>Token</div>
       <div className='flex gap-5px'>
       <Input.Password value={v.config.token} onChange={onTokenChange} className='max-w-500px'/><Button onClick={onInnerTestClick}>{t('common.testConnection')}</Button>
       </div>
     </div>}
     { v.id === Types.Yuque && <IndexingScope value={scope} onChange={onIndexingScopeChange}/>}
-    {v.id === Types.HugoSite && <div className='my-20px'><MultiURLInput value={v.config?.urls || ['']} onChange={onSiteURLsChange}/></div>}
-    { v.id === Types.GoogleDrive &&<div className='my-20px'>
+    {v.id === Types.HugoSite && <div className={mode==="edit" ?'my-20px' : ''}><MultiURLInput value={v.config?.urls || ['']} onChange={onSiteURLsChange}/></div>}
+    { v.id === Types.GoogleDrive &&<div className={mode==="edit" ?'my-20px' : ''}>
      
       <Button><a href={location.origin+"/connector/google_drive/connect"}>Connect</a></Button>
       {/* <FileUploader onChange={onCredentialChange}/>

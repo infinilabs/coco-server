@@ -18,6 +18,7 @@ Information about release notes of Coco Server is provided here.
 - Fix: fatal error: concurrent map writes #125
 
 ### Improvements
+- Enhance UI for Adding a New Data Source (#126)
 
 ## 0.2.0 (2025-03-07)
 

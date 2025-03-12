@@ -91,7 +91,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       searchable: "Searchable",
     },
     new:{
-      title: "Data Source Connection",
+      title: "{{connector}} Connection",
       labels: {
         name: "Name",
         type: "Type",
@@ -108,6 +108,8 @@ const page: App.I18n.Schema['translation']['page'] = {
         client_secret: "Client Secret",
         redirect_uri: "Redirect URI",
         sync_enabled: "Sync Enabled",
+        site_urls: "Site URLs",
+        connect: "Connect",
       }
     },
     edit:{

@@ -246,7 +246,7 @@ const fetchData = () => {
       >
       <div className='mb-4 mt-4 flex items-center justify-between'>
         <Search addonBefore={<FilterOutlined />} className='max-w-500px' onSearch={onRefreshClick} enterButton={ t('common.refresh')}></Search>
-        <Button type='primary' icon={<PlusOutlined/>}  onClick={() => nav(`/data-source/new`)}>{t('common.add')}</Button>
+        <Button type='primary' icon={<PlusOutlined/>}  onClick={() => nav(`/data-source/new-first`)}>{t('common.add')}</Button>
       </div>
       <Table<Datasource>
           rowKey="id"
