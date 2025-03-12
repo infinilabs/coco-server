@@ -23,22 +23,49 @@
 
 package rag
 
-import "infini.sh/framework/core/util"
+import (
+	log "github.com/cihub/seelog"
+	"infini.sh/framework/core/util"
+	"regexp"
+	"strings"
+)
 
 type QueryIntent struct {
-	Category string   `json:"category"`
-	Query    []string `json:"query"`
-	Keyword  []string `json:"keyword"`
+	Category   string   `json:"category"`
+	Intent     string   `json:"intent"`
+	Query      []string `json:"query"`
+	Keyword    []string `json:"keyword"`
+	Suggestion []string `json:"suggestion"`
 }
 
 func QueryAnalysisFromString(str string) (*QueryIntent, error) {
-	str = util.TrimLeftStr(str, "<JSON>")
-	str = util.TrimRightStr(str, "</JSON>")
-	str = util.TrimSpaces(str)
+	log.Trace("input:", str)
+	jsonContent := extractJSON(str)
 	obj := QueryIntent{}
-	err := util.FromJSONBytes([]byte(str), &obj)
+	err := util.FromJSONBytes([]byte(jsonContent), &obj)
 	if err != nil {
 		return nil, err
 	}
 	return &obj, nil
+}
+
+var jsonBlockTag = regexp.MustCompile(`(?m)(.*?)\<JSON\>([\w\W]+)\<\/JSON\>(.*?)`)
+var jsonMarkdownTag = regexp.MustCompile(`(?m)(.*?[\x60]{3,})json([\w\W]+)([\x60]{3,})(.*?)`)
+
+func extractJSON(input string) string {
+	matches := jsonMarkdownTag.FindAllStringSubmatch(input, -1)
+	if len(matches) > 0 {
+		if len(matches[0]) > 2 {
+			return strings.TrimSpace(matches[0][2])
+		}
+	}
+
+	matches = jsonBlockTag.FindAllStringSubmatch(input, -1)
+	if len(matches) > 0 {
+		if len(matches[0]) > 2 {
+			return strings.TrimSpace(matches[0][2])
+		}
+	}
+
+	return ""
 }

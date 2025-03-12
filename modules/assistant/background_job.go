@@ -69,7 +69,6 @@ type processingParams struct {
 	sourceDocsSummaryBlock string
 	historyBlock           string
 	queryIntent            *rag.QueryIntent
-	queryIntentStr         string
 	pickedDocIDS           []string
 	references             string
 
@@ -245,7 +244,7 @@ func (h APIHandler) fetchSessionHistory(ctx context.Context, reqMsg, replyMsg *C
 
 	historyStr.WriteString("<recent>")
 	for _, v := range history {
-		historyStr.WriteString(v.MessageType + ": " + util.SubStringWithSuffix(v.Message, 500, "...") + ", " + v.Created.String())
+		historyStr.WriteString(v.MessageType + ": " + util.SubStringWithSuffix(v.Message, 250, "..."))
 		if v.DownVote > 0 {
 			historyStr.WriteString(fmt.Sprintf("(%v people up voted this answer)", v.UpVote))
 		}
@@ -289,7 +288,7 @@ func (h APIHandler) processQueryIntent(ctx context.Context, reqMsg, replyMsg *Ch
 				"Please make sure the output is concise, well-organized, and easy to process."+
 				"Please present these possible query and keyword items in both English and Chinese."+
 				"if the possible query is in English, keep the original English one, and translate it to Chinese and keep it as a new query, to be clear, you should output: [Apple, 苹果], neither just `Apple` nor just `苹果`."+
-				"Wrap the JSON result in <JSON></JSON> tags. "+
+				"Wrap the valid JSON result in <JSON></JSON> tags. "+
 				"Your output should look like this format:\n"+
 				"<JSON>"+
 				"{\n"+
@@ -318,8 +317,11 @@ func (h APIHandler) processQueryIntent(ctx context.Context, reqMsg, replyMsg *Ch
 		}
 
 		llm := getLLM(params.intentModel)
+		log.Trace(content)
+
 		var chunkSeq = 0
 		if _, err := llm.GenerateContent(ctx, content,
+			llms.WithTemperature(0.8),
 			llms.WithMaxTokens(1024),
 			llms.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
 				if len(chunk) > 0 {
@@ -328,6 +330,7 @@ func (h APIHandler) processQueryIntent(ctx context.Context, reqMsg, replyMsg *Ch
 					msg := NewMessageChunk(params.sessionID, replyMsg.ID, MessageTypeAssistant, reqMsg.ID, QueryIntent, string(chunk), chunkSeq)
 					err := websocket.SendPrivateMessage(params.websocketID, util.MustToJSON(msg))
 					if err != nil {
+						log.Error(err)
 						return err
 					}
 				}
@@ -338,11 +341,14 @@ func (h APIHandler) processQueryIntent(ctx context.Context, reqMsg, replyMsg *Ch
 
 		if queryIntentBuffer.Len() > 0 {
 			//extract the category and query
-			params.queryIntentStr = queryIntentBuffer.String()
-			queryIntent, err = rag.QueryAnalysisFromString(params.queryIntentStr)
+			str := queryIntentBuffer.String()
+			log.Trace("query intent: ", str)
+			queryIntent, err = rag.QueryAnalysisFromString(str)
 			if err != nil {
+				log.Error(err)
 				return err
 			}
+			log.Debug("queryIntent:", util.MustToJSON(queryIntent))
 			replyMsg.Details = append(replyMsg.Details, ProcessingDetails{
 				Order:   10,
 				Type:    QueryIntent,
@@ -350,6 +356,7 @@ func (h APIHandler) processQueryIntent(ctx context.Context, reqMsg, replyMsg *Ch
 			})
 		}
 	}
+
 	params.queryIntent = queryIntent
 	return nil
 }
@@ -405,44 +412,48 @@ func (h APIHandler) processPickDocuments(ctx context.Context, reqMsg, replyMsg *
 	websocket.SendPrivateMessage(params.websocketID, util.MustToJSON(echoMsg))
 
 	content := []llms.MessageContent{
-		llms.TextParts(llms.ChatMessageTypeSystem, "You are an AI assistant trained to understand and analyze user queries. "),
-
-		//get history
-		llms.TextParts(llms.ChatMessageTypeSystem, "You will be given a conversation below and a follow up question. "+
-			"You need to rephrase the follow-up question if needed so it is a standalone question that can be used by the LLM to search the knowledge base for information.\n"+
-			"Conversation: "),
-		llms.TextParts(llms.ChatMessageTypeSystem, params.historyBlock),
-		//end history
-
-		llms.TextParts(llms.ChatMessageTypeSystem, "The user has provided the following query:"),
-		llms.TextParts(llms.ChatMessageTypeHuman, reqMsg.Message),
-
-		llms.TextParts(llms.ChatMessageTypeSystem, "The primary intent behind this query is:"),
-		llms.TextParts(llms.ChatMessageTypeSystem, string(params.queryIntentStr)),
-
-		llms.TextParts(llms.ChatMessageTypeSystem, "The following documents might be related to answering the user's query:"),
-
-		llms.TextParts(llms.ChatMessageTypeSystem, params.sourceDocsSummaryBlock),
-
-		llms.TextParts(llms.ChatMessageTypeSystem, "\nPlease review these documents and identify which ones best match the user's query. "+
-			"Choose no more than 5 relevant documents. These documents may be entirely unrelated, so prioritize those that provide direct answers or valuable context."+
-			"If the document is unrelated not certain, don't include it."+
-			" For each document, provide a brief explanation of why it was selected, categorizing it in </Document> tags."+
-			" Make sure the output is concise and easy to process."+
-			" Wrap the JSON result in <JSON></JSON> tags."+
-			" The expected output format is:\n"+
-			"<JSON>\n"+
-			"[\n"+
-			" { \"id\": \"<id of Doc 1>\", \"title\": \"<title of Doc 1>\", \"explain\": \"<Explain for Doc 1>\"  },\n"+
-			" { \"id\": \"<id of Doc 2>\", \"title\": \"<title of Doc 2>\", \"explain\": \"<Explain for Doc 2>\"  },\n"+
-			"]"+
-			"</JSON>"),
+		llms.TextParts(
+			llms.ChatMessageTypeSystem,
+			`You are an AI assistant trained to select the most relevant documents for further processing and to answer user queries.
+We have already queried the backend database and retrieved a list of documents that may help answer the user's query. 
+Your task is to choose the best documents for further processing.`,
+		),
 	}
 
-	log.Info("start filtering documents")
+	content = append(content, llms.TextParts(llms.ChatMessageTypeSystem, "The user has provided the following query:\n"))
+	content = append(content, llms.TextParts(llms.ChatMessageTypeHuman, reqMsg.Message))
+
+	if params.queryIntent != nil {
+		content = append(content, llms.TextParts(llms.ChatMessageTypeSystem, "The primary intent behind this query is:\n"))
+		content = append(content, llms.TextParts(llms.ChatMessageTypeSystem, util.MustToJSON(params.queryIntent)))
+	}
+
+	if params.sourceDocsSummaryBlock != "" {
+		content = append(content, llms.TextParts(llms.ChatMessageTypeSystem, "The following documents are fetched from database:\n"))
+		content = append(content, llms.TextParts(llms.ChatMessageTypeSystem, params.sourceDocsSummaryBlock))
+	}
+
+	content = append(content, llms.TextParts(llms.ChatMessageTypeSystem, "\nPlease review these documents and identify which ones best related to user's query. "+
+		"Choose no more than 5 relevant documents. These documents may be entirely unrelated, so prioritize those that provide direct answers or valuable context."+
+		"If the document is unrelated not certain, don't include it."+
+		" For each document, provide a brief explanation of why it was selected."+
+		" Your decision should based solely on the information provided below. \nIf the information is insufficient, please indicate that you need more details to assist effectively. "+
+		" Don't make anything up, which means if you can't identify which document best match the user's query, you should output nothing."+
+		" Make sure the output is concise and easy to process."+
+		" Wrap the JSON result in <JSON></JSON> tags."+
+		" The expected output format is:\n"+
+		"<JSON>\n"+
+		"[\n"+
+		" { \"id\": \"<id of Doc 1>\", \"title\": \"<title of Doc 1>\", \"explain\": \"<Explain for Doc 1>\"  },\n"+
+		" { \"id\": \"<id of Doc 2>\", \"title\": \"<title of Doc 2>\", \"explain\": \"<Explain for Doc 2>\"  },\n"+
+		"]"+
+		"</JSON>"))
+
+	log.Debug("start filtering documents")
 	var pickedDocsBuffer = strings.Builder{}
 	var chunkSeq = 0
 	llm := getLLM(params.pickingDocModel)
+	log.Trace(content)
 	if _, err := llm.GenerateContent(ctx, content,
 		llms.WithMaxTokens(32768),
 		llms.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
@@ -460,16 +471,14 @@ func (h APIHandler) processPickDocuments(ctx context.Context, reqMsg, replyMsg *
 		return nil, err
 	}
 
+	log.Debug(pickedDocsBuffer.String())
+
 	pickeDocs, err := rag.PickedDocumentFromString(pickedDocsBuffer.String())
 	if err != nil {
 		return nil, err
 	}
 
-	//log.Debug("filter document results:", pickedDocsBuffer.String())
-	{
-		detail := ProcessingDetails{Order: 30, Type: PickSource, Payload: pickeDocs}
-		replyMsg.Details = append(replyMsg.Details, detail)
-	}
+	log.Debug("filter document results:", pickeDocs)
 
 	docsMap := map[string]common.Document{}
 	for _, v := range docs {
@@ -478,17 +487,27 @@ func (h APIHandler) processPickDocuments(ctx context.Context, reqMsg, replyMsg *
 
 	var pickedDocIDS []string
 	var pickedFullDoc = []common.Document{}
+	var validPickedDocs = []rag.PickedDocument{}
 	for _, v := range pickeDocs {
 		x, v1 := docsMap[v.ID]
 		if v1 {
 			pickedDocIDS = append(pickedDocIDS, v.ID)
 			pickedFullDoc = append(pickedFullDoc, x)
-			//log.Info("pick doc:", x.ID,",",x.Title)
+			validPickedDocs = append(validPickedDocs, v)
+			log.Debug("pick doc:", x.ID, ",", x.Title)
 		} else {
 			log.Error("wrong doc id, doc is missing")
 		}
 	}
+
+	{
+		detail := ProcessingDetails{Order: 30, Type: PickSource, Payload: validPickedDocs}
+		replyMsg.Details = append(replyMsg.Details, detail)
+	}
+
 	params.pickedDocIDS = pickedDocIDS
+
+	log.Debug("valid picked document results:", validPickedDocs)
 
 	//replace to picked one
 	docs = pickedFullDoc
@@ -556,7 +575,8 @@ Data:
 
 	llm := getLLM(params.answeringModel) //deepseek-r1 /deepseek-v3
 	appConfig := common.AppConfig()
-	log.Info(params.answeringModel, ",", util.MustToJSON(appConfig))
+
+	log.Trace(params.answeringModel, ",", util.MustToJSON(appConfig))
 
 	options := []llms.CallOption{}
 	options = append(options, llms.WithMaxTokens(appConfig.LLMConfig.Parameters.MaxTokens))
@@ -712,9 +732,6 @@ func formatDocumentForPick(docs []common.Document) []util.MapStr {
 		item["id"] = doc.ID
 		item["title"] = doc.Title
 		item["updated"] = doc.Updated
-		item["icon"] = doc.Icon
-		item["size"] = doc.Size
-		item["thumbnail"] = doc.Thumbnail
 		item["category"] = doc.Category
 		item["summary"] = util.SubString(doc.Summary, 0, 500)
 		item["url"] = doc.URL
