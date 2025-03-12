@@ -18,7 +18,8 @@ var (
 	datasourceSyncState = make(map[string]DatasourceSyncState) // datasource id => state
 )
 
-var locker =sync.RWMutex{}
+var locker = sync.RWMutex{}
+
 func CanDoSync(datasource common.DataSource) (bool, error) {
 	locker.Lock()
 	defer locker.Unlock()

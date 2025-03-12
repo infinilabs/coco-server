@@ -146,7 +146,7 @@ func (this *Plugin) Start() error {
 					panic(err)
 				}
 
-				log.Debugf("total %v google_drives pending to fetch", len(results))
+				log.Tracef("total %v google_drives pending to fetch", len(results))
 
 				for _, item := range results {
 					if global.ShuttingDown() {
