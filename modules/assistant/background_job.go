@@ -35,10 +35,12 @@ import (
 	"infini.sh/coco/modules/search"
 	"infini.sh/framework/core/api/websocket"
 	"infini.sh/framework/core/errors"
+	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/task"
 	"infini.sh/framework/core/util"
 	"net/http"
+	"runtime"
 	"strings"
 )
 
@@ -173,7 +175,32 @@ func (h APIHandler) processMessageAsync(ctx context.Context, reqMsg *ChatMessage
 	log.Debugf("Starting async processing for session: %v", params.sessionID)
 
 	replyMsg := h.createAssistantMessage(params.sessionID, reqMsg.ID)
-	defer h.finalizeProcessing(ctx, params.websocketID, params.sessionID, replyMsg)
+
+	defer func() {
+		if !global.Env().IsDebug {
+			if r := recover(); r != nil {
+				var v string
+				switch r.(type) {
+				case error:
+					v = r.(error).Error()
+				case runtime.Error:
+					v = r.(runtime.Error).Error()
+				case string:
+					v = r.(string)
+				}
+				msg := fmt.Sprintf("⚠️ error in async processing message reply, %v", v)
+				if replyMsg.Message == "" {
+					replyMsg.Message = msg
+					h.sendWebsocketMessage(params.websocketID, NewMessageChunk(
+						params.sessionID, replyMsg.ID, MessageTypeSystem, reqMsg.ID,
+						Response, msg, 0,
+					))
+				}
+				log.Error(msg)
+			}
+		}
+		h.finalizeProcessing(ctx, params.websocketID, params.sessionID, replyMsg)
+	}()
 
 	reqMsg.Details = make([]ProcessingDetails, 0)
 
@@ -594,7 +621,6 @@ Data:
 		}))
 	}
 
-
 	completion, err := llm.GenerateContent(taskCtx, content, options...)
 	if err != nil {
 		log.Error(err)
@@ -609,22 +635,9 @@ Data:
 		replyMsg.Details = append(replyMsg.Details, detail)
 	}
 
-	msg := NewMessageChunk(params.sessionID, replyMsg.ID, MessageTypeSystem, reqMsg.ID, ReplyEnd, "assistant finished output", chunkSeq)
-	err = websocket.SendPrivateMessage(params.websocketID, util.MustToJSON(msg))
-	if err != nil {
-		panic(err)
-	}
-
-	//log.Info(util.MustToJSON(replyMsg))
-
 	//save response message to system
 	if messageBuffer.Len() > 0 || len(replyMsg.Details) > 0 {
 		replyMsg.Message = messageBuffer.String()
-		err = orm.Save(nil, replyMsg)
-		if err != nil {
-			log.Error(err)
-			return err
-		}
 	} else {
 		log.Warnf("seems empty reply for query:", replyMsg)
 	}

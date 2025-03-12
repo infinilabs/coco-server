@@ -36,7 +36,6 @@ import (
 	"infini.sh/framework/core/kv"
 	"infini.sh/framework/core/util"
 	"net/http"
-	log "github.com/cihub/seelog"
 	"strings"
 )
 
