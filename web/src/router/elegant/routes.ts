@@ -104,6 +104,17 @@ export const generatedRoutes: GeneratedRoute[] = [
           title: 'data-source_new',
           hideInMenu: true,
           activeMenu: 'data-source'
+        },
+      },
+      {
+        name: 'data-source_new-first',
+        path: 'new-first',
+        component: 'view.data-source_new-first',
+        meta: {
+          i18nKey: 'route.data-source_new-first',
+          title: 'data-source_new-first',
+          hideInMenu: true,
+          activeMenu: 'data-source'
         }
       }
     ]

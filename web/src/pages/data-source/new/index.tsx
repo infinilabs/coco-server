@@ -7,30 +7,50 @@ import {
   Switch,
 } from 'antd';
 import type { FormProps } from 'antd';
-import {TypeList} from '@/components/datasource/type';
+import {TypeList, Types} from '@/components/datasource/type';
 import {DataSync} from '@/components/datasource/data_sync';
 import {createDatasource} from '@/service/api/data-source'
+import GoogleDrive from './google_drive';
+import Yuque from './yuque';
+import Notion from './notion';
+import HugoSite from './hugo_site';
 
-//gogole_drive
-// credential:
-//     client_id
-//     client_secret
-//     redirect_uri
-//     endpoint
 
 export function Component() {
   const { t } = useTranslation();
   const nav = useNavigate();
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const type = params.get('type')??Types.GoogleDrive;
 
   const onFinish: FormProps<any>['onFinish'] = (values) => {
+    let config: any = {};
+    switch (type) {
+      case Types.Yuque:
+        config = {
+          ...(values.indexing_scope || {}),
+          token: values.token || '',
+        }
+        break;
+      case Types.Notion:
+        config = {
+          token: values.token || '',
+        };
+        break;
+      case Types.HugoSite:
+        config = {
+          urls: values.urls || [],
+        };
+        break;
+    }
     const sValues = {
       name: values.name,
       type: "connector",
       sync_enabled: values.sync_enabled,
       connector: {
-        id: values.connector.id,
+        id: type,
         config: {
-          ...values.connector.config,
+          ...config,
           interval: values.sync_config.interval,
           sync_type: values.sync_config.sync_type || '',
         }
@@ -47,22 +67,36 @@ export function Component() {
   const onFinishFailed: FormProps<any>['onFinishFailed'] = (errorInfo) => {
     console.log('Failed:', errorInfo);
   };
-  return <div className="bg-white pt-15px pb-15px">
+  let connector = 'Google Drive';
+  switch (type) {
+    case Types.Yuque:
+      connector = 'Yuque';
+      break;
+    case Types.Notion:
+      connector = 'Notion';
+      break;
+    case Types.HugoSite:
+      connector = 'Hugo Site';
+      break;
+  }
+  return <div className="bg-white pt-15px pb-15px min-h-full">
       <div
         className="flex-col-stretch sm:flex-1-hidden">
         <div>
           <div className='mb-4 flex items-center text-lg font-bold'>
             <div className="w-10px h-1.2em bg-[#1677FF] mr-20px"></div>
-            <div>{t('page.datasource.new.title')}</div>
+            <div>{t('page.datasource.new.title', {
+              connector: connector,
+            })}</div>
           </div>
         </div>
+        {type === Types.GoogleDrive ? <GoogleDrive />:
         <div>
          <Form
             labelCol={{ span: 4 }}
             wrapperCol={{ span: 18 }}
             layout="horizontal"
-            initialValues={{}}
-            onValuesChange={()=>{}}
+            initialValues={{connector: {id: type, config: {}}, sync_config: {sync_type: "interval", interval: "60s"}, sync_enabled: true}}
             colon={false}
             autoComplete="off"
             onFinish={onFinish}
@@ -71,13 +105,13 @@ export function Component() {
             <Form.Item label={t('page.datasource.new.labels.name')} rules={[{ required: true, message: 'Please input datasource name!' }]} name="name">
               <Input className='max-w-600px' />
             </Form.Item>
-            <Form.Item rules={[{ required: true, message: 'Please select datasource type!' }]} label={t('page.datasource.new.labels.type')} name="connector">
-              <TypeList/>
-            </Form.Item>
-            <Form.Item initialValue={{sync_type: "interval", interval: "60s"}} label={t('page.datasource.new.labels.data_sync')} name="sync_config">
+            {type === Types.Yuque && <Yuque />}
+            {type === Types.Notion && <Notion />}
+            {type === Types.HugoSite && <HugoSite />}
+            <Form.Item label={t('page.datasource.new.labels.data_sync')} name="sync_config">
              <DataSync/>
             </Form.Item>
-            <Form.Item initialValue={true} label={t('page.datasource.new.labels.sync_enabled')} name="sync_enabled">
+            <Form.Item label={t('page.datasource.new.labels.sync_enabled')} name="sync_enabled">
               <Switch />
             </Form.Item>
             <Form.Item label=" ">
@@ -88,7 +122,7 @@ export function Component() {
             </Form.Item>
           </Form>
 
-        </div>
+        </div>}
       </div>
   </div>
 }

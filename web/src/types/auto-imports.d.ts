@@ -104,6 +104,7 @@ declare global {
   const ThemeSchemaSwitch: typeof import('../components/stateful/ThemeSchemaSwitch')['default']
   const TypeList: typeof import('../components/datasource/type/index.jsx')['TypeList']
   const TypeListComponent: typeof import('../components/datasource/type/index.jsx')['TypeListComponent']
+  const Types: typeof import('../components/datasource/type/index.jsx')['Types']
   const WaveBg: typeof import('../components/stateless/custom/WaveBg')['default']
   const YuqueSVG: typeof import('../components/icons/index.jsx')['YuqueSVG']
   const bucket: typeof import('../components/icons/bucket.jsx')['default']

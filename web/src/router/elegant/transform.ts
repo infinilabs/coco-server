@@ -222,6 +222,7 @@ const routeMap: RouteMap = {
   "data-source_edit": "edit/:id",
   "data-source_list": "list",
   "data-source_new": "new",
+  "data-source_new-first": "new-first",
   "guide": "/guide",
   "home": "/home",
   "login": "/login",

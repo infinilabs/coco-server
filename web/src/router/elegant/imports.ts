@@ -24,6 +24,7 @@ export const pages: Record<LastLevelRouteKey, LazyRouteFunction<CustomRouteObjec
   "data-source_detail": () => import("@/pages/data-source/detail/[id].tsx"),
   "data-source_edit": () => import("@/pages/data-source/edit/[id].tsx"),
   "data-source_list": () => import("@/pages/data-source/list/index.tsx"),
+  "data-source_new-first": () => import("@/pages/data-source/new-first/index.tsx"),
   "data-source_new": () => import("@/pages/data-source/new/index.tsx"),
   guide: () => import("@/pages/guide/index.tsx"),
   home: () => import("@/pages/home/index.tsx"),
