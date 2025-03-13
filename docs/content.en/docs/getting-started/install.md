@@ -103,7 +103,7 @@ Pull the following models
 ollama pull deepseek-r1:1.5b 
 ```
 
-> Ollama is not required, you may use other online LLM services as your wish.
+> Ollama is not required, you may use other online LLM services as you wish.
 
 ### Easysearch
 
