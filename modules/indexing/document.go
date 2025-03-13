@@ -22,7 +22,7 @@ func (h *APIHandler) createDoc(w http.ResponseWriter, req *http.Request, ps http
 	}
 
 	ctx := orm.Context{
-		Refresh: "wait_for",
+		Refresh: orm.WaitForRefresh,
 	}
 	err = orm.Create(&ctx, obj)
 	if err != nil {
@@ -87,7 +87,7 @@ func (h *APIHandler) updateDoc(w http.ResponseWriter, req *http.Request, ps http
 	obj.ID = id
 	obj.Created = create
 	ctx := orm.Context{
-		Refresh: "wait_for",
+		Refresh: orm.WaitForRefresh,
 	}
 	err = orm.Update(&ctx, &obj)
 	if err != nil {
@@ -117,7 +117,7 @@ func (h *APIHandler) deleteDoc(w http.ResponseWriter, req *http.Request, ps http
 	}
 
 	ctx := orm.Context{
-		Refresh: "wait_for",
+		Refresh: orm.WaitForRefresh,
 	}
 	err = orm.Delete(&ctx, &obj)
 	if err != nil {
