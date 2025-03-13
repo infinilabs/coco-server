@@ -113,6 +113,10 @@ export function Component() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modelForm] = useForm();
   const onAddClick = ()=>{
+    if(data.length >= 5){
+      message.warning(t('page.apitoken.create.limit'));
+      return;
+    }
     const tokenName = generateApiTokenName();
     setIsModalOpen(true);
     modelForm.setFieldsValue({name: tokenName});

@@ -135,7 +135,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       confirm: 'Are you sure you want to delete this API token?'
     },
     create: {
-      store_desc: 'Please store this token in a secure and easily accessible location. For security reasons, you will not be able to view it again through the API Token management interface. If you lose this token, you will need to generate a new one.'
+      store_desc: 'Please store this token in a secure and easily accessible location. For security reasons, you will not be able to view it again through the API Token management interface. If you lose this token, you will need to generate a new one.',
+      limit: "Access token limit exceeded. Maximum allowed: 5.",
     }
   }
 };

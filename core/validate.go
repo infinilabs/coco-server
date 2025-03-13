@@ -39,7 +39,10 @@ import (
 	"time"
 )
 
-const UserTokenSessionName = "user_token"
+const (
+	UserTokenSessionName = "user_token"
+	KVAccessTokenBucket  = "access_token"
+)
 
 func ValidateLoginByAPITokenHeader(r *http.Request) (claims *UserClaims, err error) {
 	apiToken := r.Header.Get("X-API-TOKEN")
@@ -48,7 +51,7 @@ func ValidateLoginByAPITokenHeader(r *http.Request) (claims *UserClaims, err err
 		return nil, errors.Error("api token not found")
 	}
 
-	bytes, err := kv.GetValue("access_token", []byte(apiToken))
+	bytes, err := kv.GetValue(KVAccessTokenBucket, []byte(apiToken))
 	if err != nil {
 		return nil, err
 	}

@@ -79,7 +79,6 @@ func GenerateJWTAccessToken(provider string, login string, user *core.User) (map
 }
 
 const (
-	KVAccessTokenBucket   = "access_token"
 	KVAccessTokenIDBucket = "access_token_id"
 	KVUserTokenBucket     = "user_token_id"
 )
@@ -90,6 +89,14 @@ func (h *APIHandler) RequestAccessToken(w http.ResponseWriter, req *http.Request
 	reqUser, err := core.UserFromContext(req.Context())
 	if reqUser == nil || err != nil {
 		panic(err)
+	}
+	tokenIDs, err := getTokenIDs(reqUser.UserId)
+	if err != nil {
+		panic(err)
+	}
+	if len(tokenIDs) >= 5 {
+		h.WriteError(w, "Access token limit exceeded. Maximum allowed: 5.", 400)
+		return
 	}
 
 	reqBody := struct {
@@ -125,7 +132,7 @@ func (h *APIHandler) RequestAccessToken(w http.ResponseWriter, req *http.Request
 	log.Trace("generate and save access_token:", util.MustToJSON(newPayload))
 
 	// save access token to store
-	err = kv.AddValue(KVAccessTokenBucket, []byte(accessToken), util.MustToJSONBytes(newPayload))
+	err = kv.AddValue(core.KVAccessTokenBucket, []byte(accessToken), util.MustToJSONBytes(newPayload))
 	if err != nil {
 		panic(err)
 	}
@@ -135,10 +142,6 @@ func (h *APIHandler) RequestAccessToken(w http.ResponseWriter, req *http.Request
 		log.Error("failed to save access_token_id:", err)
 	}
 	// save relationship between user and token id
-	tokenIDs, err := getTokenIDs(userid)
-	if err != nil {
-		panic(err)
-	}
 	tokenIDs[tokenID] = struct{}{}
 	err = kv.AddValue(KVUserTokenBucket, []byte(userid), util.MustToJSONBytes(tokenIDs))
 	if err != nil {
@@ -178,7 +181,7 @@ func (h *APIHandler) CatAccessToken(w http.ResponseWriter, req *http.Request, ps
 		if err != nil {
 			panic(err)
 		}
-		tokenV, err := kv.GetValue(KVAccessTokenBucket, accessTokenBytes)
+		tokenV, err := kv.GetValue(core.KVAccessTokenBucket, accessTokenBytes)
 		if err != nil {
 			panic(err)
 		}
@@ -209,7 +212,7 @@ func (h *APIHandler) DeleteAccessToken(w http.ResponseWriter, req *http.Request,
 		h.WriteError(w, "token not found", 404)
 		return
 	}
-	tokenV, err := kv.GetValue(KVAccessTokenBucket, tokenBytes)
+	tokenV, err := kv.GetValue(core.KVAccessTokenBucket, tokenBytes)
 	if err != nil {
 		panic(err)
 	}
@@ -221,7 +224,7 @@ func (h *APIHandler) DeleteAccessToken(w http.ResponseWriter, req *http.Request,
 		h.WriteError(w, "permission denied", 403)
 		return
 	}
-	err = kv.DeleteKey(KVAccessTokenBucket, tokenBytes)
+	err = kv.DeleteKey(core.KVAccessTokenBucket, tokenBytes)
 	if err != nil {
 		panic(err)
 	}
@@ -269,7 +272,7 @@ func (h *APIHandler) RenameAccessToken(w http.ResponseWriter, req *http.Request,
 		h.WriteError(w, "token not found", 404)
 		return
 	}
-	tokenV, err := kv.GetValue(KVAccessTokenBucket, tokenBytes)
+	tokenV, err := kv.GetValue(core.KVAccessTokenBucket, tokenBytes)
 	if err != nil {
 		panic(err)
 	}
@@ -285,7 +288,7 @@ func (h *APIHandler) RenameAccessToken(w http.ResponseWriter, req *http.Request,
 	if err != nil {
 		panic(err)
 	}
-	err = kv.AddValue(KVAccessTokenBucket, tokenBytes, tokenV)
+	err = kv.AddValue(core.KVAccessTokenBucket, tokenBytes, tokenV)
 	if err != nil {
 		panic(err)
 	}
