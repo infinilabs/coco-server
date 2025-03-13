@@ -188,3 +188,42 @@ func (h *APIHandler) searchDatasource(w http.ResponseWriter, req *http.Request, 
 		h.Error(w, err)
 	}
 }
+
+func (h *APIHandler) createDocInDatasource(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	var obj = &common.Document{}
+	err := h.DecodeJSON(req, obj)
+	if err != nil {
+		panic(err)
+	}
+
+	//TODO cache for speed
+	datasourceID := ps.MustGetParameter("id")
+	datasourceObj := common.DataSource{}
+	datasourceObj.ID = datasourceID
+
+	exists, err := orm.Get(&datasourceObj)
+	if !exists || err != nil {
+		panic("invalid datasource")
+	}
+
+	//replace datasource info
+	sourceRefer := common.DataSourceReference{}
+	sourceRefer.ID = datasourceObj.ID
+	sourceRefer.Type = datasourceObj.Type
+	sourceRefer.Name = datasourceObj.Name
+	obj.Source = sourceRefer
+
+	ctx := orm.Context{
+		Refresh: orm.WaitForRefresh,
+	}
+	err = orm.Create(&ctx, obj)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	h.WriteJSON(w, util.MapStr{
+		"_id":    obj.ID,
+		"result": "created",
+	}, 200)
+}

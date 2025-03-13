@@ -15,7 +15,9 @@ As the **heart of Unified Collaboration**, Coco Server forms the backbone of you
 - **Gen-AI Insights**: Harness AI to unlock your team’s unique expertise, delivering actionable insights and smarter decisions.
 - **Effortless Integration**: Built for simple setup, enterprise-grade security, and unmatched scalability.
 
-For more details on Coco Server, visit: [https://docs.infinilabs.com/coco-server/](https://docs.infinilabs.com/coco-server/).
+{{% load-img "/img/home.png" "Coco Server Home" %}}
+
+[Getting started now](./docs/getting-started/install)
 
 ## Community
 

@@ -27,4 +27,7 @@ func init() {
 	api.HandleUIMethod(api.PUT, "/datasource/:id", handler.updateDatasource, api.RequireLogin())
 	api.HandleUIMethod(api.GET, "/datasource/_search", handler.searchDatasource, api.RequireLogin())
 
+	//shortcut to indexing docs into this datasource
+	api.HandleUIMethod(api.POST, "/datasource/:id/_doc", handler.createDocInDatasource, api.RequireLogin())
+
 }
