@@ -81,3 +81,13 @@ curl -XPUT http://localhost:9000/datasource/cu1rf03q50k43nn2pi6g?replace=true -d
 ```shell
 curl -XGET http://localhost:9000/datasource/_search
 ```
+
+### Insert Document to this Datasource
+
+```shell
+curl -H 'Content-Type: application/json'   -XPOST http://localhost:9000/datasource/cu1rf03q50k43nn2pi6g/_doc -d'
+{
+   "title": "Your title",
+   ...OMITTED...
+}'
+```
