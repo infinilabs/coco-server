@@ -124,6 +124,19 @@ const page: App.I18n.Schema['translation']['page'] = {
     connect: '连接',
     site_urls: '站点地址',
     site_urls_add: '新增站点地址'
+  },
+  apitoken: {
+    columns: {
+      name: "名称",
+      expire_in: "过期时间",
+    },
+    delete: {
+      confirm: '确定删除这个 API Token？'
+    },
+    create: {
+      store_desc: '请将此 Token 保存在安全且易于访问的地方。出于安全原因，你将无法通过 APl Token 管理界面再次查看它。如果你丢失了这个 Token，将需要重新创建。',
+      limit: "Token 数量超过限制，最多可以创建 5 个 Token。",
+    }
   }
 };
 

@@ -12,6 +12,7 @@ Information about release notes of Coco Server is provided here.
 ### Breaking changes
 
 ### Features
+- Add support for API token CRUD management (#132)
 
 ### Bug fix
 

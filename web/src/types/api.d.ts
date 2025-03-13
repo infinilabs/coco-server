@@ -275,4 +275,14 @@ declare namespace Api {
       sync_enabled: boolean;
     }
   }
+  namespace APIToken {
+    interface APIToken {
+      name: string;
+      userid: string;
+      login: string;
+      provider: string;
+      expire_in: number;
+      access_token: string;
+    }
+  }
 }

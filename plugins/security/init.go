@@ -49,5 +49,8 @@ func init() {
 	api.HandleUIMethod(api.GET, "/account/profile", apiHandler.Profile, api.RequireLogin())
 	api.HandleUIMethod(api.PUT, "/account/password", apiHandler.UpdatePassword, api.RequireLogin())
 	api.HandleUIMethod(api.POST, "/auth/request_access_token", apiHandler.RequestAccessToken, api.RequireLogin())
+	api.HandleUIMethod(api.GET, "/auth/access_token/_cat", apiHandler.CatAccessToken, api.RequireLogin())
+	api.HandleUIMethod(api.DELETE, "/auth/access_token/:token_id", apiHandler.DeleteAccessToken, api.RequireLogin())
+	api.HandleUIMethod(api.POST, "/auth/access_token/:token_id/_rename", apiHandler.RenameAccessToken, api.RequireLogin())
 
 }

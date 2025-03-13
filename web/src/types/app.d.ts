@@ -344,6 +344,9 @@ declare namespace App {
           testConnection: string;
           operation: string;
           comingSoon: string;
+          rename: string;
+          create: string;
+          copy: string;
         };
         datatable: {
           itemCount: string;
