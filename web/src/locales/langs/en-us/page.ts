@@ -125,6 +125,18 @@ const page: App.I18n.Schema['translation']['page'] = {
     connect: 'Connect',
     site_urls: 'Site URLs',
     site_urls_add: 'Add URL'
+  },
+  apitoken: {
+    columns: {
+      name: "Name",
+      expire_in: "Expire In",
+    },
+    delete: {
+      confirm: 'Are you sure you want to delete this API token?'
+    },
+    create: {
+      store_desc: 'Please store this token in a secure and easily accessible location. For security reasons, you will not be able to view it again through the API Token management interface. If you lose this token, you will need to generate a new one.'
+    }
   }
 };
 

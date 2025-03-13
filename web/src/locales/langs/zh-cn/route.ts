@@ -54,7 +54,9 @@ const route: App.I18n.Schema['translation']['route'] = {
   'data-source_edit': '编辑数据源',
   'data-source_new-first': '新增数据源第一步',
   'settings': '设置',
-  'guide': '初始化向导'
+  'guide': '初始化向导',
+  'api-token': 'API Token',
+  'api-token_list': 'API Token',
 };
 
 export default route;

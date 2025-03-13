@@ -104,7 +104,7 @@ export const generatedRoutes: GeneratedRoute[] = [
           title: 'data-source_new',
           hideInMenu: true,
           activeMenu: 'data-source'
-        },
+        }
       },
       {
         name: 'data-source_new-first',
@@ -153,6 +153,30 @@ export const generatedRoutes: GeneratedRoute[] = [
     }
   },
   {
+    name: 'api-token',
+    path: '/api-token',
+    component: 'layout.base',
+    meta: {
+      i18nKey: 'route.api-token',
+      title: 'api-token',
+      order: 4,
+      localIcon: 'security',
+    },
+    children: [
+      {
+        name: 'api-token_list',
+        path: 'list',
+        component: 'view.api-token_list',
+        meta: {
+          i18nKey: 'route.api-token_list',
+          title: 'api-token_list',
+          hideInMenu: true,
+          activeMenu: 'api-token',
+        }
+      }
+    ]
+  },
+  {
     name: 'settings',
     path: '/settings',
     component: 'layout.base$view.settings',
@@ -160,7 +184,7 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.settings',
       title: 'settings',
       icon: 'mdi:settings-outline',
-      order: 4
+      order: 5
     }
   }
 ];

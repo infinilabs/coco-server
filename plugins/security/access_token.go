@@ -28,6 +28,8 @@
 package security
 
 import (
+	"fmt"
+	"github.com/buger/jsonparser"
 	log "github.com/cihub/seelog"
 	"github.com/golang-jwt/jwt"
 	"infini.sh/coco/core"
@@ -76,6 +78,11 @@ func GenerateJWTAccessToken(provider string, login string, user *core.User) (map
 
 }
 
+const (
+	KVAccessTokenBucket   = "access_token"
+	KVAccessTokenIDBucket = "access_token_id"
+)
+
 func (h *APIHandler) RequestAccessToken(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
 	//user already login
@@ -84,6 +91,16 @@ func (h *APIHandler) RequestAccessToken(w http.ResponseWriter, req *http.Request
 		panic(err)
 	}
 
+	reqBody := struct {
+		Name string `json:"name"` //custom access token name
+	}{}
+	err = h.DecodeJSON(req, &reqBody)
+	if err != nil {
+		panic(err)
+	}
+	if reqBody.Name == "" {
+		reqBody.Name = GenerateApiTokenName("")
+	}
 	username := reqUser.Login
 	userid := reqUser.UserId
 	provider := "access_token"
@@ -95,18 +112,114 @@ func (h *APIHandler) RequestAccessToken(w http.ResponseWriter, req *http.Request
 	res["expire_in"] = expiredAT
 
 	newPayload := util.MapStr{}
+	tokenID := util.GetUUID()
+	newPayload["id"] = tokenID
 	newPayload["access_token"] = accessToken
 	newPayload["provider"] = provider
 	newPayload["login"] = username
 	newPayload["userid"] = userid
 	newPayload["expire_in"] = expiredAT
+	newPayload["name"] = reqBody.Name
 
 	log.Trace("generate and save access_token:", util.MustToJSON(newPayload))
 
 	// save access token to store
-	err = kv.AddValue("access_token", []byte(accessToken), util.MustToJSONBytes(newPayload))
+	err = kv.AddValue(KVAccessTokenBucket, []byte(accessToken), util.MustToJSONBytes(newPayload))
 	if err != nil {
 		panic(err)
 	}
+	// save relationship between token and token id
+	err = kv.AddValue(KVAccessTokenIDBucket, []byte(tokenID), []byte(accessToken))
+	if err != nil {
+		log.Error("failed to save access_token_id:", err)
+	}
 	h.WriteJSON(w, res, 200)
+}
+
+func (h *APIHandler) CatAccessToken(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+
+	var accessTokens = make([]map[string]interface{}, 0)
+	err := kv.Iterate(KVAccessTokenBucket, func(_, v []byte) bool {
+		var accessToken map[string]interface{}
+		err := util.FromJSONBytes(v, &accessToken)
+		if err != nil {
+			log.Debugf("failed to parse access_token: %v", err)
+			return true
+		}
+		if strToken, ok := accessToken["access_token"].(string); ok {
+			if len(strToken) > 8 {
+				accessToken["access_token"] = strToken[0:4] + "***************" + strToken[len(strToken)-4:]
+			}
+		}
+		accessTokens = append(accessTokens, accessToken)
+		return true
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	h.WriteJSON(w, accessTokens, 200)
+}
+
+func (h *APIHandler) DeleteAccessToken(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	tokenID := ps.ByName("token_id")
+	tokenBytes, err := kv.GetValue(KVAccessTokenIDBucket, []byte(tokenID))
+	if err != nil {
+		panic(err)
+	}
+	if tokenBytes == nil {
+		h.WriteError(w, "token not found", 404)
+		return
+	}
+	err = kv.DeleteKey(KVAccessTokenBucket, tokenBytes)
+	if err != nil {
+		panic(err)
+	}
+	h.WriteDeletedOKJSON(w, tokenID)
+}
+
+func (h *APIHandler) RenameAccessToken(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	reqBody := struct {
+		Name string `json:"name"` //custom access token name
+	}{}
+	err := h.DecodeJSON(req, &reqBody)
+	if err != nil {
+		panic(err)
+	}
+	if reqBody.Name == "" {
+		h.WriteError(w, "name is required", 400)
+		return
+	}
+	tokenID := ps.ByName("token_id")
+	tokenBytes, err := kv.GetValue(KVAccessTokenIDBucket, []byte(tokenID))
+	if err != nil {
+		panic(err)
+	}
+	if tokenBytes == nil {
+		h.WriteError(w, "token not found", 404)
+		return
+	}
+	tokenV, err := kv.GetValue(KVAccessTokenBucket, tokenBytes)
+	if err != nil {
+		panic(err)
+	}
+	tokenV, err = jsonparser.Set(tokenV, []byte(fmt.Sprintf(`"%s"`, reqBody.Name)), "name")
+	if err != nil {
+		panic(err)
+	}
+	err = kv.AddValue(KVAccessTokenBucket, tokenBytes, tokenV)
+	if err != nil {
+		panic(err)
+	}
+	h.WriteUpdatedOKJSON(w, tokenID)
+}
+
+// GenerateApiTokenName generates a unique API token name
+func GenerateApiTokenName(prefix string) string {
+	if prefix == "" {
+		prefix = "token"
+	}
+	timestamp := time.Now().UnixMilli()
+	randomStr := util.GenerateRandomString(8)
+	return fmt.Sprintf("%s_%d_%s", prefix, timestamp, randomStr)
 }
