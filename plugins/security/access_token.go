@@ -81,6 +81,7 @@ func GenerateJWTAccessToken(provider string, login string, user *core.User) (map
 const (
 	KVAccessTokenBucket   = "access_token"
 	KVAccessTokenIDBucket = "access_token_id"
+	KVUserTokenBucket     = "user_token_id"
 )
 
 func (h *APIHandler) RequestAccessToken(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -133,35 +134,72 @@ func (h *APIHandler) RequestAccessToken(w http.ResponseWriter, req *http.Request
 	if err != nil {
 		log.Error("failed to save access_token_id:", err)
 	}
+	// save relationship between user and token id
+	tokenIDs, err := getTokenIDs(userid)
+	if err != nil {
+		panic(err)
+	}
+	tokenIDs[tokenID] = struct{}{}
+	err = kv.AddValue(KVUserTokenBucket, []byte(userid), util.MustToJSONBytes(tokenIDs))
+	if err != nil {
+		panic(err)
+	}
+
 	h.WriteJSON(w, res, 200)
 }
 
-func (h *APIHandler) CatAccessToken(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+func getTokenIDs(userID string) (map[string]struct{}, error) {
+	tokenIDsBytes, err := kv.GetValue(KVUserTokenBucket, []byte(userID))
+	if err != nil {
+		return nil, err
+	}
+	var tokenIDs = make(map[string]struct{})
+	err = util.FromJSONBytes(tokenIDsBytes, &tokenIDs)
+	if err != nil {
+		return nil, err
+	}
+	return tokenIDs, nil
+}
 
-	var accessTokens = make([]map[string]interface{}, 0)
-	err := kv.Iterate(KVAccessTokenBucket, func(_, v []byte) bool {
-		var accessToken map[string]interface{}
-		err := util.FromJSONBytes(v, &accessToken)
+func (h *APIHandler) CatAccessToken(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	//check login
+	reqUser, err := core.UserFromContext(req.Context())
+	if reqUser == nil || err != nil {
+		panic(err)
+	}
+
+	tokenIDs, err := getTokenIDs(reqUser.UserId)
+	if err != nil {
+		panic(err)
+	}
+	accessTokens := make([]map[string]interface{}, 0)
+	for tokenID := range tokenIDs {
+		accessTokenBytes, err := kv.GetValue(KVAccessTokenIDBucket, []byte(tokenID))
 		if err != nil {
-			log.Debugf("failed to parse access_token: %v", err)
-			return true
+			panic(err)
 		}
+		tokenV, err := kv.GetValue(KVAccessTokenBucket, accessTokenBytes)
+		if err != nil {
+			panic(err)
+		}
+		var accessToken map[string]interface{}
+		util.MustFromJSONBytes(tokenV, &accessToken)
 		if strToken, ok := accessToken["access_token"].(string); ok {
 			if len(strToken) > 8 {
 				accessToken["access_token"] = strToken[0:4] + "***************" + strToken[len(strToken)-4:]
 			}
 		}
 		accessTokens = append(accessTokens, accessToken)
-		return true
-	})
-	if err != nil {
-		panic(err)
 	}
 
 	h.WriteJSON(w, accessTokens, 200)
 }
 
 func (h *APIHandler) DeleteAccessToken(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	reqUser, err := core.UserFromContext(req.Context())
+	if reqUser == nil || err != nil {
+		panic(err)
+	}
 	tokenID := ps.ByName("token_id")
 	tokenBytes, err := kv.GetValue(KVAccessTokenIDBucket, []byte(tokenID))
 	if err != nil {
@@ -171,18 +209,50 @@ func (h *APIHandler) DeleteAccessToken(w http.ResponseWriter, req *http.Request,
 		h.WriteError(w, "token not found", 404)
 		return
 	}
+	tokenV, err := kv.GetValue(KVAccessTokenBucket, tokenBytes)
+	if err != nil {
+		panic(err)
+	}
+	userID, err := jsonparser.GetString(tokenV, "userid")
+	if err != nil {
+		panic(err)
+	}
+	if userID != reqUser.UserId {
+		h.WriteError(w, "permission denied", 403)
+		return
+	}
 	err = kv.DeleteKey(KVAccessTokenBucket, tokenBytes)
 	if err != nil {
 		panic(err)
 	}
+	// delete relationship between token and token id
+	err = kv.DeleteKey(KVAccessTokenIDBucket, []byte(tokenID))
+	if err != nil {
+		panic(err)
+	}
+	// update relationship between user and token id
+	tokenIDs, err := getTokenIDs(userID)
+	if err != nil {
+		panic(err)
+	}
+	delete(tokenIDs, tokenID)
+	err = kv.AddValue(KVUserTokenBucket, []byte(userID), util.MustToJSONBytes(tokenIDs))
+	if err != nil {
+		panic(err)
+	}
+
 	h.WriteDeletedOKJSON(w, tokenID)
 }
 
 func (h *APIHandler) RenameAccessToken(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	reqUser, err := core.UserFromContext(req.Context())
+	if reqUser == nil || err != nil {
+		panic(err)
+	}
 	reqBody := struct {
 		Name string `json:"name"` //custom access token name
 	}{}
-	err := h.DecodeJSON(req, &reqBody)
+	err = h.DecodeJSON(req, &reqBody)
 	if err != nil {
 		panic(err)
 	}
@@ -202,6 +272,14 @@ func (h *APIHandler) RenameAccessToken(w http.ResponseWriter, req *http.Request,
 	tokenV, err := kv.GetValue(KVAccessTokenBucket, tokenBytes)
 	if err != nil {
 		panic(err)
+	}
+	userID, err := jsonparser.GetString(tokenV, "userid")
+	if err != nil {
+		panic(err)
+	}
+	if userID != reqUser.UserId {
+		h.WriteError(w, "permission denied", 403)
+		return
 	}
 	tokenV, err = jsonparser.Set(tokenV, []byte(fmt.Sprintf(`"%s"`, reqBody.Name)), "name")
 	if err != nil {
