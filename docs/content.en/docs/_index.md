@@ -17,6 +17,8 @@ As the **heart of Unified Collaboration**, Coco Server forms the backbone of you
 
 {{% load-img "/img/home.png" "Coco Server Home" %}}
 
+[Getting started now](./getting-started/install)
+
 ## Community
 
 Feel free to join the Discord server to discuss anything related to this project:
