@@ -1,15 +1,17 @@
 import {
   Button,
-  Checkbox,
   Form,
   Input,
   message,
   Switch,
 } from 'antd';
 import type { FormProps } from 'antd';
-import {TypeList} from '@/components/datasource/type';
 import {DataSync} from '@/components/datasource/data_sync';
+import {Types} from '@/components/datasource/type';
 import {updateDatasource} from '@/service/api/data-source'
+import Yuque from '../new/yuque';
+import Notion from '../new/notion';
+import HugoSite from '../new/hugo_site';
 
 export function Component() {
   const { t } = useTranslation();
@@ -19,15 +21,34 @@ export function Component() {
   const [loading, setLoading] = useState(false);
 
   const onFinish: FormProps<any>['onFinish'] = (values) => {
+    let config: any = {};
+    switch (type) {
+      case Types.Yuque:
+        config = {
+          ...(values.indexing_scope || {}),
+          token: values.token || '',
+        }
+        break;
+      case Types.Notion:
+        config = {
+          token: values.token || '',
+        };
+        break;
+      case Types.HugoSite:
+        config = {
+          urls: values.urls || [],
+        };
+        break;
+    }
     const sValues = {
       name: values.name,
       type: "connector",
-      enabled: values.enabled,
       sync_enabled: values.sync_enabled,
       connector: {
-        id: values.connector.id,
+        id: type,
         config: {
-          ...values.connector.config,
+          ...(initialDatasource?.connector?.config || {}),
+          ...config,
           interval: values.sync_config.interval,
           sync_type: values.sync_config.sync_type || '',
         }
@@ -45,6 +66,24 @@ export function Component() {
     interval: initialDatasource?.connector?.config?.interval || '1h',
     sync_type: initialDatasource?.connector?.config?.sync_type || ''
   } 
+  const type = initialDatasource?.connector?.id;
+  if(!type){
+    return null;
+  }
+  switch (type) {
+    case Types.Yuque:
+      initialDatasource.indexing_scope = initialDatasource?.connector?.config || {};
+      initialDatasource.token = initialDatasource?.connector?.config?.token || '';
+      break;
+    case Types.Notion:
+      initialDatasource.token = initialDatasource?.connector?.config?.token || '';
+      break;
+    case Types.HugoSite:
+      initialDatasource.urls = initialDatasource?.connector?.config?.urls || [];
+      break;
+    case Types.GoogleDrive:
+      break;
+  }
   const onFinishFailed: FormProps<any>['onFinishFailed'] = (errorInfo) => {
     console.log('Failed:', errorInfo);
     setLoading(false);
@@ -72,9 +111,9 @@ export function Component() {
             <Form.Item label={t('page.datasource.new.labels.name')} rules={[{ required: true, message: 'Please input datasource name!' }]} name="name">
               <Input className='max-w-600px' />
             </Form.Item>
-            <Form.Item rules={[{ required: true, message: 'Please select datasource type!' }]} label={t('page.datasource.new.labels.type')} name="connector">
-              <TypeList/>
-            </Form.Item>
+            {type === Types.Yuque && <Yuque />}
+            {type === Types.Notion && <Notion />}
+            {type === Types.HugoSite && <HugoSite />}
             <Form.Item label={t('page.datasource.new.labels.data_sync')} name="sync_config">
              <DataSync/>
             </Form.Item>
@@ -83,9 +122,6 @@ export function Component() {
             </Form.Item>
             <Form.Item label=" ">
               <Button type='primary' loading={loading}  htmlType="submit">{t('common.save')}</Button>
-              {/* <div className='mt-10px'>
-                <Checkbox className='mr-5px' />{t('page.datasource.new.labels.immediate_sync')}
-              </div> */}
             </Form.Item>
           </Form>
 
