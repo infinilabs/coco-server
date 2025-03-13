@@ -5,6 +5,7 @@
 package modules
 
 import (
+	"errors"
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/assistant"
@@ -54,13 +55,12 @@ func (this *Coco) Setup() {
 	//update coco's config
 	global.Register("APP_CONFIG", &cocoConfig)
 
-	websocket.RegisterConnectCallback(func(sessionID string, w http.ResponseWriter, r *http.Request) {
-		log.Debug("websocket established: ", sessionID)
+	websocket.RegisterConnectCallback(func(sessionID string, w http.ResponseWriter, r *http.Request) error {
+		log.Trace("websocket established: ", sessionID)
 		if cfg.IsAuthEnable() {
 			claims, err := core.ValidateLogin(r)
 			if err != nil {
-				log.Error(err)
-				return
+				return err
 			}
 			if claims != nil {
 
@@ -80,13 +80,14 @@ func (this *Coco) Setup() {
 						log.Error(err)
 					}
 
-					log.Infof("established websocket: %v for user: %v", sessionID, claims.UserId)
+					log.Debugf("established websocket: %v for user: %v", sessionID, claims.UserId)
 
 				} else {
-					log.Error("invalid claims") //TODO should panic?
+					return errors.New("invalid claims")
 				}
 			}
 		}
+		return nil
 	})
 
 	websocket.RegisterDisconnectCallback(func(sessionID string) {
