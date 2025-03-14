@@ -10,4 +10,4 @@ Welcome to the API Reference. Below are details on how to interact with the diff
 
 ## Security
 
-[Authentication](./security/authentication)
+[Authentication](./account/authentication)
