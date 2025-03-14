@@ -1,7 +1,6 @@
 ---
 weight: 20
 title: "Setup Wizard"
-bookCollapseSection: true
 ---
 
 

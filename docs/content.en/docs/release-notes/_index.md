@@ -24,6 +24,7 @@ Information about release notes of Coco Server is provided here.
 - Add option login flag to logout api
 - Catch error in background message processing task
 - Optimize RAG tasks
+- Throw error on invalid user during WebSocket connection
 
 ## 0.2.0 (2025-03-07)
 
