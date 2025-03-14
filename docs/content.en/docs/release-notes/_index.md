@@ -13,7 +13,8 @@ Information about release notes of Coco Server is provided here.
 
 ### Features
 - Add support for API token CRUD management (#132)
-- Add shortcut api to create doc in datasource
+- Add shortcut API to create doc in datasource
+- Add attachment API to management uploaded files in chat session
 
 ### Bug fix
 

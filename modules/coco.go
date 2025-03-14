@@ -32,6 +32,7 @@ func (this *Coco) Setup() {
 	orm.MustRegisterSchemaWithIndexName(assistant.Session{}, "session")
 	orm.MustRegisterSchemaWithIndexName(common.Document{}, "document")
 	orm.MustRegisterSchemaWithIndexName(assistant.ChatMessage{}, "message")
+	orm.MustRegisterSchemaWithIndexName(common.Attachment{}, "attachment")
 
 	cocoConfig := common.Config{
 		LLMConfig: &common.LLMConfig{
