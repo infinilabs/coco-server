@@ -170,14 +170,12 @@ const rowSelection: TableProps<Datasource>["rowSelection"] = {
   }),
 };
 
-const [data, setData] = useState<Datasource[]>();
+const initialData = {
+  data: [],
+  total: 0,
+}
+const [data, setData] = useState(initialData);
 const [loading, setLoading] = useState(false);
-const [tableParams, setTableParams] = useState<TableParams>({
-  pagination: {
-    current: 1,
-    pageSize: 10,
-  },
-});
 
 const [reqParams, setReqParams] = useState({
   query: '',
@@ -188,25 +186,8 @@ const fetchData = () => {
   setLoading(true);
   fetchDataSourceList(reqParams).then(({ data }) => {
     const newData = formatESSearchResult(data);
-      setData(newData?.data || []);
+      setData(newData || initialData);
       setLoading(false);
-      if(newData?.data?.length == reqParams.size){
-        setReqParams((oldParams)=>{
-          return {
-            ...oldParams,
-            from: oldParams.from+oldParams.size,
-          }
-        })
-      }
-      setTableParams(oldParams=>{
-        return {
-          ...oldParams,
-          pagination: {
-            ...oldParams.pagination,
-            total: newData.total?.value || newData.total,
-          },
-        }
-      });
     });
   };
 
@@ -215,17 +196,13 @@ const fetchData = () => {
   ]);
 
   const handleTableChange: TableProps<Datasource>['onChange'] = (pagination, filters, sorter) => {
-    setTableParams({
-      pagination,
-      filters,
-      sortOrder: Array.isArray(sorter) ? undefined : sorter.order,
-      sortField: Array.isArray(sorter) ? undefined : sorter.field,
-    });
-
-    // `dataSource` is useless since `pageSize` changed
-    if (pagination.pageSize !== tableParams.pagination?.pageSize) {
-      setData([]);
-    }
+    setReqParams((params)=>{
+      return {
+        ...params,
+        size: pagination.pageSize,
+        from: (pagination.current-1) * pagination.pageSize,
+      }
+    })
   };
   const onRefreshClick = (query: string)=>{
     setReqParams((oldParams)=>{
@@ -254,7 +231,16 @@ const fetchData = () => {
           size="middle"
           rowSelection={{ ...rowSelection }}
           columns={columns}
-          dataSource={data}
+          dataSource={data.data}
+          pagination={
+            {
+              showTotal:(total, range) => `${range[0]}-${range[1]} of ${total} items`,
+              defaultPageSize: 10,
+              defaultCurrent: 1,
+              total: data.total?.value || data?.total,
+              showSizeChanger: true,
+            }
+          }
           onChange={handleTableChange}
         />
       </ACard>

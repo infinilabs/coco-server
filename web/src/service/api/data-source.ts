@@ -2,9 +2,32 @@ import { request } from '../request';
 
 /** get data source list */
 export function fetchDataSourceList(params?: any) {
+  const query: any = {
+    from: params.from || 0,
+    size: params.size || 10,
+  }
+  if (params.query) {
+    query['query'] = {
+      bool: {
+        must: [
+          {
+            "query_string": {
+              "fields": ["name"],
+              "query": params.query,
+              "fuzziness": "AUTO",
+              "fuzzy_prefix_length": 2,
+              "fuzzy_max_expansions": 10,
+              "fuzzy_transpositions": true,
+              "allow_leading_wildcard": false
+            }
+          }
+        ]
+      }
+    }
+  }
   return request<Api.Datasource.Datasource>({
-    method: 'get',
-    params,
+    method: 'post',
+    data: query,
     url: '/datasource/_search'
   });
 }
