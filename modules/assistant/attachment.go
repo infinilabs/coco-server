@@ -53,6 +53,14 @@ func (h APIHandler) uploadAttachment(w http.ResponseWriter, r *http.Request, ps 
 
 	sessionID := ps.MustGetParameter("session_id")
 
+	//check session exists
+	session := Session{}
+	session.ID = sessionID
+	exists, err := orm.Get(&session)
+	if !exists || err != nil {
+		panic("invalid session")
+	}
+
 	files := r.MultipartForm.File["files"]
 	if len(files) == 0 {
 		h.WriteError(w, "No files uploaded", http.StatusBadRequest)
@@ -79,6 +87,29 @@ func (h APIHandler) uploadAttachment(w http.ResponseWriter, r *http.Request, ps 
 	result["attachments"] = attachmentIDs
 
 	h.WriteAckJSON(w, true, 200, result)
+}
+
+func (h APIHandler) getAttachments(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	sessionID := h.GetParameterOrDefault(req, "session", "")
+	var err error
+	q := orm.Query{}
+	if sessionID != "" {
+		q.Conds = orm.And(orm.Eq("session", sessionID))
+	} else {
+		q.RawQuery, err = h.GetRawBody(req)
+	}
+
+	docs := []common.Attachment{}
+	err, res := orm.SearchWithJSONMapper(&docs, &q)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	_, err = h.Write(w, res.Raw)
+	if err != nil {
+		h.Error(w, err)
+	}
 }
 
 func (h APIHandler) getAttachment(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {

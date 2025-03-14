@@ -25,4 +25,5 @@ func init() {
 	api.HandleUIMethod(api.POST, "/chat/:session_id/_upload", handler.uploadAttachment, api.RequireLogin())
 	api.HandleUIMethod(api.GET, "/attachment/:file_id", handler.getAttachment, api.RequireLogin())
 	api.HandleUIMethod(api.HEAD, "/attachment/:file_id", handler.checkAttachment, api.RequireLogin())
+	api.HandleUIMethod(api.GET, "/attachment/_search", handler.getAttachments, api.RequireLogin())
 }
