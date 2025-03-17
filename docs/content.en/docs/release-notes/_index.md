@@ -12,6 +12,7 @@ Information about release notes of Coco Server is provided here.
 ### Breaking changes
 ### Features
 ### Bug fix
+- Fixed provider info version (#144)
 ### Improvements
 
 ## 0.2.2 (2025-03-14)
@@ -25,7 +26,7 @@ Information about release notes of Coco Server is provided here.
 
 ### Bug fix
 
-- Fix: fatal error: concurrent map writes #125
+- Fixed fatal error: concurrent map writes #125
 
 ### Improvements
 - Enhance UI for Adding a New Data Source (#126)
