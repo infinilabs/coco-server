@@ -37,6 +37,7 @@ func AppConfig() Config {
 			err := util.FromJSONBytes(buf, si)
 			if err == nil {
 				config.ServerInfo = si
+				config.ServerInfo.Version = Version{global.Env().GetVersion()}
 			}
 		}
 		buf, _ = kv.GetValue(core.DefaultSettingBucketKey, []byte(core.DefaultLLMConfigKey))
