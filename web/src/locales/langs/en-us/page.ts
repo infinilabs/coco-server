@@ -138,6 +138,36 @@ const page: App.I18n.Schema['translation']['page'] = {
       store_desc: 'Please store this token in a secure and easily accessible location. For security reasons, you will not be able to view it again through the API Token management interface. If you lose this token, you will need to generate a new one.',
       limit: "Access token limit exceeded. Maximum allowed: 5.",
     }
+  },
+  connector: {
+    columns: {
+      name: "Name",
+      category: "Category",
+      description: "Description",
+      tags: "Tags",
+    },
+    delete: {
+      confirm: 'Are you sure you want to delete connector "{{name}}"？'
+    },
+    edit: {
+      title: "Edit Connector",
+    },
+    new: {
+      title: "New Connector",
+      labels: {
+        name: "Name",
+        category: "Category",
+        description: "Description",
+        tags: "Tags",
+        assets_icons: "Assets Icons",
+        icon: "Connector Icon",
+        client_id: "Client ID",
+        client_secret: "Client Secret",
+        redirect_url: "Redirect URI",
+        auth_url: "Auth URI",
+        token_url: "Token URI",
+      }
+    },
   }
 };
 

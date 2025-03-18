@@ -22,7 +22,8 @@ POST $[[SETUP_INDEX_PREFIX]]connector/$[[SETUP_DOC_TYPE]]/yuque
       "sheet" : "/assets/connector/yuque/sheet.png",
       "table" : "/assets/connector/yuque/table.png"
     }
-  }
+  },
+  "builtin": true
 }
 POST $[[SETUP_INDEX_PREFIX]]connector/$[[SETUP_DOC_TYPE]]/hugo_site
 {
@@ -47,7 +48,8 @@ POST $[[SETUP_INDEX_PREFIX]]connector/$[[SETUP_DOC_TYPE]]/hugo_site
       "web" : "/assets/connector/hugo_site/web.png",
       "web_page" : "/assets/connector/hugo_site/web_page.png"
     }
-  }
+  },
+  "builtin": true
 }
 POST $[[SETUP_INDEX_PREFIX]]connector/$[[SETUP_DOC_TYPE]]/google_drive
 {
@@ -86,7 +88,8 @@ POST $[[SETUP_INDEX_PREFIX]]connector/$[[SETUP_DOC_TYPE]]/google_drive
       "video" : "/assets/connector/google_drive/video.png",
       "zip" : "/assets/connector/google_drive/zip.png"
     }
-  }
+  },
+  "builtin": true
 }
 POST $[[SETUP_INDEX_PREFIX]]connector/$[[SETUP_DOC_TYPE]]/notion
 {
@@ -110,5 +113,6 @@ POST $[[SETUP_INDEX_PREFIX]]connector/$[[SETUP_DOC_TYPE]]/notion
       "page" : "/assets/connector/notion/page.png",
       "web_page" : "/assets/connector/notion/icon.png"
     }
-  }
+  },
+  "builtin": true
 }

@@ -137,6 +137,36 @@ const page: App.I18n.Schema['translation']['page'] = {
       store_desc: '请将此 Token 保存在安全且易于访问的地方。出于安全原因，你将无法通过 APl Token 管理界面再次查看它。如果你丢失了这个 Token，将需要重新创建。',
       limit: "Token 数量超过限制，最多可以创建 5 个 Token。",
     }
+  },
+  connector: {
+    columns: {
+      name: "名称",
+      category: "类型",
+      description: "描述",
+      tags: "标签",
+    },
+    delete: {
+      confirm: '确定删除连接器 "{{name}}"？'
+    },
+    edit: {
+      title: "编辑连接器",
+    },
+    new: {
+      title: "新建连接器",
+      labels: {
+        name: "名称",
+        category: "类型",
+        description: "描述",
+        tags: "标签",
+        assets_icons: "图标资源",
+        icon: "连接器图标",
+        client_id: "客户端 ID",
+        client_secret: "客户端密钥",
+        redirect_url: "重定向地址",
+        auth_url: "认证地址",
+        token_url: "Token 地址",
+      }
+    },
   }
 };
 

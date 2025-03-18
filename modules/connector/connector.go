@@ -21,7 +21,10 @@ func (h *APIHandler) create(w http.ResponseWriter, req *http.Request, ps httprou
 		return
 	}
 
-	err = orm.Create(nil, obj)
+	ctx := &orm.Context{
+		Refresh: orm.WaitForRefresh,
+	}
+	err = orm.Create(ctx, obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -91,10 +94,29 @@ func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprou
 	//protect
 	obj.ID = id
 	obj.Created = create
-	err = orm.Update(nil, &obj)
+	ctx := &orm.Context{
+		Refresh: orm.WaitForRefresh,
+	}
+	err = orm.Update(ctx, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+	if id == "google_drive" {
+		if len(obj.Config) > 0 {
+			gdCfg := common.GoogleDriveConfig{}
+			buf := util.MustToJSONBytes(obj.Config)
+			util.MustFromJSONBytes(buf, &gdCfg)
+			if gdCfg.ClientID != "" {
+				connectorSettings := common.ConnectorInfo{
+					GoogleDrive: gdCfg,
+					Updated:     time.Now(),
+				}
+				cfg := common.AppConfig()
+				cfg.Connector = &connectorSettings
+				common.SetAppConfig(&cfg)
+			}
+		}
 	}
 
 	h.WriteJSON(w, util.MapStr{
@@ -115,6 +137,10 @@ func (h *APIHandler) delete(w http.ResponseWriter, req *http.Request, ps httprou
 			"_id":    id,
 			"result": "not_found",
 		}, http.StatusNotFound)
+		return
+	}
+	if obj.Builtin {
+		h.WriteError(w, "builtin connector cannot be deleted", http.StatusForbidden)
 		return
 	}
 

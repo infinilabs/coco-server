@@ -8,6 +8,7 @@ import (
 	"infini.sh/coco/core"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/kv"
+	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
 	"sync"
 	"time"
@@ -54,6 +55,31 @@ func AppConfig() Config {
 			err := util.FromJSONBytes(buf, connectorCfg)
 			if err == nil {
 				config.Connector = connectorCfg
+			}
+		} else {
+			// we only read google drive's config from db currently
+			connector := Connector{}
+			connector.ID = "google_drive"
+			_, err := orm.Get(&connector)
+			if err != nil {
+				panic(err)
+			}
+			if connector.Config != nil {
+				gdCfg := GoogleDriveConfig{}
+				buf = util.MustToJSONBytes(connector.Config)
+				util.MustFromJSONBytes(buf, &gdCfg)
+				if gdCfg.ClientID != "" {
+					connectorSettings := ConnectorInfo{
+						GoogleDrive: gdCfg,
+						Updated:     time.Now(),
+					}
+					config.Connector = &connectorSettings
+					//cache connector's config to kv
+					err = kv.AddValue(core.DefaultSettingBucketKey, []byte(core.DefaultConnectorConfigKey), util.MustToJSONBytes(connectorSettings))
+					if err != nil {
+						panic(err)
+					}
+				}
 			}
 		}
 	}
