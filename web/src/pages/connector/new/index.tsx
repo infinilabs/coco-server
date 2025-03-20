@@ -6,10 +6,11 @@ import {
     Select,
   } from 'antd';
   import type { FormProps } from 'antd';
-  import {createConnector, getConnectorIcons} from '@/service/api/connector';
+  import {createConnector, getConnectorIcons, getConnectorCategory} from '@/service/api/connector';
  import {AssetsIcons} from './assets_icons';
  import { IconSelector } from "./icon_selector";
  import { Tags } from '@/components/common/tags';
+import { formatESSearchResult } from '@/service/request/es';
   
   export function Component() {
     const { t } = useTranslation();
@@ -46,6 +47,18 @@ import {
         }
       });
     }, []);
+    const [categories, setCategories] = useState([]);
+    useEffect(() => {
+      getConnectorCategory().then(({data})=>{
+        if(!data?.error){
+          const newData = formatESSearchResult(data);
+          const cates = newData.aggregations.categories.buckets.map((item: any)=>{
+            return item.key;
+          });
+          setCategories(cates);
+        }
+      });
+    }, []);
     return <div className="bg-white pt-15px pb-15px min-h-full">
         <div
           className="flex-col-stretch sm:flex-1-hidden">
@@ -70,7 +83,7 @@ import {
                 <Input className='max-w-600px' />
               </Form.Item>
               <Form.Item label={t('page.connector.new.labels.category')} rules={[{ required: true}]} name="category">
-               <Select mode='tags' maxTagCount={1} className='max-w-600px'/>
+               <Select options={categories.map(cate=>{return{value: cate}})} placeholder="Select or input a category" mode='tags' maxCount={1} className='max-w-600px'/>
               </Form.Item>
               <Form.Item label={t('page.connector.new.labels.icon')} name="icon" rules={[{ required: true}]}>
                 <IconSelector type="connector" icons={iconsMeta} className='max-w-150px' />

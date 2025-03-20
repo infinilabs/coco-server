@@ -20,11 +20,12 @@ export function Component() {
   const [loading, setLoading] = useState(false);
 
   const onFinish: FormProps<any>['onFinish'] = (values) => {
+    const category = typeof values.category === 'string' ? values.category : (values.category[0] || '');
     const sValues = {
       name: values.name,
       description: values.description,
       icon: values.icon,
-      category: values.category[0] || '',
+      category: category,
       tags: values.tags,
       // "url": "http://coco.rs/connectors/google_drive", 
       assets: {

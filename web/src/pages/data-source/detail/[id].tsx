@@ -1,9 +1,9 @@
 import { type LoaderFunctionArgs, useLoaderData } from "react-router-dom";
 import type { TableColumnsType, TableProps, MenuProps } from "antd";
-import { Switch, Table, Dropdown, message, Modal} from "antd";
+import { Switch, Table, Dropdown, message, Modal, Image} from "antd";
 import Search from "antd/es/input/Search";
 import Icon, { FilterOutlined, DownOutlined, ExclamationCircleOutlined, EllipsisOutlined } from "@ant-design/icons";
-import {fetchDatasourceDetail, deleteDocument, updateDocument, batchDeleteDocument} from '@/service/api';
+import {fetchDatasourceDetail, deleteDocument, updateDocument, batchDeleteDocument, getConnector} from '@/service/api';
 import { formatESSearchResult } from '@/service/request/es';
 import {ConnectorImageIcon} from '@/components/icons/connector';
 const { confirm } = Modal;
@@ -29,6 +29,14 @@ export function Component() {
   const nav = useNavigate();
   const location = useLocation();
   const { datasource_name, connector_id} = location.state || {}; 
+  const [connector, setConnector] = useState<any>({});
+  useEffect(()=>{
+    getConnector(connector_id).then((res)=>{
+      if(res.data?.found === true){
+        setConnector(res.data._source || {});
+      }
+    });
+  },[connector_id])
   const onMenuClick = ({key, record}: any)=>{
     switch(key){
       case "1":
@@ -141,7 +149,8 @@ const rowSelection: TableProps<DataType>["rowSelection"] = {
       title: t('page.datasource.columns.name'),
       dataIndex: "title",
       render: (text: string, record: DataType) =>{
-        return <span> <Icon component={() => <ConnectorImageIcon connector={connector_id} doc_type={record.icon}/>} className="mr-3px" /><a target="_blank" href={record.url} className="text-blue-500">{text}</a></span>
+        const imgSrc = connector.assets?.icons[record.icon];
+        return <span className="inline-flex items-center gap-1">{imgSrc && <Image preview={false} height="1em" width="1em" src={imgSrc} className="mr-3px" />}<a target="_blank" href={record.url} className="text-blue-500">{text}</a></span>
       },
     },
     {
@@ -163,7 +172,7 @@ const rowSelection: TableProps<DataType>["rowSelection"] = {
         </Dropdown>
       },
     },
-  ], [connector_id, t]);
+  ], [connector_id, connector]);
 
   if (!datasourceID) return <LookForward />;
 

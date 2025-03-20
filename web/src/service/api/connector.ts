@@ -88,3 +88,22 @@ export function getConnectorByIDs(connectorIDs: string[]) {
     url: '/connector/_search'
   });
 }
+
+export function getConnectorCategory() {
+  const query = {
+    size: 0,
+    aggs: {
+      categories: {
+        terms: {
+          field: "category",
+          size: 100
+        }
+      }
+    }
+  };
+  return request<Api.Datasource.Connector>({
+    method: 'post',
+    data: query,
+    url: '/connector/_search',
+  });
+}

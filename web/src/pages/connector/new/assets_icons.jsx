@@ -22,7 +22,7 @@ export const AssetsIcons = ({value={}, onChange, iconsMeta=[]}) => {
   }
   const transformIcons = (icons) => {
     return (icons || []).reduce((acc, icon)=>{
-      if(!icon.type || icon.icon){
+      if(!icon.type || !icon.icon){
         return acc;
       }
       acc[icon.type] = icon.icon;
