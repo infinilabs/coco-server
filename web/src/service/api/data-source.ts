@@ -69,6 +69,13 @@ export function deleteDatasource(dataourceID: string){
   });
 }
 
+export function getDatasource(dataourceID: string){
+  return request({
+    method: 'get',
+    url: `/datasource/${dataourceID}`
+  });
+}
+
 export function deleteDocument(documentID: string){
   return request({
     method: 'delete',

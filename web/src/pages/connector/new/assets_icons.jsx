@@ -13,8 +13,18 @@ export const AssetsIcons = ({value={}, onChange, iconsMeta=[]}) => {
       key: new Date().getTime(),
     };
   });
+  if(!initialIcons.length) {
+    initialIcons.push({
+      type: '',
+      icon: '',
+      key: new Date().getTime(),
+    });
+  }
   const transformIcons = (icons) => {
     return (icons || []).reduce((acc, icon)=>{
+      if(!icon.type || icon.icon){
+        return acc;
+      }
       acc[icon.type] = icon.icon;
       return acc;
     }, {});
@@ -56,8 +66,8 @@ export const AssetsIcons = ({value={}, onChange, iconsMeta=[]}) => {
   return (
     <div className="assets-icons mt-3px">
       <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }} className="w-100%">
-        <Col key="icon" span={6}>Icon</Col>
-        <Col key="type" span={5}>Type</Col>
+        <Col key="icon" span={6}>{t('page.connector.new.labels.asset_icon')}</Col>
+        <Col key="type" span={5}>{t('page.connector.new.labels.asset_type')}</Col>
         <Col key="oper" span={8}></Col>
       </Row>
       {icons.map((item) => {

@@ -108,6 +108,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         client_secret: "Client Secret",
         redirect_uri: "Redirect URI",
         sync_enabled: "Sync Enabled",
+        enabled: "Enabled",
         site_urls: "Site URLs",
         connect: "Connect",
       }
@@ -166,6 +167,8 @@ const page: App.I18n.Schema['translation']['page'] = {
         redirect_url: "Redirect URI",
         auth_url: "Auth URI",
         token_url: "Token URI",
+        asset_icon: "Icon",
+        asset_type: "Type",
       }
     },
   }

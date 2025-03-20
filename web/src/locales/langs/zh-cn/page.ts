@@ -107,6 +107,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         client_secret: "客户端密钥",
         redirect_uri: "重定向 URI",
         sync_enabled: "是否启用同步",
+        enabled: "是否启用",
         site_urls: "站点地址",
         connect: "连接",
       }
@@ -165,6 +166,8 @@ const page: App.I18n.Schema['translation']['page'] = {
         redirect_url: "重定向地址",
         auth_url: "认证地址",
         token_url: "Token 地址",
+        asset_icon: "图标",
+        asset_type: "类型",
       }
     },
   }

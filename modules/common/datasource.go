@@ -14,6 +14,7 @@ type DataSource struct {
 	Connector ConnectorConfig `json:"connector,omitempty" elastic_mapping:"connector:{type:keyword}"`
 	// Whether synchronization is allowed
 	SyncEnabled bool `json:"sync_enabled" elastic_mapping:"sync_enabled:{type:keyword}"`
+	Enabled     bool `json:"enabled" elastic_mapping:"enabled:{type:keyword}"`
 }
 
 type ConnectorConfig struct {

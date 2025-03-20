@@ -81,10 +81,10 @@ export function Component() {
             <Form.Item label={t('page.connector.new.labels.name')} rules={[{ required: true, message: 'Please input connector name!' }]} name="name">
               <Input className='max-w-600px' />
             </Form.Item>
-            <Form.Item label={t('page.connector.new.labels.category')} name="category">
+            <Form.Item label={t('page.connector.new.labels.category')} rules={[{ required: true}]} name="category">
               <Select mode='tags' maxTagCount={1} className='max-w-600px'/>
             </Form.Item>
-            <Form.Item label={t('page.connector.new.labels.icon')} name="icon">
+            <Form.Item label={t('page.connector.new.labels.icon')} rules={[{ required: true}]} name="icon">
               <IconSelector icons={iconsMeta} className='max-w-200px' />
             </Form.Item>
             <Form.Item label={t('page.connector.new.labels.assets_icons')} name="assets_icons">

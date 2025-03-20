@@ -20,6 +20,7 @@ func init() {
 	api.HandleUIMethod(api.PUT, "/connector/:id", handler.update, api.RequireLogin())
 	api.HandleUIMethod(api.DELETE, "/connector/:id", handler.delete, api.RequireLogin())
 	api.HandleUIMethod(api.GET, "/connector/_search", handler.search, api.RequireLogin())
+	api.HandleUIMethod(api.POST, "/connector/_search", handler.search, api.RequireLogin())
 
 	api.HandleUIMethod(api.POST, "/datasource/", handler.createDatasource, api.RequireLogin())
 	api.HandleUIMethod(api.DELETE, "/datasource/:id", handler.deleteDatasource, api.RequireLogin())
