@@ -118,10 +118,6 @@ func (this *Coco) Setup() {
 }
 
 func (this *Coco) Start() error {
-	err := common.CacheDisabledDatasourceIDs()
-	if err != nil {
-		return err
-	}
 	return nil
 }
 

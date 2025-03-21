@@ -9,6 +9,7 @@ import (
 	"infini.sh/framework/core/kv"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
+	log "src/github.com/cihub/seelog"
 )
 
 type DataSource struct {
@@ -31,31 +32,6 @@ type ConnectorConfig struct {
 
 const DisabledDatasourceIDsKey = "disabled_datasource_ids"
 
-// CacheDisabledDatasourceIDs retrieves all disabled data sources and caches their IDs.
-func CacheDisabledDatasourceIDs() error {
-	var datasources []DataSource
-	q := orm.Query{
-		Conds: orm.And(orm.Eq("enabled", false)), // Query for disabled data sources
-	}
-	err, _ := orm.SearchWithJSONMapper(&datasources, &q)
-	if err != nil {
-		return err
-	}
-
-	// Extract IDs from the retrieved data sources
-	datasourceIDs := make([]string, len(datasources))
-	for i, ds := range datasources {
-		datasourceIDs[i] = ds.ID
-	}
-	datasourceIDsBytes, err := util.ToJSONBytes(datasourceIDs)
-	if err != nil {
-		return err
-	}
-
-	// Store the disabled datasource IDs in key-value store
-	return kv.AddValue(core.DefaultSettingBucketKey, []byte(DisabledDatasourceIDsKey), datasourceIDsBytes)
-}
-
 // GetDisabledDatasourceIDs retrieves the list of disabled data source IDs from the cache.
 func GetDisabledDatasourceIDs() ([]string, error) {
 	// Fetch stored JSON bytes of disabled datasource IDs
@@ -63,9 +39,38 @@ func GetDisabledDatasourceIDs() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	if len(datasourceIDsBytes) == 0 {
+		// Cache is empty, read from database and cache the IDs
+		var datasources []DataSource
+		q := orm.Query{
+			Conds: orm.And(orm.Eq("enabled", false)), // Query for disabled data sources
+		}
+		err, _ = orm.SearchWithJSONMapper(&datasources, &q)
+		if err != nil {
+			return nil, err
+		}
+
+		// Extract IDs from the retrieved data sources
+		datasourceIDs := make([]string, len(datasources))
+		for i, ds := range datasources {
+			datasourceIDs[i] = ds.ID
+		}
+		datasourceIDsBytes, err = util.ToJSONBytes(datasourceIDs)
+		if err != nil {
+			log.Errorf("Failed to marshal datasource IDs: %c", err)
+			return datasourceIDs, nil
+		}
+
+		// Store the disabled datasource IDs in key-value store
+		err = kv.AddValue(core.DefaultSettingBucketKey, []byte(DisabledDatasourceIDsKey), datasourceIDsBytes)
+		if err != nil {
+			log.Errorf("Failed to cache disabled datasource IDs: %c", err)
+		}
+		return datasourceIDs, nil
+	}
 
 	var datasourceIDs []string
-	if err := util.FromJSONBytes(datasourceIDsBytes, &datasourceIDs); err != nil {
+	if err = util.FromJSONBytes(datasourceIDsBytes, &datasourceIDs); err != nil {
 		return nil, err
 	}
 
