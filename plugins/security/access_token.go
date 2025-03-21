@@ -94,10 +94,11 @@ func (h *APIHandler) RequestAccessToken(w http.ResponseWriter, req *http.Request
 	if err != nil {
 		panic(err)
 	}
-	if len(tokenIDs) >= 5 {
-		h.WriteError(w, "Access token limit exceeded. Maximum allowed: 5.", 400)
-		return
-	}
+
+	//if len(tokenIDs) >= 5 {
+	//	h.WriteError(w, "Access token limit exceeded. Maximum allowed: 5.", 400)
+	//	return
+	//}
 
 	reqBody := struct {
 		Name string `json:"name"` //custom access token name
