@@ -102,22 +102,6 @@ func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprou
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if id == "google_drive" {
-		if len(obj.Config) > 0 {
-			gdCfg := common.GoogleDriveConfig{}
-			buf := util.MustToJSONBytes(obj.Config)
-			util.MustFromJSONBytes(buf, &gdCfg)
-			if gdCfg.ClientID != "" {
-				connectorSettings := common.ConnectorInfo{
-					GoogleDrive: gdCfg,
-					Updated:     time.Now(),
-				}
-				cfg := common.AppConfig()
-				cfg.Connector = &connectorSettings
-				common.SetAppConfig(&cfg)
-			}
-		}
-	}
 
 	h.WriteJSON(w, util.MapStr{
 		"_id":    obj.ID,
