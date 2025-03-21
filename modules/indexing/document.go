@@ -11,7 +11,6 @@ import (
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
 	"net/http"
-	log "src/github.com/cihub/seelog"
 )
 
 func (h *APIHandler) createDoc(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -145,8 +144,10 @@ func (h *APIHandler) searchDocs(w http.ResponseWriter, req *http.Request, ps htt
 	)
 	mustClauses := search.BuildMustClauses("", "", "", "", "")
 	datasourceClause := search.BuildDatasourceClause(datasource, true)
+	if datasourceClause != nil {
+		mustClauses = append(mustClauses, datasourceClause)
+	}
 	mustClauses = append(mustClauses, datasourceClause)
-	log.Info(util.MustToJSON(mustClauses))
 	var err error
 	q := &orm.Query{}
 	if req.Method == http.MethodPost {

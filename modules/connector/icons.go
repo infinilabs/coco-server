@@ -5,7 +5,9 @@
 package connector
 
 import (
+	"fmt"
 	httprouter "infini.sh/framework/core/api/router"
+	"infini.sh/framework/core/global"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -13,15 +15,22 @@ import (
 )
 
 func (h *APIHandler) getIcons(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	// Get the path of the executable
-	exePath, err := GetExecutablePath()
-	if err != nil {
-		panic(err)
-	}
+	baseDir := global.Env().SystemConfig.WebAppConfig.UI.LocalPath
+	if !filepath.IsAbs(baseDir) {
+		// Get the path of the executable
+		exePath, err := GetExecutablePath()
+		if err != nil {
+			panic(err)
+		}
 
-	// Get the directory of the executable
-	exeDir := filepath.Dir(exePath)
-	icons, err := readIcons(exeDir)
+		// Get the directory of the executable
+		exeDir := filepath.Dir(exePath)
+		baseDir = filepath.Join(exeDir, baseDir)
+	}
+	iconsPathPrefix := filepath.Join("/assets", "icons")
+	iconsDir := filepath.Join(baseDir, iconsPathPrefix)
+
+	icons, err := readIcons(iconsDir, iconsPathPrefix)
 	if err != nil {
 		panic(err)
 	}
@@ -36,45 +45,52 @@ type IconInfo struct {
 	Category string `json:"category"`
 }
 
-func readIcons(path string) ([]IconInfo, error) {
-	// Get the icons directory
-	iconsDir := filepath.Join(path, ".public/assets/connector")
+func readIcons(iconsDir string, pathPrefix string) ([]IconInfo, error) {
+	var icons []IconInfo
 
-	// Get the list of files in the icons directory
-	entries, err := os.ReadDir(iconsDir)
+	err := filepath.WalkDir(iconsDir, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return fmt.Errorf("error accessing path %s: %v", path, err)
+		}
+
+		// Skip directories
+		if d.IsDir() {
+			return nil
+		}
+
+		// Skip hidden files
+		fileName := d.Name()
+		if strings.HasPrefix(fileName, ".") {
+			return nil
+		}
+
+		// Validate image extensions
+		ext := strings.ToLower(filepath.Ext(fileName))
+		if ext != ".png" && ext != ".jpg" && ext != ".jpeg" && ext != ".svg" && ext != ".gif" {
+			return nil
+		}
+
+		// Extract category (parent directory name)
+		category := filepath.Base(filepath.Dir(path))
+
+		// Get relative path
+		relPath, err := filepath.Rel(iconsDir, path)
+		if err != nil {
+			return fmt.Errorf("error getting relative path for %s: %v", path, err)
+		}
+		icon := IconInfo{
+			Category: category,
+			Name:     strings.TrimSuffix(fileName, ext),
+			Path:     filepath.Join(pathPrefix, relPath), // Ensure consistent path format
+		}
+		icons = append(icons, icon)
+		return nil
+	})
+
 	if err != nil {
 		return nil, err
 	}
 
-	var icons = make([]IconInfo, 0)
-	for _, entry := range entries {
-		path := filepath.Join(iconsDir, entry.Name())
-		if entry.IsDir() {
-			// Get the list of files in the category directory
-			categoryEntries, err := os.ReadDir(path)
-			if err != nil {
-				return nil, err
-			}
-			for _, categoryEntry := range categoryEntries {
-				//skip directories
-				if categoryEntry.IsDir() {
-					continue
-				}
-				iconName := categoryEntry.Name()
-				//skip hidden files
-				if strings.HasPrefix(iconName, ".") {
-					continue
-				}
-				ext := filepath.Ext(iconName)
-				icon := IconInfo{
-					Category: entry.Name(),
-					Name:     strings.TrimSuffix(iconName, ext),
-					Path:     filepath.Join("/assets/connector", entry.Name(), iconName),
-				}
-				icons = append(icons, icon)
-			}
-		}
-	}
 	return icons, nil
 }
 

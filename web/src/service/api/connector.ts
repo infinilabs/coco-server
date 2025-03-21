@@ -61,7 +61,7 @@ export function updateConnector(connectorID: string, body: any) {
 export function getConnectorIcons() {
   return request({
     method: 'get',
-    url: `/connector/icons/list`
+    url: `/icons/list`
   });
 }
 

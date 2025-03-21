@@ -33,6 +33,6 @@ func init() {
 	api.HandleUIMethod(api.POST, "/datasource/:id/_doc", handler.createDocInDatasource, api.RequireLogin())
 
 	//list all icons for connectors
-	api.HandleUIMethod(api.GET, "/connector/icons/list", handler.getIcons)
+	api.HandleUIMethod(api.GET, "/icons/list", handler.getIcons)
 
 }

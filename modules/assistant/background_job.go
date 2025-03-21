@@ -365,7 +365,9 @@ func (h APIHandler) processInitialDocumentSearch(ctx context.Context, reqMsg, re
 	var query *orm.Query
 	mustClauses := search.BuildMustClauses(params.category, params.subcategory, params.richCategory, params.username, params.userid)
 	datasourceClause := search.BuildDatasourceClause(params.datasource, false)
-	mustClauses = append(mustClauses, datasourceClause)
+	if datasourceClause != nil {
+		mustClauses = append(mustClauses, datasourceClause)
+	}
 	var shouldClauses interface{}
 	if params.queryIntent != nil && len(params.queryIntent.Query) > 0 {
 		shouldClauses = search.BuildShouldClauses(params.queryIntent.Query, params.queryIntent.Keyword)
