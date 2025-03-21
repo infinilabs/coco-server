@@ -254,9 +254,6 @@ web:
     enabled: true
   network:
     binding: $[[env.WEB_BINDING]]
-  cors:
-    allowed_origins:
-      - "http://localhost:9527"
   tls:
     enabled: false
     skip_insecure_verify: true
