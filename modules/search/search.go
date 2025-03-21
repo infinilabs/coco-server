@@ -169,68 +169,48 @@ func BuildDatasourceClause(datasource string, skipVerifyEnabled bool) interface{
 	if datasource != "" {
 		if strings.Contains(datasource, ",") {
 			arr := strings.Split(datasource, ",")
-			if skipVerifyEnabled {
-				datasourceClause = map[string]interface{}{
-					"terms": map[string]interface{}{
-						"source.id": arr,
-					},
-				}
-			} else {
-				enabledSourceIDs, err := common.FilterEnabledDatasourceIDs(arr)
-				if err != nil {
-					panic(err)
-				}
-				if len(enabledSourceIDs) > 0 {
-					datasourceClause = map[string]interface{}{
-						"terms": map[string]interface{}{
-							"source.id": enabledSourceIDs,
-						},
-					}
-				} else {
-					datasourceClause = map[string]interface{}{
-						"match_none": map[string]interface{}{},
-					}
-				}
+			datasourceClause = map[string]interface{}{
+				"terms": map[string]interface{}{
+					"source.id": arr,
+				},
 			}
-
 		} else {
 			datasourceClause = map[string]interface{}{
 				"term": map[string]interface{}{
 					"source.id": datasource,
 				},
 			}
-			if skipVerifyEnabled {
-				return datasourceClause
-			}
-			enabled, err := common.IsDatasourceEnabled(datasource)
-			if err != nil {
-				panic(err)
-			}
-			if !enabled {
-				datasourceClause = map[string]interface{}{
-					"match_none": map[string]interface{}{},
-				}
-			}
 		}
-	} else {
-		if skipVerifyEnabled {
-			return datasourceClause
-		}
-		disabledDatasourceIDs, err := common.GetDisabledDatasourceIDs()
-		if err != nil {
-			panic(err)
-		}
-		datasourceClause = map[string]interface{}{
+	}
+	if skipVerifyEnabled {
+		return datasourceClause
+	}
+
+	disabledIDs, err := common.GetDisabledDatasourceIDs()
+	if err != nil {
+		panic(err)
+	}
+	if len(disabledIDs) == 0 {
+		return datasourceClause
+	}
+	mustNot := map[string]interface{}{
+		"terms": map[string]interface{}{
+			"source.id": disabledIDs,
+		},
+	}
+	if datasourceClause == nil {
+		return map[string]interface{}{
 			"bool": map[string]interface{}{
-				"must_not": map[string]interface{}{
-					"terms": map[string]interface{}{
-						"source.id": disabledDatasourceIDs,
-					},
-				},
+				"must_not": mustNot,
 			},
 		}
 	}
-	return datasourceClause
+	return map[string]interface{}{
+		"bool": map[string]interface{}{
+			"must_not": mustNot,
+			"must":     datasourceClause,
+		},
+	}
 }
 
 func BuildMustClauses(category string, subcategory string, richCategory string, username string, userid string) []interface{} {

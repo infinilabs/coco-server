@@ -72,45 +72,6 @@ func GetDisabledDatasourceIDs() ([]string, error) {
 	return datasourceIDs, nil
 }
 
-// IsDatasourceEnabled checks whether a given data source ID is enabled.
-func IsDatasourceEnabled(id string) (bool, error) {
-	// Retrieve the list of disabled data sources
-	disabledDatasourceIDs, err := GetDisabledDatasourceIDs()
-	if err != nil {
-		return false, err
-	}
-
-	// Convert slice to a set (map) for faster lookups
-	disabledSet := make(map[string]struct{}, len(disabledDatasourceIDs))
-	for _, disabledID := range disabledDatasourceIDs {
-		disabledSet[disabledID] = struct{}{}
-	}
-
-	// If the ID exists in the disabled set, return false (disabled)
-	_, exists := disabledSet[id]
-	return !exists, nil
-}
-
-func FilterEnabledDatasourceIDs(ids []string) ([]string, error) {
-	// Retrieve the list of disabled data sources
-	disabledIDs, err := GetDisabledDatasourceIDs()
-	if err != nil {
-		return nil, err
-	}
-	enabledIDs := make([]string, 0, len(ids))
-	// Convert slice to a set (map) for faster lookups
-	disabledSet := make(map[string]struct{}, len(disabledIDs))
-	for _, disabledID := range disabledIDs {
-		disabledSet[disabledID] = struct{}{}
-	}
-	for _, id := range ids {
-		if _, exists := disabledSet[id]; !exists {
-			enabledIDs = append(enabledIDs, id)
-		}
-	}
-	return enabledIDs, nil
-}
-
 // DisableDatasource marks a data source as disabled by adding it to the kv cache.
 func DisableDatasource(id string) error {
 	disabledDatasourceIDs, err := GetDisabledDatasourceIDs()
