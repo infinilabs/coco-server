@@ -143,6 +143,7 @@ func (h *Plugin) oAuthRedirect(w http.ResponseWriter, req *http.Request, _ httpr
 
 	datasource := common.DataSource{
 		SyncEnabled: true,
+		Enabled:     true,
 	}
 	datasource.ID = util.MD5digest(fmt.Sprintf("%v,%v,%v", "google_drive", userInfo.Sub, userInfo.Email))
 	datasource.Type = "connector"

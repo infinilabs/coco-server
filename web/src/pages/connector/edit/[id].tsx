@@ -14,9 +14,13 @@ import {updateConnector, getConnectorIcons} from '@/service/api/connector';
 export function Component() {
   const { t } = useTranslation();
   const nav = useNavigate();
-  const {state: initialConnector} = useLocation();
+  let {state: initialConnector} = useLocation();
   const connectorID = initialConnector?.id || '';
-  initialConnector.assets_icons = initialConnector.assets?.icons || {};
+  initialConnector = {
+    ...initialConnector,
+    assets_icons: initialConnector.assets?.icons || {},
+    ...(initialConnector.config || {}),
+  }
   const [loading, setLoading] = useState(false);
 
   const onFinish: FormProps<any>['onFinish'] = (values) => {

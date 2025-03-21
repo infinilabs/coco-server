@@ -86,7 +86,7 @@ export function Component() {
     case Types.GoogleDrive:
       break;
     default:
-      return (<Modal title={"连接 " + connector.name}
+      return (<Modal title={`${t('page.datasource.new.labels.connect')} '${connector.name}'`}
         open={createState.isModalOpen} 
         onCancel={()=>{nav('/data-source/new-first');}}
         okText={t('common.save')}

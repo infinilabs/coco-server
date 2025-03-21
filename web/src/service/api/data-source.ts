@@ -12,7 +12,7 @@ export function fetchDataSourceList(params?: any) {
         must: [
           {
             "query_string": {
-              "fields": ["name"],
+              "fields": ["combined_fulltext"],
               "query": params.query,
               "fuzziness": "AUTO",
               "fuzzy_prefix_length": 2,

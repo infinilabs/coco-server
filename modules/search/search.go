@@ -167,18 +167,53 @@ func BuildMustClauses(datasource string, category string, subcategory string, ri
 	if datasource != "" {
 		if strings.Contains(datasource, ",") {
 			arr := strings.Split(datasource, ",")
-			mustClauses = append(mustClauses, map[string]interface{}{
-				"terms": map[string]interface{}{
-					"source.id": arr,
-				},
-			})
+			enabledSourceIDs, err := common.FilterEnabledDatasourceIDs(arr)
+			if err != nil {
+				panic(err)
+			}
+			if len(enabledSourceIDs) > 0 {
+				mustClauses = append(mustClauses, map[string]interface{}{
+					"terms": map[string]interface{}{
+						"source.id": enabledSourceIDs,
+					},
+				})
+			} else {
+				mustClauses = append(mustClauses, map[string]interface{}{
+					"match_none": map[string]interface{}{},
+				})
+			}
+
 		} else {
-			mustClauses = append(mustClauses, map[string]interface{}{
-				"term": map[string]interface{}{
-					"source.id": datasource,
-				},
-			})
+			enabled, err := common.IsDatasourceEnabled(datasource)
+			if err != nil {
+				panic(err)
+			}
+			if enabled {
+				mustClauses = append(mustClauses, map[string]interface{}{
+					"term": map[string]interface{}{
+						"source.id": datasource,
+					},
+				})
+			} else {
+				mustClauses = append(mustClauses, map[string]interface{}{
+					"match_none": map[string]interface{}{},
+				})
+			}
 		}
+	} else {
+		disabledDatasourceIDs, err := common.GetDisabledDatasourceIDs()
+		if err != nil {
+			panic(err)
+		}
+		mustClauses = append(mustClauses, map[string]interface{}{
+			"bool": map[string]interface{}{
+				"must_not": map[string]interface{}{
+					"terms": map[string]interface{}{
+						"source.id": disabledDatasourceIDs,
+					},
+				},
+			},
+		})
 	}
 
 	if category != "" {

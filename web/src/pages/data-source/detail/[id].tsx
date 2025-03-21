@@ -149,7 +149,10 @@ const rowSelection: TableProps<DataType>["rowSelection"] = {
       title: t('page.datasource.columns.name'),
       dataIndex: "title",
       render: (text: string, record: DataType) =>{
-        const imgSrc = connector.assets?.icons[record.icon];
+        let imgSrc = '';
+        if(connector?.assets?.icons){
+          imgSrc = connector.assets.icons[record.icon];
+        }
         return <span className="inline-flex items-center gap-1">{imgSrc && <Image preview={false} height="1em" width="1em" src={imgSrc} className="mr-3px" />}<a target="_blank" href={record.url} className="text-blue-500">{text}</a></span>
       },
     },

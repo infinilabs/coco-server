@@ -134,7 +134,7 @@ func (this *Plugin) Start() error {
 				connector.ID = "google_drive"
 				exists, err := orm.Get(&connector)
 				if !exists || err != nil {
-					panic("invalid hugo_site connector")
+					panic("invalid google_drive connector")
 				}
 
 				q := orm.Query{}
