@@ -5,7 +5,6 @@ import Search from "antd/es/input/Search";
 import Icon, { FilterOutlined, DownOutlined, ExclamationCircleOutlined, EllipsisOutlined } from "@ant-design/icons";
 import {fetchDatasourceDetail, deleteDocument, updateDocument, batchDeleteDocument, getConnector} from '@/service/api';
 import { formatESSearchResult } from '@/service/request/es';
-import {ConnectorImageIcon} from '@/components/icons/connector';
 const { confirm } = Modal;
 
 interface DataType {
