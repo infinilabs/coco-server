@@ -29,6 +29,7 @@ import (
 	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/kv"
 	"net/http"
+	log "github.com/cihub/seelog"
 )
 
 func (h APIHandler) GetUserWebsocketID(req *http.Request) (string, error) {
@@ -38,11 +39,19 @@ func (h APIHandler) GetUserWebsocketID(req *http.Request) (string, error) {
 		return "", err
 	}
 	if claims != nil {
+
+		websocketID:=h.GetHeader(req,"WEBSOCKET-SESSION-ID","")
+		if websocketID!=""{
+			log.Trace("get websocket session id from request header: ",websocketID)
+			return websocketID, err
+		}
+
 		if claims.UserId != "" {
 			v, err := kv.GetValue(common.WEBSOCKET_USER_SESSION, []byte(claims.UserId))
 			if err != nil {
 				return "", err
 			}
+			log.Trace("get websocket session id from kv: ",string(v))
 			return string(v), nil
 		}
 	}
