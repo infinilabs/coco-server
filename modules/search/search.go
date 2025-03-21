@@ -85,7 +85,9 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		source       = h.GetParameterOrDefault(req, "source_fields", "*")
 	)
 
-	mustClauses := BuildMustClauses(datasource, category, subcategory, richCategory, username, userid)
+	mustClauses := BuildMustClauses(category, subcategory, richCategory, username, userid)
+	datasourceClause := BuildDatasourceClause(datasource, false)
+	mustClauses = append(mustClauses, datasourceClause)
 	mustClauses = append(mustClauses, map[string]interface{}{
 		"bool": map[string]interface{}{
 			"minimum_should_match": 1,
@@ -160,52 +162,65 @@ func BuildTemplatedQuery(from int, size int, mustClauses []interface{}, shouldCl
 	return &q
 }
 
-func BuildMustClauses(datasource string, category string, subcategory string, richCategory string, username string, userid string) []interface{} {
-	mustClauses := []interface{}{}
-
-	// Check and add conditions to mustClauses
+func BuildDatasourceClause(datasource string, skipVerifyEnabled bool) interface{} {
+	datasourceClause := util.MapStr{
+		"match_all": util.MapStr{},
+	}
 	if datasource != "" {
 		if strings.Contains(datasource, ",") {
 			arr := strings.Split(datasource, ",")
-			enabledSourceIDs, err := common.FilterEnabledDatasourceIDs(arr)
-			if err != nil {
-				panic(err)
-			}
-			if len(enabledSourceIDs) > 0 {
-				mustClauses = append(mustClauses, map[string]interface{}{
+			if skipVerifyEnabled {
+				datasourceClause = map[string]interface{}{
 					"terms": map[string]interface{}{
-						"source.id": enabledSourceIDs,
+						"source.id": arr,
 					},
-				})
+				}
 			} else {
-				mustClauses = append(mustClauses, map[string]interface{}{
-					"match_none": map[string]interface{}{},
-				})
+				enabledSourceIDs, err := common.FilterEnabledDatasourceIDs(arr)
+				if err != nil {
+					panic(err)
+				}
+				if len(enabledSourceIDs) > 0 {
+					datasourceClause = map[string]interface{}{
+						"terms": map[string]interface{}{
+							"source.id": enabledSourceIDs,
+						},
+					}
+				} else {
+					datasourceClause = map[string]interface{}{
+						"match_none": map[string]interface{}{},
+					}
+				}
 			}
 
 		} else {
+			datasourceClause = map[string]interface{}{
+				"term": map[string]interface{}{
+					"source.id": datasource,
+				},
+			}
+			if skipVerifyEnabled {
+				return datasourceClause
+			}
 			enabled, err := common.IsDatasourceEnabled(datasource)
 			if err != nil {
 				panic(err)
 			}
-			if enabled {
-				mustClauses = append(mustClauses, map[string]interface{}{
-					"term": map[string]interface{}{
-						"source.id": datasource,
-					},
-				})
-			} else {
-				mustClauses = append(mustClauses, map[string]interface{}{
+			if !enabled {
+				datasourceClause = map[string]interface{}{
 					"match_none": map[string]interface{}{},
-				})
+				}
 			}
 		}
 	} else {
+		if skipVerifyEnabled {
+			return datasourceClause
+		}
 		disabledDatasourceIDs, err := common.GetDisabledDatasourceIDs()
 		if err != nil {
 			panic(err)
 		}
-		mustClauses = append(mustClauses, map[string]interface{}{
+		datasourceClause = map[string]interface{}{
 			"bool": map[string]interface{}{
 				"must_not": map[string]interface{}{
 					"terms": map[string]interface{}{
@@ -213,8 +228,15 @@ func BuildMustClauses(datasource string, category string, subcategory string, ri
 					},
 				},
 			},
-		})
+		}
 	}
+	return datasourceClause
+}
+
+func BuildMustClauses(category string, subcategory string, richCategory string, username string, userid string) []interface{} {
+	mustClauses := []interface{}{}
+
+	// Check and add conditions to mustClauses
 
 	if category != "" {
 		mustClauses = append(mustClauses, map[string]interface{}{
