@@ -106,7 +106,7 @@ func (this *Coco) Setup() {
 				log.Error(err)
 			}
 
-			err = kv.DeleteKey("websocket-session-user", []byte(sessionID))
+			err = kv.DeleteKey(common.WEBSOCKET_SESSION_USER, []byte(sessionID))
 			if err != nil {
 				log.Error(err)
 			}
