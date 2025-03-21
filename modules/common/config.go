@@ -10,7 +10,6 @@ import (
 	"infini.sh/framework/core/kv"
 	"infini.sh/framework/core/util"
 	"sync"
-	"time"
 )
 
 var (
@@ -46,14 +45,6 @@ func AppConfig() Config {
 			err := util.FromJSONBytes(buf, llm)
 			if err == nil {
 				config.LLMConfig = llm
-			}
-		}
-		buf, _ = kv.GetValue(core.DefaultSettingBucketKey, []byte(core.DefaultConnectorConfigKey))
-		if buf != nil {
-			connectorCfg := &ConnectorInfo{}
-			err := util.FromJSONBytes(buf, connectorCfg)
-			if err == nil {
-				config.Connector = connectorCfg
 			}
 		}
 	}
@@ -96,34 +87,12 @@ func SetAppConfig(c *Config) {
 	if err != nil {
 		panic(err)
 	}
-	//save connector's config
-	err = kv.AddValue(core.DefaultSettingBucketKey, []byte(core.DefaultConnectorConfigKey), util.MustToJSONBytes(c.Connector))
-	if err != nil {
-		panic(err)
-	}
 	config = c
 }
 
 type Config struct {
-	LLMConfig  *LLMConfig     `config:"llm" json:"llm,omitempty"`
-	ServerInfo *ServerInfo    `config:"server" json:"server,omitempty"`
-	Connector  *ConnectorInfo `config:"connector" json:"connector,omitempty"`
-}
-type ConnectorInfo struct {
-	GoogleDrive GoogleDriveConfig `config:"google_drive" json:"google_drive,omitempty"`
-	Updated     time.Time         `config:"updated" json:"updated,omitempty"`
-}
-type GoogleDriveConfig struct {
-	// ClientID is the application's ID.
-	ClientID string `json:"client_id"`
-	// ClientSecret is the application's secret.
-	ClientSecret string `json:"client_secret"`
-
-	// RedirectURL is the URL to redirect users going through
-	// the OAuth flow, after the resource owner's URLs.
-	RedirectURL string `json:"redirect_url"`
-	AuthURL     string `json:"auth_url"`
-	TokenURL    string `json:"token_url"`
+	LLMConfig  *LLMConfig  `config:"llm" json:"llm,omitempty"`
+	ServerInfo *ServerInfo `config:"server" json:"server,omitempty"`
 }
 
 const OLLAMA = "ollama"

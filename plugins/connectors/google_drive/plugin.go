@@ -116,25 +116,32 @@ func (this *Plugin) Start() error {
 			Interval:    util.GetDurationOrDefault(this.Interval, time.Second*30).String(), //connector's task interval
 			Description: "indexing google drive files",
 			Task: func(ctx context.Context) {
-				cfg := common.AppConfig()
-				if cfg.Connector != nil && cfg.Connector.GoogleDrive.ClientID != "" {
-					if this.oauthUpdated.Before(cfg.Connector.Updated) {
-						this.oAuthConfig.ClientID = cfg.Connector.GoogleDrive.ClientID
-						this.oAuthConfig.ClientSecret = cfg.Connector.GoogleDrive.ClientSecret
-						this.oAuthConfig.Endpoint.AuthURL = cfg.Connector.GoogleDrive.AuthURL
-						this.oAuthConfig.Endpoint.TokenURL = cfg.Connector.GoogleDrive.TokenURL
-						this.oAuthConfig.RedirectURL = cfg.Connector.GoogleDrive.RedirectURL
+				connector := common.Connector{}
+				connector.ID = "google_drive"
+				exists, err := orm.Get(&connector)
+				if !exists || err != nil {
+					panic("invalid google_drive connector")
+				}
+				if connector.Config != nil {
+					if clientID, ok := connector.Config["client_id"].(string); ok {
+						this.oAuthConfig.ClientID = clientID
+					}
+					if clientSecret, ok := connector.Config["client_secret"].(string); ok {
+						this.oAuthConfig.ClientSecret = clientSecret
+					}
+					if authURL, ok := connector.Config["auth_url"].(string); ok {
+						this.oAuthConfig.Endpoint.AuthURL = authURL
+					}
+					if tokenURL, ok := connector.Config["token_url"].(string); ok {
+						this.oAuthConfig.Endpoint.TokenURL = tokenURL
+					}
+					if redirectURL, ok := connector.Config["redirect_url"].(string); ok {
+						this.oAuthConfig.RedirectURL = redirectURL
 					}
 				}
 				if this.oAuthConfig.ClientID == "" {
 					log.Debugf("skipping google_drive connector task since empty client_id")
 					return
-				}
-				connector := common.Connector{}
-				connector.ID = "google_drive"
-				exists, err := orm.Get(&connector)
-				if !exists || err != nil {
-					panic("invalid hugo_site connector")
 				}
 
 				q := orm.Query{}

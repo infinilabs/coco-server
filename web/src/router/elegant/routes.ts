@@ -51,6 +51,63 @@ export const generatedRoutes: GeneratedRoute[] = [
     }
   },
   {
+    name: 'api-token',
+    path: '/api-token',
+    component: 'layout.base',
+    meta: {
+      i18nKey: 'route.api-token',
+      title: 'api-token',
+      order: 4,
+      localIcon: 'security'
+    },
+    children: [
+      {
+        name: 'api-token_list',
+        path: 'list',
+        component: 'view.api-token_list',
+        meta: {
+          i18nKey: 'route.api-token_list',
+          title: 'api-token_list',
+          hideInMenu: true,
+          activeMenu: 'api-token'
+        }
+      }
+    ]
+  },
+  {
+    name: 'connector',
+    path: '/connector',
+    component: 'layout.base',
+    meta: {
+      i18nKey: 'route.connector',
+      title: 'connector',
+      hideInMenu: true,
+      activeMenu: 'settings'
+    },
+    children: [
+      {
+        name: 'connector_edit',
+        path: 'edit/:id',
+        component: 'view.connector_edit',
+        meta: {
+          i18nKey: 'route.connector_edit',
+          title: 'connector_edit'
+        }
+      },
+      {
+        name: 'connector_new',
+        path: 'new',
+        component: 'view.connector_new',
+        meta: {
+          i18nKey: 'route.connector_new',
+          title: 'connector_new',
+          hideInMenu: true,
+          activeMenu: 'settings'
+        }
+      }
+    ]
+  },
+  {
     name: 'data-source',
     path: '/data-source',
     component: 'layout.base',
@@ -151,30 +208,6 @@ export const generatedRoutes: GeneratedRoute[] = [
       constant: true,
       hideInMenu: true
     }
-  },
-  {
-    name: 'api-token',
-    path: '/api-token',
-    component: 'layout.base',
-    meta: {
-      i18nKey: 'route.api-token',
-      title: 'api-token',
-      order: 4,
-      localIcon: 'security',
-    },
-    children: [
-      {
-        name: 'api-token_list',
-        path: 'list',
-        component: 'view.api-token_list',
-        meta: {
-          i18nKey: 'route.api-token_list',
-          title: 'api-token_list',
-          hideInMenu: true,
-          activeMenu: 'api-token',
-        }
-      }
-    ]
   },
   {
     name: 'settings',

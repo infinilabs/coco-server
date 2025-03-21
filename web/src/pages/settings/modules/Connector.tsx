@@ -1,7 +1,14 @@
-import { Button, Form, Input, InputNumber, Spin, Switch, Tabs} from "antd";
+import { Button, Form, Input, Spin, Table, Modal, Dropdown, message, Tag, Image} from "antd";
 import "../index.scss"
 import { fetchSettings, updateSettings } from "@/service/api/server";
-
+import {searchConnector, deleteConnector} from "@/service/api/connector";
+import Search from "antd/es/input/Search";
+import Icon, { FilterOutlined, PlusOutlined, ExclamationCircleOutlined, EllipsisOutlined, createFromIconfontCN } from "@ant-design/icons";
+import type { TableColumnsType, MenuProps } from "antd";
+import { formatESSearchResult } from '@/service/request/es';
+import { GoogleDriveSVG, HugoSVG, YuqueSVG,NotionSVG } from '@/components/icons';
+const { confirm } = Modal;
+type Connector = Api.Datasource.Connector;
 
 export const GoogleDriveSettings = memo(() => {
     const [form] = Form.useForm();
@@ -91,15 +98,193 @@ export const GoogleDriveSettings = memo(() => {
 });
 
 const ConnectorSettings = memo(() => {
-  const items = [
+  const { t } = useTranslation();
+  const nav = useNavigate();
+
+  const items: MenuProps["items"] = [
     {
-      key: 'google_drive',
-      label: 'Gogole Drive',
-      children: <GoogleDriveSettings />,
+      label: t('common.edit'),
+      key: "1",
+    },
+    {
+      label: t('common.delete'),
+      key: "2",
     },
   ];
 
-  return  <Tabs items={items}/>
+
+  const onMenuClick = ({key, record}: any)=>{
+    switch(key){
+      case "2":
+        confirm({
+          icon: <ExclamationCircleOutlined />,
+          title: t('common.tip'),
+          content: t('page.connector.delete.confirm', {name: record.name}),
+          onOk() {
+            deleteConnector(record.id).then((res)=>{
+              if(res.data?.result === "deleted"){
+                message.success(t('common.deleteSuccess'))
+              }
+              //reload data
+              setReqParams((old)=>{
+                return {
+                  ...old,
+                }
+              })
+            });
+          },
+          onCancel() {
+          },
+        });
+       
+        break;
+      case "1":
+        nav(`/connector/edit/${record.id}`, {state:record});
+        break;
+    }
+  }
+  const columns: TableColumnsType<Connector> = [
+    {
+      title: t('page.connector.columns.name'),
+      dataIndex: "name",
+      minWidth: 100,
+      render: (name, record) => {
+        let svgIcon = null;
+        switch(record.id){
+          case "google_drive":
+            svgIcon = GoogleDriveSVG;
+            break;
+          case "yuque":
+            svgIcon = YuqueSVG;
+            break;
+          case "notion":
+            svgIcon = NotionSVG;
+            break;
+          case "hugo_site":
+            svgIcon = HugoSVG;
+            break;
+        }
+        return (
+          <div className="flex items-center">
+            {svgIcon ? <Icon component={svgIcon} /> : 
+            <Image  src={record.icon} height="1em" width="1em" preview={false}/>}
+            <span className="ml-2">{name}</span>
+          </div>
+        )
+      }
+    },
+    {
+      title: t('page.connector.columns.category'),
+      dataIndex: "category",
+      minWidth: 200,
+    },
+    {
+      title: t('page.connector.columns.description'),
+      minWidth: 100,
+      dataIndex: "description",
+    },
+    {
+      title: t('page.connector.columns.tags'),
+      minWidth: 100,
+      dataIndex: "tags",
+      render: (value: string[])=>{
+        return (value || []).map((tag)=>{
+          return <Tag>{tag}</Tag>
+        })
+      },
+    },
+    {
+      title: t('common.operation'),
+      fixed: 'right',
+      width: "90px",
+      render: (_, record) => {
+        return <Dropdown menu={{ items, onClick:({key})=>onMenuClick({key, record}) }}>
+          <EllipsisOutlined/>
+        </Dropdown>
+      },
+    },
+  ];
+
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [reqParams, setReqParams] = useState({
+    query: '',
+    t: new Date().getTime(),
+  })
+  const [tableParams, setTableParams] = useState({
+    pagination: {
+      current: 1,
+      pageSize: 10,
+    },
+  });
+
+  const fetchData = () => {
+    setLoading(true);
+    searchConnector(reqParams).then(({ data }: {data: any}) => {
+      const newData = formatESSearchResult(data);
+      setData(newData?.data || []);
+      setLoading(false);
+      setTableParams(oldParams=>{
+        return {
+          ...oldParams,
+          pagination: {
+            ...oldParams.pagination,
+            total: newData.total?.value || newData.total,
+          },
+        }
+      });
+    });
+  };
+  
+  useEffect(fetchData, [reqParams]);
+  const onAddClick = ()=>{
+    nav(`/connector/new`)
+  }
+
+  const onSearchClick = (query: string)=>{
+    setReqParams((old)=>{
+      return {
+        query: query,
+        t: new Date().getTime(),
+      }
+    })
+  }
+  return (
+    <div className="h-full min-h-500px flex-col-stretch overflow-hidden lt-sm:overflow-auto">
+      <div className="mb-4 mt-4 flex items-center justify-between">
+        <Search
+          addonBefore={<FilterOutlined />}
+          className="max-w-500px"
+          onSearch={onSearchClick}
+          enterButton={t("common.refresh")}
+        ></Search>
+        <Button type='primary' icon={<PlusOutlined/>}  onClick={onAddClick}>{t('common.add')}</Button>
+      </div>
+      <Table<Connector>
+          rowKey="id"
+          loading={loading}
+          size="middle"
+          columns={columns}
+          dataSource={data}
+          pagination={{ 
+            showTotal:(total, range) => `${range[0]}-${range[1]} of ${total} items`,
+            defaultPageSize: 10,
+            defaultCurrent: 1,
+            showSizeChanger: true,
+          }}
+        />
+      </div>
+  )
+
+  // const items = [
+  //   {
+  //     key: 'google_drive',
+  //     label: 'Gogole Drive',
+  //     children: <GoogleDriveSettings />,
+  //   },
+  // ];
+
+  // return  <Tabs items={items}/>
 });
 
 export default ConnectorSettings;

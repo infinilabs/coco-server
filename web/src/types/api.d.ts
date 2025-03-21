@@ -262,7 +262,23 @@ declare namespace Api {
     interface Connector {
       id: string;
       config: ConnectorConfig;
+      category: string;
+      icon: string;
+      tags: string[];
+      name: string;
+      description: string;
+      url: string;
+      assets: {
+        icons: ConnectorIcons;
+      }
     }
+    interface ConnectorIcons {
+      database: string;
+      default: string;
+      page: string;
+      web_page: string;
+    }
+    
     interface Datasource {
       id: string;
       created: string; // ISO 8601 timestamp

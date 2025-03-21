@@ -1,11 +1,12 @@
 import Search from 'antd/es/input/Search';
 import Icon, { FilterOutlined, PlusOutlined, EllipsisOutlined, ExclamationCircleOutlined} from '@ant-design/icons';
-import { Button, Dropdown, Table, GetProp, message,Modal, Switch } from 'antd';
+import { Button, Dropdown, Table, GetProp, message,Modal, Switch, Image } from 'antd';
 import type { TableColumnsType, TableProps, MenuProps } from "antd";
 import type { SorterResult } from 'antd/es/table/interface';
-import {fetchDataSourceList, deleteDatasource, updateDatasource} from '@/service/api'
+import {fetchDataSourceList, deleteDatasource, updateDatasource, getConnectorByIDs} from '@/service/api'
 import { formatESSearchResult } from '@/service/request/es';
 import { GoogleDriveSVG, HugoSVG, YuqueSVG,NotionSVG } from '@/components/icons';
+import { connect } from 'http2';
 
 const { confirm } = Modal;
 type Datasource = Api.Datasource.Datasource;
@@ -105,17 +106,37 @@ export function Component() {
       setLoading(false);
     });
   }
+
+  const onEnabledChange = (value: boolean, record: Datasource)=>{
+    record.enabled = value;
+    setLoading(true);
+    updateDatasource(record.id, record).then((res)=>{
+      if(res.data?.result === "updated"){
+        message.success(t('common.updateSuccess'))
+      }
+      //reload data
+      setReqParams((old)=>{
+        return {
+          ...old,
+        }
+      })
+    }).finally(()=>{
+      setLoading(false);
+    });
+  }
   const columns: TableColumnsType<Datasource> = [
     {
       title: t('page.datasource.columns.name'),
       dataIndex: "name",
       minWidth: 200,
       render: (value: string, record: Datasource)=>{
-        const type = TYPES[record?.connector?.id]
+        if(!data.connectors) return value;
+        const iconSrc = data.connectors[record.connector.id]?.icon;
+        if (!iconSrc) return value;
         return (
-          <a className='text-blue-500' onClick={()=>nav(`/data-source/detail/${record.id}`, {state:{datasource_name: record.name, connector_id: record.connector?.id || ''}})}>
-            { type && <Icon component={type.icon} className='m-r-6px'/> }
-            {value}
+          <a className='text-blue-500 inline-flex items-center gap-1' onClick={()=>nav(`/data-source/detail/${record.id}`, {state:{datasource_name: record.name, connector_id: record.connector?.id || ''}})}>
+            <Image preview={false} height="1em" width="1em" src={iconSrc}/>
+            { value }
           </a>
         )
       }
@@ -125,7 +146,7 @@ export function Component() {
       minWidth: 100,
       render: (text: string, record: Datasource)=>{
         const type = TYPES[record?.connector?.id]
-        if (!type) return record?.connector?.id
+        if (!type) return data.connectors[record.connector.id]?.name || record.connector.id;
         return type.name
       },
     },
@@ -137,19 +158,14 @@ export function Component() {
        return <Switch value={value} onChange={(v)=>onSyncEnabledChange(v, record)}/>
       }
     },
-    // {
-    //   dataIndex: 'sync_status',
-    //   key: 'sync_status',
-    //   width: 200,
-    //   title: t('page.datasource.columns.sync_status')
-    // },
-    // {
-    //   align: 'center',
-    //   dataIndex: 'enabled',
-    //   key: 'enabled',
-    //   width: 200,
-    //   title: t('page.datasource.columns.enabled')
-    // },
+    {
+      dataIndex: 'enabled',
+      title: t('page.datasource.new.labels.enabled'),
+      width: 200,
+      render: (value: boolean, record: Datasource)=>{
+       return <Switch value={value} onChange={(v)=>onEnabledChange(v, record)}/>
+      }
+    },
     {
       title: t('common.operation'),
       fixed: 'right',
@@ -173,6 +189,7 @@ const rowSelection: TableProps<Datasource>["rowSelection"] = {
 const initialData = {
   data: [],
   total: 0,
+  connectors: {},
 }
 const [data, setData] = useState(initialData);
 const [loading, setLoading] = useState(false);
@@ -186,7 +203,12 @@ const fetchData = () => {
   setLoading(true);
   fetchDataSourceList(reqParams).then(({ data }) => {
     const newData = formatESSearchResult(data);
-      setData(newData || initialData);
+      setData((oldData: any) => {
+        return {
+          ...oldData,
+          ...(newData || initialData),
+        }
+      });
       setLoading(false);
     });
   };
@@ -194,6 +216,29 @@ const fetchData = () => {
   useEffect(fetchData, [
     reqParams
   ]);
+
+  const fetchConnectors = async (ids: string[])=>{
+    const res = await getConnectorByIDs(ids);
+    if(res.data){
+      const newData = formatESSearchResult(res.data);
+      const connectors: any = {};
+      newData.data.map((item)=>{
+        connectors[item.id] = item;
+      });
+      setData(data =>{
+        return {
+          ...data,
+          connectors: connectors,
+        }
+      })
+    }
+  }
+  useEffect(()=>{
+    if(data.data?.length > 0){
+      const ids = data.data.map((item)=>item.connector.id);
+      fetchConnectors(ids);
+    }
+  }, [data.data])
 
   const handleTableChange: TableProps<Datasource>['onChange'] = (pagination, filters, sorter) => {
     setReqParams((params)=>{

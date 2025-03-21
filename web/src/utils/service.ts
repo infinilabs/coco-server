@@ -67,6 +67,9 @@ export function getServiceBaseURL(env: Env.ImportMeta, isProxy: boolean) {
  * @param key If not set, will use the default key
  */
 function createProxyPattern(key?: App.Service.OtherBaseURLKey) {
+  if (key?.startsWith('/')) {
+    return key
+  }
   if (!key) {
     return '/proxy-default';
   }

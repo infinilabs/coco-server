@@ -44,6 +44,12 @@ func (h *APIHandler) createDatasource(w http.ResponseWriter, req *http.Request, 
 			h.WriteError(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+		if !obj.Enabled {
+			err = common.DisableDatasource(obj.ID)
+			if err != nil {
+				log.Errorf("Failed to add datasource [%s] to disabled datasource KV store: %v", obj.Name, err)
+			}
+		}
 
 		h.WriteJSON(w, util.MapStr{
 			"_id":    obj.ID,
@@ -77,6 +83,11 @@ func (h *APIHandler) deleteDatasource(w http.ResponseWriter, req *http.Request, 
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+	// remove datasource id from kv just for clear cache
+	err = common.EnableDatasource(id)
+	if err != nil {
+		log.Errorf("Failed to clear datasource [%s] from disabled datasource KV store: %v", id, err)
 	}
 	// deleting related documents
 	query := util.MapStr{
@@ -161,6 +172,17 @@ func (h *APIHandler) updateDatasource(w http.ResponseWriter, req *http.Request, 
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+	if obj.Enabled {
+		err = common.EnableDatasource(obj.ID)
+		if err != nil {
+			log.Errorf("Failed to enable datasource [%s] in KV cache: %v", obj.Name, err)
+		}
+	} else {
+		err = common.DisableDatasource(obj.ID)
+		if err != nil {
+			log.Errorf("Failed to disable datasource [%s] in KV cache: %v", obj.Name, err)
+		}
 	}
 
 	h.WriteJSON(w, util.MapStr{
