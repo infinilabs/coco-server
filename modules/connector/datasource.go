@@ -167,11 +167,8 @@ func (h *APIHandler) updateDatasource(w http.ResponseWriter, req *http.Request, 
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if obj.Enabled {
-		common.DisabledDatasourceIDsCache.Delete(common.DatasourceCachePrimary, common.DisabledDatasourceIDsCacheKey)
-	} else {
-		common.DisabledDatasourceIDsCache.Delete(common.DatasourceCachePrimary, common.DisabledDatasourceIDsCacheKey)
-	}
+	//clear cache
+	common.DisabledDatasourceIDsCache.Delete(common.DatasourceCachePrimary, common.DisabledDatasourceIDsCacheKey)
 
 	h.WriteJSON(w, util.MapStr{
 		"_id":    obj.ID,
