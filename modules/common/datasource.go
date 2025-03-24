@@ -33,11 +33,11 @@ const (
 	DisabledDatasourceIDsCacheKey = "disabled_ids"
 )
 
-var disabledDatasourceIDsCache = ccache.Layered(ccache.Configure().MaxSize(10000).ItemsToPrune(100))
+var DisabledDatasourceIDsCache = ccache.Layered(ccache.Configure().MaxSize(10000).ItemsToPrune(100))
 
 // GetDisabledDatasourceIDs retrieves the list of disabled data source IDs from the cache.
 func GetDisabledDatasourceIDs() ([]string, error) {
-	item := disabledDatasourceIDsCache.Get(DatasourceCachePrimary, DisabledDatasourceIDsCacheKey)
+	item := DisabledDatasourceIDsCache.Get(DatasourceCachePrimary, DisabledDatasourceIDsCacheKey)
 	var datasourceIDs []string
 	if item != nil && !item.Expired() {
 		var ok bool
@@ -60,49 +60,7 @@ func GetDisabledDatasourceIDs() ([]string, error) {
 	for i, ds := range datasources {
 		datasourceIDs[i] = ds.ID
 	}
-	disabledDatasourceIDsCache.Set(DatasourceCachePrimary, DisabledDatasourceIDsCacheKey, datasourceIDs, time.Duration(30)*time.Minute)
+	DisabledDatasourceIDsCache.Set(DatasourceCachePrimary, DisabledDatasourceIDsCacheKey, datasourceIDs, time.Duration(30)*time.Minute)
 	return datasourceIDs, nil
 
-}
-
-// DisableDatasource marks a data source as disabled by adding it to the kv cache.
-func DisableDatasource(id string) error {
-	disabledDatasourceIDs, err := GetDisabledDatasourceIDs()
-	if err != nil {
-		return err
-	}
-
-	// Check if the ID is already disabled to prevent duplicates
-	for _, disabledID := range disabledDatasourceIDs {
-		if disabledID == id {
-			return nil // Already disabled, no need to update
-		}
-	}
-
-	// Append the new disabled ID and store the updated list
-	disabledDatasourceIDs = append(disabledDatasourceIDs, id)
-
-	disabledDatasourceIDsCache.Set(DatasourceCachePrimary, DisabledDatasourceIDsCacheKey, disabledDatasourceIDs, time.Duration(30)*time.Minute)
-	return nil
-}
-
-// EnableDatasource removes a data source from the disabled list, marking it as enabled.
-func EnableDatasource(id string) error {
-	// Retrieve existing disabled data sources
-	disabledDatasourceIDs, err := GetDisabledDatasourceIDs()
-	if err != nil {
-		return err
-	}
-
-	// Create a new slice excluding the ID to be enabled
-	newDisabledDatasourceIDs := disabledDatasourceIDs[:0] // Reuse existing slice memory
-	for _, disabledID := range disabledDatasourceIDs {
-		if disabledID != id {
-			newDisabledDatasourceIDs = append(newDisabledDatasourceIDs, disabledID)
-		}
-	}
-
-	// Update the cache with the new list
-	disabledDatasourceIDsCache.Set(DatasourceCachePrimary, DisabledDatasourceIDsCacheKey, newDisabledDatasourceIDs, time.Duration(30)*time.Minute)
-	return nil
 }
