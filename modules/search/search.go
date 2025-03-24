@@ -86,7 +86,7 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 	)
 
 	mustClauses := BuildMustClauses(category, subcategory, richCategory, username, userid)
-	datasourceClause := BuildDatasourceClause(datasource, false)
+	datasourceClause := BuildDatasourceClause(datasource, true)
 	if datasourceClause != nil {
 		mustClauses = append(mustClauses, datasourceClause)
 	}
@@ -164,7 +164,7 @@ func BuildTemplatedQuery(from int, size int, mustClauses []interface{}, shouldCl
 	return &q
 }
 
-func BuildDatasourceClause(datasource string, skipVerifyEnabled bool) interface{} {
+func BuildDatasourceClause(datasource string, filterDisabled bool) interface{} {
 	var datasourceClause interface{}
 	if datasource != "" {
 		if strings.Contains(datasource, ",") {
@@ -182,7 +182,7 @@ func BuildDatasourceClause(datasource string, skipVerifyEnabled bool) interface{
 			}
 		}
 	}
-	if skipVerifyEnabled {
+	if !filterDisabled {
 		return datasourceClause
 	}
 

@@ -364,7 +364,7 @@ func (h APIHandler) processQueryIntent(ctx context.Context, reqMsg, replyMsg *Ch
 func (h APIHandler) processInitialDocumentSearch(ctx context.Context, reqMsg, replyMsg *ChatMessage, params *processingParams, fechSize int) ([]common.Document, error) {
 	var query *orm.Query
 	mustClauses := search.BuildMustClauses(params.category, params.subcategory, params.richCategory, params.username, params.userid)
-	datasourceClause := search.BuildDatasourceClause(params.datasource, false)
+	datasourceClause := search.BuildDatasourceClause(params.datasource, true)
 	if datasourceClause != nil {
 		mustClauses = append(mustClauses, datasourceClause)
 	}
