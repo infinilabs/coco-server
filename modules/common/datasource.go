@@ -5,11 +5,9 @@
 package common
 
 import (
-	"infini.sh/coco/core"
-	"infini.sh/framework/core/kv"
 	"infini.sh/framework/core/orm"
-	"infini.sh/framework/core/util"
-	log "src/github.com/cihub/seelog"
+	ccache "infini.sh/framework/lib/cache"
+	"time"
 )
 
 type DataSource struct {
@@ -30,51 +28,41 @@ type ConnectorConfig struct {
 	Config      interface{} `json:"config,omitempty" elastic_mapping:"config:{enabled:false}"` // Configs for this Connector
 }
 
-const DisabledDatasourceIDsKey = "disabled_datasource_ids"
+const (
+	DatasourceCachePrimary        = "datasource"
+	DisabledDatasourceIDsCacheKey = "disabled_ids"
+)
+
+var disabledDatasourceIDsCache = ccache.Layered(ccache.Configure().MaxSize(10000).ItemsToPrune(100))
 
 // GetDisabledDatasourceIDs retrieves the list of disabled data source IDs from the cache.
 func GetDisabledDatasourceIDs() ([]string, error) {
-	// Fetch stored JSON bytes of disabled datasource IDs
-	datasourceIDsBytes, err := kv.GetValue(core.DefaultSettingBucketKey, []byte(DisabledDatasourceIDsKey))
+	item := disabledDatasourceIDsCache.Get(DatasourceCachePrimary, DisabledDatasourceIDsCacheKey)
+	var datasourceIDs []string
+	if item != nil && !item.Expired() {
+		var ok bool
+		if datasourceIDs, ok = item.Value().([]string); ok {
+			return datasourceIDs, nil
+		}
+	}
+	// Cache is empty, read from database and cache the IDs
+	var datasources []DataSource
+	q := orm.Query{
+		Conds: orm.And(orm.Eq("enabled", false)), // Query for disabled data sources
+	}
+	err, _ := orm.SearchWithJSONMapper(&datasources, &q)
 	if err != nil {
 		return nil, err
 	}
-	if len(datasourceIDsBytes) == 0 {
-		// Cache is empty, read from database and cache the IDs
-		var datasources []DataSource
-		q := orm.Query{
-			Conds: orm.And(orm.Eq("enabled", false)), // Query for disabled data sources
-		}
-		err, _ = orm.SearchWithJSONMapper(&datasources, &q)
-		if err != nil {
-			return nil, err
-		}
 
-		// Extract IDs from the retrieved data sources
-		datasourceIDs := make([]string, len(datasources))
-		for i, ds := range datasources {
-			datasourceIDs[i] = ds.ID
-		}
-		datasourceIDsBytes, err = util.ToJSONBytes(datasourceIDs)
-		if err != nil {
-			log.Errorf("Failed to marshal datasource IDs: %c", err)
-			return datasourceIDs, nil
-		}
-
-		// Store the disabled datasource IDs in key-value store
-		err = kv.AddValue(core.DefaultSettingBucketKey, []byte(DisabledDatasourceIDsKey), datasourceIDsBytes)
-		if err != nil {
-			log.Errorf("Failed to cache disabled datasource IDs: %c", err)
-		}
-		return datasourceIDs, nil
+	// Extract IDs from the retrieved data sources
+	datasourceIDs = make([]string, len(datasources))
+	for i, ds := range datasources {
+		datasourceIDs[i] = ds.ID
 	}
-
-	var datasourceIDs []string
-	if err = util.FromJSONBytes(datasourceIDsBytes, &datasourceIDs); err != nil {
-		return nil, err
-	}
-
+	disabledDatasourceIDsCache.Set(DatasourceCachePrimary, DisabledDatasourceIDsCacheKey, datasourceIDs, time.Duration(30)*time.Minute)
 	return datasourceIDs, nil
+
 }
 
 // DisableDatasource marks a data source as disabled by adding it to the kv cache.
@@ -93,12 +81,9 @@ func DisableDatasource(id string) error {
 
 	// Append the new disabled ID and store the updated list
 	disabledDatasourceIDs = append(disabledDatasourceIDs, id)
-	disabledDatasourceIDsBytes, err := util.ToJSONBytes(disabledDatasourceIDs)
-	if err != nil {
-		return err
-	}
 
-	return kv.AddValue(core.DefaultSettingBucketKey, []byte(DisabledDatasourceIDsKey), disabledDatasourceIDsBytes)
+	disabledDatasourceIDsCache.Set(DatasourceCachePrimary, DisabledDatasourceIDsCacheKey, disabledDatasourceIDs, time.Duration(30)*time.Minute)
+	return nil
 }
 
 // EnableDatasource removes a data source from the disabled list, marking it as enabled.
@@ -117,11 +102,7 @@ func EnableDatasource(id string) error {
 		}
 	}
 
-	disabledDatasourceIDsBytes, err := util.ToJSONBytes(newDisabledDatasourceIDs)
-	if err != nil {
-		return err
-	}
-
-	// Store the updated list in key-value store
-	return kv.AddValue(core.DefaultSettingBucketKey, []byte(DisabledDatasourceIDsKey), disabledDatasourceIDsBytes)
+	// Update the cache with the new list
+	disabledDatasourceIDsCache.Set(DatasourceCachePrimary, DisabledDatasourceIDsCacheKey, newDisabledDatasourceIDs, time.Duration(30)*time.Minute)
+	return nil
 }
