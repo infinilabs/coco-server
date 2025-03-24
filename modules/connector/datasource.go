@@ -44,6 +44,9 @@ func (h *APIHandler) createDatasource(w http.ResponseWriter, req *http.Request, 
 			h.WriteError(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+		if !obj.Enabled {
+			common.DisabledDatasourceIDsCache.Delete(common.DatasourceCachePrimary, common.DisabledDatasourceIDsCacheKey)
+		}
 
 		h.WriteJSON(w, util.MapStr{
 			"_id":    obj.ID,
@@ -78,6 +81,8 @@ func (h *APIHandler) deleteDatasource(w http.ResponseWriter, req *http.Request, 
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	// clear cache
+	common.DisabledDatasourceIDsCache.Delete(common.DatasourceCachePrimary, common.DisabledDatasourceIDsCacheKey)
 	// deleting related documents
 	query := util.MapStr{
 		"query": util.MapStr{
@@ -162,6 +167,8 @@ func (h *APIHandler) updateDatasource(w http.ResponseWriter, req *http.Request, 
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	//clear cache
+	common.DisabledDatasourceIDsCache.Delete(common.DatasourceCachePrimary, common.DisabledDatasourceIDsCacheKey)
 
 	h.WriteJSON(w, util.MapStr{
 		"_id":    obj.ID,

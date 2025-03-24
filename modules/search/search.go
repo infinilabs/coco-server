@@ -85,7 +85,11 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		source       = h.GetParameterOrDefault(req, "source_fields", "*")
 	)
 
-	mustClauses := BuildMustClauses(datasource, category, subcategory, richCategory, username, userid)
+	mustClauses := BuildMustClauses(category, subcategory, richCategory, username, userid)
+	datasourceClause := BuildDatasourceClause(datasource, true)
+	if datasourceClause != nil {
+		mustClauses = append(mustClauses, datasourceClause)
+	}
 	mustClauses = append(mustClauses, map[string]interface{}{
 		"bool": map[string]interface{}{
 			"minimum_should_match": 1,
@@ -160,26 +164,59 @@ func BuildTemplatedQuery(from int, size int, mustClauses []interface{}, shouldCl
 	return &q
 }
 
-func BuildMustClauses(datasource string, category string, subcategory string, richCategory string, username string, userid string) []interface{} {
-	mustClauses := []interface{}{}
-
-	// Check and add conditions to mustClauses
+func BuildDatasourceClause(datasource string, filterDisabled bool) interface{} {
+	var datasourceClause interface{}
 	if datasource != "" {
 		if strings.Contains(datasource, ",") {
 			arr := strings.Split(datasource, ",")
-			mustClauses = append(mustClauses, map[string]interface{}{
+			datasourceClause = map[string]interface{}{
 				"terms": map[string]interface{}{
 					"source.id": arr,
 				},
-			})
+			}
 		} else {
-			mustClauses = append(mustClauses, map[string]interface{}{
+			datasourceClause = map[string]interface{}{
 				"term": map[string]interface{}{
 					"source.id": datasource,
 				},
-			})
+			}
 		}
 	}
+	if !filterDisabled {
+		return datasourceClause
+	}
+
+	disabledIDs, err := common.GetDisabledDatasourceIDs()
+	if err != nil {
+		panic(err)
+	}
+	if len(disabledIDs) == 0 {
+		return datasourceClause
+	}
+	mustNot := map[string]interface{}{
+		"terms": map[string]interface{}{
+			"source.id": disabledIDs,
+		},
+	}
+	if datasourceClause == nil {
+		return map[string]interface{}{
+			"bool": map[string]interface{}{
+				"must_not": mustNot,
+			},
+		}
+	}
+	return map[string]interface{}{
+		"bool": map[string]interface{}{
+			"must_not": mustNot,
+			"must":     datasourceClause,
+		},
+	}
+}
+
+func BuildMustClauses(category string, subcategory string, richCategory string, username string, userid string) []interface{} {
+	mustClauses := []interface{}{}
+
+	// Check and add conditions to mustClauses
 
 	if category != "" {
 		mustClauses = append(mustClauses, map[string]interface{}{

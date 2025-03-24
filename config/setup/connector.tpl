@@ -6,7 +6,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector/$[[SETUP_DOC_TYPE]]/yuque
   "name" : "Yuque Docs Connector",
   "description" : "Fetch the docs metadata for yuque.",
   "category" : "website",
-  "icon" : "/assets/connector/yuque/icon.png",
+  "icon" : "/assets/icons/connector/yuque/icon.png",
   "tags" : [
     "static_site",
     "hugo",
@@ -15,14 +15,15 @@ POST $[[SETUP_INDEX_PREFIX]]connector/$[[SETUP_DOC_TYPE]]/yuque
   "url" : "http://coco.rs/connectors/hugo_site",
   "assets" : {
     "icons" : {
-      "board" : "/assets/connector/yuque/board.png",
-      "book" : "/assets/connector/yuque/book.png",
-      "default" : "/assets/connector/yuque/icon.png",
-      "doc" : "/assets/connector/yuque/doc.png",
-      "sheet" : "/assets/connector/yuque/sheet.png",
-      "table" : "/assets/connector/yuque/table.png"
+      "board" : "/assets/icons/connector/yuque/board.png",
+      "book" : "/assets/icons/connector/yuque/book.png",
+      "default" : "/assets/icons/connector/yuque/icon.png",
+      "doc" : "/assets/icons/connector/yuque/doc.png",
+      "sheet" : "/assets/icons/connector/yuque/sheet.png",
+      "table" : "/assets/icons/connector/yuque/table.png"
     }
-  }
+  },
+  "builtin": true
 }
 POST $[[SETUP_INDEX_PREFIX]]connector/$[[SETUP_DOC_TYPE]]/hugo_site
 {
@@ -32,7 +33,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector/$[[SETUP_DOC_TYPE]]/hugo_site
   "name" : "Hugo Site Connector",
   "description" : "Fetch the index.json file from a specified Hugo site.",
   "category" : "website",
-  "icon" : "/assets/connector/hugo_site/icon.png",
+  "icon" : "/assets/icons/connector/hugo_site/icon.png",
   "tags" : [
     "static_site",
     "hugo",
@@ -41,13 +42,14 @@ POST $[[SETUP_INDEX_PREFIX]]connector/$[[SETUP_DOC_TYPE]]/hugo_site
   "url" : "http://coco.rs/connectors/hugo_site",
   "assets" : {
     "icons" : {
-      "blog" : "/assets/connector/hugo_site/blog.png",
-      "default" : "/assets/connector/hugo_site/web.png",
-      "news" : "/assets/connector/hugo_site/news.png",
-      "web" : "/assets/connector/hugo_site/web.png",
-      "web_page" : "/assets/connector/hugo_site/web_page.png"
+      "blog" : "/assets/icons/connector/hugo_site/blog.png",
+      "default" : "/assets/icons/connector/hugo_site/web.png",
+      "news" : "/assets/icons/connector/hugo_site/news.png",
+      "web" : "/assets/icons/connector/hugo_site/web.png",
+      "web_page" : "/assets/icons/connector/hugo_site/web_page.png"
     }
-  }
+  },
+  "builtin": true
 }
 POST $[[SETUP_INDEX_PREFIX]]connector/$[[SETUP_DOC_TYPE]]/google_drive
 {
@@ -57,7 +59,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector/$[[SETUP_DOC_TYPE]]/google_drive
   "name" : "Google Drive Connector",
   "description" : "Fetch the files metadata from Google Drive.",
   "category" : "cloud_storage",
-  "icon" : "/assets/connector/google_drive/icon.png",
+  "icon" : "/assets/icons/connector/google_drive/icon.png",
   "tags" : [
     "google",
     "storage"
@@ -65,28 +67,29 @@ POST $[[SETUP_INDEX_PREFIX]]connector/$[[SETUP_DOC_TYPE]]/google_drive
   "url" : "http://coco.rs/connectors/google_drive",
   "assets" : {
     "icons" : {
-      "audio" : "/assets/connector/google_drive/audio.png",
-      "default" : "/assets/connector/google_drive/icon.png",
-      "document" : "/assets/connector/google_drive/document.png",
-      "drawing" : "/assets/connector/google_drive/drawing.png",
-      "folder" : "/assets/connector/google_drive/folder.png",
-      "form" : "/assets/connector/google_drive/form.png",
-      "fusiontable" : "/assets/connector/google_drive/fusiontable.png",
-      "jam" : "/assets/connector/google_drive/jam.png",
-      "map" : "/assets/connector/google_drive/map.png",
-      "ms_excel" : "/assets/connector/google_drive/ms_excel.png",
-      "ms_powerpoint" : "/assets/connector/google_drive/ms_powerpoint.png",
-      "ms_word" : "/assets/connector/google_drive/ms_word.png",
-      "pdf" : "/assets/connector/google_drive/pdf.png",
-      "photo" : "/assets/connector/google_drive/photo.png",
-      "presentation" : "/assets/connector/google_drive/presentation.png",
-      "script" : "/assets/connector/google_drive/script.png",
-      "site" : "/assets/connector/google_drive/site.png",
-      "spreadsheet" : "/assets/connector/google_drive/spreadsheet.png",
-      "video" : "/assets/connector/google_drive/video.png",
-      "zip" : "/assets/connector/google_drive/zip.png"
+      "audio" : "/assets/icons/connector/google_drive/audio.png",
+      "default" : "/assets/icons/connector/google_drive/icon.png",
+      "document" : "/assets/icons/connector/google_drive/document.png",
+      "drawing" : "/assets/icons/connector/google_drive/drawing.png",
+      "folder" : "/assets/icons/connector/google_drive/folder.png",
+      "form" : "/assets/icons/connector/google_drive/form.png",
+      "fusiontable" : "/assets/icons/connector/google_drive/fusiontable.png",
+      "jam" : "/assets/icons/connector/google_drive/jam.png",
+      "map" : "/assets/icons/connector/google_drive/map.png",
+      "ms_excel" : "/assets/icons/connector/google_drive/ms_excel.png",
+      "ms_powerpoint" : "/assets/icons/connector/google_drive/ms_powerpoint.png",
+      "ms_word" : "/assets/icons/connector/google_drive/ms_word.png",
+      "pdf" : "/assets/icons/connector/google_drive/pdf.png",
+      "photo" : "/assets/icons/connector/google_drive/photo.png",
+      "presentation" : "/assets/icons/connector/google_drive/presentation.png",
+      "script" : "/assets/icons/connector/google_drive/script.png",
+      "site" : "/assets/icons/connector/google_drive/site.png",
+      "spreadsheet" : "/assets/icons/connector/google_drive/spreadsheet.png",
+      "video" : "/assets/icons/connector/google_drive/video.png",
+      "zip" : "/assets/icons/connector/google_drive/zip.png"
     }
-  }
+  },
+  "builtin": true
 }
 POST $[[SETUP_INDEX_PREFIX]]connector/$[[SETUP_DOC_TYPE]]/notion
 {
@@ -96,7 +99,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector/$[[SETUP_DOC_TYPE]]/notion
   "name" : "Notion Docs Connector",
   "description" : "Fetch the docs metadata for notion.",
   "category" : "website",
-  "icon" : "/assets/connector/notion/icon.png",
+  "icon" : "/assets/icons/connector/notion/icon.png",
   "tags" : [
     "docs",
     "notion",
@@ -105,10 +108,11 @@ POST $[[SETUP_INDEX_PREFIX]]connector/$[[SETUP_DOC_TYPE]]/notion
   "url" : "http://coco.rs/connectors/notion",
   "assets" : {
     "icons" : {
-      "database" : "/assets/connector/notion/database.png",
-      "default" : "/assets/connector/notion/icon.png",
-      "page" : "/assets/connector/notion/page.png",
-      "web_page" : "/assets/connector/notion/icon.png"
+      "database" : "/assets/icons/connector/notion/database.png",
+      "default" : "/assets/icons/connector/notion/icon.png",
+      "page" : "/assets/icons/connector/notion/page.png",
+      "web_page" : "/assets/icons/connector/notion/icon.png"
     }
-  }
+  },
+  "builtin": true
 }

@@ -7,8 +7,11 @@ export function formatESSearchResult(esResp: any) {
     };
   }
   const took = esResp.took;
-  const total = esResp.hits.total;
-  if (total == null || total.value == 0) {
+  let total = esResp.hits.total;
+  if(total && typeof total === 'object') {
+    total = total.value;
+  }
+  if (total == null || total == 0) {
     return {
       took: took,
       total: total,

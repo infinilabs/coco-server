@@ -12,7 +12,7 @@ export function fetchDataSourceList(params?: any) {
         must: [
           {
             "query_string": {
-              "fields": ["name"],
+              "fields": ["combined_fulltext"],
               "query": params.query,
               "fuzziness": "AUTO",
               "fuzzy_prefix_length": 2,
@@ -65,6 +65,13 @@ export function updateDatasource(id:string, body: any){
 export function deleteDatasource(dataourceID: string){
   return request({
     method: 'delete',
+    url: `/datasource/${dataourceID}`
+  });
+}
+
+export function getDatasource(dataourceID: string){
+  return request({
+    method: 'get',
     url: `/datasource/${dataourceID}`
   });
 }

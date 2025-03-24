@@ -142,8 +142,12 @@ func (h *APIHandler) searchDocs(w http.ResponseWriter, req *http.Request, ps htt
 		tags       = h.GetParameterOrDefault(req, "tags", "")
 		source     = h.GetParameterOrDefault(req, "source_fields", "*")
 	)
-	mustClauses := search.BuildMustClauses(datasource, "", "", "", "", "")
-
+	mustClauses := search.BuildMustClauses("", "", "", "", "")
+	datasourceClause := search.BuildDatasourceClause(datasource, false)
+	if datasourceClause != nil {
+		mustClauses = append(mustClauses, datasourceClause)
+	}
+	mustClauses = append(mustClauses, datasourceClause)
 	var err error
 	q := &orm.Query{}
 	if req.Method == http.MethodPost {

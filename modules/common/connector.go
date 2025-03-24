@@ -17,4 +17,6 @@ type Connector struct {
 	Assets struct {
 		Icons map[string]string `json:"icons,omitempty" elastic_mapping:"icons:{enabled:false}"` //icon_key -> URL
 	} `json:"assets,omitempty" elastic_mapping:"assets:{enabled:false}"`
+	Builtin bool                   `json:"builtin" elastic_mapping:"builtin:{type:boolean}"`          // Whether the connector is built-in or user-defined
+	Config  map[string]interface{} `json:"config,omitempty" elastic_mapping:"config:{enabled:false}"` // Connector-specific configuration settings
 }

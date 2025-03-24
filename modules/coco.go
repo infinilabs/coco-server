@@ -33,6 +33,8 @@ func (this *Coco) Setup() {
 	orm.MustRegisterSchemaWithIndexName(common.Document{}, "document")
 	orm.MustRegisterSchemaWithIndexName(assistant.ChatMessage{}, "message")
 	orm.MustRegisterSchemaWithIndexName(common.Attachment{}, "attachment")
+	orm.MustRegisterSchemaWithIndexName(common.Connector{}, "connector")
+	orm.MustRegisterSchemaWithIndexName(common.DataSource{}, "datasource")
 
 	cocoConfig := common.Config{
 		LLMConfig: &common.LLMConfig{
