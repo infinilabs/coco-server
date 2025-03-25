@@ -13,6 +13,7 @@ import (
 	"infini.sh/coco/modules/common"
 	_ "infini.sh/coco/modules/connector"
 	_ "infini.sh/coco/modules/indexing"
+	"infini.sh/coco/modules/integration"
 	_ "infini.sh/coco/modules/integration"
 	_ "infini.sh/coco/modules/search"
 	_ "infini.sh/coco/modules/system"
@@ -120,6 +121,7 @@ func (this *Coco) Setup() {
 }
 
 func (this *Coco) Start() error {
+	integration.RegisterAllowOriginFuncs()
 	return nil
 }
 

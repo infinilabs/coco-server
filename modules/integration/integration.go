@@ -5,6 +5,7 @@
 package integration
 
 import (
+	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/plugins/security"
@@ -176,10 +177,27 @@ func getAllowOriginFunc(allowedOrigins []string, integrationID string) func(orig
 	return func(origin string, req *http.Request) bool {
 		appIntegrationID := req.Header.Get("APP-INTEGRATION-ID")
 		for _, allowedOrigin := range allowedOrigins {
-			if origin == allowedOrigin && appIntegrationID == integrationID {
+			if origin == allowedOrigin && (appIntegrationID == integrationID || req.Method == http.MethodOptions) {
 				return true
 			}
 		}
 		return false
+	}
+}
+
+func RegisterAllowOriginFuncs() {
+	integrations := []common.Integration{}
+	err, _ := orm.SearchWithJSONMapper(&integrations, &orm.Query{
+		Size: 100,
+	})
+	if err != nil {
+		log.Error(err)
+		return
+	}
+	for _, integration := range integrations {
+		if integration.Enabled && integration.Cors.Enabled && len(integration.Cors.AllowedOrigins) > 0 {
+			allowOriginFn := getAllowOriginFunc(integration.Cors.AllowedOrigins, integration.ID)
+			api.RegisterAllowOriginFunc(integration.ID, allowOriginFn)
+		}
 	}
 }
