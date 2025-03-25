@@ -90,15 +90,6 @@ func (h *APIHandler) RequestAccessToken(w http.ResponseWriter, req *http.Request
 	if reqUser == nil || err != nil {
 		panic(err)
 	}
-	tokenIDs, err := getTokenIDs(reqUser.UserId)
-	if err != nil {
-		panic(err)
-	}
-
-	//if len(tokenIDs) >= 5 {
-	//	h.WriteError(w, "Access token limit exceeded. Maximum allowed: 5.", 400)
-	//	return
-	//}
 
 	reqBody := struct {
 		Name string `json:"name"` //custom access token name
@@ -110,6 +101,26 @@ func (h *APIHandler) RequestAccessToken(w http.ResponseWriter, req *http.Request
 	if reqBody.Name == "" {
 		reqBody.Name = GenerateApiTokenName("")
 	}
+	res, err := CreateAPIToken(reqUser, reqBody.Name)
+	if err != nil {
+		panic(err)
+	}
+
+	h.WriteJSON(w, res, 200)
+}
+
+func CreateAPIToken(reqUser *core.ShortUser, tokenName string) (util.MapStr, error) {
+	if tokenName == "" {
+		tokenName = GenerateApiTokenName("")
+	}
+	tokenIDs, err := getTokenIDs(reqUser.UserId)
+	if err != nil {
+		return nil, err
+	}
+
+	//if len(tokenIDs) >= 5 {
+	//	return nil, fmt.Errorf("Access token limit exceeded. Maximum allowed: 5.")
+	//}
 	username := reqUser.Login
 	userid := reqUser.UserId
 	provider := "access_token"
@@ -128,14 +139,14 @@ func (h *APIHandler) RequestAccessToken(w http.ResponseWriter, req *http.Request
 	newPayload["login"] = username
 	newPayload["userid"] = userid
 	newPayload["expire_in"] = expiredAT
-	newPayload["name"] = reqBody.Name
+	newPayload["name"] = tokenName
 
 	log.Trace("generate and save access_token:", util.MustToJSON(newPayload))
 
 	// save access token to store
 	err = kv.AddValue(core.KVAccessTokenBucket, []byte(accessToken), util.MustToJSONBytes(newPayload))
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	// save relationship between token and token id
 	err = kv.AddValue(KVAccessTokenIDBucket, []byte(tokenID), []byte(accessToken))
@@ -145,11 +156,7 @@ func (h *APIHandler) RequestAccessToken(w http.ResponseWriter, req *http.Request
 	// save relationship between user and token id
 	tokenIDs[tokenID] = struct{}{}
 	err = kv.AddValue(KVUserTokenBucket, []byte(userid), util.MustToJSONBytes(tokenIDs))
-	if err != nil {
-		panic(err)
-	}
-
-	h.WriteJSON(w, res, 200)
+	return res, err
 }
 
 func getTokenIDs(userID string) (map[string]struct{}, error) {
