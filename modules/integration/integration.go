@@ -188,7 +188,8 @@ func getAllowOriginFunc(allowedOrigins []string, integrationID string) func(orig
 func RegisterAllowOriginFuncs() {
 	integrations := []common.Integration{}
 	err, _ := orm.SearchWithJSONMapper(&integrations, &orm.Query{
-		Size: 100,
+		Size:  100,
+		Conds: orm.And(orm.Eq("enabled", true), orm.Eq("cors.enabled", true)),
 	})
 	if err != nil {
 		log.Error(err)
