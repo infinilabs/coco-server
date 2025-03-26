@@ -12,6 +12,7 @@ Information about release notes of Coco Server is provided here.
 ### Breaking changes
 ### Features
 - Allow user pass websocket session id via request header #148
+- Add api to delete attachment
 
 ### Bug fix
 - Fixed provider info version (#144)

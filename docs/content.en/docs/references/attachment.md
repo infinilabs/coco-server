@@ -53,6 +53,20 @@ Vary: Accept-Encoding
 Date: Fri, 14 Mar 2025 03:49:49 GMT
 ```
 
+
+## Delete a attachment
+```
+curl XDELETE http://localhost:9000/attachment/cv9q94bq50k2r0s6nobg \
+  -H "X-API-TOKEN: cv9pnurq50k1hii28630jy429g4b49viecrlj9529onpa6n0lti7yohioitvyotd0677rop5uszc0cnll03j"
+```
+Response
+```
+{
+  "_id": "cv9q94bq50k2r0s6nobg",
+  "result": "deleted"
+}
+```
+
 ## Search attachments
 ```
 curl -X GET http://localhost:9000/attachment/_search\?session\=cu737jrq50kcaicgn7pg \
