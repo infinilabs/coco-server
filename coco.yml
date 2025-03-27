@@ -250,6 +250,21 @@ api:
 web:
   enabled: true
   embedding_api: false
+  cors:
+    enabled: true
+    allowed_origins:
+      - "*"
+    allowed_methods:
+      - "GET"
+      - "POST"
+      - "PUT"
+      - "DELETE"
+      - "OPTIONS"
+    allowed_headers:
+      - "Authorization"
+      - "Content-Type"
+      - "X-API-TOKEN"
+      - "APP-INTEGRATION-ID"
   auth:
     enabled: true
   network:

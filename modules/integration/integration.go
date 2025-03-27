@@ -177,7 +177,7 @@ func getAllowOriginFunc(allowedOrigins []string, integrationID string) func(orig
 	return func(origin string, req *http.Request) bool {
 		appIntegrationID := req.Header.Get("APP-INTEGRATION-ID")
 		for _, allowedOrigin := range allowedOrigins {
-			if origin == allowedOrigin && (appIntegrationID == integrationID || req.Method == http.MethodOptions) {
+			if (allowedOrigin == "*" || origin == allowedOrigin) && (appIntegrationID == integrationID || req.Method == http.MethodOptions) {
 				return true
 			}
 		}
