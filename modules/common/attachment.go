@@ -36,6 +36,9 @@ type Attachment struct {
 	URL         string `json:"url,omitempty" elastic_mapping:"url:{enabled:false}"`
 	Size        int    `json:"size,omitempty" elastic_mapping:"size:{type:long}"`
 
+	Deleted       bool        `json:"deleted,omitempty" elastic_mapping:"deleted:{type:boolean}"`
+	LastUpdatedBy *EditorInfo `json:"last_updated_by,omitempty" elastic_mapping:"last_updated_by:{type:object}"`
+
 	Owner *UserInfo `json:"owner,omitempty" elastic_mapping:"owner:{type:object}"` // Document author or owner
 
 	Metadata map[string]interface{} `json:"metadata,omitempty" elastic_mapping:"metadata:{type:object}"` // Additional accessible metadata (e.g., file version, permissions)
