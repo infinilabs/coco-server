@@ -47,7 +47,7 @@ type ShortUser struct {
 	Roles    []string `json:"roles"`
 }
 
-const Secret = "coco"
+const Secret = "coco" //TODO, generate at runtime, no fixed value
 
 func AddUserToContext(ctx context.Context, clam *UserClaims) context.Context {
 	return context.WithValue(ctx, ctxUserKey, clam)

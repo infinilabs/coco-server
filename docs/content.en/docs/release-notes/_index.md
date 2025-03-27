@@ -15,6 +15,7 @@ Information about release notes of Coco Server is provided here.
 - Control the searchability of related documents based on the data source's enabled status. (#147)
 - Allow user pass websocket session id via request header #148
 - Add support for integration CRUD management and CORS configuration (#153)
+- Add api to delete attachment
 
 ### Bug fix
 - Fixed provider info version (#144)

@@ -275,7 +275,7 @@ func (this *Plugin) startIndexingFiles(connector *common.Connector, datasource *
 
 			if i.LastModifyingUser != nil {
 				document.LastUpdatedBy = &common.EditorInfo{
-					UserInfo: common.UserInfo{
+					UserInfo: &common.UserInfo{
 						UserAvatar: i.LastModifyingUser.PhotoLink,
 						UserName:   i.LastModifyingUser.DisplayName,
 						UserID:     i.LastModifyingUser.EmailAddress,
