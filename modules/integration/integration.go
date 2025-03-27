@@ -5,15 +5,14 @@
 package integration
 
 import (
-	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/plugins/security"
-	"infini.sh/framework/core/api"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
 	"net/http"
+	"sync"
 )
 
 func (h *APIHandler) create(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -45,8 +44,7 @@ func (h *APIHandler) create(w http.ResponseWriter, req *http.Request, ps httprou
 		return
 	}
 	if obj.Enabled && obj.Cors.Enabled && len(obj.Cors.AllowedOrigins) > 0 {
-		allowOriginFn := getAllowOriginFunc(obj.Cors.AllowedOrigins, obj.ID)
-		api.RegisterAllowOriginFunc(obj.ID, allowOriginFn)
+		integrationOrigins.Store(obj.ID, stringArrayToMap(obj.Cors.AllowedOrigins))
 	}
 
 	h.WriteJSON(w, util.MapStr{
@@ -109,12 +107,11 @@ func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprou
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	// first remove the existing allow origin function
-	api.RemoveAllowOriginFunc(obj.ID)
-	// then register the new allow origin function
+	// first related origins check
+	integrationOrigins.Delete(obj.ID)
+	// then register the new check
 	if obj.Enabled && obj.Cors.Enabled && len(obj.Cors.AllowedOrigins) > 0 {
-		allowOriginFn := getAllowOriginFunc(obj.Cors.AllowedOrigins, obj.ID)
-		api.RegisterAllowOriginFunc(obj.ID, allowOriginFn)
+		integrationOrigins.Store(obj.ID, stringArrayToMap(obj.Cors.AllowedOrigins))
 	}
 
 	h.WriteJSON(w, util.MapStr{
@@ -146,8 +143,8 @@ func (h *APIHandler) delete(w http.ResponseWriter, req *http.Request, ps httprou
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	// remove the allow origin function
-	api.RemoveAllowOriginFunc(obj.ID)
+	// remove related origins check
+	integrationOrigins.Delete(obj.ID)
 
 	h.WriteJSON(w, util.MapStr{
 		"_id":    obj.ID,
@@ -173,32 +170,46 @@ func (h *APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprou
 	}
 }
 
-func getAllowOriginFunc(allowedOrigins []string, integrationID string) func(origin string, req *http.Request) bool {
-	return func(origin string, req *http.Request) bool {
-		appIntegrationID := req.Header.Get("APP-INTEGRATION-ID")
-		for _, allowedOrigin := range allowedOrigins {
-			if (allowedOrigin == "*" || origin == allowedOrigin) && (appIntegrationID == integrationID || req.Method == http.MethodOptions) {
+func IntegrationAllowOrigin(origin string, req *http.Request) bool {
+	appIntegrationID := req.Header.Get("APP-INTEGRATION-ID")
+	if v, ok := integrationOrigins.Load(appIntegrationID); ok {
+		if allowedOrigins, ok := v.(map[string]struct{}); ok {
+			if _, allowed := allowedOrigins[origin]; allowed {
+				return true
+			}
+			if _, allowedAll := allowedOrigins["*"]; allowedAll {
 				return true
 			}
 		}
-		return false
 	}
+	return false
 }
 
-func RegisterAllowOriginFuncs() {
+var (
+	integrationOrigins sync.Map
+)
+
+func InitIntegrationOrigins() {
 	integrations := []common.Integration{}
 	err, _ := orm.SearchWithJSONMapper(&integrations, &orm.Query{
 		Size:  100,
 		Conds: orm.And(orm.Eq("enabled", true), orm.Eq("cors.enabled", true)),
 	})
 	if err != nil {
-		log.Error(err)
-		return
+		panic(err)
 	}
 	for _, integration := range integrations {
-		if integration.Enabled && integration.Cors.Enabled && len(integration.Cors.AllowedOrigins) > 0 {
-			allowOriginFn := getAllowOriginFunc(integration.Cors.AllowedOrigins, integration.ID)
-			api.RegisterAllowOriginFunc(integration.ID, allowOriginFn)
-		}
+		integrationOrigins.Store(integration.ID, stringArrayToMap(integration.Cors.AllowedOrigins))
 	}
+}
+
+func stringArrayToMap(arr []string) map[string]struct{} {
+	if len(arr) == 0 {
+		return nil
+	}
+	ret := make(map[string]struct{}, len(arr))
+	for _, v := range arr {
+		ret[v] = struct{}{}
+	}
+	return ret
 }

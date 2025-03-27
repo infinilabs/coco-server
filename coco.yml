@@ -253,7 +253,7 @@ web:
   cors:
     enabled: true
     allowed_origins:
-      - "*"
+#      - "*"
     allowed_methods:
       - "GET"
       - "POST"

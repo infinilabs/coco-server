@@ -19,4 +19,6 @@ func init() {
 	api.HandleUIMethod(api.DELETE, "/integration/:id", handler.delete, api.RequireLogin())
 	api.HandleUIMethod(api.GET, "/integration/_search", handler.search, api.RequireLogin())
 	api.HandleUIMethod(api.POST, "/integration/_search", handler.search, api.RequireLogin())
+	// register allow origin function
+	api.RegisterAllowOriginFunc("integration", IntegrationAllowOrigin)
 }

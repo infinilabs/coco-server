@@ -121,7 +121,7 @@ func (this *Coco) Setup() {
 }
 
 func (this *Coco) Start() error {
-	integration.RegisterAllowOriginFuncs()
+	integration.InitIntegrationOrigins()
 	return nil
 }
 
