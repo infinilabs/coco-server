@@ -102,7 +102,7 @@ func (document *Document) TrimLastDuplicatedCategory() {
 }
 
 type EditorInfo struct {
-	UserInfo  UserInfo   `json:"user,omitempty" elastic_mapping:"user:{type:object}"` // Information about the last user who updated the document
+	UserInfo  *UserInfo  `json:"user,omitempty" elastic_mapping:"user:{type:object}"` // Information about the last user who updated the document
 	UpdatedAt *time.Time `json:"timestamp,omitempty"`                                 // Timestamp of the last update
 }
 

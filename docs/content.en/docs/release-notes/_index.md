@@ -16,7 +16,8 @@ Information about release notes of Coco Server is provided here.
 - Allow user pass websocket session id via request header #148
 - Add integration
 - Add searchbox with CocoAI
-
+- Add support for integration CRUD management and CORS configuration (#153)
+- Add api to delete attachment
 ### Bug fix
 - Fixed provider info version (#144)
 - Fixed an issue where keyword search filtering for datasource was not working as expected (#147)

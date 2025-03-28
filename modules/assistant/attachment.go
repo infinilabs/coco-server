@@ -24,6 +24,7 @@
 package assistant
 
 import (
+	"errors"
 	"fmt"
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/modules/common"
@@ -36,6 +37,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 //	curl -X POST http://localhost:9000/chat/session_id/_upload \
@@ -95,6 +97,7 @@ func (h APIHandler) getAttachments(w http.ResponseWriter, req *http.Request, ps 
 	q := orm.Query{}
 	if sessionID != "" {
 		q.Conds = orm.And(orm.Eq("session", sessionID))
+		q.Conds = append(q.Conds, orm.NotEq("deleted", true))
 	} else {
 		q.RawQuery, err = h.GetRawBody(req)
 	}
@@ -118,7 +121,11 @@ func (h APIHandler) getAttachment(w http.ResponseWriter, req *http.Request, ps h
 	if err != nil || len(data) == 0 {
 		panic("invalid attachment")
 	}
-	attachment, err := h.getAttachmentMetadata(fileID)
+	attachment, exists, err := h.getAttachmentMetadata(fileID)
+	if !exists {
+		h.WriteGetMissingJSON(w, fileID)
+		return
+	}
 	if err != nil || attachment == nil {
 		panic(err)
 	}
@@ -134,27 +141,37 @@ func (h APIHandler) getAttachment(w http.ResponseWriter, req *http.Request, ps h
 	w.Write(data)
 }
 
-func (h APIHandler) getAttachmentMetadata(fileID string) (*common.Attachment, error) {
+func (h APIHandler) getAttachmentMetadata(fileID string) (*common.Attachment, bool, error) {
 	attachment := common.Attachment{}
 	attachment.ID = fileID
 
 	exists, err := orm.Get(&attachment)
 	if err != nil {
-		return nil, err
+		return nil, exists, err
 	}
 
 	if !exists {
 		//TODO kv exists, should cleanup kv store
 		log.Warnf("file meta %v not exists, but kv exists", fileID)
-		return nil, err
+		return nil, exists, err
 	}
 
-	return &attachment, nil
+	if attachment.Deleted {
+		log.Warnf("attachment %v exists but was deleted", fileID)
+		return nil, false, errors.New("attachment not found")
+	}
+
+	return &attachment, exists, nil
 }
 
 func (h APIHandler) checkAttachment(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	fileID := ps.MustGetParameter("file_id")
-	attachment, err := h.getAttachmentMetadata(fileID)
+	attachment, exists, err := h.getAttachmentMetadata(fileID)
+	if !exists {
+		h.WriteGetMissingJSON(w, fileID)
+		return
+	}
+
 	if err != nil || attachment == nil {
 		panic(err)
 	}
@@ -163,6 +180,32 @@ func (h APIHandler) checkAttachment(w http.ResponseWriter, req *http.Request, ps
 	w.Header().Set("Created", fmt.Sprintf("%d", attachment.Created))
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", attachment.Size))
 	w.WriteHeader(200)
+}
+
+func (h APIHandler) deleteAttachment(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	fileID := ps.MustGetParameter("file_id")
+	attachment, exists, err := h.getAttachmentMetadata(fileID)
+	if !exists {
+		h.WriteGetMissingJSON(w, fileID)
+		return
+	}
+
+	if err != nil || attachment == nil {
+		panic(err)
+	}
+
+	attachment.Deleted = true
+	t := time.Now()
+	attachment.LastUpdatedBy = &common.EditorInfo{UpdatedAt: &t}
+	ctx := &orm.Context{
+		Refresh: "wait_for",
+	}
+	err = orm.Update(ctx, attachment)
+	if err != nil {
+		panic(err)
+	}
+
+	h.WriteDeletedOKJSON(w, fileID)
 }
 
 const AttachmentKVBucket = "file_attachments"
