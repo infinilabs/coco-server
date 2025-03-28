@@ -25,11 +25,11 @@ package assistant
 
 import (
 	"errors"
+	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/kv"
 	"net/http"
-	log "github.com/cihub/seelog"
 )
 
 func (h APIHandler) GetUserWebsocketID(req *http.Request) (string, error) {
@@ -40,9 +40,9 @@ func (h APIHandler) GetUserWebsocketID(req *http.Request) (string, error) {
 	}
 	if claims != nil {
 
-		websocketID:=h.GetHeader(req,"WEBSOCKET-SESSION-ID","")
-		if websocketID!=""{
-			log.Trace("get websocket session id from request header: ",websocketID)
+		websocketID := h.GetHeader(req, "WEBSOCKET-SESSION-ID", "")
+		if websocketID != "" {
+			log.Trace("get websocket session id from request header: ", websocketID)
 			return websocketID, err
 		}
 
@@ -51,7 +51,7 @@ func (h APIHandler) GetUserWebsocketID(req *http.Request) (string, error) {
 			if err != nil {
 				return "", err
 			}
-			log.Trace("get websocket session id from kv: ",string(v))
+			log.Trace("get websocket session id from kv: ", string(v))
 			return string(v), nil
 		}
 	}

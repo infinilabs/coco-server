@@ -13,6 +13,8 @@ import (
 	"infini.sh/coco/modules/common"
 	_ "infini.sh/coco/modules/connector"
 	_ "infini.sh/coco/modules/document"
+	"infini.sh/coco/modules/integration"
+	_ "infini.sh/coco/modules/integration"
 	_ "infini.sh/coco/modules/search"
 	_ "infini.sh/coco/modules/system"
 	cfg "infini.sh/framework/core/api/common"
@@ -35,6 +37,7 @@ func (this *Coco) Setup() {
 	orm.MustRegisterSchemaWithIndexName(common.Attachment{}, "attachment")
 	orm.MustRegisterSchemaWithIndexName(common.Connector{}, "connector")
 	orm.MustRegisterSchemaWithIndexName(common.DataSource{}, "datasource")
+	orm.MustRegisterSchemaWithIndexName(common.Integration{}, "integration")
 
 	cocoConfig := common.Config{
 		LLMConfig: &common.LLMConfig{
@@ -118,6 +121,7 @@ func (this *Coco) Setup() {
 }
 
 func (this *Coco) Start() error {
+	integration.InitIntegrationOrigins()
 	return nil
 }
 

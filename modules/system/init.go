@@ -43,8 +43,8 @@ const Resource = "system"
 
 func init() {
 
-	readPermission:=security.GetSimplePermission(Category, Resource, string(rbac.Read))
-	updatePermission:=security.GetSimplePermission(Category, Resource, string(rbac.Update))
+	readPermission := security.GetSimplePermission(Category, Resource, string(rbac.Read))
+	updatePermission := security.GetSimplePermission(Category, Resource, string(rbac.Update))
 
 	security.GetOrInitPermissionKey(readPermission)
 	security.GetOrInitPermissionKey(updatePermission)
@@ -57,7 +57,7 @@ func init() {
 	api.HandleUIMethod(api.PUT, "/settings", handler.updateServerSettings, api.RequirePermission(updatePermission))
 
 	//list all icons for connectors
-	api.HandleUIMethod(api.GET, "/icons/list", handler.getIcons,api.AllowPublicAccess())
+	api.HandleUIMethod(api.GET, "/icons/list", handler.getIcons, api.AllowPublicAccess())
 }
 
 func (h *APIHandler) providerInfo(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {

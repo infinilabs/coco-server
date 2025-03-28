@@ -32,4 +32,4 @@ var DefaultConnectorConfigKey = "default_connector_config"
 
 var DefaultUserLogin = "coco-default-user"
 
-var WidgetRole="widget"
+var WidgetRole = "widget"

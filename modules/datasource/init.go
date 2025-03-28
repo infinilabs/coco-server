@@ -8,6 +8,7 @@ import (
 	"infini.sh/cloud/core/security/rbac"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/document"
+	"infini.sh/coco/plugins/security/filter"
 	"infini.sh/framework/core/api"
 	"infini.sh/framework/core/security"
 )
@@ -29,7 +30,7 @@ func init() {
 
 	createDocPermission := security.GetSimplePermission(Category, document.Resource, string(rbac.Create))
 
-	security.GetOrInitPermissionKeys(createPermission, updatePermission, readPermission, deletePermission, searchPermission,createDocPermission)
+	security.GetOrInitPermissionKeys(createPermission, updatePermission, readPermission, deletePermission, searchPermission, createDocPermission)
 	security.RegisterPermissionsToRole(core.WidgetRole, readPermission, searchPermission)
 
 	handler := APIHandler{}
@@ -38,8 +39,9 @@ func init() {
 	api.HandleUIMethod(api.DELETE, "/datasource/:id", handler.deleteDatasource, api.RequirePermission(deletePermission))
 	api.HandleUIMethod(api.GET, "/datasource/:id", handler.getDatasource, api.RequirePermission(readPermission))
 	api.HandleUIMethod(api.PUT, "/datasource/:id", handler.updateDatasource, api.RequirePermission(updatePermission))
-	api.HandleUIMethod(api.GET, "/datasource/_search", handler.searchDatasource, api.RequirePermission(searchPermission))
-	api.HandleUIMethod(api.POST, "/datasource/_search", handler.searchDatasource, api.RequirePermission(searchPermission))
+	api.HandleUIMethod(api.OPTIONS, "/datasource/_search", handler.searchDatasource, api.RequirePermission(searchPermission), api.Feature(filter.FeatureCORS))
+	api.HandleUIMethod(api.GET, "/datasource/_search", handler.searchDatasource, api.RequirePermission(searchPermission), api.Feature(filter.FeatureCORS))
+	api.HandleUIMethod(api.POST, "/datasource/_search", handler.searchDatasource, api.RequirePermission(searchPermission), api.Feature(filter.FeatureCORS))
 
 	//shortcut to indexing docs into this datasource
 	api.HandleUIMethod(api.POST, "/datasource/:id/_doc", handler.createDocInDatasource, api.RequirePermission(createPermission))
