@@ -15,6 +15,7 @@ import (
 	_ "infini.sh/coco/modules/indexing"
 	"infini.sh/coco/modules/integration"
 	_ "infini.sh/coco/modules/integration"
+	_ "infini.sh/coco/modules/llm"
 	_ "infini.sh/coco/modules/search"
 	_ "infini.sh/coco/modules/system"
 	cfg "infini.sh/framework/core/api/common"
@@ -38,6 +39,7 @@ func (this *Coco) Setup() {
 	orm.MustRegisterSchemaWithIndexName(common.Connector{}, "connector")
 	orm.MustRegisterSchemaWithIndexName(common.DataSource{}, "datasource")
 	orm.MustRegisterSchemaWithIndexName(common.Integration{}, "integration")
+	orm.MustRegisterSchemaWithIndexName(common.ModelProvider{}, "model-provider")
 
 	cocoConfig := common.Config{
 		LLMConfig: &common.LLMConfig{

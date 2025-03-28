@@ -1,3 +1,5 @@
+import { b } from 'vite/dist/node/types.d-aGj9QkWt';
+
 /**
  * Namespace Api
  *
@@ -299,6 +301,16 @@ declare namespace Api {
       provider: string;
       expire_in: number;
       access_token: string;
+    }
+  }
+  namespace LLM {
+    interface ModelProvider {
+      name: string;
+      icon: string;
+      api_endpoint: string;
+      api_key: string;
+      models: string[];
+      enabled: boolean;
     }
   }
 }

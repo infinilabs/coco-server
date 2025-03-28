@@ -170,7 +170,20 @@ const page: App.I18n.Schema['translation']['page'] = {
         asset_type: "类型",
       }
     },
-  }
+  },
+  modelprovider: {
+    labels: {
+      name: "名称",
+      endpoint: "API 地址",
+      models: "模型",
+      enabled: "是否禁用",
+      icon: "图标",
+      api_key: "API 密钥",
+    },
+    delete: {
+      confirm: '您确定要删除这个模型提供商吗?'
+    },
+  },
 };
 
 export default page;

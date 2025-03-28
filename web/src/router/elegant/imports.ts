@@ -32,5 +32,8 @@ export const pages: Record<LastLevelRouteKey, LazyRouteFunction<CustomRouteObjec
   guide: () => import("@/pages/guide/index.tsx"),
   home: () => import("@/pages/home/index.tsx"),
   login: () => import("@/pages/login/index.tsx"),
+  "model-provider_edit": () => import("@/pages/model-provider/edit/[id].tsx"),
+  "model-provider_list": () => import("@/pages/model-provider/list/index.tsx"),
+  "model-provider_new": () => import("@/pages/model-provider/new/index.tsx"),
   settings: () => import("@/pages/settings/index.tsx"),
 };

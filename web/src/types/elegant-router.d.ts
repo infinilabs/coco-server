@@ -50,6 +50,10 @@ declare module "@elegant-router/types" {
     "guide": "/guide";
     "home": "/home";
     "login": "/login";
+    "model-provider": "/model-provider";
+    "model-provider_edit": "edit/:id";
+    "model-provider_list": "list";
+    "model-provider_new": "new";
     "settings": "/settings";
   };
 
@@ -105,6 +109,7 @@ declare module "@elegant-router/types" {
     | "guide"
     | "home"
     | "login"
+    | "model-provider"
     | "settings"
   >;
 
@@ -140,6 +145,9 @@ declare module "@elegant-router/types" {
     | "guide"
     | "home"
     | "login"
+    | "model-provider_edit"
+    | "model-provider_list"
+    | "model-provider_new"
     | "settings"
   >;
 

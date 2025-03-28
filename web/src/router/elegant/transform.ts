@@ -231,6 +231,10 @@ const routeMap: RouteMap = {
   "guide": "/guide",
   "home": "/home",
   "login": "/login",
+  "model-provider": "/model-provider",
+  "model-provider_edit": "edit/:id",
+  "model-provider_list": "list",
+  "model-provider_new": "new",
   "settings": "/settings"
 };
 

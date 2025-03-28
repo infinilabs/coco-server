@@ -171,7 +171,20 @@ const page: App.I18n.Schema['translation']['page'] = {
         asset_type: "Type",
       }
     },
-  }
+  },
+  modelprovider: {
+    labels: {
+      name: "Name",
+      endpoint: "API Endpoint",
+      models: "Models",
+      enabled: "Enabled",
+      icon: "Icon",
+      api_key: "API Key",
+    },
+    delete: {
+      confirm: 'Are you sure you want to delete this model provider?'
+    },
+  },
 };
 
 export default page;

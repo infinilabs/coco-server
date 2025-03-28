@@ -57,6 +57,9 @@ const route: App.I18n.Schema['translation']['route'] = {
   'guide': '初始化向导',
   'api-token': 'API Token',
   'api-token_list': 'API Token',
+  'model-provider': '模型提供商',
+  'model-provider_list': '模型提供商',
+  'model-provider_new': '新增模型提供商',
 };
 
 export default route;

@@ -57,6 +57,9 @@ const route: App.I18n.Schema['translation']['route'] = {
   'guide': 'Guide',
   'api-token': 'API Token',
   'api-token_list': 'API Token',
+  'model-provider': 'Model Providers',
+  'model-provider_list': 'Model Providers',
+  'model-provider_new': 'New Model Provider',
 };
 
 export default route;

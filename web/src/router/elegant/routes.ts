@@ -210,6 +210,52 @@ export const generatedRoutes: GeneratedRoute[] = [
     }
   },
   {
+    name: 'model-provider',
+    path: '/model-provider',
+    component: 'layout.base',
+    meta: {
+      i18nKey: 'route.model-provider',
+      title: 'model-provider',
+      order: 2,
+      localIcon: 'model-provider'
+    },
+    children: [
+      {
+        name: 'model-provider_list',
+        path: 'list',
+        component: 'view.model-provider_list',
+        meta: {
+          i18nKey: 'route.model-provider_list',
+          title: 'model-provider_list',
+          hideInMenu: true,
+          activeMenu: 'model-provider'
+        }
+      },
+      {
+        name: 'model-provider_edit',
+        path: 'edit/:id',
+        component: 'view.model-provider_edit',
+        meta: {
+          i18nKey: 'route.model-provider_edit',
+          title: 'model-provider_edit',
+          hideInMenu: true,
+          activeMenu: 'model-provider'
+        }
+      },
+      {
+        name: 'model-provider_new',
+        path: 'new',
+        component: 'view.model-provider_new',
+        meta: {
+          i18nKey: 'route.model-provider_new',
+          title: 'model-provider_new',
+          hideInMenu: true,
+          activeMenu: 'model-provider'
+        }
+      }
+    ]
+  },
+  {
     name: 'settings',
     path: '/settings',
     component: 'layout.base$view.settings',
