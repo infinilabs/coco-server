@@ -30,11 +30,9 @@ coco:
     public: false
     name: "My Coco Server"
     endpoint: "http://localhost:9000"
+    managed: false
     minimal_client_version:
       number: "0.2"
-#    auth_provider:
-#      sso:
-#        url: "/#/login"
     provider:
       name: "INFINI Labs"
       description: "Coco AI Server - Search, Connect, Collaborate, AI-powered enterprise search, all in one space."
@@ -43,6 +41,9 @@ coco:
       eula: "http://infinilabs.com/eula.txt"
       privacy_policy: "http://infinilabs.com/privacy_policy.txt"
       banner: "https://coco.infini.cloud/banner.jpg"
+      auth_provider:
+        sso:
+          url: "http://infinilabs.com/#/login"
 
 ## Cleanup exists data:
 # curl -u admin:45ff432a5428ade77c7b -k -XDELETE   https://localhost:9200/_template/coco-search

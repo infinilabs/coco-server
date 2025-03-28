@@ -90,6 +90,10 @@ func SetAppConfig(c *Config) {
 	config = c
 }
 
+type ManagedConfig struct {
+	Managed bool `config:"managed" json:"managed,omitempty"`
+}
+
 type Config struct {
 	LLMConfig  *LLMConfig  `config:"llm" json:"llm,omitempty"`
 	ServerInfo *ServerInfo `config:"server" json:"server,omitempty"`

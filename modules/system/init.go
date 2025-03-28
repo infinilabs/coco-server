@@ -68,5 +68,11 @@ func (h *APIHandler) providerInfo(w http.ResponseWriter, req *http.Request, ps h
 	output["setup_required"] = !isSetup
 	output["health"] = obj
 
+	if info.ServerInfo != nil && info.ServerInfo.Managed {
+		if info.ServerInfo.Provider.AuthProvider.SSO.URL == "" {
+			panic("sso url can't be nil")
+		}
+	}
+
 	h.WriteJSON(w, output, 200)
 }
