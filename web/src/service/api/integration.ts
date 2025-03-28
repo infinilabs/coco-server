@@ -5,6 +5,7 @@ export function fetchIntegrations(params) {
   const query: any = {
     from: params.from || 0,
     size: params.size || 10,
+    sort: [{ "created": "desc"}]
   }
   if (params.query) {
     query['query'] = {
