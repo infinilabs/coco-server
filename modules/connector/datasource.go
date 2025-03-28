@@ -5,12 +5,12 @@
 package connector
 
 import (
+	log "github.com/cihub/seelog"
 	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
 	"net/http"
-	log "src/github.com/cihub/seelog"
 	"time"
 )
 
