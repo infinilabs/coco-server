@@ -56,7 +56,7 @@ func (h APIHandler) uploadAttachment(w http.ResponseWriter, r *http.Request, ps 
 	sessionID := ps.MustGetParameter("session_id")
 
 	//check session exists
-	session := Session{}
+	session := common.Session{}
 	session.ID = sessionID
 	exists, err := orm.Get(&session)
 	if !exists || err != nil {

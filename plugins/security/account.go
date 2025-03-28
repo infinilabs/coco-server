@@ -34,16 +34,13 @@ import (
 	"infini.sh/framework/core/api"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/kv"
+	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
 	"net/http"
 	"strings"
 )
 
 func (h APIHandler) Logout(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	reqUser, _ := core.UserFromContext(r.Context())
-	if reqUser != nil {
-		DeleteUserToken(reqUser.UserId)
-	}
 	api.DestroySession(w, r)
 	h.WriteOKJSON(w, util.MapStr{
 		"status": "ok",
@@ -56,7 +53,7 @@ func (h APIHandler) Profile(w http.ResponseWriter, r *http.Request, ps httproute
 		panic("auth is not enabled")
 	}
 
-	reqUser, err := core.UserFromContext(r.Context())
+	reqUser, err := security.UserFromContext(r.Context())
 	if err != nil || reqUser == nil {
 		panic("invalid user")
 	}
@@ -68,7 +65,7 @@ func (h APIHandler) Profile(w http.ResponseWriter, r *http.Request, ps httproute
 
 func (h APIHandler) UpdatePassword(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
-	reqUser, err := core.UserFromContext(r.Context())
+	reqUser, err := security.UserFromContext(r.Context())
 	if err != nil {
 		panic(err)
 	}

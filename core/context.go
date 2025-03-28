@@ -28,39 +28,45 @@
 package core
 
 import (
-	"context"
-	"fmt"
-	"github.com/golang-jwt/jwt"
+	"infini.sh/framework/core/kv"
+	"infini.sh/framework/core/util"
 )
 
-const ctxUserKey = "user"
 
-type UserClaims struct {
-	*jwt.RegisteredClaims
-	*ShortUser
-}
+const Secret = "coco"
 
-type ShortUser struct {
-	Provider string   `json:"provider"`
-	Login    string   `json:"login"`
-	UserId   string   `json:"user_id"`
-	Roles    []string `json:"roles"`
-}
+var secretKey string
 
-const Secret = "coco" //TODO, generate at runtime, no fixed value
+func GetSecret() string {
 
-func AddUserToContext(ctx context.Context, clam *UserClaims) context.Context {
-	return context.WithValue(ctx, ctxUserKey, clam)
-}
-
-func UserFromContext(ctx context.Context) (*ShortUser, error) {
-	ctxUser := ctx.Value(ctxUserKey)
-	if ctxUser == nil {
-		return nil, fmt.Errorf("user not found")
+	if secretKey != "" {
+		return secretKey
 	}
-	reqUser, ok := ctxUser.(*UserClaims)
-	if !ok {
-		return nil, fmt.Errorf("invalid context user")
+
+	exists, err := kv.ExistsKey("Coco", []byte(Secret))
+	if err != nil {
+		panic(err)
 	}
-	return reqUser.ShortUser, nil
+	if !exists {
+		key := util.GetUUID()
+		err = kv.AddValue("Coco", []byte(Secret), []byte(key))
+		if err != nil {
+			panic(err)
+		}
+		secretKey = key
+	} else {
+		v, err := kv.GetValue("Coco", []byte(Secret))
+		if err != nil {
+			panic(err)
+		}
+		if len(v) > 0 {
+			secretKey = string(v)
+		}
+	}
+
+	if secretKey == "" {
+		panic("invalid secret")
+	}
+
+	return secretKey
 }

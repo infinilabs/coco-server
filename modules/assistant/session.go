@@ -7,6 +7,7 @@ package assistant
 import (
 	log "github.com/cihub/seelog"
 	_ "github.com/tmc/langchaingo/llms/ollama"
+	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/api/websocket"
 	"infini.sh/framework/core/orm"
@@ -16,21 +17,13 @@ import (
 	"sync"
 )
 
-type Session struct {
-	orm.ORMObjectBase
-	Status               string `config:"status" json:"status,omitempty" elastic_mapping:"status:{type:keyword}"`
-	Title                string `config:"title" json:"title,omitempty" elastic_mapping:"title:{type:keyword}"`
-	Summary              string `config:"summary" json:"summary,omitempty" elastic_mapping:"summary:{type:keyword}"`
-	ManuallyRenamedTitle bool   `config:"manually_renamed_title" json:"manually_renamed_title,omitempty" elastic_mapping:"manually_renamed_title:{type:boolean}"`
-}
-
 func (h APIHandler) getChatSessions(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
 	q := orm.Query{}
 	q.From = h.GetIntOrDefault(req, "from", 0)
 	q.Size = h.GetIntOrDefault(req, "size", 20)
 	q.AddSort("updated", orm.DESC)
-	err, res := orm.Search(&Session{}, &q)
+	err, res := orm.Search(&common.Session{}, &q)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -51,7 +44,7 @@ func (h APIHandler) newChatSession(w http.ResponseWriter, req *http.Request, ps 
 		//TODO, should panic after v0.2
 	}
 
-	obj := Session{
+	obj := common.Session{
 		Status: "active",
 	}
 
@@ -90,7 +83,7 @@ func (h APIHandler) newChatSession(w http.ResponseWriter, req *http.Request, ps 
 func (h APIHandler) openChatSession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("session_id")
 
-	obj := Session{}
+	obj := common.Session{}
 	obj.ID = id
 
 	exists, err := orm.Get(&obj)
@@ -228,7 +221,7 @@ func (h APIHandler) sendChatMessage(w http.ResponseWriter, req *http.Request, ps
 func (h APIHandler) closeChatSession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
 	id := ps.MustGetParameter("session_id")
-	obj := Session{}
+	obj := common.Session{}
 	obj.ID = id
 
 	exists, err := orm.Get(&obj)

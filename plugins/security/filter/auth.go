@@ -30,6 +30,7 @@ import (
 	common "infini.sh/framework/core/api/common"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/global"
+	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
 	"net/http"
 )
@@ -66,12 +67,13 @@ func (f *AuthFilter) ApplyFilter(
 			log.Debug(method, ",", pattern, ",", util.MustToJSON(claims), ",", err1)
 		}
 
-		if options.OptionLogin {
-			//no panic for invalid login
-			if claims != nil {
-				r = r.WithContext(core.AddUserToContext(r.Context(), claims))
-			}
-		} else {
+		if claims != nil {
+
+
+			r = r.WithContext(security.AddUserToContext(r.Context(), claims))
+		}
+
+		if !options.OptionLogin {
 			if claims == nil {
 				o := api.PrepareErrorJson("invalid login", 401)
 				f.WriteJSON(w, o, 401)
@@ -82,9 +84,8 @@ func (f *AuthFilter) ApplyFilter(
 				f.WriteErrorObject(w, err1, 401)
 				return
 			}
-
-			r = r.WithContext(core.AddUserToContext(r.Context(), claims))
 		}
+
 		next(w, r, ps)
 	}
 }

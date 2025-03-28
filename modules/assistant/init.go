@@ -7,7 +7,6 @@ package assistant
 import (
 	"infini.sh/cloud/core/security/rbac"
 	"infini.sh/coco/core"
-	"infini.sh/coco/modules/attachment"
 	"infini.sh/coco/plugins/security/filter"
 	"infini.sh/framework/core/api"
 	"infini.sh/framework/core/security"
@@ -20,9 +19,9 @@ type APIHandler struct {
 const Category = "coco"
 const Datasource = "assistant"
 
-const ViewHistoryAction ="view_all_session_history"
-const ViewSingleSessionHistoryAction ="view_single_session_history"
-const manageChatSessionAction ="view_single_session_history"
+const ViewHistoryAction = "view_all_session_history"
+const ViewSingleSessionHistoryAction = "view_single_session_history"
+const manageChatSessionAction = "view_single_session_history"
 
 func init() {
 	createPermission := security.GetSimplePermission(Category, Datasource, string(rbac.Create))
@@ -33,11 +32,9 @@ func init() {
 	manageChatSessionPermission := security.GetSimplePermission(Category, Datasource, manageChatSessionAction)
 	viewHistoryPermission := security.GetSimplePermission(Category, Datasource, ViewHistoryAction)
 	viewSessionHistoryPermission := security.GetSimplePermission(Category, Datasource, ViewSingleSessionHistoryAction)
-	createAttachementInSessionPermission := security.GetSimplePermission(Category, attachment.Datasource, string(rbac.Create))
-	security.GetOrInitPermissionKeys(createPermission, updatePermission, readPermission, deletePermission, searchPermission,viewHistoryPermission,createAttachementInSessionPermission,manageChatSessionPermission)
+	security.GetOrInitPermissionKeys(createPermission, updatePermission, readPermission, deletePermission, searchPermission, viewHistoryPermission, manageChatSessionPermission)
 
 	security.AssignPermissionsToRoles(searchPermission, core.WidgetRole)
-
 
 	handler := APIHandler{}
 
@@ -61,7 +58,5 @@ func init() {
 
 	api.HandleUIMethod(api.GET, "/chat/:session_id/_history", handler.getChatHistoryBySession, api.RequirePermission(viewSessionHistoryPermission), api.Feature(filter.FeatureCORS))
 	api.HandleUIMethod(api.OPTIONS, "/chat/:session_id/_history", handler.getChatHistoryBySession, api.RequirePermission(viewSessionHistoryPermission), api.Feature(filter.FeatureCORS))
-
-	api.HandleUIMethod(api.POST, "/chat/:session_id/_upload", handler.uploadAttachment, api.RequirePermission(createAttachementInSessionPermission))
 
 }

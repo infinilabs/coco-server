@@ -21,33 +21,14 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-package filter
+package common
 
-import (
-	log "github.com/cihub/seelog"
-	"infini.sh/framework/core/api"
-	httprouter "infini.sh/framework/core/api/router"
-	"net/http"
-)
+import "infini.sh/framework/core/orm"
 
-func init() {
-	//api.RegisterUIFilter(&LoggingFilter{})
-}
-
-type LoggingFilter struct{}
-
-func (f *LoggingFilter) GetPriority() int {
-	// Lower priority values execute first (higher precedence)
-	return 1
-}
-func (f *LoggingFilter) ApplyFilter(
-	method string,
-	pattern string,
-	options *api.HandlerOptions,
-	next httprouter.Handle,
-) httprouter.Handle {
-	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		log.Info(method, ",", pattern)
-		next(w, r, ps)
-	}
+type Session struct {
+	orm.ORMObjectBase
+	Status               string `config:"status" json:"status,omitempty" elastic_mapping:"status:{type:keyword}"`
+	Title                string `config:"title" json:"title,omitempty" elastic_mapping:"title:{type:keyword}"`
+	Summary              string `config:"summary" json:"summary,omitempty" elastic_mapping:"summary:{type:keyword}"`
+	ManuallyRenamedTitle bool   `config:"manually_renamed_title" json:"manually_renamed_title,omitempty" elastic_mapping:"manually_renamed_title:{type:boolean}"`
 }

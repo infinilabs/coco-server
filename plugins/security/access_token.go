@@ -36,6 +36,7 @@ import (
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/kv"
+	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
 	"net/http"
 	"time"
@@ -45,25 +46,25 @@ func GenerateJWTAccessToken(provider string, login string, user *core.User) (map
 
 	var data map[string]interface{}
 
-	token1 := jwt.NewWithClaims(jwt.SigningMethodHS256, core.UserClaims{
-		ShortUser: &core.ShortUser{
+	token1 := jwt.NewWithClaims(jwt.SigningMethodHS256, security.UserClaims{
+		SessionUser: &security.SessionUser{
 			Provider: provider,
-			Login:    login,
+			Username: login,
 			UserId:   user.ID,
-			Roles:    []string{},
+			Roles:    []string{security.RoleAdmin},
 		},
 		RegisteredClaims: &jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
 		},
 	})
 
-	tokenString, err := token1.SignedString([]byte(core.Secret))
+	tokenString, err := token1.SignedString([]byte(core.GetSecret()))
 	if tokenString == "" || err != nil {
 		return nil, errors.Errorf("failed to generate access_token for user: %v", user)
 	}
 
-	token := Token{ExpireIn: time.Now().Unix() + 86400}
-	SetUserToken(user.ID, token)
+	//token := Token{ExpireIn: time.Now().Unix() + 86400}
+	//SetUserToken(user.ID, token)
 
 	data = util.MapStr{
 		"access_token": tokenString,
@@ -86,7 +87,7 @@ const (
 func (h *APIHandler) RequestAccessToken(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
 	//user already login
-	reqUser, err := core.UserFromContext(req.Context())
+	reqUser, err := security.UserFromContext(req.Context())
 	if reqUser == nil || err != nil {
 		panic(err)
 	}
@@ -101,7 +102,7 @@ func (h *APIHandler) RequestAccessToken(w http.ResponseWriter, req *http.Request
 	if reqBody.Name == "" {
 		reqBody.Name = GenerateApiTokenName("")
 	}
-	res, err := CreateAPIToken(reqUser, reqBody.Name)
+	res, err := CreateAPIToken(reqUser, reqBody.Name, "general", []string{security.RoleAdmin})
 	if err != nil {
 		panic(err)
 	}
@@ -109,7 +110,7 @@ func (h *APIHandler) RequestAccessToken(w http.ResponseWriter, req *http.Request
 	h.WriteJSON(w, res, 200)
 }
 
-func CreateAPIToken(reqUser *core.ShortUser, tokenName string) (util.MapStr, error) {
+func CreateAPIToken(reqUser *security.SessionUser, tokenName, typeName string, Roles []string) (util.MapStr, error) {
 	if tokenName == "" {
 		tokenName = GenerateApiTokenName("")
 	}
@@ -118,38 +119,38 @@ func CreateAPIToken(reqUser *core.ShortUser, tokenName string) (util.MapStr, err
 		return nil, err
 	}
 
-	//if len(tokenIDs) >= 5 {
-	//	return nil, fmt.Errorf("Access token limit exceeded. Maximum allowed: 5.")
-	//}
-	username := reqUser.Login
+	username := reqUser.Username
 	userid := reqUser.UserId
 	provider := "access_token"
 
 	res := util.MapStr{}
-	accessToken := util.GetUUID() + util.GenerateRandomString(64)
-	res["access_token"] = accessToken
+	accessTokenStr := util.GetUUID() + util.GenerateRandomString(64)
+	res["access_token"] = accessTokenStr
 	expiredAT := time.Now().Add(365 * 24 * time.Hour).Unix()
 	res["expire_in"] = expiredAT
 
-	newPayload := util.MapStr{}
+	accessToken := security.AccessToken{}
 	tokenID := util.GetUUID()
-	newPayload["id"] = tokenID
-	newPayload["access_token"] = accessToken
-	newPayload["provider"] = provider
-	newPayload["login"] = username
-	newPayload["userid"] = userid
-	newPayload["expire_in"] = expiredAT
-	newPayload["name"] = tokenName
+	accessToken.ID = tokenID
+	accessToken.AccessToken = accessTokenStr
+	accessToken.Provider = provider
+	accessToken.Login = username
+	accessToken.Type = typeName
+	accessToken.Roles = Roles
+	accessToken.Permissions = []string{}
+	accessToken.UserID = userid
+	accessToken.ExpireIn = expiredAT
+	accessToken.Name = tokenName
 
-	log.Trace("generate and save access_token:", util.MustToJSON(newPayload))
+	log.Trace("generate and save access_token:", util.MustToJSON(accessToken))
 
 	// save access token to store
-	err = kv.AddValue(core.KVAccessTokenBucket, []byte(accessToken), util.MustToJSONBytes(newPayload))
+	err = kv.AddValue(core.KVAccessTokenBucket, []byte(accessTokenStr), util.MustToJSONBytes(accessToken))
 	if err != nil {
 		return nil, err
 	}
 	// save relationship between token and token id
-	err = kv.AddValue(KVAccessTokenIDBucket, []byte(tokenID), []byte(accessToken))
+	err = kv.AddValue(KVAccessTokenIDBucket, []byte(tokenID), []byte(accessTokenStr))
 	if err != nil {
 		log.Error("failed to save access_token_id:", err)
 	}
@@ -174,7 +175,7 @@ func getTokenIDs(userID string) (map[string]struct{}, error) {
 
 func (h *APIHandler) CatAccessToken(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	//check login
-	reqUser, err := core.UserFromContext(req.Context())
+	reqUser, err := security.UserFromContext(req.Context())
 	if reqUser == nil || err != nil {
 		panic(err)
 	}
@@ -207,7 +208,7 @@ func (h *APIHandler) CatAccessToken(w http.ResponseWriter, req *http.Request, ps
 }
 
 func (h *APIHandler) DeleteAccessToken(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	reqUser, err := core.UserFromContext(req.Context())
+	reqUser, err := security.UserFromContext(req.Context())
 	if reqUser == nil || err != nil {
 		panic(err)
 	}
@@ -256,7 +257,7 @@ func (h *APIHandler) DeleteAccessToken(w http.ResponseWriter, req *http.Request,
 }
 
 func (h *APIHandler) RenameAccessToken(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	reqUser, err := core.UserFromContext(req.Context())
+	reqUser, err := security.UserFromContext(req.Context())
 	if reqUser == nil || err != nil {
 		panic(err)
 	}
