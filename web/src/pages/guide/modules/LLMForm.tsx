@@ -4,7 +4,6 @@ import { ReactSVG } from "react-svg";
 import OllamaSvg from '@/assets/svg-icon/ollama.svg'
 import OpenAISvg from '@/assets/svg-icon/openai.svg'
 import DeepseekSvg from '@/assets/svg-icon/deepseek.svg'
-import ButtonRadio from "@/components/button-radio";
 
 type ModelType = 'deepseek' | 'ollama' | 'openai'
 

@@ -170,6 +170,63 @@ const page: App.I18n.Schema['translation']['page'] = {
         asset_type: "类型",
       }
     },
+  },
+  integration: {
+    columns: {
+      name: "名称",
+      type: "类型",
+      description: "描述",
+      datasource: "数据源",
+      enabled: "启用状态",
+    },
+    form: {
+      title: {
+        new: "新增嵌入组件",
+        edit: "编辑嵌入组件"
+      },
+      labels: {
+        name: "名称",
+        type: "类型",
+        type_embedded: "内嵌的",
+        type_floating: "浮动的",
+        type_all: "全部",
+        datasource: "数据源",
+        enable_module: "启用模块",
+        module_search: "搜索",
+        module_search_placeholder: "搜索输入框提示文本",
+        module_chat: "AI 聊天",
+        module_chat_placeholder: "AI 聊天输入框提示文本",
+        feature_Control: "功能控制",
+        feature_search: "显示数据源搜索",
+        feature_search_active: "开启数据源搜索",
+        feature_think: "显示深度思考",
+        feature_think_active: "开启深度思考",
+        feature_chat_history: "聊天历史",
+        access_control: "访问控制",
+        enable_auth: "启用认证",
+        appearance: "外观设置",
+        theme: "主题",
+        theme_auto: "自动",
+        theme_light: "浅色",
+        theme_dark: "深色",
+        cors: "跨域设置",
+        allow_origin: "Allow-Origin",
+        allow_origin_placeholder: "请输入允许的 Origin，以 http:// 或 https:// 开头多个 Origin 间用英文逗号分隔，允许所有 Origin 访问则填 *",
+        description: "描述",
+      }
+    },
+    delete: {
+      confirm: `确定删除嵌入组件 "{{name}}"？`
+    },
+    update: {
+      enable_confirm: `确定启用嵌入组件 "{{name}}"？`,
+      disable_confirm: `确定禁用嵌入组件 "{{name}}"？`
+    },
+    code: {
+      title: "嵌入代码",
+      desc: "将这段代码插入到你的网站<body>和</body>之间，即可开始搜索和聊天。",
+      preview: "预览"
+    }
   }
 };
 
