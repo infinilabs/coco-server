@@ -230,6 +230,10 @@ const routeMap: RouteMap = {
   "data-source_new-first": "new-first",
   "guide": "/guide",
   "home": "/home",
+  "integration": "/integration",
+  "integration_edit": "edit/:id",
+  "integration_list": "list",
+  "integration_new": "new",
   "login": "/login",
   "settings": "/settings"
 };
