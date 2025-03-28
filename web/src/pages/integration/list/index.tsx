@@ -49,7 +49,7 @@ export function Component() {
       return {
         ...oldParams,
         query: query,
-        form: 0,
+        from: 0,
       }
     })
   }
