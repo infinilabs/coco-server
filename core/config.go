@@ -31,3 +31,5 @@ var DefaultLLMConfigKey = "default_llm_config"
 var DefaultConnectorConfigKey = "default_connector_config"
 
 var DefaultUserLogin = "coco-default-user"
+
+var WidgetRole="widget"

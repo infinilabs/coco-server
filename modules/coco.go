@@ -12,7 +12,7 @@ import (
 	_ "infini.sh/coco/modules/assistant"
 	"infini.sh/coco/modules/common"
 	_ "infini.sh/coco/modules/connector"
-	_ "infini.sh/coco/modules/indexing"
+	_ "infini.sh/coco/modules/document"
 	_ "infini.sh/coco/modules/search"
 	_ "infini.sh/coco/modules/system"
 	cfg "infini.sh/framework/core/api/common"
