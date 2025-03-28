@@ -83,6 +83,7 @@ export function Component() {
     {
       title: t('page.integration.columns.type'),
       dataIndex: "type",
+      render: (value) => t(`page.integration.form.labels.type_${value}`)
     },
     {
       title: t('page.integration.columns.description'),
@@ -92,7 +93,7 @@ export function Component() {
       title: t('page.integration.columns.datasource'),
       dataIndex: "datasource",
       render: (value, record) => {
-        return value ? value.length : 0
+        return value?.includes('*') ? '*' : (value?.length || 0)
       }
     },
     {

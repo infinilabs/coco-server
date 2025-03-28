@@ -25,7 +25,7 @@ export const Preview = memo((props) => {
         </span>
         <Modal keyboard={false} destroyOnClose wrapClassName="full-screen-modal" title={null} footer={null} open={isModalOpen} onOk={handleOk} onCancel={handleCancel}>
             <iframe 
-                src={`${window.location.origin}/widgets/searchbox.html?id=${params?.id}&token=${params?.token}&server=${window.location.origin}`}
+                src={`${params.server}/widgets/searchbox/index.html?id=${params?.id}&token=${params?.token}&server=${encodeURIComponent(params.server)}`}
                 width={"100%"}
                 height={"100%"}
             />

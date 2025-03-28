@@ -189,7 +189,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         type: "类型",
         type_embedded: "内嵌的",
         type_floating: "浮动的",
-        type_all: "全部",
+        type_all: "内嵌和浮动",
         datasource: "数据源",
         enable_module: "启用模块",
         module_search: "搜索",
