@@ -57,7 +57,6 @@ func (f *PermissionFilter) ApplyFilter(
 	next httprouter.Handle,
 ) httprouter.Handle {
 
-	//option not enabled
 	if options == nil || options.RequirePermission == nil || len(options.RequirePermission) == 0 || !common.IsAuthEnable() {
 		log.Debug(method, ",", pattern, ",skip permission check")
 		return next
@@ -66,7 +65,6 @@ func (f *PermissionFilter) ApplyFilter(
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 		reqUser, err := security.UserFromContext(r.Context())
-		log.Error(reqUser, err)
 		if reqUser == nil || err != nil {
 			o := api.PrepareErrorJson("invalid login", 401)
 			f.WriteJSON(w, o, 401)
@@ -75,7 +73,6 @@ func (f *PermissionFilter) ApplyFilter(
 
 		//bypass admin
 		if util.AnyInArrayEquals(reqUser.Roles, sec.RoleAdmin) {
-			log.Error("bypass admin roles")
 			next(w, r, ps)
 			return
 		}
@@ -156,8 +153,7 @@ func GetUserPermissions(shortUser *security.SessionUser) *sec.UserAssignedPermis
 	//	}
 	//}
 
-	log.Error("user's permissioins:", allowedPermissions)
-
+	//log.Error("user's permissioins:", allowedPermissions)
 	perms := sec.NewUserAssignedPermission(allowedPermissions, nil)
 	if perms != nil {
 		permissionCache.Set(PermissionCache, shortUser.UserId, perms, util.GetDurationOrDefault("30m", time.Duration(30)*time.Minute))
