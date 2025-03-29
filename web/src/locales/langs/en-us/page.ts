@@ -226,7 +226,8 @@ const page: App.I18n.Schema['translation']['page'] = {
     code: {
       title: "Insert code",
       desc: "Insert this  code into your website between <body> and </body> to start searching and chatting.",
-      preview: "Preview"
+      preview: "Preview",
+      exit: "Exit Preview"
     }
   }
 };
