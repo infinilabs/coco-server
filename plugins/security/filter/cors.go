@@ -55,7 +55,7 @@ func (f *CORSFilter) ApplyFilter(
 				return
 			}
 		} else {
-			log.Warnf("skipping place CORS headers: ", method, ",", pattern, ",origin:", origin, ",", origin != "", ",", r.Method == http.MethodOptions, ",", isAllowedOrigin(origin, r))
+			log.Warn("skipping place CORS headers: ", method, ",", pattern, ",origin:", origin, ",", origin != "", ",", r.Method == http.MethodOptions, ",", isAllowedOrigin(origin, r))
 		}
 
 		next(w, r, ps)
