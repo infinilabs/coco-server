@@ -34,7 +34,7 @@ func init() {
 	viewSessionHistoryPermission := security.GetSimplePermission(Category, Datasource, ViewSingleSessionHistoryAction)
 	security.GetOrInitPermissionKeys(createPermission, updatePermission, readPermission, deletePermission, searchPermission, viewHistoryPermission, manageChatSessionPermission)
 
-	security.AssignPermissionsToRoles(searchPermission, core.WidgetRole)
+	security.RegisterPermissionsToRole(core.WidgetRole, searchPermission, createPermission, viewSessionHistoryPermission)
 
 	handler := APIHandler{}
 
