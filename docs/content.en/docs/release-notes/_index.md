@@ -14,10 +14,12 @@ Information about release notes of Coco Server is provided here.
 - Add support for Connector CRUD management (#147)
 - Control the searchability of related documents based on the data source's enabled status. (#147)
 - Allow user pass websocket session id via request header #148
-- Add integration
-- Add searchbox with CocoAI
+- Add integration management API
+- Add searchbox widget for easy of embedding to website
 - Add support for integration CRUD management and CORS configuration (#153)
 - Add api to delete attachment
+- Add dynamic js wrapper for widget
+
 ### Bug fix
 - Fixed provider info version (#144)
 - Fixed an issue where keyword search filtering for datasource was not working as expected (#147)
