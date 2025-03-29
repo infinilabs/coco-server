@@ -9,7 +9,8 @@ weight: 90
 
 The integration generates a piece of code based on certain configuration parameters, which can be embedded into other websites. This code allows you to quickly use Coco AI's search and chat capabilities.
 
-Below is the field description for the document.
+## Integration API
+Below is the field description for the integration.
 
 | **Field**                       | **Type**        | **Description**                                                                                              |
 |---------------------------------|-----------------|--------------------------------------------------------------------------------------------------------------|
@@ -148,3 +149,37 @@ curl -XPUT http://localhost:9000/integration/cvj9s15ath21fvf9st00 -d '{
 ```shell
 curl -XGET http://localhost:9000/integration/_search
 ```
+
+## Integration UI Management
+
+### Search Integration
+Log in to the Coco-Server admin dashboard, click `Integration` in the left menu to view all Integration lists, as shown below:  
+{{% load-img "/img/integration/list.png" "integration list" %}}
+
+Enter keywords in the search box above the list and click the `Refresh` button to search for matching Integrations, as shown below:  
+{{% load-img "/img/integration/filter-list.png" "integration search" %}}
+
+
+### Add Integration
+Click `Add` in the top-right corner of the list to create a new Integration, as shown below:  
+{{% load-img "/img/integration/add-1.png" "add integration" %}}  
+{{% load-img "/img/integration/add-2.png" "add integration" %}}
+
+The system provides default values for the Integration configuration. Modify these values as needed, then click the save button to complete the creation.
+
+
+### Delete Integration
+Select the target Integration in the list, click `Delete` on the right side of the entry, and confirm in the pop-up dialog to complete the deletion. As shown below:  
+{{% load-img "/img/integration/delete.png" "delete integration" %}}
+
+
+### Edit Integration
+Select the target Integration in the list, click `Edit` on the right side to enter the editing page. Modify the configuration and click save to update. As shown below:  
+{{% load-img "/img/integration/edit.png" "edit integration" %}}
+
+
+### Preview Integration
+Click the `Preview` button on the right side of the Integration editing page to see the current Integration's effect, as shown below:  
+{{% load-img "/img/integration/preview.png" "preview integration" %}}
+
+The preview feature allows testing search and chat functionalities.  
