@@ -9,7 +9,6 @@ import (
 	"infini.sh/coco/core"
 	"infini.sh/framework/core/api"
 	httprouter "infini.sh/framework/core/api/router"
-	"infini.sh/framework/core/util"
 	"net/http"
 	"sync"
 )
