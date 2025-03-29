@@ -42,6 +42,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     title: 'Welcome',
     desc: 'Enter your credentials to access your account.',
     password: 'Password',
+    cloud: 'Sign in with INFINI Cloud',
     common: {
       back: 'Back',
       codeLogin: 'Verification code login',

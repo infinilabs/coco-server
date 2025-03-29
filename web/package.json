@@ -6,17 +6,17 @@
   "packageManager": "pnpm@9.12.3",
   "description": "A fresh and elegant admin template, based on React18、Vite5、TypeScript、Ant Design and UnoCSS. 一个基于React18、Vite5、TypeScript、Ant Design and UnoCSS的清新优雅的中后台模版。",
   "author": {
-    "name": "Ohh",
-    "email": "1509326266@qq.com",
-    "url": "https://github.com/mufeng889"
+    "name": "INFINI Labs",
+    "email": "hello@infini.ltd",
+    "url": "https://github.com/infinilabs"
   },
   "license": "MIT",
-  "homepage": "https://github.com/mufeng889/react-soybean-admin",
+  "homepage": "https://github.com/infinilabs",
   "repository": {
-    "url": "https://github.com/mufeng889/react-soybean-admin.git"
+    "url": "https://github.com/infinilabs/coco-server.git"
   },
   "bugs": {
-    "url": "https://github.com/mufeng889/react-soybean-admin/issues"
+    "url": "https://github.com/infinilabs/coco-server/issues"
   },
   "keywords": [
     "React admin",
@@ -128,5 +128,5 @@
   "lint-staged": {
     "*": "eslint --fix"
   },
-  "website": "https://react-soybean.ohh-889.com/"
+  "website": "https://coco.rs/"
 }

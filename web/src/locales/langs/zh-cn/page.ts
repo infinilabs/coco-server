@@ -42,6 +42,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     title: '欢迎',
     desc: '输入您的凭证信息以访问您的账户。',
     password: '密码',
+    cloud: '使用 INFINI Cloud 登录',
     common: {
       back: '返回',
       codeLogin: '验证码登录',
