@@ -268,8 +268,8 @@ func (h APIHandler) processQueryIntent(ctx context.Context, reqMsg, replyMsg *Ch
 
 	var queryIntent *rag.QueryIntent
 	{
-		log.Info("start analysis user's intent")
-		defer log.Info("end analysis user's intent")
+		log.Debug("start analysis user's intent")
+		defer log.Debug("end analysis user's intent")
 
 		queryIntentBuffer := strings.Builder{}
 		content := []llms.MessageContent{

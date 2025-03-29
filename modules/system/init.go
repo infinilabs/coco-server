@@ -24,10 +24,12 @@
 package system
 
 import (
+	"infini.sh/cloud/core/security/rbac"
 	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/api"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/global"
+	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
 	"net/http"
 )
@@ -36,12 +38,26 @@ type APIHandler struct {
 	api.Handler
 }
 
+const Category = "coco"
+const Resource = "system"
+
 func init() {
+
+	readPermission := security.GetSimplePermission(Category, Resource, string(rbac.Read))
+	updatePermission := security.GetSimplePermission(Category, Resource, string(rbac.Update))
+
+	security.GetOrInitPermissionKey(readPermission)
+	security.GetOrInitPermissionKey(updatePermission)
+
 	handler := APIHandler{}
 	api.HandleUIMethod(api.GET, "/provider/_info", handler.providerInfo, api.AllowPublicAccess())
 	api.HandleUIMethod(api.POST, "/setup/_initialize", handler.setupServer, api.AllowPublicAccess())
-	api.HandleUIMethod(api.GET, "/settings", handler.getServerSettings, api.RequireLogin())
-	api.HandleUIMethod(api.PUT, "/settings", handler.updateServerSettings, api.RequireLogin())
+
+	api.HandleUIMethod(api.GET, "/settings", handler.getServerSettings, api.RequirePermission(readPermission))
+	api.HandleUIMethod(api.PUT, "/settings", handler.updateServerSettings, api.RequirePermission(updatePermission))
+
+	//list all icons for connectors
+	api.HandleUIMethod(api.GET, "/icons/list", handler.getIcons, api.AllowPublicAccess())
 }
 
 func (h *APIHandler) providerInfo(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -67,6 +83,12 @@ func (h *APIHandler) providerInfo(w http.ResponseWriter, req *http.Request, ps h
 	isSetup := checkSetupStatus()
 	output["setup_required"] = !isSetup
 	output["health"] = obj
+
+	if info.ServerInfo != nil && info.ServerInfo.Managed {
+		if info.ServerInfo.Provider.AuthProvider.SSO.URL == "" {
+			panic("sso url can't be nil")
+		}
+	}
 
 	h.WriteJSON(w, output, 200)
 }

@@ -27,25 +27,27 @@ import "time"
 
 // ServerInfo represents the main structure for server configuration.
 type ServerInfo struct {
-	Name                 string       `json:"name" config:"name"`                                     // Config key for the server name
-	Endpoint             string       `json:"endpoint" config:"endpoint"`                             // Config key for the server endpoint
-	Provider             Provider     `json:"provider" config:"provider"`                             // Config key for the provider
-	Version              Version      `json:"version" config:"version"`                               // Config key for the version
-	MinimalClientVersion Version      `json:"minimal_client_version" config:"minimal_client_version"` // Config key for the version
-	Updated              time.Time    `json:"updated" config:"updated"`                               // Config key for the updated time
-	Public               bool         `json:"public" config:"public"`                                 // Config key for public visibility
-	AuthProvider         AuthProvider `json:"auth_provider" config:"auth_provider"`                   // Config key for auth provider
+	Name                 string       `json:"name" config:"name"`                                               // Config key for the server name
+	Endpoint             string       `json:"endpoint" config:"endpoint"`                                       // Config key for the server endpoint
+	Provider             Provider     `json:"provider" config:"provider"`                                       // Config key for the provider
+	Version              Version      `json:"version" config:"version"`                                         // Config key for the version
+	MinimalClientVersion Version      `json:"minimal_client_version,omitempty" config:"minimal_client_version"` // Config key for the version
+	Updated              time.Time    `json:"updated" config:"updated"`                                         // Config key for the updated time
+	Public               bool         `json:"public,omitempty" config:"public"`                                 // Config key for public visibility
+	AuthProvider         AuthProvider `json:"auth_provider,omitempty" config:"auth_provider"`                   // Config key for auth provider, link used by the APP
+	Managed              bool         `json:"managed,omitempty" config:"managed" `                              // Whether the server is cloud based managed by the provider
 }
 
 // Provider represents the "provider" section of the configuration.
 type Provider struct {
-	Name          string `json:"name" config:"name"`                     // Config key for provider name
-	Icon          string `json:"icon" config:"icon"`                     // Config key for provider icon
-	Website       string `json:"website" config:"website"`               // Config key for provider website
-	EULA          string `json:"eula" config:"eula"`                     // Config key for provider EULA
-	PrivacyPolicy string `json:"privacy_policy" config:"privacy_policy"` // Config key for privacy policy
-	Banner        string `json:"banner" config:"banner"`                 // Config key for provider banner
-	Description   string `json:"description" config:"description"`       // Config key for provider description
+	Name          string       `json:"name" config:"name"`                             // Config key for provider name
+	Icon          string       `json:"icon" config:"icon"`                             // Config key for provider icon
+	Website       string       `json:"website" config:"website"`                       // Config key for provider website
+	EULA          string       `json:"eula" config:"eula"`                             // Config key for provider EULA
+	PrivacyPolicy string       `json:"privacy_policy" config:"privacy_policy"`         // Config key for privacy policy
+	Banner        string       `json:"banner" config:"banner"`                         // Config key for provider banner
+	Description   string       `json:"description" config:"description"`               // Config key for provider description
+	AuthProvider  AuthProvider `json:"auth_provider,omitempty" config:"auth_provider"` // Config key for auth provider
 }
 
 // Version represents the "version" section of the configuration.

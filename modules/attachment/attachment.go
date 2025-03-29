@@ -21,7 +21,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-package assistant
+package attachment
 
 import (
 	"errors"
@@ -56,7 +56,7 @@ func (h APIHandler) uploadAttachment(w http.ResponseWriter, r *http.Request, ps 
 	sessionID := ps.MustGetParameter("session_id")
 
 	//check session exists
-	session := Session{}
+	session := common.Session{}
 	session.ID = sessionID
 	exists, err := orm.Get(&session)
 	if !exists || err != nil {

@@ -10,9 +10,11 @@ import (
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/assistant"
 	_ "infini.sh/coco/modules/assistant"
+	_ "infini.sh/coco/modules/attachment"
 	"infini.sh/coco/modules/common"
 	_ "infini.sh/coco/modules/connector"
-	_ "infini.sh/coco/modules/indexing"
+	_ "infini.sh/coco/modules/datasource"
+	_ "infini.sh/coco/modules/document"
 	"infini.sh/coco/modules/integration"
 	_ "infini.sh/coco/modules/integration"
 	_ "infini.sh/coco/modules/search"
@@ -31,7 +33,7 @@ type Coco struct {
 }
 
 func (this *Coco) Setup() {
-	orm.MustRegisterSchemaWithIndexName(assistant.Session{}, "session")
+	orm.MustRegisterSchemaWithIndexName(common.Session{}, "session")
 	orm.MustRegisterSchemaWithIndexName(common.Document{}, "document")
 	orm.MustRegisterSchemaWithIndexName(assistant.ChatMessage{}, "message")
 	orm.MustRegisterSchemaWithIndexName(common.Attachment{}, "attachment")

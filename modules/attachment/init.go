@@ -2,12 +2,11 @@
  * Web: https://infinilabs.com
  * Email: hello#infini.ltd */
 
-package connector
+package attachment
 
 import (
 	"infini.sh/cloud/core/security/rbac"
 	"infini.sh/coco/core"
-	"infini.sh/coco/plugins/security/filter"
 	"infini.sh/framework/core/api"
 	"infini.sh/framework/core/security"
 )
@@ -17,7 +16,7 @@ type APIHandler struct {
 }
 
 const Category = "coco"
-const Datasource = "connector"
+const Datasource = "attachment"
 
 func init() {
 
@@ -26,18 +25,16 @@ func init() {
 	readPermission := security.GetSimplePermission(Category, Datasource, string(rbac.Read))
 	deletePermission := security.GetSimplePermission(Category, Datasource, string(rbac.Delete))
 	searchPermission := security.GetSimplePermission(Category, Datasource, string(rbac.Search))
+
 	security.GetOrInitPermissionKeys(createPermission, updatePermission, readPermission, deletePermission, searchPermission)
 	security.AssignPermissionsToRoles(searchPermission, core.WidgetRole)
 
 	handler := APIHandler{}
 
-	api.HandleUIMethod(api.POST, "/connector/", handler.create, api.RequirePermission(createPermission))
-	api.HandleUIMethod(api.GET, "/connector/:id", handler.get, api.RequirePermission(readPermission))
-	api.HandleUIMethod(api.PUT, "/connector/:id", handler.update, api.RequirePermission(updatePermission))
-	api.HandleUIMethod(api.DELETE, "/connector/:id", handler.delete, api.RequirePermission(deletePermission))
-
-	api.HandleUIMethod(api.OPTIONS, "/connector/_search", handler.search, api.RequirePermission(searchPermission), api.Feature(filter.FeatureCORS))
-	api.HandleUIMethod(api.GET, "/connector/_search", handler.search, api.RequirePermission(searchPermission), api.Feature(filter.FeatureCORS))
-	api.HandleUIMethod(api.POST, "/connector/_search", handler.search, api.RequirePermission(searchPermission), api.Feature(filter.FeatureCORS))
+	api.HandleUIMethod(api.GET, "/attachment/:file_id", handler.getAttachment, api.RequirePermission(readPermission))
+	api.HandleUIMethod(api.DELETE, "/attachment/:file_id", handler.deleteAttachment, api.RequirePermission(deletePermission))
+	api.HandleUIMethod(api.HEAD, "/attachment/:file_id", handler.checkAttachment, api.RequirePermission(readPermission))
+	api.HandleUIMethod(api.GET, "/attachment/_search", handler.getAttachments, api.RequirePermission(searchPermission))
+	api.HandleUIMethod(api.POST, "/chat/:session_id/_upload", handler.uploadAttachment, api.RequirePermission(createPermission))
 
 }
