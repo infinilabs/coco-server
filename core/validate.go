@@ -66,7 +66,7 @@ func ValidateLoginByAPITokenHeader(r *http.Request) (claims *security.UserClaims
 	data := security.AccessToken{}
 	util.MustFromJSONBytes(bytes, &data)
 
-	if global.Env().IsDebug{
+	if global.Env().IsDebug {
 		log.Debug("get AccessToken from store:", util.MustToJSON(data))
 	}
 

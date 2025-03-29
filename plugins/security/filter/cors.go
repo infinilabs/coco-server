@@ -6,8 +6,10 @@ package filter
 
 import (
 	log "github.com/cihub/seelog"
+	"infini.sh/coco/core"
 	"infini.sh/framework/core/api"
 	httprouter "infini.sh/framework/core/api/router"
+	"infini.sh/framework/core/util"
 	"net/http"
 	"sync"
 )
@@ -42,10 +44,10 @@ func (f *CORSFilter) ApplyFilter(
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 		origin := r.Header.Get("Origin")
-		if origin != "" && (r.Method == http.MethodOptions || isAllowedOrigin(origin, r)) {
+		if options.Feature(core.FeatureByPassCORSCheck) || (origin != "" && (r.Method == http.MethodOptions || isAllowedOrigin(origin, r))) {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-API-TOKEN, APP-INTEGRATION-ID")
+			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-API-TOKEN, APP-INTEGRATION-ID, WEBSOCKET-SESSION-ID")
 			w.Header().Set("Access-Control-Allow-Credentials", "false")
 			// Handle preflight (OPTIONS) requests
 			if r.Method == "OPTIONS" && r.Header.Get("Access-Control-Request-Method") != "" {
@@ -53,6 +55,8 @@ func (f *CORSFilter) ApplyFilter(
 				w.WriteHeader(http.StatusOK)
 				return
 			}
+		} else {
+			log.Warnf("skipping place CORS headers: ", method, ",", pattern, ",origin:", origin, ",", origin != "", ",", r.Method == http.MethodOptions, ",", isAllowedOrigin(origin, r))
 		}
 
 		next(w, r, ps)

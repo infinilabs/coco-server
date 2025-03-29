@@ -32,7 +32,6 @@ import (
 	"infini.sh/framework/core/util"
 )
 
-
 const Secret = "coco"
 
 var secretKey string
