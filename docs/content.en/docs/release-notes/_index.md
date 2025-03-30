@@ -10,6 +10,7 @@ Information about release notes of Coco Server is provided here.
 ## Latest (In development)
 
 ### Breaking changes
+
 ### Features
 - Add support for Connector CRUD management (#147)
 - Control the searchability of related documents based on the data source's enabled status. (#147)
@@ -18,9 +19,12 @@ Information about release notes of Coco Server is provided here.
 - Add searchbox with CocoAI
 - Add support for integration CRUD management and CORS configuration (#153)
 - Add api to delete attachment
+
 ### Bug fix
 - Fixed provider info version (#144)
 - Fixed an issue where keyword search filtering for datasource was not working as expected (#147)
+- Fixed to remove uncheck datasource condition in must conditions
+
 ### Improvements
 
 ## 0.2.2 (2025-03-14)
