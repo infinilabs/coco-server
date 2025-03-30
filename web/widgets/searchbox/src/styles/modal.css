@@ -1,0 +1,70 @@
+.infini__searchbox--active {
+  overflow: hidden !important;
+}
+
+.infini__searchbox-modal-container,
+.infini__searchbox-modal-container * {
+  box-sizing: border-box;
+}
+
+.infini__searchbox-modal-container {
+  background-color: var(--infini__searchbox-modal-container-background);
+  height: 100vh;
+  left: 0;
+  position: fixed;
+  top: 0;
+  width: 100vw;
+  z-index: 200;
+  display: flex;
+  justify-content: center;
+}
+
+.infini__searchbox-modal {
+  display: inline-block;
+  margin: 60px auto auto;
+}
+
+.infini__searchbox-modal > div {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+@keyframes rotation {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(359deg);
+  }
+}
+
+
+@media (max-width: 768px) {
+  :root {
+    --infini__searchbox-spacing: 10px;
+    --infini__searchbox-footer-height: 40px;
+  }
+
+  .infini__searchbox-modal-container {
+    height: 100vh;
+    height: -webkit-fill-available;
+    height: calc(var(--infini__searchbox-vh, 1vh) * 100);
+    position: absolute;
+  }
+
+  .infini__searchbox-modal {
+    border-radius: 0;
+    box-shadow: none;
+    height: 100vh;
+    height: -webkit-fill-available;
+    height: calc(var(--infini__searchbox-vh, 1vh) * 100);
+    margin: 0;
+    max-width: 100%;
+    width: 100%;
+  }
+
+}
+
+[hidden] {
+  visibility: hidden;
+}
