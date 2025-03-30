@@ -20,8 +20,6 @@ export const Preview = memo((props) => {
         setIsModalOpen(false);
     };
 
-    params.server = "http://localhost:9001"
-
     return (
         <>
         <span onClick={showModal}>
