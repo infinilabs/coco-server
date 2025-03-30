@@ -31,19 +31,19 @@ export const DocSearchButton = ({
   return (
     <button
       type="button"
-      className="docsearch-btn"
+      className="infini__searchbox-btn"
       onClick={onClick}
       aria-label={buttonText}
     >
-      <span className="docsearch-btn-icon-container">
-        <Logo className="docsearch-btn-icon" />
+      <span className="infini__searchbox-btn-icon-container">
+        <Logo className="infini__searchbox-btn-icon" />
       </span>
-      <span className="docsearch-btn-placeholder"> {buttonText} </span>
+      <span className="infini__searchbox-btn-placeholder"> {buttonText} </span>
       {hotKeys && hotKeys.length > 0 && (
-        <span className="docsearch-btn-keys">
+        <span className="infini__searchbox-btn-keys">
           {
             hotKeys[0].split("+").map((k) => (
-              <kbd key={k} className="docsearch-btn-key">
+              <kbd key={k} className="infini__searchbox-btn-key">
                 {isCtrl(k)
                   ? ctrlKey
                   : isAlt(k)

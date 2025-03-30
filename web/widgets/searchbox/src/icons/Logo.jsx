@@ -1,6 +1,6 @@
 export const Logo = (props) => {
   return (
-    <svg className={props.className} width="128px" height="128px" viewBox="0 0 128 128" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <svg className={props.className} width="24px" height="24px" viewBox="0 0 128 128" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
     <defs>
         <rect id="path-1" x="0" y="0" width="56.7563872" height="56.5910836"></rect>
     </defs>

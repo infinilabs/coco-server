@@ -17,15 +17,15 @@ export const DocSearchModal = ({
   function setFullViewportHeight() {
     if (modalRef) {
       const vh = window.innerHeight * 0.01;
-      modalRef.style.setProperty("--docsearch-vh", `${vh}px`);
+      modalRef.style.setProperty("--infini__searchbox-vh", `${vh}px`);
     }
   }
   useEffect(() => {
-    document.body.classList.add("docsearch--active")
+    document.body.classList.add("infini__searchbox--active")
     setFullViewportHeight();
     window.addEventListener("resize", setFullViewportHeight);
     return () => {
-      document.body.classList.remove("docsearch--active")
+      document.body.classList.remove("infini__searchbox--active")
       window.removeEventListener("resize", setFullViewportHeight)
     }
   }, [])
@@ -43,13 +43,13 @@ export const DocSearchModal = ({
 
   return (
     <div
-      className="docsearch-modal-container"
+      className="infini__searchbox-modal-container"
       role="button"
       tabIndex={0}
       ref={modalRef}
       onMouseDown={(e) => e.target === e.currentTarget && onClose && !isPinned && onClose()}
     >
-      <div className="docsearch-modal">
+      <div className="infini__searchbox-modal">
         <SearchChat
           serverUrl={server}
           headers={{

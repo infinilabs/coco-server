@@ -16,4 +16,5 @@
 .full-screen-modal .ant-modal-body {
     height: 100%;
     overflow: auto;
+    position: relative;
 }

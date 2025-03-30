@@ -9,12 +9,12 @@ export const DocSearchFloatButton = ({
   return (
     <button
       type="button"
-      className="docsearch-float-btn"
+      className="infini__searchbox-float-btn"
       onClick={onClick}
       aria-label={buttonAriaLabel}
     >
-      <span className="docsearch-float-btn-container">
-        <Logo className="docsearch-float-btn-icon" />
+      <span className="infini__searchbox-float-btn-container">
+        <Logo className="infini__searchbox-float-btn-icon" />
       </span>
     </button>
   );
