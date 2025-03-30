@@ -163,7 +163,7 @@ export function replaceHtmlTagsToHighlight(str: string) {
   return str
     .replace(
       /<em>/g,
-      '<span class="docsearch-modal-search-hits-item--highlight">',
+      '<span class="infini__searchbox-modal-search-hits-item--highlight">',
     )
     .replace(/<\/em>/g, "</span>");
 }

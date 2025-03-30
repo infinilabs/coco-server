@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { isAlt, isAppleDevice, isCtrl, isMeta } from "./utils";
 import { DocSearchFloatButton } from "./DocSearchFloatButton";
 
-const DEFAULT_HOTKEYS = ["ctrl+k", "s", "/"];
+const DEFAULT_HOTKEYS = ["ctrl+/"];
 
 export const DocSearch = (props) => {
   const { hotKeys = DEFAULT_HOTKEYS, server, id, token } = props;
@@ -82,7 +82,7 @@ export const DocSearch = (props) => {
       e.preventDefault();
       if (isOpen) {
         onClose();
-      } else if (!document.body.classList.contains("docsearch--active")) {
+      } else if (!document.body.classList.contains("infini__searchbox--active")) {
         // We check that no other DocSearch modal is showing before opening
         // another one.
         const selectedText = window.getSelection();
@@ -140,16 +140,17 @@ export const DocSearch = (props) => {
   }
 
   useEffect(() => {
-      window.addEventListener("keydown", onKeyDown)
-      return () => window.removeEventListener("keydown", onKeyDown)
-  }, [])
+    window.removeEventListener("keydown", onKeyDown)
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [isOpen])
 
   useEffect(() => {
     fetchSettings(server, id, token)
   }, [server, id, token])
 
   return (
-    <div data-theme={settings?.appearance?.theme}>
+    <div id="infini__searchbox" data-theme={settings?.appearance?.theme}>
       {renderButton(settings)}
       {isOpen && (
           <DocSearchModal

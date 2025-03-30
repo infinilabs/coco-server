@@ -1,14 +1,14 @@
-.docsearch--active {
+.infini__searchbox--active {
   overflow: hidden !important;
 }
 
-.docsearch-modal-container,
-.docsearch-modal-container * {
+.infini__searchbox-modal-container,
+.infini__searchbox-modal-container * {
   box-sizing: border-box;
 }
 
-.docsearch-modal-container {
-  background-color: var(--docsearch-modal-container-background);
+.infini__searchbox-modal-container {
+  background-color: var(--infini__searchbox-modal-container-background);
   height: 100vh;
   left: 0;
   position: fixed;
@@ -19,12 +19,12 @@
   justify-content: center;
 }
 
-.docsearch-modal {
+.infini__searchbox-modal {
   display: inline-block;
   margin: 60px auto auto;
 }
 
-.docsearch-modal > div {
+.infini__searchbox-modal > div {
   border-radius: 12px;
   overflow: hidden;
 }
@@ -41,23 +41,23 @@
 
 @media (max-width: 768px) {
   :root {
-    --docsearch-spacing: 10px;
-    --docsearch-footer-height: 40px;
+    --infini__searchbox-spacing: 10px;
+    --infini__searchbox-footer-height: 40px;
   }
 
-  .docsearch-modal-container {
+  .infini__searchbox-modal-container {
     height: 100vh;
     height: -webkit-fill-available;
-    height: calc(var(--docsearch-vh, 1vh) * 100);
+    height: calc(var(--infini__searchbox-vh, 1vh) * 100);
     position: absolute;
   }
 
-  .docsearch-modal {
+  .infini__searchbox-modal {
     border-radius: 0;
     box-shadow: none;
     height: 100vh;
     height: -webkit-fill-available;
-    height: calc(var(--docsearch-vh, 1vh) * 100);
+    height: calc(var(--infini__searchbox-vh, 1vh) * 100);
     margin: 0;
     max-width: 100%;
     width: 100%;
