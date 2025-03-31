@@ -229,7 +229,7 @@ export function debounce<F extends (...args: Parameters<F>) => ReturnType<F>>(
 }
 
 export function isCtrl(key: string) {
-  return /(ctrl|control|command|cmd|commandorcontrl|cmdorctrl)/i.test(key);
+  return /(ctrl|control)/i.test(key);
 }
 
 export function isAlt(key: string) {
@@ -241,5 +241,5 @@ export function isMeta(key: string) {
 }
 
 export function isAppleDevice() {
-  return /(Mac|iPhone|iPod|iPad|MacIntel)/i.test(navigator.platform) || navigator.platform.startsWith("Mac");
+  return /(Mac|iPhone|iPod|iPad|MacIntel)/i.test(navigator.platform) || navigator.platform.startsWith("Mac") || navigator.platform.startsWith("mac");
 }

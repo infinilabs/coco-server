@@ -40,13 +40,17 @@ export const DocSearch = (props) => {
   }
 
   const currentHotkeys = useMemo(() => {
-    return settings?.hotkey ? [settings?.hotkey] : hotKeys
+    let formatHotKey = settings?.hotkey
+    if (!isAppleDevice() && formatHotKey?.includes('meta')) {
+      formatHotKey = formatHotKey.replace('meta', 'ctrl')
+    }
+    return formatHotKey ? [formatHotKey] : hotKeys
   }, [hotKeys, settings?.hotkey])
 
   function isHotKey(event) {
     const modsAndkeys =
     currentHotkeys && currentHotkeys.map((k) => k.toLowerCase().split("+"));
-
+    
     if (modsAndkeys) {
       return modsAndkeys.some((modsAndkeys) => {
         // if hotkey is a single character, we only react if modal is not open
@@ -67,13 +71,11 @@ export const DocSearch = (props) => {
           const key = modsAndkeys[modsAndkeys.length - 1];
 
           if (event.key.toLowerCase() !== key) return false;
-
-          const ctrl =
-            (isAppleDevice() ? event.metaKey : event.ctrlKey) ==
-            modsAndkeys.some(isCtrl);
+          
+          const ctrl = event.ctrlKey == modsAndkeys.some(isCtrl)
           const shift = event.shiftKey == modsAndkeys.includes("shift");
           const alt = event.altKey == modsAndkeys.some(isAlt);
-          const meta = !(isAppleDevice() && event.metaKey == modsAndkeys.some(isMeta));
+          const meta = !isAppleDevice() || event.metaKey == modsAndkeys.some(isMeta)
 
           return ctrl && shift && alt && meta;
         }
