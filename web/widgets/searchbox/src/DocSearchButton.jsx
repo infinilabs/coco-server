@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { Logo } from "./icons/Logo";
-import { isAlt, isAppleDevice, isCtrl } from "./utils";
+import { isAlt, isAppleDevice, isCtrl, isMeta } from "./utils";
 
 const CTRL_KEY_DEFAULT = "Ctrl";
-const CTRL_KEY_APPLE = "⌘";
+const CTRL_KEY_APPLE = "⌃";
 const ALT_KEY_DEFAULT = "Alt";
-const ALT_KEY_APPLE = "Option";
+const ALT_KEY_APPLE = "⌥";
+const META_KEY_APPLE = "⌘";
 
 export const DocSearchButton = ({
   onClick,
@@ -15,12 +16,14 @@ export const DocSearchButton = ({
 
   const [ctrlKey, setCtrlKey] = useState(null);
   const [altKey, setAltKey] = useState(null);
+  const [metaKey, setMetaKey] = useState(null);
 
   useEffect(() => {
     if (typeof navigator !== "undefined") {
       if (isAppleDevice()) {
         setCtrlKey(CTRL_KEY_APPLE);
         setAltKey(ALT_KEY_APPLE);
+        setMetaKey(META_KEY_APPLE)
       } else {
         setCtrlKey(CTRL_KEY_DEFAULT);
         setAltKey(ALT_KEY_DEFAULT);
@@ -44,7 +47,9 @@ export const DocSearchButton = ({
           {
             hotKeys[0].split("+").map((k) => (
               <kbd key={k} className="infini__searchbox-btn-key">
-                {isCtrl(k)
+                {isMeta(k) 
+                  ? metaKey 
+                  : isCtrl(k)
                   ? ctrlKey
                   : isAlt(k)
                     ? altKey
