@@ -5,6 +5,7 @@
 package integration
 
 import (
+	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/plugins/security"
 	httprouter "infini.sh/framework/core/api/router"
@@ -173,7 +174,7 @@ func (h *APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprou
 }
 
 func IntegrationAllowOrigin(origin string, req *http.Request) bool {
-	appIntegrationID := req.Header.Get("APP-INTEGRATION-ID")
+	appIntegrationID := req.Header.Get(core.HeaderIntegrationID)
 	if v, ok := integrationOrigins.Load(appIntegrationID); ok {
 		if allowedOrigins, ok := v.(map[string]struct{}); ok {
 			if _, allowed := allowedOrigins[origin]; allowed {

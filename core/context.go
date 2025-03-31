@@ -69,3 +69,38 @@ func GetSecret() string {
 
 	return secretKey
 }
+
+func RewriteQueryWithFilter(queryDsl []byte, filter util.MapStr) ([]byte, error) {
+
+	mapObj := util.MapStr{}
+	err := util.FromJSONBytes(queryDsl, &mapObj)
+	if err != nil {
+		return nil, err
+	}
+	must := []util.MapStr{
+		filter,
+	}
+	filterQ := util.MapStr{
+		"bool": util.MapStr{
+			"must": must,
+		},
+	}
+	v, ok := mapObj["query"].(map[string]interface{})
+	if ok { //exists query
+		newQuery := util.MapStr{
+			"bool": util.MapStr{
+				"filter": filterQ,
+				"must":   []interface{}{v},
+			},
+		}
+		mapObj["query"] = newQuery
+	} else {
+		mapObj["query"] = util.MapStr{
+			"bool": util.MapStr{
+				"filter": filterQ,
+			},
+		}
+	}
+	queryDsl = util.MustToJSONBytes(mapObj)
+	return queryDsl, nil
+}
