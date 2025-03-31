@@ -6,8 +6,10 @@ package search
 
 import (
 	"errors"
+	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
+	"infini.sh/framework/core/elastic"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
 	ccache "infini.sh/framework/lib/cache"
@@ -106,6 +108,34 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 	)
 
 	mustClauses := BuildMustClauses(category, subcategory, richCategory, username, userid)
+	if integrationID := req.Header.Get(core.HeaderIntegrationID); integrationID != "" {
+		// get datasource by integration id
+		datasourceIDs, hasAll, err := common.GetDatasourceByIntegration(integrationID)
+		if err != nil {
+			panic(err)
+		}
+		if !hasAll {
+			if len(datasourceIDs) == 0 {
+				// return empty search result when no datasource found
+				h.WriteJSON(w, elastic.SearchResponse{}, http.StatusOK)
+				return
+			}
+			// update datasource filter
+			if datasource == "" {
+				datasource = strings.Join(datasourceIDs, ",")
+			} else {
+				// calc intersection with datasource and datasourceIDs
+				queryDatasource := strings.Split(datasource, ",")
+				queryDatasource = util.StringArrayIntersection(queryDatasource, datasourceIDs)
+				if len(queryDatasource) == 0 {
+					// return empty search result when intersection datasource ids is empty
+					h.WriteJSON(w, elastic.SearchResponse{}, http.StatusOK)
+					return
+				}
+				datasource = strings.Join(queryDatasource, ",")
+			}
+		}
+	}
 	datasourceClause := BuildDatasourceClause(datasource, true)
 	if datasourceClause != nil {
 		mustClauses = append(mustClauses, datasourceClause)

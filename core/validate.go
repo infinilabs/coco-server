@@ -45,10 +45,12 @@ import (
 const (
 	UserTokenSessionName = "user_token"
 	KVAccessTokenBucket  = "access_token"
+	HeaderAPIToken       = "X-API-TOKEN"
+	HeaderIntegrationID  = "APP-INTEGRATION-ID"
 )
 
 func ValidateLoginByAPITokenHeader(r *http.Request) (claims *security.UserClaims, err error) {
-	apiToken := r.Header.Get("X-API-TOKEN")
+	apiToken := r.Header.Get(HeaderAPIToken)
 
 	if apiToken == "" {
 		return nil, errors.Error("api token not found")
@@ -60,7 +62,7 @@ func ValidateLoginByAPITokenHeader(r *http.Request) (claims *security.UserClaims
 	}
 
 	if bytes == nil || len(bytes) == 0 {
-		errors.Error("invalid X-API-TOKEN")
+		errors.Errorf("invalid %s", HeaderAPIToken)
 	}
 
 	data := security.AccessToken{}
