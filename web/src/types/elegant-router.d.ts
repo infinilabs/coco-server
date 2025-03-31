@@ -49,6 +49,10 @@ declare module "@elegant-router/types" {
     "data-source_new-first": "new-first";
     "guide": "/guide";
     "home": "/home";
+    "integration": "/integration";
+    "integration_edit": "edit/:id";
+    "integration_list": "list";
+    "integration_new": "new";
     "login": "/login";
     "model-provider": "/model-provider";
     "model-provider_edit": "edit/:id";
@@ -108,6 +112,7 @@ declare module "@elegant-router/types" {
     | "data-source"
     | "guide"
     | "home"
+    | "integration"
     | "login"
     | "model-provider"
     | "settings"
@@ -144,6 +149,9 @@ declare module "@elegant-router/types" {
     | "data-source_new"
     | "guide"
     | "home"
+    | "integration_edit"
+    | "integration_list"
+    | "integration_new"
     | "login"
     | "model-provider_edit"
     | "model-provider_list"

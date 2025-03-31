@@ -38,7 +38,7 @@ type LoggingFilter struct{}
 
 func (f *LoggingFilter) GetPriority() int {
 	// Lower priority values execute first (higher precedence)
-	return 100
+	return 1
 }
 func (f *LoggingFilter) ApplyFilter(
 	method string,

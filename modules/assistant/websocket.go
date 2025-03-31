@@ -24,11 +24,9 @@
 package assistant
 
 import (
-	"errors"
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
-	"infini.sh/coco/modules/common"
-	"infini.sh/framework/core/kv"
+	"infini.sh/framework/core/errors"
 	"net/http"
 )
 
@@ -46,14 +44,11 @@ func (h APIHandler) GetUserWebsocketID(req *http.Request) (string, error) {
 			return websocketID, err
 		}
 
-		if claims.UserId != "" {
-			v, err := kv.GetValue(common.WEBSOCKET_USER_SESSION, []byte(claims.UserId))
-			if err != nil {
-				return "", err
-			}
-			log.Trace("get websocket session id from kv: ", string(v))
-			return string(v), nil
+		widgetID := h.GetHeader(req, "APP-INTEGRATION-ID", "")
+		if widgetID != "" {
+			return "", errors.Errorf("websocket session id for widget %v was not found", widgetID)
 		}
 	}
+
 	return "", errors.New("not found")
 }

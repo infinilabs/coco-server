@@ -5,11 +5,11 @@
 package integration
 
 import (
-	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/plugins/security"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/orm"
+	security2 "infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
 	"net/http"
 	"sync"
@@ -17,7 +17,7 @@ import (
 
 func (h *APIHandler) create(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	//user already login
-	reqUser, err := core.UserFromContext(req.Context())
+	reqUser, err := security2.UserFromContext(req.Context())
 	if reqUser == nil || err != nil {
 		panic(err)
 	}
@@ -29,11 +29,13 @@ func (h *APIHandler) create(w http.ResponseWriter, req *http.Request, ps httprou
 		return
 	}
 
-	ret, err := security.CreateAPIToken(reqUser, "")
+	//get permissions for this token
+	ret, err := security.CreateAPIToken(reqUser, "", "widget", []string{"widget"})
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	obj.Token = ret["access_token"].(string)
 	ctx := &orm.Context{
 		Refresh: orm.WaitForRefresh,

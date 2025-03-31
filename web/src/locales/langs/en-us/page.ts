@@ -185,6 +185,64 @@ const page: App.I18n.Schema['translation']['page'] = {
       confirm: 'Are you sure you want to delete this model provider?'
     },
   },
+  integration: {
+    columns: {
+      name: "Name",
+      type: "Type",
+      description: "Description",
+      datasource: "Data Source",
+      enabled: "Enabled",
+    },
+    form: {
+      title: {
+        new: "New integration",
+        edit: "Edit integration"
+      },
+      labels: {
+        name: "Name",
+        type: "Type",
+        type_embedded: "Embedded",
+        type_floating: "Floating",
+        type_all: "All",
+        datasource: "Data Source",
+        enable_module: "Enable Module",
+        module_search: "Search",
+        module_search_placeholder: "Search box placeholder text",
+        module_chat: "AI Chat",
+        module_chat_placeholder: "Chat box placeholder text",
+        feature_Control: "Feature Control",
+        feature_search: "Show Datasource Search",
+        feature_search_active: "Enable Datasource Search",
+        feature_think: "Show Deep Think",
+        feature_think_active: "Enable Deep Think",
+        feature_chat_history: "Chat History",
+        access_control: "Access Control",
+        enable_auth: "Enable Authentication",
+        appearance: "Appearance",
+        theme: "Theme",
+        theme_auto: "Auto",
+        theme_light: "Light",
+        theme_dark: "Dark",
+        cors: "CORS",
+        allow_origin: "Allow-Origin",
+        allow_origin_placeholder: "please enter the allowed origins that start with http:// or https://, and separate with commas. Enter * to allow access from all origins.",
+        description: "Description",
+      }
+    },
+    delete: {
+      confirm: `Are you sure you want to delete integration "{{name}}" ?`
+    },
+    update: {
+      enable_confirm: `Are you sure you want to enable integration "{{name}}" ?`,
+      disable_confirm: `Are you sure you want to disable integration "{{name}}" ?`
+    },
+    code: {
+      title: "Insert code",
+      desc: "Insert this  code into your website between <body> and </body> to start searching and chatting.",
+      preview: "Preview",
+      exit: "Exit Preview"
+    }
+  }
 };
 
 export default page;

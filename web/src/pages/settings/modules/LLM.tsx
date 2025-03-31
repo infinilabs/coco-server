@@ -6,7 +6,6 @@ import DeepseekSvg from '@/assets/svg-icon/deepseek.svg'
 import { ReactSVG } from 'react-svg';
 import { useLoading } from '@sa/hooks';
 import { fetchSettings, updateSettings } from "@/service/api/server";
-import ButtonRadio from "@/components/button-radio";
 
 const PARAMETERS = [
     {

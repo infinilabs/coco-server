@@ -60,6 +60,10 @@ const route: App.I18n.Schema['translation']['route'] = {
   'model-provider': '模型提供商',
   'model-provider_list': '模型提供商',
   'model-provider_new': '新增模型提供商',
+  'integration': '嵌入组件',
+  'integration_list': '嵌入组件',
+  'integration_new': '新增嵌入组件',
+  'integration_edit': '编辑嵌入组件'
 };
 
 export default route;

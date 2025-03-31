@@ -2,7 +2,7 @@
  * Web: https://infinilabs.com
  * Email: hello#infini.ltd */
 
-package connector
+package system
 
 import (
 	"fmt"

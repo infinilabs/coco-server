@@ -199,6 +199,53 @@ export const generatedRoutes: GeneratedRoute[] = [
     }
   },
   {
+    name: 'integration',
+    path: '/integration',
+    component: 'layout.base',
+    redirect: 'list',
+    meta: {
+      i18nKey: 'route.integration',
+      title: 'integration',
+      icon: 'mdi:puzzle-outline',
+      order: 5
+    },
+    children: [
+      {
+        name: 'integration_edit',
+        path: 'edit/:id',
+        component: 'view.integration_edit',
+        meta: {
+          i18nKey: 'route.integration_edit',
+          title: 'integration_edit',
+          hideInMenu: true,
+          activeMenu: 'integration'
+        }
+      },
+      {
+        name: 'integration_list',
+        path: 'list',
+        component: 'view.integration_list',
+        meta: {
+          i18nKey: 'route.integration_list',
+          title: 'integration_list',
+          hideInMenu: true,
+          activeMenu: 'integration'
+        }
+      },
+      {
+        name: 'integration_new',
+        path: 'new',
+        component: 'view.integration_new',
+        meta: {
+          i18nKey: 'route.integration_new',
+          title: 'integration_new',
+          hideInMenu: true,
+          activeMenu: 'integration'
+        }
+      }
+    ]
+  },
+  {
     name: 'login',
     path: '/login',
     component: 'layout.blank$view.login',
@@ -263,7 +310,7 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.settings',
       title: 'settings',
       icon: 'mdi:settings-outline',
-      order: 5
+      order: 10
     }
   }
 ];

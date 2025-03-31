@@ -22,11 +22,7 @@ import (
 	queue2 "infini.sh/framework/modules/queue/disk_queue"
 	"infini.sh/framework/modules/task"
 	"infini.sh/framework/modules/web"
-	_ "infini.sh/framework/plugins/badger"
-	_ "infini.sh/framework/plugins/elastic/bulk_indexing"
-	_ "infini.sh/framework/plugins/elastic/indexing_merge"
-	_ "infini.sh/framework/plugins/http"
-	_ "infini.sh/framework/plugins/queue/consumer"
+	_ "infini.sh/framework/plugins"
 	stats "infini.sh/framework/plugins/stats_statsd"
 )
 

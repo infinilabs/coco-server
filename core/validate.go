@@ -29,10 +29,13 @@ package core
 
 import (
 	"fmt"
+	log "github.com/cihub/seelog"
 	"github.com/golang-jwt/jwt"
 	"infini.sh/framework/core/api"
 	"infini.sh/framework/core/errors"
+	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/kv"
+	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
 	"net/http"
 	"strings"
@@ -44,7 +47,7 @@ const (
 	KVAccessTokenBucket  = "access_token"
 )
 
-func ValidateLoginByAPITokenHeader(r *http.Request) (claims *UserClaims, err error) {
+func ValidateLoginByAPITokenHeader(r *http.Request) (claims *security.UserClaims, err error) {
 	apiToken := r.Header.Get("X-API-TOKEN")
 
 	if apiToken == "" {
@@ -60,50 +63,34 @@ func ValidateLoginByAPITokenHeader(r *http.Request) (claims *UserClaims, err err
 		errors.Error("invalid X-API-TOKEN")
 	}
 
-	data := util.MapStr{}
+	data := security.AccessToken{}
 	util.MustFromJSONBytes(bytes, &data)
 
-	// Parse and check if the token has expired
-	expireAtFloat, ok := data["expire_in"].(float64) //expire_in
-	if !ok {
-		panic("Invalid or missing 'expire_in' field")
+	if global.Env().IsDebug {
+		log.Debug("get AccessToken from store:", util.MustToJSON(data))
 	}
 
-	expireAtTime := time.Unix(int64(expireAtFloat), 0) // Convert to time.Time
+	expireAtTime := time.Unix(data.ExpireIn, 0) // Convert to time.Time
 	if time.Now().After(expireAtTime) {
 		panic("Token expired")
 	}
 
 	// Safely extract fields with type assertions
-	claims = &UserClaims{}
-	claims.ShortUser = &ShortUser{}
+	claims = &security.UserClaims{}
+	claims.SessionUser = &security.SessionUser{}
+	claims.Provider = data.Provider
+	claims.Username = data.Login
+	claims.UserId = data.UserID
+	claims.Roles = data.Roles
 
-	if provider, ok := data["provider"].(string); ok {
-		claims.Provider = provider
-	} else {
-		return nil, fmt.Errorf("provider field is missing or invalid")
-	}
-
-	if login, ok := data["login"].(string); ok {
-		claims.Login = login
-	} else {
-		return nil, fmt.Errorf("login field is missing or invalid")
-	}
-
-	if userID, ok := data["userid"].(string); ok {
-		claims.UserId = userID
-	} else {
-		return nil, fmt.Errorf("userid field is missing or invalid")
-	}
-
-	// Set default roles
-	claims.Roles = []string{}
+	//claims. //
+	//permissions
 
 	claims.Provider = "token"
 	return claims, nil
 }
 
-func ValidateLoginByAuthorizationHeader(r *http.Request) (claims *UserClaims, err error) {
+func ValidateLoginByAuthorizationHeader(r *http.Request) (claims *security.UserClaims, err error) {
 	var (
 		authorization = r.Header.Get("Authorization")
 		ok            bool
@@ -120,17 +107,17 @@ func ValidateLoginByAuthorizationHeader(r *http.Request) (claims *UserClaims, er
 	}
 	tokenString := fields[1]
 
-	token, err := jwt.ParseWithClaims(tokenString, &UserClaims{}, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &security.UserClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		return []byte(Secret), nil
+		return []byte(GetSecret()), nil
 	})
 	if err != nil {
 		return nil, err
 	}
 	//validate bind tenant
-	claims, ok = token.Claims.(*UserClaims)
+	claims, ok = token.Claims.(*security.UserClaims)
 	if ok && token.Valid {
 		if claims.UserId == "" {
 			err = errors.New("user id is empty")
@@ -148,7 +135,7 @@ func ValidateLoginByAuthorizationHeader(r *http.Request) (claims *UserClaims, er
 	return claims, nil
 }
 
-func ValidateLoginBySession(r *http.Request) (claims *UserClaims, err error) {
+func ValidateLoginBySession(r *http.Request) (claims *security.UserClaims, err error) {
 	exists, sessToken := api.GetSession(r, UserTokenSessionName)
 
 	if !exists || sessToken == nil {
@@ -164,18 +151,18 @@ func ValidateLoginBySession(r *http.Request) (claims *UserClaims, err error) {
 		return
 	}
 
-	token, err1 := jwt.ParseWithClaims(tokenStr, &UserClaims{}, func(token *jwt.Token) (interface{}, error) {
+	token, err1 := jwt.ParseWithClaims(tokenStr, &security.UserClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		return []byte(Secret), nil
+		return []byte(GetSecret()), nil
 	})
 	if err1 != nil {
 		return
 	}
 
 	//validate bind tenant
-	claims, ok = token.Claims.(*UserClaims)
+	claims, ok = token.Claims.(*security.UserClaims)
 	if ok && token.Valid {
 		if claims.UserId == "" {
 			err = errors.New("user id is empty")
@@ -190,7 +177,7 @@ func ValidateLoginBySession(r *http.Request) (claims *UserClaims, err error) {
 	return claims, nil
 }
 
-func ValidateLogin(r *http.Request) (claims *UserClaims, err error) {
+func ValidateLogin(r *http.Request) (claims *security.UserClaims, err error) {
 
 	claims, err = ValidateLoginBySession(r)
 

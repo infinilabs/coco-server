@@ -1,0 +1,127 @@
+.infini__searchbox-btn {
+  align-items: center;
+  background: var(--infini__searchbox-searchbox-background);
+  border: 1px solid rgba(228,229,240,1);
+  outline: none;
+  border-radius: 8px;
+  color: var(--infini__searchbox-muted-color);
+  cursor: pointer;
+  display: flex;
+  font-weight: 500;
+  height: 40px;
+  padding: 0 12px 0px 8px;
+  user-select: none;
+}
+
+/* .infini__searchbox-btn code, kbd, samp, pre {
+  font-size: 12px;
+} */
+
+@media (max-width: 768px) {
+  .infini__searchbox-btn {
+    padding: 0 8px;
+  }
+}
+
+.infini__searchbox-btn > * {
+  margin-right: 4px;
+}
+
+.infini__searchbox-btn > *:last-child {
+  margin-right: 0px;
+}
+
+.infini__searchbox-btn:hover {
+  background: var(--infini__searchbox-searchbox-focus-background);
+  box-shadow: var(--infini__searchbox-searchbox-shadow);
+  color: var(--infini__searchbox-text-color);
+}
+
+.infini__searchbox-btn-icon-container {
+  align-items: center;
+  display: flex;
+}
+
+.infini__searchbox-btn-icon-container .infini__searchbox-btn-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.infini__searchbox-btn .infini__searchbox-btn-icon {
+  color: var(--infini__searchbox-text-color);
+}
+
+.infini__searchbox-btn-placeholder {
+  font-size: 1rem;
+  padding: 0 12px 0 0px;
+  font-weight: normal;
+}
+
+.infini__searchbox-btn-keys {
+  display: flex;
+}
+
+.infini__searchbox-btn-keys > * {
+  margin-right: 4px;
+}
+
+.infini__searchbox-btn-keys > *:last-child {
+  margin-right: 0px;
+}
+
+.infini__searchbox-btn-key {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  border: 0px;
+  padding: 3px;
+  background: var(--infini__searchbox-key-gradient);
+  box-shadow: var(--infini__searchbox-key-shadow);
+  color: var(--infini__searchbox-muted-color);
+}
+
+@media (max-width: 768px) {
+  .infini__searchbox-btn-keys,
+  .infini__searchbox-btn-placeholder {
+    display: none;
+  }
+}
+
+.infini__searchbox-float-btn {
+  position: fixed;
+  bottom: 32px;
+  right: 32px;
+  z-index: 150;
+  box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 9px 28px 8px rgba(0, 0, 0, 0.05);
+  border: 0;
+  width: 48px;
+  height: 48px;
+  cursor: pointer;
+  background: var(--infini__searchbox-searchbox-background);
+  border-radius: 8px;
+  transition: box-shadow 0.3s;
+}
+
+.infini__searchbox-float-btn:hover,
+.infini__searchbox-float-btn:active,
+.infini__searchbox-float-btn:focus {
+  box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.16), 0 3px 6px -4px rgba(0, 0, 0, 0.24), 0 9px 28px 8px rgba(0, 0, 0, 0.1);
+}
+
+.infini__searchbox-float-btn-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.infini__searchbox-float-btn-icon-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.infini__searchbox-float-btn-icon {
+  width: 32px;
+  height: 32px;
+}
