@@ -24,13 +24,8 @@ export const InsertCode = memo((props) => {
     const code = useMemo(() => {
         return `<div id="searchbox"></div>
 <script type="module" >
-    import { searchbox } from "${window.location.origin}/widgets/searchbox/wrapper.js";
-    searchbox({
-      container: "#searchbox",
-      id: "${id}",
-      token: "${token}",
-      server: "${window.location.origin}"
-    });
+    import { searchbox } from "${window.location.origin}/integration/${id}/widget";
+    searchbox({container: "#searchbox"});
 </script>`
     }, [id, token])
 

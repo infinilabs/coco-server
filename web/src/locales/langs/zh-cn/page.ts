@@ -110,6 +110,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         enabled: "是否启用",
         site_urls: "站点地址",
         connect: "连接",
+        insert_doc: "插入文档",
       }
     },
     edit:{
@@ -203,6 +204,9 @@ const page: App.I18n.Schema['translation']['page'] = {
         type_embedded: "内嵌的",
         type_floating: "浮动的",
         type_all: "内嵌和浮动",
+        type_embedded_placeholder: "内嵌组件提示文本",
+        hotkey: "快捷键",
+        hotkey_placeholder: "设置呼出 CocoAI 的快捷键",
         datasource: "数据源",
         enable_module: "启用模块",
         module_search: "搜索",

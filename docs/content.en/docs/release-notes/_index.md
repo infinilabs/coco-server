@@ -20,6 +20,9 @@ Information about release notes of Coco Server is provided here.
 - Add support for integration CRUD management and CORS configuration (#153)
 - Add api to delete attachment
 - Add dynamic js wrapper for widget
+- Parse document icon at the server side
+- Add suggest topcs to widget integration
+- Add support to filter senstive fields
 
 ### Bug fix
 - Fixed provider info version (#144)

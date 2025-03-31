@@ -5,7 +5,6 @@
 package search
 
 import (
-	"infini.sh/cloud/core/security/rbac"
 	"infini.sh/coco/core"
 	"infini.sh/coco/plugins/security/filter"
 	"infini.sh/framework/core/api"
@@ -21,7 +20,7 @@ const Resource = "search"
 
 func init() {
 
-	permission := security.GetSimplePermission(Category, Resource, string(rbac.Search))
+	permission := security.GetSimplePermission(Category, Resource, string(security.Search))
 	security.AssignPermissionsToRoles(permission, core.WidgetRole)
 
 	handler := APIHandler{}

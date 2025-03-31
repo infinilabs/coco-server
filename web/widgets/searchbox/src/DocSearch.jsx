@@ -1,6 +1,6 @@
 import { DocSearchButton } from "./DocSearchButton";
 import { DocSearchModal } from "./DocSearchModal";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { isAlt, isAppleDevice, isCtrl, isMeta } from "./utils";
 import { DocSearchFloatButton } from "./DocSearchFloatButton";
 
@@ -13,12 +13,17 @@ export const DocSearch = (props) => {
   const [initialQuery, setInitialQuery] = useState();
   const [settings, setSettings] = useState()
 
+  const [triggerBtnType, setTriggerBtnType] = useState('embedded')
   const onOpen = () => setIsOpen(true);
-  const onClose = () => setIsOpen(false);
+  const onClose = () => {
+    setIsOpen(false)
+    setTriggerBtnType()
+  };
   const onInput = (query) => setInitialQuery(query);
-  const onClick = () => {
+  const onClick = (type) => {
     const selectedText = window.getSelection();
     if (selectedText) setInitialQuery(selectedText.toString());
+    setTriggerBtnType(type)
     setIsOpen(true);
   };
 
@@ -34,9 +39,13 @@ export const DocSearch = (props) => {
     );
   }
 
+  const currentHotkeys = useMemo(() => {
+    return settings?.hotkey ? [settings?.hotkey] : hotKeys
+  }, [hotKeys, settings?.hotkey])
+
   function isHotKey(event) {
     const modsAndkeys =
-      hotKeys && hotKeys.map((k) => k.toLowerCase().split("+"));
+    currentHotkeys && currentHotkeys.map((k) => k.toLowerCase().split("+"));
 
     if (modsAndkeys) {
       return modsAndkeys.some((modsAndkeys) => {
@@ -64,8 +73,7 @@ export const DocSearch = (props) => {
             modsAndkeys.some(isCtrl);
           const shift = event.shiftKey == modsAndkeys.includes("shift");
           const alt = event.altKey == modsAndkeys.some(isAlt);
-          const meta =
-            !isAppleDevice() && event.metaKey == modsAndkeys.some(isMeta);
+          const meta = !(isAppleDevice() && event.metaKey == modsAndkeys.some(isMeta));
 
           return ctrl && shift && alt && meta;
         }
@@ -111,16 +119,16 @@ export const DocSearch = (props) => {
   }
 
   function renderButton(settings) {
-    const { type, enabled_module } = settings || {};
+    const { type, options } = settings || {};
     const searchButton = (
       <DocSearchButton
-        buttonText={enabled_module?.search?.placeholder}
-        hotKeys={hotKeys}
-        onClick={onClick}
+        buttonText={options?.placeholder}
+        hotKeys={currentHotkeys}
+        onClick={() => onClick('embedded')}
       />
     )
     const floatButton = (
-      <DocSearchFloatButton onClick={onClick}/>
+      <DocSearchFloatButton onClick={() => onClick('floating')}/>
     )
     if (type === 'floating') {
       return floatButton
@@ -143,7 +151,7 @@ export const DocSearch = (props) => {
     window.removeEventListener("keydown", onKeyDown)
     window.addEventListener("keydown", onKeyDown)
     return () => window.removeEventListener("keydown", onKeyDown)
-  }, [isOpen])
+  }, [isOpen, currentHotkeys])
 
   useEffect(() => {
     fetchSettings(server, id, token)
@@ -158,6 +166,7 @@ export const DocSearch = (props) => {
             settings={settings}
             initialQuery={initialQuery}
             onClose={onClose}
+            triggerBtnType={triggerBtnType}
           />
       )}
     </div>

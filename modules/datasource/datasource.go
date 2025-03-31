@@ -6,8 +6,10 @@ package datasource
 
 import (
 	log "github.com/cihub/seelog"
+	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
+	"infini.sh/framework/core/elastic"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
 	"net/http"
@@ -181,6 +183,30 @@ func (h *APIHandler) searchDatasource(w http.ResponseWriter, req *http.Request, 
 	var err error
 	q := orm.Query{}
 	q.RawQuery, err = h.GetRawBody(req)
+	//attach filter for cors request
+	if integrationID := req.Header.Get(core.HeaderIntegrationID); integrationID != "" {
+		// get datasource by api token
+		datasourceIDs, hasAll, err := common.GetDatasourceByIntegration(integrationID)
+		if err != nil {
+			panic(err)
+		}
+		if !hasAll {
+			if len(datasourceIDs) == 0 {
+				// return empty search result when no datasource found
+				h.WriteJSON(w, elastic.SearchResponse{}, http.StatusOK)
+				return
+			}
+			q.RawQuery, err = core.RewriteQueryWithFilter(q.RawQuery, util.MapStr{
+				"terms": util.MapStr{
+					"id": datasourceIDs,
+				},
+			})
+			if err != nil {
+				h.WriteError(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		}
+	}
 
 	//TODO handle url query args
 	docs := []common.DataSource{}

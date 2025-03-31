@@ -241,5 +241,5 @@ export function isMeta(key: string) {
 }
 
 export function isAppleDevice() {
-  return /(Mac|iPhone|iPod|iPad)/i.test(navigator.platform);
+  return /(Mac|iPhone|iPod|iPad|MacIntel)/i.test(navigator.platform) || navigator.platform.startsWith("Mac");
 }

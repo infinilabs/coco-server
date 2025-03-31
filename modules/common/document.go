@@ -16,9 +16,10 @@ type RichLabel struct {
 }
 
 type DataSourceReference struct {
-	Type string `json:"type,omitempty" elastic_mapping:"type:{type:keyword}"` // ID of the datasource, eg: connector
-	Name string `json:"name,omitempty" elastic_mapping:"name:{type:keyword}"` // Name of the datasource (e.g., "My Github", "My Google Drive", "My Dropbox")
-	ID   string `json:"id,omitempty" elastic_mapping:"id:{type:keyword}"`     // ID of this the datasource, eg: 8ca2fe8cf5027b0f1b5f932b429e38c3
+	Type string `json:"type,omitempty" elastic_mapping:"type:{type:keyword}"`  // ID of the datasource, eg: connector
+	Name string `json:"name,omitempty" elastic_mapping:"name:{type:keyword}"`  // Name of the datasource (e.g., "My Github", "My Google Drive", "My Dropbox")
+	ID   string `json:"id,omitempty" elastic_mapping:"id:{type:keyword}"`      // ID of this the datasource, eg: 8ca2fe8cf5027b0f1b5f932b429e38c3
+	Icon string `json:"icon,omitempty" elastic_mapping:"icon:{enabled:false}"` // Icon Key, need work with datasource's assets to get the icon url, if it is a full url, then use it directly
 }
 
 type Document struct {

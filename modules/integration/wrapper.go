@@ -26,6 +26,7 @@ package integration
 import (
 	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
+	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
 	"io"
 	"net/http"
@@ -38,13 +39,34 @@ func (h *APIHandler) widgetWrapper(w http.ResponseWriter, req *http.Request, ps 
 	if h.wrapperTemplate == nil {
 		panic("invalid wrapper template")
 	}
+
+	integrationID := ps.MustGetParameter("id")
+	obj := common.Integration{}
+	obj.ID = integrationID
+
+	exists, err := orm.Get(&obj)
+	if !exists || err != nil {
+		h.WriteJSON(w, util.MapStr{
+			"_id":    integrationID,
+			"result": "not_found",
+		}, http.StatusNotFound)
+		return
+	}
+
 	info := common.AppConfig()
+	token := obj.Token
+
 	str := h.wrapperTemplate.ExecuteFuncString(func(w io.Writer, tag string) (int, error) {
 		switch tag {
+		case "ID":
+			return w.Write([]byte(integrationID))
 		case "VER":
 			return w.Write([]byte(ver))
 		case "ENDPOINT":
 			endpoint := strings.TrimRight(info.ServerInfo.Endpoint, "/")
+			return w.Write([]byte(endpoint))
+		case "TOKEN":
+			endpoint := token
 			return w.Write([]byte(endpoint))
 		}
 		return -1, nil

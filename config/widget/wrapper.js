@@ -30,7 +30,9 @@ export function searchbox(options) {
   const finalOptions = {
     ...options,
     container: wrapper,
-    server: "$[[ENDPOINT]]", // Default server
+    id: "$[[ID]]",
+    server: "$[[ENDPOINT]]",
+    token: "$[[TOKEN]]"
   };
 
   // Call the original searchbox function

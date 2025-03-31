@@ -111,6 +111,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         enabled: "Enabled",
         site_urls: "Site URLs",
         connect: "Connect",
+        insert_doc: "Insert Document",
       }
     },
     edit:{
@@ -204,6 +205,9 @@ const page: App.I18n.Schema['translation']['page'] = {
         type_embedded: "Embedded",
         type_floating: "Floating",
         type_all: "All",
+        type_embedded_placeholder: "Embedded widget placeholder text",
+        hotkey: "Hotkey",
+        hotkey_placeholder: "Set hotkey to call out CocoAI",
         datasource: "Data Source",
         enable_module: "Enable Module",
         module_search: "Search",

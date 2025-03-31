@@ -5,7 +5,6 @@
 package connector
 
 import (
-	"infini.sh/cloud/core/security/rbac"
 	"infini.sh/coco/core"
 	"infini.sh/coco/plugins/security/filter"
 	"infini.sh/framework/core/api"
@@ -21,11 +20,11 @@ const Datasource = "connector"
 
 func init() {
 
-	createPermission := security.GetSimplePermission(Category, Datasource, string(rbac.Create))
-	updatePermission := security.GetSimplePermission(Category, Datasource, string(rbac.Update))
-	readPermission := security.GetSimplePermission(Category, Datasource, string(rbac.Read))
-	deletePermission := security.GetSimplePermission(Category, Datasource, string(rbac.Delete))
-	searchPermission := security.GetSimplePermission(Category, Datasource, string(rbac.Search))
+	createPermission := security.GetSimplePermission(Category, Datasource, string(security.Create))
+	updatePermission := security.GetSimplePermission(Category, Datasource, string(security.Update))
+	readPermission := security.GetSimplePermission(Category, Datasource, string(security.Read))
+	deletePermission := security.GetSimplePermission(Category, Datasource, string(security.Delete))
+	searchPermission := security.GetSimplePermission(Category, Datasource, string(security.Search))
 	security.GetOrInitPermissionKeys(createPermission, updatePermission, readPermission, deletePermission, searchPermission)
 	security.AssignPermissionsToRoles(searchPermission, core.WidgetRole)
 
@@ -37,7 +36,9 @@ func init() {
 	api.HandleUIMethod(api.DELETE, "/connector/:id", handler.delete, api.RequirePermission(deletePermission))
 
 	api.HandleUIMethod(api.OPTIONS, "/connector/_search", handler.search, api.RequirePermission(searchPermission), api.Feature(filter.FeatureCORS))
-	api.HandleUIMethod(api.GET, "/connector/_search", handler.search, api.RequirePermission(searchPermission), api.Feature(filter.FeatureCORS))
-	api.HandleUIMethod(api.POST, "/connector/_search", handler.search, api.RequirePermission(searchPermission), api.Feature(filter.FeatureCORS))
+	api.HandleUIMethod(api.GET, "/connector/_search", handler.search, api.RequirePermission(searchPermission), api.Feature(filter.FeatureCORS),
+		api.Feature(filter.FeatureMaskSensitiveField))
+	api.HandleUIMethod(api.POST, "/connector/_search", handler.search, api.RequirePermission(searchPermission), api.Feature(filter.FeatureCORS),
+		api.Feature(filter.FeatureMaskSensitiveField))
 
 }

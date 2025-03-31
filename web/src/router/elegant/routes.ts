@@ -268,23 +268,23 @@ export const generatedRoutes: GeneratedRoute[] = [
     },
     children: [
       {
-        name: 'model-provider_list',
-        path: 'list',
-        component: 'view.model-provider_list',
-        meta: {
-          i18nKey: 'route.model-provider_list',
-          title: 'model-provider_list',
-          hideInMenu: true,
-          activeMenu: 'model-provider'
-        }
-      },
-      {
         name: 'model-provider_edit',
         path: 'edit/:id',
         component: 'view.model-provider_edit',
         meta: {
           i18nKey: 'route.model-provider_edit',
           title: 'model-provider_edit',
+          hideInMenu: true,
+          activeMenu: 'model-provider'
+        }
+      },
+      {
+        name: 'model-provider_list',
+        path: 'list',
+        component: 'view.model-provider_list',
+        meta: {
+          i18nKey: 'route.model-provider_list',
+          title: 'model-provider_list',
           hideInMenu: true,
           activeMenu: 'model-provider'
         }
