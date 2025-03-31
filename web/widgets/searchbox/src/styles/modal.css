@@ -22,6 +22,10 @@
 .infini__searchbox-modal {
   display: inline-block;
   margin: 60px auto auto;
+  box-shadow: var(--infini__searchbox-modal-shadow);
+  border: var(--infini__searchbox-modal-border);
+  border-radius: 12px;
+  overflow: hidden;
 }
 
 .infini__searchbox-modal > div {

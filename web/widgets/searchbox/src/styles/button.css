@@ -1,7 +1,7 @@
 .infini__searchbox-btn {
   align-items: center;
   background: var(--infini__searchbox-searchbox-background);
-  border: 1px solid rgba(228,229,240,1);
+  border: var(--infini__searchbox-searchbox-border);
   outline: none;
   border-radius: 8px;
   color: var(--infini__searchbox-muted-color);
