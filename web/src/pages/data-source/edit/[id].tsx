@@ -40,7 +40,9 @@ export function Component() {
   {
     "title": "I am just a Coco doc that you can search",
     "summary": "Nothing but great start",
-    "content": "Coco is a unified private search engien that you can trust."
+    "content": "Coco is a unified private search engien that you can trust.",
+    "url":"http://coco.rs/",
+    "icon": "default"
   }'`;
   const [copyRefUpdated, setCopyRefUpdated] = useState(false);
   useEffect(() => {
@@ -167,7 +169,7 @@ export function Component() {
                   <Form.Item label={t('page.datasource.new.labels.sync_enabled')} name="sync_enabled">
                   <Switch />
                 </Form.Item>
-                </>:<Form.Item label={"插入文档"} name="">
+                </>:<Form.Item label={t('page.datasource.new.labels.insert_doc')} name="">
                     <div className='bg-gray-100 p-1em max-w-660px rounded'>
                       <div>
                         <pre className="whitespace-pre-wrap break-words" dangerouslySetInnerHTML={{__html: insertDocCmd}}></pre>

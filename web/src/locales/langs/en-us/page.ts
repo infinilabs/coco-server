@@ -111,6 +111,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         enabled: "Enabled",
         site_urls: "Site URLs",
         connect: "Connect",
+        insert_doc: "Insert Document",
       }
     },
     edit:{
