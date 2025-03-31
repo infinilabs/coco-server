@@ -31,7 +31,7 @@ func init() {
 	createDocPermission := security.GetSimplePermission(Category, document.Resource, string(rbac.Create))
 
 	security.GetOrInitPermissionKeys(createPermission, updatePermission, readPermission, deletePermission, searchPermission, createDocPermission)
-	security.RegisterPermissionsToRole(core.WidgetRole, readPermission, searchPermission)
+	security.RegisterPermissionsToRole(core.WidgetRole, searchPermission)
 
 	handler := APIHandler{}
 
@@ -40,8 +40,18 @@ func init() {
 	api.HandleUIMethod(api.GET, "/datasource/:id", handler.getDatasource, api.RequirePermission(readPermission))
 	api.HandleUIMethod(api.PUT, "/datasource/:id", handler.updateDatasource, api.RequirePermission(updatePermission))
 	api.HandleUIMethod(api.OPTIONS, "/datasource/_search", handler.searchDatasource, api.RequirePermission(searchPermission), api.Feature(filter.FeatureCORS))
-	api.HandleUIMethod(api.GET, "/datasource/_search", handler.searchDatasource, api.RequirePermission(searchPermission), api.Feature(filter.FeatureCORS))
-	api.HandleUIMethod(api.POST, "/datasource/_search", handler.searchDatasource, api.RequirePermission(searchPermission), api.Feature(filter.FeatureCORS))
+
+	var secretKeys = map[string]bool{}
+	secretKeys["config"] = true
+
+	api.HandleUIMethod(api.GET, "/datasource/_search", handler.searchDatasource, api.RequirePermission(searchPermission),
+		api.Feature(filter.FeatureCORS), api.Feature(filter.FeatureMaskSensitiveField), api.Feature(filter.RemoveSensitiveField),
+		api.Label(filter.SensitiveFields, secretKeys))
+	api.HandleUIMethod(api.POST, "/datasource/_search", handler.searchDatasource, api.RequirePermission(searchPermission),
+		api.Feature(filter.FeatureCORS),
+		api.Feature(filter.FeatureMaskSensitiveField),
+		api.Feature(filter.RemoveSensitiveField),
+		api.Label(filter.SensitiveFields, secretKeys))
 
 	//shortcut to indexing docs into this datasource
 	api.HandleUIMethod(api.POST, "/datasource/:id/_doc", handler.createDocInDatasource, api.RequirePermission(createPermission))

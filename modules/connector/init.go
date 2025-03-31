@@ -37,7 +37,9 @@ func init() {
 	api.HandleUIMethod(api.DELETE, "/connector/:id", handler.delete, api.RequirePermission(deletePermission))
 
 	api.HandleUIMethod(api.OPTIONS, "/connector/_search", handler.search, api.RequirePermission(searchPermission), api.Feature(filter.FeatureCORS))
-	api.HandleUIMethod(api.GET, "/connector/_search", handler.search, api.RequirePermission(searchPermission), api.Feature(filter.FeatureCORS))
-	api.HandleUIMethod(api.POST, "/connector/_search", handler.search, api.RequirePermission(searchPermission), api.Feature(filter.FeatureCORS))
+	api.HandleUIMethod(api.GET, "/connector/_search", handler.search, api.RequirePermission(searchPermission), api.Feature(filter.FeatureCORS),
+		api.Feature(filter.FeatureMaskSensitiveField))
+	api.HandleUIMethod(api.POST, "/connector/_search", handler.search, api.RequirePermission(searchPermission), api.Feature(filter.FeatureCORS),
+		api.Feature(filter.FeatureMaskSensitiveField))
 
 }
