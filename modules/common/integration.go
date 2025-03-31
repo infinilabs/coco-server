@@ -12,9 +12,11 @@ const (
 type Integration struct {
 	CombinedFullText
 
-	Type       string   `json:"type,omitempty" elastic_mapping:"type:{type:keyword,copy_to:combined_fulltext}"` // Type of the Integeration, eg: embedded, floating
-	Name       string   `json:"name,omitempty" elastic_mapping:"name:{type:keyword,copy_to:combined_fulltext}"` // Display name of this embedding
-	Datasource []string `json:"datasource,omitempty" elastic_mapping:"datasource:{type:keyword}"`               // Datasource ID
+	Type       string      `json:"type,omitempty" elastic_mapping:"type:{type:keyword,copy_to:combined_fulltext}"` // Type of the Integeration, eg: embedded, floating
+	Options    interface{} `json:"options,omitempty" elastic_mapping:"options:{type:object,enabled:false}"`        // Type specific options
+	Hotkey     string      `json:"hotkey,omitempty" elastic_mapping:"hotkey:{type:keyword}"`                       // Hotkey for the integration
+	Name       string      `json:"name,omitempty" elastic_mapping:"name:{type:keyword,copy_to:combined_fulltext}"` // Display name of this embedding
+	Datasource []string    `json:"datasource,omitempty" elastic_mapping:"datasource:{type:keyword}"`               // Datasource ID
 
 	EnabledModule ModuleConfig        `json:"enabled_module,omitempty" elastic_mapping:"enabled_module:{type:object}"`                      // Enabled module configuration
 	AccessControl AccessControlConfig `json:"access_control,omitempty" elastic_mapping:"access_control:{type:object}"`                      // Access control configuration
