@@ -20,13 +20,13 @@
   },
   "scripts": {
     "prepublishOnly": "pnpm build",
-    "build": "tsup",
+    "build": "tsup & cp index.html dist/",
     "watch": "tsup --watch",
     "ts:check": "tsc --noEmit",
     "format": "prettier --write \"./**/*.{js,jsx,ts,tsx,json,html,css}\" --ignore-path .gitignore",
     "format:check": "prettier --check \"./**/*.{js,jsx,ts,tsx,json,html,css}\" --ignore-path .gitignore",
     "demo": "cd dist & http-server",
-    "build:server": "tsup & mkdir -p ../../../.public/widgets/searchbox & cp dist/index.css dist/index.js ../../../.public/widgets/searchbox"
+    "build:server": "tsup & mkdir -p ../../../.public/widgets/searchbox & cp index.html dist/index.css dist/index.js ../../../.public/widgets/searchbox"
   },
   "dependencies": {
     "@infinilabs/search-chat": "^1.0.7",
