@@ -68,8 +68,8 @@ func init() {
 	api.HandleUIMethod(api.GET, "/integration/:id/chat/_suggest", handler.viewSuggestTopic, api.RequirePermission(viewSuggestTopicsPermission), api.Feature(filter.FeatureCORS))
 	api.HandleUIMethod(api.OPTIONS, "/integration/:id/chat/_suggest", handler.viewSuggestTopic, api.RequirePermission(viewSuggestTopicsPermission), api.Feature(filter.FeatureCORS))
 
-	api.HandleUIMethod(api.GET, "/integration/widget/wrapper", handler.widgetWrapper, api.AllowPublicAccess(),
+	api.HandleUIMethod(api.GET, "/integration/:id/widget", handler.widgetWrapper, api.AllowPublicAccess(),
 		api.Feature(filter.FeatureCORS), api.Feature(core.FeatureByPassCORSCheck))
-	api.HandleUIMethod(api.OPTIONS, "/integration/widget/wrapper", handler.widgetWrapper, api.AllowPublicAccess(),
+	api.HandleUIMethod(api.OPTIONS, "/integration/:id/widget", handler.widgetWrapper, api.AllowPublicAccess(),
 		api.Feature(filter.FeatureCORS), api.Feature(core.FeatureByPassCORSCheck))
 }
