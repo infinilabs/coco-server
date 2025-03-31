@@ -17,7 +17,7 @@ build-web:
 	(cd web && pnpm install &&  pnpm run build)
 
 build-widget:
-	(cd web/widgets/searchbox && pnpm install && pnpm run build)
+	(cd web/widgets/searchbox && pnpm install && pnpm run build:server)
 
 build-all:
 	make build-web
