@@ -110,6 +110,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         enabled: "是否启用",
         site_urls: "站点地址",
         connect: "连接",
+        insert_doc: "插入文档",
       }
     },
     edit:{

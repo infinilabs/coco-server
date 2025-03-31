@@ -95,9 +95,15 @@ export function Component() {
                     {connector.category === ConnectorCategory.CloudStorage && <div className="flex items-center gap-3px"> <ReactSVG src={CloudDiskSVG} className="font-size-1.2em"/> <span>Cloud Storage</span></div>}
                     <div className="flex items-center gap-3px">  <ReactSVG src={CreatorSVG} className="font-size-1.2em"/>  <span>{connector.author || "INFINI Labs"}</span></div>
                   </div>
-                  <div className="text-gray-500 h-70px">{connector.description}</div>
-                  <div className="text-gray-500 text-12px flex gap-5px mt-1em mt-10px">
-                    {(connector.tags || []).map((tag) => <div className="border border-gray-300 rounded px-5px">{tag}</div>)}
+                  <div className="text-gray-500 h-45px overflow-hidden text-ellipsis">{connector.description}</div>
+                  <div className="h-33px overflow-scroll">
+                    <div className="text-gray-500 text-12px flex gap-5px mt-10px flex-wrap">
+                    {(connector.tags || []).map((tag, index) => (
+                      <div key={index} className="border border-gray-300 rounded px-5px">
+                        {tag}
+                      </div>
+                    ))}
+                    </div>
                   </div>
                 </div>
             </List.Item>
