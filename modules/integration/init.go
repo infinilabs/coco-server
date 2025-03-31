@@ -45,23 +45,31 @@ func init() {
 	readPermission := security.GetSimplePermission(Category, Datasource, string(rbac.Read))
 	deletePermission := security.GetSimplePermission(Category, Datasource, string(rbac.Delete))
 	searchPermission := security.GetSimplePermission(Category, Datasource, string(rbac.Search))
+	updateSuggestTopicsPermission := security.GetSimplePermission(Category, Datasource, string("update_suggest_topics"))
+	viewSuggestTopicsPermission := security.GetSimplePermission(Category, Datasource, string("view_suggest_topics"))
 
 	createDocPermission := security.GetSimplePermission(Category, document.Resource, string(rbac.Create))
 
-	security.GetOrInitPermissionKeys(createPermission, updatePermission, readPermission, deletePermission, searchPermission, createDocPermission)
-	security.RegisterPermissionsToRole(core.WidgetRole, readPermission)
+	security.GetOrInitPermissionKeys(createPermission, updatePermission, readPermission, deletePermission, searchPermission, createDocPermission, updateSuggestTopicsPermission, viewSuggestTopicsPermission)
+	security.RegisterPermissionsToRole(core.WidgetRole, readPermission, viewSuggestTopicsPermission)
 
 	handler := NewAPIHandler()
 	api.HandleUIMethod(api.POST, "/integration/", handler.create, api.RequirePermission(createPermission))
+
+	api.HandleUIMethod(api.GET, "/integration/_search", handler.search, api.RequirePermission(searchPermission))
+	api.HandleUIMethod(api.POST, "/integration/_search", handler.search, api.RequirePermission(searchPermission))
+
 	api.HandleUIMethod(api.OPTIONS, "/integration/:id", handler.get, api.RequirePermission(readPermission), api.Feature(filter.FeatureCORS))
 	api.HandleUIMethod(api.GET, "/integration/:id", handler.get, api.RequirePermission(readPermission), api.Feature(filter.FeatureCORS))
 	api.HandleUIMethod(api.PUT, "/integration/:id", handler.update, api.RequirePermission(updatePermission))
 	api.HandleUIMethod(api.DELETE, "/integration/:id", handler.delete, api.RequirePermission(deletePermission))
-	api.HandleUIMethod(api.GET, "/integration/_search", handler.search, api.RequirePermission(searchPermission))
-	api.HandleUIMethod(api.POST, "/integration/_search", handler.search, api.RequirePermission(searchPermission))
+
+	api.HandleUIMethod(api.POST, "/integration/:id/chat/_suggest", handler.updateSuggestTopic, api.RequirePermission(viewSuggestTopicsPermission), api.Feature(filter.FeatureCORS))
+	api.HandleUIMethod(api.GET, "/integration/:id/chat/_suggest", handler.viewSuggestTopic, api.RequirePermission(viewSuggestTopicsPermission), api.Feature(filter.FeatureCORS))
+	api.HandleUIMethod(api.OPTIONS, "/integration/:id/chat/_suggest", handler.viewSuggestTopic, api.RequirePermission(viewSuggestTopicsPermission), api.Feature(filter.FeatureCORS))
+
 	api.HandleUIMethod(api.GET, "/integration/widget/wrapper", handler.widgetWrapper, api.AllowPublicAccess(),
 		api.Feature(filter.FeatureCORS), api.Feature(core.FeatureByPassCORSCheck))
 	api.HandleUIMethod(api.OPTIONS, "/integration/widget/wrapper", handler.widgetWrapper, api.AllowPublicAccess(),
 		api.Feature(filter.FeatureCORS), api.Feature(core.FeatureByPassCORSCheck))
-
 }

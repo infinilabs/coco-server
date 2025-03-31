@@ -21,6 +21,7 @@ Information about release notes of Coco Server is provided here.
 - Add api to delete attachment
 - Add dynamic js wrapper for widget
 - Parse document icon at the server side
+- Add suggest topcs to widget integration
 
 ### Bug fix
 - Fixed provider info version (#144)
