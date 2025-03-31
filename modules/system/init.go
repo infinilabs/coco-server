@@ -24,7 +24,6 @@
 package system
 
 import (
-	"infini.sh/cloud/core/security/rbac"
 	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/api"
 	httprouter "infini.sh/framework/core/api/router"
@@ -43,8 +42,8 @@ const Resource = "system"
 
 func init() {
 
-	readPermission := security.GetSimplePermission(Category, Resource, string(rbac.Read))
-	updatePermission := security.GetSimplePermission(Category, Resource, string(rbac.Update))
+	readPermission := security.GetSimplePermission(Category, Resource, string(security.Read))
+	updatePermission := security.GetSimplePermission(Category, Resource, string(security.Update))
 
 	security.GetOrInitPermissionKey(readPermission)
 	security.GetOrInitPermissionKey(updatePermission)

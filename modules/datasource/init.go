@@ -5,7 +5,6 @@
 package datasource
 
 import (
-	"infini.sh/cloud/core/security/rbac"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/document"
 	"infini.sh/coco/plugins/security/filter"
@@ -22,13 +21,13 @@ const Datasource = "datasource"
 
 func init() {
 
-	createPermission := security.GetSimplePermission(Category, Datasource, string(rbac.Create))
-	updatePermission := security.GetSimplePermission(Category, Datasource, string(rbac.Update))
-	readPermission := security.GetSimplePermission(Category, Datasource, string(rbac.Read))
-	deletePermission := security.GetSimplePermission(Category, Datasource, string(rbac.Delete))
-	searchPermission := security.GetSimplePermission(Category, Datasource, string(rbac.Search))
+	createPermission := security.GetSimplePermission(Category, Datasource, string(security.Create))
+	updatePermission := security.GetSimplePermission(Category, Datasource, string(security.Update))
+	readPermission := security.GetSimplePermission(Category, Datasource, string(security.Read))
+	deletePermission := security.GetSimplePermission(Category, Datasource, string(security.Delete))
+	searchPermission := security.GetSimplePermission(Category, Datasource, string(security.Search))
 
-	createDocPermission := security.GetSimplePermission(Category, document.Resource, string(rbac.Create))
+	createDocPermission := security.GetSimplePermission(Category, document.Resource, string(security.Create))
 
 	security.GetOrInitPermissionKeys(createPermission, updatePermission, readPermission, deletePermission, searchPermission, createDocPermission)
 	security.RegisterPermissionsToRole(core.WidgetRole, searchPermission)
