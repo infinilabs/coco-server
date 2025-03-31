@@ -2,3 +2,7 @@
 @import "./variables.css";
 @import "./button.css";
 @import "./modal.css";
+
+*:focus-visible {
+    outline: none;
+}

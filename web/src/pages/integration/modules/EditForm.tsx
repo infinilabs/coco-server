@@ -15,6 +15,7 @@ import "./EditForm.css"
 import { useRequest } from '@sa/hooks';
 import { fetchDataSourceList } from '@/service/api';
 import { useLoading } from '@sa/hooks';
+import { HotKeys } from './HotKeys';
 
 function generateRandomString(size) {
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -32,6 +33,8 @@ export const EditForm = memo((props) => {
     const { t } = useTranslation();
     const { defaultRequiredRule } = useFormRules();
     const { endLoading, loading, startLoading } = useLoading();
+
+    const [type, setType] = useState()
 
     const { data: result, run, loading: dataSourceLoading } = useRequest(fetchDataSourceList, {
         manual: true,
@@ -62,7 +65,7 @@ export const EditForm = memo((props) => {
     }, [JSON.stringify(result)])
 
     useEffect(() => {
-      form.setFieldsValue(record ? {
+      const initValue = record ? {
         ...record,
         "cors": {
           ...(record.cors || {}),
@@ -71,6 +74,10 @@ export const EditForm = memo((props) => {
       } : {
         "name": `widget-${generateRandomString(8)}`,
         "type": "embedded",
+        "options": {
+          "placeholder": "Search..."
+        },
+        "hotkey": "ctrl+/",
         "datasource": ['*'],
         "enabled_module": {
           "search": {
@@ -94,7 +101,9 @@ export const EditForm = memo((props) => {
           "enabled": true,
           "allowed_origins": "*"
         }
-      })
+      }
+      form.setFieldsValue(initValue)
+      setType(initValue.type)
     }, [record])
 
     const itemClassNames = '!w-496px'
@@ -148,8 +157,20 @@ export const EditForm = memo((props) => {
                   ),
                 },
               ]}
+              onChange={(e) => {
+                setType(e.target.value)
+              }}
             />
           </Form.Item>
+          {
+            ['embedded', 'all'].includes(type) && (
+              <Form.Item label=" ">
+                <Form.Item className="mb-32px" layout="vertical" label={t('page.integration.form.labels.type_embedded_placeholder')} name={['options', 'placeholder']}>
+                  <Input className={itemClassNames} />
+                </Form.Item>
+              </Form.Item>
+            )
+          }
           <Form.Item label={t('page.integration.form.labels.datasource')} rules={[defaultRequiredRule]} name="datasource">
             <Select
               mode="multiple"
@@ -160,11 +181,10 @@ export const EditForm = memo((props) => {
                 label: item.name,
                 value: item.id,
               })))}
-              onSelect={(value) => {
-                const datasource = form.getFieldValue('datasource');
-                
-              }}
             />
+          </Form.Item>
+          <Form.Item label={t('page.integration.form.labels.hotkey')} name={'hotkey'}>
+            <HotKeys className={itemClassNames} placeholder={t('page.integration.form.labels.hotkey_placeholder')}/>
           </Form.Item>
           <Form.Item label={t('page.integration.form.labels.enable_module')} name="enabled_module">
             <Form.Item className="mb-12px" layout="horizontal" label={t('page.integration.form.labels.module_search')} name={['enabled_module', 'search', 'enabled']}>

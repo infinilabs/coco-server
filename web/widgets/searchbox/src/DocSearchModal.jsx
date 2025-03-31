@@ -6,6 +6,7 @@ export const DocSearchModal = ({
   server,
   settings,
   onClose,
+  triggerBtnType
 }) => {
   // We rely on a CSS property to set the modal height to the full viewport height
   // because all mobile browsers don't compute their height the same way.
@@ -30,7 +31,7 @@ export const DocSearchModal = ({
     }
   }, [])
 
-  const { id, token, enabled_module = {}, appearance = {} } = settings;
+  const { id, type, token, enabled_module = {}, appearance = {} } = settings;
   const { search, ai_chat, features } = enabled_module
 
   const hasModules = []
@@ -39,6 +40,19 @@ export const DocSearchModal = ({
   }
   if (ai_chat?.enabled) {
     hasModules.push('chat')
+  }
+  
+  let defaultModule = 'search'
+  if (type === 'embedded') {
+    defaultModule = 'search'
+  } else if (type === 'floating') {
+    defaultModule = 'chat'
+  } else if (type === 'all') {
+    if (triggerBtnType === 'embedded') {
+      defaultModule = 'search'
+    } else if (triggerBtnType === 'floating') {
+      defaultModule = 'chat'
+    }
   }
 
   return (
@@ -65,6 +79,7 @@ export const DocSearchModal = ({
           theme={appearance?.theme}
           showChatHistory={features?.includes('chat_history')}
           setIsPinned={setIsPinned}
+          defaultModule={defaultModule}
         />
       </div>
     </div>
