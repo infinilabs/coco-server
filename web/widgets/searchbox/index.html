@@ -10,15 +10,8 @@
   
     <script type="module">
       import { searchbox } from "./wrapper.js";
-      const urlParams = new URLSearchParams(window.location.search);
-      const id = urlParams.get('id');
-      const token = urlParams.get('token');
-      const server = urlParams.get('server');
       searchbox({
         container: "#searchbox",
-        id: id,
-        token,
-        server,
       });
     </script>
   </body>
