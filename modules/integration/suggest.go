@@ -27,7 +27,9 @@ import (
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/kv"
 	"infini.sh/framework/core/util"
+	"math/rand"
 	"net/http"
+	"time"
 )
 
 const SuggestTopicPerIntegrationKy = "suggest_topic_integration"
@@ -64,10 +66,17 @@ func (h APIHandler) viewSuggestTopic(w http.ResponseWriter, req *http.Request, p
 		panic(err)
 	}
 
+	err = util.FromJSONBytes(v, &topics)
+	if err != nil {
+		h.Error(w, err)
+	}
+
 	if len(v) > 0 {
-		err = util.FromJSONBytes(v, &topics)
-		if err != nil {
-			h.Error(w, err)
+		if len(topics) > 3 {
+			// Shuffle topics randomly and pick 3
+			rand.Seed(time.Now().UnixNano()) // Ensure randomness
+			rand.Shuffle(len(topics), func(i, j int) { topics[i], topics[j] = topics[j], topics[i] })
+			topics = topics[:3] // Keep only the first 3 topics
 		}
 	}
 
