@@ -5,7 +5,6 @@
 package attachment
 
 import (
-	"infini.sh/cloud/core/security/rbac"
 	"infini.sh/coco/core"
 	"infini.sh/framework/core/api"
 	"infini.sh/framework/core/security"
@@ -20,11 +19,11 @@ const Datasource = "attachment"
 
 func init() {
 
-	createPermission := security.GetSimplePermission(Category, Datasource, string(rbac.Create))
-	updatePermission := security.GetSimplePermission(Category, Datasource, string(rbac.Update))
-	readPermission := security.GetSimplePermission(Category, Datasource, string(rbac.Read))
-	deletePermission := security.GetSimplePermission(Category, Datasource, string(rbac.Delete))
-	searchPermission := security.GetSimplePermission(Category, Datasource, string(rbac.Search))
+	createPermission := security.GetSimplePermission(Category, Datasource, string(security.Create))
+	updatePermission := security.GetSimplePermission(Category, Datasource, string(security.Update))
+	readPermission := security.GetSimplePermission(Category, Datasource, string(security.Read))
+	deletePermission := security.GetSimplePermission(Category, Datasource, string(security.Delete))
+	searchPermission := security.GetSimplePermission(Category, Datasource, string(security.Search))
 
 	security.GetOrInitPermissionKeys(createPermission, updatePermission, readPermission, deletePermission, searchPermission)
 	security.AssignPermissionsToRoles(searchPermission, core.WidgetRole)

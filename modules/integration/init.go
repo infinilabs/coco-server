@@ -5,7 +5,6 @@
 package integration
 
 import (
-	"infini.sh/cloud/core/security/rbac"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/document"
 	"infini.sh/coco/plugins/security/filter"
@@ -40,15 +39,15 @@ func init() {
 	// register allow origin function
 	filter.RegisterAllowOriginFunc("integration", IntegrationAllowOrigin)
 
-	createPermission := security.GetSimplePermission(Category, Datasource, string(rbac.Create))
-	updatePermission := security.GetSimplePermission(Category, Datasource, string(rbac.Update))
-	readPermission := security.GetSimplePermission(Category, Datasource, string(rbac.Read))
-	deletePermission := security.GetSimplePermission(Category, Datasource, string(rbac.Delete))
-	searchPermission := security.GetSimplePermission(Category, Datasource, string(rbac.Search))
+	createPermission := security.GetSimplePermission(Category, Datasource, string(security.Create))
+	updatePermission := security.GetSimplePermission(Category, Datasource, string(security.Update))
+	readPermission := security.GetSimplePermission(Category, Datasource, string(security.Read))
+	deletePermission := security.GetSimplePermission(Category, Datasource, string(security.Delete))
+	searchPermission := security.GetSimplePermission(Category, Datasource, string(security.Search))
 	updateSuggestTopicsPermission := security.GetSimplePermission(Category, Datasource, string("update_suggest_topics"))
 	viewSuggestTopicsPermission := security.GetSimplePermission(Category, Datasource, string("view_suggest_topics"))
 
-	createDocPermission := security.GetSimplePermission(Category, document.Resource, string(rbac.Create))
+	createDocPermission := security.GetSimplePermission(Category, document.Resource, string(security.Create))
 
 	security.GetOrInitPermissionKeys(createPermission, updatePermission, readPermission, deletePermission, searchPermission, createDocPermission, updateSuggestTopicsPermission, viewSuggestTopicsPermission)
 	security.RegisterPermissionsToRole(core.WidgetRole, readPermission, viewSuggestTopicsPermission)

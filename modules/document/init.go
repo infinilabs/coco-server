@@ -5,7 +5,6 @@
 package document
 
 import (
-	"infini.sh/cloud/core/security/rbac"
 	"infini.sh/framework/core/api"
 	"infini.sh/framework/core/security"
 )
@@ -20,11 +19,11 @@ const Resource = "document"
 func init() {
 	handler := APIHandler{}
 
-	createPermission := security.GetSimplePermission(Category, Resource, string(rbac.Create))
-	updatePermission := security.GetSimplePermission(Category, Resource, string(rbac.Update))
-	readPermission := security.GetSimplePermission(Category, Resource, string(rbac.Read))
-	deletePermission := security.GetSimplePermission(Category, Resource, string(rbac.Delete))
-	searchPermission := security.GetSimplePermission(Category, Resource, string(rbac.Search))
+	createPermission := security.GetSimplePermission(Category, Resource, string(security.Create))
+	updatePermission := security.GetSimplePermission(Category, Resource, string(security.Update))
+	readPermission := security.GetSimplePermission(Category, Resource, string(security.Read))
+	deletePermission := security.GetSimplePermission(Category, Resource, string(security.Delete))
+	searchPermission := security.GetSimplePermission(Category, Resource, string(security.Search))
 	security.GetOrInitPermissionKeys(createPermission, updatePermission, readPermission, deletePermission, searchPermission)
 
 	//for internal document management, security should be enabled
