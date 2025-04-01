@@ -159,6 +159,11 @@ export const DocSearch = (props) => {
     fetchSettings(server, id, token)
   }, [server, id, token])
 
+  useEffect(() => {
+    const body = document.body;
+    body.style.overflow = isOpen ? 'hidden' : 'auto';
+  }, [isOpen])
+
   return (
     <div id="infini__searchbox" data-theme={settings?.appearance?.theme}>
       {renderButton(settings)}
