@@ -260,6 +260,7 @@ export const generatedRoutes: GeneratedRoute[] = [
     name: 'model-provider',
     path: '/model-provider',
     component: 'layout.base',
+    redirect: 'list',
     meta: {
       i18nKey: 'route.model-provider',
       title: 'model-provider',

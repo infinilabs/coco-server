@@ -4,6 +4,7 @@ import { Button, List, Image, Switch, Tag, message, MenuProps, Modal, Dropdown} 
 import { ReactSVG } from "react-svg";
 import {searchModelPovider, updateModelProvider, deleteModelProvider} from "@/service/api/llm";
 import { formatESSearchResult } from '@/service/request/es';
+import '/assets/fonts/test/iconfont.js';
 const { confirm } = Modal;
 // const modelProviders = [{
 //   name: "OpenAI",
@@ -104,23 +105,23 @@ export function Component() {
     }
   }
   
-  useEffect(()=>{
-    fetch("http://localhost:9000/connector/_search", {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer token",
-        "X-API-TOKEN": "cvifokdath21us181efgzuls8ozx1kv0d6rzxw02gp4azx809mlba8n3wg14asdh2x596pjymalik2954y46", 
-        "APP-INTEGRATION-ID":"cvhmcqlath272nmlj10x"
-      },
-    })
-      .then((res) => {
-        console.log(res.headers.get("Authorization")); // Debug header
-        return res.json();
-      })
-      .then((data) => console.log(data))
-      .catch((err) => console.error("Fetch error:", err));
-  }, [])
+  // useEffect(()=>{
+  //   fetch("http://localhost:9000/connector/_search", {
+  //     method: "GET",
+  //     headers: {
+  //       "Content-Type": "application/json",
+  //       "Authorization": "Bearer token",
+  //       "X-API-TOKEN": "cvifokdath21us181efgzuls8ozx1kv0d6rzxw02gp4azx809mlba8n3wg14asdh2x596pjymalik2954y46", 
+  //       "APP-INTEGRATION-ID":"cvhmcqlath272nmlj10x"
+  //     },
+  //   })
+  //     .then((res) => {
+  //       console.log(res.headers.get("Authorization")); // Debug header
+  //       return res.json();
+  //     })
+  //     .then((data) => console.log(data))
+  //     .catch((err) => console.error("Fetch error:", err));
+  // }, [])
   const onEditClick = (id: string)=>{
     nav(`/model-provider/edit/${id}`);
   }

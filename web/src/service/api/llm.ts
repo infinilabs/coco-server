@@ -9,6 +9,13 @@ export function searchModelPovider(params: any) {
   const query: any = {
     from: params.from || 0,
     size: params.size || 10,
+    sort: [
+      {
+        "created": {
+          "order": "desc"
+        }
+      }
+    ],
   }
   if (params.query) {
     query['query'] = {
@@ -63,5 +70,24 @@ export function getModelProvider(providerID: string) {
   return request({
     method: 'get',
     url: `/model_provider/${providerID}`
+  });
+}
+
+export function getLLMModels() {
+  const query: any = {
+    size: 0,
+    aggs: {
+      models: {
+        terms: {
+          field: 'models',
+          size: 100
+        }
+      }
+    }
+  }
+  return request<Api.LLM.ModelProvider>({
+    method: 'post',
+    data: query,
+    url: '/model_provider/_search'
   });
 }

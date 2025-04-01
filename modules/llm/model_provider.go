@@ -81,6 +81,7 @@ func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprou
 
 	//protect
 	newObj.ID = id
+	newObj.Name = obj.Name
 	newObj.Created = obj.Created
 	ctx := &orm.Context{
 		Refresh: orm.WaitForRefresh,
@@ -109,6 +110,10 @@ func (h *APIHandler) delete(w http.ResponseWriter, req *http.Request, ps httprou
 			"_id":    id,
 			"result": "not_found",
 		}, http.StatusNotFound)
+		return
+	}
+	if obj.Builtin {
+		h.WriteError(w, "Built-in model providers cannot be deleted", http.StatusForbidden)
 		return
 	}
 

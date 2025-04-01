@@ -7,7 +7,7 @@ import {
 } from 'antd';
 import type { FormProps } from 'antd';
 import {getConnectorIcons} from '@/service/api/connector';
-import {getModelProvider, updateModelProvider} from '@/service/api/llm';
+import {getModelProvider, updateModelProvider, getLLMModels} from '@/service/api/llm';
 import { IconSelector } from "../../connector/new/icon_selector";
 import {ModelsComponent} from "../new/index";
 import { LoaderFunctionArgs, useLoaderData } from 'react-router-dom';

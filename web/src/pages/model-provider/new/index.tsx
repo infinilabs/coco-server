@@ -7,10 +7,11 @@ import {
   Switch,
 } from 'antd';
 import type { FormProps } from 'antd';
-import {createModelProvider} from '@/service/api/llm';
+import {createModelProvider, getLLMModels} from '@/service/api/llm';
 import {getConnectorIcons} from '@/service/api/connector';
 import { IconSelector } from "../../connector/new/icon_selector";
 import {DeleteOutlined} from "@ant-design/icons";
+import { formatESSearchResult } from '@/service/request/es';
 
 export function Component() {
   const { t } = useTranslation();
@@ -116,15 +117,17 @@ export const ModelsComponent = ({ value = [], onChange }: any) => {
   const [models, setModels] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
-  //   //TODO: get models from server
-//   useEffect(() => {
-//     // getConnectorCategory().then((res)=>{
-//     //   if(res.data?.length > 0){
-//     //     setModels(res.data);
-//     //   }
-//     //   setLoading(false);
-//     // });
-//   }, []);
+  useEffect(() => {
+    getLLMModels().then(({data})=>{
+      if(!data?.error){
+        const newData = formatESSearchResult(data);
+        const models = newData.aggregations.models.buckets.map((item: any)=>{
+          return item.key;
+        });
+        setModels(models);
+      }
+    });
+  }, []);
 
   const onDeleteClick = (key: string) => {
     const newValues = innerValue.filter((v) => v.key !== key);
