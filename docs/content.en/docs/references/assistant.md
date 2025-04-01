@@ -12,7 +12,7 @@ weight: 50
 
 ```shell
 //request
-curl -XGET http://localhost:9000/chat/_history
+curl -XGET http://localhost:9000/chat/_history?query={filter_keyword}
 
 //response
 {"took":997,"timed_out":false,"_shards":{"total":1,"successful":1,"skipped":0,"failed":0},"hits":{"total":{"value":1,"relation":"eq"},"max_score":1.0,"hits":[{"_index":".infini_session","_type":"_doc","_id":"csk30fjq50k7l4akku9g","_score":1.0,"_source":{"id":"csk30fjq50k7l4akku9g","created":"2024-11-04T10:23:58.980669+08:00","updated":"2024-11-04T10:23:58.980678+08:00","status":"active"}}]}}
