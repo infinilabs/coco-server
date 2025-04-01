@@ -7,6 +7,37 @@ weight: 50
 
 ## Assistant API Reference
 
+
+### Retrieve Chat History (sessions)
+
+```shell
+//request
+curl -XGET http://localhost:9000/chat/_history
+
+//response
+{"took":997,"timed_out":false,"_shards":{"total":1,"successful":1,"skipped":0,"failed":0},"hits":{"total":{"value":1,"relation":"eq"},"max_score":1.0,"hits":[{"_index":".infini_session","_type":"_doc","_id":"csk30fjq50k7l4akku9g","_score":1.0,"_source":{"id":"csk30fjq50k7l4akku9g","created":"2024-11-04T10:23:58.980669+08:00","updated":"2024-11-04T10:23:58.980678+08:00","status":"active"}}]}}
+```
+
+### Open a Existing Chat Session
+
+```shell
+//request
+curl  -H 'Content-Type: application/json'   -XPOST http://localhost:9000/chat/csk30fjq50k7l4akku9g/_open
+
+//response
+{
+  "_id": "csk30fjq50k7l4akku9g",
+  "_source": {
+    "id": "csk30fjq50k7l4akku9g",
+    "created": "2024-11-04T10:23:58.980669+08:00",
+    "updated": "2024-11-04T10:25:20.541856+08:00",
+    "status": "active"
+  },
+  "found": true
+}
+```
+
+
 ### Create a Chat Session
 
 ```shell
@@ -36,32 +67,52 @@ Tips: `WEBSOCKET-SESSION-ID` should be replaced with the actual WebSocket sessio
 
 {{% load-img "/img/websocket-on-connect.jpg?raw=true" "WebSocket ID" %}}
 
-### Retrieve Chat History (sessions)
-
+### Get Chat Session Info
 ```shell
 //request
-curl -XGET http://localhost:9000/chat/_history
-
-//response
-{"took":997,"timed_out":false,"_shards":{"total":1,"successful":1,"skipped":0,"failed":0},"hits":{"total":{"value":1,"relation":"eq"},"max_score":1.0,"hits":[{"_index":".infini_session","_type":"_doc","_id":"csk30fjq50k7l4akku9g","_score":1.0,"_source":{"id":"csk30fjq50k7l4akku9g","created":"2024-11-04T10:23:58.980669+08:00","updated":"2024-11-04T10:23:58.980678+08:00","status":"active"}}]}}
-```
-
-### Open a Existing Chat Session
-
-```shell
-//request
-curl  -H 'Content-Type: application/json'   -XPOST http://localhost:9000/chat/csk30fjq50k7l4akku9g/_open
+curl -XGET http://localhost:9000/chat/csk30fjq50k7l4akku9g
 
 //response
 {
   "_id": "csk30fjq50k7l4akku9g",
   "_source": {
     "id": "csk30fjq50k7l4akku9g",
-    "created": "2024-11-04T10:23:58.980669+08:00",
-    "updated": "2024-11-04T10:25:20.541856+08:00",
-    "status": "active"
+    "created": "2025-04-01T10:48:38.389295+08:00",
+    "updated": "2025-04-01T10:48:40.572748+08:00",
+    "status": "active",
+    "title": "xx"
   },
   "found": true
+}
+```
+
+### Update Chat Session Info
+```shell
+//request
+curl -XPUT http://localhost:9000/chat/csk30fjq50k7l4akku9g -d'
+{
+    "title":"my title",
+    "context":{
+        "attachments":[]
+    }
+}'
+
+//response
+{
+  "_id": "csk30fjq50k7l4akku9g",
+  "result": "updated"
+}
+```
+
+### Delete Chat Session
+```shell
+//request
+curl -DELETE http://localhost:9000/chat/csk30fjq50k7l4akku9g
+
+//response
+{
+  "_id": "csk30fjq50k7l4akku9g",
+  "result": "deleted"
 }
 ```
 
