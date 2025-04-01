@@ -10,6 +10,7 @@
 .infini__searchbox-modal-container {
   background-color: var(--infini__searchbox-modal-container-background);
   height: 100vh;
+  min-height: 590px;
   left: 0;
   position: fixed;
   top: 0;
@@ -23,7 +24,6 @@
 .infini__searchbox-modal {
   display: inline-block;
   position: relative;
-  top: -10%;
   box-shadow: var(--infini__searchbox-modal-shadow);
   border-radius: 12px;
   overflow: hidden;
