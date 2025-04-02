@@ -10,6 +10,8 @@ Information about release notes of Coco Server is provided here.
 ## Latest (In development)  
 ### Breaking changes  
 ### Features  
+- Add chat session management API
+
 ### Bug fix  
 ### Improvements  
 

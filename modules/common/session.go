@@ -28,7 +28,13 @@ import "infini.sh/framework/core/orm"
 type Session struct {
 	orm.ORMObjectBase
 	Status               string `config:"status" json:"status,omitempty" elastic_mapping:"status:{type:keyword}"`
-	Title                string `config:"title" json:"title,omitempty" elastic_mapping:"title:{type:keyword}"`
+	Title                string `json:"title,omitempty" elastic_mapping:"title:{type:keyword,copy_to:combined_fulltext,fields:{text: {type: text}, pinyin: {type: text, analyzer: pinyin_analyzer}}}"` // Document title
 	Summary              string `config:"summary" json:"summary,omitempty" elastic_mapping:"summary:{type:keyword}"`
 	ManuallyRenamedTitle bool   `config:"manually_renamed_title" json:"manually_renamed_title,omitempty" elastic_mapping:"manually_renamed_title:{type:boolean}"`
+
+	Context *SessionContext `config:"context" json:"context,omitempty" elastic_mapping:"context:{type:object}"`
+}
+
+type SessionContext struct {
+	Attachments []string `config:"attachments" json:"attachments,omitempty" elastic_mapping:"attachments:{type:keyword}"`
 }

@@ -17,11 +17,132 @@ import (
 	"sync"
 )
 
+func (h APIHandler) getSession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	id := ps.MustGetParameter("session_id")
+
+	obj := common.Session{}
+	obj.ID = id
+
+	exists, err := orm.Get(&obj)
+	if !exists || err != nil {
+		h.WriteJSON(w, util.MapStr{
+			"_id":    id,
+			"result": "not_found",
+		}, http.StatusNotFound)
+		return
+	}
+
+	h.WriteJSON(w, util.MapStr{
+		"found":   true,
+		"_id":     id,
+		"_source": obj,
+	}, 200)
+}
+
+func (h APIHandler) deleteSession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	id := ps.MustGetParameter("session_id")
+
+	obj := common.Session{}
+	obj.ID = id
+
+	exists, err := orm.Get(&obj)
+	if !exists || err != nil {
+		h.WriteJSON(w, util.MapStr{
+			"_id":    id,
+			"result": "not_found",
+		}, http.StatusNotFound)
+		return
+	}
+
+	//deleting related documents
+	query := util.MapStr{
+		"query": util.MapStr{
+			"term": util.MapStr{
+				"session_id": id,
+			},
+		},
+	}
+	err = orm.DeleteBy(&ChatMessage{}, util.MustToJSONBytes(query))
+	if err != nil {
+		log.Errorf("delete related documents with chat session [%s], error: %v", id, err)
+	}
+
+	err = orm.Delete(nil, &obj)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	h.WriteJSON(w, util.MapStr{
+		"_id":    obj.ID,
+		"result": "deleted",
+	}, 200)
+}
+
+func (h APIHandler) updateSession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	id := ps.MustGetParameter("session_id")
+	obj := common.Session{}
+	var err error
+	err = h.DecodeJSON(req, &obj)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	previousObj := common.Session{}
+	previousObj.ID = id
+	exists, err := orm.Get(&previousObj)
+	if !exists || err != nil {
+		h.WriteJSON(w, util.MapStr{
+			"_id":    id,
+			"result": "not_found",
+		}, http.StatusNotFound)
+		return
+	}
+
+	var changed = false
+	if obj.Context != nil {
+		previousObj.Context = obj.Context
+		changed = true
+	}
+
+	if obj.Title != "" {
+		previousObj.Title = obj.Title
+		previousObj.ManuallyRenamedTitle = true
+		changed = true
+	}
+
+	if !changed {
+		h.WriteError(w, "no changes found", 400)
+		return
+	}
+
+	//protect
+	ctx := &orm.Context{
+		Refresh: orm.WaitForRefresh,
+	}
+	err = orm.Update(ctx, &previousObj)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	h.WriteJSON(w, util.MapStr{
+		"_id":    id,
+		"result": "updated",
+	}, 200)
+}
+
 func (h APIHandler) getChatSessions(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
 	q := orm.Query{}
 	q.From = h.GetIntOrDefault(req, "from", 0)
 	q.Size = h.GetIntOrDefault(req, "size", 20)
+	query := h.GetParameterOrDefault(req, "query", "")
+	if query != "" {
+		q.Conds = orm.Or(orm.Prefix("title", query), orm.QueryString("*", query))
+	}
+
 	q.AddSort("updated", orm.DESC)
 	err, res := orm.Search(&common.Session{}, &q)
 	if err != nil {
