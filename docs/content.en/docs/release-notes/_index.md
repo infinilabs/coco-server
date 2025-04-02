@@ -11,9 +11,10 @@ Information about release notes of Coco Server is provided here.
 ### Breaking changes  
 ### Features  
 - Add chat session management API
+- Add support for font icons (#183)
 
 ### Bug fix  
-### Improvements  
+### Improvements
 
 ## 0.3.0 (2025-03-31)
 
