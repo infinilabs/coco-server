@@ -7,6 +7,7 @@ import Icon, { FilterOutlined, PlusOutlined, ExclamationCircleOutlined, Ellipsis
 import type { TableColumnsType, MenuProps } from "antd";
 import { formatESSearchResult } from '@/service/request/es';
 import { GoogleDriveSVG, HugoSVG, YuqueSVG,NotionSVG } from '@/components/icons';
+import InfiniIcon from '@/components/common/icon';
 const { confirm } = Modal;
 type Connector = Api.Datasource.Connector;
 
@@ -167,7 +168,7 @@ const ConnectorSettings = memo(() => {
         return (
           <div className="flex items-center">
             {svgIcon ? <Icon component={svgIcon} /> : 
-            <Image  src={record.icon} height="1em" width="1em" preview={false}/>}
+            <InfiniIcon src={record.icon} width="1em" height="1em"/>}
             <span className="ml-2">{name}</span>
           </div>
         )

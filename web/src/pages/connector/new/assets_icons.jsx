@@ -66,7 +66,7 @@ export const AssetsIcons = ({value={}, onChange, iconsMeta=[]}) => {
   return (
     <div className="assets-icons mt-3px">
       <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }} className="w-100%">
-        <Col key="icon" span={6}>{t('page.connector.new.labels.asset_icon')}</Col>
+        <Col key="icon" span={10}>{t('page.connector.new.labels.asset_icon')}</Col>
         <Col key="type" span={5}>{t('page.connector.new.labels.asset_type')}</Col>
         <Col key="oper" span={8}></Col>
       </Row>
@@ -109,7 +109,7 @@ const AssetsIcon = ({value = {}, onChange, onRemove, icons=[]}) => {
   }
 
   return <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }} className="w-100% my-5px">
-        <Col span={6}>
+        <Col span={10}>
           <IconSelector icons={icons} type="file" value={innerValue.icon || ''} onChange={onIconChange} />
         </Col>
         <Col span={5}>
