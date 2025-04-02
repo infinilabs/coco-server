@@ -73,7 +73,7 @@ import { formatESSearchResult } from '@/service/request/es';
               labelCol={{ span: 4 }}
               wrapperCol={{ span: 18 }}
               layout="horizontal"
-              initialValues={{assets_icons:{"default":"/assets/icons/connector/google_drive/document.png"}}}
+              initialValues={{assets_icons:{"default":"font_Google-document"}}}
               colon={false}
               autoComplete="off"
               onFinish={onFinish}
@@ -86,7 +86,7 @@ import { formatESSearchResult } from '@/service/request/es';
                <Select options={categories.map(cate=>{return{value: cate}})} placeholder="Select or input a category" mode='tags' maxCount={1} className='max-w-600px'/>
               </Form.Item>
               <Form.Item label={t('page.connector.new.labels.icon')} name="icon" rules={[{ required: true}]}>
-                <IconSelector type="connector" icons={iconsMeta} className='max-w-150px' />
+                <IconSelector type="connector" icons={iconsMeta} className='max-w-600px' />
               </Form.Item>
               <Form.Item label={t('page.connector.new.labels.assets_icons')} name="assets_icons">
                 <AssetsIcons iconsMeta={iconsMeta}/>

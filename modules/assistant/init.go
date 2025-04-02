@@ -46,6 +46,10 @@ func init() {
 	api.HandleUIMethod(api.POST, "/chat/:session_id/_send", handler.sendChatMessage, api.RequirePermission(createPermission), api.Feature(filter.FeatureCORS))
 	api.HandleUIMethod(api.OPTIONS, "/chat/:session_id/_send", handler.sendChatMessage, api.RequirePermission(createPermission), api.Feature(filter.FeatureCORS))
 
+	api.HandleUIMethod(api.GET, "/chat/:session_id", handler.getSession, api.RequirePermission(readPermission), api.Feature(filter.FeatureCORS))
+	api.HandleUIMethod(api.PUT, "/chat/:session_id", handler.updateSession, api.RequirePermission(updatePermission), api.Feature(filter.FeatureCORS))
+	api.HandleUIMethod(api.DELETE, "/chat/:session_id", handler.deleteSession, api.RequirePermission(deletePermission), api.Feature(filter.FeatureCORS))
+
 	api.HandleUIMethod(api.POST, "/chat/:session_id/_cancel", handler.cancelReplyMessage, api.RequirePermission(manageChatSessionPermission), api.Feature(filter.FeatureCORS))
 	api.HandleUIMethod(api.OPTIONS, "/chat/:session_id/_cancel", handler.cancelReplyMessage, api.RequirePermission(manageChatSessionPermission), api.Feature(filter.FeatureCORS))
 

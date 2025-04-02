@@ -101,6 +101,13 @@ func (h *APIHandler) setupServer(w http.ResponseWriter, req *http.Request, ps ht
 	} else if info.ServerInfo.Name == "" {
 		info.ServerInfo.Name = "My Coco Server"
 	}
+	if info.ServerInfo.Endpoint == "" {
+		var schema = "http"
+		if req.TLS != nil {
+			schema = "https"
+		}
+		info.ServerInfo.Endpoint = fmt.Sprintf("%s://%s", schema, req.Host)
+	}
 
 	if input.Password == "" {
 		panic("password can't be empty")

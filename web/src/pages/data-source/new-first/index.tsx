@@ -7,6 +7,7 @@ import { Button, List, Image } from "antd";
 import { ReactSVG } from "react-svg";
 import {searchConnector} from "@/service/api/connector";
 import { formatESSearchResult } from '@/service/request/es';
+import InfiniIcon from '@/components/common/icon';
 
 const ConnectorCategory = {
   CloudStorage: "cloud_storage",
@@ -87,7 +88,7 @@ export function Component() {
                   <PlusOutlined className="font-bold text-1.4em"/>
                 </Button>
                   <div className="flex items-center gap-8px">
-                  <Image src={connector.icon} height="2.6em" width="2.6em" preview={false}/><span className="font-size-1.2em">{connector.name}</span>
+                  <InfiniIcon src={connector.icon} height="2.6em" width="2.6em" className="text-2.6em"/><span className="font-size-1.2em">{connector.name}</span>
                     {/* <Icon component={connector.icon} className="font-size-2.6em"/> <span className="font-size-1.2em">{connector.name}</span> */}
                   </div>
                   <div className="flex items-center gap-2em text-gray-500 my-1em">
