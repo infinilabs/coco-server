@@ -5,6 +5,7 @@ import Search from "antd/es/input/Search";
 import Icon, { FilterOutlined, DownOutlined, ExclamationCircleOutlined, EllipsisOutlined } from "@ant-design/icons";
 import {fetchDatasourceDetail, deleteDocument, updateDocument, batchDeleteDocument, getConnector} from '@/service/api';
 import { formatESSearchResult } from '@/service/request/es';
+import InfiniIcon from '@/components/common/icon';
 const { confirm } = Modal;
 
 interface DataType {
@@ -152,7 +153,7 @@ const rowSelection: TableProps<DataType>["rowSelection"] = {
         if(connector?.assets?.icons){
           imgSrc = connector.assets.icons[record.icon];
         }
-        return <span className="inline-flex items-center gap-1">{imgSrc && <Image preview={false} height="1em" width="1em" src={imgSrc} className="mr-3px" />}<a target="_blank" href={record.url} className="text-blue-500">{text}</a></span>
+        return <span className="inline-flex items-center gap-1">{imgSrc && <InfiniIcon height="1em" width="1em" src={imgSrc} className="mr-3px" />}<a target="_blank" href={record.url} className="text-blue-500">{text}</a></span>
       },
     },
     {

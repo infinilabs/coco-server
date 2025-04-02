@@ -1,0 +1,450 @@
+{
+  "id": "4878526",
+  "name": "Coco server assets",
+  "font_family": "iconfont",
+  "css_prefix_text": "font_",
+  "description": "",
+  "glyphs": [
+    {
+      "icon_id": "43875761",
+      "name": "Google-pdf",
+      "font_class": "Google-pdf",
+      "unicode": "e73e",
+      "unicode_decimal": 59198
+    },
+    {
+      "icon_id": "43875668",
+      "name": "notion-page",
+      "font_class": "page",
+      "unicode": "e735",
+      "unicode_decimal": 59189
+    },
+    {
+      "icon_id": "43875667",
+      "name": "notion-database",
+      "font_class": "database",
+      "unicode": "e73d",
+      "unicode_decimal": 59197
+    },
+    {
+      "icon_id": "43875545",
+      "name": "Google-script",
+      "font_class": "Google-script",
+      "unicode": "e731",
+      "unicode_decimal": 59185
+    },
+    {
+      "icon_id": "43875546",
+      "name": "Google-photo",
+      "font_class": "Google-photo",
+      "unicode": "e732",
+      "unicode_decimal": 59186
+    },
+    {
+      "icon_id": "43875542",
+      "name": "Google-ms-excel",
+      "font_class": "Google-ms-excel",
+      "unicode": "e733",
+      "unicode_decimal": 59187
+    },
+    {
+      "icon_id": "43875544",
+      "name": "Google-ms-word",
+      "font_class": "Google-ms-word",
+      "unicode": "e734",
+      "unicode_decimal": 59188
+    },
+    {
+      "icon_id": "43875540",
+      "name": "Google-drawing",
+      "font_class": "Google-drawing",
+      "unicode": "e736",
+      "unicode_decimal": 59190
+    },
+    {
+      "icon_id": "43875538",
+      "name": "Google-form",
+      "font_class": "Google-form",
+      "unicode": "e737",
+      "unicode_decimal": 59191
+    },
+    {
+      "icon_id": "43875539",
+      "name": "Google-map",
+      "font_class": "Google-map",
+      "unicode": "e738",
+      "unicode_decimal": 59192
+    },
+    {
+      "icon_id": "43875541",
+      "name": "Google-fusiontable",
+      "font_class": "Google-fusiontable",
+      "unicode": "e739",
+      "unicode_decimal": 59193
+    },
+    {
+      "icon_id": "43875537",
+      "name": "Google-audio",
+      "font_class": "Google-audio",
+      "unicode": "e73b",
+      "unicode_decimal": 59195
+    },
+    {
+      "icon_id": "43875536",
+      "name": "Google-document",
+      "font_class": "Google-document",
+      "unicode": "e73c",
+      "unicode_decimal": 59196
+    },
+    {
+      "icon_id": "43875552",
+      "name": "Google-zip",
+      "font_class": "Google-zip",
+      "unicode": "e72b",
+      "unicode_decimal": 59179
+    },
+    {
+      "icon_id": "43875551",
+      "name": "Google-video",
+      "font_class": "Google-video",
+      "unicode": "e72c",
+      "unicode_decimal": 59180
+    },
+    {
+      "icon_id": "43875547",
+      "name": "Google-ms-powerpoint",
+      "font_class": "Google-ms-powerpoint",
+      "unicode": "e72d",
+      "unicode_decimal": 59181
+    },
+    {
+      "icon_id": "43875550",
+      "name": "Google-presentation",
+      "font_class": "Google-presentation",
+      "unicode": "e72e",
+      "unicode_decimal": 59182
+    },
+    {
+      "icon_id": "43875549",
+      "name": "Google-spreadsheet",
+      "font_class": "Google-spreadsheet",
+      "unicode": "e72f",
+      "unicode_decimal": 59183
+    },
+    {
+      "icon_id": "43875548",
+      "name": "Google-site",
+      "font_class": "Google-site",
+      "unicode": "e730",
+      "unicode_decimal": 59184
+    },
+    {
+      "icon_id": "11448884",
+      "name": "Googledrive-folder",
+      "font_class": "Googledrive-folder",
+      "unicode": "e80c",
+      "unicode_decimal": 59404
+    },
+    {
+      "icon_id": "43873999",
+      "name": "yuque-directory",
+      "font_class": "yuque-directory",
+      "unicode": "e72a",
+      "unicode_decimal": 59178
+    },
+    {
+      "icon_id": "43873978",
+      "name": "yuque-sheet",
+      "font_class": "yuque-sheet",
+      "unicode": "e724",
+      "unicode_decimal": 59172
+    },
+    {
+      "icon_id": "43873979",
+      "name": "yuque-folder",
+      "font_class": "yuque-folder",
+      "unicode": "e725",
+      "unicode_decimal": 59173
+    },
+    {
+      "icon_id": "43873980",
+      "name": "yuque-table",
+      "font_class": "yuque-table",
+      "unicode": "e726",
+      "unicode_decimal": 59174
+    },
+    {
+      "icon_id": "43873981",
+      "name": "yuque-book",
+      "font_class": "yuque-book",
+      "unicode": "e727",
+      "unicode_decimal": 59175
+    },
+    {
+      "icon_id": "43873982",
+      "name": "yuque-board",
+      "font_class": "yuque-board",
+      "unicode": "e728",
+      "unicode_decimal": 59176
+    },
+    {
+      "icon_id": "43873983",
+      "name": "yuque-doc",
+      "font_class": "yuque-doc",
+      "unicode": "e729",
+      "unicode_decimal": 59177
+    },
+    {
+      "icon_id": "43873414",
+      "name": "hugo-news",
+      "font_class": "hugo-news",
+      "unicode": "e71f",
+      "unicode_decimal": 59167
+    },
+    {
+      "icon_id": "43873413",
+      "name": "hugo-web",
+      "font_class": "hugo-web",
+      "unicode": "e721",
+      "unicode_decimal": 59169
+    },
+    {
+      "icon_id": "43873412",
+      "name": "hugo-webpage",
+      "font_class": "hugo-webpage",
+      "unicode": "e722",
+      "unicode_decimal": 59170
+    },
+    {
+      "icon_id": "43873411",
+      "name": "hugo-blog",
+      "font_class": "hugo-blog",
+      "unicode": "e723",
+      "unicode_decimal": 59171
+    },
+    {
+      "icon_id": "3176645",
+      "name": "GitHub",
+      "font_class": "GitHub",
+      "unicode": "ea0a",
+      "unicode_decimal": 59914
+    },
+    {
+      "icon_id": "4498136",
+      "name": "simplenote",
+      "font_class": "simplenote",
+      "unicode": "e9b7",
+      "unicode_decimal": 59831
+    },
+    {
+      "icon_id": "10558429",
+      "name": "有道云笔记",
+      "font_class": "youdao",
+      "unicode": "e603",
+      "unicode_decimal": 58883
+    },
+    {
+      "icon_id": "10559101",
+      "name": "notion",
+      "font_class": "icon-test",
+      "unicode": "e600",
+      "unicode_decimal": 58880
+    },
+    {
+      "icon_id": "16384155",
+      "name": "onenote",
+      "font_class": "onenote",
+      "unicode": "e621",
+      "unicode_decimal": 58913
+    },
+    {
+      "icon_id": "21093982",
+      "name": "个人网盘",
+      "font_class": "personal-storage",
+      "unicode": "e668",
+      "unicode_decimal": 58984
+    },
+    {
+      "icon_id": "21721547",
+      "name": "文件类型-记事本",
+      "font_class": "filetype-txt",
+      "unicode": "e6a4",
+      "unicode_decimal": 59044
+    },
+    {
+      "icon_id": "21721548",
+      "name": "文件类型-工作表",
+      "font_class": "filetype-xls",
+      "unicode": "e6a5",
+      "unicode_decimal": 59045
+    },
+    {
+      "icon_id": "21721549",
+      "name": "文件类型-幻灯片",
+      "font_class": "filetype-ppt",
+      "unicode": "e6a6",
+      "unicode_decimal": 59046
+    },
+    {
+      "icon_id": "21721550",
+      "name": "文件类型-视频文件",
+      "font_class": "filetype-video",
+      "unicode": "e6a7",
+      "unicode_decimal": 59047
+    },
+    {
+      "icon_id": "21721551",
+      "name": "文件类型-文件夹",
+      "font_class": "filetype-folder",
+      "unicode": "e6a8",
+      "unicode_decimal": 59048
+    },
+    {
+      "icon_id": "21721552",
+      "name": "文件类型-图片文件",
+      "font_class": "filetype-img",
+      "unicode": "e6a9",
+      "unicode_decimal": 59049
+    },
+    {
+      "icon_id": "21721555",
+      "name": "文件类型-链接",
+      "font_class": "filetype-link",
+      "unicode": "e6ac",
+      "unicode_decimal": 59052
+    },
+    {
+      "icon_id": "21721556",
+      "name": "文件类型-PDF",
+      "font_class": "filetype-PDF",
+      "unicode": "e6ad",
+      "unicode_decimal": 59053
+    },
+    {
+      "icon_id": "21721557",
+      "name": "文件类型-Word",
+      "font_class": "filetype-word",
+      "unicode": "e6ae",
+      "unicode_decimal": 59054
+    },
+    {
+      "icon_id": "21721558",
+      "name": "文件类型-声音文件",
+      "font_class": "filetype-sound",
+      "unicode": "e6af",
+      "unicode_decimal": 59055
+    },
+    {
+      "icon_id": "23253537",
+      "name": "石墨文档",
+      "font_class": "shimodoc",
+      "unicode": "e604",
+      "unicode_decimal": 58884
+    },
+    {
+      "icon_id": "25383493",
+      "name": "Googledrive",
+      "font_class": "Googledrive",
+      "unicode": "e609",
+      "unicode_decimal": 58889
+    },
+    {
+      "icon_id": "27374302",
+      "name": "bucket",
+      "font_class": "bucket",
+      "unicode": "e9ac",
+      "unicode_decimal": 59820
+    },
+    {
+      "icon_id": "33247314",
+      "name": "腾讯文档",
+      "font_class": "tengxundoc",
+      "unicode": "e6ed",
+      "unicode_decimal": 59117
+    },
+    {
+      "icon_id": "34066906",
+      "name": "印象笔记",
+      "font_class": "yinxiangbiji",
+      "unicode": "e610",
+      "unicode_decimal": 58896
+    },
+    {
+      "icon_id": "34778465",
+      "name": "金山文档",
+      "font_class": "jinshandoc",
+      "unicode": "e7c0",
+      "unicode_decimal": 59328
+    },
+    {
+      "icon_id": "36346709",
+      "name": "icon-feishu",
+      "font_class": "icon-feishu",
+      "unicode": "e60b",
+      "unicode_decimal": 58891
+    },
+    {
+      "icon_id": "36721488",
+      "name": "语雀",
+      "font_class": "yuque",
+      "unicode": "e720",
+      "unicode_decimal": 59168
+    },
+    {
+      "icon_id": "38395965",
+      "name": "obsidian",
+      "font_class": "obsidian",
+      "unicode": "e677",
+      "unicode_decimal": 58999
+    },
+    {
+      "icon_id": "42852092",
+      "name": "成果推广培训",
+      "font_class": "icon-book",
+      "unicode": "e614",
+      "unicode_decimal": 58900
+    },
+    {
+      "icon_id": "42854325",
+      "name": "情景知识推荐",
+      "font_class": "icon-book2",
+      "unicode": "e616",
+      "unicode_decimal": 58902
+    },
+    {
+      "icon_id": "42854326",
+      "name": "智能问答",
+      "font_class": "icon-robot",
+      "unicode": "e617",
+      "unicode_decimal": 58903
+    },
+    {
+      "icon_id": "43319608",
+      "name": "hugo",
+      "font_class": "hugo",
+      "unicode": "e73a",
+      "unicode_decimal": 59194
+    },
+    {
+      "icon_id": "2932540",
+      "name": "mysql",
+      "font_class": "mysql",
+      "unicode": "e636",
+      "unicode_decimal": 58934
+    },
+    {
+      "icon_id": "26699429",
+      "name": "windows",
+      "font_class": "windows",
+      "unicode": "e62c",
+      "unicode_decimal": 58924
+    },
+    {
+      "icon_id": "41234501",
+      "name": "ollama",
+      "font_class": "ollama",
+      "unicode": "e675",
+      "unicode_decimal": 58997
+    }
+  ]
+}
