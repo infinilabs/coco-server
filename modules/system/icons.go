@@ -166,10 +166,14 @@ func transformIconfont(input []byte) []IconInfo {
 	var result []IconInfo
 	for _, glyph := range iconfontAsset.Glyphs {
 		// Use the font class as the icon name, final icon svg source locate at /assets/fonts/icons/iconfont.js
+		fontPath := glyph.FontClass
+		if iconfontAsset.CSSPrefixText != "" {
+			fontPath = fmt.Sprintf("%s%s", iconfontAsset.CSSPrefixText, fontPath)
+		}
 		result = append(result, IconInfo{
 			Source: SourceFonts,
-			Name:   glyph.FontClass,
-			Path:   glyph.FontClass,
+			Name:   fontPath,
+			Path:   fontPath,
 		})
 	}
 	return result

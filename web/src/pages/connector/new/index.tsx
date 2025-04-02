@@ -73,7 +73,7 @@ import { formatESSearchResult } from '@/service/request/es';
               labelCol={{ span: 4 }}
               wrapperCol={{ span: 18 }}
               layout="horizontal"
-              initialValues={{assets_icons:{"default":"Google-document"}}}
+              initialValues={{assets_icons:{"default":"font_Google-document"}}}
               colon={false}
               autoComplete="off"
               onFinish={onFinish}

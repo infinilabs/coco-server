@@ -2,7 +2,7 @@
   "id": "4878526",
   "name": "Coco server assets",
   "font_family": "iconfont",
-  "css_prefix_text": "",
+  "css_prefix_text": "font_",
   "description": "",
   "glyphs": [
     {
