@@ -15,6 +15,7 @@ Information about release notes of Coco Server is provided here.
 
 ### Bug fix  
 ### Improvements
+- Set built-in connector icons as read-only
 
 ## 0.3.0 (2025-03-31)
 
