@@ -27,7 +27,7 @@ const local: App.I18n.Schema['translation'] = {
     pin: 'Pin',
     reload: 'Reload Page',
     themeConfig: 'Theme Configuration',
-    themeSchema: 'Theme Schema',
+    themeSchema: 'Theme',
     unpin: 'Unpin'
   },
   page,

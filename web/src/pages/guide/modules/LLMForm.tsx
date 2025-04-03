@@ -16,10 +16,10 @@ const LLMForm = memo(({ form, onSubmit, loading }: { form: FormInstance, onSubmi
 
     return (
         <>
-            <div className="text-32px color-#333 m-b-16px">
+            <div className="text-32px color-[var(--ant-color-text-heading)] m-b-16px">
                 {t('page.guide.llm.title')}
             </div>
-            <div className="text-16px color-#999 m-b-64px">
+            <div className="text-16px color-[var(--ant-color-text)] m-b-64px">
                 {t('page.guide.llm.desc')}
             </div>
             <Form

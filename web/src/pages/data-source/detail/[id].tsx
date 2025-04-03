@@ -219,50 +219,53 @@ const rowSelection: TableProps<DataType>["rowSelection"] = {
   }
 
   return (
-    <div className="bg-white pt-15px pb-15px">
-      <div>
-        <div className="mb-4 flex items-center text-lg font-bold">
-          <div className="w-10px h-1.2em bg-[#1677FF] mr-20px"></div>
-          <div>{datasource_name}</div>
-        </div>
-      </div>
-      <div className="p-5 pt-2">
-        <div className="mb-4 mt-4 flex items-center justify-between">
-          <Search
-            addonBefore={<FilterOutlined />}
-            className="max-w-500px"
-            enterButton= {t('common.refresh')}
-            onSearch={onRefreshClick}
-          />
-          <div>
-            <Dropdown.Button
-              icon={<DownOutlined />}
-              menu={{ items, onClick: onBatchMenuClick }}
-              type="primary"
-            >
-              {t('common.operation')}
-            </Dropdown.Button>
+    <div className="h-full min-h-500px">
+        <ACard
+          bordered={false}
+          className="min-h-full flex-col-stretch sm:flex-1-auto card-wrapper"
+        >
+          <div className='ml--16px mb-4 flex items-center text-lg font-bold'>
+            <div className="w-10px h-1.2em bg-[#1677FF] mr-20px"></div>
+            <div>{datasource_name}</div>
           </div>
-        </div>
-        <Table<DataType>
-          size="middle"
-          rowKey="id"
-          rowSelection={{ ...rowSelection }}
-          columns={columns}
-          loading={loading}
-          onChange={onTableChange}
-          pagination={
-            {
-              showTotal:(total, range) => `${range[0]}-${range[1]} of ${total} items`,
-              defaultPageSize:20,
-              defaultCurrent: 1,
-              total: data.total?.value || data?.total,
-              showSizeChanger: true,
-            }
-          }
-          dataSource={data.data || []}
-        />
-      </div>
+          <div className="p-5 pt-2">
+            <div className="mb-4 mt-4 flex items-center justify-between">
+              <Search
+                addonBefore={<FilterOutlined />}
+                className="max-w-500px"
+                enterButton= {t('common.refresh')}
+                onSearch={onRefreshClick}
+              />
+              <div>
+                <Dropdown.Button
+                  icon={<DownOutlined />}
+                  menu={{ items, onClick: onBatchMenuClick }}
+                  type="primary"
+                >
+                  {t('common.operation')}
+                </Dropdown.Button>
+              </div>
+            </div>
+            <Table<DataType>
+              size="middle"
+              rowKey="id"
+              rowSelection={{ ...rowSelection }}
+              columns={columns}
+              loading={loading}
+              onChange={onTableChange}
+              pagination={
+                {
+                  showTotal:(total, range) => `${range[0]}-${range[1]} of ${total} items`,
+                  defaultPageSize:20,
+                  defaultCurrent: 1,
+                  total: data.total?.value || data?.total,
+                  showSizeChanger: true,
+                }
+              }
+              dataSource={data.data || []}
+            />
+          </div>
+        </ACard>
     </div>
   );
 }

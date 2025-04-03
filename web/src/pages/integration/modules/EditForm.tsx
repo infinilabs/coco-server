@@ -16,6 +16,7 @@ import { useRequest } from '@sa/hooks';
 import { fetchDataSourceList } from '@/service/api';
 import { useLoading } from '@sa/hooks';
 import { HotKeys } from './HotKeys';
+import { getDarkMode } from '@/store/slice/theme';
 
 function generateRandomString(size) {
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -33,6 +34,8 @@ export const EditForm = memo((props) => {
     const { t } = useTranslation();
     const { defaultRequiredRule } = useFormRules();
     const { endLoading, loading, startLoading } = useLoading();
+
+    const darkMode = useAppSelector(getDarkMode);
 
     const [type, setType] = useState()
 
@@ -107,6 +110,7 @@ export const EditForm = memo((props) => {
     }, [record])
 
     const itemClassNames = '!w-496px'
+    const imageClassNames = darkMode ? "brightness-30 saturate-0" : ""
   
     return (
       <Spin spinning={props.loading || loading || false}>
@@ -134,7 +138,7 @@ export const EditForm = memo((props) => {
                   label: (
                     <div>
                       {t('page.integration.form.labels.type_embedded')}
-                      <img src={Embedded} />
+                      <img src={Embedded} className={imageClassNames}/>
                     </div>
                   ),
                 },
@@ -143,7 +147,7 @@ export const EditForm = memo((props) => {
                   label: (
                     <div>
                       {t('page.integration.form.labels.type_floating')}
-                      <img src={Floating} />
+                      <img src={Floating} className={imageClassNames}/>
                     </div>
                   ),
                 },
@@ -152,7 +156,7 @@ export const EditForm = memo((props) => {
                   label: (
                     <div>
                       {t('page.integration.form.labels.type_all')}
-                      <img src={All} />
+                      <img src={All} className={imageClassNames}/>
                     </div>
                   ),
                 },

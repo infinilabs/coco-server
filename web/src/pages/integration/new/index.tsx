@@ -19,14 +19,19 @@ export function Component() {
   }
 
   return (
-    <div className="bg-white pt-15px pb-15px min-h-full">
-      <div className='mb-4 flex items-center text-lg font-bold'>
-        <div className="w-10px h-1.2em bg-[#1677FF] mr-20px"></div>
-        <div>{t(`page.integration.form.title.new`)}</div>
-      </div>
-      <div className="px-30px">
-        <EditForm onSubmit={onSubmit} actionText={t('common.save')}/>
-      </div>
+    <div className="h-full min-h-500px">
+      <ACard
+        bordered={false}
+        className="min-h-full flex-col-stretch sm:flex-1-hidden card-wrapper"
+      >
+        <div className='ml--16px mb-4 flex items-center text-lg font-bold'>
+          <div className="w-10px h-1.2em bg-[#1677FF] mr-20px"></div>
+          <div>{t(`page.integration.form.title.new`)}</div>
+        </div>
+        <div className="px-30px">
+          <EditForm onSubmit={onSubmit} actionText={t('common.save')}/>
+        </div>
+      </ACard>
     </div>
   )
 }

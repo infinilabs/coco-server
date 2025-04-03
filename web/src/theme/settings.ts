@@ -49,7 +49,7 @@ export const themeSettings: App.Theme.ThemeSetting = {
     visible: false
   },
   themeColor: '#0087FF',
-  themeScheme: 'light',
+  themeScheme: 'auto',
   tokens: {
     dark: {
       colors: {
@@ -84,40 +84,10 @@ export const themeSettings: App.Theme.ThemeSetting = {
  * If publish new version, use `overrideThemeSettings` to override certain theme settings
  */
 export const overrideThemeSettings: Partial<App.Theme.ThemeSetting> = {
-  colourWeakness: false,
-  fixedHeaderAndTab: true,
-  footer: {
-    fixed: false,
-    height: 48,
-    right: true,
-    visible: false
-  },
-  grayscale: false,
-  header: {
-    breadcrumb: {
-      showIcon: true,
-      visible: true
-    },
-    height: 56
-  },
-  isInfoFollowPrimary: true,
-  isOnlyExpandCurrentParentMenu: true,
-  layout: {
-    mode: 'vertical',
-    reverseHorizontalMix: false,
-    scrollMode: 'content'
-  },
-  otherColor: {
-    error: '#f5222d',
-    info: '#2080f0',
-    success: '#52c41a',
-    warning: '#faad14'
-  },
   page: {
     animate: false,
     animateMode: 'none'
   },
-  recommendColor: false,
   sider: {
     collapsedWidth: 64,
     inverted: false,
@@ -126,14 +96,8 @@ export const overrideThemeSettings: Partial<App.Theme.ThemeSetting> = {
     mixWidth: 90,
     width: 258
   },
-  tab: {
-    cache: true,
-    height: 44,
-    mode: 'chrome',
-    visible: false
-  },
   themeColor: '#0087FF',
-  themeScheme: 'light',
+  themeScheme: 'auto',
   tokens: {
     dark: {
       colors: {

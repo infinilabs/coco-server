@@ -49,7 +49,7 @@ export function Component() {
     return (
         <div
             className="relative size-full flex-center overflow-hidden bg-layout"
-            style={{ backgroundColor: bgThemeColor }}
+            style={{ backgroundColor: "rgb(var(--layout-bg-color))" }}
         >
             <div className="p-10px absolute right-0 top-0">
               <LangSwitch className="px-12px" />
@@ -57,7 +57,7 @@ export function Component() {
             <div className="w-1/3 h-100% bg-top-left sm:bg-center-left md:bg-center-left bg-[size:100%_auto] bg-no-repeat" style={{ backgroundImage: `url(${backgroundImage})` }}>
                 
             </div>
-            <div className="h-100% w-2/3 bg-white">
+            <div className="h-100% w-2/3">
               <div className="size-full flex flex-col items-left justify-center px-10% overflow-auto">
                 {
                   cocoAIVisible ? (

@@ -9,10 +9,10 @@ const UserForm = memo(({ form, onSubmit }: { form: FormInstance, onSubmit: () =>
 
     return (
         <>
-            <div className="text-32px color-#333 m-b-16px">
+            <div className="text-32px color-[var(--ant-color-text-heading)] m-b-16px">
                 {t('page.guide.user.title')}
             </div>
-            <div className="text-16px color-#999 m-b-64px">
+            <div className="text-16px color-[var(--ant-color-text)] m-b-64px">
                 {t('page.guide.user.desc')}
             </div>
             <Form

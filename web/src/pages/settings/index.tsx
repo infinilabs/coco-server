@@ -32,6 +32,8 @@ export function Component() {
   ];
 
   return (
-    <Tabs className="settings-tabs" defaultActiveKey={searchParams.get('tab') || items[0].key} items={items} onChange={onChange} />
+    <ACard styles={{ body: { padding: 0 }}}>
+      <Tabs className="settings-tabs" defaultActiveKey={searchParams.get('tab') || items[0].key} items={items} onChange={onChange} />
+    </ACard>
   )
 }

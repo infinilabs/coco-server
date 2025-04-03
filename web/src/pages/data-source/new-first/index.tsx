@@ -81,7 +81,7 @@ export function Component() {
           dataSource={data.data}
           renderItem={(connector) => (
             <List.Item>
-               <div className="relative p-1em border border-gray-300 group rounded-[8px] hover:bg-gray-100 hover:bg-opacity-100">
+               <div className="relative p-1em border border-[var(--ant-color-border)] group rounded-[8px] hover:bg-[var(--ant-control-item-bg-hover)] ">
                 <Button type="primary" onClick={()=>{
                   onAddClick(connector.id)
                 }} className="absolute hidden group-hover:block top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">

@@ -3,6 +3,7 @@ import { Button, Card, Col, Form, Input, Row, Spin } from "antd";
 import { useLoading, useRequest } from '@sa/hooks';
 import { fetchServer, updateSettings } from "@/service/api/server";
 import Clipboard from 'clipboard';
+import { getDarkMode } from "@/store/slice/theme";
 
 const SETTINGS = [
   {
@@ -30,6 +31,7 @@ export function Component() {
     const domRef = useRef<HTMLDivElement | null>(null);
     const [form] = Form.useForm();
     const { endLoading, loading, startLoading } = useLoading();
+    const darkMode = useAppSelector(getDarkMode);
 
     const {
       defaultRequiredRule
@@ -90,7 +92,7 @@ export function Component() {
       <Spin spinning={dataLoading || loading}>
         <Card className="m-b-12px px-32px py-40px" classNames={{ body: "!p-0" }}>
           <div className={`flex ${isNameEditing ? '[align-items:self-end]' : 'items-center'} m-b-48px`}>
-            <div className={`h-40px leading-40px m-r-16px text-32px color-#333 relative ${isNameEditing ? 'w-344px' : ''}`}>
+            <div className={`h-40px leading-40px m-r-16px text-32px color-[var(--ant-color-text-heading)] relative ${isNameEditing ? 'w-344px' : ''}`}>
               {
                 isNameEditing && (
                   <Form
@@ -116,15 +118,16 @@ export function Component() {
                 }
               }} 
               type="link" 
-              className="w-40px h-40px bg-#F7F9FC !hover:bg-#F7F9FC rounded-12px p-0">
+              style={{ background: `${darkMode ? 'var(--ant-color-border)' : '#F7F9FC'} !important`}}
+              className={`w-40px h-40px rounded-12px p-0`}>
               <SvgIcon className="text-24px" icon={isNameEditing ? "mdi:content-save" : "mdi:square-edit-outline"}/>
             </Button>
           </div>
-          <div className="m-b-16px text-20px color-#333">
+          <div className="m-b-16px text-20px color-[var(--ant-color-text-heading)]">
             {t('page.home.server.address')}
           </div>
           <div className="flex m-b-16px">
-            <div className="w-400px h-48px color-#333 m-r-8px bg-#F7F9FC leading-48px rounded-4px relative p-r-30px"> 
+            <div className="bg-[var(--ant-color-border)] w-400px h-48px color-[var(--ant-color-text-heading)] m-r-8px leading-48px rounded-[var(--ant-border-radius)] relative p-r-30px"> 
               {
                 isEndpointEditing ? (
                   <Form
@@ -158,7 +161,7 @@ export function Component() {
               <Button className="w-100px h-48px" type="primary"><SvgIcon className="text-24px" icon="mdi:content-copy" /></Button>
             </div>
           </div>
-          <div className="m-b-16px color-#888">
+          <div className="m-b-16px color-var(--ant-color-text)">
             {t('page.home.server.addressDesc')}
           </div>
           <Button type="link" className="px-0" onClick={() => window.open('https://coco.rs/#install', '_blank')}>
@@ -170,8 +173,8 @@ export function Component() {
             {
               SETTINGS.map((item) => (
                 <Col key={item.key} md={12} lg={8} className="m-b-24px">
-                  <div className="text-20px color-#333 m-b-16px">{t(`page.home.settings.${item.key}`)}</div>
-                  <div className="color-#888 m-b-45px h-60px">{t(`page.home.settings.${item.key}Desc`)}</div>
+                  <div className="text-20px color-[var(--ant-color-text-heading)] m-b-16px">{t(`page.home.settings.${item.key}`)}</div>
+                  <div className="color-var(--ant-color-text) m-b-45px h-60px">{t(`page.home.settings.${item.key}Desc`)}</div>
                   <Button disabled={!item.link} onClick={() => item.link && routerPush.routerPush(item.link)} type="primary" className="w-40px h-40px rounded-12px text-24px p-0">{item.icon}</Button>
                 </Col>
               ))
