@@ -6,10 +6,12 @@ import {
   Select,
 } from 'antd';
 import type { FormProps } from 'antd';
-import {updateConnector, getConnectorIcons} from '@/service/api/connector';
+import {updateConnector, getConnectorIcons, getConnectorCategory} from '@/service/api/connector';
  import {AssetsIcons} from '../new/assets_icons';
  import { IconSelector } from "../new/icon_selector";
  import { Tags } from '@/components/common/tags';
+ import InfiniIcon from '@/components/common/icon';
+ import { formatESSearchResult } from '@/service/request/es';
 
 export function Component() {
   const { t } = useTranslation();
@@ -31,11 +33,13 @@ export function Component() {
       icon: values.icon,
       category: category,
       tags: values.tags,
-      // "url": "http://coco.rs/connectors/google_drive", 
       assets: {
           icons: values.assets_icons,
       },
-      config: {
+      config: {}
+    }
+    if(connectorID === "google_drive"){
+      sValues.config = {
         client_id: values.client_id,
         client_secret: values.client_secret,
         redirect_url: values.redirect_url,
@@ -43,6 +47,7 @@ export function Component() {
         token_url: values.token_url,
       }
     }
+  
     updateConnector(connectorID, sValues).then((res)=>{
       if(res.data?.result == "updated"){
         message.success(t('common.updateSuccess'))
@@ -55,6 +60,19 @@ export function Component() {
     getConnectorIcons().then((res)=>{
       if(res.data?.length > 0){
         setIconsMeta(res.data);
+      }
+    });
+  }, []);
+
+  const [categories, setCategories] = useState([]);
+  useEffect(() => {
+    getConnectorCategory().then(({data})=>{
+      if(!data?.error){
+        const newData = formatESSearchResult(data);
+        const cates = newData.aggregations.categories.buckets.map((item: any)=>{
+          return item.key;
+        });
+        setCategories(cates);
       }
     });
   }, []);
@@ -87,13 +105,14 @@ export function Component() {
               <Input className='max-w-600px' />
             </Form.Item>
             <Form.Item label={t('page.connector.new.labels.category')} rules={[{ required: true}]} name="category">
-              <Select mode='tags' maxTagCount={1} className='max-w-600px'/>
+              <Select options={categories.map(cate=>{return{value: cate}})} mode='tags' maxTagCount={1} className='max-w-600px'/>
             </Form.Item>
             <Form.Item label={t('page.connector.new.labels.icon')} rules={[{ required: true}]} name="icon">
-              <IconSelector icons={iconsMeta} className='max-w-200px' />
+              {initialConnector.builtin === true ? <InfiniIcon width="2em" height="2em" className="w-2em h-2em" src={initialConnector.icon} />:
+              <IconSelector icons={iconsMeta} className='max-w-200px' readonly={initialConnector.builtin === true} />}
             </Form.Item>
             <Form.Item label={t('page.connector.new.labels.assets_icons')} name="assets_icons">
-              <AssetsIcons iconsMeta={iconsMeta}/>
+            {initialConnector.builtin === true ? <AssetsIconsView/> :<AssetsIcons iconsMeta={iconsMeta} readonly={initialConnector.builtin === true}/>}
             </Form.Item>
             {connectorID === "google_drive" && <>
               <Form.Item
@@ -145,5 +164,25 @@ export function Component() {
 
         </div>
       </div>
+  </div>
+}
+
+const AssetsIconsView = ({value={}})=>{
+  const { t } = useTranslation();
+  const icons = Object.keys(value).map((key)=>{
+    return {
+      type: key,
+      icon: value[key],
+    }
+  });
+  return <div className='flex flex-col'>
+    <div className='flex flex-wrap gap-10px'>
+      {icons.map((icon, index)=>{
+        return <div key={index} className='flex items-center gap-5px'>
+          <InfiniIcon width="1em" height="1em" className="w-1em h-1em" src={icon.icon} />
+          <span>{icon.type}</span>
+        </div>
+      })}
+    </div>
   </div>
 }
