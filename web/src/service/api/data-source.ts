@@ -5,6 +5,13 @@ export function fetchDataSourceList(params?: any) {
   const query: any = {
     from: params.from || 0,
     size: params.size || 10,
+    sort: [
+      {
+        "created": {
+          "order": "desc"
+        }
+      }
+    ]
   }
   if (params.query) {
     query['query'] = {

@@ -57,6 +57,10 @@ const route: App.I18n.Schema['translation']['route'] = {
   'guide': '初始化向导',
   'api-token': 'API Token',
   'api-token_list': 'API Token',
+  'integration': '嵌入组件',
+  'integration_list': '嵌入组件',
+  'integration_new': '新增嵌入组件',
+  'integration_edit': '编辑嵌入组件'
 };
 
 export default route;

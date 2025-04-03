@@ -1,0 +1,20 @@
+.full-screen-modal .ant-modal {
+    width: 100% !important;
+    max-width: none;
+    height: 100%;
+    margin: 0;
+    top: 0;
+    padding: 0;
+}
+
+.full-screen-modal .ant-modal-content {
+    height: 100vh;
+    border-radius: 0;
+    padding: 0;
+}
+
+.full-screen-modal .ant-modal-body {
+    height: 100%;
+    overflow: auto;
+    position: relative;
+}

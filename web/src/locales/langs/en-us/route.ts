@@ -57,6 +57,10 @@ const route: App.I18n.Schema['translation']['route'] = {
   'guide': 'Guide',
   'api-token': 'API Token',
   'api-token_list': 'API Token',
+  'integration': 'Integration',
+  'integration_list': 'Integration',
+  'integration_new': 'New Integration',
+  'integration_edit': 'Edit Integration'
 };
 
 export default route;

@@ -7,6 +7,7 @@ package assistant
 import (
 	log "github.com/cihub/seelog"
 	_ "github.com/tmc/langchaingo/llms/ollama"
+	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/api/websocket"
 	"infini.sh/framework/core/orm"
@@ -16,12 +17,120 @@ import (
 	"sync"
 )
 
-type Session struct {
-	orm.ORMObjectBase
-	Status               string `config:"status" json:"status,omitempty" elastic_mapping:"status:{type:keyword}"`
-	Title                string `config:"title" json:"title,omitempty" elastic_mapping:"title:{type:keyword}"`
-	Summary              string `config:"summary" json:"summary,omitempty" elastic_mapping:"summary:{type:keyword}"`
-	ManuallyRenamedTitle bool   `config:"manually_renamed_title" json:"manually_renamed_title,omitempty" elastic_mapping:"manually_renamed_title:{type:boolean}"`
+func (h APIHandler) getSession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	id := ps.MustGetParameter("session_id")
+
+	obj := common.Session{}
+	obj.ID = id
+
+	exists, err := orm.Get(&obj)
+	if !exists || err != nil {
+		h.WriteJSON(w, util.MapStr{
+			"_id":    id,
+			"result": "not_found",
+		}, http.StatusNotFound)
+		return
+	}
+
+	h.WriteJSON(w, util.MapStr{
+		"found":   true,
+		"_id":     id,
+		"_source": obj,
+	}, 200)
+}
+
+func (h APIHandler) deleteSession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	id := ps.MustGetParameter("session_id")
+
+	obj := common.Session{}
+	obj.ID = id
+
+	exists, err := orm.Get(&obj)
+	if !exists || err != nil {
+		h.WriteJSON(w, util.MapStr{
+			"_id":    id,
+			"result": "not_found",
+		}, http.StatusNotFound)
+		return
+	}
+
+	//deleting related documents
+	query := util.MapStr{
+		"query": util.MapStr{
+			"term": util.MapStr{
+				"session_id": id,
+			},
+		},
+	}
+	err = orm.DeleteBy(&ChatMessage{}, util.MustToJSONBytes(query))
+	if err != nil {
+		log.Errorf("delete related documents with chat session [%s], error: %v", id, err)
+	}
+
+	err = orm.Delete(nil, &obj)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	h.WriteJSON(w, util.MapStr{
+		"_id":    obj.ID,
+		"result": "deleted",
+	}, 200)
+}
+
+func (h APIHandler) updateSession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	id := ps.MustGetParameter("session_id")
+	obj := common.Session{}
+	var err error
+	err = h.DecodeJSON(req, &obj)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	previousObj := common.Session{}
+	previousObj.ID = id
+	exists, err := orm.Get(&previousObj)
+	if !exists || err != nil {
+		h.WriteJSON(w, util.MapStr{
+			"_id":    id,
+			"result": "not_found",
+		}, http.StatusNotFound)
+		return
+	}
+
+	var changed = false
+	if obj.Context != nil {
+		previousObj.Context = obj.Context
+		changed = true
+	}
+
+	if obj.Title != "" {
+		previousObj.Title = obj.Title
+		previousObj.ManuallyRenamedTitle = true
+		changed = true
+	}
+
+	if !changed {
+		h.WriteError(w, "no changes found", 400)
+		return
+	}
+
+	//protect
+	ctx := &orm.Context{
+		Refresh: orm.WaitForRefresh,
+	}
+	err = orm.Update(ctx, &previousObj)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	h.WriteJSON(w, util.MapStr{
+		"_id":    id,
+		"result": "updated",
+	}, 200)
 }
 
 func (h APIHandler) getChatSessions(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -29,8 +138,13 @@ func (h APIHandler) getChatSessions(w http.ResponseWriter, req *http.Request, ps
 	q := orm.Query{}
 	q.From = h.GetIntOrDefault(req, "from", 0)
 	q.Size = h.GetIntOrDefault(req, "size", 20)
+	query := h.GetParameterOrDefault(req, "query", "")
+	if query != "" {
+		q.Conds = orm.Or(orm.Prefix("title", query), orm.QueryString("*", query))
+	}
+
 	q.AddSort("updated", orm.DESC)
-	err, res := orm.Search(&Session{}, &q)
+	err, res := orm.Search(&common.Session{}, &q)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -51,7 +165,7 @@ func (h APIHandler) newChatSession(w http.ResponseWriter, req *http.Request, ps 
 		//TODO, should panic after v0.2
 	}
 
-	obj := Session{
+	obj := common.Session{
 		Status: "active",
 	}
 
@@ -90,7 +204,7 @@ func (h APIHandler) newChatSession(w http.ResponseWriter, req *http.Request, ps 
 func (h APIHandler) openChatSession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("session_id")
 
-	obj := Session{}
+	obj := common.Session{}
 	obj.ID = id
 
 	exists, err := orm.Get(&obj)
@@ -228,7 +342,7 @@ func (h APIHandler) sendChatMessage(w http.ResponseWriter, req *http.Request, ps
 func (h APIHandler) closeChatSession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
 	id := ps.MustGetParameter("session_id")
-	obj := Session{}
+	obj := common.Session{}
 	obj.ID = id
 
 	exists, err := orm.Get(&obj)

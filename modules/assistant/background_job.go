@@ -268,8 +268,8 @@ func (h APIHandler) processQueryIntent(ctx context.Context, reqMsg, replyMsg *Ch
 
 	var queryIntent *rag.QueryIntent
 	{
-		log.Info("start analysis user's intent")
-		defer log.Info("end analysis user's intent")
+		log.Debug("start analysis user's intent")
+		defer log.Debug("end analysis user's intent")
 
 		queryIntentBuffer := strings.Builder{}
 		content := []llms.MessageContent{
@@ -382,14 +382,16 @@ func (h APIHandler) processInitialDocumentSearch(ctx context.Context, reqMsg, re
 			return nil, err
 		}
 
-		simpliedReferences := formatDocumentReferencesToDisplay(docs)
+		{
+			simpliedReferences := formatDocumentReferencesToDisplay(docs)
+			var chunkSeq = 0
+			chunkMsg := NewMessageChunk(params.sessionID, replyMsg.ID, MessageTypeAssistant, reqMsg.ID,
+				FetchSource, string(simpliedReferences), chunkSeq)
 
-		var chunkSeq = 0
-		chunkMsg := NewMessageChunk(params.sessionID, replyMsg.ID, MessageTypeAssistant, reqMsg.ID,
-			FetchSource, string(simpliedReferences), chunkSeq)
-		err = websocket.SendPrivateMessage(params.websocketID, util.MustToJSON(chunkMsg))
-		if err != nil {
-			return nil, err
+			err = websocket.SendPrivateMessage(params.websocketID, util.MustToJSON(chunkMsg))
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		fetchedDocs := formatDocumentForPick(docs)
@@ -715,12 +717,12 @@ func formatDocumentReferencesToDisplay(docs []common.Document) string {
 		item["id"] = doc.ID
 		item["title"] = doc.Title
 		item["source"] = doc.Source
-		item["updated"] = doc.Updated
-		item["category"] = doc.Category
-		item["summary"] = doc.Summary
+		//item["updated"] = doc.Updated
+		//item["category"] = doc.Category
+		//item["summary"] = doc.Summary
 		item["icon"] = doc.Icon
-		item["size"] = doc.Size
-		item["thumbnail"] = doc.Thumbnail
+		//item["size"] = doc.Size
+		//item["thumbnail"] = doc.Thumbnail
 		item["url"] = doc.URL
 		outDocs = append(outDocs, item)
 	}

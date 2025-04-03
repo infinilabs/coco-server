@@ -2,7 +2,7 @@
  * Web: https://infinilabs.com
  * Email: hello#infini.ltd */
 
-package indexing
+package document
 
 import (
 	"infini.sh/coco/modules/common"
@@ -144,10 +144,11 @@ func (h *APIHandler) searchDocs(w http.ResponseWriter, req *http.Request, ps htt
 	)
 	mustClauses := search.BuildMustClauses("", "", "", "", "")
 	datasourceClause := search.BuildDatasourceClause(datasource, false)
+
 	if datasourceClause != nil {
 		mustClauses = append(mustClauses, datasourceClause)
 	}
-	mustClauses = append(mustClauses, datasourceClause)
+
 	var err error
 	q := &orm.Query{}
 	if req.Method == http.MethodPost {

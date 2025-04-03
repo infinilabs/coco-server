@@ -7,18 +7,37 @@ title: "Release Notes"
 
 Information about release notes of Coco Server is provided here.
 
-## Latest (In development)
+## Latest (In development)  
+### Breaking changes  
+### Features  
+- Add chat session management API
+- Add support for font icons (#183)
+
+### Bug fix  
+### Improvements
+
+## 0.3.0 (2025-03-31)
 
 ### Breaking changes
+
 ### Features
 - Add support for Connector CRUD management (#147)
 - Control the searchability of related documents based on the data source's enabled status. (#147)
 - Allow user pass websocket session id via request header #148
+- Add integration management API
+- Add searchbox widget for easy of embedding to website
+- Add support for integration CRUD management and CORS configuration (#153)
 - Add api to delete attachment
+- Add dynamic js wrapper for widget
+- Parse document icon at the server side
+- Add suggest topcs to widget integration
+- Add support to filter senstive fields
 
 ### Bug fix
 - Fixed provider info version (#144)
 - Fixed an issue where keyword search filtering for datasource was not working as expected (#147)
+- Fixed to remove uncheck datasource condition in must conditions
+
 ### Improvements
 
 ## 0.2.2 (2025-03-14)

@@ -5,34 +5,40 @@
 package connector
 
 import (
+	"infini.sh/coco/core"
+	"infini.sh/coco/plugins/security/filter"
 	"infini.sh/framework/core/api"
+	"infini.sh/framework/core/security"
 )
 
 type APIHandler struct {
 	api.Handler
 }
 
+const Category = "coco"
+const Datasource = "connector"
+
 func init() {
+
+	createPermission := security.GetSimplePermission(Category, Datasource, string(security.Create))
+	updatePermission := security.GetSimplePermission(Category, Datasource, string(security.Update))
+	readPermission := security.GetSimplePermission(Category, Datasource, string(security.Read))
+	deletePermission := security.GetSimplePermission(Category, Datasource, string(security.Delete))
+	searchPermission := security.GetSimplePermission(Category, Datasource, string(security.Search))
+	security.GetOrInitPermissionKeys(createPermission, updatePermission, readPermission, deletePermission, searchPermission)
+	security.AssignPermissionsToRoles(searchPermission, core.WidgetRole)
+
 	handler := APIHandler{}
 
-	api.HandleUIMethod(api.POST, "/connector/", handler.create, api.RequireLogin())
-	api.HandleUIMethod(api.GET, "/connector/:id", handler.get, api.RequireLogin())
-	api.HandleUIMethod(api.PUT, "/connector/:id", handler.update, api.RequireLogin())
-	api.HandleUIMethod(api.DELETE, "/connector/:id", handler.delete, api.RequireLogin())
-	api.HandleUIMethod(api.GET, "/connector/_search", handler.search, api.RequireLogin())
-	api.HandleUIMethod(api.POST, "/connector/_search", handler.search, api.RequireLogin())
+	api.HandleUIMethod(api.POST, "/connector/", handler.create, api.RequirePermission(createPermission))
+	api.HandleUIMethod(api.GET, "/connector/:id", handler.get, api.RequirePermission(readPermission))
+	api.HandleUIMethod(api.PUT, "/connector/:id", handler.update, api.RequirePermission(updatePermission))
+	api.HandleUIMethod(api.DELETE, "/connector/:id", handler.delete, api.RequirePermission(deletePermission))
 
-	api.HandleUIMethod(api.POST, "/datasource/", handler.createDatasource, api.RequireLogin())
-	api.HandleUIMethod(api.DELETE, "/datasource/:id", handler.deleteDatasource, api.RequireLogin())
-	api.HandleUIMethod(api.GET, "/datasource/:id", handler.getDatasource, api.RequireLogin())
-	api.HandleUIMethod(api.PUT, "/datasource/:id", handler.updateDatasource, api.RequireLogin())
-	api.HandleUIMethod(api.GET, "/datasource/_search", handler.searchDatasource, api.RequireLogin())
-	api.HandleUIMethod(api.POST, "/datasource/_search", handler.searchDatasource, api.RequireLogin())
-
-	//shortcut to indexing docs into this datasource
-	api.HandleUIMethod(api.POST, "/datasource/:id/_doc", handler.createDocInDatasource, api.RequireLogin())
-
-	//list all icons for connectors
-	api.HandleUIMethod(api.GET, "/icons/list", handler.getIcons)
+	api.HandleUIMethod(api.OPTIONS, "/connector/_search", handler.search, api.RequirePermission(searchPermission), api.Feature(filter.FeatureCORS))
+	api.HandleUIMethod(api.GET, "/connector/_search", handler.search, api.RequirePermission(searchPermission), api.Feature(filter.FeatureCORS),
+		api.Feature(filter.FeatureMaskSensitiveField))
+	api.HandleUIMethod(api.POST, "/connector/_search", handler.search, api.RequirePermission(searchPermission), api.Feature(filter.FeatureCORS),
+		api.Feature(filter.FeatureMaskSensitiveField))
 
 }

@@ -6,7 +6,7 @@ import type { SorterResult } from 'antd/es/table/interface';
 import {fetchDataSourceList, deleteDatasource, updateDatasource, getConnectorByIDs} from '@/service/api'
 import { formatESSearchResult } from '@/service/request/es';
 import { GoogleDriveSVG, HugoSVG, YuqueSVG,NotionSVG } from '@/components/icons';
-import { connect } from 'http2';
+import InfiniIcon from '@/components/common/icon';
 
 const { confirm } = Modal;
 type Datasource = Api.Datasource.Datasource;
@@ -135,7 +135,7 @@ export function Component() {
         if (!iconSrc) return value;
         return (
           <a className='text-blue-500 inline-flex items-center gap-1' onClick={()=>nav(`/data-source/detail/${record.id}`, {state:{datasource_name: record.name, connector_id: record.connector?.id || ''}})}>
-            <Image preview={false} height="1em" width="1em" src={iconSrc}/>
+            <InfiniIcon height="1em" width="1em" src={iconSrc}/>
             { value }
           </a>
         )
@@ -254,7 +254,7 @@ const fetchData = () => {
       return {
         ...oldParams,
         query: query,
-        form: 0,
+        from: 0,
       }
     })
   }
