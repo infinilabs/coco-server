@@ -4,7 +4,6 @@ import { Button, List, Image, Switch, Tag, message, MenuProps, Modal, Dropdown} 
 import { ReactSVG } from "react-svg";
 import {searchModelPovider, updateModelProvider, deleteModelProvider} from "@/service/api/llm";
 import { formatESSearchResult } from '@/service/request/es';
-import '/assets/fonts/test/iconfont.js';
 const { confirm } = Modal;
 // const modelProviders = [{
 //   name: "OpenAI",
