@@ -14,6 +14,8 @@ Information about release notes of Coco Server is provided here.
 - Add support for font icons (#183)
 
 ### Bug fix  
+- Fix personal token was not well supported for Yuque connector
+
 ### Improvements
 
 ## 0.3.0 (2025-03-31)
