@@ -228,7 +228,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       disable_confirm: `Are you sure you want to disable integration "{{name}}" ?`
     },
     code: {
-      title: "Insert code",
+      title: "Add the widget to your website",
       desc: "Insert this  code into your website between <body> and </body> to start searching and chatting.",
       preview: "Preview",
       exit: "Exit Preview"

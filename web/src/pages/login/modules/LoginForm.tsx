@@ -34,10 +34,10 @@ const LoginForm = memo(({ onProvider } : { onProvider?: () => void }) => {
 
   return (
     <>
-      <div className="text-32px color-#333 m-b-16px">
+      <div className="text-32px color-[var(--ant-color-text-heading)] m-b-16px">
         {t('page.login.title')}
       </div>
-      <div className="text-16px color-#999 m-b-64px">
+      <div className="text-16px color-[var(--ant-color-text)] m-b-64px">
         {t('page.login.desc')}
       </div>
       <Form

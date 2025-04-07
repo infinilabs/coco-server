@@ -135,16 +135,16 @@ export function Component() {
     setLoading(false);
   };
  
-  return <div className="bg-white pt-15px pb-15px">
-      <div
-        className="flex-col-stretch sm:flex-1-hidden">
-        <div>
-          <div className='mb-4 flex items-center text-lg font-bold'>
+  return (
+    <div className="h-full min-h-500px">
+        <ACard
+          bordered={false}
+          className="min-h-full flex-col-stretch sm:flex-1-auto card-wrapper"
+        >
+          <div className='ml--16px mb-4 flex items-center text-lg font-bold'>
             <div className="w-10px h-1.2em bg-[#1677FF] mr-20px"></div>
             {t('page.datasource.edit.title')}
           </div>
-        </div>
-        <div>
           <Spin spinning={loading}>
             <Form
                 labelCol={{ span: 4 }}
@@ -192,9 +192,9 @@ export function Component() {
                 </Form.Item>
               </Form>
           </Spin>
-        </div>
-      </div>
-  </div>
+        </ACard>
+    </div>
+  )
 }
 
 export async function loader({ params }: LoaderFunctionArgs) {

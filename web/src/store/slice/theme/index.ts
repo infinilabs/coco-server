@@ -7,6 +7,7 @@ import { localStg } from '@/utils/storage';
 import type { AppThunk } from '../..';
 
 import { initThemeSettings, toggleAuxiliaryColorModes, toggleGrayscaleMode, updateDarkMode } from './shared';
+import { DARK_MODE_MEDIA_QUERY } from '@/constants/common';
 
 interface InitialStateType {
   darkMode: boolean;
@@ -23,8 +24,10 @@ type DeepPartial<T> = {
 
 const themeSchemes: UnionKey.ThemeScheme[] = ['light', 'dark', 'auto'];
 
+const initTheme = initThemeSettings()
+
 const initialState: InitialStateType = {
-  darkMode: false,
+  darkMode: initTheme.themeScheme === 'auto' ? window.matchMedia && window.matchMedia(DARK_MODE_MEDIA_QUERY).matches : (initTheme.themeScheme === 'dark'),
   settings: initThemeSettings()
 };
 
@@ -134,7 +137,12 @@ export const themeSlice = createSlice({
     }
   },
   selectors: {
-    getDarkMode: theme => theme.darkMode,
+    getDarkMode: theme => {
+      if (theme.settings.themeScheme === 'auto') {
+        return window.matchMedia && window.matchMedia(DARK_MODE_MEDIA_QUERY).matches || theme.darkMode
+      }
+      return theme.darkMode
+    },
     getThemeSettings: theme => theme.settings
   }
 });

@@ -37,13 +37,13 @@ const CocoAI = ({ provider, requestID }: { provider: string | null; requestID: s
 
   return (
     <>
-      <div style={{ wordBreak: 'break-all'}} className="text-16px m-b-12px">
+      <div style={{ wordBreak: 'break-all'}} className="color-[var(--ant-color-text)] text-16px m-b-12px">
         {t('page.login.cocoAI.autoDesc')}
       </div>
       <Button ref={linkRef} type="link" className="m-b-16px p-0" href={url}>
         {t('page.login.cocoAI.launchCocoAI')}
       </Button>
-      <div style={{ wordBreak: 'break-all'}} className="text-16px m-b-12px">
+      <div style={{ wordBreak: 'break-all'}} className="color-[var(--ant-color-text)] text-16px m-b-12px">
         {t('page.login.cocoAI.copyDesc')}
       </div>
       <div className="m-b-16px relative group">

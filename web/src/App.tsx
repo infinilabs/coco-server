@@ -35,7 +35,7 @@ function useTheme() {
     localStg.set('themeColor', colors.primary);
   }, [colors, themeSettings]);
 
-  useUpdateEffect(() => {
+  useEffect(() => {
     toggleCssDarkMode(darkMode);
   }, [darkMode]);
 

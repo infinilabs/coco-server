@@ -227,7 +227,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       disable_confirm: `确定禁用嵌入组件 "{{name}}"？`
     },
     code: {
-      title: "嵌入代码",
+      title: "添加组件到你的网站",
       desc: "将这段代码插入到你的网站<body>和</body>之间，即可开始搜索和聊天。",
       preview: "预览",
       exit: "退出预览"
