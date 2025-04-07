@@ -24,6 +24,7 @@ func (h *APIHandler) create(w http.ResponseWriter, req *http.Request, ps httprou
 	ctx := &orm.Context{
 		Refresh: orm.WaitForRefresh,
 	}
+	obj.Builtin = false
 	err = orm.Create(ctx, obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -82,6 +83,7 @@ func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprou
 	//protect
 	newObj.ID = id
 	newObj.Name = obj.Name
+	newObj.Builtin = obj.Builtin
 	newObj.Created = obj.Created
 	ctx := &orm.Context{
 		Refresh: orm.WaitForRefresh,

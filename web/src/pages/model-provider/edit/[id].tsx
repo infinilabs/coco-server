@@ -11,17 +11,20 @@ import {getModelProvider, updateModelProvider, getLLMModels} from '@/service/api
 import { IconSelector } from "../../connector/new/icon_selector";
 import {ModelsComponent} from "../new/index";
 import { LoaderFunctionArgs, useLoaderData } from 'react-router-dom';
+import InfiniIcon from '@/components/common/icon';
 
 export function Component() {
   const { t } = useTranslation();
   const {id}:any = useLoaderData();
   const initialValues = {};
+  const [modelProvider, setModelProvider] = useState<any>(initialValues);
   const nav = useNavigate();
   const [form] = Form.useForm();
   useEffect(() => {
     if (!id) return;
     getModelProvider(id).then((res)=>{
       if(res.data?.found === true){
+        setModelProvider(res.data._source || {});
         form.setFieldsValue(res.data._source || {});
       }
     });
@@ -55,7 +58,7 @@ export function Component() {
         <div>
           <div className='mb-4 flex items-center text-lg font-bold'>
             <div className="w-10px h-1.2em bg-[#1677FF] mr-20px"></div>
-            <div>{t('route.model-provider_new')}</div>
+            <div>{t('route.model-provider_edit')}</div>
           </div>
         </div>
         <div>
@@ -63,7 +66,7 @@ export function Component() {
             labelCol={{ span: 4 }}
             wrapperCol={{ span: 18 }}
             layout="horizontal"
-            initialValues={initialValues}
+            initialValues={modelProvider || {}}
             colon={false}
             form={form}
             autoComplete="off"
@@ -71,13 +74,13 @@ export function Component() {
             onFinishFailed={onFinishFailed}
           >
             <Form.Item label={t('page.modelprovider.labels.name')} rules={[{ required: true}]} name="name">
-              <Input className='max-w-600px' />
+              <Input className='max-w-600px' readOnly={modelProvider.builtin === true } />
             </Form.Item>
-            <Form.Item label={t('page.modelprovider.labels.api_key')} rules={[{ required: initialValues.id === "openai" || initialValues.id === "deepseek"}]} name="api_key">
+            <Form.Item label={t('page.modelprovider.labels.api_key')} rules={[{ required: modelProvider.id === "openai" || modelProvider.id === "deepseek"}]} name="api_key">
               <Input className='max-w-600px' />
             </Form.Item>
             <Form.Item label={t('page.modelprovider.labels.icon')} name="icon" rules={[{ required: true}]}>
-              <IconSelector type="connector" icons={iconsMeta} className='max-w-150px' />
+              {modelProvider.builtin === true ? <InfiniIcon src={modelProvider.icon} height="2em" width="2em"/>: <IconSelector type="connector" icons={iconsMeta} className='max-w-150px' />}
             </Form.Item>
             <Form.Item label={t('page.modelprovider.labels.endpoint')} rules={formRules.endpoint} name="api_endpoint">
               <Input className='max-w-600px' />
