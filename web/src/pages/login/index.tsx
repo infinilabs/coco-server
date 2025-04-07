@@ -33,6 +33,7 @@ export function Component() {
     const requestID = searchParams.get('request_id');
     const product = searchParams.get('product');
     const [cocoAIVisible, setCocoAIVisible] = useState(false)
+    const darkMode = useAppSelector(getDarkMode);
 
     const backgroundImage = locale === 'zh-CN' ? bgZH : bg
 
@@ -49,10 +50,13 @@ export function Component() {
     return (
         <div
             className="relative size-full flex-center overflow-hidden bg-layout"
-            style={{ backgroundColor: "rgb(var(--layout-bg-color))" }}
+            style={{ backgroundColor: darkMode ? "rgb(var(--layout-bg-color))" : "#fff" }}
         >
             <div className="p-10px absolute right-0 top-0">
-              <LangSwitch className="px-12px" />
+              <div className="flex-y-center justify-end">
+                <LangSwitch className="px-12px" />
+                <ThemeSchemaSwitch className="px-12px" />
+              </div>
             </div>
             <div className="w-1/3 h-100% bg-top-left sm:bg-center-left md:bg-center-left bg-[size:100%_auto] bg-no-repeat" style={{ backgroundImage: `url(${backgroundImage})` }}>
                 

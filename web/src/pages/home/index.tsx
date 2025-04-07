@@ -118,7 +118,7 @@ export function Component() {
                 }
               }} 
               type="link" 
-              style={{ background: `${darkMode ? 'var(--ant-color-border)' : '#F7F9FC'} !important`}}
+              style={{ background: `${darkMode ? 'var(--ant-color-border)' : '#F7F9FC'}`}}
               className={`w-40px h-40px rounded-12px p-0`}>
               <SvgIcon className="text-24px" icon={isNameEditing ? "mdi:content-save" : "mdi:square-edit-outline"}/>
             </Button>
@@ -127,7 +127,7 @@ export function Component() {
             {t('page.home.server.address')}
           </div>
           <div className="flex m-b-16px">
-            <div className="bg-[var(--ant-color-border)] w-400px h-48px color-[var(--ant-color-text-heading)] m-r-8px leading-48px rounded-[var(--ant-border-radius)] relative p-r-30px"> 
+            <div style={{ background: `${darkMode ? 'var(--ant-color-border)' : '#F7F9FC'}`}} className="w-400px h-48px color-[var(--ant-color-text-heading)] m-r-8px leading-48px rounded-[var(--ant-border-radius)] relative p-r-30px"> 
               {
                 isEndpointEditing ? (
                   <Form

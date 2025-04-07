@@ -97,7 +97,6 @@ export const overrideThemeSettings: Partial<App.Theme.ThemeSetting> = {
     width: 258
   },
   themeColor: '#0087FF',
-  themeScheme: 'auto',
   tokens: {
     dark: {
       colors: {
