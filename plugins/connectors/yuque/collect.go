@@ -18,7 +18,8 @@ import (
 )
 
 func get(path, token string) *util.Result {
-	req := util.NewGetRequest(util.JoinPath("https://www.yuque.com", path), nil)
+	url := util.JoinPath("https://www.yuque.com", path)
+	req := util.NewGetRequest(url, nil)
 	req.AddHeader("X-Auth-Token", token)
 	res, err := util.ExecuteRequest(req)
 	if err != nil {
@@ -27,7 +28,7 @@ func get(path, token string) *util.Result {
 
 	if res != nil {
 		if res.StatusCode > 300 {
-			panic(errors.Errorf("%v,%v", res.StatusCode, string(res.Body)))
+			panic(errors.Errorf("%v,%v,%v", url, res.StatusCode, string(res.Body)))
 		}
 	}
 
@@ -84,7 +85,7 @@ func (this *Plugin) collect(connector *common.Connector, datasource *common.Data
 	log.Infof("start collecting for %v", currentUser.Group.Login)
 
 	//get users in group
-	if cfg.IndexingUsers || cfg.IndexingGroups {
+	if currentUser.Group.Type != "User" && (cfg.IndexingUsers || cfg.IndexingGroups) {
 		this.collectUsers(connector, datasource, currentUser.Group.Login, token, cfg)
 	}
 
