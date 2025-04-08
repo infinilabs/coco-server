@@ -21,6 +21,7 @@ export const init: Init = async currentFullPath => {
   await store.dispatch(initConstantRoute());
 
   const result = await fetchServer();
+  localStg.set('providerInfo', result.data);
   if (result.data?.setup_required) {
     return {
       name: 'guide'
@@ -82,7 +83,7 @@ export const createRouteGuard: BeforeEach = (to, _, blockerOrJump) => {
     return blockerOrJump({ name: noPermissionRoute });
   }
 
-  const rootRoute: RouteKey = 'root';
+  // const rootRoute: RouteKey = 'root';
   const loginRoute: RouteKey = 'login';
   const noAuthorizationRoute: RouteKey = '403';
 
