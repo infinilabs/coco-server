@@ -1,27 +1,38 @@
-import { Form, Input, Switch, Button } from "antd";
-import {IndexingScope} from "@/components/datasource/indexing_scope";
+import { Button, Form, Input, Switch } from 'antd';
 
-export default () => {
-  const { t } = useTranslation();
-  return  (<>
-     <Form.Item label="Token" name="token">
-        <TokenInput />
-     </Form.Item>
-     <Form.Item initialValue={true} label={t('page.datasource.new.labels.indexing_scope')} name="indexing_scope">
-       <IndexingScope />
-     </Form.Item>
- </>)
-}
+import { IndexingScope } from '@/components/datasource/indexing_scope';
 
-export const TokenInput = ({
-  value = '',
-  onChange = () => {},
-})=>{
+export const TokenInput = ({ onChange = () => {}, value = '' }) => {
   const { t } = useTranslation();
   return (
     <div>
-      <Input.Password value={value} onChange={onChange} className='max-w-500px'/>
+      <Input.Password
+        className="max-w-500px"
+        value={value}
+        onChange={onChange}
+      />
       {/* <Button className="ml-10px">{t('common.testConnection')}</Button> */}
     </div>
-  )
-}
+  );
+};
+
+export default () => {
+  const { t } = useTranslation();
+  return (
+    <>
+      <Form.Item
+        label="Token"
+        name="token"
+      >
+        <TokenInput />
+      </Form.Item>
+      <Form.Item
+        initialValue={true}
+        label={t('page.datasource.new.labels.indexing_scope')}
+        name="indexing_scope"
+      >
+        <IndexingScope />
+      </Form.Item>
+    </>
+  );
+};

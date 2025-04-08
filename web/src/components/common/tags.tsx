@@ -1,14 +1,14 @@
-import React, { useEffect, useRef, useState } from 'react';
 import { PlusOutlined } from '@ant-design/icons';
 import type { InputRef } from 'antd';
 import { Input, Tag, theme } from 'antd';
+import React, { useEffect, useRef, useState } from 'react';
 
 interface TagsProps {
-  value?: string[];
-  onChange?: (newTags: string[]) => void;
+  readonly onChange?: (newTags: string[]) => void;
+  readonly value?: string[];
 }
 
-export const Tags: React.FC<TagsProps> = ({value, onChange}) => {
+export const Tags: React.FC<TagsProps> = ({ onChange, value }) => {
   const { token } = theme.useToken();
   const [tags, setTags] = useState<string[]>(value || []);
   const [inputVisible, setInputVisible] = useState(false);
@@ -22,7 +22,7 @@ export const Tags: React.FC<TagsProps> = ({value, onChange}) => {
   }, [inputVisible]);
 
   const handleClose = (removedTag: string) => {
-    const newTags = tags.filter((tag) => tag !== removedTag);
+    const newTags = tags.filter(tag => tag !== removedTag);
     setTags(newTags);
     onChange?.(newTags);
   };
@@ -49,41 +49,42 @@ export const Tags: React.FC<TagsProps> = ({value, onChange}) => {
     background: token.colorBgContainer,
     borderStyle: 'dashed',
     cursor: 'pointer',
-    marginTop: 8, // Ensure spacing from tags
+    marginTop: 8 // Ensure spacing from tags
   };
 
   return (
-    <>
-      <div style={{ marginBottom: 8 }}>
-        {tags.map((tag) => (
-          <Tag
-            key={tag}
-            closable
-            onClose={(e) => {
-              e.preventDefault();
-              handleClose(tag);
-            }}
-          >
-            {tag}
-          </Tag>
-        ))}
-        {inputVisible ? (
-          <Input
-            ref={inputRef}
-            type="text"
-            size="small"
-            style={{ width: 100 }}
-            value={inputValue}
-            onChange={handleInputChange}
-            onBlur={handleInputConfirm}
-            onPressEnter={handleInputConfirm}
-          />
-        ) : (
-          <Tag onClick={showInput} style={tagPlusStyle}>
-            <PlusOutlined /> New Tag
-          </Tag>
-        )}
-      </div>
-    </>
+    <div style={{ marginBottom: 8 }}>
+      {tags.map(tag => (
+        <Tag
+          closable
+          key={tag}
+          onClose={e => {
+            e.preventDefault();
+            handleClose(tag);
+          }}
+        >
+          {tag}
+        </Tag>
+      ))}
+      {inputVisible ? (
+        <Input
+          ref={inputRef}
+          size="small"
+          style={{ width: 100 }}
+          type="text"
+          value={inputValue}
+          onBlur={handleInputConfirm}
+          onChange={handleInputChange}
+          onPressEnter={handleInputConfirm}
+        />
+      ) : (
+        <Tag
+          style={tagPlusStyle}
+          onClick={showInput}
+        >
+          <PlusOutlined /> New Tag
+        </Tag>
+      )}
+    </div>
   );
 };

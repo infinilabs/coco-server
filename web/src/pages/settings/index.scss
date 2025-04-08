@@ -1,41 +1,38 @@
 .settings-tabs {
-    .ant-tabs-nav {
-        margin-bottom: 8px;
-        height: 40px;
-    }
-    .ant-tabs-ink-bar {
-        height: 4px !important; 
-    }
-    .ant-tabs-nav-wrap {
-        padding-left: 24px;
-        padding-right: 24px;
-    }
-    .ant-tabs-tab {
-        padding-left: 8px;
-        padding-right: 8px;
-    }
-    .ant-tabs-tab:not(:first-child) {
-        margin-left: 38px;
-    }
-    .ant-tabs-content {
-        min-height: calc(100vh - 176px);
-        padding: 32px 24px;
-    }
-    .ant-tabs-nav-wrap, .ant-tabs-content {
-        background-color: #fff;
-    }
+  .ant-tabs-nav {
+    margin-bottom: 8px;
+    height: 40px;
+  }
+  .ant-tabs-ink-bar {
+    height: 4px !important;
+  }
+  .ant-tabs-nav-wrap {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+  .ant-tabs-tab {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  .ant-tabs-tab:not(:first-child) {
+    margin-left: 38px;
+  }
+  .ant-tabs-content {
+    min-height: calc(100vh - 176px);
+    padding: 32px 24px;
+  }
 }
 
 .settings-form {
-    .ant-form-item-label {
-        width: 160px;
-    }
-    .ant-form-item-control {
-        max-width: 480px;
-    }
-    .deepseek-icon >div>div{
-        font-size: 32px;
-        padding-top: 3px;
-        margin-right: -8px;
-    }
+  .ant-form-item-label {
+    width: 160px;
+  }
+  .ant-form-item-control {
+    max-width: 480px;
+  }
+  .deepseek-icon > div > div {
+    font-size: 32px;
+    padding-top: 3px;
+    margin-right: -8px;
+  }
 }

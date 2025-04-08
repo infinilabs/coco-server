@@ -6,23 +6,21 @@ export function getToken() {
 
 /** Get user info */
 export function getUserInfo() {
-
   const userInfo = localStg.get('userInfo') || {
-    "id": "",
-    "name": "",
-    "email": "",
-    "avatar": "",
-    "created": "",
-    "updated": "",
-    "roles": [],
-    "preferences": {
-      "theme": "",
-      "language": ""
-    }
-  }
+    avatar: '',
+    created: '',
+    email: '',
+    id: '',
+    name: '',
+    preferences: {
+      language: '',
+      theme: ''
+    },
+    roles: [],
+    updated: ''
+  };
 
   return userInfo;
-
 }
 
 /** Clear auth storage */

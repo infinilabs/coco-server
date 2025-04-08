@@ -1,212 +1,272 @@
-import { Button, Form, Input, InputNumber, Spin, Switch } from "antd";
-import "../index.scss"
+import { Button, Form, Input, InputNumber, Spin, Switch } from 'antd';
+
+import '../index.scss';
+import DeepseekSvg from '@/assets/svg-icon/deepseek.svg'
 import OllamaSvg from '@/assets/svg-icon/ollama.svg'
 import OpenAISvg from '@/assets/svg-icon/openai.svg'
-import DeepseekSvg from '@/assets/svg-icon/deepseek.svg'
 import { ReactSVG } from 'react-svg';
 import { useLoading } from '@sa/hooks';
-import { fetchSettings, updateSettings } from "@/service/api/server";
+
+import { fetchSettings, updateSettings } from '@/service/api/server';
 
 const PARAMETERS = [
-    {
-        key: 'temperature',
-        input: <InputNumber min={0} step={0.1} />
-    },
-    {
-        key: 'top_p',
-        input: <InputNumber min={0} step={0.1} />
-    },
-    {
-        key: 'max_tokens',
-        input: <InputNumber min={0} step={1} precision={0} />
-    },
-    {
-        key: 'presence_penalty',
-        input: <InputNumber min={0} step={0.1} />
-    },
-    {
-        key: 'frequency_penalty',
-        input: <InputNumber min={0} step={0.1} />
-    },
-    {
-        key: 'enhanced_inference',
+  {
+    key: 'temperature',
+    input: (
+      <InputNumber
+        min={0}
+        step={0.1}
+      />
+    )
+  },
+  {
+    key: 'top_p',
+    input: (
+      <InputNumber
+        min={0}
+        step={0.1}
+      />
+    )
+  },
+  {
+    input: <InputNumber min={0} step={1} precision={0} />,
+        key: 'max_tokens'
+      />
+    )
+  },
+  {
+    input: <InputNumber min={0} step={0.1} />,
+        key: 'presence_penalty'
+    )
+  },
+  {
+    key: 'frequency_penalty',
+    input: (
+      <InputNumber
+        min={0}
+        step={0.1}
+      />
+    )
+  },
+  {
+    hideDesc: true,
         input: <Switch size="small" defaultChecked />,
-        hideDesc: true
-    },
-    // {
-    //     key: '7',
-    //     label: '推理强度',
-    //     desc: '值越大，推理能力越强，但可能会增加响应时间和 Token 消耗',
-    //     input: (
-    //         <Select
-    //             defaultValue="低"
-    //             style={{ width: 88 }}
-    //             options={[
-    //                 { value: '低', label: '低' },
-    //                 { value: '中', label: '中' },
-    //                 { value: '高', label: '高' },
-    //             ]}
-    //         />
-    //     )
-    // },
-]
+        key: 'enhanced_inference'
+  }
+  // {
+  //     key: '7',
+  //     label: '推理强度',
+  //     desc: '值越大，推理能力越强，但可能会增加响应时间和 Token 消耗',
+  //     input: (
+  //         <Select
+  //             defaultValue="低"
+  //             style={{ width: 88 }}
+  //             options={[
+  //                 { value: '低', label: '低' },
+  //                 { value: '中', label: '中' },
+  //                 { value: '高', label: '高' },
+  //             ]}
+  //         />
+  //     )
+  // },
+];
 
-
-type ModelType = 'deepseek' | 'ollama' | 'openai'
+type ModelType = 'deepseek' | 'ollama' | 'openai';
 
 const LLM = memo(() => {
-    const [form] = Form.useForm();
-    const { t } = useTranslation();
+  const [form] = Form.useForm();
+  const { t } = useTranslation();
 
-    const [type, setType] = useState<ModelType>()
-    const [showAdvanced, setShowAdvanced] = useState(false)
+  const [type, setType] = useState<ModelType>();
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
-    const { endLoading, loading, startLoading } = useLoading();
-    const { defaultRequiredRule, formRules } = useFormRules();
+  const { endLoading, loading, startLoading } = useLoading();
+  const { defaultRequiredRule, formRules } = useFormRules();
 
-    const { data, run, loading: dataLoading } = useRequest(fetchSettings, {
-        manual: true
+  const {
+    data,
+    run,
+    loading: dataLoading
+  } = useRequest(fetchSettings, {
+    manual: true
+  });
+
+  const handleSubmit = async () => {
+    const params = await form.validateFields();
+    startLoading();
+    const result = await updateSettings({
+      llm: params
     });
-
-    const handleSubmit = async () => {
-        const params = await form.validateFields();
-        startLoading()
-        const result = await updateSettings({
-            llm: params
-        });
-        if (result.data.acknowledged) {
-          window.$message?.success(t('common.updateSuccess'));
-        }
-        endLoading()
+    if (result.data.acknowledged) {
+      window.$message?.success(t('common.updateSuccess'));
     }
+    endLoading();
+  };
 
-    useMount(() => {
-        run();
-    });
+  useMount(() => {
+    run();
+  });
 
-    useEffect(() => {
-      if (data?.data?.llm) {
-        form.setFieldsValue(data.data.llm || { type: 'deepseek', keepalive: '30m'});
-        setType(data?.data?.llm?.type || 'deepseek')
-      }
-    }, [JSON.stringify(data)]);
+  useEffect(() => {
+    if (data?.data?.llm) {
+      form.setFieldsValue(data.data.llm || { type: 'deepseek', keepalive: '30m' });
+      setType(data?.data?.llm?.type || 'deepseek');
+    }
+  }, [JSON.stringify(data)]);
 
-    return (
-        <Spin spinning={dataLoading || loading}>
-            <Form 
-                form={form}
-                labelAlign="left"
-                className="settings-form"
-                colon={false}
-            >
-                <Form.Item
-                    name="type"
-                    label={t(`page.settings.llm.type`)}
-                    rules={[defaultRequiredRule]}
-                >
-                    <ButtonRadio
-                        options={[
-                            { value: 'deepseek', label: <span className="flex items-center deepseek-icon"><ReactSVG src={DeepseekSvg} className="m-r-4px"/>Deepseek</span>},
-                            { value: 'ollama', label: <span className="flex items-center"><ReactSVG src={OllamaSvg} className="m-r-4px"/>Ollama</span>},
-                            { value: 'openai', label: <span className="flex items-center"><ReactSVG src={OpenAISvg} className="m-r-4px"/>OpenAI</span>}
-                        ]}
-                        onChange={(value: ModelType) => {
-                            setType(value)
-                            form.setFieldsValue({ token: undefined })
-                        }}
+  return (
+    <Spin spinning={dataLoading || loading}>
+      <Form
+        form={form}
+        labelAlign="left"
+        className="settings-form"
+        colon={false}
+      >
+        <Form.Item
+          name="type"
+          label={t(`page.settings.llm.type`)}
+          rules={[defaultRequiredRule]}
+        >
+          <ButtonRadio
+            options={[
+              {
+                value: 'deepseek',
+                label: (
+                  <span className="flex items-center deepseek-icon">
+                    <ReactSVG
+                      src={DeepseekSvg}
+                      className="m-r-4px"
                     />
-                </Form.Item>
-                <Form.Item
-                    name="endpoint"
-                    label={t(`page.settings.llm.endpoint`)}
-                    rules={formRules.endpoint}
-                >
-                    <Input />
-                </Form.Item>
-                <Form.Item
-                    name="default_model"
-                    label={t(`page.settings.llm.defaultModel`)}
-                    rules={[defaultRequiredRule]}
-                >
-                    <Input />
-                </Form.Item>
-                <Form.Item
+                    Deepseek
+                  </span>
+                )
+              },
+              {
+                value: 'ollama',
+                label: (
+                  <span className="flex items-center">
+                    <ReactSVG
+                      src={OllamaSvg}
+                      className="m-r-4px"
+                    />
+                    Ollama
+                  </span>
+                )
+              },
+              {
+                value: 'openai',
+                label: (
+                  <span className="flex items-center">
+                    <ReactSVG
+                      src={OpenAISvg}
+                      className="m-r-4px"
+                    />
+                    OpenAI
+                  </span>
+                )
+              }
+            ]}
+            onChange={(value: ModelType) => {
+              setType(value);
+              form.setFieldsValue({ token: undefined });
+            }}
+          />
+        </Form.Item>
+        <Form.Item
+          name="endpoint"
+          label={t(`page.settings.llm.endpoint`)}
+          rules={formRules.endpoint}
+        >
+          <Input />
+        </Form.Item>
+        <Form.Item
+          name="default_model"
+          label={t(`page.settings.llm.defaultModel`)}
+          rules={[defaultRequiredRule]}
+        >
+          <Input />
+        </Form.Item>
+        <Form.Item
+          label={t(`page.settings.llm.keepalive`)}
                     name={'keepalive'}
-                    label={t(`page.settings.llm.keepalive`)}
                     rules={[defaultRequiredRule]}
-                >
-                    <Input />
-                </Form.Item>
-                <Form.Item
-                    name={'intent_analysis_model'}
-                    label={t(`page.settings.llm.intent_analysis_model`)}
-                    rules={[defaultRequiredRule]}
-                >
-                    <Input />
-                </Form.Item>
-                <Form.Item
+        >
+          <Input />
+        </Form.Item>
+        <Form.Item
+          name="intent_analysis_model"
+          label={t(`page.settings.llm.intent_analysis_model`)}
+          rules={[defaultRequiredRule]}
+        >
+          <Input />
+        </Form.Item>
+        <Form.Item
+          label={t(`page.settings.llm.picking_doc_model`)}
                     name={'picking_doc_model'}
-                    label={t(`page.settings.llm.picking_doc_model`)}
                     rules={[defaultRequiredRule]}
-                >
-                    <Input />
-                </Form.Item>
-                <Form.Item
-                    name={'answering_model'}
-                    label={t(`page.settings.llm.answering_model`)}
-                    rules={[defaultRequiredRule]}
-                >
-                    <Input />
-                </Form.Item>
-                {
-                    (type === 'openai' || type === 'deepseek') && (
-                        <Form.Item
-                            name={'token'}
-                            label={'Token'}
-                            rules={[defaultRequiredRule]}
-                        >
-                            <Input.Password />
-                        </Form.Item>
-                    )
-                }
-                <Form.Item
-                    label=" "
-                >
-                    <Button type="link" className="p-0" onClick={() => setShowAdvanced(!showAdvanced)}>
-                        {t('common.advanced')} <SvgIcon icon={`${showAdvanced ? "mdi:chevron-down" : "mdi:chevron-up"}`}/>
-                    </Button>
-                </Form.Item>
-                <Form.Item
+        >
+          <Input />
+        </Form.Item>
+        <Form.Item
+          name="answering_model"
+          label={t(`page.settings.llm.answering_model`)}
+          rules={[defaultRequiredRule]}
+        >
+          <Input />
+        </Form.Item>
+        {(type === 'openai' || type === 'deepseek') && (
+          <Form.Item
+            name="token"
+            label="Token"
+            rules={[defaultRequiredRule]}
+          >
+            <Input.Password />
+          </Form.Item>
+        )}
+        <Form.Item label=" ">
+          <Button
+            type="link"
+            className="p-0"
+            onClick={() => setShowAdvanced(!showAdvanced)}
+          >
+            {t('common.advanced')} <SvgIcon icon={`${showAdvanced ? 'mdi:chevron-down' : 'mdi:chevron-up'}`} />
+          </Button>
+        </Form.Item>
+        <Form.Item
+          className={`${showAdvanced ? '' : 'h-0px m-0px overflow-hidden'}`}
                     label={t(`page.settings.llm.requestParams`)}
-                    className={`${showAdvanced ? '' : 'h-0px m-0px overflow-hidden'}`}
-                >
-                    {
-                        PARAMETERS.map((item) => (
-                            <div key={item.key} className={`flex justify-between items-center`}>
-                                <div className="[flex:1]">
-                                    <div className="color-#333">{t(`page.settings.llm.${item.key}`)}</div>
-                                    {!item.hideDesc && <div className="color-#999">{t(`page.settings.llm.${item.key}_desc`)}</div>}
-                                </div>
-                                <div >
-                                    <Form.Item
-                                        name={['parameters', item.key]}
-                                        label=""
-                                    >
-                                        {item.input}
-                                    </Form.Item>
-                                </div>
-                            </div>
-                        ))
-                    }
-                </Form.Item>
+        >
+          {PARAMETERS.map(item => (
+            <div
+              key={item.key}
+              className={`flex justify-between items-center`}
+            >
+              <div className="[flex:1]">
+                <div className="color-#333">{t(`page.settings.llm.${item.key}`)}</div>
+                {!item.hideDesc && <div className="color-#999">{t(`page.settings.llm.${item.key}_desc`)}</div>}
+              </div>
+              <div>
                 <Form.Item
-                    label=" "
+                  name={['parameters', item.key]}
+                  label=""
                 >
-                    <Button type="primary" onClick={() => handleSubmit()}>{t('common.update')}</Button>
+                  {item.input}
                 </Form.Item>
-            </Form>
-        </Spin>
-    )
-})
+              </div>
+            </div>
+          ))}
+        </Form.Item>
+        <Form.Item label=" ">
+          <Button
+            type="primary"
+            onClick={() => handleSubmit()}
+          >
+            {t('common.update')}
+          </Button>
+        </Form.Item>
+      </Form>
+    </Spin>
+  );
+});
 
 export default LLM;

@@ -15,6 +15,11 @@ export function useFormRules() {
       pattern: REG_EMAIL,
       validateTrigger: 'onChange'
     },
+    endpoint: {
+      message: $t('form.endpoint.invalid'),
+      pattern: REG_URL,
+      validateTrigger: 'onChange'
+    },
     phone: {
       message: $t('form.phone.invalid'),
       pattern: REG_PHONE,
@@ -29,21 +34,16 @@ export function useFormRules() {
       message: $t('form.userName.invalid'),
       pattern: REG_USER_NAME,
       validateTrigger: 'onChange'
-    },
-    endpoint: {
-      message: $t('form.endpoint.invalid'),
-      pattern: REG_URL,
-      validateTrigger: 'onChange'
     }
   } satisfies Record<string, App.Global.FormRule>;
 
   const formRules = {
     code: [createRequiredRule($t('form.code.required')), patternRules.code],
     email: [createRequiredRule($t('form.email.required')), patternRules.email],
+    endpoint: [createRequiredRule($t('form.endpoint.required')), patternRules.endpoint],
     phone: [createRequiredRule($t('form.phone.required')), patternRules.phone],
     pwd: [createRequiredRule($t('form.pwd.required')), patternRules.pwd],
-    userName: [createRequiredRule($t('form.userName.required')), patternRules.userName],
-    endpoint: [createRequiredRule($t('form.endpoint.required')), patternRules.endpoint]
+    userName: [createRequiredRule($t('form.userName.required')), patternRules.userName]
   } satisfies Record<string, App.Global.FormRule[]>;
 
   /** the default required rule */

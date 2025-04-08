@@ -19,8 +19,8 @@ export async function backEndFail(
 
   function handleLogout() {
     store.dispatch(resetStore());
-    const currentPath = window.location.hash.replace('#', '')
-    window.location.href = `/#/login?redirect=${currentPath}`
+    const currentPath = window.location.hash.replace('#', '');
+    window.location.href = `/#/login?redirect=${currentPath}`;
   }
 
   function logoutAndCleanup() {
@@ -92,8 +92,8 @@ export function handleError(
 
   function handleLogout() {
     store.dispatch(resetStore());
-    const currentPath = window.location.hash.replace('#', '')
-    window.location.href = `/#/login?redirect=${currentPath}`
+    const currentPath = window.location.hash.replace('#', '');
+    window.location.href = `/#/login?redirect=${currentPath}`;
   }
 
   // when the backend response code is in `logoutCodes`, it means the user will be logged out and redirected to login page

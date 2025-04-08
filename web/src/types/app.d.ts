@@ -293,16 +293,20 @@ declare namespace App {
           action: string;
           add: string;
           addSuccess: string;
+          advanced: string;
           backToHome: string;
           batchDelete: string;
           cancel: string;
           check: string;
           close: string;
           columnSetting: string;
+          comingSoon: string;
           config: string;
           confirm: string;
           confirmDelete: string;
+          copy: string;
           copySuccess: string;
+          create: string;
           delete: string;
           deleteSuccess: string;
           edit: string;
@@ -311,42 +315,38 @@ declare namespace App {
           expandColumn: string;
           index: string;
           keywordSearch: string;
+          loginAgain: string;
           logout: string;
           logoutConfirm: string;
           lookForward: string;
           modify: string;
+          modifyPassword: string;
           modifySuccess: string;
+          newPassword: string;
           noData: string;
+          oldPassword: string;
           operate: string;
+          operation: string;
+          password: string;
           pleaseCheckValue: string;
           refresh: string;
+          rename: string;
           reset: string;
+          save: string;
           search: string;
           switch: string;
+          testConnection: string;
           tip: string;
           trigger: string;
           tryAlign: string;
           update: string;
           updateSuccess: string;
           userCenter: string;
-          password: string;
-          modifyPassword: string;
-          oldPassword: string;
-          newPassword: string;
-          loginAgain: string;
           warning: string;
           yesOrNo: {
             no: string;
             yes: string;
           };
-          advanced: string;
-          save: string;
-          testConnection: string;
-          operation: string;
-          comingSoon: string;
-          rename: string;
-          create: string;
-          copy: string;
         };
         datatable: {
           itemCount: string;
@@ -356,11 +356,11 @@ declare namespace App {
           code: FormMsg;
           confirmPwd: FormMsg;
           email: FormMsg;
+          endpoint: FormMsg;
           phone: FormMsg;
           pwd: FormMsg;
           required: string;
           userName: FormMsg;
-          endpoint: FormMsg;
         };
         icon: {
           collapse: string;
@@ -375,72 +375,71 @@ declare namespace App {
           unpin: string;
         };
         page: {
+          datasource: {
+            columns: {
+              enabled: string;
+              latest_sync_time: string;
+              name: string;
+              sync_policy: string;
+              sync_status: string;
+              type: string;
+            };
+            new: {
+              labels: {
+                data_sync: string;
+                immediate_sync: string;
+                indexing_scope: string;
+                manual_sync: string;
+                manual_sync_desc: string;
+                name: string;
+                realtime_sync: string;
+                realtime_sync_desc: string;
+                scheduled_sync: string;
+                scheduled_sync_desc: string;
+                type: string;
+              };
+              title: string;
+            };
+          };
+          guide: {
+            llm: {
+              desc: string;
+              title: string;
+            };
+            setupLater: string;
+            user: {
+              desc: string;
+              email: string;
+              name: string;
+              password: string;
+              title: string;
+            };
+          };
           home: {
             server: {
-              title: string;
               address: string;
               addressDesc: string;
               downloadCocoAI: string;
+              title: string;
             };
             settings: {
-              llm: string;
-              llmDesc: string;
-              dataSource: string;
-              dataSourceDesc: string;
               aiAssistant: string;
               aiAssistantDesc: string;
+              dataSource: string;
+              dataSourceDesc: string;
+              llm: string;
+              llmDesc: string;
             };
-          },
-          datasource: {
-            columns: {
-              name: string;
-              type: string;
-              sync_policy: string;
-              latest_sync_time: string;
-              sync_status: string;
-              enabled: string;
-            };
-            new: {
-              title: string;
-              labels: {
-                name: string;
-                type: string;
-                indexing_scope: string;
-                data_sync: string;
-                manual_sync: string;
-                manual_sync_desc: string;
-                scheduled_sync: string;
-                scheduled_sync_desc: string;
-                realtime_sync: string;
-                realtime_sync_desc: string;
-                immediate_sync: string;
-              }
-            }
-          };
-          settings: {
-            llm: {
-              type: string;
-              endpoint: string;
-              defaultModel: string;
-              keepalive: string;
-              requestParams: string;
-              temperature: string;
-              temperature_desc: string;
-              top_p: string;
-              top_p_desc: string;
-              max_tokens: string;
-              max_tokens_desc: string;
-              presence_penalty: string;
-              presence_penalty_desc: string;
-              frequency_penalty: string;
-              frequency_penalty_desc: string;
-              enhanced_inference: string;
-            }
           };
           login: {
-            title: string;
-            desc: string;
-            password: string;
+            cocoAI: {
+              autoDesc: string;
+              copyDesc: string;
+              enterCocoServer: string;
+              enterCocoServerDesc: string;
+              launchCocoAI: string;
+              title: string;
+            };
             common: {
               back: string;
               codeLogin: string;
@@ -455,29 +454,30 @@ declare namespace App {
               validateSuccess: string;
               welcomeBack: string;
             };
-            cocoAI: {
-              title: string;
-              autoDesc: string;
-              launchCocoAI: string;
-              copyDesc: string;
-              enterCocoServer: string;
-              enterCocoServerDesc: string;
-            }
+            desc: string;
+            password: string;
+            title: string;
           };
-          guide: {
-            user: {
-              title: string;
-              desc: string;
-              name: string;
-              email: string;
-              password: string;
-            };
+          settings: {
             llm: {
-              title: string;
-              desc: string;
+              defaultModel: string;
+              endpoint: string;
+              enhanced_inference: string;
+              frequency_penalty: string;
+              frequency_penalty_desc: string;
+              keepalive: string;
+              max_tokens: string;
+              max_tokens_desc: string;
+              presence_penalty: string;
+              presence_penalty_desc: string;
+              requestParams: string;
+              temperature: string;
+              temperature_desc: string;
+              top_p: string;
+              top_p_desc: string;
+              type: string;
             };
-            setupLater: string;
-          }
+          };
         };
         request: {
           logout: string;
@@ -609,13 +609,13 @@ declare namespace App {
 
     /** The backend service response data */
     type Response<T = unknown> = {
-      error: T;
-      /** The backend service response code */
-      status: number;
       /** The backend service response data */
       data: T;
+      error: T;
       /** The backend service response message */
       msg: string;
+      /** The backend service response code */
+      status: number;
     };
 
     /** The demo backend service response data */

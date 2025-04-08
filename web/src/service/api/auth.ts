@@ -8,7 +8,7 @@ import { request } from '../request';
 export function fetchLogin(password: string) {
   return request<Api.Auth.LoginToken>({
     data: {
-      password,
+      password
     },
     method: 'post',
     url: '/account/login'
@@ -29,18 +29,15 @@ export function fetchGetUserInfo() {
 export function modifyPassword(old_password: string, new_password: string) {
   return request({
     data: {
-      old_password,
-      new_password
+      new_password,
+      old_password
     },
     method: 'put',
     url: '/account/password'
   });
 }
 
-/**
- * Logout
- *
- */
+/** Logout */
 export function logout() {
   return request({
     method: 'post',

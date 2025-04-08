@@ -14,13 +14,13 @@ import {
 } from '@/store/slice/app';
 import { getThemeSettings, setLayoutMode } from '@/store/slice/theme';
 
+import GlobalBreadcrumb from '../modules/global-breadcrumb';
 import GlobalContent from '../modules/global-content';
 import GlobalFooter from '../modules/global-footer';
 import GlobalHeader from '../modules/global-header';
 import GlobalMenu from '../modules/global-menu';
 import GlobalSider from '../modules/global-sider';
 import GlobalTab from '../modules/global-tab';
-import GlobalBreadcrumb from '../modules/global-breadcrumb';
 
 const ThemeDrawer = lazy(() => import('../modules/theme-drawer'));
 
@@ -102,6 +102,7 @@ const BaseLayout = () => {
 
   return (
     <AdminLayout
+      Breadcrumb={isMicro ? null : <GlobalBreadcrumb className="px-16px p-t-16px" />}
       contentClass={contentXScrollable ? 'overflow-x-hidden' : ''}
       fixedFooter={themeSettings.footer.fixed}
       fixedTop={themeSettings.fixedHeaderAndTab}
@@ -119,7 +120,6 @@ const BaseLayout = () => {
       siderCollapsedWidth={siderCollapsedWidth}
       siderVisible={siderVisible}
       siderWidth={siderWidth}
-      Breadcrumb={isMicro ? null : <GlobalBreadcrumb className='px-16px p-t-16px'/>}
       Tab={isMicro ? null : <GlobalTab />}
       tabHeight={themeSettings.tab.height}
       tabVisible={themeSettings.tab.visible}

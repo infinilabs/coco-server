@@ -1,10 +1,14 @@
-import { Form } from "antd";
-import { TokenInput } from "./yuque";
+import { Form } from 'antd';
+
+import { TokenInput } from './yuque';
 
 export default () => {
-  return  (<>
-     <Form.Item label="Token" name="token">
-        <TokenInput />
-     </Form.Item>
- </>)
-}
+  return (
+    <Form.Item
+      label="Token"
+      name="token"
+    >
+      <TokenInput />
+    </Form.Item>
+  );
+};

@@ -26,7 +26,7 @@ const local: App.I18n.Schema['translation'] = {
     pin: '固定',
     reload: '刷新页面',
     themeConfig: '主题配置',
-    themeSchema: '主题模式',
+    themeSchema: '主题',
     unpin: '取消固定'
   },
   page,

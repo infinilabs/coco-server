@@ -11,11 +11,11 @@ import type {
 
 import { $t } from '@/locales';
 import { getRouteName, getRoutePath } from '@/router/elegant/transform';
+import { fetchServer } from '@/service/api/server';
 import { store } from '@/store';
 import { isStaticSuper, selectUserInfo } from '@/store/slice/auth';
 import { getRouteHome, initAuthRoute, initConstantRoute } from '@/store/slice/route';
 import { localStg } from '@/utils/storage';
-import { fetchServer } from '@/service/api/server';
 
 export const init: Init = async currentFullPath => {
   await store.dispatch(initConstantRoute());
@@ -23,14 +23,14 @@ export const init: Init = async currentFullPath => {
   const result = await fetchServer();
   if (result.data?.setup_required) {
     return {
-      name: 'guide',
+      name: 'guide'
     };
   }
 
   const isLogin = Boolean(localStg.get('token'));
 
   if (!isLogin) {
-    if (['guide', 'login'].some((path) => currentFullPath.includes(path))) {
+    if (['guide', 'login'].some(path => currentFullPath.includes(path))) {
       return currentFullPath;
     }
 

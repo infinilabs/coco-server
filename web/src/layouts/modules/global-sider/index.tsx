@@ -19,6 +19,8 @@ const GlobalSider: FC<Props> = memo(({ headerHeight, inverted, isHorizontalMix, 
 
   const darkMenu = !darkMode && !isHorizontalMix && inverted;
 
+  const borderColor = 'var(--ant-color-border)';
+
   return (
     <DarkModeContainer
       className="size-full flex-col-stretch"
@@ -27,17 +29,22 @@ const GlobalSider: FC<Props> = memo(({ headerHeight, inverted, isHorizontalMix, 
       {showLogo && (
         <GlobalLogo
           // showTitle={!siderCollapse}
+          className="b-b-1px b-r-1px"
+          darkMode={darkMode}
           showTitle={false}
-          style={{ height: `${headerHeight}px` }}
-          className='b-b-1px b-r-1px border-rgba(232,232,232,1)'
           siderCollapse={siderCollapse}
+          style={{ borderColor, height: `${headerHeight}px` }}
         />
       )}
       <div
-        className={showLogo ? 'flex-1-hidden' : 'h-full'}
+        className={showLogo ? `flex-1-hidden b-r-1px` : 'h-full'}
         id={GLOBAL_SIDER_MENU_ID}
+        style={{ borderColor }}
       />
-      <div className={`b-t-1px ${siderCollapse ? 'text-center' : ''}`}>
+      <div
+        className={`b-t-1px b-r-1px ${siderCollapse ? 'text-center' : ''}`}
+        style={{ borderColor }}
+      >
         <MenuToggler />
       </div>
     </DarkModeContainer>

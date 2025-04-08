@@ -1,9 +1,9 @@
-import { Button, Form, Input } from "antd";
+import { Button, Form, Input } from 'antd';
 
-import INFINICloud from "@/assets/svg-icon/INFINICloud.svg";
-import { useLogin } from "@/hooks/common/login";
+import INFINICloud from '@/assets/svg-icon/INFINICloud.svg';
+import { useLogin } from '@/hooks/common/login';
 
-type AccountKey = "admin" | "super" | "user";
+type AccountKey = 'admin' | 'super' | 'user';
 interface Account {
   key: AccountKey;
   label: string;
@@ -11,7 +11,7 @@ interface Account {
   userName: string;
 }
 
-type LoginParams = Pick<Account, "password" | "userName">;
+type LoginParams = Pick<Account, 'password' | 'userName'>;
 
 const LoginForm = memo(({ onProvider }: { onProvider?: () => void }) => {
   const [form] = Form.useForm<LoginParams>();
@@ -31,34 +31,28 @@ const LoginForm = memo(({ onProvider }: { onProvider?: () => void }) => {
     }
   }
 
-  useKeyPress("enter", () => {
+  useKeyPress('enter', () => {
     handleSubmit();
   });
 
   return (
     <>
-      <div className="text-32px color-#333 m-b-16px">
-        {t("page.login.title")}
-      </div>
-      <div className="text-16px color-#999 m-b-64px">
-        {t("page.login.desc")}
-      </div>
+      <div className="m-b-16px text-32px color-[var(--ant-color-text-heading)]">{t('page.login.title')}</div>
+      <div className="m-b-64px text-16px color-[var(--ant-color-text)]">{t('page.login.desc')}</div>
       {managed ? (
         <div className="mt-24px">
           <Button
             block
+            className="h-40px flex items-center justify-between border-[#0087FF] rounded-4px bg-white px-16px text-14px text-[#0087FF] font-normal leading-20px font-[PingFangSC-regular]"
+            style={{ width: '440px' }}
             type="default"
-            className="flex items-center justify-between h-40px leading-20px rounded-4px bg-white text-[#0087FF] text-14px font-normal border-[#0087FF] px-16px font-[PingFangSC-regular]"
-            onClick={() =>
-              window.open("https://cloud.infini.com/login", "_blank")
-            }
-            style={{ width: "440px" }}
+            onClick={() => window.open('https://cloud.infini.com/login', '_blank')}
           >
             <div className="flex items-center gap-8px">
               <img
-                src={INFINICloud}
-                className="w-20px h-20px"
                 alt="infini cloud"
+                className="h-20px w-20px"
+                src={INFINICloud}
               />
               <span>{t('page.login.cloud')}</span>
             </div>
@@ -66,21 +60,24 @@ const LoginForm = memo(({ onProvider }: { onProvider?: () => void }) => {
           </Button>
         </div>
       ) : (
-        <Form form={form} layout="vertical">
+        <Form
+          form={form}
+          layout="vertical"
+        >
           <Form.Item
-            name="password"
-            label={t("page.login.password")}
             className="m-b-32px"
+            label={t('page.login.password')}
+            name="password"
             rules={formRules.pwd}
           >
             <Input.Password className="h-40px" />
           </Form.Item>
           <div className="text-right">
             <Button
-              type="primary"
+              className="h-56px w-56px text-24px"
               loading={loading}
               size="large"
-              className="w-56px h-56px text-24px"
+              type="primary"
               onClick={handleSubmit}
             >
               <SvgIcon icon="mdi:arrow-right" />

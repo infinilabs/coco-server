@@ -5,10 +5,9 @@ import type { MenuInfo } from 'rc-menu/lib/interface';
 import { cloneElement } from 'react';
 
 import { useRouterPush } from '@/hooks/common/routerPush';
+import { $t } from '@/locales';
 
 import { getBreadcrumbsByRoute } from './shared';
-
-import { $t } from '@/locales'
 
 function BreadcrumbContent({ icon, label }: { readonly icon: JSX.Element; readonly label: JSX.Element }) {
   return (
@@ -55,16 +54,27 @@ const GlobalBreadcrumb: FC<Omit<BreadcrumbProps, 'items'>> = props => {
   return (
     <Breadcrumb
       {...props}
-      items={items.some((item) => item?.title?.key === import.meta.env.VITE_ROUTE_HOME) ? items : [{
-        path: '/',
-        title: (
-          <BreadcrumbContent
-            icon={<SvgIcon className='mr-4px text-14px' icon={'mdi:home'}/>}
-            key={'home'}
-            label={<span>{$t('route.home')}</span>}
-          />
-        ),
-      }].concat(items)}
+      items={
+        items.some(item => item?.title?.key === import.meta.env.VITE_ROUTE_HOME)
+          ? items
+          : [
+              {
+                path: '/',
+                title: (
+                  <BreadcrumbContent
+                    key="home"
+                    label={<span>{$t('route.home')}</span>}
+                    icon={
+                      <SvgIcon
+                        className="mr-4px text-14px"
+                        icon="mdi:home"
+                      />
+                    }
+                  />
+                )
+              }
+            ].concat(items)
+      }
     />
   );
 };

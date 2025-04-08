@@ -8,6 +8,7 @@ import { LAYOUT_MAX_Z_INDEX, LAYOUT_SCROLL_EL_ID, createLayoutCssVars } from './
 
 // eslint-disable-next-line complexity
 const AdminLayout: FC<AdminLayoutProps> = ({
+  Breadcrumb,
   children,
   commonClass = 'transition-all-300',
   contentClass,
@@ -36,7 +37,6 @@ const AdminLayout: FC<AdminLayoutProps> = ({
   siderCollapsedWidth = 64,
   siderVisible = true,
   siderWidth = 220,
-  Breadcrumb,
   Tab,
   tabClass,
   tabHeight = 44,
