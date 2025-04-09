@@ -5,6 +5,7 @@ import Clipboard from 'clipboard';
 import { fetchServer, updateSettings } from '@/service/api/server';
 import { selectUserInfo } from '@/store/slice/auth';
 import { getDarkMode } from '@/store/slice/theme';
+import { localStg } from '@/utils/storage';
 
 const SETTINGS = [
   {
@@ -37,6 +38,9 @@ export function Component() {
 
   const [isNameEditing, setIsNameEditing] = useState(false);
   const [isEndpointEditing, setIsEndpointEditing] = useState(false);
+
+  const providerInfo = localStg.get('providerInfo');
+  const managed = Boolean(providerInfo?.managed);
 
   const {
     data,
@@ -163,23 +167,27 @@ export function Component() {
             ) : (
               <div className="p-l-11px">{data?.endpoint}</div>
             )}
-            <Button
-              className="absolute right-0 top-0 z-1 h-48px w-30px rounded-12px p-0"
-              id="endpoint-save"
-              type="link"
-              onClick={() => {
-                if (isEndpointEditing) {
-                  handleSubmit('endpoint', () => setIsEndpointEditing(!isEndpointEditing));
-                } else {
-                  setIsEndpointEditing(!isEndpointEditing);
-                }
-              }}
-            >
-              <SvgIcon
-                className="text-24px"
-                icon={isEndpointEditing ? 'mdi:content-save' : 'mdi:square-edit-outline'}
-              />
-            </Button>
+            {
+              !managed && (
+                <Button
+                  className="absolute right-0 top-0 z-1 h-48px w-30px rounded-12px p-0"
+                  id="endpoint-save"
+                  type="link"
+                  onClick={() => {
+                    if (isEndpointEditing) {
+                      handleSubmit('endpoint', () => setIsEndpointEditing(!isEndpointEditing));
+                    } else {
+                      setIsEndpointEditing(!isEndpointEditing);
+                    }
+                  }}
+                >
+                  <SvgIcon
+                    className="text-24px"
+                    icon={isEndpointEditing ? 'mdi:content-save' : 'mdi:square-edit-outline'}
+                  />
+                </Button>
+              )
+            }
           </div>
           <div ref={domRef}>
             <Button

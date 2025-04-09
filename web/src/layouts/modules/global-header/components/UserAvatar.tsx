@@ -7,6 +7,7 @@ import { useSubmit } from 'react-router-dom';
 import { logout } from '@/service/api';
 import { store } from '@/store';
 import { resetStore, selectUserInfo } from '@/store/slice/auth';
+import { localStg } from '@/utils/storage';
 
 const PasswordModal = lazy(() => import('./PasswordModal'));
 
@@ -17,6 +18,8 @@ const UserAvatar = memo(() => {
   const route = useRoute();
   const router = useRouterPush();
 
+  const providerInfo = localStg.get('providerInfo');
+  const managed = Boolean(providerInfo?.managed);
   const [passwordVisible, setPasswordVisible] = useState(false);
 
   async function handleLogout() {
@@ -83,6 +86,10 @@ const UserAvatar = memo(() => {
       )
     }
   ];
+
+  if (managed) {
+    items.splice(0, 2)
+  }
 
   return (
     <>
