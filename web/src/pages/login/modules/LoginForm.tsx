@@ -27,8 +27,7 @@ const LoginForm = memo(({ onProvider }: { onProvider?: () => void }) => {
   async function handleSubmit() {
     const params = await form.validateFields();
     if (onProvider) {
-      toLogin(params, false);
-      onProvider();
+      toLogin(params, false, onProvider);
     } else {
       toLogin(params);
     }

@@ -59,3 +59,10 @@ export function fetchRefreshToken(refreshToken: string) {
     url: '/auth/refreshToken'
   });
 }
+
+export function fetchAccessToken() {
+  return request<Api.Auth.LoginToken>({
+    url: '/auth/request_access_token',
+    method: 'post'
+  });
+}

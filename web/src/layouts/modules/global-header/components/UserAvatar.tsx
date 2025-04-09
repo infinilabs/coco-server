@@ -6,12 +6,11 @@ import { useSubmit } from 'react-router-dom';
 
 import { logout } from '@/service/api';
 import { store } from '@/store';
-import { resetStore, selectToken, selectUserInfo } from '@/store/slice/auth';
+import { resetStore, selectUserInfo } from '@/store/slice/auth';
 
 const PasswordModal = lazy(() => import('./PasswordModal'));
 
 const UserAvatar = memo(() => {
-  const token = useAppSelector(selectToken);
   const { t } = useTranslation();
   const userInfo = useAppSelector(selectUserInfo);
   const submit = useSubmit();
@@ -87,7 +86,7 @@ const UserAvatar = memo(() => {
 
   return (
     <>
-      {token ? (
+      {userInfo ? (
         <Dropdown
           menu={{ items, onClick }}
           placement="bottomRight"

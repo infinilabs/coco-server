@@ -16,6 +16,7 @@ import { store } from '@/store';
 import { isStaticSuper, selectUserInfo } from '@/store/slice/auth';
 import { getRouteHome, initAuthRoute, initConstantRoute } from '@/store/slice/route';
 import { localStg } from '@/utils/storage';
+import { fetchGetUserInfo } from '@/service/api';
 
 export const init: Init = async currentFullPath => {
   await store.dispatch(initConstantRoute());
@@ -28,10 +29,10 @@ export const init: Init = async currentFullPath => {
     };
   }
 
-  const isLogin = Boolean(localStg.get('token'));
+  const { data: user, error } = await fetchGetUserInfo();
 
-  if (!isLogin) {
-    if (['guide', 'login'].some(path => currentFullPath.includes(path))) {
+  if (!user || user.error || error) {
+    if (['guide', 'login'].some((path) => currentFullPath.includes(path))) {
       return currentFullPath;
     }
 
@@ -44,8 +45,10 @@ export const init: Init = async currentFullPath => {
       name: loginRoute,
       query
     };
-
+    localStg.remove('userInfo');
     return location;
+  } else {
+    localStg.set('userInfo', user);
   }
 
   await store.dispatch(initAuthRoute());
@@ -87,11 +90,11 @@ export const createRouteGuard: BeforeEach = (to, _, blockerOrJump) => {
   const loginRoute: RouteKey = 'login';
   const noAuthorizationRoute: RouteKey = '403';
 
-  const isLogin = Boolean(localStg.get('token'));
+  const isLogin = Boolean(localStg.get('userInfo'));
   const needLogin = !to.meta.constant;
   const routeRoles = to.meta.roles || [];
 
-  const hasRole = selectUserInfo(store.getState()).roles?.some(role => routeRoles.includes(role));
+  const hasRole = selectUserInfo(store.getState())?.roles?.some(role => routeRoles.includes(role));
 
   const hasAuth = store.dispatch(isStaticSuper()) || !routeRoles.length || hasRole;
 

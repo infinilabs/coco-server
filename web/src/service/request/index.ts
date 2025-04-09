@@ -4,7 +4,6 @@ import { getServiceBaseURL } from '@/utils/service';
 import { localStg } from '@/utils/storage';
 
 import { backEndFail, handleError } from './error';
-import { getAuthorization } from './shared';
 import type { RequestInstanceState } from './type';
 
 const isHttpProxy = import.meta.env.DEV && import.meta.env.VITE_HTTP_PROXY === 'Y';
@@ -30,9 +29,6 @@ export const request = createFlatRequest<App.Service.Response, RequestInstanceSt
       handleError(error, request);
     },
     async onRequest(config) {
-      const Authorization = getAuthorization();
-      Object.assign(config.headers, { Authorization });
-
       return config;
     },
     transformBackendResponse(response) {

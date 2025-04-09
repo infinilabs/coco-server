@@ -33,7 +33,13 @@ export function Component() {
   const provider = searchParams.get('provider');
   const requestID = searchParams.get('request_id');
   const product = searchParams.get('product');
-  const [cocoAIVisible, setCocoAIVisible] = useState(false);
+  const [cocoAIVisible, setCocoAIVisible] = useState(() => {
+    if (Boolean(provider && requestID && product) && isLogin) {
+      return true
+    } else {
+      return false
+    }
+  });
   const darkMode = useAppSelector(getDarkMode);
 
   const backgroundImage = locale === 'zh-CN' ? bgZH : bg;

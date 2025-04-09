@@ -9,10 +9,10 @@ export function useAuth() {
     }
 
     if (typeof codes === 'string') {
-      return userInfo.buttons.includes(codes);
+      return userInfo?.buttons?.includes(codes);
     }
 
-    return codes.some(code => userInfo.buttons.includes(code));
+    return codes.some(code => userInfo?.buttons?.includes(code));
   }
 
   return {

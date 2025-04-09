@@ -55,6 +55,7 @@ declare namespace Api {
   namespace Auth {
     interface LoginToken {
       access_token: string;
+      expire_in: number;
     }
 
     interface UserInfo {
