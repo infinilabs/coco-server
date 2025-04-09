@@ -19,11 +19,21 @@ import { localStg } from '@/utils/storage';
 import { fetchGetUserInfo } from '@/service/api';
 
 export const init: Init = async currentFullPath => {
-  await store.dispatch(initConstantRoute());
-
   const result = await fetchServer();
+  
   localStg.set('providerInfo', result.data);
-  if (result.data?.setup_required) {
+
+  const isManaged = Boolean(result?.data?.managed)
+
+  const filterPaths = []
+
+  if (isManaged) {
+    filterPaths.push('/guide')
+  }
+
+  await store.dispatch(initConstantRoute(filterPaths));
+
+  if (result.data?.setup_required && !isManaged) {
     return {
       name: 'guide'
     };
