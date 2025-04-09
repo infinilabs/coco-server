@@ -117,7 +117,7 @@ export function Component() {
                 </Form.Item>
               </Form>
             )}
-            {data?.name ? data?.name : <span>{t('page.home.server.title', { user: userInfo.name })}</span>}
+            {data?.name ? data?.name : <span>{t('page.home.server.title', { user: userInfo?.name })}</span>}
           </div>
           <Button
             className="h-40px w-40px rounded-12px p-0"
