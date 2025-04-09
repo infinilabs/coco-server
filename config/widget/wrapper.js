@@ -16,9 +16,10 @@ export function searchbox(options) {
   const shadow = hostElement.attachShadow({ mode: "open" });
 
   // Load external CSS into Shadow DOM
+  const linkHref = "$[[ENDPOINT]]/widgets/searchbox/index.css?v=$[[VER]]"
   const linkElement = document.createElement("link");
   linkElement.rel = "stylesheet";
-  linkElement.href = "$[[ENDPOINT]]/widgets/searchbox/index.css?v=$[[VER]]";
+  linkElement.href = linkHref;
   shadow.appendChild(linkElement);
 
   // Create wrapper div inside Shadow DOM
@@ -32,7 +33,8 @@ export function searchbox(options) {
     container: wrapper,
     id: "$[[ID]]",
     server: "$[[ENDPOINT]]",
-    token: "$[[TOKEN]]"
+    token: "$[[TOKEN]]",
+    linkHref
   };
 
   // Call the original searchbox function

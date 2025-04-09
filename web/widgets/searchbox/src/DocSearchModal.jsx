@@ -1,7 +1,12 @@
 import SearchChat from '@infinilabs/search-chat';
 import { useEffect, useState } from 'react';
 
-export const DocSearchModal = ({ onClose, server, settings, triggerBtnType }) => {
+export const DocSearchModal = ({
+  server,
+  settings,
+  onClose,
+  triggerBtnType,
+}) => {
   // We rely on a CSS property to set the modal height to the full viewport height
   // because all mobile browsers don't compute their height the same way.
   // See https://css-tricks.com/the-trick-to-viewport-units-on-mobile/
@@ -16,14 +21,12 @@ export const DocSearchModal = ({ onClose, server, settings, triggerBtnType }) =>
     }
   }
   useEffect(() => {
-    document.body.classList.add('infini__searchbox--active');
     setFullViewportHeight();
     window.addEventListener('resize', setFullViewportHeight);
     return () => {
-      document.body.classList.remove('infini__searchbox--active');
-      window.removeEventListener('resize', setFullViewportHeight);
-    };
-  }, []);
+      window.removeEventListener("resize", setFullViewportHeight)
+    }
+  }, [])
 
   const { appearance = {}, enabled_module = {}, id, token, type } = settings;
   const { ai_chat, features, search } = enabled_module;
@@ -50,31 +53,33 @@ export const DocSearchModal = ({ onClose, server, settings, triggerBtnType }) =>
   }
 
   return (
-    <div
-      className="infini__searchbox-modal-container"
-      ref={modalRef}
-      role="button"
-      tabIndex={0}
-      onMouseDown={e => e.target === e.currentTarget && onClose && !isPinned && onClose()}
-    >
-      <div className="infini__searchbox-modal">
-        <SearchChat
-          chatPlaceholder={ai_chat?.placeholder || 'Ask whatever you want...'}
-          defaultModule={defaultModule}
-          hasFeature={features || []}
-          hasModules={hasModules}
-          height={590}
-          searchPlaceholder={search?.placeholder || 'Search whatever you want...'}
-          serverUrl={server}
-          setIsPinned={setIsPinned}
-          showChatHistory={features?.includes('chat_history')}
-          theme={appearance?.theme}
-          width={680}
-          headers={{
-            'APP-INTEGRATION-ID': id,
-            'X-API-TOKEN': token
-          }}
-        />
+    <div id="infini__searchbox" data-theme={appearance?.theme}>
+      <div
+        className="infini__searchbox-modal-container"
+        role="button"
+        tabIndex={0}
+        ref={modalRef}
+        onMouseDown={(e) => e.target === e.currentTarget && onClose && !isPinned && onClose()}
+      >
+        <div className="infini__searchbox-modal">
+          <SearchChat
+            serverUrl={server}
+            headers={{
+              "X-API-TOKEN": token,
+              "APP-INTEGRATION-ID": id
+            }}
+            width={680}
+            height={590}
+            hasModules={hasModules}
+            searchPlaceholder={search?.placeholder || 'Search whatever you want...'}
+            chatPlaceholder={ai_chat?.placeholder || 'Ask whatever you want...'}
+            hasFeature={features || []}
+            theme={appearance?.theme}
+            showChatHistory={features?.includes('chat_history')}
+            setIsPinned={setIsPinned}
+            defaultModule={defaultModule}
+          />
+        </div>
       </div>
     </div>
   );

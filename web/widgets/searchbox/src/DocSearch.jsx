@@ -1,18 +1,22 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { DocSearchButton } from "./DocSearchButton";
+import { DocSearchModal } from "./DocSearchModal";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { isAlt, isAppleDevice, isCtrl, isMeta } from "./utils";
+import { DocSearchFloatButton } from "./DocSearchFloatButton";
+import { createRoot } from 'react-dom/client';
 
 import { DocSearchButton } from './DocSearchButton';
 import { DocSearchFloatButton } from './DocSearchFloatButton';
 import { DocSearchModal } from './DocSearchModal';
 import { isAlt, isAppleDevice, isCtrl, isMeta } from './utils';
 
-const DEFAULT_HOTKEYS = ['ctrl+/'];
-
-export const DocSearch = props => {
-  const { hotKeys = DEFAULT_HOTKEYS, id, server, token } = props;
+export const DocSearch = (props) => {
+  const { hotKeys = DEFAULT_HOTKEYS, server, id, token, linkHref  } = props;
 
   const [isOpen, setIsOpen] = useState(false);
   const [initialQuery, setInitialQuery] = useState();
-  const [settings, setSettings] = useState();
+  const [settings, setSettings] = useState()
+  const modalRef = useRef()
 
   const [triggerBtnType, setTriggerBtnType] = useState('embedded');
   const onOpen = () => setIsOpen(true);
@@ -82,8 +86,8 @@ export const DocSearch = props => {
     return false;
   }
 
-  function onKeyDown(e) {
-    if ((e.key === 'Escape' && isOpen) || isHotKey(e)) {
+  const onKeyDown = useCallback((e) => {
+    if ((e.key === "Escape" && isOpen) || isHotKey(e)) {
       e.preventDefault();
       if (isOpen) {
         onClose();
@@ -95,7 +99,7 @@ export const DocSearch = props => {
         onOpen();
       }
     }
-  }
+  }, [isOpen, currentHotkeys])
 
   async function fetchSettings(server, id, token) {
     if (!server || !id || !token) return;
@@ -116,47 +120,97 @@ export const DocSearch = props => {
       .catch(error => console.log('error', error));
   }
 
-  function renderButton(settings) {
-    const { options, type } = settings || {};
-    const searchButton = (
-      <DocSearchButton
-        buttonText={options?.placeholder}
-        hotKeys={currentHotkeys}
-        onClick={() => onClick('embedded')}
-      />
-    );
-    const floatButton = <DocSearchFloatButton onClick={() => onClick('floating')} />;
-    if (type === 'floating') {
-      return floatButton;
+  function handleModalVisible(isOpen) {
+    if (isOpen) {
+      const container = document.createElement("div");
+      document.body.appendChild(container)
+      const shadow = container.attachShadow({ mode: "open" });
+
+      if (linkHref) {
+        const linkElement = document.createElement("link");
+        linkElement.rel = "stylesheet";
+        linkElement.href = linkHref;
+        shadow.appendChild(linkElement);
+      }
+
+      const wrapper = document.createElement("div");
+      shadow.appendChild(wrapper);
+      modalRef.current = wrapper;
+
+      const root = createRoot(wrapper);
+      root.render(<DocSearchModal {...{
+        server,
+        settings,
+        initialQuery,
+        onClose,
+        triggerBtnType,
+      }} />);
+    } else {
+      modalRef.current?.remove()
     }
-    if (type === 'all') {
-      return (
-        <>
-          {searchButton}
-          {floatButton}
-        </>
-      );
-    }
-    if (type === 'embedded') {
-      return searchButton;
-    }
-    return null;
   }
 
+  function renderFloatButton() {
+    const container = document.createElement("div");
+    document.body.appendChild(container)
+    const shadow = container.attachShadow({ mode: "open" });
+
+    if (linkHref) {
+      const linkElement = document.createElement("link");
+      linkElement.rel = "stylesheet";
+      linkElement.href = linkHref;
+      shadow.appendChild(linkElement);
+    }
+
+    const wrapper = document.createElement("div");
+    shadow.appendChild(wrapper);
+
+    const root = createRoot(wrapper);
+    root.render(<DocSearchFloatButton settings={settings} onClick={() => onClick('floating')}/>);
+  }
+
+  function renderButton(settings) {
+    const { type, options } = settings || {};
+    if (['embedded', 'all'].includes(type)) {
+      return (
+        <DocSearchButton
+          buttonText={options?.placeholder}
+          hotKeys={currentHotkeys}
+          onClick={() => onClick('embedded')}
+        />
+      )
+    }
+    return null
+  }
+
+
+
   useEffect(() => {
-    window.removeEventListener('keydown', onKeyDown);
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [isOpen, currentHotkeys]);
+    window.removeEventListener("keydown", onKeyDown)
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [onKeyDown])
 
   useEffect(() => {
     fetchSettings(server, id, token);
   }, [server, id, token]);
 
   useEffect(() => {
+    if (['floating', 'all'].includes(settings?.type)) {
+      renderFloatButton()
+    }
+  }, [settings?.type])
+
+  useEffect(() => {
     const body = document.body;
     body.style.overflow = isOpen ? 'hidden' : 'auto';
-  }, [isOpen]);
+    handleModalVisible(isOpen)
+    if (isOpen) {
+      document.body.classList.add("infini__searchbox--active")
+    } else {
+      document.body.classList.remove("infini__searchbox--active")
+    }
+  }, [isOpen])
 
   return (
     <div
@@ -164,15 +218,6 @@ export const DocSearch = props => {
       id="infini__searchbox"
     >
       {renderButton(settings)}
-      {isOpen && (
-        <DocSearchModal
-          initialQuery={initialQuery}
-          server={server}
-          settings={settings}
-          triggerBtnType={triggerBtnType}
-          onClose={onClose}
-        />
-      )}
     </div>
   );
 };

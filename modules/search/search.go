@@ -289,6 +289,8 @@ func getIcon(connector *common.Connector, icon string) (string, error) {
 				return link, nil
 			}
 		}
+		// return the direct key to the font icon
+		return link, nil
 	} else {
 		if util.PrefixStr(icon, "/") {
 			link, err := url.JoinPath(baseEndpoint, icon)
