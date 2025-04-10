@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import { Logo } from './icons/Logo';
+import SearchLogo from './icons/search-logo.svg';
 import { isAlt, isAppleDevice, isCtrl, isMeta } from './utils';
 
 const CTRL_KEY_DEFAULT = 'Ctrl';
@@ -35,7 +35,7 @@ export const DocSearchButton = ({ buttonText = 'Search whatever you want...', ho
       onClick={onClick}
     >
       <span className="infini__searchbox-btn-icon-container">
-        <Logo className="infini__searchbox-btn-icon" />
+        <SearchLogo className="infini__searchbox-btn-icon" />
       </span>
       <span className="infini__searchbox-btn-placeholder"> {buttonText} </span>
       {hotKeys && hotKeys.length > 0 && (

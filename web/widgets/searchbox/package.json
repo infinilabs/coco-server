@@ -4,7 +4,15 @@
   "version": "0.1.0",
   "description": "A quick search component for pizza/easysearch, inspired by algolia/docsearch.",
   "license": "MIT or Apache-2.0",
-  "keywords": ["pizza", "search", "docsearch", "autocomplete", "docs", "quicksearch", "quicksearchbar"],
+  "keywords": [
+    "pizza",
+    "search",
+    "docsearch",
+    "autocomplete",
+    "docs",
+    "quicksearch",
+    "quicksearchbar"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -15,7 +23,10 @@
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": ["LICENSE_*", "dist"],
+  "files": [
+    "LICENSE_*",
+    "dist"
+  ],
   "scripts": {
     "build": "tsup & cp index.html dist/",
     "build:server": "tsup & mkdir -p ../../../.public/widgets/searchbox & cp index.html dist/index.css dist/index.js ../../../.public/widgets/searchbox",
@@ -35,6 +46,7 @@
     "@types/react": "^18.3.1",
     "@types/react-dom": "^18.3.1",
     "esbuild": "0.21.5",
+    "esbuild-plugin-svgr": "^3.1.0",
     "http-server": "^14.1.1",
     "prettier": "3.3.2",
     "tsup": "^8.4.0",

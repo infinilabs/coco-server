@@ -3,13 +3,13 @@
   background: var(--infini__searchbox-searchbox-background);
   border: var(--infini__searchbox-searchbox-border);
   outline: none;
-  border-radius: 8px;
+  border-radius: 20px;
   color: var(--infini__searchbox-muted-color);
   cursor: pointer;
   display: flex;
-  font-weight: 500;
+  font-weight: 400;
   height: 40px;
-  padding: 0 12px 0px 8px;
+  padding: 0 12px 0px 10px;
   user-select: none;
 }
 
@@ -32,7 +32,7 @@
 }
 
 .infini__searchbox-btn:hover {
-  background: var(--infini__searchbox-searchbox-focus-background);
+  /* background: var(--infini__searchbox-searchbox-focus-background); */
   box-shadow: var(--infini__searchbox-searchbox-shadow);
   color: var(--infini__searchbox-text-color);
 }
@@ -73,12 +73,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 3px;
+  border-radius: 4px;
   border: 0px;
   padding: 3px;
   background: var(--infini__searchbox-key-gradient);
   box-shadow: var(--infini__searchbox-key-shadow);
+  border: var(--infini__searchbox-key-border);
   color: var(--infini__searchbox-muted-color);
+  min-width: 14px;
+  height: 14px;
+  font-size: 12px;
 }
 
 @media (max-width: 768px) {
