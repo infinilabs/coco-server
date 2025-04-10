@@ -1,6 +1,5 @@
-import { useState } from "react";
-import { useEffect } from "react";
-import SearchChat  from '@infinilabs/search-chat';
+import SearchChat from '@infinilabs/search-chat';
+import { useEffect, useState } from 'react';
 
 export const DocSearchModal = ({
   server,
@@ -12,44 +11,44 @@ export const DocSearchModal = ({
   // because all mobile browsers don't compute their height the same way.
   // See https://css-tricks.com/the-trick-to-viewport-units-on-mobile/
 
-  const [isPinned, setIsPinned] = useState(false)
+  const [isPinned, setIsPinned] = useState(false);
 
   let modalRef;
   function setFullViewportHeight() {
     if (modalRef) {
       const vh = window.innerHeight * 0.01;
-      modalRef.style.setProperty("--infini__searchbox-vh", `${vh}px`);
+      modalRef.style.setProperty('--infini__searchbox-vh', `${vh}px`);
     }
   }
   useEffect(() => {
     setFullViewportHeight();
-    window.addEventListener("resize", setFullViewportHeight);
+    window.addEventListener('resize', setFullViewportHeight);
     return () => {
       window.removeEventListener("resize", setFullViewportHeight)
     }
   }, [])
 
-  const { id, type, token, enabled_module = {}, appearance = {} } = settings;
-  const { search, ai_chat, features } = enabled_module
+  const { appearance = {}, enabled_module = {}, id, token, type } = settings;
+  const { ai_chat, features, search } = enabled_module;
 
-  const hasModules = []
+  const hasModules = [];
   if (search?.enabled) {
-    hasModules.push('search')
+    hasModules.push('search');
   }
   if (ai_chat?.enabled) {
-    hasModules.push('chat')
+    hasModules.push('chat');
   }
-  
-  let defaultModule = 'search'
+
+  let defaultModule = 'search';
   if (type === 'embedded') {
-    defaultModule = 'search'
+    defaultModule = 'search';
   } else if (type === 'floating') {
-    defaultModule = 'chat'
+    defaultModule = 'chat';
   } else if (type === 'all') {
     if (triggerBtnType === 'embedded') {
-      defaultModule = 'search'
+      defaultModule = 'search';
     } else if (triggerBtnType === 'floating') {
-      defaultModule = 'chat'
+      defaultModule = 'chat';
     }
   }
 
@@ -66,7 +65,7 @@ export const DocSearchModal = ({
           <SearchChat
             serverUrl={server}
             headers={{
-              "X-API-TOKEN": token, 
+              "X-API-TOKEN": token,
               "APP-INTEGRATION-ID": id
             }}
             width={680}

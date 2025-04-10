@@ -1,7 +1,8 @@
 import ClassNames from 'classnames';
 
-import SystemLogo from './SystemLogo';
 import { getDarkMode } from '@/store/slice/theme';
+
+import SystemLogo from './SystemLogo';
 
 const loadingClasses = [
   'left-0 top-0',
@@ -16,8 +17,14 @@ const GlobalLoading = memo(() => {
 
   return (
     <div className="fixed-center flex-col bg-[rgb(var(--layout-bg-color))]">
-      { darkMode ? <div className="w-320px h-128px"><DarkSystemLogo /></div> : <SystemLogo className="w-320px h-128px text-primary" />}
-      <div className="w-48px h-48px my-24px">
+      {darkMode ? (
+        <div className="h-128px w-320px">
+          <DarkSystemLogo />
+        </div>
+      ) : (
+        <SystemLogo className="h-128px w-320px text-primary" />
+      )}
+      <div className="my-24px h-48px w-48px">
         <div className="relative h-full animate-spin">
           {loadingClasses.map(item => {
             return (

@@ -5,7 +5,10 @@ import { isAlt, isAppleDevice, isCtrl, isMeta } from "./utils";
 import { DocSearchFloatButton } from "./DocSearchFloatButton";
 import { createRoot } from 'react-dom/client';
 
-const DEFAULT_HOTKEYS = ["ctrl+/"];
+import { DocSearchButton } from './DocSearchButton';
+import { DocSearchFloatButton } from './DocSearchFloatButton';
+import { DocSearchModal } from './DocSearchModal';
+import { isAlt, isAppleDevice, isCtrl, isMeta } from './utils';
 
 export const DocSearch = (props) => {
   const { hotKeys = DEFAULT_HOTKEYS, server, id, token, linkHref  } = props;
@@ -15,17 +18,17 @@ export const DocSearch = (props) => {
   const [settings, setSettings] = useState()
   const modalRef = useRef()
 
-  const [triggerBtnType, setTriggerBtnType] = useState('embedded')
+  const [triggerBtnType, setTriggerBtnType] = useState('embedded');
   const onOpen = () => setIsOpen(true);
   const onClose = () => {
-    setIsOpen(false)
-    setTriggerBtnType()
+    setIsOpen(false);
+    setTriggerBtnType();
   };
-  const onInput = (query) => setInitialQuery(query);
-  const onClick = (type) => {
+  const onInput = query => setInitialQuery(query);
+  const onClick = type => {
     const selectedText = window.getSelection();
     if (selectedText) setInitialQuery(selectedText.toString());
-    setTriggerBtnType(type)
+    setTriggerBtnType(type);
     setIsOpen(true);
   };
 
@@ -33,28 +36,22 @@ export const DocSearch = (props) => {
     const element = event.target;
     const tagName = element.tagName;
 
-    return (
-      element.isContentEditable ||
-      tagName === "INPUT" ||
-      tagName === "SELECT" ||
-      tagName === "TEXTAREA"
-    );
+    return element.isContentEditable || tagName === 'INPUT' || tagName === 'SELECT' || tagName === 'TEXTAREA';
   }
 
   const currentHotkeys = useMemo(() => {
-    let formatHotKey = settings?.hotkey
+    let formatHotKey = settings?.hotkey;
     if (!isAppleDevice() && formatHotKey?.includes('meta')) {
-      formatHotKey = formatHotKey.replace('meta', 'ctrl')
+      formatHotKey = formatHotKey.replace('meta', 'ctrl');
     }
-    return formatHotKey ? [formatHotKey] : hotKeys
-  }, [hotKeys, settings?.hotkey])
+    return formatHotKey ? [formatHotKey] : hotKeys;
+  }, [hotKeys, settings?.hotkey]);
 
   function isHotKey(event) {
-    const modsAndkeys =
-    currentHotkeys && currentHotkeys.map((k) => k.toLowerCase().split("+"));
-    
+    const modsAndkeys = currentHotkeys && currentHotkeys.map(k => k.toLowerCase().split('+'));
+
     if (modsAndkeys) {
-      return modsAndkeys.some((modsAndkeys) => {
+      return modsAndkeys.some(modsAndkeys => {
         // if hotkey is a single character, we only react if modal is not open
         if (
           modsAndkeys.length === 1 &&
@@ -73,11 +70,11 @@ export const DocSearch = (props) => {
           const key = modsAndkeys[modsAndkeys.length - 1];
 
           if (event.key.toLowerCase() !== key) return false;
-          
-          const ctrl = event.ctrlKey == modsAndkeys.some(isCtrl)
-          const shift = event.shiftKey == modsAndkeys.includes("shift");
+
+          const ctrl = event.ctrlKey == modsAndkeys.some(isCtrl);
+          const shift = event.shiftKey == modsAndkeys.includes('shift');
           const alt = event.altKey == modsAndkeys.some(isAlt);
-          const meta = !isAppleDevice() || event.metaKey == modsAndkeys.some(isMeta)
+          const meta = !isAppleDevice() || event.metaKey == modsAndkeys.some(isMeta);
 
           return ctrl && shift && alt && meta;
         }
@@ -94,7 +91,7 @@ export const DocSearch = (props) => {
       e.preventDefault();
       if (isOpen) {
         onClose();
-      } else if (!document.body.classList.contains("infini__searchbox--active")) {
+      } else if (!document.body.classList.contains('infini__searchbox--active')) {
         // We check that no other DocSearch modal is showing before opening
         // another one.
         const selectedText = window.getSelection();
@@ -107,19 +104,20 @@ export const DocSearch = (props) => {
   async function fetchSettings(server, id, token) {
     if (!server || !id || !token) return;
     fetch(`${server}/integration/${id}`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "X-API-TOKEN": token, 
-          "APP-INTEGRATION-ID": id
-        },
-      }).then(response => response.json())
-        .then(result => {
-          if (result?._source) {
-            setSettings(result?._source)
-          }
-        })
-        .catch(error => console.log('error', error));
+      headers: {
+        'APP-INTEGRATION-ID': id,
+        'Content-Type': 'application/json',
+        'X-API-TOKEN': token
+      },
+      method: 'GET'
+    })
+      .then(response => response.json())
+      .then(result => {
+        if (result?._source) {
+          setSettings(result?._source);
+        }
+      })
+      .catch(error => console.log('error', error));
   }
 
   function handleModalVisible(isOpen) {
@@ -134,11 +132,11 @@ export const DocSearch = (props) => {
         linkElement.href = linkHref;
         shadow.appendChild(linkElement);
       }
-  
+
       const wrapper = document.createElement("div");
       shadow.appendChild(wrapper);
       modalRef.current = wrapper;
-  
+
       const root = createRoot(wrapper);
       root.render(<DocSearchModal {...{
         server,
@@ -185,7 +183,7 @@ export const DocSearch = (props) => {
     return null
   }
 
-  
+
 
   useEffect(() => {
     window.removeEventListener("keydown", onKeyDown)
@@ -194,8 +192,8 @@ export const DocSearch = (props) => {
   }, [onKeyDown])
 
   useEffect(() => {
-    fetchSettings(server, id, token)
-  }, [server, id, token])
+    fetchSettings(server, id, token);
+  }, [server, id, token]);
 
   useEffect(() => {
     if (['floating', 'all'].includes(settings?.type)) {
@@ -215,7 +213,10 @@ export const DocSearch = (props) => {
   }, [isOpen])
 
   return (
-    <div id="infini__searchbox" data-theme={settings?.appearance?.theme}>
+    <div
+      data-theme={settings?.appearance?.theme}
+      id="infini__searchbox"
+    >
       {renderButton(settings)}
     </div>
   );

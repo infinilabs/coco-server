@@ -1,67 +1,61 @@
-import { Button, Form, Input, Upload } from "antd";
-import "../index.scss"
+import { Button, Form, Input, Upload } from 'antd';
+import '../index.scss';
 
 const Server = memo(() => {
-    const [form] = Form.useForm();
+  const [form] = Form.useForm();
 
-    return (
-        <>
-            <Form 
-                form={form}
-                labelAlign="left"
-                className="settings-form"
-                colon={false}
-            >
-                <Form.Item
-                    name="name"
-                    label="Server Name"
-                >
-                    <Input />
-                </Form.Item>
-                <Form.Item
-                    name="desc"
-                    label="Description"
-                >
-                    <Input.TextArea
-                        autoSize={{ minRows: 3, maxRows: 5 }}
-                    />
-                </Form.Item>
-                <Form.Item
-                    name="logo"
-                    label="Logo"
-                >
-                    <div className="flex">
-                        <Upload >
-                            <Button icon={<SvgIcon icon="mdi:upload"/>}>Upload File</Button>
-                        </Upload>
-                        <Button type="link">Reset</Button>
-                    </div>
-                </Form.Item>
-                <Form.Item
-                    name="banner"
-                    label="Banner"
-                >
-                    <div className="flex">
-                        <Upload >
-                            <Button icon={<SvgIcon icon="mdi:upload"/>}>Upload File</Button>
-                        </Upload>
-                        <Button type="link">Reset</Button>
-                    </div>
-                </Form.Item>
-                <Form.Item
-                    name="local_host"
-                    label="Local Host"
-                >
-                    <Input />
-                </Form.Item>
-                <Form.Item
-                    label=" "
-                >
-                    <Button type="primary">Update</Button>
-                </Form.Item>
-            </Form>
-        </>
-    )
-})
+  return (
+    <Form
+      className="settings-form"
+      colon={false}
+      form={form}
+      labelAlign="left"
+    >
+      <Form.Item
+        label="Server Name"
+        name="name"
+      >
+        <Input />
+      </Form.Item>
+      <Form.Item
+        label="Description"
+        name="desc"
+      >
+        <Input.TextArea autoSize={{ maxRows: 5, minRows: 3 }} />
+      </Form.Item>
+      <Form.Item
+        label="Logo"
+        name="logo"
+      >
+        <div className="flex">
+          <Upload>
+            <Button icon={<SvgIcon icon="mdi:upload" />}>Upload File</Button>
+          </Upload>
+          <Button type="link">Reset</Button>
+        </div>
+      </Form.Item>
+      <Form.Item
+        label="Banner"
+        name="banner"
+      >
+        <div className="flex">
+          <Upload>
+            <Button icon={<SvgIcon icon="mdi:upload" />}>Upload File</Button>
+          </Upload>
+          <Button type="link">Reset</Button>
+        </div>
+      </Form.Item>
+      <Form.Item
+        label="Local Host"
+        name="local_host"
+      >
+        <Input />
+      </Form.Item>
+      <Form.Item label=" ">
+        <Button type="primary">Update</Button>
+      </Form.Item>
+    </Form>
+  );
+});
 
 export default Server;

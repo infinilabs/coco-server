@@ -6,28 +6,10 @@ export function getToken() {
 
 /** Get user info */
 export function getUserInfo() {
-
-  const userInfo = localStg.get('userInfo') || {
-    "id": "",
-    "name": "",
-    "email": "",
-    "avatar": "",
-    "created": "",
-    "updated": "",
-    "roles": [],
-    "preferences": {
-      "theme": "",
-      "language": ""
-    }
-  }
-
-  return userInfo;
-
+  return localStg.get('userInfo');
 }
 
 /** Clear auth storage */
 export function clearAuthStorage() {
-  localStg.remove('token');
-  localStg.remove('refreshToken');
   localStg.remove('userInfo');
 }

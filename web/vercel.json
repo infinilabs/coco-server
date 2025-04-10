@@ -78,15 +78,15 @@
   "redirects": [
     {
       "source": "/gtag/js",
-      "destination": "https://www.googletagmanager.com/gtag/js"
+      "destination": "https://xxxxxxxx/gtag/js"
     },
     {
       "source": "/atom.xml",
-      "destination": "https://cfblog.17lai.site/atom.xml"
+      "destination": "https://xxxxxx/atom.xml"
     },
     {
       "source": "/rss.xml",
-      "destination": "https://cfblog.17lai.site/rss.xml"
+      "destination": "https://xxxxx/rss.xml"
     }
   ]
 }

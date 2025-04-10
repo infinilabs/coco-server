@@ -1,8 +1,9 @@
-import { FilterOutlined, PlusOutlined, EllipsisOutlined, ExclamationCircleOutlined} from '@ant-design/icons';
-import { Button, Dropdown, Table, message, Modal, Input, Switch } from 'antd';
-import { formatESSearchResult } from '@/service/request/es';
-import { deleteIntegration, fetchIntegrations, updateIntegration } from '@/service/api/integration';
+import { EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, PlusOutlined } from '@ant-design/icons';
 import { useLoading } from '@sa/hooks';
+import { Button, Dropdown, Input, Modal, Switch, Table, message } from 'antd';
+
+import { deleteIntegration, fetchIntegrations, updateIntegration } from '@/service/api/integration';
+import { formatESSearchResult } from '@/service/request/es';
 
 const { confirm } = Modal;
 
@@ -15,18 +16,17 @@ export function Component() {
 
   const [data, setData] = useState({
     data: [],
-    total: 0,
+    total: 0
   });
   const { endLoading, loading, startLoading } = useLoading();
-  
 
   const [reqParams, setReqParams] = useState({
+    from: 0,
     query: '',
-    from: 0, 
-    size: 10,
-  })
+    size: 10
+  });
 
-  const fetchData = async (reqParams) => {
+  const fetchData = async reqParams => {
     startLoading();
     const res = await fetchIntegrations(reqParams);
     const newData = formatESSearchResult(res.data);
@@ -34,143 +34,141 @@ export function Component() {
     endLoading();
   };
 
-  const handleTableChange = (pagination) => {
-    setReqParams((params)=>{
+  const handleTableChange = pagination => {
+    setReqParams(params => {
       return {
         ...params,
-        size: pagination.pageSize,
-        from: (pagination.current-1) * pagination.pageSize,
-      }
-    })
+        from: (pagination.current - 1) * pagination.pageSize,
+        size: pagination.pageSize
+      };
+    });
   };
 
-  const onRefreshClick = (query: string)=>{
-    setReqParams((oldParams)=>{
+  const onRefreshClick = (query: string) => {
+    setReqParams(oldParams => {
       return {
         ...oldParams,
-        query: query,
         from: 0,
-      }
-    })
-  }
+        query
+      };
+    });
+  };
 
-  const handleDelete = async (id) => {
-    startLoading()
-    const res = await deleteIntegration(id)
-    if(res.data?.result === "deleted"){
-      message.success(t('common.deleteSuccess'))
+  const handleDelete = async id => {
+    startLoading();
+    const res = await deleteIntegration(id);
+    if (res.data?.result === 'deleted') {
+      message.success(t('common.deleteSuccess'));
     }
-    fetchData(reqParams)
-    endLoading()
-  }
+    fetchData(reqParams);
+    endLoading();
+  };
 
-  const handleEnabled = async (record) => {
-    startLoading()
+  const handleEnabled = async record => {
+    startLoading();
     const { _index, _type, ...rest } = record;
-    const res = await updateIntegration(rest)
-    if(res.data?.result === "updated"){
-      message.success(t('common.updateSuccess'))
+    const res = await updateIntegration(rest);
+    if (res.data?.result === 'updated') {
+      message.success(t('common.updateSuccess'));
     }
-    fetchData(reqParams)
-    endLoading()
-  }
+    fetchData(reqParams);
+    endLoading();
+  };
 
   const columns = [
     {
-      title: t('page.integration.columns.name'),
-      dataIndex: "name",
+      dataIndex: 'name',
+      title: t('page.integration.columns.name')
     },
     {
-      title: t('page.integration.columns.type'),
-      dataIndex: "type",
-      render: (value) => t(`page.integration.form.labels.type_${value}`)
+      dataIndex: 'type',
+      render: value => t(`page.integration.form.labels.type_${value}`),
+      title: t('page.integration.columns.type')
     },
     {
-      title: t('page.integration.columns.description'),
-      dataIndex: "description",
+      dataIndex: 'description',
+      title: t('page.integration.columns.description')
     },
     {
-      title: t('page.integration.columns.datasource'),
-      dataIndex: "datasource",
+      dataIndex: 'datasource',
       render: (value, record) => {
-        return value?.includes('*') ? '*' : (value?.length || 0)
-      }
+        return value?.includes('*') ? '*' : value?.length || 0;
+      },
+      title: t('page.integration.columns.datasource')
     },
     {
-      title: t('page.integration.columns.enabled'),
-      dataIndex: "enabled",
+      dataIndex: 'enabled',
       render: (_, record) => {
         return (
-          <Switch 
-            size="small" 
-            checked={record.enabled} 
-            onChange={(checked) => {
+          <Switch
+            checked={record.enabled}
+            size="small"
+            onChange={checked => {
               confirm({
-                icon: <ExclamationCircleOutlined />,
-                title: t('common.tip'),
                 content: t(`page.integration.update.${checked ? 'enable' : 'disable'}_confirm`, { name: record.name }),
+                icon: <ExclamationCircleOutlined />,
                 onOk() {
-                  handleEnabled({ ...record, enabled: checked})
+                  handleEnabled({ ...record, enabled: checked });
                 },
+                title: t('common.tip')
               });
             }}
           />
-        )
-      }
+        );
+      },
+      title: t('page.integration.columns.enabled')
     },
     {
-      title: t('common.operation'),
       fixed: 'right',
-      width: "90px",
       render: (_, record) => {
-
         const items = [
           {
-            label: t('common.edit'),
-            key: "edit",
+            key: 'edit',
+            label: t('common.edit')
           },
           {
-            label: t('common.delete'),
-            key: "delete",
-          },
+            key: 'delete',
+            label: t('common.delete')
+          }
         ];
 
-        const onMenuClick = ({key, record}: any)=>{
-          switch(key){
-            case "edit":
-              nav(`/integration/edit/${record.id}`, {state:record});
+        const onMenuClick = ({ key, record }: any) => {
+          switch (key) {
+            case 'edit':
+              nav(`/integration/edit/${record.id}`, { state: record });
               break;
-            case "delete":
+            case 'delete':
               confirm({
-                icon: <ExclamationCircleOutlined />,
-                title: t('common.tip'),
                 content: t('page.integration.delete.confirm', { name: record.name }),
+                icon: <ExclamationCircleOutlined />,
                 onOk() {
-                  handleDelete(record.id)
+                  handleDelete(record.id);
                 },
+                title: t('common.tip')
               });
               break;
           }
-        }
-        return <Dropdown menu={{ items, onClick:({key})=>onMenuClick({key, record}) }}>
-          <EllipsisOutlined/>
-        </Dropdown>
+        };
+        return (
+          <Dropdown menu={{ items, onClick: ({ key }) => onMenuClick({ key, record }) }}>
+            <EllipsisOutlined />
+          </Dropdown>
+        );
       },
-    },
+      title: t('common.operation'),
+      width: '90px'
+    }
   ];
   // rowSelection object indicates the need for row selection
   const rowSelection = {
-    onChange: (selectedRowKeys: React.Key[], selectedRows) => {
-    },
-    getCheckboxProps: (record) => ({
-      name: record.name,
+    getCheckboxProps: record => ({
+      name: record.name
     }),
+    onChange: (selectedRowKeys: React.Key[], selectedRows) => {}
   };
 
-
-
   useEffect(() => {
-    fetchData(reqParams)
+    fetchData(reqParams);
   }, [reqParams]);
 
   return (
@@ -180,26 +178,35 @@ export function Component() {
         className="flex-col-stretch sm:flex-1-hidden card-wrapper"
         ref={tableWrapperRef}
       >
-      <div className='mb-4 mt-4 flex items-center justify-between'>
-        <Input.Search addonBefore={<FilterOutlined />} className='max-w-500px' onSearch={onRefreshClick} enterButton={ t('common.refresh')}></Input.Search>
-        <Button type='primary' icon={<PlusOutlined/>}  onClick={() => nav(`/integration/new`)}>{t('common.add')}</Button>
-      </div>
-      <Table
-          rowKey="id"
-          loading={loading}
-          size="middle"
-          rowSelection={{ ...rowSelection }}
+        <div className="mb-4 mt-4 flex items-center justify-between">
+          <Input.Search
+            addonBefore={<FilterOutlined />}
+            className="max-w-500px"
+            enterButton={t('common.refresh')}
+            onSearch={onRefreshClick}
+          />
+          <Button
+            icon={<PlusOutlined />}
+            type="primary"
+            onClick={() => nav(`/integration/new`)}
+          >
+            {t('common.add')}
+          </Button>
+        </div>
+        <Table
           columns={columns}
           dataSource={data.data}
-          pagination={
-            {
-              showTotal:(total, range) => `${range[0]}-${range[1]} of ${total} items`,
-              defaultPageSize: 10,
-              defaultCurrent: 1,
-              total: data.total?.value || data?.total,
-              showSizeChanger: true,
-            }
-          }
+          loading={loading}
+          rowKey="id"
+          rowSelection={{ ...rowSelection }}
+          size="middle"
+          pagination={{
+            defaultCurrent: 1,
+            defaultPageSize: 10,
+            showSizeChanger: true,
+            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+            total: data.total?.value || data?.total
+          }}
           onChange={handleTableChange}
         />
       </ACard>

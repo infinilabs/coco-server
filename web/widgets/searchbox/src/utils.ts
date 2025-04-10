@@ -16,14 +16,11 @@
  * @param {String} prefix Main object key to move rename
  * @return {Object}
  */
-export function renameKeysWithLevels<T extends Record<any, any>>(
-  object: T,
-  prefix: string,
-): T {
+export function renameKeysWithLevels<T extends Record<any, any>>(object: T, prefix: string): T {
   return Object.keys(object).reduce((acc, key) => {
     const result: any = acc;
     if (key.startsWith(prefix)) {
-      const newKey = key.replace(prefix, "");
+      const newKey = key.replace(prefix, '');
       result[newKey] = object[key];
     } else {
       result[key] = object[key];
@@ -37,12 +34,10 @@ export function renameKeysWithLevels<T extends Record<any, any>>(
  * @param {Object} object Main object
  * @return null or {String}
  */
-export function replaceNullString<T extends { [key: string]: unknown }>(
-  object: T,
-): T {
+export function replaceNullString<T extends { [key: string]: unknown }>(object: T): T {
   return Object.keys(object).reduce((acc, key) => {
     const result: any = acc;
-    if (typeof object[key] === "string" && object[key] === "null") {
+    if (typeof object[key] === 'string' && object[key] === 'null') {
       result[key] = null;
     } else {
       result[key] = object[key];
@@ -82,20 +77,17 @@ export function replaceNullString<T extends { [key: string]: unknown }>(
  * @return {array}
  * @throws Error when one of the element does not have the specified property
  */
-export function groupBy<T, K extends keyof T>(
-  collection: T[],
-  property: K,
-): { [K in keyof T]: T[] } {
+export function groupBy<T, K extends keyof T>(collection: T[], property: K): { [K in keyof T]: T[] } {
   const newCollection: any = {};
   collection.forEach((item: any) => {
     if (item[property] === undefined) {
       throw new Error(`[groupBy]: Object has no key ${new String(property)}`);
     }
-    let key = item[property];
+    const key = item[property];
 
     // the given data type of hits might be conflict with the properties of the native Object,
     // such as the constructor, so we need to do this check.
-    if (!Object.prototype.hasOwnProperty.call(newCollection, key)) {
+    if (!Object.hasOwn(newCollection, key)) {
       newCollection[key] = [];
     }
     newCollection[key].push(item);
@@ -114,7 +106,7 @@ export function groupBy<T, K extends keyof T>(
  */
 export function compact<T>(array: T[]) {
   const results: T[] = [];
-  array.forEach((value) => {
+  array.forEach(value => {
     if (!value) {
       return;
     }
@@ -139,15 +131,8 @@ export function compact<T>(array: T[]) {
  * @param {string} property Object key to look for
  * @return {string}
  **/
-export function getHighlightedValue<T extends Record<any, any>>(
-  object: T,
-  property: string,
-): string {
-  if (
-    object._formatted &&
-    object._formatted[property] &&
-    typeof object._formatted[property] === "string"
-  ) {
+export function getHighlightedValue<T extends Record<any, any>>(object: T, property: string): string {
+  if (object._formatted && object._formatted[property] && typeof object._formatted[property] === 'string') {
     return replaceHtmlTagsToHighlight(object._formatted[property]);
   }
   return object[property];
@@ -161,11 +146,8 @@ export function getHighlightedValue<T extends Record<any, any>>(
  **/
 export function replaceHtmlTagsToHighlight(str: string) {
   return str
-    .replace(
-      /<em>/g,
-      '<span class="infini__searchbox-modal-search-hits-item--highlight">',
-    )
-    .replace(/<\/em>/g, "</span>");
+    .replace(/<em>/g, '<span class="infini__searchbox-modal-search-hits-item--highlight">')
+    .replace(/<\/em>/g, '</span>');
 }
 
 /*
@@ -187,18 +169,14 @@ export function replaceHtmlTagsToHighlight(str: string) {
  * @return {string}
  **/
 export function getSnippetedValue(object: Record<any, any>, property: string) {
-  if (
-    !object._formatted ||
-    !object._formatted[property] ||
-    typeof object._formatted[property] !== "string"
-  ) {
+  if (!object._formatted || !object._formatted[property] || typeof object._formatted[property] !== 'string') {
     return object[property];
   }
   let snippet = replaceHtmlTagsToHighlight(object._formatted[property]);
   if (snippet[0] !== snippet[0].toUpperCase()) {
     snippet = `…${snippet}`;
   }
-  if ([".", "!", "?"].indexOf(snippet[snippet.length - 1]) === -1) {
+  if (!['.', '!', '?'].includes(snippet[snippet.length - 1])) {
     snippet = `${snippet}…`;
   }
   return snippet;
@@ -214,12 +192,10 @@ export function deepClone<T>(object: T): T {
   return JSON.parse(JSON.stringify(object));
 }
 
-/**
- * Debounce a function to be executed only once after a timeout has passed.
- */
+/** Debounce a function to be executed only once after a timeout has passed. */
 export function debounce<F extends (...args: Parameters<F>) => ReturnType<F>>(
   func: F,
-  waitFor: number = 300,
+  waitFor: number = 300
 ): (...args: Parameters<F>) => void {
   let timeout: NodeJS.Timeout;
   return (...args: Parameters<F>): void => {
@@ -241,5 +217,9 @@ export function isMeta(key: string) {
 }
 
 export function isAppleDevice() {
-  return /(Mac|iPhone|iPod|iPad|MacIntel)/i.test(navigator.platform) || navigator.platform.startsWith("Mac") || navigator.platform.startsWith("mac");
+  return (
+    /(Mac|iPhone|iPod|iPad|MacIntel)/i.test(navigator.platform) ||
+    navigator.platform.startsWith('Mac') ||
+    navigator.platform.startsWith('mac')
+  );
 }

@@ -1,6 +1,3 @@
-## Describe
-Based on [soybean-admin-react](https://github.com/soybeanjs/soybean-admin-react)
-
 ## Usage
 
 ### Prerequisites

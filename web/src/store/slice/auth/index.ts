@@ -24,8 +24,6 @@ export const authSlice = createAppSlice({
         const { data, error } = await fetchLogin(password);
         // 1. stored in the localStorage, the later requests need it in headers
         if (!error) {
-          localStg.set('token', data.access_token);
-          localStg.set('refreshToken', data.access_token);
 
           const { data: info, error: userInfoError } = await fetchGetUserInfo();
 
@@ -65,13 +63,13 @@ export const { login, resetAuth } = authSlice.actions;
 export const getUerName = (): AppThunk<string> => (_, getState) => {
   const pass = selectToken(getState());
 
-  return pass ? selectUserInfo(getState()).name : '';
+  return pass ? selectUserInfo(getState())?.name : '';
 };
 
 /** is super role in static route */
 
 export const isStaticSuper = (): AppThunk<boolean> => (_, getState) => {
-  const { roles = [] } = selectUserInfo(getState());
+  const { roles = [] } = selectUserInfo(getState()) || {};
 
   const { VITE_AUTH_ROUTE_MODE, VITE_STATIC_SUPER_ROLE } = import.meta.env;
   // return VITE_AUTH_ROUTE_MODE === 'static' && roles.includes(VITE_STATIC_SUPER_ROLE);
@@ -90,4 +88,4 @@ export const resetStore = (): AppThunk => dispatch => {
 };
 
 /** Is login */
-export const getIsLogin = createSelector([selectToken], token => Boolean(token));
+export const getIsLogin = createSelector([selectUserInfo], userInfo => Boolean(userInfo));

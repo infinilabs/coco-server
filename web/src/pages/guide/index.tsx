@@ -1,9 +1,11 @@
 import { getPaletteColorByNumber, mixColor } from '@sa/color';
-import { getDarkMode, getThemeSettings } from '@/store/slice/theme';
-import Guide from './modules/Guide';
-import bg from "@/assets/svg-icon/guide.svg"
-import bgZH from "@/assets/svg-icon/guide-zh.svg"
+
+import bgZH from '@/assets/svg-icon/guide-zh.svg';
+import bg from '@/assets/svg-icon/guide.svg';
 import { getLocale } from '@/store/slice/app';
+import { getDarkMode, getThemeSettings } from '@/store/slice/theme';
+
+import Guide from './modules/Guide';
 
 const COLOR_WHITE = '#ffffff';
 
@@ -22,30 +24,30 @@ function useBgColor() {
 }
 
 export function Component() {
-      
-    const { bgThemeColor } = useBgColor();
-    const locale = useAppSelector(getLocale);
-    const darkMode = useAppSelector(getDarkMode);
+  const { bgThemeColor } = useBgColor();
+  const locale = useAppSelector(getLocale);
+  const darkMode = useAppSelector(getDarkMode);
 
-    const backgroundImage = locale === 'zh-CN' ? bgZH : bg
+  const backgroundImage = locale === 'zh-CN' ? bgZH : bg;
 
-    return (
-        <div
-            className="relative size-full flex-center overflow-hidden bg-layout"
-            style={{ backgroundColor: darkMode ? "rgb(var(--layout-bg-color))" : "#fff" }}
-        >
-            <div className="p-10px absolute right-0 top-0">
-              <div className="flex-y-center justify-end">
-                <LangSwitch className="px-12px" />
-                <ThemeSchemaSwitch className="px-12px" />
-              </div>
-            </div>
-            <div className="w-1/3 h-100% bg-top-left sm:bg-center-left md:bg-center-left bg-[size:100%_auto] bg-no-repeat" style={{ backgroundImage: `url(${backgroundImage})` }}>
-                
-            </div>
-            <div className="h-100% w-2/3">
-                <Guide />
-            </div>
+  return (
+    <div
+      className="relative size-full flex-center overflow-hidden bg-layout"
+      style={{ backgroundColor: darkMode ? 'rgb(var(--layout-bg-color))' : '#fff' }}
+    >
+      <div className="absolute right-0 top-0 p-10px">
+        <div className="flex-y-center justify-end">
+          <LangSwitch className="px-12px" />
+          <ThemeSchemaSwitch className="px-12px" />
         </div>
-    );
+      </div>
+      <div
+        className="h-100% w-1/3 bg-[size:100%_auto] bg-top-left bg-no-repeat md:bg-center-left sm:bg-center-left"
+        style={{ backgroundImage: `url(${backgroundImage})` }}
+      />
+      <div className="h-100% w-2/3">
+        <Guide />
+      </div>
+    </div>
+  );
 }

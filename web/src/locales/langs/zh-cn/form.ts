@@ -11,6 +11,10 @@ const form: App.I18n.Schema['translation']['form'] = {
     invalid: '邮箱格式不正确',
     required: '请输入邮箱'
   },
+  endpoint: {
+    invalid: 'Endpoint格式不正确',
+    required: '请输入endpoint'
+  },
   phone: {
     invalid: '手机号格式不正确',
     required: '请输入手机号'
@@ -23,10 +27,6 @@ const form: App.I18n.Schema['translation']['form'] = {
   userName: {
     invalid: '用户名格式不正确',
     required: '请输入用户名'
-  },
-  endpoint: {
-    invalid: 'Endpoint格式不正确',
-    required: '请输入endpoint'
   }
 };
 

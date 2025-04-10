@@ -1,9 +1,6 @@
 import { request } from '../request';
 
-/**
- * Get server's info
- *
- */
+/** Get server's info */
 export function fetchServer() {
   return request<Api.Server.Info>({
     method: 'get',
@@ -11,10 +8,7 @@ export function fetchServer() {
   });
 }
 
-/**
- * Get settings
- *
- */
+/** Get settings */
 export function fetchSettings() {
   return request({
     method: 'get',
@@ -22,13 +16,10 @@ export function fetchSettings() {
   });
 }
 
-/**
- * Update server's settings
- *
- */
-export function updateSettings(data: { server?: any; llm?: any }) {
+/** Update server's settings */
+export function updateSettings(data: { llm?: any; server?: any }) {
   return request({
-    data: data,
+    data,
     method: 'put',
     url: '/settings'
   });

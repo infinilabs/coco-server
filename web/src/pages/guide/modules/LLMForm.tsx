@@ -1,100 +1,143 @@
-import { Button, Form, Input } from "antd";
-import { FormInstance } from "antd/lib";
-import { ReactSVG } from "react-svg";
-import OllamaSvg from '@/assets/svg-icon/ollama.svg'
-import OpenAISvg from '@/assets/svg-icon/openai.svg'
-import DeepseekSvg from '@/assets/svg-icon/deepseek.svg'
+import { Button, Form, Input } from 'antd';
+import type { FormInstance } from 'antd/lib';
+import { ReactSVG } from 'react-svg';
 
-type ModelType = 'deepseek' | 'ollama' | 'openai'
+import DeepseekSvg from '@/assets/svg-icon/deepseek.svg';
+import OllamaSvg from '@/assets/svg-icon/ollama.svg';
+import OpenAISvg from '@/assets/svg-icon/openai.svg';
 
-const LLMForm = memo(({ form, onSubmit, loading }: { form: FormInstance, onSubmit: (isPass?: boolean) => void; loading: boolean }) => {
-    const formItemClassNames = "m-b-32px"
-    const inputClassNames = "h-40px"
+type ModelType = 'deepseek' | 'ollama' | 'openai';
+
+const LLMForm = memo(
+  ({ form, loading, onSubmit }: { form: FormInstance; loading: boolean; onSubmit: (isPass?: boolean) => void }) => {
+    const formItemClassNames = 'm-b-32px';
+    const inputClassNames = 'h-40px';
     const { t } = useTranslation();
     const { defaultRequiredRule, formRules } = useFormRules();
-    const [type, setType] = useState<ModelType>('deepseek')
+    const [type, setType] = useState<ModelType>('deepseek');
 
     return (
-        <>
-            <div className="text-32px color-[var(--ant-color-text-heading)] m-b-16px">
-                {t('page.guide.llm.title')}
-            </div>
-            <div className="text-16px color-[var(--ant-color-text)] m-b-64px">
-                {t('page.guide.llm.desc')}
-            </div>
-            <Form
-                form={form}
-                layout="vertical"
-                initialValues={{
-                    llm: { 
-                        type,
-                        keepalive: '30m'
-                    }
-                }}
-              >
-                <Form.Item
-                    name={['llm', 'type']}
-                    label={t(`page.settings.llm.type`)}
-                    className={formItemClassNames}
-                    rules={[defaultRequiredRule]}
-                >
-                    <ButtonRadio
-                        options={[
-                            { value: 'deepseek', label: <span className="flex items-center deepseek-icon"><ReactSVG src={DeepseekSvg} className="m-r-4px"/>Deepseek</span>},
-                            { value: 'ollama', label: <span className="flex items-center"><ReactSVG src={OllamaSvg} className="m-r-4px"/>Ollama</span>},
-                            { value: 'openai', label: <span className="flex items-center"><ReactSVG src={OpenAISvg} className="m-r-4px"/>OpenAI</span>}
-                        ]}
-                        onChange={(value: ModelType) => {
-                            setType(value)
-                            form.setFieldsValue({ token: undefined })
-                        }}
-                    />
-                </Form.Item>
-                <Form.Item
-                    name={['llm', 'endpoint']}
-                    label={t(`page.settings.llm.endpoint`)}
-                    className={formItemClassNames}
-                    rules={formRules.endpoint}
-                >
-                    <Input className={inputClassNames}/>
-                </Form.Item>
-                <Form.Item
-                    name={['llm', 'default_model']}
-                    label={t(`page.settings.llm.defaultModel`)}
-                    className={formItemClassNames}
-                    rules={[defaultRequiredRule]}
-                >
-                    <Input />
-                </Form.Item>
-                <Form.Item
-                    name={['llm', 'keepalive']}
-                    label={t(`page.settings.llm.keepalive`)}
-                    className={formItemClassNames}
-                    rules={[defaultRequiredRule]}
-                >
-                    <Input />
-                </Form.Item>
+      <>
+        <div className="m-b-16px text-32px color-[var(--ant-color-text-heading)]">{t('page.guide.llm.title')}</div>
+        <div className="m-b-64px text-16px color-[var(--ant-color-text)]">{t('page.guide.llm.desc')}</div>
+        <Form
+          form={form}
+          layout="vertical"
+          initialValues={{
+            llm: {
+              keepalive: '30m',
+              type
+            }
+          }}
+        >
+          <Form.Item
+            className={formItemClassNames}
+            label={t(`page.settings.llm.type`)}
+            name={['llm', 'type']}
+            rules={[defaultRequiredRule]}
+          >
+            <ButtonRadio
+              options={[
                 {
-                    (type === 'openai' || type === 'deepseek') && (
-                        <Form.Item
-                            name={['llm', 'token']}
-                            label={'Token'}
-                            className={formItemClassNames}
-                            rules={[defaultRequiredRule]}
-                        >
-                            <Input.Password />
-                        </Form.Item>
-                    )
+                  label: (
+                    <span className="deepseek-icon flex items-center">
+                      <ReactSVG
+                        className="m-r-4px"
+                        src={DeepseekSvg}
+                      />
+                      Deepseek
+                    </span>
+                  ),
+                  value: 'deepseek'
+                },
+                {
+                  label: (
+                    <span className="flex items-center">
+                      <ReactSVG
+                        className="m-r-4px"
+                        src={OllamaSvg}
+                      />
+                      Ollama
+                    </span>
+                  ),
+                  value: 'ollama'
+                },
+                {
+                  label: (
+                    <span className="flex items-center">
+                      <ReactSVG
+                        className="m-r-4px"
+                        src={OpenAISvg}
+                      />
+                      OpenAI
+                    </span>
+                  ),
+                  value: 'openai'
                 }
-                <div className="flex justify-between">
-                    <Button type="link" size="large" className="h-56px text-14px px-0" onClick={() => onSubmit(true)}>{t('page.guide.setupLater')}</Button>
-                    <Button loading={loading} type="primary" size="large" className="w-56px h-56px text-24px" onClick={() => onSubmit()}>
-                      <SvgIcon icon="mdi:check" />
-                    </Button>
-                </div>
-            </Form>
-        </>
-    )
-})
+              ]}
+              onChange={(value: ModelType) => {
+                setType(value);
+                form.setFieldsValue({ token: undefined });
+              }}
+            />
+          </Form.Item>
+          <Form.Item
+            className={formItemClassNames}
+            label={t(`page.settings.llm.endpoint`)}
+            name={['llm', 'endpoint']}
+            rules={formRules.endpoint}
+          >
+            <Input className={inputClassNames} />
+          </Form.Item>
+          <Form.Item
+            className={formItemClassNames}
+            label={t(`page.settings.llm.defaultModel`)}
+            name={['llm', 'default_model']}
+            rules={[defaultRequiredRule]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            className={formItemClassNames}
+            label={t(`page.settings.llm.keepalive`)}
+            name={['llm', 'keepalive']}
+            rules={[defaultRequiredRule]}
+          >
+            <Input />
+          </Form.Item>
+          {(type === 'openai' || type === 'deepseek') && (
+            <Form.Item
+              className={formItemClassNames}
+              label="Token"
+              name={['llm', 'token']}
+              rules={[defaultRequiredRule]}
+            >
+              <Input.Password />
+            </Form.Item>
+          )}
+          <div className="flex justify-between">
+            <Button
+              className="h-56px px-0 text-14px"
+              size="large"
+              type="link"
+              onClick={() => onSubmit(true)}
+            >
+              {t('page.guide.setupLater')}
+            </Button>
+            <Button
+              className="h-56px w-56px text-24px"
+              loading={loading}
+              size="large"
+              type="primary"
+              onClick={() => onSubmit()}
+            >
+              <SvgIcon icon="mdi:check" />
+            </Button>
+          </div>
+        </Form>
+      </>
+    );
+  }
+);
 
 export default LLMForm;

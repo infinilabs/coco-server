@@ -39,15 +39,17 @@ const HEADER_PROPS_CONFIG: Record<UnionKey.ThemeLayoutMode, App.Global.HeaderPro
 };
 
 const GlobalHeader: FC<Props> = memo(({ isMobile, mode, reverse, siderWidth }) => {
-
   const { showLogo, showMenu, showMenuToggler } = HEADER_PROPS_CONFIG[mode];
 
   const showToggler = reverse ? true : showMenuToggler;
 
-  const borderColor = 'var(--ant-color-border)'
+  const borderColor = 'var(--ant-color-border)';
 
   return (
-    <DarkModeContainer className={`h-full flex-y-center px-12px b-b-1px`} style={{ borderColor }}>
+    <DarkModeContainer
+      className="h-full flex-y-center b-b-1px px-12px"
+      style={{ borderColor }}
+    >
       {showLogo && (
         <GlobalLogo
           className="h-full"

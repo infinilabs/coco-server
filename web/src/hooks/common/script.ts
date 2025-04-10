@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import "./script.css";
+import './script.css';
 
 const useScript = (src: string) => {
   useEffect(() => {
@@ -18,9 +18,8 @@ const useScript = (src: string) => {
   }, [src]);
 };
 
-export default useScript;
-
-
 export const useIconfontScript = () => {
   useScript('/assets/fonts/icons/iconfont.js');
 };
+
+export default useScript;

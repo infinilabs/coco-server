@@ -1,59 +1,62 @@
-import Search from "antd/es/input/Search";
-import Icon, { FilterOutlined, PlusOutlined } from "@ant-design/icons";
-import WebsiteSVG from "@/assets/svg-icon/website.svg";
-import CloudDiskSVG from "@/assets/svg-icon/cloud_disk.svg";
-import CreatorSVG from "@/assets/svg-icon/creator.svg";
-import { Button, List, Image } from "antd";
-import { ReactSVG } from "react-svg";
-import {searchConnector} from "@/service/api/connector";
-import { formatESSearchResult } from '@/service/request/es';
+import Icon, { FilterOutlined, PlusOutlined } from '@ant-design/icons';
+import { Button, Image, List } from 'antd';
+import Search from 'antd/es/input/Search';
+import { ReactSVG } from 'react-svg';
+
+import CloudDiskSVG from '@/assets/svg-icon/cloud_disk.svg';
+import CreatorSVG from '@/assets/svg-icon/creator.svg';
+import WebsiteSVG from '@/assets/svg-icon/website.svg';
 import InfiniIcon from '@/components/common/icon';
+import { searchConnector } from '@/service/api/connector';
+import { formatESSearchResult } from '@/service/request/es';
 
 const ConnectorCategory = {
-  CloudStorage: "cloud_storage",
-  Website: "website",
-}
+  CloudStorage: 'cloud_storage',
+  Website: 'website'
+};
 
 export function Component() {
   const { t } = useTranslation();
   const nav = useNavigate();
   const onAddClick = (key: string) => {
-    nav(`/data-source/new/?type=${key}`)
-  }
+    nav(`/data-source/new/?type=${key}`);
+  };
   const [data, setData] = useState({
-    total: 0,
     data: [],
+    total: 0
   });
   const [loading, setLoading] = useState(false);
   const [reqParams, setReqParams] = useState({
     from: 0,
-    size: 10,
-  })
-  const fetchData = ()=>{
-    setLoading(true)
-    searchConnector(reqParams).then((data)=>{
-      const newData = formatESSearchResult(data.data);
-      setData(newData);
-    }).finally(()=>{
-      setLoading(false);
-    });
-  }
+    size: 10
+  });
+  const fetchData = () => {
+    setLoading(true);
+    searchConnector(reqParams)
+      .then(data => {
+        const newData = formatESSearchResult(data.data);
+        setData(newData);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  };
   useEffect(fetchData, [reqParams]);
-  const onSearchClick = (query: string)=>{
+  const onSearchClick = (query: string) => {
     setReqParams({
       ...reqParams,
-      query,
-    })
-  }
-  const onPageChange = (page: number, pageSize: number) =>{
-    setReqParams((oldParams: any)=>{
+      query
+    });
+  };
+  const onPageChange = (page: number, pageSize: number) => {
+    setReqParams((oldParams: any) => {
       return {
         ...oldParams,
-        from: (page-1) * pageSize,
-        size: pageSize,
-      }
-    })
-  }
+        from: (page - 1) * pageSize,
+        size: pageSize
+      };
+    });
+  };
   return (
     <div className="min-h-500px flex-col-stretch gap-16px overflow-hidden lt-sm:overflow-auto">
       <ACard
@@ -64,49 +67,87 @@ export function Component() {
           <Search
             addonBefore={<FilterOutlined />}
             className="max-w-500px"
+            enterButton={t('common.refresh')}
             onSearch={onSearchClick}
-            enterButton={t("common.refresh")}
-          ></Search>
+          />
         </div>
         <List
-          pagination={{
-            showTotal:(total, range) => `${range[0]}-${range[1]} of ${total} items`,
-            defaultPageSize: 10,
-            defaultCurrent: 1,
-            onChange: onPageChange,
-            total: data.total || 0,
-            showSizeChanger: true,
-          }}
-          grid={{ gutter: 16, column: 3 }}
           dataSource={data.data}
-          renderItem={(connector) => (
+          grid={{ column: 3, gutter: 16 }}
+          pagination={{
+            defaultCurrent: 1,
+            defaultPageSize: 10,
+            onChange: onPageChange,
+            showSizeChanger: true,
+            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+            total: data.total || 0
+          }}
+          renderItem={connector => (
             <List.Item>
-               <div className="relative p-1em border border-[var(--ant-color-border)] group rounded-[8px] hover:bg-[var(--ant-control-item-bg-hover)] ">
-                <Button type="primary" onClick={()=>{
-                  onAddClick(connector.id)
-                }} className="absolute hidden group-hover:block top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                  <PlusOutlined className="font-bold text-1.4em"/>
+              <div className="group relative border border-[var(--ant-color-border)] rounded-[8px] p-1em hover:bg-[var(--ant-control-item-bg-hover)]">
+                <Button
+                  className="absolute left-1/2 top-1/2 hidden transform group-hover:block -translate-x-1/2 -translate-y-1/2"
+                  type="primary"
+                  onClick={() => {
+                    onAddClick(connector.id);
+                  }}
+                >
+                  <PlusOutlined className="text-1.4em font-bold" />
                 </Button>
-                  <div className="flex items-center gap-8px">
-                  <InfiniIcon src={connector.icon} height="2.6em" width="2.6em" className="text-2.6em"/><span className="font-size-1.2em">{connector.name}</span>
-                    {/* <Icon component={connector.icon} className="font-size-2.6em"/> <span className="font-size-1.2em">{connector.name}</span> */}
+                <div className="flex items-center gap-8px">
+                  <InfiniIcon
+                    className="text-2.6em"
+                    height="2.6em"
+                    src={connector.icon}
+                    width="2.6em"
+                  />
+                  <span className="font-size-1.2em">{connector.name}</span>
+                  {/* <Icon component={connector.icon} className="font-size-2.6em"/> <span className="font-size-1.2em">{connector.name}</span> */}
+                </div>
+                <div className="my-1em flex items-center gap-2em text-gray-500">
+                  {connector.category === ConnectorCategory.Website && (
+                    <div className="flex items-center gap-3px">
+                      {' '}
+                      <ReactSVG
+                        className="font-size-1.2em"
+                        src={WebsiteSVG}
+                      />{' '}
+                      <span>Website</span>
+                    </div>
+                  )}
+                  {connector.category === ConnectorCategory.CloudStorage && (
+                    <div className="flex items-center gap-3px">
+                      {' '}
+                      <ReactSVG
+                        className="font-size-1.2em"
+                        src={CloudDiskSVG}
+                      />{' '}
+                      <span>Cloud Storage</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-3px">
+                    {' '}
+                    <ReactSVG
+                      className="font-size-1.2em"
+                      src={CreatorSVG}
+                    />{' '}
+                    <span>{connector.author || 'INFINI Labs'}</span>
                   </div>
-                  <div className="flex items-center gap-2em text-gray-500 my-1em">
-                    {connector.category === ConnectorCategory.Website && <div className="flex items-center gap-3px"> <ReactSVG src={WebsiteSVG} className="font-size-1.2em"/> <span>Website</span></div>}
-                    {connector.category === ConnectorCategory.CloudStorage && <div className="flex items-center gap-3px"> <ReactSVG src={CloudDiskSVG} className="font-size-1.2em"/> <span>Cloud Storage</span></div>}
-                    <div className="flex items-center gap-3px">  <ReactSVG src={CreatorSVG} className="font-size-1.2em"/>  <span>{connector.author || "INFINI Labs"}</span></div>
-                  </div>
-                  <div className="text-gray-500 h-45px overflow-hidden text-ellipsis">{connector.description}</div>
-                  <div className="h-33px overflow-scroll">
-                    <div className="text-gray-500 text-12px flex gap-5px mt-10px flex-wrap">
+                </div>
+                <div className="h-45px overflow-hidden text-ellipsis text-gray-500">{connector.description}</div>
+                <div className="h-33px overflow-scroll">
+                  <div className="mt-10px flex flex-wrap gap-5px text-12px text-gray-500">
                     {(connector.tags || []).map((tag, index) => (
-                      <div key={index} className="border border-gray-300 rounded px-5px">
+                      <div
+                        className="border border-gray-300 rounded px-5px"
+                        key={index}
+                      >
                         {tag}
                       </div>
                     ))}
-                    </div>
                   </div>
                 </div>
+              </div>
             </List.Item>
           )}
         />

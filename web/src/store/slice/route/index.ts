@@ -169,8 +169,10 @@ const handleConstantOrAuthRoutes =
     dispatch(getCacheRoutes(sortRoutes));
   };
 
-export const initConstantRoute = (): AppThunk => async dispatch => {
+export const initConstantRoute = (filterPaths: string[] = []): AppThunk => async dispatch => {
   const staticRoute = createStaticRoutes();
+  staticRoute.authRoutes = staticRoute.authRoutes.filter((item) => !filterPaths.includes(item.path))
+  staticRoute.constantRoutes = staticRoute.constantRoutes.filter((item) => !filterPaths.includes(item.path))
 
   if (constantRouteMode === 'static') {
     dispatch(setConstantRoutes(staticRoute.constantRoutes));
