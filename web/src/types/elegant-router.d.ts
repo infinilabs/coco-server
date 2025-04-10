@@ -36,6 +36,9 @@ declare module "@elegant-router/types" {
     "404": "/404";
     "500": "/500";
     "ai-assistant": "/ai-assistant";
+    "ai-assistant_edit": "edit/:id";
+    "ai-assistant_list": "list";
+    "ai-assistant_new": "new";
     "api-token": "/api-token";
     "api-token_list": "list";
     "connector": "/connector";
@@ -138,7 +141,10 @@ declare module "@elegant-router/types" {
     | "403"
     | "404"
     | "500"
+    | "ai-assistant_edit"
     | "ai-assistant"
+    | "ai-assistant_list"
+    | "ai-assistant_new"
     | "api-token_list"
     | "connector_edit"
     | "connector_new"

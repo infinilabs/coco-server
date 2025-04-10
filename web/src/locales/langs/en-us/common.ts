@@ -48,6 +48,10 @@ const common: App.I18n.Schema['translation']['common'] = {
     no: 'No',
     yes: 'Yes'
   },
+  enableOrDisable: {
+    enable: 'Enabled',
+    disable: 'Disabled'
+  },
   advanced: 'Advanced',
   save: 'Save',
   testConnection: 'Test Connection',
@@ -56,6 +60,7 @@ const common: App.I18n.Schema['translation']['common'] = {
   rename: 'Rename',
   create: 'Create',
   copy: 'Copy',
+  preview: 'Preview',
 };
 
 export default common;

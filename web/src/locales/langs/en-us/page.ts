@@ -1,3 +1,5 @@
+import { t } from "i18next";
+
 const page: App.I18n.Schema['translation']['page'] = {
   home: {
     server: {
@@ -246,7 +248,57 @@ const page: App.I18n.Schema['translation']['page'] = {
       preview: "Preview",
       exit: "Exit Preview"
     }
-  }
+  },
+  assistant: {
+    labels: {
+      name: "Name",
+      type: "Type",
+      default_model: "Default Model",
+      enabled: "Enabled",
+      icon: "Icon",
+      description: "Description",
+      intent_analysis_model: "Intent Analysis",
+      picking_doc_model: "Picking Doc",
+      deep_think_model: "Deep Think Model",
+      answering_model: "Answering Model",
+      keepalive: "Keepalive",
+      role_prompt: "Role Prompt",
+      temperature: "Temperature",
+      temperature_desc: "Controls the randomness of the generated text. A higher value produces more diverse but less stable content, while a lower value makes the output more predictable.",
+      top_p: "Top P",
+      top_p_desc: "The scope of selected vocabulary is limited. The lower the value, the more predictable the result; the higher the value, the more diverse the possibilities. It is not recommended to change this alongside randomness.",
+      max_tokens: "Max Tokens",
+      max_tokens_desc: "The maximum number of tokens used in a single interaction.",
+      presence_penalty: "Presence Penalty",
+      presence_penalty_desc: "Controls whether the AI tends to introduce new topics. The higher the value, the more the AI is inclined to introduce new content.",
+      frequency_penalty: "Frequency Penalty",
+      frequency_penalty_desc: "Controls the AI's repetition of the same vocabulary. The higher the value, the richer the expression.",
+      chat_settings: "Chat Settings",
+      greeting_settings: "Greeting Settings",
+      suggested_chat: "Suggested chat",
+      input_preprocessing: "User input preprocessing",
+      input_preprocessing_desc: "The user's latest message will be filled into this template.",
+      input_preprocessing_placeholder: "Preprocessing template: {{text}} will be replaced with the real-time input.",
+      history_message_number: "Number of historical messages included.",
+      history_message_number_desc: "Number of historical messages included in each request.",
+      history_message_compression_threshold: "Historical message length compression threshold.",
+      history_message_compression_threshold_desc: "When the uncompressed historical messages exceed this value, compression will be applied.",
+      history_summary: "Historical summary",
+      history_summary_desc: "Automatically compress chat history and send it as context.",
+      model_settings: "Model Settings",
+      datasource: "Datasource",
+      mcp_servers: "MCP Servers",
+      show_in_chat: "Show in chat",
+    },
+    mode:{
+      simple: "Simple",
+      deep_think: "Deep Think",
+      workflow: "External workflow",
+    },
+    delete: {
+      confirm: 'Are you sure you want to delete this ai assistant "{{name}}"?'
+    },
+  },
 };
 
 export default page;

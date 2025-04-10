@@ -245,7 +245,57 @@ const page: App.I18n.Schema['translation']['page'] = {
       preview: "预览",
       exit: "退出预览"
     }
-  }
+  },
+  assistant: {
+    labels: {
+      name: "名称",
+      type: "类型",
+      default_model: "默认模型",
+      enabled: "启用状态",
+      icon: "图标",
+      description: "描述",
+      intent_analysis_model: "意图识别",
+      picking_doc_model: "文档预选",
+      deep_think_model: "深度思考模型",
+      answering_model: "应答模型",
+      keepalive: "保持连接",
+      role_prompt: "角色提示",
+      temperature: "随机性（temperature） ",
+      temperature_desc: "控制生成文本的随机性，值越高，内容越丰富但不稳定；值越低，内容更可预测",
+      top_p: "词汇多样性 (top_p)",
+      top_p_desc: "限制选择的词汇范围，值越低，结果更可预测；值越高，可能性更多样，不推荐和随机性一起更改",
+      max_tokens: "单次回复限制(max tokens)",
+      max_tokens_desc: "单次交互所用的最大 Token 数",
+      presence_penalty: "表述发散度（Presence Penalty）",
+      presence_penalty_desc: "控制 AI 是否倾向于使用新主题，值越高，AI 更倾向于引入新内容",
+      frequency_penalty: "减少重复（Frequency Penalty）",
+      frequency_penalty_desc: "控制 AI 对同一词汇的重复使用，值越高，表达越丰富",
+      chat_settings: "聊天设置",
+      greeting_settings: "问候设置",
+      suggested_chat: "推荐对话",
+      input_preprocessing: "用户输入预处理",
+      input_preprocessing_desc: "用户最新的一条消息会填充到此模版",
+      input_preprocessing_placeholder: "预处理模版 {{text}} 将替换为实时输入信息",
+      history_message_number: "附带历史消息数",
+      history_message_number_desc: "每次请求携带的历史消息数",
+      history_message_compression_threshold: "历史消息长度压缩阈值",
+      history_message_compression_threshold_desc: "当未压缩的历史消息超过该值时，将进行压缩",
+      history_summary: "历史消息摘要",
+      history_summary_desc: "自动压缩聊天记录并作为上下文发送",
+      model_settings: "模型设置",
+      datasource: "数据源",
+      mcp_servers: "MCP 服务器",
+      show_in_chat: "在聊天界面中显示",
+    },
+    mode:{
+      simple: "简单模式",
+      deep_think: "深度思考",
+      workflow: "外部工作流",
+    },
+    delete: {
+      confirm: 'Are you sure you want to delete this ai assistant "{{name}}"?'
+    },
+  },
 };
 
 export default page;

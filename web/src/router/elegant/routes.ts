@@ -42,13 +42,49 @@ export const generatedRoutes: GeneratedRoute[] = [
   {
     name: 'ai-assistant',
     path: '/ai-assistant',
-    component: 'layout.base$view.ai-assistant',
+    component: 'layout.base',
+    redirect: 'list',
     meta: {
       i18nKey: 'route.ai-assistant',
       title: 'ai-assistant',
       icon: 'mdi:robot-outline',
       order: 2
-    }
+    },
+    children: [
+      {
+        name: 'ai-assistant_edit',
+        path: 'edit/:id',
+        component: 'view.ai-assistant_edit',
+        meta: {
+          i18nKey: 'route.ai-assistant_edit',
+          title: 'ai-assistant_edit',
+           hideInMenu: true,
+          activeMenu: 'ai-assistant'
+        }
+      },
+      {
+        name: 'ai-assistant_list',
+        path: 'list',
+        component: 'view.ai-assistant_list',
+        meta: {
+          i18nKey: 'route.ai-assistant_list',
+          title: 'ai-assistant_list',
+          hideInMenu: true,
+          activeMenu: 'ai-assistant'
+        }
+      },
+      {
+        name: 'ai-assistant_new',
+        path: 'new',
+        component: 'view.ai-assistant_new',
+        meta: {
+          i18nKey: 'route.ai-assistant_new',
+          title: 'ai-assistant_new',
+          hideInMenu: true,
+          activeMenu: 'ai-assistant'
+        }
+      }
+    ]
   },
   {
     name: 'api-token',

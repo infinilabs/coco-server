@@ -62,4 +62,10 @@ func init() {
 	api.HandleUIMethod(api.GET, "/chat/:session_id/_history", handler.getChatHistoryBySession, api.RequirePermission(viewSessionHistoryPermission), api.Feature(filter.FeatureCORS))
 	api.HandleUIMethod(api.OPTIONS, "/chat/:session_id/_history", handler.getChatHistoryBySession, api.RequirePermission(viewSessionHistoryPermission), api.Feature(filter.FeatureCORS))
 
+	api.HandleUIMethod(api.POST, "/assistant/", handler.createAssistant)
+	api.HandleUIMethod(api.GET, "/assistant/:id", handler.getAssistant)
+	api.HandleUIMethod(api.PUT, "/assistant/:id", handler.updateAssistant)
+	api.HandleUIMethod(api.DELETE, "/assistant/:id", handler.deleteAssistant)
+	api.HandleUIMethod(api.GET, "/assistant/_search", handler.searchAssistant)
+	api.HandleUIMethod(api.POST, "/assistant/_search", handler.searchAssistant)
 }

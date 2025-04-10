@@ -7,7 +7,7 @@ import {
   Switch,
 } from 'antd';
 import type { FormProps } from 'antd';
-import {createModelProvider, getLLMModels} from '@/service/api/llm';
+import {createModelProvider, getLLMModels} from '@/service/api/model-provider';
 import {getConnectorIcons} from '@/service/api/connector';
 import { IconSelector } from "../../connector/new/icon_selector";
 import {DeleteOutlined} from "@ant-design/icons";

@@ -2,7 +2,7 @@ import Search from "antd/es/input/Search";
 import Icon, { FilterOutlined, PlusOutlined, SettingOutlined, ExclamationCircleOutlined } from "@ant-design/icons";
 import { Button, List, Image, Switch, Tag, message, MenuProps, Modal, Dropdown} from "antd";
 import { ReactSVG } from "react-svg";
-import {searchModelPovider, updateModelProvider, deleteModelProvider} from "@/service/api/llm";
+import {searchModelPovider, updateModelProvider, deleteModelProvider} from "@/service/api/model-provider";
 import { formatESSearchResult } from '@/service/request/es';
 const { confirm } = Modal;
 // const modelProviders = [{

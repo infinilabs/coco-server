@@ -312,5 +312,12 @@ declare namespace Api {
       models: string[];
       enabled: boolean;
     }
+    interface Assistant {
+      name: string;
+      icon: string;
+      type: string;
+      enabled: boolean;
+      description: string;
+    }
   }
 }

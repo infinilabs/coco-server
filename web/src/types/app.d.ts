@@ -339,6 +339,11 @@ declare namespace App {
             no: string;
             yes: string;
           };
+          enableOrDisable: {
+            enable: string;
+            disable: string;
+          };
+          },
           advanced: string;
           save: string;
           testConnection: string;
@@ -347,6 +352,7 @@ declare namespace App {
           rename: string;
           create: string;
           copy: string;
+          preview: string;
         };
         datatable: {
           itemCount: string;
