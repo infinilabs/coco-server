@@ -70,7 +70,7 @@ func GenerateJWTAccessToken(provider string, login string, user *core.User) (map
 		"access_token": tokenString,
 		"username":     login,
 		"id":           user.ID,
-		"expire_in":    86400,
+		"expire_in":    time.Now().Unix() + 86400,
 	}
 
 	data["status"] = "ok"
