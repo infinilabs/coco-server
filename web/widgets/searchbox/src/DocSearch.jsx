@@ -5,10 +5,7 @@ import { isAlt, isAppleDevice, isCtrl, isMeta } from "./utils";
 import { DocSearchFloatButton } from "./DocSearchFloatButton";
 import { createRoot } from 'react-dom/client';
 
-import { DocSearchButton } from './DocSearchButton';
-import { DocSearchFloatButton } from './DocSearchFloatButton';
-import { DocSearchModal } from './DocSearchModal';
-import { isAlt, isAppleDevice, isCtrl, isMeta } from './utils';
+const DEFAULT_HOTKEYS = ["ctrl+/"];
 
 export const DocSearch = (props) => {
   const { hotKeys = DEFAULT_HOTKEYS, server, id, token, linkHref  } = props;
@@ -170,11 +167,11 @@ export const DocSearch = (props) => {
   }
 
   function renderButton(settings) {
-    const { type, options } = settings || {};
+    const { type } = settings || {};
     if (['embedded', 'all'].includes(type)) {
       return (
         <DocSearchButton
-          buttonText={options?.placeholder}
+          settings={settings}
           hotKeys={currentHotkeys}
           onClick={() => onClick('embedded')}
         />

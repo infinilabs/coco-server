@@ -176,7 +176,10 @@ const page: App.I18n.Schema['translation']['page'] = {
         type_all: 'All',
         type_embedded: 'Embedded',
         type_embedded_placeholder: 'Embedded widget placeholder text',
-        type_floating: 'Floating'
+        type_embedded_icon: 'Embedded widget icon',
+        type_floating: 'Floating',
+        type_floating_placeholder: 'Floating widget placeholder text',
+        type_floating_icon: 'Floating widget icon',
       },
       title: {
         edit: 'Edit integration',

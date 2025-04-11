@@ -11,6 +11,9 @@
   height: 40px;
   padding: 0 12px 0px 10px;
   user-select: none;
+  gap: 4px;
+  width: 100%;
+  min-width: 220px;
 }
 
 /* .infini__searchbox-btn code, kbd, samp, pre {
@@ -21,14 +24,6 @@
   .infini__searchbox-btn {
     padding: 0 8px;
   }
-}
-
-.infini__searchbox-btn > * {
-  margin-right: 4px;
-}
-
-.infini__searchbox-btn > *:last-child {
-  margin-right: 0px;
 }
 
 .infini__searchbox-btn:hover {
@@ -47,6 +42,11 @@
   height: 24px;
 }
 
+.infini__searchbox-btn-icon-container img {
+  width: 24px;
+  height: 24px;
+}
+
 .infini__searchbox-btn .infini__searchbox-btn-icon {
   color: var(--infini__searchbox-text-color);
 }
@@ -55,6 +55,9 @@
   font-size: 1rem;
   padding: 0 12px 0 0px;
   font-weight: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .infini__searchbox-btn-keys {
@@ -102,12 +105,36 @@
     0 3px 6px -4px rgba(0, 0, 0, 0.12),
     0 9px 28px 8px rgba(0, 0, 0, 0.05);
   border: 0;
-  width: 48px;
+  width: auto;
+  min-width: 110px;
+  max-width: 220px;
   height: 48px;
+  border: 2px solid #fff;
   cursor: pointer;
-  background: var(--infini__searchbox-searchbox-background);
-  border-radius: 8px;
+  border-radius: 44px;
   transition: box-shadow 0.3s;
+  padding: 0;
+  background: linear-gradient(270deg, #F0DCFF, #E1A7FF, #00DBFF);
+  -webkit-animation: float-btn-animation 3s ease infinite;
+  -moz-animation: float-btn-animation 3s ease infinite;
+  animation: float-btn-animation 3s ease infinite;
+  transition: .4s ease-in-out;
+  background-size: 800% 800%;
+  overflow: hidden;
+}
+
+@keyframes float-btn-animation {
+  0% {
+    background-position: 0% 50%
+  }
+
+  50% {
+    background-position: 100% 50%
+  }
+
+  100% {
+    background-position: 0% 50%
+  }
 }
 
 .infini__searchbox-float-btn:hover,
@@ -123,15 +150,26 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  justify-content: space-between;
+  gap: 6px;
 }
 
 .infini__searchbox-float-btn-icon-container {
   display: flex;
   align-items: center;
-  justify-content: center;
 }
 
-.infini__searchbox-float-btn-icon {
-  width: 32px;
-  height: 32px;
+.infini__searchbox-float-btn-text {
+  font-weight: 400;
+  font-size: 14px;
+  color: #FFFFFF;
+  padding-left: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.infini__searchbox-float-btn-container img {
+  width: 44px;
+  height: 44px;
 }

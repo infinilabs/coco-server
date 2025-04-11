@@ -9,7 +9,7 @@ const ALT_KEY_DEFAULT = 'Alt';
 const ALT_KEY_APPLE = '⌥';
 const META_KEY_APPLE = '⌘';
 
-export const DocSearchButton = ({ buttonText = 'Search whatever you want...', hotKeys, onClick }) => {
+export const DocSearchButton = ({ settings, hotKeys, onClick }) => {
   const [ctrlKey, setCtrlKey] = useState(null);
   const [altKey, setAltKey] = useState(null);
   const [metaKey, setMetaKey] = useState(null);
@@ -27,17 +27,20 @@ export const DocSearchButton = ({ buttonText = 'Search whatever you want...', ho
     }
   }, []);
 
+  const { options } = settings || {};
+
   return (
     <button
-      aria-label={buttonText}
       className="infini__searchbox-btn"
       type="button"
       onClick={onClick}
     >
       <span className="infini__searchbox-btn-icon-container">
-        <SearchLogo className="infini__searchbox-btn-icon" />
+        { options?.embedded_icon ? (
+          <img src={options?.embedded_icon}/>
+        ) : <SearchLogo className="infini__searchbox-btn-icon" /> }
       </span>
-      <span className="infini__searchbox-btn-placeholder"> {buttonText} </span>
+      <span className="infini__searchbox-btn-placeholder"> {options?.embedded_placeholder || 'Search...'} </span>
       {hotKeys && hotKeys.length > 0 && (
         <span className="infini__searchbox-btn-keys">
           {hotKeys[0].split('+').map(k => (
