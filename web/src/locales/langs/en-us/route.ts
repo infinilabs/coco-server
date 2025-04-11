@@ -68,7 +68,11 @@ const route: App.I18n.Schema['translation']['route'] = {
   'integration': 'Integration',
   'integration_list': 'Integration',
   'integration_new': 'New Integration',
-  'integration_edit': 'Edit Integration'
+  'integration_edit': 'Edit Integration',
+  'mcp-server': 'MCP Server',
+  'mcp-server_list': 'MCP Server',
+  'mcp-server_new': 'New MCP Server',
+  'mcp-server_edit': 'Edit MCP Server',
 };
 
 export default route;

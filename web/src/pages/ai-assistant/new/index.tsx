@@ -37,7 +37,7 @@ export function Component() {
       visible: true
     },
     keepalive: "30m",
-    mode: "simple",
+    type: "simple",
   };
   const [loading, setLoading] = useState(false);
 

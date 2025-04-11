@@ -319,5 +319,12 @@ declare namespace Api {
       enabled: boolean;
       description: string;
     }
+    interface MCPServer {
+      name: string;
+      type: string;
+      enabled: boolean;
+      config: any;
+      description: string;
+    }
   }
 }

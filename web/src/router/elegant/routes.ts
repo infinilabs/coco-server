@@ -58,7 +58,7 @@ export const generatedRoutes: GeneratedRoute[] = [
         meta: {
           i18nKey: 'route.ai-assistant_edit',
           title: 'ai-assistant_edit',
-           hideInMenu: true,
+          hideInMenu: true,
           activeMenu: 'ai-assistant'
         }
       },
@@ -291,6 +291,52 @@ export const generatedRoutes: GeneratedRoute[] = [
       constant: true,
       hideInMenu: true
     }
+  },
+  {
+    name: 'mcp-server',
+    path: '/mcp-server',
+    component: 'layout.base',
+    meta: {
+      i18nKey: 'route.mcp-server',
+      title: 'mcp-server',
+      order: 2
+    },
+    redirect: 'list',
+    children: [
+      {
+        name: 'mcp-server_edit',
+        path: 'edit/:id',
+        component: 'view.mcp-server_edit',
+        meta: {
+          i18nKey: 'route.mcp-server_edit',
+          title: 'mcp-server_edit',
+          hideInMenu: true,
+          activeMenu: 'mcp-server'
+        }
+      },
+      {
+        name: 'mcp-server_list',
+        path: 'list',
+        component: 'view.mcp-server_list',
+        meta: {
+          i18nKey: 'route.mcp-server_list',
+          title: 'mcp-server_list',
+          hideInMenu: true,
+          activeMenu: 'mcp-server'
+        }
+      },
+      {
+        name: 'mcp-server_new',
+        path: 'new',
+        component: 'view.mcp-server_new',
+        meta: {
+          i18nKey: 'route.mcp-server_new',
+          title: 'mcp-server_new',
+          hideInMenu: true,
+          activeMenu: 'mcp-server'
+        }
+      }
+    ]
   },
   {
     name: 'model-provider',

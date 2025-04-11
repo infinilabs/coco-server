@@ -68,7 +68,11 @@ const route: App.I18n.Schema['translation']['route'] = {
   'integration': '嵌入组件',
   'integration_list': '嵌入组件',
   'integration_new': '新增嵌入组件',
-  'integration_edit': '编辑嵌入组件'
+  'integration_edit': '编辑嵌入组件',
+  'mcp-server': 'MCP 服务器',
+  'mcp-server_list': 'MCP 服务器',
+  'mcp-server_new': '新增 MCP 服务器',
+  'mcp-server_edit': '编辑 MCP 服务器',
 };
 
 export default route;

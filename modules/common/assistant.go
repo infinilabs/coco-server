@@ -29,7 +29,7 @@ type Assistant struct {
 	Description    string           `json:"description" elastic_mapping:"description:{type:keyword,copy_to:combined_fulltext}"`
 	Icon           string           `json:"icon" elastic_mapping:"icon:{type:keyword}"`
 	Type           string           `json:"type" elastic_mapping:"type:{type:keyword}"`                // assistant type, default value: "simple", possible values: "simple", "deep_think", "external_workflow"
-	Config         interface{}      `json:"config,omitempty" elastic_mapping:"config:{enabled:false}"` // Assistant-specific configuration settings with mode
+	Config         interface{}      `json:"config,omitempty" elastic_mapping:"config:{enabled:false}"` // Assistant-specific configuration settings with type
 	AnsweringModel ModelConfig      `json:"answering_model" elastic_mapping:"answering_model:{type:object,enabled:false}"`
 	Datasource     DatasourceConfig `json:"datasource" elastic_mapping:"datasource:{type:object,enabled:false}"`
 	MCPServers     DatasourceConfig `json:"mcp_servers,omitempty" elastic_mapping:"mcp_servers:{type:object,enabled:false}"`
@@ -55,8 +55,9 @@ type DatasourceConfig struct {
 	Visible bool     `json:"visible"` // Whether the deep datasource is visible to the user
 }
 type ModelConfig struct {
-	Name     string        `json:"name"`
-	Settings ModelSettings `json:"settings"`
+	ProviderID string        `json:"provider_id,omitempty"`
+	Name       string        `json:"name"`
+	Settings   ModelSettings `json:"settings"`
 }
 
 type ModelSettings struct {

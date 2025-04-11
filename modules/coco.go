@@ -36,6 +36,7 @@ func (this *Coco) Setup() {
 	orm.MustRegisterSchemaWithIndexName(common.Integration{}, "integration")
 	orm.MustRegisterSchemaWithIndexName(common.ModelProvider{}, "model-provider")
 	orm.MustRegisterSchemaWithIndexName(common.Assistant{}, "assistant")
+	orm.MustRegisterSchemaWithIndexName(common.MCPServer{}, "mcp-server")
 
 	cocoConfig := common.Config{
 		LLMConfig: &common.LLMConfig{

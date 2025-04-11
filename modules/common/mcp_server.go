@@ -25,9 +25,20 @@ package common
 
 type MCPServer struct {
 	CombinedFullText
-	Name        string   `json:"name" elastic_mapping:"name:{type:keyword,copy_to:combined_fulltext}"`
-	Description string   `json:"description" elastic_mapping:"description:{type:keyword,copy_to:combined_fulltext}"`
-	Endpoint    string   `json:"endpoint" elastic_mapping:"endpoint:{type:keyword}"`
-	Tags        []string `json:"tags" elastic_mapping:"tags:{type:keyword,copy_to:combined_fulltext}"`
-	Token       string   `json:"token" elastic_mapping:"token:{type:keyword}"`
+	Name        string      `json:"name" elastic_mapping:"name:{type:keyword,copy_to:combined_fulltext}"`
+	Description string      `json:"description" elastic_mapping:"description:{type:keyword,copy_to:combined_fulltext}"`
+	Type        string      `json:"type" elastic_mapping:"type:{type:keyword,copy_to:combined_fulltext}"` // possible values: "sse", "stdio"
+	Config      interface{} `json:"config,omitempty" elastic_mapping:"config:{enabled:false}"`
+	Enabled     bool        `json:"enabled" elastic_mapping:"enabled:{type:boolean}"` // Whether the connector is enabled or not
+}
+
+type SSEConfig struct {
+	URL string `json:"url" elastic_mapping:"url:{type:keyword}"`
+}
+
+// StdioConfig is a struct for the standard input/output configuration
+type StdioConfig struct {
+	Command string            `json:"command"`        // command to run, possible values: npx, uvx
+	Args    []string          `json:"args,omitempty"` // arguments to pass to the command
+	Env     map[string]string `json:"env,omitempty"`  // environment variables
 }

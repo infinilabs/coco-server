@@ -68,4 +68,10 @@ func init() {
 	api.HandleUIMethod(api.DELETE, "/assistant/:id", handler.deleteAssistant)
 	api.HandleUIMethod(api.GET, "/assistant/_search", handler.searchAssistant)
 	api.HandleUIMethod(api.POST, "/assistant/_search", handler.searchAssistant)
+	api.HandleUIMethod(api.POST, "/mcp_server/", handler.createMCPServer)
+	api.HandleUIMethod(api.GET, "/mcp_server/:id", handler.getMCPServer)
+	api.HandleUIMethod(api.PUT, "/mcp_server/:id", handler.updateMCPServer)
+	api.HandleUIMethod(api.DELETE, "/mcp_server/:id", handler.deleteMCPServer)
+	api.HandleUIMethod(api.GET, "/mcp_server/_search", handler.searchMCPServer)
+	api.HandleUIMethod(api.POST, "/mcp_server/_search", handler.searchMCPServer)
 }

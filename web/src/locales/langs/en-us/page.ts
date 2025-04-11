@@ -299,6 +299,22 @@ const page: App.I18n.Schema['translation']['page'] = {
       confirm: 'Are you sure you want to delete this ai assistant "{{name}}"?'
     },
   },
+  mcpserver: {
+    labels: {
+      name: "Name",
+      type: "Type",
+      enabled: "Enabled",
+      description: "Description",
+      config: {
+        command: "Command",
+        args: "Arguments",
+        env: "Environment Variables",
+      }
+    },
+    delete: {
+      confirm: 'Are you sure you want to delete this ai MCP server "{{name}}"?'
+    },
+  },
 };
 
 export default page;

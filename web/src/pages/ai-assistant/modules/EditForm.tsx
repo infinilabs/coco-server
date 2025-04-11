@@ -15,6 +15,7 @@ import { IconSelector } from "../../connector/new/icon_selector";
 import {DeleteOutlined, PlusOutlined, UnorderedListOutlined} from "@ant-design/icons";
 import { useRequest } from '@sa/hooks';
 import { fetchDataSourceList, getLLMModels } from '@/service/api';
+import { searchMCPServer } from '@/service/api/mcp-server';
 import { useLoading } from '@sa/hooks';
 import {AssistantMode} from "./AssistantMode";
 import {DatasourceConfig} from "./DatasourceConfig";
@@ -113,6 +114,21 @@ export const EditForm = memo((props: AssistantFormProps)=> {
     fetchModels()
   }, [])
 
+  const { data: mcpServerResult, run: fetchMCPServers } = useRequest(searchMCPServer, {
+    manual: true,
+  });
+
+  useEffect(() => {
+    fetchMCPServers({
+      from: 0, 
+      size: 10000,
+    })
+  }, [])
+
+  const mcpServers = useMemo(() => {
+    return mcpServerResult?.hits?.hits?.map((item) => ({...item._source})) || []
+  }, [JSON.stringify(mcpServerResult)])
+
   const [assistantMode, setAssistantMode] = useState(initialValues?.mode || 'simple');
   useEffect(() => {
     if(initialValues?.mode) {
@@ -172,7 +188,7 @@ export const EditForm = memo((props: AssistantFormProps)=> {
             </Form.Item>
             <Form.Item label={t('page.assistant.labels.mcp_servers')} rules={[{ required: true}]} name="mcp_servers">
               <DatasourceConfig
-                  options={[{label: "*", value: "*"}].concat(dataSource.map((item) => ({
+                  options={[{label: "*", value: "*"}].concat(mcpServers.map((item) => ({
                     label: item.name,
                     value: item.id,
                   })))}
@@ -274,7 +290,7 @@ export const EditForm = memo((props: AssistantFormProps)=> {
                 }
             </Form.Item> */}
             <Form.Item label=" ">
-             <Space>{mode === "edit" ? <Button type='primary' ghost>{t('common.preview')}</Button>:null}<Button type='primary'  htmlType="submit">{t('common.save')}</Button></Space> 
+             <Button type='primary'  htmlType="submit">{t('common.save')}</Button>
             </Form.Item>
           </Form>
         </Spin>
