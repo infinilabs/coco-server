@@ -4,6 +4,7 @@ import {
   Input,
   message,
   Switch,
+  Select,
 } from 'antd';
 import type { FormProps } from 'antd';
 import {getConnectorIcons} from '@/service/api/connector';
@@ -24,14 +25,20 @@ export function Component() {
     if (!id) return;
     getModelProvider(id).then((res)=>{
       if(res.data?.found === true){
-        setModelProvider(res.data._source || {});
-        form.setFieldsValue(res.data._source || {});
+        const mp = res.data._source;
+        mp.models = mp.models.map((item: any) => item.name);
+        setModelProvider(mp || {});
+        form.setFieldsValue(mp || {});
       }
     });
   }, [id]);
 
   const onFinish: FormProps<any>['onFinish'] = (values) => {
-    updateModelProvider(id, values).then((res)=>{
+    const newValues = {
+      ...values,
+      models: values.models.map((item: any) => ({name: item})),
+    }
+    updateModelProvider(id, newValues).then((res)=>{
       if(res.data?.result == "updated"){
         message.success(t('common.updateSuccess'));
         nav('/model-provider/list');
@@ -76,17 +83,23 @@ export function Component() {
             <Form.Item label={t('page.modelprovider.labels.name')} rules={[{ required: true}]} name="name">
               <Input className='max-w-600px' readOnly={modelProvider.builtin === true } />
             </Form.Item>
-            <Form.Item label={t('page.modelprovider.labels.api_key')} rules={[{ required: modelProvider.id === "openai" || modelProvider.id === "deepseek"}]} name="api_key">
-              <Input className='max-w-600px' />
-            </Form.Item>
             <Form.Item label={t('page.modelprovider.labels.icon')} name="icon" rules={[{ required: true}]}>
               {modelProvider.builtin === true ? <InfiniIcon src={modelProvider.icon} height="2em" width="2em"/>: <IconSelector type="connector" icons={iconsMeta} className='max-w-150px' />}
             </Form.Item>
-            <Form.Item label={t('page.modelprovider.labels.endpoint')} rules={formRules.endpoint} name="api_endpoint">
+            <Form.Item label={t('page.modelprovider.labels.api_type')} name="api_type" rules={[{ required: true}]}>
+              <Select options={[{label:"OpenAI", value:"openai"}, {label:"Gemini", value:"gemini"},{label:"Anthropic", value:"anthropic"}]} className='max-w-150px' />
+            </Form.Item>
+            <Form.Item label={t('page.modelprovider.labels.api_key')} rules={[{ required: initialValues.id === "openai" || initialValues.id === "deepseek"}]} name="api_key">
+              <Input className='max-w-600px' />
+            </Form.Item>
+            <Form.Item label={t('page.modelprovider.labels.base_url')} rules={formRules.endpoint} name="base_url">
               <Input className='max-w-600px' />
             </Form.Item>
             <Form.Item label={t('page.modelprovider.labels.models')} rules={[{ required: true}]} name="models">
               <ModelsComponent/>
+            </Form.Item>
+            <Form.Item label={t('page.modelprovider.labels.description')} name="description">
+              <Input.TextArea className='w-600px' />
             </Form.Item>
             <Form.Item label={t('page.modelprovider.labels.enabled')} name="enabled">
               <Switch />

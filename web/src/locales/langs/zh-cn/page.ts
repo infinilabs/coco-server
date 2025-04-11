@@ -175,7 +175,9 @@ const page: App.I18n.Schema['translation']['page'] = {
   modelprovider: {
     labels: {
       name: "名称",
-      endpoint: "API 地址",
+      base_url: "Base URL",
+      description: "描述",
+      api_type: "API 类型",
       models: "模型",
       enabled: "是否禁用",
       icon: "图标",

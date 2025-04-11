@@ -178,7 +178,9 @@ const page: App.I18n.Schema['translation']['page'] = {
   modelprovider: {
     labels: {
       name: "Name",
-      endpoint: "API Endpoint",
+      base_url: "Base URL",
+      description: "Description",
+      api_type: "API Type",
       models: "Models",
       enabled: "Enabled",
       icon: "Icon",

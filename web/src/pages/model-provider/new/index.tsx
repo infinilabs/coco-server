@@ -18,7 +18,11 @@ export function Component() {
   const nav = useNavigate();
 
   const onFinish: FormProps<any>['onFinish'] = (values) => {
-    createModelProvider(values).then((res)=>{
+    const newValues = {
+      ...values,
+      models: values.models.map((item: any) => ({name: item})),
+    }
+    createModelProvider(newValues).then((res)=>{
       if(res.data?.result == "created"){
         message.success(t('common.addSuccess'))
         nav('/model-provider/list', {});
@@ -65,17 +69,23 @@ export function Component() {
             <Form.Item label={t('page.modelprovider.labels.name')} rules={[{ required: true}]} name="name">
               <Input className='max-w-600px' />
             </Form.Item>
-            <Form.Item label={t('page.modelprovider.labels.api_key')} rules={[{ required: initialValues.id === "openai" || initialValues.id === "deepseek"}]} name="api_key">
-              <Input className='max-w-600px' />
-            </Form.Item>
             <Form.Item label={t('page.modelprovider.labels.icon')} name="icon" rules={[{ required: true}]}>
               <IconSelector type="connector" icons={iconsMeta} className='max-w-150px' />
             </Form.Item>
-            <Form.Item label={t('page.modelprovider.labels.endpoint')} rules={formRules.endpoint} name="api_endpoint">
+            <Form.Item label={t('page.modelprovider.labels.api_type')} name="api_type" rules={[{ required: true}]}>
+              <Select options={[{label:"OpenAI", value:"openai"}, {label:"Gemini", value:"gemini"},{label:"Anthropic", value:"anthropic"}]} className='max-w-150px' />
+            </Form.Item>
+            <Form.Item label={t('page.modelprovider.labels.api_key')} rules={[{ required: initialValues.id === "openai" || initialValues.id === "deepseek"}]} name="api_key">
+              <Input className='max-w-600px' />
+            </Form.Item>
+            <Form.Item label={t('page.modelprovider.labels.base_url')} rules={formRules.endpoint} name="base_url">
               <Input className='max-w-600px' />
             </Form.Item>
             <Form.Item label={t('page.modelprovider.labels.models')} rules={[{ required: true}]} name="models">
               <ModelsComponent/>
+            </Form.Item>
+            <Form.Item label={t('page.modelprovider.labels.description')} name="description">
+              <Input.TextArea className='max-w-600px' />
             </Form.Item>
             <Form.Item label={t('page.modelprovider.labels.enabled')} name="enabled">
               <Switch />

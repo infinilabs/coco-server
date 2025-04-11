@@ -1,32 +1,11 @@
 import Search from "antd/es/input/Search";
 import Icon, { FilterOutlined, PlusOutlined, SettingOutlined, ExclamationCircleOutlined } from "@ant-design/icons";
-import { Button, List, Image, Switch, Tag, message, MenuProps, Modal, Dropdown} from "antd";
+import { Button, List, Image, Switch, Tag, message, MenuProps, Modal, Dropdown, Spin, Form, Input} from "antd";
 import { ReactSVG } from "react-svg";
 import {searchModelPovider, updateModelProvider, deleteModelProvider} from "@/service/api/model-provider";
 import { formatESSearchResult } from '@/service/request/es';
+import InfiniIcon from '@/components/common/icon';
 const { confirm } = Modal;
-// const modelProviders = [{
-//   name: "OpenAI",
-//   APIKey: "xxxxxx",
-//   APIEndpoint: "https://api.openai.com",
-//   icon: "/assets/icons/llm/openai.svg",
-//   models: ["gpt-3", "gpt-4", "gpt-5"],
-//   enabled: true,
-// },{
-//   name: "Deepseek",
-//   APIKey: "xxxxxx",
-//   APIEndpoint: "https://api.deepseek.com",
-//   icon: "/assets/icons/llm/deepseek.svg",
-//   models: ["deepseek-r1", "deepseek-r2", "deepseek-r3"],
-//   enabled: true,
-// },{
-//   name: "Ollama",
-//   APIEndpoint: "http://127.0.0.1:11434",
-//   icon: "/assets/icons/llm/ollama.svg",
-//   models: ["gpt-4", "deepseek-r1", "gpt-4", "deepseek-r1"],
-//   enabled: true,
-// }
-// ];
 
 export function Component() {
   const { t } = useTranslation();
@@ -103,27 +82,6 @@ export function Component() {
         break;
     }
   }
-  
-  // useEffect(()=>{
-  //   fetch("http://localhost:9000/connector/_search", {
-  //     method: "GET",
-  //     headers: {
-  //       "Content-Type": "application/json",
-  //       "Authorization": "Bearer token",
-  //       "X-API-TOKEN": "cvifokdath21us181efgzuls8ozx1kv0d6rzxw02gp4azx809mlba8n3wg14asdh2x596pjymalik2954y46", 
-  //       "APP-INTEGRATION-ID":"cvhmcqlath272nmlj10x"
-  //     },
-  //   })
-  //     .then((res) => {
-  //       console.log(res.headers.get("Authorization")); // Debug header
-  //       return res.json();
-  //     })
-  //     .then((data) => console.log(data))
-  //     .catch((err) => console.error("Fetch error:", err));
-  // }, [])
-  const onEditClick = (id: string)=>{
-    nav(`/model-provider/edit/${id}`);
-  }
   const onItemEnableChange = (record: any, checked: boolean)=>{
     setLoading(true);
     updateModelProvider(record.id, {
@@ -136,6 +94,21 @@ export function Component() {
     }).finally(()=>{
       setLoading(false);
     })
+  }
+
+  const [editValue, setEditValue] = useState({});
+  const [open, setOpen] = useState(false);
+  const onOkClick = ()=>{
+    setOpen(false);
+    fetchData();
+  }
+  const onCancelClick = ()=>{
+    setOpen(false);
+  }
+
+  const onAPIKeyClick = (record: any)=>{
+    setEditValue(record);
+    setOpen(true);
   }
   return (
     <div className="min-h-500px flex-col-stretch gap-16px overflow-hidden lt-sm:overflow-auto">
@@ -171,27 +144,78 @@ export function Component() {
                <div className="p-1em min-h-[132px] border border-gray-300 group rounded-[8px] hover:bg-gray-100 hover:bg-opacity-100">
                  <div className="flex justify-between">
                     <div className="flex items-center gap-8px">
-                    {provider.icon.endsWith(".svg") ? <ReactSVG src={provider.icon} className="font-size-2em"/> : <Image src={provider.icon} height="2em" width="2em" preview={false}/>}
+                      <InfiniIcon src={provider.icon} height="2em" width="2em" className="font-size-2em"/>
                     <span className="font-size-1.2em">{provider.name}</span>
                     </div>
                     <div>
                       <Switch defaultChecked={provider.enabled} onChange={(v)=>onItemEnableChange(provider, v)} size="small" />
-                      <div className="ml-[5px] inline-block px-4px rounded-[8px] border border-gray-200 cursor-pointer">
-                      <Dropdown menu={{ items, onClick:({key})=>onMenuClick({key, record: provider}) }}>
-                        <SettingOutlined className="text-blue-500"/>
-                     </Dropdown>
-                       
-                      </div>
                     </div>
                   </div>
-                  <div className="text-gray-500 text-12px mt-10px">
-                    {(provider.models || []).map((model) => <Tag className="border border-gray-300 rounded px-5px mt-10px">{model}</Tag>)}
+                  <div className="text-[#999] h-[51px] line-clamp-2 text-xs my-[10px]">
+                    {provider.description}
+                  </div>
+                  <div className="flex gap-1">
+
+                    <div className="ml-auto flex gap-2">
+                      <div onClick={()=>{onAPIKeyClick(provider)}} className="border border-gray-200 cursor-pointer  px-10px rounded-[8px]">API-key</div>
+                      <div className="inline-block px-4px rounded-[8px] border border-gray-200 cursor-pointer">
+                        <Dropdown menu={{ items, onClick:({key})=>onMenuClick({key, record: provider}) }}>
+                            <SettingOutlined className="text-blue-500"/>
+                        </Dropdown>
+                      </div>
+                    </div>
                   </div>
                 </div>
             </List.Item>
           )}
         />
+        <APIKeyComponent
+         open={open}
+         onOkClick={onOkClick}
+         onCancelClick={onCancelClick}
+         record={editValue} />
       </ACard>
     </div>
   );
+}
+
+const APIKeyComponent = ({
+  record = {},
+  onOkClick = ()=>{},
+  open = false,
+  onCancelClick = ()=>{},
+})=>{
+  const { t } = useTranslation();
+  const [form] = Form.useForm();
+  useEffect(()=>{
+    form.setFieldsValue({
+      api_key: record.api_key,
+    });
+  }, [record])
+  const [loading, setLoading] = useState(false);
+
+  const onModalOkClick = ()=>{
+    form.validateFields().then((values)=>{
+      setLoading(true);
+      record.api_key = values.api_key;
+      updateModelProvider(record.id, record).then(()=>{
+        setLoading(false);
+        onOkClick();
+      }).catch(()=>{
+        setLoading(false);
+      });
+    })
+  }
+  return (<Modal title={"Update API Key"}
+  open={open} 
+  onOk={onModalOkClick} 
+  onCancel={onCancelClick}>
+  <Spin spinning={loading}>
+    <Form form={form} layout="vertical" className="my-2em">
+      <Form.Item label={<span className="text-gray-500">{t('page.apitoken.columns.name')}</span>} name="api_key">
+        <Input defaultValue={record.api_key}/>
+      </Form.Item>
+    </Form>
+  </Spin>
+</Modal>)
 }
