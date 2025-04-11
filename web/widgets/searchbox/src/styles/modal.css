@@ -49,23 +49,6 @@
     --infini__searchbox-footer-height: 40px;
   }
 
-  .infini__searchbox-modal-container {
-    height: 100vh;
-    height: -webkit-fill-available;
-    height: calc(var(--infini__searchbox-vh, 1vh) * 100);
-    position: absolute;
-  }
-
-  .infini__searchbox-modal {
-    border-radius: 0;
-    box-shadow: none;
-    height: 100vh;
-    height: -webkit-fill-available;
-    height: calc(var(--infini__searchbox-vh, 1vh) * 100);
-    margin: 0;
-    max-width: 100%;
-    width: 100%;
-  }
 }
 
 [hidden] {

@@ -105,7 +105,8 @@ export const EditForm = memo(props => {
           hotkey: 'ctrl+/',
           name: `widget-${generateRandomString(8)}`,
           options: {
-            placeholder: 'Search...'
+            embedded_placeholder: 'Search...',
+            floating_placeholder: 'Ask AI'
           },
           type: 'embedded'
         };
@@ -188,16 +189,52 @@ export const EditForm = memo(props => {
           />
         </Form.Item>
         {['embedded', 'all'].includes(type) && (
-          <Form.Item label=" ">
-            <Form.Item
-              className="mb-32px"
-              label={t('page.integration.form.labels.type_embedded_placeholder')}
-              layout="vertical"
-              name={['options', 'placeholder']}
-            >
-              <Input className={itemClassNames} />
+          <>
+            <Form.Item label=" ">
+              <Form.Item
+                className="mb-32px"
+                label={t('page.integration.form.labels.type_embedded_placeholder')}
+                layout="vertical"
+                name={['options', 'embedded_placeholder']}
+              >
+                <Input className={itemClassNames} />
+              </Form.Item>
             </Form.Item>
-          </Form.Item>
+            <Form.Item label=" ">
+              <Form.Item
+                className="mb-32px"
+                label={t('page.integration.form.labels.type_embedded_icon')}
+                layout="vertical"
+                name={['options', 'embedded_icon']}
+              >
+                <Input className={itemClassNames} />
+              </Form.Item>
+            </Form.Item>
+          </>
+        )}
+        {['floating', 'all'].includes(type) && (
+          <>
+            <Form.Item label=" ">
+              <Form.Item
+                className="mb-32px"
+                label={t('page.integration.form.labels.type_floating_placeholder')}
+                layout="vertical"
+                name={['options', 'floating_placeholder']}
+              >
+                <Input className={itemClassNames} />
+              </Form.Item>
+            </Form.Item>
+            <Form.Item label=" ">
+              <Form.Item
+                className="mb-32px"
+                label={t('page.integration.form.labels.type_floating_icon')}
+                layout="vertical"
+                name={['options', 'floating_icon']}
+              >
+                <Input className={itemClassNames} />
+              </Form.Item>
+            </Form.Item>
+          </>
         )}
         <Form.Item
           label={t('page.integration.form.labels.datasource')}

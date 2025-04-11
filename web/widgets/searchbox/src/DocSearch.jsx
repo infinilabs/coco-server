@@ -167,11 +167,11 @@ export const DocSearch = (props) => {
   }
 
   function renderButton(settings) {
-    const { type, options } = settings || {};
+    const { type } = settings || {};
     if (['embedded', 'all'].includes(type)) {
       return (
         <DocSearchButton
-          buttonText={options?.placeholder}
+          settings={settings}
           hotKeys={currentHotkeys}
           onClick={() => onClick('embedded')}
         />
