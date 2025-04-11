@@ -28,9 +28,9 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup & cp index.html dist/",
-    "build:server": "tsup & mkdir -p ../../../.public/widgets/searchbox & cp index.html dist/index.css dist/index.js ../../../.public/widgets/searchbox",
-    "demo": "cd dist & http-server",
+    "build": "tsup && cp index.html dist/",
+    "build:server": "tsup && mkdir -p ../../../.public/widgets/searchbox && cp index.html dist/index.css dist/index.js ../../../.public/widgets/searchbox",
+    "demo": "cd dist && http-server",
     "format": "prettier --write \"./**/*.{js,jsx,ts,tsx,json,html,css}\" --ignore-path .gitignore",
     "format:check": "prettier --check \"./**/*.{js,jsx,ts,tsx,json,html,css}\" --ignore-path .gitignore",
     "prepublishOnly": "pnpm build",
