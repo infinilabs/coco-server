@@ -207,7 +207,7 @@ export const EditForm = memo(props => {
                 layout="vertical"
                 name={['options', 'embedded_icon']}
               >
-                <Input className={itemClassNames} />
+                <Input className={itemClassNames} placeholder={`${window.location.origin}/icon.svg`}/>
               </Form.Item>
             </Form.Item>
           </>
@@ -231,7 +231,7 @@ export const EditForm = memo(props => {
                 layout="vertical"
                 name={['options', 'floating_icon']}
               >
-                <Input className={itemClassNames} />
+                <Input className={itemClassNames}  placeholder={`${window.location.origin}/icon.svg`}/>
               </Form.Item>
             </Form.Item>
           </>
