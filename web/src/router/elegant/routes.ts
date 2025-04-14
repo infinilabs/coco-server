@@ -46,7 +46,8 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.ai-assistant',
       title: 'ai-assistant',
       icon: 'mdi:robot-outline',
-      order: 2
+      order: 2,
+      constant: true,
     }
   },
   {
@@ -57,7 +58,8 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.api-token',
       title: 'api-token',
       order: 4,
-      localIcon: 'security'
+      localIcon: 'security',
+      constant: true,
     },
     children: [
       {
@@ -81,7 +83,8 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.connector',
       title: 'connector',
       hideInMenu: true,
-      activeMenu: 'settings'
+      activeMenu: 'settings',
+      constant: true,
     },
     children: [
       {
@@ -115,7 +118,8 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.data-source',
       title: 'data-source',
       icon: 'mdi:folder-open-outline',
-      order: 3
+      order: 3,
+      constant: true,
     },
     children: [
       {
@@ -194,7 +198,8 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.home',
       title: 'home',
       icon: 'mdi:home',
-      order: 1
+      order: 1,
+      constant: true,
     }
   },
   {
@@ -206,7 +211,8 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.integration',
       title: 'integration',
       icon: 'mdi:puzzle-outline',
-      order: 5
+      order: 5,
+      constant: true,
     },
     children: [
       {
@@ -263,7 +269,8 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.settings',
       title: 'settings',
       icon: 'mdi:settings-outline',
-      order: 10
+      order: 10,
+      constant: true,
     }
   }
 ];
