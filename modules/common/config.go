@@ -6,10 +6,13 @@ package common
 
 import (
 	"infini.sh/coco/core"
+	"infini.sh/framework/core/env"
+	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/kv"
 	"infini.sh/framework/core/util"
 	"sync"
+	"time"
 )
 
 var (
@@ -17,36 +20,33 @@ var (
 	configMu sync.Mutex
 )
 
+func AppConfigFromFile() (*Config, error) {
+	cocoConfig := Config{
+		LLMConfig: &LLMConfig{
+			Type:                "deepseek",
+			DefaultModel:        "deepseek-r1",
+			IntentAnalysisModel: "tongyi-intent-detect-v3",
+			PickingDocModel:     "deepseek-r1-distill-qwen-32b",
+			AnsweringModel:      "deepseek-r1",
+			ContextLength:       131072,
+			Keepalive:           "30m",
+			Endpoint:            "https://dashscope.aliyuncs.com/compatible-mode/v1",
+		},
+		ServerInfo: &ServerInfo{Version: Version{Number: global.Env().GetVersion()}, Updated: time.Now()},
+	}
+
+	ok, err := env.ParseConfig("coco", &cocoConfig)
+	if ok && err != nil {
+		return nil, errors.New("invalid config")
+	}
+
+	return &cocoConfig, nil
+}
+
 func AppConfig() Config {
+
 	if config == nil {
-		v := global.Lookup("APP_CONFIG")
-		c, ok := v.(*Config)
-		if ok {
-			if c != nil {
-				config = c
-			}
-		}
-		if config == nil {
-			config = &Config{}
-		}
-		//read settings from kv
-		buf, _ := kv.GetValue(core.DefaultSettingBucketKey, []byte(core.DefaultServerConfigKey))
-		if buf != nil {
-			si := &ServerInfo{}
-			err := util.FromJSONBytes(buf, si)
-			if err == nil {
-				config.ServerInfo = si
-				config.ServerInfo.Version = Version{global.Env().GetVersion()}
-			}
-		}
-		buf, _ = kv.GetValue(core.DefaultSettingBucketKey, []byte(core.DefaultLLMConfigKey))
-		if buf != nil {
-			llm := &LLMConfig{}
-			err := util.FromJSONBytes(buf, llm)
-			if err == nil {
-				config.LLMConfig = llm
-			}
-		}
+		reloadConfig()
 	}
 
 	//double check
@@ -70,10 +70,57 @@ func AppConfig() Config {
 		}
 	}
 
-	retCfg.ServerInfo.AuthProvider.SSO.URL = util.JoinPath(retCfg.ServerInfo.Endpoint, "/#/login")
+	if util.PrefixStr(retCfg.ServerInfo.AuthProvider.SSO.URL, "/") {
+		retCfg.ServerInfo.AuthProvider.SSO.URL = util.JoinPath(retCfg.ServerInfo.Endpoint, "/#/login")
+	}
 
 	return *config
 }
+
+func reloadConfig() {
+	v, err := AppConfigFromFile()
+	if v != nil && err == nil {
+		config = v
+	}
+
+	if config == nil {
+		config = &Config{}
+	}
+	//read settings from kv
+	buf, _ := kv.GetValue(core.DefaultSettingBucketKey, []byte(core.DefaultServerConfigKey))
+	if buf != nil {
+		si := &ServerInfo{}
+		err := util.FromJSONBytes(buf, si)
+		if err == nil {
+			config.ServerInfo = si
+			config.ServerInfo.Version = Version{global.Env().GetVersion()}
+		}
+	}
+	buf, _ = kv.GetValue(core.DefaultSettingBucketKey, []byte(core.DefaultLLMConfigKey))
+	if buf != nil {
+		llm := &LLMConfig{}
+		err := util.FromJSONBytes(buf, llm)
+		if err == nil {
+			config.LLMConfig = llm
+		}
+	}
+
+	filebasedConfig, _ := AppConfigFromFile()
+	if filebasedConfig != nil {
+		//protect fields on managed mode
+		if filebasedConfig.ServerInfo != nil {
+			if filebasedConfig.ServerInfo.Managed {
+				config.ServerInfo.Managed = filebasedConfig.ServerInfo.Managed
+				config.ServerInfo.AuthProvider = filebasedConfig.ServerInfo.AuthProvider
+				config.ServerInfo.Provider = filebasedConfig.ServerInfo.Provider
+				config.ServerInfo.Endpoint = filebasedConfig.ServerInfo.Endpoint
+				config.ServerInfo.Public = filebasedConfig.ServerInfo.Public
+				config.ServerInfo.Version = filebasedConfig.ServerInfo.Version
+			}
+		}
+	}
+}
+
 func SetAppConfig(c *Config) {
 	configMu.Lock()
 	defer configMu.Unlock()
@@ -87,11 +134,8 @@ func SetAppConfig(c *Config) {
 	if err != nil {
 		panic(err)
 	}
-	config = c
-}
-
-type ManagedConfig struct {
-	Managed bool `config:"managed" json:"managed,omitempty"`
+	config = nil
+	reloadConfig()
 }
 
 type Config struct {
@@ -127,6 +171,3 @@ type LLMParameters struct {
 	EnhancedInference bool    `config:"enhanced_inference" json:"enhanced_inference"`
 	MaxLength         int     `config:"max_length" json:"max_length"`
 }
-
-const WEBSOCKET_USER_SESSION = "websocket-user-session"
-const WEBSOCKET_SESSION_USER = "websocket-session-user"

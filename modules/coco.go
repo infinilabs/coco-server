@@ -16,10 +16,7 @@ import (
 	_ "infini.sh/coco/modules/integration"
 	_ "infini.sh/coco/modules/search"
 	_ "infini.sh/coco/modules/system"
-	"infini.sh/framework/core/env"
-	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/orm"
-	"time"
 )
 
 type Coco struct {
@@ -33,29 +30,6 @@ func (this *Coco) Setup() {
 	orm.MustRegisterSchemaWithIndexName(common.Connector{}, "connector")
 	orm.MustRegisterSchemaWithIndexName(common.DataSource{}, "datasource")
 	orm.MustRegisterSchemaWithIndexName(common.Integration{}, "integration")
-
-	cocoConfig := common.Config{
-		LLMConfig: &common.LLMConfig{
-			Type:                "deepseek",
-			DefaultModel:        "deepseek-r1",
-			IntentAnalysisModel: "tongyi-intent-detect-v3",
-			PickingDocModel:     "deepseek-r1-distill-qwen-32b",
-			AnsweringModel:      "deepseek-r1",
-			ContextLength:       131072,
-			Keepalive:           "30m",
-			Endpoint:            "https://dashscope.aliyuncs.com/compatible-mode/v1",
-		},
-		ServerInfo: &common.ServerInfo{Version: common.Version{Number: global.Env().GetVersion()}, Updated: time.Now()},
-	}
-
-	ok, err := env.ParseConfig("coco", &cocoConfig)
-	if ok && err != nil {
-		panic(err)
-	}
-
-	//update coco's config
-	global.Register("APP_CONFIG", &cocoConfig)
-
 }
 
 func (this *Coco) Start() error {

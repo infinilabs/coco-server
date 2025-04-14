@@ -63,7 +63,7 @@ type SetupConfig struct {
 
 var SetupLock = ".setup_lock"
 
-func checkSetupStatus() bool {
+func isAlreadyDoneSetup() bool {
 	exists, err := kv.ExistsKey(core.DefaultSettingBucketKey, []byte(SetupLock))
 	if exists || err != nil {
 		global.Env().EnableSetup(false)
@@ -74,7 +74,7 @@ func checkSetupStatus() bool {
 }
 
 func (h *APIHandler) setupServer(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	isSetup := checkSetupStatus()
+	isSetup := isAlreadyDoneSetup()
 	if isSetup {
 		panic("the server has already been initialized")
 	}
