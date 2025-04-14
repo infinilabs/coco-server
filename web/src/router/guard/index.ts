@@ -13,12 +13,13 @@ import { $t } from '@/locales';
 import { getRouteName, getRoutePath } from '@/router/elegant/transform';
 import { fetchServer } from '@/service/api/server';
 import { store } from '@/store';
-import { isStaticSuper, selectUserInfo } from '@/store/slice/auth';
+import { isStaticSuper, resetAuth, selectUserInfo } from '@/store/slice/auth';
 import { getRouteHome, initAuthRoute, initConstantRoute } from '@/store/slice/route';
 import { localStg } from '@/utils/storage';
 import { fetchGetUserInfo } from '@/service/api';
 
 export const init: Init = async currentFullPath => {
+  
   const result = await fetchServer();
   
   localStg.set('providerInfo', result.data);
@@ -45,11 +46,13 @@ export const init: Init = async currentFullPath => {
 
   if (isLogin) {
     localStg.set('userInfo', user);
+    await store.dispatch(resetAuth());
     if (['guide', 'login'].some((path) => currentFullPath.includes(path))) {
       return '/';
     }
   } else {
     localStg.remove('userInfo');
+    await store.dispatch(resetAuth());
     const loginRoute: RouteKey = 'login';
     const routeHome = getRouteHome(store.getState());
 
@@ -61,7 +64,7 @@ export const init: Init = async currentFullPath => {
     };
     return location;
   }
-
+  
   await store.dispatch(initAuthRoute());
 
   return null;
