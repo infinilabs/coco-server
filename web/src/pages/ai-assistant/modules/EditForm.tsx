@@ -14,13 +14,14 @@ import {getConnectorIcons} from '@/service/api/connector';
 import { IconSelector } from "../../connector/new/icon_selector";
 import {DeleteOutlined, PlusOutlined, UnorderedListOutlined} from "@ant-design/icons";
 import { useRequest } from '@sa/hooks';
-import { fetchDataSourceList, getLLMModels } from '@/service/api';
+import { fetchDataSourceList, searchModelPovider,getEnabledModelProviders } from '@/service/api';
 import { searchMCPServer } from '@/service/api/mcp-server';
 import { useLoading } from '@sa/hooks';
 import {AssistantMode} from "./AssistantMode";
 import {DatasourceConfig} from "./DatasourceConfig";
-import {DeepThink, ModelSelect} from "./DeepThink";
+import {DeepThink} from "./DeepThink";
 import { formatESSearchResult } from '@/service/request/es';
+import ModelSelect from './ModelSelect';
 
 const PARAMETERS = [
   {
@@ -100,18 +101,16 @@ export const EditForm = memo((props: AssistantFormProps)=> {
     return result?.hits?.hits?.map((item) => ({...item._source})) || []
   }, [JSON.stringify(result)])
 
-  const { data: modelsResult, run: fetchModels, loading: modelsLoading } = useRequest(getLLMModels, {
+  const { data: modelsResult, run: fetchModelProviders} = useRequest(getEnabledModelProviders, {
     manual: true,
   });
-  const llmModels = useMemo(() => {
+  const modelProviders = useMemo(() => {
     if(!modelsResult) return [];
     const res = formatESSearchResult(modelsResult);
-    return res.aggregations?.models?.buckets?.map((item: any) => {
-      return item.key;
-    })
+    return res.data;
   }, [JSON.stringify(modelsResult)]);
   useEffect(() => {
-    fetchModels()
+    fetchModelProviders(10000)
   }, [])
 
   const { data: mcpServerResult, run: fetchMCPServers } = useRequest(searchMCPServer, {
@@ -131,10 +130,10 @@ export const EditForm = memo((props: AssistantFormProps)=> {
 
   const [assistantMode, setAssistantMode] = useState(initialValues?.mode || 'simple');
   useEffect(() => {
-    if(initialValues?.mode) {
-      setAssistantMode(initialValues.mode);
+    if(initialValues?.type) {
+      setAssistantMode(initialValues.type);
     }
-  }, initialValues?.mode)
+  }, initialValues?.type)
   const handleAssistantModeChange = (value: string) => {
     setAssistantMode(value);
   }
@@ -169,15 +168,13 @@ export const EditForm = memo((props: AssistantFormProps)=> {
             <Form.Item label={t('page.assistant.labels.type')} name="type" rules={[{ required: true}]}>
               <AssistantMode onChange={handleAssistantModeChange} />
             </Form.Item>
-            <Form.Item label={t('page.assistant.labels.answering_model')} rules={[{ required: true}]} name={[ "answering_model", "name"]}>
+            <Form.Item label={t('page.assistant.labels.answering_model')} rules={[{ required: true}]} name={[ "answering_model"]}>
               <ModelSelect
-                options={llmModels.map((item) => ({
-                  label: item,
-                  value: item,
-                }))}
+                width="600px"
+                providers={modelProviders}
               />
             </Form.Item>
-            { assistantMode === 'deep_think' && <Form.Item label={t('page.assistant.labels.deep_think_model')}><DeepThink modelOptions={llmModels} /></Form.Item> }
+            { assistantMode === 'deep_think' && <Form.Item label={t('page.assistant.labels.deep_think_model')}><DeepThink className='max-w-600px' providers={modelProviders} /></Form.Item> }
             <Form.Item label={t('page.assistant.labels.datasource')} rules={[{ required: true}]} name={["datasource"]}>
               <DatasourceConfig
                 options={[{label: "*", value: "*"}].concat(dataSource.map((item) => ({

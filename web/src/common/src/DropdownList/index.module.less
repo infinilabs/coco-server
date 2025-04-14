@@ -1,0 +1,87 @@
+.dropdownList {
+    padding: auto;
+
+    :global {
+        .ant-btn {
+            padding: 0 8px;
+            border-color: #ebebeb;
+            color: #666;
+        }
+        .ant-btn, .ant-btn.ant-popover-open, .ant-btn:hover {
+            background-color: #e8f6fe;
+        }
+        .ant-btn[disabled],
+        .ant-btn[disabled]:hover {
+            background-color: #eee;
+            color: #bbb;
+            cursor: not-allowed;
+        }
+    }
+
+    .button {
+        width: 100%;
+        .content {
+            display: flex;
+            width: 100%;
+            gap: 8px;
+            justify-content: space-between; 
+            align-items: center;
+            height: 100%;
+            color: #666;
+
+            .label {
+                flex: 1;
+                overflow: hidden;
+                white-space: nowrap;
+                text-overflow: ellipsis;
+                text-align: left;
+
+                .icon {
+                    color: #101010;
+                    margin-right: 8px;
+                }
+            }
+
+            .down {
+                font-size: 10px;
+            }
+
+            .close {
+                color: rgba(0,0,0,.25);
+                font-size: 12px;
+                display: none;
+            }
+
+            .multipleItem {
+                background-color: #fff;
+                padding: 0 4px;
+                &:not(:last-child) {
+                    margin-right: 8px;
+                }
+            }
+        }
+        
+        &.allowClear {
+            &:hover {
+                .down {
+                    display: none;
+                }
+                .close {
+                    display: initial;
+                }
+            }
+        }
+    }
+}
+
+.popover {
+    padding-top: 8px;
+    :global {
+        .ant-popover-arrow {
+            display: none;
+        }
+        .ant-popover-inner-content {
+            padding: 0;
+        }
+    }
+}

@@ -1,5 +1,5 @@
 import Search from "antd/es/input/Search";
-import Icon, { FilterOutlined, PlusOutlined, SettingOutlined, ExclamationCircleOutlined } from "@ant-design/icons";
+import Icon, { FilterOutlined, PlusOutlined, SettingOutlined, ExclamationCircleOutlined, ExportOutlined } from "@ant-design/icons";
 import { Button, List, Image, Switch, Tag, message, MenuProps, Modal, Dropdown, Spin, Form, Input} from "antd";
 import { ReactSVG } from "react-svg";
 import {searchModelPovider, updateModelProvider, deleteModelProvider} from "@/service/api/model-provider";
@@ -193,6 +193,21 @@ const APIKeyComponent = ({
     });
   }, [record])
   const [loading, setLoading] = useState(false);
+  let apiHref = "";
+  switch(record.id){
+    case "tongyi_qianwen":
+      apiHref = "https://bailian.console.aliyun.com/?tab=model#/api-key";
+      break;
+    case "deepseek":
+      apiHref = "https://platform.deepseek.com/api_keys";
+      break;
+    case "gitee_ai":
+      apiHref = "https://ai.gitee.com/dashboard/settings/tokens";
+      break;
+    case "openai":
+      apiHref = "https://platform.openai.com/account/api-keys";
+      break;
+  }
 
   const onModalOkClick = ()=>{
     form.validateFields().then((values)=>{
@@ -206,15 +221,18 @@ const APIKeyComponent = ({
       });
     })
   }
-  return (<Modal title={"Update API Key"}
+  return (<Modal title={t('common.update')+t('page.modelprovider.labels.api_key')}
   open={open} 
   onOk={onModalOkClick} 
   onCancel={onCancelClick}>
   <Spin spinning={loading}>
     <Form form={form} layout="vertical" className="my-2em">
-      <Form.Item label={<span className="text-gray-500">{t('page.apitoken.columns.name')}</span>} name="api_key">
+      <Form.Item label={<span className="text-gray-500">{t('page.modelprovider.labels.api_key_source', {
+        model_provider: record.name,
+      })}</span>} name="api_key">
         <Input defaultValue={record.api_key}/>
       </Form.Item>
+    {apiHref && <div><Button className="m-0 p-0" href={apiHref} target="_blank" type="link">{t('')}从 Gitee AI 获取 API Key<ExportOutlined/></Button></div>}
     </Form>
   </Spin>
 </Modal>)

@@ -5,7 +5,6 @@
 package llm
 
 import (
-	log "github.com/cihub/seelog"
 	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/orm"
@@ -47,7 +46,6 @@ func (h *APIHandler) get(w http.ResponseWriter, req *http.Request, ps httprouter
 
 	exists, err := orm.Get(&obj)
 	if !exists || err != nil {
-		log.Info(err)
 		h.WriteJSON(w, util.MapStr{
 			"_id":   id,
 			"found": false,

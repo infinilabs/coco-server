@@ -91,3 +91,21 @@ export function getLLMModels() {
     url: '/model_provider/_search'
   });
 }
+
+
+export function getEnabledModelProviders(size: number = 100) {
+  const query: any = {
+    size: size,
+    query: {
+      term: {
+        enabled: true
+      }
+    },
+  }
+  return request<Api.LLM.ModelProvider>({
+    method: 'post',
+    data: query,
+    url: '/model_provider/_search'
+  });
+}
+

@@ -85,7 +85,7 @@ export function Component() {
               <ModelsComponent/>
             </Form.Item>
             <Form.Item label={t('page.modelprovider.labels.description')} name="description">
-              <Input.TextArea className='max-w-600px' />
+              <Input.TextArea className='w-600px' />
             </Form.Item>
             <Form.Item label={t('page.modelprovider.labels.enabled')} name="enabled">
               <Switch />

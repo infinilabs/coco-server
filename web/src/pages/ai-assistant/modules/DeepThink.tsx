@@ -1,32 +1,28 @@
-import { Form, Select, Space,Switch } from "antd"
+import { Form, Select, Space,Switch } from "antd";
+import ModelSelect from "./ModelSelect";
 
 interface DeepThinkProps {
-  modelOptions: any[];
+  providers: any[];
+  className?: string;
 }
 
 export const DeepThink = (props: DeepThinkProps) => {
-  const {modelOptions = []} = props;
+  const {providers = [], className} = props;
   const {t} = useTranslation();
-  return <div>
+  return <div className={className}>
     <Space direction="vertical" className="w-100%">
       <div className="text-gray-400">{t('page.assistant.labels.intent_analysis_model')}</div>
-      <Form.Item className="mb-[10px]" name={["config", "intent_analysis_model", "name"]}>
+      <Form.Item className="mb-[10px]" name={["config", "intent_analysis_model"]}>
         <ModelSelect
-          options={modelOptions.map((item) => ({
-            label: item,
-            value: item,
-          }))}
+         providers={providers}
         />
       </Form.Item>
     </Space>
     <Space direction="vertical" className="w-100%">
       <div className="text-gray-400">{t('page.assistant.labels.picking_doc_model')}</div>
-      <Form.Item className="mb-[10px]" name={["config", "picking_doc_model", "name"]}>
-        <ModelSelect
-          options={modelOptions.map((item) => ({
-            label: item,
-            value: item,
-          }))}
+      <Form.Item className="mb-[10px]" name={["config", "picking_doc_model"]}>
+       <ModelSelect
+         providers={providers}
         />
       </Form.Item>
     </Space>
@@ -39,20 +35,4 @@ export const DeepThink = (props: DeepThinkProps) => {
         </Space>
       </div>
   </div>
-}
-
-
-export const ModelSelect = ({ value, onChange, options=[] }: any) => {
-  return (<Select
-    className="max-w-[600px]"
-    mode="tags"
-    maxCount={1}
-    showSearch
-    value={value}
-    options={options}
-    onChange={(value) => {
-      const selectedValue = Array.isArray(value) ? value[0] : '';
-      onChange?.(selectedValue);
-    }}
-  />)
 }

@@ -50,16 +50,16 @@ export function Component() {
       }
     };
    
-    setLoading(true);
-    createAssistant(params).then((res)=>{
-      if(res?.data?.result === 'created') {
-        window.$message?.success(t('common.addSuccess'));
-        nav(`/ai-assistant/list`)
-      }
-    }).finally(()=>{
-      setLoading(false);
-    })
-    // console.log(params);
+    // setLoading(true);
+    // createAssistant(params).then((res)=>{
+    //   if(res?.data?.result === 'created') {
+    //     window.$message?.success(t('common.addSuccess'));
+    //     nav(`/ai-assistant/list`)
+    //   }
+    // }).finally(()=>{
+    //   setLoading(false);
+    // })
+    console.log(params);
   }
 
 

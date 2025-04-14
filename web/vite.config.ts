@@ -24,6 +24,12 @@ export default defineConfig(configEnv => {
         scss: {
           additionalData: `@use "@/styles/scss/global.scss" as *;`,
           api: 'modern-compiler'
+        },
+        less: {
+          // 启用JavaScript表达式的解析功能
+          javascriptEnabled: true,
+          // 自定义修改默认的Less变量
+          modifyVars: {} 
         }
       }
     },

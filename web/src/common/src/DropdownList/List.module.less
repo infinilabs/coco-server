@@ -1,0 +1,233 @@
+.container {
+    display: flex;
+    overflow: hidden;
+
+    .group {
+        border-right: 1px solid #ebebeb;
+        width: 120px;
+
+        .item {
+            padding: 0 8px 0 16px;
+            height: 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #666;
+            gap: 8px;
+            cursor: pointer;
+
+            &.selected,
+            &:hover {
+                background-color: #e8f6fe;
+            }
+
+            .label {
+                overflow: hidden;
+                white-space: nowrap;
+                text-overflow: ellipsis;
+            }
+
+            .icon {
+                font-size: 10px;
+            }
+        }
+    }
+
+    .content {
+        flex: 1;
+        padding: 0px 16px;
+        overflow: hidden;
+
+        .search {
+            margin-top: 16px;
+        }
+    
+        .tools {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 8px;
+    
+            .result {
+                color: #999;
+                font-size: 12px;
+            }
+    
+            .actions {
+                display: flex;
+                justify-content: space-between;
+                gap: 12px;
+                color: #101010;
+                font-size: 14px;
+                align-items: center;
+
+                :global {
+                    .ant-checkbox-inner{
+                        width: 14px;
+                        height: 14px;
+                        border-color: rgba(0,0,0,0.65);
+                        transition: all 0.3s;
+                    }
+
+                    .ant-checkbox-checked .ant-checkbox-inner:after {
+                        top: 5px;
+                        left: 2px;
+                        transition: all 0.3s;
+                    }
+
+                    .ant-checkbox-indeterminate .ant-checkbox-inner::after {
+                        top: 50%;
+                        left: 50%;
+                        transition: all 0.3s;
+                    }
+                }
+            }
+        }
+    
+        .listWrapper {
+            margin: 12px -6px 0;
+        }
+    
+        .list {
+            .item {
+                height: 32px;
+                color: #666;
+                cursor: pointer;
+                position: relative;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 0 6px;
+                gap: 8px;
+        
+                &.selected,
+                &:hover {
+                    background-color: #e8f6fe;
+                }
+
+                .label {
+                    flex: 1;
+                    overflow: hidden;
+                    white-space: nowrap;
+                    text-overflow: ellipsis;
+                    text-align: left;
+                }
+
+                .tag {
+                    color: #999
+                }
+                &.disabled {
+                    opacity: 0.5;
+                    cursor: not-allowed;
+                }
+            }
+        }
+    
+        .footerWrapper {
+            margin: 0px -16px 0;
+        }
+    
+        .footer {
+            height: 40px;
+            border-top: 1px solid #ebebeb;
+            padding: 0 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            
+            .pager {
+
+                .pageNum {
+                    margin: 0 12px;
+                }
+
+                .icon {
+                    color: #007fff;
+                    cursor: pointer;
+        
+                    &.disabled {
+                        color: #c1c1c1;
+                        pointer-events: none;
+                    }
+                }
+            }
+
+            .actions {
+                font-size: 12px;
+            }
+        }
+    }
+}
+
+.filterPopover {
+    :global {
+        .ant-popover-title {
+            border: 0;
+        }
+
+        .ant-popover-inner-content {
+            padding: 16px;
+        }
+    }
+}
+
+.sorter {
+    width: 250px;
+    .title {
+        color: #333;
+        font-weight: 600;
+    }
+    
+    .form {
+        display: flex;
+        gap: 6px;
+        margin-top: 8px;
+    }
+    .actions {
+        display: flex;
+        justify-content: right;
+        margin-top: 18px;
+    }
+}
+
+.filters {
+    width: 250px;
+    .title {
+        color: #333;
+        font-weight: 600;
+        margin-bottom: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        .clear {
+            color: #007fff;
+            font-size: 12px;
+            cursor: pointer;
+        }
+    }
+    
+    .content {
+        
+        margin-bottom: 16px;
+
+        .label {
+            color: #999;
+        }
+
+        .options {
+            max-height: 150px;
+            overflow-y: auto;
+            .option {
+                display: flex;
+                justify-content: space-between;
+                padding: 8px 0 0;
+            }
+        }
+
+        &:last-child {
+            margin-bottom: 0;
+        }
+    }
+}
