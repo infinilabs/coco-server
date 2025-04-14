@@ -23,6 +23,18 @@
 
 package common
 
+import (
+	"infini.sh/framework/core/orm"
+	ccache "infini.sh/framework/lib/cache"
+	"time"
+)
+
+const (
+	AssistantTypeSimple           = "simple"
+	AssistantTypeDeepThink        = "deep_think"
+	AssistantTypeExternalWorkflow = "external_workflow"
+)
+
 type Assistant struct {
 	CombinedFullText
 	Name           string           `json:"name" elastic_mapping:"name:{type:keyword,copy_to:combined_fulltext}"`
@@ -38,6 +50,33 @@ type Assistant struct {
 	ChatSettings   ChatSettings     `json:"chat_settings" elastic_mapping:"chat_settings:{type:object,enabled:false}"`
 	Builtin        bool             `json:"builtin" elastic_mapping:"builtin:{type:keyword}"`         // Whether the model provider is builtin
 	RolePrompt     string           `json:"role_prompt" elastic_mapping:"role_prompt:{type:keyword}"` // Role prompt for the assistant
+}
+
+var AssistantCache = ccache.Layered(ccache.Configure().MaxSize(10000).ItemsToPrune(100))
+
+const (
+	AssistantCachePrimary = "assistant"
+)
+
+// GetAssistant retrieves the assistant object from the cache or database.
+func GetAssistant(assistantID string) (*Assistant, error) {
+	item := AssistantCache.Get(AssistantCachePrimary, assistantID)
+	var assistant *Assistant
+	if item != nil && !item.Expired() {
+		var ok bool
+		if assistant, ok = item.Value().(*Assistant); ok {
+			return assistant, nil
+		}
+	}
+	assistant = &Assistant{}
+	assistant.ID = assistantID
+	_, err := orm.Get(assistant)
+	if err != nil {
+		return nil, err
+	}
+	// Cache the assistant object
+	AssistantCache.Set(AssistantCachePrimary, assistantID, assistant, time.Duration(30)*time.Minute)
+	return assistant, nil
 }
 
 type DeepThinkConfig struct {

@@ -202,7 +202,7 @@ export const EditForm = memo((props: AssistantFormProps)=> {
                 name='role_prompt'
                 label={t('page.assistant.labels.role_prompt')}
             >
-              <Input.TextArea className='w-600px' />
+              <Input.TextArea placeholder='Please enter the role prompt instructions' className='w-600px' />
             </Form.Item>
             <Form.Item label={t('page.assistant.labels.enabled')} name="enabled">
               <Switch />

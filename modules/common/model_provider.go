@@ -4,6 +4,11 @@
 
 package common
 
+import (
+	"infini.sh/framework/core/orm"
+	"time"
+)
+
 type ModelProvider struct {
 	CombinedFullText
 
@@ -16,4 +21,29 @@ type ModelProvider struct {
 	Enabled     bool          `json:"enabled" elastic_mapping:"enabled:{type:keyword}"`                                   // Whether the model provider is enabled
 	Builtin     bool          `json:"builtin" elastic_mapping:"builtin:{type:keyword}"`                                   // Whether the model provider is builtin
 	Description string        `json:"description" elastic_mapping:"description:{type:keyword,copy_to:combined_fulltext}"` // Description of the model provider
+}
+
+const (
+	ModelProviderCachePrimary = "model_provider"
+)
+
+// GetModelProvider retrieves the model provider object from the cache or database.
+func GetModelProvider(providerID string) (*ModelProvider, error) {
+	item := AssistantCache.Get(ModelProviderCachePrimary, providerID)
+	var provider *ModelProvider
+	if item != nil && !item.Expired() {
+		var ok bool
+		if provider, ok = item.Value().(*ModelProvider); ok {
+			return provider, nil
+		}
+	}
+	provider = &ModelProvider{}
+	provider.ID = providerID
+	_, err := orm.Get(provider)
+	if err != nil {
+		return nil, err
+	}
+	// Cache the provider object
+	AssistantCache.Set(AssistantCachePrimary, providerID, provider, time.Duration(30)*time.Minute)
+	return provider, nil
 }

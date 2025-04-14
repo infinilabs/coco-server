@@ -8,17 +8,6 @@ import InfiniIcon from '@/components/common/icon';
 
 const { confirm } = Modal;
 type Assistant = Api.LLM.Assistant;
-// const mockData = {
-//   total: 1,
-//   data: [{
-//     name: "searchkit 小助手",
-//     type: "自定义助手",
-//     icon: "/assets/icons/llm/assistant.svg",
-//     description: "这是一个自定义助手",
-//     answering_model: "deepseek-v1",
-//   }],
-// };
-
 
 export function Component() {
   const { t } = useTranslation();
@@ -92,12 +81,9 @@ export function Component() {
       minWidth: 150,
       ellipsis: true,
       render: (value: string, record: Assistant)=>{
-        if(!data.connectors) return value;
-        const iconSrc = data.connectors[record.connector.id]?.icon;
-        if (!iconSrc) return value;
         return (
           <a className='text-blue-500 inline-flex items-center gap-1' onClick={()=>nav(`/data-source/detail/${record.id}`, {state:{datasource_name: record.name, connector_id: record.connector?.id || ''}})}>
-            <InfiniIcon height="1em" width="1em" src={iconSrc}/>
+            <InfiniIcon height="1em" width="1em" src={record.icon}/>
             { value }
           </a>
         )

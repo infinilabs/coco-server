@@ -72,37 +72,86 @@ type processingParams struct {
 	pickedDocIDS           []string
 	references             string
 
-	intentModel     string
-	pickingDocModel string
-	answeringModel  string
+	intentModel         *common.ModelConfig
+	pickingDocModel     *common.ModelConfig
+	answeringModel      *common.ModelConfig
+	assistantID         string
+	keepalive           string
+	intentModelProvider *common.ModelProvider
+	pickingDocProvider  *common.ModelProvider
+	answeringProvider   *common.ModelProvider
 }
 
-func (h APIHandler) extractParameters(req *http.Request) *processingParams {
-	cfg := common.AppConfig()
-	return &processingParams{
-		searchDB:        h.GetBoolOrDefault(req, "search", false),
-		deepThink:       h.GetBoolOrDefault(req, "deep_thinking", false),
-		from:            h.GetIntOrDefault(req, "from", 0),
-		size:            h.GetIntOrDefault(req, "size", 10),
-		datasource:      h.GetParameterOrDefault(req, "datasource", ""),
-		category:        h.GetParameterOrDefault(req, "category", ""),
-		username:        h.GetParameterOrDefault(req, "username", ""),
-		userid:          h.GetParameterOrDefault(req, "userid", ""),
-		tags:            h.GetParameterOrDefault(req, "tags", ""),
-		subcategory:     h.GetParameterOrDefault(req, "subcategory", ""),
-		richCategory:    h.GetParameterOrDefault(req, "rich_category", ""),
-		field:           h.GetParameterOrDefault(req, "search_field", "title"),
-		source:          h.GetParameterOrDefault(req, "source_fields", "*"),
-		intentModel:     cfg.LLMConfig.IntentAnalysisModel,
-		pickingDocModel: cfg.LLMConfig.PickingDocModel,
-		answeringModel:  cfg.LLMConfig.AnsweringModel,
+func (h APIHandler) extractParameters(req *http.Request) (*processingParams, error) {
+	params := &processingParams{
+		searchDB:     h.GetBoolOrDefault(req, "search", false),
+		deepThink:    h.GetBoolOrDefault(req, "deep_thinking", false),
+		from:         h.GetIntOrDefault(req, "from", 0),
+		size:         h.GetIntOrDefault(req, "size", 10),
+		datasource:   h.GetParameterOrDefault(req, "datasource", ""),
+		category:     h.GetParameterOrDefault(req, "category", ""),
+		username:     h.GetParameterOrDefault(req, "username", ""),
+		userid:       h.GetParameterOrDefault(req, "userid", ""),
+		tags:         h.GetParameterOrDefault(req, "tags", ""),
+		subcategory:  h.GetParameterOrDefault(req, "subcategory", ""),
+		richCategory: h.GetParameterOrDefault(req, "rich_category", ""),
+		field:        h.GetParameterOrDefault(req, "search_field", "title"),
+		source:       h.GetParameterOrDefault(req, "source_fields", "*"),
 	}
 
+	assistantID := h.GetParameterOrDefault(req, "assistant_id", "")
+	if assistantID == "" {
+		//TODO: query default builtin assistant and set related params, here we just return error
+		return nil, errors.Error("assistant_id is required")
+	}
+	params.assistantID = assistantID
+
+	assistant, err := common.GetAssistant(assistantID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get assistant: %w", err)
+	}
+	if assistant == nil {
+		return nil, fmt.Errorf("assistant [%s] is not found", assistantID)
+	}
+	if !assistant.Enabled {
+		return nil, fmt.Errorf("assistant [%s] is not enabled", assistant.Name)
+	}
+	params.keepalive = assistant.Keepalive
+	if assistant.Type == common.AssistantTypeDeepThink && params.deepThink {
+		deepThinkCfg := common.DeepThinkConfig{}
+		buf := util.MustToJSONBytes(assistant.Config)
+		util.MustFromJSONBytes(buf, &deepThinkCfg)
+
+		// set intent analysis model params
+		params.pickingDocModel = &deepThinkCfg.PickingDocModel
+		modelProvider, err := common.GetModelProvider(deepThinkCfg.PickingDocModel.ProviderID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get picking doc model provider: %w", err)
+		}
+		params.intentModelProvider = modelProvider
+
+		// set picking doc model params
+		params.intentModel = &deepThinkCfg.IntentAnalysisModel
+		modelProvider, err = common.GetModelProvider(deepThinkCfg.IntentAnalysisModel.ProviderID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get intent model provider: %w", err)
+		}
+		params.intentModelProvider = modelProvider
+	}
+	modelProvider, err := common.GetModelProvider(assistant.AnsweringModel.ProviderID)
+	if err != nil {
+		return params, fmt.Errorf("failed to get model provider: %w", err)
+	}
+	params.answeringModel = &assistant.AnsweringModel
+	params.answeringProvider = modelProvider
+
+	return params, nil
 }
 
-func (h APIHandler) createInitialUserRequestMessage(sessionID, message string, params *processingParams) *ChatMessage {
+func (h APIHandler) createInitialUserRequestMessage(sessionID, assistantID, message string, params *processingParams) *ChatMessage {
 	msg := &ChatMessage{
 		SessionID:   sessionID,
+		AssistantID: assistantID,
 		MessageType: MessageTypeUser,
 		Message:     message,
 	}
@@ -141,11 +190,12 @@ func (h APIHandler) launchBackgroundTask(msg *ChatMessage, params *processingPar
 	log.Infof("Saved taskID: %v for session: %v", taskID, params.sessionID)
 }
 
-func (h APIHandler) createAssistantMessage(sessionID, requestMessageID string) *ChatMessage {
+func (h APIHandler) createAssistantMessage(sessionID, assistantID, requestMessageID string) *ChatMessage {
 	msg := &ChatMessage{
 		SessionID:      sessionID,
 		MessageType:    MessageTypeAssistant,
 		ReplyMessageID: requestMessageID,
+		AssistantID:    assistantID,
 	}
 	msg.ID = util.GetUUID()
 
@@ -173,7 +223,7 @@ func (h APIHandler) finalizeProcessing(ctx context.Context, wsID, sessionID stri
 func (h APIHandler) processMessageAsync(ctx context.Context, reqMsg *ChatMessage, params *processingParams) error {
 	log.Debugf("Starting async processing for session: %v", params.sessionID)
 
-	replyMsg := h.createAssistantMessage(params.sessionID, reqMsg.ID)
+	replyMsg := h.createAssistantMessage(params.sessionID, reqMsg.AssistantID, reqMsg.ID)
 
 	defer func() {
 		if !global.Env().IsDebug {
@@ -316,7 +366,7 @@ func (h APIHandler) processQueryIntent(ctx context.Context, reqMsg, replyMsg *Ch
 				"</JSON>"),
 		}
 
-		llm := getLLM(params.intentModel)
+		llm := getLLM(params.intentModelProvider.BaseURL, params.intentModelProvider.APIType, params.intentModel.Name, params.intentModelProvider.APIKey, params.keepalive)
 		log.Trace(content)
 
 		var chunkSeq = 0
@@ -458,7 +508,7 @@ Your task is to choose the best documents for further processing.`,
 	log.Debug("start filtering documents")
 	var pickedDocsBuffer = strings.Builder{}
 	var chunkSeq = 0
-	llm := getLLM(params.pickingDocModel)
+	llm := getLLM(params.pickingDocProvider.BaseURL, params.pickingDocProvider.APIType, params.pickingDocModel.Name, params.pickingDocProvider.APIKey, params.keepalive)
 	log.Trace(content)
 	if _, err := llm.GenerateContent(ctx, content,
 		llms.WithMaxTokens(32768),
@@ -578,8 +628,11 @@ Data:
 	messageBuffer := strings.Builder{}
 	chunkSeq := 0
 	var err error
+	if params.answeringProvider == nil {
+		return errors.Errorf("no answering provider with assistant: %v", params.assistantID)
+	}
 
-	llm := getLLM(params.answeringModel) //deepseek-r1 /deepseek-v3
+	llm := getLLM(params.answeringProvider.BaseURL, params.answeringProvider.APIType, params.answeringModel.Name, params.answeringProvider.APIKey, params.keepalive) //deepseek-r1 /deepseek-v3
 	appConfig := common.AppConfig()
 
 	log.Trace(params.answeringModel, ",", util.MustToJSON(appConfig))
@@ -670,10 +723,13 @@ Data:
 	return nil
 }
 
-func (h APIHandler) handleMessage(req *http.Request, sessionID, message string) (*ChatMessage, error) {
+func (h APIHandler) handleMessage(req *http.Request, sessionID, assistantID, message string) (*ChatMessage, error) {
 	if wsID, err := h.GetUserWebsocketID(req); err == nil && wsID != "" {
-		params := h.extractParameters(req)
-		reqMsg := h.createInitialUserRequestMessage(sessionID, message, params)
+		params, err := h.extractParameters(req)
+		if err != nil {
+			return nil, err
+		}
+		reqMsg := h.createInitialUserRequestMessage(sessionID, assistantID, message, params)
 		params.sessionID = sessionID
 		params.websocketID = wsID
 		if err := h.saveMessage(reqMsg); err != nil {
@@ -755,19 +811,18 @@ func fetchDocuments(query *orm.Query) ([]common.Document, error) {
 	return docs, nil
 }
 
-func getLLM(model string) llms.Model {
-	cfg := common.AppConfig()
+func getLLM(endpoint, apiType, model, token string, keepalive string) llms.Model {
 	if model == "" {
-		model = cfg.LLMConfig.DefaultModel
+		panic("model is empty")
 	}
 
-	log.Debug("use model:", model, ",type:", cfg.LLMConfig.Type)
+	log.Debug("use model:", model, ",type:", apiType)
 
-	if cfg.LLMConfig.Type == common.OLLAMA {
+	if apiType == common.OLLAMA {
 		llm, err := ollama.New(
-			ollama.WithServerURL(cfg.LLMConfig.Endpoint),
+			ollama.WithServerURL(endpoint),
 			ollama.WithModel(model),
-			ollama.WithKeepAlive(cfg.LLMConfig.Keepalive))
+			ollama.WithKeepAlive(keepalive))
 		if err != nil {
 			panic(err)
 		}
@@ -775,8 +830,8 @@ func getLLM(model string) llms.Model {
 
 	} else {
 		llm, err := openai.New(
-			openai.WithToken(cfg.LLMConfig.Token),
-			openai.WithBaseURL(cfg.LLMConfig.Endpoint),
+			openai.WithToken(token),
+			openai.WithBaseURL(endpoint),
 			openai.WithModel(model),
 		)
 		if err != nil {
