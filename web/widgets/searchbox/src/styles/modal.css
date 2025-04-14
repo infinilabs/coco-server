@@ -48,23 +48,14 @@
     --infini__searchbox-spacing: 10px;
     --infini__searchbox-footer-height: 40px;
   }
-
-  .infini__searchbox-modal-container {
-    height: 100vh;
-    height: -webkit-fill-available;
-    height: calc(var(--infini__searchbox-vh, 1vh) * 100);
-    position: absolute;
+  .infini__searchbox-modal {
+    height: 100%;
+    border-radius: 0;
   }
 
-  .infini__searchbox-modal {
-    border-radius: 0;
-    box-shadow: none;
-    height: 100vh;
-    height: -webkit-fill-available;
-    height: calc(var(--infini__searchbox-vh, 1vh) * 100);
-    margin: 0;
-    max-width: 100%;
-    width: 100%;
+  .infini__searchbox-modal > div {
+    border-radius: 0px;
+    overflow: hidden;
   }
 }
 

@@ -1,11 +1,11 @@
-import { Logo } from './icons/Logo';
+import Logo from './icons/logo.svg';
 
 export const DocSearchFloatButton = ({
   settings,
   onClick,
-  translations = {},
 }) => {
-  const { buttonAriaLabel = "Search whatever you want..." } = translations;
+
+  const { options } = settings || {};
 
   return (
     <div id="infini__searchbox" data-theme={settings?.appearance?.theme}>
@@ -13,10 +13,12 @@ export const DocSearchFloatButton = ({
         type="button"
         className="infini__searchbox-float-btn"
         onClick={onClick}
-        aria-label={buttonAriaLabel}
       >
         <span className="infini__searchbox-float-btn-container">
-          <Logo className="infini__searchbox-float-btn-icon" />
+          <span className="infini__searchbox-float-btn-text">{options?.floating_placeholder || 'Ask AI'}</span>
+          { options?.floating_icon ? (
+            <img src={options?.floating_icon}/>
+          ) : <Logo /> }
         </span>
       </button>
     </div>

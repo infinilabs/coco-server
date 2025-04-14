@@ -49,7 +49,10 @@ export const authSlice = createAppSlice({
         }
       }
     ),
-    resetAuth: create.reducer(() => initialState)
+    resetAuth: create.reducer(() => ({
+      token: getToken(),
+      userInfo: getUserInfo()
+    }))
   }),
   selectors: {
     selectToken: auth => auth.token,

@@ -1,5 +1,6 @@
 import type { Options } from 'tsup';
 import { defineConfig } from 'tsup';
+import svgr from 'esbuild-plugin-svgr';
 
 export default defineConfig(
   config =>
@@ -12,7 +13,8 @@ export default defineConfig(
         noExternal: ['react', 'react-dom', '@infinilabs/search-chat'],
         platform: 'browser',
         sourcemap: config.watch,
-        splitting: false
+        splitting: false,
+        esbuildPlugins: [svgr()],
       },
       {
         clean: true,

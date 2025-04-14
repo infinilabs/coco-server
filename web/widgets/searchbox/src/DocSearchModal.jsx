@@ -13,21 +13,6 @@ export const DocSearchModal = ({
 
   const [isPinned, setIsPinned] = useState(false);
 
-  let modalRef;
-  function setFullViewportHeight() {
-    if (modalRef) {
-      const vh = window.innerHeight * 0.01;
-      modalRef.style.setProperty('--infini__searchbox-vh', `${vh}px`);
-    }
-  }
-  useEffect(() => {
-    setFullViewportHeight();
-    window.addEventListener('resize', setFullViewportHeight);
-    return () => {
-      window.removeEventListener("resize", setFullViewportHeight)
-    }
-  }, [])
-
   const { appearance = {}, enabled_module = {}, id, token, type } = settings;
   const { ai_chat, features, search } = enabled_module;
 
@@ -58,7 +43,6 @@ export const DocSearchModal = ({
         className="infini__searchbox-modal-container"
         role="button"
         tabIndex={0}
-        ref={modalRef}
         onMouseDown={(e) => e.target === e.currentTarget && onClose && !isPinned && onClose()}
       >
         <div className="infini__searchbox-modal">
@@ -78,6 +62,9 @@ export const DocSearchModal = ({
             showChatHistory={features?.includes('chat_history')}
             setIsPinned={setIsPinned}
             defaultModule={defaultModule}
+            onCancel={() => {
+              onClose()
+            }}
           />
         </div>
       </div>
