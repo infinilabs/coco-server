@@ -48,7 +48,15 @@
     --infini__searchbox-spacing: 10px;
     --infini__searchbox-footer-height: 40px;
   }
+  .infini__searchbox-modal {
+    height: 100%;
+    border-radius: 0;
+  }
 
+  .infini__searchbox-modal > div {
+    border-radius: 0px;
+    overflow: hidden;
+  }
 }
 
 [hidden] {

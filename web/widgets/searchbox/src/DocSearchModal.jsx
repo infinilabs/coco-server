@@ -62,6 +62,9 @@ export const DocSearchModal = ({
             showChatHistory={features?.includes('chat_history')}
             setIsPinned={setIsPinned}
             defaultModule={defaultModule}
+            onCancel={() => {
+              onClose()
+            }}
           />
         </div>
       </div>

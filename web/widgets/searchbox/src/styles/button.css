@@ -13,7 +13,8 @@
   user-select: none;
   gap: 4px;
   width: 100%;
-  min-width: 220px;
+  min-width: 110px;
+  width: min(100%, 220px);
 }
 
 /* .infini__searchbox-btn code, kbd, samp, pre {
