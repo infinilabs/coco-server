@@ -47,7 +47,6 @@ export const generatedRoutes: GeneratedRoute[] = [
       title: 'ai-assistant',
       icon: 'mdi:robot-outline',
       order: 2,
-      constant: true,
     }
   },
   {
@@ -59,7 +58,6 @@ export const generatedRoutes: GeneratedRoute[] = [
       title: 'api-token',
       order: 4,
       localIcon: 'security',
-      constant: true,
     },
     children: [
       {
@@ -84,7 +82,6 @@ export const generatedRoutes: GeneratedRoute[] = [
       title: 'connector',
       hideInMenu: true,
       activeMenu: 'settings',
-      constant: true,
     },
     children: [
       {
@@ -119,7 +116,6 @@ export const generatedRoutes: GeneratedRoute[] = [
       title: 'data-source',
       icon: 'mdi:folder-open-outline',
       order: 3,
-      constant: true,
     },
     children: [
       {
@@ -199,7 +195,6 @@ export const generatedRoutes: GeneratedRoute[] = [
       title: 'home',
       icon: 'mdi:home',
       order: 1,
-      constant: true,
     }
   },
   {
@@ -212,7 +207,6 @@ export const generatedRoutes: GeneratedRoute[] = [
       title: 'integration',
       icon: 'mdi:puzzle-outline',
       order: 5,
-      constant: true,
     },
     children: [
       {
@@ -270,7 +264,6 @@ export const generatedRoutes: GeneratedRoute[] = [
       title: 'settings',
       icon: 'mdi:settings-outline',
       order: 10,
-      constant: true,
     }
   }
 ];
