@@ -17,7 +17,7 @@ export default defineConfig(configEnv => {
   return {
     base: viteEnv.VITE_BASE_URL,
     build: {
-      outDir: '../.public' 
+      outDir: '../.public'
     },
     css: {
       preprocessorOptions: {

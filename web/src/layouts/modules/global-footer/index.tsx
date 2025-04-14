@@ -1,14 +1,16 @@
 import DarkModeContainer from '@/components/stateless/common/DarkModeContainer';
 
 const GlobalFooter = memo(() => {
+  const currentYear = new Date().getFullYear();
+
   return (
     <DarkModeContainer className="h-full flex-center">
       <a
-        href="https://github.com/honghuangdc/soybean-admin/blob/main/LICENSE"
+        href="https://github.com/infinilabs"
         rel="noopener noreferrer"
         target="_blank"
       >
-        Copyright MIT © 2021 Soybean
+        Copyright MIT © {currentYear} INFINI Labs
       </a>
     </DarkModeContainer>
   );

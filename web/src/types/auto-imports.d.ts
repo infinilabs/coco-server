@@ -49,6 +49,7 @@ declare global {
   const ConnectorImageIcon: typeof import('../components/icons/connector.jsx')['ConnectorImageIcon']
   const DEFAULT_WORKTIME_VALUE: typeof import('../components/datasource/work_time/index.jsx')['DEFAULT_WORKTIME_VALUE']
   const DarkModeContainer: typeof import('../components/stateless/common/DarkModeContainer')['default']
+  const DarkSystemLogo: typeof import('../components/stateless/common/DarkSystemLogo')['default']
   const DataSync: typeof import('../components/datasource/data_sync/index.jsx')['DataSync']
   const DragContent: typeof import('../components/advanced/DragContent')['default']
   const DropdownList: typeof import('../components/common/DropdownList')['default']

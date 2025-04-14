@@ -18,7 +18,8 @@ import (
 )
 
 func get(path, token string) *util.Result {
-	req := util.NewGetRequest(util.JoinPath("https://www.yuque.com", path), nil)
+	url := util.JoinPath("https://www.yuque.com", path)
+	req := util.NewGetRequest(url, nil)
 	req.AddHeader("X-Auth-Token", token)
 	res, err := util.ExecuteRequest(req)
 	if err != nil {
@@ -27,7 +28,7 @@ func get(path, token string) *util.Result {
 
 	if res != nil {
 		if res.StatusCode > 300 {
-			panic(errors.Errorf("%v,%v", res.StatusCode, string(res.Body)))
+			panic(errors.Errorf("%v,%v,%v", url, res.StatusCode, string(res.Body)))
 		}
 	}
 
@@ -84,7 +85,7 @@ func (this *Plugin) collect(connector *common.Connector, datasource *common.Data
 	log.Infof("start collecting for %v", currentUser.Group.Login)
 
 	//get users in group
-	if cfg.IndexingUsers || cfg.IndexingGroups {
+	if currentUser.Group.Type != "User" && (cfg.IndexingUsers || cfg.IndexingGroups) {
 		this.collectUsers(connector, datasource, currentUser.Group.Login, token, cfg)
 	}
 
@@ -229,7 +230,7 @@ func (this *Plugin) collectBooks(connector *common.Connector, datasource *common
 					Summary: bookDetail.Book.Description,
 					Type:    book.Type,
 					Size:    bookDetail.Book.ItemsCount,
-					URL:     fmt.Sprintf("https://infini.yuque.com/infini/%v", bookDetail.Book.Slug),
+					URL:     fmt.Sprintf("https://yuque.com/%v/%v", login, bookDetail.Book.Slug),
 					Owner: &common.UserInfo{
 						UserAvatar: bookDetail.Book.User.AvatarURL,
 						UserName:   bookDetail.Book.User.Name,
@@ -373,7 +374,7 @@ func (this *Plugin) collectDocDetails(connector *common.Connector, datasource *c
 			Content: doc.Doc.Body,
 			Type:    doc.Doc.Type,
 			Size:    doc.Doc.WordCount,
-			URL:     fmt.Sprintf("https://infini.yuque.com/go/doc/%v", doc.Doc.ID),
+			URL:     fmt.Sprintf("https://yuque.com/go/doc/%v", doc.Doc.ID),
 			Owner: &common.UserInfo{
 				UserAvatar: doc.Doc.User.AvatarURL,
 				UserName:   doc.Doc.User.Name,
@@ -479,7 +480,7 @@ func (this *Plugin) collectUsers(connector *common.Connector, datasource *common
 					Title:     groupUser.User.Name,
 					Summary:   groupUser.User.Description,
 					Type:      docType,
-					URL:       fmt.Sprintf("https://infini.yuque.com/%v", groupUser.User.Login),
+					URL:       fmt.Sprintf("https://%v.yuque.com/%v", login, groupUser.User.Login),
 					Icon:      groupUser.User.AvatarURL, //TODO save to local store
 					Thumbnail: groupUser.User.AvatarURL,
 				}
@@ -507,7 +508,7 @@ func (this *Plugin) collectUsers(connector *common.Connector, datasource *common
 					Title:     groupUser.Group.Name,
 					Summary:   groupUser.Group.Description,
 					Type:      docType,
-					URL:       fmt.Sprintf("https://infini.yuque.com/%v", groupUser.Group.ID),
+					URL:       fmt.Sprintf("https://%v.yuque.com/%v", login, groupUser.Group.ID),
 					Icon:      groupUser.Group.AvatarURL, //TODO save to local store
 					Thumbnail: groupUser.Group.AvatarURL,
 				}

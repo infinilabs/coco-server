@@ -1,13 +1,13 @@
 {
   "compilerOptions": {
-    "strict": true,
     "target": "ESNext",
+    "jsx": "react-jsx",
     "module": "ESNext",
     "moduleResolution": "node",
+    "strict": true,
+    "noEmit": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    "jsx": "react-jsx",
-    "noEmit": true,
     "isolatedModules": true,
     "skipLibCheck": true
   },

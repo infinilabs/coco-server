@@ -15,28 +15,31 @@ export function useLogin() {
 
   const dispatch = useAppDispatch();
 
-  async function toLogin(params: { password: string; userName: string }, redirect = true) {
+  async function toLogin(params: { password: string; userName: string }, redirect = true, onSuccess: () => void = () => {}) {
     startLoading();
-    const result = await dispatch(login(params));
-    if (result.payload) {
-      const userName = dispatch(getUerName());
-
-      if (userName) {
-        await dispatch(initAuthRoute());
-        
-        if (redirect) {
-          await redirectFromLogin(redirect);
-        }
+    dispatch(login(params)).then(async (result) => {
+      if (result.payload) {
+        const userName = dispatch(getUerName());
   
-        window.$notification?.success({
-          description: t('page.login.common.welcomeBack', { userName }),
-          message: t('page.login.common.loginSuccess')
-        });
-      } else {
-        dispatch(resetStore());
+        if (userName) {
+          await dispatch(initAuthRoute());
+  
+          if (redirect) {
+            await redirectFromLogin(redirect);
+          }
+  
+          if (onSuccess) onSuccess()
+  
+          window.$notification?.success({
+            description: t('page.login.common.welcomeBack', { userName }),
+            message: t('page.login.common.loginSuccess')
+          });
+        } else {
+          dispatch(resetStore());
+        }
       }
-    }
-    endLoading();
+      endLoading();
+    })
   }
 
   return {

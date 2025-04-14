@@ -11,6 +11,10 @@ const form: App.I18n.Schema['translation']['form'] = {
     invalid: 'Email format is incorrect',
     required: 'Please enter email'
   },
+  endpoint: {
+    invalid: 'Endpoint is incorrect',
+    required: 'Please enter endpoint'
+  },
   phone: {
     invalid: 'Phone number format is incorrect',
     required: 'Please enter phone number'
@@ -23,10 +27,6 @@ const form: App.I18n.Schema['translation']['form'] = {
   userName: {
     invalid: 'User name format is incorrect',
     required: 'Please enter user name'
-  },
-  endpoint: {
-    invalid: 'Endpoint is incorrect',
-    required: 'Please enter endpoint'
   }
 };
 export default form;

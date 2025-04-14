@@ -1,24 +1,23 @@
-import { defineConfig, Options } from "tsup";
+import type { Options } from 'tsup';
+import { defineConfig } from 'tsup';
 
 export default defineConfig(
-  (config) =>
+  config =>
     [
       {
-        entry: ["src/index.jsx"],
-        format: ["esm"],
         clean: true,
+        entry: ['src/index.jsx'],
+        format: ['esm'],
         minify: true,
-        sourcemap: config.watch,
-        splitting: false,
-        platform: 'browser',
         noExternal: ['react', 'react-dom', '@infinilabs/search-chat'],
+        platform: 'browser',
+        sourcemap: config.watch,
+        splitting: false
       },
       {
-        entry: [
-          "src/styles/index.css",
-        ],
         clean: true,
-        minify: true,
-      },
-    ] as Options[],
+        entry: ['src/styles/index.css'],
+        minify: true
+      }
+    ] as Options[]
 );

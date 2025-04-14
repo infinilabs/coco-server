@@ -1,18 +1,46 @@
-import { Select, Image } from "antd";
+import { Image, Select } from 'antd';
 import { ReactSVG } from 'react-svg';
-import "./icon.css";
-import FontIcon from '@/components/common/font_icon'; 
 
-export const IconSelector = ({value, onChange, className, icons=[]})=> {
-  return <Select showSearch={true} value={value} className={className} popupMatchSelectWidth={false} onChange={onChange}>
-    {icons.map(icon => {
-        return <Select.Option value={icon.path} item={icon} >
-          <div className="flex items-center gap-3px">
-            {icon.source === "fonts" ? <FontIcon name={icon.path} /> : icon.path.endsWith(".svg") ? <ReactSVG src={icon.path} className="limitw" /> : <Image preview={false} width="1em" height="1em" src={icon.path}/>}
-          
-            <span className="overflow-hidden text-ellipsis">{icon.name}</span>
-          </div>
-        </Select.Option>
-    })}
-  </Select>
-}
+import './icon.css';
+import FontIcon from '@/components/common/font_icon';
+
+export const IconSelector = ({ className, icons = [], onChange, value }) => {
+  return (
+    <Select
+      className={className}
+      popupMatchSelectWidth={false}
+      showSearch={true}
+      value={value}
+      onChange={onChange}
+    >
+      {icons.map(icon => {
+        return (
+          <Select.Option
+            item={icon}
+            value={icon.path}
+          >
+            <div className="flex items-center gap-3px">
+              {icon.source === 'fonts' ? (
+                <FontIcon name={icon.path} />
+              ) : icon.path.endsWith('.svg') ? (
+                <ReactSVG
+                  className="limitw"
+                  src={icon.path}
+                />
+              ) : (
+                <Image
+                  height="1em"
+                  preview={false}
+                  src={icon.path}
+                  width="1em"
+                />
+              )}
+
+              <span className="overflow-hidden text-ellipsis">{icon.name}</span>
+            </div>
+          </Select.Option>
+        );
+      })}
+    </Select>
+  );
+};

@@ -154,6 +154,7 @@ export type LayoutMode = 'horizontal' | 'vertical';
  */
 export type LayoutScrollMode = 'content' | 'wrapper';
 export type Slots = {
+  Breadcrumb?: React.ReactNode;
   /** Main */
   children?: React.ReactNode;
   /** Footer */
@@ -164,7 +165,6 @@ export type Slots = {
   Sider?: React.ReactNode;
   /** Tab */
   Tab?: React.ReactNode;
-  Breadcrumb?: React.ReactNode;
 };
 
 /** Admin layout props */

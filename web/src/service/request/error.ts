@@ -6,7 +6,7 @@ import { $t } from '@/locales';
 import { store } from '@/store';
 import { resetStore } from '@/store/slice/auth';
 
-import { getAuthorization, handleExpiredRequest, showErrorMsg } from './shared';
+import { handleExpiredRequest, showErrorMsg } from './shared';
 import type { RequestInstanceState } from './type';
 
 /** - 后端错误处理 */
@@ -19,8 +19,10 @@ export async function backEndFail(
 
   function handleLogout() {
     store.dispatch(resetStore());
-    const currentPath = window.location.hash.replace('#', '')
-    window.location.href = `/#/login?redirect=${currentPath}`
+    const currentPath = window.location.hash.replace('#', '');
+    if (!currentPath.startsWith('/login')) {
+      window.location.href = `/#/login?redirect=${currentPath}`;
+    }
   }
 
   function logoutAndCleanup() {
@@ -70,9 +72,6 @@ export async function backEndFail(
   if (expiredTokenCodes.includes(responseCode)) {
     const success = await handleExpiredRequest(request.state);
     if (success) {
-      const Authorization = getAuthorization();
-      Object.assign(response.config.headers, { Authorization });
-
       return instance.request(response.config) as Promise<AxiosResponse>;
     }
   }
@@ -92,8 +91,10 @@ export function handleError(
 
   function handleLogout() {
     store.dispatch(resetStore());
-    const currentPath = window.location.hash.replace('#', '')
-    window.location.href = `/#/login?redirect=${currentPath}`
+    const currentPath = window.location.hash.replace('#', '');
+    if (!currentPath.startsWith('/login')) {
+      window.location.href = `/#/login?redirect=${currentPath}`;
+    }
   }
 
   // when the backend response code is in `logoutCodes`, it means the user will be logged out and redirected to login page

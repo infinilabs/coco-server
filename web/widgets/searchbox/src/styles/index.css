@@ -1,8 +1,8 @@
-@import "../../node_modules/@infinilabs/search-chat/index.css";
-@import "./variables.css";
-@import "./button.css";
-@import "./modal.css";
+@import '../../node_modules/@infinilabs/search-chat/index.css';
+@import './variables.css';
+@import './button.css';
+@import './modal.css';
 
 *:focus-visible {
-    outline: none;
+  outline: none;
 }

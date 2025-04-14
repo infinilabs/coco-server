@@ -57,20 +57,21 @@ declare namespace Api {
   namespace Auth {
     interface LoginToken {
       access_token: string;
+      expire_in: number;
     }
 
     interface UserInfo {
-      id: string;
-      name: string;
-      email: string;
       avatar: string;
       created: string;
-      updated: string;
-      roles: string[];
+      email: string;
+      id: string;
+      name: string;
       preferences: {
-        theme: string;
         language: string;
-      }
+        theme: string;
+      };
+      roles: string[];
+      updated: string;
     }
   }
 
@@ -232,47 +233,47 @@ declare namespace Api {
 
   namespace Server {
     type Info = {
-      name: string;
-      endpoint: string;
-      provider: {
-        name: string;
-        icon: string;
-        website: string;
-        eula: string;
-        privacy_policy: string;
-        banner: string;
-        description: string;
-      };
-      version: {
-        number: string
-      };
-      updated: string;
-      public: boolean;
       auth_provider: {
         sso: {
-          url: string
-        }
+          url: string;
+        };
       };
+      endpoint: string;
+      name: string;
+      provider: {
+        banner: string;
+        description: string;
+        eula: string;
+        icon: string;
+        name: string;
+        privacy_policy: string;
+        website: string;
+      };
+      public: boolean;
       setup_required: boolean;
-    }
+      updated: string;
+      version: {
+        number: string;
+      };
+    };
   }
   namespace Datasource {
     interface ConnectorConfig {
       urls: string[];
     }
-    
+
     interface Connector {
-      id: string;
-      config: ConnectorConfig;
-      category: string;
-      icon: string;
-      tags: string[];
-      name: string;
-      description: string;
-      url: string;
       assets: {
         icons: ConnectorIcons;
-      }
+      };
+      category: string;
+      config: ConnectorConfig;
+      description: string;
+      icon: string;
+      id: string;
+      name: string;
+      tags: string[];
+      url: string;
     }
     interface ConnectorIcons {
       database: string;
@@ -280,27 +281,29 @@ declare namespace Api {
       page: string;
       web_page: string;
     }
-    
+
     interface Datasource {
-      id: string;
-      created: string; // ISO 8601 timestamp
-      updated: string; // ISO 8601 timestamp
-      type: "connector";
-      name: string;
       connector: Connector;
-      sync_config: any;
+      created: string;
       enabled: boolean;
+      id: string;
+      name: string;
+      sync_config: any;
       sync_enabled: boolean;
+      // ISO 8601 timestamp
+      type: 'connector';
+      // ISO 8601 timestamp
+      updated: string;
     }
   }
   namespace APIToken {
     interface APIToken {
-      name: string;
-      userid: string;
-      login: string;
-      provider: string;
-      expire_in: number;
       access_token: string;
+      expire_in: number;
+      login: string;
+      name: string;
+      provider: string;
+      userid: string;
     }
   }
   namespace LLM {

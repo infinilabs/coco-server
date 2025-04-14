@@ -93,7 +93,10 @@
   bottom: 32px;
   right: 32px;
   z-index: 150;
-  box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 9px 28px 8px rgba(0, 0, 0, 0.05);
+  box-shadow:
+    0 6px 16px 0 rgba(0, 0, 0, 0.08),
+    0 3px 6px -4px rgba(0, 0, 0, 0.12),
+    0 9px 28px 8px rgba(0, 0, 0, 0.05);
   border: 0;
   width: 48px;
   height: 48px;
@@ -106,7 +109,10 @@
 .infini__searchbox-float-btn:hover,
 .infini__searchbox-float-btn:active,
 .infini__searchbox-float-btn:focus {
-  box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.16), 0 3px 6px -4px rgba(0, 0, 0, 0.24), 0 9px 28px 8px rgba(0, 0, 0, 0.1);
+  box-shadow:
+    0 6px 16px 0 rgba(0, 0, 0, 0.16),
+    0 3px 6px -4px rgba(0, 0, 0, 0.24),
+    0 9px 28px 8px rgba(0, 0, 0, 0.1);
 }
 
 .infini__searchbox-float-btn-container {
