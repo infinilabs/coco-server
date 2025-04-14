@@ -13,12 +13,13 @@ import { $t } from '@/locales';
 import { getRouteName, getRoutePath } from '@/router/elegant/transform';
 import { fetchServer } from '@/service/api/server';
 import { store } from '@/store';
-import { isStaticSuper, selectUserInfo } from '@/store/slice/auth';
+import { isStaticSuper, resetAuth, selectUserInfo } from '@/store/slice/auth';
 import { getRouteHome, initAuthRoute, initConstantRoute } from '@/store/slice/route';
 import { localStg } from '@/utils/storage';
 import { fetchGetUserInfo } from '@/service/api';
 
 export const init: Init = async currentFullPath => {
+  
   const result = await fetchServer();
   
   localStg.set('providerInfo', result.data);
@@ -41,11 +42,17 @@ export const init: Init = async currentFullPath => {
 
   const { data: user, error } = await fetchGetUserInfo();
 
-  if (!user || user.error || error) {
-    if (['guide', 'login'].some((path) => currentFullPath.includes(path))) {
-      return currentFullPath;
-    }
+  const isLogin = !!user && !user.error && !error
 
+  if (isLogin) {
+    localStg.set('userInfo', user);
+    await store.dispatch(resetAuth());
+    if (['guide', 'login'].some((path) => currentFullPath.includes(path))) {
+      return '/';
+    }
+  } else {
+    localStg.remove('userInfo');
+    await store.dispatch(resetAuth());
     const loginRoute: RouteKey = 'login';
     const routeHome = getRouteHome(store.getState());
 
@@ -55,17 +62,10 @@ export const init: Init = async currentFullPath => {
       name: loginRoute,
       query
     };
-    localStg.remove('userInfo');
     return location;
-  } else {
-    localStg.set('userInfo', user);
   }
-
+  
   await store.dispatch(initAuthRoute());
-
-  // if (currentFullPath.includes('login')) {
-  //   return '/';
-  // }
 
   return null;
 };
@@ -96,7 +96,7 @@ export const createRouteGuard: BeforeEach = (to, _, blockerOrJump) => {
     return blockerOrJump({ name: noPermissionRoute });
   }
 
-  // const rootRoute: RouteKey = 'root';
+  const rootRoute: RouteKey = 'root';
   const loginRoute: RouteKey = 'login';
   const noAuthorizationRoute: RouteKey = '403';
 
@@ -110,12 +110,12 @@ export const createRouteGuard: BeforeEach = (to, _, blockerOrJump) => {
 
   const routeSwitches: CommonType.StrategicPattern[] = [
     // if it is login route when logged in, then switch to the root page
-    // {
-    //   callback: () => {
-    //     return blockerOrJump({ name: rootRoute });
-    //   },
-    //   condition: isLogin && to.path.includes('login')
-    // },
+    {
+      callback: () => {
+        return blockerOrJump({ name: rootRoute });
+      },
+      condition: isLogin && to.path.includes('login')
+    },
     // if it is constant route, then it is allowed to access directly
     {
       callback: () => {
