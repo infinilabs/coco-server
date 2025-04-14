@@ -18,6 +18,10 @@ import { getRouteHome, initAuthRoute, initConstantRoute } from '@/store/slice/ro
 import { localStg } from '@/utils/storage';
 import { fetchGetUserInfo } from '@/service/api';
 
+function shouldRedirectLogin(path: string) {
+  return ['provider', 'request_id', 'product'].every((keyword) => !path.includes(keyword))
+}
+
 export const init: Init = async currentFullPath => {
   
   const result = await fetchServer();
@@ -47,25 +51,29 @@ export const init: Init = async currentFullPath => {
   if (isLogin) {
     localStg.set('userInfo', user);
     await store.dispatch(resetAuth());
-    if (['guide', 'login'].some((path) => currentFullPath.includes(path))) {
+    await store.dispatch(initAuthRoute());
+    if (currentFullPath.startsWith('/guide')) {
+      return '/'
+    } else if (currentFullPath.startsWith('/login') && shouldRedirectLogin(currentFullPath)) {
       return '/';
     }
   } else {
     localStg.remove('userInfo');
     await store.dispatch(resetAuth());
-    const loginRoute: RouteKey = 'login';
-    const routeHome = getRouteHome(store.getState());
+    await store.dispatch(initAuthRoute());
+    if (!currentFullPath.startsWith('/login')) {
+      const loginRoute: RouteKey = 'login';
+      const routeHome = getRouteHome(store.getState());
 
-    const query = getRouteQueryOfLoginRoute(currentFullPath, routeHome as RouteKey);
+      const query = getRouteQueryOfLoginRoute(currentFullPath, routeHome as RouteKey);
 
-    const location: RouteLocationNamedRaw = {
-      name: loginRoute,
-      query
-    };
-    return location;
+      const location: RouteLocationNamedRaw = {
+        name: loginRoute,
+        query
+      };
+      return location;
+    }
   }
-  
-  await store.dispatch(initAuthRoute());
 
   return null;
 };
@@ -112,9 +120,10 @@ export const createRouteGuard: BeforeEach = (to, _, blockerOrJump) => {
     // if it is login route when logged in, then switch to the root page
     {
       callback: () => {
-        return blockerOrJump({ name: rootRoute });
+        window.location.href = "/"
+        return false
       },
-      condition: isLogin && to.path.includes('login')
+      condition: isLogin && to.path.includes('login') && !shouldRedirectLogin(to.path)
     },
     // if it is constant route, then it is allowed to access directly
     {
