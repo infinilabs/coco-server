@@ -30,7 +30,7 @@ const ThemeSchemaSwitch: FC<Props> = memo(({ showTooltip = true, tooltipPlacemen
   const dispatch = useAppDispatch();
   const darkMode = useAppSelector(getDarkMode);
 
-  const tooltipContent = showTooltip ? t('icon.themeSchema') : '';
+  const tooltipContent = showTooltip ? `${t('icon.themeSchema')} : ${t(`theme.themeSchema.${themeScheme}`)}` : '';
 
   const toggleDark: ButtonProps['onClick'] = event => {
     const isAppearanceTransition = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
