@@ -9,6 +9,7 @@ import (
 	"infini.sh/coco/core"
 	"infini.sh/framework/core/api"
 	httprouter "infini.sh/framework/core/api/router"
+	"infini.sh/framework/core/global"
 	"net/http"
 	"sync"
 )
@@ -55,7 +56,9 @@ func (f *CORSFilter) ApplyFilter(
 				return
 			}
 		} else {
-			log.Warn("skipping place CORS headers: ", method, ",", pattern, ",origin:", origin, ",", origin != "", ",", r.Method == http.MethodOptions, ",", isAllowedOrigin(origin, r))
+			if global.Env().IsDebug {
+				log.Warn("skipping place CORS headers: ", method, ",", pattern, ",origin:", origin, ",", origin != "", ",", r.Method == http.MethodOptions, ",", isAllowedOrigin(origin, r))
+			}
 		}
 
 		next(w, r, ps)

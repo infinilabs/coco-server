@@ -1,12 +1,4 @@
 env:
-  OLLAMA_ENDPOINT: http://localhost:11434
-  OLLAMA_MODEL: deepseek-r1:8b
-  ENRICHMENT_MODEL: deepseek-r1:1.5b
-
-  OPENAI_ENDPOINT: https://dashscope.aliyuncs.com/compatible-mode/v1
-  OPENAI_TOKEN: ""
-  OPENAI_MODEL: deepseek-r1
-
   ES_ENDPOINT: https://localhost:9200
   ES_USERNAME: admin
   ES_PASSWORD: $[[keystore.ES_PASSWORD]]
@@ -14,25 +6,18 @@ env:
   API_BINDING: 0.0.0.0:2900
 
 coco:
-  llm:
-    keepalive: 30m
-## comment out if you are using ollama
-#    type: ollama
-#    endpoint: $[[env.OLLAMA_ENDPOINT]]
-#    default_model: $[[env.OLLAMA_MODEL]]
-## comment out if you are using any OPENAI API compatible's services
-    type: openai
-    endpoint: $[[env.OPENAI_ENDPOINT]]
-    token: $[[env.OPENAI_TOKEN]]
-    default_model: $[[env.OPENAI_MODEL]]
-
   server:
     public: false
     name: "My Coco Server"
-#    endpoint: "http://localhost:9000"
     managed: false
-#    minimal_client_version:
-#      number: "0.2"
+    #[START] for managed mode only, need to configured by coco-server operator
+    endpoint: "http://localhost:9001/"
+    auth_provider: #config for app to use
+      sso:
+        url: "http://localhost:9001/#/login"
+    #[END] for managed mode only
+    minimal_client_version:
+      number: "0.3"
     provider:
       name: "INFINI Labs"
       description: "Coco AI Server - Search, Connect, Collaborate, AI-powered enterprise search, all in one space."
@@ -41,9 +26,11 @@ coco:
       eula: "https://coco.rs/#/terms"
       privacy_policy: "https://coco.rs/privacy"
       banner: "https://coco.rs/svg/connect.svg"
-#      auth_provider:
-#        sso:
-#          url: "http://infinilabs.com/#/login"
+      #[START] for managed mode only, config for coco-server to use
+      auth_provider:
+        sso:
+          url: "/sso/login/cloud?provider=coco-cloud&product=coco"
+      #[END] for managed mode only
 
 ## Cleanup exists data:
 # curl -u admin:45ff432a5428ade77c7b -k -XDELETE   https://localhost:9200/_template/coco-search
@@ -271,6 +258,18 @@ web:
           secret_key: $[[keystore.TENCENT_DNS_KEY]] #./bin/coco keystore add TENCENT_DNS_KEY
   security:
     enabled: true
+    authentication:
+      oauth:
+        cloud:
+          enabled: true
+          client_secret: "999999"
+          authorize_url: "http://localhost:9000/oauth/authorize"
+          token_url: "http://localhost:9000/oauth/token"
+          profile_url: "http://localhost:9000/account/profile"
+          redirect_url: "http://localhost:9001/sso/callback/cloud"
+#          success_page: "/#/user/sso/success"
+#          failed_page: "/#/user/sso/failed"
+          scopes: [ "openid","email","profile"]
 
 
 connector:
@@ -375,3 +374,4 @@ http_client:
         "github.com":
           http_proxy: http://127.0.0.1:7890
           socket5_proxy: socks5://127.0.0.1:7890
+

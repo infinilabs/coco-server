@@ -20,6 +20,7 @@ Information about release notes of Coco Server is provided here.
 - Set built-in connector icons as read-only
 - Support setting icon and placeholder of integration
 - Enhance UI for searchbox
+- Refactoring security plugin #199
 
 ## 0.3.0 (2025-03-31)
 

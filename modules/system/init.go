@@ -61,7 +61,6 @@ func init() {
 
 func (h *APIHandler) providerInfo(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	info := common.AppConfig()
-
 	json := util.MustToJSONBytes(&info.ServerInfo)
 	output := util.MapStr{}
 	err := util.FromJSONBytes(json, &output)
@@ -79,11 +78,15 @@ func (h *APIHandler) providerInfo(w http.ResponseWriter, req *http.Request, ps h
 		obj["services"] = services
 	}
 
-	isSetup := checkSetupStatus()
-	output["setup_required"] = !isSetup
+	isSetup := isAlreadyDoneSetup()
+	if !isSetup {
+		output["setup_required"] = true
+	}
+
 	output["health"] = obj
 
 	if info.ServerInfo != nil && info.ServerInfo.Managed {
+		output["managed"] = true
 		if info.ServerInfo.Provider.AuthProvider.SSO.URL == "" {
 			panic("sso url can't be nil")
 		}

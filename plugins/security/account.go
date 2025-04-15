@@ -31,6 +31,7 @@ import (
 	"fmt"
 	"golang.org/x/crypto/bcrypt"
 	"infini.sh/coco/core"
+	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/api"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/kv"
@@ -64,6 +65,10 @@ func (h APIHandler) Profile(w http.ResponseWriter, r *http.Request, ps httproute
 }
 
 func (h APIHandler) UpdatePassword(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	cfg, _ := common.AppConfigFromFile()
+	if cfg.ServerInfo.Managed {
+		panic("should not be invoked as in managed mode")
+	}
 
 	reqUser, err := security.UserFromContext(r.Context())
 	if err != nil {
@@ -104,6 +109,12 @@ func SavePassword(password string) error {
 }
 
 func (h APIHandler) Login(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+
+	cfg, _ := common.AppConfigFromFile()
+	if cfg.ServerInfo.Managed {
+		panic("should not be invoked as in managed mode")
+	}
+
 	var req struct {
 		Password string `json:"password"`
 	}
@@ -155,20 +166,33 @@ func (h APIHandler) Login(w http.ResponseWriter, r *http.Request, ps httprouter.
 	}
 	user.ID = core.DefaultUserLogin
 
-	// Generate access token
-	token, err := GenerateJWTAccessToken("simple", core.DefaultUserLogin, user)
+	err, token := AddUserToSession(w, r, user)
 	if err != nil {
 		h.ErrorInternalServer(w, "failed to authorize user")
 		return
 	}
-
-	api.SetSession(w, r, core.UserTokenSessionName, token["access_token"])
 
 	if fromFrom {
 		h.Redirect(w, r, fmt.Sprintf("/login/success?request_id=%v&code=%v", requestID, token["access_token"]))
 	} else {
 		h.WriteOKJSON(w, token)
 	}
+}
+
+func AddUserToSession(w http.ResponseWriter, r *http.Request, user *core.User) (error, map[string]interface{}) {
+
+	if user == nil {
+		panic("invalid user")
+	}
+
+	// Generate access token
+	token, err := GenerateJWTAccessToken("simple", core.DefaultUserLogin, user)
+	if err != nil {
+		return err, nil
+	}
+
+	api.SetSession(w, r, core.UserTokenSessionName, token["access_token"])
+	return nil, token
 }
 
 func (h APIHandler) checkPassword(password string) (error, bool) {
