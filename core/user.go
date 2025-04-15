@@ -36,22 +36,22 @@ type User struct {
 
 	Name        string      `json:"name"  elastic_mapping:"name: { type: keyword }"`
 	Email       string      `json:"email" elastic_mapping:"email: { type: keyword }"`
-	Phone       string      `json:"phone" elastic_mapping:"phone: { type: keyword }"`
-	Tags        []string    `json:"tags" elastic_mapping:"tags: { type: keyword }"`
-	AvatarUrl   string      `json:"avatar" elastic_mapping:"avatar: { type: keyword }"`
-	Preferences Preferences `json:"preferences"`
+	Phone       string      `json:"phone,omitempty" elastic_mapping:"phone: { type: keyword }"`
+	Tags        []string    `json:"tags,omitempty" elastic_mapping:"tags: { type: keyword }"`
+	AvatarUrl   string      `json:"avatar,omitempty" elastic_mapping:"avatar: { type: keyword }"`
+	Preferences Preferences `json:"preferences,omitempty"`
 }
 
 type ExternalUserProfile struct {
 	orm.ORMObjectBase
-	UserID       string      `json:"user_id"  elastic_mapping:"user_id: { type: keyword }"`
-	AuthProvider string      `json:"provider"  elastic_mapping:"provider: { type: keyword }"`
-	Login        string      `json:"login"  elastic_mapping:"login: { type: keyword }"`
-	Payload      interface{} `json:"payload" elastic_mapping:"payload: { type: object }"`
+	UserID       string      `json:"user_id,omitempty"  elastic_mapping:"user_id: { type: keyword }"`
+	AuthProvider string      `json:"provider,omitempty"  elastic_mapping:"provider: { type: keyword }"`
+	Login        string      `json:"login,omitempty"  elastic_mapping:"login: { type: keyword }"`
+	Payload      interface{} `json:"payload,omitempty" elastic_mapping:"payload: { type: object }"`
 }
 
 // Preferences represents the user's preferences for theme and language.
 type Preferences struct {
-	Theme    string `json:"theme"`
-	Language string `json:"language"`
+	Theme    string `json:"theme,omitempty"`
+	Language string `json:"language,omitempty"`
 }

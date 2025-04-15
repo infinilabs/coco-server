@@ -39,15 +39,14 @@ var apiHandler = APIHandler{}
 
 func init() {
 
-	//login page
-	api.HandleUIMethod(api.GET, "/login/", apiHandler.LoginPage)
-	api.HandleUIMethod(api.GET, "/login/success", apiHandler.LoginSuccess)
+	api.HandleUIMethod(api.GET, "/account/profile", apiHandler.Profile, api.RequireLogin())
 
+	//for not managed only
 	api.HandleUIMethod(api.POST, "/account/login", apiHandler.Login)
+	api.HandleUIMethod(api.PUT, "/account/password", apiHandler.UpdatePassword, api.RequireLogin())
+
 	api.HandleUIMethod(api.POST, "/account/logout", apiHandler.Logout, api.OptionLogin())
 
-	api.HandleUIMethod(api.GET, "/account/profile", apiHandler.Profile, api.RequireLogin())
-	api.HandleUIMethod(api.PUT, "/account/password", apiHandler.UpdatePassword, api.RequireLogin())
 	api.HandleUIMethod(api.POST, "/auth/request_access_token", apiHandler.RequestAccessToken, api.RequireLogin())
 	api.HandleUIMethod(api.GET, "/auth/access_token/_cat", apiHandler.CatAccessToken, api.RequireLogin())
 	api.HandleUIMethod(api.DELETE, "/auth/access_token/:token_id", apiHandler.DeleteAccessToken, api.RequireLogin())
