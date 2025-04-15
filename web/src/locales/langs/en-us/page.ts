@@ -182,8 +182,8 @@ const page: App.I18n.Schema['translation']['page'] = {
         type_floating_icon: 'Floating widget icon',
       },
       title: {
-        edit: 'Edit integration',
-        new: 'New integration'
+        edit: 'Edit Integration',
+        new: 'New Integration'
       }
     },
     update: {
