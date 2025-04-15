@@ -63,14 +63,11 @@ func GenerateJWTAccessToken(provider string, login string, user *core.User) (map
 		return nil, errors.Errorf("failed to generate access_token for user: %v", user)
 	}
 
-	//token := Token{ExpireIn: time.Now().Unix() + 86400}
-	//SetUserToken(user.ID, token)
-
 	data = util.MapStr{
 		"access_token": tokenString,
 		"username":     login,
 		"id":           user.ID,
-		"expire_in":    86400,
+		"expire_in":    time.Now().Unix() + 86400, //24h
 	}
 
 	data["status"] = "ok"

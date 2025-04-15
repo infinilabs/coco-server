@@ -39,3 +39,4 @@ generated_*.go
 .scannerwork/
 
 docs/.hugo_build.lock
+/plugins/enterprise/
