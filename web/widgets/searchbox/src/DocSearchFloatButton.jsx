@@ -1,6 +1,7 @@
 import Logo from './icons/logo.svg';
 
 export const DocSearchFloatButton = ({
+  theme,
   settings,
   onClick,
 }) => {
@@ -8,7 +9,7 @@ export const DocSearchFloatButton = ({
   const { options } = settings || {};
 
   return (
-    <div id="infini__searchbox" data-theme={settings?.appearance?.theme}>
+    <div id="infini__searchbox" data-theme={theme}>
       <button
         type="button"
         className="infini__searchbox-float-btn"
