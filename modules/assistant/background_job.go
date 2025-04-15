@@ -82,6 +82,8 @@ type processingParams struct {
 	answeringProvider   *common.ModelProvider
 }
 
+const DefaultAssistantID = "cvuak1lath2dlgqqpcjg"
+
 func (h APIHandler) extractParameters(req *http.Request) (*processingParams, error) {
 	params := &processingParams{
 		searchDB:     h.GetBoolOrDefault(req, "search", false),
@@ -99,11 +101,8 @@ func (h APIHandler) extractParameters(req *http.Request) (*processingParams, err
 		source:       h.GetParameterOrDefault(req, "source_fields", "*"),
 	}
 
-	assistantID := h.GetParameterOrDefault(req, "assistant_id", "")
-	if assistantID == "" {
-		//TODO: query default builtin assistant and set related params, here we just return error
-		return nil, errors.Error("assistant_id is required")
-	}
+	//TODO: add default builtin assistant
+	assistantID := h.GetParameterOrDefault(req, "assistant_id", DefaultAssistantID)
 	params.assistantID = assistantID
 
 	assistant, err := common.GetAssistant(assistantID)
@@ -116,27 +115,46 @@ func (h APIHandler) extractParameters(req *http.Request) (*processingParams, err
 	if !assistant.Enabled {
 		return nil, fmt.Errorf("assistant [%s] is not enabled", assistant.Name)
 	}
+
+	if assistant.Datasource.Enabled && len(assistant.Datasource.IDs) > 0 {
+		if params.datasource == "" {
+			params.datasource = strings.Join(assistant.Datasource.IDs, ",")
+		} else {
+			// calc intersection with datasource and assistant datasourceIDs
+			queryDatasource := strings.Split(params.datasource, ",")
+			queryDatasource = util.StringArrayIntersection(queryDatasource, assistant.Datasource.IDs)
+			if len(queryDatasource) == 0 {
+				//TODO: handle logic of empty datasource
+			}
+			params.datasource = strings.Join(queryDatasource, ",")
+		}
+	}
 	params.keepalive = assistant.Keepalive
-	if assistant.Type == common.AssistantTypeDeepThink && params.deepThink {
-		deepThinkCfg := common.DeepThinkConfig{}
-		buf := util.MustToJSONBytes(assistant.Config)
-		util.MustFromJSONBytes(buf, &deepThinkCfg)
+	if params.deepThink {
+		if assistant.Type == common.AssistantTypeDeepThink {
+			deepThinkCfg := common.DeepThinkConfig{}
+			buf := util.MustToJSONBytes(assistant.Config)
+			util.MustFromJSONBytes(buf, &deepThinkCfg)
 
-		// set intent analysis model params
-		params.pickingDocModel = &deepThinkCfg.PickingDocModel
-		modelProvider, err := common.GetModelProvider(deepThinkCfg.PickingDocModel.ProviderID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get picking doc model provider: %w", err)
-		}
-		params.intentModelProvider = modelProvider
+			// set intent analysis model params
+			params.pickingDocModel = &deepThinkCfg.PickingDocModel
+			modelProvider, err := common.GetModelProvider(deepThinkCfg.PickingDocModel.ProviderID)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get picking doc model provider: %w", err)
+			}
+			params.pickingDocProvider = modelProvider
 
-		// set picking doc model params
-		params.intentModel = &deepThinkCfg.IntentAnalysisModel
-		modelProvider, err = common.GetModelProvider(deepThinkCfg.IntentAnalysisModel.ProviderID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get intent model provider: %w", err)
+			// set picking doc model params
+			params.intentModel = &deepThinkCfg.IntentAnalysisModel
+			modelProvider, err = common.GetModelProvider(deepThinkCfg.IntentAnalysisModel.ProviderID)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get intent model provider: %w", err)
+			}
+			params.intentModelProvider = modelProvider
+		} else {
+			// reset deepThink to false if assistant is not deep think type
+			params.deepThink = false
 		}
-		params.intentModelProvider = modelProvider
 	}
 	modelProvider, err := common.GetModelProvider(assistant.AnsweringModel.ProviderID)
 	if err != nil {
@@ -370,9 +388,11 @@ func (h APIHandler) processQueryIntent(ctx context.Context, reqMsg, replyMsg *Ch
 		log.Trace(content)
 
 		var chunkSeq = 0
+		temperature := getTemperature(params.intentModel, params.intentModelProvider, 0.8)
+		maxTokens := getMaxTokens(params.intentModel, params.intentModelProvider, 1024)
 		if _, err := llm.GenerateContent(ctx, content,
-			llms.WithTemperature(0.8),
-			llms.WithMaxTokens(1024),
+			llms.WithTemperature(temperature),
+			llms.WithMaxTokens(maxTokens),
 			llms.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
 				if len(chunk) > 0 {
 					chunkSeq++
@@ -409,6 +429,48 @@ func (h APIHandler) processQueryIntent(ctx context.Context, reqMsg, replyMsg *Ch
 
 	params.queryIntent = queryIntent
 	return nil
+}
+
+func getTemperature(model *common.ModelConfig, modelProvider *common.ModelProvider, defaultValue float64) float64 {
+	temperature := 0.0
+	if model.Settings.Temperature > 0 {
+		temperature = model.Settings.Temperature
+	}
+	if temperature == 0 {
+		for _, m := range modelProvider.Models {
+			if m.Name == model.Name {
+				if m.Settings.Temperature > 0 {
+					temperature = m.Settings.Temperature
+				}
+				break
+			}
+		}
+	}
+	if temperature == 0 {
+		temperature = defaultValue
+	}
+	return temperature
+}
+
+func getMaxTokens(model *common.ModelConfig, modelProvider *common.ModelProvider, defaultValue int) int {
+	var maxTokens int = 0
+	if model.Settings.MaxTokens > 0 {
+		maxTokens = model.Settings.MaxTokens
+	}
+	if maxTokens == 0 {
+		for _, m := range modelProvider.Models {
+			if m.Name == model.Name {
+				if m.Settings.MaxTokens > 0 {
+					maxTokens = m.Settings.MaxTokens
+				}
+				break
+			}
+		}
+	}
+	if maxTokens == 0 {
+		maxTokens = defaultValue
+	}
+	return maxTokens
 }
 
 func (h APIHandler) processInitialDocumentSearch(ctx context.Context, reqMsg, replyMsg *ChatMessage, params *processingParams, fechSize int) ([]common.Document, error) {
@@ -638,9 +700,12 @@ Data:
 	log.Trace(params.answeringModel, ",", util.MustToJSON(appConfig))
 
 	options := []llms.CallOption{}
-	options = append(options, llms.WithMaxTokens(appConfig.LLMConfig.Parameters.MaxTokens))
+	maxTokens := getMaxTokens(params.answeringModel, params.answeringProvider, 1024)
+	temperature := getTemperature(params.answeringModel, params.answeringProvider, 0.8)
+	options = append(options, llms.WithMaxTokens(maxTokens))
+	//TODO: add max length to config
 	options = append(options, llms.WithMaxLength(appConfig.LLMConfig.Parameters.MaxLength))
-	options = append(options, llms.WithTemperature(0.8))
+	options = append(options, llms.WithTemperature(temperature))
 
 	if appConfig.LLMConfig.Type == common.DEEPSEEK {
 		options = append(options, llms.WithStreamingReasoningFunc(func(ctx context.Context, reasoningChunk []byte, chunk []byte) error {

@@ -179,7 +179,7 @@ func (h APIHandler) newChatSession(w http.ResponseWriter, req *http.Request, ps 
 		return
 	}
 
-	assistantID := h.GetParameterOrDefault(req, "assistant_id", "cvuak1lath2dlgqqpcjg")
+	assistantID := h.GetParameterOrDefault(req, "assistant_id", DefaultAssistantID)
 	var firstMessage *ChatMessage
 	//save first message to history
 	if request.Message != "" {
@@ -322,7 +322,7 @@ func (h APIHandler) sendChatMessage(w http.ResponseWriter, req *http.Request, ps
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
-	assistantID := h.GetParameterOrDefault(req, "assistant_id", "cvuak1lath2dlgqqpcjg")
+	assistantID := h.GetParameterOrDefault(req, "assistant_id", DefaultAssistantID)
 
 	obj, err := h.handleMessage(req, sessionID, assistantID, request.Message)
 	if err != nil {

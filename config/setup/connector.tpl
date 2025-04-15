@@ -141,7 +141,7 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/openai
   "updated" : "2025-03-31T20:16:18.517692+08:00",
   "name" : "OpenAI",
   "api_key" : "",
-  "api_endpoint" : "https://api.openai.com",
+  "base_url" : "https://api.openai.com",
   "icon" : "/assets/icons/llm/openai.svg",
   "models" : [
     "GPT-4",

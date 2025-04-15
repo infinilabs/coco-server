@@ -7,6 +7,88 @@ weight: 50
 
 ## Assistant API Reference
 
+### Create a AI assistant
+
+```shell
+//request
+curl -XPOST http://localhost:9000/assistant/ -d'{
+  "name" : "deault",
+  "description" : "default AI chat assistant",
+  "icon" : "font_Google-video",
+  "type" : "deep_think",
+  "config" : {
+    "intent_analysis_model" : {
+      "name" : "tongyi-intent-detect-v3",
+      "provider_id" : "cvuai3dath2dlgqqpc2g",
+      "settings": {
+        "temperature" : 0.8,
+        "top_p" : 0.5,
+        "presence_penalty" : 0,
+        "frequency_penalty" : 0,
+        "max_tokens" : 1024
+      }
+    },
+    "picking_doc_model" : {
+      "name" : "deepseek-r1-distill-qwen-32b",
+      "provider_id" : "cvuai3dath2dlgqqpc2g",
+      "settings": {
+        "temperature" : 0.8,
+        "top_p" : 0.5,
+        "presence_penalty" : 0,
+        "frequency_penalty" : 0,
+        "max_tokens" : 1024
+      }
+    }
+  },
+  "answering_model" : {
+    "provider_id" : "cvuai3dath2dlgqqpc2g",
+    "name" : "deepseek-r1",
+    "settings" : {
+      "temperature" : 0.8,
+      "top_p" : 0.5,
+      "presence_penalty" : 0,
+      "frequency_penalty" : 0,
+      "max_tokens" : 1024
+    }
+  },
+  "datasource" : {
+    "enabled" : true,
+    "ids" : [
+      "d895f22ed2ff25ad8c6080af1cc23a21"
+    ],
+    "visible" : true
+  },
+  "mcp_servers" : {
+    "enabled" : true,
+    "ids" : [
+      "*"
+    ],
+    "visible" : true
+  },
+  "keepalive" : "30m",
+  "enabled" : true,
+  "chat_settings" : {
+    "greeting_message" : "Hi! I’m Coco, nice to meet you. I can help answer your questions by tapping into the internet and your data sources. How can I assist you today?",
+    "suggested" : {
+      "enabled" : false,
+      "questions" : [ ]
+    },
+    "input_preprocess_tpl" : "",
+    "history_message" : {
+      "number" : 5,
+      "compression_threshold" : 1000,
+      "summary" : true
+    }
+  },
+  "builtin" : false,
+  "role_prompt" : ""
+}'
+//response
+{
+  "_id": "cvuak1lath2dlgqqpcjg",
+  "result": "created"
+}
+```
 
 ### Retrieve Chat History (sessions)
 
