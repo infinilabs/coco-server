@@ -101,7 +101,6 @@ func (h APIHandler) extractParameters(req *http.Request) (*processingParams, err
 		source:       h.GetParameterOrDefault(req, "source_fields", "*"),
 	}
 
-	//TODO: add default builtin assistant
 	assistantID := h.GetParameterOrDefault(req, "assistant_id", DefaultAssistantID)
 	params.assistantID = assistantID
 
