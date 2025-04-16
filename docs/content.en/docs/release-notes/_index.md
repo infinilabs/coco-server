@@ -21,6 +21,7 @@ Information about release notes of Coco Server is provided here.
 - Support setting icon and placeholder of integration
 - Enhance UI for searchbox
 - Refactoring security plugin #199
+- searchbox's theme styles follows the system if searchbox's theme is set to `auto`
 
 ## 0.3.0 (2025-03-31)
 

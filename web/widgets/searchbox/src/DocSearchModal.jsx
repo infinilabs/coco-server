@@ -6,6 +6,7 @@ export const DocSearchModal = ({
   settings,
   onClose,
   triggerBtnType,
+  theme
 }) => {
   // We rely on a CSS property to set the modal height to the full viewport height
   // because all mobile browsers don't compute their height the same way.
@@ -38,7 +39,7 @@ export const DocSearchModal = ({
   }
 
   return (
-    <div id="infini__searchbox" data-theme={appearance?.theme}>
+    <div id="infini__searchbox" data-theme={theme}>
       <div
         className="infini__searchbox-modal-container"
         role="button"
@@ -58,7 +59,7 @@ export const DocSearchModal = ({
             searchPlaceholder={search?.placeholder || 'Search whatever you want...'}
             chatPlaceholder={ai_chat?.placeholder || 'Ask whatever you want...'}
             hasFeature={features || []}
-            theme={appearance?.theme}
+            theme={theme}
             showChatHistory={features?.includes('chat_history')}
             setIsPinned={setIsPinned}
             defaultModule={defaultModule}
