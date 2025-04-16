@@ -165,6 +165,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         module_search: '搜索',
         module_search_placeholder: '搜索输入框提示文本',
         name: '名称',
+        enabled: '启用状态',
         theme: '主题',
         theme_auto: '自动',
         theme_dark: '深色',

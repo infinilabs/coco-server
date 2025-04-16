@@ -104,6 +104,7 @@ export const EditForm = memo(props => {
           },
           hotkey: 'ctrl+/',
           name: `widget-${generateRandomString(8)}`,
+          enabled: true,
           options: {
             embedded_placeholder: 'Search...',
             floating_placeholder: 'Ask AI'
@@ -137,6 +138,13 @@ export const EditForm = memo(props => {
           rules={[defaultRequiredRule]}
         >
           <Input className={itemClassNames} />
+        </Form.Item>
+        <Form.Item
+          label={t('page.integration.form.labels.enabled')}
+          name="enabled"
+          rules={[defaultRequiredRule]}
+        >
+          <Switch size='small'/>
         </Form.Item>
         <Form.Item
           label={t('page.integration.form.labels.type')}
