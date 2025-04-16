@@ -135,7 +135,10 @@ const page: App.I18n.Schema['translation']['page'] = {
       description: '描述',
       enabled: '启用状态',
       name: '名称',
-      type: '类型'
+      type: '类型',
+      operation: {
+        topics: '推荐话题'
+      }
     },
     delete: {
       confirm: `确定删除嵌入组件 "{{name}}"？`
@@ -187,6 +190,12 @@ const page: App.I18n.Schema['translation']['page'] = {
     update: {
       disable_confirm: `确定禁用嵌入组件 "{{name}}"？`,
       enable_confirm: `确定启用嵌入组件 "{{name}}"？`
+    },
+    topics: {
+      title: '更新推荐话题',
+      label: '话题',
+      new: '新增话题',
+      delete: '删除'
     }
   },
   login: {
