@@ -82,7 +82,7 @@ type processingParams struct {
 	answeringProvider   *common.ModelProvider
 }
 
-const DefaultAssistantID = "cvuak1lath2dlgqqpcjg"
+const DefaultAssistantID = "default"
 
 func (h APIHandler) extractParameters(req *http.Request) (*processingParams, error) {
 	params := &processingParams{
@@ -452,6 +452,27 @@ func getTemperature(model *common.ModelConfig, modelProvider *common.ModelProvid
 	return temperature
 }
 
+func getMaxLength(model *common.ModelConfig, modelProvider *common.ModelProvider, defaultValue int) int {
+	maxLength := 0
+	if model.Settings.MaxLength > 0 {
+		maxLength = model.Settings.MaxLength
+	}
+	if maxLength == 0 {
+		for _, m := range modelProvider.Models {
+			if m.Name == model.Name {
+				if m.Settings.MaxLength > 0 {
+					maxLength = m.Settings.MaxLength
+				}
+				break
+			}
+		}
+	}
+	if maxLength == 0 {
+		maxLength = defaultValue
+	}
+	return maxLength
+}
+
 func getMaxTokens(model *common.ModelConfig, modelProvider *common.ModelProvider, defaultValue int) int {
 	var maxTokens int = 0
 	if model.Settings.MaxTokens > 0 {
@@ -702,12 +723,12 @@ Data:
 	options := []llms.CallOption{}
 	maxTokens := getMaxTokens(params.answeringModel, params.answeringProvider, 1024)
 	temperature := getTemperature(params.answeringModel, params.answeringProvider, 0.8)
+	maxLength := getMaxLength(params.answeringModel, params.answeringProvider, 0)
 	options = append(options, llms.WithMaxTokens(maxTokens))
-	//TODO: add max length to config
-	options = append(options, llms.WithMaxLength(appConfig.LLMConfig.Parameters.MaxLength))
+	options = append(options, llms.WithMaxLength(maxLength))
 	options = append(options, llms.WithTemperature(temperature))
 
-	if appConfig.LLMConfig.Type == common.DEEPSEEK {
+	if params.answeringProvider.APIType == common.DEEPSEEK {
 		options = append(options, llms.WithStreamingReasoningFunc(func(ctx context.Context, reasoningChunk []byte, chunk []byte) error {
 			log.Trace(string(reasoningChunk), ",", string(chunk))
 			// Use taskCtx here to check for cancellation or other context-specific logic

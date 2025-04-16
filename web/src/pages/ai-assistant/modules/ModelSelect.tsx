@@ -1,6 +1,6 @@
 import DropdownList from "@/common/src/DropdownList";
 import { useMemo, useState } from "react";
-import "./ModelSelect.scss"
+import "./ModelSelect.scss";
 
 export default (props) => {
 
@@ -51,6 +51,7 @@ export default (props) => {
     }
 
     return (
+      <div className="flex gap-2 items-center">
         <DropdownList
           className="model-select"
           value={value}
@@ -91,5 +92,6 @@ export default (props) => {
             }
           }}
         />
+      </div>
     )
 }

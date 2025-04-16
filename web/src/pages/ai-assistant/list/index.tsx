@@ -82,10 +82,10 @@ export function Component() {
       ellipsis: true,
       render: (value: string, record: Assistant)=>{
         return (
-          <a className='text-blue-500 inline-flex items-center gap-1' onClick={()=>nav(`/data-source/detail/${record.id}`, {state:{datasource_name: record.name, connector_id: record.connector?.id || ''}})}>
+          <div className='flex items-center gap-1'>
             <InfiniIcon height="1em" width="1em" src={record.icon}/>
-            { value }
-          </a>
+            <span>{ value }</span>
+          </div>
         )
       }
     },

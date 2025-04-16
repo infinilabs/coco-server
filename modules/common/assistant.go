@@ -105,6 +105,7 @@ type ModelSettings struct {
 	PresencePenalty  int     `json:"presence_penalty"`
 	FrequencyPenalty int     `json:"frequency_penalty"`
 	MaxTokens        int     `json:"max_tokens"`
+	MaxLength        int     `json:"max_length"`
 }
 
 type ChatSettings struct {

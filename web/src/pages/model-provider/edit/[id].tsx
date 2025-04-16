@@ -87,7 +87,7 @@ export function Component() {
               {modelProvider.builtin === true ? <InfiniIcon src={modelProvider.icon} height="2em" width="2em"/>: <IconSelector type="connector" icons={iconsMeta} className='max-w-150px' />}
             </Form.Item>
             <Form.Item label={t('page.modelprovider.labels.api_type')} name="api_type" rules={[{ required: true}]}>
-              <Select options={[{label:"OpenAI", value:"openai"},{label:"Ollama", value:"ollama"}]} className='max-w-150px' />
+              <Select options={[{label:"Deepseek", value:"deepseek"}, {label:"OpenAI", value:"openai"},{label:"Ollama", value:"ollama"}]} className='max-w-150px' />
             </Form.Item>
             <Form.Item label={t('page.modelprovider.labels.api_key')} name="api_key">
               <Input className='max-w-600px' />

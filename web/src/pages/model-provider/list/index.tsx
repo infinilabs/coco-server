@@ -195,7 +195,7 @@ const APIKeyComponent = ({
   const [loading, setLoading] = useState(false);
   let apiHref = "";
   switch(record.id){
-    case "tongyi_qianwen":
+    case "qianwen":
       apiHref = "https://bailian.console.aliyun.com/?tab=model#/api-key";
       break;
     case "deepseek":
@@ -227,12 +227,14 @@ const APIKeyComponent = ({
   onCancel={onCancelClick}>
   <Spin spinning={loading}>
     <Form form={form} layout="vertical" className="my-2em">
-      <Form.Item label={<span className="text-gray-500">{t('page.modelprovider.labels.api_key_source', {
-        model_provider: record.name,
-      })}</span>} name="api_key">
+      <Form.Item label={<span className="text-gray-500">{t('page.modelprovider.labels.api_key')}</span>} name="api_key">
         <Input defaultValue={record.api_key}/>
       </Form.Item>
-    {apiHref && <div><Button className="m-0 p-0" href={apiHref} target="_blank" type="link">{t('')}从 Gitee AI 获取 API Key<ExportOutlined/></Button></div>}
+    {apiHref && <div><Button className="m-0 p-0" href={apiHref} target="_blank" type="link">{t('page.modelprovider.labels.api_key_source', {
+        model_provider: record.name,
+      })}
+      <ExportOutlined/></Button></div>}
+      {record.id === "coco" && <div><Button className="m-0 p-0" href="https://bailian.console.aliyun.com/?tab=model#/api-key" target="_blank" type="link">{t('page.modelprovider.labels.api_key_source_normal')}<ExportOutlined/></Button></div>}
     </Form>
   </Spin>
 </Modal>)

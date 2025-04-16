@@ -23,30 +23,6 @@ import {DeepThink} from "./DeepThink";
 import { formatESSearchResult } from '@/service/request/es';
 import ModelSelect from './ModelSelect';
 
-const PARAMETERS = [
-  {
-      key: 'temperature',
-      input: <InputNumber min={0} step={0.1} max={1.0}/>
-  },
-  {
-      key: 'top_p',
-      input: <InputNumber min={0} step={0.1}  max={1.0}/>
-  },
-  {
-    key: 'presence_penalty',
-    input: <InputNumber min={-2.0} step={0.1} max={2.0} />
-  },
-  {
-      key: 'frequency_penalty',
-      input: <InputNumber min={-2.0} step={0.1} max={2.0} />
-  },
-  {
-      key: 'max_tokens',
-      input: <InputNumber min={1} step={1} precision={0} max={16385}/>
-  },
-  
-]
-
 interface AssistantFormProps  {
   initialValues: any;
   onSubmit: (values: any, startLoading:()=>void, endLoading: ()=>void)=>void;
@@ -263,29 +239,6 @@ export const EditForm = memo((props: AssistantFormProps)=> {
                 </div>
               </div>
             </Form.Item>
-            {/* <Form.Item
-                label={t('page.assistant.labels.model_settings')}
-                className={`${showAdvanced ? '' : 'h-0px m-0px overflow-hidden'}`}
-            >
-                {
-                    PARAMETERS.map((item) => (
-                        <div key={item.key} className={`flex justify-between items-center max-w-600px`}>
-                            <div className="[flex:1]">
-                                <div className="color-#333">{t(`page.assistant.labels.${item.key}`)}</div>
-                                <div className="text-gray-400 mb-10px">{t(`page.assistant.labels.${item.key}_desc`)}</div>
-                            </div>
-                            <div >
-                                <Form.Item
-                                    name={['model_settings', item.key]}
-                                    label=""
-                                >
-                                    {item.input}
-                                </Form.Item>
-                            </div>
-                        </div>
-                    ))
-                }
-            </Form.Item> */}
             <Form.Item label=" ">
              <Button type='primary'  htmlType="submit">{t('common.save')}</Button>
             </Form.Item>

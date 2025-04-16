@@ -253,6 +253,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       icon: "图标",
       api_key: "API 密钥",
       api_key_source: "从 {{model_provider}} 获取 API 密钥",
+      api_key_source_normal: "点击这里获取 API 密钥",
     },
     delete: {
       confirm: '您确定要删除这个模型提供商吗?'

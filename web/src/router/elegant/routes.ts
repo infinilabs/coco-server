@@ -298,7 +298,8 @@ export const generatedRoutes: GeneratedRoute[] = [
     meta: {
       i18nKey: 'route.mcp-server',
       title: 'mcp-server',
-      order: 2
+      order: 2,
+      localIcon: 'mcp'
     },
     redirect: 'list',
     children: [

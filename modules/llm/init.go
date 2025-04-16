@@ -11,6 +11,7 @@ import (
 
 const Category = "coco"
 const Resource = "model_provider"
+const MCPServerResource = "mcp_server"
 
 type APIHandler struct {
 	api.Handler
@@ -23,6 +24,13 @@ func init() {
 	deletePermission := security.GetSimplePermission(Category, Resource, string(security.Delete))
 	searchPermission := security.GetSimplePermission(Category, Resource, string(security.Search))
 	security.GetOrInitPermissionKeys(createPermission, updatePermission, readPermission, deletePermission, searchPermission)
+
+	createMCPServerPermission := security.GetSimplePermission(Category, MCPServerResource, string(security.Create))
+	updateMCPServerPermission := security.GetSimplePermission(Category, MCPServerResource, string(security.Update))
+	readMCPServerPermission := security.GetSimplePermission(Category, MCPServerResource, string(security.Read))
+	deleteMCPServerPermission := security.GetSimplePermission(Category, MCPServerResource, string(security.Delete))
+	searchMCPServerPermission := security.GetSimplePermission(Category, MCPServerResource, string(security.Search))
+	security.GetOrInitPermissionKeys(createMCPServerPermission, updateMCPServerPermission, readMCPServerPermission, deleteMCPServerPermission, searchMCPServerPermission)
 	handler := APIHandler{}
 
 	api.HandleUIMethod(api.POST, "/model_provider/", handler.create, api.RequireLogin(), api.RequirePermission(createPermission))
@@ -31,4 +39,11 @@ func init() {
 	api.HandleUIMethod(api.DELETE, "/model_provider/:id", handler.delete, api.RequireLogin(), api.RequirePermission(deletePermission))
 	api.HandleUIMethod(api.GET, "/model_provider/_search", handler.search, api.RequireLogin(), api.RequirePermission(searchPermission))
 	api.HandleUIMethod(api.POST, "/model_provider/_search", handler.search, api.RequireLogin(), api.RequirePermission(searchPermission))
+
+	api.HandleUIMethod(api.POST, "/mcp_server/", handler.createMCPServer)
+	api.HandleUIMethod(api.GET, "/mcp_server/:id", handler.getMCPServer)
+	api.HandleUIMethod(api.PUT, "/mcp_server/:id", handler.updateMCPServer)
+	api.HandleUIMethod(api.DELETE, "/mcp_server/:id", handler.deleteMCPServer)
+	api.HandleUIMethod(api.GET, "/mcp_server/_search", handler.searchMCPServer)
+	api.HandleUIMethod(api.POST, "/mcp_server/_search", handler.searchMCPServer)
 }

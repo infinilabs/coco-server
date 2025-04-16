@@ -14,6 +14,7 @@ import (
 	_ "infini.sh/coco/modules/document"
 	"infini.sh/coco/modules/integration"
 	_ "infini.sh/coco/modules/integration"
+	_ "infini.sh/coco/modules/llm"
 	_ "infini.sh/coco/modules/search"
 	_ "infini.sh/coco/modules/system"
 	"infini.sh/framework/core/orm"
