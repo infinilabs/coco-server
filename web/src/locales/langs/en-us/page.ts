@@ -168,6 +168,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         module_search: 'Search',
         module_search_placeholder: 'Search box placeholder text',
         name: 'Name',
+        enabled: 'Enabled',
         theme: 'Theme',
         theme_auto: 'Auto',
         theme_dark: 'Dark',
