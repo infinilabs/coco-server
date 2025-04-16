@@ -11,23 +11,23 @@ The Model Provider enables seamless integration of various AI models into your a
 ## Model Provider API
 Below is the field description for the model provider.
 
-| **Field**  | **Type**        | **Description**                                                                                                                                                                                             |
-|------------|-----------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `name`     | `string`        | The model provider's name.                                                                                                                                                                                  |
-| `api_key`  | `string`        | The secret key or token required to access the API of the model provider.                                                                                                                                   |
-| `api_type` | `string`        | The type to access the API of the model provider, possible values: openai, ollama.                                                                                                                          |
-| `base_url` | `string`        | The API endpoint used to interact with the model provider. e.g., `https://api.deepseek.com/v1`.                                                                                                             |
-| `icon`     | `string`        | The icon representing the model provider in the UI.                                                                                                                                                         |
-| `models`   | `array[object]` | A list of models available for the model provider, e.g., [{"name" : "deepseek-r1","settings" : {"temperature" : 0.8,"top_p" : 0.5,"presence_penalty" : 0,"frequency_penalty" : 0,"max_tokens" : 1024 } }].  |
-| `enabled`  | `boolean`       | Enables or disables model provider.                                                                                                                                                                         |
-| `builtin`  | `boolean`       | Indicates whether the model provider is built-in.                                                                                                                                                           |
+| **Field**     | **Type**        | **Description**                                                                                                                                                                                            |
+|---------------|-----------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `name`        | `string`        | The model provider's name.                                                                                                                                                                                 |
+| `api_key`     | `string`        | The secret key or token required to access the API of the model provider.                                                                                                                                  |
+| `api_type`    | `string`        | The type to access the API of the model provider, possible values: openai, ollama.                                                                                                                         |
+| `base_url`    | `string`        | The API endpoint used to interact with the model provider. e.g., `https://api.deepseek.com/v1`.                                                                                                            |
+| `icon`        | `string`        | The icon representing the model provider in the UI.                                                                                                                                                        |
+| `models`      | `array[object]` | A list of models available for the model provider, e.g., [{"name" : "deepseek-r1","settings" : {"temperature" : 0.8,"top_p" : 0.5,"presence_penalty" : 0,"frequency_penalty" : 0,"max_tokens" : 1024 } }]. |
+| `enabled`     | `boolean`       | Enables or disables model provider.                                                                                                                                                                        |
+| `builtin`     | `boolean`       | Indicates whether the model provider is built-in.                                                                                                                                                          |
+| `description` | `string`        | A brief description of the model provider.                                                                                                                                                                 |
 
 ### Create a model provider
 
 ```shell
 //request
-curl  -H 'Content-Type: application/json'   -XPOST http://localhost:9000/model_provider/ -d'
-curl -XPOST http://localhost:9000/assistant/ -d'{
+curl  -H 'Content-Type: application/json'   -XPOST http://localhost:9000/model_provider/ -d '{
   "name" : "Coco AI",
   "api_key" : "******",
   "api_type" : "openai",

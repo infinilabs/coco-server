@@ -7,7 +7,7 @@ weight: 50
 
 ## Assistant API Reference
 
-### Create a AI assistant
+### Create an AI assistant
 
 ```shell
 //request
@@ -90,7 +90,7 @@ curl -XPOST http://localhost:9000/assistant/ -d'{
 }
 ```
 
-### Update a AI assistant
+### Update an AI assistant
 
 ```shell
 //request
@@ -173,7 +173,7 @@ curl -XPUT http://localhost:9000/assistant/cvuak1lath2dlgqqpcjg -d'{
 }
 ```
 
-### View a AI assistant
+### View an AI assistant
 ```shell
 curl -XGET http://localhost:9000/assistant/cvuak1lath2dlgqqpcjg
 ```
