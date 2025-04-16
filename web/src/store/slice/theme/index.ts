@@ -207,5 +207,6 @@ export const toggleThemeScheme = (): AppThunk<boolean> => (dispatch, getState) =
   const themeScheme = nextThemeScheme;
   dispatch(setDarkMode(darkMode));
   dispatch(setThemeScheme(themeScheme));
+  dispatch(cacheThemeSettings());
   return darkMode;
 };

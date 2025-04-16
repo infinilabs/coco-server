@@ -22,7 +22,7 @@ export const InsertCode = memo(props => {
   };
 
   const code = useMemo(() => {
-    return `<div id="searchbox"></div>
+    return `<div id="searchbox" style="margin: 10px 0;"></div>
 <script type="module" >
     import { searchbox } from "${window.location.origin}/integration/${id}/widget";
     searchbox({container: "#searchbox"});

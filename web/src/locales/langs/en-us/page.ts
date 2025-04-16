@@ -170,6 +170,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         module_search: 'Search',
         module_search_placeholder: 'Search box placeholder text',
         name: 'Name',
+        enabled: 'Enabled',
         theme: 'Theme',
         theme_auto: 'Auto',
         theme_dark: 'Dark',
@@ -184,8 +185,8 @@ const page: App.I18n.Schema['translation']['page'] = {
         type_floating_icon: 'Floating widget icon',
       },
       title: {
-        edit: 'Edit integration',
-        new: 'New integration'
+        edit: 'Edit Integration',
+        new: 'New Integration'
       }
     },
     update: {

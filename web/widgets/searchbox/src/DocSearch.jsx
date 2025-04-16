@@ -6,6 +6,7 @@ import { DocSearchFloatButton } from "./DocSearchFloatButton";
 import { createRoot } from 'react-dom/client';
 
 const DEFAULT_HOTKEYS = ["ctrl+/"];
+const DARK_MODE_MEDIA_QUERY = '(prefers-color-scheme: dark)'
 
 export const DocSearch = (props) => {
   const { hotKeys = DEFAULT_HOTKEYS, server, id, token, linkHref  } = props;
@@ -14,6 +15,7 @@ export const DocSearch = (props) => {
   const [initialQuery, setInitialQuery] = useState();
   const [settings, setSettings] = useState()
   const modalRef = useRef()
+  const [theme, setTheme] = useState(window.matchMedia && window.matchMedia(DARK_MODE_MEDIA_QUERY).matches ? 'dark' : 'light')
 
   const [triggerBtnType, setTriggerBtnType] = useState('embedded');
   const onOpen = () => setIsOpen(true);
@@ -141,6 +143,7 @@ export const DocSearch = (props) => {
         initialQuery,
         onClose,
         triggerBtnType,
+        theme,
       }} />);
     } else {
       modalRef.current?.remove()
@@ -163,7 +166,7 @@ export const DocSearch = (props) => {
     shadow.appendChild(wrapper);
 
     const root = createRoot(wrapper);
-    root.render(<DocSearchFloatButton settings={settings} onClick={() => onClick('floating')}/>);
+    root.render(<DocSearchFloatButton theme={theme} settings={settings} onClick={() => onClick('floating')}/>);
   }
 
   function renderButton(settings) {
@@ -180,7 +183,9 @@ export const DocSearch = (props) => {
     return null
   }
 
-
+  function onSystemThemeChange(e) {
+    setTheme(e.matches ? 'dark' : 'light')
+  }
 
   useEffect(() => {
     window.removeEventListener("keydown", onKeyDown)
@@ -209,9 +214,23 @@ export const DocSearch = (props) => {
     }
   }, [isOpen])
 
+  useEffect(() => {
+    if (settings?.appearance?.theme === 'auto') {
+      setTheme(window.matchMedia && window.matchMedia(DARK_MODE_MEDIA_QUERY).matches ? 'dark' : 'light')
+      window.matchMedia(DARK_MODE_MEDIA_QUERY).addEventListener('change', onSystemThemeChange);
+    } else {
+      setTheme(settings?.appearance?.theme)
+    }
+    return () => {
+      if (settings?.appearance?.theme === 'auto') {
+        window.matchMedia(DARK_MODE_MEDIA_QUERY).removeEventListener('change', onSystemThemeChange)
+      }
+    }
+  }, [settings?.appearance?.theme])
+
   return (
     <div
-      data-theme={settings?.appearance?.theme}
+      data-theme={theme}
       id="infini__searchbox"
     >
       {renderButton(settings)}
