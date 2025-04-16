@@ -9,6 +9,7 @@ const CocoAI = ({ provider, requestID }: { readonly provider: string | null; rea
   const linkRef = useRef<HTMLButtonElement>(null);
   const copyRef = useRef<HTMLButtonElement>(null);
   const router = useRouterPush();
+  const clickRef = useRef(false)
 
   const { data: result, loading, run } = useRequest(fetchAccessToken, {
       manual: true,
@@ -40,7 +41,10 @@ const CocoAI = ({ provider, requestID }: { readonly provider: string | null; rea
   useEffect(() => {
     if (url) {
       setTimeout(() => {
-        linkRef.current?.click();
+        if (!clickRef.current) {
+          clickRef.current = true
+          linkRef.current?.click();
+        }
       }, 5000);
     }
   }, [url]);
@@ -65,6 +69,9 @@ const CocoAI = ({ provider, requestID }: { readonly provider: string | null; rea
           href={url}
           ref={linkRef}
           type="link"
+          onClick={() => {
+            clickRef.current = true
+          }}
         >
           {t('page.login.cocoAI.launchCocoAI')}
         </Button>
