@@ -6,21 +6,8 @@ POST $[[SETUP_INDEX_PREFIX]]assistant/$[[SETUP_DOC_TYPE]]/default
   "name" : "Coco AI",
   "description" : "default Coco AI chat assistant",
   "icon" : "font_Robot-outlined",
-  "type" : "deep_think",
-  "config" : {
-    "intent_analysis_model" : {
-      "name" : "tongyi-intent-detect-v3",
-      "provider_id" : "coco"
-    },
-    "picking_doc_model" : {
-      "name" : "deepseek-r1-distill-qwen-32b",
-      "provider_id" : "coco"
-    }
-  },
-  "answering_model" : {
-    "provider_id" : "coco",
-    "name" : "deepseek-r1"
-  },
+  "type" : "simple",
+  "answering_model" : $[[SETUP_ASSISTANT_ANSWERING_MODEL]],
   "datasource" : {
     "enabled" : true,
     "ids" : [

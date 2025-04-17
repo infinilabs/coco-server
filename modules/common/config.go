@@ -104,6 +104,14 @@ func reloadConfig() {
 			config.LLMConfig = llm
 		}
 	}
+	buf, _ = kv.GetValue(core.DefaultSettingBucketKey, []byte(core.DefaultChatStartPageKey))
+	if buf != nil {
+		chatStartCfg := &ChatStartPageConfig{}
+		err := util.FromJSONBytes(buf, chatStartCfg)
+		if err == nil {
+			config.ChatStartPageConfig = chatStartCfg
+		}
+	}
 
 	filebasedConfig, _ := AppConfigFromFile()
 	if filebasedConfig != nil {
@@ -134,13 +142,19 @@ func SetAppConfig(c *Config) {
 	if err != nil {
 		panic(err)
 	}
+	//save chat start page's config
+	err = kv.AddValue(core.DefaultSettingBucketKey, []byte(core.DefaultChatStartPageKey), util.MustToJSONBytes(c.ChatStartPageConfig))
+	if err != nil {
+		panic(err)
+	}
 	config = nil
 	reloadConfig()
 }
 
 type Config struct {
-	LLMConfig  *LLMConfig  `config:"llm" json:"llm,omitempty"`
-	ServerInfo *ServerInfo `config:"server" json:"server,omitempty"`
+	LLMConfig           *LLMConfig           `config:"llm" json:"llm,omitempty"`
+	ServerInfo          *ServerInfo          `config:"server" json:"server,omitempty"`
+	ChatStartPageConfig *ChatStartPageConfig `config:"chat_start_page" json:"chat_start_page,omitempty"`
 }
 
 const OLLAMA = "ollama"
@@ -170,4 +184,14 @@ type LLMParameters struct {
 	FrequencyPenalty  float64 `config:"frequency_penalty" json:"frequency_penalty"`
 	EnhancedInference bool    `config:"enhanced_inference" json:"enhanced_inference"`
 	MaxLength         int     `config:"max_length" json:"max_length"`
+}
+
+type ChatStartPageConfig struct {
+	Enabled bool `json:"enabled"`
+	Logo    struct {
+		Light string `json:"light"`
+		Dark  string `json:"dark"`
+	} `json:"logo"`
+	Introduction      string   `json:"introduction"`
+	DisplayAssistants []string `json:"display_assistants"`
 }
