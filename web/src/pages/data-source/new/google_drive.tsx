@@ -20,7 +20,6 @@ interface GoogleDriveProps {
 export default ({ connector }: GoogleDriveProps) => {
   const { t } = useTranslation();
   const nav = useNavigate();
-  connector.config = {};
 
   const onConnectClick = () => {
     const config = connector?.config || {};
