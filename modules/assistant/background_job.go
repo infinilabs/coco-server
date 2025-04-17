@@ -155,6 +155,9 @@ func (h APIHandler) extractParameters(req *http.Request) (*processingParams, err
 			params.deepThink = false
 		}
 	}
+	if assistant.AnsweringModel.ProviderID == "" {
+		return nil, fmt.Errorf("assistant [%s] has no answering model configured. Please set it up first", assistant.Name)
+	}
 	modelProvider, err := common.GetModelProvider(assistant.AnsweringModel.ProviderID)
 	if err != nil {
 		return params, fmt.Errorf("failed to get model provider: %w", err)
@@ -274,7 +277,9 @@ func (h APIHandler) processMessageAsync(ctx context.Context, reqMsg *ChatMessage
 	// Processing pipeline
 	_ = h.fetchSessionHistory(ctx, reqMsg, replyMsg, params, 10)
 
-	_ = h.processQueryIntent(ctx, reqMsg, replyMsg, params)
+	if params.deepThink && params.intentModel != nil {
+		_ = h.processQueryIntent(ctx, reqMsg, replyMsg, params)
+	}
 
 	if params.searchDB {
 		var fetchSize = 10
