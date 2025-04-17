@@ -28,7 +28,7 @@ var DefaultUserProfileKey = "default_user_profile"
 var DefaultUserPasswordKey = "default_user_password"
 var DefaultServerConfigKey = "default_server_config"
 var DefaultLLMConfigKey = "default_llm_config"
-var DefaultConnectorConfigKey = "default_connector_config"
+var DefaultChatStartPageKey = "default_chat_start_config"
 
 var DefaultUserLogin = "coco-default-user"
 
