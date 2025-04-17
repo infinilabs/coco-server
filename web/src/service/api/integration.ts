@@ -62,3 +62,23 @@ export function deleteIntegration(id: string) {
     url: `/integration/${id}`
   });
 }
+
+export function fetchIntegrationTopics(id: string) {
+  return request({
+    method: 'get',
+    url: `/integration/${id}/chat/_suggest`
+  });
+}
+
+export function updateIntegrationTopics(data) {
+  const { id, topics } = data;
+  debugger
+  return request({
+    data: topics,
+    method: 'post',
+    url: `/integration/${id}/chat/_suggest`,
+    headers: {
+      'Content-Type': 'application/json'
+    },
+  });
+}

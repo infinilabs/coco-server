@@ -9,12 +9,15 @@
   display: flex;
   font-weight: 400;
   height: 40px;
-  padding: 0 12px 0px 10px;
+  padding: 0 8px;
   user-select: none;
   gap: 4px;
   width: auto;
-  min-width: 48px;
+  min-width: 42px;
   max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* .infini__searchbox-btn code, kbd, samp, pre {
@@ -164,15 +167,6 @@
 }
 
 @media (max-width: 768px) {
-  .infini__searchbox-btn {
-    padding: 0 8px;
-    min-width: 42px;
-    width: 42px;
-  }
-  .infini__searchbox-btn-keys,
-  .infini__searchbox-btn-placeholder {
-    display: none;
-  }
   .infini__searchbox-float-btn {
     min-width: 48px;
     max-width: 48px;

@@ -140,7 +140,10 @@ const page: App.I18n.Schema['translation']['page'] = {
       description: 'Description',
       enabled: 'Enabled',
       name: 'Name',
-      type: 'Type'
+      type: 'Type',
+      operation: {
+        topics: 'Suggested Topics'
+      }
     },
     delete: {
       confirm: `Are you sure you want to delete integration "{{name}}" ?`
@@ -192,6 +195,12 @@ const page: App.I18n.Schema['translation']['page'] = {
     update: {
       disable_confirm: `Are you sure you want to disable integration "{{name}}" ?`,
       enable_confirm: `Are you sure you want to enable integration "{{name}}" ?`
+    },
+    topics: {
+      title: 'Update Suggested Topics',
+      label: 'Topics',
+      new: 'New Topics',
+      delete: 'Delete'
     }
   },
   login: {

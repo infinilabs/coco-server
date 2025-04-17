@@ -1,8 +1,8 @@
-import { EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, PlusOutlined } from '@ant-design/icons';
+import { CloseOutlined, EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, PlusCircleOutlined, PlusOutlined } from '@ant-design/icons';
 import { useLoading } from '@sa/hooks';
-import { Button, Dropdown, Input, Modal, Switch, Table, message } from 'antd';
+import { Button, Dropdown, Form, Input, Modal, Spin, Switch, Table, message } from 'antd';
 
-import { deleteIntegration, fetchIntegrations, updateIntegration } from '@/service/api/integration';
+import { deleteIntegration, fetchIntegrations, fetchIntegrationTopics, updateIntegration, updateIntegrationTopics } from '@/service/api/integration';
 import { formatESSearchResult } from '@/service/request/es';
 
 const { confirm } = Modal;
@@ -19,6 +19,10 @@ export function Component() {
     total: 0
   });
   const { endLoading, loading, startLoading } = useLoading();
+  const [topicsState, setTopicsState] = useState({
+    open: false,
+    record: undefined
+  })
 
   const [reqParams, setReqParams] = useState({
     from: 0,
@@ -127,6 +131,10 @@ export function Component() {
             label: t('common.edit')
           },
           {
+            key: 'topics',
+            label: t('page.integration.columns.operation.topics')
+          },
+          {
             key: 'delete',
             label: t('common.delete')
           }
@@ -136,6 +144,12 @@ export function Component() {
           switch (key) {
             case 'edit':
               nav(`/integration/edit/${record.id}`, { state: record });
+              break;
+            case 'topics':
+              setTopicsState({
+                open: true,
+                record
+              })
               break;
             case 'delete':
               confirm({
@@ -209,7 +223,107 @@ export function Component() {
           }}
           onChange={handleTableChange}
         />
+        <ModalTopics
+          open={topicsState.open}
+          record={topicsState.record}
+          onCancel={() => {
+            setTopicsState({
+              open: false,
+              record: undefined
+            })
+          }}
+          onOk={() => {
+            setTopicsState({
+              open: false,
+              record: undefined
+            })
+          }}
+        />
       </ACard>
     </div>
   );
 }
+
+const ModalTopics = ({ onCancel = () => {}, onOk = () => {}, open = false, record = {} }) => {
+  const { t } = useTranslation();
+  const [form] = Form.useForm();
+  const [loading, setLoading] = useState(false);
+  const { defaultRequiredRule } = useFormRules();
+
+  const fetchTopics = async (id) => {
+    if (!id) return;
+    setLoading(true)
+    const res = await fetchIntegrationTopics(id)
+    form.setFieldsValue({ topics: res?.data?.length > 0 ? res.data : [''] })
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    fetchTopics(record?.id)
+  }, [record?.id])
+
+  const onModalOkClick = () => {
+    if (!record?.id) return;
+    form.validateFields().then(async values => {
+      setLoading(true);
+      const { topics } = values;
+      const res = await updateIntegrationTopics({
+        id: record.id,
+        topics
+      });
+      if (res.data?.acknowledged) {
+        window.$message?.success(t('common.updateSuccess'));
+        onOk()
+      }
+      setLoading(false);
+    });
+  };
+  return (
+    <Modal
+      open={open}
+      title={`${t('page.integration.topics.title')}`}
+      onCancel={onCancel}
+      onOk={onModalOkClick}
+      destroyOnClose
+      width={650}
+    >
+      <Spin spinning={loading}>
+        <Form
+          className="my-2em"
+          form={form}
+          layout="vertical"
+          layout={'horizontal'}
+          colon={false}
+        >
+          <Form.List name="topics">
+            {(fields, { add, remove }) => (
+              <>
+                {fields.map((field, index) => {
+                  return (
+                    <Form.Item key={field.key} className="m-0">
+                      <div className="flex items-center gap-6px">
+                        <Form.Item
+                          {...field}
+                          rules={[defaultRequiredRule]}
+                          className="flex-1"
+                        >
+                          <Input placeholder={`${t(`page.integration.topics.label`)} ${index+1}`}/>
+                        </Form.Item>
+                        <Form.Item>
+                          <Button disabled={fields.length <= 1} danger onClick={() => remove(field.name)}>{t(`page.integration.topics.delete`)}</Button>
+                        </Form.Item>
+                      </div>
+                    </Form.Item>
+                  )
+                })}
+                <Form.Item>
+                  <Button disabled={fields.length >= 5} type="dashed" onClick={() => add()} block>{t(`page.integration.topics.new`)}</Button>
+                </Form.Item>
+              </>
+            )}
+          </Form.List>
+        </Form>
+      </Spin>
+    </Modal>
+  );
+};
