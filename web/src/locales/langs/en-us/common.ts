@@ -60,6 +60,10 @@ const common: App.I18n.Schema['translation']['common'] = {
     enable: 'Enabled',
     disable: 'Disabled'
   },
+  language: {
+    en: 'English',
+    zh: 'Chinese'
+  }
 };
 
 export default common;

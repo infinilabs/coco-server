@@ -104,7 +104,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       email: '邮箱',
       name: '姓名',
       password: '密码',
-      title: '创建一个账户'
+      title: '创建一个账户',
+      language: '语言',
     }
   },
   home: {

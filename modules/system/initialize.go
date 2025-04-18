@@ -60,6 +60,7 @@ type SetupConfig struct {
 		DefaultModel string `json:"default_model,omitempty"`
 		Token        string `json:"token,omitempty"`
 	} `json:"llm,omitempty"`
+	Language string `json:"language,omitempty"`
 }
 
 var SetupLock = ".setup_lock"
@@ -229,7 +230,10 @@ func (h *APIHandler) initializeConnector() error {
 }
 
 func (h *APIHandler) initializeSetupTemplates(setupCfg SetupConfig) error {
-	baseDir := path.Join(global.Env().GetConfigDir(), "setup")
+	if setupCfg.Language != "en-US" {
+		setupCfg.Language = "zh-CN"
+	}
+	baseDir := path.Join(global.Env().GetConfigDir(), "setup", setupCfg.Language)
 	cfg1 := elastic1.ORMConfig{}
 	exist, err := env.ParseConfig("elastic.orm", &cfg1)
 	if exist && err != nil && global.Env().SystemConfig.Configs.PanicOnConfigError {

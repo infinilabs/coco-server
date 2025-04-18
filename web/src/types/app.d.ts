@@ -353,6 +353,7 @@ declare namespace App {
             disable: string;
           };
           preview: string;
+          language: any;
         };
         datatable: {
           itemCount: string;
@@ -419,6 +420,7 @@ declare namespace App {
               name: string;
               password: string;
               title: string;
+              language: string;
             };
           };
           home: {

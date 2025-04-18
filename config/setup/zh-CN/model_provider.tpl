@@ -4,7 +4,7 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/deepseek
   "id" : "deepseek",
   "created" : "2025-03-28T10:25:39.7741+08:00",
   "updated" : "2025-03-28T11:14:47.103278+08:00",
-  "name" : "Deepseek",
+  "name" : "深度求索",
   "api_key" : "",
   "api_type" : "deepseek",
   "base_url" : "https://api.deepseek.com/v1",

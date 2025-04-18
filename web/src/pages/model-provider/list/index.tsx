@@ -156,7 +156,7 @@ export function Component() {
                       <Switch defaultChecked={provider.enabled} onChange={(v)=>onItemEnableChange(provider, v)} size="small" />
                     </div>
                   </div>
-                  <div className="text-[#999] h-[51px] line-clamp-2 text-xs my-[10px]">
+                  <div className="text-[#999] h-[51px] line-clamp-3 text-xs my-[10px]">
                     {provider.description}
                   </div>
                   <div className="flex gap-1">

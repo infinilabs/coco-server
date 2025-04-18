@@ -107,7 +107,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       email: 'Email',
       name: 'Full Name',
       password: 'Password',
-      title: 'Create a user account'
+      title: 'Create a user account',
+      language: 'Language',
     }
   },
   home: {
