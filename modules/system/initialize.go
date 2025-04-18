@@ -60,6 +60,7 @@ type SetupConfig struct {
 		DefaultModel string `json:"default_model,omitempty"`
 		Token        string `json:"token,omitempty"`
 	} `json:"llm,omitempty"`
+	Language string `json:"language,omitempty"`
 }
 
 var SetupLock = ".setup_lock"
@@ -129,7 +130,7 @@ func (h *APIHandler) setupServer(w http.ResponseWriter, req *http.Request, ps ht
 		panic(err)
 	}
 	//initialize setup templates
-	err = h.initializeSetupTemplates()
+	err = h.initializeSetupTemplates(input)
 	if err != nil {
 		panic(err)
 	}
@@ -228,8 +229,11 @@ func (h *APIHandler) initializeConnector() error {
 	return err
 }
 
-func (h *APIHandler) initializeSetupTemplates() error {
-	baseDir := path.Join(global.Env().GetConfigDir(), "setup")
+func (h *APIHandler) initializeSetupTemplates(setupCfg SetupConfig) error {
+	if setupCfg.Language != "en-US" {
+		setupCfg.Language = "zh-CN"
+	}
+	baseDir := path.Join(global.Env().GetConfigDir(), "setup", setupCfg.Language)
 	cfg1 := elastic1.ORMConfig{}
 	exist, err := env.ParseConfig("elastic.orm", &cfg1)
 	if exist && err != nil && global.Env().SystemConfig.Configs.PanicOnConfigError {
@@ -258,11 +262,11 @@ func (h *APIHandler) initializeSetupTemplates() error {
 		if !strings.HasSuffix(path, ".tpl") {
 			return nil
 		}
-		return h.initializeTemplate(path, cfg1.IndexPrefix, docType)
+		return h.initializeTemplate(path, cfg1.IndexPrefix, docType, &setupCfg)
 	})
 }
 
-func (h *APIHandler) initializeTemplate(dslTplFile string, indexPrefix string, docType string) error {
+func (h *APIHandler) initializeTemplate(dslTplFile string, indexPrefix string, docType string, setupCfg *SetupConfig) error {
 	dsl, err := util.FileGetContent(dslTplFile)
 	if err != nil {
 		return err
@@ -273,12 +277,40 @@ func (h *APIHandler) initializeTemplate(dslTplFile string, indexPrefix string, d
 
 	var tpl *fasttemplate.Template
 	tpl, err = fasttemplate.NewTemplate(string(dsl), "$[[", "]]")
+	var (
+		modelProvideEnabled = false
+		apiKey              = ""
+		apiType             = "openai"
+		baseURL             = ""
+		defaultModel        = ""
+		answeringModel      = "null"
+	)
+	if setupCfg.LLM.Endpoint != "" {
+		modelProvideEnabled = true
+		apiKey = setupCfg.LLM.Token
+		apiType = setupCfg.LLM.Type
+		baseURL = setupCfg.LLM.Endpoint
+		defaultModel = fmt.Sprintf(`{"name": "%s"}`, setupCfg.LLM.DefaultModel)
+		answeringModel = fmt.Sprintf(`{"provider_id": "coco", "name": "%s"}`, setupCfg.LLM.DefaultModel)
+	}
 	output := tpl.ExecuteFuncString(func(w io.Writer, tag string) (int, error) {
 		switch tag {
 		case "SETUP_INDEX_PREFIX":
 			return w.Write([]byte(indexPrefix))
 		case "SETUP_DOC_TYPE":
 			return w.Write([]byte(docType))
+		case "SETUP_LLM_ENABLED":
+			return w.Write([]byte(fmt.Sprintf("%v", modelProvideEnabled)))
+		case "SETUP_LLM_API_KEY":
+			return w.Write([]byte(apiKey))
+		case "SETUP_LLM_API_TYPE":
+			return w.Write([]byte(apiType))
+		case "SETUP_LLM_BASE_URL":
+			return w.Write([]byte(baseURL))
+		case "SETUP_LLM_DEFAULT_MODEL":
+			return w.Write([]byte(defaultModel))
+		case "SETUP_ASSISTANT_ANSWERING_MODEL":
+			return w.Write([]byte(answeringModel))
 		}
 		//ignore unresolved variable
 		return w.Write([]byte("$[[" + tag + "]]"))

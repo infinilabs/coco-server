@@ -4,23 +4,10 @@ POST $[[SETUP_INDEX_PREFIX]]assistant/$[[SETUP_DOC_TYPE]]/default
   "created" : "2025-04-14T14:24:06.066519+08:00",
   "updated" : "2025-04-15T11:07:07.261101+08:00",
   "name" : "Coco AI",
-  "description" : "default Coco AI chat assistant",
+  "description" : "默认 Coco AI 聊天助手",
   "icon" : "font_Robot-outlined",
-  "type" : "deep_think",
-  "config" : {
-    "intent_analysis_model" : {
-      "name" : "tongyi-intent-detect-v3",
-      "provider_id" : "coco"
-    },
-    "picking_doc_model" : {
-      "name" : "deepseek-r1-distill-qwen-32b",
-      "provider_id" : "coco"
-    }
-  },
-  "answering_model" : {
-    "provider_id" : "coco",
-    "name" : "deepseek-r1"
-  },
+  "type" : "simple",
+  "answering_model" : $[[SETUP_ASSISTANT_ANSWERING_MODEL]],
   "datasource" : {
     "enabled" : true,
     "ids" : [
@@ -38,7 +25,7 @@ POST $[[SETUP_INDEX_PREFIX]]assistant/$[[SETUP_DOC_TYPE]]/default
   "keepalive" : "30m",
   "enabled" : true,
   "chat_settings" : {
-    "greeting_message" : "Hi! I’m Coco, nice to meet you. I can help answer your questions by tapping into the internet and your data sources. How can I assist you today?",
+    "greeting_message" : "你好！我是 Coco，很高兴认识你。我可以通过访问互联网和你的数据源来帮助回答你的问题。今天我能为你做些什么？",
     "suggested" : {
       "enabled" : false,
       "questions" : [ ]

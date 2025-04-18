@@ -60,7 +60,11 @@ const common: App.I18n.Schema['translation']['common'] = {
     enable: '开启',
     disable: '关闭'
   },
-  upload: '上传'
+  upload: '上传',
+  language: {
+    en: '英文',
+    zh: '中文'
+  }
 };
 
 export default common;
