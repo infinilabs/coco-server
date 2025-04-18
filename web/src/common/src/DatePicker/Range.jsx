@@ -259,8 +259,8 @@ const Range = (props) => {
 
   return (
     <Popover
-      visible={visible}
-      onVisibleChange={handleVisible}
+      open={visible}
+      onOpenChange={handleVisible}
       placement={popoverPlacement}
       content={content}
       trigger={"click"}

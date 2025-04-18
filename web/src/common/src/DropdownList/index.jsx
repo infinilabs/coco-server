@@ -196,8 +196,8 @@ const DropdownList = (props) => {
       ref={domRef}
     >
       <Popover
-        visible={disabled ? false : visible}
-        onVisibleChange={handleVisible}
+        open={disabled ? false : visible}
+        onOpenChange={handleVisible}
         placement={popoverPlacement}
         content={renderContent()}
         trigger={"click"}

@@ -4,7 +4,7 @@ export function searchAssistant(params?: any) {
   const query: any = {
     from: params.from || 0,
     size: params.size || 10,
-    sort: [
+    sort: params?.sort ? params?.sort : [
       {
         "created": {
           "order": "desc"

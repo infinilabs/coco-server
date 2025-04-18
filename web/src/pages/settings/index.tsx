@@ -2,26 +2,27 @@ import { Tabs } from 'antd';
 
 import './index.scss';
 import ConnectorSettings from './modules/Connector';
-import Server from './modules/Server';
+import ChartStartPage from './modules/ChartStartPage';
 
 export function Component() {
   const [searchParams] = useSearchParams();
   const routerPush = useRouterPush();
+  const { t } = useTranslation();
 
   const onChange = (key: string) => {
     routerPush.routerPushByKey('settings', { query: { tab: key } });
   };
 
   const items = [
-    // {
-    //   key: 'server',
-    //   label: 'Server',
-    //   children: <Server />
-    // },
     {
       children: <ConnectorSettings />,
       key: 'connector',
       label: 'Connector'
+    },
+    {
+      children: <ChartStartPage />,
+      key: 'chart_start_page',
+      label: t(`page.chart_start_page.title`)
     }
   ];
 

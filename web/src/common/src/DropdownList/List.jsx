@@ -248,8 +248,8 @@ const List = (props) => {
           <div className={styles.actions}>
             {sorterOptions.length > 0 && (
               <Popover
-                visible={sorterVisible}
-                onVisibleChange={setSorterVisible}
+                open={sorterVisible}
+                onOpenChange={setSorterVisible}
                 overlayClassName={styles.filterPopover}
                 placement="bottom"
                 trigger={"click"}

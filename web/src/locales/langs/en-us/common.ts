@@ -60,6 +60,7 @@ const common: App.I18n.Schema['translation']['common'] = {
     enable: 'Enabled',
     disable: 'Disabled'
   },
+  upload: 'Upload'
 };
 
 export default common;

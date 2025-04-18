@@ -335,6 +335,21 @@ const page: App.I18n.Schema['translation']['page'] = {
       confirm: 'Are you sure you want to delete this ai MCP server "{{name}}"?'
     },
   },
+  chart_start_page: {
+    title: '聊天起始页',
+    labels: {
+      start_page: '起始页',
+      start_page_placeholder: '你可以启用和配置聊天模式起始页，自定义公司徽标、介绍文本和常用人工智能助手，以帮助用户快速选择并开始聊天。',
+      logo: '图标',
+      logo_placeholder: '上传公司图标以显示在起始页上。',
+      logo_size_placeholder: '图像尺寸限制：最大高度为 30 像素，最大宽度为 300 像素。',
+      logo_light: '浅色主题（常规版本图标）',
+      logo_dark: '深色主题（白色或浅色版本图标）',
+      introduction: '介绍文本',
+      introduction_placeholder: '输入显示在起始页面上的欢迎文本或人工智能工具介绍（60 字以内）',
+      assistant: 'AI 助手展示',
+    }
+  }
 };
 
 export default page;
