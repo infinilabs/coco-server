@@ -24,6 +24,7 @@ Information about release notes of Coco Server is provided here.
 - Make searchbox's theme styles follows the system if searchbox's theme is set to `auto`
 - Support setting suggested topics of integration
 - Skip handle wrapper for disabled widget
+- When creating a new Google Drive datasource, guide the user to configure the required settings if they are missing
 
 ## 0.3.0 (2025-03-31)
 
