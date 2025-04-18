@@ -143,9 +143,14 @@ export function Component() {
             <List.Item>
                <div className="p-1em min-h-[132px] border border-gray-300 group rounded-[8px] hover:bg-gray-100 hover:bg-opacity-100">
                  <div className="flex justify-between">
-                    <div className="flex items-center gap-8px">
-                      <InfiniIcon src={provider.icon} height="2em" width="2em" className="font-size-2em"/>
-                    <span className="font-size-1.2em">{provider.name}</span>
+                    <div className="flex gap-15px">
+                      <div className="flex items-center gap-8px">
+                        <InfiniIcon src={provider.icon} height="2em" width="2em" className="font-size-2em"/>
+                        <span className="font-size-1.2em">{provider.name}</span>
+                      </div>
+                      {provider.builtin === true && <div className="flex items-center">
+                        <p className="h-[22px] bg-[#eee] text-[#999] font-size-[12px] px-[10px] line-height-[22px] rounded-[4px]">{t('page.modelprovider.labels.builtin')}</p>
+                      </div>}
                     </div>
                     <div>
                       <Switch defaultChecked={provider.enabled} onChange={(v)=>onItemEnableChange(provider, v)} size="small" />

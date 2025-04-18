@@ -271,6 +271,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       api_key: "API Key",
       api_key_source: "Get API Key from {{model_provider}}",
       api_key_source_normal: "Click here to get API key",
+      builtin: "Built-in",
     },
     delete: {
       confirm: 'Are you sure you want to delete this model provider?'

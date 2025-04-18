@@ -7,11 +7,11 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/deepseek
   "name" : "Deepseek",
   "api_key" : "",
   "api_type" : "deepseek",
-  "base_url" : "https://api.deepseek.com",
+  "base_url" : "https://api.deepseek.com/v1",
   "icon" : "/assets/icons/llm/deepseek.svg",
   "models" : [
-    {"name":"gpt-4o-mini"},
-    {"name":"deepseek-r1"}
+    {"name":"deepseek-chat"},
+    {"name":"deepseek-reasoner"}
   ],
   "enabled" : false,
   "builtin" : true,

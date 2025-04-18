@@ -78,13 +78,15 @@ export function Component() {
     {
       title: t('page.assistant.labels.name'),
       dataIndex: "name",
-      minWidth: 150,
-      ellipsis: true,
+      width: 300,
       render: (value: string, record: Assistant)=>{
         return (
           <div className='flex items-center gap-1'>
             <InfiniIcon height="1em" width="1em" src={record.icon}/>
-            <span>{ value }</span>
+            <span className='max-w-150px ant-table-cell-ellipsis'>{ value }</span>
+            {record.builtin === true && <div className="flex items-center ml-[5px]">
+              <p className="h-[22px] bg-[#eee] text-[#999] font-size-[12px] px-[10px] line-height-[22px] rounded-[4px]">{t('page.modelprovider.labels.builtin')}</p>
+            </div>}
           </div>
         )
       }
@@ -104,7 +106,7 @@ export function Component() {
     },
     {
       title: t('page.assistant.labels.mcp_servers'),
-      minWidth: 80,
+      minWidth: 50,
       dataIndex: ["mcp_servers", "enabled"],
       render: (value: boolean, record: Assistant)=>{
         return t('common.enableOrDisable.'+ (value ? 'enable' : 'disable'));
@@ -112,8 +114,11 @@ export function Component() {
     },
     {
       title: t('page.assistant.labels.description'),
-      minWidth: 150,
+      minWidth: 200,
       dataIndex: "description",
+      render: (value: string, record: Assistant)=>{
+        return <span title={value}>{value}</span>;
+      },
       ellipsis: true,
     },
     {
