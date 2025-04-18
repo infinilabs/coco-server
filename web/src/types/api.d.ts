@@ -1,3 +1,5 @@
+import { b } from 'vite/dist/node/types.d-aGj9QkWt';
+
 /**
  * Namespace Api
  *
@@ -302,6 +304,30 @@ declare namespace Api {
       name: string;
       provider: string;
       userid: string;
+    }
+  }
+  namespace LLM {
+    interface ModelProvider {
+      name: string;
+      icon: string;
+      api_endpoint: string;
+      api_key: string;
+      models: string[];
+      enabled: boolean;
+    }
+    interface Assistant {
+      name: string;
+      icon: string;
+      type: string;
+      enabled: boolean;
+      description: string;
+    }
+    interface MCPServer {
+      name: string;
+      type: string;
+      enabled: boolean;
+      config: any;
+      description: string;
     }
   }
 }

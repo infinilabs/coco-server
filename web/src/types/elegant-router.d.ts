@@ -36,6 +36,9 @@ declare module "@elegant-router/types" {
     "404": "/404";
     "500": "/500";
     "ai-assistant": "/ai-assistant";
+    "ai-assistant_edit": "edit/:id";
+    "ai-assistant_list": "list";
+    "ai-assistant_new": "new";
     "api-token": "/api-token";
     "api-token_list": "list";
     "connector": "/connector";
@@ -54,6 +57,14 @@ declare module "@elegant-router/types" {
     "integration_list": "list";
     "integration_new": "new";
     "login": "/login";
+    "mcp-server": "/mcp-server";
+    "mcp-server_edit": "edit/:id";
+    "mcp-server_list": "list";
+    "mcp-server_new": "new";
+    "model-provider": "/model-provider";
+    "model-provider_edit": "edit/:id";
+    "model-provider_list": "list";
+    "model-provider_new": "new";
     "settings": "/settings";
   };
 
@@ -110,6 +121,8 @@ declare module "@elegant-router/types" {
     | "home"
     | "integration"
     | "login"
+    | "mcp-server"
+    | "model-provider"
     | "settings"
   >;
 
@@ -133,7 +146,10 @@ declare module "@elegant-router/types" {
     | "403"
     | "404"
     | "500"
+    | "ai-assistant_edit"
     | "ai-assistant"
+    | "ai-assistant_list"
+    | "ai-assistant_new"
     | "api-token_list"
     | "connector_edit"
     | "connector_new"
@@ -148,6 +164,12 @@ declare module "@elegant-router/types" {
     | "integration_list"
     | "integration_new"
     | "login"
+    | "mcp-server_edit"
+    | "mcp-server_list"
+    | "mcp-server_new"
+    | "model-provider_edit"
+    | "model-provider_list"
+    | "model-provider_new"
     | "settings"
   >;
 

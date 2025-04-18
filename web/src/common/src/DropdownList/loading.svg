@@ -1,0 +1,19 @@
+<?xml version="1.0" standalone="no"?>
+<svg id="编组" width="201" height="169" viewBox="0 0 201 169" fill="none" xmlns="http://www.w3.org/2000/svg" style="max-width: 100%; max-height: 100%;">
+<path d="M151.456 73.9941H50.4559C25.3269 73.9941 4.9559 94.3652 4.9559 119.494C4.9559 144.623 25.3269 164.994 50.4559 164.994H151.456C176.585 164.994 196.956 144.623 196.956 119.494C196.956 94.3652 176.585 73.9941 151.456 73.9941Z" stroke="#DADADA" stroke-width="8" stroke-dasharray="0,0,0,487.9254150390625">
+  <animate attributeType="XML" attributeName="stroke-dasharray" repeatCount="indefinite" dur="2.5s" values="0,0,0,487.9254150390625; 0,243.96270751953125,243.96270751953125,0; 487.9254150390625,0,0,0; 487.9254150390625,0,0,0" keyTimes="0; 0.5; 0.8; 1" fill="freeze"></animate>
+  <animate attributeType="XML" attributeName="opacity" repeatCount="indefinite" dur="2.5s" values="1;1;1;0" keyTimes="0; 0.5; 0.8; 1" fill="freeze"></animate>
+</path>
+<path d="M188.956 145.994L39.6152 74.269" stroke="#DADADA" stroke-width="8" stroke-dasharray="0,0,0,165.67181396484375">
+  <animate attributeType="XML" attributeName="stroke-dasharray" repeatCount="indefinite" dur="2.5s" values="0,0,0,165.67181396484375; 0,82.83590698242188,82.83590698242188,0; 165.67181396484375,0,0,0; 165.67181396484375,0,0,0" keyTimes="0; 0.5; 0.8; 1" fill="freeze"></animate>
+  <animate attributeType="XML" attributeName="opacity" repeatCount="indefinite" dur="2.5s" values="1;1;1;0" keyTimes="0; 0.5; 0.8; 1" fill="freeze"></animate>
+</path>
+<path d="M40.1212 75.4677C81.667 52.5069 104.876 39.8644 109.747 37.5402C117.054 34.0538 150.997 26.0252 169.353 56.0201C175.128 65.4571 177.702 74.4539 177.074 83.0105" stroke="#DADADA" stroke-width="8" stroke-dasharray="0,0,0,175.83224487304688">
+  <animate attributeType="XML" attributeName="stroke-dasharray" repeatCount="indefinite" dur="2.5s" values="0,0,0,175.83224487304688; 0,87.91612243652344,87.91612243652344,0; 175.83224487304688,0,0,0; 175.83224487304688,0,0,0" keyTimes="0; 0.5; 0.8; 1" fill="freeze"></animate>
+  <animate attributeType="XML" attributeName="opacity" repeatCount="indefinite" dur="2.5s" values="1;1;1;0" keyTimes="0; 0.5; 0.8; 1" fill="freeze"></animate>
+</path>
+<path d="M32.2912 77.5453C48.1729 52.9995 57.2963 38.1487 59.5319 35.0136C64.2324 28.422 90.0277 4.9438 120.624 22.2788C125.755 25.1859 130.629 30.4688 134.047 34.0392" stroke="#DADADA" stroke-width="8" stroke-dasharray="0,0,0,136.42384338378906">
+  <animate attributeType="XML" attributeName="stroke-dasharray" repeatCount="indefinite" dur="2.5s" values="0,0,0,136.42384338378906; 0,68.21192169189453,68.21192169189453,0; 136.42384338378906,0,0,0; 136.42384338378906,0,0,0" keyTimes="0; 0.5; 0.8; 1" fill="freeze"></animate>
+  <animate attributeType="XML" attributeName="opacity" repeatCount="indefinite" dur="2.5s" values="1;1;1;0" keyTimes="0; 0.5; 0.8; 1" fill="freeze"></animate>
+</path>
+</svg>

@@ -254,7 +254,7 @@ const ModalTopics = ({ onCancel = () => {}, onOk = () => {}, open = false, recor
     if (!id) return;
     setLoading(true)
     const res = await fetchIntegrationTopics(id)
-    form.setFieldsValue({ topics: res?.data?.length > 0 ? res.data : [''] })
+    form.setFieldsValue({ topics: res?.data?.length > 0 ? res.data : [] })
     setLoading(false)
   }
 
@@ -310,7 +310,7 @@ const ModalTopics = ({ onCancel = () => {}, onOk = () => {}, open = false, recor
                           <Input placeholder={`${t(`page.integration.topics.label`)} ${index+1}`}/>
                         </Form.Item>
                         <Form.Item>
-                          <Button disabled={fields.length <= 1} danger onClick={() => remove(field.name)}>{t(`page.integration.topics.delete`)}</Button>
+                          <Button danger onClick={() => remove(field.name)}>{t(`page.integration.topics.delete`)}</Button>
                         </Form.Item>
                       </div>
                     </Form.Item>

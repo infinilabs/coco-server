@@ -113,6 +113,7 @@
     "eslint-plugin-sort": "^4.0.0",
     "gradient-string": "3.0.0",
     "json5": "2.2.3",
+    "less": "^4.3.0",
     "lint-staged": "15.2.10",
     "sass": "1.80.6",
     "tsx": "4.19.2",

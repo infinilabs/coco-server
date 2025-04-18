@@ -14,6 +14,7 @@ import (
 	_ "infini.sh/coco/modules/document"
 	"infini.sh/coco/modules/integration"
 	_ "infini.sh/coco/modules/integration"
+	_ "infini.sh/coco/modules/llm"
 	_ "infini.sh/coco/modules/search"
 	_ "infini.sh/coco/modules/system"
 	"infini.sh/framework/core/orm"
@@ -30,6 +31,9 @@ func (this *Coco) Setup() {
 	orm.MustRegisterSchemaWithIndexName(common.Connector{}, "connector")
 	orm.MustRegisterSchemaWithIndexName(common.DataSource{}, "datasource")
 	orm.MustRegisterSchemaWithIndexName(common.Integration{}, "integration")
+	orm.MustRegisterSchemaWithIndexName(common.ModelProvider{}, "model-provider")
+	orm.MustRegisterSchemaWithIndexName(common.Assistant{}, "assistant")
+	orm.MustRegisterSchemaWithIndexName(common.MCPServer{}, "mcp-server")
 }
 
 func (this *Coco) Start() error {

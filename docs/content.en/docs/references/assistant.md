@@ -7,6 +7,199 @@ weight: 50
 
 ## Assistant API Reference
 
+### Create an AI assistant
+
+```shell
+//request
+curl -XPOST http://localhost:9000/assistant/ -d'{
+  "name" : "deault",
+  "description" : "default AI chat assistant",
+  "icon" : "font_Google-video",
+  "type" : "deep_think",
+  "config" : {
+    "intent_analysis_model" : {
+      "name" : "tongyi-intent-detect-v3",
+      "provider_id" : "cvuai3dath2dlgqqpc2g",
+      "settings": {
+        "temperature" : 0.8,
+        "top_p" : 0.5,
+        "presence_penalty" : 0,
+        "frequency_penalty" : 0,
+        "max_tokens" : 1024
+      }
+    },
+    "picking_doc_model" : {
+      "name" : "deepseek-r1-distill-qwen-32b",
+      "provider_id" : "cvuai3dath2dlgqqpc2g",
+      "settings": {
+        "temperature" : 0.8,
+        "top_p" : 0.5,
+        "presence_penalty" : 0,
+        "frequency_penalty" : 0,
+        "max_tokens" : 1024
+      }
+    }
+  },
+  "answering_model" : {
+    "provider_id" : "cvuai3dath2dlgqqpc2g",
+    "name" : "deepseek-r1",
+    "settings" : {
+      "temperature" : 0.8,
+      "top_p" : 0.5,
+      "presence_penalty" : 0,
+      "frequency_penalty" : 0,
+      "max_tokens" : 1024
+    }
+  },
+  "datasource" : {
+    "enabled" : true,
+    "ids" : [
+      "d895f22ed2ff25ad8c6080af1cc23a21"
+    ],
+    "visible" : true
+  },
+  "mcp_servers" : {
+    "enabled" : true,
+    "ids" : [
+      "*"
+    ],
+    "visible" : true
+  },
+  "keepalive" : "30m",
+  "enabled" : true,
+  "chat_settings" : {
+    "greeting_message" : "Hi! I’m Coco, nice to meet you. I can help answer your questions by tapping into the internet and your data sources. How can I assist you today?",
+    "suggested" : {
+      "enabled" : false,
+      "questions" : [ ]
+    },
+    "input_preprocess_tpl" : "",
+    "history_message" : {
+      "number" : 5,
+      "compression_threshold" : 1000,
+      "summary" : true
+    }
+  },
+  "builtin" : false,
+  "role_prompt" : ""
+}'
+//response
+{
+  "_id": "cvuak1lath2dlgqqpcjg",
+  "result": "created"
+}
+```
+
+### Update an AI assistant
+
+```shell
+//request
+curl -XPUT http://localhost:9000/assistant/cvuak1lath2dlgqqpcjg -d'{
+  "name" : "deault",
+  "description" : "default AI chat assistant",
+  "icon" : "font_Google-video",
+  "type" : "deep_think",
+  "config" : {
+    "intent_analysis_model" : {
+      "name" : "tongyi-intent-detect-v3",
+      "provider_id" : "cvuai3dath2dlgqqpc2g",
+      "settings": {
+        "temperature" : 0.8,
+        "top_p" : 0.5,
+        "presence_penalty" : 0,
+        "frequency_penalty" : 0,
+        "max_tokens" : 1024
+      }
+    },
+    "picking_doc_model" : {
+      "name" : "deepseek-r1-distill-qwen-32b",
+      "provider_id" : "cvuai3dath2dlgqqpc2g",
+      "settings": {
+        "temperature" : 0.8,
+        "top_p" : 0.5,
+        "presence_penalty" : 0,
+        "frequency_penalty" : 0,
+        "max_tokens" : 1024
+      }
+    }
+  },
+  "answering_model" : {
+    "provider_id" : "cvuai3dath2dlgqqpc2g",
+    "name" : "deepseek-r1",
+    "settings" : {
+      "temperature" : 0.8,
+      "top_p" : 0.5,
+      "presence_penalty" : 0,
+      "frequency_penalty" : 0,
+      "max_tokens" : 1024
+    }
+  },
+  "datasource" : {
+    "enabled" : true,
+    "ids" : [
+      "d895f22ed2ff25ad8c6080af1cc23a21"
+    ],
+    "visible" : true
+  },
+  "mcp_servers" : {
+    "enabled" : true,
+    "ids" : [
+      "*"
+    ],
+    "visible" : true
+  },
+  "keepalive" : "30m",
+  "enabled" : true,
+  "chat_settings" : {
+    "greeting_message" : "Hi! I’m Coco, nice to meet you. I can help answer your questions by tapping into the internet and your data sources. How can I assist you today?",
+    "suggested" : {
+      "enabled" : false,
+      "questions" : [ ]
+    },
+    "input_preprocess_tpl" : "",
+    "history_message" : {
+      "number" : 5,
+      "compression_threshold" : 1000,
+      "summary" : true
+    }
+  },
+  "builtin" : false,
+  "role_prompt" : ""
+}'
+//response
+{
+  "_id": "cvuak1lath2dlgqqpcjg",
+  "result": "updated"
+}
+```
+
+### View an AI assistant
+```shell
+curl -XGET http://localhost:9000/assistant/cvuak1lath2dlgqqpcjg
+```
+
+
+### Delete the AI assistant
+
+```shell
+//request
+curl  -H 'Content-Type: application/json'   -XDELETE http://localhost:9000/assistant/cvuak1lath2dlgqqpcjg 
+
+//response
+{
+  "_id": "cvuak1lath2dlgqqpcjg",
+  "result": "deleted"
+}'
+```
+
+### Search AI assistant
+```shell
+curl -X POST "http://localhost:9000/assistant/_search" -d'
+{
+"from": 0,
+"size": 10
+}'
+```
 
 ### Retrieve Chat History (sessions)
 

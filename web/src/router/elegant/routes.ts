@@ -41,13 +41,49 @@ export const generatedRoutes: GeneratedRoute[] = [
   {
     name: 'ai-assistant',
     path: '/ai-assistant',
-    component: 'layout.base$view.ai-assistant',
+    component: 'layout.base',
+    redirect: 'list',
     meta: {
       i18nKey: 'route.ai-assistant',
       title: 'ai-assistant',
       icon: 'mdi:robot-outline',
       order: 2
-    }
+    },
+    children: [
+      {
+        name: 'ai-assistant_edit',
+        path: 'edit/:id',
+        component: 'view.ai-assistant_edit',
+        meta: {
+          i18nKey: 'route.ai-assistant_edit',
+          title: 'ai-assistant_edit',
+          hideInMenu: true,
+          activeMenu: 'ai-assistant'
+        }
+      },
+      {
+        name: 'ai-assistant_list',
+        path: 'list',
+        component: 'view.ai-assistant_list',
+        meta: {
+          i18nKey: 'route.ai-assistant_list',
+          title: 'ai-assistant_list',
+          hideInMenu: true,
+          activeMenu: 'ai-assistant'
+        }
+      },
+      {
+        name: 'ai-assistant_new',
+        path: 'new',
+        component: 'view.ai-assistant_new',
+        meta: {
+          i18nKey: 'route.ai-assistant_new',
+          title: 'ai-assistant_new',
+          hideInMenu: true,
+          activeMenu: 'ai-assistant'
+        }
+      }
+    ]
   },
   {
     name: 'api-token',
@@ -254,6 +290,100 @@ export const generatedRoutes: GeneratedRoute[] = [
       constant: true,
       hideInMenu: true
     }
+  },
+  {
+    name: 'mcp-server',
+    path: '/mcp-server',
+    component: 'layout.base',
+    meta: {
+      i18nKey: 'route.mcp-server',
+      title: 'mcp-server',
+      order: 2,
+      localIcon: 'mcp'
+    },
+    redirect: 'list',
+    children: [
+      {
+        name: 'mcp-server_edit',
+        path: 'edit/:id',
+        component: 'view.mcp-server_edit',
+        meta: {
+          i18nKey: 'route.mcp-server_edit',
+          title: 'mcp-server_edit',
+          hideInMenu: true,
+          activeMenu: 'mcp-server'
+        }
+      },
+      {
+        name: 'mcp-server_list',
+        path: 'list',
+        component: 'view.mcp-server_list',
+        meta: {
+          i18nKey: 'route.mcp-server_list',
+          title: 'mcp-server_list',
+          hideInMenu: true,
+          activeMenu: 'mcp-server'
+        }
+      },
+      {
+        name: 'mcp-server_new',
+        path: 'new',
+        component: 'view.mcp-server_new',
+        meta: {
+          i18nKey: 'route.mcp-server_new',
+          title: 'mcp-server_new',
+          hideInMenu: true,
+          activeMenu: 'mcp-server'
+        }
+      }
+    ]
+  },
+  {
+    name: 'model-provider',
+    path: '/model-provider',
+    component: 'layout.base',
+    redirect: 'list',
+    meta: {
+      i18nKey: 'route.model-provider',
+      title: 'model-provider',
+      order: 2,
+      localIcon: 'model-provider'
+    },
+    children: [
+      {
+        name: 'model-provider_edit',
+        path: 'edit/:id',
+        component: 'view.model-provider_edit',
+        meta: {
+          i18nKey: 'route.model-provider_edit',
+          title: 'model-provider_edit',
+          hideInMenu: true,
+          activeMenu: 'model-provider'
+        }
+      },
+      {
+        name: 'model-provider_list',
+        path: 'list',
+        component: 'view.model-provider_list',
+        meta: {
+          i18nKey: 'route.model-provider_list',
+          title: 'model-provider_list',
+          hideInMenu: true,
+          activeMenu: 'model-provider'
+        }
+      },
+      {
+        name: 'model-provider_new',
+        path: 'new',
+        component: 'view.model-provider_new',
+        meta: {
+          i18nKey: 'route.model-provider_new',
+          title: 'model-provider_new',
+          hideInMenu: true,
+          activeMenu: 'model-provider'
+        }
+      }
+    ]
   },
   {
     name: 'settings',

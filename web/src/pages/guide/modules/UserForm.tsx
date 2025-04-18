@@ -1,4 +1,4 @@
-import { Button, Form, Input } from 'antd';
+import { Button, Form, Input, Select } from 'antd';
 import type { FormInstance } from 'antd/lib';
 
 const UserForm = memo(({ form, onSubmit }: { form: FormInstance; onSubmit: () => void }) => {
@@ -38,6 +38,14 @@ const UserForm = memo(({ form, onSubmit }: { form: FormInstance; onSubmit: () =>
           rules={formRules.pwd}
         >
           <Input.Password className={inputClassNames} />
+        </Form.Item>
+        <Form.Item
+          className={formItemClassNames}
+          label={t('page.guide.user.language')}
+          name="language"
+          initialValue={"zh-CN"}
+        >
+          <Select options={[{label:t('common.language.zh'), value:"zh-CN"}, {label: t('common.language.en'), value:"en-US"}]} />
         </Form.Item>
         <div className="text-right">
           <Button

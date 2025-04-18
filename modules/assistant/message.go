@@ -44,6 +44,7 @@ type ChatMessage struct {
 	Details        []ProcessingDetails `json:"details"`
 	UpVote         int                 `json:"up_vote"`
 	DownVote       int                 `json:"down_vote"`
+	AssistantID    string              `json:"assistant_id"`
 }
 
 type ProcessingDetails struct {

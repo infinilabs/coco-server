@@ -55,6 +55,15 @@ const common: App.I18n.Schema['translation']['common'] = {
   yesOrNo: {
     no: 'No',
     yes: 'Yes'
+  },
+  enableOrDisable: {
+    enable: 'Enabled',
+    disable: 'Disabled'
+  },
+  upload: 'Upload',
+  language: {
+    en: 'English',
+    zh: 'Chinese'
   }
 };
 

@@ -1,0 +1,67 @@
+.timeZone {
+  height: 100%;
+  padding: 16px 16px 8px;
+  position: relative;
+
+  & > .title {
+    color: #333;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .list {
+    height: calc(100% - 30px - 32px - 32px - 16px);
+    overflow-y: auto;
+    margin: 8px 0;
+
+    .item {
+      display: flex;
+      height: 32px;
+      justify-content: space-between;
+      align-items: center;
+      color: #666;
+      cursor: pointer;
+
+      &.selected,
+      &:hover {
+        background-color: #e8f6fe;
+      }
+
+      .name {
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        width: calc(100% - 168px);
+      }
+      .date {
+        width: 160px;
+        text-align: right;
+      }
+    }
+  }
+
+  .current {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    border-top: 1px solid #ebebeb;
+    font-size: 12px;
+    height: 48px;
+    padding: 4px 16px;
+    & > .title {
+      color: #666;
+    }
+    & > .value {
+      color: #101010;
+      width: calc(100% - 160px);
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+  }
+
+  .apply {
+    text-align: right;
+  }
+}

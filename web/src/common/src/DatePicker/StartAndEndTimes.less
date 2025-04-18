@@ -1,0 +1,81 @@
+.startAndEndTimes {
+  height: 100%;
+  padding: 16px 16px 40px;
+  position: relative;
+
+  .title {
+    color: #333;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .formItem {
+    margin-bottom: 12px;
+
+    .label {
+      color: #333;
+      margin-bottom: 4px;
+    }
+
+    .datePicker {
+      width: 100%;
+    }
+
+    .error {
+      margin-top: 4px;
+      color: #f5222d;
+      position: absolute;
+    }
+  }
+
+  .apply {
+    text-align: right;
+  }
+
+  .recent {
+    height: calc(100% - 30px - 25px - 32px - 12px - 25px - 32px - 12px - 32px - 16px);
+    overflow-y: auto;
+    margin: 8px 0 0;
+    border-top: 1px solid #ebebeb;
+    padding: 12px 0;
+
+    .item {
+      display: flex;
+      height: 32px;
+      justify-content: space-between;
+      align-items: center;
+      color: #666;
+      cursor: pointer;
+      gap: 8px;
+
+      &.selected,
+      &:hover {
+        background-color: #e8f6fe;
+      }
+
+      .name,
+      .gmt {
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        max-width: 50%;
+      }
+    }
+  }
+
+  .refreshInterval {
+    position: absolute;
+    bottom: 0px;
+    left: 0;
+    width: 100%;
+    border-top: 1px solid #ebebeb;
+  }
+}
+
+.overlay {
+  :global {
+    .ant-popover-inner-content {
+      padding: 0;
+    }
+  }
+}
