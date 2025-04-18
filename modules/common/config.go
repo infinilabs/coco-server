@@ -104,12 +104,12 @@ func reloadConfig() {
 			config.LLMConfig = llm
 		}
 	}
-	buf, _ = kv.GetValue(core.DefaultSettingBucketKey, []byte(core.DefaultChatStartPageKey))
+	buf, _ = kv.GetValue(core.DefaultSettingBucketKey, []byte(core.DefaultAppSettingsKey))
 	if buf != nil {
-		chatStartCfg := &ChatStartPageConfig{}
-		err := util.FromJSONBytes(buf, chatStartCfg)
+		appSettings := &AppSettings{}
+		err := util.FromJSONBytes(buf, appSettings)
 		if err == nil {
-			config.ChatStartPageConfig = chatStartCfg
+			config.AppSettings = appSettings
 		}
 	}
 
@@ -143,7 +143,7 @@ func SetAppConfig(c *Config) {
 		panic(err)
 	}
 	//save chat start page's config
-	err = kv.AddValue(core.DefaultSettingBucketKey, []byte(core.DefaultChatStartPageKey), util.MustToJSONBytes(c.ChatStartPageConfig))
+	err = kv.AddValue(core.DefaultSettingBucketKey, []byte(core.DefaultAppSettingsKey), util.MustToJSONBytes(c.AppSettings))
 	if err != nil {
 		panic(err)
 	}
@@ -152,14 +152,22 @@ func SetAppConfig(c *Config) {
 }
 
 type Config struct {
-	LLMConfig           *LLMConfig           `config:"llm" json:"llm,omitempty"`
-	ServerInfo          *ServerInfo          `config:"server" json:"server,omitempty"`
-	ChatStartPageConfig *ChatStartPageConfig `config:"chat_start_page" json:"chat_start_page,omitempty"`
+	LLMConfig   *LLMConfig   `config:"llm" json:"llm,omitempty"`
+	ServerInfo  *ServerInfo  `config:"server" json:"server,omitempty"`
+	AppSettings *AppSettings `config:"app_settings" json:"app_settings,omitempty"`
 }
 
 const OLLAMA = "ollama"
 const OPENAI = "openai"
 const DEEPSEEK = "deepseek"
+
+type AppSettings struct {
+	Chat *ChatConfig `json:"chat,omitempty" config:"chat" `
+}
+
+type ChatConfig struct {
+	ChatStartPageConfig *ChatStartPageConfig `config:"start_page" json:"start_page,omitempty"`
+}
 
 type LLMConfig struct {
 	// LLM type, optional value "ollama" or "openai"

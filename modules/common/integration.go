@@ -14,11 +14,10 @@ const (
 type Integration struct {
 	CombinedFullText
 
-	Type       string      `json:"type,omitempty" elastic_mapping:"type:{type:keyword,copy_to:combined_fulltext}"` // Type of the Integeration, eg: embedded, floating
-	Options    interface{} `json:"options,omitempty" elastic_mapping:"options:{type:object,enabled:false}"`        // Type specific options
-	Hotkey     string      `json:"hotkey,omitempty" elastic_mapping:"hotkey:{type:keyword}"`                       // Hotkey for the integration
-	Name       string      `json:"name,omitempty" elastic_mapping:"name:{type:keyword,copy_to:combined_fulltext}"` // Display name of this embedding
-	Datasource []string    `json:"datasource,omitempty" elastic_mapping:"datasource:{type:keyword}"`               // Datasource ID
+	Type    string      `json:"type,omitempty" elastic_mapping:"type:{type:keyword,copy_to:combined_fulltext}"` // Type of the Integeration, eg: embedded, floating
+	Options interface{} `json:"options,omitempty" elastic_mapping:"options:{type:object,enabled:false}"`        // Type specific options
+	Hotkey  string      `json:"hotkey,omitempty" elastic_mapping:"hotkey:{type:keyword}"`                       // Hotkey for the integration
+	Name    string      `json:"name,omitempty" elastic_mapping:"name:{type:keyword,copy_to:combined_fulltext}"` // Display name of this embedding
 
 	EnabledModule ModuleConfig        `json:"enabled_module,omitempty" elastic_mapping:"enabled_module:{type:object}"`                      // Enabled module configuration
 	AccessControl AccessControlConfig `json:"access_control,omitempty" elastic_mapping:"access_control:{type:object}"`                      // Access control configuration
@@ -49,11 +48,17 @@ type ModuleConfig struct {
 }
 
 type SearchModuleConfig struct {
-	Enabled     bool   `json:"enabled" elastic_mapping:"enabled:{type:keyword}"`
-	Placeholder string `json:"placeholder,omitempty" elastic_mapping:"placeholder:{type:keyword}"` // Placeholder text for search input
+	Enabled     bool     `json:"enabled" elastic_mapping:"enabled:{type:keyword}"`
+	Datasource  []string `json:"datasource,omitempty" elastic_mapping:"datasource:{type:keyword}"`   // Datasource ID
+	Placeholder string   `json:"placeholder,omitempty" elastic_mapping:"placeholder:{type:keyword}"` // Placeholder text for search input
 }
 
-type AIChatModuleConfig SearchModuleConfig
+type AIChatModuleConfig struct {
+	Enabled           bool                `json:"enabled" elastic_mapping:"enabled:{type:keyword}"`
+	Placeholder       string              `json:"placeholder,omitempty" elastic_mapping:"placeholder:{type:keyword}"`                           // Placeholder text for search input
+	Assistants        []string            `json:"assistants,omitempty" elastic_mapping:"assistants:{type:keyword}"`                             // Assistant ID
+	StartPageSettings ChatStartPageConfig `json:"start_page_config,omitempty" elastic_mapping:"start_page_config:{type:object, enabled:false}"` // Start page settings
+}
 
 // GetDatasourceByIntegration returns the datasource IDs that the integration is allowed to access
 func GetDatasourceByIntegration(integrationID string) ([]string, bool, error) {
@@ -71,7 +76,7 @@ func GetDatasourceByIntegration(integrationID string) ([]string, bool, error) {
 	}
 	var ret = make([]string, 0, len(items))
 	for _, item := range items {
-		for _, datasourceID := range item.Datasource {
+		for _, datasourceID := range item.EnabledModule.Search.Datasource {
 			if datasourceID == "*" {
 				return nil, true, nil
 			}
