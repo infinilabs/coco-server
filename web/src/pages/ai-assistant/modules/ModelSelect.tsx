@@ -1,11 +1,20 @@
 import DropdownList from "@/common/src/DropdownList";
 import { useMemo, useState } from "react";
 import "./ModelSelect.scss";
+import ModelSettings from "./ModelSettings";
 
 export default (props) => {
 
-    const { value, onChange, providers = [], width } = props;
-    if(value && !value.id){
+    const { value={
+      settings: {
+        temperature: 0.7,
+        top_p: 0.9,
+        presence_penalty: 0,
+        frequency_penalty: 0,
+        max_tokens: 4000,
+      }
+    }, onChange, providers = [], width } = props;
+    if(value?.provider_id && !value.id){
       value.id = value.provider_id + "_" + value.name;
     }
 
@@ -42,10 +51,20 @@ export default (props) => {
     }]
     }, [showGroup])
 
-    const onSelectValueChange = (value: any) => {
+    const onSelectValueChange = (model: any) => {
       const newValue = {
-        name: value?.name,
-        provider_id: value?.provider_id,
+        ...(value || {}),
+        name: model?.name,
+        provider_id: model?.provider_id,
+      }
+      console.log('newValue', newValue);
+      onChange?.(newValue);
+    }
+
+    const onSettingsChange = (settings: any) => {
+      const newValue = {
+        ...(props.value || {}),
+        settings: settings,
       }
       onChange?.(newValue);
     }
@@ -92,6 +111,7 @@ export default (props) => {
             }
           }}
         />
+        <div><ModelSettings onChange={onSettingsChange} value={value?.settings || {}}/></div>
       </div>
     )
 }

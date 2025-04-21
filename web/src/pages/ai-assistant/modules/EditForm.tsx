@@ -37,7 +37,6 @@ export const EditForm = memo((props: AssistantFormProps)=> {
     if(initialValues){
       form.setFieldsValue({
         ...initialValues,
-        model_settings: initialValues.answering_model?.settings || {},
       })
     }
   } , [initialValues])
@@ -45,6 +44,7 @@ export const EditForm = memo((props: AssistantFormProps)=> {
   const { endLoading, loading, startLoading } = useLoading();
 
   const onFinish: FormProps<any>['onFinish'] = (values) => {
+    console.log(values);
     onSubmit?.(values, startLoading, endLoading);
   };
   

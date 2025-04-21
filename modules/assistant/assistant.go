@@ -24,11 +24,13 @@
 package assistant
 
 import (
+	"net/http"
+
+	log "github.com/cihub/seelog"
 	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
-	"net/http"
 )
 
 func (h *APIHandler) createAssistant(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -65,6 +67,7 @@ func (h *APIHandler) getAssistant(w http.ResponseWriter, req *http.Request, ps h
 
 	exists, err := orm.Get(&obj)
 	if !exists || err != nil {
+		log.Error(err)
 		h.WriteJSON(w, util.MapStr{
 			"_id":   id,
 			"found": false,
