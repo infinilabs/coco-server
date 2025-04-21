@@ -6673,7 +6673,7 @@ snapshots:
     dependencies:
       '@ant-design/colors': 7.1.0
       '@ant-design/icons-svg': 4.4.2
-      '@babel/runtime': 7.25.7
+      '@babel/runtime': 7.26.9
       classnames: 2.5.1
       rc-util: 5.43.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react: 18.3.1
@@ -7815,7 +7815,7 @@ snapshots:
     dependencies:
       '@babel/runtime': 7.26.9
       content-type: 1.0.5
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@tanstack/react-virtual@3.13.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
