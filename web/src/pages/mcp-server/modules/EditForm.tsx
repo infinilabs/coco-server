@@ -75,10 +75,19 @@ export const EditForm = memo((props: MCPServerFormProps)=> {
                <Radio.Group onChange={onTypeChange}>
                   <Radio value="sse">SSE</Radio>
                   <Radio value="stdio">Stdio</Radio>
+                  <Radio value="streamable_http">Streamable HTTP</Radio>
               </Radio.Group>
             </Form.Item>
 
             {type === "sse" &&<Form.Item
+                rules={[{ required: true}]}
+                name={["config", "url"]}
+                label={"URL"}
+            >
+              <Input className='w-600px' />
+            </Form.Item>
+            }
+            {type === "streamable_http" &&<Form.Item
                 rules={[{ required: true}]}
                 name={["config", "url"]}
                 label={"URL"}

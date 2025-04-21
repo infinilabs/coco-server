@@ -27,7 +27,7 @@ type MCPServer struct {
 	CombinedFullText
 	Name        string      `json:"name" elastic_mapping:"name:{type:keyword,copy_to:combined_fulltext}"`
 	Description string      `json:"description" elastic_mapping:"description:{type:keyword,copy_to:combined_fulltext}"`
-	Type        string      `json:"type" elastic_mapping:"type:{type:keyword,copy_to:combined_fulltext}"` // possible values: "sse", "stdio"
+	Type        string      `json:"type" elastic_mapping:"type:{type:keyword,copy_to:combined_fulltext}"` // possible values: "sse", "stdio", "streamable_http"
 	Config      interface{} `json:"config,omitempty" elastic_mapping:"config:{enabled:false}"`
 	Enabled     bool        `json:"enabled" elastic_mapping:"enabled:{type:boolean}"` // Whether the connector is enabled or not
 }
@@ -41,4 +41,8 @@ type StdioConfig struct {
 	Command string            `json:"command"`        // command to run, possible values: npx, uvx
 	Args    []string          `json:"args,omitempty"` // arguments to pass to the command
 	Env     map[string]string `json:"env,omitempty"`  // environment variables
+}
+
+type StreamableHttpConfig struct {
+	URL string `json:"url" elastic_mapping:"url:{type:keyword}"`
 }
