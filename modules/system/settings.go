@@ -58,16 +58,16 @@ func (h *APIHandler) updateServerSettings(w http.ResponseWriter, req *http.Reque
 		}
 		oldAppConfig.ServerInfo = &serverCfg
 	}
-	if appConfig.ChatStartPageConfig != nil {
+	if appConfig.AppSettings != nil {
 		//merge settings
-		chatStartCfg := common.ChatStartPageConfig{}
-		err := mergeSettings(oldAppConfig.ChatStartPageConfig, appConfig.ChatStartPageConfig, &chatStartCfg)
+		appSettings := common.AppSettings{}
+		err := mergeSettings(oldAppConfig.AppSettings, appConfig.AppSettings, &appSettings)
 		if err != nil {
 			log.Error(err)
 			h.WriteError(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		oldAppConfig.ChatStartPageConfig = &chatStartCfg
+		oldAppConfig.AppSettings = &appSettings
 	}
 	common.SetAppConfig(&oldAppConfig)
 	h.WriteAckOKJSON(w)

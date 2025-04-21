@@ -106,7 +106,7 @@ func (h APIHandler) extractParameters(req *http.Request) (*processingParams, err
 
 	assistant, err := common.GetAssistant(assistantID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get assistant: %w", err)
+		return nil, fmt.Errorf("failed to get assistant with id [%v]: %w", assistantID, err)
 	}
 	if assistant == nil {
 		return nil, fmt.Errorf("assistant [%s] is not found", assistantID)
