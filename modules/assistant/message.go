@@ -29,7 +29,7 @@ import (
 )
 
 type MessageRequest struct {
-	Message string `config:"message" json:"message,omitempty" elastic_mapping:"message:{type:keyword}"`
+	Message     string `config:"message" json:"message,omitempty" elastic_mapping:"message:{type:keyword}"`
 }
 
 type ChatMessage struct {
