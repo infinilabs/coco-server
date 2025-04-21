@@ -1,6 +1,6 @@
 .settings-tabs {
   .ant-tabs-nav {
-    margin-bottom: 8px;
+    margin-bottom: 0px;
     height: 40px;
   }
   .ant-tabs-ink-bar {
@@ -19,6 +19,7 @@
   }
   .ant-tabs-content {
     min-height: calc(100vh - 176px);
+    height: auto;
     padding: 0px 24px;
   }
 }

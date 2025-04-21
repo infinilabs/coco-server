@@ -1,48 +1,15 @@
-import { Avatar, Button, Form, Input, Spin, Switch, Upload } from 'antd';
+import { Avatar, Button, Form, Input, Switch, Upload } from 'antd';
 import '../index.scss';
-import { fetchSettings, updateSettings } from '@/service/api/server';
-import { useLoading } from '@sa/hooks';
 import "./ChartStartPage.scss"
 import AIAssistantSelect from '@/pages/ai-assistant/modules/AIAssistantSelect';
 import { PlusOutlined } from '@ant-design/icons';
 
-const ChartStartPage = memo(() => {
-  const [form] = Form.useForm();
+const ChartStartPage = memo((props) => {
+  const { startPageSettings, logo, setLogo } = props;
   const { t } = useTranslation();
   const { defaultRequiredRule } = useFormRules();
-
-  const { endLoading, loading, startLoading } = useLoading();
-  const [lightFileList, setLightFileList] = useState([]);
-  const [lightLogo, setLightLogo] = useState({ loading: false });
-  const [darkFileList, setDarkFileList] = useState([]);
-  const [darkLogo, setDarkLogo] = useState({ loading: false });
-
-  const {
-    data,
-    loading: dataLoading,
-    run
-  } = useRequest(fetchSettings, {
-    manual: true
-  });
-
-  const handleSubmit = async () => {
-    const params = await form.validateFields();
-    startLoading();
-    const result = await updateSettings({
-      chat_start_page: {
-        ...params,
-        "display_assistants": params?.display_assistants?.map((item) => item.id),
-        "logo": {
-          "light": lightLogo.base64,
-          "dark": darkLogo.base64
-        },
-      }
-    });
-    if (result?.data?.acknowledged) {
-      window.$message?.success(t('common.updateSuccess'));
-    }
-    endLoading();
-  };
+  const [enabled, setEnabled] = useState(false);
+  const [assistants, setAssistants] = useState(0);
 
   const renderIcon = (base64) => {
     if (base64) {
@@ -55,172 +22,170 @@ const ChartStartPage = memo(() => {
     return null;
   }
 
-  useMount(() => {
-    run();
-  });
-
-  useEffect(() => {
-    if (data?.data?.chat_start_page) {
-      const { logo, display_assistants, ...rest } = data?.data?.chat_start_page;
-      if (logo?.light) {
-        setLightLogo((state) => ({ ...state, base64: logo?.light }))
-      }
-      if (logo?.dark) {
-        setDarkLogo((state) => ({ ...state, base64: logo?.dark }))
-      }
-      form.setFieldsValue({
-        ...rest,
-        display_assistants: display_assistants? display_assistants.map((item) => ({
-          id: item
-        })) : []
-      });
-    } else {
-      form.setFieldsValue({ enabled: true  });
-    }
-  }, [JSON.stringify(data)]);
-
   const uploadProps = {
     name: "file",
     action: "",
     accept: "image/*,.svg",
   };
 
+  useEffect(() => {
+    setEnabled(startPageSettings?.enabled)
+  }, [startPageSettings?.enabled])
+
+  useEffect(() => {
+    setAssistants(startPageSettings?.display_assistants?.length || 0)
+  }, [startPageSettings?.display_assistants])
+  
   return (
-    <Spin spinning={dataLoading || loading}>
-      <Form
-        className="settings-form py-24px"
-        colon={false}
-        form={form}
-        labelAlign="left"
+    <>
+      <Form.Item
+        label={t('page.settings.app_settings.chat_settings.labels.start_page')}
+        name={['start_page', 'enabled']}
+        help={(
+          <div className="mb-24px">{t('page.settings.app_settings.chat_settings.labels.start_page_placeholder')}</div>
+        )}
+        className="mb-48px"
       >
-        <Form.Item
-          label={t('page.chart_start_page.labels.start_page')}
-          name="enabled"
-          help={t('page.chart_start_page.labels.start_page_placeholder')}
-          className="mb-88px"
-        >
-          <Switch size="small" />
-        </Form.Item>
-        <Form.Item
-          label={t('page.chart_start_page.labels.logo')}
-          name="logo"
-        >
-          <div className='settings-form-help mb-16px'>
-            <div>{t('page.chart_start_page.labels.logo_placeholder')}</div>
-            <div>{t('page.chart_start_page.labels.logo_size_placeholder')}</div>
-          </div>
-          <Form.Item className="sub-form-item mb-48px" layout="vertical" name={['logo', 'light']} label={t('page.chart_start_page.labels.logo_light')}>
-            <div style={{ display: "flex", gap: 22 }}>
-              {renderIcon(lightLogo.base64)}
-              <Upload
-                {...uploadProps}
-                showUploadList={false}
-                fileList={lightFileList}
-                beforeUpload={(file) => {
-                  setLightFileList([file]);
-                  setLightLogo({ loading: true });
-                  const reader = new FileReader();
-                  reader.readAsDataURL(file);
-                  reader.onload = () => {
-                    const base64 = reader.result
-                    setLightLogo({
-                      loading: false,
-                      base64,
-                    });
-                  };
-                  return false
-                }}
-              >
-                <Button loading={lightLogo.loading} icon={<SvgIcon className="text-12px" icon="mdi:upload" />}>{t('common.upload')}</Button>
-              </Upload>
-              <Button className="px-0" type="link" onClick={() => {
-                setLightLogo({
-                  loading: false,
-                });
-              }}>{t('common.reset')}</Button>
-            </div>
-          </Form.Item>
-          <Form.Item className="sub-form-item mb-32px" layout="vertical" name={['logo', 'dark']} label={t('page.chart_start_page.labels.logo_dark')}>
-          <div style={{ display: "flex", gap: 22 }}>
-              {renderIcon(darkLogo.base64)}
-              <Upload
-                {...uploadProps}
-                showUploadList={false}
-                fileList={darkFileList}
-                beforeUpload={(file) => {
-                  setDarkFileList([file]);
-                  setDarkLogo({ loading: true });
-                  const reader = new FileReader();
-                  reader.readAsDataURL(file);
-                  reader.onload = () => {
-                    const base64 = reader.result
-                    setDarkLogo({
-                      loading: false,
-                      base64,
-                    });
-                  };
-                  return false
-                }}
-              >
-                <Button loading={darkLogo.loading} icon={<SvgIcon className="text-12px" icon="mdi:upload" />}>{t('common.upload')}</Button>
-              </Upload>
-              <Button className="px-0" type="link" onClick={() => {
-                setDarkLogo({
-                  loading: false,
-                });
-              }}>{t('common.reset')}</Button>
-            </div>
-          </Form.Item>
-        </Form.Item>
-        <Form.Item
-          label={t('page.chart_start_page.labels.introduction')}
-          name="introduction"
-          help={t('page.chart_start_page.labels.introduction_placeholder')}
-          className="mb-64px"
-        >
-          <Input.TextArea rows={3} maxLength={60}/>
-        </Form.Item>
-        <Form.Item
-          label={t('page.chart_start_page.labels.assistant')}
-        >
-          <Form.List name="display_assistants">
-            {(fields, { add, remove }) => (
-              <>
-                {fields.map((field, index) => {
-                  return (
-                    <Form.Item key={index} className="m-0">
-                      <div className="flex items-center gap-6px">
-                        <Form.Item
-                          {...field}
-                          rules={[defaultRequiredRule]}
-                          className="flex-1"
-                        >
-                          <AIAssistantSelect />
-                        </Form.Item>
-                        <Form.Item>
-                          <span onClick={() => remove(field.name)}><SvgIcon className="text-16px cursor-pointer" icon="mdi:minus-circle-outline" /></span>
-                        </Form.Item>
-                      </div>
-                    </Form.Item>
-                  )
-                })}
-                <Form.Item>
-                  <Button className="!w-80px" type="primary" disabled={fields.length >= 8} icon={<PlusOutlined />} onClick={() => add()}></Button>
-                </Form.Item>
-              </>
-            )}
-          </Form.List>
-        </Form.Item>
-        <Form.Item label=" ">
-            <Button
-              type="primary"
-              onClick={() => handleSubmit()}
+        <Switch size="small" onChange={setEnabled}/>
+      </Form.Item>
+      {
+        enabled && (
+          <Form.Item label=" ">
+            <Form.Item
+              label={t('page.settings.app_settings.chat_settings.labels.logo')}
+              name="logo"
+              layout="vertical"
             >
-              {t('common.update')}
-            </Button>
+              <div className='settings-form-help mb-16px'>
+                <div>{t('page.settings.app_settings.chat_settings.labels.logo_placeholder')}</div>
+                <div>{t('page.settings.app_settings.chat_settings.labels.logo_size_placeholder')}</div>
+              </div>
+              <Form.Item className="sub-form-item mb-48px" layout="vertical" name={['logo', 'light']} label={t('page.settings.app_settings.chat_settings.labels.logo_light')}>
+                <div style={{ display: "flex", gap: 22 }}>
+                  {renderIcon(logo.light)}
+                  <Upload
+                    {...uploadProps}
+                    showUploadList={false}
+                    fileList={logo.lightList}
+                    beforeUpload={(file) => {
+                      setLogo((state) => ({
+                        ...state,
+                        lightList: [file],
+                        lightLoading: true,
+                      }))
+                      const reader = new FileReader();
+                      reader.readAsDataURL(file);
+                      reader.onload = () => {
+                        setLogo((state) => ({
+                          ...state,
+                          lightLoading: false,
+                          light: reader.result
+                        }))
+                      };
+                      return false
+                    }}
+                  >
+                    <Button loading={logo.lightLoading} icon={<SvgIcon className="text-12px" icon="mdi:upload" />}>{t('common.upload')}</Button>
+                  </Upload>
+                  <Button className="px-0" type="link" onClick={() => {
+                    setLogo((state) => ({
+                      ...state,
+                      lightLoading: false,
+                      light: undefined
+                    }));
+                  }}>{t('common.reset')}</Button>
+                </div>
+              </Form.Item>
+              <Form.Item className="sub-form-item mb-32px" layout="vertical" name={['logo', 'dark']} label={t('page.settings.app_settings.chat_settings.labels.logo_dark')}>
+              <div style={{ display: "flex", gap: 22 }}>
+                  {renderIcon(logo.dark)}
+                  <Upload
+                    {...uploadProps}
+                    showUploadList={false}
+                    fileList={logo.darkList}
+                    beforeUpload={(file) => {
+                      setLogo((state) => ({
+                        ...state,
+                        darkList: [file],
+                        darkLoading: true,
+                      }))
+                      const reader = new FileReader();
+                      reader.readAsDataURL(file);
+                      reader.onload = () => {
+                        setLogo((state) => ({
+                          ...state,
+                          darkLoading: false,
+                          dark: reader.result
+                        }))
+                      };
+                      return false
+                    }}
+                  >
+                    <Button loading={logo.darkLoading} icon={<SvgIcon className="text-12px" icon="mdi:upload" />}>{t('common.upload')}</Button>
+                  </Upload>
+                  <Button className="px-0" type="link" onClick={() => {
+                    setLogo((state) => ({
+                      ...state,
+                      darkLoading: false,
+                      dark: undefined
+                    }))
+                  }}>{t('common.reset')}</Button>
+                </div>
+              </Form.Item>
+            </Form.Item>
+            <Form.Item
+              label={t('page.settings.app_settings.chat_settings.labels.introduction')}
+              name={['start_page', 'introduction']}
+              help={t('page.settings.app_settings.chat_settings.labels.introduction_placeholder')}
+              className="mt-226px"
+              layout="vertical"
+            >
+              <Input.TextArea rows={3} maxLength={60}/>
+            </Form.Item>
+            <Form.Item
+              label={t('page.settings.app_settings.chat_settings.labels.assistant')}
+              layout="vertical"
+              className="mt-164px"
+              style={{ marginBottom: (assistants+1)*40}}
+            >
+              <Form.List name={['start_page', 'display_assistants']}>
+                {(fields, { add, remove }) => (
+                  <>
+                    {fields.map((field, index) => {
+                      return (
+                        <Form.Item key={index} className={index === 0 ? "" : "mt-40px"}>
+                          <div className="flex items-center gap-6px">
+                            <Form.Item
+                              {...field}
+                              rules={[defaultRequiredRule]}
+                              className="flex-1"
+                            >
+                              <AIAssistantSelect />
+                            </Form.Item>
+                            <Form.Item>
+                              <span onClick={() => {
+                                setAssistants((state) => state - 1)
+                                remove(field.name)
+                              }}><SvgIcon className="text-16px cursor-pointer" icon="mdi:minus-circle-outline" /></span>
+                            </Form.Item>
+                          </div>
+                        </Form.Item>
+                      )
+                    })}
+                    <Form.Item className="mt-40px">
+                      <Button className="!w-80px" type="primary" disabled={fields.length >= 8} icon={<PlusOutlined />} onClick={() => {
+                        setAssistants((state) => state + 1)
+                        add()
+                      }}></Button>
+                    </Form.Item>
+                  </>
+                )}
+              </Form.List>
+            </Form.Item>
           </Form.Item>
-      </Form>
-    </Spin>
+        )
+      }
+    </>
   );
 });
 

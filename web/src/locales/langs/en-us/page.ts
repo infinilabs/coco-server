@@ -258,7 +258,28 @@ const page: App.I18n.Schema['translation']['page'] = {
       top_p_desc: `similar to temperature, don't change them simultaneously`,
       type: 'Type'
     },
-    setupLater: 'Set Up Later',
+    connector: {
+      title: "Connector"
+    },
+    app_settings: {
+      title: "App Settings",
+      chat_settings: {
+        title: "Chart Settings",
+        labels: {
+          start_page: 'Start Page',
+          start_page_placeholder: 'You can enable and configure the Chat mode start page, customize the company logo, introduction text, and common AI assistants to help users quickly select and start a chat.',
+          logo: 'Logo',
+          logo_placeholder: 'Upload the company logo to be displayed in the start page.',
+          logo_size_placeholder: 'Image size restrictions: Maximum height 30px, maximum width 300px.',
+          logo_light: 'Light Theme (Regular Version Logo)',
+          logo_dark: 'Dark Theme (White or light-colored version Logo)',
+          introduction: 'Introduction Text',
+          introduction_placeholder: 'Enter the welcome text or AI tool introduction displayed on the start page (within 60 characters)',
+          assistant: 'AI Assistant Display',
+        }
+      }
+    },
+    setupLater: 'Set Up Later'
   },
   modelprovider: {
     labels: {
@@ -344,21 +365,6 @@ const page: App.I18n.Schema['translation']['page'] = {
       confirm: 'Are you sure you want to delete this ai MCP server "{{name}}"?'
     },
   },
-  chart_start_page: {
-    title: 'Chart Start Page',
-    labels: {
-      start_page: 'Start Page',
-      start_page_placeholder: 'You can enable and configure the Chat mode start page, customize the company logo, introduction text, and common AI assistants to help users quickly select and start a chat.',
-      logo: 'Logo',
-      logo_placeholder: 'Upload the company logo to be displayed in the start page.',
-      logo_size_placeholder: 'Image size restrictions: Maximum height 30px, maximum width 300px.',
-      logo_light: 'Light Theme (Regular Version Logo)',
-      logo_dark: 'Dark Theme (White or light-colored version Logo)',
-      introduction: 'Introduction Text',
-      introduction_placeholder: 'Enter the welcome text or AI tool introduction displayed on the start page (within 60 characters)',
-      assistant: 'AI Assistant Display',
-    }
-  }
 };
 
 export default page;

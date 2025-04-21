@@ -2,7 +2,7 @@ import { Tabs } from 'antd';
 
 import './index.scss';
 import ConnectorSettings from './modules/Connector';
-import ChartStartPage from './modules/ChartStartPage';
+import AppSettings from './modules/AppSettings';
 
 export function Component() {
   const [searchParams] = useSearchParams();
@@ -17,12 +17,12 @@ export function Component() {
     {
       children: <ConnectorSettings />,
       key: 'connector',
-      label: 'Connector'
+      label: t(`page.settings.connector.title`)
     },
     {
-      children: <ChartStartPage />,
+      children: <AppSettings />,
       key: 'chart_start_page',
-      label: t(`page.chart_start_page.title`)
+      label: t(`page.settings.app_settings.title`)
     }
   ];
 
