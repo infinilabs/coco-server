@@ -26,7 +26,6 @@ export function Component() {
     getModelProvider(id).then((res)=>{
       if(res.data?.found === true){
         const mp = res.data._source;
-        mp.models = mp.models.map((item: any) => item.name);
         setModelProvider(mp || {});
         form.setFieldsValue(mp || {});
       }
@@ -36,7 +35,6 @@ export function Component() {
   const onFinish: FormProps<any>['onFinish'] = (values) => {
     const newValues = {
       ...values,
-      models: values.models.map((item: any) => ({name: item})),
     }
     updateModelProvider(id, newValues).then((res)=>{
       if(res.data?.result == "updated"){

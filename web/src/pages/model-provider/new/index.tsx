@@ -10,8 +10,10 @@ import type { FormProps } from 'antd';
 import {createModelProvider, getLLMModels} from '@/service/api/model-provider';
 import {getConnectorIcons} from '@/service/api/connector';
 import { IconSelector } from "../../connector/new/icon_selector";
-import {DeleteOutlined} from "@ant-design/icons";
+import {MinusCircleOutlined} from "@ant-design/icons";
 import { formatESSearchResult } from '@/service/request/es';
+import ModelSettings from '@/pages/ai-assistant/modules/ModelSettings';
+import { settings } from 'nprogress';
 
 export function Component() {
   const { t } = useTranslation();
@@ -20,7 +22,6 @@ export function Component() {
   const onFinish: FormProps<any>['onFinish'] = (values) => {
     const newValues = {
       ...values,
-      models: values.models.map((item: any) => ({name: item})),
     }
     createModelProvider(newValues).then((res)=>{
       if(res.data?.result == "created"){
@@ -100,27 +101,36 @@ export function Component() {
   </div>
 }
 
+const defaultModelSettings = {
+  temperature: 0.7,
+  top_p: 0.9,
+  presence_penalty: 0,
+  frequency_penalty: 0,
+  max_tokens: 4000,
+}
 export const ModelsComponent = ({ value = [], onChange }: any) => {
   const initialValue = useMemo(() => {
-    const iv = (value || []).map((v: string) => ({
+    const iv = (value || []).map((v: any) => ({
       value: v,
       key: crypto.randomUUID(),
     }));
-    return iv.length ? iv : [{ value: '', key: crypto.randomUUID() }];
+    return iv.length ? iv : [{ value: {
+      settings: defaultModelSettings,
+    }, key: crypto.randomUUID() }];
   }, [value]);
 
-  const [innerValue, setInnerValue] = useState<{ value: string; key: string }[]>(initialValue);
-  const prevValueRef = useRef<string[]>([]);
+  const [innerValue, setInnerValue] = useState<{ value: any; key: string }[]>(initialValue);
+  const prevValueRef = useRef<any[]>([]);
 
   // Prevent unnecessary updates
   useEffect(() => {
     if (JSON.stringify(prevValueRef.current) !== JSON.stringify(value)) {
       prevValueRef.current = value;
-      const iv = (value || []).map((v: string) => ({
+      const iv = (value || []).map((v: any) => ({
         value: v,
         key: crypto.randomUUID(),
       }));
-      setInnerValue(iv.length ? iv : [{ value: '', key: crypto.randomUUID() }]);
+      setInnerValue(iv.length ? iv : [{ value: {settings: defaultModelSettings,}, key: crypto.randomUUID() }]);
     }
   }, [value]);
 
@@ -141,23 +151,39 @@ export const ModelsComponent = ({ value = [], onChange }: any) => {
 
   const onDeleteClick = (key: string) => {
     const newValues = innerValue.filter((v) => v.key !== key);
-    setInnerValue(newValues.length ? newValues : [{ value: '', key: crypto.randomUUID() }]);
+    setInnerValue(newValues.length ? newValues : [{ value: {settings: defaultModelSettings,}, key: crypto.randomUUID() }]);
     onChange?.(newValues.map((v) => Array.isArray(v.value) ? v.value[0]: v.value));
   };
 
   const onAddClick = () => {
-    setInnerValue([...innerValue, { value: '', key: crypto.randomUUID() }]);
+    setInnerValue([...innerValue, { value: {}, key: crypto.randomUUID() }]);
   };
 
-  const onItemChange = (key: string, newValue: string) => {
+  const onItemChange = (key: string, newValue: any) => {
+    const newName = newValue?.[0] || newValue;
     const updatedValues = innerValue.map((v) =>
-      v.key === key ? { ...v, value: newValue } : v
+      v.key === key ? { ...v, value: {
+        ...(v.value || {}),
+        name: newName,
+      } } : v
     );
     setInnerValue(updatedValues);
-    onChange?.(updatedValues.filter((v) => v.value).map((v) => Array.isArray(v.value) ? v.value[0]: v.value));
+    onChange?.(updatedValues.filter((v) => v.value?.name).map(v => v.value));
   };
 
   const {t} = useTranslation();
+
+  const onSettingsChange = (key: string, settings: any) => {
+    const updatedValues = innerValue.map((v) =>
+      v.key === key ? { ...v, value: {
+        ...(v.value || {}),
+        settings: settings,
+      } } : v
+    );
+    setInnerValue(updatedValues);
+    const filterValues = updatedValues.filter((v) => v.value?.name).map(v => v.value);
+    onChange?.(filterValues);
+  }
 
   return (
     <div>
@@ -165,8 +191,8 @@ export const ModelsComponent = ({ value = [], onChange }: any) => {
         <div key={v.key} className="flex items-center mb-15px">
           <Select
             mode="tags"
-            value={v.value || undefined}
-            className="max-w-570px"
+            value={v.value?.name || undefined}
+            className="max-w-548px"
             onChange={(newV) => onItemChange(v.key, newV)}
             placeholder="Select or input a model"
             maxCount={1}
@@ -178,8 +204,11 @@ export const ModelsComponent = ({ value = [], onChange }: any) => {
               </Select.Option>
             ))}
           </Select>
+          <div className="ml-10px">
+            <ModelSettings value={v.value?.settings} onChange={(settings) => onSettingsChange(v.key, settings)}/>
+          </div>
           <div className="cursor-pointer ml-15px" onClick={() => onDeleteClick(v.key)}>
-            <DeleteOutlined />
+            <MinusCircleOutlined className='text-[#999]' />
           </div>
         </div>
       ))}

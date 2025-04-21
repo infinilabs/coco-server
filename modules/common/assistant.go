@@ -24,9 +24,10 @@
 package common
 
 import (
+	"time"
+
 	"infini.sh/framework/core/orm"
 	ccache "infini.sh/framework/lib/cache"
-	"time"
 )
 
 const (
@@ -102,8 +103,8 @@ type ModelConfig struct {
 type ModelSettings struct {
 	Temperature      float64 `json:"temperature"`
 	TopP             float64 `json:"top_p"`
-	PresencePenalty  int     `json:"presence_penalty"`
-	FrequencyPenalty int     `json:"frequency_penalty"`
+	PresencePenalty  float64 `json:"presence_penalty"`
+	FrequencyPenalty float64 `json:"frequency_penalty"`
 	MaxTokens        int     `json:"max_tokens"`
 	MaxLength        int     `json:"max_length"`
 }
