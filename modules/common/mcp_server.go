@@ -26,8 +26,9 @@ package common
 type MCPServer struct {
 	CombinedFullText
 	Name        string      `json:"name" elastic_mapping:"name:{type:keyword,copy_to:combined_fulltext}"`
-	Type        string      `json:"type" elastic_mapping:"type:{type:keyword,copy_to:combined_fulltext}"` // possible values: "sse", "stdio", "streamable_http"
 	Description string      `json:"description,omitempty" elastic_mapping:"description:{type:keyword,copy_to:combined_fulltext}"`
+	Icon        string      `json:"icon,omitempty" elastic_mapping:"icon:{type:keyword}"`                                   // Display name of this datasource
+	Type        string      `json:"type" elastic_mapping:"type:{type:keyword,copy_to:combined_fulltext}"`                   // possible values: "sse", "stdio", "streamable_http"
 	Category    string      `json:"category,omitempty" elastic_mapping:"category:{type:keyword,copy_to:combined_fulltext}"` // possible values: "sse", "stdio"
 	Config      interface{} `json:"config,omitempty" elastic_mapping:"config:{enabled:false}"`
 	Enabled     bool        `json:"enabled" elastic_mapping:"enabled:{type:boolean}"` // Whether the connector is enabled or not
