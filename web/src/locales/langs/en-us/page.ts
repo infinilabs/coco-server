@@ -170,6 +170,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         hotkey: 'Hotkey',
         hotkey_placeholder: 'Set hotkey to call out CocoAI',
         module_chat: 'AI Chat',
+        module_chat_ai_assistant: 'AI Assistant',
         module_chat_placeholder: 'Chat box placeholder text',
         module_search: 'Search',
         module_search_placeholder: 'Search box placeholder text',

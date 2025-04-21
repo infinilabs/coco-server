@@ -11,6 +11,8 @@ import { fetchDataSourceList } from '@/service/api';
 import { getDarkMode } from '@/store/slice/theme';
 
 import { HotKeys } from './HotKeys';
+import AIAssistantSelect from '@/pages/ai-assistant/modules/AIAssistantSelect';
+import ChartStartPage from '@/pages/settings/modules/ChartStartPage';
 
 function generateRandomString(size) {
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -28,10 +30,19 @@ export const EditForm = memo(props => {
   const { t } = useTranslation();
   const { defaultRequiredRule } = useFormRules();
   const { endLoading, loading, startLoading } = useLoading();
+  const [assistants, setAssistants] = useState([])
 
   const darkMode = useAppSelector(getDarkMode);
 
   const [type, setType] = useState();
+  const [logo, setLogo] = useState({
+    lightLoading: false,
+    lightList: [],
+    light: undefined,
+    darkLoading: false,
+    darkList: [],
+    dark: undefined,
+  })
 
   const {
     data: result,
@@ -43,15 +54,36 @@ export const EditForm = memo(props => {
 
   const handleSubmit = async () => {
     const params = await form.validateFields();
-    const { cors = {}, datasource } = params;
+    const { cors = {}, enabled_module = {}, start_page = {} } = params;
+    const { search = {}, ai_chat = {} } = enabled_module
+    const { datasource = [] } = search
+    const { assistants = [] } = ai_chat
     onSubmit(
       {
         ...params,
+        enabled_module: {
+          ...enabled_module,
+          search: {
+            ...search,
+            datasource: datasource?.includes('*') ? ['*'] : datasource
+          },
+          ai_chat: {
+            ...ai_chat,
+            assistants: assistants.map((item) => item.id),
+            start_page_config: {
+              ...start_page,
+              "display_assistants": start_page?.display_assistants?.map((item) => item.id),
+              "logo": {
+                "light": logo.light,
+                "dark": logo.dark
+              },
+            }
+          }
+        },
         cors: {
           ...cors,
           allowed_origins: cors.allowed_origins?.trim() ? cors.allowed_origins.trim().split(',') : []
         },
-        datasource: datasource?.includes('*') ? ['*'] : datasource
       },
       startLoading,
       endLoading
@@ -70,12 +102,37 @@ export const EditForm = memo(props => {
   }, [JSON.stringify(result)]);
 
   useEffect(() => {
+    if (record) {
+      setLogo((state) => ({ ...state, ...(record.enabled_module?.ai_chat?.start_page_config?.logo || {}) }))
+      setAssistants(record?.enabled_module?.ai_chat?.assistants ? record?.enabled_module?.ai_chat?.assistants.map((item) => ({
+        id: item
+      })) : [])
+    }
     const initValue = record
       ? {
           ...record,
+          enabled_module: {
+            ...(record.enabled_module || {}),
+            search: {
+              ...(record.enabled_module?.search || {}),
+              datasource: record.enabled_module?.search?.datasource?.includes('*') ? ['*'] : record.enabled_module?.search?.datasource
+            },
+            ai_chat: {
+              ...(record.enabled_module?.ai_chat || {}),
+              assistants: record.enabled_module?.ai_chat?.assistants ? record.enabled_module?.ai_chat?.assistants.map((item) => ({
+                id: item
+              })) : []
+            }
+          },
           cors: {
             ...(record.cors || {}),
             allowed_origins: record.cors?.allowed_origins ? record.cors?.allowed_origins.join(',') : ''
+          },
+          start_page: {
+            ...(record.enabled_module?.ai_chat?.start_page_config || {}),
+            display_assistants: record.enabled_module?.ai_chat?.start_page_config?.display_assistants ? record.enabled_module?.ai_chat?.start_page_config?.display_assistants.map((item) => ({
+              id: item
+            })) : []
           }
         }
       : {
@@ -90,7 +147,6 @@ export const EditForm = memo(props => {
             allowed_origins: '*',
             enabled: true
           },
-          datasource: ['*'],
           enabled_module: {
             ai_chat: {
               enabled: true,
@@ -99,6 +155,7 @@ export const EditForm = memo(props => {
             features: ['search_active', 'think_active'],
             search: {
               enabled: true,
+              datasource: ['*'],
               placeholder: 'Search whatever you want...'
             }
           },
@@ -199,20 +256,22 @@ export const EditForm = memo(props => {
         {['embedded', 'all'].includes(type) && (
           <>
             <Form.Item label=" ">
+              <div className="mb-8px">
+                {t('page.integration.form.labels.type_embedded_placeholder')}
+              </div>
               <Form.Item
-                className="mb-32px"
-                label={t('page.integration.form.labels.type_embedded_placeholder')}
-                layout="vertical"
                 name={['options', 'embedded_placeholder']}
+                className="mb-0px"
               >
                 <Input className={itemClassNames} />
               </Form.Item>
             </Form.Item>
             <Form.Item label=" ">
+              <div className="mb-8px">
+                {t('page.integration.form.labels.type_embedded_icon')}
+              </div>
               <Form.Item
-                className="mb-32px"
-                label={t('page.integration.form.labels.type_embedded_icon')}
-                layout="vertical"
+                className="mb-0px"
                 name={['options', 'embedded_icon']}
               >
                 <Input className={itemClassNames} placeholder={`${window.location.origin}/icon.svg`}/>
@@ -223,20 +282,22 @@ export const EditForm = memo(props => {
         {['floating', 'all'].includes(type) && (
           <>
             <Form.Item label=" ">
+              <div className="mb-8px">
+                {t('page.integration.form.labels.type_floating_placeholder')}
+              </div>
               <Form.Item
-                className="mb-32px"
-                label={t('page.integration.form.labels.type_floating_placeholder')}
-                layout="vertical"
+                className="mb-0px"
                 name={['options', 'floating_placeholder']}
               >
                 <Input className={itemClassNames} />
               </Form.Item>
             </Form.Item>
             <Form.Item label=" ">
+              <div className="mb-8px">
+                {t('page.integration.form.labels.type_floating_icon')}
+              </div>
               <Form.Item
-                className="mb-32px"
-                label={t('page.integration.form.labels.type_floating_icon')}
-                layout="vertical"
+                className="mb-0px"
                 name={['options', 'floating_icon']}
               >
                 <Input className={itemClassNames}  placeholder={`${window.location.origin}/icon.svg`}/>
@@ -244,24 +305,6 @@ export const EditForm = memo(props => {
             </Form.Item>
           </>
         )}
-        <Form.Item
-          label={t('page.integration.form.labels.datasource')}
-          name="datasource"
-          rules={[defaultRequiredRule]}
-        >
-          <Select
-            allowClear
-            className={itemClassNames}
-            loading={dataSourceLoading}
-            mode="multiple"
-            options={[{ label: '*', value: '*' }].concat(
-              dataSource.map(item => ({
-                label: item.name,
-                value: item.id
-              }))
-            )}
-          />
-        </Form.Item>
         <Form.Item
           label={t('page.integration.form.labels.hotkey')}
           name="hotkey"
@@ -276,61 +319,97 @@ export const EditForm = memo(props => {
           name="enabled_module"
         >
           <Form.Item
-            className="mb-12px"
+            className="mb-0px"
             label={t('page.integration.form.labels.module_search')}
-            layout="horizontal"
             name={['enabled_module', 'search', 'enabled']}
           >
             <Switch size="small" />
           </Form.Item>
+        </Form.Item>
+        <Form.Item label=" " >
+          <div className="mb-8px">
+            {t('page.integration.form.labels.datasource')}
+          </div>
           <Form.Item
-            className="mb-48px"
-            label={t('page.integration.form.labels.module_search_placeholder')}
-            layout="vertical"
+            className="mb-0px"
+            name={['enabled_module', 'search', 'datasource']}
+            rules={[defaultRequiredRule]}
+          >
+            <Select
+              allowClear
+              className={itemClassNames}
+              loading={dataSourceLoading}
+              mode="multiple"
+              options={[{ label: '*', value: '*' }].concat(
+                dataSource.map(item => ({
+                  label: item.name,
+                  value: item.id
+                }))
+              )}
+            />
+          </Form.Item>
+        </Form.Item>
+        <Form.Item label=" ">
+          <div className="mb-8px">
+            {t('page.integration.form.labels.module_search_placeholder')}
+          </div>
+          <Form.Item
+            className="mb-0px"
             name={['enabled_module', 'search', 'placeholder']}
           >
             <Input className={itemClassNames} />
           </Form.Item>
+        </Form.Item>
+        <Form.Item label=" ">
           <Form.Item
-            className="mb-12px"
+            className="mb-0px"
             label={t('page.integration.form.labels.module_chat')}
-            layout="horizontal"
             name={['enabled_module', 'ai_chat', 'enabled']}
           >
             <Switch size="small" />
           </Form.Item>
+        </Form.Item>
+        <Form.Item label=" ">
+          <div className="mb-8px">
+            {t('page.integration.form.labels.module_chat_ai_assistant')}
+          </div>
           <Form.Item
-            className="mb-48px"
-            label={t('page.integration.form.labels.module_chat_placeholder')}
-            layout="vertical"
+            name={['enabled_module', 'ai_chat', 'assistants']}
+            rules={[defaultRequiredRule]}
+            className="mb-0px"
+          >
+            <AIAssistantSelect mode="multiple" className={itemClassNames} onChange={(as) => {
+              setAssistants(as)
+              const startPageSettings = form.getFieldValue('start_page') || {}
+              const { display_assistants = [] } = startPageSettings 
+              form.setFieldValue('start_page', {
+                ...startPageSettings,
+                display_assistants: display_assistants.filter((item) => !!(as.find((a) => a.id === item.id)))
+              })
+            }}/>
+          </Form.Item>
+        </Form.Item>
+        <Form.Item label=" ">
+          <div className="mb-8px">
+            {t('page.integration.form.labels.module_chat_placeholder')}
+          </div>
+          <Form.Item
+            className="mb-0px"
             name={['enabled_module', 'ai_chat', 'placeholder']}
           >
             <Input className={itemClassNames} />
           </Form.Item>
+        </Form.Item>
+        <Form.Item label=" ">
+          <div className="mb-8px">
+            {t('page.integration.form.labels.feature_Control')}
+          </div>
           <Form.Item
-            className="mb-44px"
-            label={t('page.integration.form.labels.feature_Control')}
-            layout="vertical"
+            className="mb-0px"
             name={['enabled_module', 'features']}
           >
             <Checkbox.Group
               options={[
-                {
-                  label: t('page.integration.form.labels.feature_think_active'),
-                  value: 'think_active'
-                },
-                {
-                  label: t('page.integration.form.labels.feature_think'),
-                  value: 'think'
-                },
-                {
-                  label: t('page.integration.form.labels.feature_search_active'),
-                  value: 'search_active'
-                },
-                {
-                  label: t('page.integration.form.labels.feature_search'),
-                  value: 'search'
-                },
                 {
                   label: t('page.integration.form.labels.feature_chat_history'),
                   value: 'chat_history'
@@ -338,6 +417,9 @@ export const EditForm = memo(props => {
               ]}
             />
           </Form.Item>
+        </Form.Item>
+        <Form.Item label=" ">
+          <ChartStartPage assistants={assistants} isSub={true} startPageSettings={record?.enabled_module?.ai_chat?.start_page_config} logo={logo} setLogo={setLogo}/>
         </Form.Item>
         <Form.Item
           label={t('page.integration.form.labels.access_control')}
@@ -356,10 +438,11 @@ export const EditForm = memo(props => {
           label={t('page.integration.form.labels.appearance')}
           name="appearance"
         >
+          <div className="mb-8px">
+            {t('page.integration.form.labels.theme')}
+          </div>
           <Form.Item
-            className="mb-32px"
-            label={t('page.integration.form.labels.theme')}
-            layout="vertical"
+            className="mb-0px"
             name={['appearance', 'theme']}
           >
             <Select
@@ -384,20 +467,19 @@ export const EditForm = memo(props => {
         </Form.Item>
         <Form.Item
           label={t('page.integration.form.labels.cors')}
+          name={['cors', 'enabled']}
+        >
+          <Switch size="small" />
+        </Form.Item>
+        <Form.Item
+          label=" "
           name="cors"
         >
+          <div className="mb-8px">
+            {t('page.integration.form.labels.allow_origin')}
+          </div>
           <Form.Item
-            className="mb-12px"
-            label=""
-            layout="horizontal"
-            name={['cors', 'enabled']}
-          >
-            <Switch size="small" />
-          </Form.Item>
-          <Form.Item
-            className="mb-98px"
-            label={t('page.integration.form.labels.allow_origin')}
-            layout="vertical"
+            className="mb-0px"
             name={['cors', 'allowed_origins']}
           >
             <Input.TextArea

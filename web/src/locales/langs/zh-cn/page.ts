@@ -165,6 +165,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         hotkey: '快捷键',
         hotkey_placeholder: '设置呼出 CocoAI 的快捷键',
         module_chat: 'AI 聊天',
+        module_chat_ai_assistant: 'AI 助手',
         module_chat_placeholder: 'AI 聊天输入框提示文本',
         module_search: '搜索',
         module_search_placeholder: '搜索输入框提示文本',

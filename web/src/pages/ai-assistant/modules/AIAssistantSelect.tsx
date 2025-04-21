@@ -6,7 +6,7 @@ import { formatESSearchResult } from "@/service/request/es";
 
 export default (props) => {
 
-    const { value, onChange, width } = props;
+    const { value, onChange, width, className, mode, assistants } = props;
 
     const { t } = useTranslation();
 
@@ -19,6 +19,10 @@ export default (props) => {
     });
 
     const { data: itemRes, loading: itemLoading, run: fetchItem } = useRequest(getAssistant, {
+      manual: true,
+    });
+
+    const { data: itemsRes, loading: itemsLoading, run: fetchItems } = useRequest(searchAssistant, {
       manual: true,
     });
 
@@ -37,34 +41,57 @@ export default (props) => {
           [item[0]]: {
             "order": item[1]
           }
-        }))
+        })),
+        filters: assistants?.length > 0 ? [
+          {"terms":{"id": assistants.map((item) => item.id)}}
+        ] : []
       })
-    }, [queryParams, sorter])
+    }, [queryParams, sorter, assistants])
 
     useEffect(() => {
-      if (value?.id && !value?.name) {
-        fetchItem(value.id)
+      if (mode === 'multiple') {
+        if (value && value.some((item) => !!(item?.id && !item?.name))) {
+          fetchItems({
+            filters: [
+              {"terms":{"id": value.map((item) => item.id)}}
+            ],
+            from: 0, 
+            size: 10000,
+          })
+        }
+      } else {
+        if (value?.id && !value?.name) {
+          fetchItem(value.id)
+        }
       }
-    }, [JSON.stringify(value)])
+    }, [JSON.stringify(value), mode])
 
     const result = useMemo(() => {
       return formatESSearchResult(res?.data);
     }, [res])
 
     const formatValue = useMemo(() => {
-      if (value?.id && !value?.name && itemRes?.data) {
-        return itemRes?.data._source
+      if (mode === 'multiple') {
+        if (value && value.some((item) => !!(item?.id && !item?.name)) && itemsRes?.data) {
+          return itemsRes?.data?.hits?.hits ? itemsRes?.data?.hits?.hits.map((item) => item._source) : []
+        }
+        return value || []
+      } else {
+        if (value?.id && !value?.name && itemRes?.data) {
+          return itemRes?.data._source
+        }
+        return value
       }
-      return value
-    }, [value, itemRes?.data])
+    }, [value, itemRes?.data, itemsRes?.data, mode])
 
     const { data, total } = result;
 
     return (
       <div className="flex gap-2 items-center">
         <DropdownList
+          mode={mode}
           getPopupContainer={(triggerNode) => triggerNode.parentNode}
-          className="ai-assistant-select"
+          className={`ai-assistant-select ${className}`}
           value={formatValue}
           loading={loading || itemLoading}
           onChange={onChange}

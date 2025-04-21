@@ -38,11 +38,6 @@
     padding-top: 3px;
     margin-right: -8px;
   }
-  .settings-form-help {
-    color: var(--ant-color-text-description);
-    font-size: var(--ant-font-size);
-    line-height: var(--ant-line-height);
-  }
   .sub-form-item {
     .ant-form-item-label > label {
       color: var(--ant-color-text-description);
@@ -50,4 +45,10 @@
       line-height: var(--ant-line-height);
     }
   }
+}
+
+.settings-form-help {
+  color: var(--ant-color-text-description);
+  font-size: var(--ant-font-size);
+  line-height: var(--ant-line-height);
 }
