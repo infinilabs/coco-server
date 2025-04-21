@@ -169,7 +169,7 @@ export function Component() {
           </div>
         </div>
         {type === Types.GoogleDrive ? (
-          <GoogleDrive />
+          <GoogleDrive connector={connector} />
         ) : (
           <div>
             <Form

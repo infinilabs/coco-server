@@ -56,6 +56,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       type: '类型'
     },
     connect: '连接',
+    missing_config_tip: "Google 授权相关参数没有设置，需设置后才能连接，点击确认跳转到设置页面。",
     delete: {
       confirm: '确定删除这个数据源？'
     },

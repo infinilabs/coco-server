@@ -53,6 +53,12 @@ func (h *APIHandler) widgetWrapper(w http.ResponseWriter, req *http.Request, ps 
 		return
 	}
 
+	if !obj.Enabled {
+		h.WriteJavascriptHeader(w)
+		h.WriteHeader(w, 200)
+		return
+	}
+
 	info := common.AppConfig()
 	token := obj.Token
 

@@ -67,6 +67,7 @@ func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprou
 
 	var err error
 	var create *time.Time
+	var builtin bool
 	if !replace {
 		obj.ID = id
 		exists, err := orm.Get(&obj)
@@ -79,6 +80,7 @@ func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprou
 		}
 		id = obj.ID
 		create = obj.Created
+		builtin = obj.Builtin
 	} else {
 		t := time.Now()
 		create = &t
@@ -94,6 +96,7 @@ func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprou
 	//protect
 	obj.ID = id
 	obj.Created = create
+	obj.Builtin = builtin
 	ctx := &orm.Context{
 		Refresh: orm.WaitForRefresh,
 	}

@@ -86,25 +86,6 @@ docker run -d \
 
 Follow these steps for a manual setup:
 
-### Ollama
-
-Install Ollama
-```
-curl -fsSL https://ollama.com/install.sh | sh
-```
-
-Start Ollama server
-```
-OLLAMA_HOST=0.0.0.0:11434 ollama serve
-```
-
-Pull the following models
-```
-ollama pull deepseek-r1:1.5b 
-```
-
-> Ollama is not required, you may use other online LLM services as you wish.
-
 ### Easysearch
 
 Install Easysearch
