@@ -334,6 +334,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       datasource: "数据源",
       mcp_servers: "MCP 服务器",
       show_in_chat: "在聊天界面中显示",
+      max_iterations: "最大迭代次数",
+      caller_model: "调用模型",
     },
     mode:{
       simple: "简单模式",

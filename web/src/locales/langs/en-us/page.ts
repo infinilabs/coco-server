@@ -341,6 +341,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       datasource: "Datasource",
       mcp_servers: "MCP Servers",
       show_in_chat: "Show in chat",
+      max_iterations: "Max iterations",
+      caller_model: "Caller Model",
     },
     mode:{
       simple: "Simple",

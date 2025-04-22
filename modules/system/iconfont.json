@@ -6,6 +6,20 @@
   "description": "",
   "glyphs": [
     {
+      "icon_id": "44105147",
+      "name": "Coco AI",
+      "font_class": "coco",
+      "unicode": "e742",
+      "unicode_decimal": 59202
+    },
+    {
+      "icon_id": "44104461",
+      "name": "robot",
+      "font_class": "robot",
+      "unicode": "e741",
+      "unicode_decimal": 59201
+    },
+    {
       "icon_id": "44018935",
       "name": "coco-logo-line",
       "font_class": "coco-logo-line",
