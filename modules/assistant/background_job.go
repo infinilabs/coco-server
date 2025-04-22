@@ -30,6 +30,7 @@ import (
 	"github.com/tmc/langchaingo/llms"
 	"github.com/tmc/langchaingo/llms/ollama"
 	"github.com/tmc/langchaingo/llms/openai"
+	"time"
 	"infini.sh/coco/modules/assistant/rag"
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/modules/search"
@@ -50,6 +51,7 @@ type processingParams struct {
 	deepThink    bool
 	from         int
 	size         int
+	mcpServers   string
 	datasource   string
 	category     string
 	username     string
@@ -84,10 +86,50 @@ type processingParams struct {
 
 const DefaultAssistantID = "default"
 
+// GetAssistant retrieves the assistant object from the cache or database.
+func GetAssistant(assistantID string) (*common.Assistant, error) {
+	item := common.GeneralObjectCache.Get(common.AssistantCachePrimary, assistantID)
+	var assistant *common.Assistant
+	if item != nil && !item.Expired() {
+		var ok bool
+		if assistant, ok = item.Value().(*common.Assistant); ok {
+			return assistant, nil
+		}
+	}
+	assistant = &common.Assistant{}
+	assistant.ID = assistantID
+	_, err := orm.Get(assistant)
+	if err != nil {
+		return nil, err
+	}
+
+	//expand datasource is the datasource is `*`
+	if util.ContainsAnyInArray("*", assistant.Datasource.IDs) {
+		ids, err := common.GetAllEnabledDatasourceIDs()
+		if err != nil {
+			panic(err)
+		}
+		assistant.Datasource.IDs = ids
+	}
+
+	if util.ContainsAnyInArray("*", assistant.MCPConfig.IDs) {
+		ids, err := common.GetAllEnabledMCPServerIDs()
+		if err != nil {
+			panic(err)
+		}
+		assistant.MCPConfig.IDs = ids
+	}
+
+	// Cache the assistant object
+	common.GeneralObjectCache.Set(common.AssistantCachePrimary, assistantID, assistant, time.Duration(30)*time.Minute)
+	return assistant, nil
+}
+
 func (h APIHandler) extractParameters(req *http.Request) (*processingParams, error) {
 	params := &processingParams{
 		searchDB:     h.GetBoolOrDefault(req, "search", false),
 		deepThink:    h.GetBoolOrDefault(req, "deep_thinking", false),
+		mcpServers:   h.GetParameterOrDefault(req, "mcp_servers", ""),
 		from:         h.GetIntOrDefault(req, "from", 0),
 		size:         h.GetIntOrDefault(req, "size", 10),
 		datasource:   h.GetParameterOrDefault(req, "datasource", ""),
@@ -104,7 +146,7 @@ func (h APIHandler) extractParameters(req *http.Request) (*processingParams, err
 	assistantID := h.GetParameterOrDefault(req, "assistant_id", DefaultAssistantID)
 	params.assistantID = assistantID
 
-	assistant, err := common.GetAssistant(assistantID)
+	assistant, err := GetAssistant(assistantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get assistant with id [%v]: %w", assistantID, err)
 	}

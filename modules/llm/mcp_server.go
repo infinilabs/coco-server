@@ -49,6 +49,8 @@ func (h *APIHandler) createMCPServer(w http.ResponseWriter, req *http.Request, p
 		return
 	}
 
+	common.ClearMCPServerCache()
+
 	h.WriteJSON(w, util.MapStr{
 		"_id":    obj.ID,
 		"result": "created",
@@ -109,7 +111,7 @@ func (h *APIHandler) updateMCPServer(w http.ResponseWriter, req *http.Request, p
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
+	common.ClearMCPServerCache()
 	h.WriteJSON(w, util.MapStr{
 		"_id":    obj.ID,
 		"result": "updated",
@@ -138,7 +140,7 @@ func (h *APIHandler) deleteMCPServer(w http.ResponseWriter, req *http.Request, p
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
+	common.ClearMCPServerCache()
 	h.WriteJSON(w, util.MapStr{
 		"_id":    obj.ID,
 		"result": "deleted",

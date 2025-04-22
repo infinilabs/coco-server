@@ -29,7 +29,7 @@ const (
 
 // GetModelProvider retrieves the model provider object from the cache or database.
 func GetModelProvider(providerID string) (*ModelProvider, error) {
-	item := AssistantCache.Get(ModelProviderCachePrimary, providerID)
+	item := GeneralObjectCache.Get(ModelProviderCachePrimary, providerID)
 	var provider *ModelProvider
 	if item != nil && !item.Expired() {
 		var ok bool
@@ -44,6 +44,6 @@ func GetModelProvider(providerID string) (*ModelProvider, error) {
 		return nil, err
 	}
 	// Cache the provider object
-	AssistantCache.Set(AssistantCachePrimary, providerID, provider, time.Duration(30)*time.Minute)
+	GeneralObjectCache.Set(AssistantCachePrimary, providerID, provider, time.Duration(30)*time.Minute)
 	return provider, nil
 }

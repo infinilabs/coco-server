@@ -82,7 +82,7 @@ func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprou
 		return
 	}
 	//clear cache
-	common.AssistantCache.Delete(common.ModelProviderCachePrimary, id)
+	common.GeneralObjectCache.Delete(common.ModelProviderCachePrimary, id)
 
 	h.WriteUpdatedOKJSON(w, obj.ID)
 }
@@ -112,7 +112,7 @@ func (h *APIHandler) delete(w http.ResponseWriter, req *http.Request, ps httprou
 		return
 	}
 	//clear cache
-	common.AssistantCache.Delete(common.ModelProviderCachePrimary, id)
+	common.GeneralObjectCache.Delete(common.ModelProviderCachePrimary, id)
 
 	h.WriteDeletedOKJSON(w, obj.ID)
 }
