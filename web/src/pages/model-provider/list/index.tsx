@@ -145,9 +145,9 @@ export function Component() {
                  <div className="flex justify-between">
                     <div className="flex gap-15px">
                       <div className="flex items-center gap-8px">
-                        <div className="bg-#fff w-40px h-40px border border-[var(--ant-color-border)] rounded-[20px] flex items-center justify-center">
+                        <IconWrapper className="w-40px h-40px">
                           <InfiniIcon src={provider.icon} height="2em" width="2em" className="font-size-2em"/>
-                        </div>
+                        </IconWrapper>
                         <span className="font-size-1.2em">{provider.name}</span>
                       </div>
                       {provider.builtin === true && <div className="flex items-center">

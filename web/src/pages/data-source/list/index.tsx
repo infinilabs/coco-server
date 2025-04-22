@@ -48,13 +48,13 @@ export function Component() {
   const nav = useNavigate();
   const items: MenuProps['items'] = [
     {
+      key: '2',
+      label: t('common.edit')
+    },
+    {
       key: '1',
       label: t('common.delete')
     },
-    {
-      key: '2',
-      label: t('common.edit')
-    }
   ];
 
   const onMenuClick = ({ key, record }: any) => {
@@ -143,11 +143,13 @@ export function Component() {
               })
             }
           >
-            <InfiniIcon
-              height="1em"
-              src={iconSrc}
-              width="1em"
-            />
+            <IconWrapper className="w-20px h-20px">
+              <InfiniIcon
+                height="1em"
+                src={iconSrc}
+                width="1em"
+              />
+            </IconWrapper>
             {value}
           </a>
         );

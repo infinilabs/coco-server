@@ -182,15 +182,17 @@ const ConnectorSettings = memo(() => {
         }
         return (
           <div className="flex items-center">
-            {svgIcon ? (
-              <Icon component={svgIcon} />
-            ) : (
-              <InfiniIcon
-                height="1em"
-                src={record.icon}
-                width="1em"
-              />
-            )}
+            <IconWrapper className="w-20px h-20px">
+              {svgIcon ? (
+                <Icon component={svgIcon} />
+              ) : (
+                <InfiniIcon
+                  height="1em"
+                  src={record.icon}
+                  width="1em"
+                />
+              )}
+            </IconWrapper>
             <span className="ml-2">{name}</span>
           </div>
         );

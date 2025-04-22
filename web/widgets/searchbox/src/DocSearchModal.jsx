@@ -55,10 +55,10 @@ export const DocSearchModal = ({
             }}
             width={680}
             height={590}
+            assistantIDs={ai_chat?.assistants || []}
             hasModules={hasModules}
             searchPlaceholder={search?.placeholder || 'Search whatever you want...'}
             chatPlaceholder={ai_chat?.placeholder || 'Ask whatever you want...'}
-            hasFeature={features || []}
             theme={theme}
             showChatHistory={features?.includes('chat_history')}
             setIsPinned={setIsPinned}
