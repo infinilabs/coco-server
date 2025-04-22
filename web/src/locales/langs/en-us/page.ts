@@ -357,6 +357,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       type: "Type",
       enabled: "Enabled",
       description: "Description",
+      icon: "Icon",
+      category: "Category",
       config: {
         command: "Command",
         args: "Arguments",

@@ -81,13 +81,24 @@ export function Component() {
       minWidth: 150,
       ellipsis: true,
       render: (value: string, record: MCPServer)=>{
-        return value;
+        return (
+          <div className='flex items-center gap-1'>
+            <InfiniIcon height="1em" width="1em" src={record.icon}/>
+            <span className='max-w-150px ant-table-cell-ellipsis'>{ value }</span>
+          </div>
+        )
       }
     },
     {
       title: t('page.mcpserver.labels.type'),
       minWidth: 50,
       dataIndex: "type",
+    },
+    {
+      title: t('page.mcpserver.labels.category'),
+      minWidth: 50,
+      dataIndex: "category",
+      ellipsis: true,
     },
     {
       title: t('page.mcpserver.labels.description'),
