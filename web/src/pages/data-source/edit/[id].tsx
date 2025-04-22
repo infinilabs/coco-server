@@ -181,7 +181,7 @@ export function Component() {
                 label={t('page.datasource.new.labels.insert_doc')}
                 name=""
               >
-                <div className="max-w-660px rounded bg-gray-100 p-1em">
+                <div className="max-w-660px rounded-[var(--ant-border-radius)] bg-[var(--ant-color-border)] p-1em">
                   <div>
                     <pre
                       className="whitespace-pre-wrap break-words"
