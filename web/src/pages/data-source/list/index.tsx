@@ -168,6 +168,7 @@ export function Component() {
       render: (value: boolean, record: Datasource) => {
         return (
           <Switch
+            size="small"
             value={value}
             onChange={v => onSyncEnabledChange(v, record)}
           />
@@ -181,6 +182,7 @@ export function Component() {
       render: (value: boolean, record: Datasource) => {
         return (
           <Switch
+            size="small"
             value={value}
             onChange={v => onEnabledChange(v, record)}
           />

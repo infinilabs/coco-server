@@ -38,9 +38,9 @@ export function Component() {
         bordered={false}
         className="min-h-full flex-col-stretch sm:flex-1-hidden card-wrapper"
       >
-        <div className="mb-4 ml--16px flex items-center text-lg font-bold">
+        <div className="mb-30px ml--16px flex items-center text-lg font-bold">
           <div className="mr-20px h-1.2em w-10px bg-[#1677FF]" />
-          <div>{t(`route.ai-assistant_edit`)}</div>
+          <div>{t(`route.mcp-server_edit`)}</div>
         </div>
         <div className="px-30px">
           <EditForm initialValues={data?._source || {}} loading={loading} onSubmit={onSubmit} mode="edit" />

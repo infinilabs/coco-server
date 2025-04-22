@@ -141,11 +141,13 @@ export function Component() {
           dataSource={data.data}
           renderItem={(provider) => (
             <List.Item>
-               <div className="p-1em min-h-[132px] border border-gray-300 group rounded-[8px] hover:bg-gray-100 hover:bg-opacity-100">
+               <div className="p-1em min-h-[132px] border border-[var(--ant-color-border)] group rounded-[8px] hover:bg-[var(--ant-control-item-bg-hover)]">
                  <div className="flex justify-between">
                     <div className="flex gap-15px">
                       <div className="flex items-center gap-8px">
-                        <InfiniIcon src={provider.icon} height="2em" width="2em" className="font-size-2em"/>
+                        <div className="bg-#fff w-40px h-40px border border-[var(--ant-color-border)] rounded-[20px] flex items-center justify-center">
+                          <InfiniIcon src={provider.icon} height="2em" width="2em" className="font-size-2em"/>
+                        </div>
                         <span className="font-size-1.2em">{provider.name}</span>
                       </div>
                       {provider.builtin === true && <div className="flex items-center">
@@ -162,8 +164,8 @@ export function Component() {
                   <div className="flex gap-1">
 
                     <div className="ml-auto flex gap-2">
-                      <div onClick={()=>{onAPIKeyClick(provider)}} className="border border-gray-200 cursor-pointer  px-10px rounded-[8px]">API-key</div>
-                      <div className="inline-block px-4px rounded-[8px] border border-gray-200 cursor-pointer">
+                      <div onClick={()=>{onAPIKeyClick(provider)}} className="border border-[var(--ant-color-border)] cursor-pointer  px-10px rounded-[8px]">API-key</div>
+                      <div className="inline-block px-4px rounded-[8px] border border-[var(--ant-color-border)] cursor-pointer">
                         <Dropdown menu={{ items, onClick:({key})=>onMenuClick({key, record: provider}) }}>
                             <SettingOutlined className="text-blue-500"/>
                         </Dropdown>

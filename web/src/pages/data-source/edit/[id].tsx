@@ -136,7 +136,7 @@ export function Component() {
         bordered={false}
         className="sm:flex-1-auto min-h-full flex-col-stretch card-wrapper"
       >
-        <div className="mb-4 ml--16px flex items-center text-lg font-bold">
+        <div className="mb-30px ml--16px flex items-center text-lg font-bold">
           <div className="mr-20px h-1.2em w-10px bg-[#1677FF]" />
           {t('page.datasource.edit.title')}
         </div>
@@ -173,7 +173,7 @@ export function Component() {
                   label={t('page.datasource.new.labels.sync_enabled')}
                   name="sync_enabled"
                 >
-                  <Switch />
+                  <Switch size="small"/>
                 </Form.Item>
               </>
             ) : (
@@ -224,7 +224,7 @@ export function Component() {
               label={t('page.datasource.new.labels.enabled')}
               name="enabled"
             >
-              <Switch />
+              <Switch size="small"/>
             </Form.Item>
             <Form.Item label=" ">
               <Button
