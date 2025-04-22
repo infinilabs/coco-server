@@ -116,7 +116,7 @@ export const EditForm = memo((props: MCPServerFormProps)=> {
             </Form.Item>
             </>}
             <Form.Item label={t('page.mcpserver.labels.enabled')} name="enabled">
-              <Switch />
+              <Switch size="small"/>
             </Form.Item>
             <Form.Item label=" ">
              <Button type='primary'  htmlType="submit">{t('common.save')}</Button>

@@ -100,7 +100,7 @@ export function Component() {
       title: t('page.mcpserver.labels.enabled'),
       width: 80,
       render: (value: boolean, record: MCPServer)=>{
-       return <Switch value={value} onChange={(v)=>onEnabledChange(v, record)}/>
+       return <Switch size="small" value={value} onChange={(v)=>onEnabledChange(v, record)}/>
       }
     },
     {
