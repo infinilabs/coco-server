@@ -24,115 +24,11 @@
 package common
 
 import (
-	"infini.sh/framework/core/orm"
 	ccache "infini.sh/framework/lib/cache"
-	"time"
 )
 
 const (
-	generalCache                  = "general_object_cache"
-	DisabledDatasourceIDsCacheKey = "disabled_datasource_ids"
-	EnabledDatasourceIDsCacheKey  = "enabled_datasource_ids"
-	EnabledMCPServerIDsCacheKey   = "enabled_mcp_server_ids"
-
-	AssistantCachePrimary = "assistant"
+	generalCache = "general_object_cache"
 )
 
 var GeneralObjectCache = ccache.Layered(ccache.Configure().MaxSize(10000).ItemsToPrune(100))
-
-func ClearDatasourceCache() {
-	GeneralObjectCache.Delete(generalCache, DisabledDatasourceIDsCacheKey)
-	GeneralObjectCache.Delete(generalCache, EnabledDatasourceIDsCacheKey)
-}
-
-// GetDisabledDatasourceIDs retrieves the list of disabled data source IDs from the cache.
-func GetDisabledDatasourceIDs() ([]string, error) {
-	item := GeneralObjectCache.Get(generalCache, DisabledDatasourceIDsCacheKey)
-	var datasourceIDs []string
-	if item != nil && !item.Expired() {
-		var ok bool
-		if datasourceIDs, ok = item.Value().([]string); ok {
-			return datasourceIDs, nil
-		}
-	}
-	// Cache is empty, read from database and cache the IDs
-	var datasources []DataSource
-	q := orm.Query{
-		Conds: orm.And(orm.Eq("enabled", false)), // Query for disabled data sources
-	}
-	err, _ := orm.SearchWithJSONMapper(&datasources, &q)
-	if err != nil {
-		return nil, err
-	}
-
-	// Extract IDs from the retrieved data sources
-	datasourceIDs = make([]string, len(datasources))
-	for i, ds := range datasources {
-		datasourceIDs[i] = ds.ID
-	}
-	GeneralObjectCache.Set(generalCache, DisabledDatasourceIDsCacheKey, datasourceIDs, time.Duration(30)*time.Minute)
-	return datasourceIDs, nil
-
-}
-
-func GetAllEnabledDatasourceIDs() ([]string, error) {
-	item := GeneralObjectCache.Get(generalCache, EnabledDatasourceIDsCacheKey)
-	var datasourceIDs []string
-	if item != nil && !item.Expired() {
-		var ok bool
-		if datasourceIDs, ok = item.Value().([]string); ok {
-			return datasourceIDs, nil
-		}
-	}
-	// Cache is empty, read from database and cache the IDs
-	var datasources []DataSource
-	q := orm.Query{
-		Conds: orm.And(orm.Eq("enabled", true)),
-	}
-	err, _ := orm.SearchWithJSONMapper(&datasources, &q)
-	if err != nil {
-		return nil, err
-	}
-
-	// Extract IDs from the retrieved data sources
-	datasourceIDs = make([]string, len(datasources))
-	for i, ds := range datasources {
-		datasourceIDs[i] = ds.ID
-	}
-	GeneralObjectCache.Set(generalCache, EnabledDatasourceIDsCacheKey, datasourceIDs, time.Duration(30)*time.Minute)
-	return datasourceIDs, nil
-
-}
-
-func ClearMCPServerCache() {
-	GeneralObjectCache.Delete(generalCache, EnabledMCPServerIDsCacheKey)
-}
-
-func GetAllEnabledMCPServerIDs() ([]string, error) {
-	item := GeneralObjectCache.Get(generalCache, EnabledMCPServerIDsCacheKey)
-	var idArray []string
-	if item != nil && !item.Expired() {
-		var ok bool
-		if idArray, ok = item.Value().([]string); ok {
-			return idArray, nil
-		}
-	}
-	// Cache is empty, read from database and cache the IDs
-	var server []MCPServer
-	q := orm.Query{
-		Conds: orm.And(orm.Eq("enabled", true)),
-	}
-	err, _ := orm.SearchWithJSONMapper(&server, &q)
-	if err != nil {
-		return nil, err
-	}
-
-	// Extract IDs from the retrieved data sources
-	idArray = make([]string, len(server))
-	for i, ds := range server {
-		idArray[i] = ds.ID
-	}
-	GeneralObjectCache.Set(generalCache, EnabledMCPServerIDsCacheKey, idArray, time.Duration(30)*time.Minute)
-	return idArray, nil
-
-}

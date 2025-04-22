@@ -23,10 +23,18 @@
 
 package common
 
+import (
+	"infini.sh/framework/core/orm"
+	"infini.sh/framework/core/util"
+	"time"
+)
+
 const (
 	AssistantTypeSimple           = "simple"
 	AssistantTypeDeepThink        = "deep_think"
 	AssistantTypeExternalWorkflow = "external_workflow"
+
+	AssistantCachePrimary = "assistant"
 )
 
 type Assistant struct {
@@ -97,4 +105,43 @@ type ChatSettings struct {
 		CompressionThreshold int  `json:"compression_threshold"`
 		Summary              bool `json:"summary"`
 	} `json:"history_message"`
+}
+
+// GetAssistant retrieves the assistant object from the cache or database.
+func GetAssistant(assistantID string) (*Assistant, error) {
+	item := GeneralObjectCache.Get(AssistantCachePrimary, assistantID)
+	var assistant *Assistant
+	if item != nil && !item.Expired() {
+		var ok bool
+		if assistant, ok = item.Value().(*Assistant); ok {
+			return assistant, nil
+		}
+	}
+	assistant = &Assistant{}
+	assistant.ID = assistantID
+	_, err := orm.Get(assistant)
+	if err != nil {
+		return nil, err
+	}
+
+	//expand datasource is the datasource is `*`
+	if util.ContainsAnyInArray("*", assistant.Datasource.IDs) {
+		ids, err := GetAllEnabledDatasourceIDs()
+		if err != nil {
+			panic(err)
+		}
+		assistant.Datasource.IDs = ids
+	}
+
+	if util.ContainsAnyInArray("*", assistant.MCPConfig.IDs) {
+		ids, err := GetAllEnabledMCPServerIDs()
+		if err != nil {
+			panic(err)
+		}
+		assistant.MCPConfig.IDs = ids
+	}
+
+	// Cache the assistant object
+	GeneralObjectCache.Set(AssistantCachePrimary, assistantID, assistant, time.Duration(30)*time.Minute)
+	return assistant, nil
 }

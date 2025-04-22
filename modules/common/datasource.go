@@ -4,6 +4,11 @@
 
 package common
 
+import (
+	"infini.sh/framework/core/orm"
+	"time"
+)
+
 type DataSource struct {
 	CombinedFullText
 
@@ -20,4 +25,73 @@ type DataSource struct {
 type ConnectorConfig struct {
 	ConnectorID string      `json:"id,omitempty" elastic_mapping:"id:{type:keyword}"`          // Connector ID for the datasource
 	Config      interface{} `json:"config,omitempty" elastic_mapping:"config:{enabled:false}"` // Configs for this Connector
+}
+
+const (
+	DisabledDatasourceIDsCacheKey = "disabled_datasource_ids"
+	EnabledDatasourceIDsCacheKey  = "enabled_datasource_ids"
+)
+
+func ClearDatasourceCache() {
+	GeneralObjectCache.Delete(generalCache, DisabledDatasourceIDsCacheKey)
+	GeneralObjectCache.Delete(generalCache, EnabledDatasourceIDsCacheKey)
+}
+
+// GetDisabledDatasourceIDs retrieves the list of disabled data source IDs from the cache.
+func GetDisabledDatasourceIDs() ([]string, error) {
+	item := GeneralObjectCache.Get(generalCache, DisabledDatasourceIDsCacheKey)
+	var datasourceIDs []string
+	if item != nil && !item.Expired() {
+		var ok bool
+		if datasourceIDs, ok = item.Value().([]string); ok {
+			return datasourceIDs, nil
+		}
+	}
+	// Cache is empty, read from database and cache the IDs
+	var datasources []DataSource
+	q := orm.Query{
+		Conds: orm.And(orm.Eq("enabled", false)), // Query for disabled data sources
+	}
+	err, _ := orm.SearchWithJSONMapper(&datasources, &q)
+	if err != nil {
+		return nil, err
+	}
+
+	// Extract IDs from the retrieved data sources
+	datasourceIDs = make([]string, len(datasources))
+	for i, ds := range datasources {
+		datasourceIDs[i] = ds.ID
+	}
+	GeneralObjectCache.Set(generalCache, DisabledDatasourceIDsCacheKey, datasourceIDs, time.Duration(30)*time.Minute)
+	return datasourceIDs, nil
+
+}
+
+func GetAllEnabledDatasourceIDs() ([]string, error) {
+	item := GeneralObjectCache.Get(generalCache, EnabledDatasourceIDsCacheKey)
+	var datasourceIDs []string
+	if item != nil && !item.Expired() {
+		var ok bool
+		if datasourceIDs, ok = item.Value().([]string); ok {
+			return datasourceIDs, nil
+		}
+	}
+	// Cache is empty, read from database and cache the IDs
+	var datasources []DataSource
+	q := orm.Query{
+		Conds: orm.And(orm.Eq("enabled", true)),
+	}
+	err, _ := orm.SearchWithJSONMapper(&datasources, &q)
+	if err != nil {
+		return nil, err
+	}
+
+	// Extract IDs from the retrieved data sources
+	datasourceIDs = make([]string, len(datasources))
+	for i, ds := range datasources {
+		datasourceIDs[i] = ds.ID
+	}
+	GeneralObjectCache.Set(generalCache, EnabledDatasourceIDsCacheKey, datasourceIDs, time.Duration(30)*time.Minute)
+	return datasourceIDs, nil
+
 }
