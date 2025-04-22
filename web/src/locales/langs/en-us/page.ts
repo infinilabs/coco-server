@@ -341,6 +341,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       datasource: "Datasource",
       mcp_servers: "MCP Servers",
       show_in_chat: "Show in chat",
+      max_iterations: "Max iterations",
+      caller_model: "Caller Model",
     },
     mode:{
       simple: "Simple",
@@ -357,6 +359,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       type: "Type",
       enabled: "Enabled",
       description: "Description",
+      icon: "Icon",
+      category: "Category",
       config: {
         command: "Command",
         args: "Arguments",

@@ -19,6 +19,7 @@ import { searchMCPServer } from '@/service/api/mcp-server';
 import { useLoading } from '@sa/hooks';
 import {AssistantMode} from "./AssistantMode";
 import {DatasourceConfig} from "./DatasourceConfig";
+import {MCPConfig} from "./MCPConfig";
 import {DeepThink} from "./DeepThink";
 import { formatESSearchResult } from '@/service/request/es';
 import ModelSelect from './ModelSelect';
@@ -160,7 +161,8 @@ export const EditForm = memo((props: AssistantFormProps)=> {
               />
             </Form.Item>
             <Form.Item label={t('page.assistant.labels.mcp_servers')} rules={[{ required: true}]} name="mcp_servers">
-              <DatasourceConfig
+              <MCPConfig
+                  modelProviders={modelProviders}
                   options={[{label: "*", value: "*"}].concat(mcpServers.map((item) => ({
                     label: item.name,
                     value: item.id,

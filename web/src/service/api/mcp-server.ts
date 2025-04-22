@@ -73,3 +73,22 @@ export function getMCPServer(serverID: string){
     url: `/mcp_server/${serverID}`
   });
 }
+
+export function getMCPCategory() {
+  const query = {
+    aggs: {
+      categories: {
+        terms: {
+          field: 'category',
+          size: 100
+        }
+      }
+    },
+    size: 0
+  };
+  return request({
+    data: query,
+    method: 'post',
+    url: '/mcp_server/_search'
+  });
+}

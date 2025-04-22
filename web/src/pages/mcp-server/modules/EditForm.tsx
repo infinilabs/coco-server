@@ -11,8 +11,11 @@ import {
   Radio,
 } from 'antd';
 import type { FormProps } from 'antd';
-import {DeleteOutlined, PlusOutlined, UnorderedListOutlined} from "@ant-design/icons";
 import { useLoading } from '@sa/hooks';
+import { IconSelector } from "@/pages/connector/new/icon_selector";
+import {getConnectorIcons} from '@/service/api/connector';
+import {getMCPCategory} from '@/service/api/mcp-server';
+import { formatESSearchResult } from '@/service/request/es';
 
 interface MCPServerFormProps  {
   initialValues: any;
@@ -36,6 +39,7 @@ export const EditForm = memo((props: MCPServerFormProps)=> {
   const { endLoading, loading, startLoading } = useLoading();
 
   const onFinish: FormProps<any>['onFinish'] = (values) => {
+    Array.isArray(values.category) && (values.category = values.category[0]);
     onSubmit?.(values, startLoading, endLoading);
   };
   
@@ -47,6 +51,27 @@ export const EditForm = memo((props: MCPServerFormProps)=> {
   const onTypeChange = (e: any) => {
     setType(e.target.value);
   }
+  const [iconsMeta, setIconsMeta] = useState([]);
+  useEffect(() => {
+    getConnectorIcons().then((res)=>{
+      if(res.data?.length > 0){
+        setIconsMeta(res.data);
+      }
+    });
+  }, []);
+
+  const [categories, setCategories] = useState([]);
+  useEffect(() => {
+    getMCPCategory().then(({ data }) => {
+      if (!data?.error) {
+        const newData = formatESSearchResult(data);
+        const cates = newData.aggregations.categories.buckets.map((item: any) => {
+          return item.key;
+        });
+        setCategories(cates);
+      }
+    });
+  }, []);
 
   return (
         <Spin spinning={props.loading || loading || false}>
@@ -67,6 +92,24 @@ export const EditForm = memo((props: MCPServerFormProps)=> {
             <Form.Item label={t('page.mcpserver.labels.description')} name="description">
               <Input.TextArea className='w-600px' />
             </Form.Item>
+            <Form.Item label={t('page.mcpserver.labels.icon')} name="icon" rules={[{ required: true}]}>
+              <IconSelector type="connector" icons={iconsMeta} className='max-w-300px' />
+            </Form.Item>
+            <Form.Item
+            label={t('page.mcpserver.labels.category')}
+            name="category"
+            rules={[{ required: true }]}
+          >
+            <Select
+              className="max-w-600px"
+              maxCount={1}
+              mode="tags"
+              placeholder="Select or input a category"
+              options={categories.map(cate => {
+                return { value: cate };
+              })}
+            />
+          </Form.Item>
             <Form.Item
                 name={'type'}
                 label={t('page.mcpserver.labels.type')}
