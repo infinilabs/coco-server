@@ -8,6 +8,8 @@ import LinkSVG from '@/assets/svg-icon/link.svg';
 import { DataSync } from '@/components/datasource/data_sync';
 import { Types } from '@/components/datasource/type';
 import { getDatasource, updateDatasource } from '@/service/api/data-source';
+import {getConnectorIcons} from '@/service/api/connector';
+import { IconSelector } from "@/pages/connector/new/icon_selector";
 
 import HugoSite from '../new/hugo_site';
 import Notion from '../new/notion';
@@ -30,6 +32,14 @@ export function Component() {
       }
     });
   }, [datasourceID]);
+  const [iconsMeta, setIconsMeta] = useState([]);
+  useEffect(() => {
+    getConnectorIcons().then((res)=>{
+      if(res.data?.length > 0){
+        setIconsMeta(res.data);
+      }
+    });
+  }, []);
   const copyRef = useRef<HTMLSpanElement | null>(null);
   const insertDocCmd = `curl -H'X-API-TOKEN: REPLACE_YOUR_API_TOKEN_HERE'  -H 'Content-Type: application/json' -XPOST ${location.origin}/datasource/${datasourceID}/_doc -d'
   {
@@ -85,6 +95,7 @@ export function Component() {
       },
       enabled: Boolean(values.enabled),
       name: values.name,
+      icon: values.icon,
       sync_enabled: Boolean(values.sync_enabled),
       type: 'connector'
     };
@@ -158,6 +169,9 @@ export function Component() {
             >
               <Input className="max-w-660px" />
             </Form.Item>
+            <Form.Item label={t('page.mcpserver.labels.icon')} name="icon">
+                <IconSelector type="connector" icons={iconsMeta} className='max-w-300px' />
+              </Form.Item>
             {type === Types.Yuque && <Yuque />}
             {type === Types.Notion && <Notion />}
             {type === Types.HugoSite && <HugoSite />}

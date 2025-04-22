@@ -8,7 +8,7 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/deepseek
   "api_key" : "",
   "api_type" : "deepseek",
   "base_url" : "https://api.deepseek.com/v1",
-  "icon" : "/assets/icons/llm/deepseek.svg",
+  "icon" : "font_deepseek",
   "models" : [
     {"name":"deepseek-chat"},
     {"name":"deepseek-reasoner"}
@@ -137,7 +137,7 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/coco
   "api_key" : "$[[SETUP_LLM_API_KEY]]",
   "api_type" : "$[[SETUP_LLM_API_TYPE]]",
   "base_url" : "$[[SETUP_LLM_BASE_URL]]",
-  "icon" : "font_coco-logo-line",
+  "icon" : "font_coco",
   "models" : [
      $[[SETUP_LLM_DEFAULT_MODEL]]
   ],
