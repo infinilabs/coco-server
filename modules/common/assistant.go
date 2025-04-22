@@ -45,7 +45,7 @@ type Assistant struct {
 	Config         interface{}      `json:"config,omitempty" elastic_mapping:"config:{enabled:false}"` // Assistant-specific configuration settings with type
 	AnsweringModel ModelConfig      `json:"answering_model" elastic_mapping:"answering_model:{type:object,enabled:false}"`
 	Datasource     DatasourceConfig `json:"datasource" elastic_mapping:"datasource:{type:object,enabled:false}"`
-	MCPServers     DatasourceConfig `json:"mcp_servers,omitempty" elastic_mapping:"mcp_servers:{type:object,enabled:false}"`
+	MCPConfig      MCPConfig        `json:"mcp_servers,omitempty" elastic_mapping:"mcp_servers:{type:object,enabled:false}"`
 	Keepalive      string           `json:"keepalive" elastic_mapping:"keepalive:{type:keyword}"`
 	Enabled        bool             `json:"enabled" elastic_mapping:"enabled:{type:keyword}"`
 	ChatSettings   ChatSettings     `json:"chat_settings" elastic_mapping:"chat_settings:{type:object,enabled:false}"`
@@ -94,6 +94,16 @@ type DatasourceConfig struct {
 	IDs     []string `json:"ids,omitempty"`
 	Visible bool     `json:"visible"` // Whether the deep datasource is visible to the user
 }
+
+type MCPConfig struct {
+	Enabled    bool     `json:"enabled"`
+	MCPServers []string `json:"ids,omitempty"`
+	Visible    bool     `json:"visible"` // Whether the deep datasource is visible to the user
+
+	Model         *ModelConfig `json:"model"` //if not specified, use the answering model
+	MaxIterations int          `json:"max_iterations"`
+}
+
 type ModelConfig struct {
 	ProviderID string        `json:"provider_id,omitempty"`
 	Name       string        `json:"name"`
