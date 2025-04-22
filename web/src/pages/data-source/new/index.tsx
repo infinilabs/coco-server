@@ -6,6 +6,8 @@ import { DataSync } from '@/components/datasource/data_sync';
 import { TypeList, Types } from '@/components/datasource/type';
 import { getConnector } from '@/service/api/connector';
 import { createDatasource } from '@/service/api/data-source';
+import {getConnectorIcons} from '@/service/api/connector';
+import { IconSelector } from "@/pages/connector/new/icon_selector";
 
 import GoogleDrive from './google_drive';
 import HugoSite from './hugo_site';
@@ -140,6 +142,7 @@ export function Component() {
       },
       enabled: Boolean(values.enabled),
       name: values.name,
+      icon: values.icon,
       sync_enabled: values.sync_enabled,
       type: 'connector'
     };
@@ -150,6 +153,15 @@ export function Component() {
       }
     });
   };
+
+  const [iconsMeta, setIconsMeta] = useState([]);
+  useEffect(() => {
+    getConnectorIcons().then((res)=>{
+      if(res.data?.length > 0){
+        setIconsMeta(res.data);
+      }
+    });
+  }, []);
 
   const onFinishFailed: FormProps<any>['onFinishFailed'] = errorInfo => {
     console.log('Failed:', errorInfo);
@@ -193,6 +205,9 @@ export function Component() {
                 rules={[{ message: 'Please input datasource name!', required: true }]}
               >
                 <Input className="max-w-600px" />
+              </Form.Item>
+              <Form.Item label={t('page.mcpserver.labels.icon')} name="icon">
+                <IconSelector type="connector" icons={iconsMeta} className='max-w-300px' />
               </Form.Item>
               {type === Types.Yuque && <Yuque />}
               {type === Types.Notion && <Notion />}

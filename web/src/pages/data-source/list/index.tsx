@@ -131,8 +131,10 @@ export function Component() {
       dataIndex: 'name',
       minWidth: 200,
       render: (value: string, record: Datasource) => {
-        if (!data.connectors) return value;
-        const iconSrc = data.connectors[record.connector.id]?.icon;
+        let iconSrc = record.icon;
+        if(!iconSrc && data.connectors) {
+          iconSrc = data.connectors[record.connector.id]?.icon;
+        }
         if (!iconSrc) return value;
         return (
           <a
