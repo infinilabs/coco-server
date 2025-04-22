@@ -126,7 +126,7 @@ export function Component() {
       title: t('page.assistant.labels.enabled'),
       width: 80,
       render: (value: boolean, record: Assistant)=>{
-       return <Switch value={value} onChange={(v)=>onEnabledChange(v, record)}/>
+       return <Switch size="small" value={value} onChange={(v)=>onEnabledChange(v, record)}/>
       }
     },
     {

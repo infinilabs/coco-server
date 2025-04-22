@@ -181,7 +181,7 @@ export const EditForm = memo((props: AssistantFormProps)=> {
               <Input.TextArea placeholder='Please enter the role prompt instructions' className='w-600px' />
             </Form.Item>
             <Form.Item label={t('page.assistant.labels.enabled')} name="enabled">
-              <Switch />
+              <Switch size="small"/>
             </Form.Item>
             <Form.Item
                     label=" "
@@ -234,7 +234,7 @@ export const EditForm = memo((props: AssistantFormProps)=> {
                     <div className='text-gray-400 leading-6 mb-1'>{t('page.assistant.labels.history_summary_desc')}</div>
                   </div>
                   <Form.Item name={["chat_settings", "history_message", "summary"]}>
-                    <Switch /> 
+                    <Switch size="small"/>
                   </Form.Item>
                 </div>
               </div>
