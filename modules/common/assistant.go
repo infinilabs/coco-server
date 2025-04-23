@@ -142,6 +142,11 @@ func GetAssistant(assistantID string) (*Assistant, error) {
 		assistant.MCPConfig.IDs = ids
 	}
 
+	//set default value
+	if assistant.MCPConfig.MaxIterations <= 1 {
+		assistant.MCPConfig.MaxIterations = 5
+	}
+
 	// Cache the assistant object
 	GeneralObjectCache.Set(AssistantCachePrimary, assistantID, assistant, time.Duration(30)*time.Minute)
 	return assistant, nil

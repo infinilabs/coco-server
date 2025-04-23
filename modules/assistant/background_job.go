@@ -37,7 +37,10 @@ import (
 	"github.com/tmc/langchaingo/llms/openai"
 	"github.com/tmc/langchaingo/memory"
 	langchaingoTools "github.com/tmc/langchaingo/tools"
+	"github.com/tmc/langchaingo/tools/duckduckgo"
+	"github.com/tmc/langchaingo/tools/scraper"
 	"github.com/tmc/langchaingo/tools/wikipedia"
+	"infini.sh/coco/modules/assistant/langchain"
 	"infini.sh/coco/modules/assistant/rag"
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/modules/search"
@@ -430,11 +433,21 @@ func (h *APIHandler) processMCPQuery(ctx context.Context, reqMsg *ChatMessage, r
 	}
 
 	llm := getLLM(modelProvider.BaseURL, modelProvider.APIType, modelName, modelProvider.APIKey, params.assistantCfg.Keepalive)
-
-	wp := wikipedia.New("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+	webAgent := "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+	wp := wikipedia.New(webAgent)
 	agentTools := []langchaingoTools.Tool{
 		langchaingoTools.Calculator{},
 		wp,
+	}
+
+	ddg, err := duckduckgo.New(50, webAgent)
+	if err == nil && ddg != nil {
+		agentTools = append(agentTools, ddg)
+	}
+
+	scraper, err := scraper.New()
+	if err == nil && scraper != nil {
+		agentTools = append(agentTools, scraper)
 	}
 
 	mcpClients := []*client.Client{}
@@ -512,14 +525,14 @@ func (h *APIHandler) processMCPQuery(ctx context.Context, reqMsg *ChatMessage, r
 	}
 
 	var callback callbacks.Handler
-	callback = callbacks.LogHandler{}
+	callback = langchain.LogHandler{}
 
 	executor, err := agents.Initialize(
 		llm,
 		agentTools,
 		agents.ConversationalReactDescription,
 		//agents.WithReturnIntermediateSteps(),
-		agents.WithMaxIterations(5),
+		agents.WithMaxIterations(params.assistantCfg.MCPConfig.MaxIterations),
 		agents.WithCallbacksHandler(callback),
 		agents.WithMemory(buffer),
 	)
@@ -535,7 +548,7 @@ func (h *APIHandler) processMCPQuery(ctx context.Context, reqMsg *ChatMessage, r
 
 	params.mcpCallAnswer = answer
 
-	log.Info("MCP call answer:", answer)
+	log.Debug("MCP call answer:", answer)
 
 	return nil
 }
