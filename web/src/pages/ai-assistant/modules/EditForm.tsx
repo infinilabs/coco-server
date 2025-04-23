@@ -23,6 +23,7 @@ import {MCPConfig} from "./MCPConfig";
 import {DeepThink} from "./DeepThink";
 import { formatESSearchResult } from '@/service/request/es';
 import ModelSelect from './ModelSelect';
+import {ToolsConfig} from './ToolsConfig';
 
 interface AssistantFormProps  {
   initialValues: any;
@@ -179,6 +180,9 @@ export const EditForm = memo((props: AssistantFormProps)=> {
                     value: item.id,
                   })))}
                 />
+            </Form.Item>
+            <Form.Item label={t('page.assistant.labels.tools')} name="tools">
+              <ToolsConfig/>
             </Form.Item>
             <Form.Item
                 name={'keepalive'}
