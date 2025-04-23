@@ -122,7 +122,7 @@ export const EditForm = memo((props: AssistantFormProps)=> {
     if(initialValues?.type) {
       setAssistantMode(initialValues.type);
     }
-  }, initialValues?.type)
+  }, [initialValues?.type])
   const handleAssistantModeChange = (value: string) => {
     setAssistantMode(value);
   }

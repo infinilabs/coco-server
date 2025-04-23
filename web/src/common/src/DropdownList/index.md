@@ -33,6 +33,7 @@
 | filters | 字段过滤  | object | {} | 1.0.0 |
 | onFiltersChange | 字段过滤变更的回调 | (filters: object) => void | - | 1.0.0 |
 | filterOptions | 字段过滤选项 | [] | [] | 1.0.0 |
+| defaultGroupVisible | 默认是否显示分组  | boolean | false | 1.0.0 |
 | groups | 分组过滤  | [] | [] | 1.0.0 |
 | onGroupsChange | 分组过滤变更的回调 | (groups: []) => void | - | 1.0.0 |
 | groupOptions | 分组过滤选项 | [] | [] | 1.0.0 |

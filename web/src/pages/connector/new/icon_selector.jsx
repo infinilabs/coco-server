@@ -13,11 +13,12 @@ export const IconSelector = ({ className, icons = [], onChange, value }) => {
       value={value}
       onChange={onChange}
     >
-      {icons.map(icon => {
+      {icons.map((icon, index) => {
         return (
           <Select.Option
             item={icon}
             value={icon.path}
+            key={index}
           >
             <div className="flex items-center gap-3px">
               {icon.source === 'fonts' ? (

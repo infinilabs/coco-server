@@ -226,10 +226,8 @@ const ChartStartPage = memo((props) => {
                                   excluded={excludedAssistants}
                                   onChange={(item) => {
                                     const newExcluded = excludedAssistants.concat([])
-                                    if (item?.id && !newExcluded.includes(item.id)) {
-                                      newExcluded.push(item.id)
-                                      setExcludedAssistants(newExcluded)
-                                    }
+                                    newExcluded[index] = item?.id
+                                    setExcludedAssistants(newExcluded)
                                   }}
                                 />
                               </Form.Item>

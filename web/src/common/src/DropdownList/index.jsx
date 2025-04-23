@@ -41,6 +41,7 @@ const DropdownList = (props) => {
     filters = {},
     onFiltersChange = () => {},
     filterOptions = [],
+    defaultGroupVisible = false,
     groups = [],
     onGroupsChange = () => {},
     groupOptions = [],
@@ -54,7 +55,7 @@ const DropdownList = (props) => {
   } = props;
 
   const [visible, setVisible] = useState(false);
-  const [showGroup, setShowGroup] = useState(false);
+  const [showGroup, setShowGroup] = useState(defaultGroupVisible);
   const [searchValue, setSearchValue] = useState();
   const [fixedDropdownWidth, setFixedDropdownWidth] = useState();
   const domRef = useRef(null);
@@ -215,7 +216,7 @@ const DropdownList = (props) => {
           <Button
             style={{ width: "100%" }}
             disabled={disabled}
-            className={`${styles.button} css-var-r0 ant-select-css-var common-ui-dropdownlist-select ${
+            className={`${styles.button} css-var-r0 common-ui-dropdownlist-select ${
               allowClear ? styles.allowClear : ""
             }`}
           >

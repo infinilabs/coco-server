@@ -1,6 +1,7 @@
 import DropdownList from "@/common/src/DropdownList";
 import { useMemo, useState } from "react";
 import ModelSettings from "./ModelSettings";
+import InfiniIcon from '@/components/common/icon';
 
 export default (props) => {
 
@@ -20,19 +21,30 @@ export default (props) => {
     const grps = providers.map((item: any) => {
       return item.name;
     })
-
     
     const [sorter, setSorter] = useState([])
-    const [filters, setFilters] = useState({ type: grps })
+    const [filters, setFilters] = useState({})
     const [groups, setGroups] = useState([])
     const [showGroup, setShowGroup] = useState(false)
+
+    const renderProvider = (item) => {
+      return (
+        <div className="flex items-center gap-4px">
+          <IconWrapper className="w-20px h-20px">
+            <InfiniIcon src={item.icon} height="1em" width="1em" />
+          </IconWrapper>
+          <span className="font-size-1em">{item.name}</span>
+        </div>
+      )
+    }
 
     const formatData = useMemo(() => {
       const models = [];
       providers?.forEach((item) => {
         (item.models || []).forEach((model) => {
           models.push({
-            type: item.name,
+            type: item.id + "_" + item.name,
+            provider: item,
             provider_id: item.id,
             id: item.id + "_" + model.name,
             name: model.name,
@@ -43,21 +55,33 @@ export default (props) => {
     }, [providers])
 
     const filterOptions = useMemo(() => {
-      return showGroup ? [] : [{ 
-        label: "Type", 
-        key: "type", 
-        list: grps.map((grp: any)=>({label: grp, value: grp})),
-    }]
-    }, [showGroup])
+      return showGroup ? [] : [{
+        label: "Type",
+        key: "type",
+        list: providers.map((item: any) => ({
+          key: "type",
+          value: item.id + "_" + item.name,
+          label: renderProvider(item)
+        }))
+      }]
+    }, [showGroup, providers])
+
+    const groupOptions = useMemo(() => {
+      return providers.map(item =>({
+        label: renderProvider(item),
+        key: "type",
+        value: item.id + "_" + item.name
+      }))
+    }, [showGroup, providers])
+
+    useEffect(() => {
+      setFilters({
+        type: grps
+      })
+    }, [grps])
 
     const onSelectValueChange = (model: any) => {
-      const newValue = {
-        ...(value || {}),
-        name: model?.name,
-        provider_id: model?.provider_id,
-      }
-      console.log('newValue', newValue);
-      onChange?.(newValue);
+      onChange?.(model);
     }
 
     const onSettingsChange = (settings: any) => {
@@ -76,12 +100,18 @@ export default (props) => {
           placeholder="Please select"
           rowKey="id"
           data={formatData}
-          renderItem={(item) => (
-              item.name
-          )}
+          renderItem={(item) => item.name}
           width={width || "100%"}
           dropdownWidth={width}
-          renderLabel={(item) => item.name}
+          renderLabel={(item) => {
+            return (
+              <div className="flex items-center gap-2px">
+                <span>{renderProvider(item.provider)}</span>
+                <span>/</span>
+                <span>{item.name}</span>
+              </div> 
+             )
+          }}
           searchKey="name"
           sorter={sorter}
           onSorterChange={setSorter}
@@ -91,13 +121,10 @@ export default (props) => {
           filters={filters}
           onFiltersChange={setFilters}
           filterOptions={filterOptions}
+          defaultGroupVisible={true}
           groups={groups}
           onGroupsChange={(v)=>{setGroups(v)}}
-          groupOptions={grps.map(grp=>({
-            label: grp,
-            key: "type",
-            value: grp
-          }))}
+          groupOptions={groupOptions}
           onGroupVisibleChange={(visible) => {
             setShowGroup(visible)
             if (visible) {

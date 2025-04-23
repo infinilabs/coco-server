@@ -3,7 +3,7 @@
     overflow: hidden;
 
     .group {
-        border-right: 1px solid #ebebeb;
+        border-right: 1px solid var(--ant-color-border);
         width: 120px;
 
         .item {
@@ -17,10 +17,10 @@
             cursor: pointer;
 
             .selected {
-                background-color: var(--ant-select-option-selected-bg);
+                background-color: var(--ant-control-item-bg-active);
             }
             &:hover {
-                background-color: var(--ant-select-option-active-bg);
+                background-color: var(--ant-control-item-bg-hover);
             }
 
             .label {
@@ -102,11 +102,10 @@
                 gap: 8px;
         
                 &.selected {
-                    color: var(--ant-select-option-selected-color);
-                    background-color: var(--ant-select-option-selected-bg);
+                    background-color: var(--ant-control-item-bg-active);
                 }
                 &:hover {
-                    background-color: var(--ant-select-option-active-bg);
+                    background-color: var(--ant-control-item-bg-hover);
                 }
 
                 .label {
