@@ -1,6 +1,5 @@
 import DropdownList from "@/common/src/DropdownList";
 import { useMemo, useState } from "react";
-import "./ModelSelect.scss";
 import ModelSettings from "./ModelSettings";
 
 export default (props) => {
@@ -72,7 +71,6 @@ export default (props) => {
     return (
       <div className="flex gap-2 items-center">
         <DropdownList
-          className="model-select"
           value={value}
           onChange={onSelectValueChange}
           placeholder="Please select"

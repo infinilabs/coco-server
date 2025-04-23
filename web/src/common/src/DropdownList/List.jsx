@@ -219,7 +219,7 @@ const List = (props) => {
   );
 
   return (
-    <div className={styles.container}>
+    <div className={`${styles.container} css-var-r0 ant-select-css-var`}>
       {renderGroupOptions(groupOptions, 0)}
       {renderGroupOptions(groupChildOptions, 1)}
       <div className={styles.content}>

@@ -1,6 +1,5 @@
 import DropdownList from "@/common/src/DropdownList";
 import { useMemo, useState } from "react";
-import "./AIAssistantSelect.scss";
 import { getAssistant, searchAssistant } from "@/service/api/assistant";
 import { formatESSearchResult } from "@/service/request/es";
 

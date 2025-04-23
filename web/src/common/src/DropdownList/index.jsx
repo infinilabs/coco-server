@@ -143,7 +143,6 @@ const DropdownList = (props) => {
             <span
               key={index}
               className={`${styles.multipleItem} common-ui-dropdownlist-multiple-item`}
-              style={{ backgroundColor: disabled ? "#c4c4c4" : "#fff" }}
             >
               {renderSingleValue(item)}
               {
@@ -216,13 +215,13 @@ const DropdownList = (props) => {
           <Button
             style={{ width: "100%" }}
             disabled={disabled}
-            className={`${styles.button} common-ui-dropdownlist-select ${
+            className={`${styles.button} css-var-r0 ant-select-css-var common-ui-dropdownlist-select ${
               allowClear ? styles.allowClear : ""
             }`}
           >
             <div className={styles.content}>
+              {showListIcon && <BarsOutlined className={styles.icon}/>}
               <div className={styles.label}>
-                {showListIcon && <BarsOutlined className={styles.icon}/>}
                 <span>{formatValue}</span>
               </div>
               <Icon component={visible ? UpOutlined: DownOutlined} className={styles.down} />
