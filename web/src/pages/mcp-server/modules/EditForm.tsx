@@ -29,6 +29,14 @@ export const EditForm = memo((props: MCPServerFormProps)=> {
   const [form] = Form.useForm();
   useEffect(()=>{
     if(initialValues){
+      if(initialValues.type === "stdio"){
+        initialValues.config.args = initialValues.config.args?.join("\n");
+        const env: any = {}
+        for (const key in initialValues.config.env) {
+          env[key] = `${key}=${initialValues.config.env[key]}`
+        }
+        initialValues.config.env = Object.values(env).join("\n");
+      }
       form.setFieldsValue({
         ...initialValues,
         model_settings: initialValues.answering_model?.settings || {},
@@ -40,6 +48,19 @@ export const EditForm = memo((props: MCPServerFormProps)=> {
 
   const onFinish: FormProps<any>['onFinish'] = (values) => {
     Array.isArray(values.category) && (values.category = values.category[0]);
+    if(values.type === "stdio"){
+      if(values.config?.args){
+        values.config.args = values.config.args?.split("\n");
+      }
+      if(values.config?.env){
+        const env: any = {}
+        values.config.env?.split("\n").forEach((item: string) => {
+          const [key, value] = item.split('=');
+          env[key] = value;
+        })
+        values.config.env = env;
+      }
+    }
     onSubmit?.(values, startLoading, endLoading);
   };
   
@@ -48,6 +69,11 @@ export const EditForm = memo((props: MCPServerFormProps)=> {
   };
   const { defaultRequiredRule, formRules } = useFormRules();
   const [type, setType] = useState(initialValues.type || 'sse');
+  useEffect(() => {
+    if(initialValues.type){
+      setType(initialValues.type);
+    }
+  }, [initialValues.type]);
   const onTypeChange = (e: any) => {
     setType(e.target.value);
   }
@@ -72,6 +98,10 @@ export const EditForm = memo((props: MCPServerFormProps)=> {
       }
     });
   }, []);
+  const argsPlaceholder = `arg1
+arg2`;
+  const envPlaceholder = `Key1=a
+Key2=b`;
 
   return (
         <Spin spinning={props.loading || loading || false}>
@@ -149,13 +179,13 @@ export const EditForm = memo((props: MCPServerFormProps)=> {
                 name={["config", "args"]}
                 label={t('page.mcpserver.labels.config.args')}
             >
-              <Input.TextArea className='w-600px' />
+              <Input.TextArea placeholder={argsPlaceholder} className='w-600px' />
             </Form.Item>
             <Form.Item
                 name={["config", "env"]}
                 label={t('page.mcpserver.labels.config.env')}
             >
-              <Input.TextArea className='w-600px' />
+              <Input.TextArea placeholder={envPlaceholder} className='w-600px' />
             </Form.Item>
             </>}
             <Form.Item label={t('page.mcpserver.labels.enabled')} name="enabled">
