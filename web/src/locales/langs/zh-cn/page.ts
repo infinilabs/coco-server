@@ -336,6 +336,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       show_in_chat: "在聊天界面中显示",
       max_iterations: "最大迭代次数",
       caller_model: "调用模型",
+      filter: "数据过滤",
     },
     mode:{
       simple: "简单模式",

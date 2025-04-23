@@ -90,9 +90,10 @@ type WorkflowConfig struct {
 }
 
 type DatasourceConfig struct {
-	Enabled bool     `json:"enabled"`
-	IDs     []string `json:"ids,omitempty"`
-	Visible bool     `json:"visible"` // Whether the deep datasource is visible to the user
+	Enabled bool        `json:"enabled"`
+	IDs     []string    `json:"ids,omitempty"`
+	Visible bool        `json:"visible"`          // Whether the deep datasource is visible to the user
+	Filter  interface{} `json:"filter,omitempty"` // Filter for the datasource
 }
 
 type MCPConfig struct {

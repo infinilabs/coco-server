@@ -1,4 +1,4 @@
-import { Select, Space, Switch } from "antd";
+import { Select, Space, Switch, Input } from "antd";
 
 interface DatasourceConfigProps {
   value?: any;
@@ -29,6 +29,24 @@ export const DatasourceConfig = (props: DatasourceConfigProps) =>{
       visible,
     })
   }
+
+  const [showFilter, setShowFilter] = useState(!!value.filter);
+  const onFilterToggle = () => {
+    setShowFilter(!showFilter);
+  }
+
+  const onFilterChange = (evt: any) => {
+    const filter = evt.target.value;
+    onChange?.({
+      ...value,
+      filter,
+    })
+  }
+
+  if(isObject(value.filter)){
+    value.filter = JSON.stringify(value.filter);
+  }
+
   return (
     <Space direction="vertical" className='w-600px mt-[5px]'>
       <div><Switch size="small" value={value.enabled} onChange={onEnabledChange}/></div>
@@ -44,7 +62,17 @@ export const DatasourceConfig = (props: DatasourceConfigProps) =>{
           <span>{t('page.assistant.labels.show_in_chat')}</span><Switch value={value.visible} size="small" onChange={onVisibleChange}/>
         </Space>
       </div>
+      <div>
+         <Space direction="vertical">
+          <p className="text-blue-500 mt-10px w-600px flex cursor-pointer items-center" onClick={onFilterToggle}><span>{t('page.assistant.labels.filter')}</span> <SvgIcon className="font-size-20px" icon={`${showFilter ? "mdi:chevron-up" : "mdi:chevron-down"}`}/></p>
+          {showFilter && <Input.TextArea value={value.filter} onChange={onFilterChange} style={{height:150}}/>}
+        </Space>
+      </div>
     </Space>
   );
 
+}
+
+function isObject(obj: any) {
+  return Object.prototype.toString.call(obj) === '[object Object]';
 }
