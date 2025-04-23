@@ -48,8 +48,10 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/ollama
   "base_url" : "http://127.0.0.1:11434",
   "icon" : "/assets/icons/llm/ollama.svg",
   "models" : [
-     {"name":"gpt-4o-mini"},
-     {"name":"deepseek-r1"}
+     {"name":"qwen2.5:32b"},
+     {"name":"deepseek-r1:32b"},
+     {"name":"deepseek-r1:14b"},
+     {"name":"deepseek-r1:8b"}
   ],
   "enabled" : false,
   "builtin" : true,
@@ -100,7 +102,13 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/qianwen
     },
     {
       "name" : "deepseek-r1"
-    }
+    },
+     {
+       "name" : "qwen-max"
+     },
+     {
+       "name" : "qwq-plus"
+     }
   ],
   "base_url" : "https://dashscope.aliyuncs.com/compatible-mode/v1",
   "enabled" : false,
