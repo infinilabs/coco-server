@@ -338,7 +338,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       max_iterations: "最大迭代次数",
       caller_model: "调用模型",
       filter: "数据过滤",
-      tools: "大模型工具",
+      tools: "调用大模型工具",
       builtin_tools: "内置工具",
     },
     mode:{

@@ -345,7 +345,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       max_iterations: "Max iterations",
       caller_model: "Caller Model",
       filter: "Filter",
-      tools: "LLM Tools",
+      tools: "Call LLM Tools",
       builtin_tools: "Built-in",
     },
     mode:{
