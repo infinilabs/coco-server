@@ -433,21 +433,33 @@ func (h *APIHandler) processMCPQuery(ctx context.Context, reqMsg *ChatMessage, r
 	}
 
 	llm := getLLM(modelProvider.BaseURL, modelProvider.APIType, modelName, modelProvider.APIKey, params.assistantCfg.Keepalive)
-	webAgent := "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-	wp := wikipedia.New(webAgent)
-	agentTools := []langchaingoTools.Tool{
-		langchaingoTools.Calculator{},
-		wp,
-	}
+	agentTools := []langchaingoTools.Tool{}
 
-	ddg, err := duckduckgo.New(50, webAgent)
-	if err == nil && ddg != nil {
-		agentTools = append(agentTools, ddg)
-	}
+	if params.assistantCfg.ToolsConfig.Enabled {
+		webAgent := "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
-	scraper, err := scraper.New()
-	if err == nil && scraper != nil {
-		agentTools = append(agentTools, scraper)
+		if params.assistantCfg.ToolsConfig.BuiltinTools.Calculator {
+			agentTools = append(agentTools, langchaingoTools.Calculator{})
+		}
+
+		if params.assistantCfg.ToolsConfig.BuiltinTools.Wikipedia {
+			wp := wikipedia.New(webAgent)
+			agentTools = append(agentTools, wp)
+		}
+
+		if params.assistantCfg.ToolsConfig.BuiltinTools.Duckduckgo {
+			ddg, err := duckduckgo.New(50, webAgent)
+			if err == nil && ddg != nil {
+				agentTools = append(agentTools, ddg)
+			}
+		}
+
+		if params.assistantCfg.ToolsConfig.BuiltinTools.Scraper {
+			scr, err := scraper.New()
+			if err == nil && scr != nil {
+				agentTools = append(agentTools, scr)
+			}
+		}
 	}
 
 	mcpClients := []*client.Client{}
@@ -517,7 +529,10 @@ func (h *APIHandler) processMCPQuery(ctx context.Context, reqMsg *ChatMessage, r
 		}
 	}
 
-	log.Debug("get ", len(agentTools), " tools")
+	if len(agentTools) <= 0 {
+		log.Debug("get ", len(agentTools), " tools")
+		return nil
+	}
 
 	buffer := memory.NewConversationBuffer()
 	if params.chatHistory != nil {
