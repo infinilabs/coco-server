@@ -47,6 +47,12 @@ export const DatasourceConfig = (props: DatasourceConfigProps) =>{
     value.filter = JSON.stringify(value.filter);
   }
 
+  const filterPlaceHolder = `{
+  "term": {
+     "name": "test"
+  }
+}`;
+
   return (
     <Space direction="vertical" className='w-600px mt-[5px]'>
       <div><Switch size="small" value={value.enabled} onChange={onEnabledChange}/></div>
@@ -65,7 +71,7 @@ export const DatasourceConfig = (props: DatasourceConfigProps) =>{
       <div>
          <Space direction="vertical">
           <p className="text-blue-500 mt-10px w-600px flex cursor-pointer items-center" onClick={onFilterToggle}><span>{t('page.assistant.labels.filter')}</span> <SvgIcon className="font-size-20px" icon={`${showFilter ? "mdi:chevron-up" : "mdi:chevron-down"}`}/></p>
-          {showFilter && <Input.TextArea value={value.filter} onChange={onFilterChange} style={{height:150}}/>}
+          {showFilter && <Input.TextArea placeholder={filterPlaceHolder} value={value.filter} onChange={onFilterChange} style={{height:150}}/>}
         </Space>
       </div>
     </Space>

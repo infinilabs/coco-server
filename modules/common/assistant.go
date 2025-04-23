@@ -46,6 +46,7 @@ type Assistant struct {
 	Config         interface{}      `json:"config,omitempty" elastic_mapping:"config:{enabled:false}"` // Assistant-specific configuration settings with type
 	AnsweringModel ModelConfig      `json:"answering_model" elastic_mapping:"answering_model:{type:object,enabled:false}"`
 	Datasource     DatasourceConfig `json:"datasource" elastic_mapping:"datasource:{type:object,enabled:false}"`
+	ToolsConfig    ToolsConfig      `json:"tools,omitempty" elastic_mapping:"tools:{type:object,enabled:false}"`
 	MCPConfig      MCPConfig        `json:"mcp_servers,omitempty" elastic_mapping:"mcp_servers:{type:object,enabled:false}"`
 	Keepalive      string           `json:"keepalive" elastic_mapping:"keepalive:{type:keyword}"`
 	Enabled        bool             `json:"enabled" elastic_mapping:"enabled:{type:keyword}"`
@@ -77,6 +78,17 @@ type MCPConfig struct {
 
 	Model         *ModelConfig `json:"model"` //if not specified, use the answering model
 	MaxIterations int          `json:"max_iterations"`
+}
+
+type ToolsConfig struct {
+	Enabled      bool               `json:"enabled"`
+	BuiltinTools BuiltinToolsConfig `json:"builtin,omitempty" elastic_mapping:"builtin:{enabled:false}"`
+}
+type BuiltinToolsConfig struct {
+	Calculator bool `json:"calculator"`
+	Wikipedia  bool `json:"wikipedia"`
+	Duckduckgo bool `json:"duckduckgo"`
+	Scraper    bool `json:"scraper"`
 }
 
 type ModelConfig struct {
