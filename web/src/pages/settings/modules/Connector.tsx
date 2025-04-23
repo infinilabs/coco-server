@@ -207,7 +207,8 @@ const ConnectorSettings = memo(() => {
     {
       dataIndex: 'description',
       minWidth: 100,
-      title: t('page.connector.columns.description')
+      title: t('page.connector.columns.description'),
+      ellipsis: true,
     },
     {
       dataIndex: 'tags',
