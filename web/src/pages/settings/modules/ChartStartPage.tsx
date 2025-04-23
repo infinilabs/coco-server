@@ -9,6 +9,20 @@ const ChartStartPage = memo((props) => {
   const { t } = useTranslation();
   const { defaultRequiredRule } = useFormRules();
   const [enabled, setEnabled] = useState(false);
+  const [excludedAssistants, setExcludedAssistants] = useState([])
+
+  const calculateCharacterLength = (str) => {
+    let length = 0;
+    for (let i = 0; i < str.length; i++) {
+      const code = str.charCodeAt(i);
+      if ((code >= 0x0000 && code <= 0x007F)) {
+        length += 1;
+      } else {
+        length += 2;
+      }
+    }
+    return length;
+  };
 
   const renderIcon = (base64) => {
     if (base64) {
@@ -30,6 +44,10 @@ const ChartStartPage = memo((props) => {
   useEffect(() => {
     setEnabled(startPageSettings?.enabled)
   }, [startPageSettings?.enabled])
+
+  useEffect(() => {
+    setExcludedAssistants(startPageSettings?.display_assistants)
+  }, [startPageSettings?.display_assistants])
 
   return (
     <>
@@ -168,8 +186,18 @@ const ChartStartPage = memo((props) => {
                 name={['start_page', 'introduction']}
                 help={t('page.settings.app_settings.chat_settings.labels.introduction_placeholder')}
                 labelCol={{ span: 0 }}
+                rules={[
+                  () => ({
+                    validator(_, value) {
+                      if (!value || calculateCharacterLength(value) <= 60) {
+                        return Promise.resolve();
+                      }
+                      return Promise.reject();
+                    },
+                  })
+                ]}
               >
-                <Input.TextArea rows={3} maxLength={60}/>
+                <Input.TextArea rows={3} />
               </Form.Item>
             </Form.Item>
             <Form.Item
@@ -187,13 +215,23 @@ const ChartStartPage = memo((props) => {
                       {fields.map((field, index) => {
                         return (
                           <Form.Item key={index} className="mb-0px">
-                            <div className="flex items-center gap-6px">
+                            <div className="flex gap-6px">
                               <Form.Item
                                 {...field}
                                 rules={[defaultRequiredRule]}
                                 className="flex-1 mb-8px"
                               >
-                                <AIAssistantSelect assistants={assistants}/>
+                                <AIAssistantSelect 
+                                  assistants={assistants} 
+                                  excluded={excludedAssistants}
+                                  onChange={(item) => {
+                                    const newExcluded = excludedAssistants.concat([])
+                                    if (item?.id && !newExcluded.includes(item.id)) {
+                                      newExcluded.push(item.id)
+                                      setExcludedAssistants(newExcluded)
+                                    }
+                                  }}
+                                />
                               </Form.Item>
                               <Form.Item className="mb-8px">
                                 <span onClick={() => remove(field.name)}><SvgIcon className="text-16px cursor-pointer" icon="mdi:minus-circle-outline" /></span>

@@ -270,7 +270,7 @@ const page: App.I18n.Schema['translation']['page'] = {
           logo_light: '浅色主题（常规版本图标）',
           logo_dark: '深色主题（白色或浅色版本图标）',
           introduction: '介绍文本',
-          introduction_placeholder: '输入显示在起始页面上的欢迎文本或人工智能工具介绍（60 字以内）',
+          introduction_placeholder: '输入显示在起始页面上的欢迎文本或人工智能工具介绍（60 字符以内）',
           assistant: 'AI 助手展示',
         }
       }
