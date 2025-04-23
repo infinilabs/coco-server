@@ -31,7 +31,9 @@ export const EditForm = memo((props: MCPServerFormProps)=> {
     if(initialValues){
       if(initialValues.type === "stdio"){
         if (!initialValues.config) initialValues.config = {}
-        initialValues.config.args = initialValues.config.args?.join("\n");
+        if (Array.isArray(initialValues.config.args)) {
+          initialValues.config.args = initialValues.config.args?.join("\n");
+        }
         const env: any = {}
         if (initialValues.config.env) {
           for (const key in initialValues.config.env) {
