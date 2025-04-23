@@ -28,11 +28,16 @@ export default (props) => {
     const [showGroup, setShowGroup] = useState(false)
 
     const renderProvider = (item) => {
+      if (!item) return null;
       return (
         <div className="flex items-center gap-4px">
-          <IconWrapper className="w-20px h-20px">
-            <InfiniIcon src={item.icon} height="1em" width="1em" />
-          </IconWrapper>
+          {
+            item.icon && (
+              <IconWrapper className="w-20px h-20px">
+                <InfiniIcon src={item.icon} height="1em" width="1em" />
+              </IconWrapper>
+            )
+          }
           <span className="font-size-1em">{item.name}</span>
         </div>
       )
