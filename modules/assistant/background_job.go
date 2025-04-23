@@ -97,7 +97,7 @@ type processingParams struct {
 	answeringProvider   *common.ModelProvider
 	assistantCfg        *common.Assistant
 
-	mcpCallAnswer string
+	toolsCallResponse string
 }
 
 const DefaultAssistantID = "default"
@@ -314,9 +314,9 @@ func (h APIHandler) processMessageAsync(ctx context.Context, reqMsg *ChatMessage
 		_ = h.processQueryIntent(ctx, reqMsg, replyMsg, params)
 	}
 
-	if params.assistantCfg.MCPConfig.Enabled && len(params.mcpServers) > 0 {
-		//process MCP functions
-		h.processMCPQuery(ctx, reqMsg, replyMsg, params)
+	if (params.assistantCfg.MCPConfig.Enabled && len(params.mcpServers) > 0) || params.assistantCfg.ToolsConfig.Enabled {
+		//process LLM tools / functions
+		h.processLLMTools(ctx, reqMsg, replyMsg, params)
 	}
 
 	if params.searchDB {
@@ -404,7 +404,7 @@ func (h APIHandler) fetchSessionHistory(ctx context.Context, reqMsg, replyMsg *C
 //	//*client.Client{}
 //}
 
-func (h *APIHandler) processMCPQuery(ctx context.Context, reqMsg *ChatMessage, replyMsg *ChatMessage, params *processingParams) error {
+func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *ChatMessage, replyMsg *ChatMessage, params *processingParams) error {
 	if params == nil || params.assistantCfg == nil {
 		//return nil
 		panic("invalid assistant config, skip")
@@ -561,7 +561,7 @@ func (h *APIHandler) processMCPQuery(ctx context.Context, reqMsg *ChatMessage, r
 		return fmt.Errorf("error running chains: %w", err)
 	}
 
-	params.mcpCallAnswer = answer
+	params.toolsCallResponse = answer
 
 	log.Debug("MCP call answer:", answer)
 
@@ -937,27 +937,28 @@ func (h APIHandler) generateFinalResponse(taskCtx context.Context, reqMsg, reply
 	echoMsg := NewMessageChunk(params.sessionID, replyMsg.ID, MessageTypeAssistant, reqMsg.ID, Response, string(""), 0)
 	websocket.SendPrivateMessage(params.websocketID, util.MustToJSON(echoMsg))
 
-	prompt := "You are a friendly assistant designed to help users access and understand their personal or company data.\nYour responses should be clear, concise, and based solely on the information provided below.\n\n"
+	prompt := "You are a helpful assistant designed to help users access and understand their personal or company data.\n" +
+		"Your responses should be clear, concise, and based solely on the information provided below.\n\n"
 
 	if reqMsg.Message != "" {
-		prompt += fmt.Sprintf("User's Query: \n%s\n\n", reqMsg.Message)
+		prompt += fmt.Sprintf("## User Query\n%s\n\n", reqMsg.Message)
 	}
 
 	if params.historyBlock != "" {
-		prompt += fmt.Sprintf("Here are Conversation FYI: \n<HIS>\n%s\n</HIS>\n\n", params.historyBlock)
+		prompt += fmt.Sprintf("## Conversation History (FYI)\n<HIS>\n%s\n</HIS>\n\n", params.historyBlock)
 	}
 
 	if params.references != "" {
-		prompt += fmt.Sprintf("Here are references Data FYI: \n<REF>\n%s\n</REF>\n\n", params.references)
+		prompt += fmt.Sprintf("## Reference Data (FYI)\n<REF>\n%s\n</REF>\n\n", params.references)
 	}
 
-	if params.mcpCallAnswer != "" {
-		prompt += fmt.Sprintf("Here are output of MCP Tools FYI: \n<MCP>\n%s\n</MCP>\n\n", params.mcpCallAnswer)
+	if params.toolsCallResponse != "" {
+		prompt += fmt.Sprintf("## Tool Outputs (LLM Tools - Higher Priority)\n<MCP>\n%s\n</MCP>\n\n", params.toolsCallResponse)
 	}
 
-	prompt += "\n\n \nPlease utilize the above information to prepare your answer, make sure accurate and proper thinking, and well organized."
-	prompt += "\n\n \nIf the above information is insufficient, please indicate that you need more details to assist effectively, or just reply some friendly interaction."
-	prompt += "\n\n \nFor complex responses, use clear and well-organized Markdown formatting to improve readability."
+	prompt += "Please generate your response using the information above, prioritizing LLM tool outputs when available. Ensure your response is thoughtful, accurate, and well-structured.\n\n"
+	prompt += "If the provided information is insufficient, let the user know more details are needed — or offer a friendly, conversational response instead.\n\n"
+	prompt += "For complex answers, format your response using clear and well-organized **Markdown** to improve readability."
 
 	log.Info(prompt)
 
