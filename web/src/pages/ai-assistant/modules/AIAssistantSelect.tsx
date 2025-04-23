@@ -5,7 +5,7 @@ import { formatESSearchResult } from "@/service/request/es";
 
 export default (props) => {
 
-    const { value, onChange, width, className, mode, assistants } = props;
+    const { value, onChange, width, className, mode, assistants, excluded = [] } = props;
 
     const { t } = useTranslation();
 
@@ -66,8 +66,15 @@ export default (props) => {
     }, [JSON.stringify(value), mode])
 
     const result = useMemo(() => {
-      return formatESSearchResult(res?.data);
-    }, [res])
+      const rs = formatESSearchResult(res?.data)
+      return {
+        ...rs,
+        data: rs.data.map((item) => ({
+          ...item,
+          disabled: item.id === value?.id ? false : excluded?.includes(item.id)
+        }))
+      };
+    }, [res, value, excluded])
 
     const formatValue = useMemo(() => {
       if (mode === 'multiple') {
@@ -81,7 +88,7 @@ export default (props) => {
         }
         return value
       }
-    }, [value, itemRes?.data, itemsRes?.data, mode])
+    }, [value, itemRes?.data, itemsRes?.data, mode, excluded])
 
     const { data, total } = result;
 
