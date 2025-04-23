@@ -30,7 +30,6 @@ import (
 	mcpadapter "github.com/i2y/langchaingo-mcp-adapter"
 	"github.com/mark3labs/mcp-go/client"
 	"github.com/tmc/langchaingo/agents"
-	"github.com/tmc/langchaingo/callbacks"
 	"github.com/tmc/langchaingo/chains"
 	"github.com/tmc/langchaingo/llms"
 	"github.com/tmc/langchaingo/llms/ollama"
@@ -316,7 +315,7 @@ func (h APIHandler) processMessageAsync(ctx context.Context, reqMsg *ChatMessage
 
 	if (params.assistantCfg.MCPConfig.Enabled && len(params.mcpServers) > 0) || params.assistantCfg.ToolsConfig.Enabled {
 		//process LLM tools / functions
-		h.processLLMTools(ctx, reqMsg, replyMsg, params)
+		_ = h.processLLMTools(ctx, reqMsg, replyMsg, params)
 	}
 
 	if params.searchDB {
@@ -408,11 +407,6 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *ChatMessage, r
 	if params == nil || params.assistantCfg == nil {
 		//return nil
 		panic("invalid assistant config, skip")
-	}
-
-	if len(params.assistantCfg.MCPConfig.IDs) == 0 {
-		//return nil
-		panic("mcp server is empty, skip")
 	}
 
 	//get llm for mcp, use answering model if not mcp specified model
@@ -539,8 +533,13 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *ChatMessage, r
 		buffer.ChatHistory = params.chatHistory
 	}
 
-	var callback callbacks.Handler
-	callback = langchain.LogHandler{}
+	callback := langchain.LogHandler{}
+	toolsSeq := 0
+	callback.CustomWriteFunc = func(chunk string) {
+		echoMsg := NewMessageChunk(params.sessionID, replyMsg.ID, MessageTypeAssistant, reqMsg.ID, Tools, chunk, toolsSeq)
+		websocket.SendPrivateMessage(params.websocketID, util.MustToJSON(echoMsg))
+		toolsSeq++
+	}
 
 	executor, err := agents.Initialize(
 		llm,
@@ -548,7 +547,7 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *ChatMessage, r
 		agents.ConversationalReactDescription,
 		//agents.WithReturnIntermediateSteps(),
 		agents.WithMaxIterations(params.assistantCfg.MCPConfig.MaxIterations),
-		agents.WithCallbacksHandler(callback),
+		agents.WithCallbacksHandler(&callback),
 		agents.WithMemory(buffer),
 	)
 	if err != nil {
