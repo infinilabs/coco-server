@@ -270,6 +270,7 @@ func (h APIHandler) getChatHistoryBySession(w http.ResponseWriter, req *http.Req
 var inflightMessages = sync.Map{}
 
 type MessageTask struct {
+	SessionID   string
 	TaskID      string
 	WebsocketID string
 }

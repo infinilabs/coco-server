@@ -236,6 +236,7 @@ func (h APIHandler) launchBackgroundTask(msg *ChatMessage, params *processingPar
 		taskID, params.sessionID, params.websocketID)
 
 	inflightMessages.Store(params.sessionID, MessageTask{
+		SessionID:   params.sessionID,
 		TaskID:      taskID,
 		WebsocketID: params.websocketID,
 	})
@@ -340,12 +341,7 @@ func (h APIHandler) processMessageAsync(ctx context.Context, reqMsg *ChatMessage
 func (h APIHandler) fetchSessionHistory(ctx context.Context, reqMsg, replyMsg *ChatMessage, params *processingParams, size int) error {
 	var historyStr = strings.Builder{}
 
-	chatHistory := memory.NewChatMessageHistory(
-		memory.WithPreviousMessages([]llms.ChatMessage{
-			//llms.HumanChatMessage{Content: "bar"},
-			//llms.AIChatMessage{Content: "foo"},
-		}),
-	)
+	chatHistory := memory.NewChatMessageHistory(memory.WithPreviousMessages([]llms.ChatMessage{}))
 
 	//get chat history
 	history, err := getChatHistoryBySessionInternal(params.sessionID, size)
@@ -358,10 +354,6 @@ func (h APIHandler) fetchSessionHistory(ctx context.Context, reqMsg, replyMsg *C
 	}
 
 	historyStr.WriteString("<conversation>")
-
-	//<summary>
-	//session history summary within 500 words TODO
-	//</summary>
 
 	for i := len(history) - 1; i >= 0; i-- {
 		v := history[i]
@@ -397,11 +389,6 @@ func (h APIHandler) fetchSessionHistory(ctx context.Context, reqMsg, replyMsg *C
 
 	return nil
 }
-
-//var agentClient=sync.Map{}
-//func getAgentTools()  {
-//	//*client.Client{}
-//}
 
 func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *ChatMessage, replyMsg *ChatMessage, params *processingParams) error {
 	if params == nil || params.assistantCfg == nil {
@@ -824,14 +811,14 @@ Your task is to choose the best documents for further processing.`,
 	}
 
 	content = append(content, llms.TextParts(llms.ChatMessageTypeSystem, "\nPlease review these documents and identify which ones best related to user's query. "+
-		"Choose no more than 5 relevant documents. These documents may be entirely unrelated, so prioritize those that provide direct answers or valuable context."+
-		"If the document is unrelated not certain, don't include it."+
-		" For each document, provide a brief explanation of why it was selected."+
-		" Your decision should based solely on the information provided below. \nIf the information is insufficient, please indicate that you need more details to assist effectively. "+
-		" Don't make anything up, which means if you can't identify which document best match the user's query, you should output nothing."+
-		" Make sure the output is concise and easy to process."+
-		" Wrap the JSON result in <JSON></JSON> tags."+
-		" The expected output format is:\n"+
+		"\nChoose no more than 5 relevant documents. These documents may be entirely unrelated, so prioritize those that provide direct answers or valuable context."+
+		"\nIf the document is unrelated not certain, don't include it."+
+		"\nFor each document, provide a brief explanation of why it was selected."+
+		"\nYour decision should based solely on the information provided below. \nIf the information is insufficient, please indicate that you need more details to assist effectively. "+
+		"\nDon't make anything up, which means if you can't identify which document best match the user's query, you should output nothing."+
+		"\nMake sure the output is concise and easy to process."+
+		"\nWrap the JSON result in <JSON></JSON> tags."+
+		"\nThe expected output format is:\n"+
 		"<JSON>\n"+
 		"[\n"+
 		" { \"id\": \"<id of Doc 1>\", \"title\": \"<title of Doc 1>\", \"explain\": \"<Explain for Doc 1>\"  },\n"+
@@ -845,7 +832,8 @@ Your task is to choose the best documents for further processing.`,
 	llm := getLLM(params.pickingDocProvider.BaseURL, params.pickingDocProvider.APIType, params.pickingDocModel.Name, params.pickingDocProvider.APIKey, params.assistantCfg.Keepalive)
 	log.Trace(content)
 	if _, err := llm.GenerateContent(ctx, content,
-		llms.WithMaxTokens(32768),
+		llms.WithMaxLength(getMaxLength(params.pickingDocModel, params.pickingDocProvider, 32768)),
+		llms.WithMaxTokens(getMaxTokens(params.pickingDocModel, params.pickingDocProvider, 32768)),
 		llms.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
 			if len(chunk) > 0 {
 				chunkSeq++
@@ -944,15 +932,15 @@ func (h APIHandler) generateFinalResponse(taskCtx context.Context, reqMsg, reply
 	}
 
 	if params.historyBlock != "" {
-		prompt += fmt.Sprintf("## Conversation History (FYI)\n<HIS>\n%s\n</HIS>\n\n", params.historyBlock)
+		prompt += fmt.Sprintf("## Conversation History (FYI)\n<HISTORY>\n%s\n</HISTORY>\n\n", params.historyBlock)
 	}
 
 	if params.references != "" {
-		prompt += fmt.Sprintf("## Reference Data (FYI)\n<REF>\n%s\n</REF>\n\n", params.references)
+		prompt += fmt.Sprintf("## Reference Data (FYI)\n<REFERENCE>\n%s\n</REFERENCE>\n\n", params.references)
 	}
 
 	if params.toolsCallResponse != "" {
-		prompt += fmt.Sprintf("## Tool Outputs (LLM Tools - Higher Priority)\n<MCP>\n%s\n</MCP>\n\n", params.toolsCallResponse)
+		prompt += fmt.Sprintf("## Tool Outputs (LLM Tools - Higher Priority)\n<TOOLS>\n%s\n</TOOLS>\n\n", params.toolsCallResponse)
 	}
 
 	prompt += "Please generate your response using the information above, prioritizing LLM tool outputs when available. Ensure your response is thoughtful, accurate, and well-structured.\n\n"
