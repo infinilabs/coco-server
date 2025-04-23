@@ -5,8 +5,6 @@ import { Button, Dropdown, Input, Modal, Switch, Table, message } from 'antd';
 import { deleteIntegration, fetchIntegrations, updateIntegration, renewAPIToken } from '@/service/api/integration';
 import { formatESSearchResult } from '@/service/request/es';
 
-const { confirm } = Modal;
-
 export function Component() {
   const { t } = useTranslation();
 
@@ -110,7 +108,7 @@ export function Component() {
             checked={record.enabled}
             size="small"
             onChange={checked => {
-              confirm({
+              window?.$modal?.confirm({
                 content: t(`page.integration.update.${checked ? 'enable' : 'disable'}_confirm`, { name: record.name }),
                 icon: <ExclamationCircleOutlined />,
                 onOk() {
@@ -155,7 +153,7 @@ export function Component() {
               nav(`/integration/edit/${record.id}`, { state: record });
               break;
             case 'delete':
-              confirm({
+              window?.$modal?.confirm({
                 content: t('page.integration.delete.confirm', { name: record.name }),
                 icon: <ExclamationCircleOutlined />,
                 onOk() {

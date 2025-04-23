@@ -14,8 +14,6 @@ import {
 } from '@/service/api';
 import { formatESSearchResult } from '@/service/request/es';
 
-const { confirm } = Modal;
-
 interface DataType {
   category: string;
   disabled: boolean;
@@ -48,7 +46,7 @@ export function Component() {
   const onMenuClick = ({ key, record }: any) => {
     switch (key) {
       case '1':
-        confirm({
+        window?.$modal?.confirm({
           content: 'Are you sure you want to delete this document?',
           icon: <ExclamationCircleOutlined />,
           onCancel() {},
@@ -114,7 +112,7 @@ export function Component() {
     ({ key }: any) => {
       switch (key) {
         case '1':
-          confirm({
+          window?.$modal?.confirm({
             content: 'Are you sure you want to delete theses documents?',
             icon: <ExclamationCircleOutlined />,
             onCancel() {},

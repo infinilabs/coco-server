@@ -12,13 +12,15 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            color: #666;
+            color: var(--ant-color-text);
             gap: 8px;
             cursor: pointer;
 
-            &.selected,
+            .selected {
+                background-color: var(--ant-select-option-selected-bg);
+            }
             &:hover {
-                background-color: #e8f6fe;
+                background-color: var(--ant-select-option-active-bg);
             }
 
             .label {
@@ -49,7 +51,7 @@
             margin-top: 8px;
     
             .result {
-                color: #999;
+                color: var(--ant-color-text-quaternary);
                 font-size: 12px;
             }
     
@@ -57,7 +59,6 @@
                 display: flex;
                 justify-content: space-between;
                 gap: 12px;
-                color: #101010;
                 font-size: 14px;
                 align-items: center;
 
@@ -65,7 +66,7 @@
                     .ant-checkbox-inner{
                         width: 14px;
                         height: 14px;
-                        border-color: rgba(0,0,0,0.65);
+                        border-color: var(--ant-color-text);
                         transition: all 0.3s;
                     }
 
@@ -91,7 +92,7 @@
         .list {
             .item {
                 height: 32px;
-                color: #666;
+                color: var(--ant-color-text);
                 cursor: pointer;
                 position: relative;
                 display: flex;
@@ -100,9 +101,12 @@
                 padding: 0 6px;
                 gap: 8px;
         
-                &.selected,
+                &.selected {
+                    color: var(--ant-select-option-selected-color);
+                    background-color: var(--ant-select-option-selected-bg);
+                }
                 &:hover {
-                    background-color: #e8f6fe;
+                    background-color: var(--ant-select-option-active-bg);
                 }
 
                 .label {
@@ -129,7 +133,7 @@
     
         .footer {
             height: 40px;
-            border-top: 1px solid #ebebeb;
+            border-top: 1px solid var(--ant-color-border);
             padding: 0 16px;
             display: flex;
             justify-content: space-between;
@@ -176,7 +180,7 @@
 .sorter {
     width: 250px;
     .title {
-        color: #333;
+        color: var(--ant-color-text);
         font-weight: 600;
     }
     
@@ -195,7 +199,7 @@
 .filters {
     width: 250px;
     .title {
-        color: #333;
+        color: var(--ant-color-text);
         font-weight: 600;
         margin-bottom: 12px;
         display: flex;
@@ -214,7 +218,7 @@
         margin-bottom: 16px;
 
         .label {
-            color: #999;
+            color: var(--ant-color-text-quaternary);
         }
 
         .options {

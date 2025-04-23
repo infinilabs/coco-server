@@ -19,7 +19,6 @@ import Icon, {
 
 import { formatESSearchResult } from '@/service/request/es';
 
-const { confirm } = Modal;
 type Connector = Api.Datasource.Connector;
 
 export const GoogleDriveSettings = memo(() => {
@@ -134,7 +133,7 @@ const ConnectorSettings = memo(() => {
   const onMenuClick = ({ key, record }: any) => {
     switch (key) {
       case '2':
-        confirm({
+        window?.$modal?.confirm({
           content: t('page.connector.delete.confirm', { name: record.name }),
           icon: <ExclamationCircleOutlined />,
           onCancel() {},
@@ -207,7 +206,8 @@ const ConnectorSettings = memo(() => {
     {
       dataIndex: 'description',
       minWidth: 100,
-      title: t('page.connector.columns.description')
+      title: t('page.connector.columns.description'),
+      ellipsis: true,
     },
     {
       dataIndex: 'tags',

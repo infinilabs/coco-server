@@ -6,7 +6,6 @@ import {searchMCPServer, deleteMCPServer, updateMCPServer} from '@/service/api/m
 import { formatESSearchResult } from '@/service/request/es';
 import InfiniIcon from '@/components/common/icon';
 
-const { confirm } = Modal;
 type MCPServer = Api.LLM.MCPServer;
 
 export function Component() {
@@ -29,7 +28,7 @@ export function Component() {
   const onMenuClick = ({key, record}: any)=>{
     switch(key){
       case "1":
-        confirm({
+        window?.$modal?.confirm({
           icon: <ExclamationCircleOutlined />,
           title: t('common.tip'),
           content: t('page.mcpserver.delete.confirm', { name: record.name }),

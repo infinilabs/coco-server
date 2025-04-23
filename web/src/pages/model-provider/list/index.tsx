@@ -1,11 +1,9 @@
 import Search from "antd/es/input/Search";
 import Icon, { FilterOutlined, PlusOutlined, SettingOutlined, ExclamationCircleOutlined, ExportOutlined } from "@ant-design/icons";
 import { Button, List, Image, Switch, Tag, message, MenuProps, Modal, Dropdown, Spin, Form, Input} from "antd";
-import { ReactSVG } from "react-svg";
 import {searchModelPovider, updateModelProvider, deleteModelProvider} from "@/service/api/model-provider";
 import { formatESSearchResult } from '@/service/request/es';
 import InfiniIcon from '@/components/common/icon';
-const { confirm } = Modal;
 
 export function Component() {
   const { t } = useTranslation();
@@ -57,7 +55,7 @@ export function Component() {
   const onMenuClick = ({key, record}: any)=>{
     switch(key){
       case "2":
-        confirm({
+        window?.$modal?.confirm({
           icon: <ExclamationCircleOutlined />,
           title: t('common.tip'),
           content: t('page.modelprovider.delete.confirm'),
