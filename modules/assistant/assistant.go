@@ -118,7 +118,7 @@ func (h *APIHandler) updateAssistant(w http.ResponseWriter, req *http.Request, p
 		return
 	}
 	//clear cache
-	common.AssistantCache.Delete(common.AssistantCachePrimary, id)
+	common.GeneralObjectCache.Delete(common.AssistantCachePrimary, id)
 
 	h.WriteJSON(w, util.MapStr{
 		"_id":    obj.ID,
@@ -154,7 +154,7 @@ func (h *APIHandler) deleteAssistant(w http.ResponseWriter, req *http.Request, p
 		return
 	}
 	//clear cache
-	common.AssistantCache.Delete(common.AssistantCachePrimary, id)
+	common.GeneralObjectCache.Delete(common.AssistantCachePrimary, id)
 
 	h.WriteJSON(w, util.MapStr{
 		"_id":    obj.ID,

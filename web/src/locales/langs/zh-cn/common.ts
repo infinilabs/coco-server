@@ -64,7 +64,8 @@ const common: App.I18n.Schema['translation']['common'] = {
   language: {
     en: '英文',
     zh: '中文'
-  }
+  },
+  renew_token: '刷新令牌',
 };
 
 export default common;

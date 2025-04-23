@@ -24,16 +24,17 @@
 package common
 
 import (
-	"time"
-
 	"infini.sh/framework/core/orm"
-	ccache "infini.sh/framework/lib/cache"
+	"infini.sh/framework/core/util"
+	"time"
 )
 
 const (
 	AssistantTypeSimple           = "simple"
 	AssistantTypeDeepThink        = "deep_think"
 	AssistantTypeExternalWorkflow = "external_workflow"
+
+	AssistantCachePrimary = "assistant"
 )
 
 type Assistant struct {
@@ -53,33 +54,6 @@ type Assistant struct {
 	RolePrompt     string           `json:"role_prompt" elastic_mapping:"role_prompt:{type:keyword}"` // Role prompt for the assistant
 }
 
-var AssistantCache = ccache.Layered(ccache.Configure().MaxSize(10000).ItemsToPrune(100))
-
-const (
-	AssistantCachePrimary = "assistant"
-)
-
-// GetAssistant retrieves the assistant object from the cache or database.
-func GetAssistant(assistantID string) (*Assistant, error) {
-	item := AssistantCache.Get(AssistantCachePrimary, assistantID)
-	var assistant *Assistant
-	if item != nil && !item.Expired() {
-		var ok bool
-		if assistant, ok = item.Value().(*Assistant); ok {
-			return assistant, nil
-		}
-	}
-	assistant = &Assistant{}
-	assistant.ID = assistantID
-	_, err := orm.Get(assistant)
-	if err != nil {
-		return nil, err
-	}
-	// Cache the assistant object
-	AssistantCache.Set(AssistantCachePrimary, assistantID, assistant, time.Duration(30)*time.Minute)
-	return assistant, nil
-}
-
 type DeepThinkConfig struct {
 	IntentAnalysisModel ModelConfig `json:"intent_analysis_model"`
 	PickingDocModel     ModelConfig `json:"picking_doc_model"`
@@ -90,15 +64,16 @@ type WorkflowConfig struct {
 }
 
 type DatasourceConfig struct {
-	Enabled bool     `json:"enabled"`
-	IDs     []string `json:"ids,omitempty"`
-	Visible bool     `json:"visible"` // Whether the deep datasource is visible to the user
+	Enabled bool        `json:"enabled"`
+	IDs     []string    `json:"ids,omitempty"`
+	Visible bool        `json:"visible"`          // Whether the deep datasource is visible to the user
+	Filter  interface{} `json:"filter,omitempty"` // Filter for the datasource
 }
 
 type MCPConfig struct {
-	Enabled    bool     `json:"enabled"`
-	MCPServers []string `json:"ids,omitempty"`
-	Visible    bool     `json:"visible"` // Whether the deep datasource is visible to the user
+	Enabled bool     `json:"enabled"`
+	IDs     []string `json:"ids,omitempty"`
+	Visible bool     `json:"visible"` // Whether the deep datasource is visible to the user
 
 	Model         *ModelConfig `json:"model"` //if not specified, use the answering model
 	MaxIterations int          `json:"max_iterations"`
@@ -131,4 +106,48 @@ type ChatSettings struct {
 		CompressionThreshold int  `json:"compression_threshold"`
 		Summary              bool `json:"summary"`
 	} `json:"history_message"`
+}
+
+// GetAssistant retrieves the assistant object from the cache or database.
+func GetAssistant(assistantID string) (*Assistant, error) {
+	item := GeneralObjectCache.Get(AssistantCachePrimary, assistantID)
+	var assistant *Assistant
+	if item != nil && !item.Expired() {
+		var ok bool
+		if assistant, ok = item.Value().(*Assistant); ok {
+			return assistant, nil
+		}
+	}
+	assistant = &Assistant{}
+	assistant.ID = assistantID
+	_, err := orm.Get(assistant)
+	if err != nil {
+		return nil, err
+	}
+
+	//expand datasource is the datasource is `*`
+	if util.ContainsAnyInArray("*", assistant.Datasource.IDs) {
+		ids, err := GetAllEnabledDatasourceIDs()
+		if err != nil {
+			panic(err)
+		}
+		assistant.Datasource.IDs = ids
+	}
+
+	if util.ContainsAnyInArray("*", assistant.MCPConfig.IDs) {
+		ids, err := GetAllEnabledMCPServerIDs()
+		if err != nil {
+			panic(err)
+		}
+		assistant.MCPConfig.IDs = ids
+	}
+
+	//set default value
+	if assistant.MCPConfig.MaxIterations <= 1 {
+		assistant.MCPConfig.MaxIterations = 5
+	}
+
+	// Cache the assistant object
+	GeneralObjectCache.Set(AssistantCachePrimary, assistantID, assistant, time.Duration(30)*time.Minute)
+	return assistant, nil
 }

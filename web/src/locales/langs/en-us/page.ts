@@ -145,7 +145,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       type: 'Type',
       operation: {
         topics: 'Suggested Topics'
-      }
+      },
+      token_expire_in: 'Token Expire In',
     },
     delete: {
       confirm: `Are you sure you want to delete integration "{{name}}" ?`
@@ -343,6 +344,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       show_in_chat: "Show in chat",
       max_iterations: "Max iterations",
       caller_model: "Caller Model",
+      filter: "Filter",
     },
     mode:{
       simple: "Simple",

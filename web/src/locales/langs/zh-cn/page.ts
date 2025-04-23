@@ -140,7 +140,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       type: '类型',
       operation: {
         topics: '推荐话题'
-      }
+      },
+      token_expire_in: 'Token 过期时间',
     },
     delete: {
       confirm: `确定删除嵌入组件 "{{name}}"？`
@@ -336,6 +337,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       show_in_chat: "在聊天界面中显示",
       max_iterations: "最大迭代次数",
       caller_model: "调用模型",
+      filter: "数据过滤",
     },
     mode:{
       simple: "简单模式",

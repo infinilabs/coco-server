@@ -6,7 +6,6 @@ package common
 
 import (
 	"infini.sh/framework/core/orm"
-	ccache "infini.sh/framework/lib/cache"
 	"time"
 )
 
@@ -29,15 +28,19 @@ type ConnectorConfig struct {
 }
 
 const (
-	DatasourceCachePrimary        = "datasource"
-	DisabledDatasourceIDsCacheKey = "disabled_ids"
+	DatasourcePrimaryCacheKey     = "datasource_primary"
+	DisabledDatasourceIDsCacheKey = "disabled_datasource_ids"
+	EnabledDatasourceIDsCacheKey  = "enabled_datasource_ids"
 )
 
-var DisabledDatasourceIDsCache = ccache.Layered(ccache.Configure().MaxSize(10000).ItemsToPrune(100))
+func ClearDatasourceCache() {
+	GeneralObjectCache.Delete(DatasourcePrimaryCacheKey, DisabledDatasourceIDsCacheKey)
+	GeneralObjectCache.Delete(DatasourcePrimaryCacheKey, EnabledDatasourceIDsCacheKey)
+}
 
 // GetDisabledDatasourceIDs retrieves the list of disabled data source IDs from the cache.
 func GetDisabledDatasourceIDs() ([]string, error) {
-	item := DisabledDatasourceIDsCache.Get(DatasourceCachePrimary, DisabledDatasourceIDsCacheKey)
+	item := GeneralObjectCache.Get(DatasourcePrimaryCacheKey, DisabledDatasourceIDsCacheKey)
 	var datasourceIDs []string
 	if item != nil && !item.Expired() {
 		var ok bool
@@ -60,7 +63,36 @@ func GetDisabledDatasourceIDs() ([]string, error) {
 	for i, ds := range datasources {
 		datasourceIDs[i] = ds.ID
 	}
-	DisabledDatasourceIDsCache.Set(DatasourceCachePrimary, DisabledDatasourceIDsCacheKey, datasourceIDs, time.Duration(30)*time.Minute)
+	GeneralObjectCache.Set(DatasourcePrimaryCacheKey, DisabledDatasourceIDsCacheKey, datasourceIDs, time.Duration(30)*time.Minute)
+	return datasourceIDs, nil
+
+}
+
+func GetAllEnabledDatasourceIDs() ([]string, error) {
+	item := GeneralObjectCache.Get(DatasourcePrimaryCacheKey, EnabledDatasourceIDsCacheKey)
+	var datasourceIDs []string
+	if item != nil && !item.Expired() {
+		var ok bool
+		if datasourceIDs, ok = item.Value().([]string); ok {
+			return datasourceIDs, nil
+		}
+	}
+	// Cache is empty, read from database and cache the IDs
+	var datasources []DataSource
+	q := orm.Query{
+		Conds: orm.And(orm.Eq("enabled", true)),
+	}
+	err, _ := orm.SearchWithJSONMapper(&datasources, &q)
+	if err != nil {
+		return nil, err
+	}
+
+	// Extract IDs from the retrieved data sources
+	datasourceIDs = make([]string, len(datasources))
+	for i, ds := range datasources {
+		datasourceIDs[i] = ds.ID
+	}
+	GeneralObjectCache.Set(DatasourcePrimaryCacheKey, EnabledDatasourceIDsCacheKey, datasourceIDs, time.Duration(30)*time.Minute)
 	return datasourceIDs, nil
 
 }
