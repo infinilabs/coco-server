@@ -30,10 +30,13 @@ export const EditForm = memo((props: MCPServerFormProps)=> {
   useEffect(()=>{
     if(initialValues){
       if(initialValues.type === "stdio"){
+        if (!initialValues.config) initialValues.config = {}
         initialValues.config.args = initialValues.config.args?.join("\n");
         const env: any = {}
-        for (const key in initialValues.config.env) {
-          env[key] = `${key}=${initialValues.config.env[key]}`
+        if (initialValues.config.env) {
+          for (const key in initialValues.config.env) {
+            env[key] = `${key}=${initialValues.config.env[key]}`
+          }
         }
         initialValues.config.env = Object.values(env).join("\n");
       }
