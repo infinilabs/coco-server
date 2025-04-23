@@ -19,7 +19,7 @@ export default (props) => {
     }
 
     const grps = providers.map((item: any) => {
-      return item.name;
+      return item.id + "_" + item.name;
     })
     
     const [sorter, setSorter] = useState([])
