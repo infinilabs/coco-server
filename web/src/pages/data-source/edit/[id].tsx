@@ -8,6 +8,8 @@ import LinkSVG from '@/assets/svg-icon/link.svg';
 import { DataSync } from '@/components/datasource/data_sync';
 import { Types } from '@/components/datasource/type';
 import { getDatasource, updateDatasource } from '@/service/api/data-source';
+import {getConnectorIcons} from '@/service/api/connector';
+import { IconSelector } from "@/pages/connector/new/icon_selector";
 
 import HugoSite from '../new/hugo_site';
 import Notion from '../new/notion';
@@ -30,6 +32,14 @@ export function Component() {
       }
     });
   }, [datasourceID]);
+  const [iconsMeta, setIconsMeta] = useState([]);
+  useEffect(() => {
+    getConnectorIcons().then((res)=>{
+      if(res.data?.length > 0){
+        setIconsMeta(res.data);
+      }
+    });
+  }, []);
   const copyRef = useRef<HTMLSpanElement | null>(null);
   const insertDocCmd = `curl -H'X-API-TOKEN: REPLACE_YOUR_API_TOKEN_HERE'  -H 'Content-Type: application/json' -XPOST ${location.origin}/datasource/${datasourceID}/_doc -d'
   {
@@ -85,6 +95,7 @@ export function Component() {
       },
       enabled: Boolean(values.enabled),
       name: values.name,
+      icon: values.icon,
       sync_enabled: Boolean(values.sync_enabled),
       type: 'connector'
     };
@@ -136,7 +147,7 @@ export function Component() {
         bordered={false}
         className="sm:flex-1-auto min-h-full flex-col-stretch card-wrapper"
       >
-        <div className="mb-4 ml--16px flex items-center text-lg font-bold">
+        <div className="mb-30px ml--16px flex items-center text-lg font-bold">
           <div className="mr-20px h-1.2em w-10px bg-[#1677FF]" />
           {t('page.datasource.edit.title')}
         </div>
@@ -158,6 +169,9 @@ export function Component() {
             >
               <Input className="max-w-660px" />
             </Form.Item>
+            <Form.Item label={t('page.mcpserver.labels.icon')} name="icon">
+                <IconSelector type="connector" icons={iconsMeta} className='max-w-300px' />
+              </Form.Item>
             {type === Types.Yuque && <Yuque />}
             {type === Types.Notion && <Notion />}
             {type === Types.HugoSite && <HugoSite />}
@@ -173,7 +187,7 @@ export function Component() {
                   label={t('page.datasource.new.labels.sync_enabled')}
                   name="sync_enabled"
                 >
-                  <Switch />
+                  <Switch size="small"/>
                 </Form.Item>
               </>
             ) : (
@@ -181,7 +195,7 @@ export function Component() {
                 label={t('page.datasource.new.labels.insert_doc')}
                 name=""
               >
-                <div className="max-w-660px rounded bg-gray-100 p-1em">
+                <div className="max-w-660px rounded-[var(--ant-border-radius)] bg-[var(--ant-color-border)] p-1em">
                   <div>
                     <pre
                       className="whitespace-pre-wrap break-words"
@@ -224,7 +238,7 @@ export function Component() {
               label={t('page.datasource.new.labels.enabled')}
               name="enabled"
             >
-              <Switch />
+              <Switch size="small"/>
             </Form.Item>
             <Form.Item label=" ">
               <Button

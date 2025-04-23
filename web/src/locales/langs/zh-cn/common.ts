@@ -55,7 +55,17 @@ const common: App.I18n.Schema['translation']['common'] = {
   yesOrNo: {
     no: '否',
     yes: '是'
-  }
+  },
+  enableOrDisable: {
+    enable: '开启',
+    disable: '关闭'
+  },
+  upload: '上传',
+  language: {
+    en: '英文',
+    zh: '中文'
+  },
+  renew_token: '刷新令牌',
 };
 
 export default common;

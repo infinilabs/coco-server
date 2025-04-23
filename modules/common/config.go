@@ -104,6 +104,14 @@ func reloadConfig() {
 			config.LLMConfig = llm
 		}
 	}
+	buf, _ = kv.GetValue(core.DefaultSettingBucketKey, []byte(core.DefaultAppSettingsKey))
+	if buf != nil {
+		appSettings := &AppSettings{}
+		err := util.FromJSONBytes(buf, appSettings)
+		if err == nil {
+			config.AppSettings = appSettings
+		}
+	}
 
 	filebasedConfig, _ := AppConfigFromFile()
 	if filebasedConfig != nil {
@@ -134,18 +142,32 @@ func SetAppConfig(c *Config) {
 	if err != nil {
 		panic(err)
 	}
+	//save chat start page's config
+	err = kv.AddValue(core.DefaultSettingBucketKey, []byte(core.DefaultAppSettingsKey), util.MustToJSONBytes(c.AppSettings))
+	if err != nil {
+		panic(err)
+	}
 	config = nil
 	reloadConfig()
 }
 
 type Config struct {
-	LLMConfig  *LLMConfig  `config:"llm" json:"llm,omitempty"`
-	ServerInfo *ServerInfo `config:"server" json:"server,omitempty"`
+	LLMConfig   *LLMConfig   `config:"llm" json:"llm,omitempty"`
+	ServerInfo  *ServerInfo  `config:"server" json:"server,omitempty"`
+	AppSettings *AppSettings `config:"app_settings" json:"app_settings,omitempty"`
 }
 
 const OLLAMA = "ollama"
 const OPENAI = "openai"
 const DEEPSEEK = "deepseek"
+
+type AppSettings struct {
+	Chat *ChatConfig `json:"chat,omitempty" config:"chat" `
+}
+
+type ChatConfig struct {
+	ChatStartPageConfig *ChatStartPageConfig `config:"start_page" json:"start_page,omitempty"`
+}
 
 type LLMConfig struct {
 	// LLM type, optional value "ollama" or "openai"
@@ -170,4 +192,14 @@ type LLMParameters struct {
 	FrequencyPenalty  float64 `config:"frequency_penalty" json:"frequency_penalty"`
 	EnhancedInference bool    `config:"enhanced_inference" json:"enhanced_inference"`
 	MaxLength         int     `config:"max_length" json:"max_length"`
+}
+
+type ChatStartPageConfig struct {
+	Enabled bool `json:"enabled"`
+	Logo    struct {
+		Light string `json:"light"`
+		Dark  string `json:"dark"`
+	} `json:"logo"`
+	Introduction      string   `json:"introduction"`
+	DisplayAssistants []string `json:"display_assistants"`
 }

@@ -58,8 +58,20 @@ const route: App.I18n.Schema['translation']['route'] = {
   'multi-menu_second': '菜单二',
   'multi-menu_second_child': '菜单二子菜单',
   'multi-menu_second_child_home': '菜单二子菜单首页',
-  server: '服务端',
-  settings: '设置',
+  'server': '服务端',
+  'ai-assistant_list': 'AI 助手',
+  'ai-assistant_new': '新增 AI 助手',
+  'ai-assistant_edit': '编辑 AI 助手',
+  'data-source_detail': '数据源详情',
+  'settings': '设置',
+  'model-provider': '模型提供商',
+  'model-provider_list': '模型提供商',
+  'model-provider_new': '新增模型提供商',
+  'model-provider_edit': '编辑模型提供商',
+  'mcp-server': 'MCP 服务器',
+  'mcp-server_list': 'MCP 服务器',
+  'mcp-server_new': '新增 MCP 服务器',
+  'mcp-server_edit': '编辑 MCP 服务器',
   'user-center': '个人中心'
 };
 

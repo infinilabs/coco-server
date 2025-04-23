@@ -62,6 +62,7 @@ func init() {
 	api.HandleUIMethod(api.GET, "/integration/:id", handler.get, api.RequirePermission(readPermission), api.Feature(filter.FeatureCORS))
 	api.HandleUIMethod(api.PUT, "/integration/:id", handler.update, api.RequirePermission(updatePermission))
 	api.HandleUIMethod(api.DELETE, "/integration/:id", handler.delete, api.RequirePermission(deletePermission))
+	api.HandleUIMethod(api.POST, "/integration/:id/_renew_token", handler.renewAPIToken, api.RequirePermission(updatePermission))
 
 	api.HandleUIMethod(api.POST, "/integration/:id/chat/_suggest", handler.updateSuggestTopic, api.RequirePermission(viewSuggestTopicsPermission), api.Feature(filter.FeatureCORS))
 	api.HandleUIMethod(api.GET, "/integration/:id/chat/_suggest", handler.viewSuggestTopic, api.RequirePermission(viewSuggestTopicsPermission), api.Feature(filter.FeatureCORS))

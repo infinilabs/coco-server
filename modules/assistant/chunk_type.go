@@ -26,6 +26,7 @@ package assistant
 // Define constants for the various stages
 const (
 	QueryIntent  = "query_intent"
+	Tools        = "tools"
 	QueryRewrite = "query_rewrite"
 	FetchSource  = "fetch_source"
 	PickSource   = "pick_source"

@@ -29,6 +29,9 @@ package security
 
 import (
 	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/buger/jsonparser"
 	log "github.com/cihub/seelog"
 	"github.com/golang-jwt/jwt"
@@ -38,8 +41,6 @@ import (
 	"infini.sh/framework/core/kv"
 	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
-	"net/http"
-	"time"
 )
 
 func GenerateJWTAccessToken(provider string, login string, user *core.User) (map[string]interface{}, error) {
@@ -251,6 +252,58 @@ func (h *APIHandler) DeleteAccessToken(w http.ResponseWriter, req *http.Request,
 	}
 
 	h.WriteDeletedOKJSON(w, tokenID)
+}
+
+func DeleteAccessToken(uid string, token string) error {
+	tokenBytes := []byte(token)
+	tokenV, err := kv.GetValue(core.KVAccessTokenBucket, tokenBytes)
+	if err != nil {
+		return fmt.Errorf("get access token error: %w", err)
+	}
+	userID, err := jsonparser.GetString(tokenV, "userid")
+	if err != nil {
+		return fmt.Errorf("get user id error: %w", err)
+	}
+	if userID != uid {
+		return fmt.Errorf("permission denied")
+	}
+	tokenID, err := jsonparser.GetString(tokenV, "id")
+	if err != nil {
+		return fmt.Errorf("get token id error: %w", err)
+	}
+	err = kv.DeleteKey(core.KVAccessTokenBucket, tokenBytes)
+	if err != nil {
+		panic(err)
+	}
+	// delete relationship between token and token id
+	err = kv.DeleteKey(KVAccessTokenIDBucket, []byte(tokenID))
+	if err != nil {
+		panic(err)
+	}
+	// update relationship between user and token id
+	tokenIDs, err := getTokenIDs(userID)
+	if err != nil {
+		panic(err)
+	}
+	delete(tokenIDs, tokenID)
+	err = kv.AddValue(KVUserTokenBucket, []byte(userID), util.MustToJSONBytes(tokenIDs))
+	if err != nil {
+		panic(err)
+	}
+	return nil
+}
+
+func GetToken(token string) (util.MapStr, error) {
+	tokenBytes, err := kv.GetValue(core.KVAccessTokenBucket, []byte(token))
+	if err != nil {
+		return nil, err
+	}
+	var accessToken util.MapStr
+	err = util.FromJSONBytes(tokenBytes, &accessToken)
+	if err != nil {
+		return nil, err
+	}
+	return accessToken, nil
 }
 
 func (h *APIHandler) RenameAccessToken(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {

@@ -1,0 +1,51 @@
+.timeSetting {
+  height: 100%;
+  padding: 16px 16px;
+  position: relative;
+
+  .title {
+    color: #333;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .formItem {
+    margin-bottom: 12px;
+
+    .label {
+      color: #333;
+      margin-bottom: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .auto {
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+
+      :global {
+        .ant-switch {
+          margin-right: 6px;
+        }
+      }
+    }
+
+    .form {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .help {
+      color: rgba(0, 0, 0, 0.45);
+      font-size: 12px;
+      word-break: break-all;
+    }
+  }
+
+  .apply {
+    text-align: right;
+  }
+}

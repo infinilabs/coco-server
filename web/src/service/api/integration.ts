@@ -63,22 +63,9 @@ export function deleteIntegration(id: string) {
   });
 }
 
-export function fetchIntegrationTopics(id: string) {
+export function renewAPIToken(id: string) {
   return request({
-    method: 'get',
-    url: `/integration/${id}/chat/_suggest`
-  });
-}
-
-export function updateIntegrationTopics(data) {
-  const { id, topics } = data;
-  debugger
-  return request({
-    data: topics,
     method: 'post',
-    url: `/integration/${id}/chat/_suggest`,
-    headers: {
-      'Content-Type': 'application/json'
-    },
+    url: `/integration/${id}/_renew_token`
   });
 }

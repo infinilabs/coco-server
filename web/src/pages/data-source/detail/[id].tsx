@@ -14,8 +14,6 @@ import {
 } from '@/service/api';
 import { formatESSearchResult } from '@/service/request/es';
 
-const { confirm } = Modal;
-
 interface DataType {
   category: string;
   disabled: boolean;
@@ -48,7 +46,7 @@ export function Component() {
   const onMenuClick = ({ key, record }: any) => {
     switch (key) {
       case '1':
-        confirm({
+        window?.$modal?.confirm({
           content: 'Are you sure you want to delete this document?',
           icon: <ExclamationCircleOutlined />,
           onCancel() {},
@@ -114,7 +112,7 @@ export function Component() {
     ({ key }: any) => {
       switch (key) {
         case '1':
-          confirm({
+          window?.$modal?.confirm({
             content: 'Are you sure you want to delete theses documents?',
             icon: <ExclamationCircleOutlined />,
             onCancel() {},
@@ -168,12 +166,13 @@ export function Component() {
           return (
             <span className="inline-flex items-center gap-1">
               {imgSrc && (
-                <InfiniIcon
-                  className="mr-3px"
-                  height="1em"
-                  src={imgSrc}
-                  width="1em"
-                />
+                <IconWrapper className="w-20px h-20px">
+                  <InfiniIcon
+                    height="1em"
+                    src={imgSrc}
+                    width="1em"
+                  />
+                </IconWrapper>
               )}
               <a
                 className="text-blue-500"
@@ -193,6 +192,7 @@ export function Component() {
         render: (text: boolean, record: DataType) => {
           return (
             <Switch
+              size="small"
               value={!text}
               onChange={v => {
                 onSearchableChange(v, record);
@@ -267,7 +267,7 @@ export function Component() {
         bordered={false}
         className="sm:flex-1-auto min-h-full flex-col-stretch card-wrapper"
       >
-        <div className="mb-4 ml--16px flex items-center text-lg font-bold">
+        <div className="mb-30px ml--16px flex items-center text-lg font-bold">
           <div className="mr-20px h-1.2em w-10px bg-[#1677FF]" />
           <div>{datasource_name}</div>
         </div>

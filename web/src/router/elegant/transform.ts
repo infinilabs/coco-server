@@ -217,6 +217,9 @@ const routeMap: RouteMap = {
   "404": "/404",
   "500": "/500",
   "ai-assistant": "/ai-assistant",
+  "ai-assistant_edit": "edit/:id",
+  "ai-assistant_list": "list",
+  "ai-assistant_new": "new",
   "api-token": "/api-token",
   "api-token_list": "list",
   "connector": "/connector",
@@ -235,6 +238,14 @@ const routeMap: RouteMap = {
   "integration_list": "list",
   "integration_new": "new",
   "login": "/login",
+  "mcp-server": "/mcp-server",
+  "mcp-server_edit": "edit/:id",
+  "mcp-server_list": "list",
+  "mcp-server_new": "new",
+  "model-provider": "/model-provider",
+  "model-provider_edit": "edit/:id",
+  "model-provider_list": "list",
+  "model-provider_new": "new",
   "settings": "/settings"
 };
 

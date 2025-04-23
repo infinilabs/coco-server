@@ -6,6 +6,8 @@ import { DataSync } from '@/components/datasource/data_sync';
 import { TypeList, Types } from '@/components/datasource/type';
 import { getConnector } from '@/service/api/connector';
 import { createDatasource } from '@/service/api/data-source';
+import {getConnectorIcons} from '@/service/api/connector';
+import { IconSelector } from "@/pages/connector/new/icon_selector";
 
 import GoogleDrive from './google_drive';
 import HugoSite from './hugo_site';
@@ -140,6 +142,7 @@ export function Component() {
       },
       enabled: Boolean(values.enabled),
       name: values.name,
+      icon: values.icon,
       sync_enabled: values.sync_enabled,
       type: 'connector'
     };
@@ -151,6 +154,15 @@ export function Component() {
     });
   };
 
+  const [iconsMeta, setIconsMeta] = useState([]);
+  useEffect(() => {
+    getConnectorIcons().then((res)=>{
+      if(res.data?.length > 0){
+        setIconsMeta(res.data);
+      }
+    });
+  }, []);
+
   const onFinishFailed: FormProps<any>['onFinishFailed'] = errorInfo => {
     console.log('Failed:', errorInfo);
   };
@@ -160,7 +172,7 @@ export function Component() {
         bordered={false}
         className="min-h-full flex-col-stretch sm:flex-1-hidden card-wrapper"
       >
-        <div className="mb-4 ml--16px flex items-center text-lg font-bold">
+        <div className="mb-30px ml--16px flex items-center text-lg font-bold">
           <div className="mr-20px h-1.2em w-10px bg-[#1677FF]" />
           <div>
             {t('page.datasource.new.title', {
@@ -194,6 +206,9 @@ export function Component() {
               >
                 <Input className="max-w-600px" />
               </Form.Item>
+              <Form.Item label={t('page.mcpserver.labels.icon')} name="icon">
+                <IconSelector type="connector" icons={iconsMeta} className='max-w-300px' />
+              </Form.Item>
               {type === Types.Yuque && <Yuque />}
               {type === Types.Notion && <Notion />}
               {type === Types.HugoSite && <HugoSite />}
@@ -207,13 +222,13 @@ export function Component() {
                 label={t('page.datasource.new.labels.sync_enabled')}
                 name="sync_enabled"
               >
-                <Switch />
+                <Switch size="small"/>
               </Form.Item>
               <Form.Item
                 label={t('page.datasource.new.labels.enabled')}
                 name="enabled"
               >
-                <Switch />
+                <Switch size="small"/>
               </Form.Item>
               <Form.Item label=" ">
                 <Button

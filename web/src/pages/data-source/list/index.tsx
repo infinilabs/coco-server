@@ -9,7 +9,6 @@ import { GoogleDriveSVG, HugoSVG, NotionSVG, YuqueSVG } from '@/components/icons
 import { deleteDatasource, fetchDataSourceList, getConnectorByIDs, updateDatasource } from '@/service/api';
 import { formatESSearchResult } from '@/service/request/es';
 
-const { confirm } = Modal;
 type Datasource = Api.Datasource.Datasource;
 
 type TablePaginationConfig = Exclude<GetProp<TableProps, 'pagination'>, boolean>;
@@ -48,19 +47,19 @@ export function Component() {
   const nav = useNavigate();
   const items: MenuProps['items'] = [
     {
+      key: '2',
+      label: t('common.edit')
+    },
+    {
       key: '1',
       label: t('common.delete')
     },
-    {
-      key: '2',
-      label: t('common.edit')
-    }
   ];
 
   const onMenuClick = ({ key, record }: any) => {
     switch (key) {
       case '1':
-        confirm({
+        window?.$modal?.confirm({
           content: t('page.datasource.delete.confirm'),
           icon: <ExclamationCircleOutlined />,
           onCancel() {},
@@ -131,8 +130,10 @@ export function Component() {
       dataIndex: 'name',
       minWidth: 200,
       render: (value: string, record: Datasource) => {
-        if (!data.connectors) return value;
-        const iconSrc = data.connectors[record.connector.id]?.icon;
+        let iconSrc = record.icon;
+        if(!iconSrc && data.connectors) {
+          iconSrc = data.connectors[record.connector.id]?.icon;
+        }
         if (!iconSrc) return value;
         return (
           <a
@@ -143,11 +144,13 @@ export function Component() {
               })
             }
           >
-            <InfiniIcon
-              height="1em"
-              src={iconSrc}
-              width="1em"
-            />
+            <IconWrapper className="w-20px h-20px">
+              <InfiniIcon
+                height="1em"
+                src={iconSrc}
+                width="1em"
+              />
+            </IconWrapper>
             {value}
           </a>
         );
@@ -168,6 +171,7 @@ export function Component() {
       render: (value: boolean, record: Datasource) => {
         return (
           <Switch
+            size="small"
             value={value}
             onChange={v => onSyncEnabledChange(v, record)}
           />
@@ -181,6 +185,7 @@ export function Component() {
       render: (value: boolean, record: Datasource) => {
         return (
           <Switch
+            size="small"
             value={value}
             onChange={v => onEnabledChange(v, record)}
           />

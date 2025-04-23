@@ -58,9 +58,20 @@ const route: App.I18n.Schema['translation']['route'] = {
   'multi-menu_second': 'Menu Two',
   'multi-menu_second_child': 'Menu Two Child',
   'multi-menu_second_child_home': 'Menu Two Child Home',
-  server: 'Server',
-  settings: 'Settings',
-  'user-center': 'User Center'
+  'user-center': 'User Center',
+  'server': 'Server',
+  'ai-assistant_list': 'AI Assistant',
+  'ai-assistant_new': 'New AI Assistant',
+  'ai-assistant_edit': 'Edit AI Assistant',
+  'settings': 'Settings',
+  'model-provider': 'Model Providers',
+  'model-provider_list': 'Model Providers',
+  'model-provider_new': 'New Model Provider',
+  'model-provider_edit': 'Edit Model Provider',
+  'mcp-server': 'MCP Server',
+  'mcp-server_list': 'MCP Server',
+  'mcp-server_new': 'New MCP Server',
+  'mcp-server_edit': 'Edit MCP Server',
 };
 
 export default route;

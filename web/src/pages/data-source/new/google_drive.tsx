@@ -33,7 +33,7 @@ export default ({ connector }: GoogleDriveProps) => {
     ].some((field) => !field);
 
     if (missingFields) {
-      confirm({
+      window?.$modal?.confirm({
         title: t("common.tip"),
         icon: <ExclamationCircleOutlined />,
         content: t('page.datasource.missing_config_tip'),

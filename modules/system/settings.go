@@ -47,17 +47,6 @@ func (h *APIHandler) updateServerSettings(w http.ResponseWriter, req *http.Reque
 		return
 	}
 	oldAppConfig := common.AppConfig()
-	if appConfig.LLMConfig != nil {
-		//merge settings
-		llmCfg := common.LLMConfig{}
-		err := mergeSettings(oldAppConfig.LLMConfig, appConfig.LLMConfig, &llmCfg)
-		if err != nil {
-			log.Error(err)
-			h.WriteError(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		oldAppConfig.LLMConfig = &llmCfg
-	}
 	if appConfig.ServerInfo != nil {
 		//merge settings
 		serverCfg := common.ServerInfo{}
@@ -68,6 +57,17 @@ func (h *APIHandler) updateServerSettings(w http.ResponseWriter, req *http.Reque
 			return
 		}
 		oldAppConfig.ServerInfo = &serverCfg
+	}
+	if appConfig.AppSettings != nil {
+		//merge settings
+		appSettings := common.AppSettings{}
+		err := mergeSettings(oldAppConfig.AppSettings, appConfig.AppSettings, &appSettings)
+		if err != nil {
+			log.Error(err)
+			h.WriteError(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		oldAppConfig.AppSettings = &appSettings
 	}
 	common.SetAppConfig(&oldAppConfig)
 	h.WriteAckOKJSON(w)
