@@ -49,7 +49,6 @@ export default (props) => {
         (item.models || []).forEach((model) => {
           models.push({
             type: item.id + "_" + item.name,
-            provider: item,
             provider_id: item.id,
             id: item.id + "_" + model.name,
             name: model.name,
@@ -109,10 +108,17 @@ export default (props) => {
           width={width || "100%"}
           dropdownWidth={width}
           renderLabel={(item) => {
+            const provider = providers.find((p) => p.id === item.provider_id)
             return (
               <div className="flex items-center gap-2px">
-                <span>{renderProvider(item.provider)}</span>
-                <span>/</span>
+                {
+                  provider && (
+                    <>
+                      <span>{renderProvider(provider)}</span>
+                      <span>/</span>
+                    </>
+                  )
+                }
                 <span>{item.name}</span>
               </div> 
              )
