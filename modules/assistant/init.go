@@ -66,6 +66,7 @@ func init() {
 	api.HandleUIMethod(api.GET, "/assistant/:id", handler.getAssistant, api.RequirePermission(readPermission))
 	api.HandleUIMethod(api.PUT, "/assistant/:id", handler.updateAssistant, api.RequirePermission(updatePermission))
 	api.HandleUIMethod(api.DELETE, "/assistant/:id", handler.deleteAssistant, api.RequirePermission(deletePermission))
-	api.HandleUIMethod(api.GET, "/assistant/_search", handler.searchAssistant, api.RequirePermission(searchPermission))
-	api.HandleUIMethod(api.POST, "/assistant/_search", handler.searchAssistant, api.RequirePermission(searchPermission))
+	api.HandleUIMethod(api.GET, "/assistant/_search", handler.searchAssistant, api.RequirePermission(searchPermission), api.Feature(filter.FeatureCORS))
+	api.HandleUIMethod(api.OPTIONS, "/assistant/_search", handler.searchAssistant, api.RequirePermission(searchPermission), api.Feature(filter.FeatureCORS))
+	api.HandleUIMethod(api.POST, "/assistant/_search", handler.searchAssistant, api.RequirePermission(searchPermission), api.Feature(filter.FeatureCORS))
 }
