@@ -36,6 +36,9 @@ export const EditForm = memo((props: AssistantFormProps)=> {
   const [form] = Form.useForm();
   useEffect(()=>{
     if(initialValues){
+      if(initialValues.datasource?.filter){
+        initialValues.datasource.filter = JSON.stringify(initialValues.datasource.filter);
+      }
       form.setFieldsValue({
         ...initialValues,
       })
@@ -45,7 +48,15 @@ export const EditForm = memo((props: AssistantFormProps)=> {
   const { endLoading, loading, startLoading } = useLoading();
 
   const onFinish: FormProps<any>['onFinish'] = (values) => {
-    console.log(values);
+    if(values.datasource.filter){
+      try{
+        values.datasource.filter = JSON.parse(values.datasource.filter);
+      }catch(e){
+        message.error("Datasource filter is not valid JSON");
+        return;
+      }
+      
+    }
     onSubmit?.(values, startLoading, endLoading);
   };
   

@@ -6,6 +6,13 @@
   "description": "",
   "glyphs": [
     {
+      "icon_id": "43616544",
+      "name": "deepseek",
+      "font_class": "deepseek",
+      "unicode": "e601",
+      "unicode_decimal": 58881
+    },
+    {
       "icon_id": "44105147",
       "name": "Coco AI",
       "font_class": "coco",

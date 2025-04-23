@@ -81,6 +81,7 @@ declare global {
   const IconMdiKeyboardReturn: typeof import('~icons/mdi/keyboard-return.tsx')['default']
   const IconMdiRefresh: typeof import('~icons/mdi/refresh.tsx')['default']
   const IconUilSearch: typeof import('~icons/uil/search.tsx')['default']
+  const IconWrapper: typeof import('../components/common/IconWrapper')['default']
   const IndexingScope: typeof import('../components/datasource/indexing_scope/index.jsx')['IndexingScope']
   const LangSwitch: typeof import('../components/stateful/LangSwitch')['default']
   const Link: typeof import('react-router-dom')['Link']

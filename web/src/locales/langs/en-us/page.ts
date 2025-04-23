@@ -343,6 +343,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       show_in_chat: "Show in chat",
       max_iterations: "Max iterations",
       caller_model: "Caller Model",
+      filter: "Filter",
     },
     mode:{
       simple: "Simple",

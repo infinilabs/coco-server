@@ -168,12 +168,13 @@ export function Component() {
           return (
             <span className="inline-flex items-center gap-1">
               {imgSrc && (
-                <InfiniIcon
-                  className="mr-3px"
-                  height="1em"
-                  src={imgSrc}
-                  width="1em"
-                />
+                <IconWrapper className="w-20px h-20px">
+                  <InfiniIcon
+                    height="1em"
+                    src={imgSrc}
+                    width="1em"
+                  />
+                </IconWrapper>
               )}
               <a
                 className="text-blue-500"

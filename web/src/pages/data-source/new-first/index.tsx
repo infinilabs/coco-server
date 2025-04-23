@@ -95,12 +95,14 @@ export function Component() {
                   <PlusOutlined className="text-1.4em font-bold" />
                 </Button>
                 <div className="flex items-center gap-8px">
-                  <InfiniIcon
-                    className="text-2.6em"
-                    height="2.6em"
-                    src={connector.icon}
-                    width="2.6em"
-                  />
+                  <IconWrapper className="w-40px h-40px">
+                    <InfiniIcon
+                      className="text-2em"
+                      height="2em"
+                      src={connector.icon}
+                      width="2em"
+                    />
+                  </IconWrapper>
                   <span className="font-size-1.2em">{connector.name}</span>
                   {/* <Icon component={connector.icon} className="font-size-2.6em"/> <span className="font-size-1.2em">{connector.name}</span> */}
                 </div>
@@ -139,7 +141,7 @@ export function Component() {
                   <div className="mt-10px flex flex-wrap gap-5px text-12px text-gray-500">
                     {(connector.tags || []).map((tag, index) => (
                       <div
-                        className="border border-gray-300 rounded px-5px"
+                        className="border border-[var(--ant-color-border)] rounded px-5px"
                         key={index}
                       >
                         {tag}

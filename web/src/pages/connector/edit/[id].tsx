@@ -124,12 +124,14 @@ export function Component() {
             rules={[{ required: true }]}
           >
             {initialConnector.builtin === true ? (
-              <InfiniIcon
-                className="h-2em w-2em"
-                height="2em"
-                src={initialConnector.icon}
-                width="2em"
-              />
+              <IconWrapper className="w-40px h-40px">
+                <InfiniIcon
+                  className="h-2em w-2em"
+                  height="2em"
+                  src={initialConnector.icon}
+                  width="2em"
+                />
+              </IconWrapper>
             ) : (
               <IconSelector
                 className="max-w-200px"
@@ -233,12 +235,14 @@ const AssetsIconsView = ({ value = {} }) => {
               className="flex items-center gap-5px"
               key={index}
             >
-              <InfiniIcon
-                className="h-1em w-1em"
-                height="1em"
-                src={icon.icon}
-                width="1em"
-              />
+              <IconWrapper className="w-20px h-20px">
+                <InfiniIcon
+                  className="h-1em w-1em"
+                  height="1em"
+                  src={icon.icon}
+                  width="1em"
+                />
+              </IconWrapper>
               <span>{icon.type}</span>
             </div>
           );

@@ -17,12 +17,12 @@ export function Component() {
   const nav = useNavigate();
   const items: MenuProps["items"] = [
     {
-      label: t('common.delete'),
-      key: "1",
-    },
-    {
       label: t('common.edit'),
       key: "2",
+    },
+    {
+      label: t('common.delete'),
+      key: "1",
     },
   ];
 
@@ -83,7 +83,9 @@ export function Component() {
       render: (value: string, record: MCPServer)=>{
         return (
           <div className='flex items-center gap-1'>
-            <InfiniIcon height="1em" width="1em" src={record.icon}/>
+            <IconWrapper className="w-20px h-20px">
+              <InfiniIcon height="1em" width="1em" src={record.icon} />
+            </IconWrapper>
             <span className='max-w-150px ant-table-cell-ellipsis'>{ value }</span>
           </div>
         )

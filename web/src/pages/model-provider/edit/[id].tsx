@@ -83,13 +83,18 @@ export function Component() {
               <Input className='max-w-600px' readOnly={modelProvider.builtin === true } />
             </Form.Item>
             <Form.Item label={t('page.modelprovider.labels.icon')} name="icon" rules={[{ required: true}]}>
-              {modelProvider.builtin === true ? <InfiniIcon src={modelProvider.icon} height="2em" width="2em"/>: <IconSelector type="connector" icons={iconsMeta} className='max-w-150px' />}
+              
+              {modelProvider.builtin === true ? (
+                <IconWrapper className="w-40px h-40px">
+                  <InfiniIcon src={modelProvider.icon} height="2em" width="2em" />
+                </IconWrapper>
+              ) : <IconSelector type="connector" icons={iconsMeta} className='max-w-150px' />}
             </Form.Item>
             <Form.Item label={t('page.modelprovider.labels.api_type')} name="api_type" rules={[{ required: true}]}>
               <Select options={[{label:"Deepseek", value:"deepseek"}, {label:"OpenAI", value:"openai"},{label:"Ollama", value:"ollama"}]} className='max-w-150px' />
             </Form.Item>
             <Form.Item label={t('page.modelprovider.labels.api_key')} name="api_key">
-              <Input className='max-w-600px' />
+              <Input.Password className='max-w-600px' />
             </Form.Item>
             <Form.Item label={t('page.modelprovider.labels.base_url')} rules={formRules.endpoint} name="base_url">
               <Input className='max-w-600px' />
