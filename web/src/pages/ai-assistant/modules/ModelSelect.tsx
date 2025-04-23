@@ -18,9 +18,11 @@ export default (props) => {
       value.id = value.provider_id + "_" + value.name;
     }
 
-    const grps = providers.map((item: any) => {
-      return item.id + "_" + item.name;
-    })
+    const grps = useMemo(() => {
+      return providers.map((item: any) => {
+        return item.id + "_" + item.name;
+      })
+    }, [providers]) 
     
     const [sorter, setSorter] = useState([])
     const [filters, setFilters] = useState({})
