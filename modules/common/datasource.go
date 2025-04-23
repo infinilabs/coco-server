@@ -28,18 +28,19 @@ type ConnectorConfig struct {
 }
 
 const (
+	DatasourcePrimaryCacheKey     = "datasource_primary"
 	DisabledDatasourceIDsCacheKey = "disabled_datasource_ids"
 	EnabledDatasourceIDsCacheKey  = "enabled_datasource_ids"
 )
 
 func ClearDatasourceCache() {
-	GeneralObjectCache.Delete(generalCache, DisabledDatasourceIDsCacheKey)
-	GeneralObjectCache.Delete(generalCache, EnabledDatasourceIDsCacheKey)
+	GeneralObjectCache.Delete(DatasourcePrimaryCacheKey, DisabledDatasourceIDsCacheKey)
+	GeneralObjectCache.Delete(DatasourcePrimaryCacheKey, EnabledDatasourceIDsCacheKey)
 }
 
 // GetDisabledDatasourceIDs retrieves the list of disabled data source IDs from the cache.
 func GetDisabledDatasourceIDs() ([]string, error) {
-	item := GeneralObjectCache.Get(generalCache, DisabledDatasourceIDsCacheKey)
+	item := GeneralObjectCache.Get(DatasourcePrimaryCacheKey, DisabledDatasourceIDsCacheKey)
 	var datasourceIDs []string
 	if item != nil && !item.Expired() {
 		var ok bool
@@ -62,13 +63,13 @@ func GetDisabledDatasourceIDs() ([]string, error) {
 	for i, ds := range datasources {
 		datasourceIDs[i] = ds.ID
 	}
-	GeneralObjectCache.Set(generalCache, DisabledDatasourceIDsCacheKey, datasourceIDs, time.Duration(30)*time.Minute)
+	GeneralObjectCache.Set(DatasourcePrimaryCacheKey, DisabledDatasourceIDsCacheKey, datasourceIDs, time.Duration(30)*time.Minute)
 	return datasourceIDs, nil
 
 }
 
 func GetAllEnabledDatasourceIDs() ([]string, error) {
-	item := GeneralObjectCache.Get(generalCache, EnabledDatasourceIDsCacheKey)
+	item := GeneralObjectCache.Get(DatasourcePrimaryCacheKey, EnabledDatasourceIDsCacheKey)
 	var datasourceIDs []string
 	if item != nil && !item.Expired() {
 		var ok bool
@@ -91,7 +92,7 @@ func GetAllEnabledDatasourceIDs() ([]string, error) {
 	for i, ds := range datasources {
 		datasourceIDs[i] = ds.ID
 	}
-	GeneralObjectCache.Set(generalCache, EnabledDatasourceIDsCacheKey, datasourceIDs, time.Duration(30)*time.Minute)
+	GeneralObjectCache.Set(DatasourcePrimaryCacheKey, EnabledDatasourceIDsCacheKey, datasourceIDs, time.Duration(30)*time.Minute)
 	return datasourceIDs, nil
 
 }

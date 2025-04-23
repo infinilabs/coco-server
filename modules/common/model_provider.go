@@ -44,6 +44,6 @@ func GetModelProvider(providerID string) (*ModelProvider, error) {
 		return nil, err
 	}
 	// Cache the provider object
-	GeneralObjectCache.Set(AssistantCachePrimary, providerID, provider, time.Duration(30)*time.Minute)
+	GeneralObjectCache.Set(ModelProviderCachePrimary, providerID, provider, time.Duration(30)*time.Minute)
 	return provider, nil
 }

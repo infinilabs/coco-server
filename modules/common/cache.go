@@ -27,8 +27,4 @@ import (
 	ccache "infini.sh/framework/lib/cache"
 )
 
-const (
-	generalCache = "general_object_cache"
-)
-
 var GeneralObjectCache = ccache.Layered(ccache.Configure().MaxSize(10000).ItemsToPrune(100))

@@ -183,7 +183,7 @@ func (h APIHandler) newChatSession(w http.ResponseWriter, req *http.Request, ps 
 	var firstMessage *ChatMessage
 	//save first message to history
 	if request.Message != "" {
-		firstMessage, err = h.handleMessage(req, obj.ID, request.Message, assistantID)
+		firstMessage, err = h.handleMessage(req, obj.ID, assistantID, request.Message)
 		if err != nil {
 			h.Error(w, err)
 			return
