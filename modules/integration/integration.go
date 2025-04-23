@@ -5,15 +5,18 @@
 package integration
 
 import (
+	"net/http"
+	"sync"
+	"time"
+
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/plugins/security"
 	httprouter "infini.sh/framework/core/api/router"
+	"infini.sh/framework/core/elastic"
 	"infini.sh/framework/core/orm"
 	security2 "infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
-	"net/http"
-	"sync"
 )
 
 func (h *APIHandler) create(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -166,11 +169,73 @@ func (h *APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprou
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	searchRes := elastic.SearchResponse{}
+	if res.Raw != nil {
+		err := util.FromJSONBytes(res.Raw, &searchRes)
+		if err != nil {
+			panic(err)
+		}
 
-	_, err = h.Write(w, res.Raw)
+		for _, hit := range searchRes.Hits.Hits {
+			if token, ok := hit.Source["token"].(string); ok && token != "" {
+				tokenObj, err := security.GetToken(token)
+				if tokenObj == nil && err == nil {
+					// token is not found in the kv, here we set it as expired
+					hit.Source["token_expire_in"] = time.Time{}.Unix()
+				}
+				if tokenObj != nil {
+					hit.Source["token_expire_in"] = tokenObj["expire_in"]
+				}
+			}
+		}
+
+	}
+
+	err = h.WriteJSON(w, searchRes, http.StatusOK)
 	if err != nil {
 		h.Error(w, err)
 	}
+}
+
+func (h *APIHandler) renewAPIToken(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	reqUser, err := security2.UserFromContext(req.Context())
+	if reqUser == nil || err != nil {
+		panic(err)
+	}
+	id := ps.MustGetParameter("id")
+
+	obj := common.Integration{}
+	obj.ID = id
+
+	exists, err := orm.Get(&obj)
+	if !exists || err != nil {
+		h.WriteJSON(w, util.MapStr{
+			"_id":   id,
+			"found": false,
+		}, http.StatusNotFound)
+		return
+	}
+	if obj.Token != "" {
+		// clear old token
+		security.DeleteAccessToken(reqUser.UserId, obj.Token)
+	}
+	//create new token form this integration
+	ret, err := security.CreateAPIToken(reqUser, "", "widget", []string{"widget"})
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	obj.Token = ret["access_token"].(string)
+	ctx := &orm.Context{
+		Refresh: orm.WaitForRefresh,
+	}
+	err = orm.Update(ctx, &obj)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	h.WriteAckOKJSON(w)
 }
 
 func IntegrationAllowOrigin(origin string, req *http.Request) bool {

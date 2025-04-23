@@ -62,3 +62,10 @@ export function deleteIntegration(id: string) {
     url: `/integration/${id}`
   });
 }
+
+export function renewAPIToken(id: string) {
+  return request({
+    method: 'post',
+    url: `/integration/${id}/_renew_token`
+  });
+}

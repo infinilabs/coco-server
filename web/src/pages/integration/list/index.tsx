@@ -2,7 +2,7 @@ import { EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, PlusOutlin
 import { useLoading } from '@sa/hooks';
 import { Button, Dropdown, Input, Modal, Switch, Table, message } from 'antd';
 
-import { deleteIntegration, fetchIntegrations, updateIntegration } from '@/service/api/integration';
+import { deleteIntegration, fetchIntegrations, updateIntegration, renewAPIToken } from '@/service/api/integration';
 import { formatESSearchResult } from '@/service/request/es';
 
 const { confirm } = Modal;
@@ -92,7 +92,13 @@ export function Component() {
     {
       dataIndex: 'datasource',
       render: (value, record) => {
-        return value?.includes('*') ? '*' : value?.length || 0;
+        if(record.datasource?.length){
+          return record.datasource?.includes('*') ? '*' : value?.length || 0;
+        }
+        if(record.enabled_module?.search?.datasource?.length){
+          return record.enabled_module?.search?.datasource?.includes('*') ? '*' : record.enabled_module.search.datasource?.length || 0;
+        }
+        return 0;
       },
       title: t('page.integration.columns.datasource')
     },
@@ -119,6 +125,13 @@ export function Component() {
       title: t('page.integration.columns.enabled')
     },
     {
+      dataIndex: 'token_expire_in',
+      render: (value: number, record:any) => {
+        return value ? new Date(value * 1000).toISOString() : '';
+      },
+      title: t('page.integration.columns.token_expire_in')
+    },
+    {
       fixed: 'right',
       render: (_, record) => {
         const items = [
@@ -129,6 +142,10 @@ export function Component() {
           {
             key: 'delete',
             label: t('common.delete')
+          },
+          {
+            key: 'renew_token',
+            label: t('common.renew_token')
           }
         ];
 
@@ -145,6 +162,16 @@ export function Component() {
                   handleDelete(record.id);
                 },
                 title: t('common.tip')
+              });
+              break;
+            case 'renew_token':
+              startLoading();
+              renewAPIToken(record.id).then(res => {
+                if (res.data?.result === 'acknowledged') {
+                  message.success(t('common.updateSuccess'));
+                }
+              }).finally(() => {
+                endLoading();
               });
               break;
           }

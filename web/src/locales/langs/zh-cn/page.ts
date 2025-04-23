@@ -140,7 +140,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       type: '类型',
       operation: {
         topics: '推荐话题'
-      }
+      },
+      token_expire_in: 'Token 过期时间',
     },
     delete: {
       confirm: `确定删除嵌入组件 "{{name}}"？`
