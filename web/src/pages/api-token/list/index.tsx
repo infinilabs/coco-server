@@ -8,7 +8,6 @@ import Clipboard from 'clipboard';
 import { createToken, deleteToken, getTokens, renameToken } from '@/service/api';
 
 type APIToken = Api.APIToken.APIToken;
-const { confirm } = Modal;
 
 export function Component() {
   const { t } = useTranslation();
@@ -33,7 +32,7 @@ export function Component() {
   const onMenuClick = ({ key, record }: any) => {
     switch (key) {
       case '2':
-        confirm({
+        window?.$modal?.confirm({
           content: t('page.apitoken.delete.confirm'),
           icon: <ExclamationCircleOutlined />,
           onCancel() {},

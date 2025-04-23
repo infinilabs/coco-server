@@ -9,7 +9,6 @@ import { GoogleDriveSVG, HugoSVG, NotionSVG, YuqueSVG } from '@/components/icons
 import { deleteDatasource, fetchDataSourceList, getConnectorByIDs, updateDatasource } from '@/service/api';
 import { formatESSearchResult } from '@/service/request/es';
 
-const { confirm } = Modal;
 type Datasource = Api.Datasource.Datasource;
 
 type TablePaginationConfig = Exclude<GetProp<TableProps, 'pagination'>, boolean>;
@@ -60,7 +59,7 @@ export function Component() {
   const onMenuClick = ({ key, record }: any) => {
     switch (key) {
       case '1':
-        confirm({
+        window?.$modal?.confirm({
           content: t('page.datasource.delete.confirm'),
           icon: <ExclamationCircleOutlined />,
           onCancel() {},
