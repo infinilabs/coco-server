@@ -36,10 +36,11 @@ const MenuToggler: FC<Props> = memo(({ arrowIcon, className }) => {
     <ButtonIcon
       className={className}
       tooltipContent={siderCollapse ? t('icon.expand') : t('icon.collapse')}
-      tooltipPlacement="bottomLeft"
+      tooltipPlacement="right"
       onClick={() => dispatch(toggleSiderCollapse())}
+      justify="left"
     >
-      <SvgIcon icon={icon} />
+      <SvgIcon icon={icon} className="text-14px"/>
     </ButtonIcon>
   );
 });

@@ -47,6 +47,7 @@ const ButtonIcon: FC<Props> = memo(
     tooltipPlacement = 'bottom',
     triggerParent,
     zIndex = 98,
+    justify = 'center',
     ...rest
   }) => {
     const cls = computeClass(className);
@@ -67,7 +68,7 @@ const ButtonIcon: FC<Props> = memo(
           type="text"
           {...rest}
         >
-          <div className="flex-center gap-8px">
+          <div className={`${justify === 'center' ? 'flex-center' : 'w-100% flex-center justify-left'} gap-8px`}>
             {children || (
               <SvgIcon
                 icon={icon}

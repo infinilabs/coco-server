@@ -28,7 +28,8 @@ const local: App.I18n.Schema['translation'] = {
     reload: 'Reload Page',
     themeConfig: 'Theme Configuration',
     themeSchema: 'Theme',
-    unpin: 'Unpin'
+    unpin: 'Unpin',
+    about: 'About',
   },
   page,
   request,
@@ -42,7 +43,15 @@ const local: App.I18n.Schema['translation'] = {
     updateContent: 'A new version of the system has been detected. Do you want to refresh the page immediately?',
     updateTitle: 'System Version Update Notification'
   },
-  theme
+  theme,
+  license: {
+    title: "License",
+    labels: {
+      version: "Version",
+      build_time: "Build Time",
+      build_number: "Build Number",
+    }
+  }
 };
 
 export default local;

@@ -27,7 +27,8 @@ const local: App.I18n.Schema['translation'] = {
     reload: '刷新页面',
     themeConfig: '主题配置',
     themeSchema: '主题',
-    unpin: '取消固定'
+    unpin: '取消固定',
+    about: '关于',
   },
   page,
   request: {
@@ -48,7 +49,15 @@ const local: App.I18n.Schema['translation'] = {
     updateContent: '检测到系统有新版本发布，是否立即刷新页面？',
     updateTitle: '系统版本更新通知'
   },
-  theme
+  theme,
+  license: {
+    title: "授权信息",
+    labels: {
+      version: "版本",
+      build_time: "编译时间",
+      build_number: "编译版本号",
+    }
+  }
 };
 
 export default local;
