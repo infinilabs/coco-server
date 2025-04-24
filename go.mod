@@ -24,7 +24,6 @@ require (
 	github.com/buger/jsonparser v1.1.1
 	github.com/cihub/seelog v0.0.0-00010101000000-000000000000
 	github.com/golang-jwt/jwt v3.2.2+incompatible
-	github.com/i2y/langchaingo-mcp-adapter v0.0.0-20250408100152-2fd6246dd090
 	github.com/mark3labs/mcp-go v0.22.0
 	github.com/tmc/langchaingo v0.1.14-0.20250213044659-d3e43b632176
 	github.com/valyala/fasttemplate v1.2.2

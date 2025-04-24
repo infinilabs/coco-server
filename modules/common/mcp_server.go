@@ -24,9 +24,7 @@
 package common
 
 import (
-	log "github.com/cihub/seelog"
 	"infini.sh/framework/core/orm"
-	"infini.sh/framework/core/util"
 	"time"
 )
 
@@ -37,7 +35,7 @@ type MCPServer struct {
 	Icon        string      `json:"icon,omitempty" elastic_mapping:"icon:{type:keyword}"`                 // Display name of this datasource
 	Type        string      `json:"type" elastic_mapping:"type:{type:keyword,copy_to:combined_fulltext}"` // possible values: "sse", "stdio", "streamable_http"
 	Category    string      `json:"category,omitempty" elastic_mapping:"category:{type:keyword,copy_to:combined_fulltext}"`
-	Config      util.MapStr `json:"config,omitempty" elastic_mapping:"config:{enabled:false}"`
+	Config      interface{} `json:"config,omitempty" elastic_mapping:"config:{enabled:false}"`
 	Enabled     bool        `json:"enabled" elastic_mapping:"enabled:{type:boolean}"` // Whether the connector is enabled or not
 }
 
@@ -89,9 +87,7 @@ func GetMPCServer(id string) (*MCPServer, error) {
 func ClearMCPServerCache() {
 	GeneralObjectCache.Delete(MCPServerCachePrimary, EnabledMCPServerIDsCacheKey)
 	GeneralObjectCache.DeleteAll(MCPServerItemCacheKey)
-	v := GeneralObjectCache.DeleteAll(AssistantCachePrimary)
-	log.Error("clear all cache", v)
-
+	GeneralObjectCache.DeleteAll(AssistantCachePrimary)
 }
 
 func GetAllEnabledMCPServerIDs() ([]string, error) {
