@@ -89,6 +89,11 @@ POST $[[SETUP_INDEX_PREFIX]]connector/$[[SETUP_DOC_TYPE]]/google_drive
       "zip" : "/assets/icons/connector/google_drive/zip.png"
     }
   },
+  "config": {
+    "auth_url": "https://accounts.google.com/o/oauth2/auth",
+    "redirect_url": "http://localhost:9000/connector/google_drive/oauth_redirect",
+    "token_url": "https://oauth2.googleapis.com/token"
+  },
   "builtin": true
 }
 POST $[[SETUP_INDEX_PREFIX]]connector/$[[SETUP_DOC_TYPE]]/notion
