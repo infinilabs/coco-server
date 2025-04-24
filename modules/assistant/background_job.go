@@ -31,7 +31,6 @@ import (
 	"strings"
 
 	log "github.com/cihub/seelog"
-	mcpadapter "github.com/i2y/langchaingo-mcp-adapter"
 	"github.com/mark3labs/mcp-go/client"
 	"github.com/tmc/langchaingo/agents"
 	"github.com/tmc/langchaingo/chains"
@@ -152,6 +151,8 @@ func (h APIHandler) extractParameters(req *http.Request) (*processingParams, err
 		}
 	}
 
+	log.Trace(assistant.MCPConfig.Enabled, assistant.MCPConfig.IDs, ",", params.mcpServers)
+
 	if params.mcp && assistant.MCPConfig.Enabled && len(assistant.MCPConfig.IDs) > 0 {
 		if len(params.mcpServers) == 0 {
 			params.mcpServers = assistant.MCPConfig.IDs
@@ -262,7 +263,7 @@ func (h APIHandler) createAssistantMessage(sessionID, assistantID, requestMessag
 
 // WebSocket helper
 func (h APIHandler) sendWebsocketMessage(wsID string, msg *MessageChunk) {
-	if err := websocket.SendPrivateMessage(wsID, util.MustToJSON(msg)); err != nil {
+	if err := sendMessageToWebsocket(wsID, util.MustToJSON(msg)); err != nil {
 		log.Warnf("WebSocket send error: %v", err)
 	}
 }
@@ -321,7 +322,10 @@ func (h APIHandler) processMessageAsync(ctx context.Context, reqMsg *ChatMessage
 
 	if (params.assistantCfg.MCPConfig.Enabled && len(params.mcpServers) > 0) || params.assistantCfg.ToolsConfig.Enabled {
 		//process LLM tools / functions
-		_ = h.processLLMTools(ctx, reqMsg, replyMsg, params)
+		err := h.processLLMTools(ctx, reqMsg, replyMsg, params)
+		if err != nil {
+			log.Error(err)
+		}
 	}
 
 	if params.searchDB {
@@ -455,6 +459,8 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *ChatMessage, r
 		}
 	}()
 
+	log.Debug("found total ", len(params.mcpServers), " mcp servers")
+
 	for _, id := range params.mcpServers {
 		v, err := common.GetMPCServer(id)
 		if err != nil {
@@ -464,6 +470,8 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *ChatMessage, r
 			panic("invalid mcp server")
 		}
 
+		log.Tracef("start init mcp server: %v, %v", v.Name, v.Type)
+
 		if !v.Enabled {
 			continue
 		}
@@ -471,30 +479,58 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *ChatMessage, r
 		var mcpClient *client.Client
 		switch v.Type {
 		case common.StreamableHTTP:
-			url, ok := v.Config["url"]
-			if ok && url != nil {
-				mcpClient, err = client.NewStreamableHttpClient(url.(string))
-				if err != nil {
-					return fmt.Errorf("new mcp adapter: %w", err)
-				}
+			bytes := util.MustToJSONBytes(v.Config)
+			cfg := common.StreamableHttpConfig{}
+			err := util.FromJSONBytes(bytes, &cfg)
+			if err != nil {
+				return err
+			}
+
+			mcpClient, err = client.NewStreamableHttpClient(cfg.URL)
+			if err != nil {
+				return fmt.Errorf("new mcp adapter: %w", err)
 			}
 			break
 		case common.SSE:
-			url, ok := v.Config["url"]
-
-			log.Info("SSE:", url)
-
-			if ok && url != nil {
-				mcpClient, err = client.NewSSEMCPClient(url.(string))
-				if err != nil {
-					return fmt.Errorf("new mcp adapter: %w", err)
-				}
-				if err := mcpClient.Start(context.Background()); err != nil {
-					return fmt.Errorf("new mcp adapter: %w", err)
-				}
+			bytes := util.MustToJSONBytes(v.Config)
+			cfg := common.SSEConfig{}
+			err := util.FromJSONBytes(bytes, &cfg)
+			if err != nil {
+				return err
 			}
+
+			mcpClient, err = client.NewSSEMCPClient(cfg.URL)
+			if err != nil {
+				return fmt.Errorf("new mcp adapter: %w", err)
+			}
+			if err := mcpClient.Start(context.Background()); err != nil {
+				return fmt.Errorf("new mcp adapter: %w", err)
+			}
+
 			break
 		case common.Stdio:
+			bytes := util.MustToJSONBytes(v.Config)
+
+			cfg := common.StdioConfig{}
+			err := util.FromJSONBytes(bytes, &cfg)
+			if err != nil {
+				return err
+			}
+			envs := []string{}
+			if len(cfg.Env) > 0 {
+				for k, v := range cfg.Env {
+					envs = append(envs, fmt.Sprintf("%v=%v", k, v))
+				}
+			}
+			mcpClient, err = client.NewStdioMCPClient(cfg.Command, envs, cfg.Args...)
+			if err != nil {
+				return fmt.Errorf("error on new stdio client: %w", err)
+			}
+			//ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			//defer cancel()
+			if err := mcpClient.Start(context.Background()); err != nil {
+				return fmt.Errorf("error on start stdio client: %w", err)
+			}
 			break
 		default:
 			panic("unknown type")
@@ -502,21 +538,24 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *ChatMessage, r
 
 		if mcpClient != nil {
 			mcpClients = append(mcpClients, mcpClient)
-			mcpAdapter, err := mcpadapter.New(mcpClient)
+			mcpAdapter, err := langchain.New(mcpClient)
 			if err != nil {
 				return fmt.Errorf("new mcp adapter: %w", err)
 			}
 
 			mcpTools, err := mcpAdapter.Tools()
+			log.Tracef("get %v tools from mcp server: %v", v.Name)
 			if err != nil {
 				return fmt.Errorf("append tools: %w", err)
 			}
 			agentTools = append(agentTools, mcpTools...)
 		}
+
+		log.Tracef("end init mcp server: %v", v.Name)
 	}
 
 	if len(agentTools) <= 0 {
-		log.Debug("get ", len(agentTools), " tools")
+		log.Debug("total get ", len(agentTools), " tools")
 		return nil
 	}
 
@@ -530,7 +569,7 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *ChatMessage, r
 	callback.CustomWriteFunc = func(chunk string) {
 		if chunk != "" {
 			echoMsg := NewMessageChunk(params.sessionID, replyMsg.ID, MessageTypeAssistant, reqMsg.ID, Tools, chunk, toolsSeq)
-			websocket.SendPrivateMessage(params.websocketID, util.MustToJSON(echoMsg))
+			sendMessageToWebsocket(params.websocketID, util.MustToJSON(echoMsg))
 		}
 		toolsSeq++
 	}
@@ -548,11 +587,14 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *ChatMessage, r
 		return fmt.Errorf("error on executor: %w", err)
 	}
 
+	log.Debugf("start call LLM tools")
 	answer, err := chains.Run(context.Background(), executor, reqMsg.Message)
 	if err != nil {
 		log.Error(answer, err)
 		return fmt.Errorf("error running chains: %w", err)
 	}
+
+	log.Debugf("end call LLM tools")
 
 	params.toolsCallResponse = answer
 
@@ -629,7 +671,7 @@ func (h APIHandler) processQueryIntent(ctx context.Context, reqMsg, replyMsg *Ch
 					chunkSeq++
 					queryIntentBuffer.Write(chunk)
 					msg := NewMessageChunk(params.sessionID, replyMsg.ID, MessageTypeAssistant, reqMsg.ID, QueryIntent, string(chunk), chunkSeq)
-					err := websocket.SendPrivateMessage(params.websocketID, util.MustToJSON(msg))
+					err := sendMessageToWebsocket(params.websocketID, util.MustToJSON(msg))
 					if err != nil {
 						log.Error(err)
 						return err
@@ -764,7 +806,7 @@ func (h APIHandler) processInitialDocumentSearch(ctx context.Context, reqMsg, re
 				chunkMsg := NewMessageChunk(params.sessionID, replyMsg.ID, MessageTypeAssistant, reqMsg.ID,
 					FetchSource, string(chunkData), chunkSeq)
 
-				err = websocket.SendPrivateMessage(params.websocketID, util.MustToJSON(chunkMsg))
+				err = sendMessageToWebsocket(params.websocketID, util.MustToJSON(chunkMsg))
 				if err != nil {
 					log.Error(err)
 					return nil, err
@@ -793,7 +835,7 @@ func (h APIHandler) processPickDocuments(ctx context.Context, reqMsg, replyMsg *
 	}
 
 	echoMsg := NewMessageChunk(params.sessionID, replyMsg.ID, MessageTypeAssistant, reqMsg.ID, PickSource, string(""), 0)
-	websocket.SendPrivateMessage(params.websocketID, util.MustToJSON(echoMsg))
+	sendMessageToWebsocket(params.websocketID, util.MustToJSON(echoMsg))
 
 	content := []llms.MessageContent{
 		llms.TextParts(
@@ -846,7 +888,7 @@ Your task is to choose the best documents for further processing.`,
 				chunkSeq++
 				pickedDocsBuffer.Write(chunk)
 				msg := NewMessageChunk(params.sessionID, replyMsg.ID, MessageTypeAssistant, reqMsg.ID, PickSource, string(chunk), chunkSeq)
-				err := websocket.SendPrivateMessage(params.websocketID, util.MustToJSON(msg))
+				err := sendMessageToWebsocket(params.websocketID, util.MustToJSON(msg))
 				if err != nil {
 					return err
 				}
@@ -899,6 +941,11 @@ Your task is to choose the best documents for further processing.`,
 	return docs, err
 }
 
+func sendMessageToWebsocket(websocketID string, msg string) error {
+	log.Tracef("%v -> %v", websocketID, msg)
+	return websocket.SendPrivateMessage(websocketID, msg)
+}
+
 func (h APIHandler) fetchDocumentInDepth(ctx context.Context, reqMsg, replyMsg *ChatMessage, params *processingParams, docs []common.Document) error {
 	if len(params.pickedDocIDS) > 0 {
 		var query = orm.Query{}
@@ -912,7 +959,7 @@ func (h APIHandler) fetchDocumentInDepth(ctx context.Context, reqMsg, replyMsg *
 			str := "Obtaining and analyzing documents in depth:  " + string(v.Title) + "\n"
 			strBuilder.WriteString(str)
 			chunkMsg := NewMessageChunk(params.sessionID, replyMsg.ID, MessageTypeAssistant, reqMsg.ID, DeepRead, str, chunkSeq)
-			err = websocket.SendPrivateMessage(params.websocketID, util.MustToJSON(chunkMsg))
+			err = sendMessageToWebsocket(params.websocketID, util.MustToJSON(chunkMsg))
 			if err != nil {
 				return err
 			}
@@ -929,9 +976,9 @@ func (h APIHandler) fetchDocumentInDepth(ctx context.Context, reqMsg, replyMsg *
 func (h APIHandler) generateFinalResponse(taskCtx context.Context, reqMsg, replyMsg *ChatMessage, params *processingParams) error {
 
 	echoMsg := NewMessageChunk(params.sessionID, replyMsg.ID, MessageTypeAssistant, reqMsg.ID, Response, string(""), 0)
-	websocket.SendPrivateMessage(params.websocketID, util.MustToJSON(echoMsg))
+	sendMessageToWebsocket(params.websocketID, util.MustToJSON(echoMsg))
 
-	prompt := "You are a helpful assistant designed to help users access and understand their personal or company data.\n" +
+	prompt := "You are a helpful assistant designed to help users access own data and understand their tasks.\n" +
 		"Your responses should be clear, concise, and based solely on the information provided below.\n\n"
 
 	if reqMsg.Message != "" {
@@ -1005,7 +1052,7 @@ func (h APIHandler) generateFinalResponse(taskCtx context.Context, reqMsg, reply
 					reasoningBuffer.Write(reasoningChunk)
 					msg := NewMessageChunk(params.sessionID, replyMsg.ID, MessageTypeAssistant, reqMsg.ID, Think, string(reasoningChunk), chunkSeq)
 					//log.Info(util.MustToJSON(msg))
-					err = websocket.SendPrivateMessage(params.websocketID, util.MustToJSON(msg))
+					err = sendMessageToWebsocket(params.websocketID, util.MustToJSON(msg))
 					if err != nil {
 						panic(err)
 					}
@@ -1017,7 +1064,7 @@ func (h APIHandler) generateFinalResponse(taskCtx context.Context, reqMsg, reply
 					chunkSeq += 1
 
 					msg := NewMessageChunk(params.sessionID, replyMsg.ID, MessageTypeAssistant, reqMsg.ID, Response, string(chunk), chunkSeq)
-					err = websocket.SendPrivateMessage(params.websocketID, util.MustToJSON(msg))
+					err = sendMessageToWebsocket(params.websocketID, util.MustToJSON(msg))
 					if err != nil {
 						panic(err)
 					}
@@ -1038,7 +1085,7 @@ func (h APIHandler) generateFinalResponse(taskCtx context.Context, reqMsg, reply
 
 			chunkSeq += 1
 			msg := NewMessageChunk(params.sessionID, replyMsg.ID, MessageTypeAssistant, reqMsg.ID, Response, string(chunk), chunkSeq)
-			err = websocket.SendPrivateMessage(params.websocketID, util.MustToJSON(msg))
+			err = sendMessageToWebsocket(params.websocketID, util.MustToJSON(msg))
 			messageBuffer.Write(chunk)
 			return nil
 		}))
