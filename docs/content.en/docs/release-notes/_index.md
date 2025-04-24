@@ -14,6 +14,7 @@ Information about release notes of Coco Server is provided here.
 - Add support for font icons (#183)
 - Add support for AI assistant CURD management
 - Add support for model provider CURD management
+- Add version and license
 
 ### Bug fix  
 - Fix personal token was not well supported for Yuque connector

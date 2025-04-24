@@ -5,4 +5,6 @@ export * from './data-source';
 export * from './route';
 export * from './system-manage';
 export * from './model-provider';
+export * from './application';
+
 

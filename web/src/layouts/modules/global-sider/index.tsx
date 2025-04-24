@@ -23,7 +23,7 @@ const GlobalSider: FC<Props> = memo(({ headerHeight, inverted, isHorizontalMix, 
 
   return (
     <DarkModeContainer
-      className="size-full flex-col-stretch"
+      className="size-full flex-col-stretch css-var-r0 ant-menu-css-var"
       inverted={darkMenu}
     >
       {showLogo && (
@@ -42,10 +42,18 @@ const GlobalSider: FC<Props> = memo(({ headerHeight, inverted, isHorizontalMix, 
         style={{ borderColor }}
       />
       <div
+        className={`b-r-1px ${siderCollapse ? 'text-center' : ''}`}
+        style={{ 
+          borderColor,
+        }}
+      >
+        <LicenseTrigger className="w-[calc(100%-16px)] mx-8px my-4px" />
+      </div>
+      <div
         className={`b-t-1px b-r-1px ${siderCollapse ? 'text-center' : ''}`}
         style={{ borderColor }}
       >
-        <MenuToggler />
+        <MenuToggler className="w-[calc(100%-16px)] mx-8px my-4px" />
       </div>
     </DarkModeContainer>
   );
