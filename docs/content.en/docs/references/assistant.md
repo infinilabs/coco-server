@@ -201,6 +201,17 @@ curl -X POST "http://localhost:9000/assistant/_search" -d'
 }'
 ```
 
+### Clone an AI assistant
+```shell
+//request
+curl -XPOST http://localhost:9000/assistant/cvuak1lath2dlgqqpcjg/_clone
+//response
+{
+  "_id": "d04r1gic7k812t6qg3n0",
+  "result": "created"
+}'
+```
+
 ### Retrieve Chat History (sessions)
 
 ```shell

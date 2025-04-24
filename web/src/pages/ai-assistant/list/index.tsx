@@ -2,7 +2,7 @@ import Search from 'antd/es/input/Search';
 import Icon, { FilterOutlined, PlusOutlined, EllipsisOutlined, ExclamationCircleOutlined} from '@ant-design/icons';
 import { Button, Dropdown, Table, GetProp, message,Modal, Switch, Image } from 'antd';
 import type { TableColumnsType, TableProps, MenuProps } from "antd";
-import {searchAssistant, deleteAssistant, updateAssistant} from '@/service/api/assistant';
+import {searchAssistant, deleteAssistant, updateAssistant, cloneAssistant} from '@/service/api/assistant';
 import { formatESSearchResult } from '@/service/request/es';
 import InfiniIcon from '@/components/common/icon';
 
@@ -22,6 +22,10 @@ export function Component() {
     {
       label: t('common.delete'),
       key: "1",
+    },
+    {
+      label: t('common.clone'),
+      key: "3",
     },
   ];
 
@@ -51,7 +55,16 @@ export function Component() {
        
         break;
       case "2":
-        nav(`/ai-assistant/edit/${record.id}`, {state:record});
+        nav(`/ai-assistant/edit/${record.id}`);
+        break;
+      case "3":
+        cloneAssistant(record.id).then((res)=>{
+          if(res.data?.result === "created"){
+            nav(`/ai-assistant/edit/${res.data?._id}`);
+          }else{
+            message.error(res.data?.error?.reason);
+          }
+        });
         break;
     }
   }

@@ -25,6 +25,7 @@ package assistant
 
 import (
 	"net/http"
+	"time"
 
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/modules/common"
@@ -52,10 +53,7 @@ func (h *APIHandler) createAssistant(w http.ResponseWriter, req *http.Request, p
 		return
 	}
 
-	h.WriteJSON(w, util.MapStr{
-		"_id":    obj.ID,
-		"result": "created",
-	}, 200)
+	h.WriteCreatedOKJSON(w, obj.ID)
 
 }
 
@@ -68,18 +66,11 @@ func (h *APIHandler) getAssistant(w http.ResponseWriter, req *http.Request, ps h
 	exists, err := orm.Get(&obj)
 	if !exists || err != nil {
 		log.Error(err)
-		h.WriteJSON(w, util.MapStr{
-			"_id":   id,
-			"found": false,
-		}, http.StatusNotFound)
+		h.WriteOpRecordNotFoundJSON(w, id)
 		return
 	}
 
-	h.WriteJSON(w, util.MapStr{
-		"found":   true,
-		"_id":     id,
-		"_source": obj,
-	}, 200)
+	h.WriteGetOKJSON(w, id, obj)
 }
 
 func (h *APIHandler) updateAssistant(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -88,10 +79,8 @@ func (h *APIHandler) updateAssistant(w http.ResponseWriter, req *http.Request, p
 	obj.ID = id
 	exists, err := orm.Get(&obj)
 	if !exists || err != nil {
-		h.WriteJSON(w, util.MapStr{
-			"_id":    id,
-			"result": "not_found",
-		}, http.StatusNotFound)
+		log.Error(err)
+		h.WriteOpRecordNotFoundJSON(w, id)
 		return
 	}
 
@@ -120,10 +109,7 @@ func (h *APIHandler) updateAssistant(w http.ResponseWriter, req *http.Request, p
 	//clear cache
 	common.GeneralObjectCache.Delete(common.AssistantCachePrimary, id)
 
-	h.WriteJSON(w, util.MapStr{
-		"_id":    obj.ID,
-		"result": "updated",
-	}, 200)
+	h.WriteUpdatedOKJSON(w, obj.ID)
 }
 
 func (h *APIHandler) deleteAssistant(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -134,10 +120,7 @@ func (h *APIHandler) deleteAssistant(w http.ResponseWriter, req *http.Request, p
 
 	exists, err := orm.Get(&obj)
 	if !exists || err != nil {
-		h.WriteJSON(w, util.MapStr{
-			"_id":    id,
-			"result": "not_found",
-		}, http.StatusNotFound)
+		h.WriteOpRecordNotFoundJSON(w, id)
 		return
 	}
 	if obj.Builtin {
@@ -156,10 +139,7 @@ func (h *APIHandler) deleteAssistant(w http.ResponseWriter, req *http.Request, p
 	//clear cache
 	common.GeneralObjectCache.Delete(common.AssistantCachePrimary, id)
 
-	h.WriteJSON(w, util.MapStr{
-		"_id":    obj.ID,
-		"result": "deleted",
-	}, 200)
+	h.WriteDeletedOKJSON(w, obj.ID)
 }
 
 func (h *APIHandler) searchAssistant(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -178,4 +158,30 @@ func (h *APIHandler) searchAssistant(w http.ResponseWriter, req *http.Request, p
 	if err != nil {
 		h.Error(w, err)
 	}
+}
+
+func (h *APIHandler) cloneAssistant(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	id := ps.MustGetParameter("id")
+
+	obj := common.Assistant{}
+	obj.ID = id
+
+	exists, err := orm.Get(&obj)
+	if !exists || err != nil {
+		log.Error(err)
+		h.WriteOpRecordNotFoundJSON(w, id)
+		return
+	}
+
+	obj.ID = util.GetUUID()
+	obj.Name = obj.Name + "_copy"
+	now := time.Now()
+	obj.Created = &now
+	obj.Updated = &now
+	obj.Builtin = false
+	ctx := &orm.Context{
+		Refresh: orm.WaitForRefresh,
+	}
+	orm.Create(ctx, &obj)
+	h.WriteCreatedOKJSON(w, obj.ID)
 }
