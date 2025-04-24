@@ -17,7 +17,11 @@ export function Component() {
   initialConnector = {
     ...initialConnector,
     assets_icons: initialConnector.assets?.icons || {},
-    ...(initialConnector.config || {})
+    ...(initialConnector.config || {
+      auth_url: "https://accounts.google.com/o/oauth2/auth",
+      redirect_url: location.origin + "/connector/google_drive/oauth_redirect",
+      token_url: "https://oauth2.googleapis.com/token"
+    })
   };
   const [loading, setLoading] = useState(false);
 
