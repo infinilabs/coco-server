@@ -91,7 +91,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector/$[[SETUP_DOC_TYPE]]/google_drive
   },
   "config": {
     "auth_url": "https://accounts.google.com/o/oauth2/auth",
-    "redirect_url": "http://localhost:9000/connector/google_drive/oauth_redirect",
+    "redirect_url": "$[[SETUP_SERVER_ENDPOINT]]/connector/google_drive/oauth_redirect",
     "token_url": "https://oauth2.googleapis.com/token"
   },
   "builtin": true

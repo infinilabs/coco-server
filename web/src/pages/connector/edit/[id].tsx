@@ -19,7 +19,7 @@ export function Component() {
     assets_icons: initialConnector.assets?.icons || {},
     ...(initialConnector.config || {
       auth_url: "https://accounts.google.com/o/oauth2/auth",
-      redirect_url: "http://localhost:9000/connector/google_drive/oauth_redirect",
+      redirect_url: location.origin + "/connector/google_drive/oauth_redirect",
       token_url: "https://oauth2.googleapis.com/token"
     })
   };

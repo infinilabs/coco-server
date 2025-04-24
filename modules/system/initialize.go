@@ -27,6 +27,14 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"io"
+	"io/fs"
+	"net/http"
+	"path"
+	"path/filepath"
+	"strings"
+	"time"
+
 	"github.com/valyala/fasttemplate"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
@@ -41,13 +49,6 @@ import (
 	"infini.sh/framework/lib/fasthttp"
 	elastic1 "infini.sh/framework/modules/elastic/common"
 	"infini.sh/framework/plugins/replay"
-	"io"
-	"io/fs"
-	"net/http"
-	"path"
-	"path/filepath"
-	"strings"
-	"time"
 )
 
 type SetupConfig struct {
@@ -130,7 +131,7 @@ func (h *APIHandler) setupServer(w http.ResponseWriter, req *http.Request, ps ht
 		panic(err)
 	}
 	//initialize setup templates
-	err = h.initializeSetupTemplates(input)
+	err = h.initializeSetupTemplates(input, info.ServerInfo.Endpoint)
 	if err != nil {
 		panic(err)
 	}
@@ -229,7 +230,7 @@ func (h *APIHandler) initializeConnector() error {
 	return err
 }
 
-func (h *APIHandler) initializeSetupTemplates(setupCfg SetupConfig) error {
+func (h *APIHandler) initializeSetupTemplates(setupCfg SetupConfig, serverEndpoint string) error {
 	if setupCfg.Language != "en-US" {
 		setupCfg.Language = "zh-CN"
 	}
@@ -262,11 +263,11 @@ func (h *APIHandler) initializeSetupTemplates(setupCfg SetupConfig) error {
 		if !strings.HasSuffix(path, ".tpl") {
 			return nil
 		}
-		return h.initializeTemplate(path, cfg1.IndexPrefix, docType, &setupCfg)
+		return h.initializeTemplate(path, cfg1.IndexPrefix, docType, &setupCfg, serverEndpoint)
 	})
 }
 
-func (h *APIHandler) initializeTemplate(dslTplFile string, indexPrefix string, docType string, setupCfg *SetupConfig) error {
+func (h *APIHandler) initializeTemplate(dslTplFile string, indexPrefix string, docType string, setupCfg *SetupConfig, serverEndpoint string) error {
 	dsl, err := util.FileGetContent(dslTplFile)
 	if err != nil {
 		return err
@@ -311,6 +312,8 @@ func (h *APIHandler) initializeTemplate(dslTplFile string, indexPrefix string, d
 			return w.Write([]byte(defaultModel))
 		case "SETUP_ASSISTANT_ANSWERING_MODEL":
 			return w.Write([]byte(answeringModel))
+		case "SETUP_SERVER_ENDPOINT":
+			return w.Write([]byte(serverEndpoint))
 		}
 		//ignore unresolved variable
 		return w.Write([]byte("$[[" + tag + "]]"))
