@@ -37,10 +37,11 @@
             }
 
             .multipleItem {
-                background: var(--ant-select-multiple-item-bg);
-                border: var(--ant-line-width) var(--ant-line-type) var(--ant-select-multiple-item-border-color);
+                background: var(--ant-color-bg-text-hover);
+                border: var(--ant-line-width) var(--ant-line-type) transparent;
                 border-radius: var(--ant-border-radius-sm);
-                padding: 0 4px;
+                padding-inline-start: var(--ant-padding-xs);
+                padding-inline-end: calc(var(--ant-padding-xs) / 2);
                 &:not(:last-child) {
                     margin-right: 8px;
                 }
