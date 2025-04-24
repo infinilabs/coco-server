@@ -70,7 +70,7 @@ func AppConfig() Config {
 		}
 	}
 
-	if util.PrefixStr(retCfg.ServerInfo.AuthProvider.SSO.URL, "/") {
+	if retCfg.ServerInfo.AuthProvider.SSO.URL == "" || util.PrefixStr(retCfg.ServerInfo.AuthProvider.SSO.URL, "/") {
 		retCfg.ServerInfo.AuthProvider.SSO.URL = util.JoinPath(retCfg.ServerInfo.Endpoint, "/#/login")
 	}
 
