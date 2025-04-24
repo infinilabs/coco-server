@@ -26,6 +26,10 @@ package assistant
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"runtime"
+	"strings"
+
 	log "github.com/cihub/seelog"
 	mcpadapter "github.com/i2y/langchaingo-mcp-adapter"
 	"github.com/mark3labs/mcp-go/client"
@@ -49,15 +53,13 @@ import (
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/task"
 	"infini.sh/framework/core/util"
-	"net/http"
-	"runtime"
-	"strings"
 )
 
 // Helper types and methods
 type processingParams struct {
 	searchDB     bool
 	deepThink    bool
+	mcp          bool
 	from         int
 	size         int
 	mcpServers   []string
@@ -105,6 +107,7 @@ func (h APIHandler) extractParameters(req *http.Request) (*processingParams, err
 	params := &processingParams{
 		searchDB:     h.GetBoolOrDefault(req, "search", false),
 		deepThink:    h.GetBoolOrDefault(req, "deep_thinking", false),
+		mcp:          h.GetBoolOrDefault(req, "mcp", false),
 		from:         h.GetIntOrDefault(req, "from", 0),
 		size:         h.GetIntOrDefault(req, "size", 10),
 		datasource:   h.GetParameterOrDefault(req, "datasource", ""),
@@ -149,7 +152,7 @@ func (h APIHandler) extractParameters(req *http.Request) (*processingParams, err
 		}
 	}
 
-	if assistant.MCPConfig.Enabled && len(assistant.MCPConfig.IDs) > 0 {
+	if params.mcp && assistant.MCPConfig.Enabled && len(assistant.MCPConfig.IDs) > 0 {
 		if len(params.mcpServers) == 0 {
 			params.mcpServers = assistant.MCPConfig.IDs
 		} else {
@@ -158,6 +161,8 @@ func (h APIHandler) extractParameters(req *http.Request) (*processingParams, err
 			queryMcpServers = util.StringArrayIntersection(queryMcpServers, assistant.MCPConfig.IDs)
 			params.mcpServers = queryMcpServers
 		}
+	} else {
+		params.mcpServers = make([]string, 0)
 	}
 
 	if params.deepThink {
