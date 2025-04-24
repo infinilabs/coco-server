@@ -56,6 +56,8 @@ export const EditForm = memo((props: MCPServerFormProps)=> {
     if(values.type === "stdio"){
       if(values.config?.args){
         values.config.args = values.config.args?.split("\n");
+      }else{
+        values.config.args = [];
       }
       if(values.config?.env){
         const env: any = {}
@@ -64,6 +66,8 @@ export const EditForm = memo((props: MCPServerFormProps)=> {
           env[key] = value;
         })
         values.config.env = env;
+      }else{
+        values.config.env = {};
       }
     }
     onSubmit?.(values, startLoading, endLoading);
