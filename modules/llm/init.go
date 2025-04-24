@@ -5,6 +5,7 @@
 package llm
 
 import (
+	"infini.sh/coco/plugins/security/filter"
 	"infini.sh/framework/core/api"
 	"infini.sh/framework/core/security"
 )
@@ -37,13 +38,13 @@ func init() {
 	api.HandleUIMethod(api.GET, "/model_provider/:id", handler.get, api.RequireLogin(), api.RequirePermission(readPermission))
 	api.HandleUIMethod(api.PUT, "/model_provider/:id", handler.update, api.RequireLogin(), api.RequirePermission(updatePermission))
 	api.HandleUIMethod(api.DELETE, "/model_provider/:id", handler.delete, api.RequireLogin(), api.RequirePermission(deletePermission))
-	api.HandleUIMethod(api.GET, "/model_provider/_search", handler.search, api.RequireLogin(), api.RequirePermission(searchPermission))
-	api.HandleUIMethod(api.POST, "/model_provider/_search", handler.search, api.RequireLogin(), api.RequirePermission(searchPermission))
+	api.HandleUIMethod(api.GET, "/model_provider/_search", handler.search, api.RequireLogin(), api.RequirePermission(searchPermission), api.Feature(filter.FeatureCORS))
+	api.HandleUIMethod(api.POST, "/model_provider/_search", handler.search, api.RequireLogin(), api.RequirePermission(searchPermission), api.Feature(filter.FeatureCORS))
 
 	api.HandleUIMethod(api.POST, "/mcp_server/", handler.createMCPServer)
 	api.HandleUIMethod(api.GET, "/mcp_server/:id", handler.getMCPServer)
 	api.HandleUIMethod(api.PUT, "/mcp_server/:id", handler.updateMCPServer)
 	api.HandleUIMethod(api.DELETE, "/mcp_server/:id", handler.deleteMCPServer)
-	api.HandleUIMethod(api.GET, "/mcp_server/_search", handler.searchMCPServer)
-	api.HandleUIMethod(api.POST, "/mcp_server/_search", handler.searchMCPServer)
+	api.HandleUIMethod(api.GET, "/mcp_server/_search", handler.searchMCPServer, api.Feature(filter.FeatureCORS))
+	api.HandleUIMethod(api.POST, "/mcp_server/_search", handler.searchMCPServer, api.Feature(filter.FeatureCORS))
 }
