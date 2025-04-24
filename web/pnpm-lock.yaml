@@ -350,8 +350,8 @@ importers:
   widgets/searchbox:
     dependencies:
       '@infinilabs/search-chat':
-        specifier: ^1.1.6
-        version: 1.1.6(@types/react@18.3.12)(immer@10.1.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3)(use-sync-external-store@1.5.0(react@18.3.1))
+        specifier: ^1.1.7
+        version: 1.1.7(@types/react@18.3.12)(immer@10.1.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3)(use-sync-external-store@1.5.0(react@18.3.1))
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -1132,8 +1132,8 @@ packages:
   '@iconify/utils@2.1.33':
     resolution: {integrity: sha512-jP9h6v/g0BIZx0p7XGJJVtkVnydtbgTgt9mVNcGDYwaa7UhdHdI9dvoq+gKj9sijMSJKxUPEG2JyjsgXjxL7Kw==}
 
-  '@infinilabs/search-chat@1.1.6':
-    resolution: {integrity: sha512-PMFr2f/Wx89X8moCkDurIDFjJqQOHvZU+sXZIFk3+3fY/lDrFQxcqJh8Ve5Sy2qn2ywErPXNN4xKG30WgpxxhA==}
+  '@infinilabs/search-chat@1.1.7':
+    resolution: {integrity: sha512-EWXaUmFngGkyTc1RsyzdPcbtELz5qFJlTF3BC33ugwypC6Ll+vWkmap47yIQMBE8ekCss7zUVPkLF6xKIeh0dA==}
     peerDependencies:
       react: ^18.0.0
       react-dom: ^18.0.0
@@ -7230,7 +7230,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@infinilabs/search-chat@1.1.6(@types/react@18.3.12)(immer@10.1.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3)(use-sync-external-store@1.5.0(react@18.3.1))':
+  '@infinilabs/search-chat@1.1.7(@types/react@18.3.12)(immer@10.1.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3)(use-sync-external-store@1.5.0(react@18.3.1))':
     dependencies:
       '@ant-design/icons': 6.0.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@headlessui/react': 2.2.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
