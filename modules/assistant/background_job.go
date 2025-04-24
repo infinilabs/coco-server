@@ -523,8 +523,10 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *ChatMessage, r
 	callback := langchain.LogHandler{}
 	toolsSeq := 0
 	callback.CustomWriteFunc = func(chunk string) {
-		echoMsg := NewMessageChunk(params.sessionID, replyMsg.ID, MessageTypeAssistant, reqMsg.ID, Tools, chunk, toolsSeq)
-		websocket.SendPrivateMessage(params.websocketID, util.MustToJSON(echoMsg))
+		if chunk != "" {
+			echoMsg := NewMessageChunk(params.sessionID, replyMsg.ID, MessageTypeAssistant, reqMsg.ID, Tools, chunk, toolsSeq)
+			websocket.SendPrivateMessage(params.websocketID, util.MustToJSON(echoMsg))
+		}
 		toolsSeq++
 	}
 
