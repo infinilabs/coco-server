@@ -6,6 +6,419 @@
   "description": "",
   "glyphs": [
     {
+      "icon_id": "9369602",
+      "name": "Tools02",
+      "font_class": "Tools02",
+      "unicode": "e884",
+      "unicode_decimal": 59524
+    },
+    {
+      "icon_id": "15528764",
+      "name": "tools01",
+      "font_class": "tools01",
+      "unicode": "e760",
+      "unicode_decimal": 59232
+    },
+    {
+      "icon_id": "23943258",
+      "name": "Efficiency",
+      "font_class": "Efficiency",
+      "unicode": "f9d1",
+      "unicode_decimal": 63953
+    },
+    {
+      "icon_id": "12978025",
+      "name": "help01",
+      "font_class": "help01",
+      "unicode": "e60f",
+      "unicode_decimal": 58895
+    },
+    {
+      "icon_id": "39668754",
+      "name": "help02",
+      "font_class": "help02",
+      "unicode": "e6df",
+      "unicode_decimal": 59103
+    },
+    {
+      "icon_id": "36957614",
+      "name": "docs",
+      "font_class": "docs",
+      "unicode": "e7bd",
+      "unicode_decimal": 59325
+    },
+    {
+      "icon_id": "11819085",
+      "name": "Movie",
+      "font_class": "Movie",
+      "unicode": "e6b0",
+      "unicode_decimal": 59056
+    },
+    {
+      "icon_id": "22772528",
+      "name": "Record",
+      "font_class": "Record",
+      "unicode": "ebd0",
+      "unicode_decimal": 60368
+    },
+    {
+      "icon_id": "10709069",
+      "name": "Ferry",
+      "font_class": "Ferry",
+      "unicode": "e60e",
+      "unicode_decimal": 58894
+    },
+    {
+      "icon_id": "7478404",
+      "name": "Itinerary",
+      "font_class": "Itinerary",
+      "unicode": "e74b",
+      "unicode_decimal": 59211
+    },
+    {
+      "icon_id": "10709062",
+      "name": "Plane",
+      "font_class": "Plane",
+      "unicode": "e60d",
+      "unicode_decimal": 58893
+    },
+    {
+      "icon_id": "20768024",
+      "name": "railway",
+      "font_class": "railway",
+      "unicode": "ea9f",
+      "unicode_decimal": 60063
+    },
+    {
+      "icon_id": "21771433",
+      "name": "Tickets",
+      "font_class": "Tickets",
+      "unicode": "e60c",
+      "unicode_decimal": 58892
+    },
+    {
+      "icon_id": "19940737",
+      "name": "Patent",
+      "font_class": "Patent",
+      "unicode": "e62e",
+      "unicode_decimal": 58926
+    },
+    {
+      "icon_id": "14428542",
+      "name": "Share02",
+      "font_class": "Share02",
+      "unicode": "e630",
+      "unicode_decimal": 58928
+    },
+    {
+      "icon_id": "18253392",
+      "name": "Share01",
+      "font_class": "Share01",
+      "unicode": "e63b",
+      "unicode_decimal": 58939
+    },
+    {
+      "icon_id": "43936176",
+      "name": "Writing",
+      "font_class": "Writing",
+      "unicode": "e615",
+      "unicode_decimal": 58901
+    },
+    {
+      "icon_id": "17322300",
+      "name": "Brain02",
+      "font_class": "Brain02",
+      "unicode": "e766",
+      "unicode_decimal": 59238
+    },
+    {
+      "icon_id": "6059022",
+      "name": "web",
+      "font_class": "web",
+      "unicode": "e667",
+      "unicode_decimal": 58983
+    },
+    {
+      "icon_id": "42756887",
+      "name": "Brain01",
+      "font_class": "Brain01",
+      "unicode": "e6f1",
+      "unicode_decimal": 59121
+    },
+    {
+      "icon_id": "10726179",
+      "name": "Organization",
+      "font_class": "Organization",
+      "unicode": "e66b",
+      "unicode_decimal": 58987
+    },
+    {
+      "icon_id": "26562751",
+      "name": "Inspiration",
+      "font_class": "Inspiration",
+      "unicode": "e654",
+      "unicode_decimal": 58964
+    },
+    {
+      "icon_id": "42775141",
+      "name": "Laboratory",
+      "font_class": "Laboratory",
+      "unicode": "e745",
+      "unicode_decimal": 59205
+    },
+    {
+      "icon_id": "20606844",
+      "name": "Palette",
+      "font_class": "Palette",
+      "unicode": "e62d",
+      "unicode_decimal": 58925
+    },
+    {
+      "icon_id": "1514749",
+      "name": "chat01",
+      "font_class": "chat01",
+      "unicode": "e61b",
+      "unicode_decimal": 58907
+    },
+    {
+      "icon_id": "4153099",
+      "name": "Law",
+      "font_class": "Law",
+      "unicode": "e6b4",
+      "unicode_decimal": 59060
+    },
+    {
+      "icon_id": "6473195",
+      "name": "chat02",
+      "font_class": "chat02",
+      "unicode": "e61f",
+      "unicode_decimal": 58911
+    },
+    {
+      "icon_id": "11973387",
+      "name": "Warning",
+      "font_class": "Warning",
+      "unicode": "e60a",
+      "unicode_decimal": 58890
+    },
+    {
+      "icon_id": "19074765",
+      "name": "code",
+      "font_class": "code",
+      "unicode": "e71b",
+      "unicode_decimal": 59163
+    },
+    {
+      "icon_id": "25329637",
+      "name": "Translation",
+      "font_class": "Translation",
+      "unicode": "e653",
+      "unicode_decimal": 58963
+    },
+    {
+      "icon_id": "25671345",
+      "name": "Review",
+      "font_class": "Review",
+      "unicode": "fe14",
+      "unicode_decimal": 65044
+    },
+    {
+      "icon_id": "28101974",
+      "name": "Chart",
+      "font_class": "Chart",
+      "unicode": "e692",
+      "unicode_decimal": 59026
+    },
+    {
+      "icon_id": "40477754",
+      "name": "Translation02",
+      "font_class": "Translation02",
+      "unicode": "e744",
+      "unicode_decimal": 59204
+    },
+    {
+      "icon_id": "1514761",
+      "name": "email",
+      "font_class": "email",
+      "unicode": "e61e",
+      "unicode_decimal": 58910
+    },
+    {
+      "icon_id": "19391929",
+      "name": "Search01",
+      "font_class": "Search01",
+      "unicode": "e65d",
+      "unicode_decimal": 58973
+    },
+    {
+      "icon_id": "19391933",
+      "name": "Cluster",
+      "font_class": "Cluster",
+      "unicode": "e65e",
+      "unicode_decimal": 58974
+    },
+    {
+      "icon_id": "19391935",
+      "name": "Invoice",
+      "font_class": "Invoice",
+      "unicode": "e65f",
+      "unicode_decimal": 58975
+    },
+    {
+      "icon_id": "19391940",
+      "name": "app02",
+      "font_class": "app02",
+      "unicode": "e660",
+      "unicode_decimal": 58976
+    },
+    {
+      "icon_id": "19391946",
+      "name": "todolist",
+      "font_class": "todolist",
+      "unicode": "e661",
+      "unicode_decimal": 58977
+    },
+    {
+      "icon_id": "19391947",
+      "name": "Member",
+      "font_class": "Member",
+      "unicode": "e662",
+      "unicode_decimal": 58978
+    },
+    {
+      "icon_id": "19391954",
+      "name": "House",
+      "font_class": "House",
+      "unicode": "e663",
+      "unicode_decimal": 58979
+    },
+    {
+      "icon_id": "23973545",
+      "name": "gcp",
+      "font_class": "gcp",
+      "unicode": "e613",
+      "unicode_decimal": 58899
+    },
+    {
+      "icon_id": "35187198",
+      "name": "infinilabs",
+      "font_class": "infinilabs",
+      "unicode": "e6d9",
+      "unicode_decimal": 59097
+    },
+    {
+      "icon_id": "35187201",
+      "name": "txunyun",
+      "font_class": "txunyun",
+      "unicode": "e6dc",
+      "unicode_decimal": 59100
+    },
+    {
+      "icon_id": "35187203",
+      "name": "aliyun",
+      "font_class": "aliyun",
+      "unicode": "e6de",
+      "unicode_decimal": 59102
+    },
+    {
+      "icon_id": "40144852",
+      "name": "INFINICloud-icon",
+      "font_class": "INFINICloud-icon",
+      "unicode": "e71a",
+      "unicode_decimal": 59162
+    },
+    {
+      "icon_id": "42097228",
+      "name": "Pizza",
+      "font_class": "Pizza",
+      "unicode": "e71c",
+      "unicode_decimal": 59164
+    },
+    {
+      "icon_id": "20511520",
+      "name": "blogs",
+      "font_class": "blogs",
+      "unicode": "e608",
+      "unicode_decimal": 58888
+    },
+    {
+      "icon_id": "44130928",
+      "name": "AgentQL",
+      "font_class": "AgentQL",
+      "unicode": "e743",
+      "unicode_decimal": 59203
+    },
+    {
+      "icon_id": "41561513",
+      "name": "perplexity",
+      "font_class": "perplexity",
+      "unicode": "e6bc",
+      "unicode_decimal": 59068
+    },
+    {
+      "icon_id": "43882721",
+      "name": "mcp",
+      "font_class": "mcp",
+      "unicode": "e6e1",
+      "unicode_decimal": 59105
+    },
+    {
+      "icon_id": "22764606",
+      "name": "aws",
+      "font_class": "aws",
+      "unicode": "e61a",
+      "unicode_decimal": 58906
+    },
+    {
+      "icon_id": "34064688",
+      "name": "百度地图",
+      "font_class": "baiduditu",
+      "unicode": "e607",
+      "unicode_decimal": 58887
+    },
+    {
+      "icon_id": "13303504",
+      "name": "gitlab",
+      "font_class": "gitlab",
+      "unicode": "e65c",
+      "unicode_decimal": 58972
+    },
+    {
+      "icon_id": "28250473",
+      "name": "Slack",
+      "font_class": "Slack",
+      "unicode": "e606",
+      "unicode_decimal": 58886
+    },
+    {
+      "icon_id": "39662675",
+      "name": "Brave",
+      "font_class": "Brave",
+      "unicode": "e643",
+      "unicode_decimal": 58947
+    },
+    {
+      "icon_id": "17445313",
+      "name": "duckduckgo",
+      "font_class": "duckduckgo-white",
+      "unicode": "e602",
+      "unicode_decimal": 58882
+    },
+    {
+      "icon_id": "20881231",
+      "name": "高德地图",
+      "font_class": "gaodeditu",
+      "unicode": "e618",
+      "unicode_decimal": 58904
+    },
+    {
+      "icon_id": "20881232",
+      "name": "腾讯地图",
+      "font_class": "tengxunditu",
+      "unicode": "e619",
+      "unicode_decimal": 58905
+    },
+    {
       "icon_id": "43616544",
       "name": "deepseek",
       "font_class": "deepseek",
