@@ -25,6 +25,7 @@ package assistant
 
 import (
 	"net/http"
+	"time"
 
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/modules/common"
@@ -178,4 +179,33 @@ func (h *APIHandler) searchAssistant(w http.ResponseWriter, req *http.Request, p
 	if err != nil {
 		h.Error(w, err)
 	}
+}
+
+func (h *APIHandler) cloneAssistant(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	id := ps.MustGetParameter("id")
+
+	obj := common.Assistant{}
+	obj.ID = id
+
+	exists, err := orm.Get(&obj)
+	if !exists || err != nil {
+		log.Error(err)
+		h.WriteJSON(w, util.MapStr{
+			"_id":   id,
+			"found": false,
+		}, http.StatusNotFound)
+		return
+	}
+
+	obj.ID = util.GetUUID()
+	obj.Name = obj.Name + "_copy"
+	now := time.Now()
+	obj.Created = &now
+	obj.Updated = &now
+	obj.Builtin = false
+	ctx := &orm.Context{
+		Refresh: orm.WaitForRefresh,
+	}
+	orm.Create(ctx, &obj)
+	h.WriteCreatedOKJSON(w, obj.ID)
 }

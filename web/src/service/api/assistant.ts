@@ -74,3 +74,10 @@ export function getAssistant(assistantID: string){
     url: `/assistant/${assistantID}`
   });
 }
+
+export function cloneAssistant(assistantID: string){
+  return request({
+    method: 'post',
+    url: `/assistant/${assistantID}/_clone`
+  });
+}

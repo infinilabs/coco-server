@@ -69,4 +69,5 @@ func init() {
 	api.HandleUIMethod(api.GET, "/assistant/_search", handler.searchAssistant, api.RequirePermission(searchPermission), api.Feature(filter.FeatureCORS))
 	api.HandleUIMethod(api.OPTIONS, "/assistant/_search", handler.searchAssistant, api.RequirePermission(searchPermission), api.Feature(filter.FeatureCORS))
 	api.HandleUIMethod(api.POST, "/assistant/_search", handler.searchAssistant, api.RequirePermission(searchPermission), api.Feature(filter.FeatureCORS))
+	api.HandleUIMethod(api.POST, "/assistant/:id/_clone", handler.cloneAssistant, api.RequirePermission(createPermission))
 }
