@@ -10,12 +10,12 @@ coco:
     public: false
     name: "My Coco Server"
     managed: false
-    #[START] for managed mode only, need to configured by coco-server operator
-    endpoint: "http://localhost:9001/"
-    auth_provider: #config for app to use
-      sso:
-        url: "http://localhost:9001/#/login"
-    #[END] for managed mode only
+#    #[START] for managed mode only, need to configured by coco-server operator
+#    endpoint: "http://localhost:9001/"
+#    auth_provider: #config for app to use
+#      sso:
+#        url: "http://localhost:9001/#/login"
+#    #[END] for managed mode only
     minimal_client_version:
       number: "0.3"
     provider:
