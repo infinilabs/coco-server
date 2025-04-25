@@ -152,7 +152,7 @@ export const EditForm = memo((props: AssistantFormProps)=> {
               <Input className='max-w-600px' />
             </Form.Item>
             <Form.Item label={t('page.assistant.labels.icon')} name="icon" rules={[{ required: true}]}>
-              <IconSelector type="connector" icons={iconsMeta} className='max-w-300px' />
+              <IconSelector type="connector" icons={iconsMeta} className='max-w-600px' />
             </Form.Item>
             <Form.Item label={t('page.assistant.labels.type')} name="type" rules={[{ required: true}]}>
               <AssistantMode onChange={handleAssistantModeChange} />

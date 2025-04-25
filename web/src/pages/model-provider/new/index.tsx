@@ -72,7 +72,7 @@ export function Component() {
               <Input className='max-w-600px' />
             </Form.Item>
             <Form.Item label={t('page.modelprovider.labels.icon')} name="icon" rules={[{ required: true}]}>
-              <IconSelector type="connector" icons={iconsMeta} className='max-w-150px' />
+              <IconSelector type="connector" icons={iconsMeta} className='max-w-600px' />
             </Form.Item>
             <Form.Item label={t('page.modelprovider.labels.api_type')} name="api_type" rules={[{ required: true}]}>
               <Select options={[{label:"OpenAI", value:"openai"}, {label:"Ollama", value:"ollama"}, {label:"Deepseek", value:"deepseek"}]} className='max-w-150px' />
