@@ -195,7 +195,7 @@ export const EditForm = memo((props: AssistantFormProps)=> {
                 name='role_prompt'
                 label={t('page.assistant.labels.role_prompt')}
             >
-              <Input.TextArea placeholder='Please enter the role prompt instructions' className='w-600px' />
+              <Input.TextArea placeholder='Please enter the role prompt instructions' style={{height:320}} className='w-600px' />
             </Form.Item>
             <Form.Item label={t('page.assistant.labels.enabled')} name="enabled">
               <Switch size="small"/>
@@ -286,9 +286,9 @@ export const SuggestedChat = ({ value = [], onChange }: any) => {
   const initialValue = useMemo(() => {
     const iv = (value || []).map((v: string) => ({
       value: v,
-      key: crypto.randomUUID(),
+      key: getUUID(),
     }));
-    return iv.length ? iv : [{ value: '', key: crypto.randomUUID() }];
+    return iv.length ? iv : [{ value: '', key: getUUID() }];
   }, [value]);
 
   const [innerValue, setInnerValue] = useState<{ value: string; key: string }[]>(initialValue);
@@ -300,22 +300,22 @@ export const SuggestedChat = ({ value = [], onChange }: any) => {
       prevValueRef.current = value;
       const iv = (value || []).map((v: string) => ({
         value: v,
-        key: crypto.randomUUID(),
+        key: getUUID(),
       }));
-      setInnerValue(iv.length ? iv : [{ value: '', key: crypto.randomUUID() }]);
+      setInnerValue(iv.length ? iv : [{ value: '', key: getUUID() }]);
     }
   }, [value]);
 
   const onDeleteClick = (key: string) => {
     const newValues = innerValue.filter((v) => v.key !== key);
-    setInnerValue(newValues.length ? newValues : [{ value: '', key: crypto.randomUUID() }]);
+    setInnerValue(newValues.length ? newValues : [{ value: '', key: getUUID() }]);
     const newValue = newValues.map((v) =>v.value)
     prevValueRef.current = newValue;
     onChange?.(newValue);
   };
 
   const onAddClick = () => {
-    setInnerValue([...innerValue, { value: '', key: crypto.randomUUID() }]);
+    setInnerValue([...innerValue, { value: '', key: getUUID() }]);
   };
 
   const onItemChange = (key: string, newValue: string) => {
@@ -347,3 +347,14 @@ export const SuggestedChat = ({ value = [], onChange }: any) => {
     </div>
   );
 };
+
+function getUUID() {
+  if(crypto && typeof crypto.randomUUID === 'function'){
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = crypto.getRandomValues(new Uint8Array(1))[0] % 16;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}

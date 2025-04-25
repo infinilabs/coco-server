@@ -153,3 +153,151 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/coco
   "builtin" : true,
   "description": "Coco AI 自定义模型提供商，用于配置默认 AI 助手"
 }
+
+POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/silicon_flow
+{
+  "id" : "silicon_flow",
+  "created" : "2025-03-28T10:24:22.378929+08:00",
+  "updated" : "2025-03-28T11:22:57.605814+08:00",
+  "name" : "硅基流动",
+  "api_key" : "",
+  "api_type" : "openai",
+  "base_url" : "https://api.siliconflow.cn",
+  "icon" : "font_siliconflow",
+  "models" : [
+    {"name": "BAAI/bge-m3"},
+    {"name": "deepseek-ai/DeepSeek-R1"},
+    {"name": "deepseek-ai/DeepSeek-V3"}
+  ],
+  "enabled" : false,
+  "builtin" : true,
+  "description": "硅基流动提供对各种模型（LLM、文本嵌入、重排序、STT、TTS）的访问，可通过模型名称、API密钥和其他参数进行配置"
+}
+
+POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/tencent_hunyuan
+{
+  "id" : "tencent_hunyuan",
+  "created" : "2025-03-28T10:24:22.378929+08:00",
+  "updated" : "2025-03-28T11:22:57.605814+08:00",
+  "name" : "腾讯混元",
+  "api_key" : "",
+  "api_type" : "openai",
+  "base_url" : "https://api.hunyuan.cloud.tencent.com",
+  "icon" : "font_hunyuan",
+  "models" : [
+    {"name": "hunyuan-pro"},
+    {"name": "hunyuan-standard"},
+    {"name": "hunyuan-lite"},
+    {"name": "hunyuan-standard-256k"},
+    {"name": "hunyuan-vision"},
+    {"name": "hunyuan-code"},
+    {"name": "hunyuan-role"},
+    {"name": "hunyuan-turbo"}
+  ],
+  "enabled" : false,
+  "builtin" : true,
+  "description": "腾讯混元提供的模型，例如 hunyuan-standard、 hunyuan-standard-256k, hunyuan-pro, hunyuan-role…"
+}
+
+POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/gemini
+{
+  "id" : "gemini",
+  "created" : "2025-03-28T10:24:22.378929+08:00",
+  "updated" : "2025-03-28T11:22:57.605814+08:00",
+  "name" : "Gemini",
+  "api_key" : "",
+  "api_type" : "openai",
+  "base_url" : "https://generativelanguage.googleapis.com",
+  "icon" : "font_gemini-ai",
+  "models" : [
+    {"name": "gemini-1.5-flash"},
+    {"name": "gemini-1.5-pro"}
+  ],
+  "enabled" : false,
+  "builtin" : true,
+  "description": "谷歌提供的 Gemini 模型"
+}
+
+POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/moonshot
+{
+  "id" : "moonshot",
+  "created" : "2025-03-28T10:24:22.378929+08:00",
+  "updated" : "2025-03-28T11:22:57.605814+08:00",
+  "name" : "月之暗面",
+  "api_key" : "",
+  "api_type" : "openai",
+  "base_url" : "https://api.moonshot.cn",
+  "icon" : "font_Moonshot",
+  "models" : [
+    {"name": "moonshot-v1-auto"}
+  ],
+  "enabled" : false,
+  "builtin" : true,
+  "description": "Moonshot 提供的模型，例如 moonshot-v1-8k、moonshot-v1-32k 和 moonshot-v1-128k。"
+}
+
+POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/minimax
+{
+  "id" : "minimax",
+  "created" : "2025-03-28T10:24:22.378929+08:00",
+  "updated" : "2025-03-28T11:22:57.605814+08:00",
+  "name" : "Minimax",
+  "api_key" : "",
+  "api_type" : "openai",
+  "base_url" : "https://api.minimax.chat/v1/",
+  "icon" : "font_MiniMax",
+  "models" : [
+    {"name": "abab5.5s"},
+    {"name": "abab6.5s"},
+    {"name": "abab6.5g"},
+    {"name": "abab6.5t"},
+    {"name": "minimax-01"}
+  ],
+  "enabled" : false,
+  "builtin" : true,
+  "description": "MiniMax 是一个先进的AI平台，提供一系列为各种应用设计的强大模型，包括LLMs。"
+}
+
+POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/volcanoArk
+{
+  "id" : "volcanoArk",
+  "created" : "2025-03-28T10:24:22.378929+08:00",
+  "updated" : "2025-03-28T11:22:57.605814+08:00",
+  "name" : "火山方舟",
+  "api_key" : "",
+  "api_type" : "openai",
+  "base_url" : "https://ark.cn-beijing.volces.com/api/v3/",
+  "icon" : "font_VolcanoArk",
+  "models" : [
+    {"name": "doubao-1.5-vision-pro"},
+    {"name": "doubao-1.5-pro-32k"},
+    {"name": "doubao-1.5-pro-32k-character"},
+    {"name": "Doubao-1.5-pro-256k"}
+  ],
+  "enabled" : false,
+  "builtin" : true,
+  "description": "火山方舟提供的模型，例如 Doubao-pro-4k、Doubao-pro-32k 和 Doubao-pro-128k。"
+}
+
+POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/qianfan
+{
+  "id" : "qianfan",
+  "created" : "2025-03-28T10:24:22.378929+08:00",
+  "updated" : "2025-03-28T11:22:57.605814+08:00",
+  "name" : "百度云千帆",
+  "api_key" : "",
+  "api_type" : "openai",
+  "base_url" : "https://qianfan.baidubce.com/v2/",
+  "icon" : "font_Qianfan",
+  "models" : [
+    {"name": "ERNIE-4.0"},
+    {"name": "ERNIE 4.0 Trubo"},
+    {"name": "ERNlE Speed"},
+    {"name": "ERNIE Lite"},
+    {"name": "BGE Large ZH"},
+    {"name": "BGE Large EN"}
+  ],
+  "enabled" : false,
+  "builtin" : true,
+  "description": "预置全系列文心大模型与上百个精选第三方模型"
+}

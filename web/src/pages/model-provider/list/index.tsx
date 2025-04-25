@@ -15,7 +15,7 @@ export function Component() {
   const [loading, setLoading] = useState(false);
   const [reqParams, setReqParams] = useState({
     from: 0,
-    size: 10,
+    size: 12,
   })
   const fetchData = ()=>{
     setLoading(true)
@@ -127,7 +127,7 @@ export function Component() {
           loading={loading}
           pagination={{
             showTotal:(total, range) => `${range[0]}-${range[1]} of ${total} items`,
-            defaultPageSize: 10,
+            defaultPageSize: 12,
             defaultCurrent: 1,
             onChange: onPageChange,
             total: data.total || 0,
@@ -211,6 +211,27 @@ const APIKeyComponent = ({
       break;
     case "openai":
       apiHref = "https://platform.openai.com/account/api-keys";
+      break;
+    case "silicon_flow":
+      apiHref = "https://cloud.siliconflow.cn/account/ak";
+      break;
+    case "tencent_hunyuan":
+      apiHref = "https://console.cloud.tencent.com/hunyuan/api-key";
+      break;
+    case "gemini":
+      apiHref = "https://aistudio.google.com/app/apikey";
+      break;
+    case "moonshot":
+      apiHref = "https://platform.moonshot.cn/console/api-keys";
+      break;
+    case "minimax":
+      apiHref = "https://platform.minimaxi.com/user-center/basic-information/interface-key";
+      break;
+    case "volcanoArk":
+      apiHref = "https://console.volcengine.com/iam/keymanage/";
+      break;
+    case "qianfan":
+      apiHref = "https://console.bce.baidu.com/iam/#/iam/apikey/list";
       break;
   }
 

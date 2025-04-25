@@ -6,6 +6,55 @@
   "description": "",
   "glyphs": [
     {
+      "icon_id": "44154183",
+      "name": "Qianfan",
+      "font_class": "Qianfan",
+      "unicode": "e746",
+      "unicode_decimal": 59206
+    },
+    {
+      "icon_id": "35174198",
+      "name": "火山引擎_24",
+      "font_class": "VolcanoArk",
+      "unicode": "e7c2",
+      "unicode_decimal": 59330
+    },
+    {
+      "icon_id": "40516366",
+      "name": "腾讯混元",
+      "font_class": "hunyuan",
+      "unicode": "e611",
+      "unicode_decimal": 58897
+    },
+    {
+      "icon_id": "41561506",
+      "name": "月之暗面",
+      "font_class": "Moonshot",
+      "unicode": "e6bb",
+      "unicode_decimal": 59067
+    },
+    {
+      "icon_id": "43413883",
+      "name": "MiniMax",
+      "font_class": "MiniMax",
+      "unicode": "e7df",
+      "unicode_decimal": 59359
+    },
+    {
+      "icon_id": "43756975",
+      "name": "gemini-ai",
+      "font_class": "gemini-ai",
+      "unicode": "e669",
+      "unicode_decimal": 58985
+    },
+    {
+      "icon_id": "43767603",
+      "name": "siliconflow",
+      "font_class": "siliconflow",
+      "unicode": "e6b1",
+      "unicode_decimal": 59057
+    },
+    {
       "icon_id": "9369602",
       "name": "Tools02",
       "font_class": "Tools02",
