@@ -123,28 +123,36 @@ export const DocSearch = (props) => {
     if (isOpen) {
       const container = document.createElement("div");
       document.body.appendChild(container)
+      modalRef.current = container
       const shadow = container.attachShadow({ mode: "open" });
 
-      if (linkHref) {
-        const linkElement = document.createElement("link");
-        linkElement.rel = "stylesheet";
-        linkElement.href = linkHref;
-        shadow.appendChild(linkElement);
-      }
-
-      const wrapper = document.createElement("div");
-      shadow.appendChild(wrapper);
-      modalRef.current = wrapper;
-
-      const root = createRoot(wrapper);
-      root.render(<DocSearchModal {...{
+      const props = {
         server,
         settings,
         initialQuery,
         onClose,
         triggerBtnType,
         theme,
-      }} />);
+      }
+
+      if (linkHref) {
+        const linkElement = document.createElement("link");
+        linkElement.rel = "stylesheet";
+        linkElement.href = linkHref;
+        shadow.appendChild(linkElement);
+        linkElement.onload = async () => {
+          const { DocSearchModal } = await import("./DocSearchModal");
+          const wrapper = document.createElement("div");
+          shadow.appendChild(wrapper);
+          const root = createRoot(wrapper);
+          root.render(<DocSearchModal {...props} />);
+        }
+      } else {
+        const wrapper = document.createElement("div");
+        shadow.appendChild(wrapper);
+        const root = createRoot(wrapper);
+        root.render(<DocSearchModal {...props} />);
+      }
     } else {
       modalRef.current?.remove()
     }
@@ -155,18 +163,31 @@ export const DocSearch = (props) => {
     document.body.appendChild(container)
     const shadow = container.attachShadow({ mode: "open" });
 
+    const props = {
+      theme,
+      settings,
+      onClick: () => onClick('floating')
+    }
+
     if (linkHref) {
       const linkElement = document.createElement("link");
       linkElement.rel = "stylesheet";
       linkElement.href = linkHref;
       shadow.appendChild(linkElement);
+      linkElement.onload = async () => {
+        const { DocSearchFloatButton } = await import("./DocSearchFloatButton");
+        const wrapper = document.createElement("div");
+        shadow.appendChild(wrapper);
+        const root = createRoot(wrapper);
+        root.render(<DocSearchFloatButton {...props}/>);
+      }
+    } else {
+      const wrapper = document.createElement("div");
+      shadow.appendChild(wrapper);
+      const root = createRoot(wrapper);
+      root.render(<DocSearchFloatButton {...props}/>);
     }
 
-    const wrapper = document.createElement("div");
-    shadow.appendChild(wrapper);
-
-    const root = createRoot(wrapper);
-    root.render(<DocSearchFloatButton theme={theme} settings={settings} onClick={() => onClick('floating')}/>);
   }
 
   function renderButton(settings) {
