@@ -92,9 +92,11 @@ type BuiltinToolsConfig struct {
 }
 
 type ModelConfig struct {
-	ProviderID string        `json:"provider_id,omitempty"`
-	Name       string        `json:"name"`
-	Settings   ModelSettings `json:"settings"`
+	ProviderID     string        `json:"provider_id,omitempty"`
+	Name           string        `json:"name"`
+	Settings       ModelSettings `json:"settings"`
+	PromptTemplate string        `json:"prompt_template"`
+	PromptVars     []string      `json:"prompt_vars"`
 }
 
 type ModelSettings struct {

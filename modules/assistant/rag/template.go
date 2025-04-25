@@ -21,18 +21,21 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-package assistant
+package rag
 
-// Define constants for the various stages
-const (
-	QueryIntent  = "query_intent"
-	Tools        = "tools"
-	QueryRewrite = "query_rewrite"
-	FetchSource  = "fetch_source"
-	PickSource   = "pick_source"
-	DeepRead     = "deep_read"
-	Think        = "think"    //reasoning message by LLM
-	Response     = "response" //formal response by assistant
-	References   = "references"
-	ReplyEnd     = "reply_end"
-)
+import "infini.sh/coco/modules/common"
+
+func GetTemplateArgs(cfg *common.ModelConfig, defaultTemplate string, defaultVars []string) (template string, inputVars []string) {
+	if cfg.PromptTemplate == "" {
+		template = defaultTemplate
+	} else {
+		template = cfg.PromptTemplate
+	}
+
+	if len(cfg.PromptVars) == 0 {
+		cfg.PromptVars = defaultVars
+	} else {
+		inputVars = cfg.PromptVars
+	}
+	return template, inputVars
+}

@@ -10,6 +10,7 @@ import (
 	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/api/websocket"
+	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/task"
 	"infini.sh/framework/core/util"
@@ -199,6 +200,33 @@ func (h APIHandler) newChatSession(w http.ResponseWriter, req *http.Request, ps 
 	if err != nil {
 		h.Error(w, err)
 		return
+	}
+}
+
+func (h APIHandler) handleMessage(req *http.Request, sessionID, assistantID, message string) (*common.ChatMessage, error) {
+	if wsID, err := h.GetUserWebsocketID(req); err == nil && wsID != "" {
+		params, err := h.extractParameters(req)
+		if err != nil {
+			return nil, err
+		}
+
+		if sessionID == "" || assistantID == "" || message == "" {
+			panic("invalid chat message")
+		}
+
+		reqMsg := h.createInitialUserRequestMessage(sessionID, assistantID, message, params)
+		params.SessionID = sessionID
+		params.WebsocketID = wsID
+		if err := h.saveMessage(reqMsg); err != nil {
+			return nil, err
+		}
+
+		h.launchBackgroundTask(reqMsg, params)
+		return reqMsg, nil
+	} else {
+		err := errors.Errorf("No websocket [%v] for session: %v", wsID, sessionID)
+		log.Error(err)
+		panic(err)
 	}
 }
 

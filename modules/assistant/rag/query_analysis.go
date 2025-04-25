@@ -24,7 +24,14 @@
 package rag
 
 import (
+	"context"
+	"fmt"
 	log "github.com/cihub/seelog"
+	"github.com/tmc/langchaingo/chains"
+	"github.com/tmc/langchaingo/prompts"
+	"infini.sh/coco/modules/assistant/langchain"
+	"infini.sh/coco/modules/assistant/websocket"
+	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/util"
 	"regexp"
 	"strings"
@@ -68,4 +75,103 @@ func extractJSON(input string) string {
 	}
 
 	return ""
+}
+
+// Define the prompt template
+const queryIntentPromptTemplate = `You are an AI assistant trained to understand and analyze user queries.
+You will be given a conversation below and a follow-up question. You need to rephrase the follow-up question if needed so it is a standalone question that can be used by the LLM to search the knowledge base for information.
+
+Conversation:
+{{.history}}
+
+The user has provided the following query:
+{{.query}}
+
+Please analyze the query and identify the user's primary intent.
+Determine if they are looking for information, making a request, or seeking clarification.
+Categorize the intent in </Category>, brief the </Intent>, and rephrase the query in several different forms to improve clarity.
+Provide possible variations of the query in <Query/> and identify relevant keywords in </Keyword> in JSON array format.
+Provide possible related queries in <Suggestion/> and expand the related query for query suggestion.
+Please make sure the output is concise, well-organized, and easy to process.
+Please present these possible query and keyword items in both English and Chinese.
+If the possible query is in English, keep the original English one, and translate it to Chinese and keep it as a new query, to be clear, you should output: [Apple, 苹果], neither just 'Apple' nor just '苹果'.
+Wrap the valid JSON result in <JSON></JSON> tags.
+Your output should look like this format:
+<JSON>
+{
+  "category": "<Intent's Category>",
+  "intent": "<User's Intent>",
+  "query": [
+    "<Rephrased Query 1>",
+    "<Rephrased Query 2>",
+    "<Rephrased Query 3>"
+  ],
+  "keyword": [
+    "<Keyword 1>",
+    "<Keyword 2>",
+    "<Keyword 3>"
+  ],
+  "suggestion": [
+    "<Suggest Query 1>",
+    "<Suggest Query 2>",
+    "<Suggest Query 3>"
+  ]
+}
+</JSON>`
+
+func ProcessQueryIntent(ctx context.Context, sessionID, websocketID string, provider *common.ModelProvider, cfg *common.ModelConfig, reqMsg, replyMsg *common.ChatMessage, assistant *common.Assistant, inputValues map[string]any) (*QueryIntent, error) {
+	// Initialize the LLM
+	llm := langchain.GetLLM(provider.BaseURL, provider.APIType, cfg.Name, provider.APIKey, assistant.Keepalive)
+
+	// Create the prompt template
+	promptTemplate := prompts.NewPromptTemplate(GetTemplateArgs(cfg, queryIntentPromptTemplate, []string{"history", "query"}))
+
+	// Create the LLM chain
+	llmChain := chains.NewLLMChain(llm, promptTemplate)
+
+	var chunkSeq = 0
+	temperature := langchain.GetTemperature(cfg, provider, 0.8)
+	maxTokens := langchain.GetMaxTokens(cfg, provider, 1024)
+
+	// Execute the chain
+	output, err := chains.Call(ctx, llmChain, inputValues, chains.WithTemperature(temperature),
+		chains.WithMaxTokens(maxTokens),
+		chains.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
+			if len(chunk) > 0 {
+				chunkSeq++
+				//queryIntentBuffer.Write(chunk)
+				fmt.Println(string(chunk))
+				msg := common.NewMessageChunk(sessionID, replyMsg.ID, common.MessageTypeAssistant, reqMsg.ID, common.QueryIntent, string(chunk), chunkSeq)
+				err := websocket.SendMessageToWebsocket(websocketID, util.MustToJSON(msg))
+				if err != nil {
+					log.Error(err)
+					return err
+				}
+			}
+			return nil
+		}))
+	if err != nil {
+		return nil, fmt.Errorf("error executing LLM chain: %w", err)
+	}
+
+	// Extract the generated text
+	generatedText, ok := output["text"].(string)
+	if !ok {
+		return nil, fmt.Errorf("unexpected output type: %T", output["text"])
+	}
+
+	// Parse the generated text to extract the JSON
+	queryIntent, err := QueryAnalysisFromString(generatedText)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing query intent: %w", err)
+	}
+
+	// Attach the query intent to the reply message
+	replyMsg.Details = append(replyMsg.Details, common.ProcessingDetails{
+		Order:   10,
+		Type:    common.QueryIntent,
+		Payload: queryIntent,
+	})
+
+	return queryIntent, nil
 }
