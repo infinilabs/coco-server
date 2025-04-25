@@ -6,7 +6,8 @@ export const DocSearchModal = ({
   settings,
   onClose,
   triggerBtnType,
-  theme
+  theme,
+  isOpen
 }) => {
   // We rely on a CSS property to set the modal height to the full viewport height
   // because all mobile browsers don't compute their height the same way.
@@ -14,7 +15,7 @@ export const DocSearchModal = ({
 
   const [isPinned, setIsPinned] = useState(false);
 
-  const { appearance = {}, enabled_module = {}, id, token, type } = settings;
+  const { appearance = {}, enabled_module = {}, id, token, type } = settings || {};
   const { ai_chat, features, search } = enabled_module;
 
   const hasModules = [];
@@ -36,6 +37,10 @@ export const DocSearchModal = ({
     } else if (triggerBtnType === 'floating') {
       defaultModule = 'chat';
     }
+  }
+
+  if (!isOpen) {
+    return null
   }
 
   return (
