@@ -1,5 +1,3 @@
-import { searchbox as originalSearchbox } from "$[[ENDPOINT]]/widgets/searchbox/index.js?v=$[[VER]]";
-
 export function searchbox(options) {
   if (!options || !options.container) {
     console.error("Container is required in options.");
@@ -22,21 +20,28 @@ export function searchbox(options) {
   linkElement.href = linkHref;
   shadow.appendChild(linkElement);
 
-  // Create wrapper div inside Shadow DOM
-  const wrapper = document.createElement("div");
-  wrapper.classList.add("searchbox-container");
-  shadow.appendChild(wrapper);
+  linkElement.onload = async () => {
+    // Create wrapper div inside Shadow DOM
+    const wrapper = document.createElement("div");
+    wrapper.classList.add("searchbox-container");
+    shadow.appendChild(wrapper);
 
-  // Set default server but keep other options flexible
-  const finalOptions = {
-    ...options,
-    container: wrapper,
-    id: "$[[ID]]",
-    server: "$[[ENDPOINT]]",
-    token: "$[[TOKEN]]",
-    linkHref
-  };
+    const { searchbox: originalSearchbox } = await import(
+      "$[[ENDPOINT]]/widgets/searchbox/index.js?v=$[[VER]]"
+    );
 
-  // Call the original searchbox function
-  originalSearchbox(finalOptions);
+    // Set default server but keep other options flexible
+    const finalOptions = {
+      ...options,
+      container: wrapper,
+      id: "$[[ID]]",
+      server: "$[[ENDPOINT]]",
+      token: "$[[TOKEN]]",
+      linkHref
+    };
+
+    // Call the original searchbox function
+    originalSearchbox(finalOptions);
+  }
+
 }
