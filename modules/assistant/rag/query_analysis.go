@@ -87,6 +87,12 @@ You will be given a conversation below and a follow-up question. You need to rep
 Conversation:
 {{.history}}
 
+Tool List:
+{{.tool_list}}
+
+Network sources List:
+{{.network_sources}}
+
 The user has provided the following query:
 {{.query}}
 
@@ -95,8 +101,8 @@ You need help to figure out the following tasks:
 - Categorize the intent in </Category>,  and rephrase the query in several different forms to improve clarity.
 - Provide possible variations of the query in <Query/> and identify relevant keywords in </Keyword> in JSON array format.
 - Provide possible related queries in <Suggestion/> and expand the related query for query suggestion.
-- Analyze the user's query whether need to call external tools, output as field: 'need_call_tools'
-- Analyze the user's query whether need to perform a network search, in order to get more information, output as field: 'need_network_search'
+- Based on the tool list provided, analyze the user's query whether need to call external tools, output as field: 'need_call_tools'
+- Based on the network source list provided, analyze the user's query whether need to perform a network search, in order to get more information, output as field: 'need_network_search'
 - Analyze the user's query whether need to plan some complex sub-tasks in order to achieve the goal, output as field: 'need_plan_tasks'
 
 

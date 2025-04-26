@@ -24,6 +24,7 @@
 package llm
 
 import (
+	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/orm"
@@ -56,6 +57,23 @@ func (h *APIHandler) createMCPServer(w http.ResponseWriter, req *http.Request, p
 		"result": "created",
 	}, 200)
 
+}
+
+func GetMCPServersByID(id []string) ([]common.MCPServer, error) {
+	var err error
+	q := orm.Query{}
+	q.RawQuery, err = core.RewriteQueryWithFilter(q.RawQuery, util.MapStr{
+		"terms": util.MapStr{
+			"id": id,
+		},
+	})
+
+	docs := []common.MCPServer{}
+	err, _ = orm.SearchWithJSONMapper(&docs, &q)
+	if err != nil {
+		return nil, err
+	}
+	return docs, nil
 }
 
 func (h *APIHandler) getMCPServer(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {

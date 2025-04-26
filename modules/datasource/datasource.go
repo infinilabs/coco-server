@@ -178,6 +178,23 @@ func (h *APIHandler) updateDatasource(w http.ResponseWriter, req *http.Request, 
 	}, 200)
 }
 
+func GetDatasourceByID(id []string) ([]common.DataSource, error) {
+	var err error
+	q := orm.Query{}
+	q.RawQuery, err = core.RewriteQueryWithFilter(q.RawQuery, util.MapStr{
+		"terms": util.MapStr{
+			"id": id,
+		},
+	})
+
+	docs := []common.DataSource{}
+	err, _ = orm.SearchWithJSONMapper(&docs, &q)
+	if err != nil {
+		return nil, err
+	}
+	return docs, nil
+}
+
 func (h *APIHandler) searchDatasource(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
 	var err error

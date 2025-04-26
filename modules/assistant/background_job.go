@@ -28,6 +28,8 @@ import (
 	"fmt"
 	"infini.sh/coco/modules/assistant/rag"
 	"infini.sh/coco/modules/assistant/websocket"
+	"infini.sh/coco/modules/datasource"
+	"infini.sh/coco/modules/llm"
 	"net/http"
 	"runtime"
 	"strings"
@@ -324,6 +326,32 @@ func (h APIHandler) processMessageAsync(ctx context.Context, reqMsg *common.Chat
 	}
 
 	if params.DeepThink && params.intentModel != nil {
+
+		//tool_list
+		//network_sources
+		var toolstr = strings.Builder{}
+		if len(params.AssistantCfg.Datasource.IDs) > 0 {
+			ds, err := datasource.GetDatasourceByID(params.AssistantCfg.Datasource.IDs)
+			if err == nil && ds != nil {
+				for _, v := range ds {
+					toolstr.WriteString(fmt.Sprintf("Name: %v \n", v.Name))
+				}
+			}
+		}
+
+		var mcpServers = strings.Builder{}
+		if len(params.AssistantCfg.MCPConfig.IDs) > 0 {
+			ds, err := llm.GetMCPServersByID(params.AssistantCfg.MCPConfig.IDs)
+			if err == nil && ds != nil {
+				for _, v := range ds {
+					mcpServers.WriteString(fmt.Sprintf("Name: %v, Desc: %v \n", v.Name, v.Description))
+				}
+			}
+		}
+
+		inputValues["tool_list"] = mcpServers.String()
+		inputValues["network_sources"] = toolstr.String()
+
 		queryIntent, err := rag.ProcessQueryIntent(ctx, params.SessionID, params.WebsocketID, params.intentModelProvider, params.intentModel, reqMsg, replyMsg, params.AssistantCfg, inputValues)
 		if err != nil {
 			log.Error("error on processing query intent analysis: ", err)
