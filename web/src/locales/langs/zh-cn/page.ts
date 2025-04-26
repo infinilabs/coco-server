@@ -340,6 +340,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       filter: "数据过滤",
       tools: "调用大模型工具",
       builtin_tools: "内置工具",
+      prompt_settings: "提示词设置",
+      prompt_settings_template: "模板",
     },
     mode:{
       simple: "简单模式",

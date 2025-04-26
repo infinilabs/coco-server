@@ -48,7 +48,7 @@ export const DocSearchButton = ({ settings, hotKeys, onClick }) => {
               key: false,
               placeholder: false,
             })
-          } else if (entry.target.offsetWidth < 96) {
+          } else if (entry.target.offsetWidth < 120) {
             setDisplayState({
               key: false,
               placeholder: true,
