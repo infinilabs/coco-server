@@ -104,6 +104,7 @@ type PromptConfig struct {
 }
 
 type ModelSettings struct {
+	Reasoning        bool    `json:"reasoning"`
 	Temperature      float64 `json:"temperature"`
 	TopP             float64 `json:"top_p"`
 	PresencePenalty  float64 `json:"presence_penalty"`

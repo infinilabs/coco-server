@@ -309,8 +309,6 @@ func (h APIHandler) processMessageAsync(ctx context.Context, reqMsg *common.Chat
 
 	reqMsg.Details = make([]common.ProcessingDetails, 0)
 
-	var docs []common.Document
-
 	// Prepare input values
 	inputValues := map[string]any{
 		"query": reqMsg.Message,
@@ -347,7 +345,7 @@ func (h APIHandler) processMessageAsync(ctx context.Context, reqMsg *common.Chat
 		if params.DeepThink {
 			fetchSize = 50
 		}
-		docs, _ = h.processInitialDocumentSearch(ctx, reqMsg, replyMsg, params, fetchSize)
+		docs, _ := h.processInitialDocumentSearch(ctx, reqMsg, replyMsg, params, fetchSize)
 
 		if params.DeepThink && len(docs) > 10 {
 			//re-pick top docs
@@ -380,7 +378,7 @@ func (h APIHandler) fetchSessionHistory(ctx context.Context, reqMsg, replyMsg *c
 
 	for i := len(history) - 1; i >= 0; i-- {
 		v := history[i]
-		msgText := util.SubStringWithSuffix(v.Message, 500, "...")
+		msgText := util.SubStringWithSuffix(v.Message, 1000, "...")
 		switch v.MessageType {
 		case common.MessageTypeSystem:
 			msg := llms.SystemChatMessage{Content: msgText}
@@ -416,6 +414,13 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *common.ChatMes
 	if params == nil || params.AssistantCfg == nil {
 		//return nil
 		panic("invalid assistant config, skip")
+	}
+
+	if params.intentModel != nil {
+		if !params.QueryIntent.NeedCallTools {
+			log.Info("query intent analyzer skipped call tools")
+			return nil
+		}
 	}
 
 	//get llm for mcp, use answering model if not mcp specified model
@@ -617,6 +622,14 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *common.ChatMes
 }
 
 func (h APIHandler) processInitialDocumentSearch(ctx context.Context, reqMsg, replyMsg *common.ChatMessage, params *RAGContext, fechSize int) ([]common.Document, error) {
+
+	if params.intentModel != nil {
+		if !params.QueryIntent.NeedNetworkSearch {
+			log.Info("query intent analyzer skipped call tools")
+			return []common.Document{}, nil
+		}
+	}
+
 	var query *orm.Query
 	mustClauses := search.BuildMustClauses(params.category, params.subcategory, params.richCategory, params.username, params.userid)
 	datasourceClause := search.BuildDatasourceClause(params.datasource, true)
@@ -849,7 +862,7 @@ func (h APIHandler) generateFinalResponse(taskCtx context.Context, reqMsg, reply
 	options = append(options, llms.WithMaxLength(maxLength))
 	options = append(options, llms.WithTemperature(temperature))
 
-	if params.answeringProvider.APIType == common.DEEPSEEK {
+	if params.answeringModel.Settings.Reasoning {
 		options = append(options, llms.WithStreamingReasoningFunc(func(ctx context.Context, reasoningChunk []byte, chunk []byte) error {
 			log.Trace(string(reasoningChunk), ",", string(chunk))
 			// Use taskCtx here to check for cancellation or other context-specific logic
@@ -986,7 +999,6 @@ func formatDocumentForReplyReferences(docs []common.Document) string {
 		sb.WriteString(fmt.Sprintf("Source: %s\n", doc.Source))
 		sb.WriteString(fmt.Sprintf("Updated: %s\n", doc.Updated))
 		sb.WriteString(fmt.Sprintf("Category: %s\n", doc.GetAllCategories()))
-		//sb.WriteString(fmt.Sprintf("Summary: %s\n", doc.Summary))
 		sb.WriteString(fmt.Sprintf("Content: %s\n", doc.Content))
 		sb.WriteString(fmt.Sprintf("</Doc>\n"))
 
@@ -1004,12 +1016,7 @@ func formatDocumentReferencesToDisplay(docs []common.Document) string {
 		item["id"] = doc.ID
 		item["title"] = doc.Title
 		item["source"] = doc.Source
-		//item["updated"] = doc.Updated
-		//item["category"] = doc.Category
-		//item["summary"] = doc.Summary
 		item["icon"] = doc.Icon
-		//item["size"] = doc.Size
-		//item["thumbnail"] = doc.Thumbnail
 		item["url"] = doc.URL
 		outDocs = append(outDocs, item)
 	}

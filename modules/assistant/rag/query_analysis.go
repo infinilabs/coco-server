@@ -42,6 +42,10 @@ type QueryIntent struct {
 	Query      []string `json:"query"`
 	Keyword    []string `json:"keyword"`
 	Suggestion []string `json:"suggestion"`
+
+	NeedPlanTasks     bool `json:"need_plan_tasks"`     //if it is not a simple task
+	NeedCallTools     bool `json:"need_call_tools"`     //if it is necessary
+	NeedNetworkSearch bool `json:"need_network_search"` //if need external data sources
 }
 
 func QueryAnalysisFromString(str string) (*QueryIntent, error) {
@@ -86,15 +90,22 @@ Conversation:
 The user has provided the following query:
 {{.query}}
 
-Please analyze the query and identify the user's primary intent.
-Determine if they are looking for information, making a request, or seeking clarification.
-Categorize the intent in </Category>, brief the </Intent>, and rephrase the query in several different forms to improve clarity.
-Provide possible variations of the query in <Query/> and identify relevant keywords in </Keyword> in JSON array format.
-Provide possible related queries in <Suggestion/> and expand the related query for query suggestion.
+You need help to figure out the following tasks:
+- Please analyze the query and identify the user's primary intent. Determine if they are looking for information, making a request, or seeking clarification. brief as field: 'intent',
+- Categorize the intent in </Category>,  and rephrase the query in several different forms to improve clarity.
+- Provide possible variations of the query in <Query/> and identify relevant keywords in </Keyword> in JSON array format.
+- Provide possible related queries in <Suggestion/> and expand the related query for query suggestion.
+- Analyze the user's query whether need to call external tools, output as field: 'need_call_tools'
+- Analyze the user's query whether need to perform a network search, in order to get more information, output as field: 'need_network_search'
+- Analyze the user's query whether need to plan some complex sub-tasks in order to achieve the goal, output as field: 'need_plan_tasks'
+
+
 Please make sure the output is concise, well-organized, and easy to process.
 Please present these possible query and keyword items in both English and Chinese.
+
 If the possible query is in English, keep the original English one, and translate it to Chinese and keep it as a new query, to be clear, you should output: [Apple, 苹果], neither just 'Apple' nor just '苹果'.
 Wrap the valid JSON result in <JSON></JSON> tags.
+
 Your output should look like this format:
 <JSON>
 {
@@ -114,7 +125,10 @@ Your output should look like this format:
     "<Suggest Query 1>",
     "<Suggest Query 2>",
     "<Suggest Query 3>"
-  ]
+  ],
+  "need_plan_tasks":<true or false>,
+  "need_call_tools":<true or false>,
+  "need_network_search":<true or false>
 }
 </JSON>`
 
