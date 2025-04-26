@@ -90,10 +90,10 @@ export default (props) => {
       onChange?.(model);
     }
 
-    const onSettingsChange = (settings: any) => {
+    const onSettingsChange = (values: any) => {
       const newValue = {
         ...(props.value || {}),
-        settings: settings,
+        ...(values || {}),
       }
       onChange?.(newValue);
     }
@@ -149,7 +149,7 @@ export default (props) => {
             }
           }}
         />
-        <div><ModelSettings onChange={onSettingsChange} value={value?.settings || {}}/></div>
+        <div><ModelSettings onChange={onSettingsChange} value={value || {}} /></div>
       </div>
     )
 }

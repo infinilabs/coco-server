@@ -1,4 +1,4 @@
-import { Modal, InputNumber, Form } from 'antd';
+import { Modal, InputNumber, Form, Input } from 'antd';
 
 interface ModelSettingsProps {
   value?: any;
@@ -48,18 +48,21 @@ export default (props: ModelSettingsProps) => {
     <div  className='cursor-pointer' onClick={()=>{setVisible(true)}} >
       <SvgIcon className='text-[#999]' localIcon='list-settings'/>
     </div>
-      <Modal onCancel={onClose} onClose={onClose} open={visible} title={t('page.assistant.labels.model_settings')} onOk={onOKClick}>
+      <Modal onCancel={onClose} onClose={onClose} open={visible} title={null} onOk={onOKClick}>
           <Form initialValues={props.value} form={form}>
+              <div className="ant-modal-header">
+                <div className="ant-modal-title">{t('page.assistant.labels.model_settings')}</div>
+              </div>
               {
                   PARAMETERS.map((item) => (
                       <div key={item.key} className={`flex justify-between items-center mb-8px`}>
                           <div className="[flex:1]">
-                              <div className="color-#333 mb-5px">{t(`page.assistant.labels.${item.key}`)}</div>
+                              <div className="color-[var(--ant-form-label-color)] mb-5px">{t(`page.assistant.labels.${item.key}`)}</div>
                               <div className="text-gray-400 mb-10px text-[12px]">{t(`page.assistant.labels.${item.key}_desc`)}</div>
                           </div>
                           <div >
                               <Form.Item
-                                  name={item.key}
+                                  name={['settings', item.key]}
                                   label=""
                               >
                                   <item.input/>
@@ -68,6 +71,22 @@ export default (props: ModelSettingsProps) => {
                       </div>
                   ))
               }
+              <div className="ant-modal-header">
+                <div className="ant-modal-title">{t('page.assistant.labels.prompt_settings')}</div>
+              </div>
+              <div className={`flex flex-col items-top mb-8px`}>
+                  <div className="">
+                      <div className="color-[var(--ant-form-label-color)] mb-5px">{t(`page.assistant.labels.prompt_settings_template`)}</div>
+                  </div>
+                  <div className="">
+                      <Form.Item
+                          name={['prompt', 'template']}
+                          label=""
+                      >
+                          <Input.TextArea rows={5}/>
+                      </Form.Item>
+                  </div>
+              </div>
           </Form>
       </Modal>
   </div>
