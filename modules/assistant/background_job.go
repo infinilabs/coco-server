@@ -332,15 +332,23 @@ func (h APIHandler) processMessageAsync(ctx context.Context, reqMsg *common.Chat
 		params.QueryIntent = queryIntent
 	}
 
+	var toolsMayHavePromisedResult = false
 	if (params.AssistantCfg.MCPConfig.Enabled && len(params.mcpServers) > 0) || params.AssistantCfg.ToolsConfig.Enabled {
 		//process LLM tools / functions
-		err := h.processLLMTools(ctx, reqMsg, replyMsg, params, inputValues)
+		answer, err := h.processLLMTools(ctx, reqMsg, replyMsg, params, inputValues)
 		if err != nil {
 			log.Error(err)
 		}
+
+		if answer != "" {
+			if len(answer) > 50 {
+				toolsMayHavePromisedResult = true
+			}
+			inputValues["tools_output"] = answer
+		}
 	}
 
-	if params.SearchDB {
+	if params.SearchDB && !toolsMayHavePromisedResult {
 		var fetchSize = 10
 		if params.DeepThink {
 			fetchSize = 50
@@ -410,7 +418,7 @@ func (h APIHandler) fetchSessionHistory(ctx context.Context, reqMsg, replyMsg *c
 	return historyStr.String(), nil
 }
 
-func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *common.ChatMessage, replyMsg *common.ChatMessage, params *RAGContext, inputValues map[string]any) error {
+func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *common.ChatMessage, replyMsg *common.ChatMessage, params *RAGContext, inputValues map[string]any) (string, error) {
 	if params == nil || params.AssistantCfg == nil {
 		//return nil
 		panic("invalid assistant config, skip")
@@ -419,7 +427,7 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *common.ChatMes
 	if params.intentModel != nil {
 		if !params.QueryIntent.NeedCallTools {
 			log.Info("query intent analyzer skipped call tools")
-			return nil
+			return "", nil
 		}
 	}
 
@@ -437,7 +445,7 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *common.ChatMes
 
 	modelProvider, err := common.GetModelProvider(providerID)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	llm := langchain.GetLLM(modelProvider.BaseURL, modelProvider.APIType, modelName, modelProvider.APIKey, params.AssistantCfg.Keepalive)
@@ -501,12 +509,12 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *common.ChatMes
 			cfg := common.StreamableHttpConfig{}
 			err := util.FromJSONBytes(bytes, &cfg)
 			if err != nil {
-				return err
+				return "", err
 			}
 
 			mcpClient, err = client.NewStreamableHttpClient(cfg.URL)
 			if err != nil {
-				return fmt.Errorf("new mcp adapter: %w", err)
+				return "", fmt.Errorf("new mcp adapter: %w", err)
 			}
 			break
 		case common.SSE:
@@ -514,15 +522,15 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *common.ChatMes
 			cfg := common.SSEConfig{}
 			err := util.FromJSONBytes(bytes, &cfg)
 			if err != nil {
-				return err
+				return "", err
 			}
 
 			mcpClient, err = client.NewSSEMCPClient(cfg.URL)
 			if err != nil {
-				return fmt.Errorf("new mcp adapter: %w", err)
+				return "", fmt.Errorf("new mcp adapter: %w", err)
 			}
 			if err := mcpClient.Start(context.Background()); err != nil {
-				return fmt.Errorf("new mcp adapter: %w", err)
+				return "", fmt.Errorf("new mcp adapter: %w", err)
 			}
 
 			break
@@ -532,7 +540,7 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *common.ChatMes
 			cfg := common.StdioConfig{}
 			err := util.FromJSONBytes(bytes, &cfg)
 			if err != nil {
-				return err
+				return "", err
 			}
 			envs := []string{}
 			if len(cfg.Env) > 0 {
@@ -542,12 +550,12 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *common.ChatMes
 			}
 			mcpClient, err = client.NewStdioMCPClient(cfg.Command, envs, cfg.Args...)
 			if err != nil {
-				return fmt.Errorf("error on new stdio client: %w", err)
+				return "", fmt.Errorf("error on new stdio client: %w", err)
 			}
 			//ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			//defer cancel()
 			if err := mcpClient.Start(context.Background()); err != nil {
-				return fmt.Errorf("error on start stdio client: %w", err)
+				return "", fmt.Errorf("error on start stdio client: %w", err)
 			}
 			break
 		default:
@@ -558,13 +566,13 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *common.ChatMes
 			mcpClients = append(mcpClients, mcpClient)
 			mcpAdapter, err := langchain.New(mcpClient)
 			if err != nil {
-				return fmt.Errorf("new mcp adapter: %w", err)
+				return "", fmt.Errorf("new mcp adapter: %w", err)
 			}
 
 			mcpTools, err := mcpAdapter.Tools()
 			log.Tracef("get %v tools from mcp server: %v", v.Name)
 			if err != nil {
-				return fmt.Errorf("append tools: %w", err)
+				return "", fmt.Errorf("append tools: %w", err)
 			}
 			agentTools = append(agentTools, mcpTools...)
 		}
@@ -574,7 +582,7 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *common.ChatMes
 
 	if len(agentTools) <= 0 {
 		log.Debug("total get ", len(agentTools), " tools")
-		return nil
+		return "", nil
 	}
 
 	buffer := memory.NewConversationBuffer()
@@ -582,10 +590,12 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *common.ChatMes
 		buffer.ChatHistory = params.chatHistory
 	}
 
+	answerBuffer := strings.Builder{}
 	callback := langchain.LogHandler{}
 	toolsSeq := 0
 	callback.CustomWriteFunc = func(chunk string) {
 		if chunk != "" {
+			answerBuffer.WriteString(chunk)
 			echoMsg := common.NewMessageChunk(params.SessionID, replyMsg.ID, common.MessageTypeAssistant, reqMsg.ID, common.Tools, chunk, toolsSeq)
 			websocket.SendMessageToWebsocket(params.WebsocketID, util.MustToJSON(echoMsg))
 		}
@@ -602,23 +612,18 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *common.ChatMes
 		agents.WithMemory(buffer),
 	)
 	if err != nil {
-		return fmt.Errorf("error on executor: %w", err)
+		return answerBuffer.String(), fmt.Errorf("error on executor: %w", err)
 	}
 
 	log.Debugf("start call LLM tools")
 	answer, err := chains.Run(context.Background(), executor, reqMsg.Message)
 	if err != nil {
-		log.Error(answer, err)
-		return fmt.Errorf("error running chains: %w", err)
+		return answerBuffer.String(), fmt.Errorf("error running chains: %w", err)
 	}
-
-	log.Debugf("end call LLM tools")
-
-	inputValues["tools_output"] = answer
 
 	log.Debug("MCP call answer:", answer)
 
-	return nil
+	return answer, nil
 }
 
 func (h APIHandler) processInitialDocumentSearch(ctx context.Context, reqMsg, replyMsg *common.ChatMessage, params *RAGContext, fechSize int) ([]common.Document, error) {
