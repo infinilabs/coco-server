@@ -319,6 +319,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       presence_penalty_desc: "控制 AI 是否倾向于使用新主题，值越高，AI 更倾向于引入新内容",
       frequency_penalty: "减少重复（Frequency Penalty）",
       frequency_penalty_desc: "控制 AI 对同一词汇的重复使用，值越高，表达越丰富",
+      reasoning: "推理模式（Reasoning Mode）",
+      reasoning_desc: "该模型是否支持  Reasoning 推理模式",
       chat_settings: "聊天设置",
       greeting_settings: "问候设置",
       suggested_chat: "推荐对话",
@@ -340,7 +342,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       filter: "数据过滤",
       tools: "调用大模型工具",
       builtin_tools: "内置工具",
-      prompt_settings: "提示语设置",
+      prompt_settings: "提示词设置",
       prompt_settings_template: "模板",
     },
     mode:{

@@ -326,6 +326,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       presence_penalty_desc: "Controls whether the AI tends to introduce new topics. The higher the value, the more the AI is inclined to introduce new content.",
       frequency_penalty: "Frequency Penalty",
       frequency_penalty_desc: "Controls the AI's repetition of the same vocabulary. The higher the value, the richer the expression.",
+      reasoning: "Reasoning Mode",
+      reasoning_desc: "Whether this model supports the reasoning mode.",
       chat_settings: "Chat Settings",
       greeting_settings: "Greeting Settings",
       suggested_chat: "Suggested chat",
