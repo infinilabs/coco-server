@@ -129,12 +129,22 @@ elastic:
                     }
                   },
                   {
+                    "match_phrase": {
+                      "{{field}}": {
+                        "query": "{{query}}",
+                        "boost": 30
+                      }
+                    }
+                  },
+                  {
                     "match": {
                       "{{field}}": {
                         "query": "{{query}}",
                         "fuzziness": "AUTO",
                         "max_expansions": 10,
+                        "boost": 5,
                         "prefix_length": 2,
+                        "operator": "and",
                         "fuzzy_transpositions": true
                       }
                     }
@@ -146,11 +156,16 @@ elastic:
                       "fuzziness": "AUTO",
                       "fuzzy_prefix_length": 2,
                       "fuzzy_max_expansions": 10,
+                      "boost": 3,
+                      "default_operator": "AND",
                       "fuzzy_transpositions": true,
                       "allow_leading_wildcard": false
                     }
                   },{"match": {
-                    "{{field}}.pinyin": "{{query}}"
+                      "{{field}}.pinyin": {
+                          "query": "{{query}}",
+                          "boost": 4
+                          }
                     }}
                   {{/query}}
                 ]
@@ -175,7 +190,7 @@ elastic:
                     "prefix": {
                       "{{field}}.keyword": {
                         "value": "{{query}}",
-                        "boost": 10
+                        "boost": 100
                       }
                     }
                   },
@@ -183,7 +198,15 @@ elastic:
                     "match_phrase_prefix": {
                       "{{field}}": {
                         "query": "{{query}}",
-                        "boost": 2
+                        "boost": 50
+                      }
+                    }
+                  },
+                  {
+                    "match_phrase": {
+                      "{{field}}": {
+                        "query": "{{query}}",
+                        "boost": 30
                       }
                     }
                   },
@@ -194,6 +217,7 @@ elastic:
                         "fuzziness": "AUTO",
                         "max_expansions": 10,
                         "prefix_length": 2,
+                        "boost": 5,
                         "fuzzy_transpositions": true
                       }
                     }
@@ -204,12 +228,17 @@ elastic:
                       "query": "{{query}}",
                       "fuzziness": "AUTO",
                       "fuzzy_prefix_length": 2,
+                      "default_operator": "AND",
+                      "boost": 3,
                       "fuzzy_max_expansions": 10,
                       "fuzzy_transpositions": true,
                       "allow_leading_wildcard": false
                     }
                   },{"match": {
-                    "{{field}}.pinyin": "{{query}}"
+                    "{{field}}.pinyin": {
+                        "query": "{{query}}",
+                        "boost": 4
+                        }
                     }}
                   {{/query}}
                    ,{{#toJson}}extra_should_clauses{{/toJson}}
