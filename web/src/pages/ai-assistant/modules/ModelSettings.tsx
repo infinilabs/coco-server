@@ -1,4 +1,4 @@
-import { Modal, InputNumber, Form, Input } from 'antd';
+import { Modal, InputNumber, Form, Input, Switch } from 'antd';
 
 interface ModelSettingsProps {
   value?: any;
@@ -26,7 +26,10 @@ const PARAMETERS = [
       key: 'max_tokens',
       input: (props: any) => <InputNumber {...props} min={1} step={1} precision={0} max={16385}/>
   },
-  
+  {
+    key: 'reasoning',
+    input: (props: any) => <Switch {...props} size="small" />
+  },
 ]
 
 export default (props: ModelSettingsProps) => {
