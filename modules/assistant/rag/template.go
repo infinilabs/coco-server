@@ -26,16 +26,17 @@ package rag
 import "infini.sh/coco/modules/common"
 
 func GetTemplateArgs(cfg *common.ModelConfig, defaultTemplate string, defaultVars []string) (template string, inputVars []string) {
-	if cfg.PromptTemplate == "" {
-		template = defaultTemplate
-	} else {
-		template = cfg.PromptTemplate
-	}
+	template = defaultTemplate
+	inputVars = defaultVars
 
-	if len(cfg.PromptVars) == 0 {
-		cfg.PromptVars = defaultVars
-	} else {
-		inputVars = cfg.PromptVars
+	if cfg.PromptConfig != nil {
+		if cfg.PromptConfig.PromptTemplate != "" {
+			template = cfg.PromptConfig.PromptTemplate
+		}
+
+		if len(cfg.PromptConfig.InputVars) > 0 {
+			inputVars = cfg.PromptConfig.InputVars
+		}
 	}
 	return template, inputVars
 }

@@ -92,11 +92,15 @@ type BuiltinToolsConfig struct {
 }
 
 type ModelConfig struct {
-	ProviderID     string        `json:"provider_id,omitempty"`
-	Name           string        `json:"name"`
-	Settings       ModelSettings `json:"settings"`
-	PromptTemplate string        `json:"prompt_template"`
-	PromptVars     []string      `json:"prompt_vars"`
+	ProviderID   string        `json:"provider_id,omitempty"`
+	Name         string        `json:"name"`
+	Settings     ModelSettings `json:"settings"`
+	PromptConfig *PromptConfig `json:"prompt,omitempty"`
+}
+
+type PromptConfig struct {
+	PromptTemplate string   `json:"template"`
+	InputVars      []string `json:"input_vars"`
 }
 
 type ModelSettings struct {
@@ -159,6 +163,10 @@ func GetAssistant(assistantID string) (*Assistant, error) {
 	//set default value
 	if assistant.MCPConfig.MaxIterations <= 1 {
 		assistant.MCPConfig.MaxIterations = 5
+	}
+
+	if assistant.RolePrompt == "" {
+		assistant.RolePrompt = "You are a personal AI assistant designed by Coco AI(https://coco.rs), the backend team is behind INFINI Labs(https://infinilabs.com)."
 	}
 
 	// Cache the assistant object

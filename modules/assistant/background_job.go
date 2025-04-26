@@ -26,9 +26,11 @@ package assistant
 import (
 	"context"
 	"fmt"
+	"github.com/tmc/langchaingo/prompts"
 	"infini.sh/coco/modules/assistant/rag"
 	"infini.sh/coco/modules/assistant/websocket"
 	"net/http"
+	"regexp"
 	"runtime"
 	"strings"
 
@@ -310,13 +312,19 @@ func (h APIHandler) processMessageAsync(ctx context.Context, reqMsg *common.Chat
 	reqMsg.Details = make([]common.ProcessingDetails, 0)
 
 	var docs []common.Document
-	// Processing pipeline
-	_ = h.fetchSessionHistory(ctx, reqMsg, replyMsg, params, 10)
 
 	// Prepare input values
 	inputValues := map[string]any{
-		"history": params.HistoryBlock,
-		"query":   reqMsg.Message,
+		"query": reqMsg.Message,
+	}
+
+	// Processing pipeline
+	//log.Error("num of history: ", params.AssistantCfg.ChatSettings.HistoryMessage.Number)
+	if params.AssistantCfg.ChatSettings.HistoryMessage.Number > 0 {
+		history, _ := h.fetchSessionHistory(ctx, reqMsg, replyMsg, params, params.AssistantCfg.ChatSettings.HistoryMessage.Number, inputValues)
+		inputValues["history"] = history
+	} else {
+		inputValues["history"] = "</empty>"
 	}
 
 	if params.DeepThink && params.intentModel != nil {
@@ -330,7 +338,7 @@ func (h APIHandler) processMessageAsync(ctx context.Context, reqMsg *common.Chat
 
 	if (params.AssistantCfg.MCPConfig.Enabled && len(params.mcpServers) > 0) || params.AssistantCfg.ToolsConfig.Enabled {
 		//process LLM tools / functions
-		err := h.processLLMTools(ctx, reqMsg, replyMsg, params)
+		err := h.processLLMTools(ctx, reqMsg, replyMsg, params, inputValues)
 		if err != nil {
 			log.Error(err)
 		}
@@ -346,16 +354,16 @@ func (h APIHandler) processMessageAsync(ctx context.Context, reqMsg *common.Chat
 		if params.DeepThink && len(docs) > 10 {
 			//re-pick top docs
 			docs, _ = h.processPickDocuments(ctx, reqMsg, replyMsg, params, docs)
-			_ = h.fetchDocumentInDepth(ctx, reqMsg, replyMsg, params, docs)
+			_ = h.fetchDocumentInDepth(ctx, reqMsg, replyMsg, params, docs, inputValues)
 		}
 	}
 
-	h.generateFinalResponse(ctx, reqMsg, replyMsg, params)
+	h.generateFinalResponse(ctx, reqMsg, replyMsg, params, inputValues)
 	log.Info("async reply task done for query:", reqMsg.Message)
 	return nil
 }
 
-func (h APIHandler) fetchSessionHistory(ctx context.Context, reqMsg, replyMsg *common.ChatMessage, params *RAGContext, size int) error {
+func (h APIHandler) fetchSessionHistory(ctx context.Context, reqMsg, replyMsg *common.ChatMessage, params *RAGContext, size int, inputValues map[string]any) (string, error) {
 	var historyStr = strings.Builder{}
 
 	chatHistory := memory.NewChatMessageHistory(memory.WithPreviousMessages([]llms.ChatMessage{}))
@@ -363,18 +371,18 @@ func (h APIHandler) fetchSessionHistory(ctx context.Context, reqMsg, replyMsg *c
 	//get chat history
 	history, err := getChatHistoryBySessionInternal(params.SessionID, size)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	if len(history) <= 1 {
-		return nil
+		return "", nil
 	}
 
-	historyStr.WriteString("<conversation>")
+	historyStr.WriteString("<conversation>\n")
 
 	for i := len(history) - 1; i >= 0; i-- {
 		v := history[i]
-		msgText := util.SubStringWithSuffix(v.Message, 250, "...")
+		msgText := util.SubStringWithSuffix(v.Message, 500, "...")
 		switch v.MessageType {
 		case common.MessageTypeSystem:
 			msg := llms.SystemChatMessage{Content: msgText}
@@ -397,17 +405,16 @@ func (h APIHandler) fetchSessionHistory(ctx context.Context, reqMsg, replyMsg *c
 		if v.DownVote > 0 {
 			historyStr.WriteString(fmt.Sprintf("(%v people down voted this answer)", v.DownVote))
 		}
-		historyStr.WriteString("\n")
+		historyStr.WriteString("\n\n")
 	}
 	historyStr.WriteString("</conversation>")
 
-	params.HistoryBlock = historyStr.String()
 	params.chatHistory = chatHistory
 
-	return nil
+	return historyStr.String(), nil
 }
 
-func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *common.ChatMessage, replyMsg *common.ChatMessage, params *RAGContext) error {
+func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *common.ChatMessage, replyMsg *common.ChatMessage, params *RAGContext, inputValues map[string]any) error {
 	if params == nil || params.AssistantCfg == nil {
 		//return nil
 		panic("invalid assistant config, skip")
@@ -604,7 +611,7 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *common.ChatMes
 
 	log.Debugf("end call LLM tools")
 
-	params.toolsCallResponse = answer
+	inputValues["tools_output"] = answer
 
 	log.Debug("MCP call answer:", answer)
 
@@ -785,7 +792,7 @@ Your task is to choose the best documents for further processing.`,
 	return docs, err
 }
 
-func (h APIHandler) fetchDocumentInDepth(ctx context.Context, reqMsg, replyMsg *common.ChatMessage, params *RAGContext, docs []common.Document) error {
+func (h APIHandler) fetchDocumentInDepth(ctx context.Context, reqMsg, replyMsg *common.ChatMessage, params *RAGContext, docs []common.Document, inputValues map[string]any) error {
 	if len(params.pickedDocIDS) > 0 {
 		var query = orm.Query{}
 		query.Conds = orm.And(orm.InStringArray("_id", params.pickedDocIDS))
@@ -807,48 +814,20 @@ func (h APIHandler) fetchDocumentInDepth(ctx context.Context, reqMsg, replyMsg *
 		detail := common.ProcessingDetails{Order: 40, Type: common.DeepRead, Description: strBuilder.String()}
 		replyMsg.Details = append(replyMsg.Details, detail)
 
-		params.references = formatDocumentForReplyReferences(pickedFullDoc)
+		inputValues["references"] = formatDocumentForReplyReferences(pickedFullDoc)
 	}
 	return nil
 }
 
-func (h APIHandler) generateFinalResponse(taskCtx context.Context, reqMsg, replyMsg *common.ChatMessage, params *RAGContext) error {
+func (h APIHandler) generateFinalResponse(taskCtx context.Context, reqMsg, replyMsg *common.ChatMessage, params *RAGContext, inputValues map[string]any) error {
 
 	echoMsg := common.NewMessageChunk(params.SessionID, replyMsg.ID, common.MessageTypeAssistant, reqMsg.ID, common.Response, string(""), 0)
 	websocket.SendMessageToWebsocket(params.WebsocketID, util.MustToJSON(echoMsg))
 
-	prompt := "You are a helpful assistant designed to help users access own data and understand their tasks.\n" +
-		"Your responses should be clear, concise, and based solely on the information provided below.\n\n"
-
-	if reqMsg.Message != "" {
-		prompt += fmt.Sprintf("## User Query\n%s\n\n", reqMsg.Message)
-	}
-
-	if params.HistoryBlock != "" {
-		prompt += fmt.Sprintf("## Conversation History (FYI)\n<HISTORY>\n%s\n</HISTORY>\n\n", params.HistoryBlock)
-	}
-
-	if params.references != "" {
-		prompt += fmt.Sprintf("## Reference Data (FYI)\n<REFERENCE>\n%s\n</REFERENCE>\n\n", params.references)
-	}
-
-	if params.toolsCallResponse != "" {
-		prompt += fmt.Sprintf("## Tool Outputs (LLM Tools - Higher Priority)\n<TOOLS>\n%s\n</TOOLS>\n\n", params.toolsCallResponse)
-	}
-
-	prompt += "Please generate your response using the information above, prioritizing LLM tool outputs when available. Ensure your response is thoughtful, accurate, and well-structured.\n\n"
-	prompt += "If the provided information is insufficient, let the user know more details are needed — or offer a friendly, conversational response instead.\n\n"
-	prompt += "For complex answers, format your response using clear and well-organized **Markdown** to improve readability."
-
-	log.Info(prompt)
-
 	// Prepare the system message
 	content := []llms.MessageContent{
-		llms.TextParts(llms.ChatMessageTypeSystem, "You are a personal AI assistant designed by Coco AI(https://coco.rs), the backend team is behind INFINI Labs(https://infinilabs.com)."),
+		llms.TextParts(llms.ChatMessageTypeSystem, params.AssistantCfg.RolePrompt),
 	}
-
-	// Append the user's message
-	content = append(content, llms.TextParts(llms.ChatMessageTypeHuman, prompt))
 
 	//response
 	reasoningBuffer := strings.Builder{}
@@ -930,6 +909,57 @@ func (h APIHandler) generateFinalResponse(taskCtx context.Context, reqMsg, reply
 		}))
 	}
 
+	contextPrompt := ``
+
+	if v, ok := inputValues["history"]; ok {
+		text, ok := v.(string)
+		if ok {
+			if params.AssistantCfg.ChatSettings.HistoryMessage.CompressionThreshold > 0 && len(text) > params.AssistantCfg.ChatSettings.HistoryMessage.CompressionThreshold {
+				//log.Error("history is too large: %v, compressing, target size: %v", len(text), params.AssistantCfg.ChatSettings.HistoryMessage.CompressionThreshold)
+				//TODO compress history
+			}
+			contextPrompt += fmt.Sprintf("\nConversation:\n%v\n", text)
+		}
+	}
+
+	if v, ok := inputValues["references"]; ok {
+		contextPrompt += fmt.Sprintf("\nReferences:\n%v\n", v)
+	}
+
+	if v, ok := inputValues["tools_output"]; ok {
+		contextPrompt += fmt.Sprintf("\nTools Output:\n%v\n", v)
+	}
+
+	inputValues["context"] = contextPrompt
+
+	template := rag.GenerateAnswerPromptTemplate
+	if params.AssistantCfg.AnsweringModel.PromptConfig != nil && params.AssistantCfg.AnsweringModel.PromptConfig.PromptTemplate != "" {
+		template = params.AssistantCfg.AnsweringModel.PromptConfig.PromptTemplate
+	}
+
+	variables := extractVariables(template)
+	missingVars := map[string]interface{}{}
+	for _, v := range variables {
+		if _, exists := inputValues[v]; !exists {
+			missingVars[v] = ""
+		}
+	}
+	// Create the prompt template
+	promptTemplate := prompts.NewPromptTemplate(rag.GetTemplateArgs(params.answeringModel, template, []string{"query", "context"}))
+	promptTemplate.PartialVariables = missingVars //default value for missing variable
+
+	promptValues, err := promptTemplate.FormatPrompt(inputValues)
+	if err != nil {
+		panic(err)
+	}
+
+	finalPrompt := promptValues.String()
+
+	// Append the user's message
+	content = append(content, llms.TextParts(llms.ChatMessageTypeHuman, finalPrompt))
+
+	log.Info(content)
+
 	completion, err := llm.GenerateContent(taskCtx, content, options...)
 	if err != nil {
 		log.Error(err)
@@ -951,6 +981,32 @@ func (h APIHandler) generateFinalResponse(taskCtx context.Context, reqMsg, reply
 		log.Warnf("seems empty reply for query:", replyMsg)
 	}
 	return nil
+}
+
+// extractVariables parses a Go template string and returns a slice of unique variable names
+// used in the {{.variable}} syntax.
+func extractVariables(template string) []string {
+	// Regular expression to match {{ .variable }} patterns
+	re := regexp.MustCompile(`{{\s*\.\s*([a-zA-Z0-9_]+)\s*}}`)
+
+	// Find all matches
+	matches := re.FindAllStringSubmatch(template, -1)
+
+	// Use a map to store unique variable names
+	varsMap := make(map[string]struct{})
+	for _, match := range matches {
+		if len(match) > 1 {
+			varsMap[match[1]] = struct{}{}
+		}
+	}
+
+	// Convert map keys to a slice
+	vars := make([]string, 0, len(varsMap))
+	for v := range varsMap {
+		vars = append(vars, v)
+	}
+
+	return vars
 }
 
 func formatDocumentForReplyReferences(docs []common.Document) string {
