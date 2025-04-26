@@ -26,11 +26,9 @@ package assistant
 import (
 	"context"
 	"fmt"
-	"github.com/tmc/langchaingo/prompts"
 	"infini.sh/coco/modules/assistant/rag"
 	"infini.sh/coco/modules/assistant/websocket"
 	"net/http"
-	"regexp"
 	"runtime"
 	"strings"
 
@@ -937,16 +935,11 @@ func (h APIHandler) generateFinalResponse(taskCtx context.Context, reqMsg, reply
 		template = params.AssistantCfg.AnsweringModel.PromptConfig.PromptTemplate
 	}
 
-	variables := extractVariables(template)
-	missingVars := map[string]interface{}{}
-	for _, v := range variables {
-		if _, exists := inputValues[v]; !exists {
-			missingVars[v] = ""
-		}
-	}
 	// Create the prompt template
-	promptTemplate := prompts.NewPromptTemplate(rag.GetTemplateArgs(params.answeringModel, template, []string{"query", "context"}))
-	promptTemplate.PartialVariables = missingVars //default value for missing variable
+	promptTemplate, err := rag.GetPromptByTemplateArgs(params.answeringModel, template, []string{"query", "context"}, inputValues)
+	if err != nil {
+		panic(err)
+	}
 
 	promptValues, err := promptTemplate.FormatPrompt(inputValues)
 	if err != nil {
@@ -981,32 +974,6 @@ func (h APIHandler) generateFinalResponse(taskCtx context.Context, reqMsg, reply
 		log.Warnf("seems empty reply for query:", replyMsg)
 	}
 	return nil
-}
-
-// extractVariables parses a Go template string and returns a slice of unique variable names
-// used in the {{.variable}} syntax.
-func extractVariables(template string) []string {
-	// Regular expression to match {{ .variable }} patterns
-	re := regexp.MustCompile(`{{\s*\.\s*([a-zA-Z0-9_]+)\s*}}`)
-
-	// Find all matches
-	matches := re.FindAllStringSubmatch(template, -1)
-
-	// Use a map to store unique variable names
-	varsMap := make(map[string]struct{})
-	for _, match := range matches {
-		if len(match) > 1 {
-			varsMap[match[1]] = struct{}{}
-		}
-	}
-
-	// Convert map keys to a slice
-	vars := make([]string, 0, len(varsMap))
-	for v := range varsMap {
-		vars = append(vars, v)
-	}
-
-	return vars
 }
 
 func formatDocumentForReplyReferences(docs []common.Document) string {

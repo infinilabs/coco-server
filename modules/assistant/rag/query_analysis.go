@@ -28,7 +28,6 @@ import (
 	"fmt"
 	log "github.com/cihub/seelog"
 	"github.com/tmc/langchaingo/chains"
-	"github.com/tmc/langchaingo/prompts"
 	"infini.sh/coco/modules/assistant/langchain"
 	"infini.sh/coco/modules/assistant/websocket"
 	"infini.sh/coco/modules/common"
@@ -124,7 +123,10 @@ func ProcessQueryIntent(ctx context.Context, sessionID, websocketID string, prov
 	llm := langchain.GetLLM(provider.BaseURL, provider.APIType, cfg.Name, provider.APIKey, assistant.Keepalive)
 
 	// Create the prompt template
-	promptTemplate := prompts.NewPromptTemplate(GetTemplateArgs(cfg, queryIntentPromptTemplate, []string{"history", "query"}))
+	promptTemplate, err := GetPromptByTemplateArgs(cfg, queryIntentPromptTemplate, []string{"history", "query"}, inputValues)
+	if err != nil {
+		return nil, err
+	}
 
 	// Create the LLM chain
 	llmChain := chains.NewLLMChain(llm, promptTemplate)
