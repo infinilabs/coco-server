@@ -441,14 +441,10 @@ func BuildShouldClauses(query []string, keyword []string) interface{} {
 		})
 	}
 
-	if len(clauses) > 0 {
-
-	}
-
 	clause := util.MapStr{}
 	clause["bool"] = util.MapStr{
 		"should": clauses,
-		"boost":  100,
+		"boost":  1,
 	}
 
 	return clause

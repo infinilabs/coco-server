@@ -30,6 +30,7 @@ Information about release notes of Coco Server is provided here.
 - When creating a new Google Drive datasource, guide the user to configure the required settings if they are missing
 - Default to use go modules
 - Support user-provided icon URL in icon component
+- Update default query template
 
 ## 0.3.0 (2025-03-31)
 
