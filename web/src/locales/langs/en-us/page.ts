@@ -347,6 +347,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       filter: "Filter",
       tools: "Call LLM Tools",
       builtin_tools: "Built-in",
+      prompt_settings: "Prompt Settings",
+      prompt_settings_template: "Template",
     },
     mode:{
       simple: "Simple",
