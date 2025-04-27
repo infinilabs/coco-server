@@ -10,6 +10,7 @@ import (
 	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/api/websocket"
+	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/task"
 	"infini.sh/framework/core/util"
@@ -62,7 +63,7 @@ func (h APIHandler) deleteSession(w http.ResponseWriter, req *http.Request, ps h
 			},
 		},
 	}
-	err = orm.DeleteBy(&ChatMessage{}, util.MustToJSONBytes(query))
+	err = orm.DeleteBy(&common.ChatMessage{}, util.MustToJSONBytes(query))
 	if err != nil {
 		log.Errorf("delete related documents with chat session [%s], error: %v", id, err)
 	}
@@ -158,7 +159,7 @@ func (h APIHandler) getChatSessions(w http.ResponseWriter, req *http.Request, ps
 
 func (h APIHandler) newChatSession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
-	var request MessageRequest
+	var request common.MessageRequest
 	if err := h.DecodeJSON(req, &request); err != nil {
 		//error can be ignored, since older app version didn't have this option
 		//h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -180,7 +181,7 @@ func (h APIHandler) newChatSession(w http.ResponseWriter, req *http.Request, ps 
 	}
 
 	assistantID := h.GetParameterOrDefault(req, "assistant_id", DefaultAssistantID)
-	var firstMessage *ChatMessage
+	var firstMessage *common.ChatMessage
 	//save first message to history
 	if request.Message != "" {
 		firstMessage, err = h.handleMessage(req, obj.ID, assistantID, request.Message)
@@ -199,6 +200,33 @@ func (h APIHandler) newChatSession(w http.ResponseWriter, req *http.Request, ps 
 	if err != nil {
 		h.Error(w, err)
 		return
+	}
+}
+
+func (h APIHandler) handleMessage(req *http.Request, sessionID, assistantID, message string) (*common.ChatMessage, error) {
+	if wsID, err := h.GetUserWebsocketID(req); err == nil && wsID != "" {
+		params, err := h.extractParameters(req)
+		if err != nil {
+			return nil, err
+		}
+
+		if sessionID == "" || assistantID == "" || message == "" {
+			panic("invalid chat message")
+		}
+
+		reqMsg := h.createInitialUserRequestMessage(sessionID, assistantID, message, params)
+		params.SessionID = sessionID
+		params.WebsocketID = wsID
+		if err := h.saveMessage(reqMsg); err != nil {
+			return nil, err
+		}
+
+		h.launchBackgroundTask(reqMsg, params)
+		return reqMsg, nil
+	} else {
+		err := errors.Errorf("No websocket [%v] for session: %v", wsID, sessionID)
+		log.Error(err)
+		panic(err)
 	}
 }
 
@@ -234,13 +262,13 @@ func (h APIHandler) openChatSession(w http.ResponseWriter, req *http.Request, ps
 	}
 }
 
-func getChatHistoryBySessionInternal(sessionID string, size int) ([]ChatMessage, error) {
+func getChatHistoryBySessionInternal(sessionID string, size int) ([]common.ChatMessage, error) {
 	q := orm.Query{}
 	q.Conds = orm.And(orm.Eq("session_id", sessionID))
 	q.From = 0
 	q.Size = size
 	q.AddSort("created", orm.DESC)
-	docs := []ChatMessage{}
+	docs := []common.ChatMessage{}
 	err, _ := orm.SearchWithJSONMapper(&docs, &q)
 	if err != nil {
 		return nil, err
@@ -255,7 +283,7 @@ func (h APIHandler) getChatHistoryBySession(w http.ResponseWriter, req *http.Req
 	q.Size = h.GetIntOrDefault(req, "size", 20)
 	q.AddSort("updated", orm.ASC)
 
-	err, res := orm.Search(&ChatMessage{}, &q)
+	err, res := orm.Search(&common.ChatMessage{}, &q)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -317,7 +345,7 @@ func (h APIHandler) cancelReplyMessage(w http.ResponseWriter, req *http.Request,
 func (h APIHandler) sendChatMessage(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
 	sessionID := ps.MustGetParameter("session_id")
-	var request MessageRequest
+	var request common.MessageRequest
 	if err := h.DecodeJSON(req, &request); err != nil {
 		log.Error(err)
 		http.Error(w, "Invalid request body", http.StatusBadRequest)

@@ -21,18 +21,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-package assistant
+package common
 
-// Define constants for the various stages
-const (
-	QueryIntent  = "query_intent"
-	Tools        = "tools"
-	QueryRewrite = "query_rewrite"
-	FetchSource  = "fetch_source"
-	PickSource   = "pick_source"
-	DeepRead     = "deep_read"
-	Think        = "think"    //reasoning message by LLM
-	Response     = "response" //formal response by assistant
-	References   = "references"
-	ReplyEnd     = "reply_end"
-)
+const MessageTypeUser string = "user"
+const MessageTypeAssistant string = "assistant"
+const MessageTypeSystem string = "system"

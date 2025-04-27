@@ -26,6 +26,10 @@ package assistant
 import (
 	"context"
 	"fmt"
+	"infini.sh/coco/modules/assistant/rag"
+	"infini.sh/coco/modules/assistant/websocket"
+	"infini.sh/coco/modules/datasource"
+	"infini.sh/coco/modules/llm"
 	"net/http"
 	"runtime"
 	"strings"
@@ -35,18 +39,14 @@ import (
 	"github.com/tmc/langchaingo/agents"
 	"github.com/tmc/langchaingo/chains"
 	"github.com/tmc/langchaingo/llms"
-	"github.com/tmc/langchaingo/llms/ollama"
-	"github.com/tmc/langchaingo/llms/openai"
 	"github.com/tmc/langchaingo/memory"
 	langchaingoTools "github.com/tmc/langchaingo/tools"
 	"github.com/tmc/langchaingo/tools/duckduckgo"
 	"github.com/tmc/langchaingo/tools/scraper"
 	"github.com/tmc/langchaingo/tools/wikipedia"
 	"infini.sh/coco/modules/assistant/langchain"
-	"infini.sh/coco/modules/assistant/rag"
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/modules/search"
-	"infini.sh/framework/core/api/websocket"
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/orm"
@@ -55,12 +55,12 @@ import (
 )
 
 // Helper types and methods
-type processingParams struct {
-	searchDB     bool
-	deepThink    bool
-	mcp          bool
-	from         int
-	size         int
+type RAGContext struct {
+	SearchDB     bool
+	DeepThink    bool
+	MCP          bool
+	From         int
+	Size         int
 	mcpServers   []string
 	datasource   string
 	category     string
@@ -73,18 +73,17 @@ type processingParams struct {
 	source       string
 
 	//
-	websocketID      string
-	sessionID        string
-	replyToMessageID string
+	WebsocketID string
+	SessionID   string
 
 	//prepare for final response
 	sourceDocsSummaryBlock string
 
 	//history
-	historyBlock string
+	HistoryBlock string
 	chatHistory  *memory.ChatMessageHistory
 
-	queryIntent  *rag.QueryIntent
+	QueryIntent  *rag.QueryIntent
 	pickedDocIDS []string
 	references   string
 
@@ -95,20 +94,20 @@ type processingParams struct {
 	intentModelProvider *common.ModelProvider
 	pickingDocProvider  *common.ModelProvider
 	answeringProvider   *common.ModelProvider
-	assistantCfg        *common.Assistant
+	AssistantCfg        *common.Assistant
 
 	toolsCallResponse string
 }
 
 const DefaultAssistantID = "default"
 
-func (h APIHandler) extractParameters(req *http.Request) (*processingParams, error) {
-	params := &processingParams{
-		searchDB:     h.GetBoolOrDefault(req, "search", false),
-		deepThink:    h.GetBoolOrDefault(req, "deep_thinking", false),
-		mcp:          h.GetBoolOrDefault(req, "mcp", false),
-		from:         h.GetIntOrDefault(req, "from", 0),
-		size:         h.GetIntOrDefault(req, "size", 10),
+func (h APIHandler) extractParameters(req *http.Request) (*RAGContext, error) {
+	params := &RAGContext{
+		SearchDB:     h.GetBoolOrDefault(req, "search", false),
+		DeepThink:    h.GetBoolOrDefault(req, "deep_thinking", false),
+		MCP:          h.GetBoolOrDefault(req, "mcp", false),
+		From:         h.GetIntOrDefault(req, "from", 0),
+		Size:         h.GetIntOrDefault(req, "size", 10),
 		datasource:   h.GetParameterOrDefault(req, "datasource", ""),
 		category:     h.GetParameterOrDefault(req, "category", ""),
 		username:     h.GetParameterOrDefault(req, "username", ""),
@@ -138,7 +137,7 @@ func (h APIHandler) extractParameters(req *http.Request) (*processingParams, err
 		return nil, fmt.Errorf("assistant [%s] is not enabled", assistant.Name)
 	}
 
-	params.assistantCfg = assistant
+	params.AssistantCfg = assistant
 
 	if assistant.Datasource.Enabled && len(assistant.Datasource.IDs) > 0 {
 		if params.datasource == "" {
@@ -153,7 +152,7 @@ func (h APIHandler) extractParameters(req *http.Request) (*processingParams, err
 
 	log.Trace(assistant.MCPConfig.Enabled, assistant.MCPConfig.IDs, ",", params.mcpServers)
 
-	if params.mcp && assistant.MCPConfig.Enabled && len(assistant.MCPConfig.IDs) > 0 {
+	if params.MCP && assistant.MCPConfig.Enabled && len(assistant.MCPConfig.IDs) > 0 {
 		if len(params.mcpServers) == 0 {
 			params.mcpServers = assistant.MCPConfig.IDs
 		} else {
@@ -166,7 +165,7 @@ func (h APIHandler) extractParameters(req *http.Request) (*processingParams, err
 		params.mcpServers = make([]string, 0)
 	}
 
-	if params.deepThink {
+	if params.DeepThink {
 		if assistant.Type == common.AssistantTypeDeepThink {
 			deepThinkCfg := common.DeepThinkConfig{}
 			buf := util.MustToJSONBytes(assistant.Config)
@@ -188,8 +187,8 @@ func (h APIHandler) extractParameters(req *http.Request) (*processingParams, err
 			}
 			params.intentModelProvider = modelProvider
 		} else {
-			// reset deepThink to false if assistant is not deep think type
-			params.deepThink = false
+			// reset DeepThink to false if assistant is not deep think type
+			params.DeepThink = false
 		}
 	}
 	if assistant.AnsweringModel.ProviderID == "" {
@@ -205,27 +204,27 @@ func (h APIHandler) extractParameters(req *http.Request) (*processingParams, err
 	return params, nil
 }
 
-func (h APIHandler) createInitialUserRequestMessage(sessionID, assistantID, message string, params *processingParams) *ChatMessage {
+func (h APIHandler) createInitialUserRequestMessage(sessionID, assistantID, message string, params *RAGContext) *common.ChatMessage {
 
-	msg := &ChatMessage{
+	msg := &common.ChatMessage{
 		SessionID:   sessionID,
 		AssistantID: assistantID,
-		MessageType: MessageTypeUser,
+		MessageType: common.MessageTypeUser,
 		Message:     message,
 	}
 	msg.ID = util.GetUUID()
 
-	if params.searchDB {
+	if params.SearchDB {
 		msg.Parameters = util.MapStr{"params": params}
 	}
 	return msg
 }
 
-func (h APIHandler) saveMessage(msg *ChatMessage) error {
+func (h APIHandler) saveMessage(msg *common.ChatMessage) error {
 	return orm.Create(nil, msg)
 }
 
-func (h APIHandler) launchBackgroundTask(msg *ChatMessage, params *processingParams) {
+func (h APIHandler) launchBackgroundTask(msg *common.ChatMessage, params *RAGContext) {
 
 	//1. expand and rewrite the query
 	// use the title and summary to judge which document need to fetch in-depth, also the updated time to check the data is fresh or not
@@ -239,20 +238,20 @@ func (h APIHandler) launchBackgroundTask(msg *ChatMessage, params *processingPar
 	})
 
 	log.Debugf("place a assistant background job: %v, for session: %v, websocket: %v ",
-		taskID, params.sessionID, params.websocketID)
+		taskID, params.SessionID, params.WebsocketID)
 
-	inflightMessages.Store(params.sessionID, MessageTask{
-		SessionID:   params.sessionID,
+	inflightMessages.Store(params.SessionID, MessageTask{
+		SessionID:   params.SessionID,
 		TaskID:      taskID,
-		WebsocketID: params.websocketID,
+		WebsocketID: params.WebsocketID,
 	})
-	log.Infof("Saved taskID: %v for session: %v", taskID, params.sessionID)
+	log.Infof("Saved taskID: %v for session: %v", taskID, params.SessionID)
 }
 
-func (h APIHandler) createAssistantMessage(sessionID, assistantID, requestMessageID string) *ChatMessage {
-	msg := &ChatMessage{
+func (h APIHandler) createAssistantMessage(sessionID, assistantID, requestMessageID string) *common.ChatMessage {
+	msg := &common.ChatMessage{
 		SessionID:      sessionID,
-		MessageType:    MessageTypeAssistant,
+		MessageType:    common.MessageTypeAssistant,
 		ReplyMessageID: requestMessageID,
 		AssistantID:    assistantID,
 	}
@@ -262,27 +261,27 @@ func (h APIHandler) createAssistantMessage(sessionID, assistantID, requestMessag
 }
 
 // WebSocket helper
-func (h APIHandler) sendWebsocketMessage(wsID string, msg *MessageChunk) {
-	if err := sendMessageToWebsocket(wsID, util.MustToJSON(msg)); err != nil {
+func (h APIHandler) sendWebsocketMessage(wsID string, msg *common.MessageChunk) {
+	if err := websocket.SendMessageToWebsocket(wsID, util.MustToJSON(msg)); err != nil {
 		log.Warnf("WebSocket send error: %v", err)
 	}
 }
 
-func (h APIHandler) finalizeProcessing(ctx context.Context, wsID, sessionID string, msg *ChatMessage) {
+func (h APIHandler) finalizeProcessing(ctx context.Context, wsID, sessionID string, msg *common.ChatMessage) {
 	if err := orm.Save(nil, msg); err != nil {
 		log.Errorf("Failed to save assistant message: %v", err)
 	}
 
-	h.sendWebsocketMessage(wsID, NewMessageChunk(
-		sessionID, msg.ID, MessageTypeSystem, msg.ReplyMessageID,
-		ReplyEnd, "Processing completed", 0,
+	h.sendWebsocketMessage(wsID, common.NewMessageChunk(
+		sessionID, msg.ID, common.MessageTypeSystem, msg.ReplyMessageID,
+		common.ReplyEnd, "Processing completed", 0,
 	))
 }
 
-func (h APIHandler) processMessageAsync(ctx context.Context, reqMsg *ChatMessage, params *processingParams) error {
-	log.Debugf("Starting async processing for session: %v", params.sessionID)
+func (h APIHandler) processMessageAsync(ctx context.Context, reqMsg *common.ChatMessage, params *RAGContext) error {
+	log.Debugf("Starting async processing for session: %v", params.SessionID)
 
-	replyMsg := h.createAssistantMessage(params.sessionID, reqMsg.AssistantID, reqMsg.ID)
+	replyMsg := h.createAssistantMessage(params.SessionID, reqMsg.AssistantID, reqMsg.ID)
 
 	defer func() {
 		if !global.Env().IsDebug {
@@ -299,84 +298,133 @@ func (h APIHandler) processMessageAsync(ctx context.Context, reqMsg *ChatMessage
 				msg := fmt.Sprintf("⚠️ error in async processing message reply, %v", v)
 				if replyMsg.Message == "" {
 					replyMsg.Message = msg
-					h.sendWebsocketMessage(params.websocketID, NewMessageChunk(
-						params.sessionID, replyMsg.ID, MessageTypeSystem, reqMsg.ID,
-						Response, msg, 0,
+					h.sendWebsocketMessage(params.WebsocketID, common.NewMessageChunk(
+						params.SessionID, replyMsg.ID, common.MessageTypeSystem, reqMsg.ID,
+						common.Response, msg, 0,
 					))
 				}
 				log.Error(msg)
 			}
 		}
-		h.finalizeProcessing(ctx, params.websocketID, params.sessionID, replyMsg)
+		h.finalizeProcessing(ctx, params.WebsocketID, params.SessionID, replyMsg)
 	}()
 
-	reqMsg.Details = make([]ProcessingDetails, 0)
+	reqMsg.Details = make([]common.ProcessingDetails, 0)
 
-	var docs []common.Document
-	// Processing pipeline
-	_ = h.fetchSessionHistory(ctx, reqMsg, replyMsg, params, 10)
-
-	if params.deepThink && params.intentModel != nil {
-		_ = h.processQueryIntent(ctx, reqMsg, replyMsg, params)
+	// Prepare input values
+	inputValues := map[string]any{
+		"query": reqMsg.Message,
 	}
 
-	if (params.assistantCfg.MCPConfig.Enabled && len(params.mcpServers) > 0) || params.assistantCfg.ToolsConfig.Enabled {
+	// Processing pipeline
+	//log.Error("num of history: ", params.AssistantCfg.ChatSettings.HistoryMessage.Number)
+	if params.AssistantCfg.ChatSettings.HistoryMessage.Number > 0 {
+		history, _ := h.fetchSessionHistory(ctx, reqMsg, replyMsg, params, params.AssistantCfg.ChatSettings.HistoryMessage.Number, inputValues)
+		inputValues["history"] = history
+	} else {
+		inputValues["history"] = "</empty>"
+	}
+
+	if params.DeepThink && params.intentModel != nil {
+
+		//tool_list
+		//network_sources
+		var toolstr = strings.Builder{}
+		if len(params.AssistantCfg.Datasource.IDs) > 0 {
+			ds, err := datasource.GetDatasourceByID(params.AssistantCfg.Datasource.IDs)
+			if err == nil && ds != nil {
+				for _, v := range ds {
+					toolstr.WriteString(fmt.Sprintf("Name: %v \n", v.Name))
+				}
+			}
+		}
+
+		var mcpServers = strings.Builder{}
+		if len(params.AssistantCfg.MCPConfig.IDs) > 0 {
+			ds, err := llm.GetMCPServersByID(params.AssistantCfg.MCPConfig.IDs)
+			if err == nil && ds != nil {
+				for _, v := range ds {
+					mcpServers.WriteString(fmt.Sprintf("Name: %v, Desc: %v \n", v.Name, v.Description))
+				}
+			}
+		}
+
+		inputValues["tool_list"] = mcpServers.String()
+		inputValues["network_sources"] = toolstr.String()
+
+		queryIntent, err := rag.ProcessQueryIntent(ctx, params.SessionID, params.WebsocketID, params.intentModelProvider, params.intentModel, reqMsg, replyMsg, params.AssistantCfg, inputValues)
+		if err != nil {
+			log.Error("error on processing query intent analysis: ", err)
+		}
+		// Store the query intent in the processing parameters
+		params.QueryIntent = queryIntent
+	}
+
+	var toolsMayHavePromisedResult = false
+	if (params.AssistantCfg.MCPConfig.Enabled && len(params.mcpServers) > 0) || params.AssistantCfg.ToolsConfig.Enabled {
 		//process LLM tools / functions
-		err := h.processLLMTools(ctx, reqMsg, replyMsg, params)
+		answer, err := h.processLLMTools(ctx, reqMsg, replyMsg, params, inputValues)
 		if err != nil {
 			log.Error(err)
 		}
+
+		if answer != "" {
+			if len(answer) > 50 {
+				toolsMayHavePromisedResult = true
+			}
+			inputValues["tools_output"] = answer
+		}
 	}
 
-	if params.searchDB {
+	if params.SearchDB && !toolsMayHavePromisedResult {
 		var fetchSize = 10
-		if params.deepThink {
+		if params.DeepThink {
 			fetchSize = 50
 		}
-		docs, _ = h.processInitialDocumentSearch(ctx, reqMsg, replyMsg, params, fetchSize)
+		docs, _ := h.processInitialDocumentSearch(ctx, reqMsg, replyMsg, params, fetchSize)
 
-		if params.deepThink && len(docs) > 10 {
+		if params.DeepThink && len(docs) > 10 {
 			//re-pick top docs
 			docs, _ = h.processPickDocuments(ctx, reqMsg, replyMsg, params, docs)
-			_ = h.fetchDocumentInDepth(ctx, reqMsg, replyMsg, params, docs)
+			_ = h.fetchDocumentInDepth(ctx, reqMsg, replyMsg, params, docs, inputValues)
 		}
 	}
 
-	h.generateFinalResponse(ctx, reqMsg, replyMsg, params)
+	h.generateFinalResponse(ctx, reqMsg, replyMsg, params, inputValues)
 	log.Info("async reply task done for query:", reqMsg.Message)
 	return nil
 }
 
-func (h APIHandler) fetchSessionHistory(ctx context.Context, reqMsg, replyMsg *ChatMessage, params *processingParams, size int) error {
+func (h APIHandler) fetchSessionHistory(ctx context.Context, reqMsg, replyMsg *common.ChatMessage, params *RAGContext, size int, inputValues map[string]any) (string, error) {
 	var historyStr = strings.Builder{}
 
 	chatHistory := memory.NewChatMessageHistory(memory.WithPreviousMessages([]llms.ChatMessage{}))
 
 	//get chat history
-	history, err := getChatHistoryBySessionInternal(params.sessionID, size)
+	history, err := getChatHistoryBySessionInternal(params.SessionID, size)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	if len(history) <= 1 {
-		return nil
+		return "", nil
 	}
 
-	historyStr.WriteString("<conversation>")
+	historyStr.WriteString("<conversation>\n")
 
 	for i := len(history) - 1; i >= 0; i-- {
 		v := history[i]
-		msgText := util.SubStringWithSuffix(v.Message, 250, "...")
+		msgText := util.SubStringWithSuffix(v.Message, 1000, "...")
 		switch v.MessageType {
-		case MessageTypeSystem:
+		case common.MessageTypeSystem:
 			msg := llms.SystemChatMessage{Content: msgText}
 			chatHistory.AddMessage(context.Background(), msg)
 			break
-		case MessageTypeAssistant:
+		case common.MessageTypeAssistant:
 			msg := llms.AIChatMessage{Content: msgText}
 			chatHistory.AddMessage(context.Background(), msg)
 			break
-		case MessageTypeUser:
+		case common.MessageTypeUser:
 			msg := llms.HumanChatMessage{Content: msgText}
 			chatHistory.AddMessage(context.Background(), msg)
 			break
@@ -389,62 +437,68 @@ func (h APIHandler) fetchSessionHistory(ctx context.Context, reqMsg, replyMsg *C
 		if v.DownVote > 0 {
 			historyStr.WriteString(fmt.Sprintf("(%v people down voted this answer)", v.DownVote))
 		}
-		historyStr.WriteString("\n")
+		historyStr.WriteString("\n\n")
 	}
 	historyStr.WriteString("</conversation>")
 
-	params.historyBlock = historyStr.String()
 	params.chatHistory = chatHistory
 
-	return nil
+	return historyStr.String(), nil
 }
 
-func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *ChatMessage, replyMsg *ChatMessage, params *processingParams) error {
-	if params == nil || params.assistantCfg == nil {
+func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *common.ChatMessage, replyMsg *common.ChatMessage, params *RAGContext, inputValues map[string]any) (string, error) {
+	if params == nil || params.AssistantCfg == nil {
 		//return nil
 		panic("invalid assistant config, skip")
+	}
+
+	if params.intentModel != nil {
+		if !params.QueryIntent.NeedCallTools {
+			log.Info("query intent analyzer skipped call tools")
+			return "", nil
+		}
 	}
 
 	//get llm for mcp, use answering model if not mcp specified model
 	providerID := params.answeringModel.ProviderID
 	modelName := params.answeringModel.Name
-	if params.assistantCfg.MCPConfig.Enabled {
-		if params.assistantCfg.MCPConfig.Model != nil {
-			if params.assistantCfg.MCPConfig.Model.Name != "" {
-				modelName = params.assistantCfg.MCPConfig.Model.Name
-				providerID = params.assistantCfg.MCPConfig.Model.ProviderID
+	if params.AssistantCfg.MCPConfig.Enabled {
+		if params.AssistantCfg.MCPConfig.Model != nil {
+			if params.AssistantCfg.MCPConfig.Model.Name != "" {
+				modelName = params.AssistantCfg.MCPConfig.Model.Name
+				providerID = params.AssistantCfg.MCPConfig.Model.ProviderID
 			}
 		}
 	}
 
 	modelProvider, err := common.GetModelProvider(providerID)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	llm := getLLM(modelProvider.BaseURL, modelProvider.APIType, modelName, modelProvider.APIKey, params.assistantCfg.Keepalive)
+	llm := langchain.GetLLM(modelProvider.BaseURL, modelProvider.APIType, modelName, modelProvider.APIKey, params.AssistantCfg.Keepalive)
 	agentTools := []langchaingoTools.Tool{}
 
-	if params.assistantCfg.ToolsConfig.Enabled {
+	if params.AssistantCfg.ToolsConfig.Enabled {
 		webAgent := "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
-		if params.assistantCfg.ToolsConfig.BuiltinTools.Calculator {
+		if params.AssistantCfg.ToolsConfig.BuiltinTools.Calculator {
 			agentTools = append(agentTools, langchaingoTools.Calculator{})
 		}
 
-		if params.assistantCfg.ToolsConfig.BuiltinTools.Wikipedia {
+		if params.AssistantCfg.ToolsConfig.BuiltinTools.Wikipedia {
 			wp := wikipedia.New(webAgent)
 			agentTools = append(agentTools, wp)
 		}
 
-		if params.assistantCfg.ToolsConfig.BuiltinTools.Duckduckgo {
+		if params.AssistantCfg.ToolsConfig.BuiltinTools.Duckduckgo {
 			ddg, err := duckduckgo.New(50, webAgent)
 			if err == nil && ddg != nil {
 				agentTools = append(agentTools, ddg)
 			}
 		}
 
-		if params.assistantCfg.ToolsConfig.BuiltinTools.Scraper {
+		if params.AssistantCfg.ToolsConfig.BuiltinTools.Scraper {
 			scr, err := scraper.New()
 			if err == nil && scr != nil {
 				agentTools = append(agentTools, scr)
@@ -483,12 +537,12 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *ChatMessage, r
 			cfg := common.StreamableHttpConfig{}
 			err := util.FromJSONBytes(bytes, &cfg)
 			if err != nil {
-				return err
+				return "", err
 			}
 
 			mcpClient, err = client.NewStreamableHttpClient(cfg.URL)
 			if err != nil {
-				return fmt.Errorf("new mcp adapter: %w", err)
+				return "", fmt.Errorf("new mcp adapter: %w", err)
 			}
 			break
 		case common.SSE:
@@ -496,15 +550,15 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *ChatMessage, r
 			cfg := common.SSEConfig{}
 			err := util.FromJSONBytes(bytes, &cfg)
 			if err != nil {
-				return err
+				return "", err
 			}
 
 			mcpClient, err = client.NewSSEMCPClient(cfg.URL)
 			if err != nil {
-				return fmt.Errorf("new mcp adapter: %w", err)
+				return "", fmt.Errorf("new mcp adapter: %w", err)
 			}
 			if err := mcpClient.Start(context.Background()); err != nil {
-				return fmt.Errorf("new mcp adapter: %w", err)
+				return "", fmt.Errorf("new mcp adapter: %w", err)
 			}
 
 			break
@@ -514,7 +568,7 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *ChatMessage, r
 			cfg := common.StdioConfig{}
 			err := util.FromJSONBytes(bytes, &cfg)
 			if err != nil {
-				return err
+				return "", err
 			}
 			envs := []string{}
 			if len(cfg.Env) > 0 {
@@ -524,12 +578,12 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *ChatMessage, r
 			}
 			mcpClient, err = client.NewStdioMCPClient(cfg.Command, envs, cfg.Args...)
 			if err != nil {
-				return fmt.Errorf("error on new stdio client: %w", err)
+				return "", fmt.Errorf("error on new stdio client: %w", err)
 			}
 			//ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			//defer cancel()
 			if err := mcpClient.Start(context.Background()); err != nil {
-				return fmt.Errorf("error on start stdio client: %w", err)
+				return "", fmt.Errorf("error on start stdio client: %w", err)
 			}
 			break
 		default:
@@ -540,13 +594,13 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *ChatMessage, r
 			mcpClients = append(mcpClients, mcpClient)
 			mcpAdapter, err := langchain.New(mcpClient)
 			if err != nil {
-				return fmt.Errorf("new mcp adapter: %w", err)
+				return "", fmt.Errorf("new mcp adapter: %w", err)
 			}
 
 			mcpTools, err := mcpAdapter.Tools()
 			log.Tracef("get %v tools from mcp server: %v", v.Name)
 			if err != nil {
-				return fmt.Errorf("append tools: %w", err)
+				return "", fmt.Errorf("append tools: %w", err)
 			}
 			agentTools = append(agentTools, mcpTools...)
 		}
@@ -556,7 +610,7 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *ChatMessage, r
 
 	if len(agentTools) <= 0 {
 		log.Debug("total get ", len(agentTools), " tools")
-		return nil
+		return "", nil
 	}
 
 	buffer := memory.NewConversationBuffer()
@@ -564,12 +618,14 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *ChatMessage, r
 		buffer.ChatHistory = params.chatHistory
 	}
 
+	answerBuffer := strings.Builder{}
 	callback := langchain.LogHandler{}
 	toolsSeq := 0
 	callback.CustomWriteFunc = func(chunk string) {
 		if chunk != "" {
-			echoMsg := NewMessageChunk(params.sessionID, replyMsg.ID, MessageTypeAssistant, reqMsg.ID, Tools, chunk, toolsSeq)
-			sendMessageToWebsocket(params.websocketID, util.MustToJSON(echoMsg))
+			answerBuffer.WriteString(chunk)
+			echoMsg := common.NewMessageChunk(params.SessionID, replyMsg.ID, common.MessageTypeAssistant, reqMsg.ID, common.Tools, chunk, toolsSeq)
+			websocket.SendMessageToWebsocket(params.WebsocketID, util.MustToJSON(echoMsg))
 		}
 		toolsSeq++
 	}
@@ -579,195 +635,34 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *ChatMessage, r
 		agentTools,
 		agents.ConversationalReactDescription,
 		//agents.WithReturnIntermediateSteps(),
-		agents.WithMaxIterations(params.assistantCfg.MCPConfig.MaxIterations),
+		agents.WithMaxIterations(params.AssistantCfg.MCPConfig.MaxIterations),
 		agents.WithCallbacksHandler(&callback),
 		agents.WithMemory(buffer),
 	)
 	if err != nil {
-		return fmt.Errorf("error on executor: %w", err)
+		return answerBuffer.String(), fmt.Errorf("error on executor: %w", err)
 	}
 
 	log.Debugf("start call LLM tools")
 	answer, err := chains.Run(context.Background(), executor, reqMsg.Message)
 	if err != nil {
-		log.Error(answer, err)
-		return fmt.Errorf("error running chains: %w", err)
+		return answerBuffer.String(), fmt.Errorf("error running chains: %w", err)
 	}
-
-	log.Debugf("end call LLM tools")
-
-	params.toolsCallResponse = answer
 
 	log.Debug("MCP call answer:", answer)
 
-	return nil
+	return answer, nil
 }
 
-func (h APIHandler) processQueryIntent(ctx context.Context, reqMsg, replyMsg *ChatMessage, params *processingParams) error {
-	//query intent
-	var err error
+func (h APIHandler) processInitialDocumentSearch(ctx context.Context, reqMsg, replyMsg *common.ChatMessage, params *RAGContext, fechSize int) ([]common.Document, error) {
 
-	var queryIntent *rag.QueryIntent
-	{
-		log.Debug("start analysis user's intent")
-		defer log.Debug("end analysis user's intent")
-
-		queryIntentBuffer := strings.Builder{}
-		content := []llms.MessageContent{
-			llms.TextParts(llms.ChatMessageTypeSystem, "You are an AI assistant trained to understand and analyze user queries.\n"),
-			llms.TextParts(llms.ChatMessageTypeSystem, "You will be given a conversation below and a follow up question. "+
-				"You need to rephrase the follow-up question if needed so it is a standalone question that can be used by the LLM to search the knowledge base for information.\n"+
-				"Conversation: \n"),
-			llms.TextParts(llms.ChatMessageTypeSystem, params.historyBlock),
-			llms.TextParts(llms.ChatMessageTypeSystem, "The user has provided the following query:"),
-			llms.TextParts(llms.ChatMessageTypeHuman, reqMsg.Message),
-			llms.TextParts(llms.ChatMessageTypeSystem, "\nPlease analyze the query and identify the user's primary intent. "+
-				"Determine if they are looking for information, making a request, or seeking clarification. "+
-				"Category the intent in </Category>, brief the </Intent>, and rephrase the query in several different forms to improve clarity. "+
-				"Provide possible variations of the query in <Query/> and identify relevant keywords in </Keyword> in JSON array format. "+
-				"Provide possible related of the query in <Suggestion/> and expand the related query for query suggestion. "+
-				"Please make sure the output is concise, well-organized, and easy to process."+
-				"Please present these possible query and keyword items in both English and Chinese."+
-				"if the possible query is in English, keep the original English one, and translate it to Chinese and keep it as a new query, to be clear, you should output: [Apple, 苹果], neither just `Apple` nor just `苹果`."+
-				"Wrap the valid JSON result in <JSON></JSON> tags. "+
-				"Your output should look like this format:\n"+
-				"<JSON>"+
-				"{\n"+
-				"  \"category\": \"<Intent's Category>\",\n"+
-				"  \"intent\": \"<User's Intent>\",\n"+
-				"  \"query\": [\n"+
-				"    \"<新的查询 1>\",\n"+
-				"    \"<Rephrased Query 2>\",\n"+
-				"    \"<Rephrased Query 3>\"\n"+
-				"    \"<Rephrased Query N>\"\n"+
-				"  ],\n"+
-				"  \"keyword\": [\n"+
-				"    \"<关键字 1>\",\n"+
-				"    \"<Keyword 2>\",\n"+
-				"    \"<Keyword 3>\"\n"+
-				"    \"<Keyword N>\"\n"+
-				"  ],\n"+
-				"  \"suggestion\": [\n"+
-				"    \"<Suggest Query 1>\",\n"+
-				"    \"<Suggest Query 2>\",\n"+
-				"    \"<Suggest Query 3>\"\n"+
-				"    \"<Suggest Query N>\"\n"+
-				"  ]\n"+
-				"}"+
-				"</JSON>"),
-		}
-
-		llm := getLLM(params.intentModelProvider.BaseURL, params.intentModelProvider.APIType, params.intentModel.Name, params.intentModelProvider.APIKey, params.assistantCfg.Keepalive)
-		log.Trace(content)
-
-		var chunkSeq = 0
-		temperature := getTemperature(params.intentModel, params.intentModelProvider, 0.8)
-		maxTokens := getMaxTokens(params.intentModel, params.intentModelProvider, 1024)
-		if _, err := llm.GenerateContent(ctx, content,
-			llms.WithTemperature(temperature),
-			llms.WithMaxTokens(maxTokens),
-			llms.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
-				if len(chunk) > 0 {
-					chunkSeq++
-					queryIntentBuffer.Write(chunk)
-					msg := NewMessageChunk(params.sessionID, replyMsg.ID, MessageTypeAssistant, reqMsg.ID, QueryIntent, string(chunk), chunkSeq)
-					err := sendMessageToWebsocket(params.websocketID, util.MustToJSON(msg))
-					if err != nil {
-						log.Error(err)
-						return err
-					}
-				}
-				return nil
-			})); err != nil {
-			return err
-		}
-
-		if queryIntentBuffer.Len() > 0 {
-			//extract the category and query
-			str := queryIntentBuffer.String()
-			log.Trace("query intent: ", str)
-			queryIntent, err = rag.QueryAnalysisFromString(str)
-			if err != nil {
-				log.Error(err)
-				return err
-			}
-			log.Debug("queryIntent:", util.MustToJSON(queryIntent))
-			replyMsg.Details = append(replyMsg.Details, ProcessingDetails{
-				Order:   10,
-				Type:    QueryIntent,
-				Payload: queryIntent,
-			})
+	if params.intentModel != nil {
+		if !params.QueryIntent.NeedNetworkSearch {
+			log.Info("query intent analyzer skipped call tools")
+			return []common.Document{}, nil
 		}
 	}
 
-	params.queryIntent = queryIntent
-	return nil
-}
-
-func getTemperature(model *common.ModelConfig, modelProvider *common.ModelProvider, defaultValue float64) float64 {
-	temperature := 0.0
-	if model.Settings.Temperature > 0 {
-		temperature = model.Settings.Temperature
-	}
-	if temperature == 0 {
-		for _, m := range modelProvider.Models {
-			if m.Name == model.Name {
-				if m.Settings.Temperature > 0 {
-					temperature = m.Settings.Temperature
-				}
-				break
-			}
-		}
-	}
-	if temperature == 0 {
-		temperature = defaultValue
-	}
-	return temperature
-}
-
-func getMaxLength(model *common.ModelConfig, modelProvider *common.ModelProvider, defaultValue int) int {
-	maxLength := 0
-	if model.Settings.MaxLength > 0 {
-		maxLength = model.Settings.MaxLength
-	}
-	if maxLength == 0 {
-		for _, m := range modelProvider.Models {
-			if m.Name == model.Name {
-				if m.Settings.MaxLength > 0 {
-					maxLength = m.Settings.MaxLength
-				}
-				break
-			}
-		}
-	}
-	if maxLength == 0 {
-		maxLength = defaultValue
-	}
-	return maxLength
-}
-
-func getMaxTokens(model *common.ModelConfig, modelProvider *common.ModelProvider, defaultValue int) int {
-	var maxTokens int = 0
-	if model.Settings.MaxTokens > 0 {
-		maxTokens = model.Settings.MaxTokens
-	}
-	if maxTokens == 0 {
-		for _, m := range modelProvider.Models {
-			if m.Name == model.Name {
-				if m.Settings.MaxTokens > 0 {
-					maxTokens = m.Settings.MaxTokens
-				}
-				break
-			}
-		}
-	}
-	if maxTokens == 0 {
-		maxTokens = defaultValue
-	}
-	return maxTokens
-}
-
-func (h APIHandler) processInitialDocumentSearch(ctx context.Context, reqMsg, replyMsg *ChatMessage, params *processingParams, fechSize int) ([]common.Document, error) {
 	var query *orm.Query
 	mustClauses := search.BuildMustClauses(params.category, params.subcategory, params.richCategory, params.username, params.userid)
 	datasourceClause := search.BuildDatasourceClause(params.datasource, true)
@@ -775,8 +670,8 @@ func (h APIHandler) processInitialDocumentSearch(ctx context.Context, reqMsg, re
 		mustClauses = append(mustClauses, datasourceClause)
 	}
 	var shouldClauses interface{}
-	if params.queryIntent != nil && len(params.queryIntent.Query) > 0 {
-		shouldClauses = search.BuildShouldClauses(params.queryIntent.Query, params.queryIntent.Keyword)
+	if params.QueryIntent != nil && len(params.QueryIntent.Query) > 0 {
+		shouldClauses = search.BuildShouldClauses(params.QueryIntent.Query, params.QueryIntent.Keyword)
 	}
 
 	from := 0
@@ -803,10 +698,10 @@ func (h APIHandler) processInitialDocumentSearch(ctx context.Context, reqMsg, re
 
 				chunkData := simplifiedReferences[start:end]
 
-				chunkMsg := NewMessageChunk(params.sessionID, replyMsg.ID, MessageTypeAssistant, reqMsg.ID,
-					FetchSource, string(chunkData), chunkSeq)
+				chunkMsg := common.NewMessageChunk(params.SessionID, replyMsg.ID, common.MessageTypeAssistant, reqMsg.ID,
+					common.FetchSource, string(chunkData), chunkSeq)
 
-				err = sendMessageToWebsocket(params.websocketID, util.MustToJSON(chunkMsg))
+				err = websocket.SendMessageToWebsocket(params.WebsocketID, util.MustToJSON(chunkMsg))
 				if err != nil {
 					log.Error(err)
 					return nil, err
@@ -822,20 +717,20 @@ func (h APIHandler) processInitialDocumentSearch(ctx context.Context, reqMsg, re
 			sb.WriteString("</Payload>")
 			params.sourceDocsSummaryBlock = sb.String()
 		}
-		replyMsg.Details = append(replyMsg.Details, ProcessingDetails{Order: 20, Type: FetchSource, Payload: fetchedDocs})
+		replyMsg.Details = append(replyMsg.Details, common.ProcessingDetails{Order: 20, Type: common.FetchSource, Payload: fetchedDocs})
 		return docs, err
 	}
 	return nil, errors.Error("nothing found")
 }
 
-func (h APIHandler) processPickDocuments(ctx context.Context, reqMsg, replyMsg *ChatMessage, params *processingParams, docs []common.Document) ([]common.Document, error) {
+func (h APIHandler) processPickDocuments(ctx context.Context, reqMsg, replyMsg *common.ChatMessage, params *RAGContext, docs []common.Document) ([]common.Document, error) {
 
 	if len(docs) == 0 {
 		return nil, nil
 	}
 
-	echoMsg := NewMessageChunk(params.sessionID, replyMsg.ID, MessageTypeAssistant, reqMsg.ID, PickSource, string(""), 0)
-	sendMessageToWebsocket(params.websocketID, util.MustToJSON(echoMsg))
+	echoMsg := common.NewMessageChunk(params.SessionID, replyMsg.ID, common.MessageTypeAssistant, reqMsg.ID, common.PickSource, string(""), 0)
+	websocket.SendMessageToWebsocket(params.WebsocketID, util.MustToJSON(echoMsg))
 
 	content := []llms.MessageContent{
 		llms.TextParts(
@@ -849,9 +744,9 @@ Your task is to choose the best documents for further processing.`,
 	content = append(content, llms.TextParts(llms.ChatMessageTypeSystem, "The user has provided the following query:\n"))
 	content = append(content, llms.TextParts(llms.ChatMessageTypeHuman, reqMsg.Message))
 
-	if params.queryIntent != nil {
+	if params.QueryIntent != nil {
 		content = append(content, llms.TextParts(llms.ChatMessageTypeSystem, "The primary intent behind this query is:\n"))
-		content = append(content, llms.TextParts(llms.ChatMessageTypeSystem, util.MustToJSON(params.queryIntent)))
+		content = append(content, llms.TextParts(llms.ChatMessageTypeSystem, util.MustToJSON(params.QueryIntent)))
 	}
 
 	if params.sourceDocsSummaryBlock != "" {
@@ -878,17 +773,17 @@ Your task is to choose the best documents for further processing.`,
 	log.Debug("start filtering documents")
 	var pickedDocsBuffer = strings.Builder{}
 	var chunkSeq = 0
-	llm := getLLM(params.pickingDocProvider.BaseURL, params.pickingDocProvider.APIType, params.pickingDocModel.Name, params.pickingDocProvider.APIKey, params.assistantCfg.Keepalive)
+	llm := langchain.GetLLM(params.pickingDocProvider.BaseURL, params.pickingDocProvider.APIType, params.pickingDocModel.Name, params.pickingDocProvider.APIKey, params.AssistantCfg.Keepalive)
 	log.Trace(content)
 	if _, err := llm.GenerateContent(ctx, content,
-		llms.WithMaxLength(getMaxLength(params.pickingDocModel, params.pickingDocProvider, 32768)),
-		llms.WithMaxTokens(getMaxTokens(params.pickingDocModel, params.pickingDocProvider, 32768)),
+		llms.WithMaxLength(langchain.GetMaxLength(params.pickingDocModel, params.pickingDocProvider, 32768)),
+		llms.WithMaxTokens(langchain.GetMaxTokens(params.pickingDocModel, params.pickingDocProvider, 32768)),
 		llms.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
 			if len(chunk) > 0 {
 				chunkSeq++
 				pickedDocsBuffer.Write(chunk)
-				msg := NewMessageChunk(params.sessionID, replyMsg.ID, MessageTypeAssistant, reqMsg.ID, PickSource, string(chunk), chunkSeq)
-				err := sendMessageToWebsocket(params.websocketID, util.MustToJSON(msg))
+				msg := common.NewMessageChunk(params.SessionID, replyMsg.ID, common.MessageTypeAssistant, reqMsg.ID, common.PickSource, string(chunk), chunkSeq)
+				err := websocket.SendMessageToWebsocket(params.WebsocketID, util.MustToJSON(msg))
 				if err != nil {
 					return err
 				}
@@ -928,7 +823,7 @@ Your task is to choose the best documents for further processing.`,
 	}
 
 	{
-		detail := ProcessingDetails{Order: 30, Type: PickSource, Payload: validPickedDocs}
+		detail := common.ProcessingDetails{Order: 30, Type: common.PickSource, Payload: validPickedDocs}
 		replyMsg.Details = append(replyMsg.Details, detail)
 	}
 
@@ -941,12 +836,7 @@ Your task is to choose the best documents for further processing.`,
 	return docs, err
 }
 
-func sendMessageToWebsocket(websocketID string, msg string) error {
-	log.Tracef("%v -> %v", websocketID, msg)
-	return websocket.SendPrivateMessage(websocketID, msg)
-}
-
-func (h APIHandler) fetchDocumentInDepth(ctx context.Context, reqMsg, replyMsg *ChatMessage, params *processingParams, docs []common.Document) error {
+func (h APIHandler) fetchDocumentInDepth(ctx context.Context, reqMsg, replyMsg *common.ChatMessage, params *RAGContext, docs []common.Document, inputValues map[string]any) error {
 	if len(params.pickedDocIDS) > 0 {
 		var query = orm.Query{}
 		query.Conds = orm.And(orm.InStringArray("_id", params.pickedDocIDS))
@@ -958,58 +848,30 @@ func (h APIHandler) fetchDocumentInDepth(ctx context.Context, reqMsg, replyMsg *
 		for _, v := range pickedFullDoc {
 			str := "Obtaining and analyzing documents in depth:  " + string(v.Title) + "\n"
 			strBuilder.WriteString(str)
-			chunkMsg := NewMessageChunk(params.sessionID, replyMsg.ID, MessageTypeAssistant, reqMsg.ID, DeepRead, str, chunkSeq)
-			err = sendMessageToWebsocket(params.websocketID, util.MustToJSON(chunkMsg))
+			chunkMsg := common.NewMessageChunk(params.SessionID, replyMsg.ID, common.MessageTypeAssistant, reqMsg.ID, common.DeepRead, str, chunkSeq)
+			err = websocket.SendMessageToWebsocket(params.WebsocketID, util.MustToJSON(chunkMsg))
 			if err != nil {
 				return err
 			}
 		}
 
-		detail := ProcessingDetails{Order: 40, Type: DeepRead, Description: strBuilder.String()}
+		detail := common.ProcessingDetails{Order: 40, Type: common.DeepRead, Description: strBuilder.String()}
 		replyMsg.Details = append(replyMsg.Details, detail)
 
-		params.references = formatDocumentForReplyReferences(pickedFullDoc)
+		inputValues["references"] = formatDocumentForReplyReferences(pickedFullDoc)
 	}
 	return nil
 }
 
-func (h APIHandler) generateFinalResponse(taskCtx context.Context, reqMsg, replyMsg *ChatMessage, params *processingParams) error {
+func (h APIHandler) generateFinalResponse(taskCtx context.Context, reqMsg, replyMsg *common.ChatMessage, params *RAGContext, inputValues map[string]any) error {
 
-	echoMsg := NewMessageChunk(params.sessionID, replyMsg.ID, MessageTypeAssistant, reqMsg.ID, Response, string(""), 0)
-	sendMessageToWebsocket(params.websocketID, util.MustToJSON(echoMsg))
-
-	prompt := "You are a helpful assistant designed to help users access own data and understand their tasks.\n" +
-		"Your responses should be clear, concise, and based solely on the information provided below.\n\n"
-
-	if reqMsg.Message != "" {
-		prompt += fmt.Sprintf("## User Query\n%s\n\n", reqMsg.Message)
-	}
-
-	if params.historyBlock != "" {
-		prompt += fmt.Sprintf("## Conversation History (FYI)\n<HISTORY>\n%s\n</HISTORY>\n\n", params.historyBlock)
-	}
-
-	if params.references != "" {
-		prompt += fmt.Sprintf("## Reference Data (FYI)\n<REFERENCE>\n%s\n</REFERENCE>\n\n", params.references)
-	}
-
-	if params.toolsCallResponse != "" {
-		prompt += fmt.Sprintf("## Tool Outputs (LLM Tools - Higher Priority)\n<TOOLS>\n%s\n</TOOLS>\n\n", params.toolsCallResponse)
-	}
-
-	prompt += "Please generate your response using the information above, prioritizing LLM tool outputs when available. Ensure your response is thoughtful, accurate, and well-structured.\n\n"
-	prompt += "If the provided information is insufficient, let the user know more details are needed — or offer a friendly, conversational response instead.\n\n"
-	prompt += "For complex answers, format your response using clear and well-organized **Markdown** to improve readability."
-
-	log.Info(prompt)
+	echoMsg := common.NewMessageChunk(params.SessionID, replyMsg.ID, common.MessageTypeAssistant, reqMsg.ID, common.Response, string(""), 0)
+	websocket.SendMessageToWebsocket(params.WebsocketID, util.MustToJSON(echoMsg))
 
 	// Prepare the system message
 	content := []llms.MessageContent{
-		llms.TextParts(llms.ChatMessageTypeSystem, "You are a personal AI assistant designed by Coco AI(https://coco.rs), the backend team is behind INFINI Labs(https://infinilabs.com)."),
+		llms.TextParts(llms.ChatMessageTypeSystem, params.AssistantCfg.RolePrompt),
 	}
-
-	// Append the user's message
-	content = append(content, llms.TextParts(llms.ChatMessageTypeHuman, prompt))
 
 	//response
 	reasoningBuffer := strings.Builder{}
@@ -1020,20 +882,20 @@ func (h APIHandler) generateFinalResponse(taskCtx context.Context, reqMsg, reply
 		return errors.Errorf("no answering provider with assistant: %v", params.assistantID)
 	}
 
-	llm := getLLM(params.answeringProvider.BaseURL, params.answeringProvider.APIType, params.answeringModel.Name, params.answeringProvider.APIKey, params.assistantCfg.Keepalive) //deepseek-r1 /deepseek-v3
+	llm := langchain.GetLLM(params.answeringProvider.BaseURL, params.answeringProvider.APIType, params.answeringModel.Name, params.answeringProvider.APIKey, params.AssistantCfg.Keepalive) //deepseek-r1 /deepseek-v3
 	appConfig := common.AppConfig()
 
 	log.Trace(params.answeringModel, ",", util.MustToJSON(appConfig))
 
 	options := []llms.CallOption{}
-	maxTokens := getMaxTokens(params.answeringModel, params.answeringProvider, 1024)
-	temperature := getTemperature(params.answeringModel, params.answeringProvider, 0.8)
-	maxLength := getMaxLength(params.answeringModel, params.answeringProvider, 0)
+	maxTokens := langchain.GetMaxTokens(params.answeringModel, params.answeringProvider, 1024)
+	temperature := langchain.GetTemperature(params.answeringModel, params.answeringProvider, 0.8)
+	maxLength := langchain.GetMaxLength(params.answeringModel, params.answeringProvider, 0)
 	options = append(options, llms.WithMaxTokens(maxTokens))
 	options = append(options, llms.WithMaxLength(maxLength))
 	options = append(options, llms.WithTemperature(temperature))
 
-	if params.answeringProvider.APIType == common.DEEPSEEK {
+	if params.answeringModel.Settings.Reasoning {
 		options = append(options, llms.WithStreamingReasoningFunc(func(ctx context.Context, reasoningChunk []byte, chunk []byte) error {
 			log.Trace(string(reasoningChunk), ",", string(chunk))
 			// Use taskCtx here to check for cancellation or other context-specific logic
@@ -1050,9 +912,9 @@ func (h APIHandler) generateFinalResponse(taskCtx context.Context, reqMsg, reply
 				if len(reasoningChunk) > 0 {
 					chunkSeq += 1
 					reasoningBuffer.Write(reasoningChunk)
-					msg := NewMessageChunk(params.sessionID, replyMsg.ID, MessageTypeAssistant, reqMsg.ID, Think, string(reasoningChunk), chunkSeq)
+					msg := common.NewMessageChunk(params.SessionID, replyMsg.ID, common.MessageTypeAssistant, reqMsg.ID, common.Think, string(reasoningChunk), chunkSeq)
 					//log.Info(util.MustToJSON(msg))
-					err = sendMessageToWebsocket(params.websocketID, util.MustToJSON(msg))
+					err = websocket.SendMessageToWebsocket(params.WebsocketID, util.MustToJSON(msg))
 					if err != nil {
 						panic(err)
 					}
@@ -1063,8 +925,8 @@ func (h APIHandler) generateFinalResponse(taskCtx context.Context, reqMsg, reply
 				if len(chunk) > 0 {
 					chunkSeq += 1
 
-					msg := NewMessageChunk(params.sessionID, replyMsg.ID, MessageTypeAssistant, reqMsg.ID, Response, string(chunk), chunkSeq)
-					err = sendMessageToWebsocket(params.websocketID, util.MustToJSON(msg))
+					msg := common.NewMessageChunk(params.SessionID, replyMsg.ID, common.MessageTypeAssistant, reqMsg.ID, common.Response, string(chunk), chunkSeq)
+					err = websocket.SendMessageToWebsocket(params.WebsocketID, util.MustToJSON(msg))
 					if err != nil {
 						panic(err)
 					}
@@ -1084,12 +946,58 @@ func (h APIHandler) generateFinalResponse(taskCtx context.Context, reqMsg, reply
 			log.Trace(string(chunk))
 
 			chunkSeq += 1
-			msg := NewMessageChunk(params.sessionID, replyMsg.ID, MessageTypeAssistant, reqMsg.ID, Response, string(chunk), chunkSeq)
-			err = sendMessageToWebsocket(params.websocketID, util.MustToJSON(msg))
+			msg := common.NewMessageChunk(params.SessionID, replyMsg.ID, common.MessageTypeAssistant, reqMsg.ID, common.Response, string(chunk), chunkSeq)
+			err = websocket.SendMessageToWebsocket(params.WebsocketID, util.MustToJSON(msg))
 			messageBuffer.Write(chunk)
 			return nil
 		}))
 	}
+
+	contextPrompt := ``
+
+	if v, ok := inputValues["history"]; ok {
+		text, ok := v.(string)
+		if ok {
+			if params.AssistantCfg.ChatSettings.HistoryMessage.CompressionThreshold > 0 && len(text) > params.AssistantCfg.ChatSettings.HistoryMessage.CompressionThreshold {
+				//log.Error("history is too large: %v, compressing, target size: %v", len(text), params.AssistantCfg.ChatSettings.HistoryMessage.CompressionThreshold)
+				//TODO compress history
+			}
+			contextPrompt += fmt.Sprintf("\nConversation:\n%v\n", text)
+		}
+	}
+
+	if v, ok := inputValues["references"]; ok {
+		contextPrompt += fmt.Sprintf("\nReferences:\n%v\n", v)
+	}
+
+	if v, ok := inputValues["tools_output"]; ok {
+		contextPrompt += fmt.Sprintf("\nTools Output:\n%v\n", v)
+	}
+
+	inputValues["context"] = contextPrompt
+
+	template := rag.GenerateAnswerPromptTemplate
+	if params.AssistantCfg.AnsweringModel.PromptConfig != nil && params.AssistantCfg.AnsweringModel.PromptConfig.PromptTemplate != "" {
+		template = params.AssistantCfg.AnsweringModel.PromptConfig.PromptTemplate
+	}
+
+	// Create the prompt template
+	promptTemplate, err := rag.GetPromptByTemplateArgs(params.answeringModel, template, []string{"query", "context"}, inputValues)
+	if err != nil {
+		panic(err)
+	}
+
+	promptValues, err := promptTemplate.FormatPrompt(inputValues)
+	if err != nil {
+		panic(err)
+	}
+
+	finalPrompt := promptValues.String()
+
+	// Append the user's message
+	content = append(content, llms.TextParts(llms.ChatMessageTypeHuman, finalPrompt))
+
+	log.Info(content)
 
 	completion, err := llm.GenerateContent(taskCtx, content, options...)
 	if err != nil {
@@ -1101,7 +1009,7 @@ func (h APIHandler) generateFinalResponse(taskCtx context.Context, reqMsg, reply
 	chunkSeq += 1
 
 	{
-		detail := ProcessingDetails{Order: 50, Type: Think, Description: reasoningBuffer.String()}
+		detail := common.ProcessingDetails{Order: 50, Type: common.Think, Description: reasoningBuffer.String()}
 		replyMsg.Details = append(replyMsg.Details, detail)
 	}
 
@@ -1114,33 +1022,6 @@ func (h APIHandler) generateFinalResponse(taskCtx context.Context, reqMsg, reply
 	return nil
 }
 
-func (h APIHandler) handleMessage(req *http.Request, sessionID, assistantID, message string) (*ChatMessage, error) {
-	if wsID, err := h.GetUserWebsocketID(req); err == nil && wsID != "" {
-		params, err := h.extractParameters(req)
-		if err != nil {
-			return nil, err
-		}
-
-		if sessionID == "" || assistantID == "" || message == "" {
-			panic("invalid chat message")
-		}
-
-		reqMsg := h.createInitialUserRequestMessage(sessionID, assistantID, message, params)
-		params.sessionID = sessionID
-		params.websocketID = wsID
-		if err := h.saveMessage(reqMsg); err != nil {
-			return nil, err
-		}
-
-		h.launchBackgroundTask(reqMsg, params)
-		return reqMsg, nil
-	} else {
-		err := errors.Errorf("No websocket [%v] for session: %v", wsID, sessionID)
-		log.Error(err)
-		panic(err)
-	}
-}
-
 func formatDocumentForReplyReferences(docs []common.Document) string {
 	var sb strings.Builder
 	sb.WriteString("<REFERENCES>\n")
@@ -1151,7 +1032,6 @@ func formatDocumentForReplyReferences(docs []common.Document) string {
 		sb.WriteString(fmt.Sprintf("Source: %s\n", doc.Source))
 		sb.WriteString(fmt.Sprintf("Updated: %s\n", doc.Updated))
 		sb.WriteString(fmt.Sprintf("Category: %s\n", doc.GetAllCategories()))
-		//sb.WriteString(fmt.Sprintf("Summary: %s\n", doc.Summary))
 		sb.WriteString(fmt.Sprintf("Content: %s\n", doc.Content))
 		sb.WriteString(fmt.Sprintf("</Doc>\n"))
 
@@ -1169,12 +1049,7 @@ func formatDocumentReferencesToDisplay(docs []common.Document) string {
 		item["id"] = doc.ID
 		item["title"] = doc.Title
 		item["source"] = doc.Source
-		//item["updated"] = doc.Updated
-		//item["category"] = doc.Category
-		//item["summary"] = doc.Summary
 		item["icon"] = doc.Icon
-		//item["size"] = doc.Size
-		//item["thumbnail"] = doc.Thumbnail
 		item["url"] = doc.URL
 		outDocs = append(outDocs, item)
 	}
@@ -1205,34 +1080,4 @@ func fetchDocuments(query *orm.Query) ([]common.Document, error) {
 		return nil, fmt.Errorf("failed to fetch documents: %w", err)
 	}
 	return docs, nil
-}
-
-func getLLM(endpoint, apiType, model, token string, keepalive string) llms.Model {
-	if model == "" {
-		panic("model is empty")
-	}
-
-	log.Debug("use model:", model, ",type:", apiType)
-
-	if apiType == common.OLLAMA {
-		llm, err := ollama.New(
-			ollama.WithServerURL(endpoint),
-			ollama.WithModel(model),
-			ollama.WithKeepAlive(keepalive))
-		if err != nil {
-			panic(err)
-		}
-		return llm
-
-	} else {
-		llm, err := openai.New(
-			openai.WithToken(token),
-			openai.WithBaseURL(endpoint),
-			openai.WithModel(model),
-		)
-		if err != nil {
-			panic(err)
-		}
-		return llm
-	}
 }

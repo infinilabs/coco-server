@@ -5,7 +5,6 @@
 package modules
 
 import (
-	"infini.sh/coco/modules/assistant"
 	_ "infini.sh/coco/modules/assistant"
 	_ "infini.sh/coco/modules/attachment"
 	"infini.sh/coco/modules/common"
@@ -26,7 +25,7 @@ type Coco struct {
 func (this *Coco) Setup() {
 	orm.MustRegisterSchemaWithIndexName(common.Session{}, "session")
 	orm.MustRegisterSchemaWithIndexName(common.Document{}, "document")
-	orm.MustRegisterSchemaWithIndexName(assistant.ChatMessage{}, "message")
+	orm.MustRegisterSchemaWithIndexName(common.ChatMessage{}, "message")
 	orm.MustRegisterSchemaWithIndexName(common.Attachment{}, "attachment")
 	orm.MustRegisterSchemaWithIndexName(common.Connector{}, "connector")
 	orm.MustRegisterSchemaWithIndexName(common.DataSource{}, "datasource")

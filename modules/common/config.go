@@ -159,7 +159,6 @@ type Config struct {
 
 const OLLAMA = "ollama"
 const OPENAI = "openai"
-const DEEPSEEK = "deepseek"
 
 type AppSettings struct {
 	Chat *ChatConfig `json:"chat,omitempty" config:"chat" `
