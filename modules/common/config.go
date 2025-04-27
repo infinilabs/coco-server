@@ -72,7 +72,7 @@ func AppConfig() Config {
 
 	if retCfg.ServerInfo.AuthProvider.SSO.URL == "" || util.PrefixStr(retCfg.ServerInfo.AuthProvider.SSO.URL, "/") {
 		retCfg.ServerInfo.AuthProvider.SSO.URL = util.JoinPath(retCfg.ServerInfo.Endpoint, "/#/login")
-	}else if !util.PrefixStr(retCfg.ServerInfo.AuthProvider.SSO.URL, retCfg.ServerInfo.Endpoint) {
+	} else if !util.PrefixStr(retCfg.ServerInfo.AuthProvider.SSO.URL, retCfg.ServerInfo.Endpoint) {
 		retCfg.ServerInfo.AuthProvider.SSO.URL = util.JoinPath(retCfg.ServerInfo.Endpoint, "/#/login")
 	}
 

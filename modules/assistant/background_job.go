@@ -81,8 +81,7 @@ type RAGContext struct {
 	sourceDocsSummaryBlock string
 
 	//history
-	HistoryBlock string
-	chatHistory  *memory.ChatMessageHistory
+	chatHistory *memory.ChatMessageHistory
 
 	QueryIntent  *rag.QueryIntent
 	pickedDocIDS []string
@@ -215,9 +214,8 @@ func (h APIHandler) createInitialUserRequestMessage(sessionID, assistantID, mess
 	}
 	msg.ID = util.GetUUID()
 
-	if params.SearchDB {
-		msg.Parameters = util.MapStr{"params": params}
-	}
+	msg.Parameters = util.MapStr{}
+
 	return msg
 }
 
@@ -996,17 +994,10 @@ func (h APIHandler) generateFinalResponse(taskCtx context.Context, reqMsg, reply
 	}
 
 	// Create the prompt template
-	promptTemplate, err := rag.GetPromptByTemplateArgs(params.answeringModel, template, []string{"query", "context"}, inputValues)
+	finalPrompt, err := rag.GetPromptStringByTemplateArgs(params.answeringModel, template, []string{"query", "context"}, inputValues)
 	if err != nil {
 		panic(err)
 	}
-
-	promptValues, err := promptTemplate.FormatPrompt(inputValues)
-	if err != nil {
-		panic(err)
-	}
-
-	finalPrompt := promptValues.String()
 
 	// Append the user's message
 	content = append(content, llms.TextParts(llms.ChatMessageTypeHuman, finalPrompt))

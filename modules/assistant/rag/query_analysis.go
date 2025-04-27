@@ -85,7 +85,7 @@ func ProcessQueryIntent(ctx context.Context, sessionID, websocketID string, prov
 	llm := langchain.GetLLM(provider.BaseURL, provider.APIType, cfg.Name, provider.APIKey, assistant.Keepalive)
 
 	// Create the prompt template
-	promptTemplate, err := GetPromptByTemplateArgs(cfg, common.QueryIntentPromptTemplate, []string{"history", "query"}, inputValues)
+	promptTemplate, err := GetPromptTemplate(cfg, common.QueryIntentPromptTemplate, []string{"history", "query"}, inputValues)
 	if err != nil {
 		return nil, err
 	}
