@@ -26,13 +26,14 @@ package assistant
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"runtime"
+	"strings"
+
 	"infini.sh/coco/modules/assistant/rag"
 	"infini.sh/coco/modules/assistant/websocket"
 	"infini.sh/coco/modules/datasource"
 	"infini.sh/coco/modules/llm"
-	"net/http"
-	"runtime"
-	"strings"
 
 	log "github.com/cihub/seelog"
 	"github.com/mark3labs/mcp-go/client"
@@ -668,6 +669,9 @@ func (h APIHandler) processInitialDocumentSearch(ctx context.Context, reqMsg, re
 	datasourceClause := search.BuildDatasourceClause(params.datasource, true)
 	if datasourceClause != nil {
 		mustClauses = append(mustClauses, datasourceClause)
+	}
+	if params.AssistantCfg.Datasource.Enabled && params.AssistantCfg.Datasource.Filter != nil {
+		mustClauses = append(mustClauses, params.AssistantCfg.Datasource.Filter)
 	}
 	var shouldClauses interface{}
 	if params.QueryIntent != nil && len(params.QueryIntent.Query) > 0 {
