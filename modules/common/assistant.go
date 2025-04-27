@@ -53,12 +53,19 @@ type Assistant struct {
 	ChatSettings   ChatSettings     `json:"chat_settings" elastic_mapping:"chat_settings:{type:object,enabled:false}"`
 	Builtin        bool             `json:"builtin" elastic_mapping:"builtin:{type:keyword}"`         // Whether the model provider is builtin
 	RolePrompt     string           `json:"role_prompt" elastic_mapping:"role_prompt:{type:keyword}"` // Role prompt for the assistant
+
+	DeepThinkConfig *DeepThinkConfig `json:"-"`
 }
 
 type DeepThinkConfig struct {
 	IntentAnalysisModel ModelConfig `json:"intent_analysis_model"`
 	PickingDocModel     ModelConfig `json:"picking_doc_model"`
-	Visible             bool        `json:"visible"` // Whether the deep think mode is visible to the user
+
+	PickDatasource          bool `json:"pick_datasource"`
+	PickTools               bool `json:"pick_tools"`
+	ToolsPromisedResultSize int  `json:"tools_promised_result_size"`
+
+	Visible bool `json:"visible"` // Whether the deep think mode is visible to the user
 }
 
 type WorkflowConfig struct {
@@ -72,11 +79,10 @@ type DatasourceConfig struct {
 }
 
 type MCPConfig struct {
-	Enabled bool     `json:"enabled"`
-	IDs     []string `json:"ids,omitempty"`
-	Visible bool     `json:"visible"` // Whether the deep datasource is visible to the user
-
-	Model         *ModelConfig `json:"model"` //if not specified, use the answering model
+	Enabled       bool         `json:"enabled"`
+	IDs           []string     `json:"ids,omitempty"`
+	Visible       bool         `json:"visible"` // Whether the deep datasource is visible to the user
+	Model         *ModelConfig `json:"model"`   //if not specified, use the answering model
 	MaxIterations int          `json:"max_iterations"`
 }
 
@@ -128,20 +134,20 @@ type ChatSettings struct {
 }
 
 // GetAssistant retrieves the assistant object from the cache or database.
-func GetAssistant(assistantID string) (*Assistant, error) {
+func GetAssistant(assistantID string) (*Assistant, bool, error) {
 	item := GeneralObjectCache.Get(AssistantCachePrimary, assistantID)
 	var assistant *Assistant
 	if item != nil && !item.Expired() {
 		var ok bool
 		if assistant, ok = item.Value().(*Assistant); ok {
-			return assistant, nil
+			return assistant, true, nil
 		}
 	}
 	assistant = &Assistant{}
 	assistant.ID = assistantID
-	_, err := orm.Get(assistant)
+	exists, err := orm.Get(assistant)
 	if err != nil {
-		return nil, err
+		return nil, exists, err
 	}
 
 	//expand datasource is the datasource is `*`
@@ -166,11 +172,32 @@ func GetAssistant(assistantID string) (*Assistant, error) {
 		assistant.MCPConfig.MaxIterations = 5
 	}
 
+	if assistant.AnsweringModel.PromptConfig == nil {
+		assistant.AnsweringModel.PromptConfig = &PromptConfig{PromptTemplate: GenerateAnswerPromptTemplate}
+	} else if assistant.AnsweringModel.PromptConfig.PromptTemplate == "" {
+		assistant.AnsweringModel.PromptConfig.PromptTemplate = GenerateAnswerPromptTemplate
+	}
+
+	if assistant.Type == AssistantTypeDeepThink {
+		deepThinkCfg := DeepThinkConfig{}
+		buf := util.MustToJSONBytes(assistant.Config)
+		util.MustFromJSONBytes(buf, &deepThinkCfg)
+
+		if deepThinkCfg.IntentAnalysisModel.PromptConfig == nil {
+			deepThinkCfg.IntentAnalysisModel.PromptConfig = &PromptConfig{PromptTemplate: QueryIntentPromptTemplate}
+		} else if deepThinkCfg.IntentAnalysisModel.PromptConfig.PromptTemplate == "" {
+			deepThinkCfg.IntentAnalysisModel.PromptConfig.PromptTemplate = QueryIntentPromptTemplate
+		}
+
+		assistant.Config = deepThinkCfg
+		assistant.DeepThinkConfig = &deepThinkCfg
+	}
+
 	if assistant.RolePrompt == "" {
 		assistant.RolePrompt = "You are a personal AI assistant designed by Coco AI(https://coco.rs), the backend team is behind INFINI Labs(https://infinilabs.com)."
 	}
 
 	// Cache the assistant object
 	GeneralObjectCache.Set(AssistantCachePrimary, assistantID, assistant, time.Duration(30)*time.Minute)
-	return assistant, nil
+	return assistant, true, nil
 }
