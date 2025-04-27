@@ -56,7 +56,20 @@ func extractVariables(template string) []string {
 	return vars
 }
 
-func GetPromptByTemplateArgs(cfg *common.ModelConfig, defaultTemplate string, requiredVars []string, inputValues map[string]any) (*prompts.PromptTemplate, error) {
+func GetPromptStringByTemplateArgs(cfg *common.ModelConfig, defaultTemplate string, requiredVars []string, inputValues map[string]any)(string,error)  {
+	promptTemplate,err:= GetPromptTemplate(cfg,defaultTemplate,requiredVars,inputValues)
+	if err!=nil{
+		return "",err
+	}
+	promptValues, err := promptTemplate.FormatPrompt(inputValues)
+	if err != nil {
+		return "", err
+	}
+
+	return promptValues.String(),nil
+}
+
+func GetPromptTemplate(cfg *common.ModelConfig, defaultTemplate string, requiredVars []string, inputValues map[string]any) (*prompts.PromptTemplate, error) {
 	template := defaultTemplate
 	inputVars := requiredVars
 
