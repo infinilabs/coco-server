@@ -57,6 +57,8 @@ export const EditForm = memo((props: AssistantFormProps)=> {
         return;
       }
       
+    }else{
+      values.datasource.filter = null;
     }
     onSubmit?.(values, startLoading, endLoading);
   };

@@ -27,12 +27,28 @@ export const DeepThink = (props: DeepThinkProps) => {
       </Form.Item>
     </Space>
     <div>
-        <Space>
-          <span>{t('page.assistant.labels.show_in_chat')}</span>
-          <Form.Item className="my-[0px]" name={["config", "visible"]}> 
-            <Switch size="small"/>
-          </Form.Item>
-        </Space>
-      </div>
+      <Space>
+        <span>{t('page.assistant.labels.show_in_chat')}</span>
+        <Form.Item className="my-[0px]" name={["config", "visible"]}> 
+          <Switch size="small"/>
+        </Form.Item>
+      </Space>
+    </div>
+    <div>
+      <Space>
+        <span>{t('page.assistant.labels.pick_datasource')}</span>
+        <Form.Item className="my-[0px]" name={["config", "pick_datasource"]}> 
+          <Switch size="small"/>
+        </Form.Item>
+      </Space>
+    </div>
+    <div>
+      <Space>
+        <span>{t('page.assistant.labels.pick_tools')}</span>
+        <Form.Item className="my-[0px]" name={["config", "pick_tools"]}> 
+          <Switch size="small"/>
+        </Form.Item>
+      </Space>
+    </div>
   </div>
 }
