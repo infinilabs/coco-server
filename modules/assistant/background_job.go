@@ -139,26 +139,26 @@ func (h APIHandler) extractParameters(req *http.Request) (*RAGContext, error) {
 
 	params.AssistantCfg = assistant
 
-	if assistant.Datasource.Enabled && len(assistant.Datasource.IDs) > 0 {
+	if assistant.Datasource.Enabled && len(assistant.Datasource.GetIDs()) > 0 {
 		if params.datasource == "" {
-			params.datasource = strings.Join(assistant.Datasource.IDs, ",")
+			params.datasource = strings.Join(assistant.Datasource.GetIDs(), ",")
 		} else {
 			// calc intersection with datasource and assistant datasourceIDs
 			queryDatasource := strings.Split(params.datasource, ",")
-			queryDatasource = util.StringArrayIntersection(queryDatasource, assistant.Datasource.IDs)
+			queryDatasource = util.StringArrayIntersection(queryDatasource, assistant.Datasource.GetIDs())
 			params.datasource = strings.Join(queryDatasource, ",")
 		}
 	}
 
-	log.Trace(assistant.MCPConfig.Enabled, assistant.MCPConfig.IDs, ",", params.mcpServers)
+	log.Trace(assistant.MCPConfig.Enabled, assistant.MCPConfig.GetIDs(), ",", params.mcpServers)
 
-	if params.MCP && assistant.MCPConfig.Enabled && len(assistant.MCPConfig.IDs) > 0 {
+	if params.MCP && assistant.MCPConfig.Enabled && len(assistant.MCPConfig.GetIDs()) > 0 {
 		if len(params.mcpServers) == 0 {
-			params.mcpServers = assistant.MCPConfig.IDs
+			params.mcpServers = assistant.MCPConfig.GetIDs()
 		} else {
 			// calc intersection with datasource and assistant datasourceIDs
 			queryMcpServers := params.mcpServers
-			queryMcpServers = util.StringArrayIntersection(queryMcpServers, assistant.MCPConfig.IDs)
+			queryMcpServers = util.StringArrayIntersection(queryMcpServers, assistant.MCPConfig.GetIDs())
 			params.mcpServers = queryMcpServers
 		}
 	} else {
@@ -335,8 +335,8 @@ func (h APIHandler) processMessageAsync(ctx context.Context, reqMsg *common.Chat
 
 		if params.AssistantCfg.DeepThinkConfig.PickDatasource {
 			var datasourceStr = strings.Builder{}
-			if len(params.AssistantCfg.Datasource.IDs) > 0 {
-				ds, err := datasource.GetDatasourceByID(params.AssistantCfg.Datasource.IDs)
+			if len(params.AssistantCfg.Datasource.GetIDs()) > 0 {
+				ds, err := datasource.GetDatasourceByID(params.AssistantCfg.Datasource.GetIDs())
 				if err == nil && ds != nil {
 					for _, v := range ds {
 						datasourceStr.WriteString(fmt.Sprintf("Name: %v \n", v.Name))
@@ -348,8 +348,8 @@ func (h APIHandler) processMessageAsync(ctx context.Context, reqMsg *common.Chat
 
 		if params.AssistantCfg.DeepThinkConfig.PickTools {
 			var mcpServers = strings.Builder{}
-			if len(params.AssistantCfg.MCPConfig.IDs) > 0 {
-				ds, err := llm.GetMCPServersByID(params.AssistantCfg.MCPConfig.IDs)
+			if len(params.AssistantCfg.MCPConfig.GetIDs()) > 0 {
+				ds, err := llm.GetMCPServersByID(params.AssistantCfg.MCPConfig.GetIDs())
 				if err == nil && ds != nil {
 					for _, v := range ds {
 						mcpServers.WriteString(fmt.Sprintf("Name: %v, Desc: %v \n", v.Name, v.Description))

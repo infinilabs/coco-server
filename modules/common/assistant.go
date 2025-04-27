@@ -72,18 +72,38 @@ type WorkflowConfig struct {
 }
 
 type DatasourceConfig struct {
-	Enabled bool        `json:"enabled"`
-	IDs     []string    `json:"ids,omitempty"`
+	Enabled bool `json:"enabled"`
+
+	IDs       []string  `json:"ids,omitempty"`
+	parsedIDs *[]string `json:"-"`
+
 	Visible bool        `json:"visible"`          // Whether the deep datasource is visible to the user
 	Filter  interface{} `json:"filter,omitempty"` // Filter for the datasource
 }
 
+func (cfg *DatasourceConfig) GetIDs() []string {
+	if cfg.parsedIDs != nil {
+		return *cfg.parsedIDs
+	}
+	return cfg.IDs
+}
+
 type MCPConfig struct {
-	Enabled       bool         `json:"enabled"`
-	IDs           []string     `json:"ids,omitempty"`
+	Enabled bool `json:"enabled"`
+
+	IDs       []string  `json:"ids,omitempty"`
+	parsedIDs *[]string `json:"-"`
+
 	Visible       bool         `json:"visible"` // Whether the deep datasource is visible to the user
 	Model         *ModelConfig `json:"model"`   //if not specified, use the answering model
 	MaxIterations int          `json:"max_iterations"`
+}
+
+func (cfg *MCPConfig) GetIDs() []string {
+	if cfg.parsedIDs != nil {
+		return *cfg.parsedIDs
+	}
+	return cfg.IDs
 }
 
 type ToolsConfig struct {
@@ -156,7 +176,7 @@ func GetAssistant(assistantID string) (*Assistant, bool, error) {
 		if err != nil {
 			panic(err)
 		}
-		assistant.Datasource.IDs = ids
+		assistant.Datasource.parsedIDs = &ids
 	}
 
 	if util.ContainsAnyInArray("*", assistant.MCPConfig.IDs) {
@@ -164,7 +184,7 @@ func GetAssistant(assistantID string) (*Assistant, bool, error) {
 		if err != nil {
 			panic(err)
 		}
-		assistant.MCPConfig.IDs = ids
+		assistant.MCPConfig.parsedIDs = &ids
 	}
 
 	//set default value
