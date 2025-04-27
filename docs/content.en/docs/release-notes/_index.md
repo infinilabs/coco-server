@@ -19,6 +19,7 @@ Information about release notes of Coco Server is provided here.
 ### Bug fix  
 - Fix personal token was not well supported for Yuque connector
 - Fix incorrect content-type header for wrapper
+- Fix default login url can't be changed afterwards
 
 
 ### Improvements

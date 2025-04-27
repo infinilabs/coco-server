@@ -86,7 +86,7 @@ export default (props: ModelSettingsProps) => {
                           name={['prompt', 'template']}
                           label=""
                       >
-                          <Input.TextArea rows={5}/>
+                          <Input.TextArea rows={14}/>
                       </Form.Item>
                   </div>
               </div>

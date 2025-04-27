@@ -36,7 +36,7 @@ export const DatasourceConfig = (props: DatasourceConfigProps) =>{
   }
 
   const onFilterChange = (evt: any) => {
-    const filter = evt.target.value;
+    const filter = evt.target.value || null;
     onChange?.({
       ...value,
       filter,

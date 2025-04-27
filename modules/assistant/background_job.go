@@ -26,13 +26,14 @@ package assistant
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"runtime"
+	"strings"
+
 	"infini.sh/coco/modules/assistant/rag"
 	"infini.sh/coco/modules/assistant/websocket"
 	"infini.sh/coco/modules/datasource"
 	"infini.sh/coco/modules/llm"
-	"net/http"
-	"runtime"
-	"strings"
 
 	log "github.com/cihub/seelog"
 	"github.com/mark3labs/mcp-go/client"
@@ -80,7 +81,7 @@ type RAGContext struct {
 	sourceDocsSummaryBlock string
 
 	//history
-	chatHistory  *memory.ChatMessageHistory
+	chatHistory *memory.ChatMessageHistory
 
 	QueryIntent  *rag.QueryIntent
 	pickedDocIDS []string
@@ -125,7 +126,7 @@ func (h APIHandler) extractParameters(req *http.Request) (*RAGContext, error) {
 	assistantID := h.GetParameterOrDefault(req, "assistant_id", DefaultAssistantID)
 	params.assistantID = assistantID
 
-	assistant, err := common.GetAssistant(assistantID)
+	assistant, _, err := common.GetAssistant(assistantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get assistant with id [%v]: %w", assistantID, err)
 	}
@@ -327,28 +328,37 @@ func (h APIHandler) processMessageAsync(ctx context.Context, reqMsg *common.Chat
 
 		//tool_list
 		//network_sources
-		var toolstr = strings.Builder{}
-		if len(params.AssistantCfg.Datasource.IDs) > 0 {
-			ds, err := datasource.GetDatasourceByID(params.AssistantCfg.Datasource.IDs)
-			if err == nil && ds != nil {
-				for _, v := range ds {
-					toolstr.WriteString(fmt.Sprintf("Name: %v \n", v.Name))
-				}
-			}
+
+		if params.AssistantCfg.DeepThinkConfig == nil {
+			panic("invalid deep think config")
 		}
 
-		var mcpServers = strings.Builder{}
-		if len(params.AssistantCfg.MCPConfig.IDs) > 0 {
-			ds, err := llm.GetMCPServersByID(params.AssistantCfg.MCPConfig.IDs)
-			if err == nil && ds != nil {
-				for _, v := range ds {
-					mcpServers.WriteString(fmt.Sprintf("Name: %v, Desc: %v \n", v.Name, v.Description))
+		if params.AssistantCfg.DeepThinkConfig.PickDatasource {
+			var datasourceStr = strings.Builder{}
+			if len(params.AssistantCfg.Datasource.IDs) > 0 {
+				ds, err := datasource.GetDatasourceByID(params.AssistantCfg.Datasource.IDs)
+				if err == nil && ds != nil {
+					for _, v := range ds {
+						datasourceStr.WriteString(fmt.Sprintf("Name: %v \n", v.Name))
+					}
 				}
 			}
+			inputValues["network_sources"] = datasourceStr.String()
 		}
 
-		inputValues["tool_list"] = mcpServers.String()
-		inputValues["network_sources"] = toolstr.String()
+		if params.AssistantCfg.DeepThinkConfig.PickTools {
+			var mcpServers = strings.Builder{}
+			if len(params.AssistantCfg.MCPConfig.IDs) > 0 {
+				ds, err := llm.GetMCPServersByID(params.AssistantCfg.MCPConfig.IDs)
+				if err == nil && ds != nil {
+					for _, v := range ds {
+						mcpServers.WriteString(fmt.Sprintf("Name: %v, Desc: %v \n", v.Name, v.Description))
+					}
+				}
+			}
+
+			inputValues["tool_list"] = mcpServers.String()
+		}
 
 		queryIntent, err := rag.ProcessQueryIntent(ctx, params.SessionID, params.WebsocketID, params.intentModelProvider, params.intentModel, reqMsg, replyMsg, params.AssistantCfg, inputValues)
 		if err != nil {
@@ -367,7 +377,7 @@ func (h APIHandler) processMessageAsync(ctx context.Context, reqMsg *common.Chat
 		}
 
 		if answer != "" {
-			if len(answer) > 50 {
+			if params.AssistantCfg.DeepThinkConfig != nil && params.AssistantCfg.DeepThinkConfig.ToolsPromisedResultSize > 0 && len(answer) > params.AssistantCfg.DeepThinkConfig.ToolsPromisedResultSize {
 				toolsMayHavePromisedResult = true
 			}
 			inputValues["tools_output"] = answer
@@ -450,9 +460,9 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *common.ChatMes
 		panic("invalid assistant config, skip")
 	}
 
-	if params.intentModel != nil {
+	if params.intentModel != nil && (params.AssistantCfg.DeepThinkConfig != nil && params.AssistantCfg.DeepThinkConfig.PickTools) {
 		if !params.QueryIntent.NeedCallTools {
-			log.Info("query intent analyzer skipped call tools")
+			log.Info("intent analyzer decided to skip call LLM tools")
 			return "", nil
 		}
 	}
@@ -654,9 +664,9 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *common.ChatMes
 
 func (h APIHandler) processInitialDocumentSearch(ctx context.Context, reqMsg, replyMsg *common.ChatMessage, params *RAGContext, fechSize int) ([]common.Document, error) {
 
-	if params.intentModel != nil {
+	if params.intentModel != nil && (params.AssistantCfg.DeepThinkConfig != nil && params.AssistantCfg.DeepThinkConfig.PickDatasource) {
 		if !params.QueryIntent.NeedNetworkSearch {
-			log.Info("query intent analyzer skipped call tools")
+			log.Info("intent analyzer decided to skip fetch datasource")
 			return []common.Document{}, nil
 		}
 	}
@@ -666,6 +676,10 @@ func (h APIHandler) processInitialDocumentSearch(ctx context.Context, reqMsg, re
 	datasourceClause := search.BuildDatasourceClause(params.datasource, true)
 	if datasourceClause != nil {
 		mustClauses = append(mustClauses, datasourceClause)
+	}
+	if params.AssistantCfg.Datasource.Enabled && params.AssistantCfg.Datasource.Filter != nil {
+		log.Debug(params.AssistantCfg.Datasource.Filter)
+		mustClauses = append(mustClauses, params.AssistantCfg.Datasource.Filter)
 	}
 	var shouldClauses interface{}
 	if params.QueryIntent != nil && len(params.QueryIntent.Query) > 0 {
@@ -974,7 +988,7 @@ func (h APIHandler) generateFinalResponse(taskCtx context.Context, reqMsg, reply
 
 	inputValues["context"] = contextPrompt
 
-	template := rag.GenerateAnswerPromptTemplate
+	template := common.GenerateAnswerPromptTemplate
 	if params.AssistantCfg.AnsweringModel.PromptConfig != nil && params.AssistantCfg.AnsweringModel.PromptConfig.PromptTemplate != "" {
 		template = params.AssistantCfg.AnsweringModel.PromptConfig.PromptTemplate
 	}

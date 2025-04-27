@@ -60,10 +60,7 @@ func (h *APIHandler) createAssistant(w http.ResponseWriter, req *http.Request, p
 func (h *APIHandler) getAssistant(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("id")
 
-	obj := common.Assistant{}
-	obj.ID = id
-
-	exists, err := orm.Get(&obj)
+	obj, exists, err := common.GetAssistant(id)
 	if !exists || err != nil {
 		log.Error(err)
 		h.WriteOpRecordNotFoundJSON(w, id)
@@ -75,6 +72,10 @@ func (h *APIHandler) getAssistant(w http.ResponseWriter, req *http.Request, ps h
 
 func (h *APIHandler) updateAssistant(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("id")
+
+	//clear cache
+	common.GeneralObjectCache.Delete(common.AssistantCachePrimary, id)
+
 	obj := common.Assistant{}
 	obj.ID = id
 	exists, err := orm.Get(&obj)
@@ -106,14 +107,15 @@ func (h *APIHandler) updateAssistant(w http.ResponseWriter, req *http.Request, p
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	//clear cache
-	common.GeneralObjectCache.Delete(common.AssistantCachePrimary, id)
 
 	h.WriteUpdatedOKJSON(w, obj.ID)
 }
 
 func (h *APIHandler) deleteAssistant(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("id")
+
+	//clear cache
+	common.GeneralObjectCache.Delete(common.AssistantCachePrimary, id)
 
 	obj := common.Assistant{}
 	obj.ID = id
@@ -136,8 +138,6 @@ func (h *APIHandler) deleteAssistant(w http.ResponseWriter, req *http.Request, p
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	//clear cache
-	common.GeneralObjectCache.Delete(common.AssistantCachePrimary, id)
 
 	h.WriteDeletedOKJSON(w, obj.ID)
 }

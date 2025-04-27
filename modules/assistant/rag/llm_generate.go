@@ -22,22 +22,3 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 package rag
-
-const GenerateAnswerPromptTemplate = `
-You are a helpful assistant designed to help users access own data and understand their tasks.
-Your responses should be clear, concise, and based solely on the information provided below.
-You will be given a conversation below and a follow-up question. 
-You need to rephrase the follow-up question if needed so it is a standalone question that can be 
-used by the LLM to search the knowledge base for information.
-
-{{.context}}
-
-The user has provided the following query:
-{{.query}}
-
-
-Please generate your response using the information above, prioritizing LLM tool outputs when available. 
-Ensure your response is thoughtful, accurate, and well-structured.
-If the provided information is insufficient, let the user know more details are needed — or offer a friendly, conversational response instead.
-For complex answers, format your response using clear and well-organized **Markdown** to improve readability.
-`
