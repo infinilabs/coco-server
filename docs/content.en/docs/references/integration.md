@@ -103,27 +103,24 @@ curl  -H 'Content-Type: application/json'   -XDELETE http://localhost:9000/integ
 curl -XPUT http://localhost:9000/integration/cvj9s15ath21fvf9st00 -d '{
     "type": "floating",
     "name": "test_local",
-    "datasource": [
-      "d895f22ed2ff25ad8c6080af1cc23a21"
-    ],
     "enabled_module": {
       "search": {
         "enabled": true,
-        "placeholder": "Search whatever you want..."
+        "placeholder": "Search whatever you want...",
+        "datasource": [
+          "d895f22ed2ff25ad8c6080af1cc23a21"
+        ],
       },
       "ai_chat": {
         "enabled": true,
         "placeholder": "Ask whatever you want..."
       },
       "features": [
-        "think_active",
-        "search_active",
         "chat_history"
       ]
     },
     "access_control": {
       "authentication": true,
-      "chat_history": false
     },
     "appearance": {
       "theme": "auto"
@@ -149,19 +146,6 @@ curl -XPUT http://localhost:9000/integration/cvj9s15ath21fvf9st00 -d '{
 ```shell
 curl -XGET http://localhost:9000/integration/_search
 ```
-
-### Update Suggested Topics
-
-```
-curl -H'X-API-TOKEN: cvl0qcjq50k2ddtq9230s1sl7oie0b1jrc06caznl51i1fb26wukbf4ftmwdfv4v57dm0qx6raqnaots8owt'  -XPOST http://localhost:9001/integration/cvj9knjq50k3mcuegatg/chat/_suggest -d'["Hello world", "What is Coco AI?", "What is INFINI Pizza?"]'
-```
-
-### View Suggested Topics
-
-```
-curl -H'X-API-TOKEN: cvl0qcjq50k2ddtq9230s1sl7oie0b1jrc06caznl51i1fb26wukbf4ftmwdfv4v57dm0qx6raqnaots8owt'  -XGET http://localhost:9001/integration/cvj9knjq50k3mcuegatg/chat/_suggest
-```
-
 
 ## Integration UI Management
 
@@ -196,3 +180,6 @@ Click the `Preview` button on the right side of the Integration editing page to 
 {{% load-img "/img/integration/preview.png" "preview integration" %}}
 
 The preview feature allows testing search and chat functionalities.  
+
+### Renew Token
+Select the target Integration in the list, click `Renew Token` on the right side of the entry.
