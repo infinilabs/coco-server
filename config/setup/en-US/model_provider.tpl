@@ -6,7 +6,7 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/deepseek
   "updated" : "2025-03-28T11:14:47.103278+08:00",
   "name" : "Deepseek",
   "api_key" : "",
-  "api_type" : "deepseek",
+  "api_type" : "openai",
   "base_url" : "https://api.deepseek.com/v1",
   "icon" : "font_deepseek",
   "models" : [
