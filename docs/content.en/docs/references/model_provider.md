@@ -153,3 +153,27 @@ curl -XGET http://localhost:9000/model_provider/_search
 ```
 
 ## Model Providers UI Management
+
+### Model Providers
+Log in to the Coco-Server admin dashboard, click `Model Providers` in the left menu to view all Model Provider lists, as shown below:  
+{{% load-img "/img/model-provider/list.png" "Model Provider list" %}}
+
+- we can also choose an Model Provider from the card and quickly disable or enable it by toggling the switch.
+- choose an Model Provider from the card and click the  button `API-Key` to configure the api key. 
+{{% load-img "/img/model-provider/api-key.png" "update api key" %}}
+
+Enter keywords `coco` in the search box above the list and click the `Refresh` button to search for matching MCP Server, as shown below:  
+{{% load-img "/img/model-provider/filter-list.png" "Model Provider search" %}}
+
+
+### Add Model Provider
+Click `Add` in the top-right corner of the list to create a new Model Provider, as shown below:  
+{{% load-img "/img/model-provider/add.png" "add Model Provider" %}}
+
+### Delete Model Provider
+Select the target Model Provider in the list, click `Delete` on the bottom right of the card, and confirm in the pop-up dialog to complete the deletion. As shown below:  
+{{% load-img "/img/model-provider/delete.png" "delete Model Provider" %}}
+
+
+### Edit Model Provider
+Select the targetModel Provider in the card list, click `Edit` on the bottom right of the card to enter the editing page. Modify the configuration and click save to update.
