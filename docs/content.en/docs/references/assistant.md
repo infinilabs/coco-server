@@ -3,7 +3,7 @@ title: "Assistant"
 weight: 50
 ---
 
-# Assistant API
+# Assistant
 
 ## Assistant API Reference
 
@@ -56,14 +56,32 @@ curl -XPOST http://localhost:9000/assistant/ -d'{
     "ids" : [
       "d895f22ed2ff25ad8c6080af1cc23a21"
     ],
-    "visible" : true
+    "visible" : true,
+    "filter": {"term":{"name": "test"}}
   },
   "mcp_servers" : {
     "enabled" : true,
     "ids" : [
       "*"
     ],
-    "visible" : true
+    "visible" : true,
+    "max_iterations": 3,
+    "model": {
+      "temperature" : 0.8,
+      "top_p" : 0.5,
+      "presence_penalty" : 0,
+      "frequency_penalty" : 0,
+      "max_tokens" : 1024
+    }
+  },
+  "tools": {
+    "builtin": {
+      "calculator": true, 
+      "wikipedia: false, 
+      "duckduckgo": false, 
+      "scraper": false
+    },
+    "enabled": true
   },
   "keepalive" : "30m",
   "enabled" : true,
@@ -95,7 +113,7 @@ curl -XPOST http://localhost:9000/assistant/ -d'{
 ```shell
 //request
 curl -XPUT http://localhost:9000/assistant/cvuak1lath2dlgqqpcjg -d'{
-  "name" : "deault",
+   "name" : "deault",
   "description" : "default AI chat assistant",
   "icon" : "font_Google-video",
   "type" : "deep_think",
@@ -139,14 +157,32 @@ curl -XPUT http://localhost:9000/assistant/cvuak1lath2dlgqqpcjg -d'{
     "ids" : [
       "d895f22ed2ff25ad8c6080af1cc23a21"
     ],
-    "visible" : true
+    "visible" : true,
+    "filter": {"term":{"name": "test"}}
   },
   "mcp_servers" : {
     "enabled" : true,
     "ids" : [
       "*"
     ],
-    "visible" : true
+    "visible" : true,
+    "max_iterations": 3,
+    "model": {
+      "temperature" : 0.8,
+      "top_p" : 0.5,
+      "presence_penalty" : 0,
+      "frequency_penalty" : 0,
+      "max_tokens" : 1024
+    }
+  },
+  "tools": {
+    "builtin": {
+      "calculator": true, 
+      "wikipedia: false, 
+      "duckduckgo": false, 
+      "scraper": false
+    },
+    "enabled": true
   },
   "keepalive" : "30m",
   "enabled" : true,
@@ -381,3 +417,37 @@ curl   -H 'Content-Type: application/json'   -XPOST http://localhost:9000/chat/c
   "acknowledged": true
 }
 ```
+
+## Assistant UI Management
+
+### Search Assistant
+Log in to the Coco-Server admin dashboard, click `AI Assistant` in the left menu to view all assistant lists, as shown below:  
+{{% load-img "/img/assistant/list.png" "assistant list" %}}
+
+Enter keywords in the search box above the list and click the `Refresh` button to search for matching assistant, as shown below:  
+{{% load-img "/img/assistant/filter-list.png" "assistant search" %}}
+
+
+### Add Assistant
+Click `Add` in the top-right corner of the list to create a new assistant, as shown below:  
+{{% load-img "/img/assistant/add-1.png" "add assistant" %}}  
+{{% load-img "/img/assistant/add-2.png" "add assistant" %}}
+{{% load-img "/img/assistant/add-3.png" "add assistant" %}}
+
+The system provides default values for the assistant configuration. Modify these values as needed, then click the save button to complete the creation.
+
+
+### Delete Assistant
+Select the target assistant in the list, click `Delete` on the right side of the entry, and confirm in the pop-up dialog to complete the deletion. As shown below:  
+{{% load-img "/img/assistant/delete.png" "delete assistant" %}}
+
+> The built-in assistant cannot be deleted, but it can be modified.
+
+
+### Edit Assistant
+Select the target assistant in the list, click `Edit` on the right side to enter the editing page. Modify the configuration and click save to update. As shown below:  
+{{% load-img "/img/assistant/edit.png" "edit assistant" %}}
+
+
+### Clone Assistant
+Select the target assistant in the list, click `Clone` on the right side to clone a assistant and then you will enter the editing page. Just like the operation of `Edit Assistant`, Modify the configuration and click save to update.
