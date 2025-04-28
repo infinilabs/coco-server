@@ -150,19 +150,6 @@ curl -XPUT http://localhost:9000/integration/cvj9s15ath21fvf9st00 -d '{
 curl -XGET http://localhost:9000/integration/_search
 ```
 
-### Update Suggested Topics
-
-```
-curl -H'X-API-TOKEN: cvl0qcjq50k2ddtq9230s1sl7oie0b1jrc06caznl51i1fb26wukbf4ftmwdfv4v57dm0qx6raqnaots8owt'  -XPOST http://localhost:9001/integration/cvj9knjq50k3mcuegatg/chat/_suggest -d'["Hello world", "What is Coco AI?", "What is INFINI Pizza?"]'
-```
-
-### View Suggested Topics
-
-```
-curl -H'X-API-TOKEN: cvl0qcjq50k2ddtq9230s1sl7oie0b1jrc06caznl51i1fb26wukbf4ftmwdfv4v57dm0qx6raqnaots8owt'  -XGET http://localhost:9001/integration/cvj9knjq50k3mcuegatg/chat/_suggest
-```
-
-
 ## Integration UI Management
 
 ### Search Integration
