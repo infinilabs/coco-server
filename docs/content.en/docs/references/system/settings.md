@@ -5,6 +5,8 @@ weight: 510
 
 # System Settings
 
+## System Settings API
+
 ```
 curl -XPOST http://localhost:9000/settings -d'
 {
@@ -36,3 +38,26 @@ curl -XPOST http://localhost:9000/settings -d'
 	}
 }'
 ```
+
+## System Settings UI Management
+
+### Server
+
+Log in to the Coco-Server admin dashboard, click `Home` in the left menu to view server infomation, as shown below:
+
+{{% load-img "/img/settings/settings-server.png" "settings server" %}}
+
+Click the edit button next to the name (address), enter a new one, and then click the save button to save the name (address).
+
+### App Settings
+
+Log in to the Coco-Server admin dashboard, click `Settings` in the left menu, and then click tab `App Settings` to view app settings, as shown below:
+
+{{% load-img "/img/settings/settings-app-1.png" "settings server" %}}
+
+You can set whether to enable the chat start page and configure the relevant parameters here.
+
+{{% load-img "/img/settings/settings-app-2.png" "settings server" %}}
+
+
+

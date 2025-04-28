@@ -103,27 +103,24 @@ curl  -H 'Content-Type: application/json'   -XDELETE http://localhost:9000/integ
 curl -XPUT http://localhost:9000/integration/cvj9s15ath21fvf9st00 -d '{
     "type": "floating",
     "name": "test_local",
-    "datasource": [
-      "d895f22ed2ff25ad8c6080af1cc23a21"
-    ],
     "enabled_module": {
       "search": {
         "enabled": true,
-        "placeholder": "Search whatever you want..."
+        "placeholder": "Search whatever you want...",
+        "datasource": [
+          "d895f22ed2ff25ad8c6080af1cc23a21"
+        ],
       },
       "ai_chat": {
         "enabled": true,
         "placeholder": "Ask whatever you want..."
       },
       "features": [
-        "think_active",
-        "search_active",
         "chat_history"
       ]
     },
     "access_control": {
       "authentication": true,
-      "chat_history": false
     },
     "appearance": {
       "theme": "auto"
