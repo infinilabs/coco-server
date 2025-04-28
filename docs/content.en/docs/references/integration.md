@@ -196,3 +196,6 @@ Click the `Preview` button on the right side of the Integration editing page to 
 {{% load-img "/img/integration/preview.png" "preview integration" %}}
 
 The preview feature allows testing search and chat functionalities.  
+
+### Renew Token
+Select the target Integration in the list, click `Renew Token` on the right side of the entry.
