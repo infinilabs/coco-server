@@ -102,6 +102,20 @@ type RAGContext struct {
 const DefaultAssistantID = "default"
 
 func (h APIHandler) extractParameters(req *http.Request) (*RAGContext, error) {
+
+	assistantID := h.GetParameterOrDefault(req, "assistant_id", DefaultAssistantID)
+
+	assistant, _, err := common.GetAssistant(assistantID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get assistant with id [%v]: %w", assistantID, err)
+	}
+	if assistant == nil {
+		return nil, fmt.Errorf("assistant [%s] is not found", assistantID)
+	}
+	if !assistant.Enabled {
+		return nil, fmt.Errorf("assistant [%s] is not enabled", assistant.Name)
+	}
+
 	params := &RAGContext{
 		SearchDB:     h.GetBoolOrDefault(req, "search", false),
 		DeepThink:    h.GetBoolOrDefault(req, "deep_thinking", false),
@@ -123,19 +137,7 @@ func (h APIHandler) extractParameters(req *http.Request) (*RAGContext, error) {
 		params.mcpServers = strings.Split(v, ",")
 	}
 
-	assistantID := h.GetParameterOrDefault(req, "assistant_id", DefaultAssistantID)
 	params.assistantID = assistantID
-
-	assistant, _, err := common.GetAssistant(assistantID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get assistant with id [%v]: %w", assistantID, err)
-	}
-	if assistant == nil {
-		return nil, fmt.Errorf("assistant [%s] is not found", assistantID)
-	}
-	if !assistant.Enabled {
-		return nil, fmt.Errorf("assistant [%s] is not enabled", assistant.Name)
-	}
 
 	params.AssistantCfg = assistant
 
@@ -369,7 +371,7 @@ func (h APIHandler) processMessageAsync(ctx context.Context, reqMsg *common.Chat
 	}
 
 	var toolsMayHavePromisedResult = false
-	if (params.AssistantCfg.MCPConfig.Enabled && len(params.mcpServers) > 0) || params.AssistantCfg.ToolsConfig.Enabled {
+	if params.MCP && ((params.AssistantCfg.MCPConfig.Enabled && len(params.mcpServers) > 0) || params.AssistantCfg.ToolsConfig.Enabled) {
 		//process LLM tools / functions
 		answer, err := h.processLLMTools(ctx, reqMsg, replyMsg, params, inputValues)
 		if err != nil {
@@ -384,7 +386,7 @@ func (h APIHandler) processMessageAsync(ctx context.Context, reqMsg *common.Chat
 		}
 	}
 
-	if params.SearchDB && !toolsMayHavePromisedResult {
+	if params.SearchDB && !toolsMayHavePromisedResult && params.AssistantCfg.Datasource.Enabled && len(params.AssistantCfg.Datasource.GetIDs()) > 0 {
 		var fetchSize = 10
 		if params.DeepThink {
 			fetchSize = 50
