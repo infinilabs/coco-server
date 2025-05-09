@@ -1,8 +1,8 @@
 env:
-  ES_ENDPOINT: https://127.0.0.1:9200
+  ES_ENDPOINT: https://localhost:9200
   ES_USERNAME: admin
   ES_PASSWORD: $[[keystore.ES_PASSWORD]]
-  WEB_BINDING: 0.0.0.0:9002
+  WEB_BINDING: 0.0.0.0:9000
   API_BINDING: 0.0.0.0:2900
 
 coco:
