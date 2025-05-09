@@ -89,15 +89,6 @@ func (h *APIHandler) setupServer(w http.ResponseWriter, req *http.Request, ps ht
 	}
 
 	info := common.AppConfig()
-	if input.LLM.Endpoint != "" {
-		if info.LLMConfig == nil {
-			info.LLMConfig = &common.LLMConfig{}
-		}
-		info.LLMConfig.Endpoint = input.LLM.Endpoint
-		info.LLMConfig.DefaultModel = input.LLM.DefaultModel
-		info.LLMConfig.Type = input.LLM.Type
-		info.LLMConfig.Token = input.LLM.Token
-	}
 
 	if input.Name != "" {
 		info.ServerInfo.Name = fmt.Sprintf("%s's Coco Server", input.Name)

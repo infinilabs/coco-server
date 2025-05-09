@@ -63,7 +63,7 @@ const common: App.I18n.Schema['translation']['common'] = {
   upload: 'Upload',
   language: {
     en: 'English',
-    zh: 'Chinese'
+    zh: '简体中文',
   },
   renew_token: 'Renew Token',
   clone: 'Clone',

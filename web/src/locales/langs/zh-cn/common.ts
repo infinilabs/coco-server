@@ -62,8 +62,8 @@ const common: App.I18n.Schema['translation']['common'] = {
   },
   upload: '上传',
   language: {
-    en: '英文',
-    zh: '中文'
+    en: 'English',
+    zh: '简体中文'
   },
   renew_token: '刷新令牌',
   clone: '克隆',
