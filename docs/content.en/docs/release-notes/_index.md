@@ -11,8 +11,10 @@ Information about release notes of Coco Server is provided here.
 ### ❌ Breaking changes  
 ### 🚀 Features  
 ### 🐛 Bug fix  
+- fix: add missing cors feature flags to settings api
+
 ### ✈️ Improvements  
-- Clean up unused LLM settings code
+- chore: clean up unused LLM settings code
 
 ## 0.4.0 (2025-04-27)
 ### Breaking changes  
