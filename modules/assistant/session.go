@@ -144,7 +144,7 @@ func (h APIHandler) getChatSessions(w http.ResponseWriter, req *http.Request, ps
 		q.Conds = orm.Or(orm.Prefix("title", query), orm.QueryString("*", query))
 	}
 
-	q.AddSort("updated", orm.DESC)
+	q.AddSort("created", orm.DESC)
 	err, res := orm.Search(&common.Session{}, &q)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
