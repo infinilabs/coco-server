@@ -35,7 +35,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/valyala/fasttemplate"
+	"infini.sh/framework/lib/fasttemplate"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/plugins/security"
