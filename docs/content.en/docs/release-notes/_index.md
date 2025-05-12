@@ -16,7 +16,6 @@ Information about release notes of Coco Server is provided here.
 ### ✈️ Improvements  
 - chore: clean up unused LLM settings code
 - chore: sort chat history by created
-- chore: clean up unused LLM settings code
 
 ## 0.4.0 (2025-04-27)
 ### Breaking changes  
