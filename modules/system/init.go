@@ -24,6 +24,7 @@
 package system
 
 import (
+	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/plugins/security/filter"
 	"infini.sh/framework/core/api"
@@ -48,12 +49,15 @@ func init() {
 
 	security.GetOrInitPermissionKey(readPermission)
 	security.GetOrInitPermissionKey(updatePermission)
+	security.RegisterPermissionsToRole(core.WidgetRole, readPermission)
 
 	handler := APIHandler{}
 	api.HandleUIMethod(api.GET, "/provider/_info", handler.providerInfo, api.AllowPublicAccess())
 	api.HandleUIMethod(api.POST, "/setup/_initialize", handler.setupServer, api.AllowPublicAccess())
 
-	api.HandleUIMethod(api.GET, "/settings", handler.getServerSettings, api.RequirePermission(readPermission), api.Feature(filter.FeatureCORS))
+	api.HandleUIMethod(api.OPTIONS, "/settings", handler.getServerSettings, api.RequirePermission(readPermission), api.Feature(filter.FeatureCORS))
+	api.HandleUIMethod(api.GET, "/settings", handler.getServerSettings, api.RequirePermission(readPermission), api.Feature(filter.FeatureCORS), api.Feature(filter.FeatureMaskSensitiveField),
+		api.Feature(filter.RemoveSensitiveField))
 	api.HandleUIMethod(api.PUT, "/settings", handler.updateServerSettings, api.RequirePermission(updatePermission))
 
 	//list all icons for connectors
