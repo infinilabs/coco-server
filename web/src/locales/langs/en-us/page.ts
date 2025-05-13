@@ -344,6 +344,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       datasource: "Datasource",
       mcp_servers: "MCP Servers",
       show_in_chat: "Show in chat",
+      enabled_by_default: "Enabled by default",
       pick_datasource: "Pick Datasource",
       pick_tools: "Pick Tools",
       max_iterations: "Max iterations",
@@ -354,7 +355,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       prompt_settings: "Prompt Settings",
       prompt_settings_template: "Template",
     },
-    mode:{
+    mode: {
       simple: "Simple",
       deep_think: "Deep Think",
       workflow: "External workflow",
