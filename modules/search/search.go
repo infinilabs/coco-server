@@ -282,6 +282,15 @@ func getConnectorConfig(id string) (*common.Connector, error) {
 
 func getIcon(connector *common.Connector, icon string) (string, error) {
 	appCfg := common.AppConfig()
+
+	icon, err := internalGetIcon(&appCfg, connector, icon)
+	if err == nil && icon != "" {
+		icon = ConvertIconToBase64(&appCfg, icon)
+	}
+	return icon, err
+}
+
+func internalGetIcon(appCfg *common.Config, connector *common.Connector, icon string) (string, error) {
 	baseEndpoint := appCfg.ServerInfo.Endpoint
 	link, ok := connector.Assets.Icons[icon]
 	if ok {
@@ -302,6 +311,10 @@ func getIcon(connector *common.Connector, icon string) (string, error) {
 		}
 	}
 
+	return icon, nil
+}
+
+func ConvertIconToBase64(appCfg *common.Config, icon string) string {
 	if appCfg.ServerInfo.EncodeIconToBase64 && util.PrefixStr(icon, "http") {
 		result, err := util.HttpGet(icon)
 		if err == nil && result != nil {
@@ -320,8 +333,7 @@ func getIcon(connector *common.Connector, icon string) (string, error) {
 			}
 		}
 	}
-
-	return icon, nil
+	return icon
 }
 
 func BuildTemplatedQuery(from int, size int, mustClauses []interface{}, shouldClauses interface{}, field string, query string, source string, tags string) *orm.Query {
