@@ -20,7 +20,7 @@ const form: App.I18n.Schema['translation']['form'] = {
     required: '请输入手机号'
   },
   pwd: {
-    invalid: '密码格式不正确，6-18位字符，包含字母、数字、下划线',
+    invalid: '密码格式不正确，6-18位字符，包含字母、数字、特殊字符',
     required: '请输入密码'
   },
   required: '不能为空',
