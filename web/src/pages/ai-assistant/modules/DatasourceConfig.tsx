@@ -28,12 +28,14 @@ export const DatasourceConfig = (props: DatasourceConfigProps) => {
   const onVisibleChange = (visible: boolean) => {
     onChange?.({
       ...value,
+      enabled: visible === true ? true : value.enabled,
       visible,
     });
   };
   const onEnabled_by_defaultChange = (enabled_by_default: boolean) => {
     onChange?.({
       ...value,
+      enabled: enabled_by_default === true ? true : value.enabled,
       enabled_by_default,
     });
   };
