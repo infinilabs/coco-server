@@ -10,7 +10,7 @@ coco:
     public: false
     name: "My Coco Server"
     managed: false
-    encode_icon_to_base64: true # enable this if coco-server is using self-signed certs
+    encode_icon_to_base64: false # enable this if coco-server is using self-signed certs
 #    #[START] for managed mode only, need to configured by coco-server operator
 #    endpoint: "http://localhost:9001/"
 #    auth_provider: #config for app to use
