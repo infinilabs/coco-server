@@ -36,6 +36,7 @@ type ServerInfo struct {
 	Public               bool         `json:"public,omitempty" config:"public"`                                 // Config key for public visibility
 	AuthProvider         AuthProvider `json:"auth_provider,omitempty" config:"auth_provider"`                   // Config key for auth provider, link used by the APP
 	Managed              bool         `json:"managed,omitempty" config:"managed" `                              // Whether the server is cloud based managed by the provider
+	EncodeIconToBase64   bool         `json:"encode_icon_to_base64,omitempty" config:"encode_icon_to_base64" `
 }
 
 // Provider represents the "provider" section of the configuration.

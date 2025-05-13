@@ -5,7 +5,9 @@
 package search
 
 import (
+	"encoding/base64"
 	"errors"
+	"fmt"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
@@ -299,6 +301,26 @@ func getIcon(connector *common.Connector, icon string) (string, error) {
 			}
 		}
 	}
+
+	if appCfg.ServerInfo.EncodeIconToBase64 && util.PrefixStr(icon, "http") {
+		result, err := util.HttpGet(icon)
+		if err == nil && result != nil {
+			if result.Body != nil {
+				// Attempt to get the Content-Type from custom headers
+				contentType := ""
+				if ct, ok := result.Headers["Content-Type"]; ok && len(ct) > 0 {
+					contentType = ct[0]
+				}
+				if contentType == "" {
+					contentType = http.DetectContentType(result.Body)
+				}
+				// Encode to base64
+				base64Data := base64.StdEncoding.EncodeToString(result.Body)
+				icon = fmt.Sprintf("data:%s;base64,%s", contentType, base64Data)
+			}
+		}
+	}
+
 	return icon, nil
 }
 
