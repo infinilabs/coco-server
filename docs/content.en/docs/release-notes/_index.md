@@ -17,6 +17,7 @@ Information about release notes of Coco Server is provided here.
 - chore: clean up unused LLM settings code
 - chore: sort chat history by created
 - chore: add enabled by default params to assistant edit
+- chore: password support more special characters
 
 ## 0.4.0 (2025-04-27)
 ### Breaking changes  
