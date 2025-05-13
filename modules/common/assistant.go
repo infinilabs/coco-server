@@ -24,9 +24,10 @@
 package common
 
 import (
+	"time"
+
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
-	"time"
 )
 
 const (
@@ -79,6 +80,7 @@ type DatasourceConfig struct {
 
 	Visible bool        `json:"visible"`          // Whether the deep datasource is visible to the user
 	Filter  interface{} `json:"filter,omitempty"` // Filter for the datasource
+	EnabledByDefault bool `json:"enabled_by_default"` // Whether the datasource is enabled by default
 }
 
 func (cfg *DatasourceConfig) GetIDs() []string {
@@ -97,6 +99,7 @@ type MCPConfig struct {
 	Visible       bool         `json:"visible"` // Whether the deep datasource is visible to the user
 	Model         *ModelConfig `json:"model"`   //if not specified, use the answering model
 	MaxIterations int          `json:"max_iterations"`
+	EnabledByDefault bool `json:"enabled_by_default"` // Whether the MCP server is enabled by default
 }
 
 func (cfg *MCPConfig) GetIDs() []string {
