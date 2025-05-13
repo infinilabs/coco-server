@@ -337,6 +337,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       datasource: "数据源",
       mcp_servers: "MCP 服务器",
       show_in_chat: "在聊天界面中显示",
+      enabled_by_default: "默认启用",
       pick_datasource: "是否挑选数据源",
       pick_tools: "是否挑选工具",
       max_iterations: "最大迭代次数",
@@ -347,7 +348,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       prompt_settings: "提示词设置",
       prompt_settings_template: "模板",
     },
-    mode:{
+    mode: {
       simple: "简单模式",
       deep_think: "深度思考",
       workflow: "外部工作流",

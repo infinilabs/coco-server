@@ -1,7 +1,8 @@
 import { type LoaderFunctionArgs, useLoaderData } from "react-router-dom";
-import { useRequest } from '@sa/hooks';
-import { getAssistant, updateAssistant } from '@/service/api/assistant';
-import { EditForm } from '../modules/EditForm';
+import { useRequest } from "@sa/hooks";
+
+import { getAssistant, updateAssistant } from "@/service/api/assistant";
+import { EditForm } from "../modules/EditForm";
 
 export function Component() {
   const id = useLoaderData();
@@ -16,21 +17,26 @@ export function Component() {
       ...values,
       datasource: {
         ...(values.datasource || {}),
-        ids: values.datasource?.ids?.includes('*') ? ['*'] : values.datasource?.ids,
-      }
+        ids: values.datasource?.ids?.includes("*")
+          ? ["*"]
+          : values.datasource?.ids,
+      },
     };
     if (!data?._source?.id) return;
-    if (before) before()
-    const res = await updateAssistant(data._source.id, { id: data._source.id, ...params})
-    if (res.data?.result === 'updated') {
-      window.$message?.success(t('common.updateSuccess'));
+    if (before) before();
+    const res = await updateAssistant(data._source.id, {
+      id: data._source.id,
+      ...params,
+    });
+    if (res.data?.result === "updated") {
+      window.$message?.success(t("common.updateSuccess"));
     }
-    if (after) after()
-  }
+    if (after) after();
+  };
 
   useEffect(() => {
-    run(id)
-  }, [])
+    run(id);
+  }, []);
 
   return (
     <div className="h-full min-h-500px">
@@ -43,11 +49,16 @@ export function Component() {
           <div>{t(`route.ai-assistant_edit`)}</div>
         </div>
         <div className="px-30px">
-          <EditForm initialValues={data?._source || {}} loading={loading} onSubmit={onSubmit} mode="edit" />
+          <EditForm
+            initialValues={data?._source || {}}
+            loading={loading}
+            mode="edit"
+            onSubmit={onSubmit}
+          />
         </div>
       </ACard>
     </div>
-  )
+  );
 }
 
 export async function loader({ params, ...rest }: LoaderFunctionArgs) {
