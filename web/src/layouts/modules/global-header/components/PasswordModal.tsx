@@ -13,7 +13,7 @@ const PasswordModal = ({
 }) => {
   const { t } = useTranslation();
   const [form] = Form.useForm();
-  const { formRules } = useFormRules();
+  const { defaultRequiredRule, formRules } = useFormRules();
 
   const handleSubmit = async () => {
     const params = await form.validateFields();
@@ -46,7 +46,7 @@ const PasswordModal = ({
         <Form.Item
           label={t('common.oldPassword')}
           name="old_password"
-          rules={formRules.pwd}
+          rules={[defaultRequiredRule]}
         >
           <Input.Password />
         </Form.Item>

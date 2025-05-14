@@ -18,7 +18,7 @@ const LoginForm = memo(({ onProvider }: { onProvider?: () => void }) => {
   const [form] = Form.useForm<LoginParams>();
   const { loading, toLogin } = useLogin();
   const { t } = useTranslation();
-  const { formRules } = useFormRules();
+  const { defaultRequiredRule } = useFormRules();
 
   const providerInfo = localStg.get('providerInfo');
   const managed = Boolean(providerInfo?.managed);
@@ -70,7 +70,7 @@ const LoginForm = memo(({ onProvider }: { onProvider?: () => void }) => {
             className="m-b-32px"
             label={t('page.login.password')}
             name="password"
-            rules={formRules.pwd}
+            rules={[defaultRequiredRule]}
           >
             <Input.Password className="h-40px" />
           </Form.Item>
