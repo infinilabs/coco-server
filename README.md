@@ -32,6 +32,12 @@ Feel free to join the Discord server to discuss anything related to this project
 
 👉 [Join the INFINI Community on Discord](https://discord.gg/4tKTMkkvVX)
 
+## Contributors
+
+<a href="https://github.com/infinilabs/coco-server/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=infinilabs/coco-server" />
+</a>
+
 ## License
 
 Coco Server is a truly open-source project, licensed under the [GNU Affero General Public License v3.0](https://opensource.org/licenses/AGPL-3.0).
