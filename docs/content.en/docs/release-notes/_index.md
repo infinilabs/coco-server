@@ -10,6 +10,8 @@ Information about release notes of Coco Server is provided here.
 ## Latest (In development)  
 ### ❌ Breaking changes  
 ### 🚀 Features  
+- feat: allow to convert icon to base64 #261
+
 ### 🐛 Bug fix  
 - fix: add missing cors feature flags to settings api
 

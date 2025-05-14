@@ -35,7 +35,6 @@ import (
 	"strings"
 	"time"
 
-	"infini.sh/framework/lib/fasttemplate"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/plugins/security"
@@ -47,6 +46,7 @@ import (
 	"infini.sh/framework/core/pipeline"
 	"infini.sh/framework/core/util"
 	"infini.sh/framework/lib/fasthttp"
+	"infini.sh/framework/lib/fasttemplate"
 	elastic1 "infini.sh/framework/modules/elastic/common"
 	"infini.sh/framework/plugins/replay"
 )

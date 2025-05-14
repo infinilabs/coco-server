@@ -5,7 +5,9 @@
 package search
 
 import (
+	"encoding/base64"
 	"errors"
+	"fmt"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
@@ -280,6 +282,15 @@ func getConnectorConfig(id string) (*common.Connector, error) {
 
 func getIcon(connector *common.Connector, icon string) (string, error) {
 	appCfg := common.AppConfig()
+
+	icon, err := internalGetIcon(&appCfg, connector, icon)
+	if err == nil && icon != "" {
+		icon = ConvertIconToBase64(&appCfg, icon)
+	}
+	return icon, err
+}
+
+func internalGetIcon(appCfg *common.Config, connector *common.Connector, icon string) (string, error) {
 	baseEndpoint := appCfg.ServerInfo.Endpoint
 	link, ok := connector.Assets.Icons[icon]
 	if ok {
@@ -299,7 +310,30 @@ func getIcon(connector *common.Connector, icon string) (string, error) {
 			}
 		}
 	}
+
 	return icon, nil
+}
+
+func ConvertIconToBase64(appCfg *common.Config, icon string) string {
+	if appCfg.ServerInfo.EncodeIconToBase64 && util.PrefixStr(icon, "http") {
+		result, err := util.HttpGet(icon)
+		if err == nil && result != nil {
+			if result.Body != nil {
+				// Attempt to get the Content-Type from custom headers
+				contentType := ""
+				if ct, ok := result.Headers["Content-Type"]; ok && len(ct) > 0 {
+					contentType = ct[0]
+				}
+				if contentType == "" {
+					contentType = http.DetectContentType(result.Body)
+				}
+				// Encode to base64
+				base64Data := base64.StdEncoding.EncodeToString(result.Body)
+				icon = fmt.Sprintf("data:%s;base64,%s", contentType, base64Data)
+			}
+		}
+	}
+	return icon
 }
 
 func BuildTemplatedQuery(from int, size int, mustClauses []interface{}, shouldClauses interface{}, field string, query string, source string, tags string) *orm.Query {
