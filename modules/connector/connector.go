@@ -189,55 +189,10 @@ func (h *APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprou
 
 	err, res := orm.SearchWithResultItemMapper(&connectors, itemMapFunc, &q)
 
-	//err, res := orm.SearchWithResultItemMapper(&connectors, func(source map[string]interface{}, targetRef interface{}) error {
-	//	if !appConfig.ServerInfo.EncodeIconToBase64 {
-	//		return nil
-	//	}
-	//
-	//	// Ensure it's a pointer to common.Connector
-	//	connPtr, ok := targetRef.(*common.Connector)
-	//	if !ok {
-	//		return errors.New("targetRef must be *common.Connector")
-	//	}
-	//
-	//	// Unmarshal source into the pointer
-	//	sourceBytes, err := util.ToJSONBytes(source)
-	//	if err != nil {
-	//		return err
-	//	}
-	//	if err := util.FromJSONBytes(sourceBytes, connPtr); err != nil {
-	//		return err
-	//	}
-	//
-	//	// Process icons
-	//	newIcons := map[string]string{}
-	//	for k, icon := range connPtr.Assets.Icons {
-	//		link := common.AutoGetFullIconURL(&appConfig, icon)
-	//		newIcons[k] = common.ConvertIconToBase64(&appConfig, link)
-	//	}
-	//	connPtr.Assets.Icons = newIcons
-	//
-	//	if connPtr.Icon != "" {
-	//		connPtr.Icon = common.ParseAndGetIcon(connPtr, connPtr.Icon)
-	//	}
-	//
-	//	return nil
-	//}, &q)
-
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	//bytes := res.Raw
-	//if common.AppConfig().ServerInfo.EncodeIconToBase64 {
-	//
-	//	//fmt.Println(util.MustToJSON(connectors))
-	//	//for _, connector := range connectors {
-	//		data := elastic.DocumentWithMeta[common.Connector]{}
-	//		data.ID = connector.ID
-	//	}
-	//}
 
 	_, err = h.Write(w, res.Raw)
 	if err != nil {
