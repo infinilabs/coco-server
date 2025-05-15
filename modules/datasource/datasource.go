@@ -47,7 +47,8 @@ func (h *APIHandler) createDatasource(w http.ResponseWriter, req *http.Request, 
 			return
 		}
 		if !obj.Enabled {
-			common.ClearDatasourceCache()
+			common.ClearDatasourcesCache()
+			common.ClearDatasourceCache(obj.ID)
 		}
 
 		h.WriteJSON(w, util.MapStr{
@@ -84,7 +85,9 @@ func (h *APIHandler) deleteDatasource(w http.ResponseWriter, req *http.Request, 
 		return
 	}
 	// clear cache
-	common.ClearDatasourceCache()
+	common.ClearDatasourcesCache()
+	common.ClearDatasourceCache(obj.ID)
+
 	// deleting related documents
 	query := util.MapStr{
 		"query": util.MapStr{
@@ -170,7 +173,8 @@ func (h *APIHandler) updateDatasource(w http.ResponseWriter, req *http.Request, 
 		return
 	}
 	//clear cache
-	common.ClearDatasourceCache()
+	common.ClearDatasourcesCache()
+	common.ClearDatasourceCache(obj.ID)
 
 	h.WriteJSON(w, util.MapStr{
 		"_id":    obj.ID,
@@ -199,6 +203,14 @@ func (h *APIHandler) searchDatasource(w http.ResponseWriter, req *http.Request, 
 
 	var err error
 	q := orm.Query{}
+
+	//query := h.GetParameterOrDefault(req, "query", "")
+	//if query != "" {
+	//	q.Conds = orm.Or(orm.Prefix("title", query), orm.QueryString("*", query))
+	//}else{
+	//
+	//}
+
 	q.RawQuery, err = h.GetRawBody(req)
 	//attach filter for cors request
 	if integrationID := req.Header.Get(core.HeaderIntegrationID); integrationID != "" {

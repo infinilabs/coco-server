@@ -5,9 +5,7 @@
 package search
 
 import (
-	"encoding/base64"
 	"errors"
-	"fmt"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
@@ -16,7 +14,6 @@ import (
 	"infini.sh/framework/core/util"
 	ccache "infini.sh/framework/lib/cache"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 )
@@ -182,81 +179,58 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 	}
 
 	err, res := orm.Search(common.Document{}, q)
-	if err != nil {
+	if err != nil || res.Raw == nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	if res.Raw != nil {
-		v2 := SearchResponse{}
-		err := util.FromJSONBytes(res.Raw, &v2)
-		if err != nil {
-			panic(err)
-		}
+	v2 := SearchResponse{}
+	err = util.FromJSONBytes(res.Raw, &v2)
+	if err != nil {
+		panic(err)
+	}
 
-		// Loop over the hits and ensure Source is modified correctly
-		for i, doc := range v2.Hits.Hits {
-			// Get the pointer to doc.Source to make sure you're modifying the original
-			datasourceConfig, err := getDatasourceConfig(doc.Source.Source.ID)
-			if err == nil && datasourceConfig != nil && datasourceConfig.Connector.ConnectorID != "" {
-				connectorConfig, err := getConnectorConfig(datasourceConfig.Connector.ConnectorID)
+	// Loop over the hits and ensure Source is modified correctly
+	for i, doc := range v2.Hits.Hits {
+		// Get the pointer to doc.Source to make sure you're modifying the original
+		datasourceConfig, err := common.GetDatasourceConfig(doc.Source.Source.ID)
+		if err == nil && datasourceConfig != nil && datasourceConfig.Connector.ConnectorID != "" {
+			connectorConfig, err := getConnectorConfig(datasourceConfig.Connector.ConnectorID)
 
-				if connectorConfig != nil && err == nil {
-					icon, err := getIcon(connectorConfig, doc.Source.Icon)
-					if err == nil && icon != "" {
-						v2.Hits.Hits[i].Source.Icon = icon
+			if connectorConfig != nil && err == nil {
+				icon := common.ParseAndGetIcon(connectorConfig, doc.Source.Icon)
+				if icon != "" {
+					v2.Hits.Hits[i].Source.Icon = icon
+				}
+
+				if doc.Source.Source.Icon != "" {
+					icon = common.ParseAndGetIcon(connectorConfig, doc.Source.Source.Icon)
+					if icon != "" {
+						v2.Hits.Hits[i].Source.Source.Icon = icon
 					}
-
-					if doc.Source.Source.Icon != "" {
-						icon, err = getIcon(connectorConfig, doc.Source.Source.Icon)
-						if err == nil && icon != "" {
+				} else {
+					//try datasource's icon
+					if datasourceConfig.Icon != "" {
+						icon = common.ParseAndGetIcon(connectorConfig, datasourceConfig.Icon)
+						if icon != "" {
 							v2.Hits.Hits[i].Source.Source.Icon = icon
 						}
 					} else {
 						//try connector's icon
-						icon, err = getIcon(connectorConfig, connectorConfig.Icon)
-						if err == nil && icon != "" {
+						icon = common.ParseAndGetIcon(connectorConfig, connectorConfig.Icon)
+						if icon != "" {
 							v2.Hits.Hits[i].Source.Source.Icon = icon
 						}
 					}
 				}
 			}
 		}
-
-		h.WriteJSON(w, v2, 200)
-		return
 	}
 
-	_, err = h.Write(w, res.Raw)
-	if err != nil {
-		h.Error(w, err)
-	}
+	h.WriteJSON(w, v2, 200)
 }
 
-var datasourceCacheKey = "Datasource"
 var connectorCacheKey = "Datasource"
-
-func getDatasourceConfig(id string) (*common.DataSource, error) {
-	v := configCache.Get(datasourceCacheKey, id)
-	if v != nil {
-		if !v.Expired() {
-			x, ok := v.Value().(*common.DataSource)
-			if ok && x != nil {
-				return x, nil
-			}
-		}
-	}
-
-	obj := common.DataSource{}
-	obj.ID = id
-	exists, err := orm.Get(&obj)
-	if err == nil && exists {
-		configCache.Set(datasourceCacheKey, id, &obj, util.GetDurationOrDefault("30m", time.Duration(30)*time.Minute))
-		return &obj, nil
-	}
-
-	return nil, errors.New("not found")
-}
 
 func getConnectorConfig(id string) (*common.Connector, error) {
 	v := configCache.Get(connectorCacheKey, id)
@@ -278,62 +252,6 @@ func getConnectorConfig(id string) (*common.Connector, error) {
 	}
 
 	return nil, errors.New("not found")
-}
-
-func getIcon(connector *common.Connector, icon string) (string, error) {
-	appCfg := common.AppConfig()
-
-	icon, err := internalGetIcon(&appCfg, connector, icon)
-	if err == nil && icon != "" {
-		icon = ConvertIconToBase64(&appCfg, icon)
-	}
-	return icon, err
-}
-
-func internalGetIcon(appCfg *common.Config, connector *common.Connector, icon string) (string, error) {
-	baseEndpoint := appCfg.ServerInfo.Endpoint
-	link, ok := connector.Assets.Icons[icon]
-	if ok {
-		if util.PrefixStr(link, "/") && baseEndpoint != "" {
-			link, err := url.JoinPath(baseEndpoint, link)
-			if err == nil && link != "" {
-				return link, nil
-			}
-		}
-		// return the direct key to the font icon
-		return link, nil
-	} else {
-		if util.PrefixStr(icon, "/") {
-			link, err := url.JoinPath(baseEndpoint, icon)
-			if err == nil && link != "" {
-				return link, nil
-			}
-		}
-	}
-
-	return icon, nil
-}
-
-func ConvertIconToBase64(appCfg *common.Config, icon string) string {
-	if appCfg.ServerInfo.EncodeIconToBase64 && util.PrefixStr(icon, "http") {
-		result, err := util.HttpGet(icon)
-		if err == nil && result != nil {
-			if result.Body != nil {
-				// Attempt to get the Content-Type from custom headers
-				contentType := ""
-				if ct, ok := result.Headers["Content-Type"]; ok && len(ct) > 0 {
-					contentType = ct[0]
-				}
-				if contentType == "" {
-					contentType = http.DetectContentType(result.Body)
-				}
-				// Encode to base64
-				base64Data := base64.StdEncoding.EncodeToString(result.Body)
-				icon = fmt.Sprintf("data:%s;base64,%s", contentType, base64Data)
-			}
-		}
-	}
-	return icon
 }
 
 func BuildTemplatedQuery(from int, size int, mustClauses []interface{}, shouldClauses interface{}, field string, query string, source string, tags string) *orm.Query {

@@ -95,7 +95,7 @@ func reloadConfig() {
 				config.ServerInfo.Public = filebasedConfig.ServerInfo.Public
 				config.ServerInfo.Version = filebasedConfig.ServerInfo.Version
 			}
-			
+
 			config.ServerInfo.EncodeIconToBase64 = filebasedConfig.ServerInfo.EncodeIconToBase64
 		}
 	}
