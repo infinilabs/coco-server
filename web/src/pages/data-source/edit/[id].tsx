@@ -129,7 +129,7 @@ export function Component() {
       datasource.token = datasource?.connector?.config?.token || '';
       break;
     case Types.HugoSite:
-      datasource.urls = datasource?.connector?.config?.urls || [];
+      datasource.urls = datasource?.connector?.config?.urls || [''];
       break;
     case Types.GoogleDrive:
       break;
