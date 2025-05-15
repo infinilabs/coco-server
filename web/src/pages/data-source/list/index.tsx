@@ -87,9 +87,8 @@ export function Component() {
     }
   };
   const onSyncEnabledChange = (value: boolean, record: Datasource) => {
-    record.sync_enabled = value;
     setLoading(true);
-    updateDatasource(record.id, record)
+    updateDatasource(record.id, {sync_enabled: value})
       .then(res => {
         if (res.data?.result === 'updated') {
           message.success(t('common.updateSuccess'));

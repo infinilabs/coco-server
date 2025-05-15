@@ -10,17 +10,18 @@ Information about release notes of Coco Server is provided here.
 ## Latest (In development)  
 ### ❌ Breaking changes  
 ### 🚀 Features  
-- feat: allow to convert icon to base64 #261
+- feat: allow converting icon to base64 #261
 
 ### 🐛 Bug fix  
 - fix: add missing cors feature flags to settings api
 - fix: incorrect datasource icon #265
+- fix: handle empty URL values in HugoSite-type datasource
 
 ### ✈️ Improvements  
 - chore: clean up unused LLM settings code
 - chore: sort chat history by created
 - chore: add enabled by default params to assistant edit
-- chore: password support more special characters
+- chore: password supports more special characters
 
 ## 0.4.0 (2025-04-27)
 ### Breaking changes  
@@ -32,9 +33,9 @@ Information about release notes of Coco Server is provided here.
 - Add version and license
 
 ### Bug fix  
-- Fix personal token was not well supported for Yuque connector
+- Fix personal token was not well-supported for Yuque connector
 - Fix incorrect content-type header for wrapper
-- Fix default login url can't be changed afterwards
+- Fix default login url can't be changed afterward
 
 
 ### Improvements
