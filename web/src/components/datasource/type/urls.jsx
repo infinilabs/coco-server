@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 
 export const MultiURLInput = ({ onChange, showLabel = true, value = [''] }) => {
   const [urls, setUrls] = useState(value);
-  debugger
   const { t } = useTranslation();
 
   const handleChange = (index, value) => {
