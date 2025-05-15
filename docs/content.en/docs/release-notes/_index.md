@@ -14,6 +14,7 @@ Information about release notes of Coco Server is provided here.
 
 ### 🐛 Bug fix  
 - fix: add missing cors feature flags to settings api
+- fix: incorrect datasource icon #265
 
 ### ✈️ Improvements  
 - chore: clean up unused LLM settings code
