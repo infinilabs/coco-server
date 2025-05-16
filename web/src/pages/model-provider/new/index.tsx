@@ -13,7 +13,7 @@ import { IconSelector } from "../../connector/new/icon_selector";
 import {MinusCircleOutlined} from "@ant-design/icons";
 import { formatESSearchResult } from '@/service/request/es';
 import ModelSettings from '@/pages/ai-assistant/modules/ModelSettings';
-import { settings } from 'nprogress';
+import { getUUID } from '@/utils/common';
 
 export function Component() {
   const { t } = useTranslation();
@@ -114,11 +114,11 @@ export const ModelsComponent = ({ value = [], onChange }: any) => {
   const initialValue = useMemo(() => {
     const iv = (value || []).map((v: any) => ({
       value: v,
-      key: crypto.randomUUID(),
+      key: getUUID(),
     }));
     return iv.length ? iv : [{ value: {
       settings: defaultModelSettings,
-    }, key: crypto.randomUUID() }];
+    }, key: getUUID() }];
   }, [value]);
 
   const [innerValue, setInnerValue] = useState<{ value: any; key: string }[]>(initialValue);
@@ -130,9 +130,9 @@ export const ModelsComponent = ({ value = [], onChange }: any) => {
       prevValueRef.current = value;
       const iv = (value || []).map((v: any) => ({
         value: v,
-        key: crypto.randomUUID(),
+        key: getUUID(),
       }));
-      setInnerValue(iv.length ? iv : [{ value: {settings: defaultModelSettings,}, key: crypto.randomUUID() }]);
+      setInnerValue(iv.length ? iv : [{ value: {settings: defaultModelSettings,}, key: getUUID() }]);
     }
   }, [value]);
 
@@ -153,12 +153,12 @@ export const ModelsComponent = ({ value = [], onChange }: any) => {
 
   const onDeleteClick = (key: string) => {
     const newValues = innerValue.filter((v) => v.key !== key);
-    setInnerValue(newValues.length ? newValues : [{ value: {settings: defaultModelSettings,}, key: crypto.randomUUID() }]);
+    setInnerValue(newValues.length ? newValues : [{ value: {settings: defaultModelSettings,}, key: getUUID() }]);
     onChange?.(newValues.map((v) => Array.isArray(v.value) ? v.value[0]: v.value));
   };
 
   const onAddClick = () => {
-    setInnerValue([...innerValue, { value: {}, key: crypto.randomUUID() }]);
+    setInnerValue([...innerValue, { value: {}, key: getUUID() }]);
   };
 
   const onItemChange = (key: string, newValue: any) => {
@@ -220,4 +220,3 @@ export const ModelsComponent = ({ value = [], onChange }: any) => {
     </div>
   );
 };
-
