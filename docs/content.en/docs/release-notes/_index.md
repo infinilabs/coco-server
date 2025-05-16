@@ -17,6 +17,7 @@ Information about release notes of Coco Server is provided here.
 - fix: incorrect datasource icon #265
 - fix: handle empty URL values in HugoSite-type datasource
 - fix: datasource & MCP selection problem #267
+- fix: resolve compatibility issue with crypto.randomUUID when creating model provider
 
 ### ✈️ Improvements  
 - chore: clean up unused LLM settings code
