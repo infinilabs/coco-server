@@ -16,6 +16,7 @@ Information about release notes of Coco Server is provided here.
 - fix: add missing cors feature flags to settings api
 - fix: incorrect datasource icon #265
 - fix: handle empty URL values in HugoSite-type datasource
+- fix: datasource & MCP selection problem #267
 
 ### ✈️ Improvements  
 - chore: clean up unused LLM settings code

@@ -10,10 +10,14 @@ export const DatasourceConfig = (props: DatasourceConfigProps) => {
   const { t } = useTranslation();
   const { value = {}, onChange } = props;
   const onIDsChange = (newIds: string[]) => {
+    const processedIds =
+      newIds.length > 1 && newIds.includes("*")
+        ? newIds.filter((id) => id !== "*")
+        : newIds;
     if (onChange) {
       onChange({
         ...value,
-        ids: newIds,
+        ids: processedIds,
       });
     }
   };
