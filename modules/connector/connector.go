@@ -148,10 +148,47 @@ func (h *APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprou
 	var err error
 	q := orm.Query{}
 	q.RawQuery, err = h.GetRawBody(req)
-
 	//TODO handle url query args
 
-	err, res := orm.Search(&common.Connector{}, &q)
+	appConfig := common.AppConfig()
+	var connectors []common.Connector
+
+	itemMapFunc := func(source map[string]interface{}, targetRef interface{}) error {
+		if !appConfig.ServerInfo.EncodeIconToBase64 {
+			return nil
+		}
+
+		// Modify icons in-place
+		if assets, ok := source["assets"].(map[string]interface{}); ok {
+			if icons, ok := assets["icons"].(map[string]interface{}); ok {
+				for k, v := range icons {
+					if iconStr, ok := v.(string); ok {
+						link := common.AutoGetFullIconURL(&appConfig, iconStr)
+						icons[k] = common.ConvertIconToBase64(&appConfig, link)
+					}
+				}
+			}
+		}
+
+		if iconRef, ok := source["icon"].(string); ok {
+			if assets, ok := source["assets"].(map[string]interface{}); ok {
+				if icons, ok := assets["icons"].(map[string]interface{}); ok {
+					if iconValue, ok := icons[iconRef].(string); ok {
+						source["icon"] = common.ConvertIconToBase64(&appConfig, common.AutoGetFullIconURL(&appConfig, iconValue))
+					} else {
+						source["icon"] = common.ConvertIconToBase64(&appConfig, common.AutoGetFullIconURL(&appConfig, iconRef))
+					}
+				}
+			} else {
+				source["icon"] = common.ConvertIconToBase64(&appConfig, common.AutoGetFullIconURL(&appConfig, "icons"))
+			}
+		}
+
+		return nil
+	}
+
+	err, res := orm.SearchWithResultItemMapper(&connectors, itemMapFunc, &q)
+
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return

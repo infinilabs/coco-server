@@ -5,7 +5,9 @@
 package common
 
 import (
+	"errors"
 	"infini.sh/framework/core/orm"
+	"infini.sh/framework/core/util"
 	"time"
 )
 
@@ -31,9 +33,14 @@ const (
 	DatasourcePrimaryCacheKey     = "datasource_primary"
 	DisabledDatasourceIDsCacheKey = "disabled_datasource_ids"
 	EnabledDatasourceIDsCacheKey  = "enabled_datasource_ids"
+	DatasourceItemsCacheKey       = "datasource_items"
 )
 
-func ClearDatasourceCache() {
+func ClearDatasourceCache(id string) {
+	GeneralObjectCache.Delete(DatasourceItemsCacheKey, id)
+}
+
+func ClearDatasourcesCache() {
 	GeneralObjectCache.Delete(DatasourcePrimaryCacheKey, DisabledDatasourceIDsCacheKey)
 	GeneralObjectCache.Delete(DatasourcePrimaryCacheKey, EnabledDatasourceIDsCacheKey)
 }
@@ -95,4 +102,26 @@ func GetAllEnabledDatasourceIDs() ([]string, error) {
 	GeneralObjectCache.Set(DatasourcePrimaryCacheKey, EnabledDatasourceIDsCacheKey, datasourceIDs, time.Duration(30)*time.Minute)
 	return datasourceIDs, nil
 
+}
+
+func GetDatasourceConfig(id string) (*DataSource, error) {
+	v := GeneralObjectCache.Get(DatasourceItemsCacheKey, id)
+	if v != nil {
+		if !v.Expired() {
+			x, ok := v.Value().(*DataSource)
+			if ok && x != nil {
+				return x, nil
+			}
+		}
+	}
+
+	obj := DataSource{}
+	obj.ID = id
+	exists, err := orm.Get(&obj)
+	if err == nil && exists {
+		GeneralObjectCache.Set(DatasourceItemsCacheKey, id, &obj, util.GetDurationOrDefault("30m", time.Duration(30)*time.Minute))
+		return &obj, nil
+	}
+
+	return nil, errors.New("not found")
 }
