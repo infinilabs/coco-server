@@ -1,46 +1,65 @@
 ---
 weight: 80
-title: "Release Notes"
+title: 'Release Notes'
 ---
 
 # Release Notes
 
 Information about release notes of Coco Server is provided here.
 
-## Latest (In development)  
-### ❌ Breaking changes  
-### 🚀 Features  
+## Latest (In development)
+
+### ❌ Breaking changes
+
+### 🚀 Features
+
+### 🐛 Bug fix
+
+### ✈️ Improvements
+
+## 0.5.0 (2025-05-17)
+
+### ❌ Breaking changes
+
+### 🚀 Features
+
 - feat: allow converting icon to base64 #261
 
-### 🐛 Bug fix  
+### 🐛 Bug fix
+
 - fix: add missing cors feature flags to settings api
 - fix: incorrect datasource icon #265
 - fix: handle empty URL values in HugoSite-type datasource
 - fix: datasource & MCP selection problem #267
 - fix: resolve compatibility issue with crypto.randomUUID when creating model provider
 
-### ✈️ Improvements  
+### ✈️ Improvements
+
 - chore: clean up unused LLM settings code
 - chore: sort chat history by created
 - chore: add enabled by default params to assistant edit
 - chore: password supports more special characters
 
 ## 0.4.0 (2025-04-27)
-### Breaking changes  
-### Features  
+
+### Breaking changes
+
+### Features
+
 - Add chat session management API
 - Add support for font icons (#183)
 - Add support for AI assistant CURD management
 - Add support for model provider CURD management
 - Add version and license
 
-### Bug fix  
+### Bug fix
+
 - Fix personal token was not well-supported for Yuque connector
 - Fix incorrect content-type header for wrapper
 - Fix default login url can't be changed afterward
 
-
 ### Improvements
+
 - Set built-in connector icons as read-only
 - Support setting icon and placeholder of integration
 - Enhance UI for searchbox
@@ -58,6 +77,7 @@ Information about release notes of Coco Server is provided here.
 ### Breaking changes
 
 ### Features
+
 - Add support for Connector CRUD management (#147)
 - Control the searchability of related documents based on the data source's enabled status. (#147)
 - Allow user pass websocket session id via request header #148
@@ -71,6 +91,7 @@ Information about release notes of Coco Server is provided here.
 - Add support to filter senstive fields
 
 ### Bug fix
+
 - Fixed provider info version (#144)
 - Fixed an issue where keyword search filtering for datasource was not working as expected (#147)
 - Fixed to remove uncheck datasource condition in must conditions
@@ -82,6 +103,7 @@ Information about release notes of Coco Server is provided here.
 ### Breaking changes
 
 ### Features
+
 - Add support for API token CRUD management (#132)
 - Add shortcut API to create doc in datasource
 - Add attachment API to management uploaded files in chat session
@@ -91,6 +113,7 @@ Information about release notes of Coco Server is provided here.
 - Fixed fatal error: concurrent map writes #125
 
 ### Improvements
+
 - Enhance UI for Adding a New Data Source (#126)
 - Add option login flag to logout api
 - Catch error in background message processing task
@@ -108,7 +131,7 @@ Information about release notes of Coco Server is provided here.
 - Add google drive connector
 - Incremental indexing google drive files, connect via url
 - Ignore empty query (#35)
-- Add new field  to push messages (#34)
+- Add new field to push messages (#34)
 - Add reset api to google_drive's connector (#36)
 - Add yuque connector #41
 - Allow to skip invalid token for yuque connector
@@ -120,7 +143,7 @@ Information about release notes of Coco Server is provided here.
 - Add web #77
 - Add a simple security feature to Coco Server (#79)
 - Init commit for Datasource management UI (#81)
-- *(datasource)* Support CRUD management (#82)
+- _(datasource)_ Support CRUD management (#82)
 - Add guide, login, home, and settings (#83)
 - Add field `SyncEnabled` to control datasource synchronization (#103)
 - Add google drive connector settings (#109)
@@ -230,6 +253,7 @@ Information about release notes of Coco Server is provided here.
 ## 0.1.0 (2025-02-16)
 
 ### Features
+
 - Indexing API
 - Search API
 - Suggest API
@@ -245,5 +269,5 @@ Information about release notes of Coco Server is provided here.
 ### Bug fix
 
 ### Improvements
-- Update header key to avoid using underscores #48
 
+- Update header key to avoid using underscores #48
