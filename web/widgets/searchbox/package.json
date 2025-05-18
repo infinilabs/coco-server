@@ -38,7 +38,7 @@
     "watch": "tsup --watch"
   },
   "dependencies": {
-    "@infinilabs/search-chat": "^1.2.0",
+    "@infinilabs/search-chat": "^1.2.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
