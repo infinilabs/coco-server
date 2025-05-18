@@ -10,36 +10,28 @@ export const DatasourceConfig = (props: DatasourceConfigProps) => {
   const { t } = useTranslation();
   const { value = {}, onChange } = props;
   const onIDsChange = (newIds: string[]) => {
-    const processedIds =
-      newIds.length > 1 && newIds.includes("*")
-        ? newIds.filter((id) => id !== "*")
-        : newIds;
     if (onChange) {
       onChange({
         ...value,
-        ids: processedIds,
+        ids: newIds,
       });
     }
   };
   const onEnabledChange = (enabled: boolean) => {
     onChange?.({
       ...value,
-      enabled,
-      enabled_by_default: enabled === false ? false : value.enabled_by_default,
-      visible: enabled === false ? false : value.visible,
+      enabled
     });
   };
   const onVisibleChange = (visible: boolean) => {
     onChange?.({
       ...value,
-      enabled: visible === true ? true : value.enabled,
       visible,
     });
   };
   const onEnabled_by_defaultChange = (enabled_by_default: boolean) => {
     onChange?.({
       ...value,
-      enabled: enabled_by_default === true ? true : value.enabled,
       enabled_by_default,
     });
   };
