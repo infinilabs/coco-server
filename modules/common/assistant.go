@@ -224,3 +224,14 @@ func GetAssistant(assistantID string) (*Assistant, bool, error) {
 	GeneralObjectCache.Set(AssistantCachePrimary, assistantID, assistant, time.Duration(30)*time.Minute)
 	return assistant, true, nil
 }
+
+func CountAssistants() (int64, error) {
+	queryDsl := util.MapStr{
+		"query": util.MapStr{
+			"term": util.MapStr{
+				"enabled": true,
+			},
+		},
+	}
+	return orm.Count(Assistant{}, util.MustToJSONBytes(queryDsl))
+}
