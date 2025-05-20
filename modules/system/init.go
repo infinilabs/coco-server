@@ -24,6 +24,8 @@
 package system
 
 import (
+	"net/http"
+
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/plugins/security/filter"
@@ -32,7 +34,6 @@ import (
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
-	"net/http"
 )
 
 type APIHandler struct {
@@ -96,6 +97,16 @@ func (h *APIHandler) providerInfo(w http.ResponseWriter, req *http.Request, ps h
 			panic("sso url can't be nil")
 		}
 	}
+	stats := util.MapStr{}
+	claims, _ := core.ValidateLogin(req)
+	if claims != nil {
+		count, err := common.CountAssistants()
+		if err != nil {
+			panic(err)
+		}
+		stats["assistant_count"] = count
+	}
+	output["stats"] = stats
 
 	h.WriteJSON(w, output, 200)
 }
