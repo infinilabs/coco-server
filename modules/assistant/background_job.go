@@ -206,25 +206,6 @@ func (h APIHandler) extractParameters(req *http.Request) (*RAGContext, error) {
 	return params, nil
 }
 
-func (h APIHandler) createInitialUserRequestMessage(sessionID, assistantID, message string, params *RAGContext) *common.ChatMessage {
-
-	msg := &common.ChatMessage{
-		SessionID:   sessionID,
-		AssistantID: assistantID,
-		MessageType: common.MessageTypeUser,
-		Message:     message,
-	}
-	msg.ID = util.GetUUID()
-
-	msg.Parameters = util.MapStr{}
-
-	return msg
-}
-
-func (h APIHandler) saveMessage(msg *common.ChatMessage) error {
-	return orm.Create(nil, msg)
-}
-
 func (h APIHandler) launchBackgroundTask(msg *common.ChatMessage, params *RAGContext) {
 
 	//1. expand and rewrite the query

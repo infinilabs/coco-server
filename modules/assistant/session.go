@@ -5,17 +5,23 @@
 package assistant
 
 import (
+	"encoding/json"
+	"fmt"
 	log "github.com/cihub/seelog"
 	_ "github.com/tmc/langchaingo/llms/ollama"
 	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/api/websocket"
 	"infini.sh/framework/core/errors"
+	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/task"
 	"infini.sh/framework/core/util"
 	"net/http"
+	"runtime"
+	"strings"
 	"sync"
+	"time"
 )
 
 func (h APIHandler) getSession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -159,75 +165,217 @@ func (h APIHandler) getChatSessions(w http.ResponseWriter, req *http.Request, ps
 
 func (h APIHandler) newChatSession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
+	assistantID := h.GetParameterOrDefault(req, "assistant_id", DefaultAssistantID)
 	var request common.MessageRequest
 	if err := h.DecodeJSON(req, &request); err != nil {
 		//error can be ignored, since older app version didn't have this option
-		//h.WriteError(w, err.Error(), http.StatusInternalServerError)
-		//TODO, should panic after v0.2
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
-	obj := common.Session{
-		Status: "active",
-	}
-
-	if request.Message != "" {
-		obj.Title = util.SubString(request.Message, 0, 50)
-	}
-
-	err := orm.Create(nil, &obj)
+	session, err, firstMessage, finalResult := CreateAndSaveNewChatMessage(assistantID, request.Message, true)
 	if err != nil {
 		h.Error(w, err)
 		return
 	}
 
-	assistantID := h.GetParameterOrDefault(req, "assistant_id", DefaultAssistantID)
-	var firstMessage *common.ChatMessage
-	//save first message to history
-	if request.Message != "" {
-		firstMessage, err = h.handleMessage(req, obj.ID, assistantID, request.Message)
+	//try to handle the message request
+	if firstMessage != nil {
+		err = h.handleMessage(w, req, session.ID, assistantID, firstMessage)
 		if err != nil {
 			h.Error(w, err)
 			return
 		}
 	}
 
-	err = h.WriteJSON(w, util.MapStr{
-		"_id":     obj.ID,
-		"result":  "created",
-		"payload": firstMessage,
-		"_source": obj,
-	}, 200)
+	err = h.WriteJSON(w, finalResult, 200)
 	if err != nil {
 		h.Error(w, err)
 		return
 	}
 }
 
-func (h APIHandler) handleMessage(req *http.Request, sessionID, assistantID, message string) (*common.ChatMessage, error) {
+func CreateAndSaveNewChatMessage(assistantID string, message string, visible bool) (common.Session, error, *common.ChatMessage, util.MapStr) {
+
+	//if !rate.GetRateLimiterPerSecond("assistant_new_chat", clientIdentity, 10).Allow() {
+	//	panic("too many requests")
+	//}
+
+	obj := common.Session{
+		Status:  "active",
+		Visible: visible,
+	}
+
+	if message != "" {
+		obj.Title = util.SubString(message, 0, 50)
+	}
+
+	//save session
+	err := orm.Create(nil, &obj)
+	if err != nil {
+		return common.Session{}, err, nil, nil
+	}
+
+	var firstMessage *common.ChatMessage
+	//save first message to history
+	if message != "" {
+		firstMessage, err = saveRequestMessage(obj.ID, assistantID, message)
+		if err != nil {
+			return common.Session{}, err, nil, nil
+		}
+	}
+
+	result := util.MapStr{
+		"_id":     obj.ID,
+		"result":  "created",
+		"payload": firstMessage,
+		"_source": obj,
+	}
+	return obj, err, firstMessage, result
+}
+
+func (h *APIHandler) askAssistant(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	id := ps.MustGetParameter("id")
+
+	//obj, exists, err := common.GetAssistant(id)
+	//if !exists || err != nil {
+	//	h.WriteOpRecordNotFoundJSON(w, id)
+	//	return
+	//}
+
+	//launch the LLM task
+	//streaming output result to HTTP client
+
+	var request common.MessageRequest
+	if err := h.DecodeJSON(r, &request); err != nil {
+		//error can be ignored, since older app version didn't have this option
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if request.Message == "" {
+		h.WriteError(w, "no request message", 400)
+		return
+	}
+
+	session, err, reqMsg, finalResult := CreateAndSaveNewChatMessage(id, request.Message, false)
+	if err != nil || reqMsg == nil {
+		h.Error(w, err)
+		return
+	}
+
+	ctx := r.Context()
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		h.Error(w, errors.New("http.Flusher not supported"))
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Transfer-Encoding", "chunked")
+	w.WriteHeader(http.StatusOK)
+
+	flusher.Flush()
+
+	replyMsg := h.createAssistantMessage(session.ID, reqMsg.AssistantID, reqMsg.ID)
+	messageBuffer := strings.Builder{}
+
+	defer func() {
+		if !global.Env().IsDebug {
+			if r := recover(); r != nil {
+				var v string
+				switch r.(type) {
+				case error:
+					v = r.(error).Error()
+				case runtime.Error:
+					v = r.(runtime.Error).Error()
+				case string:
+					v = r.(string)
+				}
+				msg := fmt.Sprintf("⚠️ error in async processing message reply, %v", v)
+				if replyMsg.Message == "" && messageBuffer.Len() == 0 {
+					replyMsg.Message = msg
+				}
+			}
+		}
+
+		if messageBuffer.Len() > 0 {
+			replyMsg.Message = messageBuffer.String()
+		}
+
+		//save reply message
+		if err := orm.Save(nil, replyMsg); err != nil {
+			log.Errorf("Failed to save assistant message: %v", err)
+		}
+	}()
+
+	enc := json.NewEncoder(w)
+	_ = enc.Encode(finalResult)
+
+	for i := 0; i < 5; i++ {
+		select {
+		case <-ctx.Done():
+			log.Infof("Client disconnected")
+			return
+		default:
+			time.Sleep(time.Second)
+			log.Infof("Sending some data: %d", i)
+			msgChunk := "hello world"
+			messageBuffer.Write([]byte(msgChunk))
+			echoMsg := common.NewMessageChunk(session.ID, replyMsg.ID, common.MessageTypeAssistant, reqMsg.ID, common.Response, msgChunk, i)
+			_ = enc.Encode(echoMsg)
+			flusher.Flush()
+		}
+	}
+
+}
+
+func saveRequestMessage(sessionID, assistantID, message string) (*common.ChatMessage, error) {
+
+	if sessionID == "" || assistantID == "" || message == "" {
+		panic("invalid chat message")
+	}
+
+	msg := &common.ChatMessage{
+		SessionID:   sessionID,
+		AssistantID: assistantID,
+		MessageType: common.MessageTypeUser,
+		Message:     message,
+	}
+	msg.ID = util.GetUUID()
+
+	msg.Parameters = util.MapStr{}
+
+	if err := orm.Create(nil, msg); err != nil {
+		return nil, err
+	}
+	return msg, nil
+}
+
+func (h APIHandler) handleMessage(w http.ResponseWriter, req *http.Request, sessionID, assistantID string, reqMsg *common.ChatMessage) error {
+
+	//TODO, check if session and assistant exists
+
 	if wsID, err := h.GetUserWebsocketID(req); err == nil && wsID != "" {
 		params, err := h.extractParameters(req)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
-		if sessionID == "" || assistantID == "" || message == "" {
-			panic("invalid chat message")
-		}
-
-		reqMsg := h.createInitialUserRequestMessage(sessionID, assistantID, message, params)
 		params.SessionID = sessionID
 		params.WebsocketID = wsID
-		if err := h.saveMessage(reqMsg); err != nil {
-			return nil, err
-		}
 
 		h.launchBackgroundTask(reqMsg, params)
-		return reqMsg, nil
+		return nil
 	} else {
 		err := errors.Errorf("No websocket [%v] for session: %v", wsID, sessionID)
 		log.Error(err)
 		panic(err)
+
+		//h.processMessageAsStreaming(req, sessionID, assistantID, message)
+
 	}
+
+	return nil
 }
 
 func (h APIHandler) openChatSession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -353,7 +501,13 @@ func (h APIHandler) sendChatMessage(w http.ResponseWriter, req *http.Request, ps
 	}
 	assistantID := h.GetParameterOrDefault(req, "assistant_id", DefaultAssistantID)
 
-	obj, err := h.handleMessage(req, sessionID, assistantID, request.Message)
+	reqMsg, err := saveRequestMessage(sessionID, assistantID, request.Message)
+	if err != nil {
+		h.Error(w, err)
+		return
+	}
+
+	err = h.handleMessage(w, req, sessionID, assistantID, reqMsg)
 	if err != nil {
 		log.Error(err)
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -361,9 +515,9 @@ func (h APIHandler) sendChatMessage(w http.ResponseWriter, req *http.Request, ps
 	}
 
 	response := []util.MapStr{util.MapStr{
-		"_id":     obj.ID,
+		"_id":     reqMsg.ID,
 		"result":  "created",
-		"_source": obj,
+		"_source": reqMsg,
 	}}
 
 	err = h.WriteJSON(w, response, 200)
