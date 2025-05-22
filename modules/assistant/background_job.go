@@ -82,36 +82,19 @@ type RAGContext struct {
 
 	QueryIntent  *rag.QueryIntent
 	pickedDocIDS []string
-	references   string
 
 	intentModel         *common.ModelConfig
 	pickingDocModel     *common.ModelConfig
 	answeringModel      *common.ModelConfig
-	assistantID         string
 	intentModelProvider *common.ModelProvider
 	pickingDocProvider  *common.ModelProvider
 	answeringProvider   *common.ModelProvider
 	AssistantCfg        *common.Assistant
-
-	toolsCallResponse string
 }
 
 const DefaultAssistantID = "default"
 
-func (h APIHandler) extractParameters(req *http.Request) (*RAGContext, error) {
-
-	assistantID := h.GetParameterOrDefault(req, "assistant_id", DefaultAssistantID)
-
-	assistant, _, err := common.GetAssistant(assistantID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get assistant with id [%v]: %w", assistantID, err)
-	}
-	if assistant == nil {
-		return nil, fmt.Errorf("assistant [%s] is not found", assistantID)
-	}
-	if !assistant.Enabled {
-		return nil, fmt.Errorf("assistant [%s] is not enabled", assistant.Name)
-	}
+func (h APIHandler) getRAGContext(req *http.Request, assistant *common.Assistant) (*RAGContext, error) {
 
 	params := &RAGContext{
 		SearchDB:     h.GetBoolOrDefault(req, "search", false),
@@ -133,8 +116,6 @@ func (h APIHandler) extractParameters(req *http.Request) (*RAGContext, error) {
 	if v := h.GetParameterOrDefault(req, "mcp_servers", ""); v != "" {
 		params.mcpServers = strings.Split(v, ",")
 	}
-
-	params.assistantID = assistantID
 
 	params.AssistantCfg = assistant
 
@@ -865,7 +846,7 @@ func (h APIHandler) generateFinalResponse(taskCtx context.Context, reqMsg, reply
 	chunkSeq := 0
 	var err error
 	if params.answeringProvider == nil {
-		return errors.Errorf("no answering provider with assistant: %v", params.assistantID)
+		return errors.Errorf("no answering provider with assistant: %v", params.AssistantCfg.ID)
 	}
 
 	llm := langchain.GetLLM(params.answeringProvider.BaseURL, params.answeringProvider.APIType, params.answeringModel.Name, params.answeringProvider.APIKey, params.AssistantCfg.Keepalive) //deepseek-r1 /deepseek-v3

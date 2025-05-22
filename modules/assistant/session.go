@@ -13,13 +13,10 @@ import (
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/api/websocket"
 	"infini.sh/framework/core/errors"
-	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/task"
 	"infini.sh/framework/core/util"
 	"net/http"
-	"runtime"
-	"strings"
 	"sync"
 )
 
@@ -236,7 +233,7 @@ func CreateAndSaveNewChatMessage(assistantID string, message string, visible boo
 func (h *APIHandler) askAssistant(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("id")
 
-	_, exists, err := common.GetAssistant(id)
+	assistant, exists, err := common.GetAssistant(id)
 	if !exists || err != nil {
 		h.WriteOpRecordNotFoundJSON(w, id)
 		return
@@ -275,42 +272,10 @@ func (h *APIHandler) askAssistant(w http.ResponseWriter, r *http.Request, ps htt
 
 	flusher.Flush()
 
-	replyMsg := h.createAssistantMessage(session.ID, reqMsg.AssistantID, reqMsg.ID)
-	messageBuffer := strings.Builder{}
-
-	defer func() {
-		if !global.Env().IsDebug {
-			if r := recover(); r != nil {
-				var v string
-				switch r.(type) {
-				case error:
-					v = r.(error).Error()
-				case runtime.Error:
-					v = r.(runtime.Error).Error()
-				case string:
-					v = r.(string)
-				}
-				msg := fmt.Sprintf("⚠️ error in async processing message reply, %v", v)
-				if replyMsg.Message == "" && messageBuffer.Len() == 0 {
-					replyMsg.Message = msg
-				}
-			}
-		}
-
-		if messageBuffer.Len() > 0 {
-			replyMsg.Message = messageBuffer.String()
-		}
-
-		//save reply message
-		if err := orm.Save(nil, replyMsg); err != nil {
-			log.Errorf("Failed to save assistant message: %v", err)
-		}
-	}()
-
 	enc := json.NewEncoder(w)
 	_ = enc.Encode(finalResult)
 
-	params, err := h.extractParameters(r)
+	params, err := h.getRAGContext(r, assistant)
 	if err != nil {
 		h.Error(w, err)
 		return
@@ -351,8 +316,19 @@ func (h APIHandler) handleMessage(w http.ResponseWriter, req *http.Request, sess
 
 	//TODO, check if session and assistant exists
 
+	assistant, _, err := common.GetAssistant(assistantID)
+	if err != nil {
+		return fmt.Errorf("failed to get assistant with id [%v]: %w", assistantID, err)
+	}
+	if assistant == nil {
+		return fmt.Errorf("assistant [%s] is not found", assistantID)
+	}
+	if !assistant.Enabled {
+		return fmt.Errorf("assistant [%s] is not enabled", assistant.Name)
+	}
+
 	if wsID, err := h.GetUserWebsocketID(req); err == nil && wsID != "" {
-		params, err := h.extractParameters(req)
+		params, err := h.getRAGContext(req, assistant)
 		if err != nil {
 			return err
 		}

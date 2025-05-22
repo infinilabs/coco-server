@@ -25,6 +25,7 @@ Information about release notes of Coco Server is provided here.
 ### 🚀 Features
 
 - feat: allow converting icon to base64 #261
+- feat: implement ask api for assistant
 
 ### 🐛 Bug fix
 
@@ -40,6 +41,8 @@ Information about release notes of Coco Server is provided here.
 - chore: sort chat history by created
 - chore: add enabled by default params to assistant edit
 - chore: password supports more special characters
+- refactor: refactoring chat api #273
+
 
 ## 0.4.0 (2025-04-27)
 
