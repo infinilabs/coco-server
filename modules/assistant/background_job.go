@@ -997,12 +997,14 @@ func (h APIHandler) generateFinalResponse(taskCtx context.Context, reqMsg, reply
 	chunkSeq += 1
 
 	{
-		detail := common.ProcessingDetails{Order: 50, Type: common.Think, Description: reasoningBuffer.String()}
-		replyMsg.Details = append(replyMsg.Details, detail)
+		if reasoningBuffer.Len() > 0 {
+			detail := common.ProcessingDetails{Order: 50, Type: common.Think, Description: reasoningBuffer.String()}
+			replyMsg.Details = append(replyMsg.Details, detail)
+		}
 	}
 
 	//save response message to system
-	if messageBuffer.Len() > 0 || len(replyMsg.Details) > 0 {
+	if messageBuffer.Len() > 0 {
 		replyMsg.Message = messageBuffer.String()
 	} else {
 		log.Warnf("seems empty reply for query:", replyMsg)
