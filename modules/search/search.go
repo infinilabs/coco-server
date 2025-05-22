@@ -6,6 +6,8 @@ package search
 
 import (
 	"errors"
+	"fmt"
+	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
@@ -73,6 +75,7 @@ type IndexDocument struct {
 	Type      string                   `json:"_type,omitempty"`
 	ID        string                   `json:"_id,omitempty"`
 	Routing   string                   `json:"_routing,omitempty"`
+	Score     float32                  `json:"_score,omitempty"`
 	Source    common.Document          `json:"_source,omitempty"`
 	Highlight map[string][]interface{} `json:"highlight,omitempty"`
 }
@@ -190,8 +193,10 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		panic(err)
 	}
 
+	hits := v2.Hits.Hits
+
 	// Loop over the hits and ensure Source is modified correctly
-	for i, doc := range v2.Hits.Hits {
+	for i, doc := range hits {
 		// Get the pointer to doc.Source to make sure you're modifying the original
 		datasourceConfig, err := common.GetDatasourceConfig(doc.Source.Source.ID)
 		if err == nil && datasourceConfig != nil && datasourceConfig.Connector.ConnectorID != "" {
@@ -200,26 +205,26 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 			if connectorConfig != nil && err == nil {
 				icon := common.ParseAndGetIcon(connectorConfig, doc.Source.Icon)
 				if icon != "" {
-					v2.Hits.Hits[i].Source.Icon = icon
+					hits[i].Source.Icon = icon
 				}
 
 				if doc.Source.Source.Icon != "" {
 					icon = common.ParseAndGetIcon(connectorConfig, doc.Source.Source.Icon)
 					if icon != "" {
-						v2.Hits.Hits[i].Source.Source.Icon = icon
+						hits[i].Source.Source.Icon = icon
 					}
 				} else {
 					//try datasource's icon
 					if datasourceConfig.Icon != "" {
 						icon = common.ParseAndGetIcon(connectorConfig, datasourceConfig.Icon)
 						if icon != "" {
-							v2.Hits.Hits[i].Source.Source.Icon = icon
+							hits[i].Source.Source.Icon = icon
 						}
 					} else {
 						//try connector's icon
 						icon = common.ParseAndGetIcon(connectorConfig, connectorConfig.Icon)
 						if icon != "" {
-							v2.Hits.Hits[i].Source.Source.Icon = icon
+							hits[i].Source.Source.Icon = icon
 						}
 					}
 				}
@@ -227,7 +232,44 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		}
 	}
 
+	if query != "" {
+		assistants := searchAssistant(query)
+		if len(assistants) > 0 {
+			for _, assistant := range assistants {
+				doc := common.Document{}
+				doc.ID = assistant.ID
+				doc.Type = "AI assistant"
+				doc.Icon = assistant.Icon
+				doc.Title = assistant.Name
+				doc.Summary = assistant.Description
+				doc.URL = fmt.Sprintf("coco://extenstions/infinilabs/ask_assistant/%v", assistant.ID)
+				doc.Source = common.DataSourceReference{
+					ID:   "assistant",
+					Name: "Assistant",
+					Icon: "font_robot",
+				}
+				newHit := IndexDocument{Index: "assistant", ID: assistant.ID, Source: doc, Score: v2.Hits.MaxScore + 500}
+				hits = append(hits, newHit)
+			}
+		}
+	}
+
+	v2.Hits.Hits = hits
+
 	h.WriteJSON(w, v2, 200)
+}
+
+func searchAssistant(query string) []common.Assistant {
+	q := orm.Query{}
+	q.Size = 2
+	q.Conds = orm.And(orm.QueryString("combined_fulltext", query))
+	q.Filter = orm.Eq("enabled", true)
+	docs := []common.Assistant{}
+	err, _ := orm.SearchWithJSONMapper(&docs, &q)
+	if err != nil {
+		log.Error(err)
+	}
+	return docs
 }
 
 var connectorCacheKey = "Datasource"
