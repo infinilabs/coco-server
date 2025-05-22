@@ -31,7 +31,6 @@ import (
 	"strings"
 
 	"infini.sh/coco/modules/assistant/rag"
-	"infini.sh/coco/modules/assistant/websocket"
 	"infini.sh/coco/modules/datasource"
 	"infini.sh/coco/modules/llm"
 
@@ -73,9 +72,7 @@ type RAGContext struct {
 	field        string
 	source       string
 
-	//
-	WebsocketID string
-	SessionID   string
+	SessionID string
 
 	//prepare for final response
 	sourceDocsSummaryBlock string
@@ -206,7 +203,7 @@ func (h APIHandler) extractParameters(req *http.Request) (*RAGContext, error) {
 	return params, nil
 }
 
-func (h APIHandler) launchBackgroundTask(msg *common.ChatMessage, params *RAGContext) {
+func (h APIHandler) launchBackgroundTask(msg *common.ChatMessage, params *RAGContext, wsID string) {
 
 	//1. expand and rewrite the query
 	// use the title and summary to judge which document need to fetch in-depth, also the updated time to check the data is fresh or not
@@ -216,16 +213,17 @@ func (h APIHandler) launchBackgroundTask(msg *common.ChatMessage, params *RAGCon
 	//4. send to LLM
 
 	taskID := task.RunWithinGroup("assistant-session", func(taskCtx context.Context) error {
-		return h.processMessageAsync(taskCtx, msg, params)
+		sender := WebSocketSender{WebSocketID: wsID}
+		return h.processMessageAsync(taskCtx, msg, params, &sender)
 	})
 
 	log.Debugf("place a assistant background job: %v, for session: %v, websocket: %v ",
-		taskID, params.SessionID, params.WebsocketID)
+		taskID, params.SessionID, wsID)
 
 	inflightMessages.Store(params.SessionID, MessageTask{
 		SessionID:   params.SessionID,
 		TaskID:      taskID,
-		WebsocketID: params.WebsocketID,
+		WebsocketID: wsID,
 	})
 	log.Infof("Saved taskID: %v for session: %v", taskID, params.SessionID)
 }
@@ -242,25 +240,18 @@ func (h APIHandler) createAssistantMessage(sessionID, assistantID, requestMessag
 	return msg
 }
 
-// WebSocket helper
-func (h APIHandler) sendWebsocketMessage(wsID string, msg *common.MessageChunk) {
-	if err := websocket.SendMessageToWebsocket(wsID, util.MustToJSON(msg)); err != nil {
-		log.Warnf("WebSocket send error: %v", err)
-	}
-}
-
-func (h APIHandler) finalizeProcessing(ctx context.Context, wsID, sessionID string, msg *common.ChatMessage) {
+func (h APIHandler) finalizeProcessing(ctx context.Context, sessionID string, msg *common.ChatMessage, sender common.MessageSender) {
 	if err := orm.Save(nil, msg); err != nil {
 		log.Errorf("Failed to save assistant message: %v", err)
 	}
 
-	h.sendWebsocketMessage(wsID, common.NewMessageChunk(
+	sender.SendMessage(common.NewMessageChunk(
 		sessionID, msg.ID, common.MessageTypeSystem, msg.ReplyMessageID,
 		common.ReplyEnd, "Processing completed", 0,
 	))
 }
 
-func (h APIHandler) processMessageAsync(ctx context.Context, reqMsg *common.ChatMessage, params *RAGContext) error {
+func (h APIHandler) processMessageAsync(ctx context.Context, reqMsg *common.ChatMessage, params *RAGContext, sender common.MessageSender) error {
 	log.Debugf("Starting async processing for session: %v", params.SessionID)
 
 	replyMsg := h.createAssistantMessage(params.SessionID, reqMsg.AssistantID, reqMsg.ID)
@@ -280,7 +271,7 @@ func (h APIHandler) processMessageAsync(ctx context.Context, reqMsg *common.Chat
 				msg := fmt.Sprintf("⚠️ error in async processing message reply, %v", v)
 				if replyMsg.Message == "" {
 					replyMsg.Message = msg
-					h.sendWebsocketMessage(params.WebsocketID, common.NewMessageChunk(
+					_ = sender.SendMessage(common.NewMessageChunk(
 						params.SessionID, replyMsg.ID, common.MessageTypeSystem, reqMsg.ID,
 						common.Response, msg, 0,
 					))
@@ -288,7 +279,7 @@ func (h APIHandler) processMessageAsync(ctx context.Context, reqMsg *common.Chat
 				log.Error(msg)
 			}
 		}
-		h.finalizeProcessing(ctx, params.WebsocketID, params.SessionID, replyMsg)
+		h.finalizeProcessing(ctx, params.SessionID, replyMsg, sender)
 	}()
 
 	reqMsg.Details = make([]common.ProcessingDetails, 0)
@@ -343,7 +334,7 @@ func (h APIHandler) processMessageAsync(ctx context.Context, reqMsg *common.Chat
 			inputValues["tool_list"] = mcpServers.String()
 		}
 
-		queryIntent, err := rag.ProcessQueryIntent(ctx, params.SessionID, params.WebsocketID, params.intentModelProvider, params.intentModel, reqMsg, replyMsg, params.AssistantCfg, inputValues)
+		queryIntent, err := rag.ProcessQueryIntent(ctx, params.SessionID, params.intentModelProvider, params.intentModel, reqMsg, replyMsg, params.AssistantCfg, inputValues, sender)
 		if err != nil {
 			log.Error("error on processing query intent analysis: ", err)
 		}
@@ -354,7 +345,7 @@ func (h APIHandler) processMessageAsync(ctx context.Context, reqMsg *common.Chat
 	var toolsMayHavePromisedResult = false
 	if params.MCP && ((params.AssistantCfg.MCPConfig.Enabled && len(params.mcpServers) > 0) || params.AssistantCfg.ToolsConfig.Enabled) {
 		//process LLM tools / functions
-		answer, err := h.processLLMTools(ctx, reqMsg, replyMsg, params, inputValues)
+		answer, err := h.processLLMTools(ctx, reqMsg, replyMsg, params, inputValues, sender)
 		if err != nil {
 			log.Error(err)
 		}
@@ -372,16 +363,16 @@ func (h APIHandler) processMessageAsync(ctx context.Context, reqMsg *common.Chat
 		if params.DeepThink {
 			fetchSize = 50
 		}
-		docs, _ := h.processInitialDocumentSearch(ctx, reqMsg, replyMsg, params, fetchSize)
+		docs, _ := h.processInitialDocumentSearch(ctx, reqMsg, replyMsg, params, fetchSize, sender)
 
 		if params.DeepThink && len(docs) > 10 {
 			//re-pick top docs
-			docs, _ = h.processPickDocuments(ctx, reqMsg, replyMsg, params, docs)
-			_ = h.fetchDocumentInDepth(ctx, reqMsg, replyMsg, params, docs, inputValues)
+			docs, _ = h.processPickDocuments(ctx, reqMsg, replyMsg, params, docs, sender)
+			_ = h.fetchDocumentInDepth(ctx, reqMsg, replyMsg, params, docs, inputValues, sender)
 		}
 	}
 
-	h.generateFinalResponse(ctx, reqMsg, replyMsg, params, inputValues)
+	h.generateFinalResponse(ctx, reqMsg, replyMsg, params, inputValues, sender)
 	log.Info("async reply task done for query:", reqMsg.Message)
 	return nil
 }
@@ -437,7 +428,7 @@ func (h APIHandler) fetchSessionHistory(ctx context.Context, reqMsg, replyMsg *c
 	return historyStr.String(), nil
 }
 
-func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *common.ChatMessage, replyMsg *common.ChatMessage, params *RAGContext, inputValues map[string]any) (string, error) {
+func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *common.ChatMessage, replyMsg *common.ChatMessage, params *RAGContext, inputValues map[string]any, sender common.MessageSender) (string, error) {
 	if params == nil || params.AssistantCfg == nil {
 		//return nil
 		panic("invalid assistant config, skip")
@@ -616,7 +607,7 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *common.ChatMes
 		if chunk != "" {
 			answerBuffer.WriteString(chunk)
 			echoMsg := common.NewMessageChunk(params.SessionID, replyMsg.ID, common.MessageTypeAssistant, reqMsg.ID, common.Tools, chunk, toolsSeq)
-			websocket.SendMessageToWebsocket(params.WebsocketID, util.MustToJSON(echoMsg))
+			sender.SendMessage(echoMsg)
 		}
 		toolsSeq++
 	}
@@ -645,7 +636,7 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *common.ChatMes
 	return answer, nil
 }
 
-func (h APIHandler) processInitialDocumentSearch(ctx context.Context, reqMsg, replyMsg *common.ChatMessage, params *RAGContext, fechSize int) ([]common.Document, error) {
+func (h APIHandler) processInitialDocumentSearch(ctx context.Context, reqMsg, replyMsg *common.ChatMessage, params *RAGContext, fechSize int, sender common.MessageSender) ([]common.Document, error) {
 
 	if params.intentModel != nil && (params.AssistantCfg.DeepThinkConfig != nil && params.AssistantCfg.DeepThinkConfig.PickDatasource) {
 		if !params.QueryIntent.NeedNetworkSearch {
@@ -696,7 +687,7 @@ func (h APIHandler) processInitialDocumentSearch(ctx context.Context, reqMsg, re
 				chunkMsg := common.NewMessageChunk(params.SessionID, replyMsg.ID, common.MessageTypeAssistant, reqMsg.ID,
 					common.FetchSource, string(chunkData), chunkSeq)
 
-				err = websocket.SendMessageToWebsocket(params.WebsocketID, util.MustToJSON(chunkMsg))
+				err = sender.SendMessage(chunkMsg)
 				if err != nil {
 					log.Error(err)
 					return nil, err
@@ -718,14 +709,14 @@ func (h APIHandler) processInitialDocumentSearch(ctx context.Context, reqMsg, re
 	return nil, errors.Error("nothing found")
 }
 
-func (h APIHandler) processPickDocuments(ctx context.Context, reqMsg, replyMsg *common.ChatMessage, params *RAGContext, docs []common.Document) ([]common.Document, error) {
+func (h APIHandler) processPickDocuments(ctx context.Context, reqMsg, replyMsg *common.ChatMessage, params *RAGContext, docs []common.Document, sender common.MessageSender) ([]common.Document, error) {
 
 	if len(docs) == 0 {
 		return nil, nil
 	}
 
 	echoMsg := common.NewMessageChunk(params.SessionID, replyMsg.ID, common.MessageTypeAssistant, reqMsg.ID, common.PickSource, string(""), 0)
-	websocket.SendMessageToWebsocket(params.WebsocketID, util.MustToJSON(echoMsg))
+	sender.SendMessage(echoMsg)
 
 	content := []llms.MessageContent{
 		llms.TextParts(
@@ -778,7 +769,7 @@ Your task is to choose the best documents for further processing.`,
 				chunkSeq++
 				pickedDocsBuffer.Write(chunk)
 				msg := common.NewMessageChunk(params.SessionID, replyMsg.ID, common.MessageTypeAssistant, reqMsg.ID, common.PickSource, string(chunk), chunkSeq)
-				err := websocket.SendMessageToWebsocket(params.WebsocketID, util.MustToJSON(msg))
+				err := sender.SendMessage(msg)
 				if err != nil {
 					return err
 				}
@@ -831,7 +822,7 @@ Your task is to choose the best documents for further processing.`,
 	return docs, err
 }
 
-func (h APIHandler) fetchDocumentInDepth(ctx context.Context, reqMsg, replyMsg *common.ChatMessage, params *RAGContext, docs []common.Document, inputValues map[string]any) error {
+func (h APIHandler) fetchDocumentInDepth(ctx context.Context, reqMsg, replyMsg *common.ChatMessage, params *RAGContext, docs []common.Document, inputValues map[string]any, sender common.MessageSender) error {
 	if len(params.pickedDocIDS) > 0 {
 		var query = orm.Query{}
 		query.Conds = orm.And(orm.InStringArray("_id", params.pickedDocIDS))
@@ -844,7 +835,7 @@ func (h APIHandler) fetchDocumentInDepth(ctx context.Context, reqMsg, replyMsg *
 			str := "Obtaining and analyzing documents in depth:  " + string(v.Title) + "\n"
 			strBuilder.WriteString(str)
 			chunkMsg := common.NewMessageChunk(params.SessionID, replyMsg.ID, common.MessageTypeAssistant, reqMsg.ID, common.DeepRead, str, chunkSeq)
-			err = websocket.SendMessageToWebsocket(params.WebsocketID, util.MustToJSON(chunkMsg))
+			err = sender.SendMessage(chunkMsg)
 			if err != nil {
 				return err
 			}
@@ -858,10 +849,10 @@ func (h APIHandler) fetchDocumentInDepth(ctx context.Context, reqMsg, replyMsg *
 	return nil
 }
 
-func (h APIHandler) generateFinalResponse(taskCtx context.Context, reqMsg, replyMsg *common.ChatMessage, params *RAGContext, inputValues map[string]any) error {
+func (h APIHandler) generateFinalResponse(taskCtx context.Context, reqMsg, replyMsg *common.ChatMessage, params *RAGContext, inputValues map[string]any, sender common.MessageSender) error {
 
 	echoMsg := common.NewMessageChunk(params.SessionID, replyMsg.ID, common.MessageTypeAssistant, reqMsg.ID, common.Response, string(""), 0)
-	websocket.SendMessageToWebsocket(params.WebsocketID, util.MustToJSON(echoMsg))
+	_ = sender.SendMessage(echoMsg)
 
 	// Prepare the system message
 	content := []llms.MessageContent{
@@ -909,7 +900,7 @@ func (h APIHandler) generateFinalResponse(taskCtx context.Context, reqMsg, reply
 					reasoningBuffer.Write(reasoningChunk)
 					msg := common.NewMessageChunk(params.SessionID, replyMsg.ID, common.MessageTypeAssistant, reqMsg.ID, common.Think, string(reasoningChunk), chunkSeq)
 					//log.Info(util.MustToJSON(msg))
-					err = websocket.SendMessageToWebsocket(params.WebsocketID, util.MustToJSON(msg))
+					err = sender.SendMessage(msg)
 					if err != nil {
 						panic(err)
 					}
@@ -921,7 +912,7 @@ func (h APIHandler) generateFinalResponse(taskCtx context.Context, reqMsg, reply
 					chunkSeq += 1
 
 					msg := common.NewMessageChunk(params.SessionID, replyMsg.ID, common.MessageTypeAssistant, reqMsg.ID, common.Response, string(chunk), chunkSeq)
-					err = websocket.SendMessageToWebsocket(params.WebsocketID, util.MustToJSON(msg))
+					err = sender.SendMessage(msg)
 					if err != nil {
 						panic(err)
 					}
@@ -942,7 +933,7 @@ func (h APIHandler) generateFinalResponse(taskCtx context.Context, reqMsg, reply
 
 			chunkSeq += 1
 			msg := common.NewMessageChunk(params.SessionID, replyMsg.ID, common.MessageTypeAssistant, reqMsg.ID, common.Response, string(chunk), chunkSeq)
-			err = websocket.SendMessageToWebsocket(params.WebsocketID, util.MustToJSON(msg))
+			err = sender.SendMessage(msg)
 			messageBuffer.Write(chunk)
 			return nil
 		}))

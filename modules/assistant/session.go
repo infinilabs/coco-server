@@ -21,7 +21,6 @@ import (
 	"runtime"
 	"strings"
 	"sync"
-	"time"
 )
 
 func (h APIHandler) getSession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -237,11 +236,11 @@ func CreateAndSaveNewChatMessage(assistantID string, message string, visible boo
 func (h *APIHandler) askAssistant(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("id")
 
-	//obj, exists, err := common.GetAssistant(id)
-	//if !exists || err != nil {
-	//	h.WriteOpRecordNotFoundJSON(w, id)
-	//	return
-	//}
+	_, exists, err := common.GetAssistant(id)
+	if !exists || err != nil {
+		h.WriteOpRecordNotFoundJSON(w, id)
+		return
+	}
 
 	//launch the LLM task
 	//streaming output result to HTTP client
@@ -253,7 +252,7 @@ func (h *APIHandler) askAssistant(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 	if request.Message == "" {
-		h.WriteError(w, "no request message", 400)
+		h.WriteError(w, "message is empty", 400)
 		return
 	}
 
@@ -311,21 +310,18 @@ func (h *APIHandler) askAssistant(w http.ResponseWriter, r *http.Request, ps htt
 	enc := json.NewEncoder(w)
 	_ = enc.Encode(finalResult)
 
-	for i := 0; i < 5; i++ {
-		select {
-		case <-ctx.Done():
-			log.Infof("Client disconnected")
-			return
-		default:
-			time.Sleep(time.Second)
-			log.Infof("Sending some data: %d", i)
-			msgChunk := "hello world"
-			messageBuffer.Write([]byte(msgChunk))
-			echoMsg := common.NewMessageChunk(session.ID, replyMsg.ID, common.MessageTypeAssistant, reqMsg.ID, common.Response, msgChunk, i)
-			_ = enc.Encode(echoMsg)
-			flusher.Flush()
-		}
+	params, err := h.extractParameters(r)
+	if err != nil {
+		h.Error(w, err)
+		return
 	}
+	params.SessionID = session.ID
+	streamSender := &HTTPStreamSender{
+		Enc:     enc,
+		Flusher: flusher,
+		Ctx:     r.Context(), // assuming this is in an HTTP handler
+	}
+	_ = h.processMessageAsync(ctx, reqMsg, params, streamSender)
 
 }
 
@@ -362,17 +358,14 @@ func (h APIHandler) handleMessage(w http.ResponseWriter, req *http.Request, sess
 		}
 
 		params.SessionID = sessionID
-		params.WebsocketID = wsID
 
-		h.launchBackgroundTask(reqMsg, params)
+		h.launchBackgroundTask(reqMsg, params, wsID)
 		return nil
 	} else {
 		err := errors.Errorf("No websocket [%v] for session: %v", wsID, sessionID)
 		log.Error(err)
 		panic(err)
-
 		//h.processMessageAsStreaming(req, sessionID, assistantID, message)
-
 	}
 
 	return nil
@@ -394,6 +387,7 @@ func (h APIHandler) openChatSession(w http.ResponseWriter, req *http.Request, ps
 	}
 
 	obj.Status = "active"
+	obj.Visible = true
 	err = orm.Update(nil, &obj)
 	if err != nil {
 		h.Error(w, err)
