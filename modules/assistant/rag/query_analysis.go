@@ -29,7 +29,6 @@ import (
 	log "github.com/cihub/seelog"
 	"github.com/tmc/langchaingo/chains"
 	"infini.sh/coco/modules/assistant/langchain"
-	"infini.sh/coco/modules/assistant/websocket"
 	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/util"
 	"regexp"
@@ -80,7 +79,7 @@ func extractJSON(input string) string {
 	return ""
 }
 
-func ProcessQueryIntent(ctx context.Context, sessionID, websocketID string, provider *common.ModelProvider, cfg *common.ModelConfig, reqMsg, replyMsg *common.ChatMessage, assistant *common.Assistant, inputValues map[string]any) (*QueryIntent, error) {
+func ProcessQueryIntent(ctx context.Context, sessionID string, provider *common.ModelProvider, cfg *common.ModelConfig, reqMsg, replyMsg *common.ChatMessage, assistant *common.Assistant, inputValues map[string]any, sender common.MessageSender) (*QueryIntent, error) {
 	// Initialize the LLM
 	llm := langchain.GetLLM(provider.BaseURL, provider.APIType, cfg.Name, provider.APIKey, assistant.Keepalive)
 
@@ -106,7 +105,7 @@ func ProcessQueryIntent(ctx context.Context, sessionID, websocketID string, prov
 				//queryIntentBuffer.Write(chunk)
 				fmt.Println(string(chunk))
 				msg := common.NewMessageChunk(sessionID, replyMsg.ID, common.MessageTypeAssistant, reqMsg.ID, common.QueryIntent, string(chunk), chunkSeq)
-				err := websocket.SendMessageToWebsocket(websocketID, util.MustToJSON(msg))
+				err := sender.SendMessage(msg)
 				if err != nil {
 					log.Error(err)
 					return err

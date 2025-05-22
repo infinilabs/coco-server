@@ -32,6 +32,8 @@ type Session struct {
 	Summary              string `config:"summary" json:"summary,omitempty" elastic_mapping:"summary:{type:keyword}"`
 	ManuallyRenamedTitle bool   `config:"manually_renamed_title" json:"manually_renamed_title,omitempty" elastic_mapping:"manually_renamed_title:{type:boolean}"`
 
+	Visible bool `json:"visible" elastic_mapping:"visible:{type:boolean}"` // Whether the connector is enabled or not
+
 	Context *SessionContext `config:"context" json:"context,omitempty" elastic_mapping:"context:{type:object}"`
 }
 

@@ -26,7 +26,10 @@ package assistant
 import (
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
+	"infini.sh/coco/modules/common"
+	"infini.sh/framework/core/api/websocket"
 	"infini.sh/framework/core/errors"
+	"infini.sh/framework/core/util"
 	"net/http"
 )
 
@@ -51,4 +54,12 @@ func (h APIHandler) GetUserWebsocketID(req *http.Request) (string, error) {
 	}
 
 	return "", errors.New("not found")
+}
+
+type WebSocketSender struct {
+	WebSocketID string
+}
+
+func (w *WebSocketSender) SendMessage(msg *common.MessageChunk) error {
+	return websocket.SendPrivateMessage(w.WebSocketID, util.MustToJSON(msg))
 }
