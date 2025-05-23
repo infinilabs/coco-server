@@ -16,25 +16,34 @@ type APIHandler struct {
 }
 
 const Category = "coco"
-const Datasource = "assistant"
+const Session = "session"
+const Assistant = "assistant"
 
 const ViewHistoryAction = "view_all_session_history"
 const ViewSingleSessionHistoryAction = "view_single_session_history"
 const manageChatSessionAction = "view_single_session_history"
 
 func init() {
-	createPermission := security.GetSimplePermission(Category, Datasource, string(security.Create))
-	updatePermission := security.GetSimplePermission(Category, Datasource, string(security.Update))
-	readPermission := security.GetSimplePermission(Category, Datasource, string(security.Read))
-	askPermission := security.GetSimplePermission(Category, Datasource, string("ask"))
-	deletePermission := security.GetSimplePermission(Category, Datasource, string(security.Delete))
-	searchPermission := security.GetSimplePermission(Category, Datasource, string(security.Search))
-	manageChatSessionPermission := security.GetSimplePermission(Category, Datasource, manageChatSessionAction)
-	viewHistoryPermission := security.GetSimplePermission(Category, Datasource, ViewHistoryAction)
-	viewSessionHistoryPermission := security.GetSimplePermission(Category, Datasource, ViewSingleSessionHistoryAction)
-	security.GetOrInitPermissionKeys(createPermission, updatePermission, readPermission, askPermission, deletePermission, searchPermission, viewHistoryPermission, manageChatSessionPermission)
+	createPermission := security.GetSimplePermission(Category, Session, string(security.Create))
+	updatePermission := security.GetSimplePermission(Category, Session, string(security.Update))
+	readPermission := security.GetSimplePermission(Category, Session, string(security.Read))
+	deletePermission := security.GetSimplePermission(Category, Session, string(security.Delete))
+	searchPermission := security.GetSimplePermission(Category, Session, string(security.Search))
+	manageChatSessionPermission := security.GetSimplePermission(Category, Session, manageChatSessionAction)
+	viewHistoryPermission := security.GetSimplePermission(Category, Session, ViewHistoryAction)
+	viewSessionHistoryPermission := security.GetSimplePermission(Category, Session, ViewSingleSessionHistoryAction)
 
-	security.RegisterPermissionsToRole(core.WidgetRole, searchPermission, askPermission)
+	createAssistantPermission := security.GetSimplePermission(Category, Session, string(security.Create))
+	updateAssistantPermission := security.GetSimplePermission(Category, Session, string(security.Update))
+	readAssistantPermission := security.GetSimplePermission(Category, Session, string(security.Read))
+	deleteAssistantPermission := security.GetSimplePermission(Category, Session, string(security.Delete))
+	searchAssistantPermission := security.GetSimplePermission(Category, Session, string(security.Search))
+	askAssistantPermission := security.GetSimplePermission(Category, Assistant, string("ask"))
+
+	security.GetOrInitPermissionKeys(createPermission, updatePermission, readPermission, askAssistantPermission, deletePermission, searchPermission, viewHistoryPermission, manageChatSessionPermission)
+	security.GetOrInitPermissionKeys(createAssistantPermission, updateAssistantPermission, readAssistantPermission, askAssistantPermission, deleteAssistantPermission, searchAssistantPermission)
+
+	security.RegisterPermissionsToRole(core.WidgetRole, createPermission, searchPermission, readAssistantPermission, searchAssistantPermission, askAssistantPermission)
 
 	handler := APIHandler{}
 
@@ -63,16 +72,16 @@ func init() {
 	api.HandleUIMethod(api.GET, "/chat/:session_id/_history", handler.getChatHistoryBySession, api.RequirePermission(viewSessionHistoryPermission), api.Feature(filter.FeatureCORS))
 	api.HandleUIMethod(api.OPTIONS, "/chat/:session_id/_history", handler.getChatHistoryBySession, api.RequirePermission(viewSessionHistoryPermission), api.Feature(filter.FeatureCORS))
 
-	api.HandleUIMethod(api.POST, "/assistant/", handler.createAssistant, api.RequirePermission(createPermission))
-	api.HandleUIMethod(api.GET, "/assistant/:id", handler.getAssistant, api.RequirePermission(readPermission))
+	api.HandleUIMethod(api.POST, "/assistant/", handler.createAssistant, api.RequirePermission(createAssistantPermission))
+	api.HandleUIMethod(api.GET, "/assistant/:id", handler.getAssistant, api.RequirePermission(readAssistantPermission))
 
-	api.HandleUIMethod(api.POST, "/assistant/:id/_ask", handler.askAssistant, api.RequirePermission(askPermission), api.Feature(filter.FeatureCORS))
-	api.HandleUIMethod(api.OPTIONS, "/assistant/:id/_ask", handler.askAssistant, api.RequirePermission(askPermission), api.Feature(filter.FeatureCORS))
+	api.HandleUIMethod(api.POST, "/assistant/:id/_ask", handler.askAssistant, api.RequirePermission(askAssistantPermission), api.Feature(filter.FeatureCORS))
+	api.HandleUIMethod(api.OPTIONS, "/assistant/:id/_ask", handler.askAssistant, api.RequirePermission(askAssistantPermission), api.Feature(filter.FeatureCORS))
 
-	api.HandleUIMethod(api.PUT, "/assistant/:id", handler.updateAssistant, api.RequirePermission(updatePermission))
-	api.HandleUIMethod(api.DELETE, "/assistant/:id", handler.deleteAssistant, api.RequirePermission(deletePermission))
-	api.HandleUIMethod(api.GET, "/assistant/_search", handler.searchAssistant, api.RequirePermission(searchPermission), api.Feature(filter.FeatureCORS))
-	api.HandleUIMethod(api.OPTIONS, "/assistant/_search", handler.searchAssistant, api.RequirePermission(searchPermission), api.Feature(filter.FeatureCORS))
-	api.HandleUIMethod(api.POST, "/assistant/_search", handler.searchAssistant, api.RequirePermission(searchPermission), api.Feature(filter.FeatureCORS))
-	api.HandleUIMethod(api.POST, "/assistant/:id/_clone", handler.cloneAssistant, api.RequirePermission(createPermission))
+	api.HandleUIMethod(api.PUT, "/assistant/:id", handler.updateAssistant, api.RequirePermission(updateAssistantPermission))
+	api.HandleUIMethod(api.DELETE, "/assistant/:id", handler.deleteAssistant, api.RequirePermission(deleteAssistantPermission))
+	api.HandleUIMethod(api.GET, "/assistant/_search", handler.searchAssistant, api.RequirePermission(searchAssistantPermission), api.Feature(filter.FeatureCORS))
+	api.HandleUIMethod(api.OPTIONS, "/assistant/_search", handler.searchAssistant, api.RequirePermission(searchAssistantPermission), api.Feature(filter.FeatureCORS))
+	api.HandleUIMethod(api.POST, "/assistant/_search", handler.searchAssistant, api.RequirePermission(searchAssistantPermission), api.Feature(filter.FeatureCORS))
+	api.HandleUIMethod(api.POST, "/assistant/:id/_clone", handler.cloneAssistant, api.RequirePermission(createAssistantPermission))
 }
