@@ -233,12 +233,17 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 	}
 
 	if query != "" {
-		assistants := searchAssistant(query)
+		assistantSize := 2
+		if len(hits) < 5 {
+			assistantSize = size - (len(hits))
+		}
+
+		assistants := searchAssistant(query, assistantSize)
 		if len(assistants) > 0 {
 			for _, assistant := range assistants {
 				doc := common.Document{}
 				doc.ID = assistant.ID
-				doc.Type = "AI assistant"
+				doc.Type = "AI Assistant"
 				doc.Icon = assistant.Icon
 				doc.Title = assistant.Name
 				doc.Summary = assistant.Description
@@ -259,9 +264,14 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 	h.WriteJSON(w, v2, 200)
 }
 
-func searchAssistant(query string) []common.Assistant {
+func searchAssistant(query string, size int) []common.Assistant {
+
+	if size <= 0 {
+		size = 2
+	}
+
 	q := orm.Query{}
-	q.Size = 2
+	q.Size = size
 	q.Conds = orm.And(orm.QueryString("combined_fulltext", query))
 	q.Filter = orm.Eq("enabled", true)
 	docs := []common.Assistant{}
