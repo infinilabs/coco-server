@@ -168,6 +168,55 @@ export const EditForm = memo((props: AssistantFormProps) => {
     );
   }, [initialValues?.chat_settings?.suggested?.enabled]);
 
+  const commonFormItemsClassName = `${showAdvanced || assistantMode === "deep_think" ? "" : "h-0px m-0px overflow-hidden"}`
+
+  const commonFormItems = (
+    <>
+      <Form.Item
+        label={t("page.assistant.labels.datasource")}
+        rules={[{ required: true }]}
+        name={["datasource"]}
+        className={commonFormItemsClassName}
+      >
+        <DatasourceConfig
+          options={[{ label: "*", value: "*" }].concat(
+            dataSource.map((item) => ({
+              label: item.name,
+              value: item.id,
+            })),
+          )}
+        />
+      </Form.Item>
+      <Form.Item
+        label={t("page.assistant.labels.mcp_servers")}
+        rules={[{ required: true }]}
+        name="mcp_servers"
+        className={commonFormItemsClassName}
+      >
+        <MCPConfig
+          modelProviders={modelProviders}
+          options={[{ label: "*", value: "*" }].concat(
+            mcpServers.map((item) => ({
+              label: item.name,
+              value: item.id,
+            })),
+          )}
+        />
+      </Form.Item>
+      <Form.Item label={t("page.assistant.labels.tools")} name="tools" className={commonFormItemsClassName}>
+        <ToolsConfig />
+      </Form.Item>
+      <Form.Item
+        name={"keepalive"}
+        label={t("page.assistant.labels.keepalive")}
+        rules={[defaultRequiredRule]}
+        className={commonFormItemsClassName}
+      >
+        <Input className="max-w-600px" />
+      </Form.Item>
+    </>
+  )
+
   return (
     <Spin spinning={props.loading || loading || false}>
       <Form
@@ -224,44 +273,7 @@ export const EditForm = memo((props: AssistantFormProps) => {
             <DeepThink className="max-w-600px" providers={modelProviders} />
           </Form.Item>
         )}
-        {
-          assistantMode !== "simple" && (
-            <>
-              <Form.Item
-                label={t("page.assistant.labels.datasource")}
-                rules={[{ required: true }]}
-                name={["datasource"]}
-              >
-                <DatasourceConfig
-                  options={[{ label: "*", value: "*" }].concat(
-                    dataSource.map((item) => ({
-                      label: item.name,
-                      value: item.id,
-                    })),
-                  )}
-                />
-              </Form.Item>
-              <Form.Item
-                label={t("page.assistant.labels.mcp_servers")}
-                rules={[{ required: true }]}
-                name="mcp_servers"
-              >
-                <MCPConfig
-                  modelProviders={modelProviders}
-                  options={[{ label: "*", value: "*" }].concat(
-                    mcpServers.map((item) => ({
-                      label: item.name,
-                      value: item.id,
-                    })),
-                  )}
-                />
-              </Form.Item>
-              <Form.Item label={t("page.assistant.labels.tools")} name="tools">
-                <ToolsConfig />
-              </Form.Item>
-            </>
-          )
-        }
+        { assistantMode === "deep_think" ? commonFormItems : null }
         <Form.Item
           name="role_prompt"
           label={t("page.assistant.labels.role_prompt")}
@@ -290,6 +302,7 @@ export const EditForm = memo((props: AssistantFormProps) => {
             />
           </Button>
         </Form.Item>
+        { assistantMode === "simple" ? commonFormItems : null }
         <Form.Item
           className={`${showAdvanced ? "" : "h-0px m-0px overflow-hidden"}`}
           label={t("page.assistant.labels.chat_settings")}
@@ -356,14 +369,6 @@ export const EditForm = memo((props: AssistantFormProps) => {
               </Form.Item>
             </div>
           </div>
-        </Form.Item>
-        <Form.Item
-          name={"keepalive"}
-          label={t("page.assistant.labels.keepalive")}
-          rules={[defaultRequiredRule]}
-          className={`${showAdvanced ? "" : "h-0px m-0px overflow-hidden"}`}
-        >
-          <Input className="max-w-600px" />
         </Form.Item>
         <Form.Item label=" ">
           <Button type="primary" htmlType="submit">
