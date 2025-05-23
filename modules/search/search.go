@@ -109,6 +109,8 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		source       = h.GetParameterOrDefault(req, "source_fields", "*")
 	)
 
+	query = util.CleanUserQuery(query)
+
 	mustClauses := BuildMustClauses(category, subcategory, richCategory, username, userid)
 	if integrationID := req.Header.Get(core.HeaderIntegrationID); integrationID != "" {
 		// get datasource by integration id
