@@ -225,7 +225,22 @@ func GetAssistant(assistantID string) (*Assistant, bool, error) {
 	return assistant, true, nil
 }
 
+var TotalAssistantsCacheKey = "total_assistants"
+
+func ClearAssistantsCache() {
+	GeneralObjectCache.Delete(AssistantCachePrimary, TotalAssistantsCacheKey)
+}
+
 func CountAssistants() (int64, error) {
+	item := GeneralObjectCache.Get(AssistantCachePrimary, TotalAssistantsCacheKey)
+	var assistantCache int64
+	if item != nil && !item.Expired() {
+		var ok bool
+		if assistantCache, ok = item.Value().(int64); ok {
+			return assistantCache, nil
+		}
+	}
+
 	queryDsl := util.MapStr{
 		"query": util.MapStr{
 			"term": util.MapStr{
@@ -233,5 +248,10 @@ func CountAssistants() (int64, error) {
 			},
 		},
 	}
-	return orm.Count(Assistant{}, util.MustToJSONBytes(queryDsl))
+	count, err := orm.Count(Assistant{}, util.MustToJSONBytes(queryDsl))
+	if err == nil {
+		GeneralObjectCache.Set(AssistantCachePrimary, TotalAssistantsCacheKey, count, time.Duration(30)*time.Minute)
+	}
+
+	return count, err
 }

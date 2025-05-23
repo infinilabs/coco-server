@@ -366,7 +366,9 @@ func (h APIHandler) openChatSession(w http.ResponseWriter, req *http.Request, ps
 
 	obj.Status = "active"
 	obj.Visible = true
-	err = orm.Update(nil, &obj)
+	err = orm.Update(&orm.Context{
+		Refresh: "wait_for",
+	}, &obj)
 	if err != nil {
 		h.Error(w, err)
 		return
@@ -514,7 +516,9 @@ func (h APIHandler) closeChatSession(w http.ResponseWriter, req *http.Request, p
 	}
 
 	obj.Status = "closed"
-	err = orm.Update(nil, &obj)
+	err = orm.Update(&orm.Context{
+		Refresh: "wait_for",
+	}, &obj)
 	if err != nil {
 		h.Error(w, err)
 		return

@@ -13,6 +13,7 @@ Information about release notes of Coco Server is provided here.
 
 ### 🚀 Features
 - feat: return number of assistants in provider info API
+- feat: add assistant to search results #274
 
 ### 🐛 Bug fix
 

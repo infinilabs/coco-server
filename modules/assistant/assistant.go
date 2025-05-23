@@ -53,6 +53,8 @@ func (h *APIHandler) createAssistant(w http.ResponseWriter, req *http.Request, p
 		return
 	}
 
+	common.ClearAssistantsCache()
+
 	h.WriteCreatedOKJSON(w, obj.ID)
 
 }
@@ -116,6 +118,7 @@ func (h *APIHandler) deleteAssistant(w http.ResponseWriter, req *http.Request, p
 
 	//clear cache
 	common.GeneralObjectCache.Delete(common.AssistantCachePrimary, id)
+	common.ClearAssistantsCache()
 
 	obj := common.Assistant{}
 	obj.ID = id
