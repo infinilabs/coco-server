@@ -46,7 +46,7 @@ interface AssistantFormProps {
 }
 
 export const EditForm = memo((props: AssistantFormProps) => {
-  const { initialValues, onSubmit, mode } = props;
+  const { initialValues = {}, onSubmit, mode } = props;
   const [form] = Form.useForm();
   useEffect(() => {
     if (initialValues) {
@@ -57,6 +57,7 @@ export const EditForm = memo((props: AssistantFormProps) => {
       }
       form.setFieldsValue({
         ...initialValues,
+        icon: initialValues.icon || 'font_coco'
       });
     }
   }, [initialValues]);
@@ -64,7 +65,7 @@ export const EditForm = memo((props: AssistantFormProps) => {
   const { endLoading, loading, startLoading } = useLoading();
 
   const onFinish: FormProps<any>["onFinish"] = (values) => {
-    if (values.datasource.filter) {
+    if (values.datasource?.filter) {
       try {
         values.datasource.filter = JSON.parse(values.datasource.filter);
       } catch (e) {
@@ -72,6 +73,7 @@ export const EditForm = memo((props: AssistantFormProps) => {
         return;
       }
     } else {
+      if (!values.datasource) values.datasource = {}
       values.datasource.filter = null;
     }
     onSubmit?.(values, startLoading, endLoading);
@@ -222,45 +224,44 @@ export const EditForm = memo((props: AssistantFormProps) => {
             <DeepThink className="max-w-600px" providers={modelProviders} />
           </Form.Item>
         )}
-        <Form.Item
-          label={t("page.assistant.labels.datasource")}
-          rules={[{ required: true }]}
-          name={["datasource"]}
-        >
-          <DatasourceConfig
-            options={[{ label: "*", value: "*" }].concat(
-              dataSource.map((item) => ({
-                label: item.name,
-                value: item.id,
-              })),
-            )}
-          />
-        </Form.Item>
-        <Form.Item
-          label={t("page.assistant.labels.mcp_servers")}
-          rules={[{ required: true }]}
-          name="mcp_servers"
-        >
-          <MCPConfig
-            modelProviders={modelProviders}
-            options={[{ label: "*", value: "*" }].concat(
-              mcpServers.map((item) => ({
-                label: item.name,
-                value: item.id,
-              })),
-            )}
-          />
-        </Form.Item>
-        <Form.Item label={t("page.assistant.labels.tools")} name="tools">
-          <ToolsConfig />
-        </Form.Item>
-        <Form.Item
-          name={"keepalive"}
-          label={t("page.assistant.labels.keepalive")}
-          rules={[defaultRequiredRule]}
-        >
-          <Input className="max-w-600px" />
-        </Form.Item>
+        {
+          assistantMode !== "simple" && (
+            <>
+              <Form.Item
+                label={t("page.assistant.labels.datasource")}
+                rules={[{ required: true }]}
+                name={["datasource"]}
+              >
+                <DatasourceConfig
+                  options={[{ label: "*", value: "*" }].concat(
+                    dataSource.map((item) => ({
+                      label: item.name,
+                      value: item.id,
+                    })),
+                  )}
+                />
+              </Form.Item>
+              <Form.Item
+                label={t("page.assistant.labels.mcp_servers")}
+                rules={[{ required: true }]}
+                name="mcp_servers"
+              >
+                <MCPConfig
+                  modelProviders={modelProviders}
+                  options={[{ label: "*", value: "*" }].concat(
+                    mcpServers.map((item) => ({
+                      label: item.name,
+                      value: item.id,
+                    })),
+                  )}
+                />
+              </Form.Item>
+              <Form.Item label={t("page.assistant.labels.tools")} name="tools">
+                <ToolsConfig />
+              </Form.Item>
+            </>
+          )
+        }
         <Form.Item
           name="role_prompt"
           label={t("page.assistant.labels.role_prompt")}
@@ -270,6 +271,9 @@ export const EditForm = memo((props: AssistantFormProps) => {
             style={{ height: 320 }}
             className="w-600px"
           />
+        </Form.Item>
+        <Form.Item label={t("page.assistant.labels.greeting_settings")} name={["chat_settings", "greeting_message"]}>
+          <Input.TextArea className="w-600px" />
         </Form.Item>
         <Form.Item label={t("page.assistant.labels.enabled")} name="enabled">
           <Switch size="small" />
@@ -291,14 +295,6 @@ export const EditForm = memo((props: AssistantFormProps) => {
           label={t("page.assistant.labels.chat_settings")}
         >
           <div className="max-w-600px">
-            <div>
-              <div className="text-gray-400 leading-6 mb-1">
-                {t("page.assistant.labels.greeting_settings")}
-              </div>
-              <Form.Item name={["chat_settings", "greeting_message"]}>
-                <Input.TextArea className="w-600px" />
-              </Form.Item>
-            </div>
             <SuggestedChatForm checked={suggestedChatChecked} />
             <div>
               <p>{t("page.assistant.labels.input_preprocessing")}</p>
@@ -360,6 +356,14 @@ export const EditForm = memo((props: AssistantFormProps) => {
               </Form.Item>
             </div>
           </div>
+        </Form.Item>
+        <Form.Item
+          name={"keepalive"}
+          label={t("page.assistant.labels.keepalive")}
+          rules={[defaultRequiredRule]}
+          className={`${showAdvanced ? "" : "h-0px m-0px overflow-hidden"}`}
+        >
+          <Input className="max-w-600px" />
         </Form.Item>
         <Form.Item label=" ">
           <Button type="primary" htmlType="submit">
