@@ -306,6 +306,8 @@ const page: App.I18n.Schema['translation']['page'] = {
     labels: {
       name: "Name",
       type: "Type",
+      category: "Category",
+      tags: "Tags",
       default_model: "Default Model",
       enabled: "Enabled",
       icon: "Icon",
@@ -334,6 +336,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       input_preprocessing: "User input preprocessing",
       input_preprocessing_desc: "The user's latest message will be filled into this template.",
       input_preprocessing_placeholder: "Preprocessing template: {{text}} will be replaced with the real-time input.",
+      input_placeholder: "Input placeholder",
       history_message_number: "Number of historical messages included.",
       history_message_number_desc: "Number of historical messages included in each request.",
       history_message_compression_threshold: "Historical message length compression threshold.",

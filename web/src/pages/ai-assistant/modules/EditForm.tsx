@@ -33,6 +33,8 @@ import { formatESSearchResult } from "@/service/request/es";
 import ModelSelect from "./ModelSelect";
 import { ToolsConfig } from "./ToolsConfig";
 import { getUUID } from "@/utils/common";
+import { Tags } from '@/components/common/tags';
+import { getAssistantCategory } from "@/service/api/assistant";
 
 interface AssistantFormProps {
   initialValues: any;
@@ -76,7 +78,13 @@ export const EditForm = memo((props: AssistantFormProps) => {
       if (!values.datasource) values.datasource = {}
       values.datasource.filter = null;
     }
-    onSubmit?.(values, startLoading, endLoading);
+    if (values?.category[0]) {
+
+    }
+    onSubmit?.({
+      ...values,
+      category: values?.category[0] || '',
+    }, startLoading, endLoading);
   };
 
   const onFinishFailed: FormProps<any>["onFinishFailed"] = (errorInfo) => {
@@ -168,6 +176,19 @@ export const EditForm = memo((props: AssistantFormProps) => {
     );
   }, [initialValues?.chat_settings?.suggested?.enabled]);
 
+  const [categories, setCategories] = useState([]);
+  useEffect(() => {
+    getAssistantCategory().then(({ data }) => {
+      if (!data?.error) {
+        const newData = formatESSearchResult(data);
+        const cates = newData.aggregations.categories.buckets.map((item: any) => {
+          return item.key;
+        });
+        setCategories(cates);
+      }
+    });
+  }, []);
+
   const commonFormItemsClassName = `${showAdvanced || assistantMode === "deep_think" ? "" : "h-0px m-0px overflow-hidden"}`
 
   const commonFormItems = (
@@ -255,6 +276,26 @@ export const EditForm = memo((props: AssistantFormProps) => {
           />
         </Form.Item>
         <Form.Item
+          label={t('page.assistant.labels.category')}
+          name="category"
+        >
+          <Select
+            className="max-w-600px"
+            maxCount={1}
+            mode="tags"
+            placeholder="Select or input a category"
+            options={categories.map(cate => {
+              return { value: cate };
+            })}
+          />
+        </Form.Item>
+        <Form.Item
+          label={t('page.assistant.labels.tags')}
+          name="tags"
+        >
+          <Tags />
+        </Form.Item>
+        <Form.Item
           label={t("page.assistant.labels.type")}
           name="type"
           rules={[{ required: true }]}
@@ -309,7 +350,7 @@ export const EditForm = memo((props: AssistantFormProps) => {
         >
           <div className="max-w-600px">
             <SuggestedChatForm checked={suggestedChatChecked} />
-            <div>
+            {/* <div>
               <p>{t("page.assistant.labels.input_preprocessing")}</p>
               <div className="text-gray-400 leading-6 mb-1">
                 {t("page.assistant.labels.input_preprocessing_desc")}
@@ -319,6 +360,14 @@ export const EditForm = memo((props: AssistantFormProps) => {
                   placeholder={t(
                     "page.assistant.labels.input_preprocessing_placeholder",
                   )}
+                  className="w-600px"
+                />
+              </Form.Item>
+            </div> */}
+            <div>
+              <p className="mb-1">{t("page.assistant.labels.input_placeholder")}</p>
+              <Form.Item name={["chat_settings", "placeholder"]}>
+                <Input.TextArea
                   className="w-600px"
                 />
               </Form.Item>

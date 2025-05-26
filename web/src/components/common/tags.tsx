@@ -16,6 +16,10 @@ export const Tags: React.FC<TagsProps> = ({ onChange, value }) => {
   const inputRef = useRef<InputRef>(null);
 
   useEffect(() => {
+    setTags(value || [])
+  }, [value])
+  
+  useEffect(() => {
     if (inputVisible) {
       inputRef.current?.focus();
     }
@@ -49,11 +53,10 @@ export const Tags: React.FC<TagsProps> = ({ onChange, value }) => {
     background: token.colorBgContainer,
     borderStyle: 'dashed',
     cursor: 'pointer',
-    marginTop: 8 // Ensure spacing from tags
   };
 
   return (
-    <div style={{ marginBottom: 8 }}>
+    <div >
       {tags.map(tag => (
         <Tag
           closable

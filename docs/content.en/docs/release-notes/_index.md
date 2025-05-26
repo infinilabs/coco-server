@@ -14,7 +14,6 @@ Information about release notes of Coco Server is provided here.
 ### 🚀 Features
 
 ### 🐛 Bug fix
-- fix: start page configuration of integration is not working
 
 ### ✈️ Improvements
 
@@ -37,6 +36,7 @@ Information about release notes of Coco Server is provided here.
 - fix: handle empty URL values in HugoSite-type datasource
 - fix: datasource & MCP selection problem #267
 - fix: resolve compatibility issue with crypto.randomUUID when creating model provider
+- fix: start page configuration of integration is not working
 
 ### ✈️ Improvements
 
@@ -45,6 +45,7 @@ Information about release notes of Coco Server is provided here.
 - chore: add enabled by default params to assistant edit
 - chore: password supports more special characters
 - refactor: refactoring chat api #273
+- chore: add placeholder, category and tags to AI Assistant
 
 
 ## 0.4.0 (2025-04-27)
