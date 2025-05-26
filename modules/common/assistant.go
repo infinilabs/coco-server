@@ -149,6 +149,7 @@ type ChatSettings struct {
 		Questions []string `json:"questions"`
 	} `json:"suggested"`
 	InputPreprocessTemplate string `json:"input_preprocess_tpl"`
+	PlaceHolder             string `json:"placeholder"`
 	HistoryMessage          struct {
 		Number               int  `json:"number"`
 		CompressionThreshold int  `json:"compression_threshold"`
