@@ -50,7 +50,6 @@ func init() {
 
 	security.GetOrInitPermissionKey(readPermission)
 	security.GetOrInitPermissionKey(updatePermission)
-	security.RegisterPermissionsToRole(core.WidgetRole, readPermission)
 
 	handler := APIHandler{}
 	api.HandleUIMethod(api.GET, "/provider/_info", handler.providerInfo, api.AllowPublicAccess())

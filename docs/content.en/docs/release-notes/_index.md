@@ -14,6 +14,7 @@ Information about release notes of Coco Server is provided here.
 ### 🚀 Features
 
 ### 🐛 Bug fix
+- fix: start page configuration of integration is not working
 
 ### ✈️ Improvements
 
