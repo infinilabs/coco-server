@@ -18,6 +18,9 @@ type DataSource struct {
 	Name string `json:"name,omitempty" elastic_mapping:"name:{type:keyword,copy_to:combined_fulltext}"` // Display name of this datasource
 	Icon string `json:"icon,omitempty" elastic_mapping:"icon:{type:keyword}"`                           // Display name of this datasource
 
+	Category string   `json:"category,omitempty" elastic_mapping:"category:{type:keyword}"`
+	Tags     []string `json:"tags,omitempty" elastic_mapping:"tags:{type:keyword}"`
+
 	Connector ConnectorConfig `json:"connector,omitempty" elastic_mapping:"connector:{type:object}"` // Connector configuration
 	// Whether synchronization is allowed
 	SyncEnabled bool `json:"sync_enabled" elastic_mapping:"sync_enabled:{type:keyword}"`
