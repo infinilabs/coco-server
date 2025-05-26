@@ -81,3 +81,22 @@ export function cloneAssistant(assistantID: string){
     url: `/assistant/${assistantID}/_clone`
   });
 }
+
+export function getAssistantCategory() {
+  const query = {
+    aggs: {
+      categories: {
+        terms: {
+          field: 'category',
+          size: 100
+        }
+      }
+    },
+    size: 0
+  };
+  return request({
+    data: query,
+    method: 'post',
+    url: '/assistant/_search'
+  });
+}

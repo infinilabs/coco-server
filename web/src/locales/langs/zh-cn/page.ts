@@ -299,6 +299,8 @@ const page: App.I18n.Schema['translation']['page'] = {
     labels: {
       name: "名称",
       type: "类型",
+      category: "分类",
+      tags: "标签",
       default_model: "默认模型",
       enabled: "启用状态",
       icon: "图标",
@@ -327,6 +329,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       input_preprocessing: "用户输入预处理",
       input_preprocessing_desc: "用户最新的一条消息会填充到此模版",
       input_preprocessing_placeholder: "预处理模版 {{text}} 将替换为实时输入信息",
+      input_placeholder: "输入提示",
       history_message_number: "附带历史消息数",
       history_message_number_desc: "每次请求携带的历史消息数",
       history_message_compression_threshold: "历史消息长度压缩阈值",
