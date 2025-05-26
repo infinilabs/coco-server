@@ -19,6 +19,7 @@ Information about release notes of Coco Server is provided here.
 - fix: start page configuration of integration is not working
 
 ### ✈️ Improvements
+- add placeholder, category and tags to AI Assistant
 
 ## 0.5.0 (2025-05-17)
 
