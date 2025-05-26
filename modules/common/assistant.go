@@ -43,7 +43,9 @@ type Assistant struct {
 	Name           string           `json:"name" elastic_mapping:"name:{type:keyword,copy_to:combined_fulltext}"`
 	Description    string           `json:"description" elastic_mapping:"description:{type:keyword,copy_to:combined_fulltext}"`
 	Icon           string           `json:"icon" elastic_mapping:"icon:{type:keyword}"`
-	Type           string           `json:"type" elastic_mapping:"type:{type:keyword}"`                // assistant type, default value: "simple", possible values: "simple", "deep_think", "external_workflow"
+	Type           string           `json:"type" elastic_mapping:"type:{type:keyword}"` // assistant type, default value: "simple", possible values: "simple", "deep_think", "external_workflow"
+	Category       string           `json:"category,omitempty" elastic_mapping:"category:{type:keyword}"`
+	Tags           []string         `json:"tags,omitempty" elastic_mapping:"tags:{type:keyword}"`
 	Config         interface{}      `json:"config,omitempty" elastic_mapping:"config:{enabled:false}"` // Assistant-specific configuration settings with type
 	AnsweringModel ModelConfig      `json:"answering_model" elastic_mapping:"answering_model:{type:object,enabled:false}"`
 	Datasource     DatasourceConfig `json:"datasource" elastic_mapping:"datasource:{type:object,enabled:false}"`
@@ -149,6 +151,7 @@ type ChatSettings struct {
 		Questions []string `json:"questions"`
 	} `json:"suggested"`
 	InputPreprocessTemplate string `json:"input_preprocess_tpl"`
+	PlaceHolder             string `json:"placeholder"`
 	HistoryMessage          struct {
 		Number               int  `json:"number"`
 		CompressionThreshold int  `json:"compression_threshold"`
