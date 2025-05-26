@@ -12,14 +12,12 @@ Information about release notes of Coco Server is provided here.
 ### ❌ Breaking changes
 
 ### 🚀 Features
-- feat: return number of assistants in provider info API
-- feat: add assistant to search results #274
 
 ### 🐛 Bug fix
 
 ### ✈️ Improvements
 
-## 0.5.0 (2025-05-17)
+## 0.5.0 (2025-05-30)
 
 ### ❌ Breaking changes
 
@@ -27,6 +25,9 @@ Information about release notes of Coco Server is provided here.
 
 - feat: allow converting icon to base64 #261
 - feat: implement ask api for assistant
+- feat: add placeholder to chat settings
+- feat: return number of assistants in provider info API
+- feat: add assistant to search results #274
 
 ### 🐛 Bug fix
 
