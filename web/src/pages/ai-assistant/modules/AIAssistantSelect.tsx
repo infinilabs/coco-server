@@ -34,17 +34,19 @@ export default (props) => {
     const [sorter, setSorter] = useState([])
 
     useEffect(() => {
-      fetchData({
-        ...queryParams,
-        sort: sorter.map((item) => ({
-          [item[0]]: {
-            "order": item[1]
-          }
-        })),
-        filters: assistants?.length > 0 ? [
-          {"terms":{"id": assistants.map((item) => item.id)}}
-        ] : []
-      })
+      if (typeof assistants === 'undefined' || assistants.length !== 0) {
+        fetchData({
+          ...queryParams,
+          sort: sorter.map((item) => ({
+            [item[0]]: {
+              "order": item[1]
+            }
+          })),
+          filters: assistants?.length > 0 ? [
+            {"terms":{"id": assistants.map((item) => item.id)}}
+          ] : []
+        })
+      }
     }, [queryParams, sorter, assistants])
 
     useEffect(() => {

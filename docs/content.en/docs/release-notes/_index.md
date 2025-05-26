@@ -16,6 +16,7 @@ Information about release notes of Coco Server is provided here.
 - feat: add assistant to search results #274
 
 ### 🐛 Bug fix
+- fix: start page configuration of integration is not working
 
 ### ✈️ Improvements
 

@@ -1,7 +1,7 @@
 const SystemLogoShort = () => {
   return (
     <SvgIcon
-      className="h-48px w-48px text-48px"
+      className="h-38px w-38px text-38px"
       localIcon="coco"
     />
   );
