@@ -64,6 +64,7 @@ export const DocSearchModal = ({
             hasModules={hasModules}
             searchPlaceholder={search?.placeholder || 'Search whatever you want...'}
             chatPlaceholder={ai_chat?.placeholder || 'Ask whatever you want...'}
+            startPage={ai_chat?.start_page_config}
             theme={theme}
             showChatHistory={features?.includes('chat_history')}
             setIsPinned={setIsPinned}
