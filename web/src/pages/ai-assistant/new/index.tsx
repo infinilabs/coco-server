@@ -69,7 +69,7 @@ export function Component() {
       >
         <div className="mb-30px ml--16px flex items-center text-lg font-bold">
           <div className="mr-20px h-1.2em w-10px bg-[#1677FF]" />
-          <div>{t(`route.ai-assistant_edit`)}</div>
+          <div>{t(`route.ai-assistant_new`)}</div>
         </div>
         <div className="px-30px">
           <EditForm

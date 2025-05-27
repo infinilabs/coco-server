@@ -78,12 +78,9 @@ export const EditForm = memo((props: AssistantFormProps) => {
       if (!values.datasource) values.datasource = {}
       values.datasource.filter = null;
     }
-    if (values?.category[0]) {
-
-    }
     onSubmit?.({
       ...values,
-      category: values?.category[0] || '',
+      category: values?.category?.[0] || '',
     }, startLoading, endLoading);
   };
 

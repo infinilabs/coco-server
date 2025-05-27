@@ -18,7 +18,7 @@ export function Component() {
       assets: {
         icons: values.assets_icons
       },
-      category: values?.category[0] || '',
+      category: values?.category?.[0] || '',
       description: values.description,
       icon: values.icon,
       name: values.name,
