@@ -40,3 +40,75 @@ POST $[[SETUP_INDEX_PREFIX]]assistant/$[[SETUP_DOC_TYPE]]/default
   "builtin" : true,
   "role_prompt" : ""
 }
+
+POST $[[SETUP_INDEX_PREFIX]]assistant/$[[SETUP_DOC_TYPE]]/ai_overview
+{
+    "id": "ai_overview",
+    "created": "2025-05-28T09:29:42.689775563+08:00",
+    "updated": "2025-05-28T09:32:39.310853954+08:00",
+    "name": "AI Overview",
+    "description": "用于搜索结果的 AI Overview，帮助你快速洞察关键信息、核心观点",
+    "icon": "font_Brain02",
+    "type": "simple",
+    "answering_model": {
+      "provider_id": "qianwen",
+      "name": "qwen-max",
+      "settings": {
+        "reasoning": false,
+        "temperature": 0,
+        "top_p": 0,
+        "presence_penalty": 0,
+        "frequency_penalty": 0,
+        "max_tokens": 0,
+        "max_length": 0
+      },
+      "prompt": {
+        "template": "{{.query}}",
+        "input_vars": null
+      }
+    },
+    "datasource": {
+      "enabled": false,
+      "ids": [
+        "*"
+      ],
+      "visible": false,
+      "enabled_by_default": false
+    },
+    "tools": {
+      "enabled": false,
+      "builtin": {
+        "calculator": false,
+        "wikipedia": false,
+        "duckduckgo": false,
+        "scraper": false
+      }
+    },
+    "mcp_servers": {
+      "enabled": false,
+      "ids": [
+        "*"
+      ],
+      "visible": false,
+      "model": null,
+      "max_iterations": 5,
+      "enabled_by_default": false
+    },
+    "keepalive": "30m",
+    "enabled": true,
+    "chat_settings": {
+      "greeting_message": "",
+      "suggested": {
+        "enabled": false,
+        "questions": []
+      },
+      "input_preprocess_tpl": "",
+      "history_message": {
+        "number": 5,
+        "compression_threshold": 1000,
+        "summary": true
+      }
+    },
+    "builtin": false,
+    "role_prompt": "你是一个信息总结助手，专门负责对由 Coco AI 搜索得到的内容进行总结、归纳与概括。你的任务是从搜索结果中提取出用户最关心的信息，提供清晰、简洁、有条理的概览。\n\n请遵循以下规则：\n你只总结用户本次搜索返回的内容，不推测或引入外部信息。\n以结构化方式输出结果（如分点、段落、或标题-内容格式），帮助用户快速理解核心信息。\n当搜索结果内容较多时，请优先提取共同主题、主要观点和明显的结论，避免逐条复述。\n如果搜索结果中包含多个来源或多种观点，请指出异同。\n如搜索结果过于杂乱或无效，请简要说明无法总结的原因，并建议用户尝试优化搜索关键词。\n输出语言与用户问题一致。"
+  }
