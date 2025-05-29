@@ -46,7 +46,7 @@ Information about release notes of Coco Server is provided here.
 - chore: password supports more special characters
 - refactor: refactoring chat api #273
 - chore: add placeholder, category and tags to AI Assistant
-
+- chore: ignore empty chunk_message #288
 
 ## 0.4.0 (2025-04-27)
 
