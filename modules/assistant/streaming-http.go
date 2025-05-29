@@ -24,6 +24,11 @@ type HTTPStreamSender struct {
 }
 
 func (s *HTTPStreamSender) SendMessage(msg *common.MessageChunk) error {
+
+	if msg == nil || (msg.MessageType == common.Response && msg.MessageChunk == "") {
+		return nil
+	}
+
 	select {
 	case <-s.Ctx.Done():
 		return fmt.Errorf("client disconnected")
