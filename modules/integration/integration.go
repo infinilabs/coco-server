@@ -108,7 +108,7 @@ func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprou
 	ctx := &orm.Context{
 		Refresh: orm.WaitForRefresh,
 	}
-	err = orm.Update(ctx, &obj)
+	err = orm.Save(ctx, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
