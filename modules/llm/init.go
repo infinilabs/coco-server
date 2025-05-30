@@ -46,5 +46,6 @@ func init() {
 	api.HandleUIMethod(api.PUT, "/mcp_server/:id", handler.updateMCPServer)
 	api.HandleUIMethod(api.DELETE, "/mcp_server/:id", handler.deleteMCPServer)
 	api.HandleUIMethod(api.GET, "/mcp_server/_search", handler.searchMCPServer, api.Feature(filter.FeatureCORS))
+	api.HandleUIMethod(api.OPTIONS, "/mcp_server/_search", handler.searchMCPServer, api.Feature(filter.FeatureCORS))
 	api.HandleUIMethod(api.POST, "/mcp_server/_search", handler.searchMCPServer, api.Feature(filter.FeatureCORS))
 }
