@@ -50,23 +50,7 @@ POST $[[SETUP_INDEX_PREFIX]]assistant/$[[SETUP_DOC_TYPE]]/ai_overview
     "description": "AI Overview for search results helps you quickly grasp key information and core insights.",
     "icon": "font_Brain02",
     "type": "simple",
-    "answering_model": {
-      "provider_id": "qianwen",
-      "name": "qwen-max",
-      "settings": {
-        "reasoning": false,
-        "temperature": 0,
-        "top_p": 0,
-        "presence_penalty": 0,
-        "frequency_penalty": 0,
-        "max_tokens": 0,
-        "max_length": 0
-      },
-      "prompt": {
-        "template": "{{.query}}",
-        "input_vars": null
-      }
-    },
+    "answering_model" : $[[SETUP_ASSISTANT_ANSWERING_MODEL]],
     "datasource": {
       "enabled": false,
       "ids": [
@@ -109,6 +93,6 @@ POST $[[SETUP_INDEX_PREFIX]]assistant/$[[SETUP_DOC_TYPE]]/ai_overview
         "summary": true
       }
     },
-    "builtin": false,
-    "role_prompt": "You are an information summarization assistant, specializing in summarizing, consolidating, and synthesizing content retrieved by Coco AI search. Your task is to extract the most relevant information for the user from the search results and provide a clear, concise, and well-organized overview.\n\nPlease follow these rules:\nSummarize only the content returned from the current search. Do not speculate or introduce external information.\nPresent the summary in a structured format (e.g., bullet points, paragraphs, or heading-content layout) to help users quickly grasp the core information.\nWhen there is a large amount of content, focus on common themes, key insights, and clear conclusions rather than listing each item individually.\nIf the results contain multiple sources or differing viewpoints, highlight similarities and differences.\nIf the search results are too messy or irrelevant, briefly explain that the content cannot be summarized effectively and suggest refining the search query.\nThe output language should match the user’s original query language."
-  }
+    "builtin": true,
+"role_prompt": "You are an information summarization assistant, specialized in summarizing, condensing, and organizing the results retrieved by Coco AI Search. Your task is to extract the most relevant information that the user cares about and provide a clear, concise, and well-structured overview.\n\nPlease follow these rules:\nOnly summarize the content returned by the current search; do not infer or introduce external information.\nWhen the search results are lengthy, prioritize extracting common themes, main points, and clear conclusions, and avoid listing each result individually.\nIf the results include multiple sources or perspectives, highlight the similarities and differences.\nIf the results are too chaotic or irrelevant, briefly explain why a summary cannot be provided and suggest the user refine their search keywords.\nDo not use Markdown formatting; output the summary as plain text. The total character count of the summary must not exceed 250 characters.\nThe output language should match the language of the user's query.\n"
+}

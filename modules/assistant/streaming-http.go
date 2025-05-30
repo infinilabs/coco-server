@@ -25,7 +25,7 @@ type HTTPStreamSender struct {
 
 func (s *HTTPStreamSender) SendMessage(msg *common.MessageChunk) error {
 
-	if msg == nil || (msg.MessageType == common.Response && msg.MessageChunk == "") {
+	if msg == nil || (msg.MessageType == common.Response && strings.TrimSpace(msg.MessageChunk) == "") {
 		return nil
 	}
 
