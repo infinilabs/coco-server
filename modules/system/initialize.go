@@ -283,7 +283,7 @@ func (h *APIHandler) initializeTemplate(dslTplFile string, indexPrefix string, d
 		apiType = setupCfg.LLM.Type
 		baseURL = setupCfg.LLM.Endpoint
 		defaultModel = fmt.Sprintf(`{"name": "%s"}`, setupCfg.LLM.DefaultModel)
-		answeringModel = fmt.Sprintf(`{"provider_id": "coco", "name": "%s"}`, setupCfg.LLM.DefaultModel)
+		answeringModel = fmt.Sprintf(`{"provider_id": "coco", "name": "%s",  "prompt": { "template": "{{.query}}" }}`, setupCfg.LLM.DefaultModel)
 	}
 	output := tpl.ExecuteFuncString(func(w io.Writer, tag string) (int, error) {
 		switch tag {

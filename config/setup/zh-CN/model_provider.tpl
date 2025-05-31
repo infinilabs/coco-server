@@ -108,6 +108,9 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/qianwen
     },
     {
       "name" : "qwq-plus"
+    },
+    {
+      "name" : "qwen2.5-32b-instruct"
     }
   ],
   "base_url" : "https://dashscope.aliyuncs.com/compatible-mode/v1",
