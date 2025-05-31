@@ -29,6 +29,7 @@ Information about release notes of Coco Server is provided here.
 - feat: return number of assistants in provider info API
 - feat: add assistant to search results #274
 - feat: add built-in AI assistant `AI Overview`
+- feat: add throttle filter wth request fingerprint #294
 
 ### 🐛 Bug fix
 
