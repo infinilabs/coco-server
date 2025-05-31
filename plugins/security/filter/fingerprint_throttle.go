@@ -26,6 +26,7 @@ package filter
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"infini.sh/framework/core/global"
 	"io"
 	"net"
 	"net/http"
@@ -39,7 +40,16 @@ import (
 )
 
 func init() {
-	api.RegisterUIFilter(&FingerprintThrottleFilter{})
+	f := &FingerprintThrottleFilter{}
+
+	// Register cleanup task only once
+	global.RegisterBackgroundCallback(&global.BackgroundTask{
+		Tag:      "fingerprint_throttle_filter_cleanup",
+		Func:     func() { f.cleanupOldEntries() },
+		Interval: 10 * time.Second,
+	})
+
+	api.RegisterUIFilter(f)
 }
 
 type FingerprintThrottleFilter struct {
@@ -48,7 +58,7 @@ type FingerprintThrottleFilter struct {
 }
 
 func (f *FingerprintThrottleFilter) GetPriority() int {
-	return 20 
+	return 20
 }
 
 const throttleWindow = 100 * time.Millisecond
@@ -80,9 +90,6 @@ func (f *FingerprintThrottleFilter) ApplyFilter(
 
 		// Store/Update fingerprint
 		f.recent.Store(fingerprint, now)
-
-		// Clean up old entries
-		go f.cleanupOldEntries()
 
 		next(w, r, ps)
 	}
