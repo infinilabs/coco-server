@@ -71,7 +71,9 @@ func (f *FingerprintThrottleFilter) ApplyFilter(
 ) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		fingerprint, err := f.computeFingerprint(r)
-		log.Infof("req: %v, fingerprint: %v", r.URL.String(), fingerprint)
+		if global.Env().IsDebug{
+			log.Tracef("req: %v, fingerprint: %v", r.URL.String(), fingerprint)
+		}
 		if err != nil {
 			log.Warn("could not compute fingerprint:", err)
 			next(w, r, ps)
