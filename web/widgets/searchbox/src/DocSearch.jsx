@@ -180,7 +180,7 @@ export const DocSearch = (props) => {
 
   function renderButton(settings) {
     const { type } = settings || {};
-    if (['embedded', 'all'].includes(type)) {
+    if (!props.trigger && ['embedded', 'all'].includes(type)) {
       return (
         <DocSearchButton
           settings={settings}
@@ -245,6 +245,17 @@ export const DocSearch = (props) => {
       renderFloatButton(theme, settings)
     }
   }, [shadowLoading, theme, theme])
+
+  useEffect(() => {
+    let dom
+    if (props.trigger) {
+      dom = document.getElementById(props.trigger)
+    }
+    dom?.addEventListener('click', onClick)
+    return () => {
+      dom?.removeEventListener('click', onClick)
+    }
+  }, [props.trigger])
 
   return (
     <div
