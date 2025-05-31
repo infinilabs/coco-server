@@ -180,5 +180,3 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	nhooyr.io/websocket v1.8.7 // indirect
 )
-
-replace infini.sh/license => ../license
