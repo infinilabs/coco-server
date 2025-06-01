@@ -50,10 +50,10 @@ func init() {
 	api.HandleUIMethod(api.GET, "/chat/_history", handler.getChatSessions, api.RequirePermission(viewHistoryPermission), api.Feature(filter.FeatureCORS))
 	api.HandleUIMethod(api.OPTIONS, "/chat/_history", handler.getChatSessions, api.RequirePermission(viewHistoryPermission), api.Feature(filter.FeatureCORS))
 
-	api.HandleUIMethod(api.POST, "/chat/_new", handler.newChatSession, api.RequirePermission(createPermission), api.Feature(filter.FeatureCORS))
+	api.HandleUIMethod(api.POST, "/chat/_new", handler.newChatSession, api.RequirePermission(createPermission), api.Feature(filter.FeatureCORS), api.Feature(filter.FeatureFingerprintThrottle))
 	api.HandleUIMethod(api.OPTIONS, "/chat/_new", handler.newChatSession, api.RequirePermission(createPermission), api.Feature(filter.FeatureCORS))
 
-	api.HandleUIMethod(api.POST, "/chat/:session_id/_send", handler.sendChatMessage, api.RequirePermission(createPermission), api.Feature(filter.FeatureCORS))
+	api.HandleUIMethod(api.POST, "/chat/:session_id/_send", handler.sendChatMessage, api.RequirePermission(createPermission), api.Feature(filter.FeatureCORS), api.Feature(filter.FeatureFingerprintThrottle))
 	api.HandleUIMethod(api.OPTIONS, "/chat/:session_id/_send", handler.sendChatMessage, api.RequirePermission(createPermission), api.Feature(filter.FeatureCORS))
 
 	api.HandleUIMethod(api.GET, "/chat/:session_id", handler.getSession, api.RequirePermission(readPermission), api.Feature(filter.FeatureCORS))
@@ -75,7 +75,7 @@ func init() {
 	api.HandleUIMethod(api.POST, "/assistant/", handler.createAssistant, api.RequirePermission(createAssistantPermission))
 	api.HandleUIMethod(api.GET, "/assistant/:id", handler.getAssistant, api.RequirePermission(readAssistantPermission))
 
-	api.HandleUIMethod(api.POST, "/assistant/:id/_ask", handler.askAssistant, api.RequirePermission(askAssistantPermission), api.Feature(filter.FeatureCORS))
+	api.HandleUIMethod(api.POST, "/assistant/:id/_ask", handler.askAssistant, api.RequirePermission(askAssistantPermission), api.Feature(filter.FeatureCORS), api.Feature(filter.FeatureFingerprintThrottle))
 	api.HandleUIMethod(api.OPTIONS, "/assistant/:id/_ask", handler.askAssistant, api.RequirePermission(askAssistantPermission), api.Feature(filter.FeatureCORS))
 
 	api.HandleUIMethod(api.PUT, "/assistant/:id", handler.updateAssistant, api.RequirePermission(updateAssistantPermission))
