@@ -33,7 +33,7 @@ export default (props) => {
 
     const [sorter, setSorter] = useState([])
 
-    useEffect(() => {
+    const fetchFilterData = (queryParams, sorter, assistants) => {
       if (typeof assistants === 'undefined' || assistants.length !== 0) {
         fetchData({
           ...queryParams,
@@ -47,6 +47,10 @@ export default (props) => {
           ] : []
         })
       }
+    }
+
+    useEffect(() => {
+      fetchFilterData(queryParams, sorter, assistants)
     }, [queryParams, sorter, assistants])
 
     useEffect(() => {
@@ -131,14 +135,7 @@ export default (props) => {
             },
           }}
           onRefresh={() => {
-            fetchData({
-              ...queryParams,
-              sort: sorter.map((item) => ({
-                [item[0]]: {
-                  "order": item[1]
-                }
-              }))
-            })
+            fetchFilterData(queryParams, sorter, assistants)
           }}
           action={[
             <a
