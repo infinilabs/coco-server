@@ -29,6 +29,9 @@ package security
 
 import (
 	"fmt"
+	"net/http"
+	"strings"
+
 	"golang.org/x/crypto/bcrypt"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
@@ -37,8 +40,6 @@ import (
 	"infini.sh/framework/core/kv"
 	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
-	"net/http"
-	"strings"
 )
 
 func (h APIHandler) Logout(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -59,7 +60,7 @@ func (h APIHandler) Profile(w http.ResponseWriter, r *http.Request, ps httproute
 		panic("invalid user")
 	}
 
-	data, err := kv.GetValue(core.DefaultSettingBucketKey, []byte(core.DefaultUserProfileKey))
+	data, err := kv.GetValue(core.UserProfileKey, []byte(reqUser.UserId))
 
 	h.WriteBytes(w, data, 200)
 }

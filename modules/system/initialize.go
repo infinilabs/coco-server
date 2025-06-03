@@ -109,10 +109,10 @@ func (h *APIHandler) setupServer(w http.ResponseWriter, req *http.Request, ps ht
 
 	//save user's profile
 	profile := core.User{Name: input.Name}
-	profile.ID = "default_user_id"
+	profile.ID = core.DefaultUserLogin
 	profile.Email = input.Email
 
-	err = kv.AddValue(core.DefaultSettingBucketKey, []byte(core.DefaultUserProfileKey), util.MustToJSONBytes(profile))
+	err = kv.AddValue(core.UserProfileKey, []byte(profile.ID), util.MustToJSONBytes(profile))
 	if err != nil {
 		panic(err)
 	}
