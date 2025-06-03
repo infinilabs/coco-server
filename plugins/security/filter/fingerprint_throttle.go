@@ -61,6 +61,7 @@ func (f *FingerprintThrottleFilter) GetPriority() int {
 	return 20
 }
 
+const FeatureFingerprintThrottle = "fingerprint_throttle"
 const throttleWindow = 100 * time.Millisecond
 
 func (f *FingerprintThrottleFilter) ApplyFilter(
@@ -69,9 +70,17 @@ func (f *FingerprintThrottleFilter) ApplyFilter(
 	options *api.HandlerOptions,
 	next httprouter.Handle,
 ) httprouter.Handle {
+
+	//option not enabled
+	if options == nil || !options.Feature(FeatureFingerprintThrottle) {
+		log.Debug(method, ",", pattern, ",skip feature ", FeatureFingerprintThrottle)
+		return next
+	}
+
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+
 		fingerprint, err := f.computeFingerprint(r)
-		if global.Env().IsDebug{
+		if global.Env().IsDebug {
 			log.Tracef("req: %v, fingerprint: %v", r.URL.String(), fingerprint)
 		}
 		if err != nil {
