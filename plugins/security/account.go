@@ -60,7 +60,13 @@ func (h APIHandler) Profile(w http.ResponseWriter, r *http.Request, ps httproute
 		panic("invalid user")
 	}
 
-	data, err := kv.GetValue(core.UserProfileKey, []byte(reqUser.UserId))
+	var data []byte
+	cfg, _ := common.AppConfigFromFile()
+	if cfg != nil && cfg.ServerInfo.Managed {
+		data, err = kv.GetValue(core.UserProfileKey, []byte(reqUser.UserId))
+	} else {
+		data, err = kv.GetValue(core.DefaultSettingBucketKey, []byte(core.DefaultUserProfileKey))
+	}
 
 	h.WriteBytes(w, data, 200)
 }
