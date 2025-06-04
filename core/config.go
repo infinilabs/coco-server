@@ -24,6 +24,7 @@
 package core
 
 var DefaultSettingBucketKey = "default_setting_bucket"
+var DefaultUserProfileKey = "default_user_profile"
 var UserProfileKey = "user_profile"
 var DefaultUserPasswordKey = "default_user_password"
 var DefaultServerConfigKey = "default_server_config"
