@@ -13,6 +13,7 @@ import (
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/elastic"
 	"infini.sh/framework/core/orm"
+	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
 	ccache "infini.sh/framework/lib/cache"
 	"net/http"
@@ -235,28 +236,37 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 	}
 
 	if query != "" {
-		assistantSize := 2
-		if len(hits) < 5 {
-			assistantSize = size - (len(hits))
-		}
 
-		assistants := searchAssistant(query, assistantSize)
-		if len(assistants) > 0 {
-			for _, assistant := range assistants {
-				doc := common.Document{}
-				doc.ID = assistant.ID
-				doc.Type = "AI Assistant"
-				doc.Icon = assistant.Icon
-				doc.Title = assistant.Name
-				doc.Summary = assistant.Description
-				doc.URL = fmt.Sprintf("coco://extenstions/infinilabs/ask_assistant/%v", assistant.ID)
-				doc.Source = common.DataSourceReference{
-					ID:   "assistant",
-					Name: "Assistant",
-					Icon: "font_robot",
+		reqUser, err := security.UserFromContext(req.Context())
+		if err == nil && reqUser != nil {
+			assistantSearchPermission := security.GetSimplePermission(Category, Assistant, string(QuickAISearchAction))
+			perID := security.GetOrInitPermissionKey(assistantSearchPermission)
+
+			if (reqUser.Roles != nil && util.AnyInArrayEquals(reqUser.Roles, security.RoleAdmin)) || reqUser.UserAssignedPermission.ValidateFor(perID) {
+				assistantSize := 2
+				if len(hits) < 5 {
+					assistantSize = size - (len(hits))
 				}
-				newHit := IndexDocument{Index: "assistant", ID: assistant.ID, Source: doc, Score: v2.Hits.MaxScore + 500}
-				hits = append(hits, newHit)
+
+				assistants := searchAssistant(query, assistantSize)
+				if len(assistants) > 0 {
+					for _, assistant := range assistants {
+						doc := common.Document{}
+						doc.ID = assistant.ID
+						doc.Type = "AI Assistant"
+						doc.Icon = assistant.Icon
+						doc.Title = assistant.Name
+						doc.Summary = assistant.Description
+						doc.URL = fmt.Sprintf("coco://extenstions/infinilabs/ask_assistant/%v", assistant.ID)
+						doc.Source = common.DataSourceReference{
+							ID:   "assistant",
+							Name: "Assistant",
+							Icon: "font_robot",
+						}
+						newHit := IndexDocument{Index: "assistant", ID: assistant.ID, Source: doc, Score: v2.Hits.MaxScore + 500}
+						hits = append(hits, newHit)
+					}
+				}
 			}
 		}
 	}

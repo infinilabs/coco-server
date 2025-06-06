@@ -17,10 +17,15 @@ type APIHandler struct {
 
 const Category = "coco"
 const Resource = "search"
+const Assistant = "assistant"
+const QuickAISearchAction = "quick_ai_access"
 
 func init() {
 
 	permission := security.GetSimplePermission(Category, Resource, string(security.Search))
+	assistantSearchPermission := security.GetSimplePermission(Category, Assistant, string(QuickAISearchAction))
+
+	security.GetOrInitPermissionKeys(assistantSearchPermission)
 	security.AssignPermissionsToRoles(permission, core.WidgetRole)
 
 	handler := APIHandler{}
