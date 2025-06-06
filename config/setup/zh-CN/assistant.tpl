@@ -7,7 +7,23 @@ POST $[[SETUP_INDEX_PREFIX]]assistant/$[[SETUP_DOC_TYPE]]/default
   "description" : "默认 Coco AI 聊天助手",
   "icon" : "font_Robot-outlined",
   "type" : "simple",
-  "answering_model" : $[[SETUP_ASSISTANT_ANSWERING_MODEL]],
+  "answering_model": {
+      "provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
+      "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
+      "settings": {
+        "reasoning": false,
+        "temperature": 0,
+        "top_p": 0,
+        "presence_penalty": 0,
+        "frequency_penalty": 0,
+        "max_tokens": 0,
+        "max_length": 0
+      },
+      "prompt": {
+        "template": "You will be given a conversation and a follow-up question.\n\nIf necessary, rephrase the follow-up question into a standalone question so that the LLM can retrieve information from its knowledge base.\n\n⸻\n\nContext:\n\n{{.context}}\n\nUser Query:\n\n{{.query}}\n\n⸻\n\nPlease generate your response based on the information above, prioritizing the output from LLM tools (if available).\n\nEnsure your response is thoughtful, accurate, and well-structured.\n\nIf the information provided is insufficient, let the user know that more details are needed, or respond in a friendly and conversational tone.\n\nFor complex answers, use clear and well-organized Markdown format to improve readability.",
+        "input_vars": null
+      }
+   },
   "datasource" : {
     "enabled" : true,
     "ids" : [
@@ -50,7 +66,23 @@ POST $[[SETUP_INDEX_PREFIX]]assistant/$[[SETUP_DOC_TYPE]]/ai_overview
     "description": "用于搜索结果的 AI Overview，帮助你快速洞察关键信息、核心观点",
     "icon": "font_Brain02",
     "type": "simple",
-    "answering_model" : $[[SETUP_ASSISTANT_ANSWERING_MODEL]],
+    "answering_model": {
+      "provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
+      "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
+      "settings": {
+        "reasoning": false,
+        "temperature": 0,
+        "top_p": 0,
+        "presence_penalty": 0,
+        "frequency_penalty": 0,
+        "max_tokens": 0,
+        "max_length": 0
+      },
+      "prompt": {
+        "template": "{{.query}}",
+        "input_vars": null
+      }
+    },
     "datasource": {
       "enabled": false,
       "ids": [
