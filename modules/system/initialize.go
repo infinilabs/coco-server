@@ -308,6 +308,10 @@ func (h *APIHandler) initializeTemplate(dslTplFile string, indexPrefix string, d
 			return w.Write([]byte(defaultModel))
 		case "SETUP_ASSISTANT_ANSWERING_MODEL":
 			return w.Write([]byte(answeringModel))
+		case "SETUP_LLM_PROVIDER_ID":
+			return w.Write([]byte("coco"))
+		case "SETUP_LLM_DEFAULT_MODEL_ID":
+			return w.Write([]byte(setupCfg.LLM.DefaultModel))
 		case "SETUP_SERVER_ENDPOINT":
 			return w.Write([]byte(serverEndpoint))
 		}
