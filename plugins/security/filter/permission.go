@@ -72,7 +72,7 @@ func (f *PermissionFilter) ApplyFilter(
 		}
 
 		//bypass admin
-		if util.AnyInArrayEquals(reqUser.Roles, sec.RoleAdmin) {
+		if reqUser.Roles != nil && util.AnyInArrayEquals(reqUser.Roles, sec.RoleAdmin) {
 			next(w, r, ps)
 			return
 		}
@@ -88,6 +88,7 @@ func (f *PermissionFilter) ApplyFilter(
 		if global.Env().IsDebug {
 			log.Tracef("perm key: %v", options.RequirePermission)
 		}
+
 		if reqUser.UserAssignedPermission.Validate(sec.MustRegisterPermissionByKeys(options.RequirePermission)) {
 			next(w, r, ps)
 		} else {
