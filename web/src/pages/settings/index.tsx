@@ -17,12 +17,14 @@ export function Component() {
     {
       children: <ConnectorSettings />,
       key: 'connector',
-      label: t(`page.settings.connector.title`)
+      label: t(`page.settings.connector.title`),
+      forceRender: true,
     },
     {
       children: <AppSettings />,
       key: 'chart_start_page',
-      label: t(`page.settings.app_settings.title`)
+      label: t(`page.settings.app_settings.title`),
+      forceRender: true,
     }
   ];
 
