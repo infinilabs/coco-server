@@ -13,17 +13,7 @@ Information about release notes of Coco Server is provided here.
 ### 🐛 Bug fix  
 ### ✈️ Improvements  
 
-## 0.5.1 (2025-05-31)
-
-### ❌ Breaking changes
-
-### 🚀 Features
-
-### 🐛 Bug fix
-
-### ✈️ Improvements
-
-## 0.5.0 (2025-05-30)
+## 0.5.0 (2025-06-06)
 
 ### ❌ Breaking changes
 
