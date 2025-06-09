@@ -364,14 +364,16 @@ func (h APIHandler) openChatSession(w http.ResponseWriter, req *http.Request, ps
 		return
 	}
 
-	obj.Status = "active"
-	obj.Visible = true
-	err = orm.Update(&orm.Context{
-		Refresh: "wait_for",
-	}, &obj)
-	if err != nil {
-		h.Error(w, err)
-		return
+	if !obj.Visible {
+		obj.Status = "active"
+		obj.Visible = true
+		err = orm.Update(&orm.Context{
+			Refresh: "true",
+		}, &obj)
+		if err != nil {
+			h.Error(w, err)
+			return
+		}
 	}
 
 	err = h.WriteJSON(w, util.MapStr{
@@ -515,14 +517,14 @@ func (h APIHandler) closeChatSession(w http.ResponseWriter, req *http.Request, p
 		return
 	}
 
-	obj.Status = "closed"
-	err = orm.Update(&orm.Context{
-		Refresh: "wait_for",
-	}, &obj)
-	if err != nil {
-		h.Error(w, err)
-		return
-	}
+	//obj.Status = "closed"
+	//err = orm.Update(&orm.Context{
+	//	Refresh: "wait_for",
+	//}, &obj)
+	//if err != nil {
+	//	h.Error(w, err)
+	//	return
+	//}
 
 	err = h.WriteJSON(w, util.MapStr{
 		"found":   true,
