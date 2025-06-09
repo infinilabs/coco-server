@@ -22,6 +22,7 @@ const Assistant = "assistant"
 const ViewHistoryAction = "view_all_session_history"
 const ViewSingleSessionHistoryAction = "view_single_session_history"
 const manageChatSessionAction = "view_single_session_history"
+const cancelChatSessionAction = "cancel_session"
 
 func init() {
 	createPermission := security.GetSimplePermission(Category, Session, string(security.Create))
@@ -40,10 +41,10 @@ func init() {
 	searchAssistantPermission := security.GetSimplePermission(Category, Session, string(security.Search))
 	askAssistantPermission := security.GetSimplePermission(Category, Assistant, string("ask"))
 
-	security.GetOrInitPermissionKeys(createPermission, updatePermission, readPermission, askAssistantPermission, deletePermission, searchPermission, viewHistoryPermission, manageChatSessionPermission)
+	security.GetOrInitPermissionKeys(createPermission, updatePermission, readPermission, askAssistantPermission, deletePermission, searchPermission, viewHistoryPermission, manageChatSessionPermission, cancelChatSessionAction)
 	security.GetOrInitPermissionKeys(createAssistantPermission, updateAssistantPermission, readAssistantPermission, askAssistantPermission, deleteAssistantPermission, searchAssistantPermission)
 
-	security.RegisterPermissionsToRole(core.WidgetRole, createPermission, searchPermission, readAssistantPermission, searchAssistantPermission, askAssistantPermission)
+	security.RegisterPermissionsToRole(core.WidgetRole, createPermission, searchPermission, viewSessionHistoryPermission, readAssistantPermission, searchAssistantPermission, askAssistantPermission, cancelChatSessionAction)
 
 	handler := APIHandler{}
 
