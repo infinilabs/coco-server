@@ -19,6 +19,7 @@ export const DocSearch = (props) => {
   const [shadowLoading, setShadowLoading] = useState(true)
   const shadowRef = useRef(null)
   const modelRef = useRef(null)
+  const modelRootRef = useRef(null)
   const floatBtnRef = useRef(null)
 
   const [triggerBtnType, setTriggerBtnType] = useState('embedded');
@@ -144,7 +145,11 @@ export const DocSearch = (props) => {
   function renderModal(server, settings, triggerBtnType, theme, isOpen) {
     if (!shadowRef.current) return;
 
-    if (modelRef.current) modelRef.current.remove()
+    if (!isOpen) {
+      modelRootRef.current?.unmount()
+      modelRef.current?.remove()
+      return;
+    }
 
     const props = {
       server,
@@ -158,6 +163,7 @@ export const DocSearch = (props) => {
     shadowRef.current.appendChild(wrapper);
     modelRef.current = wrapper
     const root = createRoot(wrapper);
+    modelRootRef.current = root
     root.render(<DocSearchModal {...props} />);
   }
 

@@ -39,10 +39,6 @@ export const DocSearchModal = ({
     }
   }
 
-  if (!isOpen) {
-    return null
-  }
-
   return (
     <div id="infini__searchbox" data-theme={theme}>
       <div
