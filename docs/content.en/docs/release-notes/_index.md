@@ -36,6 +36,7 @@ Information about release notes of Coco Server is provided here.
 - fix: datasource & MCP selection problem #267
 - fix: resolve compatibility issue with crypto.randomUUID when creating model provider
 - fix: start page configuration of integration is not working
+- fix: unchecked datasource/mcp_server not working
 
 ### ✈️ Improvements
 

@@ -119,7 +119,7 @@ func (h APIHandler) getRAGContext(req *http.Request, assistant *common.Assistant
 
 	params.AssistantCfg = assistant
 
-	if assistant.Datasource.Enabled && len(assistant.Datasource.GetIDs()) > 0 {
+	if assistant.Datasource.Enabled && len(params.datasource) > 0 && len(assistant.Datasource.GetIDs()) > 0 {
 		if params.datasource == "" {
 			params.datasource = strings.Join(assistant.Datasource.GetIDs(), ",")
 		} else {
@@ -132,7 +132,7 @@ func (h APIHandler) getRAGContext(req *http.Request, assistant *common.Assistant
 
 	log.Trace(assistant.MCPConfig.Enabled, assistant.MCPConfig.GetIDs(), ",", params.mcpServers)
 
-	if params.MCP && assistant.MCPConfig.Enabled && len(assistant.MCPConfig.GetIDs()) > 0 {
+	if params.MCP && assistant.MCPConfig.Enabled && len(params.mcpServers) > 0 && len(assistant.MCPConfig.GetIDs()) > 0 {
 		if len(params.mcpServers) == 0 {
 			params.mcpServers = assistant.MCPConfig.GetIDs()
 		} else {
