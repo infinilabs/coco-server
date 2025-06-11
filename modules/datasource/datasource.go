@@ -200,18 +200,13 @@ func GetDatasourceByID(id []string) ([]common.DataSource, error) {
 }
 
 func (h *APIHandler) searchDatasource(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-
 	var err error
-	q := orm.Query{}
+	//handle url query args, convert to query builder
+	builder, err := orm.NewQueryBuilderFromRequest(req, "name", "combined_fulltext")
+	if err != nil {
+		log.Error(err)
+	}
 
-	//query := h.GetParameterOrDefault(req, "query", "")
-	//if query != "" {
-	//	q.Conds = orm.Or(orm.Prefix("title", query), orm.QueryString("*", query))
-	//}else{
-	//
-	//}
-
-	q.RawQuery, err = h.GetRawBody(req)
 	//attach filter for cors request
 	if integrationID := req.Header.Get(core.HeaderIntegrationID); integrationID != "" {
 		// get datasource by api token
@@ -225,21 +220,14 @@ func (h *APIHandler) searchDatasource(w http.ResponseWriter, req *http.Request, 
 				h.WriteJSON(w, elastic.SearchResponse{}, http.StatusOK)
 				return
 			}
-			q.RawQuery, err = core.RewriteQueryWithFilter(q.RawQuery, util.MapStr{
-				"terms": util.MapStr{
-					"id": datasourceIDs,
-				},
-			})
-			if err != nil {
-				h.WriteError(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
+			builder.Must(orm.TermsQuery("id", datasourceIDs))
 		}
 	}
 
-	//TODO handle url query args
+	ctx := orm.NewModelContext(&common.DataSource{})
 	docs := []common.DataSource{}
-	err, res := orm.SearchWithJSONMapper(&docs, &q)
+
+	err, res := core.SearchV2WithResultItemMapper(ctx, &docs, builder, nil)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return

@@ -5,6 +5,8 @@
 package connector
 
 import (
+	log "github.com/cihub/seelog"
+	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/orm"
@@ -143,12 +145,17 @@ func (h *APIHandler) delete(w http.ResponseWriter, req *http.Request, ps httprou
 	}, 200)
 }
 
+// ?query=keyword&filter=fieldA:efg&filter=fieldB=abc&filter=url_escape( a:B AND c:A OR(abc AND efg) )&sort=a:desc,b:asc&
 func (h *APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
 	var err error
-	q := orm.Query{}
-	q.RawQuery, err = h.GetRawBody(req)
-	//TODO handle url query args
+	//handle url query args, convert to query builder
+	builder, err := orm.NewQueryBuilderFromRequest(req, "name", "combined_fulltext")
+	if err != nil {
+		log.Error(err)
+	}
+
+	ctx := orm.NewModelContext(&common.Connector{})
 
 	appConfig := common.AppConfig()
 	var connectors []common.Connector
@@ -187,8 +194,7 @@ func (h *APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprou
 		return nil
 	}
 
-	err, res := orm.SearchWithResultItemMapper(&connectors, itemMapFunc, &q)
-
+	err, res := core.SearchV2WithResultItemMapper(ctx, &connectors, builder, itemMapFunc)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
