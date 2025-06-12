@@ -19,12 +19,7 @@ const LicenseTrigger = memo(({ className }) => {
 
   const { data } = res || {}
 
-  const text = useMemo(() => {
-    if (data?.application?.version?.number) {
-      return `${t('icon.about')} (${data?.application?.version?.number})`
-    }
-    return `${t('icon.about')}`
-  }, [data])
+  const text = data?.application?.version?.number ? `${t('icon.about')} (${data?.application?.version?.number})` : `${t('icon.about')}`
 
   return (
     <>
