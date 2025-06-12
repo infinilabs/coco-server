@@ -469,6 +469,7 @@ func (h APIHandler) cancelReplyMessage(w http.ResponseWriter, req *http.Request,
 func (h APIHandler) sendChatMessage(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
 	sessionID := ps.MustGetParameter("session_id")
+
 	var request common.MessageRequest
 	if err := h.DecodeJSON(req, &request); err != nil {
 		log.Error(err)

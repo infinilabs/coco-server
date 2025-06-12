@@ -24,6 +24,7 @@
 package llm
 
 import (
+	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
@@ -166,19 +167,44 @@ func (h *APIHandler) deleteMCPServer(w http.ResponseWriter, req *http.Request, p
 }
 
 func (h *APIHandler) searchMCPServer(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-
 	var err error
-	q := orm.Query{}
-	q.RawQuery, err = h.GetRawBody(req)
+	body, err := h.GetRawBody(req)
+	//for backward compatibility
+	if err == nil && body != nil { //TODO remove legacy code
+		q := orm.Query{}
+		q.RawQuery, err = h.GetRawBody(req)
 
-	err, res := orm.Search(&common.MCPServer{}, &q)
+		err, res := orm.Search(&common.MCPServer{}, &q)
+		if err != nil {
+			h.WriteError(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		_, err = h.Write(w, res.Raw)
+		if err != nil {
+			h.Error(w, err)
+		}
+
+		return
+	}
+
+	//handle url query args, convert to query builder
+	builder, err := orm.NewQueryBuilderFromRequest(req, "name", "combined_fulltext")
+	if err != nil {
+		log.Error(err)
+	}
+
+	ctx := orm.NewModelContext(&common.MCPServer{})
+
+	res, err := orm.SearchV2(ctx, builder)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	_, err = h.Write(w, res.Raw)
+	_, err = h.Write(w, res.Payload.([]byte))
 	if err != nil {
 		h.Error(w, err)
 	}
+
 }
