@@ -42,7 +42,7 @@ export default ({ application }) => {
         <Paragraph>
           Copyright (C) INFINI Labs & INFINI LIMITED.
         </Paragraph>
-        <Paragraph>The INFINI Console is offered under the GNU Affero General Public License v3.0 and as commercial software.</Paragraph>
+        <Paragraph>The Coco Server is offered under the GNU Affero General Public License v3.0 and as commercial software.</Paragraph>
         <Paragraph>
           For commercial licensing, contact us at:
           <ul>
