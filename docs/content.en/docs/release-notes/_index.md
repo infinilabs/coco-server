@@ -47,6 +47,7 @@ Information about release notes of Coco Server is provided here.
 - refactor: refactoring chat api #273
 - chore: add placeholder, category and tags to AI Assistant
 - chore: ignore empty chunk_message #288
+- refactor: refactoring search #323
 
 ## 0.4.0 (2025-04-27)
 
