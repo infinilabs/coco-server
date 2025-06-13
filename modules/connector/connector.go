@@ -5,7 +5,6 @@
 package connector
 
 import (
-	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
@@ -209,7 +208,8 @@ func (h *APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprou
 		//handle url query args, convert to query builder
 		builder, err := orm.NewQueryBuilderFromRequest(req, "name", "combined_fulltext")
 		if err != nil {
-			log.Error(err)
+			h.WriteError(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 
 		ctx := orm.NewModelContext(&common.Connector{})
