@@ -350,8 +350,8 @@ importers:
   widgets/searchbox:
     dependencies:
       '@infinilabs/search-chat':
-        specifier: ^1.2.25
-        version: 1.2.25(@types/react@18.3.12)(immer@10.1.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3)(use-sync-external-store@1.5.0(react@18.3.1))
+        specifier: ^1.2.26
+        version: 1.2.26(@types/react@18.3.12)(immer@10.1.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3)(use-sync-external-store@1.5.0(react@18.3.1))
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -1136,8 +1136,8 @@ packages:
   '@iconify/utils@2.1.33':
     resolution: {integrity: sha512-jP9h6v/g0BIZx0p7XGJJVtkVnydtbgTgt9mVNcGDYwaa7UhdHdI9dvoq+gKj9sijMSJKxUPEG2JyjsgXjxL7Kw==, tarball: https://registry.npmjs.org/@iconify/utils/-/utils-2.1.33.tgz}
 
-  '@infinilabs/search-chat@1.2.25':
-    resolution: {integrity: sha512-c5NxWxJmryhilQiotOoYQ67GRESl86tBjo0jkNCutyNWsNOxB41TnmpWr3lZcAzbYoj9uEqb+dMPVW6YYKpwpQ==, tarball: https://registry.npmjs.org/@infinilabs/search-chat/-/search-chat-1.2.25.tgz}
+  '@infinilabs/search-chat@1.2.26':
+    resolution: {integrity: sha512-o1sNYiDgo6Drf+ANUnYTNbFJz20RrQYwjT9tUqNlw0sHxfG6/gtEuHBuKUUEVEx8K+pLKQb4dMD/P8X8hVJTVA==, tarball: https://registry.npmjs.org/@infinilabs/search-chat/-/search-chat-1.2.26.tgz}
     peerDependencies:
       react: ^18.0.0
       react-dom: ^18.0.0
@@ -7221,7 +7221,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@infinilabs/search-chat@1.2.25(@types/react@18.3.12)(immer@10.1.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3)(use-sync-external-store@1.5.0(react@18.3.1))':
+  '@infinilabs/search-chat@1.2.26(@types/react@18.3.12)(immer@10.1.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3)(use-sync-external-store@1.5.0(react@18.3.1))':
     dependencies:
       '@ant-design/icons': 6.0.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@headlessui/react': 2.2.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
