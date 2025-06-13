@@ -138,27 +138,32 @@ func (h APIHandler) updateSession(w http.ResponseWriter, req *http.Request, ps h
 
 func (h APIHandler) getChatSessions(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
-	q := orm.Query{}
-	q.From = h.GetIntOrDefault(req, "from", 0)
-	q.Size = h.GetIntOrDefault(req, "size", 20)
-	query := h.GetParameterOrDefault(req, "query", "")
-	if query != "" {
-		q.Conds = orm.Or(orm.Prefix("title", query), orm.QueryString("*", query))
-	}
-
-	q.Filter = orm.NotEq("visible", false)
-
-	q.AddSort("created", orm.DESC)
-	err, res := orm.Search(&common.Session{}, &q)
+	builder, err := orm.NewQueryBuilderFromRequest(req, "title", "summary", "manually_renamed_title")
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	_, err = h.Write(w, res.Raw)
+	if builder.SizeVal() == 0 {
+		builder.Size(20)
+	}
+
+	builder.SortBy(orm.Sort{Field: "created", SortType: orm.DESC})
+	builder.Not(orm.TermQuery("visible", false))
+
+	ctx := orm.NewModelContext(&common.Session{})
+
+	res, err := orm.SearchV2(ctx, builder)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	_, err = h.Write(w, res.Payload.([]byte))
 	if err != nil {
 		h.Error(w, err)
 	}
+
 }
 
 func (h APIHandler) newChatSession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
