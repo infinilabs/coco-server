@@ -214,7 +214,7 @@ func (h *APIHandler) searchDatasource(w http.ResponseWriter, req *http.Request, 
 		//
 		//}
 
-		q.RawQuery, err = h.GetRawBody(req)
+		q.RawQuery = body
 		//attach filter for cors request
 		if integrationID := req.Header.Get(core.HeaderIntegrationID); integrationID != "" {
 			// get datasource by api token

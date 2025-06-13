@@ -152,7 +152,7 @@ func (h *APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprou
 	if err == nil && body != nil { //TODO remove legacy code
 		var err error
 		q := orm.Query{}
-		q.RawQuery, err = h.GetRawBody(req)
+		q.RawQuery = body
 		//TODO handle url query args
 
 		appConfig := common.AppConfig()

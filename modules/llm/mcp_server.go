@@ -171,7 +171,7 @@ func (h *APIHandler) searchMCPServer(w http.ResponseWriter, req *http.Request, p
 	//for backward compatibility
 	if err == nil && body != nil { //TODO remove legacy code
 		q := orm.Query{}
-		q.RawQuery, err = h.GetRawBody(req)
+		q.RawQuery = body
 
 		err, res := orm.Search(&common.MCPServer{}, &q)
 		if err != nil {
