@@ -148,11 +148,12 @@ func (h *APIHandler) deleteAssistant(w http.ResponseWriter, req *http.Request, p
 
 func (h *APIHandler) searchAssistant(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	body, err := h.GetRawBody(req)
+
 	//for backward compatibility
 	if err == nil && body != nil { //TODO remove legacy code
 		var err error
 		q := orm.Query{}
-		q.RawQuery, err = h.GetRawBody(req)
+		q.RawQuery = body
 
 		err, res := orm.Search(&common.Assistant{}, &q)
 		if err != nil {
