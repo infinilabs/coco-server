@@ -24,6 +24,7 @@
 package assistant
 
 import (
+	"infini.sh/coco/core"
 	"net/http"
 	"time"
 
@@ -146,20 +147,45 @@ func (h *APIHandler) deleteAssistant(w http.ResponseWriter, req *http.Request, p
 }
 
 func (h *APIHandler) searchAssistant(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	body, err := h.GetRawBody(req)
+	//for backward compatibility
+	if err == nil && body != nil { //TODO remove legacy code
+		var err error
+		q := orm.Query{}
+		q.RawQuery, err = h.GetRawBody(req)
 
-	var err error
-	q := orm.Query{}
-	q.RawQuery, err = h.GetRawBody(req)
+		err, res := orm.Search(&common.Assistant{}, &q)
+		if err != nil {
+			h.WriteError(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 
-	err, res := orm.Search(&common.Assistant{}, &q)
-	if err != nil {
-		h.WriteError(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+		_, err = h.Write(w, res.Raw)
+		if err != nil {
+			h.Error(w, err)
+		}
+	} else {
+		var err error
+		//handle url query args, convert to query builder
+		builder, err := orm.NewQueryBuilderFromRequest(req, "name", "combined_fulltext")
+		if err != nil {
+			h.WriteError(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 
-	_, err = h.Write(w, res.Raw)
-	if err != nil {
-		h.Error(w, err)
+		ctx := orm.NewModelContext(&common.Assistant{})
+		docs := []common.Assistant{}
+
+		err, res := core.SearchV2WithResultItemMapper(ctx, &docs, builder, nil)
+		if err != nil {
+			h.WriteError(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		_, err = h.Write(w, res.Raw)
+		if err != nil {
+			h.Error(w, err)
+		}
 	}
 }
 

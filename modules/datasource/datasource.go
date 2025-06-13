@@ -257,7 +257,8 @@ func (h *APIHandler) searchDatasource(w http.ResponseWriter, req *http.Request, 
 		//handle url query args, convert to query builder
 		builder, err := orm.NewQueryBuilderFromRequest(req, "name", "combined_fulltext")
 		if err != nil {
-			log.Error(err)
+			h.WriteError(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 
 		//attach filter for cors request
