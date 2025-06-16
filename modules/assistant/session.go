@@ -138,7 +138,7 @@ func (h APIHandler) updateSession(w http.ResponseWriter, req *http.Request, ps h
 
 func (h APIHandler) getChatSessions(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
-	builder, err := orm.NewQueryBuilderFromRequest(req, "title", "summary", "manually_renamed_title")
+	builder, err := orm.NewQueryBuilderFromRequest(req, "title", "summary")
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
