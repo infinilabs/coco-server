@@ -11,6 +11,8 @@ Information about release notes of Coco Server is provided here.
 ### ❌ Breaking changes  
 ### 🚀 Features  
 ### 🐛 Bug fix  
+- fix: remove manually_renamed_title from assistant search
+
 ### ✈️ Improvements  
 
 ## 0.5.0 (2025-06-06)
