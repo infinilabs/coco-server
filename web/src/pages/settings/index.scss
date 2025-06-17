@@ -18,10 +18,17 @@
     margin-left: 38px;
   }
   .ant-tabs-content {
+    display: none;
     min-height: calc(100vh - 176px);
     height: auto;
     padding: 0px 24px;
   }
+}
+
+.settings-tabs-content {
+  min-height: calc(100vh - 176px);
+  height: auto;
+  padding: 0px 24px;
 }
 
 .settings-form {

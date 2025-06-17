@@ -213,11 +213,12 @@ const ChartStartPage = memo((props) => {
                   {(fields, { add, remove }) => (
                     <>
                       {fields.map((field, index) => {
+                        const { key, ...restField } = field;
                         return (
                           <Form.Item key={index} className="mb-0px">
                             <div className="flex gap-6px">
                               <Form.Item
-                                {...field}
+                                {...restField}
                                 rules={[defaultRequiredRule]}
                                 className="flex-1 mb-8px"
                               >
