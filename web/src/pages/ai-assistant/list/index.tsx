@@ -48,6 +48,7 @@ export function Component() {
               setQueryParams((old)=>{
                 return {
                   ...old,
+                  t: new Date().valueOf()
                 }
               })
             });
@@ -83,6 +84,7 @@ export function Component() {
       setQueryParams((old)=>{
         return {
           ...old,
+          t: new Date().valueOf()
         }
       })
     }).finally(()=>{
@@ -189,9 +191,7 @@ const fetchData = () => {
     });
   };
 
-  useEffect(() => {
-    fetchData()
-  }, []);
+  useEffect(fetchData, []);
 
   useEffect(() => {
     setKeyword(queryParams.query)
