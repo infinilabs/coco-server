@@ -5,10 +5,13 @@ import type { TableColumnsType, TableProps, MenuProps } from "antd";
 import {searchAssistant, deleteAssistant, updateAssistant, cloneAssistant} from '@/service/api/assistant';
 import { formatESSearchResult } from '@/service/request/es';
 import InfiniIcon from '@/components/common/icon';
+import useQueryParams from '@/hooks/common/search';
 
 type Assistant = Api.LLM.Assistant;
 
 export function Component() {
+  const [queryParams, setQueryParams] = useQueryParams();
+
   const { t } = useTranslation();
 
   const { scrollConfig, tableWrapperRef } = useTableScroll();
@@ -42,7 +45,7 @@ export function Component() {
                 message.success(t('common.deleteSuccess'))
               }
               //reload data
-              setReqParams((old)=>{
+              setQueryParams((old)=>{
                 return {
                   ...old,
                 }
@@ -77,7 +80,7 @@ export function Component() {
         message.success(t('common.updateSuccess'))
       }
       //reload data
-      setReqParams((old)=>{
+      setQueryParams((old)=>{
         return {
           ...old,
         }
@@ -170,14 +173,11 @@ const initialData = {
 const [data, setData] = useState(initialData);
 const [loading, setLoading] = useState(false);
 
-const [reqParams, setReqParams] = useState({
-  query: '',
-  from: 0, 
-  size: 10,
-})
+const [keyword, setKeyword] = useState();
+
 const fetchData = () => {
   setLoading(true);
-  searchAssistant(reqParams).then(({ data }) => {
+  searchAssistant(queryParams).then(({ data }) => {
     const newData = formatESSearchResult(data);
       setData((oldData: any) => {
         return {
@@ -189,12 +189,16 @@ const fetchData = () => {
     });
   };
 
-  useEffect(fetchData, [
-    reqParams
-  ]);
+  useEffect(() => {
+    fetchData()
+  }, []);
+
+  useEffect(() => {
+    setKeyword(queryParams.query)
+  }, [queryParams.query])
 
   const handleTableChange: TableProps<Assistant>['onChange'] = (pagination, filters, sorter) => {
-    setReqParams((params)=>{
+    setQueryParams((params)=>{
       return {
         ...params,
         size: pagination.pageSize,
@@ -203,11 +207,12 @@ const fetchData = () => {
     })
   };
   const onRefreshClick = (query: string)=>{
-    setReqParams((oldParams)=>{
+    setQueryParams((oldParams)=>{
       return {
         ...oldParams,
         query: query,
         from: 0,
+        t: new Date().valueOf()
       }
     })
   }
@@ -220,7 +225,7 @@ const fetchData = () => {
         ref={tableWrapperRef}
       >
       <div className='mb-4 mt-4 flex items-center justify-between'>
-        <Search addonBefore={<FilterOutlined />} className='max-w-500px' onSearch={onRefreshClick} enterButton={ t('common.refresh')}></Search>
+        <Search value={keyword} onChange={(e) => setKeyword(e.target.value)} addonBefore={<FilterOutlined />} className='max-w-500px' onSearch={onRefreshClick} enterButton={ t('common.refresh')}></Search>
         <Button type='primary' icon={<PlusOutlined/>}  onClick={() => nav(`/ai-assistant/new`)}>{t('common.add')}</Button>
       </div>
       <Table<Assistant>
@@ -233,8 +238,8 @@ const fetchData = () => {
           pagination={
             {
               showTotal:(total, range) => `${range[0]}-${range[1]} of ${total} items`,
-              defaultPageSize: 10,
-              defaultCurrent: 1,
+              pageSize: queryParams.size,
+              current: queryParams.from + 1,
               total: data.total?.value || data?.total,
               showSizeChanger: true,
             }
