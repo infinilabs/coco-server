@@ -61,9 +61,11 @@ export function Component() {
   }
 
   const onEnabledChange = (value: boolean, record: MCPServer)=>{
-    record.enabled = value;
     setLoading(true);
-    updateMCPServer(record.id, record).then((res)=>{
+    updateMCPServer(record.id, {
+      ...record,
+      enabled: value
+    }).then((res)=>{
       if(res.data?.result === "updated"){
         message.success(t('common.updateSuccess'))
       }

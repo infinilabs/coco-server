@@ -74,9 +74,11 @@ export function Component() {
   }
 
   const onEnabledChange = (value: boolean, record: Assistant)=>{
-    record.enabled = value;
     setLoading(true);
-    updateAssistant(record.id, record).then((res)=>{
+    updateAssistant(record.id, {
+      ...record,
+      enabled: value
+    }).then((res)=>{
       if(res.data?.result === "updated"){
         message.success(t('common.updateSuccess'))
       }
