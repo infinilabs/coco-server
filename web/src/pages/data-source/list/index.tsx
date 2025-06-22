@@ -8,6 +8,7 @@ import InfiniIcon from '@/components/common/icon';
 import { GoogleDriveSVG, HugoSVG, NotionSVG, YuqueSVG } from '@/components/icons';
 import { deleteDatasource, fetchDataSourceList, getConnectorByIDs, updateDatasource } from '@/service/api';
 import { formatESSearchResult } from '@/service/request/es';
+import useQueryParams from '@/hooks/common/search';
 
 type Datasource = Api.Datasource.Datasource;
 
@@ -40,6 +41,8 @@ const TYPES = {
 };
 
 export function Component() {
+  const [queryParams, setQueryParams] = useQueryParams();
+
   const { t } = useTranslation();
 
   const { scrollConfig, tableWrapperRef } = useTableScroll();
@@ -70,9 +73,10 @@ export function Component() {
                 message.success(t('common.deleteSuccess'));
               }
               // reload data
-              setReqParams(old => {
+              setQueryParams(old => {
                 return {
-                  ...old
+                  ...old,
+                  t: new Date().valueOf()
                 };
               });
             });
@@ -88,15 +92,19 @@ export function Component() {
   };
   const onSyncEnabledChange = (value: boolean, record: Datasource) => {
     setLoading(true);
-    updateDatasource(record.id, {sync_enabled: value})
+    updateDatasource(record.id, {
+      ...record,
+      sync_enabled: value
+    })
       .then(res => {
         if (res.data?.result === 'updated') {
           message.success(t('common.updateSuccess'));
         }
         // reload data
-        setReqParams(old => {
+        setQueryParams(old => {
           return {
-            ...old
+            ...old,
+            t: new Date().valueOf()
           };
         });
       })
@@ -106,17 +114,20 @@ export function Component() {
   };
 
   const onEnabledChange = (value: boolean, record: Datasource) => {
-    record.enabled = value;
     setLoading(true);
-    updateDatasource(record.id, record)
+    updateDatasource(record.id, {
+      ...record,
+      enabled: value
+    })
       .then(res => {
         if (res.data?.result === 'updated') {
           message.success(t('common.updateSuccess'));
         }
         // reload data
-        setReqParams(old => {
+        setQueryParams(old => {
           return {
-            ...old
+            ...old,
+            t: new Date().valueOf()
           };
         });
       })
@@ -222,14 +233,11 @@ export function Component() {
   const [data, setData] = useState(initialData);
   const [loading, setLoading] = useState(false);
 
-  const [reqParams, setReqParams] = useState({
-    from: 0,
-    query: '',
-    size: 10
-  });
+  const [keyword, setKeyword] = useState();
+
   const fetchData = () => {
     setLoading(true);
-    fetchDataSourceList(reqParams).then(({ data }) => {
+    fetchDataSourceList(queryParams).then(({ data }) => {
       const newData = formatESSearchResult(data);
       setData((oldData: any) => {
         return {
@@ -241,7 +249,11 @@ export function Component() {
     });
   };
 
-  useEffect(fetchData, [reqParams]);
+  useEffect(fetchData, []);
+
+  useEffect(() => {
+    setKeyword(queryParams.query)
+  }, [queryParams.query])
 
   const fetchConnectors = async (ids: string[]) => {
     const res = await getConnectorByIDs(ids);
@@ -267,7 +279,7 @@ export function Component() {
   }, [data.data]);
 
   const handleTableChange: TableProps<Datasource>['onChange'] = (pagination, filters, sorter) => {
-    setReqParams(params => {
+    setQueryParams(params => {
       return {
         ...params,
         from: (pagination.current - 1) * pagination.pageSize,
@@ -276,11 +288,12 @@ export function Component() {
     });
   };
   const onRefreshClick = (query: string) => {
-    setReqParams(oldParams => {
+    setQueryParams(oldParams => {
       return {
         ...oldParams,
         from: 0,
-        query
+        query,
+        t: new Date().valueOf()
       };
     });
   };
@@ -294,6 +307,8 @@ export function Component() {
       >
         <div className="mb-4 mt-4 flex items-center justify-between">
           <Search
+            value={keyword} 
+            onChange={(e) => setKeyword(e.target.value)} 
             addonBefore={<FilterOutlined />}
             className="max-w-500px"
             enterButton={t('common.refresh')}

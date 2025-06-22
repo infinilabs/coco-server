@@ -1,6 +1,5 @@
 import DropdownList from "@/common/src/DropdownList";
 import { useMemo, useState } from "react";
-import { getAssistant, searchAssistant } from "@/service/api/assistant";
 import { formatESSearchResult } from "@/service/request/es";
 import { fetchDataSourceList, getDatasource } from "@/service/api";
 
@@ -37,11 +36,7 @@ export default (props) => {
     useEffect(() => {
       fetchData({
         ...queryParams,
-        sort: sorter.map((item) => ({
-          [item[0]]: {
-            "order": item[1]
-          }
-        })),
+        sort: sorter.map((item) => `${item[0]}:${item[1]}`).join(',') || 'created:desc',
       })
     }, [queryParams, sorter])
 
@@ -49,9 +44,7 @@ export default (props) => {
       if (mode === 'multiple') {
         if (value && value.some((item) => !!(item?.id && !item?.name))) {
           fetchItems({
-            filters: [
-              {"terms":{"id": value.map((item) => item.id)}}
-            ],
+            filters: value.map((item) => `id:${item.id}`),
             from: 0, 
             size: 10000,
           })

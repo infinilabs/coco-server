@@ -37,14 +37,8 @@ export default (props) => {
       if (typeof assistants === 'undefined' || assistants.length !== 0) {
         fetchData({
           ...queryParams,
-          sort: sorter.map((item) => ({
-            [item[0]]: {
-              "order": item[1]
-            }
-          })),
-          filters: assistants?.length > 0 ? [
-            {"terms":{"id": assistants.map((item) => item.id)}}
-          ] : []
+          sort: sorter.map((item) => `${item[0]}:${item[1]}`).join(',') || 'created:desc',
+          filter: assistants?.length > 0 ? assistants.map((item) => `id:${item.id}`) : []
         })
       }
     }
@@ -57,9 +51,7 @@ export default (props) => {
       if (mode === 'multiple') {
         if (value && value.some((item) => !!(item?.id && !item?.name))) {
           fetchItems({
-            filters: [
-              {"terms":{"id": value.map((item) => item.id)}}
-            ],
+            filters: value.map((item) => `id:${item.id}`),
             from: 0, 
             size: 10000,
           })
@@ -105,7 +97,7 @@ export default (props) => {
           getPopupContainer={(triggerNode) => triggerNode.parentNode}
           className={`ai-assistant-select ${className}`}
           value={formatValue}
-          loading={loading || itemLoading}
+          loading={loading || itemLoading || itemsLoading}
           onChange={onChange}
           placeholder="Please select"
           rowKey="id"
@@ -117,6 +109,12 @@ export default (props) => {
           dropdownWidth={width}
           renderLabel={(item) => item.name}
           searchKey="name"
+          onSearchChange={(value) => {
+            setQueryParams((params) => ({
+              ...params,
+              query: value
+            }))
+          }}
           sorter={sorter}
           onSorterChange={setSorter}
           sorterOptions={[

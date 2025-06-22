@@ -9,6 +9,7 @@ import WebsiteSVG from '@/assets/svg-icon/website.svg';
 import InfiniIcon from '@/components/common/icon';
 import { searchConnector } from '@/service/api/connector';
 import { formatESSearchResult } from '@/service/request/es';
+import useQueryParams from '@/hooks/common/search';
 
 const ConnectorCategory = {
   CloudStorage: 'cloud_storage',
@@ -16,6 +17,7 @@ const ConnectorCategory = {
 };
 
 export function Component() {
+  const [queryParams, setQueryParams] = useQueryParams();
   const { t } = useTranslation();
   const nav = useNavigate();
   const onAddClick = (key: string) => {
@@ -26,13 +28,12 @@ export function Component() {
     total: 0
   });
   const [loading, setLoading] = useState(false);
-  const [reqParams, setReqParams] = useState({
-    from: 0,
-    size: 10
-  });
+
+  const [keyword, setKeyword] = useState();
+  
   const fetchData = () => {
     setLoading(true);
-    searchConnector(reqParams)
+    searchConnector(queryParams)
       .then(data => {
         const newData = formatESSearchResult(data.data);
         setData(newData);
@@ -41,15 +42,22 @@ export function Component() {
         setLoading(false);
       });
   };
-  useEffect(fetchData, [reqParams]);
+
+  useEffect(fetchData, []);
+
+  useEffect(() => {
+    setKeyword(queryParams.query)
+  }, [queryParams.query])
+
   const onSearchClick = (query: string) => {
-    setReqParams({
-      ...reqParams,
-      query
+    setQueryParams({
+      ...queryParams,
+      query,
+      t: new Date().getTime()
     });
   };
   const onPageChange = (page: number, pageSize: number) => {
-    setReqParams((oldParams: any) => {
+    setQueryParams((oldParams: any) => {
       return {
         ...oldParams,
         from: (page - 1) * pageSize,
@@ -65,6 +73,8 @@ export function Component() {
       >
         <div className="mb-4 mt-4 flex items-center justify-between">
           <Search
+            value={keyword} 
+            onChange={(e) => setKeyword(e.target.value)} 
             addonBefore={<FilterOutlined />}
             className="max-w-500px"
             enterButton={t('common.refresh')}
@@ -75,8 +85,8 @@ export function Component() {
           dataSource={data.data}
           grid={{ column: 3, gutter: 16 }}
           pagination={{
-            defaultCurrent: 1,
-            defaultPageSize: 10,
+            pageSize: queryParams.size,
+            current: queryParams.from + 1,
             onChange: onPageChange,
             showSizeChanger: true,
             showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,

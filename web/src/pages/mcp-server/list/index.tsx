@@ -5,10 +5,13 @@ import type { TableColumnsType, TableProps, MenuProps } from "antd";
 import {searchMCPServer, deleteMCPServer, updateMCPServer} from '@/service/api/mcp-server';
 import { formatESSearchResult } from '@/service/request/es';
 import InfiniIcon from '@/components/common/icon';
+import useQueryParams from '@/hooks/common/search';
 
 type MCPServer = Api.LLM.MCPServer;
 
 export function Component() {
+  const [queryParams, setQueryParams] = useQueryParams();
+  
   const { t } = useTranslation();
 
   const { scrollConfig, tableWrapperRef } = useTableScroll();
@@ -38,9 +41,10 @@ export function Component() {
                 message.success(t('common.deleteSuccess'))
               }
               //reload data
-              setReqParams((old)=>{
+              setQueryParams((old)=>{
                 return {
                   ...old,
+                  t: new Date().valueOf()
                 }
               })
             });
@@ -57,16 +61,19 @@ export function Component() {
   }
 
   const onEnabledChange = (value: boolean, record: MCPServer)=>{
-    record.enabled = value;
     setLoading(true);
-    updateMCPServer(record.id, record).then((res)=>{
+    updateMCPServer(record.id, {
+      ...record,
+      enabled: value
+    }).then((res)=>{
       if(res.data?.result === "updated"){
         message.success(t('common.updateSuccess'))
       }
       //reload data
-      setReqParams((old)=>{
+      setQueryParams((old)=>{
         return {
           ...old,
+          t: new Date().valueOf()
         }
       })
     }).finally(()=>{
@@ -141,15 +148,11 @@ const initialData = {
 }
 const [data, setData] = useState(initialData);
 const [loading, setLoading] = useState(false);
+const [keyword, setKeyword] = useState();
 
-const [reqParams, setReqParams] = useState({
-  query: '',
-  from: 0, 
-  size: 10,
-})
 const fetchData = () => {
   setLoading(true);
-  searchMCPServer(reqParams).then(({ data }) => {
+  searchMCPServer(queryParams).then(({ data }) => {
     const newData = formatESSearchResult(data);
       setData((oldData: any) => {
         return {
@@ -161,12 +164,14 @@ const fetchData = () => {
     });
   };
 
-  useEffect(fetchData, [
-    reqParams
-  ]);
+  useEffect(fetchData, []);
+
+  useEffect(() => {
+    setKeyword(queryParams.query)
+  }, [queryParams.query])
 
   const handleTableChange: TableProps<MCPServer>['onChange'] = (pagination, filters, sorter) => {
-    setReqParams((params)=>{
+    setQueryParams((params)=>{
       return {
         ...params,
         size: pagination.pageSize,
@@ -175,11 +180,12 @@ const fetchData = () => {
     })
   };
   const onRefreshClick = (query: string)=>{
-    setReqParams((oldParams)=>{
+    setQueryParams((oldParams)=>{
       return {
         ...oldParams,
         query: query,
         from: 0,
+        t: new Date().valueOf()
       }
     })
   }
@@ -192,7 +198,7 @@ const fetchData = () => {
         ref={tableWrapperRef}
       >
       <div className='mb-4 mt-4 flex items-center justify-between'>
-        <Search addonBefore={<FilterOutlined />} className='max-w-500px' onSearch={onRefreshClick} enterButton={ t('common.refresh')}></Search>
+        <Search value={keyword} onChange={(e) => setKeyword(e.target.value)} addonBefore={<FilterOutlined />} className='max-w-500px' onSearch={onRefreshClick} enterButton={ t('common.refresh')}></Search>
         <Button type='primary' icon={<PlusOutlined/>}  onClick={() => nav(`/mcp-server/new`)}>{t('common.add')}</Button>
       </div>
       <Table<MCPServer>
@@ -205,8 +211,8 @@ const fetchData = () => {
           pagination={
             {
               showTotal:(total, range) => `${range[0]}-${range[1]} of ${total} items`,
-              defaultPageSize: 10,
-              defaultCurrent: 1,
+              pageSize: queryParams.size,
+              current: queryParams.from + 1,
               total: data.total?.value || data?.total,
               showSizeChanger: true,
             }

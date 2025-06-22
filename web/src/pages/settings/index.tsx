@@ -5,37 +5,45 @@ import ConnectorSettings from './modules/Connector';
 import AppSettings from './modules/AppSettings';
 
 export function Component() {
-  const [searchParams] = useSearchParams();
-  const routerPush = useRouterPush();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { t } = useTranslation();
 
   const onChange = (key: string) => {
-    routerPush.routerPushByKey('settings', { query: { tab: key } });
+    setSearchParams({ tab: key });
   };
 
   const items = [
     {
-      children: <ConnectorSettings />,
+      component: ConnectorSettings,
       key: 'connector',
       label: t(`page.settings.connector.title`),
-      forceRender: true,
     },
     {
-      children: <AppSettings />,
+      component: AppSettings,
       key: 'chart_start_page',
       label: t(`page.settings.app_settings.title`),
-      forceRender: true,
     }
   ];
+
+  const activeKey = useMemo(() => {
+    return searchParams.get('tab') || items[0].key
+  }, [])
+
+  const activeItem = useMemo(() => {
+    return items.find((item) => item.key === activeKey);
+  }, [activeKey])
 
   return (
     <ACard styles={{ body: { padding: 0 } }}>
       <Tabs
         className="settings-tabs"
-        defaultActiveKey={searchParams.get('tab') || items[0].key}
+        activeKey={activeKey}
         items={items}
         onChange={onChange}
       />
+      <div className="settings-tabs-content">
+        { activeItem?.component ? <activeItem.component /> : null}
+      </div>
     </ACard>
   );
 }

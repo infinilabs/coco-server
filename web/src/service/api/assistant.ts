@@ -1,42 +1,11 @@
 import { request } from '../request';
 
 export function searchAssistant(params?: any) {
-  const query: any = {
-    from: params.from || 0,
-    size: params.size || 10,
-    sort: params?.sort ? params?.sort : [
-      {
-        "created": {
-          "order": "desc"
-        }
-      }
-    ],
-    query: {
-      bool: {
-        must: [
-          ...(params?.filters || [])
-        ]
-      }
-    }
-  }
-  if (params.query) {
-    query.query.bool.must.push({
-      "query_string": {
-        "fields": ["combined_fulltext"],
-        "query": params.query,
-        "fuzziness": "AUTO",
-        "fuzzy_prefix_length": 2,
-        "fuzzy_max_expansions": 10,
-        "fuzzy_transpositions": true,
-        "allow_leading_wildcard": false
-      }
-    })
-  }
   return request({
     method: 'post',
-    data: query,
-    url: '/assistant/_search'
-  });
+    params,
+    url: `/assistant/_search`
+  })
 }
 
 export function createAssistant(body: any){
