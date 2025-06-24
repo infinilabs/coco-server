@@ -84,8 +84,6 @@ func (h APIHandler) recommend(w http.ResponseWriter, req *http.Request, ps httpr
 		Total:           len(recommendations),
 	}
 
-	err := h.WriteJSON(w, response, 200)
-	if err != nil {
-		h.Error(w, err)
-	}
+	h.WriteJSON(w, response, 200)
+
 }

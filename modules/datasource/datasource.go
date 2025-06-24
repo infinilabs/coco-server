@@ -98,7 +98,8 @@ func (h *APIHandler) deleteDatasource(w http.ResponseWriter, req *http.Request, 
 	}
 	err = orm.DeleteBy(&common.Document{}, util.MustToJSONBytes(query))
 	if err != nil {
-		log.Errorf("delete related documents with datasource [%s] error: %v", obj.Name, err)
+
+		_ = log.Errorf("delete related documents with datasource [%s] error: %v", obj.Name, err)
 	}
 
 	h.WriteJSON(w, util.MapStr{

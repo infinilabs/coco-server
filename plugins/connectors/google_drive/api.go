@@ -121,7 +121,9 @@ func (h *Plugin) oAuthRedirect(w http.ResponseWriter, req *http.Request, _ httpr
 	if err != nil {
 		panic(fmt.Errorf("failed to fetch user info: %w", err))
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		panic(fmt.Errorf("unexpected status code fetching user info: %d", resp.StatusCode))

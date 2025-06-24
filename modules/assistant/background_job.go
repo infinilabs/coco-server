@@ -223,10 +223,10 @@ func (h APIHandler) createAssistantMessage(sessionID, assistantID, requestMessag
 
 func (h APIHandler) finalizeProcessing(ctx context.Context, sessionID string, msg *common.ChatMessage, sender common.MessageSender) {
 	if err := orm.Save(nil, msg); err != nil {
-		log.Errorf("Failed to save assistant message: %v", err)
+		_ = log.Errorf("Failed to save assistant message: %v", err)
 	}
 
-	sender.SendMessage(common.NewMessageChunk(
+	_ = sender.SendMessage(common.NewMessageChunk(
 		sessionID, msg.ID, common.MessageTypeSystem, msg.ReplyMessageID,
 		common.ReplyEnd, "Processing completed", 0,
 	))
@@ -257,7 +257,7 @@ func (h APIHandler) processMessageAsync(ctx context.Context, reqMsg *common.Chat
 						common.Response, msg, 0,
 					))
 				}
-				log.Error(msg)
+				_ = log.Error(msg)
 			}
 		}
 		h.finalizeProcessing(ctx, params.SessionID, replyMsg, sender)
@@ -353,9 +353,9 @@ func (h APIHandler) processMessageAsync(ctx context.Context, reqMsg *common.Chat
 		}
 	}
 
-	h.generateFinalResponse(ctx, reqMsg, replyMsg, params, inputValues, sender)
+	err := h.generateFinalResponse(ctx, reqMsg, replyMsg, params, inputValues, sender)
 	log.Info("async reply task done for query:", reqMsg.Message)
-	return nil
+	return err
 }
 
 func (h APIHandler) fetchSessionHistory(ctx context.Context, reqMsg, replyMsg *common.ChatMessage, params *RAGContext, size int, inputValues map[string]any) (string, error) {
@@ -381,15 +381,15 @@ func (h APIHandler) fetchSessionHistory(ctx context.Context, reqMsg, replyMsg *c
 		switch v.MessageType {
 		case common.MessageTypeSystem:
 			msg := llms.SystemChatMessage{Content: msgText}
-			chatHistory.AddMessage(context.Background(), msg)
+			_ = chatHistory.AddMessage(context.Background(), msg)
 			break
 		case common.MessageTypeAssistant:
 			msg := llms.AIChatMessage{Content: msgText}
-			chatHistory.AddMessage(context.Background(), msg)
+			_ = chatHistory.AddMessage(context.Background(), msg)
 			break
 		case common.MessageTypeUser:
 			msg := llms.HumanChatMessage{Content: msgText}
-			chatHistory.AddMessage(context.Background(), msg)
+			_ = chatHistory.AddMessage(context.Background(), msg)
 			break
 		}
 
@@ -472,7 +472,7 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *common.ChatMes
 	mcpClients := []*client.Client{}
 	defer func() {
 		for _, f := range mcpClients {
-			f.Close()
+			_ = f.Close()
 		}
 	}()
 
@@ -588,7 +588,7 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *common.ChatMes
 		if chunk != "" {
 			answerBuffer.WriteString(chunk)
 			echoMsg := common.NewMessageChunk(params.SessionID, replyMsg.ID, common.MessageTypeAssistant, reqMsg.ID, common.Tools, chunk, toolsSeq)
-			sender.SendMessage(echoMsg)
+			_ = sender.SendMessage(echoMsg)
 		}
 		toolsSeq++
 	}
@@ -697,7 +697,7 @@ func (h APIHandler) processPickDocuments(ctx context.Context, reqMsg, replyMsg *
 	}
 
 	echoMsg := common.NewMessageChunk(params.SessionID, replyMsg.ID, common.MessageTypeAssistant, reqMsg.ID, common.PickSource, string(""), 0)
-	sender.SendMessage(echoMsg)
+	_ = sender.SendMessage(echoMsg)
 
 	content := []llms.MessageContent{
 		llms.TextParts(

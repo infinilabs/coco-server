@@ -62,7 +62,7 @@ func ValidateLoginByAPITokenHeader(r *http.Request) (claims *security.UserClaims
 	}
 
 	if bytes == nil || len(bytes) == 0 {
-		errors.Errorf("invalid %s", HeaderAPIToken)
+		return nil, errors.Errorf("invalid %s", HeaderAPIToken)
 	}
 
 	data := security.AccessToken{}

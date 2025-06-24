@@ -31,7 +31,6 @@ import (
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/security"
-	sec "infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
 	ccache "infini.sh/framework/lib/cache"
 	"net/http"
@@ -72,7 +71,7 @@ func (f *PermissionFilter) ApplyFilter(
 		}
 
 		//bypass admin
-		if reqUser.Roles != nil && util.AnyInArrayEquals(reqUser.Roles, sec.RoleAdmin) {
+		if reqUser.Roles != nil && util.AnyInArrayEquals(reqUser.Roles, security.RoleAdmin) {
 			next(w, r, ps)
 			return
 		}
@@ -89,7 +88,7 @@ func (f *PermissionFilter) ApplyFilter(
 			log.Tracef("perm key: %v", options.RequirePermission)
 		}
 
-		if reqUser.UserAssignedPermission.Validate(sec.MustRegisterPermissionByKeys(options.RequirePermission)) {
+		if reqUser.UserAssignedPermission.Validate(security.MustRegisterPermissionByKeys(options.RequirePermission)) {
 			next(w, r, ps)
 		} else {
 			f.WriteErrorObject(w, errors.Errorf("permission [%v] not allowed", options.RequirePermission), 403)
@@ -99,7 +98,7 @@ func (f *PermissionFilter) ApplyFilter(
 
 var permissionCache = ccache.Layered(ccache.Configure().MaxSize(10000).ItemsToPrune(100))
 
-func GetUserPermissions(shortUser *security.SessionUser) *sec.UserAssignedPermission {
+func GetUserPermissions(shortUser *security.SessionUser) *security.UserAssignedPermission {
 
 	var skipCache = false
 	if shortUser.UserAssignedPermission != nil && shortUser.UserAssignedPermission.NeedRefresh() {
@@ -110,7 +109,7 @@ func GetUserPermissions(shortUser *security.SessionUser) *sec.UserAssignedPermis
 		v := permissionCache.Get(PermissionCache, shortUser.UserId)
 		if v != nil {
 			if !v.Expired() {
-				x, ok := v.Value().(*sec.UserAssignedPermission)
+				x, ok := v.Value().(*security.UserAssignedPermission)
 				if ok {
 					if global.Env().IsDebug {
 						log.Debug("hit permission cache")
@@ -146,7 +145,7 @@ func GetUserPermissions(shortUser *security.SessionUser) *sec.UserAssignedPermis
 	//	if p != nil {
 	//		for resource, n := range p.Grants {
 	//			for x, _ := range n {
-	//				id := sec.GetSimplePermission(permission.CategoryPlatform, resource, string(x))
+	//				id := security.GetSimplePermission(permission.CategoryPlatform, resource, string(x))
 	//				allowedPermissions = append(allowedPermissions, id)
 	//				log.Debugf("register permission: %v, category: %v, resource: %v, action: %v", id, permission.CategoryPlatform, resource, string(x))
 	//			}
@@ -155,7 +154,7 @@ func GetUserPermissions(shortUser *security.SessionUser) *sec.UserAssignedPermis
 	//}
 
 	//log.Error("user's permissioins:", allowedPermissions)
-	perms := sec.NewUserAssignedPermission(allowedPermissions, nil)
+	perms := security.NewUserAssignedPermission(allowedPermissions, nil)
 	if perms != nil {
 		permissionCache.Set(PermissionCache, shortUser.UserId, perms, util.GetDurationOrDefault("30m", time.Duration(30)*time.Minute))
 		return perms

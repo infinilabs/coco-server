@@ -106,7 +106,7 @@ func (this *Plugin) Start() error {
 				for _, item := range results {
 					toSync, err := connectors.CanDoSync(item)
 					if err != nil {
-						log.Errorf("error checking syncable with datasource [%s]: %v", item.Name, err)
+						_ = log.Errorf("error checking syncable with datasource [%s]: %v", item.Name, err)
 						continue
 					}
 					if !toSync {

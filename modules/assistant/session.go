@@ -191,11 +191,8 @@ func (h APIHandler) newChatSession(w http.ResponseWriter, req *http.Request, ps 
 		}
 	}
 
-	err = h.WriteJSON(w, finalResult, 200)
-	if err != nil {
-		h.Error(w, err)
-		return
-	}
+	h.WriteJSON(w, finalResult, 200)
+
 }
 
 func CreateAndSaveNewChatMessage(assistantID string, message string, visible bool) (common.Session, error, *common.ChatMessage, util.MapStr) {
@@ -381,14 +378,12 @@ func (h APIHandler) openChatSession(w http.ResponseWriter, req *http.Request, ps
 		}
 	}
 
-	err = h.WriteJSON(w, util.MapStr{
+	h.WriteJSON(w, util.MapStr{
 		"found":   true,
 		"_id":     id,
 		"_source": obj,
 	}, 200)
-	if err != nil {
-		h.Error(w, err)
-	}
+
 }
 
 func getChatHistoryBySessionInternal(sessionID string, size int) ([]common.ChatMessage, error) {
@@ -457,7 +452,7 @@ func stopSessionTask(sessionID string) {
 			task.StopTask(v1.TaskID)
 		}
 	} else {
-		log.Warn("task id not found for session:", sessionID)
+		_ = log.Warn("task id not found for session:", sessionID)
 	}
 }
 
@@ -465,10 +460,7 @@ func (h APIHandler) cancelReplyMessage(w http.ResponseWriter, req *http.Request,
 
 	sessionID := ps.MustGetParameter("session_id")
 	stopSessionTask(sessionID)
-	err := h.WriteAckOKJSON(w)
-	if err != nil {
-		h.Error(w, err)
-	}
+	h.WriteAckOKJSON(w)
 }
 
 func (h APIHandler) sendChatMessage(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -491,7 +483,7 @@ func (h APIHandler) sendChatMessage(w http.ResponseWriter, req *http.Request, ps
 
 	err = h.handleMessage(w, req, sessionID, assistantID, reqMsg)
 	if err != nil {
-		log.Error(err)
+		_ = log.Error(err)
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -502,10 +494,7 @@ func (h APIHandler) sendChatMessage(w http.ResponseWriter, req *http.Request, ps
 		"_source": reqMsg,
 	}}
 
-	err = h.WriteJSON(w, response, 200)
-	if err != nil {
-		h.Error(w, err)
-	}
+	h.WriteJSON(w, response, 200)
 }
 
 func (h APIHandler) closeChatSession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -532,13 +521,10 @@ func (h APIHandler) closeChatSession(w http.ResponseWriter, req *http.Request, p
 	//	return
 	//}
 
-	err = h.WriteJSON(w, util.MapStr{
+	h.WriteJSON(w, util.MapStr{
 		"found":   true,
 		"_id":     id,
 		"_source": obj,
 	}, 200)
-	if err != nil {
-		h.Error(w, err)
-	}
 
 }

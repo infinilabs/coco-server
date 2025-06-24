@@ -289,7 +289,7 @@ func searchAssistant(query string, size int) []common.Assistant {
 	docs := []common.Assistant{}
 	err, _ := orm.SearchWithJSONMapper(&docs, &q)
 	if err != nil {
-		log.Error(err)
+		_ = log.Error(err)
 	}
 	return docs
 }
