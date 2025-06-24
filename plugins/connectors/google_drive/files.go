@@ -359,23 +359,33 @@ func downloadOrExportFile(srv *drive.Service, fileID, outputPath string) error {
 
 // downloadFile directly downloads a binary file from Google Drive
 func downloadFile(srv *drive.Service, fileID, outputPath string) error {
-	res, err := srv.Files.Get(fileID).Download()
+	// Download the file from Google Drive
+	resp, err := srv.Files.Get(fileID).Download()
 	if err != nil {
-		return fmt.Errorf("Unable to download file: %v", err)
+		return fmt.Errorf("failed to download file with ID %q: %w", fileID, err)
 	}
-	defer res.Body.Close()
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			log.Errorf("warning: failed to close response body: %v", cerr)
+		}
+	}()
 
-	// Create the local file
-	f, err := os.Create(outputPath)
+	// Create the output file on disk
+	outFile, err := os.Create(outputPath)
 	if err != nil {
-		return fmt.Errorf("Unable to create local file: %v", err)
+		return fmt.Errorf("failed to create local file at %q: %w", outputPath, err)
 	}
-	defer f.Close()
+	defer func() {
+		if cerr := outFile.Close(); cerr != nil {
+			log.Errorf("warning: failed to close output file: %v", cerr)
+		}
+	}()
 
-	// Write the contents to the local file
-	if _, err := io.Copy(f, res.Body); err != nil {
-		return fmt.Errorf("Unable to save file locally: %v", err)
+	// Copy the content to the local file
+	if _, err := io.Copy(outFile, resp.Body); err != nil {
+		return fmt.Errorf("failed to write to file %q: %w", outputPath, err)
 	}
+
 	return nil
 }
 
@@ -385,14 +395,18 @@ func exportFile(srv *drive.Service, fileID, mimeType, outputPath string) error {
 	if err != nil {
 		return fmt.Errorf("Unable to export file: %v", err)
 	}
-	defer res.Body.Close()
+	defer func() {
+		_ = res.Body.Close()
+	}()
 
 	// Create the local file
 	f, err := os.Create(outputPath)
 	if err != nil {
 		return fmt.Errorf("Unable to create file: %v", err)
 	}
-	defer f.Close()
+	defer func() {
+		_ = f.Close()
+	}()
 
 	// Write the contents to the local file
 	if _, err := io.Copy(f, res.Body); err != nil {

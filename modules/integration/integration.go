@@ -191,10 +191,8 @@ func (h *APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprou
 
 	}
 
-	err = h.WriteJSON(w, searchRes, http.StatusOK)
-	if err != nil {
-		h.Error(w, err)
-	}
+	h.WriteJSON(w, searchRes, http.StatusOK)
+
 }
 
 func (h *APIHandler) renewAPIToken(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -217,7 +215,7 @@ func (h *APIHandler) renewAPIToken(w http.ResponseWriter, req *http.Request, ps 
 	}
 	if obj.Token != "" {
 		// clear old token
-		security.DeleteAccessToken(reqUser.UserId, obj.Token)
+		_ = security.DeleteAccessToken(reqUser.UserId, obj.Token)
 	}
 	//create new token form this integration
 	ret, err := security.CreateAPIToken(reqUser, "", "widget", []string{"widget"})

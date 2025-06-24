@@ -80,8 +80,5 @@ func (h APIHandler) viewSuggestTopic(w http.ResponseWriter, req *http.Request, p
 		}
 	}
 
-	err = h.WriteJSON(w, topics, 200)
-	if err != nil {
-		h.Error(w, err)
-	}
+	h.WriteJSON(w, topics, 200)
 }

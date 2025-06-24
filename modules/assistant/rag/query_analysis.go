@@ -107,7 +107,7 @@ func ProcessQueryIntent(ctx context.Context, sessionID string, provider *common.
 				msg := common.NewMessageChunk(sessionID, replyMsg.ID, common.MessageTypeAssistant, reqMsg.ID, common.QueryIntent, string(chunk), chunkSeq)
 				err := sender.SendMessage(msg)
 				if err != nil {
-					log.Error(err)
+					_ = log.Error(err)
 					return err
 				}
 			}

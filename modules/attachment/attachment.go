@@ -138,7 +138,7 @@ func (h APIHandler) getAttachment(w http.ResponseWriter, req *http.Request, ps h
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(data)))
 
 	// Write file data to response
-	w.Write(data)
+	_, _ = w.Write(data)
 }
 
 func (h APIHandler) getAttachmentMetadata(fileID string) (*common.Attachment, bool, error) {
@@ -152,12 +152,12 @@ func (h APIHandler) getAttachmentMetadata(fileID string) (*common.Attachment, bo
 
 	if !exists {
 		//TODO kv exists, should cleanup kv store
-		log.Warnf("file meta %v not exists, but kv exists", fileID)
+		_ = log.Warnf("file meta %v not exists, but kv exists", fileID)
 		return nil, exists, err
 	}
 
 	if attachment.Deleted {
-		log.Warnf("attachment %v exists but was deleted", fileID)
+		_ = log.Warnf("attachment %v exists but was deleted", fileID)
 		return nil, false, errors.New("attachment not found")
 	}
 
@@ -238,7 +238,9 @@ func getMimeType(file multipart.File) (string, error) {
 }
 
 func uploadToBlobStore(sessionID string, file multipart.File, fileName string) (string, error) {
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	// Read file content into memory
 	data, err := io.ReadAll(file)

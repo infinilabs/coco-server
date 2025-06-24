@@ -100,9 +100,6 @@ func (h APIHandler) suggest(w http.ResponseWriter, req *http.Request, ps httprou
 		Suggestions: suggestions,
 	}
 
-	err = h.WriteJSON(w, response, 200)
-	if err != nil {
-		h.Error(w, err)
-	}
+	h.WriteJSON(w, response, 200)
 
 }

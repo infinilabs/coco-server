@@ -42,7 +42,7 @@ func (h *APIHandler) getServerSettings(w http.ResponseWriter, req *http.Request,
 func (h *APIHandler) updateServerSettings(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	appConfig := common.Config{}
 	if err := h.DecodeJSON(req, &appConfig); err != nil {
-		log.Error(err)
+		_ = log.Error(err)
 		h.WriteError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -52,7 +52,7 @@ func (h *APIHandler) updateServerSettings(w http.ResponseWriter, req *http.Reque
 		serverCfg := common.ServerInfo{}
 		err := mergeSettings(oldAppConfig.ServerInfo, appConfig.ServerInfo, &serverCfg)
 		if err != nil {
-			log.Error(err)
+			_ = log.Error(err)
 			h.WriteError(w, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -63,7 +63,7 @@ func (h *APIHandler) updateServerSettings(w http.ResponseWriter, req *http.Reque
 		appSettings := common.AppSettings{}
 		err := mergeSettings(oldAppConfig.AppSettings, appConfig.AppSettings, &appSettings)
 		if err != nil {
-			log.Error(err)
+			_ = log.Error(err)
 			h.WriteError(w, err.Error(), http.StatusBadRequest)
 			return
 		}

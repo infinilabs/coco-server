@@ -65,7 +65,7 @@ func (h *APIHandler) getAssistant(w http.ResponseWriter, req *http.Request, ps h
 
 	obj, exists, err := common.GetAssistant(id)
 	if !exists || err != nil {
-		log.Error(err)
+		_ = log.Error(err)
 		h.WriteOpRecordNotFoundJSON(w, id)
 		return
 	}
@@ -83,7 +83,7 @@ func (h *APIHandler) updateAssistant(w http.ResponseWriter, req *http.Request, p
 	obj.ID = id
 	exists, err := orm.Get(&obj)
 	if !exists || err != nil {
-		log.Error(err)
+		_ = log.Error(err)
 		h.WriteOpRecordNotFoundJSON(w, id)
 		return
 	}
@@ -127,10 +127,12 @@ func (h *APIHandler) deleteAssistant(w http.ResponseWriter, req *http.Request, p
 	exists, err := orm.Get(&obj)
 	if !exists || err != nil {
 		h.WriteOpRecordNotFoundJSON(w, id)
+
 		return
 	}
 	if obj.Builtin {
 		h.WriteError(w, "Built-in model providers cannot be deleted", http.StatusForbidden)
+
 		return
 	}
 
@@ -140,6 +142,7 @@ func (h *APIHandler) deleteAssistant(w http.ResponseWriter, req *http.Request, p
 	err = orm.Delete(ctx, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+
 		return
 	}
 
@@ -158,6 +161,7 @@ func (h *APIHandler) searchAssistant(w http.ResponseWriter, req *http.Request, p
 		err, res := orm.Search(&common.Assistant{}, &q)
 		if err != nil {
 			h.WriteError(w, err.Error(), http.StatusInternalServerError)
+
 			return
 		}
 
@@ -180,6 +184,7 @@ func (h *APIHandler) searchAssistant(w http.ResponseWriter, req *http.Request, p
 		err, res := core.SearchV2WithResultItemMapper(ctx, &docs, builder, nil)
 		if err != nil {
 			h.WriteError(w, err.Error(), http.StatusInternalServerError)
+
 			return
 		}
 
@@ -198,8 +203,9 @@ func (h *APIHandler) cloneAssistant(w http.ResponseWriter, req *http.Request, ps
 
 	exists, err := orm.Get(&obj)
 	if !exists || err != nil {
-		log.Error(err)
+		_ = log.Error(err)
 		h.WriteOpRecordNotFoundJSON(w, id)
+
 		return
 	}
 
@@ -212,6 +218,10 @@ func (h *APIHandler) cloneAssistant(w http.ResponseWriter, req *http.Request, ps
 	ctx := &orm.Context{
 		Refresh: orm.WaitForRefresh,
 	}
-	orm.Create(ctx, &obj)
+	err = orm.Create(ctx, &obj)
+	if err != nil {
+		h.Error(w, err)
+		return
+	}
 	h.WriteCreatedOKJSON(w, obj.ID)
 }

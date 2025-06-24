@@ -78,6 +78,6 @@ func (h *APIHandler) widgetWrapper(w http.ResponseWriter, req *http.Request, ps 
 		return -1, nil
 	})
 	h.WriteJavascriptHeader(w)
-	h.Write(w, []byte(str))
+	_, _ = h.Write(w, []byte(str))
 	h.WriteHeader(w, 200)
 }
