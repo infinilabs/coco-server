@@ -198,7 +198,7 @@ export function Component() {
   };
 
   return (
-    <div className="h-full min-h-500px flex-col-stretch gap-16px overflow-hidden lt-sm:overflow-auto">
+    <ListContainer>
       <ACard
         bordered={false}
         className="flex-col-stretch sm:flex-1-hidden card-wrapper"
@@ -306,7 +306,7 @@ export function Component() {
           }}
         />
       </ACard>
-    </div>
+    </ListContainer>
   );
 }
 
