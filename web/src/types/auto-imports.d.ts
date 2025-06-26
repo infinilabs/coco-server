@@ -92,6 +92,7 @@ declare global {
   const License: typeof import('../components/License/index.jsx')['default']
   const LicenseTrigger: typeof import('../components/License/LicenseTrigger.jsx')['default']
   const Link: typeof import('react-router-dom')['Link']
+  const ListContainer: typeof import('../components/stateless/common/ListContainer')['default']
   const LookForward: typeof import('../components/stateless/custom/LookForward')['default']
   const MenuContext: typeof import('../layouts/base-layout/MenuProvider')['MenuContext']
   const MenuProvider: typeof import('../layouts/base-layout/MenuProvider')['default']

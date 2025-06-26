@@ -186,7 +186,7 @@ const ConnectorSettings = memo(() => {
     });
   };
   return (
-    <div className="h-full min-h-500px flex-col-stretch overflow-hidden lt-sm:overflow-auto">
+    <ListContainer>
       <div className="mb-4 mt-4 flex items-center justify-between">
         <Search
           value={keyword} 
@@ -218,7 +218,7 @@ const ConnectorSettings = memo(() => {
         }}
         onChange={handleTableChange}
       />
-    </div>
+    </ListContainer>
   );
 
 });

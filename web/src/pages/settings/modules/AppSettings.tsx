@@ -78,7 +78,7 @@ const AppSettings = memo(() => {
   }, [JSON.stringify(data)]);
 
   return (
-    <div className="h-full min-h-500px">
+    <ListContainer>
       <Spin spinning={dataLoading || loading}>
         <Form
           className="settings-form py-24px"
@@ -100,7 +100,7 @@ const AppSettings = memo(() => {
           </Form.Item>
         </Form>
       </Spin>
-    </div>
+    </ListContainer>
   );
 });
 
