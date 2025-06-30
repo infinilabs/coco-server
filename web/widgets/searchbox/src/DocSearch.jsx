@@ -17,10 +17,6 @@ export const DocSearch = (props) => {
   const [theme, setTheme] = useState(window.matchMedia && window.matchMedia(DARK_MODE_MEDIA_QUERY).matches ? 'dark' : 'light')
 
   const [shadowLoading, setShadowLoading] = useState(true)
-  const shadowRef = useRef(null)
-  const modelRef = useRef(null)
-  const modelRootRef = useRef(null)
-  const floatBtnRef = useRef(null)
 
   const [triggerBtnType, setTriggerBtnType] = useState('embedded');
   const onOpen = () => setIsOpen(true);
@@ -125,10 +121,12 @@ export const DocSearch = (props) => {
   }
 
   function renderShadow(linkHref) {
+    if (window[`${id}_shadow_container`]) window[`${id}_shadow_container`].remove()
     const container = document.createElement("div");
     document.body.appendChild(container)
+    window[`${id}_shadow_container`] = container;
     const shadow = container.attachShadow({ mode: "open" });
-    shadowRef.current = shadow;
+    window[`${id}_shadow`] = shadow;
     if (linkHref) {
       const linkElement = document.createElement("link");
       linkElement.rel = "stylesheet";
@@ -143,11 +141,11 @@ export const DocSearch = (props) => {
   }
 
   function renderModal(server, settings, triggerBtnType, theme, isOpen) {
-    if (!shadowRef.current) return;
+    if (!window[`${id}_shadow`]) return;
 
     if (!isOpen) {
-      modelRootRef.current?.unmount()
-      modelRef.current?.remove()
+      window[`${id}_modal_root`]?.unmount()
+      window[`${id}_modal_container`]?.remove()
       return;
     }
 
@@ -160,17 +158,17 @@ export const DocSearch = (props) => {
       isOpen
     }
     const wrapper = document.createElement("div");
-    shadowRef.current.appendChild(wrapper);
-    modelRef.current = wrapper
+    window[`${id}_shadow`].appendChild(wrapper);
+    window[`${id}_modal_container`] = wrapper;
     const root = createRoot(wrapper);
-    modelRootRef.current = root
+    window[`${id}_modal_root`] = root;
     root.render(<DocSearchModal {...props} />);
   }
 
   function renderFloatButton(theme, settings) {
-    if (!shadowRef.current || !['floating', 'all'].includes(settings?.type)) return;
+    if (!window[`${id}_shadow`] || !['floating', 'all'].includes(settings?.type)) return;
 
-    if (floatBtnRef.current) floatBtnRef.current.remove()
+    if (window[`${id}_float_button`]) window[`${id}_float_button`].remove()
 
     const props = {
       theme,
@@ -178,8 +176,8 @@ export const DocSearch = (props) => {
       onClick: () => onClick('floating')
     }
     const wrapper = document.createElement("div");
-    shadowRef.current.appendChild(wrapper);
-    floatBtnRef.current = wrapper
+    window[`${id}_shadow`].appendChild(wrapper);
+    window[`${id}_float_button`] = wrapper;
     const root = createRoot(wrapper);
     root.render(<DocSearchFloatButton {...props}/>);
   }
