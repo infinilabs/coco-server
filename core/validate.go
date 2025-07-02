@@ -81,8 +81,8 @@ func ValidateLoginByAPITokenHeader(r *http.Request) (claims *security.UserClaims
 	claims = &security.UserClaims{}
 	claims.SessionUser = &security.SessionUser{}
 	claims.Provider = data.Provider
-	claims.Username = data.Login
-	claims.UserId = data.UserID
+	claims.Login = data.Login
+	claims.UserID = data.UserID
 	claims.Roles = data.Roles
 
 	//claims. //
@@ -121,7 +121,7 @@ func ValidateLoginByAuthorizationHeader(r *http.Request) (claims *security.UserC
 	//validate bind tenant
 	claims, ok = token.Claims.(*security.UserClaims)
 	if ok && token.Valid {
-		if claims.UserId == "" {
+		if claims.UserID == "" {
 			err = errors.New("user id is empty")
 			return nil, err
 		}
@@ -166,7 +166,7 @@ func ValidateLoginBySession(r *http.Request) (claims *security.UserClaims, err e
 	//validate bind tenant
 	claims, ok = token.Claims.(*security.UserClaims)
 	if ok && token.Valid {
-		if claims.UserId == "" {
+		if claims.UserID == "" {
 			err = errors.New("user id is empty")
 			return
 		}

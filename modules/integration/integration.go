@@ -215,7 +215,7 @@ func (h *APIHandler) renewAPIToken(w http.ResponseWriter, req *http.Request, ps 
 	}
 	if obj.Token != "" {
 		// clear old token
-		_ = security.DeleteAccessToken(reqUser.UserId, obj.Token)
+		_ = security.DeleteAccessToken(reqUser.UserID, obj.Token)
 	}
 	//create new token form this integration
 	ret, err := security.CreateAPIToken(reqUser, "", "widget", []string{"widget"})
