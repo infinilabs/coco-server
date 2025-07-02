@@ -10,6 +10,8 @@ Information about release notes of Coco Server is provided here.
 ## Latest (In development)  
 ### ❌ Breaking changes  
 ### 🚀 Features  
+- feat: add http_streaming based chat api #336
+
 ### 🐛 Bug fix  
 ### ✈️ Improvements  
 
