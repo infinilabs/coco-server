@@ -282,10 +282,13 @@ curl  -H 'Content-Type: application/json'   -XPOST http://localhost:9000/chat/cs
 
 ```shell
 //request
-curl  -H'WEBSOCKET-SESSION-ID: csk88l3q50kb4hr5unn0'  -H 'Content-Type: application/json'   -XPOST http://localhost:9000/chat/_new -d'{
+curl -N -H 'Content-Type: application/json'   -XPOST http://localhost:9000/chat/_create -d'{
   "message":"how are you doing?"
 }'
+```
 
+This API is HTTP Streaming based API, the first line will be session creation result, as follows:
+```
 //response
 {
   "_id": "csk30fjq50k7l4akku9g",
@@ -301,11 +304,34 @@ curl  -H'WEBSOCKET-SESSION-ID: csk88l3q50kb4hr5unn0'  -H 'Content-Type: applicat
   }
 }
 ```
-Tips: `WEBSOCKET-SESSION-ID` should be replaced with the actual WebSocket session ID. You will receive a message each time you connect to the Coco AI WebSocket server. For example: `ws://localhost:2900/ws` or `wss://localhost:2900/ws` if TLS is enabled. Parse the websocket session id,  save it and pass it each time you send message to Coco server.
+The `payload` field is the result of the first request message.
 
-> Note: If the Coco server doesn’t recognize your WebSocket ID, it won’t be able to process the reply, as it can’t send the response in a streaming manner.
+And start with the second line will be `chunk` based chat response, please refer to section [### Send a Message](### Send a Message)
 
-{{% load-img "/img/websocket-on-connect.jpg?raw=true" "WebSocket ID" %}}
+Here is the full request and response:
+```shell
+➜ curl  -H'X-API-TOKEN: d1iah2v3edbmq3jakcqg035du63myi8es0j4vqibelhvjnwy6gaeqd0ewitu4c6h1ad73c56pqknjbui4qfw'  -N -H 'Content-Type: application/json'   -XPOST http://localhost:9000/chat/_create -d'{
+  "message":"how are you doing?"
+}'
+{"_id":"d1iah7f3edbmq3jakcs0","_source":{"id":"d1iah7f3edbmq3jakcs0","created":"2025-07-02T11:33:49.167656+08:00","updated":"2025-07-02T11:33:49.167664+08:00","status":"active","title":"how are you doing?","visible":true},"payload":{"id":"d1iah7f3edbmq3jakcsg","created":"2025-07-02T11:33:49.191362+08:00","updated":"2025-07-02T11:33:49.191371+08:00","type":"user","session_id":"d1iah7f3edbmq3jakcs0","from":"","message":"how are you doing?","details":null,"up_vote":0,"down_vote":0,"assistant_id":"default"},"result":"created"}
+{"session_id":"d1iah7f3edbmq3jakcs0","message_id":"d1iah7f3edbmq3jakct0","message_type":"assistant","reply_to_message":"d1iah7f3edbmq3jakcsg","chunk_sequence":0,"chunk_type":"response","message_chunk":""}
+{"session_id":"d1iah7f3edbmq3jakcs0","message_id":"d1iah7f3edbmq3jakct0","message_type":"assistant","reply_to_message":"d1iah7f3edbmq3jakcsg","chunk_sequence":1,"chunk_type":"response","message_chunk":""}
+{"session_id":"d1iah7f3edbmq3jakcs0","message_id":"d1iah7f3edbmq3jakct0","message_type":"assistant","reply_to_message":"d1iah7f3edbmq3jakcsg","chunk_sequence":2,"chunk_type":"response","message_chunk":"I"}
+{"session_id":"d1iah7f3edbmq3jakcs0","message_id":"d1iah7f3edbmq3jakct0","message_type":"assistant","reply_to_message":"d1iah7f3edbmq3jakcsg","chunk_sequence":3,"chunk_type":"response","message_chunk":"'m"}
+{"session_id":"d1iah7f3edbmq3jakcs0","message_id":"d1iah7f3edbmq3jakct0","message_type":"assistant","reply_to_message":"d1iah7f3edbmq3jakcsg","chunk_sequence":4,"chunk_type":"response","message_chunk":" an"}
+{"session_id":"d1iah7f3edbmq3jakcs0","message_id":"d1iah7f3edbmq3jakct0","message_type":"assistant","reply_to_message":"d1iah7f3edbmq3jakcsg","chunk_sequence":5,"chunk_type":"response","message_chunk":" artificial intelligence, so"}
+{"session_id":"d1iah7f3edbmq3jakcs0","message_id":"d1iah7f3edbmq3jakct0","message_type":"assistant","reply_to_message":"d1iah7f3edbmq3jakcsg","chunk_sequence":6,"chunk_type":"response","message_chunk":" I don't have"}
+{"session_id":"d1iah7f3edbmq3jakcs0","message_id":"d1iah7f3edbmq3jakct0","message_type":"assistant","reply_to_message":"d1iah7f3edbmq3jakcsg","chunk_sequence":7,"chunk_type":"response","message_chunk":" feelings or physical states"}
+{"session_id":"d1iah7f3edbmq3jakcs0","message_id":"d1iah7f3edbmq3jakct0","message_type":"assistant","reply_to_message":"d1iah7f3edbmq3jakcsg","chunk_sequence":8,"chunk_type":"response","message_chunk":", but I'm"}
+{"session_id":"d1iah7f3edbmq3jakcs0","message_id":"d1iah7f3edbmq3jakct0","message_type":"assistant","reply_to_message":"d1iah7f3edbmq3jakcsg","chunk_sequence":9,"chunk_type":"response","message_chunk":" here and ready to"}
+{"session_id":"d1iah7f3edbmq3jakcs0","message_id":"d1iah7f3edbmq3jakct0","message_type":"assistant","reply_to_message":"d1iah7f3edbmq3jakcsg","chunk_sequence":10,"chunk_type":"response","message_chunk":" help you with any"}
+{"session_id":"d1iah7f3edbmq3jakcs0","message_id":"d1iah7f3edbmq3jakct0","message_type":"assistant","reply_to_message":"d1iah7f3edbmq3jakcsg","chunk_sequence":11,"chunk_type":"response","message_chunk":" questions or tasks you"}
+{"session_id":"d1iah7f3edbmq3jakcs0","message_id":"d1iah7f3edbmq3jakct0","message_type":"assistant","reply_to_message":"d1iah7f3edbmq3jakcsg","chunk_sequence":12,"chunk_type":"response","message_chunk":" might have! How"}
+{"session_id":"d1iah7f3edbmq3jakcs0","message_id":"d1iah7f3edbmq3jakct0","message_type":"assistant","reply_to_message":"d1iah7f3edbmq3jakcsg","chunk_sequence":13,"chunk_type":"response","message_chunk":" can I assist you"}
+{"session_id":"d1iah7f3edbmq3jakcs0","message_id":"d1iah7f3edbmq3jakct0","message_type":"assistant","reply_to_message":"d1iah7f3edbmq3jakcsg","chunk_sequence":14,"chunk_type":"response","message_chunk":" today?"}
+{"session_id":"d1iah7f3edbmq3jakcs0","message_id":"d1iah7f3edbmq3jakct0","message_type":"assistant","reply_to_message":"d1iah7f3edbmq3jakcsg","chunk_sequence":15,"chunk_type":"response","message_chunk":""}
+{"session_id":"d1iah7f3edbmq3jakcs0","message_id":"d1iah7f3edbmq3jakct0","message_type":"system","reply_to_message":"d1iah7f3edbmq3jakcsg","chunk_sequence":0,"chunk_type":"reply_end","message_chunk":"Processing completed"}
+```
 
 ### Get Chat Session Info
 ```shell
@@ -370,10 +396,14 @@ curl -XGET http://localhost:9000/chat/csk30fjq50k7l4akku9g/_history
 
 ```shell
 //request
-curl -H'WEBSOCKET-SESSION-ID: csk88l3q50kb4hr5unn0' -H 'Content-Type: application/json' -XPOST http://localhost:9000/chat/csk30fjq50k7l4akku9g/_send -d '{"message":"Hello"}'
+curl -N -H 'Content-Type: application/json' -XPOST http://localhost:9000/chat/csk30fjq50k7l4akku9g/_chat -d '{"message":"Hello"}'
+```
 
+This API is HTTP Streaming based API, the first line will be request message result, as follows:
+
+```shell
 //response
-[{
+{
   "_id": "csk325rq50k85fc5u0j0",
   "_source": {
     "id": "csk325rq50k85fc5u0j0",
@@ -384,7 +414,25 @@ curl -H'WEBSOCKET-SESSION-ID: csk88l3q50kb4hr5unn0' -H 'Content-Type: applicatio
     "message": "Hello"
   },
   "result": "created"
-}]
+}
+```
+Starting from the second line, the response will use a chunk-based format. Each chunk will include a `chunk_type` indicating the stage of the reply.
+
+Here is the full request and response:
+
+```shell
+➜ curl  -H'X-API-TOKEN: d1iah2v3edbmq3jakcqg035du63myi8es0j4vqibelhvjnwy6gaeqd0ewitu4c6h1ad73c56pqknjbui4qfw'  -N -H 'Content-Type: application/json' -XPOST http://localhost:9000/chat/d1iah7f3edbmq3jakcs0/_chat -d '{"message":"Hello"}'
+
+[{"_id":"d1iahrf3edbmq3jakd30","_source":{"id":"d1iahrf3edbmq3jakd30","created":"2025-07-02T11:35:09.015438+08:00","updated":"2025-07-02T11:35:09.015446+08:00","type":"user","session_id":"d1iah7f3edbmq3jakcs0","from":"","message":"Hello","details":null,"up_vote":0,"down_vote":0,"assistant_id":"default"},"result":"created"}]
+{"session_id":"d1iah7f3edbmq3jakcs0","message_id":"d1iahrf3edbmq3jakd3g","message_type":"assistant","reply_to_message":"d1iahrf3edbmq3jakd30","chunk_sequence":0,"chunk_type":"response","message_chunk":""}
+{"session_id":"d1iah7f3edbmq3jakcs0","message_id":"d1iahrf3edbmq3jakd3g","message_type":"assistant","reply_to_message":"d1iahrf3edbmq3jakd30","chunk_sequence":1,"chunk_type":"response","message_chunk":""}
+{"session_id":"d1iah7f3edbmq3jakcs0","message_id":"d1iahrf3edbmq3jakd3g","message_type":"assistant","reply_to_message":"d1iahrf3edbmq3jakd30","chunk_sequence":2,"chunk_type":"response","message_chunk":"Hello"}
+{"session_id":"d1iah7f3edbmq3jakcs0","message_id":"d1iahrf3edbmq3jakd3g","message_type":"assistant","reply_to_message":"d1iahrf3edbmq3jakd30","chunk_sequence":3,"chunk_type":"response","message_chunk":"!"}
+{"session_id":"d1iah7f3edbmq3jakcs0","message_id":"d1iahrf3edbmq3jakd3g","message_type":"assistant","reply_to_message":"d1iahrf3edbmq3jakd30","chunk_sequence":4,"chunk_type":"response","message_chunk":" How"}
+{"session_id":"d1iah7f3edbmq3jakcs0","message_id":"d1iahrf3edbmq3jakd3g","message_type":"assistant","reply_to_message":"d1iahrf3edbmq3jakd30","chunk_sequence":5,"chunk_type":"response","message_chunk":" can I assist you"}
+{"session_id":"d1iah7f3edbmq3jakcs0","message_id":"d1iahrf3edbmq3jakd3g","message_type":"assistant","reply_to_message":"d1iahrf3edbmq3jakd30","chunk_sequence":6,"chunk_type":"response","message_chunk":" today?"}
+{"session_id":"d1iah7f3edbmq3jakcs0","message_id":"d1iahrf3edbmq3jakd3g","message_type":"assistant","reply_to_message":"d1iahrf3edbmq3jakd30","chunk_sequence":7,"chunk_type":"response","message_chunk":""}
+{"session_id":"d1iah7f3edbmq3jakcs0","message_id":"d1iahrf3edbmq3jakd3g","message_type":"system","reply_to_message":"d1iahrf3edbmq3jakd30","chunk_sequence":0,"chunk_type":"reply_end","message_chunk":"Processing completed"}
 ```
 
 ### Close a Chat Session
