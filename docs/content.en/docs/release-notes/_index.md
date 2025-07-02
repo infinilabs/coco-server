@@ -15,6 +15,7 @@ Information about release notes of Coco Server is provided here.
 ### 🐛 Bug fix  
 ### ✈️ Improvements  
 - refactor: refactoring user id #337
+- chore: skip empty response chunks #338
 
 ## 0.6.0 (2025-06-29)
 ### ❌ Breaking changes  

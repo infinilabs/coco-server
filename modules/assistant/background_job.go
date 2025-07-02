@@ -909,13 +909,13 @@ func (h APIHandler) generateFinalResponse(taskCtx context.Context, reqMsg, reply
 	} else {
 		//this part works for ollama
 		options = append(options, llms.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
-
-			log.Trace(string(chunk))
-
-			chunkSeq += 1
-			msg := common.NewMessageChunk(params.SessionID, replyMsg.ID, common.MessageTypeAssistant, reqMsg.ID, common.Response, string(chunk), chunkSeq)
-			err = sender.SendMessage(msg)
-			messageBuffer.Write(chunk)
+			if len(chunk) > 0 {
+				log.Trace(string(chunk))
+				chunkSeq += 1
+				msg := common.NewMessageChunk(params.SessionID, replyMsg.ID, common.MessageTypeAssistant, reqMsg.ID, common.Response, string(chunk), chunkSeq)
+				err = sender.SendMessage(msg)
+				messageBuffer.Write(chunk)
+			}
 			return nil
 		}))
 	}
