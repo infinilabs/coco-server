@@ -166,6 +166,7 @@ func (h APIHandler) getChatSessions(w http.ResponseWriter, req *http.Request, ps
 
 }
 
+// TODO to be removed
 func (h APIHandler) newChatSession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
 	assistantID := h.GetParameterOrDefault(req, "assistant_id", DefaultAssistantID)
@@ -195,6 +196,66 @@ func (h APIHandler) newChatSession(w http.ResponseWriter, req *http.Request, ps 
 
 }
 
+func (h APIHandler) createChatSession(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	id := h.GetParameterOrDefault(r, "assistant_id", DefaultAssistantID)
+
+	assistant, exists, err := common.GetAssistant(id)
+	if !exists || err != nil {
+		h.WriteOpRecordNotFoundJSON(w, id)
+		return
+	}
+
+	//launch the LLM task
+	//streaming output result to HTTP client
+
+	var request common.MessageRequest
+	if err := h.DecodeJSON(r, &request); err != nil {
+		//error can be ignored, since older app version didn't have this option
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	session, err, reqMsg, finalResult := CreateAndSaveNewChatMessage(id, request.Message, true)
+	if err != nil {
+		h.Error(w, err)
+		return
+	}
+
+	//return for create session only request
+	if reqMsg == nil {
+		h.WriteJSON(w, finalResult, 200)
+		return
+	}
+
+	ctx := r.Context()
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		h.Error(w, errors.New("http.Flusher not supported"))
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Transfer-Encoding", "chunked")
+	w.WriteHeader(http.StatusOK)
+
+	flusher.Flush()
+
+	enc := json.NewEncoder(w)
+	_ = enc.Encode(finalResult)
+
+	params, err := h.getRAGContext(r, assistant)
+	if err != nil {
+		h.Error(w, err)
+		return
+	}
+	params.SessionID = session.ID
+	streamSender := &HTTPStreamSender{
+		Enc:     enc,
+		Flusher: flusher,
+		Ctx:     r.Context(), // assuming this is in an HTTP handler
+	}
+	_ = h.processMessageAsync(ctx, reqMsg, params, streamSender)
+}
+
 func CreateAndSaveNewChatMessage(assistantID string, message string, visible bool) (common.Session, error, *common.ChatMessage, util.MapStr) {
 
 	//if !rate.GetRateLimiterPerSecond("assistant_new_chat", clientIdentity, 10).Allow() {
@@ -216,6 +277,12 @@ func CreateAndSaveNewChatMessage(assistantID string, message string, visible boo
 		return common.Session{}, err, nil, nil
 	}
 
+	result := util.MapStr{
+		"_id":     obj.ID,
+		"result":  "created",
+		"_source": obj,
+	}
+
 	var firstMessage *common.ChatMessage
 	//save first message to history
 	if message != "" {
@@ -223,14 +290,9 @@ func CreateAndSaveNewChatMessage(assistantID string, message string, visible boo
 		if err != nil {
 			return common.Session{}, err, nil, nil
 		}
+		result["payload"] = firstMessage
 	}
 
-	result := util.MapStr{
-		"_id":     obj.ID,
-		"result":  "created",
-		"payload": firstMessage,
-		"_source": obj,
-	}
 	return obj, err, firstMessage, result
 }
 
@@ -495,6 +557,70 @@ func (h APIHandler) sendChatMessage(w http.ResponseWriter, req *http.Request, ps
 	}}
 
 	h.WriteJSON(w, response, 200)
+}
+
+func (h APIHandler) sendChatMessageV2(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	sessionID := ps.MustGetParameter("session_id")
+
+	id := h.GetParameterOrDefault(r, "assistant_id", DefaultAssistantID)
+
+	assistant, exists, err := common.GetAssistant(id)
+	if !exists || err != nil {
+		h.WriteOpRecordNotFoundJSON(w, id)
+		return
+	}
+
+	//launch the LLM task
+	//streaming output result to HTTP client
+
+	var request common.MessageRequest
+	if err := h.DecodeJSON(r, &request); err != nil {
+		//error can be ignored, since older app version didn't have this option
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	reqMsg, err := saveRequestMessage(sessionID, id, request.Message)
+	if err != nil {
+		h.Error(w, err)
+		return
+	}
+
+	ctx := r.Context()
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		h.Error(w, errors.New("http.Flusher not supported"))
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Transfer-Encoding", "chunked")
+	w.WriteHeader(http.StatusOK)
+
+	flusher.Flush()
+
+	response := []util.MapStr{util.MapStr{
+		"_id":     reqMsg.ID,
+		"result":  "created",
+		"_source": reqMsg,
+	}}
+
+	enc := json.NewEncoder(w)
+	_ = enc.Encode(response)
+
+	params, err := h.getRAGContext(r, assistant)
+	if err != nil {
+		h.Error(w, err)
+		return
+	}
+	params.SessionID = sessionID
+	streamSender := &HTTPStreamSender{
+		Enc:     enc,
+		Flusher: flusher,
+		Ctx:     r.Context(), // assuming this is in an HTTP handler
+	}
+	_ = h.processMessageAsync(ctx, reqMsg, params, streamSender)
+
 }
 
 func (h APIHandler) closeChatSession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
