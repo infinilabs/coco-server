@@ -106,7 +106,7 @@ func GetUserPermissions(shortUser *security.SessionUser) *security.UserAssignedP
 	}
 
 	if !skipCache {
-		v := permissionCache.Get(PermissionCache, shortUser.UserId)
+		v := permissionCache.Get(PermissionCache, shortUser.UserID)
 		if v != nil {
 			if !v.Expired() {
 				x, ok := v.Value().(*security.UserAssignedPermission)
@@ -132,13 +132,13 @@ func GetUserPermissions(shortUser *security.SessionUser) *security.UserAssignedP
 		}
 	}
 
-	//user, err := security.GetUser(shortUser.UserId)
+	//user, err := security.GetUser(shortUser.UserID)
 	//if err != nil {
 	//	panic(err)
 	//}
 
 	//privilege := api2.GetUserAllowedPrivileges(shortUser, user)
-	//log.Debugf("get user's privileges: %v, %v", shortUser.UserId, privilege)
+	//log.Debugf("get user's privileges: %v, %v", shortUser.UserID, privilege)
 
 	//for _, v := range privilege {
 	//	p := security.DefaultRBAC.GetPrivilege(v)
@@ -156,7 +156,7 @@ func GetUserPermissions(shortUser *security.SessionUser) *security.UserAssignedP
 	//log.Error("user's permissioins:", allowedPermissions)
 	perms := security.NewUserAssignedPermission(allowedPermissions, nil)
 	if perms != nil {
-		permissionCache.Set(PermissionCache, shortUser.UserId, perms, util.GetDurationOrDefault("30m", time.Duration(30)*time.Minute))
+		permissionCache.Set(PermissionCache, shortUser.UserID, perms, util.GetDurationOrDefault("30m", time.Duration(30)*time.Minute))
 		return perms
 	}
 	return nil
