@@ -50,8 +50,8 @@ func GenerateJWTAccessToken(provider string, login string, user *core.User) (map
 	token1 := jwt.NewWithClaims(jwt.SigningMethodHS256, security.UserClaims{
 		SessionUser: &security.SessionUser{
 			Provider: provider,
-			Username: login,
-			UserId:   user.ID,
+			Login:    login,
+			UserID:   user.ID,
 			Roles:    []string{security.RoleAdmin},
 		},
 		RegisteredClaims: &jwt.RegisteredClaims{
@@ -112,13 +112,13 @@ func CreateAPIToken(reqUser *security.SessionUser, tokenName, typeName string, R
 	if tokenName == "" {
 		tokenName = GenerateApiTokenName("")
 	}
-	tokenIDs, err := getTokenIDs(reqUser.UserId)
+	tokenIDs, err := getTokenIDs(reqUser.UserID)
 	if err != nil {
 		return nil, err
 	}
 
-	username := reqUser.Username
-	userid := reqUser.UserId
+	username := reqUser.Login
+	userid := reqUser.UserID
 	provider := "access_token"
 
 	res := util.MapStr{}
@@ -178,7 +178,7 @@ func (h *APIHandler) CatAccessToken(w http.ResponseWriter, req *http.Request, ps
 		panic(err)
 	}
 
-	tokenIDs, err := getTokenIDs(reqUser.UserId)
+	tokenIDs, err := getTokenIDs(reqUser.UserID)
 	if err != nil {
 		panic(err)
 	}
@@ -227,7 +227,7 @@ func (h *APIHandler) DeleteAccessToken(w http.ResponseWriter, req *http.Request,
 	if err != nil {
 		panic(err)
 	}
-	if userID != reqUser.UserId {
+	if userID != reqUser.UserID {
 		h.WriteError(w, "permission denied", 403)
 		return
 	}
@@ -339,7 +339,7 @@ func (h *APIHandler) RenameAccessToken(w http.ResponseWriter, req *http.Request,
 	if err != nil {
 		panic(err)
 	}
-	if userID != reqUser.UserId {
+	if userID != reqUser.UserID {
 		h.WriteError(w, "permission denied", 403)
 		return
 	}

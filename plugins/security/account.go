@@ -63,7 +63,7 @@ func (h APIHandler) Profile(w http.ResponseWriter, r *http.Request, ps httproute
 	var data []byte
 	cfg, _ := common.AppConfigFromFile()
 	if cfg != nil && cfg.ServerInfo.Managed {
-		data, err = kv.GetValue(core.UserProfileKey, []byte(reqUser.UserId))
+		data, err = kv.GetValue(core.UserProfileKey, []byte(reqUser.UserID))
 	} else {
 		data, err = kv.GetValue(core.DefaultSettingBucketKey, []byte(core.DefaultUserProfileKey))
 	}
@@ -102,7 +102,7 @@ func (h APIHandler) UpdatePassword(w http.ResponseWriter, r *http.Request, ps ht
 		h.ErrorInternalServer(w, err.Error())
 		return
 	}
-	h.WriteOKJSON(w, api.UpdateResponse(reqUser.UserId))
+	h.WriteOKJSON(w, api.UpdateResponse(reqUser.UserID))
 	return
 }
 
@@ -126,7 +126,7 @@ func (h APIHandler) Login(w http.ResponseWriter, r *http.Request, ps httprouter.
 		Password string `json:"password"`
 	}
 
-	var fromFrom = false
+	var fromForm = false
 	var requestID = h.GetParameter(r, "request_id")
 
 	// Check content type and parse accordingly
@@ -147,7 +147,7 @@ func (h APIHandler) Login(w http.ResponseWriter, r *http.Request, ps httprouter.
 			h.ErrorInternalServer(w, "failed to parse form data")
 			return
 		}
-		fromFrom = true
+		fromForm = true
 		req.Password = r.PostFormValue("password")
 
 	default:
@@ -179,7 +179,7 @@ func (h APIHandler) Login(w http.ResponseWriter, r *http.Request, ps httprouter.
 		return
 	}
 
-	if fromFrom {
+	if fromForm {
 		h.Redirect(w, r, fmt.Sprintf("/login/success?request_id=%v&code=%v", requestID, token["access_token"]))
 	} else {
 		h.WriteOKJSON(w, token)
