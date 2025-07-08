@@ -41,3 +41,15 @@ export function formatESSearchResult(esResp: any) {
     total
   };
 }
+
+export function formatSearchFilter(filter: any, reverse = false) {
+  if (!filter) return ''
+  const keys = Object.keys(filter);
+  let filterStr = '';
+  if (keys.length > 0) {
+    keys.forEach((key) => {
+      filterStr += `filter=${reverse ? '!' : ''}${key}:any(${filter[key].join(',')})`;
+    })
+  }
+  return filterStr
+}
