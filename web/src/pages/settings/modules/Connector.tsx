@@ -212,7 +212,7 @@ const ConnectorSettings = memo(() => {
         size="middle"
         pagination={{
           pageSize: queryParams.size,
-          current: queryParams.from + 1,
+          current: Math.floor(queryParams.from / queryParams.size) + 1,
           showSizeChanger: true,
           showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`
         }}
