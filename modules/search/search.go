@@ -96,23 +96,215 @@ var configCache = ccache.Layered(ccache.Configure().MaxSize(10000).ItemsToPrune(
 
 func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	var (
-		query        = h.GetParameterOrDefault(req, "query", "")
-		from         = h.GetIntOrDefault(req, "from", 0)
-		size         = h.GetIntOrDefault(req, "size", 10)
-		datasource   = h.GetParameterOrDefault(req, "datasource", "")
-		category     = h.GetParameterOrDefault(req, "category", "")
-		username     = h.GetParameterOrDefault(req, "username", "")
-		userid       = h.GetParameterOrDefault(req, "userid", "")
+		query = h.GetParameterOrDefault(req, "query", "")
+
+		//TODO tobe removed
+		datasource = h.GetParameterOrDefault(req, "datasource", "")
+		category   = h.GetParameterOrDefault(req, "category", "")
+
+		//TODO tobe removed
+		username = h.GetParameterOrDefault(req, "username", "")
+		userid   = h.GetParameterOrDefault(req, "userid", "")
+
 		tags         = h.GetParameterOrDefault(req, "tags", "")
 		subcategory  = h.GetParameterOrDefault(req, "subcategory", "")
 		richCategory = h.GetParameterOrDefault(req, "rich_category", "")
-		field        = h.GetParameterOrDefault(req, "search_field", "title")
-		source       = h.GetParameterOrDefault(req, "source_fields", "*")
+
+		//TODO tobe merged into query builder
+		field = h.GetParameterOrDefault(req, "search_field", "title")
+
+		source = h.GetParameterOrDefault(req, "source_fields", "*")
 	)
 
 	query = util.CleanUserQuery(query)
 
-	mustClauses := BuildMustClauses(category, subcategory, richCategory, username, userid)
+	newQuery := h.GetParameterOrDefault(req, "v2", "false")
+	if newQuery != "true" {
+		//TODO tobe removed
+		from := h.GetIntOrDefault(req, "from", 0)
+		size := h.GetIntOrDefault(req, "size", 10)
+
+		mustClauses := BuildMustFilterClauses(category, subcategory, richCategory, username, userid)
+		if integrationID := req.Header.Get(core.HeaderIntegrationID); integrationID != "" {
+			// get datasource by integration id
+			datasourceIDs, hasAll, err := common.GetDatasourceByIntegration(integrationID)
+			if err != nil {
+				panic(err)
+			}
+			if !hasAll {
+				if len(datasourceIDs) == 0 {
+					// return empty search result when no datasource found
+					h.WriteJSON(w, elastic.SearchResponse{}, http.StatusOK)
+					return
+				}
+				// update datasource filter
+				if datasource == "" {
+					datasource = strings.Join(datasourceIDs, ",")
+				} else {
+					// calc intersection with datasource and datasourceIDs
+					queryDatasource := strings.Split(datasource, ",")
+					queryDatasource = util.StringArrayIntersection(queryDatasource, datasourceIDs)
+					if len(queryDatasource) == 0 {
+						// return empty search result when intersection datasource ids is empty
+						h.WriteJSON(w, elastic.SearchResponse{}, http.StatusOK)
+						return
+					}
+					datasource = strings.Join(queryDatasource, ",")
+				}
+			}
+		}
+		datasourceClause := BuildDatasourceClause(datasource, true)
+		if datasourceClause != nil {
+			mustClauses = append(mustClauses, datasourceClause)
+		}
+		mustClauses = append(mustClauses, map[string]interface{}{
+			"bool": map[string]interface{}{
+				"minimum_should_match": 1,
+				"should": []interface{}{
+					map[string]interface{}{
+						"term": map[string]interface{}{
+							"disabled": false,
+						},
+					},
+					map[string]interface{}{
+						"bool": map[string]interface{}{
+							"must_not": map[string]interface{}{
+								"exists": map[string]interface{}{
+									"field": "disabled",
+								},
+							},
+						},
+					},
+				},
+			},
+		})
+
+		var q *orm.Query
+		if query != "" || len(mustClauses) > 0 {
+			q = BuildTemplatedQuery(from, size, mustClauses, nil, field, query, source, tags)
+		} else {
+			body, err := h.GetRawBody(req)
+			if err != nil {
+				http.Error(w, "query must be provided", http.StatusBadRequest)
+				return
+			}
+			if len(body) == 0 {
+				//ignore empty query
+				return
+			}
+			q = &orm.Query{}
+			q.RawQuery = body
+		}
+
+		err, res := orm.Search(common.Document{}, q)
+		if err != nil || res.Raw == nil {
+			h.WriteError(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		v2 := SearchResponse{}
+		err = util.FromJSONBytes(res.Raw, &v2)
+		if err != nil {
+			panic(err)
+		}
+
+		hits := v2.Hits.Hits
+
+		// Loop over the hits and ensure Source is modified correctly
+		for i, doc := range hits {
+			// Get the pointer to doc.Source to make sure you're modifying the original
+			datasourceConfig, err := common.GetDatasourceConfig(doc.Source.Source.ID)
+			if err == nil && datasourceConfig != nil && datasourceConfig.Connector.ConnectorID != "" {
+				connectorConfig, err := getConnectorConfig(datasourceConfig.Connector.ConnectorID)
+
+				if connectorConfig != nil && err == nil {
+					icon := common.ParseAndGetIcon(connectorConfig, doc.Source.Icon)
+					if icon != "" {
+						hits[i].Source.Icon = icon
+					}
+
+					if doc.Source.Source.Icon != "" {
+						icon = common.ParseAndGetIcon(connectorConfig, doc.Source.Source.Icon)
+						if icon != "" {
+							hits[i].Source.Source.Icon = icon
+						}
+					} else {
+						//try datasource's icon
+						if datasourceConfig.Icon != "" {
+							icon = common.ParseAndGetIcon(connectorConfig, datasourceConfig.Icon)
+							if icon != "" {
+								hits[i].Source.Source.Icon = icon
+							}
+						} else {
+							//try connector's icon
+							icon = common.ParseAndGetIcon(connectorConfig, connectorConfig.Icon)
+							if icon != "" {
+								hits[i].Source.Source.Icon = icon
+							}
+						}
+					}
+				}
+			}
+		}
+
+		if query != "" {
+
+			reqUser, err := security.UserFromContext(req.Context())
+			if err == nil && reqUser != nil {
+				assistantSearchPermission := security.GetSimplePermission(Category, Assistant, string(QuickAISearchAction))
+				perID := security.GetOrInitPermissionKey(assistantSearchPermission)
+
+				if (reqUser.Roles != nil && util.AnyInArrayEquals(reqUser.Roles, security.RoleAdmin)) || reqUser.UserAssignedPermission.ValidateFor(perID) {
+					assistantSize := 2
+					if len(hits) < 5 {
+						assistantSize = size - (len(hits))
+					}
+
+					assistants := searchAssistant(query, assistantSize)
+					if len(assistants) > 0 {
+						for _, assistant := range assistants {
+							doc := common.Document{}
+							doc.ID = assistant.ID
+							doc.Type = "AI Assistant"
+							doc.Icon = assistant.Icon
+							doc.Title = assistant.Name
+							doc.Summary = assistant.Description
+							doc.URL = fmt.Sprintf("coco://extenstions/infinilabs/ask_assistant/%v", assistant.ID)
+							doc.Source = common.DataSourceReference{
+								ID:   "assistant",
+								Name: "Assistant",
+								Icon: "font_robot",
+							}
+							newHit := IndexDocument{Index: "assistant", ID: assistant.ID, Source: doc, Score: v2.Hits.MaxScore + 500}
+							hits = append(hits, newHit)
+						}
+					}
+				}
+			}
+		}
+
+		v2.Hits.Hits = hits
+
+		h.WriteJSON(w, v2, 200)
+
+		return
+	}
+
+	//NEW Query
+	builder, err := orm.NewQueryBuilderFromRequest(req)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	builder.DefaultQueryField("title.keyword^100", "title^10", "title.pinyin^4", "combined_fulltext")
+	builder.Exclude("payload.*")
+
+	if source != "" && source != "*" {
+		builder.Include(strings.Split(source, ",")...)
+	}
+
+	filters := BuildFilters(category, subcategory, richCategory, username, userid)
 	if integrationID := req.Header.Get(core.HeaderIntegrationID); integrationID != "" {
 		// get datasource by integration id
 		datasourceIDs, hasAll, err := common.GetDatasourceByIntegration(integrationID)
@@ -141,139 +333,42 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 			}
 		}
 	}
-	datasourceClause := BuildDatasourceClause(datasource, true)
-	if datasourceClause != nil {
-		mustClauses = append(mustClauses, datasourceClause)
+	datasourceFilter := BuildDatasourceFilter(datasource, true)
+	if datasourceFilter != nil {
+		filters = append(filters, datasourceFilter...)
 	}
-	mustClauses = append(mustClauses, map[string]interface{}{
-		"bool": map[string]interface{}{
-			"minimum_should_match": 1,
-			"should": []interface{}{
-				map[string]interface{}{
-					"term": map[string]interface{}{
-						"disabled": false,
-					},
-				},
-				map[string]interface{}{
-					"bool": map[string]interface{}{
-						"must_not": map[string]interface{}{
-							"exists": map[string]interface{}{
-								"field": "disabled",
-							},
-						},
-					},
-				},
-			},
-		},
-	})
 
-	var q *orm.Query
-	if query != "" || len(mustClauses) > 0 {
-		q = BuildTemplatedQuery(from, size, mustClauses, nil, field, query, source, tags)
-	} else {
-		body, err := h.GetRawBody(req)
+	//filter enabled doc
+	filters = append(filters, orm.BoolQuery(orm.Should, orm.TermQuery("disabled", false), orm.MustNotQuery(orm.ExistsQuery("disabled"))).Parameter("minimum_should_match", 1))
+
+	builder.Filter(filters...)
+
+	ctx := orm.NewModelContext(&common.Document{})
+	docs := []common.Document{}
+
+	searchRequest := elastic.SearchRequest{}
+	bodyBytes, err := h.GetRawBody(req)
+	if err == nil && len(bodyBytes) > 0 {
+		err = util.FromJSONBytes(bodyBytes, &searchRequest)
 		if err != nil {
-			http.Error(w, "query must be provided", http.StatusBadRequest)
+			h.Error(w, err)
 			return
 		}
-		if len(body) == 0 {
-			//ignore empty query
-			return
-		}
-		q = &orm.Query{}
-		q.RawQuery = body
+
+		builder.SetRequestBodyBytes(bodyBytes)
 	}
 
-	err, res := orm.Search(common.Document{}, q)
-	if err != nil || res.Raw == nil {
+	err, resp := core.SearchV2WithResultItemMapper(ctx, &docs, builder, nil)
+	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	v2 := SearchResponse{}
-	err = util.FromJSONBytes(res.Raw, &v2)
+	_, err = h.Write(w, resp.Raw)
 	if err != nil {
-		panic(err)
+		h.Error(w, err)
 	}
 
-	hits := v2.Hits.Hits
-
-	// Loop over the hits and ensure Source is modified correctly
-	for i, doc := range hits {
-		// Get the pointer to doc.Source to make sure you're modifying the original
-		datasourceConfig, err := common.GetDatasourceConfig(doc.Source.Source.ID)
-		if err == nil && datasourceConfig != nil && datasourceConfig.Connector.ConnectorID != "" {
-			connectorConfig, err := getConnectorConfig(datasourceConfig.Connector.ConnectorID)
-
-			if connectorConfig != nil && err == nil {
-				icon := common.ParseAndGetIcon(connectorConfig, doc.Source.Icon)
-				if icon != "" {
-					hits[i].Source.Icon = icon
-				}
-
-				if doc.Source.Source.Icon != "" {
-					icon = common.ParseAndGetIcon(connectorConfig, doc.Source.Source.Icon)
-					if icon != "" {
-						hits[i].Source.Source.Icon = icon
-					}
-				} else {
-					//try datasource's icon
-					if datasourceConfig.Icon != "" {
-						icon = common.ParseAndGetIcon(connectorConfig, datasourceConfig.Icon)
-						if icon != "" {
-							hits[i].Source.Source.Icon = icon
-						}
-					} else {
-						//try connector's icon
-						icon = common.ParseAndGetIcon(connectorConfig, connectorConfig.Icon)
-						if icon != "" {
-							hits[i].Source.Source.Icon = icon
-						}
-					}
-				}
-			}
-		}
-	}
-
-	if query != "" {
-
-		reqUser, err := security.UserFromContext(req.Context())
-		if err == nil && reqUser != nil {
-			assistantSearchPermission := security.GetSimplePermission(Category, Assistant, string(QuickAISearchAction))
-			perID := security.GetOrInitPermissionKey(assistantSearchPermission)
-
-			if (reqUser.Roles != nil && util.AnyInArrayEquals(reqUser.Roles, security.RoleAdmin)) || reqUser.UserAssignedPermission.ValidateFor(perID) {
-				assistantSize := 2
-				if len(hits) < 5 {
-					assistantSize = size - (len(hits))
-				}
-
-				assistants := searchAssistant(query, assistantSize)
-				if len(assistants) > 0 {
-					for _, assistant := range assistants {
-						doc := common.Document{}
-						doc.ID = assistant.ID
-						doc.Type = "AI Assistant"
-						doc.Icon = assistant.Icon
-						doc.Title = assistant.Name
-						doc.Summary = assistant.Description
-						doc.URL = fmt.Sprintf("coco://extenstions/infinilabs/ask_assistant/%v", assistant.ID)
-						doc.Source = common.DataSourceReference{
-							ID:   "assistant",
-							Name: "Assistant",
-							Icon: "font_robot",
-						}
-						newHit := IndexDocument{Index: "assistant", ID: assistant.ID, Source: doc, Score: v2.Hits.MaxScore + 500}
-						hits = append(hits, newHit)
-					}
-				}
-			}
-		}
-	}
-
-	v2.Hits.Hits = hits
-
-	h.WriteJSON(w, v2, 200)
 }
 
 func searchAssistant(query string, size int) []common.Assistant {
@@ -389,7 +484,7 @@ func BuildDatasourceClause(datasource string, filterDisabled bool) interface{} {
 	}
 }
 
-func BuildMustClauses(category string, subcategory string, richCategory string, username string, userid string) []interface{} {
+func BuildMustFilterClauses(category string, subcategory string, richCategory string, username string, userid string) []interface{} {
 	mustClauses := []interface{}{}
 
 	// Check and add conditions to mustClauses
@@ -433,6 +528,58 @@ func BuildMustClauses(category string, subcategory string, richCategory string, 
 			},
 		})
 	}
+	return mustClauses
+}
+
+func BuildFilters(category string, subcategory string, richCategory string, username string, userid string) []*orm.Clause {
+	mustClauses := []*orm.Clause{}
+
+	if category != "" {
+		mustClauses = append(mustClauses, orm.TermQuery("category", category))
+	}
+
+	if subcategory != "" {
+		mustClauses = append(mustClauses, orm.TermQuery("subcategory", subcategory))
+	}
+
+	if richCategory != "" {
+		mustClauses = append(mustClauses, orm.TermQuery("rich_categories.key", richCategory))
+	}
+
+	if username != "" {
+		mustClauses = append(mustClauses, orm.TermQuery("owner.username", username))
+	}
+
+	if userid != "" {
+		mustClauses = append(mustClauses, orm.TermQuery("owner.userid", userid))
+	}
+	return mustClauses
+}
+
+func BuildDatasourceFilter(datasource string, filterDisabled bool) []*orm.Clause {
+	mustClauses := []*orm.Clause{}
+	if datasource != "" {
+		if strings.Contains(datasource, ",") {
+			arr := strings.Split(datasource, ",")
+			mustClauses = append(mustClauses, orm.TermsQuery("source.id", arr))
+		} else {
+			mustClauses = append(mustClauses, orm.TermQuery("source.id", datasource))
+		}
+	}
+	if !filterDisabled {
+		return mustClauses
+	}
+
+	disabledIDs, err := common.GetDisabledDatasourceIDs()
+	if err != nil {
+		panic(err)
+	}
+
+	//TODO verify this filter
+	if len(disabledIDs) > 0 {
+		mustClauses = append(mustClauses, orm.MustQuery(orm.TermsQuery("source.id", disabledIDs)))
+	}
+
 	return mustClauses
 }
 

@@ -34,5 +34,6 @@ func init() {
 
 	api.HandleUIMethod(api.OPTIONS, "/query/_search", handler.search, api.RequirePermission(permission), api.Feature(filter.FeatureCORS))
 	api.HandleUIMethod(api.GET, "/query/_search", handler.search, api.RequirePermission(permission), api.Feature(filter.FeatureCORS))
+	api.HandleUIMethod(api.POST, "/query/_search", handler.search, api.RequirePermission(permission), api.Feature(filter.FeatureCORS))
 
 }
