@@ -44,7 +44,7 @@ export default (props) => {
       if (mode === 'multiple') {
         if (value && value.some((item) => !!(item?.id && !item?.name))) {
           fetchItems({
-            filters: value.map((item) => `id:${item.id}`),
+            filter: value.map((item) => `id:${item.id}`),
             from: 0, 
             size: 10000,
           })

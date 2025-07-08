@@ -13,6 +13,7 @@ Information about release notes of Coco Server is provided here.
 - feat: add http_streaming based chat api #336
 
 ### 🐛 Bug fix  
+- fix: query parameter "filter" is not working
 ### ✈️ Improvements  
 - refactor: refactoring user id #337
 - chore: skip empty response chunks #338

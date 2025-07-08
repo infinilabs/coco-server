@@ -1,11 +1,14 @@
 import { request } from '../request';
+import { formatSearchFilter } from '../request/es';
 
 /** get data source list */
 export function fetchDataSourceList(params?: any) {
+  const { filter = {}, ...rest } = params || {}
+
   return request<Api.Datasource.Datasource>({
     method: 'post',
-    params,
-    url: '/datasource/_search'
+    params: rest,
+    url: `/datasource/_search?${formatSearchFilter(filter)}`
   });
 }
 

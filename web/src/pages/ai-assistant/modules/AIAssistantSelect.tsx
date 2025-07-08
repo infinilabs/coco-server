@@ -38,7 +38,9 @@ export default (props) => {
         fetchData({
           ...queryParams,
           sort: sorter.map((item) => `${item[0]}:${item[1]}`).join(',') || 'created:desc',
-          filter: assistants?.length > 0 ? assistants.map((item) => `id:${item.id}`) : []
+          filter: assistants ? {
+            id: assistants.map((item) => item.id)
+          } : {}
         })
       }
     }
@@ -51,7 +53,9 @@ export default (props) => {
       if (mode === 'multiple') {
         if (value && value.some((item) => !!(item?.id && !item?.name))) {
           fetchItems({
-            filters: value.map((item) => `id:${item.id}`),
+            filter: {
+              id: value.map((item) => item.id)
+            },
             from: 0, 
             size: 10000,
           })
