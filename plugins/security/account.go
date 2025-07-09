@@ -62,9 +62,10 @@ func (h APIHandler) Profile(w http.ResponseWriter, r *http.Request, ps httproute
 
 	var data []byte
 	cfg, _ := common.AppConfigFromFile()
-	if cfg != nil && cfg.ServerInfo.Managed {
+	if cfg != nil && cfg.ServerInfo != nil && cfg.ServerInfo.Managed {
 		data, err = kv.GetValue(core.UserProfileKey, []byte(reqUser.UserID))
 	} else {
+		//TODO to be removed
 		data, err = kv.GetValue(core.DefaultSettingBucketKey, []byte(core.DefaultUserProfileKey))
 	}
 
@@ -168,12 +169,12 @@ func (h APIHandler) Login(w http.ResponseWriter, r *http.Request, ps httprouter.
 		return
 	}
 
-	var user = &core.User{
+	var user = &security.UserProfile{
 		Name: core.DefaultUserLogin,
 	}
 	user.ID = core.DefaultUserLogin
 
-	err, token := AddUserToSession(w, r, user)
+	err, token := AddUserToSession(w, r, "simple", core.DefaultUserLogin, user)
 	if err != nil {
 		h.ErrorInternalServer(w, "failed to authorize user")
 		return
@@ -186,14 +187,14 @@ func (h APIHandler) Login(w http.ResponseWriter, r *http.Request, ps httprouter.
 	}
 }
 
-func AddUserToSession(w http.ResponseWriter, r *http.Request, user *core.User) (error, map[string]interface{}) {
+func AddUserToSession(w http.ResponseWriter, r *http.Request, provider string, login string, user *security.UserProfile) (error, map[string]interface{}) {
 
 	if user == nil {
 		panic("invalid user")
 	}
 
 	// Generate access token
-	token, err := GenerateJWTAccessToken("simple", core.DefaultUserLogin, user)
+	token, err := GenerateJWTAccessToken(provider, login, user)
 	if err != nil {
 		return err, nil
 	}
