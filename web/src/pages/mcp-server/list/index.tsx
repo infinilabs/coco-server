@@ -212,7 +212,7 @@ const fetchData = () => {
             {
               showTotal:(total, range) => `${range[0]}-${range[1]} of ${total} items`,
               pageSize: queryParams.size,
-              current: queryParams.from + 1,
+              current: Math.floor(queryParams.from / queryParams.size) + 1,
               total: data.total?.value || data?.total,
               showSizeChanger: true,
             }
