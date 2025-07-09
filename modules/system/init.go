@@ -57,7 +57,7 @@ func init() {
 
 	api.HandleUIMethod(api.OPTIONS, "/settings", handler.getServerSettings, api.RequirePermission(readPermission), api.Feature(filter.FeatureCORS))
 	api.HandleUIMethod(api.GET, "/settings", handler.getServerSettings, api.RequirePermission(readPermission), api.Feature(filter.FeatureCORS), api.Feature(filter.FeatureMaskSensitiveField),
-		api.Feature(filter.RemoveSensitiveField))
+		api.Feature(filter.FeatureRemoveSensitiveField))
 	api.HandleUIMethod(api.PUT, "/settings", handler.updateServerSettings, api.RequirePermission(updatePermission))
 
 	//list all icons for connectors

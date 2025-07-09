@@ -55,8 +55,8 @@ func init() {
 	handler := NewAPIHandler()
 	api.HandleUIMethod(api.POST, "/integration/", handler.create, api.RequirePermission(createPermission))
 
-	api.HandleUIMethod(api.GET, "/integration/_search", handler.search, api.RequirePermission(searchPermission))
-	api.HandleUIMethod(api.POST, "/integration/_search", handler.search, api.RequirePermission(searchPermission))
+	api.HandleUIMethod(api.GET, "/integration/_search", handler.search, api.RequirePermission(searchPermission), api.Feature(filter.FeatureRemoveSensitiveField))
+	api.HandleUIMethod(api.POST, "/integration/_search", handler.search, api.RequirePermission(searchPermission), api.Feature(filter.FeatureRemoveSensitiveField))
 
 	api.HandleUIMethod(api.OPTIONS, "/integration/:id", handler.get, api.RequirePermission(readPermission), api.Feature(filter.FeatureCORS))
 	api.HandleUIMethod(api.GET, "/integration/:id", handler.get, api.RequirePermission(readPermission), api.Feature(filter.FeatureCORS))

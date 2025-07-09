@@ -44,12 +44,12 @@ func init() {
 	secretKeys["config"] = true
 
 	api.HandleUIMethod(api.GET, "/datasource/_search", handler.searchDatasource, api.RequirePermission(searchPermission),
-		api.Feature(filter.FeatureCORS), api.Feature(filter.FeatureMaskSensitiveField), api.Feature(filter.RemoveSensitiveField),
+		api.Feature(filter.FeatureCORS), api.Feature(filter.FeatureMaskSensitiveField), api.Feature(filter.FeatureRemoveSensitiveField),
 		api.Label(filter.SensitiveFields, secretKeys))
 	api.HandleUIMethod(api.POST, "/datasource/_search", handler.searchDatasource, api.RequirePermission(searchPermission),
 		api.Feature(filter.FeatureCORS),
 		api.Feature(filter.FeatureMaskSensitiveField),
-		api.Feature(filter.RemoveSensitiveField),
+		api.Feature(filter.FeatureRemoveSensitiveField),
 		api.Label(filter.SensitiveFields, secretKeys))
 
 	//shortcut to indexing docs into this datasource
