@@ -30,7 +30,7 @@ export function Component() {
   const [loading, setLoading] = useState(false);
 
   const [keyword, setKeyword] = useState();
-  
+
   const fetchData = () => {
     setLoading(true);
     searchConnector(queryParams)
@@ -73,8 +73,8 @@ export function Component() {
       >
         <div className="mb-4 mt-4 flex items-center justify-between">
           <Search
-            value={keyword} 
-            onChange={(e) => setKeyword(e.target.value)} 
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
             addonBefore={<FilterOutlined />}
             className="max-w-500px"
             enterButton={t('common.refresh')}
@@ -147,7 +147,7 @@ export function Component() {
                   </div>
                 </div>
                 <div className="h-45px overflow-hidden text-ellipsis text-gray-500">{connector.description}</div>
-                <div className="h-33px overflow-scroll">
+                <div className="h-33px overflow-hidden">
                   <div className="mt-10px flex flex-wrap gap-5px text-12px text-gray-500">
                     {(connector.tags || []).map((tag, index) => (
                       <div

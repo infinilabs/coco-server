@@ -338,7 +338,7 @@ declare namespace App {
           testConnection: string;
           tip: string;
           trigger: string;
-          tryAlign: string;
+          tryAgain: string;
           update: string;
           updateSuccess: string;
           userCenter: string;
