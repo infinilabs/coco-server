@@ -33,8 +33,9 @@ import (
 )
 
 const FeatureMaskSensitiveField = "feature_sensitive_fields"
+const FeatureRemoveSensitiveField = "feature_sensitive_fields_remove_sensitive_field"
+
 const SensitiveFields = "feature_sensitive_fields_extra_keys"
-const RemoveSensitiveField = "feature_sensitive_fields_remove_sensitive_field"
 
 var sensitiveFields = map[string]bool{
 	"password":      true,
@@ -63,8 +64,8 @@ func (f *JSONMaskFilter) ApplyFilter(
 ) httprouter.Handle {
 
 	//option not enabled
-	if options == nil || !options.Feature(FeatureMaskSensitiveField) {
-		log.Debug(method, ",", pattern, ",skip feature ", FeatureMaskSensitiveField)
+	if options == nil || !(options.Feature(FeatureRemoveSensitiveField) || options.Feature(FeatureMaskSensitiveField)) {
+		log.Debug(method, ",", pattern, ",skip feature ", FeatureMaskSensitiveField, ",", options.Feature(FeatureRemoveSensitiveField), ",", options.Feature(FeatureMaskSensitiveField))
 		return next
 	}
 
@@ -81,7 +82,7 @@ func (f *JSONMaskFilter) ApplyFilter(
 			extraFields, ok = extra.(map[string]bool)
 		}
 
-		var remove = options.Feature(RemoveSensitiveField)
+		var remove = options.Feature(FeatureRemoveSensitiveField)
 
 		// Process and modify the response body
 		maskedBody := maskJSONFields(rec.buf.Bytes(), extraFields, remove)
