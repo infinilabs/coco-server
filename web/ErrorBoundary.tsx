@@ -42,7 +42,7 @@ const ErrorPage: FC<Props> = ({ error, resetErrorBoundary }) => {
         <SvgIcon localIcon="error" />
       </div>
       {isDev ? <Text code>{hook ? hook.error.message : error.message}</Text> : <Title level={3}>{$t('common.errorHint')}</Title>}
-      <Button style={{ backgroundColor: theme }} type='primary' onClick={hook ? hook.update : resetErrorBoundary} >{$t('common.tryAlign')}</Button>
+      <Button style={{ backgroundColor: theme }} type='primary' onClick={hook ? hook.update : resetErrorBoundary} >{$t('common.tryAgain')}</Button>
     </div>
   );
 };

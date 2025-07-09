@@ -47,7 +47,7 @@ const common: App.I18n.Schema['translation']['common'] = {
   testConnection: '测试连接',
   tip: '提示',
   trigger: '触发',
-  tryAlign: '刷新重试',
+  tryAgain: '刷新重试',
   update: '更新',
   updateSuccess: '更新成功',
   userCenter: '个人中心',

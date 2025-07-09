@@ -47,7 +47,7 @@ const common: App.I18n.Schema['translation']['common'] = {
   testConnection: 'Test Connection',
   tip: 'Tip',
   trigger: 'Trigger',
-  tryAlign: 'Try Align',
+  tryAgain: 'Try Again',
   update: 'Update',
   updateSuccess: 'Update Success',
   userCenter: 'User Center',
