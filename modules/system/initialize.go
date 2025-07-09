@@ -27,6 +27,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	security2 "infini.sh/framework/core/security"
 	"io"
 	"io/fs"
 	"net/http"
@@ -108,13 +109,14 @@ func (h *APIHandler) setupServer(w http.ResponseWriter, req *http.Request, ps ht
 	}
 
 	//save user's profile
-	profile := core.User{Name: input.Name}
+	profile := security2.UserProfile{Name: input.Name}
 	profile.Email = input.Email
 	if info.ServerInfo.Managed {
 		profile.ID = core.DefaultUserLogin
 		err = kv.AddValue(core.UserProfileKey, []byte(profile.ID), util.MustToJSONBytes(profile))
 	} else {
-		profile.ID = "default_user_id"
+		//keep backward compatibility, TODO to be removed
+		profile.ID = core.DefaultUserLogin
 		err = kv.AddValue(core.DefaultSettingBucketKey, []byte(core.DefaultUserProfileKey), util.MustToJSONBytes(profile))
 	}
 

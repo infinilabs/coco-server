@@ -43,7 +43,7 @@ import (
 	"infini.sh/framework/core/util"
 )
 
-func GenerateJWTAccessToken(provider string, login string, user *core.User) (map[string]interface{}, error) {
+func GenerateJWTAccessToken(provider string, login string, user *security.UserProfile) (map[string]interface{}, error) {
 
 	var data map[string]interface{}
 
@@ -52,6 +52,7 @@ func GenerateJWTAccessToken(provider string, login string, user *core.User) (map
 			Provider: provider,
 			Login:    login,
 			UserID:   user.ID,
+			Profile:  user,
 			Roles:    []string{security.RoleAdmin},
 		},
 		RegisteredClaims: &jwt.RegisteredClaims{
