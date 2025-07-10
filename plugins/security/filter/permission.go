@@ -63,7 +63,7 @@ func (f *PermissionFilter) ApplyFilter(
 
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
-		reqUser, err := security.UserFromContext(r.Context())
+		reqUser, err := security.GetUserFromContext(r.Context())
 		if reqUser == nil || err != nil {
 			o := api.PrepareErrorJson("invalid login", 401)
 			f.WriteJSON(w, o, 401)

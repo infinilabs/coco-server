@@ -46,7 +46,7 @@ import (
 func GenerateJWTAccessToken(provider string, login string, user *security.UserProfile) (map[string]interface{}, error) {
 
 	var data map[string]interface{}
-
+	t := time.Now()
 	token1 := jwt.NewWithClaims(jwt.SigningMethodHS256, security.UserClaims{
 		UserSessionInfo: &security.UserSessionInfo{
 			Provider: provider,
@@ -54,6 +54,9 @@ func GenerateJWTAccessToken(provider string, login string, user *security.UserPr
 			UserID:   user.ID,
 			Profile:  user,
 			Roles:    []string{security.RoleAdmin},
+			LastLogin: security.LastLogin{
+				Timestamp: &t,
+			},
 		},
 		RegisteredClaims: &jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
@@ -86,7 +89,7 @@ const (
 func (h *APIHandler) RequestAccessToken(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
 	//user already login
-	reqUser, err := security.UserFromContext(req.Context())
+	reqUser, err := security.GetUserFromContext(req.Context())
 	if reqUser == nil || err != nil {
 		panic(err)
 	}
@@ -174,7 +177,7 @@ func getTokenIDs(userID string) (map[string]struct{}, error) {
 
 func (h *APIHandler) CatAccessToken(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	//check login
-	reqUser, err := security.UserFromContext(req.Context())
+	reqUser, err := security.GetUserFromContext(req.Context())
 	if reqUser == nil || err != nil {
 		panic(err)
 	}
@@ -207,7 +210,7 @@ func (h *APIHandler) CatAccessToken(w http.ResponseWriter, req *http.Request, ps
 }
 
 func (h *APIHandler) DeleteAccessToken(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	reqUser, err := security.UserFromContext(req.Context())
+	reqUser, err := security.GetUserFromContext(req.Context())
 	if reqUser == nil || err != nil {
 		panic(err)
 	}
@@ -308,7 +311,7 @@ func GetToken(token string) (util.MapStr, error) {
 }
 
 func (h *APIHandler) RenameAccessToken(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	reqUser, err := security.UserFromContext(req.Context())
+	reqUser, err := security.GetUserFromContext(req.Context())
 	if reqUser == nil || err != nil {
 		panic(err)
 	}

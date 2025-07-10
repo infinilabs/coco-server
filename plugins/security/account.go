@@ -55,7 +55,7 @@ func (h APIHandler) Profile(w http.ResponseWriter, r *http.Request, ps httproute
 		panic("auth is not enabled")
 	}
 
-	reqUser, err := security.UserFromContext(r.Context())
+	reqUser, err := security.GetUserFromContext(r.Context())
 	if err != nil || reqUser == nil {
 		panic("invalid user")
 	}
@@ -78,7 +78,7 @@ func (h APIHandler) UpdatePassword(w http.ResponseWriter, r *http.Request, ps ht
 		panic("should not be invoked as in managed mode")
 	}
 
-	reqUser, err := security.UserFromContext(r.Context())
+	reqUser, err := security.GetUserFromContext(r.Context())
 	if err != nil {
 		panic(err)
 	}
