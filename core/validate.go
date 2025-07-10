@@ -45,8 +45,8 @@ import (
 const (
 	UserAccessTokenSessionName = "user_session_access_token"
 	KVAccessTokenBucket        = "access_token"
-	HeaderAPIToken       = "X-API-TOKEN"
-	HeaderIntegrationID  = "APP-INTEGRATION-ID"
+	HeaderAPIToken             = "X-API-TOKEN"
+	HeaderIntegrationID        = "APP-INTEGRATION-ID"
 )
 
 func ValidateLoginByAPITokenHeader(r *http.Request) (claims *security.UserClaims, err error) {
@@ -79,7 +79,7 @@ func ValidateLoginByAPITokenHeader(r *http.Request) (claims *security.UserClaims
 
 	// Safely extract fields with type assertions
 	claims = &security.UserClaims{}
-	claims.UserSession = &security.UserSession{}
+	claims.UserSessionInfo = &security.UserSessionInfo{}
 	claims.Provider = data.Provider
 	claims.Login = data.Login
 	claims.UserID = data.UserID
@@ -179,22 +179,22 @@ func ValidateLoginByAccessTokenSession(r *http.Request) (claims *security.UserCl
 	return claims, nil
 }
 
-func ValidateLogin(r *http.Request) (claims *security.UserClaims, err error) {
+func ValidateLogin(r *http.Request) (session *security.UserSessionInfo, err error) {
 
-	claims, err = ValidateLoginByAccessTokenSession(r)
+	claims, err := ValidateLoginByAccessTokenSession(r)
 
-	if claims == nil {
+	if claims == nil || claims.UserSessionInfo == nil {
 		claims, err = ValidateLoginByAuthorizationHeader(r)
 	}
 
-	if claims == nil {
+	if claims == nil || claims.UserSessionInfo == nil {
 		claims, err = ValidateLoginByAPITokenHeader(r)
 	}
 
-	if claims == nil || err != nil {
+	if claims == nil || claims.UserSessionInfo == nil || err != nil {
 		err = errors.Errorf("invalid user info: %v", err)
 		return
 	}
 
-	return claims, nil
+	return claims.UserSessionInfo, nil
 }

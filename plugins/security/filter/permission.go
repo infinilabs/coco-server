@@ -98,7 +98,7 @@ func (f *PermissionFilter) ApplyFilter(
 
 var permissionCache = ccache.Layered(ccache.Configure().MaxSize(10000).ItemsToPrune(100))
 
-func GetUserPermissions(shortUser *security.UserSession) *security.UserAssignedPermission {
+func GetUserPermissions(shortUser *security.UserSessionInfo) *security.UserAssignedPermission {
 
 	var skipCache = false
 	if shortUser.UserAssignedPermission != nil && shortUser.UserAssignedPermission.NeedRefresh() {

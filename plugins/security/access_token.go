@@ -48,7 +48,7 @@ func GenerateJWTAccessToken(provider string, login string, user *security.UserPr
 	var data map[string]interface{}
 
 	token1 := jwt.NewWithClaims(jwt.SigningMethodHS256, security.UserClaims{
-		UserSession: &security.UserSession{
+		UserSessionInfo: &security.UserSessionInfo{
 			Provider: provider,
 			Login:    login,
 			UserID:   user.ID,
@@ -109,7 +109,7 @@ func (h *APIHandler) RequestAccessToken(w http.ResponseWriter, req *http.Request
 	h.WriteJSON(w, res, 200)
 }
 
-func CreateAPIToken(reqUser *security.UserSession, tokenName, typeName string, Roles []string) (util.MapStr, error) {
+func CreateAPIToken(reqUser *security.UserSessionInfo, tokenName, typeName string, Roles []string) (util.MapStr, error) {
 	if tokenName == "" {
 		tokenName = GenerateApiTokenName("")
 	}
