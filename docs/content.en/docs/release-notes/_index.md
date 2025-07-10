@@ -15,11 +15,13 @@ Information about release notes of Coco Server is provided here.
 ### 🐛 Bug fix  
 - fix: query parameter "filter" is not working
 - fix: pagination in the list is not working
+
 ### ✈️ Improvements  
 - refactor: refactoring user id #337
 - chore: skip empty response chunks #338
 - refactor: refactoring query #340
 - chore: mask more senstive search results #343
+- refactor: refactoring attachement api #350
 
 ## 0.6.0 (2025-06-29)
 ### ❌ Breaking changes  
