@@ -11,6 +11,7 @@ Information about release notes of Coco Server is provided here.
 ### ❌ Breaking changes  
 ### 🚀 Features  
 - feat: add http_streaming based chat api #336
+- feat: add file upload config #349
 
 ### 🐛 Bug fix  
 - fix: query parameter "filter" is not working
