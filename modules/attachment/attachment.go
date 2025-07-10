@@ -53,16 +53,6 @@ func (h APIHandler) uploadAttachment(w http.ResponseWriter, r *http.Request, ps 
 		return
 	}
 
-	sessionID := ps.MustGetParameter("session_id")
-
-	//check session exists
-	session := common.Session{}
-	session.ID = sessionID
-	exists, err := orm.Get(&session)
-	if !exists || err != nil {
-		panic("invalid session")
-	}
-
 	files := r.MultipartForm.File["files"]
 	if len(files) == 0 {
 		h.WriteError(w, "No files uploaded", http.StatusBadRequest)
@@ -77,7 +67,7 @@ func (h APIHandler) uploadAttachment(w http.ResponseWriter, r *http.Request, ps 
 			return
 		}
 		// Upload to S3
-		if fileID, err := uploadToBlobStore(sessionID, file, fileHeader.Filename); err != nil {
+		if fileID, err := uploadToBlobStore(file, fileHeader.Filename); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		} else {
@@ -237,7 +227,7 @@ func getMimeType(file multipart.File) (string, error) {
 	return mimeType, nil
 }
 
-func uploadToBlobStore(sessionID string, file multipart.File, fileName string) (string, error) {
+func uploadToBlobStore(file multipart.File, fileName string) (string, error) {
 	defer func() {
 		_ = file.Close()
 	}()
@@ -256,7 +246,6 @@ func uploadToBlobStore(sessionID string, file multipart.File, fileName string) (
 	attachment.ID = fileID
 	attachment.Name = fileName
 	attachment.Size = fileSize
-	attachment.Session = sessionID
 	attachment.MimeType = mimeType
 	attachment.Icon = getFileExtension(fileName)
 	attachment.URL = fmt.Sprintf("/attachment/%v", fileID)
