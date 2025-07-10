@@ -43,8 +43,8 @@ import (
 )
 
 const (
-	UserTokenSessionName = "user_token"
-	KVAccessTokenBucket  = "access_token"
+	UserAccessTokenSessionName = "user_session_access_token"
+	KVAccessTokenBucket        = "access_token"
 	HeaderAPIToken       = "X-API-TOKEN"
 	HeaderIntegrationID  = "APP-INTEGRATION-ID"
 )
@@ -79,7 +79,7 @@ func ValidateLoginByAPITokenHeader(r *http.Request) (claims *security.UserClaims
 
 	// Safely extract fields with type assertions
 	claims = &security.UserClaims{}
-	claims.SessionUser = &security.SessionUser{}
+	claims.UserSession = &security.UserSession{}
 	claims.Provider = data.Provider
 	claims.Login = data.Login
 	claims.UserID = data.UserID
@@ -137,8 +137,8 @@ func ValidateLoginByAuthorizationHeader(r *http.Request) (claims *security.UserC
 	return claims, nil
 }
 
-func ValidateLoginBySession(r *http.Request) (claims *security.UserClaims, err error) {
-	exists, sessToken := api.GetSession(r, UserTokenSessionName)
+func ValidateLoginByAccessTokenSession(r *http.Request) (claims *security.UserClaims, err error) {
+	exists, sessToken := api.GetSession(r, UserAccessTokenSessionName)
 
 	if !exists || sessToken == nil {
 		return nil, errors.Error("invalid session")
@@ -148,7 +148,7 @@ func ValidateLoginBySession(r *http.Request) (claims *security.UserClaims, err e
 		tokenStr string
 		ok       bool
 	)
-	if tokenStr, ok = sessToken.(string); !exists || !ok {
+	if tokenStr, ok = sessToken.(string); !ok {
 		err = errors.New("authorization token is empty")
 		return
 	}
@@ -181,7 +181,7 @@ func ValidateLoginBySession(r *http.Request) (claims *security.UserClaims, err e
 
 func ValidateLogin(r *http.Request) (claims *security.UserClaims, err error) {
 
-	claims, err = ValidateLoginBySession(r)
+	claims, err = ValidateLoginByAccessTokenSession(r)
 
 	if claims == nil {
 		claims, err = ValidateLoginByAuthorizationHeader(r)

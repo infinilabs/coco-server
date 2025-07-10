@@ -68,8 +68,7 @@ func (f *AuthFilter) ApplyFilter(
 		}
 
 		if claims != nil {
-
-			r = r.WithContext(security.AddUserToContext(r.Context(), claims))
+			r = r.WithContext(security.AddUserToContext(r.Context(), claims.UserSession))
 		}
 
 		if !options.OptionLogin {

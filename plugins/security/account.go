@@ -174,7 +174,7 @@ func (h APIHandler) Login(w http.ResponseWriter, r *http.Request, ps httprouter.
 	}
 	user.ID = core.DefaultUserLogin
 
-	err, token := AddUserToSession(w, r, "simple", core.DefaultUserLogin, user)
+	err, token := AddUserAccessTokenToSession(w, r, "simple", core.DefaultUserLogin, user)
 	if err != nil {
 		h.ErrorInternalServer(w, "failed to authorize user")
 		return
@@ -187,7 +187,7 @@ func (h APIHandler) Login(w http.ResponseWriter, r *http.Request, ps httprouter.
 	}
 }
 
-func AddUserToSession(w http.ResponseWriter, r *http.Request, provider string, login string, user *security.UserProfile) (error, map[string]interface{}) {
+func AddUserAccessTokenToSession(w http.ResponseWriter, r *http.Request, provider string, login string, user *security.UserProfile) (error, map[string]interface{}) {
 
 	if user == nil {
 		panic("invalid user")
@@ -199,7 +199,7 @@ func AddUserToSession(w http.ResponseWriter, r *http.Request, provider string, l
 		return err, nil
 	}
 
-	api.SetSession(w, r, core.UserTokenSessionName, token["access_token"])
+	api.SetSession(w, r, core.UserAccessTokenSessionName, token["access_token"])
 	return nil, token
 }
 
