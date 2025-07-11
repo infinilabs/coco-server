@@ -35,6 +35,7 @@ import { ToolsConfig } from "./ToolsConfig";
 import { getUUID } from "@/utils/common";
 import { Tags } from '@/components/common/tags';
 import { getAssistantCategory } from "@/service/api/assistant";
+import { UploadConfig } from "./UploadConfig";
 
 interface AssistantFormProps {
   initialValues: any;
@@ -77,6 +78,9 @@ export const EditForm = memo((props: AssistantFormProps) => {
     } else {
       if (!values.datasource) values.datasource = {}
       values.datasource.filter = null;
+    }
+    if (values.upload?.allowed_file_extensions) {
+      values.upload.allowed_file_extensions = values.upload.allowed_file_extensions.filter((item) => !!item)
     }
     onSubmit?.({
       ...values,
@@ -220,6 +224,14 @@ export const EditForm = memo((props: AssistantFormProps) => {
             })),
           )}
         />
+      </Form.Item>
+      <Form.Item
+        label={t("page.assistant.labels.upload")}
+        rules={[{ required: true }]}
+        name="upload"
+        className={commonFormItemsClassName}
+      >
+        <UploadConfig />
       </Form.Item>
       <Form.Item label={t("page.assistant.labels.tools")} name="tools" className={commonFormItemsClassName}>
         <ToolsConfig />
