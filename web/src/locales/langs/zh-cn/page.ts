@@ -339,6 +339,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       model_settings: "模型设置",
       datasource: "数据源",
       mcp_servers: "MCP 服务器",
+      upload: "上传设置",
       show_in_chat: "在聊天界面中显示",
       enabled_by_default: "默认启用",
       pick_datasource: "是否挑选数据源",
@@ -350,6 +351,9 @@ const page: App.I18n.Schema['translation']['page'] = {
       builtin_tools: "内置工具",
       prompt_settings: "提示词设置",
       prompt_settings_template: "模板",
+      allowed_file_extensions: "允许文件扩展名（ , 分隔）",
+      max_file_size_in_bytes: "最大文件大小",
+      max_file_count: "最大文件数量"
     },
     mode: {
       simple: "简单模式",

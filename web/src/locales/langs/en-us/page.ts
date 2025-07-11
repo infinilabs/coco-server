@@ -346,6 +346,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       model_settings: "Model Settings",
       datasource: "Datasource",
       mcp_servers: "MCP Servers",
+      upload: "Upload Settings",
       show_in_chat: "Show in chat",
       enabled_by_default: "Enabled by default",
       pick_datasource: "Pick Datasource",
@@ -357,6 +358,9 @@ const page: App.I18n.Schema['translation']['page'] = {
       builtin_tools: "Built-in",
       prompt_settings: "Prompt Settings",
       prompt_settings_template: "Template",
+      allowed_file_extensions: "Allowed File Extensions(separated by ,)",
+      max_file_size_in_bytes: "Max File Size",
+      max_file_count: "Max File Count"
     },
     mode: {
       simple: "Simple",

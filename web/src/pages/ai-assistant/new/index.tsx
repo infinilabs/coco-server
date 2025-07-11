@@ -36,6 +36,12 @@ export function Component() {
       enabled: true,
       visible: true
     },
+    upload:{
+      allowed_file_extensions: ["*"],
+      max_file_size_in_bytes: 1024 * 1024,
+      max_file_count: 6,
+      enabled: true,
+    },
     keepalive: "30m",
     type: "simple",
   };
