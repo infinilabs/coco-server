@@ -79,6 +79,9 @@ export const EditForm = memo((props: AssistantFormProps) => {
       if (!values.datasource) values.datasource = {}
       values.datasource.filter = null;
     }
+    if (values.upload?.allowed_file_extensions) {
+      values.upload.allowed_file_extensions = values.upload.allowed_file_extensions.filter((item) => !!item)
+    }
     onSubmit?.({
       ...values,
       category: values?.category?.[0] || '',

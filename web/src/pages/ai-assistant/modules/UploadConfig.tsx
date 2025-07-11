@@ -67,9 +67,10 @@ export const UploadConfig = (props: UploadConfigProps) => {
           <Input
             value={Array.isArray(value.allowed_file_extensions) ? value.allowed_file_extensions.join(',') : '*'}
             onChange={(e) => {
+              const newValue = e.target.value.replace(/[.\s]/g, '')
               onChange?.({
                   ...value,
-                  allowed_file_extensions: e.target.value ? e.target.value.split(',') : []
+                  allowed_file_extensions: newValue ? newValue.split(',') : []
               });
             }}
             className="w-full"

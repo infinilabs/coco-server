@@ -358,7 +358,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       builtin_tools: "Built-in",
       prompt_settings: "Prompt Settings",
       prompt_settings_template: "Template",
-      allowed_file_extensions: "Allowed File Extensions(separated by ,)",
+      allowed_file_extensions: "Allowed File Extensions (eg: pdf,doc)",
       max_file_size_in_bytes: "Max File Size",
       max_file_count: "Max File Count"
     },

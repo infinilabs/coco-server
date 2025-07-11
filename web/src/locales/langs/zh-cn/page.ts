@@ -351,7 +351,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       builtin_tools: "内置工具",
       prompt_settings: "提示词设置",
       prompt_settings_template: "模板",
-      allowed_file_extensions: "允许文件扩展名（ , 分隔）",
+      allowed_file_extensions: "允许文件扩展名（示例：pdf,doc ）",
       max_file_size_in_bytes: "最大文件大小",
       max_file_count: "最大文件数量"
     },
