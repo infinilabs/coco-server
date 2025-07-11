@@ -24,7 +24,12 @@ Coco AI is designed for ease of use.
 
 ![Coco Server Home](https://docs.infinilabs.com/coco-server/main/img/home.png)
 
-For more details on Coco Server, visit: [https://docs.infinilabs.com/coco-server/](https://docs.infinilabs.com/coco-server/main).
+For more details on Coco Server, visit: 
+
+- [Coco App Documentation](https://docs.infinilabs.com/coco-app/main/)
+- [Coco Server Documentation](https://docs.infinilabs.com/coco-server/main/)
+- [DeepWiki Coco App](https://deepwiki.com/infinilabs/coco-app)
+- [DeepWiki Coco Server](https://deepwiki.com/infinilabs/coco-server)
 
 ## Community
 
