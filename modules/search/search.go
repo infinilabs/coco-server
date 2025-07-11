@@ -95,6 +95,10 @@ type SearchResponse struct {
 var configCache = ccache.Layered(ccache.Configure().MaxSize(10000).ItemsToPrune(100))
 
 func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+
+	reqUser, err := security.MustGetUserFromRequest(req)
+	log.Error(util.MustToJSON(reqUser))
+
 	var (
 		query = h.GetParameterOrDefault(req, "query", "")
 
@@ -249,7 +253,7 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 
 		if query != "" {
 
-			reqUser, err := security.UserFromContext(req.Context())
+			reqUser, err := security.GetUserFromContext(req.Context())
 			if err == nil && reqUser != nil {
 				assistantSearchPermission := security.GetSimplePermission(Category, Assistant, string(QuickAISearchAction))
 				perID := security.GetOrInitPermissionKey(assistantSearchPermission)

@@ -21,7 +21,7 @@ import (
 
 func (h *APIHandler) create(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	//user already login
-	reqUser, err := security2.UserFromContext(req.Context())
+	reqUser, err := security2.GetUserFromRequest(req)
 	if reqUser == nil || err != nil {
 		panic(err)
 	}
@@ -196,7 +196,7 @@ func (h *APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprou
 }
 
 func (h *APIHandler) renewAPIToken(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	reqUser, err := security2.UserFromContext(req.Context())
+	reqUser, err := security2.GetUserFromContext(req.Context())
 	if reqUser == nil || err != nil {
 		panic(err)
 	}

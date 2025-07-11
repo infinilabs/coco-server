@@ -40,7 +40,6 @@ func (h APIHandler) GetUserWebsocketID(req *http.Request) (string, error) {
 		return "", err
 	}
 	if claims != nil {
-
 		websocketID := h.GetHeader(req, "WEBSOCKET-SESSION-ID", "")
 		if websocketID != "" {
 			log.Trace("get websocket session id from request header: ", websocketID)
