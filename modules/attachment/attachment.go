@@ -262,7 +262,6 @@ func uploadToBlobStore(ctx *orm.Context, sessionID string, file multipart.File, 
 	attachment.ID = fileID
 	attachment.Name = fileName
 	attachment.Size = fileSize
-	attachment.Session = sessionID
 	attachment.MimeType = mimeType
 	attachment.Icon = getFileExtension(fileName)
 	attachment.URL = fmt.Sprintf("/attachment/%v", fileID)

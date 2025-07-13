@@ -52,6 +52,7 @@ type Assistant struct {
 	Datasource     DatasourceConfig `json:"datasource" elastic_mapping:"datasource:{type:object,enabled:false}"`
 	ToolsConfig    ToolsConfig      `json:"tools,omitempty" elastic_mapping:"tools:{type:object,enabled:false}"`
 	MCPConfig      MCPConfig        `json:"mcp_servers,omitempty" elastic_mapping:"mcp_servers:{type:object,enabled:false}"`
+	UploadConfig   UploadConfig     `json:"upload,omitempty" elastic_mapping:"upload:{type:object,enabled:false}"`
 	Keepalive      string           `json:"keepalive" elastic_mapping:"keepalive:{type:keyword}"`
 	Enabled        bool             `json:"enabled" elastic_mapping:"enabled:{type:keyword}"`
 	ChatSettings   ChatSettings     `json:"chat_settings" elastic_mapping:"chat_settings:{type:object,enabled:false}"`
@@ -73,6 +74,13 @@ type DeepThinkConfig struct {
 }
 
 type WorkflowConfig struct {
+}
+
+type UploadConfig struct {
+	Enabled               bool     `json:"enabled"`
+	AllowedFileExtensions []string `json:"allowed_file_extensions"`
+	MaxFileSizeInBytes    int      `json:"max_file_size_in_bytes"`
+	MaxFileCount          int      `json:"max_file_count"`
 }
 
 type DatasourceConfig struct {
