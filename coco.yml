@@ -9,7 +9,6 @@ coco:
   server:
     public: false
     name: "My Coco Server"
-    managed: false
     encode_icon_to_base64: false # enable this if coco-server is using self-signed certs
 #    #[START] for managed mode only, need to configured by coco-server operator
 #    endpoint: "http://localhost:9001/"
@@ -288,6 +287,7 @@ web:
           secret_key: $[[keystore.TENCENT_DNS_KEY]] #./bin/coco keystore add TENCENT_DNS_KEY
   security:
     enabled: true
+    managed: false #remote managed instance
     authentication:
       oauth:
         cloud:
