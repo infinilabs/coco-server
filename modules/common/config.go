@@ -87,8 +87,8 @@ func reloadConfig() {
 	if filebasedConfig != nil {
 		//protect fields on managed mode
 		if filebasedConfig.ServerInfo != nil {
-			if filebasedConfig.ServerInfo.Managed {
-				config.ServerInfo.Managed = filebasedConfig.ServerInfo.Managed
+			if global.Env().SystemConfig.WebAppConfig.Security.Managed {
+				config.ServerInfo.Managed = global.Env().SystemConfig.WebAppConfig.Security.Managed
 				config.ServerInfo.AuthProvider = filebasedConfig.ServerInfo.AuthProvider
 				config.ServerInfo.Provider = filebasedConfig.ServerInfo.Provider
 				config.ServerInfo.Endpoint = filebasedConfig.ServerInfo.Endpoint
