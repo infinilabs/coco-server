@@ -43,8 +43,9 @@ func (h *APIHandler) widgetWrapper(w http.ResponseWriter, req *http.Request, ps 
 	integrationID := ps.MustGetParameter("id")
 	obj := common.Integration{}
 	obj.ID = integrationID
+	ctx := orm.NewContextWithParent(req.Context())
 
-	exists, err := orm.Get(&obj)
+	exists, err := orm.GetV2(ctx, &obj)
 	if !exists || err != nil {
 		h.WriteJSON(w, util.MapStr{
 			"_id":    integrationID,

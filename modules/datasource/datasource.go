@@ -29,19 +29,19 @@ func (h *APIHandler) createDatasource(w http.ResponseWriter, req *http.Request, 
 		if obj.Connector.ConnectorID == "" {
 			panic("invalid connector")
 		}
+		ctx := orm.NewContextWithParent(req.Context())
 
 		//check connector
 		connector := common.Connector{}
 		connector.ID = obj.Connector.ConnectorID
-		exists, err := orm.Get(&connector)
+		exists, err := orm.GetV2(ctx, &connector)
 		if !exists || err != nil {
 			panic("invalid connector")
 		}
 
-		ctx := orm.Context{
-			Refresh: "wait_for",
-		}
-		err = orm.Create(&ctx, obj)
+		ctx.Refresh = orm.WaitForRefresh
+
+		err = orm.Create(ctx, obj)
 		if err != nil {
 			h.WriteError(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -66,8 +66,9 @@ func (h *APIHandler) deleteDatasource(w http.ResponseWriter, req *http.Request, 
 
 	obj := common.DataSource{}
 	obj.ID = id
+	ctx := orm.NewContextWithParent(req.Context())
 
-	exists, err := orm.Get(&obj)
+	exists, err := orm.GetV2(ctx, &obj)
 	if !exists || err != nil {
 		h.WriteJSON(w, util.MapStr{
 			"_id":    id,
@@ -76,9 +77,8 @@ func (h *APIHandler) deleteDatasource(w http.ResponseWriter, req *http.Request, 
 		return
 	}
 
-	ctx := &orm.Context{
-		Refresh: "wait_for",
-	}
+	ctx.Refresh = orm.WaitForRefresh
+
 	err = orm.Delete(ctx, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -113,8 +113,9 @@ func (h *APIHandler) getDatasource(w http.ResponseWriter, req *http.Request, ps 
 
 	obj := common.DataSource{}
 	obj.ID = id
+	ctx := orm.NewContextWithParent(req.Context())
 
-	exists, err := orm.Get(&obj)
+	exists, err := orm.GetV2(ctx, &obj)
 	if !exists || err != nil {
 		h.WriteJSON(w, util.MapStr{
 			"_id":   id,
@@ -140,7 +141,9 @@ func (h *APIHandler) updateDatasource(w http.ResponseWriter, req *http.Request, 
 	var create *time.Time
 	if !replace {
 		obj.ID = id
-		exists, err := orm.Get(&obj)
+		ctx := orm.NewContextWithParent(req.Context())
+
+		exists, err := orm.GetV2(ctx, &obj)
 		if !exists || err != nil {
 			h.WriteJSON(w, util.MapStr{
 				"_id":    id,
@@ -165,9 +168,8 @@ func (h *APIHandler) updateDatasource(w http.ResponseWriter, req *http.Request, 
 	//protect
 	obj.ID = id
 	obj.Created = create
-	ctx := &orm.Context{
-		Refresh: "wait_for",
-	}
+	ctx := orm.NewContextWithParent(req.Context())
+	ctx.Refresh = orm.WaitForRefresh
 	err = orm.Update(ctx, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -279,7 +281,9 @@ func (h *APIHandler) searchDatasource(w http.ResponseWriter, req *http.Request, 
 			}
 		}
 
-		ctx := orm.NewModelContext(&common.DataSource{})
+		ctx := orm.NewContextWithParent(req.Context())
+		orm.WithModel(ctx, &common.DataSource{})
+
 		docs := []common.DataSource{}
 
 		err, res := core.SearchV2WithResultItemMapper(ctx, &docs, builder, nil)
@@ -307,8 +311,9 @@ func (h *APIHandler) createDocInDatasource(w http.ResponseWriter, req *http.Requ
 	datasourceID := ps.MustGetParameter("id")
 	datasourceObj := common.DataSource{}
 	datasourceObj.ID = datasourceID
+	ctx := orm.NewContextWithParent(req.Context())
 
-	exists, err := orm.Get(&datasourceObj)
+	exists, err := orm.GetV2(ctx, &datasourceObj)
 	if !exists || err != nil {
 		panic("invalid datasource")
 	}
@@ -320,10 +325,9 @@ func (h *APIHandler) createDocInDatasource(w http.ResponseWriter, req *http.Requ
 	sourceRefer.Name = datasourceObj.Name
 	obj.Source = sourceRefer
 
-	ctx := orm.Context{
-		Refresh: orm.WaitForRefresh,
-	}
-	err = orm.Create(&ctx, obj)
+	ctx.Refresh = orm.WaitForRefresh
+
+	err = orm.Create(ctx, obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return

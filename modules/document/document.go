@@ -21,10 +21,9 @@ func (h *APIHandler) createDoc(w http.ResponseWriter, req *http.Request, ps http
 		return
 	}
 
-	ctx := orm.Context{
-		Refresh: orm.WaitForRefresh,
-	}
-	err = orm.Create(&ctx, obj)
+	ctx := orm.NewContextWithParent(req.Context())
+	ctx.Refresh = orm.WaitForRefresh
+	err = orm.Create(ctx, obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -42,8 +41,9 @@ func (h *APIHandler) getDoc(w http.ResponseWriter, req *http.Request, ps httprou
 
 	obj := common.Document{}
 	obj.ID = id
+	ctx := orm.NewContextWithParent(req.Context())
 
-	exists, err := orm.Get(&obj)
+	exists, err := orm.GetV2(ctx, &obj)
 	if !exists || err != nil {
 		h.WriteJSON(w, util.MapStr{
 			"_id":   id,
@@ -64,7 +64,9 @@ func (h *APIHandler) updateDoc(w http.ResponseWriter, req *http.Request, ps http
 	obj := common.Document{}
 
 	obj.ID = id
-	exists, err := orm.Get(&obj)
+	ctx := orm.NewContextWithParent(req.Context())
+
+	exists, err := orm.GetV2(ctx, &obj)
 	if !exists || err != nil {
 		h.WriteJSON(w, util.MapStr{
 			"_id":    id,
@@ -86,10 +88,8 @@ func (h *APIHandler) updateDoc(w http.ResponseWriter, req *http.Request, ps http
 	//protect
 	obj.ID = id
 	obj.Created = create
-	ctx := orm.Context{
-		Refresh: orm.WaitForRefresh,
-	}
-	err = orm.Update(&ctx, &obj)
+	ctx.Refresh = orm.WaitForRefresh
+	err = orm.Update(ctx, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -106,8 +106,9 @@ func (h *APIHandler) deleteDoc(w http.ResponseWriter, req *http.Request, ps http
 
 	obj := common.Document{}
 	obj.ID = id
+	ctx := orm.NewContextWithParent(req.Context())
 
-	exists, err := orm.Get(&obj)
+	exists, err := orm.GetV2(ctx, &obj)
 	if !exists || err != nil {
 		h.WriteJSON(w, util.MapStr{
 			"_id":    id,
@@ -116,10 +117,8 @@ func (h *APIHandler) deleteDoc(w http.ResponseWriter, req *http.Request, ps http
 		return
 	}
 
-	ctx := orm.Context{
-		Refresh: orm.WaitForRefresh,
-	}
-	err = orm.Delete(&ctx, &obj)
+	ctx.Refresh = orm.WaitForRefresh
+	err = orm.Delete(ctx, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return

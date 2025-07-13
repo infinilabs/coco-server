@@ -11,7 +11,7 @@ const SETTINGS = [
   {
     icon: <SvgIcon icon="mdi:settings-outline" />,
     key: 'llm',
-    link: '/settings?tab=llm'
+    link: '/model-provider/list'
   },
   {
     icon: <SvgIcon icon="mdi:plus-thick" />,

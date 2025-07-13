@@ -29,8 +29,10 @@ func init() {
 	security.AssignPermissionsToRoles(permission, core.WidgetRole)
 
 	handler := APIHandler{}
-	api.HandleUIMethod(api.GET, "/query/_suggest", handler.suggest, api.RequirePermission(permission))
-	api.HandleUIMethod(api.GET, "/query/_recommend", handler.recommend, api.RequirePermission(permission))
+	api.HandleUIMethod(api.GET, "/query/_suggest", handler.suggest, api.RequirePermission(permission), api.Feature(filter.FeatureCORS))
+	api.HandleUIMethod(api.OPTIONS, "/query/_suggest", handler.suggest, api.RequirePermission(permission), api.Feature(filter.FeatureCORS))
+	api.HandleUIMethod(api.GET, "/query/_recommend", handler.recommend, api.RequirePermission(permission), api.Feature(filter.FeatureCORS))
+	api.HandleUIMethod(api.OPTIONS, "/query/_recommend", handler.recommend, api.RequirePermission(permission), api.Feature(filter.FeatureCORS))
 
 	api.HandleUIMethod(api.OPTIONS, "/query/_search", handler.search, api.RequirePermission(permission), api.Feature(filter.FeatureCORS))
 	api.HandleUIMethod(api.GET, "/query/_search", handler.search, api.RequirePermission(permission), api.Feature(filter.FeatureCORS))

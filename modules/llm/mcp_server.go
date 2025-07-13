@@ -24,10 +24,12 @@
 package llm
 
 import (
+	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/orm"
+	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
 	"net/http"
 )
@@ -41,9 +43,9 @@ func (h *APIHandler) createMCPServer(w http.ResponseWriter, req *http.Request, p
 		return
 	}
 
-	ctx := &orm.Context{
-		Refresh: orm.WaitForRefresh,
-	}
+	ctx := orm.NewContextWithParent(req.Context())
+	ctx.Refresh = orm.WaitForRefresh
+
 	err = orm.Create(ctx, obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -81,8 +83,9 @@ func (h *APIHandler) getMCPServer(w http.ResponseWriter, req *http.Request, ps h
 
 	obj := common.MCPServer{}
 	obj.ID = id
+	ctx := orm.NewContextWithParent(req.Context())
 
-	exists, err := orm.Get(&obj)
+	exists, err := orm.GetV2(ctx, &obj)
 	if !exists || err != nil {
 		h.WriteJSON(w, util.MapStr{
 			"_id":   id,
@@ -102,7 +105,9 @@ func (h *APIHandler) updateMCPServer(w http.ResponseWriter, req *http.Request, p
 	id := ps.MustGetParameter("id")
 	obj := common.MCPServer{}
 	obj.ID = id
-	exists, err := orm.Get(&obj)
+	ctx := orm.NewContextWithParent(req.Context())
+
+	exists, err := orm.GetV2(ctx, &obj)
 	if !exists || err != nil {
 		h.WriteJSON(w, util.MapStr{
 			"_id":    id,
@@ -121,9 +126,9 @@ func (h *APIHandler) updateMCPServer(w http.ResponseWriter, req *http.Request, p
 	//protect
 	newObj.ID = id
 	newObj.Created = obj.Created
-	ctx := &orm.Context{
-		Refresh: orm.WaitForRefresh,
-	}
+
+	ctx.Refresh = orm.WaitForRefresh
+
 	err = orm.Update(ctx, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -141,8 +146,9 @@ func (h *APIHandler) deleteMCPServer(w http.ResponseWriter, req *http.Request, p
 
 	obj := common.MCPServer{}
 	obj.ID = id
+	ctx := orm.NewContextWithParent(req.Context())
 
-	exists, err := orm.Get(&obj)
+	exists, err := orm.GetV2(ctx, &obj)
 	if !exists || err != nil {
 		h.WriteJSON(w, util.MapStr{
 			"_id":    id,
@@ -150,9 +156,9 @@ func (h *APIHandler) deleteMCPServer(w http.ResponseWriter, req *http.Request, p
 		}, http.StatusNotFound)
 		return
 	}
-	ctx := &orm.Context{
-		Refresh: orm.WaitForRefresh,
-	}
+
+	ctx.Refresh = orm.WaitForRefresh
+
 	err = orm.Delete(ctx, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -194,7 +200,10 @@ func (h *APIHandler) searchMCPServer(w http.ResponseWriter, req *http.Request, p
 		return
 	}
 
-	ctx := orm.NewModelContext(&common.MCPServer{})
+	user := security.MustGetUserFromContext(req.Context())
+	log.Error(util.MustToJSON(user))
+	ctx := orm.NewContextWithParent(req.Context())
+	orm.WithModel(ctx, &common.MCPServer{})
 
 	res, err := orm.SearchV2(ctx, builder)
 	if err != nil {

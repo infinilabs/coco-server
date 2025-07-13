@@ -25,8 +25,9 @@ func (h APIHandler) getSession(w http.ResponseWriter, req *http.Request, ps http
 
 	obj := common.Session{}
 	obj.ID = id
+	ctx := orm.NewContextWithParent(req.Context())
 
-	exists, err := orm.Get(&obj)
+	exists, err := orm.GetV2(ctx, &obj)
 	if !exists || err != nil {
 		h.WriteJSON(w, util.MapStr{
 			"_id":    id,
@@ -47,8 +48,9 @@ func (h APIHandler) deleteSession(w http.ResponseWriter, req *http.Request, ps h
 
 	obj := common.Session{}
 	obj.ID = id
+	ctx := orm.NewContextWithParent(req.Context())
 
-	exists, err := orm.Get(&obj)
+	exists, err := orm.GetV2(ctx, &obj)
 	if !exists || err != nil {
 		h.WriteJSON(w, util.MapStr{
 			"_id":    id,
@@ -94,7 +96,9 @@ func (h APIHandler) updateSession(w http.ResponseWriter, req *http.Request, ps h
 
 	previousObj := common.Session{}
 	previousObj.ID = id
-	exists, err := orm.Get(&previousObj)
+	ctx := orm.NewContextWithParent(req.Context())
+
+	exists, err := orm.GetV2(ctx, &previousObj)
 	if !exists || err != nil {
 		h.WriteJSON(w, util.MapStr{
 			"_id":    id,
@@ -121,9 +125,8 @@ func (h APIHandler) updateSession(w http.ResponseWriter, req *http.Request, ps h
 	}
 
 	//protect
-	ctx := &orm.Context{
-		Refresh: orm.WaitForRefresh,
-	}
+	ctx.Refresh = orm.WaitForRefresh
+
 	err = orm.Update(ctx, &previousObj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -151,7 +154,8 @@ func (h APIHandler) getChatSessions(w http.ResponseWriter, req *http.Request, ps
 	builder.SortBy(orm.Sort{Field: "created", SortType: orm.DESC})
 	builder.Not(orm.TermQuery("visible", false))
 
-	ctx := orm.NewModelContext(&common.Session{})
+	ctx := orm.NewContextWithParent(req.Context())
+	orm.WithModel(ctx, &common.Session{})
 
 	res, err := orm.SearchV2(ctx, builder)
 	if err != nil {
@@ -199,7 +203,7 @@ func (h APIHandler) newChatSession(w http.ResponseWriter, req *http.Request, ps 
 func (h APIHandler) createChatSession(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	id := h.GetParameterOrDefault(r, "assistant_id", DefaultAssistantID)
 
-	assistant, exists, err := common.GetAssistant(id)
+	assistant, exists, err := common.GetAssistant(r, id)
 	if !exists || err != nil {
 		h.WriteOpRecordNotFoundJSON(w, id)
 		return
@@ -299,7 +303,7 @@ func CreateAndSaveNewChatMessage(assistantID string, message string, visible boo
 func (h *APIHandler) askAssistant(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("id")
 
-	assistant, exists, err := common.GetAssistant(id)
+	assistant, exists, err := common.GetAssistant(r, id)
 	if !exists || err != nil {
 		h.WriteOpRecordNotFoundJSON(w, id)
 		return
@@ -382,7 +386,7 @@ func (h APIHandler) handleMessage(w http.ResponseWriter, req *http.Request, sess
 
 	//TODO, check if session and assistant exists
 
-	assistant, _, err := common.GetAssistant(assistantID)
+	assistant, _, err := common.GetAssistant(req, assistantID)
 	if err != nil {
 		return fmt.Errorf("failed to get assistant with id [%v]: %w", assistantID, err)
 	}
@@ -418,8 +422,9 @@ func (h APIHandler) openChatSession(w http.ResponseWriter, req *http.Request, ps
 
 	obj := common.Session{}
 	obj.ID = id
+	ctx := orm.NewContextWithParent(req.Context())
 
-	exists, err := orm.Get(&obj)
+	exists, err := orm.GetV2(ctx, &obj)
 	if !exists || err != nil {
 		h.WriteJSON(w, util.MapStr{
 			"_id":   id,
@@ -431,9 +436,10 @@ func (h APIHandler) openChatSession(w http.ResponseWriter, req *http.Request, ps
 	if !obj.Visible {
 		obj.Status = "active"
 		obj.Visible = true
-		err = orm.Update(&orm.Context{
-			Refresh: "true",
-		}, &obj)
+
+		ctx.Refresh = orm.ImmediatelyRefresh
+
+		err = orm.Update(ctx, &obj)
 		if err != nil {
 			h.Error(w, err)
 			return
@@ -564,7 +570,7 @@ func (h APIHandler) sendChatMessageV2(w http.ResponseWriter, r *http.Request, ps
 
 	id := h.GetParameterOrDefault(r, "assistant_id", DefaultAssistantID)
 
-	assistant, exists, err := common.GetAssistant(id)
+	assistant, exists, err := common.GetAssistant(r, id)
 	if !exists || err != nil {
 		h.WriteOpRecordNotFoundJSON(w, id)
 		return
@@ -628,8 +634,9 @@ func (h APIHandler) closeChatSession(w http.ResponseWriter, req *http.Request, p
 	id := ps.MustGetParameter("session_id")
 	obj := common.Session{}
 	obj.ID = id
+	ctx := orm.NewContextWithParent(req.Context())
 
-	exists, err := orm.Get(&obj)
+	exists, err := orm.GetV2(ctx, &obj)
 	if !exists || err != nil {
 		h.WriteJSON(w, util.MapStr{
 			"_id":   id,

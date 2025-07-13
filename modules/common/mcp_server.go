@@ -75,6 +75,7 @@ func GetMPCServer(id string) (*MCPServer, error) {
 			return server, nil
 		}
 	}
+
 	server = &MCPServer{}
 	server.ID = id
 	_, err := orm.Get(server)

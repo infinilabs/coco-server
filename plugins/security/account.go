@@ -55,7 +55,7 @@ func (h APIHandler) Profile(w http.ResponseWriter, r *http.Request, ps httproute
 		panic("auth is not enabled")
 	}
 
-	reqUser, err := security.UserFromContext(r.Context())
+	reqUser, err := security.GetUserFromContext(r.Context())
 	if err != nil || reqUser == nil {
 		panic("invalid user")
 	}
@@ -78,7 +78,7 @@ func (h APIHandler) UpdatePassword(w http.ResponseWriter, r *http.Request, ps ht
 		panic("should not be invoked as in managed mode")
 	}
 
-	reqUser, err := security.UserFromContext(r.Context())
+	reqUser, err := security.GetUserFromContext(r.Context())
 	if err != nil {
 		panic(err)
 	}
@@ -174,7 +174,16 @@ func (h APIHandler) Login(w http.ResponseWriter, r *http.Request, ps httprouter.
 	}
 	user.ID = core.DefaultUserLogin
 
-	err, token := AddUserToSession(w, r, "simple", core.DefaultUserLogin, user)
+	sessionInfo := security.UserSessionInfo{}
+	sessionInfo.Provider = "simple"
+	sessionInfo.Login = core.DefaultUserLogin
+
+	sessionInfo.TenantID = "LOCAL"
+	sessionInfo.UserID = user.ID
+	sessionInfo.Profile = user
+	sessionInfo.Roles = []string{security.RoleAdmin}
+
+	err, token := AddUserAccessTokenToSession(w, r, &sessionInfo)
 	if err != nil {
 		h.ErrorInternalServer(w, "failed to authorize user")
 		return
@@ -187,19 +196,19 @@ func (h APIHandler) Login(w http.ResponseWriter, r *http.Request, ps httprouter.
 	}
 }
 
-func AddUserToSession(w http.ResponseWriter, r *http.Request, provider string, login string, user *security.UserProfile) (error, map[string]interface{}) {
+func AddUserAccessTokenToSession(w http.ResponseWriter, r *http.Request, user *security.UserSessionInfo) (error, map[string]interface{}) {
 
 	if user == nil {
 		panic("invalid user")
 	}
 
 	// Generate access token
-	token, err := GenerateJWTAccessToken(provider, login, user)
+	token, err := GenerateJWTAccessToken(user)
 	if err != nil {
 		return err, nil
 	}
 
-	api.SetSession(w, r, core.UserTokenSessionName, token["access_token"])
+	api.SetSession(w, r, core.UserAccessTokenSessionName, token["access_token"])
 	return nil, token
 }
 

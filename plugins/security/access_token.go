@@ -43,18 +43,16 @@ import (
 	"infini.sh/framework/core/util"
 )
 
-func GenerateJWTAccessToken(provider string, login string, user *security.UserProfile) (map[string]interface{}, error) {
+func GenerateJWTAccessToken(user *security.UserSessionInfo) (map[string]interface{}, error) {
 
 	var data map[string]interface{}
+	t := time.Now()
+	if user.LastLogin.Timestamp == nil {
+		user.LastLogin.Timestamp = &t
+	}
 
 	token1 := jwt.NewWithClaims(jwt.SigningMethodHS256, security.UserClaims{
-		SessionUser: &security.SessionUser{
-			Provider: provider,
-			Login:    login,
-			UserID:   user.ID,
-			Profile:  user,
-			Roles:    []string{security.RoleAdmin},
-		},
+		UserSessionInfo: user,
 		RegisteredClaims: &jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
 		},
@@ -67,8 +65,8 @@ func GenerateJWTAccessToken(provider string, login string, user *security.UserPr
 
 	data = util.MapStr{
 		"access_token": tokenString,
-		"username":     login,
-		"id":           user.ID,
+		"username":     user.Login,                //TODO remove?
+		"id":           user.UserID,               //TODO rename to user_id
 		"expire_in":    time.Now().Unix() + 86400, //24h
 	}
 
@@ -86,7 +84,7 @@ const (
 func (h *APIHandler) RequestAccessToken(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
 	//user already login
-	reqUser, err := security.UserFromContext(req.Context())
+	reqUser, err := security.GetUserFromContext(req.Context())
 	if reqUser == nil || err != nil {
 		panic(err)
 	}
@@ -109,7 +107,7 @@ func (h *APIHandler) RequestAccessToken(w http.ResponseWriter, req *http.Request
 	h.WriteJSON(w, res, 200)
 }
 
-func CreateAPIToken(reqUser *security.SessionUser, tokenName, typeName string, Roles []string) (util.MapStr, error) {
+func CreateAPIToken(reqUser *security.UserSessionInfo, tokenName, typeName string, Roles []string) (util.MapStr, error) {
 	if tokenName == "" {
 		tokenName = GenerateApiTokenName("")
 	}
@@ -174,7 +172,7 @@ func getTokenIDs(userID string) (map[string]struct{}, error) {
 
 func (h *APIHandler) CatAccessToken(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	//check login
-	reqUser, err := security.UserFromContext(req.Context())
+	reqUser, err := security.GetUserFromContext(req.Context())
 	if reqUser == nil || err != nil {
 		panic(err)
 	}
@@ -207,7 +205,7 @@ func (h *APIHandler) CatAccessToken(w http.ResponseWriter, req *http.Request, ps
 }
 
 func (h *APIHandler) DeleteAccessToken(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	reqUser, err := security.UserFromContext(req.Context())
+	reqUser, err := security.GetUserFromContext(req.Context())
 	if reqUser == nil || err != nil {
 		panic(err)
 	}
@@ -308,7 +306,7 @@ func GetToken(token string) (util.MapStr, error) {
 }
 
 func (h *APIHandler) RenameAccessToken(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	reqUser, err := security.UserFromContext(req.Context())
+	reqUser, err := security.GetUserFromContext(req.Context())
 	if reqUser == nil || err != nil {
 		panic(err)
 	}

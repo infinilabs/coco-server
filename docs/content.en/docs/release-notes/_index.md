@@ -24,6 +24,7 @@ Information about release notes of Coco Server is provided here.
 - chore: mask more senstive search results #343
 - refactor: refactoring attachement api #350
 - chore: add upload settings to assistant #352
+- refactor: refactoring ORM and security interface
 
 ## 0.6.0 (2025-06-29)
 ### ❌ Breaking changes  
