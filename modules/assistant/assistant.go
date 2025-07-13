@@ -44,9 +44,9 @@ func (h *APIHandler) createAssistant(w http.ResponseWriter, req *http.Request, p
 		return
 	}
 
-	ctx := &orm.Context{
-		Refresh: orm.WaitForRefresh,
-	}
+	ctx := orm.NewContextWithParent(req.Context())
+	ctx.Refresh = orm.WaitForRefresh
+
 	obj.Builtin = false
 	err = orm.Create(ctx, obj)
 	if err != nil {
@@ -63,7 +63,7 @@ func (h *APIHandler) createAssistant(w http.ResponseWriter, req *http.Request, p
 func (h *APIHandler) getAssistant(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("id")
 
-	obj, exists, err := common.GetAssistant(id)
+	obj, exists, err := common.GetAssistant(req, id)
 	if !exists || err != nil {
 		_ = log.Error(err)
 		h.WriteOpRecordNotFoundJSON(w, id)
@@ -81,7 +81,9 @@ func (h *APIHandler) updateAssistant(w http.ResponseWriter, req *http.Request, p
 
 	obj := common.Assistant{}
 	obj.ID = id
-	exists, err := orm.Get(&obj)
+	ctx := orm.NewContextWithParent(req.Context())
+
+	exists, err := orm.GetV2(ctx, &obj)
 	if !exists || err != nil {
 		_ = log.Error(err)
 		h.WriteOpRecordNotFoundJSON(w, id)
@@ -102,9 +104,9 @@ func (h *APIHandler) updateAssistant(w http.ResponseWriter, req *http.Request, p
 	}
 	newObj.Builtin = obj.Builtin
 	newObj.Created = obj.Created
-	ctx := &orm.Context{
-		Refresh: orm.WaitForRefresh,
-	}
+
+	ctx.Refresh = orm.WaitForRefresh
+
 	err = orm.Save(ctx, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -123,8 +125,9 @@ func (h *APIHandler) deleteAssistant(w http.ResponseWriter, req *http.Request, p
 
 	obj := common.Assistant{}
 	obj.ID = id
+	ctx := orm.NewContextWithParent(req.Context())
 
-	exists, err := orm.Get(&obj)
+	exists, err := orm.GetV2(ctx, &obj)
 	if !exists || err != nil {
 		h.WriteOpRecordNotFoundJSON(w, id)
 
@@ -136,9 +139,8 @@ func (h *APIHandler) deleteAssistant(w http.ResponseWriter, req *http.Request, p
 		return
 	}
 
-	ctx := &orm.Context{
-		Refresh: orm.WaitForRefresh,
-	}
+	ctx.Refresh = orm.WaitForRefresh
+
 	err = orm.Delete(ctx, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -178,7 +180,8 @@ func (h *APIHandler) searchAssistant(w http.ResponseWriter, req *http.Request, p
 			return
 		}
 
-		ctx := orm.NewModelContext(&common.Assistant{})
+		ctx := orm.NewContextWithParent(req.Context())
+		orm.WithModel(ctx, &common.Assistant{})
 		docs := []common.Assistant{}
 
 		err, res := core.SearchV2WithResultItemMapper(ctx, &docs, builder, nil)
@@ -200,8 +203,9 @@ func (h *APIHandler) cloneAssistant(w http.ResponseWriter, req *http.Request, ps
 
 	obj := common.Assistant{}
 	obj.ID = id
+	ctx := orm.NewContextWithParent(req.Context())
 
-	exists, err := orm.Get(&obj)
+	exists, err := orm.GetV2(ctx, &obj)
 	if !exists || err != nil {
 		_ = log.Error(err)
 		h.WriteOpRecordNotFoundJSON(w, id)
@@ -215,9 +219,9 @@ func (h *APIHandler) cloneAssistant(w http.ResponseWriter, req *http.Request, ps
 	obj.Created = &now
 	obj.Updated = &now
 	obj.Builtin = false
-	ctx := &orm.Context{
-		Refresh: orm.WaitForRefresh,
-	}
+
+	ctx.Refresh = orm.WaitForRefresh
+
 	err = orm.Create(ctx, &obj)
 	if err != nil {
 		h.Error(w, err)

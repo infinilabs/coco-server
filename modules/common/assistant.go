@@ -24,6 +24,7 @@
 package common
 
 import (
+	"net/http"
 	"time"
 
 	"infini.sh/framework/core/orm"
@@ -160,7 +161,7 @@ type ChatSettings struct {
 }
 
 // GetAssistant retrieves the assistant object from the cache or database.
-func GetAssistant(assistantID string) (*Assistant, bool, error) {
+func GetAssistant(req *http.Request, assistantID string) (*Assistant, bool, error) {
 	item := GeneralObjectCache.Get(AssistantCachePrimary, assistantID)
 	var assistant *Assistant
 	if item != nil && !item.Expired() {
@@ -171,7 +172,9 @@ func GetAssistant(assistantID string) (*Assistant, bool, error) {
 	}
 	assistant = &Assistant{}
 	assistant.ID = assistantID
-	exists, err := orm.Get(assistant)
+	ctx := orm.NewContextWithParent(req.Context())
+
+	exists, err := orm.GetV2(ctx, assistant)
 	if err != nil {
 		return nil, exists, err
 	}

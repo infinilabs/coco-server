@@ -8,6 +8,7 @@ import (
 	"errors"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
+	"net/http"
 	"time"
 )
 
@@ -107,7 +108,7 @@ func GetAllEnabledDatasourceIDs() ([]string, error) {
 
 }
 
-func GetDatasourceConfig(id string) (*DataSource, error) {
+func GetDatasourceConfig(req *http.Request, id string) (*DataSource, error) {
 	v := GeneralObjectCache.Get(DatasourceItemsCacheKey, id)
 	if v != nil {
 		if !v.Expired() {
@@ -118,9 +119,10 @@ func GetDatasourceConfig(id string) (*DataSource, error) {
 		}
 	}
 
+	ctx := orm.NewContextWithParent(req.Context())
 	obj := DataSource{}
 	obj.ID = id
-	exists, err := orm.Get(&obj)
+	exists, err := orm.GetV2(ctx, &obj)
 	if err == nil && exists {
 		GeneralObjectCache.Set(DatasourceItemsCacheKey, id, &obj, util.GetDurationOrDefault("30m", time.Duration(30)*time.Minute))
 		return &obj, nil

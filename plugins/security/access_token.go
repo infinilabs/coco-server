@@ -43,21 +43,16 @@ import (
 	"infini.sh/framework/core/util"
 )
 
-func GenerateJWTAccessToken(provider string, login string, user *security.UserProfile) (map[string]interface{}, error) {
+func GenerateJWTAccessToken(user *security.UserSessionInfo) (map[string]interface{}, error) {
 
 	var data map[string]interface{}
 	t := time.Now()
+	if user.LastLogin.Timestamp == nil {
+		user.LastLogin.Timestamp = &t
+	}
+
 	token1 := jwt.NewWithClaims(jwt.SigningMethodHS256, security.UserClaims{
-		UserSessionInfo: &security.UserSessionInfo{
-			Provider: provider,
-			Login:    login,
-			UserID:   user.ID,
-			Profile:  user,
-			Roles:    []string{security.RoleAdmin},
-			LastLogin: security.LastLogin{
-				Timestamp: &t,
-			},
-		},
+		UserSessionInfo: user,
 		RegisteredClaims: &jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
 		},
@@ -70,8 +65,8 @@ func GenerateJWTAccessToken(provider string, login string, user *security.UserPr
 
 	data = util.MapStr{
 		"access_token": tokenString,
-		"username":     login,
-		"id":           user.ID,
+		"username":     user.Login,                //TODO remove?
+		"id":           user.UserID,               //TODO rename to user_id
 		"expire_in":    time.Now().Unix() + 86400, //24h
 	}
 

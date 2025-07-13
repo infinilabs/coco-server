@@ -22,9 +22,9 @@ func (h *APIHandler) create(w http.ResponseWriter, req *http.Request, ps httprou
 		return
 	}
 
-	ctx := &orm.Context{
-		Refresh: orm.WaitForRefresh,
-	}
+	ctx := orm.NewContextWithParent(req.Context())
+	ctx.Refresh = orm.WaitForRefresh
+
 	err = orm.Create(ctx, obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -44,7 +44,9 @@ func (h *APIHandler) get(w http.ResponseWriter, req *http.Request, ps httprouter
 	obj := common.Connector{}
 	obj.ID = id
 
-	exists, err := orm.Get(&obj)
+	ctx := orm.NewContextWithParent(req.Context())
+
+	exists, err := orm.GetV2(ctx, &obj)
 	if !exists || err != nil {
 		h.WriteJSON(w, util.MapStr{
 			"_id":   id,
@@ -65,13 +67,14 @@ func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprou
 	obj := common.Connector{}
 
 	replace := h.GetBoolOrDefault(req, "replace", false)
+	ctx := orm.NewContextWithParent(req.Context())
 
 	var err error
 	var create *time.Time
 	var builtin bool
 	if !replace {
 		obj.ID = id
-		exists, err := orm.Get(&obj)
+		exists, err := orm.GetV2(ctx, &obj)
 		if !exists || err != nil {
 			h.WriteJSON(w, util.MapStr{
 				"_id":    id,
@@ -98,9 +101,9 @@ func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprou
 	obj.ID = id
 	obj.Created = create
 	obj.Builtin = builtin
-	ctx := &orm.Context{
-		Refresh: orm.WaitForRefresh,
-	}
+
+	ctx.Refresh = orm.WaitForRefresh
+
 	err = orm.Update(ctx, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -119,7 +122,9 @@ func (h *APIHandler) delete(w http.ResponseWriter, req *http.Request, ps httprou
 	obj := common.Connector{}
 	obj.ID = id
 
-	exists, err := orm.Get(&obj)
+	ctx := orm.NewContextWithParent(req.Context())
+
+	exists, err := orm.GetV2(ctx, &obj)
 	if !exists || err != nil {
 		h.WriteJSON(w, util.MapStr{
 			"_id":    id,
@@ -132,7 +137,7 @@ func (h *APIHandler) delete(w http.ResponseWriter, req *http.Request, ps httprou
 		return
 	}
 
-	err = orm.Delete(nil, &obj)
+	err = orm.Delete(ctx, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -212,7 +217,8 @@ func (h *APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprou
 			return
 		}
 
-		ctx := orm.NewModelContext(&common.Connector{})
+		ctx := orm.NewContextWithParent(req.Context())
+		orm.WithModel(ctx, &common.Connector{})
 
 		appConfig := common.AppConfig()
 		var connectors []common.Connector

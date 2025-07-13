@@ -58,7 +58,9 @@ func (h APIHandler) uploadAttachment(w http.ResponseWriter, r *http.Request, ps 
 	//check session exists
 	session := common.Session{}
 	session.ID = sessionID
-	exists, err := orm.Get(&session)
+	ctx := orm.NewContextWithParent(r.Context())
+
+	exists, err := orm.GetV2(ctx, &session)
 	if !exists || err != nil {
 		panic("invalid session")
 	}
@@ -69,6 +71,8 @@ func (h APIHandler) uploadAttachment(w http.ResponseWriter, r *http.Request, ps 
 		return
 	}
 
+	ctx.Refresh = orm.WaitForRefresh
+
 	attachmentIDs := []string{}
 	for _, fileHeader := range files {
 		file, err := fileHeader.Open()
@@ -77,7 +81,7 @@ func (h APIHandler) uploadAttachment(w http.ResponseWriter, r *http.Request, ps 
 			return
 		}
 		// Upload to S3
-		if fileID, err := uploadToBlobStore(sessionID, file, fileHeader.Filename); err != nil {
+		if fileID, err := uploadToBlobStore(ctx, sessionID, file, fileHeader.Filename); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		} else {
@@ -121,7 +125,7 @@ func (h APIHandler) getAttachment(w http.ResponseWriter, req *http.Request, ps h
 	if err != nil || len(data) == 0 {
 		panic("invalid attachment")
 	}
-	attachment, exists, err := h.getAttachmentMetadata(fileID)
+	attachment, exists, err := h.getAttachmentMetadata(req, fileID)
 	if !exists {
 		h.WriteGetMissingJSON(w, fileID)
 		return
@@ -141,11 +145,12 @@ func (h APIHandler) getAttachment(w http.ResponseWriter, req *http.Request, ps h
 	_, _ = w.Write(data)
 }
 
-func (h APIHandler) getAttachmentMetadata(fileID string) (*common.Attachment, bool, error) {
+func (h APIHandler) getAttachmentMetadata(req *http.Request, fileID string) (*common.Attachment, bool, error) {
 	attachment := common.Attachment{}
 	attachment.ID = fileID
+	ctx := orm.NewContextWithParent(req.Context())
 
-	exists, err := orm.Get(&attachment)
+	exists, err := orm.GetV2(ctx, &attachment)
 	if err != nil {
 		return nil, exists, err
 	}
@@ -166,7 +171,7 @@ func (h APIHandler) getAttachmentMetadata(fileID string) (*common.Attachment, bo
 
 func (h APIHandler) checkAttachment(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	fileID := ps.MustGetParameter("file_id")
-	attachment, exists, err := h.getAttachmentMetadata(fileID)
+	attachment, exists, err := h.getAttachmentMetadata(req, fileID)
 	if !exists {
 		h.WriteGetMissingJSON(w, fileID)
 		return
@@ -184,7 +189,7 @@ func (h APIHandler) checkAttachment(w http.ResponseWriter, req *http.Request, ps
 
 func (h APIHandler) deleteAttachment(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	fileID := ps.MustGetParameter("file_id")
-	attachment, exists, err := h.getAttachmentMetadata(fileID)
+	attachment, exists, err := h.getAttachmentMetadata(req, fileID)
 	if !exists {
 		h.WriteGetMissingJSON(w, fileID)
 		return
@@ -197,9 +202,10 @@ func (h APIHandler) deleteAttachment(w http.ResponseWriter, req *http.Request, p
 	attachment.Deleted = true
 	t := time.Now()
 	attachment.LastUpdatedBy = &common.EditorInfo{UpdatedAt: &t}
-	ctx := &orm.Context{
-		Refresh: "wait_for",
-	}
+
+	ctx := orm.NewContextWithParent(req.Context())
+	ctx.Refresh = orm.WaitForRefresh
+
 	err = orm.Update(ctx, attachment)
 	if err != nil {
 		panic(err)
@@ -237,7 +243,7 @@ func getMimeType(file multipart.File) (string, error) {
 	return mimeType, nil
 }
 
-func uploadToBlobStore(sessionID string, file multipart.File, fileName string) (string, error) {
+func uploadToBlobStore(ctx *orm.Context, sessionID string, file multipart.File, fileName string) (string, error) {
 	defer func() {
 		_ = file.Close()
 	}()
@@ -263,7 +269,7 @@ func uploadToBlobStore(sessionID string, file multipart.File, fileName string) (
 	//attachment.Owner //TODO
 
 	//save attachment metadata
-	err = orm.Create(&orm.Context{Refresh: orm.WaitForRefresh}, &attachment)
+	err = orm.Create(ctx, &attachment)
 	if err != nil {
 		panic(err)
 	}

@@ -174,7 +174,16 @@ func (h APIHandler) Login(w http.ResponseWriter, r *http.Request, ps httprouter.
 	}
 	user.ID = core.DefaultUserLogin
 
-	err, token := AddUserAccessTokenToSession(w, r, "simple", core.DefaultUserLogin, user)
+	sessionInfo := security.UserSessionInfo{}
+	sessionInfo.Provider = "simple"
+	sessionInfo.Login = core.DefaultUserLogin
+
+	sessionInfo.TenantID = "LOCAL"
+	sessionInfo.UserID = user.ID
+	sessionInfo.Profile = user
+	sessionInfo.Roles = []string{security.RoleAdmin}
+
+	err, token := AddUserAccessTokenToSession(w, r, &sessionInfo)
 	if err != nil {
 		h.ErrorInternalServer(w, "failed to authorize user")
 		return
@@ -187,14 +196,14 @@ func (h APIHandler) Login(w http.ResponseWriter, r *http.Request, ps httprouter.
 	}
 }
 
-func AddUserAccessTokenToSession(w http.ResponseWriter, r *http.Request, provider string, login string, user *security.UserProfile) (error, map[string]interface{}) {
+func AddUserAccessTokenToSession(w http.ResponseWriter, r *http.Request, user *security.UserSessionInfo) (error, map[string]interface{}) {
 
 	if user == nil {
 		panic("invalid user")
 	}
 
 	// Generate access token
-	token, err := GenerateJWTAccessToken(provider, login, user)
+	token, err := GenerateJWTAccessToken(user)
 	if err != nil {
 		return err, nil
 	}

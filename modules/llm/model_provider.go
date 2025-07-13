@@ -21,9 +21,9 @@ func (h *APIHandler) create(w http.ResponseWriter, req *http.Request, ps httprou
 		return
 	}
 
-	ctx := &orm.Context{
-		Refresh: orm.WaitForRefresh,
-	}
+	ctx := orm.NewContextWithParent(req.Context())
+	ctx.Refresh = orm.WaitForRefresh
+
 	obj.Builtin = false
 	err = orm.Create(ctx, obj)
 	if err != nil {
@@ -40,8 +40,9 @@ func (h *APIHandler) get(w http.ResponseWriter, req *http.Request, ps httprouter
 
 	obj := common.ModelProvider{}
 	obj.ID = id
+	ctx := orm.NewContextWithParent(req.Context())
 
-	exists, err := orm.Get(&obj)
+	exists, err := orm.GetV2(ctx, &obj)
 	if !exists || err != nil {
 		h.WriteGetMissingJSON(w, id)
 		return
@@ -54,7 +55,9 @@ func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprou
 	id := ps.MustGetParameter("id")
 	obj := common.ModelProvider{}
 	obj.ID = id
-	exists, err := orm.Get(&obj)
+	ctx := orm.NewContextWithParent(req.Context())
+
+	exists, err := orm.GetV2(ctx, &obj)
 	if !exists || err != nil {
 		h.WriteOpRecordNotFoundJSON(w, id)
 		return
@@ -74,9 +77,9 @@ func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprou
 	}
 	newObj.Builtin = obj.Builtin
 	newObj.Created = obj.Created
-	ctx := &orm.Context{
-		Refresh: orm.WaitForRefresh,
-	}
+
+	ctx.Refresh = orm.WaitForRefresh
+
 	err = orm.Update(ctx, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -93,8 +96,9 @@ func (h *APIHandler) delete(w http.ResponseWriter, req *http.Request, ps httprou
 
 	obj := common.ModelProvider{}
 	obj.ID = id
+	ctx := orm.NewContextWithParent(req.Context())
 
-	exists, err := orm.Get(&obj)
+	exists, err := orm.GetV2(ctx, &obj)
 	if !exists || err != nil {
 		h.WriteOpRecordNotFoundJSON(w, id)
 		return
@@ -104,9 +108,8 @@ func (h *APIHandler) delete(w http.ResponseWriter, req *http.Request, ps httprou
 		return
 	}
 
-	ctx := &orm.Context{
-		Refresh: orm.WaitForRefresh,
-	}
+	ctx.Refresh = orm.WaitForRefresh
+
 	err = orm.Delete(ctx, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)

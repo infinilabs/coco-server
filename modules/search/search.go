@@ -96,7 +96,7 @@ var configCache = ccache.Layered(ccache.Configure().MaxSize(10000).ItemsToPrune(
 
 func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
-	reqUser, err := security.MustGetUserFromRequest(req)
+	reqUser := security.MustGetUserFromRequest(req)
 	log.Error(util.MustToJSON(reqUser))
 
 	var (
@@ -217,7 +217,7 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		// Loop over the hits and ensure Source is modified correctly
 		for i, doc := range hits {
 			// Get the pointer to doc.Source to make sure you're modifying the original
-			datasourceConfig, err := common.GetDatasourceConfig(doc.Source.Source.ID)
+			datasourceConfig, err := common.GetDatasourceConfig(req, doc.Source.Source.ID)
 			if err == nil && datasourceConfig != nil && datasourceConfig.Connector.ConnectorID != "" {
 				connectorConfig, err := getConnectorConfig(datasourceConfig.Connector.ConnectorID)
 
@@ -347,7 +347,9 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 
 	builder.Filter(filters...)
 
-	ctx := orm.NewModelContext(&common.Document{})
+	ctx := orm.NewContextWithParent(req.Context())
+	orm.WithModel(ctx, &common.Document{})
+
 	docs := []common.Document{}
 
 	searchRequest := elastic.SearchRequest{}
@@ -408,6 +410,7 @@ func getConnectorConfig(id string) (*common.Connector, error) {
 
 	obj := common.Connector{}
 	obj.ID = id
+
 	exists, err := orm.Get(&obj)
 	if err == nil && exists {
 		configCache.Set(connectorCacheKey, id, &obj, util.GetDurationOrDefault("30m", time.Duration(30)*time.Minute))
