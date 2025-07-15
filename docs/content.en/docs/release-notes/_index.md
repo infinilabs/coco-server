@@ -13,6 +13,7 @@ Information about release notes of Coco Server is provided here.
 - feat: add http_streaming based chat api #336
 - feat: add file upload config #349
 - feat: support attachments in chat message #355
+- feat: log llm request for debugging purpose
 
 ### 🐛 Bug fix  
 - fix: query parameter "filter" is not working
@@ -26,6 +27,7 @@ Information about release notes of Coco Server is provided here.
 - refactor: refactoring attachement api #350
 - chore: add upload settings to assistant #352
 - refactor: refactoring ORM and security interface
+- chore: remove session_id check in attachment upload api #357
 
 ## 0.6.0 (2025-06-29)
 ### ❌ Breaking changes  

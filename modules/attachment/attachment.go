@@ -54,18 +54,7 @@ func (h APIHandler) uploadAttachment(w http.ResponseWriter, r *http.Request, ps 
 		return
 	}
 
-	sessionID := ps.MustGetParameter("session_id")
-
-	//check session exists
-	session := common.Session{}
-	session.ID = sessionID
 	ctx := orm.NewContextWithParent(r.Context())
-
-	exists, err := orm.GetV2(ctx, &session)
-	if !exists || err != nil {
-		panic("invalid session")
-	}
-
 	files := r.MultipartForm.File["files"]
 	if len(files) == 0 {
 		h.WriteError(w, "No files uploaded", http.StatusBadRequest)
@@ -82,7 +71,7 @@ func (h APIHandler) uploadAttachment(w http.ResponseWriter, r *http.Request, ps 
 			return
 		}
 		// Upload to S3
-		if fileID, err := uploadToBlobStore(ctx, sessionID, file, fileHeader.Filename); err != nil {
+		if fileID, err := uploadToBlobStore(ctx, file, fileHeader.Filename); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		} else {
@@ -263,7 +252,7 @@ func getMimeType(file multipart.File) (string, error) {
 	return mimeType, nil
 }
 
-func uploadToBlobStore(ctx *orm.Context, sessionID string, file multipart.File, fileName string) (string, error) {
+func uploadToBlobStore(ctx *orm.Context, file multipart.File, fileName string) (string, error) {
 	defer func() {
 		_ = file.Close()
 	}()
