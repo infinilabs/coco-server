@@ -8,7 +8,7 @@ import InfiniIcon from '@/components/common/icon';
 import { GoogleDriveSVG, HugoSVG, NotionSVG, YuqueSVG } from '@/components/icons';
 import { deleteDatasource, fetchDataSourceList, getConnectorByIDs, updateDatasource } from '@/service/api';
 import { formatESSearchResult } from '@/service/request/es';
-import useQueryParams from '@/hooks/common/search';
+import useQueryParams from '@/hooks/common/queryParams';
 
 type Datasource = Api.Datasource.Datasource;
 

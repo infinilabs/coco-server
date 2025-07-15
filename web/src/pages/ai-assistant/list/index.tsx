@@ -5,7 +5,7 @@ import type { TableColumnsType, TableProps, MenuProps } from "antd";
 import {searchAssistant, deleteAssistant, updateAssistant, cloneAssistant} from '@/service/api/assistant';
 import { formatESSearchResult } from '@/service/request/es';
 import InfiniIcon from '@/components/common/icon';
-import useQueryParams from '@/hooks/common/search';
+import useQueryParams from '@/hooks/common/queryParams';
 
 type Assistant = Api.LLM.Assistant;
 

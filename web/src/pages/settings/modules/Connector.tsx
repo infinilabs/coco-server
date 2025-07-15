@@ -17,7 +17,7 @@ import Icon, {
 } from '@ant-design/icons';
 
 import { formatESSearchResult } from '@/service/request/es';
-import useQueryParams from '@/hooks/common/search';
+import useQueryParams from '@/hooks/common/queryParams';
 
 type Connector = Api.Datasource.Connector;
 
