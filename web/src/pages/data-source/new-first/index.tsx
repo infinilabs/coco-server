@@ -9,7 +9,7 @@ import WebsiteSVG from '@/assets/svg-icon/website.svg';
 import InfiniIcon from '@/components/common/icon';
 import { searchConnector } from '@/service/api/connector';
 import { formatESSearchResult } from '@/service/request/es';
-import useQueryParams from '@/hooks/common/search';
+import useQueryParams from '@/hooks/common/queryParams';
 
 const ConnectorCategory = {
   CloudStorage: 'cloud_storage',

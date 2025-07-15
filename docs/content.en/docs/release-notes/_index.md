@@ -18,6 +18,7 @@ Information about release notes of Coco Server is provided here.
 ### 🐛 Bug fix  
 - fix: query parameter "filter" is not working
 - fix: pagination in the list is not working
+- fix: local icons fail to display without network
 
 ### ✈️ Improvements  
 - refactor: refactoring user id #337

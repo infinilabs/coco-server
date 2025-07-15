@@ -134,6 +134,7 @@ declare global {
   const lazy: typeof import('react')['lazy']
   const memo: typeof import('react')['memo']
   const notion: typeof import('../components/icons/notion.jsx')['default']
+  const queryParams: typeof import('../hooks/common/queryParams')['default']
   const script: typeof import('../hooks/common/script')['default']
   const search: typeof import('../components/icons/search.jsx')['default']
   const startTransition: typeof import('react')['startTransition']

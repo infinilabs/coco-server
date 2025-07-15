@@ -11,6 +11,7 @@ import App from './App.tsx';
 import './plugins/assets';
 import { setupI18n } from './locales';
 import { setupAppVersionNotification, setupDayjs, setupIconifyOffline, setupLoading, setupNProgress } from './plugins';
+import './icons';
 
 function setupApp() {
   setupI18n();

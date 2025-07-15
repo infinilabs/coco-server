@@ -5,7 +5,7 @@ import type { TableColumnsType, TableProps, MenuProps } from "antd";
 import {searchMCPServer, deleteMCPServer, updateMCPServer} from '@/service/api/mcp-server';
 import { formatESSearchResult } from '@/service/request/es';
 import InfiniIcon from '@/components/common/icon';
-import useQueryParams from '@/hooks/common/search';
+import useQueryParams from '@/hooks/common/queryParams';
 
 type MCPServer = Api.LLM.MCPServer;
 
