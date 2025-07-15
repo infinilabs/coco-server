@@ -27,6 +27,7 @@ import (
 	"errors"
 	"fmt"
 	log "github.com/cihub/seelog"
+	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/kv"
@@ -95,19 +96,38 @@ func (h APIHandler) uploadAttachment(w http.ResponseWriter, r *http.Request, ps 
 	h.WriteAckJSON(w, true, 200, result)
 }
 
+type AttachmentsRequest struct {
+	Attachments []string `json:"attachments"`
+}
+
 func (h APIHandler) getAttachments(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	sessionID := h.GetParameterOrDefault(req, "session", "")
+
+	filterReq := AttachmentsRequest{}
+	body, _ := h.GetRawBody(req)
+	if body != nil && len(body) > 0 {
+		util.MustFromJSONBytes(body, &filterReq)
+	}
+
 	var err error
-	q := orm.Query{}
-	if sessionID != "" {
-		q.Conds = orm.And(orm.Eq("session", sessionID))
-		q.Conds = append(q.Conds, orm.NotEq("deleted", true))
-	} else {
-		q.RawQuery, err = h.GetRawBody(req)
+	ctx := orm.NewContextWithParent(req.Context())
+	orm.WithModel(ctx, &common.Attachment{})
+
+	builder, err := orm.NewQueryBuilderFromRequest(req, "name", "description")
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	builder.Filter(orm.MustNotQuery(orm.TermQuery("deleted", true)))
+
+	if len(filterReq.Attachments) > 0 {
+
+		builder.Filter(orm.TermsQuery("id", filterReq.Attachments))
+
 	}
 
 	docs := []common.Attachment{}
-	err, res := orm.SearchWithJSONMapper(&docs, &q)
+	err, res := core.SearchV2WithResultItemMapper(ctx, &docs, builder, nil)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
