@@ -28,7 +28,6 @@ import "infini.sh/framework/core/orm"
 type Attachment struct {
 	orm.ORMObjectBase // Embedding ORM base for persistence-related fields
 
-	Session     string `json:"session,omitempty" elastic_mapping:"session:{type:keyword}"` //session_id
 	Name        string `json:"name,omitempty" elastic_mapping:"name:{type:keyword}"`
 	Description string `json:"description,omitempty" elastic_mapping:"description:{type:keyword}"`
 	Icon        string `json:"icon,omitempty" elastic_mapping:"icon:{enabled:false}"`
