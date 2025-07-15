@@ -24,19 +24,36 @@
 package langchain
 
 import (
-	"github.com/cihub/seelog"
+	log "github.com/cihub/seelog"
 	"github.com/tmc/langchaingo/llms"
 	"github.com/tmc/langchaingo/llms/ollama"
 	"github.com/tmc/langchaingo/llms/openai"
 	"infini.sh/coco/modules/common"
+	"infini.sh/framework/core/global"
+	"net/http"
+	"net/http/httputil"
 )
+
+type LoggingRoundTripper struct {
+	original http.RoundTripper
+}
+
+func (lrt *LoggingRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	// Dump and log request
+	dump, err := httputil.DumpRequestOut(req, true)
+	if err == nil {
+		log.Info("=== API Request ===")
+		log.Info(string(dump))
+	}
+	return lrt.original.RoundTrip(req)
+}
 
 func GetLLM(endpoint, apiType, model, token string, keepalive string) llms.Model {
 	if model == "" {
 		panic("model is empty")
 	}
 
-	seelog.Debug("use model:", model, ",type:", apiType)
+	log.Debug("use model:", model, ",type:", apiType)
 
 	if apiType == common.OLLAMA {
 		llm, err := ollama.New(
@@ -49,11 +66,28 @@ func GetLLM(endpoint, apiType, model, token string, keepalive string) llms.Model
 		return llm
 
 	} else {
-		llm, err := openai.New(
-			openai.WithToken(token),
-			openai.WithBaseURL(endpoint),
-			openai.WithModel(model),
-		)
+
+		var llm llms.Model
+		var err error
+
+		if global.Env().IsDebug {
+			customClient := &http.Client{
+				Transport: &LoggingRoundTripper{original: http.DefaultTransport},
+			}
+			llm, err = openai.New(
+				openai.WithHTTPClient(customClient),
+				openai.WithToken(token),
+				openai.WithBaseURL(endpoint),
+				openai.WithModel(model),
+			)
+		} else {
+			llm, err = openai.New(
+				openai.WithToken(token),
+				openai.WithBaseURL(endpoint),
+				openai.WithModel(model),
+			)
+		}
+
 		if err != nil {
 			panic(err)
 		}
