@@ -403,7 +403,7 @@ export const EditForm = memo(props => {
         <Form.Item label=" ">
           <ChartStartPage assistants={assistants} isSub={true} startPageSettings={record?.enabled_module?.ai_chat?.start_page_config} logo={logo} setLogo={setLogo}/>
         </Form.Item>
-        <Form.Item label=" ">
+        {/* <Form.Item label=" ">
           <div className="mb-8px">
             {t('page.integration.form.labels.feature_Control')}
           </div>
@@ -420,7 +420,7 @@ export const EditForm = memo(props => {
               ]}
             />
           </Form.Item>
-        </Form.Item>
+        </Form.Item> */}
         <Form.Item
           label={t('page.integration.form.labels.access_control')}
           name="access_control"
