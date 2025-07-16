@@ -7,7 +7,8 @@ export const DocSearchModal = ({
   onClose,
   triggerBtnType,
   theme,
-  isOpen
+  isOpen,
+  formatUrl
 }) => {
   // We rely on a CSS property to set the modal height to the full viewport height
   // because all mobile browsers don't compute their height the same way.
@@ -68,6 +69,7 @@ export const DocSearchModal = ({
             onCancel={() => {
               onClose()
             }}
+            formatUrl={formatUrl}
           />
         </div>
       </div>
