@@ -584,7 +584,7 @@ func BuildDatasourceFilter(datasource string, filterDisabled bool) []*orm.Clause
 
 	//TODO verify this filter
 	if len(disabledIDs) > 0 {
-		mustClauses = append(mustClauses, orm.MustQuery(orm.TermsQuery("source.id", disabledIDs)))
+		mustClauses = append(mustClauses, orm.MustNotQuery(orm.TermsQuery("source.id", disabledIDs)))
 	}
 
 	return mustClauses
