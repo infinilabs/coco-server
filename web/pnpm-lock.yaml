@@ -350,6 +350,40 @@ importers:
         specifier: 4.2.2
         version: 4.2.2
 
+  widgets/fullscreen:
+    dependencies:
+      react:
+        specifier: ^18.3.1
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.3.1
+        version: 18.3.1(react@18.3.1)
+    devDependencies:
+      '@types/react':
+        specifier: ^18.3.1
+        version: 18.3.12
+      '@types/react-dom':
+        specifier: ^18.3.1
+        version: 18.3.1
+      esbuild:
+        specifier: 0.21.5
+        version: 0.21.5
+      esbuild-plugin-svgr:
+        specifier: ^3.1.0
+        version: 3.1.0(esbuild@0.21.5)(typescript@5.6.3)
+      http-server:
+        specifier: ^14.1.1
+        version: 14.1.1
+      prettier:
+        specifier: 3.3.2
+        version: 3.3.2
+      tsup:
+        specifier: ^8.4.0
+        version: 8.4.0(jiti@2.4.0)(postcss@8.4.47)(tsx@4.19.2)(typescript@5.6.3)(yaml@2.5.0)
+      typescript:
+        specifier: ^5.5.2
+        version: 5.6.3
+
   widgets/searchbox:
     dependencies:
       '@infinilabs/search-chat':

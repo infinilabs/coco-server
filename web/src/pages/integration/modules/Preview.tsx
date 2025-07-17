@@ -49,7 +49,7 @@ export const Preview = memo(props => {
         </Button>
         <iframe
           height="100%"
-          src={`${params.server}/widgets/searchbox/index.html?id=${params?.id}&token=${params?.token}&server=${encodeURIComponent(params.server)}`}
+          src={`${params.server}/widgets/${params.type}/index.html?id=${params?.id}&token=${params?.token}&server=${encodeURIComponent(params.server)}`}
           width="100%"
         />
       </Modal>

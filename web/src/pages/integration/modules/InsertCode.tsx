@@ -4,7 +4,7 @@ import Clipboard from 'clipboard';
 import { Preview } from './Preview';
 
 export const InsertCode = memo(props => {
-  const { id, token } = props;
+  const { id, token, type } = props;
 
   const { t } = useTranslation();
   const copyRef = useRef<HTMLButtonElement>(null);
@@ -22,10 +22,10 @@ export const InsertCode = memo(props => {
   };
 
   const code = useMemo(() => {
-    return `<div id="searchbox" style="margin: 10px 0; outline: none"></div>
+    return `<div id=${type} style="margin: 10px 0; outline: none"></div>
 <script type="module" >
-    import { searchbox } from "${window.location.origin}/integration/${id}/widget";
-    searchbox({container: "#searchbox"});
+    import { ${type} } from "${window.location.origin}/integration/${id}/widget";
+    ${type}({container: "#${type}"});
 </script>`;
   }, [id, token]);
 
@@ -64,7 +64,7 @@ export const InsertCode = memo(props => {
         </div>
       </pre>
       <div className="text-right">
-        <Preview params={{ id, server: `${window.location.origin}`, token }}>
+        <Preview params={{ id, server: `${window.location.origin}`, token, type }}>
           <Button
             className="mt-12px"
             size="large"

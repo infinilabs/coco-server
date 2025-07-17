@@ -224,7 +224,7 @@ export const SearchBoxForm = memo(props => {
             block
             options={[
               { label: t('page.integration.form.labels.type_searchbox'), value: 'searchbox' },
-              { label: t('page.integration.form.labels.type_searchpage'), value: 'searchpage' },
+              { label: t('page.integration.form.labels.type_fullscreen'), value: 'fullscreen' },
             ]}
             optionType="button"
             onChange={(e) => setType(e.target.value)}

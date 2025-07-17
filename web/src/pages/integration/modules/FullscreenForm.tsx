@@ -18,7 +18,7 @@ function generateRandomString(size) {
   return result;
 }
 
-export const SearchPageForm = memo(props => {
+export const FullscreenForm = memo(props => {
   const { actionText, onSubmit, record, type, setType } = props;
   const [form] = Form.useForm();
   const { t } = useTranslation();
@@ -41,7 +41,7 @@ export const SearchPageForm = memo(props => {
     onSubmit(
       {
         ...params,
-        type: 'searchpage',
+        type: 'fullscreen',
         payload: {
           ...payload,
           search: {
@@ -117,7 +117,7 @@ export const SearchPageForm = memo(props => {
             ...(record.cors || {}),
             allowed_origins: record.cors?.allowed_origins ? record.cors?.allowed_origins.join(',') : ''
           },
-          type: 'searchpage',
+          type: 'fullscreen',
         }
       : {
           access_control: {
@@ -147,7 +147,7 @@ export const SearchPageForm = memo(props => {
           },
           name: `widget-${generateRandomString(8)}`,
           enabled: true,
-          type: 'searchpage',
+          type: 'fullscreen',
         };
     form.setFieldsValue(initValue);
   }, [record]);
@@ -192,7 +192,7 @@ export const SearchPageForm = memo(props => {
             block
             options={[
               { label: t('page.integration.form.labels.type_searchbox'), value: 'searchbox' },
-              { label: t('page.integration.form.labels.type_searchpage'), value: 'searchpage' },
+              { label: t('page.integration.form.labels.type_fullscreen'), value: 'fullscreen' },
             ]}
             optionType="button"
             onChange={(e) => setType(e.target.value)}
