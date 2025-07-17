@@ -17,7 +17,12 @@ jobs:
         steps:
             - name: Checkout current repository
               uses: actions/checkout@v4
+              
+            - name: Checkout framework repository
+              uses: actions/checkout@v4
               with:
+                ref: main
+                repository: infinilabs/framework
                 path: framework
 
             - name: Checkout framework-vendor
@@ -43,7 +48,7 @@ jobs:
               run: |
                 echo Home path is $HOME
                 export WORKBASE=$HOME/go/src/infini.sh
-                export WORK=$WORKBASE/framework
+                export WORK=$WORKBASE/coco
 
                 # for test workspace
                 mkdir -p $HOME/go/src/
