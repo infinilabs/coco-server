@@ -33,6 +33,10 @@ type MessageRequest struct {
 	Attachments []string `config:"attachments" json:"attachments,omitempty"`
 }
 
+func (m *MessageRequest) IsEmpty() bool {
+	return m.Message == "" && len(m.Attachments) == 0
+}
+
 type ChatMessage struct {
 	orm.ORMObjectBase
 	MessageType string      `json:"type"` // user, assistant, system
