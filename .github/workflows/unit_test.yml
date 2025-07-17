@@ -8,23 +8,147 @@ defaults:
   run:
     shell: bash
 
+env:
+    PNAME: coco
+    GO_VERSION: 1.23.4
+    NODEJS_VERSION: 20.18.2
+    PNPM_VERSION: 'latest'
+
 jobs:
-    build:
-        timeout-minutes: 60
+    format_check:
         runs-on: ubuntu-latest
-        env:
-            GO_VERSION: 1.23.4
+        steps:
+          - name: Checkout current repository
+            uses: actions/checkout@v4
+            with:
+              path: ${{ env.PNAME }}
+
+          - name: Checkout framework repository
+            uses: actions/checkout@v4
+            with:
+              repository: infinilabs/framework
+              path: framework
+
+          - name: Checkout framework-vendor
+            uses: actions/checkout@v4
+            with:
+              ref: main
+              repository: infinilabs/framework-vendor
+              path: vendor
+
+          - name: Set up nodejs toolchain
+            uses: actions/setup-node@v4
+            with:
+              node-version: ${{ env.NODEJS_VERSION }}
+
+          - name: Cache dependencies
+            uses: actions/cache@v4
+            with:
+              path: |
+                node_modules
+              key: ${{ runner.os }}-cnpm-${{ hashFiles('**/package.json') }}
+              restore-keys: |
+                ${{ runner.os }}-cnpm-
+
+          - name: Check nodejs toolchain
+            run: |
+              if ! command -v pnpm >/dev/null 2>&1; then
+                npm install -g pnpm
+              fi
+              node -v && npm -v && pnpm -v
+
+          - name: Set up go toolchain
+            uses: actions/setup-go@v5
+            with:
+              go-version: ${{ env.GO_VERSION }}
+              check-latest: false
+              cache: true
+
+          - name: Check go toolchain
+            run: go version
+
+          - name: Cache Build Output
+            uses: actions/cache@v4
+            with:
+              path: |
+                .public
+              key: ${{ runner.os }}-build-${{ hashFiles('**/package.json') }}-${{ github.sha }}
+              restore-keys: |
+                ${{ runner.os }}-build-${{ hashFiles('**/package.json') }}-
+                ${{ runner.os }}-build-
+
+          - name: Code format
+            env:
+              GOFLAGS: -tags=ci
+            run: |
+              echo Home path is $HOME
+              export WORKBASE=$HOME/go/src/infini.sh
+              export WORK=$WORKBASE/console
+
+              # for test workspace
+              mkdir -p $HOME/go/src/
+              ln -s $GITHUB_WORKSPACE $WORKBASE
+
+              # for web build
+              cd $WORK/web
+              cnpm install --quiet --no-progress
+              cnpm run build --quiet
+
+              # check work folder
+              ls -lrt $WORKBASE/
+              ls -alrt $WORK
+              
+              # for code format
+              cd $WORK
+              echo Formating code at $PWD ...
+              make format
+              if [ $? -ne 0 ]; then
+                echo "make format failed, please check make output"
+                exit 1
+              fi
+
+          - name: Check for changes after format
+            id: check-changes
+            shell: bash
+            run: |
+              export WORKBASE=$HOME/go/src/infini.sh
+              export WORK=$WORKBASE/$PNAME
+
+              # for foramt check
+              cd $WORK
+              if [[ $(git status --porcelain | grep -c " M .*\.go$") -gt 0 ]]; then
+                echo "go format detected formatting changes"
+                echo "changes=true" >> $GITHUB_OUTPUT
+              else
+                echo "go format no changes found"
+                echo "changes=false" >> $GITHUB_OUTPUT
+              fi
+          
+          - name: Fail workflow if changes after format
+            if: steps.check-changes.outputs.changes == 'true'
+            run: |
+                export WORKBASE=$HOME/go/src/infini.sh
+                export WORK=$WORKBASE/$PNAME
+
+                # for foramt check
+                cd $WORK && echo
+                git status --porcelain | grep " M .*\.go$"
+                echo "----------------------------------------------------------------------------------"
+                echo "IMPORTANT: Above files are not formatted, please run 'make format' to format them."
+                echo "----------------------------------------------------------------------------------"
+                exit 1
+
+    unit_test:
+        runs-on: ubuntu-latest
         steps:
             - name: Checkout current repository
               uses: actions/checkout@v4
               with:
-                ref: main
-                path: coco
+                path: ${{ env.PNAME }}
 
             - name: Checkout framework repository
               uses: actions/checkout@v4
               with:
-                ref: main
                 repository: infinilabs/framework
                 path: framework
 
@@ -34,6 +158,27 @@ jobs:
                 ref: main
                 repository: infinilabs/framework-vendor
                 path: vendor
+
+            - name: Set up nodejs toolchain
+              uses: actions/setup-node@v4
+              with:
+                node-version: ${{ env.NODEJS_VERSION }}
+
+            - name: Cache dependencies
+              uses: actions/cache@v4
+              with:
+                path: |
+                  node_modules
+                key: ${{ runner.os }}-cnpm-${{ hashFiles('**/package.json') }}
+                restore-keys: |
+                  ${{ runner.os }}-cnpm-
+
+            - name: Check nodejs toolchain
+              run: |
+                if ! command -v pnpm >/dev/null 2>&1; then
+                  npm install -g pnpm
+                fi
+                node -v && npm -v && pnpm -v
 
             - name: Set up go toolchain
               uses: actions/setup-go@v5
@@ -45,18 +190,33 @@ jobs:
             - name: Check go toolchain
               run: go version
 
+            - name: Cache Build Output
+              uses: actions/cache@v4
+              with:
+                path: |
+                 .public
+                key: ${{ runner.os }}-build-${{ hashFiles('**/package.json') }}-${{ github.sha }}
+                restore-keys: |
+                 ${{ runner.os }}-build-${{ hashFiles('**/package.json') }}-
+                 ${{ runner.os }}-build-
+
             - name: Unit test
               env:
                 GOFLAGS: -tags=ci
               run: |
                 echo Home path is $HOME
                 export WORKBASE=$HOME/go/src/infini.sh
-                export WORK=$WORKBASE/coco
+                export WORK=$WORKBASE/$PNAME
 
                 # for test workspace
                 mkdir -p $HOME/go/src/
                 ln -s $GITHUB_WORKSPACE $WORKBASE
-                
+
+                # for web build
+                echo "Build $PNAME web start..."
+                cd $WORK/web && sed -i '/prepare/d' package.json
+                pnpm install --registry=https://registry.npmjs.com --quiet && pnpm build -- --silent
+
                 # check work folder
                 ls -lrt $WORKBASE/
                 ls -alrt $WORK
@@ -64,4 +224,118 @@ jobs:
                 # for unit test
                 cd $WORK
                 echo Testing code at $PWD ...
-                OFFLINE_BUILD=true CI=true make test
+                make test
+
+    code_lint:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout current repository
+              uses: actions/checkout@v4
+              with:
+                path: ${{ env.PNAME }}
+
+            - name: Checkout framework repository
+              uses: actions/checkout@v4
+              with:
+                repository: infinilabs/framework
+                path: framework
+
+            - name: Checkout framework-vendor
+              uses: actions/checkout@v4
+              with:
+                ref: main
+                repository: infinilabs/framework-vendor
+                path: vendor
+
+            - name: Set up nodejs toolchain
+              uses: actions/setup-node@v4
+              with:
+                node-version: ${{ env.NODEJS_VERSION }}
+
+            - name: Cache dependencies
+              uses: actions/cache@v4
+              with:
+                path: |
+                  node_modules
+                key: ${{ runner.os }}-cnpm-${{ hashFiles('**/package.json') }}
+                restore-keys: |
+                  ${{ runner.os }}-cnpm-
+
+            - name: Check nodejs toolchain
+              run: |
+                if ! command -v pnpm >/dev/null 2>&1; then
+                  npm install -g pnpm
+                fi
+                node -v && npm -v && pnpm -v
+
+            - name: Set up go toolchain
+              uses: actions/setup-go@v5
+              with:
+                go-version: ${{ env.GO_VERSION }}
+                check-latest: false
+                cache: true
+
+            - name: Check go toolchain
+              run: go version
+
+            - name: Cache Build Output
+              uses: actions/cache@v4
+              with:
+                path: |
+                 .public
+                key: ${{ runner.os }}-build-${{ hashFiles('**/package.json') }}-${{ github.sha }}
+                restore-keys: |
+                 ${{ runner.os }}-build-${{ hashFiles('**/package.json') }}-
+                 ${{ runner.os }}-build-
+
+            - name: Code lint
+              env:
+                GOFLAGS: -tags=ci
+              run: |
+                echo Home path is $HOME
+                export WORKBASE=$HOME/go/src/infini.sh
+                export WORK=$WORKBASE/$PNAME
+
+                # for test workspace
+                mkdir -p $HOME/go/src/
+                ln -s $GITHUB_WORKSPACE $WORKBASE
+
+                # for web build
+                echo "Build $PNAME web start..."
+                cd $WORK/web && sed -i '/prepare/d' package.json
+                pnpm install --registry=https://registry.npmjs.com --quiet && pnpm build -- --silent
+
+                # check work folder
+                ls -lrt $WORKBASE/
+                ls -alrt $WORK
+
+                # for code lint
+                cd $WORK
+                echo Testing code at $PWD ...
+                # make lint
+    web_test:
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout current repository
+          uses: actions/checkout@v4
+          with:
+            path: ${{ env.PNAME }}
+
+        - name: Set up nodejs toolchain
+          uses: actions/setup-node@v4
+          with:
+            node-version: ${{ env.NODEJS_VERSION }}
+            cache: 'npm'
+            cache-dependency-path: "**/package.json"
+
+        - name: Check nodejs toolchain
+          run: |
+            if ! command -v pnpm >/dev/null 2>&1; then
+              npm install -g pnpm
+            fi
+            node -v && npm -v && pnpm -v
+
+        - name: Check web build
+          run: |
+            echo Home path is $HOME
+            cd $GITHUB_WORKSPACE/$PNAME/web && pnpm install --quiet --no-progress && pnpm run build --quiet
