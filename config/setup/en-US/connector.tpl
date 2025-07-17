@@ -121,3 +121,25 @@ POST $[[SETUP_INDEX_PREFIX]]connector/$[[SETUP_DOC_TYPE]]/notion
   },
   "builtin": true
 }
+POST $[[SETUP_INDEX_PREFIX]]connector/$[[SETUP_DOC_TYPE]]/rss
+{
+  "id" : "rss",
+  "created" : "2025-07-14T20:50:00.869073+08:00",
+  "updated" : "2025-07-14T20:50:00.869073+08:00",
+  "name" : "RSS Connector",
+  "description" : "Fetch items from a specified RSS feed.",
+  "category" : "website",
+  "icon" : "/assets/icons/connector/rss/icon.png",
+  "tags" : [
+    "rss",
+    "feed",
+    "web"
+  ],
+  "url" : "http://coco.rs/connectors/rss",
+  "assets" : {
+    "icons" : {
+      "default" : "/assets/icons/connector/rss/icon.png"
+    }
+  },
+  "builtin": true
+}
