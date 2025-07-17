@@ -339,4 +339,4 @@ jobs:
         - name: Check web build
           run: |
             echo Home path is $HOME
-            cd $GITHUB_WORKSPACE/$PNAME/web && pnpm install --quiet --no-progress && pnpm run build --quiet
+            cd $GITHUB_WORKSPACE/$PNAME/web && pnpm install --quiet && pnpm run build --quiet
