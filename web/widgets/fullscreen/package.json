@@ -1,0 +1,54 @@
+{
+  "name": "fullscreen",
+  "type": "module",
+  "version": "0.1.0",
+  "description": "",
+  "license": "MIT or Apache-2.0",
+  "keywords": [
+    "pizza",
+    "search",
+    "docsearch",
+    "autocomplete",
+    "docs",
+    "quicksearch",
+    "quicksearchbar"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./css": "./dist/index.css"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "LICENSE_*",
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup && cp index.html dist/",
+    "build:server": "tsup && mkdir -p ../../../.public/widgets/searchbox && cp index.html dist/index.css dist/index.js ../../../.public/widgets/searchbox",
+    "demo": "cd dist && http-server",
+    "format": "prettier --write \"./**/*.{js,jsx,ts,tsx,json,html,css}\" --ignore-path .gitignore",
+    "format:check": "prettier --check \"./**/*.{js,jsx,ts,tsx,json,html,css}\" --ignore-path .gitignore",
+    "prepublishOnly": "pnpm build",
+    "ts:check": "tsc --noEmit",
+    "watch": "tsup --watch"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.1",
+    "esbuild": "0.21.5",
+    "esbuild-plugin-svgr": "^3.1.0",
+    "http-server": "^14.1.1",
+    "prettier": "3.3.2",
+    "tsup": "^8.4.0",
+    "typescript": "^5.5.2"
+  }
+}
