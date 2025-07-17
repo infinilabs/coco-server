@@ -46,9 +46,9 @@ jobs:
             with:
               path: |
                 node_modules
-              key: ${{ runner.os }}-cnpm-${{ hashFiles('**/package.json') }}
+              key: ${{ runner.os }}-pnpm-${{ hashFiles('**/package.json') }}
               restore-keys: |
-                ${{ runner.os }}-cnpm-
+                ${{ runner.os }}-pnpm-
 
           - name: Check nodejs toolchain
             run: |
@@ -90,9 +90,8 @@ jobs:
               ln -s $GITHUB_WORKSPACE $WORKBASE
 
               # for web build
-              cd $WORK/web
-              cnpm install --quiet --no-progress
-              cnpm run build --quiet
+              cd $WORK/web && sed -i '/prepare/d' package.json
+              pnpm install --registry=https://registry.npmjs.com --quiet && pnpm build -- --silent
 
               # check work folder
               ls -lrt $WORKBASE/
@@ -169,9 +168,9 @@ jobs:
               with:
                 path: |
                   node_modules
-                key: ${{ runner.os }}-cnpm-${{ hashFiles('**/package.json') }}
+                key: ${{ runner.os }}-pnpm-${{ hashFiles('**/package.json') }}
                 restore-keys: |
-                  ${{ runner.os }}-cnpm-
+                  ${{ runner.os }}-pnpm-
 
             - name: Check nodejs toolchain
               run: |
@@ -257,9 +256,9 @@ jobs:
               with:
                 path: |
                   node_modules
-                key: ${{ runner.os }}-cnpm-${{ hashFiles('**/package.json') }}
+                key: ${{ runner.os }}-pnpm-${{ hashFiles('**/package.json') }}
                 restore-keys: |
-                  ${{ runner.os }}-cnpm-
+                  ${{ runner.os }}-pnpm-
 
             - name: Check nodejs toolchain
               run: |
@@ -339,4 +338,5 @@ jobs:
         - name: Check web build
           run: |
             echo Home path is $HOME
-            cd $GITHUB_WORKSPACE/$PNAME/web && pnpm install --quiet && pnpm run build --quiet
+            cd $GITHUB_WORKSPACE/$PNAME/web
+            pnpm install --registry=https://registry.npmjs.com --quiet && pnpm build -- --silent
