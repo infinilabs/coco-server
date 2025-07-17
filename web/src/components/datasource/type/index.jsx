@@ -13,7 +13,8 @@ export const Types = {
   Notion: 'notion',
   ObjectStorage: 'object_storage',
   Search: 'search',
-  Yuque: 'yuque'
+  Yuque: 'yuque',
+  RSS: 'rss',
 };
 
 export const TypeList = ({
