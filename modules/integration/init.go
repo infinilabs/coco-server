@@ -18,7 +18,7 @@ import (
 type APIHandler struct {
 	api.Handler
 	searchBoxWrapperTemplate  *fasttemplate.Template
-	searchPageWrapperTemplate *fasttemplate.Template
+	fullscreenWrapperTemplate *fasttemplate.Template
 }
 
 func NewAPIHandler() *APIHandler {
@@ -29,11 +29,11 @@ func NewAPIHandler() *APIHandler {
 	}
 	handler.searchBoxWrapperTemplate, err = fasttemplate.NewTemplate(string(tpl), "$[[", "]]")
 
-	tpl, err = util.FileGetContent(util.JoinPath(global.Env().SystemConfig.PathConfig.Config, "widget/searchpage/wrapper.js"))
+	tpl, err = util.FileGetContent(util.JoinPath(global.Env().SystemConfig.PathConfig.Config, "widget/fullscreen/wrapper.js"))
 	if err != nil {
 		panic(err)
 	}
-	handler.searchPageWrapperTemplate, err = fasttemplate.NewTemplate(string(tpl), "$[[", "]]")
+	handler.fullscreenWrapperTemplate, err = fasttemplate.NewTemplate(string(tpl), "$[[", "]]")
 
 	return &handler
 }

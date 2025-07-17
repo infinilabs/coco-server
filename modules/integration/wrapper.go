@@ -59,16 +59,16 @@ func (h *APIHandler) widgetWrapper(w http.ResponseWriter, req *http.Request, ps 
 	var str string
 
 	switch obj.Type {
-	//'embedded', 'floating', 'all', 'searchpage'
-	case "searchpage":
-		if h.searchPageWrapperTemplate == nil {
+	//'embedded', 'floating', 'all', 'fullscreen'
+	case "fullscreen":
+		if h.fullscreenWrapperTemplate == nil {
 			panic("invalid wrapper template")
 		}
 
 		info := common.AppConfig()
 		token := obj.Token
 
-		str = h.searchPageWrapperTemplate.ExecuteFuncString(func(w io.Writer, tag string) (int, error) {
+		str = h.fullscreenWrapperTemplate.ExecuteFuncString(func(w io.Writer, tag string) (int, error) {
 			switch tag {
 			case "ID":
 				return w.Write([]byte(integrationID))
