@@ -83,7 +83,7 @@ jobs:
             run: |
               echo Home path is $HOME
               export WORKBASE=$HOME/go/src/infini.sh
-              export WORK=$WORKBASE/console
+              export WORK=$WORKBASE/$PNAME
 
               # for test workspace
               mkdir -p $HOME/go/src/
