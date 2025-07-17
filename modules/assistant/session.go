@@ -181,7 +181,7 @@ func (h APIHandler) newChatSession(w http.ResponseWriter, req *http.Request, ps 
 		return
 	}
 
-	session, err, firstMessage, finalResult := CreateAndSaveNewChatMessage(assistantID, request.Message, true)
+	session, err, firstMessage, finalResult := CreateAndSaveNewChatMessage(assistantID, &request, true)
 	if err != nil {
 		h.Error(w, err)
 		return
@@ -218,7 +218,7 @@ func (h APIHandler) createChatSession(w http.ResponseWriter, r *http.Request, ps
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	session, err, reqMsg, finalResult := CreateAndSaveNewChatMessage(id, request.Message, true)
+	session, err, reqMsg, finalResult := CreateAndSaveNewChatMessage(id, &request, true)
 	if err != nil {
 		h.Error(w, err)
 		return
@@ -260,7 +260,7 @@ func (h APIHandler) createChatSession(w http.ResponseWriter, r *http.Request, ps
 	_ = h.processMessageAsync(ctx, reqMsg, params, streamSender)
 }
 
-func CreateAndSaveNewChatMessage(assistantID string, message string, visible bool) (common.Session, error, *common.ChatMessage, util.MapStr) {
+func CreateAndSaveNewChatMessage(assistantID string, req *common.MessageRequest, visible bool) (common.Session, error, *common.ChatMessage, util.MapStr) {
 
 	//if !rate.GetRateLimiterPerSecond("assistant_new_chat", clientIdentity, 10).Allow() {
 	//	panic("too many requests")
@@ -271,8 +271,8 @@ func CreateAndSaveNewChatMessage(assistantID string, message string, visible boo
 		Visible: visible,
 	}
 
-	if message != "" {
-		obj.Title = util.SubString(message, 0, 50)
+	if req != nil && req.Message != "" {
+		obj.Title = util.SubString(req.Message, 0, 50)
 	}
 
 	//save session
@@ -289,8 +289,8 @@ func CreateAndSaveNewChatMessage(assistantID string, message string, visible boo
 
 	var firstMessage *common.ChatMessage
 	//save first message to history
-	if message != "" {
-		firstMessage, err = saveRequestMessage(obj.ID, assistantID, message)
+	if req != nil && !req.IsEmpty() {
+		firstMessage, err = saveRequestMessage(obj.ID, assistantID, req)
 		if err != nil {
 			return common.Session{}, err, nil, nil
 		}
@@ -318,12 +318,12 @@ func (h *APIHandler) askAssistant(w http.ResponseWriter, r *http.Request, ps htt
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if request.Message == "" {
+	if request.IsEmpty() {
 		h.WriteError(w, "message is empty", 400)
 		return
 	}
 
-	session, err, reqMsg, finalResult := CreateAndSaveNewChatMessage(id, request.Message, false)
+	session, err, reqMsg, finalResult := CreateAndSaveNewChatMessage(id, &request, false)
 	if err != nil || reqMsg == nil {
 		h.Error(w, err)
 		return
@@ -360,9 +360,9 @@ func (h *APIHandler) askAssistant(w http.ResponseWriter, r *http.Request, ps htt
 
 }
 
-func saveRequestMessage(sessionID, assistantID, message string) (*common.ChatMessage, error) {
+func saveRequestMessage(sessionID, assistantID string, req *common.MessageRequest) (*common.ChatMessage, error) {
 
-	if sessionID == "" || assistantID == "" || message == "" {
+	if sessionID == "" || assistantID == "" || req.IsEmpty() {
 		panic("invalid chat message")
 	}
 
@@ -370,7 +370,8 @@ func saveRequestMessage(sessionID, assistantID, message string) (*common.ChatMes
 		SessionID:   sessionID,
 		AssistantID: assistantID,
 		MessageType: common.MessageTypeUser,
-		Message:     message,
+		Message:     req.Message,
+		Attachments: req.Attachments,
 	}
 	msg.ID = util.GetUUID()
 
@@ -543,7 +544,7 @@ func (h APIHandler) sendChatMessage(w http.ResponseWriter, req *http.Request, ps
 	}
 	assistantID := h.GetParameterOrDefault(req, "assistant_id", DefaultAssistantID)
 
-	reqMsg, err := saveRequestMessage(sessionID, assistantID, request.Message)
+	reqMsg, err := saveRequestMessage(sessionID, assistantID, &request)
 	if err != nil {
 		h.Error(w, err)
 		return
@@ -586,7 +587,7 @@ func (h APIHandler) sendChatMessageV2(w http.ResponseWriter, r *http.Request, ps
 		return
 	}
 
-	reqMsg, err := saveRequestMessage(sessionID, id, request.Message)
+	reqMsg, err := saveRequestMessage(sessionID, id, &request)
 	if err != nil {
 		h.Error(w, err)
 		return

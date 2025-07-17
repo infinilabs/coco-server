@@ -1,0 +1,35 @@
+name: 'commit-message-check'
+on:
+  pull_request:
+
+jobs:
+  check-commit-message:
+    name: check-subject
+    runs-on: ubuntu-latest
+    steps:
+      - name: check-subject-type
+        uses: gsactions/commit-message-checker@v2
+        with:
+          checkAllCommitMessages: 'true' # optional: this checks all commits associated with a pull request
+          excludeDescription: 'true' # optional: this excludes the description body of a pull request
+          accessToken: ${{ secrets.GITHUB_TOKEN }}
+          pattern: '^(change:|feat:|improve:|perf:|dep:|docs:|test:|ci:|style:|refactor:|fix:|fixdoc:|fixup:|merge|Merge|update|Update|bumpver:|chore:|build:) .+$'
+          flags: 'gm'
+          error: |
+            Subject line has to contain a commit type, e.g.: "chore: blabla" or a merge commit e.g.: "merge xxx".
+            Valid types are:
+              change        - API breaking change
+              feat          - API compatible new feature
+              improve       - Become better without functional changes
+              perf          - Performance improvement
+              dep           - dependency update
+              docs          - docs update
+              test          - test udpate
+              ci            - CI workflow update
+              refactor      - refactor without function change.
+              fix           - fix bug
+              fixdoc        - fix doc
+              fixup         - minor change: e.g., fix sth mentioned in a review.
+              bumpver       - Bump to a new version.
+              chore         - Nothing important.
+              build         - bot: dependabot.
