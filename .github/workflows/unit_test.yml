@@ -224,7 +224,7 @@ jobs:
                 # for unit test
                 cd $WORK
                 echo Testing code at $PWD ...
-                make test
+                OFFLINE_BUILD=true CI=true make test
 
     code_lint:
         runs-on: ubuntu-latest
@@ -311,8 +311,9 @@ jobs:
 
                 # for code lint
                 cd $WORK
-                echo Testing code at $PWD ...
+                echo Linting code at $PWD ...
                 # make lint
+
     web_test:
       runs-on: ubuntu-latest
       steps:
