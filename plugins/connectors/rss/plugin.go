@@ -7,6 +7,8 @@ package rss
 import (
 	"context"
 	"fmt"
+	"time"
+
 	log "github.com/cihub/seelog"
 	"github.com/mmcdole/gofeed"
 	"infini.sh/coco/modules/common"
@@ -21,7 +23,6 @@ import (
 	"infini.sh/framework/core/queue"
 	"infini.sh/framework/core/task"
 	"infini.sh/framework/core/util"
-	"time"
 )
 
 type Config struct {
@@ -155,7 +156,7 @@ func (this *Plugin) fetchRssFeed(connector *common.Connector, datasource *common
 					Name: datasource.Name,
 				},
 				Type:    "rss", // feed
-				Icon:    "rss",
+				Icon:    "default",
 				Title:   item.Title,
 				Summary: item.Description,
 				Content: item.Content,
