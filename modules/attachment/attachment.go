@@ -26,6 +26,13 @@ package attachment
 import (
 	"errors"
 	"fmt"
+	"io"
+	"mime/multipart"
+	"net/http"
+	"path/filepath"
+	"strings"
+	"time"
+
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
@@ -33,12 +40,6 @@ import (
 	"infini.sh/framework/core/kv"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
-	"io"
-	"mime/multipart"
-	"net/http"
-	"path/filepath"
-	"strings"
-	"time"
 )
 
 //	curl -X POST http://localhost:9000/chat/session_id/_upload \
@@ -93,7 +94,7 @@ func (h APIHandler) getAttachments(w http.ResponseWriter, req *http.Request, ps 
 
 	filterReq := AttachmentsRequest{}
 	body, _ := h.GetRawBody(req)
-	if body != nil && len(body) > 0 {
+	if len(body) > 0 {
 		util.MustFromJSONBytes(body, &filterReq)
 	}
 
@@ -191,7 +192,11 @@ func (h APIHandler) checkAttachment(w http.ResponseWriter, req *http.Request, ps
 	}
 
 	w.Header().Set("Filename", attachment.Name)
-	w.Header().Set("Created", fmt.Sprintf("%d", attachment.Created))
+	if attachment.Created != nil {
+		w.Header().Set("Created", fmt.Sprintf("%d", attachment.Created.Unix()))
+	} else {
+		w.Header().Set("Created", "")
+	}
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", attachment.Size))
 	w.WriteHeader(200)
 }

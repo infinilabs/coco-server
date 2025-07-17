@@ -9,7 +9,7 @@ const DEFAULT_HOTKEYS = ["ctrl+/"];
 const DARK_MODE_MEDIA_QUERY = '(prefers-color-scheme: dark)'
 
 export const DocSearch = (props) => {
-  const { hotKeys = DEFAULT_HOTKEYS, server, id, token, linkHref } = props;
+  const { hotKeys = DEFAULT_HOTKEYS, server, id, token, linkHref, formatUrl } = props;
 
   const [isOpen, setIsOpen] = useState(false);
   const [initialQuery, setInitialQuery] = useState();
@@ -155,7 +155,8 @@ export const DocSearch = (props) => {
       onClose,
       triggerBtnType,
       theme,
-      isOpen
+      isOpen,
+      formatUrl
     }
     const wrapper = document.createElement("div");
     window[`${id}_shadow`].appendChild(wrapper);

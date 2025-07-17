@@ -19,6 +19,7 @@ Information about release notes of Coco Server is provided here.
 - fix: query parameter "filter" is not working
 - fix: pagination in the list is not working
 - fix: local icons fail to display without network
+- fix: incorrect status display in llm provider list #364
 
 ### ✈️ Improvements  
 - refactor: refactoring user id #337
@@ -29,6 +30,7 @@ Information about release notes of Coco Server is provided here.
 - chore: add upload settings to assistant #352
 - refactor: refactoring ORM and security interface
 - chore: remove session_id check in attachment upload api #357
+- chore: add formatUrl to searchbox #360
 
 ## 0.6.0 (2025-06-29)
 ### ❌ Breaking changes  

@@ -153,7 +153,7 @@ export function Component() {
                       </div>}
                     </div>
                     <div>
-                      <Switch defaultChecked={provider.enabled} onChange={(v)=>onItemEnableChange(provider, v)} size="small" />
+                      <Switch checked={provider.enabled} onChange={(v)=>onItemEnableChange(provider, v)} size="small" />
                     </div>
                   </div>
                   <div className="text-[#999] h-[51px] line-clamp-3 text-xs my-[10px]">
