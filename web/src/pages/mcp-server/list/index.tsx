@@ -92,7 +92,7 @@ export function Component() {
             <IconWrapper className="w-20px h-20px">
               <InfiniIcon height="1em" width="1em" src={record.icon} />
             </IconWrapper>
-            <span className='max-w-150px ant-table-cell-ellipsis'>{ value }</span>
+            <span className='max-w-150px ant-table-cell-ellipsis cursor-pointer hover:text-blue-500' onClick={()=>nav(`/mcp-server/edit/${record.id}`, {state:record})}>{ value }</span>
           </div>
         )
       }
