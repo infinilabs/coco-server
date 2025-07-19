@@ -3,7 +3,7 @@ import UISearch from './ui-search';
 import './ui-search/index.css';
 
 export default (props) => {
-    const { id, token, server } = props;
+    const { shadow, id, token, server } = props;
     const [settings, setSettings] = useState()
 
     const { payload = {} } = settings || {}
@@ -135,7 +135,8 @@ export default (props) => {
 
     return (
         <UISearch {...{
-            shadow: props.shadow,
+            id,
+            shadow,
             "logo": {
                 "light": payload?.logo?.light,
                 "light-mobile": payload?.logo?.light_mobile,
