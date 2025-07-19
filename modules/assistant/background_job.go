@@ -328,7 +328,7 @@ func (h APIHandler) processMessageAsync(ctx context.Context, reqMsg *common.Chat
 		//process LLM tools / functions
 		answer, err := h.processLLMTools(ctx, reqMsg, replyMsg, params, inputValues, sender)
 		if err != nil {
-			log.Error(err)
+			log.Error(answer, err)
 		}
 
 		if answer != "" {
@@ -480,11 +480,9 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *common.ChatMes
 
 	for _, id := range params.mcpServers {
 		v, err := common.GetMPCServer(id)
-		if err != nil {
-			panic(err)
-		}
-		if v == nil {
-			panic("invalid mcp server")
+		if err != nil || v == nil {
+			log.Errorf("Failed to get MPC Server [%s]: %v", id, err)
+			continue
 		}
 
 		log.Tracef("start init mcp server: %v, %v", v.Name, v.Type)
@@ -500,12 +498,25 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *common.ChatMes
 			cfg := common.StreamableHttpConfig{}
 			err := util.FromJSONBytes(bytes, &cfg)
 			if err != nil {
-				return "", err
+				if global.Env().IsDebug {
+					log.Errorf("convert from json fail: %v", err)
+				}
+				continue
+			}
+
+			if !util.IsValidURL(cfg.URL) {
+				if global.Env().IsDebug {
+					log.Errorf("invalid url: %v", cfg.URL)
+				}
+				continue
 			}
 
 			mcpClient, err = client.NewStreamableHttpClient(cfg.URL)
 			if err != nil {
-				return "", fmt.Errorf("new mcp adapter: %w", err)
+				if global.Env().IsDebug {
+					log.Errorf("NewStreamableHttpClient fail: %v", err)
+				}
+				continue
 			}
 			break
 		case common.SSE:
@@ -513,15 +524,24 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *common.ChatMes
 			cfg := common.SSEConfig{}
 			err := util.FromJSONBytes(bytes, &cfg)
 			if err != nil {
-				return "", err
+				if global.Env().IsDebug {
+					log.Errorf("convert from json fail: %v", err)
+				}
+				continue
 			}
 
 			mcpClient, err = client.NewSSEMCPClient(cfg.URL)
 			if err != nil {
-				return "", fmt.Errorf("new mcp adapter: %w", err)
+				if global.Env().IsDebug {
+					log.Errorf("NewSSEMCPClient fail: %v", err)
+				}
+				continue
 			}
 			if err := mcpClient.Start(context.Background()); err != nil {
-				return "", fmt.Errorf("new mcp adapter: %w", err)
+				if global.Env().IsDebug {
+					log.Errorf("start client fail: %v", err)
+				}
+				continue
 			}
 
 			break
@@ -531,7 +551,10 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *common.ChatMes
 			cfg := common.StdioConfig{}
 			err := util.FromJSONBytes(bytes, &cfg)
 			if err != nil {
-				return "", err
+				if global.Env().IsDebug {
+					log.Errorf("convert from json fail: %v", err)
+				}
+				continue
 			}
 			envs := []string{}
 			if len(cfg.Env) > 0 {
@@ -541,29 +564,44 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *common.ChatMes
 			}
 			mcpClient, err = client.NewStdioMCPClient(cfg.Command, envs, cfg.Args...)
 			if err != nil {
-				return "", fmt.Errorf("error on new stdio client: %w", err)
+				if global.Env().IsDebug {
+					log.Errorf("NewStdioMCPClient fail: %v", err)
+				}
+				continue
 			}
 			//ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			//defer cancel()
 			if err := mcpClient.Start(context.Background()); err != nil {
-				return "", fmt.Errorf("error on start stdio client: %w", err)
+				if global.Env().IsDebug {
+					log.Errorf("start client fail: %v", err)
+				}
+				continue
 			}
 			break
 		default:
-			panic("unknown type")
+			if global.Env().IsDebug {
+				log.Errorf("invalid type: %v", v.Type)
+			}
+			continue
 		}
 
 		if mcpClient != nil {
 			mcpClients = append(mcpClients, mcpClient)
 			mcpAdapter, err := langchain.New(mcpClient)
 			if err != nil {
-				return "", fmt.Errorf("new mcp adapter: %w", err)
+				if global.Env().IsDebug {
+					log.Errorf("error on new langchain client: %v", err)
+				}
+				continue
 			}
 
 			mcpTools, err := mcpAdapter.Tools()
 			log.Tracef("get %v tools from mcp server: %v", v.Name)
 			if err != nil {
-				return "", fmt.Errorf("append tools: %w", err)
+				if global.Env().IsDebug {
+					log.Errorf("error get %v tools from mcp server: %v", v.Name, err)
+				}
+				continue
 			}
 			agentTools = append(agentTools, mcpTools...)
 		}
