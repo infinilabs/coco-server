@@ -11,6 +11,11 @@ export function searchModelPovider(params: any) {
     size: params.size || 10,
     sort: [
       {
+        "enabled": {
+          "order": "desc"
+        }
+      },
+      {
         "created": {
           "order": "desc"
         }
@@ -101,6 +106,18 @@ export function getEnabledModelProviders(size: number = 100) {
         enabled: true
       }
     },
+    sort: [
+      {
+        "enabled": {
+          "order": "desc"
+        }
+      },
+      {
+        "created": {
+          "order": "desc"
+        }
+      }
+    ],
   }
   return request<Api.LLM.ModelProvider>({
     method: 'post',
