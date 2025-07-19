@@ -14,12 +14,14 @@ Information about release notes of Coco Server is provided here.
 - feat: add file upload config #349
 - feat: support attachments in chat message #355
 - feat: log llm request for debugging purpose
+- feat: rss connector #149
 
 ### 🐛 Bug fix  
 - fix: query parameter "filter" is not working
 - fix: pagination in the list is not working
 - fix: local icons fail to display without network
 - fix: incorrect status display in llm provider list #364
+- fix: chat api with attachments #368
 
 ### ✈️ Improvements  
 - refactor: refactoring user id #337

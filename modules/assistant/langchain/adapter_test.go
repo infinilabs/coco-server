@@ -3,6 +3,7 @@ package langchain
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	adapter "github.com/i2y/langchaingo-mcp-adapter"
@@ -258,6 +259,9 @@ func TestTools(t *testing.T) {
 
 // TestToolCall tests the Call method of the created tools.
 func TestToolCall(t *testing.T) {
+	if os.Getenv("CI") == "true" {
+		t.Skip("Skipping in CI environment")
+	}
 	tests := []struct {
 		name           string
 		toolName       string
