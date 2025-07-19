@@ -81,6 +81,9 @@ export function Component() {
       break;
     case Types.GoogleDrive:
       break;
+    case Types.RSS:
+      connectorType = 'RSS';
+      break;
     default:
       return (
         <Modal
@@ -126,6 +129,11 @@ export function Component() {
         };
         break;
       case Types.HugoSite:
+        config = {
+          urls: values.urls || []
+        };
+        break;
+      case Types.RSS:
         config = {
           urls: values.urls || []
         };
@@ -212,6 +220,7 @@ export function Component() {
               {type === Types.Yuque && <Yuque />}
               {type === Types.Notion && <Notion />}
               {type === Types.HugoSite && <HugoSite />}
+              {type === Types.RSS && <HugoSite />}
               <Form.Item
                 label={t('page.datasource.new.labels.data_sync')}
                 name="sync_config"

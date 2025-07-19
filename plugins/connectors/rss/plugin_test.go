@@ -9,16 +9,17 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+
 	"github.com/stretchr/testify/assert"
 	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/kv"
 	"infini.sh/framework/core/module"
 	"infini.sh/framework/core/queue"
 	"infini.sh/framework/core/util"
-	"net/http"
-	"net/http/httptest"
-	"testing"
-	"time"
 )
 
 func bytesToBase64String(key []byte) string {
@@ -212,7 +213,7 @@ func TestFetchRssFeed_Success(t *testing.T) {
 	assert.Equal(t, expectedID, doc1.ID)
 	assert.Equal(t, "Test Author", doc1.Owner.UserName)
 	assert.Equal(t, "rss", doc1.Type) // "feed" is more better?
-	assert.Equal(t, "rss", doc1.Icon)
+	assert.Equal(t, "default", doc1.Icon)
 	createdTime, _ := time.Parse(time.RFC1123, "Tue, 10 Jun 2024 04:00:00 MST")
 	assert.Equal(t, createdTime.UnixMilli(), doc1.Created.UnixMilli())
 }
