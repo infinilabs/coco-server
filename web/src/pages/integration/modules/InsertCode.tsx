@@ -22,7 +22,7 @@ export const InsertCode = memo(props => {
   };
 
   const code = useMemo(() => {
-    return `<div id=${type} style="margin: 10px 0; outline: none"></div>
+    return `<div id="${type}" style="margin: 10px 0; outline: none"></div>
 <script type="module" >
     import { ${type} } from "${window.location.origin}/integration/${id}/widget";
     ${type}({container: "#${type}"});

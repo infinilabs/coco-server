@@ -20,6 +20,23 @@ export const Preview = memo(props => {
     setIsModalOpen(false);
   };
 
+  const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Integration Preview</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+      </head>
+      <body>
+        <div id="${params.type}" style="margin: 10px 0; outline: none"></div>
+        <script type="module" >
+            import { ${params.type} } from "${window.location.origin}/integration/${params.id}/widget";
+            ${params.type}({container: "#${params.type}"});
+        </script>
+      </body>
+      </html>
+    `;
+
   return (
     <>
       <span onClick={showModal}>{children}</span>
@@ -49,7 +66,8 @@ export const Preview = memo(props => {
         </Button>
         <iframe
           height="100%"
-          src={`${params.server}/widgets/${params.type}/index.html?id=${params?.id}&token=${params?.token}&server=${encodeURIComponent(params.server)}`}
+          srcDoc={htmlContent}
+          // src={`${params.server}/widgets/${params.type}/index.html?id=${params?.id}&token=${params?.token}&server=${encodeURIComponent(params.server)}`}
           width="100%"
         />
       </Modal>

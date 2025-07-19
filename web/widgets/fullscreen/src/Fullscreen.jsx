@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { Fullscreen } from './ui-search';
+import { useEffect, useState } from 'react';
+import UISearch from './ui-search';
 import './ui-search/index.css';
 
 export default (props) => {
@@ -13,8 +13,8 @@ export default (props) => {
         fetch(`${server}/integration/${id}`, {
             headers: {
                 'APP-INTEGRATION-ID': id,
+                'X-API-TOKEN': token,
                 'Content-Type': 'application/json',
-                'X-API-TOKEN': token
             },
             method: 'GET'
         })
@@ -34,8 +34,8 @@ export default (props) => {
         fetch(`${server}/query/_search?${filterStr ? filterStr + '&' : ''}query=${query.keyword}&from=${query.from}&size=${query.size}&v2=true`, {
             method: 'POST',
             headers: {
-                'app-integration-id': id,
-                'X-API-TOKEN': token
+                'APP-INTEGRATION-ID': id,
+                'X-API-TOKEN': token,
             },
             body: shouldAgg ? JSON.stringify({
                 "aggs": {
@@ -78,8 +78,8 @@ export default (props) => {
         try {
             const response = await fetch(`${server}/assistant/${assistantID}/_ask`, {
                 headers: {
-                    'app-integration-id': id,
-                    'X-API-TOKEN': token
+                    'APP-INTEGRATION-ID': id,
+                    'X-API-TOKEN': token,
                 },
                 method: 'POST',
                 body: JSON.stringify({
@@ -134,21 +134,27 @@ export default (props) => {
     if (settings?.type !== 'fullscreen') return null;
 
     return (
-        <Fullscreen {...{
+        <UISearch {...{
+            shadow: props.shadow,
             "logo": {
                 "light": payload?.logo?.light,
-                "light-mobile": payload?.logo?.['light-mobile'],
+                "light-mobile": payload?.logo?.light_mobile,
             },
+            "placeholder": payload?.search?.placeholder,
             "welcome": payload?.welcome || "Nice to meet you. I can help answer your questions by tapping into the internet and your data sources. How can I assist you today?",
             "aiOverview": payload?.ai_overview?.enabled ? {
-                "assistantID": payload?.ai_overview?.assistant,
-                "title": "AI Overview",
+                "assistantID": 'ai_overview' || payload?.ai_overview?.assistant,
+                "title": payload?.ai_overview?.title,
+                "height": payload?.ai_overview?.height || "auto",
+                "logo": payload?.ai_overview?.logo,
+                "showActions": true,
             } : undefined,
             "widgets": payload.ai_widgets?.enabled && payload.ai_widgets?.widgets ? payload.ai_widgets?.widgets.map((item) => ({
                 "assistantID": item.assistant,
-                "title": "Suggestions",
+                "title": item.title,
+                "height": item.height || "auto",
+                "logo": item.logo,
                 "showActions": false,
-                "height": item.height ? `${item.height}px` : "auto",
             })) : [],
             "onSearch": (query, callback, setLoading, shouldAgg = true) => {
                 search(query, callback, setLoading, shouldAgg)
