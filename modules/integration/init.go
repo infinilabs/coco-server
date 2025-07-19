@@ -17,16 +17,23 @@ import (
 
 type APIHandler struct {
 	api.Handler
-	wrapperTemplate *fasttemplate.Template
+	searchBoxWrapperTemplate  *fasttemplate.Template
+	fullscreenWrapperTemplate *fasttemplate.Template
 }
 
 func NewAPIHandler() *APIHandler {
 	handler := APIHandler{}
-	tpl, err := util.FileGetContent(util.JoinPath(global.Env().SystemConfig.PathConfig.Config, "widget/wrapper.js"))
+	tpl, err := util.FileGetContent(util.JoinPath(global.Env().SystemConfig.PathConfig.Config, "widget/searchbox/wrapper.js"))
 	if err != nil {
 		panic(err)
 	}
-	handler.wrapperTemplate, err = fasttemplate.NewTemplate(string(tpl), "$[[", "]]")
+	handler.searchBoxWrapperTemplate, err = fasttemplate.NewTemplate(string(tpl), "$[[", "]]")
+
+	tpl, err = util.FileGetContent(util.JoinPath(global.Env().SystemConfig.PathConfig.Config, "widget/fullscreen/wrapper.js"))
+	if err != nil {
+		panic(err)
+	}
+	handler.fullscreenWrapperTemplate, err = fasttemplate.NewTemplate(string(tpl), "$[[", "]]")
 
 	return &handler
 }
