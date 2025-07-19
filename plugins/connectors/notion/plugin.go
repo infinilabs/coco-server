@@ -90,7 +90,7 @@ func (this *Plugin) Start() error {
 				connector.ID = "notion"
 				exists, err := orm.Get(&connector)
 				if !exists || err != nil {
-					panic("invalid hugo_site connector")
+					panic(errors.Errorf("invalid %s connector:%v", connector.ID, err))
 				}
 
 				q := orm.Query{}

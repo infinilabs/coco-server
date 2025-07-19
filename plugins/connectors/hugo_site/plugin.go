@@ -84,7 +84,7 @@ func (this *Plugin) Start() error {
 				connector.ID = "hugo_site"
 				exists, err := orm.Get(&connector)
 				if !exists || err != nil {
-					panic(errors.Errorf("invalid hugo_site connector:%v", err))
+					panic(errors.Errorf("invalid %s connector:%v", connector.ID, err))
 				}
 
 				q := orm.Query{}

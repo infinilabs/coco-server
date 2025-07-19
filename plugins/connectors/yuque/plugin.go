@@ -8,6 +8,7 @@ import (
 	"infini.sh/framework/core/api"
 	config3 "infini.sh/framework/core/config"
 	"infini.sh/framework/core/env"
+	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/module"
 	"infini.sh/framework/core/orm"
@@ -75,7 +76,7 @@ func (this *Plugin) Start() error {
 				connector.ID = YuqueKey
 				exists, err := orm.Get(&connector)
 				if !exists || err != nil {
-					panic("invalid hugo_site connector")
+					panic(errors.Errorf("invalid %s connector:%v", connector.ID, err))
 				}
 
 				q := orm.Query{}
