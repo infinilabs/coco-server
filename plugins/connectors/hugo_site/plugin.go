@@ -83,7 +83,11 @@ func (this *Plugin) Start() error {
 				connector := common.Connector{}
 				connector.ID = "hugo_site"
 				exists, err := orm.Get(&connector)
-				if !exists || err != nil {
+				if !exists {
+					log.Debugf("Connector %s not found", connector.ID)
+					return
+				}
+				if err != nil {
 					panic(errors.Errorf("invalid %s connector:%v", connector.ID, err))
 				}
 
