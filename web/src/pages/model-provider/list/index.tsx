@@ -146,7 +146,7 @@ export function Component() {
                         <IconWrapper className="w-40px h-40px">
                           <InfiniIcon src={provider.icon} height="2em" width="2em" className="font-size-2em"/>
                         </IconWrapper>
-                        <span className="font-size-1.2em">{provider.name}</span>
+                        <span className="font-size-1.2em cursor-pointer hover:text-blue-500" onClick={()=>nav(`/model-provider/edit/${provider.id}`)}>{provider.name}</span>
                       </div>
                       {provider.builtin === true && <div className="flex items-center">
                         <p className="h-[22px] bg-[#eee] text-[#999] font-size-[12px] px-[10px] line-height-[22px] rounded-[4px]">{t('page.modelprovider.labels.builtin')}</p>
