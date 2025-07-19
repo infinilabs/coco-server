@@ -619,7 +619,7 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *common.ChatMes
 
 func (h APIHandler) processInitialDocumentSearch(ctx context.Context, reqMsg, replyMsg *common.ChatMessage, params *RAGContext, fechSize int, sender common.MessageSender) ([]common.Document, error) {
 
-	if params.intentModel != nil && (params.AssistantCfg.DeepThinkConfig != nil && params.AssistantCfg.DeepThinkConfig.PickDatasource) {
+	if params.intentModel != nil && (params.AssistantCfg.DeepThinkConfig != nil && params.AssistantCfg.DeepThinkConfig.PickDatasource) && params.QueryIntent != nil {
 		if !params.QueryIntent.NeedNetworkSearch {
 			log.Info("intent analyzer decided to skip fetch datasource")
 			return []common.Document{}, nil
