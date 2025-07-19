@@ -36,10 +36,6 @@ import (
 var ver = util.GetUUID()
 
 func (h *APIHandler) widgetWrapper(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	if h.wrapperTemplate == nil {
-		panic("invalid wrapper template")
-	}
-
 	integrationID := ps.MustGetParameter("id")
 	obj := common.Integration{}
 	obj.ID = integrationID
@@ -60,25 +56,61 @@ func (h *APIHandler) widgetWrapper(w http.ResponseWriter, req *http.Request, ps 
 		return
 	}
 
-	info := common.AppConfig()
-	token := obj.Token
+	var str string
 
-	str := h.wrapperTemplate.ExecuteFuncString(func(w io.Writer, tag string) (int, error) {
-		switch tag {
-		case "ID":
-			return w.Write([]byte(integrationID))
-		case "VER":
-			return w.Write([]byte(ver))
-		case "ENDPOINT":
-			endpoint := strings.TrimRight(info.ServerInfo.Endpoint, "/")
-			return w.Write([]byte(endpoint))
-		case "TOKEN":
-			endpoint := token
-			return w.Write([]byte(endpoint))
+	switch obj.Type {
+	//'embedded', 'floating', 'all', 'fullscreen'
+	case "fullscreen":
+		if h.fullscreenWrapperTemplate == nil {
+			panic("invalid wrapper template")
 		}
-		return -1, nil
-	})
+
+		info := common.AppConfig()
+		token := obj.Token
+
+		str = h.fullscreenWrapperTemplate.ExecuteFuncString(func(w io.Writer, tag string) (int, error) {
+			switch tag {
+			case "ID":
+				return w.Write([]byte(integrationID))
+			case "VER":
+				return w.Write([]byte(ver))
+			case "ENDPOINT":
+				endpoint := strings.TrimRight(info.ServerInfo.Endpoint, "/")
+				return w.Write([]byte(endpoint))
+			case "TOKEN":
+				endpoint := token
+				return w.Write([]byte(endpoint))
+			}
+			return -1, nil
+		})
+		break
+	default:
+
+		if h.searchBoxWrapperTemplate == nil {
+			panic("invalid wrapper template")
+		}
+
+		info := common.AppConfig()
+		token := obj.Token
+
+		str = h.searchBoxWrapperTemplate.ExecuteFuncString(func(w io.Writer, tag string) (int, error) {
+			switch tag {
+			case "ID":
+				return w.Write([]byte(integrationID))
+			case "VER":
+				return w.Write([]byte(ver))
+			case "ENDPOINT":
+				endpoint := strings.TrimRight(info.ServerInfo.Endpoint, "/")
+				return w.Write([]byte(endpoint))
+			case "TOKEN":
+				endpoint := token
+				return w.Write([]byte(endpoint))
+			}
+			return -1, nil
+		})
+	}
 	h.WriteJavascriptHeader(w)
 	_, _ = h.Write(w, []byte(str))
 	h.WriteHeader(w, 200)
+
 }
