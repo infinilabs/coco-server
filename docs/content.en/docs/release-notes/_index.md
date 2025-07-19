@@ -36,6 +36,7 @@ Information about release notes of Coco Server is provided here.
 - chore: add formatUrl to searchbox #360
 - chore: add fullscreen to integration #373
 - chore: ignore invalid connector #379
+- chore: skip invalid mcp server #380
 
 ## 0.6.0 (2025-06-29)
 ### ❌ Breaking changes  
