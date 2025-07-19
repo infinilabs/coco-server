@@ -75,7 +75,7 @@ func (this *Plugin) Start() error {
 			connector.ID = "rss"
 			exists, err := orm.Get(&connector)
 			if !exists || err != nil {
-				panic(errors.Errorf("RSS connector not found or error occurred, skipping task:%v", err))
+				panic(errors.Errorf("invalid %s connector:%v", connector.ID, err))
 			}
 
 			q := orm.Query{}
