@@ -213,7 +213,7 @@ func TestFetchRssFeed_Success(t *testing.T) {
 	assert.Equal(t, expectedID, doc1.ID)
 	assert.Equal(t, "Test Author", doc1.Owner.UserName)
 	assert.Equal(t, "rss", doc1.Type) // "feed" is more better?
-	assert.Equal(t, "rss", doc1.Icon)
+	assert.Equal(t, "default", doc1.Icon)
 	createdTime, _ := time.Parse(time.RFC1123, "Tue, 10 Jun 2024 04:00:00 MST")
 	assert.Equal(t, createdTime.UnixMilli(), doc1.Created.UnixMilli())
 }
