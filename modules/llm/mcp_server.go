@@ -24,12 +24,10 @@
 package llm
 
 import (
-	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/orm"
-	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
 	"net/http"
 )
@@ -200,8 +198,6 @@ func (h *APIHandler) searchMCPServer(w http.ResponseWriter, req *http.Request, p
 		return
 	}
 
-	user := security.MustGetUserFromContext(req.Context())
-	log.Error(util.MustToJSON(user))
 	ctx := orm.NewContextWithParent(req.Context())
 	orm.WithModel(ctx, &common.MCPServer{})
 
