@@ -29,6 +29,7 @@ export async function fullscreen(options) {
 
     const finalOptions = {
       ...options,
+      shadow,
       container: wrapper,
       id: "$[[ID]]",
       server: "$[[ENDPOINT]]",
