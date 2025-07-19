@@ -55,6 +55,7 @@ export function Component() {
             <InsertCode
               id={data?._source?.id}
               token={data?._source?.token}
+              type={data?._source?.type === 'fullscreen' ? 'fullscreen' : 'searchbox'}
             />
           </Col>
         </Row>

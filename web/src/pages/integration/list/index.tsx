@@ -80,7 +80,9 @@ export function Component() {
     },
     {
       dataIndex: 'type',
-      render: value => t(`page.integration.form.labels.type_${value}`),
+      render: value => {
+        return value === 'fullscreen' ? t('page.integration.form.labels.type_fullscreen') : t('page.integration.form.labels.type_searchbox')
+      },
       title: t('page.integration.columns.type')
     },
     {

@@ -33,6 +33,7 @@ Information about release notes of Coco Server is provided here.
 - refactor: refactoring ORM and security interface
 - chore: remove session_id check in attachment upload api #357
 - chore: add formatUrl to searchbox #360
+- chore: add fullscreen to integration #373
 
 ## 0.6.0 (2025-06-29)
 ### ❌ Breaking changes  
