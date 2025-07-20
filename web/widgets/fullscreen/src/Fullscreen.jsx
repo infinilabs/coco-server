@@ -73,7 +73,7 @@ export default (props) => {
         })
     }
 
-    async function ask(assistantID, query, callback, setLoading) {
+    async function ask(assistantID, message, callback, setLoading) {
         setLoading(true)
         try {
             const response = await fetch(`${server}/assistant/${assistantID}/_ask`, {
@@ -83,7 +83,7 @@ export default (props) => {
                 },
                 method: 'POST',
                 body: JSON.stringify({
-                    message: query.keyword
+                    message: JSON.stringify(message),
                 })
             });
 
@@ -161,8 +161,8 @@ export default (props) => {
             "onSearch": (query, callback, setLoading, shouldAgg = true) => {
                 search(query, callback, setLoading, shouldAgg)
             },
-            "onAsk": (assistanID, query, callback, setLoading) => {
-                ask(assistanID, query, callback, setLoading)
+            "onAsk": (assistanID, message, callback, setLoading) => {
+                ask(assistanID, message, callback, setLoading)
             },
             "config": {
                 "aggregations": {
