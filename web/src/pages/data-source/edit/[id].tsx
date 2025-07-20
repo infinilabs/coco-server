@@ -128,7 +128,7 @@ export function Component() {
     case Types.Notion:
       datasource.token = datasource?.connector?.config?.token || '';
       break;
-    case Types.HugoSite:
+    case Types.HugoSite, Types.RSS:
       datasource.urls = datasource?.connector?.config?.urls || [''];
       break;
     case Types.GoogleDrive:
@@ -175,6 +175,7 @@ export function Component() {
             {type === Types.Yuque && <Yuque />}
             {type === Types.Notion && <Notion />}
             {type === Types.HugoSite && <HugoSite />}
+            {type === Types.RSS && <HugoSite />}
             {!isCustom ? (
               <>
                 <Form.Item
