@@ -93,6 +93,22 @@ export function Component() {
       enabled: checked,
     }).then((res)=>{
       if(res.data?.result === "updated"){
+        // update local data
+        setData((oldData: any)=>{
+          const newData = oldData.data.map((item: any)=>{
+            if(item.id === record.id){
+              return {
+                ...item,
+                enabled: checked,
+              }
+            }
+            return item;
+          });
+          return {
+            ...oldData,
+            data: newData,
+          }
+        })
         message.success(t('common.updateSuccess'))
       }
     }).finally(()=>{
