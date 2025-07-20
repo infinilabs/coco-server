@@ -4,83 +4,154 @@ title: "Installation"
 asciinema: true
 ---
 
-# Getting Started
+# Coco Server User Guide
 
-## Quickstart with Docker
+- Run Coco Server with Docker
+- Manual install Coco Server
 
+
+## 1. Quick Start (Recommended for Most Users)
+
+This method is the simplest way to get Coco Server running. It uses Docker-managed volumes, which handles data persistence automatically without requiring manual directory setup on your host machine.
+
+**Command:**
 ```bash
-# --------------------------------------------------
-# Coco Server Docker Deployment Script and Commands
-# --------------------------------------------------
-
-# Quick Start Coco Server (using default configuration)
-#
-# Command Explanation:
-#   docker run:       Create and run a new Docker container
-#   -d:               Run the container in the background (detached mode)
-#   --name cocoserver:  Assign a name to the container (cocoserver)
-#   -p 9000:9000:     Map the container's port 9000 to the host's port 9000 (Web UI port)
-#   infinilabs/coco:0.5.0-2236:  The Docker image name and tag (version) to use
-docker run -d --name cocoserver -p 9000:9000 infinilabs/coco:0.5.0-2236
-
-# Stop and Remove Coco Server Container
-#
-# Command Explanation:
-#   docker stop cocoserver:   Stop the container named cocoserver
-#   &&:                     Logical AND operator, ensures the previous command succeeds before executing the next
-#   docker rm cocoserver:     Remove the container named cocoserver (only stopped containers can be removed)
-docker stop cocoserver && docker rm cocoserver
-
-# Remove Coco Server Docker Image
-#
-# Command Explanation:
-#   docker rmi infinilabs/coco:0.5.0-2236: Remove the image named infinilabs/coco with the tag 0.5.0-2236
-#   Note: You can only remove an image if no containers are using it.  If a container is using the image, you must first stop and remove the container.
-docker rmi infinilabs/coco:0.5.0-2236
-
-# --------------------------------------------------
-# Customized Configuration to Start Coco Server
-# (Adjust parameters according to your needs)
-# --------------------------------------------------
-
-# Create data and logs directories and set ownership for the Easysearch user (UID/GID 602).
-mkdir -p $(pwd)/cocoserver/{data,logs}
-sudo chown -R 602:602 $(pwd)/cocoserver
-
-# Command Explanation:
-#   docker run:       Create and run a new Docker container
-#   -d:               Run the container in the background (detached mode)
-#   --name cocoserver:  Assign a name to the container (cocoserver)
-#   --hostname coco-server: Set the container's hostname to coco-server
-#   --restart unless-stopped:  Set the container's restart policy to "restart unless manually stopped"
-#   -m 4g:            Limit the container's memory usage to 4GB
-#   --cpus="2":       Limit the number of CPU cores the container can use to 2
-#   -p 9000:9000:     Map the container's port 9000 to the host's port 9000 (Web UI port)
-#   -v $(pwd)/cocoserver/data:/app/easysearch/data:  Mount the host's ./cocoserver/data directory to the container's /app/easysearch/data directory (for data persistence)
-#        - $(pwd) gets the absolute path of the current directory.
-#        - Make sure the ./cocoserver/data directory exists. You can create it manually or use the `mkdir -p cocoserver/data` command.
-#   -v $(pwd)/cocoserver/logs:/app/easysearch/logs:  Mount the host's ./cocoserver/logs directory to the container's /app/easysearch/logs directory (for storing logs)
-#        - Make sure the ./cocoserver/logs directory exists. You can create it manually or use the `mkdir -p cocoserver/logs` command.
-#   -e EASYSEARCH_INITIAL_ADMIN_PASSWORD=coco-server: Set the initial password for the Easysearch administrator to coco-server (Important: Change this to a strong password)
-#   -e ES_JAVA_OPTS="-Xms2g -Xmx2g":  Set the JVM parameters for Easysearch:
-#        - -Xms2g:  Set the initial JVM heap size to 2GB
-#        - -Xmx2g:  Set the maximum JVM heap size to 2GB
-#   infinilabs/coco:0.5.0-2236: The Docker image name and tag to use
-
 docker run -d \
-           --name cocoserver \
-           --hostname coco-server \
-           --restart unless-stopped \
-           -m 4g \
-           --cpus="2" \
-           -p 9000:9000 \
-           -v $(pwd)/cocoserver/data:/app/easysearch/data \
-           -v $(pwd)/cocoserver/logs:/app/easysearch/logs \
-           -e EASYSEARCH_INITIAL_ADMIN_PASSWORD=coco-server \
-           -e ES_JAVA_OPTS="-Xms2g -Xmx2g" \
-           infinilabs/coco:0.5.0-2236
+  --name cocoserver \
+  -p 9000:9000 \
+  -v ezs_data:/app/easysearch/data \
+  -v ezs_config:/app/easysearch/config \
+  -v ezs_logs:/app/easysearch/logs \
+  -e EASYSEARCH_INITIAL_ADMIN_PASSWORD="coco-server" \
+  infinilabs/coco:0.6.0
 ```
 
+> 🔒 **SECURITY WARNING**
+>
+> For initial setup convenience, the password is set to `"coco-server"`. It is **highly recommended** to replace this with a strong, unique password before running the command for the first time.
+
+**After running the command:**
+*   Coco Server will be running in the background. Access the Web UI at `http://localhost:9000`.
+*   Your data, configuration, and logs are safely stored in Docker volumes named `ezs_data`, `ezs_config`, and `ezs_logs`.
+
+---
+
+## 2. Advanced Start (Using Host Directories)
+
+This method provides direct access to the data, configuration, and log files on your host machine. It's suitable for users who want to easily edit configuration files or manage data directly.
+
+**Step 1: Prepare Host Directories and Environment File**
+
+First, create the necessary directories and a `.env` file for your password.
+
+```bash
+# Create the parent directory for all Coco Server files.
+# We recommend using a standard location like /data/cocoserver.
+sudo mkdir -p /data/cocoserver/{data,logs,config}
+
+# Create an environment file to store your password securely.
+# Replace "your-strong-password" with a strong, secret password.
+echo "EASYSEARCH_INITIAL_ADMIN_PASSWORD=your-strong-password" | sudo tee /data/cocoserver/.env > /dev/null
+```
+
+**Step 2: Initialize Configuration from the Image (One-time Setup)**
+
+This clever command runs a temporary container to copy the default configuration files from the image into your newly created local `config` directory.
+
+```bash
+docker run --rm \
+  -v /data/cocoserver/config:/tmp/config \
+  infinilabs/coco:0.6.0 \
+  cp -a /app/easysearch/config/. /tmp/config/
+```
+*   `--rm`: Automatically removes the container after it exits.
+*   `-v /data/cocoserver/config:/tmp/config`: Mounts your local config directory into a temporary path inside the container.
+*   `cp -a ...`: The command executed inside the container. It copies all contents from the image's config directory to the mounted host directory.
+
+**Step 3: Set Directory Permissions**
+
+The container runs with a specific user (UID 602). You must grant this user write permissions to the host directories.
+
+> **Note:** This step might be unnecessary on some Docker environments like Docker Desktop for Mac. Test without it first if you are unsure.
+
+```bash
+sudo chown -R 602:602 /data/cocoserver
+```
+
+**Step 4: Run the Coco Server Container**
+
+Now, start the main container, mounting your prepared host directories and using the `.env` file for the password.
+
+```bash
+docker run -d \
+  --name cocoserver \
+  --hostname coco-server \
+  --restart unless-stopped \
+  --env-file /data/cocoserver/.env \
+  -m 4g --cpus="2" \
+  -p 9000:9000 \
+  -v /data/cocoserver/data:/app/easysearch/data \
+  -v /data/cocoserver/config:/app/easysearch/config \
+  -v /data/cocoserver/logs:/app/easysearch/logs \
+  -e ES_JAVA_OPTS="-Xms2g -Xmx2g" \
+  infinilabs/coco:0.6.0
+```
+*   `--env-file`: Securely loads environment variables (like your password) from the `.env` file.
+
+---
+
+## 3. Upgrading Coco Server
+
+Follow these steps to upgrade to a new version while preserving all your data. The procedure is the same whether you used the Quick Start or Advanced Start method.
+
+**Step 1: Pull the New Image**
+```bash
+# Replace '0.7.0' with the new version tag.
+docker pull infinilabs/coco:0.7.0
+```
+
+**Step 2: Stop and Remove the Old Container**
+```bash
+docker stop cocoserver && docker rm cocoserver
+```
+
+**Step 3: Start a New Container with the Same Volumes/Mounts**
+
+Re-run your original `docker run` command, but update the image tag to the new version. **It is crucial to use the exact same `-v` volume or bind mount paths as before.**
+
+*   **If you used Quick Start**, re-run the Quick Start command with the new image tag.
+*   **If you used Advanced Start**, re-run the Advanced Start command with the new image tag.
+
+---
+
+## 4. Full Cleanup and Removal
+
+These commands will completely remove the Coco Server container and its data.
+
+> **🛑 DANGER ZONE 🛑**
+>
+> The following commands will **permanently delete all your Coco Server data**. This action cannot be undone. Proceed with caution.
+
+**Step 1: Stop and Remove the Container**
+```bash
+docker stop cocoserver && docker rm cocoserver
+```
+
+**Step 2: Remove Data, Config, and Logs**
+
+*   **If you used Quick Start (Docker Volumes):**
+    ```bash
+    docker volume rm ezs_data ezs_config ezs_logs
+    ```
+*   **If you used Advanced Start (Host Directories):**
+    ```bash
+    sudo rm -rf /data/cocoserver
+    ```
+
+**Step 3: Remove the Docker Image**
+```bash
+docker rmi infinilabs/coco:0.6.0
+```
 
 ## Manual Installation
 
