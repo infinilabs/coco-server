@@ -1,22 +1,24 @@
-import { Button, Form, Input, Spin, Switch, message } from 'antd';
-import type { FormProps } from 'antd';
+import type {FormProps} from 'antd';
+import {Button, Form, Input, message, Spin, Switch} from 'antd';
 import Clipboard from 'clipboard';
-import { useLoaderData } from 'react-router-dom';
-import { ReactSVG } from 'react-svg';
+import {useLoaderData} from 'react-router-dom';
+import {ReactSVG} from 'react-svg';
 
 import LinkSVG from '@/assets/svg-icon/link.svg';
-import { DataSync } from '@/components/datasource/data_sync';
-import { Types } from '@/components/datasource/type';
-import { getDatasource, updateDatasource } from '@/service/api/data-source';
+import {DataSync} from '@/components/datasource/data_sync';
+import {Types} from '@/components/datasource/type';
+import {getDatasource, updateDatasource} from '@/service/api/data-source';
 import {getConnectorIcons} from '@/service/api/connector';
-import { IconSelector } from "@/pages/connector/new/icon_selector";
+import {IconSelector} from "@/pages/connector/new/icon_selector";
 
 import HugoSite from '../new/hugo_site';
+import LocalFS from '../new/local_fs';
 import Notion from '../new/notion';
+import Rss from '../new/rss';
 import Yuque from '../new/yuque';
 
 export function Component() {
-  const { t } = useTranslation();
+  const {t} = useTranslation();
   const nav = useNavigate();
   const loaderData = useLoaderData();
   const datasourceID = loaderData?.id || '';
@@ -34,8 +36,8 @@ export function Component() {
   }, [datasourceID]);
   const [iconsMeta, setIconsMeta] = useState([]);
   useEffect(() => {
-    getConnectorIcons().then((res)=>{
-      if(res.data?.length > 0){
+    getConnectorIcons().then((res) => {
+      if (res.data?.length > 0) {
         setIconsMeta(res.data);
       }
     });
@@ -84,6 +86,24 @@ export function Component() {
           urls: values.urls || []
         };
         break;
+      case Types.RSS:
+        config = {
+          urls: values.urls || []
+        };
+        break;
+      case Types.LocalFS: {
+        const extensions = values.config?.extensions_str
+          ? values.config.extensions_str
+              .split(',')
+              .map((s: string) => s.trim())
+              .filter(Boolean)
+          : [];
+        config = {
+          extensions,
+          paths: (values.config?.paths || []).filter(Boolean)
+        };
+        break;
+      }
     }
     const sValues = {
       connector: {
@@ -104,7 +124,7 @@ export function Component() {
       sValues.connector.config.sync_type = values.sync_config.sync_type || '';
     }
     updateDatasource(datasourceID, sValues).then(res => {
-      if (res.data?.result == 'updated') {
+      if (res.data?.result === 'updated') {
         setLoading(false);
         message.success(t('common.modifySuccess'));
         nav('/data-source/list', {});
@@ -131,6 +151,17 @@ export function Component() {
     case Types.HugoSite:
       datasource.urls = datasource?.connector?.config?.urls || [''];
       break;
+    case Types.RSS:
+      datasource.urls = datasource?.connector?.config?.urls || [''];
+      break;
+    case Types.LocalFS:
+      if (datasource.connector?.config) {
+        datasource.config = {
+          extensions_str: (datasource.connector.config?.extensions || []).join(', '),
+          paths: datasource.connector.config.paths || ['']
+        }
+      }
+      break;
     case Types.GoogleDrive:
       break;
     default:
@@ -148,7 +179,7 @@ export function Component() {
         className="sm:flex-1-auto min-h-full flex-col-stretch card-wrapper"
       >
         <div className="mb-30px ml--16px flex items-center text-lg font-bold">
-          <div className="mr-20px h-1.2em w-10px bg-[#1677FF]" />
+          <div className="mr-20px h-1.2em w-10px bg-[#1677FF]"/>
           {t('page.datasource.edit.title')}
         </div>
         <Spin spinning={loading}>
@@ -156,32 +187,34 @@ export function Component() {
             autoComplete="off"
             colon={false}
             initialValues={datasource || {}}
-            labelCol={{ span: 4 }}
+            labelCol={{span: 4}}
             layout="horizontal"
-            wrapperCol={{ span: 18 }}
+            wrapperCol={{span: 18}}
             onFinish={onFinish}
             onFinishFailed={onFinishFailed}
           >
             <Form.Item
               label={t('page.datasource.new.labels.name')}
               name="name"
-              rules={[{ message: 'Please input datasource name!', required: true }]}
+              rules={[{message: 'Please input datasource name!', required: true}]}
             >
-              <Input className="max-w-660px" />
+              <Input className="max-w-660px"/>
             </Form.Item>
             <Form.Item label={t('page.mcpserver.labels.icon')} name="icon">
-                <IconSelector type="connector" icons={iconsMeta} className='max-w-300px' />
-              </Form.Item>
-            {type === Types.Yuque && <Yuque />}
-            {type === Types.Notion && <Notion />}
-            {type === Types.HugoSite && <HugoSite />}
+              <IconSelector type="connector" icons={iconsMeta} className='max-w-300px'/>
+            </Form.Item>
+            {type === Types.Yuque && <Yuque/>}
+            {type === Types.Notion && <Notion/>}
+            {type === Types.HugoSite && <HugoSite/>}
+            {type === Types.RSS && <Rss/>}
+            {type === Types.LocalFS && <LocalFS/>}
             {!isCustom ? (
               <>
                 <Form.Item
                   label={t('page.datasource.new.labels.data_sync')}
                   name="sync_config"
                 >
-                  <DataSync />
+                  <DataSync/>
                 </Form.Item>
                 <Form.Item
                   label={t('page.datasource.new.labels.sync_enabled')}
@@ -199,7 +232,7 @@ export function Component() {
                   <div>
                     <pre
                       className="whitespace-pre-wrap break-words"
-                      dangerouslySetInnerHTML={{ __html: insertDocCmd }}
+                      dangerouslySetInnerHTML={{__html: insertDocCmd}}
                     />
                   </div>
                   <div className="flex justify-end">
@@ -256,6 +289,6 @@ export function Component() {
   );
 }
 
-export async function loader({ params }: LoaderFunctionArgs) {
+export async function loader({params}: LoaderFunctionArgs) {
   return params;
 }

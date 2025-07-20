@@ -16,6 +16,8 @@ Information about release notes of Coco Server is provided here.
 - feat: log llm request for debugging purpose
 - feat: rss connector #149
 - feat: support default model reasoning config on initialization
+- feat: local FS Connector #284
+
 
 ### 🐛 Bug fix  
 - fix: query parameter "filter" is not working
@@ -24,6 +26,7 @@ Information about release notes of Coco Server is provided here.
 - fix: incorrect status display in llm provider list #364
 - fix: chat api with attachments #368
 - fix: prevent nil exception during LLM intent parsing on error #375
+- fix: deleting multiple URL input boxes does not work
 
 ### ✈️ Improvements  
 - refactor: refactoring user id #337

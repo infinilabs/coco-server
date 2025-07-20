@@ -127,7 +127,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector/$[[SETUP_DOC_TYPE]]/rss
   "created" : "2025-07-14T20:50:00.869073+08:00",
   "updated" : "2025-07-14T20:50:00.869073+08:00",
   "name" : "RSS 连接器",
-  "description" : "提取 RSS feed 文档信息",
+  "description" : "提取 RSS feed 文档信息。",
   "category" : "website",
   "icon" : "/assets/icons/connector/rss/icon.png",
   "tags" : [
@@ -139,6 +139,27 @@ POST $[[SETUP_INDEX_PREFIX]]connector/$[[SETUP_DOC_TYPE]]/rss
   "assets" : {
     "icons" : {
       "default" : "/assets/icons/connector/rss/icon.png"
+    }
+  },
+  "builtin": true
+}
+POST $[[SETUP_INDEX_PREFIX]]connector/$[[SETUP_DOC_TYPE]]/local_fs
+{
+  "id" : "local_fs",
+  "created" : "2025-07-18T10:00:00.000000+08:00",
+  "updated" : "2025-07-18T10:00:00.000000+08:00",
+  "name" : "本地文件连接器",
+  "description" : "提取本地文件元数据信息。",
+  "category" : "local_storage",
+  "icon" : "/assets/icons/connector/local_fs/icon.png",
+  "tags" : [
+    "storage",
+    "filesystem"
+  ],
+  "url" : "http://coco.rs/connectors/local_fs",
+  "assets" : {
+    "icons" : {
+      "default" : "/assets/icons/connector/local_fs/icon.png"
     }
   },
   "builtin": true

@@ -1,10 +1,10 @@
-import { MinusCircleOutlined, PlusOutlined } from '@ant-design/icons';
-import { Button, Input, Space } from 'antd';
-import React, { useState } from 'react';
+import {MinusCircleOutlined, PlusOutlined} from '@ant-design/icons';
+import {Button, Input} from 'antd';
+import React, {useState} from 'react';
 
-export const MultiURLInput = ({ onChange, showLabel = true, value = [''] }) => {
+export const MultiURLInput = ({ onChange, showLabel = true, value = [''],  }) => {
   const [urls, setUrls] = useState(value);
-  const { t } = useTranslation();
+  const {t} = useTranslation();
 
   const handleChange = (index, value) => {
     const newUrls = [...urls];
@@ -17,8 +17,19 @@ export const MultiURLInput = ({ onChange, showLabel = true, value = [''] }) => {
 
   const addUrl = () => setUrls([...urls, '']);
 
+  const triggerChange = newUrls => {
+    if (typeof onChange === 'function') {
+      onChange(newUrls);
+    }
+  };
+
   const removeUrl = index => {
-    setUrls(urls.filter((_, i) => i !== index));
+    if (urls.length <= 1) {
+      return;
+    }
+    const newUrls = urls.filter((_, i) => i !== index);
+    setUrls(newUrls);
+    triggerChange(newUrls); // notfiy parent component
   };
 
   return (
@@ -31,23 +42,23 @@ export const MultiURLInput = ({ onChange, showLabel = true, value = [''] }) => {
             key={index}
           >
             <Input
-              style={{ width: 500 }}
+              style={{width: 500}}
               value={url}
               onChange={e => handleChange(index, e.target.value)}
             />
-            {index == 0 && (
+            {index === 0 && (
               <Button
                 className="ml-5"
-                icon={<PlusOutlined />}
+                icon={<PlusOutlined/>}
                 type="dashed"
                 onClick={addUrl}
               >
                 {t('page.datasource.site_urls_add')}
               </Button>
             )}
-            {urls.length > 1 && index != 0 && (
+            {urls.length > 1 && index !== 0 && (
               <MinusCircleOutlined
-                style={{ color: 'red', cursor: 'pointer', marginLeft: 8 }}
+                style={{color: 'red', cursor: 'pointer', marginLeft: 8}}
                 onClick={() => removeUrl(index)}
               />
             )}
