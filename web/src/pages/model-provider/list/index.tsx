@@ -42,16 +42,22 @@ export function Component() {
       }
     })
   }
-  const items: MenuProps["items"] = [
-    {
-      label: t('common.edit'),
-      key: "1",
-    },
-    {
-      label: t('common.delete'),
-      key: "2",
-    },
-  ];
+  const getMenuItems = useCallback((record: any): MenuProps["items"] => {
+    const items: MenuProps["items"] = [
+      {
+        label: t('common.edit'),
+        key: "1",
+      },
+    ];
+    if(record.builtin !== true) {
+      items.push({
+        label: t('common.delete'),
+        key: "2",
+      });
+    }
+    return items;
+  }, []);
+  
   const onMenuClick = ({key, record}: any)=>{
     switch(key){
       case "2":
@@ -164,7 +170,7 @@ export function Component() {
                     <div className="ml-auto flex gap-2">
                       <div onClick={()=>{onAPIKeyClick(provider)}} className="border border-[var(--ant-color-border)] cursor-pointer  px-10px rounded-[8px]">API-key</div>
                       <div className="inline-block px-4px rounded-[8px] border border-[var(--ant-color-border)] cursor-pointer">
-                        <Dropdown menu={{ items, onClick:({key})=>onMenuClick({key, record: provider}) }}>
+                        <Dropdown menu={{ items: getMenuItems(provider), onClick:({key})=>onMenuClick({key, record: provider}) }}>
                             <SettingOutlined className="text-blue-500"/>
                         </Dropdown>
                       </div>
