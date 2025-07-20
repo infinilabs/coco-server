@@ -176,6 +176,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         module_chat_placeholder: 'AI 聊天输入框提示文本',
         module_search: '搜索',
         module_search_placeholder: '搜索输入框提示文本',
+        module_search_welcome: '欢迎语',
         logo: '图标',
         logo_mobile: '移动端图标',
         name: '名称',

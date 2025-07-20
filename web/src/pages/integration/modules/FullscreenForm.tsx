@@ -74,6 +74,17 @@ export const FullscreenForm = memo(props => {
             <Input className={itemClassNames} />
         </Form.Item>
     </Form.Item>
+    <Form.Item label=" ">
+        <div className="mb-8px">
+            {t('page.integration.form.labels.module_search_welcome')}
+        </div>
+        <Form.Item
+            className="mb-0px"
+            name={['payload', 'welcome']}
+        >
+            <Input.TextArea rows={3} className={itemClassNames} />
+        </Form.Item>
+    </Form.Item>
     <Form.Item label=" " name={['logo', 'light']}>
       <div className="mb-8px">
         {t('page.integration.form.labels.logo')}

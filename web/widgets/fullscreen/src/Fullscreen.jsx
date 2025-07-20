@@ -142,7 +142,7 @@ export default (props) => {
                 "light-mobile": payload?.logo?.light_mobile,
             },
             "placeholder": enabled_module?.search?.placeholder,
-            "welcome": payload?.welcome || "Nice to meet you. I can help answer your questions by tapping into the internet and your data sources. How can I assist you today?",
+            "welcome": payload?.welcome || "",
             "aiOverview": {
                 "enabled": payload?.ai_overview?.enabled,
                 "assistantID": 'ai_overview' || payload?.ai_overview?.assistant,
