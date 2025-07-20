@@ -181,6 +181,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         module_chat_placeholder: 'Chat box placeholder text',
         module_search: 'Search',
         module_search_placeholder: 'Search box placeholder text',
+        module_search_welcome: 'Greeting message',
         logo: 'Logo',
         logo_mobile: 'Mobile Logo',
         name: 'Name',
