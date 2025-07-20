@@ -17,20 +17,26 @@ export function Component() {
   const { scrollConfig, tableWrapperRef } = useTableScroll();
 
   const nav = useNavigate();
-  const items: MenuProps["items"] = [
-    {
-      label: t('common.edit'),
-      key: "2",
-    },
-    {
-      label: t('common.delete'),
-      key: "1",
-    },
-    {
+
+  const getMenuItems = useCallback((record: Assistant): MenuProps["items"] => {
+    const items: MenuProps["items"] = [
+      {
+        label: t('common.edit'),
+        key: "2",
+      },
+    ];
+    if (record.builtin !== true) {
+      items.push({
+        label: t('common.delete'),
+        key: "1",
+      });
+    }
+    items.push({
       label: t('common.clone'),
       key: "3",
-    },
-  ];
+    })
+    return items;
+  }, []);
 
   const onMenuClick = ({key, record}: any)=>{
     switch(key){
@@ -155,7 +161,7 @@ export function Component() {
       fixed: 'right',
       width: "90px",
       render: (_, record) => {
-        return <Dropdown menu={{ items, onClick:({key})=>onMenuClick({key, record}) }}>
+        return <Dropdown menu={{ items: getMenuItems(record), onClick:({key})=>onMenuClick({key, record}) }}>
           <EllipsisOutlined/>
         </Dropdown>
       },
