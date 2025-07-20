@@ -37,6 +37,7 @@ Information about release notes of Coco Server is provided here.
 - chore: add fullscreen to integration #373
 - chore: ignore invalid connector #379
 - chore: skip invalid mcp server #380
+- improve: hide delete button for built-in assistants and providers
 
 ## 0.6.0 (2025-06-29)
 ### ❌ Breaking changes  
