@@ -53,19 +53,23 @@ export const FullscreenForm = memo(props => {
 
   const handleSubmit = async () => {
     const params = await form.validateFields();
-    const { cors = {}, payload = {} } = params;
-    const { search = {}, ai_overview = {}, ai_widgets = {} } = payload
+    const { cors = {}, enabled_module = {}, payload = {} } = params;
+    const { search = {} } = enabled_module
+    const { ai_overview = {}, ai_widgets = {} } = payload
     const { datasource = [] } = search
     onSubmit(
       {
         ...params,
         type: 'fullscreen',
-        payload: {
-          ...payload,
+        enabled_module: {
           search: {
             ...search,
-            datasource: datasource?.includes('*') ? ['*'] : datasource
-          },
+            enabled: true,
+            datasource: datasource?.includes('*') ? ['*'] : datasource,
+          }
+        },
+        payload: {
+          ...payload,
           ai_overview: {
             ...ai_overview,
             assistant: ai_overview?.assistant?.id,
@@ -118,16 +122,20 @@ export const FullscreenForm = memo(props => {
     const initValue = record
       ? {
           ...record,
-          payload: {
-            ...(record.payload || {}),
-            search: record.payload?.search ? {
-              ...(record.payload?.search || {}),
-              datasource: record.payload?.search?.datasource?.includes('*') ? ['*'] : record.payload?.search?.datasource
+          enabled_module: {
+            ...(record.enabled_module || {}),
+            search: record.enabled_module?.search ? {
+              ...(record.enabled_module?.search || {}),
+              enabled: true,
+              datasource: record.enabled_module?.search?.datasource?.includes('*') ? ['*'] : record.enabled_module?.search?.datasource
             } : {
               enabled: true,
               datasource: ['*'],
               placeholder: 'Search whatever you want...'
-            },
+            }
+          },
+          payload: {
+            ...(record.payload || {}),
             ai_overview: record.payload?.ai_overview ? {
               ...record.payload?.ai_overview,
               assistant: { id: record.payload?.ai_overview.assistant }
@@ -165,12 +173,14 @@ export const FullscreenForm = memo(props => {
             allowed_origins: '*',
             enabled: true
           },
-          payload: {
+          enabled_module: {
             search: {
               enabled: true,
               datasource: ['*'],
               placeholder: 'Search whatever you want...'
-            },
+            }
+          },
+          payload: {
             ai_overview: {
               enabled: true,
               title: 'AI Overview',
@@ -267,7 +277,7 @@ export const FullscreenForm = memo(props => {
             </div>
             <Form.Item
                 className="mb-0px"
-                name={['payload', 'search', 'datasource']}
+                name={['enabled_module', 'search', 'datasource']}
                 rules={[defaultRequiredRule]}
             >
                 <Select
@@ -290,7 +300,7 @@ export const FullscreenForm = memo(props => {
             </div>
             <Form.Item
                 className="mb-0px"
-                name={['payload', 'search', 'placeholder']}
+                name={['enabled_module', 'search', 'placeholder']}
             >
                 <Input className={itemClassNames} />
             </Form.Item>

@@ -15,6 +15,7 @@ import (
 	"infini.sh/framework/core/api"
 	config3 "infini.sh/framework/core/config"
 	"infini.sh/framework/core/env"
+	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/module"
 	"infini.sh/framework/core/orm"
@@ -119,8 +120,12 @@ func (this *Plugin) Start() error {
 				connector := common.Connector{}
 				connector.ID = "google_drive"
 				exists, err := orm.Get(&connector)
-				if !exists || err != nil {
-					panic("invalid google_drive connector")
+				if !exists {
+					log.Debugf("Connector %s not found", connector.ID)
+					return
+				}
+				if err != nil {
+					panic(errors.Errorf("invalid %s connector:%v", connector.ID, err))
 				}
 				if connector.Config != nil {
 					if clientID, ok := connector.Config["client_id"].(string); ok {

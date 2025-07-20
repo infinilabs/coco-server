@@ -11,7 +11,7 @@ POST $[[SETUP_INDEX_PREFIX]]assistant/$[[SETUP_DOC_TYPE]]/default
       "provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
       "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
       "settings": {
-        "reasoning": false,
+        "reasoning": $[[SETUP_LLM_REASONING]],
         "temperature": 0,
         "top_p": 0,
         "presence_penalty": 0,
@@ -70,7 +70,7 @@ POST $[[SETUP_INDEX_PREFIX]]assistant/$[[SETUP_DOC_TYPE]]/ai_overview
       "provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
       "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
       "settings": {
-        "reasoning": false,
+        "reasoning": $[[SETUP_LLM_REASONING]],
         "temperature": 0,
         "top_p": 0,
         "presence_penalty": 0,

@@ -3,10 +3,10 @@ import UISearch from './ui-search';
 import './ui-search/index.css';
 
 export default (props) => {
-    const { id, token, server } = props;
+    const { shadow, id, token, server } = props;
     const [settings, setSettings] = useState()
 
-    const { payload = {} } = settings || {}
+    const { payload = {}, enabled_module = {} } = settings || {}
 
     async function fetchSettings(server, id, token) {
         if (!server || !id || !token) return;
@@ -135,20 +135,22 @@ export default (props) => {
 
     return (
         <UISearch {...{
-            shadow: props.shadow,
+            id,
+            shadow,
             "logo": {
                 "light": payload?.logo?.light,
                 "light-mobile": payload?.logo?.light_mobile,
             },
-            "placeholder": payload?.search?.placeholder,
+            "placeholder": enabled_module?.search?.placeholder,
             "welcome": payload?.welcome || "Nice to meet you. I can help answer your questions by tapping into the internet and your data sources. How can I assist you today?",
-            "aiOverview": payload?.ai_overview?.enabled ? {
+            "aiOverview": {
+                "enabled": payload?.ai_overview?.enabled,
                 "assistantID": 'ai_overview' || payload?.ai_overview?.assistant,
                 "title": payload?.ai_overview?.title,
                 "height": payload?.ai_overview?.height || "auto",
                 "logo": payload?.ai_overview?.logo,
                 "showActions": true,
-            } : undefined,
+            },
             "widgets": payload.ai_widgets?.enabled && payload.ai_widgets?.widgets ? payload.ai_widgets?.widgets.map((item) => ({
                 "assistantID": item.assistant,
                 "title": item.title,

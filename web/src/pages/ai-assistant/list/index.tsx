@@ -17,20 +17,26 @@ export function Component() {
   const { scrollConfig, tableWrapperRef } = useTableScroll();
 
   const nav = useNavigate();
-  const items: MenuProps["items"] = [
-    {
-      label: t('common.edit'),
-      key: "2",
-    },
-    {
-      label: t('common.delete'),
-      key: "1",
-    },
-    {
+
+  const getMenuItems = useCallback((record: Assistant): MenuProps["items"] => {
+    const items: MenuProps["items"] = [
+      {
+        label: t('common.edit'),
+        key: "2",
+      },
+    ];
+    if (record.builtin !== true) {
+      items.push({
+        label: t('common.delete'),
+        key: "1",
+      });
+    }
+    items.push({
       label: t('common.clone'),
       key: "3",
-    },
-  ];
+    })
+    return items;
+  }, []);
 
   const onMenuClick = ({key, record}: any)=>{
     switch(key){
@@ -104,7 +110,7 @@ export function Component() {
             <IconWrapper className="w-20px h-20px">
               <InfiniIcon height="1em" width="1em" src={record.icon} />
             </IconWrapper>
-            <span className='max-w-150px ant-table-cell-ellipsis'>{ value }</span>
+            <span className='max-w-150px ant-table-cell-ellipsis cursor-pointer hover:text-blue-500' onClick={()=>nav(`/ai-assistant/edit/${record.id}`)}>{ value }</span>
             {record.builtin === true && <div className="flex items-center ml-[5px]">
               <p className="h-[22px] bg-[#eee] text-[#999] font-size-[12px] px-[10px] line-height-[22px] rounded-[4px]">{t('page.modelprovider.labels.builtin')}</p>
             </div>}
@@ -155,7 +161,7 @@ export function Component() {
       fixed: 'right',
       width: "90px",
       render: (_, record) => {
-        return <Dropdown menu={{ items, onClick:({key})=>onMenuClick({key, record}) }}>
+        return <Dropdown menu={{ items: getMenuItems(record), onClick:({key})=>onMenuClick({key, record}) }}>
           <EllipsisOutlined/>
         </Dropdown>
       },

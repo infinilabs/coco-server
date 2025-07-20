@@ -246,6 +246,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       desc: '集成大模型后，您将解锁人工智能聊天功能，还能获得智能搜索服务和高效的工作助手。',
       answering_model: '应答模型',
       defaultModel: '默认模型',
+      reasoning: '推理模式',
       endpoint: 'Endpoint',
       enhanced_inference: '开启推理强度调整',
       frequency_penalty: '频率惩罚度',

@@ -15,6 +15,7 @@ Information about release notes of Coco Server is provided here.
 - feat: support attachments in chat message #355
 - feat: log llm request for debugging purpose
 - feat: rss connector #149
+- feat: support default model reasoning config on initialization
 
 ### 🐛 Bug fix  
 - fix: query parameter "filter" is not working
@@ -22,6 +23,7 @@ Information about release notes of Coco Server is provided here.
 - fix: local icons fail to display without network
 - fix: incorrect status display in llm provider list #364
 - fix: chat api with attachments #368
+- fix: prevent nil exception during LLM intent parsing on error #375
 
 ### ✈️ Improvements  
 - refactor: refactoring user id #337
@@ -34,6 +36,9 @@ Information about release notes of Coco Server is provided here.
 - chore: remove session_id check in attachment upload api #357
 - chore: add formatUrl to searchbox #360
 - chore: add fullscreen to integration #373
+- chore: ignore invalid connector #379
+- chore: skip invalid mcp server #380
+- improve: hide delete button for built-in assistants and providers
 
 ## 0.6.0 (2025-06-29)
 ### ❌ Breaking changes  

@@ -1,4 +1,4 @@
-import { Button, Form, Input } from 'antd';
+import { Button, Form, Input, Switch } from 'antd';
 import type { FormInstance } from 'antd/lib';
 import { ReactSVG } from 'react-svg';
 
@@ -15,6 +15,10 @@ const LLMForm = memo(
     const { t } = useTranslation();
     const { defaultRequiredRule, formRules } = useFormRules();
     const [type, setType] = useState<ModelType>('deepseek');
+
+    const ReasoningComp = useMemo(() => {
+      return <Switch key={type} size='small' defaultValue={type==="deepseek"}/>
+    }, [type])
 
     return (
       <>
@@ -69,7 +73,7 @@ const LLMForm = memo(
                         className="m-r-4px"
                         src={OpenAISvg}
                       />
-                      OpenAI
+                      OpenAI-Compatible
                     </span>
                   ),
                   value: 'openai'
@@ -96,6 +100,14 @@ const LLMForm = memo(
             rules={[defaultRequiredRule]}
           >
             <Input />
+          </Form.Item>
+          <Form.Item
+            className={formItemClassNames}
+            label={t(`page.settings.llm.reasoning`)}
+            name={['llm', 'reasoning']}
+            valuePropName='checked'
+          >
+            {ReasoningComp}
           </Form.Item>
           <Form.Item
             className={formItemClassNames}

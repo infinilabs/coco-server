@@ -42,16 +42,22 @@ export function Component() {
       }
     })
   }
-  const items: MenuProps["items"] = [
-    {
-      label: t('common.edit'),
-      key: "1",
-    },
-    {
-      label: t('common.delete'),
-      key: "2",
-    },
-  ];
+  const getMenuItems = useCallback((record: any): MenuProps["items"] => {
+    const items: MenuProps["items"] = [
+      {
+        label: t('common.edit'),
+        key: "1",
+      },
+    ];
+    if(record.builtin !== true) {
+      items.push({
+        label: t('common.delete'),
+        key: "2",
+      });
+    }
+    return items;
+  }, []);
+  
   const onMenuClick = ({key, record}: any)=>{
     switch(key){
       case "2":
@@ -146,7 +152,7 @@ export function Component() {
                         <IconWrapper className="w-40px h-40px">
                           <InfiniIcon src={provider.icon} height="2em" width="2em" className="font-size-2em"/>
                         </IconWrapper>
-                        <span className="font-size-1.2em">{provider.name}</span>
+                        <span className="font-size-1.2em cursor-pointer hover:text-blue-500" onClick={()=>nav(`/model-provider/edit/${provider.id}`)}>{provider.name}</span>
                       </div>
                       {provider.builtin === true && <div className="flex items-center">
                         <p className="h-[22px] bg-[#eee] text-[#999] font-size-[12px] px-[10px] line-height-[22px] rounded-[4px]">{t('page.modelprovider.labels.builtin')}</p>
@@ -164,7 +170,7 @@ export function Component() {
                     <div className="ml-auto flex gap-2">
                       <div onClick={()=>{onAPIKeyClick(provider)}} className="border border-[var(--ant-color-border)] cursor-pointer  px-10px rounded-[8px]">API-key</div>
                       <div className="inline-block px-4px rounded-[8px] border border-[var(--ant-color-border)] cursor-pointer">
-                        <Dropdown menu={{ items, onClick:({key})=>onMenuClick({key, record: provider}) }}>
+                        <Dropdown menu={{ items: getMenuItems(provider), onClick:({key})=>onMenuClick({key, record: provider}) }}>
                             <SettingOutlined className="text-blue-500"/>
                         </Dropdown>
                       </div>
