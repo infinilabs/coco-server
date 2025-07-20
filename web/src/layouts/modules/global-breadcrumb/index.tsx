@@ -39,7 +39,14 @@ const GlobalBreadcrumb: FC<Omit<BreadcrumbProps, 'items'>> = props => {
     );
 
     return {
-      title: commonTitle,
+      title: (
+        <span 
+          className="cursor-pointer hover:text-blue-500" 
+          onClick={() => routerPush.routerPushByKeyWithMetaQuery(item.key as string)}
+        >
+          {commonTitle}
+        </span>
+      ),
       ...('children' in item &&
         item.children && {
           menu: {
@@ -51,30 +58,42 @@ const GlobalBreadcrumb: FC<Omit<BreadcrumbProps, 'items'>> = props => {
     };
   });
 
+  // Check if current route is home or if breadcrumb already contains home
+  const isHomePage = route.matched[0]?.name === import.meta.env.VITE_ROUTE_HOME;
+  const hasHomeBreadcrumb = breadcrumb.some(item => item.key === import.meta.env.VITE_ROUTE_HOME);
+
+  let finalItems = items;
+  
+  if (!isHomePage && !hasHomeBreadcrumb) {
+    // Add home breadcrumb only if we're not on home page and it's not already in breadcrumbs
+    finalItems = [
+      {
+        path: '/',
+        title: (
+          <span 
+            className="cursor-pointer hover:text-blue-500" 
+            onClick={() => routerPush.routerPushByKeyWithMetaQuery(import.meta.env.VITE_ROUTE_HOME)}
+          >
+            <BreadcrumbContent
+              key="home"
+              label={<span>{$t('route.home')}</span>}
+              icon={
+                <SvgIcon
+                  className="mr-4px text-14px"
+                  icon="mdi:home"
+                />
+              }
+            />
+          </span>
+        )
+      }
+    ].concat(items);
+  }
+
   return (
     <Breadcrumb
       {...props}
-      items={
-        items.some(item => item?.title?.key === import.meta.env.VITE_ROUTE_HOME)
-          ? items
-          : [
-              {
-                path: '/',
-                title: (
-                  <BreadcrumbContent
-                    key="home"
-                    label={<span>{$t('route.home')}</span>}
-                    icon={
-                      <SvgIcon
-                        className="mr-4px text-14px"
-                        icon="mdi:home"
-                      />
-                    }
-                  />
-                )
-              }
-            ].concat(items)
-      }
+      items={finalItems}
     />
   );
 };
