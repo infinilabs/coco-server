@@ -15,6 +15,7 @@ Information about release notes of Coco Server is provided here.
 - feat: support attachments in chat message #355
 - feat: log llm request for debugging purpose
 - feat: rss connector #149
+- feat: support default model reasoning config on initialization
 
 ### 🐛 Bug fix  
 - fix: query parameter "filter" is not working

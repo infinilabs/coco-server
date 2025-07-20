@@ -27,7 +27,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	security2 "infini.sh/framework/core/security"
 	"io"
 	"io/fs"
 	"net/http"
@@ -35,6 +34,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	security2 "infini.sh/framework/core/security"
 
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
@@ -61,6 +62,7 @@ type SetupConfig struct {
 		Endpoint     string `json:"endpoint,omitempty"`
 		DefaultModel string `json:"default_model,omitempty"`
 		Token        string `json:"token,omitempty"`
+		Reasoning    bool   `json:"reasoning,omitempty"` // Whether to enable reasoning mode
 	} `json:"llm,omitempty"`
 	Language string `json:"language,omitempty"`
 }
@@ -308,6 +310,8 @@ func (h *APIHandler) initializeTemplate(dslTplFile string, indexPrefix string, d
 			return w.Write([]byte(baseURL))
 		case "SETUP_LLM_DEFAULT_MODEL":
 			return w.Write([]byte(defaultModel))
+		case "SETUP_LLM_REASONING":
+			return w.Write([]byte(fmt.Sprintf("%v", setupCfg.LLM.Reasoning)))
 		case "SETUP_ASSISTANT_ANSWERING_MODEL":
 			return w.Write([]byte(answeringModel))
 		case "SETUP_LLM_PROVIDER_ID":
