@@ -283,32 +283,12 @@ export const SearchBoxForm = memo(props => {
         {['embedded', 'all'].includes(mode) && (
           <>
             <Form.Item label=" ">
-              <Form.Item
-                className="mb-0px"
-                label={t('page.integration.form.labels.mode_embedded_placeholder')}
-              >
-              </Form.Item>
-            </Form.Item>
-            <Form.Item label=" " >
               <div className="mb-8px">
-                {t('common.language.en')}
+                {t('page.integration.form.labels.mode_embedded_placeholder')}
               </div>
               <Form.Item
-                className="mb-0px"
                 name={['options', 'embedded_placeholder']}
-                rules={[defaultRequiredRule]}
-              >
-                <Input className={itemClassNames} />
-              </Form.Item>
-            </Form.Item>
-            <Form.Item label=" " >
-              <div className="mb-8px">
-                {t('common.language.zh')}
-              </div>
-              <Form.Item
                 className="mb-0px"
-                name={['options', 'embedded_placeholder_zh']}
-                rules={[defaultRequiredRule]}
               >
                 <Input className={itemClassNames} />
               </Form.Item>
@@ -329,32 +309,12 @@ export const SearchBoxForm = memo(props => {
         {['floating', 'all'].includes(mode) && (
           <>
             <Form.Item label=" ">
-              <Form.Item
-                className="mb-0px"
-                label={t('page.integration.form.labels.mode_floating_placeholder')}
-              >
-              </Form.Item>
-            </Form.Item>
-            <Form.Item label=" " >
               <div className="mb-8px">
-                {t('common.language.en')}
+                {t('page.integration.form.labels.mode_floating_placeholder')}
               </div>
               <Form.Item
                 className="mb-0px"
                 name={['options', 'floating_placeholder']}
-                rules={[defaultRequiredRule]}
-              >
-                <Input className={itemClassNames} />
-              </Form.Item>
-            </Form.Item>
-            <Form.Item label=" " >
-              <div className="mb-8px">
-                {t('common.language.zh')}
-              </div>
-              <Form.Item
-                className="mb-0px"
-                name={['options', 'floating_placeholder_zh']}
-                rules={[defaultRequiredRule]}
               >
                 <Input className={itemClassNames} />
               </Form.Item>
