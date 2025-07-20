@@ -253,6 +253,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       desc: 'After integrating a large model, you will unlock the AI chat feature, providing intelligent search and an efficient work assistant.',
       answering_model: 'Answering Model',
       defaultModel: 'Default Model',
+      reasoning: 'Reasoning Mode',
       endpoint: 'Endpoint',
       enhanced_inference: 'Enhanced Inference',
       frequency_penalty: 'Frequency Penalty',

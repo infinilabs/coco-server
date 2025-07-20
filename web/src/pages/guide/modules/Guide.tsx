@@ -24,6 +24,9 @@ const Guide = memo(() => {
         body = editValue;
       } else {
         const params = await form.validateFields();
+        if(typeof params.llm.reasoning === "undefined") {
+          params.llm.reasoning = params.llm.type === "deepseek";
+        }
         body = {
           ...(editValue || {}),
           ...params
