@@ -316,7 +316,7 @@ export const EditForm = memo((props: AssistantFormProps) => {
           rules={[{ required: true }]}
           name={["answering_model"]}
         >
-          <ModelSelect width="600px" providers={modelProviders} />
+          <ModelSelect width="600px" modelType="answering_model" providers={modelProviders} />
         </Form.Item>
         {assistantMode === "deep_think" && (
           <Form.Item label={t("page.assistant.labels.deep_think_model")}>

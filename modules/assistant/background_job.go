@@ -738,43 +738,26 @@ func (h APIHandler) processPickDocuments(ctx context.Context, reqMsg, replyMsg *
 	echoMsg := common.NewMessageChunk(params.SessionID, replyMsg.ID, common.MessageTypeAssistant, reqMsg.ID, common.PickSource, string(""), 0)
 	_ = sender.SendMessage(echoMsg)
 
+	promptTemplate := common.PickingDocPromptTemplate
+	if params.pickingDocModel != nil && params.pickingDocModel.PromptConfig != nil && params.pickingDocModel.PromptConfig.PromptTemplate != "" {
+		promptTemplate = params.pickingDocModel.PromptConfig.PromptTemplate
+	}
+	// Create the prompt template
+	inputValues := map[string]any{
+		"query":  reqMsg.Message,
+		"intent": util.MustToJSON(params.QueryIntent),
+		"docs":   params.sourceDocsSummaryBlock,
+	}
+	finalPrompt, err := rag.GetPromptStringByTemplateArgs(params.answeringModel, promptTemplate, []string{"query", "intent", "summary"}, inputValues)
+	if err != nil {
+		panic(err)
+	}
 	content := []llms.MessageContent{
 		llms.TextParts(
 			llms.ChatMessageTypeSystem,
-			`You are an AI assistant trained to select the most relevant documents for further processing and to answer user queries.
-We have already queried the backend database and retrieved a list of documents that may help answer the user's query. And also invoke some external tools provided by MCP servers. 
-Your task is to choose the best documents for further processing.`,
+			finalPrompt,
 		),
 	}
-
-	content = append(content, llms.TextParts(llms.ChatMessageTypeSystem, "The user has provided the following query:\n"))
-	content = append(content, llms.TextParts(llms.ChatMessageTypeHuman, reqMsg.Message))
-
-	if params.QueryIntent != nil {
-		content = append(content, llms.TextParts(llms.ChatMessageTypeSystem, "The primary intent behind this query is:\n"))
-		content = append(content, llms.TextParts(llms.ChatMessageTypeSystem, util.MustToJSON(params.QueryIntent)))
-	}
-
-	if params.sourceDocsSummaryBlock != "" {
-		content = append(content, llms.TextParts(llms.ChatMessageTypeSystem, "The following documents are fetched from database:\n"))
-		content = append(content, llms.TextParts(llms.ChatMessageTypeSystem, params.sourceDocsSummaryBlock))
-	}
-
-	content = append(content, llms.TextParts(llms.ChatMessageTypeSystem, "\nPlease review these documents and identify which ones best related to user's query. "+
-		"\nChoose no more than 5 relevant documents. These documents may be entirely unrelated, so prioritize those that provide direct answers or valuable context."+
-		"\nIf the document is unrelated not certain, don't include it."+
-		"\nFor each document, provide a brief explanation of why it was selected."+
-		"\nYour decision should based solely on the information provided below. \nIf the information is insufficient, please indicate that you need more details to assist effectively. "+
-		"\nDon't make anything up, which means if you can't identify which document best match the user's query, you should output nothing."+
-		"\nMake sure the output is concise and easy to process."+
-		"\nWrap the JSON result in <JSON></JSON> tags."+
-		"\nThe expected output format is:\n"+
-		"<JSON>\n"+
-		"[\n"+
-		" { \"id\": \"<id of Doc 1>\", \"title\": \"<title of Doc 1>\", \"explain\": \"<Explain for Doc 1>\"  },\n"+
-		" { \"id\": \"<id of Doc 2>\", \"title\": \"<title of Doc 2>\", \"explain\": \"<Explain for Doc 2>\"  },\n"+
-		"]"+
-		"</JSON>"))
 
 	log.Debug("start filtering documents")
 	var pickedDocsBuffer = strings.Builder{}
