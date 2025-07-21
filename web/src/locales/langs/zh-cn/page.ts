@@ -137,7 +137,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       desc: '将这段代码插入到你的网站<body>和</body>之间，即可开始搜索和聊天。',
       exit: '退出预览',
       preview: '预览',
-      title: '添加组件到你的网站'
+      title: '添加组件到你的网站',
+      enabled_tips: '请将组件启用状态设置为开启并更新保存，才能预览!'
     },
     columns: {
       datasource: '数据源',
@@ -183,6 +184,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         module_chat_placeholder: 'AI 聊天输入框提示文本',
         module_search: '搜索',
         module_search_placeholder: '搜索输入框提示文本',
+        module_search_welcome: '欢迎语',
         logo: '图标',
         logo_mobile: '移动端图标',
         name: '名称',

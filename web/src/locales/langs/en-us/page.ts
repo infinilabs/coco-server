@@ -142,7 +142,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       desc: 'Insert this  code into your website between <body> and </body> to start searching and chatting.',
       exit: 'Exit Preview',
       preview: 'Preview',
-      title: 'Add the widget to your website'
+      title: 'Add the widget to your website',
+      enabled_tips: `Please enable the integration, update and save it, than you can preview!`
     },
     columns: {
       datasource: 'Data Source',
@@ -188,6 +189,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         module_chat_placeholder: 'Chat box placeholder text',
         module_search: 'Search',
         module_search_placeholder: 'Search box placeholder text',
+        module_search_welcome: 'Greeting message',
         logo: 'Logo',
         logo_mobile: 'Mobile Logo',
         name: 'Name',

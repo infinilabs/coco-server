@@ -3,19 +3,43 @@ import { useMemo, useState } from "react";
 import ModelSettings from "./ModelSettings";
 import InfiniIcon from '@/components/common/icon';
 
+const DefaultModelSettings = {
+  settings: {
+    temperature: 0.7,
+    top_p: 0.9,
+    presence_penalty: 0,
+    frequency_penalty: 0,
+    max_tokens: 4000,
+  },
+  prompt: {
+    template: `
+  You are a helpful AI assistant.
+  You will be given a conversation below and a follow-up question.
+
+  {{.context}}
+
+  The user has provided the following query:
+  {{.query}}
+
+  Ensure your response is thoughtful, accurate, and well-structured.
+  For complex answers, format your response using clear and well-organized **Markdown** to improve readability.
+  `,
+  }
+}
+
 export default (props) => {
 
-    const { value={
-      settings: {
-        temperature: 0.7,
-        top_p: 0.9,
-        presence_penalty: 0,
-        frequency_penalty: 0,
-        max_tokens: 4000,
-      }
-    }, onChange, providers = [], width } = props;
+    const { value: propsValue, onChange, providers = [], width } = props;
+    const value = propsValue ?? { ...DefaultModelSettings };
+
     if(value?.provider_id && !value.id){
       value.id = value.provider_id + "_" + value.name;
+    }
+    if(!value.settings){
+      value.settings = DefaultModelSettings.settings;
+    }
+    if(!value.prompt){
+      value.prompt = DefaultModelSettings.prompt;
     }
 
     const grps = useMemo(() => {

@@ -160,12 +160,14 @@ Follow these steps for a manual setup:
 ### Easysearch
 
 Install Easysearch
-```
+
+```bash
 docker run -itd --name easysearch -p 9200:9200 infinilabs/easysearch:1.8.3-265
 ```
 
 Get the bootstrap password of the Easysearch:
-```
+
+```bash
 docker logs easysearch | grep "admin:"
 ```
 
@@ -173,8 +175,8 @@ docker logs easysearch | grep "admin:"
 
 Modify `coco.yml` with correct `env` settings, or start the coco server with the correct environments like this:
 
-```
-➜  coco git:(main) ✗ OLLAMA_MODEL=deepseek-r1:1.5b ES_PASSWORD=45ff432a5428ade77c7b  ./bin/coco
+```bash
+$ OLLAMA_MODEL=deepseek-r1:1.5b ES_PASSWORD=45ff432a5428ade77c7b  ./bin/coco
    ___  ___  ___  ___     _     _____
   / __\/___\/ __\/___\   /_\    \_   \
  / /  //  // /  //  //  //_\\    / /\/

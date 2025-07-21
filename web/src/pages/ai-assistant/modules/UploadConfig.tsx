@@ -48,7 +48,7 @@ export const UploadConfig = (props: UploadConfigProps) => {
     onChange?.({
       ...value,
       allowed_file_extensions: Array.isArray(value.allowed_file_extensions) ? value.allowed_file_extensions : ['*'],
-      max_file_size_in_bytes: value.allowed_file_extensions || 1024*1024,
+      max_file_size_in_bytes: value.max_file_size_in_bytes || 1024*1024,
       max_file_count: value.max_file_count || 6,
       enabled
     });
