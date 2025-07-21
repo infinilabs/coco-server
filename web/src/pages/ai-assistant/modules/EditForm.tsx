@@ -13,7 +13,6 @@ import type { FormProps } from "antd";
 import {
   DeleteOutlined,
   PlusOutlined,
-  UnorderedListOutlined,
 } from "@ant-design/icons";
 import { useRequest, useLoading } from "@sa/hooks";
 
@@ -21,7 +20,6 @@ import { getConnectorIcons } from "@/service/api/connector";
 import { IconSelector } from "../../connector/new/icon_selector";
 import {
   fetchDataSourceList,
-  searchModelPovider,
   getEnabledModelProviders,
 } from "@/service/api";
 import { searchMCPServer } from "@/service/api/mcp-server";

@@ -6,7 +6,7 @@ export function fetchDataSourceList(params?: any) {
   const { filter = {}, ...rest } = params || {}
 
   return request<Api.Datasource.Datasource>({
-    method: 'post',
+    method: 'get',
     params: rest,
     url: `/datasource/_search?${formatSearchFilter(filter)}`
   });
