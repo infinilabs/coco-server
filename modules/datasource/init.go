@@ -54,5 +54,6 @@ func init() {
 
 	//shortcut to indexing docs into this datasource
 	api.HandleUIMethod(api.POST, "/datasource/:id/_doc", handler.createDocInDatasource, api.RequirePermission(createPermission))
+	api.HandleUIMethod(api.POST, "/datasource/:id/_doc/:doc_id", handler.createDocInDatasourceWithID, api.RequirePermission(createPermission))
 
 }

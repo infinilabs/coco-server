@@ -91,3 +91,15 @@ curl -H 'Content-Type: application/json'   -XPOST http://localhost:9000/datasour
    ...OMITTED...
 }'
 ```
+
+### Insert Document to this Datasource With Identity
+
+```shell
+curl -H 'Content-Type: application/json'   -XPOST http://localhost:9000/datasource/cu1rf03q50k43nn2pi6g/_doc/myuuid123 -d'
+{
+   "title": "Your title",
+   ...OMITTED...
+}'
+```
+
+> Note: The ID must be unique across all datasources.
