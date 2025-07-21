@@ -41,6 +41,8 @@ Information about release notes of Coco Server is provided here.
 - chore: skip invalid mcp server #380
 - improve: hide delete button for built-in assistants and providers
 - chore: handle default value for prompt template
+- chore: set button preview to disabled if integration is disabled #392
+
 ## 0.6.0 (2025-06-29)
 ### ❌ Breaking changes  
 ### 🚀 Features  
