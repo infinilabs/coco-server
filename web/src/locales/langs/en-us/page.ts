@@ -184,6 +184,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         module_ai_overview: 'AI Overview',
         module_ai_overview_title: 'Title',
         module_ai_overview_height: 'Height',
+        module_ai_overview_output: 'Output',
         module_chat: 'AI Chat',
         module_chat_ai_assistant: 'AI Assistant',
         module_chat_placeholder: 'Chat box placeholder text',

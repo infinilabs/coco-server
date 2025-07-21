@@ -29,6 +29,9 @@ Information about release notes of Coco Server is provided here.
 - fix: chat api with attachments #368
 - fix: prevent nil exception during LLM intent parsing on error #375
 - fix: deleting multiple URL input boxes does not work #393
+- fix: fix missing update of local model providers after enable operation
+- fix(rag): ensure datasource is used during RAG processing #396
+
 
 ### ✈️ Improvements  
 - refactor: refactoring user id #337
@@ -46,6 +49,7 @@ Information about release notes of Coco Server is provided here.
 - improve: hide delete button for built-in assistants and providers
 - chore: handle default value for prompt template
 - chore: set button preview to disabled if integration is disabled #392
+- chore: manual flush the first line #396
 
 ## 0.6.0 (2025-06-29)
 ### ❌ Breaking changes  

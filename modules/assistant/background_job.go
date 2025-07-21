@@ -345,6 +345,7 @@ func (h APIHandler) processMessageAsync(ctx context.Context, reqMsg *common.Chat
 			fetchSize = 50
 		}
 		docs, _ := h.processInitialDocumentSearch(ctx, reqMsg, replyMsg, params, fetchSize, sender)
+		inputValues["references"] = docs
 
 		if params.DeepThink && len(docs) > 10 {
 			//re-pick top docs

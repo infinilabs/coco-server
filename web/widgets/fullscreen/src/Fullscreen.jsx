@@ -144,18 +144,11 @@ export default (props) => {
             "placeholder": enabled_module?.search?.placeholder,
             "welcome": payload?.welcome || "",
             "aiOverview": {
-                "enabled": payload?.ai_overview?.enabled,
-                "assistantID": 'ai_overview' || payload?.ai_overview?.assistant,
-                "title": payload?.ai_overview?.title,
-                "height": payload?.ai_overview?.height || "auto",
-                "logo": payload?.ai_overview?.logo,
+                ...(payload?.ai_overview || {}),
                 "showActions": true,
             },
             "widgets": payload.ai_widgets?.enabled && payload.ai_widgets?.widgets ? payload.ai_widgets?.widgets.map((item) => ({
-                "assistantID": item.assistant,
-                "title": item.title,
-                "height": item.height || "auto",
-                "logo": item.logo,
+                ...item,
                 "showActions": false,
             })) : [],
             "onSearch": (query, callback, setLoading, shouldAgg = true) => {

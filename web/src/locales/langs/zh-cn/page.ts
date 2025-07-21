@@ -179,6 +179,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         module_ai_overview: 'AI Overview',
         module_ai_overview_title: '标题',
         module_ai_overview_height: '高度',
+        module_ai_overview_output: '输出',
         module_chat: 'AI 聊天',
         module_chat_ai_assistant: 'AI 助手',
         module_chat_placeholder: 'AI 聊天输入框提示文本',
