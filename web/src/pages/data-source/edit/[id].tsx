@@ -173,7 +173,8 @@ export function Component() {
     case Types.Notion:
       datasource.token = datasource?.connector?.config?.token || '';
       break;
-    case (Types.HugoSite, Types.RSS):
+    case Types.HugoSite:
+    case Types.RSS:
       datasource.urls = datasource?.connector?.config?.urls || [''];
       break;
     case Types.LocalFS:

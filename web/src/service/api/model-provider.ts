@@ -1,5 +1,6 @@
 import { Api } from '@/types/api';
 import { request } from '../request';
+import { formatSearchFilter } from '../request/es';
 
 /**
  * Get connector list
@@ -64,30 +65,18 @@ export function getLLMModels() {
 
 
 export function getEnabledModelProviders(size: number = 100) {
-  const query: any = {
+  const params: any = {
     size: size,
-    query: {
-      term: {
-        enabled: true
-      }
+    filter: {
+      enabled: [true]
     },
-    sort: [
-      {
-        "enabled": {
-          "order": "desc"
-        }
-      },
-      {
-        "created": {
-          "order": "desc"
-        }
-      }
-    ],
+    sort: 'enabled:desc,created:desc',
   }
+  const { filter = {}, ...rest } = params || {}
   return request<Api.LLM.ModelProvider>({
-    method: 'post',
-    data: query,
-    url: '/model_provider/_search'
+    method: 'get',
+    params: rest,
+    url: `/model_provider/_search?${formatSearchFilter(filter)}`
   });
 }
 
