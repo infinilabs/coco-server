@@ -6,7 +6,6 @@ package document
 
 import (
 	"infini.sh/coco/modules/common"
-	"infini.sh/coco/modules/search"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
@@ -131,39 +130,23 @@ func (h *APIHandler) deleteDoc(w http.ResponseWriter, req *http.Request, ps http
 }
 
 func (h *APIHandler) searchDocs(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-
-	var (
-		query      = h.GetParameterOrDefault(req, "query", "")
-		from       = h.GetIntOrDefault(req, "from", 0)
-		size       = h.GetIntOrDefault(req, "size", 10)
-		datasource = h.GetParameterOrDefault(req, "datasource", "")
-		field      = h.GetParameterOrDefault(req, "search_field", "title")
-		tags       = h.GetParameterOrDefault(req, "tags", "")
-		source     = h.GetParameterOrDefault(req, "source_fields", "*")
-	)
-	mustClauses := search.BuildMustFilterClauses("", "", "", "", "")
-	datasourceClause := search.BuildDatasourceClause(datasource, false)
-
-	if datasourceClause != nil {
-		mustClauses = append(mustClauses, datasourceClause)
-	}
-
-	var err error
-	q := &orm.Query{}
-	if req.Method == http.MethodPost {
-		q.RawQuery, err = h.GetRawBody(req)
-	} else if query != "" || len(mustClauses) > 0 {
-		q = search.BuildTemplatedQuery(from, size, mustClauses, nil, field, query, source, tags)
-	}
-
-	docs := []common.Document{}
-	err, res := orm.SearchWithJSONMapper(&docs, q)
+	//handle url query args, convert to query builder
+	builder, err := orm.NewQueryBuilderFromRequest(req, "title", "summary", "combined_fulltext")
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	_, err = h.Write(w, res.Raw)
+	ctx := orm.NewContextWithParent(req.Context())
+	orm.WithModel(ctx, &common.Document{})
+
+	res, err := orm.SearchV2(ctx, builder)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	_, err = h.Write(w, res.Payload.([]byte))
 	if err != nil {
 		h.Error(w, err)
 	}
