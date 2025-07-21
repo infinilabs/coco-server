@@ -10,9 +10,12 @@ import {
   deleteDocument,
   fetchDatasourceDetail,
   getConnector,
+  getDatasource,
   updateDocument
 } from '@/service/api';
 import { formatESSearchResult } from '@/service/request/es';
+import useQueryParams from '@/hooks/common/queryParams';
+import { useRoute } from '@sa/simple-router';
 
 interface DataType {
   category: string;
@@ -29,20 +32,30 @@ interface DataType {
 }
 
 export function Component() {
-  const datasourceID = useLoaderData();
+  const route = useRoute();
+  const datasourceID = route.params.id
+  const [queryParams, setQueryParams] = useQueryParams();
 
   const { t } = useTranslation();
-  const nav = useNavigate();
-  const location = useLocation();
-  const { connector_id, datasource_name } = location.state || {};
+  
   const [connector, setConnector] = useState<any>({});
+  const [datasource, setDatasource] = useState<any>();
   useEffect(() => {
-    getConnector(connector_id).then(res => {
+    if (!datasourceID) return;
+    getDatasource(datasourceID).then(res => {
+      if (res.data?.found === true) {
+        setDatasource(res.data._source || {});
+      }
+    });
+  }, [datasourceID]);
+  useEffect(() => {
+    if (!datasource?.connector?.id) return;
+    getConnector(datasource?.connector?.id).then(res => {
       if (res.data?.found === true) {
         setConnector(res.data._source || {});
       }
     });
-  }, [connector_id]);
+  }, [datasource?.connector?.id]);
   const onMenuClick = ({ key, record }: any) => {
     switch (key) {
       case '1':
@@ -56,9 +69,10 @@ export function Component() {
                 message.success('deleted success');
               }
               // reload data
-              setReqParams(old => {
+              setQueryParams(old => {
                 return {
-                  ...old
+                  ...old,
+                  t: new Date().valueOf()
                 };
               });
             });
@@ -95,9 +109,10 @@ export function Component() {
         message.success('updated success');
       }
       // reload data
-      setReqParams(old => {
+      setQueryParams(old => {
         return {
-          ...old
+          ...old,
+          t: new Date().valueOf()
         };
       });
     });
@@ -135,7 +150,7 @@ export function Component() {
                   }
                   // reload data
                   setTimeout(() => {
-                    setReqParams(old => {
+                    setQueryParams(old => {
                       return {
                         ...old
                       };
@@ -215,22 +230,24 @@ export function Component() {
         width: '90px'
       }
     ],
-    [connector_id, connector]
+    [connector]
   );
 
   if (!datasourceID) return <LookForward />;
 
-  const [reqParams, setReqParams] = useState({
-    datasource: datasourceID,
-    from: 0,
-    size: 20
-  });
   const [data, setData] = useState({});
   const [loading, setLoading] = useState(false);
 
+  const [keyword, setKeyword] = useState();
+
   const fetchData = () => {
     setLoading(true);
-    fetchDatasourceDetail(reqParams)
+    fetchDatasourceDetail({
+      ...queryParams,
+      filter: {
+        'source.id': [datasourceID]
+      }
+    })
       .then(data => {
         const newData = formatESSearchResult(data.data);
         setData(newData);
@@ -240,10 +257,14 @@ export function Component() {
       });
   };
 
-  useEffect(fetchData, [reqParams]);
+  useEffect(fetchData, []);
+
+  useEffect(() => {
+    setKeyword(queryParams.query)
+  }, [queryParams.query])
 
   const onTableChange = (pagination, filters, sorter, extra: { action; currentDataSource: [] }) => {
-    setReqParams(params => {
+    setQueryParams(params => {
       return {
         ...params,
         from: (pagination.current - 1) * pagination.pageSize,
@@ -252,11 +273,12 @@ export function Component() {
     });
   };
   const onRefreshClick = (query: string) => {
-    setReqParams(oldParams => {
+    setQueryParams(oldParams => {
       return {
         ...oldParams,
-        form: 0,
-        query
+        from: 0,
+        query,
+        t: new Date().valueOf()
       };
     });
   };
@@ -269,11 +291,13 @@ export function Component() {
       >
         <div className="mb-30px ml--16px flex items-center text-lg font-bold">
           <div className="mr-20px h-1.2em w-10px bg-[#1677FF]" />
-          <div>{datasource_name}</div>
+          <div>{datasource?.name}</div>
         </div>
         <div className="p-5 pt-2">
           <div className="mb-4 mt-4 flex items-center justify-between">
             <Search
+              value={keyword} 
+              onChange={(e) => setKeyword(e.target.value)} 
               addonBefore={<FilterOutlined />}
               className="max-w-500px"
               enterButton={t('common.refresh')}
@@ -297,11 +321,11 @@ export function Component() {
             rowSelection={{ ...rowSelection }}
             size="middle"
             pagination={{
-              defaultCurrent: 1,
-              defaultPageSize: 20,
-              showSizeChanger: true,
               showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
-              total: data.total?.value || data?.total
+              pageSize: queryParams.size,
+              current: Math.floor(queryParams.from / queryParams.size) + 1,
+              total: data.total?.value || data?.total,
+              showSizeChanger: true,
             }}
             onChange={onTableChange}
           />
@@ -309,10 +333,4 @@ export function Component() {
       </ACard>
     </div>
   );
-}
-
-export async function loader({ params, ...rest }: LoaderFunctionArgs) {
-  const datasourceID = params.id;
-  // todo fetch datasource info by id
-  return datasourceID;
 }

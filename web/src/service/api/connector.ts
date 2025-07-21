@@ -3,7 +3,7 @@ import { request } from '../request';
 /** Get connector list */
 export function searchConnector(params: any) {
   return request<Api.Datasource.Connector>({
-    method: 'post',
+    method: 'get',
     params,
     url: '/connector/_search'
   });

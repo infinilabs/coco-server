@@ -4,8 +4,13 @@ import { Button, List, Image, Switch, Tag, message, MenuProps, Modal, Dropdown, 
 import {searchModelPovider, updateModelProvider, deleteModelProvider} from "@/service/api/model-provider";
 import { formatESSearchResult } from '@/service/request/es';
 import InfiniIcon from '@/components/common/icon';
+import useQueryParams from "@/hooks/common/queryParams";
 
 export function Component() {
+  const [queryParams, setQueryParams] = useQueryParams({
+    size: 12,
+    sort: 'enabled:desc,created:desc'
+  });
   const { t } = useTranslation();
   const nav = useNavigate();
   const [data, setData] = useState({
@@ -13,28 +18,32 @@ export function Component() {
     data: [],
   });
   const [loading, setLoading] = useState(false);
-  const [reqParams, setReqParams] = useState({
-    from: 0,
-    size: 12,
-  })
+  const [keyword, setKeyword] = useState();
+
   const fetchData = ()=>{
     setLoading(true)
-    searchModelPovider(reqParams).then((data)=>{
+    searchModelPovider(queryParams).then((data)=>{
       const newData = formatESSearchResult(data.data);
       setData(newData);
     }).finally(()=>{
       setLoading(false);
     });
   }
-  useEffect(fetchData, [reqParams]);
+  useEffect(fetchData, []);
+
+  useEffect(() => {
+    setKeyword(queryParams.query)
+  }, [queryParams.query])
+  
   const onSearchClick = (query: string)=>{
-    setReqParams({
-      ...reqParams,
+    setQueryParams({
+      ...queryParams,
       query,
+      t: new Date().valueOf()
     })
   }
   const onPageChange = (page: number, pageSize: number) =>{
-    setReqParams((oldParams: any)=>{
+    setQueryParams((oldParams: any)=>{
       return {
         ...oldParams,
         from: (page-1) * pageSize,
@@ -71,9 +80,10 @@ export function Component() {
                 message.success(t('common.deleteSuccess'))
               }
               //reload data
-              setReqParams((old)=>{
+              setQueryParams((old)=>{
                 return {
                   ...old,
+                  t: new Date().valueOf()
                 }
               })
             });
@@ -142,18 +152,21 @@ export function Component() {
             className="max-w-500px"
             onSearch={onSearchClick}
             enterButton={t("common.refresh")}
+            value={keyword} 
+            onChange={(e) => setKeyword(e.target.value)} 
           ></Search>
            <Button type='primary' icon={<PlusOutlined/>}  onClick={() => nav(`/model-provider/new`)}>{t('common.add')}</Button>
         </div>
         <List
           loading={loading}
           pagination={{
-            showTotal:(total, range) => `${range[0]}-${range[1]} of ${total} items`,
-            defaultPageSize: 12,
-            defaultCurrent: 1,
             onChange: onPageChange,
-            total: data.total || 0,
+            showTotal:(total, range) => `${range[0]}-${range[1]} of ${total} items`,
+            pageSize: queryParams.size,
+            current: Math.floor(queryParams.from / queryParams.size) + 1,
+            total: data.total?.value || data?.total,
             showSizeChanger: true,
+            pageSizeOptions: [12, 24, 48, 96]
           }}
           grid={{ gutter: 16, column: 3,  xs: 1,
             sm: 2,
