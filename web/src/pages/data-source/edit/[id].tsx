@@ -121,7 +121,7 @@ export function Component() {
       enabled: Boolean(values.enabled),
       name: values.name,
       icon: values.icon,
-      sync_enabled: Boolean(datasource?.sync_enabled),
+      sync_enabled: Boolean(values?.sync_enabled),
       type: 'connector'
     };
     if (values.sync_config) {
