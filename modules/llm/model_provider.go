@@ -123,17 +123,23 @@ func (h *APIHandler) delete(w http.ResponseWriter, req *http.Request, ps httprou
 
 func (h *APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
-	var err error
-	q := orm.Query{}
-	q.RawQuery, err = h.GetRawBody(req)
-
-	err, res := orm.Search(&common.ModelProvider{}, &q)
+	//handle url query args, convert to query builder
+	builder, err := orm.NewQueryBuilderFromRequest(req, "name", "combined_fulltext")
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	_, err = h.Write(w, res.Raw)
+	ctx := orm.NewContextWithParent(req.Context())
+	orm.WithModel(ctx, &common.ModelProvider{})
+
+	res, err := orm.SearchV2(ctx, builder)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	_, err = h.Write(w, res.Payload.([]byte))
 	if err != nil {
 		h.Error(w, err)
 	}

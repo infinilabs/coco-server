@@ -152,49 +152,28 @@ func (h *APIHandler) deleteAssistant(w http.ResponseWriter, req *http.Request, p
 }
 
 func (h *APIHandler) searchAssistant(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	body, err := h.GetRawBody(req)
+	var err error
+	//handle url query args, convert to query builder
+	builder, err := orm.NewQueryBuilderFromRequest(req, "name", "combined_fulltext")
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-	//for backward compatibility
-	if err == nil && body != nil { //TODO remove legacy code
-		var err error
-		q := orm.Query{}
-		q.RawQuery = body
+	ctx := orm.NewContextWithParent(req.Context())
+	orm.WithModel(ctx, &common.Assistant{})
+	docs := []common.Assistant{}
 
-		err, res := orm.Search(&common.Assistant{}, &q)
-		if err != nil {
-			h.WriteError(w, err.Error(), http.StatusInternalServerError)
+	err, res := core.SearchV2WithResultItemMapper(ctx, &docs, builder, nil)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 
-			return
-		}
+		return
+	}
 
-		_, err = h.Write(w, res.Raw)
-		if err != nil {
-			h.Error(w, err)
-		}
-	} else {
-		var err error
-		//handle url query args, convert to query builder
-		builder, err := orm.NewQueryBuilderFromRequest(req, "name", "combined_fulltext")
-		if err != nil {
-			h.WriteError(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		ctx := orm.NewContextWithParent(req.Context())
-		orm.WithModel(ctx, &common.Assistant{})
-		docs := []common.Assistant{}
-
-		err, res := core.SearchV2WithResultItemMapper(ctx, &docs, builder, nil)
-		if err != nil {
-			h.WriteError(w, err.Error(), http.StatusInternalServerError)
-
-			return
-		}
-
-		_, err = h.Write(w, res.Raw)
-		if err != nil {
-			h.Error(w, err)
-		}
+	_, err = h.Write(w, res.Raw)
+	if err != nil {
+		h.Error(w, err)
 	}
 }
 

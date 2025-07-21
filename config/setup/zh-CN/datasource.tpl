@@ -41,3 +41,25 @@ POST $[[SETUP_INDEX_PREFIX]]datasource$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/
   "sync_enabled" : true,
   "enabled" : true
 }
+
+POST $[[SETUP_INDEX_PREFIX]]datasource$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/hacker_news
+{
+  "id" : "hacker_news",
+  "created" : "2025-03-04T14:25:23.43811+08:00",
+  "updated" : "2025-03-04T14:25:23.439214+08:00",
+  "type" : "connector",
+  "name" : "Hacker News",
+  "icon" : "https://news.ycombinator.com/favicon.ico",
+  "connector" : {
+    "id" : "rss",
+    "config" : {
+      "interval" : "600m",
+      "sync_type" : "interval",
+      "urls" : [
+        "https://news.ycombinator.com/rss"
+      ]
+    }
+  },
+  "sync_enabled" : true,
+  "enabled" : true
+}

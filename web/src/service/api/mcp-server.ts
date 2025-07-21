@@ -2,7 +2,7 @@ import { request } from '../request';
 
 export function searchMCPServer(params?: any) {
   return request({
-    method: 'post',
+    method: 'get',
     params,
     url: '/mcp_server/_search'
   });

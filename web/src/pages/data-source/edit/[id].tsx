@@ -30,7 +30,32 @@ export function Component() {
     if (!datasourceID) return;
     getDatasource(datasourceID).then(res => {
       if (res.data?.found === true) {
-        setDatasource(res.data._source || {});
+        const datasource = res.data._source
+        const type = datasource?.connector?.id;
+        switch (type) {
+          case Types.Yuque:
+            datasource.indexing_scope = datasource?.connector?.config || {};
+            datasource.token = datasource?.connector?.config?.token || '';
+            break;
+          case Types.Notion:
+            datasource.token = datasource?.connector?.config?.token || '';
+            break;
+          case Types.HugoSite, Types.RSS:
+            datasource.urls = datasource?.connector?.config?.urls || [''];
+            break;
+          case Types.GoogleDrive:
+            break;
+          default:
+            break;
+        }
+        setDatasource({
+          ...(datasource || {}),
+          urls: datasource?.connector?.config?.urls || [''],
+          sync_config: {
+            interval: datasource?.connector?.config?.interval || '1h',
+            sync_type: datasource?.connector?.config?.sync_type || ''
+          }
+        });
       }
     });
   }, [datasourceID]);
@@ -116,7 +141,7 @@ export function Component() {
       enabled: Boolean(values.enabled),
       name: values.name,
       icon: values.icon,
-      sync_enabled: Boolean(values.sync_enabled),
+      sync_enabled: Boolean(values?.sync_enabled),
       type: 'connector'
     };
     if (values.sync_config) {

@@ -1,7 +1,7 @@
 import { useSearchParams } from 'react-router-dom';
 import queryString from 'query-string';
 
-export default function useQueryParams() {
+export default function useQueryParams(defaultParams) {
     const [searchParams, setSearchParams] = useSearchParams();
     
     const params = queryString.parse(searchParams.toString(), {
@@ -20,9 +20,10 @@ export default function useQueryParams() {
             from: 0,
             size: 10,
             sort: 'created:desc',
+            ...(defaultParams || {}),
             ...(params || {})
         }
-    }, [params])
+    }, [params, defaultParams])
 
     const setQueryParams = useCallback((arg) => {
         let params:any = {} 

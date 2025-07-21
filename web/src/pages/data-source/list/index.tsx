@@ -330,11 +330,11 @@ export function Component() {
           rowSelection={{ ...rowSelection }}
           size="middle"
           pagination={{
-            defaultCurrent: 1,
-            defaultPageSize: 10,
-            showSizeChanger: true,
             showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
-            total: data.total?.value || data?.total
+            pageSize: queryParams.size,
+            current: Math.floor(queryParams.from / queryParams.size) + 1,
+            total: data.total?.value || data?.total,
+            showSizeChanger: true,
           }}
           onChange={handleTableChange}
         />

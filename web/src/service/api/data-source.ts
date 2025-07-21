@@ -6,17 +6,18 @@ export function fetchDataSourceList(params?: any) {
   const { filter = {}, ...rest } = params || {}
 
   return request<Api.Datasource.Datasource>({
-    method: 'post',
+    method: 'get',
     params: rest,
     url: `/datasource/_search?${formatSearchFilter(filter)}`
   });
 }
 
 export function fetchDatasourceDetail(params?: any) {
+  const { filter = {}, ...rest } = params || {}
   return request({
     method: 'get',
-    params,
-    url: '/document/_search'
+    params: rest,
+    url: `/document/_search?${formatSearchFilter(filter)}`
   });
 }
 

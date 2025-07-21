@@ -4,8 +4,10 @@ import { Button, Dropdown, Input, Modal, Switch, Table, message } from 'antd';
 
 import { deleteIntegration, fetchIntegrations, updateIntegration, renewAPIToken } from '@/service/api/integration';
 import { formatESSearchResult } from '@/service/request/es';
+import useQueryParams from '@/hooks/common/queryParams';
 
 export function Component() {
+  const [queryParams, setQueryParams] = useQueryParams();
   const { t } = useTranslation();
 
   const { tableWrapperRef } = useTableScroll();
@@ -17,23 +19,18 @@ export function Component() {
     total: 0
   });
   const { endLoading, loading, startLoading } = useLoading();
+  const [keyword, setKeyword] = useState();
 
-  const [reqParams, setReqParams] = useState({
-    from: 0,
-    query: '',
-    size: 10
-  });
-
-  const fetchData = async reqParams => {
+  const fetchData = async (params) => {
     startLoading();
-    const res = await fetchIntegrations(reqParams);
+    const res = await fetchIntegrations(params);
     const newData = formatESSearchResult(res.data);
     setData(newData);
     endLoading();
   };
 
   const handleTableChange = pagination => {
-    setReqParams(params => {
+    setQueryParams(params => {
       return {
         ...params,
         from: (pagination.current - 1) * pagination.pageSize,
@@ -43,11 +40,12 @@ export function Component() {
   };
 
   const onRefreshClick = (query: string) => {
-    setReqParams(oldParams => {
+    setQueryParams(oldParams => {
       return {
         ...oldParams,
         from: 0,
-        query
+        query,
+        t: new Date().valueOf()
       };
     });
   };
@@ -58,7 +56,7 @@ export function Component() {
     if (res.data?.result === 'deleted') {
       message.success(t('common.deleteSuccess'));
     }
-    fetchData(reqParams);
+    fetchData(queryParams);
     endLoading();
   };
 
@@ -69,7 +67,7 @@ export function Component() {
     if (res.data?.result === 'updated') {
       message.success(t('common.updateSuccess'));
     }
-    fetchData(reqParams);
+    fetchData(queryParams);
     endLoading();
   };
 
@@ -195,8 +193,12 @@ export function Component() {
   };
 
   useEffect(() => {
-    fetchData(reqParams);
-  }, [reqParams]);
+    fetchData(queryParams);
+  }, []);
+
+  useEffect(() => {
+    setKeyword(queryParams.query)
+  }, [queryParams.query])
 
   return (
     <ListContainer>
@@ -211,6 +213,8 @@ export function Component() {
             className="max-w-500px"
             enterButton={t('common.refresh')}
             onSearch={onRefreshClick}
+            value={keyword} 
+            onChange={(e) => setKeyword(e.target.value)} 
           />
           <Button
             icon={<PlusOutlined />}
@@ -228,11 +232,11 @@ export function Component() {
           rowSelection={{ ...rowSelection }}
           size="middle"
           pagination={{
-            defaultCurrent: 1,
-            defaultPageSize: 10,
+            showTotal:(total, range) => `${range[0]}-${range[1]} of ${total} items`,
+            pageSize: queryParams.size,
+            current: Math.floor(queryParams.from / queryParams.size) + 1,
+            total: data.total?.value || data?.total,
             showSizeChanger: true,
-            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
-            total: data.total?.value || data?.total
           }}
           onChange={handleTableChange}
         />

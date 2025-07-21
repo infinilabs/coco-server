@@ -5,10 +5,6 @@
 package integration
 
 import (
-	"net/http"
-	"sync"
-	"time"
-
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/plugins/security"
@@ -17,6 +13,9 @@ import (
 	"infini.sh/framework/core/orm"
 	security2 "infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
+	"net/http"
+	"sync"
+	"time"
 )
 
 func (h *APIHandler) create(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -163,19 +162,26 @@ func (h *APIHandler) delete(w http.ResponseWriter, req *http.Request, ps httprou
 }
 
 func (h *APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-
-	var err error
-	q := orm.Query{}
-	q.RawQuery, err = h.GetRawBody(req)
-
-	err, res := orm.Search(&common.Integration{}, &q)
+	//handle url query args, convert to query builder
+	builder, err := orm.NewQueryBuilderFromRequest(req, "name", "combined_fulltext")
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	ctx := orm.NewContextWithParent(req.Context())
+	orm.WithModel(ctx, &common.Integration{})
+
+	res, err := orm.SearchV2(ctx, builder)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	bytes := res.Payload.([]byte)
 	searchRes := elastic.SearchResponse{}
-	if res.Raw != nil {
-		err := util.FromJSONBytes(res.Raw, &searchRes)
+	if bytes != nil {
+		err := util.FromJSONBytes(bytes, &searchRes)
 		if err != nil {
 			panic(err)
 		}
@@ -196,7 +202,6 @@ func (h *APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprou
 	}
 
 	h.WriteJSON(w, searchRes, http.StatusOK)
-
 }
 
 func (h *APIHandler) renewAPIToken(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
