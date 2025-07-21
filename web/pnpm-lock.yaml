@@ -390,8 +390,8 @@ importers:
   widgets/searchbox:
     dependencies:
       '@infinilabs/search-chat':
-        specifier: ^1.2.37
-        version: 1.2.37(@types/react@18.3.12)(immer@10.1.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3)(use-sync-external-store@1.5.0(react@18.3.1))(wavesurfer.js@7.10.0)
+        specifier: ^1.2.38
+        version: 1.2.38(@types/react@18.3.12)(immer@10.1.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3)(use-sync-external-store@1.5.0(react@18.3.1))(wavesurfer.js@7.10.0)
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -1168,8 +1168,8 @@ packages:
   '@iconify/utils@2.1.33':
     resolution: {integrity: sha512-jP9h6v/g0BIZx0p7XGJJVtkVnydtbgTgt9mVNcGDYwaa7UhdHdI9dvoq+gKj9sijMSJKxUPEG2JyjsgXjxL7Kw==}
 
-  '@infinilabs/search-chat@1.2.37':
-    resolution: {integrity: sha512-0nYqRfTSQCyg0rAZUy08c3uwS1Va0fWgMXNah2qI40+HXDJoWmaqLZDAHaJSgfWZiSwh/yWto8klyGUL0f5uxQ==}
+  '@infinilabs/search-chat@1.2.38':
+    resolution: {integrity: sha512-0t5ZPowt03njG28cCsVVtMRI28qsAtKUdMtooIWKR72ShGVMVL60lhcQI3WhibNWMVd2IzBmgtlL91hnTL6Uzg==}
     peerDependencies:
       react: ^18.0.0
       react-dom: ^18.0.0
@@ -4287,6 +4287,10 @@ packages:
     resolution: {integrity: sha512-2yTgeWTWzMWkHu6Jp9NKgePDaYHbntiwvYuuJLbbN9vl7DC9DvXKOB2BC3ZZ92D3cvV/aflH0osDfwpHepQ53w==}
     hasBin: true
 
+  jiti@1.21.7:
+    resolution: {integrity: sha512-/imKNG4EbWNrVjoNC/1H5/9GFy+tqjGBHCaSsN+P2RnPqjsLmv6UD3Ej+Kj8nBWaRAwyk7kK5ZUc+OEatnTR3A==}
+    hasBin: true
+
   jiti@2.0.0-beta.2:
     resolution: {integrity: sha512-c+PHQZakiQuMKbnhvrjZUvrK6E/AfmTOf4P+E3Y4FNVHcNMX9e/XrnbEvO+m4wS6ZjsvhHh/POQTlfy8uXFc0A==}
     hasBin: true
@@ -7291,7 +7295,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@infinilabs/search-chat@1.2.37(@types/react@18.3.12)(immer@10.1.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3)(use-sync-external-store@1.5.0(react@18.3.1))(wavesurfer.js@7.10.0)':
+  '@infinilabs/search-chat@1.2.38(@types/react@18.3.12)(immer@10.1.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3)(use-sync-external-store@1.5.0(react@18.3.1))(wavesurfer.js@7.10.0)':
     dependencies:
       '@headlessui/react': 2.2.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@wavesurfer/react': 1.0.11(react@18.3.1)(wavesurfer.js@7.10.0)
@@ -10694,7 +10698,7 @@ snapshots:
       debug: 4.4.0
       esbuild: 0.21.5
       jiti: 2.0.0-beta.2
-      jiti-v1: jiti@1.21.6
+      jiti-v1: jiti@1.21.7
       pathe: 1.1.2
       pkg-types: 1.2.0
       tsx: 4.19.2
@@ -10937,6 +10941,8 @@ snapshots:
       '@pkgjs/parseargs': 0.11.0
 
   jiti@1.21.6: {}
+
+  jiti@1.21.7: {}
 
   jiti@2.0.0-beta.2: {}
 
