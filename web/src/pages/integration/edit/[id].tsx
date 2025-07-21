@@ -21,6 +21,7 @@ export function Component() {
     const res = await updateIntegration({ id: data._source.id, ...params });
     if (res.data?.result === 'updated') {
       window.$message?.success(t('common.updateSuccess'));
+      run(data._source.id)
     }
     if (after) after();
   };
@@ -56,6 +57,7 @@ export function Component() {
               id={data?._source?.id}
               token={data?._source?.token}
               type={data?._source?.type === 'fullscreen' ? 'fullscreen' : 'searchbox'}
+              enabled={data?._source?.enabled}
             />
           </Col>
         </Row>

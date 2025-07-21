@@ -130,7 +130,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       desc: '将这段代码插入到你的网站<body>和</body>之间，即可开始搜索和聊天。',
       exit: '退出预览',
       preview: '预览',
-      title: '添加组件到你的网站'
+      title: '添加组件到你的网站',
+      enabled_tips: '请将组件启用状态设置为开启并更新保存，才能预览!'
     },
     columns: {
       datasource: '数据源',

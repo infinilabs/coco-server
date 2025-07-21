@@ -1,10 +1,10 @@
-import { Button, Divider } from 'antd';
+import { Alert, Button, Divider } from 'antd';
 import Clipboard from 'clipboard';
 
 import { Preview } from './Preview';
 
 export const InsertCode = memo(props => {
-  const { id, token, type } = props;
+  const { id, token, type, enabled } = props;
 
   const { t } = useTranslation();
   const copyRef = useRef<HTMLButtonElement>(null);
@@ -69,6 +69,7 @@ export const InsertCode = memo(props => {
             className="mt-12px"
             size="large"
             type="primary"
+            disabled={!enabled}
           >
             <SvgIcon
               className="text-18px"
@@ -77,6 +78,9 @@ export const InsertCode = memo(props => {
             {t('page.integration.code.preview')}
           </Button>
         </Preview>
+        <div>
+        { !enabled && (<Alert className='mt-8px inline-block text-left' style={{ maxWidth: 'max-content'}} type='warning' message={t('page.integration.code.enabled_tips')} />)}
+        </div>
       </div>
     </div>
   );
