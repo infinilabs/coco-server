@@ -34,9 +34,7 @@ interface DataType {
 export function Component() {
   const route = useRoute();
   const datasourceID = route.params.id
-  const [queryParams, setQueryParams] = useQueryParams({
-    datasource: datasourceID,
-  });
+  const [queryParams, setQueryParams] = useQueryParams();
 
   const { t } = useTranslation();
   
@@ -244,7 +242,12 @@ export function Component() {
 
   const fetchData = () => {
     setLoading(true);
-    fetchDatasourceDetail(queryParams)
+    fetchDatasourceDetail({
+      ...queryParams,
+      filter: {
+        'source.id': [datasourceID]
+      }
+    })
       .then(data => {
         const newData = formatESSearchResult(data.data);
         setData(newData);
@@ -273,7 +276,7 @@ export function Component() {
     setQueryParams(oldParams => {
       return {
         ...oldParams,
-        form: 0,
+        from: 0,
         query,
         t: new Date().valueOf()
       };

@@ -13,10 +13,11 @@ export function fetchDataSourceList(params?: any) {
 }
 
 export function fetchDatasourceDetail(params?: any) {
+  const { filter = {}, ...rest } = params || {}
   return request({
     method: 'get',
-    params,
-    url: '/document/_search'
+    params: rest,
+    url: `/document/_search?${formatSearchFilter(filter)}`
   });
 }
 
