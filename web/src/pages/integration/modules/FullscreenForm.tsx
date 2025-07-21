@@ -235,7 +235,7 @@ export const FullscreenForm = memo(props => {
               >
                   <InputNumber className={itemClassNames} min={0} step={1}/>
               </Form.Item>
-          </Form.Item>
+          </Form.Item>                
           <Form.Item label=" ">
               <div className="mb-8px">
                   {t('page.integration.form.labels.module_chat_ai_assistant')}
@@ -247,6 +247,21 @@ export const FullscreenForm = memo(props => {
               >
                   <AIAssistantSelect className={itemClassNames}/>
               </Form.Item>
+          </Form.Item>
+          <Form.Item label=" ">
+            <div className="mb-8px">
+                {t('page.integration.form.labels.module_ai_overview_output')}
+            </div>
+            <Form.Item
+                name={['payload', 'ai_overview', 'output']}
+                className="mb-0px"
+            >
+                <Select className={itemClassNames}>
+                  <Select.Option value="markdown">Markdown</Select.Option>
+                  <Select.Option value="html">HTML</Select.Option>
+                  <Select.Option value="text">Text</Select.Option>
+                </Select>
+            </Form.Item>
           </Form.Item>
         </>
       )
@@ -360,13 +375,26 @@ export const FullscreenForm = memo(props => {
                                             </Form.Item>
                                         </div>
                                       </Form.Item>
+                                      <div className="mb-8px">
+                                        输出类型
+                                      </div>
+                                      <Form.Item
+                                          name={[name, 'output']}
+                                          className="mb-8px"
+                                      >
+                                          <Select className={itemClassNames}>
+                                            <Select.Option value="markdown">Markdown</Select.Option>
+                                            <Select.Option value="html">HTML</Select.Option>
+                                            <Select.Option value="text">Text</Select.Option>
+                                          </Select>
+                                      </Form.Item>
                                   </div>
                                   
                               )
                             })}
                             <Form.Item className="mb-0px">
                                 <Button className="!w-80px" type="primary" disabled={fields.length >= 8} icon={<PlusOutlined />} onClick={() => {
-                                  add({ title: '', height: 200 })
+                                  add({ title: '', height: 200, output: 'markdown' })
                                   setWidgetsLogo((logos) => {
                                     const newLogos = cloneDeep(logos)
                                     newLogos.push({

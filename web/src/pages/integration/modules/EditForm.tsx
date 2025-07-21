@@ -178,7 +178,8 @@ export const EditForm = memo(props => {
               } : {
                 enabled: true,
                 title: 'AI Overview',
-                height: 200
+                height: 200,
+                output: 'markdown'
               },
               ai_widgets: record.payload?.ai_widgets ? {
                 ...record.payload.ai_widgets,
