@@ -171,9 +171,8 @@ func (p *Plugin) scanFolders(connector *common.Connector, datasource *common.Dat
 				Title:    fileInfo.Name(),
 				Category: filepath.Dir(currentPath),
 				Content:  "", // skip content
-				//URL:     "file://" + currentPath,
-				URL:  currentPath,
-				Size: int(fileInfo.Size()),
+				URL:      currentPath,
+				Size:     int(fileInfo.Size()),
 			}
 			// Unify creation and modification time
 			doc.Created = &modTime
