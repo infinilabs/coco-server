@@ -23,16 +23,17 @@ type Coco struct {
 }
 
 func (this *Coco) Setup() {
-	orm.MustRegisterSchemaWithIndexName(common.Session{}, "session")
-	orm.MustRegisterSchemaWithIndexName(common.Document{}, "document")
-	orm.MustRegisterSchemaWithIndexName(common.ChatMessage{}, "message")
-	orm.MustRegisterSchemaWithIndexName(common.Attachment{}, "attachment")
-	orm.MustRegisterSchemaWithIndexName(common.Connector{}, "connector")
-	orm.MustRegisterSchemaWithIndexName(common.DataSource{}, "datasource")
-	orm.MustRegisterSchemaWithIndexName(common.Integration{}, "integration")
-	orm.MustRegisterSchemaWithIndexName(common.ModelProvider{}, "model-provider")
-	orm.MustRegisterSchemaWithIndexName(common.Assistant{}, "assistant")
-	orm.MustRegisterSchemaWithIndexName(common.MCPServer{}, "mcp-server")
+	suffix := "-v2"
+	orm.MustRegisterSchemaWithIndexName(common.Session{}, "session"+suffix)
+	orm.MustRegisterSchemaWithIndexName(common.Document{}, "document"+suffix)
+	orm.MustRegisterSchemaWithIndexName(common.ChatMessage{}, "message"+suffix)
+	orm.MustRegisterSchemaWithIndexName(common.Attachment{}, "attachment"+suffix)
+	orm.MustRegisterSchemaWithIndexName(common.Connector{}, "connector"+suffix)
+	orm.MustRegisterSchemaWithIndexName(common.DataSource{}, "datasource"+suffix)
+	orm.MustRegisterSchemaWithIndexName(common.Integration{}, "integration"+suffix)
+	orm.MustRegisterSchemaWithIndexName(common.ModelProvider{}, "model-provider"+suffix)
+	orm.MustRegisterSchemaWithIndexName(common.Assistant{}, "assistant"+suffix)
+	orm.MustRegisterSchemaWithIndexName(common.MCPServer{}, "mcp-server"+suffix)
 }
 
 func (this *Coco) Start() error {
