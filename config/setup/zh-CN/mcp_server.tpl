@@ -1,4 +1,4 @@
-POST $[[SETUP_INDEX_PREFIX]]mcp-server/$[[SETUP_DOC_TYPE]]/d04vm873edbo4f7e6stg
+POST $[[SETUP_INDEX_PREFIX]]mcp-server$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d04vm873edbo4f7e6stg
 {
 	"id": "d04vm873edbo4f7e6stg",
 	"created": "2025-04-24T16:49:36.1654+08:00",
@@ -15,7 +15,7 @@ POST $[[SETUP_INDEX_PREFIX]]mcp-server/$[[SETUP_DOC_TYPE]]/d04vm873edbo4f7e6stg
 	"enabled": true
 }
 
-POST $[[SETUP_INDEX_PREFIX]]mcp-server/$[[SETUP_DOC_TYPE]]/d053quf3edbhe0kp9gd0
+POST $[[SETUP_INDEX_PREFIX]]mcp-server$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d053quf3edbhe0kp9gd0
 {
 	"id": "d053quf3edbhe0kp9gd0",
 	"created": "2025-04-24T21:32:41.163768+08:00",
@@ -32,7 +32,7 @@ POST $[[SETUP_INDEX_PREFIX]]mcp-server/$[[SETUP_DOC_TYPE]]/d053quf3edbhe0kp9gd0
 	"enabled": true
 }
 
-POST $[[SETUP_INDEX_PREFIX]]mcp-server/$[[SETUP_DOC_TYPE]]/d054rin3edbhiauqki7g
+POST $[[SETUP_INDEX_PREFIX]]mcp-server$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d054rin3edbhiauqki7g
 {
 	"id": "d054rin3edbhiauqki7g",
 	"created": "2025-04-24T22:42:18.66328+08:00",

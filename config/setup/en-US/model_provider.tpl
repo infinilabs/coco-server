@@ -1,5 +1,5 @@
 # model provider
-POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/deepseek
+POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/deepseek
 {
   "id" : "deepseek",
   "created" : "2025-03-28T10:25:39.7741+08:00",
@@ -18,7 +18,7 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/deepseek
   "description": "Provide efficient and flexible large model API services, supporting complex tasks with a high cost-performance advantage."
 }
 
-POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/openai
+POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/openai
 {
   "id" : "openai",
   "created" : "2025-03-28T10:24:37.843478+08:00",
@@ -37,7 +37,7 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/openai
   "description": "Provide advanced GPT-series large model API services (such as GPT-4/ChatGPT), supporting multimodal interactions and enterprise-level AI solutions, with a mature API ecosystem and top-tier general intelligence performance."
 }
 
-POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/ollama
+POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/ollama
 {
   "id" : "ollama",
   "created" : "2025-03-28T10:24:22.378929+08:00",
@@ -58,7 +58,7 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/ollama
   "description": "Deploy mainstream open-source models with a single click to enable private AI inference and fine-tuning, ensuring data privacy and local control."
 }
 
-POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/gitee_ai
+POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/gitee_ai
  {
    "id" : "gitee_ai",
    "created" : "2025-03-28T10:25:39.7741+08:00",
@@ -84,7 +84,7 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/gitee_ai
    "description" : "Gitee AI brings together the latest and most popular AI models, offering a one-stop service for model experience, inference, fine-tuning, deployment, and application."
  }
 
-POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/qianwen
+POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/qianwen
 {
   "id" : "qianwen",
   "created" : "2025-03-28T10:25:39.7741+08:00",
@@ -119,7 +119,7 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/qianwen
   "description" : "Aliyun's self-developed Tongyi large model supports full-modal model service calls, offering powerful inference capabilities with high efficiency and low cost to meet a wide range of business scenarios."
 }
 
-POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/openai_compatible
+POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/openai_compatible
 {
     "id" : "openai_compatible",
     "created" : "2025-03-28T10:25:39.7741+08:00",
@@ -139,7 +139,7 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/openai_compatible
     "description" : "A fully compatible alternative to OpenAI's API, offering lower-cost and higher-concurrency model calls, supporting private deployment and multi-model hosting."
 }
 
-POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/coco
+POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/coco
 {
   "id" : "coco",
   "created" : "2025-03-28T10:24:22.378929+08:00",
@@ -157,7 +157,7 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/coco
   "description": "Coco AI Custom Model Provider for Configuring Default AI Assistant."
 }
 
-POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/silicon_flow
+POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/silicon_flow
 {
   "id" : "silicon_flow",
   "created" : "2025-03-28T10:24:22.378929+08:00",
@@ -177,7 +177,7 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/silicon_flow
   "description": "Siliconflow provides access to various models (LLM, text embedding, reordering, STT, TTS), which can be configured through model name, API key, and other parameters."
 }
 
-POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/tencent_hunyuan
+POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/tencent_hunyuan
 {
   "id" : "tencent_hunyuan",
   "created" : "2025-03-28T10:24:22.378929+08:00",
@@ -202,7 +202,7 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/tencent_hunyuan
   "description": "Tencent Hunyuan provides models such as hunyuan-standard, hunyuan-standard-256k, hunyuan-pro, hunyuan-role..."
 }
 
-POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/gemini
+POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/gemini
 {
   "id" : "gemini",
   "created" : "2025-03-28T10:24:22.378929+08:00",
@@ -221,7 +221,7 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/gemini
   "description": "Google's Gemini model"
 }
 
-POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/moonshot
+POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/moonshot
 {
   "id" : "moonshot",
   "created" : "2025-03-28T10:24:22.378929+08:00",
@@ -239,7 +239,7 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/moonshot
   "description": "Moonshot provides models such as moonshot-v1-8k, moonshot-v1-32k, and moonshot-v1-128k."
 }
 
-POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/minimax
+POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/minimax
 {
   "id" : "minimax",
   "created" : "2025-03-28T10:24:22.378929+08:00",
@@ -261,7 +261,7 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/minimax
   "description": "MiniMax is an advanced AI platform that provides a suite of powerful models designed for various applications, including LLMs."
 }
 
-POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/volcanoArk
+POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/volcanoArk
 {
   "id" : "volcanoArk",
   "created" : "2025-03-28T10:24:22.378929+08:00",
@@ -282,7 +282,7 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/volcanoArk
   "description": "The models provided by VolcanoArk, such as Doubao-pro-4k, Doubao-pro-32k, and Doubao-pro-128k."
 }
 
-POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/qianfan
+POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/qianfan
 {
   "id" : "qianfan",
   "created" : "2025-03-28T10:24:22.378929+08:00",

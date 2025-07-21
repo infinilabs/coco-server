@@ -42,8 +42,8 @@ const (
 type Assistant struct {
 	CombinedFullText
 	Name           string           `json:"name" elastic_mapping:"name:{type:keyword,copy_to:combined_fulltext}"`
-	Description    string           `json:"description" elastic_mapping:"description:{type:keyword,copy_to:combined_fulltext}"`
-	Icon           string           `json:"icon" elastic_mapping:"icon:{type:keyword}"`
+	Description    string           `json:"description" elastic_mapping:"description:{type:text,copy_to:combined_fulltext}"`
+	Icon           string           `json:"icon" elastic_mapping:"icon:{enabled:false}"`
 	Type           string           `json:"type" elastic_mapping:"type:{type:keyword}"` // assistant type, default value: "simple", possible values: "simple", "deep_think", "external_workflow"
 	Category       string           `json:"category,omitempty" elastic_mapping:"category:{type:keyword}"`
 	Tags           []string         `json:"tags,omitempty" elastic_mapping:"tags:{type:keyword}"`
@@ -56,8 +56,8 @@ type Assistant struct {
 	Keepalive      string           `json:"keepalive" elastic_mapping:"keepalive:{type:keyword}"`
 	Enabled        bool             `json:"enabled" elastic_mapping:"enabled:{type:keyword}"`
 	ChatSettings   ChatSettings     `json:"chat_settings" elastic_mapping:"chat_settings:{type:object,enabled:false}"`
-	Builtin        bool             `json:"builtin" elastic_mapping:"builtin:{type:keyword}"`         // Whether the model provider is builtin
-	RolePrompt     string           `json:"role_prompt" elastic_mapping:"role_prompt:{type:keyword}"` // Role prompt for the assistant
+	Builtin        bool             `json:"builtin" elastic_mapping:"builtin:{type:keyword}"`          // Whether the model provider is builtin
+	RolePrompt     string           `json:"role_prompt" elastic_mapping:"role_prompt:{enabled:false}"` // Role prompt for the assistant
 
 	DeepThinkConfig *DeepThinkConfig `json:"-"`
 }
