@@ -28,7 +28,7 @@ Information about release notes of Coco Server is provided here.
 - fix: incorrect status display in llm provider list #364
 - fix: chat api with attachments #368
 - fix: prevent nil exception during LLM intent parsing on error #375
-- fix: deleting multiple URL input boxes does not work
+- fix: deleting multiple URL input boxes does not work #393
 
 ### ✈️ Improvements  
 - refactor: refactoring user id #337
