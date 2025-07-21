@@ -106,6 +106,7 @@ export const MCPConfig = (props: MCPConfigProps) => {
             value={value.model}
             onChange={onModelChange}
             width="600px"
+            modelType="caller_model"
             providers={props.modelProviders}
           />
         </Space>
