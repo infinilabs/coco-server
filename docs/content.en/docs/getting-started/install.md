@@ -19,9 +19,9 @@ This method is the simplest way to get Coco Server running. It uses Docker-manag
 docker run -d \
   --name cocoserver \
   -p 9000:9000 \
-  -v ezs_data:/app/easysearch/data \
-  -v ezs_config:/app/easysearch/config \
-  -v ezs_logs:/app/easysearch/logs \
+  -v data:/app/easysearch/data \
+  -v config:/app/easysearch/config \
+  -v logs:/app/easysearch/logs \
   -e EASYSEARCH_INITIAL_ADMIN_PASSWORD="coco-server" \
   infinilabs/coco:0.6.0
 ```
@@ -32,7 +32,7 @@ docker run -d \
 
 **After running the command:**
 *   Coco Server will be running in the background. Access the Web UI at `http://localhost:9000`.
-*   Your data, configuration, and logs are safely stored in Docker volumes named `ezs_data`, `ezs_config`, and `ezs_logs`.
+*   Your data, configuration, and logs are safely stored in Docker volumes named `data`, `config`, and `logs`.
 
 ---
 
@@ -141,7 +141,7 @@ docker stop cocoserver && docker rm cocoserver
 
 *   **If you used Quick Start (Docker Volumes):**
     ```bash
-    docker volume rm ezs_data ezs_config ezs_logs
+    docker volume rm data config logs
     ```
 *   **If you used Advanced Start (Host Directories):**
     ```bash
