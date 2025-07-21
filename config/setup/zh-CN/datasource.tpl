@@ -1,4 +1,4 @@
-POST $[[SETUP_INDEX_PREFIX]]datasource/$[[SETUP_DOC_TYPE]]/coco_server_docs
+POST $[[SETUP_INDEX_PREFIX]]datasource$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/coco_server_docs
 {
   "id" : "coco_server_docs",
   "created" : "2025-03-04T14:26:23.43811+08:00",
@@ -20,7 +20,7 @@ POST $[[SETUP_INDEX_PREFIX]]datasource/$[[SETUP_DOC_TYPE]]/coco_server_docs
   "enabled" : true
 }
 
-POST $[[SETUP_INDEX_PREFIX]]datasource/$[[SETUP_DOC_TYPE]]/coco_app_docs
+POST $[[SETUP_INDEX_PREFIX]]datasource$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/coco_app_docs
 {
   "id" : "coco_app_docs",
   "created" : "2025-03-04T14:25:23.43811+08:00",

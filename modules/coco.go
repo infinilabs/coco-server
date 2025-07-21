@@ -23,7 +23,8 @@ type Coco struct {
 }
 
 func (this *Coco) Setup() {
-	suffix := "-v2"
+	suffix := common.GetSchemaSuffix()
+
 	orm.MustRegisterSchemaWithIndexName(common.Session{}, "session"+suffix)
 	orm.MustRegisterSchemaWithIndexName(common.Document{}, "document"+suffix)
 	orm.MustRegisterSchemaWithIndexName(common.ChatMessage{}, "message"+suffix)
