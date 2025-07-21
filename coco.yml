@@ -369,7 +369,7 @@ pipeline:
 #          input_queue: "enriched_documents"
           idle_timeout_in_seconds: 1
           elasticsearch: "prod"
-          index_name: "coco_document"
+          index_name: "coco_document-v2"
           key_field: "id"
           output_queue:
             name: "merged_documents"

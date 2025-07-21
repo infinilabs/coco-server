@@ -1,4 +1,4 @@
-POST $[[SETUP_INDEX_PREFIX]]connector/$[[SETUP_DOC_TYPE]]/yuque
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/yuque
 {
   "id" : "yuque",
   "created" : "2025-03-04T14:26:23.43811+08:00",
@@ -25,7 +25,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector/$[[SETUP_DOC_TYPE]]/yuque
   },
   "builtin": true
 }
-POST $[[SETUP_INDEX_PREFIX]]connector/$[[SETUP_DOC_TYPE]]/hugo_site
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/hugo_site
 {
   "id" : "hugo_site",
   "created" : "2025-03-04T14:27:41.869073+08:00",
@@ -51,7 +51,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector/$[[SETUP_DOC_TYPE]]/hugo_site
   },
   "builtin": true
 }
-POST $[[SETUP_INDEX_PREFIX]]connector/$[[SETUP_DOC_TYPE]]/google_drive
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/google_drive
 {
   "id" : "google_drive",
   "created" : "2025-03-04T15:27:11.359656+08:00",
@@ -96,7 +96,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector/$[[SETUP_DOC_TYPE]]/google_drive
   },
   "builtin": true
 }
-POST $[[SETUP_INDEX_PREFIX]]connector/$[[SETUP_DOC_TYPE]]/notion
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/notion
 {
   "id" : "notion",
   "created" : "2025-03-04T15:27:26.620836+08:00",
@@ -121,7 +121,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector/$[[SETUP_DOC_TYPE]]/notion
   },
   "builtin": true
 }
-POST $[[SETUP_INDEX_PREFIX]]connector/$[[SETUP_DOC_TYPE]]/rss
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/rss
 {
   "id" : "rss",
   "created" : "2025-07-14T20:50:00.869073+08:00",

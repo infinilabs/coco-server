@@ -1,5 +1,5 @@
 # model provider
-POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/deepseek
+POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/deepseek
 {
   "id" : "deepseek",
   "created" : "2025-03-28T10:25:39.7741+08:00",
@@ -18,7 +18,7 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/deepseek
   "description": "提供高效灵活的大模型API服务，支持复杂场景任务，具备高性价比优势。"
 }
 
-POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/openai
+POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/openai
 {
   "id" : "openai",
   "created" : "2025-03-28T10:24:37.843478+08:00",
@@ -37,7 +37,7 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/openai
   "description": "提供先进的GPT系列大模型（如GPT-4/ChatGPT），支持多模态交互与企业级AI解决方案，具备成熟的API生态与顶尖的通用智能表现。"
 }
 
-POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/ollama
+POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/ollama
 {
   "id" : "ollama",
   "created" : "2025-03-28T10:24:22.378929+08:00",
@@ -58,7 +58,7 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/ollama
   "description": "一键部署主流开源模型，实现私有化 AI 推理与微调，保障数据隐私与本地化控制。"
 }
 
-POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/gitee_ai
+POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/gitee_ai
  {
    "id" : "gitee_ai",
    "created" : "2025-03-28T10:25:39.7741+08:00",
@@ -84,7 +84,7 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/gitee_ai
    "description" : "模力方舟（Gitee AI），汇聚了最新最热的 AI 模型，提供模型体验、推理、微调、部署和应用的一站式服务。"
  }
 
-POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/qianwen
+POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/qianwen
 {
   "id" : "qianwen",
   "created" : "2025-03-28T10:25:39.7741+08:00",
@@ -119,7 +119,7 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/qianwen
   "description" : "阿里云自研的通义大模型，支持全模态模型服务调用，强推理高效率低成本，满足更多业务场景。"
 }
 
-POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/openai_compatible
+POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/openai_compatible
 {
     "id" : "openai_compatible",
     "created" : "2025-03-28T10:25:39.7741+08:00",
@@ -139,7 +139,7 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/openai_compatible
     "description" : "全兼容 OpenAI API 接口的替代方案，提供更低成本/更高并发的模型调用，支持私有化部署与多模型托管。"
 }
 
-POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/coco
+POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/coco
 {
   "id" : "coco",
   "created" : "2025-03-28T10:24:22.378929+08:00",
@@ -157,7 +157,7 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/coco
   "description": "Coco AI 自定义模型提供商，用于配置默认 AI 助手"
 }
 
-POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/silicon_flow
+POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/silicon_flow
 {
   "id" : "silicon_flow",
   "created" : "2025-03-28T10:24:22.378929+08:00",
@@ -177,7 +177,7 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/silicon_flow
   "description": "硅基流动提供对各种模型（LLM、文本嵌入、重排序、STT、TTS）的访问，可通过模型名称、API密钥和其他参数进行配置"
 }
 
-POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/tencent_hunyuan
+POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/tencent_hunyuan
 {
   "id" : "tencent_hunyuan",
   "created" : "2025-03-28T10:24:22.378929+08:00",
@@ -202,7 +202,7 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/tencent_hunyuan
   "description": "腾讯混元提供的模型，例如 hunyuan-standard、 hunyuan-standard-256k, hunyuan-pro, hunyuan-role…"
 }
 
-POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/gemini
+POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/gemini
 {
   "id" : "gemini",
   "created" : "2025-03-28T10:24:22.378929+08:00",
@@ -221,7 +221,7 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/gemini
   "description": "谷歌提供的 Gemini 模型"
 }
 
-POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/moonshot
+POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/moonshot
 {
   "id" : "moonshot",
   "created" : "2025-03-28T10:24:22.378929+08:00",
@@ -239,7 +239,7 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/moonshot
   "description": "Moonshot 提供的模型，例如 moonshot-v1-8k、moonshot-v1-32k 和 moonshot-v1-128k。"
 }
 
-POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/minimax
+POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/minimax
 {
   "id" : "minimax",
   "created" : "2025-03-28T10:24:22.378929+08:00",
@@ -261,7 +261,7 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/minimax
   "description": "MiniMax 是一个先进的AI平台，提供一系列为各种应用设计的强大模型，包括LLMs。"
 }
 
-POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/volcanoArk
+POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/volcanoArk
 {
   "id" : "volcanoArk",
   "created" : "2025-03-28T10:24:22.378929+08:00",
@@ -282,7 +282,7 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/volcanoArk
   "description": "火山方舟提供的模型，例如 Doubao-pro-4k、Doubao-pro-32k 和 Doubao-pro-128k。"
 }
 
-POST $[[SETUP_INDEX_PREFIX]]model-provider/$[[SETUP_DOC_TYPE]]/qianfan
+POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/qianfan
 {
   "id" : "qianfan",
   "created" : "2025-03-28T10:24:22.378929+08:00",

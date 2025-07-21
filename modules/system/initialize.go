@@ -294,10 +294,13 @@ func (h *APIHandler) initializeTemplate(dslTplFile string, indexPrefix string, d
 		defaultModel = fmt.Sprintf(`{"name": "%s"}`, setupCfg.LLM.DefaultModel)
 		answeringModel = fmt.Sprintf(`{"provider_id": "coco", "name": "%s",  "prompt": { "template": "{{.query}}" }}`, setupCfg.LLM.DefaultModel)
 	}
+
 	output := tpl.ExecuteFuncString(func(w io.Writer, tag string) (int, error) {
 		switch tag {
 		case "SETUP_INDEX_PREFIX":
 			return w.Write([]byte(indexPrefix))
+		case "SETUP_SCHEMA_VER":
+			return w.Write([]byte(common.GetSchemaSuffix()))
 		case "SETUP_DOC_TYPE":
 			return w.Write([]byte(docType))
 		case "SETUP_LLM_ENABLED":

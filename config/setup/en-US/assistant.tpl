@@ -1,4 +1,4 @@
-POST $[[SETUP_INDEX_PREFIX]]assistant/$[[SETUP_DOC_TYPE]]/default
+POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/default
 {
   "id" : "default",
   "created" : "2025-04-14T14:24:06.066519+08:00",
@@ -57,7 +57,7 @@ POST $[[SETUP_INDEX_PREFIX]]assistant/$[[SETUP_DOC_TYPE]]/default
   "role_prompt" : ""
 }
 
-POST $[[SETUP_INDEX_PREFIX]]assistant/$[[SETUP_DOC_TYPE]]/ai_overview
+POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/ai_overview
 {
     "id": "ai_overview",
     "created": "2025-05-28T09:29:42.689775563+08:00",

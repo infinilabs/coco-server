@@ -29,7 +29,7 @@ type Attachment struct {
 	orm.ORMObjectBase // Embedding ORM base for persistence-related fields
 
 	Name        string `json:"name,omitempty" elastic_mapping:"name:{type:keyword}"`
-	Description string `json:"description,omitempty" elastic_mapping:"description:{type:keyword}"`
+	Description string `json:"description,omitempty" elastic_mapping:"description:{type:text}"`
 	Icon        string `json:"icon,omitempty" elastic_mapping:"icon:{enabled:false}"`
 	MimeType    string `json:"mime_type,omitempty" elastic_mapping:"mime_type:{enabled:false}"`
 	URL         string `json:"url,omitempty" elastic_mapping:"url:{enabled:false}"`
