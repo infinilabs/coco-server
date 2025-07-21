@@ -338,3 +338,44 @@ func (h *APIHandler) createDocInDatasource(w http.ResponseWriter, req *http.Requ
 		"result": "created",
 	}, 200)
 }
+
+func (h *APIHandler) createDocInDatasourceWithID(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	var obj = &common.Document{}
+	err := h.DecodeJSON(req, obj)
+	if err != nil {
+		panic(err)
+	}
+
+	//TODO cache for speed
+	datasourceID := ps.MustGetParameter("id")
+	docID := ps.MustGetParameter("doc_id")
+	obj.ID = docID
+	datasourceObj := common.DataSource{}
+	datasourceObj.ID = datasourceID
+	ctx := orm.NewContextWithParent(req.Context())
+
+	exists, err := orm.GetV2(ctx, &datasourceObj)
+	if !exists || err != nil {
+		panic("invalid datasource")
+	}
+
+	//replace datasource info
+	sourceRefer := common.DataSourceReference{}
+	sourceRefer.ID = datasourceObj.ID
+	sourceRefer.Type = datasourceObj.Type
+	sourceRefer.Name = datasourceObj.Name
+	obj.Source = sourceRefer
+
+	ctx.Refresh = orm.WaitForRefresh
+
+	err = orm.Create(ctx, obj)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	h.WriteJSON(w, util.MapStr{
+		"_id":    obj.ID,
+		"result": "created",
+	}, 200)
+}
