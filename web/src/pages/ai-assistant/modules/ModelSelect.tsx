@@ -78,7 +78,19 @@ Your output should look like this format:
   "need_network_search":<true or false>
 }
 </JSON>`,
-  picking_doc_model: `Please review these documents and identify which ones best related to user's query. 
+  picking_doc_model: `You are an AI assistant trained to select the most relevant documents for further processing and to answer user queries.
+We have already queried the backend database and retrieved a list of documents that may help answer the user's query. And also invoke some external tools provided by MCP servers. 
+Your task is to choose the best documents for further processing.
+The user has provided the following query:
+{{.query}}
+
+The primary intent behind this query is:
+{{.intent}}
+
+The following documents are fetched from database:
+{{.docs}}
+
+Please review these documents and identify which ones best related to user's query. 
 Choose no more than 5 relevant documents. These documents may be entirely unrelated, so prioritize those that provide direct answers or valuable context.
 If the document is unrelated not certain, don't include it.
 For each document, provide a brief explanation of why it was selected.

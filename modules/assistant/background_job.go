@@ -737,33 +737,26 @@ func (h APIHandler) processPickDocuments(ctx context.Context, reqMsg, replyMsg *
 	echoMsg := common.NewMessageChunk(params.SessionID, replyMsg.ID, common.MessageTypeAssistant, reqMsg.ID, common.PickSource, string(""), 0)
 	_ = sender.SendMessage(echoMsg)
 
-	content := []llms.MessageContent{
-		llms.TextParts(
-			llms.ChatMessageTypeSystem,
-			`You are an AI assistant trained to select the most relevant documents for further processing and to answer user queries.
-We have already queried the backend database and retrieved a list of documents that may help answer the user's query. And also invoke some external tools provided by MCP servers. 
-Your task is to choose the best documents for further processing.`,
-		),
-	}
-
-	content = append(content, llms.TextParts(llms.ChatMessageTypeSystem, "The user has provided the following query:\n"))
-	content = append(content, llms.TextParts(llms.ChatMessageTypeHuman, reqMsg.Message))
-
-	if params.QueryIntent != nil {
-		content = append(content, llms.TextParts(llms.ChatMessageTypeSystem, "The primary intent behind this query is:\n"))
-		content = append(content, llms.TextParts(llms.ChatMessageTypeSystem, util.MustToJSON(params.QueryIntent)))
-	}
-
-	if params.sourceDocsSummaryBlock != "" {
-		content = append(content, llms.TextParts(llms.ChatMessageTypeSystem, "The following documents are fetched from database:\n"))
-		content = append(content, llms.TextParts(llms.ChatMessageTypeSystem, params.sourceDocsSummaryBlock))
-	}
-
 	promptTemplate := common.PickingDocPromptTemplate
 	if params.pickingDocModel != nil && params.pickingDocModel.PromptConfig != nil && params.pickingDocModel.PromptConfig.PromptTemplate != "" {
 		promptTemplate = params.pickingDocModel.PromptConfig.PromptTemplate
 	}
-	content = append(content, llms.TextParts(llms.ChatMessageTypeSystem, promptTemplate))
+	// Create the prompt template
+	inputValues := map[string]any{
+		"query":  reqMsg.Message,
+		"intent": util.MustToJSON(params.QueryIntent),
+		"docs":   params.sourceDocsSummaryBlock,
+	}
+	finalPrompt, err := rag.GetPromptStringByTemplateArgs(params.answeringModel, promptTemplate, []string{"query", "intent", "summary"}, inputValues)
+	if err != nil {
+		panic(err)
+	}
+	content := []llms.MessageContent{
+		llms.TextParts(
+			llms.ChatMessageTypeSystem,
+			finalPrompt,
+		),
+	}
 
 	log.Debug("start filtering documents")
 	var pickedDocsBuffer = strings.Builder{}
