@@ -143,7 +143,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/r
   },
   "builtin": true
 }
-POST $[[SETUP_INDEX_PREFIX]]connector/$[[SETUP_DOC_TYPE]]/local_fs
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/local_fs
 {
   "id" : "local_fs",
   "created" : "2025-07-18T10:00:00.000000+08:00",

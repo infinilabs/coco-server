@@ -165,13 +165,15 @@ func (p *Plugin) scanFolders(connector *common.Connector, datasource *common.Dat
 
 			modTime := fileInfo.ModTime()
 			doc := common.Document{
-				Source:  common.DataSourceReference{ID: datasource.ID, Type: "connector", Name: datasource.Name},
-				Type:    "local_fs",
-				Icon:    "default",
-				Title:   fileInfo.Name(),
-				Content: "", // skip content
-				URL:     "file://" + currentPath,
-				Size:    int(fileInfo.Size()),
+				Source:   common.DataSourceReference{ID: datasource.ID, Type: "connector", Name: datasource.Name},
+				Type:     "local_fs",
+				Icon:     "default",
+				Title:    fileInfo.Name(),
+				Category: filepath.Dir(currentPath),
+				Content:  "", // skip content
+				//URL:     "file://" + currentPath,
+				URL:  currentPath,
+				Size: int(fileInfo.Size()),
 			}
 			// Unify creation and modification time
 			doc.Created = &modTime
