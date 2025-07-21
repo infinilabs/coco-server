@@ -330,6 +330,11 @@ connector:
     interval: 10s
     queue:
       name: indexing_documents
+  local_fs:
+    enabled: true
+    interval: 10s
+    queue:
+      name: indexing_documents
 
 ##background jobs
 pipeline:

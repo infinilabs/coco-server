@@ -88,13 +88,20 @@ const page: App.I18n.Schema['translation']['page'] = {
         scheduled_sync_desc: 'Sync at fixed intervals',
         site_urls: 'Site URLs',
         sync_enabled: 'Sync Enabled',
-        type: 'Type'
+        type: 'Type',
+        folder_paths: 'Folder paths',
+        file_extensions: 'File extensions (optional)',
       },
-      title: '{{connector}} Connection'
+      title: '{{connector}} Connection',
+      tooltip: {
+        file_extensions: 'Comma-separated list. e.g., pdf, docx, txt',
+        folder_paths: 'Absolute paths to the folders you want to scan.'
+      }
     },
     seconds: 'seconds',
     site_urls: 'Site URLs',
     site_urls_add: 'Add URL',
+    file_paths_add: 'Add File Path',
     title: 'Datasource'
   },
   guide: {

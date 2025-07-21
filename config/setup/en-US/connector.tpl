@@ -143,3 +143,24 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/r
   },
   "builtin": true
 }
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/local_fs
+{
+  "id" : "local_fs",
+  "created" : "2025-07-18T10:00:00.000000+08:00",
+  "updated" : "2025-07-18T10:00:00.000000+08:00",
+  "name" : "Local Filesystem Connector",
+  "description" : "Scan and fetch metadata from local files.",
+  "category" : "local_storage",
+  "icon" : "/assets/icons/connector/local_fs/icon.png",
+  "tags" : [
+    "storage",
+    "filesystem"
+  ],
+  "url" : "http://coco.rs/connectors/local_fs",
+  "assets" : {
+    "icons" : {
+      "default" : "/assets/icons/connector/local_fs/icon.png"
+    }
+  },
+  "builtin": true
+}

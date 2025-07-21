@@ -10,11 +10,12 @@ import { MultiURLInput } from './urls';
 export const Types = {
   GoogleDrive: 'google_drive',
   HugoSite: 'hugo_site',
+  LocalFS: 'local_fs',
   Notion: 'notion',
   ObjectStorage: 'object_storage',
-  Search: 'search',
-  Yuque: 'yuque',
   RSS: 'rss',
+  Search: 'search',
+  Yuque: 'yuque'
 };
 
 export const TypeList = ({
@@ -263,7 +264,7 @@ const FileUploader = ({ onChange }) => {
             onChange(fileContent);
           }
         } catch (error) {
-          console.error('Invalid JSON file!');
+          console.error('Invalid JSON file!', error);
         }
       };
 

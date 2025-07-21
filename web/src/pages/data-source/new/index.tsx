@@ -1,21 +1,22 @@
-import { Button, Checkbox, Form, Input, Modal, Spin, Switch, message } from 'antd';
-import type { FormProps } from 'antd';
-import { useForm } from 'antd/es/form/Form';
+import type {FormProps} from 'antd';
+import {Button, Form, Input, message, Modal, Spin, Switch} from 'antd';
+import {useForm} from 'antd/es/form/Form';
 
-import { DataSync } from '@/components/datasource/data_sync';
-import { TypeList, Types } from '@/components/datasource/type';
-import { getConnector } from '@/service/api/connector';
-import { createDatasource } from '@/service/api/data-source';
-import {getConnectorIcons} from '@/service/api/connector';
-import { IconSelector } from "@/pages/connector/new/icon_selector";
+import {DataSync} from '@/components/datasource/data_sync';
+import {Types} from '@/components/datasource/type';
+import {getConnector, getConnectorIcons} from '@/service/api/connector';
+import {createDatasource} from '@/service/api/data-source';
+import {IconSelector} from "@/pages/connector/new/icon_selector";
 
 import GoogleDrive from './google_drive';
 import HugoSite from './hugo_site';
+import LocalFS from './local_fs';
 import Notion from './notion';
+import Rss from './rss';
 import Yuque from './yuque';
 
 export function Component() {
-  const { t } = useTranslation();
+  const {t} = useTranslation();
   const nav = useNavigate();
   const location = useLocation();
   const params = new URLSearchParams(location.search);
@@ -49,7 +50,7 @@ export function Component() {
         name: values.name,
         type: 'connector'
       })
-        .then(({ data }) => {
+        .then(({data}) => {
           setCreateState(old => {
             nav(`/data-source/edit/${data._id}`, {});
             return {
@@ -84,6 +85,9 @@ export function Component() {
     case Types.RSS:
       connectorType = 'RSS';
       break;
+    case Types.LocalFS:
+      connectorType = 'Local FS';
+      break;
     default:
       return (
         <Modal
@@ -104,9 +108,9 @@ export function Component() {
               <Form.Item
                 label={<span className="text-gray-500">{t('page.apitoken.columns.name')}</span>}
                 name="name"
-                rules={[{ required: true }]}
+                rules={[{required: true}]}
               >
-                <Input />
+                <Input/>
               </Form.Item>
             </Form>
           </Spin>
@@ -138,6 +142,19 @@ export function Component() {
           urls: values.urls || []
         };
         break;
+      case Types.LocalFS: {
+        const extensions = values.config?.extensions_str
+          ? values.config.extensions_str
+              .split(',')
+              .map((s: string) => s.trim())
+              .filter(Boolean)
+          : [];
+        config = {
+          extensions,
+          paths: (values.config?.paths || []).filter(Boolean)
+        };
+        break;
+      }
     }
     const sValues = {
       connector: {
@@ -155,7 +172,7 @@ export function Component() {
       type: 'connector'
     };
     createDatasource(sValues).then(res => {
-      if (res.data?.result == 'created') {
+      if (res.data?.result === 'created') {
         message.success(t('common.addSuccess'));
         nav('/data-source/list', {});
       }
@@ -164,8 +181,8 @@ export function Component() {
 
   const [iconsMeta, setIconsMeta] = useState([]);
   useEffect(() => {
-    getConnectorIcons().then((res)=>{
-      if(res.data?.length > 0){
+    getConnectorIcons().then((res) => {
+      if (res.data?.length > 0) {
         setIconsMeta(res.data);
       }
     });
@@ -181,7 +198,7 @@ export function Component() {
         className="min-h-full flex-col-stretch sm:flex-1-hidden card-wrapper"
       >
         <div className="mb-30px ml--16px flex items-center text-lg font-bold">
-          <div className="mr-20px h-1.2em w-10px bg-[#1677FF]" />
+          <div className="mr-20px h-1.2em w-10px bg-[#1677FF]"/>
           <div>
             {t('page.datasource.new.title', {
               connector: connectorType
@@ -189,19 +206,19 @@ export function Component() {
           </div>
         </div>
         {type === Types.GoogleDrive ? (
-          <GoogleDrive connector={connector} />
+          <GoogleDrive connector={connector}/>
         ) : (
           <div>
             <Form
               autoComplete="off"
               colon={false}
-              labelCol={{ span: 4 }}
+              labelCol={{span: 4}}
               layout="horizontal"
-              wrapperCol={{ span: 18 }}
+              wrapperCol={{span: 18}}
               initialValues={{
-                connector: { config: {}, id: type },
+                connector: {config: {}, id: type},
                 enabled: true,
-                sync_config: { interval: '60s', sync_type: 'interval' },
+                sync_config: {interval: '60s', sync_type: 'interval'},
                 sync_enabled: true
               }}
               onFinish={onFinish}
@@ -210,22 +227,23 @@ export function Component() {
               <Form.Item
                 label={t('page.datasource.new.labels.name')}
                 name="name"
-                rules={[{ message: 'Please input datasource name!', required: true }]}
+                rules={[{message: 'Please input datasource name!', required: true}]}
               >
-                <Input className="max-w-600px" />
+                <Input className="max-w-600px"/>
               </Form.Item>
               <Form.Item label={t('page.mcpserver.labels.icon')} name="icon">
-                <IconSelector type="connector" icons={iconsMeta} className='max-w-300px' />
+                <IconSelector type="connector" icons={iconsMeta} className='max-w-300px'/>
               </Form.Item>
-              {type === Types.Yuque && <Yuque />}
-              {type === Types.Notion && <Notion />}
-              {type === Types.HugoSite && <HugoSite />}
-              {type === Types.RSS && <HugoSite />}
+              {type === Types.Yuque && <Yuque/>}
+              {type === Types.Notion && <Notion/>}
+              {type === Types.HugoSite && <HugoSite/>}
+              {type === Types.RSS && <Rss/>}
+              {type === Types.LocalFS && <LocalFS/>}
               <Form.Item
                 label={t('page.datasource.new.labels.data_sync')}
                 name="sync_config"
               >
-                <DataSync />
+                <DataSync/>
               </Form.Item>
               <Form.Item
                 label={t('page.datasource.new.labels.sync_enabled')}

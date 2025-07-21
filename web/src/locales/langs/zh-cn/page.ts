@@ -86,13 +86,20 @@ const page: App.I18n.Schema['translation']['page'] = {
         scheduled_sync_desc: '每隔固定时间同步一次',
         site_urls: '站点地址',
         sync_enabled: '是否启用同步',
-        type: '数据源类型'
+        type: '数据源类型',
+        folder_paths: '文件夹路径',
+        file_extensions: '文件扩展名（可选）'
       },
-      title: '连接 {{connector}}'
+      title: '连接 {{connector}}',
+      tooltip: {
+        file_extensions: '逗号分隔列表。例如 pdf、docx、txt',
+        folder_paths: '您要扫描的文件夹的绝对路径。'
+      }
     },
     seconds: '秒',
     site_urls: '站点地址',
-    site_urls_add: '新增站点地址'
+    site_urls_add: '新增站点地址',
+    file_paths_add: '添加文件路径'
   },
   guide: {
     llm: {
