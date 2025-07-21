@@ -241,10 +241,9 @@ func (h APIHandler) createChatSession(w http.ResponseWriter, r *http.Request, ps
 	w.Header().Set("Transfer-Encoding", "chunked")
 	w.WriteHeader(http.StatusOK)
 
-	flusher.Flush()
-
 	enc := json.NewEncoder(w)
 	_ = enc.Encode(finalResult)
+	flusher.Flush()
 
 	params, err := h.getRAGContext(r, assistant)
 	if err != nil {
@@ -340,10 +339,9 @@ func (h *APIHandler) askAssistant(w http.ResponseWriter, r *http.Request, ps htt
 	w.Header().Set("Transfer-Encoding", "chunked")
 	w.WriteHeader(http.StatusOK)
 
-	flusher.Flush()
-
 	enc := json.NewEncoder(w)
 	_ = enc.Encode(finalResult)
+	flusher.Flush()
 
 	params, err := h.getRAGContext(r, assistant)
 	if err != nil {
@@ -604,8 +602,6 @@ func (h APIHandler) sendChatMessageV2(w http.ResponseWriter, r *http.Request, ps
 	w.Header().Set("Transfer-Encoding", "chunked")
 	w.WriteHeader(http.StatusOK)
 
-	flusher.Flush()
-
 	response := []util.MapStr{util.MapStr{
 		"_id":     reqMsg.ID,
 		"result":  "created",
@@ -614,6 +610,7 @@ func (h APIHandler) sendChatMessageV2(w http.ResponseWriter, r *http.Request, ps
 
 	enc := json.NewEncoder(w)
 	_ = enc.Encode(response)
+	flusher.Flush()
 
 	params, err := h.getRAGContext(r, assistant)
 	if err != nil {
