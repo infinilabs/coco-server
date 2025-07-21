@@ -18,7 +18,9 @@ export const MultiURLInput = ({ onChange, showLabel = true, value = [''] }) => {
   const addUrl = () => setUrls([...urls, '']);
 
   const removeUrl = index => {
-    setUrls(urls.filter((_, i) => i !== index));
+    const newUrls = urls.filter((_, i) => i !== index)
+    setUrls(newUrls);
+    onChange(newUrls);
   };
 
   return (
