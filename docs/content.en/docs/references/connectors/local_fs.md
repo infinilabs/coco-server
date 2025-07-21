@@ -8,7 +8,7 @@ weight: 30
 ## Register Local FS Connector
 
 ```shell
-curl -XPUT "http://localhost:9000/connector/rss?replace=true" -d '{
+curl -XPUT "http://localhost:9000/connector/local_fs?replace=true" -d '{
   "name" : "Local Filesystem Connector",
   "description" : "Scan and fetch metadata from local files.",
   "category" : "local_storage",
