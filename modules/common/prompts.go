@@ -93,3 +93,21 @@ The user has provided the following query:
 Ensure your response is thoughtful, accurate, and well-structured.
 For complex answers, format your response using clear and well-organized **Markdown** to improve readability.
 `
+
+const PickingDocPromptTemplate = `
+Please review these documents and identify which ones best related to user's query. 
+Choose no more than 5 relevant documents. These documents may be entirely unrelated, so prioritize those that provide direct answers or valuable context.
+If the document is unrelated not certain, don't include it.
+For each document, provide a brief explanation of why it was selected.
+Your decision should based solely on the information provided below. \nIf the information is insufficient, please indicate that you need more details to assist effectively.
+Don't make anything up, which means if you can't identify which document best match the user's query, you should output nothing.
+Make sure the output is concise and easy to process.
+Wrap the JSON result in <JSON></JSON> tags.
+"\nThe expected output format is:
+<JSON>
+[
+{ "id": "<id of Doc 1>", "title": "<title of Doc 1>", "explain": "<Explain for Doc 1>"  },
+{ "id": "<id of Doc 2>", "title": "<title of Doc 2>", "explain": "<Explain for Doc 2>"  },
+]
+</JSON>
+`

@@ -15,6 +15,7 @@ export const DeepThink = (props: DeepThinkProps) => {
       <Form.Item className="mb-[10px]" name={["config", "intent_analysis_model"]}>
         <ModelSelect
          providers={providers}
+         modelType="intent_analysis_model"
         />
       </Form.Item>
     </Space>
@@ -23,6 +24,7 @@ export const DeepThink = (props: DeepThinkProps) => {
       <Form.Item className="mb-[10px]" name={["config", "picking_doc_model"]}>
        <ModelSelect
          providers={providers}
+         modelType="picking_doc_model"
         />
       </Form.Item>
     </Space>

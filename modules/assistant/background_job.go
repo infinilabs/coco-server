@@ -759,21 +759,11 @@ Your task is to choose the best documents for further processing.`,
 		content = append(content, llms.TextParts(llms.ChatMessageTypeSystem, params.sourceDocsSummaryBlock))
 	}
 
-	content = append(content, llms.TextParts(llms.ChatMessageTypeSystem, "\nPlease review these documents and identify which ones best related to user's query. "+
-		"\nChoose no more than 5 relevant documents. These documents may be entirely unrelated, so prioritize those that provide direct answers or valuable context."+
-		"\nIf the document is unrelated not certain, don't include it."+
-		"\nFor each document, provide a brief explanation of why it was selected."+
-		"\nYour decision should based solely on the information provided below. \nIf the information is insufficient, please indicate that you need more details to assist effectively. "+
-		"\nDon't make anything up, which means if you can't identify which document best match the user's query, you should output nothing."+
-		"\nMake sure the output is concise and easy to process."+
-		"\nWrap the JSON result in <JSON></JSON> tags."+
-		"\nThe expected output format is:\n"+
-		"<JSON>\n"+
-		"[\n"+
-		" { \"id\": \"<id of Doc 1>\", \"title\": \"<title of Doc 1>\", \"explain\": \"<Explain for Doc 1>\"  },\n"+
-		" { \"id\": \"<id of Doc 2>\", \"title\": \"<title of Doc 2>\", \"explain\": \"<Explain for Doc 2>\"  },\n"+
-		"]"+
-		"</JSON>"))
+	promptTemplate := common.PickingDocPromptTemplate
+	if params.pickingDocModel != nil && params.pickingDocModel.PromptConfig != nil && params.pickingDocModel.PromptConfig.PromptTemplate != "" {
+		promptTemplate = params.pickingDocModel.PromptConfig.PromptTemplate
+	}
+	content = append(content, llms.TextParts(llms.ChatMessageTypeSystem, promptTemplate))
 
 	log.Debug("start filtering documents")
 	var pickedDocsBuffer = strings.Builder{}
