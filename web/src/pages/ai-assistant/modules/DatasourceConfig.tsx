@@ -4,11 +4,12 @@ interface DatasourceConfigProps {
   value?: any;
   onChange?: (value: string) => void;
   options: any[];
+  loading: boolean
 }
 
 export const DatasourceConfig = (props: DatasourceConfigProps) => {
   const { t } = useTranslation();
-  const { value = {}, onChange } = props;
+  const { loading, value = {}, onChange } = props;
   const onIDsChange = (newIds: string[]) => {
     if (onChange) {
       onChange({
@@ -70,6 +71,7 @@ export const DatasourceConfig = (props: DatasourceConfigProps) => {
         allowClear
         options={props.options}
         value={value.ids}
+        loading={loading}
       />
       <div>
         <Space>

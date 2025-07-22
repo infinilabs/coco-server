@@ -2,6 +2,7 @@ import DropdownList from "@/common/src/DropdownList";
 import { useMemo, useState } from "react";
 import { formatESSearchResult } from "@/service/request/es";
 import { fetchDataSourceList, getDatasource } from "@/service/api";
+import { useRequest } from "@sa/hooks";
 
 export default (props) => {
 
@@ -57,22 +58,22 @@ export default (props) => {
     }, [JSON.stringify(value), mode])
 
     const result = useMemo(() => {
-      return formatESSearchResult(res?.data);
+      return formatESSearchResult(res);
     }, [res, value])
 
     const formatValue = useMemo(() => {
       if (mode === 'multiple') {
-        if (value && value.some((item) => !!(item?.id && !item?.name)) && itemsRes?.data) {
-          return itemsRes?.data?.hits?.hits ? itemsRes?.data?.hits?.hits.map((item) => item._source) : []
+        if (value && value.some((item) => !!(item?.id && !item?.name)) && itemsRes) {
+          return itemsRes?.hits?.hits ? itemsRes?.hits?.hits.map((item) => item._source) : []
         }
         return value || []
       } else {
-        if (value?.id && !value?.name && itemRes?.data) {
-          return itemRes?.data._source
+        if (value?.id && !value?.name && itemRes) {
+          return itemRes._source
         }
         return value
       }
-    }, [value, itemRes?.data, itemsRes?.data, mode])
+    }, [value, itemRes, itemsRes, mode])
 
     const { data, total } = result;
 

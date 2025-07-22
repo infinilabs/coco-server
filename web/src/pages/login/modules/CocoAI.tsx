@@ -2,6 +2,7 @@ import { Button, Spin } from 'antd';
 import Clipboard from 'clipboard';
 
 import { fetchAccessToken } from '@/service/api';
+import { useRequest } from '@sa/hooks';
 
 const CocoAI = ({ provider, requestID }: { readonly provider: string | null; readonly requestID: string | null }) => {
   const { t } = useTranslation();
@@ -11,7 +12,7 @@ const CocoAI = ({ provider, requestID }: { readonly provider: string | null; rea
   const router = useRouterPush();
   const clickRef = useRef(false)
 
-  const { data: result, loading, run } = useRequest(fetchAccessToken, {
+  const { data, loading, run } = useRequest(fetchAccessToken, {
       manual: true,
   });
 
@@ -32,11 +33,11 @@ const CocoAI = ({ provider, requestID }: { readonly provider: string | null; rea
   }, [])
 
   const url = useMemo(() => {
-    if (result?.data?.access_token && requestID && provider) {
-      return `coco://oauth_callback?code=${result?.data?.access_token}&request_id=${requestID}&provider=${provider}expire_in=${result?.data?.expire_in}`
+    if (data?.access_token && requestID && provider) {
+      return `coco://oauth_callback?code=${data?.access_token}&request_id=${requestID}&provider=${provider}expire_in=${data?.expire_in}`
     }
     return ''
-  }, [result, requestID, provider])
+  }, [data, requestID, provider])
 
   useEffect(() => {
     if (url) {

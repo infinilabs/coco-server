@@ -3,6 +3,7 @@ import '../index.scss';
 import { fetchSettings, updateSettings } from '@/service/api/server';
 import { useLoading } from '@sa/hooks';
 import ChartStartPage from './ChartStartPage';
+import { useRequest } from '@sa/hooks';
 
 const AppSettings = memo(() => {
   const [form] = Form.useForm();
@@ -55,8 +56,8 @@ const AppSettings = memo(() => {
   });
 
   useEffect(() => {
-    if (data?.data?.app_settings) {
-      const { chat = {} } = data?.data?.app_settings;
+    if (data?.app_settings) {
+      const { chat = {} } = data?.app_settings;
       const { start_page = {} } = chat || {};
       const { logo, display_assistants, ...rest } = start_page || {};
       setLogo((state) => ({ ...state, ...(logo || {}) }))
@@ -89,7 +90,7 @@ const AppSettings = memo(() => {
           <div className="color-#333 font-medium mb-24px">
             {t('page.settings.app_settings.chat_settings.title')}
           </div>
-          <ChartStartPage startPageSettings={data?.data?.app_settings?.chat?.start_page} logo={logo} setLogo={setLogo}/>
+          <ChartStartPage startPageSettings={data?.app_settings?.chat?.start_page} logo={logo} setLogo={setLogo}/>
           <Form.Item label=" " >
             <Button
               type="primary"

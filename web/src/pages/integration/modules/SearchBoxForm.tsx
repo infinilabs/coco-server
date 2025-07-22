@@ -221,7 +221,7 @@ export const SearchBoxForm = memo(props => {
                 const { display_assistants = [] } = startPageSettings 
                 form.setFieldValue('start_page', {
                   ...startPageSettings,
-                  display_assistants: display_assistants.filter((item) => !!(as.find((a) => a.id === item.id)))
+                  display_assistants: display_assistants.filter((item) => !!item && !!(as.find((a) => a.id === item.id)))
                 })
               }}/>
             </Form.Item>

@@ -233,7 +233,12 @@ const ChartStartPage = memo((props) => {
                                 />
                               </Form.Item>
                               <Form.Item className="mb-8px">
-                                <span onClick={() => remove(field.name)}><SvgIcon className="text-16px cursor-pointer" icon="mdi:minus-circle-outline" /></span>
+                                <span onClick={() => {
+                                  remove(field.name)
+                                  const newExcluded = excludedAssistants.concat([])
+                                  newExcluded.splice(field.name)
+                                  setExcludedAssistants(newExcluded)
+                                }}><SvgIcon className="text-16px cursor-pointer" icon="mdi:minus-circle-outline" /></span>
                               </Form.Item>
                             </div>
                           </Form.Item>
