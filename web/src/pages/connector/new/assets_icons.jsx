@@ -56,7 +56,7 @@ export const AssetsIcons = ({ iconsMeta = [], onChange, value = {} }) => {
       return [
         ...oldIcons,
         {
-          icon: '',
+          icon: undefined,
           key: new Date().getTime(),
           type: ''
         }
@@ -147,7 +147,7 @@ const AssetsIcon = ({ icons = [], onChange, onRemove, value = {} }) => {
         <IconSelector
           icons={icons}
           type="file"
-          value={innerValue.icon || ''}
+          value={innerValue.icon}
           onChange={onIconChange}
         />
       </Col>
