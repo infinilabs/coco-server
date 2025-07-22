@@ -4,8 +4,9 @@ import ButtonIcon from '../stateless/custom/ButtonIcon';
 import { SketchOutlined } from '@ant-design/icons';
 import { fetchApplicationInfo } from '@/service/api';
 import License from '.';
-import { useMemo, useRef } from 'react';
+import { useRef } from 'react';
 import { Spin } from 'antd';
+import { useRequest } from "@sa/hooks";
 
 const LicenseTrigger = memo(({ className }) => {
   const { t } = useTranslation();
@@ -13,11 +14,9 @@ const LicenseTrigger = memo(({ className }) => {
   const siderCollapse = useAppSelector(getSiderCollapse);
   const licenseRef = useRef(null)
 
-  const { data: res, loading } = useRequest(fetchApplicationInfo, {
+  const { data, loading } = useRequest(fetchApplicationInfo, {
     manual: false,
   });
-
-  const { data } = res || {}
 
   const text = data?.application?.version?.number ? `${t('icon.about')} (${data?.application?.version?.number})` : `${t('icon.about')}`
 

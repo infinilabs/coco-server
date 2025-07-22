@@ -180,9 +180,9 @@ export const EditForm = memo((props: AssistantFormProps) => {
     getAssistantCategory().then(({ data }) => {
       if (!data?.error) {
         const newData = formatESSearchResult(data);
-        const cates = newData.aggregations.categories.buckets.map((item: any) => {
+        const cates = newData?.aggregations?.categories?.buckets? newData?.aggregations?.categories?.buckets.map((item: any) => {
           return item.key;
-        });
+        }) : [];
         setCategories(cates);
       }
     });
@@ -199,6 +199,7 @@ export const EditForm = memo((props: AssistantFormProps) => {
         className={commonFormItemsClassName}
       >
         <DatasourceConfig
+          loading={dataSourceLoading}
           options={[{ label: "*", value: "*" }].concat(
             dataSource.map((item) => ({
               label: item.name,

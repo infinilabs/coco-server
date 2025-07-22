@@ -1,7 +1,7 @@
 import { SearchBoxForm } from "./SearchBoxForm";
 import { FullscreenForm } from "./FullscreenForm";
 import { Button, Form, Input, Radio, Select, Spin, Switch } from "antd";
-import { useLoading } from '@sa/hooks';
+import { useRequest, useLoading } from '@sa/hooks';
 import { fetchDataSourceList } from "@/service/api";
 import './EditForm.css';
 
