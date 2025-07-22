@@ -30,7 +30,8 @@ Information about release notes of Coco Server is provided here.
 - fix: prevent nil exception during LLM intent parsing on error #375
 - fix: deleting multiple URL input boxes does not work #393
 - fix: fix missing update of local model providers after enable operation
-- fix(rag): ensure datasource is used during RAG processing #396
+- fix: ensure datasource is used during RAG processing #396
+- fix: incorrect picking prompt template #411
 
 
 ### ✈️ Improvements  
