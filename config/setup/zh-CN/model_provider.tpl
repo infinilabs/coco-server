@@ -213,6 +213,7 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
   "base_url" : "https://generativelanguage.googleapis.com",
   "icon" : "font_gemini-ai",
   "models" : [
+    {"name": "gemini-2.0-flash"},
     {"name": "gemini-1.5-flash"},
     {"name": "gemini-1.5-pro"}
   ],

@@ -80,7 +80,11 @@ export function Component() {
             onFinishFailed={onFinishFailed}
           >
             <Form.Item label={t('page.modelprovider.labels.name')} rules={[{ required: true}]} name="name">
-              <Input className='max-w-600px' readOnly={modelProvider.builtin === true } />
+              {modelProvider.id === 'gemini' ? (
+                <Input className='max-w-600px' value="Gemini" readOnly />
+              ) : (
+                <Input className='max-w-600px' readOnly={modelProvider.builtin === true } />
+              )}
             </Form.Item>
             <Form.Item label={t('page.modelprovider.labels.icon')} name="icon" rules={[{ required: true}]}>
               
@@ -90,10 +94,12 @@ export function Component() {
                 </IconWrapper>
               ) : <IconSelector type="connector" icons={iconsMeta} className='max-w-600px' />}
             </Form.Item>
-            <Form.Item label={t('page.modelprovider.labels.api_type')} name="api_type" rules={[{ required: true}]}>
-              <Select options={[{label:"OpenAI", value:"openai"},{label:"Ollama", value:"ollama"}]} className='max-w-150px' />
-            </Form.Item>
-            <Form.Item label={t('page.modelprovider.labels.api_key')} name="api_key">
+            {modelProvider.id !== 'gemini' && (
+              <Form.Item label={t('page.modelprovider.labels.api_type')} name="api_type" rules={[{ required: true}]}>
+                <Select options={[{label:"OpenAI", value:"openai"},{label:"Ollama", value:"ollama"}]} className='max-w-150px' />
+              </Form.Item>
+            )}
+            <Form.Item label={t('page.modelprovider.labels.api_key')} name="api_key" rules={modelProvider.id === 'gemini' ? [{ required: true, message: 'API Key is required' }] : []}>
               <Input.Password className='max-w-600px' />
             </Form.Item>
             <Form.Item label={t('page.modelprovider.labels.base_url')} rules={formRules.endpoint} name="base_url">
