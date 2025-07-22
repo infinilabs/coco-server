@@ -748,7 +748,7 @@ func (h APIHandler) processPickDocuments(ctx context.Context, reqMsg, replyMsg *
 		"intent": util.MustToJSON(params.QueryIntent),
 		"docs":   params.sourceDocsSummaryBlock,
 	}
-	finalPrompt, err := rag.GetPromptStringByTemplateArgs(params.answeringModel, promptTemplate, []string{"query", "intent", "summary"}, inputValues)
+	finalPrompt, err := rag.GetPromptStringByTemplateArgs(params.pickingDocModel, promptTemplate, []string{"query", "intent", "summary"}, inputValues)
 	if err != nil {
 		panic(err)
 	}
@@ -956,7 +956,7 @@ func (h APIHandler) generateFinalResponse(taskCtx context.Context, reqMsg, reply
 	}
 
 	if v, ok := inputValues["references"]; ok {
-		contextPrompt += fmt.Sprintf("\nReferences:\n%v\n", v)
+		contextPrompt += util.SubString(fmt.Sprintf("\nReferences:\n%v\n", v), 0, 4096*2) //TODO
 	}
 
 	if v, ok := inputValues["tools_output"]; ok {
