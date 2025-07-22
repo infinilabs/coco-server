@@ -32,7 +32,7 @@ curl -XPUT "http://localhost:9000/connector/local_fs?replace=true" -d '{
 
 ## Update coco-server's config
 
-Below is an example configuration for enabling the Notion Connector in coco-server:
+Below is an example configuration for enabling the Local FS Connector in coco-server:
 
 ```shell
 connector:
