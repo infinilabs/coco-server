@@ -29,6 +29,7 @@ import (
 	"net/http"
 	"runtime"
 	"strings"
+	"time"
 
 	"infini.sh/coco/modules/assistant/rag"
 	"infini.sh/coco/modules/datasource"
@@ -216,6 +217,8 @@ func (h APIHandler) createAssistantMessage(sessionID, assistantID, requestMessag
 		ReplyMessageID: requestMessageID,
 		AssistantID:    assistantID,
 	}
+	now := time.Now()
+	msg.Created = &now
 	msg.ID = util.GetUUID()
 
 	return msg
@@ -856,7 +859,7 @@ func (h APIHandler) generateFinalResponse(taskCtx context.Context, reqMsg, reply
 
 	echoMsg := common.NewMessageChunk(params.SessionID, replyMsg.ID, common.MessageTypeAssistant, reqMsg.ID, common.Response, string(""), 0)
 	_ = sender.SendMessage(echoMsg)
-	reqMsg.Message += echoMsg.MessageChunk
+	replyMsg.Message += echoMsg.MessageChunk
 
 	// Prepare the system message
 	content := []llms.MessageContent{
