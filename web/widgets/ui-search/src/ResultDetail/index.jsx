@@ -62,15 +62,6 @@ export function ResultDetail(props) {
                             </div>
                         )
                     }
-                    <div className={`flex justify-center items-center w-full bg-#F6F8FA rounded-lg mb-16px ${data.thumbnail ? "" : "h-300px"}`}>
-                        {
-                            data.thumbnail ? (
-                                <img src={data.thumbnail} className="max-w-full max-h-full object-contain"/>
-                            ) : (
-                                <img src={ImageSvg} className="w-64px h-64px"/>
-                            )
-                        }
-                    </div>
                     <div className="leading-[24px] text-12px">
                         <Markdown content={data.content} />
                     </div>
