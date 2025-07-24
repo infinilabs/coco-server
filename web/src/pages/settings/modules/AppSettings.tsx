@@ -2,7 +2,7 @@ import { Button, Form, Spin } from 'antd';
 import '../index.scss';
 import { fetchSettings, updateSettings } from '@/service/api/server';
 import { useLoading } from '@sa/hooks';
-import ChartStartPage from './ChartStartPage';
+import ChatStartPage from './ChatStartPage';
 import { useRequest } from '@sa/hooks';
 
 const AppSettings = memo(() => {
@@ -90,7 +90,7 @@ const AppSettings = memo(() => {
           <div className="color-#333 font-medium mb-24px">
             {t('page.settings.app_settings.chat_settings.title')}
           </div>
-          <ChartStartPage startPageSettings={data?.app_settings?.chat?.start_page} logo={logo} setLogo={setLogo}/>
+          <ChatStartPage startPageSettings={data?.app_settings?.chat?.start_page} logo={logo} setLogo={setLogo}/>
           <Form.Item label=" " >
             <Button
               type="primary"

@@ -1,10 +1,10 @@
 import { Avatar, Button, Form, Input, Switch, Upload } from 'antd';
 import '../index.scss';
-import "./ChartStartPage.scss"
+import "./ChatStartPage.scss"
 import AIAssistantSelect from '@/pages/ai-assistant/modules/AIAssistantSelect';
 import { PlusOutlined } from '@ant-design/icons';
 
-const ChartStartPage = memo((props) => {
+const ChatStartPage = memo((props) => {
   const { startPageSettings, logo, setLogo, isSub, assistants } = props;
   const { t } = useTranslation();
   const { defaultRequiredRule } = useFormRules();
@@ -46,7 +46,7 @@ const ChartStartPage = memo((props) => {
   }, [startPageSettings?.enabled])
 
   useEffect(() => {
-    setExcludedAssistants(startPageSettings?.display_assistants)
+    setExcludedAssistants(startPageSettings?.display_assistants || [])
   }, [startPageSettings?.display_assistants])
 
   return (
@@ -260,4 +260,4 @@ const ChartStartPage = memo((props) => {
   );
 });
 
-export default ChartStartPage;
+export default ChatStartPage;

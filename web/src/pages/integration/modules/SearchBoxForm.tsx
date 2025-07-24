@@ -8,7 +8,7 @@ import { getDarkMode } from '@/store/slice/theme';
 
 import { HotKeys } from './HotKeys';
 import AIAssistantSelect from '@/pages/ai-assistant/modules/AIAssistantSelect';
-import ChartStartPage from '@/pages/settings/modules/ChartStartPage';
+import ChatStartPage from '@/pages/settings/modules/ChatStartPage';
 
 export const SearchBoxForm = memo(props => {
   const { record, form, startPagelogos, setStartPagelogos, assistants, setAssistants, dataSourceLoading, dataSource, enabledList, setEnabledList } = props;
@@ -241,7 +241,7 @@ export const SearchBoxForm = memo(props => {
       )
     }
     <Form.Item label=" ">
-      <ChartStartPage assistants={assistants} isSub={true} startPageSettings={record?.enabled_module?.ai_chat?.start_page_config} logo={startPagelogos} setLogo={setStartPagelogos}/>
+      <ChatStartPage assistants={assistants} isSub={true} startPageSettings={record?.enabled_module?.ai_chat?.start_page_config} logo={startPagelogos} setLogo={setStartPagelogos}/>
     </Form.Item>
     {/* <Form.Item label=" ">
       <div className="mb-8px">
