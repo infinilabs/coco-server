@@ -474,7 +474,7 @@ func (h APIHandler) getChatHistoryBySession(w http.ResponseWriter, req *http.Req
 	q.Conds = orm.And(orm.Eq("session_id", ps.MustGetParameter("session_id")))
 	q.From = h.GetIntOrDefault(req, "from", 0)
 	q.Size = h.GetIntOrDefault(req, "size", 20)
-	q.AddSort("updated", orm.ASC)
+	q.AddSort("created", orm.ASC)
 
 	err, res := orm.Search(&common.ChatMessage{}, &q)
 	if err != nil {
