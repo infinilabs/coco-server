@@ -1,0 +1,67 @@
+{
+  "name": "ui-search",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "UI for search",
+  "license": "MIT or Apache-2.0",
+  "keywords": [
+    "search"
+  ],
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./css": "./dist/index.css"
+  },
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "rollup -c",
+    "dev": "rollup -c -w"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.22.15",
+    "@babel/plugin-transform-runtime": "^7.27.4",
+    "@babel/preset-env": "^7.22.15",
+    "@babel/preset-react": "^7.22.15",
+    "@rollup/plugin-babel": "^6.0.4",
+    "@rollup/plugin-commonjs": "^25.0.7",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-replace": "^6.0.2",
+    "@rollup/plugin-terser": "^0.4.4",
+    "@rollup/plugin-url": "^8.0.2",
+    "@unocss/postcss": "^66.2.3",
+    "autoprefixer": "^10.4.16",
+    "cssnano": "^7.0.7",
+    "less": "^4.2.0",
+    "postcss": "^8.4.31",
+    "rollup": "^4.6.0",
+    "rollup-plugin-delete": "^3.0.1",
+    "rollup-plugin-postcss": "^4.0.2",
+    "sass": "^1.89.2",
+    "terser": "^5.22.1",
+    "unocss": "^66.2.3"
+  },
+  "dependencies": {
+    "@ant-design/cssinjs": "^1.24.0",
+    "@babel/runtime": "^7.27.6",
+    "@emotion/cache": "^11.14.0",
+    "@emotion/react": "^11.14.0",
+    "antd": "^5.25.4",
+    "clsx": "2.1.1",
+    "dayjs": "^1.11.13",
+    "lodash": "^4.17.21",
+    "lucide-react": "^0.525.0",
+    "mermaid": "11.6.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-markdown": "10.1.0",
+    "rehype-highlight": "7.0.2",
+    "rehype-katex": "7.0.1",
+    "rehype-raw": "^7.0.0",
+    "remark-breaks": "4.0.0",
+    "remark-gfm": "4.0.1",
+    "remark-math": "6.0.0",
+    "use-debounce": "10.0.4"
+  }
+}

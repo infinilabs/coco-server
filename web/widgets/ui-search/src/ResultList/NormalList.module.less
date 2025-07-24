@@ -1,0 +1,32 @@
+.list {
+    :global {
+        .ant-list-item {
+            padding: 0;
+            cursor: pointer;
+        }
+        .ant-list-item:hover {
+            background-color: rgba(0, 0, 0, 0.04);
+            box-shadow: 0 0 0 12px rgba(0, 0, 0, 0.04);
+        }
+        .ant-list-item-meta-title {
+            white-space: nowrap;      
+            overflow: hidden;         
+            text-overflow: ellipsis;  
+            width: 100%;
+        }
+        .ant-list-item-meta-title, .ant-list-item-meta {
+            margin-bottom: 10px !important;
+        }
+        .ant-list-item-extra {
+            display: flex;
+            width: 100px;
+            align-items: center;
+            justify-content: center;
+        }
+        .ant-pagination-item, .ant-pagination-prev, .ant-pagination-next {
+            &:not(.ant-pagination-item-active) {
+                border: 1px solid rgba(187,187,187,1);
+            }
+        }
+    }
+}

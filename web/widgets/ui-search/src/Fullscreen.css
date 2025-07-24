@@ -1,0 +1,10 @@
+@unocss;
+
+.animate-typing {
+    animation: typing 1.5s ease-in-out infinite;
+}
+
+@keyframes typing {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
+}
