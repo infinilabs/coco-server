@@ -19,6 +19,7 @@ Information about release notes of Coco Server is provided here.
 - feat: rss connector #149
 - feat: support default model reasoning config on initialization
 - feat: local FS Connector #284
+- feat: s3 Connector #68
 
 
 ### 🐛 Bug fix  
