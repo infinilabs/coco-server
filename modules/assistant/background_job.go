@@ -866,6 +866,8 @@ func (h APIHandler) generateFinalResponse(taskCtx context.Context, reqMsg, reply
 	//response
 	reasoningBuffer := strings.Builder{}
 	messageBuffer := strings.Builder{}
+	// note: we use defer to ensure that the response message is saved after processing
+	// even if user cancels the task or if an error occurs
 	defer func() {
 		//save response message to system
 		if messageBuffer.Len() > 0 {
