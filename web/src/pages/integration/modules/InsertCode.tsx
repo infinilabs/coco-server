@@ -22,12 +22,13 @@ export const InsertCode = memo(props => {
   };
 
   const code = useMemo(() => {
+    if (!id || !type) return undefined
     return `<div id="${type}" style="margin: 10px 0; outline: none"></div>
 <script type="module" >
     import { ${type} } from "${window.location.origin}/integration/${id}/widget";
     ${type}({container: "#${type}"});
 </script>`;
-  }, [id, token]);
+  }, [id, type]);
 
   useEffect(() => {
     if (copyRef.current) {
