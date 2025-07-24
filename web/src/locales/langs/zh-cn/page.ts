@@ -99,7 +99,35 @@ const page: App.I18n.Schema['translation']['page'] = {
     seconds: '秒',
     site_urls: '站点地址',
     site_urls_add: '新增站点地址',
-    file_paths_add: '添加文件路径'
+    file_paths_add: '添加文件路径',
+    commons: {
+      error: {
+        extensions_format: '文件扩展名无效。请使用 pdf 或 .pdf 等格式，且仅包含字母和数字'
+      }
+    },
+    s3: {
+      error: {
+        access_key_id_required: '请输入 Access Key ID！',
+        bucket_required: '请输入 Bucket 名称',
+        endpoint_format: '格式无效，请使用 "host", "host:port", "[ipv6]" 或 "[ipv6]:port" 格式',
+        endpoint_prefix: 'Endpoint 不应包含 http:// 或 https:// 前缀',
+        endpoint_required: '请输入 S3 Endpoint',
+        endpoint_slash: 'Endpoint 末尾不应包含斜杠 /',
+        secret_access_key_required: '请输入 Secret Access Key'
+      },
+      labels: {
+        access_key_id: 'Access Key ID',
+        bucket: 'Bucket 名称',
+        prefix: '对象前缀 (可选)',
+        secret_access_key: 'Secret Access Key',
+        ssl: 'SSL',
+        use_ssl: '使用 SSL (HTTPS)'
+      },
+      tooltip: {
+        endpoint: '您的 S3 兼容服务的服务器地址，例如：s3.amazonaws.com 或 localhost:9000',
+        prefix: '仅索引 key 以此前缀开头的对象'
+      }
+    }
   },
   guide: {
     llm: {

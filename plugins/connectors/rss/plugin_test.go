@@ -156,9 +156,8 @@ func TestFetchRssFeed_Success(t *testing.T) {
 
 	//  construct plugin & mock datasource
 	testQueueName := "indexing_documents"
-	plugin := &Plugin{
-		Queue: &queue.QueueConfig{Name: testQueueName},
-	}
+	plugin := &Plugin{}
+	plugin.Queue = &queue.QueueConfig{Name: testQueueName}
 	module.RegisterUserPlugin(plugin)
 	plugin.Queue = queue.SmartGetOrInitConfig(plugin.Queue)
 

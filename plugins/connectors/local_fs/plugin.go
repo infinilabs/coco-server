@@ -5,27 +5,22 @@
 package local_fs
 
 import (
-	"context"
 	"fmt"
 	"io/fs"
 	"path/filepath"
 	"strings"
-	"time"
 
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/plugins/connectors"
-	"infini.sh/framework/core/api"
 	config3 "infini.sh/framework/core/config"
-	"infini.sh/framework/core/env"
-	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/module"
-	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/queue"
-	"infini.sh/framework/core/task"
 	"infini.sh/framework/core/util"
 )
+
+const ConnectorLocalFs = "local_fs"
 
 // Config defines the configuration for the local FS connector.
 type Config struct {
@@ -34,92 +29,31 @@ type Config struct {
 }
 
 type Plugin struct {
-	api.Handler
-	Enabled  bool               `config:"enabled"`
-	Queue    *queue.QueueConfig `config:"queue"`
-	Interval string             `config:"interval"`
-	PageSize int                `config:"page_size"`
+	connectors.BasePlugin
 }
 
-func (this *Plugin) Setup() {
-	ok, err := env.ParseConfig("connector.local_fs", &this)
-	if ok && err != nil && global.Env().SystemConfig.Configs.PanicOnConfigError {
-		panic(err)
-	}
-
-	if !this.Enabled {
-		return
-	}
-
-	if this.PageSize <= 0 {
-		this.PageSize = 1000
-	}
-
-	if this.Queue == nil {
-		this.Queue = &queue.QueueConfig{Name: "indexing_documents"}
-	}
-
-	this.Queue = queue.SmartGetOrInitConfig(this.Queue)
+func (p *Plugin) Setup() {
+	p.BasePlugin.Init("connector.local_fs", "indexing local filesystem", p)
 }
 
-func (this *Plugin) Start() error {
-	if !this.Enabled {
-		return nil
-	}
+func (p *Plugin) Start() error {
+	return p.BasePlugin.Start(connectors.DefaultSyncInterval)
+}
 
-	task.RegisterScheduleTask(task.ScheduleTask{
-		ID:          util.GetUUID(),
-		Group:       "connectors",
-		Singleton:   true,
-		Interval:    util.GetDurationOrDefault(this.Interval, time.Second*30).String(),
-		Description: "indexing local filesystem",
-		Task: func(ctx context.Context) {
-			connector := common.Connector{}
-			connector.ID = "local_fs"
-			exists, err := orm.Get(&connector)
-			if !exists || err != nil {
-				panic(errors.Errorf("local_fs connector not found or error occurred, skipping task:%v", err))
-			}
-
-			q := orm.Query{}
-			q.Size = this.PageSize
-			q.Conds = orm.And(orm.Eq("connector.id", connector.ID), orm.Eq("sync_enabled", true))
-			var results []common.DataSource
-
-			err, _ = orm.SearchWithJSONMapper(&results, &q)
-			if err != nil {
-				log.Errorf("Failed to search for local_fs datasource: %v", err)
-				panic(err)
-			}
-
-			for _, item := range results {
-				toSync, err := connectors.CanDoSync(item)
-				if err != nil {
-					log.Errorf("error checking sync status with datasource [%s]: %v", item.Name, err)
-					continue
-				}
-				if !toSync {
-					continue
-				}
-				log.Debugf("ID: %s, Name: %s, Other: %s", item.ID, item.Name, util.MustToJSON(item))
-				this.scanFolders(&connector, &item)
-			}
-		},
-	})
-
-	return nil
+func (p *Plugin) Scan(connector *common.Connector, datasource *common.DataSource) {
+	p.scanFolders(connector, datasource)
 }
 
 func (p *Plugin) scanFolders(connector *common.Connector, datasource *common.DataSource) {
 	cfg, err := config3.NewConfigFrom(datasource.Connector.Config)
 	if err != nil {
-		log.Errorf("Failed to create config from data source [%s]: %v", datasource.Name, err)
+		log.Errorf("[%v connector] Failed to create config from data source [%s]: %v", ConnectorLocalFs, datasource.Name, err)
 		return
 	}
 
 	var obj Config
 	if err := cfg.Unpack(&obj); err != nil {
-		log.Errorf("Failed to unpack config for data source [%s]: %v", datasource.Name, err)
+		log.Errorf("[%v connector] Failed to unpack config for data source [%s]: %v", ConnectorLocalFs, datasource.Name, err)
 		return
 	}
 
@@ -137,11 +71,11 @@ func (p *Plugin) scanFolders(connector *common.Connector, datasource *common.Dat
 			break
 		}
 
-		log.Debugf("Scanning path: %s for data source: %s", path, datasource.Name)
+		log.Debugf("[%v connector] Scanning path: %s for data source: %s", ConnectorLocalFs, path, datasource.Name)
 
 		err := filepath.WalkDir(path, func(currentPath string, d fs.DirEntry, err error) error {
 			if err != nil {
-				log.Warnf("Error accessing path %q: %v", currentPath, err)
+				log.Warnf("[%v connector] Error accessing path %q: %v", ConnectorLocalFs, currentPath, err)
 				return err
 			}
 			if d.IsDir() {
@@ -159,7 +93,7 @@ func (p *Plugin) scanFolders(connector *common.Connector, datasource *common.Dat
 			// Skip file while getting info error
 			fileInfo, err := d.Info()
 			if err != nil {
-				log.Warnf("Failed to get file info for %q: %v", currentPath, err)
+				log.Warnf("[%v connector] Failed to get file info for %q: %v", ConnectorLocalFs, currentPath, err)
 				return nil
 			}
 
@@ -181,24 +115,24 @@ func (p *Plugin) scanFolders(connector *common.Connector, datasource *common.Dat
 
 			data := util.MustToJSONBytes(doc)
 			if err := queue.Push(p.Queue, data); err != nil {
-				log.Errorf("Failed to push document to queue for data source [%s]: %v", datasource.Name, err)
+				log.Errorf("[%v connector] Failed to push document to queue for data source [%s]: %v", ConnectorLocalFs, datasource.Name, err)
 			}
 
 			return nil
 		})
 
 		if err != nil {
-			log.Errorf("Error walking the path %q for data source [%s]: %v\n", path, datasource.Name, err)
+			log.Errorf("[%v connector] Error walking the path %q for data source [%s]: %v\n", ConnectorLocalFs, path, datasource.Name, err)
 		}
 	}
 }
 
-func (this *Plugin) Stop() error {
+func (p *Plugin) Stop() error {
 	return nil
 }
 
-func (this *Plugin) Name() string {
-	return "local_fs"
+func (p *Plugin) Name() string {
+	return ConnectorLocalFs
 }
 
 func init() {

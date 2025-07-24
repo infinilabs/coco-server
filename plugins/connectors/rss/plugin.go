@@ -5,25 +5,20 @@
 package rss
 
 import (
-	"context"
 	"fmt"
-	"time"
 
 	log "github.com/cihub/seelog"
 	"github.com/mmcdole/gofeed"
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/plugins/connectors"
-	"infini.sh/framework/core/api"
 	config3 "infini.sh/framework/core/config"
-	"infini.sh/framework/core/env"
-	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/module"
-	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/queue"
-	"infini.sh/framework/core/task"
 	"infini.sh/framework/core/util"
 )
+
+const ConnectorRss = "rss"
 
 type Config struct {
 	Interval string   `config:"interval"`
@@ -31,106 +26,41 @@ type Config struct {
 }
 
 type Plugin struct {
-	api.Handler
-	Enabled  bool               `config:"enabled"`
-	Queue    *queue.QueueConfig `config:"queue"`
-	Interval string             `config:"interval"`
-	PageSize int                `config:"page_size"`
+	connectors.BasePlugin
 }
 
-func (this *Plugin) Setup() {
-	ok, err := env.ParseConfig("connector.rss", &this)
-	if ok && err != nil && global.Env().SystemConfig.Configs.PanicOnConfigError {
-		panic(err)
-	}
-
-	if !this.Enabled {
-		return
-	}
-
-	if this.PageSize <= 0 {
-		this.PageSize = 1000
-	}
-
-	if this.Queue == nil {
-		this.Queue = &queue.QueueConfig{Name: "indexing_documents"}
-	}
-
-	this.Queue = queue.SmartGetOrInitConfig(this.Queue)
+func (p *Plugin) Setup() {
+	p.BasePlugin.Init("connector.rss", "indexing rss feeds", p)
 }
 
-func (this *Plugin) Start() error {
-	if !this.Enabled {
-		return nil
-	}
+func (p *Plugin) Start() error {
+	return p.BasePlugin.Start(connectors.DefaultSyncInterval)
+}
 
-	task.RegisterScheduleTask(task.ScheduleTask{
-		ID:          util.GetUUID(),
-		Group:       "connectors",
-		Singleton:   true,
-		Interval:    util.GetDurationOrDefault(this.Interval, time.Minute*5).String(),
-		Description: "indexing rss feeds",
-		Task: func(ctx context.Context) {
-			connector := common.Connector{}
-			connector.ID = "rss"
-			exists, err := orm.Get(&connector)
-			if !exists {
-				log.Debugf("Connector %s not found", connector.ID)
-				return
-			}
-			if err != nil {
-				panic(errors.Errorf("invalid %s connector:%v", connector.ID, err))
-			}
-
-			q := orm.Query{}
-			q.Size = this.PageSize
-			q.Conds = orm.And(orm.Eq("connector.id", connector.ID), orm.Eq("sync_enabled", true))
-			var results []common.DataSource
-
-			err, _ = orm.SearchWithJSONMapper(&results, &q)
-			if err != nil {
-				log.Errorf("Failed to search for RSS data source: %v", err)
-				panic(err)
-			}
-
-			for _, item := range results {
-				toSync, err := connectors.CanDoSync(item)
-				if err != nil {
-					log.Errorf("error checking sync status with data source [%s]: %v", item.Name, err)
-					continue
-				}
-				if !toSync {
-					continue
-				}
-				log.Debugf("ID: %s, Name: %s, Other: %s", item.ID, item.Name, util.MustToJSON(item))
-				this.fetchRssFeed(&connector, &item)
-			}
-		},
-	})
-
-	return nil
+func (p *Plugin) Scan(connector *common.Connector, datasource *common.DataSource) {
+	p.fetchRssFeed(connector, datasource)
 }
 
 // fetchRssFeed handles the logic of fetching, parsing, and indexing a single RSS feed.
-func (this *Plugin) fetchRssFeed(connector *common.Connector, datasource *common.DataSource) {
+func (p *Plugin) fetchRssFeed(connector *common.Connector, datasource *common.DataSource) {
 	if connector == nil || datasource == nil {
-		panic("invalid connector or datasource config")
+		panic("invalid rss connector or datasource config")
 	}
 
 	cfg, err := config3.NewConfigFrom(datasource.Connector.Config)
 	if err != nil {
-		log.Errorf("Failed to create config from datasource [%s]: %v", datasource.Name, err)
+		log.Errorf("[%v connector] Failed to create config from datasource [%s]: %v", ConnectorRss, datasource.Name, err)
 		panic(err)
 	}
 
 	obj := Config{}
 	err = cfg.Unpack(&obj)
 	if err != nil {
-		log.Errorf("Failed to unpack config for datasource [%s]: %v", datasource.Name, err)
+		log.Errorf("[%v connector] Failed to unpack config for datasource [%s]: %v", ConnectorRss, datasource.Name, err)
 		panic(err)
 	}
 
-	log.Debugf("Handling RSS datasource: %v", obj)
+	log.Debugf("[%v connector] Handling datasource: %v", ConnectorRss, obj)
 
 	fp := gofeed.NewParser()
 
@@ -139,13 +69,12 @@ func (this *Plugin) fetchRssFeed(connector *common.Connector, datasource *common
 			break
 		}
 
-		log.Debugf("Connecting to RSS feed: %v", theUrl)
+		log.Debugf("[%v connector] Connecting to RSS feed: %v", ConnectorRss, theUrl)
 
 		feed, err := fp.ParseURL(theUrl)
 		if err != nil {
-			log.Errorf("Failed to parse RSS feed from URL [%s]: %v", theUrl, err)
+			log.Errorf("[%v connector] Failed to parse RSS feed from URL [%s]: %v", ConnectorRss, theUrl, err)
 			continue
-			// panic(err)
 		}
 
 		for _, item := range feed.Items {
@@ -159,7 +88,7 @@ func (this *Plugin) fetchRssFeed(connector *common.Connector, datasource *common
 					Type: "connector",
 					Name: datasource.Name,
 				},
-				Type:    "rss", // feed
+				Type:    "rss",
 				Icon:    "default",
 				Title:   item.Title,
 				Summary: item.Description,
@@ -188,26 +117,26 @@ func (this *Plugin) fetchRssFeed(connector *common.Connector, datasource *common
 
 			data := util.MustToJSONBytes(doc)
 			if global.Env().IsDebug {
-				log.Tracef("Queuing document: %s", string(data))
+				log.Tracef("[%v connector] Queuing document: %s", ConnectorRss, string(data))
 			}
 
-			if err := queue.Push(queue.SmartGetOrInitConfig(this.Queue), data); err != nil {
-				log.Errorf("Failed to push document to queue for datasource [%s]: %v", datasource.Name, err)
+			if err := queue.Push(queue.SmartGetOrInitConfig(p.Queue), data); err != nil {
+				log.Errorf("[%v connector] Failed to push document to queue for datasource [%s]: %v", ConnectorRss, datasource.Name, err)
 				// just panic? or continue
 				panic(err)
 			}
 		}
 
-		log.Infof("Fetched %d items from RSS feed: %s", len(feed.Items), theUrl)
+		log.Infof("[%v connector] Fetched %d items from RSS feed: %s", ConnectorRss, len(feed.Items), theUrl)
 	}
 }
 
-func (this *Plugin) Stop() error {
+func (p *Plugin) Stop() error {
 	return nil
 }
 
-func (this *Plugin) Name() string {
-	return "rss"
+func (p *Plugin) Name() string {
+	return ConnectorRss
 }
 
 func init() {

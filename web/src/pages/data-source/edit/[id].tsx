@@ -1,24 +1,25 @@
-import type {FormProps} from 'antd';
-import {Button, Form, Input, message, Spin, Switch} from 'antd';
+import type { FormProps } from 'antd';
+import { Button, Form, Input, Spin, Switch, message } from 'antd';
 import Clipboard from 'clipboard';
-import {useLoaderData} from 'react-router-dom';
-import {ReactSVG} from 'react-svg';
+import { useLoaderData } from 'react-router-dom';
+import { ReactSVG } from 'react-svg';
 
 import LinkSVG from '@/assets/svg-icon/link.svg';
-import {DataSync} from '@/components/datasource/data_sync';
-import {Types} from '@/components/datasource/type';
-import {getDatasource, updateDatasource} from '@/service/api/data-source';
-import {getConnectorIcons} from '@/service/api/connector';
-import {IconSelector} from "@/pages/connector/new/icon_selector";
+import { DataSync } from '@/components/datasource/data_sync';
+import { Types } from '@/components/datasource/type';
+import { IconSelector } from '@/pages/connector/new/icon_selector';
+import { getConnectorIcons } from '@/service/api/connector';
+import { getDatasource, updateDatasource } from '@/service/api/data-source';
 
 import HugoSite from '../new/hugo_site';
 import LocalFS from '../new/local_fs';
 import Notion from '../new/notion';
 import Rss from '../new/rss';
+import S3 from '../new/s3';
 import Yuque from '../new/yuque';
 
 export function Component() {
-  const {t} = useTranslation();
+  const { t } = useTranslation();
   const nav = useNavigate();
   const loaderData = useLoaderData();
   const datasourceID = loaderData?.id || '';
@@ -30,7 +31,7 @@ export function Component() {
     if (!datasourceID) return;
     getDatasource(datasourceID).then(res => {
       if (res.data?.found === true) {
-        const datasource = res.data._source
+        const datasource = res.data._source;
         const type = datasource?.connector?.id;
         switch (type) {
           case Types.Yuque:
@@ -40,7 +41,7 @@ export function Component() {
           case Types.Notion:
             datasource.token = datasource?.connector?.config?.token || '';
             break;
-          case Types.HugoSite, Types.RSS:
+          case (Types.HugoSite, Types.RSS):
             datasource.urls = datasource?.connector?.config?.urls || [''];
             break;
           case Types.GoogleDrive:
@@ -50,18 +51,18 @@ export function Component() {
         }
         setDatasource({
           ...(datasource || {}),
-          urls: datasource?.connector?.config?.urls || [''],
           sync_config: {
             interval: datasource?.connector?.config?.interval || '1h',
             sync_type: datasource?.connector?.config?.sync_type || ''
-          }
+          },
+          urls: datasource?.connector?.config?.urls || ['']
         });
       }
     });
   }, [datasourceID]);
   const [iconsMeta, setIconsMeta] = useState([]);
   useEffect(() => {
-    getConnectorIcons().then((res) => {
+    getConnectorIcons().then(res => {
       if (res.data?.length > 0) {
         setIconsMeta(res.data);
       }
@@ -92,8 +93,10 @@ export function Component() {
     };
   }, [copyRefUpdated, insertDocCmd]);
 
+  // eslint-disable-next-line complexity
   const onFinish: FormProps<any>['onFinish'] = values => {
     let config: any = {};
+    // eslint-disable-next-line default-case,@typescript-eslint/no-use-before-define
     switch (type) {
       case Types.Yuque:
         config = {
@@ -129,6 +132,24 @@ export function Component() {
         };
         break;
       }
+      case Types.S3: {
+        const extensions = values.config?.extensions_str
+          ? values.config.extensions_str
+              .split(',')
+              .map((s: string) => s.trim())
+              .filter(Boolean)
+          : [];
+        config = {
+          access_key_id: values.config?.access_key_id || '',
+          bucket: values.config?.bucket || '',
+          endpoint: values.config?.endpoint || '',
+          extensions,
+          prefix: values.config?.prefix || '',
+          secret_access_key: values.config?.secret_access_key || '',
+          use_ssl: values.config?.use_ssl || false
+        };
+        break;
+      }
     }
     const sValues = {
       connector: {
@@ -139,8 +160,8 @@ export function Component() {
         id: type
       },
       enabled: Boolean(values.enabled),
-      name: values.name,
       icon: values.icon,
+      name: values.name,
       sync_enabled: Boolean(values?.sync_enabled),
       type: 'connector'
     };
@@ -182,10 +203,23 @@ export function Component() {
         datasource.config = {
           extensions_str: (datasource.connector.config?.extensions || []).join(', '),
           paths: datasource.connector.config.paths || ['']
-        }
+        };
       }
       break;
     case Types.GoogleDrive:
+      break;
+    case Types.S3:
+      if (datasource.connector?.config) {
+        datasource.config = {
+          access_key_id: datasource.connector.config?.access_key_id || '',
+          bucket: datasource.connector.config?.bucket || '',
+          endpoint: datasource.connector.config?.endpoint || '',
+          extensions_str: (datasource.connector.config?.extensions || []).join(', '),
+          prefix: datasource.connector.config?.prefix || '',
+          secret_access_key: datasource.connector.config?.secret_access_key || '',
+          use_ssl: datasource.connector.config?.use_ssl || false
+        };
+      }
       break;
     default:
       isCustom = true;
@@ -202,7 +236,7 @@ export function Component() {
         className="sm:flex-1-auto min-h-full flex-col-stretch card-wrapper"
       >
         <div className="mb-30px ml--16px flex items-center text-lg font-bold">
-          <div className="mr-20px h-1.2em w-10px bg-[#1677FF]"/>
+          <div className="mr-20px h-1.2em w-10px bg-[#1677FF]" />
           {t('page.datasource.edit.title')}
         </div>
         <Spin spinning={loading}>
@@ -210,40 +244,48 @@ export function Component() {
             autoComplete="off"
             colon={false}
             initialValues={datasource || {}}
-            labelCol={{span: 4}}
+            labelCol={{ span: 4 }}
             layout="horizontal"
-            wrapperCol={{span: 18}}
+            wrapperCol={{ span: 18 }}
             onFinish={onFinish}
             onFinishFailed={onFinishFailed}
           >
             <Form.Item
               label={t('page.datasource.new.labels.name')}
               name="name"
-              rules={[{message: 'Please input datasource name!', required: true}]}
+              rules={[{ message: 'Please input datasource name!', required: true }]}
             >
-              <Input className="max-w-660px"/>
+              <Input className="max-w-660px" />
             </Form.Item>
-            <Form.Item label={t('page.mcpserver.labels.icon')} name="icon">
-              <IconSelector type="connector" icons={iconsMeta} className='max-w-300px'/>
+            <Form.Item
+              label={t('page.mcpserver.labels.icon')}
+              name="icon"
+            >
+              <IconSelector
+                className="max-w-300px"
+                icons={iconsMeta}
+                type="connector"
+              />
             </Form.Item>
-            {type === Types.Yuque && <Yuque/>}
-            {type === Types.Notion && <Notion/>}
-            {type === Types.HugoSite && <HugoSite/>}
-            {type === Types.RSS && <Rss/>}
-            {type === Types.LocalFS && <LocalFS/>}
+            {type === Types.Yuque && <Yuque />}
+            {type === Types.Notion && <Notion />}
+            {type === Types.HugoSite && <HugoSite />}
+            {type === Types.RSS && <Rss />}
+            {type === Types.LocalFS && <LocalFS />}
+            {type === Types.S3 && <S3 />}
             {!isCustom ? (
               <>
                 <Form.Item
                   label={t('page.datasource.new.labels.data_sync')}
                   name="sync_config"
                 >
-                  <DataSync/>
+                  <DataSync />
                 </Form.Item>
                 <Form.Item
                   label={t('page.datasource.new.labels.sync_enabled')}
                   name="sync_enabled"
                 >
-                  <Switch size="small"/>
+                  <Switch size="small" />
                 </Form.Item>
               </>
             ) : (
@@ -255,7 +297,7 @@ export function Component() {
                   <div>
                     <pre
                       className="whitespace-pre-wrap break-words"
-                      dangerouslySetInnerHTML={{__html: insertDocCmd}}
+                      dangerouslySetInnerHTML={{ __html: insertDocCmd }}
                     />
                   </div>
                   <div className="flex justify-end">
@@ -294,7 +336,7 @@ export function Component() {
               label={t('page.datasource.new.labels.enabled')}
               name="enabled"
             >
-              <Switch size="small"/>
+              <Switch size="small" />
             </Form.Item>
             <Form.Item label=" ">
               <Button
@@ -312,6 +354,6 @@ export function Component() {
   );
 }
 
-export async function loader({params}: LoaderFunctionArgs) {
+export async function loader({ params }: LoaderFunctionArgs) {
   return params;
 }

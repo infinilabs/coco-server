@@ -6,6 +6,8 @@ package connectors
 
 import (
 	"infini.sh/coco/modules/common"
+	config3 "infini.sh/framework/core/config"
+	"infini.sh/framework/core/errors"
 	"sync"
 	"time"
 )
@@ -47,4 +49,22 @@ func CanDoSync(datasource common.DataSource) (bool, error) {
 		datasourceSyncState[datasourceID] = state
 	}
 	return toSync, nil
+}
+
+// ParseConnectorConfigure parse connector data source config
+func ParseConnectorConfigure(connector *common.Connector, datasource *common.DataSource, config interface{}) error {
+	if connector == nil || datasource == nil {
+		return errors.New("invalid connector or datasource config")
+	}
+
+	cfg, err := config3.NewConfigFrom(datasource.Connector.Config)
+	if err != nil {
+		return errors.Wrapf(err, "Create config from datasource [%s] failed", datasource.Name)
+	}
+
+	err = cfg.Unpack(config)
+	if err != nil {
+		return errors.Wrapf(err, "Unpack config for datasource [%s] failed", datasource.Name)
+	}
+	return nil
 }
