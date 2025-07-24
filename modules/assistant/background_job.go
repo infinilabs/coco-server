@@ -856,6 +856,7 @@ func (h APIHandler) generateFinalResponse(taskCtx context.Context, reqMsg, reply
 
 	echoMsg := common.NewMessageChunk(params.SessionID, replyMsg.ID, common.MessageTypeAssistant, reqMsg.ID, common.Response, string(""), 0)
 	_ = sender.SendMessage(echoMsg)
+	reqMsg.Message += echoMsg.MessageChunk
 
 	// Prepare the system message
 	content := []llms.MessageContent{
@@ -865,6 +866,18 @@ func (h APIHandler) generateFinalResponse(taskCtx context.Context, reqMsg, reply
 	//response
 	reasoningBuffer := strings.Builder{}
 	messageBuffer := strings.Builder{}
+	defer func() {
+		//save response message to system
+		if messageBuffer.Len() > 0 {
+			replyMsg.Message = messageBuffer.String()
+		} else {
+			log.Warnf("seems empty reply for query:", replyMsg)
+		}
+		if reasoningBuffer.Len() > 0 {
+			detail := common.ProcessingDetails{Order: 50, Type: common.Think, Description: reasoningBuffer.String()}
+			replyMsg.Details = append(replyMsg.Details, detail)
+		}
+	}()
 	chunkSeq := 0
 	var err error
 	if params.answeringProvider == nil {
@@ -990,19 +1003,6 @@ func (h APIHandler) generateFinalResponse(taskCtx context.Context, reqMsg, reply
 
 	chunkSeq += 1
 
-	{
-		if reasoningBuffer.Len() > 0 {
-			detail := common.ProcessingDetails{Order: 50, Type: common.Think, Description: reasoningBuffer.String()}
-			replyMsg.Details = append(replyMsg.Details, detail)
-		}
-	}
-
-	//save response message to system
-	if messageBuffer.Len() > 0 {
-		replyMsg.Message = messageBuffer.String()
-	} else {
-		log.Warnf("seems empty reply for query:", replyMsg)
-	}
 	return nil
 }
 
