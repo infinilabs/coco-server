@@ -5,8 +5,12 @@
 package assistant
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"sync"
+
 	log "github.com/cihub/seelog"
 	_ "github.com/tmc/langchaingo/llms/ollama"
 	"infini.sh/coco/modules/common"
@@ -16,8 +20,6 @@ import (
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/task"
 	"infini.sh/framework/core/util"
-	"net/http"
-	"sync"
 )
 
 func (h APIHandler) getSession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -489,9 +491,12 @@ func (h APIHandler) getChatHistoryBySession(w http.ResponseWriter, req *http.Req
 var inflightMessages = sync.Map{}
 
 type MessageTask struct {
-	SessionID   string
-	TaskID      string
+	SessionID string
+	// Deprecated
+	TaskID string
+	// Deprecated
 	WebsocketID string
+	CancelFunc  func()
 }
 
 func init() {
@@ -510,23 +515,28 @@ func init() {
 	})
 }
 
-func stopSessionTask(sessionID string) {
-	v, ok := inflightMessages.Load(sessionID)
+func stopMessageReplyTask(taskID string) {
+	v, ok := inflightMessages.Load(taskID)
 	if ok {
 		v1, ok := v.(MessageTask)
 		if ok {
 			log.Debug("stop task:", v1)
-			task.StopTask(v1.TaskID)
+			if v1.TaskID != "" {
+				task.StopTask(v1.TaskID)
+			} else if v1.CancelFunc != nil {
+				v1.CancelFunc()
+			}
 		}
 	} else {
-		_ = log.Warn("task id not found for session:", sessionID)
+		_ = log.Warnf("task id [%s] was not found", taskID)
 	}
 }
 
 func (h APIHandler) cancelReplyMessage(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-
 	sessionID := ps.MustGetParameter("session_id")
-	stopSessionTask(sessionID)
+	messageID := h.GetParameterOrDefault(req, "message_id", "")
+	taskID := getReplyMessageTaskID(sessionID, messageID)
+	stopMessageReplyTask(taskID)
 	h.WriteAckOKJSON(w)
 }
 
@@ -591,7 +601,6 @@ func (h APIHandler) sendChatMessageV2(w http.ResponseWriter, r *http.Request, ps
 		return
 	}
 
-	ctx := r.Context()
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		h.Error(w, errors.New("http.Flusher not supported"))
@@ -618,13 +627,27 @@ func (h APIHandler) sendChatMessageV2(w http.ResponseWriter, r *http.Request, ps
 		return
 	}
 	params.SessionID = sessionID
+	// Create a context with cancel to handle the message asynchronously
+	ctx, cancel := context.WithCancel(r.Context())
 	streamSender := &HTTPStreamSender{
 		Enc:     enc,
 		Flusher: flusher,
-		Ctx:     r.Context(), // assuming this is in an HTTP handler
+		Ctx:     ctx, // assuming this is in an HTTP handler
 	}
+	replyMsgTaskID := getReplyMessageTaskID(sessionID, reqMsg.ID)
+	inflightMessages.Store(replyMsgTaskID, MessageTask{
+		SessionID:  sessionID,
+		CancelFunc: cancel,
+	})
 	_ = h.processMessageAsync(ctx, reqMsg, params, streamSender)
 
+}
+
+func getReplyMessageTaskID(sessionID, messageID string) string {
+	if messageID == "" {
+		return sessionID
+	}
+	return fmt.Sprintf("%s_%s", sessionID, messageID)
 }
 
 func (h APIHandler) closeChatSession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
