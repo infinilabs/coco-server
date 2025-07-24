@@ -129,16 +129,6 @@ func (p *Plugin) getBucketObjects(connector *common.Connector, datasource *commo
 	log.Infof("[%v connector] Finished list objects from bucket [%s] of datasource [%s]. ", ConnectorS3, cfg.Bucket, datasource.Name)
 }
 
-//func constructObjectURL(objectInfo minio.ObjectInfo, config S3Config) (string, error) {
-//	parsedURL, err := url.Parse(endpoint)
-//	if err != nil {
-//		return "", fmt.Errorf("failed to parse endpoint: %w", err)
-//	}
-//
-//	objectURL := parsedURL.JoinPath(objectInfo.Bucket, objectInfo.Key).String()
-//	return objectURL, nil
-//}
-
 func (p *Plugin) Stop() error {
 	return nil
 }
