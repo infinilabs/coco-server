@@ -536,7 +536,6 @@ func (h APIHandler) cancelReplyMessage(w http.ResponseWriter, req *http.Request,
 	sessionID := ps.MustGetParameter("session_id")
 	messageID := h.GetParameterOrDefault(req, "message_id", "")
 	taskID := getReplyMessageTaskID(sessionID, messageID)
-	log.Info("user cancel reply message task:", taskID)
 	stopMessageReplyTask(taskID)
 	h.WriteAckOKJSON(w)
 }
