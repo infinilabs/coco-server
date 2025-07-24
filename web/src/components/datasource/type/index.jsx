@@ -15,7 +15,8 @@ export const Types = {
   ObjectStorage: 'object_storage',
   RSS: 'rss',
   Search: 'search',
-  Yuque: 'yuque'
+  Yuque: 'yuque',
+  S3: 's3'
 };
 
 export const TypeList = ({

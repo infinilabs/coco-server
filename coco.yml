@@ -335,6 +335,11 @@ connector:
     interval: 10s
     queue:
       name: indexing_documents
+  s3:
+    enabled: true
+    interval: 30s
+    queue:
+      name: indexing_documents
 
 ##background jobs
 pipeline:

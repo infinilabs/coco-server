@@ -90,7 +90,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         sync_enabled: 'Sync Enabled',
         type: 'Type',
         folder_paths: 'Folder paths',
-        file_extensions: 'File extensions (optional)',
+        file_extensions: 'File extensions (optional)'
       },
       title: '{{connector}} Connection',
       tooltip: {
@@ -102,7 +102,35 @@ const page: App.I18n.Schema['translation']['page'] = {
     site_urls: 'Site URLs',
     site_urls_add: 'Add URL',
     file_paths_add: 'Add File Path',
-    title: 'Datasource'
+    title: 'Datasource',
+    commons: {
+      error: {
+        extensions_format: "Invalid file extensions. Use formats like 'pdf' or '.pdf', with only letters and numbers."
+      }
+    },
+    s3: {
+      error: {
+        access_key_id_required: 'Please input Access Key ID',
+        bucket_required: 'Please input Bucket name',
+        endpoint_format: 'Invalid format, please use "host", "host:port", "[ipv6]" or "[ipv6]:port"',
+        endpoint_prefix: 'Endpoint should not contain http:// or https:// prefix',
+        endpoint_required: 'Please input S3 Endpoint',
+        endpoint_slash: 'Endpoint should not contain a trailing slash /',
+        secret_access_key_required: 'Please input Secret Access Key'
+      },
+      labels: {
+        access_key_id: 'Access Key ID',
+        bucket: 'Bucket Name',
+        prefix: 'Object Prefix (optional)',
+        secret_access_key: 'Secret Access Key',
+        ssl: 'SSL',
+        use_ssl: 'Use SSL (HTTPS)'
+      },
+      tooltip: {
+        endpoint: 'Endpoint of your S3 server, like：s3.amazonaws.com or localhost:9000',
+        prefix: 'Only index objects that begin with this prefix'
+      }
+    }
   },
   guide: {
     llm: {

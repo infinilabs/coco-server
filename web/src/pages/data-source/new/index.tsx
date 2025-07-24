@@ -13,6 +13,7 @@ import HugoSite from './hugo_site';
 import LocalFS from './local_fs';
 import Notion from './notion';
 import Rss from './rss';
+import S3 from './s3';
 import Yuque from './yuque';
 
 export function Component() {
@@ -88,6 +89,9 @@ export function Component() {
     case Types.LocalFS:
       connectorType = 'Local FS';
       break;
+    case Types.S3:
+      connectorType = 'S3';
+      break;
     default:
       return (
         <Modal
@@ -118,8 +122,10 @@ export function Component() {
       );
   }
 
+  // eslint-disable-next-line complexity
   const onFinish: FormProps<any>['onFinish'] = values => {
     let config: any = {};
+    // eslint-disable-next-line default-case
     switch (type) {
       case Types.Yuque:
         config = {
@@ -152,6 +158,24 @@ export function Component() {
         config = {
           extensions,
           paths: (values.config?.paths || []).filter(Boolean)
+        };
+        break;
+      }
+      case Types.S3: {
+        const extensions: Array<string> = values.config?.extensions_str
+          ? values.config.extensions_str
+              .split(',')
+              .map((s: string) => s.trim())
+              .filter(Boolean)
+          : [];
+        config = {
+          access_key_id: values.config?.access_key_id || '',
+          bucket: values.config?.bucket || '',
+          endpoint: values.config?.endpoint || '',
+          extensions,
+          prefix: values.config?.prefix || '',
+          secret_access_key: values.config?.secret_access_key || '',
+          use_ssl: values.config?.use_ssl || false
         };
         break;
       }
@@ -234,11 +258,12 @@ export function Component() {
               <Form.Item label={t('page.mcpserver.labels.icon')} name="icon">
                 <IconSelector type="connector" icons={iconsMeta} className='max-w-300px'/>
               </Form.Item>
-              {type === Types.Yuque && <Yuque/>}
-              {type === Types.Notion && <Notion/>}
-              {type === Types.HugoSite && <HugoSite/>}
-              {type === Types.RSS && <Rss/>}
-              {type === Types.LocalFS && <LocalFS/>}
+              {type === Types.Yuque && <Yuque />}
+              {type === Types.Notion && <Notion />}
+              {type === Types.HugoSite && <HugoSite />}
+              {type === Types.RSS && <Rss />}
+              {type === Types.LocalFS && <LocalFS />}
+              {type === Types.S3 && <S3 />}
               <Form.Item
                 label={t('page.datasource.new.labels.data_sync')}
                 name="sync_config"
