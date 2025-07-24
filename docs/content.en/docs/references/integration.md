@@ -15,11 +15,15 @@ Below is the field description for the integration.
 | **Field**                       | **Type**        | **Description**                                                                                              |
 |---------------------------------|-----------------|--------------------------------------------------------------------------------------------------------------|
 | `name`                          | `string`        | The integration's name.                                                                                      |
-| `type`                          | `string`        | The integration type. Possible values: `embedded`, `floating`, `all`.                                        |
+| `type`                          | `string`        | The integration type. Possible values: `embedded`, `floating`, `all`, `fullscreen`.                                        |
 | `datasource`                    | `array[string]` | List of datasource ID associated with the integration. e.g., `["cvei87tath20t2e51cag"]`.                     |
 | `enabled_module.search`         | `object`        | Configuration for the search module, e.g., `{"enabled": true,"placeholder": "Search whatever you want..."}`. |
 | `enabled_module.ai_chat`        | `object`        | Configuration for the AI chat module, e.g., `{"enabled": true,"placeholder": "Ask whatever you want..."}`    |
 | `enabled_module.features`       | `array[string]` | List of enabled features, e.g., `["think_active","search_active","chat_history"]`.                           |
+| `payload.ai_overview`       | `object` | Configuration for the ai overview module of fullscreen, e.g., `{"enabled": true,"title": "AI Overview","assistant": "ai_overview","height": 200,"output": "markdown",logo: {"light": "..."}}`.                           |
+| `payload.ai_widgets`       | `object` | Configuration for the ai overview module of fullscreen, e.g., `{"enabled": true,"widgets": [{"title": "AI Overview","assistant": "ai_overview","height": 200,"output": "markdown",logo: {"light": "..."}}]`.                           |
+| `payload.logo`         | `object`        | Configuration for logo of fullscreen, e.g., `{"light": "...","light_mobile": "..."}`. |
+| `payload.welcome`         | `string`        | Configuration for greeting message of fullscreen |
 | `access_control.authentication` | `boolean`       | Enables or disables authentication.                                                                          |
 | `access_control.chat_history`   | `boolean`       | Enables or disables chat history.                                                                            |
 | `appearance.theme`              | `string`        | The display theme. Options: `auto`, `light`, `dark`. e.g., `auto`.                                           |
@@ -176,8 +180,18 @@ Select the target Integration in the list, click `Edit` on the right side to ent
 
 
 ### Preview Integration
-Click the `Preview` button on the right side of the Integration editing page to see the current Integration's effect, as shown below:  
-{{% load-img "/img/integration/preview.png" "preview integration" %}}
+Click the `Preview` button on the right side of the Integration editing page to see the current Integration's effect, as shown below: 
+
+* SearchBox
+
+  {{% load-img "/img/integration/preview-searchbox.png" "preview integration" %}}
+
+* Fullscreen
+
+  {{% load-img "/img/integration/preview-fullscreen-1.png" "preview integration" %}}
+
+  {{% load-img "/img/integration/preview-fullscreen-2.png" "preview integration" %}}
+
 
 The preview feature allows testing search and chat functionalities.  
 
