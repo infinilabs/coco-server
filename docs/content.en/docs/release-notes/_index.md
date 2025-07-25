@@ -34,6 +34,7 @@ Information about release notes of Coco Server is provided here.
 - fix: ensure datasource is used during RAG processing #396
 - fix: incorrect picking prompt template #411
 - fix: prevent loss of reply message when user cancels ongoing reply
+- fix: make the first chat message cancelable
 
 
 ### ✈️ Improvements  

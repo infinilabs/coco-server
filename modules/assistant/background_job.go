@@ -264,6 +264,9 @@ func (h APIHandler) processMessageAsync(ctx context.Context, reqMsg *common.Chat
 			}
 		}
 		h.finalizeProcessing(ctx, params.SessionID, replyMsg, sender)
+		// clear the inflight message task
+		taskID := getReplyMessageTaskID(params.SessionID, reqMsg.ID)
+		inflightMessages.Delete(taskID)
 	}()
 
 	reqMsg.Details = make([]common.ProcessingDetails, 0)
