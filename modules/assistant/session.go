@@ -253,11 +253,18 @@ func (h APIHandler) createChatSession(w http.ResponseWriter, r *http.Request, ps
 		return
 	}
 	params.SessionID = session.ID
+	// Create a context with cancel to handle the message asynchronously
+	ctx, cancel := context.WithCancel(r.Context())
 	streamSender := &HTTPStreamSender{
 		Enc:     enc,
 		Flusher: flusher,
-		Ctx:     r.Context(), // assuming this is in an HTTP handler
+		Ctx:     ctx, // assuming this is in an HTTP handler
 	}
+	replyMsgTaskID := getReplyMessageTaskID(session.ID, reqMsg.ID)
+	inflightMessages.Store(replyMsgTaskID, MessageTask{
+		SessionID:  session.ID,
+		CancelFunc: cancel,
+	})
 	_ = h.processMessageAsync(ctx, reqMsg, params, streamSender)
 }
 
