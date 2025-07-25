@@ -9,6 +9,12 @@ Information about release notes of Coco Server is provided here.
 
 ## Latest (In development)  
 ### ❌ Breaking changes  
+### 🚀 Features  
+### 🐛 Bug fix  
+### ✈️ Improvements  
+
+## 0.7.0 (2025-07-25)
+### ❌ Breaking changes  
 - refactor: refactoring mappings #394
 
 ### 🚀 Features  
