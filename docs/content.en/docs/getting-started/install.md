@@ -22,8 +22,7 @@ docker run -d \
   -v data:/app/easysearch/data \
   -v config:/app/easysearch/config \
   -v logs:/app/easysearch/logs \
-  -e EASYSEARCH_INITIAL_ADMIN_PASSWORD="coco-server" \
-  infinilabs/coco:0.6.0
+  infinilabs/coco:0.7.0
 ```
 
 > 🔒 **SECURITY WARNING**
@@ -50,8 +49,8 @@ First, create the necessary directories and a `.env` file for your password.
 sudo mkdir -p /data/cocoserver/{data,logs,config}
 
 # Create an environment file to store your password securely.
-# Replace "your-strong-password" with a strong, secret password.
-echo "EASYSEARCH_INITIAL_ADMIN_PASSWORD=your-strong-password" | sudo tee /data/cocoserver/.env > /dev/null
+# Replace "$(openssl rand -hex 10)" with a strong, secret password.
+echo "EASYSEARCH_INITIAL_ADMIN_PASSWORD=$(openssl rand -hex 10)" | sudo tee /data/cocoserver/.env > /dev/null
 ```
 
 **Step 2: Initialize Configuration from the Image (One-time Setup)**
@@ -61,7 +60,7 @@ This clever command runs a temporary container to copy the default configuration
 ```bash
 docker run --rm \
   -v /data/cocoserver/config:/tmp/config \
-  infinilabs/coco:0.6.0 \
+  infinilabs/coco:0.7.0 \
   cp -a /app/easysearch/config/. /tmp/config/
 ```
 *   `--rm`: Automatically removes the container after it exits.
@@ -94,7 +93,7 @@ docker run -d \
   -v /data/cocoserver/config:/app/easysearch/config \
   -v /data/cocoserver/logs:/app/easysearch/logs \
   -e ES_JAVA_OPTS="-Xms2g -Xmx2g" \
-  infinilabs/coco:0.6.0
+  infinilabs/coco:0.7.0
 ```
 *   `--env-file`: Securely loads environment variables (like your password) from the `.env` file.
 
@@ -150,7 +149,7 @@ docker stop cocoserver && docker rm cocoserver
 
 **Step 3: Remove the Docker Image**
 ```bash
-docker rmi infinilabs/coco:0.6.0
+docker rmi infinilabs/coco:0.7.0
 ```
 
 ## Manual Installation
@@ -162,7 +161,7 @@ Follow these steps for a manual setup:
 Install Easysearch
 
 ```bash
-docker run -itd --name easysearch -p 9200:9200 infinilabs/easysearch:1.8.3-265
+docker run -itd --name easysearch -p 9200:9200 infinilabs/easysearch:1.14.0
 ```
 
 Get the bootstrap password of the Easysearch:
