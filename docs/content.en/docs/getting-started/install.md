@@ -161,7 +161,7 @@ Follow these steps for a manual setup:
 Install Easysearch
 
 ```bash
-docker run -itd --name easysearch -p 9200:9200 infinilabs/easysearch:1.8.3-265
+docker run -itd --name easysearch -p 9200:9200 infinilabs/easysearch:1.14.0
 ```
 
 Get the bootstrap password of the Easysearch:
