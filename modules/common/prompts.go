@@ -33,7 +33,7 @@ Conversation:
 Tool List:
 {{.tool_list}}
 
-Network sources List:
+Network search sources List:
 {{.network_sources}}
 
 The user has provided the following query:

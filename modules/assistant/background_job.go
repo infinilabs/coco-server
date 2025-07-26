@@ -300,7 +300,7 @@ func (h APIHandler) processMessageAsync(ctx context.Context, reqMsg *common.Chat
 				ds, err := datasource.GetDatasourceByID(params.AssistantCfg.Datasource.GetIDs())
 				if err == nil && ds != nil {
 					for _, v := range ds {
-						datasourceStr.WriteString(fmt.Sprintf("Name: %v \n", v.Name))
+						datasourceStr.WriteString(fmt.Sprintf("ID: %v, Name: %v, Description: %v \n", v.ID, v.Name, v.Description))
 					}
 				}
 			}
