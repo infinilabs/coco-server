@@ -21,6 +21,7 @@ build-widget:
 	(cd web/widgets/fullscreen && pnpm install && pnpm run build:server)
 
 build-all:
+	(rm -rif .public/)
 	make build-web
 	make build-widget
 	make build
