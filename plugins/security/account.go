@@ -180,7 +180,7 @@ func (h APIHandler) Login(w http.ResponseWriter, r *http.Request, ps httprouter.
 
 	sessionInfo.TenantID = "LOCAL"
 	sessionInfo.UserID = user.ID
-	sessionInfo.Profile = user
+	//sessionInfo.Profile = user
 	sessionInfo.Roles = []string{security.RoleAdmin}
 
 	err, token := AddUserAccessTokenToSession(w, r, &sessionInfo)
