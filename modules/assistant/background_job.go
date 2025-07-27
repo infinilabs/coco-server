@@ -206,6 +206,7 @@ func (h APIHandler) launchBackgroundTask(msg *common.ChatMessage, params *RAGCon
 		SessionID:   params.SessionID,
 		TaskID:      taskID,
 		WebsocketID: wsID,
+		CreatedAt:   time.Now(),
 	})
 	log.Infof("Saved taskID: %v for session: %v", taskID, params.SessionID)
 }

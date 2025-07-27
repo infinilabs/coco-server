@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net/http"
 	"sync"
+	"time"
 
 	log "github.com/cihub/seelog"
 	_ "github.com/tmc/langchaingo/llms/ollama"
@@ -264,8 +265,17 @@ func (h APIHandler) createChatSession(w http.ResponseWriter, r *http.Request, ps
 	inflightMessages.Store(replyMsgTaskID, MessageTask{
 		SessionID:  session.ID,
 		CancelFunc: cancel,
+		CreatedAt:  time.Now(),
 	})
-	_ = h.processMessageAsync(ctx, reqMsg, params, streamSender)
+
+	// Process message asynchronously and cleanup on completion
+	go func() {
+		defer func() {
+			// Always cleanup the task when processing completes (success or failure)
+			inflightMessages.Delete(replyMsgTaskID)
+		}()
+		_ = h.processMessageAsync(ctx, reqMsg, params, streamSender)
+	}()
 }
 
 func CreateAndSaveNewChatMessage(assistantID string, req *common.MessageRequest, visible bool) (common.Session, error, *common.ChatMessage, util.MapStr) {
@@ -497,16 +507,35 @@ func (h APIHandler) getChatHistoryBySession(w http.ResponseWriter, req *http.Req
 
 var inflightMessages = sync.Map{}
 
+// MessageTask represents an active message processing task
 type MessageTask struct {
-	SessionID string
-	// Deprecated
-	TaskID string
-	// Deprecated
-	WebsocketID string
+	SessionID   string
+	TaskID      string // Deprecated
+	WebsocketID string // Deprecated
 	CancelFunc  func()
+	CreatedAt   time.Time // For TTL-based cleanup
 }
 
+// TaskManager handles cleanup of inflight message tasks
+type TaskManager struct {
+	cleanupInterval time.Duration
+	taskTTL         time.Duration
+	stopChan        chan struct{}
+}
+
+var taskManager *TaskManager
+
 func init() {
+	// Initialize task manager with reasonable defaults
+	taskManager = &TaskManager{
+		cleanupInterval: 5 * time.Minute,  // Run cleanup every 5 minutes
+		taskTTL:         30 * time.Minute, // Tasks expire after 30 minutes
+		stopChan:        make(chan struct{}),
+	}
+
+	// Start background cleanup goroutine
+	go taskManager.startCleanup()
+
 	websocket.RegisterDisconnectCallback(func(websocketID string) {
 		log.Debugf("stop task for websocket: %v after websocket disconnected", websocketID)
 		inflightMessages.Range(func(key, value any) bool {
@@ -515,11 +544,67 @@ func init() {
 				if v1.WebsocketID == websocketID {
 					log.Info("stop task:", v1)
 					task.StopTask(v1.TaskID)
+					// Clean up the task from memory
+					inflightMessages.Delete(key)
 				}
 			}
 			return true
 		})
 	})
+}
+
+// startCleanup runs a background goroutine to clean up expired tasks
+func (tm *TaskManager) startCleanup() {
+	ticker := time.NewTicker(tm.cleanupInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			tm.cleanupExpiredTasks()
+		case <-tm.stopChan:
+			return
+		}
+	}
+}
+
+// cleanupExpiredTasks removes tasks that have exceeded their TTL
+func (tm *TaskManager) cleanupExpiredTasks() {
+	now := time.Now()
+	expiredTasks := make([]interface{}, 0)
+
+	inflightMessages.Range(func(key, value any) bool {
+		if messageTask, ok := value.(MessageTask); ok {
+			if now.Sub(messageTask.CreatedAt) > tm.taskTTL {
+				expiredTasks = append(expiredTasks, key)
+				log.Debugf("Cleaning up expired task: %v (age: %v)", key, now.Sub(messageTask.CreatedAt))
+
+				// Cancel the task if it has a cancel function
+				if messageTask.CancelFunc != nil {
+					messageTask.CancelFunc()
+				}
+				// Stop deprecated task
+				if messageTask.TaskID != "" {
+					task.StopTask(messageTask.TaskID)
+				}
+			}
+		}
+		return true
+	})
+
+	// Remove expired tasks from the map
+	for _, key := range expiredTasks {
+		inflightMessages.Delete(key)
+	}
+
+	if len(expiredTasks) > 0 {
+		log.Infof("Cleaned up %d expired message tasks", len(expiredTasks))
+	}
+}
+
+// stopCleanup stops the background cleanup goroutine
+func (tm *TaskManager) stopCleanup() {
+	close(tm.stopChan)
 }
 
 func stopMessageReplyTask(taskID string) {
@@ -533,6 +618,8 @@ func stopMessageReplyTask(taskID string) {
 			} else if v1.CancelFunc != nil {
 				v1.CancelFunc()
 			}
+			// Remove task from memory after stopping
+			inflightMessages.Delete(taskID)
 		}
 	} else {
 		_ = log.Warnf("task id [%s] was not found", taskID)
@@ -645,8 +732,17 @@ func (h APIHandler) sendChatMessageV2(w http.ResponseWriter, r *http.Request, ps
 	inflightMessages.Store(replyMsgTaskID, MessageTask{
 		SessionID:  sessionID,
 		CancelFunc: cancel,
+		CreatedAt:  time.Now(),
 	})
-	_ = h.processMessageAsync(ctx, reqMsg, params, streamSender)
+
+	// Process message asynchronously and cleanup on completion
+	go func() {
+		defer func() {
+			// Always cleanup the task when processing completes (success or failure)
+			inflightMessages.Delete(replyMsgTaskID)
+		}()
+		_ = h.processMessageAsync(ctx, reqMsg, params, streamSender)
+	}()
 
 }
 
