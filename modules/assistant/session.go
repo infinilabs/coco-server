@@ -473,13 +473,27 @@ func (h APIHandler) openChatSession(w http.ResponseWriter, req *http.Request, ps
 }
 
 func getChatHistoryBySessionInternal(sessionID string, size int) ([]common.ChatMessage, error) {
-	q := orm.Query{}
-	q.Conds = orm.And(orm.Eq("session_id", sessionID))
-	q.From = 0
-	q.Size = size
-	q.AddSort("created", orm.DESC)
+	builder := orm.NewQuery()
+	builder.Must(orm.TermQuery("session_id", sessionID))
+	builder.From(0).Size(size)
+	builder.SortBy(orm.Sort{Field: "created", SortType: orm.DESC})
+
+	// Use projection to exclude heavy fields for performance
+	// Only include essential fields for chat history listing
+	builder.Include("id", "created", "updated", "type", "session_id", "from", "to", "assistant_id", "reply_to_message", "up_vote", "down_vote")
+	// Exclude heavy fields: message content, attachments, details, parameters
+	builder.Exclude("message", "attachments", "details", "parameters")
+
+	ctx := orm.NewContext()
+	orm.WithModel(ctx, &common.ChatMessage{})
+
+	res, err := orm.SearchV2(ctx, builder)
+	if err != nil {
+		return nil, err
+	}
+
 	docs := []common.ChatMessage{}
-	err, _ := orm.SearchWithJSONMapper(&docs, &q)
+	err = util.FromJSONBytes(res.Payload.([]byte), &docs)
 	if err != nil {
 		return nil, err
 	}
@@ -487,19 +501,33 @@ func getChatHistoryBySessionInternal(sessionID string, size int) ([]common.ChatM
 }
 
 func (h APIHandler) getChatHistoryBySession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	q := orm.Query{}
-	q.Conds = orm.And(orm.Eq("session_id", ps.MustGetParameter("session_id")))
-	q.From = h.GetIntOrDefault(req, "from", 0)
-	q.Size = h.GetIntOrDefault(req, "size", 20)
-	q.AddSort("created", orm.ASC)
+	builder := orm.NewQuery()
+	builder.Must(orm.TermQuery("session_id", ps.MustGetParameter("session_id")))
+	builder.From(h.GetIntOrDefault(req, "from", 0))
+	builder.Size(h.GetIntOrDefault(req, "size", 20))
+	builder.SortBy(orm.Sort{Field: "created", SortType: orm.ASC})
 
-	err, res := orm.Search(&common.ChatMessage{}, &q)
+	// Check if full content is requested via query parameter
+	fullContent := h.GetParameterOrDefault(req, "full_content", "false") == "true"
+
+	if !fullContent {
+		// Use projection for lighter queries by default
+		// Include only essential fields for chat message listing
+		builder.Include("id", "created", "updated", "type", "session_id", "from", "to", "assistant_id", "reply_to_message", "up_vote", "down_vote")
+		// Exclude heavy content fields
+		builder.Exclude("message", "attachments", "details", "parameters")
+	}
+
+	ctx := orm.NewContextWithParent(req.Context())
+	orm.WithModel(ctx, &common.ChatMessage{})
+
+	res, err := orm.SearchV2(ctx, builder)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	_, err = h.Write(w, res.Raw)
+	_, err = h.Write(w, res.Payload.([]byte))
 	if err != nil {
 		h.Error(w, err)
 	}
