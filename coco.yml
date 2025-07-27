@@ -257,6 +257,17 @@ elasticsearch:
     basic_auth:
       username: $[[env.ES_USERNAME]]
       password: $[[env.ES_PASSWORD]]
+    # Connection pooling and traffic control configuration
+    traffic_control:
+      enabled: true
+      # Maximum connections per Elasticsearch node (default: 10000)
+      max_connection_per_node: 100
+      # Maximum requests per second per node
+      max_qps_per_node: 1000
+      # Maximum bytes per second per node (in bytes, ~10MB/s)
+      max_bytes_per_node: 10485760
+      # Maximum wait time for rate limiting (milliseconds)
+      max_wait_time_in_ms: 5000
 
 api:
   enabled: true
