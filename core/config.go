@@ -23,15 +23,15 @@
 
 package core
 
-var DefaultSettingBucketKey = "default_setting_bucket"
-var DefaultUserProfileKey = "default_user_profile" //TODO to be removed
-var UserProfileKey = "user_profile"
-var DefaultUserPasswordKey = "default_user_password"
-var DefaultServerConfigKey = "default_server_config"
-var DefaultAppSettingsKey = "default_app_settings"
+const DefaultSettingBucketKey = "default_setting_bucket"
+const DefaultUserProfileKey = "default_user_profile" //TODO to be removed
+const UserProfileKey = "user_profile"
+const DefaultUserPasswordKey = "default_user_password"
+const DefaultServerConfigKey = "default_server_config"
+const DefaultAppSettingsKey = "default_app_settings"
 
-var DefaultUserLogin = "coco-default-user"
+const DefaultUserLogin = "coco-default-user"
 
-var WidgetRole = "widget"
+const WidgetRole = "widget"
 
-var FeatureByPassCORSCheck = "feature_bypass_cors_check"
+const FeatureByPassCORSCheck = "feature_bypass_cors_check"
