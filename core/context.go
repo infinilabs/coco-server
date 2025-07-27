@@ -34,44 +34,55 @@ import (
 	"infini.sh/framework/core/kv"
 	"infini.sh/framework/core/util"
 	"strings"
+	"sync"
 )
 
 const Secret = "coco"
 
-var secretKey string
+var (
+	secretKey     string
+	secretKeyOnce sync.Once
+	secretKeyErr  error
+)
 
 func GetSecret() (string, error) {
-	if secretKey != "" {
-		return secretKey, nil
-	}
+	secretKeyOnce.Do(func() {
+		secretKey, secretKeyErr = initializeSecret()
+	})
+	return secretKey, secretKeyErr
+}
 
+// initializeSecret performs the one-time secret key initialization
+func initializeSecret() (string, error) {
 	exists, err := kv.ExistsKey("Coco", []byte(Secret))
 	if err != nil {
 		return "", fmt.Errorf("failed to check if secret key exists: %w", err)
 	}
 
+	var key string
 	if !exists {
-		key := util.GetUUID()
+		// Generate new secret key
+		key = util.GetUUID()
 		err = kv.AddValue("Coco", []byte(Secret), []byte(key))
 		if err != nil {
 			return "", fmt.Errorf("failed to store new secret key: %w", err)
 		}
-		secretKey = key
 	} else {
+		// Retrieve existing secret key
 		v, err := kv.GetValue("Coco", []byte(Secret))
 		if err != nil {
 			return "", fmt.Errorf("failed to retrieve secret key: %w", err)
 		}
 		if len(v) > 0 {
-			secretKey = string(v)
+			key = string(v)
 		}
 	}
 
-	if secretKey == "" {
+	if key == "" {
 		return "", fmt.Errorf("secret key is empty or invalid")
 	}
 
-	return secretKey, nil
+	return key, nil
 }
 
 // Maximum allowed size for query DSL input (1MB)
