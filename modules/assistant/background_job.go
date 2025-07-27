@@ -545,7 +545,7 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *common.ChatMes
 				}
 				continue
 			}
-			if err := mcpClient.Start(context.Background()); err != nil {
+			if err := mcpClient.Start(ctx); err != nil {
 				if global.Env().IsDebug {
 					log.Errorf("start client fail: %v", err)
 				}
@@ -579,7 +579,7 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *common.ChatMes
 			}
 			//ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			//defer cancel()
-			if err := mcpClient.Start(context.Background()); err != nil {
+			if err := mcpClient.Start(ctx); err != nil {
 				if global.Env().IsDebug {
 					log.Errorf("start client fail: %v", err)
 				}
@@ -653,7 +653,7 @@ func (h *APIHandler) processLLMTools(ctx context.Context, reqMsg *common.ChatMes
 	}
 
 	log.Debugf("start call LLM tools")
-	answer, err := chains.Run(context.Background(), executor, reqMsg.Message)
+	answer, err := chains.Run(ctx, executor, reqMsg.Message)
 	if err != nil {
 		return answerBuffer.String(), fmt.Errorf("error running chains: %w", err)
 	}

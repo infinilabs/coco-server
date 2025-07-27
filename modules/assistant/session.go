@@ -368,12 +368,28 @@ func (h *APIHandler) askAssistant(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 	params.SessionID = session.ID
+	// Create a context with cancel to handle the message asynchronously
+	ctx, cancel := context.WithCancel(r.Context())
 	streamSender := &HTTPStreamSender{
 		Enc:     enc,
 		Flusher: flusher,
-		Ctx:     r.Context(), // assuming this is in an HTTP handler
+		Ctx:     ctx, // assuming this is in an HTTP handler
 	}
-	_ = h.processMessageAsync(ctx, reqMsg, params, streamSender)
+	replyMsgTaskID := getReplyMessageTaskID(session.ID, reqMsg.ID)
+	inflightMessages.Store(replyMsgTaskID, MessageTask{
+		SessionID:  session.ID,
+		CancelFunc: cancel,
+		CreatedAt:  time.Now(),
+	})
+
+	// Process message asynchronously and cleanup on completion
+	go func() {
+		defer func() {
+			// Always cleanup the task when processing completes (success or failure)
+			inflightMessages.Delete(replyMsgTaskID)
+		}()
+		_ = h.processMessageAsync(ctx, reqMsg, params, streamSender)
+	}()
 
 }
 
