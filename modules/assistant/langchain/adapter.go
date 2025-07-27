@@ -62,7 +62,16 @@ func (t *mcpTool) Call(ctx context.Context, input string) (string, error) {
 		return "", fmt.Errorf("call the tool: %w", err)
 	}
 
-	return res.Content[0].(mcp.TextContent).Text, nil
+	if len(res.Content) == 0 {
+		return "", fmt.Errorf("no content returned from tool")
+	}
+
+	textContent, ok := res.Content[0].(mcp.TextContent)
+	if !ok {
+		return "", fmt.Errorf("unexpected content type: expected TextContent")
+	}
+
+	return textContent.Text, nil
 }
 
 // MCPAdapter adapts an MCP client to the LangChain Go tools interface.

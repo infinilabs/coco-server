@@ -6,8 +6,6 @@ import (
 	"os"
 	"testing"
 
-	adapter "github.com/i2y/langchaingo-mcp-adapter"
-
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -108,6 +106,30 @@ func (m *MockMCPClient) OnNotification(handler func(notification mcp.JSONRPCNoti
 	m.Called(handler)
 }
 
+// ListPromptsByPage mocks the ListPromptsByPage method of the MCPClient.
+func (m *MockMCPClient) ListPromptsByPage(ctx context.Context, request mcp.ListPromptsRequest) (*mcp.ListPromptsResult, error) {
+	args := m.Called(ctx, request)
+	return args.Get(0).(*mcp.ListPromptsResult), args.Error(1)
+}
+
+// ListResourceTemplatesByPage mocks the ListResourceTemplatesByPage method of the MCPClient.
+func (m *MockMCPClient) ListResourceTemplatesByPage(ctx context.Context, request mcp.ListResourceTemplatesRequest) (*mcp.ListResourceTemplatesResult, error) {
+	args := m.Called(ctx, request)
+	return args.Get(0).(*mcp.ListResourceTemplatesResult), args.Error(1)
+}
+
+// ListResourcesByPage mocks the ListResourcesByPage method of the MCPClient.
+func (m *MockMCPClient) ListResourcesByPage(ctx context.Context, request mcp.ListResourcesRequest) (*mcp.ListResourcesResult, error) {
+	args := m.Called(ctx, request)
+	return args.Get(0).(*mcp.ListResourcesResult), args.Error(1)
+}
+
+// ListToolsByPage mocks the ListToolsByPage method of the MCPClient.
+func (m *MockMCPClient) ListToolsByPage(ctx context.Context, request mcp.ListToolsRequest) (*mcp.ListToolsResult, error) {
+	args := m.Called(ctx, request)
+	return args.Get(0).(*mcp.ListToolsResult), args.Error(1)
+}
+
 // TestNew tests the New function of the adapter.
 func TestNew(t *testing.T) {
 	tests := []struct {
@@ -144,7 +166,7 @@ func TestNew(t *testing.T) {
 			mockClient := &MockMCPClient{}
 			tt.setupMock(mockClient)
 
-			adapter, err := adapter.New(mockClient)
+			adapter, err := New(mockClient)
 
 			if tt.expectError {
 				assert.Error(t, err)
@@ -234,7 +256,7 @@ func TestTools(t *testing.T) {
 			mockClient := &MockMCPClient{}
 			tt.setupMock(mockClient)
 
-			a, err := adapter.New(mockClient)
+			a, err := New(mockClient)
 			if err != nil && !tt.expectError {
 				t.Fatalf("Failed to create adapter: %v", err)
 			}
@@ -295,10 +317,13 @@ func TestToolCall(t *testing.T) {
 			expectedOutput: "tool execution result",
 		},
 		{
-			name:           "invalid json input",
-			toolName:       "test-tool",
-			toolDesc:       "A test tool",
-			inputSchema:    map[string]any{"param1": map[string]any{"type": "string"}},
+			name:        "invalid json input",
+			toolName:    "test-tool",
+			toolDesc:    "A test tool",
+			inputSchema: map[string]any{"param1": map[string]any{"type": "string"}},
+			setupMock: func(m *MockMCPClient) {
+				// No mock setup needed as the error should occur before calling the client
+			},
 			input:          `invalid json`,
 			expectError:    true,
 			expectedErrMsg: "unmarshal input",
@@ -326,14 +351,16 @@ func TestToolCall(t *testing.T) {
 				tt.setupMock(mockClient)
 			}
 
-			tool, err := adapter.NewToolForTesting(tt.toolName, tt.toolDesc, tt.inputSchema, mockClient)
+			tool, err := NewToolForTesting(tt.toolName, tt.toolDesc, tt.inputSchema, mockClient)
 			require.NoError(t, err)
 
 			result, err := tool.Call(context.Background(), tt.input)
 
 			if tt.expectError {
 				assert.Error(t, err)
-				assert.Contains(t, err.Error(), tt.expectedErrMsg)
+				if err != nil {
+					assert.Contains(t, err.Error(), tt.expectedErrMsg)
+				}
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.expectedOutput, result)
