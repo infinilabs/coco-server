@@ -74,7 +74,7 @@ func ValidateLoginByAPITokenHeader(r *http.Request) (claims *security.UserClaims
 
 	expireAtTime := time.Unix(data.ExpireIn, 0) // Convert to time.Time
 	if time.Now().After(expireAtTime) {
-		panic("Token expired")
+		return nil, errors.Error("token expired")
 	}
 
 	// Safely extract fields with type assertions
@@ -113,7 +113,11 @@ func ValidateLoginByAuthorizationHeader(r *http.Request) (claims *security.UserC
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		return []byte(GetSecret()), nil
+		secret, err := GetSecret()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get secret key: %w", err)
+		}
+		return []byte(secret), nil
 	})
 	if err != nil {
 		return nil, err
@@ -157,7 +161,11 @@ func ValidateLoginByAccessTokenSession(r *http.Request) (claims *security.UserCl
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		return []byte(GetSecret()), nil
+		secret, err := GetSecret()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get secret key: %w", err)
+		}
+		return []byte(secret), nil
 	})
 	if err1 != nil {
 		return

@@ -28,6 +28,7 @@
 package core
 
 import (
+	"fmt"
 	"infini.sh/framework/core/kv"
 	"infini.sh/framework/core/util"
 )
@@ -36,27 +37,27 @@ const Secret = "coco"
 
 var secretKey string
 
-func GetSecret() string {
-
+func GetSecret() (string, error) {
 	if secretKey != "" {
-		return secretKey
+		return secretKey, nil
 	}
 
 	exists, err := kv.ExistsKey("Coco", []byte(Secret))
 	if err != nil {
-		panic(err)
+		return "", fmt.Errorf("failed to check if secret key exists: %w", err)
 	}
+
 	if !exists {
 		key := util.GetUUID()
 		err = kv.AddValue("Coco", []byte(Secret), []byte(key))
 		if err != nil {
-			panic(err)
+			return "", fmt.Errorf("failed to store new secret key: %w", err)
 		}
 		secretKey = key
 	} else {
 		v, err := kv.GetValue("Coco", []byte(Secret))
 		if err != nil {
-			panic(err)
+			return "", fmt.Errorf("failed to retrieve secret key: %w", err)
 		}
 		if len(v) > 0 {
 			secretKey = string(v)
@@ -64,10 +65,10 @@ func GetSecret() string {
 	}
 
 	if secretKey == "" {
-		panic("invalid secret")
+		return "", fmt.Errorf("secret key is empty or invalid")
 	}
 
-	return secretKey
+	return secretKey, nil
 }
 
 func RewriteQueryWithFilter(queryDsl []byte, filter util.MapStr) ([]byte, error) {
