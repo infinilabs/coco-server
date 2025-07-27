@@ -28,9 +28,12 @@
 package core
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"infini.sh/framework/core/kv"
 	"infini.sh/framework/core/util"
+	"strings"
 )
 
 const Secret = "coco"
@@ -71,37 +74,202 @@ func GetSecret() (string, error) {
 	return secretKey, nil
 }
 
-func RewriteQueryWithFilter(queryDsl []byte, filter util.MapStr) ([]byte, error) {
+// Maximum allowed size for query DSL input (1MB)
+const maxQueryDSLSize = 1024 * 1024
 
-	mapObj := util.MapStr{}
-	err := util.FromJSONBytes(queryDsl, &mapObj)
+// validateQueryDSLInput validates the input queryDsl for security and structure
+func validateQueryDSLInput(queryDsl []byte) error {
+	// Check input size limits
+	if len(queryDsl) > maxQueryDSLSize {
+		return errors.New("query DSL exceeds maximum allowed size of 1MB")
+	}
+
+	// Allow empty query (will be handled as match_all)
+	if len(queryDsl) == 0 {
+		return nil
+	}
+
+	// Validate that it's valid JSON
+	var temp interface{}
+	if err := json.Unmarshal(queryDsl, &temp); err != nil {
+		return fmt.Errorf("invalid JSON structure: %w", err)
+	}
+
+	// Convert to string for basic content validation
+	queryStr := string(queryDsl)
+
+	// Basic security checks - prevent potential script injection
+	dangerousPatterns := []string{
+		"<script", "</script", "javascript:", "eval(", "expression(",
+		"document.", "window.", "alert(", "confirm(", "prompt(",
+	}
+
+	queryStrLower := strings.ToLower(queryStr)
+	for _, pattern := range dangerousPatterns {
+		if strings.Contains(queryStrLower, pattern) {
+			return fmt.Errorf("query contains potentially dangerous content: %s", pattern)
+		}
+	}
+
+	return nil
+}
+
+// validateFilterInput validates the filter parameter for security and structure
+func validateFilterInput(filter util.MapStr) error {
+	if filter == nil {
+		return errors.New("filter cannot be nil")
+	}
+
+	// Convert to JSON and back to validate structure
+	filterBytes, err := json.Marshal(filter)
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("filter contains invalid data structure: %w", err)
 	}
-	must := []util.MapStr{
-		filter,
+
+	// Check filter size (should be reasonable)
+	if len(filterBytes) > 10*1024 { // 10KB limit for filters
+		return errors.New("filter exceeds maximum allowed size of 10KB")
 	}
+
+	// Validate filter contains valid Elasticsearch query components
+	validFilterKeys := map[string]bool{
+		"term": true, "terms": true, "range": true, "exists": true,
+		"bool": true, "match": true, "match_phrase": true, "wildcard": true,
+		"prefix": true, "regexp": true, "fuzzy": true, "ids": true,
+	}
+
+	// Check if filter contains at least one valid query type
+	hasValidKey := false
+	for key := range filter {
+		if validFilterKeys[key] {
+			hasValidKey = true
+			break
+		}
+	}
+
+	if !hasValidKey {
+		return errors.New("filter must contain at least one valid Elasticsearch query clause")
+	}
+
+	return nil
+}
+
+// isValidElasticsearchQuery performs basic validation of Elasticsearch query structure
+func isValidElasticsearchQuery(mapObj util.MapStr) error {
+	// Check for valid top-level Elasticsearch query structure
+	validTopLevelKeys := map[string]bool{
+		"query": true, "size": true, "from": true, "sort": true,
+		"_source": true, "aggs": true, "aggregations": true,
+		"highlight": true, "track_scores": true, "track_total_hits": true,
+		"version": true, "timeout": true, "terminate_after": true,
+	}
+
+	// Allow empty query (defaults to match_all)
+	if len(mapObj) == 0 {
+		return nil
+	}
+
+	// Validate top-level keys
+	for key := range mapObj {
+		if !validTopLevelKeys[key] && !strings.HasPrefix(key, "_") {
+			return fmt.Errorf("invalid top-level query key: %s", key)
+		}
+	}
+
+	// If query field exists, validate its structure
+	if queryField, exists := mapObj["query"]; exists {
+		if queryMap, ok := queryField.(map[string]interface{}); ok {
+			return validateQueryClause(queryMap)
+		}
+		return errors.New("query field must be an object")
+	}
+
+	return nil
+}
+
+// validateQueryClause validates individual query clauses
+func validateQueryClause(query map[string]interface{}) error {
+	validQueryTypes := map[string]bool{
+		"match": true, "match_all": true, "match_phrase": true, "match_phrase_prefix": true,
+		"multi_match": true, "term": true, "terms": true, "range": true, "exists": true,
+		"bool": true, "wildcard": true, "prefix": true, "regexp": true, "fuzzy": true,
+		"ids": true, "constant_score": true, "dis_max": true, "function_score": true,
+		"boosting": true, "nested": true, "has_child": true, "has_parent": true,
+	}
+
+	if len(query) == 0 {
+		return errors.New("query clause cannot be empty")
+	}
+
+	for queryType := range query {
+		if !validQueryTypes[queryType] {
+			return fmt.Errorf("invalid query type: %s", queryType)
+		}
+	}
+
+	return nil
+}
+
+func RewriteQueryWithFilter(queryDsl []byte, filter util.MapStr) ([]byte, error) {
+	// Validate inputs
+	if err := validateQueryDSLInput(queryDsl); err != nil {
+		return nil, fmt.Errorf("invalid query DSL input: %w", err)
+	}
+
+	if err := validateFilterInput(filter); err != nil {
+		return nil, fmt.Errorf("invalid filter input: %w", err)
+	}
+
+	// Parse query DSL with proper error handling
+	mapObj := util.MapStr{}
+	if len(queryDsl) > 0 {
+		err := util.FromJSONBytes(queryDsl, &mapObj)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse query DSL: %w", err)
+		}
+	}
+
+	// Validate the parsed query structure
+	if err := isValidElasticsearchQuery(mapObj); err != nil {
+		return nil, fmt.Errorf("invalid Elasticsearch query structure: %w", err)
+	}
+
+	// Build filter query
+	must := []util.MapStr{filter}
 	filterQ := util.MapStr{
 		"bool": util.MapStr{
 			"must": must,
 		},
 	}
-	v, ok := mapObj["query"].(map[string]interface{})
-	if ok { //exists query
-		newQuery := util.MapStr{
-			"bool": util.MapStr{
-				"filter": filterQ,
-				"must":   []interface{}{v},
-			},
+
+	// Apply filter to existing query or create new query
+	if queryField, exists := mapObj["query"]; exists {
+		// Safely handle existing query with type assertion
+		if queryMap, ok := queryField.(map[string]interface{}); ok {
+			newQuery := util.MapStr{
+				"bool": util.MapStr{
+					"filter": filterQ,
+					"must":   []interface{}{queryMap},
+				},
+			}
+			mapObj["query"] = newQuery
+		} else {
+			return nil, errors.New("existing query field has invalid structure")
 		}
-		mapObj["query"] = newQuery
 	} else {
+		// Create new query with just the filter
 		mapObj["query"] = util.MapStr{
 			"bool": util.MapStr{
 				"filter": filterQ,
 			},
 		}
 	}
-	queryDsl = util.MustToJSONBytes(mapObj)
+
+	// Convert back to JSON with error handling
+	queryDsl, err := json.Marshal(mapObj)
+	if err != nil {
+		return nil, fmt.Errorf("failed to serialize modified query: %w", err)
+	}
+
 	return queryDsl, nil
 }
