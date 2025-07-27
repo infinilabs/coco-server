@@ -164,3 +164,25 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/l
   },
   "builtin": true
 }
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/s3
+{
+  "id" : "s3",
+  "created" : "2025-07-27T20:00:00.000000+08:00",
+  "updated" : "2025-07-27T20:00:00.000000+08:00",
+  "name" : "S3 Connector",
+  "description" : "Scan and fetch metadata from S3-compatible storage.",
+  "category" : "cloud_storage",
+  "icon" : "/assets/icons/connector/s3/icon.png",
+  "tags" : [
+    "s3",
+    "storage",
+    "cloud"
+  ],
+  "url" : "http://coco.rs/connectors/s3",
+  "assets" : {
+    "icons" : {
+      "default" : "/assets/icons/connector/s3/icon.png"
+    }
+  },
+  "builtin": true
+}
