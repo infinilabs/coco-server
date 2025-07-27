@@ -272,7 +272,13 @@ func (h APIHandler) createChatSession(w http.ResponseWriter, r *http.Request, ps
 	go func() {
 		defer func() {
 			// Always cleanup the task when processing completes (success or failure)
-			inflightMessages.Delete(replyMsgTaskID)
+			// Load and delete atomically to handle race conditions with external cancellation
+			if taskValue, loaded := inflightMessages.LoadAndDelete(replyMsgTaskID); loaded {
+				if messageTask, ok := taskValue.(MessageTask); ok && messageTask.CancelFunc != nil {
+					// Cancel context to free resources
+					messageTask.CancelFunc()
+				}
+			}
 		}()
 		_ = h.processMessageAsync(ctx, reqMsg, params, streamSender)
 	}()
@@ -386,7 +392,13 @@ func (h *APIHandler) askAssistant(w http.ResponseWriter, r *http.Request, ps htt
 	go func() {
 		defer func() {
 			// Always cleanup the task when processing completes (success or failure)
-			inflightMessages.Delete(replyMsgTaskID)
+			// Load and delete atomically to handle race conditions with external cancellation
+			if taskValue, loaded := inflightMessages.LoadAndDelete(replyMsgTaskID); loaded {
+				if messageTask, ok := taskValue.(MessageTask); ok && messageTask.CancelFunc != nil {
+					// Cancel context to free resources
+					messageTask.CancelFunc()
+				}
+			}
 		}()
 		_ = h.processMessageAsync(ctx, reqMsg, params, streamSender)
 	}()
@@ -652,18 +664,15 @@ func (tm *TaskManager) stopCleanup() {
 }
 
 func stopMessageReplyTask(taskID string) {
-	v, ok := inflightMessages.Load(taskID)
-	if ok {
-		v1, ok := v.(MessageTask)
-		if ok {
-			log.Debug("stop task:", v1)
-			if v1.TaskID != "" {
-				task.StopTask(v1.TaskID)
-			} else if v1.CancelFunc != nil {
-				v1.CancelFunc()
+	// Use LoadAndDelete to avoid race conditions
+	if taskValue, loaded := inflightMessages.LoadAndDelete(taskID); loaded {
+		if messageTask, ok := taskValue.(MessageTask); ok {
+			log.Debug("stop task:", messageTask)
+			if messageTask.TaskID != "" {
+				task.StopTask(messageTask.TaskID)
+			} else if messageTask.CancelFunc != nil {
+				messageTask.CancelFunc()
 			}
-			// Remove task from memory after stopping
-			inflightMessages.Delete(taskID)
 		}
 	} else {
 		_ = log.Warnf("task id [%s] was not found", taskID)
@@ -783,7 +792,13 @@ func (h APIHandler) sendChatMessageV2(w http.ResponseWriter, r *http.Request, ps
 	go func() {
 		defer func() {
 			// Always cleanup the task when processing completes (success or failure)
-			inflightMessages.Delete(replyMsgTaskID)
+			// Load and delete atomically to handle race conditions with external cancellation
+			if taskValue, loaded := inflightMessages.LoadAndDelete(replyMsgTaskID); loaded {
+				if messageTask, ok := taskValue.(MessageTask); ok && messageTask.CancelFunc != nil {
+					// Cancel context to free resources
+					messageTask.CancelFunc()
+				}
+			}
 		}()
 		_ = h.processMessageAsync(ctx, reqMsg, params, streamSender)
 	}()
