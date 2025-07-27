@@ -60,7 +60,7 @@ func GenerateJWTAccessToken(user *security.UserSessionInfo) (map[string]interfac
 
 	secret, err := core.GetSecret()
 	if err != nil {
-		return nil, errors.Errorf("failed to get secret key: %w", err)
+		return nil, errors.Errorf("failed to get secret key: %v", err)
 	}
 
 	tokenString, err := token1.SignedString([]byte(secret))
