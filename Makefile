@@ -25,3 +25,10 @@ build-all:
 	make build-web
 	make build-widget
 	make build
+
+check-deps:
+	@echo "🔍 Checking module dependency hierarchy..."
+	@go run tools/check-deps.go
+
+lint-arch: check-deps
+	@echo "✅ Architecture validation complete"
