@@ -18,6 +18,7 @@ import (
 	ccache "infini.sh/framework/lib/cache"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -94,6 +95,172 @@ type SearchResponse struct {
 
 var configCache = ccache.Layered(ccache.Configure().MaxSize(10000).ItemsToPrune(100))
 
+// Performance optimization: Cache for split datasource strings
+type datasourceSplitCache struct {
+	mu    sync.RWMutex
+	cache map[string][]string
+}
+
+var splitCache = &datasourceSplitCache{
+	cache: make(map[string][]string),
+}
+
+// getCachedSplit returns cached split results or performs split and caches it
+func (c *datasourceSplitCache) getCachedSplit(datasource string) []string {
+	c.mu.RLock()
+	if result, exists := c.cache[datasource]; exists {
+		c.mu.RUnlock()
+		return result
+	}
+	c.mu.RUnlock()
+
+	// Not in cache, acquire write lock and split
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	// Double-check after acquiring write lock
+	if result, exists := c.cache[datasource]; exists {
+		return result
+	}
+
+	result := strings.Split(datasource, ",")
+	// Limit cache size to prevent memory leaks
+	if len(c.cache) > 1000 {
+		// Clear cache when it gets too large
+		c.cache = make(map[string][]string)
+	}
+	c.cache[datasource] = result
+	return result
+}
+
+// Pre-allocated query structures to reduce allocations
+var (
+	// Pool of disabled filter queries to reuse
+	disabledFilterPool = sync.Pool{
+		New: func() interface{} {
+			return map[string]interface{}{
+				"bool": map[string]interface{}{
+					"minimum_should_match": 1,
+					"should": []interface{}{
+						map[string]interface{}{
+							"term": map[string]interface{}{
+								"disabled": false,
+							},
+						},
+						map[string]interface{}{
+							"bool": map[string]interface{}{
+								"must_not": map[string]interface{}{
+									"exists": map[string]interface{}{
+										"field": "disabled",
+									},
+								},
+							},
+						},
+					},
+				},
+			}
+		},
+	}
+
+	// Pool for term query structures
+	termQueryPool = sync.Pool{
+		New: func() interface{} {
+			return map[string]interface{}{
+				"term": map[string]interface{}{},
+			}
+		},
+	}
+
+	// Pool for terms query structures
+	termsQueryPool = sync.Pool{
+		New: func() interface{} {
+			return map[string]interface{}{
+				"terms": map[string]interface{}{},
+			}
+		},
+	}
+)
+
+// getDisabledFilter returns a reusable disabled filter query
+func getDisabledFilter() map[string]interface{} {
+	return disabledFilterPool.Get().(map[string]interface{})
+}
+
+// putDisabledFilter returns a disabled filter query to the pool
+func putDisabledFilter(query map[string]interface{}) {
+	disabledFilterPool.Put(query)
+}
+
+// createTermQuery creates an optimized term query
+func createTermQuery(field, value string) map[string]interface{} {
+	query := termQueryPool.Get().(map[string]interface{})
+	termMap := query["term"].(map[string]interface{})
+	// Clear any existing fields
+	for k := range termMap {
+		delete(termMap, k)
+	}
+	termMap[field] = value
+	return query
+}
+
+// createTermsQuery creates an optimized terms query
+func createTermsQuery(field string, values []string) map[string]interface{} {
+	query := termsQueryPool.Get().(map[string]interface{})
+	termsMap := query["terms"].(map[string]interface{})
+	// Clear any existing fields
+	for k := range termsMap {
+		delete(termsMap, k)
+	}
+	termsMap[field] = values
+	return query
+}
+
+// putTermQuery returns a term query to the pool
+func putTermQuery(query map[string]interface{}) {
+	termQueryPool.Put(query)
+}
+
+// putTermsQuery returns a terms query to the pool
+func putTermsQuery(query map[string]interface{}) {
+	termsQueryPool.Put(query)
+}
+
+// Optimize string joining for datasource IDs with string builder
+var stringBuilderPool = sync.Pool{
+	New: func() interface{} {
+		return &strings.Builder{}
+	},
+}
+
+// optimizedJoin provides memory-efficient string joining for small arrays
+func optimizedJoin(arr []string, sep string) string {
+	if len(arr) == 0 {
+		return ""
+	}
+	if len(arr) == 1 {
+		return arr[0]
+	}
+	if len(arr) <= 5 {
+		// For small arrays, use strings.Join (faster than builder)
+		return strings.Join(arr, sep)
+	}
+
+	// For larger arrays, use pooled string builder
+	builder := stringBuilderPool.Get().(*strings.Builder)
+	defer func() {
+		builder.Reset()
+		stringBuilderPool.Put(builder)
+	}()
+
+	for i, s := range arr {
+		if i > 0 {
+			builder.WriteString(sep)
+		}
+		builder.WriteString(s)
+	}
+	return builder.String()
+}
+
 func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
 	reqUser := security.MustGetUserFromRequest(req)
@@ -143,17 +310,17 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 				}
 				// update datasource filter
 				if datasource == "" {
-					datasource = strings.Join(datasourceIDs, ",")
+					datasource = optimizedJoin(datasourceIDs, ",")
 				} else {
 					// calc intersection with datasource and datasourceIDs
-					queryDatasource := strings.Split(datasource, ",")
+					queryDatasource := splitCache.getCachedSplit(datasource)
 					queryDatasource = util.StringArrayIntersection(queryDatasource, datasourceIDs)
 					if len(queryDatasource) == 0 {
 						// return empty search result when intersection datasource ids is empty
 						h.WriteJSON(w, elastic.SearchResponse{}, http.StatusOK)
 						return
 					}
-					datasource = strings.Join(queryDatasource, ",")
+					datasource = optimizedJoin(queryDatasource, ",")
 				}
 			}
 		}
@@ -161,27 +328,8 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		if datasourceClause != nil {
 			mustClauses = append(mustClauses, datasourceClause)
 		}
-		mustClauses = append(mustClauses, map[string]interface{}{
-			"bool": map[string]interface{}{
-				"minimum_should_match": 1,
-				"should": []interface{}{
-					map[string]interface{}{
-						"term": map[string]interface{}{
-							"disabled": false,
-						},
-					},
-					map[string]interface{}{
-						"bool": map[string]interface{}{
-							"must_not": map[string]interface{}{
-								"exists": map[string]interface{}{
-									"field": "disabled",
-								},
-							},
-						},
-					},
-				},
-			},
-		})
+		// Use pooled disabled filter for better performance
+		mustClauses = append(mustClauses, getDisabledFilter())
 
 		var q *orm.Query
 		if query != "" || len(mustClauses) > 0 {
@@ -305,7 +453,11 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 	builder.Exclude("payload.*")
 
 	if source != "" && source != "*" {
-		builder.Include(strings.Split(source, ",")...)
+		if strings.Contains(source, ",") {
+			builder.Include(splitCache.getCachedSplit(source)...)
+		} else {
+			builder.Include(source)
+		}
 	}
 
 	filters := BuildFilters(category, subcategory, richCategory, username, userid)
@@ -323,17 +475,17 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 			}
 			// update datasource filter
 			if datasource == "" {
-				datasource = strings.Join(datasourceIDs, ",")
+				datasource = optimizedJoin(datasourceIDs, ",")
 			} else {
 				// calc intersection with datasource and datasourceIDs
-				queryDatasource := strings.Split(datasource, ",")
+				queryDatasource := splitCache.getCachedSplit(datasource)
 				queryDatasource = util.StringArrayIntersection(queryDatasource, datasourceIDs)
 				if len(queryDatasource) == 0 {
 					// return empty search result when intersection datasource ids is empty
 					h.WriteJSON(w, elastic.SearchResponse{}, http.StatusOK)
 					return
 				}
-				datasource = strings.Join(queryDatasource, ",")
+				datasource = optimizedJoin(queryDatasource, ",")
 			}
 		}
 	}
@@ -427,6 +579,22 @@ func BuildTemplatedQuery(from int, size int, mustClauses []interface{}, shouldCl
 		templatedQuery.TemplateID = "coco-query-string-extra-should"
 	}
 
+	// Use cached split for source and tags if they contain commas
+	var sourceArray []string
+	var tagsArray []string
+
+	if strings.Contains(source, ",") {
+		sourceArray = splitCache.getCachedSplit(source)
+	} else {
+		sourceArray = []string{source}
+	}
+
+	if strings.Contains(tags, ",") {
+		tagsArray = splitCache.getCachedSplit(tags)
+	} else {
+		tagsArray = []string{tags}
+	}
+
 	templatedQuery.Parameters = util.MapStr{
 		"from":                 from,
 		"size":                 size,
@@ -434,8 +602,8 @@ func BuildTemplatedQuery(from int, size int, mustClauses []interface{}, shouldCl
 		"extra_should_clauses": shouldClauses,
 		"field":                field,
 		"query":                query,
-		"source":               strings.Split(source, ","),
-		"tags":                 strings.Split(tags, ","),
+		"source":               sourceArray,
+		"tags":                 tagsArray,
 	}
 	q := orm.Query{}
 	q.TemplatedQuery = &templatedQuery
@@ -446,18 +614,10 @@ func BuildDatasourceClause(datasource string, filterDisabled bool) interface{} {
 	var datasourceClause interface{}
 	if datasource != "" {
 		if strings.Contains(datasource, ",") {
-			arr := strings.Split(datasource, ",")
-			datasourceClause = map[string]interface{}{
-				"terms": map[string]interface{}{
-					"source.id": arr,
-				},
-			}
+			arr := splitCache.getCachedSplit(datasource)
+			datasourceClause = createTermsQuery("source.id", arr)
 		} else {
-			datasourceClause = map[string]interface{}{
-				"term": map[string]interface{}{
-					"source.id": datasource,
-				},
-			}
+			datasourceClause = createTermQuery("source.id", datasource)
 		}
 	}
 	if !filterDisabled {
@@ -497,43 +657,23 @@ func BuildMustFilterClauses(category string, subcategory string, richCategory st
 	// Check and add conditions to mustClauses
 
 	if category != "" {
-		mustClauses = append(mustClauses, map[string]interface{}{
-			"term": map[string]interface{}{
-				"category": category,
-			},
-		})
+		mustClauses = append(mustClauses, createTermQuery("category", category))
 	}
 
 	if subcategory != "" {
-		mustClauses = append(mustClauses, map[string]interface{}{
-			"term": map[string]interface{}{
-				"subcategory": subcategory,
-			},
-		})
+		mustClauses = append(mustClauses, createTermQuery("subcategory", subcategory))
 	}
 
 	if richCategory != "" {
-		mustClauses = append(mustClauses, map[string]interface{}{
-			"term": map[string]interface{}{
-				"rich_categories.key": richCategory,
-			},
-		})
+		mustClauses = append(mustClauses, createTermQuery("rich_categories.key", richCategory))
 	}
 
 	if username != "" {
-		mustClauses = append(mustClauses, map[string]interface{}{
-			"term": map[string]interface{}{
-				"owner.username": username,
-			},
-		})
+		mustClauses = append(mustClauses, createTermQuery("owner.username", username))
 	}
 
 	if userid != "" {
-		mustClauses = append(mustClauses, map[string]interface{}{
-			"term": map[string]interface{}{
-				"owner.userid": userid,
-			},
-		})
+		mustClauses = append(mustClauses, createTermQuery("owner.userid", userid))
 	}
 	return mustClauses
 }
@@ -567,7 +707,7 @@ func BuildDatasourceFilter(datasource string, filterDisabled bool) []*orm.Clause
 	mustClauses := []*orm.Clause{}
 	if datasource != "" {
 		if strings.Contains(datasource, ",") {
-			arr := strings.Split(datasource, ",")
+			arr := splitCache.getCachedSplit(datasource)
 			mustClauses = append(mustClauses, orm.TermsQuery("source.id", arr))
 		} else {
 			mustClauses = append(mustClauses, orm.TermQuery("source.id", datasource))
