@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net/http"
 	"sync"
+	"time"
 
 	log "github.com/cihub/seelog"
 	_ "github.com/tmc/langchaingo/llms/ollama"
@@ -462,6 +463,30 @@ func (h APIHandler) openChatSession(w http.ResponseWriter, req *http.Request, ps
 
 }
 
+// ChatMessageBasic contains only essential fields for chat history processing
+type ChatMessageBasic struct {
+	ID          string     `json:"id,omitempty"`
+	Created     *time.Time `json:"created,omitempty"`
+	MessageType string     `json:"type"`
+	SessionID   string     `json:"session_id"`
+	Message     string     `json:"message,omitempty"`
+	DownVote    int        `json:"down_vote"`
+	UpVote      int        `json:"up_vote"`
+}
+
+// ChatMessageMetadata contains ID and metadata fields without heavy content
+type ChatMessageMetadata struct {
+	ID          string     `json:"id,omitempty"`
+	Created     *time.Time `json:"created,omitempty"`
+	MessageType string     `json:"type"`
+	SessionID   string     `json:"session_id"`
+	From        string     `json:"from"`
+	To          string     `json:"to,omitempty"`
+	AssistantID string     `json:"assistant_id"`
+}
+
+// getChatHistoryBySessionInternal loads full ChatMessage objects
+// Use getChatHistoryBySessionBasic for better performance when only core fields are needed
 func getChatHistoryBySessionInternal(sessionID string, size int) ([]common.ChatMessage, error) {
 	q := orm.Query{}
 	q.Conds = orm.And(orm.Eq("session_id", sessionID))
@@ -474,6 +499,118 @@ func getChatHistoryBySessionInternal(sessionID string, size int) ([]common.ChatM
 		return nil, err
 	}
 	return docs, nil
+}
+
+// getChatHistoryBySessionBasic loads only essential fields for chat history processing
+// This reduces memory usage and network bandwidth by excluding heavy fields like Details, Attachments, Parameters
+func getChatHistoryBySessionBasic(sessionID string, size int) ([]ChatMessageBasic, error) {
+	// Use raw Elasticsearch query with _source filtering for optimal performance
+	rawQuery := map[string]interface{}{
+		"query": map[string]interface{}{
+			"term": map[string]interface{}{
+				"session_id": sessionID,
+			},
+		},
+		"sort": []map[string]interface{}{
+			{
+				"created": map[string]string{
+					"order": "desc",
+				},
+			},
+		},
+		"size": size,
+		"from": 0,
+		"_source": []string{
+			"id", "created", "type", "session_id", "message", "down_vote", "up_vote",
+		},
+	}
+
+	q := orm.Query{}
+	q.RawQuery = util.MustToJSONBytes(rawQuery)
+	q.Size = size
+
+	docs := []ChatMessageBasic{}
+	err, _ := orm.SearchWithJSONMapper(&docs, &q)
+	if err != nil {
+		return nil, err
+	}
+	return docs, nil
+}
+
+// getChatHistoryBySessionMetadata loads only metadata fields without message content
+// Useful for operations that need to count messages, check types, or analyze patterns
+func getChatHistoryBySessionMetadata(sessionID string, size int) ([]ChatMessageMetadata, error) {
+	rawQuery := map[string]interface{}{
+		"query": map[string]interface{}{
+			"term": map[string]interface{}{
+				"session_id": sessionID,
+			},
+		},
+		"sort": []map[string]interface{}{
+			{
+				"created": map[string]string{
+					"order": "desc",
+				},
+			},
+		},
+		"size": size,
+		"from": 0,
+		"_source": []string{
+			"id", "created", "type", "session_id", "from", "to", "assistant_id",
+		},
+	}
+
+	q := orm.Query{}
+	q.RawQuery = util.MustToJSONBytes(rawQuery)
+	q.Size = size
+
+	docs := []ChatMessageMetadata{}
+	err, _ := orm.SearchWithJSONMapper(&docs, &q)
+	if err != nil {
+		return nil, err
+	}
+	return docs, nil
+}
+
+// getChatHistoryBySessionIDs loads only message IDs for lightweight operations
+func getChatHistoryBySessionIDs(sessionID string, size int) ([]string, error) {
+	rawQuery := map[string]interface{}{
+		"query": map[string]interface{}{
+			"term": map[string]interface{}{
+				"session_id": sessionID,
+			},
+		},
+		"sort": []map[string]interface{}{
+			{
+				"created": map[string]string{
+					"order": "desc",
+				},
+			},
+		},
+		"size":    size,
+		"from":    0,
+		"_source": []string{"id"},
+	}
+
+	q := orm.Query{}
+	q.RawQuery = util.MustToJSONBytes(rawQuery)
+	q.Size = size
+
+	type IDResult struct {
+		ID string `json:"id"`
+	}
+
+	docs := []IDResult{}
+	err, _ := orm.SearchWithJSONMapper(&docs, &q)
+	if err != nil {
+		return nil, err
+	}
+
+	ids := make([]string, len(docs))
+	for i, doc := range docs {
+		ids[i] = doc.ID
+	}
+	return ids, nil
 }
 
 func (h APIHandler) getChatHistoryBySession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
