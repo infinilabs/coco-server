@@ -6,8 +6,6 @@ import (
 	"os"
 	"testing"
 
-	adapter "github.com/i2y/langchaingo-mcp-adapter"
-
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -31,10 +29,22 @@ func (m *MockMCPClient) Ping(ctx context.Context) error {
 	return args.Error(0)
 }
 
+// ListResourcesByPage mocks the ListResourcesByPage method of the MCPClient.
+func (m *MockMCPClient) ListResourcesByPage(ctx context.Context, request mcp.ListResourcesRequest) (*mcp.ListResourcesResult, error) {
+	args := m.Called(ctx, request)
+	return args.Get(0).(*mcp.ListResourcesResult), args.Error(1)
+}
+
 // ListResources mocks the ListResources method of the MCPClient.
 func (m *MockMCPClient) ListResources(ctx context.Context, request mcp.ListResourcesRequest) (*mcp.ListResourcesResult, error) {
 	args := m.Called(ctx, request)
 	return args.Get(0).(*mcp.ListResourcesResult), args.Error(1)
+}
+
+// ListResourceTemplatesByPage mocks the ListResourceTemplatesByPage method of the MCPClient.
+func (m *MockMCPClient) ListResourceTemplatesByPage(ctx context.Context, request mcp.ListResourceTemplatesRequest) (*mcp.ListResourceTemplatesResult, error) {
+	args := m.Called(ctx, request)
+	return args.Get(0).(*mcp.ListResourceTemplatesResult), args.Error(1)
 }
 
 // ListResourceTemplates mocks the ListResourceTemplates method of the MCPClient.
@@ -61,6 +71,12 @@ func (m *MockMCPClient) Unsubscribe(ctx context.Context, request mcp.Unsubscribe
 	return args.Error(0)
 }
 
+// ListPromptsByPage mocks the ListPromptsByPage method of the MCPClient.
+func (m *MockMCPClient) ListPromptsByPage(ctx context.Context, request mcp.ListPromptsRequest) (*mcp.ListPromptsResult, error) {
+	args := m.Called(ctx, request)
+	return args.Get(0).(*mcp.ListPromptsResult), args.Error(1)
+}
+
 // ListPrompts mocks the ListPrompts method of the MCPClient.
 func (m *MockMCPClient) ListPrompts(ctx context.Context, request mcp.ListPromptsRequest) (*mcp.ListPromptsResult, error) {
 	args := m.Called(ctx, request)
@@ -71,6 +87,12 @@ func (m *MockMCPClient) ListPrompts(ctx context.Context, request mcp.ListPrompts
 func (m *MockMCPClient) GetPrompt(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
 	args := m.Called(ctx, request)
 	return args.Get(0).(*mcp.GetPromptResult), args.Error(1)
+}
+
+// ListToolsByPage mocks the ListToolsByPage method of the MCPClient.
+func (m *MockMCPClient) ListToolsByPage(ctx context.Context, request mcp.ListToolsRequest) (*mcp.ListToolsResult, error) {
+	args := m.Called(ctx, request)
+	return args.Get(0).(*mcp.ListToolsResult), args.Error(1)
 }
 
 // ListTools mocks the ListTools method of the MCPClient.
@@ -144,7 +166,7 @@ func TestNew(t *testing.T) {
 			mockClient := &MockMCPClient{}
 			tt.setupMock(mockClient)
 
-			adapter, err := adapter.New(mockClient)
+			adapter, err := New(mockClient)
 
 			if tt.expectError {
 				assert.Error(t, err)
@@ -234,7 +256,7 @@ func TestTools(t *testing.T) {
 			mockClient := &MockMCPClient{}
 			tt.setupMock(mockClient)
 
-			a, err := adapter.New(mockClient)
+			a, err := New(mockClient)
 			if err != nil && !tt.expectError {
 				t.Fatalf("Failed to create adapter: %v", err)
 			}
@@ -326,7 +348,7 @@ func TestToolCall(t *testing.T) {
 				tt.setupMock(mockClient)
 			}
 
-			tool, err := adapter.NewToolForTesting(tt.toolName, tt.toolDesc, tt.inputSchema, mockClient)
+			tool, err := NewToolForTesting(tt.toolName, tt.toolDesc, tt.inputSchema, mockClient)
 			require.NoError(t, err)
 
 			result, err := tool.Call(context.Background(), tt.input)
