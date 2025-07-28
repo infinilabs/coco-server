@@ -202,12 +202,9 @@ func (h APIHandler) launchBackgroundTask(msg *common.ChatMessage, params *RAGCon
 	log.Debugf("place a assistant background job: %v, for session: %v, websocket: %v ",
 		taskID, params.SessionID, wsID)
 
-	inflightMessages.Store(params.SessionID, MessageTask{
-		SessionID:   params.SessionID,
-		TaskID:      taskID,
-		WebsocketID: wsID,
-	})
-	log.Infof("Saved taskID: %v for session: %v", taskID, params.SessionID)
+	// Use the new enhanced task storage function with consistent key generation
+	storeMessageTask(params.SessionID, msg.ID, wsID, taskID, nil)
+	log.Infof("Saved taskID: %v for session: %v, messageID: %v", taskID, params.SessionID, msg.ID)
 }
 
 func (h APIHandler) createAssistantMessage(sessionID, assistantID, requestMessageID string) *common.ChatMessage {
@@ -264,9 +261,8 @@ func (h APIHandler) processMessageAsync(ctx context.Context, reqMsg *common.Chat
 			}
 		}
 		h.finalizeProcessing(ctx, params.SessionID, replyMsg, sender)
-		// clear the inflight message task
-		taskID := getReplyMessageTaskID(params.SessionID, reqMsg.ID)
-		inflightMessages.Delete(taskID)
+		// clear the inflight message task using the new cleanup function
+		cleanupMessageTask(params.SessionID, reqMsg.ID)
 	}()
 
 	reqMsg.Details = make([]common.ProcessingDetails, 0)

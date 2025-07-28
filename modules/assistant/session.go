@@ -9,7 +9,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
+	"strconv"
+	"strings"
 	"sync"
+	"time"
 
 	log "github.com/cihub/seelog"
 	_ "github.com/tmc/langchaingo/llms/ollama"
@@ -260,11 +264,8 @@ func (h APIHandler) createChatSession(w http.ResponseWriter, r *http.Request, ps
 		Flusher: flusher,
 		Ctx:     ctx, // assuming this is in an HTTP handler
 	}
-	replyMsgTaskID := getReplyMessageTaskID(session.ID, reqMsg.ID)
-	inflightMessages.Store(replyMsgTaskID, MessageTask{
-		SessionID:  session.ID,
-		CancelFunc: cancel,
-	})
+	// Use the new enhanced task storage function
+	storeMessageTask(session.ID, reqMsg.ID, "", "", cancel)
 	_ = h.processMessageAsync(ctx, reqMsg, params, streamSender)
 }
 
@@ -497,45 +498,349 @@ func (h APIHandler) getChatHistoryBySession(w http.ResponseWriter, req *http.Req
 
 var inflightMessages = sync.Map{}
 
+// Configuration constants for task cleanup
+const (
+	// Default TTL for message tasks (1 hour)
+	DefaultTaskTTL = time.Hour
+
+	// Cleanup interval (every 5 minutes)
+	CleanupInterval = 5 * time.Minute
+
+	// Maximum number of tasks to keep (safety limit)
+	MaxActiveTasks = 10000
+
+	// Cleanup batch size
+	CleanupBatchSize = 100
+)
+
 type MessageTask struct {
-	SessionID string
-	// Deprecated
-	TaskID string
-	// Deprecated
-	WebsocketID string
-	CancelFunc  func()
+	SessionID    string
+	MessageID    string // Message ID for consistent key generation
+	WebsocketID  string // WebSocket ID for disconnect handling
+	TaskID       string // Deprecated but kept for backward compatibility
+	CancelFunc   func()
+	CreatedAt    time.Time // Creation timestamp for TTL cleanup
+	LastAccessAt time.Time // Last access time for activity tracking
+}
+
+// TaskCleanupManager manages the lifecycle of inflight message tasks
+type TaskCleanupManager struct {
+	ctx      context.Context
+	cancel   context.CancelFunc
+	ttl      time.Duration
+	interval time.Duration
+	maxTasks int
+	running  bool
+	mu       sync.RWMutex
+}
+
+var cleanupManager *TaskCleanupManager
+var cleanupOnce sync.Once
+
+// Helper functions for consistent key management
+func generateTaskKey(sessionID, messageID string) string {
+	if messageID == "" {
+		return sessionID
+	}
+	return fmt.Sprintf("%s_%s", sessionID, messageID)
+}
+
+func parseTaskKey(key string) (sessionID, messageID string) {
+	parts := strings.SplitN(key, "_", 2)
+	if len(parts) == 1 {
+		return parts[0], ""
+	}
+	return parts[0], parts[1]
+}
+
+// getTaskTTL returns the configured TTL for tasks
+func getTaskTTL() time.Duration {
+	if ttlStr := os.Getenv("ASSISTANT_TASK_TTL"); ttlStr != "" {
+		if ttl, err := time.ParseDuration(ttlStr); err == nil {
+			return ttl
+		}
+	}
+	return DefaultTaskTTL
+}
+
+// getCleanupInterval returns the configured cleanup interval
+func getCleanupInterval() time.Duration {
+	if intervalStr := os.Getenv("ASSISTANT_CLEANUP_INTERVAL"); intervalStr != "" {
+		if interval, err := time.ParseDuration(intervalStr); err == nil {
+			return interval
+		}
+	}
+	return CleanupInterval
+}
+
+// getMaxActiveTasks returns the configured maximum number of active tasks
+func getMaxActiveTasks() int {
+	if maxStr := os.Getenv("ASSISTANT_MAX_TASKS"); maxStr != "" {
+		if max, err := strconv.Atoi(maxStr); err == nil && max > 0 {
+			return max
+		}
+	}
+	return MaxActiveTasks
+}
+
+// NewTaskCleanupManager creates a new cleanup manager instance
+func NewTaskCleanupManager() *TaskCleanupManager {
+	ctx, cancel := context.WithCancel(context.Background())
+	return &TaskCleanupManager{
+		ctx:      ctx,
+		cancel:   cancel,
+		ttl:      getTaskTTL(),
+		interval: getCleanupInterval(),
+		maxTasks: getMaxActiveTasks(),
+		running:  false,
+	}
+}
+
+// Start begins the cleanup manager's background operations
+func (tcm *TaskCleanupManager) Start() {
+	tcm.mu.Lock()
+	defer tcm.mu.Unlock()
+
+	if tcm.running {
+		return
+	}
+
+	tcm.running = true
+	go tcm.cleanupLoop()
+	log.Infof("Task cleanup manager started with TTL=%v, interval=%v, maxTasks=%d",
+		tcm.ttl, tcm.interval, tcm.maxTasks)
+}
+
+// Stop gracefully stops the cleanup manager
+func (tcm *TaskCleanupManager) Stop() {
+	tcm.mu.Lock()
+	defer tcm.mu.Unlock()
+
+	if !tcm.running {
+		return
+	}
+
+	tcm.cancel()
+	tcm.running = false
+	log.Info("Task cleanup manager stopped")
+}
+
+// cleanupLoop runs the periodic cleanup process
+func (tcm *TaskCleanupManager) cleanupLoop() {
+	ticker := time.NewTicker(tcm.interval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-tcm.ctx.Done():
+			return
+		case <-ticker.C:
+			tcm.performCleanup()
+		}
+	}
+}
+
+// performCleanup performs the actual cleanup of expired and orphaned tasks
+func (tcm *TaskCleanupManager) performCleanup() {
+	now := time.Now()
+	var cleanedCount int
+	var totalCount int
+	var expiredKeys []interface{}
+
+	// First pass: identify expired tasks
+	inflightMessages.Range(func(key, value interface{}) bool {
+		totalCount++
+
+		task, ok := value.(MessageTask)
+		if !ok {
+			// Invalid task type, mark for removal
+			expiredKeys = append(expiredKeys, key)
+			return true
+		}
+
+		// Check if task has expired
+		if now.Sub(task.CreatedAt) > tcm.ttl {
+			expiredKeys = append(expiredKeys, key)
+			return true
+		}
+
+		// Check if we've exceeded the maximum task limit
+		if totalCount > tcm.maxTasks {
+			expiredKeys = append(expiredKeys, key)
+			return true
+		}
+
+		return true
+	})
+
+	// Second pass: clean up expired tasks
+	for _, key := range expiredKeys {
+		if value, loaded := inflightMessages.LoadAndDelete(key); loaded {
+			cleanedCount++
+
+			// Try to cancel the task if possible
+			if msgTask, ok := value.(MessageTask); ok {
+				if msgTask.CancelFunc != nil {
+					msgTask.CancelFunc()
+				}
+				if msgTask.TaskID != "" {
+					task.StopTask(msgTask.TaskID)
+				}
+			}
+		}
+
+		// Process in batches to avoid blocking too long
+		if cleanedCount%CleanupBatchSize == 0 {
+			select {
+			case <-tcm.ctx.Done():
+				return
+			default:
+				// Continue processing
+			}
+		}
+	}
+
+	if cleanedCount > 0 {
+		log.Warnf("Cleanup manager removed %d expired/orphaned tasks out of %d total tasks",
+			cleanedCount, totalCount)
+	} else if totalCount > 0 {
+		log.Debugf("Cleanup manager checked %d active tasks, none expired", totalCount)
+	}
+}
+
+// getOrCreateCleanupManager returns the singleton cleanup manager instance
+func getOrCreateCleanupManager() *TaskCleanupManager {
+	cleanupOnce.Do(func() {
+		cleanupManager = NewTaskCleanupManager()
+		cleanupManager.Start()
+	})
+	return cleanupManager
+}
+
+// ShutdownCleanupManager gracefully shuts down the cleanup manager
+// This function should be called during application shutdown
+func ShutdownCleanupManager() {
+	if cleanupManager != nil {
+		cleanupManager.Stop()
+	}
+}
+
+// GetActiveTaskCount returns the current number of active tasks
+// This is useful for monitoring and debugging
+func GetActiveTaskCount() int {
+	count := 0
+	inflightMessages.Range(func(key, value interface{}) bool {
+		count++
+		return true
+	})
+	return count
+}
+
+// Enhanced task storage function with proper cleanup tracking
+func storeMessageTask(sessionID, messageID, websocketID string, taskID string, cancelFunc func()) {
+	key := generateTaskKey(sessionID, messageID)
+	now := time.Now()
+
+	task := MessageTask{
+		SessionID:    sessionID,
+		MessageID:    messageID,
+		WebsocketID:  websocketID,
+		TaskID:       taskID,
+		CancelFunc:   cancelFunc,
+		CreatedAt:    now,
+		LastAccessAt: now,
+	}
+
+	inflightMessages.Store(key, task)
+
+	// Ensure cleanup manager is running
+	getOrCreateCleanupManager()
+
+	log.Debugf("Stored message task with key=%s, sessionID=%s, messageID=%s",
+		key, sessionID, messageID)
+}
+
+// Enhanced task cleanup function with proper error handling
+func cleanupMessageTask(sessionID, messageID string) {
+	key := generateTaskKey(sessionID, messageID)
+
+	if value, loaded := inflightMessages.LoadAndDelete(key); loaded {
+		if msgTask, ok := value.(MessageTask); ok {
+			// Cancel the task if it has a cancel function
+			if msgTask.CancelFunc != nil {
+				msgTask.CancelFunc()
+			}
+			// Stop the task if it has a task ID
+			if msgTask.TaskID != "" {
+				task.StopTask(msgTask.TaskID)
+			}
+		}
+		log.Debugf("Cleaned up message task with key=%s", key)
+	} else {
+		log.Debugf("Message task with key=%s not found for cleanup", key)
+	}
 }
 
 func init() {
+	// Enhanced WebSocket disconnect callback with better error handling
 	websocket.RegisterDisconnectCallback(func(websocketID string) {
-		log.Debugf("stop task for websocket: %v after websocket disconnected", websocketID)
+		log.Debugf("Cleaning up tasks for disconnected websocket: %v", websocketID)
+
+		var tasksToCleanup []interface{}
+
+		// First pass: identify tasks to cleanup
 		inflightMessages.Range(func(key, value any) bool {
-			v1, ok := value.(MessageTask)
-			if ok {
-				if v1.WebsocketID == websocketID {
-					log.Info("stop task:", v1)
-					task.StopTask(v1.TaskID)
-				}
+			if msgTask, ok := value.(MessageTask); ok && msgTask.WebsocketID == websocketID {
+				tasksToCleanup = append(tasksToCleanup, key)
 			}
 			return true
 		})
+
+		// Second pass: cleanup identified tasks
+		for _, key := range tasksToCleanup {
+			if value, loaded := inflightMessages.LoadAndDelete(key); loaded {
+				if msgTask, ok := value.(MessageTask); ok {
+					log.Infof("Stopping task for disconnected websocket: %v, sessionID: %v",
+						websocketID, msgTask.SessionID)
+
+					// Cancel the task
+					if msgTask.CancelFunc != nil {
+						msgTask.CancelFunc()
+					}
+					if msgTask.TaskID != "" {
+						task.StopTask(msgTask.TaskID)
+					}
+				}
+			}
+		}
+
+		if len(tasksToCleanup) > 0 {
+			log.Infof("Cleaned up %d tasks for disconnected websocket: %v",
+				len(tasksToCleanup), websocketID)
+		}
 	})
 }
 
 func stopMessageReplyTask(taskID string) {
-	v, ok := inflightMessages.Load(taskID)
-	if ok {
-		v1, ok := v.(MessageTask)
-		if ok {
-			log.Debug("stop task:", v1)
-			if v1.TaskID != "" {
-				task.StopTask(v1.TaskID)
-			} else if v1.CancelFunc != nil {
-				v1.CancelFunc()
+	// Try to load and cleanup the task using the provided taskID
+	if value, loaded := inflightMessages.LoadAndDelete(taskID); loaded {
+		if msgTask, ok := value.(MessageTask); ok {
+			log.Debug("stop task:", msgTask)
+			if msgTask.TaskID != "" {
+				task.StopTask(msgTask.TaskID)
+			}
+			if msgTask.CancelFunc != nil {
+				msgTask.CancelFunc()
 			}
 		}
 	} else {
-		_ = log.Warnf("task id [%s] was not found", taskID)
+		// For backward compatibility, also try parsing as session_message format
+		sessionID, messageID := parseTaskKey(taskID)
+		if messageID != "" {
+			cleanupMessageTask(sessionID, messageID)
+		} else {
+			_ = log.Warnf("task id [%s] was not found", taskID)
+		}
 	}
 }
 
@@ -641,11 +946,8 @@ func (h APIHandler) sendChatMessageV2(w http.ResponseWriter, r *http.Request, ps
 		Flusher: flusher,
 		Ctx:     ctx, // assuming this is in an HTTP handler
 	}
-	replyMsgTaskID := getReplyMessageTaskID(sessionID, reqMsg.ID)
-	inflightMessages.Store(replyMsgTaskID, MessageTask{
-		SessionID:  sessionID,
-		CancelFunc: cancel,
-	})
+	// Use the new enhanced task storage function
+	storeMessageTask(sessionID, reqMsg.ID, "", "", cancel)
 	_ = h.processMessageAsync(ctx, reqMsg, params, streamSender)
 
 }
