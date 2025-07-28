@@ -129,11 +129,13 @@ func (f *FingerprintThrottleFilter) computeFingerprint(r *http.Request) (string,
 
 	// Include body if available (e.g., POST/PUT)
 	if method == http.MethodPost || method == http.MethodPut {
+		// Ensure body is always closed, even if panic occurs
+		defer r.Body.Close()
+
 		bodyBytes, err := io.ReadAll(r.Body)
 		if err != nil {
 			return "", err
 		}
-		r.Body.Close()
 
 		// Reconstruct Body so it can be read again downstream
 		r.Body = io.NopCloser(strings.NewReader(string(bodyBytes)))
