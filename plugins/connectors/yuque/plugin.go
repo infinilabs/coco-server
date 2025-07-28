@@ -8,7 +8,6 @@ import (
 	"infini.sh/framework/core/api"
 	config3 "infini.sh/framework/core/config"
 	"infini.sh/framework/core/env"
-	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/module"
 	"infini.sh/framework/core/orm"
@@ -80,7 +79,8 @@ func (this *Plugin) Start() error {
 					return
 				}
 				if err != nil {
-					panic(errors.Errorf("invalid %s connector:%v", connector.ID, err))
+					log.Errorf("invalid %s connector: %v", connector.ID, err)
+					return
 				}
 
 				q := orm.Query{}
@@ -90,7 +90,8 @@ func (this *Plugin) Start() error {
 
 				err, _ = orm.SearchWithJSONMapper(&results, &q)
 				if err != nil {
-					panic(err)
+					log.Errorf("error searching datasources for connector %s: %v", connector.ID, err)
+					return
 				}
 
 				for _, item := range results {
@@ -122,21 +123,24 @@ func (this *Plugin) Name() string {
 
 func (this *Plugin) fetch_yuque(connector *common.Connector, datasource *common.DataSource) {
 	if connector == nil || datasource == nil {
-		panic("invalid connector config")
+		log.Error("invalid connector config: connector or datasource is nil")
+		return
 	}
 
 	cfg, err := config3.NewConfigFrom(datasource.Connector.Config)
 	if err != nil {
-		panic(err)
+		log.Errorf("error creating config from datasource [%s]: %v", datasource.Name, err)
+		return
 	}
 
 	obj := YuqueConfig{}
 	err = cfg.Unpack(&obj)
 	if err != nil {
-		panic(err)
+		log.Errorf("error unpacking config for datasource [%s]: %v", datasource.Name, err)
+		return
 	}
 
-	log.Debugf("handle hugo_site's datasource: %v", obj)
+	log.Debugf("handle yuque's datasource: %v", obj)
 	this.collect(connector, datasource, &obj)
 }
 
