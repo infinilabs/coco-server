@@ -488,13 +488,13 @@ type ChatMessageMetadata struct {
 // getChatHistoryBySessionInternal loads full ChatMessage objects
 // Use getChatHistoryBySessionBasic for better performance when only core fields are needed
 func getChatHistoryBySessionInternal(sessionID string, size int) ([]common.ChatMessage, error) {
-	q := orm.Query{}
-	q.Conds = orm.And(orm.Eq("session_id", sessionID))
-	q.From = 0
-	q.Size = size
-	q.AddSort("created", orm.DESC)
+	builder := orm.NewQuery()
+	builder.Must(orm.Eq("session_id", sessionID))
+	builder.From(0)
+	builder.Size(size)
+	builder.SortBy(orm.Sort{Field: "created", SortType: orm.DESC})
 	docs := []common.ChatMessage{}
-	err, _ := orm.SearchWithJSONMapper(&docs, &q)
+	err, _ := orm.SearchWithJSONMapper(&docs, builder)
 	if err != nil {
 		return nil, err
 	}
@@ -614,13 +614,13 @@ func getChatHistoryBySessionIDs(sessionID string, size int) ([]string, error) {
 }
 
 func (h APIHandler) getChatHistoryBySession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	q := orm.Query{}
-	q.Conds = orm.And(orm.Eq("session_id", ps.MustGetParameter("session_id")))
-	q.From = h.GetIntOrDefault(req, "from", 0)
-	q.Size = h.GetIntOrDefault(req, "size", 20)
-	q.AddSort("created", orm.ASC)
+	builder := orm.NewQuery()
+	builder.Must(orm.Eq("session_id", ps.MustGetParameter("session_id")))
+	builder.From(h.GetIntOrDefault(req, "from", 0))
+	builder.Size(h.GetIntOrDefault(req, "size", 20))
+	builder.SortBy(orm.Sort{Field: "created", SortType: orm.ASC})
 
-	err, res := orm.Search(&common.ChatMessage{}, &q)
+	err, res := orm.Search(&common.ChatMessage{}, builder)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
