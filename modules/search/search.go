@@ -535,12 +535,12 @@ func searchAssistant(query string, size int) []common.Assistant {
 		size = 2
 	}
 
-	q := orm.Query{}
-	q.Size = size
-	q.Conds = orm.And(orm.QueryString("combined_fulltext", query))
-	q.Filter = orm.Eq("enabled", true)
+	builder := orm.NewQuery()
+	builder.Size(size)
+	builder.Must(orm.QueryString("combined_fulltext", query))
+	builder.Filter(orm.Eq("enabled", true))
 	docs := []common.Assistant{}
-	err, _ := orm.SearchWithJSONMapper(&docs, &q)
+	err, _ := orm.SearchWithJSONMapper(&docs, builder)
 	if err != nil {
 		_ = log.Error(err)
 	}
