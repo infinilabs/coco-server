@@ -133,7 +133,9 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 			// get datasource by integration id
 			datasourceIDs, hasAll, err := common.GetDatasourceByIntegration(integrationID)
 			if err != nil {
-				panic(err)
+				log.Error("failed to get datasource by integration:", err)
+				h.WriteError(w, "failed to get datasource by integration", http.StatusInternalServerError)
+				return
 			}
 			if !hasAll {
 				if len(datasourceIDs) == 0 {
@@ -209,7 +211,9 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		v2 := SearchResponse{}
 		err = util.FromJSONBytes(res.Raw, &v2)
 		if err != nil {
-			panic(err)
+			log.Error("failed to parse search response:", err)
+			h.WriteError(w, "failed to parse search response", http.StatusInternalServerError)
+			return
 		}
 
 		hits := v2.Hits.Hits
@@ -313,7 +317,9 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		// get datasource by integration id
 		datasourceIDs, hasAll, err := common.GetDatasourceByIntegration(integrationID)
 		if err != nil {
-			panic(err)
+			log.Error("failed to get datasource by integration:", err)
+			h.WriteError(w, "failed to get datasource by integration", http.StatusInternalServerError)
+			return
 		}
 		if !hasAll {
 			if len(datasourceIDs) == 0 {
@@ -466,7 +472,8 @@ func BuildDatasourceClause(datasource string, filterDisabled bool) interface{} {
 
 	disabledIDs, err := common.GetDisabledDatasourceIDs()
 	if err != nil {
-		panic(err)
+		log.Error("failed to get disabled datasource IDs:", err)
+		return nil
 	}
 	if len(disabledIDs) == 0 {
 		return datasourceClause
@@ -579,7 +586,8 @@ func BuildDatasourceFilter(datasource string, filterDisabled bool) []*orm.Clause
 
 	disabledIDs, err := common.GetDisabledDatasourceIDs()
 	if err != nil {
-		panic(err)
+		log.Error("failed to get disabled datasource IDs:", err)
+		return mustClauses
 	}
 
 	//TODO verify this filter

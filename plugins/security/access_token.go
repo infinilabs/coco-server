@@ -86,7 +86,9 @@ func (h *APIHandler) RequestAccessToken(w http.ResponseWriter, req *http.Request
 	//user already login
 	reqUser, err := security.GetUserFromContext(req.Context())
 	if reqUser == nil || err != nil {
-		panic(err)
+		log.Error("failed to get user from context:", err)
+		h.WriteError(w, "authentication required", http.StatusUnauthorized)
+		return
 	}
 
 	reqBody := struct {
@@ -94,14 +96,18 @@ func (h *APIHandler) RequestAccessToken(w http.ResponseWriter, req *http.Request
 	}{}
 	err = h.DecodeJSON(req, &reqBody)
 	if err != nil {
-		panic(err)
+		log.Error("failed to decode request body:", err)
+		h.WriteError(w, "invalid request body", http.StatusBadRequest)
+		return
 	}
 	if reqBody.Name == "" {
 		reqBody.Name = GenerateApiTokenName("")
 	}
 	res, err := CreateAPIToken(reqUser, reqBody.Name, "general", []string{security.RoleAdmin})
 	if err != nil {
-		panic(err)
+		log.Error("failed to create API token:", err)
+		h.WriteError(w, "failed to create access token", http.StatusInternalServerError)
+		return
 	}
 
 	h.WriteJSON(w, res, 200)
@@ -174,22 +180,30 @@ func (h *APIHandler) CatAccessToken(w http.ResponseWriter, req *http.Request, ps
 	//check login
 	reqUser, err := security.GetUserFromContext(req.Context())
 	if reqUser == nil || err != nil {
-		panic(err)
+		log.Error("failed to get user from context:", err)
+		h.WriteError(w, "authentication required", http.StatusUnauthorized)
+		return
 	}
 
 	tokenIDs, err := getTokenIDs(reqUser.UserID)
 	if err != nil {
-		panic(err)
+		log.Error("failed to get token IDs:", err)
+		h.WriteError(w, "failed to retrieve tokens", http.StatusInternalServerError)
+		return
 	}
 	accessTokens := make([]map[string]interface{}, 0)
 	for tokenID := range tokenIDs {
 		accessTokenBytes, err := kv.GetValue(KVAccessTokenIDBucket, []byte(tokenID))
 		if err != nil {
-			panic(err)
+			log.Error("failed to get access token bytes:", err)
+			h.WriteError(w, "failed to retrieve token", http.StatusInternalServerError)
+			return
 		}
 		tokenV, err := kv.GetValue(core.KVAccessTokenBucket, accessTokenBytes)
 		if err != nil {
-			panic(err)
+			log.Error("failed to get token value:", err)
+			h.WriteError(w, "failed to retrieve token", http.StatusInternalServerError)
+			return
 		}
 		var accessToken map[string]interface{}
 		util.MustFromJSONBytes(tokenV, &accessToken)
@@ -207,12 +221,16 @@ func (h *APIHandler) CatAccessToken(w http.ResponseWriter, req *http.Request, ps
 func (h *APIHandler) DeleteAccessToken(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	reqUser, err := security.GetUserFromContext(req.Context())
 	if reqUser == nil || err != nil {
-		panic(err)
+		log.Error("failed to get user from context:", err)
+		h.WriteError(w, "authentication required", http.StatusUnauthorized)
+		return
 	}
 	tokenID := ps.ByName("token_id")
 	tokenBytes, err := kv.GetValue(KVAccessTokenIDBucket, []byte(tokenID))
 	if err != nil {
-		panic(err)
+		log.Error("failed to get token bytes:", err)
+		h.WriteError(w, "failed to retrieve token", http.StatusInternalServerError)
+		return
 	}
 	if tokenBytes == nil {
 		h.WriteError(w, "token not found", 404)
@@ -220,11 +238,15 @@ func (h *APIHandler) DeleteAccessToken(w http.ResponseWriter, req *http.Request,
 	}
 	tokenV, err := kv.GetValue(core.KVAccessTokenBucket, tokenBytes)
 	if err != nil {
-		panic(err)
+		log.Error("failed to get token value:", err)
+		h.WriteError(w, "failed to retrieve token", http.StatusInternalServerError)
+		return
 	}
 	userID, err := jsonparser.GetString(tokenV, "userid")
 	if err != nil {
-		panic(err)
+		log.Error("failed to parse user ID from token:", err)
+		h.WriteError(w, "invalid token format", http.StatusInternalServerError)
+		return
 	}
 	if userID != reqUser.UserID {
 		h.WriteError(w, "permission denied", 403)
@@ -232,22 +254,30 @@ func (h *APIHandler) DeleteAccessToken(w http.ResponseWriter, req *http.Request,
 	}
 	err = kv.DeleteKey(core.KVAccessTokenBucket, tokenBytes)
 	if err != nil {
-		panic(err)
+		log.Error("failed to delete access token:", err)
+		h.WriteError(w, "failed to delete token", http.StatusInternalServerError)
+		return
 	}
 	// delete relationship between token and token id
 	err = kv.DeleteKey(KVAccessTokenIDBucket, []byte(tokenID))
 	if err != nil {
-		panic(err)
+		log.Error("failed to delete token ID relationship:", err)
+		h.WriteError(w, "failed to delete token", http.StatusInternalServerError)
+		return
 	}
 	// update relationship between user and token id
 	tokenIDs, err := getTokenIDs(userID)
 	if err != nil {
-		panic(err)
+		log.Error("failed to get token IDs for cleanup:", err)
+		h.WriteError(w, "failed to update user tokens", http.StatusInternalServerError)
+		return
 	}
 	delete(tokenIDs, tokenID)
 	err = kv.AddValue(KVUserTokenBucket, []byte(userID), util.MustToJSONBytes(tokenIDs))
 	if err != nil {
-		panic(err)
+		log.Error("failed to update user token list:", err)
+		h.WriteError(w, "failed to update user tokens", http.StatusInternalServerError)
+		return
 	}
 
 	h.WriteDeletedOKJSON(w, tokenID)
@@ -272,22 +302,22 @@ func DeleteAccessToken(uid string, token string) error {
 	}
 	err = kv.DeleteKey(core.KVAccessTokenBucket, tokenBytes)
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("failed to delete access token: %w", err)
 	}
 	// delete relationship between token and token id
 	err = kv.DeleteKey(KVAccessTokenIDBucket, []byte(tokenID))
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("failed to delete token ID relationship: %w", err)
 	}
 	// update relationship between user and token id
 	tokenIDs, err := getTokenIDs(userID)
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("failed to get token IDs for cleanup: %w", err)
 	}
 	delete(tokenIDs, tokenID)
 	err = kv.AddValue(KVUserTokenBucket, []byte(userID), util.MustToJSONBytes(tokenIDs))
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("failed to update user token list: %w", err)
 	}
 	return nil
 }
@@ -308,14 +338,18 @@ func GetToken(token string) (util.MapStr, error) {
 func (h *APIHandler) RenameAccessToken(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	reqUser, err := security.GetUserFromContext(req.Context())
 	if reqUser == nil || err != nil {
-		panic(err)
+		log.Error("failed to get user from context:", err)
+		h.WriteError(w, "authentication required", http.StatusUnauthorized)
+		return
 	}
 	reqBody := struct {
 		Name string `json:"name"` //custom access token name
 	}{}
 	err = h.DecodeJSON(req, &reqBody)
 	if err != nil {
-		panic(err)
+		log.Error("failed to decode request body:", err)
+		h.WriteError(w, "invalid request body", http.StatusBadRequest)
+		return
 	}
 	if reqBody.Name == "" {
 		h.WriteError(w, "name is required", 400)
@@ -324,7 +358,9 @@ func (h *APIHandler) RenameAccessToken(w http.ResponseWriter, req *http.Request,
 	tokenID := ps.ByName("token_id")
 	tokenBytes, err := kv.GetValue(KVAccessTokenIDBucket, []byte(tokenID))
 	if err != nil {
-		panic(err)
+		log.Error("failed to get token bytes:", err)
+		h.WriteError(w, "failed to retrieve token", http.StatusInternalServerError)
+		return
 	}
 	if tokenBytes == nil {
 		h.WriteError(w, "token not found", 404)
@@ -332,11 +368,15 @@ func (h *APIHandler) RenameAccessToken(w http.ResponseWriter, req *http.Request,
 	}
 	tokenV, err := kv.GetValue(core.KVAccessTokenBucket, tokenBytes)
 	if err != nil {
-		panic(err)
+		log.Error("failed to get token value:", err)
+		h.WriteError(w, "failed to retrieve token", http.StatusInternalServerError)
+		return
 	}
 	userID, err := jsonparser.GetString(tokenV, "userid")
 	if err != nil {
-		panic(err)
+		log.Error("failed to parse user ID from token:", err)
+		h.WriteError(w, "invalid token format", http.StatusInternalServerError)
+		return
 	}
 	if userID != reqUser.UserID {
 		h.WriteError(w, "permission denied", 403)
@@ -344,11 +384,15 @@ func (h *APIHandler) RenameAccessToken(w http.ResponseWriter, req *http.Request,
 	}
 	tokenV, err = jsonparser.Set(tokenV, []byte(fmt.Sprintf(`"%s"`, reqBody.Name)), "name")
 	if err != nil {
-		panic(err)
+		log.Error("failed to set token name:", err)
+		h.WriteError(w, "failed to update token name", http.StatusInternalServerError)
+		return
 	}
 	err = kv.AddValue(core.KVAccessTokenBucket, tokenBytes, tokenV)
 	if err != nil {
-		panic(err)
+		log.Error("failed to save updated token:", err)
+		h.WriteError(w, "failed to update token", http.StatusInternalServerError)
+		return
 	}
 	h.WriteUpdatedOKJSON(w, tokenID)
 }
