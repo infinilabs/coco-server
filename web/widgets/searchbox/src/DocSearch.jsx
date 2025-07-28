@@ -127,6 +127,14 @@ export const DocSearch = (props) => {
     window[`${id}_shadow_container`] = container;
     const shadow = container.attachShadow({ mode: "open" });
     window[`${id}_shadow`] = shadow;
+    const scriptElement = document.createElement("script");
+    scriptElement.src = `${server}/assets/fonts/icons-app/iconfont.js`
+    shadow.appendChild(scriptElement);
+    scriptElement.onload = async () => {
+      const svgElement = document.createElement("div");
+      svgElement.innerHTML = window._iconfont_svg_string_4934333
+      shadow.appendChild(svgElement);
+    }
     if (linkHref) {
       const linkElement = document.createElement("link");
       linkElement.rel = "stylesheet";

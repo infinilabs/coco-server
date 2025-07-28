@@ -162,7 +162,7 @@ const page: App.I18n.Schema['translation']['page'] = {
   },
   integration: {
     code: {
-      desc: '将这段代码插入到你的网站<body>和</body>之间，即可开始搜索和聊天。',
+      desc: '将这段代码插入到你的网站<body>和</body>之间，即可开始使用组件。',
       exit: '退出预览',
       preview: '预览',
       title: '添加组件到你的网站',

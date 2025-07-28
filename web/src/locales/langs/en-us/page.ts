@@ -167,7 +167,7 @@ const page: App.I18n.Schema['translation']['page'] = {
   },
   integration: {
     code: {
-      desc: 'Insert this  code into your website between <body> and </body> to start searching and chatting.',
+      desc: 'Insert this  code into your website between <body> and </body> to start using integration.',
       exit: 'Exit Preview',
       preview: 'Preview',
       title: 'Add the widget to your website',
