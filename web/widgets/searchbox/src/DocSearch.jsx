@@ -127,10 +127,19 @@ export const DocSearch = (props) => {
     window[`${id}_shadow_container`] = container;
     const shadow = container.attachShadow({ mode: "open" });
     window[`${id}_shadow`] = shadow;
-    const scriptElement = document.createElement("script");
-    scriptElement.src = `${server}/assets/fonts/icons-app/iconfont.js`
-    shadow.appendChild(scriptElement);
-    scriptElement.onload = async () => {
+    
+    const iconsElement = document.createElement("script");
+    iconsElement.src = `${server}/assets/fonts/icons/iconfont.js`
+    shadow.appendChild(iconsElement);
+    iconsElement.onload = async () => {
+      const svgElement = document.createElement("div");
+      svgElement.innerHTML = window._iconfont_svg_string_4878526
+      shadow.appendChild(svgElement);
+    }
+    const iconsAppElement = document.createElement("script");
+    iconsAppElement.src = `${server}/assets/fonts/icons-app/iconfont.js`
+    shadow.appendChild(iconsAppElement);
+    iconsAppElement.onload = async () => {
       const svgElement = document.createElement("div");
       svgElement.innerHTML = window._iconfont_svg_string_4934333
       shadow.appendChild(svgElement);
