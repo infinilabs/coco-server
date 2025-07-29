@@ -6,6 +6,8 @@ import {
   Volume2,
 } from "lucide-react";
 
+import { CopyToClipboard } from "react-copy-to-clipboard";
+
 const RefreshOnlyIds = ["timedout", "error"];
 
 export const MessageActions = ({
@@ -21,16 +23,11 @@ export const MessageActions = ({
   const isRefreshOnly = RefreshOnlyIds.includes(id);
 
   const handleCopy = async () => {
-    try {
-      // await copyToClipboard(content);
-      setCopied(true);
-      const timerID = setTimeout(() => {
-        setCopied(false);
-        clearTimeout(timerID);
-      }, 2000);
-    } catch (err) {
-      console.error("copy error:", err);
-    }
+    setCopied(true);
+    const timerID = setTimeout(() => {
+      setCopied(false);
+      clearTimeout(timerID);
+    }, 1000);
   };
 
 
@@ -59,29 +56,30 @@ export const MessageActions = ({
   return (
     <div className={clsx("flex items-center gap-1 mt-2", actionClassName)}>
       {!isRefreshOnly && (
-        <button
-          id={copyButtonId}
-          onClick={handleCopy}
-          className={commonCls}
-        >
-          {copied ? (
-            <Check
-              className="w-4 h-4 text-[#38C200] dark:text-[#38C200]"
-              style={{
-                width: actionIconSize,
-                height: actionIconSize,
-              }}
-            />
-          ) : (
-            <Copy
-              className="w-4 h-4 text-[#666666] dark:text-[#A3A3A3]"
-              style={{
-                width: actionIconSize,
-                height: actionIconSize,
-              }}
-            />
-          )}
-        </button>
+        <CopyToClipboard text={content} onCopy={() => handleCopy()}>
+          <button
+            id={copyButtonId}
+            className={commonCls}
+          >
+            {copied ? (
+              <Check
+                className="w-4 h-4 text-[#38C200] dark:text-[#38C200]"
+                style={{
+                  width: actionIconSize,
+                  height: actionIconSize,
+                }}
+              />
+            ) : (
+              <Copy
+                className="w-4 h-4 text-[#666666] dark:text-[#A3A3A3]"
+                style={{
+                  width: actionIconSize,
+                  height: actionIconSize,
+                }}
+              />
+            )}
+          </button>
+        </CopyToClipboard>
       )}
       {!isRefreshOnly && (
         <button
