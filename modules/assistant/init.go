@@ -51,14 +51,6 @@ func init() {
 	api.HandleUIMethod(api.GET, "/chat/_history", handler.getChatSessions, api.RequirePermission(viewHistoryPermission), api.Feature(filter.FeatureCORS))
 	api.HandleUIMethod(api.OPTIONS, "/chat/_history", handler.getChatSessions, api.RequirePermission(viewHistoryPermission), api.Feature(filter.FeatureCORS))
 
-	//deprecated, will be removed soon
-	api.HandleUIMethod(api.POST, "/chat/_new", handler.newChatSession, api.RequirePermission(createPermission), api.Feature(filter.FeatureCORS), api.Feature(filter.FeatureFingerprintThrottle))
-	api.HandleUIMethod(api.OPTIONS, "/chat/_new", handler.newChatSession, api.RequirePermission(createPermission), api.Feature(filter.FeatureCORS))
-
-	//deprecated, will be removed soon
-	api.HandleUIMethod(api.POST, "/chat/:session_id/_send", handler.sendChatMessage, api.RequirePermission(createPermission), api.Feature(filter.FeatureCORS), api.Feature(filter.FeatureFingerprintThrottle))
-	api.HandleUIMethod(api.OPTIONS, "/chat/:session_id/_send", handler.sendChatMessage, api.RequirePermission(createPermission), api.Feature(filter.FeatureCORS))
-
 	api.HandleUIMethod(api.POST, "/chat/_create", handler.createChatSession, api.RequirePermission(createPermission), api.Feature(filter.FeatureCORS), api.Feature(filter.FeatureFingerprintThrottle))
 	api.HandleUIMethod(api.OPTIONS, "/chat/_create", handler.createChatSession, api.RequirePermission(createPermission), api.Feature(filter.FeatureCORS))
 

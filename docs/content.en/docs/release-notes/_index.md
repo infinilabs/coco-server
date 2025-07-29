@@ -12,6 +12,7 @@ Information about release notes of Coco Server is provided here.
 ### 🚀 Features  
 ### 🐛 Bug fix  
 ### ✈️ Improvements  
+- chore: remove unused websocket api #443
 
 ## 0.7.0 (2025-07-25)
 ### ❌ Breaking changes  

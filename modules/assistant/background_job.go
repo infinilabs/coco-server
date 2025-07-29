@@ -51,7 +51,6 @@ import (
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/orm"
-	"infini.sh/framework/core/task"
 	"infini.sh/framework/core/util"
 )
 
@@ -183,31 +182,6 @@ func (h APIHandler) getRAGContext(req *http.Request, assistant *common.Assistant
 	params.answeringProvider = modelProvider
 
 	return params, nil
-}
-
-func (h APIHandler) launchBackgroundTask(msg *common.ChatMessage, params *RAGContext, wsID string) {
-
-	//1. expand and rewrite the query
-	// use the title and summary to judge which document need to fetch in-depth, also the updated time to check the data is fresh or not
-	// pick N related documents and combine with the memory and the near chat history as the chat context
-	//2. summary previous history chat as context, update as memory
-	//3. assemble with the agent's role setting
-	//4. send to LLM
-
-	taskID := task.RunWithinGroup("assistant-session", func(taskCtx context.Context) error {
-		sender := WebSocketSender{WebSocketID: wsID}
-		return h.processMessageAsync(taskCtx, msg, params, &sender)
-	})
-
-	log.Debugf("place a assistant background job: %v, for session: %v, websocket: %v ",
-		taskID, params.SessionID, wsID)
-
-	inflightMessages.Store(params.SessionID, MessageTask{
-		SessionID:   params.SessionID,
-		TaskID:      taskID,
-		WebsocketID: wsID,
-	})
-	log.Infof("Saved taskID: %v for session: %v", taskID, params.SessionID)
 }
 
 func (h APIHandler) createAssistantMessage(sessionID, assistantID, requestMessageID string) *common.ChatMessage {

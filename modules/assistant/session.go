@@ -15,7 +15,6 @@ import (
 	_ "github.com/tmc/langchaingo/llms/ollama"
 	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
-	"infini.sh/framework/core/api/websocket"
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/task"
@@ -169,36 +168,6 @@ func (h APIHandler) getChatSessions(w http.ResponseWriter, req *http.Request, ps
 	if err != nil {
 		h.Error(w, err)
 	}
-
-}
-
-// TODO to be removed
-func (h APIHandler) newChatSession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-
-	assistantID := h.GetParameterOrDefault(req, "assistant_id", DefaultAssistantID)
-	var request common.MessageRequest
-	if err := h.DecodeJSON(req, &request); err != nil {
-		//error can be ignored, since older app version didn't have this option
-		h.WriteError(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	session, err, firstMessage, finalResult := CreateAndSaveNewChatMessage(assistantID, &request, true)
-	if err != nil {
-		h.Error(w, err)
-		return
-	}
-
-	//try to handle the message request
-	if firstMessage != nil {
-		err = h.handleMessage(w, req, session.ID, assistantID, firstMessage)
-		if err != nil {
-			h.Error(w, err)
-			return
-		}
-	}
-
-	h.WriteJSON(w, finalResult, 200)
 
 }
 
@@ -390,41 +359,6 @@ func saveRequestMessage(sessionID, assistantID string, req *common.MessageReques
 	return msg, nil
 }
 
-func (h APIHandler) handleMessage(w http.ResponseWriter, req *http.Request, sessionID, assistantID string, reqMsg *common.ChatMessage) error {
-
-	//TODO, check if session and assistant exists
-
-	assistant, _, err := common.GetAssistant(req, assistantID)
-	if err != nil {
-		return fmt.Errorf("failed to get assistant with id [%v]: %w", assistantID, err)
-	}
-	if assistant == nil {
-		return fmt.Errorf("assistant [%s] is not found", assistantID)
-	}
-	if !assistant.Enabled {
-		return fmt.Errorf("assistant [%s] is not enabled", assistant.Name)
-	}
-
-	if wsID, err := h.GetUserWebsocketID(req); err == nil && wsID != "" {
-		params, err := h.getRAGContext(req, assistant)
-		if err != nil {
-			return err
-		}
-
-		params.SessionID = sessionID
-
-		h.launchBackgroundTask(reqMsg, params, wsID)
-		return nil
-	} else {
-		err := errors.Errorf("No websocket [%v] for session: %v", wsID, sessionID)
-		log.Error(err)
-		panic(err)
-		//h.processMessageAsStreaming(req, sessionID, assistantID, message)
-	}
-
-	return nil
-}
-
 func (h APIHandler) openChatSession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("session_id")
 
@@ -501,25 +435,8 @@ type MessageTask struct {
 	SessionID string
 	// Deprecated
 	TaskID string
-	// Deprecated
-	WebsocketID string
-	CancelFunc  func()
-}
 
-func init() {
-	websocket.RegisterDisconnectCallback(func(websocketID string) {
-		log.Debugf("stop task for websocket: %v after websocket disconnected", websocketID)
-		inflightMessages.Range(func(key, value any) bool {
-			v1, ok := value.(MessageTask)
-			if ok {
-				if v1.WebsocketID == websocketID {
-					log.Info("stop task:", v1)
-					task.StopTask(v1.TaskID)
-				}
-			}
-			return true
-		})
-	})
+	CancelFunc func()
 }
 
 func stopMessageReplyTask(taskID string) {
@@ -545,40 +462,6 @@ func (h APIHandler) cancelReplyMessage(w http.ResponseWriter, req *http.Request,
 	taskID := getReplyMessageTaskID(sessionID, messageID)
 	stopMessageReplyTask(taskID)
 	h.WriteAckOKJSON(w)
-}
-
-func (h APIHandler) sendChatMessage(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-
-	sessionID := ps.MustGetParameter("session_id")
-
-	var request common.MessageRequest
-	if err := h.DecodeJSON(req, &request); err != nil {
-		log.Error(err)
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-	assistantID := h.GetParameterOrDefault(req, "assistant_id", DefaultAssistantID)
-
-	reqMsg, err := saveRequestMessage(sessionID, assistantID, &request)
-	if err != nil {
-		h.Error(w, err)
-		return
-	}
-
-	err = h.handleMessage(w, req, sessionID, assistantID, reqMsg)
-	if err != nil {
-		_ = log.Error(err)
-		h.WriteError(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response := []util.MapStr{util.MapStr{
-		"_id":     reqMsg.ID,
-		"result":  "created",
-		"_source": reqMsg,
-	}}
-
-	h.WriteJSON(w, response, 200)
 }
 
 func (h APIHandler) sendChatMessageV2(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
