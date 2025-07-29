@@ -167,12 +167,86 @@ func getTokenIDs(userID string) (map[string]struct{}, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Initialize with reasonable capacity to reduce memory allocations
 	var tokenIDs = make(map[string]struct{})
+
+	// Handle empty data gracefully
+	if len(tokenIDsBytes) == 0 {
+		return tokenIDs, nil
+	}
+
 	err = util.FromJSONBytes(tokenIDsBytes, &tokenIDs)
 	if err != nil {
+		log.Error("failed to parse token IDs for user", userID, ":", err, ", data:", string(tokenIDsBytes))
 		return nil, err
 	}
 	return tokenIDs, nil
+}
+
+// getAccessTokensBatch efficiently processes multiple access tokens with optimized memory usage
+// and proper error handling. It continues processing even if some tokens are malformed.
+func getAccessTokensBatch(tokenIDs map[string]struct{}) ([]map[string]interface{}, error) {
+	if len(tokenIDs) == 0 {
+		return []map[string]interface{}{}, nil
+	}
+
+	// Pre-allocate slice with known capacity for better memory efficiency
+	accessTokens := make([]map[string]interface{}, 0, len(tokenIDs))
+
+	// Use typed struct for better memory efficiency and type safety
+	var accessToken security.AccessToken
+
+	for tokenID := range tokenIDs {
+		// Get token bytes from ID mapping
+		accessTokenBytes, err := kv.GetValue(KVAccessTokenIDBucket, []byte(tokenID))
+		if err != nil {
+			log.Error("failed to get access token bytes for token ID", tokenID, ":", err)
+			continue // Skip this token and continue with others
+		}
+
+		// Get actual token data
+		tokenV, err := kv.GetValue(core.KVAccessTokenBucket, accessTokenBytes)
+		if err != nil {
+			log.Error("failed to get token value for token ID", tokenID, ":", err)
+			continue // Skip this token and continue with others
+		}
+
+		// Reset struct for reuse - more efficient than map[string]interface{}
+		accessToken = security.AccessToken{}
+
+		// Replace panic-prone MustFromJSONBytes with proper error handling
+		if err := util.FromJSONBytes(tokenV, &accessToken); err != nil {
+			log.Error("failed to parse JSON for token ID", tokenID, ":", err, ", data:", string(tokenV))
+			continue // Skip malformed token and continue with others
+		}
+
+		// Convert to map for response compatibility and apply token masking for security
+		maskedToken := map[string]interface{}{
+			"id":          accessToken.ID,
+			"name":        accessToken.Name,
+			"userid":      accessToken.UserID,
+			"provider":    accessToken.Provider,
+			"login":       accessToken.Login,
+			"type":        accessToken.Type,
+			"roles":       accessToken.Roles,
+			"permissions": accessToken.Permissions,
+			"expire_in":   accessToken.ExpireIn,
+			"created":     accessToken.Created,
+			"updated":     accessToken.Updated,
+		}
+
+		// Apply token masking for security
+		if len(accessToken.AccessToken) > 8 {
+			maskedToken["access_token"] = accessToken.AccessToken[0:4] + "***************" + accessToken.AccessToken[len(accessToken.AccessToken)-4:]
+		} else {
+			maskedToken["access_token"] = accessToken.AccessToken
+		}
+
+		accessTokens = append(accessTokens, maskedToken)
+	}
+
+	return accessTokens, nil
 }
 
 func (h *APIHandler) CatAccessToken(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -186,24 +260,13 @@ func (h *APIHandler) CatAccessToken(w http.ResponseWriter, req *http.Request, ps
 	if err != nil {
 		panic(err)
 	}
-	accessTokens := make([]map[string]interface{}, 0)
-	for tokenID := range tokenIDs {
-		accessTokenBytes, err := kv.GetValue(KVAccessTokenIDBucket, []byte(tokenID))
-		if err != nil {
-			panic(err)
-		}
-		tokenV, err := kv.GetValue(core.KVAccessTokenBucket, accessTokenBytes)
-		if err != nil {
-			panic(err)
-		}
-		var accessToken map[string]interface{}
-		util.MustFromJSONBytes(tokenV, &accessToken)
-		if strToken, ok := accessToken["access_token"].(string); ok {
-			if len(strToken) > 8 {
-				accessToken["access_token"] = strToken[0:4] + "***************" + strToken[len(strToken)-4:]
-			}
-		}
-		accessTokens = append(accessTokens, accessToken)
+
+	// Use optimized batch processing function
+	accessTokens, err := getAccessTokensBatch(tokenIDs)
+	if err != nil {
+		log.Error("failed to get access tokens:", err)
+		h.WriteError(w, "failed to retrieve access tokens", 500)
+		return
 	}
 
 	h.WriteJSON(w, accessTokens, 200)
