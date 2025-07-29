@@ -18,6 +18,7 @@ func TextToChunks(dirFile string, chunkSize, chunkOverlap int) ([]schema.Documen
 	if err != nil {
 		return nil, err
 	}
+	defer file.Close() // Ensure file is always closed, even if panic occurs
 	// Create a new text document loader
 	docLoaded := documentloaders.NewText(file)
 	// Create a new recursive character text splitter
