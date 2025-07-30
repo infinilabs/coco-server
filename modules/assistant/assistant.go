@@ -24,9 +24,10 @@
 package assistant
 
 import (
-	"infini.sh/coco/core"
 	"net/http"
 	"time"
+
+	"infini.sh/coco/core"
 
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/modules/common"
@@ -91,7 +92,7 @@ func (h *APIHandler) updateAssistant(w http.ResponseWriter, req *http.Request, p
 	}
 
 	newObj := common.Assistant{}
-	err = h.DecodeJSON(req, &obj)
+	err = h.DecodeJSON(req, &newObj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -107,7 +108,7 @@ func (h *APIHandler) updateAssistant(w http.ResponseWriter, req *http.Request, p
 
 	ctx.Refresh = orm.WaitForRefresh
 
-	err = orm.Save(ctx, &obj)
+	err = orm.Save(ctx, &newObj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
