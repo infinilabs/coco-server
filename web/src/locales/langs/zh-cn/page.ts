@@ -127,6 +127,31 @@ const page: App.I18n.Schema['translation']['page'] = {
         endpoint: '您的 S3 兼容服务的服务器地址，例如：s3.amazonaws.com 或 localhost:9000',
         prefix: '仅索引 key 以此前缀开头的对象'
       }
+    },
+    confluence: {
+      error: {
+        endpoint_invalid: 'URL 地址无效',
+        endpoint_prefix: 'URL 地址应包含 http:// 或 https:// 前缀',
+        endpoint_required: '请输入 Confluence Endpoint',
+        endpoint_slash: 'Endpoint 末尾不应包含斜杠 /',
+        space_required: '请输入 Confluence 空间键名'
+      },
+      labels: {
+        enable_attachments: '索引附件',
+        enable_blogposts: '索引 blogposts',
+        endpoint: 'Confluence 服务器地址',
+        space: 'Wiki 空间键名',
+        token: '访问令牌(可选)',
+        username: '用户名 (可选)'
+      },
+      tooltip: {
+        enable_attachments: '是否索引附件',
+        enable_blogposts: '是否索引 blogposts ',
+        endpoint: '您的 Confluence 服务器地址，例如：http://localhost:8090 或 https://wiki.example.com/confluence',
+        space: '您想要索引的 Confluence 空间键名（例如“DS”或"KB"）',
+        token: '您的 Confluence 个人访问令牌 (PAT)',
+        username: '用于身份验证的用户名。如果使用匿名访问或个人访问令牌，可以留空'
+      }
     }
   },
   guide: {

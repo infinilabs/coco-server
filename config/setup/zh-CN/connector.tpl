@@ -185,3 +185,26 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/s
   },
   "builtin": true
 }
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/confluence
+{
+  "id" : "confluence",
+  "created" : "2025-07-30T00:00:00.000000+08:00",
+  "updated" : "2025-07-30T00:00:00.000000+08:00",
+  "name" : "Confluence wiki 连接器",
+  "description" : "提取 Confluence wiki 数据信息。",
+  "category" : "website",
+  "icon" : "/assets/icons/connector/confluence/icon.png",
+  "tags" : [
+    "wiki",
+    "storage",
+    "docs",
+    "web"
+  ],
+  "url" : "http://coco.rs/connectors/confluence",
+  "assets" : {
+    "icons" : {
+      "default" : "/assets/icons/connector/confluence/icon.png"
+    }
+  },
+  "builtin": true
+}

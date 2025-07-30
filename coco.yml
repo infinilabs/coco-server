@@ -340,6 +340,11 @@ connector:
     interval: 30s
     queue:
       name: indexing_documents
+  confluence:
+    enabled: true
+    interval: 5m
+    queue:
+      name: indexing_documents
 
 ##background jobs
 pipeline:

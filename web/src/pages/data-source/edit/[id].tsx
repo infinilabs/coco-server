@@ -11,6 +11,7 @@ import { IconSelector } from '@/pages/connector/new/icon_selector';
 import { getConnectorIcons } from '@/service/api/connector';
 import { getDatasource, updateDatasource } from '@/service/api/data-source';
 
+import Confluence from '../new/confluence';
 import HugoSite from '../new/hugo_site';
 import LocalFS from '../new/local_fs';
 import Notion from '../new/notion';
@@ -41,7 +42,9 @@ export function Component() {
           case Types.Notion:
             datasource.token = datasource?.connector?.config?.token || '';
             break;
-          case (Types.HugoSite, Types.RSS):
+          // Use separate cases
+          case Types.HugoSite:
+          case Types.RSS:
             datasource.urls = datasource?.connector?.config?.urls || [''];
             break;
           case Types.GoogleDrive:
@@ -150,6 +153,17 @@ export function Component() {
         };
         break;
       }
+      case Types.Confluence: {
+        config = {
+          enable_attachments: values.config?.enable_attachments || false,
+          enable_blogposts: values.config?.enable_blogposts || false,
+          endpoint: values.config?.endpoint || '',
+          space: values.config?.space || '',
+          token: values.config?.token || '',
+          username: values.config?.username || ''
+        };
+        break;
+      }
     }
     const sValues = {
       connector: {
@@ -221,6 +235,19 @@ export function Component() {
         };
       }
       break;
+    case Types.Confluence:
+      if (datasource.connector?.config) {
+        const values = datasource.connector;
+        datasource.config = {
+          enable_attachments: values.config?.enable_attachments || false,
+          enable_blogposts: values.config?.enable_blogposts || false,
+          endpoint: values.config?.endpoint || '',
+          space: values.config?.space || '',
+          token: values.config?.token || '',
+          username: values.config?.username || ''
+        };
+      }
+      break;
     default:
       isCustom = true;
   }
@@ -273,6 +300,7 @@ export function Component() {
             {type === Types.RSS && <Rss />}
             {type === Types.LocalFS && <LocalFS />}
             {type === Types.S3 && <S3 />}
+            {type === Types.Confluence && <Confluence />}
             {!isCustom ? (
               <>
                 <Form.Item

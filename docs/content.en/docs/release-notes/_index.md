@@ -26,7 +26,7 @@ Information about release notes of Coco Server is provided here.
 - feat: support default model reasoning config on initialization
 - feat: local FS Connector #284
 - feat: s3 Connector #68
-
+- feat: confluence wiki #31
 
 ### 🐛 Bug fix  
 - fix: query parameter "filter" is not working

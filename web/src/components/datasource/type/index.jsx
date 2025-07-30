@@ -16,7 +16,8 @@ export const Types = {
   RSS: 'rss',
   Search: 'search',
   Yuque: 'yuque',
-  S3: 's3'
+  S3: 's3',
+  Confluence: 'confluence'
 };
 
 export const TypeList = ({

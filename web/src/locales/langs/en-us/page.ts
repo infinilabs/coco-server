@@ -130,6 +130,31 @@ const page: App.I18n.Schema['translation']['page'] = {
         endpoint: 'Endpoint of your S3 server, like：s3.amazonaws.com or localhost:9000',
         prefix: 'Only index objects that begin with this prefix'
       }
+    },
+    confluence: {
+      error: {
+        endpoint_invalid: 'Please enter a valid URL',
+        endpoint_prefix: 'URL must start with http:// or https://',
+        endpoint_required: 'Please input Confluence URL',
+        endpoint_slash: 'URL should not contain a trailing slash /',
+        space_required: 'Please input Confluence Space Key'
+      },
+      labels: {
+        enable_attachments: 'Indexing attachments',
+        enable_blogposts: 'Indexing blogposts',
+        endpoint: 'Confluence server URL',
+        space: 'Wiki Key',
+        token: 'Access Token (Optional)',
+        username: 'User Name (Optional)'
+      },
+      tooltip: {
+        enable_attachments: 'Whether to index attachments',
+        enable_blogposts: 'Whether to index blogposts ',
+        endpoint: 'The base URL of your Confluence instance. e.g., http://localhost:8090 or https://wiki.example.com/confluence',
+        space: 'The key of the Confluence space you want to index (e.g., "DS" or "KB").',
+        token: 'Your Confluence Personal Access Token (PAT).',
+        username: 'Username for authentication. Can be left empty for anonymous access or if using a Personal Access Token.'
+      }
     }
   },
   guide: {
