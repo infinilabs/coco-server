@@ -20,12 +20,20 @@ export const Preview = memo(props => {
     setIsModalOpen(false);
   };
 
-  const htmlContent = `
+  const htmlContent = useMemo(() => {
+    if (!params.id || !params.type) return ''
+    return `
       <!DOCTYPE html>
       <html>
       <head>
         <title>Integration Preview</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+        <style>
+          html, body {
+            padding: 0;
+            margin: 0;
+          }
+        </style>
       </head>
       <body>
         <div id="${params.type}" style="margin: 10px 0; outline: none"></div>
@@ -35,7 +43,8 @@ export const Preview = memo(props => {
         </script>
       </body>
       </html>
-    `;
+    `
+  }, [params.id, params.type]);
 
   return (
     <>

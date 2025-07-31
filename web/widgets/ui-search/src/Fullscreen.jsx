@@ -4,7 +4,6 @@ import Logo from './Logo';
 import Aggregations from './Aggregations';
 import ResultHeader from './ResultHeader';
 import { LIST_TYPES } from './ResultList';
-import './Fullscreen.css';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { formatESResult } from './utils/es';
 import Welcome from './Welcome';
@@ -34,7 +33,8 @@ const Fullscreen = (props) => {
     onSearch,
     onAsk,
     config = {},
-    root
+    root,
+    isFirst = false,
   } = props;
 
   const [currentQuery, setCurrentQuery] = useState({
@@ -48,18 +48,12 @@ const Fullscreen = (props) => {
 
   const [isMobile, setIsMobile] = useState(false);
 
-  const [isFirst, setIsFirst] = useState(true);
-  const isFirstRef = useRef(true);
 
   const handleSearch = (query, shouldAsk) => {
     setCurrentQuery({
       ...query,
       _t: shouldAsk ? new Date().valueOf() : query._t
     })
-    if (isFirstRef.current) {
-      setIsFirst(false)
-      isFirstRef.current = false
-    }
     const shouldAgg = query.filters && Object.keys(query.filters).length === 0
     onSearch(query, (res) => {
       let rs

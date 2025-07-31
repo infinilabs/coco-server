@@ -24,7 +24,7 @@ export function SearchBox(props) {
                     enterButton={<CornerDownLeft className="w-14px h-14px"/>}
                     size="large"
                     onChange={(e) => setCurrentKeyword(e.target.value)}
-                    onSearch={(value) => onSearch(value)}
+                    onSearch={(value) => onSearch && onSearch(value)}
                     suffix={(
                         <Mic className="w-16px h-14px"/>
                     )}

@@ -238,6 +238,8 @@ const page: App.I18n.Schema['translation']['page'] = {
         mode_floating: 'Floating',
         mode_floating_placeholder: 'Floating widget placeholder text',
         mode_floating_icon: 'Floating widget icon',
+        mode_page: 'Page',
+        mode_modal: 'Modal',
       },
       title: {
         edit: 'Edit Integration',

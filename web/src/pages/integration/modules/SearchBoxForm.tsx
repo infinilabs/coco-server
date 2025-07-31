@@ -33,7 +33,7 @@ export const SearchBoxForm = memo(props => {
     <>
     <Form.Item
       label={t('page.integration.form.labels.mode')}
-      name="mode"
+      name="searchbox_mode"
       rules={[defaultRequiredRule]}
     >
       <Radio.Group

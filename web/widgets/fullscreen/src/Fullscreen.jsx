@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
-import UISearch from './ui-search';
+import { useEffect, useMemo, useState } from 'react';
+import FullscreenPage from './FullscreenPage';
+import FullscreenModal from './FullscreenModal';
 import './ui-search/index.css';
 
 export default (props) => {
@@ -131,42 +132,48 @@ export default (props) => {
         fetchSettings(server, id, token);
     }, [server, id, token]);
 
-    if (settings?.type !== 'fullscreen') return null;
-
-    return (
-        <UISearch {...{
-            id,
-            shadow,
-            "logo": {
-                "light": payload?.logo?.light,
-                "light-mobile": payload?.logo?.light_mobile,
-            },
-            "placeholder": enabled_module?.search?.placeholder,
-            "welcome": payload?.welcome || "",
-            "aiOverview": {
-                ...(payload?.ai_overview || {}),
-                "showActions": true,
-            },
-            "widgets": payload.ai_widgets?.enabled && payload.ai_widgets?.widgets ? payload.ai_widgets?.widgets.map((item) => ({
-                ...item,
-                "showActions": false,
-            })) : [],
-            "onSearch": (query, callback, setLoading, shouldAgg = true) => {
-                search(query, callback, setLoading, shouldAgg)
-            },
-            "onAsk": (assistanID, message, callback, setLoading) => {
-                ask(assistanID, message, callback, setLoading)
-            },
-            "config": {
-                "aggregations": {
-                    "source.id": {
-                        "displayName": "source"
-                    },
-                    "lang": {
-                        "displayName": "language"
-                    }
+    const componentProps = {
+        id,
+        shadow,
+        "logo": {
+            "light": payload?.logo?.light,
+            "light-mobile": payload?.logo?.light_mobile,
+        },
+        "placeholder": enabled_module?.search?.placeholder,
+        "welcome": payload?.welcome || "",
+        "aiOverview": {
+            ...(payload?.ai_overview || {}),
+            "showActions": true,
+        },
+        "widgets": payload.ai_widgets?.enabled && payload.ai_widgets?.widgets ? payload.ai_widgets?.widgets.map((item) => ({
+            ...item,
+            "showActions": false,
+        })) : [],
+        "onSearch": (query, callback, setLoading, shouldAgg = true) => {
+            search(query, callback, setLoading, shouldAgg)
+        },
+        "onAsk": (assistanID, message, callback, setLoading) => {
+            ask(assistanID, message, callback, setLoading)
+        },
+        "config": {
+            "aggregations": {
+                "source.id": {
+                    "displayName": "source"
+                },
+                "lang": {
+                    "displayName": "language"
                 }
             }
-        }} />
-    )
+        }
+    }
+
+    if (settings?.type === 'fullscreen' || settings?.type === 'page') {
+        return (
+            <FullscreenPage {...componentProps} />
+        )
+    } else if (settings?.type === 'modal') {
+        return <FullscreenModal {...componentProps} />
+    } else {
+        return null
+    }
 }

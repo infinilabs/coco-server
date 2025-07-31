@@ -233,6 +233,8 @@ const page: App.I18n.Schema['translation']['page'] = {
         mode_floating: '浮动的',
         mode_floating_placeholder: '浮动组件提示文本',
         mode_floating_icon: '浮动组件图标',
+        mode_page: '全屏页面',
+        mode_modal: '全屏弹框',
       },
       title: {
         edit: '编辑嵌入组件',

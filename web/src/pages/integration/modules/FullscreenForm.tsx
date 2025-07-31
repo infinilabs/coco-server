@@ -1,4 +1,4 @@
-import { Avatar, Button, Form, Input, InputNumber, Select, Switch, Upload } from 'antd';
+import { Avatar, Button, Form, Input, InputNumber, Radio, Select, Switch, Upload } from 'antd';
 
 import AIAssistantSelect from '@/pages/ai-assistant/modules/AIAssistantSelect';
 import { PlusOutlined } from '@ant-design/icons';
@@ -30,6 +30,21 @@ export const FullscreenForm = memo(props => {
 
   return (
     <>
+    <Form.Item
+      label={t('page.integration.form.labels.mode')}
+      name={'fullscreen_mode'}
+      rules={[defaultRequiredRule]}
+    >
+      <Radio.Group
+        className={itemClassNames}
+        block
+        options={[
+          { label: t('page.integration.form.labels.mode_page'), value: 'page' },
+          { label: t('page.integration.form.labels.mode_modal'), value: 'modal' },
+        ]}
+        optionType="button"
+      />
+    </Form.Item>
     <Form.Item
         label={t('page.integration.form.labels.enable_module')}
         name="payload"
