@@ -26,8 +26,6 @@ docker run -d \
 ```
 
 > 🔒 **SECURITY WARNING**
->
-> For initial setup convenience, the password is set to `"coco-server"`. It is **highly recommended** to replace this with a strong, unique password before running the command for the first time.
 
 **After running the command:**
 *   Coco Server will be running in the background. Access the Web UI at `http://localhost:9000`.
