@@ -138,6 +138,8 @@ func (h *APIHandler) delete(w http.ResponseWriter, req *http.Request, ps httprou
 		return
 	}
 
+	ctx.Refresh = orm.WaitForRefresh
+
 	err = orm.Delete(ctx, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)

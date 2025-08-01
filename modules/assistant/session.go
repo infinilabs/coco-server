@@ -73,7 +73,8 @@ func (h APIHandler) deleteSession(w http.ResponseWriter, req *http.Request, ps h
 		log.Errorf("delete related documents with chat session [%s], error: %v", id, err)
 	}
 
-	err = orm.Delete(nil, &obj)
+	ctx.Refresh = orm.WaitForRefresh
+	err = orm.Delete(ctx, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
