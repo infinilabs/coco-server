@@ -26,8 +26,9 @@ docker run -d \
 ```
 
 > 🔒 **SECURITY WARNING**
->
-> For initial setup convenience, the password is set to `"coco-server"`. It is **highly recommended** to replace this with a strong, unique password before running the command for the first time.
+
+> By default, this command initializes the Coco Server with a randomly generated initial admin password for security. You will need to retrieve this password from the server logs after the first startup.
+> If you prefer to set a specific password beforehand, you must use the EASYSEARCH_INITIAL_ADMIN_PASSWORD environment variable.
 
 **After running the command:**
 *   Coco Server will be running in the background. Access the Web UI at `http://localhost:9000`.
@@ -161,7 +162,12 @@ Follow these steps for a manual setup:
 Install Easysearch
 
 ```bash
-docker run -itd --name easysearch -p 9200:9200 infinilabs/easysearch:1.14.0
+docker run -itd \
+    --name easysearch -p 9200:9200 \
+    -v data:/app/easysearch/data \
+    -v config:/app/easysearch/config \
+    -v logs:/app/easysearch/logs \
+    infinilabs/easysearch:1.14.1
 ```
 
 Get the bootstrap password of the Easysearch:
