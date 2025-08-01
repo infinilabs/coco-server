@@ -12,6 +12,7 @@ Information about release notes of Coco Server is provided here.
 ### 🚀 Features  
 ### 🐛 Bug fix  
 - fix: correct assistant update logic
+- fix: generate unique icon key to prevent accidental deletion of all icons
 ### ✈️ Improvements  
 - chore: remove unused websocket api #443
 
