@@ -100,21 +100,21 @@ func (p *Plugin) Scan(connector *common.Connector, datasource *common.DataSource
 	cfg := Config{}
 	err := connectors.ParseConnectorConfigure(connector, datasource, &cfg)
 	if err != nil {
-		_ = log.Errorf("[ConnectorConfluence connector] parsing connector configuration failed: %v", err)
+		_ = log.Errorf("[confluence connector] parsing connector configuration failed: %v", err)
 		panic(err)
 	}
 	cfg.Endpoint = strings.TrimRight(cfg.Endpoint, "/")
 
-	log.Debugf("[ConnectorConfluence connector] handling datasource: %v", cfg)
+	log.Debugf("[confluence connector] handling datasource: %v", cfg)
 
 	if cfg.Endpoint == "" || cfg.Space == "" {
-		_ = log.Errorf("[ConnectorConfluence connector] missing required configuration for datasource [%s]: endpoint or space", datasource.Name)
+		_ = log.Errorf("[confluence connector] missing required configuration for datasource [%s]: endpoint or space", datasource.Name)
 		return
 	}
 
 	handler, err := NewConfluenceHandler(cfg.Endpoint, cfg.Username, cfg.Token)
 	if err != nil {
-		_ = log.Errorf("[ConnectorConfluence connector] failed to init Confluence client for datasource [%s]: %v", datasource.Name, err)
+		_ = log.Errorf("[confluence connector] failed to init Confluence client for datasource [%s]: %v", datasource.Name, err)
 		panic(err)
 	}
 
