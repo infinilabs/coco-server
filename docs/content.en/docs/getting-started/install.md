@@ -164,9 +164,9 @@ Install Easysearch
 ```bash
 docker run -itd \
     --name easysearch -p 9200:9200 \
-    -v ezs-data:/app/easysearch/data \
-    -v ezs-config:/app/easysearch/config \
-    -v ezs-logs:/app/easysearch/logs \
+    -v data:/app/easysearch/data \
+    -v config:/app/easysearch/config \
+    -v logs:/app/easysearch/logs \
     infinilabs/easysearch:1.14.1
 ```
 
