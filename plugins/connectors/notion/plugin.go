@@ -27,6 +27,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
+	"time"
+
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/plugins/connectors"
@@ -40,7 +43,6 @@ import (
 	"infini.sh/framework/core/queue"
 	"infini.sh/framework/core/task"
 	"infini.sh/framework/core/util"
-	"time"
 )
 
 type Config struct {
@@ -117,7 +119,7 @@ func (this *Plugin) Start() error {
 						continue
 					}
 					log.Debugf("ID: %s, Name: %s, Other: %s", item.ID, item.Name, util.MustToJSON(item))
-					this.fetch_notion(&connector, &item)
+					this.fetchNotion(&connector, &item)
 				}
 			},
 		})
@@ -126,7 +128,7 @@ func (this *Plugin) Start() error {
 	return nil
 }
 
-func (this *Plugin) fetch_notion(connector *common.Connector, datasource *common.DataSource) {
+func (this *Plugin) fetchNotion(connector *common.Connector, datasource *common.DataSource) {
 
 	if connector == nil || datasource == nil {
 		panic("invalid connector config")
@@ -157,7 +159,17 @@ func (this *Plugin) fetch_notion(connector *common.Connector, datasource *common
 			doc.Type = res.Object
 			doc.Icon = res.Object
 			doc.Title = extractTitle(&res)
-			//doc.Content = v.Content
+
+			// Fetch and set content for pages
+			if res.Object == "page" {
+				content, err := fetchPageContent(obj.Token, res.ID)
+				if err != nil {
+					_ = log.Warnf("Failed to fetch content for Notion page %s: %v", res.ID, err)
+				} else {
+					doc.Content = content
+				}
+			}
+
 			//doc.Category = v.Category
 			//doc.Subcategory = v.Subcategory
 			//doc.Summary = v.Summary
@@ -342,26 +354,15 @@ func search(token, nextCursor string, handlePage func(result *SearchResult)) {
 
 	// Prepare the request
 	req := util.NewPostRequest("https://api.notion.com/v1/search", util.MustToJSONBytes(requestBody))
-	req.AddHeader("Authorization", fmt.Sprintf("Bearer %v", token))
-	req.AddHeader("Notion-Version", "2022-06-28")
-	req.AddHeader("Content-Type", "application/json")
 
 	// Execute the request
-	res, err := util.ExecuteRequest(req)
+	res, err := executeNotionRequest(req, token)
 	if err != nil {
 		panic(err)
 	}
 
-	// Handle non-successful status codes
-	if res != nil {
-		if res.StatusCode > 300 {
-			panic(errors.Errorf("%v,%v", res.StatusCode, string(res.Body)))
-		}
-	}
-
-	// Parse the response into a Result struct
 	var result SearchResult
-	err = json.Unmarshal(res.Body, &result)
+	err = json.Unmarshal(res, &result)
 	if err != nil {
 		panic(errors.Errorf("Error parsing response: %v", err))
 	}
@@ -374,6 +375,82 @@ func search(token, nextCursor string, handlePage func(result *SearchResult)) {
 		// Recursively call search to get more results
 		search(token, result.NextCursor, handlePage)
 	}
+}
+
+func fetchPageContent(token, blockID string) (string, error) {
+	var contentBuilder strings.Builder
+	var nextCursor string
+	for {
+		// Prepare the request
+		endpoint := fmt.Sprintf("https://api.notion.com/v1/blocks/%s/children", blockID)
+		if nextCursor != "" {
+			endpoint = fmt.Sprintf("%s?start_cursor=%s", endpoint, nextCursor)
+		}
+
+		req := util.NewGetRequest(endpoint, nil)
+
+		res, err := executeNotionRequest(req, token)
+		if err != nil {
+			return "", err
+		}
+
+		var blockChild BlockChildrenResponse
+		err = json.Unmarshal(res, &blockChild)
+		if err != nil {
+			panic(errors.Errorf("Error parsing response: %v", err))
+		}
+
+		// Extract text from blocks
+		for _, block := range blockChild.Results {
+			extractTextFromBlock(&block, &contentBuilder)
+		}
+
+		if blockChild.HasMore && blockChild.NextCursor != "" {
+			nextCursor = blockChild.NextCursor
+		} else {
+			break
+		}
+
+	}
+	return strings.TrimSpace(contentBuilder.String()), nil
+}
+
+func extractTextFromBlock(block *Block, builder *strings.Builder) {
+	blockType := block.Type()
+	if blockType == "" {
+		return
+	}
+
+	richText := block.GetRichTextSliceBy(blockType)
+
+	for _, rt := range richText {
+		builder.WriteString(rt.PlainText)
+	}
+	// Add a newline after each block to separate content
+	builder.WriteString("\n")
+}
+
+// executeNotionRequest is a helper function to execute requests to the Notion API.
+// It sets the required headers, executes the request, checks for errors.
+func executeNotionRequest(req *util.Request, token string) ([]byte, error) {
+	req.AddHeader("Authorization", fmt.Sprintf("Bearer %s", token))
+	req.AddHeader("Notion-Version", "2022-06-28")
+	req.AddHeader("Content-Type", "application/json")
+
+	res, err := util.ExecuteRequest(req)
+	if err != nil {
+		return nil, err
+	}
+
+	if res == nil {
+		return nil, errors.Errorf("Notion API error, no response")
+	}
+
+	if res.StatusCode >= 300 {
+		return nil, errors.Errorf("Notion API error: status %d, body: %s", res.StatusCode, string(res.Body))
+	}
+
+	return res.Body, nil
 }
 
 func (this *Plugin) Stop() error {
