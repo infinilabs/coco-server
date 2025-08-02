@@ -8,6 +8,7 @@ import {getConnector, getConnectorIcons} from '@/service/api/connector';
 import {createDatasource} from '@/service/api/data-source';
 import {IconSelector} from "@/pages/connector/new/icon_selector";
 
+import Confluence from './confluence';
 import GoogleDrive from './google_drive';
 import HugoSite from './hugo_site';
 import LocalFS from './local_fs';
@@ -15,6 +16,7 @@ import Notion from './notion';
 import Rss from './rss';
 import S3 from './s3';
 import Yuque from './yuque';
+
 
 export function Component() {
   const {t} = useTranslation();
@@ -91,6 +93,9 @@ export function Component() {
       break;
     case Types.S3:
       connectorType = 'S3';
+      break;
+    case Types.Confluence:
+      connectorType = 'Confluence';
       break;
     default:
       return (
@@ -179,6 +184,17 @@ export function Component() {
         };
         break;
       }
+      case Types.Confluence: {
+        config = {
+          enable_attachments: values.config?.enable_attachments || false,
+          enable_blogposts: values.config?.enable_blogposts || false,
+          endpoint: values.config?.endpoint || '',
+          space: values.config?.space || '',
+          token: values.config?.token || '',
+          username: values.config?.username || ''
+        };
+        break;
+      }
     }
     const sValues = {
       connector: {
@@ -264,6 +280,7 @@ export function Component() {
               {type === Types.RSS && <Rss />}
               {type === Types.LocalFS && <LocalFS />}
               {type === Types.S3 && <S3 />}
+              {type === Types.Confluence && <Confluence />}
               <Form.Item
                 label={t('page.datasource.new.labels.data_sync')}
                 name="sync_config"

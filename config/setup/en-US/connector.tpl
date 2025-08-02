@@ -164,3 +164,47 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/l
   },
   "builtin": true
 }
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/s3
+{
+  "id" : "s3",
+  "created" : "2025-07-24T00:00:00.000000+08:00",
+  "updated" : "2025-07-24T00:00:00.000000+08:00",
+  "name" : "S3 Storage Connector",
+  "description" : "Fetch S3 Storage objects metadata.",
+  "category" : "cloud_storage",
+  "icon" : "/assets/icons/connector/s3/icon.png",
+  "tags" : [
+    "s3",
+    "storage"
+  ],
+  "url" : "http://coco.rs/connectors/s3",
+  "assets" : {
+    "icons" : {
+      "default" : "/assets/icons/connector/s3/icon.png"
+    }
+  },
+  "builtin": true
+}
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/confluence
+{
+  "id" : "confluence",
+  "created" : "2025-07-30T00:00:00.000000+08:00",
+  "updated" : "2025-07-30T00:00:00.000000+08:00",
+  "name" : "Confluence wiki Connector",
+  "description" : "Fetch Confluence wiki data.",
+  "category" : "website",
+  "icon" : "/assets/icons/connector/confluence/icon.png",
+  "tags" : [
+    "wiki",
+    "storage",
+    "docs",
+    "web"
+  ],
+  "url" : "http://coco.rs/connectors/confluence",
+  "assets" : {
+    "icons" : {
+      "default" : "/assets/icons/connector/confluence/icon.png"
+    }
+  },
+  "builtin": true
+}
