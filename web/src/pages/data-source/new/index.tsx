@@ -12,11 +12,12 @@ import Confluence from './confluence';
 import GoogleDrive from './google_drive';
 import HugoSite from './hugo_site';
 import LocalFS from './local_fs';
+import { NetworkDriveConfig } from './models';
+import NetworkDrive from './network_drive';
 import Notion from './notion';
 import Rss from './rss';
 import S3 from './s3';
 import Yuque from './yuque';
-
 
 export function Component() {
   const {t} = useTranslation();
@@ -96,6 +97,9 @@ export function Component() {
       break;
     case Types.Confluence:
       connectorType = 'Confluence';
+      break;
+    case Types.NetworkDrive:
+      connectorType = 'Network Drive';
       break;
     default:
       return (
@@ -195,6 +199,10 @@ export function Component() {
         };
         break;
       }
+      case Types.NetworkDrive: {
+        config = NetworkDriveConfig(values);
+        break;
+      }
     }
     const sValues = {
       connector: {
@@ -281,6 +289,7 @@ export function Component() {
               {type === Types.LocalFS && <LocalFS />}
               {type === Types.S3 && <S3 />}
               {type === Types.Confluence && <Confluence />}
+              {type === Types.NetworkDrive && <NetworkDrive />}
               <Form.Item
                 label={t('page.datasource.new.labels.data_sync')}
                 name="sync_config"

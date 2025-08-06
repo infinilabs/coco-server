@@ -14,6 +14,8 @@ import { getDatasource, updateDatasource } from '@/service/api/data-source';
 import Confluence from '../new/confluence';
 import HugoSite from '../new/hugo_site';
 import LocalFS from '../new/local_fs';
+import { NetworkDriveConfig } from '../new/models';
+import NetworkDrive from '../new/network_drive';
 import Notion from '../new/notion';
 import Rss from '../new/rss';
 import S3 from '../new/s3';
@@ -164,6 +166,10 @@ export function Component() {
         };
         break;
       }
+      case Types.NetworkDrive: {
+        config = NetworkDriveConfig(values);
+        break;
+      }
     }
     const sValues = {
       connector: {
@@ -248,6 +254,21 @@ export function Component() {
         };
       }
       break;
+    case Types.NetworkDrive: {
+      if (datasource.connector?.config) {
+        const values = datasource.connector;
+        datasource.config = {
+          domain: values.config?.domain || '',
+          endpoint: values.config?.endpoint || '',
+          extensions_str: (values.config?.extensions || []).join(', '),
+          password: values.config?.password || '',
+          paths: (values.config?.paths || []).filter(Boolean),
+          share: values.config?.share || '',
+          username: values.config?.username || ''
+        };
+      }
+      break;
+    }
     default:
       isCustom = true;
   }
@@ -301,6 +322,7 @@ export function Component() {
             {type === Types.LocalFS && <LocalFS />}
             {type === Types.S3 && <S3 />}
             {type === Types.Confluence && <Confluence />}
+            {type === Types.NetworkDrive && <NetworkDrive />}
             {!isCustom ? (
               <>
                 <Form.Item

@@ -152,6 +152,33 @@ const page: App.I18n.Schema['translation']['page'] = {
         token: '您的 Confluence 个人访问令牌 (PAT)',
         username: '用于身份验证的用户名。如果使用匿名访问或个人访问令牌，可以留空'
       }
+    },
+    network_drive: {
+      error: {
+        endpoint_format: '格式无效，请使用 "host:port" 或 "[ipv6]:port"',
+        endpoint_invalid: '服务器端点无效',
+        endpoint_required: '请输入服务器端点',
+        folder_paths: '请输入文件夹路径',
+        folder_paths_prefix: '文件夹路径无效，不能以 / 开头',
+        share_required: '请输入共享名称',
+        username_required: '请输入用户名'
+      },
+      labels: {
+        domain: '用户域',
+        endpoint: '服务器端点',
+        folder_paths: '文件夹路径',
+        password: '密码',
+        share: '网络驱动器共享名称',
+        username: '用户名'
+      },
+      tooltip: {
+        domain: '用户的域，例如 WORKGROUP',
+        endpoint: '网络驱动器服务地址，例如：127.0.0.1:445',
+        folder_paths: '您要扫描的文件夹的路径',
+        password: '用于网络驱动器身份验证的密码',
+        share: '您要扫描的网络驱动器共享名称',
+        username: '用于网络驱动器身份验证的用户名'
+      }
     }
   },
   guide: {

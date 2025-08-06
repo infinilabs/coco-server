@@ -31,6 +31,7 @@ Information about release notes of Coco Server is provided here.
 - feat: s3 Connector #68
 - feat: confluence wiki connector #31
 - feat: extract content for notion connector #70
+- feat: network storage connector #454
 
 ### 🐛 Bug fix  
 - fix: query parameter "filter" is not working
