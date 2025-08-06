@@ -2,10 +2,6 @@
  * Web: https://infinilabs.com
  * Email: hello#infini.ltd */
 
-/* Copyright © INFINI LTD. All rights reserved.
- * Web: https://infinilabs.com
- * Email: hello#infini.ltd */
-
 package network_drive
 
 import (
