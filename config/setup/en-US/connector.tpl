@@ -213,7 +213,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/n
   "id" : "network_drive",
   "created" : "2025-08-05T00:00:00.000000+08:00",
   "updated" : "2025-08-05T00:00:00.000000+08:00",
-  "name" : "Network drive Connector",
+  "name" : "Network Drive Connector",
   "description" : "Scan and extract metadata from network shared files.",
   "category" : "cloud_storage",
   "icon" : "/assets/icons/connector/network_drive/icon.png",

@@ -79,7 +79,7 @@ Next, you can specify which folders and files to index:
 
 ### Example Request
 
-Here is an example request to configure the Notion Connector:
+Here is an example request to configure the Network Drive Connector:
 
 ```shell
 curl -H 'Content-Type: application/json' -XPOST "http://localhost:9000/datasource/" -d '
