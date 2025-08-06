@@ -113,7 +113,7 @@ func (h *APIHandler) setupServer(w http.ResponseWriter, req *http.Request, ps ht
 	//save user's profile
 	profile := security2.UserProfile{Name: input.Name}
 	profile.Email = input.Email
-	if info.ServerInfo.Managed {
+	if global.Env().SystemConfig.WebAppConfig.Security.Managed {
 		profile.ID = core.DefaultUserLogin
 		err = kv.AddValue(core.UserProfileKey, []byte(profile.ID), util.MustToJSONBytes(profile))
 	} else {
