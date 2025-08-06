@@ -58,7 +58,7 @@ func init() {
 }
 
 func (p *Plugin) Setup() {
-	p.BasePlugin.Init("connector.network_drive", "indexing network drive", p)
+	p.BasePlugin.Init(fmt.Sprintf("connector.%s", ConnectorNetworkDrive), "indexing network drive", p)
 }
 
 func (p *Plugin) Start() error {
