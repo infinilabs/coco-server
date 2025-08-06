@@ -74,7 +74,7 @@ func (p *Plugin) Stop() error {
 	defer p.mu.Unlock()
 
 	if p.cancel != nil {
-		log.Infof("[network_drive connector] received stop signal, cancelling current scan")
+		log.Infof("[%v connector] received stop signal, cancelling current scan", ConnectorNetworkDrive)
 		p.cancel()
 		p.ctx = nil
 		p.cancel = nil
@@ -90,7 +90,7 @@ func (p *Plugin) Name() string {
 func (p *Plugin) Scan(connector *common.Connector, datasource *common.DataSource) {
 	cfg := Config{}
 	if err := connectors.ParseConnectorConfigure(connector, datasource, &cfg); err != nil {
-		_ = log.Errorf("[network_drive connector] parsing connector configuration failed for datasource [%s]: %v", datasource.Name, err)
+		_ = log.Errorf("[%v connector] parsing connector configuration failed for datasource [%s]: %v", ConnectorNetworkDrive, datasource.Name, err)
 		return
 	}
 	p.scanSmbShare(datasource, &cfg)
@@ -105,18 +105,18 @@ func (p *Plugin) scanSmbShare(datasource *common.DataSource, cfg *Config) {
 
 	// Check if the plugin has been stopped before proceeding.
 	if parentCtx == nil {
-		_ = log.Warnf("[network_drive connector] plugin is stopped, skipping scan for datasource [%s]", datasource.Name)
+		_ = log.Warnf("[%v connector] plugin is stopped, skipping scan for datasource [%s]", ConnectorNetworkDrive, datasource.Name)
 		return
 	}
 
 	if cfg.Endpoint == "" || cfg.Share == "" || cfg.Username == "" {
-		_ = log.Errorf("[network_drive connector] missing required fields for credentials-based auth for data source [%s]: endpoint, share, or username", datasource.Name)
+		_ = log.Errorf("[%v connector] missing required fields for credentials-based auth for data source [%s]: endpoint, share, or username", ConnectorNetworkDrive, datasource.Name)
 		return
 	}
 
 	conn, err := net.DialTimeout("tcp", cfg.Endpoint, ConnectionTimeout)
 	if err != nil {
-		_ = log.Errorf("[network_drive connector] failed to dial SMB server %s for data source: [%s]: %v", cfg.Endpoint, datasource.Name, err)
+		_ = log.Errorf("[%v connector] failed to dial SMB server %s for data source: [%s]: %v", ConnectorNetworkDrive, cfg.Endpoint, datasource.Name, err)
 		return
 	}
 	defer func() {
@@ -137,7 +137,7 @@ func (p *Plugin) scanSmbShare(datasource *common.DataSource, cfg *Config) {
 
 	session, err := dialer.DialContext(dialCtx, conn)
 	if err != nil {
-		_ = log.Errorf("[network_drive connector] failed to dial SMB server %s for data source: [%s]: %v", cfg.Endpoint, datasource.Name, err)
+		_ = log.Errorf("[%v connector] failed to dial SMB server %s for data source: [%s]: %v", ConnectorNetworkDrive, cfg.Endpoint, datasource.Name, err)
 		return
 	}
 	defer func() {
@@ -146,14 +146,14 @@ func (p *Plugin) scanSmbShare(datasource *common.DataSource, cfg *Config) {
 
 	share, err := session.Mount(cfg.Share)
 	if err != nil {
-		_ = log.Errorf("[network_drive connector] failed to mount SMB share '%s' on server %s for datasource [%s]: %v", cfg.Share, cfg.Endpoint, datasource.Name, err)
+		_ = log.Errorf("[%v connector] failed to mount SMB share '%s' on server %s for datasource [%s]: %v", ConnectorNetworkDrive, cfg.Share, cfg.Endpoint, datasource.Name, err)
 		return
 	}
 	defer func() {
 		_ = share.Umount()
 	}()
 
-	log.Debugf("[network_drive connector] connecting to SMB share: //%s/%s for data source: %s", cfg.Endpoint, cfg.Share, datasource.Name)
+	log.Debugf("[%v connector] connecting to SMB share: //%s/%s for data source: %s", ConnectorNetworkDrive, cfg.Endpoint, cfg.Share, datasource.Name)
 
 	scanCtx, scanCancel := context.WithCancel(parentCtx)
 	defer scanCancel()
@@ -180,7 +180,7 @@ func (p *Plugin) scanSmbShare(datasource *common.DataSource, cfg *Config) {
 			}
 
 			if err != nil {
-				_ = log.Warnf("[network_drive connector] error accessing SMB path %q: %v", currentPath, err)
+				_ = log.Warnf("[%v connector] error accessing SMB path %q: %v", ConnectorNetworkDrive, currentPath, err)
 				return err
 			}
 
@@ -202,7 +202,7 @@ func (p *Plugin) scanSmbShare(datasource *common.DataSource, cfg *Config) {
 		})
 
 		if err != nil {
-			_ = log.Errorf("[network_drive connector] error walking SMB share '%s' for datasource [%s]: %v", cfg.Share, datasource.Name, err)
+			_ = log.Errorf("[%v connector] error walking SMB share '%s' for datasource [%s]: %v", ConnectorNetworkDrive, cfg.Share, datasource.Name, err)
 		}
 	}
 }
@@ -215,7 +215,7 @@ func (p *Plugin) processFile(d fs.DirEntry, currentPath string, cfg *Config, dat
 
 	fileInfo, err := d.Info()
 	if err != nil {
-		_ = log.Warnf("[network_drive connector] failed to get file info for %q: %v", fullPath, err)
+		_ = log.Warnf("[%v connector] failed to get file info for %q: %v", ConnectorNetworkDrive, fullPath, err)
 		return
 	}
 
@@ -236,6 +236,6 @@ func (p *Plugin) processFile(d fs.DirEntry, currentPath string, cfg *Config, dat
 
 	data := util.MustToJSONBytes(doc)
 	if err := queue.Push(p.Queue, data); err != nil {
-		_ = log.Errorf("[network_drive connector] failed to push document to queue for data source [%s]: %v", datasource.Name, err)
+		_ = log.Errorf("[%v connector] failed to push document to queue for data source [%s]: %v", ConnectorNetworkDrive, datasource.Name, err)
 	}
 }
