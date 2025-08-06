@@ -196,8 +196,7 @@ func (p *Plugin) scanSmbShare(datasource *common.DataSource, cfg *Config) {
 				return nil
 			}
 
-			currentPath = strings.ReplaceAll(currentPath, `\`, `/`)
-			p.processFile(d, currentPath, cfg, datasource)
+			p.processFile(d, filepath.ToSlash(currentPath), cfg, datasource)
 			return nil
 		})
 
