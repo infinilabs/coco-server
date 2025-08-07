@@ -64,7 +64,6 @@ func (h APIHandler) Profile(w http.ResponseWriter, r *http.Request, ps httproute
 	if global.Env().SystemConfig.WebAppConfig.Security.Managed {
 		data, err = kv.GetValue(core.UserProfileKey, []byte(reqUser.UserID))
 	} else {
-		//TODO to be removed
 		data, err = kv.GetValue(core.DefaultSettingBucketKey, []byte(core.DefaultUserProfileKey))
 	}
 
