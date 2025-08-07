@@ -29,12 +29,12 @@ package security
 
 import (
 	"fmt"
+	"infini.sh/framework/core/global"
 	"net/http"
 	"strings"
 
 	"golang.org/x/crypto/bcrypt"
 	"infini.sh/coco/core"
-	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/api"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/kv"
@@ -61,11 +61,9 @@ func (h APIHandler) Profile(w http.ResponseWriter, r *http.Request, ps httproute
 	}
 
 	var data []byte
-	cfg, _ := common.AppConfigFromFile()
-	if cfg != nil && cfg.ServerInfo != nil && cfg.ServerInfo.Managed {
+	if global.Env().SystemConfig.WebAppConfig.Security.Managed {
 		data, err = kv.GetValue(core.UserProfileKey, []byte(reqUser.UserID))
 	} else {
-		//TODO to be removed
 		data, err = kv.GetValue(core.DefaultSettingBucketKey, []byte(core.DefaultUserProfileKey))
 	}
 
@@ -73,8 +71,7 @@ func (h APIHandler) Profile(w http.ResponseWriter, r *http.Request, ps httproute
 }
 
 func (h APIHandler) UpdatePassword(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	cfg, _ := common.AppConfigFromFile()
-	if cfg.ServerInfo.Managed {
+	if global.Env().SystemConfig.WebAppConfig.Security.Managed {
 		panic("should not be invoked as in managed mode")
 	}
 
@@ -118,8 +115,7 @@ func SavePassword(password string) error {
 
 func (h APIHandler) Login(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
-	cfg, _ := common.AppConfigFromFile()
-	if cfg.ServerInfo.Managed {
+	if global.Env().SystemConfig.WebAppConfig.Security.Managed {
 		panic("should not be invoked as in managed mode")
 	}
 

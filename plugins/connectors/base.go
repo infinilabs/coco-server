@@ -80,7 +80,9 @@ func (p *BasePlugin) Start(defaultInterval time.Duration) error {
 			connector.ID = p.worker.Name()
 			exists, err := orm.Get(&connector)
 			if !exists || err != nil {
-				log.Errorf("[%v connector] Connector not found or error occurred, skipping task:%v", connector.ID, err)
+				if global.Env().IsDebug {
+					log.Errorf("[%v connector] Connector not found or error occurred, skipping task:%v", connector.ID, err)
+				}
 				return
 			}
 

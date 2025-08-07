@@ -113,18 +113,12 @@ func (h *APIHandler) setupServer(w http.ResponseWriter, req *http.Request, ps ht
 	//save user's profile
 	profile := security2.UserProfile{Name: input.Name}
 	profile.Email = input.Email
-	if info.ServerInfo.Managed {
-		profile.ID = core.DefaultUserLogin
-		err = kv.AddValue(core.UserProfileKey, []byte(profile.ID), util.MustToJSONBytes(profile))
-	} else {
-		//keep backward compatibility, TODO to be removed
-		profile.ID = core.DefaultUserLogin
-		err = kv.AddValue(core.DefaultSettingBucketKey, []byte(core.DefaultUserProfileKey), util.MustToJSONBytes(profile))
-	}
-
+	profile.ID = core.DefaultUserLogin
+	err = kv.AddValue(core.DefaultSettingBucketKey, []byte(core.DefaultUserProfileKey), util.MustToJSONBytes(profile))
 	if err != nil {
 		panic(err)
 	}
+
 	//save user's password
 	err = security.SavePassword(input.Password)
 	if err != nil {
