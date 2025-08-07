@@ -345,6 +345,11 @@ connector:
     interval: 5m
     queue:
       name: indexing_documents
+  network_drive:
+    enabled: true
+    interval: 30s
+    queue:
+      name: indexing_documents
 
 ##background jobs
 pipeline:

@@ -17,7 +17,8 @@ export const Types = {
   Search: 'search',
   Yuque: 'yuque',
   S3: 's3',
-  Confluence: 'confluence'
+  Confluence: 'confluence',
+  NetworkDrive: 'network_drive'
 };
 
 export const TypeList = ({
