@@ -84,6 +84,8 @@ func (p *Plugin) getBucketObjects(connector *common.Connector, datasource *commo
 			Size:     int(obj.Size),
 		}
 
+		doc.System = datasource.System
+
 		for k, v := range obj.Metadata {
 			doc.Metadata[k] = v
 		}

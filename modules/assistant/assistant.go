@@ -108,7 +108,7 @@ func (h *APIHandler) updateAssistant(w http.ResponseWriter, req *http.Request, p
 
 	ctx.Refresh = orm.WaitForRefresh
 
-	err = orm.Save(ctx, &newObj)
+	err = orm.Update(ctx, &newObj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return

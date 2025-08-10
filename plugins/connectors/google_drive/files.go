@@ -252,6 +252,7 @@ func (this *Plugin) startIndexingFiles(connector *common.Connector, datasource *
 				document.RichCategories = categories
 			}
 
+			document.System = datasource.System
 			document.ID = i.Id //add tenant namespace and then hash
 			document.Created = createdAt
 			document.Updated = updatedAt

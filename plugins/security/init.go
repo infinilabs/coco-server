@@ -28,6 +28,7 @@
 package security
 
 import (
+	"infini.sh/coco/plugins/security/filter"
 	"infini.sh/framework/core/api"
 )
 
@@ -47,8 +48,8 @@ func init() {
 
 	api.HandleUIMethod(api.POST, "/account/logout", apiHandler.Logout, api.OptionLogin())
 
-	api.HandleUIMethod(api.POST, "/auth/request_access_token", apiHandler.RequestAccessToken, api.RequireLogin())
-	api.HandleUIMethod(api.GET, "/auth/access_token/_cat", apiHandler.CatAccessToken, api.RequireLogin())
+	api.HandleUIMethod(api.POST, "/auth/access_token", apiHandler.RequestAccessToken, api.RequireLogin())
+	api.HandleUIMethod(api.GET, "/auth/access_token/_search", apiHandler.SearchAccessToken, api.RequireLogin(), api.Feature(filter.FeatureMaskSensitiveField))
 	api.HandleUIMethod(api.DELETE, "/auth/access_token/:token_id", apiHandler.DeleteAccessToken, api.RequireLogin())
 	api.HandleUIMethod(api.POST, "/auth/access_token/:token_id/_rename", apiHandler.RenameAccessToken, api.RequireLogin())
 

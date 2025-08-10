@@ -106,7 +106,7 @@ func GetUserPermissions(shortUser *security.UserSessionInfo) *security.UserAssig
 	}
 
 	if !skipCache {
-		v := permissionCache.Get(PermissionCache, shortUser.UserID)
+		v := permissionCache.Get(PermissionCache, shortUser.GetKey())
 		if v != nil {
 			if !v.Expired() {
 				x, ok := v.Value().(*security.UserAssignedPermission)
@@ -156,7 +156,7 @@ func GetUserPermissions(shortUser *security.UserSessionInfo) *security.UserAssig
 	//log.Error("user's permissioins:", allowedPermissions)
 	perms := security.NewUserAssignedPermission(allowedPermissions, nil)
 	if perms != nil {
-		permissionCache.Set(PermissionCache, shortUser.UserID, perms, util.GetDurationOrDefault("30m", time.Duration(30)*time.Minute))
+		permissionCache.Set(PermissionCache, shortUser.GetKey(), perms, util.GetDurationOrDefault("30m", time.Duration(30)*time.Minute))
 		return perms
 	}
 	return nil

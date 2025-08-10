@@ -62,9 +62,15 @@ func (h APIHandler) Profile(w http.ResponseWriter, r *http.Request, ps httproute
 
 	var data []byte
 	if global.Env().SystemConfig.WebAppConfig.Security.Managed {
-		data, err = kv.GetValue(core.UserProfileKey, []byte(reqUser.UserID))
+		data, err = kv.GetValue(core.UserProfileKey, []byte(reqUser.GetKey()))
+		if err != nil {
+			panic(err)
+		}
 	} else {
 		data, err = kv.GetValue(core.DefaultSettingBucketKey, []byte(core.DefaultUserProfileKey))
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	h.WriteBytes(w, data, 200)
@@ -100,7 +106,7 @@ func (h APIHandler) UpdatePassword(w http.ResponseWriter, r *http.Request, ps ht
 		h.ErrorInternalServer(w, err.Error())
 		return
 	}
-	h.WriteOKJSON(w, api.UpdateResponse(reqUser.UserID))
+	h.WriteOKJSON(w, api.UpdateResponse(reqUser.Login))
 	return
 }
 
@@ -171,11 +177,10 @@ func (h APIHandler) Login(w http.ResponseWriter, r *http.Request, ps httprouter.
 	user.ID = core.DefaultUserLogin
 
 	sessionInfo := security.UserSessionInfo{}
+	sessionInfo.Source = "simple"
 	sessionInfo.Provider = "simple"
 	sessionInfo.Login = core.DefaultUserLogin
 
-	sessionInfo.TenantID = "LOCAL"
-	sessionInfo.UserID = user.ID
 	//sessionInfo.Profile = user
 	sessionInfo.Roles = []string{security.RoleAdmin}
 

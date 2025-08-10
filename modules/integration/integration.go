@@ -10,6 +10,7 @@ import (
 	"infini.sh/coco/plugins/security"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/elastic"
+	"infini.sh/framework/core/kv"
 	"infini.sh/framework/core/orm"
 	security2 "infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
@@ -19,30 +20,25 @@ import (
 )
 
 func (h *APIHandler) create(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	//user already login
-	reqUser, err := security2.GetUserFromRequest(req)
-	if reqUser == nil || err != nil {
-		panic(err)
-	}
+
+	ctx := orm.NewContextWithParent(req.Context())
+	ctx.Refresh = orm.WaitForRefresh
 
 	var obj = &common.Integration{}
-	err = h.DecodeJSON(req, obj)
+	err := h.DecodeJSON(req, obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	//get permissions for this token
-	ret, err := security.CreateAPIToken(reqUser, "", "widget", []string{"widget"})
+	ret, err := security.CreateAPIToken(ctx, "", "widget", []string{"widget"})
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	obj.Token = ret["access_token"].(string)
-
-	ctx := orm.NewContextWithParent(req.Context())
-	ctx.Refresh = orm.WaitForRefresh
 
 	err = orm.Create(ctx, obj)
 	if err != nil {
@@ -53,10 +49,7 @@ func (h *APIHandler) create(w http.ResponseWriter, req *http.Request, ps httprou
 		integrationOrigins.Store(obj.ID, stringArrayToMap(obj.Cors.AllowedOrigins))
 	}
 
-	h.WriteJSON(w, util.MapStr{
-		"_id":    obj.ID,
-		"result": "created",
-	}, 200)
+	h.WriteCreatedOKJSON(w, obj.ID)
 
 }
 
@@ -69,18 +62,11 @@ func (h *APIHandler) get(w http.ResponseWriter, req *http.Request, ps httprouter
 
 	exists, err := orm.GetV2(ctx, &obj)
 	if !exists || err != nil {
-		h.WriteJSON(w, util.MapStr{
-			"_id":   id,
-			"found": false,
-		}, http.StatusNotFound)
+		h.WriteGetMissingJSON(w, id)
 		return
 	}
 
-	h.WriteJSON(w, util.MapStr{
-		"found":   true,
-		"_id":     id,
-		"_source": obj,
-	}, 200)
+	h.WriteGetOKJSON(w, id, obj)
 }
 
 func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -89,33 +75,20 @@ func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprou
 	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
 
-	exists, err := orm.GetV2(ctx, &obj)
-	if !exists || err != nil {
-		h.WriteJSON(w, util.MapStr{
-			"_id":    id,
-			"result": "not_found",
-		}, http.StatusNotFound)
-		return
-	}
-
-	newObj := common.Integration{}
-	err = h.DecodeJSON(req, &obj)
+	delta := util.MapStr{}
+	err := h.DecodeJSON(req, &delta)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	//protect
-	newObj.ID = id
-	newObj.Created = obj.Created
 
 	ctx.Refresh = orm.WaitForRefresh
-
-	err = orm.Save(ctx, &obj)
+	err = orm.UpdatePartialFields(ctx, &obj, delta)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	// first related origins check
 	integrationOrigins.Delete(obj.ID)
 	// then register the new check
@@ -123,10 +96,7 @@ func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprou
 		integrationOrigins.Store(obj.ID, stringArrayToMap(obj.Cors.AllowedOrigins))
 	}
 
-	h.WriteJSON(w, util.MapStr{
-		"_id":    obj.ID,
-		"result": "updated",
-	}, 200)
+	h.WriteUpdatedOKJSON(w, obj.ID)
 }
 
 func (h *APIHandler) delete(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -136,18 +106,8 @@ func (h *APIHandler) delete(w http.ResponseWriter, req *http.Request, ps httprou
 	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
 
-	exists, err := orm.GetV2(ctx, &obj)
-	if !exists || err != nil {
-		h.WriteJSON(w, util.MapStr{
-			"_id":    id,
-			"result": "not_found",
-		}, http.StatusNotFound)
-		return
-	}
-
 	ctx.Refresh = orm.WaitForRefresh
-
-	err = orm.Delete(ctx, &obj)
+	err := orm.Delete(ctx, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -155,10 +115,7 @@ func (h *APIHandler) delete(w http.ResponseWriter, req *http.Request, ps httprou
 	// remove related origins check
 	integrationOrigins.Delete(obj.ID)
 
-	h.WriteJSON(w, util.MapStr{
-		"_id":    obj.ID,
-		"result": "deleted",
-	}, 200)
+	h.WriteDeletedOKJSON(w, id)
 }
 
 func (h *APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -194,7 +151,7 @@ func (h *APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprou
 					hit.Source["token_expire_in"] = time.Time{}.Unix()
 				}
 				if tokenObj != nil {
-					hit.Source["token_expire_in"] = tokenObj["expire_in"]
+					hit.Source["token_expire_in"] = tokenObj.ExpireIn
 				}
 			}
 		}
@@ -205,6 +162,9 @@ func (h *APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprou
 }
 
 func (h *APIHandler) renewAPIToken(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	ctx := orm.NewContextWithParent(req.Context())
+	ctx.Refresh = orm.WaitForRefresh
+
 	reqUser, err := security2.GetUserFromContext(req.Context())
 	if reqUser == nil || err != nil {
 		panic(err)
@@ -213,7 +173,6 @@ func (h *APIHandler) renewAPIToken(w http.ResponseWriter, req *http.Request, ps 
 
 	obj := common.Integration{}
 	obj.ID = id
-	ctx := orm.NewContextWithParent(req.Context())
 
 	exists, err := orm.GetV2(ctx, &obj)
 	if !exists || err != nil {
@@ -225,19 +184,16 @@ func (h *APIHandler) renewAPIToken(w http.ResponseWriter, req *http.Request, ps 
 	}
 	if obj.Token != "" {
 		// clear old token
-		_ = security.DeleteAccessToken(reqUser.UserID, obj.Token)
+		kv.DeleteKey(core.KVAccessTokenBucket, []byte(obj.Token))
 	}
 	//create new token form this integration
-	ret, err := security.CreateAPIToken(reqUser, "", "widget", []string{"widget"})
+	ret, err := security.CreateAPIToken(ctx, "", "widget", []string{"widget"})
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	obj.Token = ret["access_token"].(string)
-
-	ctx.Refresh = orm.WaitForRefresh
-
 	err = orm.Update(ctx, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)

@@ -240,6 +240,8 @@ func (this *Plugin) collectBooks(connector *common.Connector, datasource *common
 					//Thumbnail: bookDetail.Book.,
 				}
 
+				document.System = datasource.System
+
 				if !cfg.SkipIndexingBookToc {
 					// Check if the book's Table of Contents (ToC) exists in the map
 					if v, ok := bookTocMap[bookDetail.Book.Slug]; ok {
@@ -383,6 +385,7 @@ func (this *Plugin) collectDocDetails(connector *common.Connector, datasource *c
 			Icon:      this.getIconKey("doc", doc.Doc.Type),
 			Thumbnail: doc.Doc.Cover,
 		}
+		document.System = datasource.System
 
 		if !cfg.SkipIndexingBookToc && toc != nil {
 			if v, ok := (*toc)[doc.Doc.Slug]; ok {
@@ -487,6 +490,7 @@ func (this *Plugin) collectUsers(connector *common.Connector, datasource *common
 				document.Created = &groupUser.User.CreatedAt
 				document.Updated = &groupUser.User.UpdatedAt
 				document.Metadata = metadata
+				document.System = datasource.System
 
 			} else if groupUser.Group != nil && cfg.IndexingGroups {
 				idPrefix, docType = "yuque-group", groupUser.Group.Type
@@ -515,6 +519,8 @@ func (this *Plugin) collectUsers(connector *common.Connector, datasource *common
 				document.Created = &groupUser.Group.CreatedAt
 				document.Updated = &groupUser.Group.UpdatedAt
 				document.Metadata = metadata
+				document.System = datasource.System
+
 			}
 
 			// Generate document ID and save

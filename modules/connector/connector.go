@@ -75,7 +75,9 @@ func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprou
 	var builtin bool
 	if !replace {
 		obj.ID = id
-		exists, err := orm.GetV2(ctx, &obj)
+
+		//can't remove, since we need it for update
+		exists, err := orm.GetWithSystemFields(ctx, &obj)
 		if !exists || err != nil {
 			h.WriteJSON(w, util.MapStr{
 				"_id":    id,
