@@ -133,14 +133,19 @@ func (h *APIHandler) batchDeleteDoc(w http.ResponseWriter, req *http.Request, ps
 		h.WriteError(w, "document ids can not be empty", http.StatusBadRequest)
 		return
 	}
-	query := util.MapStr{
-		"query": util.MapStr{
-			"terms": util.MapStr{
-				"id": ids,
-			},
-		},
+
+	builder, err := orm.NewQueryBuilderFromRequest(req, "title", "summary", "combined_fulltext")
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
-	err = orm.DeleteBy(common.Document{}, util.MustToJSONBytes(query))
+
+	builder.Filter(orm.TermsQuery("id", ids))
+
+	ctx := orm.NewContextWithParent(req.Context())
+	orm.WithModel(ctx, &common.Document{})
+
+	_, err = orm.DeleteByQuery(ctx, builder)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
