@@ -69,7 +69,7 @@ func GenerateJWTAccessToken(user *security.UserSessionInfo) (map[string]interfac
 
 	data = util.MapStr{
 		"access_token": tokenString,
-		"expire_in": time.Now().Unix() + 86400, //24h
+		"expire_in":    time.Now().Unix() + 86400, //24h
 	}
 
 	data["status"] = "ok"

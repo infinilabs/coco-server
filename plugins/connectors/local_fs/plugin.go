@@ -111,6 +111,8 @@ func (p *Plugin) scanFolders(connector *common.Connector, datasource *common.Dat
 			// Unify creation and modification time
 			doc.Created = &modTime
 			doc.Updated = &modTime
+			doc.System = datasource.System
+
 			doc.ID = util.MD5digest(fmt.Sprintf("%s-%s", datasource.ID, currentPath))
 
 			data := util.MustToJSONBytes(doc)

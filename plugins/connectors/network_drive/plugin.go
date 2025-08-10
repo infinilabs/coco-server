@@ -232,6 +232,7 @@ func (p *Plugin) processFile(d fs.DirEntry, currentPath string, cfg *Config, dat
 	doc.Created = &modTime
 	doc.Updated = &modTime
 	doc.ID = util.MD5digest(fmt.Sprintf("%s-%s", datasource.ID, fullPath))
+	doc.System = datasource.System
 
 	data := util.MustToJSONBytes(doc)
 	if err := queue.Push(p.Queue, data); err != nil {

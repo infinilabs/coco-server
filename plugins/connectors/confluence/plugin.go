@@ -272,6 +272,7 @@ func (p *Plugin) transformToDocument(content *Content, datasource *common.DataSo
 
 	doc.ID = util.MD5digest(fmt.Sprintf("%s-%s", datasource.ID, content.ID))
 	doc.Title = content.Title
+	doc.System = datasource.System
 
 	doc.Metadata = make(map[string]interface{})
 	doc.Metadata["confluence_id"] = content.ID

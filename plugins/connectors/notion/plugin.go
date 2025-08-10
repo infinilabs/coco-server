@@ -155,6 +155,7 @@ func (this *Plugin) fetchNotion(connector *common.Connector, datasource *common.
 
 			doc.Created = &res.Created
 			doc.Created = &res.Updated
+			doc.System = datasource.System
 
 			doc.Type = res.Object
 			doc.Icon = res.Object

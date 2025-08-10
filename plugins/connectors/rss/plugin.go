@@ -96,6 +96,7 @@ func (p *Plugin) fetchRssFeed(connector *common.Connector, datasource *common.Da
 				URL:     item.Link,
 				Tags:    item.Categories,
 			}
+			doc.System = datasource.System
 			doc.Created = item.PublishedParsed
 			doc.Updated = item.UpdatedParsed
 			if doc.Updated == nil {

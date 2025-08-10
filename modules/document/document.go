@@ -60,25 +60,10 @@ func (h *APIHandler) getDoc(w http.ResponseWriter, req *http.Request, ps httprou
 
 func (h *APIHandler) updateDoc(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("doc_id")
-	obj := common.Document{}
-
-	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
 
-	exists, err := orm.GetV2(ctx, &obj)
-	if !exists || err != nil {
-		h.WriteJSON(w, util.MapStr{
-			"_id":    id,
-			"result": "not_found",
-		}, http.StatusNotFound)
-		return
-	}
-
-	id = obj.ID
-	create := obj.Created
-
-	obj = common.Document{}
-	err = h.DecodeJSON(req, &obj)
+	obj := common.Document{}
+	err := h.DecodeJSON(req, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -86,18 +71,14 @@ func (h *APIHandler) updateDoc(w http.ResponseWriter, req *http.Request, ps http
 
 	//protect
 	obj.ID = id
-	obj.Created = create
 	ctx.Refresh = orm.WaitForRefresh
-	err = orm.Update(ctx, &obj)
+	err = orm.Save(ctx, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	h.WriteJSON(w, util.MapStr{
-		"_id":    obj.ID,
-		"result": "updated",
-	}, 200)
+	h.WriteUpdatedOKJSON(w, obj.ID)
 }
 
 func (h *APIHandler) deleteDoc(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -107,26 +88,14 @@ func (h *APIHandler) deleteDoc(w http.ResponseWriter, req *http.Request, ps http
 	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
 
-	exists, err := orm.GetV2(ctx, &obj)
-	if !exists || err != nil {
-		h.WriteJSON(w, util.MapStr{
-			"_id":    id,
-			"result": "not_found",
-		}, http.StatusNotFound)
-		return
-	}
-
 	ctx.Refresh = orm.WaitForRefresh
-	err = orm.Delete(ctx, &obj)
+	err := orm.Delete(ctx, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	h.WriteJSON(w, util.MapStr{
-		"_id":    obj.ID,
-		"result": "deleted",
-	}, 200)
+	h.WriteDeletedOKJSON(w, obj.ID)
 }
 
 func (h *APIHandler) searchDocs(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
