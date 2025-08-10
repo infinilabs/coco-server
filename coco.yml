@@ -297,7 +297,7 @@ web:
           token_url: "http://localhost:9000/oauth/token"
           profile_url: "http://localhost:9000/account/profile"
           redirect_url: "http://localhost:9001/sso/callback/cloud"
-#          success_page: "/#/user/sso/success"
+          success_page: "/#/home"
 #          failed_page: "/#/user/sso/failed"
           scopes: [ "openid","email","profile"]
 
@@ -307,7 +307,6 @@ connector:
     enabled: true
     queue:
       name: indexing_documents
-#    credential_file: credentials.json
     interval: 10s
     skip_invalid_token: true
   yuque:

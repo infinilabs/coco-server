@@ -2,9 +2,9 @@ import { request } from '../request';
 
 /** get API Token list */
 export function getTokens() {
-  return request<Api.APIToken.APIToken>({
+  return request<any>({
     method: 'get',
-    url: '/auth/access_token/_cat'
+    url: '/auth/access_token/_search'
   });
 }
 
@@ -15,7 +15,7 @@ export function createToken(name: string) {
       name
     },
     method: 'post',
-    url: '/auth/request_access_token'
+    url: '/auth/access_token'
   });
 }
 

@@ -67,7 +67,7 @@ func (f *AuthFilter) ApplyFilter(
 			log.Debug(method, ",", pattern, ",", util.MustToJSON(claims), ",", err1)
 		}
 
-		if claims != nil {
+		if claims != nil && claims.ValidInfo() {
 			r = r.WithContext(security.AddUserToContext(r.Context(), claims))
 		}
 

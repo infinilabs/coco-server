@@ -13,7 +13,6 @@ import (
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
 	"net/http"
-	"time"
 )
 
 func (h *APIHandler) createDatasource(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -69,6 +68,9 @@ func (h *APIHandler) deleteDatasource(w http.ResponseWriter, req *http.Request, 
 	ctx := orm.NewContextWithParent(req.Context())
 
 	exists, err := orm.GetV2(ctx, &obj)
+	if err != nil {
+		panic(err)
+	}
 	if !exists || err != nil {
 		h.WriteJSON(w, util.MapStr{
 			"_id":    id,
@@ -133,32 +135,14 @@ func (h *APIHandler) getDatasource(w http.ResponseWriter, req *http.Request, ps 
 
 func (h *APIHandler) updateDatasource(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("id")
-	obj := common.DataSource{}
-
-	replace := h.GetBoolOrDefault(req, "replace", false)
-
-	var err error
-	var create *time.Time
-	if !replace {
-		obj.ID = id
-		ctx := orm.NewContextWithParent(req.Context())
-
-		exists, err := orm.GetV2(ctx, &obj)
-		if !exists || err != nil {
-			h.WriteJSON(w, util.MapStr{
-				"_id":    id,
-				"result": "not_found",
-			}, http.StatusNotFound)
-			return
-		}
-		id = obj.ID
-		create = obj.Created
-	} else {
-		t := time.Now()
-		create = &t
+	if id == "" {
+		panic("invalid id")
 	}
 
-	obj = common.DataSource{}
+	replace := h.GetBoolOrDefault(req, "replace", false)
+	var err error
+
+	obj := common.DataSource{}
 	err = h.DecodeJSON(req, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -167,14 +151,20 @@ func (h *APIHandler) updateDatasource(w http.ResponseWriter, req *http.Request, 
 
 	//protect
 	obj.ID = id
-	obj.Created = create
 	ctx := orm.NewContextWithParent(req.Context())
 	ctx.Refresh = orm.WaitForRefresh
-	err = orm.Update(ctx, &obj)
+
+	if replace {
+		err = orm.Upsert(ctx, &obj)
+	} else {
+		err = orm.Update(ctx, &obj)
+	}
+
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	//clear cache
 	common.ClearDatasourcesCache()
 	common.ClearDatasourceCache(obj.ID)

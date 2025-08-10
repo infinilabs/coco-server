@@ -4,6 +4,7 @@ import type { MenuProps, TableColumnsType } from 'antd';
 import { useForm } from 'antd/es/form/Form';
 import Search from 'antd/es/input/Search';
 import Clipboard from 'clipboard';
+import { formatESSearchResult } from '@/service/request/es';
 
 import { createToken, deleteToken, getTokens, renameToken } from '@/service/api';
 
@@ -104,8 +105,9 @@ export function Component() {
 
   const fetchData = () => {
     setLoading(true);
-    getTokens().then(({ data }) => {
-      setData(data || []);
+    getTokens().then((res  ) => {
+      const newData = formatESSearchResult(res.data )
+      setData(newData);
       setLoading(false);
     });
   };
@@ -220,7 +222,7 @@ export function Component() {
         </div>
         <Table<APIToken>
           columns={columns}
-          dataSource={data}
+          dataSource={data.data}
           loading={loading}
           rowKey="id"
           size="middle"
@@ -228,6 +230,7 @@ export function Component() {
             defaultCurrent: 1,
             defaultPageSize: 10,
             showSizeChanger: true,
+            total: data.total?.value || data?.total,
             showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`
           }}
         />

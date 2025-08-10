@@ -27,6 +27,7 @@ import (
 	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/orm"
+	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
 	"io"
 	"net/http"
@@ -40,6 +41,8 @@ func (h *APIHandler) widgetWrapper(w http.ResponseWriter, req *http.Request, ps 
 	obj := common.Integration{}
 	obj.ID = integrationID
 	ctx := orm.NewContextWithParent(req.Context())
+	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.Set(orm.ReadPermissionCheckingScope, security.PermissionScopePublic)
 
 	exists, err := orm.GetV2(ctx, &obj)
 	if !exists || err != nil {
