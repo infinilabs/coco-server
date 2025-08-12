@@ -1,0 +1,22 @@
+# MongoDB Connector Default Configuration  
+mongodb:  
+  # Default connection settings  
+  default_timeout: "30s"  
+  default_batch_size: 1000  
+  default_max_pool_size: 10  
+    
+  # Default sync settings  
+  default_sync_strategy: "full"  
+    
+  # Performance tuning  
+  max_concurrent_collections: 5  
+  memory_gc_interval: 10000  
+    
+  # Retry settings  
+  connection_retry_attempts: 3  
+  connection_retry_delay: "30s"  
+    
+  # Logging  
+  log_level: "info"  
+  log_slow_queries: true  
+  slow_query_threshold: "5s"

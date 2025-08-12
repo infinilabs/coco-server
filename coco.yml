@@ -319,6 +319,11 @@ connector:
     interval: 10s
     queue:
       name: indexing_documents
+  mongodb:  
+    enabled: true  
+    interval: 30s  
+    queue:  
+      name: indexing_documents 
   notion:
     enabled: true
     interval: 10s
