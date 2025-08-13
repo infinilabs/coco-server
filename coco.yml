@@ -298,7 +298,7 @@ web:
           profile_url: "http://localhost:9000/account/profile"
           redirect_url: "http://localhost:9001/sso/callback/cloud"
           success_page: "/#/home"
-#          failed_page: "/#/user/sso/failed"
+          failed_page: "/#/login"
           scopes: [ "openid","email","profile"]
 
 
