@@ -271,7 +271,7 @@ func (this *Plugin) collectBooks(connector *common.Connector, datasource *common
 					"toc_yml": bookDetail.Book.TocYML,
 				}
 
-				document.ID = util.MD5digest(fmt.Sprintf("%v-%v-%v", "test", "yuque-book", bookID))
+				document.ID = util.MD5digest(fmt.Sprintf("%v-%v-%v", datasource.ID, "yuque-book", bookID))
 
 				log.Debugf("indexing book: %v, %v, %v, %v", document.ID, bookDetail.Book.Slug, bookDetail.Book.Namespace, bookDetail.Book.Name)
 
@@ -421,7 +421,7 @@ func (this *Plugin) collectDocDetails(connector *common.Connector, datasource *c
 			"body_table": doc.Doc.BodyTable,
 		}
 
-		document.ID = util.MD5digest(fmt.Sprintf("%v-%v-%v", "test", "yuque-doc", doc.Doc.ID))
+		document.ID = util.MD5digest(fmt.Sprintf("%v-%v-%v", datasource.ID, "yuque-doc", doc.Doc.ID))
 
 		log.Debugf("indexing doc: %v, %v, %v, %v", document.ID, doc.Doc.Slug, doc.Doc.Title, doc.Doc.WordCount)
 
@@ -525,7 +525,7 @@ func (this *Plugin) collectUsers(connector *common.Connector, datasource *common
 
 			// Generate document ID and save
 			if document.Title != "" {
-				document.ID = util.MD5digest(fmt.Sprintf("%v-%v-%v", "test", idPrefix, metadata["user_id"]))
+				document.ID = util.MD5digest(fmt.Sprintf("%v-%v-%v", datasource.ID, idPrefix, metadata["user_id"]))
 				log.Debugf("indexing user: %v, %v, %v", document.ID, metadata["user_login"], document.Title)
 				this.save(document)
 			}
