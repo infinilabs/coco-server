@@ -9,6 +9,8 @@ Information about release notes of Coco Server is provided here.
 
 ## Latest (In development)  
 ### ❌ Breaking changes  
+- chore: update yuque's document id #473
+
 ### 🚀 Features  
 ### 🐛 Bug fix  
 - fix: correct assistant update logic
