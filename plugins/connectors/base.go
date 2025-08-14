@@ -19,7 +19,10 @@ import (
 	"infini.sh/framework/core/util"
 )
 
-const DefaultSyncInterval = time.Second * 30
+const (
+	DefaultSyncInterval      = time.Second * 30
+	DefaultConnectionTimeout = time.Duration(5) * time.Second
+)
 
 // Scannable defines the interface of the connector scanning logic.
 // Each concrete connector plugin must implement this interface.

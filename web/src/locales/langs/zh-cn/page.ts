@@ -179,6 +179,50 @@ const page: App.I18n.Schema['translation']['page'] = {
         share: '您要扫描的网络驱动器共享名称',
         username: '用于网络驱动器身份验证的用户名'
       }
+    },
+    rdbms: {
+      labels: {
+        connection_uri: '连接地址',
+        sql: 'SQL 查询',
+        last_modified_field: '最后修改字段 (可选)',
+        pagination: '启用分页',
+        page_size: '页面大小',
+        src_field: '源字段',
+        dest_field: '目标字段',
+        field_mapping: '字段映射'
+      },
+      error: {
+        connection_uri_required: '请输入连接地址！',
+        sql_required: '请输入 SQL 查询！',
+        page_size_required: '请输入页面大小！'
+      },
+      tooltip: {
+        connection_uri: {
+          postgresql: 'PostgreSQL 连接字符串，例如：postgresql://user:password@localhost:5432/database?sslmode=disable',
+          mysql: 'MySQL 连接字符串，例如：mysql://user:password@tcp(localhost:3306)/database'
+        },
+        sql: '用于获取数据的 SQL 查询。',
+        last_modified_field: '对于增量同步，请指定一个跟踪最后修改时间的字段（例如，updated_at）。该字段的类型应该是时间戳或日期时间。',
+        pagination: '如果数据库查询应该分页，请启用此选项。建议对大型表使用此选项。',
+        page_size: '每页要获取的记录数。'
+      },
+      titles: {
+        last_updated_by: '最后更新者',
+        metadata: '元数据',
+        owner: '所有者',
+        payload: '载荷'
+      },
+      validation: {
+        required: '请输入 {{field}}',
+        metadata_name_required: '请输入元数据名称',
+        payload_name_required: '请输入载荷名称',
+        column_name_required: '请输入列名'
+      },
+      placeholder: {
+        metadata_name: '元数据名称',
+        payload_name: '载荷名称',
+        column_name: '列名'
+      }
     }
   },
   guide: {
