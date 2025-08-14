@@ -2,12 +2,15 @@ import { useEffect, useMemo, useState } from 'react';
 import FullscreenPage from './FullscreenPage';
 import FullscreenModal from './FullscreenModal';
 import './ui-search/index.css';
+import useQueryParams from './hooks/queryParams'
 
 export default (props) => {
     const { shadow, id, token, server } = props;
     const [settings, setSettings] = useState()
 
     const { payload = {}, enabled_module = {} } = settings || {}
+    const [queryParams, setQueryParams] = useQueryParams();
+    console.log(queryParams)
 
     async function fetchSettings(server, id, token) {
         if (!server || !id || !token) return;
@@ -128,11 +131,27 @@ export default (props) => {
         }
     }
 
+    const handleQueryParams = (query) => {
+        const urlParams = new URLSearchParams(window.location.search);
+        urlParams.set('query', query.keyword);
+        urlParams.set('from', query.from);
+        urlParams.set('size', query.size);
+        urlParams.delete('filter'); 
+        const { filters = {} } = query
+        Object.keys(filters).map((key) => {
+            urlParams.append('filter', `${key}:any(${filters[key].join(',')}`);
+        })
+        const newQuery = urlParams.toString();
+        const newUrl = `${window.location.origin}/${window.location.hash}${newQuery ? `?${newQuery}` : ''}`;
+        history.pushState({}, '', newUrl);
+    }
+
     useEffect(() => {
         fetchSettings(server, id, token);
     }, [server, id, token]);
 
     const componentProps = {
+        ...props,
         id,
         shadow,
         "logo": {
@@ -150,6 +169,7 @@ export default (props) => {
             "showActions": false,
         })) : [],
         "onSearch": (query, callback, setLoading, shouldAgg = true) => {
+            handleQueryParams(query)
             search(query, callback, setLoading, shouldAgg)
         },
         "onAsk": (assistanID, message, callback, setLoading) => {

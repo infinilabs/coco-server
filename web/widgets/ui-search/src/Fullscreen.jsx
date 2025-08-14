@@ -35,6 +35,7 @@ const Fullscreen = (props) => {
     config = {},
     root,
     isFirst = false,
+    rightMenuWidth,
   } = props;
 
   const [currentQuery, setCurrentQuery] = useState({
@@ -115,6 +116,7 @@ const Fullscreen = (props) => {
       logo={<Logo isFirst={isFirst} {...commonProps} {...logo}/>}
       welcome={welcome ? <Welcome {...commonProps} text={welcome} /> : null}
       searchbox={<SearchBox {...commonProps} placeholder={placeholder} keyword={keyword} onSearch={(keyword) => handleSearch({...currentQuery, from: 0, keyword}, true)}/>}
+      rightMenuWidth={rightMenuWidth}
       aggregations={<Aggregations {...commonProps} config={config.aggregations} aggregations={aggregations} filters={filters} onSearch={(filters) => handleSearch({...currentQuery, filters})}/>}
       resultHeader={<ResultHeader hits={hits} {...commonProps}/>}
       aiOverview={aiOverview?.enabled ? <AIOverviewWrapper askBody={askBody} config={aiOverview} onAsk={onAsk}/> : null}

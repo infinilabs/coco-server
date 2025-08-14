@@ -333,6 +333,13 @@ const page: App.I18n.Schema['translation']['page'] = {
         }
       }
     },
+    search_settings: {
+      title: "Search Settings",
+      labels: {
+        enabled: 'Enabled',
+        integration: 'Integration',
+      }
+    },
     setupLater: 'Set Up Later'
   },
   modelprovider: {

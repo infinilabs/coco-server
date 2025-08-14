@@ -326,6 +326,13 @@ const page: App.I18n.Schema['translation']['page'] = {
         }
       }
     },
+    search_settings: {
+      title: "搜索设置",
+      labels: {
+        enabled: '启用状态',
+        integration: '组件',
+      }
+    },
     setupLater: '稍后设置'
   },
   modelprovider: {

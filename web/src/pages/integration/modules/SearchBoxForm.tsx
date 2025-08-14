@@ -11,7 +11,7 @@ import AIAssistantSelect from '@/pages/ai-assistant/modules/AIAssistantSelect';
 import ChatStartPage from '@/pages/settings/modules/ChatStartPage';
 
 export const SearchBoxForm = memo(props => {
-  const { record, form, startPagelogos, setStartPagelogos, assistants, setAssistants, dataSourceLoading, dataSource, enabledList, setEnabledList } = props;
+  const { record, startPagelogos, setStartPagelogos, assistants, setAssistants, dataSourceLoading, dataSource, enabledList, setEnabledList } = props;
   const { t } = useTranslation();
   const { defaultRequiredRule } = useFormRules();
 

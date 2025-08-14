@@ -11,7 +11,7 @@ import type {
 
 import { $t } from '@/locales';
 import { getRouteName, getRoutePath } from '@/router/elegant/transform';
-import { fetchServer } from '@/service/api/server';
+import { fetchServer, fetchSettings } from '@/service/api/server';
 import { store } from '@/store';
 import { isStaticSuper, resetAuth, selectUserInfo } from '@/store/slice/auth';
 import { getRouteHome, initAuthRoute, initConstantRoute } from '@/store/slice/route';
@@ -25,15 +25,22 @@ function shouldRedirectLogin(path: string) {
 export const init: Init = async currentFullPath => {
   
   const result = await fetchServer();
-  
+  result.data = {"auth_provider":{"sso":{"url":"http://localhost:9000/#/login"}},"endpoint":"http://localhost:9000","health":{"status":"green"},"minimal_client_version":{"number":"0.3"},"name":"yjp's Coco Server","provider":{"auth_provider":{"sso":{"url":"/sso/login/cloud?provider=coco-cloud&product=coco"}},"banner":"https://coco.rs/svg/connect.svg","description":"Coco AI Server - Search, Connect, Collaborate, AI-powered enterprise search, all in one space.","eula":"https://coco.rs/#/terms","icon":"https://coco.rs/favicon.ico","name":"INFINI Labs","privacy_policy":"https://coco.rs/privacy","website":"https://coco.rs/"},"stats":{"assistant_count":3},"updated":"2025-07-30T15:22:08.9379066+08:00","version":{"number":"1.0.0_SNAPSHOT"}, "search_settings": {"enabled": true, "integration": "d1v1lqdkc0a4id7to8b0"}}
+
   localStg.set('providerInfo', result.data);
 
   const isManaged = Boolean(result?.data?.managed)
+
+  const searchEnabled = Boolean(result?.data?.search_settings?.enabled)
 
   const filterPaths = []
 
   if (isManaged) {
     filterPaths.push('/guide')
+  }
+
+  if (!searchEnabled) {
+    filterPaths.push('/search')
   }
 
   await store.dispatch(initConstantRoute(filterPaths));
@@ -61,7 +68,7 @@ export const init: Init = async currentFullPath => {
     localStg.remove('userInfo');
     await store.dispatch(resetAuth());
     await store.dispatch(initAuthRoute());
-    if (!currentFullPath.startsWith('/login')) {
+    if (['/search', '/login'].every((item) => !currentFullPath.startsWith(item))) {
       const loginRoute: RouteKey = 'login';
       const routeHome = getRouteHome(store.getState());
 

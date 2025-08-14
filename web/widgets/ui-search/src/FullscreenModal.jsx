@@ -24,7 +24,7 @@ const FullscreenModal = (props) => {
             }
             <Modal 
                 open={visible} 
-                style={{ top: 0, margin: 0, maxWidth: '100vw' }}
+                style={{ top: 0, margin: 0, padding: 0, maxWidth: '100vw' }}
                 width={'100%'}
                 onCancel={() => setVisible(false)}
                 destroyOnClose

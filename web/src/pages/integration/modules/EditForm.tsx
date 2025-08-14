@@ -4,18 +4,9 @@ import { Button, Form, Input, Radio, Select, Spin, Switch } from "antd";
 import { useRequest, useLoading } from '@sa/hooks';
 import { fetchDataSourceList } from "@/service/api";
 import './EditForm.css';
+import { generateRandomString } from "@/utils/common";
 
-function generateRandomString(size) {
-  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-  for (let i = 0; i < size; i++) {
-    const randomIndex = Math.floor(Math.random() * characters.length);
-    result += characters.charAt(randomIndex);
-  }
-  return result;
-}
-
-function isFullscreen(type) {
+export function isFullscreen(type) {
   return ['page', 'modal', 'fullscreen'].includes(type)
 }
 
@@ -389,13 +380,7 @@ export const EditForm = memo(props => {
           (
             type === 'searchbox' ? (
               <SearchBoxForm 
-                {...props} 
-                type={type} 
-                setType={setType} 
-                form={form} 
-                loading={loading} 
-                startLoading={startLoading} 
-                endLoading={endLoading}
+                record={record}
                 startPagelogos={startPagelogos}
                 setStartPagelogos={setStartPagelogos}
                 assistants={assistants}
@@ -407,13 +392,6 @@ export const EditForm = memo(props => {
               />
             ) : (
               <FullscreenForm 
-                {...props} 
-                type={type} 
-                setType={setType} 
-                form={form} 
-                loading={loading} 
-                startLoading={startLoading}
-                endLoading={endLoading}
                 searchLogos={searchLogos}
                 setSearchLogos={setSearchLogos}
                 aiOverviewLogo={aiOverviewLogo}
