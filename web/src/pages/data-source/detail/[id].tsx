@@ -245,7 +245,8 @@ export function Component() {
     fetchDatasourceDetail({
       ...queryParams,
       filter: {
-        'source.id': [datasourceID]
+        ...(queryParams.filter || {}),
+        'source.id': [datasourceID],
       }
     })
       .then(data => {
