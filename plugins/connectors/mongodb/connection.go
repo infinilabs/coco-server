@@ -51,6 +51,13 @@ func (p *Plugin) createMongoClient(config *Config) (*mongo.Client, error) {
 	// Set connection string
 	clientOptions.ApplyURI(config.ConnectionURI)
 
+	// Set authentication database if specified
+	if config.AuthDatabase != "" {
+		clientOptions.SetAuth(options.Credential{
+			AuthSource: config.AuthDatabase,
+		})
+	}
+
 	// Connection pool configuration
 	if config.MaxPoolSize > 0 {
 		clientOptions.SetMaxPoolSize(uint64(config.MaxPoolSize))
@@ -64,8 +71,34 @@ func (p *Plugin) createMongoClient(config *Config) (*mongo.Client, error) {
 		}
 	}
 
-	// Set default read preference for better performance
-	clientOptions.SetReadPreference(readpref.PrimaryPreferred())
+	// Configure cluster-specific settings
+	switch config.ClusterType {
+	case "replica_set":
+		// For replica sets, prefer secondary nodes for read operations to distribute load
+		clientOptions.SetReadPreference(readpref.SecondaryPreferred())
+		// Enable retry writes for replica sets
+		clientOptions.SetRetryWrites(true)
+		// Set write concern for replica sets
+		clientOptions.SetWriteConcern(mongo.WriteConcern{
+			W:        "majority",
+			J:        true,
+			WTimeout: 10 * time.Second,
+		})
+	case "sharded":
+		// For sharded clusters, use primary for writes and nearest for reads
+		clientOptions.SetReadPreference(readpref.Nearest())
+		// Enable retry writes for sharded clusters
+		clientOptions.SetRetryWrites(true)
+		// Set write concern for sharded clusters
+		clientOptions.SetWriteConcern(mongo.WriteConcern{
+			W:        "majority",
+			J:        true,
+			WTimeout: 10 * time.Second,
+		})
+	default:
+		// For standalone instances, use primary preferred
+		clientOptions.SetReadPreference(readpref.PrimaryPreferred())
+	}
 
 	return mongo.Connect(context.Background(), clientOptions)
 }

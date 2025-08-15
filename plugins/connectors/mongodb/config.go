@@ -14,6 +14,8 @@ type Config struct {
 	// Connection configuration
 	ConnectionURI string `config:"connection_uri"`
 	Database      string `config:"database"`
+	AuthDatabase  string `config:"auth_database"` // Authentication database (e.g., "admin")
+	ClusterType   string `config:"cluster_type"`   // Cluster type: "standalone", "replica_set", "sharded"
 
 	// Collections configuration
 	Collections []CollectionConfig `config:"collections"`
@@ -74,6 +76,12 @@ func (p *Plugin) setDefaultConfig(config *Config) {
 	if config.PageSize <= 0 {
 		config.PageSize = 500
 	}
+	if config.AuthDatabase == "" {
+		config.AuthDatabase = "admin" // Default to admin database for authentication
+	}
+	if config.ClusterType == "" {
+		config.ClusterType = "standalone" // Default to standalone MongoDB instance
+	}
 	if config.FieldMapping == nil {
 		config.FieldMapping = &FieldMappingConfig{
 			Enabled: false,
@@ -123,6 +131,10 @@ func (p *Plugin) validateConfig(config *Config) error {
 
 	if config.SyncStrategy != "" && config.SyncStrategy != "full" && config.SyncStrategy != "incremental" {
 		return fmt.Errorf("sync_strategy must be 'full' or 'incremental'")
+	}
+
+	if config.ClusterType != "" && config.ClusterType != "standalone" && config.ClusterType != "replica_set" && config.ClusterType != "sharded" {
+		return fmt.Errorf("cluster_type must be 'standalone', 'replica_set', or 'sharded'")
 	}
 
 	return nil

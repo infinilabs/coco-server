@@ -193,6 +193,14 @@ func TestSetDefaultConfig(t *testing.T) {
 		t.Errorf("expected PageSize to be 500, got %d", config.PageSize)
 	}
 
+	if config.AuthDatabase != "admin" {
+		t.Errorf("expected AuthDatabase to be 'admin', got %s", config.AuthDatabase)
+	}
+
+	if config.ClusterType != "standalone" {
+		t.Errorf("expected ClusterType to be 'standalone', got %s", config.ClusterType)
+	}
+
 	if config.FieldMapping == nil {
 		t.Error("expected FieldMapping to be initialized")
 	}
@@ -330,6 +338,63 @@ func TestConfigWithLastModifiedField(t *testing.T) {
 
 	if config.LastModifiedField != "updated_at" {
 		t.Errorf("expected LastModifiedField to be 'updated_at', got %s", config.LastModifiedField)
+	}
+}
+
+func TestConfigWithAuthDatabase(t *testing.T) {
+	config := &Config{
+		ConnectionURI: "mongodb://user:pass@localhost:27017/test",
+		Database:      "test",
+		AuthDatabase:  "admin",
+		Collections: []CollectionConfig{
+			{
+				Name: "users",
+			},
+		},
+	}
+
+	plugin := &Plugin{}
+	err := plugin.validateConfig(config)
+	if err != nil {
+		t.Errorf("validateConfig() error = %v", err)
+	}
+
+	if config.AuthDatabase != "admin" {
+		t.Errorf("expected AuthDatabase to be 'admin', got %s", config.AuthDatabase)
+	}
+}
+
+func TestConfigWithClusterType(t *testing.T) {
+	tests := []struct {
+		name        string
+		clusterType string
+		wantErr     bool
+	}{
+		{"standalone", "standalone", false},
+		{"replica_set", "replica_set", false},
+		{"sharded", "sharded", false},
+		{"invalid", "invalid", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			config := &Config{
+				ConnectionURI: "mongodb://localhost:27017/test",
+				Database:      "test",
+				ClusterType:   tt.clusterType,
+				Collections: []CollectionConfig{
+					{
+						Name: "users",
+					},
+				},
+			}
+
+			plugin := &Plugin{}
+			err := plugin.validateConfig(config)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("validateConfig() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
 	}
 }
 

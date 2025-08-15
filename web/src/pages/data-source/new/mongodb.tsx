@@ -51,6 +51,38 @@ export default function MongoDB() {
         />
       </Form.Item>
 
+      {/* 认证数据库 */}
+      <Form.Item
+        label={t('page.datasource.mongodb.labels.auth_database', 'Auth Database')}
+        name={['config', 'auth_database']}
+        tooltip={t(
+          'page.datasource.mongodb.tooltip.auth_database',
+          'Authentication database where user credentials are stored (usually "admin"). Leave empty to use the target database.'
+        )}
+      >
+        <Input
+          placeholder="admin"
+          style={{ width: 300 }}
+        />
+      </Form.Item>
+
+      {/* 集群类型 */}
+      <Form.Item
+        label={t('page.datasource.mongodb.labels.cluster_type', 'Cluster Type')}
+        name={['config', 'cluster_type']}
+        tooltip={t(
+          'page.datasource.mongodb.tooltip.cluster_type',
+          'Select the type of MongoDB deployment. This affects connection optimization and read/write strategies.'
+        )}
+        initialValue="standalone"
+      >
+        <Select style={{ width: 300 }}>
+          <Option value="standalone">{t('page.datasource.mongodb.options.standalone', 'Standalone')}</Option>
+          <Option value="replica_set">{t('page.datasource.mongodb.options.replica_set', 'Replica Set')}</Option>
+          <Option value="sharded">{t('page.datasource.mongodb.options.sharded', 'Sharded Cluster')}</Option>
+        </Select>
+      </Form.Item>
+
       {/* 集合配置 */}
       <Form.Item
         label={t('page.datasource.mongodb.labels.collections', 'Collections')}
@@ -157,6 +189,63 @@ export default function MongoDB() {
             </>
           )}
         </Form.List>
+      </Form.Item>
+
+      {/* 分页配置 */}
+      <Form.Item
+        label={t('page.datasource.mongodb.labels.pagination', 'Enable Pagination')}
+        name={['config', 'pagination']}
+        valuePropName="checked"
+        tooltip={t(
+          'page.datasource.mongodb.tooltip.pagination',
+          'Enable if the MongoDB query should be paginated. This is recommended for large collections.'
+        )}
+      >
+        <Switch />
+      </Form.Item>
+
+      <Form.Item
+        noStyle
+        shouldUpdate={(prevValues, currentValues) =>
+          prevValues.config?.pagination !== currentValues.config?.pagination
+        }
+      >
+        {({ getFieldValue }) =>
+          getFieldValue(['config', 'pagination']) ? (
+            <Form.Item
+              initialValue={500}
+              label={t('page.datasource.mongodb.labels.page_size', 'Page Size')}
+              name={['config', 'page_size']}
+              tooltip={t('page.datasource.mongodb.tooltip.page_size', 'The number of documents to fetch per page.')}
+              rules={[
+                {
+                  message: t('page.datasource.mongodb.error.page_size_required', 'Please input page size!'),
+                  required: true
+                }
+              ]}
+            >
+              <InputNumber
+                min={1}
+                style={{ width: 300 }}
+              />
+            </Form.Item>
+          ) : null
+        }
+      </Form.Item>
+
+      {/* 最后修改字段 */}
+      <Form.Item
+        label={t('page.datasource.mongodb.labels.last_modified_field', 'Last Modified Field')}
+        name={['config', 'last_modified_field']}
+        tooltip={t(
+          'page.datasource.mongodb.tooltip.last_modified_field',
+          'For incremental sync, specify a field that tracks last modification time (e.g., updated_at). The field type should be a timestamp or datetime.'
+        )}
+      >
+        <Input
+          placeholder="updated_at"
+          style={{ width: 300 }}
+        />
       </Form.Item>
 
       {/* 高级配置 */}
