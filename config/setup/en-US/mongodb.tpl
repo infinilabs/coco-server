@@ -10,14 +10,16 @@ MongoDB Connector is a powerful data connector that supports efficient data sync
 
 ```json
 {
-  "connection_uri": "mongodb://localhost:27017/test",
-  "database": "test",
+  "connection_uri": "mongodb://username:password@localhost:27017/database",
+  "database": "database_name",
+  "auth_database": "admin",
+  "cluster_type": "standalone",
   "collections": [
     {
-      "name": "users",
+      "name": "collection_name",
       "filter": {"status": "active"},
-      "title_field": "name",
-      "content_field": "bio"
+      "title_field": "title",
+      "content_field": "content"
     }
   ],
   "pagination": true,
@@ -26,8 +28,8 @@ MongoDB Connector is a powerful data connector that supports efficient data sync
   "field_mapping": {
     "enabled": true,
     "mapping": {
-      "id": "user_id",
-      "title": "user_name"
+      "id": "custom_id",
+      "title": "custom_title"
     }
   }
 }
@@ -43,13 +45,30 @@ MongoDB Connector is a powerful data connector that supports efficient data sync
 - **Format**: `mongodb://[username:password@]host[:port]/database[?options]`
 - **Examples**: 
   - `mongodb://localhost:27017/test`
-  - `mongodb://user:pass@localhost:27017/test?authSource=admin`
+  - `mongodb://user:pass@localhost:27017/test`
   - `mongodb://localhost:27017,localhost:27018/test?replicaSet=rs0`
 
 #### `database` (Required)
 - **Type**: String
 - **Description**: Name of the MongoDB database to connect to
 - **Examples**: `"test"`, `"production"`, `"analytics"`
+
+#### `auth_database` (Optional)
+- **Type**: String
+- **Description**: Authentication database name where user credentials are stored
+- **Default**: `"admin"`
+- **Explanation**: When users exist in the admin database rather than the target database, this field needs to be set
+- **Examples**: `"admin"`, `"auth"`
+
+#### `cluster_type` (Optional)
+- **Type**: String
+- **Description**: MongoDB cluster type, affects connection optimization and read/write strategies
+- **Default**: `"standalone"`
+- **Options**: 
+  - `"standalone"`: Single MongoDB instance
+  - `"replica_set"`: Replica set cluster
+  - `"sharded"`: Sharded cluster
+- **Explanation**: Automatically optimizes connection parameters, read preferences, and write concerns based on cluster type
 
 ### 2. Collections Configuration
 
@@ -196,12 +215,14 @@ MongoDB Connector is a powerful data connector that supports efficient data sync
 
 ## Configuration Examples
 
-### Example 1: Basic User Synchronization
+### Example 1: Basic User Synchronization (with Authentication)
 
 ```json
 {
-  "connection_uri": "mongodb://localhost:27017/userdb",
+  "connection_uri": "mongodb://user:pass@localhost:27017/userdb",
   "database": "userdb",
+  "auth_database": "admin",
+  "cluster_type": "replica_set",
   "collections": [
     {
       "name": "users",
@@ -226,6 +247,8 @@ MongoDB Connector is a powerful data connector that supports efficient data sync
 {
   "connection_uri": "mongodb://user:pass@localhost:27017/catalog",
   "database": "catalog",
+  "auth_database": "admin",
+  "cluster_type": "sharded",
   "collections": [
     {
       "name": "products",
@@ -259,6 +282,8 @@ MongoDB Connector is a powerful data connector that supports efficient data sync
 {
   "connection_uri": "mongodb://localhost:27017/analytics",
   "database": "analytics",
+  "auth_database": "admin",
+  "cluster_type": "standalone",
   "collections": [
     {
       "name": "events",
@@ -278,12 +303,71 @@ MongoDB Connector is a powerful data connector that supports efficient data sync
 }
 ```
 
+## Cluster Type Explanation
+
+### Impact of Cluster Type on Performance
+
+MongoDB Connector automatically optimizes connection parameters and read/write strategies based on different cluster types:
+
+#### 1. **Standalone (Single Instance)**
+- **Read/Write Preference**: `PrimaryPreferred` - Prefer reading from primary node, fallback to other nodes when primary is unavailable
+- **Write Concern**: Default - Write to primary node is sufficient
+- **Use Cases**: Development environments, small applications, single deployments
+
+#### 2. **Replica Set**
+- **Read/Write Preference**: `SecondaryPreferred` - Prefer reading from secondary nodes to distribute primary node load
+- **Write Concern**: `{W: "majority", J: true}` - Write to majority of nodes and wait for journal persistence
+- **Retry Writes**: Enabled - Automatically retry on network failures
+- **Use Cases**: Production environments, high availability requirements, read/write separation
+
+#### 3. **Sharded Cluster**
+- **Read/Write Preference**: `Nearest` - Read from nearest node to reduce network latency
+- **Write Concern**: `{W: "majority", J: true}` - Write to majority of shards and wait for journal persistence
+- **Retry Writes**: Enabled - Automatically retry on inter-shard network failures
+- **Use Cases**: Large data volumes, high concurrency, geographically distributed deployments
+
+### Automatic Optimization Features
+
+- **Connection Pool Management**: Automatically adjust connection pool size and timeout settings based on cluster type
+- **Read/Write Separation**: Automatically enable read/write separation optimization for replica sets and sharded clusters
+- **Fault Recovery**: Automatically detect node failures and switch to available nodes
+- **Performance Monitoring**: Provide corresponding performance metrics based on cluster type
+
+## Authentication Database Explanation
+
+### Why Authentication Database is Needed
+
+In MongoDB, user authentication information is typically stored in the `admin` database rather than in business databases. When connecting to a MongoDB instance that requires authentication, the correct authentication database needs to be specified.
+
+### Authentication Database Configuration Methods
+
+1. **Via Connection String**:
+   ```
+   mongodb://username:password@localhost:27017/database?authSource=admin
+   ```
+
+2. **Via Configuration Field** (Recommended):
+   ```json
+   {
+     "connection_uri": "mongodb://username:password@localhost:27017/database",
+     "auth_database": "admin"
+   }
+   ```
+
+### Common Authentication Scenarios
+
+- **Users exist in admin database**: Set `"auth_database": "admin"`
+- **Users exist in target database**: Set `"auth_database": "database_name"` or leave empty
+- **No authentication**: Connection string doesn't contain username/password, `auth_database` field is invalid
+
 ## Best Practices
 
 ### 1. Connection Configuration
 - Use environment variables for sensitive information (username, password)
 - Configure appropriate connection pool size for production environments
 - Set reasonable timeout values
+- Correctly configure authentication database
+- Select correct cluster type based on actual deployment
 
 ### 2. Collections Configuration
 - Use filters to reduce unnecessary data transmission
@@ -308,6 +392,8 @@ MongoDB Connector is a powerful data connector that supports efficient data sync
 - Check connection string format
 - Verify network connectivity and firewall settings
 - Confirm MongoDB service is running
+- Check authentication database configuration is correct
+- Confirm cluster type configuration matches actual deployment
 
 #### 2. Poor Synchronization Performance
 - Check if appropriate indexes exist
@@ -323,6 +409,12 @@ MongoDB Connector is a powerful data connector that supports efficient data sync
 - Reduce page size and batch size
 - Enable pagination processing
 - Check field mapping configuration
+
+#### 5. Cluster Performance Issues
+- Check if cluster type configuration is correct
+- Verify read/write preference settings are suitable for business requirements
+- Confirm connection pool size is appropriate for cluster scale
+- Check network latency and bandwidth limitations
 
 ## Monitoring and Logging
 
@@ -343,7 +435,3 @@ MongoDB Connector is a powerful data connector that supports efficient data sync
 - Monitor system resource usage
 - Set alert thresholds
 - Record performance metrics
-
-## Summary
-
-MongoDB Connector provides flexible and powerful configuration options that can meet various data synchronization needs. Through reasonable configuration, efficient and reliable data synchronization can be achieved while maintaining good performance. It is recommended to adjust configuration parameters based on actual usage scenarios and regularly monitor and optimize configurations.
