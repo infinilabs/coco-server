@@ -6,12 +6,10 @@ package mongodb
 
 import (
 	"context"
-	"crypto/tls"
-	"fmt"
-	"strings"
 	"time"
 
-	log "github.com/cihub/seelog"
+	"log"
+
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -50,13 +48,8 @@ func (p *Plugin) getOrCreateClient(datasourceID string, config *Config) (*mongo.
 func (p *Plugin) createMongoClient(config *Config) (*mongo.Client, error) {
 	clientOptions := options.Client()
 
-	// Set connection string or detailed configuration
-	if config.ConnectionURI != "" {
-		clientOptions.ApplyURI(config.ConnectionURI)
-	} else {
-		uri := p.buildConnectionURI(config)
-		clientOptions.ApplyURI(uri)
-	}
+	// Set connection string
+	clientOptions.ApplyURI(config.ConnectionURI)
 
 	// Connection pool configuration
 	if config.MaxPoolSize > 0 {
@@ -71,101 +64,10 @@ func (p *Plugin) createMongoClient(config *Config) (*mongo.Client, error) {
 		}
 	}
 
-	// TLS configuration
-	if config.EnableTLS {
-		tlsConfig := p.buildTLSConfig(config)
-		clientOptions.SetTLSConfig(tlsConfig)
-	}
-
-	// Read preference setting
-	if config.ReadPreference != "" {
-		readPref := p.buildReadPreference(config.ReadPreference)
-		clientOptions.SetReadPreference(readPref)
-	}
+	// Set default read preference for better performance
+	clientOptions.SetReadPreference(readpref.PrimaryPreferred())
 
 	return mongo.Connect(context.Background(), clientOptions)
-}
-
-func (p *Plugin) buildConnectionURI(config *Config) string {
-	var uri strings.Builder
-	uri.WriteString("mongodb://")
-
-	// Authentication
-	if config.Username != "" {
-		uri.WriteString(config.Username)
-		if config.Password != "" {
-			uri.WriteString(":")
-			uri.WriteString(config.Password)
-		}
-		uri.WriteString("@")
-	}
-
-	// Host and port
-	host := config.Host
-	if host == "" {
-		host = "localhost"
-	}
-	port := config.Port
-	if port == 0 {
-		port = 27017
-	}
-	uri.WriteString(fmt.Sprintf("%s:%d", host, port))
-
-	// Database
-	if config.Database != "" {
-		uri.WriteString("/")
-		uri.WriteString(config.Database)
-	}
-
-	// Query parameters
-	var params []string
-	if config.AuthDatabase != "" {
-		params = append(params, "authSource="+config.AuthDatabase)
-	}
-	if config.ReplicaSet != "" {
-		params = append(params, "replicaSet="+config.ReplicaSet)
-	}
-	if config.EnableTLS {
-		params = append(params, "ssl=true")
-		if config.TLSInsecure {
-			params = append(params, "sslInsecure=true")
-		}
-	}
-
-	if len(params) > 0 {
-		uri.WriteString("?")
-		uri.WriteString(strings.Join(params, "&"))
-	}
-
-	return uri.String()
-}
-
-func (p *Plugin) buildTLSConfig(config *Config) *tls.Config {
-	tlsConfig := &tls.Config{
-		InsecureSkipVerify: config.TLSInsecure,
-	}
-
-	// Add certificate files if provided
-	// Implementation would depend on specific TLS requirements
-
-	return tlsConfig
-}
-
-func (p *Plugin) buildReadPreference(preference string) *readpref.ReadPref {
-	switch strings.ToLower(preference) {
-	case "primary":
-		return readpref.Primary()
-	case "secondary":
-		return readpref.Secondary()
-	case "nearest":
-		return readpref.Nearest()
-	case "primarypreferred":
-		return readpref.PrimaryPreferred()
-	case "secondarypreferred":
-		return readpref.SecondaryPreferred()
-	default:
-		return readpref.Primary()
-	}
 }
 
 func (p *Plugin) healthCheck(client *mongo.Client) error {

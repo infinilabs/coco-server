@@ -13,26 +13,17 @@ import (
 type Config struct {
 	// Connection configuration
 	ConnectionURI string `config:"connection_uri"`
-	Host          string `config:"host"`
-	Port          int    `config:"port"`
-	Username      string `config:"username"`
-	Password      string `config:"password"`
 	Database      string `config:"database"`
-	AuthDatabase  string `config:"auth_database"`
 
-	// Replica set and sharding configuration
-	ReplicaSet     string `config:"replica_set"`
-	ReadPreference string `config:"read_preference"`
-
-	// TLS/SSL configuration
-	EnableTLS   bool   `config:"enable_tls"`
-	TLSCAFile   string `config:"tls_ca_file"`
-	TLSCertFile string `config:"tls_cert_file"`
-	TLSKeyFile  string `config:"tls_key_file"`
-	TLSInsecure bool   `config:"tls_insecure"`
-
-	// Data filtering configuration
+	// Collections configuration
 	Collections []CollectionConfig `config:"collections"`
+
+	// Pagination configuration
+	Pagination bool `config:"pagination"`
+	PageSize   int  `config:"page_size"`
+
+	// Last modified field for incremental sync
+	LastModifiedField string `config:"last_modified_field"`
 
 	// Performance optimization configuration
 	BatchSize   int    `config:"batch_size"`
@@ -40,21 +31,31 @@ type Config struct {
 	MaxPoolSize int    `config:"max_pool_size"`
 
 	// Sync strategy
-	SyncStrategy   string    `config:"sync_strategy"`
-	TimestampField string    `config:"timestamp_field"`
-	LastSyncTime   time.Time `config:"last_sync_time"`
+	SyncStrategy string `config:"sync_strategy"`
+
+	// Field mapping configuration
+	FieldMapping *FieldMappingConfig `config:"field_mapping"`
+
+	// Advanced query optimization
+	EnableProjection bool `config:"enable_projection"` // Enable projection pushdown
+	EnableIndexHint  bool `config:"enable_index_hint"` // Enable index hints for better performance
 }
 
 type CollectionConfig struct {
 	Name           string                 `config:"name"`
 	Filter         map[string]interface{} `config:"filter"`
-	Fields         []string               `config:"fields"`
 	TitleField     string                 `config:"title_field"`
 	ContentField   string                 `config:"content_field"`
 	CategoryField  string                 `config:"category_field"`
 	TagsField      string                 `config:"tags_field"`
 	URLField       string                 `config:"url_field"`
 	TimestampField string                 `config:"timestamp_field"`
+}
+
+// FieldMappingConfig defines the field mapping configuration
+type FieldMappingConfig struct {
+	Enabled bool                    `config:"enabled"`
+	Mapping map[string]interface{} `config:"mapping"`
 }
 
 func (p *Plugin) setDefaultConfig(config *Config) {
@@ -70,16 +71,32 @@ func (p *Plugin) setDefaultConfig(config *Config) {
 	if config.SyncStrategy == "" {
 		config.SyncStrategy = "full"
 	}
+	if config.PageSize <= 0 {
+		config.PageSize = 500
+	}
+	if config.FieldMapping == nil {
+		config.FieldMapping = &FieldMappingConfig{
+			Enabled: false,
+			Mapping: make(map[string]interface{}),
+		}
+	}
+	
+	// Enable advanced optimizations by default for better performance
+	if !config.EnableProjection {
+		config.EnableProjection = true
+	}
+	if !config.EnableIndexHint {
+		config.EnableIndexHint = true
+	}
 }
 
 func (p *Plugin) validateConfig(config *Config) error {
 	if config.ConnectionURI == "" {
-		if config.Host == "" {
-			return fmt.Errorf("either connection_uri or host must be specified")
-		}
-		if config.Database == "" {
-			return fmt.Errorf("database must be specified")
-		}
+		return fmt.Errorf("connection_uri must be specified")
+	}
+
+	if config.Database == "" {
+		return fmt.Errorf("database must be specified")
 	}
 
 	if len(config.Collections) == 0 {
@@ -98,6 +115,10 @@ func (p *Plugin) validateConfig(config *Config) error {
 
 	if config.MaxPoolSize < 0 {
 		return fmt.Errorf("max_pool_size must be positive")
+	}
+
+	if config.PageSize < 0 {
+		return fmt.Errorf("page_size must be positive")
 	}
 
 	if config.SyncStrategy != "" && config.SyncStrategy != "full" && config.SyncStrategy != "incremental" {

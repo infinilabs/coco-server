@@ -9,7 +9,8 @@ import (
 	"fmt"
 	"runtime"
 
-	log "github.com/cihub/seelog"
+	"log"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"infini.sh/coco/modules/common"
@@ -67,7 +68,7 @@ func (p *Plugin) transformToDocument(mongoDoc bson.M, collConfig CollectionConfi
 	objectID := mongoDoc["_id"]
 	doc.ID = util.MD5digest(fmt.Sprintf("%s-%s-%v", datasource.ID, collConfig.Name, objectID))
 
-	// Field mapping
+	// Field mapping using collection-specific fields
 	if collConfig.TitleField != "" {
 		if title, ok := mongoDoc[collConfig.TitleField]; ok {
 			doc.Title = p.safeConvertToString(title)
@@ -116,6 +117,41 @@ func (p *Plugin) transformToDocument(mongoDoc bson.M, collConfig CollectionConfi
 	doc.Metadata["raw_document"] = mongoDoc
 
 	return doc, nil
+}
+
+// applyGlobalFieldMapping applies global field mapping configuration to the document
+// This function can be used when global field mapping is enabled in the config
+func (p *Plugin) applyGlobalFieldMapping(doc *common.Document, mongoDoc bson.M, config *Config) {
+	if config.FieldMapping != nil && config.FieldMapping.Enabled {
+		// Apply global field mappings if configured
+		for targetField, sourceField := range config.FieldMapping.Mapping {
+			if sourceFieldStr, ok := sourceField.(string); ok {
+				if value, exists := mongoDoc[sourceFieldStr]; exists {
+					switch targetField {
+					case "id":
+						// Handle ID field specially
+						doc.ID = p.safeConvertToString(value)
+					case "title":
+						doc.Title = p.safeConvertToString(value)
+					case "content":
+						doc.Content = p.safeConvertToString(value)
+					case "category":
+						doc.Category = p.safeConvertToString(value)
+					case "tags":
+						doc.Tags = p.convertToStringSlice(value)
+					case "url":
+						doc.URL = p.safeConvertToString(value)
+					case "metadata":
+						// Handle metadata fields
+						if doc.Metadata == nil {
+							doc.Metadata = make(map[string]interface{})
+						}
+						doc.Metadata[sourceFieldStr] = value
+					}
+				}
+			}
+		}
+	}
 }
 
 func (p *Plugin) pushDocuments(documents []*common.Document) {

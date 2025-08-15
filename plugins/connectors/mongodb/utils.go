@@ -9,7 +9,8 @@ import (
 	"fmt"
 	"time"
 
-	log "github.com/cihub/seelog"
+	"log"
+
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"infini.sh/framework/core/global"
 )

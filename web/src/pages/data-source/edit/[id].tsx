@@ -20,6 +20,7 @@ import Notion from '../new/notion';
 import Rss from '../new/rss';
 import S3 from '../new/s3';
 import Yuque from '../new/yuque';
+import MongoDB from '../new/mongodb';
 
 export function Component() {
   const { t } = useTranslation();
@@ -228,6 +229,7 @@ export function Component() {
       break;
     case Types.GoogleDrive:
       break;
+
     case Types.S3:
       if (datasource.connector?.config) {
         datasource.config = {
@@ -266,6 +268,12 @@ export function Component() {
           share: values.config?.share || '',
           username: values.config?.username || ''
         };
+      }
+      break;
+    }
+    case Types.MongoDB: {
+      if (datasource.connector?.config) {
+        datasource.config = datasource.connector.config;
       }
       break;
     }
@@ -323,6 +331,7 @@ export function Component() {
             {type === Types.S3 && <S3 />}
             {type === Types.Confluence && <Confluence />}
             {type === Types.NetworkDrive && <NetworkDrive />}
+            {type === Types.MongoDB && <MongoDB />}
             {!isCustom ? (
               <>
                 <Form.Item
