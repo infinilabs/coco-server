@@ -18,7 +18,8 @@ export const Types = {
   Yuque: 'yuque',
   S3: 's3',
   Confluence: 'confluence',
-  NetworkDrive: 'network_drive'
+  NetworkDrive: 'network_drive',
+  Postgresql: 'postgresql'
 };
 
 export const TypeList = ({

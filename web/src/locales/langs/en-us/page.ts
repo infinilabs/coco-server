@@ -155,6 +155,32 @@ const page: App.I18n.Schema['translation']['page'] = {
         token: 'Your Confluence Personal Access Token (PAT).',
         username: 'Username for authentication. Can be left empty for anonymous access or if using a Personal Access Token.'
       }
+    },
+    rdbms: {
+      titles: {
+        last_updated_by: 'last_updated_by',
+        metadata: 'metadata',
+        owner: 'owner',
+        payload: 'payload'
+      },
+      tooltip: {
+        connection_uri: {
+          mysql: 'MySQL connection string. e.g., mysql://user:password@tcp(localhost:3306)/database',
+          postgresql:
+            'PostgreSQL connection string. e.g., postgresql://user:password@localhost:5432/database?sslmode=disable'
+        }
+      },
+      validation: {
+        field_name_required: 'Please input field',
+        metadata_name_required: 'Please input name',
+        payload_name_required: 'Please input name',
+        required: 'Please input {{field}}'
+      },
+      placeholder: {
+        field_name: 'Field Name',
+        metadata_name: 'Metadata Name',
+        payload_name: 'Payload Name'
+      }
     }
   },
   guide: {
