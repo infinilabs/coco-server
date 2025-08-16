@@ -171,15 +171,15 @@ const page: App.I18n.Schema['translation']['page'] = {
         }
       },
       validation: {
-        required: 'Please input {{field}}',
-        metadata_name_required: 'Please input metadata name',
-        payload_name_required: 'Please input payload name',
-        column_name_required: 'Please input column name'
+        column_name_required: 'Please input column',
+        metadata_name_required: 'Please input name',
+        payload_name_required: 'Please input name',
+        required: 'Please input {{field}}'
       },
       placeholder: {
+        column_name: 'Column Name',
         metadata_name: 'Metadata Name',
-        payload_name: 'Payload Name',
-        column_name: 'Column Name'
+        payload_name: 'Payload Name'
       }
     }
   },

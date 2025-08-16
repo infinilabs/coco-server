@@ -12,22 +12,21 @@ const renderMapping = (name: string[], config: string, required = false, enabled
       ? [{ message: t('page.datasource.rdbms.validation.required', { field: name[name.length - 1] }), required: true }]
       : [];
   return (
-    <div style={{ width: 300 }}>
+    <div style={{ width: 350 }}>
       <Space.Compact block>
         <Input
           readOnly
           prefix={required ? <span style={{ color: 'red' }}>*</span> : null}
-          style={{ backgroundColor: '#f5f5f5', paddingLeft: 8, textAlign: 'left', width: '45%' }}
+          style={{ backgroundColor: '#f5f5f5', paddingLeft: 8, textAlign: 'left', width: 120 }}
           value={config}
         />
         <div
           style={{
             alignItems: 'center',
             border: '1px solid #d9d9d9',
-            borderRadius: 2,
             display: 'flex',
             justifyContent: 'center',
-            width: '10%'
+            width: 30
           }}
         >
           <SwapOutlined />
@@ -39,7 +38,7 @@ const renderMapping = (name: string[], config: string, required = false, enabled
         >
           <Input
             placeholder={config}
-            style={{ textAlign: 'center', width: '45%' }}
+            style={{ textAlign: 'center', width: 200 }}
           />
         </Form.Item>
       </Space.Compact>
@@ -61,7 +60,7 @@ const CollapsibleFieldMapping = ({
       <div style={{ alignItems: 'center', display: 'flex', marginBottom: 8 }}>
         <Input
           readOnly
-          style={{ backgroundColor: '#f5f5f5', width: 300, textAlign: 'left', paddingLeft: 8 }}
+          style={{ backgroundColor: '#f5f5f5', paddingLeft: 8, textAlign: 'left', width: 300 }}
           value={title}
         />
         <Button
@@ -71,17 +70,17 @@ const CollapsibleFieldMapping = ({
         />
       </div>
       {isOpen && (
-        <div style={{ marginLeft: 12, paddingLeft: 12, borderLeft: '1px solid #d9d9d9' }}>
-          {React.Children.map(children, (child) => (
+        <div style={{ borderLeft: '1px solid #d9d9d9', marginLeft: 12, paddingLeft: 12 }}>
+          {React.Children.map(children, child => (
             <div style={{ position: 'relative' }}>
               <div
                 style={{
+                  backgroundColor: '#d9d9d9',
+                  height: 1,
+                  left: -12,
                   position: 'absolute',
                   top: '1.3em',
-                  left: -12,
-                  width: 12,
-                  height: 1,
-                  backgroundColor: '#d9d9d9'
+                  width: 12
                 }}
               />
               {child}
@@ -227,32 +226,50 @@ export const FieldMapping = ({ enabled }: { readonly enabled: boolean }) => {
                     key={key}
                     style={{ display: 'flex', marginBottom: 8 }}
                   >
-                    <Input
-                      readOnly
-                      style={{ backgroundColor: '#f5f5f5', width: 80, textAlign: 'left', paddingLeft: 8 }}
-                      value="name"
-                    />
-                    <Form.Item
-                      {...restField}
-                      name={[name, 'name']}
-                      rules={[
-                        { message: t('page.datasource.rdbms.validation.metadata_name_required'), required: true }
-                      ]}
-                    >
-                      <Input placeholder={t('page.datasource.rdbms.placeholder.metadata_name', 'Metadata Name')} />
-                    </Form.Item>
-                    <Input
-                      readOnly
-                      style={{ backgroundColor: '#f5f5f5', width: 80, textAlign: 'left', paddingLeft: 8 }}
-                      value="value"
-                    />
-                    <Form.Item
-                      {...restField}
-                      name={[name, 'value']}
-                      rules={[{ message: t('page.datasource.rdbms.validation.column_name_required'), required: true }]}
-                    >
-                      <Input placeholder={t('page.datasource.rdbms.placeholder.column_name', 'Column Name')} />
-                    </Form.Item>
+                    <Space.Compact>
+                      <Form.Item style={{ margin: 0 }}>
+                        <Input
+                          readOnly
+                          style={{ backgroundColor: '#f5f5f5', paddingLeft: 8, textAlign: 'left', width: 80 }}
+                          value="name"
+                        />
+                      </Form.Item>
+                      <Form.Item
+                        {...restField}
+                        name={[name, 'name']}
+                        style={{ margin: 0 }}
+                        rules={[
+                          { message: t('page.datasource.rdbms.validation.metadata_name_required'), required: true }
+                        ]}
+                      >
+                        <Input
+                          placeholder={t('page.datasource.rdbms.placeholder.metadata_name', 'Metadata Name')}
+                          style={{ width: 200 }}
+                        />
+                      </Form.Item>
+                    </Space.Compact>
+                    <Space.Compact>
+                      <Form.Item style={{ margin: 0 }}>
+                        <Input
+                          readOnly
+                          style={{ backgroundColor: '#f5f5f5', paddingLeft: 8, textAlign: 'left', width: 80 }}
+                          value="value"
+                        />
+                      </Form.Item>
+                      <Form.Item
+                        {...restField}
+                        name={[name, 'value']}
+                        style={{ margin: 0 }}
+                        rules={[
+                          { message: t('page.datasource.rdbms.validation.column_name_required'), required: true }
+                        ]}
+                      >
+                        <Input
+                          placeholder={t('page.datasource.rdbms.placeholder.column_name', 'Column Name')}
+                          style={{ width: 200 }}
+                        />
+                      </Form.Item>
+                    </Space.Compact>
                     <MinusCircleOutlined
                       style={{ color: 'red' }}
                       onClick={() => remove(name)}
@@ -285,30 +302,50 @@ export const FieldMapping = ({ enabled }: { readonly enabled: boolean }) => {
                     key={key}
                     style={{ display: 'flex', marginBottom: 8 }}
                   >
-                    <Input
-                      readOnly
-                      style={{ backgroundColor: '#f5f5f5', width: 80, textAlign: 'left', paddingLeft: 8 }}
-                      value="name"
-                    />
-                    <Form.Item
-                      {...restField}
-                      name={[name, 'name']}
-                      rules={[{ message: t('page.datasource.rdbms.validation.payload_name_required'), required: true }]}
-                    >
-                      <Input placeholder={t('page.datasource.rdbms.placeholder.payload_name', 'Payload Name')} />
-                    </Form.Item>
-                    <Input
-                      readOnly
-                      style={{ backgroundColor: '#f5f5f5', width: 80, textAlign: 'left', paddingLeft: 8 }}
-                      value="value"
-                    />
-                    <Form.Item
-                      {...restField}
-                      name={[name, 'value']}
-                      rules={[{ message: t('page.datasource.rdbms.validation.column_name_required'), required: true }]}
-                    >
-                      <Input placeholder={t('page.datasource.rdbms.placeholder.column_name', 'Column Name')} />
-                    </Form.Item>
+                    <Space.Compact>
+                      <Form.Item style={{ margin: 0 }}>
+                        <Input
+                          readOnly
+                          style={{ backgroundColor: '#f5f5f5', paddingLeft: 8, textAlign: 'left', width: 80 }}
+                          value="name"
+                        />
+                      </Form.Item>
+                      <Form.Item
+                        {...restField}
+                        name={[name, 'name']}
+                        style={{ margin: 0 }}
+                        rules={[
+                          { message: t('page.datasource.rdbms.validation.payload_name_required'), required: true }
+                        ]}
+                      >
+                        <Input
+                          placeholder={t('page.datasource.rdbms.placeholder.payload_name', 'Payload Name')}
+                          style={{ width: 200 }}
+                        />
+                      </Form.Item>
+                    </Space.Compact>
+                    <Space.Compact>
+                      <Form.Item style={{ margin: 0 }}>
+                        <Input
+                          readOnly
+                          style={{ backgroundColor: '#f5f5f5', paddingLeft: 8, textAlign: 'left', width: 80 }}
+                          value="value"
+                        />
+                      </Form.Item>
+                      <Form.Item
+                        {...restField}
+                        name={[name, 'value']}
+                        style={{ margin: 0 }}
+                        rules={[
+                          { message: t('page.datasource.rdbms.validation.column_name_required'), required: true }
+                        ]}
+                      >
+                        <Input
+                          placeholder={t('page.datasource.rdbms.placeholder.column_name', 'Column Name')}
+                          style={{ width: 200 }}
+                        />
+                      </Form.Item>
+                    </Space.Compact>
                     <MinusCircleOutlined
                       style={{ color: 'red' }}
                       onClick={() => remove(name)}
