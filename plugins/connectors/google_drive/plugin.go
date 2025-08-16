@@ -96,6 +96,7 @@ func (this *Plugin) Setup() {
 		this.oAuthConfig = &oauth2.Config{}
 	}
 	this.oAuthConfig.Scopes = []string{
+		"https://www.googleapis.com/auth/drive.readonly",
 		"https://www.googleapis.com/auth/drive.metadata.readonly", // Access Drive metadata
 		"https://www.googleapis.com/auth/userinfo.email",          // Access the user's profile information
 		"https://www.googleapis.com/auth/userinfo.profile",        // Access the user's profile information
@@ -223,10 +224,6 @@ func (this *Plugin) fetch_google_drive(connector *common.Connector, datasource *
 			Expiry:       parseExpiry(datasourceCfg.TokenExpiry),
 		}
 
-		//TODO: Define tenantID and userID, possibly based on your context
-		var tenantID = "test"
-		var userID = "test"
-
 		// Check if the token is valid
 		if !tok.Valid() {
 			// Check if SkipInvalidToken is false, which means token must be valid
@@ -256,8 +253,10 @@ func (this *Plugin) fetch_google_drive(connector *common.Connector, datasource *
 
 				log.Debugf("updating datasource with new refresh token: %v", datasource.ID)
 
+				ctx := orm.NewContext().DirectAccess()
+
 				// Optionally, save the new tokens in your store (e.g., database or config)
-				err = orm.Update(nil, datasource)
+				err = orm.Update(ctx, datasource)
 				if err != nil {
 					log.Errorf("Failed to save updated datasource configuration: %v", err)
 					panic("Failed to save updated configuration")
@@ -271,7 +270,7 @@ func (this *Plugin) fetch_google_drive(connector *common.Connector, datasource *
 		} else {
 			// Token is valid, proceed with indexing files
 			log.Debug("start processing google drive files")
-			this.startIndexingFiles(connector, datasource, tenantID, userID, &tok)
+			this.startIndexingFiles(connector, datasource, &tok)
 			log.Debug("finished processing google drive files")
 		}
 	}
