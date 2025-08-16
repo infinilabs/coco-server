@@ -128,7 +128,11 @@ export default ({ dbType }: { readonly dbType: string }) => {
           prevValues.config?.field_mapping?.enabled !== currentValues.config?.field_mapping?.enabled
         }
       >
-        {({ getFieldValue }) => <FieldMapping enabled={getFieldValue(['config', 'field_mapping', 'enabled'])} />}
+        {({ getFieldValue }) => (
+          <div style={{ marginLeft: 180 }}>
+            <FieldMapping enabled={getFieldValue(['config', 'field_mapping', 'enabled'])} />
+          </div>
+        )}
       </Form.Item>
     </>
   );

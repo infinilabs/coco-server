@@ -17,7 +17,7 @@ const renderMapping = (name: string[], config: string, required = false, enabled
         <Input
           readOnly
           prefix={required ? <span style={{ color: 'red' }}>*</span> : null}
-          style={{ backgroundColor: '#f5f5f5', textAlign: 'center', width: '45%' }}
+          style={{ backgroundColor: '#f5f5f5', paddingLeft: 8, textAlign: 'left', width: '45%' }}
           value={config}
         />
         <div
@@ -61,7 +61,7 @@ const CollapsibleFieldMapping = ({
       <div style={{ alignItems: 'center', display: 'flex', marginBottom: 8 }}>
         <Input
           readOnly
-          style={{ backgroundColor: '#f5f5f5', width: 300 }}
+          style={{ backgroundColor: '#f5f5f5', width: 300, textAlign: 'left', paddingLeft: 8 }}
           value={title}
         />
         <Button
@@ -70,7 +70,25 @@ const CollapsibleFieldMapping = ({
           onClick={() => setIsOpen(!isOpen)}
         />
       </div>
-      {isOpen && <div style={{ paddingLeft: 24 }}>{children}</div>}
+      {isOpen && (
+        <div style={{ marginLeft: 12, paddingLeft: 12, borderLeft: '1px solid #d9d9d9' }}>
+          {React.Children.map(children, (child) => (
+            <div style={{ position: 'relative' }}>
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '1.3em',
+                  left: -12,
+                  width: 12,
+                  height: 1,
+                  backgroundColor: '#d9d9d9'
+                }}
+              />
+              {child}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
@@ -81,7 +99,13 @@ export const FieldMapping = ({ enabled }: { readonly enabled: boolean }) => {
 
   return (
     <div
-      style={{ border: '1px solid #d9d9d9', borderRadius: '2px', display: enabled ? 'block' : 'none', padding: '16px' }}
+      style={{
+        border: '1px solid #d9d9d9',
+        borderRadius: '2px',
+        display: enabled ? 'block' : 'none',
+        padding: '16px',
+        width: 700
+      }}
     >
       <div style={{ display: 'flex', marginBottom: 8, width: 300 }}>
         <div style={{ textAlign: 'center', width: '45%' }}>
@@ -205,7 +229,7 @@ export const FieldMapping = ({ enabled }: { readonly enabled: boolean }) => {
                   >
                     <Input
                       readOnly
-                      style={{ backgroundColor: '#f5f5f5', width: 80 }}
+                      style={{ backgroundColor: '#f5f5f5', width: 80, textAlign: 'left', paddingLeft: 8 }}
                       value="name"
                     />
                     <Form.Item
@@ -219,7 +243,7 @@ export const FieldMapping = ({ enabled }: { readonly enabled: boolean }) => {
                     </Form.Item>
                     <Input
                       readOnly
-                      style={{ backgroundColor: '#f5f5f5', width: 80 }}
+                      style={{ backgroundColor: '#f5f5f5', width: 80, textAlign: 'left', paddingLeft: 8 }}
                       value="value"
                     />
                     <Form.Item
@@ -263,7 +287,7 @@ export const FieldMapping = ({ enabled }: { readonly enabled: boolean }) => {
                   >
                     <Input
                       readOnly
-                      style={{ backgroundColor: '#f5f5f5', width: 80 }}
+                      style={{ backgroundColor: '#f5f5f5', width: 80, textAlign: 'left', paddingLeft: 8 }}
                       value="name"
                     />
                     <Form.Item
@@ -275,7 +299,7 @@ export const FieldMapping = ({ enabled }: { readonly enabled: boolean }) => {
                     </Form.Item>
                     <Input
                       readOnly
-                      style={{ backgroundColor: '#f5f5f5', width: 80 }}
+                      style={{ backgroundColor: '#f5f5f5', width: 80, textAlign: 'left', paddingLeft: 8 }}
                       value="value"
                     />
                     <Form.Item
