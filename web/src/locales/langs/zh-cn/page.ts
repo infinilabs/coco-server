@@ -213,15 +213,15 @@ const page: App.I18n.Schema['translation']['page'] = {
         payload: '载荷'
       },
       validation: {
-        required: '请输入 {{field}}',
+        field_name_required: '请输入字段名',
         metadata_name_required: '请输入元数据名称',
         payload_name_required: '请输入载荷名称',
-        column_name_required: '请输入列名'
+        required: '请输入 {{field}}'
       },
       placeholder: {
+        field_name: '字段名',
         metadata_name: '元数据名称',
-        payload_name: '载荷名称',
-        column_name: '列名'
+        payload_name: '载荷名称'
       }
     }
   },

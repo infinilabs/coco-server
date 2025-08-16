@@ -261,11 +261,11 @@ export const FieldMapping = ({ enabled }: { readonly enabled: boolean }) => {
                         name={[name, 'value']}
                         style={{ margin: 0 }}
                         rules={[
-                          { message: t('page.datasource.rdbms.validation.column_name_required'), required: true }
+                          { message: t('page.datasource.rdbms.validation.field_name_required'), required: true }
                         ]}
                       >
                         <Input
-                          placeholder={t('page.datasource.rdbms.placeholder.column_name', 'Column Name')}
+                          placeholder={t('page.datasource.rdbms.placeholder.field_name', 'Field Name')}
                           style={{ width: 200 }}
                         />
                       </Form.Item>
@@ -337,11 +337,11 @@ export const FieldMapping = ({ enabled }: { readonly enabled: boolean }) => {
                         name={[name, 'value']}
                         style={{ margin: 0 }}
                         rules={[
-                          { message: t('page.datasource.rdbms.validation.column_name_required'), required: true }
+                          { message: t('page.datasource.rdbms.validation.field_name_required'), required: true }
                         ]}
                       >
                         <Input
-                          placeholder={t('page.datasource.rdbms.placeholder.column_name', 'Column Name')}
+                          placeholder={t('page.datasource.rdbms.placeholder.field_name', 'Field Name')}
                           style={{ width: 200 }}
                         />
                       </Form.Item>
