@@ -18,6 +18,7 @@ import Notion from './notion';
 import Rss from './rss';
 import S3 from './s3';
 import Yuque from './yuque';
+import MongoDB from './mongodb';
 
 export function Component() {
   const {t} = useTranslation();
@@ -101,7 +102,10 @@ export function Component() {
     case Types.NetworkDrive:
       connectorType = 'Network Drive';
       break;
-    default:
+          case Types.MongoDB:
+        connectorType = 'MongoDB';
+        break;
+      default:
       return (
         <Modal
           okText={t('common.save')}
@@ -203,6 +207,18 @@ export function Component() {
         config = NetworkDriveConfig(values);
         break;
       }
+      case Types.MongoDB: {
+        config = {
+          connection_uri: values.config?.connection_uri || '',
+          database: values.config?.database || '',
+          collections: values.config?.collections || [],
+          batch_size: values.config?.batch_size || 1000,
+          max_pool_size: values.config?.max_pool_size || 10,
+          timeout: values.config?.timeout || '30s',
+          sync_strategy: values.config?.sync_strategy || 'full'
+        };
+        break;
+      }
     }
     const sValues = {
       connector: {
@@ -290,6 +306,7 @@ export function Component() {
               {type === Types.S3 && <S3 />}
               {type === Types.Confluence && <Confluence />}
               {type === Types.NetworkDrive && <NetworkDrive />}
+              {type === Types.MongoDB && <MongoDB />}
               <Form.Item
                 label={t('page.datasource.new.labels.data_sync')}
                 name="sync_config"
