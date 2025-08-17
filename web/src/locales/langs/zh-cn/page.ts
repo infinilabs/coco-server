@@ -214,8 +214,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       },
       validation: {
         field_name_required: '请输入字段名',
-        metadata_name_required: '请输入元数据名称',
-        payload_name_required: '请输入载荷名称',
+        metadata_name_required: '请输入名称',
+        payload_name_required: '请输入名称',
         required: '请输入 {{field}}'
       },
       placeholder: {
