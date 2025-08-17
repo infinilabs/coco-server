@@ -254,7 +254,7 @@
 		 t.Errorf("Expected category 'Technology', got '%s'", doc.Category)  
 	 }  
 	   
-	 doc.Tags[0] != "mongodb" || doc.Tags[1] != "database" {  
+	if doc.Tags[0] != "mongodb" || doc.Tags[1] != "database" {  
 		t.Errorf("Expected tags ['mongodb', 'database'], got %v", doc.Tags)  
 	}  
 	  
