@@ -131,7 +131,7 @@ func (p *Plugin) handleConnectionError(err error, datasourceID string) {
 	}
 	p.mu.Unlock()
 
-	// Log error and wait for retry
-	log.Errorf("[mongodb connector] connection error: %v", err)
-	time.Sleep(time.Second * 30) // Backoff retry
+	// Log error and return immediately
+	// Let the scheduler decide when to retry the failed scan task
+	log.Errorf("[mongodb connector] connection error for datasource [%s]: %v", datasourceID, err)
 }
