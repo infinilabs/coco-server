@@ -36,6 +36,14 @@ func (p *Plugin) scanCollectionWithContext(ctx context.Context, client *mongo.Cl
 		return
 	}
 
+	// Create sync strategy
+	strategyFactory := &SyncStrategyFactory{}
+	strategy := strategyFactory.CreateStrategy(config.SyncStrategy)
+	strategyName := strategyFactory.GetStrategyName(config.SyncStrategy)
+
+	log.Infof("[mongodb connector] starting %s sync for collection [%s] in datasource [%s]", 
+		strategyName, collConfig.Name, datasource.Name)
+
 	log.Infof("[mongodb connector] starting scan for collection [%s] in datasource [%s]", collConfig.Name, datasource.Name)
 
 	collection := client.Database(config.Database).Collection(collConfig.Name)
@@ -139,8 +147,9 @@ func (p *Plugin) scanCollectionWithContext(ctx context.Context, client *mongo.Cl
 			runtime.GC()
 		}
 
-		// Update last sync time for incremental sync
-		if config.SyncStrategy == "incremental" && config.LastModifiedField != "" {
+		// Update last sync time based on sync strategy
+		strategy := strategyFactory.CreateStrategy(config.SyncStrategy)
+		if strategy.ShouldUpdateSyncTime() && config.LastModifiedField != "" {
 			// Get the latest timestamp from the current batch
 			latestTime := p.getLatestTimestampFromBatch(documents, config.LastModifiedField)
 			if !latestTime.IsZero() {
@@ -149,6 +158,10 @@ func (p *Plugin) scanCollectionWithContext(ctx context.Context, client *mongo.Cl
 					log.Warnf("[mongodb connector] failed to update last sync time: %v", err)
 				}
 			}
+		} else if strategy.GetStrategyName() == "full" {
+			// For full sync strategy, we don't need to track sync time
+			// All documents will be processed regardless of their modification time
+			log.Debugf("[mongodb connector] full sync strategy - processing all documents in collection [%s]", collConfig.Name)
 		}
 	}
 
@@ -156,23 +169,12 @@ func (p *Plugin) scanCollectionWithContext(ctx context.Context, client *mongo.Cl
 }
 
 func (p *Plugin) buildFilter(config *Config, collConfig CollectionConfig, datasource *common.DataSource) bson.M {
-	filter := bson.M{}
-
-	// Copy base filter from collection configuration
-	for k, v := range collConfig.Filter {
-		filter[k] = v
-	}
-
-	// Add timestamp filter for incremental sync
-	if config.SyncStrategy == "incremental" && config.LastModifiedField != "" {
-		// Get last sync time from sync manager using datasource ID and collection name
-		lastSyncTime := p.syncManager.GetLastSyncTime(datasource.ID, collConfig.Name)
-		if !lastSyncTime.IsZero() {
-			filter[config.LastModifiedField] = bson.M{"$gt": lastSyncTime}
-		}
-	}
-
-	return filter
+	// Create sync strategy
+	strategyFactory := &SyncStrategyFactory{}
+	strategy := strategyFactory.CreateStrategy(config.SyncStrategy)
+	
+	// Use strategy to build filter
+	return strategy.BuildFilter(config, collConfig, datasource.ID, p.syncManager)
 }
 
 func (p *Plugin) optimizeQuery(findOptions *options.FindOptions, collConfig CollectionConfig, config *Config) {
