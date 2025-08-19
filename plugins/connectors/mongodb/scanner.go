@@ -10,12 +10,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"time"
 
-	"log"
-
+	log "github.com/cihub/seelog"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -141,11 +139,6 @@ func (p *Plugin) scanCollectionWithContext(ctx context.Context, client *mongo.Cl
 		p.pushDocuments(documents)
 
 		skip += int64(len(documents))
-
-		// Memory management
-		if skip%10000 == 0 {
-			runtime.GC()
-		}
 
 		// Update last sync time based on sync strategy
 		strategy := strategyFactory.CreateStrategy(config.SyncStrategy)
