@@ -70,31 +70,28 @@ func TestSyncTimeStorageWithConfig(t *testing.T) {
 	testTime := time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)
 
 	// Test updating last sync time
-	err := plugin.updateLastSyncTime(config, collectionName, testTime)
+	err := plugin.syncManager.UpdateLastSyncTime(datasourceID, collectionName, testTime, testTime)
 	if err != nil {
 		t.Fatalf("Failed to update last sync time: %v", err)
 	}
 
 	// Test getting last sync time
-	retrievedTime := plugin.getLastSyncTime(config, collectionName)
+	retrievedTime := plugin.syncManager.GetLastSyncTime(datasourceID, collectionName)
 	if !retrievedTime.Equal(testTime) {
 		t.Errorf("Retrieved time %v does not match stored time %v", retrievedTime, testTime)
 	}
 }
 
 func TestSyncTimeStorageNonExistent(t *testing.T) {
-	// Create a temporary test directory
-	testDir := t.TempDir()
-
-	// Create a test plugin instance
-	plugin := &Plugin{}
+	// Create a test plugin instance with sync manager
+	plugin := &Plugin{
+		syncManager: NewSyncManager(),
+	}
 
 	// Test retrieving non-existent sync time
-	syncKey := "non_existent_key"
-	retrievedTime, err := plugin.getSyncTimeFromStorage(syncKey)
-	if err != nil {
-		t.Fatalf("Failed to retrieve non-existent sync time: %v", err)
-	}
+	datasourceID := "test_datasource"
+	collectionName := "test_collection"
+	retrievedTime := plugin.syncManager.GetLastSyncTime(datasourceID, collectionName)
 
 	if !retrievedTime.IsZero() {
 		t.Errorf("Expected zero time for non-existent key, got %v", retrievedTime)
@@ -102,63 +99,18 @@ func TestSyncTimeStorageNonExistent(t *testing.T) {
 }
 
 func TestSyncTimeStorageInvalidData(t *testing.T) {
-	// Create a temporary test directory
-	testDir := t.TempDir()
-
-	// Create a test plugin instance
-	plugin := &Plugin{}
-
-	// Create a sync storage directory
-	syncDir := filepath.Join(testDir, "sync_storage", "mongodb")
-	if err := os.MkdirAll(syncDir, 0755); err != nil {
-		t.Fatalf("Failed to create sync storage directory: %v", err)
+	// Create a test plugin instance with sync manager
+	plugin := &Plugin{
+		syncManager: NewSyncManager(),
 	}
 
-	// Create an invalid JSON file
-	invalidFile := filepath.Join(syncDir, "invalid.json")
-	invalidData := []byte(`{"invalid": "json"`)
-	if err := os.WriteFile(invalidFile, invalidData, 0644); err != nil {
-		t.Fatalf("Failed to write invalid JSON file: %v", err)
-	}
+	// Test retrieving from non-existent datasource/collection
+	datasourceID := "invalid_datasource"
+	collectionName := "invalid_collection"
+	retrievedTime := plugin.syncManager.GetLastSyncTime(datasourceID, collectionName)
 
-	// Test retrieving from invalid file
-	syncKey := "invalid"
-	_, err := plugin.getSyncTimeFromStorage(syncKey)
-	if err == nil {
-		t.Error("Expected error when reading invalid JSON, got none")
-	}
-}
-
-func TestSanitizeFilename(t *testing.T) {
-	plugin := &Plugin{}
-
-	tests := []struct {
-		input    string
-		expected string
-	}{
-		{
-			input:    "mongodb://localhost:27017/testdb",
-			expected: "mongodb___localhost_27017_testdb",
-		},
-		{
-			input:    "mongodb://user:pass@localhost:27017/testdb?authSource=admin",
-			expected: "mongodb___user_pass_localhost_27017_testdb_authSource_admin",
-		},
-		{
-			input:    "mongodb://localhost:27017/testdb/collection",
-			expected: "mongodb___localhost_27017_testdb_collection",
-		},
-		{
-			input:    "mongodb://localhost:27017/testdb\\collection",
-			expected: "mongodb___localhost_27017_testdb_collection",
-		},
-	}
-
-	for _, tt := range tests {
-		result := plugin.sanitizeFilename(tt.input)
-		if result != tt.expected {
-			t.Errorf("sanitizeFilename(%q) = %q, want %q", tt.input, result, tt.expected)
-		}
+	if !retrievedTime.IsZero() {
+		t.Errorf("Expected zero time for invalid datasource/collection, got %v", retrievedTime)
 	}
 }
 
