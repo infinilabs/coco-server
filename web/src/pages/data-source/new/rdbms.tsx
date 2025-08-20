@@ -1,8 +1,8 @@
 import { Form, Input, InputNumber, Switch } from 'antd';
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { FieldMapping } from './FieldMapping';
+import { FieldMapping } from '../modules/FieldMapping';
 
 // eslint-disable-next-line react/display-name,react-refresh/only-export-components
 export default ({ dbType }: { readonly dbType: string }) => {
