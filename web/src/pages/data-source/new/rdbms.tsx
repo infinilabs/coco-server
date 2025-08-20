@@ -1,4 +1,4 @@
-import { Form, Input, InputNumber, Switch } from 'antd';
+import { Flex, Form, Input, InputNumber, Switch } from 'antd';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -113,12 +113,21 @@ export default ({ dbType }: { readonly dbType: string }) => {
           ) : null
         }
       </Form.Item>
-      <Form.Item
-        label={t('page.datasource.rdbms.labels.field_mapping', 'Field Mapping')}
-        name={['config', 'field_mapping', 'enabled']}
-        valuePropName="checked"
-      >
-        <Switch />
+
+      <Form.Item label={t('page.datasource.rdbms.labels.data_processing', 'Data Processing')}>
+        <Flex
+          align="center"
+          gap="small"
+        >
+          <span>{t('page.datasource.rdbms.labels.field_mapping', 'Field Mapping')}</span>
+          <Form.Item
+            noStyle
+            name={['config', 'field_mapping', 'enabled']}
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+        </Flex>
       </Form.Item>
       <Form.Item
         noStyle
