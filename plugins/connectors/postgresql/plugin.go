@@ -13,7 +13,7 @@ import (
 	_ "github.com/lib/pq"
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/plugins/connectors"
-	"infini.sh/coco/plugins/connectors/rdbms"
+	rdbms "infini.sh/coco/plugins/connectors/common"
 	"infini.sh/framework/core/module"
 )
 
