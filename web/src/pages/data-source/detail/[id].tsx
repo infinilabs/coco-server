@@ -185,12 +185,13 @@ export function Component() {
           }
           if (record.type === 'folder') {
             aProps.onClick = () => {
+              const category = record.category || '/'
               setQueryParams(old => {
                 return {
                   ...old,
                   filter: {
                     ...(old.filter || {}),
-                    category: record.category ? [`${record.category}/${record.title}`] : ['/'],
+                    category: [`${category}${category.endsWith('/') ? '' : '/'}${record.title}`],
                   }
                 }
               })
