@@ -179,42 +179,6 @@ export const FieldMapping = ({ enabled }: { readonly enabled: boolean }) => {
             {renderMapping(['config', 'field_mapping', 'mapping', 'owner', 'userid'], 'userid', false, enabled)}
           </Form.Item>
         </CollapsibleFieldMapping>
-        <CollapsibleFieldMapping title="last_updated_by">
-          <CollapsibleFieldMapping title="user">
-            <Form.Item>
-              {renderMapping(
-                ['config', 'field_mapping', 'mapping', 'last_updated_by', 'user', 'avatar'],
-                'avatar',
-                false,
-                enabled
-              )}
-            </Form.Item>
-            <Form.Item>
-              {renderMapping(
-                ['config', 'field_mapping', 'mapping', 'last_updated_by', 'user', 'username'],
-                'username',
-                false,
-                enabled
-              )}
-            </Form.Item>
-            <Form.Item>
-              {renderMapping(
-                ['config', 'field_mapping', 'mapping', 'last_updated_by', 'user', 'userid'],
-                'userid',
-                false,
-                enabled
-              )}
-            </Form.Item>
-          </CollapsibleFieldMapping>
-          <Form.Item>
-            {renderMapping(
-              ['config', 'field_mapping', 'mapping', 'last_updated_by', 'timestamp'],
-              'timestamp',
-              false,
-              enabled
-            )}
-          </Form.Item>
-        </CollapsibleFieldMapping>
         <Form.List name={['config', 'field_mapping', 'mapping', 'metadata']}>
           {(fields, { add, remove }) => (
             <div style={{ alignItems: 'start', display: 'flex' }}>
@@ -367,6 +331,42 @@ export const FieldMapping = ({ enabled }: { readonly enabled: boolean }) => {
             </div>
           )}
         </Form.List>
+        <CollapsibleFieldMapping title="last_updated_by">
+          <CollapsibleFieldMapping title="user">
+            <Form.Item>
+              {renderMapping(
+                ['config', 'field_mapping', 'mapping', 'last_updated_by', 'user', 'avatar'],
+                'avatar',
+                false,
+                enabled
+              )}
+            </Form.Item>
+            <Form.Item>
+              {renderMapping(
+                ['config', 'field_mapping', 'mapping', 'last_updated_by', 'user', 'username'],
+                'username',
+                false,
+                enabled
+              )}
+            </Form.Item>
+            <Form.Item>
+              {renderMapping(
+                ['config', 'field_mapping', 'mapping', 'last_updated_by', 'user', 'userid'],
+                'userid',
+                false,
+                enabled
+              )}
+            </Form.Item>
+          </CollapsibleFieldMapping>
+          <Form.Item>
+            {renderMapping(
+              ['config', 'field_mapping', 'mapping', 'last_updated_by', 'timestamp'],
+              'timestamp',
+              false,
+              enabled
+            )}
+          </Form.Item>
+        </CollapsibleFieldMapping>
       </div>
     </div>
   );
