@@ -38,7 +38,7 @@ const renderMapping = (name: string[], config: string, required = false, enabled
         >
           <Input
             placeholder={config}
-            style={{ textAlign: 'center', width: 200 }}
+            style={{ textAlign: 'left', width: 200 }}
           />
         </Form.Item>
       </Space.Compact>
@@ -99,7 +99,6 @@ export const FieldMapping = ({ enabled }: { readonly enabled: boolean }) => {
   return (
     <div
       style={{
-        border: '1px solid #d9d9d9',
         borderRadius: '2px',
         display: enabled ? 'block' : 'none',
         padding: '16px',
@@ -244,7 +243,7 @@ export const FieldMapping = ({ enabled }: { readonly enabled: boolean }) => {
                       >
                         <Input
                           placeholder={t('page.datasource.rdbms.placeholder.metadata_name', 'Metadata Name')}
-                          style={{ width: 200 }}
+                          style={{ width: 200, textAlign: 'left' }}
                         />
                       </Form.Item>
                     </Space.Compact>
@@ -266,7 +265,7 @@ export const FieldMapping = ({ enabled }: { readonly enabled: boolean }) => {
                       >
                         <Input
                           placeholder={t('page.datasource.rdbms.placeholder.field_name', 'Field Name')}
-                          style={{ width: 200 }}
+                          style={{ width: 200, textAlign: 'left' }}
                         />
                       </Form.Item>
                     </Space.Compact>
@@ -320,7 +319,7 @@ export const FieldMapping = ({ enabled }: { readonly enabled: boolean }) => {
                       >
                         <Input
                           placeholder={t('page.datasource.rdbms.placeholder.payload_name', 'Payload Name')}
-                          style={{ width: 200 }}
+                          style={{ width: 200, textAlign: 'left' }}
                         />
                       </Form.Item>
                     </Space.Compact>
@@ -342,7 +341,7 @@ export const FieldMapping = ({ enabled }: { readonly enabled: boolean }) => {
                       >
                         <Input
                           placeholder={t('page.datasource.rdbms.placeholder.field_name', 'Field Name')}
-                          style={{ width: 200 }}
+                          style={{ width: 200, textAlign: 'left' }}
                         />
                       </Form.Item>
                     </Space.Compact>

@@ -59,8 +59,8 @@ export default ({ dbType }: { readonly dbType: string }) => {
       >
         <Input.TextArea
           placeholder="SELECT id, title, content, updated_at FROM articles"
-          style={{ width: 500 }}
           rows={4}
+          style={{ width: 500 }}
         />
       </Form.Item>
       <Form.Item
@@ -89,9 +89,7 @@ export default ({ dbType }: { readonly dbType: string }) => {
       </Form.Item>
       <Form.Item
         noStyle
-        shouldUpdate={(prevValues, currentValues) =>
-          prevValues.config?.pagination !== currentValues.config?.pagination
-        }
+        shouldUpdate={(prevValues, currentValues) => prevValues.config?.pagination !== currentValues.config?.pagination}
       >
         {({ getFieldValue }) =>
           getFieldValue(['config', 'pagination']) ? (
@@ -128,11 +126,16 @@ export default ({ dbType }: { readonly dbType: string }) => {
           prevValues.config?.field_mapping?.enabled !== currentValues.config?.field_mapping?.enabled
         }
       >
-        {({ getFieldValue }) => (
-          <div style={{ marginLeft: 180 }}>
-            <FieldMapping enabled={getFieldValue(['config', 'field_mapping', 'enabled'])} />
-          </div>
-        )}
+        {({ getFieldValue }) =>
+          getFieldValue(['config', 'field_mapping', 'enabled']) ? (
+            <Form.Item
+              colon={false}
+              label=" "
+            >
+              <FieldMapping enabled={getFieldValue(['config', 'field_mapping', 'enabled'])} />
+            </Form.Item>
+          ) : null
+        }
       </Form.Item>
     </>
   );
