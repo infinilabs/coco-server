@@ -152,7 +152,8 @@ export function Component() {
                   setTimeout(() => {
                     setQueryParams(old => {
                       return {
-                        ...old
+                        ...old,
+                        t: new Date().valueOf()
                       };
                     });
                   }, 1000);
@@ -178,6 +179,26 @@ export function Component() {
           if (connector?.assets?.icons) {
             imgSrc = connector.assets.icons[record.icon];
           }
+          const aProps = {
+            className: "text-blue-500",
+            rel: "noreferrer",
+          }
+          if (record.type === 'folder') {
+            aProps.onClick = () => {
+              setQueryParams(old => {
+                return {
+                  ...old,
+                  filter: {
+                    ...(old.filter || {}),
+                    category: [record.category || '/'],
+                  }
+                }
+              })
+            }
+          } else if (record.url) {
+            aProps.href = record.url;
+            aProps.target = "_blank";
+          }
           return (
             <span className="inline-flex items-center gap-1">
               {imgSrc && (
@@ -189,14 +210,7 @@ export function Component() {
                   />
                 </IconWrapper>
               )}
-              <a
-                className="text-blue-500"
-                href={record.url}
-                rel="noreferrer"
-                target="_blank"
-              >
-                {text}
-              </a>
+              { record.url || record.type === 'folder' ? <a {...aProps}>{text}</a> : <span>{text}</span> }
             </span>
           );
         },
@@ -242,10 +256,12 @@ export function Component() {
 
   const fetchData = () => {
     setLoading(true);
+    const { filter = {} } = queryParams || {};
     fetchDatasourceDetail({
       ...queryParams,
       filter: {
-        ...(queryParams.filter || {}),
+        ...filter,
+        'category': filter.category || ['/'],
         'source.id': [datasourceID],
       }
     })
@@ -283,6 +299,38 @@ export function Component() {
       };
     });
   };
+  
+  const renderTitle = (datasource) => {
+    if (Array.isArray(datasource?.categories)) {
+      return datasource?.categories.map((item, index) => {
+        const isLast = index === datasource?.categories.length - 1;
+        return (
+          <span key={index} style={{ opacity: isLast ? 1 : 0.5 }}>
+            {
+              isLast ? (
+                <span>{item}</span>
+              ) : (
+                <a onClick={() => {
+                  const category = index === 0 ? '/' : `/${datasource?.categories.slice(0, index + 1).join('/')}`;
+                  setQueryParams(old => {
+                    return {
+                      ...old,
+                      filter: {
+                        ...(old.filter || {}),
+                        category: [category],
+                      }
+                    }
+                  })
+                }}>{item}</a>
+              )
+            }
+            { !isLast && <span className='mx-10px'>&gt;</span> }
+          </span>
+        );
+      });
+    }
+    return datasource?.name;
+  }
 
   return (
     <div className="h-full min-h-500px">
@@ -292,7 +340,7 @@ export function Component() {
       >
         <div className="mb-30px ml--16px flex items-center text-lg font-bold">
           <div className="mr-20px h-1.2em w-10px bg-[#1677FF]" />
-          <div>{datasource?.name}</div>
+          <div>{renderTitle(datasource)}</div>
         </div>
         <div className="p-5 pt-2">
           <div className="mb-4 mt-4 flex items-center justify-between">
