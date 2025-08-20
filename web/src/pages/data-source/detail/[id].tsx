@@ -190,7 +190,7 @@ export function Component() {
                   ...old,
                   filter: {
                     ...(old.filter || {}),
-                    category: [record.category || '/'],
+                    category: record.category ? [`${record.category}/${record.title}`] : ['/'],
                   }
                 }
               })
