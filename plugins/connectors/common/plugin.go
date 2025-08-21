@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"time"
 
-	_ "github.com/lib/pq"
 	"infini.sh/framework/core/orm"
 
 	log "github.com/cihub/seelog"
