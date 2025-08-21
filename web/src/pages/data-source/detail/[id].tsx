@@ -306,6 +306,9 @@ export function Component() {
       paths = [];
     }
     if (Array.isArray(paths) && paths.length > 0) {
+      if (datasource?.name) {
+        paths.unshift(datasource?.name);
+      }
       return paths.map((item, index) => {
         const isLast = index === paths.length - 1;
         return (
@@ -315,12 +318,15 @@ export function Component() {
                 <span>{item}</span>
               ) : (
                 <a onClick={() => {
-                  const path = paths.slice(0, index + 1);
                   setQueryParams(old => {
-                    return {
-                      ...old,
-                      path: JSON.stringify(path),
+                    const newParams = Object.assign({}, old);
+                    if (index !== 0) {
+                      const path = paths.slice(1, index + 1);
+                      newParams.path = JSON.stringify(path);
+                    } else {
+                      delete newParams.path;
                     }
+                    return newParams;
                   })
                 }}>{item}</a>
               )
