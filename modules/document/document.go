@@ -10,6 +10,7 @@ import (
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
 	"net/http"
+	"path"
 )
 
 func (h *APIHandler) createDoc(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -104,6 +105,29 @@ func (h *APIHandler) searchDocs(w http.ResponseWriter, req *http.Request, ps htt
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	pathFilterStr := h.GetParameter(req, "path")
+	if pathFilterStr != "" {
+		array := []string{}
+		err = util.FromJson(pathFilterStr, &array)
+		if err != nil {
+			panic(err)
+		}
+		if len(array) > 0 {
+			pathStr := path.Join(array...)
+			if pathStr != "" {
+				if !util.PrefixStr(pathStr, "/") {
+					pathStr = "/" + pathStr
+				}
+			}
+			builder.Filter(orm.TermQuery("_system.parent_path", pathStr))
+		}
+	} else {
+		//TODO
+		//sourceID := h.GetParameter(req, "source.id")
+		//if connector enabled path hierarchy, the default path filter is /
+		builder.Filter(orm.TermQuery("_system.parent_path", "/"))
 	}
 
 	ctx := orm.NewContextWithParent(req.Context())

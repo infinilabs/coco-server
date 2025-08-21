@@ -294,6 +294,11 @@ func (this *Plugin) initRootFolder(datasource *common.DataSource, id string, nam
 	}
 
 	document.System = datasource.System
+	if document.System == nil {
+		document.System = util.MapStr{}
+	}
+	document.System["parent_path"] = "/"
+
 	if id == "" {
 		id = util.GetUUID()
 	}
