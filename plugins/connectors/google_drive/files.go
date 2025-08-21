@@ -485,7 +485,7 @@ func (this *Plugin) startIndexingFiles(connector *common.Connector, datasource *
 			}
 
 			document.System = datasource.System
-			document.ID = util.MD5digest(fmt.Sprintf("%v-%v", datasource.ID, i.Id))
+			document.ID = getDocID(datasource.ID, i.Id)
 			document.Created = createdAt
 			document.Updated = updatedAt
 
