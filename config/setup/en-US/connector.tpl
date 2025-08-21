@@ -230,3 +230,58 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/n
   },
   "builtin": true
 }
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/postgresql
+{
+  "id" : "postgresql",
+  "created" : "2025-08-14T00:00:00.000000+08:00",
+  "updated" : "2025-08-14T00:00:00.000000+08:00",
+  "name" : "PostgreSQL Connector",
+  "description" : "Fetch data from PostgreSQL database.",
+  "category" : "database",
+  "icon" : "/assets/icons/connector/postgresql/icon.png",
+  "tags" : [
+    "sql",
+    "storage",
+    "database"
+  ],
+  "url" : "http://coco.rs/connectors/postgresql",
+  "assets" : {
+    "icons" : {
+      "default" : "/assets/icons/connector/postgresql/icon.png"
+    }
+  },
+  "builtin": true
+}
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/mongodb
+{
+  "id" : "mongodb",
+  "created" : "2025-01-12T00:00:00.000000+08:00",
+  "updated" : "2025-01-12T00:00:00.000000+08:00",
+  "name" : "MongoDB Connector",
+  "description" : "Powerful MongoDB database connector supporting incremental/full sync, field mapping, pagination, cluster type optimization, authentication database configuration, projection pushdown, index hints, and other advanced features. Supports standalone, replica set, and sharded cluster deployments.",
+  "category" : "database",
+  "icon" : "/assets/icons/connector/mongodb/icon.png",
+  "tags" : [
+    "nosql",
+    "storage",
+    "database",
+    "document",
+    "mongodb",
+    "incremental_sync",
+    "field_mapping",
+    "pagination",
+    "cluster_optimization",
+    "authentication",
+    "performance"
+  ],
+  "url" : "http://coco.rs/connectors/mongodb",
+  "assets" : {
+    "icons" : {
+      "default" : "/assets/icons/connector/mongodb/icon.png",
+      "collection" : "/assets/icons/connector/mongodb/collection.png",
+      "document" : "/assets/icons/connector/mongodb/document.png",
+      "replica_set" : "/assets/icons/connector/mongodb/replica_set.png",
+      "sharded" : "/assets/icons/connector/mongodb/sharded.png"
+  },
+  "builtin": true
+}

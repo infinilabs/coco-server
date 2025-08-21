@@ -24,16 +24,16 @@ import (
 	"infini.sh/framework/core/global"
 )
 
-func (p *Plugin) scanCollectionWithContext(ctx context.Context, client *mongo.Client, config *Config, collConfig CollectionConfig, datasource *common.DataSource) {
+func (p *Plugin) scanCollectionWithContext(ctx context.Context, client *mongo.Client, config *Config, collConfig CollectionConfig, datasource *common.DataSource) error {
 	select {
 	case <-ctx.Done():
 		log.Debugf("[mongodb connector] context cancelled, stopping scan for collection [%s]", collConfig.Name)
-		return
+		return ctx.Err()
 	default:
 	}
 
 	if global.ShuttingDown() {
-		return
+		return nil
 	}
 
 	log.Infof("[mongodb connector] starting scan for collection [%s] in datasource [%s]", collConfig.Name, datasource.Name)
@@ -105,12 +105,12 @@ func (p *Plugin) scanCollectionWithContext(ctx context.Context, client *mongo.Cl
 		select {
 		case <-ctx.Done():
 			log.Debugf("[mongodb connector] context cancelled during scan for collection [%s]", collConfig.Name)
-			return
+			return ctx.Err()
 		default:
 		}
 
 		if global.ShuttingDown() {
-			return
+			return nil
 		}
 
 		findOptions.SetSkip(skip)
@@ -119,7 +119,7 @@ func (p *Plugin) scanCollectionWithContext(ctx context.Context, client *mongo.Cl
 		cursor, err := collection.Find(ctx, filter, findOptions)
 		if err != nil {
 			log.Errorf("[mongodb connector] query failed for collection [%s]: %v", collConfig.Name, err)
-			return
+			return err
 		}
 
 		documents := p.processCursor(cursor, collConfig, datasource)
@@ -152,6 +152,7 @@ func (p *Plugin) scanCollectionWithContext(ctx context.Context, client *mongo.Cl
 	}
 
 	log.Infof("[mongodb connector] finished scanning collection [%s] in datasource [%s]", collConfig.Name, datasource.Name)
+	return nil
 }
 
 func (p *Plugin) buildFilter(config *Config, collConfig CollectionConfig) bson.M {

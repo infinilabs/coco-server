@@ -230,3 +230,59 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/n
   },
   "builtin": true
 }
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/postgresql
+{
+  "id" : "postgresql",
+  "created" : "2025-08-14T00:00:00.000000+08:00",
+  "updated" : "2025-08-14T00:00:00.000000+08:00",
+  "name" : "PostgreSQL 连接器",
+  "description" : "提取 PostgreSQL 数据库数据。",
+  "category" : "database",
+  "icon" : "/assets/icons/connector/postgresql/icon.png",
+  "tags" : [
+    "sql",
+    "storage",
+    "database"
+  ],
+  "url" : "http://coco.rs/connectors/postgresql",
+  "assets" : {
+     "icons" : {
+       "default" : "/assets/icons/connector/postgresql/icon.png"
+     }
+  },
+  "builtin": true
+}
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/mongodb
+{
+  "id" : "mongodb",
+  "created" : "2025-01-12T00:00:00.000000+08:00",
+  "updated" : "2025-01-12T00:00:00.000000+08:00",
+  "name" : "MongoDB 连接器",
+  "description" : "强大的MongoDB数据库连接器，支持增量/全量同步、字段映射、分页处理、集群类型优化、认证数据库配置、投影下推、索引提示等高级功能。支持单机、复制集、分片集群部署。",
+  "category" : "database",
+  "icon" : "/assets/icons/connector/mongodb/icon.png",
+  "tags" : [
+    "nosql",
+    "storage",
+    "database",
+    "document",
+    "mongodb",
+    "incremental_sync",
+    "field_mapping",
+    "pagination",
+    "cluster_optimization",
+    "authentication",
+    "performance"
+  ],
+  "url" : "http://coco.rs/connectors/mongodb",
+  "assets" : {
+    "icons" : {
+      "default" : "/assets/icons/connector/mongodb/icon.png",
+      "collection" : "/assets/icons/connector/mongodb/collection.png",
+      "document" : "/assets/icons/connector/mongodb/document.png",
+      "replica_set" : "/assets/icons/connector/mongodb/replica_set.png",
+      "sharded" : "/assets/icons/connector/mongodb/sharded.png"
+    }
+  },
+  "builtin": true
+} 
