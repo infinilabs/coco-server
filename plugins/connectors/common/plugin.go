@@ -127,14 +127,14 @@ func (s *Scanner) Scan(ctx context.Context) {
 		return
 	}
 
-	log.Infof("[%s connector] successfully connected to PostgreSQL for datasource [%s]", s.Name, s.Datasource.Name)
+	log.Debugf("[%s connector] successfully connected to PostgreSQL for datasource [%s]", s.Name, s.Datasource.Name)
 
 	scanCtx, scanCancel := context.WithCancel(ctx)
 	defer scanCancel()
 
-	s.processQuery(scanCtx, db, &cfg)
+	s.processQuery(scanCtx, db, &cfg)l
 
-	log.Infof("[%s connector] finished scanning datasource [%s]", s.Name, s.Datasource.Name)
+	log.Debugf("[%s connector] finished scanning datasource [%s]", s.Name, s.Datasource.Name)
 }
 
 // processQuery fetches and indexes rows from the user-defined query.
