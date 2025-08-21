@@ -64,6 +64,9 @@ func (p *Plugin) transformToDocument(mongoDoc bson.M, collConfig CollectionConfi
 		Icon: "default",
 	}
 
+	// 为每个文档派生数据源的系统字段，这是当前必需的
+	doc.System = datasource.System
+
 	// Generate unique ID
 	objectID := mongoDoc["_id"]
 	doc.ID = util.MD5digest(fmt.Sprintf("%s-%s-%v", datasource.ID, collConfig.Name, objectID))
