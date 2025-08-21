@@ -4,6 +4,7 @@ import { Dropdown, Image, Modal, Switch, Table, message } from 'antd';
 import Search from 'antd/es/input/Search';
 import { type LoaderFunctionArgs, useLoaderData } from 'react-router-dom';
 
+import FontIcon from '@/components/common/font_icon';
 import InfiniIcon from '@/components/common/icon';
 import {
   batchDeleteDocument,
@@ -205,7 +206,7 @@ export function Component() {
           }
           return (
             <span className="inline-flex items-center gap-1">
-              {imgSrc && (
+              {imgSrc ? (
                 <IconWrapper className="w-20px h-20px">
                   <InfiniIcon
                     height="1em"
@@ -213,7 +214,7 @@ export function Component() {
                     width="1em"
                   />
                 </IconWrapper>
-              )}
+              ) : <FontIcon name={record.icon} />}
               { record.url || record.type === 'folder' ? <a {...aProps}>{text}</a> : <span>{text}</span> }
             </span>
           );
