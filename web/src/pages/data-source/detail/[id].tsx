@@ -184,12 +184,6 @@ export function Component() {
             className: "text-blue-500",
             rel: "noreferrer",
           }
-          record.type = 'folder';
-          record.category = "/My Drive/Papers";
-          record.categories = [
-            "My Drive",
-            "Papers"
-          ]
           if (record.type === 'folder') {
             aProps.onClick = () => {
               const categories = (record.categories || []).concat([record.title])
@@ -311,7 +305,7 @@ export function Component() {
     } catch (error) {
       paths = [];
     }
-    if (Array.isArray(paths)) {
+    if (Array.isArray(paths) && paths.length > 0) {
       return paths.map((item, index) => {
         const isLast = index === paths.length - 1;
         return (
