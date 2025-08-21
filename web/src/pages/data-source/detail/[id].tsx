@@ -318,10 +318,10 @@ export function Component() {
                 <span>{item}</span>
               ) : (
                 <a onClick={() => {
-                  const path = paths.slice(0, index + 1);
                   setQueryParams(old => {
                     const newParams = Object.assign({}, old);
                     if (index !== 0) {
+                      const path = paths.slice(1, index + 1);
                       newParams.path = JSON.stringify(path);
                     } else {
                       delete newParams.path;
