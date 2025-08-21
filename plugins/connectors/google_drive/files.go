@@ -23,7 +23,7 @@ import (
 
 func getIcon(fileType string) string {
 	i := getType(fileType)
-	if i == "folder" {
+	if fileType == "folder" || i == "folder" {
 		return "font_filetype-folder"
 	}
 	return i
@@ -222,6 +222,10 @@ func isSamePermission(a, b []*drive.Permission) bool {
 	return true
 }
 
+func getDocID(datasourceID, docID string) string {
+	return util.MD5digest(fmt.Sprintf("%v_%v", datasourceID, docID))
+}
+
 func (this *Plugin) startIndexingFiles(connector *common.Connector, datasource *common.DataSource, tok *oauth2.Token) {
 	var filesProcessed = 0
 	defer func() {
@@ -252,10 +256,15 @@ func (this *Plugin) startIndexingFiles(connector *common.Connector, datasource *
 		panic(err)
 	}
 
-	// Root Folder
+	// Init root folder
+	// /My Drive
 	rootFolderID, rootFolderName := getRootFolderID(srv)
+	rootDoc := this.initRootFolder(datasource, rootFolderID, rootFolderName)
+	this.saveDocToQueue(rootDoc, filesProcessed)
 
-	log.Debug(rootFolderID, rootFolderName)
+	// /Shared with me
+	shareWithMe := this.initRootFolder(datasource, "share_with_me", "Shared with me")
+	this.saveDocToQueue(shareWithMe, filesProcessed)
 
 	ft := &FolderTreeBuilder{FolderMap: map[string]*FolderNode{}}
 	ft.AddFolder(rootFolderID, rootFolderName, "", false, false, nil, "")
@@ -579,16 +588,7 @@ func (this *Plugin) startIndexingFiles(connector *common.Connector, datasource *
 				document.Payload["image_metadata"] = i.ImageMediaMetadata
 			}
 
-			// Convert to JSON and push to queue
-			data := util.MustToJSONBytes(document)
-			if global.Env().IsDebug {
-				log.Tracef(string(data))
-			}
-			err := queue.Push(queue.SmartGetOrInitConfig(this.Queue), data)
-			if err != nil {
-				panic(err)
-			}
-			filesProcessed++
+			this.saveDocToQueue(document, filesProcessed)
 		}
 
 		// After processing all files, save the most recent modified time for next indexing
@@ -608,6 +608,19 @@ func (this *Plugin) startIndexingFiles(connector *common.Connector, datasource *
 		}
 		nextPageToken = r.NextPageToken
 	}
+}
+
+func (this *Plugin) saveDocToQueue(document common.Document, filesProcessed int) {
+	// Convert to JSON and push to queue
+	data := util.MustToJSONBytes(document)
+	if global.Env().IsDebug {
+		log.Tracef(string(data))
+	}
+	err := queue.Push(queue.SmartGetOrInitConfig(this.Queue), data)
+	if err != nil {
+		panic(err)
+	}
+	filesProcessed++
 }
 
 // downloadOrExportFile downloads or exports a Google Drive file based on its MIME type
