@@ -132,7 +132,7 @@ func (s *Scanner) Scan(ctx context.Context) {
 	scanCtx, scanCancel := context.WithCancel(ctx)
 	defer scanCancel()
 
-	s.processQuery(scanCtx, db, &cfg)l
+	s.processQuery(scanCtx, db, &cfg)
 
 	log.Debugf("[%s connector] finished scanning datasource [%s]", s.Name, s.Datasource.Name)
 }
