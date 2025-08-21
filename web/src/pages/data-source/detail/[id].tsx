@@ -4,6 +4,7 @@ import { Dropdown, Image, Modal, Switch, Table, message } from 'antd';
 import Search from 'antd/es/input/Search';
 import { type LoaderFunctionArgs, useLoaderData } from 'react-router-dom';
 
+import FontIcon from '@/components/common/font_icon';
 import InfiniIcon from '@/components/common/icon';
 import {
   batchDeleteDocument,
@@ -152,7 +153,8 @@ export function Component() {
                   setTimeout(() => {
                     setQueryParams(old => {
                       return {
-                        ...old
+                        ...old,
+                        t: new Date().valueOf()
                       };
                     });
                   }, 1000);
@@ -178,9 +180,27 @@ export function Component() {
           if (connector?.assets?.icons) {
             imgSrc = connector.assets.icons[record.icon];
           }
+          const aProps = {
+            className: "text-blue-500",
+            rel: "noreferrer",
+          }
+          if (record.type === 'folder') {
+            aProps.onClick = () => {
+              const categories = (record.categories || []).concat([record.title])
+              setQueryParams(old => {
+                return {
+                  ...old,
+                  path: JSON.stringify(categories),
+                }
+              })
+            } 
+          } else if (record.url) {
+            aProps.href = record.url;
+            aProps.target = "_blank";
+          }
           return (
             <span className="inline-flex items-center gap-1">
-              {imgSrc && (
+              {imgSrc ? (
                 <IconWrapper className="w-20px h-20px">
                   <InfiniIcon
                     height="1em"
@@ -188,15 +208,8 @@ export function Component() {
                     width="1em"
                   />
                 </IconWrapper>
-              )}
-              <a
-                className="text-blue-500"
-                href={record.url}
-                rel="noreferrer"
-                target="_blank"
-              >
-                {text}
-              </a>
+              ) : <FontIcon name={record.icon} />}
+              { record.url || record.type === 'folder' ? <a {...aProps}>{text}</a> : <span>{text}</span> }
             </span>
           );
         },
@@ -242,10 +255,11 @@ export function Component() {
 
   const fetchData = () => {
     setLoading(true);
+    const { filter = {} } = queryParams || {};
     fetchDatasourceDetail({
       ...queryParams,
       filter: {
-        ...(queryParams.filter || {}),
+        ...filter,
         'source.id': [datasourceID],
       }
     })
@@ -283,6 +297,41 @@ export function Component() {
       };
     });
   };
+  
+  const renderTitle = (datasource) => {
+    let paths
+    try {
+      paths = JSON.parse(queryParams?.path);
+    } catch (error) {
+      paths = [];
+    }
+    if (Array.isArray(paths) && paths.length > 0) {
+      return paths.map((item, index) => {
+        const isLast = index === paths.length - 1;
+        return (
+          <span key={index} style={{ opacity: isLast ? 1 : 0.5 }}>
+            {
+              isLast ? (
+                <span>{item}</span>
+              ) : (
+                <a onClick={() => {
+                  const path = paths.slice(0, index + 1);
+                  setQueryParams(old => {
+                    return {
+                      ...old,
+                      path: JSON.stringify(path),
+                    }
+                  })
+                }}>{item}</a>
+              )
+            }
+            { !isLast && <span className='mx-10px'>&gt;</span> }
+          </span>
+        );
+      });
+    }
+    return datasource?.name;
+  }
 
   return (
     <div className="h-full min-h-500px">
@@ -292,7 +341,7 @@ export function Component() {
       >
         <div className="mb-30px ml--16px flex items-center text-lg font-bold">
           <div className="mr-20px h-1.2em w-10px bg-[#1677FF]" />
-          <div>{datasource?.name}</div>
+          <div>{renderTitle(datasource)}</div>
         </div>
         <div className="p-5 pt-2">
           <div className="mb-4 mt-4 flex items-center justify-between">
