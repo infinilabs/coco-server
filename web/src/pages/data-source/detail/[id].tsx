@@ -183,19 +183,22 @@ export function Component() {
             className: "text-blue-500",
             rel: "noreferrer",
           }
+          record.type = 'folder';
+          record.category = "/My Drive/Papers";
+          record.categories = [
+            "My Drive",
+            "Papers"
+          ]
           if (record.type === 'folder') {
             aProps.onClick = () => {
-              const category = record.category || '/'
+              const categories = (record.categories || []).concat([record.title])
               setQueryParams(old => {
                 return {
                   ...old,
-                  filter: {
-                    ...(old.filter || {}),
-                    category: [`${category}${category.endsWith('/') ? '' : '/'}${record.title}`],
-                  }
+                  path: JSON.stringify(categories),
                 }
               })
-            }
+            } 
           } else if (record.url) {
             aProps.href = record.url;
             aProps.target = "_blank";
@@ -262,7 +265,6 @@ export function Component() {
       ...queryParams,
       filter: {
         ...filter,
-        'category': filter.category || ['/'],
         'source.id': [datasourceID],
       }
     })
@@ -302,9 +304,15 @@ export function Component() {
   };
   
   const renderTitle = (datasource) => {
-    if (Array.isArray(datasource?.categories)) {
-      return datasource?.categories.map((item, index) => {
-        const isLast = index === datasource?.categories.length - 1;
+    let paths
+    try {
+      paths = JSON.parse(queryParams?.path);
+    } catch (error) {
+      paths = [];
+    }
+    if (Array.isArray(paths)) {
+      return paths.map((item, index) => {
+        const isLast = index === paths.length - 1;
         return (
           <span key={index} style={{ opacity: isLast ? 1 : 0.5 }}>
             {
@@ -312,14 +320,11 @@ export function Component() {
                 <span>{item}</span>
               ) : (
                 <a onClick={() => {
-                  const category = index === 0 ? '/' : `/${datasource?.categories.slice(0, index + 1).join('/')}`;
+                  const path = paths.slice(0, index + 1);
                   setQueryParams(old => {
                     return {
                       ...old,
-                      filter: {
-                        ...(old.filter || {}),
-                        category: [category],
-                      }
+                      path: JSON.stringify(path),
                     }
                   })
                 }}>{item}</a>
