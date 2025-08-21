@@ -6,6 +6,7 @@ package google_drive
 
 import (
 	"context"
+	"fmt"
 	log "github.com/cihub/seelog"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -174,7 +175,7 @@ func (this *Plugin) Start() error {
 					if !toSync {
 						continue
 					}
-					log.Infof("fetch google_drive: ID: %s, Name: %s", item.ID, item.Name)
+					log.Debugf("fetch google_drive: ID: %s, Name: %s", item.ID, item.Name)
 					this.fetch_google_drive(&connector, &item)
 				}
 			},
@@ -275,6 +276,32 @@ func (this *Plugin) fetch_google_drive(connector *common.Connector, datasource *
 		}
 	}
 
+}
+
+func (this *Plugin) initRootFolder(datasource *common.DataSource, id string, name string) common.Document {
+	document := common.Document{
+		Source: common.DataSourceReference{
+			ID:   datasource.ID,
+			Name: datasource.Name,
+			Type: "connector",
+		},
+		Title: name,
+		Type:  "folder",
+		URL:   fmt.Sprintf("https://drive.google.com/file/d/%s/view", id),
+		Icon:  getIcon("folder"),
+	}
+
+	document.System = datasource.System
+	if document.System == nil {
+		document.System = util.MapStr{}
+	}
+	document.System["parent_path"] = "/"
+
+	if id == "" {
+		id = util.GetUUID()
+	}
+	document.ID = getDocID(datasource.ID, id)
+	return document
 }
 
 // Helper function to parse token expiry time

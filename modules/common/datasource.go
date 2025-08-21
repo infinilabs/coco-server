@@ -24,6 +24,7 @@ type DataSource struct {
 	Tags     []string `json:"tags,omitempty" elastic_mapping:"tags:{type:keyword}"`
 
 	Connector ConnectorConfig `json:"connector,omitempty" elastic_mapping:"connector:{type:object}"` // Connector configuration
+
 	// Whether synchronization is allowed
 	SyncEnabled bool `json:"sync_enabled" elastic_mapping:"sync_enabled:{type:keyword}"`
 	Enabled     bool `json:"enabled" elastic_mapping:"enabled:{type:keyword}"`
