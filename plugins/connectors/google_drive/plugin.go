@@ -285,12 +285,10 @@ func (this *Plugin) initRootFolder(datasource *common.DataSource, id string, nam
 			Name: datasource.Name,
 			Type: "connector",
 		},
-		Title:      name,
-		Category:   "/",
-		Categories: []string{"/"},
-		Type:       "folder",
-		URL:        fmt.Sprintf("https://drive.google.com/file/d/%s/view", id),
-		Icon:       getIcon("folder"),
+		Title: name,
+		Type: "folder",
+		URL:  fmt.Sprintf("https://drive.google.com/file/d/%s/view", id),
+		Icon: getIcon("folder"),
 	}
 
 	document.System = datasource.System
