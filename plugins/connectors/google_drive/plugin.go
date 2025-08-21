@@ -286,9 +286,9 @@ func (this *Plugin) initRootFolder(datasource *common.DataSource, id string, nam
 			Type: "connector",
 		},
 		Title: name,
-		Type: "folder",
-		URL:  fmt.Sprintf("https://drive.google.com/file/d/%s/view", id),
-		Icon: getIcon("folder"),
+		Type:  "folder",
+		URL:   fmt.Sprintf("https://drive.google.com/file/d/%s/view", id),
+		Icon:  getIcon("folder"),
 	}
 
 	document.System = datasource.System
