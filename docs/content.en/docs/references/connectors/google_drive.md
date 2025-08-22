@@ -4,6 +4,48 @@ weight: 10
 ---
 
 # Google Drive Connector
+## Register Google Drive Connector
+
+```shell
+curl -XPUT "http://localhost:9000/connector/google_drive?replace=true" -d '{
+    "name": "Google Drive Connector",
+    "description": "Fetch the files metadata from Google Drive.",
+    "icon": "/assets/connector/google_drive/icon.png",
+    "path_hierarchy":true,
+    "category": "cloud_storage",
+    "tags": [
+        "google",
+        "storage"
+    ],
+    "url": "http://coco.rs/connectors/google_drive",
+    "assets": {
+        "icons": {
+            "default": "/assets/connector/google_drive/icon.png",
+            "audio": "/assets/connector/google_drive/audio.png",
+            "form": "/assets/connector/google_drive/form.png",
+            "document": "/assets/connector/google_drive/document.png",
+            "drawing": "/assets/connector/google_drive/drawing.png",
+            "folder": "/assets/connector/google_drive/folder.png",
+             "fusiontable": "/assets/connector/google_drive/fusiontable.png",
+             "jam": "/assets/connector/google_drive/jam.png",
+             "map": "/assets/connector/google_drive/map.png",
+             "ms_excel": "/assets/connector/google_drive/ms_excel.png",
+             "ms_powerpoint": "/assets/connector/google_drive/ms_powerpoint.png",
+             "ms_word": "/assets/connector/google_drive/ms_word.png",
+             "pdf": "/assets/connector/google_drive/pdf.png",
+             "photo": "/assets/connector/google_drive/photo.png",
+            "presentation": "/assets/connector/google_drive/presentation.png",
+            "script": "/assets/connector/google_drive/script.png",
+            "site": "/assets/connector/google_drive/site.png",
+            "spreadsheet": "/assets/connector/google_drive/spreadsheet.png",
+            "video": "/assets/connector/google_drive/video.png",
+            "zip": "/assets/connector/google_drive/zip.png"
+        }
+    }
+}'
+```
+
+> Use `google_drive` as a unique identifier, as it is a builtin connector.
 
 ## Obtain Google Drive credentials
 To use the Google Drive Connector, follow these steps to obtain your token:
