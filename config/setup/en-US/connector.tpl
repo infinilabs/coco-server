@@ -258,7 +258,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/m
   "created" : "2025-01-12T00:00:00.000000+08:00",
   "updated" : "2025-01-12T00:00:00.000000+08:00",
   "name" : "MongoDB Connector",
-  "description" : "Powerful MongoDB database connector supporting incremental/full sync, field mapping, pagination, cluster type optimization, authentication database configuration, projection pushdown, index hints, and other advanced features. Supports standalone, replica set, and sharded cluster deployments.",
+  "description" : "Powerful MongoDB database connector supporting incremental/full sync, field mapping (collection-level + global-level), pagination, cluster type optimization, authentication database configuration, projection pushdown, index hints, and other advanced features. Supports standalone, replica set, and sharded cluster deployments.",
   "category" : "database",
   "icon" : "/assets/icons/connector/mongodb/icon.png",
   "tags" : [
@@ -282,6 +282,48 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/m
       "document" : "/assets/icons/connector/mongodb/document.png",
       "replica_set" : "/assets/icons/connector/mongodb/replica_set.png",
       "sharded" : "/assets/icons/connector/mongodb/sharded.png"
+    }
+  },
+  "config": {
+    "connection_uri": "mongodb://username:password@localhost:27017/database",
+    "database": "database_name",
+    "auth_database": "admin",
+    "cluster_type": "standalone",
+    "collections": [
+      {
+        "name": "collection_name",
+        "filter": {"status": "active"},
+        "title_field": "title",
+        "content_field": "content",
+        "category_field": "category",
+        "tags_field": "tags",
+        "url_field": "url",
+        "timestamp_field": "updated_at"
+      }
+    ],
+    "pagination": true,
+    "page_size": 500,
+    "sync_strategy": "incremental",
+    "last_modified_field": "updated_at",
+    "field_mapping": {
+      "enabled": true,
+      "mapping": {
+        "id": "custom_id",
+        "title": "custom_title",
+        "content": "custom_content",
+        "category": "custom_category",
+        "tags": "custom_tags",
+        "url": "custom_url",
+        "metadata": "extra_fields"
+      }
+    },
+    "performance": {
+      "batch_size": 1000,
+      "max_pool_size": 10,
+      "timeout": "30s",
+      "enable_projection": true,
+      "enable_index_hint": true
+    }
   },
   "builtin": true
 }
