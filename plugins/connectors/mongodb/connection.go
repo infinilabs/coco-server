@@ -16,31 +16,43 @@ import (
 )
 
 func (p *Plugin) getOrCreateClient(datasourceID string, config *Config) (*mongo.Client, error) {
+	// First check: use read lock to check if connection exists and is valid
 	p.mu.RLock()
 	if client, exists := p.clients[datasourceID]; exists {
-		p.mu.RUnlock()
-		// Test connection
+		// Test if the connection is still valid
 		if err := client.Ping(context.Background(), readpref.Primary()); err == nil {
+			p.mu.RUnlock()
 			return client, nil
 		}
-		// Connection failed, remove it
-		p.mu.Lock()
-		delete(p.clients, datasourceID)
-		client.Disconnect(context.Background())
-		p.mu.Unlock()
+		p.mu.RUnlock()
 	} else {
 		p.mu.RUnlock()
 	}
 
-	// Create new client
+	// Acquire write lock to prepare for creating new connection
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	
+	// Second check: re-check connection status under write lock protection
+	// Prevents connection overwrite when multiple goroutines create connections simultaneously
+	if client, exists := p.clients[datasourceID]; exists {
+		// Test connection again (may have been fixed by another goroutine)
+		if err := client.Ping(context.Background(), readpref.Primary()); err == nil {
+			return client, nil
+		}
+		// Connection indeed failed, remove it and disconnect
+		delete(p.clients, datasourceID)
+		client.Disconnect(context.Background())
+	}
+
+	// Create new MongoDB client connection
 	client, err := p.createMongoClient(config)
 	if err != nil {
 		return nil, err
 	}
 
-	p.mu.Lock()
+	// Store new connection in the connection pool
 	p.clients[datasourceID] = client
-	p.mu.Unlock()
 
 	return client, nil
 }
@@ -119,7 +131,7 @@ func (p *Plugin) handleConnectionError(err error, datasourceID string) {
 	}
 	p.mu.Unlock()
 
-	// Log error and wait for retry
-	log.Errorf("[mongodb connector] connection error: %v", err)
-	time.Sleep(time.Second * 30) // Backoff retry
+	// Log error and return immediately
+	// Let the scheduler decide when to retry the failed scan task
+	log.Errorf("[mongodb connector] connection error for datasource [%s]: %v", datasourceID, err)
 }

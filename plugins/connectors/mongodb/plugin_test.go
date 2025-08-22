@@ -107,36 +107,40 @@
 	 }  
  }  
    
- func TestBuildFilter(t *testing.T) {  
-	 p := &Plugin{}  
-	   
-	 config := &Config{  
-		 SyncStrategy: "incremental",  
-		 LastSyncTime: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),  
-	 }  
-	   
-	 collConfig := CollectionConfig{  
-		 Filter: map[string]interface{}{  
-			 "status": "published",  
-		 },  
-		 TimestampField: "updated_at",  
-	 }  
-	   
-	 filter := p.buildFilter(config, collConfig)  
-	   
-	 // Check base filter  
-	 if filter["status"] != "published" {  
-		 t.Errorf("Expected status filter to be preserved")  
-	 }  
-	   
-	 // Check timestamp filter  
-	 timestampFilter, ok := filter["updated_at"].(bson.M)  
-	 if !ok {  
-		 t.Errorf("Expected timestamp filter to be added")  
-	 } else if timestampFilter["$gt"] != config.LastSyncTime {  
-		 t.Errorf("Expected timestamp filter to use LastSyncTime")  
-	 }  
- }  
+ func TestBuildFilter(t *testing.T) {
+	p := &Plugin{
+		syncManager: NewSyncManager(),
+	}
+
+	config := &Config{
+		SyncStrategy: "incremental",
+		LastModifiedField: "updated_at",
+	}
+
+	collConfig := CollectionConfig{
+		Filter: map[string]interface{}{
+			"status": "published",
+		},
+		TimestampField: "updated_at",
+	}
+
+	// Create a mock datasource
+	datasource := &common.DataSource{
+		ID: "test_datasource",
+	}
+
+	filter := p.buildFilter(config, collConfig, datasource)
+
+	// Check base filter
+	if filter["status"] != "published" {
+		t.Errorf("Expected status filter to be preserved")
+	}
+
+	// Check timestamp filter - should not exist initially since no sync time is set
+	if _, exists := filter["updated_at"]; exists {
+		t.Errorf("Expected no timestamp filter initially since no sync time is set")
+	}
+}  
    
  func TestValidateConfig(t *testing.T) {  
 	 p := &Plugin{}  
@@ -254,8 +258,8 @@
 		 t.Errorf("Expected category 'Technology', got '%s'", doc.Category)  
 	 }  
 	   
-	 doc.Tags[0] != "mongodb" || doc.Tags[1] != "database" {  
-		t.Errorf("Expected tags ['mongodb', 'database'], got %v", doc.Tags)  
+	 if doc.Tags[0] != "mongodb" || doc.Tags[1] != "database" {
+		t.Errorf("Expected tags ['mongodb', 'database'], got %v", doc.Tags)
 	}  
 	  
 	if doc.URL != "https://example.com/article" {  

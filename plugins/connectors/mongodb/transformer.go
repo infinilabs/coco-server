@@ -7,7 +7,6 @@ package mongodb
 import (
 	"context"
 	"fmt"
-	"runtime"
 
 	"log"
 
@@ -23,6 +22,9 @@ func (p *Plugin) processCursor(cursor *mongo.Cursor, collConfig CollectionConfig
 	var documents []*common.Document
 	count := 0
 	maxBatchSize := 1000 // Prevent memory overflow
+
+	// Pre-allocate slice with capacity to reduce memory allocations
+	documents = make([]*common.Document, 0, maxBatchSize)
 
 	for cursor.Next(context.Background()) && count < maxBatchSize {
 		if global.ShuttingDown() {
@@ -43,11 +45,6 @@ func (p *Plugin) processCursor(cursor *mongo.Cursor, collConfig CollectionConfig
 
 		documents = append(documents, doc)
 		count++
-
-		// Memory management
-		if count%100 == 0 {
-			runtime.GC()
-		}
 	}
 
 	return documents

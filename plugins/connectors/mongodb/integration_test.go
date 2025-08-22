@@ -73,9 +73,11 @@ func TestMongoDBIntegration(t *testing.T) {
 		collection.Drop(context.Background())  
 	}()  
 	  
-	// Setup plugin  
-	plugin := &Plugin{}  
-	plugin.Queue = &queue.QueueConfig{Name: "test_queue"}  
+	// Setup plugin
+	plugin := &Plugin{
+		syncManager: NewSyncManager(),
+	}
+	plugin.Queue = &queue.QueueConfig{Name: "test_queue"}
 	  
 	// Setup test configuration  
 	config := &Config{  
@@ -123,8 +125,8 @@ func TestMongoDBIntegration(t *testing.T) {
 	}  
 	  
 	// Test document scanning  
-	testCollection := mongoClient.Database(testDB).Collection(testCollection)  
-	filter := plugin.buildFilter(config, config.Collections[0])  
+	testCollection := mongoClient.Database(testDB).Collection(testCollection)
+	filter := plugin.buildFilter(config, config.Collections[0], datasource)
 	  
 	cursor, err := testCollection.Find(context.Background(), filter)  
 	if err != nil {  

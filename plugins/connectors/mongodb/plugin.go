@@ -32,10 +32,11 @@ type TaskStatus struct {
 
 type Plugin struct {
 	connectors.BasePlugin
-	mu      sync.RWMutex
-	ctx     context.Context
-	cancel  context.CancelFunc
-	clients map[string]*mongo.Client
+	mu          sync.RWMutex
+	ctx         context.Context
+	cancel      context.CancelFunc
+	clients     map[string]*mongo.Client
+	syncManager *SyncManager
 }
 
 func init() {
@@ -55,6 +56,7 @@ func (p *Plugin) Start() error {
 	defer p.mu.Unlock()
 	p.ctx, p.cancel = context.WithCancel(context.Background())
 	p.clients = make(map[string]*mongo.Client)
+	p.syncManager = NewSyncManager()
 	return p.BasePlugin.Start(connectors.DefaultSyncInterval)
 }
 
