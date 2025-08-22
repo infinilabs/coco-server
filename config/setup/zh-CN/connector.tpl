@@ -59,6 +59,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
   "name" : "Google 云盘连接器",
   "description" : "提取 Google 云端硬盘中文件的元数据。",
   "category" : "cloud_storage",
+  "path_hierarchy":true,
   "icon" : "/assets/icons/connector/google_drive/icon.png",
   "tags" : [
     "google",

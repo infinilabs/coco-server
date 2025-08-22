@@ -59,6 +59,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
   "name" : "Google Drive Connector",
   "description" : "Fetch the files metadata from Google Drive.",
   "category" : "cloud_storage",
+  "path_hierarchy":true,
   "icon" : "/assets/icons/connector/google_drive/icon.png",
   "tags" : [
     "google",
