@@ -370,7 +370,7 @@ pipeline:
             group: enriched_documents
             fetch_max_messages: 10
           processor:
-            - document_enrichment:
+            - document_summarization:
                 model: $[[env.ENRICHMENT_MODEL]]
                 input_queue: "indexing_documents"
                 min_input_document_length: 500
