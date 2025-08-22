@@ -6,9 +6,7 @@ package mongodb
 
 import (
 	"context"
-	"fmt"
 	"sync"
-	"time"
 
 	log "github.com/cihub/seelog"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -16,19 +14,9 @@ import (
 	"infini.sh/coco/plugins/connectors"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/module"
-	"infini.sh/framework/core/task"
 )
 
 const ConnectorMongoDB = "mongodb"
-
-// TaskStatus represents task execution status
-type TaskStatus struct {
-	TaskID      string    `json:"task_id"`      // Task ID
-	Collection  string    `json:"collection"`   // Collection name
-	Status      string    `json:"status"`       // Task status: running, completed, failed, cancelled
-	Error       error     `json:"error"`        // Error information (if any)
-	CompletedAt time.Time `json:"completed_at"` // Completion time
-}
 
 type Plugin struct {
 	connectors.BasePlugin
@@ -123,172 +111,33 @@ func (p *Plugin) Scan(connector *common.Connector, datasource *common.DataSource
 		return
 	}
 
-	scanCtx, scanCancel := context.WithCancel(parentCtx)
-	defer scanCancel()
-
-	// Use framework task scheduling to replace goroutine and sync.WaitGroup
-	// Create concurrent scanning tasks for each collection, organized by task group
-	taskGroup := "mongodb_scan_" + datasource.ID
-	var taskIDs []string
-
-	// Task status monitoring channel
-	taskStatusChan := make(chan TaskStatus, len(config.Collections))
-	totalTasks := len(config.Collections)
-
-	// Start task status monitoring goroutine, use channel to synchronize task completion status
-	go p.monitorTaskStatus(taskGroup, totalTasks, taskStatusChan)
-
-	// Create scanning tasks for all collections
+	// Simple sequential scanning for each collection
+	// Since the connector is already wrapped in a background task, we use simple implementation
 	for _, collConfig := range config.Collections {
 		if global.ShuttingDown() {
+			log.Debugf("[mongodb connector] shutting down, stopping scan for collection [%s]", collConfig.Name)
 			break
 		}
 
-		// Create concurrent scanning task for each collection
-		// Generate a unique task identifier for this collection scan
-		uniqueTaskID := fmt.Sprintf("%s_%s_%d", taskGroup, collConfig.Name, time.Now().UnixNano())
-
-		taskID := task.RunWithinGroup(taskGroup, func(ctx context.Context) error {
-			// Check if context is cancelled
-			select {
-			case <-ctx.Done():
-				log.Debugf("[mongodb connector] task cancelled for collection [%s]", collConfig.Name)
-				return ctx.Err()
-			default:
-			}
-
-			// Execute collection scanning
-			err := p.scanCollectionWithContext(scanCtx, client, config, collConfig, datasource)
-
-			// Send task completion status
-			// Use unique task identifier to avoid conflicts
-			select {
-			case taskStatusChan <- TaskStatus{
-				TaskID:      uniqueTaskID, // Use unique task identifier
-				Collection:  collConfig.Name,
-				Status:      "completed",
-				Error:       err,
-				CompletedAt: time.Now(),
-			}:
-			default:
-				log.Warnf("[mongodb connector] task status channel full, status for collection [%s] not sent", collConfig.Name)
-			}
-
-			return err
-		})
-
-		if taskID != "" {
-			taskIDs = append(taskIDs, taskID)
-		}
-	}
-
-	// Wait for all tasks to complete or timeout
-	if len(taskIDs) > 0 {
-		log.Debugf("[mongodb connector] launched %d collection scan tasks in group [%s]", len(taskIDs), taskGroup)
-
-		// Wait for tasks to complete or timeout
-		timeout := time.After(30 * time.Minute) // 30 minutes timeout
-
-		// Wait for all tasks to complete
-		completedCount := 0
-		for completedCount < totalTasks {
-			select {
-			case <-timeout:
-				log.Warnf("[mongodb connector] timeout waiting for tasks to complete, completed: %d/%d", completedCount, totalTasks)
-				return
-			case status := <-taskStatusChan:
-				completedCount++
-				if status.Error != nil {
-					log.Warnf("[mongodb connector] task for collection [%s] completed with error: %v", status.Collection, status.Error)
-				} else {
-					log.Debugf("[mongodb connector] task for collection [%s] completed successfully (%d/%d)", status.Collection, completedCount, totalTasks)
-				}
-			case <-scanCtx.Done():
-				log.Debugf("[mongodb connector] scan context cancelled, stopping task monitoring")
-				return
-			}
+		// Check if context is cancelled
+		select {
+		case <-parentCtx.Done():
+			log.Debugf("[mongodb connector] context cancelled, stopping scan for collection [%s]", collConfig.Name)
+			return
+		default:
 		}
 
-		log.Infof("[mongodb connector] all %d collection scan tasks completed successfully", totalTasks)
+		log.Debugf("[mongodb connector] scanning collection [%s]", collConfig.Name)
+
+		// Execute collection scanning
+		if err := p.scanCollectionWithContext(parentCtx, client, config, collConfig, datasource); err != nil {
+			log.Errorf("[mongodb connector] failed to scan collection [%s]: %v", collConfig.Name, err)
+			// Continue with next collection instead of failing completely
+			continue
+		}
+
+		log.Debugf("[mongodb connector] successfully scanned collection [%s]", collConfig.Name)
 	}
 
 	log.Infof("[mongodb connector] finished scanning datasource [%s]", datasource.Name)
-}
-
-// monitorTaskStatus monitors task execution status
-func (p *Plugin) monitorTaskStatus(taskGroup string, totalTasks int, statusChan <-chan TaskStatus) {
-	log.Debugf("[mongodb connector] starting task status monitoring for group [%s], total tasks: %d", taskGroup, totalTasks)
-
-	completedTasks := 0
-	failedTasks := 0
-	startTime := time.Now()
-
-	// Create task status mapping
-	taskStatusMap := make(map[string]*TaskStatus)
-
-	for status := range statusChan {
-		// Update task status
-		taskStatusMap[status.TaskID] = &status
-
-		if status.Status == "completed" {
-			completedTasks++
-			if status.Error != nil {
-				failedTasks++
-				log.Warnf("[mongodb connector] task [%s] for collection [%s] completed with error: %v",
-					status.TaskID, status.Collection, status.Error)
-			} else {
-				log.Debugf("[mongodb connector] task [%s] for collection [%s] completed successfully",
-					status.TaskID, status.Collection)
-			}
-		}
-
-		// Record progress
-		progress := float64(completedTasks) / float64(totalTasks) * 100
-		log.Debugf("[mongodb connector] task progress: %d/%d (%.1f%%) completed, %d failed",
-			completedTasks, totalTasks, progress, failedTasks)
-
-		// Check if all tasks are completed
-		if completedTasks >= totalTasks {
-			duration := time.Since(startTime)
-			log.Infof("[mongodb connector] all tasks in group [%s] completed in %v, success: %d, failed: %d",
-				taskGroup, duration, completedTasks-failedTasks, failedTasks)
-			break
-		}
-	}
-
-	// Generate task execution report
-	p.generateTaskReport(taskGroup, taskStatusMap, totalTasks, startTime)
-}
-
-// generateTaskReport generates task execution report
-func (p *Plugin) generateTaskReport(taskGroup string, taskStatusMap map[string]*TaskStatus, totalTasks int, startTime time.Time) {
-	duration := time.Since(startTime)
-	successCount := 0
-	failedCount := 0
-
-	for _, status := range taskStatusMap {
-		if status.Error != nil {
-			failedCount++
-		} else {
-			successCount++
-		}
-	}
-
-	// Record detailed execution report
-	log.Infof("[mongodb connector] task group [%s] execution report:", taskGroup)
-	log.Infof("[mongodb connector]   - Total tasks: %d", totalTasks)
-	log.Infof("[mongodb connector]   - Successful: %d", successCount)
-	log.Infof("[mongodb connector]   - Failed: %d", failedCount)
-	log.Infof("[mongodb connector]   - Duration: %v", duration)
-	log.Infof("[mongodb connector]   - Average time per task: %v", duration/time.Duration(totalTasks))
-
-	// If there are failed tasks, record detailed information
-	if failedCount > 0 {
-		log.Warnf("[mongodb connector] failed tasks details:")
-		for _, status := range taskStatusMap {
-			if status.Error != nil {
-				log.Warnf("[mongodb connector]   - Collection [%s]: %v", status.Collection, status.Error)
-			}
-		}
-	}
 }
