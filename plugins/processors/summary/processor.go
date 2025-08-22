@@ -192,7 +192,7 @@ Summary:`, processor.config.MaxOutputDocumentLength, util.SubStringWithSuffix(st
 					previousSummary := doc.Summary
 					if previousSummary != "" && processor.config.KeepPreviousSummaryContent && processor.config.PreviousSummaryField != "" {
 						doc.Payload[processor.config.PreviousSummaryField] = previousSummary
-					}else{
+					} else {
 						doc.Summary = text
 					}
 				}
