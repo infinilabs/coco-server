@@ -230,28 +230,6 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/n
   },
   "builtin": true
 }
-POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/postgresql
-{
-  "id" : "postgresql",
-  "created" : "2025-08-14T00:00:00.000000+08:00",
-  "updated" : "2025-08-14T00:00:00.000000+08:00",
-  "name" : "PostgreSQL Connector",
-  "description" : "Fetch data from PostgreSQL database.",
-  "category" : "database",
-  "icon" : "/assets/icons/connector/postgresql/icon.png",
-  "tags" : [
-    "sql",
-    "storage",
-    "database"
-  ],
-  "url" : "http://coco.rs/connectors/postgresql",
-  "assets" : {
-    "icons" : {
-      "default" : "/assets/icons/connector/postgresql/icon.png"
-    }
-  },
-  "builtin": true
-}
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/mongodb
 {
   "id" : "mongodb",
