@@ -5,6 +5,7 @@
 package document
 
 import (
+	log "github.com/cihub/seelog"
 	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/orm"
@@ -107,32 +108,64 @@ func (h *APIHandler) searchDocs(w http.ResponseWriter, req *http.Request, ps htt
 		return
 	}
 
-	pathFilterStr := h.GetParameter(req, "path")
-	if pathFilterStr != "" {
-		array := []string{}
-		err = util.FromJson(pathFilterStr, &array)
-		if err != nil {
-			panic(err)
-		}
-		if len(array) > 0 {
-			pathStr := path.Join(array...)
-			if pathStr != "" {
-				if !util.PrefixStr(pathStr, "/") {
-					pathStr = "/" + pathStr
+	ctx := orm.NewContextWithParent(req.Context())
+
+	//TODO cache
+	sourceIDs := builder.GetFilterValues("source.id")
+	pathHierarchy := false
+	if len(sourceIDs) == 1 {
+		sourceIDArray, ok := sourceIDs[0].([]interface{})
+		if ok && len(sourceIDArray) == 1 {
+			sourceID, ok := sourceIDArray[0].(string)
+			if ok {
+				if sourceID != "" {
+					ds := common.DataSource{}
+					ds.ID = sourceID
+					exists, err := orm.GetV2(ctx, &ds)
+					if !exists || err != nil {
+						panic("invalid datasource")
+					}
+
+					conn := common.Connector{}
+					conn.ID = ds.Connector.ConnectorID
+					exists, err = orm.GetV2(ctx, &conn)
+					if !exists || err != nil {
+						panic("invalid connector")
+					}
+					if conn.PathHierarchy {
+						pathHierarchy = true
+					}
 				}
 			}
-			builder.Filter(orm.TermQuery("_system.parent_path", pathStr))
 		}
-	} else {
-		//TODO
-		//sourceID := h.GetParameter(req, "source.id")
-		//if connector enabled path hierarchy, the default path filter is /
-		builder.Filter(orm.TermQuery("_system.parent_path", "/"))
 	}
 
-	ctx := orm.NewContextWithParent(req.Context())
-	orm.WithModel(ctx, &common.Document{})
+	if pathHierarchy {
+		pathFilterStr := h.GetParameter(req, "path")
+		if pathFilterStr != "" {
+			array := []string{}
+			err = util.FromJson(pathFilterStr, &array)
+			if err != nil {
+				panic(err)
+			}
+			if len(array) > 0 {
+				pathStr := path.Join(array...)
+				if pathStr != "" {
+					if !util.PrefixStr(pathStr, "/") {
+						pathStr = "/" + pathStr
+					}
+				}
+				builder.Filter(orm.TermQuery("_system.parent_path", pathStr))
+				log.Trace("adding path hierarchy filter: ", pathStr)
+			}
+		} else {
+			//if connector enabled path hierarchy, the default path filter is /
+			builder.Filter(orm.TermQuery("_system.parent_path", "/"))
+			log.Trace("adding path hierarchy filter: /")
+		}
+	}
 
+	orm.WithModel(ctx, &common.Document{})
 	res, err := orm.SearchV2(ctx, builder)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)

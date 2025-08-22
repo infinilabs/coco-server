@@ -12,6 +12,7 @@ Information about release notes of Coco Server is provided here.
 - chore: update yuque's document id #473
 
 ### 🚀 Features  
+- feat: handle path_hierarchy config for document search #486
 
 ### 🐛 Bug fix  
 - fix: correct assistant update logic
