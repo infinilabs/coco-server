@@ -39,6 +39,7 @@ Information about release notes of Coco Server is provided here.
 - feat: extract content for notion connector #70
 - feat: network storage connector #461
 - feat: postgresql connector #476
+- feat: mysql connector #489
 
 ### 🐛 Bug fix  
 - fix: query parameter "filter" is not working

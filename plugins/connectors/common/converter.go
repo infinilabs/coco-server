@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	log "github.com/cihub/seelog"
+
 	"infini.sh/coco/modules/common"
 )
 
@@ -82,42 +84,151 @@ func (t *Transformer) Transform(doc *common.Document, m *Mapping) {
 }
 
 func (t *Transformer) getString(column string) string {
-	if v, ok := t.Payload[column]; ok {
-		t.Visited[column] = true
-		return fmt.Sprintf("%v", v)
+	v, ok := t.Payload[column]
+	if !ok || v == nil {
+		return ""
 	}
-	return ""
+	t.Visited[column] = true
+	if v, ok := v.([]uint8); ok {
+		return string(v)
+	}
+	return fmt.Sprintf("%v", v)
 }
 
 func (t *Transformer) getStringSlice(column string) []string {
-	if v, ok := t.Payload[column]; ok {
-		if val, ok := v.(string); ok {
-			t.Visited[column] = true
-			return strings.Split(val, ",")
-		}
+	v, ok := t.Payload[column]
+	if !ok || v == nil {
+		return nil
 	}
-	return nil
+
+	t.Visited[column] = true
+
+	var s string
+
+	switch val := v.(type) {
+	case []string:
+		return val
+	case []uint8:
+		s = string(val)
+		if s == "" {
+			return nil
+		}
+		return strings.Split(s, ",")
+	case string:
+		if val == "" {
+			return nil
+		}
+		return strings.Split(val, ",")
+	default:
+		s := fmt.Sprintf("%v", v)
+		if s == "" {
+			return nil
+		}
+		return strings.Split(s, ",")
+	}
 }
 
 func (t *Transformer) getTime(column string) *time.Time {
-	if v, ok := t.Payload[column]; ok {
-		if val, ok := v.(time.Time); ok {
-			t.Visited[column] = true
-			return &val
+	v, ok := t.Payload[column]
+	if !ok || v == nil {
+		return nil
+	}
+
+	var val time.Time
+	var err error
+
+	switch v := v.(type) {
+	case time.Time:
+		val = v
+	case []uint8:
+		s := string(v)
+		val, err = parseTime(s)
+		if err != nil {
+			_ = log.Warnf("error parsing time string '%s' for column '%s': %v", s, column, err)
+			return nil
+		}
+	case string:
+		val, err = parseTime(v)
+		if err != nil {
+			_ = log.Warnf("error parsing time string '%s' for column '%s': %v", v, column, err)
+			return nil
+		}
+	default:
+		_ = log.Warnf("unsupported type for time conversion: %T for column '%s'", v, column)
+		return nil
+	}
+	t.Visited[column] = true
+	return &val
+}
+
+func parseTime(s string) (time.Time, error) {
+	layouts := []string{
+		time.DateTime,
+		time.DateOnly,
+		time.RFC3339Nano,
+		time.RFC3339,
+		"2006-01-02 15:04:05.999999999", // Common format for DATETIME/TIMESTAMP with fractional seconds
+	}
+
+	for _, layout := range layouts {
+		t, err := time.Parse(layout, s)
+		if err == nil {
+			return t, nil
 		}
 	}
-	return nil
+	return time.Time{}, fmt.Errorf("could not parse '%s' with any known layouts", s)
 }
 
 func (t *Transformer) getInt(column string) int {
-	if val, ok := t.Payload[column]; ok {
-		s := fmt.Sprintf("%v", val)
-		if v, err := strconv.Atoi(s); err == nil {
-			t.Visited[column] = true
-			return v
+	v, ok := t.Payload[column]
+	if !ok || v == nil {
+		return 0
+	}
+
+	t.Visited[column] = true
+
+	switch val := v.(type) {
+	case int:
+		return val
+	case int8:
+		return int(val)
+	case int16:
+		return int(val)
+	case int32:
+		return int(val)
+	case int64:
+		return int(val)
+	case float32:
+		return int(val)
+	case float64:
+		return int(val)
+	case []uint8:
+		s := string(val)
+		if i, err := strconv.Atoi(s); err == nil {
+			return i
+		} else {
+			_ = log.Warnf("error parsing int string '%s' for column '%s': %v", s, column, err)
+			t.Visited[column] = false
+			return 0
+		}
+	case string:
+		if i, err := strconv.Atoi(val); err == nil {
+			return i
+		} else {
+			_ = log.Warnf("error parsing int string '%s' for column '%s': %v", val, column, err)
+			t.Visited[column] = false
+			return 0
+		}
+	default:
+		s := fmt.Sprintf("%v", v)
+		if i, err := strconv.Atoi(s); err == nil {
+			return i
+		} else {
+			_ = log.Warnf("error parsing int from unsupported type %T for column '%s': %v", v, column, err)
+			t.Visited[column] = false
+			return 0
 		}
 	}
-	return 0
 }
 
 func (t *Transformer) getRaw(column string) interface{} {

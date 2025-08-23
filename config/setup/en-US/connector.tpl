@@ -253,3 +253,25 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/p
   },
   "builtin": true
 }
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/mysql
+{
+  "id" : "mysql",
+  "created" : "2025-08-22T00:00:00.000000+08:00",
+  "updated" : "2025-08-22T00:00:00.000000+08:00",
+  "name" : "MySQL Connector",
+  "description" : "Fetch data from MySQL database.",
+  "category" : "database",
+  "icon" : "/assets/icons/connector/mysql/icon.png",
+  "tags" : [
+    "sql",
+    "storage",
+    "database"
+  ],
+  "url" : "http://coco.rs/connectors/mysql",
+  "assets" : {
+    "icons" : {
+      "default" : "/assets/icons/connector/mysql/icon.png"
+    }
+  },
+  "builtin": true
+}
