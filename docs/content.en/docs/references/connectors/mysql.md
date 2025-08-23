@@ -82,7 +82,7 @@ curl -H 'Content-Type: application/json' -XPOST "http://localhost:9000/datasourc
     "connector":{
         "id": "mysql",
         "config": { 
-            "connection_uri": "mysql://user:password@tcp(localhost:3306)/database",
+            "connection_uri": "user:password@tcp(localhost:3306)/database",
             "sql": "SELECT * from DOC",
             "pagination": true,
             "page_size": 500,
@@ -110,11 +110,11 @@ curl -H 'Content-Type: application/json' -XPOST "http://localhost:9000/datasourc
 ## Supported Config Parameters for MySQL Connector 
 Below are the configuration parameters supported by the MySQL Connector: 
 
-| **Field**              | **Type**   | **Description**                                                                                   | 
-|------------------------|------------|---------------------------------------------------------------------------------------------------| 
-| `connection_uri`       | `string`   | The full MySQL connection URI (e.g., mysql://user:password@tcp(localhost:3306)/database.          |
-| `sql`                  | `string`   | The SQL query to execute for fetching data.                                                       |
-| `last_modified_field`  | `string`   | Optional. The name of a timestamp/datetime column used for incremental synchronization.           |
-| `pagination`           | `boolean`  | Optional. Set to true to enable pagination for large queries. Defaults to false.                  |
-| `page_size`            | `integer`  | Optional. The number of records to fetch per page when pagination is enabled. Defaults to 500.    |
-| `field_mapping`        | `object`   | Optional. Provides advanced control to map query columns to standard document fields.             |
+| **Field**              | **Type**   | **Description**                                                                                | 
+|------------------------|------------|------------------------------------------------------------------------------------------------| 
+| `connection_uri`       | `string`   | The full MySQL connection URI (e.g., user:password@tcp(localhost:3306)/database.               |
+| `sql`                  | `string`   | The SQL query to execute for fetching data.                                                    |
+| `last_modified_field`  | `string`   | Optional. The name of a timestamp/datetime column used for incremental synchronization.        |
+| `pagination`           | `boolean`  | Optional. Set to true to enable pagination for large queries. Defaults to false.               |
+| `page_size`            | `integer`  | Optional. The number of records to fetch per page when pagination is enabled. Defaults to 500. |
+| `field_mapping`        | `object`   | Optional. Provides advanced control to map query columns to standard document fields.          |

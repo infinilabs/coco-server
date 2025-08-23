@@ -13,10 +13,10 @@ export default ({ dbType }: { readonly dbType: string }) => {
     switch (dbType) {
       case 'mysql':
         return {
-          placeholder: 'mysql://user:password@tcp(localhost:3306)/database',
+          placeholder: 'user:password@tcp(localhost:3306)/database?charset=utf8mb4',
           tooltip: t(
             'page.datasource.rdbms.tooltip.connection_uri.mysql',
-            'MySQL connection string. e.g., mysql://user:password@tcp(localhost:3306)/database'
+            'MySQL connection string. e.g., user:password@tcp(localhost:3306)/database?charset=utf8mb4'
           )
         };
       case 'postgresql':
