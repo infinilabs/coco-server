@@ -64,6 +64,7 @@ export function Component() {
           case Types.GoogleDrive:
             break;
           case Types.Postgresql:
+          case Types.Mysql:
             if (datasource.connector?.config) {
               datasource.config = datasource.connector.config;
             }
@@ -187,7 +188,8 @@ export function Component() {
         config = NetworkDriveConfig(values);
         break;
       }
-      case Types.Postgresql: {
+      case Types.Postgresql:
+      case Types.Mysql: {
         config = RdbmsConfig(values);
         break;
       }
@@ -290,7 +292,8 @@ export function Component() {
       }
       break;
     }
-    case Types.Postgresql: {
+    case Types.Postgresql:
+    case Types.Mysql: {
       if (datasource.connector?.config) {
         datasource.config = RdbmsConfig(datasource.connector);
       }
@@ -352,6 +355,7 @@ export function Component() {
             {type === Types.Confluence && <Confluence />}
             {type === Types.NetworkDrive && <NetworkDrive />}
             {type === Types.Postgresql && <Rdbms dbType="postgresql" />}
+            {type === Types.Mysql && <Rdbms dbType="mysql" />}
             {!isCustom ? (
               <>
                 <Form.Item

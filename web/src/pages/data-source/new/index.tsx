@@ -114,6 +114,9 @@ export function Component() {
     case Types.Postgresql:
       connectorType = 'Postgresql';
       break;
+    case Types.Mysql:
+      connectorType = 'Mysql';
+      break;
     default:
       return (
         <Modal
@@ -217,6 +220,10 @@ export function Component() {
         break;
       }
       case Types.Postgresql: {
+        config = RdbmsConfig(values);
+        break;
+      }
+      case Types.Mysql: {
         config = RdbmsConfig(values);
         break;
       }
@@ -332,6 +339,7 @@ export function Component() {
               {type === Types.Confluence && <Confluence />}
               {type === Types.NetworkDrive && <NetworkDrive />}
               {type === Types.Postgresql && <Rdbms dbType="postgresql" />}
+              {type === Types.Mysql && <Rdbms dbType="mysql" />}
               <Form.Item
                 label={t('page.datasource.new.labels.data_sync')}
                 name="sync_config"
