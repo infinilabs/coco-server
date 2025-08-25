@@ -8,8 +8,7 @@ import (
 	"context"
 	"fmt"
 
-	"log"
-
+	log "github.com/cihub/seelog"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"infini.sh/coco/modules/common"

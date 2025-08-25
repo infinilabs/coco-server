@@ -8,11 +8,11 @@ import (
 	"context"
 	"time"
 
-	"log"
-
+	log "github.com/cihub/seelog"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 )
 
 func (p *Plugin) getOrCreateClient(datasourceID string, config *Config) (*mongo.Client, error) {
@@ -32,7 +32,7 @@ func (p *Plugin) getOrCreateClient(datasourceID string, config *Config) (*mongo.
 	// Acquire write lock to prepare for creating new connection
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	
+
 	// Second check: re-check connection status under write lock protection
 	// Prevents connection overwrite when multiple goroutines create connections simultaneously
 	if client, exists := p.clients[datasourceID]; exists {
@@ -91,22 +91,22 @@ func (p *Plugin) createMongoClient(config *Config) (*mongo.Client, error) {
 		// Enable retry writes for replica sets
 		clientOptions.SetRetryWrites(true)
 		// Set write concern for replica sets
-		clientOptions.SetWriteConcern(mongo.WriteConcern{
-			W:        "majority",
-			J:        true,
-			WTimeout: 10 * time.Second,
-		})
+		clientOptions.SetWriteConcern(writeconcern.New(
+			writeconcern.WMajority(),
+			writeconcern.J(true),
+			writeconcern.WTimeout(10*time.Second),
+		))
 	case "sharded":
 		// For sharded clusters, use primary for writes and nearest for reads
 		clientOptions.SetReadPreference(readpref.Nearest())
 		// Enable retry writes for sharded clusters
 		clientOptions.SetRetryWrites(true)
 		// Set write concern for sharded clusters
-		clientOptions.SetWriteConcern(mongo.WriteConcern{
-			W:        "majority",
-			J:        true,
-			WTimeout: 10 * time.Second,
-		})
+		clientOptions.SetWriteConcern(writeconcern.New(
+			writeconcern.WMajority(),
+			writeconcern.J(true),
+			writeconcern.WTimeout(10*time.Second),
+		))
 	default:
 		// For standalone instances, use primary preferred
 		clientOptions.SetReadPreference(readpref.PrimaryPreferred())
