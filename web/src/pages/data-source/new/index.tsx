@@ -324,7 +324,15 @@ export function Component() {
               <Form.Item
                 label={t('page.datasource.new.labels.name')}
                 name="name"
-                rules={[{ message: 'Please input datasource name!', required: true }]}
+                rules={[
+                  {
+                    message: t(
+                      'page.datasource.commons.error.datasource_name_required',
+                      'Please input datasource name!'
+                    ),
+                    required: true
+                  }
+                ]}
               >
                 <Input className="max-w-600px" />
               </Form.Item>

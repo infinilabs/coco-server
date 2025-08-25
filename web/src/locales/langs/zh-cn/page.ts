@@ -102,6 +102,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     file_paths_add: '添加文件路径',
     commons: {
       error: {
+        datasource_name_required: '请输入数据源名称',
         extensions_format: '文件扩展名无效。请使用 pdf 或 .pdf 等格式，且仅包含字母和数字'
       }
     },
