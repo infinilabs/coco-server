@@ -18,7 +18,7 @@ import Confluence from './confluence';
 import GoogleDrive from './google_drive';
 import HugoSite from './hugo_site';
 import LocalFS from './local_fs';
-import { NetworkDriveConfig, RdbmsConfig } from './models';
+import { NetworkDriveConfig, RdbmsConfig, MongoDBConfig } from './models';
 import NetworkDrive from './network_drive';
 import Notion from './notion';
 import Rdbms from './rdbms';
@@ -224,15 +224,7 @@ export function Component() {
         break;
       }
       case Types.MongoDB: {
-        config = {
-          connection_uri: values.config?.connection_uri || '',
-          database: values.config?.database || '',
-          collections: values.config?.collections || [],
-          batch_size: values.config?.batch_size || 1000,
-          max_pool_size: values.config?.max_pool_size || 10,
-          timeout: values.config?.timeout || '30s',
-          sync_strategy: values.config?.sync_strategy || 'full'
-        };
+        config = MongoDBConfig(values);
         break;
       }
       case Types.Postgresql: {

@@ -20,7 +20,7 @@ import { getDatasource, updateDatasource } from '@/service/api/data-source';
 import Confluence from '../new/confluence';
 import HugoSite from '../new/hugo_site';
 import LocalFS from '../new/local_fs';
-import { NetworkDriveConfig, RdbmsConfig } from '../new/models';
+import { NetworkDriveConfig, RdbmsConfig, MongoDBConfig } from '../new/models';
 import NetworkDrive from '../new/network_drive';
 import Notion from '../new/notion';
 import Rdbms from '../new/rdbms';
@@ -296,7 +296,7 @@ export function Component() {
     }
     case Types.MongoDB: {
       if (datasource.connector?.config) {
-        datasource.config = datasource.connector.config;
+        datasource.config = MongoDBConfig(datasource.connector);
       }
       break;
     }
