@@ -37,7 +37,7 @@ func (p *Plugin) processCursor(cursor *mongo.Cursor, collConfig CollectionConfig
 			continue
 		}
 
-		doc, err := p.transformToDocument(mongoDoc, collConfig, datasource)
+		doc, err := p.transformToDocument(mongoDoc, collConfig, datasource, config)
 		if err != nil {
 			log.Warnf("[mongodb connector] transform document failed: %v", err)
 			continue
@@ -50,7 +50,7 @@ func (p *Plugin) processCursor(cursor *mongo.Cursor, collConfig CollectionConfig
 	return documents
 }
 
-func (p *Plugin) transformToDocument(mongoDoc bson.M, collConfig CollectionConfig, datasource *common.DataSource) (*common.Document, error) {
+func (p *Plugin) transformToDocument(mongoDoc bson.M, collConfig CollectionConfig, datasource *common.DataSource, config *Config) (*common.Document, error) {
 	doc := &common.Document{
 		Source: common.DataSourceReference{
 			ID:   datasource.ID,
@@ -114,6 +114,9 @@ func (p *Plugin) transformToDocument(mongoDoc bson.M, collConfig CollectionConfi
 	doc.Metadata["mongodb_collection"] = collConfig.Name
 	doc.Metadata["mongodb_id"] = objectID
 	doc.Metadata["raw_document"] = mongoDoc
+
+	// Apply global field mapping if enabled
+	p.applyGlobalFieldMapping(doc, mongoDoc, config)
 
 	return doc, nil
 }
