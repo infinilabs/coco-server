@@ -9,8 +9,6 @@ import (
 	"fmt"
 	"time"
 
-	"log"
-
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"infini.sh/framework/core/global"
 )
