@@ -184,8 +184,8 @@ func (p *pullRequestWrapper) GetLabels() []*githubv3.Label {
 	return p.Labels
 }
 
-// transformContentLikeToDocument is a generic function to transform issue-like objects into a document.
-func (p *Plugin) transformContentLikeToDocument(item Contentable, itemType string, comments []*githubv3.IssueComment, repo *githubv3.Repository, datasource *common.DataSource) *common.Document {
+// transformContentableToDocument is a generic function to transform issue-like objects into a document.
+func (p *Plugin) transformContentableToDocument(item Contentable, itemType string, comments []*githubv3.IssueComment, repo *githubv3.Repository, datasource *common.DataSource) *common.Document {
 	doc := p.newDocument(datasource)
 
 	var content strings.Builder
@@ -235,11 +235,11 @@ func (p *Plugin) transformContentLikeToDocument(item Contentable, itemType strin
 }
 
 func (p *Plugin) transformIssueToDocument(issue *githubv3.Issue, comments []*githubv3.IssueComment, repo *githubv3.Repository, datasource *common.DataSource) *common.Document {
-	return p.transformContentLikeToDocument(&issueWrapper{issue}, TypeIssue, comments, repo, datasource)
+	return p.transformContentableToDocument(&issueWrapper{issue}, TypeIssue, comments, repo, datasource)
 }
 
 func (p *Plugin) transformPullRequestToDocument(pr *githubv3.PullRequest, comments []*githubv3.IssueComment, repo *githubv3.Repository, datasource *common.DataSource) *common.Document {
-	return p.transformContentLikeToDocument(&pullRequestWrapper{pr}, TypePullRequest, comments, repo, datasource)
+	return p.transformContentableToDocument(&pullRequestWrapper{pr}, TypePullRequest, comments, repo, datasource)
 }
 
 func (p *Plugin) pushToQueue(doc *common.Document) {
