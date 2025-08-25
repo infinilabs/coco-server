@@ -102,6 +102,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     file_paths_add: '添加文件路径',
     commons: {
       error: {
+        datasource_name_required: '请输入数据源名称',
         extensions_format: '文件扩展名无效。请使用 pdf 或 .pdf 等格式，且仅包含字母和数字'
       }
     },
@@ -151,6 +152,27 @@ const page: App.I18n.Schema['translation']['page'] = {
         space: '您想要索引的 Confluence 空间键名（例如“DS”或"KB"）',
         token: '您的 Confluence 个人访问令牌 (PAT)',
         username: '用于身份验证的用户名。如果使用匿名访问或个人访问令牌，可以留空'
+      }
+    },
+    github: {
+      error: {
+        owner_required: '请输入代码库拥有者',
+        repo_required: '请输入仓库名称',
+        token_required: '请输入个人访问令牌'
+      },
+      labels: {
+        index_issues: '索引 issues',
+        index_pull_requests: '索引 pull requests',
+        owner: '代码库拥有者',
+        repos: '代码库名称',
+        token: '个人访问令牌'
+      },
+      tooltip: {
+        index_issues: '是否索引 issues',
+        index_pull_requests: '是否索引 pull requests',
+        owner: '代码库所属的用户名或组织名称',
+        repos: '要索引的代码仓库。默认为空，表示索引所有的代码库',
+        token: '需要具有“repo”范围的 GitHub 个人访问令牌 (PAT)。'
       }
     },
     network_drive: {
