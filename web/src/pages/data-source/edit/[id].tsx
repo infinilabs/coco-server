@@ -1,12 +1,18 @@
 import type { FormProps } from 'antd';
 import { Button, Form, Input, Spin, Switch, message } from 'antd';
-import Clipboard from 'clipboard';
+import { useForm } from 'antd/es/form/Form';
+import { useEffect, useState } from 'react';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 import { useLoaderData } from 'react-router-dom';
-import { ReactSVG } from 'react-svg';
 
-import LinkSVG from '@/assets/svg-icon/link.svg';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-expect-error
 import { DataSync } from '@/components/datasource/data_sync';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-expect-error
 import { Types } from '@/components/datasource/type';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-expect-error
 import { IconSelector } from '@/pages/connector/new/icon_selector';
 import { getConnectorIcons } from '@/service/api/connector';
 import { getDatasource, updateDatasource } from '@/service/api/data-source';
@@ -14,14 +20,16 @@ import { getDatasource, updateDatasource } from '@/service/api/data-source';
 import Confluence from '../new/confluence';
 import HugoSite from '../new/hugo_site';
 import LocalFS from '../new/local_fs';
-import { NetworkDriveConfig } from '../new/models';
+import { NetworkDriveConfig, RdbmsConfig } from '../new/models';
 import NetworkDrive from '../new/network_drive';
 import Notion from '../new/notion';
+import Rdbms from '../new/rdbms';
 import Rss from '../new/rss';
 import S3 from '../new/s3';
 import Yuque from '../new/yuque';
 import MongoDB from '../new/mongodb';
 
+// eslint-disable-next-line complexity
 export function Component() {
   const { t } = useTranslation();
   const nav = useNavigate();
@@ -31,10 +39,14 @@ export function Component() {
   const [datasource, setDatasource] = useState<any>({
     id: datasourceID
   });
+  const [form] = useForm();
+
   useEffect(() => {
     if (!datasourceID) return;
+    // eslint-disable-next-line complexity
     getDatasource(datasourceID).then(res => {
       if (res.data?.found === true) {
+        // eslint-disable-next-line @typescript-eslint/no-shadow
         const datasource = res.data._source;
         const type = datasource?.connector?.id;
         switch (type) {
@@ -51,6 +63,12 @@ export function Component() {
             datasource.urls = datasource?.connector?.config?.urls || [''];
             break;
           case Types.GoogleDrive:
+            break;
+          case Types.Postgresql:
+          case Types.Mysql:
+            if (datasource.connector?.config) {
+              datasource.config = datasource.connector.config;
+            }
             break;
           default:
             break;
@@ -171,6 +189,11 @@ export function Component() {
         config = NetworkDriveConfig(values);
         break;
       }
+      case Types.Postgresql:
+      case Types.Mysql: {
+        config = RdbmsConfig(values);
+        break;
+      }
     }
     const sValues = {
       connector: {
@@ -277,6 +300,13 @@ export function Component() {
       }
       break;
     }
+    case Types.Postgresql:
+    case Types.Mysql: {
+      if (datasource.connector?.config) {
+        datasource.config = RdbmsConfig(datasource.connector);
+      }
+      break;
+    }
     default:
       isCustom = true;
   }
@@ -299,6 +329,7 @@ export function Component() {
           <Form
             autoComplete="off"
             colon={false}
+            form={form}
             initialValues={datasource || {}}
             labelCol={{ span: 4 }}
             layout="horizontal"
@@ -332,6 +363,8 @@ export function Component() {
             {type === Types.Confluence && <Confluence />}
             {type === Types.NetworkDrive && <NetworkDrive />}
             {type === Types.MongoDB && <MongoDB />}
+            {type === Types.Postgresql && <Rdbms dbType="postgresql" />}
+            {type === Types.Mysql && <Rdbms dbType="mysql" />}
             {!isCustom ? (
               <>
                 <Form.Item

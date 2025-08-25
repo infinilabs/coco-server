@@ -19,7 +19,9 @@ export const Types = {
   S3: 's3',
   Confluence: 'confluence',
   NetworkDrive: 'network_drive',
-  MongoDB: 'mongodb'
+  MongoDB: 'mongodb',
+  Postgresql: 'postgresql',
+  Mysql: 'mysql'
 };
 
 export const TypeList = ({

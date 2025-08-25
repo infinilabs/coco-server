@@ -40,8 +40,7 @@ func (h *APIHandler) widgetWrapper(w http.ResponseWriter, req *http.Request, ps 
 	integrationID := ps.MustGetParameter("id")
 	obj := common.Integration{}
 	obj.ID = integrationID
-	ctx := orm.NewContextWithParent(req.Context())
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx := orm.NewContextWithParent(req.Context()).DirectReadAccess()
 	ctx.Set(orm.ReadPermissionCheckingScope, security.PermissionScopePublic)
 
 	exists, err := orm.GetV2(ctx, &obj)

@@ -10,15 +10,26 @@ import (
 	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/global"
+	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/queue"
+	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
 	"io"
 	"os"
 	"runtime"
+	"strings"
 	"time"
 )
 
 func getIcon(fileType string) string {
+	i := getType(fileType)
+	if fileType == "folder" || i == "folder" {
+		return "font_filetype-folder"
+	}
+	return i
+}
+
+func getType(fileType string) string {
 	switch fileType {
 	case "application/vnd.google-apps.document":
 		return "document"
@@ -33,7 +44,7 @@ func getIcon(fileType string) string {
 	case "application/vnd.google-apps.drawing":
 		return "drawing"
 	case "application/vnd.google-apps.folder":
-		return "folder"
+		return string(security.FolderResource)
 	case "application/vnd.google-apps.fusiontable":
 		return "fusiontable"
 	case "application/vnd.google-apps.jam":
@@ -72,7 +83,150 @@ func getRootFolderID(srv *drive.Service) (string, string) {
 	return rootFolder.Id, rootFolder.Name
 }
 
-func (this *Plugin) startIndexingFiles(connector *common.Connector, datasource *common.DataSource, tenantID, userID string, tok *oauth2.Token) {
+type FolderNode struct {
+	ID            string
+	Name          string
+	ParentID      string
+	Shared        bool
+	HasACL        bool
+	Processed     bool
+	Permissions   []*drive.Permission
+	FullPath      string
+	FullPathArray []string
+	ModifiedTime  string
+}
+
+type FolderTreeBuilder struct {
+	FolderMap map[string]*FolderNode
+	Sorted    []*FolderNode
+}
+
+func (ft *FolderTreeBuilder) AddFolder(id, name, parentID string, shared bool, hasACL bool, perms []*drive.Permission, modifiedTime string) {
+	ft.FolderMap[id] = &FolderNode{
+		ID:           id,
+		Name:         name,
+		ParentID:     parentID,
+		Shared:       shared,
+		HasACL:       hasACL,
+		Permissions:  perms,
+		ModifiedTime: modifiedTime,
+	}
+}
+
+func (ft *FolderTreeBuilder) BuildSorted() {
+	visited := map[string]bool{}
+	var dfs func(id string)
+	dfs = func(id string) {
+		if visited[id] {
+			return
+		}
+		node, ok := ft.FolderMap[id]
+		if !ok {
+			return
+		}
+		if node.ParentID != "" {
+			dfs(node.ParentID)
+		}
+		visited[id] = true
+		ft.Sorted = append(ft.Sorted, node)
+	}
+	for id := range ft.FolderMap {
+		dfs(id)
+	}
+}
+
+func (ft *FolderTreeBuilder) IsExplicitACL(folderID string) bool {
+	node, ok := ft.FolderMap[folderID]
+	if !ok {
+		return false
+	}
+	if node.HasACL {
+		return true
+	}
+	if node.ParentID == "" || node.ParentID == folderID {
+		return false
+	}
+	return ft.IsExplicitACL(node.ParentID)
+}
+
+func hasExplicitSharedPermission(file *drive.File) bool {
+	if !file.Shared || len(file.Permissions) == 0 {
+		return false
+	}
+
+	for _, perm := range file.Permissions {
+		// Skip owner/self
+		if perm.Role == "owner" || perm.Role == "organizer" {
+			continue
+		}
+		// Any other visible user/group is treated as explicit
+		if perm.Type == "user" || perm.Type == "group" {
+			if perm.Role == "reader" || perm.Role == "writer" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func checkExplicit(perms []*drive.Permission) bool {
+	for _, perm := range perms {
+		if (perm.Type == "user" || perm.Type == "group") &&
+			(perm.Role == "reader" || perm.Role == "writer") {
+			return true
+		}
+	}
+	return false
+}
+
+func buildFullPath(folderID string, folderMap map[string]*FolderNode) string {
+	var parts []string
+	current := folderMap[folderID]
+
+	for current != nil {
+		parts = append([]string{current.Name}, parts...)
+		if current.ParentID == "" || current.ParentID == current.ID {
+			break
+		}
+		current = folderMap[current.ParentID]
+	}
+
+	return "/" + strings.Join(parts, "/")
+}
+
+func isSamePermission(a, b []*drive.Permission) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	mapify := func(perms []*drive.Permission) map[string]string {
+		m := map[string]string{}
+		for _, p := range perms {
+			key := fmt.Sprintf("%s:%s", p.EmailAddress, p.Role)
+			m[key] = p.Type
+		}
+		return m
+	}
+
+	mapA := mapify(a)
+	mapB := mapify(b)
+
+	if len(mapA) != len(mapB) {
+		return false
+	}
+
+	for k, v := range mapA {
+		if mapB[k] != v {
+			return false
+		}
+	}
+	return true
+}
+
+func getDocID(datasourceID, docID string) string {
+	return util.MD5digest(fmt.Sprintf("%v_%v", datasourceID, docID))
+}
+
+func (this *Plugin) startIndexingFiles(connector *common.Connector, datasource *common.DataSource, tok *oauth2.Token) {
 	var filesProcessed = 0
 	defer func() {
 		if !global.Env().IsDebug {
@@ -102,12 +256,20 @@ func (this *Plugin) startIndexingFiles(connector *common.Connector, datasource *
 		panic(err)
 	}
 
-	// All directories
-	var directoryMap = map[string]common.RichLabel{}
-
-	// Root Folder
+	// Init root folder
+	// /My Drive
 	rootFolderID, rootFolderName := getRootFolderID(srv)
-	directoryMap[rootFolderID] = common.RichLabel{Key: rootFolderID, Label: rootFolderName, Icon: "folder"}
+	rootDoc := this.initRootFolder(datasource, rootFolderID, rootFolderName)
+	this.saveDocToQueue(rootDoc, filesProcessed)
+
+	// /Shared with me
+	shareWithMe := this.initRootFolder(datasource, "share_with_me", "Shared with me")
+	this.saveDocToQueue(shareWithMe, filesProcessed)
+
+	ft := &FolderTreeBuilder{FolderMap: map[string]*FolderNode{}}
+	ft.AddFolder(rootFolderID, rootFolderName, "", false, false, nil, "")
+
+	batchNumber := util.GetUUID()
 
 	// Fetch all directories
 	var nextPageToken string
@@ -129,9 +291,29 @@ func (this *Plugin) startIndexingFiles(connector *common.Connector, datasource *
 
 		// Save directories in the map
 		for _, i := range r.Files {
+			if global.ShuttingDown() {
+				return
+			}
 			//TODO, should save to store in case there are so many crazy directories, OOM risk
-			directoryMap[i.Id] = common.RichLabel{Key: i.Id, Label: i.Name, Icon: "folder"}
 			log.Debugf("google drive directory: ID=%s, Name=%s, Parents=%v", i.Id, i.Name, i.Parents)
+
+			meta, err := srv.Files.Get(i.Id).
+				Fields("id, name, permissions(id,emailAddress,role,type,permissionDetails), shared").
+				Context(ctx).
+				Do()
+			if err != nil {
+				log.Errorf("failed to get permissions for folder %s: %v", i.Id, err)
+				continue
+			}
+
+			parent := ""
+			if len(i.Parents) > 0 {
+				parent = i.Parents[0]
+			}
+			shared := meta.Shared
+			hasACL := checkExplicit(meta.Permissions)
+
+			ft.AddFolder(i.Id, i.Name, parent, shared, hasACL, meta.Permissions, i.ModifiedTime)
 		}
 
 		nextPageToken = r.NextPageToken
@@ -140,13 +322,78 @@ func (this *Plugin) startIndexingFiles(connector *common.Connector, datasource *
 		}
 	}
 
-	log.Infof("fetched %d google drive directories", len(directoryMap))
+	ft.BuildSorted()
+	ormCtx := orm.NewContext().DirectAccess()
+	for _, node := range ft.Sorted {
+
+		if global.ShuttingDown() {
+			return
+		}
+
+		var parts []string
+		curr := node
+		for curr != nil {
+			parts = append([]string{curr.Name}, parts...)
+			curr = ft.FolderMap[curr.ParentID]
+		}
+		node.FullPathArray = parts
+		node.FullPath = "/" + strings.Join(parts, "/")
+		log.Debug("node: ", node.Name, ", parent:", parts)
+		parent, ok := ft.FolderMap[node.ParentID]
+		if ok && isSamePermission(node.Permissions, parent.Permissions) {
+		} else {
+			log.Tracef("Folder: %s, permissions: %v", node.FullPath, util.MustToJSON(node.Permissions))
+			if len(node.Permissions) > 0 {
+				ep := security.ExternalPermission{
+					BatchNumber:  batchNumber,
+					Source:       datasource.ID,
+					ExternalID:   node.ID,
+					ResourceID:   node.ID, //TODO, need hash to an internal ID
+					ResourceType: security.FolderResource,
+					ResourcePath: node.FullPath,
+					Explicit:     true,
+					ParentID:     node.ParentID,
+
+					Permissions: []security.ExternalPermissionEntry{},
+				}
+
+				for _, perm := range node.Permissions {
+					entry := security.ExternalPermissionEntry{}
+					entry.PrincipalType = perm.Type
+					entry.PrincipalID = perm.Id
+					entry.PrimaryIdentity = perm.EmailAddress
+					entry.DisplayName = perm.DisplayName
+					entry.Role = perm.Role
+					entry.Inherited = false
+					ep.Permissions = append(ep.Permissions, entry)
+				}
+
+				if node.ModifiedTime != "" {
+					parsedTime, err := time.Parse(time.RFC3339Nano, node.ModifiedTime)
+					if err == nil {
+						ep.ExternalUpdatedAt = &parsedTime
+					}
+				}
+
+				ep.ID = util.MD5digest(fmt.Sprintf("%v-external-permission-%v", datasource.ID, node.ID))
+				ep.System = datasource.System
+
+				//save external permissions
+				err := orm.Save(ormCtx, &ep)
+				if err != nil {
+					panic(err)
+				}
+			}
+
+		}
+
+	}
 
 	// Fetch all files
 	var query string
 
 	//get last access time from kv
-	lastModifiedTimeStr, _ := this.getLastModifiedTime(tenantID, userID, datasource.ID)
+	lastModifiedTimeStr, _ := this.getLastModifiedTime(datasource.ID)
 
 	log.Tracef("get last modified time: %v", lastModifiedTimeStr)
 
@@ -177,7 +424,7 @@ func (this *Plugin) startIndexingFiles(connector *common.Connector, datasource *
 
 		r, err := call.
 			PageToken(nextPageToken).
-			Fields("nextPageToken, files(id, name, mimeType, size, owners(emailAddress, displayName), createdTime, " +
+			Fields("nextPageToken, files(id, name, parents, mimeType, size, owners(emailAddress, displayName), createdTime, " +
 				"modifiedTime, lastModifyingUser(emailAddress, displayName), iconLink, fileExtension, description, hasThumbnail," +
 				"kind, labelInfo, parents, properties, shared, sharingUser(emailAddress, displayName), spaces, " +
 				"starred, driveId, thumbnailLink, videoMediaMetadata, webViewLink, imageMediaMetadata)").Do()
@@ -189,6 +436,12 @@ func (this *Plugin) startIndexingFiles(connector *common.Connector, datasource *
 
 		// Process files in the current page
 		for _, i := range r.Files {
+
+			//TODO configurable
+			if i.Name == ".DS_Store" {
+				continue
+			}
+
 			var createdAt, updatedAt *time.Time
 			if i.CreatedTime != "" {
 				parsedTime, err := time.Parse(time.RFC3339Nano, i.CreatedTime)
@@ -208,24 +461,7 @@ func (this *Plugin) startIndexingFiles(connector *common.Connector, datasource *
 				}
 			}
 
-			if i.MimeType == "application/vnd.google-apps.folder" {
-				directoryMap[i.Id] = common.RichLabel{Key: i.Id, Label: i.Name, Icon: "folder"}
-			}
-			categories := []common.RichLabel{}
-			if len(i.Parents) > 0 {
-				for _, v := range i.Parents {
-					folderName, ok := directoryMap[v]
-					if ok {
-						//log.Debugf("folder: %v, %v", folderName, v)
-						categories = append(categories, folderName)
-					} else {
-						log.Errorf("missing folder info: %v", v)
-						//TODO, if the parent_id is not found, delay to handle this file, maybe newly added file, and the folder meta is aware
-					}
-				}
-			}
-
-			log.Debugf("Google Drive File: %s (ID: %s) | CreatedAt: %s | UpdatedAt: %s", i.Name, i.Id, createdAt, updatedAt)
+			log.Tracef("Google Drive File: %s (ID: %s) | CreatedAt: %s | UpdatedAt: %s | Parents: %s", i.Name, i.Id, createdAt, updatedAt, i.Parents)
 
 			// Map Google Drive file to Document struct
 			document := common.Document{
@@ -236,7 +472,7 @@ func (this *Plugin) startIndexingFiles(connector *common.Connector, datasource *
 				},
 				Title:   i.Name,
 				Summary: i.Description,
-				Type:    i.MimeType,
+				Type:    getType(i.MimeType),
 				Size:    int(i.Size),
 				URL:     fmt.Sprintf("https://drive.google.com/file/d/%s/view", i.Id),
 				Owner: &common.UserInfo{
@@ -248,21 +484,58 @@ func (this *Plugin) startIndexingFiles(connector *common.Connector, datasource *
 				Thumbnail: i.ThumbnailLink,
 			}
 
-			if len(categories) > 0 {
-				document.RichCategories = categories
-			}
-
 			document.System = datasource.System
-			document.ID = i.Id //add tenant namespace and then hash
+			document.ID = getDocID(datasource.ID, i.Id)
 			document.Created = createdAt
 			document.Updated = updatedAt
 
-			document.Metadata = util.MapStr{
+			var parentCategory string
+			var parentCategoryArray []string
+			var parentPermissions []*drive.Permission
+			if i.Parents != nil && len(i.Parents) == 1 {
+				v, ok := ft.FolderMap[i.Parents[0]]
+				parentPermissions = v.Permissions
+				if ok {
+					parentCategory = v.FullPath
+					parentCategoryArray = v.FullPathArray
+					log.Tracef("file: %v, full path: %v", i.Name, v.FullPath)
+				}
+
+			} else {
+				if i.Shared {
+					parentCategory = "/Shared with me"
+				} else {
+					parentCategory = "/"
+					parentCategoryArray = []string{"/"}
+				}
+			}
+
+			if parentCategory != "" {
+				document.Category = parentCategory
+				if document.System == nil {
+					document.System = util.MapStr{}
+				}
+				document.System["parent_path"] = parentCategory
+			} else {
+				log.Warnf("empty category, file: %v,  parents: %v", i.Name, i.Parents)
+			}
+
+			if len(parentCategoryArray) > 0 {
+				document.Categories = parentCategoryArray
+			}
+
+			log.Trace(parentCategory, " // ", document.Title)
+
+			meta := util.MapStr{
+				"batch_number":   batchNumber,
 				"drive_id":       i.DriveId,
 				"file_id":        i.Id,
 				"email":          i.Owners[0].EmailAddress,
 				"file_extension": i.FileExtension,
 				"kind":           i.Kind,
+				"mimetype":       i.MimeType,
+				"shared_with_me": i.SharedWithMeTime,
+				"sharing_user":   i.SharingUser,
 				"shared":         i.Shared,
 				"spaces":         i.Spaces,
 				"starred":        i.Starred,
@@ -272,6 +545,17 @@ func (this *Plugin) startIndexingFiles(connector *common.Connector, datasource *
 				"permissions":    i.Permissions,
 				"permission_ids": i.PermissionIds,
 				"properties":     i.Properties,
+			}
+
+			document.Metadata = meta.RemoveNilItems()
+
+			if i.Permissions != nil {
+				log.Debugf("permission for file: %v(%v) %v", i.Id, i.Name, util.ToJson(i.Permissions, true))
+
+				//TODO check dedicated file permission, save to external permission
+				if document.Type != string(security.FolderResource) && !isSamePermission(i.Permissions, parentPermissions) {
+					log.Info("different file permission: ", util.MustToJSON(i), ",vs: ", util.MustToJSON(parentPermissions))
+				}
 			}
 
 			if i.LastModifyingUser != nil {
@@ -304,23 +588,14 @@ func (this *Plugin) startIndexingFiles(connector *common.Connector, datasource *
 				document.Payload["image_metadata"] = i.ImageMediaMetadata
 			}
 
-			// Convert to JSON and push to queue
-			data := util.MustToJSONBytes(document)
-			if global.Env().IsDebug {
-				log.Tracef(string(data))
-			}
-			err := queue.Push(queue.SmartGetOrInitConfig(this.Queue), data)
-			if err != nil {
-				panic(err)
-			}
-			filesProcessed++
+			this.saveDocToQueue(document, filesProcessed)
 		}
 
 		// After processing all files, save the most recent modified time for next indexing
 		if lastModifyTime != nil {
 			// Save the lastModifyTime (for example, in a KV store or file)
 			lastModifiedTimeStr = lastModifyTime.Format(time.RFC3339Nano)
-			err := this.saveLastModifiedTime(tenantID, userID, lastModifiedTimeStr, datasource.ID)
+			err := this.saveLastModifiedTime(lastModifiedTimeStr, datasource.ID)
 			if err != nil {
 				panic(err)
 			}
@@ -333,6 +608,19 @@ func (this *Plugin) startIndexingFiles(connector *common.Connector, datasource *
 		}
 		nextPageToken = r.NextPageToken
 	}
+}
+
+func (this *Plugin) saveDocToQueue(document common.Document, filesProcessed int) {
+	// Convert to JSON and push to queue
+	data := util.MustToJSONBytes(document)
+	if global.Env().IsDebug {
+		log.Tracef(string(data))
+	}
+	err := queue.Push(queue.SmartGetOrInitConfig(this.Queue), data)
+	if err != nil {
+		panic(err)
+	}
+	filesProcessed++
 }
 
 // downloadOrExportFile downloads or exports a Google Drive file based on its MIME type

@@ -1,32 +1,42 @@
-import type {FormProps} from 'antd';
-import {Button, Form, Input, message, Modal, Spin, Switch} from 'antd';
-import {useForm} from 'antd/es/form/Form';
+import type { FormProps } from 'antd';
+import { Button, Form, Input, Modal, Spin, Switch, message } from 'antd';
+import { useForm } from 'antd/es/form/Form';
 
-import {DataSync} from '@/components/datasource/data_sync';
-import {Types} from '@/components/datasource/type';
-import {getConnector, getConnectorIcons} from '@/service/api/connector';
-import {createDatasource} from '@/service/api/data-source';
-import {IconSelector} from "@/pages/connector/new/icon_selector";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-expect-error
+import { DataSync } from '@/components/datasource/data_sync';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-expect-error
+import { Types } from '@/components/datasource/type';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-expect-error
+import { IconSelector } from '@/pages/connector/new/icon_selector';
+import { getConnector, getConnectorIcons } from '@/service/api/connector';
+import { createDatasource } from '@/service/api/data-source';
 
 import Confluence from './confluence';
 import GoogleDrive from './google_drive';
 import HugoSite from './hugo_site';
 import LocalFS from './local_fs';
-import { NetworkDriveConfig } from './models';
+import { NetworkDriveConfig, RdbmsConfig } from './models';
 import NetworkDrive from './network_drive';
 import Notion from './notion';
+import Rdbms from './rdbms';
 import Rss from './rss';
 import S3 from './s3';
 import Yuque from './yuque';
 import MongoDB from './mongodb';
 
+// eslint-disable-next-line complexity
 export function Component() {
-  const {t} = useTranslation();
+  const { t } = useTranslation();
   const nav = useNavigate();
   const location = useLocation();
   const params = new URLSearchParams(location.search);
   const type = params.get('type') ?? Types.GoogleDrive;
   const [connector, setConnector] = useState<any>({});
+  const [form] = useForm();
+
   useEffect(() => {
     getConnector(type).then(res => {
       if (res.data?.found === true) {
@@ -55,7 +65,7 @@ export function Component() {
         name: values.name,
         type: 'connector'
       })
-        .then(({data}) => {
+        .then(({ data }) => {
           setCreateState(old => {
             nav(`/data-source/edit/${data._id}`, {});
             return {
@@ -105,7 +115,13 @@ export function Component() {
           case Types.MongoDB:
         connectorType = 'MongoDB';
         break;
-      default:
+      case Types.Postgresql:
+      connectorType = 'Postgresql';
+      break;
+    case Types.Mysql:
+      connectorType = 'Mysql';
+      break;
+    default:
       return (
         <Modal
           okText={t('common.save')}
@@ -125,9 +141,9 @@ export function Component() {
               <Form.Item
                 label={<span className="text-gray-500">{t('page.apitoken.columns.name')}</span>}
                 name="name"
-                rules={[{required: true}]}
+                rules={[{ required: true }]}
               >
-                <Input/>
+                <Input />
               </Form.Item>
             </Form>
           </Spin>
@@ -219,6 +235,14 @@ export function Component() {
         };
         break;
       }
+      case Types.Postgresql: {
+        config = RdbmsConfig(values);
+        break;
+      }
+      case Types.Mysql: {
+        config = RdbmsConfig(values);
+        break;
+      }
     }
     const sValues = {
       connector: {
@@ -230,8 +254,8 @@ export function Component() {
         id: type
       },
       enabled: Boolean(values.enabled),
-      name: values.name,
       icon: values.icon,
+      name: values.name,
       sync_enabled: values.sync_enabled,
       type: 'connector'
     };
@@ -243,9 +267,11 @@ export function Component() {
     });
   };
 
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const [iconsMeta, setIconsMeta] = useState([]);
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
-    getConnectorIcons().then((res) => {
+    getConnectorIcons().then(res => {
       if (res.data?.length > 0) {
         setIconsMeta(res.data);
       }
@@ -262,7 +288,7 @@ export function Component() {
         className="min-h-full flex-col-stretch sm:flex-1-hidden card-wrapper"
       >
         <div className="mb-30px ml--16px flex items-center text-lg font-bold">
-          <div className="mr-20px h-1.2em w-10px bg-[#1677FF]"/>
+          <div className="mr-20px h-1.2em w-10px bg-[#1677FF]" />
           <div>
             {t('page.datasource.new.title', {
               connector: connectorType
@@ -270,33 +296,55 @@ export function Component() {
           </div>
         </div>
         {type === Types.GoogleDrive ? (
-          <GoogleDrive connector={connector}/>
+          <GoogleDrive connector={connector} />
         ) : (
           <div>
             <Form
               autoComplete="off"
               colon={false}
-              labelCol={{span: 4}}
+              form={form}
+              labelCol={{ span: 4 }}
               layout="horizontal"
-              wrapperCol={{span: 18}}
+              wrapperCol={{ span: 18 }}
               initialValues={{
-                connector: {config: {}, id: type},
+                connector: { config: {}, id: type },
                 enabled: true,
-                sync_config: {interval: '60s', sync_type: 'interval'},
+                sync_config: { interval: '60s', sync_type: 'interval' },
                 sync_enabled: true
               }}
               onFinish={onFinish}
               onFinishFailed={onFinishFailed}
+              onValuesChange={(changedValues, allValues) => {
+                if (changedValues.config?.field_mapping?.enabled === false) {
+                  const config = allValues.config;
+                  form.setFieldsValue({
+                    config: {
+                      ...config,
+                      field_mapping: {
+                        enabled: false,
+                        mapping: {}
+                      }
+                    }
+                  });
+                }
+              }}
             >
               <Form.Item
                 label={t('page.datasource.new.labels.name')}
                 name="name"
-                rules={[{message: 'Please input datasource name!', required: true}]}
+                rules={[{ message: 'Please input datasource name!', required: true }]}
               >
-                <Input className="max-w-600px"/>
+                <Input className="max-w-600px" />
               </Form.Item>
-              <Form.Item label={t('page.mcpserver.labels.icon')} name="icon">
-                <IconSelector type="connector" icons={iconsMeta} className='max-w-300px'/>
+              <Form.Item
+                label={t('page.mcpserver.labels.icon')}
+                name="icon"
+              >
+                <IconSelector
+                  className="max-w-300px"
+                  icons={iconsMeta}
+                  type="connector"
+                />
               </Form.Item>
               {type === Types.Yuque && <Yuque />}
               {type === Types.Notion && <Notion />}
@@ -307,23 +355,25 @@ export function Component() {
               {type === Types.Confluence && <Confluence />}
               {type === Types.NetworkDrive && <NetworkDrive />}
               {type === Types.MongoDB && <MongoDB />}
+              {type === Types.Postgresql && <Rdbms dbType="postgresql" />}
+              {type === Types.Mysql && <Rdbms dbType="mysql" />}
               <Form.Item
                 label={t('page.datasource.new.labels.data_sync')}
                 name="sync_config"
               >
-                <DataSync/>
+                <DataSync />
               </Form.Item>
               <Form.Item
                 label={t('page.datasource.new.labels.sync_enabled')}
                 name="sync_enabled"
               >
-                <Switch size="small"/>
+                <Switch size="small" />
               </Form.Item>
               <Form.Item
                 label={t('page.datasource.new.labels.enabled')}
                 name="enabled"
               >
-                <Switch size="small"/>
+                <Switch size="small" />
               </Form.Item>
               <Form.Item label=" ">
                 <Button

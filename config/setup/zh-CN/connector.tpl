@@ -59,6 +59,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
   "name" : "Google 云盘连接器",
   "description" : "提取 Google 云端硬盘中文件的元数据。",
   "category" : "cloud_storage",
+  "path_hierarchy":true,
   "icon" : "/assets/icons/connector/google_drive/icon.png",
   "tags" : [
     "google",
@@ -305,3 +306,47 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/m
   },
   "builtin": true
 } 
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/postgresql
+{
+  "id" : "postgresql",
+  "created" : "2025-08-14T00:00:00.000000+08:00",
+  "updated" : "2025-08-14T00:00:00.000000+08:00",
+  "name" : "PostgreSQL 连接器",
+  "description" : "提取 PostgreSQL 数据库数据。",
+  "category" : "database",
+  "icon" : "/assets/icons/connector/postgresql/icon.png",
+  "tags" : [
+    "sql",
+    "storage",
+    "database"
+  ],
+  "url" : "http://coco.rs/connectors/postgresql",
+  "assets" : {
+     "icons" : {
+       "default" : "/assets/icons/connector/postgresql/icon.png"
+     }
+  },
+  "builtin": true
+}
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/mysql
+{
+  "id" : "mysql",
+  "created" : "2025-08-22T00:00:00.000000+08:00",
+  "updated" : "2025-08-22T00:00:00.000000+08:00",
+  "name" : "MySQL 连接器",
+  "description" : "提取 MySQL 数据库数据。",
+  "category" : "database",
+  "icon" : "/assets/icons/connector/mysql/icon.png",
+  "tags" : [
+    "sql",
+    "storage",
+    "database"
+  ],
+  "url" : "http://coco.rs/connectors/mysql",
+  "assets" : {
+    "icons" : {
+      "default" : "/assets/icons/connector/mysql/icon.png"
+    }
+  },
+  "builtin": true
+}
