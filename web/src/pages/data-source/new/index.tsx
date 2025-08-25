@@ -18,13 +18,14 @@ import Confluence from './confluence';
 import GoogleDrive from './google_drive';
 import HugoSite from './hugo_site';
 import LocalFS from './local_fs';
-import { NetworkDriveConfig, RdbmsConfig } from './models';
+import { NetworkDriveConfig, RdbmsConfig, MongoDBConfig } from './models';
 import NetworkDrive from './network_drive';
 import Notion from './notion';
 import Rdbms from './rdbms';
 import Rss from './rss';
 import S3 from './s3';
 import Yuque from './yuque';
+import MongoDB from './mongodb';
 
 // eslint-disable-next-line complexity
 export function Component() {
@@ -111,7 +112,10 @@ export function Component() {
     case Types.NetworkDrive:
       connectorType = 'Network Drive';
       break;
-    case Types.Postgresql:
+          case Types.MongoDB:
+        connectorType = 'MongoDB';
+        break;
+      case Types.Postgresql:
       connectorType = 'Postgresql';
       break;
     case Types.Mysql:
@@ -217,6 +221,10 @@ export function Component() {
       }
       case Types.NetworkDrive: {
         config = NetworkDriveConfig(values);
+        break;
+      }
+      case Types.MongoDB: {
+        config = MongoDBConfig(values);
         break;
       }
       case Types.Postgresql: {
@@ -338,6 +346,7 @@ export function Component() {
               {type === Types.S3 && <S3 />}
               {type === Types.Confluence && <Confluence />}
               {type === Types.NetworkDrive && <NetworkDrive />}
+              {type === Types.MongoDB && <MongoDB />}
               {type === Types.Postgresql && <Rdbms dbType="postgresql" />}
               {type === Types.Mysql && <Rdbms dbType="mysql" />}
               <Form.Item
