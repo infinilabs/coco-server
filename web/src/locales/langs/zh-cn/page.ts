@@ -153,6 +153,27 @@ const page: App.I18n.Schema['translation']['page'] = {
         username: '用于身份验证的用户名。如果使用匿名访问或个人访问令牌，可以留空'
       }
     },
+    github: {
+      error: {
+        owner_required: '请输入代码库拥有者',
+        repo_required: '请输入仓库名称',
+        token_required: '请输入个人访问令牌'
+      },
+      labels: {
+        index_issues: '索引 issues',
+        index_pull_requests: '索引 pull requests',
+        owner: '代码库拥有者',
+        repos: '代码库名称',
+        token: '个人访问令牌'
+      },
+      tooltip: {
+        index_issues: '是否索引 issues',
+        index_pull_requests: '是否索引 pull requests',
+        owner: '代码库所属的用户名或组织名称',
+        repos: '要索引的代码仓库。默认为空，表示索引所有的代码库',
+        token: '需要具有“repo”范围的 GitHub 个人访问令牌 (PAT)。'
+      }
+    },
     network_drive: {
       error: {
         endpoint_format: '格式无效，请使用 "host:port" 或 "[ipv6]:port"',

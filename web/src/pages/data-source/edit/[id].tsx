@@ -18,9 +18,10 @@ import { getConnectorIcons } from '@/service/api/connector';
 import { getDatasource, updateDatasource } from '@/service/api/data-source';
 
 import Confluence from '../new/confluence';
+import GitHub from '../new/github';
 import HugoSite from '../new/hugo_site';
 import LocalFS from '../new/local_fs';
-import { NetworkDriveConfig, RdbmsConfig } from '../new/models';
+import { GithubConfig, NetworkDriveConfig, RdbmsConfig } from '../new/models';
 import NetworkDrive from '../new/network_drive';
 import Notion from '../new/notion';
 import Rdbms from '../new/rdbms';
@@ -193,6 +194,10 @@ export function Component() {
         config = RdbmsConfig(values);
         break;
       }
+      case Types.GitHub: {
+        config = GithubConfig(values);
+        break;
+      }
     }
     const sValues = {
       connector: {
@@ -299,6 +304,12 @@ export function Component() {
       }
       break;
     }
+    case Types.GitHub: {
+      if (datasource.connector?.config) {
+        datasource.config = GithubConfig(datasource.connector);
+      }
+      break;
+    }
     default:
       isCustom = true;
   }
@@ -356,6 +367,7 @@ export function Component() {
             {type === Types.NetworkDrive && <NetworkDrive />}
             {type === Types.Postgresql && <Rdbms dbType="postgresql" />}
             {type === Types.Mysql && <Rdbms dbType="mysql" />}
+            {type === Types.GitHub && <GitHub />}
             {!isCustom ? (
               <>
                 <Form.Item

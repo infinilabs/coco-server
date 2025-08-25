@@ -359,6 +359,11 @@ connector:
     interval: 30s
     queue:
       name: indexing_documents
+  github:
+    enabled: true
+    interval: 30s
+    queue:
+      name: indexing_documents
 
 ##background jobs
 pipeline:
