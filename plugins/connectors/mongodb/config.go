@@ -6,7 +6,6 @@ package mongodb
 
 import (
 	"fmt"
-	"time"
 )
 
 // Config defines the configuration for the MongoDB connector
@@ -15,7 +14,7 @@ type Config struct {
 	ConnectionURI string `config:"connection_uri"`
 	Database      string `config:"database"`
 	AuthDatabase  string `config:"auth_database"` // Authentication database (e.g., "admin")
-	ClusterType   string `config:"cluster_type"`   // Cluster type: "standalone", "replica_set", "sharded"
+	ClusterType   string `config:"cluster_type"`  // Cluster type: "standalone", "replica_set", "sharded"
 
 	// Collections configuration
 	Collections []CollectionConfig `config:"collections"`
@@ -35,7 +34,7 @@ type Config struct {
 	// Sync strategy
 	SyncStrategy string `config:"sync_strategy"`
 
-	// Field mapping configuration
+	// Field mapping configuration - This handles all field mappings
 	FieldMapping *FieldMappingConfig `config:"field_mapping"`
 
 	// Advanced query optimization
@@ -43,21 +42,26 @@ type Config struct {
 	EnableIndexHint  bool `config:"enable_index_hint"` // Enable index hints for better performance
 }
 
+// CollectionConfig defines collection-specific configuration
+// Field mapping is now handled by the global FieldMapping configuration
 type CollectionConfig struct {
-	Name           string                 `config:"name"`
-	Filter         map[string]interface{} `config:"filter"`
-	TitleField     string                 `config:"title_field"`
-	ContentField   string                 `config:"content_field"`
-	CategoryField  string                 `config:"category_field"`
-	TagsField      string                 `config:"tags_field"`
-	URLField       string                 `config:"url_field"`
-	TimestampField string                 `config:"timestamp_field"`
+	Name   string                 `config:"name"`   // Collection name
+	Filter map[string]interface{} `config:"filter"` // MongoDB query filter for this collection
 }
 
 // FieldMappingConfig defines the field mapping configuration
+// This replaces the individual field configurations in CollectionConfig
 type FieldMappingConfig struct {
-	Enabled bool                    `config:"enabled"`
+	Enabled bool                   `config:"enabled"`
 	Mapping map[string]interface{} `config:"mapping"`
+
+	// Standard field mappings for common document fields
+	TitleField     string `config:"title_field"`     // MongoDB field name for document title
+	ContentField   string `config:"content_field"`   // MongoDB field name for document content
+	CategoryField  string `config:"category_field"`  // MongoDB field name for document category
+	TagsField      string `config:"tags_field"`      // MongoDB field name for document tags
+	URLField       string `config:"url_field"`       // MongoDB field name for document URL
+	TimestampField string `config:"timestamp_field"` // MongoDB field name for document timestamp
 }
 
 func (p *Plugin) setDefaultConfig(config *Config) {
@@ -88,7 +92,7 @@ func (p *Plugin) setDefaultConfig(config *Config) {
 			Mapping: make(map[string]interface{}),
 		}
 	}
-	
+
 	// Enable advanced optimizations by default for better performance
 	if !config.EnableProjection {
 		config.EnableProjection = true
