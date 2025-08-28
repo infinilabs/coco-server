@@ -15,10 +15,11 @@ import { getConnector, getConnectorIcons } from '@/service/api/connector';
 import { createDatasource } from '@/service/api/data-source';
 
 import Confluence from './confluence';
+import GitHub from './github';
 import GoogleDrive from './google_drive';
 import HugoSite from './hugo_site';
 import LocalFS from './local_fs';
-import { NetworkDriveConfig, RdbmsConfig, MongoDBConfig } from './models';
+import { GithubConfig, NetworkDriveConfig, RdbmsConfig, MongoDBConfig } from './models';
 import NetworkDrive from './network_drive';
 import Notion from './notion';
 import Rdbms from './rdbms';
@@ -120,6 +121,9 @@ export function Component() {
       break;
     case Types.Mysql:
       connectorType = 'Mysql';
+      break;
+    case Types.GitHub:
+      connectorType = 'Github';
       break;
     default:
       return (
@@ -235,6 +239,10 @@ export function Component() {
         config = RdbmsConfig(values);
         break;
       }
+      case Types.GitHub: {
+        config = GithubConfig(values);
+        break;
+      }
     }
     const sValues = {
       connector: {
@@ -324,7 +332,15 @@ export function Component() {
               <Form.Item
                 label={t('page.datasource.new.labels.name')}
                 name="name"
-                rules={[{ message: 'Please input datasource name!', required: true }]}
+                rules={[
+                  {
+                    message: t(
+                      'page.datasource.commons.error.datasource_name_required',
+                      'Please input datasource name!'
+                    ),
+                    required: true
+                  }
+                ]}
               >
                 <Input className="max-w-600px" />
               </Form.Item>
@@ -349,6 +365,7 @@ export function Component() {
               {type === Types.MongoDB && <MongoDB />}
               {type === Types.Postgresql && <Rdbms dbType="postgresql" />}
               {type === Types.Mysql && <Rdbms dbType="mysql" />}
+              {type === Types.GitHub && <GitHub />}
               <Form.Item
                 label={t('page.datasource.new.labels.data_sync')}
                 name="sync_config"

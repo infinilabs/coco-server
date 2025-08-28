@@ -350,3 +350,29 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/m
   },
   "builtin": true
 }
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/github
+{
+  "id" : "github",
+  "created" : "2025-08-25T00:00:00.000000+08:00",
+  "updated" : "2025-08-25T00:00:00.000000+08:00",
+  "name" : "Github 连接器",
+  "description" : "提取 Github repositories, issues 和 pull requests。",
+  "category" : "website",
+  "icon" : "/assets/icons/connector/github/icon.png",
+  "tags" : [
+    "git",
+    "code",
+    "vcs",
+    "website"
+  ],
+  "url" : "http://coco.rs/connectors/github",
+  "assets" : {
+    "icons" : {
+      "default" : "/assets/icons/connector/github/icon.png",
+      "repository" : "/assets/icons/connector/github/repository.png",
+      "issue" : "/assets/icons/connector/github/issue.png",
+      "pull_request" : "/assets/icons/connector/github/pull_request.png"
+    }
+  },
+  "builtin": true
+}
