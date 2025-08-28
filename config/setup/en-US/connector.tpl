@@ -301,3 +301,31 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
   },
   "builtin": true
 }
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/feishu
+{
+  "id": "feishu",
+  "created": "2025-08-22T00:00:00.000000+08:00",
+  "updated": "2025-08-22T00:00:00.000000+08:00",
+  "name": "Feishu Cloud Documents Connector",
+  "description": "Index Feishu cloud documents including documents, spreadsheets, mind notes, multi-dimensional tables and knowledge bases.",
+  "category": "cloud",
+  "icon": "/assets/icons/connector/feishu/icon.png",
+  "tags": [
+    "feishu",
+    "cloud_docs"
+  ],
+  "url": "http://coco.rs/connectors/feishu",
+  "assets": {
+    "icons": {
+      "default": "/assets/icons/connector/feishu/icon.png"
+    }
+  },
+  "config": {
+    "oauth": {
+      "redirect_uri": "/connector/feishu/oauth_redirect",
+      "auth_url": "https://accounts.feishu.cn/open-apis/authen/v1/authorize",
+      "token_url": "https://open.feishu.cn/open-apis/authen/v2/oauth/token"
+    }
+  },
+  "builtin": true
+}
