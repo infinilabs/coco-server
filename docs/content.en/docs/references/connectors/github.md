@@ -21,10 +21,10 @@ curl -XPUT "http://localhost:9000/connector/github?replace=true" -d '{
   "url": "http://coco.rs/connectors/github",
   "assets": {
     "icons": {
-      "default": "/assets/icons/connector/github/icon.png",
-      "repository": "/assets/icons/connector/github/repo.png",
-      "issue": "/assets/icons/connector/github/issue.png",
-      "pull_request": "/assets/icons/connector/github/pr.png"
+      "default" : "/assets/icons/connector/github/icon.png",
+      "repository" : "/assets/icons/connector/github/repository.png",
+      "issue" : "/assets/icons/connector/github/issue.png",
+      "pull_request" : "/assets/icons/connector/github/pull_request.png"
     }
   }
 }'
