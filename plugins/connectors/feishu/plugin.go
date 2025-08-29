@@ -34,12 +34,11 @@ const (
 
 type Plugin struct {
 	api.Handler
-	Enabled  bool               `config:"enabled"`
-	Queue    *queue.QueueConfig `config:"queue"`
-	Interval string             `config:"interval"`
-	PageSize int                `config:"page_size"`
-
-	OAuthConfig *OAuthConfig
+	Enabled     bool               `config:"enabled"`
+	Queue       *queue.QueueConfig `config:"queue"`
+	Interval    string             `config:"interval"`
+	PageSize    int                `config:"page_size"`
+	OAuthConfig *OAuthConfig       `config:"o_auth_config"`
 }
 
 type OAuthConfig struct {
@@ -56,10 +55,11 @@ type Config struct {
 	// Legacy support for user_access_token
 	UserAccessToken string `config:"user_access_token"`
 	// OAuth token fields (for datasource config)
-	AccessToken  string      `config:"access_token" json:"access_token"`
-	RefreshToken string      `config:"refresh_token" json:"refresh_token"`
-	TokenExpiry  string      `config:"token_expiry" json:"token_expiry"`
-	Profile      util.MapStr `config:"profile" json:"profile"`
+	AccessToken        string      `config:"access_token" json:"access_token"`
+	RefreshToken       string      `config:"refresh_token" json:"refresh_token"`
+	TokenExpiry        string      `config:"token_expiry" json:"token_expiry"`
+	RefreshTokenExpiry string      `config:"refresh_token_expiry" json:"refresh_token_expiry"`
+	Profile            util.MapStr `config:"profile" json:"profile"`
 }
 
 func init() {
@@ -181,11 +181,23 @@ func (this *Plugin) fetchFeishuCloudDocs(connector *common.Connector, datasource
 
 	// First try OAuth tokens
 	if obj.AccessToken != "" {
-		// Check if token is expired
+		// Check if access token is expired
 		if obj.TokenExpiry != "" {
 			if expiry, err := time.Parse(time.RFC3339, obj.TokenExpiry); err == nil {
 				if time.Now().After(expiry) && obj.RefreshToken != "" {
-					// Token expired, try to refresh
+					// Check if refresh token is also expired
+					if obj.RefreshTokenExpiry != "" {
+						if refreshExpiry, err := time.Parse(time.RFC3339, obj.RefreshTokenExpiry); err == nil {
+							if time.Now().After(refreshExpiry) {
+								_ = log.Errorf("[feishu connector] both access token and "+
+									"refresh token expired for datasource [%s]", datasource.Name)
+								// Both tokens expired, need to re-authenticate
+								return
+							}
+						}
+					}
+
+					// Access token expired but refresh token still valid, try to refresh
 					newToken, err := this.refreshAccessToken(obj.RefreshToken, obj)
 					if err != nil {
 						_ = log.Errorf("[feishu connector] failed to refresh token: %v", err)
@@ -193,7 +205,15 @@ func (this *Plugin) fetchFeishuCloudDocs(connector *common.Connector, datasource
 					} else {
 						// Update datasource with new token
 						obj.AccessToken = newToken.AccessToken
-						obj.TokenExpiry = newToken.Expiry.Format(time.RFC3339)
+						obj.RefreshToken = newToken.RefreshToken
+						obj.TokenExpiry = time.Now().
+							Add(time.Duration(newToken.ExpiresIn) * time.Second).Format(time.RFC3339)
+
+						// Update refresh token expiry if provided
+						if newToken.RefreshTokenExpiresIn > 0 {
+							obj.RefreshTokenExpiry = time.Now().
+								Add(time.Duration(newToken.RefreshTokenExpiresIn) * time.Second).Format(time.RFC3339)
+						}
 
 						// Save updated token to datasource
 						datasource.Connector.Config = obj
@@ -238,9 +258,10 @@ func (this *Plugin) fetchFeishuCloudDocs(connector *common.Connector, datasource
 }
 
 // searchFilesRecursively recursively searches for files in folders
-func (this *Plugin) searchFilesRecursively(token, folderToken string, docTypes []string, pageSize int, datasource *common.DataSource) {
-	var nextPageToken string
+func (this *Plugin) searchFilesRecursively(
+	token, folderToken string, docTypes []string, pageSize int, datasource *common.DataSource) {
 
+	var nextPageToken string
 	for {
 		resBody, err := this.listFilesInFolder(token, folderToken, nextPageToken, pageSize)
 		if err != nil {
@@ -277,7 +298,13 @@ func (this *Plugin) searchFilesRecursively(token, folderToken string, docTypes [
 			}
 
 			// Process document
-			doc := common.Document{Source: common.DataSourceReference{ID: datasource.ID, Type: "connector", Name: datasource.Name}}
+			doc := common.Document{
+				Source: common.DataSourceReference{
+					ID:   datasource.ID,
+					Type: "connector",
+					Name: datasource.Name,
+				},
+			}
 			doc.System = datasource.System
 
 			// Extract document information
@@ -369,7 +396,6 @@ func (this *Plugin) refreshAccessToken(refreshToken string, config Config) (*Fei
 		"client_secret": config.ClientSecret,
 		"grant_type":    "refresh_token",
 		"refresh_token": refreshToken,
-		"redirect_uri":  this.OAuthConfig.RedirectURI,
 	}
 
 	req := util.NewPostRequest(this.OAuthConfig.TokenURL, util.MustToJSONBytes(payload))
@@ -423,9 +449,15 @@ func (this *Plugin) getUserProfile(accessToken string) (util.MapStr, error) {
 
 // FeishuToken represents the OAuth token response
 type FeishuToken struct {
-	AccessToken  string    `json:"access_token"`
-	RefreshToken string    `json:"refresh_token"`
-	Expiry       time.Time `json:"expiry"`
+	Code                  int    `json:"code"`
+	AccessToken           string `json:"access_token"`
+	ExpiresIn             int    `json:"expires_in"`
+	RefreshToken          string `json:"refresh_token"`
+	RefreshTokenExpiresIn int    `json:"refresh_token_expires_in"`
+	TokenType             string `json:"token_type"`
+	Scope                 string `json:"scope"`
+	Error                 string `json:"error"`
+	ErrorDescription      string `json:"error_description"`
 }
 
 // listFilesInFolder lists files in a specific folder

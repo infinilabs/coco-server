@@ -33,7 +33,8 @@ func (h *Plugin) connect(w http.ResponseWriter, req *http.Request, _ httprouter.
 	datasource.ID = datasourceID
 	exists, err := orm.Get(&datasource)
 	if !exists || err != nil {
-		http.Error(w, "Datasource not found. Please create a datasource first with client_id and client_secret.", http.StatusNotFound)
+		http.Error(w, "Datasource not found. Please create a datasource first with client_id and "+
+			"client_secret.", http.StatusNotFound)
 		return
 	}
 
@@ -53,7 +54,8 @@ func (h *Plugin) connect(w http.ResponseWriter, req *http.Request, _ httprouter.
 
 	// Check if OAuth is properly configured in datasource
 	if obj.ClientID == "" || obj.ClientSecret == "" {
-		http.Error(w, "OAuth not configured in datasource. Please configure client_id and client_secret in the datasource settings.", http.StatusServiceUnavailable)
+		http.Error(w, "OAuth not configured in datasource. Please configure client_id and "+
+			"client_secret in the datasource settings.", http.StatusServiceUnavailable)
 		return
 	}
 
@@ -78,10 +80,11 @@ func (h *Plugin) connect(w http.ResponseWriter, req *http.Request, _ httprouter.
 		redirectURI = fmt.Sprintf("%s://%s%s", scheme, host, redirectURI)
 	}
 
-	authURL := fmt.Sprintf("%s?client_id=%s&redirect_uri=%s&state=%s",
+	authURL := fmt.Sprintf("%s?client_id=%s&redirect_uri=%s&scope=%s&state=%s",
 		h.OAuthConfig.AuthURL,
 		obj.ClientID,
 		url.QueryEscape(redirectURI),
+		"drive:drive space:document:retrieve offline_access",
 		url.QueryEscape(datasourceID),
 	)
 
@@ -135,7 +138,8 @@ func (h *Plugin) oAuthRedirect(w http.ResponseWriter, req *http.Request, _ httpr
 
 	// Check if OAuth is properly configured in datasource
 	if obj.ClientID == "" || obj.ClientSecret == "" {
-		http.Error(w, "OAuth not configured in datasource. Please configure client_id and client_secret in the datasource settings.", http.StatusServiceUnavailable)
+		http.Error(w, "OAuth not configured in datasource. Please configure client_id and "+
+			"client_secret in the datasource settings.", http.StatusServiceUnavailable)
 		return
 	}
 
@@ -169,7 +173,14 @@ func (h *Plugin) oAuthRedirect(w http.ResponseWriter, req *http.Request, _ httpr
 	// Update existing datasource with OAuth tokens
 	obj.AccessToken = token.AccessToken
 	obj.RefreshToken = token.RefreshToken
-	obj.TokenExpiry = token.Expiry.Format(time.RFC3339)
+	obj.TokenExpiry = time.Now().Add(time.Duration(token.ExpiresIn) * time.Second).Format(time.RFC3339)
+
+	// Save refresh token expiry if provided
+	if token.RefreshTokenExpiresIn > 0 {
+		obj.RefreshTokenExpiry = time.Now().
+			Add(time.Duration(token.RefreshTokenExpiresIn) * time.Second).Format(time.RFC3339)
+	}
+
 	obj.Profile = profile
 
 	// Update datasource config
