@@ -322,7 +322,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/f
   },
   "config": {
     "oauth": {
-      "redirect_uri": "/connector/feishu/oauth_redirect",
+      "redirect_uri": "$[[SETUP_SERVER_ENDPOINT]]/connector/feishu/oauth_redirect",
       "auth_url": "https://accounts.feishu.cn/open-apis/authen/v1/authorize",
       "token_url": "https://open.feishu.cn/open-apis/authen/v2/oauth/token"
     }

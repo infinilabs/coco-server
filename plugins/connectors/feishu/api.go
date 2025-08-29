@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"infini.sh/coco/modules/common"
@@ -21,7 +22,7 @@ import (
 // connect handles the OAuth authorization request
 func (h *Plugin) connect(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	// Get datasource ID from query parameters
-	datasourceID := req.URL.Query().Get("datasource_id")
+	datasourceID := h.MustGetParameter(w, req, "datasource_id")
 	if datasourceID == "" {
 		http.Error(w, "Missing datasource ID.", http.StatusBadRequest)
 		return
@@ -59,10 +60,28 @@ func (h *Plugin) connect(w http.ResponseWriter, req *http.Request, _ httprouter.
 	// Generate OAuth authorization URL for Feishu
 	// Feishu OAuth uses client_id instead of app_id
 	// We'll use state parameter to pass datasource ID
+
+	// Build full redirect_uri from current request
+	redirectURI := h.OAuthConfig.RedirectURI
+	if !strings.HasPrefix(redirectURI, "http://") && !strings.HasPrefix(redirectURI, "https://") {
+		// Extract scheme and host from current request
+		scheme := "http"
+		if req.TLS != nil || req.Header.Get("X-Forwarded-Proto") == "https" {
+			scheme = "https"
+		}
+
+		host := req.Host
+		if host == "" {
+			host = "localhost:8080" // fallback
+		}
+
+		redirectURI = fmt.Sprintf("%s://%s%s", scheme, host, redirectURI)
+	}
+
 	authURL := fmt.Sprintf("%s?client_id=%s&redirect_uri=%s&state=%s",
 		h.OAuthConfig.AuthURL,
 		obj.ClientID,
-		url.QueryEscape(h.OAuthConfig.RedirectURI),
+		url.QueryEscape(redirectURI),
 		url.QueryEscape(datasourceID),
 	)
 
@@ -75,7 +94,7 @@ func (h *Plugin) connect(w http.ResponseWriter, req *http.Request, _ httprouter.
 // oAuthRedirect handles the OAuth callback
 func (h *Plugin) oAuthRedirect(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	// Get datasource ID from state parameter
-	state := req.URL.Query().Get("state")
+	state := h.MustGetParameter(w, req, "state")
 	if state == "" {
 		http.Error(w, "Missing state parameter.", http.StatusBadRequest)
 		return
@@ -121,7 +140,7 @@ func (h *Plugin) oAuthRedirect(w http.ResponseWriter, req *http.Request, _ httpr
 	}
 
 	// Extract authorization code from query parameters
-	code := req.URL.Query().Get("code")
+	code := h.MustGetParameter(w, req, "code")
 	if code == "" {
 		http.Error(w, "Missing authorization code.", http.StatusBadRequest)
 		return

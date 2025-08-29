@@ -86,10 +86,12 @@ func (this *Plugin) Setup() {
 
 	// Set default OAuth configuration if not provided
 	if this.OAuthConfig == nil {
+		// OAuth configuration should be loaded from connector.tpl
+		// These are fallback defaults if config is not loaded properly
 		this.OAuthConfig = &OAuthConfig{
 			AuthURL:     "https://accounts.feishu.cn/open-apis/authen/v1/authorize",
 			TokenURL:    "https://open.feishu.cn/open-apis/authen/v2/oauth/token",
-			RedirectURI: "/connector/feishu/oauth_redirect",
+			RedirectURI: "/connector/feishu/oauth_redirect", // Will be dynamically built from request
 		}
 	}
 
