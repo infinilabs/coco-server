@@ -178,22 +178,6 @@ func ListWikiPages(ctx context.Context, client *gitlabv4.Client, projectID inter
 	return nil
 }
 
-// GetWikiPageContent fetches the full content for a wiki page by slug.
-func GetWikiPageContent(ctx context.Context, client *gitlabv4.Client, projectID interface{}, slug string) (string, error) {
-	select {
-	case <-ctx.Done():
-		return "", wrapContextDoneError(ctx.Err())
-	default:
-	}
-
-	opt := &gitlabv4.GetWikiPageOptions{}
-	page, _, err := client.Wikis.GetWikiPage(projectID, slug, opt)
-	if err != nil {
-		return "", err
-	}
-	return page.Content, nil
-}
-
 // ListProjectSnippets lists all snippets for a project, processing them page by page.
 func ListProjectSnippets(ctx context.Context, client *gitlabv4.Client, projectID interface{}, processor SnippetProcessor) error {
 	opt := &gitlabv4.ListProjectSnippetsOptions{
