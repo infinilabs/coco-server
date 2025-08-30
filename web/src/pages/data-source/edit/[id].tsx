@@ -21,13 +21,14 @@ import Confluence from '../new/confluence';
 import GitHub from '../new/github';
 import HugoSite from '../new/hugo_site';
 import LocalFS from '../new/local_fs';
-import { GithubConfig, NetworkDriveConfig, RdbmsConfig } from '../new/models';
+import { GithubConfig, NetworkDriveConfig, RdbmsConfig, MongoDBConfig } from '../new/models';
 import NetworkDrive from '../new/network_drive';
 import Notion from '../new/notion';
 import Rdbms from '../new/rdbms';
 import Rss from '../new/rss';
 import S3 from '../new/s3';
 import Yuque from '../new/yuque';
+import MongoDB from '../new/mongodb';
 
 // eslint-disable-next-line complexity
 export function Component() {
@@ -256,6 +257,7 @@ export function Component() {
       break;
     case Types.GoogleDrive:
       break;
+
     case Types.S3:
       if (datasource.connector?.config) {
         datasource.config = {
@@ -294,6 +296,12 @@ export function Component() {
           share: values.config?.share || '',
           username: values.config?.username || ''
         };
+      }
+      break;
+    }
+    case Types.MongoDB: {
+      if (datasource.connector?.config) {
+        datasource.config = MongoDBConfig(datasource.connector);
       }
       break;
     }
@@ -365,6 +373,7 @@ export function Component() {
             {type === Types.S3 && <S3 />}
             {type === Types.Confluence && <Confluence />}
             {type === Types.NetworkDrive && <NetworkDrive />}
+            {type === Types.MongoDB && <MongoDB />}
             {type === Types.Postgresql && <Rdbms dbType="postgresql" />}
             {type === Types.Mysql && <Rdbms dbType="mysql" />}
             {type === Types.GitHub && <GitHub />}
