@@ -13,7 +13,6 @@ import (
 	log "github.com/cihub/seelog"
 	gitlabv4 "gitlab.com/gitlab-org/api/client-go"
 	"infini.sh/coco/modules/common"
-	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/queue"
 	"infini.sh/framework/core/util"
@@ -127,7 +126,7 @@ func (p *Plugin) processIssues(ctx context.Context, client *gitlabv4.Client, pro
 					_ = log.Warnf("[%s connector] context canceled, stopping list comments for issue [project=%v, issue=#%d]: %v", ConnectorGitLab, project.NameWithNamespace, issue.IID, err)
 					return false
 				case NotFound:
-					log.Warnf("[%s connector] comments not found for issue [project=%v, issue=#%d]: %v", ConnectorGitLab, project.NameWithNamespace, issue.IID, err)
+					log.Debugf("[%s connector] comments not found for issue [project=%v, issue=#%d]: %v", ConnectorGitLab, project.NameWithNamespace, issue.IID, err)
 				default:
 					_ = log.Warnf("[%s connector] failed to list comments for issue [project=%v, issue=#%d]: %v", ConnectorGitLab, project.NameWithNamespace, issue.IID, err)
 				}
@@ -152,7 +151,7 @@ func (p *Plugin) processMergeRequests(ctx context.Context, client *gitlabv4.Clie
 			}
 			comments, err := ListComments(ctx, client, project.ID, mr.IID)
 			if err != nil {
-				switch errors.Code(err) {
+				switch resolveCode(err) {
 				case ContextDone:
 					_ = log.Warnf("[%s connector] context canceled, stopping list comments for merge request [project=%v, merge_request=#%d]: %v", ConnectorGitLab, project.NameWithNamespace, mr.IID, err)
 					return false
