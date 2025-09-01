@@ -19,9 +19,10 @@ import { getDatasource, updateDatasource } from '@/service/api/data-source';
 
 import Confluence from '../new/confluence';
 import GitHub from '../new/github';
+import GitLab from '../new/gitlab';
 import HugoSite from '../new/hugo_site';
 import LocalFS from '../new/local_fs';
-import { GithubConfig, NetworkDriveConfig, RdbmsConfig } from '../new/models';
+import { GithubConfig, GitlabConfig, NetworkDriveConfig, RdbmsConfig } from '../new/models';
 import NetworkDrive from '../new/network_drive';
 import Notion from '../new/notion';
 import Rdbms from '../new/rdbms';
@@ -104,6 +105,8 @@ export function Component() {
   const [copyRefUpdated, setCopyRefUpdated] = useState(false);
   useEffect(() => {
     if (!copyRef.current) return;
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
     const clipboard = new Clipboard(copyRef.current as any, {
       text: () => {
         return insertDocCmd;
@@ -196,6 +199,10 @@ export function Component() {
       }
       case Types.GitHub: {
         config = GithubConfig(values);
+        break;
+      }
+      case Types.GitLab: {
+        config = GitlabConfig(values);
         break;
       }
     }
@@ -310,6 +317,12 @@ export function Component() {
       }
       break;
     }
+    case Types.GitLab: {
+      if (datasource.connector?.config) {
+        datasource.config = GitlabConfig(datasource.connector);
+      }
+      break;
+    }
     default:
       isCustom = true;
   }
@@ -368,6 +381,7 @@ export function Component() {
             {type === Types.Postgresql && <Rdbms dbType="postgresql" />}
             {type === Types.Mysql && <Rdbms dbType="mysql" />}
             {type === Types.GitHub && <GitHub />}
+            {type === Types.GitLab && <GitLab />}
             {!isCustom ? (
               <>
                 <Form.Item

@@ -301,3 +301,31 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
   },
   "builtin": true
 }
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/gitlab
+{
+  "id" : "gitlab",
+  "created" : "2025-08-29T00:00:00.000000+08:00",
+  "updated" : "2025-08-29T00:00:00.000000+08:00",
+  "name" : "GitLab Connector",
+  "description" : "Fetch repositories, issues, and merge requests from GitLub.",
+  "category" : "website",
+  "icon" : "/assets/icons/connector/gitlab/icon.png",
+  "tags" : [
+    "git",
+    "code",
+    "vcs",
+    "website"
+  ],
+  "url" : "http://coco.rs/connectors/gitlab",
+  "assets" : {
+    "icons" : {
+      "default" : "/assets/icons/connector/gitlab/icon.png",
+      "repository" : "/assets/icons/connector/gitlab/repository.png",
+      "issue" : "/assets/icons/connector/gitlab/issue.png",
+      "merge_request" : "/assets/icons/connector/gitlab/merge_request.png",
+      "wiki" : "/assets/icons/connector/gitlab/wiki.png",
+      "snippet" : "/assets/icons/connector/gitlab/snippet.png"
+    }
+  },
+  "builtin": true
+}
