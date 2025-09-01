@@ -121,10 +121,18 @@ func (p *Plugin) processIssues(ctx context.Context, client *gitlabv4.Client, pro
 				return false
 			}
 			comments, err := ListComments(ctx, client, project.ID, issue.IID)
-			if errors.Code(err) == ContextDone {
-				_ = log.Warnf("[%s connector] context canceled, stopping list comments for issue [project=%v, issueID=#%d]: %v", ConnectorGitLab, project.NameWithNamespace, issue.IID, err)
-				return false
+			if err != nil {
+				switch resolveCode(err) {
+				case ContextDone:
+					_ = log.Warnf("[%s connector] context canceled, stopping list comments for issue [project=%v, issue=#%d]: %v", ConnectorGitLab, project.NameWithNamespace, issue.IID, err)
+					return false
+				case NotFound:
+					log.Warnf("[%s connector] comments not found for issue [project=%v, issue=#%d]: %v", ConnectorGitLab, project.NameWithNamespace, issue.IID, err)
+				default:
+					_ = log.Warnf("[%s connector] failed to list comments for issue [project=%v, issue=#%d]: %v", ConnectorGitLab, project.NameWithNamespace, issue.IID, err)
+				}
 			}
+
 			issueDoc := p.transformIssueToDocument(issue, comments, project, datasource)
 			p.pushToQueue(issueDoc)
 		}
@@ -143,9 +151,16 @@ func (p *Plugin) processMergeRequests(ctx context.Context, client *gitlabv4.Clie
 				return false
 			}
 			comments, err := ListComments(ctx, client, project.ID, mr.IID)
-			if errors.Code(err) == ContextDone {
-				_ = log.Warnf("[%s connector] context canceled, stopping list comments for merge requests [project=%v, merge request=#%d]: %v", ConnectorGitLab, project.NameWithNamespace, mr.IID, err)
-				return false
+			if err != nil {
+				switch errors.Code(err) {
+				case ContextDone:
+					_ = log.Warnf("[%s connector] context canceled, stopping list comments for merge request [project=%v, merge_request=#%d]: %v", ConnectorGitLab, project.NameWithNamespace, mr.IID, err)
+					return false
+				case NotFound:
+					log.Debugf("[%s connector] comments not found for merge request [project=%v, merge_request=#%d]: %v", ConnectorGitLab, project.NameWithNamespace, mr.IID, err)
+				default:
+					_ = log.Warnf("[%s connector] failed to list comments for merge request [project=%v, merge_request=#%d]: %v", ConnectorGitLab, project.NameWithNamespace, mr.IID, err)
+				}
 			}
 			mrDoc := p.transformMergeRequestToDocument(mr, comments, project, datasource)
 			p.pushToQueue(mrDoc)

@@ -6,15 +6,17 @@ package gitlab
 
 import (
 	"context"
+	stderrors "errors"
+	"fmt"
 	"net/http"
 
-	log "github.com/cihub/seelog"
 	gitlabv4 "gitlab.com/gitlab-org/api/client-go"
 	"infini.sh/framework/core/errors"
 )
 
 const (
 	ContextDone     errors.ErrorCode = 3
+	NotFound        errors.ErrorCode = 404
 	DefaultPageSize                  = 100
 )
 
@@ -50,10 +52,7 @@ func isGroupOwner(ctx context.Context, client *gitlabv4.Client, ownerID any) (bo
 	if resp != nil && resp.StatusCode == http.StatusNotFound {
 		return false, nil
 	}
-	if err != nil {
-		return false, err
-	}
-	return false, nil
+	return false, err
 }
 
 func ListGroupProjects(ctx context.Context, client *gitlabv4.Client, owner string, processor ProjectProcessor) error {
@@ -219,8 +218,10 @@ func ListComments(ctx context.Context, client *gitlabv4.Client, projectID interf
 		}
 
 		comments, resp, err := client.Notes.ListIssueNotes(projectID, issueID, opt)
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			return res, wrapNotFoundError(err)
+		}
 		if err != nil {
-			_ = log.Warnf("[%s connector] failed to list comments [projectID=%v, issueID=#%d]: %v", ConnectorGitLab, projectID, issueID, err)
 			return res, err
 		}
 		res = append(res, comments...)
@@ -232,6 +233,28 @@ func ListComments(ctx context.Context, client *gitlabv4.Client, projectID interf
 	return res, nil
 }
 
+type innerError struct {
+	error
+	code errors.ErrorCode
+	msg  string
+}
+
+func (c innerError) Error() string          { return fmt.Sprintf("%s: %v", c.msg, c.Cause()) }
+func (c innerError) Cause() error           { return c.error }
+func (c innerError) Code() errors.ErrorCode { return c.code }
+
 func wrapContextDoneError(err error) error {
-	return errors.NewWithCode(err, ContextDone, "context canceled")
+	return innerError{err, ContextDone, "context canceled"}
+}
+
+func wrapNotFoundError(err error) error {
+	return innerError{err, NotFound, "not found"}
+}
+
+func resolveCode(err error) errors.ErrorCode {
+	var e innerError
+	if stderrors.As(err, &e) {
+		return e.Code()
+	}
+	return errors.Default
 }
