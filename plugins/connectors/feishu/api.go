@@ -78,6 +78,7 @@ func (h *Plugin) connect(w http.ResponseWriter, req *http.Request, _ httprouter.
 		}
 
 		redirectURI = fmt.Sprintf("%s://%s%s", scheme, host, redirectURI)
+		h.OAuthConfig.RedirectURI = redirectURI
 	}
 
 	authURL := fmt.Sprintf("%s?client_id=%s&redirect_uri=%s&scope=%s&state=%s",
@@ -88,7 +89,7 @@ func (h *Plugin) connect(w http.ResponseWriter, req *http.Request, _ httprouter.
 		url.QueryEscape(datasourceID),
 	)
 
-	log.Debugf("[feishu connector] Redirecting to OAuth URL: %s", authURL)
+	log.Debugf("[%s connector] Redirecting to OAuth URL: %s", h.PluginType, authURL)
 
 	// Redirect user to Feishu OAuth page
 	http.Redirect(w, req, authURL, http.StatusTemporaryRedirect)
@@ -150,12 +151,12 @@ func (h *Plugin) oAuthRedirect(w http.ResponseWriter, req *http.Request, _ httpr
 		return
 	}
 
-	log.Debugf("[feishu connector] Received authorization code for datasource: %s", datasourceID)
+	log.Debugf("[%s connector] Received authorization code for datasource: %s", h.PluginType, datasourceID)
 
 	// Exchange authorization code for access token
 	token, err := h.exchangeCodeForToken(code, obj)
 	if err != nil {
-		log.Errorf("[feishu connector] Failed to exchange code for token: %v", err)
+		log.Errorf("[%s connector] Failed to exchange code for token: %v", h.PluginType, err)
 		http.Error(w, "Failed to exchange authorization code for token.", http.StatusInternalServerError)
 		return
 	}
@@ -163,12 +164,12 @@ func (h *Plugin) oAuthRedirect(w http.ResponseWriter, req *http.Request, _ httpr
 	// Get user profile information
 	profile, err := h.getUserProfile(token.AccessToken)
 	if err != nil {
-		log.Errorf("[feishu connector] Failed to get user profile: %v", err)
+		log.Errorf("[%s connector] Failed to get user profile: %v", h.PluginType, err)
 		http.Error(w, "Failed to get user profile information.", http.StatusInternalServerError)
 		return
 	}
 
-	log.Infof("[feishu connector] Successfully authenticated user: %v", profile)
+	log.Infof("[%s connector] Successfully authenticated user: %v", h.PluginType, profile)
 
 	// Update existing datasource with OAuth tokens
 	obj.AccessToken = token.AccessToken
@@ -190,12 +191,12 @@ func (h *Plugin) oAuthRedirect(w http.ResponseWriter, req *http.Request, _ httpr
 	ctx := orm.NewContextWithParent(req.Context())
 	err = orm.Update(ctx, &datasource)
 	if err != nil {
-		log.Errorf("[feishu connector] Failed to update datasource: %v", err)
+		log.Errorf("[%s connector] Failed to update datasource: %v", h.PluginType, err)
 		http.Error(w, "Failed to save OAuth tokens.", http.StatusInternalServerError)
 		return
 	}
 
-	log.Infof("[feishu connector] Successfully updated datasource with OAuth tokens: %s", datasourceID)
+	log.Infof("[%s connector] Successfully updated datasource with OAuth tokens: %s", h.PluginType, datasourceID)
 
 	// Redirect to datasource detail page
 	newRedirectURL := fmt.Sprintf("/#/data-source/detail/%v", datasource.ID)

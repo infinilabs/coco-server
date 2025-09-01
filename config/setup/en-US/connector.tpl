@@ -329,3 +329,31 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/f
   },
   "builtin": true
 }
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/lark
+{
+  "id": "lark",
+  "created": "2025-09-01T00:00:00.000000+08:00",
+  "updated": "2025-09-01T00:00:00.000000+08:00",
+  "name": "Lark Cloud Documents Connector",
+  "description": "Index Lark cloud documents including documents, spreadsheets, mind notes, multi-dimensional tables and knowledge bases.",
+  "category": "cloud",
+  "icon": "/assets/icons/connector/lark/icon.png",
+  "tags": [
+    "lark",
+    "cloud_docs"
+  ],
+  "url": "http://coco.rs/connectors/lark",
+  "assets": {
+    "icons": {
+      "default": "/assets/icons/connector/lark/icon.png"
+    }
+  },
+  "config": {
+    "oauth": {
+      "redirect_uri": "$[[SETUP_SERVER_ENDPOINT]]/connector/lark/oauth_redirect",
+      "auth_url": "https://accounts.larksuite.com/open-apis/authen/v1/authorize",
+      "token_url": "https://open.larksuite.com/open-apis/authen/v2/oauth/token"
+    }
+  },
+  "builtin": true
+}

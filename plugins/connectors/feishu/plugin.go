@@ -5,7 +5,6 @@
 package feishu
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -13,24 +12,58 @@ import (
 	"time"
 
 	"infini.sh/coco/modules/common"
-	"infini.sh/coco/plugins/connectors"
 	"infini.sh/framework/core/api"
 	config3 "infini.sh/framework/core/config"
-	"infini.sh/framework/core/env"
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/global"
-	"infini.sh/framework/core/module"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/queue"
-	"infini.sh/framework/core/task"
 	"infini.sh/framework/core/util"
 
 	log "github.com/cihub/seelog"
 )
 
+// PluginType represents the type of plugin (feishu or lark)
+type PluginType string
+
 const (
-	ConnectorFeishu = "feishu"
+	PluginTypeFeishu PluginType = "feishu"
+	PluginTypeLark   PluginType = "lark"
 )
+
+// APIConfig holds API endpoints for different plugin types
+type APIConfig struct {
+	BaseURL     string
+	AuthURL     string
+	TokenURL    string
+	UserInfoURL string
+	DriveURL    string
+}
+
+// getAPIConfig returns the appropriate API configuration based on plugin type
+func getAPIConfig(pluginType PluginType) *APIConfig {
+	switch pluginType {
+	case PluginTypeFeishu:
+		return &APIConfig{
+			BaseURL:     "https://open.feishu.cn",
+			AuthURL:     "https://accounts.feishu.cn/open-apis/authen/v1/authorize",
+			TokenURL:    "https://open.feishu.cn/open-apis/authen/v2/oauth/token",
+			UserInfoURL: "https://open.feishu.cn/open-apis/authen/v1/user_info",
+			DriveURL:    "https://open.feishu.cn/open-apis/drive/v1/files",
+		}
+	case PluginTypeLark:
+		return &APIConfig{
+			BaseURL:     "https://open.larksuite.com",
+			AuthURL:     "https://accounts.larksuite.com/open-apis/authen/v1/authorize",
+			TokenURL:    "https://open.larksuite.com/open-apis/authen/v2/oauth/token",
+			UserInfoURL: "https://open.larksuite.com/open-apis/authen/v1/user_info",
+			DriveURL:    "https://open.larksuite.com/open-apis/drive/v1/files",
+		}
+	default:
+		// Default to feishu
+		return getAPIConfig(PluginTypeFeishu)
+	}
+}
 
 type Plugin struct {
 	api.Handler
@@ -39,6 +72,29 @@ type Plugin struct {
 	Interval    string             `config:"interval"`
 	PageSize    int                `config:"page_size"`
 	OAuthConfig *OAuthConfig       `config:"o_auth_config"`
+	// Plugin type to determine API endpoints
+	PluginType PluginType
+	// API configuration based on plugin type
+	apiConfig *APIConfig
+}
+
+// SetPluginType sets the plugin type and initializes API configuration
+func (this *Plugin) SetPluginType(pluginType PluginType) {
+	this.PluginType = pluginType
+	this.apiConfig = getAPIConfig(pluginType)
+}
+
+// GetPluginType returns the current plugin type
+func (this *Plugin) GetPluginType() PluginType {
+	return this.PluginType
+}
+
+// GetAPIConfig returns the current API configuration
+func (this *Plugin) GetAPIConfig() *APIConfig {
+	if this.apiConfig == nil {
+		this.apiConfig = getAPIConfig(this.PluginType)
+	}
+	return this.apiConfig
 }
 
 type OAuthConfig struct {
@@ -62,90 +118,25 @@ type Config struct {
 	Profile            util.MapStr `config:"profile" json:"profile"`
 }
 
-func init() {
-	module.RegisterUserPlugin(&Plugin{})
+// Token represents the OAuth token response
+type Token struct {
+	Code                  int    `json:"code"`
+	AccessToken           string `json:"access_token"`
+	ExpiresIn             int    `json:"expires_in"`
+	RefreshToken          string `json:"refresh_token"`
+	RefreshTokenExpiresIn int    `json:"refresh_token_expires_in"`
+	TokenType             string `json:"token_type"`
+	Scope                 string `json:"scope"`
+	Error                 string `json:"error"`
+	ErrorDescription      string `json:"error_description"`
 }
 
 // Setup initializes the plugin
 func (this *Plugin) Setup() {
-	ok, err := env.ParseConfig("connector.feishu", &this)
-	if ok && err != nil && global.Env().SystemConfig.Configs.PanicOnConfigError {
-		panic(err)
-	}
-
-	if !this.Enabled {
-		return
-	}
-	if this.PageSize <= 0 {
-		this.PageSize = 100
-	}
-	if this.Queue == nil {
-		this.Queue = &queue.QueueConfig{Name: "indexing_documents"}
-	}
-	this.Queue = queue.SmartGetOrInitConfig(this.Queue)
-
-	// Set default OAuth configuration if not provided
-	if this.OAuthConfig == nil {
-		// OAuth configuration should be loaded from connector.tpl
-		// These are fallback defaults if config is not loaded properly
-		this.OAuthConfig = &OAuthConfig{
-			AuthURL:     "https://accounts.feishu.cn/open-apis/authen/v1/authorize",
-			TokenURL:    "https://open.feishu.cn/open-apis/authen/v2/oauth/token",
-			RedirectURI: "/connector/feishu/oauth_redirect", // Will be dynamically built from request
-		}
-	}
-
-	// Register OAuth routes
-	log.Debugf("[feishu connector] Attempting to register OAuth routes...")
-	api.HandleUIMethod(api.GET, "/connector/feishu/connect", this.connect, api.RequireLogin())
-	api.HandleUIMethod(api.GET, "/connector/feishu/oauth_redirect", this.oAuthRedirect, api.RequireLogin())
-	log.Infof("[feishu connector] OAuth routes registered successfully")
+	return
 }
 
 func (this *Plugin) Start() error {
-	if this.Enabled {
-		task.RegisterScheduleTask(task.ScheduleTask{
-			ID:          util.GetUUID(),
-			Group:       "connectors",
-			Singleton:   true,
-			Interval:    util.GetDurationOrDefault(this.Interval, time.Second*30).String(),
-			Description: "indexing feishu cloud documents",
-			Task: func(ctx context.Context) {
-				connector := common.Connector{}
-				connector.ID = ConnectorFeishu
-				exists, err := orm.Get(&connector)
-				if !exists {
-					log.Debugf("Connector %s not found", connector.ID)
-					return
-				}
-				if err != nil {
-					panic(errors.Errorf("invalid %s connector:%v", connector.ID, err))
-				}
-
-				q := orm.Query{}
-				q.Size = this.PageSize
-				q.Conds = orm.And(orm.Eq("connector.id", connector.ID), orm.Eq("sync_enabled", true))
-				var results []common.DataSource
-				err, _ = orm.SearchWithJSONMapper(&results, &q)
-				if err != nil {
-					panic(err)
-				}
-
-				for _, item := range results {
-					toSync, err := connectors.CanDoSync(item)
-					if err != nil {
-						_ = log.Errorf("error checking syncable with datasource [%s]: %v", item.Name, err)
-						continue
-					}
-					if !toSync {
-						continue
-					}
-					log.Debugf("fetch feishu cloud docs: ID: %s, Name: %s", item.ID, item.Name)
-					this.fetchFeishuCloudDocs(&connector, &item)
-				}
-			},
-		})
-	}
 	return nil
 }
 
@@ -154,14 +145,10 @@ func (this *Plugin) Stop() error {
 }
 
 func (this *Plugin) Name() string {
-	return ConnectorFeishu
+	return ""
 }
 
-func init() {
-	module.RegisterUserPlugin(&Plugin{})
-}
-
-func (this *Plugin) fetchFeishuCloudDocs(connector *common.Connector, datasource *common.DataSource) {
+func (this *Plugin) fetchCloudDocs(connector *common.Connector, datasource *common.DataSource) {
 	if connector == nil || datasource == nil {
 		panic("invalid connector config")
 	}
@@ -189,8 +176,8 @@ func (this *Plugin) fetchFeishuCloudDocs(connector *common.Connector, datasource
 					if obj.RefreshTokenExpiry != "" {
 						if refreshExpiry, err := time.Parse(time.RFC3339, obj.RefreshTokenExpiry); err == nil {
 							if time.Now().After(refreshExpiry) {
-								_ = log.Errorf("[feishu connector] both access token and "+
-									"refresh token expired for datasource [%s]", datasource.Name)
+								_ = log.Errorf("[%s connector] both access token and "+
+									"refresh token expired for datasource [%s]", this.PluginType, datasource.Name)
 								// Both tokens expired, need to re-authenticate
 								return
 							}
@@ -200,7 +187,7 @@ func (this *Plugin) fetchFeishuCloudDocs(connector *common.Connector, datasource
 					// Access token expired but refresh token still valid, try to refresh
 					newToken, err := this.refreshAccessToken(obj.RefreshToken, obj)
 					if err != nil {
-						_ = log.Errorf("[feishu connector] failed to refresh token: %v", err)
+						_ = log.Errorf("[%s connector] failed to refresh token: %v", this.PluginType, err)
 						// Continue with expired token, API will return error
 					} else {
 						// Update datasource with new token
@@ -219,7 +206,7 @@ func (this *Plugin) fetchFeishuCloudDocs(connector *common.Connector, datasource
 						datasource.Connector.Config = obj
 						ctx := orm.NewContext().DirectAccess()
 						if err := orm.Update(ctx, datasource); err != nil {
-							_ = log.Errorf("[feishu connector] failed to save refreshed token: %v", err)
+							_ = log.Errorf("[%s connector] failed to save refreshed token: %v", this.PluginType, err)
 						}
 					}
 				}
@@ -232,13 +219,13 @@ func (this *Plugin) fetchFeishuCloudDocs(connector *common.Connector, datasource
 	}
 
 	if token == "" {
-		_ = log.Errorf("[feishu connector] missing access token for datasource [%s]", datasource.Name)
+		_ = log.Errorf("[%s connector] missing access token for datasource [%s]", this.PluginType, datasource.Name)
 		return
 	}
 
 	// Validate token format (basic check)
 	if !strings.HasPrefix(token, "t-") && !strings.HasPrefix(token, "u-") {
-		_ = log.Warnf("[feishu connector] access token format may be invalid for datasource [%s]", datasource.Name)
+		_ = log.Warnf("[%s connector] access token format may be invalid for datasource [%s]", this.PluginType, datasource.Name)
 	}
 
 	// 1) Search cloud documents
@@ -265,7 +252,7 @@ func (this *Plugin) searchFilesRecursively(
 	for {
 		resBody, err := this.listFilesInFolder(token, folderToken, nextPageToken, pageSize)
 		if err != nil {
-			_ = log.Errorf("[feishu connector] list files in folder failed: %v", err)
+			_ = log.Errorf("[%s connector] list files in folder failed: %v", this.PluginType, err)
 			break
 		}
 
@@ -356,7 +343,7 @@ func (this *Plugin) searchFilesRecursively(
 }
 
 // exchangeCodeForToken exchanges authorization code for access token
-func (this *Plugin) exchangeCodeForToken(code string, config Config) (*FeishuToken, error) {
+func (this *Plugin) exchangeCodeForToken(code string, config Config) (*Token, error) {
 	payload := map[string]interface{}{
 		"client_id":     config.ClientID,
 		"client_secret": config.ClientSecret,
@@ -374,14 +361,14 @@ func (this *Plugin) exchangeCodeForToken(code string, config Config) (*FeishuTok
 	}
 
 	if res == nil {
-		return nil, errors.Errorf("Feishu API error, no response")
+		return nil, errors.Errorf("%s API error, no response", this.PluginType)
 	}
 
 	if res.StatusCode >= 300 {
-		return nil, errors.Errorf("Feishu API error: status %d, body: %s", res.StatusCode, string(res.Body))
+		return nil, errors.Errorf("%s API error: status %d, body: %s", this.PluginType, res.StatusCode, string(res.Body))
 	}
 
-	var tokenResponse FeishuToken
+	var tokenResponse Token
 	if err := json.Unmarshal(res.Body, &tokenResponse); err != nil {
 		return nil, err
 	}
@@ -390,7 +377,7 @@ func (this *Plugin) exchangeCodeForToken(code string, config Config) (*FeishuTok
 }
 
 // refreshAccessToken refreshes the access token using refresh token
-func (this *Plugin) refreshAccessToken(refreshToken string, config Config) (*FeishuToken, error) {
+func (this *Plugin) refreshAccessToken(refreshToken string, config Config) (*Token, error) {
 	payload := map[string]interface{}{
 		"client_id":     config.ClientID,
 		"client_secret": config.ClientSecret,
@@ -405,13 +392,13 @@ func (this *Plugin) refreshAccessToken(refreshToken string, config Config) (*Fei
 		return nil, err
 	}
 	if res == nil {
-		return nil, errors.Errorf("Feishu API error, no response")
+		return nil, errors.Errorf("%s API error, no response", this.PluginType)
 	}
 	if res.StatusCode >= 300 {
-		return nil, errors.Errorf("Feishu API error: status %d, body: %s", res.StatusCode, string(res.Body))
+		return nil, errors.Errorf("%s API error: status %d, body: %s", this.PluginType, res.StatusCode, string(res.Body))
 	}
 
-	var tokenResponse FeishuToken
+	var tokenResponse Token
 	if err := json.Unmarshal(res.Body, &tokenResponse); err != nil {
 		return nil, err
 	}
@@ -420,17 +407,18 @@ func (this *Plugin) refreshAccessToken(refreshToken string, config Config) (*Fei
 
 // getUserProfile retrieves user profile information
 func (this *Plugin) getUserProfile(accessToken string) (util.MapStr, error) {
-	req := util.NewGetRequest("https://open.feishu.cn/open-apis/authen/v1/user_info", nil)
+	apiConfig := this.GetAPIConfig()
+	req := util.NewGetRequest(apiConfig.UserInfoURL, nil)
 	req.AddHeader("Authorization", fmt.Sprintf("Bearer %s", accessToken))
 	res, err := util.ExecuteRequest(req)
 	if err != nil {
 		return nil, err
 	}
 	if res == nil {
-		return nil, errors.Errorf("Feishu API error, no response")
+		return nil, errors.Errorf("%s API error, no response", this.PluginType)
 	}
 	if res.StatusCode >= 300 {
-		return nil, errors.Errorf("Feishu API error: status %d, body: %s", res.StatusCode, string(res.Body))
+		return nil, errors.Errorf("%s API error: status %d, body: %s", this.PluginType, res.StatusCode, string(res.Body))
 	}
 
 	var response struct {
@@ -442,22 +430,9 @@ func (this *Plugin) getUserProfile(accessToken string) (util.MapStr, error) {
 		return nil, err
 	}
 	if response.Code != 0 {
-		return nil, errors.Errorf("Feishu API error: %s", response.Msg)
+		return nil, errors.Errorf("%s API error: %s", this.PluginType, response.Msg)
 	}
 	return response.Data, nil
-}
-
-// FeishuToken represents the OAuth token response
-type FeishuToken struct {
-	Code                  int    `json:"code"`
-	AccessToken           string `json:"access_token"`
-	ExpiresIn             int    `json:"expires_in"`
-	RefreshToken          string `json:"refresh_token"`
-	RefreshTokenExpiresIn int    `json:"refresh_token_expires_in"`
-	TokenType             string `json:"token_type"`
-	Scope                 string `json:"scope"`
-	Error                 string `json:"error"`
-	ErrorDescription      string `json:"error_description"`
 }
 
 // listFilesInFolder lists files in a specific folder
@@ -466,7 +441,8 @@ func (this *Plugin) listFilesInFolder(tenantToken, folderToken, pageToken string
 		pageSize = 100
 	}
 
-	apiURL := "https://open.feishu.cn/open-apis/drive/v1/files"
+	apiConfig := this.GetAPIConfig()
+	apiURL := apiConfig.DriveURL
 	apiURL += "?page_size=" + fmt.Sprintf("%d", pageSize)
 	if folderToken != "" {
 		apiURL += "&folder_token=" + url.QueryEscape(folderToken)
@@ -484,10 +460,10 @@ func (this *Plugin) listFilesInFolder(tenantToken, folderToken, pageToken string
 		return nil, err
 	}
 	if res == nil {
-		return nil, errors.Errorf("Feishu API error, no response")
+		return nil, errors.Errorf("%s API error, no response", this.PluginType)
 	}
 	if res.StatusCode >= 300 {
-		return nil, errors.Errorf("Feishu API error: status %d, body: %s", res.StatusCode, string(res.Body))
+		return nil, errors.Errorf("%s API error: status %d, body: %s", this.PluginType, res.StatusCode, string(res.Body))
 	}
 	return res.Body, nil
 }
