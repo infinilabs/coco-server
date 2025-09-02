@@ -154,7 +154,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         username: '用于身份验证的用户名。如果使用匿名访问或个人访问令牌，可以留空'
       }
     },
-    github: {
+    git_commons: {
       error: {
         owner_required: '请输入代码库拥有者',
         repo_required: '请输入仓库名称',
@@ -162,17 +162,38 @@ const page: App.I18n.Schema['translation']['page'] = {
       },
       labels: {
         index_issues: '索引 issues',
-        index_pull_requests: '索引 pull requests',
         owner: '代码库拥有者',
         repos: '代码库名称',
         token: '个人访问令牌'
       },
       tooltip: {
         index_issues: '是否索引 issues',
-        index_pull_requests: '是否索引 pull requests',
         owner: '代码库所属的用户名或组织名称',
-        repos: '要索引的代码仓库。默认为空，表示索引所有的代码库',
+        repos: '要索引的代码仓库。默认为空，表示索引所有的代码库'
+      }
+    },
+    github: {
+      labels: {
+        index_pull_requests: '索引 pull requests'
+      },
+      tooltip: {
+        index_pull_requests: '是否索引 pull requests',
         token: '需要具有“repo”范围的 GitHub 个人访问令牌 (PAT)。'
+      }
+    },
+    gitlab: {
+      labels: {
+        base_url: 'Base URL (可选)',
+        index_merge_requests: '索引 merge requests',
+        index_snippets: '索引 snippets',
+        index_wikis: '索引 wikis'
+      },
+      tooltip: {
+        base_url: '自托管 GitLab Base URL。如果是 GitLab.com，请置空。',
+        index_merge_requests: '是否索引 merge requests',
+        index_snippets: '是否索引 snippets',
+        index_wikis: '是否索引 wikis',
+        token: '需要具有“repo”范围的 GitLub 个人访问令牌 (PAT)。'
       }
     },
     network_drive: {

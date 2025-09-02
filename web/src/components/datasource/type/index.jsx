@@ -19,7 +19,8 @@ export const Types = {
   Yuque: 'yuque',
   Postgresql: 'postgresql',
   Mysql: 'mysql',
-  GitHub: 'github'
+  GitHub: 'github',
+  GitLab: 'gitlab'
 };
 
 export const TypeList = ({
