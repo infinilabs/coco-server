@@ -135,68 +135,92 @@ The Feishu/Lark connector requires the following permissions to function properl
 
 ## Configuration Architecture
 
-### Connector Level (Fixed Configuration)
+### Connector Level (OAuth Configuration)
 
-#### Feishu Configuration
+The OAuth configuration is now managed at the connector level. This provides better security and centralized management.
+
+#### Feishu Connector Configuration
 ```yaml
 connector:
   feishu:
     enabled: true
     interval: "30s"
     page_size: 100
-    o_auth_config:
+    config:
+      # OAuth Configuration (Required for OAuth flow)
       auth_url: "https://accounts.feishu.cn/open-apis/authen/v1/authorize"
       token_url: "https://open.feishu.cn/open-apis/authen/v2/oauth/token"
-      redirect_uri: "/connector/feishu/oauth_redirect"  # Dynamically built, supports multi-environment
+      redirect_url: "/connector/feishu/oauth_redirect"
+      client_id: "cli_xxxxxxxxxxxxxxxx"
+      client_secret: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      document_types: ["doc", "sheet", "slides", "mindnote", "bitable"]
+      user_access_token: ""  # Optional, for direct token authentication
 ```
 
-#### Lark Configuration
+#### Lark Connector Configuration
 ```yaml
 connector:
   lark:
     enabled: true
     interval: "30s"
     page_size: 100
-    o_auth_config:
+    config:
+      # OAuth Configuration (Required for OAuth flow)
       auth_url: "https://accounts.larksuite.com/open-apis/authen/v1/authorize"
       token_url: "https://open.larksuite.com/open-apis/authen/v2/oauth/token"
-      redirect_uri: "/connector/lark/oauth_redirect"  # Dynamically built, supports multi-environment
+      redirect_url: "/connector/lark/oauth_redirect"
+      client_id: "cli_xxxxxxxxxxxxxxxx"
+      client_secret: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      document_types: ["doc", "sheet", "slides", "mindnote", "bitable"]
+      user_access_token: ""  # Optional, for direct token authentication
 ```
 
-### Datasource Level (User Configuration)
+### Datasource Level (Auto-generated)
 
-#### Feishu Datasource
+When using OAuth authentication, datasources are automatically created during the OAuth flow. The system automatically generates:
+
+#### Auto-generated Feishu Datasource
 ```yaml
 datasource:
-  name: "Feishu Cloud Documents"
+  id: "auto-generated-id"
+  name: "User's Feishu"  # Auto-generated based on user profile
+  type: "connector"
+  enabled: true
+  sync_enabled: true
   connector:
     id: "feishu"
     config:
-      # Method 1: OAuth Authentication (Recommended)
-      client_id: "cli_xxxxxxxxxxxxxxxx"
-      client_secret: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-      document_types: ["doc", "sheet", "slides", "mindnote", "bitable"]
-      
-      # Method 2: User Access Token (Alternative)
-      # user_access_token: "u-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-      # document_types: ["doc", "sheet", "slides", "mindnote", "bitable"]
+      # OAuth tokens (auto-filled during OAuth flow)
+      access_token: "u-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      refresh_token: "r-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      token_expiry: "2024-01-01T12:00:00Z"
+      refresh_token_expiry: "2024-01-31T12:00:00Z"
+      profile:
+        user_id: "ou_xxxxxxxxxxxxxxxx"
+        name: "User Name"
+        email: "user@example.com"
 ```
 
-#### Lark Datasource
+#### Auto-generated Lark Datasource
 ```yaml
 datasource:
-  name: "Lark Cloud Documents"
+  id: "auto-generated-id"
+  name: "User's Lark"  # Auto-generated based on user profile
+  type: "connector"
+  enabled: true
+  sync_enabled: true
   connector:
     id: "lark"
     config:
-      # Method 1: OAuth Authentication (Recommended)
-      client_id: "cli_xxxxxxxxxxxxxxxx"
-      client_secret: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-      document_types: ["doc", "sheet", "slides", "mindnote", "bitable"]
-      
-      # Method 2: User Access Token (Alternative)
-      # user_access_token: "u-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-      # document_types: ["doc", "sheet", "slides", "mindnote", "bitable"]
+      # OAuth tokens (auto-filled during OAuth flow)
+      access_token: "u-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      refresh_token: "r-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      token_expiry: "2024-01-01T12:00:00Z"
+      refresh_token_expiry: "2024-01-31T12:00:00Z"
+      profile:
+        user_id: "ou_xxxxxxxxxxxxxxxx"
+        name: "User Name"
+        email: "user@example.com"
 ```
 
 ## Register Connectors
@@ -215,7 +239,11 @@ curl -XPUT "http://localhost:9000/connector/feishu?replace=true" -d '{
   "config": {
     "auth_url": "https://accounts.feishu.cn/open-apis/authen/v1/authorize",
     "token_url": "https://open.feishu.cn/open-apis/authen/v2/oauth/token",
-    "redirect_uri": "/connector/feishu/oauth_redirect"
+    "redirect_url": "/connector/feishu/oauth_redirect",
+    "client_id": "cli_xxxxxxxxxxxxxxxx",
+    "client_secret": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "document_types": ["doc", "sheet", "slides", "mindnote", "bitable"],
+    "user_access_token": ""
   }
 }'
 ```
@@ -234,7 +262,11 @@ curl -XPUT "http://localhost:9000/connector/lark?replace=true" -d '{
   "config": {
     "auth_url": "https://accounts.larksuite.com/open-apis/authen/v1/authorize",
     "token_url": "https://open.larksuite.com/open-apis/authen/v2/oauth/token",
-    "redirect_uri": "/connector/lark/oauth_redirect"
+    "redirect_url": "/connector/lark/oauth_redirect",
+    "client_id": "cli_xxxxxxxxxxxxxxxx",
+    "client_secret": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "document_types": ["doc", "sheet", "slides", "mindnote", "bitable"],
+    "user_access_token": ""
   }
 }'
 ```
@@ -252,6 +284,14 @@ connector:
       name: indexing_documents
     interval: "30s"
     page_size: 100
+    config:
+      auth_url: "https://accounts.feishu.cn/open-apis/authen/v1/authorize"
+      token_url: "https://open.feishu.cn/open-apis/authen/v2/oauth/token"
+      redirect_url: "/connector/feishu/oauth_redirect"
+      client_id: "cli_xxxxxxxxxxxxxxxx"
+      client_secret: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      document_types: ["doc", "sheet", "slides", "mindnote", "bitable"]
+      user_access_token: ""
 ```
 
 ### Lark Configuration
@@ -263,45 +303,32 @@ connector:
       name: indexing_documents
     interval: "30s"
     page_size: 100
+    config:
+      auth_url: "https://accounts.larksuite.com/open-apis/authen/v1/authorize"
+      token_url: "https://open.larksuite.com/open-apis/authen/v2/oauth/token"
+      redirect_url: "/connector/lark/oauth_redirect"
+      client_id: "cli_xxxxxxxxxxxxxxxx"
+      client_secret: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      document_types: ["doc", "sheet", "slides", "mindnote", "bitable"]
+      user_access_token: ""
 ```
 
 ## Create a Datasource
 
 ### Method 1: OAuth Authentication (Recommended)
 
-#### Feishu Datasource
-```shell
-curl -H 'Content-Type: application/json' -XPOST "http://localhost:9000/datasource/" -d '{
-  "name": "Feishu Cloud Documents",
-  "type": "connector",
-  "connector": {
-    "id": "feishu",
-    "config": {
-      "client_id": "cli_xxxxxxxxxxxxxxxx",
-      "client_secret": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-      "document_types": ["doc", "sheet", "slides", "mindnote", "bitable", "file", "docx", "folder", "shortcut"]
-    }
-  }
-}'
-```
+With the new architecture, datasources are automatically created during the OAuth flow. Users simply need to:
 
-#### Lark Datasource
-```shell
-curl -H 'Content-Type: application/json' -XPOST "http://localhost:9000/datasource/" -d '{
-  "name": "Lark Cloud Documents",
-  "type": "connector",
-  "connector": {
-    "id": "lark",
-    "config": {
-      "client_id": "cli_xxxxxxxxxxxxxxxx",
-      "client_secret": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-      "document_types": ["doc", "sheet", "slides", "mindnote", "bitable", "file", "docx", "folder", "shortcut"]
-    }
-  }
-}'
-```
+1. **Configure the Connector**: Set up OAuth credentials in the connector configuration
+2. **Click Connect**: Users click the "Connect" button in the datasource creation interface
+3. **OAuth Authorization**: Complete the OAuth authorization flow
+4. **Auto-creation**: System automatically creates the datasource with OAuth tokens
 
-### Method 2: User Access Token Authentication
+**No manual datasource creation required** - the system handles everything automatically!
+
+### Method 2: User Access Token Authentication (Legacy)
+
+For users who prefer direct token authentication, datasources can still be created manually:
 
 #### Feishu Datasource
 ```shell
@@ -389,16 +416,23 @@ The Feishu/Lark connector supports the following cloud document types:
    - **`offline_access`** - Offline access permission
 3. Record the app's `Client ID` and `Client Secret`
 
-#### Step 2: Create Datasource
-1. Create corresponding datasource (Feishu or Lark) in system management interface
-2. Configure `client_id`, `client_secret`, and `document_types`
-3. Save datasource configuration
+#### Step 2: Configure Connector
+1. Go to Connector Management in the system interface
+2. Edit the Feishu or Lark connector configuration
+3. Configure the following fields:
+   - `client_id`: Your app's Client ID
+   - `client_secret`: Your app's Client Secret
+   - `document_types`: List of document types to sync
+   - `auth_url`, `token_url`, `redirect_url`: OAuth endpoints (pre-configured)
+4. Save connector configuration
 
-#### Step 3: OAuth Authentication
-1. Click "Connect" button
-2. System redirects to corresponding authorization page
-3. User completes authorization
-4. System automatically updates datasource with OAuth token information and expiration times
+#### Step 3: Create Datasource (OAuth Flow)
+1. Go to Data Source Management and click "Add Data Source"
+2. Select Feishu or Lark connector
+3. Click the "Connect" button (no manual configuration needed)
+4. System redirects to Feishu/Lark authorization page
+5. User completes authorization
+6. System automatically creates datasource with OAuth tokens and user profile information
 
 ### Method 2: User Access Token
 
@@ -420,6 +454,9 @@ The Feishu/Lark connector supports the following cloud document types:
 - **Dynamic API Configuration**: Dynamically selects API endpoints based on plugin type
 - **Enhanced Base Plugin**: Adds plugin type management and API configuration functionality to base plugin
 - **Maximum Code Reuse**: 95% of code is shared, only configuration and routes differ
+- **OAuth Configuration Centralization**: OAuth credentials are managed at connector level
+- **Automatic Datasource Creation**: Datasources are automatically created during OAuth flow
+- **Unified OAuth Config Structure**: All OAuth-related fields are merged into a single `OAuthConfig` struct
 
 #### Core Components
 ```go
@@ -429,6 +466,20 @@ const (
     PluginTypeFeishu PluginType = "feishu"
     PluginTypeLark   PluginType = "lark"
 )
+
+// Unified OAuth configuration structure
+type OAuthConfig struct {
+    // OAuth endpoints
+    AuthURL     string
+    TokenURL    string
+    RedirectURL string
+    
+    // OAuth credentials
+    ClientID         string
+    ClientSecret     string
+    DocumentTypes    []string
+    UserAccessToken  string
+}
 
 // API configuration structure
 type APIConfig struct {
@@ -442,8 +493,9 @@ type APIConfig struct {
 // Base plugin structure
 type Plugin struct {
     // ... existing fields
-    PluginType PluginType
-    apiConfig  *APIConfig
+    PluginType  PluginType
+    apiConfig   *APIConfig
+    OAuthConfig *OAuthConfig  // Unified OAuth configuration
 }
 ```
 
@@ -482,13 +534,15 @@ The connector automatically searches folder contents recursively, ensuring all d
 
 1. **Authentication Method Selection**: You must choose either OAuth authentication or user access token authentication, they cannot be used simultaneously
 2. **OAuth Recommended**: OAuth authentication is recommended for higher security, automatic token refresh, and expiration time management
-3. **Token Management**: When using user access tokens, manual token expiration management is required
-4. **Permission Requirements**: Feishu/Lark apps need to apply for and obtain the following permissions:
+3. **Connector-Level Configuration**: OAuth credentials are now configured at the connector level, not at the datasource level
+4. **Automatic Datasource Creation**: When using OAuth, datasources are automatically created during the authorization flow
+5. **Token Management**: When using user access tokens, manual token expiration management is required
+6. **Permission Requirements**: Feishu/Lark apps need to apply for and obtain the following permissions:
    - `drive:drive` - Cloud document access permission
    - `space:document:retrieve` - Knowledge base retrieval permission
    - `offline_access` - Offline access permission
-5. **API Limits**: Pay attention to Feishu/Lark API call frequency limits
-6. **Platform Selection**: Choose the appropriate platform based on user region (Feishu for Mainland China, Lark for overseas regions)
+7. **API Limits**: Pay attention to Feishu/Lark API call frequency limits
+8. **Platform Selection**: Choose the appropriate platform based on user region (Feishu for Mainland China, Lark for overseas regions)
 
 ## Troubleshooting
 

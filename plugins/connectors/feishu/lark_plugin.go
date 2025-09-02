@@ -53,7 +53,7 @@ func (this *LarkPlugin) Setup() {
 		this.OAuthConfig = &OAuthConfig{
 			AuthURL:     apiConfig.AuthURL,
 			TokenURL:    apiConfig.TokenURL,
-			RedirectURI: "/connector/lark/oauth_redirect", // Will be dynamically built from request
+			RedirectURL: "/connector/lark/oauth_redirect", // Will be dynamically built from request
 		}
 	}
 
@@ -82,6 +82,47 @@ func (this *LarkPlugin) Start() error {
 				}
 				if err != nil {
 					panic(errors.Errorf("invalid %s connector:%v", connector.ID, err))
+				}
+
+				// Update OAuth config from connector config if available
+				if connector.Config != nil {
+					if this.OAuthConfig == nil {
+						this.OAuthConfig = &OAuthConfig{}
+					}
+					// OAuth endpoints
+					if authURL, ok := connector.Config["auth_url"].(string); ok {
+						this.OAuthConfig.AuthURL = authURL
+					}
+					if tokenURL, ok := connector.Config["token_url"].(string); ok {
+						this.OAuthConfig.TokenURL = tokenURL
+					}
+					if redirectURL, ok := connector.Config["redirect_url"].(string); ok {
+						this.OAuthConfig.RedirectURL = redirectURL
+					}
+					// OAuth credentials
+					if clientID, ok := connector.Config["client_id"].(string); ok {
+						this.OAuthConfig.ClientID = clientID
+					}
+					if clientSecret, ok := connector.Config["client_secret"].(string); ok {
+						this.OAuthConfig.ClientSecret = clientSecret
+					}
+					if documentTypes, ok := connector.Config["document_types"].([]interface{}); ok {
+						this.OAuthConfig.DocumentTypes = make([]string, len(documentTypes))
+						for i, dt := range documentTypes {
+							if str, ok := dt.(string); ok {
+								this.OAuthConfig.DocumentTypes[i] = str
+							}
+						}
+					}
+					if userAccessToken, ok := connector.Config["user_access_token"].(string); ok {
+						this.OAuthConfig.UserAccessToken = userAccessToken
+					}
+				}
+
+				// Check if OAuth is configured
+				if this.OAuthConfig == nil || (this.OAuthConfig.ClientID == "" && this.OAuthConfig.UserAccessToken == "") {
+					log.Debugf("skipping %s connector task since no client_id or user_access_token configured", connector.ID)
+					return
 				}
 
 				q := orm.Query{}

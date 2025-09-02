@@ -72,68 +72,92 @@
 
 ## 配置架构
 
-### 连接器级别（固定配置）
+### 连接器级别（OAuth配置）
 
-#### 飞书配置
+OAuth配置现在在连接器级别管理，提供更好的安全性和集中管理。
+
+#### 飞书连接器配置
 ```yaml
 connector:
   feishu:
     enabled: true
     interval: "30s"
     page_size: 100
-    o_auth_config:
+    config:
+      # OAuth配置（OAuth流程必需）
       auth_url: "https://accounts.feishu.cn/open-apis/authen/v1/authorize"
       token_url: "https://open.feishu.cn/open-apis/authen/v2/oauth/token"
-      redirect_uri: "/connector/feishu/oauth_redirect"  # 动态构建，支持多环境
+      redirect_url: "/connector/feishu/oauth_redirect"
+      client_id: "cli_xxxxxxxxxxxxxxxx"
+      client_secret: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      document_types: ["doc", "sheet", "slides", "mindnote", "bitable"]
+      user_access_token: ""  # 可选，用于直接令牌认证
 ```
 
-#### Lark配置
+#### Lark连接器配置
 ```yaml
 connector:
   lark:
     enabled: true
     interval: "30s"
     page_size: 100
-    o_auth_config:
+    config:
+      # OAuth配置（OAuth流程必需）
       auth_url: "https://accounts.larksuite.com/open-apis/authen/v1/authorize"
       token_url: "https://open.larksuite.com/open-apis/authen/v2/oauth/token"
-      redirect_uri: "/connector/lark/oauth_redirect"  # 动态构建，支持多环境
+      redirect_url: "/connector/lark/oauth_redirect"
+      client_id: "cli_xxxxxxxxxxxxxxxx"
+      client_secret: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      document_types: ["doc", "sheet", "slides", "mindnote", "bitable"]
+      user_access_token: ""  # 可选，用于直接令牌认证
 ```
 
-### 数据源级别（用户配置）
+### 数据源级别（自动生成）
 
-#### 飞书数据源
+使用OAuth认证时，数据源在OAuth流程中自动创建。系统自动生成：
+
+#### 自动生成的飞书数据源
 ```yaml
 datasource:
-  name: "飞书云文档"
+  id: "auto-generated-id"
+  name: "用户的飞书"  # 基于用户配置文件自动生成
+  type: "connector"
+  enabled: true
+  sync_enabled: true
   connector:
     id: "feishu"
     config:
-      # 方式1: OAuth认证（推荐）
-      client_id: "cli_xxxxxxxxxxxxxxxx"
-      client_secret: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-      document_types: ["doc", "sheet", "slides", "mindnote", "bitable"]
-      
-      # 方式2: 用户访问令牌（备选）
-      # user_access_token: "u-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-      # document_types: ["doc", "sheet", "slides", "mindnote", "bitable"]
+      # OAuth令牌（OAuth流程中自动填充）
+      access_token: "u-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      refresh_token: "r-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      token_expiry: "2024-01-01T12:00:00Z"
+      refresh_token_expiry: "2024-01-31T12:00:00Z"
+      profile:
+        user_id: "ou_xxxxxxxxxxxxxxxx"
+        name: "用户姓名"
+        email: "user@example.com"
 ```
 
-#### Lark数据源
+#### 自动生成的Lark数据源
 ```yaml
 datasource:
-  name: "Lark云文档"
+  id: "auto-generated-id"
+  name: "用户的Lark"  # 基于用户配置文件自动生成
+  type: "connector"
+  enabled: true
+  sync_enabled: true
   connector:
     id: "lark"
     config:
-      # 方式1: OAuth认证（推荐）
-      client_id: "cli_xxxxxxxxxxxxxxxx"
-      client_secret: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-      document_types: ["doc", "sheet", "slides", "mindnote", "bitable"]
-      
-      # 方式2: 用户访问令牌（备选）
-      # user_access_token: "u-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-      # document_types: ["doc", "sheet", "slides", "mindnote", "bitable"]
+      # OAuth令牌（OAuth流程中自动填充）
+      access_token: "u-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      refresh_token: "r-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      token_expiry: "2024-01-01T12:00:00Z"
+      refresh_token_expiry: "2024-01-31T12:00:00Z"
+      profile:
+        user_id: "ou_xxxxxxxxxxxxxxxx"
+        name: "用户姓名"
+        email: "user@example.com"
 ```
 
 ## 配置参数说明
@@ -250,16 +274,23 @@ datasource:
    - **`offline_access`** - 离线访问权限
 3. 记录应用的 `Client ID` 和 `Client Secret`
 
-#### 步骤2: 创建数据源
-1. 在系统管理界面创建对应的数据源（飞书或Lark）
-2. 配置 `client_id`、`client_secret` 和 `document_types`
-3. 保存数据源配置
+#### 步骤2: 配置连接器
+1. 进入系统管理界面的连接器管理
+2. 编辑飞书或Lark连接器配置
+3. 配置以下字段：
+   - `client_id`: 应用的Client ID
+   - `client_secret`: 应用的Client Secret
+   - `document_types`: 要同步的文档类型列表
+   - `auth_url`、`token_url`、`redirect_url`: OAuth端点（预配置）
+4. 保存连接器配置
 
-#### 步骤3: OAuth认证
-1. 点击"连接"按钮
-2. 系统重定向到对应的授权页面
-3. 用户完成授权
-4. 系统自动更新数据源，包含OAuth token信息和过期时间
+#### 步骤3: 创建数据源（OAuth流程）
+1. 进入数据源管理，点击"添加数据源"
+2. 选择飞书或Lark连接器
+3. 点击"连接"按钮（无需手动配置）
+4. 系统重定向到飞书/Lark授权页面
+5. 用户完成授权
+6. 系统自动创建数据源，包含OAuth令牌和用户配置文件信息
 
 ### 方法2: 用户访问令牌
 
@@ -281,6 +312,9 @@ datasource:
 - **动态API配置**: 根据插件类型动态选择API端点
 - **基础Plugin增强**: 在基础Plugin中添加插件类型管理和API配置功能
 - **代码复用最大化**: 95%的代码被共享，只有配置和路由不同
+- **OAuth配置集中化**: OAuth凭据在连接器级别管理
+- **自动数据源创建**: 数据源在OAuth流程中自动创建
+- **统一OAuth配置结构**: 所有OAuth相关字段合并到单个`OAuthConfig`结构体中
 
 #### 核心组件
 ```go
@@ -290,6 +324,20 @@ const (
     PluginTypeFeishu PluginType = "feishu"
     PluginTypeLark   PluginType = "lark"
 )
+
+// 统一OAuth配置结构
+type OAuthConfig struct {
+    // OAuth端点
+    AuthURL     string
+    TokenURL    string
+    RedirectURL string
+    
+    // OAuth凭据
+    ClientID         string
+    ClientSecret     string
+    DocumentTypes    []string
+    UserAccessToken  string
+}
 
 // API配置结构
 type APIConfig struct {
@@ -303,8 +351,9 @@ type APIConfig struct {
 // 基础Plugin结构
 type Plugin struct {
     // ... 原有字段
-    PluginType PluginType
-    apiConfig  *APIConfig
+    PluginType  PluginType
+    apiConfig   *APIConfig
+    OAuthConfig *OAuthConfig  // 统一OAuth配置
 }
 ```
 
@@ -343,13 +392,15 @@ type Plugin struct {
 
 1. **认证方式二选一**: 必须选择OAuth认证或用户访问令牌认证中的一种，不能同时使用
 2. **OAuth推荐**: 建议使用OAuth认证，安全性更高，支持token自动刷新和过期时间管理
-3. **Token管理**: 使用用户访问令牌时，需要手动管理token的有效期
-4. **权限要求**: 飞书/Lark应用需要申请并获得以下权限：
+3. **连接器级别配置**: OAuth凭据现在在连接器级别配置，不在数据源级别
+4. **自动数据源创建**: 使用OAuth时，数据源在授权流程中自动创建
+5. **Token管理**: 使用用户访问令牌时，需要手动管理token的有效期
+6. **权限要求**: 飞书/Lark应用需要申请并获得以下权限：
    - `drive:drive` - 云文档访问权限
    - `space:document:retrieve` - 知识库检索权限  
    - `offline_access` - 离线访问权限
-5. **API限制**: 注意飞书/Lark API的调用频率限制
-6. **平台选择**: 根据用户所在地区选择合适的平台（飞书适用于中国大陆，Lark适用于海外地区）
+7. **API限制**: 注意飞书/Lark API的调用频率限制
+8. **平台选择**: 根据用户所在地区选择合适的平台（飞书适用于中国大陆，Lark适用于海外地区）
 
 ## 故障排除
 

@@ -98,18 +98,18 @@ func (this *Plugin) GetAPIConfig() *APIConfig {
 }
 
 type OAuthConfig struct {
-	AuthURL     string `config:"auth_uri" json:"auth_url"`
-	TokenURL    string `config:"token_uri" json:"token_url"`
-	RedirectURI string `config:"redirect_uris" json:"redirect_uri"`
+	// OAuth endpoints
+	AuthURL     string `config:"auth_url" json:"auth_url"`
+	TokenURL    string `config:"token_url" json:"token_url"`
+	RedirectURL string `config:"redirect_url" json:"redirect_url"`
+	// OAuth credentials
+	ClientID        string   `config:"client_id" json:"client_id"`
+	ClientSecret    string   `config:"client_secret" json:"client_secret"`
+	DocumentTypes   []string `config:"document_types" json:"document_types"`
+	UserAccessToken string   `config:"user_access_token" json:"user_access_token"`
 }
 
 type Config struct {
-	ClientID     string `config:"client_id" json:"client_id"`
-	ClientSecret string `config:"client_secret" json:"client_secret"`
-	// Document types to search for (doc, sheet, slides, etc.)
-	DocumentTypes []string `config:"document_types"`
-	// Legacy support for user_access_token
-	UserAccessToken string `config:"user_access_token"`
 	// OAuth token fields (for datasource config)
 	AccessToken        string      `config:"access_token" json:"access_token"`
 	RefreshToken       string      `config:"refresh_token" json:"refresh_token"`
@@ -185,7 +185,7 @@ func (this *Plugin) fetchCloudDocs(connector *common.Connector, datasource *comm
 					}
 
 					// Access token expired but refresh token still valid, try to refresh
-					newToken, err := this.refreshAccessToken(obj.RefreshToken, obj)
+					newToken, err := this.refreshAccessToken(obj.RefreshToken)
 					if err != nil {
 						_ = log.Errorf("[%s connector] failed to refresh token: %v", this.PluginType, err)
 						// Continue with expired token, API will return error
@@ -213,9 +213,9 @@ func (this *Plugin) fetchCloudDocs(connector *common.Connector, datasource *comm
 			}
 		}
 		token = obj.AccessToken
-	} else if obj.UserAccessToken != "" {
-		// Fallback to user_access_token
-		token = strings.TrimSpace(obj.UserAccessToken)
+	} else if this.OAuthConfig != nil && this.OAuthConfig.UserAccessToken != "" {
+		// Fallback to user_access_token from connector config
+		token = strings.TrimSpace(this.OAuthConfig.UserAccessToken)
 	}
 
 	if token == "" {
@@ -230,8 +230,10 @@ func (this *Plugin) fetchCloudDocs(connector *common.Connector, datasource *comm
 
 	// 1) Search cloud documents
 	// Set default document types if not specified
-	docTypes := obj.DocumentTypes
-	if len(docTypes) == 0 {
+	var docTypes []string
+	if this.OAuthConfig != nil && len(this.OAuthConfig.DocumentTypes) > 0 {
+		docTypes = this.OAuthConfig.DocumentTypes
+	} else {
 		docTypes = []string{"doc", "sheet", "slides", "mindnote", "bitable", "file", "docx", "folder", "shortcut"}
 	}
 
@@ -343,13 +345,16 @@ func (this *Plugin) searchFilesRecursively(
 }
 
 // exchangeCodeForToken exchanges authorization code for access token
-func (this *Plugin) exchangeCodeForToken(code string, config Config) (*Token, error) {
+func (this *Plugin) exchangeCodeForToken(code string) (*Token, error) {
+	if this.OAuthConfig == nil {
+		return nil, errors.Errorf("OAuth config not initialized")
+	}
 	payload := map[string]interface{}{
-		"client_id":     config.ClientID,
-		"client_secret": config.ClientSecret,
+		"client_id":     this.OAuthConfig.ClientID,
+		"client_secret": this.OAuthConfig.ClientSecret,
 		"grant_type":    "authorization_code",
 		"code":          code,
-		"redirect_uri":  this.OAuthConfig.RedirectURI,
+		"redirect_uri":  this.OAuthConfig.RedirectURL,
 	}
 
 	req := util.NewPostRequest(this.OAuthConfig.TokenURL, util.MustToJSONBytes(payload))
@@ -377,10 +382,13 @@ func (this *Plugin) exchangeCodeForToken(code string, config Config) (*Token, er
 }
 
 // refreshAccessToken refreshes the access token using refresh token
-func (this *Plugin) refreshAccessToken(refreshToken string, config Config) (*Token, error) {
+func (this *Plugin) refreshAccessToken(refreshToken string) (*Token, error) {
+	if this.OAuthConfig == nil {
+		return nil, errors.Errorf("OAuth config not initialized")
+	}
 	payload := map[string]interface{}{
-		"client_id":     config.ClientID,
-		"client_secret": config.ClientSecret,
+		"client_id":     this.OAuthConfig.ClientID,
+		"client_secret": this.OAuthConfig.ClientSecret,
 		"grant_type":    "refresh_token",
 		"refresh_token": refreshToken,
 	}

@@ -13,59 +13,27 @@ import (
 
 	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
-	config3 "infini.sh/framework/core/config"
 	"infini.sh/framework/core/orm"
+	"infini.sh/framework/core/util"
 
 	log "github.com/cihub/seelog"
 )
 
 // connect handles the OAuth authorization request
 func (h *Plugin) connect(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
-	// Get datasource ID from query parameters
-	datasourceID := h.MustGetParameter(w, req, "datasource_id")
-	if datasourceID == "" {
-		http.Error(w, "Missing datasource ID.", http.StatusBadRequest)
-		return
-	}
-
-	// Get datasource configuration (existing flow)
-	datasource := common.DataSource{}
-	datasource.ID = datasourceID
-	exists, err := orm.Get(&datasource)
-	if !exists || err != nil {
-		http.Error(w, "Datasource not found. Please create a datasource first with client_id and "+
-			"client_secret.", http.StatusNotFound)
-		return
-	}
-
-	// Parse datasource config
-	cfg, err := config3.NewConfigFrom(datasource.Connector.Config)
-	if err != nil {
-		http.Error(w, "Invalid datasource configuration.", http.StatusInternalServerError)
-		return
-	}
-
-	obj := Config{}
-	err = cfg.Unpack(&obj)
-	if err != nil {
-		http.Error(w, "Failed to parse datasource configuration.", http.StatusInternalServerError)
-		return
-	}
-
-	// Check if OAuth is properly configured in datasource
-	if obj.ClientID == "" || obj.ClientSecret == "" {
-		http.Error(w, "OAuth not configured in datasource. Please configure client_id and "+
-			"client_secret in the datasource settings.", http.StatusServiceUnavailable)
+	// Check if OAuth is properly configured in connector
+	if h.OAuthConfig == nil || h.OAuthConfig.ClientID == "" || h.OAuthConfig.ClientSecret == "" {
+		http.Error(w, "OAuth not configured in connector. Please configure client_id and "+
+			"client_secret in the connector settings.", http.StatusServiceUnavailable)
 		return
 	}
 
 	// Generate OAuth authorization URL for Feishu
 	// Feishu OAuth uses client_id instead of app_id
-	// We'll use state parameter to pass datasource ID
 
-	// Build full redirect_uri from current request
-	redirectURI := h.OAuthConfig.RedirectURI
-	if !strings.HasPrefix(redirectURI, "http://") && !strings.HasPrefix(redirectURI, "https://") {
+	// Build full redirect_url from current request
+	redirectURL := h.OAuthConfig.RedirectURL
+	if !strings.HasPrefix(redirectURL, "http://") && !strings.HasPrefix(redirectURL, "https://") {
 		// Extract scheme and host from current request
 		scheme := "http"
 		if req.TLS != nil || req.Header.Get("X-Forwarded-Proto") == "https" {
@@ -77,16 +45,15 @@ func (h *Plugin) connect(w http.ResponseWriter, req *http.Request, _ httprouter.
 			host = "localhost:8080" // fallback
 		}
 
-		redirectURI = fmt.Sprintf("%s://%s%s", scheme, host, redirectURI)
-		h.OAuthConfig.RedirectURI = redirectURI
+		redirectURL = fmt.Sprintf("%s://%s%s", scheme, host, redirectURL)
+		h.OAuthConfig.RedirectURL = redirectURL
 	}
 
-	authURL := fmt.Sprintf("%s?client_id=%s&redirect_uri=%s&scope=%s&state=%s",
+	authURL := fmt.Sprintf("%s?client_id=%s&redirect_uri=%s&scope=%s",
 		h.OAuthConfig.AuthURL,
-		obj.ClientID,
-		url.QueryEscape(redirectURI),
+		h.OAuthConfig.ClientID,
+		url.QueryEscape(redirectURL),
 		"drive:drive space:document:retrieve offline_access",
-		url.QueryEscape(datasourceID),
 	)
 
 	log.Debugf("[%s connector] Redirecting to OAuth URL: %s", h.PluginType, authURL)
@@ -97,50 +64,10 @@ func (h *Plugin) connect(w http.ResponseWriter, req *http.Request, _ httprouter.
 
 // oAuthRedirect handles the OAuth callback
 func (h *Plugin) oAuthRedirect(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
-	// Get datasource ID from state parameter
-	state := h.MustGetParameter(w, req, "state")
-	if state == "" {
-		http.Error(w, "Missing state parameter.", http.StatusBadRequest)
-		return
-	}
-
-	// Decode state parameter
-	stateData, err := url.QueryUnescape(state)
-	if err != nil {
-		http.Error(w, "Invalid state parameter.", http.StatusBadRequest)
-		return
-	}
-
-	// Handle existing datasource flow (original logic)
-	datasourceID := stateData
-
-	// Get datasource configuration
-	datasource := common.DataSource{}
-	datasource.ID = datasourceID
-	exists, err := orm.Get(&datasource)
-	if !exists || err != nil {
-		http.Error(w, "Datasource not found.", http.StatusNotFound)
-		return
-	}
-
-	// Parse datasource config
-	cfg, err := config3.NewConfigFrom(datasource.Connector.Config)
-	if err != nil {
-		http.Error(w, "Invalid datasource configuration.", http.StatusInternalServerError)
-		return
-	}
-
-	obj := Config{}
-	err = cfg.Unpack(&obj)
-	if err != nil {
-		http.Error(w, "Failed to parse datasource configuration.", http.StatusInternalServerError)
-		return
-	}
-
-	// Check if OAuth is properly configured in datasource
-	if obj.ClientID == "" || obj.ClientSecret == "" {
-		http.Error(w, "OAuth not configured in datasource. Please configure client_id and "+
-			"client_secret in the datasource settings.", http.StatusServiceUnavailable)
+	// Check if OAuth is properly configured in connector
+	if h.OAuthConfig == nil || h.OAuthConfig.ClientID == "" || h.OAuthConfig.ClientSecret == "" {
+		http.Error(w, "OAuth not configured in connector. Please configure client_id and "+
+			"client_secret in the connector settings.", http.StatusServiceUnavailable)
 		return
 	}
 
@@ -151,10 +78,10 @@ func (h *Plugin) oAuthRedirect(w http.ResponseWriter, req *http.Request, _ httpr
 		return
 	}
 
-	log.Debugf("[%s connector] Received authorization code for datasource: %s", h.PluginType, datasourceID)
+	log.Debugf("[%s connector] Received authorization code", h.PluginType)
 
 	// Exchange authorization code for access token
-	token, err := h.exchangeCodeForToken(code, obj)
+	token, err := h.exchangeCodeForToken(code)
 	if err != nil {
 		log.Errorf("[%s connector] Failed to exchange code for token: %v", h.PluginType, err)
 		http.Error(w, "Failed to exchange authorization code for token.", http.StatusInternalServerError)
@@ -171,32 +98,66 @@ func (h *Plugin) oAuthRedirect(w http.ResponseWriter, req *http.Request, _ httpr
 
 	log.Infof("[%s connector] Successfully authenticated user: %v", h.PluginType, profile)
 
-	// Update existing datasource with OAuth tokens
-	obj.AccessToken = token.AccessToken
-	obj.RefreshToken = token.RefreshToken
-	obj.TokenExpiry = time.Now().Add(time.Duration(token.ExpiresIn) * time.Second).Format(time.RFC3339)
-
-	// Save refresh token expiry if provided
-	if token.RefreshTokenExpiresIn > 0 {
-		obj.RefreshTokenExpiry = time.Now().
-			Add(time.Duration(token.RefreshTokenExpiresIn) * time.Second).Format(time.RFC3339)
+	// Create datasource with OAuth tokens
+	datasource := common.DataSource{
+		SyncEnabled: true,
+		Enabled:     true,
 	}
 
-	obj.Profile = profile
+	// Generate unique datasource ID based on connector type and user info
+	userID := ""
+	if userIDStr, ok := profile["user_id"].(string); ok {
+		userID = userIDStr
+	} else if email, ok := profile["email"].(string); ok {
+		userID = email
+	} else {
+		userID = "unknown"
+	}
 
-	// Update datasource config
-	datasource.Connector.Config = obj
+	datasource.ID = util.MD5digest(fmt.Sprintf("%v,%v", h.PluginType, userID))
+	datasource.Type = "connector"
 
-	// Save updated datasource
+	// Set datasource name
+	if name, ok := profile["name"].(string); ok && name != "" {
+		datasource.Name = fmt.Sprintf("%s's %s", name, h.PluginType)
+	} else {
+		datasource.Name = fmt.Sprintf("My %s", h.PluginType)
+	}
+
+	// Create datasource config with OAuth tokens
+	datasource.Connector = common.ConnectorConfig{
+		ConnectorID: string(h.PluginType),
+		Config: util.MapStr{
+			"access_token":  token.AccessToken,
+			"refresh_token": token.RefreshToken,
+			"token_expiry":  time.Now().Add(time.Duration(token.ExpiresIn) * time.Second).Format(time.RFC3339),
+			"profile":       profile,
+		},
+	}
+
+	// Add refresh token expiry if provided
+	if token.RefreshTokenExpiresIn > 0 {
+		if configMap, ok := datasource.Connector.Config.(util.MapStr); ok {
+			configMap["refresh_token_expiry"] = time.Now().
+				Add(time.Duration(token.RefreshTokenExpiresIn) * time.Second).Format(time.RFC3339)
+		}
+	}
+
+	// Check if refresh token is missing or empty
+	if token.RefreshToken == "" {
+		log.Warnf("refresh token was not granted for: %v", datasource.Name)
+	}
+
+	// Save datasource
 	ctx := orm.NewContextWithParent(req.Context())
-	err = orm.Update(ctx, &datasource)
+	err = orm.Save(ctx, &datasource)
 	if err != nil {
-		log.Errorf("[%s connector] Failed to update datasource: %v", h.PluginType, err)
-		http.Error(w, "Failed to save OAuth tokens.", http.StatusInternalServerError)
+		log.Errorf("[%s connector] Failed to save datasource: %v", h.PluginType, err)
+		http.Error(w, "Failed to save datasource.", http.StatusInternalServerError)
 		return
 	}
 
-	log.Infof("[%s connector] Successfully updated datasource with OAuth tokens: %s", h.PluginType, datasourceID)
+	log.Infof("[%s connector] Successfully created datasource: %s", h.PluginType, datasource.ID)
 
 	// Redirect to datasource detail page
 	newRedirectURL := fmt.Sprintf("/#/data-source/detail/%v", datasource.ID)
