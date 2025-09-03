@@ -1,6 +1,6 @@
-/* Copyright © INFINI Ltd. All rights reserved.
- * web: https://infinilabs.com
- * mail: hello#infini.ltd */
+/* Copyright © INFINI LTD. All rights reserved.
+ * Web: https://infinilabs.com
+ * Email: hello#infini.ltd */
 
 package main
 
