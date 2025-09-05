@@ -15,12 +15,13 @@ import { getConnector, getConnectorIcons } from '@/service/api/connector';
 import { createDatasource } from '@/service/api/data-source';
 
 import Confluence from './confluence';
+import Gitea from './gitea';
 import GitHub from './github';
 import GitLab from './gitlab';
 import GoogleDrive from './google_drive';
 import HugoSite from './hugo_site';
 import LocalFS from './local_fs';
-import { GithubConfig, GitlabConfig, NetworkDriveConfig, RdbmsConfig } from './models';
+import { GiteaConfig, GithubConfig, GitlabConfig, NetworkDriveConfig, RdbmsConfig } from './models';
 import NetworkDrive from './network_drive';
 import Notion from './notion';
 import Rdbms from './rdbms';
@@ -124,6 +125,9 @@ export function Component() {
       break;
     case Types.GitLab:
       connectorType = 'Gitlab';
+      break;
+    case Types.Gitea:
+      connectorType = 'Gitea';
       break;
     default:
       return (
@@ -241,6 +245,10 @@ export function Component() {
       }
       case Types.GitLab: {
         config = GitlabConfig(values);
+        break;
+      }
+      case Types.Gitea: {
+        config = GiteaConfig(values);
         break;
       }
     }
@@ -366,6 +374,7 @@ export function Component() {
               {type === Types.Mysql && <Rdbms dbType="mysql" />}
               {type === Types.GitHub && <GitHub />}
               {type === Types.GitLab && <GitLab />}
+              {type === Types.Gitea && <Gitea />}
               <Form.Item
                 label={t('page.datasource.new.labels.data_sync')}
                 name="sync_config"

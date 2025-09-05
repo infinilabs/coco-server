@@ -18,11 +18,12 @@ import { getConnectorIcons } from '@/service/api/connector';
 import { getDatasource, updateDatasource } from '@/service/api/data-source';
 
 import Confluence from '../new/confluence';
+import Gitea from '../new/gitea';
 import GitHub from '../new/github';
 import GitLab from '../new/gitlab';
 import HugoSite from '../new/hugo_site';
 import LocalFS from '../new/local_fs';
-import { GithubConfig, GitlabConfig, NetworkDriveConfig, RdbmsConfig } from '../new/models';
+import { GiteaConfig, GithubConfig, GitlabConfig, NetworkDriveConfig, RdbmsConfig } from '../new/models';
 import NetworkDrive from '../new/network_drive';
 import Notion from '../new/notion';
 import Rdbms from '../new/rdbms';
@@ -205,6 +206,10 @@ export function Component() {
         config = GitlabConfig(values);
         break;
       }
+      case Types.Gitea: {
+        config = GiteaConfig(values);
+        break;
+      }
     }
     const sValues = {
       connector: {
@@ -323,6 +328,12 @@ export function Component() {
       }
       break;
     }
+    case Types.Gitea: {
+      if (datasource.connector?.config) {
+        datasource.config = GiteaConfig(datasource.connector);
+      }
+      break;
+    }
     default:
       isCustom = true;
   }
@@ -382,6 +393,7 @@ export function Component() {
             {type === Types.Mysql && <Rdbms dbType="mysql" />}
             {type === Types.GitHub && <GitHub />}
             {type === Types.GitLab && <GitLab />}
+            {type === Types.Gitea && <Gitea />}
             {!isCustom ? (
               <>
                 <Form.Item

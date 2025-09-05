@@ -172,6 +172,17 @@ const page: App.I18n.Schema['translation']['page'] = {
         repos: '要索引的代码仓库。默认为空，表示索引所有的代码库'
       }
     },
+    gitea: {
+      labels: {
+        base_url: 'Base URL (可选)',
+        index_pull_requests: '索引 pull requests'
+      },
+      tooltip: {
+        base_url: '自托管 Gitea Base URL。如果是 Gitea.com，请置空。',
+        index_pull_requests: '是否索引 pull requests',
+        token: '需要具有“repo”范围的 Gitea 个人访问令牌 (PAT)。'
+      }
+    },
     github: {
       labels: {
         index_pull_requests: '索引 pull requests'
