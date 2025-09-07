@@ -42,6 +42,7 @@ Information about release notes of Coco Server is provided here.
 - feat: mysql connector #489
 - feat: github connector #492
 - feat: gitlab connector #494
+- feat: gitea connector #500
 
 ### 🐛 Bug fix  
 - fix: query parameter "filter" is not working
