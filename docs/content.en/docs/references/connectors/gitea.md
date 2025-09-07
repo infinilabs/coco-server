@@ -93,8 +93,7 @@ cURL -H 'Content-Type: application/json' -XPOST "http://localhost:9000/datasourc
                 "console"
             ],
             "index_issues": true,
-            "index_pull_requests": true,
-            "index_wikis": true
+            "index_pull_requests": true
         }
     }
 }'

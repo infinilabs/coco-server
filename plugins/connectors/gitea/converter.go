@@ -171,7 +171,13 @@ func (p *Plugin) transformRepoToDocument(repo *sdk.Repository, datasource *commo
 	doc.URL = repo.HTMLURL
 	doc.Type = TypeRepository
 	doc.Icon = TypeRepository
-	doc.Owner = &common.UserInfo{UserID: repo.Owner.UserName, UserName: repo.Owner.FullName, UserAvatar: repo.Owner.AvatarURL}
+	if repo.Owner != nil {
+		doc.Owner = &common.UserInfo{
+			UserID:     fmt.Sprintf("%d", repo.Owner.ID),
+			UserName:   repo.Owner.UserName,
+			UserAvatar: repo.Owner.AvatarURL,
+		}
+	}
 	doc.ID = util.MD5digest(fmt.Sprintf("%s-%d", datasource.ID, repo.ID))
 	doc.Created = &repo.Created
 	doc.Updated = &repo.Updated
@@ -205,8 +211,8 @@ func (p *Plugin) transformContentableToDocument(item contentable, comments []*sd
 	poster := item.GetPoster()
 	if poster != nil {
 		doc.Owner = &common.UserInfo{
-			UserID:     poster.UserName,
-			UserName:   poster.FullName,
+			UserID:     fmt.Sprintf("%d", poster.ID),
+			UserName:   poster.UserName,
 			UserAvatar: poster.AvatarURL,
 		}
 	}
