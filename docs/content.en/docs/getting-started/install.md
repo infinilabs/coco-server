@@ -50,8 +50,8 @@ First, create the necessary directories and a `.env` file for your password.
 sudo mkdir -p /data/cocoserver/{data,logs,config}
 
 # Create an environment file to store your password securely.
-# Replace "$(openssl rand -hex 10)" with a strong, secret password.
-echo "EASYSEARCH_INITIAL_ADMIN_PASSWORD=$(openssl rand -hex 10)" | sudo tee /data/cocoserver/.env > /dev/null
+# Replace EASYSEARCH_INITIAL_ADMIN_PASSWORD value with a strong, secret password.
+echo "EASYSEARCH_INITIAL_ADMIN_PASSWORD=$(tr -dc 'A-Za-z0-9_.@+=-' < /dev/urandom | head -c 20)" | sudo tee /data/cocoserver/.env > /dev/null
 ```
 
 **Step 2: Initialize Configuration from the Image (One-time Setup)**
