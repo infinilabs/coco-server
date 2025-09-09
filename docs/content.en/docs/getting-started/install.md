@@ -61,11 +61,13 @@ This clever command runs a temporary container to copy the default configuration
 ```bash
 docker run --rm \
   -v /data/cocoserver/config:/tmp/config \
+  --env-file /data/cocoserver/.env \
   infinilabs/coco:0.7.0 \
   cp -a /app/easysearch/config/. /tmp/config/
 ```
 *   `--rm`: Automatically removes the container after it exits.
 *   `-v /data/cocoserver/config:/tmp/config`: Mounts your local config directory into a temporary path inside the container.
+*   `--env-file /data/cocoserver/.env`: Loads your password environment variable into the container.
 *   `cp -a ...`: The command executed inside the container. It copies all contents from the image's config directory to the mounted host directory.
 
 **Step 3: Set Directory Permissions**
