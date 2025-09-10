@@ -1,4 +1,4 @@
-import { Button, Form, Input, Select, message } from 'antd';
+import { Button, Form, Input, Select, message,Switch } from 'antd';
 import type { FormProps } from 'antd';
 
 import { Tags } from '@/components/common/tags';
@@ -22,6 +22,8 @@ export function Component() {
       description: values.description,
       icon: values.icon,
       name: values.name,
+      config: values.config ? JSON.parse(values.config) : {},
+      path_hierarchy: values.path_hierarchy,
       tags: values.tags
     };
     createConnector(sValues).then(res => {
@@ -85,6 +87,7 @@ export function Component() {
           <Form.Item
             label={t('page.connector.new.labels.category')}
             name="category"
+            tooltip={t('page.connector.new.tooltip.category', 'Please choose or input the category.')}
             rules={[{ required: true }]}
           >
             <Select
@@ -114,12 +117,35 @@ export function Component() {
           >
             <AssetsIcons iconsMeta={iconsMeta} />
           </Form.Item>
-          <Form.Item
+
+        <Form.Item
+            label={t('page.connector.new.labels.config')}
+            name="config"
+            tooltip={t('page.connector.new.tooltip.config', 'Configurations in JSON format.')}
+         >
+            <Input.TextArea autoSize={{ minRows: 2, maxRows: 30 }} />
+          </Form.Item>
+
+
+         <Form.Item
+          initialValue={false}
+            label={t('page.connector.new.labels.path_hierarchy')}
+          name="path_hierarchy"
+          tooltip={t('page.connector.new.tooltip.path_hierarchy', 'Whether to support access documents via path hierarchy manner.')}
+          valuePropName="checked"
+        >
+          <Switch />
+         </Form.Item>
+
+
+
+         <Form.Item
             label={t('page.connector.new.labels.description')}
             name="description"
-          >
+         >
             <Input.TextArea />
           </Form.Item>
+
           <Form.Item
             label={t('page.connector.new.labels.tags')}
             name="tags"

@@ -1,4 +1,4 @@
-import { Button, Form, Input, Select, message } from 'antd';
+import { Button, Form, Input, Select, message,Switch } from 'antd';
 import type { FormProps } from 'antd';
 
 import InfiniIcon from '@/components/common/icon';
@@ -21,8 +21,13 @@ export function Component() {
       auth_url: "https://accounts.google.com/o/oauth2/auth",
       redirect_url: location.origin + "/connector/google_drive/oauth_redirect",
       token_url: "https://oauth2.googleapis.com/token"
-    })
+    }),
+
+    raw_config: initialConnector?.config ? JSON.stringify(initialConnector?.config,null,4) : undefined
+
   };
+
+
   const [loading, setLoading] = useState(false);
 
   const onFinish: FormProps<any>['onFinish'] = values => {
@@ -32,10 +37,11 @@ export function Component() {
         icons: values.assets_icons
       },
       category,
-      config: {},
+      config: values.raw_config ? JSON.parse(values.raw_config) : {},
       description: values.description,
       icon: values.icon,
       name: values.name,
+      path_hierarchy: values.path_hierarchy,
       tags: values.tags
     };
     if (connectorID === 'google_drive') {
@@ -69,10 +75,10 @@ export function Component() {
     getConnectorCategory().then(({ data }) => {
       if (!data?.error) {
         const newData = formatESSearchResult(data);
-        const cates = newData.aggregations.categories.buckets.map((item: any) => {
+        const cates = newData?.aggregations?.categories?.buckets?.map((item: any) => {
           return item.key;
         });
-        setCategories(cates);
+        setCategories(cates||[]);
       }
     });
   }, []);
@@ -110,6 +116,7 @@ export function Component() {
           </Form.Item>
           <Form.Item
             label={t('page.connector.new.labels.category')}
+            tooltip={t('page.connector.new.tooltip.category', 'Please choose or input the category.')}
             name="category"
             rules={[{ required: true }]}
           >
@@ -196,6 +203,26 @@ export function Component() {
               </Form.Item>
             </>
           )}
+
+        <Form.Item
+            label={t('page.connector.new.labels.config')}
+            tooltip={t('page.connector.new.tooltip.config', 'Configurations in JSON format.')}
+            name="raw_config"
+         >
+            <Input.TextArea autoSize={{ minRows: 2, maxRows: 30 }} />
+          </Form.Item>
+
+
+         <Form.Item
+            label={t('page.connector.new.labels.path_hierarchy')}
+          name="path_hierarchy"
+          tooltip={t('page.connector.new.tooltip.path_hierarchy', 'Whether to support access documents via path hierarchy manner.')}
+          valuePropName="checked"
+        >
+          <Switch />
+         </Form.Item>
+
+
           <Form.Item
             label={t('page.connector.new.labels.description')}
             name="description"

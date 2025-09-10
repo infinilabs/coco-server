@@ -1,4 +1,5 @@
 import { request } from '../request';
+import { formatSearchFilter } from '../request/es';
 
 /** Get connector list */
 export function searchConnector(params: any) {
@@ -47,20 +48,14 @@ export function getConnector(ID: string) {
 }
 
 export function getConnectorByIDs(connectorIDs: string[]) {
-  const query: any = {
-    _source: ['id', 'name', 'icon'],
-    size: connectorIDs.length
-  };
-  query.query = {
-    terms: {
-      id: connectorIDs
-    }
-  };
   return request<Api.Datasource.Connector>({
-    data: query,
-    method: 'post',
-    url: '/connector/_search'
-  });
+    method: 'get',
+    params: {
+      _source_includes: ['id', 'name', 'icon'].join(','),
+      size: connectorIDs.length
+    },
+    url: `/connector/_search?${formatSearchFilter({ id: connectorIDs })}`
+  })
 }
 
 export function getConnectorCategory() {
