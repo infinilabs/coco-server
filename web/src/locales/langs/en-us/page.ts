@@ -40,6 +40,8 @@ const page: App.I18n.Schema['translation']['page'] = {
         description: 'Description',
         icon: 'Connector Icon',
         name: 'Name',
+        config: 'Configuration',
+        path_hierarchy: 'Path Hierarchy',
         redirect_url: 'Redirect URI',
         tags: 'Tags',
         token_url: 'Token URI'
