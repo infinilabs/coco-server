@@ -38,6 +38,8 @@ const page: App.I18n.Schema['translation']['page'] = {
         description: '描述',
         icon: '连接器图标',
         name: '名称',
+        config: '配置信息',
+        path_hierarchy: '支持目录访问',
         redirect_url: '重定向地址',
         tags: '标签',
         token_url: 'Token 地址'
