@@ -4,6 +4,9 @@ import { useForm } from 'antd/es/form/Form';
 import { useEffect, useState } from 'react';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 import { useLoaderData } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import Clipboard from 'clipboard';
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-expect-error
@@ -29,6 +32,9 @@ import Rdbms from '../new/rdbms';
 import Rss from '../new/rss';
 import S3 from '../new/s3';
 import Yuque from '../new/yuque';
+
+import { ReactSVG } from 'react-svg';
+import LinkSVG from '@/assets/svg-icon/link.svg';
 
 // eslint-disable-next-line complexity
 export function Component() {
@@ -80,6 +86,7 @@ export function Component() {
             interval: datasource?.connector?.config?.interval || '1h',
             sync_type: datasource?.connector?.config?.sync_type || ''
           },
+          raw_config: datasource?.connector?.config? JSON.stringify(datasource?.connector?.config,null,4) : undefined,
           urls: datasource?.connector?.config?.urls || ['']
         });
       }
@@ -122,7 +129,9 @@ export function Component() {
 
   // eslint-disable-next-line complexity
   const onFinish: FormProps<any>['onFinish'] = values => {
-    let config: any = {};
+    
+    let config = values?.raw_config ? JSON.parse(values?.raw_config) : {};
+
     // eslint-disable-next-line default-case,@typescript-eslint/no-use-before-define
     switch (type) {
       case Types.Yuque:
@@ -217,6 +226,8 @@ export function Component() {
       enabled: Boolean(values.enabled),
       icon: values.icon,
       name: values.name,
+      description: values.description,
+      tags: values.tags,
       sync_enabled: Boolean(values?.sync_enabled),
       type: 'connector'
     };
@@ -360,8 +371,16 @@ export function Component() {
             >
               <Input className="max-w-660px" />
             </Form.Item>
+
+   <Form.Item
+            label={t('page.datasource.new.labels.description')}
+            name="description"
+          >
+            <Input.TextArea />
+          </Form.Item>
+
             <Form.Item
-              label={t('page.mcpserver.labels.icon')}
+              label={t('page.datasource.new.labels.icon')}
               name="icon"
             >
               <IconSelector
@@ -370,6 +389,10 @@ export function Component() {
                 type="connector"
               />
             </Form.Item>
+         
+            {!isCustom ? (
+              <>
+            
             {type === Types.Yuque && <Yuque />}
             {type === Types.Notion && <Notion />}
             {type === Types.HugoSite && <HugoSite />}
@@ -382,22 +405,19 @@ export function Component() {
             {type === Types.Mysql && <Rdbms dbType="mysql" />}
             {type === Types.GitHub && <GitHub />}
             {type === Types.GitLab && <GitLab />}
-            {!isCustom ? (
-              <>
-                <Form.Item
-                  label={t('page.datasource.new.labels.data_sync')}
-                  name="sync_config"
-                >
-                  <DataSync />
-                </Form.Item>
-                <Form.Item
-                  label={t('page.datasource.new.labels.sync_enabled')}
-                  name="sync_enabled"
-                >
-                  <Switch size="small" />
-                </Form.Item>
+
               </>
             ) : (
+              <>
+
+              <Form.Item
+                label={t('page.datasource.new.labels.config')}
+                tooltip={t('page.datasource.new.tooltip.config', 'Configurations in JSON format.')}
+                name="raw_config"
+            >
+                <Input.TextArea autoSize={{ minRows: 2, maxRows: 30 }} />
+              </Form.Item>
+
               <Form.Item
                 label={t('page.datasource.new.labels.insert_doc')}
                 name=""
@@ -434,19 +454,57 @@ export function Component() {
                   >
                     <span>How to create a data source</span>
                     <ReactSVG
-                      className="m-l-4px"
+                      className="ml-4px"
                       src={LinkSVG}
                     />
                   </a>
                 </div>
               </Form.Item>
+              </>
             )}
+            
+              <Form.Item
+                label={t('page.datasource.new.labels.sync_enabled')}
+                name="sync_enabled"
+                valuePropName="checked"
+              >
+                <Switch size="small" />
+              </Form.Item>
+
+              <Form.Item
+                shouldUpdate={(prev, curr) => prev.sync_enabled !== curr.sync_enabled}
+                noStyle
+              >
+                {({ getFieldValue }) =>
+                  getFieldValue('sync_enabled') ? (
+                    <Form.Item
+                      label={t('page.datasource.new.labels.data_sync')}
+                      name="sync_config"
+                    >
+                      <DataSync />
+                    </Form.Item>
+                  ) : null
+                }
+              </Form.Item>
+             
+
+            
             <Form.Item
               label={t('page.datasource.new.labels.enabled')}
               name="enabled"
             >
               <Switch size="small" />
             </Form.Item>
+
+
+        <Form.Item
+            label={t('page.datasource.new.labels.tags')}
+            name="tags"
+          >
+            <Tags />
+          </Form.Item>
+
+
             <Form.Item label=" ">
               <Button
                 htmlType="submit"
@@ -463,6 +521,6 @@ export function Component() {
   );
 }
 
-export async function loader({ params }: LoaderFunctionArgs) {
+export async function loader({ params }: any) {
   return params;
 }
