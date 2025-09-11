@@ -36,6 +36,7 @@ Information about release notes of Coco Server is provided here.
 - chore: add missing docs for google drive #488
 - docs: update the easysearch initial admin password to complex rule #501
 - chore: unify license header #499
+- chore: update default datasource edit page #506
 
 ## 0.7.0 (2025-07-25)
 ### ❌ Breaking changes  
