@@ -159,9 +159,9 @@ export function Component() {
       case Types.LocalFS: {
         const extensions = values.config?.extensions_str
           ? values.config.extensions_str
-              .split(',')
-              .map((s: string) => s.trim())
-              .filter(Boolean)
+            .split(',')
+            .map((s: string) => s.trim())
+            .filter(Boolean)
           : [];
         config = {
           extensions,
@@ -172,9 +172,9 @@ export function Component() {
       case Types.S3: {
         const extensions = values.config?.extensions_str
           ? values.config.extensions_str
-              .split(',')
-              .map((s: string) => s.trim())
-              .filter(Boolean)
+            .split(',')
+            .map((s: string) => s.trim())
+            .filter(Boolean)
           : [];
         config = {
           access_key_id: values.config?.access_key_id || '',
@@ -383,12 +383,12 @@ export function Component() {
               <Input className="max-w-660px" />
             </Form.Item>
 
-   <Form.Item
-            label={t('page.datasource.new.labels.description')}
-            name="description"
-          >
-            <Input.TextArea />
-          </Form.Item>
+            <Form.Item
+              label={t('page.datasource.new.labels.description')}
+              name="description"
+            >
+              <Input.TextArea />
+            </Form.Item>
 
             <Form.Item
               label={t('page.datasource.new.labels.icon')}
@@ -404,44 +404,45 @@ export function Component() {
             {!isCustom ? (
               <>
 
-            {type === Types.Yuque && <Yuque />}
-            {type === Types.Notion && <Notion />}
-            {type === Types.HugoSite && <HugoSite />}
-            {type === Types.RSS && <Rss />}
-            {type === Types.LocalFS && <LocalFS />}
-            {type === Types.S3 && <S3 />}
-            {type === Types.Confluence && <Confluence />}
-            {type === Types.NetworkDrive && <NetworkDrive />}
-            {type === Types.Postgresql && <Rdbms dbType="postgresql" />}
-            {type === Types.Mysql && <Rdbms dbType="mysql" />}
-            {type === Types.GitHub && <GitHub />}
-            {type === Types.GitLab && <GitLab />}
-            {type === Types.Gitea && <Gitea />}
+                {type === Types.Yuque && <Yuque />}
+                {type === Types.Notion && <Notion />}
+                {type === Types.HugoSite && <HugoSite />}
+                {type === Types.RSS && <Rss />}
+                {type === Types.LocalFS && <LocalFS />}
+                {type === Types.S3 && <S3 />}
+                {type === Types.Confluence && <Confluence />}
+                {type === Types.NetworkDrive && <NetworkDrive />}
+                {type === Types.Postgresql && <Rdbms dbType="postgresql" />}
+                {type === Types.Mysql && <Rdbms dbType="mysql" />}
+                {type === Types.GitHub && <GitHub />}
+                {type === Types.GitLab && <GitLab />}
+                {type === Types.Gitea && <Gitea />}
+
 
               </>
             ) : (
               <>
 
-              <Form.Item
-                label={t('page.datasource.new.labels.config')}
-                tooltip={t('page.datasource.new.tooltip.config', 'Configurations in JSON format.')}
-                name="raw_config"
-            >
-                <Input.TextArea autoSize={{ minRows: 2, maxRows: 30 }} />
-              </Form.Item>
+                <Form.Item
+                  label={t('page.datasource.new.labels.config')}
+                  tooltip={t('page.datasource.new.tooltip.config', 'Configurations in JSON format.')}
+                  name="raw_config"
+                >
+                  <Input.TextArea autoSize={{ minRows: 2, maxRows: 30 }} />
+                </Form.Item>
 
-              <Form.Item
-                label={t('page.datasource.new.labels.insert_doc')}
-                name=""
-              >
-                <div className="max-w-660px rounded-[var(--ant-border-radius)] bg-[var(--ant-color-border)] p-1em">
-                  <div>
+                <Form.Item
+                  label={t('page.datasource.new.labels.insert_doc')}
+                  name=""
+                >
+                  <div className="max-w-660px rounded-[var(--ant-border-radius)] bg-[var(--ant-color-border)] p-1em">
+                    <div>
                     <pre
                       className="whitespace-pre-wrap break-words"
                       dangerouslySetInnerHTML={{ __html: insertDocCmd }}
                     />
-                  </div>
-                  <div className="flex justify-end">
+                    </div>
+                    <div className="flex justify-end">
                     <span
                       className="flex cursor-pointer items-center gap-1 text-blue-500"
                       ref={inst => {
@@ -455,49 +456,49 @@ export function Component() {
                       />
                       Copy
                     </span>
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <a
-                    className="my-10px inline-flex items-center text-blue-500"
-                    href="https://docs.infinilabs.com/coco-server/main/docs/tutorials/howto_create_your_own_datasource/"
-                    rel="noreferrer"
-                    target="_blank"
-                  >
-                    <span>How to create a data source</span>
-                    <ReactSVG
-                      className="ml-4px"
-                      src={LinkSVG}
-                    />
-                  </a>
-                </div>
-              </Form.Item>
+                  <div>
+                    <a
+                      className="my-10px inline-flex items-center text-blue-500"
+                      href="https://docs.infinilabs.com/coco-server/main/docs/tutorials/howto_create_your_own_datasource/"
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      <span>How to create a data source</span>
+                      <ReactSVG
+                        className="ml-4px"
+                        src={LinkSVG}
+                      />
+                    </a>
+                  </div>
+                </Form.Item>
               </>
             )}
 
-              <Form.Item
-                label={t('page.datasource.new.labels.sync_enabled')}
-                name="sync_enabled"
-                valuePropName="checked"
-              >
-                <Switch size="small" />
-              </Form.Item>
+            <Form.Item
+              label={t('page.datasource.new.labels.sync_enabled')}
+              name="sync_enabled"
+              valuePropName="checked"
+            >
+              <Switch size="small" />
+            </Form.Item>
 
-              <Form.Item
-                shouldUpdate={(prev, curr) => prev.sync_enabled !== curr.sync_enabled}
-                noStyle
-              >
-                {({ getFieldValue }) =>
-                  getFieldValue('sync_enabled') ? (
-                    <Form.Item
-                      label={t('page.datasource.new.labels.data_sync')}
-                      name="sync_config"
-                    >
-                      <DataSync />
-                    </Form.Item>
-                  ) : null
-                }
-              </Form.Item>
+            <Form.Item
+              shouldUpdate={(prev, curr) => prev.sync_enabled !== curr.sync_enabled}
+              noStyle
+            >
+              {({ getFieldValue }) =>
+                getFieldValue('sync_enabled') ? (
+                  <Form.Item
+                    label={t('page.datasource.new.labels.data_sync')}
+                    name="sync_config"
+                  >
+                    <DataSync />
+                  </Form.Item>
+                ) : null
+              }
+            </Form.Item>
 
 
 
@@ -509,12 +510,12 @@ export function Component() {
             </Form.Item>
 
 
-        <Form.Item
-            label={t('page.datasource.new.labels.tags')}
-            name="tags"
-          >
-            <Tags />
-          </Form.Item>
+            <Form.Item
+              label={t('page.datasource.new.labels.tags')}
+              name="tags"
+            >
+              <Tags />
+            </Form.Item>
 
 
             <Form.Item label=" ">
