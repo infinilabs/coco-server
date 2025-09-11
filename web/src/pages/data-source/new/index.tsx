@@ -18,11 +18,12 @@ import { getConnector, getConnectorIcons } from '@/service/api/connector';
 import { createDatasource } from '@/service/api/data-source';
 
 import Confluence from './confluence';
+import Gitea from './gitea';
 import GitHub from './github';
 import GitLab from './gitlab';
 import HugoSite from './hugo_site';
 import LocalFS from './local_fs';
-import { GithubConfig, GitlabConfig, NetworkDriveConfig, RdbmsConfig } from './models';
+import { GiteaConfig, GithubConfig, GitlabConfig, NetworkDriveConfig, RdbmsConfig } from './models';
 import NetworkDrive from './network_drive';
 import Notion from './notion';
 import Rdbms from './rdbms';
@@ -43,41 +44,42 @@ export function Component() {
 
   // Check if connector supports OAuth based on config
   const supportsOAuth = connector?.config?.auth_url !== undefined;
-  
+
   // Choose appropriate validation rules based on connector type
   const getValidationRules = () => {
     // If connector specifies validation rules in metadata, use those
     if (connector?.validationRules) {
       return connector.validationRules;
     }
-    
+
     // For known OAuth connectors, use appropriate validation
     switch (type) {
       case Types.GoogleDrive:
         // Google Drive needs all standard OAuth fields
         return OAuthValidationPresets.googleDrive;
-        
+
       case Types.GitHub:
       case Types.GitLab:
+      case Types.Gitea:
         // Standard OAuth 2.0 - all 5 fields required
         return OAuthValidationPresets.standard;
-        
+
       case 'feishu':
       case 'lark':
         // Feishu/Lark have hardcoded endpoints in backend, only need credentials
         return OAuthValidationPresets.feishuLark;
-        
+
       default:
         // For unknown connectors, default to standard validation
         // Users can override by providing validationRules prop
         return undefined; // Will use component's default (standard validation)
     }
   };
-  
+
   const validationRules = getValidationRules();
   const getConnectorTypeName = () => {
     if (connector?.name) return connector.name;
-    
+
     // Fallback to type-based names for backward compatibility
     switch (type) {
       case Types.Yuque:
@@ -104,6 +106,8 @@ export function Component() {
         return 'Github';
       case Types.GitLab:
         return 'Gitlab';
+      case Types.Gitea:
+        return 'Gitea';
       default:
         return connector?.id || type || 'Unknown';
     }
@@ -173,7 +177,8 @@ export function Component() {
     Types.Postgresql,
     Types.Mysql,
     Types.GitHub,
-    Types.GitLab
+    Types.GitLab,
+    Types.Gitea
   ].includes(type);
 
   const connectorTypeName = getConnectorTypeName();
@@ -266,6 +271,10 @@ export function Component() {
         config = GitlabConfig(values);
         break;
       }
+      case Types.Gitea: {
+        config = GiteaConfig(values);
+        break;
+      }
     }
     const sValues = {
       connector: {
@@ -350,8 +359,8 @@ export function Component() {
           </div>
         </div>
         {supportsOAuth ? (
-          <OAuthConnect 
-            connector={connector} 
+          <OAuthConnect
+            connector={connector}
             validationRules={validationRules}
           />
         ) : (
@@ -423,6 +432,7 @@ export function Component() {
               {type === Types.Mysql && <Rdbms dbType="mysql" />}
               {type === Types.GitHub && <GitHub />}
               {type === Types.GitLab && <GitLab />}
+              {type === Types.Gitea && <Gitea />}
               <Form.Item
                 label={t('page.datasource.new.labels.data_sync')}
                 name="sync_config"

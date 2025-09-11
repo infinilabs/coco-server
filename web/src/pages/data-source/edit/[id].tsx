@@ -21,11 +21,12 @@ import { getConnectorIcons } from '@/service/api/connector';
 import { getDatasource, updateDatasource } from '@/service/api/data-source';
 
 import Confluence from '../new/confluence';
+import Gitea from '../new/gitea';
 import GitHub from '../new/github';
 import GitLab from '../new/gitlab';
 import HugoSite from '../new/hugo_site';
 import LocalFS from '../new/local_fs';
-import { GithubConfig, GitlabConfig, NetworkDriveConfig, RdbmsConfig } from '../new/models';
+import { GiteaConfig, GithubConfig, GitlabConfig, NetworkDriveConfig, RdbmsConfig } from '../new/models';
 import NetworkDrive from '../new/network_drive';
 import Notion from '../new/notion';
 import Rdbms from '../new/rdbms';
@@ -129,7 +130,7 @@ export function Component() {
 
   // eslint-disable-next-line complexity
   const onFinish: FormProps<any>['onFinish'] = values => {
-    
+
     let config = values?.raw_config ? JSON.parse(values?.raw_config) : {};
 
     // eslint-disable-next-line default-case,@typescript-eslint/no-use-before-define
@@ -212,6 +213,10 @@ export function Component() {
       }
       case Types.GitLab: {
         config = GitlabConfig(values);
+        break;
+      }
+      case Types.Gitea: {
+        config = GiteaConfig(values);
         break;
       }
     }
@@ -334,6 +339,12 @@ export function Component() {
       }
       break;
     }
+    case Types.Gitea: {
+      if (datasource.connector?.config) {
+        datasource.config = GiteaConfig(datasource.connector);
+      }
+      break;
+    }
     default:
       isCustom = true;
   }
@@ -372,12 +383,12 @@ export function Component() {
               <Input className="max-w-660px" />
             </Form.Item>
 
-   <Form.Item
-            label={t('page.datasource.new.labels.description')}
-            name="description"
-          >
-            <Input.TextArea />
-          </Form.Item>
+            <Form.Item
+              label={t('page.datasource.new.labels.description')}
+              name="description"
+            >
+              <Input.TextArea />
+            </Form.Item>
 
             <Form.Item
               label={t('page.datasource.new.labels.icon')}
@@ -389,47 +400,45 @@ export function Component() {
                 type="connector"
               />
             </Form.Item>
-         
+
             {!isCustom ? (
               <>
-            
-            {type === Types.Yuque && <Yuque />}
-            {type === Types.Notion && <Notion />}
-            {type === Types.HugoSite && <HugoSite />}
-            {type === Types.RSS && <Rss />}
-            {type === Types.LocalFS && <LocalFS />}
-            {type === Types.S3 && <S3 />}
-            {type === Types.Confluence && <Confluence />}
-            {type === Types.NetworkDrive && <NetworkDrive />}
-            {type === Types.Postgresql && <Rdbms dbType="postgresql" />}
-            {type === Types.Mysql && <Rdbms dbType="mysql" />}
-            {type === Types.GitHub && <GitHub />}
-            {type === Types.GitLab && <GitLab />}
-
+                {type === Types.Yuque && <Yuque />}
+                {type === Types.Notion && <Notion />}
+                {type === Types.HugoSite && <HugoSite />}
+                {type === Types.RSS && <Rss />}
+                {type === Types.LocalFS && <LocalFS />}
+                {type === Types.S3 && <S3 />}
+                {type === Types.Confluence && <Confluence />}
+                {type === Types.NetworkDrive && <NetworkDrive />}
+                {type === Types.Postgresql && <Rdbms dbType="postgresql" />}
+                {type === Types.Mysql && <Rdbms dbType="mysql" />}
+                {type === Types.GitHub && <GitHub />}
+                {type === Types.GitLab && <GitLab />}
+                {type === Types.Gitea && <Gitea />}
               </>
             ) : (
               <>
+                <Form.Item
+                  label={t('page.datasource.new.labels.config')}
+                  tooltip={t('page.datasource.new.tooltip.config', 'Configurations in JSON format.')}
+                  name="raw_config"
+                >
+                  <Input.TextArea autoSize={{ minRows: 2, maxRows: 30 }} />
+                </Form.Item>
 
-              <Form.Item
-                label={t('page.datasource.new.labels.config')}
-                tooltip={t('page.datasource.new.tooltip.config', 'Configurations in JSON format.')}
-                name="raw_config"
-            >
-                <Input.TextArea autoSize={{ minRows: 2, maxRows: 30 }} />
-              </Form.Item>
-
-              <Form.Item
-                label={t('page.datasource.new.labels.insert_doc')}
-                name=""
-              >
-                <div className="max-w-660px rounded-[var(--ant-border-radius)] bg-[var(--ant-color-border)] p-1em">
-                  <div>
+                <Form.Item
+                  label={t('page.datasource.new.labels.insert_doc')}
+                  name=""
+                >
+                  <div className="max-w-660px rounded-[var(--ant-border-radius)] bg-[var(--ant-color-border)] p-1em">
+                    <div>
                     <pre
-                      className="whitespace-pre-wrap break-words"
+                        className="whitespace-pre-wrap break-words"
                       dangerouslySetInnerHTML={{ __html: insertDocCmd }}
                     />
-                  </div>
-                  <div className="flex justify-end">
+                    </div>
+                    <div className="flex justify-end">
                     <span
                       className="flex cursor-pointer items-center gap-1 text-blue-500"
                       ref={inst => {
@@ -443,52 +452,52 @@ export function Component() {
                       />
                       Copy
                     </span>
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <a
-                    className="my-10px inline-flex items-center text-blue-500"
-                    href="https://docs.infinilabs.com/coco-server/main/docs/tutorials/howto_create_your_own_datasource/"
-                    rel="noreferrer"
-                    target="_blank"
-                  >
-                    <span>How to create a data source</span>
-                    <ReactSVG
-                      className="ml-4px"
-                      src={LinkSVG}
-                    />
-                  </a>
-                </div>
-              </Form.Item>
+                  <div>
+                    <a
+                      className="my-10px inline-flex items-center text-blue-500"
+                      href="https://docs.infinilabs.com/coco-server/main/docs/tutorials/howto_create_your_own_datasource/"
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      <span>How to create a data source</span>
+                      <ReactSVG
+                        className="ml-4px"
+                        src={LinkSVG}
+                      />
+                    </a>
+                  </div>
+                </Form.Item>
               </>
             )}
-            
-              <Form.Item
-                label={t('page.datasource.new.labels.sync_enabled')}
-                name="sync_enabled"
-                valuePropName="checked"
-              >
-                <Switch size="small" />
-              </Form.Item>
 
-              <Form.Item
-                shouldUpdate={(prev, curr) => prev.sync_enabled !== curr.sync_enabled}
-                noStyle
-              >
-                {({ getFieldValue }) =>
-                  getFieldValue('sync_enabled') ? (
-                    <Form.Item
-                      label={t('page.datasource.new.labels.data_sync')}
-                      name="sync_config"
-                    >
-                      <DataSync />
-                    </Form.Item>
-                  ) : null
-                }
-              </Form.Item>
-             
+            <Form.Item
+              label={t('page.datasource.new.labels.sync_enabled')}
+              name="sync_enabled"
+              valuePropName="checked"
+            >
+              <Switch size="small" />
+            </Form.Item>
 
-            
+            <Form.Item
+              shouldUpdate={(prev, curr) => prev.sync_enabled !== curr.sync_enabled}
+              noStyle
+            >
+              {({ getFieldValue }) =>
+                getFieldValue('sync_enabled') ? (
+                  <Form.Item
+                    label={t('page.datasource.new.labels.data_sync')}
+                    name="sync_config"
+                  >
+                    <DataSync />
+                  </Form.Item>
+                ) : null
+              }
+            </Form.Item>
+
+
+
             <Form.Item
               label={t('page.datasource.new.labels.enabled')}
               name="enabled"
@@ -497,12 +506,12 @@ export function Component() {
             </Form.Item>
 
 
-        <Form.Item
-            label={t('page.datasource.new.labels.tags')}
-            name="tags"
-          >
-            <Tags />
-          </Form.Item>
+            <Form.Item
+              label={t('page.datasource.new.labels.tags')}
+              name="tags"
+            >
+              <Tags />
+            </Form.Item>
 
 
             <Form.Item label=" ">

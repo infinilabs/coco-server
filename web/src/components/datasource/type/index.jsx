@@ -20,7 +20,8 @@ export const Types = {
   Postgresql: 'postgresql',
   Mysql: 'mysql',
   GitHub: 'github',
-  GitLab: 'gitlab'
+  GitLab: 'gitlab',
+  Gitea: 'gitea'
 };
 
 export const TypeList = ({
