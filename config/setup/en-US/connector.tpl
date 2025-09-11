@@ -329,3 +329,29 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
   },
   "builtin": true
 }
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/gitea
+{
+  "id" : "gitea",
+  "created" : "2025-09-04T00:00:00.000000+08:00",
+  "updated" : "2025-09-04T00:00:00.000000+08:00",
+  "name" : "Gitea Connector",
+  "description" : "Fetch repositories, issues, and pull requests from Gitea.",
+  "category" : "website",
+  "icon" : "/assets/icons/connector/gitea/icon.png",
+    "tags" : [
+    "git",
+    "code",
+    "vcs",
+    "website"
+  ],
+  "url" : "http://coco.rs/connectors/gitea",
+  "assets" : {
+    "icons" : {
+      "default" : "/assets/icons/connector/gitea/icon.png",
+      "repository" : "/assets/icons/connector/gitea/repository.png",
+      "issue" : "/assets/icons/connector/gitea/issue.png",
+      "pull_request" : "/assets/icons/connector/gitea/pull_request.png"
+    }
+  },
+  "builtin": true
+}

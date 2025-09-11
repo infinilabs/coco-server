@@ -21,11 +21,12 @@ import { getConnectorIcons } from '@/service/api/connector';
 import { getDatasource, updateDatasource } from '@/service/api/data-source';
 
 import Confluence from '../new/confluence';
+import Gitea from '../new/gitea';
 import GitHub from '../new/github';
 import GitLab from '../new/gitlab';
 import HugoSite from '../new/hugo_site';
 import LocalFS from '../new/local_fs';
-import { GithubConfig, GitlabConfig, NetworkDriveConfig, RdbmsConfig } from '../new/models';
+import { GiteaConfig, GithubConfig, GitlabConfig, NetworkDriveConfig, RdbmsConfig } from '../new/models';
 import NetworkDrive from '../new/network_drive';
 import Notion from '../new/notion';
 import Rdbms from '../new/rdbms';
@@ -129,7 +130,7 @@ export function Component() {
 
   // eslint-disable-next-line complexity
   const onFinish: FormProps<any>['onFinish'] = values => {
-    
+
     let config = values?.raw_config ? JSON.parse(values?.raw_config) : {};
 
     // eslint-disable-next-line default-case,@typescript-eslint/no-use-before-define
@@ -212,6 +213,10 @@ export function Component() {
       }
       case Types.GitLab: {
         config = GitlabConfig(values);
+        break;
+      }
+      case Types.Gitea: {
+        config = GiteaConfig(values);
         break;
       }
     }
@@ -334,6 +339,12 @@ export function Component() {
       }
       break;
     }
+    case Types.Gitea: {
+      if (datasource.connector?.config) {
+        datasource.config = GiteaConfig(datasource.connector);
+      }
+      break;
+    }
     default:
       isCustom = true;
   }
@@ -389,10 +400,10 @@ export function Component() {
                 type="connector"
               />
             </Form.Item>
-         
+
             {!isCustom ? (
               <>
-            
+
             {type === Types.Yuque && <Yuque />}
             {type === Types.Notion && <Notion />}
             {type === Types.HugoSite && <HugoSite />}
@@ -405,6 +416,7 @@ export function Component() {
             {type === Types.Mysql && <Rdbms dbType="mysql" />}
             {type === Types.GitHub && <GitHub />}
             {type === Types.GitLab && <GitLab />}
+            {type === Types.Gitea && <Gitea />}
 
               </>
             ) : (
@@ -462,7 +474,7 @@ export function Component() {
               </Form.Item>
               </>
             )}
-            
+
               <Form.Item
                 label={t('page.datasource.new.labels.sync_enabled')}
                 name="sync_enabled"
@@ -486,9 +498,9 @@ export function Component() {
                   ) : null
                 }
               </Form.Item>
-             
 
-            
+
+
             <Form.Item
               label={t('page.datasource.new.labels.enabled')}
               name="enabled"
