@@ -159,9 +159,9 @@ export function Component() {
       case Types.LocalFS: {
         const extensions = values.config?.extensions_str
           ? values.config.extensions_str
-            .split(',')
-            .map((s: string) => s.trim())
-            .filter(Boolean)
+              .split(',')
+              .map((s: string) => s.trim())
+              .filter(Boolean)
           : [];
         config = {
           extensions,
@@ -172,9 +172,9 @@ export function Component() {
       case Types.S3: {
         const extensions = values.config?.extensions_str
           ? values.config.extensions_str
-            .split(',')
-            .map((s: string) => s.trim())
-            .filter(Boolean)
+              .split(',')
+              .map((s: string) => s.trim())
+              .filter(Boolean)
           : [];
         config = {
           access_key_id: values.config?.access_key_id || '',
@@ -403,7 +403,6 @@ export function Component() {
 
             {!isCustom ? (
               <>
-
                 {type === Types.Yuque && <Yuque />}
                 {type === Types.Notion && <Notion />}
                 {type === Types.HugoSite && <HugoSite />}
@@ -417,12 +416,9 @@ export function Component() {
                 {type === Types.GitHub && <GitHub />}
                 {type === Types.GitLab && <GitLab />}
                 {type === Types.Gitea && <Gitea />}
-
-
               </>
             ) : (
               <>
-
                 <Form.Item
                   label={t('page.datasource.new.labels.config')}
                   tooltip={t('page.datasource.new.tooltip.config', 'Configurations in JSON format.')}
@@ -438,7 +434,7 @@ export function Component() {
                   <div className="max-w-660px rounded-[var(--ant-border-radius)] bg-[var(--ant-color-border)] p-1em">
                     <div>
                     <pre
-                      className="whitespace-pre-wrap break-words"
+                        className="whitespace-pre-wrap break-words"
                       dangerouslySetInnerHTML={{ __html: insertDocCmd }}
                     />
                     </div>

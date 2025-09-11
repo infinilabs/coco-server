@@ -212,9 +212,9 @@ export function Component() {
       case Types.LocalFS: {
         const extensions = values.config?.extensions_str
           ? values.config.extensions_str
-            .split(',')
-            .map((s: string) => s.trim())
-            .filter(Boolean)
+              .split(',')
+              .map((s: string) => s.trim())
+              .filter(Boolean)
           : [];
         config = {
           extensions,
@@ -225,9 +225,9 @@ export function Component() {
       case Types.S3: {
         const extensions: Array<string> = values.config?.extensions_str
           ? values.config.extensions_str
-            .split(',')
-            .map((s: string) => s.trim())
-            .filter(Boolean)
+              .split(',')
+              .map((s: string) => s.trim())
+              .filter(Boolean)
           : [];
         config = {
           access_key_id: values.config?.access_key_id || '',
