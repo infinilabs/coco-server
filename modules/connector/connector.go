@@ -5,6 +5,7 @@
 package connector
 
 import (
+	"infini.sh/framework/core/elastic"
 	"infini.sh/framework/core/security"
 	"net/http"
 	"time"
@@ -164,6 +165,17 @@ func (h *APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprou
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	searchRequest := elastic.SearchRequest{}
+	bodyBytes, err := h.GetRawBody(req)
+	if err == nil && len(bodyBytes) > 0 {
+		err = util.FromJSONBytes(bodyBytes, &searchRequest)
+		if err != nil {
+			h.Error(w, err)
+			return
+		}
+		builder.SetRequestBodyBytes(bodyBytes)
 	}
 
 	ctx := orm.NewContextWithParent(req.Context())
