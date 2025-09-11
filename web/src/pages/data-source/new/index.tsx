@@ -182,78 +182,6 @@ export function Component() {
   ].includes(type);
 
   const connectorTypeName = getConnectorTypeName();
-  let connectorType = 'Google Drive';
-  switch (type) {
-    case Types.Yuque:
-      connectorType = 'Yuque';
-      break;
-    case Types.Notion:
-      connectorType = 'Notion';
-      break;
-    case Types.HugoSite:
-      connectorType = 'Hugo Site';
-      break;
-    case Types.GoogleDrive:
-      break;
-    case Types.RSS:
-      connectorType = 'RSS';
-      break;
-    case Types.LocalFS:
-      connectorType = 'Local FS';
-      break;
-    case Types.S3:
-      connectorType = 'S3';
-      break;
-    case Types.Confluence:
-      connectorType = 'Confluence';
-      break;
-    case Types.NetworkDrive:
-      connectorType = 'Network Drive';
-      break;
-    case Types.Postgresql:
-      connectorType = 'Postgresql';
-      break;
-    case Types.Mysql:
-      connectorType = 'Mysql';
-      break;
-    case Types.GitHub:
-      connectorType = 'Github';
-      break;
-    case Types.GitLab:
-      connectorType = 'Gitlab';
-      break;
-    case Types.Gitea:
-      connectorType = 'Gitea';
-      break;
-    default:
-      return (
-        <Modal
-          okText={t('common.save')}
-          open={createState.isModalOpen}
-          title={`${t('page.datasource.new.labels.connect')} '${connector.name}'`}
-          onOk={onModalOkClick}
-          onCancel={() => {
-            nav('/data-source/new-first');
-          }}
-        >
-          <Spin spinning={createState.loading}>
-            <Form
-              className="my-2em"
-              form={modelForm}
-              layout="vertical"
-            >
-              <Form.Item
-                label={<span className="text-gray-500">{t('page.apitoken.columns.name')}</span>}
-                name="name"
-                rules={[{ required: true }]}
-              >
-                <Input />
-              </Form.Item>
-            </Form>
-          </Spin>
-        </Modal>
-      );
-  }
 
   // eslint-disable-next-line complexity
   const onFinish: FormProps<any>['onFinish'] = values => {
@@ -284,9 +212,9 @@ export function Component() {
       case Types.LocalFS: {
         const extensions = values.config?.extensions_str
           ? values.config.extensions_str
-              .split(',')
-              .map((s: string) => s.trim())
-              .filter(Boolean)
+            .split(',')
+            .map((s: string) => s.trim())
+            .filter(Boolean)
           : [];
         config = {
           extensions,
@@ -297,9 +225,9 @@ export function Component() {
       case Types.S3: {
         const extensions: Array<string> = values.config?.extensions_str
           ? values.config.extensions_str
-              .split(',')
-              .map((s: string) => s.trim())
-              .filter(Boolean)
+            .split(',')
+            .map((s: string) => s.trim())
+            .filter(Boolean)
           : [];
         config = {
           access_key_id: values.config?.access_key_id || '',
