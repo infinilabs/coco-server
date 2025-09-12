@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -223,11 +224,6 @@ func (this *Plugin) fetchCloudDocs(connector *common.Connector, datasource *comm
 		return
 	}
 
-	// Validate token format (basic check)
-	if !strings.HasPrefix(token, "t-") && !strings.HasPrefix(token, "u-") {
-		_ = log.Warnf("[%s connector] access token format may be invalid for datasource [%s]", this.PluginType, datasource.Name)
-	}
-
 	// 1) Search cloud documents
 	// Set default document types if not specified
 	var docTypes []string
@@ -244,6 +240,9 @@ func (this *Plugin) fetchCloudDocs(connector *common.Connector, datasource *comm
 
 	// Start recursive search from root
 	this.searchFilesRecursively(token, "", docTypes, pageSize, datasource)
+
+	// Log sync completion for this datasource
+	log.Infof("[%s connector] sync completed for datasource: ID: %s, Name: %s", this.PluginType, datasource.ID, datasource.Name)
 }
 
 // searchFilesRecursively recursively searches for files in folders
@@ -308,9 +307,14 @@ func (this *Plugin) searchFilesRecursively(
 
 			if ct := getTime(getString(m, "created_time")); !ct.IsZero() {
 				doc.Created = &ct
+			} else {
+				now := time.Now()
+				doc.Created = &now
 			}
 			if ut := getTime(getString(m, "modified_time")); !ut.IsZero() {
 				doc.Updated = &ut
+			} else {
+				doc.Updated = doc.Created
 			}
 			// Content is not returned in search; keep metadata/payload
 			doc.Payload = m
@@ -507,6 +511,35 @@ func getTime(s string) time.Time {
 	for _, l := range layouts {
 		if t, err := time.Parse(l, s); err == nil {
 			return t
+		}
+	}
+	// Fallback: numeric Unix timestamp (seconds/milliseconds/microseconds/nanoseconds)
+	isDigits := true
+	for i := 0; i < len(s); i++ {
+		if s[i] < '0' || s[i] > '9' {
+			isDigits = false
+			break
+		}
+	}
+	if isDigits {
+		if ts, err := strconv.ParseInt(s, 10, 64); err == nil {
+			var sec int64
+			var nsec int64
+			switch {
+			case len(s) <= 10: // seconds
+				sec = ts
+				nsec = 0
+			case len(s) <= 13: // milliseconds
+				sec = ts / 1_000
+				nsec = (ts % 1_000) * int64(time.Millisecond)
+			case len(s) <= 16: // microseconds
+				sec = ts / 1_000_000
+				nsec = (ts % 1_000_000) * int64(time.Microsecond)
+			default: // nanoseconds
+				sec = ts / 1_000_000_000
+				nsec = ts % 1_000_000_000
+			}
+			return time.Unix(sec, nsec)
 		}
 	}
 	return time.Time{}
