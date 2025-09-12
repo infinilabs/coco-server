@@ -38,6 +38,7 @@ Information about release notes of Coco Server is provided here.
 - chore: unify license header #499
 - chore: update default datasource edit page #506
 - refactor: refactoring oauth connect component #507
+- chore: set default size for datasource list to 12 #508
 
 ## 0.7.0 (2025-07-25)
 ### ❌ Breaking changes  
