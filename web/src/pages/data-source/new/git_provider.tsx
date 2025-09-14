@@ -3,25 +3,34 @@ import { Button, Form, Input, Space, Switch } from 'antd';
 import { useTranslation } from 'react-i18next';
 
 // eslint-disable-next-line react/display-name,react-refresh/only-export-components
-export default ({ type }: { readonly type: 'github' | 'gitlab' }) => {
+export default ({ type }: { readonly type: 'gitea' | 'github' | 'gitlab' }) => {
   const { t } = useTranslation();
 
   const isGithub = type === 'github';
   const isGitLab = type === 'gitlab';
+  const isGitea = type === 'gitea';
+
+  const baseURLTooltips = {
+    gitea: 'A Gitea Personal Access Token (PAT) is required.',
+    github: 'A GitHub Personal Access Token (PAT) with `repo` scope is required.',
+    gitlab: 'A GitLab Personal Access Token (PAT) with `api` scope is required.'
+  };
 
   return (
     <>
-      {isGitLab && (
+      {(isGitLab || isGitea) && (
         <Form.Item
-          label={t('page.datasource.gitlab.labels.base_url', 'Base URL (optional)')}
+          label={t(`page.datasource.${type}.labels.base_url`, 'Base URL (optional)')}
           name={['config', 'base_url']}
           tooltip={t(
-            'page.datasource.gitlab.tooltip.base_url',
-            'The base URL of your self-hosted GitLab instance. Leave blank for GitLab.com.'
+            `page.datasource.${type}.tooltip.base_url`,
+            isGitLab
+              ? 'The base URL of your self-hosted GitLab instance. Leave blank for GitLab.com.'
+              : 'The base URL of your self-hosted Gitea instance. Leave blank for Gitea.com.'
           )}
         >
           <Input
-            placeholder="https://gitlab.example.com"
+            placeholder={isGitLab ? 'https://gitlab.example.com' : 'https://gitea.example.com'}
             style={{ width: 500 }}
           />
         </Form.Item>
@@ -30,18 +39,13 @@ export default ({ type }: { readonly type: 'github' | 'gitlab' }) => {
       <Form.Item
         label={t(`page.datasource.git_commons.labels.token`, 'Personal Access Token')}
         name={['config', 'token']}
+        tooltip={t(`page.datasource.${type}.tooltip.token`, baseURLTooltips[type])}
         rules={[
           {
             message: t(`page.datasource.git_commons.error.token_required`, 'Please input your Personal Access Token!'),
             required: true
           }
         ]}
-        tooltip={t(
-          `page.datasource.${type}.tooltip.token`,
-          isGitLab
-            ? 'A GitLab Personal Access Token (PAT) with `api` scope is required.'
-            : 'A GitHub Personal Access Token (PAT) with `repo` scope is required.'
-        )}
       >
         <Input.Password
           placeholder="YourPersonalAccessToken"
@@ -141,14 +145,14 @@ export default ({ type }: { readonly type: 'github' | 'gitlab' }) => {
         <Switch />
       </Form.Item>
 
-      {isGithub && (
+      {(isGithub || isGitea) && (
         <Form.Item
           initialValue={true}
-          label={t(`page.datasource.github.labels.index_pull_requests`, 'Index Pull Requests')}
+          label={t(`page.datasource.${type}.labels.index_pull_requests`, 'Index Pull Requests')}
           name={['config', 'index_pull_requests']}
           valuePropName="checked"
           tooltip={t(
-            `page.datasource.github.tooltip.index_pull_requests`,
+            `page.datasource.${type}.tooltip.index_pull_requests`,
             `Whether to index pull requests for the repositories.`
           )}
         >
