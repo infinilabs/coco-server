@@ -1,7 +1,3 @@
-/* Copyright © INFINI LTD. All rights reserved.
- * Web: https://infinilabs.com
- * Email: hello#infini.ltd */
-
 package feishu
 
 import (
@@ -13,11 +9,28 @@ import (
 
 	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
+	"infini.sh/framework/core/kv"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
 
 	log "github.com/cihub/seelog"
 )
+
+// saveLastModifiedTime saves the last modified time for incremental sync per datasource
+func (this *Plugin) saveLastModifiedTime(datasourceID string, lastModifiedTime string) error {
+	bucket := fmt.Sprintf("/connector/%s/lastModifiedTime", this.PluginType)
+	return kv.AddValue(bucket, []byte(datasourceID), []byte(lastModifiedTime))
+}
+
+// getLastModifiedTime retrieves the last modified time for incremental sync per datasource
+func (this *Plugin) getLastModifiedTime(datasourceID string) (string, error) {
+	bucket := fmt.Sprintf("/connector/%s/lastModifiedTime", this.PluginType)
+	data, err := kv.GetValue(bucket, []byte(datasourceID))
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}
 
 // connect handles the OAuth authorization request
 func (h *Plugin) connect(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {

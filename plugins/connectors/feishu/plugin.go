@@ -238,8 +238,26 @@ func (this *Plugin) fetchCloudDocs(connector *common.Connector, datasource *comm
 		pageSize = 100
 	}
 
+	// Incremental sync: get last modified time saved for this datasource
+	var lastKnown time.Time
+	if lastStr, _ := this.getLastModifiedTime(datasource.ID); lastStr != "" {
+		if t, err := time.Parse(time.RFC3339Nano, lastStr); err == nil {
+			lastKnown = t
+		} else if t2, err2 := time.Parse(time.RFC3339, lastStr); err2 == nil {
+			lastKnown = t2
+		}
+	}
+	lastKnown = time.Now().Add(-30000 * time.Hour)
+	var latestSeen time.Time
+
 	// Start recursive search from root
-	this.searchFilesRecursively(token, "", docTypes, pageSize, datasource)
+	// Initialize path as "/" and categories as ["/"] to align with Google Drive behavior
+	this.searchFilesRecursively(token, "", docTypes, pageSize, datasource, "/", []string{"/"}, lastKnown, &latestSeen)
+
+	// Save last modified time for next incremental run
+	if !latestSeen.IsZero() {
+		_ = this.saveLastModifiedTime(datasource.ID, latestSeen.UTC().Format(time.RFC3339Nano))
+	}
 
 	// Log sync completion for this datasource
 	log.Infof("[%s connector] sync completed for datasource: ID: %s, Name: %s", this.PluginType, datasource.ID, datasource.Name)
@@ -247,7 +265,9 @@ func (this *Plugin) fetchCloudDocs(connector *common.Connector, datasource *comm
 
 // searchFilesRecursively recursively searches for files in folders
 func (this *Plugin) searchFilesRecursively(
-	token, folderToken string, docTypes []string, pageSize int, datasource *common.DataSource) {
+	token, folderToken string, docTypes []string, pageSize int, datasource *common.DataSource,
+	parentPath string, parentPathArray []string, lastKnown time.Time, latestSeen *time.Time,
+) {
 
 	var nextPageToken string
 	for {
@@ -277,10 +297,25 @@ func (this *Plugin) searchFilesRecursively(
 				continue
 			}
 
-			// If it's a folder, recursively search it
+			// If it's a folder, recursively search it and propagate the folder path
 			if docType == "folder" {
 				if subFolderToken := getString(m, "token"); subFolderToken != "" {
-					this.searchFilesRecursively(token, subFolderToken, docTypes, pageSize, datasource)
+					// Build next path
+					folderName := getString(m, "name")
+					if folderName == "" {
+						folderName = getString(m, "title")
+					}
+					// Compute new path string
+					var nextPath string
+					if parentPath == "" || parentPath == "/" {
+						nextPath = "/" + folderName
+					} else {
+						nextPath = parentPath + "/" + folderName
+					}
+					// Compute new path array (copy then append)
+					nextPathArray := append(append([]string(nil), parentPathArray...), folderName)
+
+					this.searchFilesRecursively(token, subFolderToken, docTypes, pageSize, datasource, nextPath, nextPathArray, lastKnown, latestSeen)
 				}
 				continue
 			}
@@ -305,6 +340,20 @@ func (this *Plugin) searchFilesRecursively(
 			doc.Icon = "default"
 			doc.URL = getString(m, "url")
 
+			// Set path related fields
+			currPath := parentPath
+			if currPath == "" {
+				currPath = "/"
+			}
+			doc.Category = currPath
+			if doc.System == nil {
+				doc.System = util.MapStr{}
+			}
+			doc.System["parent_path"] = currPath
+			if len(parentPathArray) > 0 {
+				doc.Categories = parentPathArray
+			}
+
 			if ct := getTime(getString(m, "created_time")); !ct.IsZero() {
 				doc.Created = &ct
 			} else {
@@ -315,6 +364,24 @@ func (this *Plugin) searchFilesRecursively(
 				doc.Updated = &ut
 			} else {
 				doc.Updated = doc.Created
+			}
+
+			// Incremental filter: skip if not newer than last known
+			var updatedAt time.Time
+			if doc.Updated != nil {
+				updatedAt = *doc.Updated
+			} else if doc.Created != nil {
+				updatedAt = *doc.Created
+			}
+			if !lastKnown.IsZero() && (updatedAt.IsZero() || !updatedAt.After(lastKnown)) {
+				continue
+			}
+
+			// Track latest seen modified time
+			if latestSeen != nil {
+				if latestSeen.IsZero() || updatedAt.After(*latestSeen) {
+					*latestSeen = updatedAt
+				}
 			}
 			// Content is not returned in search; keep metadata/payload
 			doc.Payload = m
@@ -462,6 +529,8 @@ func (this *Plugin) listFilesInFolder(tenantToken, folderToken, pageToken string
 	if pageToken != "" {
 		apiURL += "&page_token=" + url.QueryEscape(pageToken)
 	}
+	// Fixed ordering: EditedTime ASC
+	apiURL += "&order_by=EditedTime&direction=ASC"
 
 	req := util.NewGetRequest(apiURL, nil)
 	req.AddHeader("Authorization", fmt.Sprintf("Bearer %s", tenantToken))
