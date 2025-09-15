@@ -407,3 +407,25 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/l
   },
   "builtin": true
 }
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/mssql
+{
+  "id" : "mssql",
+  "created" : "2025-09-15T00:00:00.000000+08:00",
+  "updated" : "2025-09-15T00:00:00.000000+08:00",
+  "name" : "Microsoft SQL Server Connector",
+  "description" : "Fetch data from Microsoft SQL Server.",
+  "category" : "database",
+  "icon" : "/assets/icons/connector/mssql/icon.png",
+  "tags" : [
+    "sql",
+    "storage",
+    "database"
+  ],
+  "url" : "http://coco.rs/connectors/mssql",
+  "assets" : {
+    "icons" : {
+      "default" : "/assets/icons/connector/mssql/icon.png"
+    }
+  },
+  "builtin": true
+}

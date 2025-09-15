@@ -14,15 +14,29 @@ export default ({ dbType }: { readonly dbType: string }) => {
       case 'mysql':
         return {
           placeholder: 'user:password@tcp(localhost:3306)/database?charset=utf8mb4',
+          sqlTooltip: t('page.datasource.rdbms.tooltip.sql', 'The SQL query to execute for fetching data.'),
           tooltip: t(
             'page.datasource.rdbms.tooltip.connection_uri.mysql',
             'MySQL connection string. e.g., user:password@tcp(localhost:3306)/database?charset=utf8mb4'
+          )
+        };
+      case 'mssql':
+        return {
+          placeholder: 'sqlserver://user:password@host:1433/database',
+          sqlTooltip: t(
+            'page.datasource.rdbms.tooltip.sql.mssql',
+            'The SQL query to execute for fetching data. An ORDER BY clause is required for pagination.'
+          ),
+          tooltip: t(
+            'page.datasource.rdbms.tooltip.connection_uri.mssql',
+            'MS SQL connection string. e.g., sqlserver://user:password@host:1433/database'
           )
         };
       case 'postgresql':
       default:
         return {
           placeholder: 'postgresql://user:password@localhost:5432/database?sslmode=disable',
+          sqlTooltip: t('page.datasource.rdbms.tooltip.sql', 'The SQL query to execute for fetching data.'),
           tooltip: t(
             'page.datasource.rdbms.tooltip.connection_uri.postgresql',
             'PostgreSQL connection string. e.g., postgresql://user:password@localhost:5432/database?sslmode=disable'
@@ -55,7 +69,7 @@ export default ({ dbType }: { readonly dbType: string }) => {
         label={t('page.datasource.rdbms.labels.sql', 'SQL Query')}
         name={['config', 'sql']}
         rules={[{ message: t('page.datasource.rdbms.error.sql_required', 'Please input SQL query!'), required: true }]}
-        tooltip={t('page.datasource.rdbms.tooltip.sql', 'The SQL query to execute for fetching data.')}
+        tooltip={dbInfo.sqlTooltip}
       >
         <Input.TextArea
           placeholder="SELECT id, title, content, updated_at FROM articles"

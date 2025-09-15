@@ -270,6 +270,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       },
       tooltip: {
         connection_uri: {
+          mssql: 'Microsoft SQL Server 连接字符串，例如：sqlserver://user:password@host:1433/database',
           mysql: 'MySQL 连接字符串，例如：mysql://user:password@tcp(localhost:3306)/database',
           postgresql: 'PostgreSQL 连接字符串，例如：postgresql://user:password@localhost:5432/database?sslmode=disable'
         },

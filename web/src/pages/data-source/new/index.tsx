@@ -108,6 +108,8 @@ export function Component() {
         return 'Gitlab';
       case Types.Gitea:
         return 'Gitea';
+      case Types.Mssql:
+        return 'Mssql';
       default:
         return connector?.id || type || 'Unknown';
     }
@@ -178,7 +180,8 @@ export function Component() {
     Types.Mysql,
     Types.GitHub,
     Types.GitLab,
-    Types.Gitea
+    Types.Gitea,
+    Types.Mssql
   ].includes(type);
 
   const connectorTypeName = getConnectorTypeName();
@@ -255,10 +258,8 @@ export function Component() {
         config = NetworkDriveConfig(values);
         break;
       }
-      case Types.Postgresql: {
-        config = RdbmsConfig(values);
-        break;
-      }
+      case Types.Postgresql:
+      case Types.Mssql:
       case Types.Mysql: {
         config = RdbmsConfig(values);
         break;
@@ -433,6 +434,7 @@ export function Component() {
               {type === Types.GitHub && <GitHub />}
               {type === Types.GitLab && <GitLab />}
               {type === Types.Gitea && <Gitea />}
+              {type === Types.Mssql && <Rdbms dbType="mssql" />}
               <Form.Item
                 label={t('page.datasource.new.labels.data_sync')}
                 name="sync_config"
