@@ -10,6 +10,7 @@ var UserProfileKey = "user_profile"
 var DefaultUserPasswordKey = "default_user_password"
 var DefaultServerConfigKey = "default_server_config"
 var DefaultAppSettingsKey = "default_app_settings"
+var DefaultSearchSettingsKey = "default_search_settings"
 
 var DefaultUserLogin = "coco-default-user"
 
