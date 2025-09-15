@@ -5,11 +5,15 @@
 package connectors
 
 import (
+	"context"
+	stderrors "errors"
+	"fmt"
+	"sync"
+	"time"
+
 	"infini.sh/coco/modules/common"
 	config3 "infini.sh/framework/core/config"
 	"infini.sh/framework/core/errors"
-	"sync"
-	"time"
 )
 
 type DatasourceSyncState struct {
@@ -67,4 +71,35 @@ func ParseConnectorConfigure(connector *common.Connector, datasource *common.Dat
 		return errors.Wrapf(err, "Unpack config for datasource [%s] failed", datasource.Name)
 	}
 	return nil
+}
+
+const ContextDone errors.ErrorCode = 3
+
+type Error struct {
+	error
+	code errors.ErrorCode
+	msg  string
+}
+
+func (c Error) Error() string          { return fmt.Sprintf("%s: %v", c.msg, c.Cause()) }
+func (c Error) Cause() error           { return c.error }
+func (c Error) Code() errors.ErrorCode { return c.code }
+
+// CheckContextDone checks if the context has been canceled or has timed out.
+// It returns a wrapped custom error if the context is done, otherwise returns nil.
+func CheckContextDone(ctx context.Context) error {
+	select {
+	case <-ctx.Done():
+		return Error{ctx.Err(), ContextDone, "context canceled"}
+	default:
+		return nil
+	}
+}
+
+func ResolveCode(err error) errors.ErrorCode {
+	var e Error
+	if stderrors.As(err, &e) {
+		return e.Code()
+	}
+	return errors.Default
 }
