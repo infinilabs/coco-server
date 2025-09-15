@@ -430,6 +430,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/s
       "contact" : "/assets/icons/connector/salesforce/contact.png",
       "default" : "/assets/icons/connector/salesforce/icon.png",
       "lead" : "/assets/icons/connector/salesforce/lead.png",
+      "opportunity" : "/assets/icons/connector/salesforce/opportunity.png"
     }
   },
   "builtin": true

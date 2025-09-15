@@ -6,6 +6,7 @@ package salesforce
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -28,24 +29,29 @@ func convertToDocument(record map[string]interface{}, objectType string, datasou
 	}
 
 	// Set basic fields
-	doc.ID = getStringValue(record, "Id")
+	doc.ID = getString(record, "Id")
 	doc.Type = objectType
-	doc.Icon = objectType
+	doc.Icon = getIcon(objectType)
 
 	// Set title based on object type
 	doc.Title = getTitle(record, objectType)
 
 	// Set URL - construct using instanceUrl and record Id
-	if recordId := getStringValue(record, "Id"); recordId != "" {
+	if recordId := getString(record, "Id"); recordId != "" {
 		doc.URL = fmt.Sprintf("%s/%s", instanceUrl, recordId)
 	}
 
 	// Set timestamps
-	if createdDate := getTimeValue(record, "CreatedDate"); createdDate != nil {
-		doc.Created = createdDate
+	if createdDate := getTime(getString(record, "CreatedDate")); !createdDate.IsZero() {
+		doc.Created = &createdDate
+	} else {
+		now := time.Now()
+		doc.Created = &now
 	}
-	if lastModified := getTimeValue(record, "LastModifiedDate"); lastModified != nil {
-		doc.Updated = lastModified
+	if lastModified := getTime(getString(record, "LastModifiedDate")); !lastModified.IsZero() {
+		doc.Updated = &lastModified
+	} else {
+		doc.Updated = doc.Created
 	}
 
 	// Set content based on object type
@@ -76,27 +82,47 @@ func convertToDocument(record map[string]interface{}, objectType string, datasou
 	return doc
 }
 
+// getIcon returns the appropriate icon for a Salesforce object type
+func getIcon(objectType string) string {
+	switch objectType {
+	case "Account":
+		return "account"
+	case "Contact":
+		return "contact"
+	case "Lead":
+		return "lead"
+	case "Opportunity":
+		return "opportunity"
+	case "Case":
+		return "case"
+	case "Campaign":
+		return "campaign"
+	default:
+		return "default"
+	}
+}
+
 // getTitle extracts the title from a Salesforce record based on object type
 func getTitle(record map[string]interface{}, objectType string) string {
 	switch objectType {
 	case "Account":
-		return getStringValue(record, "Name")
+		return getString(record, "Name")
 	case "Opportunity":
-		return getStringValue(record, "Name")
+		return getString(record, "Name")
 	case "Contact":
-		return getStringValue(record, "Name")
+		return getString(record, "Name")
 	case "Lead":
-		return getStringValue(record, "Name")
+		return getString(record, "Name")
 	case "Campaign":
-		return getStringValue(record, "Name")
+		return getString(record, "Name")
 	case "Case":
-		subject := getStringValue(record, "Subject")
+		subject := getString(record, "Subject")
 		if subject != "" {
 			return subject
 		}
-		return getStringValue(record, "CaseNumber")
+		return getString(record, "CaseNumber")
 	default:
-		return getStringValue(record, "Name")
+		return getString(record, "Name")
 	}
 }
 
@@ -197,7 +223,7 @@ func getContent(record map[string]interface{}, objectType string) string {
 		if field.Formatter != nil {
 			content = field.Formatter(value)
 		} else {
-			strValue := getStringValue(record, field.FieldName)
+			strValue := getString(record, field.FieldName)
 			if strValue != "" {
 				if field.Label != "" {
 					content = field.Label + ": " + strValue
@@ -218,7 +244,7 @@ func getContent(record map[string]interface{}, objectType string) string {
 // getSummary creates a summary from the record
 func getSummary(record map[string]interface{}, objectType string) string {
 	title := getTitle(record, objectType)
-	description := getStringValue(record, "Description")
+	description := getString(record, "Description")
 
 	if description != "" && len(description) > 200 {
 		return description[:200] + "..."
@@ -241,41 +267,41 @@ func getTags(record map[string]interface{}, objectType string) []string {
 	// Add object-specific tags
 	switch objectType {
 	case "Account":
-		if accountType := getStringValue(record, "Type"); accountType != "" {
+		if accountType := getString(record, "Type"); accountType != "" {
 			tags = append(tags, accountType)
 		}
-		if rating := getStringValue(record, "Rating"); rating != "" {
+		if rating := getString(record, "Rating"); rating != "" {
 			tags = append(tags, "rating:"+rating)
 		}
 
 	case "Opportunity":
-		if stageName := getStringValue(record, "StageName"); stageName != "" {
+		if stageName := getString(record, "StageName"); stageName != "" {
 			tags = append(tags, "stage:"+stageName)
 		}
 
 	case "Contact":
-		if leadSource := getStringValue(record, "LeadSource"); leadSource != "" {
+		if leadSource := getString(record, "LeadSource"); leadSource != "" {
 			tags = append(tags, "source:"+leadSource)
 		}
 
 	case "Lead":
-		if leadSource := getStringValue(record, "LeadSource"); leadSource != "" {
+		if leadSource := getString(record, "LeadSource"); leadSource != "" {
 			tags = append(tags, "source:"+leadSource)
 		}
-		if status := getStringValue(record, "Status"); status != "" {
+		if status := getString(record, "Status"); status != "" {
 			tags = append(tags, "status:"+status)
 		}
 
 	case "Campaign":
-		if campaignType := getStringValue(record, "Type"); campaignType != "" {
+		if campaignType := getString(record, "Type"); campaignType != "" {
 			tags = append(tags, campaignType)
 		}
-		if status := getStringValue(record, "Status"); status != "" {
+		if status := getString(record, "Status"); status != "" {
 			tags = append(tags, "status:"+status)
 		}
 
 	case "Case":
-		if status := getStringValue(record, "Status"); status != "" {
+		if status := getString(record, "Status"); status != "" {
 			tags = append(tags, "status:"+status)
 		}
 		if isClosed, ok := record["IsClosed"].(bool); ok {
@@ -295,43 +321,14 @@ func getOwner(record map[string]interface{}) common.UserInfo {
 	owner := common.UserInfo{}
 
 	if ownerData, ok := record["Owner"].(map[string]interface{}); ok {
-		owner.UserName = getStringValue(ownerData, "Name")
-		owner.UserID = getStringValue(ownerData, "Id")
+		owner.UserName = getString(ownerData, "Name")
+		owner.UserID = getString(ownerData, "Id")
 	}
 
 	return owner
 }
 
-// getBillingAddress formats billing address information
-func getBillingAddress(record map[string]interface{}) string {
-	if billingAddr, ok := record["BillingAddress"].(map[string]interface{}); ok {
-		var parts []string
-
-		if street := getStringValue(billingAddr, "street"); street != "" {
-			parts = append(parts, street)
-		}
-		if city := getStringValue(billingAddr, "city"); city != "" {
-			parts = append(parts, city)
-		}
-		if state := getStringValue(billingAddr, "state"); state != "" {
-			parts = append(parts, state)
-		}
-		if postalCode := getStringValue(billingAddr, "postalCode"); postalCode != "" {
-			parts = append(parts, postalCode)
-		}
-		if country := getStringValue(billingAddr, "country"); country != "" {
-			parts = append(parts, country)
-		}
-
-		return strings.Join(parts, ", ")
-	}
-
-	return ""
-}
-
-// Helper functions for extracting values from maps
-
-func getStringValue(data map[string]interface{}, key string) string {
+func getString(data map[string]interface{}, key string) string {
 	if value, ok := data[key]; ok {
 		if str, ok := value.(string); ok {
 			return str
@@ -340,36 +337,52 @@ func getStringValue(data map[string]interface{}, key string) string {
 	return ""
 }
 
-func getTimeValue(data map[string]interface{}, key string) *time.Time {
-	if value, ok := data[key]; ok {
-		if str, ok := value.(string); ok {
-			if t, err := time.Parse(time.RFC3339, str); err == nil {
-				return &t
+func getTime(s string) time.Time {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return time.Time{}
+	}
+	layouts := []string{
+		time.RFC3339,
+		"2006-01-02 15:04:05",
+		"2006-01-02T15:04:05Z07:00",
+		"2006-01-02T15:04:05.000+0000", // Salesforce format
+		"2006-01-02T15:04:05.000Z",     // ISO 8601 with milliseconds
+		"2006-01-02T15:04:05Z",         // ISO 8601 without milliseconds
+	}
+	for _, l := range layouts {
+		if t, err := time.Parse(l, s); err == nil {
+			return t
+		}
+	}
+	// Fallback: numeric Unix timestamp (seconds/milliseconds/microseconds/nanoseconds)
+	isDigits := true
+	for i := 0; i < len(s); i++ {
+		if s[i] < '0' || s[i] > '9' {
+			isDigits = false
+			break
+		}
+	}
+	if isDigits {
+		if ts, err := strconv.ParseInt(s, 10, 64); err == nil {
+			var sec int64
+			var nsec int64
+			switch {
+			case len(s) <= 10: // seconds
+				sec = ts
+				nsec = 0
+			case len(s) <= 13: // milliseconds
+				sec = ts / 1_000
+				nsec = (ts % 1_000) * int64(time.Millisecond)
+			case len(s) <= 16: // microseconds
+				sec = ts / 1_000_000
+				nsec = (ts % 1_000_000) * int64(time.Microsecond)
+			default: // nanoseconds
+				sec = ts / 1_000_000_000
+				nsec = ts % 1_000_000_000
 			}
+			return time.Unix(sec, nsec)
 		}
 	}
-	return nil
-}
-
-func getBoolValue(data map[string]interface{}, key string) bool {
-	if value, ok := data[key]; ok {
-		if b, ok := value.(bool); ok {
-			return b
-		}
-	}
-	return false
-}
-
-func getIntValue(data map[string]interface{}, key string) int64 {
-	if value, ok := data[key]; ok {
-		switch v := value.(type) {
-		case int64:
-			return v
-		case int:
-			return int64(v)
-		case float64:
-			return int64(v)
-		}
-	}
-	return 0
+	return time.Time{}
 }
