@@ -369,6 +369,21 @@ connector:
     interval: 30s
     queue:
       name: indexing_documents
+  gitea:
+    enabled: true
+    interval: 30s
+    queue:
+      name: indexing_documents
+  feishu:
+    enabled: true
+    interval: 30s
+    queue:
+      name: indexing_documents
+  lark:
+    enabled: true
+    interval: 30s
+    queue:
+      name: indexing_documents
   salesforce:
     enabled: true
     interval: 30s

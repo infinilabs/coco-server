@@ -21,6 +21,7 @@ Information about release notes of Coco Server is provided here.
 - feat: mysql connector #489
 - feat: github connector #492
 - feat: gitlab connector #494
+- feat: gitea connector #509
 
 ### 🐛 Bug fix  
 - fix: correct assistant update logic
@@ -36,6 +37,9 @@ Information about release notes of Coco Server is provided here.
 - chore: add missing docs for google drive #488
 - docs: update the easysearch initial admin password to complex rule #501
 - chore: unify license header #499
+- chore: update default datasource edit page #506
+- refactor: refactoring oauth connect component #507
+- chore: set default size for datasource list to 12 #508
 
 ## 0.7.0 (2025-07-25)
 ### ❌ Breaking changes  

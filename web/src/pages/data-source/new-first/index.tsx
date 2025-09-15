@@ -17,7 +17,7 @@ const ConnectorCategory = {
 };
 
 export function Component() {
-  const [queryParams, setQueryParams] = useQueryParams();
+  const [queryParams, setQueryParams] = useQueryParams({size:12,from:0});
   const { t } = useTranslation();
   const nav = useNavigate();
   const onAddClick = (key: string) => {

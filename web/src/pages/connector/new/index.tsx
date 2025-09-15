@@ -84,6 +84,14 @@ export function Component() {
           >
             <Input className="max-w-600px" />
           </Form.Item>
+
+        <Form.Item
+            label={t('page.connector.new.labels.description')}
+            name="description"
+         >
+            <Input.TextArea />
+          </Form.Item>
+
           <Form.Item
             label={t('page.connector.new.labels.category')}
             name="category"
@@ -139,12 +147,7 @@ export function Component() {
 
 
 
-         <Form.Item
-            label={t('page.connector.new.labels.description')}
-            name="description"
-         >
-            <Input.TextArea />
-          </Form.Item>
+      
 
           <Form.Item
             label={t('page.connector.new.labels.tags')}

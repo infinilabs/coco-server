@@ -73,7 +73,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         client_id: '客户端 ID',
         client_secret: '客户端密钥',
         connect: '连接',
-        data_sync: '数据同步',
+        data_sync: '同步策略',
         enabled: '启用状态',
         immediate_sync: '立即同步',
         indexing_scope: '索引范围',
@@ -81,6 +81,10 @@ const page: App.I18n.Schema['translation']['page'] = {
         manual_sync: '手动同步',
         manual_sync_desc: '仅在用户点击 "同步" 按钮时同步',
         name: '数据源名称',
+        description: '描述',
+        config: '配置信息',
+        icon: '图标',
+        tags: '标签',
         realtime_sync: '实时同步',
         realtime_sync_desc: '文件修改立即同步',
         redirect_uri: '重定向 URI',
@@ -172,6 +176,17 @@ const page: App.I18n.Schema['translation']['page'] = {
         index_issues: '是否索引 issues',
         owner: '代码库所属的用户名或组织名称',
         repos: '要索引的代码仓库。默认为空，表示索引所有的代码库'
+      }
+    },
+    gitea: {
+      labels: {
+        base_url: 'Base URL (可选)',
+        index_pull_requests: '索引 pull requests'
+      },
+      tooltip: {
+        base_url: '自托管 Gitea Base URL。如果是 Gitea.com，请置空。',
+        index_pull_requests: '是否索引 pull requests',
+        token: '需要具有“repo”范围的 Gitea 个人访问令牌 (PAT)。'
       }
     },
     github: {

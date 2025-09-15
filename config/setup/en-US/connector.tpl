@@ -329,6 +329,84 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
   },
   "builtin": true
 }
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/gitea
+{
+  "id" : "gitea",
+  "created" : "2025-09-04T00:00:00.000000+08:00",
+  "updated" : "2025-09-04T00:00:00.000000+08:00",
+  "name" : "Gitea Connector",
+  "description" : "Fetch repositories, issues, and pull requests from Gitea.",
+  "category" : "website",
+  "icon" : "/assets/icons/connector/gitea/icon.png",
+    "tags" : [
+    "git",
+    "code",
+    "vcs",
+    "website"
+  ],
+  "url" : "http://coco.rs/connectors/gitea",
+  "assets" : {
+    "icons" : {
+      "default" : "/assets/icons/connector/gitea/icon.png",
+      "repository" : "/assets/icons/connector/gitea/repository.png",
+      "issue" : "/assets/icons/connector/gitea/issue.png",
+      "pull_request" : "/assets/icons/connector/gitea/pull_request.png"
+    }
+  },
+  "builtin": true
+}
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/feishu
+{
+  "id": "feishu",
+  "created": "2025-08-22T00:00:00.000000+08:00",
+  "updated": "2025-08-22T00:00:00.000000+08:00",
+  "name": "Feishu Cloud Documents Connector",
+  "description": "Index Feishu cloud documents including documents, spreadsheets, mind notes, multi-dimensional tables and knowledge bases.",
+  "category": "cloud",
+  "icon": "/assets/icons/connector/feishu/icon.png",
+  "tags": [
+    "feishu",
+    "cloud_docs"
+  ],
+  "url": "http://coco.rs/connectors/feishu",
+  "assets": {
+    "icons": {
+      "default": "/assets/icons/connector/feishu/icon.png"
+    }
+  },
+  "config": {
+    "redirect_uri": "$[[SETUP_SERVER_ENDPOINT]]/connector/feishu/oauth_redirect",
+    "auth_url": "https://accounts.feishu.cn/open-apis/authen/v1/authorize",
+    "token_url": "https://open.feishu.cn/open-apis/authen/v2/oauth/token"
+  },
+  "builtin": true
+}
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/lark
+{
+  "id": "lark",
+  "created": "2025-09-01T00:00:00.000000+08:00",
+  "updated": "2025-09-01T00:00:00.000000+08:00",
+  "name": "Lark Cloud Documents Connector",
+  "description": "Index Lark cloud documents including documents, spreadsheets, mind notes, multi-dimensional tables and knowledge bases.",
+  "category": "cloud",
+  "icon": "/assets/icons/connector/lark/icon.png",
+  "tags": [
+    "lark",
+    "cloud_docs"
+  ],
+  "url": "http://coco.rs/connectors/lark",
+  "assets": {
+    "icons": {
+      "default": "/assets/icons/connector/lark/icon.png"
+    }
+  },
+  "config": {
+    "redirect_uri": "$[[SETUP_SERVER_ENDPOINT]]/connector/lark/oauth_redirect",
+    "auth_url": "https://accounts.larksuite.com/open-apis/authen/v1/authorize",
+    "token_url": "https://open.larksuite.com/open-apis/authen/v2/oauth/token"
+  },
+  "builtin": true
+}
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/salesforce
 {
   "id" : "salesforce",
@@ -352,7 +430,6 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/s
       "contact" : "/assets/icons/connector/salesforce/contact.png",
       "default" : "/assets/icons/connector/salesforce/icon.png",
       "lead" : "/assets/icons/connector/salesforce/lead.png",
-      "opportunity" : "/assets/icons/connector/salesforce/opportunity.png",
     }
   },
   "builtin": true

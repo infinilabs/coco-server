@@ -329,6 +329,84 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
   },
   "builtin": true
 }
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/gitea
+{
+  "id" : "gitea",
+  "created" : "2025-09-04T00:00:00.000000+08:00",
+  "updated" : "2025-09-04T00:00:00.000000+08:00",
+  "name" : "Gitea 连接器",
+  "description" : "提取 Gitea repositories, issues, 和 pull requests。",
+  "category" : "website",
+  "icon" : "/assets/icons/connector/gitea/icon.png",
+  "tags" : [
+    "git",
+    "code",
+    "vcs",
+    "website"
+  ],
+  "url" : "http://coco.rs/connectors/gitea",
+  "assets" : {
+    "icons" : {
+      "default" : "/assets/icons/connector/gitea/icon.png",
+      "repository" : "/assets/icons/connector/gitea/repository.png",
+      "issue" : "/assets/icons/connector/gitea/issue.png",
+      "pull_request" : "/assets/icons/connector/gitea/pull_request.png"
+    }
+  },
+  "builtin": true
+}
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/feishu
+{
+  "id": "feishu",
+  "created": "2025-08-22T00:00:00.000000+08:00",
+  "updated": "2025-08-22T00:00:00.000000+08:00",
+  "name": "飞书云文档连接器",
+  "description": "索引飞书云文档，包括文档、表格、思维笔记、多维表格和知识库等。",
+  "category": "cloud",
+  "icon": "/assets/icons/connector/feishu/icon.png",
+  "tags": [
+    "feishu",
+    "cloud_docs"
+  ],
+  "url": "http://coco.rs/connectors/feishu",
+  "assets": {
+    "icons": {
+      "default": "/assets/icons/connector/feishu/icon.png"
+    }
+  },
+  "config": {
+    "redirect_uri": "$[[SETUP_SERVER_ENDPOINT]]/connector/feishu/oauth_redirect",
+    "auth_url": "https://accounts.feishu.cn/open-apis/authen/v1/authorize",
+    "token_url": "https://open.feishu.cn/open-apis/authen/v2/oauth/token"
+  },
+  "builtin": true
+}
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/lark
+{
+  "id": "lark",
+  "created": "2025-09-01T00:00:00.000000+08:00",
+  "updated": "2025-09-01T00:00:00.000000+08:00",
+  "name": "Lark 云文档连接器",
+  "description": "索引 Lark 云文档，包括文档、表格、思维笔记、多维表格和知识库等。",
+  "category": "cloud",
+  "icon": "/assets/icons/connector/lark/icon.png",
+  "tags": [
+    "lark",
+    "cloud_docs"
+  ],
+  "url": "http://coco.rs/connectors/lark",
+  "assets": {
+    "icons": {
+      "default": "/assets/icons/connector/lark/icon.png"
+    }
+  },
+  "config": {
+    "redirect_uri": "$[[SETUP_SERVER_ENDPOINT]]/connector/lark/oauth_redirect",
+    "auth_url": "https://accounts.larksuite.com/open-apis/authen/v1/authorize",
+    "token_url": "https://open.larksuite.com/open-apis/authen/v2/oauth/token"
+  },
+  "builtin": true
+}
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/salesforce
 {
   "id" : "salesforce",
@@ -356,4 +434,4 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/s
     }
   },
   "builtin": true
-}
+ }
