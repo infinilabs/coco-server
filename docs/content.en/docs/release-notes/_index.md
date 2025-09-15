@@ -22,6 +22,8 @@ Information about release notes of Coco Server is provided here.
 - feat: github connector #492
 - feat: gitlab connector #494
 - feat: gitea connector #509
+- feat: mssql connector #511
+
 
 ### 🐛 Bug fix  
 - fix: correct assistant update logic
