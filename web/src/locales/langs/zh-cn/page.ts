@@ -38,6 +38,8 @@ const page: App.I18n.Schema['translation']['page'] = {
         description: '描述',
         icon: '连接器图标',
         name: '名称',
+        config: '配置信息',
+        path_hierarchy: '支持目录访问',
         redirect_url: '重定向地址',
         tags: '标签',
         token_url: 'Token 地址'
@@ -71,7 +73,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         client_id: '客户端 ID',
         client_secret: '客户端密钥',
         connect: '连接',
-        data_sync: '数据同步',
+        data_sync: '同步策略',
         enabled: '启用状态',
         immediate_sync: '立即同步',
         indexing_scope: '索引范围',
@@ -79,6 +81,10 @@ const page: App.I18n.Schema['translation']['page'] = {
         manual_sync: '手动同步',
         manual_sync_desc: '仅在用户点击 "同步" 按钮时同步',
         name: '数据源名称',
+        description: '描述',
+        config: '配置信息',
+        icon: '图标',
+        tags: '标签',
         realtime_sync: '实时同步',
         realtime_sync_desc: '文件修改立即同步',
         redirect_uri: '重定向 URI',
@@ -102,6 +108,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     file_paths_add: '添加文件路径',
     commons: {
       error: {
+        datasource_name_required: '请输入数据源名称',
         extensions_format: '文件扩展名无效。请使用 pdf 或 .pdf 等格式，且仅包含字母和数字'
       }
     },
@@ -126,6 +133,156 @@ const page: App.I18n.Schema['translation']['page'] = {
       tooltip: {
         endpoint: '您的 S3 兼容服务的服务器地址，例如：s3.amazonaws.com 或 localhost:9000',
         prefix: '仅索引 key 以此前缀开头的对象'
+      }
+    },
+    confluence: {
+      error: {
+        endpoint_invalid: 'URL 地址无效',
+        endpoint_prefix: 'URL 地址应包含 http:// 或 https:// 前缀',
+        endpoint_required: '请输入 Confluence Endpoint',
+        endpoint_slash: 'Endpoint 末尾不应包含斜杠 /',
+        space_required: '请输入 Confluence 空间键名'
+      },
+      labels: {
+        enable_attachments: '索引附件',
+        enable_blogposts: '索引 blogposts',
+        endpoint: 'Confluence 服务器地址',
+        space: 'Wiki 空间键名',
+        token: '访问令牌(可选)',
+        username: '用户名 (可选)'
+      },
+      tooltip: {
+        enable_attachments: '是否索引附件',
+        enable_blogposts: '是否索引 blogposts ',
+        endpoint: '您的 Confluence 服务器地址，例如：http://localhost:8090 或 https://wiki.example.com/confluence',
+        space: '您想要索引的 Confluence 空间键名（例如“DS”或"KB"）',
+        token: '您的 Confluence 个人访问令牌 (PAT)',
+        username: '用于身份验证的用户名。如果使用匿名访问或个人访问令牌，可以留空'
+      }
+    },
+    git_commons: {
+      error: {
+        owner_required: '请输入代码库拥有者',
+        repo_required: '请输入仓库名称',
+        token_required: '请输入个人访问令牌'
+      },
+      labels: {
+        index_issues: '索引 issues',
+        owner: '代码库拥有者',
+        repos: '代码库名称',
+        token: '个人访问令牌'
+      },
+      tooltip: {
+        index_issues: '是否索引 issues',
+        owner: '代码库所属的用户名或组织名称',
+        repos: '要索引的代码仓库。默认为空，表示索引所有的代码库'
+      }
+    },
+    gitea: {
+      labels: {
+        base_url: 'Base URL (可选)',
+        index_pull_requests: '索引 pull requests'
+      },
+      tooltip: {
+        base_url: '自托管 Gitea Base URL。如果是 Gitea.com，请置空。',
+        index_pull_requests: '是否索引 pull requests',
+        token: '需要具有“repo”范围的 Gitea 个人访问令牌 (PAT)。'
+      }
+    },
+    github: {
+      labels: {
+        index_pull_requests: '索引 pull requests'
+      },
+      tooltip: {
+        index_pull_requests: '是否索引 pull requests',
+        token: '需要具有“repo”范围的 GitHub 个人访问令牌 (PAT)。'
+      }
+    },
+    gitlab: {
+      labels: {
+        base_url: 'Base URL (可选)',
+        index_merge_requests: '索引 merge requests',
+        index_snippets: '索引 snippets',
+        index_wikis: '索引 wikis'
+      },
+      tooltip: {
+        base_url: '自托管 GitLab Base URL。如果是 GitLab.com，请置空。',
+        index_merge_requests: '是否索引 merge requests',
+        index_snippets: '是否索引 snippets',
+        index_wikis: '是否索引 wikis',
+        token: '需要具有“repo”范围的 GitLub 个人访问令牌 (PAT)。'
+      }
+    },
+    network_drive: {
+      error: {
+        endpoint_format: '格式无效，请使用 "host:port" 或 "[ipv6]:port"',
+        endpoint_invalid: '服务器端点无效',
+        endpoint_required: '请输入服务器端点',
+        folder_paths: '请输入文件夹路径',
+        folder_paths_prefix: '文件夹路径无效，不能以 / 开头',
+        share_required: '请输入共享名称',
+        username_required: '请输入用户名'
+      },
+      labels: {
+        domain: '用户域',
+        endpoint: '服务器端点',
+        folder_paths: '文件夹路径',
+        password: '密码',
+        share: '网络驱动器共享名称',
+        username: '用户名'
+      },
+      tooltip: {
+        domain: '用户的域，例如 WORKGROUP',
+        endpoint: '网络驱动器服务地址，例如：127.0.0.1:445',
+        folder_paths: '您要扫描的文件夹的路径',
+        password: '用于网络驱动器身份验证的密码',
+        share: '您要扫描的网络驱动器共享名称',
+        username: '用于网络驱动器身份验证的用户名'
+      }
+    },
+    rdbms: {
+      error: {
+        connection_uri_required: '请输入连接地址！',
+        page_size_required: '请输入页面大小！',
+        sql_required: '请输入 SQL 查询！'
+      },
+      labels: {
+        connection_uri: '连接地址',
+        data_processing: '数据加工',
+        dest_field: '目标字段',
+        field_mapping: '字段映射',
+        last_modified_field: '最后修改字段 (可选)',
+        page_size: '页面大小',
+        pagination: '启用分页',
+        sql: 'SQL 查询',
+        src_field: '源字段'
+      },
+      placeholder: {
+        field_name: '字段名',
+        metadata_name: '元数据名称',
+        payload_name: '载荷名称'
+      },
+      titles: {
+        last_updated_by: '最后更新者',
+        metadata: '元数据',
+        owner: '所有者',
+        payload: '载荷'
+      },
+      tooltip: {
+        connection_uri: {
+          mysql: 'MySQL 连接字符串，例如：mysql://user:password@tcp(localhost:3306)/database',
+          postgresql: 'PostgreSQL 连接字符串，例如：postgresql://user:password@localhost:5432/database?sslmode=disable'
+        },
+        last_modified_field: '对于增量同步，请指定一个跟踪最后修改时间的字段（例如，updated_at）。该字段的类型应该是时间戳或日期时间。',
+        page_size: '每页要获取的记录数。',
+        pagination: '如果数据库查询应该分页，请启用此选项。建议对大型表使用此选项。',
+        sql: '用于获取数据的 SQL 查询。'
+      },
+      validation: {
+        field_name_required: '请输入字段名',
+        metadata_name_required: '请输入名称',
+        payload_name_required: '请输入名称',
+        required: '请输入 {{field}}'
       }
     }
   },

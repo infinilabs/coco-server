@@ -9,10 +9,37 @@ Information about release notes of Coco Server is provided here.
 
 ## Latest (In development)  
 ### ❌ Breaking changes  
+- chore: update yuque's document id #473
+
 ### 🚀 Features  
+- chore: support access docs via path hierarchy manner in datasource #484
+- feat: handle path_hierarchy config for document search #486
+- feat: confluence wiki connector #31
+- feat: extract content for notion connector #70
+- feat: network storage connector #461
+- feat: postgresql connector #476
+- feat: mysql connector #489
+- feat: github connector #492
+- feat: gitlab connector #494
+- feat: gitea connector #509
+
 ### 🐛 Bug fix  
+- fix: correct assistant update logic
+- fix: generate unique icon key to prevent accidental deletion of all icons
+- fix: modify the access_token URL during coco server login (#480) 
+
 ### ✈️ Improvements  
 - chore: remove unused websocket api #443
+- chore: add missing root folders for gdrive #483
+- chore: update default connector settings form on create/modify connector page #502
+- chore: adjust title of data source detail #485
+- refactor: refactoring summary processor #487
+- chore: add missing docs for google drive #488
+- docs: update the easysearch initial admin password to complex rule #501
+- chore: unify license header #499
+- chore: update default datasource edit page #506
+- refactor: refactoring oauth connect component #507
+- chore: set default size for datasource list to 12 #508
 
 ## 0.7.0 (2025-07-25)
 ### ❌ Breaking changes  
@@ -27,7 +54,6 @@ Information about release notes of Coco Server is provided here.
 - feat: support default model reasoning config on initialization
 - feat: local FS Connector #284
 - feat: s3 Connector #68
-
 
 ### 🐛 Bug fix  
 - fix: query parameter "filter" is not working

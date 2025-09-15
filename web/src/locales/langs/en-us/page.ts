@@ -40,6 +40,8 @@ const page: App.I18n.Schema['translation']['page'] = {
         description: 'Description',
         icon: 'Connector Icon',
         name: 'Name',
+        config: 'Configuration',
+        path_hierarchy: 'Path Hierarchy',
         redirect_url: 'Redirect URI',
         tags: 'Tags',
         token_url: 'Token URI'
@@ -73,7 +75,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         client_id: 'Client ID',
         client_secret: 'Client Secret',
         connect: 'Connect',
-        data_sync: 'Data Synchronization',
+        data_sync: 'Sync  Policy',
         enabled: 'Enabled',
         immediate_sync: 'Immediate Sync',
         indexing_scope: 'Indexing Scope',
@@ -81,6 +83,10 @@ const page: App.I18n.Schema['translation']['page'] = {
         manual_sync: 'Manual Sync',
         manual_sync_desc: "Sync only when the user clicks the 'Sync' button",
         name: 'Name',
+        description: 'Description',
+        config: 'Configuration',
+        icon: 'Icon',
+        tags: 'Tags',
         realtime_sync: 'Real-time Sync',
         realtime_sync_desc: 'Sync immediately upon file modification',
         redirect_uri: 'Redirect URI',
@@ -129,6 +135,57 @@ const page: App.I18n.Schema['translation']['page'] = {
       tooltip: {
         endpoint: 'Endpoint of your S3 server, like：s3.amazonaws.com or localhost:9000',
         prefix: 'Only index objects that begin with this prefix'
+      }
+    },
+    confluence: {
+      error: {
+        endpoint_invalid: 'Please enter a valid URL',
+        endpoint_prefix: 'URL must start with http:// or https://',
+        endpoint_required: 'Please input Confluence URL',
+        endpoint_slash: 'URL should not contain a trailing slash /',
+        space_required: 'Please input Confluence Space Key'
+      },
+      labels: {
+        enable_attachments: 'Indexing attachments',
+        enable_blogposts: 'Indexing blogposts',
+        endpoint: 'Confluence server URL',
+        space: 'Wiki Key',
+        token: 'Access Token (Optional)',
+        username: 'User Name (Optional)'
+      },
+      tooltip: {
+        enable_attachments: 'Whether to index attachments',
+        enable_blogposts: 'Whether to index blogposts ',
+        endpoint: 'The base URL of your Confluence instance. e.g., http://localhost:8090 or https://wiki.example.com/confluence',
+        space: 'The key of the Confluence space you want to index (e.g., "DS" or "KB").',
+        token: 'Your Confluence Personal Access Token (PAT).',
+        username: 'Username for authentication. Can be left empty for anonymous access or if using a Personal Access Token.'
+      }
+    },
+    rdbms: {
+      titles: {
+        last_updated_by: 'last_updated_by',
+        metadata: 'metadata',
+        owner: 'owner',
+        payload: 'payload'
+      },
+      tooltip: {
+        connection_uri: {
+          mysql: 'MySQL connection string. e.g., mysql://user:password@tcp(localhost:3306)/database',
+          postgresql:
+            'PostgreSQL connection string. e.g., postgresql://user:password@localhost:5432/database?sslmode=disable'
+        }
+      },
+      validation: {
+        field_name_required: 'Please input field',
+        metadata_name_required: 'Please input name',
+        payload_name_required: 'Please input name',
+        required: 'Please input {{field}}'
+      },
+      placeholder: {
+        field_name: 'Field Name',
+        metadata_name: 'Metadata Name',
+        payload_name: 'Payload Name'
       }
     }
   },

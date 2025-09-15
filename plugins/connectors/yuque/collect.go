@@ -240,6 +240,8 @@ func (this *Plugin) collectBooks(connector *common.Connector, datasource *common
 					//Thumbnail: bookDetail.Book.,
 				}
 
+				document.System = datasource.System
+
 				if !cfg.SkipIndexingBookToc {
 					// Check if the book's Table of Contents (ToC) exists in the map
 					if v, ok := bookTocMap[bookDetail.Book.Slug]; ok {
@@ -269,7 +271,7 @@ func (this *Plugin) collectBooks(connector *common.Connector, datasource *common
 					"toc_yml": bookDetail.Book.TocYML,
 				}
 
-				document.ID = util.MD5digest(fmt.Sprintf("%v-%v-%v", "test", "yuque-book", bookID))
+				document.ID = util.MD5digest(fmt.Sprintf("%v-%v-%v", datasource.ID, "yuque-book", bookID))
 
 				log.Debugf("indexing book: %v, %v, %v, %v", document.ID, bookDetail.Book.Slug, bookDetail.Book.Namespace, bookDetail.Book.Name)
 
@@ -383,6 +385,7 @@ func (this *Plugin) collectDocDetails(connector *common.Connector, datasource *c
 			Icon:      this.getIconKey("doc", doc.Doc.Type),
 			Thumbnail: doc.Doc.Cover,
 		}
+		document.System = datasource.System
 
 		if !cfg.SkipIndexingBookToc && toc != nil {
 			if v, ok := (*toc)[doc.Doc.Slug]; ok {
@@ -418,7 +421,7 @@ func (this *Plugin) collectDocDetails(connector *common.Connector, datasource *c
 			"body_table": doc.Doc.BodyTable,
 		}
 
-		document.ID = util.MD5digest(fmt.Sprintf("%v-%v-%v", "test", "yuque-doc", doc.Doc.ID))
+		document.ID = util.MD5digest(fmt.Sprintf("%v-%v-%v", datasource.ID, "yuque-doc", doc.Doc.ID))
 
 		log.Debugf("indexing doc: %v, %v, %v, %v", document.ID, doc.Doc.Slug, doc.Doc.Title, doc.Doc.WordCount)
 
@@ -487,6 +490,7 @@ func (this *Plugin) collectUsers(connector *common.Connector, datasource *common
 				document.Created = &groupUser.User.CreatedAt
 				document.Updated = &groupUser.User.UpdatedAt
 				document.Metadata = metadata
+				document.System = datasource.System
 
 			} else if groupUser.Group != nil && cfg.IndexingGroups {
 				idPrefix, docType = "yuque-group", groupUser.Group.Type
@@ -515,11 +519,13 @@ func (this *Plugin) collectUsers(connector *common.Connector, datasource *common
 				document.Created = &groupUser.Group.CreatedAt
 				document.Updated = &groupUser.Group.UpdatedAt
 				document.Metadata = metadata
+				document.System = datasource.System
+
 			}
 
 			// Generate document ID and save
 			if document.Title != "" {
-				document.ID = util.MD5digest(fmt.Sprintf("%v-%v-%v", "test", idPrefix, metadata["user_id"]))
+				document.ID = util.MD5digest(fmt.Sprintf("%v-%v-%v", datasource.ID, idPrefix, metadata["user_id"]))
 				log.Debugf("indexing user: %v, %v, %v", document.ID, metadata["user_login"], document.Title)
 				this.save(document)
 			}

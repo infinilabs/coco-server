@@ -1,40 +1,17 @@
-// Copyright (C) INFINI Labs & INFINI LIMITED.
-//
-// The INFINI Console is offered under the GNU Affero General Public License v3.0
-// and as commercial software.
-//
-// For commercial licensing, contact us at:
-//   - Website: infinilabs.com
-//   - Email: hello@infini.ltd
-//
-// Open Source licensed under AGPL V3:
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Affero General Public License for more details.
-//
-// You should have received a copy of the GNU Affero General Public License
-// along with this program. If not, see <http://www.gnu.org/licenses/>.
-
-/* Copyright © INFINI Ltd. All rights reserved.
- * web: https://infinilabs.com
- * mail: hello#infini.ltd */
+/* Copyright © INFINI LTD. All rights reserved.
+ * Web: https://infinilabs.com
+ * Email: hello#infini.ltd */
 
 package security
 
 import (
 	"fmt"
+	"infini.sh/framework/core/global"
 	"net/http"
 	"strings"
 
 	"golang.org/x/crypto/bcrypt"
 	"infini.sh/coco/core"
-	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/api"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/kv"
@@ -61,20 +38,23 @@ func (h APIHandler) Profile(w http.ResponseWriter, r *http.Request, ps httproute
 	}
 
 	var data []byte
-	cfg, _ := common.AppConfigFromFile()
-	if cfg != nil && cfg.ServerInfo != nil && cfg.ServerInfo.Managed {
-		data, err = kv.GetValue(core.UserProfileKey, []byte(reqUser.UserID))
+	if global.Env().SystemConfig.WebAppConfig.Security.Managed {
+		data, err = kv.GetValue(core.UserProfileKey, []byte(reqUser.GetKey()))
+		if err != nil {
+			panic(err)
+		}
 	} else {
-		//TODO to be removed
 		data, err = kv.GetValue(core.DefaultSettingBucketKey, []byte(core.DefaultUserProfileKey))
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	h.WriteBytes(w, data, 200)
 }
 
 func (h APIHandler) UpdatePassword(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	cfg, _ := common.AppConfigFromFile()
-	if cfg.ServerInfo.Managed {
+	if global.Env().SystemConfig.WebAppConfig.Security.Managed {
 		panic("should not be invoked as in managed mode")
 	}
 
@@ -103,7 +83,7 @@ func (h APIHandler) UpdatePassword(w http.ResponseWriter, r *http.Request, ps ht
 		h.ErrorInternalServer(w, err.Error())
 		return
 	}
-	h.WriteOKJSON(w, api.UpdateResponse(reqUser.UserID))
+	h.WriteOKJSON(w, api.UpdateResponse(reqUser.Login))
 	return
 }
 
@@ -118,8 +98,7 @@ func SavePassword(password string) error {
 
 func (h APIHandler) Login(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
-	cfg, _ := common.AppConfigFromFile()
-	if cfg.ServerInfo.Managed {
+	if global.Env().SystemConfig.WebAppConfig.Security.Managed {
 		panic("should not be invoked as in managed mode")
 	}
 
@@ -175,11 +154,10 @@ func (h APIHandler) Login(w http.ResponseWriter, r *http.Request, ps httprouter.
 	user.ID = core.DefaultUserLogin
 
 	sessionInfo := security.UserSessionInfo{}
+	sessionInfo.Source = "simple"
 	sessionInfo.Provider = "simple"
 	sessionInfo.Login = core.DefaultUserLogin
 
-	sessionInfo.TenantID = "LOCAL"
-	sessionInfo.UserID = user.ID
 	//sessionInfo.Profile = user
 	sessionInfo.Roles = []string{security.RoleAdmin}
 

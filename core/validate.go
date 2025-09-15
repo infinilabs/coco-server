@@ -1,30 +1,6 @@
-// Copyright (C) INFINI Labs & INFINI LIMITED.
-//
-// The INFINI Console is offered under the GNU Affero General Public License v3.0
-// and as commercial software.
-//
-// For commercial licensing, contact us at:
-//   - Website: infinilabs.com
-//   - Email: hello@infini.ltd
-//
-// Open Source licensed under AGPL V3:
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Affero General Public License for more details.
-//
-// You should have received a copy of the GNU Affero General Public License
-// along with this program. If not, see <http://www.gnu.org/licenses/>.
-
-/* Copyright © INFINI Ltd. All rights reserved.
- * web: https://infinilabs.com
- * mail: hello#infini.ltd */
-
+/* Copyright © INFINI LTD. All rights reserved.
+ * Web: https://infinilabs.com
+ * Email: hello#infini.ltd */
 package core
 
 import (
@@ -65,30 +41,29 @@ func ValidateLoginByAPITokenHeader(r *http.Request) (claims *security.UserClaims
 		return nil, errors.Errorf("invalid %s", HeaderAPIToken)
 	}
 
-	data := security.AccessToken{}
-	util.MustFromJSONBytes(bytes, &data)
+	accessToken := security.AccessToken{}
+	util.MustFromJSONBytes(bytes, &accessToken)
 
 	if global.Env().IsDebug {
-		log.Debug("get AccessToken from store:", util.MustToJSON(data))
+		log.Debug("get AccessToken from store:", util.MustToJSON(accessToken))
 	}
 
-	expireAtTime := time.Unix(data.ExpireIn, 0) // Convert to time.Time
+	expireAtTime := time.Unix(accessToken.ExpireIn, 0) // Convert to time.Time
 	if time.Now().After(expireAtTime) {
 		return nil, errors.Error("token expired")
 	}
 
 	// Safely extract fields with type assertions
-	claims = &security.UserClaims{}
-	claims.UserSessionInfo = &security.UserSessionInfo{}
-	claims.Provider = data.Provider
-	claims.Login = data.Login
-	claims.UserID = data.UserID
-	claims.Roles = data.Roles
+	claims = security.NewUserClaims()
+	claims.System = accessToken.System
+	claims.Provider = accessToken.Provider
+	claims.Login = accessToken.Login
+	claims.Roles = accessToken.Roles
 
 	//claims. //
 	//permissions
 
-	claims.Provider = "token"
+	claims.Source = "token"
 	return claims, nil
 }
 
@@ -109,7 +84,7 @@ func ValidateLoginByAuthorizationHeader(r *http.Request) (claims *security.UserC
 	}
 	tokenString := fields[1]
 
-	token, err := jwt.ParseWithClaims(tokenString, &security.UserClaims{}, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenString, security.NewUserClaims(), func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
@@ -124,8 +99,9 @@ func ValidateLoginByAuthorizationHeader(r *http.Request) (claims *security.UserC
 	}
 	//validate bind tenant
 	claims, ok = token.Claims.(*security.UserClaims)
+
 	if ok && token.Valid {
-		if claims.UserID == "" {
+		if claims.Login == "" {
 			err = errors.New("user id is empty")
 			return nil, err
 		}
@@ -137,11 +113,52 @@ func ValidateLoginByAuthorizationHeader(r *http.Request) (claims *security.UserC
 	if claims == nil {
 		return nil, errors.Error("invalid claims")
 	}
-	claims.Provider = "bearer"
+	claims.Source = "bearer"
 	return claims, nil
 }
 
 func ValidateLoginByAccessTokenSession(r *http.Request) (claims *security.UserClaims, err error) {
+	exists, sessToken := api.GetSession(r, UserAccessTokenSessionName)
+	if !exists || sessToken == nil {
+		return nil, errors.Error("invalid session")
+	}
+
+	tokenStr, ok := sessToken.(string)
+	if !ok {
+		return nil, errors.New("authorization token is empty")
+	}
+
+	// Preallocate to avoid nil pointer during JSON unmarshal
+	claims = security.NewUserClaims()
+
+	token, err1 := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		secret, err := GetSecret()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get secret key: %v", err)
+		}
+		return []byte(secret), nil
+	})
+	if err1 != nil {
+		return nil, err1
+	}
+
+	if token.Valid {
+		if claims.Login == "" {
+			return nil, errors.New("user id is empty")
+		}
+		if !claims.VerifyExpiresAt(time.Now(), true) {
+			return nil, errors.New("token is expired")
+		}
+	}
+
+	claims.Source = "session"
+	return claims, nil
+}
+
+func ValidateLoginByAccessTokenSession1(r *http.Request) (claims *security.UserClaims, err error) {
 	exists, sessToken := api.GetSession(r, UserAccessTokenSessionName)
 
 	if !exists || sessToken == nil {
@@ -157,7 +174,7 @@ func ValidateLoginByAccessTokenSession(r *http.Request) (claims *security.UserCl
 		return
 	}
 
-	token, err1 := jwt.ParseWithClaims(tokenStr, &security.UserClaims{}, func(token *jwt.Token) (interface{}, error) {
+	token, err1 := jwt.ParseWithClaims(tokenStr, security.NewUserClaims(), func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
@@ -173,8 +190,9 @@ func ValidateLoginByAccessTokenSession(r *http.Request) (claims *security.UserCl
 
 	//validate bind tenant
 	claims, ok = token.Claims.(*security.UserClaims)
+
 	if ok && token.Valid {
-		if claims.UserID == "" {
+		if claims.Login == "" {
 			err = errors.New("user id is empty")
 			return
 		}
@@ -183,7 +201,7 @@ func ValidateLoginByAccessTokenSession(r *http.Request) (claims *security.UserCl
 			return
 		}
 	}
-	claims.Provider = "session"
+	claims.Source = "session"
 	return claims, nil
 }
 
@@ -191,15 +209,15 @@ func ValidateLogin(r *http.Request) (session *security.UserSessionInfo, err erro
 
 	claims, err := ValidateLoginByAccessTokenSession(r)
 
-	if claims == nil || claims.UserSessionInfo == nil {
+	if claims == nil || !claims.UserSessionInfo.ValidInfo() {
 		claims, err = ValidateLoginByAuthorizationHeader(r)
 	}
 
-	if claims == nil || claims.UserSessionInfo == nil {
+	if claims == nil || !claims.UserSessionInfo.ValidInfo() {
 		claims, err = ValidateLoginByAPITokenHeader(r)
 	}
 
-	if claims == nil || claims.UserSessionInfo == nil || err != nil {
+	if claims == nil || !claims.UserSessionInfo.ValidInfo() || err != nil {
 		err = errors.Errorf("invalid user info: %v", err)
 		return
 	}

@@ -1,27 +1,8 @@
-// Copyright (C) INFINI Labs & INFINI LIMITED.
-//
-// The INFINI Framework is offered under the GNU Affero General Public License v3.0
-// and as commercial software.
-//
-// For commercial licensing, contact us at:
-//   - Website: infinilabs.com
-//   - Email: hello@infini.ltd
-//
-// Open Source licensed under AGPL V3:
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Affero General Public License for more details.
-//
-// You should have received a copy of the GNU Affero General Public License
-// along with this program. If not, see <http://www.gnu.org/licenses/>.
+/* Copyright © INFINI LTD. All rights reserved.
+ * Web: https://infinilabs.com
+ * Email: hello#infini.ltd */
 
-package enrichment
+package summary
 
 import (
 	"context"
@@ -48,15 +29,19 @@ type Config struct {
 		Name   string                 `config:"name"`
 		Labels map[string]interface{} `config:"label" json:"label,omitempty"`
 	} `config:"output_queue"`
-	MaxRunningTimeoutInSeconds          time.Duration
-	MinInputDocumentLength              int    `config:"min_input_document_length"`
-	MaxInputDocumentLength              int    `config:"max_input_document_length"`
-	MaxOutputDocumentLength             int    `config:"max_output_document_length"`
-	SummaryModel                        string `config:"model"`
-	IncludeSkippedDocumentToOutputQueue bool   `config:"include_skipped_document_to_output_queue"`
+	MaxRunningTimeoutInSeconds time.Duration
+	MinInputDocumentLength     int    `config:"min_input_document_length"`
+	MaxInputDocumentLength     int    `config:"max_input_document_length"`
+	MaxOutputDocumentLength    int    `config:"max_output_document_length"`
+	SummaryModel               string `config:"model"`
+	OutputSummaryField         string `config:"output_summary_field"`
+	PreviousSummaryField       string `config:"previous_summary_field"`
+
+	KeepPreviousSummaryContent          bool `config:"keep_previous_summary_content"`
+	IncludeSkippedDocumentToOutputQueue bool `config:"include_skipped_document_to_output_queue"`
 }
 
-type DocumentEnrichmentProcessor struct {
+type DocumentSummarizationProcessor struct {
 	config             *Config
 	outCfg             *queue.QueueConfig
 	producer           queue.ProducerAPI
@@ -64,7 +49,7 @@ type DocumentEnrichmentProcessor struct {
 }
 
 func init() {
-	pipeline.RegisterProcessorPlugin("document_enrichment", New)
+	pipeline.RegisterProcessorPlugin("document_summarization", New)
 }
 
 func New(c *config.Config) (pipeline.Processor, error) {
@@ -86,7 +71,7 @@ func New(c *config.Config) (pipeline.Processor, error) {
 		panic(errors.New("summary model can't be empty"))
 	}
 
-	runner := DocumentEnrichmentProcessor{config: &cfg}
+	runner := DocumentSummarizationProcessor{config: &cfg}
 
 	queueConfig := queue.AdvancedGetOrInitConfig("", cfg.OutputQueue.Name, cfg.OutputQueue.Labels)
 	queueConfig.ReplaceLabels(cfg.OutputQueue.Labels)
@@ -104,15 +89,15 @@ func New(c *config.Config) (pipeline.Processor, error) {
 	return &runner, nil
 }
 
-func (processor DocumentEnrichmentProcessor) Stop() error {
+func (processor DocumentSummarizationProcessor) Stop() error {
 	return nil
 }
 
-func (processor *DocumentEnrichmentProcessor) Name() string {
+func (processor *DocumentSummarizationProcessor) Name() string {
 	return "document_enrichment"
 }
 
-func (processor *DocumentEnrichmentProcessor) Process(ctx *pipeline.Context) error {
+func (processor *DocumentSummarizationProcessor) Process(ctx *pipeline.Context) error {
 
 	//get message from queue
 	obj := ctx.Get(processor.config.MessageField)
@@ -186,10 +171,11 @@ Summary:`, processor.config.MaxOutputDocumentLength, util.SubStringWithSuffix(st
 
 				if len(text) > 0 {
 					previousSummary := doc.Summary
-					if previousSummary != "" {
-						doc.Payload["previous_summary"] = previousSummary
+					if previousSummary != "" && processor.config.KeepPreviousSummaryContent && processor.config.PreviousSummaryField != "" {
+						doc.Payload[processor.config.PreviousSummaryField] = previousSummary
+					} else {
+						doc.Summary = text
 					}
-					doc.Summary = text
 				}
 
 				outputBytes = util.MustToJSONBytes(doc)

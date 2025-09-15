@@ -11,5 +11,5 @@ An API Token can be used in your own application to access Coco Server.
 
 Example request:
 ```
-curl -H "Authorization: Bearer <access_token>" -XPOST http://localhost:9000/auth/request_access_token
+curl -H "Authorization: Bearer <access_token>" -XPOST http://localhost:9000/auth/access_token
 ```

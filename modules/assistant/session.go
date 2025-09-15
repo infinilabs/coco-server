@@ -61,28 +61,31 @@ func (h APIHandler) deleteSession(w http.ResponseWriter, req *http.Request, ps h
 	}
 
 	//deleting related documents
-	query := util.MapStr{
-		"query": util.MapStr{
-			"term": util.MapStr{
-				"session_id": id,
-			},
-		},
-	}
-	err = orm.DeleteBy(&common.ChatMessage{}, util.MustToJSONBytes(query))
-	if err != nil {
-		log.Errorf("delete related documents with chat session [%s], error: %v", id, err)
-	}
-
-	err = orm.Delete(nil, &obj)
+	builder, err := orm.NewQueryBuilderFromRequest(req)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	h.WriteJSON(w, util.MapStr{
-		"_id":    obj.ID,
-		"result": "deleted",
-	}, 200)
+	builder.Filter(orm.TermQuery("session_id", id))
+
+	ctx1 := orm.NewContextWithParent(req.Context())
+	orm.WithModel(ctx1, &common.ChatMessage{})
+
+	_, err = orm.DeleteByQuery(ctx1, builder)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	ctx.Refresh = orm.WaitForRefresh
+	err = orm.Delete(ctx, &obj)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	h.WriteDeletedOKJSON(w, obj.ID)
 }
 
 func (h APIHandler) updateSession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {

@@ -26,8 +26,9 @@ docker run -d \
 ```
 
 > 🔒 **SECURITY WARNING**
->
-> For initial setup convenience, the password is set to `"coco-server"`. It is **highly recommended** to replace this with a strong, unique password before running the command for the first time.
+
+> By default, this command initializes the Coco Server with a randomly generated initial admin password for security. You will need to retrieve this password from the server logs after the first startup.
+> If you prefer to set a specific password beforehand, you must use the EASYSEARCH_INITIAL_ADMIN_PASSWORD environment variable.
 
 **After running the command:**
 *   Coco Server will be running in the background. Access the Web UI at `http://localhost:9000`.
@@ -49,8 +50,8 @@ First, create the necessary directories and a `.env` file for your password.
 sudo mkdir -p /data/cocoserver/{data,logs,config}
 
 # Create an environment file to store your password securely.
-# Replace "$(openssl rand -hex 10)" with a strong, secret password.
-echo "EASYSEARCH_INITIAL_ADMIN_PASSWORD=$(openssl rand -hex 10)" | sudo tee /data/cocoserver/.env > /dev/null
+# Replace EASYSEARCH_INITIAL_ADMIN_PASSWORD value with a strong, secret password.
+echo "EASYSEARCH_INITIAL_ADMIN_PASSWORD=$(tr -dc 'A-Za-z0-9_.@+=-' < /dev/urandom | head -c 20)" | sudo tee /data/cocoserver/.env > /dev/null
 ```
 
 **Step 2: Initialize Configuration from the Image (One-time Setup)**
@@ -60,11 +61,13 @@ This clever command runs a temporary container to copy the default configuration
 ```bash
 docker run --rm \
   -v /data/cocoserver/config:/tmp/config \
+  --env-file /data/cocoserver/.env \
   infinilabs/coco:0.7.0 \
   cp -a /app/easysearch/config/. /tmp/config/
 ```
 *   `--rm`: Automatically removes the container after it exits.
 *   `-v /data/cocoserver/config:/tmp/config`: Mounts your local config directory into a temporary path inside the container.
+*   `--env-file /data/cocoserver/.env`: Loads your password environment variable into the container.
 *   `cp -a ...`: The command executed inside the container. It copies all contents from the image's config directory to the mounted host directory.
 
 **Step 3: Set Directory Permissions**
@@ -161,7 +164,12 @@ Follow these steps for a manual setup:
 Install Easysearch
 
 ```bash
-docker run -itd --name easysearch -p 9200:9200 infinilabs/easysearch:1.14.0
+docker run -itd \
+    --name easysearch -p 9200:9200 \
+    -v data:/app/easysearch/data \
+    -v config:/app/easysearch/config \
+    -v logs:/app/easysearch/logs \
+    infinilabs/easysearch:1.14.1
 ```
 
 Get the bootstrap password of the Easysearch:

@@ -46,5 +46,5 @@ export function formatSearchFilter(filter: any) {
   if (!filter) return ''
   const keys = Object.keys(filter);
   if (keys.length === 0) return ''
-  return Object.keys(filter).filter((key) => Array.isArray(filter[key])).map((key) => `filter=${key}:any(${filter[key].join(',')})`).join('&')
+  return Object.keys(filter).filter((key) => Array.isArray(filter[key])).map((key) => `filter=${reverse ? '!' : ''}${key}:any(${encodeURIComponent(filter[key].join(','))})`).join('&')
 }

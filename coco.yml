@@ -297,8 +297,8 @@ web:
           token_url: "http://localhost:9000/oauth/token"
           profile_url: "http://localhost:9000/account/profile"
           redirect_url: "http://localhost:9001/sso/callback/cloud"
-#          success_page: "/#/user/sso/success"
-#          failed_page: "/#/user/sso/failed"
+          success_page: "/#/home"
+          failed_page: "/#/login"
           scopes: [ "openid","email","profile"]
 
 
@@ -307,7 +307,6 @@ connector:
     enabled: true
     queue:
       name: indexing_documents
-#    credential_file: credentials.json
     interval: 10s
     skip_invalid_token: true
   yuque:
@@ -340,6 +339,51 @@ connector:
     interval: 30s
     queue:
       name: indexing_documents
+  confluence:
+    enabled: true
+    interval: 5m
+    queue:
+      name: indexing_documents
+  network_drive:
+    enabled: true
+    interval: 30s
+    queue:
+      name: indexing_documents
+  postgresql:
+    enabled: true
+    interval: 30s
+    queue:
+      name: indexing_documents
+  mysql:
+    enabled: true
+    interval: 30s
+    queue:
+      name: indexing_documents
+  github:
+    enabled: true
+    interval: 30s
+    queue:
+      name: indexing_documents
+  gitlab:
+    enabled: true
+    interval: 30s
+    queue:
+      name: indexing_documents
+  gitea:
+    enabled: true
+    interval: 30s
+    queue:
+      name: indexing_documents
+  feishu:
+    enabled: true
+    interval: 30s
+    queue:
+      name: indexing_documents
+  lark:
+    enabled: true
+    interval: 30s
+    queue:
+      name: indexing_documents
 
 ##background jobs
 pipeline:
@@ -356,7 +400,7 @@ pipeline:
             group: enriched_documents
             fetch_max_messages: 10
           processor:
-            - document_enrichment:
+            - document_summarization:
                 model: $[[env.ENRICHMENT_MODEL]]
                 input_queue: "indexing_documents"
                 min_input_document_length: 500

@@ -19,7 +19,10 @@ import (
 	"infini.sh/framework/core/util"
 )
 
-const DefaultSyncInterval = time.Second * 30
+const (
+	DefaultSyncInterval      = time.Second * 30
+	DefaultConnectionTimeout = time.Duration(5) * time.Second
+)
 
 // Scannable defines the interface of the connector scanning logic.
 // Each concrete connector plugin must implement this interface.
@@ -80,7 +83,9 @@ func (p *BasePlugin) Start(defaultInterval time.Duration) error {
 			connector.ID = p.worker.Name()
 			exists, err := orm.Get(&connector)
 			if !exists || err != nil {
-				log.Errorf("[%v connector] Connector not found or error occurred, skipping task:%v", connector.ID, err)
+				if global.Env().IsDebug {
+					log.Errorf("[%v connector] Connector not found or error occurred, skipping task:%v", connector.ID, err)
+				}
 				return
 			}
 

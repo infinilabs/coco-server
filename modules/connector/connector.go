@@ -5,13 +5,16 @@
 package connector
 
 import (
+	"infini.sh/framework/core/elastic"
+	"infini.sh/framework/core/security"
+	"net/http"
+	"time"
+
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
-	"net/http"
-	"time"
 )
 
 func (h *APIHandler) create(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -74,7 +77,9 @@ func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprou
 	var builtin bool
 	if !replace {
 		obj.ID = id
-		exists, err := orm.GetV2(ctx, &obj)
+
+		//can't remove, since we need it for update
+		exists, err := orm.GetWithSystemFields(ctx, &obj)
 		if !exists || err != nil {
 			h.WriteJSON(w, util.MapStr{
 				"_id":    id,
@@ -103,8 +108,8 @@ func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprou
 	obj.Builtin = builtin
 
 	ctx.Refresh = orm.WaitForRefresh
-
-	err = orm.Update(ctx, &obj)
+	ctx.DirectReadAccess() //TODO platform permission, rather user level permission
+	err = orm.Save(ctx, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -137,6 +142,8 @@ func (h *APIHandler) delete(w http.ResponseWriter, req *http.Request, ps httprou
 		return
 	}
 
+	ctx.Refresh = orm.WaitForRefresh
+
 	err = orm.Delete(ctx, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -152,121 +159,75 @@ func (h *APIHandler) delete(w http.ResponseWriter, req *http.Request, ps httprou
 // ?query=keyword&filter=fieldA:efg&filter=fieldB=abc&filter=url_escape( a:B AND c:A OR(abc AND efg) )&sort=a:desc,b:asc&
 func (h *APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
-	body, err := h.GetRawBody(req)
-	//for backward compatibility
-	if err == nil && body != nil { //TODO remove legacy code
-		var err error
-		q := orm.Query{}
-		q.RawQuery = body
-		//TODO handle url query args
+	var err error
+	//handle url query args, convert to query builder
+	builder, err := orm.NewQueryBuilderFromRequest(req, "name", "combined_fulltext")
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-		appConfig := common.AppConfig()
-		var connectors []common.Connector
+	searchRequest := elastic.SearchRequest{}
+	bodyBytes, err := h.GetRawBody(req)
+	if err == nil && len(bodyBytes) > 0 {
+		err = util.FromJSONBytes(bodyBytes, &searchRequest)
+		if err != nil {
+			h.Error(w, err)
+			return
+		}
+		builder.SetRequestBodyBytes(bodyBytes)
+	}
 
-		itemMapFunc := func(source map[string]interface{}, targetRef interface{}) error {
-			if !appConfig.ServerInfo.EncodeIconToBase64 {
-				return nil
-			}
+	ctx := orm.NewContextWithParent(req.Context())
+	orm.WithModel(ctx, &common.Connector{})
+	ctx.Set(orm.ReadPermissionCheckingScope, []int{security.PermissionScopePlatform})
 
-			// Modify icons in-place
-			if assets, ok := source["assets"].(map[string]interface{}); ok {
-				if icons, ok := assets["icons"].(map[string]interface{}); ok {
-					for k, v := range icons {
-						if iconStr, ok := v.(string); ok {
-							link := common.AutoGetFullIconURL(&appConfig, iconStr)
-							icons[k] = common.ConvertIconToBase64(&appConfig, link)
-						}
-					}
-				}
-			}
+	appConfig := common.AppConfig()
+	var connectors []common.Connector
 
-			if iconRef, ok := source["icon"].(string); ok {
-				if assets, ok := source["assets"].(map[string]interface{}); ok {
-					if icons, ok := assets["icons"].(map[string]interface{}); ok {
-						if iconValue, ok := icons[iconRef].(string); ok {
-							source["icon"] = common.ConvertIconToBase64(&appConfig, common.AutoGetFullIconURL(&appConfig, iconValue))
-						} else {
-							source["icon"] = common.ConvertIconToBase64(&appConfig, common.AutoGetFullIconURL(&appConfig, iconRef))
-						}
-					}
-				} else {
-					source["icon"] = common.ConvertIconToBase64(&appConfig, common.AutoGetFullIconURL(&appConfig, "icons"))
-				}
-			}
-
+	itemMapFunc := func(source map[string]interface{}, targetRef interface{}) error {
+		if !appConfig.ServerInfo.EncodeIconToBase64 {
 			return nil
 		}
 
-		err, res := orm.SearchWithResultItemMapper(&connectors, itemMapFunc, &q)
-
-		if err != nil {
-			h.WriteError(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		_, err = h.Write(w, res.Raw)
-		if err != nil {
-			h.Error(w, err)
-		}
-	} else {
-		var err error
-		//handle url query args, convert to query builder
-		builder, err := orm.NewQueryBuilderFromRequest(req, "name", "combined_fulltext")
-		if err != nil {
-			h.WriteError(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		ctx := orm.NewContextWithParent(req.Context())
-		orm.WithModel(ctx, &common.Connector{})
-
-		appConfig := common.AppConfig()
-		var connectors []common.Connector
-
-		itemMapFunc := func(source map[string]interface{}, targetRef interface{}) error {
-			if !appConfig.ServerInfo.EncodeIconToBase64 {
-				return nil
+		// Modify icons in-place
+		if assets, ok := source["assets"].(map[string]interface{}); ok {
+			if icons, ok := assets["icons"].(map[string]interface{}); ok {
+				for k, v := range icons {
+					if iconStr, ok := v.(string); ok {
+						link := common.AutoGetFullIconURL(&appConfig, iconStr)
+						icons[k] = common.ConvertIconToBase64(&appConfig, link)
+					}
+				}
 			}
+		}
 
-			// Modify icons in-place
+		if iconRef, ok := source["icon"].(string); ok {
 			if assets, ok := source["assets"].(map[string]interface{}); ok {
 				if icons, ok := assets["icons"].(map[string]interface{}); ok {
-					for k, v := range icons {
-						if iconStr, ok := v.(string); ok {
-							link := common.AutoGetFullIconURL(&appConfig, iconStr)
-							icons[k] = common.ConvertIconToBase64(&appConfig, link)
-						}
+					if iconValue, ok := icons[iconRef].(string); ok {
+						source["icon"] = common.ConvertIconToBase64(&appConfig, common.AutoGetFullIconURL(&appConfig, iconValue))
+					} else {
+						source["icon"] = common.ConvertIconToBase64(&appConfig, common.AutoGetFullIconURL(&appConfig, iconRef))
 					}
 				}
+			} else {
+				source["icon"] = common.ConvertIconToBase64(&appConfig, common.AutoGetFullIconURL(&appConfig, "icons"))
 			}
-
-			if iconRef, ok := source["icon"].(string); ok {
-				if assets, ok := source["assets"].(map[string]interface{}); ok {
-					if icons, ok := assets["icons"].(map[string]interface{}); ok {
-						if iconValue, ok := icons[iconRef].(string); ok {
-							source["icon"] = common.ConvertIconToBase64(&appConfig, common.AutoGetFullIconURL(&appConfig, iconValue))
-						} else {
-							source["icon"] = common.ConvertIconToBase64(&appConfig, common.AutoGetFullIconURL(&appConfig, iconRef))
-						}
-					}
-				} else {
-					source["icon"] = common.ConvertIconToBase64(&appConfig, common.AutoGetFullIconURL(&appConfig, "icons"))
-				}
-			}
-
-			return nil
 		}
 
-		err, res := core.SearchV2WithResultItemMapper(ctx, &connectors, builder, itemMapFunc)
-		if err != nil {
-			h.WriteError(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+		return nil
+	}
 
-		_, err = h.Write(w, res.Raw)
-		if err != nil {
-			h.Error(w, err)
-		}
+	err, res := core.SearchV2WithResultItemMapper(ctx, &connectors, builder, itemMapFunc)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	_, err = h.Write(w, res.Raw)
+	if err != nil {
+		h.Error(w, err)
 	}
 
 }

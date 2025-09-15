@@ -5,11 +5,13 @@
 package document
 
 import (
+	log "github.com/cihub/seelog"
 	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
 	"net/http"
+	"path"
 )
 
 func (h *APIHandler) createDoc(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -60,25 +62,10 @@ func (h *APIHandler) getDoc(w http.ResponseWriter, req *http.Request, ps httprou
 
 func (h *APIHandler) updateDoc(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("doc_id")
-	obj := common.Document{}
-
-	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
 
-	exists, err := orm.GetV2(ctx, &obj)
-	if !exists || err != nil {
-		h.WriteJSON(w, util.MapStr{
-			"_id":    id,
-			"result": "not_found",
-		}, http.StatusNotFound)
-		return
-	}
-
-	id = obj.ID
-	create := obj.Created
-
-	obj = common.Document{}
-	err = h.DecodeJSON(req, &obj)
+	obj := common.Document{}
+	err := h.DecodeJSON(req, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -86,18 +73,14 @@ func (h *APIHandler) updateDoc(w http.ResponseWriter, req *http.Request, ps http
 
 	//protect
 	obj.ID = id
-	obj.Created = create
 	ctx.Refresh = orm.WaitForRefresh
-	err = orm.Update(ctx, &obj)
+	err = orm.Save(ctx, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	h.WriteJSON(w, util.MapStr{
-		"_id":    obj.ID,
-		"result": "updated",
-	}, 200)
+	h.WriteUpdatedOKJSON(w, obj.ID)
 }
 
 func (h *APIHandler) deleteDoc(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -107,26 +90,14 @@ func (h *APIHandler) deleteDoc(w http.ResponseWriter, req *http.Request, ps http
 	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
 
-	exists, err := orm.GetV2(ctx, &obj)
-	if !exists || err != nil {
-		h.WriteJSON(w, util.MapStr{
-			"_id":    id,
-			"result": "not_found",
-		}, http.StatusNotFound)
-		return
-	}
-
 	ctx.Refresh = orm.WaitForRefresh
-	err = orm.Delete(ctx, &obj)
+	err := orm.Delete(ctx, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	h.WriteJSON(w, util.MapStr{
-		"_id":    obj.ID,
-		"result": "deleted",
-	}, 200)
+	h.WriteDeletedOKJSON(w, obj.ID)
 }
 
 func (h *APIHandler) searchDocs(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -138,8 +109,63 @@ func (h *APIHandler) searchDocs(w http.ResponseWriter, req *http.Request, ps htt
 	}
 
 	ctx := orm.NewContextWithParent(req.Context())
-	orm.WithModel(ctx, &common.Document{})
 
+	//TODO cache
+	sourceIDs := builder.GetFilterValues("source.id")
+	pathHierarchy := false
+	if len(sourceIDs) == 1 {
+		sourceIDArray, ok := sourceIDs[0].([]interface{})
+		if ok && len(sourceIDArray) == 1 {
+			sourceID, ok := sourceIDArray[0].(string)
+			if ok {
+				if sourceID != "" {
+					ds := common.DataSource{}
+					ds.ID = sourceID
+					exists, err := orm.GetV2(ctx, &ds)
+					if !exists || err != nil {
+						panic("invalid datasource")
+					}
+
+					conn := common.Connector{}
+					conn.ID = ds.Connector.ConnectorID
+					exists, err = orm.GetV2(ctx, &conn)
+					if !exists || err != nil {
+						panic("invalid connector")
+					}
+					if conn.PathHierarchy {
+						pathHierarchy = true
+					}
+				}
+			}
+		}
+	}
+
+	if pathHierarchy {
+		pathFilterStr := h.GetParameter(req, "path")
+		if pathFilterStr != "" {
+			array := []string{}
+			err = util.FromJson(pathFilterStr, &array)
+			if err != nil {
+				panic(err)
+			}
+			if len(array) > 0 {
+				pathStr := path.Join(array...)
+				if pathStr != "" {
+					if !util.PrefixStr(pathStr, "/") {
+						pathStr = "/" + pathStr
+					}
+				}
+				builder.Filter(orm.TermQuery("_system.parent_path", pathStr))
+				log.Trace("adding path hierarchy filter: ", pathStr)
+			}
+		} else {
+			//if connector enabled path hierarchy, the default path filter is /
+			builder.Filter(orm.TermQuery("_system.parent_path", "/"))
+			log.Trace("adding path hierarchy filter: /")
+		}
+	}
+
+	orm.WithModel(ctx, &common.Document{})
 	res, err := orm.SearchV2(ctx, builder)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -164,14 +190,19 @@ func (h *APIHandler) batchDeleteDoc(w http.ResponseWriter, req *http.Request, ps
 		h.WriteError(w, "document ids can not be empty", http.StatusBadRequest)
 		return
 	}
-	query := util.MapStr{
-		"query": util.MapStr{
-			"terms": util.MapStr{
-				"id": ids,
-			},
-		},
+
+	builder, err := orm.NewQueryBuilderFromRequest(req, "title", "summary", "combined_fulltext")
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
-	err = orm.DeleteBy(common.Document{}, util.MustToJSONBytes(query))
+
+	builder.Filter(orm.TermsQuery("id", ids))
+
+	ctx := orm.NewContextWithParent(req.Context())
+	orm.WithModel(ctx, &common.Document{})
+
+	_, err = orm.DeleteByQuery(ctx, builder)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return

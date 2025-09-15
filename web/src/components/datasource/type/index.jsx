@@ -8,15 +8,20 @@ import { IndexingScope } from '../indexing_scope';
 import { MultiURLInput } from './urls';
 
 export const Types = {
+  Confluence: 'confluence',
   GoogleDrive: 'google_drive',
   HugoSite: 'hugo_site',
   LocalFS: 'local_fs',
+  NetworkDrive: 'network_drive',
   Notion: 'notion',
-  ObjectStorage: 'object_storage',
   RSS: 'rss',
-  Search: 'search',
+  S3: 's3',
   Yuque: 'yuque',
-  S3: 's3'
+  Postgresql: 'postgresql',
+  Mysql: 'mysql',
+  GitHub: 'github',
+  GitLab: 'gitlab',
+  Gitea: 'gitea'
 };
 
 export const TypeList = ({

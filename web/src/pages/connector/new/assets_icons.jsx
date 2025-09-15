@@ -4,20 +4,21 @@ import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { IconSelector } from './icon_selector';
+import { getUUID } from "@/utils/common";
 
 export const AssetsIcons = ({ iconsMeta = [], onChange, value = {} }) => {
   const { t } = useTranslation();
   const initialIcons = Object.keys(value).map(k => {
     return {
       icon: value[k],
-      key: new Date().getTime(),
+      key: getUUID(),
       type: k
     };
   });
   if (!initialIcons.length) {
     initialIcons.push({
       icon: '',
-      key: new Date().getTime(),
+      key: getUUID(),
       type: ''
     });
   }
@@ -57,7 +58,7 @@ export const AssetsIcons = ({ iconsMeta = [], onChange, value = {} }) => {
         ...oldIcons,
         {
           icon: undefined,
-          key: new Date().getTime(),
+          key:  getUUID(),
           type: ''
         }
       ];

@@ -177,7 +177,7 @@ func (this *Plugin) fetch_site(connector *common.Connector, datasource *common.D
 				if v.Updated != "" {
 					doc.Created = ParseTimestamp(v.Updated)
 				}
-
+				doc.System = datasource.System
 				doc.Type = "web_page"
 				doc.Icon = "web"
 				doc.Title = v.Title
