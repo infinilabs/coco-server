@@ -56,7 +56,7 @@ func (h *APIHandler) providerInfo(w http.ResponseWriter, req *http.Request, ps h
 
 	searchSettings := util.MapStr{}
 	searchSettingsJson := util.MustToJSONBytes(&info.SearchSettings)
-	err := util.FromJSONBytes(searchSettingsJson, &searchSettings)
+	err = util.FromJSONBytes(searchSettingsJson, &searchSettings)
 	if err != nil {
 		panic(err)
 	}
