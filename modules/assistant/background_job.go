@@ -180,7 +180,8 @@ func (h APIHandler) createAssistantMessage(sessionID, assistantID, requestMessag
 }
 
 func (h APIHandler) finalizeProcessing(ctx context.Context, sessionID string, msg *common.ChatMessage, sender common.MessageSender) {
-	if err := orm.Save(nil, msg); err != nil {
+	ctx1 := orm.NewContextWithParent(ctx)
+	if err := orm.Save(ctx1, msg); err != nil {
 		_ = log.Errorf("Failed to save assistant message: %v", err)
 	}
 
