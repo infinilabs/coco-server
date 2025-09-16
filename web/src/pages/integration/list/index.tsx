@@ -195,7 +195,7 @@ export function Component() {
 
   useEffect(() => {
     fetchData(queryParams);
-  }, []);
+  }, [queryParams]);
 
   useEffect(() => {
     setKeyword(queryParams.query)

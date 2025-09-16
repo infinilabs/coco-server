@@ -29,7 +29,7 @@ export function Component() {
       setLoading(false);
     });
   }
-  useEffect(fetchData, []);
+  useEffect(fetchData, [queryParams]);
 
   useEffect(() => {
     setKeyword(queryParams.query)
