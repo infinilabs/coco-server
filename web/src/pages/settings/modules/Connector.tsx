@@ -156,7 +156,7 @@ const ConnectorSettings = memo(() => {
     });
   };
 
-  useEffect(fetchData, []);
+  useEffect(fetchData, [queryParams]);
 
   useEffect(() => {
     setKeyword(queryParams.query)

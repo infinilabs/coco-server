@@ -1,4 +1,5 @@
 import queryString from 'query-string';
+import { useCallback, useMemo, useState } from 'react';
 
 export default function useQueryParams(defaultParams = {}) {
 
@@ -35,6 +36,7 @@ export default function useQueryParams(defaultParams = {}) {
     
     const queryParams = useMemo(() => {
         const filter = {}
+        console.log("searchParams", searchParams)
         if (searchParams.filter) {
             if (Array.isArray(searchParams.filter)) {
                 searchParams.filter.forEach((item) => {

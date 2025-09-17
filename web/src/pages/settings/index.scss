@@ -29,6 +29,13 @@
   min-height: calc(100vh - 176px);
   height: auto;
   padding: 12px 16px;
+  display: flex; 
+  flex-direction: column; 
+}
+
+.settings-tabs-content > div {
+  flex: 1;
+  width: 100%;
 }
 
 .settings-form {

@@ -41,6 +41,8 @@ Information about release notes of Coco Server is provided here.
 - chore: update default datasource edit page #506
 - refactor: refactoring oauth connect component #507
 - chore: set default size for datasource list to 12 #508
+- chore: add search settings to settings
+- chore: support page mode in integration fullscreen
 
 ## 0.7.0 (2025-07-25)
 ### ❌ Breaking changes  
