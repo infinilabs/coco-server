@@ -386,17 +386,6 @@ export const generatedRoutes: GeneratedRoute[] = [
     ]
   },
   {
-    name: 'search',
-    path: '/search',
-    component: 'layout.blank$view.search',
-    meta: {
-      i18nKey: 'route.search',
-      title: 'search',
-      constant: true,
-      hideInMenu: true
-    }
-  },
-  {
     name: 'settings',
     path: '/settings',
     component: 'layout.base$view.settings',

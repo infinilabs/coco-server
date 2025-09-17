@@ -11,7 +11,7 @@ import AIAssistantSelect from '@/pages/ai-assistant/modules/AIAssistantSelect';
 import ChatStartPage from '@/pages/settings/modules/ChatStartPage';
 
 export const SearchBoxForm = memo(props => {
-  const { record, startPagelogos, setStartPagelogos, assistants, setAssistants, dataSourceLoading, dataSource, enabledList, setEnabledList } = props;
+  const { record, form, startPagelogos, setStartPagelogos, assistants, setAssistants, dataSourceLoading, dataSource, enabledList, setEnabledList } = props;
   const { t } = useTranslation();
   const { defaultRequiredRule } = useFormRules();
 
@@ -33,7 +33,7 @@ export const SearchBoxForm = memo(props => {
     <>
     <Form.Item
       label={t('page.integration.form.labels.mode')}
-      name="searchbox_mode"
+      name="mode"
       rules={[defaultRequiredRule]}
     >
       <Radio.Group

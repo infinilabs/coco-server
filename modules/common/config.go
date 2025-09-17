@@ -82,14 +82,6 @@ func reloadConfig() {
 			config.AppSettings = appSettings
 		}
 	}
-	buf, _ = kv.GetValue(core.DefaultSettingBucketKey, []byte(core.DefaultSearchSettingsKey))
-	if buf != nil {
-		searchSettings := &SearchSettings{}
-		err := util.FromJSONBytes(buf, searchSettings)
-		if err == nil {
-			config.SearchSettings = searchSettings
-		}
-	}
 
 	filebasedConfig, _ := AppConfigFromFile()
 	if filebasedConfig != nil {
@@ -122,11 +114,6 @@ func SetAppConfig(c *Config) {
 	if err != nil {
 		panic(err)
 	}
-	//save search's config
-	err = kv.AddValue(core.DefaultSettingBucketKey, []byte(core.DefaultSearchSettingsKey), util.MustToJSONBytes(c.SearchSettings))
-	if err != nil {
-		panic(err)
-	}
 	config = nil
 	reloadConfig()
 }
@@ -134,7 +121,6 @@ func SetAppConfig(c *Config) {
 type Config struct {
 	ServerInfo  *ServerInfo  `config:"server" json:"server,omitempty"`
 	AppSettings *AppSettings `config:"app_settings" json:"app_settings,omitempty"`
-	SearchSettings *SearchSettings `config:"search_settings" json:"search_settings,omitempty"`
 }
 
 const OLLAMA = "ollama"
@@ -156,9 +142,4 @@ type ChatStartPageConfig struct {
 	} `json:"logo"`
 	Introduction      string   `json:"introduction"`
 	DisplayAssistants []string `json:"display_assistants"`
-}
-
-type SearchSettings struct {
-	Enabled bool `json:"enabled"`
-	Integration string `json:"integration"`
 }

@@ -42,9 +42,9 @@ export function formatESSearchResult(esResp: any) {
   };
 }
 
-export function formatSearchFilter(filter: any) {
+export function formatSearchFilter(filter: any, reverse = false) {
   if (!filter) return ''
   const keys = Object.keys(filter);
   if (keys.length === 0) return ''
-  return Object.keys(filter).filter((key) => Array.isArray(filter[key])).map((key) => `filter=${key}:any(${encodeURIComponent(filter[key].join(','))})`).join('&')
+  return Object.keys(filter).filter((key) => Array.isArray(filter[key])).map((key) => `filter=${reverse ? '!' : ''}${key}:any(${encodeURIComponent(filter[key].join(','))})`).join('&')
 }

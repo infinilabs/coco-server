@@ -164,7 +164,7 @@ const fetchData = () => {
     });
   };
 
-  useEffect(fetchData, [queryParams]);
+  useEffect(fetchData, []);
 
   useEffect(() => {
     setKeyword(queryParams.query)

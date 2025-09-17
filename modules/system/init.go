@@ -54,14 +54,6 @@ func (h *APIHandler) providerInfo(w http.ResponseWriter, req *http.Request, ps h
 		panic(err)
 	}
 
-	searchSettings := util.MapStr{}
-	searchSettingsJson := util.MustToJSONBytes(&info.SearchSettings)
-	err = util.FromJSONBytes(searchSettingsJson, &searchSettings)
-	if err != nil {
-		panic(err)
-	}
-	output["search_settings"] = searchSettings
-
 	overallHealthType := global.Env().GetOverallHealth()
 	obj := util.MapStr{
 		"status": overallHealthType.ToString(),
