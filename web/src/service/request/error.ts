@@ -9,6 +9,14 @@ import { resetStore } from '@/store/slice/auth';
 import { handleExpiredRequest, showErrorMsg } from './shared';
 import type { RequestInstanceState } from './type';
 
+function handleLogout() {
+  const currentPath = window.location.hash.replace('#', '');
+  if (['/search', '/login'].every((item) => !currentPath.startsWith(item))) {
+    store.dispatch(resetStore());
+    window.location.href = `/#/login?redirect=${currentPath}`;
+  }
+}
+
 /** - 后端错误处理 */
 export async function backEndFail(
   response: AxiosResponse<App.Service.Response<unknown>, any>,
@@ -16,14 +24,6 @@ export async function backEndFail(
   request: FlatRequestInstance<RequestInstanceState, App.Service.Response<unknown>>
 ) {
   const responseCode = String(response.data.status);
-
-  function handleLogout() {
-    store.dispatch(resetStore());
-    const currentPath = window.location.hash.replace('#', '');
-    if (!currentPath.startsWith('/login')) {
-      window.location.href = `/#/login?redirect=${currentPath}`;
-    }
-  }
 
   function logoutAndCleanup() {
     handleLogout();
@@ -88,14 +88,6 @@ export function handleError(
 
   let message = error.message;
   let backendErrorCode = String(error.status || '');
-
-  function handleLogout() {
-    store.dispatch(resetStore());
-    const currentPath = window.location.hash.replace('#', '');
-    if (!currentPath.startsWith('/login')) {
-      window.location.href = `/#/login?redirect=${currentPath}`;
-    }
-  }
 
   // when the backend response code is in `logoutCodes`, it means the user will be logged out and redirected to login page
   const logoutCodes = import.meta.env.VITE_SERVICE_LOGOUT_CODES?.split(',') || [];

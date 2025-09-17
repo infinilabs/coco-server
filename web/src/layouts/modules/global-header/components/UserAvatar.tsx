@@ -11,12 +11,15 @@ import { localStg } from '@/utils/storage';
 
 const PasswordModal = lazy(() => import('./PasswordModal'));
 
-const UserAvatar = memo(() => {
+const UserAvatar = memo((props) => {
+  const { className, showHome = false } = props;
   const { t } = useTranslation();
   const userInfo = useAppSelector(selectUserInfo);
   const submit = useSubmit();
   const route = useRoute();
   const router = useRouterPush();
+  const nav = useNavigate();
+  const location = useLocation();
 
   const providerInfo = localStg.get('providerInfo');
   const managed = Boolean(providerInfo?.managed);
@@ -44,7 +47,9 @@ const UserAvatar = memo(() => {
   }
 
   function onClick({ key }: { key: string }) {
-    if (key === 'logout') {
+    if (key === 'home') {
+      nav(`/home`)
+    } else if (key === 'logout') {
       onLogout();
     } else if (key === 'password') {
       setPasswordVisible(true);
@@ -54,7 +59,9 @@ const UserAvatar = memo(() => {
     }
   }
   function loginOrRegister() {
-    router.routerPushByKey('login');
+    router.routerPushByKey('login', {
+      query: { redirect: location.pathname }
+    });
   }
 
   const items: MenuProps['items'] = [
@@ -91,6 +98,21 @@ const UserAvatar = memo(() => {
     items.splice(0, 2)
   }
 
+  if (showHome) {
+    items.unshift({
+      key: 'home',
+      label: (
+        <div className="flex-center gap-8px">
+          <SvgIcon
+            className="text-icon"
+            icon="mdi:settings"
+          />
+          {t('route.settings')}
+        </div>
+      )
+    })
+  }
+
   return (
     <>
       {userInfo ? (
@@ -100,7 +122,7 @@ const UserAvatar = memo(() => {
           trigger={['click']}
         >
           <div>
-            <ButtonIcon className="px-12px">
+            <ButtonIcon className={`px-12px ${className}`}>
               <SvgIcon
                 className="text-icon-large"
                 icon="ph:user-circle"
@@ -110,7 +132,7 @@ const UserAvatar = memo(() => {
           </div>
         </Dropdown>
       ) : (
-        <Button onClick={loginOrRegister}>{t('page.login.common.loginOrRegister')}</Button>
+        <Button className={`px-12px ${className}`} onClick={loginOrRegister}>{t('page.login.common.loginOrRegister')}</Button>
       )}
       <Suspense>
         <PasswordModal

@@ -11,12 +11,13 @@ import type {
 
 import { $t } from '@/locales';
 import { getRouteName, getRoutePath } from '@/router/elegant/transform';
-import { fetchServer } from '@/service/api/server';
+import { fetchServer, fetchSettings } from '@/service/api/server';
 import { store } from '@/store';
 import { isStaticSuper, resetAuth, selectUserInfo } from '@/store/slice/auth';
 import { getRouteHome, initAuthRoute, initConstantRoute } from '@/store/slice/route';
 import { localStg } from '@/utils/storage';
 import { fetchGetUserInfo } from '@/service/api';
+import { setProviderInfo } from '@/store/slice/server';
 
 function shouldRedirectLogin(path: string) {
   return ['provider', 'request_id', 'product'].every((keyword) => !path.includes(keyword))
@@ -25,15 +26,21 @@ function shouldRedirectLogin(path: string) {
 export const init: Init = async currentFullPath => {
   
   const result = await fetchServer();
-  
-  localStg.set('providerInfo', result.data);
+
+  await store.dispatch(setProviderInfo(result.data));
 
   const isManaged = Boolean(result?.data?.managed)
+
+  const searchEnabled = Boolean(result?.data?.search_settings?.enabled)
 
   const filterPaths = []
 
   if (isManaged) {
     filterPaths.push('/guide')
+  }
+
+  if (!searchEnabled) {
+    filterPaths.push('/search')
   }
 
   await store.dispatch(initConstantRoute(filterPaths));
@@ -61,7 +68,7 @@ export const init: Init = async currentFullPath => {
     localStg.remove('userInfo');
     await store.dispatch(resetAuth());
     await store.dispatch(initAuthRoute());
-    if (!currentFullPath.startsWith('/login')) {
+    if (['/search', '/login'].every((item) => !currentFullPath.startsWith(item))) {
       const loginRoute: RouteKey = 'login';
       const routeHome = getRouteHome(store.getState());
 

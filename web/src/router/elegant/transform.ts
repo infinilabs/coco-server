@@ -246,6 +246,7 @@ const routeMap: RouteMap = {
   "model-provider_edit": "edit/:id",
   "model-provider_list": "list",
   "model-provider_new": "new",
+  "search": "/search",
   "settings": "/settings"
 };
 
