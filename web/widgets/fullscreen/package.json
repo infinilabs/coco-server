@@ -28,7 +28,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && cp index.html dist/",
     "build:server": "tsup && mkdir -p ../../../.public/widgets/fullscreen && cp dist/index.css dist/index.js ../../../.public/widgets/fullscreen",
     "demo": "cd dist && http-server",
     "format": "prettier --write \"./**/*.{js,jsx,ts,tsx,json,html,css}\" --ignore-path .gitignore",
@@ -38,7 +38,7 @@
     "watch": "tsup --watch"
   },
   "dependencies": {
-    "query-string": "9.2.2",
+    "fullscreen": "link:",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

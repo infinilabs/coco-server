@@ -50,17 +50,6 @@ func (h *APIHandler) updateServerSettings(w http.ResponseWriter, req *http.Reque
 		}
 		oldAppConfig.AppSettings = &appSettings
 	}
-	if appConfig.SearchSettings != nil {
-		//merge settings
-		searchSettings := common.SearchSettings{}
-		err := mergeSettings(oldAppConfig.SearchSettings, appConfig.SearchSettings, &searchSettings)
-		if err != nil {
-			_ = log.Error(err)
-			h.WriteError(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		oldAppConfig.SearchSettings = &searchSettings
-	}
 	common.SetAppConfig(&oldAppConfig)
 	h.WriteAckOKJSON(w)
 }

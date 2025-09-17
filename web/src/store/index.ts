@@ -6,11 +6,10 @@ import { authSlice } from './slice/auth';
 import { routeSlice } from './slice/route';
 import { tabSlice } from './slice/tab';
 import { themeSlice } from './slice/theme';
-import { serverSlice } from './slice/server';
 
 // `combineSlices` automatically combines the reducers using
 // their `reducerPath`s, therefore we no longer need to call `combineReducers`.
-const rootReducer = combineSlices(routeSlice, appSlice, authSlice, themeSlice, tabSlice, serverSlice);
+const rootReducer = combineSlices(routeSlice, appSlice, authSlice, themeSlice, tabSlice);
 
 // Infer the `RootState` type from the root reducer
 export type RootState = ReturnType<typeof rootReducer>;

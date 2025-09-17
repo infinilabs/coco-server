@@ -272,7 +272,7 @@ export function Component() {
       });
   };
 
-  useEffect(fetchData, [queryParams]);
+  useEffect(fetchData, []);
 
   useEffect(() => {
     setKeyword(queryParams.query)

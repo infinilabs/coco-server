@@ -72,8 +72,7 @@ const route: App.I18n.Schema['translation']['route'] = {
   'mcp-server_list': 'MCP 服务器',
   'mcp-server_new': '新增 MCP 服务器',
   'mcp-server_edit': '编辑 MCP 服务器',
-  'user-center': '个人中心',
-  'search': '搜索'
+  'user-center': '个人中心'
 };
 
 export default route;

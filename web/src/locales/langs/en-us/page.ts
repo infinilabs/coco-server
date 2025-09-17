@@ -295,8 +295,6 @@ const page: App.I18n.Schema['translation']['page'] = {
         mode_floating: 'Floating',
         mode_floating_placeholder: 'Floating widget placeholder text',
         mode_floating_icon: 'Floating widget icon',
-        mode_page: 'Page',
-        mode_modal: 'Modal',
       },
       title: {
         edit: 'Edit Integration',
@@ -388,13 +386,6 @@ const page: App.I18n.Schema['translation']['page'] = {
           introduction_placeholder: 'Enter the welcome text or AI tool introduction displayed on the start page (within 60 characters)',
           assistant: 'AI Assistant Display',
         }
-      }
-    },
-    search_settings: {
-      title: "Search Settings",
-      labels: {
-        enabled: 'Enabled',
-        integration: 'Integration',
       }
     },
     setupLater: 'Set Up Later'

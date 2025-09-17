@@ -1,13 +1,11 @@
 import { request } from '../request';
-import { formatSearchFilter } from '../request/es';
 
 export function fetchIntegrations(params) {
-  const { filter = {}, ...rest } = params || {}
   return request({
     method: 'get',
-    params: rest,
-    url: `/integration/_search?${formatSearchFilter(filter)}`
-  })
+    params,
+    url: '/integration/_search'
+  });
 }
 
 export function fetchIntegration(id: string) {

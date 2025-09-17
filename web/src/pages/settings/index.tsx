@@ -3,7 +3,6 @@ import { Tabs } from 'antd';
 import './index.scss';
 import ConnectorSettings from './modules/Connector';
 import AppSettings from './modules/AppSettings';
-import SearchSettings from './modules/SearchSettings';
 
 export function Component() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -21,13 +20,8 @@ export function Component() {
     },
     {
       component: AppSettings,
-      key: 'app_settings',
+      key: 'chart_start_page',
       label: t(`page.settings.app_settings.title`),
-    },
-    {
-      component: SearchSettings,
-      key: 'search_settings',
-      label: t(`page.settings.search_settings.title`),
     }
   ];
 
