@@ -132,8 +132,8 @@ func SetAppConfig(c *Config) {
 }
 
 type Config struct {
-	ServerInfo  *ServerInfo  `config:"server" json:"server,omitempty"`
-	AppSettings *AppSettings `config:"app_settings" json:"app_settings,omitempty"`
+	ServerInfo     *ServerInfo     `config:"server" json:"server,omitempty"`
+	AppSettings    *AppSettings    `config:"app_settings" json:"app_settings,omitempty"`
 	SearchSettings *SearchSettings `config:"search_settings" json:"search_settings,omitempty"`
 }
 
@@ -159,6 +159,6 @@ type ChatStartPageConfig struct {
 }
 
 type SearchSettings struct {
-	Enabled bool `json:"enabled"`
+	Enabled     bool   `json:"enabled"`
 	Integration string `json:"integration"`
 }
