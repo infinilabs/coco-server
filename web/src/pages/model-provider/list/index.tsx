@@ -9,7 +9,7 @@ import useQueryParams from "@/hooks/common/queryParams";
 export function Component() {
   const [queryParams, setQueryParams] = useQueryParams({
     size: 12,
-    sort: 'enabled:desc,created:desc'
+    sort: [['enabled', 'desc'], ['created', 'desc']]
   });
   const { t } = useTranslation();
   const nav = useNavigate();
