@@ -30,6 +30,7 @@ This guide covers everything you need to work on the Coco server's web interface
      "/assets": "http://localhost:9000"
    }
    ```
+   > `http://localhost:9000` is the endpoint of the coco server.
 
 4. **Start development server**:
    ```bash
@@ -46,7 +47,7 @@ This guide covers everything you need to work on the Coco server's web interface
 ## Project Structure
 
 This is a pnpm monorepo. Key directories:
-- `/apps` - Main application code
+- `/src` - Main application code
 - `/packages` - Shared components and utilities
 - `/widgets` - Reusable UI widgets
 
@@ -63,5 +64,3 @@ This is a pnpm monorepo. Key directories:
 The web UI communicates with the Coco server backend API. Default endpoints:
 - Main API: `http://localhost:9000`
 - Demo service: `http://localhost:9528`
-
-Configuration is handled through environment variables in `.env.test`.
