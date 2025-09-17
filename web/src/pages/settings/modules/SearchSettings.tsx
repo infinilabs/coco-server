@@ -3,6 +3,7 @@ import '../index.scss';
 import { fetchSettings, updateSettings } from '@/service/api/server';
 import { useLoading, useRequest } from '@sa/hooks';
 import IntegrationSelect from '@/pages/integration/modules/IntegrationSelect';
+import { getProviderInfo, setProviderInfo } from '@/store/slice/server';
 
 const SearchSettings = memo(() => {
   const [form] = Form.useForm();
@@ -10,6 +11,9 @@ const SearchSettings = memo(() => {
 
   const { endLoading, loading, startLoading } = useLoading();
 
+  const dispatch = useAppDispatch();
+  const providerInfo = useAppSelector(getProviderInfo);
+    
   const {
     data,
     loading: dataLoading,
@@ -19,23 +23,25 @@ const SearchSettings = memo(() => {
   });
 
   useEffect(() => {
-    run({
-      from: 0,
-      size: 10000
-    });
+    run();
   }, []);
 
   const handleSubmit = async () => {
     const params = await form.validateFields();
     const { enabled, integration } = params;
     startLoading();
+    const search_settings = {
+      enabled,
+      integration: integration?.id
+    } 
     const result = await updateSettings({
-       search_settings: {
-        enabled,
-        integration: integration?.id
-       } 
+       search_settings
     });
     if (result?.data?.acknowledged) {
+      dispatch(setProviderInfo({
+        ...providerInfo,
+        search_settings
+      }));
       window.$message?.success(t('common.updateSuccess'));
     }
     endLoading();
@@ -48,7 +54,8 @@ const SearchSettings = memo(() => {
   useEffect(() => {
     if (data?.search_settings) {
       form.setFieldsValue({
-        ...data?.search_settings
+        ...data?.search_settings,
+        integration: { id: data?.search_settings?.integration }
       });
     } else {
       form.setFieldsValue({ 

@@ -8,6 +8,7 @@ import GlobalLogo from '../global-logo';
 
 import UserAvatar from './components/UserAvatar';
 import { localStg } from '@/utils/storage';
+import { getProviderInfo } from '@/store/slice/server';
 
 interface Props {
   isMobile: boolean;
@@ -48,8 +49,9 @@ const GlobalHeader: FC<Props> = memo(({ isMobile, mode, reverse, siderWidth }) =
 
   const nav = useNavigate();
   const { t } = useTranslation();
-  const providerInfo = localStg.get('providerInfo') || {}
-  const { search_settings } = providerInfo
+  const providerInfo = useAppSelector(getProviderInfo);
+  
+  const { search_settings } = providerInfo || {}
 
   return (
     <DarkModeContainer

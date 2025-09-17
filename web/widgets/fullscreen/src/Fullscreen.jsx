@@ -1,16 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import FullscreenPage from './FullscreenPage';
 import FullscreenModal from './FullscreenModal';
 import './ui-search/index.css';
-import useQueryParams from './hooks/queryParams'
 
 export default (props) => {
-    const { shadow, id, token, server } = props;
+    const { shadow, id, token, server, queryParams, setQueryParams } = props;
     const [settings, setSettings] = useState()
 
     const { payload = {}, enabled_module = {} } = settings || {}
-    const [queryParams, setQueryParams] = useQueryParams();
-    console.log(queryParams)
 
     async function fetchSettings(server, id, token) {
         if (!server || !id || !token) return;
@@ -33,9 +30,9 @@ export default (props) => {
     
     function search(query, callback, setLoading, shouldAgg) {
         if (setLoading) setLoading(true)
-        const { filters = {} } = query
-        const filterStr = Object.keys(filters).map((key) => `filter=${key}:any(${filters[key].join(',')})`).join('&')
-        fetch(`${server}/query/_search?${filterStr ? filterStr + '&' : ''}query=${query.keyword}&from=${query.from}&size=${query.size}&v2=true`, {
+        const { filter = {} } = query
+        const filterStr = Object.keys(filter).map((key) => `filter=${key}:any(${filter[key].join(',')})`).join('&')
+        fetch(`${server}/query/_search?${filterStr ? filterStr + '&' : ''}query=${query.query}&from=${query.from}&size=${query.size}&v2=true`, {
             method: 'POST',
             headers: {
                 'APP-INTEGRATION-ID': id,
@@ -131,21 +128,6 @@ export default (props) => {
         }
     }
 
-    const handleQueryParams = (query) => {
-        const urlParams = new URLSearchParams(window.location.search);
-        urlParams.set('query', query.keyword);
-        urlParams.set('from', query.from);
-        urlParams.set('size', query.size);
-        urlParams.delete('filter'); 
-        const { filters = {} } = query
-        Object.keys(filters).map((key) => {
-            urlParams.append('filter', `${key}:any(${filters[key].join(',')}`);
-        })
-        const newQuery = urlParams.toString();
-        const newUrl = `${window.location.origin}/${window.location.hash}${newQuery ? `?${newQuery}` : ''}`;
-        history.pushState({}, '', newUrl);
-    }
-
     useEffect(() => {
         fetchSettings(server, id, token);
     }, [server, id, token]);
@@ -154,6 +136,8 @@ export default (props) => {
         ...props,
         id,
         shadow,
+        queryParams,
+        setQueryParams,
         "logo": {
             "light": payload?.logo?.light,
             "light-mobile": payload?.logo?.light_mobile,
@@ -169,7 +153,6 @@ export default (props) => {
             "showActions": false,
         })) : [],
         "onSearch": (query, callback, setLoading, shouldAgg = true) => {
-            handleQueryParams(query)
             search(query, callback, setLoading, shouldAgg)
         },
         "onAsk": (assistanID, message, callback, setLoading) => {

@@ -7,13 +7,13 @@ import { Mic } from "lucide-react";
 
 export function SearchBox(props) {
 
-    const { placeholder, keyword, onSearch } = props;
+    const { placeholder, query, onSearch } = props;
 
-    const [currentKeyword, setCurrentKeyword] = useState(keyword)
+    const [currentKeyword, setCurrentKeyword] = useState(query)
 
     useEffect(() => {
-        setCurrentKeyword(keyword)
-    }, [keyword])
+        setCurrentKeyword(query)
+    }, [query])
 
     return (
         <div className={`flex w-full h-full items-center justify-center bg-#fff ${styles.searchbox}`}>

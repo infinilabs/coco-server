@@ -12,7 +12,7 @@ export default defineConfig(
         minify: true,
         noExternal: ['react', 'react-dom', 'antd', '@ant-design/cssinjs', 'query-string'],
         platform: 'browser',
-        sourcemap: true,
+        sourcemap: false,
         splitting: false,
         esbuildPlugins: [svgr()],
       },

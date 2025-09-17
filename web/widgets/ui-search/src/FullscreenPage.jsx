@@ -5,6 +5,7 @@ const FullscreenPage = (props) => {
 
   const { 
     onSearch,
+    queryParams
   } = props;
 
   const [isFirst, setIsFirst] = useState(true);
@@ -13,7 +14,7 @@ const FullscreenPage = (props) => {
   return (
     <Fullscreen
       {...props}
-      isFirst={isFirst}
+      isFirst={queryParams.query ? false : isFirst}
       onSearch={(query, callback, setLoading, shouldAgg) => {
         if (isFirstRef.current) {
             setIsFirst(false)
