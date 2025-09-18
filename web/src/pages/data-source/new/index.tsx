@@ -435,18 +435,31 @@ export function Component() {
               {type === Types.GitLab && <GitLab />}
               {type === Types.Gitea && <Gitea />}
               {type === Types.Mssql && <Rdbms dbType="mssql" />}
-              <Form.Item
-                label={t('page.datasource.new.labels.data_sync')}
-                name="sync_config"
-              >
-                <DataSync />
-              </Form.Item>
+
               <Form.Item
                 label={t('page.datasource.new.labels.sync_enabled')}
                 name="sync_enabled"
+                valuePropName="checked"
               >
                 <Switch size="small" />
               </Form.Item>
+
+              <Form.Item
+                shouldUpdate={(prev, curr) => prev.sync_enabled !== curr.sync_enabled}
+                noStyle
+              >
+                {({ getFieldValue }) =>
+                  getFieldValue('sync_enabled') ? (
+                    <Form.Item
+                      label={t('page.datasource.new.labels.data_sync')}
+                      name="sync_config"
+                    >
+                      <DataSync />
+                    </Form.Item>
+                  ) : null
+                }
+              </Form.Item>
+
               <Form.Item
                 label={t('page.datasource.new.labels.enabled')}
                 name="enabled"
