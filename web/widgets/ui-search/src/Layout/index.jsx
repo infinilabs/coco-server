@@ -39,7 +39,7 @@ const BasicLayout = (props) => {
                   { !isMobile && <div className="w-300px h-full"></div> }
                 </div>
               </Header>
-              <Content className="bg-[rgba(250,250,250,1)] min-h-[calc(100vh-72px)]">
+              <Content className="bg-[rgba(250,250,250,1)] h-[calc(100vh-72px)] overflow-auto">
                 <div className={`px-12px py-24px w-full m-auto ${isMobile ? '' : 'flex justify-center'}`}>
                   {
                     !isMobile && (

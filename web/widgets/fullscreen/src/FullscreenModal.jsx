@@ -1,13 +1,14 @@
+import { useState } from 'react';
 import { FullscreenModal } from './ui-search';
 
 export default (props) => {
 
-    const [queryParams, setQueryParams] = useState({
+    const [queryParamsState, setQueryParamsState] = useState({
         from: 0,
         size: 10,
     });
 
     return (
-        <FullscreenModal {...props} queryParams={queryParams} setQueryParams={setQueryParams}/>
+        <FullscreenModal {...props} queryParams={queryParamsState} setQueryParams={setQueryParamsState}/>
     )
 }
