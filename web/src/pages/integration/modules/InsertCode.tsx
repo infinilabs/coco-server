@@ -1,11 +1,23 @@
-import { Alert, Button, Divider } from 'antd';
+import { Alert, Button } from 'antd';
 import Clipboard from 'clipboard';
 
 import { Preview } from './Preview';
+import { isFullscreen } from './EditForm';
 
 export const InsertCode = memo(props => {
-  const { id, token, type, enabled } = props;
+  const { id, type, enabled } = props;
 
+  const widgetType = useMemo(() => {
+    return isFullscreen(type) ? 'fullscreen': 'searchbox'
+  }, [type])
+
+  const mode = useMemo(() => {
+    if (isFullscreen(type)) {
+      return ['page', 'modal'].includes(type) ? type :  'page'
+    } else {
+      return ['embedded', 'floating', 'all'].includes(type) ? type : 'embedded'
+    }
+  }, [type])
   const { t } = useTranslation();
   const copyRef = useRef<HTMLButtonElement>(null);
 
@@ -22,13 +34,13 @@ export const InsertCode = memo(props => {
   };
 
   const code = useMemo(() => {
-    if (!id || !type) return undefined
-    return `<div id="${type}" style="margin: 10px 0; outline: none"></div>
+    if (!id || !widgetType) return undefined
+    return `<div id="${widgetType}" style="margin: ${mode === 'page' ? '0' : '10px'} 0; outline: none"></div>
 <script type="module" >
-    import { ${type} } from "${window.location.origin}/integration/${id}/widget";
-    ${type}({container: "#${type}"});
+    import { ${widgetType} } from "${window.location.origin}/integration/${id}/widget";
+    ${widgetType}({container: "#${widgetType}"});
 </script>`;
-  }, [id, type]);
+  }, [id, widgetType, mode]);
 
   useEffect(() => {
     if (copyRef.current) {
@@ -65,7 +77,7 @@ export const InsertCode = memo(props => {
         </div>
       </pre>
       <div className="text-right">
-        <Preview params={{ id, server: `${window.location.origin}`, token, type }}>
+        <Preview params={props} widgetType={widgetType} mode={mode}>
           <Button
             className="mt-12px"
             size="large"

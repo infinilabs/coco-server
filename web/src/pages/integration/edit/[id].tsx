@@ -56,12 +56,7 @@ export function Component() {
             {
               data && (
                 <InsertCode
-                  id={data?._source?.id}
-                  token={data?._source?.token}
-                  type={(
-                    ['fullscreen', 'page', 'modal'].includes(data?._source?.type) ? 'fullscreen' : 'searchbox'
-                  )}
-                  enabled={data?._source?.enabled}
+                  { ...(data?._source || {})}
                 />
               )
             }

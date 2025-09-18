@@ -4,7 +4,7 @@ import FullscreenModal from './FullscreenModal';
 import './ui-search/index.css';
 
 export default (props) => {
-    const { shadow, id, token, server, queryParams, setQueryParams } = props;
+    const { shadow, id, token, server, enableQueryParams = true } = props;
     const [settings, setSettings] = useState()
 
     const { payload = {}, enabled_module = {} } = settings || {}
@@ -136,8 +136,6 @@ export default (props) => {
         ...props,
         id,
         shadow,
-        queryParams,
-        setQueryParams,
         "logo": {
             "light": payload?.logo?.light,
             "light-mobile": payload?.logo?.light_mobile,
@@ -172,7 +170,7 @@ export default (props) => {
 
     if (settings?.type === 'fullscreen' || settings?.type === 'page') {
         return (
-            <FullscreenPage {...componentProps} />
+            <FullscreenPage {...componentProps} enableQueryParams={enableQueryParams}/>
         )
     } else if (settings?.type === 'modal') {
         return <FullscreenModal {...componentProps} />
