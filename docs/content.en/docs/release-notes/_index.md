@@ -28,6 +28,7 @@ Information about release notes of Coco Server is provided here.
 - fix: generate unique icon key to prevent accidental deletion of all icons
 - fix: modify the access_token URL during coco server login (#480) 
 - fix: fix permission issue for web widget #512
+- fix: extra height because of importing the icon in Searchbox #519
 
 ### ✈️ Improvements  
 - chore: remove unused websocket api #443
