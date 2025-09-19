@@ -219,6 +219,10 @@ export function Component() {
         config = GiteaConfig(values);
         break;
       }
+      case Types.Mssql: {
+        config = RdbmsConfig(values);
+        break;
+      }
     }
     const sValues = {
       connector: {
@@ -321,6 +325,7 @@ export function Component() {
       break;
     }
     case Types.Postgresql:
+    case Types.Mssql:
     case Types.Mysql: {
       if (datasource.connector?.config) {
         datasource.config = RdbmsConfig(datasource.connector);
@@ -416,6 +421,7 @@ export function Component() {
                 {type === Types.GitHub && <GitHub />}
                 {type === Types.GitLab && <GitLab />}
                 {type === Types.Gitea && <Gitea />}
+                {type === Types.Mssql && <Rdbms dbType="mssql" />}
               </>
             ) : (
               <>
