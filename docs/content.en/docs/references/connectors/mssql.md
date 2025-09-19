@@ -82,7 +82,7 @@ curl -H 'Content-Type: application/json' -XPOST "http://localhost:9000/datasourc
     "connector":{
         "id": "mssql",
         "config": {
-            "connection_uri": "sqlserver://username:password@host:1433/database=your_db_name",
+            "connection_uri": "sqlserver://username:password@host:1433?database=your_db_name",
             "sql": "SELECT * from DOC ORDER BY id",
             "pagination": true,
             "page_size": 500,
