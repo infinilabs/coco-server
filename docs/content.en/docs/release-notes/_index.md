@@ -22,11 +22,17 @@ Information about release notes of Coco Server is provided here.
 - feat: github connector #492
 - feat: gitlab connector #494
 - feat: gitea connector #509
+- feat: mssql connector #511
+
 
 ### 🐛 Bug fix  
 - fix: correct assistant update logic
 - fix: generate unique icon key to prevent accidental deletion of all icons
 - fix: modify the access_token URL during coco server login (#480) 
+- fix: fix permission issue for web widget #512
+- fix: extra height because of importing the icon in Searchbox #519
+- fix: extra height because of importing the icon in Searchbox #519
+- fix: page scrolling not working in Fullscreen #520
 
 ### ✈️ Improvements  
 - chore: remove unused websocket api #443
@@ -40,6 +46,8 @@ Information about release notes of Coco Server is provided here.
 - chore: update default datasource edit page #506
 - refactor: refactoring oauth connect component #507
 - chore: set default size for datasource list to 12 #508
+- chore: add search settings to settings
+- chore: support page mode in integration fullscreen
 
 ## 0.7.0 (2025-07-25)
 ### ❌ Breaking changes  

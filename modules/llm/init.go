@@ -5,6 +5,7 @@
 package llm
 
 import (
+	"infini.sh/coco/core"
 	"infini.sh/coco/plugins/security/filter"
 	"infini.sh/framework/core/api"
 	"infini.sh/framework/core/security"
@@ -32,6 +33,8 @@ func init() {
 	deleteMCPServerPermission := security.GetSimplePermission(Category, MCPServerResource, string(security.Delete))
 	searchMCPServerPermission := security.GetSimplePermission(Category, MCPServerResource, string(security.Search))
 	security.GetOrInitPermissionKeys(createMCPServerPermission, updateMCPServerPermission, readMCPServerPermission, deleteMCPServerPermission, searchMCPServerPermission)
+	security.RegisterPermissionsToRole(core.WidgetRole, searchMCPServerPermission, searchLLMPermission)
+
 	handler := APIHandler{}
 
 	var secretKeys = map[string]bool{}

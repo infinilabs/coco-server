@@ -10,7 +10,7 @@ export default defineConfig(
         entry: ['src/index.jsx'],
         format: ['esm'],
         minify: true,
-        noExternal: ['react', 'react-dom', 'antd', '@ant-design/cssinjs'],
+        noExternal: ['react', 'react-dom', 'antd', '@ant-design/cssinjs', 'query-string'],
         platform: 'browser',
         sourcemap: false,
         splitting: false,

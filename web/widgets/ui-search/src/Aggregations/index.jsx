@@ -5,9 +5,9 @@ import { BrushCleaning } from "lucide-react";
 
 export function Aggregations(props) {
 
-    const { config = {}, aggregations = [], filters = {}, onSearch } = props;
+    const { config = {}, aggregations = [], filter = {}, onSearch } = props;
 
-    const [currentFilters, setCurrentFilters] = useState(filters)
+    const [currentFilters, setCurrentFilters] = useState(filter)
 
     const onAllChange = (checked, aggregation) => {
         const newFilters = cloneDeep(currentFilters)

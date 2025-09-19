@@ -5,6 +5,7 @@ import { Button, Dropdown, Input, Modal, Switch, Table, message } from 'antd';
 import { deleteIntegration, fetchIntegrations, updateIntegration, renewAPIToken } from '@/service/api/integration';
 import { formatESSearchResult } from '@/service/request/es';
 import useQueryParams from '@/hooks/common/queryParams';
+import { isFullscreen } from '../modules/EditForm';
 
 export function Component() {
   const [queryParams, setQueryParams] = useQueryParams();
@@ -79,7 +80,7 @@ export function Component() {
     {
       dataIndex: 'type',
       render: value => {
-        return value === 'fullscreen' ? t('page.integration.form.labels.type_fullscreen') : t('page.integration.form.labels.type_searchbox')
+        return isFullscreen(value) ? t('page.integration.form.labels.type_fullscreen') : t('page.integration.form.labels.type_searchbox')
       },
       title: t('page.integration.columns.type')
     },
@@ -194,7 +195,7 @@ export function Component() {
 
   useEffect(() => {
     fetchData(queryParams);
-  }, []);
+  }, [queryParams]);
 
   useEffect(() => {
     setKeyword(queryParams.query)

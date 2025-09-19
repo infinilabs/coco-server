@@ -270,6 +270,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       },
       tooltip: {
         connection_uri: {
+          mssql: 'Microsoft SQL Server 连接字符串，例如：sqlserver://user:password@host:1433/database',
           mysql: 'MySQL 连接字符串，例如：mysql://user:password@tcp(localhost:3306)/database',
           postgresql: 'PostgreSQL 连接字符串，例如：postgresql://user:password@localhost:5432/database?sslmode=disable'
         },
@@ -390,6 +391,8 @@ const page: App.I18n.Schema['translation']['page'] = {
         mode_floating: '浮动的',
         mode_floating_placeholder: '浮动组件提示文本',
         mode_floating_icon: '浮动组件图标',
+        mode_page: '全屏页面',
+        mode_modal: '全屏弹框',
       },
       title: {
         edit: '编辑嵌入组件',
@@ -479,6 +482,13 @@ const page: App.I18n.Schema['translation']['page'] = {
           introduction_placeholder: '输入显示在起始页面上的欢迎文本或人工智能工具介绍（60 字符以内）',
           assistant: 'AI 助手展示',
         }
+      }
+    },
+    search_settings: {
+      title: "搜索设置",
+      labels: {
+        enabled: '启用状态',
+        integration: '组件',
       }
     },
     setupLater: '稍后设置'
