@@ -101,7 +101,7 @@ func (h *Plugin) oAuthRedirect(w http.ResponseWriter, req *http.Request, _ httpr
 	// Create datasource with OAuth tokens
 	datasource := common.DataSource{
 		SyncConfig: common.SyncConfig{Enabled: true, Interval: "30s"},
-		Enabled:     true,
+		Enabled:    true,
 	}
 
 	// Generate unique datasource ID based on connector type and user info
