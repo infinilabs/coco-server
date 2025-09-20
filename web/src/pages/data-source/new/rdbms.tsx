@@ -32,6 +32,18 @@ export default ({ dbType }: { readonly dbType: string }) => {
             'MS SQL connection string. e.g., sqlserver://user:password@host:1433/database'
           )
         };
+      case 'oracle':
+        return {
+          placeholder: 'oracle://user:password@host:1521/service_name',
+          sqlTooltip: t(
+            'page.datasource.rdbms.tooltip.sql.oracle',
+            'The SQL query to execute for fetching data. An ORDER BY clause is required for pagination.'
+          ),
+          tooltip: t(
+            'page.datasource.rdbms.tooltip.connection_uri.oracle',
+            'Oracle connection string. e.g., oracle://sys:password@localhost:1521/FREE'
+          )
+        };
       case 'postgresql':
       default:
         return {
