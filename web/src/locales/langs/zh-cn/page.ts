@@ -91,7 +91,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         scheduled_sync: '定时同步',
         scheduled_sync_desc: '每隔固定时间同步一次',
         site_urls: '站点地址',
-        sync_enabled: '是否启用同步',
+        sync_enabled: '启用同步',
         type: '数据源类型',
         folder_paths: '文件夹路径',
         file_extensions: '文件扩展名（可选）'

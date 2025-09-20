@@ -9,8 +9,6 @@ POST $[[SETUP_INDEX_PREFIX]]datasource$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/
   "connector" : {
     "id" : "hugo_site",
     "config" : {
-      "interval" : "600m",
-      "sync_type" : "interval",
       "urls" : [
         "https://docs.infinilabs.com/coco-server/main/index.json"
       ]
@@ -18,6 +16,8 @@ POST $[[SETUP_INDEX_PREFIX]]datasource$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/
   },
   "sync" : {
     "enabled": true,
+    "interval" : "600m",
+    "strategy" : "interval",
   },
   "enabled" : true
 }
@@ -33,8 +33,6 @@ POST $[[SETUP_INDEX_PREFIX]]datasource$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/
   "connector" : {
     "id" : "hugo_site",
     "config" : {
-      "interval" : "600m",
-      "sync_type" : "interval",
       "urls" : [
         "https://docs.infinilabs.com/coco-app/main/index.json"
       ]
@@ -42,6 +40,8 @@ POST $[[SETUP_INDEX_PREFIX]]datasource$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/
   },
   "sync" : {
     "enabled": true,
+    "interval" : "600m",
+    "strategy" : "interval",
   },
   "enabled" : true
 }
@@ -57,8 +57,6 @@ POST $[[SETUP_INDEX_PREFIX]]datasource$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/
   "connector" : {
     "id" : "rss",
     "config" : {
-      "interval" : "600m",
-      "sync_type" : "interval",
       "urls" : [
         "https://news.ycombinator.com/rss"
       ]
@@ -66,6 +64,8 @@ POST $[[SETUP_INDEX_PREFIX]]datasource$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/
   },
   "sync" : {
     "enabled": true,
+    "interval" : "600m",
+    "strategy" : "interval",
   },
   "enabled" : true
 }

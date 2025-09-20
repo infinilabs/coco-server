@@ -279,19 +279,16 @@ export function Component() {
     }
     const sValues = {
       connector: {
-        config: {
-          ...config,
-          interval: values.sync_config.interval,
-          sync_type: values.sync_config.sync_type || ''
-        },
+        config: config,
         id: type
       },
       enabled: Boolean(values.enabled),
       icon: values.icon,
       name: values.name,
-      sync:{
-        interval: values.sync_config.interval,
+      sync: {
         enabled: values.sync_config.enabled,
+        strategy: values.sync_config.strategy,
+        interval: values.sync_config.interval
       },
       type: 'connector'
     };
@@ -442,26 +439,28 @@ export function Component() {
 
               <Form.Item
                 label={t('page.datasource.new.labels.sync_enabled')}
-                name="sync_enabled"
+                name={['sync_config', 'enabled']}
                 valuePropName="checked"
               >
                 <Switch size="small" />
               </Form.Item>
 
               <Form.Item
-                shouldUpdate={(prev, curr) => prev.sync_enabled !== curr.sync_enabled}
+                shouldUpdate={(prev, curr) => prev.sync_config?.enabled !== curr.sync_config?.enabled}
                 noStyle
               >
-                {({ getFieldValue }) =>
-                  getFieldValue('sync_enabled') ? (
+                {({ getFieldValue }) => {
+                  const isSyncEnabled = getFieldValue(['sync_config', 'enabled']);
+                  return (
                     <Form.Item
                       label={t('page.datasource.new.labels.data_sync')}
                       name="sync_config"
+                      style={{ display: isSyncEnabled ? 'block' : 'none' }}
                     >
                       <DataSync />
                     </Form.Item>
-                  ) : null
-                }
+                  );
+                }}
               </Form.Item>
 
               <Form.Item
