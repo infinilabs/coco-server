@@ -351,19 +351,6 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 	orm.WithModel(ctx, &common.Document{})
 
 	docs := []common.Document{}
-
-	searchRequest := elastic.SearchRequest{}
-	bodyBytes, err := h.GetRawBody(req)
-	if err == nil && len(bodyBytes) > 0 {
-		err = util.FromJSONBytes(bodyBytes, &searchRequest)
-		if err != nil {
-			h.Error(w, err)
-			return
-		}
-
-		builder.SetRequestBodyBytes(bodyBytes)
-	}
-
 	err, resp := core.SearchV2WithResultItemMapper(ctx, &docs, builder, nil)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
