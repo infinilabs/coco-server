@@ -199,6 +199,10 @@ func (h *APIHandler) searchDatasource(w http.ResponseWriter, req *http.Request, 
 		return
 	}
 
+	if len(builder.Sorts()) == 0 {
+		builder.SortBy(orm.Sort{Field: "created", SortType: orm.DESC})
+	}
+
 	searchRequest := elastic.SearchRequest{}
 	bodyBytes, err := h.GetRawBody(req)
 	if err == nil && len(bodyBytes) > 0 {
