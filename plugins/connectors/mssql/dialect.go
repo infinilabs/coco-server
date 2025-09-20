@@ -15,7 +15,7 @@ type SQLServerDialect struct{}
 
 // BuildIncrementalQuery wraps a base query to add incremental sync conditions
 func (d *SQLServerDialect) BuildIncrementalQuery(baseQuery string, lastSyncField string) string {
-	return fmt.Sprintf("SELECT * FROM (%s) AS coco_subquery WHERE [%s] > @p1", baseQuery, lastSyncField)
+	return fmt.Sprintf("SELECT * FROM (%s) AS coco_subquery WHERE [%s] > ?", baseQuery, lastSyncField)
 }
 
 // BuildPaginationQuery adds pagination to a SQL Server query using OFFSET/FETCH
@@ -34,6 +34,6 @@ func (d *SQLServerDialect) BuildPaginationQuery(baseQuery string, pageSize uint,
 func (d *SQLServerDialect) hasOrderByClause(query string) bool {
 	// Use regex to check for ORDER BY at the end of the query
 	// This handles cases where ORDER BY might appear in subqueries
-	orderByRegex := regexp.MustCompile(`(?i)\bORDER\s+BY\b[^)]*$`)
+	orderByRegex := regexp.MustCompile(`(?i)\bORDER\s+BY\b`)
 	return orderByRegex.MatchString(strings.TrimSpace(query))
 }

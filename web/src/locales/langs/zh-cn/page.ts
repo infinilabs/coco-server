@@ -272,6 +272,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         connection_uri: {
           mssql: 'Microsoft SQL Server 连接字符串，例如：sqlserver://user:password@host:1433/database',
           mysql: 'MySQL 连接字符串，例如：mysql://user:password@tcp(localhost:3306)/database',
+          oracle: 'Oracle 连接字符串，例如：oracle://user:password@host:1521/service_name',
           postgresql: 'PostgreSQL 连接字符串，例如：postgresql://user:password@localhost:5432/database?sslmode=disable'
         },
         last_modified_field: '对于增量同步，请指定一个跟踪最后修改时间的字段（例如，updated_at）。该字段的类型应该是时间戳或日期时间。',
