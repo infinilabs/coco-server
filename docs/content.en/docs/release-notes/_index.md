@@ -33,6 +33,7 @@ Information about release notes of Coco Server is provided here.
 - fix: extra height because of importing the icon in Searchbox #519
 - fix: extra height because of importing the icon in Searchbox #519
 - fix: page scrolling not working in Fullscreen #520
+- fix: resolve API token list pagination issue #523
 
 ### ✈️ Improvements  
 - chore: remove unused websocket api #443

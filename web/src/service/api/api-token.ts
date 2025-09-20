@@ -1,10 +1,13 @@
 import { request } from '../request';
 
 /** get API Token list */
-export function getTokens() {
+export function getTokens(params?: any) {
+  const { filter = {}, ...rest } = params || {}
+
   return request<any>({
     method: 'get',
-    url: '/auth/access_token/_search'
+    params: rest,
+    url: `/auth/access_token/_search`
   });
 }
 
