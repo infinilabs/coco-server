@@ -1,5 +1,5 @@
 import { InputNumber, Radio, Select } from 'antd';
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import './index.scss';
 
 const style = {
@@ -7,14 +7,20 @@ const style = {
   flexDirection: 'column',
   gap: 8
 };
-export const DataSync = ({ onChange, value = { interval: '1h', sync_type: 'interval' } }) => {
+export const DataSync = ({ onChange, value = { enabled: true, interval: '1h', strategy: 'interval' } }) => {
   const { t } = useTranslation();
   const [innerV, setValue] = useState(value);
+
+  // Update local state when value prop changes
+  useEffect(() => {
+    setValue(value);
+  }, [value]);
+
   const onInnerChange = ev => {
     setValue(oldV => {
       const newV = {
         ...oldV,
-        sync_type: ev.target.value
+        strategy: ev.target.value
       };
       if (typeof onChange === 'function') {
         onChange(newV);
@@ -38,7 +44,7 @@ export const DataSync = ({ onChange, value = { interval: '1h', sync_type: 'inter
     <div id="data-sync-comp">
       <Radio.Group
         style={style}
-        value={innerV.sync_type}
+        value={innerV.strategy}
         onChange={onInnerChange}
       >
         <Radio

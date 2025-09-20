@@ -186,7 +186,8 @@ datasource:
   name: "User's Feishu"  # Auto-generated based on user profile
   type: "connector"
   enabled: true
-  sync_enabled: true
+  sync:
+    enabled: true
   connector:
     id: "feishu"
     config:
@@ -208,7 +209,8 @@ datasource:
   name: "User's Lark"  # Auto-generated based on user profile
   type: "connector"
   enabled: true
-  sync_enabled: true
+  sync:
+    enabled: true
   connector:
     id: "lark"
     config:

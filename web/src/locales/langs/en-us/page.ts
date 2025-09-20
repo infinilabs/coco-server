@@ -93,7 +93,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         scheduled_sync: 'Scheduled Sync',
         scheduled_sync_desc: 'Sync at fixed intervals',
         site_urls: 'Site URLs',
-        sync_enabled: 'Sync Enabled',
+        sync_enabled: 'Sync',
         type: 'Type',
         folder_paths: 'Folder paths',
         file_extensions: 'File extensions (optional)'

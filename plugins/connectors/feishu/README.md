@@ -123,7 +123,8 @@ datasource:
   name: "用户的飞书"  # 基于用户配置文件自动生成
   type: "connector"
   enabled: true
-  sync_enabled: true
+  sync:
+   enabled: true
   connector:
     id: "feishu"
     config:
@@ -145,7 +146,8 @@ datasource:
   name: "用户的Lark"  # 基于用户配置文件自动生成
   type: "connector"
   enabled: true
-  sync_enabled: true
+  sync:
+   enabled: true
   connector:
     id: "lark"
     config:

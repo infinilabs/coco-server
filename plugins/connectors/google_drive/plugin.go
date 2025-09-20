@@ -7,6 +7,9 @@ package google_drive
 import (
 	"context"
 	"fmt"
+	"os"
+	"time"
+
 	log "github.com/cihub/seelog"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -23,8 +26,6 @@ import (
 	"infini.sh/framework/core/queue"
 	"infini.sh/framework/core/task"
 	"infini.sh/framework/core/util"
-	"os"
-	"time"
 )
 
 type Plugin struct {
@@ -153,7 +154,7 @@ func (this *Plugin) Start() error {
 
 				q := orm.Query{}
 				q.Size = this.PageSize //TODO
-				q.Conds = orm.And(orm.Eq("connector.id", connector.ID), orm.Eq("sync_enabled", true))
+				q.Conds = orm.And(orm.Eq("connector.id", connector.ID), orm.Eq("sync.enabled", true))
 				var results []common.DataSource
 				err, _ = orm.SearchWithJSONMapper(&results, &q)
 				if err != nil {

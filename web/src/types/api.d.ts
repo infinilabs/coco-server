@@ -288,8 +288,11 @@ declare namespace Api {
       enabled: boolean;
       id: string;
       name: string;
-      sync_config: any;
-      sync_enabled: boolean;
+      sync:{
+        enabled: boolean;
+        interval: string;
+        strategy: string;
+      }
       // ISO 8601 timestamp
       type: 'connector';
       // ISO 8601 timestamp

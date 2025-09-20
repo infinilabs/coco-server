@@ -91,7 +91,7 @@ func (p *BasePlugin) Start(defaultInterval time.Duration) error {
 
 			q := orm.Query{}
 			q.Size = p.PageSize
-			q.Conds = orm.And(orm.Eq("connector.id", connector.ID), orm.Eq("sync_enabled", true))
+			q.Conds = orm.And(orm.Eq("connector.id", connector.ID), orm.Eq("sync.enabled", true))
 			var results []common.DataSource
 
 			err, _ = orm.SearchWithJSONMapper(&results, &q)

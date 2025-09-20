@@ -10,6 +10,7 @@ Information about release notes of Coco Server is provided here.
 ## Latest (In development)  
 ### ❌ Breaking changes  
 - chore: update yuque's document id #473
+- refactor: refactoring datasource sync management #526
 
 ### 🚀 Features  
 - chore: support access docs via path hierarchy manner in datasource #484
