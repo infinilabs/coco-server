@@ -1,5 +1,6 @@
 import Icon, { EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, PlusOutlined } from '@ant-design/icons';
 import { Button, Dropdown, Form, Input, Modal, Spin, Table, message } from 'antd';
+import SvgIcon from '@/components/stateless/custom/SvgIcon';
 import type { MenuProps, TableColumnsType } from 'antd';
 import { useForm } from 'antd/es/form/Form';
 import Search from 'antd/es/input/Search';
@@ -67,6 +68,12 @@ export function Component() {
     {
       dataIndex: 'name',
       minWidth: 100,
+      render: (value) => (
+        <div className="flex items-center gap-2">
+          <SvgIcon localIcon="security" className="text-icon-small text-gray-500" />
+          <span>{value}</span>
+        </div>
+      ),
       title: t('page.apitoken.columns.name')
     },
     {
