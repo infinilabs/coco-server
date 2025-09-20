@@ -289,7 +289,10 @@ export function Component() {
       enabled: Boolean(values.enabled),
       icon: values.icon,
       name: values.name,
-      sync_enabled: values.sync_enabled,
+      sync:{
+        interval: values.sync_config.interval,
+        enabled: values.sync_config.enabled,
+      },
       type: 'connector'
     };
     createDatasource(sValues).then(res => {
@@ -376,8 +379,9 @@ export function Component() {
               initialValues={{
                 connector: { config: {}, id: type },
                 enabled: true,
-                sync_config: { interval: '60s', sync_type: 'interval' },
-                sync_enabled: true
+                sync:{
+                  enabled:true,interval: '60s', strategy: 'interval'
+                },
               }}
               onFinish={onFinish}
               onFinishFailed={onFinishFailed}

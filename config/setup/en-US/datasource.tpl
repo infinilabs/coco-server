@@ -16,7 +16,9 @@ POST $[[SETUP_INDEX_PREFIX]]datasource$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/
       ]
     }
   },
-  "sync_enabled" : true,
+  "sync" : {
+    "enabled": true,
+  },
   "enabled" : true
 }
 
@@ -38,7 +40,9 @@ POST $[[SETUP_INDEX_PREFIX]]datasource$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/
       ]
     }
   },
-  "sync_enabled" : true,
+  "sync" : {
+    "enabled": true,
+  },
   "enabled" : true
 }
 
@@ -60,6 +64,8 @@ POST $[[SETUP_INDEX_PREFIX]]datasource$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/
       ]
     }
   },
-  "sync_enabled" : true,
+  "sync" : {
+    "enabled": true,
+  },
   "enabled" : true
 }
