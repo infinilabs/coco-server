@@ -23,6 +23,7 @@ Information about release notes of Coco Server is provided here.
 - feat: gitlab connector #494
 - feat: gitea connector #509
 - feat: mssql connector #511
+- feat: oracle connector #522
 
 
 ### 🐛 Bug fix  
@@ -33,6 +34,7 @@ Information about release notes of Coco Server is provided here.
 - fix: extra height because of importing the icon in Searchbox #519
 - fix: extra height because of importing the icon in Searchbox #519
 - fix: page scrolling not working in Fullscreen #520
+- fix: mssql paging bug #522
 
 ### ✈️ Improvements  
 - chore: remove unused websocket api #443
