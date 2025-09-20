@@ -174,8 +174,13 @@ func (s *Scanner) processQuery(ctx context.Context, db *sql.DB, cfg *Config) {
 		}
 
 		rows, err := db.QueryContext(ctx, query, args...)
+
+		if global.Env().IsDebug {
+			log.Debugf("[%s connector] execute query [%s] for datasource [%s]", s.Name, query, s.Datasource.Name)
+		}
+
 		if err != nil {
-			_ = log.Errorf("[%s connector] failed to execute query for datasource [%s]: %v", s.Name, s.Datasource.Name, err)
+			_ = log.Errorf("[%s connector] failed to execute query [%s] for datasource [%s]: %v", s.Name, query, s.Datasource.Name, err)
 			return
 		}
 
