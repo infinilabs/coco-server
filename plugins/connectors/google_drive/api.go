@@ -89,8 +89,8 @@ func (h *Plugin) oAuthRedirect(w http.ResponseWriter, req *http.Request, _ httpr
 	log.Infof("google drive authenticated user: ID=%s, Email=%s", userInfo.Sub, userInfo.Email)
 
 	datasource := common.DataSource{
-		SyncEnabled: true,
-		Enabled:     true,
+		SyncConfig: common.SyncConfig{Enabled: true, Interval: "30s"},
+		Enabled:    true,
 	}
 	datasource.ID = util.MD5digest(fmt.Sprintf("%v,%v,%v", "google_drive", userInfo.Sub, userInfo.Email))
 	datasource.Type = "connector"

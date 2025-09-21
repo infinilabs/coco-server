@@ -10,6 +10,7 @@ Information about release notes of Coco Server is provided here.
 ## Latest (In development)  
 ### ❌ Breaking changes  
 - chore: update yuque's document id #473
+- refactor: refactoring datasource sync management #526
 
 ### 🚀 Features  
 - chore: support access docs via path hierarchy manner in datasource #484
@@ -24,7 +25,6 @@ Information about release notes of Coco Server is provided here.
 - feat: gitea connector #509
 - feat: mssql connector #511
 - feat: oracle connector #522
-
 
 ### 🐛 Bug fix  
 - fix: correct assistant update logic
@@ -50,6 +50,7 @@ Information about release notes of Coco Server is provided here.
 - chore: set default size for datasource list to 12 #508
 - chore: add search settings to settings
 - chore: support page mode in integration fullscreen
+- chore: add icon to list items #524
 
 ## 0.7.0 (2025-07-25)
 ### ❌ Breaking changes  
