@@ -203,17 +203,6 @@ func (h *APIHandler) searchDatasource(w http.ResponseWriter, req *http.Request, 
 		builder.SortBy(orm.Sort{Field: "created", SortType: orm.DESC})
 	}
 
-	searchRequest := elastic.SearchRequest{}
-	bodyBytes, err := h.GetRawBody(req)
-	if err == nil && len(bodyBytes) > 0 {
-		err = util.FromJSONBytes(bodyBytes, &searchRequest)
-		if err != nil {
-			h.Error(w, err)
-			return
-		}
-		builder.SetRequestBodyBytes(bodyBytes)
-	}
-
 	//attach filter for cors request
 	if integrationID := req.Header.Get(core.HeaderIntegrationID); integrationID != "" {
 		// get datasource by api token
