@@ -24,7 +24,6 @@ Information about release notes of Coco Server is provided here.
 - feat: gitea connector #509
 - feat: mssql connector #511
 
-
 ### 🐛 Bug fix  
 - fix: correct assistant update logic
 - fix: generate unique icon key to prevent accidental deletion of all icons
@@ -49,6 +48,7 @@ Information about release notes of Coco Server is provided here.
 - chore: set default size for datasource list to 12 #508
 - chore: add search settings to settings
 - chore: support page mode in integration fullscreen
+- chore: add icon to list items #524
 
 ## 0.7.0 (2025-07-25)
 ### ❌ Breaking changes  
