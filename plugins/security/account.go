@@ -7,6 +7,7 @@ package security
 import (
 	"fmt"
 	"infini.sh/framework/core/global"
+	"infini.sh/framework/plugins/enterprise/security/orm"
 	"net/http"
 	"strings"
 
@@ -39,7 +40,10 @@ func (h APIHandler) Profile(w http.ResponseWriter, r *http.Request, ps httproute
 
 	var data []byte
 	if global.Env().SystemConfig.WebAppConfig.Security.Managed {
-		data, err = kv.GetValue(core.UserProfileKey, []byte(reqUser.GetKey()))
+		tenantID, userID := orm.GetTenantInfoFromUserSession(reqUser)
+		profileKey := fmt.Sprintf("%v:%v", tenantID, userID)
+		//get profile
+		data, err = kv.GetValue(core.UserProfileKey, []byte(profileKey))
 		if err != nil {
 			panic(err)
 		}
