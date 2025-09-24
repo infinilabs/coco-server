@@ -18,12 +18,14 @@ var apiHandler = APIHandler{}
 
 func init() {
 
-	//for not managed only
-	if !global.Env().SystemConfig.WebAppConfig.Security.Managed {
-		api.HandleUIMethod(api.GET, "/account/profile", apiHandler.Profile, api.RequireLogin())
-		api.HandleUIMethod(api.POST, "/account/login", apiHandler.Login)
-		api.HandleUIMethod(api.PUT, "/account/password", apiHandler.UpdatePassword, api.RequireLogin())
-	}
+	global.RegisterFuncBeforeSetup(func() {
+		//for not managed only
+		if !global.Env().SystemConfig.WebAppConfig.Security.Managed {
+			api.HandleUIMethod(api.GET, "/account/profile", apiHandler.Profile, api.RequireLogin())
+			api.HandleUIMethod(api.POST, "/account/login", apiHandler.Login)
+			api.HandleUIMethod(api.PUT, "/account/password", apiHandler.UpdatePassword, api.RequireLogin())
+		}
+	})
 
 	api.HandleUIMethod(api.POST, "/account/logout", apiHandler.Logout, api.OptionLogin())
 
