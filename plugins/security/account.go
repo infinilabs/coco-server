@@ -7,7 +7,6 @@ package security
 import (
 	"fmt"
 	"infini.sh/framework/core/global"
-	"infini.sh/framework/plugins/enterprise/security/orm"
 	"net/http"
 	"strings"
 
@@ -33,25 +32,19 @@ func (h APIHandler) Profile(w http.ResponseWriter, r *http.Request, ps httproute
 		panic("auth is not enabled")
 	}
 
+	if global.Env().SystemConfig.WebAppConfig.Security.Managed {
+		panic("should not be invoked as in managed mode")
+	}
+
 	reqUser, err := security.GetUserFromContext(r.Context())
 	if err != nil || reqUser == nil {
 		panic("invalid user")
 	}
 
 	var data []byte
-	if global.Env().SystemConfig.WebAppConfig.Security.Managed {
-		tenantID, userID := orm.GetTenantInfoFromUserSession(reqUser)
-		profileKey := fmt.Sprintf("%v:%v", tenantID, userID)
-		//get profile
-		data, err = kv.GetValue(core.UserProfileKey, []byte(profileKey))
-		if err != nil {
-			panic(err)
-		}
-	} else {
-		data, err = kv.GetValue(core.DefaultSettingBucketKey, []byte(core.DefaultUserProfileKey))
-		if err != nil {
-			panic(err)
-		}
+	data, err = kv.GetValue(core.DefaultSettingBucketKey, []byte(core.DefaultUserProfileKey))
+	if err != nil {
+		panic(err)
 	}
 
 	h.WriteBytes(w, data, 200)
