@@ -50,6 +50,7 @@ Information about release notes of Coco Server is provided here.
 - chore: add search settings to settings
 - chore: support page mode in integration fullscreen
 - chore: add icon to list items #524
+- chore: update profile key for managed users #527
 
 ## 0.7.0 (2025-07-25)
 ### ❌ Breaking changes  
