@@ -110,6 +110,8 @@ export function Component() {
         return 'Gitea';
       case Types.Mssql:
         return 'Mssql';
+      case Types.Oracle:
+        return 'Oracle';
       default:
         return connector?.id || type || 'Unknown';
     }
@@ -181,7 +183,8 @@ export function Component() {
     Types.GitHub,
     Types.GitLab,
     Types.Gitea,
-    Types.Mssql
+    Types.Mssql,
+    Types.Oracle
   ].includes(type);
 
   const connectorTypeName = getConnectorTypeName();
@@ -260,7 +263,8 @@ export function Component() {
       }
       case Types.Postgresql:
       case Types.Mssql:
-      case Types.Mysql: {
+      case Types.Mysql:
+      case Types.Oracle: {
         config = RdbmsConfig(values);
         break;
       }
@@ -436,6 +440,7 @@ export function Component() {
               {type === Types.GitLab && <GitLab />}
               {type === Types.Gitea && <Gitea />}
               {type === Types.Mssql && <Rdbms dbType="mssql" />}
+              {type === Types.Oracle && <Rdbms dbType="oracle" />}
 
               <Form.Item
                 label={t('page.datasource.new.labels.sync_enabled')}

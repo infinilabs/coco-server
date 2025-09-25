@@ -429,3 +429,25 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/m
   },
   "builtin": true
 }
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/oracle
+{
+  "id" : "oracle",
+  "created" : "2025-09-19T00:00:00.000000+08:00",
+  "updated" : "2025-09-19T00:00:00.000000+08:00",
+  "name" : "Oracle Connector",
+  "description" : "Fetch data from Oracle.",
+  "category" : "database",
+  "icon" : "/assets/icons/connector/oracle/icon.png",
+  "tags" : [
+    "sql",
+    "storage",
+    "database"
+  ],
+  "url" : "http://coco.rs/connectors/oracle",
+  "assets" : {
+     "icons" : {
+        "default" : "/assets/icons/connector/oracle/icon.png"
+      }
+  },
+  "builtin": true
+}

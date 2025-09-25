@@ -74,6 +74,8 @@ export function Component() {
             break;
           case Types.Postgresql:
           case Types.Mysql:
+          case Types.Mssql:
+          case Types.Oracle:
             if (datasource.connector?.config) {
               datasource.config = datasource.connector.config;
             }
@@ -204,7 +206,9 @@ export function Component() {
         break;
       }
       case Types.Postgresql:
-      case Types.Mysql: {
+      case Types.Mysql:
+      case Types.Mssql:
+      case Types.Oracle: {
         config = RdbmsConfig(values);
         break;
       }
@@ -218,10 +222,6 @@ export function Component() {
       }
       case Types.Gitea: {
         config = GiteaConfig(values);
-        break;
-      }
-      case Types.Mssql: {
-        config = RdbmsConfig(values);
         break;
       }
     }
@@ -328,7 +328,8 @@ export function Component() {
     }
     case Types.Postgresql:
     case Types.Mssql:
-    case Types.Mysql: {
+    case Types.Mysql:
+    case Types.Oracle: {
       if (datasource.connector?.config) {
         datasource.config = RdbmsConfig(datasource.connector);
       }
@@ -424,6 +425,7 @@ export function Component() {
                 {type === Types.GitLab && <GitLab />}
                 {type === Types.Gitea && <Gitea />}
                 {type === Types.Mssql && <Rdbms dbType="mssql" />}
+                {type === Types.Oracle && <Rdbms dbType="oracle" />}
               </>
             ) : (
               <>
