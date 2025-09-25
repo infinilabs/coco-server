@@ -240,9 +240,8 @@ func (p *Plugin) transformProjectToDocument(project *gitlabv4.Project, datasourc
 	doc.Created = project.CreatedAt
 	doc.Updated = project.UpdatedAt
 
-	doc.Metadata = map[string]interface{}{
+	doc.Payload = map[string]interface{}{
 		"project_id":          project.ID,
-		"namespace":           project.Namespace,
 		"ssh_url_to_repo":     project.SSHURLToRepo,
 		"http_url_to_repo":    project.HTTPURLToRepo,
 		"readme_url":          project.ReadmeURL,
