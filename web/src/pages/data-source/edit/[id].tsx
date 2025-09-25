@@ -74,6 +74,8 @@ export function Component() {
             break;
           case Types.Postgresql:
           case Types.Mysql:
+          case Types.Mssql:
+          case Types.Oracle:
             if (datasource.connector?.config) {
               datasource.config = datasource.connector.config;
             }
@@ -84,8 +86,9 @@ export function Component() {
         setDatasource({
           ...(datasource || {}),
           sync_config: {
-            interval: datasource?.connector?.config?.interval || '1h',
-            sync_type: datasource?.connector?.config?.sync_type || ''
+            enabled: datasource?.sync?.enabled || false,
+            strategy: datasource?.sync?.strategy || 'interval',
+            interval: datasource?.sync?.interval || '1h'
           },
           raw_config: datasource?.connector?.config? JSON.stringify(datasource?.connector?.config,null,4) : undefined,
           urls: datasource?.connector?.config?.urls || ['']
@@ -203,7 +206,9 @@ export function Component() {
         break;
       }
       case Types.Postgresql:
-      case Types.Mysql: {
+      case Types.Mysql:
+      case Types.Mssql:
+      case Types.Oracle: {
         config = RdbmsConfig(values);
         break;
       }
@@ -217,10 +222,6 @@ export function Component() {
       }
       case Types.Gitea: {
         config = GiteaConfig(values);
-        break;
-      }
-      case Types.Mssql: {
-        config = RdbmsConfig(values);
         break;
       }
     }
@@ -237,13 +238,13 @@ export function Component() {
       name: values.name,
       description: values.description,
       tags: values.tags,
-      sync_enabled: Boolean(values?.sync_enabled),
+      sync: {
+        enabled: values.sync_config?.enabled || false,
+        strategy: values.sync_config?.strategy || 'interval',
+        interval: values.sync_config?.interval || '1h'
+      },
       type: 'connector'
     };
-    if (values.sync_config) {
-      sValues.connector.config.interval = values.sync_config.interval;
-      sValues.connector.config.sync_type = values.sync_config.sync_type || '';
-    }
     updateDatasource(datasourceID, sValues).then(res => {
       if (res.data?.result === 'updated') {
         setLoading(false);
@@ -253,8 +254,9 @@ export function Component() {
     });
   };
   datasource.sync_config = {
-    interval: datasource?.connector?.config?.interval || '1h',
-    sync_type: datasource?.connector?.config?.sync_type || ''
+    enabled: datasource?.sync?.enabled || false,
+    strategy: datasource?.sync?.strategy || 'interval',
+    interval: datasource?.sync?.interval || '1h'
   };
   const type = datasource?.connector?.id;
   if (!type) {
@@ -326,7 +328,8 @@ export function Component() {
     }
     case Types.Postgresql:
     case Types.Mssql:
-    case Types.Mysql: {
+    case Types.Mysql:
+    case Types.Oracle: {
       if (datasource.connector?.config) {
         datasource.config = RdbmsConfig(datasource.connector);
       }
@@ -422,6 +425,7 @@ export function Component() {
                 {type === Types.GitLab && <GitLab />}
                 {type === Types.Gitea && <Gitea />}
                 {type === Types.Mssql && <Rdbms dbType="mssql" />}
+                {type === Types.Oracle && <Rdbms dbType="oracle" />}
               </>
             ) : (
               <>
@@ -480,26 +484,28 @@ export function Component() {
 
             <Form.Item
               label={t('page.datasource.new.labels.sync_enabled')}
-              name="sync_enabled"
+              name={['sync_config', 'enabled']}
               valuePropName="checked"
             >
               <Switch size="small" />
             </Form.Item>
 
             <Form.Item
-              shouldUpdate={(prev, curr) => prev.sync_enabled !== curr.sync_enabled}
+              shouldUpdate={(prev, curr) => prev.sync_config?.enabled !== curr.sync_config?.enabled}
               noStyle
             >
-              {({ getFieldValue }) =>
-                getFieldValue('sync_enabled') ? (
+              {({ getFieldValue }) => {
+                const isSyncEnabled = getFieldValue(['sync_config', 'enabled']);
+                return (
                   <Form.Item
                     label={t('page.datasource.new.labels.data_sync')}
                     name="sync_config"
+                    style={{ display: isSyncEnabled ? 'block' : 'none' }}
                   >
                     <DataSync />
                   </Form.Item>
-                ) : null
-              }
+                );
+              }}
             </Form.Item>
 
 

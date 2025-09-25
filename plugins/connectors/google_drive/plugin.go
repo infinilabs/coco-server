@@ -6,7 +6,9 @@ package google_drive
 
 import (
 	"context"
-	"fmt"
+	"os"
+	"time"
+
 	log "github.com/cihub/seelog"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -23,8 +25,6 @@ import (
 	"infini.sh/framework/core/queue"
 	"infini.sh/framework/core/task"
 	"infini.sh/framework/core/util"
-	"os"
-	"time"
 )
 
 type Plugin struct {
@@ -153,7 +153,7 @@ func (this *Plugin) Start() error {
 
 				q := orm.Query{}
 				q.Size = this.PageSize //TODO
-				q.Conds = orm.And(orm.Eq("connector.id", connector.ID), orm.Eq("sync_enabled", true))
+				q.Conds = orm.And(orm.Eq("connector.id", connector.ID), orm.Eq("sync.enabled", true))
 				var results []common.DataSource
 				err, _ = orm.SearchWithJSONMapper(&results, &q)
 				if err != nil {
@@ -276,32 +276,6 @@ func (this *Plugin) fetch_google_drive(connector *common.Connector, datasource *
 		}
 	}
 
-}
-
-func (this *Plugin) initRootFolder(datasource *common.DataSource, id string, name string) common.Document {
-	document := common.Document{
-		Source: common.DataSourceReference{
-			ID:   datasource.ID,
-			Name: datasource.Name,
-			Type: "connector",
-		},
-		Title: name,
-		Type:  "folder",
-		URL:   fmt.Sprintf("https://drive.google.com/file/d/%s/view", id),
-		Icon:  getIcon("folder"),
-	}
-
-	document.System = datasource.System
-	if document.System == nil {
-		document.System = util.MapStr{}
-	}
-	document.System["parent_path"] = "/"
-
-	if id == "" {
-		id = util.GetUUID()
-	}
-	document.ID = getDocID(datasource.ID, id)
-	return document
 }
 
 // Helper function to parse token expiry time

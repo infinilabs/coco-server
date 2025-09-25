@@ -1,16 +1,24 @@
 import Icon, { EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, PlusOutlined } from '@ant-design/icons';
 import { Button, Dropdown, Form, Input, Modal, Spin, Table, message } from 'antd';
-import type { MenuProps, TableColumnsType } from 'antd';
+import SvgIcon from '@/components/stateless/custom/SvgIcon';
+import type { GetProp, MenuProps, TableColumnsType, TableProps } from 'antd';
 import { useForm } from 'antd/es/form/Form';
 import Search from 'antd/es/input/Search';
 import Clipboard from 'clipboard';
 import { formatESSearchResult } from '@/service/request/es';
+import useQueryParams from '@/hooks/common/queryParams';
 
 import { createToken, deleteToken, getTokens, renameToken } from '@/service/api';
 
 type APIToken = Api.APIToken.APIToken;
 
+type TablePaginationConfig = Exclude<GetProp<TableProps, 'pagination'>, boolean>;
+
 export function Component() {
+  const [queryParams, setQueryParams] = useQueryParams({
+    size: 10,
+    from: 0
+  });
   const { t } = useTranslation();
   const nav = useNavigate();
 
@@ -44,9 +52,10 @@ export function Component() {
                 message.success(t('common.deleteSuccess'));
               }
               // reload data
-              setReqParams(old => {
+              setQueryParams((old: any) => {
                 return {
-                  ...old
+                  ...old,
+                  t: new Date().valueOf()
                 };
               });
             });
@@ -67,6 +76,12 @@ export function Component() {
     {
       dataIndex: 'name',
       minWidth: 100,
+      render: (value) => (
+        <div className="flex items-center gap-2">
+          <SvgIcon localIcon="security" className="text-icon-small text-gray-500" />
+          <span>{value}</span>
+        </div>
+      ),
       title: t('page.apitoken.columns.name')
     },
     {
@@ -96,23 +111,32 @@ export function Component() {
     }
   ];
 
-  const [data, setData] = useState([]);
+  const initialData = {
+    data: [],
+    total: 0
+  };
+  const [data, setData] = useState(initialData);
   const [loading, setLoading] = useState(false);
-  const [reqParams, setReqParams] = useState({
-    query: '',
-    t: new Date().getTime()
-  });
+  const [keyword, setKeyword] = useState();
 
   const fetchData = () => {
     setLoading(true);
-    getTokens().then((res  ) => {
-      const newData = formatESSearchResult(res.data )
-      setData(newData);
+    getTokens(queryParams).then(({ data }) => {
+      const newData = formatESSearchResult(data);
+      setData((oldData: any) => {
+        return {
+          ...oldData,
+          ...(newData || initialData)
+        };
+      });
+      setLoading(false);
+    }).catch((error) => {
+      console.error('Error fetching tokens:', error);
       setLoading(false);
     });
   };
 
-  useEffect(fetchData, [reqParams]);
+  useEffect(fetchData, [queryParams]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modelForm] = useForm();
   const onAddClick = () => {
@@ -125,11 +149,17 @@ export function Component() {
     modelForm.setFieldsValue({ name: tokenName });
   };
 
+  useEffect(() => {
+    setKeyword(queryParams.query)
+  }, [queryParams.query])
+
   const onSearchClick = (query: string) => {
-    setReqParams(old => {
+    setQueryParams((oldParams: any) => {
       return {
+        ...oldParams,
+        from: 0,
         query,
-        t: new Date().getTime()
+        t: new Date().valueOf()
       };
     });
   };
@@ -190,7 +220,7 @@ export function Component() {
   const onModalCancel = () => {
     setIsModalOpen(false);
     if (createState.step === 2) {
-      setReqParams(old => {
+      setQueryParams((old: any) => {
         return {
           ...old
         };
@@ -211,6 +241,8 @@ export function Component() {
             className="max-w-500px"
             enterButton={t('common.refresh')}
             onSearch={onSearchClick}
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
           />
           <Button
             icon={<PlusOutlined />}
@@ -227,11 +259,20 @@ export function Component() {
           rowKey="id"
           size="middle"
           pagination={{
-            defaultCurrent: 1,
-            defaultPageSize: 10,
-            showSizeChanger: true,
+            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+            pageSize: queryParams.size,
+            current: Math.floor(queryParams.from / queryParams.size) + 1,
             total: data.total?.value || data?.total,
-            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`
+            showSizeChanger: true
+          }}
+          onChange={(pagination, filters, sorter) => {
+            setQueryParams((params: any) => {
+              return {
+                ...params,
+                from: (pagination.current - 1) * pagination.pageSize,
+                size: pagination.pageSize
+              };
+            });
           }}
         />
         <Modal
@@ -301,7 +342,7 @@ export function Component() {
               open: false,
               tokenInfo: {}
             });
-            setReqParams(old => {
+            setQueryParams((old: any) => {
               return {
                 ...old
               };

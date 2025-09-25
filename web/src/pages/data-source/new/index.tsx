@@ -110,6 +110,8 @@ export function Component() {
         return 'Gitea';
       case Types.Mssql:
         return 'Mssql';
+      case Types.Oracle:
+        return 'Oracle';
       default:
         return connector?.id || type || 'Unknown';
     }
@@ -181,7 +183,8 @@ export function Component() {
     Types.GitHub,
     Types.GitLab,
     Types.Gitea,
-    Types.Mssql
+    Types.Mssql,
+    Types.Oracle
   ].includes(type);
 
   const connectorTypeName = getConnectorTypeName();
@@ -260,7 +263,8 @@ export function Component() {
       }
       case Types.Postgresql:
       case Types.Mssql:
-      case Types.Mysql: {
+      case Types.Mysql:
+      case Types.Oracle: {
         config = RdbmsConfig(values);
         break;
       }
@@ -279,17 +283,17 @@ export function Component() {
     }
     const sValues = {
       connector: {
-        config: {
-          ...config,
-          interval: values.sync_config.interval,
-          sync_type: values.sync_config.sync_type || ''
-        },
+        config: config,
         id: type
       },
       enabled: Boolean(values.enabled),
       icon: values.icon,
       name: values.name,
-      sync_enabled: values.sync_enabled,
+      sync: {
+        enabled: values.sync_config.enabled,
+        strategy: values.sync_config.strategy,
+        interval: values.sync_config.interval
+      },
       type: 'connector'
     };
     createDatasource(sValues).then(res => {
@@ -376,8 +380,9 @@ export function Component() {
               initialValues={{
                 connector: { config: {}, id: type },
                 enabled: true,
-                sync_config: { interval: '60s', sync_type: 'interval' },
-                sync_enabled: true
+                sync:{
+                  enabled:true,interval: '60s', strategy: 'interval'
+                },
               }}
               onFinish={onFinish}
               onFinishFailed={onFinishFailed}
@@ -435,29 +440,32 @@ export function Component() {
               {type === Types.GitLab && <GitLab />}
               {type === Types.Gitea && <Gitea />}
               {type === Types.Mssql && <Rdbms dbType="mssql" />}
+              {type === Types.Oracle && <Rdbms dbType="oracle" />}
 
               <Form.Item
                 label={t('page.datasource.new.labels.sync_enabled')}
-                name="sync_enabled"
+                name={['sync_config', 'enabled']}
                 valuePropName="checked"
               >
                 <Switch size="small" />
               </Form.Item>
 
               <Form.Item
-                shouldUpdate={(prev, curr) => prev.sync_enabled !== curr.sync_enabled}
+                shouldUpdate={(prev, curr) => prev.sync_config?.enabled !== curr.sync_config?.enabled}
                 noStyle
               >
-                {({ getFieldValue }) =>
-                  getFieldValue('sync_enabled') ? (
+                {({ getFieldValue }) => {
+                  const isSyncEnabled = getFieldValue(['sync_config', 'enabled']);
+                  return (
                     <Form.Item
                       label={t('page.datasource.new.labels.data_sync')}
                       name="sync_config"
+                      style={{ display: isSyncEnabled ? 'block' : 'none' }}
                     >
                       <DataSync />
                     </Form.Item>
-                  ) : null
-                }
+                  );
+                }}
               </Form.Item>
 
               <Form.Item
