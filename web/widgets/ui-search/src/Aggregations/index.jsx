@@ -3,6 +3,9 @@ import { useState } from "react";
 import { cloneDeep } from "lodash";
 import { BrushCleaning } from "lucide-react";
 
+import FilterDefaultSvg from "../icons/filter-default.svg"
+import AllSvg from "../icons/all.svg"
+
 export function Aggregations(props) {
   const { config = {}, aggregations = [], filter = {}, onSearch } = props;
 
@@ -77,11 +80,11 @@ export function Aggregations(props) {
                   onChange={(e) => onAllChange(e.target.checked, aggregation)}
                 ></Checkbox>
                 <div className="flex items-center justify-between w-[calc(100%-24px)] text-[#666]">
-                  <div className="flex-1 items-center">
-                    {/* <img
-                      className="w-[14px] h-[14px] mr-2 vertical-align-[-2px]"
-                      src={""}
-                    /> */}
+                  <div className="flex-1 flex items-center">
+                    <img
+                      className="w-4 h-4 mr-2"
+                      src={AllSvg}
+                    />
                     All
                   </div>
                   <div>{count || 0}</div>
@@ -100,11 +103,11 @@ export function Aggregations(props) {
                     }
                   ></Checkbox>
                   <div className="flex items-center justify-between w-[calc(100%-24px)] gap-6px text-[#666]">
-                    <div className="flex-1 items-center truncate">
-                      {/* <img
-                        className="w-[14px] h-[14px] mr-2 vertical-align-[-2px]"
-                        src={item.icon}
-                      /> */}
+                    <div className="flex-1 flex items-center truncate">
+                      <img
+                        className="w-4 h-4 mr-2"
+                        src={item.icon || FilterDefaultSvg}
+                      />
                       {item.name || item.key}
                     </div>
                     <div className="flex-shrink-0">{item.count}</div>
