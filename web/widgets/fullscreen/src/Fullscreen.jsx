@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
+
 import FullscreenPage from './FullscreenPage';
 import FullscreenModal from './FullscreenModal';
+
 import './ui-search/index.css';
 
 export default (props) => {
@@ -27,7 +29,7 @@ export default (props) => {
         })
         .catch(error => console.log('error', error));
     }
-    
+
     function search(query, callback, setLoading, shouldAgg) {
         if (setLoading) setLoading(true)
         const { filter = {} } = query
@@ -42,9 +44,9 @@ export default (props) => {
                 "aggs": {
                     "category": { "terms": { "field": "category" } },
                     "lang": { "terms": { "field": "lang" } },
-                    "source.id": { 
-                    "terms":  { 
-                        "field": "source.id" 
+                    "source.id": {
+                    "terms":  {
+                        "field": "source.id"
                     },
                     "aggs": {
                         "top": {
@@ -54,8 +56,8 @@ export default (props) => {
                         }
                         }
                     }
-                    },   
-                    "type": { "terms": { "field": "type" } } 
+                    },
+                    "type": { "terms": { "field": "type" } }
                 }
             }) : undefined
         })
@@ -104,10 +106,10 @@ export default (props) => {
                 break;
             }
 
-            const chunk = decoder.decode(value, { stream: true }); 
+            const chunk = decoder.decode(value, { stream: true });
 
             lineBuffer += chunk;
-        
+
             const lines = lineBuffer.split('\n');
             for (let i = 0; i < lines.length - 1; i++) {
                 try {
@@ -119,7 +121,7 @@ export default (props) => {
                     console.log("error:", lines[i])
                 }
             }
-            
+
             lineBuffer = lines[lines.length - 1];
             }
         } catch (error) {

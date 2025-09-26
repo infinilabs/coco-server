@@ -1,8 +1,8 @@
-import NormalList from "./NormalList"
+import NormalList from "./NormalList";
 
 export const LIST_TYPES = [
-    {
-        type: 'normal',
-        component: NormalList
-    }
-]
+  {
+    type: "normal",
+    component: NormalList,
+  },
+];

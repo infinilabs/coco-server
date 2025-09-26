@@ -1,10 +1,11 @@
 import { useState } from 'react';
+
 import useQueryParams from './hooks/queryParams';
 import { FullscreenPage } from './ui-search';
 
 export default (props) => {
 
-    const { enableQueryParams = true } = props; 
+    const { enableQueryParams = true } = props;
 
     const [queryParams, setQueryParams] = useQueryParams();
 
