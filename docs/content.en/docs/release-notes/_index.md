@@ -53,6 +53,7 @@ Information about release notes of Coco Server is provided here.
 - chore: support page mode in integration fullscreen
 - chore: add icon to list items #524
 - refactor: refactoring security api for non-managed mode #527
+- refactor: support access documents via path hierarchy manner for local_fs connector
 
 ## 0.7.0 (2025-07-25)
 ### ❌ Breaking changes  
