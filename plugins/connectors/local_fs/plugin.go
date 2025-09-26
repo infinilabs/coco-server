@@ -78,52 +78,78 @@ func (p *Plugin) scanFolders(connector *common.Connector, datasource *common.Dat
 
 		log.Debugf("[%v connector] Scanning path: %s for data source: %s", ConnectorLocalFs, path, datasource.Name)
 
-		// First, create a document for the root path itself
-		if rootInfo, err := os.Stat(path); err == nil {
-			p.createAndSaveDocument(path, path, rootInfo, datasource, extMap)
-		} else {
-			log.Warnf("[%v connector] Failed to get root path info for %q: %v", ConnectorLocalFs, path, err)
+		p.scanPath(path, datasource, extMap)
+	}
+}
+
+// scanPath performs a single DFS traversal to collect files and determine which folders to save
+func (p *Plugin) scanPath(basePath string, datasource *common.DataSource, extMap map[string]bool) {
+	// Track which folders contain matching files and collect folder info
+	foldersWithMatchingFiles := make(map[string]bool)
+	folderInfos := make(map[string]os.FileInfo)
+
+	// Single pass: collect files and folder information
+	err := filepath.WalkDir(basePath, func(currentPath string, d fs.DirEntry, err error) error {
+		if err != nil {
+			log.Warnf("[%v connector] Error accessing path %q: %v", ConnectorLocalFs, currentPath, err)
+			return err
 		}
 
-		err := filepath.WalkDir(path, func(currentPath string, d fs.DirEntry, err error) error {
-			if err != nil {
-				log.Warnf("[%v connector] Error accessing path %q: %v", ConnectorLocalFs, currentPath, err)
-				return err
-			}
-
-			// Skip the root path since we already processed it
-			if currentPath == path {
-				return nil
-			}
-
-			// Skip file while getting info error
-			fileInfo, err := d.Info()
-			if err != nil {
-				log.Warnf("[%v connector] Failed to get file info for %q: %v", ConnectorLocalFs, currentPath, err)
-				return nil
-			}
-
-			p.createAndSaveDocument(currentPath, path, fileInfo, datasource, extMap)
-			return nil
-		})
-
+		fileInfo, err := d.Info()
 		if err != nil {
-			log.Errorf("[%v connector] Error walking the path %q for data source [%s]: %v\n", ConnectorLocalFs, path, datasource.Name, err)
+			log.Warnf("[%v connector] Failed to get file info for %q: %v", ConnectorLocalFs, currentPath, err)
+			return nil
+		}
+
+		if d.IsDir() {
+			// Store folder info for later processing
+			folderInfos[currentPath] = fileInfo
+		} else {
+			// Process file
+			fileExt := strings.ToLower(filepath.Ext(currentPath))
+			// If no extension filter or file matches filter
+			if len(extMap) == 0 || extMap[fileExt] {
+				// Mark all parent directories as containing matching files
+				p.markParentFoldersAsValid(currentPath, basePath, foldersWithMatchingFiles)
+
+				// Save the file immediately
+				p.saveDocument(currentPath, basePath, fileInfo, datasource)
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		log.Errorf("[%v connector] Error walking the path %q for data source [%s]: %v\n", ConnectorLocalFs, basePath, datasource.Name, err)
+		return
+	}
+
+	// Now process folders: save only those that contain matching files
+	for folderPath, folderInfo := range folderInfos {
+		if foldersWithMatchingFiles[folderPath] {
+			p.saveDocument(folderPath, basePath, folderInfo, datasource)
+		} else {
+			log.Debugf("[%v connector] Skipping empty folder: %s (no files with matching extensions)", ConnectorLocalFs, folderPath)
 		}
 	}
 }
 
-// createAndSaveDocument creates a document from file info and saves it to the queue
-func (p *Plugin) createAndSaveDocument(currentPath, basePath string, fileInfo os.FileInfo, datasource *common.DataSource, extMap map[string]bool) {
-	// Check file extension name for non-directories
-	if !fileInfo.IsDir() {
-		fileExt := strings.ToLower(filepath.Ext(currentPath))
-		// Extension name not matched
-		if len(extMap) > 0 && !extMap[fileExt] {
-			return
-		}
+// markParentFoldersAsValid marks all parent folders of a file as containing matching files
+func (p *Plugin) markParentFoldersAsValid(filePath, basePath string, foldersWithMatchingFiles map[string]bool) {
+	currentDir := filepath.Dir(filePath)
+
+	for currentDir != basePath && currentDir != "." && currentDir != "/" {
+		foldersWithMatchingFiles[currentDir] = true
+		currentDir = filepath.Dir(currentDir)
 	}
 
+	// Also mark the base path
+	foldersWithMatchingFiles[basePath] = true
+}
+
+// saveDocument saves a document directly without additional folder content checking
+func (p *Plugin) saveDocument(currentPath, basePath string, fileInfo os.FileInfo, datasource *common.DataSource) {
 	modTime := fileInfo.ModTime()
 	doc := common.Document{
 		Source:   common.DataSourceReference{ID: datasource.ID, Type: "connector", Name: datasource.Name},
