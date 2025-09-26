@@ -199,15 +199,8 @@ func (h *APIHandler) searchDatasource(w http.ResponseWriter, req *http.Request, 
 		return
 	}
 
-	searchRequest := elastic.SearchRequest{}
-	bodyBytes, err := h.GetRawBody(req)
-	if err == nil && len(bodyBytes) > 0 {
-		err = util.FromJSONBytes(bodyBytes, &searchRequest)
-		if err != nil {
-			h.Error(w, err)
-			return
-		}
-		builder.SetRequestBodyBytes(bodyBytes)
+	if len(builder.Sorts()) == 0 {
+		builder.SortBy(orm.Sort{Field: "created", SortType: orm.DESC})
 	}
 
 	//attach filter for cors request

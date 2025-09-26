@@ -4,7 +4,7 @@ const { Header, Content } = Layout;
 
 const BasicLayout = (props) => {
 
-  const { rootID, isFirst, loading, logo, welcome, searchbox, aggregations, resultHeader, aiOverview, resultList, widgets, isMobile } = props;
+  const { rootID, isFirst, loading, logo, welcome, searchbox, rightMenuWidth, aggregations, resultHeader, aiOverview, resultList, widgets, isMobile } = props;
 
   return (
     <Spin spinning={loading}>
@@ -33,13 +33,13 @@ const BasicLayout = (props) => {
                   <div className={`h-full ${isMobile ? 'w-40px mr-8px' : 'w-200px'}`} >
                     {logo}
                   </div>
-                  <div className={`h-full ${isMobile ? 'w-[calc(100%-48px)]' : 'w-[calc(100%-500px)] max-w-724px px-40px'}`}>
+                  <div style={isMobile && rightMenuWidth ? { paddingRight: rightMenuWidth } : { }} className={`h-full ${isMobile ? 'w-[calc(100%-48px)]' : 'w-[calc(100%-500px)] max-w-724px px-40px'}`}>
                     {searchbox}
                   </div>
                   { !isMobile && <div className="w-300px h-full"></div> }
                 </div>
               </Header>
-              <Content className="bg-[rgba(250,250,250,1)] min-h-[calc(100vh-72px)]">
+              <Content className="bg-[rgba(250,250,250,1)] h-[calc(100vh-72px)] overflow-auto">
                 <div className={`px-12px py-24px w-full m-auto ${isMobile ? '' : 'flex justify-center'}`}>
                   {
                     !isMobile && (

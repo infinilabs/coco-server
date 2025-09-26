@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import UISearch from './ui-search';
+import FullscreenPage from './FullscreenPage';
+import FullscreenModal from './FullscreenModal';
 import './ui-search/index.css';
 
 export default (props) => {
-    const { shadow, id, token, server } = props;
+    const { shadow, id, token, server, enableQueryParams = true } = props;
     const [settings, setSettings] = useState()
 
     const { payload = {}, enabled_module = {} } = settings || {}
@@ -29,9 +30,9 @@ export default (props) => {
     
     function search(query, callback, setLoading, shouldAgg) {
         if (setLoading) setLoading(true)
-        const { filters = {} } = query
-        const filterStr = Object.keys(filters).map((key) => `filter=${key}:any(${filters[key].join(',')})`).join('&')
-        fetch(`${server}/query/_search?${filterStr ? filterStr + '&' : ''}query=${query.keyword}&from=${query.from}&size=${query.size}&v2=true`, {
+        const { filter = {} } = query
+        const filterStr = Object.keys(filter).map((key) => `filter=${key}:any(${filter[key].join(',')})`).join('&')
+        fetch(`${server}/query/_search?${filterStr ? filterStr + '&' : ''}query=${query.query}&from=${query.from}&size=${query.size}&v2=true`, {
             method: 'POST',
             headers: {
                 'APP-INTEGRATION-ID': id,
@@ -131,42 +132,49 @@ export default (props) => {
         fetchSettings(server, id, token);
     }, [server, id, token]);
 
-    if (settings?.type !== 'fullscreen') return null;
-
-    return (
-        <UISearch {...{
-            id,
-            shadow,
-            "logo": {
-                "light": payload?.logo?.light,
-                "light-mobile": payload?.logo?.light_mobile,
-            },
-            "placeholder": enabled_module?.search?.placeholder,
-            "welcome": payload?.welcome || "",
-            "aiOverview": {
-                ...(payload?.ai_overview || {}),
-                "showActions": true,
-            },
-            "widgets": payload.ai_widgets?.enabled && payload.ai_widgets?.widgets ? payload.ai_widgets?.widgets.map((item) => ({
-                ...item,
-                "showActions": false,
-            })) : [],
-            "onSearch": (query, callback, setLoading, shouldAgg = true) => {
-                search(query, callback, setLoading, shouldAgg)
-            },
-            "onAsk": (assistanID, message, callback, setLoading) => {
-                ask(assistanID, message, callback, setLoading)
-            },
-            "config": {
-                "aggregations": {
-                    "source.id": {
-                        "displayName": "source"
-                    },
-                    "lang": {
-                        "displayName": "language"
-                    }
+    const componentProps = {
+        ...props,
+        id,
+        shadow,
+        "logo": {
+            "light": payload?.logo?.light,
+            "light-mobile": payload?.logo?.light_mobile,
+        },
+        "placeholder": enabled_module?.search?.placeholder,
+        "welcome": payload?.welcome || "",
+        "aiOverview": {
+            ...(payload?.ai_overview || {}),
+            "showActions": true,
+        },
+        "widgets": payload.ai_widgets?.enabled && payload.ai_widgets?.widgets ? payload.ai_widgets?.widgets.map((item) => ({
+            ...item,
+            "showActions": false,
+        })) : [],
+        "onSearch": (query, callback, setLoading, shouldAgg = true) => {
+            search(query, callback, setLoading, shouldAgg)
+        },
+        "onAsk": (assistanID, message, callback, setLoading) => {
+            ask(assistanID, message, callback, setLoading)
+        },
+        "config": {
+            "aggregations": {
+                "source.id": {
+                    "displayName": "source"
+                },
+                "lang": {
+                    "displayName": "language"
                 }
             }
-        }} />
-    )
+        }
+    }
+
+    if (settings?.type === 'fullscreen' || settings?.type === 'page') {
+        return (
+            <FullscreenPage {...componentProps} enableQueryParams={enableQueryParams}/>
+        )
+    } else if (settings?.type === 'modal') {
+        return <FullscreenModal {...componentProps} />
+    } else {
+        return null
+    }
 }

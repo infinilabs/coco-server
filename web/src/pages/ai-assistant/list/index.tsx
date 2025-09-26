@@ -199,7 +199,7 @@ const fetchData = () => {
     });
   };
 
-  useEffect(fetchData, []);
+  useEffect(fetchData, [queryParams]);
 
   useEffect(() => {
     setKeyword(queryParams.query)

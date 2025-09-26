@@ -92,13 +92,37 @@ export function Component() {
   };
   const onSyncEnabledChange = (value: boolean, record: Datasource) => {
     setLoading(true);
+
+    // Ensure we preserve all existing sync configuration values
+    const currentSync = record.sync || {
+      enabled: false,
+      strategy: 'interval',
+      interval: '1h'
+    };
+
+    // Ensure all required fields are present
+    const completeSync = {
+      enabled: currentSync.enabled || false,
+      strategy: currentSync.strategy || 'interval',
+      interval: currentSync.interval || '1h'
+    };
+
+    // Create the updated sync config, preserving existing values
+    const updatedSync = {
+      ...completeSync,
+      enabled: value
+    };
+
+    console.log('Updating sync config:', updatedSync); // Debug log
+
     updateDatasource(record.id, {
       ...record,
-      sync_enabled: value
+      sync: updatedSync
     })
       .then(res => {
         if (res.data?.result === 'updated') {
           message.success(t('common.updateSuccess'));
+          console.log('Sync update response:', res.data); // Debug log
         }
         // reload data
         setQueryParams(old => {
@@ -107,6 +131,10 @@ export function Component() {
             t: new Date().valueOf()
           };
         });
+      })
+      .catch(err => {
+        console.error('Sync update failed:', err);
+        message.error(t('common.updateFailed'));
       })
       .finally(() => {
         setLoading(false);
@@ -177,12 +205,12 @@ export function Component() {
       title: t('page.datasource.columns.type')
     },
     {
-      dataIndex: 'sync_enabled',
+      dataIndex: ['sync', 'enabled'],
       render: (value: boolean, record: Datasource) => {
         return (
           <Switch
             size="small"
-            value={value}
+            checked={value}
             onChange={v => onSyncEnabledChange(v, record)}
           />
         );
@@ -249,7 +277,7 @@ export function Component() {
     });
   };
 
-  useEffect(fetchData, []);
+  useEffect(fetchData, [queryParams]);
 
   useEffect(() => {
     setKeyword(queryParams.query)

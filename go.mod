@@ -30,6 +30,7 @@ require (
 	github.com/hirochachacha/go-smb2 v1.1.0
 	github.com/lib/pq v1.10.9
 	github.com/mark3labs/mcp-go v0.32.0
+	github.com/microsoft/go-mssqldb v1.9.3
 	github.com/minio/minio-go/v7 v7.0.90
 	github.com/mmcdole/gofeed v1.3.0
 	github.com/stretchr/testify v1.11.1
@@ -93,6 +94,8 @@ require (
 	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/gocolly/colly v1.2.0 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
+	github.com/golang-sql/civil v0.0.0-20220223132316-b832511892a9 // indirect
+	github.com/golang-sql/sqlexp v0.1.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/flatbuffers v25.2.10+incompatible // indirect
@@ -159,6 +162,7 @@ require (
 	github.com/shirou/gopsutil/v3 v3.24.5 // indirect
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
 	github.com/shopspring/decimal v1.2.0 // indirect
+	github.com/sijms/go-ora/v2 v2.9.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/spf13/cast v1.7.1 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect

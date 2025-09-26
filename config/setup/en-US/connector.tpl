@@ -92,7 +92,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
   },
   "config": {
     "auth_url": "https://accounts.google.com/o/oauth2/auth",
-    "redirect_url": "$[[SETUP_SERVER_ENDPOINT]]/connector/google_drive/oauth_redirect",
+    "redirect_url": "$[[SETUP_SERVER_ENDPOINT]]connector/google_drive/oauth_redirect",
     "token_url": "https://oauth2.googleapis.com/token"
   },
   "builtin": true
@@ -407,6 +407,51 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/l
   },
   "builtin": true
 }
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/mssql
+{
+  "id" : "mssql",
+  "created" : "2025-09-15T00:00:00.000000+08:00",
+  "updated" : "2025-09-15T00:00:00.000000+08:00",
+  "name" : "Microsoft SQL Server Connector",
+  "description" : "Fetch data from Microsoft SQL Server.",
+  "category" : "database",
+  "icon" : "/assets/icons/connector/mssql/icon.png",
+  "tags" : [
+    "sql",
+    "storage",
+    "database"
+  ],
+  "url" : "http://coco.rs/connectors/mssql",
+  "assets" : {
+    "icons" : {
+      "default" : "/assets/icons/connector/mssql/icon.png"
+    }
+  },
+  "builtin": true
+}
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/oracle
+{
+  "id" : "oracle",
+  "created" : "2025-09-19T00:00:00.000000+08:00",
+  "updated" : "2025-09-19T00:00:00.000000+08:00",
+  "name" : "Oracle Connector",
+  "description" : "Fetch data from Oracle.",
+  "category" : "database",
+  "icon" : "/assets/icons/connector/oracle/icon.png",
+  "tags" : [
+    "sql",
+    "storage",
+    "database"
+  ],
+  "url" : "http://coco.rs/connectors/oracle",
+  "assets" : {
+     "icons" : {
+        "default" : "/assets/icons/connector/oracle/icon.png"
+      }
+  },
+  "builtin": true
+}
+
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/salesforce
 {
   "id" : "salesforce",

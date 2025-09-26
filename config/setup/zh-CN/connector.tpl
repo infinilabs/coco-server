@@ -407,6 +407,50 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/l
   },
   "builtin": true
 }
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/mssql
+{
+  "id" : "mssql",
+  "created" : "2025-09-15T00:00:00.000000+08:00",
+  "updated" : "2025-09-15T00:00:00.000000+08:00",
+  "name" : "Microsoft SQL Server 连接器",
+  "description" : "提取 Microsoft SQL Server 数据库数据。",
+  "category" : "database",
+  "icon" : "/assets/icons/connector/mssql/icon.png",
+  "tags" : [
+    "sql",
+    "storage",
+    "database"
+  ],
+  "url" : "http://coco.rs/connectors/mssql",
+  "assets" : {
+    "icons" : {
+      "default" : "/assets/icons/connector/mssql/icon.png"
+    }
+  },
+  "builtin": true
+}
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/oracle
+{
+  "id" : "oracle",
+  "created" : "2025-09-19T00:00:00.000000+08:00",
+  "updated" : "2025-09-19T00:00:00.000000+08:00",
+  "name" : "Oracle 连接器",
+  "description" : "提取 Oracle 数据库数据。",
+  "category" : "database",
+  "icon" : "/assets/icons/connector/oracle/icon.png",
+  "tags" : [
+    "sql",
+    "storage",
+    "database"
+  ],
+  "url" : "http://coco.rs/connectors/oracle",
+  "assets" : {
+    "icons" : {
+      "default" : "/assets/icons/connector/oracle/icon.png"
+    }
+  },
+  "builtin": true
+}
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/salesforce
 {
   "id" : "salesforce",

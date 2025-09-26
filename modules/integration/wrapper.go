@@ -42,8 +42,8 @@ func (h *APIHandler) widgetWrapper(w http.ResponseWriter, req *http.Request, ps 
 	var str string
 
 	switch obj.Type {
-	//'embedded', 'floating', 'all', 'fullscreen'
-	case "fullscreen":
+	//'embedded', 'floating', 'all', 'fullscreen', 'page', 'modal'
+	case "fullscreen", "page", "modal":
 		if h.fullscreenWrapperTemplate == nil {
 			panic("invalid wrapper template")
 		}
