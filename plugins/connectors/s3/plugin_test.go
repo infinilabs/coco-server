@@ -7,6 +7,8 @@ package s3
 import (
 	"reflect"
 	"testing"
+
+	"infini.sh/coco/plugins/connectors"
 )
 
 func TestBuildParentCategoryArray(t *testing.T) {
@@ -68,9 +70,9 @@ func TestBuildParentCategoryArray(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := buildParentCategoryArray(tt.objectKey)
+			result := connectors.BuildParentCategoryArray(tt.objectKey)
 			if !reflect.DeepEqual(result, tt.expected) {
-				t.Errorf("buildParentCategoryArray(%q) = %v, expected %v\nDescription: %s",
+				t.Errorf("connectors.BuildParentCategoryArray(%q) = %v, expected %v\nDescription: %s",
 					tt.objectKey, result, tt.expected, tt.desc)
 			}
 		})
@@ -112,9 +114,9 @@ func TestBuildParentCategoryArrayEdgeCases(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := buildParentCategoryArray(tt.objectKey)
+			result := connectors.BuildParentCategoryArray(tt.objectKey)
 			if !reflect.DeepEqual(result, tt.expected) {
-				t.Errorf("buildParentCategoryArray(%q) = %v, expected %v\nDescription: %s",
+				t.Errorf("connectors.BuildParentCategoryArray(%q) = %v, expected %v\nDescription: %s",
 					tt.objectKey, result, tt.expected, tt.desc)
 			}
 		})
@@ -156,10 +158,9 @@ func TestMarkParentFoldersAsValid(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			plugin := &Plugin{}
 			foldersWithMatchingFiles := make(map[string]bool)
 
-			plugin.markParentFoldersAsValid(tt.objectKey, foldersWithMatchingFiles)
+			connectors.MarkParentFoldersAsValid(tt.objectKey, foldersWithMatchingFiles)
 
 			// Check that all expected folders are marked
 			for _, expectedFolder := range tt.expectedFolders {

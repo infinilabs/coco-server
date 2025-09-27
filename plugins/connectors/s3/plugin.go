@@ -75,23 +75,16 @@ func (p *Plugin) getBucketObjects(connector *common.Connector, datasource *commo
 		}
 
 		// Mark all parent folders as containing matching files
-		p.markParentFoldersAsValid(obj.Key, foldersWithMatchingFiles)
+		connectors.MarkParentFoldersAsValid(obj.Key, foldersWithMatchingFiles)
 
 		// Create file document using helper
-		parentCategoryArray := buildParentCategoryArray(obj.Key)
+		parentCategoryArray := connectors.BuildParentCategoryArray(obj.Key)
 		title := filepath.Base(obj.Key)
 		url := fmt.Sprintf("%s://%s.%s/%s", cfg.Schema(), cfg.Bucket, cfg.Endpoint, obj.Key)
 		idSuffix := fmt.Sprintf("%s-%s", cfg.Bucket, obj.Key)
 
-		doc := common.Document{
-			Type:    "file",
-			Icon:    "file",
-			Title:   title,
-			Content: "",
-			URL:     url,
-			Size:    int(obj.Size),
-		}
-		p.documentWithHierarchy(&doc, parentCategoryArray, datasource, idSuffix)
+		doc := connectors.CreateDocumentWithHierarchy(connectors.TypeFile, connectors.TypeFile, title, url, int(obj.Size),
+			parentCategoryArray, datasource, idSuffix)
 
 		// Initialize Metadata if it's nil
 		if doc.Metadata == nil {
@@ -143,64 +136,6 @@ func (p *Plugin) getBucketObjects(connector *common.Connector, datasource *commo
 	log.Infof("[%v connector] Finished list objects from bucket [%s] of datasource [%s]. ", ConnectorS3, cfg.Bucket, datasource.Name)
 }
 
-// buildParentCategoryArray constructs a hierarchical path array for the S3 object
-// based on its key, excluding the bucket name
-func buildParentCategoryArray(objectKey string) []string {
-	if objectKey == "" {
-		return nil
-	}
-
-	var categories []string
-
-	// Clean the object key path and split into components
-	objectKey = filepath.Clean(objectKey)
-
-	// Use forward slash for S3 keys (always use / regardless of OS)
-	objectKey = strings.ReplaceAll(objectKey, "\\", "/")
-
-	// Split the path into components, filtering out empty ones
-	parts := strings.Split(objectKey, "/")
-	for _, part := range parts {
-		if part != "" && part != "." {
-			categories = append(categories, part)
-		}
-	}
-
-	// Return all parts except the last one (the file name)
-	if len(categories) > 1 {
-		return categories[:len(categories)-1]
-	}
-
-	return nil // Return nil if there are no parent folders
-}
-
-// markParentFoldersAsValid marks all parent folders of an S3 object as containing matching files
-func (p *Plugin) markParentFoldersAsValid(objectKey string, foldersWithMatchingFiles map[string]bool) {
-	if objectKey == "" {
-		return
-	}
-
-	// Clean the object key path
-	objectKey = filepath.Clean(objectKey)
-	objectKey = strings.ReplaceAll(objectKey, "\\", "/")
-
-	// Split into path components
-	parts := strings.Split(objectKey, "/")
-
-	// Build each folder path and mark it as valid
-	currentPath := ""
-	for _, part := range parts[:len(parts)-1] { // Exclude the filename
-		if part != "" && part != "." {
-			if currentPath == "" {
-				currentPath = part
-			} else {
-				currentPath = currentPath + "/" + part
-			}
-			foldersWithMatchingFiles[currentPath] = true
-		}
-	}
-}
-
 // createFolderDocuments creates document entries for all folders that contain matching files
 func (p *Plugin) createFolderDocuments(foldersWithMatchingFiles map[string]bool, datasource *common.DataSource, cfg Config) {
 	for folderPath := range foldersWithMatchingFiles {
@@ -209,32 +144,6 @@ func (p *Plugin) createFolderDocuments(foldersWithMatchingFiles map[string]bool,
 		}
 		p.saveFolder(folderPath, datasource, cfg)
 	}
-}
-
-// documentWithHierarchy creates a document with proper hierarchy settings
-func (p *Plugin) documentWithHierarchy(doc *common.Document, parentCategoryArray []string, datasource *common.DataSource, idSuffix string) {
-	doc.Source = common.DataSourceReference{
-		ID:   datasource.ID,
-		Type: "connector",
-		Name: datasource.Name,
-	}
-	doc.System = datasource.System
-	if doc.System == nil {
-		doc.System = util.MapStr{}
-	}
-
-	// Set hierarchy information
-	if len(parentCategoryArray) > 0 {
-		categoryPath := common.GetFullPathForCategories(parentCategoryArray)
-		doc.Category = categoryPath
-		doc.Categories = parentCategoryArray
-		doc.System[common.SystemHierarchyPathKey] = categoryPath
-	} else {
-		// This is a top-level item, set parent_path to '/'
-		doc.System[common.SystemHierarchyPathKey] = "/"
-		doc.Category = "/"
-	}
-	doc.ID = util.MD5digest(fmt.Sprintf("%s-%s", datasource.ID, idSuffix))
 }
 
 // saveDocument pushes a document to the queue
@@ -248,19 +157,12 @@ func (p *Plugin) saveDocument(doc common.Document, datasource *common.DataSource
 // saveFolder creates and saves a document for a folder
 func (p *Plugin) saveFolder(folderPath string, datasource *common.DataSource, cfg Config) {
 	folderName := filepath.Base(folderPath)
-	parentCategoryArray := buildParentCategoryArray(folderPath)
+	parentCategoryArray := connectors.BuildParentCategoryArray(folderPath)
 	url := fmt.Sprintf("%s://%s.%s/%s/", cfg.Schema(), cfg.Bucket, cfg.Endpoint, folderPath)
 	idSuffix := fmt.Sprintf("%s-folder-%s", cfg.Bucket, folderPath)
 
-	doc := common.Document{
-		Type:    "folder",
-		Icon:    "folder",
-		Title:   folderName,
-		Content: "",
-		URL:     url,
-		Size:    0,
-	}
-	p.documentWithHierarchy(&doc, parentCategoryArray, datasource, idSuffix)
+	doc := connectors.CreateDocumentWithHierarchy(connectors.TypeFolder, connectors.TypeFolder, folderName, url, 0,
+		parentCategoryArray, datasource, idSuffix)
 
 	p.saveDocument(doc, datasource)
 }
