@@ -176,6 +176,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/s
   "name" : "S3 Storage Connector",
   "description" : "Fetch S3 Storage objects metadata.",
   "category" : "cloud_storage",
+  "path_hierarchy": true,
   "icon" : "/assets/icons/connector/s3/icon.png",
   "tags" : [
     "s3",
@@ -184,7 +185,9 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/s
   "url" : "http://coco.rs/connectors/s3",
   "assets" : {
     "icons" : {
-      "default" : "/assets/icons/connector/s3/icon.png"
+      "default" : "/assets/icons/connector/s3/icon.png",
+      "file" : "/assets/icons/connector/s3/file.png",
+      "folder" : "/assets/icons/connector/s3/folder.png"
     }
   },
   "builtin": true
@@ -220,6 +223,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/n
   "name" : "Network Drive Connector",
   "description" : "Scan and extract metadata from network shared files.",
   "category" : "cloud_storage",
+  "path_hierarchy": true,
   "icon" : "/assets/icons/connector/network_drive/icon.png",
   "tags" : [
     "filesystem",
@@ -229,7 +233,9 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/n
   "url" : "http://coco.rs/connectors/network_drive",
   "assets" : {
     "icons" : {
-      "default" : "/assets/icons/connector/network_drive/icon.png"
+      "default" : "/assets/icons/connector/network_drive/icon.png",
+      "file" : "/assets/icons/connector/network_drive/file.png",
+      "folder" : "/assets/icons/connector/network_drive/folder.png"
     }
   },
   "builtin": true
@@ -286,6 +292,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
   "name" : "Github Connector",
   "description" : "Fetch repositories, issues, and pull requests from Github.",
   "category" : "website",
+  "path_hierarchy": true,
   "icon" : "/assets/icons/connector/github/icon.png",
   "tags" : [
     "git",
@@ -299,7 +306,8 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
       "default" : "/assets/icons/connector/github/icon.png",
       "repository" : "/assets/icons/connector/github/repository.png",
       "issue" : "/assets/icons/connector/github/issue.png",
-      "pull_request" : "/assets/icons/connector/github/pull_request.png"
+      "pull_request" : "/assets/icons/connector/github/pull_request.png",
+      "org" : "/assets/icons/connector/github/org.png"
     }
   },
   "builtin": true
@@ -312,6 +320,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
   "name" : "GitLab Connector",
   "description" : "Fetch repositories, issues, and merge requests from GitLub.",
   "category" : "website",
+  "path_hierarchy": true,
   "icon" : "/assets/icons/connector/gitlab/icon.png",
   "tags" : [
     "git",
@@ -327,7 +336,8 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
       "issue" : "/assets/icons/connector/gitlab/issue.png",
       "merge_request" : "/assets/icons/connector/gitlab/merge_request.png",
       "wiki" : "/assets/icons/connector/gitlab/wiki.png",
-      "snippet" : "/assets/icons/connector/gitlab/snippet.png"
+      "snippet" : "/assets/icons/connector/gitlab/snippet.png",
+      "org" : "/assets/icons/connector/gitlab/org.png"
     }
   },
   "builtin": true
@@ -340,6 +350,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
   "name" : "Gitea Connector",
   "description" : "Fetch repositories, issues, and pull requests from Gitea.",
   "category" : "website",
+  "path_hierarchy": true,
   "icon" : "/assets/icons/connector/gitea/icon.png",
     "tags" : [
     "git",
@@ -353,7 +364,8 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
       "default" : "/assets/icons/connector/gitea/icon.png",
       "repository" : "/assets/icons/connector/gitea/repository.png",
       "issue" : "/assets/icons/connector/gitea/issue.png",
-      "pull_request" : "/assets/icons/connector/gitea/pull_request.png"
+      "pull_request" : "/assets/icons/connector/gitea/pull_request.png",
+      "org" : "/assets/icons/connector/gitea/org.png"
     }
   },
   "builtin": true
