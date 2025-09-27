@@ -153,7 +153,7 @@ func (p *Plugin) saveDocument(currentPath, basePath string, fileInfo os.FileInfo
 	modTime := fileInfo.ModTime()
 	doc := common.Document{
 		Source:   common.DataSourceReference{ID: datasource.ID, Type: "connector", Name: datasource.Name},
-		Type:     "local_fs",
+		Type:     "file",
 		Category: filepath.Dir(currentPath),
 		Content:  "", // skip content
 		URL:      currentPath,
