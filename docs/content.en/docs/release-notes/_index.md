@@ -9,6 +9,13 @@ Information about release notes of Coco Server is provided here.
 
 ## Latest (In development)  
 ### ❌ Breaking changes  
+### 🚀 Features  
+### 🐛 Bug fix  
+### ✈️ Improvements  
+
+## 0.8.0 (2025-09-28)
+
+### ❌ Breaking changes  
 - chore: update yuque's document id #473
 - refactor: refactoring datasource sync management #526
 
@@ -36,6 +43,7 @@ Information about release notes of Coco Server is provided here.
 - fix: page scrolling not working in Fullscreen #520
 - fix: resolve API token list pagination issue #523
 - fix: mssql paging bug #522
+- fix: fix S3 connector icon #533
 
 ### ✈️ Improvements  
 - chore: remove unused websocket api #443
@@ -53,6 +61,8 @@ Information about release notes of Coco Server is provided here.
 - chore: support page mode in integration fullscreen
 - chore: add icon to list items #524
 - refactor: refactoring security api for non-managed mode #527
+- refactor: support access documents via path hierarchy manner for local_fs connector #530
+- refactor: support access documents via path hierarchy manner for S3, Network Driver, GitHub, GitLab and Gitee connectors #532
 
 ## 0.7.0 (2025-07-25)
 ### ❌ Breaking changes  
