@@ -162,8 +162,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/l
   "assets" : {
     "icons" : {
       "default" : "/assets/icons/connector/local_fs/icon.png",
-      "file" : "/assets/icons/connector/local_fs/file.png",
-      "folder" : "/assets/icons/connector/local_fs/folder.png"
+      "file" : "/assets/icons/connector/local_fs/file.png"
     }
   },
   "builtin": true
@@ -176,6 +175,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/s
   "name" : "S3 对象存储连接器",
   "description" : "提取 S3 云端文件元数据信息。",
   "category" : "cloud_storage",
+  "path_hierarchy": true,
   "icon" : "/assets/icons/connector/s3/icon.png",
   "tags" : [
     "s3",
@@ -184,7 +184,8 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/s
   "url" : "http://coco.rs/connectors/s3",
   "assets" : {
     "icons" : {
-      "default" : "/assets/icons/connector/s3/icon.png"
+      "default" : "/assets/icons/connector/s3/icon.png",
+      "file" : "/assets/icons/connector/s3/file.png"
     }
   },
   "builtin": true
@@ -220,6 +221,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/n
   "name" : "网络驱动器",
   "description" : "扫描网络共享文件并提取元数据。",
   "category" : "cloud_storage",
+  "path_hierarchy": true,
   "icon" : "/assets/icons/connector/network_drive/icon.png",
   "tags" : [
     "filesystem",
@@ -229,7 +231,8 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/n
   "url" : "http://coco.rs/connectors/network_drive",
   "assets" : {
     "icons" : {
-      "default" : "/assets/icons/connector/network_drive/icon.png"
+      "default" : "/assets/icons/connector/network_drive/icon.png",
+      "file" : "/assets/icons/connector/network_drive/file.png"
     }
   },
   "builtin": true
@@ -283,9 +286,10 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
   "id" : "github",
   "created" : "2025-08-25T00:00:00.000000+08:00",
   "updated" : "2025-08-25T00:00:00.000000+08:00",
-  "name" : "Github 连接器",
-  "description" : "提取 Github repositories, issues 和 pull requests。",
+  "name" : "GitHub 连接器",
+  "description" : "提取 GitHub repositories, issues 和 pull requests。",
   "category" : "website",
+  "path_hierarchy": true,
   "icon" : "/assets/icons/connector/github/icon.png",
   "tags" : [
     "git",
@@ -299,7 +303,8 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
       "default" : "/assets/icons/connector/github/icon.png",
       "repository" : "/assets/icons/connector/github/repository.png",
       "issue" : "/assets/icons/connector/github/issue.png",
-      "pull_request" : "/assets/icons/connector/github/pull_request.png"
+      "pull_request" : "/assets/icons/connector/github/pull_request.png",
+      "org" : "/assets/icons/connector/github/org.png"
     }
   },
   "builtin": true
@@ -312,6 +317,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
   "name" : "GitLab 连接器",
   "description" : "提取 GitLab repositories, issues, 和 merge requests。",
   "category" : "website",
+  "path_hierarchy": true,
   "icon" : "/assets/icons/connector/gitlab/icon.png",
   "tags" : [
     "git",
@@ -327,7 +333,8 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
       "issue" : "/assets/icons/connector/gitlab/issue.png",
       "merge_request" : "/assets/icons/connector/gitlab/merge_request.png",
       "wiki" : "/assets/icons/connector/gitlab/wiki.png",
-      "snippet" : "/assets/icons/connector/gitlab/snippet.png"
+      "snippet" : "/assets/icons/connector/gitlab/snippet.png",
+      "org" : "/assets/icons/connector/gitlab/org.png"
     }
   },
   "builtin": true
@@ -340,6 +347,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
   "name" : "Gitea 连接器",
   "description" : "提取 Gitea repositories, issues, 和 pull requests。",
   "category" : "website",
+  "path_hierarchy": true,
   "icon" : "/assets/icons/connector/gitea/icon.png",
   "tags" : [
     "git",
@@ -353,7 +361,8 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
       "default" : "/assets/icons/connector/gitea/icon.png",
       "repository" : "/assets/icons/connector/gitea/repository.png",
       "issue" : "/assets/icons/connector/gitea/issue.png",
-      "pull_request" : "/assets/icons/connector/gitea/pull_request.png"
+      "pull_request" : "/assets/icons/connector/gitea/pull_request.png",
+      "org" : "/assets/icons/connector/gitea/org.png"
     }
   },
   "builtin": true
@@ -462,6 +471,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/s
   "name" : "Salesforce 连接器",
   "description" : "与 Salesforce 集成，通过智能字段缓存和查询优化从您的 Salesforce 组织中索引和搜索数据。",
   "category" : "crm",
+  "path_hierarchy" : true,
   "icon" : "/assets/icons/connector/salesforce/icon.png",
   "tags" : [
     "crm",
