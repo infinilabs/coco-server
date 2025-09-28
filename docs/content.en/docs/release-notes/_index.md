@@ -32,6 +32,8 @@ Information about release notes of Coco Server is provided here.
 - feat: gitea connector #509
 - feat: mssql connector #511
 - feat: oracle connector #522
+- feat: feishu/lark connector #71
+- feat: salesforce connector #495
 
 ### 🐛 Bug fix  
 - fix: correct assistant update logic
