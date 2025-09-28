@@ -227,7 +227,7 @@ func TestCreateDocumentWithHierarchy(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			doc := connectors.CreateDocumentWithHierarchy(tt.docType, tt.icon, tt.title, tt.content,
+			doc := connectors.CreateDocumentWithHierarchy(tt.docType, tt.icon, tt.title,
 				tt.url, tt.size, tt.parentCategoryArray, datasource, tt.idSuffix)
 
 			// Check basic fields
