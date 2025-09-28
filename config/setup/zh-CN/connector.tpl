@@ -162,8 +162,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/l
   "assets" : {
     "icons" : {
       "default" : "/assets/icons/connector/local_fs/icon.png",
-      "file" : "/assets/icons/connector/local_fs/file.png",
-      "folder" : "/assets/icons/connector/local_fs/folder.png"
+      "file" : "/assets/icons/connector/local_fs/file.png"
     }
   },
   "builtin": true
@@ -186,8 +185,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/s
   "assets" : {
     "icons" : {
       "default" : "/assets/icons/connector/s3/icon.png",
-      "file" : "/assets/icons/connector/s3/file.png",
-      "folder" : "/assets/icons/connector/s3/folder.png"
+      "file" : "/assets/icons/connector/s3/file.png"
     }
   },
   "builtin": true
@@ -234,8 +232,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/n
   "assets" : {
     "icons" : {
       "default" : "/assets/icons/connector/network_drive/icon.png",
-      "file" : "/assets/icons/connector/network_drive/file.png",
-      "folder" : "/assets/icons/connector/network_drive/folder.png"
+      "file" : "/assets/icons/connector/network_drive/file.png"
     }
   },
   "builtin": true
@@ -289,8 +286,8 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
   "id" : "github",
   "created" : "2025-08-25T00:00:00.000000+08:00",
   "updated" : "2025-08-25T00:00:00.000000+08:00",
-  "name" : "Github 连接器",
-  "description" : "提取 Github repositories, issues 和 pull requests。",
+  "name" : "GitHub 连接器",
+  "description" : "提取 GitHub repositories, issues 和 pull requests。",
   "category" : "website",
   "path_hierarchy": true,
   "icon" : "/assets/icons/connector/github/icon.png",
