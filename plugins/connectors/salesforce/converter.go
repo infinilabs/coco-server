@@ -82,6 +82,50 @@ func convertToDocument(record map[string]interface{}, objectType string, datasou
 	return doc
 }
 
+// convertToDocumentWithHierarchy converts a Salesforce record to a common.Document with proper hierarchy path
+func convertToDocumentWithHierarchy(record map[string]interface{}, objectType string, datasource *common.DataSource, instanceUrl string) *common.Document {
+	doc := convertToDocument(record, objectType, datasource, instanceUrl)
+	if doc == nil {
+		return nil
+	}
+
+	// Determine if it's a standard or custom object
+	isStandard := false
+	for _, stdObj := range StandardSObjects {
+		if strings.EqualFold(stdObj, objectType) {
+			isStandard = true
+			break
+		}
+	}
+
+	// Set hierarchy path based on object type
+	var parentPath []string
+	if isStandard {
+		parentPath = []string{"Standard Objects", objectType}
+	} else {
+		parentPath = []string{"Custom Objects", objectType}
+	}
+
+	// Set category and categories for hierarchy
+	doc.Category = common.GetFullPathForCategories(parentPath)
+	doc.Categories = parentPath
+
+	// Set system hierarchy path
+	if doc.System == nil {
+		doc.System = util.MapStr{}
+	}
+	doc.System[common.SystemHierarchyPathKey] = doc.Category
+
+	// Add metadata about the SObject type
+	if doc.Metadata == nil {
+		doc.Metadata = util.MapStr{}
+	}
+	doc.Metadata["sobject_type"] = objectType
+	doc.Metadata["is_standard"] = isStandard
+
+	return doc
+}
+
 // getIcon returns the appropriate icon for a Salesforce object type
 func getIcon(objectType string) string {
 	switch objectType {

@@ -17,7 +17,7 @@ POST $[[SETUP_INDEX_PREFIX]]datasource$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/
   "sync" : {
     "enabled": true,
     "interval" : "600m",
-    "strategy" : "interval",
+    "strategy" : "interval"
   },
   "enabled" : true
 }
@@ -41,7 +41,7 @@ POST $[[SETUP_INDEX_PREFIX]]datasource$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/
   "sync" : {
     "enabled": true,
     "interval" : "600m",
-    "strategy" : "interval",
+    "strategy" : "interval"
   },
   "enabled" : true
 }
@@ -65,7 +65,7 @@ POST $[[SETUP_INDEX_PREFIX]]datasource$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/
   "sync" : {
     "enabled": true,
     "interval" : "600m",
-    "strategy" : "interval",
+    "strategy" : "interval"
   },
   "enabled" : true
 }

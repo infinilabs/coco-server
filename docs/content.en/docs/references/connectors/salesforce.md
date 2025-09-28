@@ -78,6 +78,7 @@ The Salesforce Connector allows you to index data from your Salesforce org with 
 - **Content Document Links**: Includes attached files and documents in SOQL queries
 - **Relationship Fields**: Supports querying relationship fields like Owner.Id, Owner.Name, Owner.Email
 - **Configurable Content Extraction**: Flexible content field mapping for different object types
+- **Directory Access Support**: Hierarchical directory structure for browsing Salesforce data by SObject type
 
 ### Setup Salesforce Connected App
 
@@ -86,23 +87,44 @@ Before using this connector, you need to create a Salesforce Connected App and c
 #### 1. Create a Salesforce Connected App
 
 1. Log in to your Salesforce org
+
+{{% load-img "/img/connector/salesforce/salesforce_lightning_setup.png" "Setup" %}}
+
 2. Go to Setup > App Manager
-3. Click "New Connected App"
+
+{{% load-img "/img/connector/salesforce/salesforce_lightning_app_manager.png" "App Manager" %}}
+
+3. Click "New External Client App"
+
 4. Fill in the required fields:
-   - Connected App Name: "Coco Connector"
-   - API Name: "Coco_Connector"
-   - Contact Email: your email
+    - External Client App Name: "Coco Connector"
+    - Api Name: "Coco_Connector"
+    - Contact Email: your email
+
+{{% load-img "/img/connector/salesforce/salesforce_lightning_basic_information.png" "Basic Information" %}}
+
 5. Enable OAuth Settings:
-   - Selected OAuth Scopes:
-     - Access and manage your data (api)
-     - Perform requests on your behalf at any time (refresh_token, offline_access)
+    - Callback URL
+    - Selected OAuth Scopes:
+        - Manage user data via APIs (api)
+        - Perform requests at any time (refresh_token, offline_access)
+        - Access content resources (content)
+      
+{{% load-img "/img/connector/salesforce/salesforce_lightning_app_settings.png" "App Settings" %}}
+
 6. **Enable Client Credentials Flow** (Important):
    - Check "Enable Client Credentials Flow"
    - This allows server-to-server authentication without user interaction
+
+{{% load-img "/img/connector/salesforce/salesforce_lightning_flow_enablement.png" "Flow Enablement" %}}
+
 7. Save the connected app
+
 8. Note down the Consumer Key (Client ID) and Consumer Secret (Client Secret)
 
-#### 2. Enable Client Credentials User
+{{% load-img "/img/connector/salesforce/salesforce_lightning_key_secret.png" "Consumer Key and Secret" %}}
+
+#### 2. Enable Client Credentials User (if needed)
 
 1. Go to Setup > Users > Permission Sets
 2. Create a new Permission Set or use an existing one
@@ -115,10 +137,35 @@ Before using this connector, you need to create a Salesforce Connected App and c
 6. Click "Edit" next to the user
 7. Go to "Permission Set Assignments"
 8. Assign the permission set created above
-9. **Enable "Client Credentials Flow"** for this user:
+
+### 3. Enable Client Credentials Flow
+
+1. **Enable "Client Credentials Flow"** for this user:
    - Go to Setup > App Manager > Your Connected App
-   - In the "Client Credentials Flow" section, assign the user
-   - Ensure the user is active and has API access
+   - In the "Run As (Username)" section, assign the user
+   - Ensure the user is active and has API access 
+
+{{% load-img "/img/connector/salesforce/salesforce_lightning_client_credentials.png" "Client Credentials Flow" %}}
+
+
+### Access Connector Settings
+
+1. Navigate to the **Data Sources** section in your Coco dashboard
+2. Find the Salesforce data source you want to configure
+3. Click the **Edit** button (pencil icon) next to the data source
+4. This will open the configuration page where you can:
+   - Modify which Salesforce objects to sync
+   - Enable or disable custom object synchronization
+   - Update sync settings and filters
+
+> **⚠️ Important**: Before you can use the Salesforce connector, you must configure the following required parameters:
+> - `domain`: Your Salesforce domain (e.g., "mycompany" for mycompany.my.salesforce.com)
+> - `client_id`: OAuth2 client ID from your Salesforce connected app
+> - `client_secret`: OAuth2 client secret from your Salesforce connected app
+> 
+> These credentials are obtained from the Salesforce Connected App you created in the previous steps.
+
+{{% load-img "/img/connector/salesforce/salesforce_connector.png" "Configure Salesforce OAuth" %}}
 
 ### Example Request
 
@@ -155,19 +202,27 @@ curl -H 'Content-Type: application/json' -XPOST "http://localhost:9000/datasourc
 - Any custom object with `__c` suffix
 - Supports all custom fields and relationships
 
-## Data Mapping
+### Directory Structure
 
-The connector maps Salesforce data to common document fields:
+The connector creates a hierarchical directory structure for easy browsing:
 
-- `Id` → Document ID
-- `Name` → Document Title
-- `Description` → Document Content (with object-specific fields)
-- `CreatedDate` → Document Created Date
-- `LastModifiedDate` → Document Updated Date
-- `Owner` → Document Owner (Id, Name, Email)
-- Object type → Document Type and Category
-- `Feeds` → Case Feeds (for Case objects only)
-- `Id` + `instanceUrl` → Document URL (direct link to Salesforce record)
+```
+Standard Objects/
+├── Account/
+├── Contact/
+├── Lead/
+├── Opportunity/
+├── Case/
+└── Campaign/
+
+Custom Objects/
+├── CustomObject1__c/
+└── CustomObject2__c/
+```
+
+- **First Level**: SObject type groups (Standard Objects, Custom Objects)
+- **Second Level**: Individual SObject types (Account, Contact, etc.)
+- **Third Level**: Individual records within each SObject type
 
 ### Content Extraction
 
@@ -221,6 +276,24 @@ The connector uses a fluent SOQL query builder for complex queries:
 - **Join Support**: Built-in support for subqueries and joins
 - **Conditional Logic**: Support for WHERE, ORDER BY, and LIMIT clauses
 
+### Directory Access
+
+The connector supports hierarchical directory access for easy data browsing:
+
+- **Automatic Directory Creation**: Creates directory structure based on SObject types
+- **Hierarchical Navigation**: Browse data by SObject type groups and individual types
+- **Metadata Support**: Each directory includes metadata about SObject types
+- **Path-based Access**: Use directory paths to access specific SObject data
+- **Standard vs Custom Objects**: Clear separation between standard and custom objects
+
+#### Directory Features
+
+- **Root Level**: No root directory - direct access to SObject type groups
+- **Type Grouping**: Standard Objects and Custom Objects are grouped separately
+- **Individual SObject Types**: Each SObject type gets its own directory
+- **Record Organization**: Individual records are organized under their respective SObject type directories
+- **Metadata**: Directories include SObject type information and access metadata
+
 ## Supported Config Parameters for Salesforce Connector
 
 Below are the configuration parameters supported by the Salesforce Connector:
@@ -255,14 +328,6 @@ Below are the configuration parameters supported by the Salesforce Connector:
 5. **Permission Denied**: Ensure your connected app has the necessary OAuth scopes
 6. **Object Not Found**: Verify the object name and that it exists in your org
 7. **Field Not Accessible**: Check field-level security settings in Salesforce
-
-### Logs
-
-Check the coco-server logs for detailed error messages:
-
-```bash
-tail -f logs/coco.log | grep "salesforce connector"
-```
 
 ## Notes
 

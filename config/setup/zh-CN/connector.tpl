@@ -183,8 +183,8 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/s
   ],
   "url" : "http://coco.rs/connectors/s3",
   "assets" : {
-  "icons" : {
-    "default" : "/assets/icons/connector/s3/icon.png"
+    "icons" : {
+      "default" : "/assets/icons/connector/s3/icon.png"
     }
   },
   "builtin": true

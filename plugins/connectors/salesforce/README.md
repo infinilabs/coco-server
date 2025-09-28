@@ -17,6 +17,7 @@ This connector integrates with Salesforce to index and search data from your Sal
 - **Content Extraction**: Supports text extraction from Salesforce content documents
 - **Error Prevention**: Validates object queryability before attempting queries
 - **Configurable Content Extraction**: Flexible content field mapping for different object types
+- **Directory Access Support**: Hierarchical directory structure for browsing Salesforce data by SObject type
 
 ## Configuration
 
@@ -157,6 +158,28 @@ The connector maps Salesforce data to common document fields:
 - `Feeds` → Case Feeds (for Case objects only)
 - `Id` + `instanceUrl` → Document URL (direct link to Salesforce record)
 
+### Directory Structure
+
+The connector creates a hierarchical directory structure for easy browsing:
+
+```
+Standard Objects/
+├── Account/
+├── Contact/
+├── Lead/
+├── Opportunity/
+├── Case/
+└── Campaign/
+
+Custom Objects/
+├── CustomObject1__c/
+└── CustomObject2__c/
+```
+
+- **First Level**: SObject type groups (Standard Objects, Custom Objects)
+- **Second Level**: Individual SObject types (Account, Contact, etc.)
+- **Third Level**: Individual records within each SObject type
+
 ### Content Extraction
 
 The connector intelligently extracts content based on object type:
@@ -215,6 +238,24 @@ The connector uses a fluent SOQL query builder for complex queries:
 - **Field Management**: Automatic field deduplication and ordering
 - **Join Support**: Built-in support for subqueries and joins
 - **Conditional Logic**: Support for WHERE, ORDER BY, and LIMIT clauses
+
+### Directory Access
+
+The connector supports hierarchical directory access for easy data browsing:
+
+- **Automatic Directory Creation**: Creates directory structure based on SObject types
+- **Hierarchical Navigation**: Browse data by SObject type groups and individual types
+- **Metadata Support**: Each directory includes metadata about SObject types
+- **Path-based Access**: Use directory paths to access specific SObject data
+- **Standard vs Custom Objects**: Clear separation between standard and custom objects
+
+#### Directory Features
+
+- **Root Level**: No root directory - direct access to SObject type groups
+- **Type Grouping**: Standard Objects and Custom Objects are grouped separately
+- **Individual SObject Types**: Each SObject type gets its own directory
+- **Record Organization**: Individual records are organized under their respective SObject type directories
+- **Metadata**: Directories include SObject type information and access metadata
 
 
 ## Troubleshooting

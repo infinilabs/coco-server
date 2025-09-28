@@ -7,6 +7,7 @@ package salesforce
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 
 	"infini.sh/coco/modules/common"
@@ -189,6 +190,9 @@ func (p *Plugin) processSalesforceData(
 		queryableObjects,
 	)
 
+	// Create SObject type directories
+	p.createSObjectDirectories(ctx, client, cfg, datasource)
+
 	// Process standard objects
 	for _, objType := range StandardSObjects {
 		if len(cfg.StandardObjectsToSync) == 0 || contains(cfg.StandardObjectsToSync, objType) {
@@ -292,9 +296,9 @@ func (p *Plugin) processObjectType(
 		return
 	}
 
-	// Convert and index each record
+	// Convert and index each record with proper hierarchy path
 	for _, record := range records {
-		doc := convertToDocument(record, objType, datasource, client.instanceUrl)
+		doc := convertToDocumentWithHierarchy(record, objType, datasource, client.instanceUrl)
 		if doc != nil {
 			p.indexDocument(doc)
 		}
@@ -362,8 +366,8 @@ func (p *Plugin) processCaseWithFeeds(
 			}
 		}
 
-		// Convert and index the record
-		doc := convertToDocument(record, "Case", datasource, client.instanceUrl)
+		// Convert and index the record with proper hierarchy path
+		doc := convertToDocumentWithHierarchy(record, "Case", datasource, client.instanceUrl)
 		if doc != nil {
 			p.indexDocument(doc)
 		}
@@ -447,6 +451,122 @@ func (p *Plugin) indexDocument(doc *common.Document) {
 		ConnectorSalesforce,
 		doc.Title,
 	)
+}
+
+// createSObjectDirectories creates directory structure for SObject types
+func (p *Plugin) createSObjectDirectories(
+	ctx context.Context,
+	client *SalesforceClient,
+	cfg *Config,
+	datasource *common.DataSource,
+) {
+	// Create Standard Objects directory
+	standardObjectsDoc := common.CreateHierarchyPathFolderDoc(
+		datasource,
+		"standard_objects",
+		"Standard Objects",
+		[]string{},
+	)
+	standardObjectsDoc.URL = fmt.Sprintf("https://%s.my.salesforce.com", datasource.Name)
+	p.indexDocument(&standardObjectsDoc)
+
+	// Create Custom Objects directory if custom objects are enabled
+	if cfg.SyncCustomObjects {
+		customObjectsDoc := common.CreateHierarchyPathFolderDoc(
+			datasource,
+			"custom_objects",
+			"Custom Objects",
+			[]string{},
+		)
+		customObjectsDoc.URL = fmt.Sprintf("https://%s.my.salesforce.com", datasource.Name)
+		p.indexDocument(&customObjectsDoc)
+	}
+
+	// Create directories for each SObject type
+	allObjects := make([]string, 0)
+
+	// Add standard objects
+	for _, objType := range StandardSObjects {
+		if len(cfg.StandardObjectsToSync) == 0 || contains(cfg.StandardObjectsToSync, objType) {
+			// Check if the object is queryable
+			isQueryable, err := client.IsQueryable(ctx, objType)
+			if err != nil {
+				log.Warnf(
+					"[%s connector] failed to check if object %s is queryable: %v",
+					ConnectorSalesforce,
+					objType,
+					err,
+				)
+				continue
+			}
+			if isQueryable {
+				allObjects = append(allObjects, objType)
+			}
+		}
+	}
+
+	// Add custom objects if enabled
+	if cfg.SyncCustomObjects {
+		var customObjectsToSync []string
+		if len(cfg.CustomObjectsToSync) == 0 {
+			log.Infof("[%s connector] sync custom objects is enabled, but no custom objects", ConnectorSalesforce)
+		} else if len(cfg.CustomObjectsToSync) == 1 && cfg.CustomObjectsToSync[0] == "*" {
+			// Sync all custom objects
+			customObjects, err := client.GetCustomObjects(ctx)
+			if err != nil {
+				log.Errorf(
+					"[%s connector] failed to get custom objects: %v",
+					ConnectorSalesforce,
+					err,
+				)
+			} else {
+				customObjectsToSync = customObjects
+			}
+		} else {
+			// Sync configured custom objects
+			customObjectsToSync = cfg.CustomObjectsToSync
+		}
+		allObjects = append(allObjects, customObjectsToSync...)
+	}
+
+	// Create directory for each SObject type
+	for _, objType := range allObjects {
+		var parentPath []string
+		var objTypeDisplay string
+
+		// Determine if it's a standard or custom object
+		isStandard := false
+		for _, stdObj := range StandardSObjects {
+			if strings.EqualFold(stdObj, objType) {
+				isStandard = true
+				break
+			}
+		}
+
+		if isStandard {
+			parentPath = []string{"Standard Objects"}
+			objTypeDisplay = objType
+		} else {
+			parentPath = []string{"Custom Objects"}
+			objTypeDisplay = objType
+		}
+
+		// Create SObject type directory
+		sobjectDoc := common.CreateHierarchyPathFolderDoc(
+			datasource,
+			fmt.Sprintf("sobject_%s", strings.ToLower(objType)),
+			objTypeDisplay,
+			parentPath,
+		)
+		sobjectDoc.URL = fmt.Sprintf("https://%s.my.salesforce.com", datasource.Name)
+		sobjectDoc.Metadata = map[string]interface{}{
+			"sobject_type": objType,
+			"is_standard":  isStandard,
+		}
+		p.indexDocument(&sobjectDoc)
+
+		log.Debugf("[%s connector] created directory for SObject type: %s", ConnectorSalesforce, objType)
+	}
 }
 
 func contains(slice []string, item string) bool {
