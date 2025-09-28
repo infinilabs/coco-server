@@ -13,10 +13,10 @@ import (
 
 func TestBuildParentCategoryArray(t *testing.T) {
 	tests := []struct {
-		name         string
-		objectKey    string
-		expected     []string
-		desc         string
+		name      string
+		objectKey string
+		expected  []string
+		desc      string
 	}{
 		{
 			name:      "empty_object_key",
@@ -81,10 +81,10 @@ func TestBuildParentCategoryArray(t *testing.T) {
 
 func TestBuildParentCategoryArrayEdgeCases(t *testing.T) {
 	tests := []struct {
-		name         string
-		objectKey    string
-		expected     []string
-		desc         string
+		name      string
+		objectKey string
+		expected  []string
+		desc      string
 	}{
 		{
 			name:      "only_slashes",
@@ -125,10 +125,10 @@ func TestBuildParentCategoryArrayEdgeCases(t *testing.T) {
 
 func TestMarkParentFoldersAsValid(t *testing.T) {
 	tests := []struct {
-		name             string
-		objectKey        string
-		expectedFolders  []string
-		desc             string
+		name            string
+		objectKey       string
+		expectedFolders []string
+		desc            string
 	}{
 		{
 			name:            "root_level_file",
