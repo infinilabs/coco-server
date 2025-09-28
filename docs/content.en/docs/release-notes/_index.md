@@ -9,6 +9,13 @@ Information about release notes of Coco Server is provided here.
 
 ## Latest (In development)  
 ### ❌ Breaking changes  
+### 🚀 Features  
+### 🐛 Bug fix  
+### ✈️ Improvements  
+
+## 0.8.0 (2025-09-28)
+
+### ❌ Breaking changes  
 - chore: update yuque's document id #473
 - refactor: refactoring datasource sync management #526
 
