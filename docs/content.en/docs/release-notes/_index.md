@@ -36,6 +36,7 @@ Information about release notes of Coco Server is provided here.
 - fix: page scrolling not working in Fullscreen #520
 - fix: resolve API token list pagination issue #523
 - fix: mssql paging bug #522
+- fix: fix S3 connector icon #533
 
 ### ✈️ Improvements  
 - chore: remove unused websocket api #443
