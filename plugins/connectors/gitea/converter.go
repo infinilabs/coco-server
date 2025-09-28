@@ -38,6 +38,9 @@ func (p *Plugin) processRepos(ctx context.Context, client *sdk.Client, cfg *Conf
 		}
 	}
 
+	// Initialize folder tracker for hierarchical structure
+	folderTracker := connectors.NewGitFolderTracker()
+
 	var processed int
 	cursor := NewListReposCursor(cfg.Owner, isOrg)
 
@@ -63,6 +66,18 @@ func (p *Plugin) processRepos(ctx context.Context, client *sdk.Client, cfg *Conf
 
 			log.Debugf("[%s connector] processing repo: %s", ConnectorGitea, repo.FullName)
 
+			// Determine what content types will be indexed for this repo
+			var contentTypes []string
+			if cfg.IndexIssues {
+				contentTypes = append(contentTypes, TypeIssue)
+			}
+			if cfg.IndexPullRequests {
+				contentTypes = append(contentTypes, TypePullRequest)
+			}
+
+			// Track folders for hierarchy
+			folderTracker.TrackGitFolders(cfg.Owner, repo.Name, contentTypes)
+
 			// Index repository
 			repoDoc := p.transformRepoToDocument(repo, datasource)
 			p.pushToQueue(repoDoc)
@@ -87,6 +102,11 @@ func (p *Plugin) processRepos(ctx context.Context, client *sdk.Client, cfg *Conf
 			break
 		}
 	}
+
+	// Create all folder documents for the hierarchy
+	folderTracker.CreateGitFolderDocuments(datasource, func(doc common.Document) {
+		p.pushToQueue(&doc)
+	})
 }
 
 func (p *Plugin) processIssues(ctx context.Context, client *sdk.Client, repo *sdk.Repository, datasource *common.DataSource) {
@@ -165,12 +185,17 @@ func (p *Plugin) newDocument(datasource *common.DataSource) *common.Document {
 }
 
 func (p *Plugin) transformRepoToDocument(repo *sdk.Repository, datasource *common.DataSource) *common.Document {
-	doc := p.newDocument(datasource)
-	doc.Title = repo.FullName
+	owner := repo.Owner.UserName
+
+	// Repository info document - belongs to owner category
+	categories := connectors.BuildGitRepositoryCategories(owner, repo.Name)
+	idSuffix := fmt.Sprintf("repo-%s-%d", repo.FullName, repo.ID)
+
+	doc := connectors.CreateDocumentWithHierarchy(TypeRepository, TypeRepository, repo.FullName, repo.HTMLURL, 0, categories, datasource, idSuffix)
+
+	// Add Gitea-specific repository metadata
 	doc.Summary = repo.Description
-	doc.URL = repo.HTMLURL
-	doc.Type = TypeRepository
-	doc.Icon = TypeRepository
+
 	if repo.Owner != nil {
 		doc.Owner = &common.UserInfo{
 			UserID:     fmt.Sprintf("%d", repo.Owner.ID),
@@ -178,19 +203,37 @@ func (p *Plugin) transformRepoToDocument(repo *sdk.Repository, datasource *commo
 			UserAvatar: repo.Owner.AvatarURL,
 		}
 	}
-	doc.ID = util.MD5digest(fmt.Sprintf("%s-%d", datasource.ID, repo.ID))
+
 	doc.Created = &repo.Created
 	doc.Updated = &repo.Updated
-	return doc
+
+	// Add repository-specific metadata
+	if doc.Metadata == nil {
+		doc.Metadata = make(map[string]interface{})
+	}
+	doc.Metadata["repository_id"] = repo.ID
+	doc.Metadata["full_name"] = repo.FullName
+	doc.Metadata["private"] = repo.Private
+	doc.Metadata["fork"] = repo.Fork
+	doc.Metadata["stars_count"] = repo.Stars
+	doc.Metadata["watchers_count"] = repo.Watchers
+	doc.Metadata["forks_count"] = repo.Forks
+	doc.Metadata["open_issues_count"] = repo.OpenIssues
+	doc.Metadata["default_branch"] = repo.DefaultBranch
+	return &doc
 }
 
 // transformContentableToDocument is a generic function to transform issue-like objects into a document.
 func (p *Plugin) transformContentableToDocument(item contentable, comments []*sdk.Comment, itemType string, repo *sdk.Repository, datasource *common.DataSource) *common.Document {
-	doc := p.newDocument(datasource)
-	var tags []string
-	for _, label := range item.GetLabels() {
-		tags = append(tags, label.Name)
-	}
+	owner := repo.Owner.UserName
+	repoName := repo.Name
+
+	// Use the item type directly as content type since constants match GitFolder keys
+	contentType := itemType
+
+	// Level 4: Content item - belongs to owner/repo/content_type category
+	categories := connectors.BuildGitItemCategories(owner, repoName, contentType)
+	idSuffix := fmt.Sprintf("%s-%d-%d", itemType, repo.ID, item.GetID())
 
 	var content strings.Builder
 	content.WriteString(item.GetBody())
@@ -199,13 +242,15 @@ func (p *Plugin) transformContentableToDocument(item contentable, comments []*sd
 		content.WriteString(c.Body)
 	}
 
-	doc.Title = item.GetTitle()
+	doc := connectors.CreateDocumentWithHierarchy(itemType, itemType, item.GetTitle(), item.GetHTMLURL(), len(content.String()), categories, datasource, idSuffix)
+
+	// Add Gitea-specific content metadata
 	doc.Content = content.String()
-	doc.Size = len(doc.Content)
-	doc.URL = item.GetHTMLURL()
-	doc.Type = itemType
-	doc.Icon = itemType
-	doc.Category = repo.FullName
+
+	var tags []string
+	for _, label := range item.GetLabels() {
+		tags = append(tags, label.Name)
+	}
 	doc.Tags = tags
 
 	poster := item.GetPoster()
@@ -217,7 +262,6 @@ func (p *Plugin) transformContentableToDocument(item contentable, comments []*sd
 		}
 	}
 
-	doc.ID = util.MD5digest(fmt.Sprintf("%s-%d-%d", datasource.ID, repo.ID, item.GetID()))
 	created := item.GetCreated()
 	updated := item.GetUpdated()
 	doc.Created = &created
@@ -228,13 +272,18 @@ func (p *Plugin) transformContentableToDocument(item contentable, comments []*sd
 		state = "merged"
 	}
 
-	doc.Metadata = map[string]interface{}{
-		"id":       item.GetID(),
-		"number":   item.GetIndex(),
-		"state":    state,
-		"comments": item.GetComments(),
+	// Add content-specific metadata
+	if doc.Metadata == nil {
+		doc.Metadata = make(map[string]interface{})
 	}
-	return doc
+	doc.Metadata["id"] = item.GetID()
+	doc.Metadata["number"] = item.GetIndex()
+	doc.Metadata["state"] = state
+	doc.Metadata["comments"] = item.GetComments()
+	doc.Metadata["repository_id"] = repo.ID
+	doc.Metadata["repository_full_name"] = repo.FullName
+
+	return &doc
 }
 
 func (p *Plugin) transformIssueToDocument(issue *sdk.Issue, comments []*sdk.Comment, repo *sdk.Repository, datasource *common.DataSource) *common.Document {

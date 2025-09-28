@@ -13,6 +13,7 @@ import (
 	log "github.com/cihub/seelog"
 	gitlabv4 "gitlab.com/gitlab-org/api/client-go"
 	"infini.sh/coco/modules/common"
+	"infini.sh/coco/plugins/connectors"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/queue"
 	"infini.sh/framework/core/util"
@@ -62,6 +63,9 @@ func (p *Plugin) processProjects(ctx context.Context, client *gitlabv4.Client, c
 		}
 	}
 
+	// Initialize folder tracker for hierarchical structure
+	folderTracker := connectors.NewGitFolderTracker()
+
 	var processed int
 
 	err = listProjects(ctx, client, cfg.Owner, func(projects []*gitlabv4.Project) bool {
@@ -75,6 +79,24 @@ func (p *Plugin) processProjects(ctx context.Context, client *gitlabv4.Client, c
 			}
 
 			log.Debugf("[%s connector] processing project: %s", ConnectorGitLab, project.NameWithNamespace)
+
+			// Determine what content types will be indexed for this project
+			var contentTypes []string
+			if cfg.IndexIssues {
+				contentTypes = append(contentTypes, TypeIssue)
+			}
+			if cfg.IndexMergeRequests {
+				contentTypes = append(contentTypes, TypeMergeRequest)
+			}
+			if cfg.IndexWikis {
+				contentTypes = append(contentTypes, TypeWiki)
+			}
+			if cfg.IndexSnippets {
+				contentTypes = append(contentTypes, TypeSnippet)
+			}
+
+			// Track folders for hierarchy
+			folderTracker.TrackGitFolders(cfg.Owner, project.Name, contentTypes)
 
 			// Index repository
 			repoDoc := p.transformProjectToDocument(project, datasource)
@@ -111,6 +133,11 @@ func (p *Plugin) processProjects(ctx context.Context, client *gitlabv4.Client, c
 		_ = log.Errorf("[%s connector] failed to list projects for owner %s: %v", ConnectorGitLab, cfg.Owner, err)
 		return
 	}
+
+	// Create all folder documents for the hierarchy
+	folderTracker.CreateGitFolderDocuments(datasource, func(doc common.Document) {
+		p.pushToQueue(&doc)
+	})
 }
 
 func (p *Plugin) processIssues(ctx context.Context, client *gitlabv4.Client, project *gitlabv4.Project, datasource *common.DataSource) {
@@ -219,12 +246,16 @@ func (p *Plugin) newDocument(datasource *common.DataSource) *common.Document {
 }
 
 func (p *Plugin) transformProjectToDocument(project *gitlabv4.Project, datasource *common.DataSource) *common.Document {
-	doc := p.newDocument(datasource)
-	doc.Title = project.NameWithNamespace
+	owner := project.Namespace.Name
+
+	// Repository info document - belongs to owner category
+	categories := connectors.BuildGitRepositoryCategories(owner, project.Name)
+	idSuffix := fmt.Sprintf("repo-%s-%d", project.NameWithNamespace, project.ID)
+
+	doc := connectors.CreateDocumentWithHierarchy(TypeRepository, TypeRepository, project.NameWithNamespace, project.WebURL, 0, categories, datasource, idSuffix)
+
+	// Add GitLab-specific repository metadata
 	doc.Summary = project.Description
-	doc.URL = project.WebURL
-	doc.Type = TypeRepository
-	doc.Icon = TypeRepository
 	doc.Tags = project.Topics
 	doc.Cover = project.AvatarURL
 
@@ -236,27 +267,43 @@ func (p *Plugin) transformProjectToDocument(project *gitlabv4.Project, datasourc
 		}
 	}
 
-	doc.ID = util.MD5digest(fmt.Sprintf("%s-%d", datasource.ID, project.ID))
 	doc.Created = project.CreatedAt
 	doc.Updated = project.UpdatedAt
 
-	doc.Payload = map[string]interface{}{
-		"project_id":          project.ID,
-		"ssh_url_to_repo":     project.SSHURLToRepo,
-		"http_url_to_repo":    project.HTTPURLToRepo,
-		"readme_url":          project.ReadmeURL,
-		"name":                project.Name,
-		"name_with_namespace": project.NameWithNamespace,
-		"path_with_namespace": project.PathWithNamespace,
-		"merge_method":        project.MergeMethod,
-		"links":               project.Links,
+	// Add repository-specific metadata
+	if doc.Metadata == nil {
+		doc.Metadata = make(map[string]interface{})
+	}
+	doc.Metadata["project_id"] = project.ID
+	doc.Metadata["name_with_namespace"] = project.NameWithNamespace
+	doc.Metadata["path_with_namespace"] = project.PathWithNamespace
+	doc.Metadata["visibility"] = project.Visibility
+	doc.Metadata["fork"] = project.ForkedFromProject != nil
+	doc.Metadata["merge_method"] = project.MergeMethod
+	doc.Metadata["star_count"] = project.StarCount
+	doc.Metadata["forks_count"] = project.ForksCount
+	if project.DefaultBranch != "" {
+		doc.Metadata["default_branch"] = project.DefaultBranch
 	}
 
-	return doc
+	// Store additional payload data
+	doc.Payload = map[string]interface{}{
+		"ssh_url_to_repo":  project.SSHURLToRepo,
+		"http_url_to_repo": project.HTTPURLToRepo,
+		"readme_url":       project.ReadmeURL,
+		"links":            project.Links,
+	}
+
+	return &doc
 }
 
 func (p *Plugin) transformIssueToDocument(issue *gitlabv4.Issue, comments []*gitlabv4.Note, project *gitlabv4.Project, datasource *common.DataSource) *common.Document {
-	doc := p.newDocument(datasource)
+	owner := project.Namespace.Name
+	repoName := project.Name
+
+	// Level 4: Content item - belongs to owner/repo/content_type category
+	categories := connectors.BuildGitItemCategories(owner, repoName, TypeIssue)
+	idSuffix := fmt.Sprintf("issue-%d-%d", project.ID, issue.ID)
 
 	var content strings.Builder
 	content.WriteString(issue.Description)
@@ -265,14 +312,16 @@ func (p *Plugin) transformIssueToDocument(issue *gitlabv4.Issue, comments []*git
 		content.WriteString(c.Body)
 	}
 
-	doc.Title = issue.Title
+	doc := connectors.CreateDocumentWithHierarchy(TypeIssue, TypeIssue, issue.Title, issue.WebURL, len(content.String()), categories, datasource, idSuffix)
+
+	// Add GitLab-specific issue metadata
 	doc.Content = content.String()
-	doc.Size = len(doc.Content)
-	doc.URL = issue.WebURL
-	doc.Type = TypeIssue
-	doc.Icon = TypeIssue
-	doc.Category = project.NameWithNamespace
-	doc.Tags = issue.Labels
+
+	var tags []string
+	for _, label := range issue.Labels {
+		tags = append(tags, label)
+	}
+	doc.Tags = tags
 
 	if issue.Author != nil {
 		doc.Owner = &common.UserInfo{
@@ -282,24 +331,30 @@ func (p *Plugin) transformIssueToDocument(issue *gitlabv4.Issue, comments []*git
 		}
 	}
 
-	doc.ID = util.MD5digest(fmt.Sprintf("%s-%d-%d", datasource.ID, project.ID, issue.ID))
 	doc.Created = issue.CreatedAt
 	doc.Updated = issue.UpdatedAt
 
-	doc.Metadata = map[string]interface{}{
-		"project_id": project.ID,
-		"id":         issue.ID,
-		"iid":        issue.IID,
-		"state":      issue.State,
-		"upvotes":    issue.Upvotes,
-		"downvotes":  issue.Downvotes,
+	// Add content-specific metadata
+	if doc.Metadata == nil {
+		doc.Metadata = make(map[string]interface{})
 	}
+	doc.Metadata["project_id"] = project.ID
+	doc.Metadata["id"] = issue.ID
+	doc.Metadata["iid"] = issue.IID
+	doc.Metadata["state"] = issue.State
+	doc.Metadata["upvotes"] = issue.Upvotes
+	doc.Metadata["downvotes"] = issue.Downvotes
 
-	return doc
+	return &doc
 }
 
 func (p *Plugin) transformMergeRequestToDocument(mr *gitlabv4.BasicMergeRequest, comments []*gitlabv4.Note, project *gitlabv4.Project, datasource *common.DataSource) *common.Document {
-	doc := p.newDocument(datasource)
+	owner := project.Namespace.Name
+	repoName := project.Name
+
+	// Level 4: Content item - belongs to owner/repo/content_type category
+	categories := connectors.BuildGitItemCategories(owner, repoName, TypeMergeRequest)
+	idSuffix := fmt.Sprintf("merge_request-%d-%d", project.ID, mr.ID)
 
 	var content strings.Builder
 	content.WriteString(mr.Description)
@@ -308,14 +363,16 @@ func (p *Plugin) transformMergeRequestToDocument(mr *gitlabv4.BasicMergeRequest,
 		content.WriteString(c.Body)
 	}
 
-	doc.Title = mr.Title
+	doc := connectors.CreateDocumentWithHierarchy(TypeMergeRequest, TypeMergeRequest, mr.Title, mr.WebURL, len(content.String()), categories, datasource, idSuffix)
+
+	// Add GitLab-specific merge request metadata
 	doc.Content = content.String()
-	doc.Size = len(doc.Content)
-	doc.URL = mr.WebURL
-	doc.Type = TypeMergeRequest
-	doc.Icon = TypeMergeRequest
-	doc.Category = project.NameWithNamespace
-	doc.Tags = mr.Labels
+
+	var tags []string
+	for _, label := range mr.Labels {
+		tags = append(tags, label)
+	}
+	doc.Tags = tags
 
 	if mr.Author != nil {
 		doc.Owner = &common.UserInfo{
@@ -325,67 +382,81 @@ func (p *Plugin) transformMergeRequestToDocument(mr *gitlabv4.BasicMergeRequest,
 		}
 	}
 
-	doc.ID = util.MD5digest(fmt.Sprintf("%s-%d-%d", datasource.ID, project.ID, mr.ID))
 	doc.Created = mr.CreatedAt
 	doc.Updated = mr.UpdatedAt
 
-	doc.Metadata = map[string]interface{}{
-		"project_id": project.ID,
-		"id":         mr.ID,
-		"iid":        mr.IID,
-		"state":      mr.State,
-		"upvotes":    mr.Upvotes,
-		"downvotes":  mr.Downvotes,
+	// Add content-specific metadata
+	if doc.Metadata == nil {
+		doc.Metadata = make(map[string]interface{})
 	}
+	doc.Metadata["project_id"] = project.ID
+	doc.Metadata["id"] = mr.ID
+	doc.Metadata["iid"] = mr.IID
+	doc.Metadata["state"] = mr.State
+	doc.Metadata["upvotes"] = mr.Upvotes
+	doc.Metadata["downvotes"] = mr.Downvotes
 
-	return doc
+	return &doc
 }
 
 func (p *Plugin) transformWikiToDocument(wiki *wikiWrapper, project *gitlabv4.Project, datasource *common.DataSource) *common.Document {
-	doc := p.newDocument(datasource)
-	doc.Title = wiki.Title
-	doc.Content = wiki.Content
+	owner := project.Namespace.Name
+	repoName := project.Name
 
-	doc.URL = wiki.BuildWikiURL(project)
-	doc.Type = TypeWiki
-	doc.Icon = TypeWiki
-	doc.Category = project.NameWithNamespace
+	// Level 4: Content item - belongs to owner/repo/content_type category
+	categories := connectors.BuildGitItemCategories(owner, repoName, TypeWiki)
+	idSuffix := fmt.Sprintf("wiki-%d-%s", project.ID, wiki.Slug)
+
+	doc := connectors.CreateDocumentWithHierarchy(TypeWiki, TypeWiki, wiki.Title, wiki.BuildWikiURL(project), len(wiki.Content), categories, datasource, idSuffix)
+
+	// Add GitLab-specific wiki metadata
+	doc.Content = wiki.Content
 	doc.Subcategory = wiki.Slug
-	doc.Size = len(doc.Content)
 
 	// GitLab wiki pages do not expose created/updated in list; fallback to project times?
 	// doc.Created = project.CreatedAt
 	// doc.Updated = project.LastActivityAt
 
-	doc.Metadata = map[string]interface{}{
-		"project_id": project.ID,
-		"encoding":   wiki.Encoding,
-		"format":     wiki.Format,
-		"slug":       wiki.Slug,
+	// Add content-specific metadata
+	if doc.Metadata == nil {
+		doc.Metadata = make(map[string]interface{})
 	}
+	doc.Metadata["project_id"] = project.ID
+	doc.Metadata["encoding"] = wiki.Encoding
+	doc.Metadata["format"] = wiki.Format
+	doc.Metadata["slug"] = wiki.Slug
 
-	// ID: combine datasource, project, and wiki slug
-	doc.ID = util.MD5digest(fmt.Sprintf("%s-%d-%s", datasource.ID, project.ID, wiki.Slug))
-	return doc
+	return &doc
 }
 
 func (p *Plugin) transformSnippetToDocument(sn *gitlabv4.Snippet, project *gitlabv4.Project, datasource *common.DataSource) *common.Document {
-	doc := p.newDocument(datasource)
-	doc.Title = sn.Title
+	owner := project.Namespace.Name
+	repoName := project.Name
+
+	// Level 4: Content item - belongs to owner/repo/content_type category
+	categories := connectors.BuildGitItemCategories(owner, repoName, TypeSnippet)
+	idSuffix := fmt.Sprintf("snippet-%d-%d", project.ID, sn.ID)
+
+	doc := connectors.CreateDocumentWithHierarchy(TypeSnippet, TypeSnippet, sn.Title, sn.WebURL, len(sn.Description), categories, datasource, idSuffix)
+
+	// Add GitLab-specific snippet metadata
 	doc.Content = sn.Description
-	doc.URL = sn.WebURL
-	doc.Type = TypeSnippet
-	doc.Icon = TypeSnippet
-	doc.Category = project.NameWithNamespace
+
 	doc.Owner = &common.UserInfo{
 		UserID:   sn.Author.Username,
 		UserName: sn.Author.Name,
 	}
+
 	doc.Created = sn.CreatedAt
 	doc.Updated = sn.UpdatedAt
-	doc.Metadata = map[string]interface{}{
-		"project_id": sn.ProjectID,
+
+	// Add content-specific metadata
+	if doc.Metadata == nil {
+		doc.Metadata = make(map[string]interface{})
 	}
+	doc.Metadata["project_id"] = sn.ProjectID
+
+	// Store additional payload data
 	doc.Payload = map[string]interface{}{
 		"file_name":          sn.FileName,
 		"visibility":         sn.Visibility,
@@ -393,8 +464,8 @@ func (p *Plugin) transformSnippetToDocument(sn *gitlabv4.Snippet, project *gitla
 		"files":              sn.Files,
 		"repository_storage": sn.RepositoryStorage,
 	}
-	doc.ID = util.MD5digest(fmt.Sprintf("%s-%d-%d", datasource.ID, project.ID, sn.ID))
-	return doc
+
+	return &doc
 }
 
 func (p *Plugin) pushToQueue(doc *common.Document) {

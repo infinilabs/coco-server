@@ -16,6 +16,8 @@ import (
 const (
 	TypeFolder = "folder"
 	TypeFile   = "file"
+	TypeOrg    = "org"
+	TypeRepo   = "repository"
 )
 
 // MarkParentFoldersAsValid marks all parent folders of a file path as containing matching files.
@@ -127,4 +129,116 @@ func CreateDocumentWithHierarchy(docType, icon, title, url string, size int,
 	doc.ID = util.MD5digest(fmt.Sprintf("%s-%s", datasource.ID, idSuffix))
 
 	return doc
+}
+
+// Git-specific hierarchy helper functions
+
+type GitFolder struct {
+	Icon  string
+	Title string
+}
+
+var (
+	gitFolders = map[string]GitFolder{
+		"issue":         {Icon: "issue", Title: "Issues"},
+		"pull_request":  {Icon: "pull_request", Title: "Pull Requests"},
+		"merge_request": {Icon: "merge_request", Title: "Merge Requests"},
+		"wiki":          {Icon: "wiki", Title: "Wikis"},
+		"snippet":       {Icon: "snippet", Title: "Snippets"},
+	}
+)
+
+func resolveGitFolder(typeName string) GitFolder {
+	if info, ok := gitFolders[typeName]; ok {
+		return info
+	}
+
+	return GitFolder{Icon: typeName, Title: typeName}
+}
+
+// BuildGitRepositoryCategories returns categories for repository level
+func BuildGitRepositoryCategories(owner, repo string) []string {
+	return []string{owner, repo}
+}
+
+// BuildGitContentCategories returns categories for content type level (issues, pull_requests, etc.)
+func BuildGitContentCategories(owner, repo string) []string {
+	return []string{owner, repo}
+}
+
+// BuildGitItemCategories returns categories for individual content items
+func BuildGitItemCategories(owner, repo, contentType string) []string {
+	return []string{owner, repo, resolveGitFolder(contentType).Title}
+}
+
+// GitFolderTracker tracks folder hierarchies for git providers
+type GitFolderTracker struct {
+	Organizations map[string]bool // owner name -> tracked
+	Repositories  map[string]bool // "owner/repo" -> tracked
+	ContentTypes  map[string]bool // "owner/repo/content_type" -> tracked
+}
+
+// NewGitFolderTracker creates a new folder tracker for git hierarchy
+func NewGitFolderTracker() *GitFolderTracker {
+	return &GitFolderTracker{
+		Organizations: make(map[string]bool),
+		Repositories:  make(map[string]bool),
+		ContentTypes:  make(map[string]bool),
+	}
+}
+
+// TrackGitFolders tracks git folder hierarchy levels
+func (tracker *GitFolderTracker) TrackGitFolders(owner, repo string, contentTypes []string) {
+	// Track organization/user level
+	tracker.Organizations[owner] = true
+
+	// Track repository level
+	repoKey := fmt.Sprintf("%s/%s", owner, repo)
+	tracker.Repositories[repoKey] = true
+
+	// Track content type levels
+	for _, contentType := range contentTypes {
+		contentKey := fmt.Sprintf("%s/%s/%s", owner, repo, contentType)
+		tracker.ContentTypes[contentKey] = true
+	}
+}
+
+// CreateGitFolderDocuments creates folder documents for all tracked git hierarchy levels
+func (tracker *GitFolderTracker) CreateGitFolderDocuments(datasource *common.DataSource, pushFunc func(doc common.Document)) {
+	// Create organization/user folder documents (Level 1)
+	for owner := range tracker.Organizations {
+		idSuffix := fmt.Sprintf("git-folder-%s", owner)
+		doc := CreateDocumentWithHierarchy(TypeFolder, TypeOrg, owner, "", 0, nil, datasource, idSuffix)
+		pushFunc(doc)
+	}
+
+	// Create repository folder documents (Level 2)
+	for repoKey := range tracker.Repositories {
+		parts := strings.Split(repoKey, "/")
+		if len(parts) != 2 {
+			continue
+		}
+		owner, repo := parts[0], parts[1]
+		idSuffix := fmt.Sprintf("git-folder-%s-%s", owner, repo)
+
+		doc := CreateDocumentWithHierarchy(TypeFolder, TypeRepo, repo, "", 0, []string{owner}, datasource, idSuffix)
+		pushFunc(doc)
+	}
+
+	// Create content type folder documents (Level 3B)
+	for contentKey := range tracker.ContentTypes {
+		parts := strings.Split(contentKey, "/")
+		if len(parts) != 3 {
+			continue
+		}
+		owner, repo, contentType := parts[0], parts[1], parts[2]
+
+		categories := BuildGitContentCategories(owner, repo)
+		idSuffix := fmt.Sprintf("git-folder-%s-%s-%s", owner, repo, contentType)
+
+		info := resolveGitFolder(contentType)
+		doc := CreateDocumentWithHierarchy(TypeFolder, info.Icon, info.Title, "", 0, categories, datasource, idSuffix)
+
+		pushFunc(doc)
+	}
 }
