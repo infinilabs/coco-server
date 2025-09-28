@@ -167,6 +167,9 @@ func (p *Plugin) scanSmbShare(datasource *common.DataSource, cfg *Config) {
 		extMap[strings.ToLower(ext)] = true
 	}
 
+	// Track all unique folder paths that contain matching files
+	foldersWithMatchingFiles := make(map[string]bool)
+
 	for _, path := range cfg.Paths {
 		err = fs.WalkDir(share.DirFS("."), path, func(currentPath string, d fs.DirEntry, err error) error {
 			select {
@@ -196,6 +199,9 @@ func (p *Plugin) scanSmbShare(datasource *common.DataSource, cfg *Config) {
 				return nil
 			}
 
+			// Mark all parent folders as containing matching files
+			connectors.MarkParentFoldersAsValid(filepath.ToSlash(currentPath), foldersWithMatchingFiles)
+
 			p.processFile(d, filepath.ToSlash(currentPath), cfg, datasource)
 			return nil
 		})
@@ -204,6 +210,9 @@ func (p *Plugin) scanSmbShare(datasource *common.DataSource, cfg *Config) {
 			_ = log.Errorf("[%v connector] error walking SMB share '%s' for datasource [%s]: %v", ConnectorNetworkDrive, cfg.Share, datasource.Name, err)
 		}
 	}
+
+	// Now create folder documents for all folders that contain matching files
+	p.createFolderDocuments(foldersWithMatchingFiles, datasource, cfg)
 }
 
 // processFile is a helper function to filter, transform, and queue a single file.
@@ -218,24 +227,49 @@ func (p *Plugin) processFile(d fs.DirEntry, currentPath string, cfg *Config, dat
 		return
 	}
 
+	// Create file document using helper
+	parentCategoryArray := connectors.BuildParentCategoryArray(currentPath)
+	title := fileInfo.Name()
+	idSuffix := fmt.Sprintf("%s-%s-%s", cfg.Endpoint, cfg.Share, currentPath)
+
+	doc := connectors.CreateDocumentWithHierarchy(connectors.TypeFile, connectors.TypeFile, title, fullPath, int(fileInfo.Size()),
+		parentCategoryArray, datasource, idSuffix)
+
 	modTime := fileInfo.ModTime()
-	doc := common.Document{
-		Source:   common.DataSourceReference{ID: datasource.ID, Type: "connector", Name: datasource.Name},
-		Type:     ConnectorNetworkDrive,
-		Icon:     "default",
-		Title:    fileInfo.Name(),
-		Category: filepath.Dir(fmt.Sprintf("%s/%s", cfg.Share, currentPath)),
-		Content:  "", // skip content
-		URL:      fullPath,
-		Size:     int(fileInfo.Size()),
-	}
 	doc.Created = &modTime
 	doc.Updated = &modTime
-	doc.ID = util.MD5digest(fmt.Sprintf("%s-%s", datasource.ID, fullPath))
-	doc.System = datasource.System
 
+	p.saveDocument(doc, datasource)
+}
+
+// createFolderDocuments creates document entries for all folders that contain matching files
+func (p *Plugin) createFolderDocuments(foldersWithMatchingFiles map[string]bool, datasource *common.DataSource, cfg *Config) {
+	for folderPath := range foldersWithMatchingFiles {
+		if global.ShuttingDown() {
+			log.Info("[network_drive] Shutdown signal received, stopping folder creation.")
+			break
+		}
+		p.saveFolder(folderPath, datasource, cfg)
+	}
+}
+
+// saveDocument pushes a document to the queue
+func (p *Plugin) saveDocument(doc common.Document, datasource *common.DataSource) {
 	data := util.MustToJSONBytes(doc)
 	if err := queue.Push(p.Queue, data); err != nil {
 		_ = log.Errorf("[%v connector] failed to push document to queue for data source [%s]: %v", ConnectorNetworkDrive, datasource.Name, err)
 	}
+}
+
+// saveFolder creates and saves a document for a folder
+func (p *Plugin) saveFolder(folderPath string, datasource *common.DataSource, cfg *Config) {
+	folderName := filepath.Base(folderPath)
+	parentCategoryArray := connectors.BuildParentCategoryArray(folderPath)
+	url := fmt.Sprintf("//%s/%s/%s/", cfg.Endpoint, cfg.Share, folderPath)
+	idSuffix := fmt.Sprintf("%s-%s-folder-%s", cfg.Endpoint, cfg.Share, folderPath)
+
+	doc := connectors.CreateDocumentWithHierarchy(connectors.TypeFolder, connectors.IconFolder, folderName, url, 0,
+		parentCategoryArray, datasource, idSuffix)
+
+	p.saveDocument(doc, datasource)
 }

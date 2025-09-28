@@ -7,6 +7,7 @@ package s3
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	log "github.com/cihub/seelog"
@@ -41,14 +42,14 @@ func (p *Plugin) getBucketObjects(connector *common.Connector, datasource *commo
 	cfg := Config{}
 	err := connectors.ParseConnectorConfigure(connector, datasource, &cfg)
 	if err != nil {
-		log.Errorf("[%v connector] Parsing connector configuration failed: %v", ConnectorS3, err)
+		_ = log.Errorf("[%v connector] Parsing connector configuration failed: %v", ConnectorS3, err)
 		panic(err)
 	}
 
 	log.Debugf("[%v connector] Handling datasource: %v", ConnectorS3, cfg)
 
 	if cfg.Bucket == "" || cfg.AccessKeyID == "" || cfg.SecretAccessKey == "" {
-		log.Errorf("[%v connector] Missing required configuration for datasource [%s]: bucket, access_key_id, or secret_access_key", ConnectorS3, datasource.Name)
+		_ = log.Errorf("[%v connector] Missing required configuration for datasource [%s]: bucket, access_key_id, or secret_access_key", ConnectorS3, datasource.Name)
 		return
 	}
 
@@ -61,6 +62,9 @@ func (p *Plugin) getBucketObjects(connector *common.Connector, datasource *commo
 		extMap[strings.ToLower(ext)] = true
 	}
 
+	// Track all unique folder paths that contain matching objects
+	foldersWithMatchingFiles := make(map[string]bool)
+
 	objectVisitor := func(obj minio.ObjectInfo) {
 		// Extension name not matched
 		if len(extMap) > 0 {
@@ -69,23 +73,25 @@ func (p *Plugin) getBucketObjects(connector *common.Connector, datasource *commo
 				return
 			}
 		}
-		doc := common.Document{
-			Source: common.DataSourceReference{
-				ID:   datasource.ID,
-				Type: "connector",
-				Name: datasource.Name,
-			},
-			Type:     ConnectorS3,
-			Icon:     "default",
-			Title:    obj.Key,
-			Content:  "",
-			Category: cfg.Bucket,
-			URL:      fmt.Sprintf("%s://%s.%s/%s", cfg.Schema(), cfg.Bucket, cfg.Endpoint, obj.Key),
-			Size:     int(obj.Size),
+
+		// Mark all parent folders as containing matching files
+		connectors.MarkParentFoldersAsValid(obj.Key, foldersWithMatchingFiles)
+
+		// Create file document using helper
+		parentCategoryArray := connectors.BuildParentCategoryArray(obj.Key)
+		title := filepath.Base(obj.Key)
+		url := fmt.Sprintf("%s://%s.%s/%s", cfg.Schema(), cfg.Bucket, cfg.Endpoint, obj.Key)
+		idSuffix := fmt.Sprintf("%s-%s", cfg.Bucket, obj.Key)
+
+		doc := connectors.CreateDocumentWithHierarchy(connectors.TypeFile, connectors.IconFolder, title, url, int(obj.Size),
+			parentCategoryArray, datasource, idSuffix)
+
+		// Initialize Metadata if it's nil
+		if doc.Metadata == nil {
+			doc.Metadata = make(map[string]interface{})
 		}
 
-		doc.System = datasource.System
-
+		// Add S3-specific metadata
 		for k, v := range obj.Metadata {
 			doc.Metadata[k] = v
 		}
@@ -106,17 +112,13 @@ func (p *Plugin) getBucketObjects(connector *common.Connector, datasource *commo
 		// S3 not provides creation time
 		doc.Created = &obj.LastModified
 		doc.Updated = &obj.LastModified
-		doc.ID = util.MD5digest(fmt.Sprintf("%s-%s-%s", datasource.ID, cfg.Bucket, obj.Key))
 
-		data := util.MustToJSONBytes(doc)
 		if global.Env().IsDebug {
+			data := util.MustToJSONBytes(doc)
 			log.Tracef("[%v connector] Queuing document: %s", ConnectorS3, string(data))
 		}
 
-		if err := queue.Push(p.Queue, data); err != nil {
-			log.Errorf("[%v connector] Failed to push document to queue for datasource [%s]: %v", ConnectorS3, datasource.Name, err)
-			panic(err)
-		}
+		p.saveDocument(doc, datasource)
 	}
 
 	handler, err := NewMinioHandler(cfg)
@@ -128,7 +130,41 @@ func (p *Plugin) getBucketObjects(connector *common.Connector, datasource *commo
 	// process with each object
 	handler.ListObjects(context.TODO(), objectVisitor)
 
+	// Now create folder documents for all folders that contain matching files
+	p.createFolderDocuments(foldersWithMatchingFiles, datasource, cfg)
+
 	log.Infof("[%v connector] Finished list objects from bucket [%s] of datasource [%s]. ", ConnectorS3, cfg.Bucket, datasource.Name)
+}
+
+// createFolderDocuments creates document entries for all folders that contain matching files
+func (p *Plugin) createFolderDocuments(foldersWithMatchingFiles map[string]bool, datasource *common.DataSource, cfg Config) {
+	for folderPath := range foldersWithMatchingFiles {
+		if global.ShuttingDown() {
+			return
+		}
+		p.saveFolder(folderPath, datasource, cfg)
+	}
+}
+
+// saveDocument pushes a document to the queue
+func (p *Plugin) saveDocument(doc common.Document, datasource *common.DataSource) {
+	data := util.MustToJSONBytes(doc)
+	if err := queue.Push(p.Queue, data); err != nil {
+		_ = log.Errorf("[%v connector] Failed to push document to queue for datasource [%s]: %v", ConnectorS3, datasource.Name, err)
+	}
+}
+
+// saveFolder creates and saves a document for a folder
+func (p *Plugin) saveFolder(folderPath string, datasource *common.DataSource, cfg Config) {
+	folderName := filepath.Base(folderPath)
+	parentCategoryArray := connectors.BuildParentCategoryArray(folderPath)
+	url := fmt.Sprintf("%s://%s.%s/%s/", cfg.Schema(), cfg.Bucket, cfg.Endpoint, folderPath)
+	idSuffix := fmt.Sprintf("%s-folder-%s", cfg.Bucket, folderPath)
+
+	doc := connectors.CreateDocumentWithHierarchy(connectors.TypeFolder, connectors.TypeFolder, folderName, url, 0,
+		parentCategoryArray, datasource, idSuffix)
+
+	p.saveDocument(doc, datasource)
 }
 
 func (p *Plugin) Stop() error {
