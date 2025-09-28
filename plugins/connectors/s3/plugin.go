@@ -83,7 +83,7 @@ func (p *Plugin) getBucketObjects(connector *common.Connector, datasource *commo
 		url := fmt.Sprintf("%s://%s.%s/%s", cfg.Schema(), cfg.Bucket, cfg.Endpoint, obj.Key)
 		idSuffix := fmt.Sprintf("%s-%s", cfg.Bucket, obj.Key)
 
-		doc := connectors.CreateDocumentWithHierarchy(connectors.TypeFile, connectors.TypeFile, title, url, int(obj.Size),
+		doc := connectors.CreateDocumentWithHierarchy(connectors.TypeFile, connectors.IconFolder, title, url, int(obj.Size),
 			parentCategoryArray, datasource, idSuffix)
 
 		// Initialize Metadata if it's nil

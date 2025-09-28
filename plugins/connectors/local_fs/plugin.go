@@ -153,7 +153,7 @@ func (p *Plugin) saveDocument(currentPath, basePath string, fileInfo os.FileInfo
 	modTime := fileInfo.ModTime()
 	doc := common.Document{
 		Source:   common.DataSourceReference{ID: datasource.ID, Type: "connector", Name: datasource.Name},
-		Type:     "file",
+		Type:     connectors.TypeFile,
 		Category: filepath.Dir(currentPath),
 		Content:  "", // skip content
 		URL:      currentPath,
@@ -165,8 +165,8 @@ func (p *Plugin) saveDocument(currentPath, basePath string, fileInfo os.FileInfo
 	}
 
 	if fileInfo.IsDir() {
-		doc.Icon = "folder"
-		doc.Type = "folder"
+		doc.Icon = connectors.IconFolder
+		doc.Type = connectors.TypeFolder
 	} else {
 		doc.Icon = "file"
 	}

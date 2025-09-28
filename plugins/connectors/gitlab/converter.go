@@ -96,7 +96,7 @@ func (p *Plugin) processProjects(ctx context.Context, client *gitlabv4.Client, c
 			}
 
 			// Track folders for hierarchy
-			folderTracker.TrackGitFolders(cfg.Owner, project.Name, contentTypes)
+			folderTracker.TrackGitFolders(project.Namespace.Name, project.Name, contentTypes)
 
 			// Index repository
 			repoDoc := p.transformProjectToDocument(project, datasource)

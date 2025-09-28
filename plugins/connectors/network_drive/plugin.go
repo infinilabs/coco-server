@@ -268,7 +268,7 @@ func (p *Plugin) saveFolder(folderPath string, datasource *common.DataSource, cf
 	url := fmt.Sprintf("//%s/%s/%s/", cfg.Endpoint, cfg.Share, folderPath)
 	idSuffix := fmt.Sprintf("%s-%s-folder-%s", cfg.Endpoint, cfg.Share, folderPath)
 
-	doc := connectors.CreateDocumentWithHierarchy(connectors.TypeFolder, connectors.TypeFolder, folderName, url, 0,
+	doc := connectors.CreateDocumentWithHierarchy(connectors.TypeFolder, connectors.IconFolder, folderName, url, 0,
 		parentCategoryArray, datasource, idSuffix)
 
 	p.saveDocument(doc, datasource)

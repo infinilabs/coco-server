@@ -16,8 +16,7 @@ import (
 const (
 	TypeFolder = "folder"
 	TypeFile   = "file"
-	TypeOrg    = "org"
-	TypeRepo   = "repository"
+	IconFolder = "font_filetype-folder"
 )
 
 // MarkParentFoldersAsValid marks all parent folders of a file path as containing matching files.
@@ -140,11 +139,11 @@ type GitFolder struct {
 
 var (
 	gitFolders = map[string]GitFolder{
-		"issue":         {Icon: "issue", Title: "Issues"},
-		"pull_request":  {Icon: "pull_request", Title: "Pull Requests"},
-		"merge_request": {Icon: "merge_request", Title: "Merge Requests"},
-		"wiki":          {Icon: "wiki", Title: "Wikis"},
-		"snippet":       {Icon: "snippet", Title: "Snippets"},
+		"issue":         {Icon: IconFolder, Title: "Issues"},
+		"pull_request":  {Icon: IconFolder, Title: "Pull Requests"},
+		"merge_request": {Icon: IconFolder, Title: "Merge Requests"},
+		"wiki":          {Icon: IconFolder, Title: "Wikis"},
+		"snippet":       {Icon: IconFolder, Title: "Snippets"},
 	}
 )
 
@@ -208,7 +207,7 @@ func (tracker *GitFolderTracker) CreateGitFolderDocuments(datasource *common.Dat
 	// Create organization/user folder documents (Level 1)
 	for owner := range tracker.Organizations {
 		idSuffix := fmt.Sprintf("git-folder-%s", owner)
-		doc := CreateDocumentWithHierarchy(TypeFolder, TypeOrg, owner, "", 0, nil, datasource, idSuffix)
+		doc := CreateDocumentWithHierarchy(TypeFolder, IconFolder, owner, "", 0, nil, datasource, idSuffix)
 		pushFunc(doc)
 	}
 
@@ -221,7 +220,7 @@ func (tracker *GitFolderTracker) CreateGitFolderDocuments(datasource *common.Dat
 		owner, repo := parts[0], parts[1]
 		idSuffix := fmt.Sprintf("git-folder-%s-%s", owner, repo)
 
-		doc := CreateDocumentWithHierarchy(TypeFolder, TypeRepo, repo, "", 0, []string{owner}, datasource, idSuffix)
+		doc := CreateDocumentWithHierarchy(TypeFolder, IconFolder, repo, "", 0, []string{owner}, datasource, idSuffix)
 		pushFunc(doc)
 	}
 
