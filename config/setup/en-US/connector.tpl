@@ -463,3 +463,33 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/o
   },
   "builtin": true
 }
+
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/salesforce
+{
+  "id" : "salesforce",
+  "created" : "2025-09-08T00:00:00.000000+08:00",
+  "updated" : "2025-09-08T00:00:00.000000+08:00",
+  "name" : "Salesforce Connector",
+  "description" : "Integrate with Salesforce to index and search data from your Salesforce org with intelligent field caching and query optimization.",
+  "category" : "crm",
+  "path_hierarchy" : true,
+  "icon" : "/assets/icons/connector/salesforce/icon.png",
+  "tags" : [
+    "crm",
+    "salesforce",
+    "business"
+  ],
+  "url" : "http://coco.rs/connectors/salesforce",
+  "assets" : {
+    "icons" : {
+      "account" : "/assets/icons/connector/salesforce/account.png",
+      "campaign" : "/assets/icons/connector/salesforce/campaign.png",
+      "case" : "/assets/icons/connector/salesforce/case.png",
+      "contact" : "/assets/icons/connector/salesforce/contact.png",
+      "default" : "/assets/icons/connector/salesforce/icon.png",
+      "lead" : "/assets/icons/connector/salesforce/lead.png",
+      "opportunity" : "/assets/icons/connector/salesforce/opportunity.png"
+    }
+  },
+  "builtin": true
+}
