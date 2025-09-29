@@ -119,6 +119,19 @@ type Config struct {
 	Profile            util.MapStr `config:"profile" json:"profile"`
 }
 
+// SearchContext holds parameters for recursive file search
+type SearchContext struct {
+	Token           string
+	FolderToken     string
+	DocTypes        []string
+	PageSize        int
+	DataSource      *common.DataSource
+	ParentPath      string
+	ParentPathArray []string
+	LastKnown       time.Time
+	LatestSeen      *time.Time
+}
+
 // Token represents the OAuth token response
 type Token struct {
 	Code                  int    `json:"code"`
@@ -138,6 +151,7 @@ func (this *Plugin) Setup() {
 }
 
 func (this *Plugin) Start() error {
+	log.Debug("starting feishu plugin")
 	return nil
 }
 
@@ -241,37 +255,41 @@ func (this *Plugin) fetchCloudDocs(connector *common.Connector, datasource *comm
 	// Incremental sync: get last modified time saved for this datasource
 	var lastKnown time.Time
 	if lastStr, _ := this.getLastModifiedTime(datasource.ID); lastStr != "" {
-		if t, err := time.Parse(time.RFC3339Nano, lastStr); err == nil {
-			lastKnown = t
-		} else if t2, err2 := time.Parse(time.RFC3339, lastStr); err2 == nil {
-			lastKnown = t2
-		}
+		lastKnown = getTime(lastStr)
+		// Add a small buffer to ensure we don't miss documents due to timing issues
+		lastKnown = lastKnown.Add(-1 * time.Minute)
 	}
-	lastKnown = time.Now().Add(-30000 * time.Hour)
 	var latestSeen time.Time
 
 	// Start recursive search from root
 	// Initialize path as "/" and categories as ["/"] to align with Google Drive behavior
-	this.searchFilesRecursively(token, "", docTypes, pageSize, datasource, "/", []string{"/"}, lastKnown, &latestSeen)
+	searchCtx := &SearchContext{
+		Token:           token,
+		FolderToken:     "",
+		DocTypes:        docTypes,
+		PageSize:        pageSize,
+		DataSource:      datasource,
+		ParentPath:      "/",
+		ParentPathArray: []string{},
+		LastKnown:       lastKnown,
+		LatestSeen:      &latestSeen,
+	}
+	this.searchFilesRecursively(searchCtx)
 
 	// Save last modified time for next incremental run
 	if !latestSeen.IsZero() {
-		_ = this.saveLastModifiedTime(datasource.ID, latestSeen.UTC().Format(time.RFC3339Nano))
+		_ = this.saveLastModifiedTime(datasource.ID, latestSeen.UTC().Format(time.RFC3339))
 	}
 
-	// Log sync completion for this datasource
 	log.Infof("[%s connector] sync completed for datasource: ID: %s, Name: %s", this.PluginType, datasource.ID, datasource.Name)
 }
 
 // searchFilesRecursively recursively searches for files in folders
-func (this *Plugin) searchFilesRecursively(
-	token, folderToken string, docTypes []string, pageSize int, datasource *common.DataSource,
-	parentPath string, parentPathArray []string, lastKnown time.Time, latestSeen *time.Time,
-) {
+func (this *Plugin) searchFilesRecursively(ctx *SearchContext) {
 
 	var nextPageToken string
 	for {
-		resBody, err := this.listFilesInFolder(token, folderToken, nextPageToken, pageSize)
+		resBody, err := this.listFilesInFolder(ctx.Token, ctx.FolderToken, nextPageToken, ctx.PageSize)
 		if err != nil {
 			_ = log.Errorf("[%s connector] list files in folder failed: %v", this.PluginType, err)
 			break
@@ -293,29 +311,73 @@ func (this *Plugin) searchFilesRecursively(
 			docType := getString(m, "type")
 
 			// Skip if not in supported document types
-			if !this.isSupportedDocumentType(docType, docTypes) {
+			if !this.isSupportedDocumentType(docType, ctx.DocTypes) {
 				continue
 			}
 
-			// If it's a folder, recursively search it and propagate the folder path
+			// If it's a folder, create directory document and recursively search it
 			if docType == "folder" {
-				if subFolderToken := getString(m, "token"); subFolderToken != "" {
+				if folderToken := getString(m, "token"); folderToken != "" {
 					// Build next path
 					folderName := getString(m, "name")
 					if folderName == "" {
 						folderName = getString(m, "title")
 					}
+					if folderName == "" {
+						continue
+					}
+
+					// Create folder directory document
+					folderDoc := common.CreateHierarchyPathFolderDoc(
+						ctx.DataSource,
+						folderToken,
+						folderName,
+						ctx.ParentPathArray,
+					)
+					folderDoc.URL = getString(m, "url")
+					folderDoc.Metadata = util.MapStr{
+						"folder_type":  "folder",
+						"folder_token": folderToken,
+						"platform":     string(this.PluginType),
+					}
+
+					// Add folder metadata
+					if createdTime := getString(m, "created_time"); createdTime != "" {
+						folderDoc.Metadata["created_time"] = createdTime
+					}
+					if modifiedTime := getString(m, "modified_time"); modifiedTime != "" {
+						folderDoc.Metadata["modified_time"] = modifiedTime
+					}
+
+					// Save folder directory to queue
+					dataBytes := util.MustToJSONBytes(&folderDoc)
+					if err := queue.Push(queue.SmartGetOrInitConfig(this.Queue), dataBytes); err != nil {
+						_ = log.Errorf("[%s connector] failed to push folder directory to queue: %v", this.PluginType, err)
+					}
+
 					// Compute new path string
 					var nextPath string
-					if parentPath == "" || parentPath == "/" {
+					if ctx.ParentPath == "" || ctx.ParentPath == "/" {
 						nextPath = "/" + folderName
 					} else {
-						nextPath = parentPath + "/" + folderName
+						nextPath = ctx.ParentPath + "/" + folderName
 					}
 					// Compute new path array (copy then append)
-					nextPathArray := append(append([]string(nil), parentPathArray...), folderName)
+					nextPathArray := append(append([]string(nil), ctx.ParentPathArray...), folderName)
 
-					this.searchFilesRecursively(token, subFolderToken, docTypes, pageSize, datasource, nextPath, nextPathArray, lastKnown, latestSeen)
+					// Create new context for recursive call
+					nextCtx := &SearchContext{
+						Token:           ctx.Token,
+						FolderToken:     folderToken,
+						DocTypes:        ctx.DocTypes,
+						PageSize:        ctx.PageSize,
+						DataSource:      ctx.DataSource,
+						ParentPath:      nextPath,
+						ParentPathArray: nextPathArray,
+						LastKnown:       ctx.LastKnown,
+						LatestSeen:      ctx.LatestSeen,
+					}
+					this.searchFilesRecursively(nextCtx)
 				}
 				continue
 			}
@@ -323,12 +385,12 @@ func (this *Plugin) searchFilesRecursively(
 			// Process document
 			doc := common.Document{
 				Source: common.DataSourceReference{
-					ID:   datasource.ID,
+					ID:   ctx.DataSource.ID,
 					Type: "connector",
-					Name: datasource.Name,
+					Name: ctx.DataSource.Name,
 				},
 			}
-			doc.System = datasource.System
+			doc.System = ctx.DataSource.System
 
 			// Extract document information
 			title := getString(m, "name")
@@ -337,22 +399,17 @@ func (this *Plugin) searchFilesRecursively(
 			}
 			doc.Title = title
 			doc.Type = docType
-			doc.Icon = "default"
+			doc.Icon = getIcon(docType)
 			doc.URL = getString(m, "url")
 
-			// Set path related fields
-			currPath := parentPath
-			if currPath == "" {
-				currPath = "/"
-			}
-			doc.Category = currPath
+			// Use GetFullPathForCategories to build hierarchy path
+			doc.Category = common.GetFullPathForCategories(ctx.ParentPathArray)
+			doc.Categories = ctx.ParentPathArray
+
 			if doc.System == nil {
 				doc.System = util.MapStr{}
 			}
-			doc.System["parent_path"] = currPath
-			if len(parentPathArray) > 0 {
-				doc.Categories = parentPathArray
-			}
+			doc.System[common.SystemHierarchyPathKey] = doc.Category
 
 			if ct := getTime(getString(m, "created_time")); !ct.IsZero() {
 				doc.Created = &ct
@@ -373,15 +430,16 @@ func (this *Plugin) searchFilesRecursively(
 			} else if doc.Created != nil {
 				updatedAt = *doc.Created
 			}
-			if !lastKnown.IsZero() && (updatedAt.IsZero() || !updatedAt.After(lastKnown)) {
+
+			// Only skip if we have a valid lastKnown time and the document is not newer
+			// This ensures we don't skip documents that might have been missed in previous syncs
+			if !ctx.LastKnown.IsZero() && !updatedAt.IsZero() && !updatedAt.After(ctx.LastKnown) {
 				continue
 			}
 
 			// Track latest seen modified time
-			if latestSeen != nil {
-				if latestSeen.IsZero() || updatedAt.After(*latestSeen) {
-					*latestSeen = updatedAt
-				}
+			if ctx.LatestSeen.IsZero() || updatedAt.After(*ctx.LatestSeen) {
+				*ctx.LatestSeen = updatedAt
 			}
 			// Content is not returned in search; keep metadata/payload
 			doc.Payload = m
@@ -394,7 +452,7 @@ func (this *Plugin) searchFilesRecursively(
 			if key == "" {
 				key = fmt.Sprintf("%d", i)
 			}
-			doc.ID = util.MD5digest(fmt.Sprintf("%v-%v-%v", datasource.Connector.ConnectorID, datasource.ID, key))
+			doc.ID = util.MD5digest(fmt.Sprintf("%v-%v-%v", ctx.DataSource.Connector.ConnectorID, ctx.DataSource.ID, key))
 
 			dataBytes := util.MustToJSONBytes(doc)
 			if global.Env().IsDebug {
@@ -529,8 +587,8 @@ func (this *Plugin) listFilesInFolder(tenantToken, folderToken, pageToken string
 	if pageToken != "" {
 		apiURL += "&page_token=" + url.QueryEscape(pageToken)
 	}
-	// Fixed ordering: EditedTime ASC
-	apiURL += "&order_by=EditedTime&direction=ASC"
+	// Fixed ordering: EditedTime DESC
+	apiURL += "&order_by=EditedTime&direction=DESC"
 
 	req := util.NewGetRequest(apiURL, nil)
 	req.AddHeader("Authorization", fmt.Sprintf("Bearer %s", tenantToken))
@@ -624,4 +682,14 @@ func getBool(m map[string]interface{}, key string) bool {
 		}
 	}
 	return false
+}
+
+// getIcon returns the appropriate icon for a Salesforce object type
+func getIcon(docType string) string {
+	switch docType {
+	case "doc", "sheet", "slides", "mindnote", "bitable", "file", "docx":
+		return docType
+	default:
+		return "default"
+	}
 }
