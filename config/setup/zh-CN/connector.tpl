@@ -383,7 +383,14 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/f
   "url": "http://coco.rs/connectors/feishu",
   "assets": {
     "icons": {
-      "default": "/assets/icons/connector/feishu/icon.png"
+      "default": "/assets/icons/connector/feishu/icon.png",
+      "doc": "/assets/icons/connector/feishu/doc.png",
+      "docx":  "/assets/icons/connector/feishu/docx.png",
+      "sheet": "/assets/icons/connector/feishu/sheet.png",
+      "mindnote": "/assets/icons/connector/feishu/mindnote.png",
+      "bitable": "/assets/icons/connector/feishu/bitable.png",
+      "file": "/assets/icons/connector/feishu/file.png",
+      "slides": "/assets/icons/connector/feishu/slides.png"
     }
   },
   "config": {
@@ -409,7 +416,14 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/l
   "url": "http://coco.rs/connectors/lark",
   "assets": {
     "icons": {
-      "default": "/assets/icons/connector/lark/icon.png"
+      "default": "/assets/icons/connector/lark/icon.png",
+      "doc": "/assets/icons/connector/lark/doc.png",
+      "docx":  "/assets/icons/connector/lark/docx.png",
+      "sheet": "/assets/icons/connector/lark/sheet.png",
+      "mindnote": "/assets/icons/connector/lark/mindnote.png",
+      "bitable": "/assets/icons/connector/lark/bitable.png",
+      "file": "/assets/icons/connector/lark/file.png",
+      "slides": "/assets/icons/connector/lark/slides.png"
     }
   },
   "config": {
