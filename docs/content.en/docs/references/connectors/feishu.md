@@ -17,6 +17,8 @@ The Feishu/Lark connector indexes cloud documents from Feishu and Lark, includin
 - 🔄 **Token Auto-refresh**: OAuth authentication supports automatic refresh of access_token and refresh_token
 - 🌐 **Dynamic Redirect**: Supports dynamic OAuth redirect URI construction for multi-environment deployment
 - 🏗️ **Unified Architecture**: Feishu and Lark share base implementation with 95% code reuse
+ - 📁 **Directory Access**: Hierarchical browsing based on Feishu's original folder structure; folder directories are created on-the-fly
+ - 🕒 **Incremental Sync**: Robust last-modified tracking with safety buffer to avoid edge misses
 
 ## Supported Platforms
 
@@ -403,6 +405,11 @@ The Feishu/Lark connector supports the following cloud document types:
 - **docx**: Word documents
 - **folder**: Folders (supports recursive search)
 - **shortcut**: Shortcuts (directly use API returned URLs)
+
+## Directory Access
+
+The connector keeps Feishu's native folder hierarchy and creates folder directory documents during traversal
+
 
 ## Usage Instructions
 
