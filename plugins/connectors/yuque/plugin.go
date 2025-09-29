@@ -6,6 +6,8 @@ package yuque
 
 import (
 	"context"
+	"time"
+
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/plugins/connectors"
@@ -18,7 +20,6 @@ import (
 	"infini.sh/framework/core/queue"
 	"infini.sh/framework/core/task"
 	"infini.sh/framework/core/util"
-	"time"
 )
 
 const YuqueKey = "yuque"
@@ -89,7 +90,7 @@ func (this *Plugin) Start() error {
 
 				q := orm.Query{}
 				q.Size = this.PageSize
-				q.Conds = orm.And(orm.Eq("connector.id", connector.ID), orm.Eq("sync_enabled", true))
+				q.Conds = orm.And(orm.Eq("connector.id", connector.ID), orm.Eq("sync.enabled", true))
 				var results []common.DataSource
 
 				err, _ = orm.SearchWithJSONMapper(&results, &q)

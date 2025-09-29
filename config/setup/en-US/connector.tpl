@@ -92,7 +92,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
   },
   "config": {
     "auth_url": "https://accounts.google.com/o/oauth2/auth",
-    "redirect_url": "$[[SETUP_SERVER_ENDPOINT]]/connector/google_drive/oauth_redirect",
+    "redirect_url": "$[[SETUP_SERVER_ENDPOINT]]connector/google_drive/oauth_redirect",
     "token_url": "https://oauth2.googleapis.com/token"
   },
   "builtin": true
@@ -152,6 +152,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/l
   "name" : "Local Filesystem Connector",
   "description" : "Scan and fetch metadata from local files.",
   "category" : "local_storage",
+  "path_hierarchy": true,
   "icon" : "/assets/icons/connector/local_fs/icon.png",
   "tags" : [
     "storage",
@@ -160,7 +161,8 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/l
   "url" : "http://coco.rs/connectors/local_fs",
   "assets" : {
     "icons" : {
-      "default" : "/assets/icons/connector/local_fs/icon.png"
+      "default" : "/assets/icons/connector/local_fs/icon.png",
+      "file" : "/assets/icons/connector/local_fs/file.png"
     }
   },
   "builtin": true
@@ -173,6 +175,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/s
   "name" : "S3 Storage Connector",
   "description" : "Fetch S3 Storage objects metadata.",
   "category" : "cloud_storage",
+  "path_hierarchy": true,
   "icon" : "/assets/icons/connector/s3/icon.png",
   "tags" : [
     "s3",
@@ -181,7 +184,8 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/s
   "url" : "http://coco.rs/connectors/s3",
   "assets" : {
     "icons" : {
-      "default" : "/assets/icons/connector/s3/icon.png"
+      "default" : "/assets/icons/connector/s3/icon.png",
+      "file" : "/assets/icons/connector/s3/file.png"
     }
   },
   "builtin": true
@@ -217,6 +221,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/n
   "name" : "Network Drive Connector",
   "description" : "Scan and extract metadata from network shared files.",
   "category" : "cloud_storage",
+  "path_hierarchy": true,
   "icon" : "/assets/icons/connector/network_drive/icon.png",
   "tags" : [
     "filesystem",
@@ -226,7 +231,8 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/n
   "url" : "http://coco.rs/connectors/network_drive",
   "assets" : {
     "icons" : {
-      "default" : "/assets/icons/connector/network_drive/icon.png"
+      "default" : "/assets/icons/connector/network_drive/icon.png",
+      "file" : "/assets/icons/connector/network_drive/file.png"
     }
   },
   "builtin": true
@@ -280,9 +286,10 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
   "id" : "github",
   "created" : "2025-08-25T00:00:00.000000+08:00",
   "updated" : "2025-08-25T00:00:00.000000+08:00",
-  "name" : "Github Connector",
-  "description" : "Fetch repositories, issues, and pull requests from Github.",
+  "name" : "GitHub Connector",
+  "description" : "Fetch repositories, issues, and pull requests from GitHub.",
   "category" : "website",
+  "path_hierarchy": true,
   "icon" : "/assets/icons/connector/github/icon.png",
   "tags" : [
     "git",
@@ -296,7 +303,8 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
       "default" : "/assets/icons/connector/github/icon.png",
       "repository" : "/assets/icons/connector/github/repository.png",
       "issue" : "/assets/icons/connector/github/issue.png",
-      "pull_request" : "/assets/icons/connector/github/pull_request.png"
+      "pull_request" : "/assets/icons/connector/github/pull_request.png",
+      "org" : "/assets/icons/connector/github/org.png"
     }
   },
   "builtin": true
@@ -309,6 +317,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
   "name" : "GitLab Connector",
   "description" : "Fetch repositories, issues, and merge requests from GitLub.",
   "category" : "website",
+  "path_hierarchy": true,
   "icon" : "/assets/icons/connector/gitlab/icon.png",
   "tags" : [
     "git",
@@ -324,7 +333,8 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
       "issue" : "/assets/icons/connector/gitlab/issue.png",
       "merge_request" : "/assets/icons/connector/gitlab/merge_request.png",
       "wiki" : "/assets/icons/connector/gitlab/wiki.png",
-      "snippet" : "/assets/icons/connector/gitlab/snippet.png"
+      "snippet" : "/assets/icons/connector/gitlab/snippet.png",
+      "org" : "/assets/icons/connector/gitlab/org.png"
     }
   },
   "builtin": true
@@ -337,6 +347,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
   "name" : "Gitea Connector",
   "description" : "Fetch repositories, issues, and pull requests from Gitea.",
   "category" : "website",
+  "path_hierarchy": true,
   "icon" : "/assets/icons/connector/gitea/icon.png",
     "tags" : [
     "git",
@@ -350,7 +361,8 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
       "default" : "/assets/icons/connector/gitea/icon.png",
       "repository" : "/assets/icons/connector/gitea/repository.png",
       "issue" : "/assets/icons/connector/gitea/issue.png",
-      "pull_request" : "/assets/icons/connector/gitea/pull_request.png"
+      "pull_request" : "/assets/icons/connector/gitea/pull_request.png",
+      "org" : "/assets/icons/connector/gitea/org.png"
     }
   },
   "builtin": true
@@ -404,6 +416,80 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/l
     "redirect_uri": "$[[SETUP_SERVER_ENDPOINT]]/connector/lark/oauth_redirect",
     "auth_url": "https://accounts.larksuite.com/open-apis/authen/v1/authorize",
     "token_url": "https://open.larksuite.com/open-apis/authen/v2/oauth/token"
+  },
+  "builtin": true
+}
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/mssql
+{
+  "id" : "mssql",
+  "created" : "2025-09-15T00:00:00.000000+08:00",
+  "updated" : "2025-09-15T00:00:00.000000+08:00",
+  "name" : "Microsoft SQL Server Connector",
+  "description" : "Fetch data from Microsoft SQL Server.",
+  "category" : "database",
+  "icon" : "/assets/icons/connector/mssql/icon.png",
+  "tags" : [
+    "sql",
+    "storage",
+    "database"
+  ],
+  "url" : "http://coco.rs/connectors/mssql",
+  "assets" : {
+    "icons" : {
+      "default" : "/assets/icons/connector/mssql/icon.png"
+    }
+  },
+  "builtin": true
+}
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/oracle
+{
+  "id" : "oracle",
+  "created" : "2025-09-19T00:00:00.000000+08:00",
+  "updated" : "2025-09-19T00:00:00.000000+08:00",
+  "name" : "Oracle Connector",
+  "description" : "Fetch data from Oracle.",
+  "category" : "database",
+  "icon" : "/assets/icons/connector/oracle/icon.png",
+  "tags" : [
+    "sql",
+    "storage",
+    "database"
+  ],
+  "url" : "http://coco.rs/connectors/oracle",
+  "assets" : {
+     "icons" : {
+        "default" : "/assets/icons/connector/oracle/icon.png"
+      }
+  },
+  "builtin": true
+}
+
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/salesforce
+{
+  "id" : "salesforce",
+  "created" : "2025-09-08T00:00:00.000000+08:00",
+  "updated" : "2025-09-08T00:00:00.000000+08:00",
+  "name" : "Salesforce Connector",
+  "description" : "Integrate with Salesforce to index and search data from your Salesforce org with intelligent field caching and query optimization.",
+  "category" : "crm",
+  "path_hierarchy" : true,
+  "icon" : "/assets/icons/connector/salesforce/icon.png",
+  "tags" : [
+    "crm",
+    "salesforce",
+    "business"
+  ],
+  "url" : "http://coco.rs/connectors/salesforce",
+  "assets" : {
+    "icons" : {
+      "account" : "/assets/icons/connector/salesforce/account.png",
+      "campaign" : "/assets/icons/connector/salesforce/campaign.png",
+      "case" : "/assets/icons/connector/salesforce/case.png",
+      "contact" : "/assets/icons/connector/salesforce/contact.png",
+      "default" : "/assets/icons/connector/salesforce/icon.png",
+      "lead" : "/assets/icons/connector/salesforce/lead.png",
+      "opportunity" : "/assets/icons/connector/salesforce/opportunity.png"
+    }
   },
   "builtin": true
 }

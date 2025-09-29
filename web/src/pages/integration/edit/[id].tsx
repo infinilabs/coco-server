@@ -53,12 +53,13 @@ export function Component() {
             />
           </Col>
           <Col flex="1">
-            <InsertCode
-              id={data?._source?.id}
-              token={data?._source?.token}
-              type={data?._source?.type === 'fullscreen' ? 'fullscreen' : 'searchbox'}
-              enabled={data?._source?.enabled}
-            />
+            {
+              data && (
+                <InsertCode
+                  { ...(data?._source || {})}
+                />
+              )
+            }
           </Col>
         </Row>
       </ACard>

@@ -4,15 +4,10 @@ import { Button, Form, Input, Radio, Select, Spin, Switch } from "antd";
 import { useRequest, useLoading } from '@sa/hooks';
 import { fetchDataSourceList } from "@/service/api";
 import './EditForm.css';
+import { generateRandomString } from "@/utils/common";
 
-function generateRandomString(size) {
-  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-  for (let i = 0; i < size; i++) {
-    const randomIndex = Math.floor(Math.random() * characters.length);
-    result += characters.charAt(randomIndex);
-  }
-  return result;
+export function isFullscreen(type) {
+  return ['page', 'modal', 'fullscreen'].includes(type)
 }
 
 export const EditForm = memo(props => {
@@ -72,14 +67,13 @@ export const EditForm = memo(props => {
 
   const handleSubmit = async () => {
     const params = await form.validateFields();
-    const { mode, cors = {}, enabled_module = {}, start_page = {}, payload = {} } = params;
+    const { searchbox_mode, fullscreen_mode, cors = {}, enabled_module = {}, start_page = {}, payload = {} } = params;
     const { search = {}, ai_chat = {} } = enabled_module
     const { datasource = [] } = search
     const { assistants = [] } = ai_chat
     const { ai_overview = {}, ai_widgets = {} } = payload
     onSubmit(type === 'fullscreen' ? {
         ...params,
-        type: 'fullscreen',
         enabled_module: {
           search: {
             ...search,
@@ -115,6 +109,7 @@ export const EditForm = memo(props => {
           ...cors,
           allowed_origins: cors.allowed_origins?.trim() ? cors.allowed_origins.trim().split(',') : []
         },
+        type: fullscreen_mode
       } : {
         ...params,
         enabled_module: {
@@ -140,7 +135,7 @@ export const EditForm = memo(props => {
           ...cors,
           allowed_origins: cors.allowed_origins?.trim() ? cors.allowed_origins.trim().split(',') : []
         },
-        type: mode
+        type: searchbox_mode
       },
       startLoading,
       endLoading
@@ -148,8 +143,8 @@ export const EditForm = memo(props => {
   };
 
   const initValue = (record) => {
-    setType(record?.type === 'fullscreen' ? 'fullscreen': 'searchbox')
-    if (record?.type === 'fullscreen') {
+    setType(isFullscreen(record?.type) ? 'fullscreen': 'searchbox')
+    if (isFullscreen(record?.type)) {
       if (record) {
         setSearchLogos((state) => ({ ...state, ...(record.payload?.logo || {}) }))
         setAIOverviewLogo((state) => ({ ...state, ...(record.payload?.ai_overview?.logo || {}) }))
@@ -197,6 +192,7 @@ export const EditForm = memo(props => {
               allowed_origins: record.cors?.allowed_origins ? record.cors?.allowed_origins.join(',') : ''
             },
             type: 'fullscreen',
+            fullscreen_mode: ['page', 'modal'].includes(record?.type) ? record?.type :  'page'
           }
         : {
             access_control: {
@@ -231,6 +227,7 @@ export const EditForm = memo(props => {
             name: `widget-${generateRandomString(8)}`,
             enabled: true,
             type: 'fullscreen',
+            fullscreen_mode: 'page'
           }
       setEnabledList({
         search: true,
@@ -279,7 +276,7 @@ export const EditForm = memo(props => {
               })) : []
             },
             type: 'searchbox',
-            mode: ['embedded', 'floating', 'all'].includes(record?.type) ? record?.type : 'embedded'
+            searchbox_mode: ['embedded', 'floating', 'all'].includes(record?.type) ? record?.type : 'embedded'
           }
         : {
             access_control: {
@@ -313,7 +310,7 @@ export const EditForm = memo(props => {
               floating_placeholder: 'Ask AI'
             },
             type: 'searchbox',
-            mode: 'embedded'
+            searchbox_mode: 'embedded'
           };
       setEnabledList({
         search: initValue.enabled_module?.search?.enabled,
@@ -383,13 +380,7 @@ export const EditForm = memo(props => {
           (
             type === 'searchbox' ? (
               <SearchBoxForm 
-                {...props} 
-                type={type} 
-                setType={setType} 
-                form={form} 
-                loading={loading} 
-                startLoading={startLoading} 
-                endLoading={endLoading}
+                record={record}
                 startPagelogos={startPagelogos}
                 setStartPagelogos={setStartPagelogos}
                 assistants={assistants}
@@ -401,13 +392,6 @@ export const EditForm = memo(props => {
               />
             ) : (
               <FullscreenForm 
-                {...props} 
-                type={type} 
-                setType={setType} 
-                form={form} 
-                loading={loading} 
-                startLoading={startLoading}
-                endLoading={endLoading}
                 searchLogos={searchLogos}
                 setSearchLogos={setSearchLogos}
                 aiOverviewLogo={aiOverviewLogo}

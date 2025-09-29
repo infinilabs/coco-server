@@ -93,7 +93,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         scheduled_sync: 'Scheduled Sync',
         scheduled_sync_desc: 'Sync at fixed intervals',
         site_urls: 'Site URLs',
-        sync_enabled: 'Sync Enabled',
+        sync_enabled: 'Sync',
         type: 'Type',
         folder_paths: 'Folder paths',
         file_extensions: 'File extensions (optional)'
@@ -295,6 +295,8 @@ const page: App.I18n.Schema['translation']['page'] = {
         mode_floating: 'Floating',
         mode_floating_placeholder: 'Floating widget placeholder text',
         mode_floating_icon: 'Floating widget icon',
+        mode_page: 'Page',
+        mode_modal: 'Modal',
       },
       title: {
         edit: 'Edit Integration',
@@ -386,6 +388,13 @@ const page: App.I18n.Schema['translation']['page'] = {
           introduction_placeholder: 'Enter the welcome text or AI tool introduction displayed on the start page (within 60 characters)',
           assistant: 'AI Assistant Display',
         }
+      }
+    },
+    search_settings: {
+      title: "Search Settings",
+      labels: {
+        enabled: 'Enabled',
+        integration: 'Integration',
       }
     },
     setupLater: 'Set Up Later'

@@ -1,0 +1,35 @@
+import { createSlice } from '@reduxjs/toolkit';
+import type { PayloadAction } from '@reduxjs/toolkit';
+
+import { localStg } from '@/utils/storage';
+
+interface InitialStateType {
+  providerInfo: any;
+}
+
+const initialState: InitialStateType = {
+  providerInfo: {}
+};
+
+export const serverSlice = createSlice({
+  initialState,
+  name: 'server',
+  reducers: {
+    setProviderInfo(state, { payload }: PayloadAction<any>) {
+      state.providerInfo = payload;
+      localStg.set('providerInfo', payload);
+    },
+  },
+  selectors: {
+    getProviderInfo: app => app.providerInfo,
+  }
+});
+// Action creators are generated for each case reducer function.
+export const {
+  setProviderInfo,
+} = serverSlice.actions;
+
+// Selectors returned by `slice.selectors` take the root state as their first argument.
+export const {
+  getProviderInfo,
+} = serverSlice.selectors;

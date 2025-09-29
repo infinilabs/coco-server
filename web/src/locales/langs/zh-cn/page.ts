@@ -91,7 +91,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         scheduled_sync: '定时同步',
         scheduled_sync_desc: '每隔固定时间同步一次',
         site_urls: '站点地址',
-        sync_enabled: '是否启用同步',
+        sync_enabled: '启用同步',
         type: '数据源类型',
         folder_paths: '文件夹路径',
         file_extensions: '文件扩展名（可选）'
@@ -270,7 +270,9 @@ const page: App.I18n.Schema['translation']['page'] = {
       },
       tooltip: {
         connection_uri: {
+          mssql: 'Microsoft SQL Server 连接字符串，例如：sqlserver://user:password@host:1433/database',
           mysql: 'MySQL 连接字符串，例如：mysql://user:password@tcp(localhost:3306)/database',
+          oracle: 'Oracle 连接字符串，例如：oracle://user:password@host:1521/service_name',
           postgresql: 'PostgreSQL 连接字符串，例如：postgresql://user:password@localhost:5432/database?sslmode=disable'
         },
         last_modified_field: '对于增量同步，请指定一个跟踪最后修改时间的字段（例如，updated_at）。该字段的类型应该是时间戳或日期时间。',
@@ -390,6 +392,8 @@ const page: App.I18n.Schema['translation']['page'] = {
         mode_floating: '浮动的',
         mode_floating_placeholder: '浮动组件提示文本',
         mode_floating_icon: '浮动组件图标',
+        mode_page: '全屏页面',
+        mode_modal: '全屏弹框',
       },
       title: {
         edit: '编辑嵌入组件',
@@ -479,6 +483,13 @@ const page: App.I18n.Schema['translation']['page'] = {
           introduction_placeholder: '输入显示在起始页面上的欢迎文本或人工智能工具介绍（60 字符以内）',
           assistant: 'AI 助手展示',
         }
+      }
+    },
+    search_settings: {
+      title: "搜索设置",
+      labels: {
+        enabled: '启用状态',
+        integration: '组件',
       }
     },
     setupLater: '稍后设置'

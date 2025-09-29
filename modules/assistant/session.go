@@ -192,7 +192,7 @@ func (h APIHandler) createChatSession(w http.ResponseWriter, r *http.Request, ps
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	session, err, reqMsg, finalResult := CreateAndSaveNewChatMessage(id, &request, true)
+	session, err, reqMsg, finalResult := CreateAndSaveNewChatMessage(r, id, &request, true)
 	if err != nil {
 		h.Error(w, err)
 		return
@@ -240,11 +240,13 @@ func (h APIHandler) createChatSession(w http.ResponseWriter, r *http.Request, ps
 	_ = h.processMessageAsync(ctx, reqMsg, params, streamSender)
 }
 
-func CreateAndSaveNewChatMessage(assistantID string, req *common.MessageRequest, visible bool) (common.Session, error, *common.ChatMessage, util.MapStr) {
+func CreateAndSaveNewChatMessage(request *http.Request, assistantID string, req *common.MessageRequest, visible bool) (common.Session, error, *common.ChatMessage, util.MapStr) {
 
 	//if !rate.GetRateLimiterPerSecond("assistant_new_chat", clientIdentity, 10).Allow() {
 	//	panic("too many requests")
 	//}
+	ctx := orm.NewContextWithParent(request.Context())
+	ctx.Refresh = orm.WaitForRefresh
 
 	obj := common.Session{
 		Status:  "active",
@@ -256,7 +258,7 @@ func CreateAndSaveNewChatMessage(assistantID string, req *common.MessageRequest,
 	}
 
 	//save session
-	err := orm.Create(nil, &obj)
+	err := orm.Create(ctx, &obj)
 	if err != nil {
 		return common.Session{}, err, nil, nil
 	}
@@ -270,7 +272,7 @@ func CreateAndSaveNewChatMessage(assistantID string, req *common.MessageRequest,
 	var firstMessage *common.ChatMessage
 	//save first message to history
 	if req != nil && !req.IsEmpty() {
-		firstMessage, err = saveRequestMessage(obj.ID, assistantID, req)
+		firstMessage, err = saveRequestMessage(ctx, obj.ID, assistantID, req)
 		if err != nil {
 			return common.Session{}, err, nil, nil
 		}
@@ -303,7 +305,7 @@ func (h *APIHandler) askAssistant(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
-	session, err, reqMsg, finalResult := CreateAndSaveNewChatMessage(id, &request, false)
+	session, err, reqMsg, finalResult := CreateAndSaveNewChatMessage(r, id, &request, false)
 	if err != nil || reqMsg == nil {
 		h.Error(w, err)
 		return
@@ -339,7 +341,7 @@ func (h *APIHandler) askAssistant(w http.ResponseWriter, r *http.Request, ps htt
 
 }
 
-func saveRequestMessage(sessionID, assistantID string, req *common.MessageRequest) (*common.ChatMessage, error) {
+func saveRequestMessage(ctx *orm.Context, sessionID, assistantID string, req *common.MessageRequest) (*common.ChatMessage, error) {
 
 	if sessionID == "" || assistantID == "" || req.IsEmpty() {
 		panic("invalid chat message")
@@ -356,7 +358,7 @@ func saveRequestMessage(sessionID, assistantID string, req *common.MessageReques
 
 	msg.Parameters = util.MapStr{}
 
-	if err := orm.Create(nil, msg); err != nil {
+	if err := orm.Create(ctx, msg); err != nil {
 		return nil, err
 	}
 	return msg, nil
@@ -470,6 +472,9 @@ func (h APIHandler) cancelReplyMessage(w http.ResponseWriter, req *http.Request,
 func (h APIHandler) sendChatMessageV2(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	sessionID := ps.MustGetParameter("session_id")
 
+	ormCtx := orm.NewContextWithParent(r.Context())
+	ormCtx.Refresh = orm.WaitForRefresh
+
 	id := h.GetParameterOrDefault(r, "assistant_id", DefaultAssistantID)
 
 	assistant, exists, err := common.GetAssistant(r, id)
@@ -488,7 +493,7 @@ func (h APIHandler) sendChatMessageV2(w http.ResponseWriter, r *http.Request, ps
 		return
 	}
 
-	reqMsg, err := saveRequestMessage(sessionID, id, &request)
+	reqMsg, err := saveRequestMessage(ormCtx, sessionID, id, &request)
 	if err != nil {
 		h.Error(w, err)
 		return

@@ -1,8 +1,9 @@
-import { ChatMessage } from "../ChatMessage";
 import { useEffect, useRef, useState } from "react";
 import { Sparkles } from "lucide-react";
 import clsx from "clsx";
 import { X } from "lucide-react";
+
+import { ChatMessage } from "../ChatMessage";
 
 const AIOverview = (props) => {
   const { config = {}, data, loading, visible, setVisible } = props;
@@ -19,40 +20,44 @@ const AIOverview = (props) => {
   const handleScroll = () => {
     const div = divRef.current;
     if (div) {
-      const isNearBottom = 
+      const isNearBottom =
         div.scrollHeight - div.scrollTop <= div.clientHeight + 100;
-      
+
       setShouldScroll(isNearBottom);
     }
   };
 
-  if (!data || !data.response || !visible) return null
+  if (!data || !data.response || !visible) return null;
 
   return (
     <div
-      className={`flex flex-col gap-2 relative px-4 py-3 rounded-[4px] text-[#333]  bg-white shadow-[0_4px_8px_rgba(0,0,0,0.1)] dark:shadow-[0_4px_20px_rgba(255,255,255,0.2)]`}
+      className={`flex flex-col gap-2 relative p-4 rounded-3 text-[#333]  bg-white shadow-[0_4px_8px_rgba(0,0,0,0.1)] dark:shadow-[0_4px_20px_rgba(255,255,255,0.2)]`}
       style={{
-        maxHeight: config.height ? config.height : "auto"
+        maxHeight: config.height ? config.height : "auto",
       }}
     >
       <div
-          className="absolute top-2 right-2 flex items-center justify-center size-[20px] border rounded-md cursor-pointer dark:border-[#282828]"
-          onClick={() => {
-            setVisible(false);
-          }}
-        >
+        className="absolute top-2 right-2 flex items-center justify-center size-[20px] border rounded-md cursor-pointer dark:border-[#282828]"
+        onClick={() => {
+          setVisible(false);
+        }}
+      >
         <X className="size-4" />
       </div>
-      {
-        config.title && (
-          <div className="flex item-center gap-1">
-            { config.logo?.light ? <img src={config.logo.light} className="size-4" /> : <Sparkles className="size-4 text-[#881c94]" /> }
-            { config.title && <span className="text-xs font-semibold">{config.title}</span> }
-          </div>
-        )
-      }
+      {config.title && (
+        <div className="flex item-center gap-1">
+          {config.logo?.light ? (
+            <img src={config.logo.light} className="size-4" />
+          ) : (
+            <Sparkles className="size-4 text-[#881c94]" />
+          )}
+          {config.title && (
+            <span className="text-xs font-semibold">{config.title}</span>
+          )}
+        </div>
+      )}
 
-      <div 
+      <div
         ref={divRef}
         onScroll={handleScroll}
         className="flex-1 overflow-auto text-sm"

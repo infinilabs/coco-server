@@ -1,10 +1,7 @@
+import logo from '@/assets/svg-icon/logo-dark.svg';
+
 const DarkSystemLogo = () => {
-  return (
-    <SvgIcon
-      className="h-full w-full"
-      localIcon="logo-dark"
-    />
-  );
+  return <img className="h-full w-full" src={logo} />;
 };
 
 export default DarkSystemLogo;

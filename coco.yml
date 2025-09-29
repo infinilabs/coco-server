@@ -384,6 +384,21 @@ connector:
     interval: 30s
     queue:
       name: indexing_documents
+  mssql:
+    enabled: true
+    interval: 30s
+    queue:
+      name: indexing_documents
+  oracle:
+    enabled: true
+    interval: 30s
+    queue:
+      name: indexing_documents
+  salesforce:
+    enabled: true
+    interval: 30s
+    queue:
+      name: indexing_documents
 
 ##background jobs
 pipeline:

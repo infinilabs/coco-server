@@ -88,16 +88,17 @@ func getRootFolderID(srv *drive.Service) (string, string) {
 }
 
 type FolderNode struct {
-	ID            string
-	Name          string
-	ParentID      string
-	Shared        bool
-	HasACL        bool
-	Processed     bool
-	Permissions   []*drive.Permission
-	FullPath      string
-	FullPathArray []string
-	ModifiedTime  string
+	ID              string
+	Name            string
+	ParentID        string
+	Shared          bool
+	HasACL          bool
+	Processed       bool
+	Permissions     []*drive.Permission
+	FullPath        string
+	FullPathArray   []string
+	ParentPathArray []string // Path without self (parent folders only)
+	ModifiedTime    string
 }
 
 type FolderTreeBuilder struct {
@@ -226,10 +227,6 @@ func isSamePermission(a, b []*drive.Permission) bool {
 	return true
 }
 
-func getDocID(datasourceID, docID string) string {
-	return util.MD5digest(fmt.Sprintf("%v_%v", datasourceID, docID))
-}
-
 func (this *Plugin) startIndexingFiles(connector *common.Connector, datasource *common.DataSource, tok *oauth2.Token) {
 	var filesProcessed = 0
 	defer func() {
@@ -263,11 +260,14 @@ func (this *Plugin) startIndexingFiles(connector *common.Connector, datasource *
 	// Init root folder
 	// /My Drive
 	rootFolderID, rootFolderName := getRootFolderID(srv)
-	rootDoc := this.initRootFolder(datasource, rootFolderID, rootFolderName)
+	rootDoc := common.CreateHierarchyPathFolderDoc(datasource, rootFolderID, rootFolderName, []string{})
+	rootDoc.URL = fmt.Sprintf("https://drive.google.com/file/d/%s/view", rootFolderID)
 	this.saveDocToQueue(rootDoc, filesProcessed)
 
 	// /Shared with me
-	shareWithMe := this.initRootFolder(datasource, "share_with_me", "Shared with me")
+	shareWithMe := common.CreateHierarchyPathFolderDoc(datasource, "share_with_me", "Shared with me", []string{})
+	rootDoc.URL = fmt.Sprintf("https://drive.google.com/file/d/%s/view", "share_with_me")
+
 	this.saveDocToQueue(shareWithMe, filesProcessed)
 
 	ft := &FolderTreeBuilder{FolderMap: map[string]*FolderNode{}}
@@ -312,7 +312,9 @@ func (this *Plugin) startIndexingFiles(connector *common.Connector, datasource *
 
 			parent := ""
 			if len(i.Parents) > 0 {
-				parent = i.Parents[0]
+				if i.Id != parent {
+					parent = i.Parents[0]
+				}
 			}
 			shared := meta.Shared
 			hasACL := checkExplicit(meta.Permissions)
@@ -334,15 +336,31 @@ func (this *Plugin) startIndexingFiles(connector *common.Connector, datasource *
 			return
 		}
 
-		var parts []string
+		// Build full path array (including self)
+		var fullParts []string
 		curr := node
 		for curr != nil {
-			parts = append([]string{curr.Name}, parts...)
+			fullParts = append([]string{curr.Name}, fullParts...)
 			curr = ft.FolderMap[curr.ParentID]
 		}
-		node.FullPathArray = parts
-		node.FullPath = "/" + strings.Join(parts, "/")
-		log.Debug("node: ", node.Name, ", parent:", parts)
+		node.FullPathArray = fullParts
+
+		// Build parent path array (excluding self)
+		var parentParts []string
+		curr = ft.FolderMap[node.ParentID] // Start from parent, not self
+		for curr != nil {
+			parentParts = append([]string{curr.Name}, parentParts...)
+			curr = ft.FolderMap[curr.ParentID]
+		}
+		node.ParentPathArray = parentParts
+
+		folderDoc := common.CreateHierarchyPathFolderDoc(datasource, node.ID, node.Name, parentParts)
+		rootDoc.URL = fmt.Sprintf("https://drive.google.com/file/d/%s/view", node.ID)
+
+		node.FullPath = "/" + strings.Join(fullParts, "/")
+
+		this.saveDocToQueue(folderDoc, filesProcessed)
+
 		parent, ok := ft.FolderMap[node.ParentID]
 		if ok && isSamePermission(node.Permissions, parent.Permissions) {
 		} else {
@@ -436,7 +454,7 @@ func (this *Plugin) startIndexingFiles(connector *common.Connector, datasource *
 			panic(err)
 		}
 
-		log.Debugf("fetched %v files", len(r.Files))
+		log.Tracef("fetched %v files", len(r.Files))
 
 		// Process files in the current page
 		for _, i := range r.Files {
@@ -489,46 +507,42 @@ func (this *Plugin) startIndexingFiles(connector *common.Connector, datasource *
 			}
 
 			document.System = datasource.System
-			document.ID = getDocID(datasource.ID, i.Id)
+			document.ID = common.GetDocID(datasource.ID, i.Id)
 			document.Created = createdAt
 			document.Updated = updatedAt
 
-			var parentCategory string
 			var parentCategoryArray []string
 			var parentPermissions []*drive.Permission
 			if i.Parents != nil && len(i.Parents) == 1 {
 				v, ok := ft.FolderMap[i.Parents[0]]
-				parentPermissions = v.Permissions
-				if ok {
-					parentCategory = v.FullPath
-					parentCategoryArray = v.FullPathArray
-					log.Tracef("file: %v, full path: %v", i.Name, v.FullPath)
+				if ok && v != nil {
+					parentPermissions = v.Permissions
+					if ok {
+						parentCategoryArray = v.FullPathArray
+						log.Tracef("file: %v, full path: %v", i.Name, v.FullPath)
+					}
 				}
-
 			} else {
 				if i.Shared {
-					parentCategory = "/Shared with me"
+					parentCategoryArray = []string{"Shared with me"}
 				} else {
-					parentCategory = "/"
 					parentCategoryArray = []string{"/"}
 				}
 			}
 
-			if parentCategory != "" {
-				document.Category = parentCategory
+			if len(parentCategoryArray) > 0 {
+				path := common.GetFullPathForCategories(parentCategoryArray)
+				document.Category = path
+				document.Categories = parentCategoryArray
 				if document.System == nil {
 					document.System = util.MapStr{}
 				}
-				document.System["parent_path"] = parentCategory
+				document.System[common.SystemHierarchyPathKey] = path
 			} else {
 				log.Warnf("empty category, file: %v,  parents: %v", i.Name, i.Parents)
 			}
 
-			if len(parentCategoryArray) > 0 {
-				document.Categories = parentCategoryArray
-			}
-
-			log.Trace(parentCategory, " // ", document.Title)
+			log.Trace(document.Category, " // ", document.Categories, " // ", document.Title)
 
 			meta := util.MapStr{
 				"batch_number":   batchNumber,
@@ -615,6 +629,9 @@ func (this *Plugin) startIndexingFiles(connector *common.Connector, datasource *
 }
 
 func (this *Plugin) saveDocToQueue(document common.Document, filesProcessed int) {
+
+	log.Debugf("save file: %v, %v, %v, %v, %v", document.ID, document.Category, document.Categories, document.Type, document.Title)
+
 	// Convert to JSON and push to queue
 	data := util.MustToJSONBytes(document)
 	if global.Env().IsDebug {

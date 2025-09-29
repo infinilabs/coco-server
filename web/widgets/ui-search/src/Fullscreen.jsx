@@ -1,18 +1,19 @@
-import BasicLayout from './Layout';
-import SearchBox from './SearchBox';
-import Logo from './Logo';
-import Aggregations from './Aggregations';
-import ResultHeader from './ResultHeader';
-import { LIST_TYPES } from './ResultList';
-import './Fullscreen.css';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { formatESResult } from './utils/es';
-import Welcome from './Welcome';
-import AIOverviewWrapper from './AIOverview/AIOverviewWrapper';
+import { useEffect, useMemo, useRef, useState } from "react";
+
+import BasicLayout from "./Layout";
+import SearchBox from "./SearchBox";
+import Logo from "./Logo";
+import Aggregations from "./Aggregations";
+import ResultHeader from "./ResultHeader";
+import { LIST_TYPES } from "./ResultList";
+import { formatESResult } from "./utils/es";
+import Welcome from "./Welcome";
+import AIOverviewWrapper from "./AIOverview/AIOverviewWrapper";
 
 function generateRandomString(size) {
-  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
+  const characters =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let result = "";
   for (let i = 0; i < size; i++) {
     const randomIndex = Math.floor(Math.random() * characters.length);
     result += characters.charAt(randomIndex);
@@ -20,123 +21,173 @@ function generateRandomString(size) {
   return result;
 }
 
-const rootID = generateRandomString(16)
+const rootID = generateRandomString(16);
 
 const Fullscreen = (props) => {
-
-  const { 
-    logo = {}, 
+  const {
+    logo = {},
     placeholder,
     welcome,
-    type, 
+    type,
     aiOverview,
     widgets = [],
     onSearch,
     onAsk,
     config = {},
-    root
+    root,
+    isFirst = false,
+    rightMenuWidth,
+    queryParams = {},
+    setQueryParams,
   } = props;
 
-  const [currentQuery, setCurrentQuery] = useState({
-    from: 0,
-    size: 10,
-    filters: {}
-  })
-  const [result, setResult] = useState(formatESResult())
-  const [askBody, setAskBody] = useState()
-  const [loading, setLoading] = useState(false)
+  const [result, setResult] = useState(formatESResult());
+  const [askBody, setAskBody] = useState();
+  const [loading, setLoading] = useState(false);
 
   const [isMobile, setIsMobile] = useState(false);
-
-  const [isFirst, setIsFirst] = useState(true);
-  const isFirstRef = useRef(true);
+  const shouldAskRef = useRef(true);
 
   const handleSearch = (query, shouldAsk) => {
-    setCurrentQuery({
+    shouldAskRef.current = shouldAsk;
+    setQueryParams({
       ...query,
-      _t: shouldAsk ? new Date().valueOf() : query._t
-    })
-    if (isFirstRef.current) {
-      setIsFirst(false)
-      isFirstRef.current = false
-    }
-    const shouldAgg = query.filters && Object.keys(query.filters).length === 0
-    onSearch(query, (res) => {
-      let rs
-      if (res && !res.error) {
-        rs = formatESResult(res);
-        setResult((os) => ({
-          ...rs,
-          aggregations: res?.aggregations ? rs.aggregations : os.aggregations
-        }))
-      } else {
-        setResult()
-      }
-      if (shouldAsk) {
-        setAskBody({
-          message: JSON.stringify({
-            query: query.keyword,
-            result: rs.hits
-          }),
-          _t: new Date().valueOf()
-        })
-      }
-    }, setLoading, shouldAgg)
-  }
+      t: new Date().valueOf(),
+    });
+  };
 
   useEffect(() => {
     const checkScreenSize = () => {
       setIsMobile(window.innerWidth < 768);
     };
-    
+
     checkScreenSize();
-    window.addEventListener('resize', checkScreenSize);
-    
-    return () => window.removeEventListener('resize', checkScreenSize);
+    window.addEventListener("resize", checkScreenSize);
+
+    return () => window.removeEventListener("resize", checkScreenSize);
   }, []);
 
   useEffect(() => {
-    window.onsearch = (keyword) => handleSearch({...currentQuery, from: 0, keyword}, true)
-    return () => {
-      window.onsearch = undefined
+    if (queryParams.query) {
+      const shouldAgg =
+        queryParams.filter && Object.keys(queryParams.filter).length === 0;
+      onSearch(
+        queryParams,
+        (res) => {
+          let rs;
+          if (res && !res.error) {
+            rs = formatESResult(res);
+            setResult((os) => ({
+              ...rs,
+              aggregations: res?.aggregations
+                ? rs.aggregations
+                : os.aggregations,
+            }));
+          } else {
+            setResult(formatESResult());
+          }
+          if (shouldAskRef.current) {
+            shouldAskRef.current = false;
+            setAskBody({
+              message: JSON.stringify({
+                query: queryParams.query,
+                result: rs.hits,
+              }),
+              t: new Date().valueOf(),
+            });
+          }
+        },
+        setLoading,
+        shouldAgg,
+      );
     }
-  }, [currentQuery])
+  }, [queryParams]);
+
+  useEffect(() => {
+    window.onsearch = (query) =>
+      handleSearch({ ...queryParams, from: 0, query }, true);
+    return () => {
+      window.onsearch = undefined;
+    };
+  }, [queryParams]);
 
   const listType = useMemo(() => {
-    if (!LIST_TYPES || LIST_TYPES.length === 0) return undefined
-    return LIST_TYPES.find((item) => item.type === type) || LIST_TYPES[0]
-  }, [type])
+    if (!LIST_TYPES || LIST_TYPES.length === 0) return undefined;
+    return LIST_TYPES.find((item) => item.type === type) || LIST_TYPES[0];
+  }, [type]);
 
-  const commonProps = { isMobile }
+  const commonProps = { isMobile };
 
-  const { keyword, from, size, filters } = currentQuery;
+  const { query, from, size, filter } = queryParams;
 
-  const { hits, aggregations } = result
+  const { hits, aggregations } = result;
 
   return (
     <BasicLayout
       rootID={rootID}
       isFirst={isFirst}
       loading={loading}
-      logo={<Logo isFirst={isFirst} {...commonProps} {...logo}/>}
+      logo={<Logo isFirst={isFirst} {...commonProps} {...logo} />}
       welcome={welcome ? <Welcome {...commonProps} text={welcome} /> : null}
-      searchbox={<SearchBox {...commonProps} placeholder={placeholder} keyword={keyword} onSearch={(keyword) => handleSearch({...currentQuery, from: 0, keyword}, true)}/>}
-      aggregations={<Aggregations {...commonProps} config={config.aggregations} aggregations={aggregations} filters={filters} onSearch={(filters) => handleSearch({...currentQuery, filters})}/>}
-      resultHeader={<ResultHeader hits={hits} {...commonProps}/>}
-      aiOverview={aiOverview?.enabled ? <AIOverviewWrapper askBody={askBody} config={aiOverview} onAsk={onAsk}/> : null}
-      resultList={listType ? <listType.component {...commonProps} getDetailContainer={() => root.getElementById(rootID)} from={from} size={size} hits={hits} onSearch={(from, size) => handleSearch({...currentQuery, from, size })}/> : null}
-      widgets={(
-        <>
-          {
-            widgets.map((item, index) => (
-              <AIOverviewWrapper key={index} askBody={askBody} config={item} onAsk={onAsk}/>
-            ))
+      searchbox={
+        <SearchBox
+          {...commonProps}
+          placeholder={placeholder}
+          query={query}
+          onSearch={(query) =>
+            handleSearch({ ...queryParams, from: 0, query }, true)
           }
+        />
+      }
+      rightMenuWidth={rightMenuWidth}
+      aggregations={
+        <Aggregations
+          {...commonProps}
+          config={config.aggregations}
+          aggregations={aggregations}
+          filter={filter}
+          onSearch={(filter) => handleSearch({ ...queryParams, filter })}
+        />
+      }
+      resultHeader={<ResultHeader hits={hits} {...commonProps} />}
+      aiOverview={
+        !aiOverview?.enabled ? (
+          <AIOverviewWrapper
+            askBody={askBody}
+            config={aiOverview}
+            onAsk={onAsk}
+          />
+        ) : null
+      }
+      resultList={
+        listType ? (
+          <listType.component
+            {...commonProps}
+            getDetailContainer={() => root.getElementById(rootID)}
+            from={from}
+            size={size}
+            hits={hits}
+            query={query}
+            onSearch={(from, size) =>
+              handleSearch({ ...queryParams, from, size })
+            }
+          />
+        ) : null
+      }
+      widgets={
+        <>
+          {widgets.map((item, index) => (
+            <AIOverviewWrapper
+              key={index}
+              askBody={askBody}
+              config={item}
+              onAsk={onAsk}
+            />
+          ))}
         </>
-      )}
+      }
       {...commonProps}
-    >
-    </BasicLayout>
+    ></BasicLayout>
   );
 };
 
