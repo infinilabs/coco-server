@@ -121,12 +121,11 @@ func TestBuildFilter(t *testing.T) {
 		Filter: map[string]interface{}{
 			"status": "published",
 		},
-		TimestampField: "updated_at",
 	}
 
 	// Create a mock datasource
 	datasource := &common.DataSource{
-		ID: "test_datasource",
+		Name: "test_datasource",
 	}
 
 	filter := p.buildFilter(config, collConfig, datasource)
@@ -153,8 +152,8 @@ func TestValidateConfig(t *testing.T) {
 		{
 			name: "valid_config",
 			config: &Config{
-				Host:     "localhost",
-				Database: "test",
+				ConnectionURI: "mongodb://localhost:27017",
+				Database:      "test",
 				Collections: []CollectionConfig{
 					{Name: "collection1"},
 				},
@@ -162,9 +161,8 @@ func TestValidateConfig(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "missing_host_and_uri",
+			name: "missing_uri_and_database",
 			config: &Config{
-				Database: "test",
 				Collections: []CollectionConfig{
 					{Name: "collection1"},
 				},
@@ -174,7 +172,7 @@ func TestValidateConfig(t *testing.T) {
 		{
 			name: "missing_database",
 			config: &Config{
-				Host: "localhost",
+				ConnectionURI: "mongodb://localhost:27017",
 				Collections: []CollectionConfig{
 					{Name: "collection1"},
 				},
@@ -184,17 +182,17 @@ func TestValidateConfig(t *testing.T) {
 		{
 			name: "no_collections",
 			config: &Config{
-				Host:        "localhost",
-				Database:    "test",
-				Collections: []CollectionConfig{},
+				ConnectionURI: "mongodb://localhost:27017",
+				Database:      "test",
+				Collections:   []CollectionConfig{},
 			},
 			wantErr: true,
 		},
 		{
 			name: "collection_without_name",
 			config: &Config{
-				Host:     "localhost",
-				Database: "test",
+				ConnectionURI: "mongodb://localhost:27017",
+				Database:      "test",
 				Collections: []CollectionConfig{
 					{Name: ""},
 				},
@@ -227,21 +225,25 @@ func TestTransformToDocument(t *testing.T) {
 	}
 
 	collConfig := CollectionConfig{
-		Name:           "articles",
-		TitleField:     "title",
-		ContentField:   "content",
-		CategoryField:  "category",
-		TagsField:      "tags",
-		URLField:       "url",
-		TimestampField: "updated_at",
+		Name: "articles",
 	}
 
 	datasource := &common.DataSource{
 		Name: "Test MongoDB",
 	}
 
-	config := &Config{}
-	doc, err := p.transformToDocument(mongoDoc, collConfig, datasource, config)
+	config := &Config{
+		FieldMapping: &FieldMappingConfig{
+			Enabled:        true,
+			TitleField:     "title",
+			ContentField:   "content",
+			CategoryField:  "category",
+			TagsField:      "tags",
+			URLField:       "url",
+			TimestampField: "updated_at",
+		},
+	}
+	doc, err := p.transformToDocument(mongoDoc, &collConfig, datasource, config)
 	if err != nil {
 		t.Fatalf("transformToDocument() error = %v", err)
 	}
@@ -284,70 +286,43 @@ func TestTransformToDocument(t *testing.T) {
 	}
 }
 
-func TestBuildConnectionURI(t *testing.T) {
-	p := &Plugin{}
-
+func TestConnectionURIConfig(t *testing.T) {
 	tests := []struct {
 		name     string
 		config   *Config
-		expected string
+		wantErr  bool
 	}{
 		{
-			name: "basic_connection",
+			name: "basic_connection_uri",
 			config: &Config{
-				ConnectionURI: "mongodb://localhost:27017/testdb",
+				ConnectionURI: "mongodb://localhost:27017",
 				Database:      "testdb",
+				Collections: []CollectionConfig{
+					{Name: "test_collection"},
+				},
 			},
-			expected: "mongodb://localhost:27017/testdb",
+			wantErr: false,
 		},
 		{
-			name: "with_auth",
+			name: "connection_uri_with_auth",
 			config: &Config{
-				Host:     "localhost",
-				Port:     27017,
-				Username: "user",
-				Password: "pass",
-				Database: "testdb",
+				ConnectionURI: "mongodb://user:pass@localhost:27017",
+				Database:      "testdb",
+				AuthDatabase:  "admin",
+				Collections: []CollectionConfig{
+					{Name: "test_collection"},
+				},
 			},
-			expected: "mongodb://user:pass@localhost:27017/testdb",
-		},
-		{
-			name: "with_replica_set",
-			config: &Config{
-				Host:       "localhost",
-				Port:       27017,
-				Database:   "testdb",
-				ReplicaSet: "rs0",
-			},
-			expected: "mongodb://localhost:27017/testdb?replicaSet=rs0",
-		},
-		{
-			name: "with_auth_database",
-			config: &Config{
-				Host:         "localhost",
-				Port:         27017,
-				Database:     "testdb",
-				AuthDatabase: "admin",
-			},
-			expected: "mongodb://localhost:27017/testdb?authSource=admin",
-		},
-		{
-			name: "with_tls",
-			config: &Config{
-				Host:      "localhost",
-				Port:      27017,
-				Database:  "testdb",
-				EnableTLS: true,
-			},
-			expected: "mongodb://localhost:27017/testdb?ssl=true",
+			wantErr: false,
 		},
 	}
 
+	p := &Plugin{}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := p.buildConnectionURI(tt.config)
-			if result != tt.expected {
-				t.Errorf("Expected %s, got %s", tt.expected, result)
+			err := p.validateConfig(tt.config)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("validateConfig() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

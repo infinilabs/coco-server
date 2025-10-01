@@ -86,15 +86,18 @@ func TestMongoDBIntegration(t *testing.T) {
 		BatchSize:     10,  
 		MaxPoolSize:   5,  
 		Timeout:       "10s",  
+		FieldMapping: &FieldMappingConfig{
+			Enabled:        true,
+			TitleField:     "title",
+			ContentField:   "content",
+			CategoryField:  "category",
+			TagsField:      "tags",
+			URLField:       "url",
+			TimestampField: "updated_at",
+		},
 		Collections: []CollectionConfig{  
 			{  
-				Name:           testCollection,  
-				TitleField:     "title",  
-				ContentField:   "content",  
-				CategoryField:  "category",  
-				TagsField:      "tags",  
-				URLField:       "url",  
-				TimestampField: "updated_at",  
+				Name: testCollection,  
 				Filter: map[string]interface{}{  
 					"status": "published",  
 				},  
@@ -124,22 +127,21 @@ func TestMongoDBIntegration(t *testing.T) {
 		t.Errorf("Expected 2 documents, got %v", stats["documentCount"])  
 	}  
 	  
-	// Test document scanning  
-	testCollection := mongoClient.Database(testDB).Collection(testCollection)
+	// Test document scanning
+	datasource := &common.DataSource{  
+		Name: "Test MongoDB Integration",  
+	}
+	
+	collection := mongoClient.Database(testDB).Collection(testCollection)
 	filter := plugin.buildFilter(config, config.Collections[0], datasource)
 	  
-	cursor, err := testCollection.Find(context.Background(), filter)  
+	cursor, err = collection.Find(context.Background(), filter)  
 	if err != nil {  
 		t.Fatalf("Failed to query collection: %v", err)  
 	}  
 	defer cursor.Close(context.Background())  
 	  
-	datasource := &common.DataSource{  
-		ID:   "test-datasource",  
-		Name: "Test MongoDB Integration",  
-	}  
-	  
-	documents := plugin.processCursor(cursor, config.Collections[0], datasource)  
+	documents := plugin.processCursor(cursor, config.Collections[0], datasource, config)  
 	  
 	if len(documents) != 2 {  
 		t.Errorf("Expected 2 documents, got %d", len(documents))  

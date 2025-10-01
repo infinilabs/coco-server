@@ -18,7 +18,7 @@ import (
 	"infini.sh/framework/core/util"
 )
 
-func (p *Plugin) processCursor(cursor *mongo.Cursor, collConfig CollectionConfig, datasource *common.DataSource) []*common.Document {
+func (p *Plugin) processCursor(cursor *mongo.Cursor, collConfig CollectionConfig, datasource *common.DataSource, config *Config) []*common.Document {
 	var documents []*common.Document
 	count := 0
 	maxBatchSize := 1000 // Prevent memory overflow
@@ -37,7 +37,7 @@ func (p *Plugin) processCursor(cursor *mongo.Cursor, collConfig CollectionConfig
 			continue
 		}
 
-		doc, err := p.transformToDocument(mongoDoc, &collConfig, config)
+		doc, err := p.transformToDocument(mongoDoc, &collConfig, datasource, config)
 		if err != nil {
 			log.Warnf("[mongodb connector] transform document failed: %v", err)
 			continue
@@ -51,7 +51,7 @@ func (p *Plugin) processCursor(cursor *mongo.Cursor, collConfig CollectionConfig
 }
 
 // transformToDocument transforms a MongoDB document to a common Document
-func (p *Plugin) transformToDocument(mongoDoc bson.M, collConfig *CollectionConfig, config *Config) (*common.Document, error) {
+func (p *Plugin) transformToDocument(mongoDoc bson.M, collConfig *CollectionConfig, datasource *common.DataSource, config *Config) (*common.Document, error) {
 	doc := &common.Document{}
 
 	// Extract MongoDB ObjectID
@@ -66,6 +66,9 @@ func (p *Plugin) transformToDocument(mongoDoc bson.M, collConfig *CollectionConf
 	} else {
 		doc.ID = objectID.Hex()
 	}
+
+	// Set document type
+	doc.Type = ConnectorMongoDB
 
 	// Apply field mapping configuration
 	p.applyFieldMapping(doc, mongoDoc, config)

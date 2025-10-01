@@ -6,18 +6,12 @@ package mongodb
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
-	"os"
-	"path/filepath"
-	"strings"
 	"time"
 
 	log "github.com/cihub/seelog"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/global"
 )
@@ -36,7 +30,7 @@ func (p *Plugin) scanCollectionWithContext(ctx context.Context, client *mongo.Cl
 
 	// Create sync strategy
 	strategyFactory := &SyncStrategyFactory{}
-	strategy := strategyFactory.CreateStrategy(config.SyncStrategy)
+	_ = strategyFactory.CreateStrategy(config.SyncStrategy) // strategy created but managed internally
 	strategyName := strategyFactory.GetStrategyName(config.SyncStrategy)
 
 	log.Infof("[mongodb connector] starting %s sync for collection [%s] in datasource [%s]", 
@@ -64,34 +58,34 @@ func (p *Plugin) scanCollectionWithContext(ctx context.Context, client *mongo.Cl
 		findOptions.SetBatchSize(int32(config.BatchSize))
 	}
 
-	// Set projection if fields are specified in collection config and projection is enabled
+	// Set projection if fields are specified in field mapping config and projection is enabled
 	// This enables projection pushdown for better performance
-	if config.EnableProjection && (collConfig.TitleField != "" || collConfig.ContentField != "" ||
-		collConfig.CategoryField != "" || collConfig.TagsField != "" ||
-		collConfig.URLField != "" || collConfig.TimestampField != "") {
+	if config.EnableProjection && config.FieldMapping != nil && (config.FieldMapping.TitleField != "" || config.FieldMapping.ContentField != "" ||
+		config.FieldMapping.CategoryField != "" || config.FieldMapping.TagsField != "" ||
+		config.FieldMapping.URLField != "" || config.FieldMapping.TimestampField != "") {
 		projection := bson.D{}
 
 		// Always include _id field for document identification
 		projection = append(projection, bson.E{Key: "_id", Value: 1})
 
 		// Add configured fields to projection
-		if collConfig.TitleField != "" {
-			projection = append(projection, bson.E{Key: collConfig.TitleField, Value: 1})
+		if config.FieldMapping.TitleField != "" {
+			projection = append(projection, bson.E{Key: config.FieldMapping.TitleField, Value: 1})
 		}
-		if collConfig.ContentField != "" {
-			projection = append(projection, bson.E{Key: collConfig.ContentField, Value: 1})
+		if config.FieldMapping.ContentField != "" {
+			projection = append(projection, bson.E{Key: config.FieldMapping.ContentField, Value: 1})
 		}
-		if collConfig.CategoryField != "" {
-			projection = append(projection, bson.E{Key: collConfig.CategoryField, Value: 1})
+		if config.FieldMapping.CategoryField != "" {
+			projection = append(projection, bson.E{Key: config.FieldMapping.CategoryField, Value: 1})
 		}
-		if collConfig.TagsField != "" {
-			projection = append(projection, bson.E{Key: collConfig.TagsField, Value: 1})
+		if config.FieldMapping.TagsField != "" {
+			projection = append(projection, bson.E{Key: config.FieldMapping.TagsField, Value: 1})
 		}
-		if collConfig.URLField != "" {
-			projection = append(projection, bson.E{Key: collConfig.URLField, Value: 1})
+		if config.FieldMapping.URLField != "" {
+			projection = append(projection, bson.E{Key: config.FieldMapping.URLField, Value: 1})
 		}
-		if collConfig.TimestampField != "" {
-			projection = append(projection, bson.E{Key: collConfig.TimestampField, Value: 1})
+		if config.FieldMapping.TimestampField != "" {
+			projection = append(projection, bson.E{Key: config.FieldMapping.TimestampField, Value: 1})
 		}
 
 		// Add any additional fields specified in the filter for proper filtering
@@ -128,7 +122,7 @@ func (p *Plugin) scanCollectionWithContext(ctx context.Context, client *mongo.Cl
 			return err
 		}
 
-		documents := p.processCursor(cursor, collConfig, datasource)
+		documents := p.processCursor(cursor, collConfig, datasource, config)
 		cursor.Close(ctx)
 
 		if len(documents) == 0 {
@@ -172,12 +166,12 @@ func (p *Plugin) buildFilter(config *Config, collConfig CollectionConfig, dataso
 }
 
 func (p *Plugin) optimizeQuery(findOptions *options.FindOptions, collConfig CollectionConfig, config *Config) {
-	// Set read concern level
-	findOptions.SetReadConcern(readconcern.Local())
+	// Set read concern level (removed SetReadConcern as it's not available in newer driver versions)
+	// The default read concern is used
 
 	// If there's a timestamp field and index hints are enabled, suggest using related index
-	if config.EnableIndexHint && collConfig.TimestampField != "" {
-		findOptions.SetHint(bson.D{{Key: collConfig.TimestampField, Value: 1}})
+	if config.EnableIndexHint && config.FieldMapping != nil && config.FieldMapping.TimestampField != "" {
+		findOptions.SetHint(bson.D{{Key: config.FieldMapping.TimestampField, Value: 1}})
 	}
 }
 

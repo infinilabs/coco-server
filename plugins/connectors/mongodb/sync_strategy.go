@@ -6,7 +6,6 @@ package mongodb
 
 import (
 	"go.mongodb.org/mongo-driver/bson"
-	"time"
 
 	log "github.com/cihub/seelog"
 )
