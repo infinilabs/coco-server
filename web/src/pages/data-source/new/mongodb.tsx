@@ -1,9 +1,9 @@
-import { Form, Input, InputNumber, Switch, Select, Space, Button } from 'antd';
+import { Button, Form, Input, InputNumber, Select, Space, Switch } from 'antd';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MinusCircleOutlined, PlusOutlined } from '@ant-design/icons';
 
-import { FieldMapping } from './FieldMapping';
+import { FieldMapping } from '../modules/FieldMapping';
 
 const { Option } = Select;
 

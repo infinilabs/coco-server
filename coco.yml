@@ -298,7 +298,7 @@ web:
           profile_url: "http://localhost:9000/account/profile"
           redirect_url: "http://localhost:9001/sso/callback/cloud"
           success_page: "/#/home"
-#          failed_page: "/#/user/sso/failed"
+          failed_page: "/#/login"
           scopes: [ "openid","email","profile"]
 
 
@@ -354,6 +354,21 @@ connector:
     interval: 30s
     queue:
       name: indexing_documents
+  postgresql:
+    enabled: true
+    interval: 30s
+    queue:
+      name: indexing_documents
+  mysql:
+    enabled: true
+    interval: 30s
+    queue:
+      name: indexing_documents
+  github:
+    enabled: true
+    interval: 30s
+    queue:
+      name: indexing_documents
 
 ##background jobs
 pipeline:
@@ -370,7 +385,7 @@ pipeline:
             group: enriched_documents
             fetch_max_messages: 10
           processor:
-            - document_enrichment:
+            - document_summarization:
                 model: $[[env.ENRICHMENT_MODEL]]
                 input_queue: "indexing_documents"
                 min_input_document_length: 500

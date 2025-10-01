@@ -102,6 +102,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     file_paths_add: '添加文件路径',
     commons: {
       error: {
+        datasource_name_required: '请输入数据源名称',
         extensions_format: '文件扩展名无效。请使用 pdf 或 .pdf 等格式，且仅包含字母和数字'
       }
     },
@@ -153,6 +154,27 @@ const page: App.I18n.Schema['translation']['page'] = {
         username: '用于身份验证的用户名。如果使用匿名访问或个人访问令牌，可以留空'
       }
     },
+    github: {
+      error: {
+        owner_required: '请输入代码库拥有者',
+        repo_required: '请输入仓库名称',
+        token_required: '请输入个人访问令牌'
+      },
+      labels: {
+        index_issues: '索引 issues',
+        index_pull_requests: '索引 pull requests',
+        owner: '代码库拥有者',
+        repos: '代码库名称',
+        token: '个人访问令牌'
+      },
+      tooltip: {
+        index_issues: '是否索引 issues',
+        index_pull_requests: '是否索引 pull requests',
+        owner: '代码库所属的用户名或组织名称',
+        repos: '要索引的代码仓库。默认为空，表示索引所有的代码库',
+        token: '需要具有“repo”范围的 GitHub 个人访问令牌 (PAT)。'
+      }
+    },
     network_drive: {
       error: {
         endpoint_format: '格式无效，请使用 "host:port" 或 "[ipv6]:port"',
@@ -178,6 +200,51 @@ const page: App.I18n.Schema['translation']['page'] = {
         password: '用于网络驱动器身份验证的密码',
         share: '您要扫描的网络驱动器共享名称',
         username: '用于网络驱动器身份验证的用户名'
+      }
+    },
+    rdbms: {
+      error: {
+        connection_uri_required: '请输入连接地址！',
+        page_size_required: '请输入页面大小！',
+        sql_required: '请输入 SQL 查询！'
+      },
+      labels: {
+        connection_uri: '连接地址',
+        data_processing: '数据加工',
+        dest_field: '目标字段',
+        field_mapping: '字段映射',
+        last_modified_field: '最后修改字段 (可选)',
+        page_size: '页面大小',
+        pagination: '启用分页',
+        sql: 'SQL 查询',
+        src_field: '源字段'
+      },
+      placeholder: {
+        field_name: '字段名',
+        metadata_name: '元数据名称',
+        payload_name: '载荷名称'
+      },
+      titles: {
+        last_updated_by: '最后更新者',
+        metadata: '元数据',
+        owner: '所有者',
+        payload: '载荷'
+      },
+      tooltip: {
+        connection_uri: {
+          mysql: 'MySQL 连接字符串，例如：mysql://user:password@tcp(localhost:3306)/database',
+          postgresql: 'PostgreSQL 连接字符串，例如：postgresql://user:password@localhost:5432/database?sslmode=disable'
+        },
+        last_modified_field: '对于增量同步，请指定一个跟踪最后修改时间的字段（例如，updated_at）。该字段的类型应该是时间戳或日期时间。',
+        page_size: '每页要获取的记录数。',
+        pagination: '如果数据库查询应该分页，请启用此选项。建议对大型表使用此选项。',
+        sql: '用于获取数据的 SQL 查询。'
+      },
+      validation: {
+        field_name_required: '请输入字段名',
+        metadata_name_required: '请输入名称',
+        payload_name_required: '请输入名称',
+        required: '请输入 {{field}}'
       }
     }
   },

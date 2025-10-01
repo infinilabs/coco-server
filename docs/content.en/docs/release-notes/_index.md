@@ -9,12 +9,18 @@ Information about release notes of Coco Server is provided here.
 
 ## Latest (In development)  
 ### ❌ Breaking changes  
+- chore: update yuque's document id #473
+
 ### 🚀 Features  
+- feat: handle path_hierarchy config for document search #486
+
 ### 🐛 Bug fix  
 - fix: correct assistant update logic
 - fix: generate unique icon key to prevent accidental deletion of all icons
+
 ### ✈️ Improvements  
 - chore: remove unused websocket api #443
+- chore: add missing root folders for gdrive #483
 
 ## 0.7.0 (2025-07-25)
 ### ❌ Breaking changes  
@@ -32,6 +38,9 @@ Information about release notes of Coco Server is provided here.
 - feat: confluence wiki connector #31
 - feat: extract content for notion connector #70
 - feat: network storage connector #461
+- feat: postgresql connector #476
+- feat: mysql connector #489
+- feat: github connector #492
 
 ### 🐛 Bug fix  
 - fix: query parameter "filter" is not working

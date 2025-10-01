@@ -13,14 +13,18 @@ PREFER_MANAGED_VENDOR=fase
 
 include ../framework/Makefile
 
+
+init-web-env:
+	#nvm use 18
+
 build-web:
 	(cd web && pnpm install &&  pnpm run build)
 
-build-widget:
-	(cd web/widgets/searchbox && pnpm install && pnpm run build:server)
-	(cd web/widgets/fullscreen && pnpm install && pnpm run build:server)
+build-widget: init-web-env
+	(cd web/widgets/searchbox && pnpm install . && pnpm run build:server)
+	(cd web/widgets/fullscreen && pnpm install . && pnpm run build:server)
 
-build-all:
+build-all: init-web-env
 	(rm -rif .public/)
 	make build-web
 	make build-widget

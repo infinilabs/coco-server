@@ -9,8 +9,6 @@ import (
 	"fmt"
 	"time"
 
-	"log"
-
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"infini.sh/framework/core/global"
 )
@@ -132,18 +130,4 @@ func (p *Plugin) shouldStop() bool {
 	default:
 		return global.ShuttingDown()
 	}
-}
-
-func (p *Plugin) updateLastSyncTime(datasourceID string, collectionName string) {
-	// This would typically save to a persistent store
-	// For now, we'll use a simple in-memory approach
-	now := time.Now()
-	log.Infof("[mongodb connector] updated last sync time for datasource %s, collection %s: %v",
-		datasourceID, collectionName, now)
-}
-
-func (p *Plugin) getLastSyncTime(datasourceID string, collectionName string) time.Time {
-	// This would typically load from a persistent store
-	// For now, return zero time to do full sync
-	return time.Time{}
 }

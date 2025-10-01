@@ -5,7 +5,6 @@
 package datasource
 
 import (
-	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
@@ -66,6 +65,7 @@ func (h *APIHandler) deleteDatasource(w http.ResponseWriter, req *http.Request, 
 	obj := common.DataSource{}
 	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
+	ctx.Refresh = orm.WaitForRefresh
 
 	exists, err := orm.GetV2(ctx, &obj)
 	if err != nil {
@@ -79,35 +79,34 @@ func (h *APIHandler) deleteDatasource(w http.ResponseWriter, req *http.Request, 
 		return
 	}
 
-	ctx.Refresh = orm.WaitForRefresh
+	// clear cache
+	common.ClearDatasourcesCache()
+	common.ClearDatasourceCache(obj.ID)
+
+	//deleting related documents
+	builder, err := orm.NewQueryBuilderFromRequest(req)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	builder.Filter(orm.TermQuery("source.id", id))
+
+	ctx1 := orm.NewContextWithParent(req.Context())
+	orm.WithModel(ctx1, &common.Document{})
+
+	_, err = orm.DeleteByQuery(ctx1, builder)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	err = orm.Delete(ctx, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	// clear cache
-	common.ClearDatasourcesCache()
-	common.ClearDatasourceCache(obj.ID)
-
-	// deleting related documents
-	query := util.MapStr{
-		"query": util.MapStr{
-			"term": util.MapStr{
-				"source.id": id,
-			},
-		},
-	}
-	err = orm.DeleteBy(&common.Document{}, util.MustToJSONBytes(query))
-	if err != nil {
-
-		_ = log.Errorf("delete related documents with datasource [%s] error: %v", obj.Name, err)
-	}
-
-	h.WriteJSON(w, util.MapStr{
-		"_id":    obj.ID,
-		"result": "deleted",
-	}, 200)
+	h.WriteDeletedOKJSON(w, obj.ID)
 }
 
 func (h *APIHandler) getDatasource(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {

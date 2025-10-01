@@ -14,6 +14,8 @@ type Connector struct {
 	Tags        []string `json:"tags,omitempty" elastic_mapping:"tags:{type:keyword,copy_to:combined_fulltext}"`            // Tags or keywords associated with the document, for easier retrieval
 	URL         string   `json:"url,omitempty" elastic_mapping:"url:{enabled:false}"`                                       // Direct link to the document, if available
 
+	PathHierarchy bool `json:"path_hierarchy" elastic_mapping:"path_hierarchy:{type:boolean}"` // Support access docs via path hierarchy manner
+
 	Assets struct {
 		Icons map[string]string `json:"icons,omitempty" elastic_mapping:"icons:{enabled:false}"` //icon_key -> URL
 	} `json:"assets,omitempty" elastic_mapping:"assets:{enabled:false}"`

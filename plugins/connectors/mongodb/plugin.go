@@ -20,10 +20,11 @@ const ConnectorMongoDB = "mongodb"
 
 type Plugin struct {
 	connectors.BasePlugin
-	mu      sync.RWMutex
-	ctx     context.Context
-	cancel  context.CancelFunc
-	clients map[string]*mongo.Client
+	mu          sync.RWMutex
+	ctx         context.Context
+	cancel      context.CancelFunc
+	clients     map[string]*mongo.Client
+	syncManager *SyncManager
 }
 
 func init() {
@@ -43,6 +44,7 @@ func (p *Plugin) Start() error {
 	defer p.mu.Unlock()
 	p.ctx, p.cancel = context.WithCancel(context.Background())
 	p.clients = make(map[string]*mongo.Client)
+	p.syncManager = NewSyncManager()
 	return p.BasePlugin.Start(connectors.DefaultSyncInterval)
 }
 
@@ -109,23 +111,33 @@ func (p *Plugin) Scan(connector *common.Connector, datasource *common.DataSource
 		return
 	}
 
-	scanCtx, scanCancel := context.WithCancel(parentCtx)
-	defer scanCancel()
-
-	// Concurrent scanning of multiple collections
-	var wg sync.WaitGroup
+	// Simple sequential scanning for each collection
+	// Since the connector is already wrapped in a background task, we use simple implementation
 	for _, collConfig := range config.Collections {
 		if global.ShuttingDown() {
+			log.Debugf("[mongodb connector] shutting down, stopping scan for collection [%s]", collConfig.Name)
 			break
 		}
 
-		wg.Add(1)
-		go func(collConfig CollectionConfig) {
-			defer wg.Done()
-			p.scanCollectionWithContext(scanCtx, client, config, collConfig, datasource)
-		}(collConfig)
+		// Check if context is cancelled
+		select {
+		case <-parentCtx.Done():
+			log.Debugf("[mongodb connector] context cancelled, stopping scan for collection [%s]", collConfig.Name)
+			return
+		default:
+		}
+
+		log.Debugf("[mongodb connector] scanning collection [%s]", collConfig.Name)
+
+		// Execute collection scanning
+		if err := p.scanCollectionWithContext(parentCtx, client, config, collConfig, datasource); err != nil {
+			log.Errorf("[mongodb connector] failed to scan collection [%s]: %v", collConfig.Name, err)
+			// Continue with next collection instead of failing completely
+			continue
+		}
+
+		log.Debugf("[mongodb connector] successfully scanned collection [%s]", collConfig.Name)
 	}
-	wg.Wait()
 
 	log.Infof("[mongodb connector] finished scanning datasource [%s]", datasource.Name)
 }
