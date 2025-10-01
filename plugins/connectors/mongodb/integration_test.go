@@ -131,7 +131,7 @@ func TestMongoDBIntegration(t *testing.T) {
 	datasource := &common.DataSource{  
 		Name: "Test MongoDB Integration",  
 	}
-	
+
 	var cursor *mongo.Cursor
 	collection := mongoClient.Database(testDB).Collection(testCollection)
 	filter := plugin.buildFilter(config, config.Collections[0], datasource)
