@@ -187,7 +187,7 @@ const CustomCode = forwardRef((props, ref) => {
 function escapeBrackets(text) {
   const pattern =
     /(```[\s\S]*?```|`.*?`)|\\\[([\s\S]*?[^\\])\\\]|\\\((.*?)\\\)/g;
-  return text.replace(
+  return text?.replace(
     pattern,
     (match, codeBlock, squareBracket, roundBracket) => {
       if (codeBlock) {
@@ -206,13 +206,13 @@ function escapeBrackets(text) {
 function tryWrapHtmlCode(text) {
   // try add wrap html code (fixed: html codeblock include 2 newline)
   return text
-    .replace(
+    ?.replace(
       /([`]*?)(\w*?)([\n\r]*?)(<!DOCTYPE html>)/g,
       (match, quoteStart, doctype) => {
         return !quoteStart ? "\n```html\n" + doctype : match;
       }
     )
-    .replace(
+    ?.replace(
       /(<\/body>)([\r\n\s]*?)(<\/html>)([\n\r]*)([`]*)([\n\r]*?)/g,
       (match, bodyEnd, space, htmlEnd, quoteEnd) => {
         return !quoteEnd ? bodyEnd + space + htmlEnd + "\n```\n" : match;

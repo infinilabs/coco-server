@@ -20,7 +20,7 @@ export function renameKeysWithLevels<T extends Record<any, any>>(object: T, pref
   return Object.keys(object).reduce((acc, key) => {
     const result: any = acc;
     if (key.startsWith(prefix)) {
-      const newKey = key.replace(prefix, '');
+      const newKey = key?.replace(prefix, '');
       result[newKey] = object[key];
     } else {
       result[key] = object[key];
@@ -146,8 +146,8 @@ export function getHighlightedValue<T extends Record<any, any>>(object: T, prope
  **/
 export function replaceHtmlTagsToHighlight(str: string) {
   return str
-    .replace(/<em>/g, '<span class="infini__searchbox-modal-search-hits-item--highlight">')
-    .replace(/<\/em>/g, '</span>');
+    ?.replace(/<em>/g, '<span class="infini__searchbox-modal-search-hits-item--highlight">')
+    ?.replace(/<\/em>/g, '</span>');
 }
 
 /*
