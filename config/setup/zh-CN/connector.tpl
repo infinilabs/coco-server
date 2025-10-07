@@ -152,6 +152,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/l
   "name" : "本地文件连接器",
   "description" : "提取本地文件元数据信息。",
   "category" : "local_storage",
+  "path_hierarchy": true,
   "icon" : "/assets/icons/connector/local_fs/icon.png",
   "tags" : [
     "storage",
@@ -160,7 +161,8 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/l
   "url" : "http://coco.rs/connectors/local_fs",
   "assets" : {
     "icons" : {
-      "default" : "/assets/icons/connector/local_fs/icon.png"
+      "default" : "/assets/icons/connector/local_fs/icon.png",
+      "file" : "/assets/icons/connector/local_fs/file.png"
     }
   },
   "builtin": true
@@ -173,6 +175,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/s
   "name" : "S3 对象存储连接器",
   "description" : "提取 S3 云端文件元数据信息。",
   "category" : "cloud_storage",
+  "path_hierarchy": true,
   "icon" : "/assets/icons/connector/s3/icon.png",
   "tags" : [
     "s3",
@@ -180,8 +183,9 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/s
   ],
   "url" : "http://coco.rs/connectors/s3",
   "assets" : {
-  "icons" : {
-    "default" : "/assets/icons/connector/s3/icon.png"
+    "icons" : {
+      "default" : "/assets/icons/connector/s3/icon.png",
+      "file" : "/assets/icons/connector/s3/file.png"
     }
   },
   "builtin": true
@@ -217,6 +221,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/n
   "name" : "网络驱动器",
   "description" : "扫描网络共享文件并提取元数据。",
   "category" : "cloud_storage",
+  "path_hierarchy": true,
   "icon" : "/assets/icons/connector/network_drive/icon.png",
   "tags" : [
     "filesystem",
@@ -226,7 +231,8 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/n
   "url" : "http://coco.rs/connectors/network_drive",
   "assets" : {
     "icons" : {
-      "default" : "/assets/icons/connector/network_drive/icon.png"
+      "default" : "/assets/icons/connector/network_drive/icon.png",
+      "file" : "/assets/icons/connector/network_drive/file.png"
     }
   },
   "builtin": true
@@ -355,9 +361,10 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
   "id" : "github",
   "created" : "2025-08-25T00:00:00.000000+08:00",
   "updated" : "2025-08-25T00:00:00.000000+08:00",
-  "name" : "Github 连接器",
-  "description" : "提取 Github repositories, issues 和 pull requests。",
+  "name" : "GitHub 连接器",
+  "description" : "提取 GitHub repositories, issues 和 pull requests。",
   "category" : "website",
+  "path_hierarchy": true,
   "icon" : "/assets/icons/connector/github/icon.png",
   "tags" : [
     "git",
@@ -371,8 +378,192 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
       "default" : "/assets/icons/connector/github/icon.png",
       "repository" : "/assets/icons/connector/github/repository.png",
       "issue" : "/assets/icons/connector/github/issue.png",
-      "pull_request" : "/assets/icons/connector/github/pull_request.png"
+      "pull_request" : "/assets/icons/connector/github/pull_request.png",
+      "org" : "/assets/icons/connector/github/org.png"
     }
   },
   "builtin": true
 }
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/gitlab
+{
+  "id" : "gitlab",
+  "created" : "2025-08-29T00:00:00.000000+08:00",
+  "updated" : "2025-08-29T00:00:00.000000+08:00",
+  "name" : "GitLab 连接器",
+  "description" : "提取 GitLab repositories, issues, 和 merge requests。",
+  "category" : "website",
+  "path_hierarchy": true,
+  "icon" : "/assets/icons/connector/gitlab/icon.png",
+  "tags" : [
+    "git",
+    "code",
+    "vcs",
+    "website"
+  ],
+  "url" : "http://coco.rs/connectors/gitlab",
+  "assets" : {
+    "icons" : {
+      "default" : "/assets/icons/connector/gitlab/icon.png",
+      "repository" : "/assets/icons/connector/gitlab/repository.png",
+      "issue" : "/assets/icons/connector/gitlab/issue.png",
+      "merge_request" : "/assets/icons/connector/gitlab/merge_request.png",
+      "wiki" : "/assets/icons/connector/gitlab/wiki.png",
+      "snippet" : "/assets/icons/connector/gitlab/snippet.png",
+      "org" : "/assets/icons/connector/gitlab/org.png"
+    }
+  },
+  "builtin": true
+}
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/gitea
+{
+  "id" : "gitea",
+  "created" : "2025-09-04T00:00:00.000000+08:00",
+  "updated" : "2025-09-04T00:00:00.000000+08:00",
+  "name" : "Gitea 连接器",
+  "description" : "提取 Gitea repositories, issues, 和 pull requests。",
+  "category" : "website",
+  "path_hierarchy": true,
+  "icon" : "/assets/icons/connector/gitea/icon.png",
+  "tags" : [
+    "git",
+    "code",
+    "vcs",
+    "website"
+  ],
+  "url" : "http://coco.rs/connectors/gitea",
+  "assets" : {
+    "icons" : {
+      "default" : "/assets/icons/connector/gitea/icon.png",
+      "repository" : "/assets/icons/connector/gitea/repository.png",
+      "issue" : "/assets/icons/connector/gitea/issue.png",
+      "pull_request" : "/assets/icons/connector/gitea/pull_request.png",
+      "org" : "/assets/icons/connector/gitea/org.png"
+    }
+  },
+  "builtin": true
+}
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/feishu
+{
+  "id": "feishu",
+  "created": "2025-08-22T00:00:00.000000+08:00",
+  "updated": "2025-08-22T00:00:00.000000+08:00",
+  "name": "飞书云文档连接器",
+  "description": "索引飞书云文档，包括文档、表格、思维笔记、多维表格和知识库等。",
+  "category": "cloud",
+  "icon": "/assets/icons/connector/feishu/icon.png",
+  "tags": [
+    "feishu",
+    "cloud_docs"
+  ],
+  "url": "http://coco.rs/connectors/feishu",
+  "assets": {
+    "icons": {
+      "default": "/assets/icons/connector/feishu/icon.png"
+    }
+  },
+  "config": {
+    "redirect_uri": "$[[SETUP_SERVER_ENDPOINT]]/connector/feishu/oauth_redirect",
+    "auth_url": "https://accounts.feishu.cn/open-apis/authen/v1/authorize",
+    "token_url": "https://open.feishu.cn/open-apis/authen/v2/oauth/token"
+  },
+  "builtin": true
+}
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/lark
+{
+  "id": "lark",
+  "created": "2025-09-01T00:00:00.000000+08:00",
+  "updated": "2025-09-01T00:00:00.000000+08:00",
+  "name": "Lark 云文档连接器",
+  "description": "索引 Lark 云文档，包括文档、表格、思维笔记、多维表格和知识库等。",
+  "category": "cloud",
+  "icon": "/assets/icons/connector/lark/icon.png",
+  "tags": [
+    "lark",
+    "cloud_docs"
+  ],
+  "url": "http://coco.rs/connectors/lark",
+  "assets": {
+    "icons": {
+      "default": "/assets/icons/connector/lark/icon.png"
+    }
+  },
+  "config": {
+    "redirect_uri": "$[[SETUP_SERVER_ENDPOINT]]/connector/lark/oauth_redirect",
+    "auth_url": "https://accounts.larksuite.com/open-apis/authen/v1/authorize",
+    "token_url": "https://open.larksuite.com/open-apis/authen/v2/oauth/token"
+  },
+  "builtin": true
+}
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/mssql
+{
+  "id" : "mssql",
+  "created" : "2025-09-15T00:00:00.000000+08:00",
+  "updated" : "2025-09-15T00:00:00.000000+08:00",
+  "name" : "Microsoft SQL Server 连接器",
+  "description" : "提取 Microsoft SQL Server 数据库数据。",
+  "category" : "database",
+  "icon" : "/assets/icons/connector/mssql/icon.png",
+  "tags" : [
+    "sql",
+    "storage",
+    "database"
+  ],
+  "url" : "http://coco.rs/connectors/mssql",
+  "assets" : {
+    "icons" : {
+      "default" : "/assets/icons/connector/mssql/icon.png"
+    }
+  },
+  "builtin": true
+}
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/oracle
+{
+  "id" : "oracle",
+  "created" : "2025-09-19T00:00:00.000000+08:00",
+  "updated" : "2025-09-19T00:00:00.000000+08:00",
+  "name" : "Oracle 连接器",
+  "description" : "提取 Oracle 数据库数据。",
+  "category" : "database",
+  "icon" : "/assets/icons/connector/oracle/icon.png",
+  "tags" : [
+    "sql",
+    "storage",
+    "database"
+  ],
+  "url" : "http://coco.rs/connectors/oracle",
+  "assets" : {
+    "icons" : {
+      "default" : "/assets/icons/connector/oracle/icon.png"
+    }
+  },
+  "builtin": true
+}
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/salesforce
+{
+  "id" : "salesforce",
+  "created" : "2025-09-08T00:00:00.000000+08:00",
+  "updated" : "2025-09-08T00:00:00.000000+08:00",
+  "name" : "Salesforce 连接器",
+  "description" : "与 Salesforce 集成，通过智能字段缓存和查询优化从您的 Salesforce 组织中索引和搜索数据。",
+  "category" : "crm",
+  "path_hierarchy" : true,
+  "icon" : "/assets/icons/connector/salesforce/icon.png",
+  "tags" : [
+    "crm",
+    "salesforce",
+    "business"
+  ],
+  "url" : "http://coco.rs/connectors/salesforce",
+  "assets" : {
+    "icons" : {
+      "account" : "/assets/icons/connector/salesforce/account.png",
+      "campaign" : "/assets/icons/connector/salesforce/campaign.png",
+      "case" : "/assets/icons/connector/salesforce/case.png",
+      "contact" : "/assets/icons/connector/salesforce/contact.png",
+      "default" : "/assets/icons/connector/salesforce/icon.png",
+      "lead" : "/assets/icons/connector/salesforce/lead.png",
+      "opportunity" : "/assets/icons/connector/salesforce/opportunity.png"
+    }
+  },
+  "builtin": true
+ }

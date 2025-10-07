@@ -23,7 +23,11 @@ export const Types = {
   MongoDB: 'mongodb',
   Postgresql: 'postgresql',
   Mysql: 'mysql',
-  GitHub: 'github'
+  GitHub: 'github',
+  GitLab: 'gitlab',
+  Gitea: 'gitea',
+  Mssql: 'mssql',
+  Oracle: 'oracle'
 };
 
 export const TypeList = ({

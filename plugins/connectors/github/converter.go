@@ -12,6 +12,7 @@ import (
 	log "github.com/cihub/seelog"
 	githubv3 "github.com/google/go-github/v74/github"
 	"infini.sh/coco/modules/common"
+	"infini.sh/coco/plugins/connectors"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/queue"
 	"infini.sh/framework/core/util"
@@ -37,6 +38,9 @@ func (p *Plugin) processRepos(ctx context.Context, client *githubv3.Client, cfg 
 		}
 	}
 
+	// Initialize folder tracker for hierarchical structure
+	folderTracker := connectors.NewGitFolderTracker()
+
 	var processed int
 
 	err = ListRepos(ctx, client, user, func(repos []*githubv3.Repository) bool {
@@ -50,6 +54,18 @@ func (p *Plugin) processRepos(ctx context.Context, client *githubv3.Client, cfg 
 			}
 
 			log.Debugf("[%s connector] processing repo: %s", ConnectorGitHub, repo.GetFullName())
+
+			// Determine what content types will be indexed for this repo
+			var contentTypes []string
+			if cfg.IndexIssues {
+				contentTypes = append(contentTypes, TypeIssue)
+			}
+			if cfg.IndexPullRequests {
+				contentTypes = append(contentTypes, TypePullRequest)
+			}
+
+			// Track folders for hierarchy
+			folderTracker.TrackGitFolders(cfg.Owner, repo.GetName(), contentTypes)
 
 			// Index repository
 			repoDoc := p.transformRepoToDocument(repo, datasource)
@@ -78,6 +94,11 @@ func (p *Plugin) processRepos(ctx context.Context, client *githubv3.Client, cfg 
 		_ = log.Errorf("[%s connector] failed to list repos for owner %s: %v", ConnectorGitHub, cfg.Owner, err)
 		return
 	}
+
+	// Create all folder documents for the hierarchy
+	folderTracker.CreateGitFolderDocuments(datasource, func(doc common.Document) {
+		p.pushToQueue(&doc)
+	})
 }
 
 func (p *Plugin) processIssues(ctx context.Context, client *githubv3.Client, owner string, repo *githubv3.Repository, datasource *common.DataSource) {
@@ -135,22 +156,42 @@ func (p *Plugin) newDocument(datasource *common.DataSource) *common.Document {
 }
 
 func (p *Plugin) transformRepoToDocument(repo *githubv3.Repository, datasource *common.DataSource) *common.Document {
-	doc := p.newDocument(datasource)
-	doc.Title = repo.GetFullName()
-	doc.Summary = repo.GetDescription()
-	doc.URL = repo.GetHTMLURL()
-	doc.Type = TypeRepository
-	doc.Icon = TypeRepository
-	doc.Tags = repo.Topics
-	doc.Owner = &common.UserInfo{UserID: repo.Owner.GetLogin(), UserName: repo.Owner.GetLogin(), UserAvatar: repo.Owner.GetAvatarURL()}
+	owner := repo.Owner.GetLogin()
 
-	doc.ID = util.MD5digest(fmt.Sprintf("%s-%d", datasource.ID, repo.GetID()))
+	// Level 3A: Repository info document - belongs to owner category
+	categories := connectors.BuildGitRepositoryCategories(owner, repo.GetName())
+	idSuffix := fmt.Sprintf("repo-%s-%d", repo.GetFullName(), repo.GetID())
+
+	doc := connectors.CreateDocumentWithHierarchy(TypeRepository, TypeRepository, repo.GetFullName(), repo.GetHTMLURL(), 0, categories, datasource, idSuffix)
+
+	// Add GitHub-specific repository metadata
+	doc.Summary = repo.GetDescription()
+	doc.Tags = repo.Topics
+	doc.Owner = &common.UserInfo{UserID: owner, UserName: owner, UserAvatar: repo.Owner.GetAvatarURL()}
+
 	created := repo.GetCreatedAt().Time
 	doc.Created = &created
 	updated := repo.GetUpdatedAt().Time
 	doc.Updated = &updated
 
-	return doc
+	// Add repository-specific metadata
+	if doc.Metadata == nil {
+		doc.Metadata = make(map[string]interface{})
+	}
+	doc.Metadata["repository_id"] = repo.GetID()
+	doc.Metadata["full_name"] = repo.GetFullName()
+	doc.Metadata["private"] = repo.GetPrivate()
+	doc.Metadata["fork"] = repo.GetFork()
+	doc.Metadata["stargazers_count"] = repo.GetStargazersCount()
+	doc.Metadata["watchers_count"] = repo.GetWatchersCount()
+	doc.Metadata["forks_count"] = repo.GetForksCount()
+	doc.Metadata["open_issues_count"] = repo.GetOpenIssuesCount()
+	doc.Metadata["default_branch"] = repo.GetDefaultBranch()
+	if repo.GetLanguage() != "" {
+		doc.Metadata["language"] = repo.GetLanguage()
+	}
+
+	return &doc
 }
 
 // Contentable defines an interface for common fields between issues and pull requests.
@@ -186,7 +227,15 @@ func (p *pullRequestWrapper) GetLabels() []*githubv3.Label {
 
 // transformContentableToDocument is a generic function to transform issue-like objects into a document.
 func (p *Plugin) transformContentableToDocument(item Contentable, itemType string, comments []*githubv3.IssueComment, repo *githubv3.Repository, datasource *common.DataSource) *common.Document {
-	doc := p.newDocument(datasource)
+	owner := repo.Owner.GetLogin()
+	repoName := repo.GetName()
+
+	// Use the item type directly as content type since constants match GitFolder keys
+	contentType := itemType
+
+	// Level 4: Content item - belongs to owner/repo/content_type category
+	categories := connectors.BuildGitItemCategories(owner, repoName, contentType)
+	idSuffix := fmt.Sprintf("%s-%d-%d", itemType, repo.GetID(), item.GetID())
 
 	var content strings.Builder
 	content.WriteString(item.GetBody())
@@ -195,25 +244,23 @@ func (p *Plugin) transformContentableToDocument(item Contentable, itemType strin
 		content.WriteString(c.GetBody())
 	}
 
+	doc := connectors.CreateDocumentWithHierarchy(itemType, itemType, item.GetTitle(), item.GetHTMLURL(), len(content.String()), categories, datasource, idSuffix)
+
+	// Add GitHub-specific content metadata
+	doc.Content = content.String()
+
 	var tags []string
 	for _, label := range item.GetLabels() {
 		tags = append(tags, label.GetName())
 	}
-
-	doc.Title = item.GetTitle()
-	doc.Content = content.String()
-	doc.URL = item.GetHTMLURL()
-	doc.Type = itemType
-	doc.Icon = itemType
-	doc.Category = repo.GetFullName()
 	doc.Tags = tags
+
 	doc.Owner = &common.UserInfo{
 		UserID:     item.GetUser().GetLogin(),
 		UserName:   item.GetUser().GetLogin(),
 		UserAvatar: item.GetUser().GetAvatarURL(),
 	}
 
-	doc.ID = util.MD5digest(fmt.Sprintf("%s-%d-%d", datasource.ID, repo.GetID(), item.GetID()))
 	created := item.GetCreatedAt().Time
 	doc.Created = &created
 	updated := item.GetUpdatedAt().Time
@@ -224,14 +271,18 @@ func (p *Plugin) transformContentableToDocument(item Contentable, itemType strin
 		state = "merged"
 	}
 
-	doc.Metadata = map[string]interface{}{
-		"id":                 item.GetID(),
-		"state":              state,
-		"number":             item.GetNumber(),
-		"author_association": item.GetAuthorAssociation(),
+	// Add content-specific metadata
+	if doc.Metadata == nil {
+		doc.Metadata = make(map[string]interface{})
 	}
+	doc.Metadata["id"] = item.GetID()
+	doc.Metadata["state"] = state
+	doc.Metadata["number"] = item.GetNumber()
+	doc.Metadata["author_association"] = item.GetAuthorAssociation()
+	doc.Metadata["repository_id"] = repo.GetID()
+	doc.Metadata["repository_full_name"] = repo.GetFullName()
 
-	return doc
+	return &doc
 }
 
 func (p *Plugin) transformIssueToDocument(issue *githubv3.Issue, comments []*githubv3.IssueComment, repo *githubv3.Repository, datasource *common.DataSource) *common.Document {

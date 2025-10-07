@@ -62,3 +62,27 @@ export const GithubConfig = (values: any) => {
     token: values.config?.token || ''
   };
 };
+
+export const GitlabConfig = (values: any) => {
+  return {
+    base_url: values.config?.base_url || '',
+    index_issues: values.config?.index_issues,
+    index_merge_requests: values.config?.index_merge_requests,
+    index_snippets: values.config?.index_snippets,
+    index_wikis: values.config?.index_wikis,
+    owner: values.config?.owner || '',
+    repos: (values.config?.repos || []).filter(Boolean),
+    token: values.config?.token || ''
+  };
+};
+
+export const GiteaConfig = (values: any) => {
+  return {
+    base_url: values.config?.base_url || '',
+    index_issues: values.config?.index_issues,
+    index_pull_requests: values.config?.index_pull_requests,
+    owner: values.config?.owner || '',
+    repos: (values.config?.repos || []).filter(Boolean),
+    token: values.config?.token || ''
+  };
+};

@@ -16,8 +16,9 @@
   },
   "main": "./dist/index.js",
   "scripts": {
+    "dev": "vite",
     "build": "rollup -c",
-    "dev": "rollup -c -w"
+    "watch": "rollup -c -w"
   },
   "devDependencies": {
     "@babel/core": "^7.22.15",
@@ -31,6 +32,7 @@
     "@rollup/plugin-terser": "^0.4.4",
     "@rollup/plugin-url": "^8.0.2",
     "@unocss/postcss": "^66.2.3",
+    "@vitejs/plugin-react": "^4.3.3",
     "autoprefixer": "^10.4.16",
     "cssnano": "^7.0.7",
     "less": "^4.2.0",
@@ -40,13 +42,15 @@
     "rollup-plugin-postcss": "^4.0.2",
     "sass": "^1.89.2",
     "terser": "^5.22.1",
-    "unocss": "^66.2.3"
+    "unocss": "^66.2.3",
+    "vite": "^5.4.10"
   },
   "dependencies": {
     "@ant-design/cssinjs": "^1.24.0",
     "@babel/runtime": "^7.27.6",
     "@emotion/cache": "^11.14.0",
     "@emotion/react": "^11.14.0",
+    "@unocss/vite": "0.63.6",
     "antd": "^5.25.4",
     "clsx": "2.1.1",
     "dayjs": "^1.11.13",
@@ -54,6 +58,7 @@
     "lucide-react": "^0.525.0",
     "mermaid": "11.6.0",
     "react": "18.3.1",
+    "react-copy-to-clipboard": "^5.1.0",
     "react-dom": "18.3.1",
     "react-markdown": "10.1.0",
     "rehype-highlight": "7.0.2",

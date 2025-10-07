@@ -40,6 +40,8 @@ const page: App.I18n.Schema['translation']['page'] = {
         description: 'Description',
         icon: 'Connector Icon',
         name: 'Name',
+        config: 'Configuration',
+        path_hierarchy: 'Path Hierarchy',
         redirect_url: 'Redirect URI',
         tags: 'Tags',
         token_url: 'Token URI'
@@ -73,7 +75,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         client_id: 'Client ID',
         client_secret: 'Client Secret',
         connect: 'Connect',
-        data_sync: 'Data Synchronization',
+        data_sync: 'Sync  Policy',
         enabled: 'Enabled',
         immediate_sync: 'Immediate Sync',
         indexing_scope: 'Indexing Scope',
@@ -81,13 +83,17 @@ const page: App.I18n.Schema['translation']['page'] = {
         manual_sync: 'Manual Sync',
         manual_sync_desc: "Sync only when the user clicks the 'Sync' button",
         name: 'Name',
+        description: 'Description',
+        config: 'Configuration',
+        icon: 'Icon',
+        tags: 'Tags',
         realtime_sync: 'Real-time Sync',
         realtime_sync_desc: 'Sync immediately upon file modification',
         redirect_uri: 'Redirect URI',
         scheduled_sync: 'Scheduled Sync',
         scheduled_sync_desc: 'Sync at fixed intervals',
         site_urls: 'Site URLs',
-        sync_enabled: 'Sync Enabled',
+        sync_enabled: 'Sync',
         type: 'Type',
         folder_paths: 'Folder paths',
         file_extensions: 'File extensions (optional)'
@@ -289,6 +295,8 @@ const page: App.I18n.Schema['translation']['page'] = {
         mode_floating: 'Floating',
         mode_floating_placeholder: 'Floating widget placeholder text',
         mode_floating_icon: 'Floating widget icon',
+        mode_page: 'Page',
+        mode_modal: 'Modal',
       },
       title: {
         edit: 'Edit Integration',
@@ -380,6 +388,13 @@ const page: App.I18n.Schema['translation']['page'] = {
           introduction_placeholder: 'Enter the welcome text or AI tool introduction displayed on the start page (within 60 characters)',
           assistant: 'AI Assistant Display',
         }
+      }
+    },
+    search_settings: {
+      title: "Search Settings",
+      labels: {
+        enabled: 'Enabled',
+        integration: 'Integration',
       }
     },
     setupLater: 'Set Up Later'

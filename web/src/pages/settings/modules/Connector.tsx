@@ -151,12 +151,12 @@ const ConnectorSettings = memo(() => {
     setLoading(true);
     searchConnector(queryParams).then(({ data }: { data: any }) => {
       const newData = formatESSearchResult(data);
-      setData(newData?.data || []);
+      setData(newData);
       setLoading(false);
     });
   };
 
-  useEffect(fetchData, []);
+  useEffect(fetchData, [queryParams]);
 
   useEffect(() => {
     setKeyword(queryParams.query)
@@ -206,7 +206,7 @@ const ConnectorSettings = memo(() => {
       </div>
       <Table<Connector>
         columns={columns}
-        dataSource={data}
+        dataSource={data.data}
         loading={loading}
         rowKey="id"
         size="middle"
@@ -214,6 +214,7 @@ const ConnectorSettings = memo(() => {
           pageSize: queryParams.size,
           current: Math.floor(queryParams.from / queryParams.size) + 1,
           showSizeChanger: true,
+          total: data?.total?.value || data?.total,
           showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`
         }}
         onChange={handleTableChange}

@@ -17,7 +17,7 @@ export function fetchSettings() {
 }
 
 /** Update server's settings */
-export function updateSettings(data: { llm?: any; server?: any; chat_start_page?: any }) {
+export function updateSettings(data: { llm?: any; server?: any; app_settings?: any; search_settings?: any }) {
   return request({
     data,
     method: 'put',

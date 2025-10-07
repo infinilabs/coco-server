@@ -1,15 +1,31 @@
-import Fullscreen from './Fullscreen';  
-import { createCache, StyleProvider } from '@ant-design/cssinjs';
-import React from 'react';
+import { StyleProvider } from "@ant-design/cssinjs";
+import React from "react";
 
-export default (props) => {
-    const { shadow } = props;
+import { default as Page } from "./FullscreenPage";
+import { default as Modal } from "./FullscreenModal";
 
-    return (
-        <React.StrictMode>
-            <StyleProvider container={shadow} cache={createCache()}>
-                <Fullscreen {...props} root={shadow || document}/>
-            </StyleProvider>
-        </React.StrictMode>
-    );
-}
+import "./index.css";
+
+export const FullscreenPage = (props) => {
+  const { shadow } = props;
+
+  return (
+    <React.StrictMode>
+      <StyleProvider container={shadow}>
+        <Page {...props} root={shadow || document} />
+      </StyleProvider>
+    </React.StrictMode>
+  );
+};
+
+export const FullscreenModal = (props) => {
+  const { shadow } = props;
+
+  return (
+    <React.StrictMode>
+      <StyleProvider container={shadow}>
+        <Modal {...props} root={shadow || document} />
+      </StyleProvider>
+    </React.StrictMode>
+  );
+};

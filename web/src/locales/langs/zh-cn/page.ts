@@ -38,6 +38,8 @@ const page: App.I18n.Schema['translation']['page'] = {
         description: '描述',
         icon: '连接器图标',
         name: '名称',
+        config: '配置信息',
+        path_hierarchy: '支持目录访问',
         redirect_url: '重定向地址',
         tags: '标签',
         token_url: 'Token 地址'
@@ -71,7 +73,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         client_id: '客户端 ID',
         client_secret: '客户端密钥',
         connect: '连接',
-        data_sync: '数据同步',
+        data_sync: '同步策略',
         enabled: '启用状态',
         immediate_sync: '立即同步',
         indexing_scope: '索引范围',
@@ -79,13 +81,17 @@ const page: App.I18n.Schema['translation']['page'] = {
         manual_sync: '手动同步',
         manual_sync_desc: '仅在用户点击 "同步" 按钮时同步',
         name: '数据源名称',
+        description: '描述',
+        config: '配置信息',
+        icon: '图标',
+        tags: '标签',
         realtime_sync: '实时同步',
         realtime_sync_desc: '文件修改立即同步',
         redirect_uri: '重定向 URI',
         scheduled_sync: '定时同步',
         scheduled_sync_desc: '每隔固定时间同步一次',
         site_urls: '站点地址',
-        sync_enabled: '是否启用同步',
+        sync_enabled: '启用同步',
         type: '数据源类型',
         folder_paths: '文件夹路径',
         file_extensions: '文件扩展名（可选）'
@@ -154,7 +160,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         username: '用于身份验证的用户名。如果使用匿名访问或个人访问令牌，可以留空'
       }
     },
-    github: {
+    git_commons: {
       error: {
         owner_required: '请输入代码库拥有者',
         repo_required: '请输入仓库名称',
@@ -162,17 +168,49 @@ const page: App.I18n.Schema['translation']['page'] = {
       },
       labels: {
         index_issues: '索引 issues',
-        index_pull_requests: '索引 pull requests',
         owner: '代码库拥有者',
         repos: '代码库名称',
         token: '个人访问令牌'
       },
       tooltip: {
         index_issues: '是否索引 issues',
-        index_pull_requests: '是否索引 pull requests',
         owner: '代码库所属的用户名或组织名称',
-        repos: '要索引的代码仓库。默认为空，表示索引所有的代码库',
+        repos: '要索引的代码仓库。默认为空，表示索引所有的代码库'
+      }
+    },
+    gitea: {
+      labels: {
+        base_url: 'Base URL (可选)',
+        index_pull_requests: '索引 pull requests'
+      },
+      tooltip: {
+        base_url: '自托管 Gitea Base URL。如果是 Gitea.com，请置空。',
+        index_pull_requests: '是否索引 pull requests',
+        token: '需要具有“repo”范围的 Gitea 个人访问令牌 (PAT)。'
+      }
+    },
+    github: {
+      labels: {
+        index_pull_requests: '索引 pull requests'
+      },
+      tooltip: {
+        index_pull_requests: '是否索引 pull requests',
         token: '需要具有“repo”范围的 GitHub 个人访问令牌 (PAT)。'
+      }
+    },
+    gitlab: {
+      labels: {
+        base_url: 'Base URL (可选)',
+        index_merge_requests: '索引 merge requests',
+        index_snippets: '索引 snippets',
+        index_wikis: '索引 wikis'
+      },
+      tooltip: {
+        base_url: '自托管 GitLab Base URL。如果是 GitLab.com，请置空。',
+        index_merge_requests: '是否索引 merge requests',
+        index_snippets: '是否索引 snippets',
+        index_wikis: '是否索引 wikis',
+        token: '需要具有“repo”范围的 GitLub 个人访问令牌 (PAT)。'
       }
     },
     network_drive: {
@@ -232,7 +270,9 @@ const page: App.I18n.Schema['translation']['page'] = {
       },
       tooltip: {
         connection_uri: {
+          mssql: 'Microsoft SQL Server 连接字符串，例如：sqlserver://user:password@host:1433/database',
           mysql: 'MySQL 连接字符串，例如：mysql://user:password@tcp(localhost:3306)/database',
+          oracle: 'Oracle 连接字符串，例如：oracle://user:password@host:1521/service_name',
           postgresql: 'PostgreSQL 连接字符串，例如：postgresql://user:password@localhost:5432/database?sslmode=disable'
         },
         last_modified_field: '对于增量同步，请指定一个跟踪最后修改时间的字段（例如，updated_at）。该字段的类型应该是时间戳或日期时间。',
@@ -352,6 +392,8 @@ const page: App.I18n.Schema['translation']['page'] = {
         mode_floating: '浮动的',
         mode_floating_placeholder: '浮动组件提示文本',
         mode_floating_icon: '浮动组件图标',
+        mode_page: '全屏页面',
+        mode_modal: '全屏弹框',
       },
       title: {
         edit: '编辑嵌入组件',
@@ -441,6 +483,13 @@ const page: App.I18n.Schema['translation']['page'] = {
           introduction_placeholder: '输入显示在起始页面上的欢迎文本或人工智能工具介绍（60 字符以内）',
           assistant: 'AI 助手展示',
         }
+      }
+    },
+    search_settings: {
+      title: "搜索设置",
+      labels: {
+        enabled: '启用状态',
+        integration: '组件',
       }
     },
     setupLater: '稍后设置'

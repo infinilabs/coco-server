@@ -1,5 +1,5 @@
 import { QuestionCircleOutlined } from '@ant-design/icons';
-import { Checkbox, Form, Input, Tooltip } from 'antd';
+import {Form, Input, Switch, Tooltip} from 'antd';
 import { useTranslation } from 'react-i18next';
 
 import { createExtensionValidator } from './validators';
@@ -141,9 +141,10 @@ export default () => {
         initialValue={true}
         label={t('page.datasource.s3.labels.ssl', 'SSL')}
         name={['config', 'use_ssl']}
+        tooltip={t('page.datasource.s3.labels.use_ssl', 'Use SSL (HTTPS)')}
         valuePropName="checked"
       >
-        <Checkbox>{t('page.datasource.s3.labels.use_ssl', 'Use SSL (HTTPS)')}</Checkbox>
+        <Switch size="small" />
       </Form.Item>
       <Form.Item
         label={t('page.datasource.new.labels.file_extensions', 'File Extensions (optional)')}

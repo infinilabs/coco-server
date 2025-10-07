@@ -7,6 +7,8 @@ import GlobalBreadcrumb from '../global-breadcrumb';
 import GlobalLogo from '../global-logo';
 
 import UserAvatar from './components/UserAvatar';
+import { localStg } from '@/utils/storage';
+import { getProviderInfo } from '@/store/slice/server';
 
 interface Props {
   isMobile: boolean;
@@ -45,6 +47,12 @@ const GlobalHeader: FC<Props> = memo(({ isMobile, mode, reverse, siderWidth }) =
 
   const borderColor = 'var(--ant-color-border)';
 
+  const nav = useNavigate();
+  const { t } = useTranslation();
+  const providerInfo = useAppSelector(getProviderInfo);
+  
+  const { search_settings } = providerInfo || {}
+
   return (
     <DarkModeContainer
       className="h-full flex-y-center b-b-1px px-12px"
@@ -68,6 +76,17 @@ const GlobalHeader: FC<Props> = memo(({ isMobile, mode, reverse, siderWidth }) =
       </div>
 
       <div className="h-full flex-y-center justify-end">
+        {
+          search_settings?.enabled && (
+            <ButtonIcon
+              className="px-12px"
+              tooltipContent={t('common.search')}
+              onClick={() => nav(`/search`)}
+            >
+              <IconUilSearch />
+            </ButtonIcon>
+          )
+        }
         {/* <GlobalSearch /> */}
         {/* {!isMobile && (
           <FullScreen

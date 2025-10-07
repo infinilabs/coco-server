@@ -9,18 +9,62 @@ Information about release notes of Coco Server is provided here.
 
 ## Latest (In development)  
 ### ❌ Breaking changes  
+### 🚀 Features  
+### 🐛 Bug fix  
+### ✈️ Improvements  
+
+## 0.8.0 (2025-09-28)
+
+### ❌ Breaking changes  
 - chore: update yuque's document id #473
+- refactor: refactoring datasource sync management #526
 
 ### 🚀 Features  
+- chore: support access docs via path hierarchy manner in datasource #484
 - feat: handle path_hierarchy config for document search #486
+- feat: confluence wiki connector #31
+- feat: extract content for notion connector #70
+- feat: network storage connector #461
+- feat: postgresql connector #476
+- feat: mysql connector #489
+- feat: github connector #492
+- feat: gitlab connector #494
+- feat: gitea connector #509
+- feat: mssql connector #511
+- feat: oracle connector #522
+- feat: feishu/lark connector #71
+- feat: salesforce connector #495
 
 ### 🐛 Bug fix  
 - fix: correct assistant update logic
 - fix: generate unique icon key to prevent accidental deletion of all icons
+- fix: modify the access_token URL during coco server login (#480) 
+- fix: fix permission issue for web widget #512
+- fix: extra height because of importing the icon in Searchbox #519
+- fix: extra height because of importing the icon in Searchbox #519
+- fix: page scrolling not working in Fullscreen #520
+- fix: resolve API token list pagination issue #523
+- fix: mssql paging bug #522
+- fix: fix S3 connector icon #533
 
 ### ✈️ Improvements  
 - chore: remove unused websocket api #443
 - chore: add missing root folders for gdrive #483
+- chore: update default connector settings form on create/modify connector page #502
+- chore: adjust title of data source detail #485
+- refactor: refactoring summary processor #487
+- chore: add missing docs for google drive #488
+- docs: update the easysearch initial admin password to complex rule #501
+- chore: unify license header #499
+- chore: update default datasource edit page #506
+- refactor: refactoring oauth connect component #507
+- chore: set default size for datasource list to 12 #508
+- chore: add search settings to settings
+- chore: support page mode in integration fullscreen
+- chore: add icon to list items #524
+- refactor: refactoring security api for non-managed mode #527
+- refactor: support access documents via path hierarchy manner for local_fs connector #530
+- refactor: support access documents via path hierarchy manner for S3, Network Driver, GitHub, GitLab and Gitee connectors #532
 
 ## 0.7.0 (2025-07-25)
 ### ❌ Breaking changes  
@@ -35,12 +79,6 @@ Information about release notes of Coco Server is provided here.
 - feat: support default model reasoning config on initialization
 - feat: local FS Connector #284
 - feat: s3 Connector #68
-- feat: confluence wiki connector #31
-- feat: extract content for notion connector #70
-- feat: network storage connector #461
-- feat: postgresql connector #476
-- feat: mysql connector #489
-- feat: github connector #492
 
 ### 🐛 Bug fix  
 - fix: query parameter "filter" is not working

@@ -192,101 +192,49 @@ func GetDatasourceByID(id []string) ([]common.DataSource, error) {
 }
 
 func (h *APIHandler) searchDatasource(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	//handle url query args, convert to query builder
+	builder, err := orm.NewQueryBuilderFromRequest(req, "name", "combined_fulltext")
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-	body, err := h.GetRawBody(req)
-	//for backward compatibility
-	if err == nil && body != nil { //TODO remove legacy code
-		var err error
-		q := orm.Query{}
+	if len(builder.Sorts()) == 0 {
+		builder.SortBy(orm.Sort{Field: "created", SortType: orm.DESC})
+	}
 
-		//query := h.GetParameterOrDefault(req, "query", "")
-		//if query != "" {
-		//	q.Conds = orm.Or(orm.Prefix("title", query), orm.QueryString("*", query))
-		//}else{
-		//
-		//}
-
-		q.RawQuery = body
-		//attach filter for cors request
-		if integrationID := req.Header.Get(core.HeaderIntegrationID); integrationID != "" {
-			// get datasource by api token
-			datasourceIDs, hasAll, err := common.GetDatasourceByIntegration(integrationID)
-			if err != nil {
-				panic(err)
+	//attach filter for cors request
+	if integrationID := req.Header.Get(core.HeaderIntegrationID); integrationID != "" {
+		// get datasource by api token
+		datasourceIDs, hasAll, err := common.GetDatasourceByIntegration(integrationID)
+		if err != nil {
+			panic(err)
+		}
+		if !hasAll {
+			if len(datasourceIDs) == 0 {
+				// return empty search result when no datasource found
+				h.WriteJSON(w, elastic.SearchResponse{}, http.StatusOK)
+				return
 			}
-			if !hasAll {
-				if len(datasourceIDs) == 0 {
-					// return empty search result when no datasource found
-					h.WriteJSON(w, elastic.SearchResponse{}, http.StatusOK)
-					return
-				}
-				q.RawQuery, err = core.RewriteQueryWithFilter(q.RawQuery, util.MapStr{
-					"terms": util.MapStr{
-						"id": datasourceIDs,
-					},
-				})
-				if err != nil {
-					h.WriteError(w, err.Error(), http.StatusInternalServerError)
-					return
-				}
-			}
-		}
-
-		//TODO handle url query args
-		docs := []common.DataSource{}
-		err, res := orm.SearchWithJSONMapper(&docs, &q)
-		if err != nil {
-			h.WriteError(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		_, err = h.Write(w, res.Raw)
-		if err != nil {
-			h.Error(w, err)
-		}
-	} else {
-		var err error
-		//handle url query args, convert to query builder
-		builder, err := orm.NewQueryBuilderFromRequest(req, "name", "combined_fulltext")
-		if err != nil {
-			h.WriteError(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		//attach filter for cors request
-		if integrationID := req.Header.Get(core.HeaderIntegrationID); integrationID != "" {
-			// get datasource by api token
-			datasourceIDs, hasAll, err := common.GetDatasourceByIntegration(integrationID)
-			if err != nil {
-				panic(err)
-			}
-			if !hasAll {
-				if len(datasourceIDs) == 0 {
-					// return empty search result when no datasource found
-					h.WriteJSON(w, elastic.SearchResponse{}, http.StatusOK)
-					return
-				}
-				builder.Must(orm.TermsQuery("id", datasourceIDs))
-			}
-		}
-
-		ctx := orm.NewContextWithParent(req.Context())
-		orm.WithModel(ctx, &common.DataSource{})
-
-		docs := []common.DataSource{}
-
-		err, res := core.SearchV2WithResultItemMapper(ctx, &docs, builder, nil)
-		if err != nil {
-			h.WriteError(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		_, err = h.Write(w, res.Raw)
-		if err != nil {
-			h.Error(w, err)
+			builder.Must(orm.TermsQuery("id", datasourceIDs))
 		}
 	}
 
+	ctx := orm.NewContextWithParent(req.Context())
+	orm.WithModel(ctx, &common.DataSource{})
+
+	docs := []common.DataSource{}
+
+	err, res := core.SearchV2WithResultItemMapper(ctx, &docs, builder, nil)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	_, err = h.Write(w, res.Raw)
+	if err != nil {
+		h.Error(w, err)
+	}
 }
 
 func (h *APIHandler) createDocInDatasource(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {

@@ -133,6 +133,8 @@ export const DocSearch = (props) => {
     shadow.appendChild(iconsElement);
     iconsElement.onload = async () => {
       const svgElement = document.createElement("div");
+      svgElement.style.height = "0";
+      svgElement.style.overflow = "hidden";
       svgElement.innerHTML = window._iconfont_svg_string_4878526
       shadow.appendChild(svgElement);
     }
@@ -141,6 +143,8 @@ export const DocSearch = (props) => {
     shadow.appendChild(iconsAppElement);
     iconsAppElement.onload = async () => {
       const svgElement = document.createElement("div");
+      svgElement.style.height = "0";
+      svgElement.style.overflow = "hidden";
       svgElement.innerHTML = window._iconfont_svg_string_4934333
       shadow.appendChild(svgElement);
     }

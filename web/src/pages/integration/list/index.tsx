@@ -5,6 +5,8 @@ import { Button, Dropdown, Input, Modal, Switch, Table, message } from 'antd';
 import { deleteIntegration, fetchIntegrations, updateIntegration, renewAPIToken } from '@/service/api/integration';
 import { formatESSearchResult } from '@/service/request/es';
 import useQueryParams from '@/hooks/common/queryParams';
+import { isFullscreen } from '../modules/EditForm';
+import SvgIcon from '@/components/stateless/custom/SvgIcon';
 
 export function Component() {
   const [queryParams, setQueryParams] = useQueryParams();
@@ -74,12 +76,18 @@ export function Component() {
   const columns = [
     {
       dataIndex: 'name',
+      render: (value) => (
+        <div className="flex items-center gap-2">
+          <SvgIcon icon="mdi:puzzle-outline" className="text-icon-small text-gray-500" />
+          <span>{value}</span>
+        </div>
+      ),
       title: t('page.integration.columns.name')
     },
     {
       dataIndex: 'type',
       render: value => {
-        return value === 'fullscreen' ? t('page.integration.form.labels.type_fullscreen') : t('page.integration.form.labels.type_searchbox')
+        return isFullscreen(value) ? t('page.integration.form.labels.type_fullscreen') : t('page.integration.form.labels.type_searchbox')
       },
       title: t('page.integration.columns.type')
     },
@@ -194,7 +202,7 @@ export function Component() {
 
   useEffect(() => {
     fetchData(queryParams);
-  }, []);
+  }, [queryParams]);
 
   useEffect(() => {
     setKeyword(queryParams.query)
@@ -213,8 +221,8 @@ export function Component() {
             className="max-w-500px"
             enterButton={t('common.refresh')}
             onSearch={onRefreshClick}
-            value={keyword} 
-            onChange={(e) => setKeyword(e.target.value)} 
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
           />
           <Button
             icon={<PlusOutlined />}
