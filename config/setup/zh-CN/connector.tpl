@@ -510,9 +510,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/n
   "url" : "http://coco.rs/connectors/neo4j",
   "assets" : {
     "icons" : {
-      "default" : "/assets/icons/connector/neo4j/icon.png",
-      "node" : "/assets/icons/connector/neo4j/node.png",
-      "relationship" : "/assets/icons/connector/neo4j/relationship.png"
+      "default" : "/assets/icons/connector/neo4j/icon.png"
     }
   },
   "builtin": true
