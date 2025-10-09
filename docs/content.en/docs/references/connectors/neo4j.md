@@ -135,6 +135,37 @@ curl -H 'Content-Type: application/json' -XPOST "http://localhost:9000/datasourc
   }
 }'
 ```
+
+The final Cypher query string will look like this:
+```cypher
+MATCH (n:Document)
+WITH 
+    n,
+    n.updated AS coco_property, // The primary incremental field (timestamp)
+    elementId(n) AS coco_tie    // The secondary incremental field (unique string ID)
+
+// Filtering Logic: Retrieve all documents newer than the cursor time OR 
+// documents at the exact cursor time that have a greater elementId.
+WHERE coco_property > datetime("2025-10-09T12:59:06.836Z") 
+   OR (
+       coco_property = datetime("2025-10-09T12:59:06.836Z") 
+       AND coco_tie > "4:1093e8af-4022-4813-9534-8c7121ac10d4:33"
+   )
+
+// Sorting: Order by time first, then by the unique ID to break ties. 
+// This dual-sort structure is essential for robust cursor pagination.
+ORDER BY 
+    coco_property ASC, 
+    coco_tie ASC 
+
+// Limit the results to the next batch.
+LIMIT 500 
+
+// Return the full node object and the projected fields.
+RETURN n, coco_property, coco_tie
+```
+
+
 #### Case 2
 The `global_version` field is designated as the global incremental property for the :Document node. This property must be monotonically incremented by the system across all data manipulation operations—specifically CREATE, SET/UPDATE, and DELETE—to ensure a globally traceable change history for the entity.
 - In this case, use the `global_version` as the increment property.
