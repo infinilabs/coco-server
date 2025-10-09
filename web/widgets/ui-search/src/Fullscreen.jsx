@@ -122,12 +122,23 @@ const Fullscreen = (props) => {
 
   const { hits, aggregations } = result;
 
+  const handleLogoClick = () => {
+    // Return to start by clearing search query and resetting to first page
+    setQueryParams({
+      from: 0,
+      size: 10,
+      query: '',
+      filter: {},
+      sort: ''
+    })
+  }
+
   return (
     <BasicLayout
       rootID={rootID}
       isFirst={isFirst}
       loading={loading}
-      logo={<Logo isFirst={isFirst} {...commonProps} {...logo} />}
+      logo={<Logo isFirst={isFirst} onLogoClick={handleLogoClick} {...commonProps} {...logo}/>}
       welcome={welcome ? <Welcome {...commonProps} text={welcome} /> : null}
       searchbox={
         <SearchBox
