@@ -491,4 +491,29 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/s
     }
   },
   "builtin": true
- }
+}
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/neo4j
+{
+  "id" : "neo4j",
+  "created" : "2025-09-29T00:00:00.000000+08:00",
+  "updated" : "2025-09-29T00:00:00.000000+08:00",
+  "name" : "Neo4j 图数据库连接器",
+  "description" : "连接到 Neo4j 图数据库，使用自定义 Cypher 查询索引节点，支持增量同步和分页功能。",
+  "category" : "database",
+  "icon" : "/assets/icons/connector/neo4j/icon.png",
+  "tags" : [
+    "graph",
+    "database",
+    "neo4j",
+    "cypher"
+  ],
+  "url" : "http://coco.rs/connectors/neo4j",
+  "assets" : {
+    "icons" : {
+      "default" : "/assets/icons/connector/neo4j/icon.png",
+      "node" : "/assets/icons/connector/neo4j/node.png",
+      "relationship" : "/assets/icons/connector/neo4j/relationship.png"
+    }
+  },
+  "builtin": true
+}

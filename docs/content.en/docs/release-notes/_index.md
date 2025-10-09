@@ -10,6 +10,7 @@ Information about release notes of Coco Server is provided here.
 ## Latest (In development)  
 ### ❌ Breaking changes  
 ### 🚀 Features  
+- feat: neo4j connector
 ### 🐛 Bug fix  
 ### ✈️ Improvements  
 
