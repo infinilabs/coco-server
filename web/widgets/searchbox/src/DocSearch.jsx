@@ -42,7 +42,7 @@ export const DocSearch = (props) => {
   const currentHotkeys = useMemo(() => {
     let formatHotKey = settings?.hotkey;
     if (!isAppleDevice() && formatHotKey?.includes('meta')) {
-      formatHotKey = formatHotKey.replace('meta', 'ctrl');
+      formatHotKey = formatHotKey?.replace('meta', 'ctrl');
     }
     return formatHotKey ? [formatHotKey] : hotKeys;
   }, [hotKeys, settings?.hotkey]);
