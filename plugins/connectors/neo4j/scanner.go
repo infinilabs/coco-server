@@ -213,23 +213,13 @@ func (s *scanner) Scan(ctx context.Context) {
 				_ = log.Warnf("[%s connector] incremental property %s missing in page for datasource [%s]; stopping incremental scan", s.name, cfg.Incremental.Property, s.datasource.Name)
 				break
 			}
-			cmp := 1
 			if cursor != nil {
-				cmp = compareCursor(lastCursor, cursor, cfg.Incremental.PropertyType)
-			}
-			switch {
-			case cursor == nil || cmp > 0:
-				cursor = lastCursor
-			case cmp == 0:
-				_ = log.Warnf("[%s connector] incremental cursor did not advance for datasource [%s]; tie breaker expression may be invalid", s.name, s.datasource.Name)
-				cursor = lastCursor
-				if err := s.saveCursor(ctx, &cfg, cursor); err != nil {
-					_ = log.Errorf("[%s connector] failed to persist cursor for datasource [%s]: %v", s.name, s.datasource.Name, err)
+				diff := compareCursor(lastCursor, cursor, cfg.Incremental.PropertyType)
+				if diff == 0 {
+					_ = log.Warnf("[%s connector] incremental cursor did not advance for datasource [%s]; tie breaker expression may be invalid", s.name, s.datasource.Name)
 				}
-				break
-			default:
-				cursor = lastCursor
 			}
+			cursor = lastCursor
 			if err := s.saveCursor(ctx, &cfg, cursor); err != nil {
 				_ = log.Errorf("[%s connector] failed to persist cursor for datasource [%s]: %v", s.name, s.datasource.Name, err)
 				return
