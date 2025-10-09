@@ -17,6 +17,10 @@ export const Types = {
   RSS: 'rss',
   S3: 's3',
   Yuque: 'yuque',
+  S3: 's3',
+  Confluence: 'confluence',
+  NetworkDrive: 'network_drive',
+  MongoDB: 'mongodb',
   Postgresql: 'postgresql',
   Mysql: 'mysql',
   GitHub: 'github',
@@ -152,6 +156,13 @@ export const TypeList = ({
             text="Notion"
             onChange={onItemClick}
           />
+          <TypeComponent
+            icon={SearchSVG}
+            name={Types.MongoDB}
+            selected={v.id === Types.MongoDB}
+            text="MongoDB"
+            onChange={onItemClick}
+          />
           {/* <TypeComponent onChange={onItemClick} icon={BucketSVG} text="Object Storage" selected={v===Types.ObjectStorage} name={Types.ObjectStorage}/>
       <TypeComponent onChange={onItemClick} icon={SearchSVG} text="Search" selected={v===Types.Search} name={Types.Search}/> */}
         </div>
@@ -191,6 +202,14 @@ export const TypeList = ({
           {/* <FileUploader onChange={onCredentialChange}/>
       <Button onClick={onInnerTestClick}>{t('common.testConnection')}</Button> */}
           {/* </div> */}
+        </div>
+      )}
+      {v.id === Types.MongoDB && (
+        <div className={mode === 'edit' ? 'my-20px' : ''}>
+          <div className="pb-8px text-gray-400">MongoDB Configuration</div>
+          <div className="text-sm text-gray-500">
+            Configure MongoDB connection and collection settings in the next step.
+          </div>
         </div>
       )}
     </div>

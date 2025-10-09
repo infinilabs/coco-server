@@ -23,13 +23,14 @@ import GitHub from './github';
 import GitLab from './gitlab';
 import HugoSite from './hugo_site';
 import LocalFS from './local_fs';
-import { GiteaConfig, GithubConfig, GitlabConfig, NetworkDriveConfig, RdbmsConfig } from './models';
+import { GiteaConfig, GithubConfig, GitlabConfig, NetworkDriveConfig, RdbmsConfig, MongoDBConfig } from './models';
 import NetworkDrive from './network_drive';
 import Notion from './notion';
 import Rdbms from './rdbms';
 import Rss from './rss';
 import S3 from './s3';
 import Yuque from './yuque';
+import MongoDB from './mongodb';
 import OAuthConnect, { OAuthValidationPresets } from '@/components/oauth_connect';
 
 // eslint-disable-next-line complexity
@@ -102,6 +103,8 @@ export function Component() {
         return 'Postgresql';
       case Types.Mysql:
         return 'Mysql';
+      case Types.MongoDB:
+        return 'MongoDB';
       case Types.GitHub:
         return 'Github';
       case Types.GitLab:
@@ -180,10 +183,12 @@ export function Component() {
     Types.NetworkDrive,
     Types.Postgresql,
     Types.Mysql,
+    Types.MongoDB,
     Types.GitHub,
     Types.GitLab,
     Types.Gitea,
     Types.Mssql,
+        break;
     Types.Oracle
   ].includes(type);
 
@@ -259,6 +264,10 @@ export function Component() {
       }
       case Types.NetworkDrive: {
         config = NetworkDriveConfig(values);
+        break;
+      }
+      case Types.MongoDB: {
+        config = MongoDBConfig(values);
         break;
       }
       case Types.Postgresql:
@@ -434,6 +443,7 @@ export function Component() {
               {type === Types.S3 && <S3 />}
               {type === Types.Confluence && <Confluence />}
               {type === Types.NetworkDrive && <NetworkDrive />}
+              {type === Types.MongoDB && <MongoDB />}
               {type === Types.Postgresql && <Rdbms dbType="postgresql" />}
               {type === Types.Mysql && <Rdbms dbType="mysql" />}
               {type === Types.GitHub && <GitHub />}

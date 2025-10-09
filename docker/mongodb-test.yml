@@ -1,0 +1,36 @@
+version: '3.8'  
+  
+services:  
+  mongodb:  
+    image: mongo:7.0  
+    container_name: coco-mongodb-test  
+    ports:  
+      - "27017:27017"  
+    environment:  
+      MONGO_INITDB_ROOT_USERNAME: admin  
+      MONGO_INITDB_ROOT_PASSWORD: password  
+      MONGO_INITDB_DATABASE: coco_test  
+    volumes:  
+      - mongodb_data:/data/db  
+      - ./init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro  
+    networks:  
+      - coco-test  
+  
+  mongodb-replica:  
+    image: mongo:7.0  
+    container_name: coco-mongodb-replica-test  
+    ports:  
+      - "27018:27017"  
+    command: mongod --replSet rs0 --bind_ip_all  
+    volumes:  
+      - mongodb_replica_data:/data/db  
+    networks:  
+      - coco-test  
+  
+volumes:  
+  mongodb_data:  
+  mongodb_replica_data:  
+  
+networks:  
+  coco-test:  
+    driver: bridge
