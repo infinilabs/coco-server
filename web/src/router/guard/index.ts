@@ -11,13 +11,14 @@ import type {
 
 import { $t } from '@/locales';
 import { getRouteName, getRoutePath } from '@/router/elegant/transform';
-import { fetchServer, fetchSettings } from '@/service/api/server';
+import { fetchServer } from '@/service/api/server';
 import { store } from '@/store';
 import { isStaticSuper, resetAuth, selectUserInfo } from '@/store/slice/auth';
 import { getRouteHome, initAuthRoute, initConstantRoute } from '@/store/slice/route';
 import { localStg } from '@/utils/storage';
 import { fetchGetUserInfo } from '@/service/api';
 import { setProviderInfo } from '@/store/slice/server';
+import { updateRootRoute } from '@/store/slice/server/shared';
 
 function shouldRedirectLogin(path: string) {
   return ['provider', 'request_id', 'product'].every((keyword) => !path.includes(keyword))
@@ -28,6 +29,8 @@ export const init: Init = async currentFullPath => {
   const result = await fetchServer();
 
   await store.dispatch(setProviderInfo(result.data));
+
+  updateRootRoute(result.data)
 
   const isManaged = Boolean(result?.data?.managed)
 
