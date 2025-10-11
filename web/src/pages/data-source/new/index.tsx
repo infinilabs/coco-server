@@ -23,7 +23,8 @@ import GitHub from './github';
 import GitLab from './gitlab';
 import HugoSite from './hugo_site';
 import LocalFS from './local_fs';
-import { GiteaConfig, GithubConfig, GitlabConfig, NetworkDriveConfig, RdbmsConfig } from './models';
+import {GiteaConfig, GithubConfig, GitlabConfig, Neo4jConfig, NetworkDriveConfig, RdbmsConfig} from './models';
+import Neo4j from './neo4j';
 import NetworkDrive from './network_drive';
 import Notion from './notion';
 import Rdbms from './rdbms';
@@ -98,6 +99,8 @@ export function Component() {
         return 'Confluence';
       case Types.NetworkDrive:
         return 'Network Drive';
+      case Types.Neo4j:
+        return 'Neo4j';
       case Types.Postgresql:
         return 'Postgresql';
       case Types.Mysql:
@@ -184,7 +187,8 @@ export function Component() {
     Types.GitLab,
     Types.Gitea,
     Types.Mssql,
-    Types.Oracle
+    Types.Oracle,
+    Types.Neo4j
   ].includes(type);
 
   const connectorTypeName = getConnectorTypeName();
@@ -278,6 +282,10 @@ export function Component() {
       }
       case Types.Gitea: {
         config = GiteaConfig(values);
+        break;
+      }
+      case Types.Neo4j: {
+        config = Neo4jConfig(values);
         break;
       }
     }
@@ -434,6 +442,7 @@ export function Component() {
               {type === Types.S3 && <S3 />}
               {type === Types.Confluence && <Confluence />}
               {type === Types.NetworkDrive && <NetworkDrive />}
+              {type === Types.Neo4j && <Neo4j form={form} />}
               {type === Types.Postgresql && <Rdbms dbType="postgresql" />}
               {type === Types.Mysql && <Rdbms dbType="mysql" />}
               {type === Types.GitHub && <GitHub />}
