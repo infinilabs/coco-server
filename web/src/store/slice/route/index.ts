@@ -251,7 +251,7 @@ export const initAuthRoute = (): AppThunk => async (dispatch, getState) => {
  *
  * @param redirectKey Redirect route key
  */
-function handleUpdateRootRouteRedirect(redirectKey: LastLevelRouteKey) {
+export function handleUpdateRootRouteRedirect(redirectKey: LastLevelRouteKey) {
   const redirect = getRoutePath(redirectKey);
 
   if (redirect) {
