@@ -1,9 +1,9 @@
-import { handleUpdateRootRouteRedirect } from "../route";
-
-export function updateRootRoute(providerInfo: any) {
+export function getRootRouteIfSearch(providerInfo: any) {
+  let root = import.meta.env.VITE_ROUTE_HOME
   if (providerInfo?.search_settings?.enabled && providerInfo?.search_settings?.integration) {
-    handleUpdateRootRouteRedirect('search')
+    root = 'search'
   } else {
-    handleUpdateRootRouteRedirect('home')
+    root
   }
+  return root
 }
