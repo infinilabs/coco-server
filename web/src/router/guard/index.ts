@@ -17,8 +17,7 @@ import { isStaticSuper, resetAuth, selectUserInfo } from '@/store/slice/auth';
 import { getRouteHome, initAuthRoute, initConstantRoute } from '@/store/slice/route';
 import { localStg } from '@/utils/storage';
 import { fetchGetUserInfo } from '@/service/api';
-import { setProviderInfo } from '@/store/slice/server';
-import { updateRootRoute } from '@/store/slice/server/shared';
+import { setProviderInfo, updateRootRouteIfSearch } from '@/store/slice/server';
 
 function shouldRedirectLogin(path: string) {
   return ['provider', 'request_id', 'product'].every((keyword) => !path.includes(keyword))
@@ -29,8 +28,7 @@ export const init: Init = async currentFullPath => {
   const result = await fetchServer();
 
   await store.dispatch(setProviderInfo(result.data));
-
-  updateRootRoute(result.data)
+  await store.dispatch(updateRootRouteIfSearch(result.data));
 
   const isManaged = Boolean(result?.data?.managed)
 
@@ -62,10 +60,8 @@ export const init: Init = async currentFullPath => {
     localStg.set('userInfo', user);
     await store.dispatch(resetAuth());
     await store.dispatch(initAuthRoute());
-    if (currentFullPath.startsWith('/guide')) {
+    if (currentFullPath.startsWith('/guide') || (currentFullPath.startsWith('/login') && shouldRedirectLogin(currentFullPath))) {
       return '/'
-    } else if (currentFullPath.startsWith('/login') && shouldRedirectLogin(currentFullPath)) {
-      return '/';
     }
   } else {
     localStg.remove('userInfo');
@@ -74,6 +70,10 @@ export const init: Init = async currentFullPath => {
     if (['/search', '/login'].every((item) => !currentFullPath.startsWith(item))) {
       const loginRoute: RouteKey = 'login';
       const routeHome = getRouteHome(store.getState());
+
+      if (routeHome === 'search') {
+        return { name: routeHome }
+      }
 
       const query = getRouteQueryOfLoginRoute(currentFullPath, routeHome as RouteKey);
 

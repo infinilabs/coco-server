@@ -3,8 +3,7 @@ import '../index.scss';
 import { fetchSettings, updateSettings } from '@/service/api/server';
 import { useLoading, useRequest } from '@sa/hooks';
 import IntegrationSelect from '@/pages/integration/modules/IntegrationSelect';
-import { getProviderInfo, setProviderInfo } from '@/store/slice/server';
-import { updateRootRoute } from '@/store/slice/server/shared';
+import { getProviderInfo, setProviderInfo, updateRootRouteIfSearch } from '@/store/slice/server';
 
 const SearchSettings = memo(() => {
   const [form] = Form.useForm();
@@ -44,7 +43,7 @@ const SearchSettings = memo(() => {
         search_settings
       }
       dispatch(setProviderInfo(newProviderInfo));
-      updateRootRoute(newProviderInfo)
+      dispatch(updateRootRouteIfSearch(newProviderInfo));
       window.$message?.success(t('common.updateSuccess'));
     }
     endLoading();
