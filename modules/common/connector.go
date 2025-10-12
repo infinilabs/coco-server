@@ -21,4 +21,9 @@ type Connector struct {
 	} `json:"assets,omitempty" elastic_mapping:"assets:{enabled:false}"`
 	Builtin bool                   `json:"builtin" elastic_mapping:"builtin:{type:boolean}"`          // Whether the connector is built-in or user-defined
 	Config  map[string]interface{} `json:"config,omitempty" elastic_mapping:"config:{enabled:false}"` // Connector-specific configuration settings
+
+	Processor struct {
+		Enabled bool   `json:"enabled" elastic_mapping:"enabled:{type:keyword}"`
+		Name    string `json:"name,omitempty" elastic_mapping:"name:{type:keyword,copy_to:combined_fulltext}"`
+	} `json:"processor,omitempty" elastic_mapping:"processor:{type:object}"`
 }

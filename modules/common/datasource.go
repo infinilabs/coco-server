@@ -7,6 +7,7 @@ package common
 import (
 	"errors"
 	"infini.sh/framework/core/orm"
+	"infini.sh/framework/core/pipeline"
 	"infini.sh/framework/core/util"
 	"net/http"
 	"time"
@@ -28,17 +29,21 @@ type DataSource struct {
 	// Whether synchronization is allowed
 	SyncConfig SyncConfig `json:"sync" elastic_mapping:"sync:{type:object}"`
 	Enabled    bool       `json:"enabled" elastic_mapping:"enabled:{type:keyword}"`
+
+	// Enrichment pipeline
+	EnrichmentPipeline *pipeline.PipelineConfigV2 `json:"enrichment_pipeline" elastic_mapping:"enrichment_pipeline:{type:object}"` //if the pipeline is enabled, pass each batch messages to this pipeline for enrichment
 }
 
 type SyncConfig struct {
 	Enabled  bool   `json:"enabled" elastic_mapping:"enabled:{type:keyword}"`
 	Strategy string `json:"strategy" elastic_mapping:"strategy:{type:keyword}"`
 	Interval string `json:"interval" elastic_mapping:"interval:{type:keyword}"`
+	PageSize int    `json:"page_size" config:"page_size"`
 }
 
 type ConnectorConfig struct {
 	ConnectorID string      `json:"id,omitempty" elastic_mapping:"id:{type:keyword}"`          // Connector ID for the datasource
-	Config      interface{} `json:"config,omitempty" elastic_mapping:"config:{enabled:false}"` // Configs for this Connector
+	Config      interface{} `json:"config,omitempty" elastic_mapping:"config:{enabled:false}"` // Configs for this Connector, also pass to connector's processor
 }
 
 const (

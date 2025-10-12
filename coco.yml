@@ -455,7 +455,14 @@ pipeline:
           queues:
             type: indexing_merge
             tag: "merged"
-
+  - name: connector_dispatcher
+    auto_start: true
+    keep_running: true
+    singleton: true
+    retry_delay_in_ms: 10000
+    processor:
+      - connector_dispatcher:
+          interval: 30s
 
 http_client:
   default:
