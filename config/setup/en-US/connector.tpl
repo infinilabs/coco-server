@@ -12,7 +12,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/y
     "hugo",
     "web"
   ],
-  "url" : "http://coco.rs/connectors/hugo_site",
+  "url" : "http://coco.rs/connectors/yuque",
   "assets" : {
     "icons" : {
       "board" : "/assets/icons/connector/yuque/board.png",
@@ -23,8 +23,13 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/y
       "table" : "/assets/icons/connector/yuque/table.png"
     }
   },
-  "builtin": true
+  "builtin": true,
+   "processor":{
+      "enabled":true,
+      "name":"yuque"
+   }
 }
+
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/hugo_site
 {
   "id" : "hugo_site",

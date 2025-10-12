@@ -6,6 +6,7 @@ package yuque
 
 import (
 	"fmt"
+	"infini.sh/framework/core/pipeline"
 	"sort"
 	"strings"
 
@@ -59,12 +60,12 @@ func (this *Plugin) save(obj interface{}) {
 	}
 }
 
-func (this *Plugin) collect(connector *common.Connector, datasource *common.DataSource, cfg *YuqueConfig) {
+func (this *Plugin) collect(pipeCtx *pipeline.Context, connector *common.Connector, datasource *common.DataSource, cfg *YuqueConfig) error {
 
 	token := cfg.Token
 
 	if token == "" {
-		panic("invalid yuque token")
+		return errors.Error("invalid yuque token")
 	}
 
 	//for groups only
@@ -75,26 +76,27 @@ func (this *Plugin) collect(connector *common.Connector, datasource *common.Data
 
 	err := util.FromJSONBytes(res.Body, &currentUser)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	if currentUser.Group.Login == "" {
-		panic("invalid group:" + string(res.Body))
+		return errors.Error("invalid group:" + string(res.Body))
 	}
 
 	log.Infof("start collecting for %v", currentUser.Group.Login)
 
 	//get users in group
 	if currentUser.Group.Type != "User" && (cfg.IndexingUsers || cfg.IndexingGroups) {
-		this.collectUsers(connector, datasource, currentUser.Group.Login, token, cfg)
+		this.collectUsers(pipeCtx, connector, datasource, currentUser.Group.Login, token, cfg)
 	}
 
 	//get all books
 	if cfg.IndexingBooks || cfg.IndexingDocs {
-		this.collectBooks(connector, datasource, currentUser.Group.Login, token, cfg)
+		this.collectBooks(pipeCtx, connector, datasource, currentUser.Group.Login, token, cfg)
 	}
 
 	log.Infof("finished collecting for %v", currentUser.Group.Login)
+	return nil
 }
 
 // Define a temporary struct for sorting that includes the Level
@@ -104,7 +106,7 @@ type FolderInfo struct {
 	Level     int
 }
 
-func (this *Plugin) collectBooks(connector *common.Connector, datasource *common.DataSource, login, token string, cfg *YuqueConfig) {
+func (this *Plugin) collectBooks(pipeCtx *pipeline.Context, connector *common.Connector, datasource *common.DataSource, login, token string, cfg *YuqueConfig) {
 
 	const limit = 100
 	offset := 0
@@ -279,8 +281,7 @@ func (this *Plugin) collectBooks(connector *common.Connector, datasource *common
 				document.Updated = &bookDetail.Book.UpdatedAt
 
 				document.Cleanup()
-
-				this.save(document)
+				this.ProcessMessage(pipeCtx, connector, datasource, document)
 			} else {
 				log.Info("skip book:", bookDetail.Book.Name, ",", bookDetail.Book.Public)
 			}
@@ -288,7 +289,7 @@ func (this *Plugin) collectBooks(connector *common.Connector, datasource *common
 			//get docs in repo
 			if cfg.IndexingDocs {
 				log.Debugf("collecting docs in book: %v, toc: %v", bookSlug, len(bookTocMap))
-				this.collectDocs(connector, datasource, login, bookSlug, bookID, token, cfg, &bookTocMap)
+				this.collectDocs(pipeCtx, connector, datasource, login, bookSlug, bookID, token, cfg, &bookTocMap)
 			}
 		}
 
@@ -301,7 +302,7 @@ func (this *Plugin) collectBooks(connector *common.Connector, datasource *common
 
 }
 
-func (this *Plugin) collectDocs(connector *common.Connector, datasource *common.DataSource, login string, bookSlug string, bookID int64, token string, cfg *YuqueConfig, toc *map[string][]common.RichLabel) {
+func (this *Plugin) collectDocs(pipeCtx *pipeline.Context, connector *common.Connector, datasource *common.DataSource, login string, bookSlug string, bookID int64, token string, cfg *YuqueConfig, toc *map[string][]common.RichLabel) {
 
 	const limit = 100
 	offset := 0
@@ -335,7 +336,7 @@ func (this *Plugin) collectDocs(connector *common.Connector, datasource *common.
 
 			if cfg.IndexingDocs && (doc.Public > 0 || (cfg.IncludePrivateDoc)) {
 				//get doc details
-				this.collectDocDetails(connector, datasource, bookID, doc.ID, token, cfg, toc)
+				this.collectDocDetails(pipeCtx, connector, datasource, bookID, doc.ID, token, cfg, toc)
 			} else {
 				log.Debug("skip doc:", doc.Title, ",", doc.Public)
 			}
@@ -350,7 +351,7 @@ func (this *Plugin) collectDocs(connector *common.Connector, datasource *common.
 
 }
 
-func (this *Plugin) collectDocDetails(connector *common.Connector, datasource *common.DataSource, bookID int64, docID int64, token string, cfg *YuqueConfig, toc *map[string][]common.RichLabel) {
+func (this *Plugin) collectDocDetails(pipeCtx *pipeline.Context, connector *common.Connector, datasource *common.DataSource, bookID int64, docID int64, token string, cfg *YuqueConfig, toc *map[string][]common.RichLabel) {
 
 	res := get(fmt.Sprintf("/api/v2/repos/%v/docs/%v", bookID, docID), token)
 	doc := struct {
@@ -429,12 +430,11 @@ func (this *Plugin) collectDocDetails(connector *common.Connector, datasource *c
 		document.Updated = &doc.Doc.UpdatedAt
 
 		document.Cleanup()
-
-		this.save(document)
+		this.ProcessMessage(pipeCtx, connector, datasource, document)
 	}
 }
 
-func (this *Plugin) collectUsers(connector *common.Connector, datasource *common.DataSource, login, token string, cfg *YuqueConfig) {
+func (this *Plugin) collectUsers(pipeCtx *pipeline.Context, connector *common.Connector, datasource *common.DataSource, login, token string, cfg *YuqueConfig) {
 	const pageSize = 100
 	offset := 0
 
@@ -527,7 +527,7 @@ func (this *Plugin) collectUsers(connector *common.Connector, datasource *common
 			if document.Title != "" {
 				document.ID = util.MD5digest(fmt.Sprintf("%v-%v-%v", datasource.ID, idPrefix, metadata["user_id"]))
 				log.Debugf("indexing user: %v, %v, %v", document.ID, metadata["user_login"], document.Title)
-				this.save(document)
+				this.ProcessMessage(pipeCtx, connector, datasource, document)
 			}
 		}
 
