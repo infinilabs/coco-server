@@ -7,6 +7,7 @@ package common
 import (
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
+	"infini.sh/coco/modules/datasource"
 	"infini.sh/framework/core/api"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/config"
@@ -15,6 +16,7 @@ import (
 	"infini.sh/framework/core/param"
 	"infini.sh/framework/core/pipeline"
 	"infini.sh/framework/core/queue"
+	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
 	"net/http"
 )
@@ -98,20 +100,24 @@ func (processor *ConnectorProcessorBase) GetLastModifiedTime(datasourceID string
 }
 
 func init() {
-	api.HandleUIMethod(api.GET, "/datasource/:id/reset_last_modified_time", reset, api.RequireLogin())
+	updatePermission := security.GetSimplePermission("datasource", "reset_last_modified_time", string(security.Delete))
+	api.HandleUIMethod(api.GET, "/datasource/:id/reset_last_modified_time", reset, api.RequirePermission(updatePermission), api.RequireLogin())
 
 }
 
 func reset(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	//TODO check permission
 
-	//from context
 	datasourceID := ps.MustGetParameter("id")
 
-	err := kv.DeleteKey("/datasource/increments/lastModifiedTime", []byte(datasourceID))
-	if err != nil {
-		panic(err)
+	//check datasource's permission
+	v, err := datasource.GetDatasourceByID([]string{datasourceID})
+	if len(v) != 0 && err == nil {
+		err := kv.DeleteKey("/datasource/increments/lastModifiedTime", []byte(datasourceID))
+		if err != nil {
+			panic(err)
+		}
+		api.WriteJSON(w, api.NewAckJSON(true), 200)
+		return
 	}
-
-	api.WriteJSON(w, api.NewAckJSON(true), 200)
+	api.WriteJSON(w, api.NewAckJSON(false), 404)
 }
