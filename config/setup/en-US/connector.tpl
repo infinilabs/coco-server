@@ -100,6 +100,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
     "token_url": "https://oauth2.googleapis.com/token"
   },
   "builtin": true,
+  "oauth_connect_implemented": true,
   "processor":{
      "enabled":true,
      "name":"google_drive"
