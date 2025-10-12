@@ -49,8 +49,13 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/h
       "web_page" : "/assets/icons/connector/hugo_site/web_page.png"
     }
   },
-  "builtin": true
+  "builtin": true,
+  "processor":{
+      "enabled":true,
+      "name":"hugo_site"
+  }
 }
+
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/google_drive
 {
   "id" : "google_drive",
@@ -95,8 +100,13 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
     "redirect_url": "$[[SETUP_SERVER_ENDPOINT]]/connector/google_drive/oauth_redirect",
     "token_url": "https://oauth2.googleapis.com/token"
   },
-  "builtin": true
+  "builtin": true,
+  "processor":{
+      "enabled":true,
+      "name":"google_drive"
+  }
 }
+
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/notion
 {
   "id" : "notion",
