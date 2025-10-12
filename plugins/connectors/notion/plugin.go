@@ -5,24 +5,17 @@
 package notion
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
+	cmn "infini.sh/coco/plugins/connectors/common"
+	"infini.sh/framework/core/pipeline"
 	"strings"
 	"time"
 
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/modules/common"
-	"infini.sh/coco/plugins/connectors"
-	"infini.sh/framework/core/api"
 	config3 "infini.sh/framework/core/config"
-	"infini.sh/framework/core/env"
 	"infini.sh/framework/core/errors"
-	"infini.sh/framework/core/global"
-	"infini.sh/framework/core/module"
-	"infini.sh/framework/core/orm"
-	"infini.sh/framework/core/queue"
-	"infini.sh/framework/core/task"
 	"infini.sh/framework/core/util"
 )
 
@@ -31,99 +24,49 @@ type Config struct {
 }
 
 type Plugin struct {
-	api.Handler
-	Enabled  bool               `config:"enabled"`
-	Queue    *queue.QueueConfig `config:"queue"`
-	Interval string             `config:"interval"`
-	PageSize int                `config:"page_size"`
+	cmn.ConnectorProcessorBase
 }
 
-func (this *Plugin) Setup() {
-	ok, err := env.ParseConfig("connector.notion", &this)
-	if ok && err != nil && global.Env().SystemConfig.Configs.PanicOnConfigError {
-		panic(err)
-	}
+const Name = "notion"
 
-	if !this.Enabled {
-		return
-	}
-
-	if this.PageSize <= 0 {
-		this.PageSize = 1000
-	}
-
-	if this.Queue == nil {
-		this.Queue = &queue.QueueConfig{Name: "indexing_documents"}
-	}
-
-	this.Queue = queue.SmartGetOrInitConfig(this.Queue)
+func init() {
+	pipeline.RegisterProcessorPlugin(Name, New)
 }
 
-func (this *Plugin) Start() error {
-
-	if this.Enabled {
-		task.RegisterScheduleTask(task.ScheduleTask{
-			ID:          util.GetUUID(),
-			Group:       "connectors",
-			Singleton:   true,
-			Interval:    util.GetDurationOrDefault(this.Interval, time.Second*30).String(), //connector's task interval
-			Description: "indexing notion docs",
-			Task: func(ctx context.Context) {
-				connector := common.Connector{}
-				connector.ID = "notion"
-				exists, err := orm.Get(&connector)
-				if !exists {
-					log.Debugf("Connector %s not found", connector.ID)
-					return
-				}
-				if err != nil {
-					panic(errors.Errorf("invalid %s connector:%v", connector.ID, err))
-				}
-
-				q := orm.Query{}
-				q.Size = this.PageSize
-				q.Conds = orm.And(orm.Eq("connector.id", connector.ID), orm.Eq("sync.enabled", true))
-				var results []common.DataSource
-
-				err, _ = orm.SearchWithJSONMapper(&results, &q)
-				if err != nil {
-					panic(err)
-				}
-
-				for _, item := range results {
-					toSync, err := connectors.CanDoSync(item)
-					if err != nil {
-						_ = log.Errorf("error checking syncable with datasource [%s]: %v", item.Name, err)
-						continue
-					}
-					if !toSync {
-						continue
-					}
-					log.Debugf("ID: %s, Name: %s, Other: %s", item.ID, item.Name, util.MustToJSON(item))
-					this.fetchNotion(&connector, &item)
-				}
-			},
-		})
+func New(c *config3.Config) (pipeline.Processor, error) {
+	runner := Plugin{}
+	if err := c.Unpack(&runner); err != nil {
+		return nil, fmt.Errorf("failed to unpack the configuration of processor %v, error: %s", Name, err)
 	}
 
-	return nil
+	runner.InitBaseConfig(c)
+	return &runner, nil
 }
 
-func (this *Plugin) fetchNotion(connector *common.Connector, datasource *common.DataSource) {
+func (processor *Plugin) Name() string {
+	return Name
+}
+
+func (processor *Plugin) Process(ctx *pipeline.Context) error {
+	connector, datasource := processor.GetBasicInfo(ctx)
+	return processor.fetchNotion(ctx, connector, datasource)
+}
+
+func (this *Plugin) fetchNotion(pipeCtx *pipeline.Context, connector *common.Connector, datasource *common.DataSource) error {
 
 	if connector == nil || datasource == nil {
-		panic("invalid connector config")
+		return errors.Error("invalid connector config: connector or datasource is nil")
 	}
 
 	cfg, err := config3.NewConfigFrom(datasource.Connector.Config)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	obj := Config{}
 	err = cfg.Unpack(&obj)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	log.Debugf("handle notion's datasource: %v", obj)
@@ -163,22 +106,15 @@ func (this *Plugin) fetchNotion(connector *common.Connector, datasource *common.
 
 			doc.ID = util.MD5digest(fmt.Sprintf("%v-%v-%v", connector.ID, datasource.ID, doc.URL))
 
-			data := util.MustToJSONBytes(doc)
-
-			if global.Env().IsDebug {
-				log.Tracef(string(data))
-			}
-
-			err := queue.Push(queue.SmartGetOrInitConfig(this.Queue), data)
-			if err != nil {
-				panic(err)
-			}
+			this.ProcessMessage(pipeCtx, connector, datasource, doc)
 		}
 
 		log.Info("fetched ", len(result.Results), " notion results")
 	}
+
 	search(obj.Token, "", handlePage)
 
+	return nil
 }
 
 // SearchResult represents the response from the Notion Search API
@@ -433,16 +369,4 @@ func executeNotionRequest(req *util.Request, token string) ([]byte, error) {
 	}
 
 	return res.Body, nil
-}
-
-func (this *Plugin) Stop() error {
-	return nil
-}
-
-func (this *Plugin) Name() string {
-	return "notion"
-}
-
-func init() {
-	module.RegisterUserPlugin(&Plugin{})
 }

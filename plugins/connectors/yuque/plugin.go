@@ -14,7 +14,7 @@ import (
 	"infini.sh/framework/core/pipeline"
 )
 
-const YuqueKey = "yuque"
+const Name = "yuque"
 
 type YuqueConfig struct {
 	Token               string `config:"token"`
@@ -53,13 +53,13 @@ func (this *Plugin) fetch_yuque(pipeCtx *pipeline.Context, connector *common.Con
 }
 
 func init() {
-	pipeline.RegisterProcessorPlugin(YuqueKey, New)
+	pipeline.RegisterProcessorPlugin(Name, New)
 }
 
 func New(c *config3.Config) (pipeline.Processor, error) {
 	runner := Plugin{SkipInvalidToken: true}
 	if err := c.Unpack(&runner); err != nil {
-		return nil, fmt.Errorf("failed to unpack the configuration of processor %v, error: %s", YuqueKey, err)
+		return nil, fmt.Errorf("failed to unpack the configuration of processor %v, error: %s", Name, err)
 	}
 
 	runner.InitBaseConfig(c)
@@ -67,7 +67,7 @@ func New(c *config3.Config) (pipeline.Processor, error) {
 }
 
 func (processor *Plugin) Name() string {
-	return YuqueKey
+	return Name
 }
 
 func (processor *Plugin) Process(ctx *pipeline.Context) error {

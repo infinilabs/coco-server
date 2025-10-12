@@ -136,8 +136,13 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/n
       "web_page" : "/assets/icons/connector/notion/icon.png"
     }
   },
-  "builtin": true
+  "builtin": true,
+    "processor":{
+       "enabled":true,
+       "name":"notion"
+    }
 }
+
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/rss
 {
   "id" : "rss",
