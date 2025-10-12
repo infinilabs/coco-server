@@ -6,6 +6,7 @@ package google_drive
 
 import (
 	"context"
+	"infini.sh/framework/core/pipeline"
 	"time"
 
 	log "github.com/cihub/seelog"
@@ -31,7 +32,7 @@ type Config struct {
 	Profile      util.MapStr `config:"profile" json:"profile"`
 }
 
-func (this *Processor) fetch_google_drive(connector *common.Connector, datasource *common.DataSource) {
+func (this *Processor) fetch_google_drive(pipeCtx *pipeline.Context, connector *common.Connector, datasource *common.DataSource) {
 	if connector == nil || datasource == nil {
 		panic("invalid connector config")
 	}
@@ -108,7 +109,7 @@ func (this *Processor) fetch_google_drive(connector *common.Connector, datasourc
 		} else {
 			// Token is valid, proceed with indexing files
 			log.Debug("start processing google drive files")
-			this.startIndexingFiles(connector, datasource, &tok)
+			this.startIndexingFiles(pipeCtx, connector, datasource, &tok)
 			log.Debug("finished processing google drive files")
 		}
 	}

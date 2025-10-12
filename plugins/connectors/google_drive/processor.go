@@ -41,6 +41,6 @@ func (processor *Processor) Name() string {
 
 func (processor *Processor) Process(ctx *pipeline.Context) error {
 	connector, datasource := processor.GetBasicInfo(ctx)
-	processor.fetch_google_drive(connector, datasource)
+	processor.fetch_google_drive(ctx, connector, datasource)
 	return nil
 }

@@ -15,6 +15,7 @@ import (
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/orm"
+	"infini.sh/framework/core/pipeline"
 	"infini.sh/framework/core/queue"
 	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
@@ -227,8 +228,7 @@ func isSamePermission(a, b []*drive.Permission) bool {
 	return true
 }
 
-func (this *Processor) startIndexingFiles(connector *common.Connector, datasource *common.DataSource, tok *oauth2.Token) {
-	var filesProcessed = 0
+func (this *Processor) startIndexingFiles(pipeCtx *pipeline.Context, connector *common.Connector, datasource *common.DataSource, tok *oauth2.Token) {
 	defer func() {
 		if !global.Env().IsDebug {
 			if r := recover(); r != nil {
@@ -243,10 +243,6 @@ func (this *Processor) startIndexingFiles(connector *common.Connector, datasourc
 				}
 				log.Error("error on indexing google drive files,", v)
 			}
-		}
-
-		if filesProcessed > 0 {
-			log.Infof("[connector][google_drive] successfully indexed [%v]  files", filesProcessed) //TODO unify logging format
 		}
 	}()
 
@@ -271,13 +267,13 @@ func (this *Processor) startIndexingFiles(connector *common.Connector, datasourc
 	rootFolderID, rootFolderName := getRootFolderID(srv)
 	rootDoc := common.CreateHierarchyPathFolderDoc(datasource, rootFolderID, rootFolderName, []string{})
 	rootDoc.URL = fmt.Sprintf("https://drive.google.com/file/d/%s/view", rootFolderID)
-	this.saveDocToQueue(rootDoc, filesProcessed)
+	this.ProcessMessage(pipeCtx, connector, datasource, rootDoc)
 
 	// /Shared with me
 	shareWithMe := common.CreateHierarchyPathFolderDoc(datasource, "share_with_me", "Shared with me", []string{})
 	rootDoc.URL = fmt.Sprintf("https://drive.google.com/file/d/%s/view", "share_with_me")
 
-	this.saveDocToQueue(shareWithMe, filesProcessed)
+	this.ProcessMessage(pipeCtx, connector, datasource, shareWithMe)
 
 	ft := &FolderTreeBuilder{FolderMap: map[string]*FolderNode{}}
 	ft.AddFolder(rootFolderID, rootFolderName, "", false, false, nil, "")
@@ -368,7 +364,7 @@ func (this *Processor) startIndexingFiles(connector *common.Connector, datasourc
 
 		node.FullPath = "/" + strings.Join(fullParts, "/")
 
-		this.saveDocToQueue(folderDoc, filesProcessed)
+		this.ProcessMessage(pipeCtx, connector, datasource, folderDoc)
 
 		parent, ok := ft.FolderMap[node.ParentID]
 		if ok && isSamePermission(node.Permissions, parent.Permissions) {
@@ -615,7 +611,7 @@ func (this *Processor) startIndexingFiles(connector *common.Connector, datasourc
 				document.Payload["image_metadata"] = i.ImageMediaMetadata
 			}
 
-			this.saveDocToQueue(document, filesProcessed)
+			this.ProcessMessage(pipeCtx, connector, datasource, document)
 		}
 
 		// After processing all files, save the most recent modified time for next indexing
