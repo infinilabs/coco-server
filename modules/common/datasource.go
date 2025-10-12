@@ -32,6 +32,14 @@ type DataSource struct {
 
 	// Enrichment pipeline
 	EnrichmentPipeline *pipeline.PipelineConfigV2 `json:"enrichment_pipeline" elastic_mapping:"enrichment_pipeline:{type:object}"` //if the pipeline is enabled, pass each batch messages to this pipeline for enrichment
+
+	//OAuthConfig OAuthConfig `json:"oauth_config,omitempty" elastic_mapping:"oauth_config:{type:object}"`
+}
+
+type OAuthConfig struct {
+	Enabled     bool   `json:"enabled,omitempty" elastic_mapping:"enabled:{type:keyword}"`
+	ConnectURL  string `json:"connect_url,omitempty" elastic_mapping:"connect_url:{type:keyword}"`
+	RedirectURL string `json:"redirect_url,omitempty" elastic_mapping:"redirect_url:{type:keyword}"`
 }
 
 type SyncConfig struct {

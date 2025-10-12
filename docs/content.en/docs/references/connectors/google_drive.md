@@ -93,8 +93,6 @@ Below is the config parameters supported by this connector.
 | `interval`                    | `duration`   | Interval for polling the Google Drive API.                                                     |
 | `skip_invalid_token`          | `bool`       | Skip errors caused by invalid tokens if set to `true`.                                         |
 
-> **Notes**:
-> - Ensure `redirect_uris` and `javascript_origins` are properly configured for your deployment.
 
 ## Register Google Drive Connector
 

@@ -227,7 +227,7 @@ func isSamePermission(a, b []*drive.Permission) bool {
 	return true
 }
 
-func (this *Plugin) startIndexingFiles(connector *common.Connector, datasource *common.DataSource, tok *oauth2.Token) {
+func (this *Processor) startIndexingFiles(connector *common.Connector, datasource *common.DataSource, tok *oauth2.Token) {
 	var filesProcessed = 0
 	defer func() {
 		if !global.Env().IsDebug {
@@ -250,7 +250,16 @@ func (this *Plugin) startIndexingFiles(connector *common.Connector, datasource *
 		}
 	}()
 
-	client := this.oAuthConfig.Client(context.Background(), tok)
+	if datasource.SyncConfig.PageSize <= 0 {
+		datasource.SyncConfig.PageSize = 100
+	}
+
+	oAuthConfig := getOAuthConfig(connector.ID)
+	if oAuthConfig == nil {
+		panic("invalid oauth config")
+	}
+
+	client := oAuthConfig.Client(context.Background(), tok)
 	ctx := context.Background()
 	srv, err := drive.NewService(ctx, option.WithHTTPClient(client))
 	if err != nil {
@@ -283,7 +292,7 @@ func (this *Plugin) startIndexingFiles(connector *common.Connector, datasource *
 		}
 
 		call := srv.Files.List().
-			PageSize(int64(this.PageSize)).
+			PageSize(int64(datasource.SyncConfig.PageSize)).
 			OrderBy("name").
 			Q("mimeType='application/vnd.google-apps.folder' and trashed=false").
 			Fields("nextPageToken, files(id, name, parents)")
@@ -415,7 +424,7 @@ func (this *Plugin) startIndexingFiles(connector *common.Connector, datasource *
 	var query string
 
 	//get last access time from kv
-	lastModifiedTimeStr, _ := this.getLastModifiedTime(datasource.ID)
+	lastModifiedTimeStr, _ := this.GetLastModifiedTime(datasource.ID)
 
 	log.Tracef("get last modified time: %v", lastModifiedTimeStr)
 
@@ -438,7 +447,7 @@ func (this *Plugin) startIndexingFiles(connector *common.Connector, datasource *
 			break
 		}
 
-		call := srv.Files.List().PageSize(int64(this.PageSize)).OrderBy("modifiedTime asc")
+		call := srv.Files.List().PageSize(int64(datasource.SyncConfig.PageSize)).OrderBy("modifiedTime asc")
 
 		if query != "" {
 			call = call.Q(query)
@@ -613,7 +622,7 @@ func (this *Plugin) startIndexingFiles(connector *common.Connector, datasource *
 		if lastModifyTime != nil {
 			// Save the lastModifyTime (for example, in a KV store or file)
 			lastModifiedTimeStr = lastModifyTime.Format(time.RFC3339Nano)
-			err := this.saveLastModifiedTime(lastModifiedTimeStr, datasource.ID)
+			err := this.SaveLastModifiedTime(lastModifiedTimeStr, datasource.ID)
 			if err != nil {
 				panic(err)
 			}
@@ -628,7 +637,7 @@ func (this *Plugin) startIndexingFiles(connector *common.Connector, datasource *
 	}
 }
 
-func (this *Plugin) saveDocToQueue(document common.Document, filesProcessed int) {
+func (this *Processor) saveDocToQueue(document common.Document, filesProcessed int) {
 
 	log.Debugf("save file: %v, %v, %v, %v, %v", document.ID, document.Category, document.Categories, document.Type, document.Title)
 
