@@ -10,13 +10,13 @@ import (
 	"net/http"
 )
 
-const lastModifiedTimeKey = "/datasource/lastModifiedTime"
+const lastAccessTimeKey = "/datasource/lastAccessTime"
 
-func (processor *Dispatcher) reset(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+func (processor *Dispatcher) resetAccessTime(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	//from context
 	datasourceID := ps.MustGetParameter("id")
 
-	err := kv.DeleteKey(lastModifiedTimeKey, []byte(datasourceID))
+	err := kv.DeleteKey(lastAccessTimeKey, []byte(datasourceID))
 	if err != nil {
 		panic(err)
 	}
@@ -24,13 +24,13 @@ func (processor *Dispatcher) reset(w http.ResponseWriter, req *http.Request, ps 
 	processor.WriteAckOKJSON(w)
 }
 
-func (processor *Dispatcher) saveLastModifiedTime(datasourceID string, lastModifiedTime string) error {
-	err := kv.AddValue(lastModifiedTimeKey, []byte(datasourceID), []byte(lastModifiedTime))
+func (processor *Dispatcher) saveLastAccessTime(datasourceID string, lastModifiedTime string) error {
+	err := kv.AddValue(lastAccessTimeKey, []byte(datasourceID), []byte(lastModifiedTime))
 	return err
 }
 
-func (processor *Dispatcher) getLastModifiedTime(datasourceID string) (string, error) {
-	data, err := kv.GetValue(lastModifiedTimeKey, []byte(datasourceID))
+func (processor *Dispatcher) getLastAccessTime(datasourceID string) (string, error) {
+	data, err := kv.GetValue(lastAccessTimeKey, []byte(datasourceID))
 	if err != nil {
 		return "", err
 	}

@@ -40,7 +40,7 @@ func New(c *config.Config) (pipeline.Processor, error) {
 	}
 
 	runner := Dispatcher{config: &cfg}
-	api.HandleUIMethod(api.POST, "/datasource/:id/_reset_sync", runner.reset, api.RequireLogin())
+	api.HandleUIMethod(api.POST, "/datasource/:id/_reset_sync", runner.resetAccessTime, api.RequireLogin())
 	return &runner, nil
 }
 
@@ -90,7 +90,7 @@ NextPage:
 
 			if doc.SyncConfig.Enabled {
 				// get connector config for the datasource
-				lastAccessTime, _ := processor.getLastModifiedTime(doc.ID)
+				lastAccessTime, _ := processor.getLastAccessTime(doc.ID)
 				interval := util.GetDurationOrDefault(doc.SyncConfig.Interval, time.Duration(30*time.Second))
 
 				needSync := false
@@ -116,7 +116,7 @@ NextPage:
 					}
 
 					//update last access time
-					err = processor.saveLastModifiedTime(doc.ID, util.FormatTimeWithLocalTZ(time.Now()))
+					err = processor.saveLastAccessTime(doc.ID, util.FormatTimeWithLocalTZ(time.Now()))
 					if err != nil {
 						panic(err)
 					}
