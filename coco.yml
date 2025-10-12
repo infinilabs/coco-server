@@ -462,7 +462,8 @@ pipeline:
     retry_delay_in_ms: 10000
     processor:
       - connector_dispatcher:
-          interval: 30s
+          max_running_timeout_in_seconds: 600
+#          pipelines_in_sync: true
 
 http_client:
   default:
