@@ -351,7 +351,7 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 	orm.WithModel(ctx, &common.Document{})
 
 	docs := []common.Document{}
-	err, resp := core.SearchV2WithResultItemMapper(ctx, &docs, builder, nil)
+	err, resp := elastic.SearchV2WithResultItemMapper(ctx, &docs, builder, nil)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return

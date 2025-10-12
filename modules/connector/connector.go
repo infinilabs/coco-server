@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"time"
 
-	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/orm"
@@ -234,7 +233,7 @@ func (h *APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprou
 		return nil
 	}
 
-	err, res := core.SearchV2WithResultItemMapper(ctx, &connectors, builder, itemMapFunc)
+	err, res := elastic.SearchV2WithResultItemMapper(ctx, &connectors, builder, itemMapFunc)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
