@@ -305,3 +305,24 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
   "builtin" : true,
   "description": "预置全系列文心大模型与上百个精选第三方模型"
 }
+
+POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/cohere
+{
+  "id": "cohere",
+  "created": "2025-03-28T11:32:00.000000+08:00",
+  "updated": "2025-03-28T11:32:00.000000+08:00",
+  "name": "Cohere",
+  "api_key": "",
+  "api_type": "cohere",
+  "base_url": "https://api.cohere.ai/v1",
+  "icon": "/assets/icons/llm/cohere.svg",
+  "models": [
+    {"name": "command-r-plus"},
+    {"name": "command-r"},
+    {"name": "embed-english-v3"},
+    {"name": "embed-multilingual-v3"}
+  ],
+  "enabled": false,
+  "builtin": true,
+  "description": "Cohere 提供先进的自然语言理解、生成与语义嵌入模型 API（如 Command-R 系列与 Embed v3 系列），可广泛应用于问答、推理、知识检索 (RAG)、多语言文本向量化等场景，具备企业级性能、稳定性与高性价比优势。"
+}
