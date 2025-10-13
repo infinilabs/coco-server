@@ -109,7 +109,8 @@ export const DocSearch = (props) => {
         'Content-Type': 'application/json',
         'X-API-TOKEN': token
       },
-      method: 'GET'
+      method: 'GET',
+      credentials: 'include',
     })
       .then(response => response.json())
       .then(result => {

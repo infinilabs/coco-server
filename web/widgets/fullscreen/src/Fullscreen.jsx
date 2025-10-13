@@ -19,7 +19,8 @@ export default (props) => {
                 'X-API-TOKEN': token,
                 'Content-Type': 'application/json',
             },
-            method: 'GET'
+            method: 'GET',
+            credentials: 'include',
         })
         .then(response => response.json())
         .then(result => {
@@ -40,6 +41,7 @@ export default (props) => {
                 'APP-INTEGRATION-ID': id,
                 'X-API-TOKEN': token,
             },
+            credentials: 'include',
             body: shouldAgg ? JSON.stringify({
                 "aggs": {
                     "category": { "terms": { "field": "category" } },
@@ -85,6 +87,7 @@ export default (props) => {
                     'X-API-TOKEN': token,
                 },
                 method: 'POST',
+                credentials: 'include',
                 body: JSON.stringify({
                     message: JSON.stringify(message),
                 })
