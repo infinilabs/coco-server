@@ -268,6 +268,9 @@ const APIKeyComponent = ({
     case "qianfan":
       apiHref = "https://console.bce.baidu.com/iam/#/iam/apikey/list";
       break;
+    case "cohere":
+      apiHref = "https://dashboard.cohere.com/api-keys";
+      break;
   }
 
   const onModalOkClick = ()=>{
