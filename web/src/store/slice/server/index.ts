@@ -2,6 +2,9 @@ import { createSlice } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 
 import { localStg } from '@/utils/storage';
+import { AppThunk } from '@/store';
+import { getRootRouteIfSearch } from './shared';
+import { handleUpdateRootRouteRedirect, setRouteHome } from '../route';
 
 interface InitialStateType {
   providerInfo: any;
@@ -33,3 +36,9 @@ export const {
 export const {
   getProviderInfo,
 } = serverSlice.selectors;
+
+export const updateRootRouteIfSearch = (providerInfo: any): AppThunk => async dispatch => {
+  const rootRoute = getRootRouteIfSearch(providerInfo) as any
+  dispatch(setRouteHome(rootRoute));
+  handleUpdateRootRouteRedirect(rootRoute)
+};
