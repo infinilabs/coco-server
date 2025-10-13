@@ -26,13 +26,14 @@ import GitHub from '../new/github';
 import GitLab from '../new/gitlab';
 import HugoSite from '../new/hugo_site';
 import LocalFS from '../new/local_fs';
-import { GiteaConfig, GithubConfig, GitlabConfig, NetworkDriveConfig, RdbmsConfig } from '../new/models';
+import { GiteaConfig, GithubConfig, GitlabConfig, NetworkDriveConfig, RdbmsConfig, MongoDBConfig } from '../new/models';
 import NetworkDrive from '../new/network_drive';
 import Notion from '../new/notion';
 import Rdbms from '../new/rdbms';
 import Rss from '../new/rss';
 import S3 from '../new/s3';
 import Yuque from '../new/yuque';
+import MongoDB from '../new/mongodb';
 
 import { ReactSVG } from 'react-svg';
 import LinkSVG from '@/assets/svg-icon/link.svg';
@@ -285,6 +286,7 @@ export function Component() {
       break;
     case Types.GoogleDrive:
       break;
+
     case Types.S3:
       if (datasource.connector?.config) {
         datasource.config = {
@@ -323,6 +325,12 @@ export function Component() {
           share: values.config?.share || '',
           username: values.config?.username || ''
         };
+      }
+      break;
+    }
+    case Types.MongoDB: {
+      if (datasource.connector?.config) {
+        datasource.config = MongoDBConfig(datasource.connector);
       }
       break;
     }
@@ -421,6 +429,7 @@ export function Component() {
                 {type === Types.NetworkDrive && <NetworkDrive />}
                 {type === Types.Postgresql && <Rdbms dbType="postgresql" />}
                 {type === Types.Mysql && <Rdbms dbType="mysql" />}
+                {type === Types.MongoDB && <MongoDB />}
                 {type === Types.GitHub && <GitHub />}
                 {type === Types.GitLab && <GitLab />}
                 {type === Types.Gitea && <Gitea />}
