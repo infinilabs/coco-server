@@ -155,7 +155,8 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.data-source',
       title: 'data-source',
       icon: 'mdi:folder-open-outline',
-      order: 3
+      order: 3,
+      permissions: ['coco:datasource/view']
     },
     children: [
       {
@@ -166,7 +167,8 @@ export const generatedRoutes: GeneratedRoute[] = [
           i18nKey: 'route.data-source_detail',
           title: 'data-source_detail',
           hideInMenu: true,
-          activeMenu: 'data-source'
+          activeMenu: 'data-source',
+          permissions: ['coco:datasource/view']
         }
       },
       {
@@ -177,7 +179,8 @@ export const generatedRoutes: GeneratedRoute[] = [
           i18nKey: 'route.data-source_edit',
           title: 'data-source_edit',
           hideInMenu: true,
-          activeMenu: 'data-source'
+          activeMenu: 'data-source',
+          permissions: ['coco:datasource/update']
         }
       },
       {
@@ -188,7 +191,8 @@ export const generatedRoutes: GeneratedRoute[] = [
           i18nKey: 'route.data-source_list',
           title: 'data-source_list',
           hideInMenu: true,
-          activeMenu: 'data-source'
+          activeMenu: 'data-source',
+          permissions: ['coco:datasource/view']
         }
       },
       {
@@ -199,7 +203,8 @@ export const generatedRoutes: GeneratedRoute[] = [
           i18nKey: 'route.data-source_new',
           title: 'data-source_new',
           hideInMenu: true,
-          activeMenu: 'data-source'
+          activeMenu: 'data-source',
+          permissions: ['coco:datasource/create']
         }
       },
       {
@@ -210,7 +215,8 @@ export const generatedRoutes: GeneratedRoute[] = [
           i18nKey: 'route.data-source_new-first',
           title: 'data-source_new-first',
           hideInMenu: true,
-          activeMenu: 'data-source'
+          activeMenu: 'data-source',
+          permissions: ['coco:datasource/create']
         }
       }
     ]

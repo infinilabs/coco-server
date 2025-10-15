@@ -38,6 +38,13 @@ export function Component() {
   const [queryParams, setQueryParams] = useQueryParams();
 
   const { t } = useTranslation();
+
+  const { hasAuth } = useAuth()
+
+  const permissions = {
+    update: hasAuth('coco:datasource/update'),
+    delete: hasAuth('coco:datasource/delete'),
+  }
   
   const [connector, setConnector] = useState<any>({});
   const [datasource, setDatasource] = useState<any>();
@@ -225,6 +232,7 @@ export function Component() {
               onChange={v => {
                 onSearchableChange(v, record);
               }}
+              disabled={!permissions.update}
             />
           );
         },
@@ -232,6 +240,7 @@ export function Component() {
       },
       {
         fixed: 'right',
+        hidden: !permissions.delete,
         render: (_, record) => {
           return (
             <Dropdown menu={{ items, onClick: ({ key }) => onMenuClick({ key, record }) }}>
@@ -359,15 +368,19 @@ export function Component() {
               enterButton={t('common.refresh')}
               onSearch={onRefreshClick}
             />
-            <div>
-              <Dropdown.Button
-                icon={<DownOutlined />}
-                menu={{ items, onClick: onBatchMenuClick }}
-                type="primary"
-              >
-                {t('common.operation')}
-              </Dropdown.Button>
-            </div>
+            {
+              permissions.delete && (
+                <div>
+                  <Dropdown.Button
+                    icon={<DownOutlined />}
+                    menu={{ items, onClick: onBatchMenuClick }}
+                    type="primary"
+                  >
+                    {t('common.operation')}
+                  </Dropdown.Button>
+                </div>
+              )
+            }
           </div>
           <Table<DataType>
             columns={columns}

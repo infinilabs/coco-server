@@ -45,19 +45,17 @@ export function Component() {
 
   const { t } = useTranslation();
 
+  const { hasAuth } = useAuth()
+
+  const permissions = {
+    create: hasAuth('coco:datasource/create'),
+    update: hasAuth('coco:datasource/update'),
+    delete: hasAuth('coco:datasource/delete'),
+  }
+
   const { scrollConfig, tableWrapperRef } = useTableScroll();
 
   const nav = useNavigate();
-  const items: MenuProps['items'] = [
-    {
-      key: '2',
-      label: t('common.edit')
-    },
-    {
-      key: '1',
-      label: t('common.delete')
-    },
-  ];
 
   const onMenuClick = ({ key, record }: any) => {
     switch (key) {
@@ -212,6 +210,7 @@ export function Component() {
             size="small"
             checked={value}
             onChange={v => onSyncEnabledChange(v, record)}
+            disabled={!permissions.update}
           />
         );
       },
@@ -226,6 +225,7 @@ export function Component() {
             size="small"
             value={value}
             onChange={v => onEnabledChange(v, record)}
+            disabled={!permissions.update}
           />
         );
       },
@@ -234,7 +234,22 @@ export function Component() {
     },
     {
       fixed: 'right',
+      hidden: !permissions.update && !permissions.delete,
       render: (_, record) => {
+        const items: MenuProps['items'] = [];
+        if (permissions.update) {
+          items.push({
+            key: '2',
+            label: t('common.edit')
+          })
+        }
+        if (permissions.delete) {
+          items.push({
+            key: '1',
+            label: t('common.delete')
+          })
+        }
+        if (items.length === 0) return null;
         return (
           <Dropdown menu={{ items, onClick: ({ key }) => onMenuClick({ key, record }) }}>
             <EllipsisOutlined />
@@ -342,13 +357,17 @@ export function Component() {
             enterButton={t('common.refresh')}
             onSearch={onRefreshClick}
           />
-          <Button
-            icon={<PlusOutlined />}
-            type="primary"
-            onClick={() => nav(`/data-source/new-first`)}
-          >
-            {t('common.add')}
-          </Button>
+          {
+            permissions.create && (
+              <Button
+                icon={<PlusOutlined />}
+                type="primary"
+                onClick={() => nav(`/data-source/new-first`)}
+              >
+                {t('common.add')}
+              </Button>
+            )
+          }
         </div>
         <Table<Datasource>
           columns={columns}
