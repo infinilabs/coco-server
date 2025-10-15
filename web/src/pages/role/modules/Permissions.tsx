@@ -64,27 +64,27 @@ export default (props) => {
     "order": "001001001"
   },
   {
-    "id": "coco:assistant/view",
+    "id": "coco:ai_assistant/view",
     "description": "",
-    "category": "coco:assistant",
+    "category": "coco:ai_assistant",
     "order": "001002001"
   },
   {
-    "id": "coco:assistant/create",
+    "id": "coco:ai_assistant/create",
     "description": "",
-    "category": "coco:assistant",
+    "category": "coco:ai_assistant",
     "order": "001002002"
   },
   {
-    "id": "coco:assistant/update",
+    "id": "coco:ai_assistant/update",
     "description": "",
-    "category": "coco:assistant",
+    "category": "coco:ai_assistant",
     "order": "001002003"
   },
   {
-    "id": "coco:assistant/delete",
+    "id": "coco:ai_assistant/delete",
     "description": "",
-    "category": "coco:assistant",
+    "category": "coco:ai_assistant",
     "order": "001002004"
   },
   {
@@ -136,27 +136,27 @@ export default (props) => {
     "order": "001004004"
   },
   {
-    "id": "coco:apitoken/view",
+    "id": "coco:api_token/view",
     "description": "",
-    "category": "coco:apitoken",
+    "category": "coco:api_token",
     "order": "001005001"
   },
   {
-    "id": "coco:apitoken/create",
+    "id": "coco:api_token/create",
     "description": "",
-    "category": "coco:apitoken",
+    "category": "coco:api_token",
     "order": "001005002"
   },
   {
-    "id": "coco:apitoken/update",
+    "id": "coco:api_token/update",
     "description": "",
-    "category": "coco:apitoken",
+    "category": "coco:api_token",
     "order": "001005003"
   },
   {
-    "id": "coco:apitoken/delete",
+    "id": "coco:api_token/delete",
     "description": "",
-    "category": "coco:apitoken",
+    "category": "coco:api_token",
     "order": "001005004"
   },
   {
@@ -256,28 +256,40 @@ export default (props) => {
     "order": "001009004"
   },
   {
-    "id": "coco:app_settings/view",
+    "id": "coco:server_settings/view",
     "description": "",
     "category": "coco:settings",
     "order": "001010001"
   },
   {
-    "id": "coco:app_settings/update",
+    "id": "coco:server_settings/update",
     "description": "",
     "category": "coco:settings",
     "order": "001010002"
   },
   {
-    "id": "coco:search_settings/view",
+    "id": "coco:app_settings/view",
     "description": "",
     "category": "coco:settings",
     "order": "001011001"
   },
   {
-    "id": "coco:search_settings/update",
+    "id": "coco:app_settings/update",
     "description": "",
     "category": "coco:settings",
     "order": "001011002"
+  },
+  {
+    "id": "coco:search_settings/view",
+    "description": "",
+    "category": "coco:settings",
+    "order": "001012001"
+  },
+  {
+    "id": "coco:search_settings/update",
+    "description": "",
+    "category": "coco:settings",
+    "order": "001012002"
   },
 ]
       if (Array.isArray(res)) {

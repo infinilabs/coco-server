@@ -75,8 +75,7 @@ export const isStaticSuper = (): AppThunk<boolean> => (_, getState) => {
   const { roles = [] } = selectUserInfo(getState()) || {};
 
   const { VITE_AUTH_ROUTE_MODE, VITE_STATIC_SUPER_ROLE } = import.meta.env;
-  // return VITE_AUTH_ROUTE_MODE === 'static' && roles.includes(VITE_STATIC_SUPER_ROLE);
-  return VITE_AUTH_ROUTE_MODE === 'static';
+  return VITE_AUTH_ROUTE_MODE === 'static' && roles.includes(VITE_STATIC_SUPER_ROLE);
 };
 
 /** Reset auth store */

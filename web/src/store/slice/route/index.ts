@@ -12,7 +12,7 @@ import { initHomeTab } from '@/store/slice/tab';
 import type { AppThunk } from '../..';
 import { createAppSlice } from '../../createAppSlice';
 
-import { filterAuthRoutesByRoles, getCacheRouteNames, sortRoutesByOrder } from './shared';
+import { filterAuthRoutesByPermissions, getCacheRouteNames, sortRoutesByOrder } from './shared';
 
 interface InitialStateType {
   authRoutes: ElegantConstRoute[];
@@ -197,7 +197,7 @@ const initStaticAuthRoute = (): AppThunk => (dispatch, getState) => {
     dispatch(setAuthRoutes(staticAuthRoutes));
   } else {
     const userInfo = selectUserInfo(getState());
-    const filteredAuthRoutes = filterAuthRoutesByRoles(staticAuthRoutes, userInfo.roles);
+    const filteredAuthRoutes = filterAuthRoutesByPermissions(staticAuthRoutes, userInfo.permissions);
     dispatch(setAuthRoutes(filteredAuthRoutes));
   }
 
