@@ -355,7 +355,8 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.model-provider',
       title: 'model-provider',
       order: 2,
-      localIcon: 'model-provider'
+      localIcon: 'model-provider',
+      permissions: ['coco:model/view']
     },
     children: [
       {
@@ -366,7 +367,8 @@ export const generatedRoutes: GeneratedRoute[] = [
           i18nKey: 'route.model-provider_edit',
           title: 'model-provider_edit',
           hideInMenu: true,
-          activeMenu: 'model-provider'
+          activeMenu: 'model-provider',
+          permissions: ['coco:model/update']
         }
       },
       {
@@ -377,7 +379,8 @@ export const generatedRoutes: GeneratedRoute[] = [
           i18nKey: 'route.model-provider_list',
           title: 'model-provider_list',
           hideInMenu: true,
-          activeMenu: 'model-provider'
+          activeMenu: 'model-provider',
+          permissions: ['coco:model/view']
         }
       },
       {
@@ -388,7 +391,8 @@ export const generatedRoutes: GeneratedRoute[] = [
           i18nKey: 'route.model-provider_new',
           title: 'model-provider_new',
           hideInMenu: true,
-          activeMenu: 'model-provider'
+          activeMenu: 'model-provider',
+          permissions: ['coco:model/create']
         }
       }
     ]

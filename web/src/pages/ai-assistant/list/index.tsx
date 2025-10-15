@@ -178,7 +178,9 @@ export function Component() {
       width: "90px",
       hidden: !permissions.update && !permissions.delete,
       render: (_, record) => {
-        return <Dropdown menu={{ items: getMenuItems(record), onClick:({key})=>onMenuClick({key, record}) }}>
+        const items = getMenuItems(record)
+        if (items?.length === 0) return null;
+        return <Dropdown menu={{ items, onClick:({key})=>onMenuClick({key, record}) }}>
           <EllipsisOutlined/>
         </Dropdown>
       },

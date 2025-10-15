@@ -20,6 +20,14 @@ export function Component() {
   const [loading, setLoading] = useState(false);
   const [keyword, setKeyword] = useState();
 
+  const { hasAuth } = useAuth()
+
+  const permissions = {
+    create: hasAuth('coco:model/create'),
+    update: hasAuth('coco:model/update'),
+    delete: hasAuth('coco:model/delete'),
+  }
+
   const fetchData = ()=>{
     setLoading(true)
     searchModelPovider(queryParams).then((data)=>{
@@ -52,13 +60,14 @@ export function Component() {
     })
   }
   const getMenuItems = useCallback((record: any): MenuProps["items"] => {
-    const items: MenuProps["items"] = [
-      {
+    const items: MenuProps["items"] = [];
+    if (permissions.update) {
+      items.push({
         label: t('common.edit'),
         key: "1",
-      },
-    ];
-    if(record.builtin !== true) {
+      });
+    }
+    if(permissions.delete && record.builtin !== true) {
       items.push({
         label: t('common.delete'),
         key: "2",
@@ -155,7 +164,7 @@ export function Component() {
             value={keyword} 
             onChange={(e) => setKeyword(e.target.value)} 
           ></Search>
-           <Button type='primary' icon={<PlusOutlined/>}  onClick={() => nav(`/model-provider/new`)}>{t('common.add')}</Button>
+          { permissions.create && <Button type='primary' icon={<PlusOutlined/>}  onClick={() => nav(`/model-provider/new`)}>{t('common.add')}</Button> }
         </div>
         <List
           loading={loading}
@@ -172,42 +181,49 @@ export function Component() {
             sm: 2,
            }}
           dataSource={data.data}
-          renderItem={(provider) => (
-            <List.Item>
-               <div className="p-1em min-h-[132px] border border-[var(--ant-color-border)] group rounded-[8px] hover:bg-[var(--ant-control-item-bg-hover)]">
-                 <div className="flex justify-between">
-                    <div className="flex gap-15px">
-                      <div className="flex items-center gap-8px">
-                        <IconWrapper className="w-40px h-40px">
-                          <InfiniIcon src={provider.icon} height="2em" width="2em" className="font-size-2em"/>
-                        </IconWrapper>
-                        <span className="font-size-1.2em cursor-pointer hover:text-blue-500" onClick={()=>nav(`/model-provider/edit/${provider.id}`)}>{provider.name}</span>
+          renderItem={(provider) => {
+            const operations = getMenuItems(provider)
+            return (
+              <List.Item>
+                <div className="p-1em min-h-[132px] border border-[var(--ant-color-border)] group rounded-[8px] hover:bg-[var(--ant-control-item-bg-hover)]">
+                  <div className="flex justify-between">
+                      <div className="flex gap-15px">
+                        <div className="flex items-center gap-8px">
+                          <IconWrapper className="w-40px h-40px">
+                            <InfiniIcon src={provider.icon} height="2em" width="2em" className="font-size-2em"/>
+                          </IconWrapper>
+                          <span className="font-size-1.2em cursor-pointer hover:text-blue-500" onClick={()=>nav(`/model-provider/edit/${provider.id}`)}>{provider.name}</span>
+                        </div>
+                        {provider.builtin === true && <div className="flex items-center">
+                          <p className="h-[22px] bg-[#eee] text-[#999] font-size-[12px] px-[10px] line-height-[22px] rounded-[4px]">{t('page.modelprovider.labels.builtin')}</p>
+                        </div>}
                       </div>
-                      {provider.builtin === true && <div className="flex items-center">
-                        <p className="h-[22px] bg-[#eee] text-[#999] font-size-[12px] px-[10px] line-height-[22px] rounded-[4px]">{t('page.modelprovider.labels.builtin')}</p>
-                      </div>}
+                      <div>
+                        <Switch checked={provider.enabled} onChange={(v)=>onItemEnableChange(provider, v)} size="small" disabled={!permissions.update}/>
+                      </div>
                     </div>
-                    <div>
-                      <Switch checked={provider.enabled} onChange={(v)=>onItemEnableChange(provider, v)} size="small" />
+                    <div className="text-[#999] h-[51px] line-clamp-3 text-xs my-[10px]">
+                      {provider.description}
                     </div>
-                  </div>
-                  <div className="text-[#999] h-[51px] line-clamp-3 text-xs my-[10px]">
-                    {provider.description}
-                  </div>
-                  <div className="flex gap-1">
+                    <div className="flex gap-1">
 
-                    <div className="ml-auto flex gap-2">
-                      <div onClick={()=>{onAPIKeyClick(provider)}} className="border border-[var(--ant-color-border)] cursor-pointer  px-10px rounded-[8px]">API-key</div>
-                      <div className="inline-block px-4px rounded-[8px] border border-[var(--ant-color-border)] cursor-pointer">
-                        <Dropdown menu={{ items: getMenuItems(provider), onClick:({key})=>onMenuClick({key, record: provider}) }}>
-                            <SettingOutlined className="text-blue-500"/>
-                        </Dropdown>
+                      <div className="ml-auto flex gap-2">
+                        { permissions.update && <div onClick={()=>{onAPIKeyClick(provider)}} className="border border-[var(--ant-color-border)] cursor-pointer  px-10px rounded-[8px]">API-key</div> }
+                        {
+                          operations?.length > 0 && (
+                            <div className="inline-block px-4px rounded-[8px] border border-[var(--ant-color-border)] cursor-pointer">
+                              <Dropdown menu={{ items: operations, onClick:({key})=>onMenuClick({key, record: provider}) }}>
+                                  <SettingOutlined className="text-blue-500"/>
+                              </Dropdown>
+                            </div>
+                          )
+                        }
                       </div>
                     </div>
                   </div>
-                </div>
-            </List.Item>
-          )}
+              </List.Item>
+            )
+          }}
         />
         <APIKeyComponent
          open={open}
