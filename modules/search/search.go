@@ -214,10 +214,12 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 
 		hits := v2.Hits.Hits
 
+		ctx := orm.NewContextWithParent(req.Context())
+
 		// Loop over the hits and ensure Source is modified correctly
 		for i, doc := range hits {
 			// Get the pointer to doc.Source to make sure you're modifying the original
-			datasourceConfig, err := common.GetDatasourceConfig(req, doc.Source.Source.ID)
+			datasourceConfig, err := common.GetDatasourceConfig(ctx, doc.Source.Source.ID)
 			if err == nil && datasourceConfig != nil && datasourceConfig.Connector.ConnectorID != "" {
 				connectorConfig, err := getConnectorConfig(datasourceConfig.Connector.ConnectorID)
 

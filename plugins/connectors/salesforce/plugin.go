@@ -49,7 +49,7 @@ func (p *Plugin) Stop() error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	if p.cancel != nil {
-		log.Infof("[%s connector] received stop signal, cancelling all operations", ConnectorSalesforce)
+		log.Debugf("[%s connector] received stop signal, cancelling all operations", ConnectorSalesforce)
 		p.cancel()
 		p.ctx = nil
 		p.cancel = nil

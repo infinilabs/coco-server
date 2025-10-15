@@ -39,7 +39,7 @@ func New(c *config3.Config) (pipeline.Processor, error) {
 		return nil, fmt.Errorf("failed to unpack the configuration of processor %v, error: %s", Name, err)
 	}
 
-	runner.InitBaseConfig(c)
+	runner.Init(c, &runner)
 	return &runner, nil
 }
 
@@ -47,29 +47,11 @@ func (processor *Plugin) Name() string {
 	return Name
 }
 
-func (processor *Plugin) Process(ctx *pipeline.Context) error {
-	connector, datasource := processor.GetBasicInfo(ctx)
-	return processor.fetchNotion(ctx, connector, datasource)
-}
+func (this *Plugin) Fetch(pipeCtx *pipeline.Context, connector *common.Connector, datasource *common.DataSource) error {
+	cfg := Config{}
+	this.MustParseConfig(datasource, &cfg)
 
-func (this *Plugin) fetchNotion(pipeCtx *pipeline.Context, connector *common.Connector, datasource *common.DataSource) error {
-
-	if connector == nil || datasource == nil {
-		return errors.Error("invalid connector config: connector or datasource is nil")
-	}
-
-	cfg, err := config3.NewConfigFrom(datasource.Connector.Config)
-	if err != nil {
-		return err
-	}
-
-	obj := Config{}
-	err = cfg.Unpack(&obj)
-	if err != nil {
-		return err
-	}
-
-	log.Debugf("handle notion's datasource: %v", obj)
+	log.Debugf("handle notion's datasource: %v", cfg)
 	// Define the callback function to handle each page of results
 	handlePage := func(result *SearchResult) {
 		// Process the current page's results here
@@ -87,7 +69,7 @@ func (this *Plugin) fetchNotion(pipeCtx *pipeline.Context, connector *common.Con
 
 			// Fetch and set content for pages
 			if res.Object == "page" {
-				content, err := fetchPageContent(obj.Token, res.ID)
+				content, err := fetchPageContent(cfg.Token, res.ID)
 				if err != nil {
 					_ = log.Warnf("Failed to fetch content for Notion page %s: %v", res.ID, err)
 				} else {
@@ -106,13 +88,13 @@ func (this *Plugin) fetchNotion(pipeCtx *pipeline.Context, connector *common.Con
 
 			doc.ID = util.MD5digest(fmt.Sprintf("%v-%v-%v", connector.ID, datasource.ID, doc.URL))
 
-			this.ProcessMessage(pipeCtx, connector, datasource, doc)
+			this.Collect(pipeCtx, connector, datasource, doc)
 		}
 
 		log.Info("fetched ", len(result.Results), " notion results")
 	}
 
-	search(obj.Token, "", handlePage)
+	search(cfg.Token, "", handlePage)
 
 	return nil
 }

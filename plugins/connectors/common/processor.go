@@ -5,6 +5,7 @@
 package common
 
 import (
+	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/modules/datasource"
@@ -12,6 +13,7 @@ import (
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/config"
 	"infini.sh/framework/core/errors"
+	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/kv"
 	"infini.sh/framework/core/param"
 	"infini.sh/framework/core/pipeline"
@@ -22,16 +24,31 @@ import (
 )
 
 type ConnectorProcessorConfigBase struct {
-	MessageField param.ParaKey      `config:"message_field"`
-	Queue        *queue.QueueConfig `config:"queue"`
+	MinimumVersion string             `config:"minimum_version"`
+	MessageField   param.ParaKey      `config:"message_field"`
+	Queue          *queue.QueueConfig `config:"queue"`
 }
 
 type ConnectorProcessorBase struct {
 	api.Handler
 	ConnectorProcessorConfigBase
+	connector ConnectorAPI
 }
 
-func (base *ConnectorProcessorBase) InitBaseConfig(c *config.Config) {
+func (base *ConnectorProcessorBase) MustParseConfig(datasource *common.DataSource, cfgObj interface{}) {
+	cfg, err := config.NewConfigFrom(datasource.Connector.Config)
+	if err != nil {
+		log.Errorf("Failed to create config from datasource [%s]: %v", datasource.Name, err)
+		panic(err)
+	}
+	err = cfg.Unpack(cfgObj)
+	if err != nil {
+		log.Errorf("Failed to unpack config for datasource [%s]: %v", datasource.Name, err)
+		panic(err)
+	}
+}
+
+func (base *ConnectorProcessorBase) Init(c *config.Config, connector ConnectorAPI) {
 	cfg := ConnectorProcessorConfigBase{MessageField: core.PipelineContextDocuments}
 	if err := c.Unpack(&cfg); err != nil {
 		panic(err)
@@ -44,7 +61,22 @@ func (base *ConnectorProcessorBase) InitBaseConfig(c *config.Config) {
 	if cfg.Queue == nil {
 		cfg.Queue = &queue.QueueConfig{Name: "indexing_documents"}
 	}
+	base.connector = connector
 	base.Queue = queue.SmartGetOrInitConfig(cfg.Queue)
+}
+
+func (processor *ConnectorProcessorBase) Process(ctx *pipeline.Context) error {
+	conn, ds := processor.GetBasicInfo(ctx)
+	if conn == nil {
+		return errors.New("connector is not found")
+	}
+	if ds == nil {
+		return errors.New("datasource is not found")
+	}
+	if processor.connector == nil {
+		return errors.New("connector is not found")
+	}
+	return processor.connector.Fetch(ctx, conn, ds)
 }
 
 func (base *ConnectorProcessorBase) GetBasicInfo(ctx *pipeline.Context) (connector *common.Connector, datasource *common.DataSource) {
@@ -62,11 +94,11 @@ func (base *ConnectorProcessorBase) GetBasicInfo(ctx *pipeline.Context) (connect
 	return connector, datasource
 }
 
-func (processor *ConnectorProcessorBase) ProcessMessage(ctx *pipeline.Context, connector *common.Connector, datasource *common.DataSource, doc common.Document) {
-	processor.ProcessMessages(ctx, connector, datasource, []common.Document{doc})
+func (processor *ConnectorProcessorBase) Collect(ctx *pipeline.Context, connector *common.Connector, datasource *common.DataSource, doc common.Document) {
+	processor.BatchCollect(ctx, connector, datasource, []common.Document{doc})
 }
 
-func (processor *ConnectorProcessorBase) ProcessMessages(ctx *pipeline.Context, connector *common.Connector, datasource *common.DataSource, docs []common.Document) {
+func (processor *ConnectorProcessorBase) BatchCollect(ctx *pipeline.Context, connector *common.Connector, datasource *common.DataSource, docs []common.Document) {
 
 	//append enrichment pipeline process
 	if datasource.EnrichmentPipeline != nil {
@@ -77,8 +109,19 @@ func (processor *ConnectorProcessorBase) ProcessMessages(ctx *pipeline.Context, 
 	}
 
 	for _, doc := range docs {
+
+		if global.ShuttingDown() {
+			break
+		}
+
+		if common.IsDatasourceDeleted(datasource.ID) {
+			panic("datasource has been deleted, skip further collect")
+		}
+
+		log.Infof("collect: [%v] [%v] [%v] [%v] [%v]", connector.Name, datasource.Name, doc.ID, doc.Category, doc.Title)
+
 		data := util.MustToJSONBytes(doc)
-		err := queue.Push(queue.SmartGetOrInitConfig(processor.Queue), data)
+		err := queue.Push(processor.Queue, data)
 		if err != nil {
 			panic(err)
 		}
@@ -96,6 +139,7 @@ func (processor *ConnectorProcessorBase) GetLastModifiedTime(datasourceID string
 		return "", err
 	}
 
+	return "", err
 	return string(data), nil
 }
 

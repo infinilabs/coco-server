@@ -5,11 +5,10 @@
 package common
 
 import (
-	"errors"
+	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/pipeline"
 	"infini.sh/framework/core/util"
-	"net/http"
 	"time"
 )
 
@@ -37,9 +36,8 @@ type DataSource struct {
 }
 
 type OAuthConfig struct {
-	Enabled     bool   `json:"enabled,omitempty" elastic_mapping:"enabled:{type:keyword}"`
-	ConnectURL  string `json:"connect_url,omitempty" elastic_mapping:"connect_url:{type:keyword}"`
-	RedirectURL string `json:"redirect_url,omitempty" elastic_mapping:"redirect_url:{type:keyword}"`
+	Enabled bool `json:"enabled,omitempty" elastic_mapping:"enabled:{type:keyword}"`
+	Expired bool `json:"expired" elastic_mapping:"expired:{type:object}"`
 }
 
 type SyncConfig struct {
@@ -56,6 +54,7 @@ type ConnectorConfig struct {
 
 const (
 	DatasourcePrimaryCacheKey     = "datasource_primary"
+	DeletedDatasourceCacheKey     = "deleted_datasource_ids"
 	DisabledDatasourceIDsCacheKey = "disabled_datasource_ids"
 	EnabledDatasourceIDsCacheKey  = "enabled_datasource_ids"
 	DatasourceItemsCacheKey       = "datasource_items"
@@ -129,7 +128,27 @@ func GetAllEnabledDatasourceIDs() ([]string, error) {
 
 }
 
-func GetDatasourceConfig(req *http.Request, id string) (*DataSource, error) {
+func MarkDatasourceNotDeleted(id string) {
+	GeneralObjectCache.Delete(DeletedDatasourceCacheKey, id)
+}
+
+func MarkDatasourceDeleted(id string) {
+	GeneralObjectCache.Set(DeletedDatasourceCacheKey, id, true, time.Duration(6)*time.Hour)
+}
+
+func IsDatasourceDeleted(id string) bool {
+	deleted := GeneralObjectCache.Get(DeletedDatasourceCacheKey, id)
+	if deleted != nil {
+		return true
+	}
+	return false
+}
+
+func GetDatasourceConfig(ctx *orm.Context, id string) (*DataSource, error) {
+	if IsDatasourceDeleted(id) {
+		return nil, errors.Errorf("datasource [%v] has been deleted", id)
+	}
+
 	v := GeneralObjectCache.Get(DatasourceItemsCacheKey, id)
 	if v != nil {
 		if !v.Expired() {
@@ -140,7 +159,6 @@ func GetDatasourceConfig(req *http.Request, id string) (*DataSource, error) {
 		}
 	}
 
-	ctx := orm.NewContextWithParent(req.Context())
 	obj := DataSource{}
 	obj.ID = id
 	exists, err := orm.GetV2(ctx, &obj)

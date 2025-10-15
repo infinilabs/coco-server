@@ -75,6 +75,9 @@ func (h *APIHandler) deleteDatasource(w http.ResponseWriter, req *http.Request, 
 		return
 	}
 
+	//mark deleted in cache
+	common.MarkDatasourceDeleted(id)
+
 	// clear cache
 	common.ClearDatasourcesCache()
 	common.ClearDatasourceCache(obj.ID)

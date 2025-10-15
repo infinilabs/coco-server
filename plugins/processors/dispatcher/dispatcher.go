@@ -88,6 +88,11 @@ NextPage:
 			// handle each datasource
 			log.Tracef("handle sync task for datasource: %v(%v)", doc.ID, doc.Name)
 
+			if common.IsDatasourceDeleted(doc.ID) {
+				log.Tracef("skip deleted datasource: %v(%v)", doc.ID, doc.Name)
+				continue
+			}
+
 			if doc.SyncConfig.Enabled {
 				// get connector config for the datasource
 				lastAccessTime, _ := processor.getLastAccessTime(doc.ID)
@@ -99,6 +104,8 @@ NextPage:
 					if time.Since(t) > interval {
 						needSync = true
 						log.Tracef("need to sync, beyond interval, datasource: %v(%v), last_access: %v, interval: %v", doc.ID, doc.Name, lastAccessTime, interval)
+					} else {
+						log.Tracef("time: %v, %v since interval: %v", t, time.Since(t), interval)
 					}
 				} else {
 					needSync = true
@@ -107,7 +114,7 @@ NextPage:
 
 				//need to sync
 				if needSync {
-
+					log.Debugf("start sync, datasource: %v(%v), last_access: %v, interval: %v", doc.ID, doc.Name, lastAccessTime, interval)
 					// handle the sync task for each datasource
 					err := processor.syncDatasource(&doc)
 					if err != nil {
@@ -120,7 +127,7 @@ NextPage:
 					if err != nil {
 						panic(err)
 					}
-					log.Infof("sync success, update last access time, datasource: %v(%v), last_access: %v, interval: %v", doc.ID, doc.Name, lastAccessTime, interval)
+					log.Debugf("sync success, update last access time, datasource: %v(%v), last_access: %v, interval: %v", doc.ID, doc.Name, lastAccessTime, interval)
 				} else {
 					//no need to sync, within interval
 					log.Debugf("no need to sync, datasource: %v(%v), last_access: %v, interval: %v", doc.ID, doc.Name, lastAccessTime, interval)

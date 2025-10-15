@@ -281,7 +281,7 @@ func (this *Plugin) collectBooks(pipeCtx *pipeline.Context, connector *common.Co
 				document.Updated = &bookDetail.Book.UpdatedAt
 
 				document.Cleanup()
-				this.ProcessMessage(pipeCtx, connector, datasource, document)
+				this.Collect(pipeCtx, connector, datasource, document)
 			} else {
 				log.Info("skip book:", bookDetail.Book.Name, ",", bookDetail.Book.Public)
 			}
@@ -430,7 +430,7 @@ func (this *Plugin) collectDocDetails(pipeCtx *pipeline.Context, connector *comm
 		document.Updated = &doc.Doc.UpdatedAt
 
 		document.Cleanup()
-		this.ProcessMessage(pipeCtx, connector, datasource, document)
+		this.Collect(pipeCtx, connector, datasource, document)
 	}
 }
 
@@ -527,7 +527,7 @@ func (this *Plugin) collectUsers(pipeCtx *pipeline.Context, connector *common.Co
 			if document.Title != "" {
 				document.ID = util.MD5digest(fmt.Sprintf("%v-%v-%v", datasource.ID, idPrefix, metadata["user_id"]))
 				log.Debugf("indexing user: %v, %v, %v", document.ID, metadata["user_login"], document.Title)
-				this.ProcessMessage(pipeCtx, connector, datasource, document)
+				this.Collect(pipeCtx, connector, datasource, document)
 			}
 		}
 

@@ -10,13 +10,17 @@ import (
 	"infini.sh/framework/core/api"
 	"infini.sh/framework/core/config"
 	"infini.sh/framework/core/pipeline"
+	"infini.sh/framework/core/util"
+	"time"
 )
 
 const NAME = "google_drive"
 
 type Processor struct {
 	cmn.ConnectorProcessorBase
-	SkipInvalidToken bool `json:"skip_invalid_token" config:"skip_invalid_token"`
+	SkipInvalidToken bool   `json:"skip_invalid_token" config:"skip_invalid_token"`
+	Timeout          string `json:"timeout" config:"timeout"`
+	timeout          time.Duration
 }
 
 func init() {
@@ -31,16 +35,12 @@ func New(c *config.Config) (pipeline.Processor, error) {
 		return nil, fmt.Errorf("failed to unpack the configuration of processor %v, error: %s", NAME, err)
 	}
 
-	runner.InitBaseConfig(c)
+	runner.timeout = util.GetDurationOrDefault(runner.Timeout, 30*time.Second)
+
+	runner.Init(c, &runner)
 	return &runner, nil
 }
 
 func (processor *Processor) Name() string {
 	return NAME
-}
-
-func (processor *Processor) Process(ctx *pipeline.Context) error {
-	connector, datasource := processor.GetBasicInfo(ctx)
-	processor.fetch_google_drive(ctx, connector, datasource)
-	return nil
 }

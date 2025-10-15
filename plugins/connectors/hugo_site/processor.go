@@ -19,7 +19,6 @@ import (
 
 type Processor struct {
 	cmn.ConnectorProcessorBase
-	config *Config
 }
 
 func init() {
@@ -33,9 +32,8 @@ func New(c *config.Config) (pipeline.Processor, error) {
 		return nil, fmt.Errorf("failed to unpack the configuration of processor [%v], err: %s", processorName, err)
 	}
 
-	runner := Processor{config: &cfg}
-	runner.InitBaseConfig(c)
-
+	runner := Processor{}
+	runner.Init(c, &runner)
 	return &runner, nil
 }
 
@@ -45,14 +43,13 @@ func (processor *Processor) Name() string {
 	return processorName
 }
 
-func (processor *Processor) Process(ctx *pipeline.Context) error {
+func (processor *Processor) Fetch(ctx *pipeline.Context, connector *common.Connector, datasource *common.DataSource) error {
 
-	log.Trace("hugo site connector is processing now.", util.MustToJSON(processor.config))
-
-	connector, datasource := processor.GetBasicInfo(ctx)
+	cfg := Config{}
+	processor.MustParseConfig(datasource, &cfg)
 
 	//core processor logic
-	for _, myURL := range processor.config.Urls {
+	for _, myURL := range cfg.Urls {
 
 		if global.ShuttingDown() {
 			break
@@ -116,7 +113,7 @@ func (processor *Processor) Process(ctx *pipeline.Context) error {
 			if len(outputDocs) > 0 {
 				//put doc back to context or call enrichment pipeline if it exists
 				ctx.Set(core.PipelineContextDocuments, &outputDocs)
-				processor.ProcessMessages(ctx, connector, datasource, outputDocs)
+				processor.BatchCollect(ctx, connector, datasource, outputDocs)
 			}
 
 			log.Infof("fetched %v docs from hugo site: %v", len(documents), myURL)

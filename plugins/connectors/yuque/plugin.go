@@ -10,7 +10,6 @@ import (
 	"infini.sh/coco/modules/common"
 	cmn "infini.sh/coco/plugins/connectors/common"
 	config3 "infini.sh/framework/core/config"
-	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/pipeline"
 )
 
@@ -29,27 +28,14 @@ type YuqueConfig struct {
 
 type Plugin struct {
 	cmn.ConnectorProcessorBase
-	SkipInvalidToken bool `config:"skip_invalid_token"`
 }
 
-func (this *Plugin) fetch_yuque(pipeCtx *pipeline.Context, connector *common.Connector, datasource *common.DataSource) error {
-	if connector == nil || datasource == nil {
-		return errors.Error("invalid connector config: connector or datasource is nil")
-	}
+func (this *Plugin) Fetch(pipeCtx *pipeline.Context, connector *common.Connector, datasource *common.DataSource) error {
+	config := YuqueConfig{}
+	this.MustParseConfig(datasource, &config)
 
-	cfg, err := config3.NewConfigFrom(datasource.Connector.Config)
-	if err != nil {
-		return errors.Errorf("error creating config from datasource [%s]: %v", datasource.Name, err)
-	}
-
-	obj := YuqueConfig{}
-	err = cfg.Unpack(&obj)
-	if err != nil {
-		return errors.Errorf("error unpacking config for datasource [%s]: %v", datasource.Name, err)
-	}
-
-	log.Debugf("handle yuque's datasource: %v", obj)
-	return this.collect(pipeCtx, connector, datasource, &obj)
+	log.Debugf("handle yuque's datasource: %v", config)
+	return this.collect(pipeCtx, connector, datasource, &config)
 }
 
 func init() {
@@ -57,20 +43,15 @@ func init() {
 }
 
 func New(c *config3.Config) (pipeline.Processor, error) {
-	runner := Plugin{SkipInvalidToken: true}
+	runner := Plugin{}
 	if err := c.Unpack(&runner); err != nil {
 		return nil, fmt.Errorf("failed to unpack the configuration of processor %v, error: %s", Name, err)
 	}
 
-	runner.InitBaseConfig(c)
+	runner.Init(c, &runner)
 	return &runner, nil
 }
 
 func (processor *Plugin) Name() string {
 	return Name
-}
-
-func (processor *Plugin) Process(ctx *pipeline.Context) error {
-	connector, datasource := processor.GetBasicInfo(ctx)
-	return processor.fetch_yuque(ctx, connector, datasource)
 }

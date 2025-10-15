@@ -14,9 +14,7 @@ import (
 	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/global"
-	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/pipeline"
-	"infini.sh/framework/core/queue"
 	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
 	"io"
@@ -185,21 +183,6 @@ func checkExplicit(perms []*drive.Permission) bool {
 	return false
 }
 
-func buildFullPath(folderID string, folderMap map[string]*FolderNode) string {
-	var parts []string
-	current := folderMap[folderID]
-
-	for current != nil {
-		parts = append([]string{current.Name}, parts...)
-		if current.ParentID == "" || current.ParentID == current.ID {
-			break
-		}
-		current = folderMap[current.ParentID]
-	}
-
-	return "/" + strings.Join(parts, "/")
-}
-
 func isSamePermission(a, b []*drive.Permission) bool {
 	if len(a) != len(b) {
 		return false
@@ -226,6 +209,297 @@ func isSamePermission(a, b []*drive.Permission) bool {
 		}
 	}
 	return true
+}
+
+func (this *Processor) IndexingFolder(pipeCtx *pipeline.Context, connector *common.Connector, datasource *common.DataSource, doc common.Document, srv *drive.Service, q string, batchNumber string) {
+
+	//save current folder to index
+	log.Tracef("saving folder: %v, %v, %v", doc.Category, doc.Title, doc.ID)
+	this.Collect(pipeCtx, connector, datasource, doc)
+
+	var nextPageToken string
+	for {
+		if global.ShuttingDown() {
+			break
+		}
+
+		call := srv.Files.List().
+			PageSize(int64(datasource.SyncConfig.PageSize)).
+			//OrderBy("name asc").
+			Q(q).
+			IncludeItemsFromAllDrives(true).
+			SupportsAllDrives(true). //
+			Fields("nextPageToken, files(id, name, parents, mimeType, size, owners(emailAddress, displayName), createdTime, modifiedTime, lastModifyingUser(emailAddress, displayName), iconLink, fileExtension, description, hasThumbnail, kind, labelInfo, parents, properties, shared, sharingUser(emailAddress, displayName), spaces, starred, driveId, thumbnailLink, videoMediaMetadata, webViewLink, imageMediaMetadata, permissions(id,emailAddress,displayName,role,type,permissionDetails))")
+
+		r, err := call.PageToken(nextPageToken).Do()
+		if err != nil {
+			if r != nil {
+				s, err := r.MarshalJSON()
+				log.Error(string(s), err)
+			}
+			panic(errors.Errorf("Failed to fetch directories: %v", err))
+		}
+
+		for _, i := range r.Files {
+
+			if global.ShuttingDown() {
+				return
+			}
+
+			//	//TODO, should save to store in case there are so many crazy directories, OOM risk
+			//log.Infof("google drive directory: ID=%s, Name=%s, Parents=%v", i.Id, i.Name, i.Parents)
+			//	meta, err := srv.Files.Get(i.Id).
+			//		Fields("id, name, permissions(id,emailAddress,displayName,role,type,permissionDetails), shared").
+			//		Context(ctx).
+			//		Do()
+			//	if err != nil {
+			//		log.Errorf("failed to get permissions for folder %s (%s): %v", i.Name, i.Id, err)
+			//		// Check if it's a rate limit error
+			//		if strings.Contains(err.Error(), "rateLimitExceeded") || strings.Contains(err.Error(), "userRateLimitExceeded") {
+			//			log.Warnf("rate limit exceeded when fetching folder permissions, consider implementing backoff")
+			//		}
+			//		continue
+			//	}
+			//
+
+			//	shared := meta.Shared
+			//	hasACL := checkExplicit(meta.Permissions)
+			//
+			//	if parent == "" && shared {
+			//		parent = shareWithMeID
+			//	}
+			//	ft.AddFolder(i.Id, i.Name, parent, shared, hasACL, meta.Permissions, i.ModifiedTime)
+			//	if ok && isSamePermission(node.Permissions, parent.Permissions) {
+			//	} else {
+			//		log.Tracef("Folder: %s, permissions: %v", node.FullPath, util.MustToJSON(node.Permissions))
+			//		if len(node.Permissions) > 0 {
+			//			ep := security.ExternalPermission{
+			//				BatchNumber:  batchNumber,
+			//				Source:       datasource.ID,
+			//				ExternalID:   node.ID,
+			//				ResourceID:   node.ID, //TODO, need hash to an internal ID
+			//				ResourceType: security.FolderResource,
+			//				ResourcePath: node.FullPath,
+			//				Explicit:     true,
+			//				ParentID:     node.ParentID,
+			//
+			//				Permissions: []security.ExternalPermissionEntry{},
+			//			}
+			//
+			//			for _, perm := range node.Permissions {
+			//				entry := security.ExternalPermissionEntry{}
+			//				entry.PrincipalType = perm.Type
+			//				entry.PrincipalID = perm.Id
+			//				entry.PrimaryIdentity = perm.EmailAddress
+			//
+			//				// Ensure DisplayName is never empty
+			//				entry.DisplayName = perm.DisplayName
+			//				if entry.DisplayName == "" && perm.EmailAddress != "" {
+			//					// Fallback to email username if display name is missing
+			//					parts := strings.Split(perm.EmailAddress, "@")
+			//					if len(parts) > 0 {
+			//						entry.DisplayName = parts[0]
+			//					}
+			//				}
+			//
+			//				entry.Role = perm.Role
+			//				entry.Inherited = false
+			//				ep.Permissions = append(ep.Permissions, entry)
+			//			}
+			//
+			//			if node.ModifiedTime != "" {
+			//				parsedTime, err := time.Parse(time.RFC3339Nano, node.ModifiedTime)
+			//				if err == nil {
+			//					ep.ExternalUpdatedAt = &parsedTime
+			//				}
+			//			}
+			//
+			//			ep.ID = util.MD5digest(fmt.Sprintf("%v-external-permission-%v", datasource.ID, node.ID))
+			//			ep.System = datasource.System
+			//
+			//			//save external permissions
+			//			err := orm.Save(ormCtx, &ep)
+			//			if err != nil {
+			//				panic(err)
+			//			}
+			//		}
+			//
+			//	}
+
+			parent := []string{}
+			parent = append(parent, doc.Categories...)
+			parent = append(parent, doc.Title)
+
+			if i.MimeType == "application/vnd.google-apps.folder" {
+				folder := this.createFolderDoc(i.Id, i.Name, parent, datasource)
+				this.IndexingFolder(pipeCtx, connector, datasource, folder, srv, fmt.Sprintf("'%v' in parents and trashed = false", i.Id), batchNumber)
+				continue
+			} else {
+				this.IndexingFile(pipeCtx, connector, datasource, parent, doc, srv, i, batchNumber)
+			}
+		}
+
+		nextPageToken = r.NextPageToken
+		if nextPageToken == "" {
+			break
+		}
+	}
+	return
+}
+
+func (this *Processor) IndexingFile(pipeCtx *pipeline.Context, connector *common.Connector, datasource *common.DataSource, parent []string, folder common.Document, srv *drive.Service, i *drive.File, batchNumber string) {
+
+	//if processedFileIDs[i.Id] {
+	//check bitmap, if files are processed already, no duplicated progressing
+	//	log.Tracef("Skipping already processed file: %s", i.Id)
+	//	continue
+	//}
+
+	//TODO configurable
+	if i.Name == ".DS_Store" {
+		return
+	}
+
+	log.Tracef("saving file: %v, %v", i.Name, i.MimeType)
+
+	var createdAt, updatedAt *time.Time
+	if i.CreatedTime != "" {
+		parsedTime, err := time.Parse(time.RFC3339Nano, i.CreatedTime)
+		if err == nil {
+			createdAt = &parsedTime
+		}
+	}
+	if i.ModifiedTime != "" {
+		parsedTime, err := time.Parse(time.RFC3339Nano, i.ModifiedTime)
+		if err == nil {
+			updatedAt = &parsedTime
+		}
+
+		//// Track the most recent "ModifiedTime"
+		//if updatedAt != nil && (*lastModifyTime == nil || updatedAt.After(**lastModifyTime)) {
+		//	*lastModifyTime = updatedAt
+		//}
+	}
+
+	// Map Google Drive file to Document struct
+	document := common.Document{
+		Source: common.DataSourceReference{
+			ID:   datasource.ID,
+			Name: datasource.Name,
+			Type: "connector",
+		},
+		Title:   i.Name,
+		Summary: i.Description,
+		Type:    getType(i.MimeType),
+		Size:    int(i.Size),
+		URL:     fmt.Sprintf("https://drive.google.com/file/d/%s/view", i.Id),
+		Owner: &common.UserInfo{
+			UserAvatar: i.Owners[0].PhotoLink,
+			UserName:   i.Owners[0].DisplayName,
+			UserID:     i.Owners[0].EmailAddress,
+		},
+		Icon:      getIcon(i.MimeType),
+		Thumbnail: i.ThumbnailLink,
+	}
+
+	document.System = datasource.System
+	document.ID = common.GetDocID(datasource.ID, i.Id)
+	document.Created = createdAt
+	document.Updated = updatedAt
+
+	if len(parent) > 0 {
+		path := common.GetFullPathForCategories(parent)
+		document.Category = path
+		document.Categories = parent
+		if document.System == nil {
+			document.System = util.MapStr{}
+		}
+		document.System[common.SystemHierarchyPathKey] = path
+	} else {
+		log.Warnf("empty category, file: %v,  parents: %v", i.Name, i.Parents)
+	}
+
+	meta := util.MapStr{
+		"batch_number":   batchNumber,
+		"drive_id":       i.DriveId,
+		"file_id":        i.Id,
+		"email":          i.Owners[0].EmailAddress,
+		"file_extension": i.FileExtension,
+		"kind":           i.Kind,
+		"mimetype":       i.MimeType,
+		"shared_with_me": i.SharedWithMeTime,
+		"sharing_user":   i.SharingUser,
+		"shared":         i.Shared,
+		"spaces":         i.Spaces,
+		"starred":        i.Starred,
+		"web_view_link":  i.WebViewLink,
+		"labels":         i.LabelInfo,
+		"parents":        i.Parents,
+		"permissions":    i.Permissions,
+		"permission_ids": i.PermissionIds,
+		"properties":     i.Properties,
+	}
+
+	document.Metadata = meta.RemoveNilItems()
+
+	//if i.Permissions != nil {
+	//	// Ensure DisplayName is populated for file permissions
+	//	for j := range i.Permissions {
+	//		perm := i.Permissions[j]
+	//		if perm.DisplayName == "" && perm.EmailAddress != "" {
+	//			// Fallback to email username if display name is missing
+	//			parts := strings.Split(perm.EmailAddress, "@")
+	//			if len(parts) > 0 {
+	//				perm.DisplayName = parts[0]
+	//			}
+	//		}
+	//	}
+	//
+	//	log.Debugf("permission for file: %v(%v) %v", i.Id, i.Name, util.ToJson(i.Permissions, true))
+	//
+	//	//TODO check dedicated file permission, save to external permission
+	//	if document.Type != string(security.FolderResource) && !isSamePermission(i.Permissions, parentPermissions) {
+	//		log.Debug("different file permission: ", util.MustToJSON(i), ",vs: ", util.MustToJSON(parentPermissions))
+	//	}
+	//}
+
+	if i.LastModifyingUser != nil {
+		document.LastUpdatedBy = &common.EditorInfo{
+			UserInfo: &common.UserInfo{
+				UserAvatar: i.LastModifyingUser.PhotoLink,
+				UserName:   i.LastModifyingUser.DisplayName,
+				UserID:     i.LastModifyingUser.EmailAddress,
+			},
+			UpdatedAt: updatedAt,
+		}
+	}
+
+	document.Payload = util.MapStr{}
+
+	// Handle optional fields
+	if i.SharingUser != nil {
+		document.Payload["sharingUser"] = common.UserInfo{
+			UserAvatar: i.SharingUser.PhotoLink,
+			UserName:   i.SharingUser.DisplayName,
+			UserID:     i.SharingUser.EmailAddress,
+		}
+	}
+
+	if i.VideoMediaMetadata != nil {
+		document.Payload["video_metadata"] = i.VideoMediaMetadata
+	}
+
+	if i.ImageMediaMetadata != nil {
+		document.Payload["image_metadata"] = i.ImageMediaMetadata
+	}
+
+	this.Collect(pipeCtx, connector, datasource, document)
+}
+
+func (this *Processor) createFolderDoc(id, name string, parent []string, datasource *common.DataSource) common.Document {
+	shareWithMe := common.CreateHierarchyPathFolderDoc(datasource, id, name, parent)
+	shareWithMe.URL = fmt.Sprintf("https://drive.google.com/file/d/%s/view", id)
+	return shareWithMe
 }
 
 func (this *Processor) startIndexingFiles(pipeCtx *pipeline.Context, connector *common.Connector, datasource *common.DataSource, tok *oauth2.Token) {
@@ -256,397 +530,80 @@ func (this *Processor) startIndexingFiles(pipeCtx *pipeline.Context, connector *
 	}
 
 	client := oAuthConfig.Client(context.Background(), tok)
+	client.Timeout = this.timeout
 	ctx := context.Background()
 	srv, err := drive.NewService(ctx, option.WithHTTPClient(client))
 	if err != nil {
 		panic(err)
 	}
 
-	// Init root folder
-	// /My Drive
-	rootFolderID, rootFolderName := getRootFolderID(srv)
-	rootDoc := common.CreateHierarchyPathFolderDoc(datasource, rootFolderID, rootFolderName, []string{})
-	rootDoc.URL = fmt.Sprintf("https://drive.google.com/file/d/%s/view", rootFolderID)
-	this.ProcessMessage(pipeCtx, connector, datasource, rootDoc)
-
-	// /Shared with me
-	shareWithMe := common.CreateHierarchyPathFolderDoc(datasource, "share_with_me", "Shared with me", []string{})
-	rootDoc.URL = fmt.Sprintf("https://drive.google.com/file/d/%s/view", "share_with_me")
-
-	this.ProcessMessage(pipeCtx, connector, datasource, shareWithMe)
-
-	ft := &FolderTreeBuilder{FolderMap: map[string]*FolderNode{}}
-	ft.AddFolder(rootFolderID, rootFolderName, "", false, false, nil, "")
-
 	batchNumber := util.GetUUID()
 
-	// Fetch all directories
-	var nextPageToken string
-	for {
-		if global.ShuttingDown() {
-			break
-		}
+	//My Drive
+	rootFolderID, rootFolderName := getRootFolderID(srv)
+	rootDoc := this.createFolderDoc(rootFolderID, rootFolderName, []string{}, datasource)
 
-		call := srv.Files.List().
-			PageSize(int64(datasource.SyncConfig.PageSize)).
-			OrderBy("name").
-			Q("mimeType='application/vnd.google-apps.folder' and trashed=false").
-			Fields("nextPageToken, files(id, name, parents)")
+	q := fmt.Sprintf("'%v' in parents and trashed = false", rootFolderID)
+	this.IndexingFolder(pipeCtx, connector, datasource, rootDoc, srv, q, batchNumber)
 
-		r, err := call.PageToken(nextPageToken).Do()
-		if err != nil {
-			panic(errors.Errorf("Failed to fetch directories: %v", err))
-		}
+	// /Shared with me
+	shareWithMeID := "share_with_me"
+	shareWithMeName := "Shared with me"
+	shareWithMe := this.createFolderDoc(shareWithMeID, shareWithMeName, []string{}, datasource)
 
-		// Save directories in the map
-		for _, i := range r.Files {
-			if global.ShuttingDown() {
-				return
-			}
-			//TODO, should save to store in case there are so many crazy directories, OOM risk
-			log.Debugf("google drive directory: ID=%s, Name=%s, Parents=%v", i.Id, i.Name, i.Parents)
+	q = "sharedWithMe"
+	this.IndexingFolder(pipeCtx, connector, datasource, shareWithMe, srv, q, batchNumber)
 
-			meta, err := srv.Files.Get(i.Id).
-				Fields("id, name, permissions(id,emailAddress,role,type,permissionDetails), shared").
-				Context(ctx).
-				Do()
-			if err != nil {
-				log.Errorf("failed to get permissions for folder %s: %v", i.Id, err)
-				continue
-			}
-
-			parent := ""
-			if len(i.Parents) > 0 {
-				if i.Id != parent {
-					parent = i.Parents[0]
-				}
-			}
-			shared := meta.Shared
-			hasACL := checkExplicit(meta.Permissions)
-
-			ft.AddFolder(i.Id, i.Name, parent, shared, hasACL, meta.Permissions, i.ModifiedTime)
-		}
-
-		nextPageToken = r.NextPageToken
-		if nextPageToken == "" {
-			break
-		}
-	}
-
-	ft.BuildSorted()
-	ormCtx := orm.NewContext().DirectAccess()
-	for _, node := range ft.Sorted {
-
-		if global.ShuttingDown() {
-			return
-		}
-
-		// Build full path array (including self)
-		var fullParts []string
-		curr := node
-		for curr != nil {
-			fullParts = append([]string{curr.Name}, fullParts...)
-			curr = ft.FolderMap[curr.ParentID]
-		}
-		node.FullPathArray = fullParts
-
-		// Build parent path array (excluding self)
-		var parentParts []string
-		curr = ft.FolderMap[node.ParentID] // Start from parent, not self
-		for curr != nil {
-			parentParts = append([]string{curr.Name}, parentParts...)
-			curr = ft.FolderMap[curr.ParentID]
-		}
-		node.ParentPathArray = parentParts
-
-		folderDoc := common.CreateHierarchyPathFolderDoc(datasource, node.ID, node.Name, parentParts)
-		rootDoc.URL = fmt.Sprintf("https://drive.google.com/file/d/%s/view", node.ID)
-
-		node.FullPath = "/" + strings.Join(fullParts, "/")
-
-		this.ProcessMessage(pipeCtx, connector, datasource, folderDoc)
-
-		parent, ok := ft.FolderMap[node.ParentID]
-		if ok && isSamePermission(node.Permissions, parent.Permissions) {
-		} else {
-			log.Tracef("Folder: %s, permissions: %v", node.FullPath, util.MustToJSON(node.Permissions))
-			if len(node.Permissions) > 0 {
-				ep := security.ExternalPermission{
-					BatchNumber:  batchNumber,
-					Source:       datasource.ID,
-					ExternalID:   node.ID,
-					ResourceID:   node.ID, //TODO, need hash to an internal ID
-					ResourceType: security.FolderResource,
-					ResourcePath: node.FullPath,
-					Explicit:     true,
-					ParentID:     node.ParentID,
-
-					Permissions: []security.ExternalPermissionEntry{},
-				}
-
-				for _, perm := range node.Permissions {
-					entry := security.ExternalPermissionEntry{}
-					entry.PrincipalType = perm.Type
-					entry.PrincipalID = perm.Id
-					entry.PrimaryIdentity = perm.EmailAddress
-					entry.DisplayName = perm.DisplayName
-					entry.Role = perm.Role
-					entry.Inherited = false
-					ep.Permissions = append(ep.Permissions, entry)
-				}
-
-				if node.ModifiedTime != "" {
-					parsedTime, err := time.Parse(time.RFC3339Nano, node.ModifiedTime)
-					if err == nil {
-						ep.ExternalUpdatedAt = &parsedTime
-					}
-				}
-
-				ep.ID = util.MD5digest(fmt.Sprintf("%v-external-permission-%v", datasource.ID, node.ID))
-				ep.System = datasource.System
-
-				//save external permissions
-				err := orm.Save(ormCtx, &ep)
-				if err != nil {
-					panic(err)
-				}
-			}
-
-		}
-
-	}
-
-	// Fetch all files
-	var query string
-
-	//get last access time from kv
-	lastModifiedTimeStr, _ := this.GetLastModifiedTime(datasource.ID)
-
-	log.Tracef("get last modified time: %v", lastModifiedTimeStr)
-
-	if lastModifiedTimeStr != "" { //TODO, if the files are newly shared and with old timestamp and we may missed
-		// Parse last indexed time
-		parsedTime, err := time.Parse(time.RFC3339Nano, lastModifiedTimeStr)
-		if err != nil {
-			panic(errors.Errorf("Invalid time format: %v", err))
-		}
-		lastModifiedTimeStr = parsedTime.Format(time.RFC3339Nano)
-		query = fmt.Sprintf("modifiedTime > '%s'", lastModifiedTimeStr)
-	}
-
-	var lastModifyTime *time.Time
-
-	// Start pagination loop
-	nextPageToken = ""
-	for {
-		if global.ShuttingDown() {
-			break
-		}
-
-		call := srv.Files.List().PageSize(int64(datasource.SyncConfig.PageSize)).OrderBy("modifiedTime asc")
-
-		if query != "" {
-			call = call.Q(query)
-		}
-
-		r, err := call.
-			PageToken(nextPageToken).
-			Fields("nextPageToken, files(id, name, parents, mimeType, size, owners(emailAddress, displayName), createdTime, " +
-				"modifiedTime, lastModifyingUser(emailAddress, displayName), iconLink, fileExtension, description, hasThumbnail," +
-				"kind, labelInfo, parents, properties, shared, sharingUser(emailAddress, displayName), spaces, " +
-				"starred, driveId, thumbnailLink, videoMediaMetadata, webViewLink, imageMediaMetadata)").Do()
-		if err != nil {
-			panic(err)
-		}
-
-		log.Tracef("fetched %v files", len(r.Files))
-
-		// Process files in the current page
-		for _, i := range r.Files {
-
-			//TODO configurable
-			if i.Name == ".DS_Store" {
-				continue
-			}
-
-			var createdAt, updatedAt *time.Time
-			if i.CreatedTime != "" {
-				parsedTime, err := time.Parse(time.RFC3339Nano, i.CreatedTime)
-				if err == nil {
-					createdAt = &parsedTime
-				}
-			}
-			if i.ModifiedTime != "" {
-				parsedTime, err := time.Parse(time.RFC3339Nano, i.ModifiedTime)
-				if err == nil {
-					updatedAt = &parsedTime
-				}
-
-				// Track the most recent "ModifiedTime"
-				if updatedAt != nil && (lastModifyTime == nil || updatedAt.After(*lastModifyTime)) {
-					lastModifyTime = updatedAt
-				}
-			}
-
-			log.Tracef("Google Drive File: %s (ID: %s) | CreatedAt: %s | UpdatedAt: %s | Parents: %s", i.Name, i.Id, createdAt, updatedAt, i.Parents)
-
-			// Map Google Drive file to Document struct
-			document := common.Document{
-				Source: common.DataSourceReference{
-					ID:   datasource.ID,
-					Name: datasource.Name,
-					Type: "connector",
-				},
-				Title:   i.Name,
-				Summary: i.Description,
-				Type:    getType(i.MimeType),
-				Size:    int(i.Size),
-				URL:     fmt.Sprintf("https://drive.google.com/file/d/%s/view", i.Id),
-				Owner: &common.UserInfo{
-					UserAvatar: i.Owners[0].PhotoLink,
-					UserName:   i.Owners[0].DisplayName,
-					UserID:     i.Owners[0].EmailAddress,
-				},
-				Icon:      getIcon(i.MimeType),
-				Thumbnail: i.ThumbnailLink,
-			}
-
-			document.System = datasource.System
-			document.ID = common.GetDocID(datasource.ID, i.Id)
-			document.Created = createdAt
-			document.Updated = updatedAt
-
-			var parentCategoryArray []string
-			var parentPermissions []*drive.Permission
-			if i.Parents != nil && len(i.Parents) == 1 {
-				v, ok := ft.FolderMap[i.Parents[0]]
-				if ok && v != nil {
-					parentPermissions = v.Permissions
-					if ok {
-						parentCategoryArray = v.FullPathArray
-						log.Tracef("file: %v, full path: %v", i.Name, v.FullPath)
-					}
-				}
-			} else {
-				if i.Shared {
-					parentCategoryArray = []string{"Shared with me"}
-				} else {
-					parentCategoryArray = []string{"/"}
-				}
-			}
-
-			if len(parentCategoryArray) > 0 {
-				path := common.GetFullPathForCategories(parentCategoryArray)
-				document.Category = path
-				document.Categories = parentCategoryArray
-				if document.System == nil {
-					document.System = util.MapStr{}
-				}
-				document.System[common.SystemHierarchyPathKey] = path
-			} else {
-				log.Warnf("empty category, file: %v,  parents: %v", i.Name, i.Parents)
-			}
-
-			log.Trace(document.Category, " // ", document.Categories, " // ", document.Title)
-
-			meta := util.MapStr{
-				"batch_number":   batchNumber,
-				"drive_id":       i.DriveId,
-				"file_id":        i.Id,
-				"email":          i.Owners[0].EmailAddress,
-				"file_extension": i.FileExtension,
-				"kind":           i.Kind,
-				"mimetype":       i.MimeType,
-				"shared_with_me": i.SharedWithMeTime,
-				"sharing_user":   i.SharingUser,
-				"shared":         i.Shared,
-				"spaces":         i.Spaces,
-				"starred":        i.Starred,
-				"web_view_link":  i.WebViewLink,
-				"labels":         i.LabelInfo,
-				"parents":        i.Parents,
-				"permissions":    i.Permissions,
-				"permission_ids": i.PermissionIds,
-				"properties":     i.Properties,
-			}
-
-			document.Metadata = meta.RemoveNilItems()
-
-			if i.Permissions != nil {
-				log.Debugf("permission for file: %v(%v) %v", i.Id, i.Name, util.ToJson(i.Permissions, true))
-
-				//TODO check dedicated file permission, save to external permission
-				if document.Type != string(security.FolderResource) && !isSamePermission(i.Permissions, parentPermissions) {
-					log.Info("different file permission: ", util.MustToJSON(i), ",vs: ", util.MustToJSON(parentPermissions))
-				}
-			}
-
-			if i.LastModifyingUser != nil {
-				document.LastUpdatedBy = &common.EditorInfo{
-					UserInfo: &common.UserInfo{
-						UserAvatar: i.LastModifyingUser.PhotoLink,
-						UserName:   i.LastModifyingUser.DisplayName,
-						UserID:     i.LastModifyingUser.EmailAddress,
-					},
-					UpdatedAt: updatedAt,
-				}
-			}
-
-			document.Payload = util.MapStr{}
-
-			// Handle optional fields
-			if i.SharingUser != nil {
-				document.Payload["sharingUser"] = common.UserInfo{
-					UserAvatar: i.SharingUser.PhotoLink,
-					UserName:   i.SharingUser.DisplayName,
-					UserID:     i.SharingUser.EmailAddress,
-				}
-			}
-
-			if i.VideoMediaMetadata != nil {
-				document.Payload["video_metadata"] = i.VideoMediaMetadata
-			}
-
-			if i.ImageMediaMetadata != nil {
-				document.Payload["image_metadata"] = i.ImageMediaMetadata
-			}
-
-			this.ProcessMessage(pipeCtx, connector, datasource, document)
-		}
-
-		// After processing all files, save the most recent modified time for next indexing
-		if lastModifyTime != nil {
-			// Save the lastModifyTime (for example, in a KV store or file)
-			lastModifiedTimeStr = lastModifyTime.Format(time.RFC3339Nano)
-			err := this.SaveLastModifiedTime(lastModifiedTimeStr, datasource.ID)
-			if err != nil {
-				panic(err)
-			}
-			log.Debugf("Last modified time to be saved: %s", lastModifiedTimeStr)
-		}
-
-		// Break the loop if no next page token
-		if r.NextPageToken == "" {
-			break
-		}
-		nextPageToken = r.NextPageToken
-	}
 }
 
-func (this *Processor) saveDocToQueue(document common.Document, filesProcessed int) {
-
-	log.Debugf("save file: %v, %v, %v, %v, %v", document.ID, document.Category, document.Categories, document.Type, document.Title)
-
-	// Convert to JSON and push to queue
-	data := util.MustToJSONBytes(document)
-	if global.Env().IsDebug {
-		log.Tracef(string(data))
+// getRootFolderOwner determines who owns the root folder of a file's path hierarchy
+func (this *Processor) getRootFolderOwner(parentInfos []struct {
+	pathArray   []string
+	permissions []*drive.Permission
+	folderNode  *FolderNode
+}, ft *FolderTreeBuilder, srv *drive.Service, currentUserEmail string) string {
+	if len(parentInfos) == 0 {
+		return ""
 	}
-	err := queue.Push(queue.SmartGetOrInitConfig(this.Queue), data)
-	if err != nil {
-		panic(err)
+
+	// Use the first parent as starting point to trace up to root
+	startNode := parentInfos[0].folderNode
+
+	// Trace up the hierarchy to find the root folder
+	currentNode := startNode
+	for {
+		if currentNode.ParentID == "" || currentNode.ParentID == currentNode.ID {
+			// Found root folder
+			break
+		}
+
+		// Move up to parent
+		if parentNode, ok := ft.FolderMap[currentNode.ParentID]; ok {
+			currentNode = parentNode
+		} else {
+			break
+		}
 	}
-	filesProcessed++
+
+	// Check if we can determine the root folder owner
+	if currentNode != nil {
+		// Try to get root folder metadata to check ownership
+		rootMeta, err := srv.Files.Get(currentNode.ID).
+			Fields("id, name, owners(emailAddress), shared").
+			Context(context.Background()).Do()
+
+		if err == nil && rootMeta != nil && len(rootMeta.Owners) > 0 {
+			rootOwnerEmail := rootMeta.Owners[0].EmailAddress
+			log.Debugf("root folder %s (%s) owner: %s, current user: %s",
+				rootMeta.Name, rootMeta.Id, rootOwnerEmail, currentUserEmail)
+			return rootOwnerEmail
+		}
+	}
+
+	// Fallback: if we can't determine root owner, assume it's the current user
+	// This is a conservative approach - better to assume ownership than incorrectly categorize as shared
+	log.Debugf("cannot determine root folder owner, assuming current user owns the folder hierarchy")
+	return currentUserEmail
 }
 
 // downloadOrExportFile downloads or exports a Google Drive file based on its MIME type
@@ -728,4 +685,139 @@ func exportFile(srv *drive.Service, fileID, mimeType, outputPath string) error {
 		return fmt.Errorf("Unable to save file locally: %v", err)
 	}
 	return nil
+}
+
+// createDocumentFromFile creates a Document from a Google Drive file
+func (this *Processor) createDocumentFromFile(file *drive.File, datasource *common.DataSource, folderPath []string, ft *FolderTreeBuilder, currentUserEmail string, isMyDrive bool) *common.Document {
+	if file == nil {
+		return nil
+	}
+
+	// Skip .DS_Store files
+	if file.Name == ".DS_Store" {
+		return nil
+	}
+
+	var createdAt, updatedAt *time.Time
+	if file.CreatedTime != "" {
+		parsedTime, err := time.Parse(time.RFC3339Nano, file.CreatedTime)
+		if err == nil {
+			createdAt = &parsedTime
+		}
+	}
+	if file.ModifiedTime != "" {
+		parsedTime, err := time.Parse(time.RFC3339Nano, file.ModifiedTime)
+		if err == nil {
+			updatedAt = &parsedTime
+		}
+	}
+
+	log.Tracef("Google Drive File: %s (ID: %s) | CreatedAt: %s | UpdatedAt: %s | Parents: %s", file.Name, file.Id, createdAt, updatedAt, file.Parents)
+
+	// Map Google Drive file to Document struct
+	document := common.Document{
+		Source: common.DataSourceReference{
+			ID:   datasource.ID,
+			Name: datasource.Name,
+			Type: "connector",
+		},
+		Title:   file.Name,
+		Summary: file.Description,
+		Type:    getType(file.MimeType),
+		Size:    int(file.Size),
+		URL:     fmt.Sprintf("https://drive.google.com/file/d/%s/view", file.Id),
+		Owner: &common.UserInfo{
+			UserAvatar: file.Owners[0].PhotoLink,
+			UserName:   file.Owners[0].DisplayName,
+			UserID:     file.Owners[0].EmailAddress,
+		},
+		Icon:      getIcon(file.MimeType),
+		Thumbnail: file.ThumbnailLink,
+	}
+
+	document.System = datasource.System
+	document.ID = common.GetDocID(datasource.ID, file.Id)
+	document.Created = createdAt
+	document.Updated = updatedAt
+
+	// Set category and path
+	if len(folderPath) > 0 {
+		document.Category = common.GetFullPathForCategories(folderPath)
+		document.Categories = folderPath
+		if document.System == nil {
+			document.System = util.MapStr{}
+		}
+		document.System[common.SystemHierarchyPathKey] = document.Category
+	}
+
+	// Build metadata
+	meta := util.MapStr{
+		"batch_number":   util.GetUUID(),
+		"drive_id":       file.DriveId,
+		"file_id":        file.Id,
+		"email":          file.Owners[0].EmailAddress,
+		"file_extension": file.FileExtension,
+		"kind":           file.Kind,
+		"mimetype":       file.MimeType,
+		"shared_with_me": file.SharedWithMeTime,
+		"sharing_user":   file.SharingUser,
+		"shared":         file.Shared,
+		"spaces":         file.Spaces,
+		"starred":        file.Starred,
+		"web_view_link":  file.WebViewLink,
+		"labels":         file.LabelInfo,
+		"parents":        file.Parents,
+		"permissions":    file.Permissions,
+		"permission_ids": file.PermissionIds,
+		"properties":     file.Properties,
+	}
+
+	document.Metadata = meta.RemoveNilItems()
+
+	// Handle permissions
+	if file.Permissions != nil {
+		// Ensure DisplayName is populated for file permissions
+		for j := range file.Permissions {
+			perm := file.Permissions[j]
+			if perm.DisplayName == "" && perm.EmailAddress != "" {
+				// Fallback to email username if display name is missing
+				parts := strings.Split(perm.EmailAddress, "@")
+				if len(parts) > 0 {
+					perm.DisplayName = parts[0]
+				}
+			}
+		}
+	}
+
+	if file.LastModifyingUser != nil {
+		document.LastUpdatedBy = &common.EditorInfo{
+			UserInfo: &common.UserInfo{
+				UserAvatar: file.LastModifyingUser.PhotoLink,
+				UserName:   file.LastModifyingUser.DisplayName,
+				UserID:     file.LastModifyingUser.EmailAddress,
+			},
+			UpdatedAt: updatedAt,
+		}
+	}
+
+	document.Payload = util.MapStr{}
+
+	// Handle optional fields
+	if file.SharingUser != nil {
+		document.Payload["sharingUser"] = common.UserInfo{
+			UserAvatar: file.SharingUser.PhotoLink,
+			UserName:   file.SharingUser.DisplayName,
+			UserID:     file.SharingUser.EmailAddress,
+		}
+	}
+
+	if file.VideoMediaMetadata != nil {
+		document.Payload["video_metadata"] = file.VideoMediaMetadata
+	}
+
+	if file.ImageMediaMetadata != nil {
+		document.Payload["image_metadata"] = file.ImageMediaMetadata
+	}
+
+	return &document
 }

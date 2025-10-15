@@ -68,7 +68,7 @@ func connect(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 		panic("invalid oauth config")
 	}
 
-	// Generate OAuth URL
+	// Generate OAuth URL with proper offline access
 	authURL := oAuthConfig.AuthCodeURL("", oauth2.AccessTypeOffline)
 
 	// Parse the generated URL to append additional parameters
@@ -77,9 +77,10 @@ func connect(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 		panic("Failed to parse auth URL")
 	}
 
-	// Add the `approval_prompt=force` parameter to ensure the refresh token is returned
+	// Add parameters to ensure refresh token is always granted
+	// Use prompt=consent instead of deprecated approval_prompt=force
 	query := parsedURL.Query()
-	query.Set("approval_prompt", "force")
+	query.Set("prompt", "consent") // Force consent to ensure refresh token
 	parsedURL.RawQuery = query.Encode()
 
 	// Return the updated URL with the necessary parameters
@@ -110,6 +111,7 @@ func oAuthRedirect(w http.ResponseWriter, req *http.Request, ps httprouter.Param
 
 	// Retrieve user info from Google
 	client := oAuthConfig.Client(req.Context(), token)
+	client.Timeout = time.Duration(30) * time.Second
 	resp, err := client.Get("https://www.googleapis.com/oauth2/v3/userinfo")
 	if err != nil {
 		panic(fmt.Errorf("failed to fetch user info: %w", err))
@@ -142,6 +144,7 @@ func oAuthRedirect(w http.ResponseWriter, req *http.Request, ps httprouter.Param
 	}
 	datasource.ID = util.MD5digest(fmt.Sprintf("%v,%v,%v,%v", "google_drive", connectorID, userInfo.Sub, userInfo.Email))
 	datasource.Type = "connector"
+	datasource.Icon = "default"
 	if userInfo.Name != "" {
 		datasource.Name = userInfo.Name + "'s Google Drive"
 	} else {
@@ -161,9 +164,11 @@ func oAuthRedirect(w http.ResponseWriter, req *http.Request, ps httprouter.Param
 	// Check if refresh token is missing or empty
 	if token.RefreshToken == "" {
 		log.Warnf("refresh token was not granted for: %v", datasource.Name)
+		log.Warnf("This may cause issues with automatic token refresh. Consider re-authorizing with prompt=consent parameter.")
 	}
 
 	ctx := orm.NewContextWithParent(req.Context())
+	common.MarkDatasourceNotDeleted(datasource.ID)
 	err = orm.Save(ctx, &datasource)
 	if err != nil {
 		panic(err)

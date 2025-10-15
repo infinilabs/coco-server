@@ -16,7 +16,6 @@ import (
 func (processor *Dispatcher) syncDatasource(c *common.DataSource) error {
 
 	//check datasource and connector's config
-
 	//create pipeline based sub tasks
 
 	//[Pipeline] [Connector] [Datasource] is Running

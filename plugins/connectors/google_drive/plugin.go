@@ -6,13 +6,14 @@ package google_drive
 
 import (
 	"context"
+	"errors"
 	"infini.sh/framework/core/pipeline"
+	"strings"
 	"time"
 
 	log "github.com/cihub/seelog"
 	"golang.org/x/oauth2"
 	"infini.sh/coco/modules/common"
-	config3 "infini.sh/framework/core/config"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
 )
@@ -32,63 +33,66 @@ type Config struct {
 	Profile      util.MapStr `config:"profile" json:"profile"`
 }
 
-func (this *Processor) fetch_google_drive(pipeCtx *pipeline.Context, connector *common.Connector, datasource *common.DataSource) {
-	if connector == nil || datasource == nil {
-		panic("invalid connector config")
-	}
-
-	cfg, err := config3.NewConfigFrom(datasource.Connector.Config)
-	if err != nil {
-		panic(err)
-	}
-
-	datasourceCfg := Config{}
-	err = cfg.Unpack(&datasourceCfg)
-	if err != nil {
-		panic(err)
-	}
+func (this *Processor) Fetch(pipeCtx *pipeline.Context, connector *common.Connector, datasource *common.DataSource) error {
+	config := Config{}
+	this.MustParseConfig(datasource, &config)
 
 	oAuthConfig := getOAuthConfig(connector.ID)
 	if oAuthConfig == nil {
-		panic("invalid oauth config")
+		return errors.New("invalid oauth config")
 	}
 
-	log.Tracef("handle google_drive's datasource: %v", datasourceCfg)
+	log.Tracef("handle google_drive's datasource: %v", config)
 
-	if datasourceCfg.AccessToken != "" && datasourceCfg.RefreshToken != "" {
+	if config.AccessToken != "" && config.RefreshToken != "" {
 		// Initialize the token using AccessToken and RefreshToken
 		tok := oauth2.Token{
-			AccessToken:  datasourceCfg.AccessToken,
-			RefreshToken: datasourceCfg.RefreshToken,
-			Expiry:       parseExpiry(datasourceCfg.TokenExpiry),
+			AccessToken:  config.AccessToken,
+			RefreshToken: config.RefreshToken,
+			Expiry:       parseExpiry(config.TokenExpiry),
 		}
+
+		//log.Debugf("OAuth2 Config: %v", util.MustToJSON(oAuthConfig))
+		//log.Debugf("Current Token Config: %v", util.MustToJSON(config))
 
 		// Check if the token is valid
 		if !tok.Valid() {
 			// Check if SkipInvalidToken is false, which means token must be valid
 			if !this.SkipInvalidToken && !tok.Valid() {
-				panic("token is invalid")
+				return errors.New("token is invalid")
 			}
 
 			// If the token is invalid, attempt to refresh it
-			log.Warnf("Token is invalid or expired, attempting to refresh...")
+			log.Warnf("google drive [%v](%v) token is invalid or expired, attempting to refresh...", datasource.Name, datasource.ID)
 
 			// Refresh the token using the refresh token
 			if tok.RefreshToken != "" {
 				log.Debug("Attempting to refresh the token")
+				log.Debugf("Current token expiry: %v", tok.Expiry)
+				log.Debugf("Refresh token present: %v", tok.RefreshToken != "")
+
 				tokenSource := oAuthConfig.TokenSource(context.Background(), &tok)
 				refreshedToken, err := tokenSource.Token()
 				if err != nil {
 					log.Errorf("Failed to refresh token: %v", err)
-					panic("Failed to refresh token")
+					// Check for specific OAuth2 errors that indicate invalid refresh token
+					if strings.Contains(err.Error(), "unauthorized_client") {
+						log.Errorf("Refresh token is invalid or expired, need to re-authorize. This can happen if:")
+						log.Errorf("1. The OAuth app client secret has changed")
+						log.Errorf("2. The refresh token has been revoked")
+						log.Errorf("3. The OAuth app configuration has changed")
+						log.Errorf("Please re-authorize the Google Drive connector to obtain a new refresh token.")
+						return errors.New("Refresh token is invalid, please re-authorize the Google Drive connector by visiting the connector settings and reconnecting")
+					}
+					return errors.New("Failed to refresh token")
 				}
 
 				// Save the refreshed token
-				datasourceCfg.AccessToken = refreshedToken.AccessToken
-				datasourceCfg.RefreshToken = refreshedToken.RefreshToken
-				datasourceCfg.TokenExpiry = refreshedToken.Expiry.Format(time.RFC3339) // Format using RFC3339
+				config.AccessToken = refreshedToken.AccessToken
+				config.RefreshToken = refreshedToken.RefreshToken
+				config.TokenExpiry = refreshedToken.Expiry.Format(time.RFC3339) // Format using RFC3339
 
-				datasource.Connector.Config = datasourceCfg
+				datasource.Connector.Config = config
 
 				log.Debugf("updating datasource with new refresh token: %v", datasource.ID)
 
@@ -98,22 +102,23 @@ func (this *Processor) fetch_google_drive(pipeCtx *pipeline.Context, connector *
 				err = orm.Update(ctx, datasource)
 				if err != nil {
 					log.Errorf("Failed to save updated datasource configuration: %v", err)
-					panic("Failed to save updated configuration")
+					return errors.New("Failed to save updated configuration")
 				}
 
 				log.Debug("Token refreshed successfully")
 			} else {
-				log.Warnf("No refresh token available, unable to refresh token.")
+				return errors.New("No refresh token available, unable to refresh token.")
 			}
 
-		} else {
-			// Token is valid, proceed with indexing files
-			log.Debug("start processing google drive files")
-			this.startIndexingFiles(pipeCtx, connector, datasource, &tok)
-			log.Debug("finished processing google drive files")
 		}
+
+		// Token is valid, proceed with indexing files
+		log.Debug("start processing google drive files")
+		this.startIndexingFiles(pipeCtx, connector, datasource, &tok)
+		log.Debug("finished processing google drive files")
 	}
 
+	return nil
 }
 
 // Helper function to parse token expiry time
