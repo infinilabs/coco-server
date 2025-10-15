@@ -50,7 +50,7 @@ export function filterAuthRoutesByPermissions(routes: ElegantConstRoute[], permi
  * @param route Auth route
  * @param permissions Permissions
  */
-function filterAuthRouteByPermissions(route: ElegantConstRoute, permissions: string[]) {
+function filterAuthRouteByPermissions(route: ElegantConstRoute, permissions: string[] = []) {
   const routePermissions = (route.meta && route.meta.permissions) || [];
 
   // if the route's "roles" is empty, then it is allowed to access

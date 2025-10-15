@@ -196,7 +196,7 @@ const initStaticAuthRoute = (): AppThunk => (dispatch, getState) => {
   if (dispatch(isStaticSuper())) {
     dispatch(setAuthRoutes(staticAuthRoutes));
   } else {
-    const userInfo = selectUserInfo(getState());
+    const userInfo = selectUserInfo(getState()) || {};
     const filteredAuthRoutes = filterAuthRoutesByPermissions(staticAuthRoutes, userInfo.permissions);
     dispatch(setAuthRoutes(filteredAuthRoutes));
   }

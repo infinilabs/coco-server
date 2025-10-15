@@ -11,17 +11,20 @@ const SETTINGS = [
   {
     icon: <SvgIcon icon="mdi:settings-outline" />,
     key: 'llm',
-    link: '/model-provider/list'
+    link: '/model-provider/list',
+    permissions: ['coco:model/view']
   },
   {
     icon: <SvgIcon icon="mdi:plus-thick" />,
     key: 'dataSource',
-    link: '/data-source'
+    link: '/data-source',
+    permissions: ['coco:datasource/view']
   },
   {
     icon: <SvgIcon icon="mdi:plus-thick" />,
     key: 'aiAssistant',
-    link: '/ai-assistant'
+    link: '/ai-assistant',
+    permissions: ['coco:ai_assistant/view']
   }
 ];
 
@@ -29,6 +32,7 @@ export function Component() {
   const userInfo = useAppSelector(selectUserInfo);
   const routerPush = useRouterPush();
   const { t } = useTranslation();
+  const { hasAuth } = useAuth()
   const domRef = useRef<HTMLDivElement | null>(null);
   const [form] = Form.useForm();
   const { endLoading, loading, startLoading } = useLoading();
@@ -94,6 +98,10 @@ export function Component() {
     form.setFieldsValue({ endpoint: data?.endpoint, name: data?.name });
   }, [JSON.stringify(data)]);
 
+  const hasServerEditAuth = useMemo(() => {
+    return hasAuth('coco:server_settings/update')
+  }, [])
+
   return (
     <Spin spinning={dataLoading || loading}>
       <Card
@@ -123,23 +131,27 @@ export function Component() {
             )}
             {data?.name ? data?.name : <span>{t('page.home.server.title', { user: userInfo?.name })}</span>}
           </div>
-          <Button
-            className="h-40px w-40px rounded-12px p-0"
-            style={{ background: `${darkMode ? 'var(--ant-color-border)' : '#F7F9FC'}` }}
-            type="link"
-            onClick={() => {
-              if (isNameEditing) {
-                handleSubmit('name', () => setIsNameEditing(!isNameEditing));
-              } else {
-                setIsNameEditing(!isNameEditing);
-              }
-            }}
-          >
-            <SvgIcon
-              className="text-24px"
-              icon={isNameEditing ? 'mdi:content-save' : 'mdi:square-edit-outline'}
-            />
-          </Button>
+          {
+            hasServerEditAuth && (
+              <Button
+                className="h-40px w-40px rounded-12px p-0"
+                style={{ background: `${darkMode ? 'var(--ant-color-border)' : '#F7F9FC'}` }}
+                type="link"
+                onClick={() => {
+                  if (isNameEditing) {
+                    handleSubmit('name', () => setIsNameEditing(!isNameEditing));
+                  } else {
+                    setIsNameEditing(!isNameEditing);
+                  }
+                }}
+              >
+                <SvgIcon
+                  className="text-24px"
+                  icon={isNameEditing ? 'mdi:content-save' : 'mdi:square-edit-outline'}
+                />
+              </Button>
+            )
+          }
         </div>
         <div className="m-b-16px text-20px color-[var(--ant-color-text-heading)]">{t('page.home.server.address')}</div>
         <div className="m-b-16px flex">
@@ -168,7 +180,7 @@ export function Component() {
               <div className="p-l-11px">{data?.endpoint}</div>
             )}
             {
-              !managed && (
+              hasServerEditAuth && !managed && (
                 <Button
                   className="absolute right-0 top-0 z-1 h-48px w-30px rounded-12px p-0"
                   id="endpoint-save"
@@ -235,14 +247,18 @@ export function Component() {
               <div className="color-var(--ant-color-text) m-b-45px h-60px">
                 {t(`page.home.settings.${item.key}Desc`)}
               </div>
-              <Button
-                className="h-40px w-40px rounded-12px p-0 text-24px"
-                disabled={!item.link}
-                type="primary"
-                onClick={() => item.link && routerPush.routerPush(item.link)}
-              >
-                {item.icon}
-              </Button>
+              {
+                hasAuth(item.permissions) && (
+                  <Button
+                    className="h-40px w-40px rounded-12px p-0 text-24px"
+                    disabled={!item.link}
+                    type="primary"
+                    onClick={() => item.link && routerPush.routerPush(item.link)}
+                  >
+                    {item.icon}
+                  </Button>
+                )
+              }
             </Col>
           ))}
         </Row>
