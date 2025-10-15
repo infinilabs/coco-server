@@ -176,6 +176,7 @@ export function Component() {
       title: t('common.operation'),
       fixed: 'right',
       width: "90px",
+      hidden: !permissions.update && !permissions.delete,
       render: (_, record) => {
         return <Dropdown menu={{ items: getMenuItems(record), onClick:({key})=>onMenuClick({key, record}) }}>
           <EllipsisOutlined/>
@@ -183,10 +184,6 @@ export function Component() {
       },
     },
   ];
-
-  if (!permissions.update && !permissions.delete) {
-    columns.splice(columns.length - 1, 1)
-  }
 
   // rowSelection object indicates the need for row selection
 const rowSelection: TableProps<Assistant>["rowSelection"] = {

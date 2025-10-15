@@ -303,7 +303,8 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.mcp-server',
       title: 'mcp-server',
       order: 2,
-      localIcon: 'mcp'
+      localIcon: 'mcp',
+      permissions: ['coco:mcp/view']
     },
     redirect: 'list',
     children: [
@@ -315,7 +316,8 @@ export const generatedRoutes: GeneratedRoute[] = [
           i18nKey: 'route.mcp-server_edit',
           title: 'mcp-server_edit',
           hideInMenu: true,
-          activeMenu: 'mcp-server'
+          activeMenu: 'mcp-server',
+          permissions: ['coco:mcp/update']
         }
       },
       {
@@ -326,7 +328,8 @@ export const generatedRoutes: GeneratedRoute[] = [
           i18nKey: 'route.mcp-server_list',
           title: 'mcp-server_list',
           hideInMenu: true,
-          activeMenu: 'mcp-server'
+          activeMenu: 'mcp-server',
+          permissions: ['coco:mcp/view']
         }
       },
       {
@@ -337,7 +340,8 @@ export const generatedRoutes: GeneratedRoute[] = [
           i18nKey: 'route.mcp-server_new',
           title: 'mcp-server_new',
           hideInMenu: true,
-          activeMenu: 'mcp-server'
+          activeMenu: 'mcp-server',
+          permissions: ['coco:mcp/create']
         }
       }
     ]

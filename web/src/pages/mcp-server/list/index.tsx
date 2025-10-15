@@ -14,19 +14,17 @@ export function Component() {
   
   const { t } = useTranslation();
 
+  const { hasAuth } = useAuth()
+
+  const permissions = {
+    create: hasAuth('coco:mcp/create'),
+    update: hasAuth('coco:mcp/update'),
+    delete: hasAuth('coco:mcp/delete'),
+  }
+
   const { scrollConfig, tableWrapperRef } = useTableScroll();
 
   const nav = useNavigate();
-  const items: MenuProps["items"] = [
-    {
-      label: t('common.edit'),
-      key: "2",
-    },
-    {
-      label: t('common.delete'),
-      key: "1",
-    },
-  ];
 
   const onMenuClick = ({key, record}: any)=>{
     switch(key){
@@ -119,14 +117,28 @@ export function Component() {
       title: t('page.mcpserver.labels.enabled'),
       width: 80,
       render: (value: boolean, record: MCPServer)=>{
-       return <Switch size="small" value={value} onChange={(v)=>onEnabledChange(v, record)}/>
+       return <Switch size="small" value={value} onChange={(v)=>onEnabledChange(v, record)} disabled={!permissions.update}/>
       }
     },
     {
       title: t('common.operation'),
       fixed: 'right',
       width: "90px",
+      hidden: !permissions.update && !permissions.delete,
       render: (_, record) => {
+        const items: MenuProps["items"] = [];
+        if (permissions.update) {
+          items.push({
+            label: t('common.edit'),
+            key: "2",
+          })
+        }
+        if (permissions.delete) {
+          items.push({
+            label: t('common.delete'),
+            key: "1",
+          })
+        }
         return <Dropdown menu={{ items, onClick:({key})=>onMenuClick({key, record}) }}>
           <EllipsisOutlined/>
         </Dropdown>
@@ -199,7 +211,7 @@ const fetchData = () => {
       >
       <div className='mb-4 mt-4 flex items-center justify-between'>
         <Search value={keyword} onChange={(e) => setKeyword(e.target.value)} addonBefore={<FilterOutlined />} className='max-w-500px' onSearch={onRefreshClick} enterButton={ t('common.refresh')}></Search>
-        <Button type='primary' icon={<PlusOutlined/>}  onClick={() => nav(`/mcp-server/new`)}>{t('common.add')}</Button>
+        { permissions.create && <Button type='primary' icon={<PlusOutlined/>}  onClick={() => nav(`/mcp-server/new`)}>{t('common.add')}</Button> }
       </div>
       <Table<MCPServer>
           rowKey="id"
