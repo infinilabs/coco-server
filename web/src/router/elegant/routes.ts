@@ -386,6 +386,37 @@ export const generatedRoutes: GeneratedRoute[] = [
     ]
   },
   {
+    name: 'role',
+    path: '/role',
+    component: 'layout.base',
+    meta: {
+      i18nKey: 'route.role',
+      title: 'role',
+      hideInMenu: true,
+      activeMenu: 'security'
+    },
+    children: [
+      {
+        name: 'role_edit',
+        path: 'edit/:id',
+        component: 'view.role_edit',
+        meta: {
+          i18nKey: 'route.role_edit',
+          title: 'role_edit'
+        }
+      },
+      {
+        name: 'role_new',
+        path: 'new',
+        component: 'view.role_new',
+        meta: {
+          i18nKey: 'route.role_new',
+          title: 'role_new'
+        }
+      }
+    ]
+  },
+  {
     name: 'search',
     path: '/search',
     component: 'layout.blank$view.search',
@@ -397,6 +428,17 @@ export const generatedRoutes: GeneratedRoute[] = [
     }
   },
   {
+    name: 'security',
+    path: '/security',
+    component: 'layout.base$view.security',
+    meta: {
+      i18nKey: 'route.security',
+      title: 'security',
+      icon: 'mdi:user-outline',
+      order: 10
+    }
+  },
+  {
     name: 'settings',
     path: '/settings',
     component: 'layout.base$view.settings',
@@ -404,7 +446,7 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.settings',
       title: 'settings',
       icon: 'mdi:settings-outline',
-      order: 10
+      order: 11
     }
   }
 ];

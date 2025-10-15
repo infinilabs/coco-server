@@ -44,6 +44,9 @@ export const pages: Record<LastLevelRouteKey, LazyRouteFunction<CustomRouteObjec
   "model-provider_edit": () => import("@/pages/model-provider/edit/[id].tsx"),
   "model-provider_list": () => import("@/pages/model-provider/list/index.tsx"),
   "model-provider_new": () => import("@/pages/model-provider/new/index.tsx"),
+  role_edit: () => import("@/pages/role/edit/[id].tsx"),
+  role_new: () => import("@/pages/role/new/index.tsx"),
   search: () => import("@/pages/search/index.tsx"),
+  security: () => import("@/pages/security/index.tsx"),
   settings: () => import("@/pages/settings/index.tsx"),
 };

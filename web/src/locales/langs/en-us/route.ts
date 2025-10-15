@@ -64,6 +64,7 @@ const route: App.I18n.Schema['translation']['route'] = {
   'ai-assistant_new': 'New AI Assistant',
   'ai-assistant_edit': 'Edit AI Assistant',
   'settings': 'Settings',
+  'security': 'Security',
   'model-provider': 'LLM Provider',
   'model-provider_list': 'LLM Provider',
   'model-provider_new': 'New LLM Provider',
@@ -72,7 +73,9 @@ const route: App.I18n.Schema['translation']['route'] = {
   'mcp-server_list': 'MCP Server',
   'mcp-server_new': 'New MCP Server',
   'mcp-server_edit': 'Edit MCP Server',
-  'search': 'Search'
+  'search': 'Search',
+  'role_new': 'New Role',
+  'role_edit': 'Edit Role'
 };
 
 export default route;

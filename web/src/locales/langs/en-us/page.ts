@@ -504,6 +504,19 @@ const page: App.I18n.Schema['translation']['page'] = {
       confirm: 'Are you sure you want to delete this ai MCP server "{{name}}"?'
     },
   },
+  role: {
+    title: 'Role',
+    labels: {
+      name: "Name",
+      description: "Description",
+      permission: "Permission",
+      object: 'Object',
+      coco: 'Coco Server'
+    },
+    new: {
+      title: 'New Role'
+    }
+  }
 };
 
 export default page;

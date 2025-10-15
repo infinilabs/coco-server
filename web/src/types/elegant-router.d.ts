@@ -65,7 +65,11 @@ declare module "@elegant-router/types" {
     "model-provider_edit": "edit/:id";
     "model-provider_list": "list";
     "model-provider_new": "new";
+    "role": "/role";
+    "role_edit": "edit/:id";
+    "role_new": "new";
     "search": "/search";
+    "security": "/security";
     "settings": "/settings";
   };
 
@@ -124,7 +128,9 @@ declare module "@elegant-router/types" {
     | "login"
     | "mcp-server"
     | "model-provider"
+    | "role"
     | "search"
+    | "security"
     | "settings"
   >;
 
@@ -172,7 +178,10 @@ declare module "@elegant-router/types" {
     | "model-provider_edit"
     | "model-provider_list"
     | "model-provider_new"
+    | "role_edit"
+    | "role_new"
     | "search"
+    | "security"
     | "settings"
   >;
 

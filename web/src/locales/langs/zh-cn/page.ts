@@ -599,6 +599,19 @@ const page: App.I18n.Schema['translation']['page'] = {
       confirm: 'Are you sure you want to delete this ai MCP server "{{name}}"?'
     },
   },
+  role: {
+    title: '角色',
+    labels: {
+      name: "名称",
+      description: "描述",
+      permission: "权限",
+      object: '操作对象',
+      coco: 'Coco Server'
+    },
+    new: {
+      title: '新增角色'
+    }
+  }
 };
 
 export default page;
