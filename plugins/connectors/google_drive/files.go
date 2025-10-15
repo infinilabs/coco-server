@@ -547,12 +547,9 @@ func (this *Processor) startIndexingFiles(pipeCtx *pipeline.Context, connector *
 	this.IndexingFolder(pipeCtx, connector, datasource, rootDoc, srv, q, batchNumber)
 
 	// /Shared with me
-	shareWithMeID := "share_with_me"
-	shareWithMeName := "Shared with me"
-	shareWithMe := this.createFolderDoc(shareWithMeID, shareWithMeName, []string{}, datasource)
+	shareWithMe := this.createFolderDoc("share_with_me", "Shared with me", []string{}, datasource)
 
-	q = "sharedWithMe"
-	this.IndexingFolder(pipeCtx, connector, datasource, shareWithMe, srv, q, batchNumber)
+	this.IndexingFolder(pipeCtx, connector, datasource, shareWithMe, srv, "sharedWithMe", batchNumber)
 
 }
 
