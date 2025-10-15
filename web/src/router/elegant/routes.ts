@@ -47,7 +47,8 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.ai-assistant',
       title: 'ai-assistant',
       icon: 'mdi:robot-outline',
-      order: 2
+      order: 2,
+      permissions: ['coco:ai_assistant/view']
     },
     children: [
       {
@@ -58,7 +59,8 @@ export const generatedRoutes: GeneratedRoute[] = [
           i18nKey: 'route.ai-assistant_edit',
           title: 'ai-assistant_edit',
           hideInMenu: true,
-          activeMenu: 'ai-assistant'
+          activeMenu: 'ai-assistant',
+          permissions: ['coco:ai_assistant/update']
         }
       },
       {
@@ -69,7 +71,8 @@ export const generatedRoutes: GeneratedRoute[] = [
           i18nKey: 'route.ai-assistant_list',
           title: 'ai-assistant_list',
           hideInMenu: true,
-          activeMenu: 'ai-assistant'
+          activeMenu: 'ai-assistant',
+          permissions: ['coco:ai_assistant/view']
         }
       },
       {
@@ -80,7 +83,8 @@ export const generatedRoutes: GeneratedRoute[] = [
           i18nKey: 'route.ai-assistant_new',
           title: 'ai-assistant_new',
           hideInMenu: true,
-          activeMenu: 'ai-assistant'
+          activeMenu: 'ai-assistant',
+          permissions: ['coco:ai_assistant/create']
         }
       }
     ]

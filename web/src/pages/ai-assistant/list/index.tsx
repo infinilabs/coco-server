@@ -13,28 +13,38 @@ export function Component() {
   const [queryParams, setQueryParams] = useQueryParams();
 
   const { t } = useTranslation();
+  const { hasAuth } = useAuth()
+
+  const permissions = {
+    create: hasAuth('coco:ai_assistant/create'),
+    update: hasAuth('coco:ai_assistant/update'),
+    delete: hasAuth('coco:ai_assistant/delete'),
+  }
 
   const { scrollConfig, tableWrapperRef } = useTableScroll();
 
   const nav = useNavigate();
 
   const getMenuItems = useCallback((record: Assistant): MenuProps["items"] => {
-    const items: MenuProps["items"] = [
-      {
+    const items: MenuProps["items"] = [];
+    if (permissions.update) {
+      items.push({
         label: t('common.edit'),
         key: "2",
-      },
-    ];
-    if (record.builtin !== true) {
+      });
+    }
+    if (permissions.delete && record.builtin !== true) {
       items.push({
         label: t('common.delete'),
         key: "1",
       });
     }
-    items.push({
-      label: t('common.clone'),
-      key: "3",
-    })
+    if (permissions.create) {
+      items.push({
+        label: t('common.clone'),
+        key: "3",
+      })
+    }
     return items;
   }, []);
 
@@ -110,7 +120,13 @@ export function Component() {
             <IconWrapper className="w-20px h-20px">
               <InfiniIcon height="1em" width="1em" src={record.icon} />
             </IconWrapper>
-            <span className='max-w-150px ant-table-cell-ellipsis cursor-pointer hover:text-blue-500' onClick={()=>nav(`/ai-assistant/edit/${record.id}`)}>{ value }</span>
+            {
+              permissions.update ? (
+                <span className='max-w-150px ant-table-cell-ellipsis cursor-pointer hover:text-blue-500' onClick={()=>nav(`/ai-assistant/edit/${record.id}`)}>{ value }</span>
+              ) : (
+                <span className='max-w-150px ant-table-cell-ellipsis'>{ value }</span>
+              )
+            }
             {record.builtin === true && <div className="flex items-center ml-[5px]">
               <p className="h-[22px] bg-[#eee] text-[#999] font-size-[12px] px-[10px] line-height-[22px] rounded-[4px]">{t('page.modelprovider.labels.builtin')}</p>
             </div>}
@@ -153,7 +169,7 @@ export function Component() {
       title: t('page.assistant.labels.enabled'),
       width: 80,
       render: (value: boolean, record: Assistant)=>{
-       return <Switch size="small" value={value} onChange={(v)=>onEnabledChange(v, record)}/>
+       return <Switch size="small" value={value} onChange={(v)=>onEnabledChange(v, record)} disabled={!permissions.update}/>
       }
     },
     {
@@ -167,6 +183,11 @@ export function Component() {
       },
     },
   ];
+
+  if (!permissions.update && !permissions.delete) {
+    columns.splice(columns.length - 1, 1)
+  }
+
   // rowSelection object indicates the need for row selection
 const rowSelection: TableProps<Assistant>["rowSelection"] = {
   onChange: (selectedRowKeys: React.Key[], selectedRows: Assistant[]) => {
@@ -234,7 +255,7 @@ const fetchData = () => {
       >
       <div className='mb-4 mt-4 flex items-center justify-between'>
         <Search value={keyword} onChange={(e) => setKeyword(e.target.value)} addonBefore={<FilterOutlined />} className='max-w-500px' onSearch={onRefreshClick} enterButton={ t('common.refresh')}></Search>
-        <Button type='primary' icon={<PlusOutlined/>}  onClick={() => nav(`/ai-assistant/new`)}>{t('common.add')}</Button>
+        { permissions.create && <Button type='primary' icon={<PlusOutlined/>}  onClick={() => nav(`/ai-assistant/new`)}>{t('common.add')}</Button> }
       </div>
       <Table<Assistant>
           rowKey="id"

@@ -21,7 +21,6 @@ export const pages: Record<LastLevelRouteKey, LazyRouteFunction<CustomRouteObjec
   404: () => import("@/pages/_builtin/404/index.tsx"),
   500: () => import("@/pages/_builtin/500/index.tsx"),
   "ai-assistant_edit": () => import("@/pages/ai-assistant/edit/[id].tsx"),
-  "ai-assistant": () => import("@/pages/ai-assistant/index.tsx"),
   "ai-assistant_list": () => import("@/pages/ai-assistant/list/index.tsx"),
   "ai-assistant_new": () => import("@/pages/ai-assistant/new/index.tsx"),
   "api-token_list": () => import("@/pages/api-token/list/index.tsx"),

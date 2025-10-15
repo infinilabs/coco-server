@@ -155,7 +155,6 @@ declare module "@elegant-router/types" {
     | "404"
     | "500"
     | "ai-assistant_edit"
-    | "ai-assistant"
     | "ai-assistant_list"
     | "ai-assistant_new"
     | "api-token_list"
