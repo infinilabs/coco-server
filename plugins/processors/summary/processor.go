@@ -10,6 +10,7 @@ import (
 	log "github.com/cihub/seelog"
 	"github.com/tmc/langchaingo/llms"
 	"github.com/tmc/langchaingo/llms/ollama"
+	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/config"
 	"infini.sh/framework/core/errors"
@@ -53,7 +54,7 @@ func init() {
 }
 
 func New(c *config.Config) (pipeline.Processor, error) {
-	cfg := Config{MessageField: "messages", MinInputDocumentLength: 100, MaxInputDocumentLength: 100000, MaxOutputDocumentLength: 10000, IncludeSkippedDocumentToOutputQueue: true}
+	cfg := Config{MessageField: core.PipelineContextDocuments, MinInputDocumentLength: 100, MaxInputDocumentLength: 100000, MaxOutputDocumentLength: 10000, IncludeSkippedDocumentToOutputQueue: true}
 
 	if err := c.Unpack(&cfg); err != nil {
 		log.Error(err)
@@ -87,10 +88,6 @@ func New(c *config.Config) (pipeline.Processor, error) {
 	runner.removeThinkPattern = regexp.MustCompile(`(?s)<think>.*?</think>`)
 
 	return &runner, nil
-}
-
-func (processor DocumentSummarizationProcessor) Stop() error {
-	return nil
 }
 
 func (processor *DocumentSummarizationProcessor) Name() string {

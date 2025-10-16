@@ -7,6 +7,7 @@ package attachment
 import (
 	"errors"
 	"fmt"
+	"infini.sh/framework/core/elastic"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -15,7 +16,6 @@ import (
 	"time"
 
 	log "github.com/cihub/seelog"
-	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/kv"
@@ -98,7 +98,7 @@ func (h APIHandler) getAttachments(w http.ResponseWriter, req *http.Request, ps 
 	}
 
 	docs := []common.Attachment{}
-	err, res := core.SearchV2WithResultItemMapper(ctx, &docs, builder, nil)
+	err, res := elastic.SearchV2WithResultItemMapper(ctx, &docs, builder, nil)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return

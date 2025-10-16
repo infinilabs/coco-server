@@ -12,7 +12,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/y
     "hugo",
     "web"
   ],
-  "url" : "http://coco.rs/connectors/hugo_site",
+  "url" : "http://coco.rs/connectors/yuque",
   "assets" : {
     "icons" : {
       "board" : "/assets/icons/connector/yuque/board.png",
@@ -23,8 +23,13 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/y
       "table" : "/assets/icons/connector/yuque/table.png"
     }
   },
-  "builtin": true
+  "builtin": true,
+   "processor":{
+      "enabled":true,
+      "name":"yuque"
+   }
 }
+
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/hugo_site
 {
   "id" : "hugo_site",
@@ -49,7 +54,11 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/h
       "web_page" : "/assets/icons/connector/hugo_site/web_page.png"
     }
   },
-  "builtin": true
+  "builtin": true,
+  "processor":{
+        "enabled":true,
+        "name":"hugo_site"
+  }
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/google_drive
 {
@@ -95,7 +104,12 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
     "redirect_url": "$[[SETUP_SERVER_ENDPOINT]]connector/google_drive/oauth_redirect",
     "token_url": "https://oauth2.googleapis.com/token"
   },
-  "builtin": true
+  "builtin": true,
+  "oauth_connect_implemented": true,
+  "processor":{
+     "enabled":true,
+     "name":"google_drive"
+  }
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/notion
 {
@@ -120,7 +134,11 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/n
       "web_page" : "/assets/icons/connector/notion/icon.png"
     }
   },
-  "builtin": true
+  "builtin": true,
+   "processor":{
+      "enabled":true,
+      "name":"notion"
+   }
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/rss
 {
@@ -142,8 +160,13 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/r
       "default" : "/assets/icons/connector/rss/icon.png"
     }
   },
-  "builtin": true
+  "builtin": true,
+    "processor":{
+       "enabled":true,
+       "name":"rss"
+    }
 }
+
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/local_fs
 {
   "id" : "local_fs",

@@ -6,11 +6,11 @@ package connector
 
 import (
 	"infini.sh/framework/core/elastic"
+	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/security"
 	"net/http"
 	"time"
 
-	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/orm"
@@ -63,6 +63,20 @@ func (h *APIHandler) get(w http.ResponseWriter, req *http.Request, ps httprouter
 		"_id":     id,
 		"_source": obj,
 	}, 200)
+}
+
+func GetConnectorByID(id string) (*common.Connector, error) {
+	obj := common.Connector{}
+	obj.ID = id
+
+	ctx := orm.NewContext()
+	ctx.DirectReadAccess()
+
+	exists, err := orm.GetV2(ctx, &obj)
+	if exists && err == nil {
+		return &obj, nil
+	}
+	return nil, errors.Errorf("fail to get connector: %v", id)
 }
 
 func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -219,7 +233,7 @@ func (h *APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprou
 		return nil
 	}
 
-	err, res := core.SearchV2WithResultItemMapper(ctx, &connectors, builder, itemMapFunc)
+	err, res := elastic.SearchV2WithResultItemMapper(ctx, &connectors, builder, itemMapFunc)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return

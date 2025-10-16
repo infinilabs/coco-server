@@ -7,7 +7,7 @@ weight: 10
 ## Register Google Drive Connector
 
 ```shell
-curl -XPUT "http://localhost:9000/connector/google_drive?replace=true" -d '{
+curl -XPOST "http://localhost:9000/connector" -d '{
     "name": "Google Drive Connector",
     "description": "Fetch the files metadata from Google Drive.",
     "icon": "/assets/connector/google_drive/icon.png",
@@ -41,11 +41,14 @@ curl -XPUT "http://localhost:9000/connector/google_drive?replace=true" -d '{
             "video": "/assets/connector/google_drive/video.png",
             "zip": "/assets/connector/google_drive/zip.png"
         }
-    }
+    },
+  "oauth_connect_implemented": true,
+  "processor":{
+     "enabled":true,
+     "name":"google_drive"
+  }
 }'
 ```
-
-> Use `google_drive` as a unique identifier, as it is a builtin connector.
 
 ## Obtain Google Drive credentials
 To use the Google Drive Connector, follow these steps to obtain your token:
@@ -69,32 +72,6 @@ To use the Google Drive Connector, follow these steps to obtain your token:
 - If you deploy the **coco-server** in your production environment, ensure you:
   - Update the domain name accordingly.
   - Adjust the callback URL or configure a custom prefix if you have an **Nginx** instance in front of the server.
-
-## Update coco-server's config
-
-Below is an example configuration for enabling the Google Drive Connector in coco-server:
-
-```shell
-connector:
-  google_drive:
-    enabled: true
-    queue:
-      name: indexing_documents
-    interval: 10s
-    skip_invalid_token: true
-```
-
-Below is the config parameters supported by this connector.
-
-| **Field**                     | **Type**     | **Description**                                                                                  |
-|-------------------------------|--------------|--------------------------------------------------------------------------------------------------|
-| `enabled`                     | `bool`       | Set to `true` to enable the Google Drive Connector.                                             |
-| `queue.name`                  | `string`     | Specifies the queue name for indexing documents.                                                |
-| `interval`                    | `duration`   | Interval for polling the Google Drive API.                                                     |
-| `skip_invalid_token`          | `bool`       | Skip errors caused by invalid tokens if set to `true`.                                         |
-
-> **Notes**:
-> - Ensure `redirect_uris` and `javascript_origins` are properly configured for your deployment.
 
 ## Register Google Drive Connector
 

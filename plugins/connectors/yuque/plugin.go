@@ -5,24 +5,15 @@
 package yuque
 
 import (
-	"context"
-	"time"
-
+	"fmt"
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/modules/common"
-	"infini.sh/coco/plugins/connectors"
-	"infini.sh/framework/core/api"
+	cmn "infini.sh/coco/plugins/connectors/common"
 	config3 "infini.sh/framework/core/config"
-	"infini.sh/framework/core/env"
-	"infini.sh/framework/core/global"
-	"infini.sh/framework/core/module"
-	"infini.sh/framework/core/orm"
-	"infini.sh/framework/core/queue"
-	"infini.sh/framework/core/task"
-	"infini.sh/framework/core/util"
+	"infini.sh/framework/core/pipeline"
 )
 
-const YuqueKey = "yuque"
+const Name = "yuque"
 
 type YuqueConfig struct {
 	Token               string `config:"token"`
@@ -36,119 +27,31 @@ type YuqueConfig struct {
 }
 
 type Plugin struct {
-	api.Handler
-
-	Enabled          bool               `config:"enabled"`
-	PageSize         int                `config:"page_size"`
-	Interval         string             `config:"interval"`
-	Queue            *queue.QueueConfig `config:"queue"`
-	SkipInvalidToken bool               `config:"skip_invalid_token"`
+	cmn.ConnectorProcessorBase
 }
 
-func (this *Plugin) Setup() {
+func (this *Plugin) Fetch(pipeCtx *pipeline.Context, connector *common.Connector, datasource *common.DataSource) error {
+	config := YuqueConfig{}
+	this.MustParseConfig(datasource, &config)
 
-	ok, err := env.ParseConfig("connector.yuque", &this)
-	if ok && err != nil && global.Env().SystemConfig.Configs.PanicOnConfigError {
-		panic(err)
-	}
-
-	if !this.Enabled {
-		return
-	}
-
-	if this.PageSize <= 0 {
-		this.PageSize = 1000
-	}
-
-	if this.Queue == nil {
-		this.Queue = &queue.QueueConfig{Name: "indexing_documents"}
-	}
-
-	this.Queue = queue.SmartGetOrInitConfig(this.Queue)
-}
-
-func (this *Plugin) Start() error {
-	if this.Enabled {
-		task.RegisterScheduleTask(task.ScheduleTask{
-			ID:          util.GetUUID(),
-			Group:       "connectors",
-			Singleton:   true,
-			Interval:    util.GetDurationOrDefault(this.Interval, time.Second*30).String(), //connector's task interval
-			Description: "indexing yuque docs",
-			Task: func(ctx context.Context) {
-				connector := common.Connector{}
-				connector.ID = YuqueKey
-				exists, err := orm.Get(&connector)
-				if !exists {
-					log.Debugf("Connector %s not found", connector.ID)
-					return
-				}
-				if err != nil {
-					log.Errorf("invalid %s connector: %v", connector.ID, err)
-					return
-				}
-
-				q := orm.Query{}
-				q.Size = this.PageSize
-				q.Conds = orm.And(orm.Eq("connector.id", connector.ID), orm.Eq("sync.enabled", true))
-				var results []common.DataSource
-
-				err, _ = orm.SearchWithJSONMapper(&results, &q)
-				if err != nil {
-					log.Errorf("error searching datasources for connector %s: %v", connector.ID, err)
-					return
-				}
-
-				for _, item := range results {
-					toSync, err := connectors.CanDoSync(item)
-					if err != nil {
-						_ = log.Errorf("error checking syncable with datasource [%s]: %v", item.Name, err)
-						continue
-					}
-					if !toSync {
-						continue
-					}
-					log.Debugf("ID: %s, Name: %s, Other: %s", item.ID, item.Name, util.MustToJSON(item))
-					this.fetch_yuque(&connector, &item)
-				}
-			},
-		})
-	}
-
-	return nil
-}
-
-func (this *Plugin) Stop() error {
-	return nil
-}
-
-func (this *Plugin) Name() string {
-	return YuqueKey
-}
-
-func (this *Plugin) fetch_yuque(connector *common.Connector, datasource *common.DataSource) {
-	if connector == nil || datasource == nil {
-		log.Error("invalid connector config: connector or datasource is nil")
-		return
-	}
-
-	cfg, err := config3.NewConfigFrom(datasource.Connector.Config)
-	if err != nil {
-		log.Errorf("error creating config from datasource [%s]: %v", datasource.Name, err)
-		return
-	}
-
-	obj := YuqueConfig{}
-	err = cfg.Unpack(&obj)
-	if err != nil {
-		log.Errorf("error unpacking config for datasource [%s]: %v", datasource.Name, err)
-		return
-	}
-
-	log.Debugf("handle yuque's datasource: %v", obj)
-	this.collect(connector, datasource, &obj)
+	log.Debugf("handle yuque's datasource: %v", config)
+	return this.collect(pipeCtx, connector, datasource, &config)
 }
 
 func init() {
-	module.RegisterUserPlugin(&Plugin{})
+	pipeline.RegisterProcessorPlugin(Name, New)
+}
+
+func New(c *config3.Config) (pipeline.Processor, error) {
+	runner := Plugin{}
+	if err := c.Unpack(&runner); err != nil {
+		return nil, fmt.Errorf("failed to unpack the configuration of processor %v, error: %s", Name, err)
+	}
+
+	runner.Init(c, &runner)
+	return &runner, nil
+}
+
+func (processor *Plugin) Name() string {
+	return Name
 }
