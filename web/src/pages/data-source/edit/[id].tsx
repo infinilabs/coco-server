@@ -26,7 +26,7 @@ import GitHub from '../new/github';
 import GitLab from '../new/gitlab';
 import HugoSite from '../new/hugo_site';
 import LocalFS from '../new/local_fs';
-import { GiteaConfig, GithubConfig, GitlabConfig, NetworkDriveConfig, RdbmsConfig } from '../new/models';
+import {GiteaConfig, GithubConfig, GitlabConfig, Neo4jConfig, Neo4jFormConfig, NetworkDriveConfig, RdbmsConfig} from '../new/models';
 import NetworkDrive from '../new/network_drive';
 import Notion from '../new/notion';
 import Rdbms from '../new/rdbms';
@@ -36,6 +36,7 @@ import Yuque from '../new/yuque';
 
 import { ReactSVG } from 'react-svg';
 import LinkSVG from '@/assets/svg-icon/link.svg';
+import Neo4j from "@/pages/data-source/new/neo4j.tsx";
 
 // eslint-disable-next-line complexity
 export function Component() {
@@ -76,6 +77,11 @@ export function Component() {
           case Types.Mysql:
           case Types.Mssql:
           case Types.Oracle:
+            if (datasource.connector?.config) {
+              datasource.config = datasource.connector.config;
+            }
+            break;
+          case Types.Neo4j:
             if (datasource.connector?.config) {
               datasource.config = datasource.connector.config;
             }
@@ -224,6 +230,10 @@ export function Component() {
         config = GiteaConfig(values);
         break;
       }
+      case Types.Neo4j: {
+        config = Neo4jConfig(values);
+        break;
+      }
     }
     const sValues = {
       connector: {
@@ -353,6 +363,12 @@ export function Component() {
       }
       break;
     }
+    case Types.Neo4j: {
+      if (datasource.connector?.config) {
+        datasource.config = Neo4jFormConfig(datasource.connector);
+      }
+      break;
+    }
     default:
       isCustom = true;
   }
@@ -419,6 +435,7 @@ export function Component() {
                 {type === Types.S3 && <S3 />}
                 {type === Types.Confluence && <Confluence />}
                 {type === Types.NetworkDrive && <NetworkDrive />}
+                {type === Types.Neo4j && <Neo4j form={form} />}
                 {type === Types.Postgresql && <Rdbms dbType="postgresql" />}
                 {type === Types.Mysql && <Rdbms dbType="mysql" />}
                 {type === Types.GitHub && <GitHub />}
