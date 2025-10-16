@@ -24,7 +24,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/y
     }
   },
   "builtin": true,
-    "processor":{
+   "processor":{
        "enabled":true,
        "name":"yuque"
     }
@@ -163,7 +163,11 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/r
       "default" : "/assets/icons/connector/rss/icon.png"
     }
   },
-  "builtin": true
+   "builtin": true,
+     "processor":{
+        "enabled":true,
+        "name":"rss"
+     }
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/local_fs
 {
