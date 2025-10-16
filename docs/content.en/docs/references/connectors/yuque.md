@@ -8,7 +8,7 @@ weight: 30
 ## Register Yuque Connector
 
 ```shell
-curl -XPUT "http://localhost:9000/connector/yuque?replace=true" -d '{
+curl -XPOST "http://localhost:9000/connector" -d '{
     "name": "Yuque Docs Connector", 
     "description": "Fetch the docs metadata for yuque.", 
     "icon": "/assets/connector/yuque/icon.png", 
@@ -28,34 +28,13 @@ curl -XPUT "http://localhost:9000/connector/yuque?replace=true" -d '{
             "table": "/assets/connector/yuque/table.png", 
             "doc": "/assets/connector/yuque/doc.png"
         }
-    }
+    },
+       "processor":{
+          "enabled":true,
+          "name":"yuque"
+       }
 }'
 ```
-
-
-> Use `yuque` as a unique identifier, as it is a builtin connector.
-
-
-## Update coco-server's config
-
-Below is an example configuration for enabling the Yuque Connector in coco-server:
-
-```shell
-connector:
-  yuque:
-    enabled: true
-    queue:
-      name: indexing_documents
-    interval: 10s
-```
-
-### Explanation of Config Parameters
-
-| **Field**      | **Type**  | **Description**                                                                 |
-|-----------------|-----------|---------------------------------------------------------------------------------|
-| `enabled`      | `boolean` | Enables or disables the Hugo Site connector. Set to `true` to activate it.      |
-| `interval`     | `string`  | Specifies the time interval (e.g., `60s`) at which the connector will check for updates. |
-| `queue.name`   | `string`  | Defines the name of the queue where indexing tasks will be added.               |
 
 ## Use the Yuque Connector
 
@@ -75,7 +54,7 @@ curl -H 'Content-Type: application/json' -XPOST "http://localhost:9000/datasourc
     "name": "My Yuque",
     "type": "connector",
     "connector": {
-        "id": "yuque",
+        "id": "yuque's connector id",
         "config": {
             "token": "your_yuque_api_token",
             "include_private_book": false,
@@ -104,6 +83,6 @@ Below are the configuration parameters supported by the Yuque Connector:
 | `indexing_groups`       | `bool`    | Whether to index group data from Yuque. Defaults to `false`.                                    |
 
 ### Notes
-
+- Update `yuque's connector id` to your actual connector ID
 - Set `token` to your valid Yuque API token to enable the connector.
 - Boolean parameters like `include_private_book`, `indexing_books`, etc., allow you to customize the scope of indexing.

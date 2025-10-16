@@ -8,7 +8,7 @@ weight: 20
 ## Register Hugo Site Connector
 
 ```shell
-curl -XPUT "http://localhost:9000/connector/hugo_site?replace=true" -d '{
+curl -XPOST "http://localhost:9000/connector" -d '{
     "name": "Hugo Site Connector", 
     "description": "Fetch the index.json file from a specified Hugo site.", 
     "icon": "/assets/connector/hugo_site/icon.png", 
@@ -27,12 +27,13 @@ curl -XPUT "http://localhost:9000/connector/hugo_site?replace=true" -d '{
             "web_page": "/assets/connector/hugo_site/web_page.png", 
             "news": "/assets/connector/hugo_site/news.png"
         }
-    }
+    },
+  "processor":{
+     "enabled":true,
+     "name":"hugo_site"
+  }
 }'
 ```
-
-
-> Use `hugo_site` as a unique identifier, as it is a builtin connector.
 
 Make sure hugo generated the json format with this:
 ```
@@ -56,26 +57,6 @@ Make sure hugo generated the json format with this:
 ]
 ```
 
-## Update coco-server's config
-
-Below is an example configuration for enabling the Hugo Site Drive Connector in coco-server:
-
-```shell
-connector:
-  hugo_site:
-    enabled: true
-    interval: 60s
-    queue:
-      name: indexing_documents
-```
-### Explanation of Config Parameters
-
-| **Field**      | **Type**  | **Description**                                                                 |
-|-----------------|-----------|---------------------------------------------------------------------------------|
-| `enabled`      | `boolean` | Enables or disables the Hugo Site connector. Set to `true` to activate it.      |
-| `interval`     | `string`  | Specifies the time interval (e.g., `60s`) at which the connector will check for updates. |
-| `queue.name`   | `string`  | Defines the name of the queue where indexing tasks will be added.               |
-
 ## Use the Hugo Site Connector
 
 ```shell
@@ -85,7 +66,7 @@ curl  -H 'Content-Type: application/json'   -XPOST "http://localhost:9000/dataso
     "name":"My Hugo Site",
     "type":"connector",
     "connector":{
-        "id":"hugo_site",
+        "id":"hugo_site's connector id",
          "config":{
             "urls": [ "https://pizza.rs/index.json" ]
         }

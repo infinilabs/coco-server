@@ -8,7 +8,7 @@ weight: 30
 ## Register Notion Connector
 
 ```shell
-curl -XPUT "http://localhost:9000/connector/notion?replace=true" -d '{
+curl -XPOST "http://localhost:9000/connector" -d '{
     "name": "Notion Docs Connector",
     "description": "Fetch the docs metadata for notion.",
     "icon": "/assets/connector/notion/icon.png",
@@ -26,34 +26,13 @@ curl -XPUT "http://localhost:9000/connector/notion?replace=true" -d '{
             "database": "/assets/connector/notion/database.png",
             "page": "/assets/connector/notion/page.png"
         }
-    }
+    },
+       "processor":{
+          "enabled":true,
+          "name":"notion"
+       }
 }'
 ```
-
-
-> Use `notion` as a unique identifier, as it is a builtin connector.
-
-
-## Update coco-server's config
-
-Below is an example configuration for enabling the Notion Connector in coco-server:
-
-```shell
-connector:
-  notion:
-    enabled: true
-    queue:
-      name: indexing_documents
-    interval: 10s
-```
-
-### Explanation of Config Parameters
-
-| **Field**      | **Type**  | **Description**                                                                 |
-|-----------------|-----------|---------------------------------------------------------------------------------|
-| `enabled`      | `boolean` | Enables or disables the Hugo Site connector. Set to `true` to activate it.      |
-| `interval`     | `string`  | Specifies the time interval (e.g., `60s`) at which the connector will check for updates. |
-| `queue.name`   | `string`  | Defines the name of the queue where indexing tasks will be added.               |
 
 ## Use the Notion Connector
 
@@ -80,7 +59,7 @@ curl -H 'Content-Type: application/json' -XPOST "http://localhost:9000/datasourc
     "name": "My Notion",
     "type": "connector",
     "connector": {
-        "id": "notion",
+        "id": "notion's connector id",
         "config": {
             "token": "your_notion_api_token"
         }
