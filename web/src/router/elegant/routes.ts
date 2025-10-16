@@ -417,7 +417,8 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.role',
       title: 'role',
       hideInMenu: true,
-      activeMenu: 'security'
+      activeMenu: 'security',
+      permissions: ['coco:role/update', 'coco:user/create'],
     },
     children: [
       {
@@ -426,7 +427,8 @@ export const generatedRoutes: GeneratedRoute[] = [
         component: 'view.role_edit',
         meta: {
           i18nKey: 'route.role_edit',
-          title: 'role_edit'
+          title: 'role_edit',
+          permissions: ['coco:role/update'],
         }
       },
       {
@@ -435,7 +437,8 @@ export const generatedRoutes: GeneratedRoute[] = [
         component: 'view.role_new',
         meta: {
           i18nKey: 'route.role_new',
-          title: 'role_new'
+          title: 'role_new',
+          permissions: ['coco:role/create'],
         }
       }
     ]
@@ -459,7 +462,9 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.security',
       title: 'security',
       icon: 'mdi:user-outline',
-      order: 10
+      order: 10,
+      permissions: ['coco:role/view', 'coco:user/view'],
+      permissionLogic: 'or',
     }
   },
   {

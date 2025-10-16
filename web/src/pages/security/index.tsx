@@ -7,20 +7,28 @@ export function Component() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { t } = useTranslation();
 
+  const { hasAuth } = useAuth()
+
+  const permissions = {
+    viewRole: hasAuth('coco:role/view'),
+  }
+
   const onChange = (key: string) => {
     setSearchParams({ tab: key });
   };
 
-  const items = [
-    {
+  const items = [];
+
+  if (permissions.viewRole) {
+    items.push({
       component: Role,
       key: 'role',
       label: t(`page.role.title`),
-    },
-  ];
+    })
+  }
 
   const activeKey = useMemo(() => {
-    return searchParams.get('tab') || items[0].key
+    return searchParams.get('tab') || items?.[0]?.key
   }, [])
 
   const activeItem = useMemo(() => {

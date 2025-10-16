@@ -10,6 +10,14 @@ const Role = (props) => {
   const [queryParams, setQueryParams] = useQueryParams();
   const { t } = useTranslation();
 
+  const { hasAuth } = useAuth()
+
+  const permissions = {
+    create: hasAuth('coco:role/create'),
+    update: hasAuth('coco:role/update'),
+    delete: hasAuth('coco:role/delete'),
+  }
+
   const nav = useNavigate();
 
   const [data, setData] = useState({
@@ -70,17 +78,20 @@ const Role = (props) => {
     {
       fixed: 'right',
       render: (_, record) => {
-        const items = [
-          {
+        const items = [];
+        if (permissions.update) {
+          items.push({
             key: 'edit',
             label: t('common.edit')
-          },
-          {
+          })
+        }
+        if (permissions.delete) {
+          items.push({
             key: 'delete',
             label: t('common.delete')
-          },
-        ];
-
+          })
+        }
+        if (items.length === 0) return null;
         const onMenuClick = ({ key, record }: any) => {
           switch (key) {
             case 'edit':
@@ -135,13 +146,17 @@ const Role = (props) => {
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
         />
-        <Button
-          icon={<PlusOutlined />}
-          type="primary"
-          onClick={() => nav(`/role/new`)}
-        >
-          {t('common.add')}
-        </Button>
+        {
+          permissions.create && (
+            <Button
+              icon={<PlusOutlined />}
+              type="primary"
+              onClick={() => nav(`/role/new`)}
+            >
+              {t('common.add')}
+            </Button>
+          )
+        }
       </div>
       <Table
         columns={columns}

@@ -124,8 +124,9 @@ export const createRouteGuard: BeforeEach = (to, _, blockerOrJump) => {
   const needLogin = !to.meta.constant;
 
   const routePermissions = to.meta.permissions || []
+  const shouldAllPermissions = to.meta?.permissionLogic !== 'or'
 
-  const hasPermissions = routePermissions.every((p) => userInfo?.permissions?.includes(p))
+  const hasPermissions = shouldAllPermissions ? routePermissions.every((p) => userInfo?.permissions?.includes(p)) : routePermissions.some((p) => userInfo?.permissions?.includes(p))
 
   const hasAuth = store.dispatch(isStaticSuper()) || !routePermissions.length || hasPermissions;
 
