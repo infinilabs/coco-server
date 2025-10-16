@@ -20,18 +20,14 @@ export function Component() {
     from: 0
   });
   const { t } = useTranslation();
-  const nav = useNavigate();
 
-  const items: MenuProps['items'] = [
-    {
-      key: '1',
-      label: t('common.rename')
-    },
-    {
-      key: '2',
-      label: t('common.delete')
-    }
-  ];
+  const { hasAuth } = useAuth()
+
+  const permissions = {
+    create: hasAuth('coco:api_token/create'),
+    update: hasAuth('coco:api_token/update'),
+    delete: hasAuth('coco:api_token/delete'),
+  }
 
   const [renameState, setRenameState] = useState({
     open: false,
@@ -99,7 +95,22 @@ export function Component() {
     },
     {
       fixed: 'right',
+      hidden: !permissions.update && !permissions.delete,
       render: (_, record) => {
+        const items: MenuProps['items'] = [];
+        if (permissions.update) {
+          items.push({
+            key: '1',
+            label: t('common.rename')
+          })
+        }
+        if (permissions.delete) {
+          items.push({
+            key: '2',
+            label: t('common.delete')
+          })
+        }
+        if (items.length === 0) return null;
         return (
           <Dropdown menu={{ items, onClick: ({ key }) => onMenuClick({ key, record }) }}>
             <EllipsisOutlined />
@@ -244,13 +255,17 @@ export function Component() {
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
           />
-          <Button
-            icon={<PlusOutlined />}
-            type="primary"
-            onClick={onAddClick}
-          >
-            {t('common.add')}
-          </Button>
+          {
+            permissions.create && (
+              <Button
+                icon={<PlusOutlined />}
+                type="primary"
+                onClick={onAddClick}
+              >
+                {t('common.add')}
+              </Button>
+            )
+          }
         </div>
         <Table<APIToken>
           columns={columns}

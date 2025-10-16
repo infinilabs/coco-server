@@ -97,7 +97,8 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.api-token',
       title: 'api-token',
       order: 4,
-      localIcon: 'security'
+      localIcon: 'security',
+      permissions: ['coco:api_token/view']
     },
     children: [
       {
@@ -108,7 +109,8 @@ export const generatedRoutes: GeneratedRoute[] = [
           i18nKey: 'route.api-token_list',
           title: 'api-token_list',
           hideInMenu: true,
-          activeMenu: 'api-token'
+          activeMenu: 'api-token',
+          permissions: ['coco:api_token/view']
         }
       }
     ]
