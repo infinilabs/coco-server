@@ -12,6 +12,14 @@ export function Component() {
   const [queryParams, setQueryParams] = useQueryParams();
   const { t } = useTranslation();
 
+  const { hasAuth } = useAuth()
+
+  const permissions = {
+    create: hasAuth('coco:integration/create'),
+    update: hasAuth('coco:integration/update'),
+    delete: hasAuth('coco:integration/delete'),
+  }
+
   const { tableWrapperRef } = useTableScroll();
 
   const nav = useNavigate();
@@ -125,6 +133,7 @@ export function Component() {
                 title: t('common.tip')
               });
             }}
+            disabled={!permissions.update}
           />
         );
       },
@@ -139,22 +148,26 @@ export function Component() {
     },
     {
       fixed: 'right',
+      hidden: !permissions.update && !permissions.delete,
       render: (_, record) => {
-        const items = [
-          {
+        const items: MenuProps['items'] = [];
+        if (permissions.update) {
+          items.push({
             key: 'edit',
             label: t('common.edit')
-          },
-          {
-            key: 'delete',
-            label: t('common.delete')
-          },
-          {
+          })
+          items.push({
             key: 'renew_token',
             label: t('common.renew_token')
-          }
-        ];
-
+          })
+        }
+        if (permissions.delete) {
+          items.push({
+            key: 'delete',
+            label: t('common.delete')
+          })
+        }
+        if (items.length === 0) return null;
         const onMenuClick = ({ key, record }: any) => {
           switch (key) {
             case 'edit':
@@ -224,13 +237,17 @@ export function Component() {
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
           />
-          <Button
-            icon={<PlusOutlined />}
-            type="primary"
-            onClick={() => nav(`/integration/new`)}
-          >
-            {t('common.add')}
-          </Button>
+          {
+            permissions.create && (
+              <Button
+                icon={<PlusOutlined />}
+                type="primary"
+                onClick={() => nav(`/integration/new`)}
+              >
+                {t('common.add')}
+              </Button>
+            )
+          }
         </div>
         <Table
           columns={columns}

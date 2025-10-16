@@ -254,7 +254,8 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.integration',
       title: 'integration',
       icon: 'mdi:puzzle-outline',
-      order: 5
+      order: 5,
+      permissions: ['coco:integration/view']
     },
     children: [
       {
@@ -265,7 +266,8 @@ export const generatedRoutes: GeneratedRoute[] = [
           i18nKey: 'route.integration_edit',
           title: 'integration_edit',
           hideInMenu: true,
-          activeMenu: 'integration'
+          activeMenu: 'integration',
+          permissions: ['coco:integration/update']
         }
       },
       {
@@ -276,7 +278,8 @@ export const generatedRoutes: GeneratedRoute[] = [
           i18nKey: 'route.integration_list',
           title: 'integration_list',
           hideInMenu: true,
-          activeMenu: 'integration'
+          activeMenu: 'integration',
+          permissions: ['coco:integration/view']
         }
       },
       {
@@ -287,7 +290,8 @@ export const generatedRoutes: GeneratedRoute[] = [
           i18nKey: 'route.integration_new',
           title: 'integration_new',
           hideInMenu: true,
-          activeMenu: 'integration'
+          activeMenu: 'integration',
+          permissions: ['coco:integration/create']
         }
       }
     ]
