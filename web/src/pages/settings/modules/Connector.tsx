@@ -13,7 +13,6 @@ import Icon, {
   ExclamationCircleOutlined,
   FilterOutlined,
   PlusOutlined,
-  createFromIconfontCN
 } from '@ant-design/icons';
 
 import { formatESSearchResult } from '@/service/request/es';
@@ -25,18 +24,16 @@ const ConnectorSettings = memo(() => {
   const [queryParams, setQueryParams] = useQueryParams();
   
   const { t } = useTranslation();
-  const nav = useNavigate();
 
-  const items: MenuProps['items'] = [
-    {
-      key: '1',
-      label: t('common.edit')
-    },
-    {
-      key: '2',
-      label: t('common.delete')
-    }
-  ];
+  const { hasAuth } = useAuth()
+
+  const permissions = {
+    create: hasAuth('coco:connector/create'),
+    update: hasAuth('coco:connector/update'),
+    delete: hasAuth('coco:connector/delete'),
+  }
+
+  const nav = useNavigate();
 
   const onMenuClick = ({ key, record }: any) => {
     switch (key) {
@@ -130,7 +127,22 @@ const ConnectorSettings = memo(() => {
     },
     {
       fixed: 'right',
+      hidden: !permissions.update && !permissions.delete,
       render: (_, record) => {
+        const items: MenuProps['items'] = [];
+        if (permissions.update) {
+          items.push({
+            key: '1',
+            label: t('common.edit')
+          })
+        }
+        if (permissions.delete) {
+          items.push({
+            key: '2',
+            label: t('common.delete')
+          })
+        }
+        if (items.length === 0) return null;
         return (
           <Dropdown menu={{ items, onClick: ({ key }) => onMenuClick({ key, record }) }}>
             <EllipsisOutlined />
@@ -196,13 +208,17 @@ const ConnectorSettings = memo(() => {
           enterButton={t('common.refresh')}
           onSearch={onSearchClick}
         />
-        <Button
-          icon={<PlusOutlined />}
-          type="primary"
-          onClick={onAddClick}
-        >
-          {t('common.add')}
-        </Button>
+        {
+          permissions.create && (
+            <Button
+              icon={<PlusOutlined />}
+              type="primary"
+              onClick={onAddClick}
+            >
+              {t('common.add')}
+            </Button>
+          )
+        }
       </div>
       <Table<Connector>
         columns={columns}

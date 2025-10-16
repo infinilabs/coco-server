@@ -475,7 +475,13 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.settings',
       title: 'settings',
       icon: 'mdi:settings-outline',
-      order: 11
+      order: 11,
+      permissions: [
+        'coco:connector/view', 
+        'coco:app_settings/view', 
+        'coco:search_settings/view'
+      ],
+      permissionLogic: 'or',
     }
   }
 ];
