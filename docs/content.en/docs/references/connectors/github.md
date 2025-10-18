@@ -13,45 +13,80 @@ curl -XPUT "http://localhost:9000/connector/github?replace=true" -d '{
   "icon": "/assets/icons/connector/github/icon.png",
   "category": "website",
   "tags": [
-    "git", 
-    "code", 
-    "vcs", 
+    "git",
+    "code",
+    "vcs",
     "website"
   ],
   "url": "http://coco.rs/connectors/github",
   "assets": {
     "icons": {
-      "default" : "/assets/icons/connector/github/icon.png",
-      "repository" : "/assets/icons/connector/github/repository.png",
-      "issue" : "/assets/icons/connector/github/issue.png",
-      "pull_request" : "/assets/icons/connector/github/pull_request.png"
+      "default": "/assets/icons/connector/github/icon.png",
+      "repository": "/assets/icons/connector/github/repository.png",
+      "issue": "/assets/icons/connector/github/issue.png",
+      "pull_request": "/assets/icons/connector/github/pull_request.png"
     }
+  },
+  "processor": {
+    "enabled": true,
+    "name": "github"
   }
 }'
 ```
 
 > Use `github` as a unique identifier, as it is a builtin connector.
 
-## Update coco-server's config
+> **Note**: Starting from version **0.4.0**, the GitHub connector uses a **pipeline-based architecture** for better performance and flexibility. The `processor` configuration is required for the connector to work properly.
 
-Below is an example configuration for enabling the GitHub Connector in coco-server:
+## Pipeline Architecture
+
+Starting from version **0.4.0**, the GitHub connector uses a **pipeline-based architecture** instead of the legacy scheduled task approach. This provides:
+
+- **Better Performance**: Centralized dispatcher manages all connector sync operations
+- **Per-Datasource Configuration**: Each datasource can have its own sync interval
+- **Enrichment Pipeline Support**: Optional data enrichment pipelines per datasource
+- **Resource Efficiency**: Optimized scheduling and resource management
+
+### Pipeline Configuration (coco.yml)
+
+The connector is managed by the centralized dispatcher pipeline:
 
 ```yaml
-connector:
-  github:
-    enabled: true
-    queue:
-      name: indexing_documents
-    interval: 30s
+pipeline:
+  - name: connector_dispatcher
+    auto_start: true
+    keep_running: true
+    singleton: true
+    retry_delay_in_ms: 10000
+    processor:
+      - connector_dispatcher:
+          max_running_timeout_in_seconds: 1200
 ```
 
-### Explanation of Config Parameters
+> **Important**: This pipeline configuration replaces the old connector-level config. The dispatcher automatically manages all enabled connectors.
 
-| **Field**    | **Type**  | **Description**                                                                           |
-|--------------|-----------|-------------------------------------------------------------------------------------------|
-| `enabled`    | `boolean` | Enables or disables the GitHub connector. Set to`true` to activate it.                    |
-| `interval`   | `string`  | Specifies the time interval (e.g., `30s`) at which the connector will check for updates.  |
-| `queue.name` | `string`  | Defines the name of the queue where indexing tasks will be added.                         |
+### Connector Configuration
+
+The GitHub connector is configured via the management interface or API:
+
+```json
+{
+  "id": "github",
+  "name": "GitHub Connector",
+  "builtin": true,
+  "processor": {
+    "enabled": true,
+    "name": "github"
+  }
+}
+```
+
+### Explanation of Connector Config Parameters
+
+| **Field**           | **Type**  | **Description**                                                      |
+|---------------------|-----------|----------------------------------------------------------------------|
+| `processor.enabled` | `boolean` | Enables the pipeline processor (required).                           |
+| `processor.name`    | `string`  | Processor name, must be "github" (required).                         |
 
 ## Use the GitHub Connector
 
@@ -71,16 +106,16 @@ To configure your GitHub connection, you'll need to provide a Personal Access To
 
 `index_pull_requests`: (Optional) A boolean (`true` or `false`) to enable indexing of pull requests. Defaults to `true`.
 
-### Example Request
+### Datasource Configuration
 
-Here is an example request to configure the GitHub Connector:
+Each datasource has its own sync configuration and GitHub settings:
 
 ```shell
-curl -H 'Content-Type: application/json' -XPOST "http://localhost:9000/datasource/" -d '
-{
-    "name":"My Organization Repos",
-    "type":"connector",
-    "connector":{
+curl -H 'Content-Type: application/json' -XPOST "http://localhost:9000/datasource/" -d '{
+    "name": "My Organization Repos",
+    "type": "connector",
+    "enabled": true,
+    "connector": {
         "id": "github",
         "config": {
             "token": "YourPersonalAccessToken",
@@ -92,17 +127,27 @@ curl -H 'Content-Type: application/json' -XPOST "http://localhost:9000/datasourc
             "index_issues": true,
             "index_pull_requests": true
         }
+    },
+    "sync": {
+        "enabled": true,
+        "interval": "30s"
     }
 }'
 ```
 
 ## Supported Config Parameters for GitHub Connector
 
+Below are the configuration parameters supported by the GitHub Connector:
+
+### Datasource Config Parameters
+
 | **Field**             | **Type**   | **Description**                                                                                                |
 |-----------------------|------------|----------------------------------------------------------------------------------------------------------------|
-| `token`               | `string`   | Required. Your GitHub Personal Access Token (PAT) with `repo` scope.                                           |
-| `owner`               | `string`   | Required. The username or organization name to scan.                                                           |
+| `token`               | `string`   | Your GitHub Personal Access Token (PAT) with `repo` scope (required).                                          |
+| `owner`               | `string`   | The username or organization name to scan (required).                                                           |
 | `repos`               | `[]string` | Optional. A list of repository names to index. If empty, all repositories for the owner will be indexed.       |
 | `index_issues`        | `boolean`  | Optional. Whether to index issues. Defaults to `true`.                                                         |
 | `index_pull_requests` | `boolean`  | Optional. Whether to index pull requests. Defaults to `true`.                                                  |
+| `sync.enabled`        | `boolean`  | Enable/disable syncing for this datasource.                                                                    |
+| `sync.interval`       | `string`   | Sync interval for this datasource (e.g., "30s", "5m", "1h").                                                   |
 

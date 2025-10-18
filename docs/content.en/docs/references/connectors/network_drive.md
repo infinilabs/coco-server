@@ -8,47 +8,81 @@ weight: 30
 
 ```shell
 curl -XPUT "http://localhost:9000/connector/network_drive?replace=true" -d '{
-  "name" : "Network drive Connector",
-  "description" : "Scan and extract metadata from network shared files.",
-  "category" : "cloud_storage",
-  "icon" : "/assets/icons/connector/network_drive/icon.png",
-  "tags" : [
+  "name": "Network Drive Connector",
+  "description": "Scan and extract metadata from network shared files.",
+  "category": "cloud_storage",
+  "icon": "/assets/icons/connector/network_drive/icon.png",
+  "tags": [
     "filesystem",
     "storage",
     "web"
   ],
-  "url" : "http://coco.rs/connectors/network_drive",
-  "assets" : {
-  "icons" : {
-    "default" : "/assets/icons/connector/network_drive/icon.png"
+  "url": "http://coco.rs/connectors/network_drive",
+  "assets": {
+    "icons": {
+      "default": "/assets/icons/connector/network_drive/icon.png"
     }
+  },
+  "processor": {
+    "enabled": true,
+    "name": "network_drive"
   }
 }'
 ```
 
-> Use `Network Drive` as a unique identifier, as it is a builtin connector.
+> Use `network_drive` as a unique identifier, as it is a builtin connector.
 
-## Update coco-server's config
+> **Note**: Starting from version **0.4.0**, the Network Drive connector uses a **pipeline-based architecture** for better performance and flexibility. The `processor` configuration is required for the connector to work properly.
 
-Below is an example configuration for enabling the Network Drive Connector in coco-server:
+## Pipeline Architecture
 
-```shell
-connector:
-  network_drive:
-    enabled: true
-    queue:
-      name: indexing_documents
-    interval: 60s
+Starting from version **0.4.0**, the Network Drive connector uses a **pipeline-based architecture** instead of the legacy scheduled task approach. This provides:
+
+- **Better Performance**: Centralized dispatcher manages all connector sync operations
+- **Per-Datasource Configuration**: Each datasource can have its own sync interval
+- **Enrichment Pipeline Support**: Optional data enrichment pipelines per datasource
+- **Resource Efficiency**: Optimized scheduling and resource management
+
+### Pipeline Configuration (coco.yml)
+
+The connector is managed by the centralized dispatcher pipeline:
+
+```yaml
+pipeline:
+  - name: connector_dispatcher
+    auto_start: true
+    keep_running: true
+    singleton: true
+    retry_delay_in_ms: 10000
+    processor:
+      - connector_dispatcher:
+          max_running_timeout_in_seconds: 1200
 ```
 
-### Explanation of Config Parameters
+> **Important**: This pipeline configuration replaces the old connector-level config. The dispatcher automatically manages all enabled connectors.
 
+### Connector Configuration
 
-| **Field**    | **Type**  | **Description**                                                                        |
-| ------------ | --------- |----------------------------------------------------------------------------------------|
-| `enabled`    | `boolean` | Enables or disables the network drive connector. Set to`true` to activate it.          |
-| `interval`   | `string`  | Specifies the time interval (e.g.,`60s`) at which the connector will check for updates. |
-| `queue.name` | `string`  | Defines the name of the queue where indexing tasks will be added.                      |
+The Network Drive connector is configured via the management interface or API:
+
+```json
+{
+  "id": "network_drive",
+  "name": "Network Drive Connector",
+  "builtin": true,
+  "processor": {
+    "enabled": true,
+    "name": "network_drive"
+  }
+}
+```
+
+### Explanation of Connector Config Parameters
+
+| **Field**           | **Type**  | **Description**                                                      |
+|---------------------|-----------|----------------------------------------------------------------------|
+| `processor.enabled` | `boolean` | Enables the pipeline processor (required).                           |
+| `processor.name`    | `string`  | Processor name, must be "network_drive" (required).                  |
 
 ## Use the Network Drive Connector
 
@@ -77,26 +111,30 @@ Next, you can specify which folders and files to index:
 `extensions`: An array of strings defining specific file extensions to include (e.g., `["pdf", "docx"]`). If this list is empty or omitted, all file types in the specified paths will be considered.
 
 
-### Example Request
+### Datasource Configuration
 
-Here is an example request to configure the Network Drive Connector:
+Each datasource has its own sync configuration and Network Drive settings:
 
 ```shell
-curl -H 'Content-Type: application/json' -XPOST "http://localhost:9000/datasource/" -d '
-{
-    "name":"My Shared Documents",
-    "type":"connector",
-    "connector":{
-        "id":"network_drive",
-         "config":{
+curl -H 'Content-Type: application/json' -XPOST "http://localhost:9000/datasource/" -d '{
+    "name": "My Shared Documents",
+    "type": "connector",
+    "enabled": true,
+    "connector": {
+        "id": "network_drive",
+        "config": {
             "endpoint": "your-smb-server:445",
             "share": "documents",
             "username": "your-username",
             "password": "your-password",
             "domain": "WORKGROUP",
             "paths": ["."],
-            "extensions": [ "pdf", "docx", "txt" ]
+            "extensions": ["pdf", "docx", "txt"]
         }
+    },
+    "sync": {
+        "enabled": true,
+        "interval": "5m"
     }
 }'
 ```
@@ -105,13 +143,16 @@ curl -H 'Content-Type: application/json' -XPOST "http://localhost:9000/datasourc
 
 Below are the configuration parameters supported by the Network Drive Connector:
 
+### Datasource Config Parameters
 
-| **Field**      | **Type**   | **Description**                                                                                                         |
-|----------------| ---------- |-------------------------------------------------------------------------------------------------------------------------|
-| `endpoint`     | `string`   | The IP address and port of the SMB server (e.g., `192.168.1.100:445`).                                                  |
-| `share`        | `string`   | The name of the network share to index.                                                                                 |
-| `username`     | `string`   | The username for authentication.                                                                                        |
-| `password`     | `string`   | The password for authentication.                                                                                        |
-| `domain`       | `string`   | Optional. The NTLM authentication domain (e.g., `WORKGROUP`).                                                           |
-| `paths`        | `[]string` | An array of subdirectories to scan within the share. Use `["."]` to scan the root.                                      |
-| `extensions`   | `[]string` | Optional. An array of file extensions to include (e.g., `pdf`, `docx`). If omitted or empty, all files will be indexed. |
+| **Field**       | **Type**   | **Description**                                                                                                         |
+|-----------------|------------|-------------------------------------------------------------------------------------------------------------------------|
+| `endpoint`      | `string`   | The IP address and port of the SMB server (e.g., `192.168.1.100:445`) (required).                                      |
+| `share`         | `string`   | The name of the network share to index (required).                                                                      |
+| `username`      | `string`   | The username for authentication (required).                                                                             |
+| `password`      | `string`   | The password for authentication (required).                                                                             |
+| `domain`        | `string`   | The NTLM authentication domain (e.g., `WORKGROUP`). Optional.                                                           |
+| `paths`         | `[]string` | An array of subdirectories to scan within the share. Use `["."]` to scan the root.                                      |
+| `extensions`    | `[]string` | An array of file extensions to include (e.g., `["pdf", "docx"]`). If omitted or empty, all files will be indexed.      |
+| `sync.enabled`  | `boolean`  | Enable/disable syncing for this datasource.                                                                             |
+| `sync.interval` | `string`   | Sync interval for this datasource (e.g., "5m", "1h", "30s").                                                            |

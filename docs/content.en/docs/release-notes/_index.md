@@ -20,6 +20,7 @@ Information about release notes of Coco Server is provided here.
 - chore: update yuque's document id #473
 - refactor: refactoring datasource sync management #526
 - refactor: make connectors pipeline-based (#545) #545
+- refactor: let connectors pipeline-based #548
 
 ### 🚀 Features  
 - chore: support access docs via path hierarchy manner in datasource #484

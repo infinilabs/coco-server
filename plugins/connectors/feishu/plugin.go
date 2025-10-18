@@ -13,12 +13,13 @@ import (
 	"time"
 
 	"infini.sh/coco/modules/common"
+	cmn "infini.sh/coco/plugins/connectors/common"
 	"infini.sh/framework/core/api"
-	config3 "infini.sh/framework/core/config"
+	"infini.sh/framework/core/config"
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/orm"
-	"infini.sh/framework/core/queue"
+	"infini.sh/framework/core/pipeline"
 	"infini.sh/framework/core/util"
 
 	log "github.com/cihub/seelog"
@@ -30,6 +31,8 @@ type PluginType string
 const (
 	PluginTypeFeishu PluginType = "feishu"
 	PluginTypeLark   PluginType = "lark"
+	ConnectorFeishu             = "feishu"
+	ConnectorLark               = "lark"
 )
 
 // APIConfig holds API endpoints for different plugin types
@@ -67,16 +70,13 @@ func getAPIConfig(pluginType PluginType) *APIConfig {
 }
 
 type Plugin struct {
-	api.Handler
-	Enabled     bool               `config:"enabled"`
-	Queue       *queue.QueueConfig `config:"queue"`
-	Interval    string             `config:"interval"`
-	PageSize    int                `config:"page_size"`
-	OAuthConfig *OAuthConfig       `config:"o_auth_config"`
+	cmn.ConnectorProcessorBase
 	// Plugin type to determine API endpoints
 	PluginType PluginType
 	// API configuration based on plugin type
 	apiConfig *APIConfig
+	// OAuth configuration (only used for OAuth handlers in api.go)
+	OAuthConfig *OAuthConfig
 }
 
 // SetPluginType sets the plugin type and initializes API configuration
@@ -104,10 +104,9 @@ type OAuthConfig struct {
 	TokenURL    string `config:"token_url" json:"token_url"`
 	RedirectURL string `config:"redirect_url" json:"redirect_url"`
 	// OAuth credentials
-	ClientID        string   `config:"client_id" json:"client_id"`
-	ClientSecret    string   `config:"client_secret" json:"client_secret"`
-	DocumentTypes   []string `config:"document_types" json:"document_types"`
-	UserAccessToken string   `config:"user_access_token" json:"user_access_token"`
+	ClientID        string `config:"client_id" json:"client_id"`
+	ClientSecret    string `config:"client_secret" json:"client_secret"`
+	UserAccessToken string `config:"user_access_token" json:"user_access_token"`
 }
 
 type Config struct {
@@ -117,10 +116,15 @@ type Config struct {
 	TokenExpiry        string      `config:"token_expiry" json:"token_expiry"`
 	RefreshTokenExpiry string      `config:"refresh_token_expiry" json:"refresh_token_expiry"`
 	Profile            util.MapStr `config:"profile" json:"profile"`
+	// Connector-level config
+	DocumentTypes []string `config:"document_types" json:"document_types"`
+	PageSize      int      `config:"page_size" json:"page_size"`
 }
 
 // SearchContext holds parameters for recursive file search
 type SearchContext struct {
+	Ctx             *pipeline.Context
+	Connector       *common.Connector
 	Token           string
 	FolderToken     string
 	DocTypes        []string
@@ -145,116 +149,140 @@ type Token struct {
 	ErrorDescription      string `json:"error_description"`
 }
 
-// Setup initializes the plugin
-func (this *Plugin) Setup() {
-	return
-}
-
-func (this *Plugin) Start() error {
-	log.Debug("starting feishu plugin")
-	return nil
-}
-
-func (this *Plugin) Stop() error {
-	return nil
-}
-
 func (this *Plugin) Name() string {
-	return ""
+	return string(this.PluginType)
 }
 
-func (this *Plugin) fetchCloudDocs(connector *common.Connector, datasource *common.DataSource) {
+// NewFeishu creates a new Feishu pipeline processor
+func NewFeishu(c *config.Config) (pipeline.Processor, error) {
+	runner := &Plugin{}
+	runner.SetPluginType(PluginTypeFeishu)
+	runner.Init(c, runner)
+	return runner, nil
+}
+
+// NewLark creates a new Lark pipeline processor
+func NewLark(c *config.Config) (pipeline.Processor, error) {
+	runner := &Plugin{}
+	runner.SetPluginType(PluginTypeLark)
+	runner.Init(c, runner)
+	return runner, nil
+}
+
+func init() {
+	// Register pipeline processors
+	pipeline.RegisterProcessorPlugin(ConnectorFeishu, NewFeishu)
+	pipeline.RegisterProcessorPlugin(ConnectorLark, NewLark)
+
+	// Register OAuth routes for Feishu
+	api.HandleUIMethod(api.GET, "/connector/:id/feishu/connect", feishuConnect, api.RequireLogin())
+	api.HandleUIMethod(api.GET, "/connector/:id/feishu/oauth_redirect", feishuOAuthRedirect, api.RequireLogin())
+
+	// Register OAuth routes for Lark
+	api.HandleUIMethod(api.GET, "/connector/:id/lark/connect", larkConnect, api.RequireLogin())
+	api.HandleUIMethod(api.GET, "/connector/:id/lark/oauth_redirect", larkOAuthRedirect, api.RequireLogin())
+}
+
+func (this *Plugin) Fetch(ctx *pipeline.Context, connector *common.Connector, datasource *common.DataSource) error {
 	if connector == nil || datasource == nil {
-		panic("invalid connector config")
+		return errors.Errorf("invalid connector config")
 	}
 
-	cfg, err := config3.NewConfigFrom(datasource.Connector.Config)
-	if err != nil {
-		panic(err)
-	}
-	obj := Config{}
-	err = cfg.Unpack(&obj)
-	if err != nil {
-		panic(err)
-	}
+	cfg := Config{}
+	this.MustParseConfig(datasource, &cfg)
 
 	// Get access token - support both user_access_token and OAuth tokens
 	var token string
 
-	// First try OAuth tokens
-	if obj.AccessToken != "" {
+	// First try OAuth tokens from datasource config
+	if cfg.AccessToken != "" {
 		// Check if access token is expired
-		if obj.TokenExpiry != "" {
-			if expiry, err := time.Parse(time.RFC3339, obj.TokenExpiry); err == nil {
-				if time.Now().After(expiry) && obj.RefreshToken != "" {
+		if cfg.TokenExpiry != "" {
+			if expiry, err := time.Parse(time.RFC3339, cfg.TokenExpiry); err == nil {
+				if time.Now().After(expiry) && cfg.RefreshToken != "" {
 					// Check if refresh token is also expired
-					if obj.RefreshTokenExpiry != "" {
-						if refreshExpiry, err := time.Parse(time.RFC3339, obj.RefreshTokenExpiry); err == nil {
+					if cfg.RefreshTokenExpiry != "" {
+						if refreshExpiry, err := time.Parse(time.RFC3339, cfg.RefreshTokenExpiry); err == nil {
 							if time.Now().After(refreshExpiry) {
-								_ = log.Errorf("[%s connector] both access token and "+
+								return errors.Errorf("[%s connector] both access token and "+
 									"refresh token expired for datasource [%s]", this.PluginType, datasource.Name)
-								// Both tokens expired, need to re-authenticate
-								return
 							}
 						}
 					}
 
 					// Access token expired but refresh token still valid, try to refresh
-					newToken, err := this.refreshAccessToken(obj.RefreshToken)
+					// Get OAuth config from connector.Config
+					newToken, err := this.refreshAccessTokenWithConnectorConfig(cfg.RefreshToken, connector.Config)
 					if err != nil {
-						_ = log.Errorf("[%s connector] failed to refresh token: %v", this.PluginType, err)
-						// Continue with expired token, API will return error
-					} else {
-						// Update datasource with new token
-						obj.AccessToken = newToken.AccessToken
-						obj.RefreshToken = newToken.RefreshToken
-						obj.TokenExpiry = time.Now().
-							Add(time.Duration(newToken.ExpiresIn) * time.Second).Format(time.RFC3339)
+						return errors.Errorf("[%s connector] failed to refresh token: %v", this.PluginType, err)
+					}
 
-						// Update refresh token expiry if provided
-						if newToken.RefreshTokenExpiresIn > 0 {
-							obj.RefreshTokenExpiry = time.Now().
-								Add(time.Duration(newToken.RefreshTokenExpiresIn) * time.Second).Format(time.RFC3339)
-						}
+					// Update datasource with new token
+					cfg.AccessToken = newToken.AccessToken
+					cfg.RefreshToken = newToken.RefreshToken
+					cfg.TokenExpiry = time.Now().
+						Add(time.Duration(newToken.ExpiresIn) * time.Second).Format(time.RFC3339)
 
-						// Save updated token to datasource
-						datasource.Connector.Config = obj
-						ctx := orm.NewContext().DirectAccess()
-						if err := orm.Update(ctx, datasource); err != nil {
-							_ = log.Errorf("[%s connector] failed to save refreshed token: %v", this.PluginType, err)
-						}
+					// Update refresh token expiry if provided
+					if newToken.RefreshTokenExpiresIn > 0 {
+						cfg.RefreshTokenExpiry = time.Now().
+							Add(time.Duration(newToken.RefreshTokenExpiresIn) * time.Second).Format(time.RFC3339)
+					}
+
+					// Save updated token to datasource
+					datasource.Connector.Config = cfg
+					ormCtx := orm.NewContext().DirectAccess()
+					if err := orm.Update(ormCtx, datasource); err != nil {
+						return errors.Errorf("[%s connector] failed to save refreshed token: %v", this.PluginType, err)
 					}
 				}
 			}
 		}
-		token = obj.AccessToken
-	} else if this.OAuthConfig != nil && this.OAuthConfig.UserAccessToken != "" {
+		token = cfg.AccessToken
+	} else {
 		// Fallback to user_access_token from connector config
-		token = strings.TrimSpace(this.OAuthConfig.UserAccessToken)
+		if userAccessToken, ok := connector.Config["user_access_token"].(string); ok && userAccessToken != "" {
+			token = strings.TrimSpace(userAccessToken)
+		}
 	}
 
 	if token == "" {
-		_ = log.Errorf("[%s connector] missing access token for datasource [%s]", this.PluginType, datasource.Name)
-		return
+		return errors.Errorf("[%s connector] missing access token for datasource [%s]", this.PluginType, datasource.Name)
 	}
 
-	// 1) Search cloud documents
 	// Set default document types if not specified
 	var docTypes []string
-	if this.OAuthConfig != nil && len(this.OAuthConfig.DocumentTypes) > 0 {
-		docTypes = this.OAuthConfig.DocumentTypes
+	if len(cfg.DocumentTypes) > 0 {
+		docTypes = cfg.DocumentTypes
 	} else {
-		docTypes = []string{"doc", "sheet", "slides", "mindnote", "bitable", "file", "docx", "folder", "shortcut"}
+		// Try to get from connector config
+		if dtypes, ok := connector.Config["document_types"].([]interface{}); ok {
+			for _, dt := range dtypes {
+				if str, ok := dt.(string); ok {
+					docTypes = append(docTypes, str)
+				}
+			}
+		}
+		if len(docTypes) == 0 {
+			docTypes = []string{"doc", "sheet", "slides", "mindnote", "bitable", "file", "docx", "folder", "shortcut"}
+		}
 	}
 
-	pageSize := this.PageSize
+	pageSize := cfg.PageSize
 	if pageSize <= 0 {
-		pageSize = 100
+		// Try to get from connector config
+		if ps, ok := connector.Config["page_size"].(int); ok && ps > 0 {
+			pageSize = ps
+		} else if ps, ok := connector.Config["page_size"].(float64); ok && ps > 0 {
+			pageSize = int(ps)
+		} else {
+			pageSize = 100
+		}
 	}
 
 	// Incremental sync: get last modified time saved for this datasource
 	var lastKnown time.Time
-	if lastStr, _ := this.getLastModifiedTime(datasource.ID); lastStr != "" {
+	if lastStr, _ := this.GetLastModifiedTime(datasource.ID); lastStr != "" {
 		lastKnown = getTime(lastStr)
 		// Add a small buffer to ensure we don't miss documents due to timing issues
 		lastKnown = lastKnown.Add(-1 * time.Minute)
@@ -262,8 +290,10 @@ func (this *Plugin) fetchCloudDocs(connector *common.Connector, datasource *comm
 	var latestSeen time.Time
 
 	// Start recursive search from root
-	// Initialize path as "/" and categories as ["/"] to align with Google Drive behavior
+	// Initialize path as "/" and categories as [] to align with Google Drive behavior
 	searchCtx := &SearchContext{
+		Ctx:             ctx,
+		Connector:       connector,
 		Token:           token,
 		FolderToken:     "",
 		DocTypes:        docTypes,
@@ -278,10 +308,13 @@ func (this *Plugin) fetchCloudDocs(connector *common.Connector, datasource *comm
 
 	// Save last modified time for next incremental run
 	if !latestSeen.IsZero() {
-		_ = this.saveLastModifiedTime(datasource.ID, latestSeen.UTC().Format(time.RFC3339))
+		if err := this.SaveLastModifiedTime(datasource.ID, latestSeen.UTC().Format(time.RFC3339)); err != nil {
+			log.Warnf("[%s connector] failed to save last modified time: %v", this.PluginType, err)
+		}
 	}
 
 	log.Infof("[%s connector] sync completed for datasource: ID: %s, Name: %s", this.PluginType, datasource.ID, datasource.Name)
+	return nil
 }
 
 // searchFilesRecursively recursively searches for files in folders
@@ -349,11 +382,8 @@ func (this *Plugin) searchFilesRecursively(ctx *SearchContext) {
 						folderDoc.Metadata["modified_time"] = modifiedTime
 					}
 
-					// Save folder directory to queue
-					dataBytes := util.MustToJSONBytes(&folderDoc)
-					if err := queue.Push(queue.SmartGetOrInitConfig(this.Queue), dataBytes); err != nil {
-						_ = log.Errorf("[%s connector] failed to push folder directory to queue: %v", this.PluginType, err)
-					}
+					// Collect folder directory document
+					this.Collect(ctx.Ctx, ctx.Connector, ctx.DataSource, folderDoc)
 
 					// Compute new path string
 					var nextPath string
@@ -367,6 +397,8 @@ func (this *Plugin) searchFilesRecursively(ctx *SearchContext) {
 
 					// Create new context for recursive call
 					nextCtx := &SearchContext{
+						Ctx:             ctx.Ctx,
+						Connector:       ctx.Connector,
 						Token:           ctx.Token,
 						FolderToken:     folderToken,
 						DocTypes:        ctx.DocTypes,
@@ -454,13 +486,10 @@ func (this *Plugin) searchFilesRecursively(ctx *SearchContext) {
 			}
 			doc.ID = util.MD5digest(fmt.Sprintf("%v-%v-%v", ctx.DataSource.Connector.ConnectorID, ctx.DataSource.ID, key))
 
-			dataBytes := util.MustToJSONBytes(doc)
 			if global.Env().IsDebug {
-				log.Tracef(string(dataBytes))
+				log.Tracef("collecting document: %v", util.MustToJSON(doc))
 			}
-			if err := queue.Push(queue.SmartGetOrInitConfig(this.Queue), dataBytes); err != nil {
-				panic(err)
-			}
+			this.Collect(ctx.Ctx, ctx.Connector, ctx.DataSource, doc)
 		}
 
 		// Check if there are more pages
@@ -510,19 +539,32 @@ func (this *Plugin) exchangeCodeForToken(code string) (*Token, error) {
 	return &tokenResponse, nil
 }
 
-// refreshAccessToken refreshes the access token using refresh token
-func (this *Plugin) refreshAccessToken(refreshToken string) (*Token, error) {
-	if this.OAuthConfig == nil {
-		return nil, errors.Errorf("OAuth config not initialized")
+// refreshAccessTokenWithConnectorConfig refreshes the access token using refresh token and connector config
+func (this *Plugin) refreshAccessTokenWithConnectorConfig(refreshToken string, connectorConfig util.MapStr) (*Token, error) {
+	// Extract OAuth credentials from connector config
+	clientID, _ := connectorConfig["client_id"].(string)
+	clientSecret, _ := connectorConfig["client_secret"].(string)
+
+	if clientID == "" || clientSecret == "" {
+		return nil, errors.Errorf("OAuth client_id and client_secret not found in connector config")
 	}
+
+	apiConfig := this.GetAPIConfig()
+	tokenURL := apiConfig.TokenURL
+
+	// Allow override from connector config
+	if url, ok := connectorConfig["token_url"].(string); ok && url != "" {
+		tokenURL = url
+	}
+
 	payload := map[string]interface{}{
-		"client_id":     this.OAuthConfig.ClientID,
-		"client_secret": this.OAuthConfig.ClientSecret,
+		"client_id":     clientID,
+		"client_secret": clientSecret,
 		"grant_type":    "refresh_token",
 		"refresh_token": refreshToken,
 	}
 
-	req := util.NewPostRequest(this.OAuthConfig.TokenURL, util.MustToJSONBytes(payload))
+	req := util.NewPostRequest(tokenURL, util.MustToJSONBytes(payload))
 	req.AddHeader("Content-Type", "application/json")
 	res, err := util.ExecuteRequest(req)
 	if err != nil {
