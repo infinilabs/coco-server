@@ -36,12 +36,12 @@ const (
 
 // APIConfig holds API endpoints for different plugin types
 type APIConfig struct {
-	BaseURL           string
-	AuthURL           string
-	TokenURL          string
-	RefreshTokenURL   string
-	UserInfoURL       string
-	DriveURL          string
+	BaseURL         string
+	AuthURL         string
+	TokenURL        string
+	RefreshTokenURL string
+	UserInfoURL     string
+	DriveURL        string
 }
 
 // getAPIConfig returns the appropriate API configuration based on plugin type
