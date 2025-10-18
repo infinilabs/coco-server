@@ -15,8 +15,7 @@ import (
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/plugins/connectors"
 	"infini.sh/framework/core/global"
-	"infini.sh/framework/core/queue"
-	"infini.sh/framework/core/util"
+	"infini.sh/framework/core/pipeline"
 )
 
 const (
@@ -42,8 +41,9 @@ func (w *wikiWrapper) BuildWikiURL(project *gitlabv4.Project) string {
 	return w.baseURL.JoinPath(wikiPath).String()
 }
 
-func (p *Plugin) processProjects(ctx context.Context, client *gitlabv4.Client, cfg *Config, datasource *common.DataSource) {
-	isGroup, err := isGroupOwner(ctx, client, cfg.Owner)
+func (p *Plugin) processProjects(ctx *pipeline.Context, client *gitlabv4.Client, cfg *Config, connector *common.Connector, datasource *common.DataSource) {
+	scanCtx := context.Background()
+	isGroup, err := isGroupOwner(scanCtx, client, cfg.Owner)
 	if err != nil {
 		_ = log.Errorf("[%s connector] failed to check whether the owner is a group [Owner=%s]: %v", ConnectorGitLab, cfg.Owner, err)
 		return
@@ -65,10 +65,18 @@ func (p *Plugin) processProjects(ctx context.Context, client *gitlabv4.Client, c
 
 	// Initialize folder tracker for hierarchical structure
 	folderTracker := connectors.NewGitFolderTracker()
+	// Create all folder documents for the hierarchy
+	var folderDocs []common.Document
+	folderTracker.CreateGitFolderDocuments(datasource, func(doc common.Document) {
+		folderDocs = append(folderDocs, doc)
+	})
+	if len(folderDocs) > 0 {
+		p.BatchCollect(ctx, connector, datasource, folderDocs)
+	}
 
 	var processed int
 
-	err = listProjects(ctx, client, cfg.Owner, func(projects []*gitlabv4.Project) bool {
+	err = listProjects(scanCtx, client, cfg.Owner, func(projects []*gitlabv4.Project) bool {
 		for _, project := range projects {
 			if global.ShuttingDown() {
 				return false
@@ -100,26 +108,26 @@ func (p *Plugin) processProjects(ctx context.Context, client *gitlabv4.Client, c
 
 			// Index repository
 			repoDoc := p.transformProjectToDocument(project, datasource)
-			p.pushToQueue(repoDoc)
+			p.Collect(ctx, connector, datasource, *repoDoc)
 
 			// Index issues
 			if cfg.IndexIssues {
-				p.processIssues(ctx, client, project, datasource)
+				p.processIssues(ctx, scanCtx, client, project, connector, datasource)
 			}
 
 			// Index merge requests
 			if cfg.IndexMergeRequests {
-				p.processMergeRequests(ctx, client, project, datasource)
+				p.processMergeRequests(ctx, scanCtx, client, project, connector, datasource)
 			}
 
 			// Index wiki pages
 			if cfg.IndexWikis {
-				p.processWikis(ctx, client, project, datasource)
+				p.processWikis(ctx, scanCtx, client, project, connector, datasource)
 			}
 
 			// Index snippets
 			if cfg.IndexSnippets {
-				p.processSnippets(ctx, client, project, datasource)
+				p.processSnippets(ctx, scanCtx, client, project, connector, datasource)
 			}
 
 			processed++
@@ -134,19 +142,16 @@ func (p *Plugin) processProjects(ctx context.Context, client *gitlabv4.Client, c
 		return
 	}
 
-	// Create all folder documents for the hierarchy
-	folderTracker.CreateGitFolderDocuments(datasource, func(doc common.Document) {
-		p.pushToQueue(&doc)
-	})
 }
 
-func (p *Plugin) processIssues(ctx context.Context, client *gitlabv4.Client, project *gitlabv4.Project, datasource *common.DataSource) {
-	err := ListIssues(ctx, client, project.ID, func(issues []*gitlabv4.Issue) bool {
+func (p *Plugin) processIssues(ctx *pipeline.Context, scanCtx context.Context, client *gitlabv4.Client, project *gitlabv4.Project, connector *common.Connector, datasource *common.DataSource) {
+	err := ListIssues(scanCtx, client, project.ID, func(issues []*gitlabv4.Issue) bool {
+		var docs []common.Document
 		for _, issue := range issues {
 			if global.ShuttingDown() {
 				return false
 			}
-			comments, err := ListComments(ctx, client, project.ID, issue.IID)
+			comments, err := ListComments(scanCtx, client, project.ID, issue.IID)
 			if err != nil {
 				switch resolveCode(err) {
 				case ContextDone:
@@ -160,7 +165,10 @@ func (p *Plugin) processIssues(ctx context.Context, client *gitlabv4.Client, pro
 			}
 
 			issueDoc := p.transformIssueToDocument(issue, comments, project, datasource)
-			p.pushToQueue(issueDoc)
+			docs = append(docs, *issueDoc)
+		}
+		if len(docs) > 0 {
+			p.BatchCollect(ctx, connector, datasource, docs)
 		}
 		return true
 	})
@@ -170,13 +178,14 @@ func (p *Plugin) processIssues(ctx context.Context, client *gitlabv4.Client, pro
 	}
 }
 
-func (p *Plugin) processMergeRequests(ctx context.Context, client *gitlabv4.Client, project *gitlabv4.Project, datasource *common.DataSource) {
-	err := ListMergeRequests(ctx, client, project.ID, func(mrs []*gitlabv4.BasicMergeRequest) bool {
+func (p *Plugin) processMergeRequests(ctx *pipeline.Context, scanCtx context.Context, client *gitlabv4.Client, project *gitlabv4.Project, connector *common.Connector, datasource *common.DataSource) {
+	err := ListMergeRequests(scanCtx, client, project.ID, func(mrs []*gitlabv4.BasicMergeRequest) bool {
+		var docs []common.Document
 		for _, mr := range mrs {
 			if global.ShuttingDown() {
 				return false
 			}
-			comments, err := ListComments(ctx, client, project.ID, mr.IID)
+			comments, err := ListComments(scanCtx, client, project.ID, mr.IID)
 			if err != nil {
 				switch resolveCode(err) {
 				case ContextDone:
@@ -189,7 +198,10 @@ func (p *Plugin) processMergeRequests(ctx context.Context, client *gitlabv4.Clie
 				}
 			}
 			mrDoc := p.transformMergeRequestToDocument(mr, comments, project, datasource)
-			p.pushToQueue(mrDoc)
+			docs = append(docs, *mrDoc)
+		}
+		if len(docs) > 0 {
+			p.BatchCollect(ctx, connector, datasource, docs)
 		}
 		return true
 	})
@@ -199,14 +211,18 @@ func (p *Plugin) processMergeRequests(ctx context.Context, client *gitlabv4.Clie
 	}
 }
 
-func (p *Plugin) processWikis(ctx context.Context, client *gitlabv4.Client, project *gitlabv4.Project, datasource *common.DataSource) {
-	err := ListWikiPages(ctx, client, project.ID, func(wikis []*gitlabv4.Wiki) bool {
+func (p *Plugin) processWikis(ctx *pipeline.Context, scanCtx context.Context, client *gitlabv4.Client, project *gitlabv4.Project, connector *common.Connector, datasource *common.DataSource) {
+	err := ListWikiPages(scanCtx, client, project.ID, func(wikis []*gitlabv4.Wiki) bool {
+		var docs []common.Document
 		for _, wiki := range wikis {
 			if global.ShuttingDown() {
 				return false
 			}
 			wikiDoc := p.transformWikiToDocument(&wikiWrapper{wiki, *client.BaseURL()}, project, datasource)
-			p.pushToQueue(wikiDoc)
+			docs = append(docs, *wikiDoc)
+		}
+		if len(docs) > 0 {
+			p.BatchCollect(ctx, connector, datasource, docs)
 		}
 		return true
 	})
@@ -216,14 +232,18 @@ func (p *Plugin) processWikis(ctx context.Context, client *gitlabv4.Client, proj
 	}
 }
 
-func (p *Plugin) processSnippets(ctx context.Context, client *gitlabv4.Client, project *gitlabv4.Project, datasource *common.DataSource) {
-	err := ListProjectSnippets(ctx, client, project.ID, func(snippets []*gitlabv4.Snippet) bool {
+func (p *Plugin) processSnippets(ctx *pipeline.Context, scanCtx context.Context, client *gitlabv4.Client, project *gitlabv4.Project, connector *common.Connector, datasource *common.DataSource) {
+	err := ListProjectSnippets(scanCtx, client, project.ID, func(snippets []*gitlabv4.Snippet) bool {
+		var docs []common.Document
 		for _, sn := range snippets {
 			if global.ShuttingDown() {
 				return false
 			}
 			snippetDoc := p.transformSnippetToDocument(sn, project, datasource)
-			p.pushToQueue(snippetDoc)
+			docs = append(docs, *snippetDoc)
+		}
+		if len(docs) > 0 {
+			p.BatchCollect(ctx, connector, datasource, docs)
 		}
 		return true
 	})
@@ -231,18 +251,6 @@ func (p *Plugin) processSnippets(ctx context.Context, client *gitlabv4.Client, p
 		_ = log.Errorf("[%s connector] failed to list snippets for project [%s]: %v", ConnectorGitLab, project.NameWithNamespace, err)
 		return
 	}
-}
-
-func (p *Plugin) newDocument(datasource *common.DataSource) *common.Document {
-	doc := &common.Document{
-		Source: common.DataSourceReference{
-			ID:   datasource.ID,
-			Type: "connector",
-			Name: datasource.Name,
-		},
-	}
-	doc.System = datasource.System
-	return doc
 }
 
 func (p *Plugin) transformProjectToDocument(project *gitlabv4.Project, datasource *common.DataSource) *common.Document {
@@ -466,11 +474,4 @@ func (p *Plugin) transformSnippetToDocument(sn *gitlabv4.Snippet, project *gitla
 	}
 
 	return &doc
-}
-
-func (p *Plugin) pushToQueue(doc *common.Document) {
-	data := util.MustToJSONBytes(doc)
-	if err := queue.Push(p.Queue, data); err != nil {
-		_ = log.Errorf("[%s connector] failed to push document to queue: %v", ConnectorGitLab, err)
-	}
 }

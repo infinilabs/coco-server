@@ -155,7 +155,7 @@ connector:
       redirect_url: "/connector/feishu/oauth_redirect"
       client_id: "cli_xxxxxxxxxxxxxxxx"
       client_secret: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-      document_types: ["doc", "sheet", "slides", "mindnote", "bitable"]
+      document_types: ["doc", "sheet", "slides", "mindnote", "bitable", "file", "docx", "folder", "shortcut"]
       user_access_token: ""  # Optional, for direct token authentication
 ```
 
@@ -173,7 +173,7 @@ connector:
       redirect_url: "/connector/lark/oauth_redirect"
       client_id: "cli_xxxxxxxxxxxxxxxx"
       client_secret: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-      document_types: ["doc", "sheet", "slides", "mindnote", "bitable"]
+      document_types: ["doc", "sheet", "slides", "mindnote", "bitable", "file", "docx", "folder", "shortcut"]
       user_access_token: ""  # Optional, for direct token authentication
 ```
 
@@ -240,14 +240,17 @@ curl -XPUT "http://localhost:9000/connector/feishu?replace=true" -d '{
   "tags": ["feishu", "docs", "cloud"],
   "url": "http://coco.rs/connectors/feishu",
   "assets": {"icons": {"default": "/assets/connector/feishu/icon.png"}},
+  "oauth_connect_implemented": true,
+  "path_hierarchy": true,
+  "processor": {
+    "enabled": true,
+    "name": "feishu"
+  },
   "config": {
     "auth_url": "https://accounts.feishu.cn/open-apis/authen/v1/authorize",
     "token_url": "https://open.feishu.cn/open-apis/authen/v2/oauth/token",
-    "redirect_url": "/connector/feishu/oauth_redirect",
     "client_id": "cli_xxxxxxxxxxxxxxxx",
-    "client_secret": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-    "document_types": ["doc", "sheet", "slides", "mindnote", "bitable"],
-    "user_access_token": ""
+    "client_secret": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
   }
 }'
 ```
@@ -263,59 +266,108 @@ curl -XPUT "http://localhost:9000/connector/lark?replace=true" -d '{
   "tags": ["lark", "docs", "cloud"],
   "url": "http://coco.rs/connectors/lark",
   "assets": {"icons": {"default": "/assets/connector/lark/icon.png"}},
+  "oauth_connect_implemented": true,
+  "path_hierarchy": true,
+  "processor": {
+    "enabled": true,
+    "name": "lark"
+  },
   "config": {
     "auth_url": "https://accounts.larksuite.com/open-apis/authen/v1/authorize",
     "token_url": "https://open.larksuite.com/open-apis/authen/v2/oauth/token",
-    "redirect_url": "/connector/lark/oauth_redirect",
     "client_id": "cli_xxxxxxxxxxxxxxxx",
-    "client_secret": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-    "document_types": ["doc", "sheet", "slides", "mindnote", "bitable"],
-    "user_access_token": ""
+    "client_secret": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
   }
 }'
 ```
 
 > Use `feishu` or `lark` as the unique connector ID.
 
-## Update coco-server config
+> **Note**: Starting from version **0.4.0**, the Feishu/Lark connectors use a **pipeline-based architecture** with OAuth routes registered in the `init()` function, following the Google Drive pattern.
 
-### Feishu Configuration
+## Pipeline Architecture
+
+Starting from version **0.4.0**, the Feishu/Lark connectors use a **pipeline-based architecture** instead of scheduled tasks. This provides:
+
+- **Better Performance**: Centralized dispatcher manages all connector sync operations
+- **Per-Datasource Configuration**: Each datasource can have its own sync interval
+- **Enrichment Pipeline Support**: Optional data enrichment pipelines per datasource
+- **No Scheduled Tasks**: Fully pipeline-based, aligned with Google Drive pattern
+- **Dynamic OAuth Config**: OAuth credentials loaded from database when needed
+
+### Pipeline Configuration (coco.yml)
+
+The connectors are managed by the centralized dispatcher pipeline:
+
 ```yaml
-connector:
-  feishu:
-    enabled: true
-    queue:
-      name: indexing_documents
-    interval: "30s"
-    page_size: 100
-    config:
-      auth_url: "https://accounts.feishu.cn/open-apis/authen/v1/authorize"
-      token_url: "https://open.feishu.cn/open-apis/authen/v2/oauth/token"
-      redirect_url: "/connector/feishu/oauth_redirect"
-      client_id: "cli_xxxxxxxxxxxxxxxx"
-      client_secret: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-      document_types: ["doc", "sheet", "slides", "mindnote", "bitable"]
-      user_access_token: ""
+pipeline:
+  - name: connector_dispatcher
+    auto_start: true
+    keep_running: true
+    singleton: true
+    retry_delay_in_ms: 10000
+    processor:
+      - connector_dispatcher:
+          max_running_timeout_in_seconds: 1200
 ```
 
-### Lark Configuration
-```yaml
-connector:
-  lark:
-    enabled: true
-    queue:
-      name: indexing_documents
-    interval: "30s"
-    page_size: 100
-    config:
-      auth_url: "https://accounts.larksuite.com/open-apis/authen/v1/authorize"
-      token_url: "https://open.larksuite.com/open-apis/authen/v2/oauth/token"
-      redirect_url: "/connector/lark/oauth_redirect"
-      client_id: "cli_xxxxxxxxxxxxxxxx"
-      client_secret: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-      document_types: ["doc", "sheet", "slides", "mindnote", "bitable"]
-      user_access_token: ""
+> **Important**: This pipeline configuration replaces the old connector-level config. The dispatcher automatically manages all enabled connectors.
+
+### Connector Configuration
+
+OAuth credentials are configured at the connector level via the management interface or API.
+
+#### Feishu Connector
+```json
+{
+  "id": "feishu",
+  "name": "飞书云文档连接器",
+  "builtin": true,
+  "oauth_connect_implemented": true,
+  "processor": {
+    "enabled": true,
+    "name": "feishu"
+  },
+  "config": {
+    "client_id": "cli_xxxxxxxxxxxxxxxx",
+    "client_secret": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "auth_url": "https://accounts.feishu.cn/open-apis/authen/v1/authorize",
+    "token_url": "https://open.feishu.cn/open-apis/authen/v2/oauth/token"
+  }
+}
 ```
+
+#### Lark Connector
+```json
+{
+  "id": "lark",
+  "name": "Lark Document Connector",
+  "builtin": true,
+  "oauth_connect_implemented": true,
+  "processor": {
+    "enabled": true,
+    "name": "lark"
+  },
+  "config": {
+    "client_id": "cli_xxxxxxxxxxxxxxxx",
+    "client_secret": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "auth_url": "https://accounts.larksuite.com/open-apis/authen/v1/authorize",
+    "token_url": "https://open.larksuite.com/open-apis/authen/v2/oauth/token"
+  }
+}
+```
+
+### Connector Config Parameters
+
+| **Field**                   | **Type**  | **Description**                                                                      |
+|-----------------------------|-----------|--------------------------------------------------------------------------------------|
+| `client_id`                 | `string`  | Feishu/Lark app Client ID.                                                           |
+| `client_secret`             | `string`  | Feishu/Lark app Client Secret.                                                       |
+| `auth_url`                  | `string`  | OAuth authorization URL (pre-configured).                                            |
+| `token_url`                 | `string`  | OAuth token exchange URL (pre-configured).                                           |
+| `processor.enabled`         | `boolean` | Enables the pipeline processor (required).                                           |
+| `processor.name`            | `string`  | Processor name, must be "feishu" or "lark" (required).                               |
+| `oauth_connect_implemented` | `boolean` | Indicates OAuth is implemented (required for OAuth flow).                            |
 
 ## Create a Datasource
 
@@ -339,12 +391,17 @@ For users who prefer direct token authentication, datasources can still be creat
 curl -H 'Content-Type: application/json' -XPOST "http://localhost:9000/datasource/" -d '{
   "name": "Feishu Cloud Documents",
   "type": "connector",
+  "enabled": true,
   "connector": {
     "id": "feishu",
     "config": {
       "user_access_token": "u-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
       "document_types": ["doc", "sheet", "slides", "mindnote", "bitable", "file", "docx", "folder", "shortcut"]
     }
+  },
+  "sync": {
+    "enabled": true,
+    "interval": "30s"
   }
 }'
 ```
@@ -354,15 +411,31 @@ curl -H 'Content-Type: application/json' -XPOST "http://localhost:9000/datasourc
 curl -H 'Content-Type: application/json' -XPOST "http://localhost:9000/datasource/" -d '{
   "name": "Lark Cloud Documents",
   "type": "connector",
+  "enabled": true,
   "connector": {
     "id": "lark",
     "config": {
       "user_access_token": "u-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
       "document_types": ["doc", "sheet", "slides", "mindnote", "bitable", "file", "docx", "folder", "shortcut"]
     }
+  },
+  "sync": {
+    "enabled": true,
+    "interval": "30s"
   }
 }'
 ```
+
+### Datasource Config Parameters
+
+| **Field**                    | **Type**   | **Description**                                                                                |
+|------------------------------|------------|------------------------------------------------------------------------------------------------|
+| `user_access_token`          | `string`   | User access token (for direct token authentication).                                          |
+| `document_types`             | `array`    | List of document types to synchronize.                                                        |
+| `sync.enabled`               | `boolean`  | Enable/disable syncing for this datasource.                                                   |
+| `sync.interval`              | `string`   | Sync interval for this datasource (e.g., "30s", "5m", "1h").                                  |
+
+> **Note**: When using OAuth authentication, `access_token`, `refresh_token`, `token_expiry`, `refresh_token_expiry`, and `profile` fields are automatically filled during the OAuth flow.
 
 ## Configuration Parameters
 
@@ -377,20 +450,20 @@ curl -H 'Content-Type: application/json' -XPOST "http://localhost:9000/datasourc
 
 ### OAuth Auto-filled Fields
 
-| Field | Type | Description | Source |
-|-------|------|-------------|--------|
-| `access_token` | string | Access token for API calls | Automatically obtained via OAuth |
-| `refresh_token` | string | Refresh token for token updates | Automatically obtained via OAuth |
-| `token_expiry` | string | Access token expiration time (RFC3339 format) | Automatically obtained via OAuth |
-| `refresh_token_expiry` | string | Refresh token expiration time (RFC3339 format) | Automatically obtained via OAuth |
-| `profile` | object | User information (ID, name, email, etc.) | Automatically obtained via OAuth |
+| Field                  | Type   | Description                                       | Source                           |
+|------------------------|--------|---------------------------------------------------|----------------------------------|
+| `access_token`         | string | Access token for API calls                        | Automatically obtained via OAuth |
+| `refresh_token`        | string | Refresh token for token updates                   | Automatically obtained via OAuth |
+| `token_expiry`         | string | Access token expiration time (RFC3339 format)     | Automatically obtained via OAuth |
+| `refresh_token_expiry` | string | Refresh token expiration time (RFC3339 format)    | Automatically obtained via OAuth |
+| `profile`              | object | User information (ID, name, email, etc.)          | Automatically obtained via OAuth |
 
 ### Sync Configuration
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `page_size` | int | 100 | Number of files per page |
-| `interval` | string | "30s" | Synchronization interval |
+| Field         | Type   | Default | Description              |
+|---------------|--------|---------|--------------------------|
+| `page_size`   | int    | 100     | Number of files per page |
+| `interval`    | string | "30s"   | Synchronization interval |
 
 ## Supported Document Types
 
@@ -458,16 +531,35 @@ The connector keeps Feishu's native folder hierarchy and creates folder director
 
 ### Architecture Design
 
-#### Refactored Architecture
+#### Refactored Architecture (v0.4.0)
+
+**Major Improvements:**
+- **OAuth Separation**: OAuth logic extracted to dedicated `OAuthHandler` (oauth_handler.go)
+- **Cleaner Plugin Structure**: Plugin no longer carries OAuth configuration
 - **Plugin Type Abstraction**: Uses `PluginType` enum to distinguish between Feishu and Lark
 - **Dynamic API Configuration**: Dynamically selects API endpoints based on plugin type
-- **Enhanced Base Plugin**: Adds plugin type management and API configuration functionality to base plugin
 - **Maximum Code Reuse**: 95% of code is shared, only configuration and routes differ
 - **OAuth Configuration Centralization**: OAuth credentials are managed at connector level
 - **Automatic Datasource Creation**: Datasources are automatically created during OAuth flow
-- **Unified OAuth Config Structure**: All OAuth-related fields are merged into a single `OAuthConfig` struct
+- **Factory Pattern**: Uses handler factories (`handleOAuthConnect`, `handleOAuthRedirect`) for code reuse
+- **Consistent HTTP Calls**: All HTTP operations use `util.ExecuteRequest()` pattern
+- **Utility Extraction**: Common helper functions extracted to util.go
+
+**Benefits:**
+- Better separation of concerns (OAuth vs data fetching)
+- Simplified Plugin struct focused on data processing
+- Easier testing and maintenance
+- Consistent error handling patterns
+- Reduced code duplication
 
 #### Core Components
+
+**File Structure:**
+- `plugin.go` - Main pipeline processor implementation
+- `oauth_handler.go` - OAuth operations handler (NEW in v0.4.0)
+- `api.go` - OAuth HTTP route handlers
+- `util.go` - Utility functions (getString, getTime, getBool, getIcon)
+
 ```go
 // Plugin type definition
 type PluginType string
@@ -476,57 +568,124 @@ const (
     PluginTypeLark   PluginType = "lark"
 )
 
-// Unified OAuth configuration structure
+// API configuration structure
+type APIConfig struct {
+    BaseURL         string
+    AuthURL         string
+    TokenURL        string
+    RefreshTokenURL string  // Token refresh endpoint
+    UserInfoURL     string
+    DriveURL        string
+}
+
+// OAuth configuration structure (used in api.go)
 type OAuthConfig struct {
     // OAuth endpoints
     AuthURL     string
     TokenURL    string
     RedirectURL string
-    
+
     // OAuth credentials
     ClientID         string
     ClientSecret     string
-    DocumentTypes    []string
     UserAccessToken  string
 }
 
-// API configuration structure
-type APIConfig struct {
-    BaseURL     string
-    AuthURL     string
-    TokenURL    string
-    UserInfoURL string
-    DriveURL    string
+// Main plugin structure (plugin.go)
+type Plugin struct {
+    cmn.ConnectorProcessorBase
+    PluginType PluginType
+    apiConfig  *APIConfig
+    // OAuthConfig removed - now handled by OAuthHandler
 }
 
-// Base plugin structure
-type Plugin struct {
-    // ... existing fields
+// OAuth handler structure (oauth_handler.go) - NEW
+type OAuthHandler struct {
     PluginType  PluginType
-    apiConfig   *APIConfig
-    OAuthConfig *OAuthConfig  // Unified OAuth configuration
+    APIConfig   *APIConfig
+    OAuthConfig *OAuthConfig
+}
+
+// Token response structure (oauth_handler.go)
+type Token struct {
+    Code                  int    `json:"code"`
+    AccessToken           string `json:"access_token"`
+    ExpiresIn             int    `json:"expires_in"`
+    RefreshToken          string `json:"refresh_token"`
+    RefreshTokenExpiresIn int    `json:"refresh_token_expires_in"`
+    TokenType             string `json:"token_type"`
+    Scope                 string `json:"scope"`
+    Error                 string `json:"error"`
+    ErrorDescription      string `json:"error_description"`
 }
 ```
 
 #### Plugin Implementation
-- **FeishuPlugin**: Inherits base plugin, sets `PluginTypeFeishu`
-- **LarkPlugin**: Inherits base plugin, sets `PluginTypeLark`
-- **Unified API Processing**: All API calls use dynamically configured endpoints
+
+**plugin.go - Main Pipeline Processor:**
+- Implements `Fetch(ctx *pipeline.Context, connector, datasource) error` for pipeline-based sync
+- Factory functions: `NewFeishu()` and `NewLark()` create processor instances
+- Handles token refresh automatically in `Fetch()` method
+- Manages incremental sync with last-modified tracking
+- Uses `OAuthHandler` for token refresh operations
+
+**oauth_handler.go - OAuth Operations:**
+- `NewOAuthHandler(pluginType, oauthConfig)` - Creates handler instance
+- `exchangeCodeForToken(code)` - Exchanges auth code for access/refresh tokens
+- `getUserProfile(accessToken)` - Retrieves user profile information
+- `refreshAccessTokenWithConnectorConfig(refreshToken, connectorConfig)` - Refreshes expired tokens
+- All methods use `util.ExecuteRequest()` for HTTP calls (consistent with codebase patterns)
+
+**api.go - HTTP Route Handlers:**
+- `handleOAuthConnect(pluginType)` - Factory function for OAuth authorization handlers
+- `handleOAuthRedirect(pluginType)` - Factory function for OAuth callback handlers
+- `getOAuthConfigFromConnector(connectorID, pluginType)` - Loads OAuth config from database
+- Uses `OAuthHandler` for all OAuth operations
+
+**util.go - Helper Functions:**
+- `getString(map, key)` - Safe string extraction from map
+- `getBool(map, key)` - Safe boolean extraction from map
+- `getTime(string)` - Parses various time formats (RFC3339, Unix timestamps)
+- `getIcon(docType)` - Returns appropriate icon for document type
 
 ### OAuth Route Registration
 
+Both Feishu and Lark OAuth routes are registered in the `init()` function following the pipeline-based pattern:
+
+```go
+func init() {
+    // Register pipeline processors
+    pipeline.RegisterProcessorPlugin(ConnectorFeishu, NewFeishu)
+    pipeline.RegisterProcessorPlugin(ConnectorLark, NewLark)
+
+    // Register OAuth routes for Feishu
+    api.HandleUIMethod(api.GET, "/connector/:id/feishu/connect",
+        handleOAuthConnect(PluginTypeFeishu), api.RequireLogin())
+    api.HandleUIMethod(api.GET, "/connector/:id/feishu/oauth_redirect",
+        handleOAuthRedirect(PluginTypeFeishu), api.RequireLogin())
+
+    // Register OAuth routes for Lark
+    api.HandleUIMethod(api.GET, "/connector/:id/lark/connect",
+        handleOAuthConnect(PluginTypeLark), api.RequireLogin())
+    api.HandleUIMethod(api.GET, "/connector/:id/lark/oauth_redirect",
+        handleOAuthRedirect(PluginTypeLark), api.RequireLogin())
+}
+```
+
 #### Feishu Routes
-- **Route Endpoints**: 
-  - `GET /connector/feishu/connect` - OAuth authorization request
-  - `GET /connector/feishu/oauth_redirect` - OAuth callback processing
+- **Route Endpoints**:
+  - `GET /connector/:id/feishu/connect` - OAuth authorization request
+  - `GET /connector/:id/feishu/oauth_redirect` - OAuth callback processing
 
 #### Lark Routes
-- **Route Endpoints**: 
-  - `GET /connector/lark/connect` - OAuth authorization request
-  - `GET /connector/lark/oauth_redirect` - OAuth callback processing
+- **Route Endpoints**:
+  - `GET /connector/:id/lark/connect` - OAuth authorization request
+  - `GET /connector/:id/lark/oauth_redirect` - OAuth callback processing
 
-- **Authentication Requirements**: All OAuth endpoints require user login
+- **Dynamic Connector ID**: Routes use `:id` parameter to load OAuth credentials from the specific connector instance
+- **Authentication Requirements**: All OAuth endpoints require user login (`api.RequireLogin()`)
 - **Scope Configuration**: Uses `drive:drive space:document:retrieve offline_access` permission scope
+- **Handler Factory Pattern**: OAuth handlers use factory functions (`handleOAuthConnect`, `handleOAuthRedirect`) for code reuse
 
 ### Token Lifecycle Management
 - **Auto-refresh**: Automatically refreshes access_token when expired using refresh_token
@@ -612,18 +771,6 @@ The refactored architecture supports easy addition of new plugin types:
            BaseURL: "https://open.larksuite.com",
            // ... other configurations
        }
-   ```
-
-3. **Create New Plugin**
-   ```go
-   type LarkInternationalPlugin struct {
-       Plugin
-   }
-   
-   func (this *LarkInternationalPlugin) Setup() {
-       this.SetPluginType(PluginTypeLarkInternational)
-       // other configurations handled automatically
-   }
    ```
 
 This design provides a solid foundation for future feature extensions and maintenance.

@@ -42,8 +42,9 @@ export function Component() {
   const [connector, setConnector] = useState<any>({});
   const [form] = useForm();
 
-  // Check if connector supports OAuth based on config
-  const supportsOAuth = connector?.config?.auth_url !== undefined;
+  // Check if connector supports OAuth based on oauth_connect_implemented flag
+  // This handles both standard OAuth (with auth_url) and custom OAuth implementations (like Feishu/Lark)
+  const supportsOAuth = connector?.oauth_connect_implemented === true;
 
   // Choose appropriate validation rules based on connector type
   const getValidationRules = () => {
@@ -64,8 +65,8 @@ export function Component() {
         // Standard OAuth 2.0 - all 5 fields required
         return OAuthValidationPresets.standard;
 
-      case 'feishu':
-      case 'lark':
+      case Types.Feishu:
+      case Types.Lark:
         // Feishu/Lark have hardcoded endpoints in backend, only need credentials
         return OAuthValidationPresets.feishuLark;
 
@@ -112,6 +113,10 @@ export function Component() {
         return 'Mssql';
       case Types.Oracle:
         return 'Oracle';
+      case Types.Feishu:
+        return 'Feishu';
+      case Types.Lark:
+        return 'Lark';
       default:
         return connector?.id || type || 'Unknown';
     }
@@ -184,7 +189,9 @@ export function Component() {
     Types.GitLab,
     Types.Gitea,
     Types.Mssql,
-    Types.Oracle
+    Types.Oracle,
+    Types.Feishu,
+    Types.Lark
   ].includes(type);
 
   const connectorTypeName = getConnectorTypeName();
@@ -367,6 +374,13 @@ export function Component() {
           <OAuthConnect
             connector={connector}
             validationRules={validationRules}
+            connectUrl={
+              type === Types.Feishu
+                ? `/connector/${connector?.id}/feishu/connect`
+                : type === Types.Lark
+                ? `/connector/${connector?.id}/lark/connect`
+                : undefined
+            }
           />
         ) : (
           <div>

@@ -14,10 +14,10 @@ import (
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/plugins/connectors"
-	config3 "infini.sh/framework/core/config"
+	cmn "infini.sh/coco/plugins/connectors/common"
+	"infini.sh/framework/core/config"
 	"infini.sh/framework/core/global"
-	"infini.sh/framework/core/module"
-	"infini.sh/framework/core/queue"
+	"infini.sh/framework/core/pipeline"
 	"infini.sh/framework/core/util"
 )
 
@@ -30,37 +30,32 @@ type Config struct {
 }
 
 type Plugin struct {
-	connectors.BasePlugin
+	cmn.ConnectorProcessorBase
 }
 
-func (p *Plugin) Setup() {
-	p.BasePlugin.Init("connector.local_fs", "indexing local filesystem", p)
+func init() {
+	pipeline.RegisterProcessorPlugin(ConnectorLocalFs, New)
 }
 
-func (p *Plugin) Start() error {
-	return p.BasePlugin.Start(connectors.DefaultSyncInterval)
+func New(c *config.Config) (pipeline.Processor, error) {
+	runner := Plugin{}
+	runner.Init(c, &runner)
+	return &runner, nil
 }
 
-func (p *Plugin) Scan(connector *common.Connector, datasource *common.DataSource) {
-	p.scanFolders(connector, datasource)
+func (p *Plugin) Name() string {
+	return ConnectorLocalFs
 }
 
-func (p *Plugin) scanFolders(connector *common.Connector, datasource *common.DataSource) {
-	cfg, err := config3.NewConfigFrom(datasource.Connector.Config)
-	if err != nil {
-		log.Errorf("[%v connector] Failed to create config from data source [%s]: %v", ConnectorLocalFs, datasource.Name, err)
-		return
-	}
+func (p *Plugin) Fetch(ctx *pipeline.Context, connector *common.Connector, datasource *common.DataSource) error {
+	cfg := Config{}
+	p.MustParseConfig(datasource, &cfg)
 
-	var obj Config
-	if err := cfg.Unpack(&obj); err != nil {
-		log.Errorf("[%v connector] Failed to unpack config for data source [%s]: %v", ConnectorLocalFs, datasource.Name, err)
-		return
-	}
+	log.Debugf("[%s connector] handling datasource: %v", ConnectorLocalFs, cfg)
 
 	// A map for extensions
 	extMap := make(map[string]bool)
-	for _, ext := range obj.Extensions {
+	for _, ext := range cfg.Extensions {
 		if !strings.HasPrefix(ext, ".") {
 			ext = "." + ext
 		}
@@ -68,22 +63,25 @@ func (p *Plugin) scanFolders(connector *common.Connector, datasource *common.Dat
 	}
 
 	// Deduplicate paths to avoid scanning ancestor directories multiple times
-	deduplicatedPaths := deduplicatePaths(obj.Paths)
-	log.Debugf("[%v connector] Original paths: %v, deduplicated paths: %v", ConnectorLocalFs, obj.Paths, deduplicatedPaths)
+	deduplicatedPaths := deduplicatePaths(cfg.Paths)
+	log.Debugf("[%s connector] Original paths: %v, deduplicated paths: %v", ConnectorLocalFs, cfg.Paths, deduplicatedPaths)
 
 	for _, path := range deduplicatedPaths {
 		if global.ShuttingDown() {
 			break
 		}
 
-		log.Debugf("[%v connector] Scanning path: %s for data source: %s", ConnectorLocalFs, path, datasource.Name)
+		log.Debugf("[%s connector] Scanning path: %s for data source: %s", ConnectorLocalFs, path, datasource.Name)
 
-		p.scanPath(path, datasource, extMap)
+		p.scanPath(ctx, path, connector, datasource, extMap)
 	}
+
+	log.Infof("[%s connector] finished fetching datasource [%s]", ConnectorLocalFs, datasource.Name)
+	return nil
 }
 
 // scanPath performs a single DFS traversal to collect files and determine which folders to save
-func (p *Plugin) scanPath(basePath string, datasource *common.DataSource, extMap map[string]bool) {
+func (p *Plugin) scanPath(ctx *pipeline.Context, basePath string, connector *common.Connector, datasource *common.DataSource, extMap map[string]bool) {
 	// Track which folders contain matching files and collect folder info
 	foldersWithMatchingFiles := make(map[string]bool)
 	folderInfos := make(map[string]os.FileInfo)
@@ -113,7 +111,7 @@ func (p *Plugin) scanPath(basePath string, datasource *common.DataSource, extMap
 				p.markParentFoldersAsValid(currentPath, basePath, foldersWithMatchingFiles)
 
 				// Save the file immediately
-				p.saveDocument(currentPath, basePath, fileInfo, datasource)
+				p.saveDocument(ctx, currentPath, basePath, fileInfo, connector, datasource)
 			}
 		}
 
@@ -128,9 +126,9 @@ func (p *Plugin) scanPath(basePath string, datasource *common.DataSource, extMap
 	// Now process folders: save only those that contain matching files
 	for folderPath, folderInfo := range folderInfos {
 		if foldersWithMatchingFiles[folderPath] {
-			p.saveDocument(folderPath, basePath, folderInfo, datasource)
+			p.saveDocument(ctx, folderPath, basePath, folderInfo, connector, datasource)
 		} else {
-			log.Debugf("[%v connector] Skipping empty folder: %s (no files with matching extensions)", ConnectorLocalFs, folderPath)
+			log.Debugf("[%s connector] Skipping empty folder: %s (no files with matching extensions)", ConnectorLocalFs, folderPath)
 		}
 	}
 }
@@ -149,7 +147,7 @@ func (p *Plugin) markParentFoldersAsValid(filePath, basePath string, foldersWith
 }
 
 // saveDocument saves a document directly without additional folder content checking
-func (p *Plugin) saveDocument(currentPath, basePath string, fileInfo os.FileInfo, datasource *common.DataSource) {
+func (p *Plugin) saveDocument(ctx *pipeline.Context, currentPath, basePath string, fileInfo os.FileInfo, connector *common.Connector, datasource *common.DataSource) {
 	modTime := fileInfo.ModTime()
 	doc := common.Document{
 		Source:   common.DataSourceReference{ID: datasource.ID, Type: "connector", Name: datasource.Name},
@@ -194,10 +192,7 @@ func (p *Plugin) saveDocument(currentPath, basePath string, fileInfo os.FileInfo
 
 	doc.ID = util.MD5digest(fmt.Sprintf("%s-%s", datasource.ID, currentPath))
 
-	data := util.MustToJSONBytes(doc)
-	if err := queue.Push(p.Queue, data); err != nil {
-		log.Errorf("[%v connector] Failed to push document to queue for data source [%s]: %v", ConnectorLocalFs, datasource.Name, err)
-	}
+	p.Collect(ctx, connector, datasource, doc)
 }
 
 // buildParentCategoryArray constructs a hierarchical path array for the file
@@ -243,16 +238,4 @@ func buildParentCategoryArray(currentPath, basePath string) []string {
 	}
 
 	return categories
-}
-
-func (p *Plugin) Stop() error {
-	return nil
-}
-
-func (p *Plugin) Name() string {
-	return ConnectorLocalFs
-}
-
-func init() {
-	module.RegisterUserPlugin(&Plugin{})
 }

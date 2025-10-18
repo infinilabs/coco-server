@@ -14,43 +14,41 @@ import (
 	"github.com/minio/minio-go/v7"
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/plugins/connectors"
+	cmn "infini.sh/coco/plugins/connectors/common"
+	"infini.sh/framework/core/config"
 	"infini.sh/framework/core/global"
-	"infini.sh/framework/core/module"
-	"infini.sh/framework/core/queue"
+	"infini.sh/framework/core/pipeline"
 	"infini.sh/framework/core/util"
 )
 
 const ConnectorS3 = "s3"
 
 type Plugin struct {
-	connectors.BasePlugin
+	cmn.ConnectorProcessorBase
 }
 
-func (p *Plugin) Setup() {
-	p.BasePlugin.Init("connector.s3", "indexing S3 objects", p)
+func init() {
+	pipeline.RegisterProcessorPlugin(ConnectorS3, New)
 }
 
-func (p *Plugin) Start() error {
-	return p.BasePlugin.Start(connectors.DefaultSyncInterval)
+func New(c *config.Config) (pipeline.Processor, error) {
+	runner := Plugin{}
+	runner.Init(c, &runner)
+	return &runner, nil
 }
 
-func (p *Plugin) Scan(connector *common.Connector, datasource *common.DataSource) {
-	p.getBucketObjects(connector, datasource)
+func (p *Plugin) Name() string {
+	return ConnectorS3
 }
 
-func (p *Plugin) getBucketObjects(connector *common.Connector, datasource *common.DataSource) {
+func (p *Plugin) Fetch(ctx *pipeline.Context, connector *common.Connector, datasource *common.DataSource) error {
 	cfg := Config{}
-	err := connectors.ParseConnectorConfigure(connector, datasource, &cfg)
-	if err != nil {
-		_ = log.Errorf("[%v connector] Parsing connector configuration failed: %v", ConnectorS3, err)
-		panic(err)
-	}
+	p.MustParseConfig(datasource, &cfg)
 
-	log.Debugf("[%v connector] Handling datasource: %v", ConnectorS3, cfg)
+	log.Debugf("[%s connector] handling datasource: %v", ConnectorS3, cfg)
 
 	if cfg.Bucket == "" || cfg.AccessKeyID == "" || cfg.SecretAccessKey == "" {
-		_ = log.Errorf("[%v connector] Missing required configuration for datasource [%s]: bucket, access_key_id, or secret_access_key", ConnectorS3, datasource.Name)
-		return
+		return fmt.Errorf("missing required configuration for datasource [%s]: bucket, access_key_id, or secret_access_key", datasource.Name)
 	}
 
 	// A map for extensions
@@ -115,66 +113,47 @@ func (p *Plugin) getBucketObjects(connector *common.Connector, datasource *commo
 
 		if global.Env().IsDebug {
 			data := util.MustToJSONBytes(doc)
-			log.Tracef("[%v connector] Queuing document: %s", ConnectorS3, string(data))
+			log.Tracef("[%s connector] Queuing document: %s", ConnectorS3, string(data))
 		}
 
-		p.saveDocument(doc, datasource)
+		p.Collect(ctx, connector, datasource, doc)
 	}
 
 	handler, err := NewMinioHandler(cfg)
 	if err != nil {
-		log.Infof("[%v connector] Failed to init minio client for datasource [%s]: %v", ConnectorS3, datasource.Name, err)
-		panic(err)
+		return fmt.Errorf("failed to init minio client for datasource [%s]: %v", datasource.Name, err)
 	}
 
 	// process with each object
 	handler.ListObjects(context.TODO(), objectVisitor)
 
 	// Now create folder documents for all folders that contain matching files
-	p.createFolderDocuments(foldersWithMatchingFiles, datasource, cfg)
+	p.createFolderDocuments(ctx, foldersWithMatchingFiles, connector, datasource, cfg)
 
-	log.Infof("[%v connector] Finished list objects from bucket [%s] of datasource [%s]. ", ConnectorS3, cfg.Bucket, datasource.Name)
-}
-
-// createFolderDocuments creates document entries for all folders that contain matching files
-func (p *Plugin) createFolderDocuments(foldersWithMatchingFiles map[string]bool, datasource *common.DataSource, cfg Config) {
-	for folderPath := range foldersWithMatchingFiles {
-		if global.ShuttingDown() {
-			return
-		}
-		p.saveFolder(folderPath, datasource, cfg)
-	}
-}
-
-// saveDocument pushes a document to the queue
-func (p *Plugin) saveDocument(doc common.Document, datasource *common.DataSource) {
-	data := util.MustToJSONBytes(doc)
-	if err := queue.Push(p.Queue, data); err != nil {
-		_ = log.Errorf("[%v connector] Failed to push document to queue for datasource [%s]: %v", ConnectorS3, datasource.Name, err)
-	}
-}
-
-// saveFolder creates and saves a document for a folder
-func (p *Plugin) saveFolder(folderPath string, datasource *common.DataSource, cfg Config) {
-	folderName := filepath.Base(folderPath)
-	parentCategoryArray := connectors.BuildParentCategoryArray(folderPath)
-	url := fmt.Sprintf("%s://%s.%s/%s/", cfg.Schema(), cfg.Bucket, cfg.Endpoint, folderPath)
-	idSuffix := fmt.Sprintf("%s-folder-%s", cfg.Bucket, folderPath)
-
-	doc := connectors.CreateDocumentWithHierarchy(connectors.TypeFolder, connectors.IconFolder, folderName, url, 0,
-		parentCategoryArray, datasource, idSuffix)
-
-	p.saveDocument(doc, datasource)
-}
-
-func (p *Plugin) Stop() error {
+	log.Infof("[%s connector] finished fetching datasource [%s]", ConnectorS3, datasource.Name)
 	return nil
 }
 
-func (p *Plugin) Name() string {
-	return ConnectorS3
-}
+// createFolderDocuments creates document entries for all folders that contain matching files
+func (p *Plugin) createFolderDocuments(ctx *pipeline.Context, foldersWithMatchingFiles map[string]bool, connector *common.Connector, datasource *common.DataSource, cfg Config) {
+	var docs []common.Document
+	for folderPath := range foldersWithMatchingFiles {
+		if global.ShuttingDown() {
+			log.Info("[s3 connector] Shutdown signal received, stopping folder creation.")
+			break
+		}
+		folderName := filepath.Base(folderPath)
+		parentCategoryArray := connectors.BuildParentCategoryArray(folderPath)
+		url := fmt.Sprintf("%s://%s.%s/%s/", cfg.Schema(), cfg.Bucket, cfg.Endpoint, folderPath)
+		idSuffix := fmt.Sprintf("%s-folder-%s", cfg.Bucket, folderPath)
 
-func init() {
-	module.RegisterUserPlugin(&Plugin{})
+		doc := connectors.CreateDocumentWithHierarchy(connectors.TypeFolder, connectors.IconFolder, folderName, url, 0,
+			parentCategoryArray, datasource, idSuffix)
+
+		docs = append(docs, doc)
+	}
+
+	if len(docs) > 0 {
+		p.BatchCollect(ctx, connector, datasource, docs)
+	}
 }

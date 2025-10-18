@@ -190,7 +190,11 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/l
       "file" : "/assets/icons/connector/local_fs/file.png"
     }
   },
-  "builtin": true
+  "builtin": true,
+  "processor": {
+    "enabled": true,
+    "name": "local_fs"
+  }
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/s3
 {
@@ -213,7 +217,11 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/s
       "file" : "/assets/icons/connector/s3/file.png"
     }
   },
-  "builtin": true
+  "builtin": true,
+  "processor": {
+    "enabled": true,
+    "name": "s3"
+  }
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/confluence
 {
@@ -236,7 +244,11 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/c
       "default" : "/assets/icons/connector/confluence/icon.png"
     }
   },
-  "builtin": true
+  "builtin": true,
+  "processor": {
+    "enabled": true,
+    "name": "confluence"
+  }
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/network_drive
 {
@@ -260,7 +272,11 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/n
       "file" : "/assets/icons/connector/network_drive/file.png"
     }
   },
-  "builtin": true
+  "builtin": true,
+  "processor": {
+    "enabled": true,
+    "name": "network_drive"
+  }
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/postgresql
 {
@@ -282,7 +298,11 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/p
        "default" : "/assets/icons/connector/postgresql/icon.png"
      }
   },
-  "builtin": true
+  "builtin": true,
+  "processor": {
+    "enabled": true,
+    "name": "postgresql"
+  }
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/mysql
 {
@@ -304,7 +324,11 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/m
       "default" : "/assets/icons/connector/mysql/icon.png"
     }
   },
-  "builtin": true
+  "builtin": true,
+  "processor": {
+    "enabled": true,
+    "name": "mysql"
+  }
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/github
 {
@@ -332,7 +356,11 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
       "org" : "/assets/icons/connector/github/org.png"
     }
   },
-  "builtin": true
+  "builtin": true,
+  "processor": {
+    "enabled": true,
+    "name": "github"
+  }
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/gitlab
 {
@@ -362,7 +390,11 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
       "org" : "/assets/icons/connector/gitlab/org.png"
     }
   },
-  "builtin": true
+  "builtin": true,
+  "processor": {
+    "enabled": true,
+    "name": "gitlab"
+  }
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/gitea
 {
@@ -390,7 +422,11 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
       "org" : "/assets/icons/connector/gitea/org.png"
     }
   },
-  "builtin": true
+  "builtin": true,
+  "processor": {
+    "enabled": true,
+    "name": "gitea"
+  }
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/feishu
 {
@@ -423,7 +459,13 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/f
     "auth_url": "https://accounts.feishu.cn/open-apis/authen/v1/authorize",
     "token_url": "https://open.feishu.cn/open-apis/authen/v2/oauth/token"
   },
-  "builtin": true
+  "builtin": true,
+  "path_hierarchy": true,
+  "oauth_connect_implemented": true,
+  "processor": {
+    "enabled": true,
+    "name": "feishu"
+  }
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/lark
 {
@@ -456,7 +498,13 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/l
     "auth_url": "https://accounts.larksuite.com/open-apis/authen/v1/authorize",
     "token_url": "https://open.larksuite.com/open-apis/authen/v2/oauth/token"
   },
-  "builtin": true
+  "builtin": true,
+  "path_hierarchy": true,
+  "oauth_connect_implemented": true,
+  "processor": {
+    "enabled": true,
+    "name": "lark"
+  }
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/mssql
 {
@@ -478,7 +526,11 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/m
       "default" : "/assets/icons/connector/mssql/icon.png"
     }
   },
-  "builtin": true
+  "builtin": true,
+  "processor": {
+    "enabled": true,
+    "name": "mssql"
+  }
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/oracle
 {
@@ -500,7 +552,11 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/o
       "default" : "/assets/icons/connector/oracle/icon.png"
     }
   },
-  "builtin": true
+  "builtin": true,
+  "processor": {
+    "enabled": true,
+    "name": "oracle"
+  }
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/salesforce
 {
@@ -529,5 +585,9 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/s
       "opportunity" : "/assets/icons/connector/salesforce/opportunity.png"
     }
   },
-  "builtin": true
+  "builtin": true,
+  "processor": {
+    "enabled": true,
+    "name": "salesforce"
+  }
  }

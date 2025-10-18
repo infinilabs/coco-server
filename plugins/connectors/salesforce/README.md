@@ -19,47 +19,90 @@ This connector integrates with Salesforce to index and search data from your Sal
 - **Configurable Content Extraction**: Flexible content field mapping for different object types
 - **Directory Access Support**: Hierarchical directory structure for browsing Salesforce data by SObject type
 
+## Architecture
+
+The Salesforce connector follows the **pipeline-based architecture** introduced in the connector refactoring. It implements the `ConnectorProcessorBase` interface and is managed by the centralized `connector_dispatcher` pipeline.
+
+### Pipeline Integration
+
+- **Processor Registration**: Registered as a pipeline processor in `init()`
+- **Dispatcher Managed**: Sync intervals and scheduling handled by dispatcher
+- **Per-Datasource Config**: Each datasource has its own sync interval and configuration
+- **Enrichment Pipeline Support**: Supports optional enrichment pipelines per datasource
+
 ## Configuration
 
 The connector uses connector-level OAuth configuration and datasource-level sync settings.
 
 ### Required Parameters
 
-#### Connector-level Configuration (in coco.yml)
+#### Connector-level Configuration
+OAuth credentials are configured at the connector level and shared across all datasources:
 - `domain`: Your Salesforce domain (e.g., "mycompany" for mycompany.my.salesforce.com)
 - `client_id`: OAuth2 client ID from your Salesforce connected app
 - `client_secret`: OAuth2 client secret from your Salesforce connected app
 
 #### Datasource-level Configuration
+Each datasource can have its own configuration:
 - `standard_objects_to_sync`: List of standard objects to sync (default: all standard objects)
 - `sync_custom_objects`: Whether to sync custom objects (default: false)
 - `custom_objects_to_sync`: List of custom objects to sync (use "*" for all)
-
-### Optional Parameters
-
-#### BasePlugin Parameters
-- `interval`: Sync interval (default: "30s")
-- `page_size`: Page size for data processing (default: 1000)
-- `queue`: Queue configuration for document indexing
+- `sync.enabled`: Enable/disable syncing for this datasource
+- `sync.interval`: Sync interval for this datasource (e.g., "5m", "1h")
 
 ### Example Configuration
 
-#### Connector Configuration (coco.yml)
-```yaml
-connector:
-  salesforce:
-    domain: "mycompany"
-    client_id: "your_client_id_here"
-    client_secret: "your_client_secret_here"
+#### Connector Registration
+```json
+{
+  "id": "salesforce",
+  "name": "Salesforce Connector",
+  "builtin": true,
+  "processor": {
+    "enabled": true,
+    "name": "salesforce"
+  },
+  "config": {
+    "domain": "mycompany",
+    "client_id": "your_client_id_here",
+    "client_secret": "your_client_secret_here"
+  }
+}
 ```
 
 #### Datasource Configuration
 ```json
 {
-  "standard_objects_to_sync": ["Account", "Opportunity", "Contact", "Lead", "Campaign", "Case"],
-  "sync_custom_objects": true,
-  "custom_objects_to_sync": ["CustomObject__c"]
+  "name": "My Salesforce Org",
+  "type": "connector",
+  "enabled": true,
+  "connector": {
+    "id": "salesforce",
+    "config": {
+      "standard_objects_to_sync": ["Account", "Opportunity", "Contact", "Lead", "Campaign", "Case"],
+      "sync_custom_objects": true,
+      "custom_objects_to_sync": ["CustomObject__c"]
+    }
+  },
+  "sync": {
+    "enabled": true,
+    "interval": "5m"
+  }
 }
+```
+
+#### Pipeline Configuration (coco.yml)
+The connector is managed by the centralized dispatcher:
+```yaml
+pipeline:
+  - name: connector_dispatcher
+    auto_start: true
+    keep_running: true
+    singleton: true
+    retry_delay_in_ms: 10000
+    processor:
+      - connector_dispatcher:
+          max_running_timeout_in_seconds: 1200
 ```
 
 ## Setup Instructions
@@ -103,19 +146,43 @@ connector:
 
 ### 3. Configure the Connector
 
-1. Add the connector configuration to your coco-server configuration file (coco.yml)
-2. Set the domain, client_id, and client_secret parameters
-3. Configure datasource-level sync settings
-4. Enable the connector
+1. Configure the connector with OAuth credentials at connector level
+2. Create datasources with specific sync settings
+3. The connector_dispatcher pipeline will automatically manage syncing
 
-#### Configuration Example (coco.yml)
+#### Connector Configuration
 
-```yaml
-connector:
-  salesforce:
-    domain: "mycompany"
-    client_id: "your_client_id_here"
-    client_secret: "your_client_secret_here"
+Update the connector configuration via API or management console:
+```json
+{
+  "id": "salesforce",
+  "config": {
+    "domain": "mycompany",
+    "client_id": "your_client_id_here",
+    "client_secret": "your_client_secret_here"
+  }
+}
+```
+
+#### Create Datasource
+
+Create a datasource to start syncing:
+```json
+{
+  "name": "My Salesforce Org",
+  "type": "connector",
+  "connector": {
+    "id": "salesforce",
+    "config": {
+      "standard_objects_to_sync": ["Account", "Contact", "Lead", "Opportunity", "Case"],
+      "sync_custom_objects": false
+    }
+  },
+  "sync": {
+    "enabled": true,
+    "interval": "5m"
+  }
+}
 ```
 
 ### 4. OAuth2 Client Credentials Flow
