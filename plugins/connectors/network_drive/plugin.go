@@ -12,17 +12,16 @@ import (
 	"net"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 
 	log "github.com/cihub/seelog"
 	"github.com/hirochachacha/go-smb2"
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/plugins/connectors"
+	cmn "infini.sh/coco/plugins/connectors/common"
+	"infini.sh/framework/core/config"
 	"infini.sh/framework/core/global"
-	"infini.sh/framework/core/module"
-	"infini.sh/framework/core/queue"
-	"infini.sh/framework/core/util"
+	"infini.sh/framework/core/pipeline"
 )
 
 const (
@@ -44,80 +43,36 @@ type Config struct {
 }
 
 type Plugin struct {
-	connectors.BasePlugin
-	// mu protects the cancel function below.
-	mu sync.Mutex
-	// ctx is the root context for the plugin, created on Start and cancelled on Stop.
-	ctx context.Context
-	// cancel is the function to call to cancel a running scan.
-	cancel context.CancelFunc
+	cmn.ConnectorProcessorBase
 }
 
 func init() {
-	module.RegisterUserPlugin(&Plugin{})
+	pipeline.RegisterProcessorPlugin(ConnectorNetworkDrive, New)
 }
 
-func (p *Plugin) Setup() {
-	p.BasePlugin.Init(fmt.Sprintf("connector.%s", ConnectorNetworkDrive), "indexing network drive", p)
-}
-
-func (p *Plugin) Start() error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	p.ctx, p.cancel = context.WithCancel(context.Background())
-	return p.BasePlugin.Start(connectors.DefaultSyncInterval)
-}
-
-func (p *Plugin) Stop() error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	if p.cancel != nil {
-		log.Infof("[%v connector] received stop signal, cancelling current scan", ConnectorNetworkDrive)
-		p.cancel()
-		p.ctx = nil
-		p.cancel = nil
-	}
-	return nil
+func New(c *config.Config) (pipeline.Processor, error) {
+	runner := Plugin{}
+	runner.Init(c, &runner)
+	return &runner, nil
 }
 
 func (p *Plugin) Name() string {
 	return ConnectorNetworkDrive
 }
 
-// Scan is the main entry point that dispatches to the correct scanning method.
-func (p *Plugin) Scan(connector *common.Connector, datasource *common.DataSource) {
+func (p *Plugin) Fetch(ctx *pipeline.Context, connector *common.Connector, datasource *common.DataSource) error {
 	cfg := Config{}
-	if err := connectors.ParseConnectorConfigure(connector, datasource, &cfg); err != nil {
-		_ = log.Errorf("[%v connector] parsing connector configuration failed for datasource [%s]: %v", ConnectorNetworkDrive, datasource.Name, err)
-		return
-	}
-	p.scanSmbShare(datasource, &cfg)
-}
+	p.MustParseConfig(datasource, &cfg)
 
-// scanSmbShare handles scanning a remote SMB share using provided credentials.
-func (p *Plugin) scanSmbShare(datasource *common.DataSource, cfg *Config) {
-	// Get the parent context
-	p.mu.Lock()
-	parentCtx := p.ctx
-	p.mu.Unlock()
-
-	// Check if the plugin has been stopped before proceeding.
-	if parentCtx == nil {
-		_ = log.Warnf("[%v connector] plugin is stopped, skipping scan for datasource [%s]", ConnectorNetworkDrive, datasource.Name)
-		return
-	}
+	log.Debugf("[%s connector] handling datasource: %v", ConnectorNetworkDrive, cfg)
 
 	if cfg.Endpoint == "" || cfg.Share == "" || cfg.Username == "" {
-		_ = log.Errorf("[%v connector] missing required fields for credentials-based auth for data source [%s]: endpoint, share, or username", ConnectorNetworkDrive, datasource.Name)
-		return
+		return fmt.Errorf("missing required fields for credentials-based auth for data source [%s]: endpoint, share, or username", datasource.Name)
 	}
 
 	conn, err := net.DialTimeout("tcp", cfg.Endpoint, ConnectionTimeout)
 	if err != nil {
-		_ = log.Errorf("[%v connector] failed to dial SMB server %s for data source: [%s]: %v", ConnectorNetworkDrive, cfg.Endpoint, datasource.Name, err)
-		return
+		return fmt.Errorf("failed to dial SMB server %s for data source: [%s]: %v", cfg.Endpoint, datasource.Name, err)
 	}
 	defer func() {
 		_ = conn.Close()
@@ -131,14 +86,14 @@ func (p *Plugin) scanSmbShare(datasource *common.DataSource, cfg *Config) {
 		},
 	}
 
+	scanCtx := context.Background()
 	deadline := time.Now().Add(ConnectionTimeout)
-	dialCtx, cancelOnTimeout := context.WithDeadline(parentCtx, deadline)
+	dialCtx, cancelOnTimeout := context.WithDeadline(scanCtx, deadline)
 	defer cancelOnTimeout() // release resource even though not time out
 
 	session, err := dialer.DialContext(dialCtx, conn)
 	if err != nil {
-		_ = log.Errorf("[%v connector] failed to dial SMB server %s for data source: [%s]: %v", ConnectorNetworkDrive, cfg.Endpoint, datasource.Name, err)
-		return
+		return fmt.Errorf("failed to dial SMB server %s for data source: [%s]: %v", cfg.Endpoint, datasource.Name, err)
 	}
 	defer func() {
 		_ = session.Logoff()
@@ -146,17 +101,13 @@ func (p *Plugin) scanSmbShare(datasource *common.DataSource, cfg *Config) {
 
 	share, err := session.Mount(cfg.Share)
 	if err != nil {
-		_ = log.Errorf("[%v connector] failed to mount SMB share '%s' on server %s for datasource [%s]: %v", ConnectorNetworkDrive, cfg.Share, cfg.Endpoint, datasource.Name, err)
-		return
+		return fmt.Errorf("failed to mount SMB share '%s' on server %s for datasource [%s]: %v", cfg.Share, cfg.Endpoint, datasource.Name, err)
 	}
 	defer func() {
 		_ = share.Umount()
 	}()
 
-	log.Debugf("[%v connector] connecting to SMB share: //%s/%s for data source: %s", ConnectorNetworkDrive, cfg.Endpoint, cfg.Share, datasource.Name)
-
-	scanCtx, scanCancel := context.WithCancel(parentCtx)
-	defer scanCancel()
+	log.Debugf("[%s connector] connecting to SMB share: //%s/%s for data source: %s", ConnectorNetworkDrive, cfg.Endpoint, cfg.Share, datasource.Name)
 
 	// A map for extensions
 	extMap := make(map[string]bool)
@@ -172,18 +123,12 @@ func (p *Plugin) scanSmbShare(datasource *common.DataSource, cfg *Config) {
 
 	for _, path := range cfg.Paths {
 		err = fs.WalkDir(share.DirFS("."), path, func(currentPath string, d fs.DirEntry, err error) error {
-			select {
-			case <-scanCtx.Done():
-				return errors.New("network drive connector scan cancelled")
-			default:
-			}
-
 			if global.ShuttingDown() {
 				return errors.New("system is shutting down, scan cancelled")
 			}
 
 			if err != nil {
-				_ = log.Warnf("[%v connector] error accessing SMB path %q: %v", ConnectorNetworkDrive, currentPath, err)
+				_ = log.Warnf("[%s connector] error accessing SMB path %q: %v", ConnectorNetworkDrive, currentPath, err)
 				return err
 			}
 
@@ -202,28 +147,31 @@ func (p *Plugin) scanSmbShare(datasource *common.DataSource, cfg *Config) {
 			// Mark all parent folders as containing matching files
 			connectors.MarkParentFoldersAsValid(filepath.ToSlash(currentPath), foldersWithMatchingFiles)
 
-			p.processFile(d, filepath.ToSlash(currentPath), cfg, datasource)
+			p.processFile(ctx, d, filepath.ToSlash(currentPath), &cfg, connector, datasource)
 			return nil
 		})
 
 		if err != nil {
-			_ = log.Errorf("[%v connector] error walking SMB share '%s' for datasource [%s]: %v", ConnectorNetworkDrive, cfg.Share, datasource.Name, err)
+			_ = log.Errorf("[%s connector] error walking SMB share '%s' for datasource [%s]: %v", ConnectorNetworkDrive, cfg.Share, datasource.Name, err)
 		}
 	}
 
 	// Now create folder documents for all folders that contain matching files
-	p.createFolderDocuments(foldersWithMatchingFiles, datasource, cfg)
+	p.createFolderDocuments(ctx, foldersWithMatchingFiles, connector, datasource, &cfg)
+
+	log.Infof("[%s connector] finished fetching datasource [%s]", ConnectorNetworkDrive, datasource.Name)
+	return nil
 }
 
 // processFile is a helper function to filter, transform, and queue a single file.
-func (p *Plugin) processFile(d fs.DirEntry, currentPath string, cfg *Config, datasource *common.DataSource) {
+func (p *Plugin) processFile(ctx *pipeline.Context, d fs.DirEntry, currentPath string, cfg *Config, connector *common.Connector, datasource *common.DataSource) {
 
 	// Construct a full UNC-style path for the URL field
 	fullPath := fmt.Sprintf("//%s/%s/%s", cfg.Endpoint, cfg.Share, currentPath)
 
 	fileInfo, err := d.Info()
 	if err != nil {
-		_ = log.Warnf("[%v connector] failed to get file info for %q: %v", ConnectorNetworkDrive, fullPath, err)
+		_ = log.Warnf("[%s connector] failed to get file info for %q: %v", ConnectorNetworkDrive, fullPath, err)
 		return
 	}
 
@@ -239,37 +187,29 @@ func (p *Plugin) processFile(d fs.DirEntry, currentPath string, cfg *Config, dat
 	doc.Created = &modTime
 	doc.Updated = &modTime
 
-	p.saveDocument(doc, datasource)
+	p.Collect(ctx, connector, datasource, doc)
 }
 
 // createFolderDocuments creates document entries for all folders that contain matching files
-func (p *Plugin) createFolderDocuments(foldersWithMatchingFiles map[string]bool, datasource *common.DataSource, cfg *Config) {
+func (p *Plugin) createFolderDocuments(ctx *pipeline.Context, foldersWithMatchingFiles map[string]bool, connector *common.Connector, datasource *common.DataSource, cfg *Config) {
+	var docs []common.Document
 	for folderPath := range foldersWithMatchingFiles {
 		if global.ShuttingDown() {
-			log.Info("[network_drive] Shutdown signal received, stopping folder creation.")
+			log.Info("[network_drive connector] Shutdown signal received, stopping folder creation.")
 			break
 		}
-		p.saveFolder(folderPath, datasource, cfg)
+		folderName := filepath.Base(folderPath)
+		parentCategoryArray := connectors.BuildParentCategoryArray(folderPath)
+		url := fmt.Sprintf("//%s/%s/%s/", cfg.Endpoint, cfg.Share, folderPath)
+		idSuffix := fmt.Sprintf("%s-%s-folder-%s", cfg.Endpoint, cfg.Share, folderPath)
+
+		doc := connectors.CreateDocumentWithHierarchy(connectors.TypeFolder, connectors.IconFolder, folderName, url, 0,
+			parentCategoryArray, datasource, idSuffix)
+
+		docs = append(docs, doc)
 	}
-}
 
-// saveDocument pushes a document to the queue
-func (p *Plugin) saveDocument(doc common.Document, datasource *common.DataSource) {
-	data := util.MustToJSONBytes(doc)
-	if err := queue.Push(p.Queue, data); err != nil {
-		_ = log.Errorf("[%v connector] failed to push document to queue for data source [%s]: %v", ConnectorNetworkDrive, datasource.Name, err)
+	if len(docs) > 0 {
+		p.BatchCollect(ctx, connector, datasource, docs)
 	}
-}
-
-// saveFolder creates and saves a document for a folder
-func (p *Plugin) saveFolder(folderPath string, datasource *common.DataSource, cfg *Config) {
-	folderName := filepath.Base(folderPath)
-	parentCategoryArray := connectors.BuildParentCategoryArray(folderPath)
-	url := fmt.Sprintf("//%s/%s/%s/", cfg.Endpoint, cfg.Share, folderPath)
-	idSuffix := fmt.Sprintf("%s-%s-folder-%s", cfg.Endpoint, cfg.Share, folderPath)
-
-	doc := connectors.CreateDocumentWithHierarchy(connectors.TypeFolder, connectors.IconFolder, folderName, url, 0,
-		parentCategoryArray, datasource, idSuffix)
-
-	p.saveDocument(doc, datasource)
 }

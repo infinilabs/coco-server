@@ -5,15 +5,14 @@
 package github
 
 import (
-	"context"
 	"fmt"
-	"sync"
 
 	log "github.com/cihub/seelog"
 	_ "github.com/google/go-github/v74/github"
 	"infini.sh/coco/modules/common"
-	"infini.sh/coco/plugins/connectors"
-	"infini.sh/framework/core/module"
+	cmn "infini.sh/coco/plugins/connectors/common"
+	"infini.sh/framework/core/config"
+	"infini.sh/framework/core/pipeline"
 )
 
 const (
@@ -21,75 +20,41 @@ const (
 )
 
 func init() {
-	module.RegisterUserPlugin(&Plugin{})
+	pipeline.RegisterProcessorPlugin(ConnectorGitHub, New)
+}
+
+func New(c *config.Config) (pipeline.Processor, error) {
+	runner := Plugin{}
+	runner.Init(c, &runner)
+	return &runner, nil
 }
 
 type Plugin struct {
-	connectors.BasePlugin
-	mu     sync.Mutex
-	ctx    context.Context
-	cancel context.CancelFunc
+	cmn.ConnectorProcessorBase
 }
 
 func (p *Plugin) Name() string {
 	return ConnectorGitHub
 }
 
-func (p *Plugin) Start() error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	p.ctx, p.cancel = context.WithCancel(context.Background())
-	return p.BasePlugin.Start(connectors.DefaultSyncInterval)
-}
-
-func (p *Plugin) Stop() error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	if p.cancel != nil {
-		log.Infof("[%s connector] received stop signal, cancelling all operations", ConnectorGitHub)
-		p.cancel()
-		p.ctx = nil
-		p.cancel = nil
-	}
-	return nil
-}
-
-func (p *Plugin) Setup() {
-	p.BasePlugin.Init(fmt.Sprintf("connector.%s", ConnectorGitHub), "indexing github repositories", p)
-}
-
-func (p *Plugin) Scan(connector *common.Connector, datasource *common.DataSource) {
-	p.mu.Lock()
-	parentCtx := p.ctx
-	p.mu.Unlock()
-
-	if parentCtx == nil {
-		_ = log.Warnf("[%s connector] plugin is stopped, skipping scan for datasource [%s]", ConnectorGitHub, datasource.Name)
-		return
-	}
-
+func (p *Plugin) Fetch(ctx *pipeline.Context, connector *common.Connector, datasource *common.DataSource) error {
 	cfg := Config{}
-	if err := connectors.ParseConnectorConfigure(connector, datasource, &cfg); err != nil {
-		_ = log.Errorf("[%s connector] parsing connector configuration failed for datasource [%s]: %v", ConnectorGitHub, datasource.Name, err)
-		return
-	}
+	p.MustParseConfig(datasource, &cfg)
+
+	log.Debugf("[%s connector] handling datasource: %v", ConnectorGitHub, cfg)
 
 	if cfg.Token == "" {
-		_ = log.Errorf("[%s connector] token is required for datasource [%s]", ConnectorGitHub, datasource.Name)
-		return
+		return fmt.Errorf("token is required for datasource [%s]", datasource.Name)
 	}
 
 	if cfg.Owner == "" {
-		_ = log.Errorf("[%s connector] owner is required for datasource [%s]", ConnectorGitHub, datasource.Name)
-		return
+		return fmt.Errorf("owner is required for datasource [%s]", datasource.Name)
 	}
 
 	client := NewGitHubClient(cfg.Token)
 
-	scanCtx, scanCancel := context.WithCancel(parentCtx)
-	defer scanCancel()
+	p.processRepos(ctx, client, &cfg, connector, datasource)
 
-	p.processRepos(scanCtx, client, &cfg, datasource)
-
-	log.Infof("[%s connector] finished scanning datasource [%s]", ConnectorGitHub, datasource.Name)
+	log.Infof("[%s connector] finished fetching datasource [%s]", ConnectorGitHub, datasource.Name)
+	return nil
 }
