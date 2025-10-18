@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
-	"strconv"
 	"strings"
 	"time"
 
@@ -37,11 +36,12 @@ const (
 
 // APIConfig holds API endpoints for different plugin types
 type APIConfig struct {
-	BaseURL     string
-	AuthURL     string
-	TokenURL    string
-	UserInfoURL string
-	DriveURL    string
+	BaseURL           string
+	AuthURL           string
+	TokenURL          string
+	RefreshTokenURL   string
+	UserInfoURL       string
+	DriveURL          string
 }
 
 // getAPIConfig returns the appropriate API configuration based on plugin type
@@ -49,19 +49,21 @@ func getAPIConfig(pluginType PluginType) *APIConfig {
 	switch pluginType {
 	case PluginTypeFeishu:
 		return &APIConfig{
-			BaseURL:     "https://open.feishu.cn",
-			AuthURL:     "https://accounts.feishu.cn/open-apis/authen/v1/authorize",
-			TokenURL:    "https://open.feishu.cn/open-apis/authen/v2/oauth/token",
-			UserInfoURL: "https://open.feishu.cn/open-apis/authen/v1/user_info",
-			DriveURL:    "https://open.feishu.cn/open-apis/drive/v1/files",
+			BaseURL:         "https://open.feishu.cn",
+			AuthURL:         "https://accounts.feishu.cn/open-apis/authen/v1/authorize",
+			TokenURL:        "https://open.feishu.cn/open-apis/authen/v2/oauth/token",
+			RefreshTokenURL: "https://open.feishu.cn/open-apis/authen/v2/oauth/token",
+			UserInfoURL:     "https://open.feishu.cn/open-apis/authen/v1/user_info",
+			DriveURL:        "https://open.feishu.cn/open-apis/drive/v1/files",
 		}
 	case PluginTypeLark:
 		return &APIConfig{
-			BaseURL:     "https://open.larksuite.com",
-			AuthURL:     "https://accounts.larksuite.com/open-apis/authen/v1/authorize",
-			TokenURL:    "https://open.larksuite.com/open-apis/authen/v2/oauth/token",
-			UserInfoURL: "https://open.larksuite.com/open-apis/authen/v1/user_info",
-			DriveURL:    "https://open.larksuite.com/open-apis/drive/v1/files",
+			BaseURL:         "https://open.larksuite.com",
+			AuthURL:         "https://accounts.larksuite.com/open-apis/authen/v1/authorize",
+			TokenURL:        "https://open.larksuite.com/open-apis/authen/v2/oauth/token",
+			RefreshTokenURL: "https://open.larksuite.com/open-apis/authen/v2/oauth/token",
+			UserInfoURL:     "https://open.larksuite.com/open-apis/authen/v1/user_info",
+			DriveURL:        "https://open.larksuite.com/open-apis/drive/v1/files",
 		}
 	default:
 		// Default to feishu
@@ -75,8 +77,6 @@ type Plugin struct {
 	PluginType PluginType
 	// API configuration based on plugin type
 	apiConfig *APIConfig
-	// OAuth configuration (only used for OAuth handlers in api.go)
-	OAuthConfig *OAuthConfig
 }
 
 // SetPluginType sets the plugin type and initializes API configuration
@@ -136,19 +136,6 @@ type SearchContext struct {
 	LatestSeen      *time.Time
 }
 
-// Token represents the OAuth token response
-type Token struct {
-	Code                  int    `json:"code"`
-	AccessToken           string `json:"access_token"`
-	ExpiresIn             int    `json:"expires_in"`
-	RefreshToken          string `json:"refresh_token"`
-	RefreshTokenExpiresIn int    `json:"refresh_token_expires_in"`
-	TokenType             string `json:"token_type"`
-	Scope                 string `json:"scope"`
-	Error                 string `json:"error"`
-	ErrorDescription      string `json:"error_description"`
-}
-
 func (this *Plugin) Name() string {
 	return string(this.PluginType)
 }
@@ -175,12 +162,12 @@ func init() {
 	pipeline.RegisterProcessorPlugin(ConnectorLark, NewLark)
 
 	// Register OAuth routes for Feishu
-	api.HandleUIMethod(api.GET, "/connector/:id/feishu/connect", feishuConnect, api.RequireLogin())
-	api.HandleUIMethod(api.GET, "/connector/:id/feishu/oauth_redirect", feishuOAuthRedirect, api.RequireLogin())
+	api.HandleUIMethod(api.GET, "/connector/:id/feishu/connect", handleOAuthConnect(PluginTypeFeishu), api.RequireLogin())
+	api.HandleUIMethod(api.GET, "/connector/:id/feishu/oauth_redirect", handleOAuthRedirect(PluginTypeFeishu), api.RequireLogin())
 
 	// Register OAuth routes for Lark
-	api.HandleUIMethod(api.GET, "/connector/:id/lark/connect", larkConnect, api.RequireLogin())
-	api.HandleUIMethod(api.GET, "/connector/:id/lark/oauth_redirect", larkOAuthRedirect, api.RequireLogin())
+	api.HandleUIMethod(api.GET, "/connector/:id/lark/connect", handleOAuthConnect(PluginTypeLark), api.RequireLogin())
+	api.HandleUIMethod(api.GET, "/connector/:id/lark/oauth_redirect", handleOAuthRedirect(PluginTypeLark), api.RequireLogin())
 }
 
 func (this *Plugin) Fetch(ctx *pipeline.Context, connector *common.Connector, datasource *common.DataSource) error {
@@ -211,8 +198,9 @@ func (this *Plugin) Fetch(ctx *pipeline.Context, connector *common.Connector, da
 					}
 
 					// Access token expired but refresh token still valid, try to refresh
-					// Get OAuth config from connector.Config
-					newToken, err := this.refreshAccessTokenWithConnectorConfig(cfg.RefreshToken, connector.Config)
+					// Create OAuth handler to refresh token
+					handler := NewOAuthHandler(this.PluginType, nil)
+					newToken, err := handler.refreshAccessTokenWithConnectorConfig(cfg.RefreshToken, connector.Config)
 					if err != nil {
 						return errors.Errorf("[%s connector] failed to refresh token: %v", this.PluginType, err)
 					}
@@ -330,7 +318,8 @@ func (this *Plugin) searchFilesRecursively(ctx *SearchContext) {
 
 		var parsed map[string]interface{}
 		if err := json.Unmarshal(resBody, &parsed); err != nil {
-			panic(errors.Errorf("Error parsing response: %v", err))
+			log.Errorf("[%s connector] Error parsing API response: %v, body: %s", this.PluginType, err, string(resBody))
+			break // Skip this page and continue with next iteration
 		}
 
 		data, _ := parsed["data"].(map[string]interface{})
@@ -470,8 +459,10 @@ func (this *Plugin) searchFilesRecursively(ctx *SearchContext) {
 			}
 
 			// Track latest seen modified time
-			if ctx.LatestSeen.IsZero() || updatedAt.After(*ctx.LatestSeen) {
-				*ctx.LatestSeen = updatedAt
+			if ctx.LatestSeen != nil {
+				if ctx.LatestSeen.IsZero() || updatedAt.After(*ctx.LatestSeen) {
+					*ctx.LatestSeen = updatedAt
+				}
 			}
 			// Content is not returned in search; keep metadata/payload
 			doc.Payload = m
@@ -500,118 +491,6 @@ func (this *Plugin) searchFilesRecursively(ctx *SearchContext) {
 			break
 		}
 	}
-}
-
-// exchangeCodeForToken exchanges authorization code for access token
-func (this *Plugin) exchangeCodeForToken(code string) (*Token, error) {
-	if this.OAuthConfig == nil {
-		return nil, errors.Errorf("OAuth config not initialized")
-	}
-	payload := map[string]interface{}{
-		"client_id":     this.OAuthConfig.ClientID,
-		"client_secret": this.OAuthConfig.ClientSecret,
-		"grant_type":    "authorization_code",
-		"code":          code,
-		"redirect_uri":  this.OAuthConfig.RedirectURL,
-	}
-
-	req := util.NewPostRequest(this.OAuthConfig.TokenURL, util.MustToJSONBytes(payload))
-	req.AddHeader("Content-Type", "application/json")
-
-	res, err := util.ExecuteRequest(req)
-	if err != nil {
-		return nil, err
-	}
-
-	if res == nil {
-		return nil, errors.Errorf("%s API error, no response", this.PluginType)
-	}
-
-	if res.StatusCode >= 300 {
-		return nil, errors.Errorf("%s API error: status %d, body: %s", this.PluginType, res.StatusCode, string(res.Body))
-	}
-
-	var tokenResponse Token
-	if err := json.Unmarshal(res.Body, &tokenResponse); err != nil {
-		return nil, err
-	}
-
-	return &tokenResponse, nil
-}
-
-// refreshAccessTokenWithConnectorConfig refreshes the access token using refresh token and connector config
-func (this *Plugin) refreshAccessTokenWithConnectorConfig(refreshToken string, connectorConfig util.MapStr) (*Token, error) {
-	// Extract OAuth credentials from connector config
-	clientID, _ := connectorConfig["client_id"].(string)
-	clientSecret, _ := connectorConfig["client_secret"].(string)
-
-	if clientID == "" || clientSecret == "" {
-		return nil, errors.Errorf("OAuth client_id and client_secret not found in connector config")
-	}
-
-	apiConfig := this.GetAPIConfig()
-	tokenURL := apiConfig.TokenURL
-
-	// Allow override from connector config
-	if url, ok := connectorConfig["token_url"].(string); ok && url != "" {
-		tokenURL = url
-	}
-
-	payload := map[string]interface{}{
-		"client_id":     clientID,
-		"client_secret": clientSecret,
-		"grant_type":    "refresh_token",
-		"refresh_token": refreshToken,
-	}
-
-	req := util.NewPostRequest(tokenURL, util.MustToJSONBytes(payload))
-	req.AddHeader("Content-Type", "application/json")
-	res, err := util.ExecuteRequest(req)
-	if err != nil {
-		return nil, err
-	}
-	if res == nil {
-		return nil, errors.Errorf("%s API error, no response", this.PluginType)
-	}
-	if res.StatusCode >= 300 {
-		return nil, errors.Errorf("%s API error: status %d, body: %s", this.PluginType, res.StatusCode, string(res.Body))
-	}
-
-	var tokenResponse Token
-	if err := json.Unmarshal(res.Body, &tokenResponse); err != nil {
-		return nil, err
-	}
-	return &tokenResponse, nil
-}
-
-// getUserProfile retrieves user profile information
-func (this *Plugin) getUserProfile(accessToken string) (util.MapStr, error) {
-	apiConfig := this.GetAPIConfig()
-	req := util.NewGetRequest(apiConfig.UserInfoURL, nil)
-	req.AddHeader("Authorization", fmt.Sprintf("Bearer %s", accessToken))
-	res, err := util.ExecuteRequest(req)
-	if err != nil {
-		return nil, err
-	}
-	if res == nil {
-		return nil, errors.Errorf("%s API error, no response", this.PluginType)
-	}
-	if res.StatusCode >= 300 {
-		return nil, errors.Errorf("%s API error: status %d, body: %s", this.PluginType, res.StatusCode, string(res.Body))
-	}
-
-	var response struct {
-		Code int         `json:"code"`
-		Msg  string      `json:"msg"`
-		Data util.MapStr `json:"data"`
-	}
-	if err := json.Unmarshal(res.Body, &response); err != nil {
-		return nil, err
-	}
-	if response.Code != 0 {
-		return nil, errors.Errorf("%s API error: %s", this.PluginType, response.Msg)
-	}
-	return response.Data, nil
 }
 
 // listFilesInFolder lists files in a specific folder
@@ -659,79 +538,4 @@ func (this *Plugin) isSupportedDocumentType(docType string, supportedTypes []str
 	return false
 }
 
-func getString(m map[string]interface{}, key string) string {
-	if m == nil {
-		return ""
-	}
-	if v, ok := m[key]; ok && v != nil {
-		if s, ok := v.(string); ok {
-			return s
-		}
-	}
-	return ""
-}
-
-func getTime(s string) time.Time {
-	s = strings.TrimSpace(s)
-	if s == "" {
-		return time.Time{}
-	}
-	layouts := []string{time.RFC3339, "2006-01-02 15:04:05", "2006-01-02T15:04:05Z07:00"}
-	for _, l := range layouts {
-		if t, err := time.Parse(l, s); err == nil {
-			return t
-		}
-	}
-	// Fallback: numeric Unix timestamp (seconds/milliseconds/microseconds/nanoseconds)
-	isDigits := true
-	for i := 0; i < len(s); i++ {
-		if s[i] < '0' || s[i] > '9' {
-			isDigits = false
-			break
-		}
-	}
-	if isDigits {
-		if ts, err := strconv.ParseInt(s, 10, 64); err == nil {
-			var sec int64
-			var nsec int64
-			switch {
-			case len(s) <= 10: // seconds
-				sec = ts
-				nsec = 0
-			case len(s) <= 13: // milliseconds
-				sec = ts / 1_000
-				nsec = (ts % 1_000) * int64(time.Millisecond)
-			case len(s) <= 16: // microseconds
-				sec = ts / 1_000_000
-				nsec = (ts % 1_000_000) * int64(time.Microsecond)
-			default: // nanoseconds
-				sec = ts / 1_000_000_000
-				nsec = ts % 1_000_000_000
-			}
-			return time.Unix(sec, nsec)
-		}
-	}
-	return time.Time{}
-}
-
-func getBool(m map[string]interface{}, key string) bool {
-	if m == nil {
-		return false
-	}
-	if v, ok := m[key]; ok && v != nil {
-		if s, ok := v.(bool); ok {
-			return s
-		}
-	}
-	return false
-}
-
-// getIcon returns the appropriate icon for a Salesforce object type
-func getIcon(docType string) string {
-	switch docType {
-	case "doc", "sheet", "slides", "mindnote", "bitable", "file", "docx":
-		return docType
-	default:
-		return "default"
-	}
-}
+// Note: Utility functions (getString, getTime, getBool, getIcon) moved to util.go for better code organization

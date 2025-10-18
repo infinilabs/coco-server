@@ -458,6 +458,8 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/f
     "token_url": "https://open.feishu.cn/open-apis/authen/v2/oauth/token"
   },
   "builtin": true,
+  "path_hierarchy": true,
+  "oauth_connect_implemented": true,
   "processor": {
     "enabled": true,
     "name": "feishu"
@@ -495,6 +497,8 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/l
     "token_url": "https://open.larksuite.com/open-apis/authen/v2/oauth/token"
   },
   "builtin": true,
+  "path_hierarchy": true,
+  "oauth_connect_implemented": true,
   "processor": {
     "enabled": true,
     "name": "lark"

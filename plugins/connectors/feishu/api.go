@@ -9,28 +9,14 @@ import (
 
 	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
-	"infini.sh/framework/core/kv"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
 
 	log "github.com/cihub/seelog"
 )
 
-// saveLastModifiedTime saves the last modified time for incremental sync per datasource
-func (this *Plugin) saveLastModifiedTime(datasourceID string, lastModifiedTime string) error {
-	bucket := fmt.Sprintf("/connector/%s/lastModifiedTime", this.PluginType)
-	return kv.AddValue(bucket, []byte(datasourceID), []byte(lastModifiedTime))
-}
-
-// getLastModifiedTime retrieves the last modified time for incremental sync per datasource
-func (this *Plugin) getLastModifiedTime(datasourceID string) (string, error) {
-	bucket := fmt.Sprintf("/connector/%s/lastModifiedTime", this.PluginType)
-	data, err := kv.GetValue(bucket, []byte(datasourceID))
-	if err != nil {
-		return "", err
-	}
-	return string(data), nil
-}
+// Note: saveLastModifiedTime and getLastModifiedTime methods are inherited from ConnectorProcessorBase
+// No need to override them here unless custom behavior is needed
 
 // connect handles the OAuth authorization request
 func connect(w http.ResponseWriter, req *http.Request, _ httprouter.Params, pluginType PluginType, oauthConfig *OAuthConfig) {
@@ -44,23 +30,7 @@ func connect(w http.ResponseWriter, req *http.Request, _ httprouter.Params, plug
 	// Generate OAuth authorization URL for Feishu/Lark
 	// Feishu OAuth uses client_id instead of app_id
 
-	// Build full redirect_url from current request
-	redirectURL := oauthConfig.RedirectURL
-	if !strings.HasPrefix(redirectURL, "http://") && !strings.HasPrefix(redirectURL, "https://") {
-		// Extract scheme and host from current request
-		scheme := "http"
-		if req.TLS != nil || req.Header.Get("X-Forwarded-Proto") == "https" {
-			scheme = "https"
-		}
-
-		host := req.Host
-		if host == "" {
-			host = "localhost:8080" // fallback
-		}
-
-		redirectURL = fmt.Sprintf("%s://%s%s", scheme, host, redirectURL)
-		oauthConfig.RedirectURL = redirectURL
-	}
+	redirectURL := resolveRedirectURL(oauthConfig, req)
 
 	authURL := fmt.Sprintf("%s?client_id=%s&redirect_uri=%s&scope=%s",
 		oauthConfig.AuthURL,
@@ -73,6 +43,27 @@ func connect(w http.ResponseWriter, req *http.Request, _ httprouter.Params, plug
 
 	// Redirect user to Feishu/Lark OAuth page
 	http.Redirect(w, req, authURL, http.StatusTemporaryRedirect)
+}
+
+func resolveRedirectURL(oauthConfig *OAuthConfig, req *http.Request) string {
+	// Build full redirect_url from current request
+	redirectURL := oauthConfig.RedirectURL
+	if !strings.HasPrefix(redirectURL, "http://") && !strings.HasPrefix(redirectURL, "https://") {
+		// Extract scheme and host from current request
+		scheme := "http"
+		if req.TLS != nil || req.Header.Get("X-Forwarded-Proto") == "https" {
+			scheme = "https"
+		}
+
+		host := req.Host
+		if host == "" {
+			host = "localhost:9000" // fallback
+		}
+
+		redirectURL = fmt.Sprintf("%s://%s%s", scheme, host, redirectURL)
+		oauthConfig.RedirectURL = redirectURL
+	}
+	return redirectURL
 }
 
 // oAuthRedirect handles the OAuth callback
@@ -97,23 +88,21 @@ func oAuthRedirect(w http.ResponseWriter, req *http.Request, ps httprouter.Param
 
 	log.Debugf("[%s connector] Received authorization code", pluginType)
 
-	// Create a temporary plugin instance to use helper methods
-	p := &Plugin{}
-	p.SetPluginType(pluginType)
-	p.OAuthConfig = oauthConfig
+	// Create OAuth handler to process the callback
+	handler := NewOAuthHandler(pluginType, oauthConfig)
 
 	// Exchange authorization code for access token
-	token, err := p.exchangeCodeForToken(code)
+	token, err := handler.exchangeCodeForToken(code)
 	if err != nil {
-		log.Errorf("[%s connector] Failed to exchange code for token: %v", pluginType, err)
+		_ = log.Errorf("[%s connector] Failed to exchange code for token: %v", pluginType, err)
 		http.Error(w, "Failed to exchange authorization code for token.", http.StatusInternalServerError)
 		return
 	}
 
 	// Get user profile information
-	profile, err := p.getUserProfile(token.AccessToken)
+	profile, err := handler.getUserProfile(token.AccessToken)
 	if err != nil {
-		log.Errorf("[%s connector] Failed to get user profile: %v", pluginType, err)
+		_ = log.Errorf("[%s connector] Failed to get user profile: %v", pluginType, err)
 		http.Error(w, "Failed to get user profile information.", http.StatusInternalServerError)
 		return
 	}
@@ -186,45 +175,29 @@ func oAuthRedirect(w http.ResponseWriter, req *http.Request, ps httprouter.Param
 	http.Redirect(w, req, newRedirectURL, http.StatusTemporaryRedirect)
 }
 
-// feishuConnect handles OAuth authorization for Feishu
-func feishuConnect(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	// Get OAuth config from connector
-	oauthConfig, err := getOAuthConfigFromConnector(ps.ByName("id"), PluginTypeFeishu)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to get OAuth config: %v", err), http.StatusInternalServerError)
-		return
+// handleOAuthConnect is a generic handler factory for OAuth authorization
+func handleOAuthConnect(pluginType PluginType) httprouter.Handle {
+	return func(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+		oauthConfig, err := getOAuthConfigFromConnector(ps.ByName("id"), pluginType)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Failed to get OAuth config: %v", err), http.StatusInternalServerError)
+			return
+		}
+		connect(w, req, ps, pluginType, oauthConfig)
 	}
-	connect(w, req, ps, PluginTypeFeishu, oauthConfig)
 }
 
-// feishuOAuthRedirect handles OAuth callback for Feishu
-func feishuOAuthRedirect(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	oauthConfig, err := getOAuthConfigFromConnector(ps.ByName("id"), PluginTypeFeishu)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to get OAuth config: %v", err), http.StatusInternalServerError)
-		return
+// handleOAuthRedirect is a generic handler factory for OAuth callback
+func handleOAuthRedirect(pluginType PluginType) httprouter.Handle {
+	return func(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+		oauthConfig, err := getOAuthConfigFromConnector(ps.ByName("id"), pluginType)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Failed to get OAuth config: %v", err), http.StatusInternalServerError)
+			return
+		}
+		oauthConfig.RedirectURL = resolveRedirectURL(oauthConfig, req)
+		oAuthRedirect(w, req, ps, pluginType, oauthConfig)
 	}
-	oAuthRedirect(w, req, ps, PluginTypeFeishu, oauthConfig)
-}
-
-// larkConnect handles OAuth authorization for Lark
-func larkConnect(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	oauthConfig, err := getOAuthConfigFromConnector(ps.ByName("id"), PluginTypeLark)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to get OAuth config: %v", err), http.StatusInternalServerError)
-		return
-	}
-	connect(w, req, ps, PluginTypeLark, oauthConfig)
-}
-
-// larkOAuthRedirect handles OAuth callback for Lark
-func larkOAuthRedirect(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	oauthConfig, err := getOAuthConfigFromConnector(ps.ByName("id"), PluginTypeLark)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to get OAuth config: %v", err), http.StatusInternalServerError)
-		return
-	}
-	oAuthRedirect(w, req, ps, PluginTypeLark, oauthConfig)
 }
 
 // getOAuthConfigFromConnector retrieves OAuth configuration from connector
