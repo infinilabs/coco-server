@@ -27,12 +27,60 @@ export const authSlice = createAppSlice({
 
           const { data: info, error: userInfoError } = await fetchGetUserInfo();
 
+          const userInfo = {
+              ...info,
+              permissions: [
+                'coco:home/view',
+                'coco:ai_assistant/view',
+                'coco:ai_assistant/create',
+                'coco:ai_assistant/update',
+                'coco:ai_assistant/delete',
+                'coco:mcp/view',
+                'coco:mcp/create',
+                'coco:mcp/update',
+                'coco:mcp/delete',
+                'coco:model/view',
+                'coco:model/create',
+                'coco:model/update',
+                'coco:model/delete',
+                'coco:datasource/view',
+                'coco:datasource/create',
+                'coco:datasource/update',
+                'coco:datasource/delete',
+                'coco:api_token/view',
+                'coco:api_token/create',
+                'coco:api_token/update',
+                'coco:api_token/delete',
+                'coco:integration/view',
+                'coco:integration/create',
+                'coco:integration/update',
+                'coco:integration/delete',
+                'coco:role/view',
+                'coco:role/create',
+                'coco:role/update',
+                'coco:role/delete',
+                'coco:connector/view',
+                'coco:connector/create',
+                'coco:connector/update',
+                'coco:connector/delete',
+      'coco:role/view',
+      'coco:role/create',
+      'coco:role/update',
+      'coco:role/delete',
+                'coco:app_settings/view',
+                'coco:app_settings/update',
+                'coco:search_settings/view',
+                'coco:search_settings/update',
+                'coco:server_settings/update',
+              ]
+            }
+
           if (!userInfoError) {
             // 2. store user info
-            localStg.set('userInfo', info);
+            localStg.set('userInfo', userInfo);
             return {
               token: data.access_token,
-              userInfo: info
+              userInfo: userInfo
             };
           }
         }
