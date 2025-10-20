@@ -36,58 +36,6 @@ curl -XPUT "http://localhost:9000/connector/github?replace=true" -d '{
 
 > Use `github` as a unique identifier, as it is a builtin connector.
 
-> **Note**: Starting from version **0.4.0**, the GitHub connector uses a **pipeline-based architecture** for better performance and flexibility. The `processor` configuration is required for the connector to work properly.
-
-## Pipeline Architecture
-
-Starting from version **0.4.0**, the GitHub connector uses a **pipeline-based architecture** instead of the legacy scheduled task approach. This provides:
-
-- **Better Performance**: Centralized dispatcher manages all connector sync operations
-- **Per-Datasource Configuration**: Each datasource can have its own sync interval
-- **Enrichment Pipeline Support**: Optional data enrichment pipelines per datasource
-- **Resource Efficiency**: Optimized scheduling and resource management
-
-### Pipeline Configuration (coco.yml)
-
-The connector is managed by the centralized dispatcher pipeline:
-
-```yaml
-pipeline:
-  - name: connector_dispatcher
-    auto_start: true
-    keep_running: true
-    singleton: true
-    retry_delay_in_ms: 10000
-    processor:
-      - connector_dispatcher:
-          max_running_timeout_in_seconds: 1200
-```
-
-> **Important**: This pipeline configuration replaces the old connector-level config. The dispatcher automatically manages all enabled connectors.
-
-### Connector Configuration
-
-The GitHub connector is configured via the management interface or API:
-
-```json
-{
-  "id": "github",
-  "name": "GitHub Connector",
-  "builtin": true,
-  "processor": {
-    "enabled": true,
-    "name": "github"
-  }
-}
-```
-
-### Explanation of Connector Config Parameters
-
-| **Field**           | **Type**  | **Description**                                                      |
-|---------------------|-----------|----------------------------------------------------------------------|
-| `processor.enabled` | `boolean` | Enables the pipeline processor (required).                           |
-| `processor.name`    | `string`  | Processor name, must be "github" (required).                         |
-
 ## Use the GitHub Connector
 
 The GitHub Connector allows you to index repositories, issues, and pull requests from your GitHub account or organization.
@@ -141,13 +89,13 @@ Below are the configuration parameters supported by the GitHub Connector:
 
 ### Datasource Config Parameters
 
-| **Field**             | **Type**   | **Description**                                                                                                |
-|-----------------------|------------|----------------------------------------------------------------------------------------------------------------|
-| `token`               | `string`   | Your GitHub Personal Access Token (PAT) with `repo` scope (required).                                          |
-| `owner`               | `string`   | The username or organization name to scan (required).                                                           |
-| `repos`               | `[]string` | Optional. A list of repository names to index. If empty, all repositories for the owner will be indexed.       |
-| `index_issues`        | `boolean`  | Optional. Whether to index issues. Defaults to `true`.                                                         |
-| `index_pull_requests` | `boolean`  | Optional. Whether to index pull requests. Defaults to `true`.                                                  |
-| `sync.enabled`        | `boolean`  | Enable/disable syncing for this datasource.                                                                    |
-| `sync.interval`       | `string`   | Sync interval for this datasource (e.g., "30s", "5m", "1h").                                                   |
+| **Field**             | **Type**   | **Description**                                                                                                  |
+|-----------------------|------------|------------------------------------------------------------------------------------------------------------------|
+| `token`               | `string`   | Your GitHub Personal Access Token (PAT) with `repo` scope (required).                                            |
+| `owner`               | `string`   | The username or organization name to scan (required).                                                            |
+| `repos`               | `[]string` | Optional. A list of repository names to index. If empty, all repositories for the owner will be indexed.         |
+| `index_issues`        | `boolean`  | Optional. Whether to index issues. Defaults to `true`.                                                           |
+| `index_pull_requests` | `boolean`  | Optional. Whether to index pull requests. Defaults to `true`.                                                    |
+| `sync.enabled`        | `boolean`  | Enable/disable syncing for this datasource.                                                                      |
+| `sync.interval`       | `string`   | Sync interval for this datasource (e.g., "30s", "5m", "1h").                                                     |
 

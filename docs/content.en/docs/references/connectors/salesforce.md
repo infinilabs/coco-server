@@ -40,66 +40,6 @@ curl -XPUT "http://localhost:9000/connector/salesforce?replace=true" -d '{
 
 > Use `salesforce` as a unique identifier, as it is a builtin connector.
 
-> **Note**: Starting from version **0.4.0**, the Salesforce connector uses a **pipeline-based architecture** for better performance and flexibility. The `processor` configuration is required for the connector to work properly.
-
-## Pipeline Architecture
-
-Starting from version **0.4.0**, the Salesforce connector uses a **pipeline-based architecture** instead of the legacy scheduled task approach. This provides:
-
-- **Better Performance**: Centralized dispatcher manages all connector sync operations
-- **Per-Datasource Configuration**: Each datasource can have its own sync interval
-- **Enrichment Pipeline Support**: Optional data enrichment pipelines per datasource
-- **Resource Efficiency**: Optimized scheduling and resource management
-
-### Pipeline Configuration (coco.yml)
-
-The connector is managed by the centralized dispatcher pipeline:
-
-```yaml
-pipeline:
-  - name: connector_dispatcher
-    auto_start: true
-    keep_running: true
-    singleton: true
-    retry_delay_in_ms: 10000
-    processor:
-      - connector_dispatcher:
-          max_running_timeout_in_seconds: 1200
-```
-
-> **Important**: This pipeline configuration replaces the old connector-level config. The dispatcher automatically manages all enabled connectors.
-
-### Connector Configuration
-
-OAuth credentials are configured at the connector level via the management interface or API:
-
-```json
-{
-  "id": "salesforce",
-  "name": "Salesforce Connector",
-  "builtin": true,
-  "processor": {
-    "enabled": true,
-    "name": "salesforce"
-  },
-  "config": {
-    "domain": "mycompany",
-    "client_id": "your_client_id_here",
-    "client_secret": "your_client_secret_here"
-  }
-}
-```
-
-### Explanation of Connector Config Parameters
-
-| **Field**      | **Type**  | **Description**                                                                 |
-|-----------------|-----------|---------------------------------------------------------------------------------|
-| `domain`       | `string`  | Your Salesforce domain (e.g., "mycompany" for mycompany.my.salesforce.com).    |
-| `client_id`    | `string`  | OAuth2 client ID from your Salesforce connected app.                           |
-| `client_secret`| `string`  | OAuth2 client secret from your Salesforce connected app.                       |
-| `processor.enabled` | `boolean` | Enables the pipeline processor (required).                                |
-| `processor.name`    | `string`  | Processor name, must be "salesforce" (required).                          |
-
 ## Use the Salesforce Connector
 
 The Salesforce Connector allows you to index data from your Salesforce org with intelligent field caching, query optimization, and comprehensive data extraction.
