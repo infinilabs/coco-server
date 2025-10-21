@@ -1,73 +1,53 @@
 package neo4j
 
 import (
-	"context"
 	"fmt"
-	"sync"
 
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/plugins/connectors"
-	"infini.sh/framework/core/module"
+	cmn "infini.sh/coco/plugins/connectors/common"
+	"infini.sh/framework/core/config"
+	"infini.sh/framework/core/pipeline"
 )
 
 const ConnectorNeo4j = "neo4j"
 
 func init() {
-	module.RegisterUserPlugin(&Plugin{})
+	pipeline.RegisterProcessorPlugin(ConnectorNeo4j, New)
 }
 
 type Plugin struct {
-	connectors.BasePlugin
-	mu     sync.Mutex
-	ctx    context.Context
-	cancel context.CancelFunc
+	cmn.ConnectorProcessorBase
+}
+
+func New(c *config.Config) (pipeline.Processor, error) {
+	runner := Plugin{}
+	runner.Init(c, &runner)
+	return &runner, nil
 }
 
 func (p *Plugin) Name() string {
 	return ConnectorNeo4j
 }
 
-func (p *Plugin) Setup() {
-	p.BasePlugin.Init(fmt.Sprintf("connector.%s", ConnectorNeo4j), "indexing neo4j database", p)
-}
-
-func (p *Plugin) Start() error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	p.ctx, p.cancel = context.WithCancel(context.Background())
-	return p.BasePlugin.Start(connectors.DefaultSyncInterval)
-}
-
-func (p *Plugin) Stop() error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	if p.cancel != nil {
-		log.Infof("[%s connector] received stop signal, cancelling all operations", ConnectorNeo4j)
-		p.cancel()
-		p.cancel = nil
-		p.ctx = nil
-	}
-	return nil
-}
-
-func (p *Plugin) Scan(connector *common.Connector, datasource *common.DataSource) {
-	p.mu.Lock()
-	parentCtx := p.ctx
-	p.mu.Unlock()
-
-	if parentCtx == nil {
-		_ = log.Warnf("[%s connector] plugin is stopped, skipping datasource [%s]", ConnectorNeo4j, datasource.Name)
-		return
-	}
-
+func (p *Plugin) Fetch(ctx *pipeline.Context, connector *common.Connector, datasource *common.DataSource) error {
 	worker := &scanner{
 		name:       ConnectorNeo4j,
 		connector:  connector,
 		datasource: datasource,
-		queue:      p.Queue,
 		stateStore: connectors.NewSyncStateStore(),
+		// Use Collect pattern instead of direct queue.Push
+		collectFunc: func(doc common.Document) error {
+			p.Collect(ctx, connector, datasource, doc)
+			return nil
+		},
 	}
 
-	worker.Scan(parentCtx)
+	if err := worker.Scan(ctx); err != nil {
+		return fmt.Errorf("failed to scan datasource: %w", err)
+	}
+
+	log.Infof("[%s connector] finished fetching datasource [%s]", ConnectorNeo4j, datasource.Name)
+	return nil
 }

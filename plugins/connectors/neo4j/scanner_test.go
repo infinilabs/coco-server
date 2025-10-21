@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"infini.sh/coco/modules/common"
 	"infini.sh/coco/plugins/connectors"
 )
 
@@ -200,4 +201,83 @@ func TestBuildQueryFullSyncPagination(t *testing.T) {
 
 func contains(s, substr string) bool {
 	return strings.Contains(s, substr)
+}
+
+// TestScannerCollectFunc verifies that scanner calls collectFunc for documents
+func TestScannerCollectFunc(t *testing.T) {
+	// Track collected documents
+	var collected []string
+	collectFunc := func(doc common.Document) error {
+		collected = append(collected, doc.ID)
+		return nil
+	}
+
+	// Create test scanner
+	s := &scanner{
+		name:        "test-neo4j",
+		collectFunc: collectFunc,
+	}
+
+	// Verify collectFunc is set
+	if s.collectFunc == nil {
+		t.Fatal("expected collectFunc to be set")
+	}
+
+	// Create test document
+	testDoc := common.Document{
+		Title: "Test Document",
+	}
+	testDoc.ID = "test-id-1"
+
+	// Call collectFunc
+	if err := s.collectFunc(testDoc); err != nil {
+		t.Fatalf("collectFunc failed: %v", err)
+	}
+
+	// Verify document was collected
+	if len(collected) != 1 {
+		t.Fatalf("expected 1 document, got %d", len(collected))
+	}
+
+	if collected[0] != "test-id-1" {
+		t.Errorf("expected document ID 'test-id-1', got %s", collected[0])
+	}
+}
+
+// TestScannerCollectFuncError verifies error handling in collectFunc
+func TestScannerCollectFuncError(t *testing.T) {
+	// Track calls
+	callCount := 0
+	collectFunc := func(doc common.Document) error {
+		callCount++
+		return fmt.Errorf("collection error")
+	}
+
+	// Create test scanner
+	s := &scanner{
+		name:        "test-neo4j",
+		collectFunc: collectFunc,
+	}
+
+	// Create test document
+	testDoc := common.Document{
+		Title: "Test Document",
+	}
+	testDoc.ID = "test-id-1"
+
+	// Call collectFunc - should return error
+	err := s.collectFunc(testDoc)
+	if err == nil {
+		t.Fatal("expected collectFunc to return error")
+	}
+
+	// Verify collectFunc was called
+	if callCount != 1 {
+		t.Fatalf("expected collectFunc to be called once, got %d", callCount)
+	}
+
+	// Verify error message
+	if !strings.Contains(err.Error(), "collection error") {
+		t.Errorf("unexpected error message: %v", err)
+	}
 }

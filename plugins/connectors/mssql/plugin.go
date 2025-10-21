@@ -5,7 +5,7 @@
 package mssql
 
 import (
-	"context"
+	"fmt"
 
 	log "github.com/cihub/seelog"
 	_ "github.com/microsoft/go-mssqldb" // Import the MSSQL driver
@@ -40,15 +40,18 @@ func (p *Plugin) Name() string {
 func (p *Plugin) Fetch(ctx *pipeline.Context, connector *common.Connector, datasource *common.DataSource) error {
 	log.Debugf("[%s connector] handling datasource: %v", ConnectorMSSQL, datasource.Name)
 
-	scanCtx := context.Background()
 	dialect := &SQLServerDialect{}
 
 	scanner := &cmn.Scanner{
 		Name:       ConnectorMSSQL,
 		Connector:  connector,
 		Datasource: datasource,
-		Queue:      p.Queue,
 		DriverName: "mssql",
+		// Use Collect pattern instead of direct queue.Push
+		CollectFunc: func(doc common.Document) error {
+			p.Collect(ctx, connector, datasource, doc)
+			return nil
+		},
 		SqlWithLastModified: func(baseQuery string, lastSyncField string) string {
 			return dialect.BuildIncrementalQuery(baseQuery, lastSyncField)
 		},
@@ -56,7 +59,10 @@ func (p *Plugin) Fetch(ctx *pipeline.Context, connector *common.Connector, datas
 			return dialect.BuildPaginationQuery(baseQuery, pageSize, offset)
 		},
 	}
-	scanner.Scan(scanCtx)
+
+	if err := scanner.Scan(ctx); err != nil {
+		return fmt.Errorf("failed to scan datasource: %w", err)
+	}
 
 	log.Infof("[%s connector] finished fetching datasource [%s]", ConnectorMSSQL, datasource.Name)
 	return nil

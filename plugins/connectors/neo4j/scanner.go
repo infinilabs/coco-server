@@ -9,12 +9,12 @@ import (
 
 	log "github.com/cihub/seelog"
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
+	"infini.sh/framework/core/pipeline"
 
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/plugins/connectors"
 	rdbms "infini.sh/coco/plugins/connectors/common"
 	"infini.sh/framework/core/global"
-	"infini.sh/framework/core/queue"
 	"infini.sh/framework/core/util"
 )
 
@@ -35,8 +35,10 @@ type scanner struct {
 	name       string
 	connector  *common.Connector
 	datasource *common.DataSource
-	queue      *queue.QueueConfig
 	stateStore *connectors.SyncStateStore
+	// CollectFunc is called to collect each document (replaces direct queue.Push)
+	// This allows using the ConnectorProcessorBase.Collect() method
+	collectFunc func(doc common.Document) error
 }
 
 type Config struct {
@@ -105,27 +107,27 @@ func (cfg *Config) validate() error {
 	return nil
 }
 
-func (s *scanner) Scan(ctx context.Context) {
+func (s *scanner) Scan(ctx *pipeline.Context) error {
 	if err := connectors.CheckContextDone(ctx); err != nil {
 		_ = log.Warnf("[%s connector] context cancelled before scan for datasource [%s]: %v", s.name, s.datasource.Name, err)
-		return
+		return fmt.Errorf("context cancelled: %w", err)
 	}
 
 	cfg := Config{}
 	if err := connectors.ParseConnectorConfigure(s.connector, s.datasource, &cfg); err != nil {
 		_ = log.Errorf("[%s connector] parsing connector configuration failed for datasource [%s]: %v", s.name, s.datasource.Name, err)
-		return
+		return fmt.Errorf("failed to parse configuration: %w", err)
 	}
 
 	if err := cfg.validate(); err != nil {
 		_ = log.Errorf("[%s connector] invalid configuration for datasource [%s]: %v", s.name, s.datasource.Name, err)
-		return
+		return fmt.Errorf("invalid configuration: %w", err)
 	}
 
 	driver, err := s.newDriver(&cfg)
 	if err != nil {
 		_ = log.Errorf("[%s connector] failed to create driver for datasource [%s]: %v", s.name, s.datasource.Name, err)
-		return
+		return fmt.Errorf("failed to create driver: %w", err)
 	}
 	defer func() {
 		if closeErr := driver.Close(ctx); closeErr != nil {
@@ -135,7 +137,7 @@ func (s *scanner) Scan(ctx context.Context) {
 
 	if err := driver.VerifyConnectivity(ctx); err != nil {
 		_ = log.Errorf("[%s connector] failed to verify connectivity for datasource [%s]: %v", s.name, s.datasource.Name, err)
-		return
+		return fmt.Errorf("failed to verify connectivity: %w", err)
 	}
 
 	sessionConfig := neo4j.SessionConfig{AccessMode: neo4j.AccessModeRead}
@@ -160,14 +162,14 @@ func (s *scanner) Scan(ctx context.Context) {
 		stored, err := s.loadCursor(ctx, &cfg)
 		if err != nil {
 			_ = log.Errorf("[%s connector] failed to load sync cursor for datasource [%s]: %v", s.name, s.datasource.Name, err)
-			return
+			return fmt.Errorf("failed to load sync cursor: %w", err)
 		}
 		cursor = stored
 		if cursor == nil && cfg.Incremental.ResumeFrom != "" {
 			snapshot, err := factory.fromResume(cfg.Incremental.ResumeFrom)
 			if err != nil {
 				_ = log.Errorf("[%s connector] invalid resume_from value for datasource [%s]: %v", s.name, s.datasource.Name, err)
-				return
+				return fmt.Errorf("invalid resume_from value: %w", err)
 			}
 			cursor = snapshot
 		}
@@ -180,13 +182,13 @@ func (s *scanner) Scan(ctx context.Context) {
 	for {
 		if err := connectors.CheckContextDone(ctx); err != nil {
 			log.Infof("[%s connector] context cancelled during scan for datasource [%s]: %v", s.name, s.datasource.Name, err)
-			return
+			return fmt.Errorf("context cancelled during scan: %w", err)
 		}
 
 		query, params, err := s.buildQuery(&cfg, cursor, offset)
 		if err != nil {
 			_ = log.Errorf("[%s connector] failed to build query for datasource [%s]: %v", s.name, s.datasource.Name, err)
-			return
+			return fmt.Errorf("failed to build query: %w", err)
 		}
 
 		page++
@@ -197,13 +199,13 @@ func (s *scanner) Scan(ctx context.Context) {
 		result, err := session.Run(ctx, query, params)
 		if err != nil {
 			_ = log.Errorf("[%s connector] cypher execution failed for datasource [%s]: %v. query=%s params=%s", s.name, s.datasource.Name, err, query, util.MustToJSON(paramsForLogging(params)))
-			return
+			return fmt.Errorf("cypher execution failed: %w", err)
 		}
 
 		processed, lastCursor, err := s.processResult(ctx, result, &cfg, factory)
 		if err != nil {
 			_ = log.Errorf("[%s connector] failed processing rows for datasource [%s]: %v", s.name, s.datasource.Name, err)
-			return
+			return fmt.Errorf("failed processing rows: %w", err)
 		}
 
 		totalProcessed += processed
@@ -222,7 +224,7 @@ func (s *scanner) Scan(ctx context.Context) {
 			cursor = lastCursor
 			if err := s.saveCursor(ctx, &cfg, cursor); err != nil {
 				_ = log.Errorf("[%s connector] failed to persist cursor for datasource [%s]: %v", s.name, s.datasource.Name, err)
-				return
+				return fmt.Errorf("failed to persist cursor: %w", err)
 			}
 
 			if processed == 0 {
@@ -245,6 +247,7 @@ func (s *scanner) Scan(ctx context.Context) {
 	}
 
 	log.Infof("[%s connector] finished scanning datasource [%s], total=%v documents processed", s.name, s.datasource.Name, totalProcessed)
+	return nil
 }
 
 func (s *scanner) newDriver(cfg *Config) (neo4j.DriverWithContext, error) {
@@ -395,13 +398,8 @@ func (s *scanner) processResult(ctx context.Context, result neo4j.ResultWithCont
 			continue
 		}
 
-		data := util.MustToJSONBytes(doc)
-		if global.Env().IsDebug {
-			log.Debugf("[%s connector] transformed data: %s", s.name, data)
-		}
-		if err := queue.Push(s.queue, data); err != nil {
-			_ = log.Errorf("[%s connector] failed to push document to queue for datasource [%s]: %v", s.name, s.datasource.Name, err)
-			return processed, lastCursor, err
+		if err := s.collectFunc(*doc); err != nil {
+			_ = log.Errorf("[%s connector] failed to collect document for datasource [%s]: %v", s.name, s.datasource.Name, err)
 		}
 
 		processed++
