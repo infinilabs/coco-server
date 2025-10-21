@@ -10,15 +10,13 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
-	"sync"
-	"time"
 
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/modules/common"
-	"infini.sh/coco/plugins/connectors"
+	cmn "infini.sh/coco/plugins/connectors/common"
+	"infini.sh/framework/core/config"
 	"infini.sh/framework/core/global"
-	"infini.sh/framework/core/module"
-	"infini.sh/framework/core/queue"
+	"infini.sh/framework/core/pipeline"
 	"infini.sh/framework/core/util"
 )
 
@@ -39,223 +37,138 @@ const (
 	TypePage            = "page"
 	TypeBlogpost        = "blogpost"
 	TypeAttachment      = "attachment"
-	SyncInterval        = time.Minute * 5
 )
 
 func init() {
-	module.RegisterUserPlugin(&Plugin{})
+	pipeline.RegisterProcessorPlugin(ConnectorConfluence, New)
+}
+
+func New(c *config.Config) (pipeline.Processor, error) {
+	runner := Plugin{}
+	runner.Init(c, &runner)
+	return &runner, nil
 }
 
 type Plugin struct {
-	connectors.BasePlugin
-	// mu protects the cancel function below.
-	mu sync.Mutex
-	// ctx is the root context for the plugin, created on Start and cancelled on Stop.
-	ctx context.Context
-	// cancel is the function to call to cancel a running scan.
-	cancel context.CancelFunc
+	cmn.ConnectorProcessorBase
 }
 
 func (p *Plugin) Name() string {
 	return ConnectorConfluence
 }
 
-func (p *Plugin) Start() error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	// Create a root context that lives for the duration of the plugin
-	p.ctx, p.cancel = context.WithCancel(context.Background())
-	return p.BasePlugin.Start(SyncInterval)
-}
-
-func (p *Plugin) Stop() error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	if p.cancel != nil {
-		log.Infof("[confluence connector] received stop signal, cancelling current scan")
-		p.cancel()
-		p.ctx = nil
-		p.cancel = nil
-	}
-	return nil
-}
-
-func (p *Plugin) Setup() {
-	p.BasePlugin.Init("connector.confluence", "indexing confluence wiki", p)
-}
-
-func (p *Plugin) Scan(connector *common.Connector, datasource *common.DataSource) {
-	// Get the parent context
-	p.mu.Lock()
-	parentCtx := p.ctx
-	p.mu.Unlock()
-
-	// Check if the plugin has been stopped before proceeding.
-	if parentCtx == nil {
-		_ = log.Warnf("[confluence connector] plugin is stopped, skipping scan for datasource [%s]", datasource.Name)
-		return
-	}
-
+func (p *Plugin) Fetch(ctx *pipeline.Context, connector *common.Connector, datasource *common.DataSource) error {
 	cfg := Config{}
-	err := connectors.ParseConnectorConfigure(connector, datasource, &cfg)
-	if err != nil {
-		_ = log.Errorf("[confluence connector] parsing connector configuration failed: %v", err)
-		panic(err)
-	}
+	p.MustParseConfig(datasource, &cfg)
 	cfg.Endpoint = strings.TrimRight(cfg.Endpoint, "/")
 
-	log.Debugf("[confluence connector] handling datasource: %v", cfg)
+	log.Debugf("[%s connector] handling datasource: %v", ConnectorConfluence, cfg)
 
 	if cfg.Endpoint == "" || cfg.Space == "" {
-		_ = log.Errorf("[confluence connector] missing required configuration for datasource [%s]: endpoint or space", datasource.Name)
-		return
+		return fmt.Errorf("missing required configuration for datasource [%s]: endpoint or space", datasource.Name)
 	}
 
 	handler, err := NewConfluenceHandler(cfg.Endpoint, cfg.Username, cfg.Token)
 	if err != nil {
-		_ = log.Errorf("[confluence connector] failed to init Confluence client for datasource [%s]: %v", datasource.Name, err)
-		panic(err)
+		return fmt.Errorf("failed to init Confluence client for datasource [%s]: %v", datasource.Name, err)
 	}
 
-	scanCtx, scanCancel := context.WithCancel(parentCtx)
-	// Ensure this scan's resources are cleaned up when it finishes.
+	scanCtx, scanCancel := context.WithCancel(context.Background())
 	defer scanCancel()
 
-	var wg sync.WaitGroup
-
-	// processChan defines the logic to process a channel of search results.
-	processChan := func(resultChan <-chan *SearchContentResponse, contentType string) {
-		defer wg.Done()
-
-		for {
-			select {
-			case <-scanCtx.Done():
-				log.Debugf("[confluence connector] context cancelled, stopping process for [%s]", contentType)
-				return
-			case res, ok := <-resultChan:
-				if !ok {
-					log.Debugf("[confluence connector] channel for %s closed", contentType)
-					return
-				}
-
-				for _, content := range res.Results {
-					// Check for global shutdown or scan cancellation
-					select {
-					case <-scanCtx.Done():
-						log.Debugf("[confluence connector] context cancelled during item processing for [%s]", contentType)
-						return
-					default:
-					}
-					if global.ShuttingDown() {
-						log.Infof("[confluence connector] system is shutting down, stopping scan for [%s]", contentType)
-						return
-					}
-
-					doc, err := p.transformToDocument(&content, datasource, &cfg)
-					if err != nil {
-						_ = log.Errorf("[confluence connector] failed to transform content %s: %v", content.ID, err)
-						continue
-					}
-
-					data := util.MustToJSONBytes(doc)
-					if err := queue.Push(p.Queue, data); err != nil {
-						_ = log.Errorf("[confluence connector] failed to push document to queue for datasource [%s]: %v", datasource.Name, err)
-						continue // Continue processing other documents instead of panicking
-					}
-				}
-			}
-		}
-	}
-
 	// Fetch and process pages
-	wg.Add(1)
-	pagesChan := p.fetchContent(scanCtx, handler, cfg.Space, TypePage)
-	go processChan(pagesChan, TypePage)
+	if err := p.processContent(ctx, scanCtx, handler, connector, datasource, &cfg, cfg.Space, TypePage); err != nil {
+		return err
+	}
 
 	// Fetch and process blogposts if enabled
 	if cfg.EnableBlogposts {
-		wg.Add(1)
-		blogpostsChan := p.fetchContent(scanCtx, handler, cfg.Space, TypeBlogpost)
-		go processChan(blogpostsChan, TypeBlogpost)
+		if err := p.processContent(ctx, scanCtx, handler, connector, datasource, &cfg, cfg.Space, TypeBlogpost); err != nil {
+			return err
+		}
 	}
 
 	// Fetch and process attachments if enabled
 	if cfg.EnableAttachments {
-		wg.Add(1)
-		attachmentsChan := p.fetchContent(scanCtx, handler, cfg.Space, TypeAttachment)
-		go processChan(attachmentsChan, TypeAttachment)
+		if err := p.processContent(ctx, scanCtx, handler, connector, datasource, &cfg, cfg.Space, TypeAttachment); err != nil {
+			return err
+		}
 	}
 
-	wg.Wait()
-	log.Infof("[confluence connector] finished scanning datasource [%s]", datasource.Name)
+	log.Infof("[%s connector] finished fetching datasource [%s]", ConnectorConfluence, datasource.Name)
+	return nil
 }
 
-type requestWrapper struct {
-	SearchContentRequest
-	Next string
-}
+func (p *Plugin) processContent(ctx *pipeline.Context, scanCtx context.Context, handler *ConfluenceHandler, connector *common.Connector, datasource *common.DataSource, cfg *Config, space string, typeName string) error {
+	req := SearchContentRequest{
+		Limit:  PageSize,
+		Expand: strings.Split(PageExpanded, ","),
+		CQL:    fmt.Sprintf("type = '%s' AND space = '%s'", typeName, space),
+		Start:  0,
+	}
 
-func (p *Plugin) fetchContent(ctx context.Context, handler *ConfluenceHandler, space string, typeName string) <-chan *SearchContentResponse {
-	resultChan := make(chan *SearchContentResponse)
-	go func() {
-		defer close(resultChan)
+	var nextURL string
 
-		var fn func(requestWrapper) (*SearchContentResponse, error)
-		fn = func(req requestWrapper) (*SearchContentResponse, error) {
-			if req.Next != "" {
-				return handler.SearchNextContent(ctx, req.Next)
-			}
-			return handler.SearchContent(ctx, req.SearchContentRequest)
+	for {
+		// Check for context cancellation
+		select {
+		case <-scanCtx.Done():
+			log.Infof("[%s connector] context cancelled, stopping content fetching for [%s]", ConnectorConfluence, typeName)
+			return nil
+		default:
 		}
 
-		req := SearchContentRequest{
-			Limit:  PageSize,
-			Expand: strings.Split(PageExpanded, ","),
-			CQL:    fmt.Sprintf("type = '%s' AND space = '%s'", typeName, space),
-			Start:  0,
+		// Check for shutdown signal before making a network request
+		if global.ShuttingDown() {
+			log.Infof("[%s connector] system is shutting down, stopping content fetching for [%s]", ConnectorConfluence, typeName)
+			return nil
 		}
-		wrapper := requestWrapper{SearchContentRequest: req}
 
-		for {
-			select {
-			case <-ctx.Done():
-				log.Info("[confluence connector] context cancelled, stopping content fetching for [%s]", typeName)
-				return
-			default:
+		var res *SearchContentResponse
+		var err error
+
+		if nextURL != "" {
+			res, err = handler.SearchNextContent(scanCtx, nextURL)
+		} else {
+			res, err = handler.SearchContent(scanCtx, req)
+		}
+
+		if err != nil {
+			if errors.Is(err, context.Canceled) {
+				log.Infof("[%s connector] context cancelled, stopping content fetching for [%s]", ConnectorConfluence, typeName)
+				return nil
 			}
+			return fmt.Errorf("fetching content failed: %v", err)
+		}
 
-			// Check for shutdown signal before making a network request
+		var docs []common.Document
+		for _, content := range res.Results {
+			// Check for global shutdown
 			if global.ShuttingDown() {
-				log.Infof("[confluence connector] system is shutting down, stopping content fetching for [%s]", typeName)
-				return
+				log.Infof("[%s connector] system is shutting down, stopping processing for [%s]", ConnectorConfluence, typeName)
+				return nil
 			}
 
-			res, err := fn(wrapper)
+			doc, err := p.transformToDocument(&content, datasource, cfg)
 			if err != nil {
-				if errors.Is(err, context.Canceled) {
-					log.Info("[confluence connector] context cancelled, stopping content fetching for [%s]", typeName)
-				} else {
-					_ = log.Errorf("[confluence connector] fetching content failed: %v", err)
-				}
-				return
+				_ = log.Errorf("[%s connector] failed to transform content %s: %v", ConnectorConfluence, content.ID, err)
+				continue
 			}
 
-			select {
-			case resultChan <- res:
-			case <-ctx.Done():
-				log.Info("[confluence connector] context cancelled, stopping content fetching for [%s]", typeName)
-				return
-			}
-
-			wrapper.Next = res.Next()
-			if wrapper.Next == "" {
-				return
-			}
+			docs = append(docs, *doc)
 		}
-	}()
 
-	return resultChan
+		if len(docs) > 0 {
+			p.BatchCollect(ctx, connector, datasource, docs)
+		}
+
+		nextURL = res.Next()
+		if nextURL == "" {
+			break
+		}
+	}
+
+	return nil
 }
 
 // transformToDocument converts a Confluence Content object to a common.Document.

@@ -28,7 +28,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup && cp index.html dist/",
+    "build": "tsup",
     "build:server": "tsup && mkdir -p ../../../.public/widgets/searchbox && cp dist/index.css dist/index.js ../../../.public/widgets/searchbox",
     "demo": "cd dist && http-server",
     "format": "prettier --write \"./**/*.{js,jsx,ts,tsx,json,html,css}\" --ignore-path .gitignore",
@@ -38,7 +38,7 @@
     "watch": "tsup --watch"
   },
   "dependencies": {
-    "@infinilabs/search-chat": "^1.2.45",
+    "@infinilabs/search-chat": "^1.2.47",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "searchbox": "link:"

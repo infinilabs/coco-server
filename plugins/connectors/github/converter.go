@@ -14,8 +14,7 @@ import (
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/plugins/connectors"
 	"infini.sh/framework/core/global"
-	"infini.sh/framework/core/queue"
-	"infini.sh/framework/core/util"
+	"infini.sh/framework/core/pipeline"
 )
 
 const (
@@ -24,8 +23,9 @@ const (
 	TypeRepository  = "repository"
 )
 
-func (p *Plugin) processRepos(ctx context.Context, client *githubv3.Client, cfg *Config, datasource *common.DataSource) {
-	user, _, err := client.Users.Get(ctx, cfg.Owner)
+func (p *Plugin) processRepos(ctx *pipeline.Context, client *githubv3.Client, cfg *Config, connector *common.Connector, datasource *common.DataSource) {
+	scanCtx := context.Background()
+	user, _, err := client.Users.Get(scanCtx, cfg.Owner)
 	if err != nil {
 		_ = log.Errorf("[%s connector] failed to get user for [name=%s]: %v", ConnectorGitHub, cfg.Owner, err)
 		return
@@ -43,7 +43,7 @@ func (p *Plugin) processRepos(ctx context.Context, client *githubv3.Client, cfg 
 
 	var processed int
 
-	err = ListRepos(ctx, client, user, func(repos []*githubv3.Repository) bool {
+	err = ListRepos(scanCtx, client, user, func(repos []*githubv3.Repository) bool {
 		for _, repo := range repos {
 			if global.ShuttingDown() {
 				return false
@@ -66,19 +66,28 @@ func (p *Plugin) processRepos(ctx context.Context, client *githubv3.Client, cfg 
 
 			// Track folders for hierarchy
 			folderTracker.TrackGitFolders(cfg.Owner, repo.GetName(), contentTypes)
+			// Create all folder documents for the hierarchy
+			var folderDocs []common.Document
+			folderTracker.CreateGitFolderDocuments(datasource, func(doc common.Document) {
+				folderDocs = append(folderDocs, doc)
+			})
+
+			if len(folderDocs) > 0 {
+				p.BatchCollect(ctx, connector, datasource, folderDocs)
+			}
 
 			// Index repository
 			repoDoc := p.transformRepoToDocument(repo, datasource)
-			p.pushToQueue(repoDoc)
+			p.Collect(ctx, connector, datasource, *repoDoc)
 
 			// Index issues
 			if cfg.IndexIssues {
-				p.processIssues(ctx, client, cfg.Owner, repo, datasource)
+				p.processIssues(ctx, scanCtx, client, cfg.Owner, repo, connector, datasource)
 			}
 
 			// Index pull requests
 			if cfg.IndexPullRequests {
-				p.processPullRequests(ctx, client, cfg.Owner, repo, datasource)
+				p.processPullRequests(ctx, scanCtx, client, cfg.Owner, repo, connector, datasource)
 			}
 
 			processed++
@@ -94,15 +103,11 @@ func (p *Plugin) processRepos(ctx context.Context, client *githubv3.Client, cfg 
 		_ = log.Errorf("[%s connector] failed to list repos for owner %s: %v", ConnectorGitHub, cfg.Owner, err)
 		return
 	}
-
-	// Create all folder documents for the hierarchy
-	folderTracker.CreateGitFolderDocuments(datasource, func(doc common.Document) {
-		p.pushToQueue(&doc)
-	})
 }
 
-func (p *Plugin) processIssues(ctx context.Context, client *githubv3.Client, owner string, repo *githubv3.Repository, datasource *common.DataSource) {
-	err := ListIssues(ctx, client, owner, repo.GetName(), func(issues []*githubv3.Issue) bool {
+func (p *Plugin) processIssues(ctx *pipeline.Context, scanCtx context.Context, client *githubv3.Client, owner string, repo *githubv3.Repository, connector *common.Connector, datasource *common.DataSource) {
+	err := ListIssues(scanCtx, client, owner, repo.GetName(), func(issues []*githubv3.Issue) bool {
+		var docs []common.Document
 		for _, issue := range issues {
 			if global.ShuttingDown() {
 				return false
@@ -111,9 +116,12 @@ func (p *Plugin) processIssues(ctx context.Context, client *githubv3.Client, own
 			if issue.IsPullRequest() {
 				continue
 			}
-			comments, _ := ListComments(ctx, client, owner, repo.GetName(), issue.GetNumber())
+			comments, _ := ListComments(scanCtx, client, owner, repo.GetName(), issue.GetNumber())
 			issueDoc := p.transformIssueToDocument(issue, comments, repo, datasource)
-			p.pushToQueue(issueDoc)
+			docs = append(docs, *issueDoc)
+		}
+		if len(docs) > 0 {
+			p.BatchCollect(ctx, connector, datasource, docs)
 		}
 		return true
 	})
@@ -124,15 +132,19 @@ func (p *Plugin) processIssues(ctx context.Context, client *githubv3.Client, own
 
 }
 
-func (p *Plugin) processPullRequests(ctx context.Context, client *githubv3.Client, owner string, repo *githubv3.Repository, datasource *common.DataSource) {
-	err := ListPullRequests(ctx, client, owner, repo.GetName(), func(prs []*githubv3.PullRequest) bool {
+func (p *Plugin) processPullRequests(ctx *pipeline.Context, scanCtx context.Context, client *githubv3.Client, owner string, repo *githubv3.Repository, connector *common.Connector, datasource *common.DataSource) {
+	err := ListPullRequests(scanCtx, client, owner, repo.GetName(), func(prs []*githubv3.PullRequest) bool {
+		var docs []common.Document
 		for _, pr := range prs {
 			if global.ShuttingDown() {
 				return false
 			}
-			comments, _ := ListComments(ctx, client, owner, repo.GetName(), pr.GetNumber())
+			comments, _ := ListComments(scanCtx, client, owner, repo.GetName(), pr.GetNumber())
 			prDoc := p.transformPullRequestToDocument(pr, comments, repo, datasource)
-			p.pushToQueue(prDoc)
+			docs = append(docs, *prDoc)
+		}
+		if len(docs) > 0 {
+			p.BatchCollect(ctx, connector, datasource, docs)
 		}
 		return true
 	})
@@ -141,18 +153,6 @@ func (p *Plugin) processPullRequests(ctx context.Context, client *githubv3.Clien
 		return
 	}
 
-}
-
-func (p *Plugin) newDocument(datasource *common.DataSource) *common.Document {
-	doc := &common.Document{
-		Source: common.DataSourceReference{
-			ID:   datasource.ID,
-			Type: "connector",
-			Name: datasource.Name,
-		},
-	}
-	doc.System = datasource.System
-	return doc
 }
 
 func (p *Plugin) transformRepoToDocument(repo *githubv3.Repository, datasource *common.DataSource) *common.Document {
@@ -291,11 +291,4 @@ func (p *Plugin) transformIssueToDocument(issue *githubv3.Issue, comments []*git
 
 func (p *Plugin) transformPullRequestToDocument(pr *githubv3.PullRequest, comments []*githubv3.IssueComment, repo *githubv3.Repository, datasource *common.DataSource) *common.Document {
 	return p.transformContentableToDocument(&pullRequestWrapper{pr}, TypePullRequest, comments, repo, datasource)
-}
-
-func (p *Plugin) pushToQueue(doc *common.Document) {
-	data := util.MustToJSONBytes(doc)
-	if err := queue.Push(p.Queue, data); err != nil {
-		_ = log.Errorf("[%s connector] failed to push document to queue: %v", ConnectorGitHub, err)
-	}
 }

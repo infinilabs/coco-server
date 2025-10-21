@@ -7,11 +7,13 @@
 - 🔍 **智能搜索**: 支持按关键词搜索云文档
 - 📚 **多文档类型**: 支持 doc、sheet、slides、mindnote、bitable、file、docx、folder、shortcut 等类型
 - 🔐 **双重认证**: 支持 OAuth 2.0 和用户访问令牌两种认证方式（二选一）
-- ⚡ **高效同步**: 支持定时同步和手动同步
+- ⚡ **高效同步**: 基于pipeline架构，由统一调度器管理同步
 - 🔄 **递归搜索**: 自动递归搜索文件夹内容
 - 🔄 **Token自动刷新**: OAuth认证支持access_token和refresh_token的自动刷新
 - 🌐 **动态重定向**: 支持动态构建OAuth重定向URI，适配多环境部署
 - 🏗️ **统一架构**: 飞书和Lark共享基础实现，代码复用率高达95%
+- 📁 **目录访问**: 支持按飞书云文档原始目录结构的层次化浏览，自动创建文件夹目录
+- 🚀 **Pipeline集成**: 完全基于pipeline架构，无独立调度任务，与其他连接器保持一致
 
 ## 支持的平台
 
@@ -70,46 +72,102 @@
 - token过期后需要手动更新
 - 安全性相对较低
 
+## 架构设计
+
+### Pipeline架构
+
+飞书/Lark连接器采用**pipeline-based架构**，与其他连接器保持一致：
+
+- **处理器注册**: 在`init()`函数中注册为pipeline处理器
+- **调度器管理**: 同步间隔和调度由connector_dispatcher统一管理
+- **每数据源配置**: 每个数据源有独立的同步间隔和配置
+- **Enrichment Pipeline支持**: 支持每个数据源可选的enrichment pipeline
+- **OAuth路由注册**: OAuth路由在`init()`函数中直接注册，遵循google_drive模式
+- **无独立调度任务**: 完全移除scheduled tasks，由pipeline框架处理数据获取
+
+### 核心实现
+
+```go
+func init() {
+    // 注册pipeline处理器
+    pipeline.RegisterProcessorPlugin(ConnectorFeishu, NewFeishu)
+    pipeline.RegisterProcessorPlugin(ConnectorLark, NewLark)
+
+    // 注册OAuth路由
+    api.HandleUIMethod(api.GET, "/connector/:id/feishu/connect", feishuConnect, api.RequireLogin())
+    api.HandleUIMethod(api.GET, "/connector/:id/feishu/oauth_redirect", feishuOAuthRedirect, api.RequireLogin())
+
+    api.HandleUIMethod(api.GET, "/connector/:id/lark/connect", larkConnect, api.RequireLogin())
+    api.HandleUIMethod(api.GET, "/connector/:id/lark/oauth_redirect", larkOAuthRedirect, api.RequireLogin())
+}
+
+func (this *Plugin) Fetch(ctx *pipeline.Context, connector *common.Connector, datasource *common.DataSource) error {
+    // 处理数据获取逻辑
+    // 自动token刷新
+    // 递归文件搜索
+    // 文档收集
+    return nil
+}
+```
+
 ## 配置架构
 
 ### 连接器级别（OAuth配置）
 
-OAuth配置现在在连接器级别管理，提供更好的安全性和集中管理。
+OAuth配置在连接器级别管理，提供更好的安全性和集中管理。
 
 #### 飞书连接器配置
-```yaml
-connector:
-  feishu:
-    enabled: true
-    interval: "30s"
-    page_size: 100
-    config:
-      # OAuth配置（OAuth流程必需）
-      auth_url: "https://accounts.feishu.cn/open-apis/authen/v1/authorize"
-      token_url: "https://open.feishu.cn/open-apis/authen/v2/oauth/token"
-      redirect_url: "/connector/feishu/oauth_redirect"
-      client_id: "cli_xxxxxxxxxxxxxxxx"
-      client_secret: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-      document_types: ["doc", "sheet", "slides", "mindnote", "bitable"]
-      user_access_token: ""  # 可选，用于直接令牌认证
+```json
+{
+  "id": "feishu",
+  "name": "飞书云文档连接器",
+  "builtin": true,
+  "oauth_connect_implemented": true,
+  "processor": {
+    "enabled": true,
+    "name": "feishu"
+  },
+  "config": {
+    "client_id": "cli_xxxxxxxxxxxxxxxx",
+    "client_secret": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "auth_url": "https://accounts.feishu.cn/open-apis/authen/v1/authorize",
+    "token_url": "https://open.feishu.cn/open-apis/authen/v2/oauth/token"
+  }
+}
 ```
 
 #### Lark连接器配置
+```json
+{
+  "id": "lark",
+  "name": "Lark Document Connector",
+  "builtin": true,
+  "oauth_connect_implemented": true,
+  "processor": {
+    "enabled": true,
+    "name": "lark"
+  },
+  "config": {
+    "client_id": "cli_xxxxxxxxxxxxxxxx",
+    "client_secret": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "auth_url": "https://accounts.larksuite.com/open-apis/authen/v1/authorize",
+    "token_url": "https://open.larksuite.com/open-apis/authen/v2/oauth/token"
+  }
+}
+```
+
+#### Pipeline配置 (coco.yml)
+连接器由统一调度器管理：
 ```yaml
-connector:
-  lark:
-    enabled: true
-    interval: "30s"
-    page_size: 100
-    config:
-      # OAuth配置（OAuth流程必需）
-      auth_url: "https://accounts.larksuite.com/open-apis/authen/v1/authorize"
-      token_url: "https://open.larksuite.com/open-apis/authen/v2/oauth/token"
-      redirect_url: "/connector/lark/oauth_redirect"
-      client_id: "cli_xxxxxxxxxxxxxxxx"
-      client_secret: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-      document_types: ["doc", "sheet", "slides", "mindnote", "bitable"]
-      user_access_token: ""  # 可选，用于直接令牌认证
+pipeline:
+  - name: connector_dispatcher
+    auto_start: true
+    keep_running: true
+    singleton: true
+    retry_delay_in_ms: 10000
+    processor:
+      - connector_dispatcher:
+          max_running_timeout_in_seconds: 1200
 ```
 
 ### 数据源级别（自动生成）
@@ -117,49 +175,59 @@ connector:
 使用OAuth认证时，数据源在OAuth流程中自动创建。系统自动生成：
 
 #### 自动生成的飞书数据源
-```yaml
-datasource:
-  id: "auto-generated-id"
-  name: "用户的飞书"  # 基于用户配置文件自动生成
-  type: "connector"
-  enabled: true
-  sync:
-   enabled: true
-  connector:
-    id: "feishu"
-    config:
-      # OAuth令牌（OAuth流程中自动填充）
-      access_token: "u-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-      refresh_token: "r-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-      token_expiry: "2024-01-01T12:00:00Z"
-      refresh_token_expiry: "2024-01-31T12:00:00Z"
-      profile:
-        user_id: "ou_xxxxxxxxxxxxxxxx"
-        name: "用户姓名"
-        email: "user@example.com"
+```json
+{
+  "id": "auto-generated-md5-hash",
+  "name": "张三的飞书",
+  "type": "connector",
+  "enabled": true,
+  "sync": {
+    "enabled": true,
+    "interval": "30s"
+  },
+  "connector": {
+    "id": "feishu",
+    "config": {
+      "access_token": "u-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "refresh_token": "r-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "token_expiry": "2025-01-01T12:00:00Z",
+      "refresh_token_expiry": "2025-01-31T12:00:00Z",
+      "profile": {
+        "user_id": "ou_xxxxxxxxxxxxxxxx",
+        "name": "张三",
+        "email": "zhangsan@example.com"
+      }
+    }
+  }
+}
 ```
 
 #### 自动生成的Lark数据源
-```yaml
-datasource:
-  id: "auto-generated-id"
-  name: "用户的Lark"  # 基于用户配置文件自动生成
-  type: "connector"
-  enabled: true
-  sync:
-   enabled: true
-  connector:
-    id: "lark"
-    config:
-      # OAuth令牌（OAuth流程中自动填充）
-      access_token: "u-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-      refresh_token: "r-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-      token_expiry: "2024-01-01T12:00:00Z"
-      refresh_token_expiry: "2024-01-31T12:00:00Z"
-      profile:
-        user_id: "ou_xxxxxxxxxxxxxxxx"
-        name: "用户姓名"
-        email: "user@example.com"
+```json
+{
+  "id": "auto-generated-md5-hash",
+  "name": "John's Lark",
+  "type": "connector",
+  "enabled": true,
+  "sync": {
+    "enabled": true,
+    "interval": "30s"
+  },
+  "connector": {
+    "id": "lark",
+    "config": {
+      "access_token": "u-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "refresh_token": "r-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "token_expiry": "2025-01-01T12:00:00Z",
+      "refresh_token_expiry": "2025-01-31T12:00:00Z",
+      "profile": {
+        "user_id": "ou_xxxxxxxxxxxxxxxx",
+        "name": "John Doe",
+        "email": "john@example.com"
+      }
+    }
+  }
+}
 ```
 
 ## 配置参数说明
@@ -187,8 +255,10 @@ datasource:
 
 | 参数 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
-| `page_size` | int | 100 | 每页获取的文件数量 |
-| `interval` | string | "30s" | 同步间隔 |
+| `sync.enabled` | bool | true | 是否启用同步 |
+| `sync.interval` | string | "30s" | 每个数据源的同步间隔 |
+
+**注意**: 同步间隔现在在数据源级别配置，而不是连接器级别。每个数据源可以有不同的同步间隔。
 
 ## 支持的文档类型
 
@@ -203,6 +273,14 @@ datasource:
 - **docx**: Word文档
 - **folder**: 文件夹（支持递归搜索）
 - **shortcut**: 快捷方式（直接使用API返回的URL）
+
+### 目录访问特性
+
+- **自动创建目录**: 为每个文件夹自动创建目录文档，支持层次化浏览
+- **保持原始结构**: 完全按照飞书云文档中的文件夹层次结构
+- **递归处理**: 自动遍历所有子文件夹并创建对应的目录
+- **混合文档类型**: 同一文件夹中可以包含不同类型的文档
+- **元数据支持**: 每个目录包含创建时间、修改时间等元数据
 
 ## 飞书/Lark应用权限配置
 
@@ -307,16 +385,18 @@ datasource:
 
 ## 技术实现
 
-### 架构设计
+### Pipeline架构集成
 
-#### 重构后的架构
+#### 重构后的架构 (2025-10版本)
+- **完全Pipeline化**: 移除所有scheduled tasks，改用pipeline架构
+- **Google Drive模式**: OAuth路由在`init()`中注册，与google_drive保持一致
+- **统一调度**: 所有数据源由connector_dispatcher统一管理
 - **插件类型抽象**: 使用`PluginType`枚举区分飞书和Lark
 - **动态API配置**: 根据插件类型动态选择API端点
-- **基础Plugin增强**: 在基础Plugin中添加插件类型管理和API配置功能
 - **代码复用最大化**: 95%的代码被共享，只有配置和路由不同
-- **OAuth配置集中化**: OAuth凭据在连接器级别管理
+- **OAuth配置动态加载**: OAuth凭据从connector数据库动态加载
 - **自动数据源创建**: 数据源在OAuth流程中自动创建
-- **统一OAuth配置结构**: 所有OAuth相关字段合并到单个`OAuthConfig`结构体中
+- **ConnectorProcessorBase**: 使用统一的processor基类
 
 #### 核心组件
 ```go
@@ -359,25 +439,27 @@ type Plugin struct {
 }
 ```
 
-#### 插件实现
-- **FeishuPlugin**: 继承基础Plugin，设置`PluginTypeFeishu`
-- **LarkPlugin**: 继承基础Plugin，设置`PluginTypeLark`
+#### 处理器实现
+- **NewFeishu()**: 创建飞书处理器，设置`PluginTypeFeishu`
+- **NewLark()**: 创建Lark处理器，设置`PluginTypeLark`
 - **统一API处理**: 所有API调用使用动态配置的端点
+- **Fetch()方法**: 实现数据获取逻辑，包括token刷新和文件递归搜索
 
 ### OAuth路由注册
 
 #### 飞书路由
-- **路由端点**: 
-  - `GET /connector/feishu/connect` - OAuth授权请求
-  - `GET /connector/feishu/oauth_redirect` - OAuth回调处理
+- **路由端点**:
+  - `GET /connector/:id/feishu/connect` - OAuth授权请求
+  - `GET /connector/:id/feishu/oauth_redirect` - OAuth回调处理
 
 #### Lark路由
-- **路由端点**: 
-  - `GET /connector/lark/connect` - OAuth授权请求
-  - `GET /connector/lark/oauth_redirect` - OAuth回调处理
+- **路由端点**:
+  - `GET /connector/:id/lark/connect` - OAuth授权请求
+  - `GET /connector/:id/lark/oauth_redirect` - OAuth回调处理
 
 - **认证要求**: 所有OAuth端点都需要用户登录
 - **Scope配置**: 使用 `drive:drive space:document:retrieve offline_access` 权限范围
+- **动态配置加载**: OAuth配置从connector数据库动态加载，支持多connector实例
 
 ### Token生命周期管理
 - **自动刷新**: 当access_token过期时，自动使用refresh_token刷新

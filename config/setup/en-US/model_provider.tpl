@@ -305,3 +305,24 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
   "builtin" : true,
   "description": "Pre-set the full series of Wenxin large models and over a hundred selected third-party models."
 }
+
+POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/cohere
+{
+  "id": "cohere",
+  "created": "2025-03-28T11:30:00.000000+08:00",
+  "updated": "2025-03-28T11:30:00.000000+08:00",
+  "name": "Cohere",
+  "api_key": "",
+  "api_type": "cohere",
+  "base_url": "https://api.cohere.ai/v1",
+  "icon": "/assets/icons/llm/cohere.svg",
+  "models": [
+    {"name": "command-r-plus"},
+    {"name": "command-r"},
+    {"name": "embed-english-v3"},
+    {"name": "embed-multilingual-v3"}
+  ],
+  "enabled": false,
+  "builtin": true,
+  "description": "Cohere provides advanced APIs for natural language understanding, generation, and embeddings (including the Command-R and Embed v3 series). These models are optimized for reasoning, retrieval-augmented generation (RAG), multilingual semantic search, and enterprise-scale AI applications, offering strong performance and cost-efficiency."
+}

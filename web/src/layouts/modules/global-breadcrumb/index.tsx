@@ -68,7 +68,6 @@ const GlobalBreadcrumb: FC<Omit<BreadcrumbProps, 'items'>> = props => {
     // Add home breadcrumb only if we're not on home page and it's not already in breadcrumbs
     finalItems = [
       {
-        path: '/',
         title: (
           <span 
             className="cursor-pointer hover:text-blue-500" 

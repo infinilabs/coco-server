@@ -10,22 +10,24 @@ import { MultiURLInput } from './urls';
 
 export const Types = {
   Confluence: 'confluence',
-  GoogleDrive: 'google_drive',
-  HugoSite: 'hugo_site',
-  LocalFS: 'local_fs',
-  NetworkDrive: 'network_drive',
-  Neo4j: 'neo4j',
-  Notion: 'notion',
-  RSS: 'rss',
-  S3: 's3',
-  Yuque: 'yuque',
-  Postgresql: 'postgresql',
-  Mysql: 'mysql',
+  Feishu: 'feishu',
+  Gitea: 'gitea',
   GitHub: 'github',
   GitLab: 'gitlab',
-  Gitea: 'gitea',
+  GoogleDrive: 'google_drive',
+  HugoSite: 'hugo_site',
+  Lark: 'lark',
+  LocalFS: 'local_fs',
   Mssql: 'mssql',
-  Oracle: 'oracle'
+  Mysql: 'mysql',
+  Neo4j: 'neo4j',
+  NetworkDrive: 'network_drive',
+  Notion: 'notion',
+  Oracle: 'oracle',
+  Postgresql: 'postgresql',
+  RSS: 'rss',
+  S3: 's3',
+  Yuque: 'yuque'
 };
 
 export const TypeList = ({

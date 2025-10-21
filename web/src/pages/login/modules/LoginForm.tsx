@@ -48,7 +48,7 @@ const LoginForm = memo(({ onProvider }: { onProvider?: () => void }) => {
             className="h-40px flex items-center justify-between border-[#0087FF] rounded-4px bg-white px-16px text-14px text-[#0087FF] font-normal leading-20px font-[PingFangSC-regular]"
             style={{ width: '440px' }}
             type="default"
-            onClick={() => window.open(sso_url, '_blank')}
+            onClick={() => window.open(sso_url, '_self')}
           >
             <div className="flex items-center gap-8px">
               <img

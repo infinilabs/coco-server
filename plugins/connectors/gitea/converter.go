@@ -5,7 +5,6 @@
 package gitea
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
@@ -14,8 +13,7 @@ import (
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/plugins/connectors"
 	"infini.sh/framework/core/global"
-	"infini.sh/framework/core/queue"
-	"infini.sh/framework/core/util"
+	"infini.sh/framework/core/pipeline"
 )
 
 const (
@@ -24,8 +22,8 @@ const (
 	TypeRepository  = "repository"
 )
 
-func (p *Plugin) processRepos(ctx context.Context, client *sdk.Client, cfg *Config, datasource *common.DataSource) {
-	isOrg, err := p.IsOrgUser(client, cfg.Owner)
+func (p *Plugin) processRepos(ctx *pipeline.Context, client *sdk.Client, cfg *Config, connector *common.Connector, datasource *common.DataSource) {
+	isOrg, err := p.isOrgUser(client, cfg.Owner)
 	if err != nil {
 		_ = log.Errorf("[%s connector] failed to get user for [name=%s]: %v", ConnectorGitea, cfg.Owner, err)
 		return
@@ -77,19 +75,27 @@ func (p *Plugin) processRepos(ctx context.Context, client *sdk.Client, cfg *Conf
 
 			// Track folders for hierarchy
 			folderTracker.TrackGitFolders(cfg.Owner, repo.Name, contentTypes)
+			// Create all folder documents for the hierarchy
+			var folderDocs []common.Document
+			folderTracker.CreateGitFolderDocuments(datasource, func(doc common.Document) {
+				folderDocs = append(folderDocs, doc)
+			})
+			if len(folderDocs) > 0 {
+				p.BatchCollect(ctx, connector, datasource, folderDocs)
+			}
 
 			// Index repository
 			repoDoc := p.transformRepoToDocument(repo, datasource)
-			p.pushToQueue(repoDoc)
+			p.Collect(ctx, connector, datasource, *repoDoc)
 
 			// Index issues
 			if cfg.IndexIssues {
-				p.processIssues(ctx, client, repo, datasource)
+				p.processIssues(ctx, client, repo, connector, datasource)
 			}
 
 			// Index pull requests
 			if cfg.IndexPullRequests {
-				p.processPullRequests(ctx, client, repo, datasource)
+				p.processPullRequests(ctx, client, repo, connector, datasource)
 			}
 
 			processed++
@@ -102,25 +108,24 @@ func (p *Plugin) processRepos(ctx context.Context, client *sdk.Client, cfg *Conf
 			break
 		}
 	}
-
-	// Create all folder documents for the hierarchy
-	folderTracker.CreateGitFolderDocuments(datasource, func(doc common.Document) {
-		p.pushToQueue(&doc)
-	})
 }
 
-func (p *Plugin) processIssues(ctx context.Context, client *sdk.Client, repo *sdk.Repository, datasource *common.DataSource) {
+func (p *Plugin) processIssues(ctx *pipeline.Context, client *sdk.Client, repo *sdk.Repository, connector *common.Connector, datasource *common.DataSource) {
 	cursor := NewListIssuesCursor(repo.Owner.UserName, repo.Name)
+
 	for {
 		issues, err := ListIssues(ctx, client, cursor)
 		if err != nil {
 			_ = log.Errorf("[%s connector] failed to list issues for repo %s: %v", ConnectorGitea, repo.FullName, err)
+			break
 		}
 
+		var docs []common.Document
 		for _, issue := range issues {
 			if global.ShuttingDown() {
 				return
 			}
+
 			comments, err := ListComments(ctx, client, repo.Owner.UserName, repo.Name, issue.Index)
 			if err != nil {
 				switch connectors.ResolveCode(err) {
@@ -131,9 +136,11 @@ func (p *Plugin) processIssues(ctx context.Context, client *sdk.Client, repo *sd
 					_ = log.Warnf("[%s connector] failed to list comments for issue [repo=%s, issue=#%d]: %v", ConnectorGitea, repo.FullName, issue.Index, err)
 				}
 			}
+
 			issueDoc := p.transformIssueToDocument(issue, comments, repo, datasource)
-			p.pushToQueue(issueDoc)
+			docs = append(docs, *issueDoc)
 		}
+		p.BatchCollect(ctx, connector, datasource, docs)
 
 		if !cursor.HasNext {
 			break
@@ -141,17 +148,22 @@ func (p *Plugin) processIssues(ctx context.Context, client *sdk.Client, repo *sd
 	}
 }
 
-func (p *Plugin) processPullRequests(ctx context.Context, client *sdk.Client, repo *sdk.Repository, datasource *common.DataSource) {
+func (p *Plugin) processPullRequests(ctx *pipeline.Context, client *sdk.Client, repo *sdk.Repository, connector *common.Connector, datasource *common.DataSource) {
 	cursor := NewListPullRequestsCursor(repo.Owner.UserName, repo.Name)
+
 	for {
 		prs, err := ListPullRequests(ctx, client, cursor)
 		if err != nil {
 			_ = log.Errorf("[%s connector] failed to list pull requests for repo %s: %v", ConnectorGitea, repo.FullName, err)
+			break
 		}
+
+		var docs []common.Document
 		for _, pr := range prs {
 			if global.ShuttingDown() {
 				return
 			}
+
 			comments, err := ListComments(ctx, client, repo.Owner.UserName, repo.Name, pr.Index)
 			if err != nil {
 				switch connectors.ResolveCode(err) {
@@ -162,9 +174,11 @@ func (p *Plugin) processPullRequests(ctx context.Context, client *sdk.Client, re
 					_ = log.Warnf("[%s connector] failed to list comments for pull requests [repo=%s, pr=#%d]: %v", ConnectorGitea, repo.FullName, pr.Index, err)
 				}
 			}
+
 			prDoc := p.transformPullRequestToDocument(pr, comments, repo, datasource)
-			p.pushToQueue(prDoc)
+			docs = append(docs, *prDoc)
 		}
+		p.BatchCollect(ctx, connector, datasource, docs)
 
 		if !cursor.HasNext {
 			break
@@ -172,16 +186,15 @@ func (p *Plugin) processPullRequests(ctx context.Context, client *sdk.Client, re
 	}
 }
 
-func (p *Plugin) newDocument(datasource *common.DataSource) *common.Document {
-	doc := &common.Document{
-		Source: common.DataSourceReference{
-			ID:   datasource.ID,
-			Type: "connector",
-			Name: datasource.Name,
-		},
+func (p *Plugin) isOrgUser(client *sdk.Client, owner string) (bool, error) {
+	_, resp, err := client.GetOrg(owner)
+	if err == nil && resp.StatusCode == 200 {
+		return true, nil
 	}
-	doc.System = datasource.System
-	return doc
+	if resp != nil && resp.StatusCode == 404 {
+		return false, nil
+	}
+	return false, err
 }
 
 func (p *Plugin) transformRepoToDocument(repo *sdk.Repository, datasource *common.DataSource) *common.Document {
@@ -292,11 +305,4 @@ func (p *Plugin) transformIssueToDocument(issue *sdk.Issue, comments []*sdk.Comm
 
 func (p *Plugin) transformPullRequestToDocument(pr *sdk.PullRequest, comments []*sdk.Comment, repo *sdk.Repository, datasource *common.DataSource) *common.Document {
 	return p.transformContentableToDocument(&prWrapper{pr}, comments, TypePullRequest, repo, datasource)
-}
-
-func (p *Plugin) pushToQueue(doc *common.Document) {
-	data := util.MustToJSONBytes(doc)
-	if err := queue.Push(p.Queue, data); err != nil {
-		_ = log.Errorf("[%s connector] failed to push document to queue: %v", ConnectorGitea, err)
-	}
 }

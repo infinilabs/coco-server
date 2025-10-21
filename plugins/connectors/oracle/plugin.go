@@ -9,14 +9,13 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-	"sync"
 
 	log "github.com/cihub/seelog"
 	_ "github.com/sijms/go-ora/v2" // Import the Oracle driver
 	"infini.sh/coco/modules/common"
-	"infini.sh/coco/plugins/connectors"
-	rdbms "infini.sh/coco/plugins/connectors/common"
-	"infini.sh/framework/core/module"
+	cmn "infini.sh/coco/plugins/connectors/common"
+	"infini.sh/framework/core/config"
+	"infini.sh/framework/core/pipeline"
 )
 
 const (
@@ -24,54 +23,28 @@ const (
 )
 
 func init() {
-	module.RegisterUserPlugin(&Plugin{})
+	pipeline.RegisterProcessorPlugin(ConnectorOracle, New)
+}
+
+func New(c *config.Config) (pipeline.Processor, error) {
+	runner := Plugin{}
+	runner.Init(c, &runner)
+	return &runner, nil
 }
 
 type Plugin struct {
-	connectors.BasePlugin
-	mu     sync.Mutex
-	ctx    context.Context
-	cancel context.CancelFunc
+	cmn.ConnectorProcessorBase
 }
 
 func (p *Plugin) Name() string {
 	return ConnectorOracle
 }
 
-func (p *Plugin) Start() error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	p.ctx, p.cancel = context.WithCancel(context.Background())
-	return p.BasePlugin.Start(connectors.DefaultSyncInterval)
-}
+func (p *Plugin) Fetch(ctx *pipeline.Context, connector *common.Connector, datasource *common.DataSource) error {
+	log.Debugf("[%s connector] handling datasource: %v", ConnectorOracle, datasource.Name)
 
-func (p *Plugin) Stop() error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	if p.cancel != nil {
-		log.Infof("[%s connector] received stop signal, cancelling all operations", ConnectorOracle)
-		p.cancel()
-		p.ctx = nil
-		p.cancel = nil
-	}
-	return nil
-}
-
-func (p *Plugin) Setup() {
-	p.BasePlugin.Init(fmt.Sprintf("connector.%s", ConnectorOracle), "indexing oracle database", p)
-}
-
-func (p *Plugin) Scan(connector *common.Connector, datasource *common.DataSource) {
-	p.mu.Lock()
-	parentCtx := p.ctx
-	p.mu.Unlock()
-
-	if parentCtx == nil {
-		_ = log.Warnf("[%s connector] plugin is stopped, skipping scan for datasource [%s]", ConnectorOracle, datasource.Name)
-		return
-	}
-
-	scanner := &rdbms.Scanner{
+	scanCtx := context.Background()
+	scanner := &cmn.Scanner{
 		Name:       ConnectorOracle,
 		Connector:  connector,
 		Datasource: datasource,
@@ -90,7 +63,10 @@ func (p *Plugin) Scan(connector *common.Connector, datasource *common.DataSource
 			return fmt.Sprintf(`%s OFFSET %d ROWS FETCH NEXT %d ROWS ONLY`, baseQuery, offset, pageSize)
 		},
 	}
-	scanner.Scan(parentCtx)
+	scanner.Scan(scanCtx)
+
+	log.Infof("[%s connector] finished fetching datasource [%s]", ConnectorOracle, datasource.Name)
+	return nil
 }
 
 // hasOrderByClause checks if the query already contains an ORDER BY clause

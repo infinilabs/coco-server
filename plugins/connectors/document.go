@@ -8,15 +8,17 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/util"
 )
 
 const (
-	TypeFolder = "folder"
-	TypeFile   = "file"
-	IconFolder = "font_filetype-folder"
+	TypeFolder               = "folder"
+	TypeFile                 = "file"
+	IconFolder               = "font_filetype-folder"
+	DefaultConnectionTimeout = time.Duration(5) * time.Second
 )
 
 // MarkParentFoldersAsValid marks all parent folders of a file path as containing matching files.

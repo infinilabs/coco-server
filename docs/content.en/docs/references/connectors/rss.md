@@ -8,7 +8,7 @@ weight: 20
 ## Register RSS Connector
 
 ```shell
-curl -XPUT "http://localhost:9000/connector/rss?replace=true" -d '{
+curl -XPOST "http://localhost:9000/connector/" -d '{
   "name" : "RSS Connector",
   "description" : "Fetch items from a specified RSS feed.",
   "category" : "website",
@@ -23,32 +23,13 @@ curl -XPUT "http://localhost:9000/connector/rss?replace=true" -d '{
     "icons" : {
       "default" : "/assets/icons/connector/rss/icon.png"
     }
-  }
+  },
+     "processor":{
+        "enabled":true,
+        "name":"rss"
+     }
 }'
 ```
-
-> Use `rss` as a unique identifier, as it is a builtin connector.
-
-
-## Update coco-server's config
-
-Below is an example configuration for enabling the RSS Connector in coco-server:
-
-```shell
-connector:
-  rss:
-    enabled: true
-    interval: 30s
-    queue:
-      name: indexing_documents
-```
-### Explanation of Config Parameters
-
-| **Field**      | **Type**  | **Description**                                                                         |
-|-----------------|-----------|-----------------------------------------------------------------------------------------|
-| `enabled`      | `boolean` | Enables or disables the RSS connector. Set to `true` to activate it.                |
-| `interval`     | `string`  | Specifies the time interval (e.g., `60s`) at which the connector will check for updates. |
-| `queue.name`   | `string`  | Defines the name of the queue where indexing tasks will be added.                       |
 
 ## Use the RSS Connector
 
@@ -59,7 +40,7 @@ curl  -H 'Content-Type: application/json'   -XPOST "http://localhost:9000/dataso
     "name":"My RSS feed",
     "type":"connector",
     "connector":{
-        "id":"rss",
+        "id":"rss's connector id",
          "config":{
             "urls": [ "The RSS link" ]
         }

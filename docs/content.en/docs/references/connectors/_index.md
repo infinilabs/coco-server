@@ -6,15 +6,6 @@ bookCollapseSection: true
 
 # Connectors
 
-## Builtin Connectors
-
-Coco have the following builtin connectors:
-
-- [Google Drive](./google_drive.md)
-- [Yuque](./yuque.md)
-- [Hugo Site](./hugo_site.md)
-
-
 ## Work with *Connector*
 
 ### Register a Connector
@@ -39,6 +30,10 @@ curl  -H 'Content-Type: application/json'   -XPOST http://localhost:9000/connect
             "web": "http://coco.infini.cloud/assets/hugo/web_page.png",
             "news": "http://coco.infini.cloud/assets/hugo/news.png"
         }
+    },
+    "processor":{
+       "enabled":true,
+       "name":"hugo"
     }
 }'
 
@@ -48,6 +43,8 @@ curl  -H 'Content-Type: application/json'   -XPOST http://localhost:9000/connect
   "result": "created"
 }
 ```
+
+> Note: Every connector is expected to implement a processor that can be registered through the API. For instance, the built-in `hugo` processor is demonstrated in the example above.
 
 ### Update a Connector
 ```shell
@@ -69,6 +66,10 @@ curl -XPUT http://localhost:9000/connector/cu0caqt3q95r66at41o0?replace=true -d 
             "web": "http://coco.infini.cloud/assets/hugo/web_page.png",
             "news": "http://coco.infini.cloud/assets/hugo/news.png"
         }
+    },
+    "processor":{
+       "enabled":true,
+       "name":"hugo"
     }
 }'
 

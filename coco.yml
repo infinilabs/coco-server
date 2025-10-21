@@ -303,32 +303,6 @@ web:
 
 
 connector:
-  google_drive: # get your token here: https://developers.google.com/drive/api/quickstart/go
-    enabled: true
-    queue:
-      name: indexing_documents
-    interval: 10s
-    skip_invalid_token: true
-  yuque:
-    enabled: true
-    queue:
-      name: indexing_documents
-    interval: 10s
-  hugo_site:
-    enabled: true
-    interval: 10s
-    queue:
-      name: indexing_documents
-  notion:
-    enabled: true
-    interval: 10s
-    queue:
-      name: indexing_documents
-  rss:
-    enabled: true
-    interval: 10s
-    queue:
-      name: indexing_documents
   local_fs:
     enabled: true
     interval: 10s
@@ -460,7 +434,15 @@ pipeline:
           queues:
             type: indexing_merge
             tag: "merged"
-
+  - name: connector_dispatcher
+    auto_start: true
+    keep_running: true
+    singleton: true
+    retry_delay_in_ms: 10000
+    processor:
+      - connector_dispatcher:
+          max_running_timeout_in_seconds: 1200
+#          pipelines_in_sync: true
 
 http_client:
   default:

@@ -1,7 +1,3 @@
-/* Copyright © INFINI LTD. All rights reserved.
- * Web: https://infinilabs.com
- * Email: hello#infini.ltd */
-
 package feishu
 
 import (
@@ -19,20 +15,39 @@ import (
 	log "github.com/cihub/seelog"
 )
 
+// Note: saveLastModifiedTime and getLastModifiedTime methods are inherited from ConnectorProcessorBase
+// No need to override them here unless custom behavior is needed
+
 // connect handles the OAuth authorization request
-func (h *Plugin) connect(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+func connect(w http.ResponseWriter, req *http.Request, _ httprouter.Params, pluginType PluginType, oauthConfig *OAuthConfig) {
 	// Check if OAuth is properly configured in connector
-	if h.OAuthConfig == nil || h.OAuthConfig.ClientID == "" || h.OAuthConfig.ClientSecret == "" {
+	if oauthConfig == nil || oauthConfig.ClientID == "" || oauthConfig.ClientSecret == "" {
 		http.Error(w, "OAuth not configured in connector. Please configure client_id and "+
 			"client_secret in the connector settings.", http.StatusServiceUnavailable)
 		return
 	}
 
-	// Generate OAuth authorization URL for Feishu
+	// Generate OAuth authorization URL for Feishu/Lark
 	// Feishu OAuth uses client_id instead of app_id
 
+	redirectURL := resolveRedirectURL(oauthConfig, req)
+
+	authURL := fmt.Sprintf("%s?client_id=%s&redirect_uri=%s&scope=%s",
+		oauthConfig.AuthURL,
+		oauthConfig.ClientID,
+		url.QueryEscape(redirectURL),
+		"drive:drive space:document:retrieve offline_access",
+	)
+
+	log.Debugf("[%s connector] Redirecting to OAuth URL: %s", pluginType, authURL)
+
+	// Redirect user to Feishu/Lark OAuth page
+	http.Redirect(w, req, authURL, http.StatusTemporaryRedirect)
+}
+
+func resolveRedirectURL(oauthConfig *OAuthConfig, req *http.Request) string {
 	// Build full redirect_url from current request
-	redirectURL := h.OAuthConfig.RedirectURL
+	redirectURL := oauthConfig.RedirectURL
 	if !strings.HasPrefix(redirectURL, "http://") && !strings.HasPrefix(redirectURL, "https://") {
 		// Extract scheme and host from current request
 		scheme := "http"
@@ -42,61 +57,57 @@ func (h *Plugin) connect(w http.ResponseWriter, req *http.Request, _ httprouter.
 
 		host := req.Host
 		if host == "" {
-			host = "localhost:8080" // fallback
+			host = "localhost:9000" // fallback
 		}
 
 		redirectURL = fmt.Sprintf("%s://%s%s", scheme, host, redirectURL)
-		h.OAuthConfig.RedirectURL = redirectURL
+		oauthConfig.RedirectURL = redirectURL
 	}
-
-	authURL := fmt.Sprintf("%s?client_id=%s&redirect_uri=%s&scope=%s",
-		h.OAuthConfig.AuthURL,
-		h.OAuthConfig.ClientID,
-		url.QueryEscape(redirectURL),
-		"drive:drive space:document:retrieve offline_access",
-	)
-
-	log.Debugf("[%s connector] Redirecting to OAuth URL: %s", h.PluginType, authURL)
-
-	// Redirect user to Feishu OAuth page
-	http.Redirect(w, req, authURL, http.StatusTemporaryRedirect)
+	return redirectURL
 }
 
 // oAuthRedirect handles the OAuth callback
-func (h *Plugin) oAuthRedirect(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+func oAuthRedirect(w http.ResponseWriter, req *http.Request, ps httprouter.Params, pluginType PluginType, oauthConfig *OAuthConfig) {
 	// Check if OAuth is properly configured in connector
-	if h.OAuthConfig == nil || h.OAuthConfig.ClientID == "" || h.OAuthConfig.ClientSecret == "" {
+	if oauthConfig == nil || oauthConfig.ClientID == "" || oauthConfig.ClientSecret == "" {
 		http.Error(w, "OAuth not configured in connector. Please configure client_id and "+
 			"client_secret in the connector settings.", http.StatusServiceUnavailable)
 		return
 	}
 
 	// Extract authorization code from query parameters
-	code := h.MustGetParameter(w, req, "code")
+	code := ps.ByName("code")
+	if code == "" {
+		// Try query parameter
+		code = req.URL.Query().Get("code")
+	}
 	if code == "" {
 		http.Error(w, "Missing authorization code.", http.StatusBadRequest)
 		return
 	}
 
-	log.Debugf("[%s connector] Received authorization code", h.PluginType)
+	log.Debugf("[%s connector] Received authorization code", pluginType)
+
+	// Create OAuth handler to process the callback
+	handler := NewOAuthHandler(pluginType, oauthConfig)
 
 	// Exchange authorization code for access token
-	token, err := h.exchangeCodeForToken(code)
+	token, err := handler.exchangeCodeForToken(code)
 	if err != nil {
-		log.Errorf("[%s connector] Failed to exchange code for token: %v", h.PluginType, err)
+		_ = log.Errorf("[%s connector] Failed to exchange code for token: %v", pluginType, err)
 		http.Error(w, "Failed to exchange authorization code for token.", http.StatusInternalServerError)
 		return
 	}
 
 	// Get user profile information
-	profile, err := h.getUserProfile(token.AccessToken)
+	profile, err := handler.getUserProfile(token.AccessToken)
 	if err != nil {
-		log.Errorf("[%s connector] Failed to get user profile: %v", h.PluginType, err)
+		_ = log.Errorf("[%s connector] Failed to get user profile: %v", pluginType, err)
 		http.Error(w, "Failed to get user profile information.", http.StatusInternalServerError)
 		return
 	}
 
-	log.Infof("[%s connector] Successfully authenticated user: %v", h.PluginType, profile)
+	log.Infof("[%s connector] Successfully authenticated user: %v", pluginType, profile)
 
 	// Create datasource with OAuth tokens
 	datasource := common.DataSource{
@@ -114,19 +125,19 @@ func (h *Plugin) oAuthRedirect(w http.ResponseWriter, req *http.Request, _ httpr
 		userID = "unknown"
 	}
 
-	datasource.ID = util.MD5digest(fmt.Sprintf("%v,%v", h.PluginType, userID))
+	datasource.ID = util.MD5digest(fmt.Sprintf("%v,%v", pluginType, userID))
 	datasource.Type = "connector"
 
 	// Set datasource name
 	if name, ok := profile["name"].(string); ok && name != "" {
-		datasource.Name = fmt.Sprintf("%s's %s", name, h.PluginType)
+		datasource.Name = fmt.Sprintf("%s's %s", name, pluginType)
 	} else {
-		datasource.Name = fmt.Sprintf("My %s", h.PluginType)
+		datasource.Name = fmt.Sprintf("My %s", pluginType)
 	}
 
 	// Create datasource config with OAuth tokens
 	datasource.Connector = common.ConnectorConfig{
-		ConnectorID: string(h.PluginType),
+		ConnectorID: string(pluginType),
 		Config: util.MapStr{
 			"access_token":  token.AccessToken,
 			"refresh_token": token.RefreshToken,
@@ -152,14 +163,71 @@ func (h *Plugin) oAuthRedirect(w http.ResponseWriter, req *http.Request, _ httpr
 	ctx := orm.NewContextWithParent(req.Context())
 	err = orm.Save(ctx, &datasource)
 	if err != nil {
-		log.Errorf("[%s connector] Failed to save datasource: %v", h.PluginType, err)
+		log.Errorf("[%s connector] Failed to save datasource: %v", pluginType, err)
 		http.Error(w, "Failed to save datasource.", http.StatusInternalServerError)
 		return
 	}
 
-	log.Infof("[%s connector] Successfully created datasource: %s", h.PluginType, datasource.ID)
+	log.Infof("[%s connector] Successfully created datasource: %s", pluginType, datasource.ID)
 
 	// Redirect to datasource detail page
 	newRedirectURL := fmt.Sprintf("/#/data-source/detail/%v", datasource.ID)
 	http.Redirect(w, req, newRedirectURL, http.StatusTemporaryRedirect)
+}
+
+// handleOAuthConnect is a generic handler factory for OAuth authorization
+func handleOAuthConnect(pluginType PluginType) httprouter.Handle {
+	return func(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+		oauthConfig, err := getOAuthConfigFromConnector(ps.ByName("id"), pluginType)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Failed to get OAuth config: %v", err), http.StatusInternalServerError)
+			return
+		}
+		connect(w, req, ps, pluginType, oauthConfig)
+	}
+}
+
+// handleOAuthRedirect is a generic handler factory for OAuth callback
+func handleOAuthRedirect(pluginType PluginType) httprouter.Handle {
+	return func(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+		oauthConfig, err := getOAuthConfigFromConnector(ps.ByName("id"), pluginType)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Failed to get OAuth config: %v", err), http.StatusInternalServerError)
+			return
+		}
+		oauthConfig.RedirectURL = resolveRedirectURL(oauthConfig, req)
+		oAuthRedirect(w, req, ps, pluginType, oauthConfig)
+	}
+}
+
+// getOAuthConfigFromConnector retrieves OAuth configuration from connector
+func getOAuthConfigFromConnector(connectorID string, pluginType PluginType) (*OAuthConfig, error) {
+	apiConfig := getAPIConfig(pluginType)
+
+	oauthConfig := &OAuthConfig{
+		AuthURL:     apiConfig.AuthURL,
+		TokenURL:    apiConfig.TokenURL,
+		RedirectURL: fmt.Sprintf("/connector/%s/%s/oauth_redirect", connectorID, pluginType),
+	}
+
+	// Try to load connector to get OAuth credentials
+	connector := common.Connector{}
+	connector.ID = connectorID
+	exists, err := orm.Get(&connector)
+	if err == nil && exists && connector.Config != nil {
+		if clientID, ok := connector.Config["client_id"].(string); ok {
+			oauthConfig.ClientID = clientID
+		}
+		if clientSecret, ok := connector.Config["client_secret"].(string); ok {
+			oauthConfig.ClientSecret = clientSecret
+		}
+		if authURL, ok := connector.Config["auth_url"].(string); ok {
+			oauthConfig.AuthURL = authURL
+		}
+		if tokenURL, ok := connector.Config["token_url"].(string); ok {
+			oauthConfig.TokenURL = tokenURL
+		}
+	}
+
+	return oauthConfig, nil
 }
