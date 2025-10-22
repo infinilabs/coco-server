@@ -30,38 +30,15 @@ curl -XPUT "http://localhost:9000/connector/salesforce?replace=true" -d '{
             "campaign": "/assets/icons/connector/salesforce/campaign.png",
             "case": "/assets/icons/connector/salesforce/case.png"
         }
+    },
+    "processor": {
+        "enabled": true,
+        "name": "salesforce"
     }
 }'
 ```
 
 > Use `salesforce` as a unique identifier, as it is a builtin connector.
-
-## Update coco-server's config
-
-Below is an example configuration for enabling the Salesforce Connector in coco-server:
-
-```yaml
-connector:
-  salesforce:
-    enabled: true
-    domain: "mycompany"
-    client_id: "your_client_id_here"
-    client_secret: "your_client_secret_here"
-    queue:
-      name: indexing_documents
-    interval: 30s
-```
-
-### Explanation of Config Parameters
-
-| **Field**      | **Type**  | **Description**                                                                 |
-|-----------------|-----------|---------------------------------------------------------------------------------|
-| `enabled`      | `boolean` | Enables or disables the Salesforce connector. Set to `true` to activate it.    |
-| `domain`       | `string`  | Your Salesforce domain (e.g., "mycompany" for mycompany.my.salesforce.com).    |
-| `client_id`    | `string`  | OAuth2 client ID from your Salesforce connected app.                           |
-| `client_secret`| `string`  | OAuth2 client secret from your Salesforce connected app.                       |
-| `interval`     | `string`  | Specifies the time interval (e.g., `30s`) at which the connector will check for updates. |
-| `queue.name`   | `string`  | Defines the name of the queue where indexing tasks will be added.              |
 
 ## Use the Salesforce Connector
 
@@ -167,14 +144,15 @@ Before using this connector, you need to create a Salesforce Connected App and c
 
 {{% load-img "/img/connector/salesforce/salesforce_connector.png" "Configure Salesforce OAuth" %}}
 
-### Example Request
+### Datasource Configuration
 
-Here is an example request to configure the Salesforce Connector:
+Each datasource has its own sync configuration and object selection:
 
 ```shell
 curl -H 'Content-Type: application/json' -XPOST "http://localhost:9000/datasource/" -d '{
     "name": "My Salesforce Data",
     "type": "connector",
+    "enabled": true,
     "connector": {
         "id": "salesforce",
         "config": {
@@ -182,9 +160,23 @@ curl -H 'Content-Type: application/json' -XPOST "http://localhost:9000/datasourc
             "sync_custom_objects": true,
             "custom_objects_to_sync": ["CustomObject__c"]
         }
+    },
+    "sync": {
+        "enabled": true,
+        "interval": "5m"
     }
 }'
 ```
+
+### Datasource Config Parameters
+
+| **Field**                    | **Type**   | **Description**                                                                                |
+|------------------------------|------------|------------------------------------------------------------------------------------------------|
+| `standard_objects_to_sync`   | `array`    | List of standard objects to sync (default: all standard objects).                             |
+| `sync_custom_objects`        | `boolean`  | Whether to sync custom objects (default: false).                                              |
+| `custom_objects_to_sync`     | `array`    | List of custom objects to sync (use "*" for all).                                             |
+| `sync.enabled`               | `boolean`  | Enable/disable syncing for this datasource.                                                   |
+| `sync.interval`              | `string`   | Sync interval for this datasource (e.g., "5m", "1h", "30s").                                  |
 
 ## Supported Objects
 

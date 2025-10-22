@@ -155,7 +155,7 @@ connector:
       redirect_url: "/connector/feishu/oauth_redirect"
       client_id: "cli_xxxxxxxxxxxxxxxx"
       client_secret: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-      document_types: ["doc", "sheet", "slides", "mindnote", "bitable"]
+      document_types: ["doc", "sheet", "slides", "mindnote", "bitable", "file", "docx", "folder", "shortcut"]
       user_access_token: ""  # Optional, for direct token authentication
 ```
 
@@ -173,7 +173,7 @@ connector:
       redirect_url: "/connector/lark/oauth_redirect"
       client_id: "cli_xxxxxxxxxxxxxxxx"
       client_secret: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-      document_types: ["doc", "sheet", "slides", "mindnote", "bitable"]
+      document_types: ["doc", "sheet", "slides", "mindnote", "bitable", "file", "docx", "folder", "shortcut"]
       user_access_token: ""  # Optional, for direct token authentication
 ```
 
@@ -240,14 +240,17 @@ curl -XPUT "http://localhost:9000/connector/feishu?replace=true" -d '{
   "tags": ["feishu", "docs", "cloud"],
   "url": "http://coco.rs/connectors/feishu",
   "assets": {"icons": {"default": "/assets/connector/feishu/icon.png"}},
+  "oauth_connect_implemented": true,
+  "path_hierarchy": true,
+  "processor": {
+    "enabled": true,
+    "name": "feishu"
+  },
   "config": {
     "auth_url": "https://accounts.feishu.cn/open-apis/authen/v1/authorize",
     "token_url": "https://open.feishu.cn/open-apis/authen/v2/oauth/token",
-    "redirect_url": "/connector/feishu/oauth_redirect",
     "client_id": "cli_xxxxxxxxxxxxxxxx",
-    "client_secret": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-    "document_types": ["doc", "sheet", "slides", "mindnote", "bitable"],
-    "user_access_token": ""
+    "client_secret": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
   }
 }'
 ```
@@ -263,59 +266,78 @@ curl -XPUT "http://localhost:9000/connector/lark?replace=true" -d '{
   "tags": ["lark", "docs", "cloud"],
   "url": "http://coco.rs/connectors/lark",
   "assets": {"icons": {"default": "/assets/connector/lark/icon.png"}},
+  "oauth_connect_implemented": true,
+  "path_hierarchy": true,
+  "processor": {
+    "enabled": true,
+    "name": "lark"
+  },
   "config": {
     "auth_url": "https://accounts.larksuite.com/open-apis/authen/v1/authorize",
     "token_url": "https://open.larksuite.com/open-apis/authen/v2/oauth/token",
-    "redirect_url": "/connector/lark/oauth_redirect",
     "client_id": "cli_xxxxxxxxxxxxxxxx",
-    "client_secret": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-    "document_types": ["doc", "sheet", "slides", "mindnote", "bitable"],
-    "user_access_token": ""
+    "client_secret": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
   }
 }'
 ```
 
 > Use `feishu` or `lark` as the unique connector ID.
 
-## Update coco-server config
+### Connector Configuration
 
-### Feishu Configuration
-```yaml
-connector:
-  feishu:
-    enabled: true
-    queue:
-      name: indexing_documents
-    interval: "30s"
-    page_size: 100
-    config:
-      auth_url: "https://accounts.feishu.cn/open-apis/authen/v1/authorize"
-      token_url: "https://open.feishu.cn/open-apis/authen/v2/oauth/token"
-      redirect_url: "/connector/feishu/oauth_redirect"
-      client_id: "cli_xxxxxxxxxxxxxxxx"
-      client_secret: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-      document_types: ["doc", "sheet", "slides", "mindnote", "bitable"]
-      user_access_token: ""
+OAuth credentials are configured at the connector level via the management interface or API.
+
+#### Feishu Connector
+```json
+{
+  "id": "feishu",
+  "name": "飞书云文档连接器",
+  "builtin": true,
+  "oauth_connect_implemented": true,
+  "processor": {
+    "enabled": true,
+    "name": "feishu"
+  },
+  "config": {
+    "client_id": "cli_xxxxxxxxxxxxxxxx",
+    "client_secret": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "auth_url": "https://accounts.feishu.cn/open-apis/authen/v1/authorize",
+    "token_url": "https://open.feishu.cn/open-apis/authen/v2/oauth/token"
+  }
+}
 ```
 
-### Lark Configuration
-```yaml
-connector:
-  lark:
-    enabled: true
-    queue:
-      name: indexing_documents
-    interval: "30s"
-    page_size: 100
-    config:
-      auth_url: "https://accounts.larksuite.com/open-apis/authen/v1/authorize"
-      token_url: "https://open.larksuite.com/open-apis/authen/v2/oauth/token"
-      redirect_url: "/connector/lark/oauth_redirect"
-      client_id: "cli_xxxxxxxxxxxxxxxx"
-      client_secret: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-      document_types: ["doc", "sheet", "slides", "mindnote", "bitable"]
-      user_access_token: ""
+#### Lark Connector
+```json
+{
+  "id": "lark",
+  "name": "Lark Document Connector",
+  "builtin": true,
+  "oauth_connect_implemented": true,
+  "processor": {
+    "enabled": true,
+    "name": "lark"
+  },
+  "config": {
+    "client_id": "cli_xxxxxxxxxxxxxxxx",
+    "client_secret": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "auth_url": "https://accounts.larksuite.com/open-apis/authen/v1/authorize",
+    "token_url": "https://open.larksuite.com/open-apis/authen/v2/oauth/token"
+  }
+}
 ```
+
+### Connector Config Parameters
+
+| **Field**                   | **Type**  | **Description**                                                                      |
+|-----------------------------|-----------|--------------------------------------------------------------------------------------|
+| `client_id`                 | `string`  | Feishu/Lark app Client ID.                                                           |
+| `client_secret`             | `string`  | Feishu/Lark app Client Secret.                                                       |
+| `auth_url`                  | `string`  | OAuth authorization URL (pre-configured).                                            |
+| `token_url`                 | `string`  | OAuth token exchange URL (pre-configured).                                           |
+| `processor.enabled`         | `boolean` | Enables the pipeline processor (required).                                           |
+| `processor.name`            | `string`  | Processor name, must be "feishu" or "lark" (required).                               |
+| `oauth_connect_implemented` | `boolean` | Indicates OAuth is implemented (required for OAuth flow).                            |
 
 ## Create a Datasource
 
@@ -339,12 +361,17 @@ For users who prefer direct token authentication, datasources can still be creat
 curl -H 'Content-Type: application/json' -XPOST "http://localhost:9000/datasource/" -d '{
   "name": "Feishu Cloud Documents",
   "type": "connector",
+  "enabled": true,
   "connector": {
     "id": "feishu",
     "config": {
       "user_access_token": "u-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
       "document_types": ["doc", "sheet", "slides", "mindnote", "bitable", "file", "docx", "folder", "shortcut"]
     }
+  },
+  "sync": {
+    "enabled": true,
+    "interval": "30s"
   }
 }'
 ```
@@ -354,15 +381,31 @@ curl -H 'Content-Type: application/json' -XPOST "http://localhost:9000/datasourc
 curl -H 'Content-Type: application/json' -XPOST "http://localhost:9000/datasource/" -d '{
   "name": "Lark Cloud Documents",
   "type": "connector",
+  "enabled": true,
   "connector": {
     "id": "lark",
     "config": {
       "user_access_token": "u-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
       "document_types": ["doc", "sheet", "slides", "mindnote", "bitable", "file", "docx", "folder", "shortcut"]
     }
+  },
+  "sync": {
+    "enabled": true,
+    "interval": "30s"
   }
 }'
 ```
+
+### Datasource Config Parameters
+
+| **Field**                    | **Type**   | **Description**                                                                                |
+|------------------------------|------------|------------------------------------------------------------------------------------------------|
+| `user_access_token`          | `string`   | User access token (for direct token authentication).                                          |
+| `document_types`             | `array`    | List of document types to synchronize.                                                        |
+| `sync.enabled`               | `boolean`  | Enable/disable syncing for this datasource.                                                   |
+| `sync.interval`              | `string`   | Sync interval for this datasource (e.g., "30s", "5m", "1h").                                  |
+
+> **Note**: When using OAuth authentication, `access_token`, `refresh_token`, `token_expiry`, `refresh_token_expiry`, and `profile` fields are automatically filled during the OAuth flow.
 
 ## Configuration Parameters
 
@@ -377,20 +420,20 @@ curl -H 'Content-Type: application/json' -XPOST "http://localhost:9000/datasourc
 
 ### OAuth Auto-filled Fields
 
-| Field | Type | Description | Source |
-|-------|------|-------------|--------|
-| `access_token` | string | Access token for API calls | Automatically obtained via OAuth |
-| `refresh_token` | string | Refresh token for token updates | Automatically obtained via OAuth |
-| `token_expiry` | string | Access token expiration time (RFC3339 format) | Automatically obtained via OAuth |
-| `refresh_token_expiry` | string | Refresh token expiration time (RFC3339 format) | Automatically obtained via OAuth |
-| `profile` | object | User information (ID, name, email, etc.) | Automatically obtained via OAuth |
+| Field                  | Type   | Description                                       | Source                           |
+|------------------------|--------|---------------------------------------------------|----------------------------------|
+| `access_token`         | string | Access token for API calls                        | Automatically obtained via OAuth |
+| `refresh_token`        | string | Refresh token for token updates                   | Automatically obtained via OAuth |
+| `token_expiry`         | string | Access token expiration time (RFC3339 format)     | Automatically obtained via OAuth |
+| `refresh_token_expiry` | string | Refresh token expiration time (RFC3339 format)    | Automatically obtained via OAuth |
+| `profile`              | object | User information (ID, name, email, etc.)          | Automatically obtained via OAuth |
 
 ### Sync Configuration
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `page_size` | int | 100 | Number of files per page |
-| `interval` | string | "30s" | Synchronization interval |
+| Field         | Type   | Default | Description              |
+|---------------|--------|---------|--------------------------|
+| `page_size`   | int    | 100     | Number of files per page |
+| `interval`    | string | "30s"   | Synchronization interval |
 
 ## Supported Document Types
 
@@ -453,177 +496,3 @@ The connector keeps Feishu's native folder hierarchy and creates folder director
 1. Create corresponding datasource in system management interface
 2. Configure `user_access_token` and `document_types`
 3. Save datasource configuration
-
-## Technical Implementation
-
-### Architecture Design
-
-#### Refactored Architecture
-- **Plugin Type Abstraction**: Uses `PluginType` enum to distinguish between Feishu and Lark
-- **Dynamic API Configuration**: Dynamically selects API endpoints based on plugin type
-- **Enhanced Base Plugin**: Adds plugin type management and API configuration functionality to base plugin
-- **Maximum Code Reuse**: 95% of code is shared, only configuration and routes differ
-- **OAuth Configuration Centralization**: OAuth credentials are managed at connector level
-- **Automatic Datasource Creation**: Datasources are automatically created during OAuth flow
-- **Unified OAuth Config Structure**: All OAuth-related fields are merged into a single `OAuthConfig` struct
-
-#### Core Components
-```go
-// Plugin type definition
-type PluginType string
-const (
-    PluginTypeFeishu PluginType = "feishu"
-    PluginTypeLark   PluginType = "lark"
-)
-
-// Unified OAuth configuration structure
-type OAuthConfig struct {
-    // OAuth endpoints
-    AuthURL     string
-    TokenURL    string
-    RedirectURL string
-    
-    // OAuth credentials
-    ClientID         string
-    ClientSecret     string
-    DocumentTypes    []string
-    UserAccessToken  string
-}
-
-// API configuration structure
-type APIConfig struct {
-    BaseURL     string
-    AuthURL     string
-    TokenURL    string
-    UserInfoURL string
-    DriveURL    string
-}
-
-// Base plugin structure
-type Plugin struct {
-    // ... existing fields
-    PluginType  PluginType
-    apiConfig   *APIConfig
-    OAuthConfig *OAuthConfig  // Unified OAuth configuration
-}
-```
-
-#### Plugin Implementation
-- **FeishuPlugin**: Inherits base plugin, sets `PluginTypeFeishu`
-- **LarkPlugin**: Inherits base plugin, sets `PluginTypeLark`
-- **Unified API Processing**: All API calls use dynamically configured endpoints
-
-### OAuth Route Registration
-
-#### Feishu Routes
-- **Route Endpoints**: 
-  - `GET /connector/feishu/connect` - OAuth authorization request
-  - `GET /connector/feishu/oauth_redirect` - OAuth callback processing
-
-#### Lark Routes
-- **Route Endpoints**: 
-  - `GET /connector/lark/connect` - OAuth authorization request
-  - `GET /connector/lark/oauth_redirect` - OAuth callback processing
-
-- **Authentication Requirements**: All OAuth endpoints require user login
-- **Scope Configuration**: Uses `drive:drive space:document:retrieve offline_access` permission scope
-
-### Token Lifecycle Management
-- **Auto-refresh**: Automatically refreshes access_token when expired using refresh_token
-- **Expiration Checking**: Checks expiration times for both access_token and refresh_token
-- **Smart Handling**: Stops synchronization and logs errors if both tokens are expired
-- **Data Persistence**: Automatically saves refreshed token information to datasource configuration
-
-### Special Type Processing
-
-#### Recursive Folder Search
-The connector automatically searches folder contents recursively, ensuring all documents in subfolders are indexed.
-
-## Important Notes
-
-1. **Authentication Method Selection**: You must choose either OAuth authentication or user access token authentication, they cannot be used simultaneously
-2. **OAuth Recommended**: OAuth authentication is recommended for higher security, automatic token refresh, and expiration time management
-3. **Connector-Level Configuration**: OAuth credentials are now configured at the connector level, not at the datasource level
-4. **Automatic Datasource Creation**: When using OAuth, datasources are automatically created during the authorization flow
-5. **Token Management**: When using user access tokens, manual token expiration management is required
-6. **Permission Requirements**: Feishu/Lark apps need to apply for and obtain the following permissions:
-   - `drive:drive` - Cloud document access permission
-   - `space:document:retrieve` - Knowledge base retrieval permission
-   - `offline_access` - Offline access permission
-7. **API Limits**: Pay attention to Feishu/Lark API call frequency limits
-8. **Platform Selection**: Choose the appropriate platform based on user region (Feishu for Mainland China, Lark for overseas regions)
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Authentication Failure**
-   - Check if `client_id` and `client_secret` are correct
-   - Confirm if Feishu/Lark app has applied for and obtained the following permissions:
-     - `drive:drive` - Cloud document access permission
-     - `space:document:retrieve` - Knowledge base retrieval permission
-     - `offline_access` - Offline access permission
-   - Check OAuth redirect URI configuration
-   - Confirm if application has been published to enterprise
-
-2. **Token Expiration**
-   - OAuth Authentication: System automatically refreshes tokens, check if refresh_token is also expired
-   - User Access Token: Manual token updates required
-
-3. **Sync Failure**
-   - Check network connectivity
-   - Confirm if token is valid
-   - View system logs for detailed error information
-   - Check expiration times for both tokens
-
-4. **OAuth Redirect Errors**
-   - Confirm redirect URI in application configuration
-   - Check if network environment supports dynamic URI construction
-   - View redirect URI construction process in system logs
-
-5. **Platform Selection Error**
-   - Confirm user region
-   - Check if application domain configuration is correct
-   - Verify if API endpoints are accessible
-
-### Log Debugging
-The connector provides detailed logging, including:
-- Each step of the OAuth flow
-- Token refresh process
-- Expiration time checking
-- Error details and stack information
-- Plugin type identification (`[feishu connector]` or `[lark connector]`)
-
-Use logs to quickly locate and resolve issues.
-
-## Extensibility
-
-The refactored architecture supports easy addition of new plugin types:
-
-1. **Define New Plugin Type**
-   ```go
-   const PluginTypeLarkInternational PluginType = "lark_international"
-   ```
-
-2. **Add API Configuration**
-   ```go
-   case PluginTypeLarkInternational:
-       return &APIConfig{
-           BaseURL: "https://open.larksuite.com",
-           // ... other configurations
-       }
-   ```
-
-3. **Create New Plugin**
-   ```go
-   type LarkInternationalPlugin struct {
-       Plugin
-   }
-   
-   func (this *LarkInternationalPlugin) Setup() {
-       this.SetPluginType(PluginTypeLarkInternational)
-       // other configurations handled automatically
-   }
-   ```
-
-This design provides a solid foundation for future feature extensions and maintenance.

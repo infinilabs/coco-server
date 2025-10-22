@@ -7,51 +7,34 @@ weight: 62
 ## Register Gitea Connector
 
 ```shell
-cURL -XPUT "http://localhost:9000/connector/gitea?replace=true" -d '{
+curl -XPUT "http://localhost:9000/connector/gitea?replace=true" -d '{
   "name": "Gitea Connector",
   "description": "Fetch repositories, issues, pull requests, and wikis from Gitea.",
   "icon": "/assets/icons/connector/gitea/icon.png",
   "category": "website",
   "tags": [
-    "git", 
-    "code", 
-    "vcs", 
+    "git",
+    "code",
+    "vcs",
     "website"
   ],
   "url": "http://coco.rs/connectors/gitea",
   "assets": {
     "icons": {
-      "default" : "/assets/icons/connector/gitea/icon.png",
-      "repository" : "/assets/icons/connector/gitea/repository.png",
-      "issue" : "/assets/icons/connector/gitea/issue.png",
-      "pull_request" : "/assets/icons/connector/gitea/pull_request.png"
+      "default": "/assets/icons/connector/gitea/icon.png",
+      "repository": "/assets/icons/connector/gitea/repository.png",
+      "issue": "/assets/icons/connector/gitea/issue.png",
+      "pull_request": "/assets/icons/connector/gitea/pull_request.png"
     }
+  },
+  "processor": {
+    "enabled": true,
+    "name": "gitea"
   }
 }'
 ```
 
 > Use `gitea` as a unique identifier, as it is a builtin connector.
-
-## Update coco-server's config
-
-Below is an example configuration for enabling the Gitea Connector in coco-server:
-
-```yaml
-connector:
-  gitea:
-    enabled: true
-    queue:
-      name: indexing_documents
-    interval: 30s
-```
-
-### Explanation of Config Parameters
-
-| **Field**    | **Type**  | **Description**                                                                            |
-|--------------|-----------|--------------------------------------------------------------------------------------------|
-| `enabled`    | `boolean` | Enables or disables the Gitea connector. Set to`true` to activate it.                      |
-| `interval`   | `string`  | Specifies the time interval (e.g., `30s`) at which the connector will check for updates.   |
-| `queue.name` | `string`  | Defines the name of the queue where indexing tasks will be added.                          |
 
 ## Use the Gitea Connector
 
@@ -73,16 +56,16 @@ To configure your Gitea connection, you'll need to provide the URL of your insta
 
 `index_pull_requests`: (Optional) A boolean (`true` or `false`) to enable indexing of pull requests. Defaults to `true`.
 
-### Example Request
+### Datasource Configuration
 
-Here is an example request to configure the Gitea Connector:
+Each datasource has its own sync configuration and Gitea settings:
 
 ```shell
-cURL -H 'Content-Type: application/json' -XPOST "http://localhost:9000/datasource/" -d '
-{
-    "name":"My Gitea Projects",
-    "type":"connector",
-    "connector":{
+curl -H 'Content-Type: application/json' -XPOST "http://localhost:9000/datasource/" -d '{
+    "name": "My Gitea Projects",
+    "type": "connector",
+    "enabled": true,
+    "connector": {
         "id": "gitea",
         "config": {
             "base_url": "https://gitea.example.com",
@@ -95,17 +78,27 @@ cURL -H 'Content-Type: application/json' -XPOST "http://localhost:9000/datasourc
             "index_issues": true,
             "index_pull_requests": true
         }
+    },
+    "sync": {
+        "enabled": true,
+        "interval": "30s"
     }
 }'
 ```
 
 ## Supported Config Parameters for Gitea Connector
 
+Below are the configuration parameters supported by the Gitea Connector:
+
+### Datasource Config Parameters
+
 | **Field**               | **Type**   | **Description**                                                                                          |
 |-------------------------|------------|----------------------------------------------------------------------------------------------------------|
 | `base_url`              | `string`   | Optional. The base URL of your self-hosted Gitea instance.                                               |
-| `token`                 | `string`   | Required. Your Gitea Personal Access Token (PAT).                                                        |
-| `owner`                 | `string`   | Required. The username or organization name to scan.                                                     |
+| `token`                 | `string`   | Your Gitea Personal Access Token (PAT) (required).                                                        |
+| `owner`                 | `string`   | The username or organization name to scan (required).                                                     |
 | `repos`                 | `[]string` | Optional. A list of repository names to index. If empty, all repositories for the owner will be indexed. |
 | `index_issues`          | `boolean`  | Optional. Whether to index issues. Defaults to `true`.                                                   |
 | `index_pull_requests`   | `boolean`  | Optional. Whether to index pull requests. Defaults to `true`.                                            |
+| `sync.enabled`          | `boolean`  | Enable/disable syncing for this datasource.                                                              |
+| `sync.interval`         | `string`   | Sync interval for this datasource (e.g., "30s", "5m", "1h").                                             |

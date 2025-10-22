@@ -55,6 +55,23 @@ func CanDoSync(datasource common.DataSource) (bool, error) {
 	return toSync, nil
 }
 
+func ParseConnectorBaseConfigure(connector *common.Connector, config interface{}) error {
+	if connector == nil {
+		return errors.New("invalid connector or datasource config")
+	}
+
+	cfg, err := config3.NewConfigFrom(connector.Config)
+	if err != nil {
+		return errors.Wrapf(err, "Create config from connector [%s] failed", connector.Name)
+	}
+
+	err = cfg.Unpack(config)
+	if err != nil {
+		return errors.Wrapf(err, "Unpack config for connector [%s] failed", connector.Name)
+	}
+	return nil
+}
+
 // ParseConnectorConfigure parse connector data source config
 func ParseConnectorConfigure(connector *common.Connector, datasource *common.DataSource, config interface{}) error {
 	if connector == nil || datasource == nil {

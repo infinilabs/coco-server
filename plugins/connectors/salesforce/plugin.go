@@ -8,13 +8,11 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"sync"
 
 	"infini.sh/coco/modules/common"
-	"infini.sh/coco/plugins/connectors"
-	"infini.sh/framework/core/module"
-	"infini.sh/framework/core/queue"
-	"infini.sh/framework/core/util"
+	cmn "infini.sh/coco/plugins/connectors/common"
+	"infini.sh/framework/core/config"
+	"infini.sh/framework/core/pipeline"
 
 	log "github.com/cihub/seelog"
 )
@@ -23,43 +21,22 @@ const (
 	ConnectorSalesforce = "salesforce"
 )
 
-func init() {
-	module.RegisterUserPlugin(&Plugin{})
+type Plugin struct {
+	cmn.ConnectorProcessorBase
 }
 
-type Plugin struct {
-	connectors.BasePlugin
-	mu     sync.Mutex
-	ctx    context.Context
-	cancel context.CancelFunc
+func init() {
+	pipeline.RegisterProcessorPlugin(ConnectorSalesforce, New)
+}
+
+func New(c *config.Config) (pipeline.Processor, error) {
+	runner := Plugin{}
+	runner.Init(c, &runner)
+	return &runner, nil
 }
 
 func (p *Plugin) Name() string {
 	return ConnectorSalesforce
-}
-
-func (p *Plugin) Start() error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	p.ctx, p.cancel = context.WithCancel(context.Background())
-	return p.BasePlugin.Start(connectors.DefaultSyncInterval)
-}
-
-func (p *Plugin) Stop() error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	if p.cancel != nil {
-		log.Infof("[%s connector] received stop signal, cancelling all operations", ConnectorSalesforce)
-		p.cancel()
-		p.ctx = nil
-		p.cancel = nil
-	}
-	return nil
-}
-
-func (p *Plugin) Setup() {
-	// Initialize base plugin (handles config parsing and enabled check)
-	p.BasePlugin.Init(fmt.Sprintf("connector.%s", ConnectorSalesforce), "indexing salesforce data", p)
 }
 
 // extractOAuthConfig extracts OAuth configuration from connector.Config
@@ -91,30 +68,11 @@ func (p *Plugin) extractOAuthConfig(connectorConfig map[string]interface{}) (OAu
 	return oauthConfig, nil
 }
 
-func (p *Plugin) Scan(connector *common.Connector, datasource *common.DataSource) {
-	p.mu.Lock()
-	parentCtx := p.ctx
-	p.mu.Unlock()
-
-	if parentCtx == nil {
-		_ = log.Warnf(
-			"[%s connector] plugin is stopped, skipping scan for datasource [%s]",
-			ConnectorSalesforce,
-			datasource.Name,
-		)
-		return
-	}
-
+func (p *Plugin) Fetch(ctx *pipeline.Context, connector *common.Connector, datasource *common.DataSource) error {
 	cfg := Config{}
-	if err := connectors.ParseConnectorConfigure(connector, datasource, &cfg); err != nil {
-		_ = log.Errorf(
-			"[%s connector] parsing connector configuration failed for datasource [%s]: %v",
-			ConnectorSalesforce,
-			datasource.Name,
-			err,
-		)
-		return
-	}
+	p.MustParseConfig(datasource, &cfg)
+
+	log.Debugf("[%s connector] handling datasource: %v", ConnectorSalesforce, datasource.Name)
 
 	// Set default values if not configured
 	if cfg.StandardObjectsToSync == nil {
@@ -127,12 +85,7 @@ func (p *Plugin) Scan(connector *common.Connector, datasource *common.DataSource
 	// Extract OAuth configuration from connector.Config
 	oauthConfig, err := p.extractOAuthConfig(connector.Config)
 	if err != nil {
-		_ = log.Errorf(
-			"[%s connector] failed to extract OAuth configuration: %v",
-			ConnectorSalesforce,
-			err,
-		)
-		return
+		return fmt.Errorf("failed to extract OAuth configuration: %v", err)
 	}
 
 	// Create client with connector-level OAuth config
@@ -144,43 +97,31 @@ func (p *Plugin) Scan(connector *common.Connector, datasource *common.DataSource
 	}
 	client := NewSalesforceClient(clientConfig)
 
-	scanCtx, scanCancel := context.WithCancel(parentCtx)
-	defer scanCancel()
+	if err := p.processSalesforceData(ctx, client, clientConfig, connector, datasource); err != nil {
+		return err
+	}
 
-	p.processSalesforceData(scanCtx, client, clientConfig, datasource)
-
-	log.Infof(
-		"[%s connector] finished scanning datasource [%s]",
-		ConnectorSalesforce,
-		datasource.Name,
-	)
+	log.Infof("[%s connector] finished fetching datasource [%s]", ConnectorSalesforce, datasource.Name)
+	return nil
 }
 
 func (p *Plugin) processSalesforceData(
-	ctx context.Context,
+	ctx *pipeline.Context,
 	client *SalesforceClient,
 	cfg *Config,
+	connector *common.Connector,
 	datasource *common.DataSource,
-) {
+) error {
 	// Authenticate with Salesforce
-	if err := client.Authenticate(ctx); err != nil {
-		_ = log.Errorf(
-			"[%s connector] failed to authenticate with Salesforce: %v",
-			ConnectorSalesforce,
-			err,
-		)
-		return
+	authCtx := context.Background()
+	if err := client.Authenticate(authCtx); err != nil {
+		return fmt.Errorf("failed to authenticate with Salesforce: %v", err)
 	}
 
 	// Get queryable objects once to avoid repeated API calls
-	queryableObjects, err := client.GetQueryableSObjects(ctx)
+	queryableObjects, err := client.GetQueryableSObjects(authCtx)
 	if err != nil {
-		_ = log.Errorf(
-			"[%s connector] failed to get queryable objects: %v",
-			ConnectorSalesforce,
-			err,
-		)
-		return
+		return fmt.Errorf("failed to get queryable objects: %v", err)
 	}
 
 	log.Infof(
@@ -191,21 +132,17 @@ func (p *Plugin) processSalesforceData(
 	)
 
 	// Create SObject type directories
-	p.createSObjectDirectories(ctx, client, cfg, datasource)
+	if err := p.createSObjectDirectories(ctx, authCtx, client, cfg, connector, datasource); err != nil {
+		return err
+	}
 
 	// Process standard objects
 	for _, objType := range StandardSObjects {
 		if len(cfg.StandardObjectsToSync) == 0 || contains(cfg.StandardObjectsToSync, objType) {
 			// Check if the object is queryable before attempting to query
-			isQueryable, err := client.IsQueryable(ctx, objType)
+			isQueryable, err := client.IsQueryable(authCtx, objType)
 			if err != nil {
-				_ = log.Errorf(
-					"[%s connector] failed to check if object %s is queryable: %v",
-					ConnectorSalesforce,
-					objType,
-					err,
-				)
-				return
+				return fmt.Errorf("failed to check if object %s is queryable: %v", objType, err)
 			}
 
 			if !isQueryable {
@@ -214,39 +151,42 @@ func (p *Plugin) processSalesforceData(
 					ConnectorSalesforce,
 					objType,
 				)
-				return
+				continue
 			}
-			p.processObjectType(ctx, client, objType, datasource)
+			if err := p.processObjectType(ctx, authCtx, client, objType, connector, datasource); err != nil {
+				return err
+			}
 		}
 	}
 
 	// Process custom objects if enabled
 	if cfg.SyncCustomObjects {
-		p.processCustomObjects(ctx, client, cfg, datasource)
+		if err := p.processCustomObjects(ctx, authCtx, client, cfg, connector, datasource); err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
 func (p *Plugin) processCustomObjects(
-	ctx context.Context,
+	ctx *pipeline.Context,
+	authCtx context.Context,
 	client *SalesforceClient,
 	cfg *Config,
+	connector *common.Connector,
 	datasource *common.DataSource,
-) {
+) error {
 	// Determine which custom objects to sync
 	var customObjectsToSync []string
 	if len(cfg.CustomObjectsToSync) == 0 {
 		log.Infof("[%s connector] sync custom objects is enabled, but no custom objects", ConnectorSalesforce)
-		return
+		return nil
 	} else if len(cfg.CustomObjectsToSync) == 1 && cfg.StandardObjectsToSync[0] == "*" {
 		// Sync all custom objects
-		customObjects, err := client.GetCustomObjects(ctx)
+		customObjects, err := client.GetCustomObjects(authCtx)
 		if err != nil {
-			_ = log.Errorf(
-				"[%s connector] failed to get custom objects: %v",
-				ConnectorSalesforce,
-				err,
-			)
-			return
+			return fmt.Errorf("failed to get custom objects: %v", err)
 		}
 		customObjectsToSync = customObjects
 		log.Infof(
@@ -266,41 +206,40 @@ func (p *Plugin) processCustomObjects(
 
 	// Process each custom object
 	for _, customObject := range customObjectsToSync {
-		p.processObjectType(ctx, client, customObject, datasource)
+		if err := p.processObjectType(ctx, authCtx, client, customObject, connector, datasource); err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
 func (p *Plugin) processObjectType(
-	ctx context.Context,
+	ctx *pipeline.Context,
+	authCtx context.Context,
 	client *SalesforceClient,
 	objType string,
+	connector *common.Connector,
 	datasource *common.DataSource,
-) {
+) error {
 	log.Debugf("[%s connector] processing object type: %s", ConnectorSalesforce, objType)
 
 	// Special handling for Case objects to include Feeds
 	if objType == "Case" {
-		p.processCaseWithFeeds(ctx, client, datasource)
-		return
+		return p.processCaseWithFeeds(ctx, authCtx, client, connector, datasource)
 	}
 
 	// Query the object
-	records, err := client.QueryObject(ctx, objType)
+	records, err := client.QueryObject(authCtx, objType)
 	if err != nil {
-		_ = log.Errorf(
-			"[%s connector] failed to query object %s: %v",
-			ConnectorSalesforce,
-			objType,
-			err,
-		)
-		return
+		return fmt.Errorf("failed to query object %s: %v", objType, err)
 	}
 
-	// Convert and index each record with proper hierarchy path
+	// Convert and collect each record with proper hierarchy path
 	for _, record := range records {
 		doc := convertToDocumentWithHierarchy(record, objType, datasource, client.instanceUrl)
 		if doc != nil {
-			p.indexDocument(doc)
+			p.Collect(ctx, connector, datasource, *doc)
 		}
 	}
 
@@ -310,31 +249,30 @@ func (p *Plugin) processObjectType(
 		len(records),
 		objType,
 	)
+
+	return nil
 }
 
 func (p *Plugin) processCaseWithFeeds(
-	ctx context.Context,
+	ctx *pipeline.Context,
+	authCtx context.Context,
 	client *SalesforceClient,
+	connector *common.Connector,
 	datasource *common.DataSource,
-) {
+) error {
 	log.Debugf("[%s connector] processing Case objects with Feeds", ConnectorSalesforce)
 
 	// Query Case records
-	records, err := client.QueryObject(ctx, "Case")
+	records, err := client.QueryObject(authCtx, "Case")
 	if err != nil {
-		_ = log.Errorf(
-			"[%s connector] failed to query Case objects: %v",
-			ConnectorSalesforce,
-			err,
-		)
-		return
+		return fmt.Errorf("failed to query Case objects: %v", err)
 	}
 
 	// Check if CaseFeed is queryable
 	caseFeedsByCaseId := make(map[string][]map[string]interface{})
 	if len(records) > 0 {
 		// Check if CaseFeed is queryable
-		caseFeedQueryable, err := client.IsQueryable(ctx, "CaseFeed")
+		caseFeedQueryable, err := client.IsQueryable(authCtx, "CaseFeed")
 		if err != nil {
 			log.Warnf(
 				"[%s connector] failed to check if CaseFeed is queryable: %v",
@@ -352,7 +290,7 @@ func (p *Plugin) processCaseWithFeeds(
 
 			// Query case feeds in batches
 			if len(allCaseIds) > 0 {
-				caseFeedsByCaseId = p.getCaseFeedsByCaseId(ctx, client, allCaseIds)
+				caseFeedsByCaseId = p.getCaseFeedsByCaseId(authCtx, client, allCaseIds)
 			}
 		}
 	}
@@ -366,10 +304,10 @@ func (p *Plugin) processCaseWithFeeds(
 			}
 		}
 
-		// Convert and index the record with proper hierarchy path
+		// Convert and collect the record with proper hierarchy path
 		doc := convertToDocumentWithHierarchy(record, "Case", datasource, client.instanceUrl)
 		if doc != nil {
-			p.indexDocument(doc)
+			p.Collect(ctx, connector, datasource, *doc)
 		}
 	}
 
@@ -378,6 +316,8 @@ func (p *Plugin) processCaseWithFeeds(
 		ConnectorSalesforce,
 		len(records),
 	)
+
+	return nil
 }
 
 func (p *Plugin) getCaseFeedsByCaseId(
@@ -428,38 +368,15 @@ func (p *Plugin) getCaseFeedsByCaseId(
 	return caseFeedsByCaseId
 }
 
-func (p *Plugin) indexDocument(doc *common.Document) {
-	if doc == nil {
-		return
-	}
-
-	// Convert document to JSON bytes
-	data := util.MustToJSONBytes(doc)
-
-	// Push document to queue for indexing
-	if err := queue.Push(p.Queue, data); err != nil {
-		_ = log.Errorf(
-			"[%s connector] failed to push document to queue: %v",
-			ConnectorSalesforce,
-			err,
-		)
-		return
-	}
-
-	log.Debugf(
-		"[%s connector] successfully queued document: %s",
-		ConnectorSalesforce,
-		doc.Title,
-	)
-}
-
 // createSObjectDirectories creates directory structure for SObject types
 func (p *Plugin) createSObjectDirectories(
-	ctx context.Context,
+	ctx *pipeline.Context,
+	authCtx context.Context,
 	client *SalesforceClient,
 	cfg *Config,
+	connector *common.Connector,
 	datasource *common.DataSource,
-) {
+) error {
 	// Create Standard Objects directory
 	standardObjectsDoc := common.CreateHierarchyPathFolderDoc(
 		datasource,
@@ -468,7 +385,7 @@ func (p *Plugin) createSObjectDirectories(
 		[]string{},
 	)
 	standardObjectsDoc.URL = fmt.Sprintf("https://%s.my.salesforce.com", datasource.Name)
-	p.indexDocument(&standardObjectsDoc)
+	p.Collect(ctx, connector, datasource, standardObjectsDoc)
 
 	// Create Custom Objects directory if custom objects are enabled
 	if cfg.SyncCustomObjects {
@@ -479,7 +396,7 @@ func (p *Plugin) createSObjectDirectories(
 			[]string{},
 		)
 		customObjectsDoc.URL = fmt.Sprintf("https://%s.my.salesforce.com", datasource.Name)
-		p.indexDocument(&customObjectsDoc)
+		p.Collect(ctx, connector, datasource, customObjectsDoc)
 	}
 
 	// Create directories for each SObject type
@@ -489,7 +406,7 @@ func (p *Plugin) createSObjectDirectories(
 	for _, objType := range StandardSObjects {
 		if len(cfg.StandardObjectsToSync) == 0 || contains(cfg.StandardObjectsToSync, objType) {
 			// Check if the object is queryable
-			isQueryable, err := client.IsQueryable(ctx, objType)
+			isQueryable, err := client.IsQueryable(authCtx, objType)
 			if err != nil {
 				log.Warnf(
 					"[%s connector] failed to check if object %s is queryable: %v",
@@ -512,7 +429,7 @@ func (p *Plugin) createSObjectDirectories(
 			log.Infof("[%s connector] sync custom objects is enabled, but no custom objects", ConnectorSalesforce)
 		} else if len(cfg.CustomObjectsToSync) == 1 && cfg.CustomObjectsToSync[0] == "*" {
 			// Sync all custom objects
-			customObjects, err := client.GetCustomObjects(ctx)
+			customObjects, err := client.GetCustomObjects(authCtx)
 			if err != nil {
 				log.Errorf(
 					"[%s connector] failed to get custom objects: %v",
@@ -563,10 +480,12 @@ func (p *Plugin) createSObjectDirectories(
 			"sobject_type": objType,
 			"is_standard":  isStandard,
 		}
-		p.indexDocument(&sobjectDoc)
+		p.Collect(ctx, connector, datasource, sobjectDoc)
 
 		log.Debugf("[%s connector] created directory for SObject type: %s", ConnectorSalesforce, objType)
 	}
+
+	return nil
 }
 
 func contains(slice []string, item string) bool {

@@ -13,47 +13,30 @@ curl -XPUT "http://localhost:9000/connector/gitlab?replace=true" -d '{
   "icon": "/assets/icons/connector/gitlab/icon.png",
   "category": "website",
   "tags": [
-    "git", 
-    "code", 
-    "vcs", 
+    "git",
+    "code",
+    "vcs",
     "website"
   ],
   "url": "http://coco.rs/connectors/gitlab",
   "assets": {
     "icons": {
-      "default" : "/assets/icons/connector/gitlab/icon.png",
-      "repository" : "/assets/icons/connector/gitlab/repository.png",
-      "issue" : "/assets/icons/connector/gitlab/issue.png",
-      "merge_request" : "/assets/icons/connector/gitlab/merge_request.png",
-      "wiki" : "/assets/icons/connector/gitlab/wiki.png",
-      "snippet" : "/assets/icons/connector/gitlab/snippet.png"
+      "default": "/assets/icons/connector/gitlab/icon.png",
+      "repository": "/assets/icons/connector/gitlab/repository.png",
+      "issue": "/assets/icons/connector/gitlab/issue.png",
+      "merge_request": "/assets/icons/connector/gitlab/merge_request.png",
+      "wiki": "/assets/icons/connector/gitlab/wiki.png",
+      "snippet": "/assets/icons/connector/gitlab/snippet.png"
     }
+  },
+  "processor": {
+    "enabled": true,
+    "name": "gitlab"
   }
 }'
 ```
 
 > Use `gitlab` as a unique identifier, as it is a builtin connector.
-
-## Update coco-server's config
-
-Below is an example configuration for enabling the GitLab Connector in coco-server:
-
-```yaml
-connector:
-  gitlab:
-    enabled: true
-    queue:
-      name: indexing_documents
-    interval: 30s
-```
-
-### Explanation of Config Parameters
-
-| **Field**    | **Type**  | **Description**                                                                           |
-|--------------|-----------|-------------------------------------------------------------------------------------------|
-| `enabled`    | `boolean` | Enables or disables the GitLab connector. Set to`true` to activate it.                    |
-| `interval`   | `string`  | Specifies the time interval (e.g., `30s`) at which the connector will check for updates.  |
-| `queue.name` | `string`  | Defines the name of the queue where indexing tasks will be added.                         |
 
 ## Use the GitLab Connector
 
@@ -79,16 +62,16 @@ To configure your GitLab connection, you'll need to provide a Personal Access To
 
 `index_snippets`: (Optional) A boolean (`true` or `false`) to enable indexing of snippets. Defaults to `true`.
 
-### Example Request
+### Datasource Configuration
 
-Here is an example request to configure the GitLab Connector:
+Each datasource has its own sync configuration and GitLab settings:
 
 ```shell
-curl -H 'Content-Type: application/json' -XPOST "http://localhost:9000/datasource/" -d '
-{
-    "name":"My Organization Repos",
-    "type":"connector",
-    "connector":{
+curl -H 'Content-Type: application/json' -XPOST "http://localhost:9000/datasource/" -d '{
+    "name": "My Organization Repos",
+    "type": "connector",
+    "enabled": true,
+    "connector": {
         "id": "gitlab",
         "config": {
             "base_url": "https://gitlab.com",
@@ -103,19 +86,29 @@ curl -H 'Content-Type: application/json' -XPOST "http://localhost:9000/datasourc
             "index_wikis": true,
             "index_snippets": true
         }
+    },
+    "sync": {
+        "enabled": true,
+        "interval": "30s"
     }
 }'
 ```
 
 ## Supported Config Parameters for GitLab Connector
 
+Below are the configuration parameters supported by the GitLab Connector:
+
+### Datasource Config Parameters
+
 | **Field**               | **Type**   | **Description**                                                                                          |
 |-------------------------|------------|----------------------------------------------------------------------------------------------------------|
 | `base_url`              | `string`   | Optional. The base URL of your self-hosted GitLab instance.                                              |
-| `token`                 | `string`   | Required. Your GitLab Personal Access Token (PAT) with `api` scope.                                      |
-| `owner`                 | `string`   | Required. The username or group name to scan.                                                            |
+| `token`                 | `string`   | Your GitLab Personal Access Token (PAT) with `api` scope (required).                                     |
+| `owner`                 | `string`   | The username or group name to scan (required).                                                            |
 | `repos`                 | `[]string` | Optional. A list of repository names to index. If empty, all repositories for the owner will be indexed. |
 | `index_issues`          | `boolean`  | Optional. Whether to index issues. Defaults to `true`.                                                   |
 | `index_merge_requests`  | `boolean`  | Optional. Whether to index merge requests. Defaults to `true`.                                           |
 | `index_wikis`           | `boolean`  | Optional. Whether to index wikis. Defaults to `true`.                                                    |
 | `index_snippets`        | `boolean`  | Optional. Whether to index snippets. Defaults to `true`.                                                 |
+| `sync.enabled`          | `boolean`  | Enable/disable syncing for this datasource.                                                              |
+| `sync.interval`         | `string`   | Sync interval for this datasource (e.g., "30s", "5m", "1h").                                             |
