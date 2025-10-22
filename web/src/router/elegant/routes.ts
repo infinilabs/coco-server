@@ -418,7 +418,7 @@ export const generatedRoutes: GeneratedRoute[] = [
       title: 'role',
       hideInMenu: true,
       activeMenu: 'security',
-      permissions: ['coco:role/update', 'coco:user/create'],
+      permissions: ['coco:role/update', 'coco:user/create']
     },
     children: [
       {
@@ -428,7 +428,7 @@ export const generatedRoutes: GeneratedRoute[] = [
         meta: {
           i18nKey: 'route.role_edit',
           title: 'role_edit',
-          permissions: ['coco:role/update'],
+          permissions: ['coco:role/update']
         }
       },
       {
@@ -438,7 +438,7 @@ export const generatedRoutes: GeneratedRoute[] = [
         meta: {
           i18nKey: 'route.role_new',
           title: 'role_new',
-          permissions: ['coco:role/create'],
+          permissions: ['coco:role/create']
         }
       }
     ]
@@ -463,8 +463,8 @@ export const generatedRoutes: GeneratedRoute[] = [
       title: 'security',
       icon: 'mdi:user-outline',
       order: 10,
-      permissions: ['coco:role/view', 'coco:user/view'],
-      permissionLogic: 'or',
+      permissions: ['coco:role/view', 'coco:user/view', 'coco:auth/view'],
+      permissionLogic: 'or'
     }
   },
   {
@@ -476,12 +476,8 @@ export const generatedRoutes: GeneratedRoute[] = [
       title: 'settings',
       icon: 'mdi:settings-outline',
       order: 11,
-      permissions: [
-        'coco:connector/view', 
-        'coco:app_settings/view', 
-        'coco:search_settings/view'
-      ],
-      permissionLogic: 'or',
+      permissions: ['coco:connector/view', 'coco:app_settings/view', 'coco:search_settings/view'],
+      permissionLogic: 'or'
     }
   }
 ];

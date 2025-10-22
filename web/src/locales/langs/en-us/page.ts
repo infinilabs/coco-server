@@ -516,6 +516,16 @@ const page: App.I18n.Schema['translation']['page'] = {
     new: {
       title: 'New Role'
     }
+  },
+  auth: {
+    title: 'Authorization',
+    labels: {
+      name: "Name",
+      description: "Description",
+      permission: "Permission",
+      object: 'Object',
+      coco: 'Coco Server'
+    },
   }
 };
 

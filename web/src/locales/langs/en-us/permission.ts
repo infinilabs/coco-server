@@ -51,6 +51,8 @@ const permission = {
   'coco:app_settings/update': 'Update App Settings',
   'coco:search_settings/view': 'View Search Settings',
   'coco:search_settings/update': 'Update Search Settings',
+  'coco:auth/view': 'View Auth',
+  'coco:auth/update': 'Update Auth',
 };
 
 export default permission;

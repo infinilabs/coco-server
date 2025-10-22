@@ -51,6 +51,8 @@ const permission = {
   'coco:app_settings/update': '编辑应用设置',
   'coco:search_settings/view': '查看搜索设置',
   'coco:search_settings/update': '编辑搜索设置',
+  'coco:auth/view': '查看授权',
+  'coco:auth/update': '编辑授权',
 };
 
 export default permission;

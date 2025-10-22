@@ -611,6 +611,16 @@ const page: App.I18n.Schema['translation']['page'] = {
     new: {
       title: '新增角色'
     }
+  },
+  auth: {
+    title: '授权',
+    labels: {
+      name: "名称",
+      description: "描述",
+      permission: "权限",
+      object: '操作对象',
+      coco: 'Coco Server'
+    },
   }
 };
 
