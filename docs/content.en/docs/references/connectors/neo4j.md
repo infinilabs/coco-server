@@ -23,6 +23,10 @@ curl -XPUT "http://localhost:9000/connector/neo4j?replace=true" -d '
     "icons" : {
       "default" : "/assets/icons/connector/neo4j/icon.png"
     }
+  },
+  "processor": {
+    "enabled": true,
+    "name": "neo4j"
   }
 }'
 ```

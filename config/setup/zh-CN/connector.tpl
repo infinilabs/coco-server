@@ -612,5 +612,9 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/n
       "default" : "/assets/icons/connector/neo4j/icon.png"
     }
   },
-  "builtin": true
+  "builtin": true,
+  "processor": {
+    "enabled": true,
+    "name": "neo4j"
+  }
 }
