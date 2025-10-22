@@ -33,19 +33,6 @@ curl -XPUT "http://localhost:9000/connector/neo4j?replace=true" -d '
 
 > Use `neo4j` as the unique identifier because it is a built-in connector.
 
-## Update coco-server's config
-
-Enable the connector in `coco.yml` so coco-server can schedule sync jobs:
-
-```yaml
-connector:
-  neo4j:
-    enabled: true
-    queue:
-      name: indexing_documents
-    interval: 30s
-```
-
 ### Explanation of Config Parameters
 
 | **Field**    | **Type**  | **Description**                                                                          |
