@@ -198,6 +198,8 @@ func (h *APIHandler) searchDatasource(w http.ResponseWriter, req *http.Request, 
 		return
 	}
 
+	builder.EnableBodyBytes()
+
 	if len(builder.Sorts()) == 0 {
 		builder.SortBy(orm.Sort{Field: "created", SortType: orm.DESC})
 	}

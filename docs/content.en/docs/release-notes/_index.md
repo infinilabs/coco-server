@@ -9,18 +9,19 @@ Information about release notes of Coco Server is provided here.
 
 ## Latest (In development)  
 ### ❌ Breaking changes  
+- refactor: make connectors pipeline-based (#545) #545
+
 ### 🚀 Features  
 ### 🐛 Bug fix  
 ### ✈️ Improvements  
 - chore: change the home page to the search page after enabling search #541
+- chore: update search api to support query dsl #550
 
 ## 0.8.0 (2025-09-28)
 
 ### ❌ Breaking changes  
 - chore: update yuque's document id #473
 - refactor: refactoring datasource sync management #526
-- refactor: make connectors pipeline-based (#545) #545
-- refactor: let connectors pipeline-based #549
 
 ### 🚀 Features  
 - chore: support access docs via path hierarchy manner in datasource #484

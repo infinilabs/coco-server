@@ -181,16 +181,7 @@ func (h *APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprou
 		return
 	}
 
-	searchRequest := elastic.SearchRequest{}
-	bodyBytes, err := h.GetRawBody(req)
-	if err == nil && len(bodyBytes) > 0 {
-		err = util.FromJSONBytes(bodyBytes, &searchRequest)
-		if err != nil {
-			h.Error(w, err)
-			return
-		}
-		builder.SetRequestBodyBytes(bodyBytes)
-	}
+	builder.EnableBodyBytes()
 
 	ctx := orm.NewContextWithParent(req.Context())
 	orm.WithModel(ctx, &common.Connector{})
