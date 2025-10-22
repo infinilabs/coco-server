@@ -42,8 +42,11 @@ func NewSyncStateStore() *SyncStateStore {
 
 func (s *SyncStateStore) Load(ctx context.Context, connectorID, datasourceID string) (*SyncState, error) {
 	ormCtx := orm.NewContextWithParent(ctx)
+	ormCtx.DirectReadAccess()
+
 	state := &SyncState{}
 	state.SetID(makeSyncStateID(connectorID, datasourceID))
+
 	exists, err := orm.GetV2(ormCtx, state)
 	if err != nil {
 		return nil, err
@@ -62,12 +65,14 @@ func (s *SyncStateStore) Save(ctx context.Context, state *SyncState) error {
 		state.SetID(makeSyncStateID(state.ConnectorID, state.DatasourceID))
 	}
 	ormCtx := orm.NewContextWithParent(ctx)
+	ormCtx.DirectReadAccess()
 	ormCtx.Refresh = orm.WaitForRefresh
 	return orm.Save(ormCtx, state)
 }
 
 func (s *SyncStateStore) Clear(ctx context.Context, connectorID, datasourceID string) error {
 	ormCtx := orm.NewContextWithParent(ctx)
+	ormCtx.DirectReadAccess()
 	state := &SyncState{}
 	state.SetID(makeSyncStateID(connectorID, datasourceID))
 	exists, err := orm.GetV2(ormCtx, state)

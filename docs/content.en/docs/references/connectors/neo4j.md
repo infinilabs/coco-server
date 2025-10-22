@@ -33,14 +33,6 @@ curl -XPUT "http://localhost:9000/connector/neo4j?replace=true" -d '
 
 > Use `neo4j` as the unique identifier because it is a built-in connector.
 
-### Explanation of Config Parameters
-
-| **Field**    | **Type**  | **Description**                                                                          |
-|--------------|-----------|------------------------------------------------------------------------------------------|
-| `enabled`    | `boolean` | Turns the Neo4j connector on or off.                                                     |
-| `interval`   | `string`  | How often the connector wakes up to run (e.g., `30s`).                                   |
-| `queue.name` | `string`  | Queue where newly built documents are pushed for indexing.                               |
-
 ## Use the Neo4j Connector
 
 The Neo4j connector runs a Cypher query, transforms the resulting rows into documents, and streams them into coco-server.
