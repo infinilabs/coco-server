@@ -140,6 +140,7 @@ func (h *APIHandler) searchAssistant(w http.ResponseWriter, req *http.Request, p
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	builder.EnableBodyBytes()
 
 	ctx := orm.NewContextWithParent(req.Context())
 	orm.WithModel(ctx, &common.Assistant{})

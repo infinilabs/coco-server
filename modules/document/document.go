@@ -107,6 +107,7 @@ func (h *APIHandler) searchDocs(w http.ResponseWriter, req *http.Request, ps htt
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	builder.EnableBodyBytes()
 
 	ctx := orm.NewContextWithParent(req.Context())
 

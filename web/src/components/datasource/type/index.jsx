@@ -1,6 +1,7 @@
 import Icon, { UploadOutlined } from '@ant-design/icons';
 import { Button, Form, Input, Upload } from 'antd';
 import React, { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { BucketSVG, GoogleDriveSVG, HugoSVG, NotionSVG, SearchSVG, YuqueSVG } from '../../icons';
 import { IndexingScope } from '../indexing_scope';
@@ -19,6 +20,7 @@ export const Types = {
   LocalFS: 'local_fs',
   Mssql: 'mssql',
   Mysql: 'mysql',
+  Neo4j: 'neo4j',
   NetworkDrive: 'network_drive',
   Notion: 'notion',
   Oracle: 'oracle',

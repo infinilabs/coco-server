@@ -5,7 +5,6 @@
 package oracle
 
 import (
-	"context"
 	"fmt"
 	"regexp"
 	"strings"
@@ -43,13 +42,16 @@ func (p *Plugin) Name() string {
 func (p *Plugin) Fetch(ctx *pipeline.Context, connector *common.Connector, datasource *common.DataSource) error {
 	log.Debugf("[%s connector] handling datasource: %v", ConnectorOracle, datasource.Name)
 
-	scanCtx := context.Background()
 	scanner := &cmn.Scanner{
 		Name:       ConnectorOracle,
 		Connector:  connector,
 		Datasource: datasource,
-		Queue:      p.Queue,
 		DriverName: "oracle",
+		// Use Collect pattern instead of direct queue.Push
+		CollectFunc: func(doc common.Document) error {
+			p.Collect(ctx, connector, datasource, doc)
+			return nil
+		},
 		SqlWithLastModified: func(baseQuery string, lastSyncField string) string {
 			// Use :1 as the placeholder for Oracle (go-ora driver uses numbered parameters)
 			return fmt.Sprintf(`SELECT * FROM (%s) WHERE %s > :1`, baseQuery, lastSyncField)
@@ -63,7 +65,10 @@ func (p *Plugin) Fetch(ctx *pipeline.Context, connector *common.Connector, datas
 			return fmt.Sprintf(`%s OFFSET %d ROWS FETCH NEXT %d ROWS ONLY`, baseQuery, offset, pageSize)
 		},
 	}
-	scanner.Scan(scanCtx)
+
+	if err := scanner.Scan(ctx); err != nil {
+		return fmt.Errorf("failed to scan datasource: %w", err)
+	}
 
 	log.Infof("[%s connector] finished fetching datasource [%s]", ConnectorOracle, datasource.Name)
 	return nil

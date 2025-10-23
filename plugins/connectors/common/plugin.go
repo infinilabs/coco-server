@@ -16,7 +16,6 @@ import (
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/plugins/connectors"
 	"infini.sh/framework/core/global"
-	"infini.sh/framework/core/queue"
 	"infini.sh/framework/core/util"
 )
 
@@ -29,7 +28,10 @@ type Scanner struct {
 	DriverName string
 	Connector  *common.Connector
 	Datasource *common.DataSource
-	Queue      *queue.QueueConfig
+
+	// CollectFunc is called to collect each document (replaces direct queue.Push)
+	// This allows using the ConnectorProcessorBase.Collect() method
+	CollectFunc func(doc common.Document) error
 
 	// SqlWithLastModified used to query incremental data
 	SqlWithLastModified func(baseQuery string, lastSyncField string) string
@@ -94,26 +96,26 @@ type Config struct {
 	LastModifiedField string       `config:"last_modified_field"`
 }
 
-func (s *Scanner) Scan(ctx context.Context) {
+func (s *Scanner) Scan(ctx context.Context) error {
 	cfg := Config{}
 	if err := connectors.ParseConnectorConfigure(s.Connector, s.Datasource, &cfg); err != nil {
 		_ = log.Errorf("[%s connector] parsing connector configuration failed for datasource [%s]: %v", s.Name, s.Datasource.Name, err)
-		return
+		return fmt.Errorf("failed to parse configuration: %w", err)
 	}
 
 	if cfg.ConnectionURI == "" {
 		_ = log.Errorf("[%s connector] ConnectionURI is required for datasource [%s]", s.Name, s.Datasource.Name)
-		return
+		return fmt.Errorf("connection_uri is required")
 	}
 	if cfg.SQL == "" {
 		_ = log.Errorf("[%s connector] SQL query is required for datasource [%s]", s.Name, s.Datasource.Name)
-		return
+		return fmt.Errorf("sql query is required")
 	}
 
 	db, err := sql.Open(s.DriverName, cfg.ConnectionURI)
 	if err != nil {
 		_ = log.Errorf("[%s connector] failed to open database connection for datasource [%s]: %v", s.Name, s.Datasource.Name, err)
-		return
+		return fmt.Errorf("failed to open database connection: %w", err)
 	}
 	defer func() {
 		_ = db.Close()
@@ -124,21 +126,24 @@ func (s *Scanner) Scan(ctx context.Context) {
 
 	if err := db.PingContext(pingCtx); err != nil {
 		_ = log.Errorf("[%s connector] failed to connect to database for datasource [%s]: %v", s.Name, s.Datasource.Name, err)
-		return
+		return fmt.Errorf("failed to connect to database: %w", err)
 	}
 
-	log.Debugf("[%s connector] successfully connected to PostgreSQL for datasource [%s]", s.Name, s.Datasource.Name)
+	log.Debugf("[%s connector] successfully connected to %s for datasource [%s]", s.Name, s.DriverName, s.Datasource.Name)
 
 	scanCtx, scanCancel := context.WithCancel(ctx)
 	defer scanCancel()
 
-	s.processQuery(scanCtx, db, &cfg)
+	if err := s.processQuery(scanCtx, db, &cfg); err != nil {
+		return fmt.Errorf("failed to process query: %w", err)
+	}
 
 	log.Debugf("[%s connector] finished scanning datasource [%s]", s.Name, s.Datasource.Name)
+	return nil
 }
 
 // processQuery fetches and indexes rows from the user-defined query.
-func (s *Scanner) processQuery(ctx context.Context, db *sql.DB, cfg *Config) {
+func (s *Scanner) processQuery(ctx context.Context, db *sql.DB, cfg *Config) error {
 	baseQuery := cfg.SQL
 	var args []interface{}
 	// Handle incremental updates
@@ -146,7 +151,7 @@ func (s *Scanner) processQuery(ctx context.Context, db *sql.DB, cfg *Config) {
 		lastSyncValue, err := s.GetLastSyncValue(s.Datasource.ID)
 		if err != nil {
 			_ = log.Errorf("[%s connector] failed to get last sync value for datasource [%s]: %v", s.Name, s.Datasource.Name, err)
-			return // Or proceed with a full sync
+			return fmt.Errorf("failed to get last sync value: %w", err)
 		}
 		if lastSyncValue != nil {
 			// Wrap the user's query to safely add a WHERE clause.
@@ -181,14 +186,14 @@ func (s *Scanner) processQuery(ctx context.Context, db *sql.DB, cfg *Config) {
 
 		if err != nil {
 			_ = log.Errorf("[%s connector] failed to execute query [%s] for datasource [%s]: %v", s.Name, query, s.Datasource.Name, err)
-			return
+			return fmt.Errorf("failed to execute query: %w", err)
 		}
 
 		rowsProcessed, err := s.processRows(ctx, rows, cfg)
 		if err != nil {
 			_ = log.Errorf("[%s connector] error processing rows for datasource [%s]: %v", s.Name, s.Datasource.Name, err)
 			_ = rows.Close()
-			return
+			return fmt.Errorf("failed to process rows: %w", err)
 		}
 		_ = rows.Close()
 
@@ -197,6 +202,7 @@ func (s *Scanner) processQuery(ctx context.Context, db *sql.DB, cfg *Config) {
 		}
 		offset += pageSize
 	}
+	return nil
 }
 
 // processRows iterates through query results, transforms them, and pushes them to the queue.
@@ -227,13 +233,14 @@ func (s *Scanner) processRows(ctx context.Context, rows *sql.Rows, cfg *Config) 
 			continue
 		}
 
-		if doc, err := s.transformRowToDocument(rowMap, cfg); err == nil {
-			data := util.MustToJSONBytes(doc)
-			if err = queue.Push(s.Queue, data); err != nil {
-				_ = log.Errorf("[%s connector] failed to push document to queue for datasource [%s]: %v", s.Name, s.Datasource.Name, err)
-			}
-		} else {
+		doc, err := s.transformRowToDocument(rowMap, cfg)
+		if err != nil {
 			_ = log.Errorf("[%s connector] transforming row to doc failed for datasource [%s]: %v", s.Name, s.Datasource.Name, err)
+			continue
+		}
+
+		if err = s.CollectFunc(*doc); err != nil {
+			_ = log.Errorf("[%s connector] failed to collect document for datasource [%s]: %v", s.Name, s.Datasource.Name, err)
 		}
 		rowsProcessed++
 	}
