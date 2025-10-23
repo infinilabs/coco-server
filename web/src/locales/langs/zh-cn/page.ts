@@ -58,7 +58,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       type: '类型'
     },
     connect: '连接',
-    missing_config_tip: "Google 授权相关参数没有设置，需设置后才能连接，点击确认跳转到设置页面。",
+    missing_config_tip: 'Google 授权相关参数没有设置，需设置后才能连接，点击确认跳转到设置页面。',
     delete: {
       confirm: '确定删除这个数据源？'
     },
@@ -275,7 +275,8 @@ const page: App.I18n.Schema['translation']['page'] = {
           oracle: 'Oracle 连接字符串，例如：oracle://user:password@host:1521/service_name',
           postgresql: 'PostgreSQL 连接字符串，例如：postgresql://user:password@localhost:5432/database?sslmode=disable'
         },
-        last_modified_field: '对于增量同步，请指定一个跟踪最后修改时间的字段（例如，updated_at）。该字段的类型应该是时间戳或日期时间。',
+        last_modified_field:
+          '对于增量同步，请指定一个跟踪最后修改时间的字段（例如，updated_at）。该字段的类型应该是时间戳或日期时间。',
         page_size: '每页要获取的记录数。',
         pagination: '如果数据库查询应该分页，请启用此选项。建议对大型表使用此选项。',
         sql: '用于获取数据的 SQL 查询。'
@@ -300,7 +301,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       name: '姓名',
       password: '密码',
       title: '创建一个账户',
-      language: '语言',
+      language: '语言'
     }
   },
   home: {
@@ -336,7 +337,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       operation: {
         topics: '推荐话题'
       },
-      token_expire_in: 'Token 过期时间',
+      token_expire_in: 'Token 过期时间'
     },
     delete: {
       confirm: `确定删除嵌入组件 "{{name}}"？`
@@ -393,7 +394,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         mode_floating_placeholder: '浮动组件提示文本',
         mode_floating_icon: '浮动组件图标',
         mode_page: '全屏页面',
-        mode_modal: '全屏弹框',
+        mode_modal: '全屏弹框'
       },
       title: {
         edit: '编辑嵌入组件',
@@ -462,18 +463,19 @@ const page: App.I18n.Schema['translation']['page'] = {
       temperature_desc: '值越大，回复越随机',
       top_p: '核采样',
       top_p_desc: '与随机性类似，但不要和随机性一起更改',
-      type: '类型',
+      type: '类型'
     },
     connector: {
-      title: "连接器"
+      title: '连接器'
     },
     app_settings: {
-      title: "应用设置",
+      title: '应用设置',
       chat_settings: {
-        title: "聊天设置",
+        title: '聊天设置',
         labels: {
           start_page: '起始页',
-          start_page_placeholder: '你可以启用和配置聊天模式起始页，自定义公司徽标、介绍文本和常用人工智能助手，以帮助用户快速选择并开始聊天。',
+          start_page_placeholder:
+            '你可以启用和配置聊天模式起始页，自定义公司徽标、介绍文本和常用人工智能助手，以帮助用户快速选择并开始聊天。',
           logo: '图标',
           logo_placeholder: '上传公司图标以显示在起始页上。',
           logo_size_placeholder: '图像尺寸限制：最大高度为 30 像素，最大宽度为 300 像素。',
@@ -481,146 +483,151 @@ const page: App.I18n.Schema['translation']['page'] = {
           logo_dark: '深色主题（白色或浅色版本图标）',
           introduction: '介绍文本',
           introduction_placeholder: '输入显示在起始页面上的欢迎文本或人工智能工具介绍（60 字符以内）',
-          assistant: 'AI 助手展示',
+          assistant: 'AI 助手展示'
         }
       }
     },
     search_settings: {
-      title: "搜索设置",
+      title: '搜索设置',
       labels: {
         enabled: '启用状态',
-        integration: '组件',
+        integration: '组件'
       }
     },
     setupLater: '稍后设置'
   },
   modelprovider: {
     labels: {
-      name: "名称",
-      base_url: "Base URL",
-      description: "描述",
-      api_type: "API 类型",
-      models: "模型",
-      enabled: "启用状态",
-      icon: "图标",
-      api_key: "API 密钥",
-      api_key_source: "从 {{model_provider}} 获取 API 密钥",
-      api_key_source_normal: "点击这里获取 API 密钥",
-      builtin: "内置",
+      name: '名称',
+      base_url: 'Base URL',
+      description: '描述',
+      api_type: 'API 类型',
+      models: '模型',
+      enabled: '启用状态',
+      icon: '图标',
+      api_key: 'API 密钥',
+      api_key_source: '从 {{model_provider}} 获取 API 密钥',
+      api_key_source_normal: '点击这里获取 API 密钥',
+      builtin: '内置'
     },
     delete: {
       confirm: '您确定要删除这个模型提供商吗?'
-    },
+    }
   },
   assistant: {
     labels: {
-      name: "名称",
-      type: "类型",
-      category: "分类",
-      tags: "标签",
-      default_model: "默认模型",
-      enabled: "启用状态",
-      icon: "图标",
-      description: "描述",
-      intent_analysis_model: "意图识别",
-      picking_doc_model: "文档预选",
-      deep_think_model: "深度思考模型",
-      answering_model: "应答模型",
-      keepalive: "保持连接",
-      role_prompt: "角色提示",
-      temperature: "随机性（temperature） ",
-      temperature_desc: "控制生成文本的随机性，值越高，内容越丰富但不稳定；值越低，内容更可预测",
-      top_p: "词汇多样性 (top_p)",
-      top_p_desc: "限制选择的词汇范围，值越低，结果更可预测；值越高，可能性更多样，不推荐和随机性一起更改",
-      max_tokens: "单次回复限制(max tokens)",
-      max_tokens_desc: "单次交互所用的最大 Token 数",
-      presence_penalty: "表述发散度（Presence Penalty）",
-      presence_penalty_desc: "控制 AI 是否倾向于使用新主题，值越高，AI 更倾向于引入新内容",
-      frequency_penalty: "减少重复（Frequency Penalty）",
-      frequency_penalty_desc: "控制 AI 对同一词汇的重复使用，值越高，表达越丰富",
-      reasoning: "推理模式（Reasoning Mode）",
-      reasoning_desc: "该模型是否支持  Reasoning 推理模式",
-      chat_settings: "聊天设置",
-      greeting_settings: "问候设置",
-      suggested_chat: "推荐对话",
-      input_preprocessing: "用户输入预处理",
-      input_preprocessing_desc: "用户最新的一条消息会填充到此模版",
-      input_preprocessing_placeholder: "预处理模版 {{text}} 将替换为实时输入信息",
-      input_placeholder: "输入提示",
-      history_message_number: "附带历史消息数",
-      history_message_number_desc: "每次请求携带的历史消息数",
-      history_message_compression_threshold: "历史消息长度压缩阈值",
-      history_message_compression_threshold_desc: "当未压缩的历史消息超过该值时，将进行压缩",
-      history_summary: "历史消息摘要",
-      history_summary_desc: "自动压缩聊天记录并作为上下文发送",
-      model_settings: "模型设置",
-      datasource: "数据源",
-      mcp_servers: "MCP 服务器",
-      upload: "上传设置",
-      show_in_chat: "在聊天界面中显示",
-      enabled_by_default: "默认启用",
-      pick_datasource: "是否挑选数据源",
-      pick_tools: "是否挑选工具",
-      max_iterations: "最大迭代次数",
-      caller_model: "调用模型",
-      filter: "数据过滤",
-      tools: "调用大模型工具",
-      builtin_tools: "内置工具",
-      prompt_settings: "提示词设置",
-      prompt_settings_template: "模板",
-      allowed_file_extensions: "允许文件扩展名（示例：pdf,doc ）",
-      max_file_size_in_bytes: "最大文件大小",
-      max_file_count: "最大文件数量"
+      name: '名称',
+      type: '类型',
+      category: '分类',
+      tags: '标签',
+      default_model: '默认模型',
+      enabled: '启用状态',
+      icon: '图标',
+      description: '描述',
+      intent_analysis_model: '意图识别',
+      picking_doc_model: '文档预选',
+      deep_think_model: '深度思考模型',
+      answering_model: '应答模型',
+      keepalive: '保持连接',
+      role_prompt: '角色提示',
+      temperature: '随机性（temperature） ',
+      temperature_desc: '控制生成文本的随机性，值越高，内容越丰富但不稳定；值越低，内容更可预测',
+      top_p: '词汇多样性 (top_p)',
+      top_p_desc: '限制选择的词汇范围，值越低，结果更可预测；值越高，可能性更多样，不推荐和随机性一起更改',
+      max_tokens: '单次回复限制(max tokens)',
+      max_tokens_desc: '单次交互所用的最大 Token 数',
+      presence_penalty: '表述发散度（Presence Penalty）',
+      presence_penalty_desc: '控制 AI 是否倾向于使用新主题，值越高，AI 更倾向于引入新内容',
+      frequency_penalty: '减少重复（Frequency Penalty）',
+      frequency_penalty_desc: '控制 AI 对同一词汇的重复使用，值越高，表达越丰富',
+      reasoning: '推理模式（Reasoning Mode）',
+      reasoning_desc: '该模型是否支持  Reasoning 推理模式',
+      chat_settings: '聊天设置',
+      greeting_settings: '问候设置',
+      suggested_chat: '推荐对话',
+      input_preprocessing: '用户输入预处理',
+      input_preprocessing_desc: '用户最新的一条消息会填充到此模版',
+      input_preprocessing_placeholder: '预处理模版 {{text}} 将替换为实时输入信息',
+      input_placeholder: '输入提示',
+      history_message_number: '附带历史消息数',
+      history_message_number_desc: '每次请求携带的历史消息数',
+      history_message_compression_threshold: '历史消息长度压缩阈值',
+      history_message_compression_threshold_desc: '当未压缩的历史消息超过该值时，将进行压缩',
+      history_summary: '历史消息摘要',
+      history_summary_desc: '自动压缩聊天记录并作为上下文发送',
+      model_settings: '模型设置',
+      datasource: '数据源',
+      mcp_servers: 'MCP 服务器',
+      upload: '上传设置',
+      show_in_chat: '在聊天界面中显示',
+      enabled_by_default: '默认启用',
+      pick_datasource: '是否挑选数据源',
+      pick_tools: '是否挑选工具',
+      max_iterations: '最大迭代次数',
+      caller_model: '调用模型',
+      filter: '数据过滤',
+      tools: '调用大模型工具',
+      builtin_tools: '内置工具',
+      prompt_settings: '提示词设置',
+      prompt_settings_template: '模板',
+      allowed_file_extensions: '允许文件扩展名（示例：pdf,doc ）',
+      max_file_size_in_bytes: '最大文件大小',
+      max_file_count: '最大文件数量'
     },
     mode: {
-      simple: "简单模式",
-      deep_think: "深度思考",
-      workflow: "外部工作流",
+      simple: '简单模式',
+      deep_think: '深度思考',
+      workflow: '外部工作流'
     },
     delete: {
       confirm: 'Are you sure you want to delete this ai assistant "{{name}}"?'
-    },
+    }
   },
   mcpserver: {
     labels: {
-      name: "名称",
-      type: "类型",
-      enabled: "启用状态",
-      description: "描述",
-      icon: "图标",
-      category: "分类",
+      name: '名称',
+      type: '类型',
+      enabled: '启用状态',
+      description: '描述',
+      icon: '图标',
+      category: '分类',
       config: {
-        command: "命令",
-        args: "参数",
-        env: "环境变量",
+        command: '命令',
+        args: '参数',
+        env: '环境变量'
       }
     },
     delete: {
       confirm: 'Are you sure you want to delete this ai MCP server "{{name}}"?'
-    },
+    }
   },
   role: {
     title: '角色',
     labels: {
-      name: "名称",
-      description: "描述",
-      permission: "权限",
+      name: '名称',
+      description: '描述',
+      permission: '权限',
       object: '操作对象',
-      coco: 'Coco Server'
+      coco: 'Coco Server',
+      generic: '通用',
+      created: '创建时间'
     },
     new: {
       title: '新增角色'
+    },
+    delete: {
+      confirm: `确定要删除角色 "{{name}}" 吗？`
     }
   },
   auth: {
     title: '授权',
     labels: {
-      name: "名称",
-      description: "描述",
-      permission: "权限",
+      name: '名称',
+      description: '描述',
+      permission: '权限',
       object: '操作对象',
       coco: 'Coco Server'
-    },
+    }
   }
 };
 

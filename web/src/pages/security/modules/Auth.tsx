@@ -1,38 +1,33 @@
-import {
-  EllipsisOutlined,
-  ExclamationCircleOutlined,
-  FilterOutlined,
-  PlusOutlined,
-} from "@ant-design/icons";
-import { useLoading } from "@sa/hooks";
-import { Button, Dropdown, Input, Table, message } from "antd";
+import { EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, PlusOutlined } from '@ant-design/icons';
+import { useLoading } from '@sa/hooks';
+import { Button, Dropdown, Input, Table, message } from 'antd';
 
-import useQueryParams from "@/hooks/common/queryParams";
-import { deleteRole, fetchRoles } from "@/service/api/role";
-import { formatESSearchResult } from "@/service/request/es";
+import useQueryParams from '@/hooks/common/queryParams';
+import { deleteRole, fetchRoles } from '@/service/api/role';
+import { formatESSearchResult } from '@/service/request/es';
 
-const Auth = (props) => {
+const Auth = () => {
   const [queryParams, setQueryParams] = useQueryParams();
   const { t } = useTranslation();
 
   const { hasAuth } = useAuth();
 
   const permissions = {
-    create: hasAuth("coco:role/create"),
-    update: hasAuth("coco:role/update"),
-    delete: hasAuth("coco:role/delete"),
+    create: hasAuth('coco:role/create'),
+    delete: hasAuth('coco:role/delete'),
+    update: hasAuth('coco:role/update')
   };
 
   const nav = useNavigate();
 
   const [data, setData] = useState({
     data: [],
-    total: 0,
+    total: 0
   });
   const { endLoading, loading, startLoading } = useLoading();
   const [keyword, setKeyword] = useState();
 
-  const fetchData = async (params) => {
+  const fetchData = async params => {
     startLoading();
     const res = await fetchRoles(params);
     const newData = formatESSearchResult(res.data);
@@ -40,32 +35,32 @@ const Auth = (props) => {
     endLoading();
   };
 
-  const handleTableChange = (pagination) => {
-    setQueryParams((params) => {
+  const handleTableChange = pagination => {
+    setQueryParams(params => {
       return {
         ...params,
         from: (pagination.current - 1) * pagination.pageSize,
-        size: pagination.pageSize,
+        size: pagination.pageSize
       };
     });
   };
 
   const onRefreshClick = (query: string) => {
-    setQueryParams((oldParams) => {
+    setQueryParams(oldParams => {
       return {
         ...oldParams,
         from: 0,
         query,
-        t: new Date().valueOf(),
+        t: new Date().valueOf()
       };
     });
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async id => {
     startLoading();
     const res = await deleteRole(id);
-    if (res.data?.result === "deleted") {
-      message.success(t("common.deleteSuccess"));
+    if (res.data?.result === 'deleted') {
+      message.success(t('common.deleteSuccess'));
     }
     fetchData(queryParams);
     endLoading();
@@ -73,73 +68,71 @@ const Auth = (props) => {
 
   const columns = [
     {
-      dataIndex: "name",
-      title: "授权",
+      dataIndex: 'name',
+      title: '授权'
     },
     {
-      dataIndex: "description",
-      title: "角色",
+      dataIndex: 'description',
+      title: '角色'
     },
     {
-      dataIndex: "description",
-      title: "创建时间",
+      dataIndex: 'description',
+      title: '创建时间'
     },
     {
-      dataIndex: "description",
-      title: "启用状态",
+      dataIndex: 'description',
+      title: '启用状态'
     },
     {
-      fixed: "right",
+      fixed: 'right',
       render: (_, record) => {
         const items = [];
         if (permissions.update) {
           items.push({
-            key: "edit",
-            label: t("common.edit"),
+            key: 'edit',
+            label: t('common.edit')
           });
         }
         if (permissions.delete) {
           items.push({
-            key: "delete",
-            label: t("common.delete"),
+            key: 'delete',
+            label: t('common.delete')
           });
         }
         if (items.length === 0) return null;
         const onMenuClick = ({ key, record }: any) => {
           switch (key) {
-            case "edit":
+            case 'edit':
               nav(`/role/edit/${record.id}`, { state: record });
               break;
-            case "delete":
+            case 'delete':
               window?.$modal?.confirm({
-                content: t("page.role.delete.confirm", { name: record.name }),
+                content: t('page.role.delete.confirm', { name: record.name }),
                 icon: <ExclamationCircleOutlined />,
                 onOk() {
                   handleDelete(record.id);
                 },
-                title: t("common.tip"),
+                title: t('common.tip')
               });
               break;
           }
         };
         return (
-          <Dropdown
-            menu={{ items, onClick: ({ key }) => onMenuClick({ key, record }) }}
-          >
+          <Dropdown menu={{ items, onClick: ({ key }) => onMenuClick({ key, record }) }}>
             <EllipsisOutlined />
           </Dropdown>
         );
       },
-      title: t("common.operation"),
-      width: "90px",
-    },
+      title: t('common.operation'),
+      width: '90px'
+    }
   ];
   // rowSelection object indicates the need for row selection
   const rowSelection = {
-    getCheckboxProps: (record) => ({
-      name: record.name,
+    getCheckboxProps: record => ({
+      name: record.name
     }),
-    onChange: (selectedRowKeys: React.Key[], selectedRows) => {},
+    onChange: (selectedRowKeys: React.Key[], selectedRows) => {}
   };
 
   useEffect(() => {
@@ -152,22 +145,22 @@ const Auth = (props) => {
 
   return (
     <ListContainer>
-      <div className="mb-4 mt-4 flex items-center justify-between">
+      <div className='mb-4 mt-4 flex items-center justify-between'>
         <Input.Search
           addonBefore={<FilterOutlined />}
-          className="max-w-500px"
-          enterButton={t("common.refresh")}
-          onSearch={onRefreshClick}
+          className='max-w-500px'
+          enterButton={t('common.refresh')}
           value={keyword}
-          onChange={(e) => setKeyword(e.target.value)}
+          onChange={e => setKeyword(e.target.value)}
+          onSearch={onRefreshClick}
         />
         {permissions.create && (
           <Button
             icon={<PlusOutlined />}
-            type="primary"
+            type='primary'
             onClick={() => nav(`/role/new`)}
           >
-            {t("common.add")}
+            {t('common.add')}
           </Button>
         )}
       </div>
@@ -175,16 +168,15 @@ const Auth = (props) => {
         columns={columns}
         dataSource={data.data}
         loading={loading}
-        rowKey="id"
+        rowKey='id'
         rowSelection={{ ...rowSelection }}
-        size="middle"
+        size='middle'
         pagination={{
-          showTotal: (total, range) =>
-            `${range[0]}-${range[1]} of ${total} items`,
-          pageSize: queryParams.size,
           current: Math.floor(queryParams.from / queryParams.size) + 1,
-          total: data.total?.value || data?.total,
+          pageSize: queryParams.size,
           showSizeChanger: true,
+          showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+          total: data.total?.value || data?.total
         }}
         onChange={handleTableChange}
       />

@@ -417,8 +417,7 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.role',
       title: 'role',
       hideInMenu: true,
-      activeMenu: 'security',
-      permissions: ['coco:role/update', 'coco:user/create']
+      activeMenu: 'security'
     },
     children: [
       {
@@ -437,8 +436,7 @@ export const generatedRoutes: GeneratedRoute[] = [
         component: 'view.role_new',
         meta: {
           i18nKey: 'route.role_new',
-          title: 'role_new',
-          permissions: ['coco:role/create']
+          title: 'role_new'
         }
       }
     ]
