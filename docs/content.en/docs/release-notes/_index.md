@@ -12,6 +12,7 @@ Information about release notes of Coco Server is provided here.
 - refactor: make connectors pipeline-based (#545) #545
 
 ### 🚀 Features  
+- feat: neo4j connector #539
 ### 🐛 Bug fix  
 ### ✈️ Improvements  
 - chore: change the home page to the search page after enabling search #541

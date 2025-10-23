@@ -590,3 +590,30 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/s
     "name": "salesforce"
   }
 }
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/neo4j
+{
+  "id" : "neo4j",
+  "created" : "2025-09-29T00:00:00.000000+08:00",
+  "updated" : "2025-09-29T00:00:00.000000+08:00",
+  "name" : "Neo4j Graph Database Connector",
+  "description" : "Connect to Neo4j graph database and index nodes using custom Cypher queries with incremental sync and pagination support.",
+  "category" : "database",
+  "icon" : "/assets/icons/connector/neo4j/icon.png",
+  "tags" : [
+    "graph",
+    "database",
+    "neo4j",
+    "cypher"
+  ],
+  "url" : "http://coco.rs/connectors/neo4j",
+    "assets" : {
+    "icons" : {
+      "default" : "/assets/icons/connector/neo4j/icon.png"
+    }
+  },
+  "builtin": true,
+  "processor": {
+     "enabled": true,
+     "name": "neo4j"
+  }
+}

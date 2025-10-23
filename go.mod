@@ -33,6 +33,8 @@ require (
 	github.com/microsoft/go-mssqldb v1.9.3
 	github.com/minio/minio-go/v7 v7.0.90
 	github.com/mmcdole/gofeed v1.3.0
+	github.com/neo4j/neo4j-go-driver/v5 v5.28.3
+	github.com/sijms/go-ora/v2 v2.9.0
 	github.com/stretchr/testify v1.11.1
 	github.com/tmc/langchaingo v0.1.14-0.20250213044659-d3e43b632176
 	gitlab.com/gitlab-org/api/client-go v0.142.4
@@ -105,6 +107,9 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.6 // indirect
 	github.com/googleapis/gax-go/v2 v2.14.1 // indirect
+	github.com/gookit/filter v1.2.3 // indirect
+	github.com/gookit/goutil v0.7.1 // indirect
+	github.com/gookit/validate v1.5.6 // indirect
 	github.com/goph/emperror v0.17.2 // indirect
 	github.com/gopkg.in/gomail.v2 v0.0.0-00010101000000-000000000000 // indirect
 	github.com/gorilla/context v1.1.2 // indirect
@@ -162,7 +167,6 @@ require (
 	github.com/shirou/gopsutil/v3 v3.24.5 // indirect
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
 	github.com/shopspring/decimal v1.2.0 // indirect
-	github.com/sijms/go-ora/v2 v2.9.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/spf13/cast v1.7.1 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
