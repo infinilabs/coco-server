@@ -44,7 +44,7 @@ export function Component() {
       >
         <div className='mb-30px ml--16px flex items-center text-lg font-bold'>
           <div className='mr-20px h-1.2em w-10px bg-[#1677FF]' />
-          <div>{t(`page.integration.form.title.edit`)}</div>
+          <div>{t(`page.auth.form.title.edit`)}</div>
         </div>
         <div className='px-30px'>
           <EditForm

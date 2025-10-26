@@ -59,12 +59,12 @@ const route: App.I18n.Schema['translation']['route'] = {
   'multi-menu_second_child': 'Menu Two Child',
   'multi-menu_second_child_home': 'Menu Two Child Home',
   'user-center': 'User Center',
-  'server': 'Server',
+  server: 'Server',
   'ai-assistant_list': 'AI Assistant',
   'ai-assistant_new': 'New AI Assistant',
   'ai-assistant_edit': 'Edit AI Assistant',
-  'settings': 'Settings',
-  'security': 'Security',
+  settings: 'Settings',
+  security: 'Security',
   'model-provider': 'LLM Provider',
   'model-provider_list': 'LLM Provider',
   'model-provider_new': 'New LLM Provider',
@@ -73,9 +73,11 @@ const route: App.I18n.Schema['translation']['route'] = {
   'mcp-server_list': 'MCP Server',
   'mcp-server_new': 'New MCP Server',
   'mcp-server_edit': 'Edit MCP Server',
-  'search': 'Search',
-  'role_new': 'New Role',
-  'role_edit': 'Edit Role'
+  search: 'Search',
+  role_new: 'New Role',
+  role_edit: 'Edit Role',
+  auth_new: 'New Authorization',
+  auth_edit: 'Edit Authorization'
 };
 
 export default route;

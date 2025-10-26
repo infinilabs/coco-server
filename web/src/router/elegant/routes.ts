@@ -121,7 +121,9 @@ export const generatedRoutes: GeneratedRoute[] = [
     component: 'layout.base',
     meta: {
       i18nKey: 'route.auth',
-      title: 'auth'
+      title: 'auth',
+      hideInMenu: true,
+      activeMenu: 'security'
     },
     children: [
       {
