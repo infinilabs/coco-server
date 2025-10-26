@@ -11,7 +11,6 @@ import { fetchRoles, fetchUserSearch } from '@/service/api/role';
 
 import DropdownList from '@/common/src/DropdownList';
 import { formatESSearchResult } from '@/service/request/es';
-import { getUUID } from '@/utils/common';
 import { useTranslation } from 'react-i18next';
 
 const { Option } = Select;
@@ -23,23 +22,21 @@ interface EditFormProps {
   readonly record?: any;
 }
 
+
+
 export const EditForm = memo((props: EditFormProps) => {
+  const { actionText, onSubmit, record } = props;
   const { t } = useTranslation();
   const { endLoading, loading, startLoading } = useLoading();
 
-  const [rows, setRows] = useState<
-    Array<{
-      id: string;
-      type: 'team' | 'user';
-      principal?: any;
-      role?: any;
-    }>
-  >([{ id: getUUID(), type: 'user' }]);
 
   const TYPE_OPTIONS = [
     { key: 'user', label: t('page.auth.labels.user') },
     { key: 'team', label: t('page.auth.labels.team') }
   ];
+
+  const { defaultRequiredRule } = useFormRules();
+  const [form] = Form.useForm();
 
   const {
     data: principalRes,
@@ -51,7 +48,7 @@ export const EditForm = memo((props: EditFormProps) => {
     query: '',
     from: 0,
     size: 10,
-    type: 'user' as 'team' | 'user'
+    type: TYPE_OPTIONS[0].key
   });
 
   useEffect(() => {
@@ -87,19 +84,15 @@ export const EditForm = memo((props: EditFormProps) => {
     };
   }, [roleRes]);
 
-  const addRow = () => {
-    setRows(prev => [...prev, { id: getUUID(), type: 'user' }]);
-  };
-
-  const removeRow = (id: string) => {
-    setRows(prev => {
-      if (prev.length === 1) return prev;
-      return prev.filter(r => r.id !== id);
-    });
-  };
-
-  const updateRow = <K extends keyof (typeof rows)[number]>(id: string, field: K, value: (typeof rows)[number][K]) => {
-    setRows(prev => prev.map(r => (r.id === id ? { ...r, [field]: value } : r)));
+  const handleSubmit = async () => {
+    const params = await form.validateFields();
+    const { principal_type, principal, role } = params
+    onSubmit({
+      principal_type,
+      principal_id: principal?.id,
+      display_name: principal?.name,
+      role: (role || []).map((item) => item.name)
+    }, startLoading, endLoading);
   };
 
   useEffect(() => {
@@ -107,119 +100,129 @@ export const EditForm = memo((props: EditFormProps) => {
     runRoleSearch(roleQueryParams);
   }, []);
 
+  useEffect(() => {
+    if (record && typeof record === 'object') {
+      form.setFieldsValue({
+        ...record,
+        principal: {
+          id: record.principal_id,
+          name: record.display_name
+        },
+        role: (record.role || []).map((item) => ({
+          name: item
+        }))
+      })
+      if (record.principal_type) setPrincipalQueryParams((state) => ({...state, type: record.principal_type}))
+    } else {
+      form.setFieldsValue({
+        principal_type: TYPE_OPTIONS[0].key
+      });
+    }
+  }, [record]);
+
+  const itemClassNames = '!w-496px';
+
   return (
     <Spin spinning={props.loading || loading || principalLoading || roleLoading || false}>
-      <h3>{t('page.auth.labels.object')}</h3>
-      <Form layout='vertical'>
-        {rows.map((row, index) => {
-          const isLast = index === rows.length - 1;
-          return (
-            <Space.Compact
-              block
-              key={row.id}
-              style={{ display: 'flex', marginBottom: 8, width: '100%' }}
-            >
-              <Select
-                style={{ width: 100 }}
-                value={row.type}
-                onChange={(val: 'team' | 'user') => {
-                  updateRow(row.id, 'type', val);
-                  updateRow(row.id, 'principal', undefined);
-                  setPrincipalQueryParams(params => ({ ...params, type: val, query: '', from: 0 }));
-                }}
+      <Form
+        colon={false}
+        form={form}
+        labelAlign='left'
+        layout='horizontal'
+        labelCol={{
+          style: { maxWidth: 200, minWidth: 200, textAlign: 'left' }
+        }}
+      >
+        <Form.Item
+          label={t('page.auth.labels.type')}
+          name='principal_type'
+          rules={[defaultRequiredRule]}
+        >
+          <Select
+            className={itemClassNames} 
+            onChange={(val: 'team' | 'user') => {
+              setPrincipalQueryParams((state) => ({...state, type: val}))
+            }}
+          >
+            {TYPE_OPTIONS.map(t => (
+              <Option
+                key={t.key}
+                value={t.key}
               >
-                // eslint-disable-next-line @typescript-eslint/no-shadow
-                {TYPE_OPTIONS.map(t => (
-                  <Option
-                    key={t.key}
-                    value={t.key}
-                  >
-                    {t.label}
-                  </Option>
-                ))}
-              </Select>
-
-              <DropdownList
-                allowClear
-                data={principalResult.data}
-                dropdownWidth={300}
-                placeholder={t('page.auth.labels.name')}
-                renderLabel={(item: any) => item?.name}
-                rowKey='id'
-                value={row.principal}
-                width={240}
-                pagination={{
-                  currentPage: principalResult.total
-                    ? Math.floor(principalQueryParams.from / principalQueryParams.size) + 1
-                    : 0,
-                  total: principalResult.total,
-                  onChange: page => {
-                    setPrincipalQueryParams(params => ({ ...params, from: (page - 1) * params.size }));
-                  }
-                }}
-                renderItem={(item: any) => (
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <span>{item.name}</span>
-                    {item.description ? (
-                      <span style={{ color: 'var(--ant-color-text-tertiary)' }}>{item.description}</span>
-                    ) : null}
-                  </div>
-                )}
-                onChange={val => updateRow(row.id, 'principal', val)}
-                onSearchChange={(query: string) => {
-                  setPrincipalQueryParams(params => ({ ...params, query, from: 0, type: row.type }));
-                }}
-              />
-
-              <Input
-                disabled
-                className='site-input-split'
-                placeholder={t('page.auth.labels.role')}
-                style={{
-                  width: 60,
-                  borderInlineStart: 0,
-                  borderInlineEnd: 0,
-                  pointerEvents: 'none'
-                }}
-              />
-
-              <DropdownList
-                allowClear
-                data={roleResult.data}
-                dropdownWidth={300}
-                placeholder={t('page.role.title')}
-                renderItem={(item: any) => <span>{item.name}</span>}
-                renderLabel={(item: any) => item?.name}
-                rowKey='id'
-                value={row.role}
-                width={240}
-                pagination={{
-                  currentPage: roleResult.total ? Math.floor(roleQueryParams.from / roleQueryParams.size) + 1 : 0,
-                  total: roleResult.total,
-                  onChange: page => {
-                    setRoleQueryParams(params => ({ ...params, from: (page - 1) * params.size }));
-                  }
-                }}
-                onChange={val => updateRow(row.id, 'role', val)}
-                onSearchChange={(query: string) => {
-                  setRoleQueryParams(params => ({ ...params, query, from: 0 }));
-                }}
-              />
-
-              <Button
-                disabled={rows.length === 1}
-                icon={<DeleteOutlined />}
-                onClick={() => removeRow(row.id)}
-              />
-              {isLast && (
-                <Button
-                  icon={<PlusOutlined />}
-                  onClick={addRow}
-                />
-              )}
-            </Space.Compact>
-          );
-        })}
+                {t.label}
+              </Option>
+            ))}
+          </Select>
+        </Form.Item>
+        <Form.Item
+          label={t(`page.auth.labels.${principalQueryParams.type}`)}
+          name='principal'
+          rules={[defaultRequiredRule]}
+        >
+          <DropdownList
+            className={itemClassNames} 
+            width="100%"
+            data={principalResult.data}
+            placeholder={t('page.auth.labels.name')}
+            renderLabel={(item: any) => item?.name}
+            rowKey='id'
+            pagination={{
+              currentPage: principalResult.total
+                ? Math.floor(principalQueryParams.from / principalQueryParams.size) + 1
+                : 0,
+              total: principalResult.total,
+              onChange: page => {
+                setPrincipalQueryParams(params => ({ ...params, from: (page - 1) * params.size }));
+              }
+            }}
+            renderItem={(item: any) => (
+              <div style={{ display: 'flex', gap: 8 }}>
+                <span>{item.name}</span>
+                {item.description ? (
+                  <span style={{ color: 'var(--ant-color-text-tertiary)' }}>{item.description}</span>
+                ) : null}
+              </div>
+            )}
+            onSearchChange={(query: string) => {
+              setPrincipalQueryParams(params => ({ ...params, query, from: 0, type: row.type }));
+            }}
+          />
+        </Form.Item>
+        <Form.Item
+          label={t('page.auth.labels.role')}
+          name='role'
+          rules={[defaultRequiredRule]}
+        >
+          <DropdownList
+            className={itemClassNames}
+            mode="multiple"
+            width="100%"
+            allowClear
+            data={roleResult.data}
+            placeholder={t('page.role.title')}
+            renderItem={(item: any) => <span>{item.name}</span>}
+            renderLabel={(item: any) => item?.name}
+            rowKey='name'
+            pagination={{
+              currentPage: roleResult.total ? Math.floor(roleQueryParams.from / roleQueryParams.size) + 1 : 0,
+              total: roleResult.total,
+              onChange: page => {
+                setRoleQueryParams(params => ({ ...params, from: (page - 1) * params.size }));
+              }
+            }}
+            onSearchChange={(query: string) => {
+              setRoleQueryParams(params => ({ ...params, query, from: 0 }));
+            }}
+          />
+        </Form.Item>
+        <Form.Item label=' '>
+          <Button
+            type='primary'
+            onClick={() => handleSubmit()}
+          >
+            {actionText}
+          </Button>
+        </Form.Item>
       </Form>
     </Spin>
   );

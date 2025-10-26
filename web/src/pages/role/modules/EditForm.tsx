@@ -1,7 +1,6 @@
 import { useLoading } from '@sa/hooks';
 import { Button, Form, Input, Spin } from 'antd';
 
-import './EditForm.css';
 import Permissions from './Permissions';
 
 interface EditFormProps {
@@ -12,7 +11,7 @@ interface EditFormProps {
 }
 
 export const EditForm = memo((props: EditFormProps) => {
-  const { actionText, onSubmit, record = {} } = props;
+  const { actionText, onSubmit, record } = props;
   const [form] = Form.useForm();
   const { t } = useTranslation();
   const { defaultRequiredRule } = useFormRules();

@@ -19,15 +19,11 @@ export function Component() {
     const req = {
       id: data._source.id,
       ...params,
-      grants: {
-        permissions: params.permission.feature
-      }
     };
     const res = await updateAuthorization(req);
     if (res.data?.result === 'updated') {
       window.$message?.success(t('common.updateSuccess'));
-      run(data._source.id);
-      nav(`/security?tab=role`);
+      nav(`/security?tab=auth`);
     }
     if (after) after();
   };

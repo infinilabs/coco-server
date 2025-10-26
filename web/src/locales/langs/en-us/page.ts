@@ -217,6 +217,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     },
     mapping: {
       title: 'Mapping Management',
+    },
     neo4j: {
       error: {
         connection_uri_required: 'Please input connection URI!',
@@ -629,7 +630,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       object: 'Object',
       coco: 'Coco Server',
       generic: 'Generic',
-      created: 'Creation time'
+      created: 'Created At'
     },
     new: {
       title: 'New Role'
@@ -650,13 +651,16 @@ const page: App.I18n.Schema['translation']['page'] = {
       team: 'Team',
       userRole: 'Team Member Role',
       teamRole: 'APP User Role',
-      role: 'Role'
+      role: 'Role',
+      type: 'Type',
+      created: 'Created At',
+      auth: 'Authorization'
     },
     new: {
-      title: 'New Auth'
+      title: 'New Authorization'
     },
     delete: {
-      confirm: `Are you sure you want to delete auth "{{name}}" ?`
+      confirm: `Are you sure you want to delete authorization "{{name}}" ?`
     }
   }
 };

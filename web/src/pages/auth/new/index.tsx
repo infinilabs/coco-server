@@ -8,16 +8,10 @@ export function Component() {
 
   const onSubmit = async (params: any, before?: () => void, after?: () => void) => {
     if (before) before();
-    const data = {
-      ...params,
-      grants: {
-        permissions: params.permission.feature
-      }
-    };
-    const res = await fetchAuthorization(data);
+    const res = await fetchAuthorization(params);
     if (res?.data?.result === 'created') {
       window.$message?.success(t('common.addSuccess'));
-      nav(`/security?tab=role`);
+      nav(`/security?tab=auth`);
     }
     if (after) after();
   };

@@ -127,7 +127,6 @@ const page: App.I18n.Schema['translation']['page'] = {
       type: '类型'
     },
     connect: '连接',
-    missing_config_tip: 'Google 授权相关参数没有设置，需设置后才能连接，点击确认跳转到设置页面。',
     delete: {
       confirm: '确定删除这个数据源？'
     },
@@ -135,47 +134,6 @@ const page: App.I18n.Schema['translation']['page'] = {
       title: '编辑数据源'
     },
     every: '每',
-    hours: '小时',
-    minutes: '分钟',
-    new: {
-      labels: {
-        client_id: '客户端 ID',
-        client_secret: '客户端密钥',
-        connect: '连接',
-        data_sync: '同步策略',
-        enabled: '启用状态',
-        immediate_sync: '立即同步',
-        indexing_scope: '索引范围',
-        insert_doc: '插入文档',
-        manual_sync: '手动同步',
-        manual_sync_desc: '仅在用户点击 "同步" 按钮时同步',
-        name: '数据源名称',
-        description: '描述',
-        config: '配置信息',
-        icon: '图标',
-        tags: '标签',
-        realtime_sync: '实时同步',
-        realtime_sync_desc: '文件修改立即同步',
-        redirect_uri: '重定向 URI',
-        scheduled_sync: '定时同步',
-        scheduled_sync_desc: '每隔固定时间同步一次',
-        site_urls: '站点地址',
-        permission_sync_enabled: '启用权限同步',
-        sync_enabled: '启用同步',
-        type: '数据源类型',
-        folder_paths: '文件夹路径',
-        file_extensions: '文件扩展名（可选）'
-      },
-      title: '连接 {{connector}}',
-      tooltip: {
-        file_extensions: '逗号分隔列表。例如 pdf、docx、txt',
-        folder_paths: '您要扫描的文件夹的绝对路径。'
-      }
-    },
-    seconds: '秒',
-    site_urls: '站点地址',
-    site_urls_add: '新增站点地址',
-    file_paths_add: '添加文件路径',
     commons: {
       error: {
         datasource_name_required: '请输入数据源名称',
@@ -207,14 +165,6 @@ const page: App.I18n.Schema['translation']['page'] = {
         username: '用于身份验证的用户名。如果使用匿名访问或个人访问令牌，可以留空'
       }
     },
-    connect: '连接',
-    delete: {
-      confirm: '确定删除这个数据源？'
-    },
-    edit: {
-      title: '编辑数据源'
-    },
-    every: '每',
     file_paths_add: '添加文件路径',
     git_commons: {
       error: {
@@ -477,7 +427,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     },
     mapping: {
       title: '映射管理',
-    }
+    },
     s3: {
       error: {
         access_key_id_required: '请输入 Access Key ID！',
@@ -518,7 +468,6 @@ const page: App.I18n.Schema['translation']['page'] = {
       name: '姓名',
       password: '密码',
       title: '创建一个账户',
-      language: '语言'
     }
   },
   home: {
@@ -611,16 +560,6 @@ const page: App.I18n.Schema['translation']['page'] = {
         theme_light: '浅色',
         type: '类型',
         type_fullscreen: 'Fullscreen',
-        mode: '模式',
-        mode_all: '内嵌和浮动',
-        mode_embedded: '内嵌的',
-        mode_embedded_placeholder: '内嵌组件提示文本',
-        mode_embedded_icon: '内嵌组件图标',
-        mode_floating: '浮动的',
-        mode_floating_placeholder: '浮动组件提示文本',
-        mode_floating_icon: '浮动组件图标',
-        mode_page: '全屏页面',
-        mode_modal: '全屏弹框',
         type_searchbox: 'SearchBox'
       },
       title: {
@@ -732,28 +671,6 @@ const page: App.I18n.Schema['translation']['page'] = {
       top_p_desc: '与随机性类似，但不要和随机性一起更改',
       type: '类型'
     },
-    connector: {
-      title: '连接器'
-    },
-    app_settings: {
-      title: '应用设置',
-      chat_settings: {
-        title: '聊天设置',
-        labels: {
-          start_page: '起始页',
-          start_page_placeholder:
-            '你可以启用和配置聊天模式起始页，自定义公司徽标、介绍文本和常用人工智能助手，以帮助用户快速选择并开始聊天。',
-          logo: '图标',
-          logo_placeholder: '上传公司图标以显示在起始页上。',
-          logo_size_placeholder: '图像尺寸限制：最大高度为 30 像素，最大宽度为 300 像素。',
-          logo_light: '浅色主题（常规版本图标）',
-          logo_dark: '深色主题（白色或浅色版本图标）',
-          introduction: '介绍文本',
-          introduction_placeholder: '输入显示在起始页面上的欢迎文本或人工智能工具介绍（60 字符以内）',
-          assistant: 'AI 助手展示'
-        }
-      }
-    },
     search_settings: {
       title: '搜索设置',
       labels: {
@@ -811,7 +728,9 @@ const page: App.I18n.Schema['translation']['page'] = {
       team: '团队',
       userRole: '团队成员角色',
       teamRole: 'APP 用户角色',
-      role: '角色'
+      role: '角色',
+      created: '创建时间',
+      auth: '授权'
     },
     new: {
       title: '新增授权'

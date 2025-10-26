@@ -1,6 +1,6 @@
 import { EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, PlusOutlined } from '@ant-design/icons';
 import { useLoading } from '@sa/hooks';
-import { Button, Dropdown, Input, Table, message } from 'antd';
+import { Button, Dropdown, Input, Table, Tag, Typography, message } from 'antd';
 import dayjs from 'dayjs';
 import type { TableColumnsType, TableProps } from 'antd';
 
@@ -81,25 +81,32 @@ const Auth = () => {
   const columns: TableColumnsType<any> = useMemo(
     () => [
       {
-        dataIndex: 'name',
-        title: '授权'
+        dataIndex: 'display_name',
+        title: t('page.auth.labels.auth'),
+        render: (value, record) => {
+          return (
+            <Typography.Link onClick={()=>nav(`/auth/edit/${record.id}`, {state:record})}>
+              {value}
+            </Typography.Link>
+          )
+        }
       },
       {
-        dataIndex: 'description',
-        title: '角色'
+        dataIndex: 'role',
+        title: t('page.auth.labels.role'),
+        render: (value) => {
+          return (value || []).map((tag, index) => {
+            return <Tag key={index}>{tag}</Tag>;
+          });
+        }
       },
       {
         dataIndex: 'created',
-        title: '创建时间',
+        title: t('page.auth.labels.created'),
         render: (value: string) => {
           const d = dayjs(value);
           return d.isValid() ? d.format('YYYY-MM-DD HH:mm:ss') : value;
         }
-      },
-      {
-        dataIndex: 'enabled',
-        title: '启用状态',
-        render: (value: boolean) => (value ? t('common.enabled') : t('common.disabled'))
       },
       {
         fixed: 'right',
@@ -126,7 +133,7 @@ const Auth = () => {
                 break;
               case 'delete':
                 window?.$modal?.confirm({
-                  content: t('page.role.delete.confirm', { name: record.name }),
+                  content: t('page.auth.delete.confirm', { name: record.display_name }),
                   icon: <ExclamationCircleOutlined />,
                   onOk() {
                     handleDelete(record.id);
