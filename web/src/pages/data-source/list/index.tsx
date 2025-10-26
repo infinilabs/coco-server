@@ -1,5 +1,5 @@
-import Icon, { EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, PlusOutlined } from '@ant-design/icons';
-import { Button, Dropdown, Image, Modal, Switch, Table, message } from 'antd';
+import Icon, { EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, PlusOutlined, UserOutlined } from '@ant-design/icons';
+import { Avatar, Button, Dropdown, Image, Modal, Switch, Table, message } from 'antd';
 import type { GetProp, MenuProps, TableColumnsType, TableProps } from 'antd';
 import Search from 'antd/es/input/Search';
 import type { SorterResult } from 'antd/es/table/interface';
@@ -9,6 +9,7 @@ import { GoogleDriveSVG, HugoSVG, NotionSVG, YuqueSVG } from '@/components/icons
 import { deleteDatasource, fetchDataSourceList, getConnectorByIDs, updateDatasource } from '@/service/api';
 import { formatESSearchResult } from '@/service/request/es';
 import useQueryParams from '@/hooks/common/queryParams';
+import ShareUsers from '../detail/modules/ShareUsers';
 
 type Datasource = Api.Datasource.Datasource;
 
@@ -52,6 +53,8 @@ export function Component() {
     update: hasAuth('coco:datasource/update'),
     delete: hasAuth('coco:datasource/delete'),
   }
+
+  const isMapping = true
 
   const { scrollConfig, tableWrapperRef } = useTableScroll();
 
@@ -193,6 +196,22 @@ export function Component() {
       },
       title: t('page.datasource.columns.name')
     },
+    isMapping && {
+      dataIndex: 'owner',
+      title: t('page.datasource.labels.owner'),
+      render: (value, record) => {
+        return <Avatar size={"small"} icon={<UserOutlined />} />
+      }
+    },
+    isMapping && {
+      dataIndex: 'shares',
+      title: t('page.datasource.labels.shares'),
+      render: (value, record) => {
+        return (
+          <ShareUsers datasource={record} record={record} title={record.name} onSuccess={() => fetchData()}/>
+        )
+      }
+    },
     {
       minWidth: 100,
       render: (text: string, record: Datasource) => {
@@ -201,6 +220,28 @@ export function Component() {
         return type.name;
       },
       title: t('page.datasource.columns.type')
+    },
+    isMapping && {
+      dataIndex: ['sync', 'enabled'],
+      title: t('page.datasource.labels.permission_sync'),
+      render: (value: number) => {
+        return value ? t('page.datasource.labels.isEnabled') : '-'
+      },
+    },
+    {
+      dataIndex: 'strategy',
+      title: t('page.datasource.columns.sync_policy'),
+    },
+    {
+      dataIndex: 'updated',
+      title: t('page.datasource.labels.updated'),
+      render: (value: number) => {
+        return value ? new Date(value).toISOString() : '';
+      },
+    },
+    {
+      dataIndex: 'sync_status',
+      title: t('page.datasource.columns.sync_status'),
     },
     {
       dataIndex: ['sync', 'enabled'],
@@ -259,7 +300,7 @@ export function Component() {
       title: t('common.operation'),
       width: '90px'
     }
-  ];
+  ].filter((item) => !!item);
   // rowSelection object indicates the need for row selection
   const rowSelection: TableProps<Datasource>['rowSelection'] = {
     getCheckboxProps: (record: Datasource) => ({

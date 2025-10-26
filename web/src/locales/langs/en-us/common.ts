@@ -6,6 +6,7 @@ const common: App.I18n.Schema['translation']['common'] = {
   backToHome: 'Back to home',
   batchDelete: 'Batch Delete',
   cancel: 'Cancel',
+  ok: 'OK',
   check: 'Check',
   close: 'Close',
   columnSetting: 'Column Setting',

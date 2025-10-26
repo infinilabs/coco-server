@@ -6,6 +6,7 @@ const common: App.I18n.Schema['translation']['common'] = {
   backToHome: '返回首页',
   batchDelete: '批量删除',
   cancel: '取消',
+  ok: '确定',
   check: '勾选',
   close: '关闭',
   columnSetting: '列设置',

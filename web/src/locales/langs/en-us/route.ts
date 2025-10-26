@@ -11,6 +11,7 @@ const route: App.I18n.Schema['translation']['route'] = {
   'data-source_list': 'Data Source',
   'data-source_new': 'New Data Source',
   'data-source_new-first': 'New Data Source First Step',
+  'data-source_detail': 'Data Source Detail',
   document: 'Document',
   document_antd: 'Ant Design  Document',
   document_procomponents: 'ProComponents Document',

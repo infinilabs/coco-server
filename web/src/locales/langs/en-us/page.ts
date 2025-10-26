@@ -93,6 +93,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         scheduled_sync: 'Scheduled Sync',
         scheduled_sync_desc: 'Sync at fixed intervals',
         site_urls: 'Site URLs',
+        permission_sync_enabled: 'Permission Sync',
         sync_enabled: 'Sync',
         type: 'Type',
         folder_paths: 'Folder paths',
@@ -187,6 +188,34 @@ const page: App.I18n.Schema['translation']['page'] = {
         metadata_name: 'Metadata Name',
         payload_name: 'Payload Name'
       }
+    },
+    labels: {
+      owner: 'Owner',
+      shares: 'Shares',
+      updated: 'Last Updated',
+      size: 'Size',
+      externalAccount: 'External Account',
+      cocoAccount: 'Mapping Coco User',
+      mappingStatus: 'Mapping Status',
+      mapped: 'Mapped',
+      unmapped: 'Unmapped',
+      enabled: 'Enabled',
+      permission_sync: 'Permission Sync',
+      isEnabled: 'Enabled',
+      usersWithPermissions: 'teams or users with permissions',
+      view: 'View',
+      comment: 'Comment',
+      edit: 'Edit',
+      share: 'Share',
+      all: 'All',
+      shareTo: 'Share to teams or users',
+      permission: 'Permission'
+    },
+    file: {
+      title: 'File Management',
+    },
+    mapping: {
+      title: 'Mapping Management',
     }
   },
   guide: {

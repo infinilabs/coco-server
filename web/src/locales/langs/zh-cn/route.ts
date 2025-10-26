@@ -11,6 +11,7 @@ const route: App.I18n.Schema['translation']['route'] = {
   'data-source_list': '数据源',
   'data-source_new': '新增数据源',
   'data-source_new-first': '新增数据源第一步',
+  'data-source_detail': '数据源详情',
   document: '文档',
   document_antd: 'Ant Design 文档',
   document_procomponents: 'ProComponents 文档',

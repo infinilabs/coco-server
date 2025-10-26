@@ -91,6 +91,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         scheduled_sync: '定时同步',
         scheduled_sync_desc: '每隔固定时间同步一次',
         site_urls: '站点地址',
+        permission_sync_enabled: '启用权限同步',
         sync_enabled: '启用同步',
         type: '数据源类型',
         folder_paths: '文件夹路径',
@@ -286,6 +287,34 @@ const page: App.I18n.Schema['translation']['page'] = {
         payload_name_required: '请输入名称',
         required: '请输入 {{field}}'
       }
+    },
+    labels: {
+      owner: '所有者',
+      shares: '分享',
+      updated: '最后更新时间',
+      size: '大小',
+      externalAccount: '外部账号',
+      cocoAccount: '映射 Coco 用户',
+      mappingStatus: '映射状态',
+      mapped: '已映射',
+      unmapped: '未映射',
+      enabled: '启用状态',
+      permission_sync: '权限同步',
+      isEnabled: '启用',
+      usersWithPermissions: '有访问权限的团队、人',
+      view: '可查看',
+      comment: '评论',
+      edit: '可编辑',
+      share: '共享',
+      all: '全部',
+      shareTo: '共享给团队、人',
+      permission: '访问权限'
+    },
+    file: {
+      title: '文件管理',
+    },
+    mapping: {
+      title: '映射管理',
     }
   },
   guide: {
