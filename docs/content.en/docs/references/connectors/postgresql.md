@@ -7,48 +7,30 @@ weight: 50
 ## Register PostgreSQL Connector
 
 ```shell
-curl -XPUT "http://localhost:9000/connector/postgresql?replace=true" -d '
-{
-  "name" : "PostgreSQL Connector",
-  "description" : "Fetch data from PostgreSQL database.",
-  "category" : "database",
-  "icon" : "/assets/icons/connector/postgresql/icon.png",
-  "tags" : [
+curl -XPUT "http://localhost:9000/connector/postgresql?replace=true" -d '{
+  "name": "PostgreSQL Connector",
+  "description": "Fetch data from PostgreSQL database.",
+  "category": "database",
+  "icon": "/assets/icons/connector/postgresql/icon.png",
+  "tags": [
     "sql",
     "storage",
     "web"
   ],
-  "url" : "http://coco.rs/connectors/postgresql",
-  "assets" : {
-    "icons" : {
-      "default" : "/assets/icons/connector/postgresql/icon.png"
+  "url": "http://coco.rs/connectors/postgresql",
+  "assets": {
+    "icons": {
+      "default": "/assets/icons/connector/postgresql/icon.png"
     }
+  },
+  "processor": {
+    "enabled": true,
+    "name": "postgresql"
   }
 }'
 ```
 
 > Use `postgresql` as a unique identifier, as it is a builtin connector.
-
-## Update coco-server's config
-
-Below is an example configuration for enabling the Postgresql Connector in coco-server:
-
-```shell
-connector:
-  postgresql:
-    enabled: true
-    queue:
-      name: indexing_documents
-    interval: 30s
-```
-
-### Explanation of Config Parameters
-
-| **Field**    | **Type**  | **Description**                                                                          |
-|--------------|-----------|------------------------------------------------------------------------------------------|
-| `enabled`    | `boolean` | Enables or disables the PostgreSQL connector. Set to`true` to activate it.               |
-| `interval`   | `string`  | Specifies the time interval (e.g., `30s`) at which the connector will check for updates. |
-| `queue.name` | `string`  | Defines the name of the queue where indexing tasks will be added.                        |
 
 ## Use the PostgreSQL Connector
 
@@ -70,51 +52,60 @@ To configure your PostgreSQL connection, you'll need to provide the connection d
 
 `Field Mapping`: (Optional) An advanced feature to map columns from your SQL query to specific document fields like `id`, `title`, `content`, and custom metadata.
 
-### Example Request
+### Datasource Configuration
 
-Here is an example request to configure the Postgresql Connector:
+Each datasource has its own sync configuration and PostgreSQL settings:
 
 ```shell
-curl -H 'Content-Type: application/json' -XPOST "http://localhost:9000/datasource/" -d '
-{
-    "name":"My Postgresql Documents",
-    "type":"connector",
-    "connector":{
+curl -H 'Content-Type: application/json' -XPOST "http://localhost:9000/datasource/" -d '{
+    "name": "My PostgreSQL Documents",
+    "type": "connector",
+    "enabled": true,
+    "connector": {
         "id": "postgresql",
-        "config": { 
+        "config": {
             "connection_uri": "postgres://username:password@localhost:5432/coco?sslmode=disable&timezone=Asia/Shanghai",
             "sql": "SELECT * from DOC",
             "pagination": true,
             "page_size": 500,
             "last_modified_field": "updated",
-            "field_mapping": { 
+            "field_mapping": {
                 "enabled": true,
-                "mapping": { 
+                "mapping": {
                     "hashed": true,
                     "id": "id",
                     "title": "title",
                     "url": "url",
-                    "metadata": [ 
-                      { 
-                        "name": "version",
-                        "value": "v"
-                      }
+                    "metadata": [
+                        {
+                            "name": "version",
+                            "value": "v"
+                        }
                     ]
                 }
             }
         }
+    },
+    "sync": {
+        "enabled": true,
+        "interval": "30s"
     }
 }'
 ```
 
-## Supported Config Parameters for PostgreSQL Connector 
-Below are the configuration parameters supported by the PostgreSQL Connector: 
+## Supported Config Parameters for PostgreSQL Connector
 
-| **Field**              | **Type**   | **Description**                                                                                         | 
-|------------------------|------------|---------------------------------------------------------------------------------------------------------| 
-| `connection_uri`       | `string`   | The full PostgreSQL connection URI (e.g., postgresql://user:pass@host:port/db?sslmode=disable).         |
-| `sql`                  | `string`   | The SQL query to execute for fetching data.                                                             |
+Below are the configuration parameters supported by the PostgreSQL Connector:
+
+### Datasource Config Parameters
+
+| **Field**              | **Type**   | **Description**                                                                                         |
+|------------------------|------------|---------------------------------------------------------------------------------------------------------|
+| `connection_uri`       | `string`   | The full PostgreSQL connection URI (e.g., postgresql://user:pass@host:port/db?sslmode=disable) (required). |
+| `sql`                  | `string`   | The SQL query to execute for fetching data (required).                                                 |
 | `last_modified_field`  | `string`   | Optional. The name of a timestamp/datetime column used for incremental synchronization.                 |
 | `pagination`           | `boolean`  | Optional. Set to true to enable pagination for large queries. Defaults to false.                        |
 | `page_size`            | `integer`  | Optional. The number of records to fetch per page when pagination is enabled. Defaults to 500.          |
 | `field_mapping`        | `object`   | Optional. Provides advanced control to map query columns to standard document fields.                   |
+| `sync.enabled`         | `boolean`  | Enable/disable syncing for this datasource.                                                             |
+| `sync.interval`        | `string`   | Sync interval for this datasource (e.g., "30s", "5m", "1h").                                            |

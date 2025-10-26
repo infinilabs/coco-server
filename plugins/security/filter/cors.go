@@ -27,6 +27,7 @@ func (f *CORSFilter) GetPriority() int {
 }
 
 const FeatureCORS = "feature_cors"
+const FeatureNotAllowCredentials = "feature_not_allow_credentials"
 
 func (f *CORSFilter) ApplyFilter(
 	method string,
@@ -48,7 +49,11 @@ func (f *CORSFilter) ApplyFilter(
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-API-TOKEN, APP-INTEGRATION-ID, WEBSOCKET-SESSION-ID")
-			w.Header().Set("Access-Control-Allow-Credentials", "false")
+			if options.Feature(FeatureNotAllowCredentials) {
+				w.Header().Set("Access-Control-Allow-Credentials", "false")
+			} else {
+				w.Header().Set("Access-Control-Allow-Credentials", "true")
+			}
 			// Handle preflight (OPTIONS) requests
 			if r.Method == "OPTIONS" && r.Header.Get("Access-Control-Request-Method") != "" {
 				// Respond with 200 OK for OPTIONS requests

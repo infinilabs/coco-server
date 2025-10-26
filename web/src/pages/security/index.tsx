@@ -1,39 +1,51 @@
-import { Tabs } from 'antd';
+import { Tabs } from "antd";
+import type { TabsProps } from "antd";
 
-import './index.scss';
-import Role from './modules/Role';
+import Auth from "./modules/Auth";
+import Role from "./modules/Role";
+
+import "./index.scss";
 
 export function Component() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { t } = useTranslation();
 
-  const { hasAuth } = useAuth()
+  const { hasAuth } = useAuth();
 
   const permissions = {
-    viewRole: hasAuth('coco:role/view'),
-  }
+    viewRole: hasAuth("coco:role/view"),
+    viewAuth: true,
+  };
 
   const onChange = (key: string) => {
     setSearchParams({ tab: key });
   };
 
-  const items = [];
+  const items: TabsProps["items"] = [];
+
+  if (permissions.viewAuth) {
+    items.push({
+      children: <Auth />,
+      key: "auth",
+      label: t(`page.auth.title`),
+    });
+  }
 
   if (permissions.viewRole) {
     items.push({
-      component: Role,
-      key: 'role',
+      children: <Role />,
+      key: "role",
       label: t(`page.role.title`),
-    })
+    });
   }
 
   const activeKey = useMemo(() => {
-    return searchParams.get('tab') || items?.[0]?.key
-  }, [])
+    return searchParams.get("tab") || items?.[0]?.key;
+  }, []);
 
   const activeItem = useMemo(() => {
     return items.find((item) => item.key === activeKey);
-  }, [activeKey])
+  }, [activeKey]);
 
   return (
     <ACard styles={{ body: { padding: 0 } }}>
@@ -44,7 +56,7 @@ export function Component() {
         onChange={onChange}
       />
       <div className="settings-tabs-content">
-        { activeItem?.component ? <activeItem.component /> : null}
+        {activeItem?.children ? activeItem.children : null}
       </div>
     </ACard>
   );

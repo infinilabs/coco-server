@@ -5,7 +5,9 @@ export default defineConfig(
   {
     ignores: ['ErrorBoundary.tsx'],
     prettierRules: {
+      jsxSingleQuote: true,
       singleAttributePerLine: true,
+      singleQuote: true,
       trailingCommas: 'none'
     },
     react: true,
@@ -24,21 +26,12 @@ export default defineConfig(
         }
       ],
 
-      'import/order': [
-        'error',
-        {
-          alphabetize: {
-            order: 'asc'
-          },
-          groups: ['builtin', 'external', 'internal', 'parent', 'sibling', 'index', 'object'],
-          'newlines-between': 'always',
-          pathGroups: [{ group: 'internal', pattern: '{{@,~}/,#}**' }],
-          pathGroupsExcludedImportTypes: ['builtin']
-        }
-      ],
-
+      'import/order': 'off',
+      'sort/object-properties': 'off',
+      'prettier/prettier': 'off',
       'no-underscore-dangle': 'off',
 
+      // eslint-disable-next-line sort/object-properties
       'react/hook-use-state': [
         'error', // or "warn" to only warn instead of error
         {
@@ -84,12 +77,14 @@ export default defineConfig(
 
       'react-refresh/only-export-components': ['warn', { allowExportNames: ['loader', 'action'] }],
 
-      'sort/import-members': ['error', { caseSensitive: true, natural: true }],
-      'sort/imports': ['off'],
+      'sort/import-members': 'off',
+      'sort/imports': 'off',
       'sort/string-enums': ['error', { caseSensitive: false, natural: true }],
       'sort/string-unions': ['error', { caseSensitive: false, natural: true }],
-      'sort/type-properties': ['warn', { caseSensitive: false, natural: true }],
-      'sort/type-properties': ['error', { caseSensitive: false, natural: true }]
+      'sort/type-properties': 'off',
+      'sort/destructuring-properties': 'off',
+
+      quotes: ['error', 'single', { avoidEscape: true }]
     }
   }
 );

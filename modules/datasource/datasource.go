@@ -16,11 +16,7 @@ import (
 
 func (h *APIHandler) createDatasource(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	var obj = &common.DataSource{}
-	err := h.DecodeJSON(req, obj)
-	if err != nil {
-		h.WriteError(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	h.MustDecodeJSON(req, obj)
 
 	if obj.Type == "connector" {
 
@@ -78,6 +74,9 @@ func (h *APIHandler) deleteDatasource(w http.ResponseWriter, req *http.Request, 
 		}, http.StatusNotFound)
 		return
 	}
+
+	//mark deleted in cache
+	common.MarkDatasourceDeleted(id)
 
 	// clear cache
 	common.ClearDatasourcesCache()
@@ -199,6 +198,8 @@ func (h *APIHandler) searchDatasource(w http.ResponseWriter, req *http.Request, 
 		return
 	}
 
+	builder.EnableBodyBytes()
+
 	if len(builder.Sorts()) == 0 {
 		builder.SortBy(orm.Sort{Field: "created", SortType: orm.DESC})
 	}
@@ -225,7 +226,7 @@ func (h *APIHandler) searchDatasource(w http.ResponseWriter, req *http.Request, 
 
 	docs := []common.DataSource{}
 
-	err, res := core.SearchV2WithResultItemMapper(ctx, &docs, builder, nil)
+	err, res := elastic.SearchV2WithResultItemMapper(ctx, &docs, builder, nil)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return

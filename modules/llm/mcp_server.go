@@ -151,34 +151,13 @@ func (h *APIHandler) deleteMCPServer(w http.ResponseWriter, req *http.Request, p
 }
 
 func (h *APIHandler) searchMCPServer(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	var err error
-	body, err := h.GetRawBody(req)
-	//for backward compatibility
-	if err == nil && body != nil { //TODO remove legacy code
-		q := orm.Query{}
-		q.RawQuery = body
-
-		err, res := orm.Search(&common.MCPServer{}, &q)
-		if err != nil {
-			h.WriteError(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		_, err = h.Write(w, res.Raw)
-		if err != nil {
-			h.Error(w, err)
-		}
-
-		return
-	}
-
 	//handle url query args, convert to query builder
 	builder, err := orm.NewQueryBuilderFromRequest(req, "name", "combined_fulltext")
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
+	builder.EnableBodyBytes()
 	ctx := orm.NewContextWithParent(req.Context())
 	orm.WithModel(ctx, &common.MCPServer{})
 

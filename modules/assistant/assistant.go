@@ -5,10 +5,9 @@
 package assistant
 
 import (
+	"infini.sh/framework/core/elastic"
 	"net/http"
 	"time"
-
-	"infini.sh/coco/core"
 
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/modules/common"
@@ -141,12 +140,13 @@ func (h *APIHandler) searchAssistant(w http.ResponseWriter, req *http.Request, p
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	builder.EnableBodyBytes()
 
 	ctx := orm.NewContextWithParent(req.Context())
 	orm.WithModel(ctx, &common.Assistant{})
 	docs := []common.Assistant{}
 
-	err, res := core.SearchV2WithResultItemMapper(ctx, &docs, builder, nil)
+	err, res := elastic.SearchV2WithResultItemMapper(ctx, &docs, builder, nil)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 

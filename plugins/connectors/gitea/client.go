@@ -6,7 +6,6 @@ package gitea
 
 import (
 	"context"
-	"net/http"
 	"strings"
 
 	sdk "code.gitea.io/sdk/gitea"
@@ -25,17 +24,6 @@ func NewGiteaClient(baseURL string, token string) (*sdk.Client, error) {
 	}
 	baseURL = strings.TrimSuffix(baseURL, "/")
 	return sdk.NewClient(baseURL, sdk.SetToken(token))
-}
-
-func (p *Plugin) IsOrgUser(client *sdk.Client, owner string) (bool, error) {
-	_, resp, err := client.GetOrg(owner)
-	if err == nil && resp.StatusCode == http.StatusOK {
-		return true, nil
-	}
-	if resp != nil && resp.StatusCode == http.StatusNotFound {
-		return false, nil
-	}
-	return false, err
 }
 
 func ListRepos(ctx context.Context, client *sdk.Client, cursor *ListReposCursor) ([]*sdk.Repository, error) {

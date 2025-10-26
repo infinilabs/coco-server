@@ -24,7 +24,7 @@ function shouldRedirectLogin(path: string) {
 }
 
 export const init: Init = async currentFullPath => {
-  
+
   const result = await fetchServer();
 
   await store.dispatch(setProviderInfo(result.data));
@@ -102,6 +102,8 @@ export const init: Init = async currentFullPath => {
       'coco:search_settings/view',
       'coco:search_settings/update',
       'coco:server_settings/update',
+      'coco:auth/view',
+      'coco:auth/update',
     ]
     });
     await store.dispatch(resetAuth());

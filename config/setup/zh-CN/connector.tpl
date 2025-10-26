@@ -12,7 +12,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/y
     "hugo",
     "web"
   ],
-  "url" : "http://coco.rs/connectors/hugo_site",
+  "url" : "http://coco.rs/connectors/yuque",
   "assets" : {
     "icons" : {
       "board" : "/assets/icons/connector/yuque/board.png",
@@ -23,8 +23,13 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/y
       "table" : "/assets/icons/connector/yuque/table.png"
     }
   },
-  "builtin": true
+  "builtin": true,
+   "processor":{
+       "enabled":true,
+       "name":"yuque"
+    }
 }
+
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/hugo_site
 {
   "id" : "hugo_site",
@@ -49,8 +54,13 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/h
       "web_page" : "/assets/icons/connector/hugo_site/web_page.png"
     }
   },
-  "builtin": true
+  "builtin": true,
+  "processor":{
+      "enabled":true,
+      "name":"hugo_site"
+  }
 }
+
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/google_drive
 {
   "id" : "google_drive",
@@ -95,8 +105,14 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
     "redirect_url": "$[[SETUP_SERVER_ENDPOINT]]/connector/google_drive/oauth_redirect",
     "token_url": "https://oauth2.googleapis.com/token"
   },
-  "builtin": true
+  "builtin": true,
+  "oauth_connect_implemented": true,
+  "processor":{
+      "enabled":true,
+      "name":"google_drive"
+  }
 }
+
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/notion
 {
   "id" : "notion",
@@ -120,8 +136,13 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/n
       "web_page" : "/assets/icons/connector/notion/icon.png"
     }
   },
-  "builtin": true
+  "builtin": true,
+    "processor":{
+       "enabled":true,
+       "name":"notion"
+    }
 }
+
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/rss
 {
   "id" : "rss",
@@ -142,7 +163,11 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/r
       "default" : "/assets/icons/connector/rss/icon.png"
     }
   },
-  "builtin": true
+   "builtin": true,
+     "processor":{
+        "enabled":true,
+        "name":"rss"
+     }
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/local_fs
 {
@@ -165,7 +190,11 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/l
       "file" : "/assets/icons/connector/local_fs/file.png"
     }
   },
-  "builtin": true
+  "builtin": true,
+  "processor": {
+    "enabled": true,
+    "name": "local_fs"
+  }
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/s3
 {
@@ -188,7 +217,11 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/s
       "file" : "/assets/icons/connector/s3/file.png"
     }
   },
-  "builtin": true
+  "builtin": true,
+  "processor": {
+    "enabled": true,
+    "name": "s3"
+  }
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/confluence
 {
@@ -211,7 +244,11 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/c
       "default" : "/assets/icons/connector/confluence/icon.png"
     }
   },
-  "builtin": true
+  "builtin": true,
+  "processor": {
+    "enabled": true,
+    "name": "confluence"
+  }
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/network_drive
 {
@@ -235,7 +272,11 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/n
       "file" : "/assets/icons/connector/network_drive/file.png"
     }
   },
-  "builtin": true
+  "builtin": true,
+  "processor": {
+    "enabled": true,
+    "name": "network_drive"
+  }
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/postgresql
 {
@@ -257,7 +298,11 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/p
        "default" : "/assets/icons/connector/postgresql/icon.png"
      }
   },
-  "builtin": true
+  "builtin": true,
+  "processor": {
+    "enabled": true,
+    "name": "postgresql"
+  }
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/mysql
 {
@@ -279,7 +324,11 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/m
       "default" : "/assets/icons/connector/mysql/icon.png"
     }
   },
-  "builtin": true
+  "builtin": true,
+  "processor": {
+    "enabled": true,
+    "name": "mysql"
+  }
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/github
 {
@@ -307,7 +356,11 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
       "org" : "/assets/icons/connector/github/org.png"
     }
   },
-  "builtin": true
+  "builtin": true,
+  "processor": {
+    "enabled": true,
+    "name": "github"
+  }
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/gitlab
 {
@@ -337,7 +390,11 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
       "org" : "/assets/icons/connector/gitlab/org.png"
     }
   },
-  "builtin": true
+  "builtin": true,
+  "processor": {
+    "enabled": true,
+    "name": "gitlab"
+  }
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/gitea
 {
@@ -365,7 +422,11 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
       "org" : "/assets/icons/connector/gitea/org.png"
     }
   },
-  "builtin": true
+  "builtin": true,
+  "processor": {
+    "enabled": true,
+    "name": "gitea"
+  }
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/feishu
 {
@@ -398,7 +459,13 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/f
     "auth_url": "https://accounts.feishu.cn/open-apis/authen/v1/authorize",
     "token_url": "https://open.feishu.cn/open-apis/authen/v2/oauth/token"
   },
-  "builtin": true
+  "builtin": true,
+  "path_hierarchy": true,
+  "oauth_connect_implemented": true,
+  "processor": {
+    "enabled": true,
+    "name": "feishu"
+  }
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/lark
 {
@@ -431,7 +498,13 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/l
     "auth_url": "https://accounts.larksuite.com/open-apis/authen/v1/authorize",
     "token_url": "https://open.larksuite.com/open-apis/authen/v2/oauth/token"
   },
-  "builtin": true
+  "builtin": true,
+  "path_hierarchy": true,
+  "oauth_connect_implemented": true,
+  "processor": {
+    "enabled": true,
+    "name": "lark"
+  }
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/mssql
 {
@@ -453,7 +526,11 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/m
       "default" : "/assets/icons/connector/mssql/icon.png"
     }
   },
-  "builtin": true
+  "builtin": true,
+  "processor": {
+    "enabled": true,
+    "name": "mssql"
+  }
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/oracle
 {
@@ -475,7 +552,11 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/o
       "default" : "/assets/icons/connector/oracle/icon.png"
     }
   },
-  "builtin": true
+  "builtin": true,
+  "processor": {
+    "enabled": true,
+    "name": "oracle"
+  }
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/salesforce
 {
@@ -504,5 +585,36 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/s
       "opportunity" : "/assets/icons/connector/salesforce/opportunity.png"
     }
   },
-  "builtin": true
- }
+  "builtin": true,
+  "processor": {
+    "enabled": true,
+    "name": "salesforce"
+  }
+}
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/neo4j
+{
+  "id" : "neo4j",
+  "created" : "2025-09-29T00:00:00.000000+08:00",
+  "updated" : "2025-09-29T00:00:00.000000+08:00",
+  "name" : "Neo4j 图数据库连接器",
+  "description" : "连接到 Neo4j 图数据库，使用自定义 Cypher 查询索引节点，支持增量同步和分页功能。",
+  "category" : "database",
+  "icon" : "/assets/icons/connector/neo4j/icon.png",
+  "tags" : [
+    "graph",
+    "database",
+    "neo4j",
+    "cypher"
+  ],
+  "url" : "http://coco.rs/connectors/neo4j",
+  "assets" : {
+    "icons" : {
+      "default" : "/assets/icons/connector/neo4j/icon.png"
+    }
+  },
+  "builtin": true,
+  "processor": {
+    "enabled": true,
+    "name": "neo4j"
+  }
+}

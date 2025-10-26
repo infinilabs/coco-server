@@ -41,6 +41,9 @@ declare module "@elegant-router/types" {
     "ai-assistant_new": "new";
     "api-token": "/api-token";
     "api-token_list": "list";
+    "auth": "/auth";
+    "auth_edit": "edit/:id";
+    "auth_new": "new";
     "connector": "/connector";
     "connector_edit": "edit/:id";
     "connector_new": "new";
@@ -120,6 +123,7 @@ declare module "@elegant-router/types" {
     | "500"
     | "ai-assistant"
     | "api-token"
+    | "auth"
     | "connector"
     | "data-source"
     | "guide"
@@ -158,6 +162,8 @@ declare module "@elegant-router/types" {
     | "ai-assistant_list"
     | "ai-assistant_new"
     | "api-token_list"
+    | "auth_edit"
+    | "auth_new"
     | "connector_edit"
     | "connector_new"
     | "data-source_detail"

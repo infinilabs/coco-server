@@ -8,47 +8,30 @@ weight: 30
 
 ```shell
 curl -XPUT "http://localhost:9000/connector/confluence?replace=true" -d '{
-  "name" : "Confluence wiki Connector",
-  "description" : "Fetch Confluence Wiki pages and blogposts.",
-  "category" : "website",
-  "icon" : "/assets/icons/connector/confluence/icon.png",
-  "tags" : [
+  "name": "Confluence wiki Connector",
+  "description": "Fetch Confluence Wiki pages and blogposts.",
+  "category": "website",
+  "icon": "/assets/icons/connector/confluence/icon.png",
+  "tags": [
     "wiki",
     "storage",
     "docs",
     "web"
   ],
-  "url" : "http://coco.rs/connectors/confluence",
-  "assets" : {
-    "icons" : {
-      "default" : "/assets/icons/connector/confluence/icon.png"
+  "url": "http://coco.rs/connectors/confluence",
+  "assets": {
+    "icons": {
+      "default": "/assets/icons/connector/confluence/icon.png"
     }
+  },
+  "processor": {
+    "enabled": true,
+    "name": "confluence"
+  }
 }'
 ```
 
 > Use `confluence` as a unique identifier, as it is a builtin connector.
-
-## Update coco-server's config
-
-Below is an example configuration for enabling the Confluence Connector in coco-server:
-
-```shell
-connector:
-  confluence:
-    enabled: true
-    queue:
-      name: indexing_documents
-    interval: 5m
-```
-
-### Explanation of Config Parameters
-
-
-| **Field**    | **Type**  | **Description**                                                                        |
-| ------------ | --------- |----------------------------------------------------------------------------------------|
-| `enabled`    | `boolean` | Enables or disables the confluence connector. Set to`true` to activate it.             |
-| `interval`   | `string`  | Specifies the time interval (e.g.,`5m`) at which the connector will check for updates. |
-| `queue.name` | `string`  | Defines the name of the queue where indexing tasks will be added.                      |
 
 ## Use the Confluence Connector
 
@@ -72,38 +55,46 @@ To configure your Confluence connection, you need to provide several key paramet
 - enable_blogposts: (Optional) A boolean (true or false) to enable indexing of blog posts within the space. Defaults to false.
 - enable_attachments: (Optional) A boolean (true or false) to enable indexing of attachments (like PDFs, Word documents) within the space. Defaults to false.
 
-### Example Request
+### Datasource Configuration
 
-Here is an example request to configure the Confluence Connector:
+Each datasource has its own sync configuration and Confluence settings:
 
 ```shell
-curl -H 'Content-Type: application/json' -XPOST "http://localhost:9000/datasource/" -d '
-{
-  "name":"My Confluence Wiki",
-  "type":"connector",
-  "connector":{
-     "id":"confluence",
-     "config":{
-       "endpoint": "https://your-company.atlassian.net/wiki",
-       "username": "your-email@example.com",
-       "token": "your-confluence-api-token",
-       "space": "DOCS",
-       "enable_blogposts": false,
-       "enable_attachments": false
+curl -H 'Content-Type: application/json' -XPOST "http://localhost:9000/datasource/" -d '{
+    "name": "My Confluence Wiki",
+    "type": "connector",
+    "enabled": true,
+    "connector": {
+        "id": "confluence",
+        "config": {
+            "endpoint": "https://your-company.atlassian.net/wiki",
+            "username": "your-email@example.com",
+            "token": "your-confluence-api-token",
+            "space": "DOCS",
+            "enable_blogposts": false,
+            "enable_attachments": false
+        }
+    },
+    "sync": {
+        "enabled": true,
+        "interval": "5m"
     }
-  }
 }'
 ```
 
-## Supported Config Parameters for confluence Connector
+## Supported Config Parameters for Confluence Connector
 
-Below are the configuration parameters supported by the confluence Connector:
+Below are the configuration parameters supported by the Confluence Connector:
+
+### Datasource Config Parameters
 
 | **Field**          | **Type**  | **Description**                                                                    |
 |--------------------|-----------|------------------------------------------------------------------------------------|
-| endpoint           | string    | The base URL of your Confluence instance.                                          |                                                                                         |
-| username           | string    | Your Confluence username (email for Cloud). Not required for Data Center with PAT. | 
-| token              | string    | Your Confluence API Token (Cloud) or Personal Access Token (Data Center).          | 
-| space              | string    | The key of the Confluence space to index.                                          | 
-| enable_blogposts   | bool      | Optional. Set to true to index blog posts within the space. Defaults to false.     | 
-| enable_attachments | bool      | Optional. Set to true to index attachments within the space. Defaults to false.    |
+| `endpoint`         | `string`  | The base URL of your Confluence instance (required).                               |
+| `username`         | `string`  | Your Confluence username (email for Cloud). Not required for Data Center with PAT. |
+| `token`            | `string`  | Your Confluence API Token (Cloud) or Personal Access Token (Data Center) (required). |
+| `space`            | `string`  | The key of the Confluence space to index (required).                               |
+| `enable_blogposts` | `boolean` | Optional. Set to true to index blog posts within the space. Defaults to false.    |
+| `enable_attachments` | `boolean` | Optional. Set to true to index attachments within the space. Defaults to false. |
+| `sync.enabled`     | `boolean` | Enable/disable syncing for this datasource.                                       |
+| `sync.interval`    | `string`  | Sync interval for this datasource (e.g., "5m", "1h", "30s").                       |

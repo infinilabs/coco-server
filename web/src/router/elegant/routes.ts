@@ -116,6 +116,37 @@ export const generatedRoutes: GeneratedRoute[] = [
     ]
   },
   {
+    name: 'auth',
+    path: '/auth',
+    component: 'layout.base',
+    meta: {
+      i18nKey: 'route.auth',
+      title: 'auth',
+      hideInMenu: true,
+      activeMenu: 'security'
+    },
+    children: [
+      {
+        name: 'auth_edit',
+        path: 'edit/:id',
+        component: 'view.auth_edit',
+        meta: {
+          i18nKey: 'route.auth_edit',
+          title: 'auth_edit'
+        }
+      },
+      {
+        name: 'auth_new',
+        path: 'new',
+        component: 'view.auth_new',
+        meta: {
+          i18nKey: 'route.auth_new',
+          title: 'auth_new'
+        }
+      }
+    ]
+  },
+  {
     name: 'connector',
     path: '/connector',
     component: 'layout.base',
@@ -462,7 +493,7 @@ export const generatedRoutes: GeneratedRoute[] = [
       title: 'security',
       icon: 'mdi:user-outline',
       order: 10,
-      permissions: ['coco:role/view', 'coco:user/view'],
+      permissions: ['coco:role/view', 'coco:user/view', 'coco:auth/view'],
       permissionLogic: 'or'
     }
   },

@@ -301,105 +301,6 @@ web:
           failed_page: "/#/login"
           scopes: [ "openid","email","profile"]
 
-
-connector:
-  google_drive: # get your token here: https://developers.google.com/drive/api/quickstart/go
-    enabled: true
-    queue:
-      name: indexing_documents
-    interval: 10s
-    skip_invalid_token: true
-  yuque:
-    enabled: true
-    queue:
-      name: indexing_documents
-    interval: 10s
-  hugo_site:
-    enabled: true
-    interval: 10s
-    queue:
-      name: indexing_documents
-  notion:
-    enabled: true
-    interval: 10s
-    queue:
-      name: indexing_documents
-  rss:
-    enabled: true
-    interval: 10s
-    queue:
-      name: indexing_documents
-  local_fs:
-    enabled: true
-    interval: 10s
-    queue:
-      name: indexing_documents
-  s3:
-    enabled: true
-    interval: 30s
-    queue:
-      name: indexing_documents
-  confluence:
-    enabled: true
-    interval: 5m
-    queue:
-      name: indexing_documents
-  network_drive:
-    enabled: true
-    interval: 30s
-    queue:
-      name: indexing_documents
-  postgresql:
-    enabled: true
-    interval: 30s
-    queue:
-      name: indexing_documents
-  mysql:
-    enabled: true
-    interval: 30s
-    queue:
-      name: indexing_documents
-  github:
-    enabled: true
-    interval: 30s
-    queue:
-      name: indexing_documents
-  gitlab:
-    enabled: true
-    interval: 30s
-    queue:
-      name: indexing_documents
-  gitea:
-    enabled: true
-    interval: 30s
-    queue:
-      name: indexing_documents
-  feishu:
-    enabled: true
-    interval: 30s
-    queue:
-      name: indexing_documents
-  lark:
-    enabled: true
-    interval: 30s
-    queue:
-      name: indexing_documents
-  mssql:
-    enabled: true
-    interval: 30s
-    queue:
-      name: indexing_documents
-  oracle:
-    enabled: true
-    interval: 30s
-    queue:
-      name: indexing_documents
-  salesforce:
-    enabled: true
-    interval: 30s
-    queue:
-      name: indexing_documents
-
 ##background jobs
 pipeline:
   - name: enrich_documents
@@ -455,7 +356,15 @@ pipeline:
           queues:
             type: indexing_merge
             tag: "merged"
-
+  - name: connector_dispatcher
+    auto_start: true
+    keep_running: true
+    singleton: true
+    retry_delay_in_ms: 10000
+    processor:
+      - connector_dispatcher:
+          max_running_timeout_in_seconds: 1200
+#          pipelines_in_sync: true
 
 http_client:
   default:
