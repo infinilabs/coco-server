@@ -1,9 +1,11 @@
 import { EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, PlusOutlined } from '@ant-design/icons';
 import { useLoading } from '@sa/hooks';
 import { Button, Dropdown, Input, Table, message } from 'antd';
+import dayjs from 'dayjs';
+import type { TableColumnsType, TableProps } from 'antd';
 
 import useQueryParams from '@/hooks/common/queryParams';
-import { deleteRole, fetchRoles } from '@/service/api/role';
+import { deleteAuthorization, fetchAuthorizationSearch } from '@/service/api/role';
 import { formatESSearchResult } from '@/service/request/es';
 
 const Auth = () => {
@@ -20,127 +22,154 @@ const Auth = () => {
 
   const nav = useNavigate();
 
-  const [data, setData] = useState({
+  const [data, setData] = useState<{
+    data: any[];
+    total: number | { value: number };
+  }>({
     data: [],
     total: 0
   });
   const { endLoading, loading, startLoading } = useLoading();
-  const [keyword, setKeyword] = useState();
+  const [keyword, setKeyword] = useState('');
 
-  const fetchData = async params => {
+  const fetchData = async (params: any) => {
     startLoading();
-    const res = await fetchRoles(params);
+    const res = await fetchAuthorizationSearch(params);
     const newData = formatESSearchResult(res.data);
     setData(newData);
     endLoading();
   };
 
-  const handleTableChange = pagination => {
-    setQueryParams(params => {
+  const handleTableChange: TableProps<any>['onChange'] = pagination => {
+    setQueryParams((params: any) => {
+      const pageSize = pagination?.pageSize ?? params.size ?? 10;
+      const current = pagination?.current ?? Math.floor((params.from ?? 0) / pageSize) + 1;
       return {
         ...params,
-        from: (pagination.current - 1) * pagination.pageSize,
-        size: pagination.pageSize
+        from: (current - 1) * pageSize,
+        size: pageSize
       };
     });
   };
 
   const onRefreshClick = (query: string) => {
-    setQueryParams(oldParams => {
+    const q = (query || '').trim();
+    setQueryParams((oldParams: any) => {
       return {
         ...oldParams,
         from: 0,
-        query,
+        query: q,
         t: new Date().valueOf()
       };
     });
   };
 
-  const handleDelete = async id => {
-    startLoading();
-    const res = await deleteRole(id);
-    if (res.data?.result === 'deleted') {
-      message.success(t('common.deleteSuccess'));
-    }
-    fetchData(queryParams);
-    endLoading();
-  };
+  const handleDelete = useCallback(
+    async (id: string) => {
+      startLoading();
+      const res = await deleteAuthorization(id);
+      if (res.data?.result === 'deleted') {
+        message.success(t('common.deleteSuccess'));
+      }
+      fetchData(queryParams);
+      endLoading();
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [queryParams, t]
+  );
 
-  const columns = [
-    {
-      dataIndex: 'name',
-      title: '授权'
-    },
-    {
-      dataIndex: 'description',
-      title: '角色'
-    },
-    {
-      dataIndex: 'description',
-      title: '创建时间'
-    },
-    {
-      dataIndex: 'description',
-      title: '启用状态'
-    },
-    {
-      fixed: 'right',
-      render: (_, record) => {
-        const items = [];
-        if (permissions.update) {
-          items.push({
-            key: 'edit',
-            label: t('common.edit')
-          });
-        }
-        if (permissions.delete) {
-          items.push({
-            key: 'delete',
-            label: t('common.delete')
-          });
-        }
-        if (items.length === 0) return null;
-        const onMenuClick = ({ key, record }: any) => {
-          switch (key) {
-            case 'edit':
-              nav(`/role/edit/${record.id}`, { state: record });
-              break;
-            case 'delete':
-              window?.$modal?.confirm({
-                content: t('page.role.delete.confirm', { name: record.name }),
-                icon: <ExclamationCircleOutlined />,
-                onOk() {
-                  handleDelete(record.id);
-                },
-                title: t('common.tip')
-              });
-              break;
-          }
-        };
-        return (
-          <Dropdown menu={{ items, onClick: ({ key }) => onMenuClick({ key, record }) }}>
-            <EllipsisOutlined />
-          </Dropdown>
-        );
+  const columns: TableColumnsType<any> = useMemo(
+    () => [
+      {
+        dataIndex: 'name',
+        title: '授权'
       },
-      title: t('common.operation'),
-      width: '90px'
-    }
-  ];
-  // rowSelection object indicates the need for row selection
-  const rowSelection = {
+      {
+        dataIndex: 'description',
+        title: '角色'
+      },
+      {
+        dataIndex: 'created',
+        title: '创建时间',
+        render: (value: string) => {
+          const d = dayjs(value);
+          return d.isValid() ? d.format('YYYY-MM-DD HH:mm:ss') : value;
+        }
+      },
+      {
+        dataIndex: 'enabled',
+        title: '启用状态',
+        render: (value: boolean) => (value ? t('common.enabled') : t('common.disabled'))
+      },
+      {
+        fixed: 'right',
+        render: (_, record) => {
+          const items = [];
+          if (permissions.update) {
+            items.push({
+              key: 'edit',
+              label: t('common.edit')
+            });
+          }
+          if (permissions.delete) {
+            items.push({
+              key: 'delete',
+              label: t('common.delete')
+            });
+          }
+          if (items.length === 0) return null;
+          // eslint-disable-next-line @typescript-eslint/no-shadow
+          const onMenuClick = ({ key, record }: any) => {
+            switch (key) {
+              case 'edit':
+                nav(`/role/edit/${record.id}`, { state: record });
+                break;
+              case 'delete':
+                window?.$modal?.confirm({
+                  content: t('page.role.delete.confirm', { name: record.name }),
+                  icon: <ExclamationCircleOutlined />,
+                  onOk() {
+                    handleDelete(record.id);
+                  },
+                  title: t('common.tip')
+                });
+                break;
+              default:
+                break;
+            }
+          };
+          return (
+            <Dropdown
+              menu={{
+                items,
+                onClick: ({ key }) => onMenuClick({ key, record })
+              }}
+            >
+              <EllipsisOutlined />
+            </Dropdown>
+          );
+        },
+        title: t('common.operation'),
+        width: '90px'
+      }
+    ],
+    [permissions.update, permissions.delete, t, nav, handleDelete]
+  );
+
+  const rowSelection: TableProps<any>['rowSelection'] = {
     getCheckboxProps: record => ({
       name: record.name
     }),
-    onChange: (selectedRowKeys: React.Key[], selectedRows) => {}
+    onChange: (_selectedRowKeys: React.Key[], _selectedRows) => {}
   };
 
   useEffect(() => {
     fetchData(queryParams);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queryParams]);
 
   useEffect(() => {
-    setKeyword(queryParams.query);
+    setKeyword((queryParams as any).query || '');
   }, [queryParams.query]);
 
   return (
@@ -158,7 +187,7 @@ const Auth = () => {
           <Button
             icon={<PlusOutlined />}
             type='primary'
-            onClick={() => nav(`/role/new`)}
+            onClick={() => nav(`/auth/new`)}
           >
             {t('common.add')}
           </Button>
@@ -172,11 +201,11 @@ const Auth = () => {
         rowSelection={{ ...rowSelection }}
         size='middle'
         pagination={{
-          current: Math.floor(queryParams.from / queryParams.size) + 1,
-          pageSize: queryParams.size,
-          showSizeChanger: true,
           showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
-          total: data.total?.value || data?.total
+          pageSize: queryParams.size ?? 10,
+          current: Math.floor((queryParams.from ?? 0) / (queryParams.size ?? 10)) + 1,
+          total: typeof data.total === 'object' ? (data.total?.value ?? 0) : (data.total ?? 0),
+          showSizeChanger: true
         }}
         onChange={handleTableChange}
       />

@@ -1,0 +1,15 @@
+.custom-radio-group .ant-radio-wrapper {
+  margin-right: 0;
+}
+
+.custom-radio-group .ant-radio {
+  position: relative;
+  top: -63px;
+}
+
+.custom-radio-group img {
+  position: relative;
+  left: -24px;
+  width: 144px;
+  margin-top: 6px;
+}

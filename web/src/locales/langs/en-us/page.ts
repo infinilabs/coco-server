@@ -257,7 +257,8 @@ const page: App.I18n.Schema['translation']['page'] = {
         auth_token: 'Optional bearer token. Overrides username and password if provided.',
         hierarchy_mode: 'Choose how to organize document hierarchy',
         hierarchy_mode_label: 'Organize hierarchy by node labels (e.g., /Person/Employee/Manager)',
-        hierarchy_mode_relationship: 'Organize hierarchy by parent-child relationships (e.g., /Company/Department/Team)',
+        hierarchy_mode_relationship:
+          'Organize hierarchy by parent-child relationships (e.g., /Company/Department/Team)',
         hierarchy_mode_property: 'Organize hierarchy by node properties (e.g., /docs/api/v1)',
         field_mapping: 'Map Neo4j node properties to document fields',
         pagination: 'Enable this if database queries should be paginated. Recommended for large graph databases.',
@@ -617,8 +618,19 @@ const page: App.I18n.Schema['translation']['page'] = {
       name: 'Name',
       description: 'Description',
       permission: 'Permission',
-      object: 'Object',
-      coco: 'Coco Server'
+      object: 'Authorization Object',
+      coco: 'Coco Server',
+      user: 'User',
+      team: 'Team',
+      userRole: 'Team Member Role',
+      teamRole: 'APP User Role',
+      role: 'Role'
+    },
+    new: {
+      title: 'New Auth'
+    },
+    delete: {
+      confirm: `Are you sure you want to delete auth "{{name}}" ?`
     }
   }
 };

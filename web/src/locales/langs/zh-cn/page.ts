@@ -776,8 +776,19 @@ const page: App.I18n.Schema['translation']['page'] = {
       name: '名称',
       description: '描述',
       permission: '权限',
-      object: '操作对象',
-      coco: 'Coco Server'
+      object: '授权对象',
+      coco: 'Coco Server',
+      user: '人员',
+      team: '团队',
+      userRole: '团队成员角色',
+      teamRole: 'APP 用户角色',
+      role: '角色'
+    },
+    new: {
+      title: '新增授权'
+    },
+    delete: {
+      confirm: `确定要删除授权 "{{name}}" 吗？`
     }
   },
   search_settings: {
