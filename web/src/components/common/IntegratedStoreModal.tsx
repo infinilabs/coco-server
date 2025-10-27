@@ -1,7 +1,9 @@
 import { PlusCircleFilled, PlusOutlined, UserOutlined } from '@ant-design/icons';
 import { Avatar, Button, Card, Col, Flex, Input, Menu, Modal, Row, Space, Spin, Typography, message } from 'antd';
+import type { AnyObject } from 'antd/es/_util/type';
 import type { ItemType, MenuItemType } from 'antd/es/menu/interface';
 import classNames from 'classnames';
+import { isEmpty } from 'lodash';
 import { Eye, FolderDown, SquareArrowOutUpRight } from 'lucide-react';
 
 // @ts-ignore
@@ -77,6 +79,19 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
     }
   }));
 
+  const tabItems = [
+    {
+      label: t('page.integratedStoreModal.labels.recommend'),
+      value: 'recommend'
+    },
+    {
+      label: t('page.integratedStoreModal.labels.newest'),
+      value: 'newest'
+    }
+  ];
+
+  const [currentTab, setCurrentTab] = useState(tabItems[0].value);
+
   const requestType = useMemo(() => {
     switch (category) {
       case 'ai-assistant':
@@ -98,9 +113,20 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
 
       setLoadingData(true);
 
+      const params: AnyObject = {};
+
+      if (!isEmpty(searchKeyword)) {
+        params.query = searchKeyword;
+      }
+
+      if (currentTab === 'newest') {
+        params.sort = 'created:desc';
+      }
+
       const result = await request({
         method: 'get',
-        url: `/store/server/${requestType}/_search?query=${searchKeyword}`
+        params,
+        url: `/store/server/${requestType}/_search`
       });
 
       const { data } = formatESSearchResult(result);
@@ -111,7 +137,7 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
     } finally {
       setLoadingData(false);
     }
-  }, [open, requestType, searchKeyword]);
+  }, [open, requestType, searchKeyword, currentTab]);
 
   const renderTitle = () => {
     return (
@@ -154,19 +180,6 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
   const handleCancel = () => {
     setOpen(false);
   };
-
-  const tabItems = [
-    {
-      label: t('page.integratedStoreModal.labels.recommend'),
-      value: 'recommend'
-    },
-    {
-      label: t('page.integratedStoreModal.labels.newest'),
-      value: 'newest'
-    }
-  ];
-
-  const [currentTab, setCurrentTab] = useState(tabItems[0].value);
 
   const handleNew = useCallback(() => {
     let link = `/${category}/new`;
