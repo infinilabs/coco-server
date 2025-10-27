@@ -30,6 +30,9 @@ export const themeVars: App.Theme.ThemeTokenCSSVars = {
     container: 'rgb(var(--container-bg-color))',
     inverted: 'rgb(var(--inverted-bg-color))',
     layout: 'rgb(var(--layout-bg-color))',
-    nprogress: 'rgb(var(--nprogress-color))'
+    nprogress: 'rgb(var(--nprogress-color))',
+    'text-1': 'var(--ant-color-text)',
+    'text-2': 'var(--ant-color-text-secondary)',
+    'text-3': 'var(--ant-color-text-tertiary)'
   }
 };

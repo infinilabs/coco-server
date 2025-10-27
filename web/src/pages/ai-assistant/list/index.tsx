@@ -1,11 +1,13 @@
+import Icon, { EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, PlusOutlined } from '@ant-design/icons';
+import { Button, Dropdown, GetProp, Image, Modal, Switch, Table, message } from 'antd';
+import type { MenuProps, TableColumnsType, TableProps } from 'antd';
 import Search from 'antd/es/input/Search';
-import Icon, { FilterOutlined, PlusOutlined, EllipsisOutlined, ExclamationCircleOutlined} from '@ant-design/icons';
-import { Button, Dropdown, Table, GetProp, message,Modal, Switch, Image } from 'antd';
-import type { TableColumnsType, TableProps, MenuProps } from "antd";
-import {searchAssistant, deleteAssistant, updateAssistant, cloneAssistant} from '@/service/api/assistant';
-import { formatESSearchResult } from '@/service/request/es';
+
+import type { IntegratedStoreModalRef } from '@/components/common/IntegratedStoreModal';
 import InfiniIcon from '@/components/common/icon';
 import useQueryParams from '@/hooks/common/queryParams';
+import { cloneAssistant, deleteAssistant, searchAssistant, updateAssistant } from '@/service/api/assistant';
+import { formatESSearchResult } from '@/service/request/es';
 
 type Assistant = Api.LLM.Assistant;
 
@@ -18,182 +20,203 @@ export function Component() {
 
   const nav = useNavigate();
 
-  const getMenuItems = useCallback((record: Assistant): MenuProps["items"] => {
-    const items: MenuProps["items"] = [
+  const getMenuItems = useCallback((record: Assistant): MenuProps['items'] => {
+    const items: MenuProps['items'] = [
       {
-        label: t('common.edit'),
-        key: "2",
-      },
+        key: '2',
+        label: t('common.edit')
+      }
     ];
     if (record.builtin !== true) {
       items.push({
-        label: t('common.delete'),
-        key: "1",
+        key: '1',
+        label: t('common.delete')
       });
     }
     items.push({
-      label: t('common.clone'),
-      key: "3",
-    })
+      key: '3',
+      label: t('common.clone')
+    });
     return items;
   }, []);
 
-  const onMenuClick = ({key, record}: any)=>{
-    switch(key){
-      case "1":
+  const onMenuClick = ({ key, record }: any) => {
+    switch (key) {
+      case '1':
         window?.$modal?.confirm({
-          icon: <ExclamationCircleOutlined />,
-          title: t('common.tip'),
           content: t('page.assistant.delete.confirm', { name: record.name }),
+          icon: <ExclamationCircleOutlined />,
+          onCancel() {},
           onOk() {
-            deleteAssistant(record.id).then((res)=>{
-              if(res.data?.result === "deleted"){
-                message.success(t('common.deleteSuccess'))
+            deleteAssistant(record.id).then(res => {
+              if (res.data?.result === 'deleted') {
+                message.success(t('common.deleteSuccess'));
               }
-              //reload data
-              setQueryParams((old)=>{
+              // reload data
+              setQueryParams(old => {
                 return {
                   ...old,
                   t: new Date().valueOf()
-                }
-              })
+                };
+              });
             });
           },
-          onCancel() {
-          },
+          title: t('common.tip')
         });
-       
+
         break;
-      case "2":
+      case '2':
         nav(`/ai-assistant/edit/${record.id}`);
         break;
-      case "3":
-        cloneAssistant(record.id).then((res)=>{
-          if(res.data?.result === "created"){
+      case '3':
+        cloneAssistant(record.id).then(res => {
+          if (res.data?.result === 'created') {
             nav(`/ai-assistant/edit/${res.data?._id}`);
-          }else{
+          } else {
             message.error(res.data?.error?.reason);
           }
         });
         break;
     }
-  }
+  };
 
-  const onEnabledChange = (value: boolean, record: Assistant)=>{
+  const onEnabledChange = (value: boolean, record: Assistant) => {
     setLoading(true);
     updateAssistant(record.id, {
       ...record,
       enabled: value
-    }).then((res)=>{
-      if(res.data?.result === "updated"){
-        message.success(t('common.updateSuccess'))
-      }
-      //reload data
-      setQueryParams((old)=>{
-        return {
-          ...old,
-          t: new Date().valueOf()
+    })
+      .then(res => {
+        if (res.data?.result === 'updated') {
+          message.success(t('common.updateSuccess'));
         }
+        // reload data
+        setQueryParams(old => {
+          return {
+            ...old,
+            t: new Date().valueOf()
+          };
+        });
       })
-    }).finally(()=>{
-      setLoading(false);
-    });
-  }
+      .finally(() => {
+        setLoading(false);
+      });
+  };
   const columns: TableColumnsType<Assistant> = [
     {
-      title: t('page.assistant.labels.name'),
-      dataIndex: "name",
-      width: 300,
-      render: (value: string, record: Assistant)=>{
+      dataIndex: 'name',
+      render: (value: string, record: Assistant) => {
         return (
-          <div className='flex items-center gap-1'>
-            <IconWrapper className="w-20px h-20px">
-              <InfiniIcon height="1em" width="1em" src={record.icon} />
+          <div className="flex items-center gap-1">
+            <IconWrapper className="h-20px w-20px">
+              <InfiniIcon
+                height="1em"
+                src={record.icon}
+                width="1em"
+              />
             </IconWrapper>
-            <span className='max-w-150px ant-table-cell-ellipsis cursor-pointer hover:text-blue-500' onClick={()=>nav(`/ai-assistant/edit/${record.id}`)}>{ value }</span>
-            {record.builtin === true && <div className="flex items-center ml-[5px]">
-              <p className="h-[22px] bg-[#eee] text-[#999] font-size-[12px] px-[10px] line-height-[22px] rounded-[4px]">{t('page.modelprovider.labels.builtin')}</p>
-            </div>}
+            <span
+              className="ant-table-cell-ellipsis max-w-150px cursor-pointer hover:text-blue-500"
+              onClick={() => nav(`/ai-assistant/edit/${record.id}`)}
+            >
+              {value}
+            </span>
+            {record.builtin === true && (
+              <div className="ml-[5px] flex items-center">
+                <p className="h-[22px] rounded-[4px] bg-[#eee] px-[10px] font-size-[12px] text-[#999] line-height-[22px]">
+                  {t('page.modelprovider.labels.builtin')}
+                </p>
+              </div>
+            )}
           </div>
-        )
-      }
+        );
+      },
+      title: t('page.assistant.labels.name'),
+      width: 300
     },
     {
-      title: t('page.assistant.labels.type'),
+      dataIndex: 'type',
       minWidth: 50,
-      dataIndex: "type",
+      title: t('page.assistant.labels.type')
     },
     {
-      title: t('page.assistant.labels.datasource'),
+      dataIndex: ['datasource', 'enabled'],
       minWidth: 50,
-      dataIndex: ["datasource", "enabled"],
-      render: (value: boolean, record: Assistant)=>{
-        return t('common.enableOrDisable.'+ (value ? 'enable' : 'disable'));
-      }
+      render: (value: boolean, record: Assistant) => {
+        return t(`common.enableOrDisable.${value ? 'enable' : 'disable'}`);
+      },
+      title: t('page.assistant.labels.datasource')
     },
     {
-      title: t('page.assistant.labels.mcp_servers'),
+      dataIndex: ['mcp_servers', 'enabled'],
       minWidth: 50,
-      dataIndex: ["mcp_servers", "enabled"],
-      render: (value: boolean, record: Assistant)=>{
-        return t('common.enableOrDisable.'+ (value ? 'enable' : 'disable'));
-      }
+      render: (value: boolean, record: Assistant) => {
+        return t(`common.enableOrDisable.${value ? 'enable' : 'disable'}`);
+      },
+      title: t('page.assistant.labels.mcp_servers')
     },
     {
-      title: t('page.assistant.labels.description'),
+      dataIndex: 'description',
+      ellipsis: true,
       minWidth: 200,
-      dataIndex: "description",
-      render: (value: string, record: Assistant)=>{
+      render: (value: string, record: Assistant) => {
         return <span title={value}>{value}</span>;
       },
-      ellipsis: true,
+      title: t('page.assistant.labels.description')
     },
     {
       dataIndex: 'enabled',
+      render: (value: boolean, record: Assistant) => {
+        return (
+          <Switch
+            size="small"
+            value={value}
+            onChange={v => onEnabledChange(v, record)}
+          />
+        );
+      },
       title: t('page.assistant.labels.enabled'),
-      width: 80,
-      render: (value: boolean, record: Assistant)=>{
-       return <Switch size="small" value={value} onChange={(v)=>onEnabledChange(v, record)}/>
-      }
+      width: 80
     },
     {
-      title: t('common.operation'),
       fixed: 'right',
-      width: "90px",
       render: (_, record) => {
-        return <Dropdown menu={{ items: getMenuItems(record), onClick:({key})=>onMenuClick({key, record}) }}>
-          <EllipsisOutlined/>
-        </Dropdown>
+        return (
+          <Dropdown menu={{ items: getMenuItems(record), onClick: ({ key }) => onMenuClick({ key, record }) }}>
+            <EllipsisOutlined />
+          </Dropdown>
+        );
       },
-    },
+      title: t('common.operation'),
+      width: '90px'
+    }
   ];
   // rowSelection object indicates the need for row selection
-const rowSelection: TableProps<Assistant>["rowSelection"] = {
-  onChange: (selectedRowKeys: React.Key[], selectedRows: Assistant[]) => {
-  },
-  getCheckboxProps: (record: Assistant) => ({
-    name: record.name,
-  }),
-};
+  const rowSelection: TableProps<Assistant>['rowSelection'] = {
+    getCheckboxProps: (record: Assistant) => ({
+      name: record.name
+    }),
+    onChange: (selectedRowKeys: React.Key[], selectedRows: Assistant[]) => {}
+  };
 
-const initialData = {
-  data: [],
-  total: 0,
-}
-const [data, setData] = useState(initialData);
-const [loading, setLoading] = useState(false);
+  const initialData = {
+    data: [],
+    total: 0
+  };
+  const [data, setData] = useState(initialData);
+  const [loading, setLoading] = useState(false);
 
-const [keyword, setKeyword] = useState();
+  const [keyword, setKeyword] = useState();
 
-const fetchData = () => {
-  setLoading(true);
-  searchAssistant(queryParams).then(({ data }) => {
-    const newData = formatESSearchResult(data);
+  const fetchData = () => {
+    setLoading(true);
+    searchAssistant(queryParams).then(({ data }) => {
+      const newData = formatESSearchResult(data);
       setData((oldData: any) => {
         return {
           ...oldData,
-          ...(newData || initialData),
-        }
+          ...(newData || initialData)
+        };
       });
       setLoading(false);
     });
@@ -202,28 +225,30 @@ const fetchData = () => {
   useEffect(fetchData, [queryParams]);
 
   useEffect(() => {
-    setKeyword(queryParams.query)
-  }, [queryParams.query])
+    setKeyword(queryParams.query);
+  }, [queryParams.query]);
 
   const handleTableChange: TableProps<Assistant>['onChange'] = (pagination, filters, sorter) => {
-    setQueryParams((params)=>{
+    setQueryParams(params => {
       return {
         ...params,
-        size: pagination.pageSize,
-        from: (pagination.current-1) * pagination.pageSize,
-      }
-    })
+        from: (pagination.current - 1) * pagination.pageSize,
+        size: pagination.pageSize
+      };
+    });
   };
-  const onRefreshClick = (query: string)=>{
-    setQueryParams((oldParams)=>{
+  const onRefreshClick = (query: string) => {
+    setQueryParams(oldParams => {
       return {
         ...oldParams,
-        query: query,
         from: 0,
+        query,
         t: new Date().valueOf()
-      }
-    })
-  }
+      };
+    });
+  };
+
+  const integratedStoreModalRef = useRef<IntegratedStoreModalRef>(null);
 
   return (
     <ListContainer>
@@ -232,29 +257,44 @@ const fetchData = () => {
         className="flex-col-stretch sm:flex-1-hidden card-wrapper"
         ref={tableWrapperRef}
       >
-      <div className='mb-4 mt-4 flex items-center justify-between'>
-        <Search value={keyword} onChange={(e) => setKeyword(e.target.value)} addonBefore={<FilterOutlined />} className='max-w-500px' onSearch={onRefreshClick} enterButton={ t('common.refresh')}></Search>
-        <Button type='primary' icon={<PlusOutlined/>}  onClick={() => nav(`/ai-assistant/new`)}>{t('common.add')}</Button>
-      </div>
-      <Table<Assistant>
-          rowKey="id"
-          loading={loading}
-          size="middle"
-          rowSelection={{ ...rowSelection }}
+        <div className="mb-4 mt-4 flex items-center justify-between">
+          <Search
+            addonBefore={<FilterOutlined />}
+            className="max-w-500px"
+            enterButton={t('common.refresh')}
+            value={keyword}
+            onChange={e => setKeyword(e.target.value)}
+            onSearch={onRefreshClick}
+          />
+          <Button
+            icon={<PlusOutlined />}
+            type="primary"
+            onClick={() => {
+              integratedStoreModalRef.current?.open('ai-assistant');
+            }}
+          >
+            {t('common.add')}
+          </Button>
+        </div>
+        <Table<Assistant>
           columns={columns}
           dataSource={data.data}
-          pagination={
-            {
-              showTotal:(total, range) => `${range[0]}-${range[1]} of ${total} items`,
-              pageSize: queryParams.size,
-              current: Math.floor(queryParams.from / queryParams.size) + 1,
-              total: data.total?.value || data?.total,
-              showSizeChanger: true,
-            }
-          }
+          loading={loading}
+          rowKey="id"
+          rowSelection={{ ...rowSelection }}
+          size="middle"
+          pagination={{
+            current: Math.floor(queryParams.from / queryParams.size) + 1,
+            pageSize: queryParams.size,
+            showSizeChanger: true,
+            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+            total: data.total?.value || data?.total
+          }}
           onChange={handleTableChange}
         />
       </ACard>
+
+      <IntegratedStoreModal ref={integratedStoreModalRef} />
     </ListContainer>
   );
 }

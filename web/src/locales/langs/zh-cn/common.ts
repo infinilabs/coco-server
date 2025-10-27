@@ -7,6 +7,7 @@ const common: App.I18n.Schema['translation']['common'] = {
   batchDelete: '批量删除',
   cancel: '取消',
   check: '勾选',
+  clone: '克隆',
   close: '关闭',
   columnSetting: '列设置',
   comingSoon: '即将到来...',
@@ -19,11 +20,21 @@ const common: App.I18n.Schema['translation']['common'] = {
   delete: '删除',
   deleteSuccess: '删除成功',
   edit: '编辑',
+  enableOrDisable: {
+    disable: '关闭',
+    enable: '开启'
+  },
   error: '错误',
   errorHint: '出错了，请稍后再试',
   expandColumn: '展开列',
   index: '序号',
+  install: '安装',
+  installSuccess: '安装成功',
   keywordSearch: '请输入关键词搜索',
+  language: {
+    en: 'English',
+    zh: '简体中文'
+  },
   loginAgain: '请重新登录！',
   logout: '退出登录',
   logoutConfirm: '确认退出登录吗？',
@@ -40,6 +51,7 @@ const common: App.I18n.Schema['translation']['common'] = {
   pleaseCheckValue: '请检查输入的值是否合法',
   refresh: '刷新',
   rename: '重命名',
+  renew_token: '刷新令牌',
   reset: '重置',
   save: '保存',
   search: '搜索',
@@ -50,23 +62,13 @@ const common: App.I18n.Schema['translation']['common'] = {
   tryAgain: '刷新重试',
   update: '更新',
   updateSuccess: '更新成功',
+  upload: '上传',
   userCenter: '个人中心',
   warning: '警告',
   yesOrNo: {
     no: '否',
     yes: '是'
-  },
-  enableOrDisable: {
-    enable: '开启',
-    disable: '关闭'
-  },
-  upload: '上传',
-  language: {
-    en: 'English',
-    zh: '简体中文'
-  },
-  renew_token: '刷新令牌',
-  clone: '克隆',
+  }
 };
 
 export default common;
