@@ -635,6 +635,9 @@ const page: App.I18n.Schema['translation']['page'] = {
     new: {
       title: 'New Role'
     },
+    edit: {
+      title: 'Edit Role'
+    },
     delete: {
       confirm: `Are you sure you want to delete role "{{name}}" ?`
     }
@@ -651,13 +654,16 @@ const page: App.I18n.Schema['translation']['page'] = {
       team: 'Team',
       userRole: 'Team Member Role',
       teamRole: 'APP User Role',
-      role: 'Role',
+      roles: 'Roles',
       type: 'Type',
       created: 'Created At',
       auth: 'Authorization'
     },
     new: {
       title: 'New Authorization'
+    },
+    edit: {
+      title: 'Edit Authorization'
     },
     delete: {
       confirm: `Are you sure you want to delete authorization "{{name}}" ?`

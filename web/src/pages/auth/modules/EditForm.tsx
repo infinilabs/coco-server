@@ -156,7 +156,7 @@ export const EditForm = memo((props: EditFormProps) => {
             className={itemClassNames} 
             width="100%"
             data={principalResult.data}
-            placeholder={t('page.auth.labels.name')}
+            placeholder={t(`page.auth.labels.${principalQueryParams.type}`)}
             renderLabel={(item: any) => item?.name}
             rowKey='id'
             pagination={{
@@ -182,7 +182,7 @@ export const EditForm = memo((props: EditFormProps) => {
           />
         </Form.Item>
         <Form.Item
-          label={t('page.auth.labels.role')}
+          label={t('page.auth.labels.roles')}
           name='roles'
           rules={[defaultRequiredRule]}
         >
@@ -192,7 +192,7 @@ export const EditForm = memo((props: EditFormProps) => {
             width="100%"
             allowClear
             data={roleResult.data}
-            placeholder={t('page.role.title')}
+            placeholder={t('page.auth.labels.roles')}
             renderItem={(item: any) => <span>{item.name}</span>}
             renderLabel={(item: any) => item?.name}
             rowKey='name'

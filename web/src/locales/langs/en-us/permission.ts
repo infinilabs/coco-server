@@ -91,15 +91,39 @@ const permission = {
   'coco#search/search': 'Execute Search',
 
   // 🔐 Generic Security
-  'security:role': 'Security Role',
+  'security:role': 'Role',
   'generic#security:role/create': 'Create Role',
   'generic#security:role/read': 'Read Role',
   'generic#security:role/update': 'Update Role',
   'generic#security:role/delete': 'Delete Role',
   'generic#security:role/search': 'Search Role',
 
-  'security:permission': 'Security Permission',
+  'security:permission': 'Permission',
   'generic#security:permission/read': 'Read Permission',
+
+  'entity:card': 'Entity Card',
+  'generic#entity:card/read': 'Read Entity Card',
+
+  'entity:label': 'Entity Label',
+  'generic#entity:label/read': 'Read Entity Label',
+
+  'sharing:role': 'Sharing Role',
+  'generic#sharing:role/read': 'Read Sharing Role',
+  'generic#sharing:role/create': 'Create Sharing Role',
+  'generic#sharing:role/update': 'Update Sharing Role',
+  'generic#sharing:role/delete': 'Delete Sharing Role',
+  'generic#sharing:role/search': 'Search Sharing Role',
+
+  'security:authorization': 'Authorization',
+  'generic#security:authorization/read': 'Read Authorization',
+  'generic#security:authorization/create': 'Create Authorization',
+  'generic#security:authorization/update': 'Update Authorization',
+  'generic#security:authorization/delete': 'Delete Authorization',
+  'generic#security:authorization/search': 'Search Authorization',
+
+  'security:principal': 'Principal',
+  'generic#security:principal/update': 'Update Principal',
+  'generic#security:principal/search': 'Search Principal',
 
   // 🧭 Others
   cancel_session: 'Cancel Session'

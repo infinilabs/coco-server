@@ -712,6 +712,9 @@ const page: App.I18n.Schema['translation']['page'] = {
     new: {
       title: '新增角色'
     },
+    edit: {
+      title: '编辑角色'
+    },
     delete: {
       confirm: `确定要删除角色 "{{name}}" 吗？`
     }
@@ -728,12 +731,16 @@ const page: App.I18n.Schema['translation']['page'] = {
       team: '团队',
       userRole: '团队成员角色',
       teamRole: 'APP 用户角色',
-      role: '角色',
+      roles: '角色',
       created: '创建时间',
-      auth: '授权'
+      auth: '授权',
+      type: '类型'
     },
     new: {
       title: '新增授权'
+    },
+    edit: {
+      title: '编辑授权'
     },
     delete: {
       confirm: `确定要删除授权 "{{name}}" 吗？`

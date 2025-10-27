@@ -91,15 +91,39 @@ const permission = {
   'coco#search/search': '执行搜索',
 
   // 🔐 通用安全
-  'security:role': '安全角色',
+  'security:role': '角色',
   'generic#security:role/create': '创建角色',
   'generic#security:role/read': '读取角色',
   'generic#security:role/update': '更新角色',
   'generic#security:role/delete': '删除角色',
   'generic#security:role/search': '搜索角色',
 
-  'security:permission': '安全权限',
+  'security:permission': '权限',
   'generic#security:permission/read': '读取权限',
+
+  'entity:card': '实体卡片',
+  'generic#entity:card/read': '读取实体卡片',
+
+  'entity:label': '实体标签',
+  'generic#entity:label/read': '读取实体标签',
+
+  'sharing:role': '分享角色',
+  'generic#sharing:role/read': '读取分享角色',
+  'generic#sharing:role/create': '创建分享角色',
+  'generic#sharing:role/update': '更新分享角色',
+  'generic#sharing:role/delete': '删除分享角色',
+  'generic#sharing:role/search': '搜索分享角色',
+
+  'security:authorization': '授权',
+  'generic#security:authorization/read': '读取授权',
+  'generic#security:authorization/create': '创建授权',
+  'generic#security:authorization/update': '更新授权',
+  'generic#security:authorization/delete': '删除授权',
+  'generic#security:authorization/search': '搜索授权',
+
+  'security:principal': '资源',
+  'generic#security:principal/update': '更新资源',
+  'generic#security:principal/search': '搜索资源',
 
   // 🧭 其他
   cancel_session: '取消会话'

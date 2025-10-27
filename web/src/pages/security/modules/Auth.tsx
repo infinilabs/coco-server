@@ -92,10 +92,11 @@ const Auth = () => {
         }
       },
       {
-        dataIndex: 'role',
-        title: t('page.auth.labels.role'),
+        dataIndex: 'roles',
+        title: t('page.auth.labels.roles'),
         render: (value) => {
-          return (value || []).map((tag, index) => {
+          if (!Array.isArray(value)) return '-'
+          return value.map((tag, index) => {
             return <Tag key={index}>{tag}</Tag>;
           });
         }
@@ -129,7 +130,7 @@ const Auth = () => {
           const onMenuClick = ({ key, record }: any) => {
             switch (key) {
               case 'edit':
-                nav(`/role/edit/${record.id}`, { state: record });
+                nav(`/auth/edit/${record.id}`, { state: record });
                 break;
               case 'delete':
                 window?.$modal?.confirm({
