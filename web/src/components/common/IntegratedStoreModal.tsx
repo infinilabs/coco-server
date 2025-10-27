@@ -116,7 +116,7 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
   const renderTitle = () => {
     return (
       <Space>
-        <span>集成商店</span>
+        <span>{t('page.integratedStoreModal.title')}</span>
 
         <Typography.Link
           href="https://coco.rs/zh/integration"
@@ -131,23 +131,23 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
   const menuItems: ItemType<MenuItemType & { key: Category }>[] = [
     {
       key: 'ai-assistant',
-      label: 'AI 助手'
+      label: t('page.integratedStoreModal.labels.aiAssistant')
     },
     {
       key: 'model-provider',
-      label: '模型提供商'
+      label: t('page.integratedStoreModal.labels.modelProvider')
     },
     {
       key: 'data-source',
-      label: '数据源'
+      label: t('page.integratedStoreModal.labels.datasource')
     },
     {
       key: 'mcp-server',
-      label: 'MCP Server'
+      label: t('page.integratedStoreModal.labels.mcpServer')
     },
     {
       key: 'connector',
-      label: '连接器'
+      label: t('page.integratedStoreModal.labels.connector')
     }
   ];
 
@@ -157,12 +157,12 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
 
   const tabItems = [
     {
-      label: '推荐',
-      value: '推荐'
+      label: t('page.integratedStoreModal.labels.recommend'),
+      value: 'recommend'
     },
     {
-      label: '最新',
-      value: '最新'
+      label: t('page.integratedStoreModal.labels.newest'),
+      value: 'newest'
     }
   ];
 
@@ -188,7 +188,7 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
       });
 
       if (data.acknowledged) {
-        message.success(t('common.installSuccess'));
+        message.success(t('page.integratedStoreModal.hints.installSuccess'));
 
         navigate(data.redirect_url);
       }
@@ -215,7 +215,7 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
           >
             <PlusCircleFilled className="text-8 text-primary" />
 
-            <span className="text-primary">自定义</span>
+            <span className="text-primary">{t('page.integratedStoreModal.buttons.custom')}</span>
           </Card>
         </Col>
 
@@ -295,7 +295,7 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
                         handleInstall(id);
                       }}
                     >
-                      {t('common.install')}
+                      {t('page.integratedStoreModal.buttons.install')}
                     </Button>
                   </div>
                 </Flex>
@@ -318,7 +318,7 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
       >
         <NoDataIcon size={96} />
 
-        <span className="text-color-3">No Results</span>
+        <span className="text-color-3">{t('page.integratedStoreModal.hints.noResults')}</span>
 
         <Button
           type="primary"
@@ -326,7 +326,7 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
         >
           <PlusOutlined />
 
-          <span>自定义</span>
+          <span>{t('page.integratedStoreModal.buttons.custom')}</span>
         </Button>
       </Flex>
     );

@@ -458,6 +458,26 @@ const page: App.I18n.Schema['translation']['page'] = {
       llmDesc: '连接大模型以启用人工智能聊天、智能搜索和工作助手功能。'
     }
   },
+  integratedStoreModal: {
+    buttons: {
+      custom: '自定义',
+      install: '安装'
+    },
+    hints: {
+      installSuccess: '安装成功',
+      noResults: '未找到数据'
+    },
+    labels: {
+      aiAssistant: 'AI 助手',
+      connector: '连接器',
+      datasource: '数据源',
+      mcpServer: 'MCP Server',
+      modelProvider: '模型提供商',
+      newest: '最新',
+      recommend: '推荐'
+    },
+    title: '集成商店'
+  },
   integration: {
     code: {
       desc: '将这段代码插入到你的网站<body>和</body>之间，即可开始使用组件。',
