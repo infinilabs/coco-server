@@ -7,6 +7,7 @@ const common: App.I18n.Schema['translation']['common'] = {
   batchDelete: 'Batch Delete',
   cancel: 'Cancel',
   check: 'Check',
+  clone: 'Clone',
   close: 'Close',
   columnSetting: 'Column Setting',
   comingSoon: 'Coming soon...',
@@ -19,11 +20,21 @@ const common: App.I18n.Schema['translation']['common'] = {
   delete: 'Delete',
   deleteSuccess: 'Delete Success',
   edit: 'Edit',
+  enableOrDisable: {
+    disable: 'Disabled',
+    enable: 'Enabled'
+  },
   error: 'Error',
   errorHint: 'Please try again later',
   expandColumn: 'Expand Column',
   index: 'Index',
+  install: 'Install',
+  installSuccess: 'Installation successful',
   keywordSearch: 'Please enter keyword',
+  language: {
+    en: 'English',
+    zh: '简体中文'
+  },
   loginAgain: 'Please login again!',
   logout: 'Logout',
   logoutConfirm: 'Are you sure you want to log out?',
@@ -40,6 +51,7 @@ const common: App.I18n.Schema['translation']['common'] = {
   pleaseCheckValue: 'Please check whether the value is valid',
   refresh: 'Refresh',
   rename: 'Rename',
+  renew_token: 'Renew Token',
   reset: 'Reset',
   save: 'Save',
   search: 'Search',
@@ -50,23 +62,13 @@ const common: App.I18n.Schema['translation']['common'] = {
   tryAgain: 'Try Again',
   update: 'Update',
   updateSuccess: 'Update Success',
+  upload: 'Upload',
   userCenter: 'User Center',
   warning: 'Warning',
   yesOrNo: {
     no: 'No',
     yes: 'Yes'
-  },
-  enableOrDisable: {
-    enable: 'Enabled',
-    disable: 'Disabled'
-  },
-  upload: 'Upload',
-  language: {
-    en: 'English',
-    zh: '简体中文',
-  },
-  renew_token: 'Renew Token',
-  clone: 'Clone',
+  }
 };
 
 export default common;

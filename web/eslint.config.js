@@ -14,9 +14,13 @@ export default defineConfig(
   sort.configs['flat/recommended'],
   {
     rules: {
+      '@typescript-eslint/ban-ts-comment': 'off',
+      '@typescript-eslint/no-shadow': 'off',
       'import/newline-after-import': 'error',
       'import/no-absolute-path': 'warn',
+
       'import/no-empty-named-blocks': ['error'],
+
       'import/no-useless-path-segments': [
         'error',
         {
@@ -38,14 +42,12 @@ export default defineConfig(
       ],
 
       'no-underscore-dangle': 'off',
-
       'react/hook-use-state': [
         'error', // or "warn" to only warn instead of error
         {
           allowDestructuredState: true
         }
       ],
-
       'react/jsx-closing-bracket-location': ['warn', 'tag-aligned'],
       'react/jsx-closing-tag-location': 'warn',
       'react/jsx-curly-brace-presence': [
@@ -73,7 +75,9 @@ export default defineConfig(
         'warn',
         { callbacksLast: true, ignoreCase: true, multiline: 'last', shorthandFirst: true }
       ],
+
       'react/prefer-read-only-props': ['error'],
+
       'react/self-closing-comp': [
         'error',
         {
@@ -81,9 +85,7 @@ export default defineConfig(
           html: true
         }
       ],
-
       'react-refresh/only-export-components': ['warn', { allowExportNames: ['loader', 'action'] }],
-
       'sort/import-members': ['error', { caseSensitive: true, natural: true }],
       'sort/imports': ['off'],
       'sort/string-enums': ['error', { caseSensitive: false, natural: true }],

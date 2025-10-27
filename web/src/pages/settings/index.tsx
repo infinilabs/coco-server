@@ -1,8 +1,8 @@
 import { Tabs } from 'antd';
 
 import './index.scss';
-import ConnectorSettings from './modules/Connector';
 import AppSettings from './modules/AppSettings';
+import ConnectorSettings from './modules/Connector';
 import SearchSettings from './modules/SearchSettings';
 
 export function Component() {
@@ -17,39 +17,37 @@ export function Component() {
     {
       component: ConnectorSettings,
       key: 'connector',
-      label: t(`page.settings.connector.title`),
+      label: t(`page.settings.connector.title`)
     },
     {
       component: AppSettings,
       key: 'app_settings',
-      label: t(`page.settings.app_settings.title`),
+      label: t(`page.settings.app_settings.title`)
     },
     {
       component: SearchSettings,
       key: 'search_settings',
-      label: t(`page.settings.search_settings.title`),
+      label: t(`page.settings.search_settings.title`)
     }
   ];
 
   const activeKey = useMemo(() => {
-    return searchParams.get('tab') || items[0].key
-  }, [])
+    return searchParams.get('tab') || items[0].key;
+  }, []);
 
   const activeItem = useMemo(() => {
-    return items.find((item) => item.key === activeKey);
-  }, [activeKey])
+    return items.find(item => item.key === activeKey);
+  }, [activeKey]);
 
   return (
     <ACard styles={{ body: { padding: 0 } }}>
       <Tabs
-        className="settings-tabs"
         activeKey={activeKey}
+        className="settings-tabs"
         items={items}
         onChange={onChange}
       />
-      <div className="settings-tabs-content">
-        { activeItem?.component ? <activeItem.component /> : null}
-      </div>
+      <div className="settings-tabs-content">{activeItem?.component ? <activeItem.component /> : null}</div>
     </ACard>
   );
 }
