@@ -15,7 +15,7 @@ import {
 } from '@/service/api';
 import { formatESSearchResult } from '@/service/request/es';
 import useQueryParams from '@/hooks/common/queryParams';
-import ShareUsers from './ShareUsers';
+import Shares from './Shares';
 import { fetchBatchShares } from '@/service/api/share';
 
 interface DataType {
@@ -236,7 +236,15 @@ const FileManagement = (props) => {
           title: t('page.datasource.labels.shares'),
           render: (value, record) => {
             return (
-              <ShareUsers datasource={datasource} record={record} title={record.title} onSuccess={() => fetchData(queryParams, datasource)}/>
+              <Shares
+                datasource={datasource} 
+                record={record} 
+                title={record.title} 
+                onSuccess={() => fetchData(queryParams, datasource)}
+                resourceType={datasource?.connector?.id}
+                resourceID={record.id}
+                resourcePath={record.type === 'folder' ? `/${(record.categories || []).concat([record.title]).join('/')}` : undefined}
+              />
             )
           }
         },

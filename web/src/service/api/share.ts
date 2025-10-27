@@ -1,4 +1,5 @@
 import { request } from '../request';
+import { formatSearchFilter } from '../request/es';
 
 export function fetchShares(params: any) {
   const { type, id } = params
@@ -27,13 +28,11 @@ export function fetchCurrentUserPermission(params: any) {
 }
 
 export function addShares(data: any) {
-  const { type, id, ...rest } = data
-
-    return request({
-        method: 'post',
-        url: `/resources/${type}/${id}/share`,
-        data: rest
-    });
+  return request({
+      method: 'post',
+      url: `/resources/shares/_batch_set`,
+      data: data
+  });
 }
 
 export function updateShares(data: any) {
@@ -54,4 +53,13 @@ export function deleteShares(data: any) {
         url: `/resources/${type}/${id}/share/${fileID}`,
         data: rest
     });
+}
+
+export function fetchPrincipals(params) {
+  const { filter = {}, ...rest } = params || {}
+  return request({
+    method: 'get',
+    params: rest,
+    url: `/security/principal/_search?${formatSearchFilter(filter)}`
+  })
 }

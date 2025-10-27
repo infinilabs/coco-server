@@ -9,7 +9,7 @@ import { GoogleDriveSVG, HugoSVG, NotionSVG, YuqueSVG } from '@/components/icons
 import { deleteDatasource, fetchDataSourceList, getConnectorByIDs, updateDatasource } from '@/service/api';
 import { formatESSearchResult } from '@/service/request/es';
 import useQueryParams from '@/hooks/common/queryParams';
-import ShareUsers from '../detail/modules/ShareUsers';
+import Shares from '../detail/modules/Shares';
 
 type Datasource = Api.Datasource.Datasource;
 
@@ -208,7 +208,14 @@ export function Component() {
       title: t('page.datasource.labels.shares'),
       render: (value, record) => {
         return (
-          <ShareUsers datasource={record} record={record} title={record.name} onSuccess={() => fetchData()}/>
+          <Shares 
+            datasource={record} 
+            record={record} 
+            title={record.name} 
+            onSuccess={() => fetchData()}
+            resourceType={record?.connector?.id}
+            resourceID={record.id}
+          />
         )
       }
     },

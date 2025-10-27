@@ -1,8 +1,8 @@
 import { Avatar, Button, Dropdown, Form, message, Popover, Select, Space } from "antd";
 import { DownOutlined, MinusCircleOutlined, UsergroupAddOutlined } from '@ant-design/icons';
 import { EntityLabel } from '@infinilabs/entity-ui';
-import styles from './ShareUsers.module.less'
-import UserSelect from "./UserSelect";
+import styles from './Shares.module.less'
+import PrincipalSelect from "./PrincipalSelect";
 import { addShares, fetchCurrentUserPermission, updateShares } from "@/service/api/share";
 import { cloneDeep } from "lodash";
 
@@ -16,7 +16,7 @@ const PERMISSION_MAPPING = {
 
 export default (props) => {
 
-    const { datasource, title, record = {}, onSuccess } = props;
+    const { datasource, title, record = {}, resourceType, resourceID, resourcePath, onSuccess } = props;
 
     const { t } = useTranslation();
 
@@ -68,7 +68,7 @@ export default (props) => {
 
     useEffect(() => {
         if (open) {
-            fetchPermission(record, datasource)
+            // fetchPermission(record, datasource)
         }
     }, [open, datasource, record])
 
@@ -78,9 +78,27 @@ export default (props) => {
     }, [permission])
 
     const content = isEdit && hasEdit ? (
-        <EditUsers permissions={permissions} onCancel={() => handleOpenChange(false)} onSuccess={onSuccess}/>
+        <EditShares 
+            permissions={permissions} 
+            onCancel={() => handleOpenChange(false)} 
+            onSuccess={onSuccess}
+            resourceType={resourceType}
+            resourceID={resourceID}
+            resourcePath={resourcePath}
+        />
     ) : (
-        <Users hasEdit={hasEdit} permissions={permissions} owner={owner} shares={shares} onCancel={() => handleOpenChange(false)} onEditUsers={() => setIsEdit(true)} onSuccess={onSuccess}/>
+        <Shares 
+            hasEdit={hasEdit} 
+            permissions={permissions} 
+            owner={owner} 
+            shares={shares} 
+            onCancel={() => handleOpenChange(false)} 
+            onEditShares={() => setIsEdit(true)} 
+            onSuccess={onSuccess}
+            resourceType={resourceType}
+            resourceID={resourceID}
+            resourcePath={resourcePath}
+        />
     )
 
     return (
@@ -112,21 +130,29 @@ export default (props) => {
     )
 }
 
-const EditUsers = (props) => {
+const EditShares = (props) => {
 
-    const { permissions = [], onCancel, onSuccess } = props;
+    const { permissions = [], onCancel, onSuccess, resourceType, resourceID, resourcePath } = props;
 
     const { t } = useTranslation();
     const [form] = Form.useForm();
 
     const onFinish = async (values) => {
-        const { permission, users = [] } = values;
-        const shares = users.map((item) => ({
-            "principal_type": "user",
-            "principal_id": item.id,
-            permission
-        }))
-        const res = await addShares(shares)
+        const { permission, shares = [] } = values;
+        const formatShares = shares.map((item) => {
+            const share = {
+                "resource_type": resourceType,
+                "resource_id": resourceID,
+                "principal_type": "user",
+                "principal_id": item.id,
+                permission,
+            }
+            if (resourcePath) {
+                share['resource_path'] = resourcePath
+            }
+            return share
+        })
+        const res = await addShares({ shares: formatShares })
         if (res?.data?.created) {
             message.success(t('common.addSuccess'));
             onSuccess && onSuccess()
@@ -143,9 +169,9 @@ const EditUsers = (props) => {
             >
                 <Form.Item
                     label={t('page.datasource.labels.shareTo')}
-                    name="users"
+                    name="shares"
                 >
-                    <UserSelect mode="multiple"/>
+                    <PrincipalSelect mode="multiple"/>
                 </Form.Item>
                 <Form.Item
                     label={t('page.datasource.labels.permission')}
@@ -170,9 +196,9 @@ const EditUsers = (props) => {
     )
 }
 
-const Users = (props) => {
+const Shares = (props) => {
 
-    const { hasEdit, permissions = [], owner, shares = [], onCancel, onEditUsers, onSuccess } = props;
+    const { hasEdit, permissions = [], owner, shares = [], onCancel, onEditShares, onSuccess } = props;
     const { t } = useTranslation();
 
     const [currentData, setCurrentData] = useState([]);
@@ -211,7 +237,7 @@ const Users = (props) => {
 
     return (
         <div >
-            <div className="text-14px mb-8px">{t('page.datasource.labels.usersWithPermissions')}</div>
+            <div className="text-14px mb-8px">{t('page.datasource.labels.sharesWithPermissions')}</div>
             <div className={`max-h-278px ${hasEdit ? 'mb-24px' : 'mb-0'} border border-[var(--ant-color-border)] rounded-[var(--ant-border-radius)] px-8px py-12px overflow-auto`}>
                 <div className={styles.item}>
                     <div className={styles.label}>
@@ -264,7 +290,7 @@ const Users = (props) => {
             {
                 hasEdit && (
                     <div className="flex items-center justify-between">
-                        <Button className="w-80px" type="primary" ghost onClick={() => onEditUsers()}>
+                        <Button className="w-80px" type="primary" ghost onClick={() => onEditShares()}>
                             <UsergroupAddOutlined />
                         </Button>
                         <Space>

@@ -1,8 +1,8 @@
 import DropdownList from "@/common/src/DropdownList";
 import { useMemo, useState } from "react";
-import { getAssistant, searchAssistant } from "@/service/api/assistant";
 import { formatESSearchResult } from "@/service/request/es";
 import { useRequest } from "@sa/hooks";
+import { fetchPrincipals } from "@/service/api/share";
 
 export default (props) => {
 
@@ -14,15 +14,11 @@ export default (props) => {
       data: res,
       loading,
       run: fetchData
-    } = useRequest(searchAssistant, {
+    } = useRequest(fetchPrincipals, {
       manual: true
     });
 
-    const { data: itemRes, loading: itemLoading, run: fetchItem } = useRequest(getAssistant, {
-      manual: true,
-    });
-
-    const { data: itemsRes, loading: itemsLoading, run: fetchItems } = useRequest(searchAssistant, {
+    const { data: itemsRes, loading: itemsLoading, run: fetchItems } = useRequest(fetchPrincipals, {
       manual: true,
     });
 
@@ -63,7 +59,13 @@ export default (props) => {
         }
       } else {
         if (value?.id && !value?.name) {
-          fetchItem(value.id)
+          fetchItems({
+            filter: {
+              id: [value?.id]
+            },
+            from: 0, 
+            size: 10000,
+          })
         }
       }
     }, [JSON.stringify(value), mode])
@@ -86,12 +88,12 @@ export default (props) => {
         }
         return value || []
       } else {
-        if (value?.id && !value?.name && itemRes) {
-          return itemRes?._source
+        if (value?.id && !value?.name && itemsRes) {
+          return itemsRes?.hits?.hits?.[0] ? itemsRes?.hits?.hits[0]._source : []
         }
         return value
       }
-    }, [value, itemRes, itemsRes, mode, excluded])
+    }, [value, itemsRes, mode, excluded])
 
     const { data, total } = result;
 
@@ -101,7 +103,7 @@ export default (props) => {
         getPopupContainer={(triggerNode) => triggerNode.parentNode}
         className={`ai-assistant-select ${className}`}
         value={formatValue}
-        loading={loading || itemLoading || itemsLoading}
+        loading={loading || itemsLoading}
         onChange={onChange}
         placeholder="Please select"
         rowKey="id"

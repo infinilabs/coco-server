@@ -5,7 +5,7 @@ import { Button, Input, Space, Switch, Table } from 'antd';
 import { formatESSearchResult } from '@/service/request/es';
 import useQueryParams from '@/hooks/common/queryParams';
 import { fetchRoles } from '@/service/api/role';
-import UserSelect from './UserSelect';
+import PrincipalSelect from './PrincipalSelect';
 
 const MappingManagement = (props) => {
   const [queryParams, setQueryParams] = useQueryParams();
@@ -65,7 +65,7 @@ const MappingManagement = (props) => {
       title: t('page.datasource.labels.cocoAccount'),
       render: (value, record) => {
         return editRow?.id === record.id ? (
-          <UserSelect ></UserSelect>
+          <PrincipalSelect ></PrincipalSelect>
         ) : value
       }
     },

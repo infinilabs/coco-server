@@ -193,7 +193,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     labels: {
       owner: 'Owner',
       shares: 'Shares',
-      updated: 'Last Updated',
+      updated: 'Last Updated At',
       size: 'Size',
       externalAccount: 'External Account',
       cocoAccount: 'Mapping Coco User',
@@ -203,7 +203,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       enabled: 'Enabled',
       permission_sync: 'Permission Sync',
       isEnabled: 'Enabled',
-      usersWithPermissions: 'teams or users with permissions',
+      sharesWithPermissions: 'teams or users with permissions',
       view: 'View',
       comment: 'Comment',
       edit: 'Edit',

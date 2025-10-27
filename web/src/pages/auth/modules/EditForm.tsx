@@ -1,10 +1,5 @@
-/* eslint-disable react/display-name */
-/* eslint-disable react/jsx-no-comment-textnodes */
-/* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable @typescript-eslint/no-shadow */
 import React, { memo, useEffect, useState } from 'react';
-import { Button, Form, Input, Select, Space, Spin } from 'antd';
-import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
+import { Button, Form, Select, Spin } from 'antd';
 import { useLoading, useRequest } from '@sa/hooks';
 
 import { fetchRoles, fetchUserSearch } from '@/service/api/role';
@@ -21,8 +16,6 @@ interface EditFormProps {
   readonly onSubmit: (params: any, before?: () => void, after?: () => void) => Promise<void>;
   readonly record?: any;
 }
-
-
 
 export const EditForm = memo((props: EditFormProps) => {
   const { actionText, onSubmit, record } = props;
@@ -86,12 +79,12 @@ export const EditForm = memo((props: EditFormProps) => {
 
   const handleSubmit = async () => {
     const params = await form.validateFields();
-    const { principal_type, principal, role } = params
+    const { principal_type, principal, roles } = params
     onSubmit({
       principal_type,
       principal_id: principal?.id,
       display_name: principal?.name,
-      role: (role || []).map((item) => item.name)
+      roles: (roles || []).map((item) => item.name)
     }, startLoading, endLoading);
   };
 
@@ -108,7 +101,7 @@ export const EditForm = memo((props: EditFormProps) => {
           id: record.principal_id,
           name: record.display_name
         },
-        role: (record.role || []).map((item) => ({
+        roles: (record.roles || []).map((item) => ({
           name: item
         }))
       })
@@ -190,7 +183,7 @@ export const EditForm = memo((props: EditFormProps) => {
         </Form.Item>
         <Form.Item
           label={t('page.auth.labels.role')}
-          name='role'
+          name='roles'
           rules={[defaultRequiredRule]}
         >
           <DropdownList
