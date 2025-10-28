@@ -1,9 +1,13 @@
+// @ts-ignore
+// @ts-ignore
+// @ts-ignore
+
 import type { FormProps } from 'antd';
 import { Button, Form, Input, Modal, Spin, Switch, message } from 'antd';
 import { useForm } from 'antd/es/form/Form';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-expect-error
@@ -11,6 +15,8 @@ import { DataSync } from '@/components/datasource/data_sync';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-expect-error
 import { Types } from '@/components/datasource/type';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+import OAuthConnect, { OAuthValidationPresets } from '@/components/oauth_connect';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-expect-error
 import { IconSelector } from '@/pages/connector/new/icon_selector';
@@ -23,7 +29,16 @@ import GitHub from './github';
 import GitLab from './gitlab';
 import HugoSite from './hugo_site';
 import LocalFS from './local_fs';
-import {GiteaConfig, GithubConfig, GitlabConfig, Neo4jConfig, NetworkDriveConfig, RdbmsConfig} from './models';
+import {
+  GiteaConfig,
+  GithubConfig,
+  GitlabConfig,
+  MongoDBConfig,
+  Neo4jConfig,
+  NetworkDriveConfig,
+  RdbmsConfig
+} from './models';
+import MongoDB from './mongodb';
 import Neo4j from './neo4j';
 import NetworkDrive from './network_drive';
 import Notion from './notion';
@@ -31,7 +46,6 @@ import Rdbms from './rdbms';
 import Rss from './rss';
 import S3 from './s3';
 import Yuque from './yuque';
-import OAuthConnect, { OAuthValidationPresets } from '@/components/oauth_connect';
 
 // eslint-disable-next-line complexity
 export function Component() {
@@ -102,6 +116,8 @@ export function Component() {
         return 'Network Drive';
       case Types.Neo4j:
         return 'Neo4j';
+      case Types.MongoDB:
+        return 'MongoDB';
       case Types.Postgresql:
         return 'Postgresql';
       case Types.Mysql:
@@ -194,6 +210,7 @@ export function Component() {
     Types.Mssql,
     Types.Oracle,
     Types.Neo4j,
+    Types.MongoDB,
     Types.Feishu,
     Types.Lark
   ].includes(type);
@@ -295,10 +312,14 @@ export function Component() {
         config = Neo4jConfig(values);
         break;
       }
+      case Types.MongoDB: {
+        config = MongoDBConfig(values);
+        break;
+      }
     }
     const sValues = {
       connector: {
-        config: config,
+        config,
         id: type
       },
       enabled: Boolean(values.enabled),
@@ -457,6 +478,7 @@ export function Component() {
               {type === Types.Confluence && <Confluence />}
               {type === Types.NetworkDrive && <NetworkDrive />}
               {type === Types.Neo4j && <Neo4j form={form} />}
+              {type === Types.MongoDB && <MongoDB form={form} />}
               {type === Types.Postgresql && <Rdbms dbType="postgresql" />}
               {type === Types.Mysql && <Rdbms dbType="mysql" />}
               {type === Types.GitHub && <GitHub />}
@@ -474,8 +496,8 @@ export function Component() {
               </Form.Item>
 
               <Form.Item
-                shouldUpdate={(prev, curr) => prev.sync_config?.enabled !== curr.sync_config?.enabled}
                 noStyle
+                shouldUpdate={(prev, curr) => prev.sync_config?.enabled !== curr.sync_config?.enabled}
               >
                 {({ getFieldValue }) => {
                   const isSyncEnabled = getFieldValue(['sync_config', 'enabled']);

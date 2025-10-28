@@ -13,6 +13,20 @@ import (
 
 const ConnectorNeo4j = "neo4j"
 
+type Config struct {
+	ConnectionURI string                 `config:"connection_uri"`
+	Username      string                 `config:"username"`
+	Password      string                 `config:"password"`
+	AuthToken     string                 `config:"auth_token"`
+	Database      string                 `config:"database"`
+	Cypher        string                 `config:"cypher"`
+	Parameters    map[string]interface{} `config:"parameters"`
+	Pagination    bool                   `config:"pagination"`
+	PageSize      uint                   `config:"page_size"`
+	Incremental   cmn.IncrementalConfig  `config:"incremental"`
+	FieldMapping  cmn.FieldMapping       `config:"field_mapping"`
+}
+
 func init() {
 	pipeline.RegisterProcessorPlugin(ConnectorNeo4j, New)
 }
@@ -32,12 +46,37 @@ func (p *Plugin) Name() string {
 }
 
 func (p *Plugin) Fetch(ctx *pipeline.Context, connector *common.Connector, datasource *common.DataSource) error {
+	if err := connectors.CheckContextDone(ctx); err != nil {
+		_ = log.Warnf("[%s connector] context cancelled before scan for datasource [%s]: %v", ConnectorNeo4j, datasource.Name, err)
+		return fmt.Errorf("context cancelled: %w", err)
+	}
+
+	cfg := Config{}
+	if err := connectors.ParseConnectorConfigure(connector, datasource, &cfg); err != nil {
+		_ = log.Errorf("[%s connector] parsing connector configuration failed for datasource [%s]: %v", ConnectorNeo4j, datasource.Name, err)
+		return fmt.Errorf("failed to parse configuration: %w", err)
+	}
+
+	if err := cfg.validate(); err != nil {
+		_ = log.Errorf("[%s connector] invalid configuration for datasource [%s]: %v", ConnectorNeo4j, datasource.Name, err)
+		return fmt.Errorf("invalid configuration: %w", err)
+	}
+
+	serializer := cmn.NewCursorSerializer(cfg.Incremental.PropertyType)
+	stateStore := connectors.NewSyncStateStore()
+	stateManager := &cmn.CursorStateManager{
+		ConnectorID:  connector.ID,
+		DatasourceID: datasource.ID,
+		Serializer:   serializer,
+		StateStore:   stateStore,
+	}
+
 	worker := &scanner{
-		name:       ConnectorNeo4j,
-		connector:  connector,
-		datasource: datasource,
-		stateStore: connectors.NewSyncStateStore(),
-		// Use Collect pattern instead of direct queue.Push
+		config:             &cfg,
+		connector:          connector,
+		datasource:         datasource,
+		cursorSerializer:   serializer,
+		cursorStateManager: stateManager,
 		collectFunc: func(doc common.Document) error {
 			p.Collect(ctx, connector, datasource, doc)
 			return nil
@@ -50,4 +89,11 @@ func (p *Plugin) Fetch(ctx *pipeline.Context, connector *common.Connector, datas
 
 	log.Infof("[%s connector] finished fetching datasource [%s]", ConnectorNeo4j, datasource.Name)
 	return nil
+}
+
+func (cfg *Config) mapping() (*cmn.Mapping, bool) {
+	if cfg.FieldMapping.Enabled && cfg.FieldMapping.Mapping != nil {
+		return cfg.FieldMapping.Mapping, true
+	}
+	return nil, false
 }

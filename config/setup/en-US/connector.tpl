@@ -617,3 +617,30 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/n
      "name": "neo4j"
   }
 }
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/mongodb
+{
+  "id" : "mongodb",
+  "created" : "2025-10-26T00:00:00.000000+08:00",
+  "updated" : "2025-10-26T00:00:00.000000+08:00",
+  "name" : "MongoDB Connector",
+  "description" : "Fetch documents from MongoDB collections with incremental sync support using timestamp or ObjectId-based cursors.",
+  "category" : "database",
+  "icon" : "/assets/icons/connector/mongodb/icon.png",
+  "tags" : [
+    "nosql",
+    "database",
+    "mongodb",
+    "document_store"
+  ],
+  "url" : "http://coco.rs/connectors/mongodb",
+  "assets" : {
+    "icons" : {
+      "default" : "/assets/icons/connector/mongodb/icon.png"
+    }
+  },
+  "builtin": true,
+  "processor": {
+    "enabled": true,
+    "name": "mongodb"
+  }
+}

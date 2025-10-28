@@ -6,8 +6,8 @@ package common
 
 import (
 	"fmt"
+	"reflect"
 	"strconv"
-	"strings"
 	"time"
 
 	log "github.com/cihub/seelog"
@@ -108,23 +108,50 @@ func (t *Transformer) getStringSlice(column string) []string {
 	switch val := v.(type) {
 	case []string:
 		return val
+	case []interface{}:
+		var res []string
+		for _, v := range val {
+			s := fmt.Sprintf("%v", v)
+			if s != "" {
+				res = append(res, s)
+			}
+		}
+		return res
 	case []uint8:
 		s = string(val)
 		if s == "" {
 			return nil
 		}
-		return strings.Split(s, ",")
+		return []string{s}
 	case string:
 		if val == "" {
 			return nil
 		}
-		return strings.Split(val, ",")
+		return []string{val}
 	default:
+		// Use reflection to handle any slice/array type
+		rv := reflect.ValueOf(v)
+		if rv.Kind() == reflect.Slice || rv.Kind() == reflect.Array {
+			var res []string
+			for i := 0; i < rv.Len(); i++ {
+				item := rv.Index(i).Interface()
+				s := fmt.Sprintf("%v", item)
+				if s != "" {
+					res = append(res, s)
+				}
+			}
+			return res
+		}
+
+		// Not a slice - convert to single-element string slice
 		s := fmt.Sprintf("%v", v)
 		if s == "" {
 			return nil
 		}
-		return strings.Split(s, ",")
+
+		// Log warning for unexpected type
+		_ = log.Warnf("unexpected type %T for string slice column '%s', converting to single string: %s", v, column, s)
+		return []string{s}
 	}
 }
 

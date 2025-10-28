@@ -17,6 +17,7 @@ Information about release notes of Coco Server is provided here.
 ### ✈️ Improvements  
 - chore: change the home page to the search page after enabling search #541
 - chore: update search api to support query dsl #550
+- feat: mongodb connector #552
 
 ## 0.8.0 (2025-09-28)
 
