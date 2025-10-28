@@ -235,6 +235,7 @@ const FileManagement = (props) => {
           dataIndex: 'shares',
           title: t('page.datasource.labels.shares'),
           render: (value, record) => {
+            const isFolder = record.type === 'folder';
             return (
               <Shares
                 datasource={datasource} 
@@ -242,20 +243,20 @@ const FileManagement = (props) => {
                 title={record.title} 
                 onSuccess={() => fetchData(queryParams, datasource)}
                 resourceType={datasource?.connector?.id}
-                resourceID={record.id}
-                resourcePath={record.type === 'folder' ? `/${(record.categories || []).concat([record.title]).join('/')}` : undefined}
+                resourceID={isFolder ? datasource?.id : record.id}
+                resourcePath={isFolder ? `/${(record.categories || []).concat([record.title]).join('/')}` : undefined}
               />
             )
           }
         },
-        isMapping && {
-          dataIndex: 'updated',
-          title: t('page.datasource.labels.updated')
-        },
-        isMapping && {
-          dataIndex: 'size',
-          title: t('page.datasource.labels.size')
-        },
+        // isMapping && {
+        //   dataIndex: 'updated',
+        //   title: t('page.datasource.labels.updated')
+        // },
+        // isMapping && {
+        //   dataIndex: 'size',
+        //   title: t('page.datasource.labels.size')
+        // },
         {
           dataIndex: 'disabled',
           render: (text: boolean, record: DataType) => {

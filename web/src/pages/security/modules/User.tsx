@@ -1,14 +1,14 @@
 import { EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, PlusOutlined } from '@ant-design/icons';
 import { useLoading } from '@sa/hooks';
-import { Button, Dropdown, Input, Table, message } from 'antd';
+import { Button, Dropdown, Input, Table, Tag, message } from 'antd';
 import dayjs from 'dayjs';
 import type { TableColumnsType, TableProps } from 'antd';
 
 import useQueryParams from '@/hooks/common/queryParams';
-import { deleteRole, fetchRoles } from '@/service/api/security';
+import { deleteUser, fetchUsers } from '@/service/api/security';
 import { formatESSearchResult } from '@/service/request/es';
 
-const Role = () => {
+const User = () => {
   const [queryParams, setQueryParams] = useQueryParams();
   const { t } = useTranslation();
 
@@ -34,7 +34,7 @@ const Role = () => {
 
   const fetchData = async (params: any) => {
     startLoading();
-    const res = await fetchRoles(params);
+    const res = await fetchUsers(params);
     const newData = formatESSearchResult(res.data);
     setData(newData);
     endLoading();
@@ -67,7 +67,7 @@ const Role = () => {
   const handleDelete = useCallback(
     async (id: string) => {
       startLoading();
-      const res = await deleteRole(id);
+      const res = await deleteUser(id);
       if (res.data?.result === 'deleted') {
         message.success(t('common.deleteSuccess'));
       }
@@ -82,15 +82,25 @@ const Role = () => {
     () => [
       {
         dataIndex: 'name',
-        title: t('page.role.labels.name')
+        title: t('page.user.labels.name')
       },
       {
-        dataIndex: 'description',
-        title: t('page.role.labels.description')
+        dataIndex: 'email',
+        title: t('page.user.labels.email')
+      },
+      {
+        dataIndex: 'roles',
+        title: t('page.user.labels.roles'),
+        render: (value) => {
+          if (!Array.isArray(value)) return '-'
+          return value.map((tag, index) => {
+            return <Tag key={index}>{tag}</Tag>;
+          });
+        }
       },
       {
         dataIndex: 'created',
-        title: t('page.role.labels.created'),
+        title: t('page.user.labels.created'),
         render: (value: string) => {
           const d = dayjs(value);
           return d.isValid() ? d.format('YYYY-MM-DD HH:mm:ss') : value;
@@ -117,11 +127,11 @@ const Role = () => {
           const onMenuClick = ({ key, record }: any) => {
             switch (key) {
               case 'edit':
-                nav(`/role/edit/${record.id}`, { state: record });
+                nav(`/user/edit/${record.id}`, { state: record });
                 break;
               case 'delete':
                 window?.$modal?.confirm({
-                  content: t('page.role.delete.confirm', { name: record.name }),
+                  content: t('page.user.delete.confirm', { name: record.name }),
                   icon: <ExclamationCircleOutlined />,
                   onOk() {
                     handleDelete(record.id);
@@ -182,7 +192,7 @@ const Role = () => {
           <Button
             icon={<PlusOutlined />}
             type='primary'
-            onClick={() => nav(`/role/new`)}
+            onClick={() => nav(`/user/new`)}
           >
             {t('common.add')}
           </Button>
@@ -208,4 +218,4 @@ const Role = () => {
   );
 };
 
-export default Role;
+export default User;

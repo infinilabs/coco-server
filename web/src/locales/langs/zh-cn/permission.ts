@@ -124,6 +124,13 @@ const permission = {
   'security:principal': '资源',
   'generic#security:principal/update': '更新资源',
   'generic#security:principal/search': '搜索资源',
+  
+  'security:user': '用户',
+  'generic#security:user/create': '创建用户',
+  'generic#security:user/read': '读取用户',
+  'generic#security:user/update': '更新用户',
+  'generic#security:user/delete': '删除用户',
+  'generic#security:user/search': '搜索用户',
 
   // 🧭 其他
   cancel_session: '取消会话'

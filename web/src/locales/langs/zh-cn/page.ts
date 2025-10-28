@@ -604,6 +604,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     },
     desc: '输入您的凭证信息以访问您的账户。',
     password: '密码',
+    email: '邮箱',
     title: '欢迎'
   },
   mcpserver: {
@@ -746,6 +747,26 @@ const page: App.I18n.Schema['translation']['page'] = {
       confirm: `确定要删除授权 "{{name}}" 吗？`
     }
   },
+  user: {
+    title: '用户',
+    labels: {
+      name: '姓名',
+      email: '邮箱',
+      roles: '角色',
+      created: '创建时间',
+      password: '密码',
+    },
+    new: {
+      title: '新增用户',
+      copyPassword: '请点击确定复制密码并保管好！'
+    },
+    edit: {
+      title: '编辑用户'
+    },
+    delete: {
+      confirm: `确定要删除用户 "{{name}}" 吗？`
+    }
+  },
   search_settings: {
     labels: {
       enabled: '启用状态',
@@ -753,7 +774,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     },
     title: '搜索设置'
   },
-  setupLater: '稍后设置'
+  setupLater: '稍后设置',
 };
 
 export default page;

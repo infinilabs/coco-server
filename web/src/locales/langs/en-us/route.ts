@@ -78,7 +78,9 @@ const route: App.I18n.Schema['translation']['route'] = {
   role_new: 'New Role',
   role_edit: 'Edit Role',
   auth_new: 'New Authorization',
-  auth_edit: 'Edit Authorization'
+  auth_edit: 'Edit Authorization',
+  user_new: 'New User',
+  user_edit: 'Edit User',
 };
 
 export default route;

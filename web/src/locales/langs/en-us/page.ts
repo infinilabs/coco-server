@@ -452,6 +452,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     },
     desc: 'Enter your credentials to access your account.',
     password: 'Password',
+    email: 'Email',
     title: 'Welcome'
   },
   settings: {
@@ -668,7 +669,27 @@ const page: App.I18n.Schema['translation']['page'] = {
     delete: {
       confirm: `Are you sure you want to delete authorization "{{name}}" ?`
     }
-  }
+  },
+  user: {
+    title: 'User',
+    labels: {
+      name: 'Full Name',
+      email: 'Email',
+      roles: 'Roles',
+      created: 'Created At',
+      password: 'Password',
+    },
+    new: {
+      title: 'New User',
+      copyPassword: 'Please click OK to copy the password and keep it yourself!'
+    },
+    edit: {
+      title: 'Edit User'
+    },
+    delete: {
+      confirm: `Are you sure you want to delete user "{{name}}" ?`
+    }
+  },
 };
 
 export default page;

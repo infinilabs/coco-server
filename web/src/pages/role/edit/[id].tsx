@@ -2,7 +2,7 @@ import { useRequest } from '@sa/hooks';
 import { type LoaderFunctionArgs, useLoaderData } from 'react-router-dom';
 
 import { EditForm } from '../modules/EditForm';
-import { fetchRole, updateRole } from '@/service/api/role';
+import { fetchRole, updateRole } from '@/service/api/security';
 
 export function Component() {
   const id = useLoaderData();
@@ -26,7 +26,6 @@ export function Component() {
     const res = await updateRole(req);
     if (res.data?.result === 'updated') {
       window.$message?.success(t('common.updateSuccess'));
-      run(data._source.id);
       nav(`/security?tab=role`);
     }
     if (after) after();

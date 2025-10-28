@@ -3,7 +3,7 @@ import type { Key } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { fetchPermissions } from '@/service/api/role';
+import { fetchPermissions } from '@/service/api/security';
 
 import styles from './Permissions.module.less';
 

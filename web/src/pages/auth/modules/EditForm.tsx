@@ -2,11 +2,12 @@ import React, { memo, useEffect, useState } from 'react';
 import { Button, Form, Select, Spin } from 'antd';
 import { useLoading, useRequest } from '@sa/hooks';
 
-import { fetchRoles, fetchUserSearch } from '@/service/api/role';
+import { fetchPrincipalSearch } from '@/service/api/security';
 
 import DropdownList from '@/common/src/DropdownList';
 import { formatESSearchResult } from '@/service/request/es';
 import { useTranslation } from 'react-i18next';
+import RoleSelect from '@/pages/security/modules/RoleSelect';
 
 const { Option } = Select;
 
@@ -35,7 +36,7 @@ export const EditForm = memo((props: EditFormProps) => {
     data: principalRes,
     loading: principalLoading,
     run: runPrincipalSearch
-  } = useRequest(fetchUserSearch, { manual: true });
+  } = useRequest(fetchPrincipalSearch, { manual: true });
 
   const [principalQueryParams, setPrincipalQueryParams] = useState({
     query: '',
@@ -56,27 +57,6 @@ export const EditForm = memo((props: EditFormProps) => {
     };
   }, [principalRes]);
 
-  const { data: roleRes, loading: roleLoading, run: runRoleSearch } = useRequest(fetchRoles, { manual: true });
-
-  const [roleQueryParams, setRoleQueryParams] = useState({
-    query: '',
-    from: 0,
-    size: 10,
-    sort: 'created:desc'
-  });
-
-  useEffect(() => {
-    runRoleSearch(roleQueryParams);
-  }, [roleQueryParams]);
-
-  const roleResult = React.useMemo(() => {
-    const rs = formatESSearchResult(roleRes);
-    return {
-      data: rs.data || [],
-      total: rs.total || 0
-    };
-  }, [roleRes]);
-
   const handleSubmit = async () => {
     const params = await form.validateFields();
     const { principal_type, principal, roles } = params
@@ -90,7 +70,6 @@ export const EditForm = memo((props: EditFormProps) => {
 
   useEffect(() => {
     runPrincipalSearch(principalQueryParams);
-    runRoleSearch(roleQueryParams);
   }, []);
 
   useEffect(() => {
@@ -116,7 +95,7 @@ export const EditForm = memo((props: EditFormProps) => {
   const itemClassNames = '!w-496px';
 
   return (
-    <Spin spinning={props.loading || loading || principalLoading || roleLoading || false}>
+    <Spin spinning={props.loading || loading || principalLoading || false}>
       <Form
         colon={false}
         form={form}
@@ -186,26 +165,12 @@ export const EditForm = memo((props: EditFormProps) => {
           name='roles'
           rules={[defaultRequiredRule]}
         >
-          <DropdownList
+          <RoleSelect
             className={itemClassNames}
             mode="multiple"
             width="100%"
             allowClear
-            data={roleResult.data}
             placeholder={t('page.auth.labels.roles')}
-            renderItem={(item: any) => <span>{item.name}</span>}
-            renderLabel={(item: any) => item?.name}
-            rowKey='name'
-            pagination={{
-              currentPage: roleResult.total ? Math.floor(roleQueryParams.from / roleQueryParams.size) + 1 : 0,
-              total: roleResult.total,
-              onChange: page => {
-                setRoleQueryParams(params => ({ ...params, from: (page - 1) * params.size }));
-              }
-            }}
-            onSearchChange={(query: string) => {
-              setRoleQueryParams(params => ({ ...params, query, from: 0 }));
-            }}
           />
         </Form.Item>
         <Form.Item label=' '>

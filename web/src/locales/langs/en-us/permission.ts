@@ -125,6 +125,13 @@ const permission = {
   'generic#security:principal/update': 'Update Principal',
   'generic#security:principal/search': 'Search Principal',
 
+  'security:user': 'User',
+  'generic#security:user/create': 'Create User',
+  'generic#security:user/read': 'Read User',
+  'generic#security:user/update': 'Update User',
+  'generic#security:user/delete': 'Delete User',
+  'generic#security:user/search': 'Search User',
+
   // 🧭 Others
   cancel_session: 'Cancel Session'
 };

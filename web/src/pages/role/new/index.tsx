@@ -1,4 +1,4 @@
-import { createRole } from '@/service/api/role';
+import { createRole } from '@/service/api/security';
 
 import { EditForm } from '../modules/EditForm';
 

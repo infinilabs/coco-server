@@ -509,5 +509,36 @@ export const generatedRoutes: GeneratedRoute[] = [
       permissions: ['coco:connector/view', 'coco:app_settings/view', 'coco:search_settings/view'],
       permissionLogic: 'or'
     }
+  },
+  {
+    name: 'user',
+    path: '/user',
+    component: 'layout.base',
+    meta: {
+      i18nKey: 'route.user',
+      title: 'user',
+      hideInMenu: true,
+      activeMenu: 'security'
+    },
+    children: [
+      {
+        name: 'user_edit',
+        path: 'edit/:id',
+        component: 'view.user_edit',
+        meta: {
+          i18nKey: 'route.user_edit',
+          title: 'user_edit'
+        }
+      },
+      {
+        name: 'user_new',
+        path: 'new',
+        component: 'view.user_new',
+        meta: {
+          i18nKey: 'route.user_new',
+          title: 'user_new'
+        }
+      }
+    ]
   }
 ];

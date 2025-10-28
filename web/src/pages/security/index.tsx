@@ -5,6 +5,7 @@ import Auth from "./modules/Auth";
 import Role from "./modules/Role";
 
 import "./index.scss";
+import User from "./modules/User";
 
 export function Component() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -15,6 +16,7 @@ export function Component() {
   const permissions = {
     viewRole: hasAuth("coco:role/view"),
     viewAuth: true,
+    viewUser: true,
   };
 
   const onChange = (key: string) => {
@@ -28,6 +30,14 @@ export function Component() {
       children: <Auth />,
       key: "auth",
       label: t(`page.auth.title`),
+    });
+  }
+
+  if (permissions.viewUser) {
+    items.push({
+      children: <User />,
+      key: "user",
+      label: t(`page.user.title`),
     });
   }
 

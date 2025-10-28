@@ -2,14 +2,14 @@ import { useRequest } from '@sa/hooks';
 import { type LoaderFunctionArgs, useLoaderData } from 'react-router-dom';
 
 import { EditForm } from '../modules/EditForm';
-import { fetchAuthorizationDetail, updateAuthorization } from '@/service/api/security';
+import { fetchUser, updateUser } from '@/service/api/security';
 
 export function Component() {
   const id = useLoaderData();
   const { t } = useTranslation();
   const nav = useNavigate();
 
-  const { data, loading, run } = useRequest(fetchAuthorizationDetail, {
+  const { data, loading, run } = useRequest(fetchUser, {
     manual: true
   });
 
@@ -20,10 +20,10 @@ export function Component() {
       id: data._source.id,
       ...params,
     };
-    const res = await updateAuthorization(req);
+    const res = await updateUser(req);
     if (res.data?.result === 'updated') {
       window.$message?.success(t('common.updateSuccess'));
-      nav(`/security?tab=auth`);
+      nav(`/security?tab=user`);
     }
     if (after) after();
   };
@@ -40,7 +40,7 @@ export function Component() {
       >
         <div className='mb-30px ml--16px flex items-center text-lg font-bold'>
           <div className='mr-20px h-1.2em w-10px bg-[#1677FF]' />
-          <div>{t(`page.auth.edit.title`)}</div>
+          <div>{t(`page.user.edit.title`)}</div>
         </div>
         <div className='px-30px'>
           <EditForm

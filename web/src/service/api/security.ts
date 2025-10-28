@@ -94,11 +94,51 @@ export function fetchAuthorizationDetail(id: string) {
 }
 
 // GET /security/principal/_search?from=0&size=10&type=user type=user/team
-export function fetchUserSearch(params: any) {
+export function fetchPrincipalSearch(params: any) {
   const { filter = {}, ...rest } = params || {};
   return request({
     method: 'get',
     params: rest,
     url: `/security/principal/_search?${formatSearchFilter(filter)}`
+  });
+}
+
+export function fetchUsers(params: any) {
+  const { filter = {}, ...rest } = params || {};
+  return request({
+    method: 'get',
+    params: rest,
+    url: `/security/user/_search?${formatSearchFilter(filter)}`
+  });
+}
+
+export function fetchUser(id: string) {
+  return request({
+    method: 'get',
+    url: `/security/user/${id}`
+  });
+}
+
+export function createUser(data: any) {
+  return request({
+    data,
+    method: 'post',
+    url: '/security/user/'
+  });
+}
+
+export function updateUser(data: any) {
+  const { id, ...rest } = data;
+  return request({
+    data: rest,
+    method: 'put',
+    url: `/security/user/${id}`
+  });
+}
+
+export function deleteUser(id: string) {
+  return request({
+    method: 'delete',
+    url: `/security/user/${id}`
   });
 }

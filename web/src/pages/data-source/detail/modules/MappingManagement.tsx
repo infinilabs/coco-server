@@ -4,7 +4,7 @@ import { Button, Input, Space, Switch, Table } from 'antd';
 
 import { formatESSearchResult } from '@/service/request/es';
 import useQueryParams from '@/hooks/common/queryParams';
-import { fetchRoles } from '@/service/api/role';
+import { fetchRoles } from '@/service/api/security';
 import PrincipalSelect from './PrincipalSelect';
 
 const MappingManagement = (props) => {

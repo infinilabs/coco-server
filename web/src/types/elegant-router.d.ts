@@ -74,6 +74,9 @@ declare module "@elegant-router/types" {
     "search": "/search";
     "security": "/security";
     "settings": "/settings";
+    "user": "/user";
+    "user_edit": "edit/:id";
+    "user_new": "new";
   };
 
   /**
@@ -136,6 +139,7 @@ declare module "@elegant-router/types" {
     | "search"
     | "security"
     | "settings"
+    | "user"
   >;
 
   /**
@@ -188,6 +192,8 @@ declare module "@elegant-router/types" {
     | "search"
     | "security"
     | "settings"
+    | "user_edit"
+    | "user_new"
   >;
 
   /**

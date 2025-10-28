@@ -5,7 +5,7 @@ import dayjs from 'dayjs';
 import type { TableColumnsType, TableProps } from 'antd';
 
 import useQueryParams from '@/hooks/common/queryParams';
-import { deleteAuthorization, fetchAuthorizationSearch } from '@/service/api/role';
+import { deleteAuthorization, fetchAuthorizationSearch } from '@/service/api/security';
 import { formatESSearchResult } from '@/service/request/es';
 
 const Auth = () => {

@@ -228,17 +228,17 @@ export function Component() {
       },
       title: t('page.datasource.columns.type')
     },
-    isMapping && {
-      dataIndex: ['sync', 'enabled'],
-      title: t('page.datasource.labels.permission_sync'),
-      render: (value: number) => {
-        return value ? t('page.datasource.labels.isEnabled') : '-'
-      },
-    },
-    {
-      dataIndex: 'strategy',
-      title: t('page.datasource.columns.sync_policy'),
-    },
+    // isMapping && {
+    //   dataIndex: ['sync', 'enabled'],
+    //   title: t('page.datasource.labels.permission_sync'),
+    //   render: (value: number) => {
+    //     return value ? t('page.datasource.labels.isEnabled') : '-'
+    //   },
+    // },
+    // {
+    //   dataIndex: 'strategy',
+    //   title: t('page.datasource.columns.sync_policy'),
+    // },
     {
       dataIndex: 'updated',
       title: t('page.datasource.labels.updated'),
@@ -246,10 +246,10 @@ export function Component() {
         return value ? new Date(value).toISOString() : '';
       },
     },
-    {
-      dataIndex: 'sync_status',
-      title: t('page.datasource.columns.sync_status'),
-    },
+    // {
+    //   dataIndex: 'sync_status',
+    //   title: t('page.datasource.columns.sync_status'),
+    // },
     {
       dataIndex: ['sync', 'enabled'],
       render: (value: boolean, record: Datasource) => {
