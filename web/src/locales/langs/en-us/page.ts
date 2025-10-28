@@ -2,7 +2,8 @@ const page: App.I18n.Schema['translation']['page'] = {
   apitoken: {
     columns: {
       expire_in: 'Expire In',
-      name: 'Name'
+      name: 'Name',
+      permissions: 'Permissions'
     },
     create: {
       limit: 'Access token limit exceeded. Maximum allowed: 5.',

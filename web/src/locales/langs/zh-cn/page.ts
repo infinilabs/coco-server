@@ -2,7 +2,8 @@ const page: App.I18n.Schema['translation']['page'] = {
   apitoken: {
     columns: {
       expire_in: '过期时间',
-      name: '名称'
+      name: '名称',
+      permissions: '权限'
     },
     create: {
       limit: 'Token 数量超过限制，最多可以创建 5 个 Token。',

@@ -8,7 +8,8 @@ import Clipboard from 'clipboard';
 import { formatESSearchResult } from '@/service/request/es';
 import useQueryParams from '@/hooks/common/queryParams';
 
-import { createToken, deleteToken, getTokens, renameToken } from '@/service/api';
+import { createToken, deleteToken, getTokens, updateToken } from '@/service/api';
+import Permissions from '@/pages/role/modules/Permissions';
 
 type APIToken = Api.APIToken.APIToken;
 
@@ -29,7 +30,7 @@ export function Component() {
     delete: hasAuth('coco:api_token/delete'),
   }
 
-  const [renameState, setRenameState] = useState({
+  const [editState, setEditState] = useState({
     open: false,
     tokenInfo: {}
   });
@@ -61,7 +62,7 @@ export function Component() {
 
         break;
       case '1':
-        setRenameState({
+        setEditState({
           open: true,
           tokenInfo: record
         });
@@ -101,7 +102,7 @@ export function Component() {
         if (permissions.update) {
           items.push({
             key: '1',
-            label: t('common.rename')
+            label: t('common.edit')
           })
         }
         if (permissions.delete) {
@@ -206,7 +207,10 @@ export function Component() {
             loading: true
           };
         });
-        createToken(values.name)
+        createToken({
+          ...values,
+          permissions: values.permissions?.feature || []
+        })
           .then(({ data }) => {
             setCreateState(old => {
               return {
@@ -291,6 +295,7 @@ export function Component() {
           }}
         />
         <Modal
+          width={720}
           okText={t('common.create')}
           open={isModalOpen}
           title={`${t('common.create')} API Token`}
@@ -317,6 +322,7 @@ export function Component() {
           )}
           onCancel={onModalCancel}
           onOk={onModalOkClick}
+          destroyOnClose
         >
           <Spin spinning={createState.loading}>
             {createState.step === 1 && (
@@ -326,10 +332,16 @@ export function Component() {
                 layout="vertical"
               >
                 <Form.Item
-                  label={<span className="text-gray-500">{t('page.apitoken.columns.name')}</span>}
+                  label={t('page.apitoken.columns.name')}
                   name="name"
                 >
                   <Input />
+                </Form.Item>
+                <Form.Item
+                  label={t('page.apitoken.columns.permissions')}
+                  name="permissions"
+                >
+                  <Permissions />
                 </Form.Item>
               </Form>
             )}
@@ -343,17 +355,17 @@ export function Component() {
             )}
           </Spin>
         </Modal>
-        <RenameComponent
-          open={renameState.open}
-          tokenInfo={renameState.tokenInfo}
+        <EditComponent
+          open={editState.open}
+          tokenInfo={editState.tokenInfo}
           onCancelClick={() => {
-            setRenameState({
+            setEditState({
               open: false,
               tokenInfo: {}
             });
           }}
           onOkClick={() => {
-            setRenameState({
+            setEditState({
               open: false,
               tokenInfo: {}
             });
@@ -375,15 +387,19 @@ function generateApiTokenName(prefix = 'token') {
   return `${prefix}_${timestamp}_${randomString}`;
 }
 
-const RenameComponent = ({ onCancelClick = () => {}, onOkClick = () => {}, open = false, tokenInfo = {} }) => {
+const EditComponent = ({ onCancelClick = () => {}, onOkClick = () => {}, open = false, tokenInfo = {} }) => {
   const { t } = useTranslation();
   const [form] = useForm();
   const [loading, setLoading] = useState(false);
-
+  
   const onModalOkClick = () => {
     form.validateFields().then(values => {
       setLoading(true);
-      renameToken(tokenInfo.id, values.name)
+      updateToken({
+        id: tokenInfo.id,
+        ...values,
+        permissions: values.permissions?.feature || [] 
+      })
         .then(() => {
           setLoading(false);
           onOkClick();
@@ -393,24 +409,34 @@ const RenameComponent = ({ onCancelClick = () => {}, onOkClick = () => {}, open 
         });
     });
   };
+
   return (
     <Modal
+      width={720}
       open={open}
-      title={`${t('common.rename')} API Token`}
+      title={`${t('common.edit')} API Token`}
       onCancel={onCancelClick}
       onOk={onModalOkClick}
+      destroyOnClose
     >
       <Spin spinning={loading}>
         <Form
           className="my-2em"
           form={form}
           layout="vertical"
+          initialValues={tokenInfo}
         >
           <Form.Item
             label={<span className="text-gray-500">{t('page.apitoken.columns.name')}</span>}
             name="name"
           >
-            <Input defaultValue={tokenInfo.name} />
+            <Input />
+          </Form.Item>
+          <Form.Item
+            label={t('page.apitoken.columns.permissions')}
+            name="permissions"
+          >
+            <Permissions />
           </Form.Item>
         </Form>
       </Spin>
