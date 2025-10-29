@@ -17,9 +17,10 @@ export function Component() {
   const { hasAuth } = useAuth()
 
   const permissions = {
-    create: hasAuth('coco:mcp/create'),
-    update: hasAuth('coco:mcp/update'),
-    delete: hasAuth('coco:mcp/delete'),
+    read: hasAuth('coco#mcp_server/read'),
+    create: hasAuth('coco#mcp_server/create'),
+    update: hasAuth('coco#mcp_server/update'),
+    delete: hasAuth('coco#mcp_server/delete'),
   }
 
   const { scrollConfig, tableWrapperRef } = useTableScroll();
@@ -127,7 +128,7 @@ export function Component() {
       hidden: !permissions.update && !permissions.delete,
       render: (_, record) => {
         const items: MenuProps["items"] = [];
-        if (permissions.update) {
+        if (permissions.read && permissions.update) {
           items.push({
             label: t('common.edit'),
             key: "2",

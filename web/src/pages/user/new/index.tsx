@@ -15,16 +15,21 @@ export function Component() {
     if (res?.data?.password) {
       Modal.success({
         title: t('common.addSuccess'),
+        width: 530,
         content: (
           <div className='mt-12px'>
-            <div className='mb-12px'>
+            <div className='mb-12px break-all'>
               {t('page.user.new.copyPassword')}
+            </div>
+            <div className="rounded bg-gray-100 py-[3px] pl-1em text-gray-500 leading-[1.4em]">
+              {res?.data?.password}
             </div>
           </div>
         ),
         cancelButtonProps: { style: { display: 'none'} },
+        okText: t('common.copy'),
         onOk: () => {
-          const isCopy = copy(res.data.password);
+          const isCopy = copy(res?.data?.password);
           if (isCopy) {
             window.$message?.success(t('common.copySuccess'));
             nav(`/security?tab=user`);

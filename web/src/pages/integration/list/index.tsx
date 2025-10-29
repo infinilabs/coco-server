@@ -15,9 +15,10 @@ export function Component() {
   const { hasAuth } = useAuth()
 
   const permissions = {
-    create: hasAuth('coco:integration/create'),
-    update: hasAuth('coco:integration/update'),
-    delete: hasAuth('coco:integration/delete'),
+    read: hasAuth('coco#integration/read'),
+    create: hasAuth('coco#integration/create'),
+    update: hasAuth('coco#integration/update'),
+    delete: hasAuth('coco#integration/delete'),
   }
 
   const { tableWrapperRef } = useTableScroll();
@@ -151,7 +152,7 @@ export function Component() {
       hidden: !permissions.update && !permissions.delete,
       render: (_, record) => {
         const items: MenuProps['items'] = [];
-        if (permissions.update) {
+        if (permissions.read && permissions.update) {
           items.push({
             key: 'edit',
             label: t('common.edit')

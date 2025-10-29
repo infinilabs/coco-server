@@ -759,7 +759,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     },
     new: {
       title: '新增用户',
-      copyPassword: '请点击确定复制密码并保管好！'
+      copyPassword: '请将此密码保存在安全且易于访问的地方。出于安全原因，你将无法通过用户管理界面再次查看它。如果你丢失了这个密码，可通过编辑用户更新密码。'
     },
     edit: {
       title: '编辑用户'

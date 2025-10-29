@@ -14,7 +14,7 @@ const MappingManagement = (props) => {
   const { hasAuth } = useAuth()
 
   const permissions = {
-    update: hasAuth('coco:datasource/update'),
+    update: hasAuth('coco#datasource/update'),
   }
 
   const [editRow, setEditRow] = useState()

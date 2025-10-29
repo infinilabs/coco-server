@@ -1,6 +1,7 @@
 import queryString from 'query-string';
 
 export default function useQueryParams(defaultParams = {}) {
+  
   const getInitialParams = useCallback(() => {
     const currentUrl = new URL(window.location.href);
     if (currentUrl.hash) {
@@ -17,7 +18,9 @@ export default function useQueryParams(defaultParams = {}) {
       }
     });
 
-    const defaultSortStr = (defaultParams.sort || []).map(([field, order]) => `${field}:${order}`).join(',');
+    const defaultSortStr = (defaultParams.sort || []).map(
+            ([field, order]) => `${field}:${order}`
+        ).join(',');
 
     return {
       from: 0,
@@ -69,53 +72,50 @@ export default function useQueryParams(defaultParams = {}) {
     };
   }, [searchParams]);
 
-  const setQueryParams = useCallback(
-    arg => {
-      let newParams: any = {};
-      if (typeof arg === 'function') {
-        newParams = arg(queryParams);
-      } else if (typeof arg === 'object' && arg !== null) {
-        Object.entries(arg).forEach(([key, value]) => {
-          newParams[key] = value;
-        });
-      }
-      const filter = newParams.filter;
-      const filters = [];
-      if (filter) {
-        Object.entries(filter).forEach(([key, value]) => {
-          if (Array.isArray(value)) {
-            value.forEach(item => {
-              if (!item) return;
-              filters.push(`${key}:${item}`);
-            });
-          }
-        });
-      }
+  const setQueryParams = useCallback(arg => {
+    let newParams: any = {};
+    if (typeof arg === 'function') {
+      newParams = arg(queryParams);
+    } else if (typeof arg === 'object' && arg !== null) {
+      Object.entries(arg).forEach(([key, value]) => {
+        newParams[key] = value;
+      });
+    }
+    const filter = newParams.filter;
+    const filters = [];
+    if (filter) {
+      Object.entries(filter).forEach(([key, value]) => {
+        if (Array.isArray(value)) {
+          value.forEach(item => {
+            if (!item) return;
+            filters.push(`${key}:${item}`);
+          });
+        }
+      });
+    }
 
-      let sort = '';
-      if (newParams.sort && Array.isArray(newParams.sort)) {
-        sort = newParams.sort.map(([field, order]) => `${field}:${order}`).join(',');
-      }
-      const newSearchParams = {
-        ...newParams,
-        filter: filters,
-        sort
-      };
-      if (!newSearchParams.sort) {
-        delete newSearchParams.sort;
-      }
-      const currentUrl = new URL(window.location.href);
-      if (currentUrl.hash) {
-        const hashParts = currentUrl.hash.split('?');
-        currentUrl.hash = hashParts[0];
-      }
-      const { pathname, hash } = currentUrl;
-      const newUrl = `${pathname}${hash}?${queryString.stringify(newSearchParams)}`;
-      window.history.pushState(null, '', newUrl);
-      setSearchParams(newSearchParams);
-    },
-    [queryParams]
-  );
+    let sort = '';
+    if (newParams.sort && Array.isArray(newParams.sort)) {
+      sort = newParams.sort.map(([field, order]) => `${field}:${order}`).join(',');
+    }
+    const newSearchParams = {
+      ...newParams,
+      filter: filters,
+      sort
+    };
+    if (!newSearchParams.sort) {
+      delete newSearchParams.sort;
+    }
+    const currentUrl = new URL(window.location.href);
+    if (currentUrl.hash) {
+      const hashParts = currentUrl.hash.split('?');
+      currentUrl.hash = hashParts[0];
+    }
+    const { pathname, hash } = currentUrl;
+    const newUrl = `${pathname}${hash}?${queryString.stringify(newSearchParams)}`;
+    window.history.pushState(null, '', newUrl);
+    setSearchParams(newSearchParams);
+  }, [queryParams]);
 
   return [queryParams, setQueryParams];
 }

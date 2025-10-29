@@ -16,9 +16,9 @@ export function Component() {
   const { hasAuth } = useAuth()
 
   const permissions = {
-    create: hasAuth('coco:ai_assistant/create'),
-    update: hasAuth('coco:ai_assistant/update'),
-    delete: hasAuth('coco:ai_assistant/delete'),
+    create: true,
+    update: true,
+    delete: true,
   }
 
   const { scrollConfig, tableWrapperRef } = useTableScroll();

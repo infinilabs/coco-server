@@ -12,19 +12,18 @@ const SETTINGS = [
     icon: <SvgIcon icon="mdi:settings-outline" />,
     key: 'llm',
     link: '/model-provider/list',
-    permissions: ['coco:model/view']
+    permissions: ['coco#model_provider/search']
   },
   {
     icon: <SvgIcon icon="mdi:plus-thick" />,
     key: 'dataSource',
     link: '/data-source',
-    permissions: ['coco:datasource/view']
+    permissions: ['coco#datasource/search']
   },
   {
     icon: <SvgIcon icon="mdi:plus-thick" />,
     key: 'aiAssistant',
     link: '/ai-assistant',
-    permissions: ['coco:ai_assistant/view']
   }
 ];
 
@@ -32,7 +31,11 @@ export function Component() {
   const userInfo = useAppSelector(selectUserInfo);
   const routerPush = useRouterPush();
   const { t } = useTranslation();
-  const { hasAuth } = useAuth()
+  const { hasAuth } = useAuth();
+  const permissions = {
+    update: true,
+  }
+
   const domRef = useRef<HTMLDivElement | null>(null);
   const [form] = Form.useForm();
   const { endLoading, loading, startLoading } = useLoading();
@@ -98,10 +101,6 @@ export function Component() {
     form.setFieldsValue({ endpoint: data?.endpoint, name: data?.name });
   }, [JSON.stringify(data)]);
 
-  const hasServerEditAuth = useMemo(() => {
-    return hasAuth('coco:server_settings/update')
-  }, [])
-
   return (
     <Spin spinning={dataLoading || loading}>
       <Card
@@ -132,7 +131,7 @@ export function Component() {
             {data?.name ? data?.name : <span>{t('page.home.server.title', { user: userInfo?.name })}</span>}
           </div>
           {
-            hasServerEditAuth && (
+            permissions.update && (
               <Button
                 className="h-40px w-40px rounded-12px p-0"
                 style={{ background: `${darkMode ? 'var(--ant-color-border)' : '#F7F9FC'}` }}
@@ -180,7 +179,7 @@ export function Component() {
               <div className="p-l-11px">{data?.endpoint}</div>
             )}
             {
-              hasServerEditAuth && !managed && (
+              permissions.update && !managed && (
                 <Button
                   className="absolute right-0 top-0 z-1 h-48px w-30px rounded-12px p-0"
                   id="endpoint-save"
@@ -248,7 +247,7 @@ export function Component() {
                 {t(`page.home.settings.${item.key}Desc`)}
               </div>
               {
-                hasAuth(item.permissions) && (
+                !item.permissions || hasAuth(item.permissions) ? (
                   <Button
                     className="h-40px w-40px rounded-12px p-0 text-24px"
                     disabled={!item.link}
@@ -257,7 +256,7 @@ export function Component() {
                   >
                     {item.icon}
                   </Button>
-                )
+                ) : null
               }
             </Col>
           ))}

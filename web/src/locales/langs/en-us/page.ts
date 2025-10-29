@@ -682,7 +682,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     },
     new: {
       title: 'New User',
-      copyPassword: 'Please click OK to copy the password and keep it yourself!'
+      copyPassword: 'Please store this password in a secure and easily accessible location. For security reasons, you will not be able to view it again through the user management interface. If you lose this password, you will need to update password by editing user.'
     },
     edit: {
       title: 'Edit User'

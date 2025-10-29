@@ -65,6 +65,11 @@ export default (props) => {
             setIsEdit(false)
         }
     };
+    
+    const handleSuccess = () => {
+        setOpen(false)
+        onSuccess && onSuccess()
+    }
 
     useEffect(() => {
         if (open) {
@@ -81,7 +86,7 @@ export default (props) => {
         <EditShares 
             permissions={permissions} 
             onCancel={() => handleOpenChange(false)} 
-            onSuccess={onSuccess}
+            onSuccess={handleSuccess}
             resourceType={resourceType}
             resourceID={resourceID}
             resourcePath={resourcePath}
@@ -94,7 +99,7 @@ export default (props) => {
             shares={shares} 
             onCancel={() => handleOpenChange(false)} 
             onEditShares={() => setIsEdit(true)} 
-            onSuccess={onSuccess}
+            onSuccess={handleSuccess}
             resourceType={resourceType}
             resourceID={resourceID}
             resourcePath={resourcePath}

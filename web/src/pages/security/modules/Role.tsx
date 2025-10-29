@@ -15,9 +15,10 @@ const Role = () => {
   const { hasAuth } = useAuth();
 
   const permissions = {
-    create: hasAuth('coco:role/create'),
-    delete: hasAuth('coco:role/delete'),
-    update: hasAuth('coco:role/update')
+    read: hasAuth('generic#security:role/read'),
+    create: hasAuth('generic#security:role/create'),
+    delete: hasAuth('generic#security:role/delete'),
+    update: hasAuth('generic#security:role/update')
   };
 
   const nav = useNavigate();
@@ -78,78 +79,76 @@ const Role = () => {
     [queryParams, t]
   );
 
-  const columns: TableColumnsType<any> = useMemo(
-    () => [
-      {
-        dataIndex: 'name',
-        title: t('page.role.labels.name')
-      },
-      {
-        dataIndex: 'description',
-        title: t('page.role.labels.description')
-      },
-      {
-        dataIndex: 'created',
-        title: t('page.role.labels.created'),
-        render: (value: string) => {
-          const d = dayjs(value);
-          return d.isValid() ? d.format('YYYY-MM-DD HH:mm:ss') : value;
-        }
-      },
-      {
-        fixed: 'right',
-        render: (_, record) => {
-          const items = [];
-          if (permissions.update) {
-            items.push({
-              key: 'edit',
-              label: t('common.edit')
-            });
-          }
-          if (permissions.delete) {
-            items.push({
-              key: 'delete',
-              label: t('common.delete')
-            });
-          }
-          if (items.length === 0) return null;
-          // eslint-disable-next-line @typescript-eslint/no-shadow
-          const onMenuClick = ({ key, record }: any) => {
-            switch (key) {
-              case 'edit':
-                nav(`/role/edit/${record.id}`, { state: record });
-                break;
-              case 'delete':
-                window?.$modal?.confirm({
-                  content: t('page.role.delete.confirm', { name: record.name }),
-                  icon: <ExclamationCircleOutlined />,
-                  onOk() {
-                    handleDelete(record.id);
-                  },
-                  title: t('common.tip')
-                });
-                break;
-              default:
-                break;
-            }
-          };
-          return (
-            <Dropdown
-              menu={{
-                items,
-                onClick: ({ key }) => onMenuClick({ key, record })
-              }}
-            >
-              <EllipsisOutlined />
-            </Dropdown>
-          );
-        },
-        title: t('common.operation'),
-        width: '90px'
+  const columns: TableColumnsType<any> = [
+    {
+      dataIndex: 'name',
+      title: t('page.role.labels.name')
+    },
+    {
+      dataIndex: 'description',
+      title: t('page.role.labels.description')
+    },
+    {
+      dataIndex: 'created',
+      title: t('page.role.labels.created'),
+      render: (value: string) => {
+        const d = dayjs(value);
+        return d.isValid() ? d.format('YYYY-MM-DD HH:mm:ss') : value;
       }
-    ],
-    [permissions.update, permissions.delete, t, nav, handleDelete]
-  );
+    },
+    {
+      fixed: 'right',
+      hidden: !permissions.update && !permissions.delete,
+      render: (_, record) => {
+        const items = [];
+        if (permissions.read && permissions.update) {
+          items.push({
+            key: 'edit',
+            label: t('common.edit')
+          });
+        }
+        if (permissions.delete) {
+          items.push({
+            key: 'delete',
+            label: t('common.delete')
+          });
+        }
+        if (items.length === 0) return null;
+        // eslint-disable-next-line @typescript-eslint/no-shadow
+        const onMenuClick = ({ key, record }: any) => {
+          switch (key) {
+            case 'edit':
+              nav(`/role/edit/${record.id}`, { state: record });
+              break;
+            case 'delete':
+              window?.$modal?.confirm({
+                content: t('page.role.delete.confirm', { name: record.name }),
+                icon: <ExclamationCircleOutlined />,
+                onOk() {
+                  handleDelete(record.id);
+                },
+                title: t('common.tip')
+              });
+              break;
+            default:
+              break;
+          }
+        };
+        return (
+          <Dropdown
+            menu={{
+              items,
+              onClick: ({ key }) => onMenuClick({ key, record })
+            }}
+          >
+            <EllipsisOutlined />
+          </Dropdown>
+        );
+      },
+      title: t('common.operation'),
+      width: '90px'
+    }
+  ];
 
   const rowSelection: TableProps<any>['rowSelection'] = {
     getCheckboxProps: record => ({

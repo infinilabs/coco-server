@@ -12,9 +12,9 @@ export function Component() {
   const { hasAuth } = useAuth()
 
   const permissions = {
-    viewConnector: hasAuth('coco:connector/view'),
-    viewAppSettings: hasAuth('coco:app_settings/view'),
-    viewSearchSettings: hasAuth('coco:search_settings/view'),
+    viewConnector: hasAuth('coco#connector/search'),
+    viewAppSettings: true,
+    viewSearchSettings: true,
   }
 
   const onChange = (key: string) => {

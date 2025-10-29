@@ -12,7 +12,7 @@ const AppSettings = memo(() => {
   const { hasAuth } = useAuth()
 
   const permissions = {
-    update: hasAuth('coco:app_settings/update'),
+    update: true,
   }
 
   const { endLoading, loading, startLoading } = useLoading();

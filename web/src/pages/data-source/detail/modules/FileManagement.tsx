@@ -33,7 +33,6 @@ interface DataType {
 }
 
 const FileManagement = (props) => {
-  const { isMapping } = props;
   const datasourceID = props.id
   const [queryParams, setQueryParams] = useQueryParams();
 
@@ -42,8 +41,8 @@ const FileManagement = (props) => {
   const { hasAuth } = useAuth()
 
   const permissions = {
-    update: hasAuth('coco:datasource/update'),
-    delete: hasAuth('coco:datasource/delete'),
+    update: hasAuth('coco#datasource/update'),
+    delete: hasAuth('coco#datasource/delete'),
   }
   
   const [connector, setConnector] = useState<any>({});
@@ -224,14 +223,14 @@ const FileManagement = (props) => {
           },
           title: t('page.datasource.columns.name')
         },
-        isMapping && {
+        {
           dataIndex: 'owner',
           title: t('page.datasource.labels.owner'),
           render: (value, record) => {
             return <Avatar size={"small"} icon={<UserOutlined />} />
           }
         },
-        isMapping && {
+        {
           dataIndex: 'shares',
           title: t('page.datasource.labels.shares'),
           render: (value, record) => {
@@ -249,11 +248,11 @@ const FileManagement = (props) => {
             )
           }
         },
-        // isMapping && {
+        // {
         //   dataIndex: 'updated',
         //   title: t('page.datasource.labels.updated')
         // },
-        // isMapping && {
+        // {
         //   dataIndex: 'size',
         //   title: t('page.datasource.labels.size')
         // },
@@ -400,8 +399,8 @@ const FileManagement = (props) => {
     return datasource?.name;
   }
 
-  const content = (
-    <>
+  return (
+    <ListContainer>
       <div className="mt-12px ml--16px flex items-center text-lg font-bold">
         <div className="absolute mr-6px h-1.2em w-10px bg-[#1677FF]" />
         <div className="pl-16px">{renderTitle(datasource)}</div>
@@ -445,22 +444,7 @@ const FileManagement = (props) => {
         }}
         onChange={onTableChange}
       />
-    </>
-  )
-
-  return isMapping ? (
-    <ListContainer>
-      {content}
     </ListContainer>
-  ) : (
-    <div className="h-full min-h-500px">
-      <ACard
-        bordered={false}
-        className="sm:flex-1-auto min-h-full flex-col-stretch card-wrapper"
-      >
-        {content}
-      </ACard>
-    </div>
   );
 }
 

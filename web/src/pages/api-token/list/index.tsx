@@ -25,9 +25,9 @@ export function Component() {
   const { hasAuth } = useAuth()
 
   const permissions = {
-    create: hasAuth('coco:api_token/create'),
-    update: hasAuth('coco:api_token/update'),
-    delete: hasAuth('coco:api_token/delete'),
+    create: true,
+    update: true,
+    delete: true,
   }
 
   const [editState, setEditState] = useState({
@@ -424,7 +424,12 @@ const EditComponent = ({ onCancelClick = () => {}, onOkClick = () => {}, open = 
           className="my-2em"
           form={form}
           layout="vertical"
-          initialValues={tokenInfo}
+          initialValues={{
+            ...tokenInfo,
+            permissions: {
+              feature: tokenInfo?.permissions || []
+            }
+          }}
         >
           <Form.Item
             label={<span className="text-gray-500">{t('page.apitoken.columns.name')}</span>}

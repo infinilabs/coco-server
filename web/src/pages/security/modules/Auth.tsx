@@ -15,9 +15,10 @@ const Auth = () => {
   const { hasAuth } = useAuth();
 
   const permissions = {
-    create: hasAuth('coco:role/create'),
-    delete: hasAuth('coco:role/delete'),
-    update: hasAuth('coco:role/update')
+    read: hasAuth('generic#security:authorization/read'),
+    create: hasAuth('generic#security:authorization/create'),
+    delete: hasAuth('generic#security:authorization/delete'),
+    update: hasAuth('generic#security:authorization/update')
   };
 
   const nav = useNavigate();
@@ -78,91 +79,88 @@ const Auth = () => {
     [queryParams, t]
   );
 
-  const columns: TableColumnsType<any> = useMemo(
-    () => [
-      {
-        dataIndex: 'display_name',
-        title: t('page.auth.labels.auth'),
-        render: (value, record) => {
-          return (
-            <Typography.Link onClick={()=>nav(`/auth/edit/${record.id}`, {state:record})}>
-              {value}
-            </Typography.Link>
-          )
-        }
-      },
-      {
-        dataIndex: 'roles',
-        title: t('page.auth.labels.roles'),
-        render: (value) => {
-          if (!Array.isArray(value)) return '-'
-          return value.map((tag, index) => {
-            return <Tag key={index}>{tag}</Tag>;
+  const columns: TableColumnsType<any> = [
+    {
+      dataIndex: 'display_name',
+      title: t('page.auth.labels.auth'),
+      render: (value, record) => {
+        return (
+          <Typography.Link onClick={()=>nav(`/auth/edit/${record.id}`, {state:record})}>
+            {value}
+          </Typography.Link>
+        )
+      }
+    },
+    {
+      dataIndex: 'roles',
+      title: t('page.auth.labels.roles'),
+      render: (value) => {
+        if (!Array.isArray(value)) return '-'
+        return value.map((tag, index) => {
+          return <Tag key={index}>{tag}</Tag>;
+        });
+      }
+    },
+    {
+      dataIndex: 'created',
+      title: t('page.auth.labels.created'),
+      render: (value: string) => {
+        const d = dayjs(value);
+        return d.isValid() ? d.format('YYYY-MM-DD HH:mm:ss') : value;
+      }
+    },
+    {
+      fixed: 'right',
+      hidden: !permissions.update && !permissions.delete,
+      render: (_, record) => {
+        const items = [];
+        if (permissions.read && permissions.update) {
+          items.push({
+            key: 'edit',
+            label: t('common.edit')
           });
         }
-      },
-      {
-        dataIndex: 'created',
-        title: t('page.auth.labels.created'),
-        render: (value: string) => {
-          const d = dayjs(value);
-          return d.isValid() ? d.format('YYYY-MM-DD HH:mm:ss') : value;
+        if (permissions.delete) {
+          items.push({
+            key: 'delete',
+            label: t('common.delete')
+          });
         }
+        if (items.length === 0) return null;
+        const onMenuClick = ({ key, record }: any) => {
+          switch (key) {
+            case 'edit':
+              nav(`/auth/edit/${record.id}`, { state: record });
+              break;
+            case 'delete':
+              window?.$modal?.confirm({
+                content: t('page.auth.delete.confirm', { name: record.display_name }),
+                icon: <ExclamationCircleOutlined />,
+                onOk() {
+                  handleDelete(record.id);
+                },
+                title: t('common.tip')
+              });
+              break;
+            default:
+              break;
+          }
+        };
+        return (
+          <Dropdown
+            menu={{
+              items,
+              onClick: ({ key }) => onMenuClick({ key, record })
+            }}
+          >
+            <EllipsisOutlined />
+          </Dropdown>
+        );
       },
-      {
-        fixed: 'right',
-        render: (_, record) => {
-          const items = [];
-          if (permissions.update) {
-            items.push({
-              key: 'edit',
-              label: t('common.edit')
-            });
-          }
-          if (permissions.delete) {
-            items.push({
-              key: 'delete',
-              label: t('common.delete')
-            });
-          }
-          if (items.length === 0) return null;
-          // eslint-disable-next-line @typescript-eslint/no-shadow
-          const onMenuClick = ({ key, record }: any) => {
-            switch (key) {
-              case 'edit':
-                nav(`/auth/edit/${record.id}`, { state: record });
-                break;
-              case 'delete':
-                window?.$modal?.confirm({
-                  content: t('page.auth.delete.confirm', { name: record.display_name }),
-                  icon: <ExclamationCircleOutlined />,
-                  onOk() {
-                    handleDelete(record.id);
-                  },
-                  title: t('common.tip')
-                });
-                break;
-              default:
-                break;
-            }
-          };
-          return (
-            <Dropdown
-              menu={{
-                items,
-                onClick: ({ key }) => onMenuClick({ key, record })
-              }}
-            >
-              <EllipsisOutlined />
-            </Dropdown>
-          );
-        },
-        title: t('common.operation'),
-        width: '90px'
-      }
-    ],
-    [permissions.update, permissions.delete, t, nav, handleDelete]
-  );
+      title: t('common.operation'),
+      width: '90px'
+    }
+  ];
 
   const rowSelection: TableProps<any>['rowSelection'] = {
     getCheckboxProps: record => ({

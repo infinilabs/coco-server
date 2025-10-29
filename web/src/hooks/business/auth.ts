@@ -16,6 +16,6 @@ export function useAuth() {
   }
 
   return {
-    hasAuth
+    hasAuth,
   };
 }

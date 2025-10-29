@@ -14,7 +14,7 @@ export function Component() {
   const { hasAuth } = useAuth()
 
   const permissions = {
-    viewFile: hasAuth('coco:datasource/view'),
+    viewFile: hasAuth(['coco#datasource/search', 'coco#datasource/read']),
   }
 
   const onChange = (key: string) => {
@@ -29,11 +29,11 @@ export function Component() {
       key: 'file',
       label: t(`page.datasource.file.title`),
     })
-    items.push({
-      component: MappingManagement,
-      key: 'mapping',
-      label: t(`page.datasource.mapping.title`),
-    })
+    // items.push({
+    //   component: MappingManagement,
+    //   key: 'mapping',
+    //   label: t(`page.datasource.mapping.title`),
+    // })
   }
 
   const activeKey = useMemo(() => {
@@ -53,7 +53,7 @@ export function Component() {
         onChange={onChange}
       />
       <div className="settings-tabs-content">
-        { activeItem?.component ? <activeItem.component id={datasourceID} isMapping={true} /> : null}
+        { activeItem?.component ? <activeItem.component id={datasourceID}/> : null}
       </div>
     </ACard>
   );

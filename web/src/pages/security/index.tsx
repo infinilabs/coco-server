@@ -14,9 +14,9 @@ export function Component() {
   const { hasAuth } = useAuth();
 
   const permissions = {
-    viewRole: hasAuth("coco:role/view"),
-    viewAuth: true,
-    viewUser: true,
+    viewAuth: hasAuth("generic#security:authorization/search"),
+    viewUser: hasAuth("generic#security:user/search"),
+    viewRole: hasAuth("generic#security:role/search"),
   };
 
   const onChange = (key: string) => {

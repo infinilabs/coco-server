@@ -49,12 +49,11 @@ export function Component() {
   const { hasAuth } = useAuth()
 
   const permissions = {
-    create: hasAuth('coco:datasource/create'),
-    update: hasAuth('coco:datasource/update'),
-    delete: hasAuth('coco:datasource/delete'),
+    read: hasAuth('coco#datasource/read'),
+    create: hasAuth('coco#datasource/create'),
+    update: hasAuth('coco#datasource/update'),
+    delete: hasAuth('coco#datasource/delete'),
   }
-
-  const isMapping = true
 
   const { scrollConfig, tableWrapperRef } = useTableScroll();
 
@@ -114,8 +113,6 @@ export function Component() {
       enabled: value
     };
 
-    console.log('Updating sync config:', updatedSync); // Debug log
-
     updateDatasource(record.id, {
       ...record,
       sync: updatedSync
@@ -123,7 +120,6 @@ export function Component() {
       .then(res => {
         if (res.data?.result === 'updated') {
           message.success(t('common.updateSuccess'));
-          console.log('Sync update response:', res.data); // Debug log
         }
         // reload data
         setQueryParams(old => {
@@ -174,15 +170,8 @@ export function Component() {
           iconSrc = data.connectors[record.connector.id]?.icon;
         }
         if (!iconSrc) return value;
-        return (
-          <a
-            className="inline-flex items-center gap-1 text-blue-500"
-            onClick={() =>
-              nav(`/data-source/detail/${record.id}`, {
-                state: { connector_id: record.connector?.id || '', datasource_name: record.name }
-              })
-            }
-          >
+        const content = (
+          <>
             <IconWrapper className="w-20px h-20px">
               <InfiniIcon
                 height="1em"
@@ -191,19 +180,38 @@ export function Component() {
               />
             </IconWrapper>
             {value}
-          </a>
+          </>
+        )
+        if (permissions.read) {
+          return (
+            <a
+              className="inline-flex items-center gap-1 text-blue-500"
+              onClick={() =>
+                nav(`/data-source/detail/${record.id}`, {
+                  state: { connector_id: record.connector?.id || '', datasource_name: record.name }
+                })
+              }
+            >
+              {content}
+            </a>
+          );
+        }
+        return (
+          <span className="inline-flex items-center gap-1" >
+            {content}
+          </span>
         );
       },
       title: t('page.datasource.columns.name')
     },
-    isMapping && {
+    {
       dataIndex: 'owner',
       title: t('page.datasource.labels.owner'),
       render: (value, record) => {
         return <Avatar size={"small"} icon={<UserOutlined />} />
       }
     },
-    isMapping && {
+    {
       dataIndex: 'shares',
       title: t('page.datasource.labels.shares'),
       render: (value, record) => {
@@ -228,7 +236,7 @@ export function Component() {
       },
       title: t('page.datasource.columns.type')
     },
-    // isMapping && {
+    // {
     //   dataIndex: ['sync', 'enabled'],
     //   title: t('page.datasource.labels.permission_sync'),
     //   render: (value: number) => {
@@ -285,7 +293,7 @@ export function Component() {
       hidden: !permissions.update && !permissions.delete,
       render: (_, record) => {
         const items: MenuProps['items'] = [];
-        if (permissions.update) {
+        if (permissions.read && permissions.update) {
           items.push({
             key: '2',
             label: t('common.edit')

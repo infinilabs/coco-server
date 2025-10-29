@@ -23,9 +23,10 @@ export function Component() {
   const { hasAuth } = useAuth()
 
   const permissions = {
-    create: hasAuth('coco:model/create'),
-    update: hasAuth('coco:model/update'),
-    delete: hasAuth('coco:model/delete'),
+    read: hasAuth('coco#model_provider/read'),
+    create: hasAuth('coco#model_provider/create'),
+    update: hasAuth('coco#model_provider/update'),
+    delete: hasAuth('coco#model_provider/delete'),
   }
 
   const fetchData = ()=>{
@@ -61,7 +62,7 @@ export function Component() {
   }
   const getMenuItems = useCallback((record: any): MenuProps["items"] => {
     const items: MenuProps["items"] = [];
-    if (permissions.update) {
+    if (permissions.read && permissions.update) {
       items.push({
         label: t('common.edit'),
         key: "1",
