@@ -16,6 +16,7 @@ import (
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/pipeline"
+	"infini.sh/framework/core/util"
 )
 
 // scanner handles MongoDB collection scanning with incremental sync support
@@ -422,6 +423,18 @@ func (s *scanner) executePage(ctx context.Context, filter bson.M, skip, limit in
 }
 
 // bsonToDocument transforms a BSON document to a common.Document
-func (s *scanner) bsonToDocument(doc bson.M) (*common.Document, error) {
-	return bsonToDocument(doc, s.config, s.datasource)
+func (s *scanner) bsonToDocument(bsonDoc bson.M) (*common.Document, error) {
+	cfg := s.config
+	doc, err := bsonToDocument(bsonDoc, cfg, s.datasource)
+	if err != nil {
+		return nil, err
+	}
+
+	if cfg.FieldMapping.Enabled && doc.ID != "" {
+		doc.ID = fmt.Sprintf("%s-%s", s.datasource.ID, doc.ID)
+		if cfg.FieldMapping.IDHashable() {
+			doc.ID = util.MD5digest(doc.ID)
+		}
+	}
+	return doc, nil
 }
