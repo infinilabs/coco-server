@@ -18,6 +18,9 @@ import useQueryParams from '@/hooks/common/queryParams';
 import { fetchBatchShares } from '@/service/api/share';
 import { fetchBatchEntity } from '@/service/api/entity';
 import Shares from '../../modules/Shares';
+import { selectUserInfo } from '@/store/slice/auth';
+import { groupBy, keys, map, uniq } from "lodash";
+import AvatarLabel from '../../modules/AvatarLabel';
 
 interface DataType {
   category: string;
@@ -38,6 +41,7 @@ const FileManagement = (props) => {
   const [queryParams, setQueryParams] = useQueryParams();
 
   const { t } = useTranslation();
+  const userInfo = useAppSelector(selectUserInfo);
 
   const { hasAuth } = useAuth()
 
@@ -228,7 +232,14 @@ const FileManagement = (props) => {
           dataIndex: 'owner',
           title: t('page.datasource.labels.owner'),
           render: (value, record) => {
-            return <Avatar size={"small"} icon={<UserOutlined />} />
+            if (!value) return '-'
+            return (
+              <div className='flex'>
+                <Avatar.Group max={{ count: 1 }} size={"small"}>
+                  <AvatarLabel data={value}/>
+                </Avatar.Group>
+              </div>
+            )
           }
         },
         {
@@ -238,7 +249,6 @@ const FileManagement = (props) => {
             const isFolder = record.type === 'folder';
             return (
               <Shares
-                datasource={datasource} 
                 record={record} 
                 title={record.title} 
                 onSuccess={() => fetchData(queryParams, datasource)}
@@ -314,19 +324,41 @@ const FileManagement = (props) => {
       if (datasource.connector?.id) {
         const resources = newData.data.map((item) => ({
           "resource_id": item.id,
-          "resource_type": datasource.connector.id
+          "resource_type": datasource.connector.id,
+          "resource_path": item.type === 'folder' ? `/${(item.categories || []).concat([item.title]).join('/')}` : undefined
         }))
         const shareRes = await fetchBatchShares(resources)
-        const ownerRes = await fetchBatchEntity([{
+        const entities = newData.data.filter((item) => !!item._system?.owner_id).map((item) => ({
           type: 'user',
-          id: newData.data.filter((item) => !!item._system?.owner_id).map((item) => item._system.owner_id)
-        }])
+          id: item._system.owner_id
+        }))
+        if (shareRes?.data?.length > 0) {
+          entities.push(...shareRes?.data.map((item) => ({ type: item.principal_type, id: item.principal_id })))
+        }
+        if (userInfo?.id) {
+          entities.push({
+            type: 'user',
+            id: userInfo.id
+          })
+        }
+        const grouped = groupBy(entities, 'type');
+        const body = map(keys(grouped), (type) => ({
+            type,
+            id: uniq(map(grouped[type], 'id')) 
+        }))
+        const entityRes = await fetchBatchEntity(body)
         newData.data.forEach((item, index) => {
           if (shareRes?.data?.length > 0) {
-            item.shares = shareRes.data.filter((s) => s.resource_id === item.id)
+            item.shares = shareRes.data.filter((s) => s.resource_id === item.id).map((item) => ({
+              ...item,
+              entity: entityRes.data.find((o) => o.id === item.principal_id)
+            }))
           }
-          if (ownerRes?.data && item._system?.owner_id) {
-            item.owner = ownerRes?.data[item._system.owner_id]
+          if (entityRes?.data && item._system?.owner_id) {
+            item.owner = entityRes.data.find((o) => o.id === item._system?.owner_id)
+          }
+          if (userInfo?.id) {
+            item.editor = entityRes.data.find((o) => o.id === userInfo?.id)
           }
         })
       }

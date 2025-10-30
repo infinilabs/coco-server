@@ -18,7 +18,7 @@ export default (props) => {
 
     const { t } = useTranslation();
 
-    const { owner = {},  shares = [], editor = {} } = record
+    const { owner, shares = [], editor } = record
 
     const permissions = [
         {
@@ -121,7 +121,7 @@ export default (props) => {
                                                 data={{
                                                     type: item.entity.type,
                                                     id: item.entity.id,
-                                                    icon: owner.icon,
+                                                    icon: item.entity.icon,
                                                 }}
                                             />
                                         ) : (

@@ -20,7 +20,7 @@ export default function EditShares(props) {
     const handleChange = (index, permission) => {
         const newData = cloneDeep(currentData);
         if (newData[index]) {
-            newData[index].permission = permission
+            newData[index].permission = parseInt(permission)
             setCurrentData(newData)
         }
     }
@@ -41,7 +41,8 @@ export default function EditShares(props) {
                 shares: currentData.map((item) => ({
                     "principal_type": "user",
                     "principal_id": item.principal_id,
-                    permission: item.permission
+                    permission: item.permission,
+                    resource_path: resourcePath
                 })),
                 revokes: (deletedItems || []).map((item) => ({
                     "id": item.id,
@@ -62,17 +63,21 @@ export default function EditShares(props) {
         const editorPermission = shares.find((item) => item.principal_id === editor?.id)
         return (
             <>
-                <div className={styles.item}>
-                    <AvatarLabel
-                        data={{
-                            ...owner,
-                            title: `${owner.title}${isOwner ? t('page.datasource.labels.you') : ''}`,
-                        }}
-                    />
-                    <div className={styles.actions}>
-                        <span className="text-[var(--ant-color-text-secondary)]">{t('page.datasource.labels.owner')}</span>
-                    </div>
-                </div>
+                {
+                    owner && (
+                        <div className={styles.item}>
+                            <AvatarLabel
+                                data={{
+                                    ...owner,
+                                    title: `${owner.title}${isOwner ? t('page.datasource.labels.you') : ''}`,
+                                }}
+                            />
+                            <div className={styles.actions}>
+                                <span className="text-[var(--ant-color-text-secondary)]">{t('page.datasource.labels.owner')}</span>
+                            </div>
+                        </div>
+                    )
+                }
                 {
                     !isOwner && editor && (
                         <div className={styles.item}>

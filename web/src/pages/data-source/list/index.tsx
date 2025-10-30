@@ -13,7 +13,7 @@ import Shares from '../modules/Shares';
 import { fetchBatchShares } from '@/service/api/share';
 import { fetchBatchEntity } from '@/service/api/entity';
 import AvatarLabel from '../modules/AvatarLabel';
-import { cloneDeep, groupBy, keys, map, uniq } from "lodash";
+import { groupBy, keys, map, uniq } from "lodash";
 import { selectUserInfo } from '@/store/slice/auth';
 
 type Datasource = Api.Datasource.Datasource;
@@ -231,7 +231,6 @@ export function Component() {
       render: (value, record) => {
         return (
           <Shares 
-            datasource={record} 
             record={record} 
             title={record.name} 
             onSuccess={() => fetchData()}
