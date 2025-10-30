@@ -67,6 +67,7 @@ export default function EditShares(props) {
                     owner && (
                         <div className={styles.item}>
                             <AvatarLabel
+                                open={false}
                                 data={{
                                     ...owner,
                                     title: `${owner.title}${isOwner ? t('page.datasource.labels.you') : ''}`,
@@ -82,6 +83,7 @@ export default function EditShares(props) {
                     !isOwner && editor && (
                         <div className={styles.item}>
                             <AvatarLabel
+                                open={false}
                                 data={{
                                     ...editor,
                                     title: `${editor.title}${t('page.datasource.labels.you')}`,
@@ -107,11 +109,10 @@ export default function EditShares(props) {
                 {
                     currentData.filter((item) => !!item.entity).map((item, index) => (
                         <div key={index} className={styles.item}>
-                            <div className={styles.label}>
-                                <AvatarLabel
-                                    data={item.entity}
-                                />
-                            </div>
+                            <AvatarLabel
+                                open={false}
+                                data={item.entity}
+                            />
                             <div className={styles.actions}>
                                 {
                                     hasEdit ? (

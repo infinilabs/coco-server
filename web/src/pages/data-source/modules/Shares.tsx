@@ -112,21 +112,18 @@ export default (props) => {
                         <Avatar.Group max={{ count: 5 }} size={"small"}>
                             {
                                 shares.map((item, index) => (
-                                    item.avatar ? (
-                                        <Avatar key={index} src={<img draggable={false} src={item.avatar} />} />
+                                    item.entity ? (
+                                        <AvatarLabel
+                                            key={index} 
+                                            open={false}
+                                            data={{
+                                                type: item.entity.type,
+                                                id: item.entity.id,
+                                                icon: item.entity.icon,
+                                            }}
+                                        />
                                     ) : (
-                                        item.entity ? (
-                                            <AvatarLabel
-                                                key={index} 
-                                                data={{
-                                                    type: item.entity.type,
-                                                    id: item.entity.id,
-                                                    icon: item.entity.icon,
-                                                }}
-                                            />
-                                        ) : (
-                                            <Avatar key={index} size={"small"} icon={<UserOutlined />} />
-                                        )
+                                        <Avatar key={index} size={"small"} icon={<UserOutlined />} />
                                     )
                                 ))
                             }

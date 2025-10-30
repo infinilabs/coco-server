@@ -51,7 +51,7 @@
   "dependencies": {
     "@better-scroll/core": "2.5.1",
     "@iconify/react": "5.0.2",
-    "@infinilabs/entity-ui": "^0.0.2",
+    "@infinilabs/entity-ui": "^0.0.4",
     "@reduxjs/toolkit": "2.3.0",
     "@sa/axios": "workspace:*",
     "@sa/color": "workspace:*",

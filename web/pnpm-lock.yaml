@@ -15,8 +15,8 @@ importers:
         specifier: 5.0.2
         version: 5.0.2(react@18.3.1)
       '@infinilabs/entity-ui':
-        specifier: ^0.0.2
-        version: 0.0.2(antd@5.21.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ^0.0.4
+        version: 0.0.4(antd@5.21.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@reduxjs/toolkit':
         specifier: 2.3.0
         version: 2.3.0(react-redux@9.1.2(@types/react@18.3.12)(react@18.3.1)(redux@5.0.1))(react@18.3.1)
@@ -898,8 +898,8 @@ packages:
   '@iconify/utils@2.3.0':
     resolution: {integrity: sha512-GmQ78prtwYW6EtzXRU1rY+KwOKfz32PD7iJh6Iyqw68GiKuoZ2A6pRtzWONz5VQJbp50mEjXh/7NkumtrAgRKA==}
 
-  '@infinilabs/entity-ui@0.0.2':
-    resolution: {integrity: sha512-C70C/2OHpamwSjRmvQ/Nc72tynyvtRL/s9aYYGL94VTdG3dc/wLbGYoCOdag/VmYOX06e2NW4v7dBBZS/gcmNA==}
+  '@infinilabs/entity-ui@0.0.4':
+    resolution: {integrity: sha512-SZaGMwOJ7GCYYU/KCkwR2+ucmNjI2aWkcNpvU3n7tglAeIt42JjesyXczlLXmeCAvg/4oKUbqpxrMI8LT0vwdA==}
     peerDependencies:
       antd: '>=5'
       react: '>=17'
@@ -5680,7 +5680,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@infinilabs/entity-ui@0.0.2(antd@5.21.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@infinilabs/entity-ui@0.0.4(antd@5.21.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       antd: 5.21.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       lucide-react: 0.461.0(react@18.3.1)
