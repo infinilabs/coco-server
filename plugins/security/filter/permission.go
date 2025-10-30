@@ -14,6 +14,7 @@ import (
 	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
 	ccache "infini.sh/framework/lib/cache"
+	"infini.sh/framework/plugins/enterprise/security/rbac"
 	"net/http"
 	"time"
 )
@@ -86,32 +87,34 @@ func GetUserPermissions(shortUser *security.UserSessionInfo) *security.UserAssig
 		skipCache = true
 	}
 
-	if !skipCache {
+	if !skipCache && (shortUser.UserAssignedPermission == nil || (shortUser.UserAssignedPermission != nil && !shortUser.UserAssignedPermission.NeedRefresh())) {
 		v := permissionCache.Get(PermissionCache, shortUser.GetKey())
 		if v != nil {
 			if !v.Expired() {
 				x, ok := v.Value().(*security.UserAssignedPermission)
 				if ok {
-					if global.Env().IsDebug {
-						log.Debug("hit permission cache")
-						x.Dump()
+					if !x.NeedRefresh() {
+						shortUser.UserAssignedPermission = x
+						if global.Env().IsDebug {
+							log.Trace("hit permission cache")
+							x.Dump()
+						}
+						return x
+					} else {
+						if global.Env().IsDebug {
+							log.Trace("hit permission cache, but invalid, need refresh")
+						}
 					}
-					return x
 				}
 			}
 		}
 	}
 
-	var allowedPermissions = []string{}
-	if len(shortUser.Roles) > 0 {
-		for _, v := range shortUser.Roles {
-			perms, ok := security.GetPermissionsForRole(v)
-			if !ok {
-				panic(errors.Errorf("invalid role: %v", v))
-			}
-			allowedPermissions = append(allowedPermissions, perms...)
-		}
-	}
+	//TODO cache, refresh user's role from db
+
+	//TODO, handle api key, with specify permissions
+	//TODO, if the provider is for user, like api token, we need to fetch from api token's config, to get the updated permission
+	allowedPermissions := rbac.GetPermissionKeysByEmail(shortUser.Login)
 
 	//user, err := security.GetUser(shortUser.UserID)
 	//if err != nil {
@@ -134,9 +137,10 @@ func GetUserPermissions(shortUser *security.UserSessionInfo) *security.UserAssig
 	//	}
 	//}
 
-	//log.Error("user's permissioins:", allowedPermissions)
+	log.Trace("get user's permissions:", allowedPermissions)
 	perms := security.NewUserAssignedPermission(allowedPermissions, nil)
 	if perms != nil {
+		shortUser.UserAssignedPermission = perms
 		permissionCache.Set(PermissionCache, shortUser.GetKey(), perms, util.GetDurationOrDefault("30m", time.Duration(30)*time.Minute))
 		return perms
 	}

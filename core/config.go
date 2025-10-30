@@ -18,8 +18,17 @@ var DefaultUserLogin = "coco-default-user"
 
 var WidgetRole = "widget"
 
-var FeatureByPassCORSCheck = "feature_bypass_cors_check"
-
 var PipelineContextConnector param.ParaKey = "__connector"
 var PipelineContextDatasource param.ParaKey = "__datasource"
 var PipelineContextDocuments param.ParaKey = "messages"
+
+// re-export
+const FeatureMaskSensitiveField = "feature_sensitive_fields"
+const FeatureRemoveSensitiveField = "feature_sensitive_fields_remove_sensitive_field"
+const SensitiveFields = "feature_sensitive_fields_extra_keys"
+
+const FeatureCORS = "feature_cors"
+const FeatureNotAllowCredentials = "feature_not_allow_credentials"
+const FeatureByPassCORSCheck = "feature_bypass_cors_check"
+
+const FeatureFingerprintThrottle = "fingerprint_throttle"

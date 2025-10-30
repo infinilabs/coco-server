@@ -42,13 +42,15 @@ func (f *AuthFilter) ApplyFilter(
 
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
-		claims, err1 := core.ValidateLogin(r)
+		claims, err1 := core.ValidateLogin(w, r)
 
 		if global.Env().IsDebug {
 			log.Debug(method, ",", pattern, ",", util.MustToJSON(claims), ",", err1)
 		}
 
 		if claims != nil && claims.ValidInfo() {
+			//update the initial permission
+			claims.UserAssignedPermission = GetUserPermissions(claims)
 			r = r.WithContext(security.AddUserToContext(r.Context(), claims))
 		}
 

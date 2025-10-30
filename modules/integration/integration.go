@@ -32,7 +32,7 @@ func (h *APIHandler) create(w http.ResponseWriter, req *http.Request, ps httprou
 	}
 
 	//get permissions for this token
-	ret, err := security.CreateAPIToken(ctx, "", "widget", []string{"widget"})
+	ret, err := security.CreateAPIToken(ctx, "", "widget", []string{"widget"}, nil)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -188,7 +188,7 @@ func (h *APIHandler) renewAPIToken(w http.ResponseWriter, req *http.Request, ps 
 		kv.DeleteKey(core.KVAccessTokenBucket, []byte(obj.Token))
 	}
 	//create new token form this integration
-	ret, err := security.CreateAPIToken(ctx, "", "widget", []string{"widget"})
+	ret, err := security.CreateAPIToken(ctx, "", "widget", []string{"widget"}, nil)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return

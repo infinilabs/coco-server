@@ -25,7 +25,7 @@ const (
 	HeaderIntegrationID        = "APP-INTEGRATION-ID"
 )
 
-func ValidateLoginByAPITokenHeader(r *http.Request) (claims *security.UserClaims, err error) {
+func ValidateLoginByAPITokenHeader(w http.ResponseWriter, r *http.Request) (claims *security.UserClaims, err error) {
 	apiToken := r.Header.Get(HeaderAPIToken)
 
 	if apiToken == "" {
@@ -59,15 +59,13 @@ func ValidateLoginByAPITokenHeader(r *http.Request) (claims *security.UserClaims
 	claims.Provider = accessToken.Provider
 	claims.Login = accessToken.Login
 	claims.Roles = accessToken.Roles
-
-	//claims. //
-	//permissions
+	claims.Permissions = accessToken.Permissions
 
 	claims.Source = "token"
 	return claims, nil
 }
 
-func ValidateLoginByAuthorizationHeader(r *http.Request) (claims *security.UserClaims, err error) {
+func ValidateLoginByAuthorizationHeader(w http.ResponseWriter, r *http.Request) (claims *security.UserClaims, err error) {
 	var (
 		authorization = r.Header.Get("Authorization")
 		ok            bool
@@ -117,8 +115,8 @@ func ValidateLoginByAuthorizationHeader(r *http.Request) (claims *security.UserC
 	return claims, nil
 }
 
-func ValidateLoginByAccessTokenSession(r *http.Request) (claims *security.UserClaims, err error) {
-	exists, sessToken := api.GetSession(r, UserAccessTokenSessionName)
+func ValidateLoginByAccessTokenSession(w http.ResponseWriter, r *http.Request) (claims *security.UserClaims, err error) {
+	exists, sessToken := api.GetSession(w, r, UserAccessTokenSessionName)
 	if !exists || sessToken == nil {
 		return nil, errors.Error("invalid session")
 	}
@@ -158,8 +156,8 @@ func ValidateLoginByAccessTokenSession(r *http.Request) (claims *security.UserCl
 	return claims, nil
 }
 
-func ValidateLoginByAccessTokenSession1(r *http.Request) (claims *security.UserClaims, err error) {
-	exists, sessToken := api.GetSession(r, UserAccessTokenSessionName)
+func ValidateLoginByAccessTokenSession1(w http.ResponseWriter, r *http.Request) (claims *security.UserClaims, err error) {
+	exists, sessToken := api.GetSession(w, r, UserAccessTokenSessionName)
 
 	if !exists || sessToken == nil {
 		return nil, errors.Error("invalid session")
@@ -205,16 +203,16 @@ func ValidateLoginByAccessTokenSession1(r *http.Request) (claims *security.UserC
 	return claims, nil
 }
 
-func ValidateLogin(r *http.Request) (session *security.UserSessionInfo, err error) {
+func ValidateLogin(w http.ResponseWriter, r *http.Request) (session *security.UserSessionInfo, err error) {
 
-	claims, err := ValidateLoginByAccessTokenSession(r)
+	claims, err := ValidateLoginByAccessTokenSession(w, r)
 
 	if claims == nil || !claims.UserSessionInfo.ValidInfo() {
-		claims, err = ValidateLoginByAuthorizationHeader(r)
+		claims, err = ValidateLoginByAuthorizationHeader(w, r)
 	}
 
 	if claims == nil || !claims.UserSessionInfo.ValidInfo() {
-		claims, err = ValidateLoginByAPITokenHeader(r)
+		claims, err = ValidateLoginByAPITokenHeader(w, r)
 	}
 
 	if claims == nil || !claims.UserSessionInfo.ValidInfo() || err != nil {

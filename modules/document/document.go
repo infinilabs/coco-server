@@ -30,11 +30,7 @@ func (h *APIHandler) createDoc(w http.ResponseWriter, req *http.Request, ps http
 		return
 	}
 
-	h.WriteJSON(w, util.MapStr{
-		"_id":    obj.ID,
-		"result": "created",
-	}, 200)
-
+	h.WriteCreatedOKJSON(w, obj.ID)
 }
 
 func (h *APIHandler) getDoc(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {

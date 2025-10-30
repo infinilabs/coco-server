@@ -331,7 +331,6 @@ pipeline:
     processor:
       - indexing_merge:
           input_queue: "indexing_documents"
-#          input_queue: "enriched_documents"
           idle_timeout_in_seconds: 1
           elasticsearch: "prod"
           index_name: "coco_document-v2"
