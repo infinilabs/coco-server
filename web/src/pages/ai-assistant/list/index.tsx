@@ -16,9 +16,10 @@ export function Component() {
   const { hasAuth } = useAuth()
 
   const permissions = {
-    create: true,
-    update: true,
-    delete: true,
+    read: hasAuth('coco#assistant/read'),
+    create: hasAuth('coco#assistant/create'),
+    update: hasAuth('coco#assistant/update'),
+    delete: hasAuth('coco#assistant/delete'),
   }
 
   const { scrollConfig, tableWrapperRef } = useTableScroll();
@@ -27,7 +28,7 @@ export function Component() {
 
   const getMenuItems = useCallback((record: Assistant): MenuProps["items"] => {
     const items: MenuProps["items"] = [];
-    if (permissions.update) {
+    if (permissions.read && permissions.update) {
       items.push({
         label: t('common.edit'),
         key: "2",
@@ -121,7 +122,7 @@ export function Component() {
               <InfiniIcon height="1em" width="1em" src={record.icon} />
             </IconWrapper>
             {
-              permissions.update ? (
+              permissions.read && permissions.update ? (
                 <span className='max-w-150px ant-table-cell-ellipsis cursor-pointer hover:text-blue-500' onClick={()=>nav(`/ai-assistant/edit/${record.id}`)}>{ value }</span>
               ) : (
                 <span className='max-w-150px ant-table-cell-ellipsis'>{ value }</span>

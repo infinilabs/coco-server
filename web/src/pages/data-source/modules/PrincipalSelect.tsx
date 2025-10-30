@@ -6,7 +6,7 @@ import { fetchPrincipals } from "@/service/api/share";
 
 export default (props) => {
 
-    const { value, onChange, width, className, mode, assistants, excluded = [], children } = props;
+    const { value, onChange, width, className, mode, excluded = [], children } = props;
 
     const { t } = useTranslation();
 
@@ -30,21 +30,19 @@ export default (props) => {
 
     const [sorter, setSorter] = useState([])
 
-    const fetchFilterData = (queryParams, sorter, assistants) => {
-      if (typeof assistants === 'undefined' || assistants.length !== 0) {
-        fetchData({
-          ...queryParams,
-          sort: sorter.map((item) => `${item[0]}:${item[1]}`).join(',') || 'created:desc',
-          filter: assistants ? {
-            id: assistants.map((item) => item.id)
+    const fetchFilterData = (queryParams, sorter, excluded) => {
+      fetchData({
+        ...queryParams,
+        sort: sorter.map((item) => `${item[0]}:${item[1]}`).join(',') || 'created:desc',
+        filter: Array.isArray(excluded) ? {
+            '!id': excluded
           } : {}
-        })
-      }
+      })
     }
 
     useEffect(() => {
-      fetchFilterData(queryParams, sorter, assistants)
-    }, [queryParams, sorter, assistants])
+      fetchFilterData(queryParams, sorter, excluded)
+    }, [queryParams, sorter, excluded])
 
     useEffect(() => {
       if (mode === 'multiple') {
@@ -139,7 +137,7 @@ export default (props) => {
           },
         }}
         onRefresh={() => {
-          fetchFilterData(queryParams, sorter, assistants)
+          fetchFilterData(queryParams, sorter, excluded)
         }}
         action={[
           <a

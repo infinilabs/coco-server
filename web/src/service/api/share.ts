@@ -39,7 +39,7 @@ export function updateShares(data: any) {
   const { type, id, ...rest } = data
 
     return request({
-        method: 'put',
+        method: 'post',
         url: `/resources/${type}/${id}/share`,
         data: rest
     });

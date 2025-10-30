@@ -53,6 +53,11 @@ const permission = {
 
   // 🧠 Assistant
   assistant: 'AI Assistant',
+  'coco#assistant/create': 'Create AI Assistant',
+  'coco#assistant/read': 'Read AI Assistant',
+  'coco#assistant/update': 'Update AI Assistant',
+  'coco#assistant/delete': 'Delete AI Assistant',
+  'coco#assistant/search': 'Search AI Assistant',
   'coco#assistant/ask': 'Ask AI Assistant',
   'coco#assistant/quick_ai_access': 'Quick AI Access',
 
@@ -131,6 +136,12 @@ const permission = {
   'generic#security:user/update': 'Update User',
   'generic#security:user/delete': 'Delete User',
   'generic#security:user/search': 'Search User',
+
+  'security:auth:api-token': 'API Token',
+  'generic#security:auth:api-token/create': 'Create API Token',
+  'generic#security:auth:api-token/update': 'Update API Token',
+  'generic#security:auth:api-token/delete': 'Delete API Token',
+  'generic#security:auth:api-token/search': 'Search API Token',
 
   // 🧭 Others
   cancel_session: 'Cancel Session'

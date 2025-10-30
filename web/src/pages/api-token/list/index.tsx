@@ -25,9 +25,9 @@ export function Component() {
   const { hasAuth } = useAuth()
 
   const permissions = {
-    create: true,
-    update: true,
-    delete: true,
+    create: hasAuth('generic#security:auth:api-token/create'),
+    update: hasAuth('generic#security:auth:api-token/update'),
+    delete: hasAuth('generic#security:auth:api-token/delete'),
   }
 
   const [editState, setEditState] = useState({
@@ -295,7 +295,7 @@ export function Component() {
           }}
         />
         <Modal
-          width={720}
+          width={900}
           okText={t('common.create')}
           open={isModalOpen}
           title={`${t('common.create')} API Token`}
@@ -400,7 +400,10 @@ const EditComponent = ({ onCancelClick = () => {}, onOkClick = () => {}, open = 
         ...values,
         permissions: values.permissions?.feature || [] 
       })
-        .then(() => {
+        .then((res) => {
+          if (res?.data?.result === 'updated') {
+            window.$message?.success(t("common.updateSuccess"));
+          }
           setLoading(false);
           onOkClick();
         })
@@ -412,7 +415,7 @@ const EditComponent = ({ onCancelClick = () => {}, onOkClick = () => {}, open = 
 
   return (
     <Modal
-      width={720}
+      width={900}
       open={open}
       title={`${t('common.edit')} API Token`}
       onCancel={onCancelClick}

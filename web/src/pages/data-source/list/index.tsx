@@ -9,7 +9,12 @@ import { GoogleDriveSVG, HugoSVG, NotionSVG, YuqueSVG } from '@/components/icons
 import { deleteDatasource, fetchDataSourceList, getConnectorByIDs, updateDatasource } from '@/service/api';
 import { formatESSearchResult } from '@/service/request/es';
 import useQueryParams from '@/hooks/common/queryParams';
-import Shares from '../detail/modules/Shares';
+import Shares from '../modules/Shares';
+import { fetchBatchShares } from '@/service/api/share';
+import { fetchBatchEntity } from '@/service/api/entity';
+import AvatarLabel from '../modules/AvatarLabel';
+import { cloneDeep, groupBy, keys, map, uniq } from "lodash";
+import { selectUserInfo } from '@/store/slice/auth';
 
 type Datasource = Api.Datasource.Datasource;
 
@@ -45,6 +50,8 @@ export function Component() {
   const [queryParams, setQueryParams] = useQueryParams();
 
   const { t } = useTranslation();
+
+  const userInfo = useAppSelector(selectUserInfo);
 
   const { hasAuth } = useAuth()
 
@@ -208,7 +215,14 @@ export function Component() {
       dataIndex: 'owner',
       title: t('page.datasource.labels.owner'),
       render: (value, record) => {
-        return <Avatar size={"small"} icon={<UserOutlined />} />
+        if (!value) return '-'
+        return (
+          <div className='flex'>
+            <Avatar.Group max={{ count: 1 }} size={"small"}>
+              <AvatarLabel data={value}/>
+            </Avatar.Group>
+          </div>
+        )
       }
     },
     {
@@ -334,21 +348,62 @@ export function Component() {
 
   const [keyword, setKeyword] = useState();
 
-  const fetchData = () => {
+  const fetchData = async () => {
     setLoading(true);
-    fetchDataSourceList(queryParams).then(({ data }) => {
-      const newData = formatESSearchResult(data);
+    const res = await fetchDataSourceList(queryParams);
+    if (res?.data) {
+      const newData = formatESSearchResult(res?.data);
+      const resources = newData.data.filter((item) => !!item.connector?.id).map((item) => ({
+        "resource_id": item.id,
+        "resource_type": item.connector?.id
+      }))
+      const shareRes = await fetchBatchShares(resources)
+      const entities = newData.data.filter((item) => !!item._system?.owner_id).map((item) => ({
+        type: 'user',
+        id: item._system.owner_id
+      }))
+      if (shareRes?.data?.length > 0) {
+        entities.push(...shareRes?.data.map((item) => ({ type: item.principal_type, id: item.principal_id })))
+      }
+      if (userInfo?.id) {
+        entities.push({
+          type: 'user',
+          id: userInfo.id
+        })
+      }
+      const grouped = groupBy(entities, 'type');
+      const body = map(keys(grouped), (type) => ({
+          type,
+          id: uniq(map(grouped[type], 'id')) 
+      }))
+      const entityRes = await fetchBatchEntity(body)
+      newData.data.forEach((item, index) => {
+        if (shareRes?.data?.length > 0) {
+          item.shares = shareRes.data.filter((s) => s.resource_id === item.id).map((item) => ({
+            ...item,
+            entity: entityRes.data.find((o) => o.id === item.principal_id)
+          }))
+        }
+        if (entityRes?.data && item._system?.owner_id) {
+          item.owner = entityRes.data.find((o) => o.id === item._system?.owner_id)
+        }
+        if (userInfo?.id) {
+          item.editor = entityRes.data.find((o) => o.id === userInfo?.id)
+        }
+      })
       setData((oldData: any) => {
         return {
           ...oldData,
           ...(newData || initialData)
         };
       });
-      setLoading(false);
-    });
+    }
+    setLoading(false);
   };
 
-  useEffect(fetchData, [queryParams]);
+  useEffect(() => {
+    fetchData()
+  }, [queryParams]);
 
   useEffect(() => {
     setKeyword(queryParams.query)

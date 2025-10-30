@@ -47,7 +47,8 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.ai-assistant',
       title: 'ai-assistant',
       icon: 'mdi:robot-outline',
-      order: 2
+      order: 2,
+      permissions: ['coco#assistant/search']
     },
     children: [
       {
@@ -58,7 +59,8 @@ export const generatedRoutes: GeneratedRoute[] = [
           i18nKey: 'route.ai-assistant_edit',
           title: 'ai-assistant_edit',
           hideInMenu: true,
-          activeMenu: 'ai-assistant'
+          activeMenu: 'ai-assistant',
+          permissions: ['coco#assistant/read', 'coco#assistant/update']
         }
       },
       {
@@ -69,7 +71,8 @@ export const generatedRoutes: GeneratedRoute[] = [
           i18nKey: 'route.ai-assistant_list',
           title: 'ai-assistant_list',
           hideInMenu: true,
-          activeMenu: 'ai-assistant'
+          activeMenu: 'ai-assistant',
+          permissions: ['coco#assistant/search']
         }
       },
       {
@@ -80,7 +83,8 @@ export const generatedRoutes: GeneratedRoute[] = [
           i18nKey: 'route.ai-assistant_new',
           title: 'ai-assistant_new',
           hideInMenu: true,
-          activeMenu: 'ai-assistant'
+          activeMenu: 'ai-assistant',
+          permissions: ['coco#assistant/create']
         }
       }
     ]
@@ -93,7 +97,8 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.api-token',
       title: 'api-token',
       order: 4,
-      localIcon: 'security'
+      localIcon: 'security',
+      permissions: ['generic#security:authorization/search']
     },
     children: [
       {
@@ -104,7 +109,8 @@ export const generatedRoutes: GeneratedRoute[] = [
           i18nKey: 'route.api-token_list',
           title: 'api-token_list',
           hideInMenu: true,
-          activeMenu: 'api-token'
+          activeMenu: 'api-token',
+          permissions: ['generic#security:authorization/search']
         }
       }
     ]

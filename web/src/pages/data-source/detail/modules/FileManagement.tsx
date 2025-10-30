@@ -15,8 +15,9 @@ import {
 } from '@/service/api';
 import { formatESSearchResult } from '@/service/request/es';
 import useQueryParams from '@/hooks/common/queryParams';
-import Shares from './Shares';
 import { fetchBatchShares } from '@/service/api/share';
+import { fetchBatchEntity } from '@/service/api/entity';
+import Shares from '../../modules/Shares';
 
 interface DataType {
   category: string;
@@ -316,14 +317,18 @@ const FileManagement = (props) => {
           "resource_type": datasource.connector.id
         }))
         const shareRes = await fetchBatchShares(resources)
-        if (shareRes?.data?.length > 0) {
-          newData.data.forEach((item, index) => {
-            return {
-              ...item,
-              shares: shareRes.data.filter((s) => s.resource_id === item.id)
-            }
-          })
-        }
+        const ownerRes = await fetchBatchEntity([{
+          type: 'user',
+          id: newData.data.filter((item) => !!item._system?.owner_id).map((item) => item._system.owner_id)
+        }])
+        newData.data.forEach((item, index) => {
+          if (shareRes?.data?.length > 0) {
+            item.shares = shareRes.data.filter((s) => s.resource_id === item.id)
+          }
+          if (ownerRes?.data && item._system?.owner_id) {
+            item.owner = ownerRes?.data[item._system.owner_id]
+          }
+        })
       }
       setData(newData);
     }

@@ -33,13 +33,13 @@ const permission = {
   'coco#connector/delete': '删除连接器',
   'coco#connector/search': '搜索连接器',
 
-  // 🧩 模型提供方
-  model_provider: '模型提供方',
-  'coco#model_provider/create': '创建模型提供方',
-  'coco#model_provider/read': '读取模型提供方',
-  'coco#model_provider/update': '更新模型提供方',
-  'coco#model_provider/delete': '删除模型提供方',
-  'coco#model_provider/search': '搜索模型提供方',
+  // 🧩 模型提供商
+  model_provider: '模型提供商',
+  'coco#model_provider/create': '创建模型提供商',
+  'coco#model_provider/read': '读取模型提供商',
+  'coco#model_provider/update': '更新模型提供商',
+  'coco#model_provider/delete': '删除模型提供商',
+  'coco#model_provider/search': '搜索模型提供商',
 
   // 💬 会话
   session: '会话',
@@ -51,9 +51,14 @@ const permission = {
   'coco#session/view_single_session_history': '查看单个会话历史',
   'coco#session/view_all_session_history': '查看所有会话历史',
 
-  // 🧠 智能助手
-  assistant: '智能助手',
-  'coco#assistant/ask': '提问智能助手',
+  // 🧠 AI 助手
+  assistant: 'AI 助手',
+  'coco#assistant/create': '创建 AI 助手',
+  'coco#assistant/read': '读取 AI 助手',
+  'coco#assistant/update': '更新 AI 助手',
+  'coco#assistant/delete': '删除 AI 助手',
+  'coco#assistant/search': '搜索 AI 助手',
+  'coco#assistant/ask': '提问 AI 助手',
   'coco#assistant/quick_ai_access': '快速访问',
 
   // 🗃️ 数据源
@@ -131,6 +136,12 @@ const permission = {
   'generic#security:user/update': '更新用户',
   'generic#security:user/delete': '删除用户',
   'generic#security:user/search': '搜索用户',
+
+  'security:auth:api-token': 'API Token',
+  'generic#security:auth:api-token/create': '创建 API Token',
+  'generic#security:auth:api-token/update': '更新 API Token',
+  'generic#security:auth:api-token/delete': '删除 API Token',
+  'generic#security:auth:api-token/search': '搜索 API Token',
 
   // 🧭 其他
   cancel_session: '取消会话'
