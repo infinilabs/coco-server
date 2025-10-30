@@ -10,6 +10,12 @@ export default (props) => {
 
     const { t } = useTranslation();
 
+    const { hasAuth } = useAuth()
+
+    const permissions = {
+        search: hasAuth('generic#security:principal/search'),
+    }
+
     const {
       data: res,
       loading,
@@ -31,6 +37,7 @@ export default (props) => {
     const [sorter, setSorter] = useState([])
 
     const fetchFilterData = (queryParams, sorter, excluded) => {
+      if (!permissions.search) return;
       fetchData({
         ...queryParams,
         sort: sorter.map((item) => `${item[0]}:${item[1]}`).join(',') || 'created:desc',
@@ -136,9 +143,9 @@ export default (props) => {
             });
           },
         }}
-        onRefresh={() => {
+        onRefresh={permissions.search ? () => {
           fetchFilterData(queryParams, sorter, excluded)
-        }}
+        } : undefined}
         action={[
           <a
             onClick={() => {

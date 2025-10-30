@@ -11,7 +11,7 @@ import { formatESSearchResult } from '@/service/request/es';
 import useQueryParams from '@/hooks/common/queryParams';
 import Shares from '../modules/Shares';
 import { fetchBatchShares } from '@/service/api/share';
-import { fetchBatchEntity } from '@/service/api/entity';
+import { fetchBatchEntityLabels } from '@/service/api/entity';
 import AvatarLabel from '../modules/AvatarLabel';
 import { groupBy, keys, map, uniq } from "lodash";
 import { selectUserInfo } from '@/store/slice/auth';
@@ -60,6 +60,8 @@ export function Component() {
     create: hasAuth('coco#datasource/create'),
     update: hasAuth('coco#datasource/update'),
     delete: hasAuth('coco#datasource/delete'),
+    shares: hasAuth('generic#sharing/search'),
+    entityLabel: hasAuth('generic#entity:label/read')
   }
 
   const { scrollConfig, tableWrapperRef } = useTableScroll();
@@ -219,7 +221,7 @@ export function Component() {
         return (
           <div className='flex'>
             <Avatar.Group max={{ count: 1 }} size={"small"}>
-              <AvatarLabel data={value}/>
+              <AvatarLabel data={value} showCard={true}/>
             </Avatar.Group>
           </div>
         )
@@ -229,6 +231,7 @@ export function Component() {
       dataIndex: 'shares',
       title: t('page.datasource.labels.shares'),
       render: (value, record) => {
+        if (!value) return '-'
         return (
           <Shares 
             record={record} 
@@ -356,37 +359,44 @@ export function Component() {
         "resource_id": item.id,
         "resource_type": 'datasource'
       }))
-      const shareRes = await fetchBatchShares(resources)
-      const entities = newData.data.filter((item) => !!item._system?.owner_id).map((item) => ({
-        type: 'user',
-        id: item._system.owner_id
-      }))
-      if (shareRes?.data?.length > 0) {
-        entities.push(...shareRes?.data.map((item) => ({ type: item.principal_type, id: item.principal_id })))
+      let shareRes: any;
+      if (permissions.shares) {
+        shareRes = await fetchBatchShares(resources)
       }
-      if (userInfo?.id) {
-        entities.push({
+      let entityRes: any
+      if (permissions.entityLabel) {
+        const entities = newData.data.filter((item) => !!item._system?.owner_id).map((item) => ({
           type: 'user',
-          id: userInfo.id
-        })
-      }
-      const grouped = groupBy(entities, 'type');
-      const body = map(keys(grouped), (type) => ({
-          type,
-          id: uniq(map(grouped[type], 'id')) 
-      }))
-      const entityRes = await fetchBatchEntity(body)
-      newData.data.forEach((item, index) => {
+          id: item._system.owner_id
+        }))
         if (shareRes?.data?.length > 0) {
-          item.shares = shareRes.data.filter((s) => s.resource_id === item.id).map((item) => ({
-            ...item,
-            entity: entityRes.data.find((o) => o.id === item.principal_id)
-          }))
-        }
-        if (entityRes?.data && item._system?.owner_id) {
-          item.owner = entityRes.data.find((o) => o.id === item._system?.owner_id)
+          entities.push(...shareRes?.data.map((item) => ({ type: item.principal_type, id: item.principal_id })))
         }
         if (userInfo?.id) {
+          entities.push({
+            type: 'user',
+            id: userInfo.id
+          })
+        }
+        const grouped = groupBy(entities, 'type');
+        const body = map(keys(grouped), (type) => ({
+            type,
+            id: uniq(map(grouped[type], 'id')) 
+        }))
+        entityRes = await fetchBatchEntityLabels(body)
+      }
+      newData.data.forEach((item, index) => {
+        const hasEntities = entityRes?.data?.length > 0
+        if (shareRes?.data?.length > 0 && hasEntities) {
+          item.shares = shareRes.data.filter((s) => s.resource_id === item.id).map((item) => ({
+            ...item,
+            entity: entityRes?.data.find((o) => o.id === item.principal_id)
+          }))
+        }
+        if (item._system?.owner_id && hasEntities) {
+          item.owner = entityRes.data.find((o) => o.id === item._system?.owner_id)
+        }
+        if (userInfo?.id && hasEntities) {
           item.editor = entityRes.data.find((o) => o.id === userInfo?.id)
         }
       })

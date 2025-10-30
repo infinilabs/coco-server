@@ -8,7 +8,7 @@ import { PERMISSION_MAPPING } from "./Shares";
 
 export default function EditShares(props) {
 
-    const { hasEdit, resourceType, resourceID, resourcePath, permissions = [], owner, shares = [], editor, onCancel, onAddShares, onSuccess } = props;
+    const { hasCreate, hasEdit, resourceType, resourceID, resourcePath, permissionOptions = [], owner, shares = [], editor, onCancel, onAddShares, onSuccess } = props;
     const { t } = useTranslation();
 
     const [currentData, setCurrentData] = useState([]);
@@ -67,7 +67,6 @@ export default function EditShares(props) {
                     owner && (
                         <div className={styles.item}>
                             <AvatarLabel
-                                open={false}
                                 data={{
                                     ...owner,
                                     title: `${owner.title}${isOwner ? t('page.datasource.labels.you') : ''}`,
@@ -83,7 +82,6 @@ export default function EditShares(props) {
                     !isOwner && editor && (
                         <div className={styles.item}>
                             <AvatarLabel
-                                open={false}
                                 data={{
                                     ...editor,
                                     title: `${editor.title}${t('page.datasource.labels.you')}`,
@@ -104,20 +102,19 @@ export default function EditShares(props) {
     return (
         <div >
             <div className="text-14px mb-8px">{t('page.datasource.labels.sharesWithPermissions')}</div>
-            <div className={`max-h-278px ${hasEdit ? 'mb-24px' : 'mb-0'} border border-[var(--ant-color-border)] rounded-[var(--ant-border-radius)] px-8px py-12px overflow-auto`}>
+            <div className={`max-h-278px ${hasEdit || hasCreate ? 'mb-24px' : 'mb-0'} border border-[var(--ant-color-border)] rounded-[var(--ant-border-radius)] px-8px py-12px overflow-auto`}>
                 {renderSpecialItems()}
                 {
                     currentData.filter((item) => !!item.entity).map((item, index) => (
                         <div key={index} className={styles.item}>
                             <AvatarLabel
-                                open={false}
                                 data={item.entity}
                             />
                             <div className={styles.actions}>
                                 {
                                     hasEdit ? (
                                         <Space>
-                                            <Dropdown trigger={['click']} menu={{ items: permissions, onClick: ({key}) => handleChange(index, key)  }}>
+                                            <Dropdown trigger={['click']} menu={{ items: permissionOptions, onClick: ({key}) => handleChange(index, key)  }}>
                                                 <Button size="small" className="px-6px text-12px" type="text">{item.permission ? t(`page.datasource.labels.${PERMISSION_MAPPING[item.permission]}`) : ''}<DownOutlined /></Button>
                                             </Dropdown>
                                             <MinusCircleOutlined className="cursor-pointer" onClick={() => handleDelete(index)}/>
@@ -132,19 +129,27 @@ export default function EditShares(props) {
                 }
             </div>
             {
-                hasEdit && (
-                    <div className="flex items-center justify-between">
-                        <Button className="w-80px" type="primary" ghost onClick={() => onAddShares()}>
-                            <UsergroupAddOutlined />
-                        </Button>
-                        <Space>
-                            <Button className="w-80px" type="primary" ghost onClick={() => onCancel()}>
-                                {t('common.cancel')}
-                            </Button>
-                            <Button className="w-80px" type="primary" onClick={() => handleUpdate()}>
-                                {t('common.ok')}
-                            </Button>
-                        </Space>
+                (hasCreate || hasEdit) && (
+                    <div className={`flex items-center ${hasCreate ? 'justify-between' : 'justify-right'}`}>
+                        {
+                            hasCreate && (
+                                <Button className="w-80px" type="primary" ghost onClick={() => onAddShares()}>
+                                    <UsergroupAddOutlined />
+                                </Button>
+                            )
+                        }
+                        {
+                            hasEdit && (
+                                <Space>
+                                    <Button className="w-80px" type="primary" ghost onClick={() => onCancel()}>
+                                        {t('common.cancel')}
+                                    </Button>
+                                    <Button className="w-80px" type="primary" onClick={() => handleUpdate()}>
+                                        {t('common.ok')}
+                                    </Button>
+                                </Space>
+                            )
+                        }
                     </div>
                 )
             }

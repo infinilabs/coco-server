@@ -126,9 +126,9 @@ const permission = {
   'generic#security:authorization/delete': '删除授权',
   'generic#security:authorization/search': '搜索授权',
 
-  'security:principal': '资源',
-  'generic#security:principal/update': '更新资源',
-  'generic#security:principal/search': '搜索资源',
+  'security:principal': '对象主体',
+  'generic#security:principal/update': '更新对象主体',
+  'generic#security:principal/search': '搜索对象主体',
   
   'security:user': '用户',
   'generic#security:user/create': '创建用户',

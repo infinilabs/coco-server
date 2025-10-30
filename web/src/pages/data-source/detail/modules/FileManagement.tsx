@@ -16,7 +16,7 @@ import {
 import { formatESSearchResult } from '@/service/request/es';
 import useQueryParams from '@/hooks/common/queryParams';
 import { fetchBatchShares } from '@/service/api/share';
-import { fetchBatchEntity } from '@/service/api/entity';
+import { fetchBatchEntityLabels } from '@/service/api/entity';
 import Shares from '../../modules/Shares';
 import { selectUserInfo } from '@/store/slice/auth';
 import { groupBy, keys, map, uniq } from "lodash";
@@ -48,6 +48,8 @@ const FileManagement = (props) => {
   const permissions = {
     update: hasAuth('coco#datasource/update'),
     delete: hasAuth('coco#datasource/delete'),
+    shares: hasAuth('generic#sharing/search'),
+    entityLabel: hasAuth('generic#entity:label/read')
   }
   
   const [connector, setConnector] = useState<any>({});
@@ -236,7 +238,7 @@ const FileManagement = (props) => {
             return (
               <div className='flex'>
                 <Avatar.Group max={{ count: 1 }} size={"small"}>
-                  <AvatarLabel data={value}/>
+                  <AvatarLabel data={value} showCard={true}/>
                 </Avatar.Group>
               </div>
             )
@@ -327,37 +329,44 @@ const FileManagement = (props) => {
           "resource_type": datasource.connector.id,
           "resource_path": item.type === 'folder' ? `/${(item.categories || []).concat([item.title]).join('/')}` : undefined
         }))
-        const shareRes = await fetchBatchShares(resources)
-        const entities = newData.data.filter((item) => !!item._system?.owner_id).map((item) => ({
-          type: 'user',
-          id: item._system.owner_id
-        }))
-        if (shareRes?.data?.length > 0) {
-          entities.push(...shareRes?.data.map((item) => ({ type: item.principal_type, id: item.principal_id })))
+        let shareRes: any;
+        if (permissions.shares) {
+          shareRes = await fetchBatchShares(resources)
         }
-        if (userInfo?.id) {
-          entities.push({
+        let entityRes: any
+        if (permissions.entityLabel) {
+          const entities = newData.data.filter((item) => !!item._system?.owner_id).map((item) => ({
             type: 'user',
-            id: userInfo.id
-          })
-        }
-        const grouped = groupBy(entities, 'type');
-        const body = map(keys(grouped), (type) => ({
-            type,
-            id: uniq(map(grouped[type], 'id')) 
-        }))
-        const entityRes = await fetchBatchEntity(body)
-        newData.data.forEach((item, index) => {
+            id: item._system.owner_id
+          }))
           if (shareRes?.data?.length > 0) {
-            item.shares = shareRes.data.filter((s) => s.resource_id === item.id).map((item) => ({
-              ...item,
-              entity: entityRes.data.find((o) => o.id === item.principal_id)
-            }))
-          }
-          if (entityRes?.data && item._system?.owner_id) {
-            item.owner = entityRes.data.find((o) => o.id === item._system?.owner_id)
+            entities.push(...shareRes?.data.map((item) => ({ type: item.principal_type, id: item.principal_id })))
           }
           if (userInfo?.id) {
+            entities.push({
+              type: 'user',
+              id: userInfo.id
+            })
+          }
+          const grouped = groupBy(entities, 'type');
+          const body = map(keys(grouped), (type) => ({
+              type,
+              id: uniq(map(grouped[type], 'id')) 
+          }))
+          entityRes = await fetchBatchEntityLabels(body)
+        }
+        newData.data.forEach((item, index) => {
+          const hasEntities = entityRes?.data?.length > 0
+          if (shareRes?.data?.length > 0 && hasEntities) {
+            item.shares = shareRes.data.filter((s) => s.resource_id === item.id).map((item) => ({
+              ...item,
+              entity: entityRes?.data.find((o) => o.id === item.principal_id)
+            }))
+          }
+          if (item._system?.owner_id && hasEntities) {
+            item.owner = entityRes.data.find((o) => o.id === item._system?.owner_id)
+          }
+          if (userInfo?.id && hasEntities) {
             item.editor = entityRes.data.find((o) => o.id === userInfo?.id)
           }
         })

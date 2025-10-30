@@ -20,7 +20,14 @@ export default (props) => {
 
     const { owner, shares = [], editor } = record
 
-    const permissions = [
+    const { hasAuth } = useAuth()
+
+    const permissions = {
+        create: hasAuth('generic#sharing/create'),
+        update: hasAuth('generic#sharing/update'),
+    }
+
+    const permissionOptions = [
         {
             key: 1,
             label: t(`page.datasource.labels.${PERMISSION_MAPPING[1]}`)
@@ -60,9 +67,9 @@ export default (props) => {
         return permission ? [8, 16].includes(permission) : false
     }, [owner, editor, shares])
 
-    const content = isAdding && hasShardPermission ? (
+    const content = isAdding && permissions.create && hasShardPermission ? (
         <AddShares 
-            permissions={permissions} 
+            permissionOptions={permissionOptions} 
             onCancel={() => handleOpenChange(false)} 
             onSuccess={handleSuccess}
             resourceType={resourceType}
@@ -73,9 +80,10 @@ export default (props) => {
             shares={shares}
         />
     ) : (
-        <EditShares 
-            hasEdit={hasShardPermission} 
-            permissions={permissions} 
+        <EditShares
+            hasCreate={permissions.create}
+            hasEdit={permissions.update && hasShardPermission} 
+            permissionOptions={permissionOptions} 
             owner={owner} 
             editor={editor}
             shares={shares} 
@@ -102,7 +110,9 @@ export default (props) => {
         >
             {
                 shares.length === 0 ? (
-                    <Button className="px-0" type="link" onClick={() => setIsAdding(true)}>{t('common.add')}</Button>
+                    permissions.create ? (
+                        <Button className="px-0" type="link" onClick={() => setIsAdding(true)}>{t('common.add')}</Button>
+                    ) : '-'
                 ) : (
                     <div>
                         <Avatar.Group max={{ count: 5 }} size={"small"}>
@@ -111,7 +121,6 @@ export default (props) => {
                                     item.entity ? (
                                         <AvatarLabel
                                             key={index} 
-                                            open={false}
                                             data={{
                                                 type: item.entity.type,
                                                 id: item.entity.id,

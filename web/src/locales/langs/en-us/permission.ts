@@ -115,7 +115,7 @@ const permission = {
   'sharing': 'Sharing',
   'generic#sharing/read': 'Read Sharing',
   'generic#sharing/create': 'Create Sharing',
-  'generic#sharing/update': 'Update Sharinge',
+  'generic#sharing/update': 'Update Sharing',
   'generic#sharing/delete': 'Delete Sharing',
   'generic#sharing/search': 'Search Sharing',
 

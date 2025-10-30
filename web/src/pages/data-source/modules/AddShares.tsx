@@ -4,7 +4,7 @@ import { addShares } from "@/service/api/share";
 
 export default function AddShares(props) {
 
-    const { permissions = [], owner, editor, shares, onCancel, onSuccess, resourceType, resourceID, resourcePath } = props;
+    const { permissionOptions = [], owner, editor, shares, onCancel, onSuccess, resourceType, resourceID, resourcePath } = props;
 
     const { t } = useTranslation();
     const [form] = Form.useForm();
@@ -60,9 +60,9 @@ export default function AddShares(props) {
                     label={t('page.datasource.labels.permission')}
                     name="permission"
                 >
-                    <Select options={permissions.map((item) => ({ ...item, value: item.key}))}/>
+                    <Select options={permissionOptions.map((item) => ({ ...item, value: item.key}))}/>
                 </Form.Item>
-                <Form.Item className="mb-12px">
+                <Form.Item className="mb-0px">
                     <div className="flex items-center justify-right">
                         <Space>
                             <Button className="w-80px" type="primary" ghost onClick={() => onCancel()}>
