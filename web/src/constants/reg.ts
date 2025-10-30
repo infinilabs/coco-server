@@ -23,3 +23,5 @@ export const REG_CODE_FOUR = /^\d{4}$/;
 /** Url reg */
 export const REG_URL =
   /(((^https?:(?:\/\/)?)(?:[-;:&=+$,\w]+@)?[A-Za-z0-9.-]+(?::\d+)?|(?:www.|[-;:&=+$,\w]+@)[A-Za-z0-9.-]+)((?:\/[+~%/.\w-_]*)?\??(?:[-+=&;%@.\w_]*)#?(?:[\w]*))?)$/;
+
+export const REG_NO_SPECIAL = /^[A-Za-z0-9]+$/;

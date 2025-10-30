@@ -92,7 +92,7 @@ export default (props) => {
         <Popover 
             trigger={'click'} 
             placement="bottom"
-            title={<div className="text-16px mb-16px">{`${t('page.datasource.labels.share')} ${title}`}</div>} 
+            title={<div className="text-16px mb-16px">{`${t('page.datasource.labels.shareTo')} ${title}`}</div>} 
             open={open}
             onOpenChange={handleOpenChange}
             content={content}

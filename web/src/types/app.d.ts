@@ -368,6 +368,7 @@ declare namespace App {
           pwd: FormMsg;
           required: string;
           userName: FormMsg;
+          noSpecial: FormMsg;
         };
         icon: {
           collapse: string;

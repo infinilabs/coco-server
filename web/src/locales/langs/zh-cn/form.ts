@@ -27,6 +27,10 @@ const form: App.I18n.Schema['translation']['form'] = {
   userName: {
     invalid: '用户名格式不正确',
     required: '请输入用户名'
+  },
+  noSpecial: {
+    invalid: '只能输入字母或数字',
+    required: '不能为空'
   }
 };
 

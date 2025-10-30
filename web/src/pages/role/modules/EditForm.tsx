@@ -14,7 +14,7 @@ export const EditForm = memo((props: EditFormProps) => {
   const { actionText, onSubmit, record } = props;
   const [form] = Form.useForm();
   const { t } = useTranslation();
-  const { defaultRequiredRule } = useFormRules();
+  const { defaultRequiredRule, patternRules } = useFormRules();
   const { endLoading, loading, startLoading } = useLoading();
 
   const handleSubmit = async () => {
@@ -56,7 +56,10 @@ export const EditForm = memo((props: EditFormProps) => {
         <Form.Item
           label={t('page.role.labels.name')}
           name='name'
-          rules={[defaultRequiredRule]}
+          rules={[
+            defaultRequiredRule,
+            patternRules.noSpecial
+          ]}
         >
           <Input className={itemClassNames} />
         </Form.Item>

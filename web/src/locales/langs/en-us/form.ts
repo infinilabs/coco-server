@@ -27,6 +27,10 @@ const form: App.I18n.Schema['translation']['form'] = {
   userName: {
     invalid: 'User name format is incorrect',
     required: 'Please enter user name'
+  },
+  noSpecial: {
+    invalid: 'Only letters or numbers',
+    required: 'Cannot be empty'
   }
 };
 export default form;

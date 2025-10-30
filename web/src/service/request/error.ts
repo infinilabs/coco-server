@@ -121,5 +121,6 @@ export function handleError(
     return;
   }
 
-  showErrorMsg(request.state, message);
+  const reason = error.response?.data?.error?.reason ? `, ${error.response?.data?.error?.reason}.` : ''
+  showErrorMsg(request.state, `${message}${reason}`, );
 }

@@ -51,7 +51,7 @@ export default function AddShares(props) {
                 onFinish={onFinish}
             >
                 <Form.Item
-                    label={t('page.datasource.labels.shareTo')}
+                    label={t('page.datasource.labels.shareToPrincipal')}
                     name="shares"
                 >
                     <PrincipalSelect mode="multiple" excluded={excluded}/>

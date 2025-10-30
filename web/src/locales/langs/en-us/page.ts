@@ -210,7 +210,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       edit: 'Edit',
       share: 'Share',
       all: 'All',
-      shareTo: 'Share to teams or users',
+      shareToPrincipal: 'Share to teams or users',
+      shareTo: 'Share',
       permission: 'Permission',
       you: ' (you)'
     },

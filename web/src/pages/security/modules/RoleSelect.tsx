@@ -17,7 +17,7 @@ const RoleSelect = (props) => {
     const { hasAuth } = useAuth();
 
     const permissions = {
-      search: hasAuth('cgeneric#security:role/search')
+      search: hasAuth('generic#security:role/search')
     }
 
     const { data, loading, run } = useRequest(fetchRoles, { manual: true });
