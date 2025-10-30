@@ -24,6 +24,7 @@ const SETTINGS = [
     icon: <SvgIcon icon="mdi:plus-thick" />,
     key: 'aiAssistant',
     link: '/ai-assistant',
+    permissions: ['coco#assistant/search']
   }
 ];
 
@@ -33,7 +34,7 @@ export function Component() {
   const { t } = useTranslation();
   const { hasAuth } = useAuth();
   const permissions = {
-    update: true,
+    update: hasAuth('coco#system/update'),
   }
 
   const domRef = useRef<HTMLDivElement | null>(null);

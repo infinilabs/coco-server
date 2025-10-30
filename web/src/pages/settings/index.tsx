@@ -13,8 +13,7 @@ export function Component() {
 
   const permissions = {
     viewConnector: hasAuth('coco#connector/search'),
-    viewAppSettings: true,
-    viewSearchSettings: true,
+    viewSystemSettings: hasAuth('coco#system/read'),
   }
 
   const onChange = (key: string) => {
@@ -31,15 +30,12 @@ export function Component() {
     })
   }
 
-  if (permissions.viewAppSettings) {
+  if (permissions.viewSystemSettings) {
     items.push({
       component: AppSettings,
       key: 'app_settings',
       label: t(`page.settings.app_settings.title`),
     })
-  }
-
-  if (permissions.viewSearchSettings) {
     items.push({
       component: SearchSettings,
       key: 'search_settings',

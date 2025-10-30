@@ -25,7 +25,7 @@ export function Component() {
 
   const items: TabsProps["items"] = [];
 
-  if (permissions.viewAuth) {
+  if (permissions.viewAuth && window.__POWERED_BY_WUJIE__) {
     items.push({
       children: <Auth />,
       key: "auth",
@@ -33,7 +33,7 @@ export function Component() {
     });
   }
 
-  if (permissions.viewUser) {
+  if (permissions.viewUser && !window.__POWERED_BY_WUJIE__) {
     items.push({
       children: <User />,
       key: "user",

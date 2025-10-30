@@ -517,7 +517,7 @@ export const generatedRoutes: GeneratedRoute[] = [
       title: 'settings',
       icon: 'mdi:settings-outline',
       order: 11,
-      permissions: ['coco#connector/search'],
+      permissions: ['coco#system/read', 'coco#connector/search'],
       permissionLogic: 'or'
     }
   },

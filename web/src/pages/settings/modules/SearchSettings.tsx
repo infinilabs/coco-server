@@ -12,7 +12,7 @@ const SearchSettings = memo(() => {
   const { hasAuth } = useAuth()
 
   const permissions = {
-    update: true,
+    update: hasAuth('coco#system/update'),
   }
 
   const { endLoading, loading, startLoading } = useLoading();
