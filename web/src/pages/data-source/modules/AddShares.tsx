@@ -4,7 +4,7 @@ import { addShares } from "@/service/api/share";
 
 export default function AddShares(props) {
 
-    const { permissionOptions = [], owner, editor, shares, onCancel, onSuccess, resourceType, resourceID, resourcePath } = props;
+    const { hasCreate, permissionOptions = [], owner, editor, shares, onCancel, onSuccess, resourceType, resourceID, resourcePath } = props;
 
     const { t } = useTranslation();
     const [form] = Form.useForm();
@@ -41,6 +41,8 @@ export default function AddShares(props) {
         }
         return data
     }, [owner, editor, shares])
+
+    if (!hasCreate) return null;
 
     return (
         <div>

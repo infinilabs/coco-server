@@ -67,8 +67,9 @@ export default (props) => {
         return permission ? [8, 16].includes(permission) : false
     }, [owner, editor, shares])
 
-    const content = isAdding && permissions.create && hasShardPermission ? (
+    const content = isAdding ? (
         <AddShares 
+            hasCreate={permissions.create && hasShardPermission}
             permissionOptions={permissionOptions} 
             onCancel={() => handleOpenChange(false)} 
             onSuccess={handleSuccess}
