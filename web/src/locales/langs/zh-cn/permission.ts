@@ -112,12 +112,12 @@ const permission = {
   'entity:label': '实体标签',
   'generic#entity:label/read': '读取实体标签',
 
-  'sharing:role': '分享角色',
-  'generic#sharing:role/read': '读取分享角色',
-  'generic#sharing:role/create': '创建分享角色',
-  'generic#sharing:role/update': '更新分享角色',
-  'generic#sharing:role/delete': '删除分享角色',
-  'generic#sharing:role/search': '搜索分享角色',
+  'sharing': '资源分享',
+  'generic#sharing/read': '读取资源分享',
+  'generic#sharing/create': '创建资源分享',
+  'generic#sharing/update': '更新资源分享',
+  'generic#sharing/delete': '删除资源分享',
+  'generic#sharing/search': '搜索资源分享',
 
   'security:authorization': '授权',
   'generic#security:authorization/read': '读取授权',

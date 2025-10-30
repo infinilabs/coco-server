@@ -49,6 +49,15 @@ interface AssistantFormProps {
 export const EditForm = memo((props: AssistantFormProps) => {
   const { initialValues = {}, onSubmit, mode } = props;
   const [form] = Form.useForm();
+
+  const { hasAuth } = useAuth();
+
+  const permissions = {
+    fetchModelProviders: hasAuth('coco#model_provider/search'),
+    fetchMCPServers: hasAuth('coco#mcp_server/search'),
+    fetchDataSources: hasAuth('coco#datasource/search')
+  }
+
   useEffect(() => {
     if (initialValues) {
       if (initialValues.datasource?.filter) {
@@ -109,11 +118,13 @@ export const EditForm = memo((props: AssistantFormProps) => {
   });
 
   useEffect(() => {
-    run({
-      from: 0,
-      size: 10000,
-    });
-  }, []);
+    if (permissions.fetchDataSources) {
+      run({
+        from: 0,
+        size: 10000,
+      });
+    }
+  }, [permissions.fetchDataSources]);
 
   const dataSource = useMemo(() => {
     return result?.hits?.hits?.map((item) => ({ ...item._source })) || [];
@@ -131,8 +142,10 @@ export const EditForm = memo((props: AssistantFormProps) => {
     return res.data;
   }, [JSON.stringify(modelsResult)]);
   useEffect(() => {
-    fetchModelProviders(10000);
-  }, []);
+    if (permissions.fetchModelProviders) {
+      fetchModelProviders(10000);
+    }
+  }, [permissions.fetchModelProviders]);
 
   const { data: mcpServerResult, run: fetchMCPServers } = useRequest(
     searchMCPServer,
@@ -142,11 +155,13 @@ export const EditForm = memo((props: AssistantFormProps) => {
   );
 
   useEffect(() => {
-    fetchMCPServers({
-      from: 0,
-      size: 10000,
-    });
-  }, []);
+    if (permissions.fetchMCPServers) {
+      fetchMCPServers({
+        from: 0,
+        size: 10000,
+      });
+    }
+  }, [permissions.fetchMCPServers]);
 
   const mcpServers = useMemo(() => {
     return (

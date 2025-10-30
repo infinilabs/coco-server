@@ -14,6 +14,12 @@ const RoleSelect = (props) => {
         placeholder,
     } = props;
 
+    const { hasAuth } = useAuth();
+
+    const permissions = {
+      search: hasAuth('cgeneric#security:role/search')
+    }
+
     const { data, loading, run } = useRequest(fetchRoles, { manual: true });
 
     const [queryParams, setQueryParams] = useState({
@@ -24,8 +30,10 @@ const RoleSelect = (props) => {
     });
 
     useEffect(() => {
-        run(queryParams);
-    }, [queryParams]);
+        if (permissions.search) {
+            run(queryParams);
+        }
+    }, [queryParams, permissions.search]);
 
     const result = useMemo(() => {
         return formatESSearchResult(data);

@@ -37,10 +37,6 @@ export default (props) => {
             key: 8,
             label: t(`page.datasource.labels.${PERMISSION_MAPPING[8]}`)
         },
-        {
-            key: 16,
-            label: t(`page.datasource.labels.${PERMISSION_MAPPING[16]}`)
-        }
     ]
     const [open, setOpen] = useState(false);
     const [isAdding, setIsAdding] = useState(false);

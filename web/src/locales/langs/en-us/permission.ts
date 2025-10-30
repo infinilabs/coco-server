@@ -112,12 +112,12 @@ const permission = {
   'entity:label': 'Entity Label',
   'generic#entity:label/read': 'Read Entity Label',
 
-  'sharing:role': 'Sharing Role',
-  'generic#sharing:role/read': 'Read Sharing Role',
-  'generic#sharing:role/create': 'Create Sharing Role',
-  'generic#sharing:role/update': 'Update Sharing Role',
-  'generic#sharing:role/delete': 'Delete Sharing Role',
-  'generic#sharing:role/search': 'Search Sharing Role',
+  'sharing': 'Sharing',
+  'generic#sharing/read': 'Read Sharing',
+  'generic#sharing/create': 'Create Sharing',
+  'generic#sharing/update': 'Update Sharinge',
+  'generic#sharing/delete': 'Delete Sharing',
+  'generic#sharing/search': 'Search Sharing',
 
   'security:authorization': 'Authorization',
   'generic#security:authorization/read': 'Read Authorization',

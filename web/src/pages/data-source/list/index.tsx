@@ -234,7 +234,7 @@ export function Component() {
             record={record} 
             title={record.name} 
             onSuccess={() => fetchData()}
-            resourceType={record?.connector?.id}
+            resourceType={'datasource'}
             resourceID={record.id}
           />
         )
@@ -354,7 +354,7 @@ export function Component() {
       const newData = formatESSearchResult(res?.data);
       const resources = newData.data.filter((item) => !!item.connector?.id).map((item) => ({
         "resource_id": item.id,
-        "resource_type": item.connector?.id
+        "resource_type": 'datasource'
       }))
       const shareRes = await fetchBatchShares(resources)
       const entities = newData.data.filter((item) => !!item._system?.owner_id).map((item) => ({
