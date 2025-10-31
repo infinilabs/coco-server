@@ -17,5 +17,6 @@ export function useAuth() {
 
   return {
     hasAuth,
+    permissions: userInfo?.permissions
   };
 }

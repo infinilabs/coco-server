@@ -10,6 +10,7 @@ import useQueryParams from '@/hooks/common/queryParams';
 
 import { createToken, deleteToken, getTokens, updateToken } from '@/service/api';
 import Permissions from '@/pages/role/modules/Permissions';
+import { selectUserInfo } from '@/store/slice/auth';
 
 type APIToken = Api.APIToken.APIToken;
 
@@ -21,6 +22,8 @@ export function Component() {
     from: 0
   });
   const { t } = useTranslation();
+
+  const userInfo = useAppSelector(selectUserInfo);
 
   const { hasAuth } = useAuth()
 
@@ -341,7 +344,7 @@ export function Component() {
                   label={t('page.apitoken.columns.permissions')}
                   name="permissions"
                 >
-                  <Permissions />
+                  <Permissions filters={{ feature: userInfo?.permissions || []}}/>
                 </Form.Item>
               </Form>
             )}
@@ -391,7 +394,8 @@ const EditComponent = ({ onCancelClick = () => {}, onOkClick = () => {}, open = 
   const { t } = useTranslation();
   const [form] = useForm();
   const [loading, setLoading] = useState(false);
-  
+  const userInfo = useAppSelector(selectUserInfo);
+
   const onModalOkClick = () => {
     form.validateFields().then(values => {
       setLoading(true);
@@ -444,7 +448,7 @@ const EditComponent = ({ onCancelClick = () => {}, onOkClick = () => {}, open = 
             label={t('page.apitoken.columns.permissions')}
             name="permissions"
           >
-            <Permissions />
+            <Permissions filters={{ feature: userInfo?.permissions || []}}/>
           </Form.Item>
         </Form>
       </Spin>

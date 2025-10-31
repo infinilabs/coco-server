@@ -11,7 +11,6 @@ interface PermissionsProps {
   readonly value?: { feature?: string[] };
   readonly onChange?: (value: { feature?: string[] }) => void;
   readonly filters?: { feature?: string[] };
-  readonly teamID?: string;
 }
 
 type FeatureItem = {
@@ -22,7 +21,7 @@ type FeatureItem = {
 };
 
 export default function Permissions(props: PermissionsProps) {
-  const { value = {}, onChange, filters, teamID } = props;
+  const { value = {}, onChange, filters } = props;
   const { feature: filterFeatures } = filters || {};
   const { feature = [] } = value;
   const [loading, setLoading] = useState(false);
@@ -105,19 +104,14 @@ export default function Permissions(props: PermissionsProps) {
   };
 
   // eslint-disable-next-line @typescript-eslint/no-shadow
-  const buildTreeData = (features: FeatureItem[], filters?: string[], teamID?: string) => {
+  const buildTreeData = (features: FeatureItem[], filters?: string[]) => {
     const treeData: Array<{ key: string; data: Array<{ object: string; operations: FeatureItem[] }> }> = [];
     features
       .filter(item => {
         if (!item.category) return false;
-        // teamID 存在时，仅当 filters 提供且非空才按 filters 过滤
-        if (teamID) {
-          if (filters && filters.length > 0) {
-            return (filters || []).includes(item.id);
-          }
-          return true;
+        if (Array.isArray(filters) && filters.length > 0) {
+          return filters.includes(item.id);
         }
-        // 无 teamID 时显示所有有 category 的条目
         return true;
       })
       .forEach(item => {
@@ -199,8 +193,8 @@ export default function Permissions(props: PermissionsProps) {
   }, []);
 
   const treeData = useMemo(() => {
-    return buildTreeData(features, filterFeatures, teamID);
-  }, [features, filterFeatures, teamID]);
+    return buildTreeData(features, filterFeatures);
+  }, [features, filterFeatures]);
 
   const items = useMemo(() => {
     return treeData.map(item => {

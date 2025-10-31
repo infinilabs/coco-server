@@ -21,6 +21,7 @@ import Shares from '../../modules/Shares';
 import { selectUserInfo } from '@/store/slice/auth';
 import { groupBy, keys, map, uniq } from "lodash";
 import AvatarLabel from '../../modules/AvatarLabel';
+import { formatDataForShare } from '../../list';
 
 interface DataType {
   category: string;
@@ -356,19 +357,7 @@ const FileManagement = (props) => {
           entityRes = await fetchBatchEntityLabels(body)
         }
         newData.data.forEach((item, index) => {
-          const hasEntities = entityRes?.data?.length > 0
-          if (shareRes?.data?.length > 0 && hasEntities) {
-            item.shares = shareRes.data.filter((s) => s.resource_id === item.id).map((item) => ({
-              ...item,
-              entity: entityRes?.data.find((o) => o.id === item.principal_id)
-            }))
-          }
-          if (item._system?.owner_id && hasEntities) {
-            item.owner = entityRes.data.find((o) => o.id === item._system?.owner_id)
-          }
-          if (userInfo?.id && hasEntities) {
-            item.editor = entityRes.data.find((o) => o.id === userInfo?.id)
-          }
+          formatDataForShare(item, shareRes?.data, entityRes?.data, userInfo)
         })
       }
       setData(newData);

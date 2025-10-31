@@ -46,6 +46,26 @@ const TYPES = {
   }
 };
 
+export function formatDataForShare(item: any, shares: any, entities: any, currentUser: any) {
+  const hasEntities = entities?.length > 0
+  if (hasEntities) {
+    if (shares?.length > 0) {
+      item.shares = shares.filter((s) => s.resource_id === item.id).map((item) => ({
+        ...item,
+        entity: entities.find((o) => o.id === item.principal_id)
+      }))
+    } else {
+      item.shares = []
+    }
+    if (item._system?.owner_id) {
+      item.owner = entities.find((o) => o.id === item._system?.owner_id)
+    }
+    if (currentUser?.id) {
+      item.editor = entities.find((o) => o.id === currentUser?.id)
+    }
+  }
+}
+
 export function Component() {
   const [queryParams, setQueryParams] = useQueryParams();
 
@@ -386,19 +406,7 @@ export function Component() {
         entityRes = await fetchBatchEntityLabels(body)
       }
       newData.data.forEach((item, index) => {
-        const hasEntities = entityRes?.data?.length > 0
-        if (shareRes?.data?.length > 0 && hasEntities) {
-          item.shares = shareRes.data.filter((s) => s.resource_id === item.id).map((item) => ({
-            ...item,
-            entity: entityRes?.data.find((o) => o.id === item.principal_id)
-          }))
-        }
-        if (item._system?.owner_id && hasEntities) {
-          item.owner = entityRes.data.find((o) => o.id === item._system?.owner_id)
-        }
-        if (userInfo?.id && hasEntities) {
-          item.editor = entityRes.data.find((o) => o.id === userInfo?.id)
-        }
+        formatDataForShare(item, shareRes?.data, entityRes?.data, userInfo)
       })
       setData((oldData: any) => {
         return {
