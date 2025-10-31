@@ -249,15 +249,14 @@ const FileManagement = (props) => {
           dataIndex: 'shares',
           title: t('page.datasource.labels.shares'),
           render: (value, record) => {
-            const isFolder = record.type === 'folder';
             return (
               <Shares
                 record={record} 
                 title={record.title} 
                 onSuccess={() => fetchData(queryParams, datasource)}
-                resourceType={datasource?.connector?.id}
-                resourceID={isFolder ? datasource?.id : record.id}
-                resourcePath={isFolder ? `/${(record.categories || []).concat([record.title]).join('/')}` : undefined}
+                resourceType={'document'}
+                resourceID={record.id}
+                resourcePath={record.categories?.length > 0 ? `/${record.categories.join('/')}/` : '/'}
               />
             )
           }
@@ -324,42 +323,40 @@ const FileManagement = (props) => {
     })
     if (res?.data) {
       const newData = formatESSearchResult(res.data);
-      if (datasource.connector?.id) {
-        const resources = newData.data.map((item) => ({
-          "resource_id": item.id,
-          "resource_type": datasource.connector.id,
-          "resource_path": item.type === 'folder' ? `/${(item.categories || []).concat([item.title]).join('/')}` : undefined
-        }))
-        let shareRes: any;
-        if (permissions.shares) {
-          shareRes = await fetchBatchShares(resources)
-        }
-        let entityRes: any
-        if (permissions.entityLabel) {
-          const entities = newData.data.filter((item) => !!item._system?.owner_id).map((item) => ({
-            type: 'user',
-            id: item._system.owner_id
-          }))
-          if (shareRes?.data?.length > 0) {
-            entities.push(...shareRes?.data.map((item) => ({ type: item.principal_type, id: item.principal_id })))
-          }
-          if (userInfo?.id) {
-            entities.push({
-              type: 'user',
-              id: userInfo.id
-            })
-          }
-          const grouped = groupBy(entities, 'type');
-          const body = map(keys(grouped), (type) => ({
-              type,
-              id: uniq(map(grouped[type], 'id')) 
-          }))
-          entityRes = await fetchBatchEntityLabels(body)
-        }
-        newData.data.forEach((item, index) => {
-          formatDataForShare(item, shareRes?.data, entityRes?.data, userInfo)
-        })
+      const resources = newData.data.map((item) => ({
+        "resource_id": item.id,
+        "resource_type": 'document',
+        "resource_path": item.categories?.length > 0 ? `/${item.categories.join('/')}/` : '/'
+      }))
+      let shareRes: any;
+      if (permissions.shares) {
+        shareRes = await fetchBatchShares(resources)
       }
+      let entityRes: any
+      if (permissions.entityLabel) {
+        const entities = newData.data.filter((item) => !!item._system?.owner_id).map((item) => ({
+          type: 'user',
+          id: item._system.owner_id
+        }))
+        if (shareRes?.data?.length > 0) {
+          entities.push(...shareRes?.data.map((item) => ({ type: item.principal_type, id: item.principal_id })))
+        }
+        if (userInfo?.id) {
+          entities.push({
+            type: 'user',
+            id: userInfo.id
+          })
+        }
+        const grouped = groupBy(entities, 'type');
+        const body = map(keys(grouped), (type) => ({
+            type,
+            id: uniq(map(grouped[type], 'id')) 
+        }))
+        entityRes = await fetchBatchEntityLabels(body)
+      }
+      newData.data.forEach((item, index) => {
+        formatDataForShare(item, shareRes?.data, entityRes?.data, userInfo)
+      })
       setData(newData);
     }
     setLoading(false);
