@@ -214,6 +214,13 @@ const FileManagement = (props) => {
               aProps.href = record.url;
               aProps.target = "_blank";
             }
+
+            let shareIcon;
+
+            if (record.owner?.id && record.owner?.id !== record.editor?.id) {
+              shareIcon = <SvgIcon localIcon='share' className='text-#999'/>
+            }
+
             return (
               <span className="inline-flex items-center gap-1">
                 {imgSrc ? (
@@ -226,6 +233,7 @@ const FileManagement = (props) => {
                   </IconWrapper>
                 ) : <FontIcon name={record.icon} />}
                 { record.url || record.type === 'folder' ? <a {...aProps}>{text}</a> : <span>{text}</span> }
+                {shareIcon}
               </span>
             );
           },

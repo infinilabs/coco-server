@@ -199,6 +199,13 @@ export function Component() {
           iconSrc = data.connectors[record.connector.id]?.icon;
         }
         if (!iconSrc) return value;
+
+        let shareIcon;
+
+        if (record.owner?.id && record.owner?.id !== record.editor?.id) {
+          shareIcon = <SvgIcon localIcon='share' className='text-#999'/>
+        }
+
         const content = (
           <>
             <IconWrapper className="w-20px h-20px">
@@ -209,6 +216,7 @@ export function Component() {
               />
             </IconWrapper>
             {value}
+            {shareIcon}
           </>
         )
         if (permissions.read) {

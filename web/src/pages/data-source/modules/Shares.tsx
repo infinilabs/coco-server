@@ -1,4 +1,4 @@
-import { Avatar, Button, Popover } from "antd";
+import { Avatar, Button, Popover, Typography } from "antd";
 import { UserOutlined } from '@ant-design/icons';
 import AvatarLabel from "./AvatarLabel";
 import AddShares from "./AddShares";
@@ -97,12 +97,22 @@ export default (props) => {
         <Popover 
             trigger={'click'} 
             placement="bottom"
-            title={<div className="text-16px mb-16px">{`${t('page.datasource.labels.shareTo')} ${title}`}</div>} 
+            title={(
+                <Typography.Paragraph
+                    ellipsis={{
+                        rows: 1,
+                        tooltip: true,
+                    }}
+                    className="text-16px mb-16px"
+                >
+                    {`${t('page.datasource.labels.shareTo')} ${title}`}
+                </Typography.Paragraph>
+            )} 
             open={open}
             onOpenChange={handleOpenChange}
             content={content}
             className="flex w-fit cursor-pointer"
-            rootClassName={"min-w-362px"}
+            rootClassName={"w-362px"}
             destroyTooltipOnHide
         >
             {
