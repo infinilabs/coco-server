@@ -14,7 +14,7 @@ export const PERMISSION_MAPPING = {
 
 export default (props) => {
 
-    const { title, record = {}, resourceType, resourceID, resourcePath, onSuccess } = props;
+    const { title, record = {}, resource, onSuccess } = props;
 
     const { t } = useTranslation();
 
@@ -73,9 +73,7 @@ export default (props) => {
             permissionOptions={permissionOptions} 
             onCancel={() => handleOpenChange(false)} 
             onSuccess={handleSuccess}
-            resourceType={resourceType}
-            resourceID={resourceID}
-            resourcePath={resourcePath}
+            resource={resource}
             owner={owner} 
             editor={editor}
             shares={shares}
@@ -91,9 +89,7 @@ export default (props) => {
             onCancel={() => handleOpenChange(false)} 
             onAddShares={() => setIsAdding(true)} 
             onSuccess={handleSuccess}
-            resourceType={resourceType}
-            resourceID={resourceID}
-            resourcePath={resourcePath}
+            resource={resource}
         />
     )
 

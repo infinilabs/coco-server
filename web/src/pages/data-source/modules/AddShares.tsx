@@ -4,7 +4,7 @@ import { addShares } from "@/service/api/share";
 
 export default function AddShares(props) {
 
-    const { hasCreate, permissionOptions = [], owner, editor, shares, onCancel, onSuccess, resourceType, resourceID, resourcePath } = props;
+    const { hasCreate, permissionOptions = [], owner, editor, shares, onCancel, onSuccess, resource } = props;
 
     const { t } = useTranslation();
     const [form] = Form.useForm();
@@ -13,14 +13,10 @@ export default function AddShares(props) {
         const { permission, shares = [] } = values;
         const formatShares = shares.map((item) => {
             const share = {
-                "resource_type": resourceType,
-                "resource_id": resourceID,
+                ...(resource || {}),
                 "principal_type": "user",
                 "principal_id": item.id,
                 permission,
-            }
-            if (resourcePath) {
-                share['resource_path'] = resourcePath
             }
             return share
         })

@@ -8,7 +8,7 @@ import { PERMISSION_MAPPING } from "./Shares";
 
 export default function EditShares(props) {
 
-    const { hasCreate, hasEdit, resourceType, resourceID, resourcePath, permissionOptions = [], owner, shares = [], editor, onCancel, onAddShares, onSuccess } = props;
+    const { hasCreate, hasEdit, resource, permissionOptions = [], owner, shares = [], editor, onCancel, onAddShares, onSuccess } = props;
     const { t } = useTranslation();
 
     const [currentData, setCurrentData] = useState([]);
@@ -36,13 +36,13 @@ export default function EditShares(props) {
         if (JSON.stringify(sourceData) !== JSON.stringify(currentData)) {
             const deletedItems = differenceBy(sourceData, currentData, 'principal_id');
             const res = await updateShares({
-                type: resourceType,
-                id: resourceID,
+                type: resource?.resource_type,
+                id: resource?.resource_id,
                 shares: currentData.map((item) => ({
+                    ...(resource || {}),
                     "principal_type": "user",
                     "principal_id": item.principal_id,
                     permission: item.permission,
-                    resource_path: resourcePath
                 })),
                 revokes: (deletedItems || []).map((item) => ({
                     "id": item.id,

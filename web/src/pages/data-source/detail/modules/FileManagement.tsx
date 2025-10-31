@@ -254,9 +254,13 @@ const FileManagement = (props) => {
                 record={record} 
                 title={record.title} 
                 onSuccess={() => fetchData(queryParams, datasource)}
-                resourceType={'document'}
-                resourceID={record.id}
-                resourcePath={record.categories?.length > 0 ? `/${record.categories.join('/')}/` : '/'}
+                resource={{
+                  'resource_category_type': 'datasource',
+                  'resource_category_id': datasource?.id,
+                  'resource_type': 'document',
+                  'resource_id': record.id,
+                  'resource_path': record.categories?.length > 0 ? `/${record.categories.join('/')}/` : '/',
+                }}
               />
             )
           }
@@ -326,7 +330,6 @@ const FileManagement = (props) => {
       const resources = newData.data.map((item) => ({
         "resource_id": item.id,
         "resource_type": 'document',
-        "resource_path": item.categories?.length > 0 ? `/${item.categories.join('/')}/` : '/'
       }))
       let shareRes: any;
       if (permissions.shares) {

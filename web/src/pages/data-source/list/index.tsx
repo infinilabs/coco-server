@@ -257,8 +257,12 @@ export function Component() {
             record={record} 
             title={record.name} 
             onSuccess={() => fetchData()}
-            resourceType={'datasource'}
-            resourceID={record.id}
+            resource={{
+              'resource_category_type': 'connector',
+              'resource_category_id': record.connector?.id,
+              'resource_type': 'datasource',
+              'resource_id': record.id,
+            }}
           />
         )
       }
