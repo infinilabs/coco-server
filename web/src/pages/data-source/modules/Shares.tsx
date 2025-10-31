@@ -61,15 +61,18 @@ export default (props) => {
         onSuccess && onSuccess()
     }
 
-    const hasShardPermission = useMemo(() => {
+    const hasSharePermission = useMemo(() => {
         if (owner?.id === editor?.id) return true;
         const share = shares.find((item) => item.principal_id === editor?.id)
         return share?.permission ? [8, 16].includes(share.permission) : false
     }, [owner, editor, shares])
 
+    const hasCreate = permissions.create && hasSharePermission
+    const hasEdit = permissions.update && hasSharePermission
+
     const content = isAdding ? (
         <AddShares 
-            hasCreate={permissions.create && hasShardPermission}
+            hasCreate={hasCreate}
             permissionOptions={permissionOptions} 
             onCancel={() => handleOpenChange(false)} 
             onSuccess={handleSuccess}
@@ -80,8 +83,8 @@ export default (props) => {
         />
     ) : (
         <EditShares
-            hasCreate={permissions.create && hasShardPermission}
-            hasEdit={permissions.update && hasShardPermission} 
+            hasCreate={hasCreate}
+            hasEdit={hasEdit} 
             permissionOptions={permissionOptions} 
             owner={owner} 
             editor={editor}
@@ -117,7 +120,7 @@ export default (props) => {
         >
             {
                 shares.length === 0 ? (
-                    permissions.create ? (
+                    hasCreate ? (
                         <Button className="px-0" type="link" onClick={() => setIsAdding(true)}>{t('common.add')}</Button>
                     ) : '-'
                 ) : (

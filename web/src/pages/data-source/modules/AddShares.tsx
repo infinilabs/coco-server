@@ -8,6 +8,7 @@ export default function AddShares(props) {
 
     const { t } = useTranslation();
     const [form] = Form.useForm();
+    const { defaultRequiredRule } = useFormRules();
 
     const onFinish = async (values) => {
         const { permission, shares = [] } = values;
@@ -51,12 +52,14 @@ export default function AddShares(props) {
                 <Form.Item
                     label={t('page.datasource.labels.shareToPrincipal')}
                     name="shares"
+                    rules={[defaultRequiredRule]}
                 >
                     <PrincipalSelect mode="multiple" excluded={excluded}/>
                 </Form.Item>
                 <Form.Item
                     label={t('page.datasource.labels.permission')}
                     name="permission"
+                    rules={[defaultRequiredRule]}
                 >
                     <Select options={permissionOptions.map((item) => ({ ...item, value: item.key}))}/>
                 </Form.Item>

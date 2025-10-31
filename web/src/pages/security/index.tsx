@@ -1,5 +1,4 @@
 import { Tabs } from "antd";
-import type { TabsProps } from "antd";
 
 import Auth from "./modules/Auth";
 import Role from "./modules/Role";
@@ -23,11 +22,11 @@ export function Component() {
     setSearchParams({ tab: key });
   };
 
-  const items: TabsProps["items"] = [];
+  const items: any[] = [];
 
   if (permissions.viewAuth && window.__POWERED_BY_WUJIE__) {
     items.push({
-      children: <Auth />,
+      component: Auth,
       key: "auth",
       label: t(`page.auth.title`),
     });
@@ -35,7 +34,7 @@ export function Component() {
 
   if (permissions.viewUser && !window.__POWERED_BY_WUJIE__) {
     items.push({
-      children: <User />,
+      component: User,
       key: "user",
       label: t(`page.user.title`),
     });
@@ -43,7 +42,7 @@ export function Component() {
 
   if (permissions.viewRole) {
     items.push({
-      children: <Role />,
+      component: Role,
       key: "role",
       label: t(`page.role.title`),
     });
@@ -66,7 +65,7 @@ export function Component() {
         onChange={onChange}
       />
       <div className="settings-tabs-content">
-        {activeItem?.children ? activeItem.children : null}
+        {activeItem?.component ? <activeItem.component /> : null}
       </div>
     </ACard>
   );
