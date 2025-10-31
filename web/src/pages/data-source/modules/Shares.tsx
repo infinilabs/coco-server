@@ -63,8 +63,8 @@ export default (props) => {
 
     const hasShardPermission = useMemo(() => {
         if (owner?.id === editor?.id) return true;
-        const permission = shares.find((item) => item.principal_id === editor?.id)
-        return permission ? [8, 16].includes(permission) : false
+        const share = shares.find((item) => item.principal_id === editor?.id)
+        return share?.permission ? [8, 16].includes(share.permission) : false
     }, [owner, editor, shares])
 
     const content = isAdding ? (
@@ -80,7 +80,7 @@ export default (props) => {
         />
     ) : (
         <EditShares
-            hasCreate={permissions.create}
+            hasCreate={permissions.create && hasShardPermission}
             hasEdit={permissions.update && hasShardPermission} 
             permissionOptions={permissionOptions} 
             owner={owner} 
