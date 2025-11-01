@@ -12,7 +12,6 @@ import (
 	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
 	"infini.sh/framework/lib/fasttemplate"
-	"infini.sh/framework/plugins/enterprise/http_filters"
 )
 
 type APIHandler struct {
@@ -44,7 +43,7 @@ const Datasource = "integration"
 func init() {
 
 	// register allow origin function
-	http_filters.RegisterAllowOriginFunc("integration", IntegrationAllowOrigin)
+	security.RegisterAllowOriginFunc("integration", IntegrationAllowOrigin)
 
 	createPermission := security.GetSimplePermission(Category, Datasource, string(security.Create))
 	updatePermission := security.GetSimplePermission(Category, Datasource, string(security.Update))

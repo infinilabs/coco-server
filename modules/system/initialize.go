@@ -8,7 +8,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"infini.sh/framework/plugins/enterprise/security/rbac"
+	"infini.sh/framework/core/security"
 	"io"
 	"io/fs"
 	"net/http"
@@ -89,7 +89,7 @@ func (h *APIHandler) setupServer(w http.ResponseWriter, req *http.Request, ps ht
 		panic("password can't be empty")
 	}
 
-	user := rbac.CreateInitUser(input.Name, input.Email, input.Password, true)
+	user, err := security.MustGetAuthenticationProvider().CreateUser(input.Name, input.Email, input.Password, true)
 	if user == nil {
 		panic("failed to init user")
 	}

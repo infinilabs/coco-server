@@ -14,7 +14,6 @@ import (
 	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
 	ccache "infini.sh/framework/lib/cache"
-	"infini.sh/framework/plugins/enterprise/security/rbac"
 	"net/http"
 	"time"
 )
@@ -114,7 +113,7 @@ func GetUserPermissions(shortUser *security.UserSessionInfo) *security.UserAssig
 
 	//TODO, handle api key, with specify permissions
 	//TODO, if the provider is for user, like api token, we need to fetch from api token's config, to get the updated permission
-	allowedPermissions := rbac.GetPermissionKeysByUserID(shortUser.MustGetUserID())
+	allowedPermissions := security.GetPermissionKeysByUserID(shortUser.MustGetUserID())
 
 	//user, err := security.GetUser(shortUser.UserID)
 	//if err != nil {

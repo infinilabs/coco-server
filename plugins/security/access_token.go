@@ -9,7 +9,6 @@ import (
 	log "github.com/cihub/seelog"
 	"github.com/emirpasic/gods/sets/hashset"
 	"infini.sh/framework/core/orm"
-	"infini.sh/framework/plugins/enterprise/security/rbac"
 	"net/http"
 	"time"
 
@@ -24,7 +23,7 @@ import (
 
 func GetPermissionKeys(u *security.UserSessionInfo) []security.PermissionKey {
 	//TODO cache, catch permission updates
-	keys := rbac.GetPermissionKeysByRole(u.Roles)
+	keys := security.GetPermissionKeysByRole(u.Roles)
 	if len(u.Permissions) > 0 {
 		keys = append(keys, u.Permissions...)
 	}

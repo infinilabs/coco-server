@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/orm"
-	"infini.sh/framework/plugins/enterprise/security/rbac"
 	"net/http"
 	"strings"
 
@@ -45,7 +44,7 @@ func (h APIHandler) Profile(w http.ResponseWriter, r *http.Request, ps httproute
 
 	//TODO get from user's profile, or fallback to account info
 
-	exists, user, err := rbac.GetUserByID(reqUser.GetOwnerID())
+	exists, user, err := security.GetUserByID(reqUser.GetOwnerID())
 	if err != nil {
 		panic(err)
 	}
@@ -57,7 +56,7 @@ func (h APIHandler) Profile(w http.ResponseWriter, r *http.Request, ps httproute
 	profile.Email = user.Email
 	profile.ID = user.ID
 	profile.Name = user.Name
-	profile.Permissions = rbac.GetPermissionKeysByRole(user.Roles)
+	profile.Permissions = security.GetPermissionKeysByRole(user.Roles)
 
 	h.WriteJSON(w, profile, 200)
 }
@@ -215,7 +214,7 @@ func AddUserAccessTokenToSession(w http.ResponseWriter, r *http.Request, user *s
 
 func (h APIHandler) checkPasswordForEmail(email, password string) (error, *security.UserAccount, bool) {
 
-	exists, account, err := rbac.GetUserByEmail(email)
+	exists, account, err := security.GetUserByLogin(email)
 	if err != nil {
 		return err, nil, false
 	}
@@ -232,7 +231,7 @@ func (h APIHandler) checkPasswordForEmail(email, password string) (error, *secur
 
 func (h APIHandler) checkPasswordForUserID(id, password string) (error, *security.UserAccount, bool) {
 
-	exists, account, err := rbac.GetUserByID(id)
+	exists, account, err := security.GetUserByID(id)
 	if err != nil {
 		return err, nil, false
 	}
