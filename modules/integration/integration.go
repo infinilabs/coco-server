@@ -126,6 +126,9 @@ func (h *APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprou
 		return
 	}
 	builder.EnableBodyBytes()
+	if len(builder.Sorts()) == 0 {
+		builder.SortBy(orm.Sort{Field: "created", SortType: orm.DESC})
+	}
 
 	ctx := orm.NewContextWithParent(req.Context())
 	orm.WithModel(ctx, &common.Integration{})

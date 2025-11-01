@@ -158,6 +158,10 @@ func (h *APIHandler) searchMCPServer(w http.ResponseWriter, req *http.Request, p
 		return
 	}
 	builder.EnableBodyBytes()
+	if len(builder.Sorts()) == 0 {
+		builder.SortBy(orm.Sort{Field: "created", SortType: orm.DESC})
+	}
+
 	ctx := orm.NewContextWithParent(req.Context())
 	orm.WithModel(ctx, &common.MCPServer{})
 

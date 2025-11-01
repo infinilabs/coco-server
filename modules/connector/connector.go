@@ -65,6 +65,7 @@ func (h *APIHandler) get(w http.ResponseWriter, req *http.Request, ps httprouter
 	}, 200)
 }
 
+// TODO cache
 func GetConnectorByID(id string) (*common.Connector, error) {
 	obj := common.Connector{}
 	obj.ID = id
@@ -179,6 +180,10 @@ func (h *APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprou
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	if len(builder.Sorts()) == 0 {
+		builder.SortBy(orm.Sort{Field: "created", SortType: orm.DESC})
 	}
 
 	builder.EnableBodyBytes()

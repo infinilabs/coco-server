@@ -88,6 +88,9 @@ func (h APIHandler) getAttachments(w http.ResponseWriter, req *http.Request, ps 
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	if len(builder.Sorts()) == 0 {
+		builder.SortBy(orm.Sort{Field: "created", SortType: orm.DESC})
+	}
 
 	builder.Filter(orm.MustNotQuery(orm.TermQuery("deleted", true)))
 
