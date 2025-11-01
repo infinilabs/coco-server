@@ -267,7 +267,9 @@ const FileManagement = (props) => {
                   'resource_category_id': datasource?.id,
                   'resource_type': 'document',
                   'resource_id': record.id,
-                  'resource_path': record.categories?.length > 0 ? `/${record.categories.join('/')}/` : '/',
+                  'resource_parent_path': record.categories?.length > 0 ? `/${record.categories.join('/')}/` : '/',
+                  'resource_full_path': (record.categories?.length > 0 ? `/${record.categories.join('/')}/` : '/')+record.title,
+                  'resource_is_folder': record?.type=="folder",
                 }}
               />
             )

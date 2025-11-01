@@ -114,6 +114,9 @@ func (h *APIHandler) getDatasource(w http.ResponseWriter, req *http.Request, ps 
 	obj := common.DataSource{}
 	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "datasource")
+	ctx.Set(orm.SharingResourceIsCategory, true)
 
 	exists, err := orm.GetV2(ctx, &obj)
 	if !exists || err != nil {
@@ -223,6 +226,9 @@ func (h *APIHandler) searchDatasource(w http.ResponseWriter, req *http.Request, 
 
 	ctx := orm.NewContextWithParent(req.Context())
 	orm.WithModel(ctx, &common.DataSource{})
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "datasource")
+	ctx.Set(orm.SharingResourceIsCategory, true)
 
 	docs := []common.DataSource{}
 

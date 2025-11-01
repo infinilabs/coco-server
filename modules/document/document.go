@@ -7,11 +7,11 @@ package document
 import (
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/modules/common"
+	"infini.sh/coco/modules/connector"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
 	"net/http"
-	"path"
 )
 
 func (h *APIHandler) createDoc(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -104,65 +104,180 @@ func (h *APIHandler) searchDocs(w http.ResponseWriter, req *http.Request, ps htt
 		return
 	}
 	builder.EnableBodyBytes()
+	if len(builder.Sorts()) == 0 {
+		builder.SortBy(orm.Sort{Field: "created", SortType: orm.DESC})
+	}
 
 	ctx := orm.NewContextWithParent(req.Context())
-
-	//TODO cache
+	view := h.GetParameter(req, "view")
+	//view := "list"
 	sourceIDs := builder.GetFilterValues("source.id")
+
 	pathHierarchy := false
+	//apply datasource filter //TODO datasource may support multi ids
 	if len(sourceIDs) == 1 {
+		ctx1 := orm.NewContext()
+		ctx1.DirectReadAccess()
 		sourceIDArray, ok := sourceIDs[0].([]interface{})
-		if ok && len(sourceIDArray) == 1 {
+		if ok {
 			sourceID, ok := sourceIDArray[0].(string)
 			if ok {
-				if sourceID != "" {
-					ds := common.DataSource{}
-					ds.ID = sourceID
-					exists, err := orm.GetV2(ctx, &ds)
-					if !exists || err != nil {
-						panic("invalid datasource")
-					}
-
-					conn := common.Connector{}
-					conn.ID = ds.Connector.ConnectorID
-					exists, err = orm.GetV2(ctx, &conn)
-					if !exists || err != nil {
-						panic("invalid connector")
+				ds, err := common.GetDatasourceConfig(ctx1, sourceID)
+				if err != nil {
+					panic(err)
+				}
+				if ds != nil {
+					conn, err := connector.GetConnectorByID(ds.Connector.ConnectorID)
+					if err != nil {
+						panic(err)
 					}
 					if conn.PathHierarchy {
 						pathHierarchy = true
 					}
+
+					ctx.Set(orm.SharingResourceCategoryFilterEnabled, true)
+					ctx.Set(orm.SharingResourceCategoryType, "datasource")
+					ctx.Set(orm.SharingResourceCategoryFilterField, "source.id")
+					ctx.Set(orm.SharingResourceCategoryID, ds.ID)
 				}
 			}
 		}
 	}
 
-	if pathHierarchy {
-		pathFilterStr := h.GetParameter(req, "path")
-		if pathFilterStr != "" {
-			array := []string{}
-			err = util.FromJson(pathFilterStr, &array)
-			if err != nil {
-				panic(err)
-			}
-			if len(array) > 0 {
-				pathStr := path.Join(array...)
-				if pathStr != "" {
-					if !util.PrefixStr(pathStr, "/") {
-						pathStr = "/" + pathStr
-					}
-				}
-				builder.Filter(orm.TermQuery("_system.parent_path", pathStr))
-				log.Trace("adding path hierarchy filter: ", pathStr)
-			}
-		} else {
-			//if connector enabled path hierarchy, the default path filter is /
-			builder.Filter(orm.TermQuery("_system.parent_path", "/"))
-			log.Trace("adding path hierarchy filter: /")
+	//TODO cache
+	var pathStr = "/"
+	pathFilterStr := h.GetParameter(req, "path")
+	if pathFilterStr != "" {
+		array := []string{}
+		err = util.FromJson(pathFilterStr, &array)
+		if err != nil {
+			panic(err)
+		}
+		if len(array) > 0 {
+			pathStr = common.GetFullPathForCategories(array)
+			//builder.Filter(orm.TermQuery("_system.parent_path", pathStr))
+			//log.Trace("adding path hierarchy filter: ", pathStr)
+			//ctx.Set(orm.SharingResourceParentPath, pathStr)
 		}
 	}
+
+	//path str
+	if view != "list" && pathHierarchy && pathStr != "" {
+		builder.Filter(orm.TermQuery("_system.parent_path", pathStr))
+		log.Trace("adding path hierarchy filter: ", pathStr)
+		ctx.Set(orm.SharingResourceParentPath, pathStr)
+	} else {
+		//apply path filter to list view too
+		if pathStr != "/" {
+			builder.Filter(orm.TermQuery("_system.parent_path", pathStr))
+			log.Trace("adding path hierarchy filter: ", pathStr)
+			ctx.Set(orm.SharingResourceParentPath, pathStr)
+		}
+	}
+
+	//if pathHierarchy {
+	//	if pathFilterStr != "" {
+	//		array := []string{}
+	//		err = util.FromJson(pathFilterStr, &array)
+	//		if err != nil {
+	//			panic(err)
+	//		}
+	//		if len(array) > 0 {
+	//			pathStr := common.GetFullPathForCategories(array)
+	//			//pathStr := path.Join(array...)
+	//			//if pathStr != "" {
+	//			//	if !util.PrefixStr(pathStr, "/") {
+	//			//		pathStr = "/" + pathStr
+	//			//	}
+	//			//	if !util.SuffixStr(pathStr, "/") {
+	//			//		pathStr = pathStr + "/"
+	//			//	}
+	//			//}
+	//			builder.Filter(orm.TermQuery("_system.parent_path", pathStr))
+	//			log.Trace("adding path hierarchy filter: ", pathStr)
+	//			ctx.Set(orm.SharingResourceParentPath, pathStr)
+	//		}
+	//	} else {
+	//		//if connector enabled path hierarchy, the default path filter is /
+	//		builder.Filter(orm.TermQuery("_system.parent_path", "/"))
+	//		ctx.Set(orm.SharingResourceParentPath, "/")
+	//		log.Trace("adding path hierarchy filter: /")
+	//	}
+	//}
+
+	//}
+
+	//if view != "list" {
+	//	pathHierarchy := false
+	//	if len(sourceIDs) == 1 {
+	//		ctx1 := orm.NewContext()
+	//		ctx1.DirectReadAccess()
+	//		sourceIDArray, ok := sourceIDs[0].([]interface{})
+	//		if ok {
+	//			sourceID, ok := sourceIDArray[0].(string)
+	//			if ok {
+	//				ds, err := common.GetDatasourceConfig(ctx1, sourceID)
+	//				if err != nil {
+	//					panic(err)
+	//				}
+	//				if ds != nil {
+	//					conn, err := connector.GetConnectorByID(ds.Connector.ConnectorID)
+	//					if err != nil {
+	//						panic(err)
+	//					}
+	//					if conn.PathHierarchy {
+	//						pathHierarchy = true
+	//					}
+	//
+	//					ctx.Set(orm.SharingResourceCategoryFilterEnabled, true)
+	//					ctx.Set(orm.SharingResourceCategoryType, "datasource")
+	//					ctx.Set(orm.SharingResourceCategoryFilterField, "source.id")
+	//					ctx.Set(orm.SharingResourceCategoryID, ds.ID)
+	//				}
+	//			}
+	//		}
+	//	}
+	//	if pathHierarchy {
+	//		if pathFilterStr != "" {
+	//			array := []string{}
+	//			err = util.FromJson(pathFilterStr, &array)
+	//			if err != nil {
+	//				panic(err)
+	//			}
+	//			if len(array) > 0 {
+	//				pathStr := common.GetFullPathForCategories(array)
+	//				//pathStr := path.Join(array...)
+	//				//if pathStr != "" {
+	//				//	if !util.PrefixStr(pathStr, "/") {
+	//				//		pathStr = "/" + pathStr
+	//				//	}
+	//				//	if !util.SuffixStr(pathStr, "/") {
+	//				//		pathStr = pathStr + "/"
+	//				//	}
+	//				//}
+	//				builder.Filter(orm.TermQuery("_system.parent_path", pathStr))
+	//				log.Trace("adding path hierarchy filter: ", pathStr)
+	//				ctx.Set(orm.SharingResourceParentPath, pathStr)
+	//			}
+	//		} else {
+	//			//if connector enabled path hierarchy, the default path filter is /
+	//			builder.Filter(orm.TermQuery("_system.parent_path", "/"))
+	//			ctx.Set(orm.SharingResourceParentPath, "/")
+	//			log.Trace("adding path hierarchy filter: /")
+	//		}
+	//	}
+	//}else{
+	//	//if pathFilterStr!="/"&&len(pathFilterStr)>0{
+	//	//	builder.Filter(orm.TermQuery("_system.parent_path", pathStr))
+	//	//	log.Trace("adding path hierarchy filter: ", pathStr)
+	//	//	ctx.Set(orm.SharingResourceParentPath, pathStr)
+	//	//}
+	//}
 
 	orm.WithModel(ctx, &common.Document{})
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "document")
+
 	res, err := orm.SearchV2(ctx, builder)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
