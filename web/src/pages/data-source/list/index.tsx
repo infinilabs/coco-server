@@ -354,7 +354,7 @@ export function Component() {
         const isOwner = record.owner?.id && record.owner?.id === record.editor?.id
 
         const items: MenuProps['items'] = [];
-        if (permissions.read && permissions.update && !hasEdit(record)) {
+        if (permissions.read && permissions.update && hasEdit(record)) {
           items.push({
             key: '2',
             label: t('common.edit')

@@ -488,7 +488,6 @@ export const generatedRoutes: GeneratedRoute[] = [
       title: 'search',
       constant: true,
       hideInMenu: true,
-      permissions: ['coco#search/search']
     }
   },
   {

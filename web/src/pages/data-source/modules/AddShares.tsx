@@ -22,7 +22,7 @@ export default function AddShares(props) {
             return share
         })
         const res = await addShares({ shares: formatShares })
-        if (res?.data?.created) {
+        if (res && !res.error) {
             window.$message?.success(t('common.addSuccess'));
             onSuccess && onSuccess()
         }

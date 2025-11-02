@@ -193,72 +193,51 @@ const FileManagement = (props) => {
     [state.selectedRowKeys]
   );
 
-  const columns: TableColumnsType<DataType> = useMemo(
-    () => {
-      return [
-        {
-          dataIndex: 'title',
-          render: (text: string, record: DataType) => {
-            const isOwner = record.owner?.id && record.owner?.id === record.editor?.id
+  const columns: TableColumnsType<DataType> = [
+    {
+      dataIndex: 'title',
+      render: (text: string, record: DataType) => {
+        const isOwner = record.owner?.id && record.owner?.id === record.editor?.id
 
-            let imgSrc = '';
-            if (connector?.assets?.icons) {
-              imgSrc = connector.assets.icons[record.icon];
-            }
-            const aProps = {
-              className: "text-blue-500",
-              rel: "noreferrer",
-            }
+        let imgSrc = '';
+        if (connector?.assets?.icons) {
+          imgSrc = connector.assets.icons[record.icon];
+        }
+        const aProps = {
+          className: "text-blue-500",
+          rel: "noreferrer",
+        }
 
-            const pathHierarchy = connector?.path_hierarchy && record.type === 'folder'
+        const pathHierarchy = connector?.path_hierarchy && record.type === 'folder'
 
-            if (pathHierarchy) {
-              aProps.onClick = () => {
-                const categories = (record.categories || []).concat([record.title])
-                setQueryParams(old => {
-                  return {
-                    ...old,
-                    path: JSON.stringify(categories),
-                    view: isOwner ? 'auto' : 'list'
-                  }
-                })
-              } 
-            } else if (record.url) {
-              aProps.href = record.url;
-              aProps.target = "_blank";
-            }
+        if (pathHierarchy) {
+          aProps.onClick = () => {
+            const categories = (record.categories || []).concat([record.title])
+            setQueryParams(old => {
+              return {
+                ...old,
+                path: JSON.stringify(categories),
+                view: isOwner ? 'auto' : 'list'
+              }
+            })
+          } 
+        } else if (record.url) {
+          aProps.href = record.url;
+          aProps.target = "_blank";
+        }
 
-            let shareIcon;
+        let shareIcon;
 
-            if (!isOwner) {
-              shareIcon = <SvgIcon localIcon='share' className='text-#999'/>
-            }
+        if (!isOwner) {
+          shareIcon = <SvgIcon localIcon='share' className='text-#999'/>
+        }
 
-            if (connector?.path_hierarchy && queryParams.view === 'list') {
-              return (
-                <span className='inline-flex flex-col'>
-                  <span className="inline-flex items-center gap-1 text-12px h-16px">
-                    {imgSrc ? (
-                      <IconWrapper className="w-1em h-1em text-16px">
-                        <InfiniIcon
-                          height="1em"
-                          src={imgSrc}
-                          width="1em"
-                        />
-                      </IconWrapper>
-                    ) : <FontIcon name={record.icon} />}
-                    { record.url || pathHierarchy ? <a {...aProps}>{text}</a> : <span>{text}</span> }
-                    {shareIcon}
-                  </span>
-                  <span className='text-10px h-14px text-#999'>{record.categories?.length > 0 ? `/${record.categories.join('/')}` : '/'}</span>
-                </span>
-              )
-            }
-
-            return (
-              <span className="inline-flex items-center gap-1">
+        if (connector?.path_hierarchy && queryParams.view === 'list') {
+          return (
+            <span className='inline-flex flex-col'>
+              <span className="inline-flex items-center gap-1 text-12px h-16px">
                 {imgSrc ? (
-                  <IconWrapper className="w-20px h-20px">
+                  <IconWrapper className="w-1em h-1em text-16px">
                     <InfiniIcon
                       height="1em"
                       src={imgSrc}
@@ -269,100 +248,114 @@ const FileManagement = (props) => {
                 { record.url || pathHierarchy ? <a {...aProps}>{text}</a> : <span>{text}</span> }
                 {shareIcon}
               </span>
-            );
-
-          },
-          title: t('page.datasource.columns.name')
-        },
-        {
-          dataIndex: 'owner',
-          title: t('page.datasource.labels.owner'),
-          render: (value, record) => {
-            if (!value) return '-'
-            return (
-              <div className='flex'>
-                <Avatar.Group max={{ count: 1 }} size={"small"}>
-                  <AvatarLabel data={value} showCard={true}/>
-                </Avatar.Group>
-              </div>
-            )
-          }
-        },
-        {
-          dataIndex: 'shares',
-          title: t('page.datasource.labels.shares'),
-          render: (value, record) => {
-            return (
-              <Shares
-                record={record} 
-                title={record.title} 
-                onSuccess={() => fetchData(queryParams, datasource)}
-                resource={{
-                  'resource_category_type': 'datasource',
-                  'resource_category_id': datasource?.id,
-                  'resource_type': 'document',
-                  'resource_id': record.id,
-                  'resource_parent_path': record.categories?.length > 0 ? `/${record.categories.join('/')}/` : '/',
-                  'resource_full_path': (record.categories?.length > 0 ? `/${record.categories.join('/')}/` : '/') + record.title,
-                  'resource_is_folder': record?.type === "folder",
-                }}
-              />
-            )
-          }
-        },
-        // {
-        //   dataIndex: 'updated',
-        //   title: t('page.datasource.labels.updated')
-        // },
-        // {
-        //   dataIndex: 'size',
-        //   title: t('page.datasource.labels.size')
-        // },
-        {
-          dataIndex: 'disabled',
-          render: (text: boolean, record: DataType) => {
-            return (
-              <Switch
-                size="small"
-                value={!text}
-                onChange={v => {
-                  onSearchableChange(v, record);
-                }}
-                disabled={!permissions.update || !hasEdit(record)}
-              />
-            );
-          },
-          title: t('page.datasource.columns.searchable')
-        },
-        {
-          fixed: 'right',
-          hidden: !permissions.delete,
-          render: (_, record) => {
-            const isOwner = record.owner?.id && record.owner?.id === record.editor?.id
-            if (!isOwner) return null
-            return (
-              <Dropdown menu={{ items, onClick: ({ key }) => onMenuClick({ key, record }) }}>
-                <EllipsisOutlined />
-              </Dropdown>
-            );
-          },
-          title: t('common.operation'),
-          width: '90px'
+              <span className='text-10px h-14px text-#999'>{record.categories?.length > 0 ? `/${record.categories.join('/')}` : '/'}</span>
+            </span>
+          )
         }
-      ].filter((item) => !!item)
-    },
-    [connector]
-  );
 
-  if (!datasourceID) return <LookForward />;
+        return (
+          <span className="inline-flex items-center gap-1">
+            {imgSrc ? (
+              <IconWrapper className="w-20px h-20px">
+                <InfiniIcon
+                  height="1em"
+                  src={imgSrc}
+                  width="1em"
+                />
+              </IconWrapper>
+            ) : <FontIcon name={record.icon} />}
+            { record.url || pathHierarchy ? <a {...aProps}>{text}</a> : <span>{text}</span> }
+            {shareIcon}
+          </span>
+        );
+
+      },
+      title: t('page.datasource.columns.name')
+    },
+    {
+      dataIndex: 'owner',
+      title: t('page.datasource.labels.owner'),
+      render: (value, record) => {
+        if (!value) return '-'
+        return (
+          <div className='flex'>
+            <Avatar.Group max={{ count: 1 }} size={"small"}>
+              <AvatarLabel data={value} showCard={true}/>
+            </Avatar.Group>
+          </div>
+        )
+      }
+    },
+    {
+      dataIndex: 'shares',
+      title: t('page.datasource.labels.shares'),
+      render: (value, record) => {
+        return (
+          <Shares
+            record={record} 
+            title={record.title} 
+            onSuccess={() => fetchData(queryParams, datasourceID)}
+            resource={{
+              'resource_category_type': 'datasource',
+              'resource_category_id': datasourceID,
+              'resource_type': 'document',
+              'resource_id': record.id,
+              'resource_parent_path': record.categories?.length > 0 ? `/${record.categories.join('/')}/` : '/',
+              'resource_full_path': (record.categories?.length > 0 ? `/${record.categories.join('/')}/` : '/') + record.title,
+              'resource_is_folder': record?.type === "folder",
+            }}
+          />
+        )
+      }
+    },
+    // {
+    //   dataIndex: 'updated',
+    //   title: t('page.datasource.labels.updated')
+    // },
+    // {
+    //   dataIndex: 'size',
+    //   title: t('page.datasource.labels.size')
+    // },
+    {
+      dataIndex: 'disabled',
+      render: (text: boolean, record: DataType) => {
+        return (
+          <Switch
+            size="small"
+            value={!text}
+            onChange={v => {
+              onSearchableChange(v, record);
+            }}
+            disabled={!permissions.update || !hasEdit(record)}
+          />
+        );
+      },
+      title: t('page.datasource.columns.searchable')
+    },
+    {
+      fixed: 'right',
+      hidden: !permissions.delete,
+      render: (_, record) => {
+        const isOwner = record.owner?.id && record.owner?.id === record.editor?.id
+        if (!isOwner) return null
+        return (
+          <Dropdown menu={{ items, onClick: ({ key }) => onMenuClick({ key, record }) }}>
+            <EllipsisOutlined />
+          </Dropdown>
+        );
+      },
+      title: t('common.operation'),
+      width: '90px'
+    }
+  ].filter((item) => !!item);
 
   const [data, setData] = useState({});
   const [loading, setLoading] = useState(false);
 
   const [keyword, setKeyword] = useState();
 
-  const fetchData = async (queryParams, datasource) => {
-    if (!datasource) return;
+  const fetchData = async (queryParams, datasourceID) => {
+    if (!datasourceID) return;
     setLoading(true);
     const { filter = {} } = queryParams || {};
     const res = await fetchDatasourceDetail({
@@ -415,8 +408,8 @@ const FileManagement = (props) => {
   };
 
   useEffect(() => {
-    fetchData(queryParams, datasource)
-  }, [queryParams, datasource]);
+    fetchData(queryParams, datasourceID)
+  }, [queryParams, datasourceID]);
 
   useEffect(() => {
     setKeyword(queryParams.query)
@@ -482,6 +475,8 @@ const FileManagement = (props) => {
     }
     return datasource?.name;
   }
+
+  if (!datasourceID) return <LookForward />;
 
   return (
     <ListContainer>
