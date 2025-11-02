@@ -351,6 +351,8 @@ export function Component() {
       fixed: 'right',
       hidden: !permissions.update && !permissions.delete,
       render: (_, record) => {
+        const isOwner = record.owner?.id && record.owner?.id === record.editor?.id
+
         const items: MenuProps['items'] = [];
         if (permissions.read && permissions.update && !hasEdit(record)) {
           items.push({
