@@ -47,30 +47,36 @@ const FileManagement = (props) => {
   const { hasAuth } = useAuth()
 
   const permissions = {
-    update: hasAuth('coco#datasource/update'),
-    delete: hasAuth('coco#datasource/delete'),
+    readDatasource: hasAuth('coco#datasource/read'),
+    readConnector: hasAuth('coco#connector/read'),
+    update: hasAuth('coco#document/update'),
+    delete: hasAuth('coco#document/delete'),
     shares: hasAuth('generic#sharing/search'),
-    entityLabel: hasAuth('generic#entity:label/read')
+    entityLabel: hasAuth('generic#entity:label/read'),
   }
-  
+
   const [connector, setConnector] = useState<any>({});
   const [datasource, setDatasource] = useState<any>();
 
   useEffect(() => {
     if (!datasourceID) return;
-    getDatasource(datasourceID).then(res => {
-      if (res.data?.found === true) {
-        setDatasource(res.data._source || {});
-      }
-    });
+    if (permissions.readDatasource) {
+      getDatasource(datasourceID).then(res => {
+        if (res.data?.found === true) {
+          setDatasource(res.data._source || {});
+        }
+      });
+    }
   }, [datasourceID]);
   useEffect(() => {
     if (!datasource?.connector?.id) return;
-    getConnector(datasource?.connector?.id).then(res => {
-      if (res.data?.found === true) {
-        setConnector(res.data._source || {});
-      }
-    });
+    if (permissions.readConnector) {
+      getConnector(datasource?.connector?.id).then(res => {
+        if (res.data?.found === true) {
+          setConnector(res.data._source || {});
+        }
+      });
+    }
   }, [datasource?.connector?.id]);
   const onMenuClick = ({ key, record }: any) => {
     switch (key) {
@@ -105,7 +111,8 @@ const FileManagement = (props) => {
   const rowSelection: TableProps<DataType>['rowSelection'] = {
     getCheckboxProps: (record: DataType) => ({
       // Column configuration not to be checked
-      name: record.title
+      name: record.title,
+      disabled: record.owner?.id && record.owner?.id === record.editor?.id && permissions.delete ? false : true
     }),
     onChange: (selectedRowKeys: React.Key[], selectedRows: DataType[]) => {
       setState((st: any) => {
@@ -192,6 +199,8 @@ const FileManagement = (props) => {
         {
           dataIndex: 'title',
           render: (text: string, record: DataType) => {
+            const isOwner = record.owner?.id && record.owner?.id === record.editor?.id
+
             let imgSrc = '';
             if (connector?.assets?.icons) {
               imgSrc = connector.assets.icons[record.icon];
@@ -207,6 +216,7 @@ const FileManagement = (props) => {
                   return {
                     ...old,
                     path: JSON.stringify(categories),
+                    view: isOwner ? 'auto' : 'list'
                   }
                 })
               } 
@@ -217,25 +227,31 @@ const FileManagement = (props) => {
 
             let shareIcon;
 
-            if (record.owner?.id && record.owner?.id !== record.editor?.id) {
+            if (!isOwner) {
               shareIcon = <SvgIcon localIcon='share' className='text-#999'/>
             }
 
-            return (
-              <span className="inline-flex items-center gap-1">
-                {imgSrc ? (
-                  <IconWrapper className="w-20px h-20px">
-                    <InfiniIcon
-                      height="1em"
-                      src={imgSrc}
-                      width="1em"
-                    />
-                  </IconWrapper>
-                ) : <FontIcon name={record.icon} />}
-                { record.url || record.type === 'folder' ? <a {...aProps}>{text}</a> : <span>{text}</span> }
-                {shareIcon}
-              </span>
-            );
+            if (queryParams.view === 'list') {
+              return (
+                <span className='inline-flex flex-col'>
+                  <span className="inline-flex items-center gap-1 text-12px h-16px">
+                    {imgSrc ? (
+                      <IconWrapper className="w-1em h-1em text-16px">
+                        <InfiniIcon
+                          height="1em"
+                          src={imgSrc}
+                          width="1em"
+                        />
+                      </IconWrapper>
+                    ) : <FontIcon name={record.icon} />}
+                    { record.url || record.type === 'folder' ? <a {...aProps}>{text}</a> : <span>{text}</span> }
+                    {shareIcon}
+                  </span>
+                  <span className='text-10px h-14px'>{record.categories?.length > 0 ? `/${record.categories.join('/')}` : '/'}</span>
+                </span>
+              )
+            }
+
           },
           title: t('page.datasource.columns.name')
         },
@@ -268,8 +284,8 @@ const FileManagement = (props) => {
                   'resource_type': 'document',
                   'resource_id': record.id,
                   'resource_parent_path': record.categories?.length > 0 ? `/${record.categories.join('/')}/` : '/',
-                  'resource_full_path': (record.categories?.length > 0 ? `/${record.categories.join('/')}/` : '/')+record.title,
-                  'resource_is_folder': record?.type=="folder",
+                  'resource_full_path': (record.categories?.length > 0 ? `/${record.categories.join('/')}/` : '/') + record.title,
+                  'resource_is_folder': record?.type === "folder",
                 }}
               />
             )
@@ -303,6 +319,8 @@ const FileManagement = (props) => {
           fixed: 'right',
           hidden: !permissions.delete,
           render: (_, record) => {
+            const isOwner = record.owner?.id && record.owner?.id === record.editor?.id
+            if (!isOwner) return null
             return (
               <Dropdown menu={{ items, onClick: ({ key }) => onMenuClick({ key, record }) }}>
                 <EllipsisOutlined />
@@ -337,39 +355,41 @@ const FileManagement = (props) => {
     })
     if (res?.data) {
       const newData = formatESSearchResult(res.data);
-      const resources = newData.data.map((item) => ({
-        "resource_id": item.id,
-        "resource_type": 'document',
-      }))
-      let shareRes: any;
-      if (permissions.shares) {
-        shareRes = await fetchBatchShares(resources)
-      }
-      let entityRes: any
-      if (permissions.entityLabel) {
-        const entities = newData.data.filter((item) => !!item._system?.owner_id).map((item) => ({
-          type: 'user',
-          id: item._system.owner_id
+      if (newData.data.length > 0) {
+        const resources = newData.data.map((item) => ({
+          "resource_id": item.id,
+          "resource_type": 'document',
         }))
-        if (shareRes?.data?.length > 0) {
-          entities.push(...shareRes?.data.map((item) => ({ type: item.principal_type, id: item.principal_id })))
+        let shareRes: any;
+        if (permissions.shares) {
+          shareRes = await fetchBatchShares(resources)
         }
-        if (userInfo?.id) {
-          entities.push({
+        let entityRes: any
+        if (permissions.entityLabel) {
+          const entities = newData.data.filter((item) => !!item._system?.owner_id).map((item) => ({
             type: 'user',
-            id: userInfo.id
-          })
+            id: item._system.owner_id
+          }))
+          if (shareRes?.data?.length > 0) {
+            entities.push(...shareRes?.data.map((item) => ({ type: item.principal_type, id: item.principal_id })))
+          }
+          if (userInfo?.id) {
+            entities.push({
+              type: 'user',
+              id: userInfo.id
+            })
+          }
+          const grouped = groupBy(entities, 'type');
+          const body = map(keys(grouped), (type) => ({
+              type,
+              id: uniq(map(grouped[type], 'id')) 
+          }))
+          entityRes = await fetchBatchEntityLabels(body)
         }
-        const grouped = groupBy(entities, 'type');
-        const body = map(keys(grouped), (type) => ({
-            type,
-            id: uniq(map(grouped[type], 'id')) 
-        }))
-        entityRes = await fetchBatchEntityLabels(body)
+        newData.data.forEach((item, index) => {
+          formatDataForShare(item, shareRes?.data, entityRes?.data, userInfo)
+        })
       }
-      newData.data.forEach((item, index) => {
-        formatDataForShare(item, shareRes?.data, entityRes?.data, userInfo)
-      })
       setData(newData);
     }
     setLoading(false);

@@ -198,33 +198,39 @@ export function Component() {
         if(!iconSrc && data.connectors) {
           iconSrc = data.connectors[record.connector.id]?.icon;
         }
-        if (!iconSrc) return value;
+
+        const isOwner = record.owner?.id && record.owner?.id === record.editor?.id
 
         let shareIcon;
 
-        if (record.owner?.id && record.owner?.id !== record.editor?.id) {
+        if (!isOwner) {
           shareIcon = <SvgIcon localIcon='share' className='text-#999'/>
         }
 
         const content = (
-          <>
-            <IconWrapper className="w-20px h-20px">
-              <InfiniIcon
-                height="1em"
-                src={iconSrc}
-                width="1em"
-              />
-            </IconWrapper>
-            {value}
-            {shareIcon}
-          </>
-        )
+            <>
+              {
+                iconSrc && (
+                  <IconWrapper className="w-20px h-20px">
+                    <InfiniIcon
+                      height="1em"
+                      src={iconSrc}
+                      width="1em"
+                    />
+                  </IconWrapper>
+                )
+              }
+              {value}
+              {shareIcon}
+            </>
+          )
+
         if (permissions.read) {
           return (
             <a
               className="inline-flex items-center gap-1 text-blue-500"
               onClick={() =>
-                nav(`/data-source/detail/${record.id}`, {
+                nav(`/data-source/detail/${record.id}${isOwner ? '' : '?view=list'}`, {
                   state: { connector_id: record.connector?.id || '', datasource_name: record.name }
                 })
               }
@@ -340,14 +346,16 @@ export function Component() {
       fixed: 'right',
       hidden: !permissions.update && !permissions.delete,
       render: (_, record) => {
+        const isOwner = record.owner?.id && record.owner?.id === record.editor?.id
+        const hasEdit = isOwner || record.editor?.permission >= 4
         const items: MenuProps['items'] = [];
-        if (permissions.read && permissions.update) {
+        if (permissions.read && permissions.update && hasEdit) {
           items.push({
             key: '2',
             label: t('common.edit')
           })
         }
-        if (permissions.delete) {
+        if (permissions.delete && isOwner) {
           items.push({
             key: '1',
             label: t('common.delete')
@@ -387,39 +395,41 @@ export function Component() {
     const res = await fetchDataSourceList(queryParams);
     if (res?.data) {
       const newData = formatESSearchResult(res?.data);
-      const resources = newData.data.filter((item) => !!item.connector?.id).map((item) => ({
-        "resource_id": item.id,
-        "resource_type": 'datasource'
-      }))
-      let shareRes: any;
-      if (permissions.shares) {
-        shareRes = await fetchBatchShares(resources)
-      }
-      let entityRes: any
-      if (permissions.entityLabel) {
-        const entities = newData.data.filter((item) => !!item._system?.owner_id).map((item) => ({
-          type: 'user',
-          id: item._system.owner_id
+      if (newData.data.length > 0) {
+        const resources = newData.data.filter((item) => !!item.connector?.id).map((item) => ({
+          "resource_id": item.id,
+          "resource_type": 'datasource'
         }))
-        if (shareRes?.data?.length > 0) {
-          entities.push(...shareRes?.data.map((item) => ({ type: item.principal_type, id: item.principal_id })))
+        let shareRes: any;
+        if (permissions.shares) {
+          shareRes = await fetchBatchShares(resources)
         }
-        if (userInfo?.id) {
-          entities.push({
+        let entityRes: any
+        if (permissions.entityLabel) {
+          const entities = newData.data.filter((item) => !!item._system?.owner_id).map((item) => ({
             type: 'user',
-            id: userInfo.id
-          })
+            id: item._system.owner_id
+          }))
+          if (shareRes?.data?.length > 0) {
+            entities.push(...shareRes?.data.map((item) => ({ type: item.principal_type, id: item.principal_id })))
+          }
+          if (userInfo?.id) {
+            entities.push({
+              type: 'user',
+              id: userInfo.id
+            })
+          }
+          const grouped = groupBy(entities, 'type');
+          const body = map(keys(grouped), (type) => ({
+              type,
+              id: uniq(map(grouped[type], 'id')) 
+          }))
+          entityRes = await fetchBatchEntityLabels(body)
         }
-        const grouped = groupBy(entities, 'type');
-        const body = map(keys(grouped), (type) => ({
-            type,
-            id: uniq(map(grouped[type], 'id')) 
-        }))
-        entityRes = await fetchBatchEntityLabels(body)
+        newData.data.forEach((item, index) => {
+          formatDataForShare(item, shareRes?.data, entityRes?.data, userInfo)
+        })
       }
-      newData.data.forEach((item, index) => {
-        formatDataForShare(item, shareRes?.data, entityRes?.data, userInfo)
-      })
       setData((oldData: any) => {
         return {
           ...oldData,

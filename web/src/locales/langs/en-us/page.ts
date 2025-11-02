@@ -216,7 +216,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       you: ' (you)'
     },
     file: {
-      title: 'File Management',
+      title: 'Document Management',
     },
     mapping: {
       title: 'Mapping Management',

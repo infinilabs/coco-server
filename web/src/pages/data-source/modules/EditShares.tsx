@@ -79,7 +79,7 @@ export default function EditShares(props) {
                     )
                 }
                 {
-                    !isOwner && editor && (
+                    !isOwner && editor && hasEdit && (
                         <div className={styles.item}>
                             <AvatarLabel
                                 data={{
@@ -89,7 +89,7 @@ export default function EditShares(props) {
                             />
                             <div className={styles.actions}>
                                 <span className="text-[var(--ant-color-text-secondary)]">
-                                    {editorPermission?.permission ? t(`page.datasource.labels.${PERMISSION_MAPPING[editorPermission.permission]}`) : ''}
+                                    {t(`page.datasource.labels.${PERMISSION_MAPPING[editorPermission.permission]}`)}
                                 </span>
                             </div>
                         </div>

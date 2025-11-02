@@ -426,7 +426,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       you: '（你）'
     },
     file: {
-      title: '文件管理',
+      title: '文档管理',
     },
     mapping: {
       title: '映射管理',

@@ -5,6 +5,7 @@ import Role from "./modules/Role";
 
 import "./index.scss";
 import User from "./modules/User";
+import { getProviderInfo } from "@/store/slice/server";
 
 export function Component() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -18,13 +19,15 @@ export function Component() {
     viewRole: hasAuth("generic#security:role/search"),
   };
 
+  const providerInfo = useAppSelector(getProviderInfo);
+
   const onChange = (key: string) => {
     setSearchParams({ tab: key });
   };
 
   const items: any[] = [];
 
-  if (permissions.viewAuth && window.__POWERED_BY_WUJIE__) {
+  if (permissions.viewAuth && providerInfo?.managed) {
     items.push({
       component: Auth,
       key: "auth",
@@ -32,7 +35,7 @@ export function Component() {
     });
   }
 
-  if (permissions.viewUser && !window.__POWERED_BY_WUJIE__) {
+  if (permissions.viewUser && !providerInfo?.managed) {
     items.push({
       component: User,
       key: "user",
