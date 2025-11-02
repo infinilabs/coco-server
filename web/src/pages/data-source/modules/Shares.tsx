@@ -96,6 +96,10 @@ export default (props) => {
         />
     )
 
+    if (shares.length === 0 && !hasCreate) {
+        return '-'
+    }
+
     return (
         <Popover 
             trigger={'click'} 
@@ -120,9 +124,7 @@ export default (props) => {
         >
             {
                 shares.length === 0 ? (
-                    hasCreate ? (
-                        <Button className="px-0" type="link" onClick={() => setIsAdding(true)}>{t('common.add')}</Button>
-                    ) : '-'
+                    <Button className="px-0" type="link" onClick={() => setIsAdding(true)}>{t('common.add')}</Button>
                 ) : (
                     <div>
                         <Avatar.Group max={{ count: 5 }} size={"small"}>
