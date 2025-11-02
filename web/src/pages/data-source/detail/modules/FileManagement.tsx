@@ -21,7 +21,7 @@ import Shares from '../../modules/Shares';
 import { selectUserInfo } from '@/store/slice/auth';
 import { groupBy, keys, map, uniq } from "lodash";
 import AvatarLabel from '../../modules/AvatarLabel';
-import { formatDataForShare } from '../../list';
+import { formatDataForShare, hasEdit } from '../../list';
 
 interface DataType {
   category: string;
@@ -209,7 +209,10 @@ const FileManagement = (props) => {
               className: "text-blue-500",
               rel: "noreferrer",
             }
-            if (record.type === 'folder') {
+
+            const pathHierarchy = connector?.path_hierarchy && record.type === 'folder'
+
+            if (pathHierarchy) {
               aProps.onClick = () => {
                 const categories = (record.categories || []).concat([record.title])
                 setQueryParams(old => {
@@ -231,7 +234,7 @@ const FileManagement = (props) => {
               shareIcon = <SvgIcon localIcon='share' className='text-#999'/>
             }
 
-            if (queryParams.view === 'list') {
+            if (connector?.path_hierarchy && queryParams.view === 'list') {
               return (
                 <span className='inline-flex flex-col'>
                   <span className="inline-flex items-center gap-1 text-12px h-16px">
@@ -244,13 +247,29 @@ const FileManagement = (props) => {
                         />
                       </IconWrapper>
                     ) : <FontIcon name={record.icon} />}
-                    { record.url || record.type === 'folder' ? <a {...aProps}>{text}</a> : <span>{text}</span> }
+                    { record.url || pathHierarchy ? <a {...aProps}>{text}</a> : <span>{text}</span> }
                     {shareIcon}
                   </span>
-                  <span className='text-10px h-14px'>{record.categories?.length > 0 ? `/${record.categories.join('/')}` : '/'}</span>
+                  <span className='text-10px h-14px text-#999'>{record.categories?.length > 0 ? `/${record.categories.join('/')}` : '/'}</span>
                 </span>
               )
             }
+
+            return (
+              <span className="inline-flex items-center gap-1">
+                {imgSrc ? (
+                  <IconWrapper className="w-20px h-20px">
+                    <InfiniIcon
+                      height="1em"
+                      src={imgSrc}
+                      width="1em"
+                    />
+                  </IconWrapper>
+                ) : <FontIcon name={record.icon} />}
+                { record.url || pathHierarchy ? <a {...aProps}>{text}</a> : <span>{text}</span> }
+                {shareIcon}
+              </span>
+            );
 
           },
           title: t('page.datasource.columns.name')
@@ -309,7 +328,7 @@ const FileManagement = (props) => {
                 onChange={v => {
                   onSearchableChange(v, record);
                 }}
-                disabled={!permissions.update}
+                disabled={!permissions.update || !hasEdit(record)}
               />
             );
           },

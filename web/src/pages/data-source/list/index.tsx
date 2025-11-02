@@ -66,6 +66,11 @@ export function formatDataForShare(item: any, shares: any, entities: any, curren
   }
 }
 
+export function hasEdit(record) {
+  const isOwner = record.owner?.id && record.owner?.id === record.editor?.id
+  return isOwner || record.editor?.permission >= 4
+}
+
 export function Component() {
   const [queryParams, setQueryParams] = useQueryParams();
 
@@ -320,7 +325,7 @@ export function Component() {
             size="small"
             checked={value}
             onChange={v => onSyncEnabledChange(v, record)}
-            disabled={!permissions.update}
+            disabled={!permissions.update || !hasEdit(record)}
           />
         );
       },
@@ -335,7 +340,7 @@ export function Component() {
             size="small"
             value={value}
             onChange={v => onEnabledChange(v, record)}
-            disabled={!permissions.update}
+            disabled={!permissions.update || !hasEdit(record)}
           />
         );
       },
@@ -346,10 +351,8 @@ export function Component() {
       fixed: 'right',
       hidden: !permissions.update && !permissions.delete,
       render: (_, record) => {
-        const isOwner = record.owner?.id && record.owner?.id === record.editor?.id
-        const hasEdit = isOwner || record.editor?.permission >= 4
         const items: MenuProps['items'] = [];
-        if (permissions.read && permissions.update && hasEdit) {
+        if (permissions.read && permissions.update && !hasEdit(record)) {
           items.push({
             key: '2',
             label: t('common.edit')
