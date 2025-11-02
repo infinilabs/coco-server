@@ -126,10 +126,10 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
       const result = await request({
         method: 'get',
         params,
-        url: `/store/server/${requestType}/_search`
+        url: `/store/server/_search?filter=type:${requestType}`
       });
 
-      const { data } = formatESSearchResult(result);
+      const { data } = formatESSearchResult(result.data);
 
       setData(data);
     } catch {
@@ -197,7 +197,7 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
 
       const { data } = await request({
         method: 'post',
-        url: ` /store/${requestType}/${id}/_install`
+        url: `/store/server/${id}/_install`
       });
 
       if (data.acknowledged) {
@@ -289,13 +289,13 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
                     <Space>
                       <Eye className="size-4" />
 
-                      <span>{stats.views}</span>
+                      <span>{stats?.views || "-"}</span>
                     </Space>
 
                     <Space>
                       <FolderDown className="size-4" />
 
-                      <span>{stats.installs}</span>
+                      <span>{stats?.installs || "-"}</span>
                     </Space>
                   </Flex>
 
