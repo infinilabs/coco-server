@@ -68,7 +68,8 @@ export function formatDataForShare(item: any, shares: any, entities: any, curren
 
 export function hasEdit(record) {
   const isOwner = record.owner?.id && record.owner?.id === record.editor?.id
-  return isOwner || record.editor?.permission >= 4
+  const share = record.shares?.find((item) => item.principal_id === record.editor?.id)
+  return isOwner || share?.permission >= 4
 }
 
 export function Component() {
@@ -401,7 +402,7 @@ export function Component() {
     if (res?.data) {
       const newData = formatESSearchResult(res?.data);
       if (newData.data.length > 0) {
-        const resources = newData.data.filter((item) => !!item.connector?.id).map((item) => ({
+        const resources = newData.data.map((item) => ({
           "resource_id": item.id,
           "resource_type": 'datasource'
         }))
