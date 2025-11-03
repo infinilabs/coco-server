@@ -1,4 +1,4 @@
-import { Button, Dropdown, Form, Image, Input, Modal, Spin, Table, Tag, message } from 'antd';
+import { Avatar, Button, Dropdown, Form, Image, Input, Modal, Spin, Table, Tag, message } from 'antd';
 
 import '../index.scss';
 import type { MenuProps, TableColumnsType } from 'antd';
@@ -24,6 +24,9 @@ const ConnectorSettings = memo(() => {
   const [queryParams, setQueryParams] = useQueryParams();
   
   const { t } = useTranslation();
+
+  const { addSharesToData, isEditorOwner, hasEdit } = useResource()
+  const resourceType = 'connector'
 
   const { hasAuth } = useAuth()
 
@@ -106,6 +109,38 @@ const ConnectorSettings = memo(() => {
       title: t('page.connector.columns.name')
     },
     {
+      dataIndex: 'owner',
+      title: t('page.datasource.labels.owner'),
+      render: (value, record) => {
+        if (!value) return '-'
+        return (
+          <div className='flex'>
+            <Avatar.Group max={{ count: 1 }} size={"small"}>
+              <AvatarLabel data={value} showCard={true}/>
+            </Avatar.Group>
+          </div>
+        )
+      }
+    },
+    {
+      dataIndex: 'shares',
+      title: t('page.datasource.labels.shares'),
+      render: (value, record) => {
+        if (!value) return '-'
+        return (
+          <Shares 
+            record={record} 
+            title={record.name} 
+            onSuccess={() => fetchData(queryParams)}
+            resource={{
+              'resource_type': resourceType,
+              'resource_id': record.id,
+            }}
+          />
+        )
+      }
+    },
+    {
       dataIndex: 'category',
       minWidth: 200,
       title: t('page.connector.columns.category')
@@ -131,13 +166,13 @@ const ConnectorSettings = memo(() => {
       hidden: !permissions.update && !permissions.delete,
       render: (_, record) => {
         const items: MenuProps['items'] = [];
-        if (permissions.read && permissions.update) {
+        if (permissions.read && permissions.update && hasEdit(record)) {
           items.push({
             key: '1',
             label: t('common.edit')
           })
         }
-        if (permissions.delete) {
+        if (permissions.delete && isEditorOwner(record)) {
           items.push({
             key: '2',
             label: t('common.delete')
@@ -160,16 +195,29 @@ const ConnectorSettings = memo(() => {
 
   const [keyword, setKeyword] = useState();
 
-  const fetchData = () => {
+  const fetchData = async (queryParams) => {
     setLoading(true);
-    searchConnector(queryParams).then(({ data }: { data: any }) => {
-      const newData = formatESSearchResult(data);
+    const res = await searchConnector(queryParams)
+    if (res?.data) {
+      const newData = formatESSearchResult(res?.data);
+      if (newData.data.length > 0) {
+        const resources = newData.data.map((item) => ({
+          "resource_id": item.id,
+          "resource_type": resourceType,
+        }))
+        const dataWithShares = await addSharesToData(newData.data, resources)
+        if (dataWithShares) {
+          newData.data = dataWithShares
+        }
+      }
       setData(newData);
-      setLoading(false);
-    });
+    }
+    setLoading(false);
   };
 
-  useEffect(fetchData, [queryParams]);
+  useEffect(() => {
+    fetchData(queryParams)
+  }, [queryParams]);
 
   useEffect(() => {
     setKeyword(queryParams.query)
