@@ -1,0 +1,59 @@
+{
+  "category": "database",
+  "description": "Fetch data from Oracle.",
+  "developer": {
+    "avatar": "https://coco.infini.cloud/extensions/infinilabs/assets/avatar.png",
+    "github_handle": "infinilabs",
+    "id": "infinilabs",
+    "location": "Internet",
+    "name": "infinilabs",
+    "website": "https://github.com/infinilabs"
+  },
+  "icon": "/assets/icons/connector/oracle/icon.png",
+  "name": "Oracle Connector",
+  "platforms": [
+    "macos",
+    "linux",
+    "windows"
+  ],
+  "screenshots": [
+    {
+      "title": "Oracle Connector",
+      "url": "/assets/screenshot.png"
+    }
+  ],
+  "tags": [
+    "sql",
+    "storage",
+    "database"
+  ],
+  "type": "connector",
+  "url": {
+    "home": "http://coco.rs/connectors/oracle"
+  },
+  "version": {
+    "number": "0.1"
+  },
+  "settings": {
+    "name" : "Oracle Connector",
+    "description" : "Fetch data from Oracle.",
+    "category" : "database",
+    "icon" : "/assets/icons/connector/oracle/icon.png",
+    "tags" : [
+      "sql",
+      "storage",
+      "database"
+    ],
+    "url" : "http://coco.rs/connectors/oracle",
+    "assets" : {
+      "icons" : {
+          "default" : "/assets/icons/connector/oracle/icon.png"
+        }
+    },
+    "builtin": true,
+    "processor": {
+      "enabled": true,
+      "name": "oracle"
+    }
+  }
+}

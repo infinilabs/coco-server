@@ -1,0 +1,64 @@
+{
+  "category": "website",
+  "description": "Fetch the docs metadata for yuque.",
+  "developer": {
+    "avatar": "https://coco.infini.cloud/extensions/infinilabs/assets/avatar.png",
+    "github_handle": "infinilabs",
+    "id": "infinilabs",
+    "location": "Internet",
+    "name": "infinilabs",
+    "website": "https://github.com/infinilabs"
+  },
+  "icon": "/assets/icons/connector/yuque/icon.png",
+  "name": "Yuque Docs Connector",
+  "platforms": [
+    "macos",
+    "linux",
+    "windows"
+  ],
+  "screenshots": [
+    {
+      "title": "Yuque Docs Connector",
+      "url": "/assets/screenshot.png"
+    }
+  ],
+  "tags": [
+   "static_site",
+    "yuque",
+    "web"
+  ],
+  "type": "connector",
+  "url": {
+    "home": "http://coco.rs/connectors/yuque"
+  },
+  "version": {
+    "number": "0.1"
+  },
+  "settings": {
+      "name" : "Yuque Docs Connector",
+      "description" : "Fetch the docs metadata for yuque.",
+      "category" : "website",
+      "icon" : "/assets/icons/connector/yuque/icon.png",
+      "tags" : [
+        "static_site",
+        "hugo",
+        "web"
+      ],
+      "url" : "http://coco.rs/connectors/yuque",
+      "assets" : {
+        "icons" : {
+          "board" : "/assets/icons/connector/yuque/board.png",
+          "book" : "/assets/icons/connector/yuque/book.png",
+          "default" : "/assets/icons/connector/yuque/icon.png",
+          "doc" : "/assets/icons/connector/yuque/doc.png",
+          "sheet" : "/assets/icons/connector/yuque/sheet.png",
+          "table" : "/assets/icons/connector/yuque/table.png"
+        }
+      },
+      "builtin": true,
+      "processor":{
+          "enabled":true,
+          "name":"yuque"
+      }
+  }
+}

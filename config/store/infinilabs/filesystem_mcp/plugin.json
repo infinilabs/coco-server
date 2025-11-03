@@ -1,0 +1,48 @@
+{
+  "category": "FileSystem",
+  "description": "A comprehensive Model Context Protocol (MCP) server that provides secure filesystem operations with directory allowlisting, robust error handling, and comprehensive file management capabilities.",
+  "developer": {
+    "avatar": "https://coco.infini.cloud/extensions/infinilabs/assets/avatar.png",
+    "github_handle": "infinilabs",
+    "id": "infinilabs",
+    "location": "Internet",
+    "name": "infinilabs",
+    "website": "https://github.com/infinilabs"
+  },
+  "icon": "font_filetype-folder",
+  "name": "filesystem",
+  "platforms": [
+    "macos",
+    "linux",
+    "windows"
+  ],
+  "screenshots": [
+    {
+      "title": "filesystem",
+      "url": "/assets/screenshot.png"
+    }
+  ],
+  "tags": [
+   "mcp",
+   "filesystem"
+  ],
+  "type": "mcp",
+  "url": {
+    "home": "http://coco.rs"
+  },
+  "version": {
+    "number": "0.1"
+  },
+  "settings": {
+    "name": "filesystem",
+    "icon": "font_filetype-folder",
+    "type": "stdio",
+    "category": "FileSystem",
+    "config": {
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "~/Desktop"],
+      "command": "npx",
+          "env": {}
+    },
+    "enabled": true
+  }
+}

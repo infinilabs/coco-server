@@ -1,0 +1,59 @@
+{
+  "category": "database",
+  "description": "Fetch data from MySQL database.",
+  "developer": {
+    "avatar": "https://coco.infini.cloud/extensions/infinilabs/assets/avatar.png",
+    "github_handle": "infinilabs",
+    "id": "infinilabs",
+    "location": "Internet",
+    "name": "infinilabs",
+    "website": "https://github.com/infinilabs"
+  },
+  "icon": "/assets/icons/connector/mysql/icon.png",
+  "name": "MySQL Connector",
+  "platforms": [
+    "macos",
+    "linux",
+    "windows"
+  ],
+  "screenshots": [
+    {
+      "title": "MySQL Connector",
+      "url": "/assets/screenshot.png"
+    }
+  ],
+  "tags": [
+    "sql",
+    "storage",
+    "database"
+  ],
+  "type": "connector",
+  "url": {
+    "home": "http://coco.rs/connectors/mysql"
+  },
+  "version": {
+    "number": "0.1"
+  },
+  "settings": {
+    "name" : "MySQL Connector",
+    "description" : "Fetch data from MySQL database.",
+    "category" : "database",
+    "icon" : "/assets/icons/connector/mysql/icon.png",
+    "tags" : [
+      "sql",
+      "storage",
+      "database"
+    ],
+    "url" : "http://coco.rs/connectors/mysql",
+    "assets" : {
+      "icons" : {
+        "default" : "/assets/icons/connector/mysql/icon.png"
+      }
+    },
+    "builtin": true,
+    "processor": {
+      "enabled": true,
+      "name": "mysql"
+    }
+  }
+}

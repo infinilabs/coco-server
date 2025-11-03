@@ -1,0 +1,63 @@
+{
+  "category": "website",
+  "description": "Fetch the index.json file from a specified Hugo site.",
+  "developer": {
+    "avatar": "https://coco.infini.cloud/extensions/infinilabs/assets/avatar.png",
+    "github_handle": "infinilabs",
+    "id": "infinilabs",
+    "location": "Internet",
+    "name": "infinilabs",
+    "website": "https://github.com/infinilabs"
+  },
+  "icon": "/assets/icons/connector/hugo_site/icon.png",
+  "name": "Hugo Site Connector",
+  "platforms": [
+    "macos",
+    "linux",
+    "windows"
+  ],
+  "screenshots": [
+    {
+      "title": "Hugo Site Connector",
+      "url": "/assets/screenshot.png"
+    }
+  ],
+  "tags": [
+   "static_site",
+    "hugo",
+    "web"
+  ],
+  "type": "connector",
+  "url": {
+    "home": "http://coco.rs/connectors/hugo_site"
+  },
+  "version": {
+    "number": "0.1"
+  },
+  "settings": {
+    "name" : "Hugo Site Connector",
+    "description" : "Fetch the index.json file from a specified Hugo site.",
+    "category" : "website",
+    "icon" : "/assets/icons/connector/hugo_site/icon.png",
+    "tags" : [
+      "static_site",
+      "hugo",
+      "web"
+    ],
+    "url" : "http://coco.rs/connectors/hugo_site",
+    "assets" : {
+      "icons" : {
+        "blog" : "/assets/icons/connector/hugo_site/blog.png",
+        "default" : "/assets/icons/connector/hugo_site/web.png",
+        "news" : "/assets/icons/connector/hugo_site/news.png",
+        "web" : "/assets/icons/connector/hugo_site/web.png",
+        "web_page" : "/assets/icons/connector/hugo_site/web_page.png"
+      }
+    },
+    "builtin": true,
+    "processor":{
+      "enabled":true,
+      "name":"hugo_site"
+    }
+  }
+}
