@@ -385,7 +385,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       install: 'Install'
     },
     hints: {
-      installSuccess: 'Installation successful',
+      installSuccess: 'Installed successfully. Redirecting to the details page in 3 seconds.',
       noResults: 'No results found'
     },
     labels: {

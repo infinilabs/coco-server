@@ -203,7 +203,9 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
       if (data.acknowledged) {
         message.success(t('page.integratedStoreModal.hints.installSuccess'));
 
-        navigate(data.redirect_url);
+        setTimeout(() => {
+          navigate(data.redirect_url);
+        }, 3000);
       }
     } catch (error) {
       message.error(String(error));
