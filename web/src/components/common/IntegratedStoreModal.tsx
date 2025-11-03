@@ -240,7 +240,7 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
               key={id}
               span={6}
             >
-              <Card className="group text-xs text-color-3 hover:(border-primary bg-primary-50)">
+              <Card className="group text-color-3 text-xs hover:(border-primary bg-primary-50)">
                 <Flex
                   vertical
                   className="h-full"
@@ -263,7 +263,7 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
                       />
                     )}
 
-                    <div className="truncate text-sm text-color-1">{name}</div>
+                    <div className="text-color-1 truncate text-sm">{name}</div>
 
                     <Space>
                       <Avatar
@@ -289,13 +289,13 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
                     <Space>
                       <Eye className="size-4" />
 
-                      <span>{stats?.views || "-"}</span>
+                      <span>{stats?.views || '-'}</span>
                     </Space>
 
                     <Space>
                       <FolderDown className="size-4" />
 
-                      <span>{stats?.installs || "-"}</span>
+                      <span>{stats?.installs || '-'}</span>
                     </Space>
                   </Flex>
 
@@ -410,6 +410,7 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
 
       <Spin
         fullscreen
+        rootClassName="z-10000"
         spinning={installation}
       />
     </>
