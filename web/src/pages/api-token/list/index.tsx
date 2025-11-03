@@ -161,7 +161,7 @@ export function Component() {
     // }
     const tokenName = generateApiTokenName();
     setIsModalOpen(true);
-    modelForm.setFieldsValue({ name: tokenName });
+    modelForm.setFieldsValue({ name: tokenName, permissions: [] });
   };
 
   useEffect(() => {
@@ -417,6 +417,15 @@ const EditComponent = ({ onCancelClick = () => {}, onOkClick = () => {}, open = 
     });
   };
 
+  useEffect(() => {
+    form.setFieldsValue({
+      ...tokenInfo,
+      permissions: {
+        feature: tokenInfo?.permissions || []
+      }
+    })
+  }, [tokenInfo])
+
   return (
     <Modal
       width={900}
@@ -431,12 +440,6 @@ const EditComponent = ({ onCancelClick = () => {}, onOkClick = () => {}, open = 
           className="my-2em"
           form={form}
           layout="vertical"
-          initialValues={{
-            ...tokenInfo,
-            permissions: {
-              feature: tokenInfo?.permissions || []
-            }
-          }}
         >
           <Form.Item
             label={<span className="text-gray-500">{t('page.apitoken.columns.name')}</span>}
