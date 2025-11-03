@@ -618,3 +618,43 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/n
     "name": "neo4j"
   }
 }
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/box
+{
+  "id" : "box",
+  "created" : "2025-11-02T00:00:00.000000+08:00",
+  "updated" : "2025-11-02T00:00:00.000000+08:00",
+  "name" : "Box 云存储连接器",
+  "description" : "索引 Box 中的文件和文件夹，支持免费账号和企业账号的多用户访问。",
+  "category" : "cloud_storage",
+  "path_hierarchy" : true,
+  "icon" : "/assets/icons/connector/box/icon.png",
+  "tags" : [
+    "box",
+    "cloud_storage",
+    "file_sharing"
+  ],
+  "url" : "http://coco.rs/connectors/box",
+  "assets" : {
+    "icons" : {
+      "default" : "/assets/icons/connector/box/icon.png",
+      "bookmark" : "/assets/icons/connector/box/bookmark.png",
+      "boxcanvas" : "/assets/icons/connector/box/boxcanvas.png",
+      "boxnote" : "/assets/icons/connector/box/boxnote.png",
+      "docx" : "/assets/icons/connector/box/docx.png",
+      "excel-spreadsheet" : "/assets/icons/connector/box/excel-spreadsheet.png",
+      "google-docs" : "/assets/icons/connector/box/google-docs.png",
+      "google-sheets" : "/assets/icons/connector/box/google-sheets.png",
+      "google-slides" : "/assets/icons/connector/box/google-slides.png",
+      "keynote" : "/assets/icons/connector/box/keynote.png",
+      "numbers" : "/assets/icons/connector/box/numbers.png",
+      "pages" : "/assets/icons/connector/box/pages.png",
+      "pdf" : "/assets/icons/connector/box/pdf.png",
+      "powerpoint-presentation" : "/assets/icons/connector/box/powerpoint-presentation.png"
+    }
+  },
+  "builtin": true,
+  "processor": {
+    "enabled": true,
+    "name": "box"
+  }
+}
