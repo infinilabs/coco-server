@@ -205,6 +205,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       permission_sync: 'Permission Sync',
       isEnabled: 'Enabled',
       sharesWithPermissions: 'teams or users with permissions',
+      none: 'None',
       view: 'View',
       comment: 'Comment',
       edit: 'Edit',

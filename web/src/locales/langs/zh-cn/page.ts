@@ -415,6 +415,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       permission_sync: '权限同步',
       isEnabled: '启用',
       sharesWithPermissions: '有访问权限的团队、人',
+      none: '无权限',
       view: '可查看',
       comment: '可评论',
       edit: '可编辑',

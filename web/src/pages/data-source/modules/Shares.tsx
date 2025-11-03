@@ -5,6 +5,7 @@ import AddShares from "./AddShares";
 import EditShares from "./EditShares";
 
 export const PERMISSION_MAPPING = {
+    0: 'none',
     1: 'view',
     2: 'comment',
     4: 'edit',
@@ -28,6 +29,10 @@ export default (props) => {
     }
 
     const permissionOptions = [
+        {
+            key: 0,
+            label: t(`page.datasource.labels.${PERMISSION_MAPPING[0]}`)
+        },
         {
             key: 1,
             label: t(`page.datasource.labels.${PERMISSION_MAPPING[1]}`)
@@ -73,7 +78,7 @@ export default (props) => {
     const content = isAdding ? (
         <AddShares 
             hasCreate={hasCreate}
-            permissionOptions={permissionOptions} 
+            permissionOptions={permissionOptions.filter((item) => item.key > 0)} 
             onCancel={() => handleOpenChange(false)} 
             onSuccess={handleSuccess}
             resource={resource}
@@ -95,7 +100,7 @@ export default (props) => {
             resource={resource}
         />
     )
-
+    
     if (shares.length === 0 && !hasCreate) {
         return '-'
     }

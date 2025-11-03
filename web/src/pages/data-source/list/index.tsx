@@ -404,7 +404,9 @@ export function Component() {
       if (newData.data.length > 0) {
         const resources = newData.data.map((item) => ({
           "resource_id": item.id,
-          "resource_type": 'datasource'
+          "resource_type": 'datasource',
+          'resource_category_type': 'connector',
+          'resource_category_id': item.connector?.id,
         }))
         let shareRes: any;
         if (permissions.shares) {

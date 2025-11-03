@@ -371,6 +371,9 @@ const FileManagement = (props) => {
         const resources = newData.data.map((item) => ({
           "resource_id": item.id,
           "resource_type": 'document',
+          'resource_category_type': 'datasource',
+          'resource_category_id': datasourceID,
+          'resource_parent_path': item.categories?.length > 0 ? `/${item.categories.join('/')}/` : '/',
         }))
         let shareRes: any;
         if (permissions.shares) {

@@ -20,6 +20,9 @@ export default function EditShares(props) {
     const handleChange = (index, permission) => {
         const newData = cloneDeep(currentData);
         if (newData[index]) {
+            if (newData[index].via === 'inherit') {
+                delete newData[index].via
+            }
             newData[index].permission = parseInt(permission)
             setCurrentData(newData)
         }
@@ -38,7 +41,7 @@ export default function EditShares(props) {
             const res = await updateShares({
                 type: resource?.resource_type,
                 id: resource?.resource_id,
-                shares: currentData.map((item) => ({
+                shares: currentData.filter((item) => item.via !== 'inherit').map((item) => ({
                     ...(resource || {}),
                     "principal_type": "user",
                     "principal_id": item.principal_id,
@@ -79,7 +82,7 @@ export default function EditShares(props) {
                     )
                 }
                 {
-                    !isOwner && editor && hasEdit && (
+                    !isOwner && editor && editorPermission?.permission && (
                         <div className={styles.item}>
                             <AvatarLabel
                                 data={{
@@ -105,27 +108,38 @@ export default function EditShares(props) {
             <div className={`max-h-278px ${hasEdit || hasCreate ? 'mb-24px' : 'mb-0'} border border-[var(--ant-color-border)] rounded-[var(--ant-border-radius)] px-8px py-12px overflow-auto`}>
                 {renderSpecialItems()}
                 {
-                    currentData.filter((item) => !!item.entity).map((item, index) => (
-                        <div key={index} className={styles.item}>
-                            <AvatarLabel
-                                data={item.entity}
-                            />
-                            <div className={styles.actions}>
-                                {
-                                    hasEdit ? (
-                                        <Space>
-                                            <Dropdown trigger={['click']} menu={{ items: permissionOptions, onClick: ({key}) => handleChange(index, key)  }}>
-                                                <Button size="small" className="px-6px text-12px" type="text">{item.permission ? t(`page.datasource.labels.${PERMISSION_MAPPING[item.permission]}`) : ''}<DownOutlined /></Button>
-                                            </Dropdown>
-                                            <MinusCircleOutlined className="cursor-pointer" onClick={() => handleDelete(index)}/>
-                                        </Space>
-                                    ) : (
-                                        <span className="text-[var(--ant-color-text-secondary)]">{item.permission ? t(`page.datasource.labels.${PERMISSION_MAPPING[item.permission]}`) : ''}</span>
-                                    )
-                                }
+                    currentData.filter((item) => !!item.entity).map((item, index) => {
+                        const isInherit = item.via === 'inherit'
+                        return (
+                            <div key={index} className={styles.item}>
+                                <AvatarLabel
+                                    data={{
+                                        ...item.entity,
+                                        title: `${item.entity.title}${isInherit ? '(Inherit)' : ''}`
+                                    }}
+                                />
+                                <div className={styles.actions}>
+                                    {
+                                        hasEdit ? (
+                                            <Space>
+                                                <Dropdown trigger={['click']} menu={{ items: permissionOptions.filter((item) => {
+                                                    if (isInherit) return true;
+                                                    return item.key > 0
+                                                }), onClick: ({key}) => handleChange(index, key)  }}>
+                                                    <Button size="small" className="px-6px text-12px" type="text">{item.permission ? t(`page.datasource.labels.${PERMISSION_MAPPING[item.permission]}`) : ''}<DownOutlined /></Button>
+                                                </Dropdown>
+                                                {
+                                                    !isInherit && (<MinusCircleOutlined className="cursor-pointer" onClick={() => handleDelete(index)}/>)
+                                                }
+                                            </Space>
+                                        ) : (
+                                            <span className="text-[var(--ant-color-text-secondary)]">{item.permission ? t(`page.datasource.labels.${PERMISSION_MAPPING[item.permission]}`) : ''}</span>
+                                        )
+                                    }
+                                </div>
                             </div>
-                        </div>
-                    ))
+                        )
+                    })
                 }
             </div>
             {

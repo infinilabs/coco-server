@@ -487,7 +487,7 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.search',
       title: 'search',
       constant: true,
-      hideInMenu: true,
+      hideInMenu: true
     }
   },
   {
