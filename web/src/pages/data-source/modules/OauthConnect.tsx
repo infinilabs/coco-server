@@ -21,30 +21,30 @@ export const OAuthValidationPresets = {
     { field: 'redirect_url', required: true, label: 'Redirect URL' },
     { field: 'token_url', required: true, label: 'Token URL' },
   ],
-  
+
   // Minimal OAuth (3 fields) - Some providers might not need redirect_url/token_url
   minimal: [
     { field: 'auth_url', required: true, label: 'Authorization URL' },
     { field: 'client_id', required: true, label: 'Client ID' },
     { field: 'client_secret', required: true, label: 'Client Secret' },
   ],
-  
+
   // Backend-only validation (1 field) - Just check auth_url to enable OAuth UI
   backendOnly: [
     { field: 'auth_url', required: true, label: 'Authorization URL' },
   ],
-  
+
   // Credentials only (2 fields) - When endpoints are hardcoded in backend
   credentialsOnly: [
     { field: 'client_id', required: true, label: 'Client ID' },
     { field: 'client_secret', required: true, label: 'Client Secret' },
   ],
-  
+
   // Authorization only (1 field) - Just need auth endpoint
   authOnly: [
     { field: 'auth_url', required: true, label: 'Authorization URL' },
   ],
-  
+
   // Custom validation examples for specific providers
   googleDrive: [
     { field: 'auth_url', required: true, label: 'Authorization URL' },
@@ -53,40 +53,40 @@ export const OAuthValidationPresets = {
     { field: 'redirect_url', required: true, label: 'Redirect URL' },
     { field: 'token_url', required: true, label: 'Token URL' },
   ],
-  
+
   feishuLark: [
     { field: 'client_id', required: true, label: 'Client ID' },
     { field: 'client_secret', required: true, label: 'Client Secret' },
   ],
-  
+
   // Example of conditional validation - require redirect_url only if not using default
   conditionalExample: [
     { field: 'auth_url', required: true, label: 'Authorization URL' },
     { field: 'client_id', required: true, label: 'Client ID' },
     { field: 'client_secret', required: true, label: 'Client Secret' },
-    { 
-      field: 'redirect_url', 
+    {
+      field: 'redirect_url',
       required: (config: OAuthConfig) => {
         // Only require redirect_url if auth_url is provided (conditional logic)
         return !!config.auth_url;
-      }, 
-      label: 'Redirect URL' 
+      },
+      label: 'Redirect URL'
     },
     { field: 'token_url', required: true, label: 'Token URL' },
   ],
-  
+
   // Example with custom validator - validate URL format
   withCustomValidation: [
     { field: 'auth_url', required: true, label: 'Authorization URL' },
     { field: 'client_id', required: true, label: 'Client ID' },
     { field: 'client_secret', required: true, label: 'Client Secret' },
-    { 
-      field: 'redirect_url', 
-      required: true, 
+    {
+      field: 'redirect_url',
+      required: true,
       label: 'Redirect URL',
       customValidator: (config: OAuthConfig) => {
         if (!config.redirect_url) return { valid: false, message: 'Redirect URL is required' };
-        
+
         // Basic URL validation
         try {
           new URL(config.redirect_url);
@@ -110,6 +110,7 @@ interface OAuthConnectProps {
   connector: {
     id?: string;
     config?: OAuthConfig;
+    name?: string;
   };
   connectUrl?: string;
   missingConfigMessage?: string;
@@ -118,8 +119,8 @@ interface OAuthConnectProps {
   validationRules?: ValidationRule[]; // Configurable validation rules
 }
 
-export default function OAuthConnect({ 
-  connector, 
+export default function OAuthConnect({
+  connector,
   connectUrl,
   missingConfigMessage,
   connectButtonText,
@@ -148,11 +149,11 @@ export default function OAuthConnect({
     const missingFields: string[] = [];
     const missingFieldLabels: string[] = [];
     const customErrors: string[] = [];
-    
+
     rules.forEach(rule => {
       // Check if field is required (handle conditional requirements)
       const isRequired = typeof rule.required === 'function' ? rule.required(config) : rule.required;
-      
+
       if (isRequired) {
         // Run custom validator if provided
         if (rule.customValidator) {
@@ -161,7 +162,7 @@ export default function OAuthConnect({
             customErrors.push(result.message || `${rule.label || rule.field} is invalid`);
           }
         }
-        
+
         // Check if required field is missing
         if (!config[rule.field]) {
           missingFields.push(rule.field);
@@ -172,12 +173,12 @@ export default function OAuthConnect({
 
     // Combine all errors
     const allErrors = [...missingFieldLabels, ...customErrors];
-    
+
     if (allErrors.length > 0) {
       // Build specific error message
-      const errorMessage = missingConfigMessage || 
-        t('page.datasource.missing_config_tip') || 
-        `OAuth configuration issues: ${allErrors.join(', ')}`;
+      const processorName = connector?.name;
+      const errorMessage = missingConfigMessage ||
+        ( processorName ? t('page.datasource.missing_config_tip', { name: processorName }) : `OAuth configuration issues: ${allErrors.join(', ')}`)
 
       window?.$modal?.confirm({
         title: t("common.tip"),
