@@ -227,68 +227,68 @@ const page: App.I18n.Schema['translation']['page'] = {
         connection_uri_invalid: '无效的 Neo4j URI 格式。请使用 neo4j://host:port',
         connection_uri_required: '请输入连接地址！',
         cypher_required: '请输入 Cypher 查询！',
+        incremental_property_required: '请输入增量同步属性！',
+        incremental_resume_invalid: '请使用 RFC3339 时间格式，例如：2025-01-01T00:00:00Z。',
+        incremental_resume_invalid_float: '请输入有效的数字！',
+        incremental_resume_invalid_int: '请输入有效的整数值！',
+        incremental_tie_breaker_required: '请输入并列项属性！',
+        parameter_key_required: '请输入参数键！',
         password_required: '请输入密码！',
         path_property_required: '请输入路径属性！',
-        username_required: '请输入用户名！',
-        parameter_key_required: '请输入参数键！',
-        incremental_property_required: '请输入增量同步属性！',
-        incremental_tie_breaker_required: '请输入并列项属性！',
-        incremental_resume_invalid: '请使用 RFC3339 时间格式，例如：2025-01-01T00:00:00Z。',
-        incremental_resume_invalid_int: '请输入有效的整数值！',
-        incremental_resume_invalid_float: '请输入有效的数字！'
+        username_required: '请输入用户名！'
       },
       labels: {
+        add_parameter: '新增参数',
         advanced_settings: '高级设置',
+        auth_token: '认证令牌',
+        auth_token_placeholder: '可选的 Neo4j 认证令牌',
         connection_uri: '连接地址',
-        database: '数据库',
-        database_placeholder: '可选的数据库名称',
         content_field: '内容字段',
         cypher: 'Cypher 查询',
-        parameters: '查询参数',
-        add_parameter: '新增参数',
-        parameter_key_placeholder: '参数键',
-        parameter_value_placeholder: '参数值',
+        database: '数据库',
+        database_placeholder: '可选的数据库名称',
         enable_field_mapping: '启用字段映射',
         enable_pagination: '启用分页',
         field_mapping: '字段映射',
         hashable_id: '可哈希 ID',
         id_field: 'ID 字段',
+        incremental_property: '水位属性',
+        incremental_property_type: '水位属性类型',
+        incremental_resume_from: '起始水位值',
+        incremental_sync: '增量同步',
+        incremental_tie_breaker: '并列项属性',
         label_property: '标签属性',
         last_modified_field: '最后修改字段',
         page_size: '页面大小',
+        parameter_key_placeholder: '参数键',
+        parameter_value_placeholder: '参数值',
+        parameters: '查询参数',
         parent_relationship: '父级关系',
         password: '密码',
         password_placeholder: '请输入 Neo4j 密码',
         path_property: '路径属性',
         path_separator: '路径分隔符',
+        property_type_datetime: '日期时间',
+        property_type_float: '浮点数',
+        property_type_int: '整数',
+        property_type_string: '字符串',
         title_field: '标题字段',
         url_field: 'URL 字段',
-        username: '用户名',
-        auth_token: '认证令牌',
-        auth_token_placeholder: '可选的 Neo4j 认证令牌',
-        incremental_sync: '增量同步',
-        incremental_property: '水位属性',
-        incremental_property_type: '水位属性类型',
-        incremental_tie_breaker: '并列项属性',
-        incremental_resume_from: '起始水位值',
-        property_type_string: '字符串',
-        property_type_int: '整数',
-        property_type_float: '浮点数',
-        property_type_datetime: '日期时间'
+        username: '用户名'
       },
       tooltip: {
+        auth_token: '可选的 Bearer Token。如果填写，将覆盖用户名和密码。',
         connection_uri: '您的 Neo4j 数据库连接地址，例如：neo4j://localhost:7687',
         cypher: '用于获取数据的 Cypher 查询语句',
-        auth_token: '可选的 Bearer Token。如果填写，将覆盖用户名和密码。',
         field_mapping: '将 Neo4j 节点属性映射到文档字段',
-        page_size: '每页要获取的记录数',
-        pagination: '如果数据库查询应该分页，请启用此选项。建议对大型图数据库使用此选项。',
-        parameters: '可选的键值对参数，将传递给 Cypher 查询。',
-        incremental_sync: '启用后，将使用水位属性从上次进度继续扫描。',
         incremental_property: '作为水位的 Cypher 结果字段。每一行都必须包含该字段。',
         incremental_property_type: '选择水位属性的数据类型，以确保排序稳定。',
+        incremental_resume_from: '可选的首次运行起始水位值。',
+        incremental_sync: '启用后，将使用水位属性从上次进度继续扫描。',
         incremental_tie_breaker: '用于区分具有相同水位值记录的表达式，例如 elementId(n)。',
-        incremental_resume_from: '可选的首次运行起始水位值。'
+        page_size: '每页要获取的记录数',
+        pagination: '如果数据库查询应该分页，请启用此选项。建议对大型图数据库使用此选项。',
+        parameters: '可选的键值对参数，将传递给 Cypher 查询。'
       }
     },
     network_drive: {
@@ -669,6 +669,35 @@ const page: App.I18n.Schema['translation']['page'] = {
       title: '搜索设置'
     },
     setupLater: '稍后设置'
+  },
+  webhook: {
+    form: {
+      title: {
+        edit: '编辑 Webhook',
+        new: '新建 Webhook'
+      }
+    },
+    labels: {
+      ai_assistant: 'AI 助手',
+      content_type: 'Content type',
+      datasource: '数据源',
+      file_parse_completed: '文件解析已完成',
+      model_provider: '大模型提供商',
+      name: '名称',
+      payload_url: 'Payload URL',
+      reply_completed: '回复已完成',
+      secret: 'Secret',
+      ssl_verify: 'SSL 验证',
+      sync_completed: '同步完成',
+      test: '测试',
+      test_need_save: '请先保存，再进行测试',
+      triggers: '触发事件'
+    },
+    placeholders: {
+      name: '请输入',
+      payload_url: '请输入',
+      secret: '请输入'
+    }
   }
 };
 

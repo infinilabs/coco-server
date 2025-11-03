@@ -46,4 +46,6 @@ export const pages: Record<LastLevelRouteKey, LazyRouteFunction<CustomRouteObjec
   "model-provider_new": () => import("@/pages/model-provider/new/index.tsx"),
   search: () => import("@/pages/search/index.tsx"),
   settings: () => import("@/pages/settings/index.tsx"),
+  webhook_edit: () => import("@/pages/webhook/edit/[id].tsx"),
+  webhook_new: () => import("@/pages/webhook/new/index.tsx"),
 };

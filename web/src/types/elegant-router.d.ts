@@ -67,6 +67,9 @@ declare module "@elegant-router/types" {
     "model-provider_new": "new";
     "search": "/search";
     "settings": "/settings";
+    "webhook": "/webhook";
+    "webhook_edit": "edit/:id";
+    "webhook_new": "new";
   };
 
   /**
@@ -126,6 +129,7 @@ declare module "@elegant-router/types" {
     | "model-provider"
     | "search"
     | "settings"
+    | "webhook"
   >;
 
   /**
@@ -174,6 +178,8 @@ declare module "@elegant-router/types" {
     | "model-provider_new"
     | "search"
     | "settings"
+    | "webhook_edit"
+    | "webhook_new"
   >;
 
   /**

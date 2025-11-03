@@ -247,7 +247,10 @@ const routeMap: RouteMap = {
   "model-provider_list": "list",
   "model-provider_new": "new",
   "search": "/search",
-  "settings": "/settings"
+  "settings": "/settings",
+  "webhook": "/webhook",
+  "webhook_edit": "edit/:id",
+  "webhook_new": "new"
 };
 
 /**

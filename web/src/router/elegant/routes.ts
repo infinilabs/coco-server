@@ -406,5 +406,41 @@ export const generatedRoutes: GeneratedRoute[] = [
       icon: 'mdi:settings-outline',
       order: 10
     }
+  },
+  // 新增：Webhook 路由
+  {
+    name: 'webhook',
+    path: '/webhook',
+    component: 'layout.base',
+    meta: {
+      i18nKey: 'route.webhook',
+      title: 'webhook',
+      order: 5,
+      localIcon: 'link'
+    },
+    children: [
+      {
+        name: 'webhook_edit',
+        path: 'edit/:id',
+        component: 'view.webhook_edit',
+        meta: {
+          i18nKey: 'route.webhook_edit',
+          title: 'webhook_edit',
+          hideInMenu: true,
+          activeMenu: 'webhook'
+        }
+      },
+      {
+        name: 'webhook_new',
+        path: 'new',
+        component: 'view.webhook_new',
+        meta: {
+          i18nKey: 'route.webhook_new',
+          title: 'webhook_new',
+          hideInMenu: true,
+          activeMenu: 'webhook'
+        }
+      }
+    ]
   }
 ];
