@@ -8,9 +8,6 @@ import { GoogleDriveSVG, HugoSVG, NotionSVG, YuqueSVG } from '@/components/icons
 import { deleteDatasource, fetchDataSourceList, getConnectorByIDs, updateDatasource } from '@/service/api';
 import { formatESSearchResult } from '@/service/request/es';
 import useQueryParams from '@/hooks/common/queryParams';
-import useResource from '@/components/Resource/hooks/useResource';
-import AvatarLabel from '@/components/Resource/AvatarLabel';
-import Shares from '@/components/Resource/Shares';
 
 type Datasource = Api.Datasource.Datasource;
 
@@ -38,7 +35,9 @@ export function Component() {
 
   const { t } = useTranslation();
 
-  const { addSharesToData, hasEdit } = useResource()
+  const { addSharesToData, isEditorOwner, hasEdit } = useResource()
+  const resourceType = 'datasource'
+  const resourceCategoryType = 'connector'
 
   const { hasAuth } = useAuth()
 
@@ -164,7 +163,7 @@ export function Component() {
           iconSrc = data.connectors[record.connector.id]?.icon;
         }
 
-        const isOwner = record.owner?.id && record.owner?.id === record.editor?.id
+        const isOwner = isEditorOwner(record)
 
         let shareIcon;
 
@@ -237,9 +236,9 @@ export function Component() {
             title={record.name} 
             onSuccess={() => fetchData()}
             resource={{
-              'resource_category_type': 'connector',
+              'resource_category_type': resourceCategoryType,
               'resource_category_id': record.connector?.id,
-              'resource_type': 'datasource',
+              'resource_type': resourceType,
               'resource_id': record.id,
             }}
           />
@@ -311,8 +310,6 @@ export function Component() {
       fixed: 'right',
       hidden: !permissions.update && !permissions.delete,
       render: (_, record) => {
-        const isOwner = record.owner?.id && record.owner?.id === record.editor?.id
-
         const items: MenuProps['items'] = [];
         if (permissions.read && permissions.update && hasEdit(record)) {
           items.push({
@@ -320,7 +317,7 @@ export function Component() {
             label: t('common.edit')
           })
         }
-        if (permissions.delete && isOwner) {
+        if (permissions.delete && isEditorOwner(record)) {
           items.push({
             key: '1',
             label: t('common.delete')
@@ -363,8 +360,8 @@ export function Component() {
       if (newData.data.length > 0) {
         const resources = newData.data.map((item) => ({
           "resource_id": item.id,
-          "resource_type": 'datasource',
-          'resource_category_type': 'connector',
+          "resource_type": resourceType,
+          'resource_category_type': resourceCategoryType,
           'resource_category_id': item.connector?.id,
         }))
         const dataWithShares = await addSharesToData(newData.data, resources)

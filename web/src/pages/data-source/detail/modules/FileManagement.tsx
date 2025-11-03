@@ -15,9 +15,6 @@ import {
 } from '@/service/api';
 import { formatESSearchResult } from '@/service/request/es';
 import useQueryParams from '@/hooks/common/queryParams';
-import useResource from '@/components/Resource/hooks/useResource';
-import AvatarLabel from '@/components/Resource/AvatarLabel';
-import Shares from '@/components/Resource/Shares';
 
 interface DataType {
   category: string;
@@ -39,7 +36,7 @@ const FileManagement = (props) => {
 
   const { t } = useTranslation();
 
-  const { addSharesToData, hasEdit } = useResource()
+  const { addSharesToData, isEditorOwner, hasEdit } = useResource()
 
   const { hasAuth } = useAuth()
 
@@ -107,7 +104,7 @@ const FileManagement = (props) => {
     getCheckboxProps: (record: DataType) => ({
       // Column configuration not to be checked
       name: record.title,
-      disabled: record.owner?.id && record.owner?.id === record.editor?.id && permissions.delete ? false : true
+      disabled: isEditorOwner(record) && permissions.delete ? false : true
     }),
     onChange: (selectedRowKeys: React.Key[], selectedRows: DataType[]) => {
       setState((st: any) => {
@@ -192,7 +189,7 @@ const FileManagement = (props) => {
     {
       dataIndex: 'title',
       render: (text: string, record: DataType) => {
-        const isOwner = record.owner?.id && record.owner?.id === record.editor?.id
+        const isOwner = isEditorOwner(record)
 
         let imgSrc = '';
         if (connector?.assets?.icons) {
@@ -331,8 +328,7 @@ const FileManagement = (props) => {
       fixed: 'right',
       hidden: !permissions.delete,
       render: (_, record) => {
-        const isOwner = record.owner?.id && record.owner?.id === record.editor?.id
-        if (!isOwner) return null
+        if (!isEditorOwner(record)) return null
         return (
           <Dropdown menu={{ items, onClick: ({ key }) => onMenuClick({ key, record }) }}>
             <EllipsisOutlined />

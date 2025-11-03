@@ -65,14 +65,18 @@ export default function useResource() {
         return newData
     } 
 
+    function isEditorOwner(record) {
+        return record?.owner?.id && record?.owner?.id === record?.editor?.id
+    }
+
     function hasEdit(record) {
-        const isOwner = record.owner?.id && record.owner?.id === record.editor?.id
-        const share = record.shares?.find((item) => item.principal_id === record.editor?.id)
-        return isOwner || share?.permission >= 4
+        const share = record?.shares?.find((item) => item.principal_id === record?.editor?.id)
+        return isEditorOwner(record) || share?.permission >= 4
     }
 
     return {
         addSharesToData,
+        isEditorOwner,
         hasEdit,
     }
 }

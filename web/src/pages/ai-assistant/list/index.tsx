@@ -1,6 +1,6 @@
 import Search from 'antd/es/input/Search';
 import Icon, { FilterOutlined, PlusOutlined, EllipsisOutlined, ExclamationCircleOutlined} from '@ant-design/icons';
-import { Button, Dropdown, Table, GetProp, message,Modal, Switch, Image } from 'antd';
+import { Button, Dropdown, Table, GetProp, message,Modal, Switch, Image, Avatar } from 'antd';
 import type { TableColumnsType, TableProps, MenuProps } from "antd";
 import {searchAssistant, deleteAssistant, updateAssistant, cloneAssistant} from '@/service/api/assistant';
 import { formatESSearchResult } from '@/service/request/es';
@@ -13,6 +13,10 @@ export function Component() {
   const [queryParams, setQueryParams] = useQueryParams();
 
   const { t } = useTranslation();
+
+  const { addSharesToData, isEditorOwner, hasEdit } = useResource()
+  const resourceType = 'assistant'
+
   const { hasAuth } = useAuth()
 
   const permissions = {
@@ -25,29 +29,6 @@ export function Component() {
   const { scrollConfig, tableWrapperRef } = useTableScroll();
 
   const nav = useNavigate();
-
-  const getMenuItems = useCallback((record: Assistant): MenuProps["items"] => {
-    const items: MenuProps["items"] = [];
-    if (permissions.read && permissions.update) {
-      items.push({
-        label: t('common.edit'),
-        key: "2",
-      });
-    }
-    if (permissions.delete && record.builtin !== true) {
-      items.push({
-        label: t('common.delete'),
-        key: "1",
-      });
-    }
-    if (permissions.create) {
-      items.push({
-        label: t('common.clone'),
-        key: "3",
-      })
-    }
-    return items;
-  }, []);
 
   const onMenuClick = ({key, record}: any)=>{
     switch(key){
@@ -81,7 +62,11 @@ export function Component() {
       case "3":
         cloneAssistant(record.id).then((res)=>{
           if(res.data?.result === "created"){
-            nav(`/ai-assistant/edit/${res.data?._id}`);
+            if (permissions.update && hasEdit(record)) {
+              nav(`/ai-assistant/edit/${res.data?._id}`);
+            } else {
+              nav(`/ai-assistant/list`);
+            }
           }else{
             message.error(res.data?.error?.reason);
           }
@@ -122,7 +107,7 @@ export function Component() {
               <InfiniIcon height="1em" width="1em" src={record.icon} />
             </IconWrapper>
             {
-              permissions.read && permissions.update ? (
+              permissions.read && permissions.update && hasEdit(record) ? (
                 <span className='max-w-150px ant-table-cell-ellipsis cursor-pointer hover:text-blue-500' onClick={()=>nav(`/ai-assistant/edit/${record.id}`)}>{ value }</span>
               ) : (
                 <span className='max-w-150px ant-table-cell-ellipsis'>{ value }</span>
@@ -132,6 +117,39 @@ export function Component() {
               <p className="h-[22px] bg-[#eee] text-[#999] font-size-[12px] px-[10px] line-height-[22px] rounded-[4px]">{t('page.modelprovider.labels.builtin')}</p>
             </div>}
           </div>
+        )
+      }
+    },
+    
+    {
+      dataIndex: 'owner',
+      title: t('page.datasource.labels.owner'),
+      render: (value, record) => {
+        if (!value) return '-'
+        return (
+          <div className='flex'>
+            <Avatar.Group max={{ count: 1 }} size={"small"}>
+              <AvatarLabel data={value} showCard={true}/>
+            </Avatar.Group>
+          </div>
+        )
+      }
+    },
+    {
+      dataIndex: 'shares',
+      title: t('page.datasource.labels.shares'),
+      render: (value, record) => {
+        if (!value) return '-'
+        return (
+          <Shares 
+            record={record} 
+            title={record.name} 
+            onSuccess={() => fetchData(queryParams)}
+            resource={{
+              'resource_type': resourceType,
+              'resource_id': record.id,
+            }}
+          />
         )
       }
     },
@@ -170,7 +188,7 @@ export function Component() {
       title: t('page.assistant.labels.enabled'),
       width: 80,
       render: (value: boolean, record: Assistant)=>{
-       return <Switch size="small" value={value} onChange={(v)=>onEnabledChange(v, record)} disabled={!permissions.update}/>
+       return <Switch size="small" value={value} onChange={(v)=>onEnabledChange(v, record)} disabled={!permissions.update || !hasEdit(record)}/>
       }
     },
     {
@@ -179,7 +197,25 @@ export function Component() {
       width: "90px",
       hidden: !permissions.update && !permissions.delete,
       render: (_, record) => {
-        const items = getMenuItems(record)
+        const items: MenuProps["items"] = [];
+        if (permissions.read && permissions.update && hasEdit(record)) {
+          items.push({
+            label: t('common.edit'),
+            key: "2",
+          });
+        }
+        if (permissions.delete && record.builtin !== true && isEditorOwner(record)) {
+          items.push({
+            label: t('common.delete'),
+            key: "1",
+          });
+        }
+        if (permissions.create) {
+          items.push({
+            label: t('common.clone'),
+            key: "3",
+          })
+        }
         if (items?.length === 0) return null;
         return <Dropdown menu={{ items, onClick:({key})=>onMenuClick({key, record}) }}>
           <EllipsisOutlined/>
@@ -189,38 +225,51 @@ export function Component() {
   ];
 
   // rowSelection object indicates the need for row selection
-const rowSelection: TableProps<Assistant>["rowSelection"] = {
-  onChange: (selectedRowKeys: React.Key[], selectedRows: Assistant[]) => {
-  },
-  getCheckboxProps: (record: Assistant) => ({
-    name: record.name,
-  }),
-};
+  const rowSelection: TableProps<Assistant>["rowSelection"] = {
+    onChange: (selectedRowKeys: React.Key[], selectedRows: Assistant[]) => {
+    },
+    getCheckboxProps: (record: Assistant) => ({
+      name: record.name,
+    }),
+  };
 
-const initialData = {
-  data: [],
-  total: 0,
-}
-const [data, setData] = useState(initialData);
-const [loading, setLoading] = useState(false);
+  const initialData = {
+    data: [],
+    total: 0,
+  }
+  const [data, setData] = useState(initialData);
+  const [loading, setLoading] = useState(false);
 
-const [keyword, setKeyword] = useState();
+  const [keyword, setKeyword] = useState();
 
-const fetchData = () => {
-  setLoading(true);
-  searchAssistant(queryParams).then(({ data }) => {
-    const newData = formatESSearchResult(data);
+  const fetchData = async (queryParams) => {
+    setLoading(true);
+    const res = await searchAssistant(queryParams)
+    if (res?.data) {
+      const newData = formatESSearchResult(res?.data);
+      if (newData.data.length > 0) {
+        const resources = newData.data.map((item) => ({
+          "resource_id": item.id,
+          "resource_type": resourceType,
+        }))
+        const dataWithShares = await addSharesToData(newData.data, resources)
+        if (dataWithShares) {
+          newData.data = dataWithShares
+        }
+      }
       setData((oldData: any) => {
         return {
           ...oldData,
           ...(newData || initialData),
         }
       });
-      setLoading(false);
-    });
+    }
+    setLoading(false);
   };
 
-  useEffect(fetchData, [queryParams]);
+  useEffect(() => {
+    fetchData(queryParams)
+  }, [queryParams]);
 
   useEffect(() => {
     setKeyword(queryParams.query)
