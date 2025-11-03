@@ -1,6 +1,6 @@
 import { EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, PlusOutlined } from '@ant-design/icons';
 import { useLoading } from '@sa/hooks';
-import { Button, Dropdown, Input, Modal, Switch, Table, message } from 'antd';
+import { Avatar, Button, Dropdown, Input, Modal, Switch, Table, message } from 'antd';
 
 import { deleteIntegration, fetchIntegrations, updateIntegration, renewAPIToken } from '@/service/api/integration';
 import { formatESSearchResult } from '@/service/request/es';
@@ -11,6 +11,9 @@ import SvgIcon from '@/components/stateless/custom/SvgIcon';
 export function Component() {
   const [queryParams, setQueryParams] = useQueryParams();
   const { t } = useTranslation();
+
+  const { addSharesToData, isEditorOwner, hasEdit } = useResource()
+  const resourceType = 'integration'
 
   const { hasAuth } = useAuth()
 
@@ -35,8 +38,20 @@ export function Component() {
   const fetchData = async (params) => {
     startLoading();
     const res = await fetchIntegrations(params);
-    const newData = formatESSearchResult(res.data);
-    setData(newData);
+    if (res?.data) {
+      const newData = formatESSearchResult(res.data);
+      if (newData.data.length > 0) {
+        const resources = newData.data.map((item) => ({
+          "resource_id": item.id,
+          "resource_type": resourceType,
+        }))
+        const dataWithShares = await addSharesToData(newData.data, resources)
+        if (dataWithShares) {
+          newData.data = dataWithShares
+        }
+      }
+      setData(newData);
+    }
     endLoading();
   };
 
@@ -94,6 +109,38 @@ export function Component() {
       title: t('page.integration.columns.name')
     },
     {
+      dataIndex: 'owner',
+      title: t('page.datasource.labels.owner'),
+      render: (value, record) => {
+        if (!value) return '-'
+        return (
+          <div className='flex'>
+            <Avatar.Group max={{ count: 1 }} size={"small"}>
+              <AvatarLabel data={value} showCard={true}/>
+            </Avatar.Group>
+          </div>
+        )
+      }
+    },
+    {
+      dataIndex: 'shares',
+      title: t('page.datasource.labels.shares'),
+      render: (value, record) => {
+        if (!value) return '-'
+        return (
+          <Shares 
+            record={record} 
+            title={record.name} 
+            onSuccess={() => fetchData(queryParams)}
+            resource={{
+              'resource_type': resourceType,
+              'resource_id': record.id,
+            }}
+          />
+        )
+      }
+    },
+    {
       dataIndex: 'type',
       render: value => {
         return isFullscreen(value) ? t('page.integration.form.labels.type_fullscreen') : t('page.integration.form.labels.type_searchbox')
@@ -134,7 +181,7 @@ export function Component() {
                 title: t('common.tip')
               });
             }}
-            disabled={!permissions.update}
+            disabled={!permissions.update || !hasEdit(record)}
           />
         );
       },
@@ -152,7 +199,7 @@ export function Component() {
       hidden: !permissions.update && !permissions.delete,
       render: (_, record) => {
         const items: MenuProps['items'] = [];
-        if (permissions.read && permissions.update) {
+        if (permissions.read && permissions.update && hasEdit(record)) {
           items.push({
             key: 'edit',
             label: t('common.edit')
@@ -162,7 +209,7 @@ export function Component() {
             label: t('common.renew_token')
           })
         }
-        if (permissions.delete) {
+        if (permissions.delete && isEditorOwner(record)) {
           items.push({
             key: 'delete',
             label: t('common.delete')

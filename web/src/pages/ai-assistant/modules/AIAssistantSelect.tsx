@@ -75,7 +75,7 @@ export default (props) => {
           fetchItem(value.id)
         }
       }
-    }, [JSON.stringify(value), mode, permissions])
+    }, [JSON.stringify(value), mode, permissions.search, permissions.read])
 
     const result = useMemo(() => {
       const rs = formatESSearchResult(res)
