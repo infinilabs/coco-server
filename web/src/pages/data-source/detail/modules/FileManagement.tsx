@@ -1,4 +1,4 @@
-import { DownOutlined, EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, UserOutlined } from '@ant-design/icons';
+import { DownOutlined, EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined } from '@ant-design/icons';
 import type { MenuProps, TableColumnsType, TableProps } from 'antd';
 import { Avatar, Dropdown, Switch, Table, message } from 'antd';
 import Search from 'antd/es/input/Search';
@@ -15,13 +15,9 @@ import {
 } from '@/service/api';
 import { formatESSearchResult } from '@/service/request/es';
 import useQueryParams from '@/hooks/common/queryParams';
-import { fetchBatchShares } from '@/service/api/share';
-import { fetchBatchEntityLabels } from '@/service/api/entity';
-import Shares from '../../modules/Shares';
-import { selectUserInfo } from '@/store/slice/auth';
-import { groupBy, keys, map, uniq } from "lodash";
-import AvatarLabel from '../../modules/AvatarLabel';
-import { formatDataForShare, hasEdit } from '../../list';
+import useResource from '@/components/Resource/hooks/useResource';
+import AvatarLabel from '@/components/Resource/AvatarLabel';
+import Shares from '@/components/Resource/Shares';
 
 interface DataType {
   category: string;
@@ -42,7 +38,8 @@ const FileManagement = (props) => {
   const [queryParams, setQueryParams] = useQueryParams();
 
   const { t } = useTranslation();
-  const userInfo = useAppSelector(selectUserInfo);
+
+  const { addSharesToData, hasEdit } = useResource()
 
   const { hasAuth } = useAuth()
 
@@ -51,8 +48,6 @@ const FileManagement = (props) => {
     readConnector: hasAuth('coco#connector/read'),
     update: hasAuth('coco#document/update'),
     delete: hasAuth('coco#document/delete'),
-    shares: hasAuth('generic#sharing/search'),
-    entityLabel: hasAuth('generic#entity:label/read'),
   }
 
   const [connector, setConnector] = useState<any>({});
@@ -375,35 +370,10 @@ const FileManagement = (props) => {
           'resource_category_id': datasourceID,
           'resource_parent_path': item.categories?.length > 0 ? `/${item.categories.join('/')}/` : '/',
         }))
-        let shareRes: any;
-        if (permissions.shares) {
-          shareRes = await fetchBatchShares(resources)
+        const dataWithShares = await addSharesToData(newData.data, resources)
+        if (dataWithShares) {
+          newData.data = dataWithShares
         }
-        let entityRes: any
-        if (permissions.entityLabel) {
-          const entities = newData.data.filter((item) => !!item._system?.owner_id).map((item) => ({
-            type: 'user',
-            id: item._system.owner_id
-          }))
-          if (shareRes?.data?.length > 0) {
-            entities.push(...shareRes?.data.map((item) => ({ type: item.principal_type, id: item.principal_id })))
-          }
-          if (userInfo?.id) {
-            entities.push({
-              type: 'user',
-              id: userInfo.id
-            })
-          }
-          const grouped = groupBy(entities, 'type');
-          const body = map(keys(grouped), (type) => ({
-              type,
-              id: uniq(map(grouped[type], 'id')) 
-          }))
-          entityRes = await fetchBatchEntityLabels(body)
-        }
-        newData.data.forEach((item, index) => {
-          formatDataForShare(item, shareRes?.data, entityRes?.data, userInfo)
-        })
       }
       setData(newData);
     }

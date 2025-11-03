@@ -87,7 +87,7 @@ export default function EditShares(props) {
                             <AvatarLabel
                                 data={{
                                     ...editor,
-                                    title: `${editor.title}${t('page.datasource.labels.you')}`,
+                                    title: `${editor.title}${t('page.datasource.labels.you')} ${editorPermission?.via === 'inherit' ? '(Inherit)' : ''}`,
                                 }}
                             />
                             <div className={styles.actions}>

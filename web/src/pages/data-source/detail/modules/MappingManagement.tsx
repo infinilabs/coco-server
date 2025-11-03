@@ -5,7 +5,7 @@ import { Button, Input, Space, Switch, Table } from 'antd';
 import { formatESSearchResult } from '@/service/request/es';
 import useQueryParams from '@/hooks/common/queryParams';
 import { fetchRoles } from '@/service/api/security';
-import PrincipalSelect from '../../modules/PrincipalSelect';
+import PrincipalSelect from '@/components/Resource/PrincipalSelect';
 
 const MappingManagement = (props) => {
   const [queryParams, setQueryParams] = useQueryParams();

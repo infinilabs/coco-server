@@ -1,31 +1,18 @@
-import Icon, { EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, PlusOutlined, UserOutlined } from '@ant-design/icons';
-import { Avatar, Button, Dropdown, Image, Modal, Switch, Table, message } from 'antd';
-import type { GetProp, MenuProps, TableColumnsType, TableProps } from 'antd';
+import { EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, PlusOutlined } from '@ant-design/icons';
+import { Avatar, Button, Dropdown, Switch, Table, message } from 'antd';
+import type { MenuProps, TableColumnsType, TableProps } from 'antd';
 import Search from 'antd/es/input/Search';
-import type { SorterResult } from 'antd/es/table/interface';
 
 import InfiniIcon from '@/components/common/icon';
 import { GoogleDriveSVG, HugoSVG, NotionSVG, YuqueSVG } from '@/components/icons';
 import { deleteDatasource, fetchDataSourceList, getConnectorByIDs, updateDatasource } from '@/service/api';
 import { formatESSearchResult } from '@/service/request/es';
 import useQueryParams from '@/hooks/common/queryParams';
-import Shares from '../modules/Shares';
-import { fetchBatchShares } from '@/service/api/share';
-import { fetchBatchEntityLabels } from '@/service/api/entity';
-import AvatarLabel from '../modules/AvatarLabel';
-import { groupBy, keys, map, uniq } from "lodash";
-import { selectUserInfo } from '@/store/slice/auth';
+import useResource from '@/components/Resource/hooks/useResource';
+import AvatarLabel from '@/components/Resource/AvatarLabel';
+import Shares from '@/components/Resource/Shares';
 
 type Datasource = Api.Datasource.Datasource;
-
-type TablePaginationConfig = Exclude<GetProp<TableProps, 'pagination'>, boolean>;
-
-interface TableParams {
-  filters?: Parameters<GetProp<TableProps, 'onChange'>>[1];
-  pagination?: TablePaginationConfig;
-  sortField?: SorterResult<any>['field'];
-  sortOrder?: SorterResult<any>['order'];
-}
 
 const TYPES = {
   google_drive: {
@@ -46,38 +33,12 @@ const TYPES = {
   }
 };
 
-export function formatDataForShare(item: any, shares: any, entities: any, currentUser: any) {
-  const hasEntities = entities?.length > 0
-  if (hasEntities) {
-    if (shares?.length > 0) {
-      item.shares = shares.filter((s) => s.resource_id === item.id).map((item) => ({
-        ...item,
-        entity: entities.find((o) => o.id === item.principal_id)
-      }))
-    } else {
-      item.shares = []
-    }
-    if (item._system?.owner_id) {
-      item.owner = entities.find((o) => o.id === item._system?.owner_id)
-    }
-    if (currentUser?.id) {
-      item.editor = entities.find((o) => o.id === currentUser?.id)
-    }
-  }
-}
-
-export function hasEdit(record) {
-  const isOwner = record.owner?.id && record.owner?.id === record.editor?.id
-  const share = record.shares?.find((item) => item.principal_id === record.editor?.id)
-  return isOwner || share?.permission >= 4
-}
-
 export function Component() {
   const [queryParams, setQueryParams] = useQueryParams();
 
   const { t } = useTranslation();
 
-  const userInfo = useAppSelector(selectUserInfo);
+  const { addSharesToData, hasEdit } = useResource()
 
   const { hasAuth } = useAuth()
 
@@ -86,8 +47,6 @@ export function Component() {
     create: hasAuth('coco#datasource/create'),
     update: hasAuth('coco#datasource/update'),
     delete: hasAuth('coco#datasource/delete'),
-    shares: hasAuth('generic#sharing/search'),
-    entityLabel: hasAuth('generic#entity:label/read')
   }
 
   const { scrollConfig, tableWrapperRef } = useTableScroll();
@@ -408,35 +367,10 @@ export function Component() {
           'resource_category_type': 'connector',
           'resource_category_id': item.connector?.id,
         }))
-        let shareRes: any;
-        if (permissions.shares) {
-          shareRes = await fetchBatchShares(resources)
+        const dataWithShares = await addSharesToData(newData.data, resources)
+        if (dataWithShares) {
+          newData.data = dataWithShares
         }
-        let entityRes: any
-        if (permissions.entityLabel) {
-          const entities = newData.data.filter((item) => !!item._system?.owner_id).map((item) => ({
-            type: 'user',
-            id: item._system.owner_id
-          }))
-          if (shareRes?.data?.length > 0) {
-            entities.push(...shareRes?.data.map((item) => ({ type: item.principal_type, id: item.principal_id })))
-          }
-          if (userInfo?.id) {
-            entities.push({
-              type: 'user',
-              id: userInfo.id
-            })
-          }
-          const grouped = groupBy(entities, 'type');
-          const body = map(keys(grouped), (type) => ({
-              type,
-              id: uniq(map(grouped[type], 'id')) 
-          }))
-          entityRes = await fetchBatchEntityLabels(body)
-        }
-        newData.data.forEach((item, index) => {
-          formatDataForShare(item, shareRes?.data, entityRes?.data, userInfo)
-        })
       }
       setData((oldData: any) => {
         return {
