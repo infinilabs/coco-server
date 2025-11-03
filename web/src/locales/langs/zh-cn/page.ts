@@ -464,7 +464,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       install: '安装'
     },
     hints: {
-      installSuccess: '安装成功',
+      installSuccess: '安装成功，3s后自动跳转至详情页。',
       noResults: '未找到数据'
     },
     labels: {
