@@ -1,0 +1,48 @@
+{
+  "category": "Network Tools",
+  "description": "Playwright MCP is more than just a tool; it's a foundational piece of infrastructure for the future of AI-native software development.",
+  "developer": {
+    "avatar": "https://coco.infini.cloud/extensions/infinilabs/assets/avatar.png",
+    "github_handle": "infinilabs",
+    "id": "infinilabs",
+    "location": "Internet",
+    "name": "infinilabs",
+    "website": "https://github.com/infinilabs"
+  },
+  "icon": "font_robot",
+  "name": "playwright",
+  "platforms": [
+    "macos",
+    "linux",
+    "windows"
+  ],
+  "screenshots": [
+    {
+      "title": "playwright",
+      "url": "/assets/screenshot.png"
+    }
+  ],
+  "tags": [
+   "mcp",
+   "tools"
+  ],
+  "type": "mcp",
+  "url": {
+    "home": "http://coco.rs/"
+  },
+  "version": {
+    "number": "0.1"
+  },
+  "settings": {
+    "name": "playwright",
+    "icon": "font_robot",
+    "type": "stdio",
+    "category": "Network Tools",
+    "config": {
+      "args": ["@playwright/mcp@latest", "--headless"],
+      "command": "npx",
+      "env": {}
+    },
+    "enabled": true
+  }
+}

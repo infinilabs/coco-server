@@ -1,0 +1,53 @@
+{
+  "category": "model",
+  "description": "A fully compatible alternative to OpenAI's API, offering lower-cost and higher-concurrency model calls, supporting private deployment and multi-model hosting.",
+  "developer": {
+    "avatar": "https://coco.infini.cloud/extensions/infinilabs/assets/avatar.png",
+    "github_handle": "infinilabs",
+    "id": "infinilabs",
+    "location": "Internet",
+    "name": "infinilabs",
+    "website": "https://github.com/infinilabs"
+  },
+  "icon": "font_openai",
+  "name": "OpenAI-API-compatible",
+  "platforms": [
+    "macos",
+    "linux",
+    "windows"
+  ],
+  "screenshots": [
+    {
+      "title": "OpenAI-API-compatible",
+      "url": "/assets/screenshot.png"
+    }
+  ],
+  "tags": [
+   "model",
+    "gpt",
+    "llm"
+  ],
+  "type": "llm-provider",
+  "url": {
+    "home": "http://coco.rs"
+  },
+  "version": {
+    "number": "0.1"
+  },
+  "settings": {
+    "id" : "openai_compatible",
+    "name" : "OpenAI-API-compatible",
+    "api_key" : "",
+    "api_type" : "openai",
+    "icon" : "font_openai",
+    "models" : [
+      {
+        "name" : "deepseek-r1"
+      }
+    ],
+    "base_url" : "",
+    "enabled" : false,
+    "builtin" : true,
+    "description" : "A fully compatible alternative to OpenAI's API, offering lower-cost and higher-concurrency model calls, supporting private deployment and multi-model hosting."
+  }
+}

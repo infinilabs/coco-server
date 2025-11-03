@@ -1,0 +1,55 @@
+{
+  "category": "model",
+  "description": "Pre-set the full series of Wenxin large models and over a hundred selected third-party models.",
+  "developer": {
+    "avatar": "https://coco.infini.cloud/extensions/infinilabs/assets/avatar.png",
+    "github_handle": "infinilabs",
+    "id": "infinilabs",
+    "location": "Internet",
+    "name": "infinilabs",
+    "website": "https://github.com/infinilabs"
+  },
+  "icon": "font_Qianfan",
+  "name": "Qianfan",
+  "platforms": [
+    "macos",
+    "linux",
+    "windows"
+  ],
+  "screenshots": [
+    {
+      "title": "Qianfan",
+      "url": "/assets/screenshot.png"
+    }
+  ],
+  "tags": [
+   "model",
+    "ERNlE",
+    "llm"
+  ],
+  "type": "llm-provider",
+  "url": {
+    "home": "https://qianfan.baidubce.com/v2/"
+  },
+  "version": {
+    "number": "0.1"
+  },
+  "settings": {
+    "name" : "Qianfan",
+    "api_key" : "",
+    "api_type" : "openai",
+    "base_url" : "https://qianfan.baidubce.com/v2/",
+    "icon" : "font_Qianfan",
+    "models" : [
+      {"name": "ERNIE-4.0"},
+      {"name": "ERNIE 4.0 Trubo"},
+      {"name": "ERNlE Speed"},
+      {"name": "ERNIE Lite"},
+      {"name": "BGE Large ZH"},
+      {"name": "BGE Large EN"}
+    ],
+    "enabled" : false,
+    "builtin" : true,
+    "description": "Pre-set the full series of Wenxin large models and over a hundred selected third-party models."
+  }
+}

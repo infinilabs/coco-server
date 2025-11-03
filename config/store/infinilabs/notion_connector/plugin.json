@@ -1,0 +1,62 @@
+{
+  "category": "website",
+  "description": "Fetch the docs metadata for notion.",
+  "developer": {
+    "avatar": "https://coco.infini.cloud/extensions/infinilabs/assets/avatar.png",
+    "github_handle": "infinilabs",
+    "id": "infinilabs",
+    "location": "Internet",
+    "name": "infinilabs",
+    "website": "https://github.com/infinilabs"
+  },
+  "icon": "/assets/icons/connector/notion/icon.png",
+  "name": "Notion Docs Connector",
+  "platforms": [
+    "macos",
+    "linux",
+    "windows"
+  ],
+  "screenshots": [
+    {
+      "title": "Notion Docs Connector",
+      "url": "/assets/screenshot.png"
+    }
+  ],
+  "tags": [
+   "docs",
+    "notion",
+    "web"
+  ],
+  "type": "connector",
+  "url": {
+    "home": "http://coco.rs/connectors/notion"
+  },
+  "version": {
+    "number": "0.1"
+  },
+  "settings": {
+    "name" : "Notion Docs Connector",
+    "description" : "Fetch the docs metadata for notion.",
+    "category" : "website",
+    "icon" : "/assets/icons/connector/notion/icon.png",
+    "tags" : [
+      "docs",
+      "notion",
+      "web"
+    ],
+    "url" : "http://coco.rs/connectors/notion",
+    "assets" : {
+      "icons" : {
+        "database" : "/assets/icons/connector/notion/database.png",
+        "default" : "/assets/icons/connector/notion/icon.png",
+        "page" : "/assets/icons/connector/notion/page.png",
+        "web_page" : "/assets/icons/connector/notion/icon.png"
+      }
+    },
+    "builtin": true,
+    "processor":{
+        "enabled":true,
+        "name":"notion"
+    }
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "category": "model",
+  "description": "Tencent Hunyuan provides models such as hunyuan-standard, hunyuan-standard-256k, hunyuan-pro, hunyuan-role...",
+  "developer": {
+    "avatar": "https://coco.infini.cloud/extensions/infinilabs/assets/avatar.png",
+    "github_handle": "infinilabs",
+    "id": "infinilabs",
+    "location": "Internet",
+    "name": "infinilabs",
+    "website": "https://github.com/infinilabs"
+  },
+  "icon": "font_hunyuan",
+  "name": "Tencent Hunyuan",
+  "platforms": [
+    "macos",
+    "linux",
+    "windows"
+  ],
+  "screenshots": [
+    {
+      "title": "Tencent Hunyuan",
+      "url": "/assets/screenshot.png"
+    }
+  ],
+  "tags": [
+   "model",
+    "hunyuan",
+    "llm"
+  ],
+  "type": "llm-provider",
+  "url": {
+    "home": "http://coco.rs"
+  },
+  "version": {
+    "number": "0.1"
+  },
+  "settings": {
+    "name" : "Tencent Hunyuan",
+    "api_key" : "",
+    "api_type" : "openai",
+    "base_url" : "https://api.hunyuan.cloud.tencent.com",
+    "icon" : "font_hunyuan",
+    "models" : [
+      {"name": "hunyuan-pro"},
+      {"name": "hunyuan-standard"},
+      {"name": "hunyuan-lite"},
+      {"name": "hunyuan-standard-256k"},
+      {"name": "hunyuan-vision"},
+      {"name": "hunyuan-code"},
+      {"name": "hunyuan-role"},
+      {"name": "hunyuan-turbo"}
+    ],
+    "enabled" : false,
+    "builtin" : true,
+    "description": "Tencent Hunyuan provides models such as hunyuan-standard, hunyuan-standard-256k, hunyuan-pro, hunyuan-role..."
+  }
+}

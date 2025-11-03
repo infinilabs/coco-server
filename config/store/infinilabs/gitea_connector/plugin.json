@@ -1,0 +1,66 @@
+{
+  "category": "website",
+  "description": "Fetch repositories, issues, and pull requests from Gitea.",
+  "developer": {
+    "avatar": "https://coco.infini.cloud/extensions/infinilabs/assets/avatar.png",
+    "github_handle": "infinilabs",
+    "id": "infinilabs",
+    "location": "Internet",
+    "name": "infinilabs",
+    "website": "https://github.com/infinilabs"
+  },
+  "icon": "/assets/icons/connector/gitea/icon.png",
+  "name": "Gitea Connector",
+  "platforms": [
+    "macos",
+    "linux",
+    "windows"
+  ],
+  "screenshots": [
+    {
+      "title": "Gitea Connector",
+      "url": "/assets/screenshot.png"
+    }
+  ],
+  "tags": [
+   "git",
+    "code",
+    "vcs",
+    "website"
+  ],
+  "type": "connector",
+  "url": {
+    "home": "http://coco.rs/connectors/gitea"
+  },
+  "version": {
+    "number": "0.1"
+  },
+  "settings": {
+    "name" : "Gitea Connector",
+    "description" : "Fetch repositories, issues, and pull requests from Gitea.",
+    "category" : "website",
+    "path_hierarchy": true,
+    "icon" : "/assets/icons/connector/gitea/icon.png",
+      "tags" : [
+      "git",
+      "code",
+      "vcs",
+      "website"
+    ],
+    "url" : "http://coco.rs/connectors/gitea",
+    "assets" : {
+      "icons" : {
+        "default" : "/assets/icons/connector/gitea/icon.png",
+        "repository" : "/assets/icons/connector/gitea/repository.png",
+        "issue" : "/assets/icons/connector/gitea/issue.png",
+        "pull_request" : "/assets/icons/connector/gitea/pull_request.png",
+        "org" : "/assets/icons/connector/gitea/org.png"
+      }
+    },
+    "builtin": true,
+    "processor": {
+      "enabled": true,
+      "name": "gitea"
+    }
+  }
+}

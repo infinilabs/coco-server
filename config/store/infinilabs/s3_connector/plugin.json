@@ -1,0 +1,59 @@
+{
+  "category": "cloud_storage",
+  "description": "Fetch S3 Storage objects metadata.",
+  "developer": {
+    "avatar": "https://coco.infini.cloud/extensions/infinilabs/assets/avatar.png",
+    "github_handle": "infinilabs",
+    "id": "infinilabs",
+    "location": "Internet",
+    "name": "infinilabs",
+    "website": "https://github.com/infinilabs"
+  },
+  "icon": "/assets/icons/connector/s3/icon.png",
+  "name": "S3 Storage Connector",
+  "platforms": [
+    "macos",
+    "linux",
+    "windows"
+  ],
+  "screenshots": [
+    {
+      "title": "S3 Storage Connector",
+      "url": "/assets/screenshot.png"
+    }
+  ],
+  "tags": [
+    "s3",
+    "storage"
+  ],
+  "type": "connector",
+  "url": {
+    "home": "http://coco.rs/connectors/s3"
+  },
+  "version": {
+    "number": "0.1"
+  },
+  "settings": {
+    "name" : "S3 Storage Connector",
+    "description" : "Fetch S3 Storage objects metadata.",
+    "category" : "cloud_storage",
+    "path_hierarchy": true,
+    "icon" : "/assets/icons/connector/s3/icon.png",
+    "tags" : [
+      "s3",
+      "storage"
+    ],
+    "url" : "http://coco.rs/connectors/s3",
+    "assets" : {
+      "icons" : {
+        "default" : "/assets/icons/connector/s3/icon.png",
+        "file" : "/assets/icons/connector/s3/file.png"
+      }
+    },
+    "builtin": true,
+    "processor": {
+      "enabled": true,
+      "name": "s3"
+    }
+  }
+}

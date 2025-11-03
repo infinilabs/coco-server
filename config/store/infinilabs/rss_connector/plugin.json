@@ -1,0 +1,59 @@
+{
+  "category": "website",
+  "description": "Fetch items from a specified RSS feed.",
+  "developer": {
+    "avatar": "https://coco.infini.cloud/extensions/infinilabs/assets/avatar.png",
+    "github_handle": "infinilabs",
+    "id": "infinilabs",
+    "location": "Internet",
+    "name": "infinilabs",
+    "website": "https://github.com/infinilabs"
+  },
+  "icon": "/assets/icons/connector/rss/icon.png",
+  "name": "RSS Connector",
+  "platforms": [
+    "macos",
+    "linux",
+    "windows"
+  ],
+  "screenshots": [
+    {
+      "title": "RSS Connector",
+      "url": "/assets/screenshot.png"
+    }
+  ],
+  "tags": [
+   "rss",
+    "feed",
+    "web"
+  ],
+  "type": "connector",
+  "url": {
+    "home": "http://coco.rs/connectors/rss"
+  },
+  "version": {
+    "number": "0.1"
+  },
+  "settings": {
+    "name" : "RSS Connector",
+    "description" : "Fetch items from a specified RSS feed.",
+    "category" : "website",
+    "icon" : "/assets/icons/connector/rss/icon.png",
+    "tags" : [
+      "rss",
+      "feed",
+      "web"
+    ],
+    "url" : "http://coco.rs/connectors/rss",
+    "assets" : {
+      "icons" : {
+        "default" : "/assets/icons/connector/rss/icon.png"
+      }
+    },
+    "builtin": true,
+      "processor":{
+        "enabled":true,
+        "name":"rss"
+      }
+  }
+}
