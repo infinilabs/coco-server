@@ -1,6 +1,6 @@
 import Search from 'antd/es/input/Search';
 import Icon, { FilterOutlined, PlusOutlined, EllipsisOutlined, ExclamationCircleOutlined} from '@ant-design/icons';
-import { Button, Dropdown, Table, GetProp, message,Modal, Switch, Image } from 'antd';
+import { Button, Dropdown, Table, GetProp, message,Modal, Switch, Image, Avatar } from 'antd';
 import type { TableColumnsType, TableProps, MenuProps } from "antd";
 import {searchMCPServer, deleteMCPServer, updateMCPServer} from '@/service/api/mcp-server';
 import { formatESSearchResult } from '@/service/request/es';
@@ -13,6 +13,9 @@ export function Component() {
   const [queryParams, setQueryParams] = useQueryParams();
   
   const { t } = useTranslation();
+
+  const { addSharesToData, isEditorOwner, hasEdit } = useResource()
+  const resourceType = 'mcp-server'
 
   const { hasAuth } = useAuth()
 
@@ -97,6 +100,38 @@ export function Component() {
       }
     },
     {
+      dataIndex: 'owner',
+      title: t('page.datasource.labels.owner'),
+      render: (value, record) => {
+        if (!value) return '-'
+        return (
+          <div className='flex'>
+            <Avatar.Group max={{ count: 1 }} size={"small"}>
+              <AvatarLabel data={value} showCard={true}/>
+            </Avatar.Group>
+          </div>
+        )
+      }
+    },
+    {
+      dataIndex: 'shares',
+      title: t('page.datasource.labels.shares'),
+      render: (value, record) => {
+        if (!value) return '-'
+        return (
+          <Shares 
+            record={record} 
+            title={record.name} 
+            onSuccess={() => fetchData(queryParams)}
+            resource={{
+              'resource_type': resourceType,
+              'resource_id': record.id,
+            }}
+          />
+        )
+      }
+    },
+    {
       title: t('page.mcpserver.labels.type'),
       minWidth: 50,
       dataIndex: "type",
@@ -118,7 +153,7 @@ export function Component() {
       title: t('page.mcpserver.labels.enabled'),
       width: 80,
       render: (value: boolean, record: MCPServer)=>{
-       return <Switch size="small" value={value} onChange={(v)=>onEnabledChange(v, record)} disabled={!permissions.update}/>
+       return <Switch size="small" value={value} onChange={(v)=>onEnabledChange(v, record)} disabled={!permissions.update || !hasEdit(record)}/>
       }
     },
     {
@@ -128,18 +163,19 @@ export function Component() {
       hidden: !permissions.update && !permissions.delete,
       render: (_, record) => {
         const items: MenuProps["items"] = [];
-        if (permissions.read && permissions.update) {
+        if (permissions.read && permissions.update && hasEdit(record)) {
           items.push({
             label: t('common.edit'),
             key: "2",
           })
         }
-        if (permissions.delete) {
+        if (permissions.delete && isEditorOwner(record)) {
           items.push({
             label: t('common.delete'),
             key: "1",
           })
         }
+        if (items.length === 0) return null;
         return <Dropdown menu={{ items, onClick:({key})=>onMenuClick({key, record}) }}>
           <EllipsisOutlined/>
         </Dropdown>
@@ -163,21 +199,34 @@ const [data, setData] = useState(initialData);
 const [loading, setLoading] = useState(false);
 const [keyword, setKeyword] = useState();
 
-const fetchData = () => {
-  setLoading(true);
-  searchMCPServer(queryParams).then(({ data }) => {
-    const newData = formatESSearchResult(data);
+  const fetchData = async (queryParams) => {
+    setLoading(true);
+    const res = await searchMCPServer(queryParams)
+    if (res?.data) {
+      const newData = formatESSearchResult(res?.data);
+      if (newData.data.length > 0) {
+        const resources = newData.data.map((item) => ({
+          "resource_id": item.id,
+          "resource_type": resourceType,
+        }))
+        const dataWithShares = await addSharesToData(newData.data, resources)
+        if (dataWithShares) {
+          newData.data = dataWithShares
+        }
+      }
       setData((oldData: any) => {
         return {
           ...oldData,
           ...(newData || initialData),
         }
       });
-      setLoading(false);
-    });
+    }
+    setLoading(false);
   };
 
-  useEffect(fetchData, [queryParams]);
+  useEffect(() => {
+    fetchData(queryParams)
+  }, [queryParams]);
 
   useEffect(() => {
     setKeyword(queryParams.query)

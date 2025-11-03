@@ -120,7 +120,6 @@ export function Component() {
         )
       }
     },
-    
     {
       dataIndex: 'owner',
       title: t('page.datasource.labels.owner'),
@@ -216,7 +215,7 @@ export function Component() {
             key: "3",
           })
         }
-        if (items?.length === 0) return null;
+        if (items.length === 0) return null;
         return <Dropdown menu={{ items, onClick:({key})=>onMenuClick({key, record}) }}>
           <EllipsisOutlined/>
         </Dropdown>
