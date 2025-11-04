@@ -78,7 +78,7 @@ export default (props) => {
     const content = isAdding ? (
         <AddShares 
             hasCreate={hasCreate}
-            permissionOptions={permissionOptions.filter((item) => item.key > 0)} 
+            permissionOptions={permissionOptions} 
             onCancel={() => handleOpenChange(false)} 
             onSuccess={handleSuccess}
             resource={resource}

@@ -214,7 +214,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       shareToPrincipal: 'Share to teams or users',
       shareTo: 'Share',
       permission: 'Permission',
-      you: ' (you)'
+      you: ' (you)',
+      inherit: ' (inherit)'
     },
     file: {
       title: 'Document Management',

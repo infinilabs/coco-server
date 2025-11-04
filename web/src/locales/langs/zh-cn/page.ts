@@ -424,7 +424,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       shareToPrincipal: '共享给团队、人',
       shareTo: '共享',
       permission: '访问权限',
-      you: '（你）'
+      you: '（你）',
+      inherit: '（继承）'
     },
     file: {
       title: '文档管理',

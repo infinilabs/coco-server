@@ -87,7 +87,7 @@ export default function EditShares(props) {
                             <AvatarLabel
                                 data={{
                                     ...editor,
-                                    title: `${editor.title}${t('page.datasource.labels.you')} ${editorPermission?.via === 'inherit' ? '(Inherit)' : ''}`,
+                                    title: `${editor.title}${t('page.datasource.labels.you')}${editorPermission?.via === 'inherit' ? t('page.datasource.labels.inherit') : ''}`,
                                 }}
                             />
                             <div className={styles.actions}>
@@ -115,17 +115,14 @@ export default function EditShares(props) {
                                 <AvatarLabel
                                     data={{
                                         ...item.entity,
-                                        title: `${item.entity.title}${isInherit ? '(Inherit)' : ''}`
+                                        title: `${item.entity.title}${isInherit ? t('page.datasource.labels.inherit') : ''}`
                                     }}
                                 />
                                 <div className={styles.actions}>
                                     {
                                         hasEdit ? (
                                             <Space>
-                                                <Dropdown trigger={['click']} menu={{ items: permissionOptions.filter((item: any) => {
-                                                    if (isInherit) return true;
-                                                    return item.key > 0
-                                                }), onClick: ({key}) => handleChange(index, key)  }}>
+                                                <Dropdown trigger={['click']} menu={{ items: permissionOptions, onClick: ({key}) => handleChange(index, key)  }}>
                                                     <Button size="small" className="px-6px text-12px" type="text">{Number.isInteger(item.permission) ? t(`page.datasource.labels.${PERMISSION_MAPPING[item.permission]}`) : ''}<DownOutlined /></Button>
                                                 </Dropdown>
                                                 {
