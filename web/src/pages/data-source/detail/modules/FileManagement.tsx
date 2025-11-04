@@ -36,7 +36,7 @@ const FileManagement = (props) => {
 
   const { t } = useTranslation();
 
-  const { addSharesToData, isEditorOwner, hasEdit } = useResource()
+  const { addSharesToData, isEditorOwner, hasEdit, isResourceShare } = useResource()
 
   const { hasAuth } = useAuth()
 
@@ -189,7 +189,7 @@ const FileManagement = (props) => {
     {
       dataIndex: 'title',
       render: (text: string, record: DataType) => {
-        const isOwner = isEditorOwner(record)
+        const isShare = isResourceShare(record)
 
         let imgSrc = '';
         if (connector?.assets?.icons) {
@@ -209,7 +209,7 @@ const FileManagement = (props) => {
               return {
                 ...old,
                 path: JSON.stringify(categories),
-                view: isOwner ? 'auto' : 'list'
+                view: isEditorOwner(record) ? 'auto' : 'list'
               }
             })
           } 
@@ -220,8 +220,12 @@ const FileManagement = (props) => {
 
         let shareIcon;
 
-        if (!isOwner) {
-          shareIcon = <SvgIcon localIcon='share' className='text-#999'/>
+        if (isShare) {
+          shareIcon = (
+            <div className='flex-grow-0 flex-shrink-0'>
+              <SvgIcon localIcon='share' className='text-#999'/>
+            </div>
+          )
         }
 
         if (connector?.path_hierarchy && queryParams.view === 'list') {

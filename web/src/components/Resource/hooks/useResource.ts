@@ -74,9 +74,20 @@ export default function useResource() {
         return isEditorOwner(record) || share?.permission >= 4
     }
 
+    function hasView(record) {
+        const share = record?.shares?.find((item) => item.principal_id === record?.editor?.id)
+        return isEditorOwner(record) || share?.permission >= 1
+    }
+
+    function isResourceShare(record) {
+        return record?.owner && record?.owner?.id !== record?.editor?.id
+    }
+
     return {
         addSharesToData,
         isEditorOwner,
         hasEdit,
+        hasView,
+        isResourceShare
     }
 }

@@ -35,7 +35,7 @@ export function Component() {
 
   const { t } = useTranslation();
 
-  const { addSharesToData, isEditorOwner, hasEdit } = useResource()
+  const { addSharesToData, isEditorOwner, hasEdit, hasView, isResourceShare } = useResource()
   const resourceType = 'datasource'
   const resourceCategoryType = 'connector'
 
@@ -156,58 +156,46 @@ export function Component() {
   const columns: TableColumnsType<Datasource> = [
     {
       dataIndex: 'name',
-      minWidth: 200,
+      minWidth: 150,
+      ellipsis: true,
       render: (value: string, record: Datasource) => {
         let iconSrc = record.icon;
         if(!iconSrc && data.connectors) {
           iconSrc = data.connectors[record.connector.id]?.icon;
         }
 
-        const isOwner = isEditorOwner(record)
+        const isShare = isResourceShare(record)
 
         let shareIcon;
 
-        if (!isOwner) {
-          shareIcon = <SvgIcon localIcon='share' className='text-#999'/>
-        }
-
-        const content = (
-            <>
-              {
-                iconSrc && (
-                  <IconWrapper className="w-20px h-20px">
-                    <InfiniIcon
-                      height="1em"
-                      src={iconSrc}
-                      width="1em"
-                    />
-                  </IconWrapper>
-                )
-              }
-              {value}
-              {shareIcon}
-            </>
+        if (isShare) {
+          shareIcon = (
+            <div className='flex-grow-0 flex-shrink-0'>
+              <SvgIcon localIcon='share' className='text-#999'/>
+            </div>
           )
-
-        if (permissions.read) {
-          return (
-            <a
-              className="inline-flex items-center gap-1 text-blue-500"
-              onClick={() =>
-                nav(`/data-source/detail/${record.id}${isOwner ? '' : '?view=list'}`, {
-                  state: { connector_id: record.connector?.id || '', datasource_name: record.name }
-                })
-              }
-            >
-              {content}
-            </a>
-          );
         }
+
         return (
-          <span className="inline-flex items-center gap-1" >
-            {content}
-          </span>
-        );
+          <div className='flex items-center gap-1'>
+            {
+              iconSrc && (
+                <IconWrapper className="flex-grow-0 flex-shrink-0 flex-basis-auto w-20px h-20px">
+                  <InfiniIcon height="1em" width="1em" src={iconSrc} />
+                </IconWrapper>
+              )
+            }
+            { permissions.read && permissions.update && hasView(record) ? (
+              <a className='max-w-150px ant-table-cell-ellipsis cursor-pointer text-[var(--ant-color-link)]' onClick={()=>nav(`/data-source/detail/${record.id}${isEditorOwner(record) ? '' : '?view=list'}`, {
+                  state: { connector_id: record.connector?.id || '', datasource_name: record.name }
+                })}>{ value }</a>
+            ) : (
+              <span className='max-w-150px ant-table-cell-ellipsis'>{ value }</span>
+            )}
+            {shareIcon}
+          </div>
+        )
+
       },
       title: t('page.datasource.columns.name')
     },

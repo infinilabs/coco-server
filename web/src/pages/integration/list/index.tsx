@@ -12,7 +12,7 @@ export function Component() {
   const [queryParams, setQueryParams] = useQueryParams();
   const { t } = useTranslation();
 
-  const { addSharesToData, isEditorOwner, hasEdit } = useResource()
+  const { addSharesToData, isEditorOwner, hasEdit, isResourceShare } = useResource()
   const resourceType = 'integration'
 
   const { hasAuth } = useAuth()
@@ -100,12 +100,30 @@ export function Component() {
   const columns = [
     {
       dataIndex: 'name',
-      render: (value) => (
-        <div className="flex items-center gap-2">
-          <SvgIcon icon="mdi:puzzle-outline" className="text-icon-small text-gray-500" />
-          <span>{value}</span>
-        </div>
-      ),
+      minWidth: 150,
+      ellipsis: true,
+      render: (value, record) => {
+
+        const isShare = isResourceShare(record)
+
+        let shareIcon;
+
+        if (isShare) {
+          shareIcon = (
+            <div className='flex-grow-0 flex-shrink-0'>
+              <SvgIcon localIcon='share' className='text-#999'/>
+            </div>
+          )
+        }
+
+        return (
+          <div className="flex items-center gap-1">
+            <SvgIcon icon="mdi:puzzle-outline" className="text-icon-small text-gray-500" />
+            <span className='max-w-150px ant-table-cell-ellipsis'>{value}</span>
+            {shareIcon}
+          </div>
+        )
+      },
       title: t('page.integration.columns.name')
     },
     {

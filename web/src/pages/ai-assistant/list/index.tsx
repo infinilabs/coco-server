@@ -1,6 +1,6 @@
 import Search from 'antd/es/input/Search';
-import Icon, { FilterOutlined, PlusOutlined, EllipsisOutlined, ExclamationCircleOutlined} from '@ant-design/icons';
-import { Button, Dropdown, Table, GetProp, message,Modal, Switch, Image, Avatar } from 'antd';
+import { FilterOutlined, PlusOutlined, EllipsisOutlined, ExclamationCircleOutlined} from '@ant-design/icons';
+import { Button, Dropdown, Table, message, Switch, Avatar } from 'antd';
 import type { TableColumnsType, TableProps, MenuProps } from "antd";
 import {searchAssistant, deleteAssistant, updateAssistant, cloneAssistant} from '@/service/api/assistant';
 import { formatESSearchResult } from '@/service/request/es';
@@ -14,7 +14,7 @@ export function Component() {
 
   const { t } = useTranslation();
 
-  const { addSharesToData, isEditorOwner, hasEdit } = useResource()
+  const { addSharesToData, isEditorOwner, hasEdit, isResourceShare } = useResource()
   const resourceType = 'assistant'
 
   const { hasAuth } = useAuth()
@@ -99,23 +99,39 @@ export function Component() {
     {
       title: t('page.assistant.labels.name'),
       dataIndex: "name",
-      width: 300,
+      minWidth: 150,
+      ellipsis: true,
       render: (value: string, record: Assistant)=>{
+        const isShare = isResourceShare(record)
+
+        let shareIcon;
+
+        if (isShare) {
+          shareIcon = (
+            <div className='flex-grow-0 flex-shrink-0'>
+              <SvgIcon localIcon='share' className='text-#999'/>
+            </div>
+          )
+        }
+
         return (
           <div className='flex items-center gap-1'>
-            <IconWrapper className="w-20px h-20px">
-              <InfiniIcon height="1em" width="1em" src={record.icon} />
-            </IconWrapper>
             {
-              permissions.read && permissions.update && hasEdit(record) ? (
-                <span className='max-w-150px ant-table-cell-ellipsis cursor-pointer hover:text-blue-500' onClick={()=>nav(`/ai-assistant/edit/${record.id}`)}>{ value }</span>
-              ) : (
-                <span className='max-w-150px ant-table-cell-ellipsis'>{ value }</span>
+              record.icon && (
+                <IconWrapper className="flex-grow-0 flex-shrink-0 flex-basis-auto w-20px h-20px">
+                  <InfiniIcon height="1em" width="1em" src={record.icon} />
+                </IconWrapper>
               )
             }
-            {record.builtin === true && <div className="flex items-center ml-[5px]">
+            { permissions.read && permissions.update && hasEdit(record) ? (
+              <a className='max-w-150px ant-table-cell-ellipsis cursor-pointer text-[var(--ant-color-link)]' onClick={()=>nav(`/ai-assistant/edit/${record.id}`)}>{ value }</a>
+            ) : (
+              <span className='max-w-150px ant-table-cell-ellipsis'>{ value }</span>
+            )}
+            {record.builtin === true && <div className="flex items-center ml-5px">
               <p className="h-[22px] bg-[#eee] text-[#999] font-size-[12px] px-[10px] line-height-[22px] rounded-[4px]">{t('page.modelprovider.labels.builtin')}</p>
             </div>}
+            {shareIcon}
           </div>
         )
       }
@@ -209,7 +225,7 @@ export function Component() {
             key: "1",
           });
         }
-        if (permissions.create) {
+        if (permissions.create && hasEdit(record)) {
           items.push({
             label: t('common.clone'),
             key: "3",

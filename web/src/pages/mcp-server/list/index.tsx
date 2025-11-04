@@ -1,6 +1,6 @@
 import Search from 'antd/es/input/Search';
 import Icon, { FilterOutlined, PlusOutlined, EllipsisOutlined, ExclamationCircleOutlined} from '@ant-design/icons';
-import { Button, Dropdown, Table, GetProp, message,Modal, Switch, Image, Avatar } from 'antd';
+import { Button, Dropdown, Table, GetProp, message,Modal, Switch, Image, Avatar, Typography } from 'antd';
 import type { TableColumnsType, TableProps, MenuProps } from "antd";
 import {searchMCPServer, deleteMCPServer, updateMCPServer} from '@/service/api/mcp-server';
 import { formatESSearchResult } from '@/service/request/es';
@@ -14,7 +14,7 @@ export function Component() {
   
   const { t } = useTranslation();
 
-  const { addSharesToData, isEditorOwner, hasEdit } = useResource()
+  const { addSharesToData, isEditorOwner, hasEdit, isResourceShare } = useResource()
   const resourceType = 'mcp-server'
 
   const { hasAuth } = useAuth()
@@ -89,12 +89,32 @@ export function Component() {
       minWidth: 150,
       ellipsis: true,
       render: (value: string, record: MCPServer)=>{
+        const isShare = isResourceShare(record)
+        let shareIcon;
+
+        if (isShare) {
+          shareIcon = (
+            <div className='flex-grow-0 flex-shrink-0'>
+              <SvgIcon localIcon='share' className='text-#999'/>
+            </div>
+          )
+        }
+
         return (
           <div className='flex items-center gap-1'>
-            <IconWrapper className="w-20px h-20px">
-              <InfiniIcon height="1em" width="1em" src={record.icon} />
-            </IconWrapper>
-            <span className='max-w-150px ant-table-cell-ellipsis cursor-pointer hover:text-blue-500' onClick={()=>nav(`/mcp-server/edit/${record.id}`, {state:record})}>{ value }</span>
+            {
+              record.icon && (
+                <IconWrapper className="flex-grow-0 flex-shrink-0 flex-basis-auto w-20px h-20px">
+                  <InfiniIcon height="1em" width="1em" src={record.icon} />
+                </IconWrapper>
+              )
+            }
+            { permissions.read && permissions.update && hasEdit(record) ? (
+              <a className='max-w-150px ant-table-cell-ellipsis cursor-pointer text-[var(--ant-color-link)]' onClick={()=>nav(`/mcp-server/edit/${record.id}`, {state:record})}>{ value }</a>
+            ) : (
+              <span className='max-w-150px ant-table-cell-ellipsis'>{ value }</span>
+            )}
+            {<SvgIcon localIcon='share' className='text-#999'/>}
           </div>
         )
       }

@@ -25,7 +25,7 @@ const ConnectorSettings = memo(() => {
   
   const { t } = useTranslation();
 
-  const { addSharesToData, isEditorOwner, hasEdit } = useResource()
+  const { addSharesToData, isEditorOwner, hasEdit, isResourceShare } = useResource()
   const resourceType = 'connector'
 
   const { hasAuth } = useAuth()
@@ -72,8 +72,21 @@ const ConnectorSettings = memo(() => {
   const columns: TableColumnsType<Connector> = [
     {
       dataIndex: 'name',
-      minWidth: 100,
+      minWidth: 150,
+      ellipsis: true,
       render: (name, record) => {
+        const isShare = isResourceShare(record)
+
+        let shareIcon;
+
+        if (isShare) {
+          shareIcon = (
+            <div className='flex-grow-0 flex-shrink-0'>
+              <SvgIcon localIcon='share' className='text-#999'/>
+            </div>
+          )
+        }
+
         let svgIcon = null;
         switch (record.id) {
           case 'google_drive':
@@ -90,8 +103,8 @@ const ConnectorSettings = memo(() => {
             break;
         }
         return (
-          <div className="flex items-center">
-            <IconWrapper className="w-20px h-20px">
+          <div className="flex items-center gap-1">
+            <IconWrapper className="flex-grow-0 flex-shrink-0 w-20px h-20px">
               {svgIcon ? (
                 <Icon component={svgIcon} />
               ) : (
@@ -102,7 +115,8 @@ const ConnectorSettings = memo(() => {
                 />
               )}
             </IconWrapper>
-            <span className="ml-2">{name}</span>
+            <span className="max-w-150px ant-table-cell-ellipsis">{name}</span>
+            {shareIcon}
           </div>
         );
       },
