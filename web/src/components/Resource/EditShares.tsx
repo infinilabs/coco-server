@@ -82,7 +82,7 @@ export default function EditShares(props) {
                     )
                 }
                 {
-                    !isOwner && editor && editorPermission?.permission && (
+                    !isOwner && editor && Number.isInteger(editorPermission?.permission) && (
                         <div className={styles.item}>
                             <AvatarLabel
                                 data={{
@@ -108,7 +108,7 @@ export default function EditShares(props) {
             <div className={`max-h-278px ${hasEdit || hasCreate ? 'mb-24px' : 'mb-0'} border border-[var(--ant-color-border)] rounded-[var(--ant-border-radius)] px-8px py-12px overflow-auto`}>
                 {renderSpecialItems()}
                 {
-                    currentData.filter((item) => !!item.entity).map((item, index) => {
+                    currentData.filter((item) => !!item.entity).map((item: any, index) => {
                         const isInherit = item.via === 'inherit'
                         return (
                             <div key={index} className={styles.item}>
@@ -122,18 +122,18 @@ export default function EditShares(props) {
                                     {
                                         hasEdit ? (
                                             <Space>
-                                                <Dropdown trigger={['click']} menu={{ items: permissionOptions.filter((item) => {
+                                                <Dropdown trigger={['click']} menu={{ items: permissionOptions.filter((item: any) => {
                                                     if (isInherit) return true;
                                                     return item.key > 0
                                                 }), onClick: ({key}) => handleChange(index, key)  }}>
-                                                    <Button size="small" className="px-6px text-12px" type="text">{item.permission ? t(`page.datasource.labels.${PERMISSION_MAPPING[item.permission]}`) : ''}<DownOutlined /></Button>
+                                                    <Button size="small" className="px-6px text-12px" type="text">{Number.isInteger(item.permission) ? t(`page.datasource.labels.${PERMISSION_MAPPING[item.permission]}`) : ''}<DownOutlined /></Button>
                                                 </Dropdown>
                                                 {
                                                     !isInherit && (<MinusCircleOutlined className="cursor-pointer" onClick={() => handleDelete(index)}/>)
                                                 }
                                             </Space>
                                         ) : (
-                                            <span className="text-[var(--ant-color-text-secondary)]">{item.permission ? t(`page.datasource.labels.${PERMISSION_MAPPING[item.permission]}`) : ''}</span>
+                                            <span className="text-[var(--ant-color-text-secondary)]">{Number.isInteger(item.permission) ? t(`page.datasource.labels.${PERMISSION_MAPPING[item.permission]}`) : ''}</span>
                                         )
                                     }
                                 </div>

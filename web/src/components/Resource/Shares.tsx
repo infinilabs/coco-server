@@ -69,7 +69,7 @@ export default (props) => {
     const hasSharePermission = useMemo(() => {
         if (owner?.id === editor?.id) return true;
         const share = shares.find((item) => item.principal_id === editor?.id)
-        return share?.permission ? [8, 16].includes(share.permission) : false
+        return share?.permission >= 8
     }, [owner, editor, shares])
 
     const hasCreate = permissions.create && hasSharePermission
