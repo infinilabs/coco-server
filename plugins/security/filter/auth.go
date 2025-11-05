@@ -48,9 +48,9 @@ func (f *AuthFilter) ApplyFilter(
 			log.Debug(method, ",", pattern, ",", util.MustToJSON(claims), ",", err1)
 		}
 
-		if claims != nil && claims.ValidInfo() {
+		if claims != nil && claims.IsValid() {
 			//update the initial permission
-			claims.UserAssignedPermission = GetUserPermissions(claims)
+			claims.UserAssignedPermission = security.GetUserPermissions(claims)
 			r = r.WithContext(security.AddUserToContext(r.Context(), claims))
 		}
 

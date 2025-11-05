@@ -6,8 +6,8 @@ package security
 
 import (
 	"fmt"
-	log "github.com/cihub/seelog"
 	"github.com/emirpasic/gods/sets/hashset"
+	"infini.sh/framework/core/api"
 	"infini.sh/framework/core/orm"
 	"net/http"
 	"time"
@@ -23,7 +23,7 @@ import (
 
 func GetPermissionKeys(u *security.UserSessionInfo) []security.PermissionKey {
 	//TODO cache, catch permission updates
-	keys := security.GetPermissionKeysByRole(u.Roles)
+	keys := security.MustGetPermissionKeysByRole(u.Roles)
 	if len(u.Permissions) > 0 {
 		keys = append(keys, u.Permissions...)
 	}
@@ -87,7 +87,7 @@ func (h *APIHandler) RequestAccessToken(w http.ResponseWriter, req *http.Request
 		Name        string                   `json:"name"`                  //custom access token name
 		Permissions []security.PermissionKey `json:"permissions,omitempty"` //custom access token name
 	}{}
-	err = h.DecodeJSON(req, &reqBody)
+	err = api.DecodeJSON(req, &reqBody)
 	if err != nil {
 		panic(err)
 	}
@@ -95,22 +95,22 @@ func (h *APIHandler) RequestAccessToken(w http.ResponseWriter, req *http.Request
 		reqBody.Name = GenerateApiTokenName("")
 	}
 
-	roles := reqUser.Roles
 	if len(reqBody.Permissions) > 0 {
-		roles = nil
+		//the permissions should be within' user's own permission scope
+		if !util.IsSuperset(GetPermissionHashSet(reqUser), security.ConvertPermissionKeysToHashSet(reqBody.Permissions)) {
+			panic("invalid permissions")
+		}
 	}
 
-	log.Error(reqBody.Permissions)
-
-	res, err := CreateAPIToken(ctx, reqBody.Name, "general", roles, reqBody.Permissions)
+	res, err := CreateAPIToken(ctx, reqBody.Name, "general", reqBody.Permissions)
 	if err != nil {
 		panic(err)
 	}
 
-	h.WriteJSON(w, res, 200)
+	api.WriteJSON(w, res, 200)
 }
 
-func CreateAPIToken(ctx *orm.Context, tokenName, typeName string, roles []string, permissions []security.PermissionKey) (util.MapStr, error) {
+func CreateAPIToken(ctx *orm.Context, tokenName, typeName string, permissions []security.PermissionKey) (util.MapStr, error) {
 	if tokenName == "" {
 		tokenName = GenerateApiTokenName("")
 	}
@@ -119,8 +119,6 @@ func CreateAPIToken(ctx *orm.Context, tokenName, typeName string, roles []string
 	if reqUser == nil || err != nil {
 		panic(err)
 	}
-
-	provider := "access_token"
 
 	res := util.MapStr{}
 	accessTokenStr := util.GetUUID() + util.GenerateRandomString(64)
@@ -134,10 +132,7 @@ func CreateAPIToken(ctx *orm.Context, tokenName, typeName string, roles []string
 	accessToken.AccessToken = accessTokenStr
 	accessToken.SetOwnerID(reqUser.MustGetUserID())
 
-	accessToken.Provider = provider
-	accessToken.Login = reqUser.Login
 	accessToken.Type = typeName
-	accessToken.Roles = roles
 	accessToken.Permissions = permissions
 	accessToken.ExpireIn = expiredAT
 	accessToken.Name = tokenName
@@ -151,7 +146,7 @@ func CreateAPIToken(ctx *orm.Context, tokenName, typeName string, roles []string
 	// save access token to store
 	err = kv.AddValue(core.KVAccessTokenBucket, []byte(accessTokenStr), util.MustToJSONBytes(accessToken))
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 	return res, err
 }
@@ -160,8 +155,7 @@ func (h *APIHandler) SearchAccessToken(w http.ResponseWriter, req *http.Request,
 	//handle url query args, convert to query builder
 	builder, err := orm.NewQueryBuilderFromRequest(req, "name")
 	if err != nil {
-		h.WriteError(w, err.Error(), http.StatusInternalServerError)
-		return
+		panic(err)
 	}
 
 	ctx := orm.NewContextWithParent(req.Context())
@@ -169,13 +163,12 @@ func (h *APIHandler) SearchAccessToken(w http.ResponseWriter, req *http.Request,
 
 	res, err := orm.SearchV2(ctx, builder)
 	if err != nil {
-		h.WriteError(w, err.Error(), http.StatusInternalServerError)
-		return
+		panic(err)
 	}
 
-	_, err = h.Write(w, res.Payload.([]byte))
+	_, err = api.Write(w, res.Payload.([]byte))
 	if err != nil {
-		h.Error(w, err)
+		api.Error(w, err)
 	}
 }
 
@@ -203,18 +196,18 @@ func (h *APIHandler) DeleteAccessToken(w http.ResponseWriter, req *http.Request,
 		}
 	}
 
-	h.WriteDeletedOKJSON(w, tokenID)
+	api.WriteDeletedOKJSON(w, tokenID)
 }
 
 func GetToken(token string) (*security.AccessToken, error) {
 	tokenBytes, err := kv.GetValue(core.KVAccessTokenBucket, []byte(token))
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 	var accessToken = security.AccessToken{}
 	err = util.FromJSONBytes(tokenBytes, &accessToken)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 	return &accessToken, nil
 }
@@ -228,12 +221,12 @@ func (h *APIHandler) UpdateAccessToken(w http.ResponseWriter, req *http.Request,
 		Name        string                   `json:"name,omitempty"`        //custom access token name
 		Permissions []security.PermissionKey `json:"permissions,omitempty"` //custom access token name
 	}{}
-	err = h.DecodeJSON(req, &reqBody)
+	err = api.DecodeJSON(req, &reqBody)
 	if err != nil {
 		panic(err)
 	}
 	if reqBody.Name == "" {
-		h.WriteError(w, "name is required", 400)
+		api.WriteError(w, "name is required", 400)
 		return
 	}
 	tokenID := ps.ByName("token_id")
@@ -244,11 +237,10 @@ func (h *APIHandler) UpdateAccessToken(w http.ResponseWriter, req *http.Request,
 
 	exists, err := orm.GetV2(ctx, &token)
 	if err != nil {
-		h.WriteError(w, err.Error(), 400)
-		return
+		panic(err)
 	}
 	if !exists {
-		h.WriteError(w, "access token not found", 404)
+		api.WriteError(w, "access token not found", 404)
 		return
 	}
 
@@ -261,17 +253,22 @@ func (h *APIHandler) UpdateAccessToken(w http.ResponseWriter, req *http.Request,
 		if !util.IsSuperset(GetPermissionHashSet(reqUser), newPermission) {
 			panic("invalid permissions")
 		}
-		token.Roles = []string{}
 		token.Permissions = reqBody.Permissions
 	}
 
 	ctx.Refresh = orm.WaitForRefresh
 	err = orm.Save(ctx, &token)
 	if err != nil {
-		h.WriteError(w, err.Error(), 400)
-		return
+		panic(err)
 	}
-	h.WriteUpdatedOKJSON(w, tokenID)
+
+	// save access token to store
+	err = kv.AddValue(core.KVAccessTokenBucket, []byte(token.AccessToken), util.MustToJSONBytes(token))
+	if err != nil {
+		panic(err)
+	}
+
+	api.WriteUpdatedOKJSON(w, tokenID)
 }
 
 // GenerateApiTokenName generates a unique API token name
