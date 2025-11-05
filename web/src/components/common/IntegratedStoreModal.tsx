@@ -1,9 +1,9 @@
-import { PlusCircleFilled, PlusOutlined, UserOutlined } from '@ant-design/icons';
-import { Avatar, Button, Card, Col, Flex, Input, Menu, Modal, Row, Space, Spin, Typography, message } from 'antd';
+import { PlusCircleFilled, PlusOutlined } from '@ant-design/icons';
+import { Button, Card, Col, Flex, Input, Menu, Modal, Row, Space, Spin, Typography, message } from 'antd';
 import type { AnyObject } from 'antd/es/_util/type';
 import type { ItemType, MenuItemType } from 'antd/es/menu/interface';
 import classNames from 'classnames';
-import { isEmpty } from 'lodash';
+import { castArray, isEmpty } from 'lodash';
 import { Eye, FolderDown, SquareArrowOutUpRight } from 'lucide-react';
 import type { ReactNode } from 'react';
 
@@ -84,15 +84,17 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
 
         const { id } = JSON.parse(text);
 
-        const {data:{_source}} = await request({
+        const { data } = await request({
           method: 'get',
           url: `/store/server/${id}`
         });
 
-        if (_source) {
+        const dataSource = data._source;
+
+        if (dataSource) {
           setFromClipboard(true);
 
-          setData([_source]);
+          setData(castArray(dataSource));
         }
       } catch (error) {
         // eslint-disable-next-line no-console
