@@ -5,6 +5,7 @@ import type { ItemType, MenuItemType } from 'antd/es/menu/interface';
 import classNames from 'classnames';
 import { isEmpty } from 'lodash';
 import { Eye, FolderDown, SquareArrowOutUpRight } from 'lucide-react';
+import type { ReactNode } from 'react';
 
 // @ts-ignore
 import FontIcon from '@/components/common/font_icon';
@@ -13,11 +14,7 @@ import { formatESSearchResult } from '@/service/request/es';
 
 type Category = 'ai-assistant' | 'connector' | 'data-source' | 'mcp-server' | 'model-provider';
 
-export interface IntegratedStoreModalRef {
-  open: (category: Category) => void;
-}
-
-interface DataSource {
+export interface DataSource {
   _system: {
     owner_id: string;
     tenant_id: string;
@@ -62,6 +59,10 @@ interface DataSource {
   };
 }
 
+export interface IntegratedStoreModalRef {
+  open: (category: Category) => void;
+}
+
 const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
   const [open, setOpen] = useState(false);
   const [category, setCategory] = useState<Category>('ai-assistant');
@@ -71,11 +72,36 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
   const [installation, setInstallation] = useState(false);
   const [searchKeyword, setSearchKeyboard] = useState<string>();
   const { t } = useTranslation();
+  const [fromClipboard, setFromClipboard] = useState(false);
 
   useImperativeHandle(ref, () => ({
-    open(category) {
+    async open(category) {
       setOpen(true);
       setCategory(category);
+
+      try {
+        const text = await navigator.clipboard.readText();
+
+        const jsonStr = text.replace(/(\w+):/g, '"$1":');
+
+        const { id } = JSON.parse(jsonStr);
+
+        const result = await request({
+          method: 'get',
+          url: `/store/server/${id}/_search`
+        });
+
+        const { data } = formatESSearchResult(result.data);
+
+        if (data) {
+          setFromClipboard(true);
+
+          setData(data);
+        }
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('读取剪贴板失败：', error);
+      }
     }
   }));
 
@@ -109,7 +135,7 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
 
   useAsyncEffect(async () => {
     try {
-      if (!open) return;
+      if (!open || fromClipboard) return;
 
       setLoadingData(true);
 
@@ -137,9 +163,13 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
     } finally {
       setLoadingData(false);
     }
-  }, [open, requestType, searchKeyword, currentTab]);
+  }, [open, requestType, searchKeyword, currentTab, fromClipboard]);
 
   const renderTitle = () => {
+    if (fromClipboard) {
+      return t('page.integratedStoreModal.installModal.title');
+    }
+
     return (
       <Space>
         <span>{t('page.integratedStoreModal.title')}</span>
@@ -178,7 +208,11 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
   ];
 
   const handleCancel = () => {
-    setOpen(false);
+    if (fromClipboard) {
+      setFromClipboard(false);
+    } else {
+      setOpen(false);
+    }
   };
 
   const handleNew = useCallback(() => {
@@ -214,6 +248,86 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
     }
   };
 
+  const handleOk = () => {
+    if (!fromClipboard) return;
+
+    handleInstall(data[0].id);
+  };
+
+  const renderDataCard = (data: DataSource, children?: ReactNode) => {
+    return (
+      <Card
+        className={classNames('group text-xs text-color-3', {
+          'hover:(border-primary bg-primary-50)': !fromClipboard,
+          'mt-2 h-50 [&_.ant-card-body]:h-full': fromClipboard
+        })}
+      >
+        <Flex
+          vertical
+          className="h-full"
+          justify="space-between"
+        >
+          <Flex
+            vertical
+            gap={12}
+            justify="space-between"
+          >
+            {data?.icon?.startsWith('font_') ? (
+              <FontIcon
+                className="text-8"
+                name={data?.icon}
+              />
+            ) : (
+              <img
+                className="size-8"
+                src={data?.icon}
+              />
+            )}
+
+            <div className="truncate text-sm text-color-1">{data?.name}</div>
+
+            <Space>
+              <Avatar
+                icon={<UserOutlined />}
+                size={20}
+              />
+              <img
+                className="size-4"
+                src={data?.developer?.avatar}
+              />
+
+              <span>{data?.developer?.name}</span>
+            </Space>
+
+            <div className="line-clamp-3">{data?.description}</div>
+          </Flex>
+
+          <Flex
+            align="center"
+            justify="space-between"
+            className={classNames({
+              'group-hover:hidden': !fromClipboard
+            })}
+          >
+            <Space>
+              <Eye className="size-4" />
+
+              <span>{data?.stats?.views || '-'}</span>
+            </Space>
+
+            <Space>
+              <FolderDown className="size-4" />
+
+              <span>{data?.stats?.installs || '-'}</span>
+            </Space>
+          </Flex>
+
+          {children}
+        </Flex>
+      </Card>
+    );
+  };
+
   const renderData = () => {
     return (
       <Row
@@ -235,86 +349,28 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
         </Col>
 
         {data.map(item => {
-          const { description, developer, icon, id, name, stats } = item;
+          const { id } = item;
 
           return (
             <Col
               key={id}
               span={6}
             >
-              <Card className="group text-color-3 text-xs hover:(border-primary bg-primary-50)">
-                <Flex
-                  vertical
-                  className="h-full"
-                  justify="space-between"
-                >
-                  <Flex
-                    vertical
-                    gap={12}
-                    justify="space-between"
+              {renderDataCard(
+                item,
+                <div className="hidden -mx-2 -my-1 group-hover:block">
+                  <Button
+                    block
+                    size="small"
+                    type="primary"
+                    onClick={() => {
+                      handleInstall(id);
+                    }}
                   >
-                    {icon.startsWith('font_') ? (
-                      <FontIcon
-                        className="text-8"
-                        name={icon}
-                      />
-                    ) : (
-                      <img
-                        className="size-8"
-                        src={icon}
-                      />
-                    )}
-
-                    <div className="text-color-1 truncate text-sm">{name}</div>
-
-                    <Space>
-                      <Avatar
-                        icon={<UserOutlined />}
-                        size={20}
-                      />
-                      <img
-                        className="size-4"
-                        src={developer.avatar}
-                      />
-
-                      <span>{developer.name}</span>
-                    </Space>
-
-                    <div className="line-clamp-3">{description}</div>
-                  </Flex>
-
-                  <Flex
-                    align="center"
-                    className="group-hover:hidden"
-                    justify="space-between"
-                  >
-                    <Space>
-                      <Eye className="size-4" />
-
-                      <span>{stats?.views || '-'}</span>
-                    </Space>
-
-                    <Space>
-                      <FolderDown className="size-4" />
-
-                      <span>{stats?.installs || '-'}</span>
-                    </Space>
-                  </Flex>
-
-                  <div className="hidden -mx-2 -my-1 group-hover:block">
-                    <Button
-                      block
-                      size="small"
-                      type="primary"
-                      onClick={() => {
-                        handleInstall(id);
-                      }}
-                    >
-                      {t('page.integratedStoreModal.buttons.install')}
-                    </Button>
-                  </div>
-                </Flex>
-              </Card>
+                    {t('page.integratedStoreModal.buttons.install')}
+                  </Button>
+                </div>
+              )}
             </Col>
           );
         })}
@@ -351,63 +407,74 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
     <>
       <Modal
         centered
-        footer={null}
+        cancelText={fromClipboard && t('page.integratedStoreModal.installModal.buttons.return')}
+        footer={fromClipboard ? undefined : null}
         maskClosable={false}
+        okText={fromClipboard && t('page.integratedStoreModal.installModal.buttons.install')}
         open={open}
         title={renderTitle()}
-        width={860}
+        width={fromClipboard ? 450 : 860}
         classNames={{
-          body: '-mx-5'
+          body: fromClipboard ? undefined : '-mx-5'
         }}
         onCancel={handleCancel}
+        onOk={handleOk}
       >
-        <Flex>
-          <Menu
-            items={menuItems}
-            selectedKeys={[category]}
-            style={{ width: 150 }}
-            onSelect={({ key }) => {
-              setCategory(key as Category);
-            }}
-          />
+        {fromClipboard ? (
+          <>
+            <span>{t('page.integratedStoreModal.installModal.hints')}</span>
 
-          <div className="flex-1 pl-4">
-            <Flex
-              align="center"
-              className="w-full pr-3"
-              justify="space-between"
-            >
-              <Flex align="center">
-                {tabItems.map(item => {
-                  const { label, value } = item;
+            {renderDataCard(data[0])}
+          </>
+        ) : (
+          <Flex>
+            <Menu
+              items={menuItems}
+              selectedKeys={[category]}
+              style={{ width: 150 }}
+              onSelect={({ key }) => {
+                setCategory(key as Category);
+              }}
+            />
 
-                  return (
-                    <div
-                      key={value}
-                      className={classNames('cursor-pointer rounded-full px-4 lh-8 transition hover:text-primary', {
-                        'text-primary bg-primary-50 dark:bg-primary-900': value === currentTab
-                      })}
-                      onClick={() => {
-                        setCurrentTab(value);
-                      }}
-                    >
-                      {label}
-                    </div>
-                  );
-                })}
+            <div className="flex-1 pl-4">
+              <Flex
+                align="center"
+                className="w-full pr-3"
+                justify="space-between"
+              >
+                <Flex align="center">
+                  {tabItems.map(item => {
+                    const { label, value } = item;
+
+                    return (
+                      <div
+                        key={value}
+                        className={classNames('cursor-pointer rounded-full px-4 lh-8 transition hover:text-primary', {
+                          'text-primary bg-primary-50 dark:bg-primary-900': value === currentTab
+                        })}
+                        onClick={() => {
+                          setCurrentTab(value);
+                        }}
+                      >
+                        {label}
+                      </div>
+                    );
+                  })}
+                </Flex>
+
+                <Input.Search
+                  className="w-60"
+                  onSearch={setSearchKeyboard}
+                />
               </Flex>
 
-              <Input.Search
-                className="w-60"
-                onSearch={setSearchKeyboard}
-              />
-            </Flex>
-
-            <Spin spinning={loadingData}>
-              <div className="pt-4">{data.length > 0 ? renderData() : renderEmpty()}</div>
-            </Spin>
-          </div>
-        </Flex>
+              <Spin spinning={loadingData}>
+                <div className="pt-4">{data.length > 0 ? renderData() : renderEmpty()}</div>
+              </Spin>
+            </div>
+          </Flex>
+        )}
       </Modal>
 
       <Spin

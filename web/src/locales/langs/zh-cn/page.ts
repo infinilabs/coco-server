@@ -467,6 +467,14 @@ const page: App.I18n.Schema['translation']['page'] = {
       installSuccess: '安装成功，3s后自动跳转至详情页。',
       noResults: '未找到数据'
     },
+    installModal: {
+      buttons: {
+        install: '安装',
+        return: '返回'
+      },
+      hints: '检测到扩展信息，确认安装此扩展到当前 Coco Server 吗？',
+      title: '安装扩展'
+    },
     labels: {
       aiAssistant: 'AI 助手',
       connector: '连接器',

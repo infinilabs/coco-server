@@ -388,6 +388,14 @@ const page: App.I18n.Schema['translation']['page'] = {
       installSuccess: 'Installed successfully. Redirecting to the details page in 3 seconds.',
       noResults: 'No results found'
     },
+    installModal: {
+      buttons: {
+        install: 'Install',
+        return: 'Return'
+      },
+      hints: 'Extension information detected. Do you want to install this extension to the current Coco Server?',
+      title: 'Install Extension'
+    },
     labels: {
       aiAssistant: 'AI Assistant',
       connector: 'Connector',
