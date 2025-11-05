@@ -33,6 +33,7 @@ const common: App.I18n.Schema['translation']['common'] = {
   modifyPassword: '修改密码',
   modifySuccess: '修改成功',
   newPassword: '新密码',
+  confirmPassword: '确认密码',
   noData: '无数据',
   oldPassword: '旧密码',
   operate: '操作',

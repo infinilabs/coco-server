@@ -41,6 +41,24 @@ const UserForm = memo(({ form, onSubmit }: { form: FormInstance; onSubmit: () =>
         </Form.Item>
         <Form.Item
           className={formItemClassNames}
+          label={t('common.confirmPassword')}
+          name="confirm_password"
+          rules={[
+            defaultRequiredRule,
+            {
+              validator: async (rule, value) => {
+                const password = await form.getFieldValue('password');
+                if (value && password !== value) {
+                  throw new Error(t('form.pwdConfirm.invalid'));
+                }
+              },
+            }
+          ]}
+        >
+          <Input.Password />
+        </Form.Item>
+        <Form.Item
+          className={formItemClassNames}
           label={t('page.guide.user.language')}
           name="language"
           initialValue={"zh-CN"}

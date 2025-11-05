@@ -18,9 +18,9 @@ export const EditForm = memo((props: EditFormProps) => {
 
   const handleSubmit = async () => {
     const params = await form.validateFields();
-    const { roles } = params;
+    const { roles, confirm_password, ...rest } = params;
     onSubmit({
-      ...params,
+      ...rest,
       roles: (roles || []).map((item) => item.name)
     }, startLoading, endLoading);
   };
@@ -64,13 +64,31 @@ export const EditForm = memo((props: EditFormProps) => {
         </Form.Item>
         {
           record && (
-            <Form.Item
-              label={t('page.user.labels.password')}
-              name="password"
-              rules={[patternRules.pwd]}
-            >
-              <Input.Password className={itemClassNames} />
-            </Form.Item>
+            <>
+              <Form.Item
+                label={t('page.user.labels.password')}
+                name="password"
+                rules={[patternRules.pwd]}
+              >
+                <Input.Password className={itemClassNames}/>
+              </Form.Item>
+              <Form.Item
+                label={t('common.confirmPassword')}
+                name="confirm_password"
+                rules={[
+                  {
+                    validator: async (rule, value) => {
+                      const password = await form.getFieldValue('password');
+                      if (password && password !== value) {
+                        throw new Error(t('form.pwdConfirm.invalid'));
+                      }
+                    },
+                  }
+                ]}
+              >
+                <Input.Password className={itemClassNames} />
+              </Form.Item>
+            </>
           )
         }
         <Form.Item
