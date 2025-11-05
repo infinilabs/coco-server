@@ -208,6 +208,8 @@ const FileManagement = (props) => {
             setQueryParams(old => {
               return {
                 ...old,
+                from: 0,
+                size: 10,
                 path: JSON.stringify(categories),
                 view: isEditorOwner(record) ? 'auto' : 'list'
               }
@@ -401,7 +403,7 @@ const FileManagement = (props) => {
     setQueryParams(oldParams => {
       return {
         ...oldParams,
-        from: 0,
+        from: query === oldParams.query ? oldParams.from: 0,
         query,
         t: new Date().valueOf()
       };
@@ -436,7 +438,11 @@ const FileManagement = (props) => {
                     } else {
                       delete newParams.path;
                     }
-                    return newParams;
+                    return {
+                      ...newParams,
+                      from: 0,
+                      size: 10
+                    };
                   })
                 }}>{item}</a>
               )

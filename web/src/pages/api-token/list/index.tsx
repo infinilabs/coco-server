@@ -169,10 +169,10 @@ export function Component() {
   }, [queryParams.query])
 
   const onSearchClick = (query: string) => {
-    setQueryParams((oldParams: any) => {
+    setQueryParams(oldParams => {
       return {
         ...oldParams,
-        from: 0,
+        from: query === oldParams.query ? oldParams.from: 0,
         query,
         t: new Date().valueOf()
       };

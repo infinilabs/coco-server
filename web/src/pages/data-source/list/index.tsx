@@ -412,7 +412,7 @@ export function Component() {
     setQueryParams(oldParams => {
       return {
         ...oldParams,
-        from: 0,
+        from: query === oldParams.query ? oldParams.from: 0,
         query,
         t: new Date().valueOf()
       };

@@ -252,11 +252,12 @@ const ConnectorSettings = memo(() => {
   };
 
   const onSearchClick = (query: string) => {
-    setQueryParams(old => {
+    setQueryParams(oldParams => {
       return {
-        ...old,
+        ...oldParams,
+        from: query === oldParams.query ? oldParams.from: 0,
         query,
-        t: new Date().getTime()
+        t: new Date().valueOf()
       };
     });
   };

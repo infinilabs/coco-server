@@ -300,14 +300,14 @@ export function Component() {
     })
   };
   const onRefreshClick = (query: string)=>{
-    setQueryParams((oldParams)=>{
+    setQueryParams(oldParams => {
       return {
         ...oldParams,
-        query: query,
-        from: 0,
+        from: query === oldParams.query ? oldParams.from: 0,
+        query,
         t: new Date().valueOf()
-      }
-    })
+      };
+    });
   }
 
   return (
