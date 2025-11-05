@@ -82,21 +82,17 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
       try {
         const text = await navigator.clipboard.readText();
 
-        const jsonStr = text.replace(/(\w+):/g, '"$1":');
+        const { id } = JSON.parse(text);
 
-        const { id } = JSON.parse(jsonStr);
-
-        const result = await request({
+        const {data:{_source}} = await request({
           method: 'get',
-          url: `/store/server/${id}/_search`
+          url: `/store/server/${id}`
         });
 
-        const { data } = formatESSearchResult(result.data);
-
-        if (data) {
+        if (_source) {
           setFromClipboard(true);
 
-          setData(data);
+          setData([_source]);
         }
       } catch (error) {
         // eslint-disable-next-line no-console
@@ -287,10 +283,6 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
             <div className="truncate text-sm text-color-1">{data?.name}</div>
 
             <Space>
-              <Avatar
-                icon={<UserOutlined />}
-                size={20}
-              />
               <img
                 className="size-4"
                 src={data?.developer?.avatar}
