@@ -190,7 +190,7 @@ export const TypeList = ({
       {v.id === Types.GoogleDrive && (
         <div className={mode === 'edit' ? 'my-20px' : ''}>
           <Button>
-            <a href={`${location.origin}/connector/google_drive/connect`}>Connect</a>
+            <a href={`${location.origin}/connector/${connectorID}/connect`}>Connect</a>
           </Button>
           {/* <FileUploader onChange={onCredentialChange}/>
       <Button onClick={onInnerTestClick}>{t('common.testConnection')}</Button> */}
