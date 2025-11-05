@@ -132,7 +132,7 @@ export default (props) => {
                     <Button className="px-0" type="link" onClick={() => setIsAdding(true)}>{t('common.add')}</Button>
                 ) : (
                     <div>
-                        <Avatar.Group max={{ count: 5 }} size={"small"}>
+                        <Avatar.Group max={{ count: 5 }} size={"small"} className="items-center">
                             {
                                 shares.map((item, index) => (
                                     item.entity ? (

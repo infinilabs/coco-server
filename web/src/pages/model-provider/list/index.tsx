@@ -235,6 +235,7 @@ export function Component() {
     {
       dataIndex: 'owner',
       title: t('page.datasource.labels.owner'),
+      width: 200,
       render: (value, record) => {
         if (!value) return '-'
         return (
@@ -249,6 +250,7 @@ export function Component() {
     {
       dataIndex: 'shares',
       title: t('page.datasource.labels.shares'),
+      width: 150,
       render: (value, record) => {
         if (!value) return '-'
         return (

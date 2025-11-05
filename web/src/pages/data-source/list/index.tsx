@@ -43,6 +43,7 @@ export function Component() {
 
   const permissions = {
     read: hasAuth('coco#datasource/read'),
+    readConnector: hasAuth('coco#connector/read'),
     create: hasAuth('coco#datasource/create'),
     update: hasAuth('coco#datasource/update'),
     delete: hasAuth('coco#datasource/delete'),
@@ -185,7 +186,7 @@ export function Component() {
                 </IconWrapper>
               )
             }
-            { permissions.read && permissions.update && hasView(record) ? (
+            { permissions.read && permissions.readConnector ? (
               <a className='max-w-150px ant-table-cell-ellipsis cursor-pointer text-[var(--ant-color-link)]' onClick={()=>nav(`/data-source/detail/${record.id}${isEditorOwner(record) ? '' : '?view=list'}`, {
                   state: { connector_id: record.connector?.id || '', datasource_name: record.name }
                 })}>{ value }</a>
