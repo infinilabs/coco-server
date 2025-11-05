@@ -49,6 +49,7 @@
     "update-pkg": "sa update-pkg"
   },
   "dependencies": {
+    "@ant-design/charts": "^2.6.6",
     "@better-scroll/core": "2.5.1",
     "@iconify/react": "5.0.2",
     "@reduxjs/toolkit": "2.3.0",

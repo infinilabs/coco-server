@@ -82,8 +82,9 @@ export default defineConfig(
         }
       ],
 
-      'react-refresh/only-export-components': ['warn', { allowExportNames: ['loader', 'action'] }],
+      'react-hooks/exhaustive-deps': 'off',
 
+      'react-refresh/only-export-components': ['warn', { allowExportNames: ['loader', 'action'] }],
       'sort/import-members': ['error', { caseSensitive: true, natural: true }],
       'sort/imports': ['off'],
       'sort/string-enums': ['error', { caseSensitive: false, natural: true }],
