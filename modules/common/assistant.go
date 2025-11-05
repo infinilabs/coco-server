@@ -162,6 +162,8 @@ func GetAssistant(req *http.Request, assistantID string) (*Assistant, bool, erro
 	assistant = &Assistant{}
 	assistant.ID = assistantID
 	ctx := orm.NewContextWithParent(req.Context())
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "assistant")
 
 	exists, err := orm.GetV2(ctx, assistant)
 	if err != nil {

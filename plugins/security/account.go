@@ -44,11 +44,11 @@ func (h APIHandler) Profile(w http.ResponseWriter, r *http.Request, ps httproute
 
 	//TODO get from user's profile, or fallback to account info
 
-	exists, user, err := security.GetUserByID(reqUser.GetOwnerID())
+	_, user, err := security.GetUserByID(reqUser.MustGetUserID())
 	if err != nil {
 		panic(err)
 	}
-	if !exists || user == nil {
+	if user == nil {
 		panic("user not found")
 	}
 
@@ -56,7 +56,7 @@ func (h APIHandler) Profile(w http.ResponseWriter, r *http.Request, ps httproute
 	profile.Email = user.Email
 	profile.ID = user.ID
 	profile.Name = user.Name
-	profile.Permissions = security.GetPermissionKeysByRole(user.Roles)
+	profile.Permissions = security.MustGetPermissionKeysByRole(user.Roles)
 
 	h.WriteJSON(w, profile, 200)
 }
@@ -161,11 +161,10 @@ func (h APIHandler) Login(w http.ResponseWriter, r *http.Request, ps httprouter.
 			return
 		}
 
-		sessionInfo.Source = "simple"
-		sessionInfo.Provider = "simple"
-		sessionInfo.Login = core.DefaultUserLogin
+		sessionInfo.Provider = core.DefaultSimpleAuthBackend
+		sessionInfo.Login = core.DefaultSimpleAuthUserLogin
 		sessionInfo.Roles = []string{security.RoleAdmin}
-		orm.SetOwnerID(&sessionInfo, core.DefaultUserLogin)
+		sessionInfo.SetGetUserID(core.DefaultSimpleAuthUserLogin)
 	} else {
 		err, account, success := h.checkPasswordForEmail(req.Email, req.Password)
 		if err != nil {
@@ -176,11 +175,10 @@ func (h APIHandler) Login(w http.ResponseWriter, r *http.Request, ps httprouter.
 			return
 		}
 
-		sessionInfo.Source = "native"
-		sessionInfo.Provider = "native"
+		sessionInfo.Provider = security.DefaultNativeAuthBackend
 		sessionInfo.Login = account.Email
 		sessionInfo.Roles = account.Roles
-		orm.SetOwnerID(&sessionInfo, account.ID)
+		sessionInfo.SetGetUserID(account.ID)
 	}
 
 	err, token := AddUserAccessTokenToSession(w, r, &sessionInfo)
@@ -214,7 +212,7 @@ func AddUserAccessTokenToSession(w http.ResponseWriter, r *http.Request, user *s
 
 func (h APIHandler) checkPasswordForEmail(email, password string) (error, *security.UserAccount, bool) {
 
-	exists, account, err := security.GetUserByLogin(email)
+	exists, account, err := security.MustGetAuthenticationProvider(security.DefaultNativeAuthBackend).GetUserByLogin(email)
 	if err != nil {
 		return err, nil, false
 	}
@@ -231,11 +229,11 @@ func (h APIHandler) checkPasswordForEmail(email, password string) (error, *secur
 
 func (h APIHandler) checkPasswordForUserID(id, password string) (error, *security.UserAccount, bool) {
 
-	exists, account, err := security.GetUserByID(id)
+	_, account, err := security.GetUserByID(id)
 	if err != nil {
 		return err, nil, false
 	}
-	if !exists || account == nil || account.Password == "" {
+	if account == nil || account.Password == "" {
 		//user not exists
 		return nil, nil, false
 	}

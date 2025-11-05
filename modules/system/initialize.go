@@ -89,7 +89,7 @@ func (h *APIHandler) setupServer(w http.ResponseWriter, req *http.Request, ps ht
 		panic("password can't be empty")
 	}
 
-	user, err := security.MustGetAuthenticationProvider().CreateUser(input.Name, input.Email, input.Password, true)
+	user, err := security.MustGetAuthenticationProvider(security.DefaultNativeAuthBackend).CreateUser(input.Name, input.Email, input.Password, true)
 	if user == nil {
 		panic("failed to init user")
 	}

@@ -55,13 +55,24 @@ func ValidateLoginByAPITokenHeader(w http.ResponseWriter, r *http.Request) (clai
 
 	// Safely extract fields with type assertions
 	claims = security.NewUserClaims()
-	claims.System = accessToken.System
-	claims.Provider = accessToken.Provider
-	claims.Login = accessToken.Login
-	claims.Roles = accessToken.Roles
-	claims.Permissions = accessToken.Permissions
+	claims.SetGetUserID(accessToken.GetOwnerID())
 
-	claims.Source = "token"
+	//claims.System = accessToken.System
+	claims.Provider = "access_token"
+	claims.Login = apiToken
+
+	apiTokenLevelPermission := security.ConvertPermissionKeysToHashSet(accessToken.Permissions)
+	userLevelTokenLevelPermission := security.ConvertPermissionKeysToHashSet(security.MustGetPermissionKeysByUserID(accessToken.GetOwnerID()))
+
+	log.Error(apiTokenLevelPermission.Values())
+	log.Error(userLevelTokenLevelPermission.Values())
+
+	intersectedPermission := security.IntersectSetsFast(apiTokenLevelPermission, userLevelTokenLevelPermission)
+	log.Error(intersectedPermission.Values())
+
+	claims.Permissions = security.ConvertPermissionHashSetToKeys(intersectedPermission)
+
+	//claims.Source = "token"
 	return claims, nil
 }
 
@@ -99,8 +110,8 @@ func ValidateLoginByAuthorizationHeader(w http.ResponseWriter, r *http.Request) 
 	claims, ok = token.Claims.(*security.UserClaims)
 
 	if ok && token.Valid {
-		if claims.Login == "" {
-			err = errors.New("user id is empty")
+		if !claims.IsValid() {
+			err = errors.New("user info is not valid")
 			return nil, err
 		}
 		if !claims.VerifyExpiresAt(time.Now(), true) {
@@ -111,7 +122,7 @@ func ValidateLoginByAuthorizationHeader(w http.ResponseWriter, r *http.Request) 
 	if claims == nil {
 		return nil, errors.Error("invalid claims")
 	}
-	claims.Source = "bearer"
+	//claims.Source = "bearer"
 	return claims, nil
 }
 
@@ -144,62 +155,16 @@ func ValidateLoginByAccessTokenSession(w http.ResponseWriter, r *http.Request) (
 	}
 
 	if token.Valid {
-		if claims.Login == "" {
-			return nil, errors.New("user id is empty")
+		if !claims.IsValid() {
+			err = errors.New("user info is not valid")
+			return nil, err
 		}
 		if !claims.VerifyExpiresAt(time.Now(), true) {
 			return nil, errors.New("token is expired")
 		}
 	}
 
-	claims.Source = "session"
-	return claims, nil
-}
-
-func ValidateLoginByAccessTokenSession1(w http.ResponseWriter, r *http.Request) (claims *security.UserClaims, err error) {
-	exists, sessToken := api.GetSession(w, r, UserAccessTokenSessionName)
-
-	if !exists || sessToken == nil {
-		return nil, errors.Error("invalid session")
-	}
-
-	var (
-		tokenStr string
-		ok       bool
-	)
-	if tokenStr, ok = sessToken.(string); !ok {
-		err = errors.New("authorization token is empty")
-		return
-	}
-
-	token, err1 := jwt.ParseWithClaims(tokenStr, security.NewUserClaims(), func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
-		secret, err := GetSecret()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get secret key: %v", err)
-		}
-		return []byte(secret), nil
-	})
-	if err1 != nil {
-		return
-	}
-
-	//validate bind tenant
-	claims, ok = token.Claims.(*security.UserClaims)
-
-	if ok && token.Valid {
-		if claims.Login == "" {
-			err = errors.New("user id is empty")
-			return
-		}
-		if !claims.VerifyExpiresAt(time.Now(), true) {
-			err = errors.New("token is expire in")
-			return
-		}
-	}
-	claims.Source = "session"
+	//claims.Source = "session"
 	return claims, nil
 }
 
@@ -207,15 +172,15 @@ func ValidateLogin(w http.ResponseWriter, r *http.Request) (session *security.Us
 
 	claims, err := ValidateLoginByAccessTokenSession(w, r)
 
-	if claims == nil || !claims.UserSessionInfo.ValidInfo() {
+	if claims == nil || !claims.UserSessionInfo.IsValid() {
 		claims, err = ValidateLoginByAuthorizationHeader(w, r)
 	}
 
-	if claims == nil || !claims.UserSessionInfo.ValidInfo() {
+	if claims == nil || !claims.UserSessionInfo.IsValid() {
 		claims, err = ValidateLoginByAPITokenHeader(w, r)
 	}
 
-	if claims == nil || !claims.UserSessionInfo.ValidInfo() || err != nil {
+	if claims == nil || !claims.UserSessionInfo.IsValid() || err != nil {
 		err = errors.Errorf("invalid user info: %v", err)
 		return
 	}

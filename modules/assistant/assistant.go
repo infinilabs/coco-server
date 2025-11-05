@@ -87,6 +87,8 @@ func (h *APIHandler) updateAssistant(w http.ResponseWriter, req *http.Request, p
 	newObj.Created = obj.Created
 
 	ctx.Refresh = orm.WaitForRefresh
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "assistant")
 
 	err = orm.Update(ctx, &newObj)
 	if err != nil {
@@ -148,7 +150,8 @@ func (h *APIHandler) searchAssistant(w http.ResponseWriter, req *http.Request, p
 	ctx := orm.NewContextWithParent(req.Context())
 	orm.WithModel(ctx, &common.Assistant{})
 	docs := []common.Assistant{}
-
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "assistant")
 	err, res := elastic.SearchV2WithResultItemMapper(ctx, &docs, builder, nil)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -168,6 +171,8 @@ func (h *APIHandler) cloneAssistant(w http.ResponseWriter, req *http.Request, ps
 	obj := common.Assistant{}
 	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "assistant")
 
 	exists, err := orm.GetV2(ctx, &obj)
 	if !exists || err != nil {
