@@ -1,34 +1,26 @@
-import { Button, Form, Input, Select, message,Switch } from 'antd';
+import { Button, Form, Input, Select, message,Switch, Spin } from 'antd';
 import type { FormProps } from 'antd';
 
 import InfiniIcon from '@/components/common/icon';
 import { Tags } from '@/components/common/tags';
-import { getConnectorCategory, getConnectorIcons, updateConnector } from '@/service/api/connector';
+import { getConnector, getConnectorCategory, getConnectorIcons, updateConnector } from '@/service/api/connector';
 import { formatESSearchResult } from '@/service/request/es';
 
 import { AssetsIcons } from '../new/assets_icons';
 import { IconSelector } from '../new/icon_selector';
+import { useRoute } from '@sa/simple-router';
 
 export function Component() {
   const { t } = useTranslation();
   const nav = useNavigate();
-  let { state: initialConnector } = useLocation();
-  const connectorID = initialConnector?.id || '';
-  initialConnector = {
-    ...(initialConnector || {}),
-    assets_icons: initialConnector?.assets?.icons || {},
-    ...(initialConnector?.config || {
-      auth_url: "https://accounts.google.com/o/oauth2/auth",
-      redirect_url: location.origin + "/connector/google_drive/oauth_redirect",
-      token_url: "https://oauth2.googleapis.com/token"
-    }),
+  const [form] = Form.useForm();
+  
 
-    raw_config: initialConnector?.config ? JSON.stringify(initialConnector?.config,null,4) : undefined
-
-  };
-
+  const route = useRoute();
+  const connectorID = route.params.id
 
   const [loading, setLoading] = useState(false);
+  const [connector, setConnector] = useState<any>({});
 
   const onFinish: FormProps<any>['onFinish'] = values => {
     const category = typeof values.category === 'string' ? values.category : values.category[0] || '';
@@ -62,6 +54,32 @@ export function Component() {
     });
   };
   const [iconsMeta, setIconsMeta] = useState([]);
+
+  const fetchConnector = async (connectorID) => {
+    if (!connectorID) return;
+    setLoading(true)
+    const res = await getConnector(connectorID);
+    if (res.data?.found === true) {
+      const newConnector = {
+        ...(res.data._source || {}),
+        assets_icons: res.data._source?.assets?.icons || {},
+        ...(res.data._source?.config || {
+          auth_url: "https://accounts.google.com/o/oauth2/auth",
+          redirect_url: location.origin + "/connector/google_drive/oauth_redirect",
+          token_url: "https://oauth2.googleapis.com/token"
+        }),
+        raw_config: res.data._source?.config ? JSON.stringify(res.data._source?.config,null,4) : undefined
+      }
+      setConnector(newConnector)
+      form.setFieldsValue(newConnector)
+    }
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    fetchConnector(connectorID)
+  }, [connectorID]);
+
   useEffect(() => {
     getConnectorIcons().then(res => {
       if (res.data?.length > 0) {
@@ -87,6 +105,7 @@ export function Component() {
     console.log('Failed:', errorInfo);
   };
   const { defaultRequiredRule, formRules } = useFormRules();
+
   return (
     <div className="h-full min-h-500px">
       <ACard
@@ -97,10 +116,13 @@ export function Component() {
           <div className="mr-20px h-1.2em w-10px bg-[#1677FF]" />
           <div>{t('page.connector.edit.title')}</div>
         </div>
+        
+        <Spin spinning={loading}>
         <Form
           autoComplete="off"
           colon={false}
-          initialValues={initialConnector}
+          form={form}
+          initialValues={connector}
           labelCol={{ span: 4 }}
           layout="horizontal"
           wrapperCol={{ span: 18 }}
@@ -142,12 +164,12 @@ export function Component() {
             name="icon"
             rules={[{ required: true }]}
           >
-            {initialConnector.builtin === true ? (
+            {connector?.builtin === true ? (
               <IconWrapper className="w-40px h-40px">
                 <InfiniIcon
                   className="h-2em w-2em"
                   height="2em"
-                  src={initialConnector.icon}
+                  src={connector?.icon}
                   width="2em"
                 />
               </IconWrapper>
@@ -155,7 +177,7 @@ export function Component() {
               <IconSelector
                 className="max-w-200px"
                 icons={iconsMeta}
-                readonly={initialConnector.builtin === true}
+                readonly={connector?.builtin === true}
               />
             )}
           </Form.Item>
@@ -163,16 +185,16 @@ export function Component() {
             label={t('page.connector.new.labels.assets_icons')}
             name="assets_icons"
           >
-            {initialConnector.builtin === true ? (
+            {connector?.builtin === true ? (
               <AssetsIconsView />
             ) : (
               <AssetsIcons
                 iconsMeta={iconsMeta}
-                readonly={initialConnector.builtin === true}
+                readonly={connector?.builtin === true}
               />
             )}
           </Form.Item>
-          {connectorID === 'google_drive' && (
+          {connector?.processor?.name === 'google_drive' && (
             <>
               <Form.Item
                 label={t('page.connector.new.labels.client_id')}
@@ -247,6 +269,7 @@ export function Component() {
             </Button>
           </Form.Item>
         </Form>
+        </Spin>
       </ACard>
     </div>
   );
