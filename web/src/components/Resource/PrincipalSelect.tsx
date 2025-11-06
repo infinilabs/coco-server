@@ -49,7 +49,7 @@ export default (props) => {
 
     useEffect(() => {
       fetchFilterData(queryParams, sorter, excluded)
-    }, [queryParams, sorter, excluded])
+    }, [JSON.stringify(queryParams), JSON.stringify(sorter), JSON.stringify(excluded)])
 
     useEffect(() => {
       if (mode === 'multiple') {
