@@ -36,7 +36,7 @@ export function Component() {
       path_hierarchy: values.path_hierarchy,
       tags: values.tags
     };
-    if (connectorID === 'google_drive') {
+    if (connector?.processor?.name === 'google_drive') {
       sValues.config = {
         auth_url: values.auth_url,
         client_id: values.client_id,
@@ -59,13 +59,13 @@ export function Component() {
     if (!connectorID) return;
     setLoading(true)
     const res = await getConnector(connectorID);
-    if (res.data?.found === true) {
+    if (res.data?.found === true && res.data._source) {
       const newConnector = {
-        ...(res.data._source || {}),
+        ...res.data._source,
         assets_icons: res.data._source?.assets?.icons || {},
         ...(res.data._source?.config || {
           auth_url: "https://accounts.google.com/o/oauth2/auth",
-          redirect_url: location.origin + "/connector/google_drive/oauth_redirect",
+          redirect_url: location.origin + `/connector/${res.data._source.id}/oauth_redirect`,
           token_url: "https://oauth2.googleapis.com/token"
         }),
         raw_config: res.data._source?.config ? JSON.stringify(res.data._source?.config,null,4) : undefined
