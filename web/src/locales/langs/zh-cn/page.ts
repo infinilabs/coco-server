@@ -428,10 +428,10 @@ const page: App.I18n.Schema['translation']['page'] = {
       inherit: '（继承）'
     },
     file: {
-      title: '文档管理',
+      title: '文档管理'
     },
     mapping: {
-      title: '映射管理',
+      title: '映射管理'
     },
     s3: {
       error: {
@@ -472,7 +472,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       language: '语言',
       name: '姓名',
       password: '密码',
-      title: '创建一个账户',
+      title: '创建一个账户'
     }
   },
   home: {
@@ -524,6 +524,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         datasource: '数据源',
         description: '描述',
         enable_auth: '启用认证',
+        tourist_mode: '游客模式',
         enable_module: '启用模块',
         enabled: '启用状态',
         feature_chat_history: '聊天历史',
@@ -570,6 +571,9 @@ const page: App.I18n.Schema['translation']['page'] = {
       title: {
         edit: '编辑嵌入组件',
         new: '新增嵌入组件'
+      },
+      hints: {
+        tourist_mode: '未登录用户将以该用户的身份进行访问'
       }
     },
     topics: {
@@ -759,11 +763,12 @@ const page: App.I18n.Schema['translation']['page'] = {
       email: '邮箱',
       roles: '角色',
       created: '创建时间',
-      password: '密码',
+      password: '密码'
     },
     new: {
       title: '新增用户',
-      copyPassword: '请将此密码保存在安全且易于访问的地方。出于安全原因，你将无法通过用户管理界面再次查看它。如果你丢失了这个密码，可通过编辑用户更新密码。'
+      copyPassword:
+        '请将此密码保存在安全且易于访问的地方。出于安全原因，你将无法通过用户管理界面再次查看它。如果你丢失了这个密码，可通过编辑用户更新密码。'
     },
     edit: {
       title: '编辑用户'
@@ -779,7 +784,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     },
     title: '搜索设置'
   },
-  setupLater: '稍后设置',
+  setupLater: '稍后设置'
 };
 
 export default page;

@@ -218,10 +218,10 @@ const page: App.I18n.Schema['translation']['page'] = {
       inherit: ' (inherit)'
     },
     file: {
-      title: 'Document Management',
+      title: 'Document Management'
     },
     mapping: {
-      title: 'Mapping Management',
+      title: 'Mapping Management'
     },
     neo4j: {
       error: {
@@ -370,6 +370,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         datasource: 'Data Source',
         description: 'Description',
         enable_auth: 'Enable Authentication',
+        tourist_mode: 'Tourist Mode',
         enable_module: 'Enable Module',
         feature_chat_history: 'Chat History',
         feature_Control: 'Feature Control',
@@ -416,6 +417,9 @@ const page: App.I18n.Schema['translation']['page'] = {
       title: {
         edit: 'Edit Integration',
         new: 'New Integration'
+      },
+      hints: {
+        tourist_mode: 'Unlogged users will access as this user'
       }
     },
     update: {
@@ -682,11 +686,12 @@ const page: App.I18n.Schema['translation']['page'] = {
       email: 'Email',
       roles: 'Roles',
       created: 'Created At',
-      password: 'Password',
+      password: 'Password'
     },
     new: {
       title: 'New User',
-      copyPassword: 'Please store this password in a secure and easily accessible location. For security reasons, you will not be able to view it again through the user management interface. If you lose this password, you will need to update password by editing user.'
+      copyPassword:
+        'Please store this password in a secure and easily accessible location. For security reasons, you will not be able to view it again through the user management interface. If you lose this password, you will need to update password by editing user.'
     },
     edit: {
       title: 'Edit User'
@@ -694,7 +699,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     delete: {
       confirm: `Are you sure you want to delete user "{{name}}" ?`
     }
-  },
+  }
 };
 
 export default page;
