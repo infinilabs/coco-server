@@ -35,19 +35,19 @@ export function Component() {
 
   const { t } = useTranslation();
 
-  const { addSharesToData, isEditorOwner, hasEdit, hasView, isResourceShare } = useResource()
-  const resourceType = 'datasource'
-  const resourceCategoryType = 'connector'
+  const { addSharesToData, isEditorOwner, hasEdit, hasView, isResourceShare } = useResource();
+  const resourceType = 'datasource';
+  const resourceCategoryType = 'connector';
 
-  const { hasAuth } = useAuth()
+  const { hasAuth } = useAuth();
 
   const permissions = {
     read: hasAuth('coco#datasource/read'),
     readConnector: hasAuth('coco#connector/read'),
     create: hasAuth('coco#datasource/create'),
     update: hasAuth('coco#datasource/update'),
-    delete: hasAuth('coco#datasource/delete'),
-  }
+    delete: hasAuth('coco#datasource/delete')
+  };
 
   const { scrollConfig, tableWrapperRef } = useTableScroll();
 
@@ -161,42 +161,53 @@ export function Component() {
       ellipsis: true,
       render: (value: string, record: Datasource) => {
         let iconSrc = record.icon;
-        if(!iconSrc && data.connectors) {
+        if (!iconSrc && data.connectors) {
           iconSrc = data.connectors[record.connector.id]?.icon;
         }
 
-        const isShare = isResourceShare(record)
+        const isShare = isResourceShare(record);
 
         let shareIcon;
 
         if (isShare) {
           shareIcon = (
-            <div className='flex-grow-0 flex-shrink-0'>
-              <SvgIcon localIcon='share' className='text-#999'/>
+            <div className='flex-shrink-0 flex-grow-0'>
+              <SvgIcon
+                className='text-#999'
+                localIcon='share'
+              />
             </div>
-          )
+          );
         }
 
         return (
           <div className='flex items-center gap-1'>
-            {
-              iconSrc && (
-                <IconWrapper className="flex-grow-0 flex-shrink-0 flex-basis-auto w-20px h-20px">
-                  <InfiniIcon height="1em" width="1em" src={iconSrc} />
-                </IconWrapper>
-              )
-            }
-            { permissions.read && permissions.readConnector ? (
-              <a className='max-w-150px ant-table-cell-ellipsis cursor-pointer text-[var(--ant-color-link)]' onClick={()=>nav(`/data-source/detail/${record.id}${isEditorOwner(record) ? '' : '?view=list'}`, {
-                  state: { connector_id: record.connector?.id || '', datasource_name: record.name }
-                })}>{ value }</a>
+            {iconSrc && (
+              <IconWrapper className='h-20px w-20px flex-shrink-0 flex-grow-0 flex-basis-auto'>
+                <InfiniIcon
+                  height='1em'
+                  src={iconSrc}
+                  width='1em'
+                />
+              </IconWrapper>
+            )}
+            {permissions.read && permissions.readConnector ? (
+              <a
+                className='ant-table-cell-ellipsis max-w-150px cursor-pointer text-[var(--ant-color-link)]'
+                onClick={() =>
+                  nav(`/data-source/detail/${record.id}${isEditorOwner(record) ? '' : '?view=list'}`, {
+                    state: { connector_id: record.connector?.id || '', datasource_name: record.name }
+                  })
+                }
+              >
+                {value}
+              </a>
             ) : (
-              <span className='max-w-150px ant-table-cell-ellipsis'>{ value }</span>
+              <span className='ant-table-cell-ellipsis max-w-150px'>{value}</span>
             )}
             {shareIcon}
           </div>
-        )
-
+        );
       },
       title: t('page.datasource.columns.name')
     },
@@ -204,34 +215,40 @@ export function Component() {
       dataIndex: 'owner',
       title: t('page.datasource.labels.owner'),
       render: (value, record) => {
-        if (!value) return '-'
+        if (!value) return '-';
         return (
-          <div className='flex'>
-            <Avatar.Group max={{ count: 1 }} size={"small"}>
-              <AvatarLabel data={value} showCard={true}/>
+          <div className='flex overflow-hidden'>
+            <Avatar.Group
+              max={{ count: 1 }}
+              size='small'
+            >
+              <AvatarLabel
+                data={value}
+                showCard={true}
+              />
             </Avatar.Group>
           </div>
-        )
+        );
       }
     },
     {
       dataIndex: 'shares',
       title: t('page.datasource.labels.shares'),
       render: (value, record) => {
-        if (!value) return '-'
+        if (!value) return '-';
         return (
-          <Shares 
-            record={record} 
-            title={record.name} 
-            onSuccess={() => fetchData()}
+          <Shares
+            record={record}
+            title={record.name}
             resource={{
-              'resource_category_type': resourceCategoryType,
-              'resource_category_id': record.connector?.id,
-              'resource_type': resourceType,
-              'resource_id': record.id,
+              resource_category_type: resourceCategoryType,
+              resource_category_id: record.connector?.id,
+              resource_type: resourceType,
+              resource_id: record.id
             }}
+            onSuccess={() => fetchData()}
           />
-        )
+        );
       }
     },
     {
@@ -259,7 +276,7 @@ export function Component() {
       title: t('page.datasource.labels.updated'),
       render: (value: number) => {
         return value ? new Date(value).toISOString() : '';
-      },
+      }
     },
     // {
     //   dataIndex: 'sync_status',
@@ -270,10 +287,10 @@ export function Component() {
       render: (value: boolean, record: Datasource) => {
         return (
           <Switch
-            size="small"
             checked={value}
-            onChange={v => onSyncEnabledChange(v, record)}
             disabled={!permissions.update || !hasEdit(record)}
+            size='small'
+            onChange={v => onSyncEnabledChange(v, record)}
           />
         );
       },
@@ -285,10 +302,10 @@ export function Component() {
       render: (value: boolean, record: Datasource) => {
         return (
           <Switch
-            size="small"
+            disabled={!permissions.update || !hasEdit(record)}
+            size='small'
             value={value}
             onChange={v => onEnabledChange(v, record)}
-            disabled={!permissions.update || !hasEdit(record)}
           />
         );
       },
@@ -304,13 +321,13 @@ export function Component() {
           items.push({
             key: '2',
             label: t('common.edit')
-          })
+          });
         }
         if (permissions.delete && isEditorOwner(record)) {
           items.push({
             key: '1',
             label: t('common.delete')
-          })
+          });
         }
         if (items.length === 0) return null;
         return (
@@ -322,7 +339,7 @@ export function Component() {
       title: t('common.operation'),
       width: '90px'
     }
-  ].filter((item) => !!item);
+  ].filter(item => Boolean(item));
   // rowSelection object indicates the need for row selection
   const rowSelection: TableProps<Datasource>['rowSelection'] = {
     getCheckboxProps: (record: Datasource) => ({
@@ -347,15 +364,15 @@ export function Component() {
     if (res?.data) {
       const newData = formatESSearchResult(res?.data);
       if (newData.data.length > 0) {
-        const resources = newData.data.map((item) => ({
-          "resource_id": item.id,
-          "resource_type": resourceType,
-          'resource_category_type': resourceCategoryType,
-          'resource_category_id': item.connector?.id,
-        }))
-        const dataWithShares = await addSharesToData(newData.data, resources)
+        const resources = newData.data.map(item => ({
+          resource_id: item.id,
+          resource_type: resourceType,
+          resource_category_type: resourceCategoryType,
+          resource_category_id: item.connector?.id
+        }));
+        const dataWithShares = await addSharesToData(newData.data, resources);
         if (dataWithShares) {
-          newData.data = dataWithShares
+          newData.data = dataWithShares;
         }
       }
       setData((oldData: any) => {
@@ -369,12 +386,12 @@ export function Component() {
   };
 
   useEffect(() => {
-    fetchData()
+    fetchData();
   }, [queryParams]);
 
   useEffect(() => {
-    setKeyword(queryParams.query)
-  }, [queryParams.query])
+    setKeyword(queryParams.query);
+  }, [queryParams.query]);
 
   const fetchConnectors = async (ids: string[]) => {
     const res = await getConnectorByIDs(ids);
@@ -412,7 +429,7 @@ export function Component() {
     setQueryParams(oldParams => {
       return {
         ...oldParams,
-        from: query === oldParams.query ? oldParams.from: 0,
+        from: query === oldParams.query ? oldParams.from : 0,
         query,
         t: new Date().valueOf()
       };
@@ -423,43 +440,41 @@ export function Component() {
     <ListContainer>
       <ACard
         bordered={false}
-        className="flex-col-stretch sm:flex-1-hidden card-wrapper"
+        className='flex-col-stretch sm:flex-1-hidden card-wrapper'
         ref={tableWrapperRef}
       >
-        <div className="mb-4 mt-4 flex items-center justify-between">
+        <div className='mb-4 mt-4 flex items-center justify-between'>
           <Search
-            value={keyword} 
-            onChange={(e) => setKeyword(e.target.value)} 
             addonBefore={<FilterOutlined />}
-            className="max-w-500px"
+            className='max-w-500px'
             enterButton={t('common.refresh')}
+            value={keyword}
+            onChange={e => setKeyword(e.target.value)}
             onSearch={onRefreshClick}
           />
-          {
-            permissions.create && (
-              <Button
-                icon={<PlusOutlined />}
-                type="primary"
-                onClick={() => nav(`/data-source/new-first`)}
-              >
-                {t('common.add')}
-              </Button>
-            )
-          }
+          {permissions.create && (
+            <Button
+              icon={<PlusOutlined />}
+              type='primary'
+              onClick={() => nav(`/data-source/new-first`)}
+            >
+              {t('common.add')}
+            </Button>
+          )}
         </div>
         <Table<Datasource>
           columns={columns}
           dataSource={data.data}
           loading={loading}
-          rowKey="id"
+          rowKey='id'
           rowSelection={{ ...rowSelection }}
-          size="middle"
+          size='middle'
           pagination={{
             showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
             pageSize: queryParams.size,
             current: Math.floor(queryParams.from / queryParams.size) + 1,
             total: data.total?.value || data?.total,
-            showSizeChanger: true,
+            showSizeChanger: true
           }}
           onChange={handleTableChange}
         />

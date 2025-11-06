@@ -30,22 +30,22 @@ interface DataType {
   url: string;
 }
 
-const FileManagement = (props) => {
-  const datasourceID = props.id
+const FileManagement = props => {
+  const datasourceID = props.id;
   const [queryParams, setQueryParams] = useQueryParams();
 
   const { t } = useTranslation();
 
-  const { addSharesToData, isEditorOwner, hasEdit, isResourceShare } = useResource()
+  const { addSharesToData, isEditorOwner, hasEdit, isResourceShare } = useResource();
 
-  const { hasAuth } = useAuth()
+  const { hasAuth } = useAuth();
 
   const permissions = {
     readDatasource: hasAuth('coco#datasource/read'),
     readConnector: hasAuth('coco#connector/read'),
     update: hasAuth('coco#document/update'),
-    delete: hasAuth('coco#document/delete'),
-  }
+    delete: hasAuth('coco#document/delete')
+  };
 
   const [connector, setConnector] = useState<any>({});
   const [datasource, setDatasource] = useState<any>();
@@ -104,7 +104,7 @@ const FileManagement = (props) => {
     getCheckboxProps: (record: DataType) => ({
       // Column configuration not to be checked
       name: record.title,
-      disabled: isEditorOwner(record) && permissions.delete ? false : true
+      disabled: !(isEditorOwner(record) && permissions.delete)
     }),
     onChange: (selectedRowKeys: React.Key[], selectedRows: DataType[]) => {
       setState((st: any) => {
@@ -189,22 +189,22 @@ const FileManagement = (props) => {
     {
       dataIndex: 'title',
       render: (text: string, record: DataType) => {
-        const isShare = isResourceShare(record)
+        const isShare = isResourceShare(record);
 
         let imgSrc = '';
         if (connector?.assets?.icons) {
           imgSrc = connector.assets.icons[record.icon];
         }
         const aProps = {
-          className: "text-blue-500",
-          rel: "noreferrer",
-        }
+          className: 'text-blue-500',
+          rel: 'noreferrer'
+        };
 
-        const pathHierarchy = connector?.path_hierarchy && record.type === 'folder'
+        const pathHierarchy = connector?.path_hierarchy && record.type === 'folder';
 
         if (pathHierarchy) {
           aProps.onClick = () => {
-            const categories = (record.categories || []).concat([record.title])
+            const categories = (record.categories || []).concat([record.title]);
             setQueryParams(old => {
               return {
                 ...old,
@@ -212,61 +212,69 @@ const FileManagement = (props) => {
                 size: 10,
                 path: JSON.stringify(categories),
                 view: isEditorOwner(record) ? 'auto' : 'list'
-              }
-            })
-          } 
+              };
+            });
+          };
         } else if (record.url) {
           aProps.href = record.url;
-          aProps.target = "_blank";
+          aProps.target = '_blank';
         }
 
         let shareIcon;
 
         if (isShare) {
           shareIcon = (
-            <div className='flex-grow-0 flex-shrink-0'>
-              <SvgIcon localIcon='share' className='text-#999'/>
+            <div className='flex-shrink-0 flex-grow-0'>
+              <SvgIcon
+                className='text-#999'
+                localIcon='share'
+              />
             </div>
-          )
+          );
         }
 
         if (connector?.path_hierarchy && queryParams.view === 'list') {
           return (
-            <span className='inline-flex flex-col'>
-              <span className="inline-flex items-center gap-1 text-12px h-16px">
+            <span className='flex-col inline-flex'>
+              <span className='h-16px inline-flex items-center gap-1 text-12px'>
                 {imgSrc ? (
-                  <IconWrapper className="w-1em h-1em text-16px">
+                  <IconWrapper className='h-1em w-1em text-16px'>
                     <InfiniIcon
-                      height="1em"
+                      height='1em'
                       src={imgSrc}
-                      width="1em"
+                      width='1em'
                     />
                   </IconWrapper>
-                ) : <FontIcon name={record.icon} />}
-                { record.url || pathHierarchy ? <a {...aProps}>{text}</a> : <span>{text}</span> }
+                ) : (
+                  <FontIcon name={record.icon} />
+                )}
+                {record.url || pathHierarchy ? <a {...aProps}>{text}</a> : <span>{text}</span>}
                 {shareIcon}
               </span>
-              <span className='text-10px h-14px text-#999'>{record.categories?.length > 0 ? `/${record.categories.join('/')}` : '/'}</span>
+              <span className='h-14px text-10px text-#999'>
+                {record.categories?.length > 0 ? `/${record.categories.join('/')}` : '/'}
+              </span>
             </span>
-          )
+          );
         }
 
         return (
-          <span className="inline-flex items-center gap-1">
+          <span className='inline-flex items-center gap-1'>
             {imgSrc ? (
-              <IconWrapper className="w-20px h-20px">
+              <IconWrapper className='h-20px w-20px'>
                 <InfiniIcon
-                  height="1em"
+                  height='1em'
                   src={imgSrc}
-                  width="1em"
+                  width='1em'
                 />
               </IconWrapper>
-            ) : <FontIcon name={record.icon} />}
-            { record.url || pathHierarchy ? <a {...aProps}>{text}</a> : <span>{text}</span> }
+            ) : (
+              <FontIcon name={record.icon} />
+            )}
+            {record.url || pathHierarchy ? <a {...aProps}>{text}</a> : <span>{text}</span>}
             {shareIcon}
           </span>
         );
-
       },
       title: t('page.datasource.columns.name')
     },
@@ -274,14 +282,20 @@ const FileManagement = (props) => {
       dataIndex: 'owner',
       title: t('page.datasource.labels.owner'),
       render: (value, record) => {
-        if (!value) return '-'
+        if (!value) return '-';
         return (
-          <div className='flex'>
-            <Avatar.Group max={{ count: 1 }} size={"small"}>
-              <AvatarLabel data={value} showCard={true}/>
+          <div className='flex overflow-hidden'>
+            <Avatar.Group
+              max={{ count: 1 }}
+              size='small'
+            >
+              <AvatarLabel
+                data={value}
+                showCard={true}
+              />
             </Avatar.Group>
           </div>
-        )
+        );
       }
     },
     {
@@ -290,20 +304,21 @@ const FileManagement = (props) => {
       render: (value, record) => {
         return (
           <Shares
-            record={record} 
-            title={record.title} 
-            onSuccess={() => fetchData(queryParams, datasourceID)}
+            record={record}
+            title={record.title}
             resource={{
-              'resource_category_type': 'datasource',
-              'resource_category_id': datasourceID,
-              'resource_type': 'document',
-              'resource_id': record.id,
-              'resource_parent_path': record.categories?.length > 0 ? `/${record.categories.join('/')}/` : '/',
-              'resource_full_path': (record.categories?.length > 0 ? `/${record.categories.join('/')}/` : '/') + record.title,
-              'resource_is_folder': record?.type === "folder",
+              resource_category_type: 'datasource',
+              resource_category_id: datasourceID,
+              resource_type: 'document',
+              resource_id: record.id,
+              resource_parent_path: record.categories?.length > 0 ? `/${record.categories.join('/')}/` : '/',
+              resource_full_path:
+                (record.categories?.length > 0 ? `/${record.categories.join('/')}/` : '/') + record.title,
+              resource_is_folder: record?.type === 'folder'
             }}
+            onSuccess={() => fetchData(queryParams, datasourceID)}
           />
-        )
+        );
       }
     },
     // {
@@ -319,12 +334,12 @@ const FileManagement = (props) => {
       render: (text: boolean, record: DataType) => {
         return (
           <Switch
-            size="small"
+            disabled={!permissions.update || !hasEdit(record)}
+            size='small'
             value={!text}
             onChange={v => {
               onSearchableChange(v, record);
             }}
-            disabled={!permissions.update || !hasEdit(record)}
           />
         );
       },
@@ -334,7 +349,7 @@ const FileManagement = (props) => {
       fixed: 'right',
       hidden: !permissions.delete,
       render: (_, record) => {
-        if (!isEditorOwner(record)) return null
+        if (!isEditorOwner(record)) return null;
         return (
           <Dropdown menu={{ items, onClick: ({ key }) => onMenuClick({ key, record }) }}>
             <EllipsisOutlined />
@@ -344,7 +359,7 @@ const FileManagement = (props) => {
       title: t('common.operation'),
       width: '90px'
     }
-  ].filter((item) => !!item);
+  ].filter(item => Boolean(item));
 
   const [data, setData] = useState({});
   const [loading, setLoading] = useState(false);
@@ -359,22 +374,22 @@ const FileManagement = (props) => {
       ...queryParams,
       filter: {
         ...filter,
-        'source.id': [datasourceID],
+        'source.id': [datasourceID]
       }
-    })
+    });
     if (res?.data) {
       const newData = formatESSearchResult(res.data);
       if (newData.data.length > 0) {
-        const resources = newData.data.map((item) => ({
-          "resource_id": item.id,
-          "resource_type": 'document',
-          'resource_category_type': 'datasource',
-          'resource_category_id': datasourceID,
-          'resource_parent_path': item.categories?.length > 0 ? `/${item.categories.join('/')}/` : '/',
-        }))
-        const dataWithShares = await addSharesToData(newData.data, resources)
+        const resources = newData.data.map(item => ({
+          resource_id: item.id,
+          resource_type: 'document',
+          resource_category_type: 'datasource',
+          resource_category_id: datasourceID,
+          resource_parent_path: item.categories?.length > 0 ? `/${item.categories.join('/')}/` : '/'
+        }));
+        const dataWithShares = await addSharesToData(newData.data, resources);
         if (dataWithShares) {
-          newData.data = dataWithShares
+          newData.data = dataWithShares;
         }
       }
       setData(newData);
@@ -383,12 +398,12 @@ const FileManagement = (props) => {
   };
 
   useEffect(() => {
-    fetchData(queryParams, datasourceID)
+    fetchData(queryParams, datasourceID);
   }, [queryParams, datasourceID]);
 
   useEffect(() => {
-    setKeyword(queryParams.query)
-  }, [queryParams.query])
+    setKeyword(queryParams.query);
+  }, [queryParams.query]);
 
   const onTableChange = (pagination, filters, sorter, extra: { action; currentDataSource: [] }) => {
     setQueryParams(params => {
@@ -403,15 +418,15 @@ const FileManagement = (props) => {
     setQueryParams(oldParams => {
       return {
         ...oldParams,
-        from: query === oldParams.query ? oldParams.from: 0,
+        from: query === oldParams.query ? oldParams.from : 0,
         query,
         t: new Date().valueOf()
       };
     });
   };
-  
-  const renderTitle = (datasource) => {
-    let paths
+
+  const renderTitle = datasource => {
+    let paths;
     try {
       paths = JSON.parse(queryParams?.path);
     } catch (error) {
@@ -424,14 +439,17 @@ const FileManagement = (props) => {
       return paths.map((item, index) => {
         const isLast = index === paths.length - 1;
         return (
-          <span key={index} style={{ opacity: isLast ? 1 : 0.5 }}>
-            {
-              isLast ? (
-                <span>{item}</span>
-              ) : (
-                <a onClick={() => {
+          <span
+            key={index}
+            style={{ opacity: isLast ? 1 : 0.5 }}
+          >
+            {isLast ? (
+              <span>{item}</span>
+            ) : (
+              <a
+                onClick={() => {
                   setQueryParams(old => {
-                    const newParams = Object.assign({}, old);
+                    const newParams = { ...old };
                     if (index !== 0) {
                       const path = paths.slice(1, index + 1);
                       newParams.path = JSON.stringify(path);
@@ -443,67 +461,67 @@ const FileManagement = (props) => {
                       from: 0,
                       size: 10
                     };
-                  })
-                }}>{item}</a>
-              )
-            }
-            { !isLast && <span className='mx-10px'>&gt;</span> }
+                  });
+                }}
+              >
+                {item}
+              </a>
+            )}
+            {!isLast && <span className='mx-10px'>&gt;</span>}
           </span>
         );
       });
     }
     return datasource?.name;
-  }
+  };
 
   if (!datasourceID) return <LookForward />;
 
   return (
     <ListContainer>
-      <div className="mt-12px ml--16px flex items-center text-lg font-bold">
-        <div className="absolute mr-6px h-1.2em w-10px bg-[#1677FF]" />
-        <div className="pl-16px">{renderTitle(datasource)}</div>
+      <div className='ml--16px mt-12px flex items-center text-lg font-bold'>
+        <div className='absolute mr-6px h-1.2em w-10px bg-[#1677FF]' />
+        <div className='pl-16px'>{renderTitle(datasource)}</div>
       </div>
-      <div className="mb-4 mt-6 flex items-center justify-between">
+      <div className='mb-4 mt-6 flex items-center justify-between'>
         <Search
-          value={keyword} 
-          onChange={(e) => setKeyword(e.target.value)} 
           addonBefore={<FilterOutlined />}
-          className="max-w-500px"
+          className='max-w-500px'
           enterButton={t('common.refresh')}
+          value={keyword}
+          onChange={e => setKeyword(e.target.value)}
           onSearch={onRefreshClick}
         />
-        {
-          permissions.delete && (
-            <div>
-              <Dropdown.Button
-                icon={<DownOutlined />}
-                menu={{ items, onClick: onBatchMenuClick }}
-                type="primary"
-              >
-                {t('common.operation')}
-              </Dropdown.Button>
-            </div>
-          )
-        }
+        {permissions.delete && (
+          <div>
+            <Dropdown.Button
+              icon={<DownOutlined />}
+              menu={{ items, onClick: onBatchMenuClick }}
+              type='primary'
+            >
+              {t('common.operation')}
+            </Dropdown.Button>
+          </div>
+        )}
       </div>
       <Table<DataType>
         columns={columns}
         dataSource={data.data || []}
         loading={loading}
-        rowKey="id"
+        rowKey='id'
         rowSelection={{ ...rowSelection }}
-        size="middle"
+        size='middle'
         pagination={{
           showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
           pageSize: queryParams.size,
           current: Math.floor(queryParams.from / queryParams.size) + 1,
           total: data.total?.value || data?.total,
-          showSizeChanger: true,
+          showSizeChanger: true
         }}
         onChange={onTableChange}
       />
     </ListContainer>
   );
-}
+};
 
-export default FileManagement
+export default FileManagement;

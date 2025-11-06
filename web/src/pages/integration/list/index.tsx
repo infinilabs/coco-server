@@ -2,7 +2,7 @@ import { EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, PlusOutlin
 import { useLoading } from '@sa/hooks';
 import { Avatar, Button, Dropdown, Input, Modal, Switch, Table, message } from 'antd';
 
-import { deleteIntegration, fetchIntegrations, updateIntegration, renewAPIToken } from '@/service/api/integration';
+import { deleteIntegration, fetchIntegrations, renewAPIToken, updateIntegration } from '@/service/api/integration';
 import { formatESSearchResult } from '@/service/request/es';
 import useQueryParams from '@/hooks/common/queryParams';
 import { isFullscreen } from '../modules/EditForm';
@@ -12,17 +12,17 @@ export function Component() {
   const [queryParams, setQueryParams] = useQueryParams();
   const { t } = useTranslation();
 
-  const { addSharesToData, isEditorOwner, hasEdit, isResourceShare } = useResource()
-  const resourceType = 'integration'
+  const { addSharesToData, isEditorOwner, hasEdit, isResourceShare } = useResource();
+  const resourceType = 'integration';
 
-  const { hasAuth } = useAuth()
+  const { hasAuth } = useAuth();
 
   const permissions = {
     read: hasAuth('coco#integration/read'),
     create: hasAuth('coco#integration/create'),
     update: hasAuth('coco#integration/update'),
-    delete: hasAuth('coco#integration/delete'),
-  }
+    delete: hasAuth('coco#integration/delete')
+  };
 
   const { tableWrapperRef } = useTableScroll();
 
@@ -35,19 +35,19 @@ export function Component() {
   const { endLoading, loading, startLoading } = useLoading();
   const [keyword, setKeyword] = useState();
 
-  const fetchData = async (params) => {
+  const fetchData = async params => {
     startLoading();
     const res = await fetchIntegrations(params);
     if (res?.data) {
       const newData = formatESSearchResult(res.data);
       if (newData.data.length > 0) {
-        const resources = newData.data.map((item) => ({
-          "resource_id": item.id,
-          "resource_type": resourceType,
-        }))
-        const dataWithShares = await addSharesToData(newData.data, resources)
+        const resources = newData.data.map(item => ({
+          resource_id: item.id,
+          resource_type: resourceType
+        }));
+        const dataWithShares = await addSharesToData(newData.data, resources);
         if (dataWithShares) {
-          newData.data = dataWithShares
+          newData.data = dataWithShares;
         }
       }
       setData(newData);
@@ -103,26 +103,31 @@ export function Component() {
       minWidth: 150,
       ellipsis: true,
       render: (value, record) => {
-
-        const isShare = isResourceShare(record)
+        const isShare = isResourceShare(record);
 
         let shareIcon;
 
         if (isShare) {
           shareIcon = (
-            <div className='flex-grow-0 flex-shrink-0'>
-              <SvgIcon localIcon='share' className='text-#999'/>
+            <div className='flex-shrink-0 flex-grow-0'>
+              <SvgIcon
+                className='text-#999'
+                localIcon='share'
+              />
             </div>
-          )
+          );
         }
 
         return (
-          <div className="flex items-center gap-1">
-            <SvgIcon icon="mdi:puzzle-outline" className="text-icon-small text-gray-500" />
-            <span className='max-w-150px ant-table-cell-ellipsis'>{value}</span>
+          <div className='flex items-center gap-1'>
+            <SvgIcon
+              className='text-icon-small text-gray-500'
+              icon='mdi:puzzle-outline'
+            />
+            <span className='ant-table-cell-ellipsis max-w-150px'>{value}</span>
             {shareIcon}
           </div>
-        )
+        );
       },
       title: t('page.integration.columns.name')
     },
@@ -130,38 +135,46 @@ export function Component() {
       dataIndex: 'owner',
       title: t('page.datasource.labels.owner'),
       render: (value, record) => {
-        if (!value) return '-'
+        if (!value) return '-';
         return (
-          <div className='flex'>
-            <Avatar.Group max={{ count: 1 }} size={"small"}>
-              <AvatarLabel data={value} showCard={true}/>
+          <div className='flex overflow-hidden'>
+            <Avatar.Group
+              max={{ count: 1 }}
+              size='small'
+            >
+              <AvatarLabel
+                data={value}
+                showCard={true}
+              />
             </Avatar.Group>
           </div>
-        )
+        );
       }
     },
     {
       dataIndex: 'shares',
       title: t('page.datasource.labels.shares'),
       render: (value, record) => {
-        if (!value) return '-'
+        if (!value) return '-';
         return (
-          <Shares 
-            record={record} 
-            title={record.name} 
-            onSuccess={() => fetchData(queryParams)}
+          <Shares
+            record={record}
+            title={record.name}
             resource={{
-              'resource_type': resourceType,
-              'resource_id': record.id,
+              resource_type: resourceType,
+              resource_id: record.id
             }}
+            onSuccess={() => fetchData(queryParams)}
           />
-        )
+        );
       }
     },
     {
       dataIndex: 'type',
       render: value => {
-        return isFullscreen(value) ? t('page.integration.form.labels.type_fullscreen') : t('page.integration.form.labels.type_searchbox')
+        return isFullscreen(value)
+          ? t('page.integration.form.labels.type_fullscreen')
+          : t('page.integration.form.labels.type_searchbox');
       },
       title: t('page.integration.columns.type')
     },
@@ -172,11 +185,13 @@ export function Component() {
     {
       dataIndex: 'datasource',
       render: (value, record) => {
-        if(record.datasource?.length){
+        if (record.datasource?.length) {
           return record.datasource?.includes('*') ? '*' : value?.length || 0;
         }
-        if(record.enabled_module?.search?.datasource?.length){
-          return record.enabled_module?.search?.datasource?.includes('*') ? '*' : record.enabled_module.search.datasource?.length || 0;
+        if (record.enabled_module?.search?.datasource?.length) {
+          return record.enabled_module?.search?.datasource?.includes('*')
+            ? '*'
+            : record.enabled_module.search.datasource?.length || 0;
         }
         return 0;
       },
@@ -188,7 +203,8 @@ export function Component() {
         return (
           <Switch
             checked={record.enabled}
-            size="small"
+            disabled={!permissions.update || !hasEdit(record)}
+            size='small'
             onChange={checked => {
               window?.$modal?.confirm({
                 content: t(`page.integration.update.${checked ? 'enable' : 'disable'}_confirm`, { name: record.name }),
@@ -199,7 +215,6 @@ export function Component() {
                 title: t('common.tip')
               });
             }}
-            disabled={!permissions.update || !hasEdit(record)}
           />
         );
       },
@@ -207,7 +222,7 @@ export function Component() {
     },
     {
       dataIndex: 'token_expire_in',
-      render: (value: number, record:any) => {
+      render: (value: number, record: any) => {
         return value ? new Date(value * 1000).toISOString() : '';
       },
       title: t('page.integration.columns.token_expire_in')
@@ -221,17 +236,17 @@ export function Component() {
           items.push({
             key: 'edit',
             label: t('common.edit')
-          })
+          });
           items.push({
             key: 'renew_token',
             label: t('common.renew_token')
-          })
+          });
         }
         if (permissions.delete && isEditorOwner(record)) {
           items.push({
             key: 'delete',
             label: t('common.delete')
-          })
+          });
         }
         if (items.length === 0) return null;
         const onMenuClick = ({ key, record }: any) => {
@@ -251,13 +266,15 @@ export function Component() {
               break;
             case 'renew_token':
               startLoading();
-              renewAPIToken(record.id).then(res => {
-                if (res.data?.result === 'acknowledged') {
-                  message.success(t('common.updateSuccess'));
-                }
-              }).finally(() => {
-                endLoading();
-              });
+              renewAPIToken(record.id)
+                .then(res => {
+                  if (res.data?.result === 'acknowledged') {
+                    message.success(t('common.updateSuccess'));
+                  }
+                })
+                .finally(() => {
+                  endLoading();
+                });
               break;
           }
         };
@@ -284,50 +301,48 @@ export function Component() {
   }, [queryParams]);
 
   useEffect(() => {
-    setKeyword(queryParams.query)
-  }, [queryParams.query])
+    setKeyword(queryParams.query);
+  }, [queryParams.query]);
 
   return (
     <ListContainer>
       <ACard
         bordered={false}
-        className="flex-col-stretch sm:flex-1-hidden card-wrapper"
+        className='flex-col-stretch sm:flex-1-hidden card-wrapper'
         ref={tableWrapperRef}
       >
-        <div className="mb-4 mt-4 flex items-center justify-between">
+        <div className='mb-4 mt-4 flex items-center justify-between'>
           <Input.Search
             addonBefore={<FilterOutlined />}
-            className="max-w-500px"
+            className='max-w-500px'
             enterButton={t('common.refresh')}
-            onSearch={onRefreshClick}
             value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
+            onChange={e => setKeyword(e.target.value)}
+            onSearch={onRefreshClick}
           />
-          {
-            permissions.create && (
-              <Button
-                icon={<PlusOutlined />}
-                type="primary"
-                onClick={() => nav(`/integration/new`)}
-              >
-                {t('common.add')}
-              </Button>
-            )
-          }
+          {permissions.create && (
+            <Button
+              icon={<PlusOutlined />}
+              type='primary'
+              onClick={() => nav(`/integration/new`)}
+            >
+              {t('common.add')}
+            </Button>
+          )}
         </div>
         <Table
           columns={columns}
           dataSource={data.data}
           loading={loading}
-          rowKey="id"
+          rowKey='id'
           rowSelection={{ ...rowSelection }}
-          size="middle"
+          size='middle'
           pagination={{
-            showTotal:(total, range) => `${range[0]}-${range[1]} of ${total} items`,
+            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
             pageSize: queryParams.size,
             current: Math.floor(queryParams.from / queryParams.size) + 1,
             total: data.total?.value || data?.total,
-            showSizeChanger: true,
+            showSizeChanger: true
           }}
           onChange={handleTableChange}
         />
