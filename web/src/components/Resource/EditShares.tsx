@@ -1,5 +1,4 @@
-import { updateShares } from "@/service/api/share";
-import { cloneDeep, differenceBy } from "lodash";
+import { cloneDeep } from "lodash";
 import AvatarLabel from "./AvatarLabel";
 import { Button, Dropdown, Space } from "antd";
 import { DownOutlined, MinusCircleOutlined, UsergroupAddOutlined } from '@ant-design/icons';
@@ -8,57 +7,24 @@ import { PERMISSION_MAPPING } from "./Shares";
 
 export default function EditShares(props) {
 
-    const { hasCreate, hasEdit, resource, permissionOptions = [], owner, shares = [], editor, onCancel, onAddShares, onSuccess } = props;
+    const { hasCreate, hasEdit, permissionOptions = [], owner, shares = [], editor, onCancel, onAddShares, currentShares, onChange, onSubmit, setLockOpen } = props;
     const { t } = useTranslation();
 
-    const [currentData, setCurrentData] = useState([]);
-
-    useEffect(() => {
-        setCurrentData(shares.filter((item) => item.principal_id !== editor?.id))
-    }, [shares])
-
     const handleChange = (index, permission) => {
-        const newData = cloneDeep(currentData);
+        const newData = cloneDeep(currentShares);
         if (newData[index]) {
             if (newData[index].via === 'inherit') {
-                delete newData[index].via
+                newData[index].removeVia = true
             }
             newData[index].permission = parseInt(permission)
-            setCurrentData(newData)
+            onChange(newData)
         }
     }
 
     const handleDelete = (index) => {
-        const newData = cloneDeep(currentData);
+        const newData = cloneDeep(currentShares);
         newData.splice(index, 1)
-        setCurrentData(newData)
-    }
-
-    const handleUpdate = async () => {
-        const sourceData = shares.filter((item) => item.principal_id !== editor?.id);
-        if (JSON.stringify(sourceData) !== JSON.stringify(currentData)) {
-            const deletedItems = differenceBy(sourceData, currentData, 'principal_id');
-            const res = await updateShares({
-                type: resource?.resource_type,
-                id: resource?.resource_id,
-                shares: currentData.filter((item) => item.via !== 'inherit').map((item) => ({
-                    ...(resource || {}),
-                    "principal_type": "user",
-                    "principal_id": item.principal_id,
-                    permission: item.permission,
-                })),
-                revokes: (deletedItems || []).map((item) => ({
-                    "id": item.id,
-                    "principal_type": "user",
-                    "principal_id": item.principal_id,
-                    permission: item.permission
-                }))
-            })
-            if (res && !res.error) {
-                window.$message?.success(t('common.updateSuccess'));
-                onSuccess && onSuccess()
-            }
-        }
+        onChange(newData)
     }
 
     const renderSpecialItems = () => {
@@ -108,7 +74,7 @@ export default function EditShares(props) {
             <div className={`max-h-278px ${hasEdit || hasCreate ? 'mb-24px' : 'mb-0'} border border-[var(--ant-color-border)] rounded-[var(--ant-border-radius)] px-8px py-12px overflow-auto`}>
                 {renderSpecialItems()}
                 {
-                    currentData.filter((item) => !!item.entity).map((item: any, index) => {
+                    currentShares.filter((item) => !!item.entity).map((item: any, index) => {
                         const isInherit = item.via === 'inherit'
                         return (
                             <div key={index} className={styles.item}>
@@ -122,7 +88,13 @@ export default function EditShares(props) {
                                     {
                                         hasEdit ? (
                                             <Space>
-                                                <Dropdown trigger={['click']} menu={{ items: permissionOptions, onClick: ({key}) => handleChange(index, key)  }}>
+                                                <Dropdown 
+                                                    trigger={['click']} 
+                                                    onOpenChange={setLockOpen}
+                                                    menu={{ 
+                                                        items: permissionOptions, 
+                                                        onClick: ({key}) => handleChange(index, key)  
+                                                    }}>
                                                     <Button size="small" className="px-6px text-12px" type="text">{Number.isInteger(item.permission) ? t(`page.datasource.labels.${PERMISSION_MAPPING[item.permission]}`) : ''}<DownOutlined /></Button>
                                                 </Dropdown>
                                                 {
@@ -155,7 +127,7 @@ export default function EditShares(props) {
                                     <Button className="w-80px" type="primary" ghost onClick={() => onCancel()}>
                                         {t('common.cancel')}
                                     </Button>
-                                    <Button className="w-80px" type="primary" onClick={() => handleUpdate()}>
+                                    <Button className="w-80px" type="primary" onClick={() => onSubmit(currentShares)}>
                                         {t('common.ok')}
                                     </Button>
                                 </Space>
