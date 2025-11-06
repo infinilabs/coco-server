@@ -1,0 +1,61 @@
+{
+  "category": "database",
+  "description": "Connect to Neo4j graph database and index nodes using custom Cypher queries with incremental sync and pagination support.",
+  "developer": {
+    "avatar": "https://coco.infini.cloud/extensions/infinilabs/assets/avatar.png",
+    "github_handle": "infinilabs",
+    "id": "infinilabs",
+    "location": "Internet",
+    "name": "infinilabs",
+    "website": "https://github.com/infinilabs"
+  },
+  "icon": "/assets/icons/connector/neo4j/icon.png",
+  "name": "Neo4j Graph Database Connector",
+  "platforms": [
+    "macos",
+    "linux",
+    "windows"
+  ],
+  "screenshots": [
+    {
+      "title": "Neo4j Graph Database Connector",
+      "url": "/assets/screenshot.png"
+    }
+  ],
+  "tags": [
+    "graph",
+    "database",
+    "neo4j",
+    "cypher"
+  ],
+  "type": "connector",
+  "url": {
+    "home": "http://coco.rs/connectors/neo4j"
+  },
+  "version": {
+    "number": "0.1"
+  },
+  "payload": {
+    "name" : "Neo4j Graph Database Connector",
+    "description" : "Connect to Neo4j graph database and index nodes using custom Cypher queries with incremental sync and pagination support.",
+    "category" : "database",
+    "icon" : "/assets/icons/connector/neo4j/icon.png",
+    "tags" : [
+      "graph",
+      "database",
+      "neo4j",
+      "cypher"
+    ],
+    "url" : "http://coco.rs/connectors/neo4j",
+      "assets" : {
+      "icons" : {
+        "default" : "/assets/icons/connector/neo4j/icon.png"
+      }
+    },
+    "builtin": true,
+    "processor": {
+      "enabled": true,
+      "name": "neo4j"
+    }
+  }
+}

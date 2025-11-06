@@ -1,0 +1,59 @@
+{
+  "category": "model",
+  "description": "Gitee AI brings together the latest and most popular AI models, offering a one-stop service for model experience, inference, fine-tuning, deployment, and application.",
+  "developer": {
+    "avatar": "https://coco.infini.cloud/extensions/infinilabs/assets/avatar.png",
+    "github_handle": "infinilabs",
+    "id": "infinilabs",
+    "location": "Internet",
+    "name": "infinilabs",
+    "website": "https://github.com/infinilabs"
+  },
+  "icon": "font_gitee",
+  "name": "Gitee AI",
+  "platforms": [
+    "macos",
+    "linux",
+    "windows"
+  ],
+  "screenshots": [
+    {
+      "title": "Gitee AI",
+      "url": "/assets/screenshot.png"
+    }
+  ],
+  "tags": [
+   "model",
+    "gitee",
+    "llm"
+  ],
+  "type": "llm-provider",
+  "url": {
+    "home": "https://ai.gitee.com"
+  },
+  "version": {
+    "number": "0.1"
+  },
+  "payload": {
+    "id" : "gitee_ai",
+    "name" : "Gitee AI",
+    "api_key" : "",
+    "api_type" : "openai",
+    "icon" : "font_gitee",
+    "models" : [
+      {
+        "name" : "deepseek-ai/DeepSeek-R1"
+      },
+      {
+        "name" : "deepseek-ai/DeepSeek-V3"
+      },
+      {
+        "name" : "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B"
+      }
+    ],
+    "base_url" : "https://ai.gitee.com",
+    "enabled" : false,
+    "builtin" : true,
+    "description" : "Gitee AI brings together the latest and most popular AI models, offering a one-stop service for model experience, inference, fine-tuning, deployment, and application."
+  }
+}

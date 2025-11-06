@@ -1,0 +1,52 @@
+{
+  "category": "model",
+  "description": "Siliconflow provides access to various models (LLM, text embedding, reordering, STT, TTS), which can be configured through model name, API key, and other parameters.",
+  "developer": {
+    "avatar": "https://coco.infini.cloud/extensions/infinilabs/assets/avatar.png",
+    "github_handle": "infinilabs",
+    "id": "infinilabs",
+    "location": "Internet",
+    "name": "infinilabs",
+    "website": "https://github.com/infinilabs"
+  },
+  "icon": "font_siliconflow",
+  "name": "SiliconFlow",
+  "platforms": [
+    "macos",
+    "linux",
+    "windows"
+  ],
+  "screenshots": [
+    {
+      "title": "SiliconFlow",
+      "url": "/assets/screenshot.png"
+    }
+  ],
+  "tags": [
+   "model",
+    "deepseek",
+    "llm"
+  ],
+  "type": "llm-provider",
+  "url": {
+    "home": "http://coco.rs"
+  },
+  "version": {
+    "number": "0.1"
+  },
+  "payload": {
+    "name" : "SiliconFlow",
+    "api_key" : "",
+    "api_type" : "openai",
+    "base_url" : "https://api.siliconflow.cn",
+    "icon" : "font_siliconflow",
+    "models" : [
+      {"name": "BAAI/bge-m3"},
+      {"name": "deepseek-ai/DeepSeek-R1"},
+      {"name": "deepseek-ai/DeepSeek-V3"}
+    ],
+    "enabled" : false,
+    "builtin" : true,
+    "description": "Siliconflow provides access to various models (LLM, text embedding, reordering, STT, TTS), which can be configured through model name, API key, and other parameters."
+  }
+}
