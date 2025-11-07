@@ -102,6 +102,8 @@ func (processor *ConnectorProcessorBase) BatchCollect(ctx *pipeline.Context, con
 
 	//append enrichment pipeline process
 	if datasource.EnrichmentPipeline != nil {
+		log.Error("running enrichment pipeline")
+		ctx.Set("documents", docs)
 		err := pipeline.RunPipelineSync(*datasource.EnrichmentPipeline, ctx)
 		if err != nil {
 			panic(err)

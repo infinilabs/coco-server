@@ -237,15 +237,19 @@ func (h APIHandler) createChatSession(w http.ResponseWriter, r *http.Request, ps
 		SessionID:  session.ID,
 		CancelFunc: cancel,
 	})
-	_ = h.processMessageAsync(ctx, reqMsg, params, streamSender)
+	_ = processMessageAsync(orm.NewContextWithParent(ctx), reqMsg, params, streamSender)
 }
 
 func CreateAndSaveNewChatMessage(request *http.Request, assistantID string, req *common.MessageRequest, visible bool) (common.Session, error, *common.ChatMessage, util.MapStr) {
+	ctx := orm.NewContextWithParent(request.Context())
+	return InternalCreateAndSaveNewChatMessage(ctx, assistantID, req, visible)
+}
+
+func InternalCreateAndSaveNewChatMessage(ctx *orm.Context, assistantID string, req *common.MessageRequest, visible bool) (common.Session, error, *common.ChatMessage, util.MapStr) {
 
 	//if !rate.GetRateLimiterPerSecond("assistant_new_chat", clientIdentity, 10).Allow() {
 	//	panic("too many requests")
 	//}
-	ctx := orm.NewContextWithParent(request.Context())
 	ctx.Refresh = orm.WaitForRefresh
 
 	obj := common.Session{
@@ -337,7 +341,7 @@ func (h *APIHandler) askAssistant(w http.ResponseWriter, r *http.Request, ps htt
 		Flusher: flusher,
 		Ctx:     r.Context(), // assuming this is in an HTTP handler
 	}
-	_ = h.processMessageAsync(ctx, reqMsg, params, streamSender)
+	_ = processMessageAsync(orm.NewContextWithParent(ctx), reqMsg, params, streamSender)
 
 }
 
@@ -416,19 +420,29 @@ func getChatHistoryBySessionInternal(sessionID string, size int) ([]common.ChatM
 }
 
 func (h APIHandler) getChatHistoryBySession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	q := orm.Query{}
-	q.Conds = orm.And(orm.Eq("session_id", ps.MustGetParameter("session_id")))
-	q.From = h.GetIntOrDefault(req, "from", 0)
-	q.Size = h.GetIntOrDefault(req, "size", 20)
-	q.AddSort("created", orm.ASC)
-
-	err, res := orm.Search(&common.ChatMessage{}, &q)
+	builder, err := orm.NewQueryBuilderFromRequest(req, "message")
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	_, err = h.Write(w, res.Raw)
+	if builder.SizeVal() == 0 {
+		builder.Size(20)
+	}
+
+	builder.SortBy(orm.Sort{Field: "created", SortType: orm.ASC})
+	builder.Must(orm.TermQuery("session_id", ps.MustGetParameter("session_id")))
+
+	ctx := orm.NewContextWithParent(req.Context())
+	orm.WithModel(ctx, &common.ChatMessage{})
+
+	res, err := orm.SearchV2(ctx, builder)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	_, err = h.Write(w, res.Payload.([]byte))
 	if err != nil {
 		h.Error(w, err)
 	}
@@ -537,7 +551,7 @@ func (h APIHandler) sendChatMessageV2(w http.ResponseWriter, r *http.Request, ps
 		SessionID:  sessionID,
 		CancelFunc: cancel,
 	})
-	_ = h.processMessageAsync(ctx, reqMsg, params, streamSender)
+	_ = processMessageAsync(orm.NewContextWithParent(ctx), reqMsg, params, streamSender)
 
 }
 
