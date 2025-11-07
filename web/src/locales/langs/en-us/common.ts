@@ -42,6 +42,7 @@ const common: App.I18n.Schema['translation']['common'] = {
   modify: 'Modify',
   modifyPassword: 'Modify Password',
   modifySuccess: 'Modify Success',
+  new_tag: 'New Tag',
   newPassword: 'New Password',
   noData: 'No Data',
   oldPassword: 'Old Password',

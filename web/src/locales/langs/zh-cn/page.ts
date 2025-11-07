@@ -113,7 +113,15 @@ const page: App.I18n.Schema['translation']['page'] = {
         tags: '标签',
         token_url: 'Token 地址'
       },
-      title: '新建连接器'
+      title: '新建连接器',
+      tooltip: {
+        category: '请选择或输入分类。',
+        config: '以 JSON 格式填写配置信息。',
+        path_hierarchy: '是否支持通过目录层级方式访问文档。'
+      },
+      placeholder: {
+        category: '选择或输入分类'
+      }
     }
   },
   datasource: {

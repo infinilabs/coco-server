@@ -120,7 +120,15 @@ const page: App.I18n.Schema['translation']['page'] = {
         tags: 'Tags',
         token_url: 'Token URI'
       },
-      title: 'New Connector'
+      title: 'New Connector',
+      tooltip: {
+        category: 'Please choose or input the category.',
+        config: 'Configurations in JSON format.',
+        path_hierarchy: 'Whether to support access documents via path hierarchy manner.'
+      },
+      placeholder: {
+        category: 'Select or input a category'
+      }
     }
   },
   datasource: {

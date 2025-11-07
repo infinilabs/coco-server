@@ -2,6 +2,7 @@ import { PlusOutlined } from '@ant-design/icons';
 import type { InputRef } from 'antd';
 import { Input, Tag, theme } from 'antd';
 import React, { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface TagsProps {
   readonly onChange?: (newTags: string[]) => void;
@@ -14,11 +15,12 @@ export const Tags: React.FC<TagsProps> = ({ onChange, value }) => {
   const [inputVisible, setInputVisible] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const inputRef = useRef<InputRef>(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
-    setTags(value || [])
-  }, [value])
-  
+    setTags(value || []);
+  }, [value]);
+
   useEffect(() => {
     if (inputVisible) {
       inputRef.current?.focus();
@@ -52,11 +54,11 @@ export const Tags: React.FC<TagsProps> = ({ onChange, value }) => {
   const tagPlusStyle: React.CSSProperties = {
     background: token.colorBgContainer,
     borderStyle: 'dashed',
-    cursor: 'pointer',
+    cursor: 'pointer'
   };
 
   return (
-    <div >
+    <div>
       {tags.map(tag => (
         <Tag
           closable
@@ -85,7 +87,7 @@ export const Tags: React.FC<TagsProps> = ({ onChange, value }) => {
           style={tagPlusStyle}
           onClick={showInput}
         >
-          <PlusOutlined /> New Tag
+          <PlusOutlined /> {t('common.new_tag')}
         </Tag>
       )}
     </div>
