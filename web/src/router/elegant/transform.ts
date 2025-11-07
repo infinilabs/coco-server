@@ -253,14 +253,14 @@ const routeMap: RouteMap = {
   "role_edit": "edit/:id",
   "role_new": "new",
   "search": "/search",
-  "settings": "/settings",
-  "webhook": "/webhook",
-  "webhook_edit": "edit/:id",
-  "webhook_new": "new",
   "security": "/security",
+  "settings": "/settings",
   "user": "/user",
   "user_edit": "edit/:id",
-  "user_new": "new"
+  "user_new": "new",
+  "webhook": "/webhook",
+  "webhook_edit": "edit/:id",
+  "webhook_new": "new"
 };
 
 /**

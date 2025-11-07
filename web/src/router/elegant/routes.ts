@@ -521,6 +521,39 @@ export const generatedRoutes: GeneratedRoute[] = [
     }
   },
   {
+    name: 'user',
+    path: '/user',
+    component: 'layout.base',
+    meta: {
+      i18nKey: 'route.user',
+      title: 'user',
+      hideInMenu: true,
+      activeMenu: 'security'
+    },
+    children: [
+      {
+        name: 'user_edit',
+        path: 'edit/:id',
+        component: 'view.user_edit',
+        meta: {
+          i18nKey: 'route.user_edit',
+          title: 'user_edit',
+          permissions: ['generic#security:user/read', 'generic#security:user/update']
+        }
+      },
+      {
+        name: 'user_new',
+        path: 'new',
+        component: 'view.user_new',
+        meta: {
+          i18nKey: 'route.user_new',
+          title: 'user_new',
+          permissions: ['generic#security:user/create']
+        }
+      }
+    ]
+  },
+  {
     name: 'webhook',
     path: '/webhook',
     component: 'layout.base',
@@ -551,39 +584,6 @@ export const generatedRoutes: GeneratedRoute[] = [
           title: 'webhook_new',
           hideInMenu: true,
           activeMenu: 'webhook'
-        }
-      }
-    ]
-  },
-  {
-    name: 'user',
-    path: '/user',
-    component: 'layout.base',
-    meta: {
-      i18nKey: 'route.user',
-      title: 'user',
-      hideInMenu: true,
-      activeMenu: 'security'
-    },
-    children: [
-      {
-        name: 'user_edit',
-        path: 'edit/:id',
-        component: 'view.user_edit',
-        meta: {
-          i18nKey: 'route.user_edit',
-          title: 'user_edit',
-          permissions: ['generic#security:user/read', 'generic#security:user/update']
-        }
-      },
-      {
-        name: 'user_new',
-        path: 'new',
-        component: 'view.user_new',
-        meta: {
-          i18nKey: 'route.user_new',
-          title: 'user_new',
-          permissions: ['generic#security:user/create']
         }
       }
     ]
