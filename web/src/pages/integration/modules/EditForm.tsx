@@ -456,7 +456,7 @@ export const EditForm = memo(props => {
             <Switch size='small' />
           </Form.Item>
 
-          <div className='pb-2 pt-1 text-color-3'>{t('page.integration.form.hints.tourist_mode')}</div>
+          <div className='pb-2 pt-1 text-[var(--ant-color-text-description)]'>{t('page.integration.form.hints.tourist_mode')}</div>
 
           <Form.Item
             className='mb-0px'

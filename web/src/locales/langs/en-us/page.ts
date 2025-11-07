@@ -177,8 +177,6 @@ const page: App.I18n.Schema['translation']['page'] = {
     file_paths_add: 'Add File Path',
     hours: 'hours',
     minutes: 'minutes',
-    missing_config_tip:
-      'Google authorization parameters are not configured. Please set them before connecting. Click Confirm to go to the settings page.',
     neo4j: {
       error: {
         connection_uri_invalid: 'Invalid Neo4j URI format. Use neo4j://host:port',
@@ -347,59 +345,6 @@ const page: App.I18n.Schema['translation']['page'] = {
     site_urls: 'Site URLs',
     site_urls_add: 'Add URL',
     title: 'Datasource',
-    confluence: {
-      error: {
-        endpoint_invalid: 'Please enter a valid URL',
-        endpoint_prefix: 'URL must start with http:// or https://',
-        endpoint_required: 'Please input Confluence URL',
-        endpoint_slash: 'URL should not contain a trailing slash /',
-        space_required: 'Please input Confluence Space Key'
-      },
-      labels: {
-        enable_attachments: 'Indexing attachments',
-        enable_blogposts: 'Indexing blogposts',
-        endpoint: 'Confluence server URL',
-        space: 'Wiki Key',
-        token: 'Access Token (Optional)',
-        username: 'User Name (Optional)'
-      },
-      tooltip: {
-        enable_attachments: 'Whether to index attachments',
-        enable_blogposts: 'Whether to index blogposts ',
-        endpoint:
-          'The base URL of your Confluence instance. e.g., http://localhost:8090 or https://wiki.example.com/confluence',
-        space: 'The key of the Confluence space you want to index (e.g., "DS" or "KB").',
-        token: 'Your Confluence Personal Access Token (PAT).',
-        username:
-          'Username for authentication. Can be left empty for anonymous access or if using a Personal Access Token.'
-      }
-    },
-    rdbms: {
-      titles: {
-        last_updated_by: 'last_updated_by',
-        metadata: 'metadata',
-        owner: 'owner',
-        payload: 'payload'
-      },
-      tooltip: {
-        connection_uri: {
-          mysql: 'MySQL connection string. e.g., mysql://user:password@tcp(localhost:3306)/database',
-          postgresql:
-            'PostgreSQL connection string. e.g., postgresql://user:password@localhost:5432/database?sslmode=disable'
-        }
-      },
-      validation: {
-        field_name_required: 'Please input field',
-        metadata_name_required: 'Please input name',
-        payload_name_required: 'Please input name',
-        required: 'Please input {{field}}'
-      },
-      placeholder: {
-        field_name: 'Field Name',
-        metadata_name: 'Metadata Name',
-        payload_name: 'Payload Name'
-      }
-    },
     labels: {
       owner: 'Owner',
       shares: 'Shares',
@@ -431,86 +376,6 @@ const page: App.I18n.Schema['translation']['page'] = {
     },
     mapping: {
       title: 'Mapping Management'
-    },
-    neo4j: {
-      error: {
-        connection_uri_required: 'Please input connection URI!',
-        connection_uri_invalid: 'Invalid Neo4j URI format. Use neo4j://host:port',
-        username_required: 'Please input username!',
-        password_required: 'Please input password!',
-        cypher_required: 'Please input Cypher query!',
-        path_property_required: 'Please input path property!',
-        parameter_key_required: 'Please input parameter key!',
-        incremental_property_required: 'Please input the incremental property!',
-        incremental_tie_breaker_required: 'Please input the tie-breaker property!',
-        incremental_resume_invalid: 'Please use an RFC3339 timestamp, e.g., 2025-01-01T00:00:00Z.',
-        incremental_resume_invalid_int: 'Please enter a valid integer value.',
-        incremental_resume_invalid_float: 'Please enter a valid number value.'
-      },
-      labels: {
-        connection_uri: 'Connection URI',
-        database: 'Database',
-        database_placeholder: 'Optional database name',
-        username: 'Username',
-        password: 'Password',
-        password_placeholder: 'Enter Neo4j password',
-        auth_token: 'Auth Token',
-        auth_token_placeholder: 'Optional Neo4j auth token',
-        cypher: 'Cypher Query',
-        parameters: 'Query Parameters',
-        add_parameter: 'Add Parameter',
-        parameter_key_placeholder: 'Parameter key',
-        parameter_value_placeholder: 'Parameter value',
-        hierarchy_mode: 'Hierarchy Mode',
-        hierarchy_mode_none: 'None (Flat)',
-        hierarchy_mode_label: 'Label-based',
-        hierarchy_mode_relationship: 'Relationship-based',
-        hierarchy_mode_property: 'Property-based',
-        hierarchy_config: 'Hierarchy Configuration',
-        label_property: 'Label Property',
-        parent_relationship: 'Parent Relationship',
-        path_property: 'Path Property',
-        path_separator: 'Path Separator',
-        field_mapping: 'Field Mapping',
-        enable_field_mapping: 'Enable Field Mapping',
-        id_field: 'ID Field',
-        title_field: 'Title Field',
-        content_field: 'Content Field',
-        url_field: 'URL Field',
-        last_modified_field: 'Last Modified Field',
-        hashable_id: 'Hashable ID',
-        advanced_settings: 'Advanced Settings',
-        enable_pagination: 'Enable Pagination',
-        page_size: 'Page Size',
-        incremental_sync: 'Incremental Sync',
-        incremental_property: 'Watermark Property',
-        incremental_property_type: 'Watermark Type',
-        incremental_tie_breaker: 'Tie-breaker Property',
-        incremental_resume_from: 'Resume From Value',
-        property_type_string: 'String',
-        property_type_int: 'Integer',
-        property_type_float: 'Float',
-        property_type_datetime: 'Datetime'
-      },
-      tooltip: {
-        connection_uri: 'Your Neo4j database connection URI, e.g., neo4j://localhost:7687',
-        cypher: 'The Cypher query to execute for fetching data',
-        auth_token: 'Optional bearer token. Overrides username and password if provided.',
-        hierarchy_mode: 'Choose how to organize document hierarchy',
-        hierarchy_mode_label: 'Organize hierarchy by node labels (e.g., /Person/Employee/Manager)',
-        hierarchy_mode_relationship:
-          'Organize hierarchy by parent-child relationships (e.g., /Company/Department/Team)',
-        hierarchy_mode_property: 'Organize hierarchy by node properties (e.g., /docs/api/v1)',
-        field_mapping: 'Map Neo4j node properties to document fields',
-        pagination: 'Enable this if database queries should be paginated. Recommended for large graph databases.',
-        page_size: 'Number of records to fetch per page',
-        parameters: 'Optional key/value parameters passed to the Cypher query.',
-        incremental_sync: 'Enable to resume scans from the last seen property value (watermark).',
-        incremental_property: 'Cypher result field used as the resume watermark. Must exist in every row.',
-        incremental_property_type: 'Choose the data type of the watermark property to ensure stable ordering.',
-        incremental_tie_breaker: 'Expression used to sort rows that share the same watermark (e.g., elementId(n)).',
-        incremental_resume_from: 'Optional manual watermark to start from on the first run.'
-      }
     }
   },
   guide: {
@@ -525,8 +390,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       language: 'Language',
       name: 'Full Name',
       password: 'Password',
-      title: 'Create a user account',
-      language: 'Language'
+      title: 'Create a user account'
     }
   },
   home: {
@@ -622,17 +486,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         theme_light: 'Light',
         type: 'Type',
         type_fullscreen: 'Fullscreen',
-        type_searchbox: 'SearchBox',
-        mode: 'Mode',
-        mode_all: 'All',
-        mode_embedded: 'Embedded',
-        mode_embedded_placeholder: 'Embedded widget placeholder text',
-        mode_embedded_icon: 'Embedded widget icon',
-        mode_floating: 'Floating',
-        mode_floating_placeholder: 'Floating widget placeholder text',
-        mode_floating_icon: 'Floating widget icon',
-        mode_page: 'Page',
-        mode_modal: 'Modal'
+        type_searchbox: 'SearchBox'
       },
       title: {
         edit: 'Edit Integration',
