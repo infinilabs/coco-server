@@ -164,11 +164,8 @@ export const DocSearch = (props) => {
   function renderModal(server, settings, triggerBtnType, theme, isOpen) {
     if (!window[`${id}_shadow`]) return;
 
-    if (!isOpen) {
-      window[`${id}_modal_root`]?.unmount()
-      window[`${id}_modal_container`]?.remove()
-      return;
-    }
+    window[`${id}_modal_root`]?.unmount()
+    window[`${id}_modal_container`]?.remove()
 
     const props = {
       server,
