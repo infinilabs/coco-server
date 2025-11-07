@@ -18,6 +18,7 @@ type ServerInfo struct {
 	AuthProvider         AuthProvider `json:"auth_provider,omitempty" config:"auth_provider"`                   // Config key for auth provider, link used by the APP
 	Managed              bool         `json:"managed,omitempty" config:"managed" `                              // An alias to global.Env().SystemConfig.WebAppConfig.Security.Managed
 	EncodeIconToBase64   bool         `json:"encode_icon_to_base64,omitempty" config:"encode_icon_to_base64" `
+	Store                StoreConfig  `json:"store,omitempty" config:"store"` // Config key for store configuration
 }
 
 // Provider represents the "provider" section of the configuration.
@@ -45,4 +46,9 @@ type AuthProvider struct {
 // SSO represents the "sso" section under "auth_provider".
 type SSO struct {
 	URL string `json:"url" config:"url"` // Config key for SSO URL
+}
+
+type StoreConfig struct {
+	Endpoint string `json:"endpoint" config:"endpoint"` // store service endpoint
+	Local    bool   `json:"local" config:"local"`       // whether use local store service
 }

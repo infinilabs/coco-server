@@ -31,6 +31,9 @@ coco:
         sso:
           url: "/sso/login/cloud?provider=coco-cloud&product=coco"
       #[END] for managed mode only
+      store:
+        endpoint: "https://coco.infini.cloud"
+        local: false
 
 ## Cleanup exists data:
 # curl -u admin:45ff432a5428ade77c7b -k -XDELETE   https://localhost:9200/_template/coco-search

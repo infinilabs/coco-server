@@ -4,8 +4,10 @@ import '../index.scss';
 import type { MenuProps, TableColumnsType } from 'antd';
 import Search from 'antd/es/input/Search';
 
+import type { IntegratedStoreModalRef } from '@/components/common/IntegratedStoreModal';
 import InfiniIcon from '@/components/common/icon';
 import { GoogleDriveSVG, HugoSVG, NotionSVG, YuqueSVG } from '@/components/icons';
+import useQueryParams from '@/hooks/common/queryParams';
 import { deleteConnector, searchConnector } from '@/service/api/connector';
 
 import Icon, {
@@ -17,13 +19,12 @@ import Icon, {
 } from '@ant-design/icons';
 
 import { formatESSearchResult } from '@/service/request/es';
-import useQueryParams from '@/hooks/common/queryParams';
 
 type Connector = Api.Datasource.Connector;
 
 const ConnectorSettings = memo(() => {
   const [queryParams, setQueryParams] = useQueryParams();
-  
+
   const { t } = useTranslation();
   const nav = useNavigate();
 
@@ -90,7 +91,7 @@ const ConnectorSettings = memo(() => {
         }
         return (
           <div className="flex items-center">
-            <IconWrapper className="w-20px h-20px">
+            <IconWrapper className="h-20px w-20px">
               {svgIcon ? (
                 <Icon component={svgIcon} />
               ) : (
@@ -114,9 +115,9 @@ const ConnectorSettings = memo(() => {
     },
     {
       dataIndex: 'description',
-      minWidth: 100,
-      title: t('page.connector.columns.description'),
       ellipsis: true,
+      minWidth: 100,
+      title: t('page.connector.columns.description')
     },
     {
       dataIndex: 'tags',
@@ -159,21 +160,21 @@ const ConnectorSettings = memo(() => {
   useEffect(fetchData, [queryParams]);
 
   useEffect(() => {
-    setKeyword(queryParams.query)
-  }, [queryParams.query])
+    setKeyword(queryParams.query);
+  }, [queryParams.query]);
 
   const onAddClick = () => {
     nav(`/connector/new`);
   };
 
   const handleTableChange = (pagination, filters, sorter) => {
-      setQueryParams((params)=>{
-        return {
-          ...params,
-          size: pagination.pageSize,
-          from: (pagination.current-1) * pagination.pageSize,
-        }
-      })
+    setQueryParams(params => {
+      return {
+        ...params,
+        from: (pagination.current - 1) * pagination.pageSize,
+        size: pagination.pageSize
+      };
+    });
   };
 
   const onSearchClick = (query: string) => {
@@ -185,24 +186,31 @@ const ConnectorSettings = memo(() => {
       };
     });
   };
+
+  const integratedStoreModalRef = useRef<IntegratedStoreModalRef>(null);
+
   return (
     <ListContainer>
       <div className="mb-4 mt-4 flex items-center justify-between">
         <Search
-          value={keyword} 
-          onChange={(e) => setKeyword(e.target.value)} 
           addonBefore={<FilterOutlined />}
           className="max-w-500px"
           enterButton={t('common.refresh')}
+          value={keyword}
+          onChange={e => setKeyword(e.target.value)}
           onSearch={onSearchClick}
         />
         <Button
           icon={<PlusOutlined />}
           type="primary"
-          onClick={onAddClick}
+          onClick={() => {
+            integratedStoreModalRef.current?.open('connector');
+          }}
         >
           {t('common.add')}
         </Button>
+
+        <IntegratedStoreModal ref={integratedStoreModalRef} />
       </div>
       <Table<Connector>
         columns={columns}
@@ -211,17 +219,16 @@ const ConnectorSettings = memo(() => {
         rowKey="id"
         size="middle"
         pagination={{
-          pageSize: queryParams.size,
           current: Math.floor(queryParams.from / queryParams.size) + 1,
+          pageSize: queryParams.size,
           showSizeChanger: true,
-          total: data?.total?.value || data?.total,
-          showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`
+          showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+          total: data?.total?.value || data?.total
         }}
         onChange={handleTableChange}
       />
     </ListContainer>
   );
-
 });
 
 export default ConnectorSettings;

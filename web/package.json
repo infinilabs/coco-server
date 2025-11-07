@@ -49,6 +49,7 @@
     "update-pkg": "sa update-pkg"
   },
   "dependencies": {
+    "@ant-design/icons": "5.x",
     "@better-scroll/core": "2.5.1",
     "@iconify/react": "5.0.2",
     "@reduxjs/toolkit": "2.3.0",
@@ -68,6 +69,7 @@
     "i18next": "23.16.4",
     "keepalive-for-react": "3.0.2",
     "lodash": "^4.17.21",
+    "lucide-react": "^0.546.0",
     "nprogress": "0.2.0",
     "query-string": "^9.2.1",
     "react": "18.3.1",
@@ -92,6 +94,7 @@
     "@svgr/core": "8.1.0",
     "@svgr/plugin-jsx": "8.1.0",
     "@types/gradient-string": "1.1.6",
+    "@types/lodash": "^4.17.20",
     "@types/node": "22.8.6",
     "@types/nprogress": "0.2.3",
     "@types/react": "18.3.12",
