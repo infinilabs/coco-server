@@ -1,5 +1,5 @@
 import { EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, PlusOutlined } from '@ant-design/icons';
-import { Button, Dropdown, Switch, Table, message } from 'antd';
+import { Avatar, Button, Dropdown, Switch, Table, message } from 'antd';
 import type { MenuProps, TableColumnsType, TableProps } from 'antd';
 import Search from 'antd/es/input/Search';
 

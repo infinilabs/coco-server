@@ -307,6 +307,7 @@ const ConnectorSettings = memo(() => {
         }}
         onChange={handleTableChange}
       />
+      <IntegratedStoreModal ref={integratedStoreModalRef} />
     </ListContainer>
   );
 });

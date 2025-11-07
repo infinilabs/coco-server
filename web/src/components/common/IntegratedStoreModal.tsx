@@ -230,7 +230,7 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
     if (category === 'data-source') {
       link += '-first';
     }
-
+    setOpen(false)
     navigate(link);
   }, [category, navigate]);
 
