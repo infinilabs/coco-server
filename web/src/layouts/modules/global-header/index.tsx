@@ -1,14 +1,16 @@
+import { ShoppingBag } from 'lucide-react';
+
+import type { IntegratedStoreModalRef } from '@/components/common/IntegratedStoreModal';
 import LangSwitch from '@/components/stateful/LangSwitch';
 import ThemeSchemaSwitch from '@/components/stateful/ThemeSchemaSwitch';
 import DarkModeContainer from '@/components/stateless/common/DarkModeContainer';
 import { GLOBAL_HEADER_MENU_ID } from '@/constants/app';
+import { getProviderInfo } from '@/store/slice/server';
 
 import GlobalBreadcrumb from '../global-breadcrumb';
 import GlobalLogo from '../global-logo';
 
 import UserAvatar from './components/UserAvatar';
-import { localStg } from '@/utils/storage';
-import { getProviderInfo } from '@/store/slice/server';
 
 interface Props {
   isMobile: boolean;
@@ -50,8 +52,10 @@ const GlobalHeader: FC<Props> = memo(({ isMobile, mode, reverse, siderWidth }) =
   const nav = useNavigate();
   const { t } = useTranslation();
   const providerInfo = useAppSelector(getProviderInfo);
-  
-  const { search_settings } = providerInfo || {}
+
+  const { search_settings } = providerInfo || {};
+
+  const integratedStoreModalRef = useRef<IntegratedStoreModalRef>(null);
 
   return (
     <DarkModeContainer
@@ -76,17 +80,27 @@ const GlobalHeader: FC<Props> = memo(({ isMobile, mode, reverse, siderWidth }) =
       </div>
 
       <div className="h-full flex-y-center justify-end">
-        {
-          search_settings?.enabled && (
-            <ButtonIcon
-              className="px-12px"
-              tooltipContent={t('common.search')}
-              onClick={() => nav(`/search`)}
-            >
-              <IconUilSearch />
-            </ButtonIcon>
-          )
-        }
+        <ButtonIcon
+          className="px-12px"
+          tooltipContent={t('page.integratedStoreModal.title')}
+          onClick={() => {
+            integratedStoreModalRef.current?.open('ai-assistant');
+          }}
+        >
+          <ShoppingBag className="size-4" />
+        </ButtonIcon>
+
+        <IntegratedStoreModal ref={integratedStoreModalRef} />
+
+        {search_settings?.enabled && (
+          <ButtonIcon
+            className="px-12px"
+            tooltipContent={t('common.search')}
+            onClick={() => nav(`/search`)}
+          >
+            <IconUilSearch />
+          </ButtonIcon>
+        )}
         {/* <GlobalSearch /> */}
         {/* {!isMobile && (
           <FullScreen

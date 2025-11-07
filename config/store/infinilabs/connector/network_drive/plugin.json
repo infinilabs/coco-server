@@ -1,0 +1,61 @@
+{
+  "category": "cloud_storage",
+  "description": "Scan and extract metadata from network shared files.",
+  "developer": {
+    "avatar": "https://coco.infini.cloud/extensions/infinilabs/assets/avatar.png",
+    "github_handle": "infinilabs",
+    "id": "infinilabs",
+    "location": "Internet",
+    "name": "infinilabs",
+    "website": "https://github.com/infinilabs"
+  },
+  "icon": "/assets/icons/connector/network_drive/icon.png",
+  "name": "Network Drive Connector",
+  "platforms": [
+    "macos",
+    "linux",
+    "windows"
+  ],
+  "screenshots": [
+    {
+      "title": "Network Drive Connector",
+      "url": "/assets/screenshot.png"
+    }
+  ],
+  "tags": [
+    "filesystem",
+    "storage",
+    "web"
+  ],
+  "type": "connector",
+  "url": {
+    "home": "http://coco.rs/connectors/network_drive"
+  },
+  "version": {
+    "number": "0.1"
+  },
+  "payload": {
+    "name" : "Network Drive Connector",
+    "description" : "Scan and extract metadata from network shared files.",
+    "category" : "cloud_storage",
+    "path_hierarchy": true,
+    "icon" : "/assets/icons/connector/network_drive/icon.png",
+    "tags" : [
+      "filesystem",
+      "storage",
+      "web"
+    ],
+    "url" : "http://coco.rs/connectors/network_drive",
+    "assets" : {
+      "icons" : {
+        "default" : "/assets/icons/connector/network_drive/icon.png",
+        "file" : "/assets/icons/connector/network_drive/file.png"
+      }
+    },
+    "builtin": true,
+    "processor": {
+      "enabled": true,
+      "name": "network_drive"
+    }
+  }
+}

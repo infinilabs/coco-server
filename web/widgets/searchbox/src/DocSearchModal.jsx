@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 export const DocSearchModal = ({
   server,
   settings,
+  refreshSettings,
   onClose,
   triggerBtnType,
   theme,
@@ -69,6 +70,8 @@ export const DocSearchModal = ({
               onClose()
             }}
             formatUrl={formatUrl}
+            settings={settings}
+            refreshSettings={refreshSettings}
           />
         </div>
       </div>

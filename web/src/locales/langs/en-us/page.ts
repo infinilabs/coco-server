@@ -119,7 +119,15 @@ const page: App.I18n.Schema['translation']['page'] = {
         tags: 'Tags',
         token_url: 'Token URI'
       },
-      title: 'New Connector'
+      title: 'New Connector',
+      tooltip: {
+        category: 'Please choose or input the category.',
+        config: 'Configurations in JSON format.',
+        path_hierarchy: 'Whether to support access documents via path hierarchy manner.'
+      },
+      placeholder: {
+        category: 'Select or input a category'
+      }
     }
   },
   datasource: {
@@ -410,6 +418,34 @@ const page: App.I18n.Schema['translation']['page'] = {
       llm: 'LLMs',
       llmDesc: 'Connect the large model to enable AI chat, intelligent search, and a work assistant.'
     }
+  },
+  integratedStoreModal: {
+    buttons: {
+      custom: 'Custom',
+      install: 'Install'
+    },
+    hints: {
+      installSuccess: 'Installed successfully. Redirecting to the details page in 3 seconds.',
+      noResults: 'No results found'
+    },
+    installModal: {
+      buttons: {
+        install: 'Install',
+        return: 'Return'
+      },
+      hints: 'Extension information detected. Do you want to install this extension to the current Coco Server?',
+      title: 'Install Extension'
+    },
+    labels: {
+      aiAssistant: 'AI Assistant',
+      connector: 'Connector',
+      datasource: 'Data Source',
+      mcpServer: 'MCP Server',
+      modelProvider: 'Model Provider',
+      newest: 'Newest',
+      recommend: 'Recommended'
+    },
+    title: 'Integration Store'
   },
   integration: {
     code: {

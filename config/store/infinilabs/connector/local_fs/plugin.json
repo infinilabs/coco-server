@@ -1,0 +1,59 @@
+{
+  "category": "local_storage",
+  "description": "Scan and fetch metadata from local files.",
+  "developer": {
+    "avatar": "https://coco.infini.cloud/extensions/infinilabs/assets/avatar.png",
+    "github_handle": "infinilabs",
+    "id": "infinilabs",
+    "location": "Internet",
+    "name": "infinilabs",
+    "website": "https://github.com/infinilabs"
+  },
+  "icon": "/assets/icons/connector/local_fs/icon.png",
+  "name": "Local Filesystem Connector",
+  "platforms": [
+    "macos",
+    "linux",
+    "windows"
+  ],
+  "screenshots": [
+    {
+      "title": "Local Filesystem Connector",
+      "url": "/assets/screenshot.png"
+    }
+  ],
+  "tags": [
+   "storage",
+    "filesystem"
+  ],
+  "type": "connector",
+  "url": {
+    "home": "http://coco.rs/connectors/local_fs"
+  },
+  "version": {
+    "number": "0.1"
+  },
+  "payload": {
+    "name" : "Local Filesystem Connector",
+    "description" : "Scan and fetch metadata from local files.",
+    "category" : "local_storage",
+    "path_hierarchy": true,
+    "icon" : "/assets/icons/connector/local_fs/icon.png",
+    "tags" : [
+      "storage",
+      "filesystem"
+    ],
+    "url" : "http://coco.rs/connectors/local_fs",
+    "assets" : {
+      "icons" : {
+        "default" : "/assets/icons/connector/local_fs/icon.png",
+        "file" : "/assets/icons/connector/local_fs/file.png"
+      }
+    },
+    "builtin": true,
+    "processor": {
+      "enabled": true,
+      "name": "local_fs"
+    }
+  }
+}

@@ -1,33 +1,18 @@
-import Search from 'antd/es/input/Search';
-import Icon, {
-  EllipsisOutlined,
+import {
   ExclamationCircleOutlined,
   ExportOutlined,
   FilterOutlined,
   PlusOutlined,
   SettingOutlined
 } from '@ant-design/icons';
-import {
-  Avatar,
-  Button,
-  Dropdown,
-  Form,
-  Image,
-  Input,
-  List,
-  MenuProps,
-  Modal,
-  Spin,
-  Switch,
-  Table,
-  Tag,
-  Typography,
-  message
-} from 'antd';
-import { deleteModelProvider, searchModelPovider, updateModelProvider } from '@/service/api/model-provider';
-import { formatESSearchResult } from '@/service/request/es';
+import { Button, Dropdown, Form, Input, List, Modal, Spin, Switch, Table, message } from 'antd';
+import Search from 'antd/es/input/Search';
+
+import type { IntegratedStoreModalRef } from '@/components/common/IntegratedStoreModal';
 import InfiniIcon from '@/components/common/icon';
 import useQueryParams from '@/hooks/common/queryParams';
+import { deleteModelProvider, searchModelPovider, updateModelProvider } from '@/service/api/model-provider';
+import { formatESSearchResult } from '@/service/request/es';
 
 export function Component() {
   const type = 'table';
@@ -146,9 +131,8 @@ export function Component() {
     switch (key) {
       case '2':
         window?.$modal?.confirm({
-          icon: <ExclamationCircleOutlined />,
-          title: t('common.tip'),
           content: t('page.modelprovider.delete.confirm'),
+          icon: <ExclamationCircleOutlined />,
           onOk() {
             deleteModelProvider(record.id).then(res => {
               if (res.data?.result === 'deleted') {
@@ -364,6 +348,8 @@ export function Component() {
     onChange: (selectedRowKeys: React.Key[], selectedRows) => {}
   };
 
+  const integratedStoreModalRef = useRef<IntegratedStoreModalRef>(null);
+
   return (
     <ListContainer>
       <ACard
@@ -383,7 +369,7 @@ export function Component() {
             <Button
               icon={<PlusOutlined />}
               type='primary'
-              onClick={() => nav(`/model-provider/new`)}
+              onClick={() => integratedStoreModalRef.current?.open('model-provider')}
             >
               {t('common.add')}
             </Button>
@@ -501,6 +487,8 @@ export function Component() {
           onOkClick={onOkClick}
         />
       </ACard>
+
+      <IntegratedStoreModal ref={integratedStoreModalRef} />
     </ListContainer>
   );
 }

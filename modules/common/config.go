@@ -67,13 +67,14 @@ func reloadConfig() {
 	//read settings from kv
 	buf, _ := kv.GetValue(core.DefaultSettingBucketKey, []byte(core.DefaultServerConfigKey))
 	if buf != nil {
-		si := &core.ServerInfo{}
+		si := &core.ServerInfo{
+			Store: config.ServerInfo.Store, // preserve existing store config
+		}
 		err := util.FromJSONBytes(buf, si)
 		if err == nil {
 			config.ServerInfo = si
 			config.ServerInfo.Version = core.Version{global.Env().GetVersion()}
 		}
-	}
 	buf, _ = kv.GetValue(core.DefaultSettingBucketKey, []byte(core.DefaultAppSettingsKey))
 	if buf != nil {
 		appSettings := &core.AppSettings{}

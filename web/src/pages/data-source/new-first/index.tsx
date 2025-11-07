@@ -1,5 +1,5 @@
-import Icon, { FilterOutlined, PlusOutlined } from '@ant-design/icons';
-import { Button, Image, List } from 'antd';
+import { FilterOutlined, PlusOutlined } from '@ant-design/icons';
+import { Button, List } from 'antd';
 import Search from 'antd/es/input/Search';
 import { ReactSVG } from 'react-svg';
 
@@ -7,9 +7,9 @@ import CloudDiskSVG from '@/assets/svg-icon/cloud_disk.svg';
 import CreatorSVG from '@/assets/svg-icon/creator.svg';
 import WebsiteSVG from '@/assets/svg-icon/website.svg';
 import InfiniIcon from '@/components/common/icon';
+import useQueryParams from '@/hooks/common/queryParams';
 import { searchConnector } from '@/service/api/connector';
 import { formatESSearchResult } from '@/service/request/es';
-import useQueryParams from '@/hooks/common/queryParams';
 
 const ConnectorCategory = {
   CloudStorage: 'cloud_storage',
@@ -17,7 +17,7 @@ const ConnectorCategory = {
 };
 
 export function Component() {
-  const [queryParams, setQueryParams] = useQueryParams({size:12,from:0});
+  const [queryParams, setQueryParams] = useQueryParams({ from: 0, size: 12 });
   const { t } = useTranslation();
   const nav = useNavigate();
   const onAddClick = (key: string) => {
@@ -46,8 +46,8 @@ export function Component() {
   useEffect(fetchData, [queryParams]);
 
   useEffect(() => {
-    setKeyword(queryParams.query)
-  }, [queryParams.query])
+    setKeyword(queryParams.query);
+  }, [queryParams.query]);
 
   const onSearchClick = (query: string) => {
     setQueryParams(oldParams => {
@@ -76,25 +76,29 @@ export function Component() {
       >
         <div className="mb-4 mt-4 flex items-center justify-between">
           <Search
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
             addonBefore={<FilterOutlined />}
             className="max-w-500px"
             enterButton={t('common.refresh')}
+            value={keyword}
+            onChange={e => setKeyword(e.target.value)}
             onSearch={onSearchClick}
           />
         </div>
         <List
           dataSource={data.data}
           grid={{ column: 3, gutter: 16 }}
-          pagination={{
-            pageSize: queryParams.size,
-            current: Math.floor(queryParams.from / queryParams.size) + 1,
-            onChange: onPageChange,
-            showSizeChanger: true,
-            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
-            total: data.total || 0
-          }}
+          pagination={
+            (data?.data?.length || 0) > 0
+              ? {
+                  current: Math.floor(queryParams.from / queryParams.size) + 1,
+                  onChange: onPageChange,
+                  pageSize: queryParams.size,
+                  showSizeChanger: true,
+                  showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+                  total: data.total || 0
+                }
+              : false
+          }
           renderItem={connector => (
             <List.Item>
               <div className="group relative border border-[var(--ant-color-border)] rounded-[8px] p-1em hover:bg-[var(--ant-control-item-bg-hover)]">
@@ -108,7 +112,7 @@ export function Component() {
                   <PlusOutlined className="text-1.4em font-bold" />
                 </Button>
                 <div className="flex items-center gap-8px">
-                  <IconWrapper className="w-40px h-40px">
+                  <IconWrapper className="h-40px w-40px">
                     <InfiniIcon
                       className="text-2em"
                       height="2em"

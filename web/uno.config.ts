@@ -20,9 +20,10 @@ export default defineConfig<Theme>({
       ([, d]) => ({ height: `calc(${d})px` }) // 生成对应的 CSS 样式
     ]
   ],
-  shortcuts: {
-    'card-wrapper': 'rd-8px shadow-sm'
-  },
+  shortcuts: [
+    ['card-wrapper', 'rd-8px shadow-sm'],
+    [/^text-color-(\d+)$/, ([, d]) => `text-text-${d}`]
+  ],
   theme: {
     ...themeVars,
     fontSize: {

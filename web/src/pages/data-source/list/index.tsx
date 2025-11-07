@@ -3,11 +3,13 @@ import { Avatar, Button, Dropdown, Switch, Table, message } from 'antd';
 import type { MenuProps, TableColumnsType, TableProps } from 'antd';
 import Search from 'antd/es/input/Search';
 
+import type { IntegratedStoreModalRef } from '@/components/common/IntegratedStoreModal';
 import InfiniIcon from '@/components/common/icon';
 import { GoogleDriveSVG, HugoSVG, NotionSVG, YuqueSVG } from '@/components/icons';
+import useQueryParams from '@/hooks/common/queryParams';
 import { deleteDatasource, fetchDataSourceList, getConnectorByIDs, updateDatasource } from '@/service/api';
 import { formatESSearchResult } from '@/service/request/es';
-import useQueryParams from '@/hooks/common/queryParams';
+import { Api } from '@/types/api';
 
 type Datasource = Api.Datasource.Datasource;
 
@@ -90,15 +92,15 @@ export function Component() {
     // Ensure we preserve all existing sync configuration values
     const currentSync = record.sync || {
       enabled: false,
-      strategy: 'interval',
-      interval: '1h'
+      interval: '1h',
+      strategy: 'interval'
     };
 
     // Ensure all required fields are present
     const completeSync = {
       enabled: currentSync.enabled || false,
-      strategy: currentSync.strategy || 'interval',
-      interval: currentSync.interval || '1h'
+      interval: currentSync.interval || '1h',
+      strategy: currentSync.strategy || 'interval'
     };
 
     // Create the updated sync config, preserving existing values
@@ -424,6 +426,8 @@ export function Component() {
     });
   };
 
+  const integratedStoreModalRef = useRef<IntegratedStoreModalRef>(null);
+
   return (
     <ListContainer>
       <ACard
@@ -444,7 +448,7 @@ export function Component() {
             <Button
               icon={<PlusOutlined />}
               type='primary'
-              onClick={() => nav(`/data-source/new-first`)}
+              onClick={() => integratedStoreModalRef.current?.open('data-source')}
             >
               {t('common.add')}
             </Button>
@@ -458,8 +462,6 @@ export function Component() {
           rowSelection={{ ...rowSelection }}
           size='middle'
           pagination={{
-            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
-            pageSize: queryParams.size,
             current: Math.floor(queryParams.from / queryParams.size) + 1,
             total: data.total?.value || data?.total,
             showSizeChanger: true
@@ -467,6 +469,8 @@ export function Component() {
           onChange={handleTableChange}
         />
       </ACard>
+
+      <IntegratedStoreModal ref={integratedStoreModalRef} />
     </ListContainer>
   );
 }

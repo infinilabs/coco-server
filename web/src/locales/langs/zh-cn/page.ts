@@ -114,7 +114,15 @@ const page: App.I18n.Schema['translation']['page'] = {
         tags: '标签',
         token_url: 'Token 地址'
       },
-      title: '新建连接器'
+      title: '新建连接器',
+      tooltip: {
+        category: '请选择或输入分类。',
+        config: '以 JSON 格式填写配置信息。',
+        path_hierarchy: '是否支持通过目录层级方式访问文档。'
+      },
+      placeholder: {
+        category: '选择或输入分类'
+      }
     }
   },
   datasource: {
@@ -490,6 +498,34 @@ const page: App.I18n.Schema['translation']['page'] = {
       llm: '大模型',
       llmDesc: '连接大模型以启用人工智能聊天、智能搜索和工作助手功能。'
     }
+  },
+  integratedStoreModal: {
+    buttons: {
+      custom: '自定义',
+      install: '安装'
+    },
+    hints: {
+      installSuccess: '安装成功，3s后自动跳转至详情页。',
+      noResults: '未找到数据'
+    },
+    installModal: {
+      buttons: {
+        install: '安装',
+        return: '返回'
+      },
+      hints: '检测到扩展信息，确认安装此扩展到当前 Coco Server 吗？',
+      title: '安装扩展'
+    },
+    labels: {
+      aiAssistant: 'AI 助手',
+      connector: '连接器',
+      datasource: '数据源',
+      mcpServer: 'MCP Server',
+      modelProvider: '模型提供商',
+      newest: '最新',
+      recommend: '推荐'
+    },
+    title: '集成商店'
   },
   integration: {
     code: {
