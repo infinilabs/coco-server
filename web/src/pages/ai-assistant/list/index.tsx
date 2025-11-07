@@ -195,12 +195,10 @@ export function Component() {
     {
       dataIndex: 'type',
       minWidth: 50,
-      dataIndex: 'type'
     },
     {
       dataIndex: ['datasource', 'enabled'],
       minWidth: 50,
-      dataIndex: ['datasource', 'enabled'],
       render: (value: boolean, record: Assistant) => {
         return t(`common.enableOrDisable.${value ? 'enable' : 'disable'}`);
       }
@@ -208,7 +206,6 @@ export function Component() {
     {
       dataIndex: ['mcp_servers', 'enabled'],
       minWidth: 50,
-      dataIndex: ['mcp_servers', 'enabled'],
       render: (value: boolean, record: Assistant) => {
         return t(`common.enableOrDisable.${value ? 'enable' : 'disable'}`);
       }
@@ -217,23 +214,12 @@ export function Component() {
       dataIndex: 'description',
       ellipsis: true,
       minWidth: 200,
-      dataIndex: 'description',
       render: (value: string, record: Assistant) => {
         return <span title={value}>{value}</span>;
       },
-      ellipsis: true
     },
     {
       dataIndex: 'enabled',
-      render: (value: boolean, record: Assistant) => {
-        return (
-          <Switch
-            size="small"
-            value={value}
-            onChange={v => onEnabledChange(v, record)}
-          />
-        );
-      },
       title: t('page.assistant.labels.enabled'),
       width: 80,
       render: (value: boolean, record: Assistant) => {

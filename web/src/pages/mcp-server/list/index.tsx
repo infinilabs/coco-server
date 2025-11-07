@@ -54,7 +54,6 @@ export function Component() {
               });
             });
           },
-          onCancel() {}
         });
 
         break;
@@ -177,7 +176,6 @@ export function Component() {
     {
       dataIndex: 'type',
       minWidth: 50,
-      dataIndex: 'type'
     },
     {
       title: t('page.mcpserver.labels.category'),
@@ -189,20 +187,9 @@ export function Component() {
       dataIndex: 'description',
       ellipsis: true,
       minWidth: 150,
-      dataIndex: 'description',
-      ellipsis: true
     },
     {
       dataIndex: 'enabled',
-      render: (value: boolean, record: MCPServer) => {
-        return (
-          <Switch
-            size="small"
-            value={value}
-            onChange={v => onEnabledChange(v, record)}
-          />
-        );
-      },
       title: t('page.mcpserver.labels.enabled'),
       width: 80,
       render: (value: boolean, record: MCPServer) => {
