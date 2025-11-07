@@ -1,0 +1,65 @@
+{
+  "category": "model",
+  "description": "TokenPony provides a unified API that allows you to access hundreds of AI models through a single endpoint, while automatically handling fallbacks and selecting the most cost-effective option. Get started with just a few lines of code using your preferred SDK or framework.",
+  "developer": {
+    "avatar": "https://coco.infini.cloud/extensions/infinilabs/assets/avatar.png",
+    "github_handle": "infinilabs",
+    "id": "infinilabs",
+    "location": "Internet",
+    "name": "infinilabs",
+    "website": "https://github.com/infinilabs"
+  },
+  "icon": "https://www.tokenpony.cn/tokenpony-web/logo.png",
+  "name": "TokenPony",
+  "platforms": [
+    "macos",
+    "linux",
+    "windows"
+  ],
+  "screenshots": [
+    {
+      "title": "TokenPony",
+      "url": "/assets/screenshot.png"
+    }
+  ],
+  "tags": [
+   "model",
+    "tokenpony",
+    "llm"
+  ],
+  "type": "llm-provider",
+  "url": {
+    "home": "https://www.tokenpony.cn/4Dia2"
+  },
+  "version": {
+    "number": "0.1"
+  },
+  "payload": {
+    "id" : "tokenpony",
+    "name" : "TokenPony",
+    "api_key" : "",
+    "api_type" : "openai",
+    "icon" : "https://www.tokenpony.cn/tokenpony-web/logo.png",
+    "models" : [
+      {
+        "name" : "deepseek-v3.1-terminus"
+      },
+      {
+        "name" : "deepseek-ocr"
+      },
+      {
+        "name" : "qwen3-32b"
+      },
+      {
+        "name" : "glm-4.6"
+      },
+      {
+        "name" : "hunyuan-a13b-instruct"
+      }
+    ],
+    "base_url" : "https://api.tokenpony.cn/v1",
+    "enabled" : false,
+    "builtin" : true,
+    "description" : "TokenPony provides a unified API that allows you to access hundreds of AI models through a single endpoint, while automatically handling fallbacks and selecting the most cost-effective option. Get started with just a few lines of code using your preferred SDK or framework."
+  }
+}

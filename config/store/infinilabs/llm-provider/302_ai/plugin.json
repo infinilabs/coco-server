@@ -1,0 +1,65 @@
+{
+  "category": "model",
+  "description": "302.AI is a pay-as-you-go enterprise AI resource platform that provides the latest and most comprehensive AI models and APIs on the market, as well as a variety of out-of-the-box online AI applications.",
+  "developer": {
+    "avatar": "https://coco.infini.cloud/extensions/infinilabs/assets/avatar.png",
+    "github_handle": "infinilabs",
+    "id": "infinilabs",
+    "location": "Internet",
+    "name": "infinilabs",
+    "website": "https://github.com/infinilabs"
+  },
+  "icon": "https://302.ai/img/logo.ico",
+  "name": "302AI",
+  "platforms": [
+    "macos",
+    "linux",
+    "windows"
+  ],
+  "screenshots": [
+    {
+      "title": "302AI",
+      "url": "/assets/screenshot.png"
+    }
+  ],
+  "tags": [
+   "model",
+    "302ai",
+    "llm"
+  ],
+  "type": "llm-provider",
+  "url": {
+    "home": "https://share.302.ai/QToaxp"
+  },
+  "version": {
+    "number": "0.1"
+  },
+  "payload": {
+    "id" : "302_ai",
+    "name" : "302AI",
+    "api_key" : "",
+    "api_type" : "openai",
+    "icon" : "https://302.ai/img/logo.ico",
+    "models" : [
+      {
+        "name" : "deepseek-v3.1"
+      },
+      {
+        "name" : "deepseek-r1"
+      },
+      {
+        "name" : "qwen-max"
+      },
+      {
+        "name" : "Doubao-1.5-pro-32k"
+      },
+      {
+        "name" : "kimi-latest"
+      }
+    ],
+    "base_url" : "https://api.302ai.cn",
+    "enabled" : false,
+    "builtin" : true,
+    "description" : "302.AI is a pay-as-you-go enterprise AI resource platform that provides the latest and most comprehensive AI models and APIs on the market, as well as a variety of out-of-the-box online AI applications."
+  }
+}
