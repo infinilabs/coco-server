@@ -1,13 +1,14 @@
 import { EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, PlusOutlined } from '@ant-design/icons';
 import { useLoading } from '@sa/hooks';
-import { Button, Dropdown, Input, Modal, Switch, Table, message, Tabs } from 'antd';
+import { Button, Dropdown, Input, Switch, Table, Tabs, message } from 'antd';
 import { useSearchParams } from 'react-router-dom';
 
-import { deleteIntegration, fetchIntegrations, updateIntegration, renewAPIToken } from '@/service/api/integration';
-import { formatESSearchResult } from '@/service/request/es';
-import useQueryParams from '@/hooks/common/queryParams';
-import { isFullscreen } from '../modules/EditForm';
 import SvgIcon from '@/components/stateless/custom/SvgIcon';
+import useQueryParams from '@/hooks/common/queryParams';
+import { deleteIntegration, fetchIntegrations, renewAPIToken, updateIntegration } from '@/service/api/integration';
+import { formatESSearchResult } from '@/service/request/es';
+
+import { isFullscreen } from '../modules/EditForm';
 
 export function Component() {
   const [queryParams, setQueryParams] = useQueryParams();
@@ -27,7 +28,7 @@ export function Component() {
   // 用于判断 Webhooks 类型
   const isWebhook = (type?: string) => ['webhook', 'webhooks'].includes(String(type || '').toLowerCase());
 
-  const fetchData = async (params) => {
+  const fetchData = async params => {
     startLoading();
     const res = await fetchIntegrations(params);
     const newData = formatESSearchResult(res.data);
@@ -80,9 +81,12 @@ export function Component() {
   const columns = [
     {
       dataIndex: 'name',
-      render: (value) => (
+      render: value => (
         <div className="flex items-center gap-2">
-          <SvgIcon icon="mdi:puzzle-outline" className="text-icon-small text-gray-500" />
+          <SvgIcon
+            className="text-icon-small text-gray-500"
+            icon="mdi:puzzle-outline"
+          />
           <span>{value}</span>
         </div>
       ),
@@ -108,11 +112,13 @@ export function Component() {
     {
       dataIndex: 'datasource',
       render: (value, record) => {
-        if(record.datasource?.length){
+        if (record.datasource?.length) {
           return record.datasource?.includes('*') ? '*' : value?.length || 0;
         }
-        if(record.enabled_module?.search?.datasource?.length){
-          return record.enabled_module?.search?.datasource?.includes('*') ? '*' : record.enabled_module.search.datasource?.length || 0;
+        if (record.enabled_module?.search?.datasource?.length) {
+          return record.enabled_module?.search?.datasource?.includes('*')
+            ? '*'
+            : record.enabled_module.search.datasource?.length || 0;
         }
         return 0;
       },
@@ -142,7 +148,7 @@ export function Component() {
     },
     {
       dataIndex: 'token_expire_in',
-      render: (value: number, record:any) => {
+      render: (value: number, record: any) => {
         return value ? new Date(value * 1000).toISOString() : '';
       },
       title: t('page.integration.columns.token_expire_in')
@@ -165,7 +171,9 @@ export function Component() {
           }
         ];
 
+        // eslint-disable-next-line @typescript-eslint/no-shadow
         const onMenuClick = ({ key, record }: any) => {
+          // eslint-disable-next-line default-case
           switch (key) {
             case 'edit':
               nav(`/integration/edit/${record.id}`, { state: record });
@@ -182,13 +190,15 @@ export function Component() {
               break;
             case 'renew_token':
               startLoading();
-              renewAPIToken(record.id).then(res => {
-                if (res.data?.result === 'acknowledged') {
-                  message.success(t('common.updateSuccess'));
-                }
-              }).finally(() => {
-                endLoading();
-              });
+              renewAPIToken(record.id)
+                .then(res => {
+                  if (res.data?.result === 'acknowledged') {
+                    message.success(t('common.updateSuccess'));
+                  }
+                })
+                .finally(() => {
+                  endLoading();
+                });
               break;
           }
         };
@@ -215,24 +225,24 @@ export function Component() {
   }, [queryParams]);
 
   useEffect(() => {
-    setKeyword(queryParams.query)
-  }, [queryParams.query])
+    setKeyword(queryParams.query);
+  }, [queryParams.query]);
 
   // 新增：Tabs 状态（与 settings 页面一致）
   const [searchParams, setSearchParams] = useSearchParams();
   const items = [
     {
       key: 'searchbox',
-      label: t('page.integration.form.labels.type_searchbox'),
+      label: t('page.integration.form.labels.type_searchbox')
     },
     {
       key: 'fullscreen',
-      label: t('page.integration.form.labels.type_fullscreen'),
-    },
-    {
-      key: 'webhooks',
-      label: t('page.integration.tabs.webhooks'),
+      label: t('page.integration.form.labels.type_fullscreen')
     }
+    // {
+    //   key: 'webhooks',
+    //   label: t('page.integration.tabs.webhooks'),
+    // }
   ];
   const activeKey = useMemo(() => {
     return searchParams.get('tab') || items[0].key;
@@ -265,8 +275,8 @@ export function Component() {
       >
         {/* 新增：Tabs 切换 SearchBox / Fullscreen / Webhooks */}
         <Tabs
-          className="settings-tabs"
           activeKey={activeKey}
+          className="settings-tabs"
           items={items}
           onChange={onTabChange}
         />
@@ -276,9 +286,9 @@ export function Component() {
             addonBefore={<FilterOutlined />}
             className="max-w-500px"
             enterButton={t('common.refresh')}
-            onSearch={onRefreshClick}
             value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
+            onChange={e => setKeyword(e.target.value)}
+            onSearch={onRefreshClick}
           />
           <Button
             icon={<PlusOutlined />}
@@ -290,18 +300,17 @@ export function Component() {
         </div>
         <Table
           columns={columns}
-          // 更新：使用过滤后的数据源
           dataSource={filteredData.data}
           loading={loading}
           rowKey="id"
           rowSelection={{ ...rowSelection }}
           size="middle"
           pagination={{
-            showTotal:(total, range) => `${range[0]}-${range[1]} of ${total} items`,
-            pageSize: queryParams.size,
             current: Math.floor(queryParams.from / queryParams.size) + 1,
-            total: data.total?.value || data?.total,
+            pageSize: queryParams.size,
             showSizeChanger: true,
+            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+            total: data.total?.value || data?.total
           }}
           onChange={handleTableChange}
         />
