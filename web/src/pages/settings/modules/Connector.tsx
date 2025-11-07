@@ -86,7 +86,7 @@ const ConnectorSettings = memo(() => {
         }
 
         let svgIcon = null;
-        switch (record.id) {
+        switch (record.processor?.name) {
           case 'google_drive':
             svgIcon = GoogleDriveSVG;
             break;
@@ -103,14 +103,14 @@ const ConnectorSettings = memo(() => {
         return (
           <div className='flex items-center gap-1'>
             <IconWrapper className='h-20px w-20px flex-shrink-0 flex-grow-0'>
-              {svgIcon ? (
-                <Icon component={svgIcon} />
-              ) : (
+              {record.icon ? (
                 <InfiniIcon
                   height='1em'
                   src={record.icon}
                   width='1em'
                 />
+              ) : (
+                <Icon component={svgIcon} />
               )}
             </IconWrapper>
             <span className='ant-table-cell-ellipsis max-w-150px'>{name}</span>
@@ -184,12 +184,12 @@ const ConnectorSettings = memo(() => {
       hidden: !permissions.update && !permissions.delete,
       render: (_, record) => {
         const items: MenuProps['items'] = [];
-        if (permissions.read && permissions.update && hasEdit(record)) {
+        // if (permissions.read && permissions.update && hasEdit(record)) {
           items.push({
             key: '1',
             label: t('common.edit')
           });
-        }
+        // }
         if (permissions.delete && isEditorOwner(record)) {
           items.push({
             key: '2',

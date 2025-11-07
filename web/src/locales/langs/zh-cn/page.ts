@@ -524,6 +524,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         datasource: '数据源',
         description: '描述',
         enable_auth: '启用认证',
+        tourist_mode: '游客模式',
         enable_module: '启用模块',
         enabled: '启用状态',
         feature_chat_history: '聊天历史',
@@ -570,6 +571,9 @@ const page: App.I18n.Schema['translation']['page'] = {
       title: {
         edit: '编辑嵌入组件',
         new: '新增嵌入组件'
+      },
+      hints: {
+        tourist_mode: '未登录用户将以该用户的身份进行访问'
       }
     },
     topics: {

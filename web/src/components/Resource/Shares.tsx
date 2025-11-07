@@ -3,6 +3,8 @@ import { UserOutlined } from '@ant-design/icons';
 import AvatarLabel from "./AvatarLabel";
 import AddShares from "./AddShares";
 import EditShares from "./EditShares";
+import { differenceBy } from "lodash";
+import { updateShares } from "@/service/api/share";
 
 export const PERMISSION_MAPPING = {
     0: 'none',
@@ -51,14 +53,56 @@ export default (props) => {
         },
     ]
     const [open, setOpen] = useState(false);
+    const [lockOpen, setLockOpen] = useState(false);
     const [isAdding, setIsAdding] = useState(false);
 
+    const [currentShares, setCurrentShares] = useState([]);
+
+    const initShares = (shares, editor) => {
+        setCurrentShares(shares.filter((item) => item.principal_id !== editor?.id))
+    }
+
+    useEffect(() => {
+        initShares(shares, editor)
+    }, [shares, editor])
+
     const handleOpenChange = (newOpen: boolean) => {
+        if (lockOpen) return;
         setOpen(newOpen);
         if (newOpen === false) {
+            initShares(shares, editor)
             setIsAdding(false)
         }
     };
+
+    const handleUpdate = async (currentShares) => {
+        const sourceShares = shares.filter((item) => item.principal_id !== editor?.id);
+        if (JSON.stringify(sourceShares) !== JSON.stringify(currentShares)) {
+            const deletedItems = differenceBy(sourceShares, currentShares, 'principal_id');
+            const res = await updateShares({
+                type: resource?.resource_type,
+                id: resource?.resource_id,
+                shares: currentShares.filter((item) => item.via !== 'inherit' || item.removeVia).map((item) => ({
+                    ...(resource || {}),
+                    "principal_type": "user",
+                    "principal_id": item.principal_id,
+                    permission: item.permission,
+                })),
+                revokes: (deletedItems || []).map((item) => ({
+                    "id": item.id,
+                    "principal_type": "user",
+                    "principal_id": item.principal_id,
+                    permission: item.permission
+                }))
+            })
+            if (res && !res.error) {
+                window.$message?.success(t('common.updateSuccess'));
+                handleSuccess()
+            }
+        } else {
+            handleOpenChange(false)
+        }
+    }
     
     const handleSuccess = () => {
         setOpen(false)
@@ -85,6 +129,10 @@ export default (props) => {
             owner={owner} 
             editor={editor}
             shares={shares}
+            currentShares={currentShares}
+            onChange={setCurrentShares}
+            onSubmit={handleUpdate}
+            setLockOpen={setLockOpen}
         />
     ) : (
         <EditShares
@@ -96,8 +144,10 @@ export default (props) => {
             shares={shares} 
             onCancel={() => handleOpenChange(false)} 
             onAddShares={() => setIsAdding(true)} 
-            onSuccess={handleSuccess}
-            resource={resource}
+            currentShares={currentShares}
+            onChange={setCurrentShares}
+            onSubmit={handleUpdate}
+            setLockOpen={setLockOpen}
         />
     )
     
@@ -120,7 +170,7 @@ export default (props) => {
                     {`${t('page.datasource.labels.shareTo')} ${title}`}
                 </Typography.Paragraph>
             )} 
-            open={open}
+            open={open || lockOpen}
             onOpenChange={handleOpenChange}
             content={content}
             className="flex w-fit cursor-pointer"

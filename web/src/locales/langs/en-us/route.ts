@@ -83,7 +83,9 @@ const route: App.I18n.Schema['translation']['route'] = {
   auth_new: 'New Authorization',
   auth_edit: 'Edit Authorization',
   user_new: 'New User',
-  user_edit: 'Edit User'
+  user_edit: 'Edit User,
+  connector_new: 'New Connector',
+  connector_edit: 'Edit Connector',
 };
 
 export default route;

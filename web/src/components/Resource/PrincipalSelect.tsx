@@ -6,7 +6,7 @@ import { fetchPrincipals } from "@/service/api/share";
 
 export default (props) => {
 
-    const { value, onChange, width, className, mode, excluded = [], children } = props;
+    const { value, onChange, width, className, mode, excluded = [], children, onDropdownVisibleChange } = props;
 
     const { t } = useTranslation();
 
@@ -49,7 +49,7 @@ export default (props) => {
 
     useEffect(() => {
       fetchFilterData(queryParams, sorter, excluded)
-    }, [queryParams, sorter, excluded])
+    }, [JSON.stringify(queryParams), JSON.stringify(sorter), JSON.stringify(excluded)])
 
     useEffect(() => {
       if (mode === 'multiple') {
@@ -109,6 +109,7 @@ export default (props) => {
         className={`ai-assistant-select ${className}`}
         value={formatValue}
         loading={loading || itemsLoading}
+        onDropdownVisibleChange={onDropdownVisibleChange}
         onChange={onChange}
         placeholder="Please select"
         rowKey="id"

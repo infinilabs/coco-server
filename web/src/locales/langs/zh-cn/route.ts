@@ -83,7 +83,9 @@ const route: App.I18n.Schema['translation']['route'] = {
   auth_new: '新增授权',
   auth_edit: '编辑授权',
   user_new: '新增用户',
-  user_edit: '编辑用户'
+  user_edit: '编辑用户',
+  connector_new: '新增连接器',
+  connector_edit: '编辑连接器',
 };
 
 export default route;
