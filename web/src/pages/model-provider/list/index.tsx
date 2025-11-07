@@ -1,4 +1,5 @@
 import {
+  EllipsisOutlined,
   ExclamationCircleOutlined,
   ExportOutlined,
   FilterOutlined,
