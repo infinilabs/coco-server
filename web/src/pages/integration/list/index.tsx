@@ -8,6 +8,7 @@ import { formatESSearchResult } from '@/service/request/es';
 import useQueryParams from '@/hooks/common/queryParams';
 import { isFullscreen } from '../modules/EditForm';
 import SvgIcon from '@/components/stateless/custom/SvgIcon';
+import './index.scss';
 
 export function Component() {
   const [queryParams, setQueryParams] = useQueryParams();
@@ -302,7 +303,7 @@ export function Component() {
     getCheckboxProps: record => ({
       name: record.name
     }),
-    onChange: (selectedRowKeys: React.Key[], selectedRows) => {}
+    onChange: (selectedRowKeys: React.Key[], selectedRows) => { }
   };
 
   useEffect(() => {
@@ -352,56 +353,54 @@ export function Component() {
   }, [data, activeKey]);
 
   return (
-    <ListContainer>
-      <ACard
-        bordered={false}
-        className='flex-col-stretch sm:flex-1-hidden card-wrapper'
-        ref={tableWrapperRef}
-      >
-        {/* 新增：Tabs 切换 SearchBox / Fullscreen / Webhooks */}
-        <Tabs
-          activeKey={activeKey}
-          className="settings-tabs"
-          items={items}
-          onChange={onTabChange}
-        />
-
-        <div className='mb-4 mt-4 flex items-center justify-between'>
-          <Input.Search
-            addonBefore={<FilterOutlined />}
-            className='max-w-500px'
-            enterButton={t('common.refresh')}
-            value={keyword}
-            onChange={e => setKeyword(e.target.value)}
-            onSearch={onRefreshClick}
+    <ACard
+      styles={{ body: { padding: 0 } }}
+    >
+      <Tabs
+        activeKey={activeKey}
+        className="settings-tabs"
+        items={items}
+        onChange={onTabChange}
+      />
+      <div className="settings-tabs-content">
+        <ListContainer>
+          <div className='mb-4 mt-4 flex items-center justify-between'>
+            <Input.Search
+              addonBefore={<FilterOutlined />}
+              className='max-w-500px'
+              enterButton={t('common.refresh')}
+              value={keyword}
+              onChange={e => setKeyword(e.target.value)}
+              onSearch={onRefreshClick}
+            />
+            {permissions.create && (
+              <Button
+                icon={<PlusOutlined />}
+                type='primary'
+                onClick={() => nav(`/integration/new`)}
+              >
+                {t('common.add')}
+              </Button>
+            )}
+          </div>
+          <Table
+            columns={columns}
+            dataSource={filteredData.data}
+            loading={loading}
+            rowKey='id'
+            rowSelection={{ ...rowSelection }}
+            size='middle'
+            pagination={{
+              current: Math.floor(queryParams.from / queryParams.size) + 1,
+              pageSize: queryParams.size,
+              showSizeChanger: true,
+              showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+              total: data.total?.value || data?.total
+            }}
+            onChange={handleTableChange}
           />
-          {permissions.create && (
-            <Button
-              icon={<PlusOutlined />}
-              type='primary'
-              onClick={() => nav(`/integration/new`)}
-            >
-              {t('common.add')}
-            </Button>
-          )}
-        </div>
-        <Table
-          columns={columns}
-          dataSource={filteredData.data}
-          loading={loading}
-          rowKey='id'
-          rowSelection={{ ...rowSelection }}
-          size='middle'
-          pagination={{
-            current: Math.floor(queryParams.from / queryParams.size) + 1,
-            pageSize: queryParams.size,
-            showSizeChanger: true,
-            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
-            total: data.total?.value || data?.total
-          }}
-          onChange={handleTableChange}
-        />
-      </ACard>
-    </ListContainer>
+        </ListContainer>
+      </div>
+    </ACard>
   );
 }
