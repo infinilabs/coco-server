@@ -1,14 +1,17 @@
 import { EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, PlusOutlined } from '@ant-design/icons';
 import { useLoading } from '@sa/hooks';
 import { useSearchParams } from 'react-router-dom';
-import { Avatar, Button, Dropdown, Input, Modal, Switch, Table, Tabs, message } from 'antd';
+import { Avatar, Button, Dropdown, Input, Switch, Table, Tabs, message } from 'antd';
 
-import { deleteIntegration, fetchIntegrations, renewAPIToken, updateIntegration } from '@/service/api/integration';
+import { deleteIntegration, fetchIntegrations, updateIntegration } from '@/service/api/integration';
 import { formatESSearchResult } from '@/service/request/es';
 import useQueryParams from '@/hooks/common/queryParams';
 import { isFullscreen } from '../modules/EditForm';
 import SvgIcon from '@/components/stateless/custom/SvgIcon';
 import './index.scss';
+
+export const SEARCHBOX_TYPES = ['embedded', 'floating', 'all']
+export const FULLSCREEN_TYPES = ['page', 'modal']
 
 export function Component() {
   const [queryParams, setQueryParams] = useQueryParams();
@@ -42,7 +45,21 @@ export function Component() {
 
   const fetchData = async params => {
     startLoading();
-    const res = await fetchIntegrations(params);
+    const { tab, ...rest } = params
+    let filter
+    if (tab === 'fullscreen') {
+      filter = {
+        type: FULLSCREEN_TYPES
+      }
+    } else {
+      filter = {
+        type: SEARCHBOX_TYPES
+      }
+    }
+    const res = await fetchIntegrations({
+      ...rest,
+      filter
+    });
     if (res?.data) {
       const newData = formatESSearchResult(res.data);
       if (newData.data.length > 0) {
@@ -230,13 +247,6 @@ export function Component() {
       title: t('page.integration.columns.enabled')
     },
     {
-      dataIndex: 'token_expire_in',
-      render: (value: number, record: any) => {
-        return value ? new Date(value * 1000).toISOString() : '';
-      },
-      title: t('page.integration.columns.token_expire_in')
-    },
-    {
       fixed: 'right',
       hidden: !permissions.update && !permissions.delete,
       render: (_, record) => {
@@ -246,10 +256,6 @@ export function Component() {
             key: 'edit',
             label: t('common.edit')
           });
-          items.push({
-            key: 'renew_token',
-            label: t('common.renew_token')
-          })
         }
         if (permissions.delete && isEditorOwner(record)) {
           items.push({
@@ -273,18 +279,6 @@ export function Component() {
                 },
                 title: t('common.tip')
               });
-              break;
-            case 'renew_token':
-              startLoading();
-              renewAPIToken(record.id)
-                .then(res => {
-                  if (res.data?.result === 'acknowledged') {
-                    message.success(t('common.updateSuccess'));
-                  }
-                })
-                .finally(() => {
-                  endLoading();
-                });
               break;
           }
         };
@@ -377,7 +371,7 @@ export function Component() {
               <Button
                 icon={<PlusOutlined />}
                 type='primary'
-                onClick={() => nav(`/integration/new`)}
+                onClick={() => nav(`/integration/new?type=${activeKey}`)}
               >
                 {t('common.add')}
               </Button>

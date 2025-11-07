@@ -497,7 +497,7 @@ export const generatedRoutes: GeneratedRoute[] = [
     meta: {
       i18nKey: 'route.security',
       title: 'security',
-      icon: 'mdi:user-outline',
+      localIcon: 'user',
       order: 10,
       permissions: [
         'generic#security:authorization/search',

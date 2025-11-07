@@ -7,13 +7,14 @@ import './EditForm.css';
 import { generateRandomString } from '@/utils/common';
 import { request } from '@/service/request';
 import { formatESSearchResult } from '@/service/request/es';
+import { FULLSCREEN_TYPES, SEARCHBOX_TYPES } from '../list';
 
 export function isFullscreen(type) {
   return ['page', 'modal', 'fullscreen'].includes(type);
 }
 
 export const EditForm = memo(props => {
-  const { actionText, record, onSubmit } = props;
+  const { defaultType, actionText, record, onSubmit } = props;
   const [type, setType] = useState('searchbox');
   const [form] = Form.useForm();
   const { t } = useTranslation();
@@ -21,6 +22,7 @@ export const EditForm = memo(props => {
   const { endLoading, loading, startLoading } = useLoading();
   const [assistants, setAssistants] = useState([]);
   const [enabledList, setEnabledList] = useState({});
+  const [guestEnabled, setGuestEnabled] = useState(false);
 
   const { hasAuth } = useAuth();
 
@@ -63,6 +65,12 @@ export const EditForm = memo(props => {
   });
 
   useEffect(() => {
+    if (defaultType) {
+      setType(defaultType)
+    }
+  }, [defaultType])
+
+  useEffect(() => {
     if (permissions.fetchDataSources) {
       run({
         from: 0,
@@ -77,81 +85,87 @@ export const EditForm = memo(props => {
 
   const handleSubmit = async () => {
     const params = await form.validateFields();
-    const { searchbox_mode, fullscreen_mode, cors = {}, enabled_module = {}, start_page = {}, payload = {} } = params;
+    const { searchbox_mode, fullscreen_mode, cors = {}, enabled_module = {}, start_page = {}, payload = {}, guest = {} } = params;
     const { search = {}, ai_chat = {} } = enabled_module;
     const { datasource = [] } = search;
     const { assistants = [] } = ai_chat;
     const { ai_overview = {}, ai_widgets = {} } = payload;
+    const formatGuest = {
+      ...guest,
+      run_as: guest.enabled && guest.run_as?.id ? guest.run_as?.id : undefined
+    }
     onSubmit(
       type === 'fullscreen'
         ? {
-            ...params,
-            enabled_module: {
-              search: {
-                ...search,
-                enabled: true,
-                datasource: datasource?.includes('*') ? ['*'] : datasource
-              }
-            },
-            payload: {
-              ...payload,
-              ai_overview: {
-                ...ai_overview,
-                assistant: ai_overview?.assistant?.id,
-                logo: {
-                  light: aiOverviewLogo?.light
-                }
-              },
-              ai_widgets: {
-                ...ai_widgets,
-                widgets: ai_widgets.widgets
-                  ? ai_widgets.widgets.map((item, index) => ({
-                      ...item,
-                      assistant: item.assistant?.id,
-                      logo: {
-                        light: widgetsLogo[index]?.light
-                      }
-                    }))
-                  : []
-              },
-              logo: {
-                light: searchLogos?.light,
-                light_mobile: searchLogos?.light_mobile
-              }
-            },
-            cors: {
-              ...cors,
-              allowed_origins: cors.allowed_origins?.trim() ? cors.allowed_origins.trim().split(',') : []
-            },
-            type: fullscreen_mode
-          }
-        : {
-            ...params,
-            enabled_module: {
-              ...enabled_module,
-              search: {
-                ...search,
-                datasource: datasource?.includes('*') ? ['*'] : datasource
-              },
-              ai_chat: {
-                ...ai_chat,
-                assistants: assistants.map(item => item.id),
-                start_page_config: {
-                  ...start_page,
-                  display_assistants: start_page?.display_assistants?.map(item => item.id),
-                  logo: {
-                    light: startPagelogos.light,
-                    dark: startPagelogos.dark
-                  }
-                }
-              }
-            },
-            cors: {
-              ...cors,
-              allowed_origins: cors.allowed_origins?.trim() ? cors.allowed_origins.trim().split(',') : []
-            },
-            type: searchbox_mode
+          ...params,
+          guest: formatGuest,
+          enabled_module: {
+            search: {
+              ...search,
+              enabled: true,
+              datasource: datasource?.includes('*') ? ['*'] : datasource
+            }
           },
+          payload: {
+            ...payload,
+            ai_overview: {
+              ...ai_overview,
+              assistant: ai_overview?.assistant?.id,
+              logo: {
+                light: aiOverviewLogo?.light
+              }
+            },
+            ai_widgets: {
+              ...ai_widgets,
+              widgets: ai_widgets.widgets
+                ? ai_widgets.widgets.map((item, index) => ({
+                  ...item,
+                  assistant: item.assistant?.id,
+                  logo: {
+                    light: widgetsLogo[index]?.light
+                  }
+                }))
+                : []
+            },
+            logo: {
+              light: searchLogos?.light,
+              light_mobile: searchLogos?.light_mobile
+            }
+          },
+          cors: {
+            ...cors,
+            allowed_origins: cors.allowed_origins?.trim() ? cors.allowed_origins.trim().split(',') : []
+          },
+          type: fullscreen_mode
+        }
+        : {
+          ...params,
+          guest: formatGuest,
+          enabled_module: {
+            ...enabled_module,
+            search: {
+              ...search,
+              datasource: datasource?.includes('*') ? ['*'] : datasource
+            },
+            ai_chat: {
+              ...ai_chat,
+              assistants: assistants.map(item => item.id),
+              start_page_config: {
+                ...start_page,
+                display_assistants: start_page?.display_assistants?.map(item => item.id),
+                logo: {
+                  light: startPagelogos.light,
+                  dark: startPagelogos.dark
+                }
+              }
+            }
+          },
+          cors: {
+            ...cors,
+            allowed_origins: cors.allowed_origins?.trim() ? cors.allowed_origins.trim().split(',') : []
+          },
+          type: searchbox_mode
+        },
       startLoading,
       endLoading
     );
@@ -159,103 +173,73 @@ export const EditForm = memo(props => {
 
   const initValue = record => {
     setType(isFullscreen(record?.type) ? 'fullscreen' : 'searchbox');
+    setGuestEnabled(!!record.guest?.enabled)
+    const commonValues = {
+        cors: {
+          ...(record.cors || {}),
+          allowed_origins: record.cors?.allowed_origins ? record.cors?.allowed_origins.join(',') : ''
+        },
+        guest: {
+          ...(record.guest || {}),
+          run_as: record.guest?.enabled && record.guest?.run_as ? { id: record.guest?.run_as } : undefined
+        }
+    }
     if (isFullscreen(record?.type)) {
-      if (record) {
-        setSearchLogos(state => ({ ...state, ...(record.payload?.logo || {}) }));
-        setAIOverviewLogo(state => ({ ...state, ...(record.payload?.ai_overview?.logo || {}) }));
-        setWidgetsLogo(
-          record.payload?.ai_widgets?.widgets ? record.payload?.ai_widgets?.widgets.map(item => item.logo) : []
-        );
-      }
-      const initValue = record
-        ? {
-            ...record,
-            enabled_module: {
-              ...(record.enabled_module || {}),
-              search: record.enabled_module?.search
-                ? {
-                    ...(record.enabled_module?.search || {}),
-                    enabled: true,
-                    datasource: record.enabled_module?.search?.datasource?.includes('*')
-                      ? ['*']
-                      : record.enabled_module?.search?.datasource
-                  }
-                : {
-                    enabled: true,
-                    datasource: ['*'],
-                    placeholder: 'Search whatever you want...'
-                  }
+      setSearchLogos(state => ({ ...state, ...(record.payload?.logo || {}) }));
+      setAIOverviewLogo(state => ({ ...state, ...(record.payload?.ai_overview?.logo || {}) }));
+      setWidgetsLogo(
+        record.payload?.ai_widgets?.widgets ? record.payload?.ai_widgets?.widgets.map(item => item.logo) : []
+      );
+      const initValue = {
+        ...record,
+        ...commonValues,
+        enabled_module: {
+          ...(record.enabled_module || {}),
+          search: record.enabled_module?.search
+            ? {
+              ...(record.enabled_module?.search || {}),
+              enabled: true,
+              datasource: record.enabled_module?.search?.datasource?.includes('*')
+                ? ['*']
+                : record.enabled_module?.search?.datasource
+            }
+            : {
+              enabled: true,
+              datasource: ['*'],
+              placeholder: 'Search whatever you want...'
+            }
+        },
+        payload: {
+          ...(record.payload || {}),
+          ai_overview: record.payload?.ai_overview
+            ? {
+              ...record.payload?.ai_overview,
+              assistant: { id: record.payload?.ai_overview.assistant }
+            }
+            : {
+              enabled: true,
+              title: 'AI Overview',
+              height: 200,
+              output: 'markdown'
             },
-            payload: {
-              ...(record.payload || {}),
-              ai_overview: record.payload?.ai_overview
-                ? {
-                    ...record.payload?.ai_overview,
-                    assistant: { id: record.payload?.ai_overview.assistant }
-                  }
-                : {
-                    enabled: true,
-                    title: 'AI Overview',
-                    height: 200,
-                    output: 'markdown'
-                  },
-              ai_widgets: record.payload?.ai_widgets
-                ? {
-                    ...record.payload.ai_widgets,
-                    widgets: record.payload?.ai_widgets.widgets
-                      ? record.payload?.ai_widgets.widgets.map(item => ({
-                          ...item,
-                          assistant: { id: item.assistant }
-                        }))
-                      : []
-                  }
-                : {
-                    enabled: true,
-                    widgets: []
-                  }
-            },
-            cors: {
-              ...(record.cors || {}),
-              allowed_origins: record.cors?.allowed_origins ? record.cors?.allowed_origins.join(',') : ''
-            },
-            type: 'fullscreen',
-            fullscreen_mode: ['page', 'modal'].includes(record?.type) ? record?.type : 'page'
-          }
-        : {
-            access_control: {
-              authentication: true,
-              chat_history: true
-            },
-            appearance: {
-              theme: 'auto'
-            },
-            cors: {
-              allowed_origins: '*',
-              enabled: true
-            },
-            enabled_module: {
-              search: {
-                enabled: true,
-                datasource: ['*'],
-                placeholder: 'Search whatever you want...'
-              }
-            },
-            payload: {
-              ai_overview: {
-                enabled: true,
-                title: 'AI Overview',
-                height: 200
-              },
-              ai_widgets: {
-                enabled: true,
-                widgets: []
-              }
-            },
-            name: `widget-${generateRandomString(8)}`,
-            enabled: true,
-            type: 'fullscreen',
-            fullscreen_mode: 'page'
-          };
+          ai_widgets: record.payload?.ai_widgets
+            ? {
+              ...record.payload.ai_widgets,
+              widgets: record.payload?.ai_widgets.widgets
+                ? record.payload?.ai_widgets.widgets.map(item => ({
+                  ...item,
+                  assistant: { id: item.assistant }
+                }))
+                : []
+            }
+            : {
+              enabled: true,
+              widgets: []
+            }
+        },
+        type: 'fullscreen',
+        fullscreen_mode: FULLSCREEN_TYPES.includes(record?.type) ? record?.type : FULLSCREEN_TYPES[0],
+      };
       setEnabledList({
         search: true,
         ai_overview: initValue.payload?.ai_overview?.enabled,
@@ -263,96 +247,56 @@ export const EditForm = memo(props => {
       });
       form.setFieldsValue(initValue);
     } else {
-      if (record) {
-        setStartPagelogos(state => ({ ...state, ...(record.enabled_module?.ai_chat?.start_page_config?.logo || {}) }));
-        setAssistants(
-          record?.enabled_module?.ai_chat?.assistants
-            ? record?.enabled_module?.ai_chat?.assistants.map(item => ({
-                id: item
-              }))
-            : []
-        );
-      }
-      const initValue = record
-        ? {
-            ...record,
-            enabled_module: {
-              ...(record.enabled_module || {}),
-              search: record.enabled_module?.search
-                ? {
-                    ...(record.enabled_module?.search || {}),
-                    datasource: record.enabled_module?.search?.datasource?.includes('*')
-                      ? ['*']
-                      : record.enabled_module?.search?.datasource
-                  }
-                : {
-                    enabled: true,
-                    datasource: ['*'],
-                    placeholder: 'Search whatever you want...'
-                  },
-              ai_chat: record.enabled_module?.ai_chat
-                ? {
-                    ...(record.enabled_module?.ai_chat || {}),
-                    assistants: record.enabled_module?.ai_chat?.assistants
-                      ? record.enabled_module?.ai_chat?.assistants.map(item => ({
-                          id: item
-                        }))
-                      : []
-                  }
-                : {
-                    enabled: true,
-                    placeholder: 'Ask whatever you want...'
-                  }
+      setStartPagelogos(state => ({ ...state, ...(record.enabled_module?.ai_chat?.start_page_config?.logo || {}) }));
+      setAssistants(
+        record?.enabled_module?.ai_chat?.assistants
+          ? record?.enabled_module?.ai_chat?.assistants.map(item => ({
+            id: item
+          }))
+          : []
+      );
+      const initValue = {
+        ...record,
+        ...commonValues,
+        enabled_module: {
+          ...(record.enabled_module || {}),
+          search: record.enabled_module?.search
+            ? {
+              ...(record.enabled_module?.search || {}),
+              datasource: record.enabled_module?.search?.datasource?.includes('*')
+                ? ['*']
+                : record.enabled_module?.search?.datasource
+            }
+            : {
+              enabled: true,
+              datasource: ['*'],
+              placeholder: 'Search whatever you want...'
             },
-            cors: {
-              ...(record.cors || {}),
-              allowed_origins: record.cors?.allowed_origins ? record.cors?.allowed_origins.join(',') : ''
-            },
-            start_page: {
-              ...(record.enabled_module?.ai_chat?.start_page_config || {}),
-              display_assistants: record.enabled_module?.ai_chat?.start_page_config?.display_assistants
-                ? record.enabled_module?.ai_chat?.start_page_config?.display_assistants.map(item => ({
-                    id: item
-                  }))
+          ai_chat: record.enabled_module?.ai_chat
+            ? {
+              ...(record.enabled_module?.ai_chat || {}),
+              assistants: record.enabled_module?.ai_chat?.assistants
+                ? record.enabled_module?.ai_chat?.assistants.map(item => ({
+                  id: item
+                }))
                 : []
-            },
-            type: 'searchbox',
-            searchbox_mode: ['embedded', 'floating', 'all'].includes(record?.type) ? record?.type : 'embedded'
-          }
-        : {
-            access_control: {
-              authentication: true,
-              chat_history: true
-            },
-            appearance: {
-              theme: 'auto'
-            },
-            cors: {
-              allowed_origins: '*',
-              enabled: true
-            },
-            enabled_module: {
-              ai_chat: {
-                enabled: true,
-                placeholder: 'Ask whatever you want...'
-              },
-              features: ['search_active', 'think_active'],
-              search: {
-                enabled: true,
-                datasource: ['*'],
-                placeholder: 'Search whatever you want...'
-              }
-            },
-            hotkey: 'ctrl+/',
-            name: `widget-${generateRandomString(8)}`,
-            enabled: true,
-            options: {
-              embedded_placeholder: 'Search...',
-              floating_placeholder: 'Ask AI'
-            },
-            type: 'searchbox',
-            searchbox_mode: 'embedded'
-          };
+            }
+            : {
+              enabled: true,
+              placeholder: 'Ask whatever you want...'
+            }
+        },
+        start_page: {
+          ...(record.enabled_module?.ai_chat?.start_page_config || {}),
+          display_assistants: record.enabled_module?.ai_chat?.start_page_config?.display_assistants
+            ? record.enabled_module?.ai_chat?.start_page_config?.display_assistants.map(item => ({
+              id: item
+            }))
+            : []
+        },
+        type: 'searchbox',
+        searchbox_mode: SEARCHBOX_TYPES.includes(record?.type) ? record?.type : SEARCHBOX_TYPES[0],
+      }
       setEnabledList({
         search: initValue.enabled_module?.search?.enabled,
         ai_chat: initValue.enabled_module?.ai_chat?.enabled
@@ -362,8 +306,94 @@ export const EditForm = memo(props => {
   };
 
   useEffect(() => {
-    initValue(record);
-  }, [record]);
+    if (record) {
+      initValue(record);
+    } else {
+      if (type === 'fullscreen') {
+        const initValue = {
+          access_control: {
+            authentication: true,
+            chat_history: true
+          },
+          appearance: {
+            theme: 'auto'
+          },
+          cors: {
+            allowed_origins: '*',
+            enabled: true
+          },
+          enabled_module: {
+            search: {
+              enabled: true,
+              datasource: ['*'],
+              placeholder: 'Search whatever you want...'
+            }
+          },
+          payload: {
+            ai_overview: {
+              enabled: true,
+              title: 'AI Overview',
+              height: 200
+            },
+            ai_widgets: {
+              enabled: true,
+              widgets: []
+            }
+          },
+          name: `widget-${generateRandomString(8)}`,
+          enabled: true,
+          type: 'fullscreen',
+          fullscreen_mode: 'page'
+        }
+        setEnabledList({
+          search: true,
+          ai_overview: initValue.payload?.ai_overview?.enabled,
+          ai_widgets: initValue.payload?.ai_widgets?.enabled
+        });
+        form.setFieldsValue(initValue);
+      } else {
+        const initValue = {
+          access_control: {
+            authentication: true,
+            chat_history: true
+          },
+          appearance: {
+            theme: 'auto'
+          },
+          cors: {
+            allowed_origins: '*',
+            enabled: true
+          },
+          enabled_module: {
+            ai_chat: {
+              enabled: true,
+              placeholder: 'Ask whatever you want...'
+            },
+            features: ['search_active', 'think_active'],
+            search: {
+              enabled: true,
+              datasource: ['*'],
+              placeholder: 'Search whatever you want...'
+            }
+          },
+          hotkey: 'ctrl+/',
+          name: `widget-${generateRandomString(8)}`,
+          enabled: true,
+          options: {
+            embedded_placeholder: 'Search...',
+            floating_placeholder: 'Ask AI'
+          },
+          type: 'searchbox',
+          searchbox_mode: 'embedded'
+        };
+        setEnabledList({
+          search: initValue.enabled_module?.search?.enabled,
+          ai_chat: initValue.enabled_module?.ai_chat?.enabled
+        });
+        form.setFieldsValue(initValue);
+      }
+    }
+  }, [record, type]);
 
   const itemClassNames = '!w-496px';
 
@@ -453,18 +483,22 @@ export const EditForm = memo(props => {
             layout='horizontal'
             name={['guest', 'enabled']}
           >
-            <Switch size='small' />
+            <Switch size='small' onChange={(checked) => setGuestEnabled(checked)}/>
           </Form.Item>
-
-          <div className='pb-2 pt-1 text-[var(--ant-color-text-description)]'>{t('page.integration.form.hints.tourist_mode')}</div>
-
-          <Form.Item
-            className='mb-0px'
-            layout='horizontal'
-            name={['guest', 'run_as']}
-          >
-            <PrincipalSelect className={itemClassNames} />
-          </Form.Item>
+          {
+            guestEnabled && (
+              <>
+                <div className='pb-2 pt-1 text-[var(--ant-color-text-description)]'>{t('page.integration.form.hints.tourist_mode')}</div>
+                <Form.Item
+                  className='mb-0px'
+                  layout='horizontal'
+                  name={['guest', 'run_as']}
+                >
+                  <PrincipalSelect className={itemClassNames} />
+                </Form.Item>
+              </>
+            )
+          }
         </Form.Item>
         <Form.Item
           label={t('page.integration.form.labels.appearance')}

@@ -6,17 +6,16 @@ import FullscreenModal from './FullscreenModal';
 import './ui-search/index.css';
 
 export default (props) => {
-    const { shadow, id, token, server, enableQueryParams = true } = props;
+    const { shadow, id, server, enableQueryParams = true } = props;
     const [settings, setSettings] = useState()
 
     const { payload = {}, enabled_module = {} } = settings || {}
 
-    async function fetchSettings(server, id, token) {
-        if (!server || !id || !token) return;
+    async function fetchSettings(server, id) {
+        if (!server || !id) return;
         fetch(`${server}/integration/${id}`, {
             headers: {
                 'APP-INTEGRATION-ID': id,
-                'X-API-TOKEN': token,
                 'Content-Type': 'application/json',
             },
             method: 'GET',
@@ -39,7 +38,6 @@ export default (props) => {
             method: 'POST',
             headers: {
                 'APP-INTEGRATION-ID': id,
-                'X-API-TOKEN': token,
             },
             credentials: 'include',
             body: shouldAgg ? JSON.stringify({
@@ -84,7 +82,6 @@ export default (props) => {
             const response = await fetch(`${server}/assistant/${assistantID}/_ask`, {
                 headers: {
                     'APP-INTEGRATION-ID': id,
-                    'X-API-TOKEN': token,
                 },
                 method: 'POST',
                 credentials: 'include',
@@ -134,8 +131,8 @@ export default (props) => {
     }
 
     useEffect(() => {
-        fetchSettings(server, id, token);
-    }, [server, id, token]);
+        fetchSettings(server, id);
+    }, [server, id]);
 
     const componentProps = {
         ...props,

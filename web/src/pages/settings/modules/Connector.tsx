@@ -184,12 +184,12 @@ const ConnectorSettings = memo(() => {
       hidden: !permissions.update && !permissions.delete,
       render: (_, record) => {
         const items: MenuProps['items'] = [];
-        // if (permissions.read && permissions.update && hasEdit(record)) {
+        if (permissions.read && permissions.update && hasEdit(record)) {
           items.push({
             key: '1',
             label: t('common.edit')
           });
-        // }
+        }
         if (permissions.delete && isEditorOwner(record)) {
           items.push({
             key: '2',

@@ -82,7 +82,20 @@ const User = () => {
   const columns: TableColumnsType<any> = [
     {
       dataIndex: 'name',
-      title: t('page.user.labels.name')
+      title: t('page.user.labels.name'),
+      minWidth: 150,
+      ellipsis: true,
+      render: (value, record) => {
+        return (
+          <div className='flex items-center gap-1'>
+            <SvgIcon
+              className='text-icon-small text-gray-500'
+              localIcon='user'
+            />
+            <span className='ant-table-cell-ellipsis max-w-150px'>{value}</span>
+          </div>
+        );
+      }
     },
     {
       dataIndex: 'email',

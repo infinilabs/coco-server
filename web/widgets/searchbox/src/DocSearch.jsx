@@ -9,7 +9,7 @@ const DEFAULT_HOTKEYS = ["ctrl+/"];
 const DARK_MODE_MEDIA_QUERY = '(prefers-color-scheme: dark)'
 
 export const DocSearch = (props) => {
-  const { hotKeys = DEFAULT_HOTKEYS, server, id, token, linkHref, formatUrl } = props;
+  const { hotKeys = DEFAULT_HOTKEYS, server, id, linkHref, formatUrl } = props;
 
   const [isOpen, setIsOpen] = useState(false);
   const [initialQuery, setInitialQuery] = useState();
@@ -101,13 +101,12 @@ export const DocSearch = (props) => {
     }
   }, [isOpen, currentHotkeys])
 
-  async function fetchSettings(server, id, token) {
-    if (!server || !id || !token) return;
+  async function fetchSettings(server, id) {
+    if (!server || !id) return;
     fetch(`${server}/integration/${id}`, {
       headers: {
         'APP-INTEGRATION-ID': id,
         'Content-Type': 'application/json',
-        'X-API-TOKEN': token
       },
       method: 'GET',
       credentials: 'include',
@@ -230,8 +229,8 @@ export const DocSearch = (props) => {
   }, [onKeyDown])
 
   useEffect(() => {
-    fetchSettings(server, id, token);
-  }, [server, id, token]);
+    fetchSettings(server, id);
+  }, [server, id]);
 
   useEffect(() => {
     const body = document.body;
