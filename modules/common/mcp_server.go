@@ -5,12 +5,13 @@
 package common
 
 import (
+	"infini.sh/coco/core"
 	"infini.sh/framework/core/orm"
 	"time"
 )
 
 type MCPServer struct {
-	CombinedFullText
+	core.CombinedFullText
 	Name        string   `json:"name" elastic_mapping:"name:{type:keyword,copy_to:combined_fulltext}"`
 	Description string   `json:"description,omitempty" elastic_mapping:"description:{type:text,copy_to:combined_fulltext}"`
 	Icon        string   `json:"icon,omitempty" elastic_mapping:"icon:{enabled:false}"`                // Display name of this datasource

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	log "github.com/cihub/seelog"
 	"github.com/tmc/langchaingo/chains"
+	"infini.sh/coco/core"
 	"infini.sh/coco/modules/assistant/langchain"
 	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/util"
@@ -60,7 +61,7 @@ func extractJSON(input string) string {
 	return ""
 }
 
-func ProcessQueryIntent(ctx context.Context, sessionID string, provider *common.ModelProvider, cfg *common.ModelConfig, reqMsg, replyMsg *common.ChatMessage, assistant *common.Assistant, inputValues map[string]any, sender common.MessageSender) (*QueryIntent, error) {
+func ProcessQueryIntent(ctx context.Context, sessionID string, provider *common.ModelProvider, cfg *core.ModelConfig, reqMsg, replyMsg *common.ChatMessage, assistant *core.Assistant, inputValues map[string]any, sender common.MessageSender) (*QueryIntent, error) {
 	// Initialize the LLM
 	llm := langchain.GetLLM(provider.BaseURL, provider.APIType, cfg.Name, provider.APIKey, assistant.Keepalive)
 

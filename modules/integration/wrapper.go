@@ -5,6 +5,7 @@
 package integration
 
 import (
+	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/orm"
@@ -19,7 +20,7 @@ var ver = util.GetUUID()
 
 func (h *APIHandler) widgetWrapper(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	integrationID := ps.MustGetParameter("id")
-	obj := common.Integration{}
+	obj := core.Integration{}
 	obj.ID = integrationID
 	ctx := orm.NewContextWithParent(req.Context()).DirectReadAccess()
 	ctx.Set(orm.ReadPermissionCheckingScope, security.PermissionScopePublic)

@@ -11,6 +11,7 @@ import (
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/kv"
+	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
 	"net/http"
@@ -64,8 +65,8 @@ func ValidateLoginByAPITokenHeader(w http.ResponseWriter, r *http.Request) (clai
 	apiTokenLevelPermission := security.ConvertPermissionKeysToHashSet(accessToken.Permissions)
 	userLevelTokenLevelPermission := security.ConvertPermissionKeysToHashSet(security.MustGetPermissionKeysByUserID(accessToken.GetOwnerID()))
 
-	log.Error(apiTokenLevelPermission.Values())
-	log.Error(userLevelTokenLevelPermission.Values())
+	//log.Error(apiTokenLevelPermission.Values())
+	//log.Error(userLevelTokenLevelPermission.Values())
 
 	intersectedPermission := security.IntersectSetsFast(apiTokenLevelPermission, userLevelTokenLevelPermission)
 	log.Error(intersectedPermission.Values())
@@ -74,6 +75,47 @@ func ValidateLoginByAPITokenHeader(w http.ResponseWriter, r *http.Request) (clai
 
 	//claims.Source = "token"
 	return claims, nil
+}
+
+func InternalGetIntegration(id string) (*Integration, error) {
+	obj := Integration{}
+	obj.ID = id
+	ctx := orm.NewContext()
+	ctx.DirectReadAccess()
+	exists, err := orm.GetV2(ctx, &obj)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, errors.New("integration not found")
+	}
+	return &obj, nil
+}
+
+func ValidateLoginByIntegrationHeader(w http.ResponseWriter, r *http.Request) (claims *security.UserClaims, err error) {
+	integrationID := r.Header.Get(HeaderIntegrationID)
+
+	if integrationID == "" {
+		return nil, errors.Error("api integration not found")
+	}
+
+	if integrationID != "" {
+		cfg, _ := InternalGetIntegration(integrationID)
+		if cfg != nil {
+			if cfg.Guest.Enabled && cfg.Guest.RunAs != "" {
+
+				claims = security.NewUserClaims()
+				claims.SetGetUserID(cfg.Guest.RunAs)
+
+				claims.Provider = "access_token"
+				claims.Login = cfg.Guest.RunAs
+				claims.Permissions = security.MustGetPermissionKeysByUserID(cfg.Guest.RunAs)
+				log.Error("login via integration")
+				return claims, nil
+			}
+		}
+	}
+	return nil, errors.Error("invalid claims")
 }
 
 func ValidateLoginByAuthorizationHeader(w http.ResponseWriter, r *http.Request) (claims *security.UserClaims, err error) {
@@ -178,6 +220,10 @@ func ValidateLogin(w http.ResponseWriter, r *http.Request) (session *security.Us
 
 	if claims == nil || !claims.UserSessionInfo.IsValid() {
 		claims, err = ValidateLoginByAPITokenHeader(w, r)
+	}
+
+	if claims == nil || !claims.UserSessionInfo.IsValid() {
+		claims, err = ValidateLoginByIntegrationHeader(w, r)
 	}
 
 	if claims == nil || !claims.UserSessionInfo.IsValid() || err != nil {

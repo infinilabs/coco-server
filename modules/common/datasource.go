@@ -5,6 +5,7 @@
 package common
 
 import (
+	"infini.sh/coco/core"
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/pipeline"
@@ -13,7 +14,7 @@ import (
 )
 
 type DataSource struct {
-	CombinedFullText
+	core.CombinedFullText
 
 	Type        string `json:"type,omitempty" elastic_mapping:"type:{type:keyword,copy_to:combined_fulltext}"` // Type of the datasource, eg: connector
 	Name        string `json:"name,omitempty" elastic_mapping:"name:{type:keyword,copy_to:combined_fulltext}"` // Display name of this datasource
@@ -32,7 +33,13 @@ type DataSource struct {
 	// Enrichment pipeline
 	EnrichmentPipeline *pipeline.PipelineConfigV2 `json:"enrichment_pipeline" elastic_mapping:"enrichment_pipeline:{type:object}"` //if the pipeline is enabled, pass each batch messages to this pipeline for enrichment
 
+	WebhookConfig WebhookConfig `json:"webhook,omitempty" elastic_mapping:"webhook:{type:object}"`
+
 	//OAuthConfig OAuthConfig `json:"oauth_config,omitempty" elastic_mapping:"oauth_config:{type:object}"`
+}
+
+type WebhookConfig struct {
+	Enabled bool `json:"enabled" elastic_mapping:"enabled:{type:keyword}"`
 }
 
 type OAuthConfig struct {
@@ -161,6 +168,11 @@ func GetDatasourceConfig(ctx *orm.Context, id string) (*DataSource, error) {
 
 	obj := DataSource{}
 	obj.ID = id
+
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "datasource")
+	ctx.Set(orm.SharingCategoryCheckingChildrenEnabled, true)
+
 	exists, err := orm.GetV2(ctx, &obj)
 	if err == nil && exists {
 		GeneralObjectCache.Set(DatasourceItemsCacheKey, id, &obj, util.GetDurationOrDefault("30m", time.Duration(30)*time.Minute))

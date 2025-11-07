@@ -6,6 +6,7 @@ package security
 
 import (
 	"fmt"
+	log "github.com/cihub/seelog"
 	"github.com/emirpasic/gods/sets/hashset"
 	"infini.sh/framework/core/api"
 	"infini.sh/framework/core/orm"
@@ -75,8 +76,6 @@ func GenerateJWTAccessToken(user *security.UserSessionInfo) (map[string]interfac
 
 func (h *APIHandler) RequestAccessToken(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
-	ctx := orm.NewContextWithParent(req.Context())
-
 	//user already login
 	reqUser, err := security.GetUserFromContext(req.Context())
 	if reqUser == nil || err != nil {
@@ -95,14 +94,15 @@ func (h *APIHandler) RequestAccessToken(w http.ResponseWriter, req *http.Request
 		reqBody.Name = GenerateApiTokenName("")
 	}
 
+	permission := security.MustGetPermissionKeysByUserID(reqUser.MustGetUserID())
 	if len(reqBody.Permissions) > 0 {
 		//the permissions should be within' user's own permission scope
-		if !util.IsSuperset(GetPermissionHashSet(reqUser), security.ConvertPermissionKeysToHashSet(reqBody.Permissions)) {
+		if !util.IsSuperset(security.ConvertPermissionKeysToHashSet(permission), security.ConvertPermissionKeysToHashSet(reqBody.Permissions)) {
 			panic("invalid permissions")
 		}
 	}
 
-	res, err := CreateAPIToken(ctx, reqBody.Name, "general", reqBody.Permissions)
+	res, err := CreateAPIToken(reqUser.MustGetUserID(), reqBody.Name, "general", permission)
 	if err != nil {
 		panic(err)
 	}
@@ -110,14 +110,11 @@ func (h *APIHandler) RequestAccessToken(w http.ResponseWriter, req *http.Request
 	api.WriteJSON(w, res, 200)
 }
 
-func CreateAPIToken(ctx *orm.Context, tokenName, typeName string, permissions []security.PermissionKey) (util.MapStr, error) {
+func CreateAPIToken(userID string, tokenName, typeName string, permissions []security.PermissionKey) (util.MapStr, error) {
+
+
 	if tokenName == "" {
 		tokenName = GenerateApiTokenName("")
-	}
-
-	reqUser, err := security.GetUserFromContext(ctx)
-	if reqUser == nil || err != nil {
-		panic(err)
 	}
 
 	res := util.MapStr{}
@@ -130,15 +127,17 @@ func CreateAPIToken(ctx *orm.Context, tokenName, typeName string, permissions []
 	tokenID := util.GetUUID()
 	accessToken.ID = tokenID
 	accessToken.AccessToken = accessTokenStr
-	accessToken.SetOwnerID(reqUser.MustGetUserID())
+	accessToken.SetOwnerID(userID)
 
 	accessToken.Type = typeName
 	accessToken.Permissions = permissions
 	accessToken.ExpireIn = expiredAT
 	accessToken.Name = tokenName
 
+	ctx := orm.NewContext()
+	ctx.DirectAccess()
 	ctx.Refresh = orm.WaitForRefresh
-	err = orm.Create(ctx, &accessToken)
+	err := orm.Create(ctx, &accessToken)
 	if err != nil {
 		panic(err)
 	}

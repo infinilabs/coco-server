@@ -145,17 +145,7 @@ type AppSettings struct {
 }
 
 type ChatConfig struct {
-	ChatStartPageConfig *ChatStartPageConfig `config:"start_page" json:"start_page,omitempty"`
-}
-
-type ChatStartPageConfig struct {
-	Enabled bool `json:"enabled"`
-	Logo    struct {
-		Light string `json:"light"`
-		Dark  string `json:"dark"`
-	} `json:"logo"`
-	Introduction      string   `json:"introduction"`
-	DisplayAssistants []string `json:"display_assistants"`
+	ChatStartPageConfig *core.ChatStartPageConfig `config:"start_page" json:"start_page,omitempty"`
 }
 
 type SearchSettings struct {

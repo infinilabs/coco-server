@@ -5,6 +5,7 @@
 package modules
 
 import (
+	"infini.sh/coco/core"
 	_ "infini.sh/coco/modules/assistant"
 	_ "infini.sh/coco/modules/attachment"
 	"infini.sh/coco/modules/common"
@@ -14,7 +15,6 @@ import (
 	"infini.sh/coco/modules/integration"
 	_ "infini.sh/coco/modules/integration"
 	_ "infini.sh/coco/modules/llm"
-	_ "infini.sh/coco/modules/search"
 	_ "infini.sh/coco/modules/system"
 	"infini.sh/framework/core/orm"
 )
@@ -31,9 +31,9 @@ func (this *Coco) Setup() {
 	orm.MustRegisterSchemaWithIndexName(common.Attachment{}, "attachment"+suffix)
 	orm.MustRegisterSchemaWithIndexName(common.Connector{}, "connector"+suffix)
 	orm.MustRegisterSchemaWithIndexName(common.DataSource{}, "datasource"+suffix)
-	orm.MustRegisterSchemaWithIndexName(common.Integration{}, "integration"+suffix)
+	orm.MustRegisterSchemaWithIndexName(core.Integration{}, "integration"+suffix)
 	orm.MustRegisterSchemaWithIndexName(common.ModelProvider{}, "model-provider"+suffix)
-	orm.MustRegisterSchemaWithIndexName(common.Assistant{}, "assistant"+suffix)
+	orm.MustRegisterSchemaWithIndexName(core.Assistant{}, "assistant"+suffix)
 	orm.MustRegisterSchemaWithIndexName(common.MCPServer{}, "mcp-server"+suffix)
 }
 

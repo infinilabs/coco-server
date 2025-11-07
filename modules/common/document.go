@@ -5,6 +5,7 @@
 package common
 
 import (
+	"infini.sh/coco/core"
 	"strings"
 	"time"
 )
@@ -23,7 +24,7 @@ type DataSourceReference struct {
 }
 
 type Document struct {
-	CombinedFullText
+	core.CombinedFullText
 
 	Source DataSourceReference `json:"source,omitempty" elastic_mapping:"source:{type:object}"` // Source of the document
 

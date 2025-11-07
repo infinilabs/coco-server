@@ -65,7 +65,7 @@ func init() {
 	api.HandleUIMethod(api.POST, "/integration/_search", handler.search, api.RequirePermission(searchPermission), api.Feature(core.FeatureRemoveSensitiveField))
 
 	api.HandleUIMethod(api.OPTIONS, "/integration/:id", handler.get, api.RequirePermission(readPermission), api.Feature(core.FeatureCORS))
-	api.HandleUIMethod(api.GET, "/integration/:id", handler.get, api.RequirePermission(readPermission), api.Feature(core.FeatureCORS))
+	api.HandleUIMethod(api.GET, "/integration/:id", handler.get, api.OptionLogin(), api.Feature(core.FeatureCORS))
 	api.HandleUIMethod(api.PUT, "/integration/:id", handler.update, api.RequirePermission(updatePermission))
 	api.HandleUIMethod(api.DELETE, "/integration/:id", handler.delete, api.RequirePermission(deletePermission))
 	api.HandleUIMethod(api.POST, "/integration/:id/_renew_token", handler.renewAPIToken, api.RequirePermission(updatePermission))

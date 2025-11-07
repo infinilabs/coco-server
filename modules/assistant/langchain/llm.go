@@ -9,6 +9,7 @@ import (
 	"github.com/tmc/langchaingo/llms"
 	"github.com/tmc/langchaingo/llms/ollama"
 	"github.com/tmc/langchaingo/llms/openai"
+	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/global"
 	"net/http"
@@ -76,7 +77,7 @@ func GetLLM(endpoint, apiType, model, token string, keepalive string) llms.Model
 	}
 }
 
-func GetTemperature(model *common.ModelConfig, modelProvider *common.ModelProvider, defaultValue float64) float64 {
+func GetTemperature(model *core.ModelConfig, modelProvider *common.ModelProvider, defaultValue float64) float64 {
 	temperature := 0.0
 	if model.Settings.Temperature > 0 {
 		temperature = model.Settings.Temperature
@@ -97,7 +98,7 @@ func GetTemperature(model *common.ModelConfig, modelProvider *common.ModelProvid
 	return temperature
 }
 
-func GetMaxLength(model *common.ModelConfig, modelProvider *common.ModelProvider, defaultValue int) int {
+func GetMaxLength(model *core.ModelConfig, modelProvider *common.ModelProvider, defaultValue int) int {
 	maxLength := 0
 	if model.Settings.MaxLength > 0 {
 		maxLength = model.Settings.MaxLength
@@ -118,7 +119,7 @@ func GetMaxLength(model *common.ModelConfig, modelProvider *common.ModelProvider
 	return maxLength
 }
 
-func GetMaxTokens(model *common.ModelConfig, modelProvider *common.ModelProvider, defaultValue int) int {
+func GetMaxTokens(model *core.ModelConfig, modelProvider *common.ModelProvider, defaultValue int) int {
 	var maxTokens int = 0
 	if model.Settings.MaxTokens > 0 {
 		maxTokens = model.Settings.MaxTokens

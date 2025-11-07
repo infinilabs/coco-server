@@ -5,11 +5,13 @@
 package datasource
 
 import (
+	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/elastic"
 	"infini.sh/framework/core/orm"
+	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
 	"net/http"
 )
@@ -209,24 +211,32 @@ func (h *APIHandler) searchDatasource(w http.ResponseWriter, req *http.Request, 
 		builder.SortBy(orm.Sort{Field: "created", SortType: orm.DESC})
 	}
 
+	ctx := orm.NewContextWithParent(req.Context())
+
 	//attach filter for cors request
 	if integrationID := req.Header.Get(core.HeaderIntegrationID); integrationID != "" {
-		// get datasource by api token
-		datasourceIDs, hasAll, err := common.GetDatasourceByIntegration(integrationID)
-		if err != nil {
-			panic(err)
-		}
-		if !hasAll {
-			if len(datasourceIDs) == 0 {
-				// return empty search result when no datasource found
-				h.WriteJSON(w, elastic.SearchResponse{}, http.StatusOK)
-				return
+		cfg, _ := common.InternalGetIntegration(integrationID)
+		if cfg != nil {
+			if cfg.Guest.Enabled && cfg.Guest.RunAs != "" {
+				ctx = orm.NewContextWithParent(security.RunAs(req.Context(), cfg.Guest.RunAs))
+				log.Error("run as: ", cfg.Guest.RunAs)
 			}
-			builder.Must(orm.TermsQuery("id", datasourceIDs))
+			// get datasource by api token
+			datasourceIDs, hasAll, err := common.GetDatasourceByIntegration(integrationID)
+			if err != nil {
+				panic(err)
+			}
+			if !hasAll {
+				if len(datasourceIDs) == 0 {
+					// return empty search result when no datasource found
+					h.WriteJSON(w, elastic.SearchResponse{}, http.StatusOK)
+					return
+				}
+				builder.Must(orm.TermsQuery("id", datasourceIDs))
+			}
 		}
 	}
 
-	ctx := orm.NewContextWithParent(req.Context())
 	orm.WithModel(ctx, &common.DataSource{})
 	ctx.Set(orm.SharingEnabled, true)
 	ctx.Set(orm.SharingResourceType, "datasource")

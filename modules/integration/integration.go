@@ -6,7 +6,6 @@ package integration
 
 import (
 	"infini.sh/coco/core"
-	"infini.sh/coco/modules/common"
 	"infini.sh/coco/plugins/security"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/elastic"
@@ -24,21 +23,22 @@ func (h *APIHandler) create(w http.ResponseWriter, req *http.Request, ps httprou
 	ctx := orm.NewContextWithParent(req.Context())
 	ctx.Refresh = orm.WaitForRefresh
 
-	var obj = &common.Integration{}
+	var obj = &core.Integration{}
 	err := h.DecodeJSON(req, obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	//get permissions for this token
-	ret, err := security.CreateAPIToken(ctx, "", "widget", security2.MustGetPermissionKeysByRole([]string{"widget"}))
-	if err != nil {
-		h.WriteError(w, err.Error(), http.StatusInternalServerError)
-		return
+	if obj.Guest.Enabled && obj.Guest.RunAs != "" {
+		//get permissions for this token
+		ret, err := security.CreateAPIToken(obj.Guest.RunAs, "", "widget", security2.MustGetPermissionKeysByRole([]string{"widget"}))
+		if err != nil {
+			h.WriteError(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		obj.Token = ret["access_token"].(string)
 	}
-
-	obj.Token = ret["access_token"].(string)
 
 	err = orm.Create(ctx, obj)
 	if err != nil {
@@ -56,11 +56,12 @@ func (h *APIHandler) create(w http.ResponseWriter, req *http.Request, ps httprou
 func (h *APIHandler) get(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("id")
 
-	obj := common.Integration{}
+	obj := core.Integration{}
 	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
 	ctx.Set(orm.SharingEnabled, true)
 	ctx.Set(orm.SharingResourceType, "integration")
+	ctx.DirectReadAccess()
 	exists, err := orm.GetV2(ctx, &obj)
 	if !exists || err != nil {
 		h.WriteGetMissingJSON(w, id)
@@ -72,7 +73,7 @@ func (h *APIHandler) get(w http.ResponseWriter, req *http.Request, ps httprouter
 
 func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("id")
-	obj := common.Integration{}
+	obj := core.Integration{}
 	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
 
@@ -104,7 +105,7 @@ func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprou
 func (h *APIHandler) delete(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("id")
 
-	obj := common.Integration{}
+	obj := core.Integration{}
 	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
 
@@ -133,7 +134,7 @@ func (h *APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprou
 	}
 
 	ctx := orm.NewContextWithParent(req.Context())
-	orm.WithModel(ctx, &common.Integration{})
+	orm.WithModel(ctx, &core.Integration{})
 	ctx.Set(orm.SharingEnabled, true)
 	ctx.Set(orm.SharingResourceType, "integration")
 	res, err := orm.SearchV2(ctx, builder)
@@ -178,8 +179,11 @@ func (h *APIHandler) renewAPIToken(w http.ResponseWriter, req *http.Request, ps 
 	}
 	id := ps.MustGetParameter("id")
 
-	obj := common.Integration{}
+	obj := core.Integration{}
 	obj.ID = id
+
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "integration")
 
 	exists, err := orm.GetV2(ctx, &obj)
 	if !exists || err != nil {
@@ -194,18 +198,19 @@ func (h *APIHandler) renewAPIToken(w http.ResponseWriter, req *http.Request, ps 
 		kv.DeleteKey(core.KVAccessTokenBucket, []byte(obj.Token))
 	}
 	//create new token form this integration
+	if obj.Guest.Enabled && obj.Guest.RunAs != "" {
+		ret, err := security.CreateAPIToken(obj.Guest.RunAs, "", "widget", security2.MustGetPermissionKeysByRole([]string{"widget"}))
+		if err != nil {
+			h.WriteError(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 
-	ret, err := security.CreateAPIToken(ctx, "", "widget", security2.MustGetPermissionKeysByRole([]string{"widget"}))
-	if err != nil {
-		h.WriteError(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	obj.Token = ret["access_token"].(string)
-	err = orm.Update(ctx, &obj)
-	if err != nil {
-		h.WriteError(w, err.Error(), http.StatusInternalServerError)
-		return
+		obj.Token = ret["access_token"].(string)
+		err = orm.Update(ctx, &obj)
+		if err != nil {
+			h.WriteError(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 	h.WriteAckOKJSON(w)
 }
@@ -230,7 +235,7 @@ var (
 )
 
 func InitIntegrationOrigins() {
-	integrations := []common.Integration{}
+	integrations := []core.Integration{}
 	err, _ := orm.SearchWithJSONMapper(&integrations, &orm.Query{
 		Size:  100,
 		Conds: orm.And(orm.Eq("enabled", true), orm.Eq("cors.enabled", true)),
