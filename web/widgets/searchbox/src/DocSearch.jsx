@@ -173,6 +173,7 @@ export const DocSearch = (props) => {
     const props = {
       server,
       settings,
+      refreshSettings: () => fetchSettings(server, id),
       onClose,
       triggerBtnType,
       theme,
