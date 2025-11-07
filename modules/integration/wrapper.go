@@ -50,7 +50,7 @@ func (h *APIHandler) widgetWrapper(w http.ResponseWriter, req *http.Request, ps 
 		}
 
 		info := common.AppConfig()
-		token := obj.Token
+		//token := obj.Token
 
 		str = h.fullscreenWrapperTemplate.ExecuteFuncString(func(w io.Writer, tag string) (int, error) {
 			switch tag {
@@ -61,9 +61,9 @@ func (h *APIHandler) widgetWrapper(w http.ResponseWriter, req *http.Request, ps 
 			case "ENDPOINT":
 				endpoint := strings.TrimRight(info.ServerInfo.Endpoint, "/")
 				return w.Write([]byte(endpoint))
-			case "TOKEN":
-				endpoint := token
-				return w.Write([]byte(endpoint))
+				//case "TOKEN":
+				//	endpoint := token
+				//	return w.Write([]byte(endpoint))
 			}
 			return -1, nil
 		})
@@ -75,7 +75,7 @@ func (h *APIHandler) widgetWrapper(w http.ResponseWriter, req *http.Request, ps 
 		}
 
 		info := common.AppConfig()
-		token := obj.Token
+		//token := obj.Token
 
 		str = h.searchBoxWrapperTemplate.ExecuteFuncString(func(w io.Writer, tag string) (int, error) {
 			switch tag {
@@ -86,9 +86,9 @@ func (h *APIHandler) widgetWrapper(w http.ResponseWriter, req *http.Request, ps 
 			case "ENDPOINT":
 				endpoint := strings.TrimRight(info.ServerInfo.Endpoint, "/")
 				return w.Write([]byte(endpoint))
-			case "TOKEN":
-				endpoint := token
-				return w.Write([]byte(endpoint))
+				//case "TOKEN":
+				//	endpoint := token
+				//	return w.Write([]byte(endpoint))
 			}
 			return -1, nil
 		})

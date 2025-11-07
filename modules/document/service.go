@@ -7,17 +7,13 @@ package document
 import (
 	"context"
 	"github.com/cihub/seelog"
-	log "github.com/cihub/seelog"
-	"infini.sh/coco/modules/common"
+	"infini.sh/coco/core"
 	"infini.sh/framework/core/elastic"
 	"infini.sh/framework/core/orm"
-	"infini.sh/framework/core/security"
-	"infini.sh/framework/core/util"
 	"infini.sh/framework/plugins/enterprise/security/share"
-	"strings"
 )
 
-func QueryDocuments(ctx1 context.Context, builder *orm.QueryBuilder, query string, datasource, category, subcategory, richCategory string) ([]common.Document, int64, error) {
+func QueryDocuments(ctx1 context.Context, builder *orm.QueryBuilder, query string, datasource, category, subcategory, richCategory string) ([]core.Document, int64, error) {
 
 	builder.Query(query)
 	builder.DefaultQueryField("title.keyword^100", "title^10", "title.pinyin^4", "combined_fulltext")
@@ -36,12 +32,12 @@ func QueryDocuments(ctx1 context.Context, builder *orm.QueryBuilder, query strin
 	builder.Filter(filters...)
 
 	ctx := orm.NewContextWithParent(ctx1)
-	orm.WithModel(ctx, &common.Document{})
+	orm.WithModel(ctx, &core.Document{})
 	ctx.Set(orm.SharingEnabled, true)
 	ctx.Set(orm.SharingResourceType, "document")
 	ctx.Set(orm.SharingCheckingInheritedRulesEnabled, true)
 
-	docs := []common.Document{}
+	docs := []core.Document{}
 	err, resp := elastic.SearchV2WithResultItemMapper(ctx, &docs, builder, nil)
 	if err != nil || resp == nil {
 		return nil, 0, err
@@ -50,44 +46,7 @@ func QueryDocuments(ctx1 context.Context, builder *orm.QueryBuilder, query strin
 	return docs, resp.Total, nil
 }
 
-func QueryDocumentsAndFilter(ctx1 context.Context, userID string, builder *orm.QueryBuilder, integrationID string, query string, datasource, category, subcategory, richCategory string) ([]elastic.DocumentWithMeta[common.Document], int64, error) {
-
-	if integrationID != "" {
-		cfg, _ := common.InternalGetIntegration(integrationID)
-		if cfg != nil {
-			if cfg.Guest.Enabled && cfg.Guest.RunAs != "" {
-				ctx1 = orm.NewContextWithParent(security.RunAs(ctx1, cfg.Guest.RunAs))
-				userID = cfg.Guest.RunAs
-				log.Error("run as: ", cfg.Guest.RunAs, ",old datasource:", datasource)
-			}
-
-			// get datasource by integration id
-			datasourceIDs, hasAll, err := common.GetDatasourceByIntegration1(cfg)
-			if err != nil {
-				return nil, 0, err
-			}
-
-			if !hasAll {
-				if len(datasourceIDs) == 0 {
-					return nil, 0, err
-				}
-				// update datasource filter
-				if datasource == "" {
-					datasource = strings.Join(datasourceIDs, ",")
-				} else {
-					// calc intersection with datasource and datasourceIDs
-					queryDatasource := strings.Split(datasource, ",")
-					queryDatasource = util.StringArrayIntersection(queryDatasource, datasourceIDs)
-					if len(queryDatasource) == 0 {
-						return nil, 0, err
-					}
-					datasource = strings.Join(queryDatasource, ",")
-					log.Error("run as: ", cfg.Guest.RunAs, ", new datasource:", datasource)
-				}
-			}
-		}
-	}
-
+func QueryDocumentsAndFilter(ctx1 context.Context, userID string, builder *orm.QueryBuilder, integrationID string, query string, datasource, category, subcategory, richCategory string) ([]elastic.DocumentWithMeta[core.Document], int64, error) {
 	docs, total, err := QueryDocuments(ctx1, builder, query, datasource, category, subcategory, richCategory)
 	if err != nil {
 		return nil, 0, err
@@ -99,9 +58,9 @@ func QueryDocumentsAndFilter(ctx1 context.Context, userID string, builder *orm.Q
 	return docs1, total, nil
 }
 
-func SecondStageFilter(ctx1 context.Context, userID string, query string, docs []common.Document) ([]elastic.DocumentWithMeta[common.Document], error) {
+func SecondStageFilter(ctx1 context.Context, userID string, query string, docs []core.Document) ([]elastic.DocumentWithMeta[core.Document], error) {
 	//double check the document permission
-	var docs1 []elastic.DocumentWithMeta[common.Document]
+	var docs1 []elastic.DocumentWithMeta[core.Document]
 	for _, v := range docs {
 
 		valid := false
@@ -120,7 +79,7 @@ func SecondStageFilter(ctx1 context.Context, userID string, query string, docs [
 		}
 
 		if valid {
-			doc := elastic.DocumentWithMeta[common.Document]{
+			doc := elastic.DocumentWithMeta[core.Document]{
 				ID:     v.ID,
 				Source: v,
 			}

@@ -9,9 +9,7 @@ import (
 	"infini.sh/coco/plugins/security"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/elastic"
-	"infini.sh/framework/core/kv"
 	"infini.sh/framework/core/orm"
-	security2 "infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
 	"net/http"
 	"sync"
@@ -30,15 +28,15 @@ func (h *APIHandler) create(w http.ResponseWriter, req *http.Request, ps httprou
 		return
 	}
 
-	if obj.Guest.Enabled && obj.Guest.RunAs != "" {
-		//get permissions for this token
-		ret, err := security.CreateAPIToken(obj.Guest.RunAs, "", "widget", security2.MustGetPermissionKeysByRole([]string{"widget"}))
-		if err != nil {
-			h.WriteError(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		obj.Token = ret["access_token"].(string)
-	}
+	//if obj.Guest.Enabled && obj.Guest.RunAs != "" {
+	//	//get permissions for this token
+	//	ret, err := security.CreateAPIToken(obj.Guest.RunAs, "", "widget", security2.MustGetPermissionKeysByRole([]string{"widget"}))
+	//	if err != nil {
+	//		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+	//		return
+	//	}
+	//	obj.Token = ret["access_token"].(string)
+	//}
 
 	err = orm.Create(ctx, obj)
 	if err != nil {
@@ -169,51 +167,51 @@ func (h *APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprou
 	h.WriteJSON(w, searchRes, http.StatusOK)
 }
 
-func (h *APIHandler) renewAPIToken(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	ctx := orm.NewContextWithParent(req.Context())
-	ctx.Refresh = orm.WaitForRefresh
-
-	reqUser, err := security2.GetUserFromContext(req.Context())
-	if reqUser == nil || err != nil {
-		panic(err)
-	}
-	id := ps.MustGetParameter("id")
-
-	obj := core.Integration{}
-	obj.ID = id
-
-	ctx.Set(orm.SharingEnabled, true)
-	ctx.Set(orm.SharingResourceType, "integration")
-
-	exists, err := orm.GetV2(ctx, &obj)
-	if !exists || err != nil {
-		h.WriteJSON(w, util.MapStr{
-			"_id":   id,
-			"found": false,
-		}, http.StatusNotFound)
-		return
-	}
-	if obj.Token != "" {
-		// clear old token
-		kv.DeleteKey(core.KVAccessTokenBucket, []byte(obj.Token))
-	}
-	//create new token form this integration
-	if obj.Guest.Enabled && obj.Guest.RunAs != "" {
-		ret, err := security.CreateAPIToken(obj.Guest.RunAs, "", "widget", security2.MustGetPermissionKeysByRole([]string{"widget"}))
-		if err != nil {
-			h.WriteError(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		obj.Token = ret["access_token"].(string)
-		err = orm.Update(ctx, &obj)
-		if err != nil {
-			h.WriteError(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-	}
-	h.WriteAckOKJSON(w)
-}
+//func (h *APIHandler) renewAPIToken(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+//	ctx := orm.NewContextWithParent(req.Context())
+//	ctx.Refresh = orm.WaitForRefresh
+//
+//	reqUser, err := security2.GetUserFromContext(req.Context())
+//	if reqUser == nil || err != nil {
+//		panic(err)
+//	}
+//	id := ps.MustGetParameter("id")
+//
+//	obj := core.Integration{}
+//	obj.ID = id
+//
+//	ctx.Set(orm.SharingEnabled, true)
+//	ctx.Set(orm.SharingResourceType, "integration")
+//
+//	exists, err := orm.GetV2(ctx, &obj)
+//	if !exists || err != nil {
+//		h.WriteJSON(w, util.MapStr{
+//			"_id":   id,
+//			"found": false,
+//		}, http.StatusNotFound)
+//		return
+//	}
+//	if obj.Token != "" {
+//		// clear old token
+//		kv.DeleteKey(core.KVAccessTokenBucket, []byte(obj.Token))
+//	}
+//	//create new token form this integration
+//	if obj.Guest.Enabled && obj.Guest.RunAs != "" {
+//		ret, err := security.CreateAPIToken(obj.Guest.RunAs, "", "widget", security2.MustGetPermissionKeysByRole([]string{"widget"}))
+//		if err != nil {
+//			h.WriteError(w, err.Error(), http.StatusInternalServerError)
+//			return
+//		}
+//
+//		obj.Token = ret["access_token"].(string)
+//		err = orm.Update(ctx, &obj)
+//		if err != nil {
+//			h.WriteError(w, err.Error(), http.StatusInternalServerError)
+//			return
+//		}
+//	}
+//	h.WriteAckOKJSON(w)
+//}
 
 func IntegrationAllowOrigin(origin string, req *http.Request) bool {
 	appIntegrationID := req.Header.Get(core.HeaderIntegrationID)
