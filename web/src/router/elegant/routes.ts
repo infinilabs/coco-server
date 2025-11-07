@@ -561,7 +561,8 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.webhook',
       title: 'webhook',
       order: 5,
-      localIcon: 'link'
+      localIcon: 'link',
+      hideInMenu: true,
     },
     children: [
       {
