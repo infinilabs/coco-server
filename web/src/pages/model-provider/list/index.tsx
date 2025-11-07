@@ -5,7 +5,7 @@ import {
   PlusOutlined,
   SettingOutlined
 } from '@ant-design/icons';
-import { Button, Dropdown, Form, Input, List, Modal, Spin, Switch, Table, message } from 'antd';
+import { Avatar, Button, Dropdown, Form, Input, List, Modal, Spin, Switch, Table, message } from 'antd';
 import Search from 'antd/es/input/Search';
 
 import type { IntegratedStoreModalRef } from '@/components/common/IntegratedStoreModal';
