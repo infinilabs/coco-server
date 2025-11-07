@@ -2,7 +2,7 @@
  * Web: https://infinilabs.com
  * Email: hello#infini.ltd */
 
-package common
+package core
 
 import "infini.sh/framework/core/orm"
 

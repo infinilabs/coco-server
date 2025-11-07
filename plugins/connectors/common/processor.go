@@ -35,7 +35,7 @@ type ConnectorProcessorBase struct {
 	connector ConnectorAPI
 }
 
-func (base *ConnectorProcessorBase) MustParseConfig(datasource *common.DataSource, cfgObj interface{}) {
+func (base *ConnectorProcessorBase) MustParseConfig(datasource *core.DataSource, cfgObj interface{}) {
 	cfg, err := config.NewConfigFrom(datasource.Connector.Config)
 	if err != nil {
 		log.Errorf("Failed to create config from datasource [%s]: %v", datasource.Name, err)
@@ -79,26 +79,26 @@ func (processor *ConnectorProcessorBase) Process(ctx *pipeline.Context) error {
 	return processor.connector.Fetch(ctx, conn, ds)
 }
 
-func (base *ConnectorProcessorBase) GetBasicInfo(ctx *pipeline.Context) (connector *common.Connector, datasource *common.DataSource) {
+func (base *ConnectorProcessorBase) GetBasicInfo(ctx *pipeline.Context) (connector *core.Connector, datasource *core.DataSource) {
 	tempConnector := ctx.Get(core.PipelineContextConnector)
-	connector, ok := tempConnector.(*common.Connector)
+	connector, ok := tempConnector.(*core.Connector)
 	if !ok || connector == nil {
 		panic(errors.Errorf("invalid connector in pipeline context [%s][%s]", ctx.Config.Name, ctx.ID()))
 	}
 
 	tempDatasource := ctx.Get(core.PipelineContextDatasource)
-	datasource, ok = tempDatasource.(*common.DataSource)
+	datasource, ok = tempDatasource.(*core.DataSource)
 	if !ok || datasource == nil {
 		panic(errors.Errorf("invalid datasource in pipeline context [%s][%s]", ctx.Config.Name, ctx.ID()))
 	}
 	return connector, datasource
 }
 
-func (processor *ConnectorProcessorBase) Collect(ctx *pipeline.Context, connector *common.Connector, datasource *common.DataSource, doc common.Document) {
-	processor.BatchCollect(ctx, connector, datasource, []common.Document{doc})
+func (processor *ConnectorProcessorBase) Collect(ctx *pipeline.Context, connector *core.Connector, datasource *core.DataSource, doc core.Document) {
+	processor.BatchCollect(ctx, connector, datasource, []core.Document{doc})
 }
 
-func (processor *ConnectorProcessorBase) BatchCollect(ctx *pipeline.Context, connector *common.Connector, datasource *common.DataSource, docs []common.Document) {
+func (processor *ConnectorProcessorBase) BatchCollect(ctx *pipeline.Context, connector *core.Connector, datasource *core.DataSource, docs []core.Document) {
 
 	//append enrichment pipeline process
 	if datasource.EnrichmentPipeline != nil {

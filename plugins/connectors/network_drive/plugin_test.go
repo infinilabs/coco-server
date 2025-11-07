@@ -5,6 +5,7 @@
 package network_drive
 
 import (
+	"infini.sh/coco/core"
 	"reflect"
 	"testing"
 
@@ -147,7 +148,7 @@ func TestMarkParentFoldersAsValid(t *testing.T) {
 }
 
 func TestCreateDocumentWithHierarchy(t *testing.T) {
-	datasource := &common.DataSource{
+	datasource := &core.DataSource{
 		Name: "Test Network Drive",
 	}
 	// Set the ID manually via the embedded ID field

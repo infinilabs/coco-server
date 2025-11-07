@@ -6,7 +6,6 @@ package security
 
 import (
 	"fmt"
-	log "github.com/cihub/seelog"
 	"github.com/emirpasic/gods/sets/hashset"
 	"infini.sh/framework/core/api"
 	"infini.sh/framework/core/orm"
@@ -111,7 +110,6 @@ func (h *APIHandler) RequestAccessToken(w http.ResponseWriter, req *http.Request
 }
 
 func CreateAPIToken(userID string, tokenName, typeName string, permissions []security.PermissionKey) (util.MapStr, error) {
-
 
 	if tokenName == "" {
 		tokenName = GenerateApiTokenName("")

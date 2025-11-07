@@ -10,6 +10,7 @@ import (
 	log "github.com/cihub/seelog"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
+	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/modules/connector"
 	"infini.sh/coco/plugins/connectors"
@@ -138,8 +139,8 @@ func oAuthRedirect(w http.ResponseWriter, req *http.Request, ps httprouter.Param
 	// Use the unique user ID (userInfo.Sub) or email (userInfo.Email) as the unique identifier
 	log.Debugf("google drive authenticated user: ID=%s, Email=%s", userInfo.Sub, userInfo.Email)
 
-	datasource := common.DataSource{
-		SyncConfig: common.SyncConfig{Enabled: true, Interval: "30s"},
+	datasource := core.DataSource{
+		SyncConfig: core.SyncConfig{Enabled: true, Interval: "30s"},
 		Enabled:    true,
 	}
 	datasource.ID = util.MD5digest(fmt.Sprintf("%v,%v,%v,%v", "google_drive", connectorID, userInfo.Sub, userInfo.Email))
@@ -151,7 +152,7 @@ func oAuthRedirect(w http.ResponseWriter, req *http.Request, ps httprouter.Param
 		datasource.Name = "My Google Drive"
 	}
 
-	datasource.Connector = common.ConnectorConfig{
+	datasource.Connector = core.ConnectorConfig{
 		ConnectorID: connectorID,
 		Config: util.MapStr{
 			"access_token":  token.AccessToken,                 // Store access token

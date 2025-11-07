@@ -17,13 +17,13 @@ import (
 )
 
 var (
-	config   *Config
+	config   *core.Config
 	configMu sync.Mutex
 )
 
-func AppConfigFromFile() (*Config, error) {
-	cocoConfig := Config{
-		ServerInfo: &ServerInfo{Version: Version{Number: global.Env().GetVersion()}, Updated: time.Now()},
+func AppConfigFromFile() (*core.Config, error) {
+	cocoConfig := core.Config{
+		ServerInfo: &core.ServerInfo{Version: core.Version{Number: global.Env().GetVersion()}, Updated: time.Now()},
 	}
 
 	ok, err := env.ParseConfig("coco", &cocoConfig)
@@ -34,7 +34,7 @@ func AppConfigFromFile() (*Config, error) {
 	return &cocoConfig, nil
 }
 
-func AppConfig() Config {
+func AppConfig() core.Config {
 
 	if config == nil {
 		reloadConfig()
@@ -62,21 +62,21 @@ func reloadConfig() {
 	}
 
 	if config == nil {
-		config = &Config{}
+		config = &core.Config{}
 	}
 	//read settings from kv
 	buf, _ := kv.GetValue(core.DefaultSettingBucketKey, []byte(core.DefaultServerConfigKey))
 	if buf != nil {
-		si := &ServerInfo{}
+		si := &core.ServerInfo{}
 		err := util.FromJSONBytes(buf, si)
 		if err == nil {
 			config.ServerInfo = si
-			config.ServerInfo.Version = Version{global.Env().GetVersion()}
+			config.ServerInfo.Version = core.Version{global.Env().GetVersion()}
 		}
 	}
 	buf, _ = kv.GetValue(core.DefaultSettingBucketKey, []byte(core.DefaultAppSettingsKey))
 	if buf != nil {
-		appSettings := &AppSettings{}
+		appSettings := &core.AppSettings{}
 		err := util.FromJSONBytes(buf, appSettings)
 		if err == nil {
 			config.AppSettings = appSettings
@@ -84,7 +84,7 @@ func reloadConfig() {
 	}
 	buf, _ = kv.GetValue(core.DefaultSettingBucketKey, []byte(core.DefaultSearchSettingsKey))
 	if buf != nil {
-		searchSettings := &SearchSettings{}
+		searchSettings := &core.SearchSettings{}
 		err := util.FromJSONBytes(buf, searchSettings)
 		if err == nil {
 			config.SearchSettings = searchSettings
@@ -109,7 +109,7 @@ func reloadConfig() {
 	}
 }
 
-func SetAppConfig(c *Config) {
+func SetAppConfig(c *core.Config) {
 	configMu.Lock()
 	defer configMu.Unlock()
 	//save server's config
@@ -131,24 +131,5 @@ func SetAppConfig(c *Config) {
 	reloadConfig()
 }
 
-type Config struct {
-	ServerInfo     *ServerInfo     `config:"server" json:"server,omitempty"`
-	AppSettings    *AppSettings    `config:"app_settings" json:"app_settings,omitempty"`
-	SearchSettings *SearchSettings `config:"search_settings" json:"search_settings,omitempty"`
-}
-
 const OLLAMA = "ollama"
 const OPENAI = "openai"
-
-type AppSettings struct {
-	Chat *ChatConfig `json:"chat,omitempty" config:"chat" `
-}
-
-type ChatConfig struct {
-	ChatStartPageConfig *core.ChatStartPageConfig `config:"start_page" json:"start_page,omitempty"`
-}
-
-type SearchSettings struct {
-	Enabled     bool   `json:"enabled"`
-	Integration string `json:"integration"`
-}

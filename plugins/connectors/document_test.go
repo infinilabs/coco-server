@@ -5,6 +5,7 @@
 package connectors
 
 import (
+	"infini.sh/coco/core"
 	"reflect"
 	"testing"
 
@@ -310,7 +311,7 @@ func TestSetDocumentHierarchy(t *testing.T) {
 
 func TestCreateDocumentWithHierarchy(t *testing.T) {
 	// Create a test datasource
-	datasource := &common.DataSource{
+	datasource := &core.DataSource{
 		Name: "Test DataSource",
 	}
 	datasource.ID = "test-datasource-id"

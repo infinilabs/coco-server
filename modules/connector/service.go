@@ -6,7 +6,7 @@ package connector
 
 import (
 	"errors"
-	"infini.sh/coco/modules/common"
+	"infini.sh/coco/core"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
 	ccache "infini.sh/framework/lib/cache"
@@ -16,18 +16,18 @@ import (
 var connectorCacheKey = "Datasource"
 var configCache = ccache.Layered(ccache.Configure().MaxSize(10000).ItemsToPrune(100))
 
-func GetConnectorConfig(id string) (*common.Connector, error) {
+func GetConnectorConfig(id string) (*core.Connector, error) {
 	v := configCache.Get(connectorCacheKey, id)
 	if v != nil {
 		if !v.Expired() {
-			x, ok := v.Value().(*common.Connector)
+			x, ok := v.Value().(*core.Connector)
 			if ok && x != nil {
 				return x, nil
 			}
 		}
 	}
 
-	obj := common.Connector{}
+	obj := core.Connector{}
 	obj.ID = id
 
 	exists, err := orm.Get(&obj)

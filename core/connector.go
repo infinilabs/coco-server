@@ -2,13 +2,11 @@
  * Web: https://infinilabs.com
  * Email: hello#infini.ltd */
 
-package common
-
-import "infini.sh/coco/core"
+package core
 
 // registered connectors
 type Connector struct {
-	core.CombinedFullText
+	CombinedFullText
 	Name        string   `json:"name,omitempty" elastic_mapping:"name:{type:keyword,copy_to:combined_fulltext}"`            // Source of the document (e.g., "github", "google_drive", "dropbox")
 	Description string   `json:"description,omitempty" elastic_mapping:"description:{type:text,copy_to:combined_fulltext}"` // Source of the document (e.g., "github", "google_drive", "dropbox")
 	Category    string   `json:"category,omitempty" elastic_mapping:"category:{type:keyword,copy_to:combined_fulltext}"`    // Primary category of the document (e.g., "report", "article")

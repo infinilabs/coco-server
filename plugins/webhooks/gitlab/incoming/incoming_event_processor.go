@@ -8,8 +8,8 @@ import (
 	"context"
 	"fmt"
 	log "github.com/cihub/seelog"
+	core2 "infini.sh/coco/core"
 	"infini.sh/coco/modules/assistant"
-	"infini.sh/coco/modules/common"
 	"infini.sh/coco/plugins/webhooks/gitlab/core"
 	"infini.sh/framework/core/api"
 	"infini.sh/framework/core/config"
@@ -72,7 +72,7 @@ func (processor *Processor) Process(ctx *pipeline.Context) error {
 		log.Error(util.MustToJSON(event))
 
 		docV := ctx.Get("document")
-		doc, ok := docV.(common.Document)
+		doc, ok := docV.(core2.Document)
 		if ok {
 			switch event.ObjectAttributes.Action {
 			case "open":
@@ -113,7 +113,7 @@ func (processor *Processor) Process(ctx *pipeline.Context) error {
 	return nil
 }
 
-func (processor *Processor) onOpenMR(doc *common.Document, event *core.MergeRequestEvent) {
+func (processor *Processor) onOpenMR(doc *core2.Document, event *core.MergeRequestEvent) {
 	vars := map[string]any{}
 
 	details, _ := processor.getMRDetail(event.Project.ID, event.ObjectAttributes.IID)

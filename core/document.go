@@ -2,10 +2,9 @@
  * Web: https://infinilabs.com
  * Email: hello#infini.ltd */
 
-package common
+package core
 
 import (
-	"infini.sh/coco/core"
 	"strings"
 	"time"
 )
@@ -24,7 +23,7 @@ type DataSourceReference struct {
 }
 
 type Document struct {
-	core.CombinedFullText
+	CombinedFullText
 
 	Source DataSourceReference `json:"source,omitempty" elastic_mapping:"source:{type:object}"` // Source of the document
 

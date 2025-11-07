@@ -6,6 +6,7 @@ package document
 
 import (
 	log "github.com/cihub/seelog"
+	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/modules/connector"
 	httprouter "infini.sh/framework/core/api/router"
@@ -15,7 +16,7 @@ import (
 )
 
 func (h *APIHandler) createDoc(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	var obj = &common.Document{}
+	var obj = &core.Document{}
 	err := h.DecodeJSON(req, obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -36,7 +37,7 @@ func (h *APIHandler) createDoc(w http.ResponseWriter, req *http.Request, ps http
 func (h *APIHandler) getDoc(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("doc_id")
 
-	obj := common.Document{}
+	obj := core.Document{}
 	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
 	ctx.Set(orm.SharingEnabled, true)
@@ -61,7 +62,7 @@ func (h *APIHandler) updateDoc(w http.ResponseWriter, req *http.Request, ps http
 	id := ps.MustGetParameter("doc_id")
 	ctx := orm.NewContextWithParent(req.Context())
 
-	obj := common.Document{}
+	obj := core.Document{}
 	err := h.DecodeJSON(req, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -94,7 +95,7 @@ func (h *APIHandler) updateDoc(w http.ResponseWriter, req *http.Request, ps http
 func (h *APIHandler) deleteDoc(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("doc_id")
 
-	obj := common.Document{}
+	obj := core.Document{}
 	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
 
@@ -187,7 +188,7 @@ func (h *APIHandler) searchDocs(w http.ResponseWriter, req *http.Request, ps htt
 		}
 	}
 
-	orm.WithModel(ctx, &common.Document{})
+	orm.WithModel(ctx, &core.Document{})
 	ctx.Set(orm.SharingEnabled, true)
 	ctx.Set(orm.SharingResourceType, "document")
 	ctx.Set(orm.SharingCheckingInheritedRulesEnabled, true)
@@ -226,7 +227,7 @@ func (h *APIHandler) batchDeleteDoc(w http.ResponseWriter, req *http.Request, ps
 	builder.Filter(orm.TermsQuery("id", ids))
 
 	ctx := orm.NewContextWithParent(req.Context())
-	orm.WithModel(ctx, &common.Document{})
+	orm.WithModel(ctx, &core.Document{})
 
 	_, err = orm.DeleteByQuery(ctx, builder)
 	if err != nil {

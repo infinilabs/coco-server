@@ -6,6 +6,7 @@ package common
 
 import (
 	"fmt"
+	"infini.sh/coco/core"
 	"infini.sh/framework/core/util"
 )
 
@@ -30,9 +31,9 @@ func GetFullPathForCategories(parentCategories []string) string {
 
 const SystemHierarchyPathKey = "parent_path"
 
-func CreateHierarchyPathFolderDoc(datasource *DataSource, id string, name string, parentCategories []string) Document {
-	document := Document{
-		Source: DataSourceReference{
+func CreateHierarchyPathFolderDoc(datasource *core.DataSource, id string, name string, parentCategories []string) core.Document {
+	document := core.Document{
+		Source: core.DataSourceReference{
 			ID:   datasource.ID,
 			Name: datasource.Name,
 			Type: "connector",

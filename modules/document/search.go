@@ -21,77 +21,6 @@ import (
 	"strings"
 )
 
-// MatchQuery represents a match query in Elasticsearch
-type MatchQuery struct {
-	Field string `json:"field"`
-	Query string `json:"query"`
-}
-
-// TermQuery represents a term query in Elasticsearch
-type TermQuery struct {
-	Field string `json:"field"`
-	Value string `json:"value"`
-}
-
-type QueryStringQuery struct {
-	Field string `json:"field"`
-	Value string `json:"query"`
-}
-
-// RangeQuery represents a range query in Elasticsearch
-type RangeQuery struct {
-	Field string `json:"field"`
-	GTE   *int   `json:"gte,omitempty"` // Greater than or equal
-	LTE   *int   `json:"lte,omitempty"` // Less than or equal
-}
-
-// BoolQuery supports combining multiple queries
-type BoolQuery struct {
-	Must    []interface{} `json:"must,omitempty"`
-	Should  []interface{} `json:"should,omitempty"`
-	MustNot []interface{} `json:"must_not,omitempty"`
-	Filter  []interface{} `json:"filter,omitempty"`
-}
-
-// Aggregation represents a basic metric aggregation
-type Aggregation struct {
-	Field string `json:"field"`
-}
-
-// SortOption defines sorting for search results
-type SortOption struct {
-	Field string `json:"field"`
-	Order string `json:"order"` // "asc" or "desc"
-}
-
-// TotalHits represents the total number of hits in the search response
-type TotalHits struct {
-	Value    int    `json:"value"`
-	Relation string `json:"relation"` // "eq" (exact) or "gte" (greater than or equal)
-}
-
-// IndexDocument used to construct indexing document
-type IndexDocument struct {
-	Index     string                   `json:"_index,omitempty"`
-	Type      string                   `json:"_type,omitempty"`
-	ID        string                   `json:"_id,omitempty"`
-	Routing   string                   `json:"_routing,omitempty"`
-	Score     float32                  `json:"_score,omitempty"`
-	Source    common.Document          `json:"_source,omitempty"`
-	Highlight map[string][]interface{} `json:"highlight,omitempty"`
-}
-
-type SearchResponse struct {
-	Took     int  `json:"took"`
-	TimedOut bool `json:"timed_out"`
-	Hits     struct {
-		Total    interface{}     `json:"total"`
-		MaxScore float32         `json:"max_score"`
-		Hits     []IndexDocument `json:"hits,omitempty"`
-	} `json:"hits"`
-	//Aggregations map[string]AggregationResponse `json:"aggregations,omitempty"`
-}
-
 func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
 	log.Error(req.URL.RawQuery)
@@ -138,20 +67,20 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 			assistants := searchAssistant(req, query, assistantSize)
 			if len(assistants) > 0 {
 				for _, assistant := range assistants {
-					doc := common.Document{}
+					doc := core.Document{}
 					doc.ID = assistant.ID
 					doc.Type = "AI Assistant"
 					doc.Icon = assistant.Icon
 					doc.Title = assistant.Name
 					doc.Summary = assistant.Description
 					doc.URL = fmt.Sprintf("coco://extenstions/infinilabs/ask_assistant/%v", assistant.ID)
-					doc.Source = common.DataSourceReference{
+					doc.Source = core.DataSourceReference{
 						ID:   "assistant",
 						Name: "Assistant",
 						Icon: "font_robot",
 					}
 					//newHit := IndexDocument{Index: "assistant", ID: assistant.ID, Source: doc, Score: v2.Hits.MaxScore + 500}
-					newHit := elastic.DocumentWithMeta[common.Document]{
+					newHit := elastic.DocumentWithMeta[core.Document]{
 						ID:     assistant.ID,
 						Index:  "assistant",
 						Source: doc,
@@ -161,7 +90,7 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 			}
 		}
 
-		result := elastic.SearchResponseWithMeta[common.Document]{}
+		result := elastic.SearchResponseWithMeta[core.Document]{}
 		result.Hits.Hits = docs1
 		result.Hits.Total = util.MapStr{
 			"value":    total,
@@ -175,7 +104,7 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 	}
 }
 
-func RefineIcon(ctx context.Context, doc *common.Document) {
+func RefineIcon(ctx context.Context, doc *core.Document) {
 	ctx1 := orm.NewContextWithParent(ctx)
 	ctx1.DirectReadAccess()
 	// Get the pointer to doc.Source to make sure you're modifying the original

@@ -67,9 +67,9 @@ type RAGContext struct {
 	intentModel     *core.ModelConfig
 	pickingDocModel *core.ModelConfig
 	//answeringModel      *common.ModelConfig
-	intentModelProvider *common.ModelProvider
-	pickingDocProvider  *common.ModelProvider
-	answeringProvider   *common.ModelProvider
+	intentModelProvider *core.ModelProvider
+	pickingDocProvider  *core.ModelProvider
+	answeringProvider   *core.ModelProvider
 
 	AssistantCfg *core.Assistant
 
@@ -84,7 +84,7 @@ func (r RAGContext) MustGetAnsweringModel() *core.ModelConfig {
 	return &r.AssistantCfg.AnsweringModel
 }
 
-func (r RAGContext) GetAnsweringProvider() *common.ModelProvider {
+func (r RAGContext) GetAnsweringProvider() *core.ModelProvider {
 
 	if r.answeringProvider != nil {
 		return r.answeringProvider
@@ -200,10 +200,10 @@ func (h APIHandler) getRAGContext(req *http.Request, assistant *core.Assistant) 
 	return params, nil
 }
 
-func createAssistantMessage(sessionID, assistantID, requestMessageID string) *common.ChatMessage {
-	msg := &common.ChatMessage{
+func createAssistantMessage(sessionID, assistantID, requestMessageID string) *core.ChatMessage {
+	msg := &core.ChatMessage{
 		SessionID:      sessionID,
-		MessageType:    common.MessageTypeAssistant,
+		MessageType:    core.MessageTypeAssistant,
 		ReplyMessageID: requestMessageID,
 		AssistantID:    assistantID,
 	}
@@ -214,18 +214,18 @@ func createAssistantMessage(sessionID, assistantID, requestMessageID string) *co
 	return msg
 }
 
-func finalizeProcessing(ctx *orm.Context, sessionID string, msg *common.ChatMessage, sender common.MessageSender) {
+func finalizeProcessing(ctx *orm.Context, sessionID string, msg *core.ChatMessage, sender core.MessageSender) {
 	if err := orm.Save(ctx, msg); err != nil {
 		_ = log.Errorf("Failed to save assistant message: %v", err)
 	}
 
-	_ = sender.SendMessage(common.NewMessageChunk(
-		sessionID, msg.ID, common.MessageTypeSystem, msg.ReplyMessageID,
+	_ = sender.SendMessage(core.NewMessageChunk(
+		sessionID, msg.ID, core.MessageTypeSystem, msg.ReplyMessageID,
 		common.ReplyEnd, "Processing completed", 0,
 	))
 }
 
-func processMessageAsync(ctx *orm.Context, reqMsg *common.ChatMessage, params *RAGContext, sender common.MessageSender) error {
+func processMessageAsync(ctx *orm.Context, reqMsg *core.ChatMessage, params *RAGContext, sender core.MessageSender) error {
 	log.Debugf("Starting async processing for session: %v", params.SessionID)
 
 	replyMsg := createAssistantMessage(params.SessionID, reqMsg.AssistantID, reqMsg.ID)
@@ -245,8 +245,8 @@ func processMessageAsync(ctx *orm.Context, reqMsg *common.ChatMessage, params *R
 				msg := fmt.Sprintf("⚠️ error in async processing message reply, %v", v)
 				if replyMsg.Message == "" {
 					replyMsg.Message = msg
-					_ = sender.SendMessage(common.NewMessageChunk(
-						params.SessionID, replyMsg.ID, common.MessageTypeSystem, reqMsg.ID,
+					_ = sender.SendMessage(core.NewMessageChunk(
+						params.SessionID, replyMsg.ID, core.MessageTypeSystem, reqMsg.ID,
 						common.Response, msg, 0,
 					))
 				}
@@ -259,7 +259,7 @@ func processMessageAsync(ctx *orm.Context, reqMsg *common.ChatMessage, params *R
 		inflightMessages.Delete(taskID)
 	}()
 
-	reqMsg.Details = make([]common.ProcessingDetails, 0)
+	reqMsg.Details = make([]core.ProcessingDetails, 0)
 
 	// Prepare input values
 	if params.InputValues == nil {
@@ -357,7 +357,7 @@ func processMessageAsync(ctx *orm.Context, reqMsg *common.ChatMessage, params *R
 	return err
 }
 
-func fetchSessionHistory(ctx context.Context, reqMsg, replyMsg *common.ChatMessage, params *RAGContext, size int, inputValues map[string]any) (string, error) {
+func fetchSessionHistory(ctx context.Context, reqMsg, replyMsg *core.ChatMessage, params *RAGContext, size int, inputValues map[string]any) (string, error) {
 	var historyStr = strings.Builder{}
 
 	chatHistory := memory.NewChatMessageHistory(memory.WithPreviousMessages([]llms.ChatMessage{}))
@@ -378,15 +378,15 @@ func fetchSessionHistory(ctx context.Context, reqMsg, replyMsg *common.ChatMessa
 		v := history[i]
 		msgText := util.SubStringWithSuffix(v.Message, 1000, "...")
 		switch v.MessageType {
-		case common.MessageTypeSystem:
+		case core.MessageTypeSystem:
 			msg := llms.SystemChatMessage{Content: msgText}
 			_ = chatHistory.AddMessage(context.Background(), msg)
 			break
-		case common.MessageTypeAssistant:
+		case core.MessageTypeAssistant:
 			msg := llms.AIChatMessage{Content: msgText}
 			_ = chatHistory.AddMessage(context.Background(), msg)
 			break
-		case common.MessageTypeUser:
+		case core.MessageTypeUser:
 			msg := llms.HumanChatMessage{Content: msgText}
 			_ = chatHistory.AddMessage(context.Background(), msg)
 			break
@@ -408,7 +408,7 @@ func fetchSessionHistory(ctx context.Context, reqMsg, replyMsg *common.ChatMessa
 	return historyStr.String(), nil
 }
 
-func processLLMTools(ctx context.Context, reqMsg *common.ChatMessage, replyMsg *common.ChatMessage, params *RAGContext, inputValues map[string]any, sender common.MessageSender) (string, error) {
+func processLLMTools(ctx context.Context, reqMsg *core.ChatMessage, replyMsg *core.ChatMessage, params *RAGContext, inputValues map[string]any, sender core.MessageSender) (string, error) {
 	if params == nil || params.AssistantCfg == nil {
 		//return nil
 		panic("invalid assistant config, skip")
@@ -494,7 +494,7 @@ func processLLMTools(ctx context.Context, reqMsg *common.ChatMessage, replyMsg *
 		switch v.Type {
 		case common.StreamableHTTP:
 			bytes := util.MustToJSONBytes(v.Config)
-			cfg := common.StreamableHttpConfig{}
+			cfg := core.StreamableHttpConfig{}
 			err := util.FromJSONBytes(bytes, &cfg)
 			if err != nil {
 				if global.Env().IsDebug {
@@ -520,7 +520,7 @@ func processLLMTools(ctx context.Context, reqMsg *common.ChatMessage, replyMsg *
 			break
 		case common.SSE:
 			bytes := util.MustToJSONBytes(v.Config)
-			cfg := common.SSEConfig{}
+			cfg := core.SSEConfig{}
 			err := util.FromJSONBytes(bytes, &cfg)
 			if err != nil {
 				if global.Env().IsDebug {
@@ -547,7 +547,7 @@ func processLLMTools(ctx context.Context, reqMsg *common.ChatMessage, replyMsg *
 		case common.Stdio:
 			bytes := util.MustToJSONBytes(v.Config)
 
-			cfg := common.StdioConfig{}
+			cfg := core.StdioConfig{}
 			err := util.FromJSONBytes(bytes, &cfg)
 			if err != nil {
 				if global.Env().IsDebug {
@@ -624,7 +624,7 @@ func processLLMTools(ctx context.Context, reqMsg *common.ChatMessage, replyMsg *
 	callback.CustomWriteFunc = func(chunk string) {
 		if chunk != "" {
 			answerBuffer.WriteString(chunk)
-			echoMsg := common.NewMessageChunk(params.SessionID, replyMsg.ID, common.MessageTypeAssistant, reqMsg.ID, common.Tools, chunk, toolsSeq)
+			echoMsg := core.NewMessageChunk(params.SessionID, replyMsg.ID, core.MessageTypeAssistant, reqMsg.ID, common.Tools, chunk, toolsSeq)
 			_ = sender.SendMessage(echoMsg)
 		}
 		toolsSeq++
@@ -654,12 +654,12 @@ func processLLMTools(ctx context.Context, reqMsg *common.ChatMessage, replyMsg *
 	return answer, nil
 }
 
-func processInitialDocumentSearch(ctx *orm.Context, reqMsg, replyMsg *common.ChatMessage, params *RAGContext, fechSize int, sender common.MessageSender) ([]common.Document, error) {
+func processInitialDocumentSearch(ctx *orm.Context, reqMsg, replyMsg *core.ChatMessage, params *RAGContext, fechSize int, sender core.MessageSender) ([]core.Document, error) {
 
 	if params.intentModel != nil && (params.AssistantCfg.DeepThinkConfig != nil && params.AssistantCfg.DeepThinkConfig.PickDatasource) && params.QueryIntent != nil {
 		if !params.QueryIntent.NeedNetworkSearch {
 			log.Info("intent analyzer decided to skip fetch datasource")
-			return []common.Document{}, nil
+			return []core.Document{}, nil
 		}
 	}
 
@@ -710,7 +710,7 @@ func processInitialDocumentSearch(ctx *orm.Context, reqMsg, replyMsg *common.Cha
 
 			chunkData := simplifiedReferences[start:end]
 
-			chunkMsg := common.NewMessageChunk(params.SessionID, replyMsg.ID, common.MessageTypeAssistant, reqMsg.ID,
+			chunkMsg := core.NewMessageChunk(params.SessionID, replyMsg.ID, core.MessageTypeAssistant, reqMsg.ID,
 				common.FetchSource, string(chunkData), chunkSeq)
 
 			err = sender.SendMessage(chunkMsg)
@@ -729,19 +729,19 @@ func processInitialDocumentSearch(ctx *orm.Context, reqMsg, replyMsg *common.Cha
 		sb.WriteString("</Payload>")
 		params.sourceDocsSummaryBlock = sb.String()
 	}
-	replyMsg.Details = append(replyMsg.Details, common.ProcessingDetails{Order: 20, Type: common.FetchSource, Payload: fetchedDocs})
+	replyMsg.Details = append(replyMsg.Details, core.ProcessingDetails{Order: 20, Type: common.FetchSource, Payload: fetchedDocs})
 	return docs, err
 	//}
 	//return nil, errors.Error("nothing found")
 }
 
-func processPickDocuments(ctx context.Context, reqMsg, replyMsg *common.ChatMessage, params *RAGContext, docs []common.Document, sender common.MessageSender) ([]common.Document, error) {
+func processPickDocuments(ctx context.Context, reqMsg, replyMsg *core.ChatMessage, params *RAGContext, docs []core.Document, sender core.MessageSender) ([]core.Document, error) {
 
 	if len(docs) == 0 {
 		return nil, nil
 	}
 
-	echoMsg := common.NewMessageChunk(params.SessionID, replyMsg.ID, common.MessageTypeAssistant, reqMsg.ID, common.PickSource, string(""), 0)
+	echoMsg := core.NewMessageChunk(params.SessionID, replyMsg.ID, core.MessageTypeAssistant, reqMsg.ID, common.PickSource, string(""), 0)
 	_ = sender.SendMessage(echoMsg)
 
 	promptTemplate := common.PickingDocPromptTemplate
@@ -777,7 +777,7 @@ func processPickDocuments(ctx context.Context, reqMsg, replyMsg *common.ChatMess
 			if len(chunk) > 0 {
 				chunkSeq++
 				pickedDocsBuffer.Write(chunk)
-				msg := common.NewMessageChunk(params.SessionID, replyMsg.ID, common.MessageTypeAssistant, reqMsg.ID, common.PickSource, string(chunk), chunkSeq)
+				msg := core.NewMessageChunk(params.SessionID, replyMsg.ID, core.MessageTypeAssistant, reqMsg.ID, common.PickSource, string(chunk), chunkSeq)
 				err := sender.SendMessage(msg)
 				if err != nil {
 					return err
@@ -797,13 +797,13 @@ func processPickDocuments(ctx context.Context, reqMsg, replyMsg *common.ChatMess
 
 	log.Debug("filter document results:", pickeDocs)
 
-	docsMap := map[string]common.Document{}
+	docsMap := map[string]core.Document{}
 	for _, v := range docs {
 		docsMap[v.ID] = v
 	}
 
 	var pickedDocIDS []string
-	var pickedFullDoc = []common.Document{}
+	var pickedFullDoc = []core.Document{}
 	var validPickedDocs = []rag.PickedDocument{}
 	for _, v := range pickeDocs {
 		x, v1 := docsMap[v.ID]
@@ -818,7 +818,7 @@ func processPickDocuments(ctx context.Context, reqMsg, replyMsg *common.ChatMess
 	}
 
 	{
-		detail := common.ProcessingDetails{Order: 30, Type: common.PickSource, Payload: validPickedDocs}
+		detail := core.ProcessingDetails{Order: 30, Type: common.PickSource, Payload: validPickedDocs}
 		replyMsg.Details = append(replyMsg.Details, detail)
 	}
 
@@ -831,7 +831,7 @@ func processPickDocuments(ctx context.Context, reqMsg, replyMsg *common.ChatMess
 	return docs, err
 }
 
-func fetchDocumentInDepth(ctx *orm.Context, reqMsg, replyMsg *common.ChatMessage, params *RAGContext, docs []common.Document, inputValues map[string]any, sender common.MessageSender) error {
+func fetchDocumentInDepth(ctx *orm.Context, reqMsg, replyMsg *core.ChatMessage, params *RAGContext, docs []core.Document, inputValues map[string]any, sender core.MessageSender) error {
 	if len(params.pickedDocIDS) > 0 {
 		var query = orm.Query{}
 		query.Conds = orm.And(orm.InStringArray("_id", params.pickedDocIDS))
@@ -843,14 +843,14 @@ func fetchDocumentInDepth(ctx *orm.Context, reqMsg, replyMsg *common.ChatMessage
 		for _, v := range pickedFullDoc {
 			str := "Obtaining and analyzing documents in depth:  " + string(v.Title) + "\n"
 			strBuilder.WriteString(str)
-			chunkMsg := common.NewMessageChunk(params.SessionID, replyMsg.ID, common.MessageTypeAssistant, reqMsg.ID, common.DeepRead, str, chunkSeq)
+			chunkMsg := core.NewMessageChunk(params.SessionID, replyMsg.ID, core.MessageTypeAssistant, reqMsg.ID, common.DeepRead, str, chunkSeq)
 			err = sender.SendMessage(chunkMsg)
 			if err != nil {
 				return err
 			}
 		}
 
-		detail := common.ProcessingDetails{Order: 40, Type: common.DeepRead, Description: strBuilder.String()}
+		detail := core.ProcessingDetails{Order: 40, Type: common.DeepRead, Description: strBuilder.String()}
 		replyMsg.Details = append(replyMsg.Details, detail)
 
 		inputValues["references"] = formatDocumentForReplyReferences(pickedFullDoc)
@@ -858,9 +858,9 @@ func fetchDocumentInDepth(ctx *orm.Context, reqMsg, replyMsg *common.ChatMessage
 	return nil
 }
 
-func generateFinalResponse(taskCtx context.Context, reqMsg, replyMsg *common.ChatMessage, params *RAGContext, inputValues map[string]any, sender common.MessageSender) error {
+func generateFinalResponse(taskCtx context.Context, reqMsg, replyMsg *core.ChatMessage, params *RAGContext, inputValues map[string]any, sender core.MessageSender) error {
 
-	echoMsg := common.NewMessageChunk(params.SessionID, replyMsg.ID, common.MessageTypeAssistant, reqMsg.ID, common.Response, string(""), 0)
+	echoMsg := core.NewMessageChunk(params.SessionID, replyMsg.ID, core.MessageTypeAssistant, reqMsg.ID, common.Response, string(""), 0)
 	_ = sender.SendMessage(echoMsg)
 	replyMsg.Message += echoMsg.MessageChunk
 
@@ -882,7 +882,7 @@ func generateFinalResponse(taskCtx context.Context, reqMsg, replyMsg *common.Cha
 			log.Warnf("seems empty reply for query: %v", replyMsg)
 		}
 		if reasoningBuffer.Len() > 0 {
-			detail := common.ProcessingDetails{Order: 50, Type: common.Think, Description: reasoningBuffer.String()}
+			detail := core.ProcessingDetails{Order: 50, Type: common.Think, Description: reasoningBuffer.String()}
 			replyMsg.Details = append(replyMsg.Details, detail)
 		}
 	}()
@@ -924,7 +924,7 @@ func generateFinalResponse(taskCtx context.Context, reqMsg, replyMsg *common.Cha
 				if len(reasoningChunk) > 0 {
 					chunkSeq += 1
 					reasoningBuffer.Write(reasoningChunk)
-					msg := common.NewMessageChunk(params.SessionID, replyMsg.ID, common.MessageTypeAssistant, reqMsg.ID, common.Think, string(reasoningChunk), chunkSeq)
+					msg := core.NewMessageChunk(params.SessionID, replyMsg.ID, core.MessageTypeAssistant, reqMsg.ID, common.Think, string(reasoningChunk), chunkSeq)
 					//log.Info(util.MustToJSON(msg))
 					err = sender.SendMessage(msg)
 					if err != nil {
@@ -937,7 +937,7 @@ func generateFinalResponse(taskCtx context.Context, reqMsg, replyMsg *common.Cha
 				if len(chunk) > 0 {
 					chunkSeq += 1
 
-					msg := common.NewMessageChunk(params.SessionID, replyMsg.ID, common.MessageTypeAssistant, reqMsg.ID, common.Response, string(chunk), chunkSeq)
+					msg := core.NewMessageChunk(params.SessionID, replyMsg.ID, core.MessageTypeAssistant, reqMsg.ID, common.Response, string(chunk), chunkSeq)
 					err = sender.SendMessage(msg)
 					if err != nil {
 						panic(err)
@@ -957,7 +957,7 @@ func generateFinalResponse(taskCtx context.Context, reqMsg, replyMsg *common.Cha
 			if len(chunk) > 0 {
 				log.Trace(string(chunk))
 				chunkSeq += 1
-				msg := common.NewMessageChunk(params.SessionID, replyMsg.ID, common.MessageTypeAssistant, reqMsg.ID, common.Response, string(chunk), chunkSeq)
+				msg := core.NewMessageChunk(params.SessionID, replyMsg.ID, core.MessageTypeAssistant, reqMsg.ID, common.Response, string(chunk), chunkSeq)
 				err = sender.SendMessage(msg)
 				messageBuffer.Write(chunk)
 			}
@@ -1016,7 +1016,7 @@ func generateFinalResponse(taskCtx context.Context, reqMsg, replyMsg *common.Cha
 	return nil
 }
 
-func formatDocumentForReplyReferences(docs []common.Document) string {
+func formatDocumentForReplyReferences(docs []core.Document) string {
 	var sb strings.Builder
 	sb.WriteString("<REFERENCES>\n")
 	for i, doc := range docs {
@@ -1034,7 +1034,7 @@ func formatDocumentForReplyReferences(docs []common.Document) string {
 	return sb.String()
 }
 
-func formatDocumentReferencesToDisplay(docs []common.Document) string {
+func formatDocumentReferencesToDisplay(docs []core.Document) string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("<Payload total=%v>\n", len(docs)))
 	outDocs := []util.MapStr{}
@@ -1052,7 +1052,7 @@ func formatDocumentReferencesToDisplay(docs []common.Document) string {
 	return sb.String()
 }
 
-func formatDocumentForPick(docs []common.Document) []util.MapStr {
+func formatDocumentForPick(docs []core.Document) []util.MapStr {
 	outDocs := []util.MapStr{}
 	for _, doc := range docs {
 		item := util.MapStr{}
@@ -1067,8 +1067,8 @@ func formatDocumentForPick(docs []common.Document) []util.MapStr {
 	return outDocs
 }
 
-func fetchDocuments(query *orm.Query) ([]common.Document, error) {
-	var docs []common.Document
+func fetchDocuments(query *orm.Query) ([]core.Document, error) {
+	var docs []core.Document
 	err, _ := orm.SearchWithJSONMapper(&docs, query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch documents: %w", err)

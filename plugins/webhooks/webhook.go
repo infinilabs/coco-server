@@ -6,6 +6,7 @@ package webhooks
 
 import (
 	log "github.com/cihub/seelog"
+	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/api"
 	httprouter "infini.sh/framework/core/api/router"
@@ -30,7 +31,7 @@ func WebhookHandler(w http.ResponseWriter, req *http.Request, ps httprouter.Para
 		//append enrichment pipeline process
 		if datasource.EnrichmentPipeline != nil {
 
-			doc := common.Document{}
+			doc := core.Document{}
 			doc.Metadata = map[string]interface{}{}
 			doc.Payload = map[string]interface{}{}
 			doc.Source.ID = datasource.ID
@@ -50,7 +51,7 @@ func WebhookHandler(w http.ResponseWriter, req *http.Request, ps httprouter.Para
 			}
 
 			docV := ctx.Get("document")
-			document, ok := docV.(common.Document)
+			document, ok := docV.(core.Document)
 			if ok {
 				queueCfg := &queue.QueueConfig{Name: "indexing_documents"}
 				data := util.MustToJSONBytes(document)

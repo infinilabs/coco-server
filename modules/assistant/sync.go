@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	log "github.com/cihub/seelog"
+	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/orm"
 	"strings"
@@ -20,7 +21,7 @@ type MemoryMessageSender struct {
 	messages []string
 }
 
-func (m *MemoryMessageSender) SendMessage(msg *common.MessageChunk) error {
+func (m *MemoryMessageSender) SendMessage(msg *core.MessageChunk) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -58,7 +59,7 @@ func AskAssistantSync(ctx context.Context, id string, message string, vars map[s
 	}
 
 	// Construct and save a new chat message
-	request := common.MessageRequest{
+	request := core.MessageRequest{
 		Message: message,
 	}
 	session, err, reqMsg, _ := InternalCreateAndSaveNewChatMessage(ctx1, id, &request, false)

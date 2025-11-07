@@ -5,6 +5,7 @@
 package llm
 
 import (
+	"infini.sh/coco/core"
 	"net/http"
 
 	"infini.sh/coco/modules/common"
@@ -14,7 +15,7 @@ import (
 
 func (h *APIHandler) create(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
-	var obj = &common.ModelProvider{}
+	var obj = &core.ModelProvider{}
 	err := h.DecodeJSON(req, obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -38,7 +39,7 @@ func (h *APIHandler) create(w http.ResponseWriter, req *http.Request, ps httprou
 func (h *APIHandler) get(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("id")
 
-	obj := common.ModelProvider{}
+	obj := core.ModelProvider{}
 	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
 	ctx.Set(orm.SharingEnabled, true)
@@ -54,7 +55,7 @@ func (h *APIHandler) get(w http.ResponseWriter, req *http.Request, ps httprouter
 
 func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("id")
-	obj := common.ModelProvider{}
+	obj := core.ModelProvider{}
 	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
 	ctx.Set(orm.SharingEnabled, true)
@@ -66,7 +67,7 @@ func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprou
 		return
 	}
 
-	newObj := common.ModelProvider{}
+	newObj := core.ModelProvider{}
 	err = h.DecodeJSON(req, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -98,7 +99,7 @@ func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprou
 func (h *APIHandler) delete(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("id")
 
-	obj := common.ModelProvider{}
+	obj := core.ModelProvider{}
 	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
 
@@ -136,7 +137,7 @@ func (h *APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprou
 	builder.EnableBodyBytes()
 
 	ctx := orm.NewContextWithParent(req.Context())
-	orm.WithModel(ctx, &common.ModelProvider{})
+	orm.WithModel(ctx, &core.ModelProvider{})
 	ctx.Set(orm.SharingEnabled, true)
 	ctx.Set(orm.SharingResourceType, "llm-provider")
 	res, err := orm.SearchV2(ctx, builder)

@@ -5,6 +5,7 @@
 package connector
 
 import (
+	"infini.sh/coco/core"
 	"infini.sh/framework/core/elastic"
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/security"
@@ -18,7 +19,7 @@ import (
 )
 
 func (h *APIHandler) create(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	var obj = &common.Connector{}
+	var obj = &core.Connector{}
 	err := h.DecodeJSON(req, obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -44,7 +45,7 @@ func (h *APIHandler) create(w http.ResponseWriter, req *http.Request, ps httprou
 func (h *APIHandler) get(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("id")
 
-	obj := common.Connector{}
+	obj := core.Connector{}
 	obj.ID = id
 
 	ctx := orm.NewContextWithParent(req.Context())
@@ -69,8 +70,8 @@ func (h *APIHandler) get(w http.ResponseWriter, req *http.Request, ps httprouter
 }
 
 // TODO cache
-func GetConnectorByID(id string) (*common.Connector, error) {
-	obj := common.Connector{}
+func GetConnectorByID(id string) (*core.Connector, error) {
+	obj := core.Connector{}
 	obj.ID = id
 
 	ctx := orm.NewContext()
@@ -85,7 +86,7 @@ func GetConnectorByID(id string) (*common.Connector, error) {
 
 func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("id")
-	obj := common.Connector{}
+	obj := core.Connector{}
 
 	replace := h.GetBoolOrDefault(req, "replace", false)
 	ctx := orm.NewContextWithParent(req.Context())
@@ -113,7 +114,7 @@ func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprou
 		create = &t
 	}
 
-	obj = common.Connector{}
+	obj = core.Connector{}
 	err = h.DecodeJSON(req, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -144,7 +145,7 @@ func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprou
 func (h *APIHandler) delete(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("id")
 
-	obj := common.Connector{}
+	obj := core.Connector{}
 	obj.ID = id
 
 	ctx := orm.NewContextWithParent(req.Context())
@@ -194,11 +195,11 @@ func (h *APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprou
 	builder.EnableBodyBytes()
 
 	ctx := orm.NewContextWithParent(req.Context())
-	orm.WithModel(ctx, &common.Connector{})
+	orm.WithModel(ctx, &core.Connector{})
 	ctx.Set(orm.ReadPermissionCheckingScope, []int{security.PermissionScopePlatform})
 
 	appConfig := common.AppConfig()
-	var connectors []common.Connector
+	var connectors []core.Connector
 
 	itemMapFunc := func(source map[string]interface{}, targetRef interface{}) error {
 		if !appConfig.ServerInfo.EncodeIconToBase64 {

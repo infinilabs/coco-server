@@ -7,6 +7,7 @@ package feishu
 import (
 	"encoding/json"
 	"fmt"
+	"infini.sh/coco/core"
 	"net/url"
 	"strings"
 	"time"
@@ -124,12 +125,12 @@ type Config struct {
 // SearchContext holds parameters for recursive file search
 type SearchContext struct {
 	Ctx             *pipeline.Context
-	Connector       *common.Connector
+	Connector       *core.Connector
 	Token           string
 	FolderToken     string
 	DocTypes        []string
 	PageSize        int
-	DataSource      *common.DataSource
+	DataSource      *core.DataSource
 	ParentPath      string
 	ParentPathArray []string
 	LastKnown       time.Time
@@ -170,7 +171,7 @@ func init() {
 	api.HandleUIMethod(api.GET, "/connector/:id/lark/oauth_redirect", handleOAuthRedirect(PluginTypeLark), api.RequireLogin())
 }
 
-func (this *Plugin) Fetch(ctx *pipeline.Context, connector *common.Connector, datasource *common.DataSource) error {
+func (this *Plugin) Fetch(ctx *pipeline.Context, connector *core.Connector, datasource *core.DataSource) error {
 	if connector == nil || datasource == nil {
 		return errors.Errorf("invalid connector config")
 	}
@@ -404,8 +405,8 @@ func (this *Plugin) searchFilesRecursively(ctx *SearchContext) {
 			}
 
 			// Process document
-			doc := common.Document{
-				Source: common.DataSourceReference{
+			doc := core.Document{
+				Source: core.DataSourceReference{
 					ID:   ctx.DataSource.ID,
 					Type: "connector",
 					Name: ctx.DataSource.Name,
