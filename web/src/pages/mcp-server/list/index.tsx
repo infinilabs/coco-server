@@ -1,11 +1,14 @@
-import Search from 'antd/es/input/Search';
-import Icon, { EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, PlusOutlined } from '@ant-design/icons';
-import { Avatar, Button, Dropdown, GetProp, Image, Modal, Switch, Table, Typography, message } from 'antd';
+import { EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, PlusOutlined } from '@ant-design/icons';
+import { Button, Dropdown, Switch, Table, message } from 'antd';
 import type { MenuProps, TableColumnsType, TableProps } from 'antd';
-import { deleteMCPServer, searchMCPServer, updateMCPServer } from '@/service/api/mcp-server';
-import { formatESSearchResult } from '@/service/request/es';
+import Search from 'antd/es/input/Search';
+
+import type { IntegratedStoreModalRef } from '@/components/common/IntegratedStoreModal';
 import InfiniIcon from '@/components/common/icon';
 import useQueryParams from '@/hooks/common/queryParams';
+import { deleteMCPServer, searchMCPServer, updateMCPServer } from '@/service/api/mcp-server';
+import { formatESSearchResult } from '@/service/request/es';
+import { Api } from '@/types/api';
 
 type MCPServer = Api.LLM.MCPServer;
 
@@ -34,9 +37,9 @@ export function Component() {
     switch (key) {
       case '1':
         window?.$modal?.confirm({
-          icon: <ExclamationCircleOutlined />,
-          title: t('common.tip'),
           content: t('page.mcpserver.delete.confirm', { name: record.name }),
+          icon: <ExclamationCircleOutlined />,
+          onCancel() {},
           onOk() {
             deleteMCPServer(record.id).then(res => {
               if (res.data?.result === 'deleted') {
@@ -172,7 +175,7 @@ export function Component() {
       }
     },
     {
-      title: t('page.mcpserver.labels.type'),
+      dataIndex: 'type',
       minWidth: 50,
       dataIndex: 'type'
     },
@@ -183,13 +186,23 @@ export function Component() {
       ellipsis: true
     },
     {
-      title: t('page.mcpserver.labels.description'),
+      dataIndex: 'description',
+      ellipsis: true,
       minWidth: 150,
       dataIndex: 'description',
       ellipsis: true
     },
     {
       dataIndex: 'enabled',
+      render: (value: boolean, record: MCPServer) => {
+        return (
+          <Switch
+            size="small"
+            value={value}
+            onChange={v => onEnabledChange(v, record)}
+          />
+        );
+      },
       title: t('page.mcpserver.labels.enabled'),
       width: 80,
       render: (value: boolean, record: MCPServer) => {
@@ -204,7 +217,6 @@ export function Component() {
       }
     },
     {
-      title: t('common.operation'),
       fixed: 'right',
       width: '90px',
       hidden: !permissions.update && !permissions.delete,
@@ -300,6 +312,8 @@ export function Component() {
     });
   };
 
+  const integratedStoreModalRef = useRef<IntegratedStoreModalRef>(null);
+
   return (
     <ListContainer>
       <ACard
@@ -320,7 +334,7 @@ export function Component() {
             <Button
               icon={<PlusOutlined />}
               type='primary'
-              onClick={() => nav(`/mcp-server/new`)}
+              onClick={() => integratedStoreModalRef.current?.open('mcp-server')}
             >
               {t('common.add')}
             </Button>
@@ -343,6 +357,8 @@ export function Component() {
           onChange={handleTableChange}
         />
       </ACard>
+
+      <IntegratedStoreModal ref={integratedStoreModalRef} />
     </ListContainer>
   );
 }

@@ -1,8 +1,8 @@
 import { Tabs } from 'antd';
 
 import './index.scss';
-import ConnectorSettings from './modules/Connector';
 import AppSettings from './modules/AppSettings';
+import ConnectorSettings from './modules/Connector';
 import SearchSettings from './modules/SearchSettings';
 
 export function Component() {
@@ -48,20 +48,18 @@ export function Component() {
   }, [])
 
   const activeItem = useMemo(() => {
-    return items.find((item) => item.key === activeKey);
-  }, [activeKey])
+    return items.find(item => item.key === activeKey);
+  }, [activeKey]);
 
   return (
     <ACard styles={{ body: { padding: 0 } }}>
       <Tabs
-        className="settings-tabs"
         activeKey={activeKey}
+        className="settings-tabs"
         items={items}
         onChange={onChange}
       />
-      <div className="settings-tabs-content">
-        { activeItem?.component ? <activeItem.component /> : null}
-      </div>
+      <div className="settings-tabs-content">{activeItem?.component ? <activeItem.component /> : null}</div>
     </ACard>
   );
 }

@@ -1,17 +1,19 @@
-import { Avatar, Button, Dropdown, Form, Image, Input, Modal, Spin, Table, Tag, message } from 'antd';
+import { Avatar, Button, Dropdown, Table, Tag, message } from 'antd';
 
 import '../index.scss';
 import type { MenuProps, TableColumnsType } from 'antd';
 import Search from 'antd/es/input/Search';
 
+import type { IntegratedStoreModalRef } from '@/components/common/IntegratedStoreModal';
 import InfiniIcon from '@/components/common/icon';
 import { GoogleDriveSVG, HugoSVG, NotionSVG, YuqueSVG } from '@/components/icons';
+import useQueryParams from '@/hooks/common/queryParams';
 import { deleteConnector, searchConnector } from '@/service/api/connector';
 
 import Icon, { EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, PlusOutlined } from '@ant-design/icons';
 
 import { formatESSearchResult } from '@/service/request/es';
-import useQueryParams from '@/hooks/common/queryParams';
+import { Api } from '@/types/api';
 
 type Connector = Api.Datasource.Connector;
 
@@ -19,6 +21,7 @@ const ConnectorSettings = memo(() => {
   const [queryParams, setQueryParams] = useQueryParams();
 
   const { t } = useTranslation();
+  const nav = useNavigate();
 
   const { addSharesToData, isEditorOwner, hasEdit, isResourceShare } = useResource();
   const resourceType = 'connector';
@@ -31,8 +34,6 @@ const ConnectorSettings = memo(() => {
     update: hasAuth('coco#connector/update'),
     delete: hasAuth('coco#connector/delete')
   };
-
-  const nav = useNavigate();
 
   const onMenuClick = ({ key, record }: any) => {
     switch (key) {
@@ -265,6 +266,9 @@ const ConnectorSettings = memo(() => {
       };
     });
   };
+
+  const integratedStoreModalRef = useRef<IntegratedStoreModalRef>(null);
+
   return (
     <ListContainer>
       <div className='mb-4 mt-4 flex items-center justify-between'>
@@ -280,7 +284,9 @@ const ConnectorSettings = memo(() => {
           <Button
             icon={<PlusOutlined />}
             type='primary'
-            onClick={onAddClick}
+            onClick={() => {
+            integratedStoreModalRef.current?.open('connector');
+          }}
           >
             {t('common.add')}
           </Button>
@@ -293,11 +299,11 @@ const ConnectorSettings = memo(() => {
         rowKey='id'
         size='middle'
         pagination={{
-          pageSize: queryParams.size,
           current: Math.floor(queryParams.from / queryParams.size) + 1,
+          pageSize: queryParams.size,
           showSizeChanger: true,
-          total: data?.total?.value || data?.total,
-          showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`
+          showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+          total: data?.total?.value || data?.total
         }}
         onChange={handleTableChange}
       />

@@ -329,22 +329,22 @@ const FileManagement = props => {
     //   dataIndex: 'size',
     //   title: t('page.datasource.labels.size')
     // },
-    {
-      dataIndex: 'disabled',
-      render: (text: boolean, record: DataType) => {
-        return (
-          <Switch
-            disabled={!permissions.update || !hasEdit(record)}
-            size='small'
-            value={!text}
-            onChange={v => {
-              onSearchableChange(v, record);
-            }}
-          />
-        );
-      },
-      title: t('page.datasource.columns.searchable')
-    },
+    // {
+    //   dataIndex: 'disabled',
+    //   render: (text: boolean, record: DataType) => {
+    //     return (
+    //       <Switch
+    //         disabled={!permissions.update || !hasEdit(record)}
+    //         size='small'
+    //         value={!text}
+    //         onChange={v => {
+    //           onSearchableChange(v, record);
+    //         }}
+    //       />
+    //     );
+    //   },
+    //   title: t('page.datasource.columns.searchable')
+    // },
     {
       fixed: 'right',
       hidden: !permissions.delete,

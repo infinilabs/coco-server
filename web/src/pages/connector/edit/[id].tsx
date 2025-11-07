@@ -14,7 +14,6 @@ export function Component() {
   const { t } = useTranslation();
   const nav = useNavigate();
   const [form] = Form.useForm();
-  
 
   const route = useRoute();
   const connectorID = route.params.id
@@ -110,6 +109,7 @@ export function Component() {
     <div className="h-full min-h-500px">
       <ACard
         bordered={false}
+        loading={loading}
         className="sm:flex-1-auto min-h-full flex-col-stretch card-wrapper"
       >
         <div className="mb-30px ml--16px flex items-center text-lg font-bold">
