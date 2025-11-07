@@ -8,6 +8,7 @@ import { generateRandomString } from '@/utils/common';
 import { request } from '@/service/request';
 import { formatESSearchResult } from '@/service/request/es';
 import { FULLSCREEN_TYPES, SEARCHBOX_TYPES } from '../list';
+import { getLocale, getLocaleOptions } from '@/store/slice/app';
 
 export function isFullscreen(type) {
   return ['page', 'modal', 'fullscreen'].includes(type);
@@ -23,6 +24,9 @@ export const EditForm = memo(props => {
   const [assistants, setAssistants] = useState([]);
   const [enabledList, setEnabledList] = useState({});
   const [guestEnabled, setGuestEnabled] = useState(false);
+
+  const locale = useAppSelector(getLocale);
+  const localeOptions = useAppSelector(getLocaleOptions);
 
   const { hasAuth } = useAuth();
 
@@ -171,7 +175,7 @@ export const EditForm = memo(props => {
     );
   };
 
-  const initValue = record => {
+  const initValue = (record, locale) => {
     setType(isFullscreen(record?.type) ? 'fullscreen' : 'searchbox');
     setGuestEnabled(!!record.guest?.enabled)
     const commonValues = {
@@ -182,7 +186,12 @@ export const EditForm = memo(props => {
         guest: {
           ...(record.guest || {}),
           run_as: record.guest?.enabled && record.guest?.run_as ? { id: record.guest?.run_as } : undefined
-        }
+        },
+        appearance: {
+          ...(record.appearance || {}),
+          theme: record.appearance?.theme || 'auto',
+          language: record.appearance?.language || locale
+        },
     }
     if (isFullscreen(record?.type)) {
       setSearchLogos(state => ({ ...state, ...(record.payload?.logo || {}) }));
@@ -307,7 +316,7 @@ export const EditForm = memo(props => {
 
   useEffect(() => {
     if (record) {
-      initValue(record);
+      initValue(record, locale);
     } else {
       if (type === 'fullscreen') {
         const initValue = {
@@ -316,7 +325,8 @@ export const EditForm = memo(props => {
             chat_history: true
           },
           appearance: {
-            theme: 'auto'
+            theme: 'auto',
+            language: locale
           },
           cors: {
             allowed_origins: '*',
@@ -358,7 +368,8 @@ export const EditForm = memo(props => {
             chat_history: true
           },
           appearance: {
-            theme: 'auto'
+            theme: 'auto',
+            language: locale
           },
           cors: {
             allowed_origins: '*',
@@ -393,7 +404,7 @@ export const EditForm = memo(props => {
         form.setFieldsValue(initValue);
       }
     }
-  }, [record, type]);
+  }, [record, type, locale]);
 
   const itemClassNames = '!w-496px';
 
@@ -506,7 +517,6 @@ export const EditForm = memo(props => {
         >
           <div className='mb-8px'>{t('page.integration.form.labels.theme')}</div>
           <Form.Item
-            className='mb-0px'
             name={['appearance', 'theme']}
           >
             <Select
@@ -526,6 +536,17 @@ export const EditForm = memo(props => {
                   value: 'dark'
                 }
               ]}
+            />
+          </Form.Item>
+          <div className='mb-8px'>{t('page.integration.form.labels.language')}</div>
+          <Form.Item
+            className='mb-0px'
+            name={['appearance', 'language']}
+          >
+            <Select
+              allowClear
+              className={itemClassNames}
+              options={localeOptions}
             />
           </Form.Item>
         </Form.Item>

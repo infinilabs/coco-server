@@ -600,6 +600,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         theme_auto: '自动',
         theme_dark: '深色',
         theme_light: '浅色',
+        language: '语言',
         type: '类型',
         type_fullscreen: 'Fullscreen',
         type_searchbox: 'SearchBox'

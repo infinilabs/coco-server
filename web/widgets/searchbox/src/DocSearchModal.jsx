@@ -19,6 +19,7 @@ export const DocSearchModal = ({
 
   const { appearance = {}, enabled_module = {}, id, type } = settings || {};
   const { ai_chat, features, search } = enabled_module;
+  const { language } = appearance
 
   const hasModules = [];
   if (search?.enabled) {
@@ -72,6 +73,7 @@ export const DocSearchModal = ({
             formatUrl={formatUrl}
             settings={settings}
             refreshSettings={refreshSettings}
+            language={language}
           />
         </div>
       </div>

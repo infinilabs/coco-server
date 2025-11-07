@@ -520,6 +520,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         theme_auto: 'Auto',
         theme_dark: 'Dark',
         theme_light: 'Light',
+        language: 'Language',
         type: 'Type',
         type_fullscreen: 'Fullscreen',
         type_searchbox: 'SearchBox'
