@@ -3,6 +3,7 @@ import Clipboard from 'clipboard';
 
 import { Preview } from './Preview';
 import { isFullscreen } from './EditForm';
+import { FULLSCREEN_TYPES, SEARCHBOX_TYPES } from '../list';
 
 export const InsertCode = memo(props => {
   const { id, type, enabled } = props;
@@ -13,9 +14,9 @@ export const InsertCode = memo(props => {
 
   const mode = useMemo(() => {
     if (isFullscreen(type)) {
-      return ['page', 'modal'].includes(type) ? type :  'page'
+      return FULLSCREEN_TYPES.includes(type) ? type :  FULLSCREEN_TYPES[0]
     } else {
-      return ['embedded', 'floating', 'all'].includes(type) ? type : 'embedded'
+      return SEARCHBOX_TYPES.includes(type) ? type : SEARCHBOX_TYPES[0]
     }
   }, [type])
   const { t } = useTranslation();

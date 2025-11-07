@@ -5,6 +5,11 @@ import { EditForm } from '../modules/EditForm';
 export function Component() {
   const { t } = useTranslation();
   const nav = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const type = useMemo(() => {
+    return searchParams.get('type');
+  }, [searchParams]);
 
   const onSubmit = async (params, before, after) => {
     if (before) before();
@@ -31,6 +36,7 @@ export function Component() {
         </div>
         <div className="px-30px">
           <EditForm
+            defaultType={type}
             actionText={t('common.save')}
             onSubmit={onSubmit}
           />

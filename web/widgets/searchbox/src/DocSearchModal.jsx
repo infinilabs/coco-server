@@ -16,7 +16,7 @@ export const DocSearchModal = ({
 
   const [isPinned, setIsPinned] = useState(false);
 
-  const { appearance = {}, enabled_module = {}, id, token, type } = settings || {};
+  const { appearance = {}, enabled_module = {}, id, type } = settings || {};
   const { ai_chat, features, search } = enabled_module;
 
   const hasModules = [];
@@ -52,7 +52,6 @@ export const DocSearchModal = ({
           <SearchChat
             serverUrl={server}
             headers={{
-              "X-API-TOKEN": token,
               "APP-INTEGRATION-ID": id
             }}
             width={680}
