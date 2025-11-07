@@ -21,6 +21,7 @@ type ModelProvider struct {
 	Enabled     bool          `json:"enabled" elastic_mapping:"enabled:{type:keyword}"`                                // Whether the model provider is enabled
 	Builtin     bool          `json:"builtin" elastic_mapping:"builtin:{type:keyword}"`                                // Whether the model provider is builtin
 	Description string        `json:"description" elastic_mapping:"description:{type:text,copy_to:combined_fulltext}"` // Description of the model provider
+	Website     string        `json:"website" elastic_mapping:"website:{type:keyword}"`                                // Website of the model provider
 }
 
 const (

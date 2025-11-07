@@ -8,6 +8,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"infini.sh/framework/core/security"
 	"io"
 	"io/fs"
 	"net/http"
@@ -16,11 +17,8 @@ import (
 	"strings"
 	"time"
 
-	security2 "infini.sh/framework/core/security"
-
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
-	"infini.sh/coco/plugins/security"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/elastic"
 	"infini.sh/framework/core/env"
@@ -91,20 +89,11 @@ func (h *APIHandler) setupServer(w http.ResponseWriter, req *http.Request, ps ht
 		panic("password can't be empty")
 	}
 
-	//save user's profile
-	profile := security2.UserProfile{Name: input.Name}
-	profile.Email = input.Email
-	profile.ID = core.DefaultUserLogin
-	err = kv.AddValue(core.DefaultSettingBucketKey, []byte(core.DefaultUserProfileKey), util.MustToJSONBytes(profile))
-	if err != nil {
-		panic(err)
+	user, err := security.MustGetAuthenticationProvider(security.DefaultNativeAuthBackend).CreateUser(input.Name, input.Email, input.Password, true)
+	if user == nil {
+		panic("failed to init user")
 	}
 
-	//save user's password
-	err = security.SavePassword(input.Password)
-	if err != nil {
-		panic(err)
-	}
 	//initialize setup templates
 	err = h.initializeSetupTemplates(input, info.ServerInfo.Endpoint)
 	if err != nil {

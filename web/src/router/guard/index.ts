@@ -24,7 +24,7 @@ function shouldRedirectLogin(path: string) {
 }
 
 export const init: Init = async currentFullPath => {
-  
+
   const result = await fetchServer();
 
   await store.dispatch(setProviderInfo(result.data));
@@ -118,13 +118,17 @@ export const createRouteGuard: BeforeEach = (to, _, blockerOrJump) => {
   const loginRoute: RouteKey = 'login';
   const noAuthorizationRoute: RouteKey = '403';
 
-  const isLogin = Boolean(localStg.get('userInfo'));
+  const userInfo = selectUserInfo(store.getState());
+
+  const isLogin = Boolean(userInfo);
   const needLogin = !to.meta.constant;
-  const routeRoles = to.meta.roles || [];
 
-  const hasRole = selectUserInfo(store.getState())?.roles?.some(role => routeRoles.includes(role));
+  const routePermissions = to.meta.permissions || []
+  const shouldAllPermissions = to.meta?.permissionLogic !== 'or'
 
-  const hasAuth = store.dispatch(isStaticSuper()) || !routeRoles.length || hasRole;
+  const hasPermissions = shouldAllPermissions ? routePermissions.every((p) => userInfo?.permissions?.includes(p)) : routePermissions.some((p) => userInfo?.permissions?.includes(p))
+
+  const hasAuth = store.dispatch(isStaticSuper()) || !routePermissions.length || hasPermissions;
 
   const routeSwitches: CommonType.StrategicPattern[] = [
     // if it is login route when logged in, then switch to the root page

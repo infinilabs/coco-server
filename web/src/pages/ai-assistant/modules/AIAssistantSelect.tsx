@@ -10,6 +10,13 @@ export default (props) => {
 
     const { t } = useTranslation();
 
+    const { hasAuth } = useAuth();
+
+    const permissions = {
+      read: hasAuth('coco#assistant/read'),
+      search: hasAuth('coco#assistant/search')
+    }
+
     const {
       data: res,
       loading,
@@ -47,12 +54,14 @@ export default (props) => {
     }
 
     useEffect(() => {
-      fetchFilterData(queryParams, sorter, assistants)
-    }, [queryParams, sorter, assistants])
+      if (permissions.search) {
+        fetchFilterData(queryParams, sorter, assistants)
+      }
+    }, [queryParams, sorter, assistants, permissions.search])
 
     useEffect(() => {
       if (mode === 'multiple') {
-        if (value && value.some((item) => !!(item?.id && !item?.name))) {
+        if (value && value.some((item) => !!(item?.id && !item?.name)) && permissions.search) {
           fetchItems({
             filter: {
               id: value.map((item) => item.id)
@@ -62,11 +71,11 @@ export default (props) => {
           })
         }
       } else {
-        if (value?.id && !value?.name) {
+        if (value?.id && !value?.name && permissions.read) {
           fetchItem(value.id)
         }
       }
-    }, [JSON.stringify(value), mode])
+    }, [JSON.stringify(value), mode, permissions.search, permissions.read])
 
     const result = useMemo(() => {
       const rs = formatESSearchResult(res)

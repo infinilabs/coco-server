@@ -32,7 +32,7 @@ func (h *APIHandler) create(w http.ResponseWriter, req *http.Request, ps httprou
 	}
 
 	//get permissions for this token
-	ret, err := security.CreateAPIToken(ctx, "", "widget", []string{"widget"})
+	ret, err := security.CreateAPIToken(ctx, "", "widget", security2.MustGetPermissionKeysByRole([]string{"widget"}))
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -59,7 +59,8 @@ func (h *APIHandler) get(w http.ResponseWriter, req *http.Request, ps httprouter
 	obj := common.Integration{}
 	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
-
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "integration")
 	exists, err := orm.GetV2(ctx, &obj)
 	if !exists || err != nil {
 		h.WriteGetMissingJSON(w, id)
@@ -81,7 +82,8 @@ func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprou
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "integration")
 	ctx.Refresh = orm.WaitForRefresh
 	err = orm.UpdatePartialFields(ctx, &obj, delta)
 	if err != nil {
@@ -126,10 +128,14 @@ func (h *APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprou
 		return
 	}
 	builder.EnableBodyBytes()
+	if len(builder.Sorts()) == 0 {
+		builder.SortBy(orm.Sort{Field: "created", SortType: orm.DESC})
+	}
 
 	ctx := orm.NewContextWithParent(req.Context())
 	orm.WithModel(ctx, &common.Integration{})
-
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "integration")
 	res, err := orm.SearchV2(ctx, builder)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -188,7 +194,8 @@ func (h *APIHandler) renewAPIToken(w http.ResponseWriter, req *http.Request, ps 
 		kv.DeleteKey(core.KVAccessTokenBucket, []byte(obj.Token))
 	}
 	//create new token form this integration
-	ret, err := security.CreateAPIToken(ctx, "", "widget", []string{"widget"})
+
+	ret, err := security.CreateAPIToken(ctx, "", "widget", security2.MustGetPermissionKeysByRole([]string{"widget"}))
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return

@@ -366,8 +366,10 @@ declare namespace App {
           endpoint: FormMsg;
           phone: FormMsg;
           pwd: FormMsg;
+          pwdConfirm: FormMsg;
           required: string;
           userName: FormMsg;
+          noSpecial: FormMsg;
         };
         icon: {
           collapse: string;

@@ -20,6 +20,12 @@ export const EditForm = memo(props => {
   const [assistants, setAssistants] = useState([])
   const [enabledList, setEnabledList] = useState({})
 
+  const { hasAuth } = useAuth();
+
+  const permissions = {
+    fetchDataSources: hasAuth('coco#datasource/search')
+  }
+
   const [startPagelogos, setStartPagelogos] = useState({
     lightLoading: false,
     lightList: [],
@@ -55,11 +61,13 @@ export const EditForm = memo(props => {
   });
 
   useEffect(() => {
-    run({
-      from: 0,
-      size: 10000
-    });
-  }, []);
+    if (permissions.fetchDataSources) {
+      run({
+        from: 0,
+        size: 10000
+      });
+    }
+  }, [permissions.fetchDataSources]);
 
   const dataSource = useMemo(() => {
     return result?.hits?.hits?.map(item => ({ ...item._source })) || [];

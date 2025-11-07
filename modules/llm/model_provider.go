@@ -41,7 +41,8 @@ func (h *APIHandler) get(w http.ResponseWriter, req *http.Request, ps httprouter
 	obj := common.ModelProvider{}
 	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
-
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "llm-provider")
 	exists, err := orm.GetV2(ctx, &obj)
 	if !exists || err != nil {
 		h.WriteGetMissingJSON(w, id)
@@ -56,6 +57,8 @@ func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprou
 	obj := common.ModelProvider{}
 	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "llm-provider")
 
 	exists, err := orm.GetV2(ctx, &obj)
 	if !exists || err != nil {
@@ -79,7 +82,8 @@ func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprou
 	newObj.Created = obj.Created
 
 	ctx.Refresh = orm.WaitForRefresh
-
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "llm-provider")
 	err = orm.Update(ctx, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -133,7 +137,8 @@ func (h *APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprou
 
 	ctx := orm.NewContextWithParent(req.Context())
 	orm.WithModel(ctx, &common.ModelProvider{})
-
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "llm-provider")
 	res, err := orm.SearchV2(ctx, builder)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)

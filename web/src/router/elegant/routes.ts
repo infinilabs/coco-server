@@ -47,7 +47,8 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.ai-assistant',
       title: 'ai-assistant',
       icon: 'mdi:robot-outline',
-      order: 2
+      order: 2,
+      permissions: ['coco#assistant/search']
     },
     children: [
       {
@@ -58,7 +59,8 @@ export const generatedRoutes: GeneratedRoute[] = [
           i18nKey: 'route.ai-assistant_edit',
           title: 'ai-assistant_edit',
           hideInMenu: true,
-          activeMenu: 'ai-assistant'
+          activeMenu: 'ai-assistant',
+          permissions: ['coco#assistant/read', 'coco#assistant/update']
         }
       },
       {
@@ -69,7 +71,8 @@ export const generatedRoutes: GeneratedRoute[] = [
           i18nKey: 'route.ai-assistant_list',
           title: 'ai-assistant_list',
           hideInMenu: true,
-          activeMenu: 'ai-assistant'
+          activeMenu: 'ai-assistant',
+          permissions: ['coco#assistant/search']
         }
       },
       {
@@ -80,7 +83,8 @@ export const generatedRoutes: GeneratedRoute[] = [
           i18nKey: 'route.ai-assistant_new',
           title: 'ai-assistant_new',
           hideInMenu: true,
-          activeMenu: 'ai-assistant'
+          activeMenu: 'ai-assistant',
+          permissions: ['coco#assistant/create']
         }
       }
     ]
@@ -93,7 +97,8 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.api-token',
       title: 'api-token',
       order: 4,
-      localIcon: 'security'
+      localIcon: 'security',
+      permissions: ['generic#security:authorization/search']
     },
     children: [
       {
@@ -104,7 +109,41 @@ export const generatedRoutes: GeneratedRoute[] = [
           i18nKey: 'route.api-token_list',
           title: 'api-token_list',
           hideInMenu: true,
-          activeMenu: 'api-token'
+          activeMenu: 'api-token',
+          permissions: ['generic#security:authorization/search']
+        }
+      }
+    ]
+  },
+  {
+    name: 'auth',
+    path: '/auth',
+    component: 'layout.base',
+    meta: {
+      i18nKey: 'route.auth',
+      title: 'auth',
+      hideInMenu: true,
+      activeMenu: 'security'
+    },
+    children: [
+      {
+        name: 'auth_edit',
+        path: 'edit/:id',
+        component: 'view.auth_edit',
+        meta: {
+          i18nKey: 'route.auth_edit',
+          title: 'auth_edit',
+          permissions: ['generic#security:authorization/read', 'generic#security:authorization/update']
+        }
+      },
+      {
+        name: 'auth_new',
+        path: 'new',
+        component: 'view.auth_new',
+        meta: {
+          i18nKey: 'route.auth_new',
+          title: 'auth_new',
+          permissions: ['generic#security:authorization/create']
         }
       }
     ]
@@ -126,7 +165,10 @@ export const generatedRoutes: GeneratedRoute[] = [
         component: 'view.connector_edit',
         meta: {
           i18nKey: 'route.connector_edit',
-          title: 'connector_edit'
+          title: 'connector_edit',
+          hideInMenu: true,
+          activeMenu: 'settings',
+          permissions: ['coco#connector/read', 'coco#connector/update']
         }
       },
       {
@@ -137,7 +179,8 @@ export const generatedRoutes: GeneratedRoute[] = [
           i18nKey: 'route.connector_new',
           title: 'connector_new',
           hideInMenu: true,
-          activeMenu: 'settings'
+          activeMenu: 'settings',
+          permissions: ['coco#connector/create']
         }
       }
     ]
@@ -151,7 +194,8 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.data-source',
       title: 'data-source',
       icon: 'mdi:folder-open-outline',
-      order: 3
+      order: 3,
+      permissions: ['coco#datasource/search']
     },
     children: [
       {
@@ -162,7 +206,8 @@ export const generatedRoutes: GeneratedRoute[] = [
           i18nKey: 'route.data-source_detail',
           title: 'data-source_detail',
           hideInMenu: true,
-          activeMenu: 'data-source'
+          activeMenu: 'data-source',
+          permissions: ['coco#datasource/search', 'coco#datasource/read']
         }
       },
       {
@@ -173,7 +218,8 @@ export const generatedRoutes: GeneratedRoute[] = [
           i18nKey: 'route.data-source_edit',
           title: 'data-source_edit',
           hideInMenu: true,
-          activeMenu: 'data-source'
+          activeMenu: 'data-source',
+          permissions: ['coco#datasource/read', 'coco#datasource/update']
         }
       },
       {
@@ -184,7 +230,8 @@ export const generatedRoutes: GeneratedRoute[] = [
           i18nKey: 'route.data-source_list',
           title: 'data-source_list',
           hideInMenu: true,
-          activeMenu: 'data-source'
+          activeMenu: 'data-source',
+          permissions: ['coco#datasource/search']
         }
       },
       {
@@ -195,7 +242,8 @@ export const generatedRoutes: GeneratedRoute[] = [
           i18nKey: 'route.data-source_new',
           title: 'data-source_new',
           hideInMenu: true,
-          activeMenu: 'data-source'
+          activeMenu: 'data-source',
+          permissions: ['coco#datasource/create']
         }
       },
       {
@@ -206,7 +254,8 @@ export const generatedRoutes: GeneratedRoute[] = [
           i18nKey: 'route.data-source_new-first',
           title: 'data-source_new-first',
           hideInMenu: true,
-          activeMenu: 'data-source'
+          activeMenu: 'data-source',
+          permissions: ['coco#datasource/create']
         }
       }
     ]
@@ -242,7 +291,8 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.integration',
       title: 'integration',
       icon: 'mdi:puzzle-outline',
-      order: 5
+      order: 5,
+      permissions: ['coco#integration/search']
     },
     children: [
       {
@@ -253,7 +303,8 @@ export const generatedRoutes: GeneratedRoute[] = [
           i18nKey: 'route.integration_edit',
           title: 'integration_edit',
           hideInMenu: true,
-          activeMenu: 'integration'
+          activeMenu: 'integration',
+          permissions: ['coco#integration/read', 'coco#integration/update']
         }
       },
       {
@@ -264,7 +315,8 @@ export const generatedRoutes: GeneratedRoute[] = [
           i18nKey: 'route.integration_list',
           title: 'integration_list',
           hideInMenu: true,
-          activeMenu: 'integration'
+          activeMenu: 'integration',
+          permissions: ['coco#integration/search']
         }
       },
       {
@@ -275,7 +327,8 @@ export const generatedRoutes: GeneratedRoute[] = [
           i18nKey: 'route.integration_new',
           title: 'integration_new',
           hideInMenu: true,
-          activeMenu: 'integration'
+          activeMenu: 'integration',
+          permissions: ['coco#integration/create']
         }
       }
     ]
@@ -299,7 +352,8 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.mcp-server',
       title: 'mcp-server',
       order: 2,
-      localIcon: 'mcp'
+      localIcon: 'mcp',
+      permissions: ['coco#mcp_server/search']
     },
     redirect: 'list',
     children: [
@@ -311,7 +365,8 @@ export const generatedRoutes: GeneratedRoute[] = [
           i18nKey: 'route.mcp-server_edit',
           title: 'mcp-server_edit',
           hideInMenu: true,
-          activeMenu: 'mcp-server'
+          activeMenu: 'mcp-server',
+          permissions: ['coco#mcp_server/read', 'coco#mcp_server/update']
         }
       },
       {
@@ -322,7 +377,8 @@ export const generatedRoutes: GeneratedRoute[] = [
           i18nKey: 'route.mcp-server_list',
           title: 'mcp-server_list',
           hideInMenu: true,
-          activeMenu: 'mcp-server'
+          activeMenu: 'mcp-server',
+          permissions: ['coco#mcp_server/search']
         }
       },
       {
@@ -333,7 +389,8 @@ export const generatedRoutes: GeneratedRoute[] = [
           i18nKey: 'route.mcp-server_new',
           title: 'mcp-server_new',
           hideInMenu: true,
-          activeMenu: 'mcp-server'
+          activeMenu: 'mcp-server',
+          permissions: ['coco#mcp_server/create']
         }
       }
     ]
@@ -347,7 +404,8 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.model-provider',
       title: 'model-provider',
       order: 2,
-      localIcon: 'model-provider'
+      localIcon: 'model-provider',
+      permissions: ['coco#model_provider/search']
     },
     children: [
       {
@@ -358,7 +416,8 @@ export const generatedRoutes: GeneratedRoute[] = [
           i18nKey: 'route.model-provider_edit',
           title: 'model-provider_edit',
           hideInMenu: true,
-          activeMenu: 'model-provider'
+          activeMenu: 'model-provider',
+          permissions: ['coco#model_provider/read', 'coco#model_provider/update']
         }
       },
       {
@@ -369,7 +428,8 @@ export const generatedRoutes: GeneratedRoute[] = [
           i18nKey: 'route.model-provider_list',
           title: 'model-provider_list',
           hideInMenu: true,
-          activeMenu: 'model-provider'
+          activeMenu: 'model-provider',
+          permissions: ['coco#model_provider/search']
         }
       },
       {
@@ -380,7 +440,41 @@ export const generatedRoutes: GeneratedRoute[] = [
           i18nKey: 'route.model-provider_new',
           title: 'model-provider_new',
           hideInMenu: true,
-          activeMenu: 'model-provider'
+          activeMenu: 'model-provider',
+          permissions: ['coco#model_provider/create']
+        }
+      }
+    ]
+  },
+  {
+    name: 'role',
+    path: '/role',
+    component: 'layout.base',
+    meta: {
+      i18nKey: 'route.role',
+      title: 'role',
+      hideInMenu: true,
+      activeMenu: 'security'
+    },
+    children: [
+      {
+        name: 'role_edit',
+        path: 'edit/:id',
+        component: 'view.role_edit',
+        meta: {
+          i18nKey: 'route.role_edit',
+          title: 'role_edit',
+          permissions: ['generic#security:role/read', 'generic#security:role/update']
+        }
+      },
+      {
+        name: 'role_new',
+        path: 'new',
+        component: 'view.role_new',
+        meta: {
+          i18nKey: 'route.role_new',
+          title: 'role_new',
+          permissions: ['generic#security:role/create']
         }
       }
     ]
@@ -397,6 +491,23 @@ export const generatedRoutes: GeneratedRoute[] = [
     }
   },
   {
+    name: 'security',
+    path: '/security',
+    component: 'layout.base$view.security',
+    meta: {
+      i18nKey: 'route.security',
+      title: 'security',
+      icon: 'mdi:user-outline',
+      order: 10,
+      permissions: [
+        'generic#security:authorization/search',
+        'generic#security:user/search',
+        'generic#security:role/search'
+      ],
+      permissionLogic: 'or'
+    }
+  },
+  {
     name: 'settings',
     path: '/settings',
     component: 'layout.base$view.settings',
@@ -404,10 +515,11 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.settings',
       title: 'settings',
       icon: 'mdi:settings-outline',
-      order: 10
+      order: 11,
+      permissions: ['coco#system/read', 'coco#connector/search'],
+      permissionLogic: 'or'
     }
   },
-  // 新增：Webhook 路由
   {
     name: 'webhook',
     path: '/webhook',
@@ -439,6 +551,39 @@ export const generatedRoutes: GeneratedRoute[] = [
           title: 'webhook_new',
           hideInMenu: true,
           activeMenu: 'webhook'
+        }
+      }
+    ]
+  },
+  {
+    name: 'user',
+    path: '/user',
+    component: 'layout.base',
+    meta: {
+      i18nKey: 'route.user',
+      title: 'user',
+      hideInMenu: true,
+      activeMenu: 'security'
+    },
+    children: [
+      {
+        name: 'user_edit',
+        path: 'edit/:id',
+        component: 'view.user_edit',
+        meta: {
+          i18nKey: 'route.user_edit',
+          title: 'user_edit',
+          permissions: ['generic#security:user/read', 'generic#security:user/update']
+        }
+      },
+      {
+        name: 'user_new',
+        path: 'new',
+        component: 'view.user_new',
+        meta: {
+          i18nKey: 'route.user_new',
+          title: 'user_new',
+          permissions: ['generic#security:user/create']
         }
       }
     ]

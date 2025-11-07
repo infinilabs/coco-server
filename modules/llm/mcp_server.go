@@ -63,6 +63,8 @@ func (h *APIHandler) getMCPServer(w http.ResponseWriter, req *http.Request, ps h
 	obj := common.MCPServer{}
 	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "mcp-server")
 
 	exists, err := orm.GetV2(ctx, &obj)
 	if !exists || err != nil {
@@ -85,6 +87,8 @@ func (h *APIHandler) updateMCPServer(w http.ResponseWriter, req *http.Request, p
 	obj := common.MCPServer{}
 	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "mcp-server")
 
 	exists, err := orm.GetV2(ctx, &obj)
 	if !exists || err != nil {
@@ -107,6 +111,8 @@ func (h *APIHandler) updateMCPServer(w http.ResponseWriter, req *http.Request, p
 	newObj.Created = obj.Created
 
 	ctx.Refresh = orm.WaitForRefresh
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "mcp-server")
 
 	err = orm.Update(ctx, &obj)
 	if err != nil {
@@ -158,9 +164,14 @@ func (h *APIHandler) searchMCPServer(w http.ResponseWriter, req *http.Request, p
 		return
 	}
 	builder.EnableBodyBytes()
+	if len(builder.Sorts()) == 0 {
+		builder.SortBy(orm.Sort{Field: "created", SortType: orm.DESC})
+	}
+
 	ctx := orm.NewContextWithParent(req.Context())
 	orm.WithModel(ctx, &common.MCPServer{})
-
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "mcp-server")
 	res, err := orm.SearchV2(ctx, builder)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)

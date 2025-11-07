@@ -499,6 +499,14 @@ export function Component() {
               </>
             )}
 
+            {/* <Form.Item
+              label={t('page.datasource.new.labels.permission_sync_enabled')}
+              name={['sync_config', 'enabled']}
+              valuePropName="checked"
+            >
+              <Switch size="small" />
+            </Form.Item> */}
+
             <Form.Item
               label={t('page.datasource.new.labels.sync_enabled')}
               name={['sync_config', 'enabled']}

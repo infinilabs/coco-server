@@ -1,4 +1,4 @@
-import { Button, Dropdown, Form, Image, Input, Modal, Spin, Table, Tag, message } from 'antd';
+import { Avatar, Button, Dropdown, Form, Image, Input, Modal, Spin, Table, Tag, message } from 'antd';
 
 import '../index.scss';
 import type { MenuProps, TableColumnsType } from 'antd';
@@ -8,13 +8,7 @@ import InfiniIcon from '@/components/common/icon';
 import { GoogleDriveSVG, HugoSVG, NotionSVG, YuqueSVG } from '@/components/icons';
 import { deleteConnector, searchConnector } from '@/service/api/connector';
 
-import Icon, {
-  EllipsisOutlined,
-  ExclamationCircleOutlined,
-  FilterOutlined,
-  PlusOutlined,
-  createFromIconfontCN
-} from '@ant-design/icons';
+import Icon, { EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, PlusOutlined } from '@ant-design/icons';
 
 import { formatESSearchResult } from '@/service/request/es';
 import useQueryParams from '@/hooks/common/queryParams';
@@ -23,20 +17,22 @@ type Connector = Api.Datasource.Connector;
 
 const ConnectorSettings = memo(() => {
   const [queryParams, setQueryParams] = useQueryParams();
-  
-  const { t } = useTranslation();
-  const nav = useNavigate();
 
-  const items: MenuProps['items'] = [
-    {
-      key: '1',
-      label: t('common.edit')
-    },
-    {
-      key: '2',
-      label: t('common.delete')
-    }
-  ];
+  const { t } = useTranslation();
+
+  const { addSharesToData, isEditorOwner, hasEdit, isResourceShare } = useResource();
+  const resourceType = 'connector';
+
+  const { hasAuth } = useAuth();
+
+  const permissions = {
+    read: hasAuth('coco#connector/read'),
+    create: hasAuth('coco#connector/create'),
+    update: hasAuth('coco#connector/update'),
+    delete: hasAuth('coco#connector/delete')
+  };
+
+  const nav = useNavigate();
 
   const onMenuClick = ({ key, record }: any) => {
     switch (key) {
@@ -71,8 +67,24 @@ const ConnectorSettings = memo(() => {
   const columns: TableColumnsType<Connector> = [
     {
       dataIndex: 'name',
-      minWidth: 100,
+      minWidth: 150,
+      ellipsis: true,
       render: (name, record) => {
+        const isShare = isResourceShare(record);
+
+        let shareIcon;
+
+        if (isShare) {
+          shareIcon = (
+            <div className='flex-shrink-0 flex-grow-0'>
+              <SvgIcon
+                className='text-#999'
+                localIcon='share'
+              />
+            </div>
+          );
+        }
+
         let svgIcon = null;
         switch (record.id) {
           case 'google_drive':
@@ -89,23 +101,62 @@ const ConnectorSettings = memo(() => {
             break;
         }
         return (
-          <div className="flex items-center">
-            <IconWrapper className="w-20px h-20px">
+          <div className='flex items-center gap-1'>
+            <IconWrapper className='h-20px w-20px flex-shrink-0 flex-grow-0'>
               {svgIcon ? (
                 <Icon component={svgIcon} />
               ) : (
                 <InfiniIcon
-                  height="1em"
+                  height='1em'
                   src={record.icon}
-                  width="1em"
+                  width='1em'
                 />
               )}
             </IconWrapper>
-            <span className="ml-2">{name}</span>
+            <span className='ant-table-cell-ellipsis max-w-150px'>{name}</span>
+            {shareIcon}
           </div>
         );
       },
       title: t('page.connector.columns.name')
+    },
+    {
+      dataIndex: 'owner',
+      title: t('page.datasource.labels.owner'),
+      render: (value, record) => {
+        if (!value) return '-';
+        return (
+          <div className='flex overflow-hidden'>
+            <Avatar.Group
+              max={{ count: 1 }}
+              size='small'
+            >
+              <AvatarLabel
+                data={value}
+                showCard={true}
+              />
+            </Avatar.Group>
+          </div>
+        );
+      }
+    },
+    {
+      dataIndex: 'shares',
+      title: t('page.datasource.labels.shares'),
+      render: (value, record) => {
+        if (!value) return '-';
+        return (
+          <Shares
+            record={record}
+            title={record.name}
+            resource={{
+              resource_type: resourceType,
+              resource_id: record.id
+            }}
+            onSuccess={() => fetchData(queryParams)}
+          />
+        );
+      }
     },
     {
       dataIndex: 'category',
@@ -116,7 +167,7 @@ const ConnectorSettings = memo(() => {
       dataIndex: 'description',
       minWidth: 100,
       title: t('page.connector.columns.description'),
-      ellipsis: true,
+      ellipsis: true
     },
     {
       dataIndex: 'tags',
@@ -130,7 +181,22 @@ const ConnectorSettings = memo(() => {
     },
     {
       fixed: 'right',
+      hidden: !permissions.update && !permissions.delete,
       render: (_, record) => {
+        const items: MenuProps['items'] = [];
+        if (permissions.read && permissions.update && hasEdit(record)) {
+          items.push({
+            key: '1',
+            label: t('common.edit')
+          });
+        }
+        if (permissions.delete && isEditorOwner(record)) {
+          items.push({
+            key: '2',
+            label: t('common.delete')
+          });
+        }
+        if (items.length === 0) return null;
         return (
           <Dropdown menu={{ items, onClick: ({ key }) => onMenuClick({ key, record }) }}>
             <EllipsisOutlined />
@@ -147,69 +213,85 @@ const ConnectorSettings = memo(() => {
 
   const [keyword, setKeyword] = useState();
 
-  const fetchData = () => {
+  const fetchData = async queryParams => {
     setLoading(true);
-    searchConnector(queryParams).then(({ data }: { data: any }) => {
-      const newData = formatESSearchResult(data);
+    const res = await searchConnector(queryParams);
+    if (res?.data) {
+      const newData = formatESSearchResult(res?.data);
+      if (newData.data.length > 0) {
+        const resources = newData.data.map(item => ({
+          resource_id: item.id,
+          resource_type: resourceType
+        }));
+        const dataWithShares = await addSharesToData(newData.data, resources);
+        if (dataWithShares) {
+          newData.data = dataWithShares;
+        }
+      }
       setData(newData);
-      setLoading(false);
-    });
+    }
+    setLoading(false);
   };
 
-  useEffect(fetchData, [queryParams]);
+  useEffect(() => {
+    fetchData(queryParams);
+  }, [queryParams]);
 
   useEffect(() => {
-    setKeyword(queryParams.query)
-  }, [queryParams.query])
+    setKeyword(queryParams.query);
+  }, [queryParams.query]);
 
   const onAddClick = () => {
     nav(`/connector/new`);
   };
 
   const handleTableChange = (pagination, filters, sorter) => {
-      setQueryParams((params)=>{
-        return {
-          ...params,
-          size: pagination.pageSize,
-          from: (pagination.current-1) * pagination.pageSize,
-        }
-      })
+    setQueryParams(params => {
+      return {
+        ...params,
+        size: pagination.pageSize,
+        from: (pagination.current - 1) * pagination.pageSize
+      };
+    });
   };
 
   const onSearchClick = (query: string) => {
-    setQueryParams(old => {
+    setQueryParams(oldParams => {
       return {
-        ...old,
+        ...oldParams,
+        from: query === oldParams.query ? oldParams.from : 0,
         query,
-        t: new Date().getTime()
+        t: new Date().valueOf()
       };
     });
   };
   return (
     <ListContainer>
-      <div className="mb-4 mt-4 flex items-center justify-between">
+      <div className='mb-4 mt-4 flex items-center justify-between'>
         <Search
-          value={keyword} 
-          onChange={(e) => setKeyword(e.target.value)} 
           addonBefore={<FilterOutlined />}
-          className="max-w-500px"
+          className='max-w-500px'
           enterButton={t('common.refresh')}
+          value={keyword}
+          onChange={e => setKeyword(e.target.value)}
           onSearch={onSearchClick}
         />
-        <Button
-          icon={<PlusOutlined />}
-          type="primary"
-          onClick={onAddClick}
-        >
-          {t('common.add')}
-        </Button>
+        {permissions.create && (
+          <Button
+            icon={<PlusOutlined />}
+            type='primary'
+            onClick={onAddClick}
+          >
+            {t('common.add')}
+          </Button>
+        )}
       </div>
       <Table<Connector>
         columns={columns}
         dataSource={data.data}
         loading={loading}
-        rowKey="id"
-        size="middle"
+        rowKey='id'
+        size='middle'
         pagination={{
           pageSize: queryParams.size,
           current: Math.floor(queryParams.from / queryParams.size) + 1,
@@ -221,7 +303,6 @@ const ConnectorSettings = memo(() => {
       />
     </ListContainer>
   );
-
 });
 
 export default ConnectorSettings;

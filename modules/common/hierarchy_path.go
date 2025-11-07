@@ -21,6 +21,10 @@ func GetFullPathForCategories(parentCategories []string) string {
 	if !util.PrefixStr(path, "/") {
 		path = "/" + path
 	}
+
+	if !util.SuffixStr(path, "/") {
+		path = path + "/"
+	}
 	return path
 }
 

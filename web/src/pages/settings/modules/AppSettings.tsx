@@ -9,6 +9,12 @@ const AppSettings = memo(() => {
   const [form] = Form.useForm();
   const { t } = useTranslation();
 
+  const { hasAuth } = useAuth()
+
+  const permissions = {
+    update: hasAuth('coco#system/update'),
+  }
+
   const { endLoading, loading, startLoading } = useLoading();
   const [logo, setLogo] = useState({
     lightLoading: false,
@@ -91,14 +97,18 @@ const AppSettings = memo(() => {
             {t('page.settings.app_settings.chat_settings.title')}
           </div>
           <ChatStartPage startPageSettings={data?.app_settings?.chat?.start_page} logo={logo} setLogo={setLogo}/>
-          <Form.Item label=" " >
-            <Button
-              type="primary"
-              onClick={() => handleSubmit()}
-            >
-              {t('common.update')}
-            </Button>
-          </Form.Item>
+          {
+            permissions.update && (
+              <Form.Item label=" " >
+                <Button
+                  type="primary"
+                  onClick={() => handleSubmit()}
+                >
+                  {t('common.update')}
+                </Button>
+              </Form.Item>
+            )
+          }
         </Form>
       </Spin>
     </ListContainer>

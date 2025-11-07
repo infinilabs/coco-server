@@ -222,6 +222,9 @@ const routeMap: RouteMap = {
   "ai-assistant_new": "new",
   "api-token": "/api-token",
   "api-token_list": "list",
+  "auth": "/auth",
+  "auth_edit": "edit/:id",
+  "auth_new": "new",
   "connector": "/connector",
   "connector_edit": "edit/:id",
   "connector_new": "new",
@@ -246,11 +249,18 @@ const routeMap: RouteMap = {
   "model-provider_edit": "edit/:id",
   "model-provider_list": "list",
   "model-provider_new": "new",
+  "role": "/role",
+  "role_edit": "edit/:id",
+  "role_new": "new",
   "search": "/search",
   "settings": "/settings",
   "webhook": "/webhook",
   "webhook_edit": "edit/:id",
-  "webhook_new": "new"
+  "webhook_new": "new",
+  "security": "/security",
+  "user": "/user",
+  "user_edit": "edit/:id",
+  "user_new": "new"
 };
 
 /**

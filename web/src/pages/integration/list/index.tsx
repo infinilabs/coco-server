@@ -1,18 +1,29 @@
 import { EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, PlusOutlined } from '@ant-design/icons';
 import { useLoading } from '@sa/hooks';
-import { Button, Dropdown, Input, Switch, Table, Tabs, message } from 'antd';
 import { useSearchParams } from 'react-router-dom';
+import { Avatar, Button, Dropdown, Input, Modal, Switch, Table, Tabs, message } from 'antd';
 
-import SvgIcon from '@/components/stateless/custom/SvgIcon';
-import useQueryParams from '@/hooks/common/queryParams';
 import { deleteIntegration, fetchIntegrations, renewAPIToken, updateIntegration } from '@/service/api/integration';
 import { formatESSearchResult } from '@/service/request/es';
-
+import useQueryParams from '@/hooks/common/queryParams';
 import { isFullscreen } from '../modules/EditForm';
+import SvgIcon from '@/components/stateless/custom/SvgIcon';
 
 export function Component() {
   const [queryParams, setQueryParams] = useQueryParams();
   const { t } = useTranslation();
+
+  const { addSharesToData, isEditorOwner, hasEdit, isResourceShare } = useResource();
+  const resourceType = 'integration';
+
+  const { hasAuth } = useAuth();
+
+  const permissions = {
+    read: hasAuth('coco#integration/read'),
+    create: hasAuth('coco#integration/create'),
+    update: hasAuth('coco#integration/update'),
+    delete: hasAuth('coco#integration/delete')
+  };
 
   const { tableWrapperRef } = useTableScroll();
 
@@ -31,8 +42,20 @@ export function Component() {
   const fetchData = async params => {
     startLoading();
     const res = await fetchIntegrations(params);
-    const newData = formatESSearchResult(res.data);
-    setData(newData);
+    if (res?.data) {
+      const newData = formatESSearchResult(res.data);
+      if (newData.data.length > 0) {
+        const resources = newData.data.map(item => ({
+          resource_id: item.id,
+          resource_type: resourceType
+        }));
+        const dataWithShares = await addSharesToData(newData.data, resources);
+        if (dataWithShares) {
+          newData.data = dataWithShares;
+        }
+      }
+      setData(newData);
+    }
     endLoading();
   };
 
@@ -81,16 +104,74 @@ export function Component() {
   const columns = [
     {
       dataIndex: 'name',
-      render: value => (
-        <div className="flex items-center gap-2">
-          <SvgIcon
-            className="text-icon-small text-gray-500"
-            icon="mdi:puzzle-outline"
-          />
-          <span>{value}</span>
-        </div>
-      ),
+      minWidth: 150,
+      ellipsis: true,
+      render: (value, record) => {
+        const isShare = isResourceShare(record);
+
+        let shareIcon;
+
+        if (isShare) {
+          shareIcon = (
+            <div className='flex-shrink-0 flex-grow-0'>
+              <SvgIcon
+                className='text-#999'
+                localIcon='share'
+              />
+            </div>
+          );
+        }
+
+        return (
+          <div className='flex items-center gap-1'>
+            <SvgIcon
+              className='text-icon-small text-gray-500'
+              icon='mdi:puzzle-outline'
+            />
+            <span className='ant-table-cell-ellipsis max-w-150px'>{value}</span>
+            {shareIcon}
+          </div>
+        );
+      },
       title: t('page.integration.columns.name')
+    },
+    {
+      dataIndex: 'owner',
+      title: t('page.datasource.labels.owner'),
+      render: (value, record) => {
+        if (!value) return '-';
+        return (
+          <div className='flex overflow-hidden'>
+            <Avatar.Group
+              max={{ count: 1 }}
+              size='small'
+            >
+              <AvatarLabel
+                data={value}
+                showCard={true}
+              />
+            </Avatar.Group>
+          </div>
+        );
+      }
+    },
+    {
+      dataIndex: 'shares',
+      title: t('page.datasource.labels.shares'),
+      render: (value, record) => {
+        if (!value) return '-';
+        return (
+          <Shares
+            record={record}
+            title={record.name}
+            resource={{
+              resource_type: resourceType,
+              resource_id: record.id
+            }}
+            onSuccess={() => fetchData(queryParams)}
+          />
+        );
+      }
     },
     {
       dataIndex: 'type',
@@ -130,7 +211,8 @@ export function Component() {
         return (
           <Switch
             checked={record.enabled}
-            size="small"
+            disabled={!permissions.update || !hasEdit(record)}
+            size='small'
             onChange={checked => {
               window?.$modal?.confirm({
                 content: t(`page.integration.update.${checked ? 'enable' : 'disable'}_confirm`, { name: record.name }),
@@ -155,23 +237,30 @@ export function Component() {
     },
     {
       fixed: 'right',
+      hidden: !permissions.update && !permissions.delete,
       render: (_, record) => {
-        const items = [
-          {
+        const items: MenuProps['items'] = [];
+        if (permissions.read && permissions.update && hasEdit(record)) {
+          items.push({
             key: 'edit',
             label: t('common.edit')
-          },
-          {
-            key: 'delete',
-            label: t('common.delete')
-          },
-          {
+          });
+          items.push({
             key: 'renew_token',
             label: t('common.renew_token')
           }
         ];
 
         // eslint-disable-next-line @typescript-eslint/no-shadow
+          });
+        }
+        if (permissions.delete && isEditorOwner(record)) {
+          items.push({
+            key: 'delete',
+            label: t('common.delete')
+          });
+        }
+        if (items.length === 0) return null;
         const onMenuClick = ({ key, record }: any) => {
           // eslint-disable-next-line default-case
           switch (key) {
@@ -270,7 +359,7 @@ export function Component() {
     <ListContainer>
       <ACard
         bordered={false}
-        className="flex-col-stretch sm:flex-1-hidden card-wrapper"
+        className='flex-col-stretch sm:flex-1-hidden card-wrapper'
         ref={tableWrapperRef}
       >
         {/* 新增：Tabs 切换 SearchBox / Fullscreen / Webhooks */}
@@ -282,29 +371,32 @@ export function Component() {
         />
 
         <div className="mb-4 mt-4 flex items-center justify-between">
+        <div className='mb-4 mt-4 flex items-center justify-between'>
           <Input.Search
             addonBefore={<FilterOutlined />}
-            className="max-w-500px"
+            className='max-w-500px'
             enterButton={t('common.refresh')}
             value={keyword}
             onChange={e => setKeyword(e.target.value)}
             onSearch={onRefreshClick}
           />
-          <Button
-            icon={<PlusOutlined />}
-            type="primary"
-            onClick={() => nav(`/integration/new`)}
-          >
-            {t('common.add')}
-          </Button>
+          {permissions.create && (
+            <Button
+              icon={<PlusOutlined />}
+              type='primary'
+              onClick={() => nav(`/integration/new`)}
+            >
+              {t('common.add')}
+            </Button>
+          )}
         </div>
         <Table
           columns={columns}
           dataSource={filteredData.data}
           loading={loading}
-          rowKey="id"
+          rowKey='id'
           rowSelection={{ ...rowSelection }}
-          size="middle"
+          size='middle'
           pagination={{
             current: Math.floor(queryParams.from / queryParams.size) + 1,
             pageSize: queryParams.size,
