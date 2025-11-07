@@ -74,6 +74,9 @@ declare module "@elegant-router/types" {
     "search": "/search";
     "security": "/security";
     "settings": "/settings";
+    "webhook": "/webhook";
+    "webhook_edit": "edit/:id";
+    "webhook_new": "new";
     "user": "/user";
     "user_edit": "edit/:id";
     "user_new": "new";
@@ -139,6 +142,7 @@ declare module "@elegant-router/types" {
     | "search"
     | "security"
     | "settings"
+    | "webhook"
     | "user"
   >;
 
@@ -192,6 +196,8 @@ declare module "@elegant-router/types" {
     | "search"
     | "security"
     | "settings"
+    | "webhook_edit"
+    | "webhook_new"
     | "user_edit"
     | "user_new"
   >;
@@ -278,7 +284,7 @@ declare module "@elegant-router/types" {
         component: `view.${K}`;
       }
     : never;
-  
+
   /**
    * the center level route
    */
@@ -302,7 +308,7 @@ declare module "@elegant-router/types" {
         layout?:"base" | "blank"
       }
     : never;
-  
+
   /**
    * the custom first level route
    */

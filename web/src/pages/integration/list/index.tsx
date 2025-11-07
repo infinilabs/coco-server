@@ -1,6 +1,7 @@
 import { EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, PlusOutlined } from '@ant-design/icons';
 import { useLoading } from '@sa/hooks';
-import { Avatar, Button, Dropdown, Input, Modal, Switch, Table, message } from 'antd';
+import { useSearchParams } from 'react-router-dom';
+import { Avatar, Button, Dropdown, Input, Modal, Switch, Table, Tabs, message } from 'antd';
 
 import { deleteIntegration, fetchIntegrations, renewAPIToken, updateIntegration } from '@/service/api/integration';
 import { formatESSearchResult } from '@/service/request/es';
@@ -34,6 +35,9 @@ export function Component() {
   });
   const { endLoading, loading, startLoading } = useLoading();
   const [keyword, setKeyword] = useState();
+
+  // 用于判断 Webhooks 类型
+  const isWebhook = (type?: string) => ['webhook', 'webhooks'].includes(String(type || '').toLowerCase());
 
   const fetchData = async params => {
     startLoading();
@@ -172,6 +176,10 @@ export function Component() {
     {
       dataIndex: 'type',
       render: value => {
+        // Webhooks 优先匹配
+        if (isWebhook(value)) {
+          return t('page.integration.tabs.webhooks');
+        }
         return isFullscreen(value)
           ? t('page.integration.form.labels.type_fullscreen')
           : t('page.integration.form.labels.type_searchbox');
@@ -240,6 +248,10 @@ export function Component() {
           items.push({
             key: 'renew_token',
             label: t('common.renew_token')
+          }
+        ];
+
+        // eslint-disable-next-line @typescript-eslint/no-shadow
           });
         }
         if (permissions.delete && isEditorOwner(record)) {
@@ -250,6 +262,7 @@ export function Component() {
         }
         if (items.length === 0) return null;
         const onMenuClick = ({ key, record }: any) => {
+          // eslint-disable-next-line default-case
           switch (key) {
             case 'edit':
               nav(`/integration/edit/${record.id}`, { state: record });
@@ -304,6 +317,44 @@ export function Component() {
     setKeyword(queryParams.query);
   }, [queryParams.query]);
 
+  // 新增：Tabs 状态（与 settings 页面一致）
+  const [searchParams, setSearchParams] = useSearchParams();
+  const items = [
+    {
+      key: 'searchbox',
+      label: t('page.integration.form.labels.type_searchbox')
+    },
+    {
+      key: 'fullscreen',
+      label: t('page.integration.form.labels.type_fullscreen')
+    }
+    // {
+    //   key: 'webhooks',
+    //   label: t('page.integration.tabs.webhooks'),
+    // }
+  ];
+  const activeKey = useMemo(() => {
+    return searchParams.get('tab') || items[0].key;
+  }, [searchParams]);
+  const onTabChange = (key: string) => {
+    setSearchParams({ tab: key });
+  };
+
+  // 新增：按当前 tab 过滤数据源
+  const filteredData = useMemo(() => {
+    const list = data?.data || [];
+    if (activeKey === 'fullscreen') {
+      return { ...data, data: list.filter((item: any) => isFullscreen(item?.type)) };
+    }
+    if (activeKey === 'searchbox') {
+      return { ...data, data: list.filter((item: any) => !isFullscreen(item?.type)) };
+    }
+    if (activeKey === 'webhooks') {
+      return { ...data, data: list.filter((item: any) => isWebhook(item?.type)) };
+    }
+    return data;
+  }, [data, activeKey]);
+
   return (
     <ListContainer>
       <ACard
@@ -311,6 +362,15 @@ export function Component() {
         className='flex-col-stretch sm:flex-1-hidden card-wrapper'
         ref={tableWrapperRef}
       >
+        {/* 新增：Tabs 切换 SearchBox / Fullscreen / Webhooks */}
+        <Tabs
+          activeKey={activeKey}
+          className="settings-tabs"
+          items={items}
+          onChange={onTabChange}
+        />
+
+        <div className="mb-4 mt-4 flex items-center justify-between">
         <div className='mb-4 mt-4 flex items-center justify-between'>
           <Input.Search
             addonBefore={<FilterOutlined />}
@@ -332,17 +392,17 @@ export function Component() {
         </div>
         <Table
           columns={columns}
-          dataSource={data.data}
+          dataSource={filteredData.data}
           loading={loading}
           rowKey='id'
           rowSelection={{ ...rowSelection }}
           size='middle'
           pagination={{
-            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
-            pageSize: queryParams.size,
             current: Math.floor(queryParams.from / queryParams.size) + 1,
-            total: data.total?.value || data?.total,
-            showSizeChanger: true
+            pageSize: queryParams.size,
+            showSizeChanger: true,
+            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+            total: data.total?.value || data?.total
           }}
           onChange={handleTableChange}
         />
