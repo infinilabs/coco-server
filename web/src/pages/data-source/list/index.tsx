@@ -236,6 +236,8 @@ export function Component() {
       title: t('page.datasource.labels.shares'),
       render: (value, record) => {
         if (!value) return '-';
+        const connector = data.connectors?.[record.connector?.id]
+        if (connector?.path_hierarchy) return '-'
         return (
           <Shares
             record={record}
@@ -374,6 +376,15 @@ export function Component() {
         if (dataWithShares) {
           newData.data = dataWithShares;
         }
+        const connectorRes = await getConnectorByIDs(newData.data.filter((item) => !!item.connector?.id).map(item => item.connector.id));
+        if (connectorRes.data) {
+          const newConnectors = formatESSearchResult(connectorRes.data);
+          const connectors: any = {};
+          newConnectors.data.map(item => {
+            connectors[item.id] = item;
+          });
+          newData.connectors = connectors;
+        }
       }
       setData((oldData: any) => {
         return {
@@ -392,29 +403,6 @@ export function Component() {
   useEffect(() => {
     setKeyword(queryParams.query);
   }, [queryParams.query]);
-
-  const fetchConnectors = async (ids: string[]) => {
-    const res = await getConnectorByIDs(ids);
-    if (res.data) {
-      const newData = formatESSearchResult(res.data);
-      const connectors: any = {};
-      newData.data.map(item => {
-        connectors[item.id] = item;
-      });
-      setData(data => {
-        return {
-          ...data,
-          connectors
-        };
-      });
-    }
-  };
-  useEffect(() => {
-    if (data.data?.length > 0) {
-      const ids = data.data.map(item => item.connector.id);
-      fetchConnectors(ids);
-    }
-  }, [data.data]);
 
   const handleTableChange: TableProps<Datasource>['onChange'] = (pagination, filters, sorter) => {
     setQueryParams(params => {
