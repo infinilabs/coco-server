@@ -546,7 +546,7 @@ export const EditForm = memo(props => {
             <Select
               allowClear
               className={itemClassNames}
-              options={localeOptions}
+              options={localeOptions.map((item) => ({ value: item.key, label: item.label }))}
             />
           </Form.Item>
         </Form.Item>
