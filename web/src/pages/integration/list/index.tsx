@@ -248,11 +248,7 @@ export function Component() {
           items.push({
             key: 'renew_token',
             label: t('common.renew_token')
-          }
-        ];
-
-        // eslint-disable-next-line @typescript-eslint/no-shadow
-          });
+          })
         }
         if (permissions.delete && isEditorOwner(record)) {
           items.push({
@@ -370,7 +366,6 @@ export function Component() {
           onChange={onTabChange}
         />
 
-        <div className="mb-4 mt-4 flex items-center justify-between">
         <div className='mb-4 mt-4 flex items-center justify-between'>
           <Input.Search
             addonBefore={<FilterOutlined />}

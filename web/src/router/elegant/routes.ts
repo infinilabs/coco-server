@@ -521,41 +521,6 @@ export const generatedRoutes: GeneratedRoute[] = [
     }
   },
   {
-    name: 'webhook',
-    path: '/webhook',
-    component: 'layout.base',
-    meta: {
-      i18nKey: 'route.webhook',
-      title: 'webhook',
-      order: 5,
-      localIcon: 'link'
-    },
-    children: [
-      {
-        name: 'webhook_edit',
-        path: 'edit/:id',
-        component: 'view.webhook_edit',
-        meta: {
-          i18nKey: 'route.webhook_edit',
-          title: 'webhook_edit',
-          hideInMenu: true,
-          activeMenu: 'webhook'
-        }
-      },
-      {
-        name: 'webhook_new',
-        path: 'new',
-        component: 'view.webhook_new',
-        meta: {
-          i18nKey: 'route.webhook_new',
-          title: 'webhook_new',
-          hideInMenu: true,
-          activeMenu: 'webhook'
-        }
-      }
-    ]
-  },
-  {
     name: 'user',
     path: '/user',
     component: 'layout.base',
@@ -584,6 +549,42 @@ export const generatedRoutes: GeneratedRoute[] = [
           i18nKey: 'route.user_new',
           title: 'user_new',
           permissions: ['generic#security:user/create']
+        }
+      }
+    ]
+  },
+  {
+    name: 'webhook',
+    path: '/webhook',
+    component: 'layout.base',
+    meta: {
+      i18nKey: 'route.webhook',
+      title: 'webhook',
+      order: 5,
+      localIcon: 'link',
+      hideInMenu: true,
+    },
+    children: [
+      {
+        name: 'webhook_edit',
+        path: 'edit/:id',
+        component: 'view.webhook_edit',
+        meta: {
+          i18nKey: 'route.webhook_edit',
+          title: 'webhook_edit',
+          hideInMenu: true,
+          activeMenu: 'webhook'
+        }
+      },
+      {
+        name: 'webhook_new',
+        path: 'new',
+        component: 'view.webhook_new',
+        meta: {
+          i18nKey: 'route.webhook_new',
+          title: 'webhook_new',
+          hideInMenu: true,
+          activeMenu: 'webhook'
         }
       }
     ]
