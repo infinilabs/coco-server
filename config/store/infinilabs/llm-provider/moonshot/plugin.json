@@ -1,0 +1,50 @@
+{
+  "category": "model",
+  "description": "Moonshot provides models such as moonshot-v1-8k, moonshot-v1-32k, and moonshot-v1-128k.",
+  "developer": {
+    "avatar": "https://coco.infini.cloud/extensions/infinilabs/assets/avatar.png",
+    "github_handle": "infinilabs",
+    "id": "infinilabs",
+    "location": "Internet",
+    "name": "infinilabs",
+    "website": "https://github.com/infinilabs"
+  },
+  "icon": "font_Moonshot",
+  "name": "Moonshot",
+  "platforms": [
+    "macos",
+    "linux",
+    "windows"
+  ],
+  "screenshots": [
+    {
+      "title": "Moonshot",
+      "url": "/assets/screenshot.png"
+    }
+  ],
+  "tags": [
+   "model",
+    "moonshot",
+    "llm"
+  ],
+  "type": "llm-provider",
+  "url": {
+    "home": "https://api.moonshot.cn"
+  },
+  "version": {
+    "number": "0.1"
+  },
+  "payload": {
+    "name" : "Moonshot",
+    "api_key" : "",
+    "api_type" : "openai",
+    "base_url" : "https://api.moonshot.cn",
+    "icon" : "font_Moonshot",
+    "models" : [
+      {"name": "moonshot-v1-auto"}
+    ],
+    "enabled" : false,
+    "builtin" : true,
+    "description": "Moonshot provides models such as moonshot-v1-8k, moonshot-v1-32k, and moonshot-v1-128k."
+  }
+}

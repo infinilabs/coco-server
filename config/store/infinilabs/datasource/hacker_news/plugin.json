@@ -1,0 +1,56 @@
+{
+  "category": "website",
+  "description": "Latest news from Hacker News RSS feed.",
+  "developer": {
+    "avatar": "https://coco.infini.cloud/extensions/infinilabs/assets/avatar.png",
+    "github_handle": "infinilabs",
+    "id": "infinilabs",
+    "location": "Internet",
+    "name": "infinilabs",
+    "website": "https://github.com/infinilabs"
+  },
+  "icon": "https://news.ycombinator.com/favicon.ico",
+  "name": "Hacker News",
+  "platforms": [
+    "macos",
+    "linux",
+    "windows"
+  ],
+  "screenshots": [
+    {
+      "title": "Hacker News",
+      "url": "/assets/screenshot.png"
+    }
+  ],
+  "tags": [
+   "static_site",
+    "news",
+    "web"
+  ],
+  "type": "datasource",
+  "url": {
+    "home": "https://news.ycombinator.com/"
+  },
+  "version": {
+    "number": "0.1"
+  },
+  "payload": {
+    "type" : "connector",
+    "name" : "Hacker News",
+    "icon" : "https://news.ycombinator.com/favicon.ico",
+    "connector" : {
+      "id" : "rss",
+      "config" : {
+        "urls" : [
+          "https://news.ycombinator.com/rss"
+        ]
+      }
+    },
+    "sync" : {
+      "enabled": true,
+      "interval" : "600m",
+      "strategy" : "interval"
+    },
+    "enabled" : true
+  }
+}

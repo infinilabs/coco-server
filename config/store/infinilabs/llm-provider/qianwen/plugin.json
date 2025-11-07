@@ -1,0 +1,68 @@
+{
+  "category": "model",
+  "description": "Aliyun's self-developed Tongyi large model supports full-modal model service calls, offering powerful inference capabilities with high efficiency and low cost to meet a wide range of business scenarios.",
+  "developer": {
+    "avatar": "https://coco.infini.cloud/extensions/infinilabs/assets/avatar.png",
+    "github_handle": "infinilabs",
+    "id": "infinilabs",
+    "location": "Internet",
+    "name": "infinilabs",
+    "website": "https://github.com/infinilabs"
+  },
+  "icon": "font_tongyiqianwenTongyi-Qianwen",
+  "name": "Tongyi Qianwen",
+  "platforms": [
+    "macos",
+    "linux",
+    "windows"
+  ],
+  "screenshots": [
+    {
+      "title": "Tongyi Qianwen",
+      "url": "/assets/screenshot.png"
+    }
+  ],
+  "tags": [
+   "aliyun",
+    "qianwen",
+    "llm"
+  ],
+  "type": "llm-provider",
+  "url": {
+    "home": "http://coco.rs"
+  },
+  "version": {
+    "number": "0.1"
+  },
+  "payload": {
+    "id" : "qianwen",
+    "name" : "Tongyi Qianwen",
+    "api_key" : "",
+    "api_type" : "openai",
+    "icon" : "font_tongyiqianwenTongyi-Qianwen",
+    "models" : [
+      {
+        "name" : "tongyi-intent-detect-v3"
+      },
+      {
+        "name" : "deepseek-r1-distill-qwen-32b"
+      },
+      {
+        "name" : "deepseek-r1"
+      },
+      {
+        "name" : "qwen-max"
+      },
+      {
+        "name" : "qwq-plus"
+      },
+      {
+        "name" : "qwen2.5-32b-instruct"
+      }
+    ],
+    "base_url" : "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    "enabled" : false,
+    "builtin" : true,
+    "description" : "Aliyun's self-developed Tongyi large model supports full-modal model service calls, offering powerful inference capabilities with high efficiency and low cost to meet a wide range of business scenarios."
+  }
+}
