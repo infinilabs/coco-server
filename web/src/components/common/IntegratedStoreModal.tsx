@@ -11,6 +11,7 @@ import type { ReactNode } from 'react';
 import FontIcon from '@/components/common/font_icon';
 import { request } from '@/service/request';
 import { formatESSearchResult } from '@/service/request/es';
+import { localStg } from '@/utils/storage';
 
 type Category = 'ai-assistant' | 'connector' | 'data-source' | 'mcp-server' | 'model-provider';
 
@@ -146,17 +147,27 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
       if (currentTab === 'newest') {
         params.sort = 'created:desc';
       }
-
-      const result = await request({
-        method: 'get',
-        params,
-        url: `/store/server/_search?filter=type:${requestType}`
+      const providerInfo = localStg.get('providerInfo');
+      let storeUrl = `/store/server/_search?filter=type:${requestType}`;
+      if(providerInfo.store?.local === false){
+        storeUrl = providerInfo.store.endpoint + storeUrl
+      }
+      const searchParams = new URLSearchParams();
+      Object.entries(params).forEach(([key, value]) => {
+        searchParams.append(key, value);
       });
+  
+      storeUrl += `&${searchParams.toString()}`; 
 
-      const { data } = formatESSearchResult(result.data);
+      const res = await fetch(storeUrl, {
+        method: 'get',
+      });
+      const result = await res.json();
+      const { data } = formatESSearchResult(result);
 
       setData(data);
-    } catch {
+    } catch(error) {
+      console.error(error);
       // do something
     } finally {
       setLoadingData(false);
