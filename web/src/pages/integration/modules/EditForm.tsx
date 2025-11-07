@@ -22,6 +22,7 @@ export const EditForm = memo(props => {
   const { endLoading, loading, startLoading } = useLoading();
   const [assistants, setAssistants] = useState([]);
   const [enabledList, setEnabledList] = useState({});
+  const [guestEnabled, setGuestEnabled] = useState(false);
 
   const { hasAuth } = useAuth();
 
@@ -84,15 +85,20 @@ export const EditForm = memo(props => {
 
   const handleSubmit = async () => {
     const params = await form.validateFields();
-    const { searchbox_mode, fullscreen_mode, cors = {}, enabled_module = {}, start_page = {}, payload = {} } = params;
+    const { searchbox_mode, fullscreen_mode, cors = {}, enabled_module = {}, start_page = {}, payload = {}, guest = {} } = params;
     const { search = {}, ai_chat = {} } = enabled_module;
     const { datasource = [] } = search;
     const { assistants = [] } = ai_chat;
     const { ai_overview = {}, ai_widgets = {} } = payload;
+    const formatGuest = {
+      ...guest,
+      run_as: guest.enabled && guest.run_as?.id ? guest.run_as?.id : undefined
+    }
     onSubmit(
       type === 'fullscreen'
         ? {
           ...params,
+          guest: formatGuest,
           enabled_module: {
             search: {
               ...search,
@@ -134,6 +140,7 @@ export const EditForm = memo(props => {
         }
         : {
           ...params,
+          guest: formatGuest,
           enabled_module: {
             ...enabled_module,
             search: {
@@ -166,6 +173,17 @@ export const EditForm = memo(props => {
 
   const initValue = record => {
     setType(isFullscreen(record?.type) ? 'fullscreen' : 'searchbox');
+    setGuestEnabled(!!record.guest?.enabled)
+    const commonValues = {
+        cors: {
+          ...(record.cors || {}),
+          allowed_origins: record.cors?.allowed_origins ? record.cors?.allowed_origins.join(',') : ''
+        },
+        guest: {
+          ...(record.guest || {}),
+          run_as: record.guest?.enabled && record.guest?.run_as ? { id: record.guest?.run_as } : undefined
+        }
+    }
     if (isFullscreen(record?.type)) {
       setSearchLogos(state => ({ ...state, ...(record.payload?.logo || {}) }));
       setAIOverviewLogo(state => ({ ...state, ...(record.payload?.ai_overview?.logo || {}) }));
@@ -174,6 +192,7 @@ export const EditForm = memo(props => {
       );
       const initValue = {
         ...record,
+        ...commonValues,
         enabled_module: {
           ...(record.enabled_module || {}),
           search: record.enabled_module?.search
@@ -218,12 +237,8 @@ export const EditForm = memo(props => {
               widgets: []
             }
         },
-        cors: {
-          ...(record.cors || {}),
-          allowed_origins: record.cors?.allowed_origins ? record.cors?.allowed_origins.join(',') : ''
-        },
         type: 'fullscreen',
-        fullscreen_mode: FULLSCREEN_TYPES.includes(record?.type) ? record?.type : FULLSCREEN_TYPES[0]
+        fullscreen_mode: FULLSCREEN_TYPES.includes(record?.type) ? record?.type : FULLSCREEN_TYPES[0],
       };
       setEnabledList({
         search: true,
@@ -242,6 +257,7 @@ export const EditForm = memo(props => {
       );
       const initValue = {
         ...record,
+        ...commonValues,
         enabled_module: {
           ...(record.enabled_module || {}),
           search: record.enabled_module?.search
@@ -270,10 +286,6 @@ export const EditForm = memo(props => {
               placeholder: 'Ask whatever you want...'
             }
         },
-        cors: {
-          ...(record.cors || {}),
-          allowed_origins: record.cors?.allowed_origins ? record.cors?.allowed_origins.join(',') : ''
-        },
         start_page: {
           ...(record.enabled_module?.ai_chat?.start_page_config || {}),
           display_assistants: record.enabled_module?.ai_chat?.start_page_config?.display_assistants
@@ -283,7 +295,7 @@ export const EditForm = memo(props => {
             : []
         },
         type: 'searchbox',
-        searchbox_mode: SEARCHBOX_TYPES.includes(record?.type) ? record?.type : SEARCHBOX_TYPES[0]
+        searchbox_mode: SEARCHBOX_TYPES.includes(record?.type) ? record?.type : SEARCHBOX_TYPES[0],
       }
       setEnabledList({
         search: initValue.enabled_module?.search?.enabled,
@@ -471,18 +483,22 @@ export const EditForm = memo(props => {
             layout='horizontal'
             name={['guest', 'enabled']}
           >
-            <Switch size='small' />
+            <Switch size='small' onChange={(checked) => setGuestEnabled(checked)}/>
           </Form.Item>
-
-          <div className='pb-2 pt-1 text-[var(--ant-color-text-description)]'>{t('page.integration.form.hints.tourist_mode')}</div>
-
-          <Form.Item
-            className='mb-0px'
-            layout='horizontal'
-            name={['guest', 'run_as']}
-          >
-            <PrincipalSelect className={itemClassNames} />
-          </Form.Item>
+          {
+            guestEnabled && (
+              <>
+                <div className='pb-2 pt-1 text-[var(--ant-color-text-description)]'>{t('page.integration.form.hints.tourist_mode')}</div>
+                <Form.Item
+                  className='mb-0px'
+                  layout='horizontal'
+                  name={['guest', 'run_as']}
+                >
+                  <PrincipalSelect className={itemClassNames} />
+                </Form.Item>
+              </>
+            )
+          }
         </Form.Item>
         <Form.Item
           label={t('page.integration.form.labels.appearance')}
