@@ -562,7 +562,7 @@ export const generatedRoutes: GeneratedRoute[] = [
       title: 'webhook',
       order: 5,
       localIcon: 'link',
-      hideInMenu: true,
+      hideInMenu: true
     },
     children: [
       {
