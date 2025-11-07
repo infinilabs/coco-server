@@ -69,7 +69,7 @@ func ValidateLoginByAPITokenHeader(w http.ResponseWriter, r *http.Request) (clai
 	//log.Error(userLevelTokenLevelPermission.Values())
 
 	intersectedPermission := security.IntersectSetsFast(apiTokenLevelPermission, userLevelTokenLevelPermission)
-	log.Error(intersectedPermission.Values())
+	//log.Error(intersectedPermission.Values())
 
 	claims.Permissions = security.ConvertPermissionHashSetToKeys(intersectedPermission)
 
@@ -110,7 +110,6 @@ func ValidateLoginByIntegrationHeader(w http.ResponseWriter, r *http.Request) (c
 				claims.Provider = "access_token"
 				claims.Login = cfg.Guest.RunAs
 				claims.Permissions = security.MustGetPermissionKeysByUserID(cfg.Guest.RunAs)
-				log.Error("login via integration")
 				return claims, nil
 			}
 		}

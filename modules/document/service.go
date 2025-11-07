@@ -10,6 +10,8 @@ import (
 	"infini.sh/coco/core"
 	"infini.sh/framework/core/elastic"
 	"infini.sh/framework/core/orm"
+	"infini.sh/framework/core/security"
+	"infini.sh/framework/core/util"
 	"infini.sh/framework/plugins/enterprise/security/share"
 )
 
@@ -46,26 +48,39 @@ func QueryDocuments(ctx1 context.Context, builder *orm.QueryBuilder, query strin
 	return docs, resp.Total, nil
 }
 
-func QueryDocumentsAndFilter(ctx1 context.Context, userID string, builder *orm.QueryBuilder, integrationID string, query string, datasource, category, subcategory, richCategory string) ([]elastic.DocumentWithMeta[core.Document], int64, error) {
+func QueryDocumentsAndFilter(ctx1 context.Context, user *security.UserSessionInfo, builder *orm.QueryBuilder, integrationID string, query string, datasource, category, subcategory, richCategory string) ([]elastic.DocumentWithMeta[core.Document], int64, error) {
 	docs, total, err := QueryDocuments(ctx1, builder, query, datasource, category, subcategory, richCategory)
 	if err != nil {
 		return nil, 0, err
 	}
-	docs1, err := SecondStageFilter(ctx1, userID, query, docs)
-	if err != nil {
-		return nil, 0, err
+
+	//bypass admin
+	if !util.AnyInArrayEquals(user.Roles, security.RoleAdmin) {
+		docs, err = SecondStageFilter(ctx1, user.MustGetUserID(), query, docs)
+		if err != nil {
+			return nil, 0, err
+		}
 	}
-	return docs1, total, nil
+
+	var final []elastic.DocumentWithMeta[core.Document]
+	for _, v := range docs {
+		doc := elastic.DocumentWithMeta[core.Document]{
+			ID:     v.ID,
+			Source: v,
+		}
+		RefineIcon(ctx1, &v)
+		final = append(final, doc)
+	}
+
+	return final, total, nil
 }
 
-func SecondStageFilter(ctx1 context.Context, userID string, query string, docs []core.Document) ([]elastic.DocumentWithMeta[core.Document], error) {
+func SecondStageFilter(ctx1 context.Context, userID string, query string, docs []core.Document) ([]core.Document, error) {
 	//double check the document permission
-	var docs1 []elastic.DocumentWithMeta[core.Document]
+	var docs1 = []core.Document{}
 	for _, v := range docs {
-
 		valid := false
 		if v.GetOwnerID() == userID {
-			seelog.Info("the user is owner")
 			valid = true
 		} else {
 			shareEntity := share.NewResourceEntity("document", v.ID, "")
@@ -79,12 +94,14 @@ func SecondStageFilter(ctx1 context.Context, userID string, query string, docs [
 		}
 
 		if valid {
-			doc := elastic.DocumentWithMeta[core.Document]{
-				ID:     v.ID,
-				Source: v,
-			}
-			RefineIcon(ctx1, &v)
-			docs1 = append(docs1, doc)
+
+			//doc := elastic.DocumentWithMeta[core.Document]{
+			//	ID:     v.ID,
+			//	Source: v,
+			//}
+			//RefineIcon(ctx1, &v)
+
+			docs1 = append(docs1, v)
 		} else {
 			seelog.Info("invalid permission to access doc:", v.Title, ",", query)
 		}

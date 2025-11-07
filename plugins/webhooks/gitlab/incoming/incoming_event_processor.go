@@ -69,7 +69,7 @@ func (processor *Processor) Process(ctx *pipeline.Context) error {
 	if ok {
 		event := core.MergeRequestEvent{}
 		util.MustFromJSONBytes(bodyBytes, &event)
-		log.Error(util.MustToJSON(event))
+		log.Debug(util.MustToJSON(event))
 
 		docV := ctx.Get("document")
 		doc, ok := docV.(core2.Document)
@@ -140,7 +140,7 @@ func (processor *Processor) onOpenMR(doc *core2.Document, event *core.MergeReque
 		panic(err)
 	}
 
-	log.Error("get final text: ", finalText)
+	log.Debug("get final text: ", finalText)
 	if finalText != "" {
 		processor.postReply(event.Project.ID, event.ObjectAttributes.IID, finalText)
 	}
@@ -161,7 +161,7 @@ func JoinAPIURL(base string, apiPath string, query map[string]string) string {
 		fullURL += "?" + values.Encode()
 	}
 
-	log.Error(fullURL)
+	log.Debug(fullURL)
 	return fullURL
 }
 
@@ -182,7 +182,7 @@ func (processor *Processor) getMRDetail(projectID, mrID int64) (*core.MergeReque
 	if res != nil {
 		//log.Error(string(res.Body))
 		detail := core.MergeRequestDetail{}
-		log.Error(string(res.Body))
+		log.Debug(string(res.Body))
 		util.MustFromJSONBytes(res.Body, &detail)
 		return &detail, nil
 	}
@@ -205,9 +205,9 @@ func (processor *Processor) getMRCommits(projectID, mrID int64) ([]core.MRCommit
 	if res != nil {
 		//log.Error(string(res.Body))
 		commits := []core.MRCommit{}
-		log.Error(string(res.Body))
+		log.Debug(string(res.Body))
 		util.MustFromJSONBytes(res.Body, &commits)
-		log.Error(util.MustToJSON(commits))
+		log.Debug(util.MustToJSON(commits))
 		return commits, nil
 	}
 
@@ -227,10 +227,10 @@ func (processor *Processor) getMRDiffs(projectID, mrID int64) ([]core.MRDiff, er
 	}
 
 	if res != nil {
-		log.Error(string(res.Body))
+		log.Debug(string(res.Body))
 		commits := []core.MRDiff{}
 		util.MustFromJSONBytes(res.Body, &commits)
-		log.Error(util.MustToJSON(commits))
+		log.Debug(util.MustToJSON(commits))
 		return commits, nil
 	}
 
@@ -253,9 +253,9 @@ func (processor *Processor) getPreviousFile(projectID int64, file string, branch
 	if res != nil {
 		//log.Error(string(res.Body))
 		file := core.FileContent{}
-		log.Error(string(res.Body))
+		log.Debug(string(res.Body))
 		util.MustFromJSONBytes(res.Body, &file)
-		log.Error(util.MustToJSON(file))
+		log.Debug(util.MustToJSON(file))
 		return &file, nil
 	}
 
@@ -283,10 +283,10 @@ func (processor *Processor) postReply(projectID, mrID int64, msg string) (*core.
 	}
 
 	if res != nil {
-		log.Error(string(res.Body))
+		log.Debug(string(res.Body))
 		commits := core.MergeRequestNote{}
 		util.MustFromJSONBytes(res.Body, &commits)
-		log.Error(util.MustToJSON(commits))
+		log.Debug(util.MustToJSON(commits))
 		return &commits, nil
 	}
 

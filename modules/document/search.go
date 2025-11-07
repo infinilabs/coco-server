@@ -43,13 +43,12 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		}
 
 		reqUser := security.MustGetUserFromRequest(req)
-		userID := reqUser.MustGetUserID()
+		//userID := reqUser.MustGetUserID()
 		integrationID := req.Header.Get(core.HeaderIntegrationID)
-		log.Error("integrationID:", integrationID)
+		//log.Error("integrationID:", integrationID)
 
-		docs1, total, err := QueryDocumentsAndFilter(req.Context(), userID, builder, integrationID, query, datasource, category, subcategory, richCategory)
-
-		log.Error(docs1, total, err)
+		docs1, total, err := QueryDocumentsAndFilter(req.Context(), reqUser, builder, integrationID, query, datasource, category, subcategory, richCategory)
+		//log.Error(docs1, total, err)
 		if err != nil {
 			panic(err)
 		}
@@ -58,7 +57,8 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		assistantSearchPermission := security.GetSimplePermission(Category, Assistant, string(QuickAISearchAction))
 		perID := security.GetOrInitPermissionKey(assistantSearchPermission)
 
-		if integrationID != "" && ((reqUser.Roles != nil && util.AnyInArrayEquals(reqUser.Roles, security.RoleAdmin)) || reqUser.UserAssignedPermission.ValidateFor(perID)) {
+		//not for widget integration
+		if integrationID == "" && ((reqUser.Roles != nil && util.AnyInArrayEquals(reqUser.Roles, security.RoleAdmin)) || reqUser.UserAssignedPermission.ValidateFor(perID)) {
 			assistantSize := 2
 			if len(docs1) < 5 {
 				assistantSize = size - (len(docs1))
