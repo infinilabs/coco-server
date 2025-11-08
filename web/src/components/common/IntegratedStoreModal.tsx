@@ -202,10 +202,10 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
       key: 'model-provider',
       label: t('page.integratedStoreModal.labels.modelProvider')
     },
-    {
-      key: 'data-source',
-      label: t('page.integratedStoreModal.labels.datasource')
-    },
+    // {
+    //   key: 'data-source',
+    //   label: t('page.integratedStoreModal.labels.datasource')
+    // },
     {
       key: 'mcp-server',
       label: t('page.integratedStoreModal.labels.mcpServer')
