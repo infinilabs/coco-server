@@ -473,6 +473,7 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
                 <Input.Search
                   className="w-60"
                   value={searchKeyword}
+                  onChange={e => setSearchKeyboard(e.target.value)}
                   onSearch={setSearchKeyboard}
                 />
               </Flex>

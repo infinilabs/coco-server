@@ -7,6 +7,7 @@ import { formatESSearchResult } from '@/service/request/es';
 
 import { AssetsIcons } from './assets_icons';
 import { IconSelector } from './icon_selector';
+import Processor from './processor';
 
 export function Component() {
   const { t } = useTranslation();
@@ -24,7 +25,8 @@ export function Component() {
       icon: values.icon,
       name: values.name,
       path_hierarchy: values.path_hierarchy,
-      tags: values.tags
+      tags: values.tags,
+      processor: values.processor,
     };
     createConnector(sValues).then(res => {
       if (res.data?.result === 'created') {
@@ -83,6 +85,21 @@ export function Component() {
             rules={[{ required: true }]}
           >
             <Input className="max-w-600px" />
+          </Form.Item>
+          <Form.Item
+            label={t('page.connector.new.labels.processor')}
+            name="processor"
+            rules={[{ message: 'Please input processor name!', required: true }, {
+            validator: (_, value) => {
+              if (!value) return Promise.resolve()
+              if (value.name?.trim().length == 0 ) {
+                return Promise.reject(new Error('name is required'))
+              }
+              return Promise.resolve()
+            },
+          },]}
+          > 
+            <Processor className="max-w-600px" />
           </Form.Item>
 
           <Form.Item

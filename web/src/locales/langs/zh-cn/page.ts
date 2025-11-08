@@ -112,7 +112,8 @@ const page: App.I18n.Schema['translation']['page'] = {
         path_hierarchy: '支持目录访问',
         redirect_url: '重定向地址',
         tags: '标签',
-        token_url: 'Token 地址'
+        token_url: 'Token 地址',
+        processor: '处理器',
       },
       title: '新建连接器',
       tooltip: {
