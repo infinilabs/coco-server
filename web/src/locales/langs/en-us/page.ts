@@ -293,7 +293,9 @@ const page: App.I18n.Schema['translation']['page'] = {
         permission_sync_enabled: 'Permission Sync',
         sync_enabled: 'Sync',
         tags: 'Tags',
-        type: 'Type'
+        type: 'Type',
+        webhook: "Webhook",
+        enrichment_pipeline: "Enrichment Pipeline"
       },
       title: '{{connector}} Connection',
       tooltip: {

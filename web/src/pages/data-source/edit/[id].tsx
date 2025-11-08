@@ -97,7 +97,8 @@ export function Component() {
             interval: datasource?.sync?.interval || '1h'
           },
           raw_config: datasource?.connector?.config? JSON.stringify(datasource?.connector?.config,null,4) : undefined,
-          urls: datasource?.connector?.config?.urls || ['']
+          urls: datasource?.connector?.config?.urls || [''],
+          enrichment_pipeline: datasource?.enrichment_pipeline ? JSON.stringify(datasource?.enrichment_pipeline, null,2) : ''
         });
       }
     });
@@ -235,6 +236,14 @@ export function Component() {
         break;
       }
     }
+    if(values.enrichment_pipeline) {
+      try {
+        values.enrichment_pipeline = JSON.parse(values.enrichment_pipeline);
+      }catch (e) {
+        message.error("invalid enrichment pipeline JSON format");
+        return;
+      }
+    }
     const sValues = {
       connector: {
         config: {
@@ -253,7 +262,9 @@ export function Component() {
         strategy: values.sync_config?.strategy || 'interval',
         interval: values.sync_config?.interval || '1h'
       },
-      type: 'connector'
+      type: 'connector',
+       webhook: values.webhook,
+      enrichment_pipeline: values.enrichment_pipeline || null
     };
     updateDatasource(datasourceID, sValues).then(res => {
       if (res.data?.result === 'updated') {
@@ -424,6 +435,19 @@ export function Component() {
                 type="connector"
               />
             </Form.Item>
+            <Form.Item
+                label={t('page.datasource.new.labels.webhook')}
+                name={["webhook", "enabled"]}
+              >
+                <Switch />
+              </Form.Item>
+               <Form.Item
+                label={t('page.datasource.new.labels.enrichment_pipeline')}
+                name="enrichment_pipeline"
+                tooltip={t('page.connector.new.tooltip.config', 'Configurations in JSON format.')}
+              >
+               <Input.TextArea autoSize={{ maxRows: 30, minRows: 2 }} />
+              </Form.Item>
 
             {!isCustom ? (
               <>

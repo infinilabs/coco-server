@@ -113,7 +113,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         redirect_url: '重定向地址',
         tags: '标签',
         token_url: 'Token 地址',
-        processor: '处理器',
+        processor: '处理器'
       },
       title: '新建连接器',
       tooltip: {
@@ -354,7 +354,9 @@ const page: App.I18n.Schema['translation']['page'] = {
         site_urls: '站点地址',
         sync_enabled: '启用同步',
         tags: '标签',
-        type: '数据源类型'
+        type: '数据源类型',
+        webhook: '启用 Webhook',
+        enrichment_pipeline: 'Enrichment Pipeline'
       },
       title: '连接 {{connector}}',
       tooltip: {
@@ -472,7 +474,7 @@ const page: App.I18n.Schema['translation']['page'] = {
   guide: {
     llm: {
       desc: '集成大模型后，您将解锁人工智能聊天功能，还能获得智能搜索服务和高效的工作助手。',
-      title: '创建一个账户'
+      title: '集成大模型'
     },
     setupLater: '稍后设置',
     user: {
