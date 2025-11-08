@@ -354,7 +354,9 @@ const page: App.I18n.Schema['translation']['page'] = {
         site_urls: '站点地址',
         sync_enabled: '启用同步',
         tags: '标签',
-        type: '数据源类型'
+        type: '数据源类型',
+        webhook: "启用 Webhook",
+        enrichment_pipeline: "Enrichment Pipeline"
       },
       title: '连接 {{connector}}',
       tooltip: {
