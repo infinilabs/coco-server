@@ -202,10 +202,10 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
       key: 'model-provider',
       label: t('page.integratedStoreModal.labels.modelProvider')
     },
-    {
-      key: 'data-source',
-      label: t('page.integratedStoreModal.labels.datasource')
-    },
+    // {
+    //   key: 'data-source',
+    //   label: t('page.integratedStoreModal.labels.datasource')
+    // },
     {
       key: 'mcp-server',
       label: t('page.integratedStoreModal.labels.mcpServer')
@@ -438,6 +438,8 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
               selectedKeys={[category]}
               style={{ width: 150 }}
               onSelect={({ key }) => {
+                // reset search keyword and tab
+                setSearchKeyboard(undefined);
                 setCategory(key as Category);
               }}
             />
@@ -470,6 +472,8 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
 
                 <Input.Search
                   className="w-60"
+                  value={searchKeyword}
+                  onChange={e => setSearchKeyboard(e.target.value)}
                   onSearch={setSearchKeyboard}
                 />
               </Flex>

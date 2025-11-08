@@ -185,6 +185,7 @@ const CustomCode = forwardRef((props, ref) => {
 
 // 5
 function escapeBrackets(text) {
+  if (!text) return text;
   const pattern =
     /(```[\s\S]*?```|`.*?`)|\\\[([\s\S]*?[^\\])\\\]|\\\((.*?)\\\)/g;
   return text?.replace(
@@ -205,6 +206,7 @@ function escapeBrackets(text) {
 // 4
 function tryWrapHtmlCode(text) {
   // try add wrap html code (fixed: html codeblock include 2 newline)
+  if (!text) return text;
   return text
     ?.replace(
       /([`]*?)(\w*?)([\n\r]*?)(<!DOCTYPE html>)/g,
@@ -291,7 +293,7 @@ export default function Markdown(props) {
         onDoubleClickCapture={props.onDoubleClickCapture}
         dir="auto"
       >
-        <MarkdownContent content={props.content} />
+        { props.content ? <MarkdownContent content={props.content} /> : null}
       </div>
     </div>
   );

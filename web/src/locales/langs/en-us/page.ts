@@ -117,7 +117,8 @@ const page: App.I18n.Schema['translation']['page'] = {
         path_hierarchy: 'Path Hierarchy',
         redirect_url: 'Redirect URI',
         tags: 'Tags',
-        token_url: 'Token URI'
+        token_url: 'Token URI',
+        processor: 'Processor',
       },
       title: 'New Connector',
       tooltip: {
