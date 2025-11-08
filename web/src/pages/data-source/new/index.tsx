@@ -203,10 +203,13 @@ export function Component() {
   // eslint-disable-next-line complexity
   const onFinish: FormProps<any>['onFinish'] = values => {
     let config: any = {};
-    try {
-      values.enrichment_pipeline = JSON.parse(values.enrichment_pipeline);
-    }catch (e) {
-      message.error("invalid enrichment pipeline JSON format");
+    if(values.enrichment_pipeline){
+      try {
+        values.enrichment_pipeline = JSON.parse(values.enrichment_pipeline);
+      }catch (e) {
+        message.error("invalid enrichment pipeline JSON format");
+        return
+      }
     }
     // eslint-disable-next-line default-case
     switch (type) {
