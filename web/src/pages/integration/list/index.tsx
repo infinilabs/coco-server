@@ -198,9 +198,7 @@ export function Component() {
         if (isWebhook(value)) {
           return t('page.integration.tabs.webhooks');
         }
-        return isFullscreen(value)
-          ? t('page.integration.form.labels.type_fullscreen')
-          : t('page.integration.form.labels.type_searchbox');
+        return t(`page.integration.form.labels.mode_${value}`)
       },
       title: t('page.integration.columns.type')
     },

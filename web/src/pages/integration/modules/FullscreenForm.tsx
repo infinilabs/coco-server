@@ -55,6 +55,29 @@ export const FullscreenForm = memo(props => {
         >
         </Form.Item>
     </Form.Item>
+    <Form.Item label=" " >
+      <div className="mb-8px">
+        {t('page.integration.form.labels.datasource')}
+      </div>
+      <Form.Item
+        className="mb-0px"
+        name={['enabled_module', 'search', 'datasource']}
+        rules={[defaultRequiredRule]}
+      >
+        <Select
+          allowClear
+          className={itemClassNames}
+          loading={dataSourceLoading}
+          mode="multiple"
+          options={[{ label: '*', value: '*' }].concat(
+            dataSource.map(item => ({
+              label: item.name,
+              value: item.id
+            }))
+          )}
+        />
+      </Form.Item>
+    </Form.Item>
     <Form.Item label=" ">
         <div className="mb-8px">
             {t('page.integration.form.labels.module_search_placeholder')}

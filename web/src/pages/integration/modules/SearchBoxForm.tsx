@@ -1,4 +1,4 @@
-import { Form, Input, Radio, Switch } from 'antd';
+import { Form, Input, Radio, Select, Switch } from 'antd';
 
 import All from '@/assets/integration/all.png';
 import Embedded from '@/assets/integration/embedded.png';
@@ -9,9 +9,10 @@ import { getDarkMode } from '@/store/slice/theme';
 import { HotKeys } from './HotKeys';
 import ChatStartPage from '@/pages/settings/modules/ChatStartPage';
 import { SEARCHBOX_TYPES } from '../list';
+import AIAssistantSelect from '@/pages/ai-assistant/modules/AIAssistantSelect';
 
 export const SearchBoxForm = memo(props => {
-  const { record, startPagelogos, setStartPagelogos, assistants, enabledList, setEnabledList } = props;
+  const { form, record, startPagelogos, setStartPagelogos, assistants, setAssistants, dataSourceLoading, dataSource, enabledList, setEnabledList } = props;
   const { t } = useTranslation();
   const { defaultRequiredRule } = useFormRules();
 
@@ -157,6 +158,29 @@ export const SearchBoxForm = memo(props => {
     {
       enabledList?.search && (
         <>
+          <Form.Item label=" " >
+            <div className="mb-8px">
+              {t('page.integration.form.labels.datasource')}
+            </div>
+            <Form.Item
+              className="mb-0px"
+              name={['enabled_module', 'search', 'datasource']}
+              rules={[defaultRequiredRule]}
+            >
+              <Select
+                allowClear
+                className={itemClassNames}
+                loading={dataSourceLoading}
+                mode="multiple"
+                options={[{ label: '*', value: '*' }].concat(
+                  dataSource.map(item => ({
+                    label: item.name,
+                    value: item.id
+                  }))
+                )}
+              />
+            </Form.Item>
+          </Form.Item>
           <Form.Item label=" ">
             <div className="mb-8px">
               {t('page.integration.form.labels.module_search_placeholder')}
@@ -183,6 +207,26 @@ export const SearchBoxForm = memo(props => {
     {
       enabledList?.ai_chat && (
         <>
+          <Form.Item label=" ">
+            <div className="mb-8px">
+              {t('page.integration.form.labels.module_chat_ai_assistant')}
+            </div>
+            <Form.Item
+              name={['enabled_module', 'ai_chat', 'assistants']}
+              rules={[defaultRequiredRule]}
+              className="mb-0px"
+            >
+              <AIAssistantSelect mode="multiple" className={itemClassNames} onChange={(as) => {
+                setAssistants(as)
+                const startPageSettings = form.getFieldValue('start_page') || {}
+                const { display_assistants = [] } = startPageSettings 
+                form.setFieldValue('start_page', {
+                  ...startPageSettings,
+                  display_assistants: display_assistants.filter((item) => !!item && !!(as.find((a) => a.id === item.id)))
+                })
+              }}/>
+            </Form.Item>
+          </Form.Item>
           <Form.Item label=" ">
             <div className="mb-8px">
               {t('page.integration.form.labels.module_chat_placeholder')}

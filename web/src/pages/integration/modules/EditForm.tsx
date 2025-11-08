@@ -5,8 +5,6 @@ import { useLoading, useRequest } from '@sa/hooks';
 import { fetchDataSourceList } from '@/service/api';
 import './EditForm.css';
 import { generateRandomString } from '@/utils/common';
-import { request } from '@/service/request';
-import { formatESSearchResult } from '@/service/request/es';
 import { FULLSCREEN_TYPES, SEARCHBOX_TYPES } from '../list';
 import { getLocale, getLocaleOptions } from '@/store/slice/app';
 
@@ -16,7 +14,7 @@ export function isFullscreen(type) {
 
 export const EditForm = memo(props => {
   const { defaultType, actionText, record, onSubmit } = props;
-  const [type, setType] = useState('searchbox');
+  const [type, setType] = useState();
   const [form] = Form.useForm();
   const { t } = useTranslation();
   const { defaultRequiredRule } = useFormRules();
@@ -175,8 +173,7 @@ export const EditForm = memo(props => {
     );
   };
 
-  const initValue = (record, locale) => {
-    setType(isFullscreen(record?.type) ? 'fullscreen' : 'searchbox');
+  const initValue = (record, type, locale) => {
     setGuestEnabled(!!record.guest?.enabled)
     const commonValues = {
         cors: {
@@ -193,7 +190,7 @@ export const EditForm = memo(props => {
           language: record.appearance?.language || locale
         },
     }
-    if (isFullscreen(record?.type)) {
+    if (type === 'fullscreen') {
       setSearchLogos(state => ({ ...state, ...(record.payload?.logo || {}) }));
       setAIOverviewLogo(state => ({ ...state, ...(record.payload?.ai_overview?.logo || {}) }));
       setWidgetsLogo(
@@ -316,7 +313,7 @@ export const EditForm = memo(props => {
 
   useEffect(() => {
     if (record) {
-      initValue(record, locale);
+      initValue(record, type, locale);
     } else {
       if (type === 'fullscreen') {
         const initValue = {
@@ -436,7 +433,7 @@ export const EditForm = memo(props => {
         >
           <Switch size='small' />
         </Form.Item>
-        <Form.Item
+        {/* <Form.Item
           label={t('page.integration.form.labels.type')}
           name='type'
           rules={[defaultRequiredRule]}
@@ -457,9 +454,10 @@ export const EditForm = memo(props => {
               }
             }}
           />
-        </Form.Item>
+        </Form.Item> */}
         {type === 'searchbox' ? (
           <SearchBoxForm
+            form={form}
             assistants={assistants}
             dataSource={dataSource}
             dataSourceLoading={dataSourceLoading}

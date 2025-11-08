@@ -1,6 +1,7 @@
 import { createIntegration } from '@/service/api/integration';
 
 import { EditForm } from '../modules/EditForm';
+import { capitalize } from 'lodash';
 
 export function Component() {
   const { t } = useTranslation();
@@ -8,7 +9,7 @@ export function Component() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const type = useMemo(() => {
-    return searchParams.get('type');
+    return searchParams.get('type') || 'searchbox';
   }, [searchParams]);
 
   const onSubmit = async (params, before, after) => {
@@ -32,7 +33,7 @@ export function Component() {
       >
         <div className="mb-30px ml--16px flex items-center text-lg font-bold">
           <div className="mr-20px h-1.2em w-10px bg-[#1677FF]" />
-          <div>{t(`page.integration.form.title.new`)}</div>
+          <div>{`${t(`common.add`)} ${capitalize(type)}`}</div>
         </div>
         <div className="px-30px">
           <EditForm
