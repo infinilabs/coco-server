@@ -15,6 +15,8 @@ var DefaultServerConfigKey = "default_server_config"
 var DefaultAppSettingsKey = "default_app_settings"
 var DefaultSearchSettingsKey = "default_search_settings"
 
+const ProviderIntegration = "INTEGRATION"
+
 var WidgetRole = "widget"
 
 var PipelineContextConnector param.ParaKey = "__connector"

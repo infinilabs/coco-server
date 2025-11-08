@@ -241,7 +241,7 @@ curl -XPUT "http://localhost:9000/connector/feishu?replace=true" -d '{
   "url": "http://coco.rs/connectors/feishu",
   "assets": {"icons": {"default": "/assets/connector/feishu/icon.png"}},
   "oauth_connect_implemented": true,
-  "path_hierarchy": true,
+  "path_hierarchy":false,
   "processor": {
     "enabled": true,
     "name": "feishu"
@@ -267,7 +267,7 @@ curl -XPUT "http://localhost:9000/connector/lark?replace=true" -d '{
   "url": "http://coco.rs/connectors/lark",
   "assets": {"icons": {"default": "/assets/connector/lark/icon.png"}},
   "oauth_connect_implemented": true,
-  "path_hierarchy": true,
+  "path_hierarchy":false,
   "processor": {
     "enabled": true,
     "name": "lark"

@@ -107,9 +107,10 @@ func ValidateLoginByIntegrationHeader(w http.ResponseWriter, r *http.Request) (c
 				claims = security.NewUserClaims()
 				claims.SetGetUserID(cfg.Guest.RunAs)
 
-				claims.Provider = "access_token"
+				claims.Provider = ProviderIntegration
 				claims.Login = cfg.Guest.RunAs
 				claims.Permissions = security.MustGetPermissionKeysByUserID(cfg.Guest.RunAs)
+				//log.Info("integration:", integrationID, ", run as:", cfg.Guest.RunAs, ",permissions:", claims.Permissions)
 				return claims, nil
 			}
 		}

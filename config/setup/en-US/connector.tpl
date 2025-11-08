@@ -68,7 +68,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
   "name" : "Google Drive Connector",
   "description" : "Fetch the files metadata from Google Drive.",
   "category" : "cloud_storage",
-  "path_hierarchy":true,
+  "path_hierarchy":false,
   "icon" : "/assets/icons/connector/google_drive/icon.png",
   "tags" : [
     "google",
@@ -175,7 +175,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/l
   "name" : "Local Filesystem Connector",
   "description" : "Scan and fetch metadata from local files.",
   "category" : "local_storage",
-  "path_hierarchy": true,
+  "path_hierarchy":false,
   "icon" : "/assets/icons/connector/local_fs/icon.png",
   "tags" : [
     "storage",
@@ -202,7 +202,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/s
   "name" : "S3 Storage Connector",
   "description" : "Fetch S3 Storage objects metadata.",
   "category" : "cloud_storage",
-  "path_hierarchy": true,
+  "path_hierarchy":false,
   "icon" : "/assets/icons/connector/s3/icon.png",
   "tags" : [
     "s3",
@@ -256,7 +256,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/n
   "name" : "Network Drive Connector",
   "description" : "Scan and extract metadata from network shared files.",
   "category" : "cloud_storage",
-  "path_hierarchy": true,
+  "path_hierarchy":false,
   "icon" : "/assets/icons/connector/network_drive/icon.png",
   "tags" : [
     "filesystem",
@@ -336,7 +336,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
   "name" : "GitHub Connector",
   "description" : "Fetch repositories, issues, and pull requests from GitHub.",
   "category" : "website",
-  "path_hierarchy": true,
+  "path_hierarchy":false,
   "icon" : "/assets/icons/connector/github/icon.png",
   "tags" : [
     "git",
@@ -368,7 +368,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
   "name" : "GitLab Connector",
   "description" : "Fetch repositories, issues, and merge requests from GitLub.",
   "category" : "website",
-  "path_hierarchy": true,
+  "path_hierarchy":false,
   "icon" : "/assets/icons/connector/gitlab/icon.png",
   "tags" : [
     "git",
@@ -402,7 +402,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
   "name" : "Gitea Connector",
   "description" : "Fetch repositories, issues, and pull requests from Gitea.",
   "category" : "website",
-  "path_hierarchy": true,
+  "path_hierarchy":false,
   "icon" : "/assets/icons/connector/gitea/icon.png",
     "tags" : [
     "git",
@@ -458,7 +458,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/f
     "token_url": "https://open.feishu.cn/open-apis/authen/v2/oauth/token"
   },
   "builtin": true,
-  "path_hierarchy": true,
+  "path_hierarchy":false,
   "oauth_connect_implemented": true,
   "processor": {
     "enabled": true,
@@ -497,7 +497,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/l
     "token_url": "https://open.larksuite.com/open-apis/authen/v2/oauth/token"
   },
   "builtin": true,
-  "path_hierarchy": true,
+  "path_hierarchy":false,
   "oauth_connect_implemented": true,
   "processor": {
     "enabled": true,

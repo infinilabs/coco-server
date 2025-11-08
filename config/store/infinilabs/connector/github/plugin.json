@@ -39,7 +39,7 @@
     "name" : "GitHub Connector",
     "description" : "Fetch repositories, issues, and pull requests from GitHub.",
     "category" : "website",
-    "path_hierarchy": true,
+    "path_hierarchy":false,
     "icon" : "/assets/icons/connector/github/icon.png",
     "tags" : [
       "git",

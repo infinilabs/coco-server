@@ -90,12 +90,12 @@ func (h *APIHandler) setupServer(w http.ResponseWriter, req *http.Request, ps ht
 	}
 
 	user, err := security.MustGetAuthenticationProvider(security.DefaultNativeAuthBackend).CreateUser(input.Name, input.Email, input.Password, true)
-	if user == nil {
+	if user == nil || user.ID == "" {
 		panic("failed to init user")
 	}
 
 	//initialize setup templates
-	err = h.initializeSetupTemplates(input, info.ServerInfo.Endpoint)
+	err = h.initializeSetupTemplates(user.ID, input, info.ServerInfo.Endpoint)
 	if err != nil {
 		panic(err)
 	}
@@ -194,7 +194,7 @@ func (h *APIHandler) initializeConnector() error {
 	return err
 }
 
-func (h *APIHandler) initializeSetupTemplates(setupCfg SetupConfig, serverEndpoint string) error {
+func (h *APIHandler) initializeSetupTemplates(userID string, setupCfg SetupConfig, serverEndpoint string) error {
 	if setupCfg.Language != "en-US" {
 		setupCfg.Language = "zh-CN"
 	}
@@ -227,11 +227,11 @@ func (h *APIHandler) initializeSetupTemplates(setupCfg SetupConfig, serverEndpoi
 		if !strings.HasSuffix(path, ".tpl") {
 			return nil
 		}
-		return h.initializeTemplate(path, cfg1.IndexPrefix, docType, &setupCfg, serverEndpoint)
+		return h.initializeTemplate(userID, path, cfg1.IndexPrefix, docType, &setupCfg, serverEndpoint)
 	})
 }
 
-func (h *APIHandler) initializeTemplate(dslTplFile string, indexPrefix string, docType string, setupCfg *SetupConfig, serverEndpoint string) error {
+func (h *APIHandler) initializeTemplate(userID string, dslTplFile string, indexPrefix string, docType string, setupCfg *SetupConfig, serverEndpoint string) error {
 	dsl, err := util.FileGetContent(dslTplFile)
 	if err != nil {
 		return err
@@ -259,8 +259,14 @@ func (h *APIHandler) initializeTemplate(dslTplFile string, indexPrefix string, d
 		answeringModel = fmt.Sprintf(`{"provider_id": "coco", "name": "%s",  "prompt": { "template": "{{.query}}" }}`, setupCfg.LLM.DefaultModel)
 	}
 
+	if tpl == nil {
+		panic("invalid template file")
+	}
+
 	output := tpl.ExecuteFuncString(func(w io.Writer, tag string) (int, error) {
 		switch tag {
+		case "SETUP_OWNER_ID":
+			return w.Write([]byte(userID))
 		case "SETUP_INDEX_PREFIX":
 			return w.Write([]byte(indexPrefix))
 		case "SETUP_SCHEMA_VER":
