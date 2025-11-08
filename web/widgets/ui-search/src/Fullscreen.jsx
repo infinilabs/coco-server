@@ -162,7 +162,7 @@ const Fullscreen = (props) => {
       }
       resultHeader={<ResultHeader hits={hits} {...commonProps} />}
       aiOverview={
-        !aiOverview?.enabled ? (
+        aiOverview?.enabled ? (
           <AIOverviewWrapper
             askBody={askBody}
             config={aiOverview}
