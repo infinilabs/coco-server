@@ -75,37 +75,38 @@ func reloadConfig() {
 			config.ServerInfo = si
 			config.ServerInfo.Version = core.Version{global.Env().GetVersion()}
 		}
-	buf, _ = kv.GetValue(core.DefaultSettingBucketKey, []byte(core.DefaultAppSettingsKey))
-	if buf != nil {
-		appSettings := &core.AppSettings{}
-		err := util.FromJSONBytes(buf, appSettings)
-		if err == nil {
-			config.AppSettings = appSettings
-		}
-	}
-	buf, _ = kv.GetValue(core.DefaultSettingBucketKey, []byte(core.DefaultSearchSettingsKey))
-	if buf != nil {
-		searchSettings := &core.SearchSettings{}
-		err := util.FromJSONBytes(buf, searchSettings)
-		if err == nil {
-			config.SearchSettings = searchSettings
-		}
-	}
-
-	filebasedConfig, _ := AppConfigFromFile()
-	if filebasedConfig != nil {
-		//protect fields on managed mode
-		if filebasedConfig.ServerInfo != nil {
-			if global.Env().SystemConfig.WebAppConfig.Security.Managed {
-				config.ServerInfo.Managed = global.Env().SystemConfig.WebAppConfig.Security.Managed
-				config.ServerInfo.AuthProvider = filebasedConfig.ServerInfo.AuthProvider
-				config.ServerInfo.Provider = filebasedConfig.ServerInfo.Provider
-				config.ServerInfo.Endpoint = filebasedConfig.ServerInfo.Endpoint
-				config.ServerInfo.Public = filebasedConfig.ServerInfo.Public
-				config.ServerInfo.Version = filebasedConfig.ServerInfo.Version
+		buf, _ = kv.GetValue(core.DefaultSettingBucketKey, []byte(core.DefaultAppSettingsKey))
+		if buf != nil {
+			appSettings := &core.AppSettings{}
+			err := util.FromJSONBytes(buf, appSettings)
+			if err == nil {
+				config.AppSettings = appSettings
 			}
+		}
+		buf, _ = kv.GetValue(core.DefaultSettingBucketKey, []byte(core.DefaultSearchSettingsKey))
+		if buf != nil {
+			searchSettings := &core.SearchSettings{}
+			err := util.FromJSONBytes(buf, searchSettings)
+			if err == nil {
+				config.SearchSettings = searchSettings
+			}
+		}
 
-			config.ServerInfo.EncodeIconToBase64 = filebasedConfig.ServerInfo.EncodeIconToBase64
+		filebasedConfig, _ := AppConfigFromFile()
+		if filebasedConfig != nil {
+			//protect fields on managed mode
+			if filebasedConfig.ServerInfo != nil {
+				if global.Env().SystemConfig.WebAppConfig.Security.Managed {
+					config.ServerInfo.Managed = global.Env().SystemConfig.WebAppConfig.Security.Managed
+					config.ServerInfo.AuthProvider = filebasedConfig.ServerInfo.AuthProvider
+					config.ServerInfo.Provider = filebasedConfig.ServerInfo.Provider
+					config.ServerInfo.Endpoint = filebasedConfig.ServerInfo.Endpoint
+					config.ServerInfo.Public = filebasedConfig.ServerInfo.Public
+					config.ServerInfo.Version = filebasedConfig.ServerInfo.Version
+				}
+
+				config.ServerInfo.EncodeIconToBase64 = filebasedConfig.ServerInfo.EncodeIconToBase64
+			}
 		}
 	}
 }
