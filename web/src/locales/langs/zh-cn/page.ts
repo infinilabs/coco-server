@@ -113,7 +113,15 @@ const page: App.I18n.Schema['translation']['page'] = {
         tags: '标签',
         token_url: 'Token 地址'
       },
-      title: '新建连接器'
+      title: '新建连接器',
+      tooltip: {
+        category: '请选择或输入分类。',
+        config: '以 JSON 格式填写配置信息。',
+        path_hierarchy: '是否支持通过目录层级方式访问文档。'
+      },
+      placeholder: {
+        category: '选择或输入分类'
+      }
     }
   },
   datasource: {
@@ -280,7 +288,6 @@ const page: App.I18n.Schema['translation']['page'] = {
         parameter_key_required: '请输入参数键！',
         password_required: '请输入密码！',
         path_property_required: '请输入路径属性！',
-        // Generic keys for IncrementalSyncFields component (unified with MongoDB)
         property_required: '请输入跟踪属性名称！',
         tie_breaker_required: '请输入并列项字段！',
         username_required: '请输入用户名！'
@@ -316,7 +323,6 @@ const page: App.I18n.Schema['translation']['page'] = {
         password_placeholder: '请输入 Neo4j 密码',
         path_property: '路径属性',
         path_separator: '路径分隔符',
-        // Generic keys for IncrementalSyncFields component (unified with MongoDB)
         property: '跟踪属性',
         property_type: '属性类型',
         property_type_datetime: '日期时间',
@@ -342,7 +348,6 @@ const page: App.I18n.Schema['translation']['page'] = {
         page_size: '每页要获取的记录数',
         pagination: '如果数据库查询应该分页，请启用此选项。建议对大型图数据库使用此选项。',
         parameters: '可选的键值对参数，将传递给 Cypher 查询。',
-        // Generic keys for IncrementalSyncFields component (unified with MongoDB)
         property: '用于跟踪变更的字段名',
         property_type: '跟踪属性的数据类型，用于正确比较',
         resume_from: '可选的首次同步手动起始点',
@@ -515,6 +520,34 @@ const page: App.I18n.Schema['translation']['page'] = {
       llm: '大模型',
       llmDesc: '连接大模型以启用人工智能聊天、智能搜索和工作助手功能。'
     }
+  },
+  integratedStoreModal: {
+    buttons: {
+      custom: '自定义',
+      install: '安装'
+    },
+    hints: {
+      installSuccess: '安装成功，3s后自动跳转至详情页。',
+      noResults: '未找到数据'
+    },
+    installModal: {
+      buttons: {
+        install: '安装',
+        return: '返回'
+      },
+      hints: '检测到扩展信息，确认安装此扩展到当前 Coco Server 吗？',
+      title: '安装扩展'
+    },
+    labels: {
+      aiAssistant: 'AI 助手',
+      connector: '连接器',
+      datasource: '数据源',
+      mcpServer: 'MCP Server',
+      modelProvider: '模型提供商',
+      newest: '最新',
+      recommend: '推荐'
+    },
+    title: '集成商店'
   },
   integration: {
     code: {

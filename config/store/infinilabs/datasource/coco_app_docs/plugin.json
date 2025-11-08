@@ -1,0 +1,56 @@
+{
+  "category": "documentation",
+  "description": "coco app official documentation datasource.",
+  "developer": {
+    "avatar": "https://coco.infini.cloud/extensions/infinilabs/assets/avatar.png",
+    "github_handle": "infinilabs",
+    "id": "infinilabs",
+    "location": "Internet",
+    "name": "infinilabs",
+    "website": "https://github.com/infinilabs"
+  },
+  "icon": "https://coco.rs/favicon.ico",
+  "name": "Coco App Docs",
+  "platforms": [
+    "macos",
+    "linux",
+    "windows"
+  ],
+  "screenshots": [
+    {
+      "title": "Coco App Docs",
+      "url": "/assets/screenshot.png"
+    }
+  ],
+  "tags": [
+   "coco",
+    "docs",
+    "web"
+  ],
+  "type": "datasource",
+  "url": {
+    "home": "http://coco.rs/connectors/hugo_site"
+  },
+  "version": {
+    "number": "0.1"
+  },
+  "payload": {
+    "type" : "connector",
+    "name" : "Coco App Docs",
+    "icon" : "https://coco.rs/favicon.ico",
+    "connector" : {
+      "id" : "hugo_site",
+      "config" : {
+        "urls" : [
+          "https://docs.infinilabs.com/coco-app/main/index.json"
+        ]
+      }
+    },
+    "sync" : {
+      "enabled": true,
+      "interval" : "600m",
+      "strategy" : "interval"
+    },
+    "enabled" : true
+  }
+}

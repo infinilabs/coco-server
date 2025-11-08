@@ -1,4 +1,4 @@
-import { Button, Form, Input, Select, message,Switch } from 'antd';
+import { Button, Form, Input, Select, Switch, message } from 'antd';
 import type { FormProps } from 'antd';
 
 import { Tags } from '@/components/common/tags';
@@ -19,15 +19,15 @@ export function Component() {
         icons: values.assets_icons
       },
       category: values?.category?.[0] || '',
+      config: values.config ? JSON.parse(values.config) : {},
       description: values.description,
       icon: values.icon,
       name: values.name,
-      config: values.config ? JSON.parse(values.config) : {},
       path_hierarchy: values.path_hierarchy,
       tags: values.tags
     };
     createConnector(sValues).then(res => {
-      if (res.data?.result == 'created') {
+      if (res.data?.result === 'created') {
         message.success(t('common.addSuccess'));
         nav('/settings?tab=connector', {});
       }
@@ -85,24 +85,24 @@ export function Component() {
             <Input className="max-w-600px" />
           </Form.Item>
 
-        <Form.Item
+          <Form.Item
             label={t('page.connector.new.labels.description')}
             name="description"
-         >
+          >
             <Input.TextArea />
           </Form.Item>
 
           <Form.Item
             label={t('page.connector.new.labels.category')}
             name="category"
-            tooltip={t('page.connector.new.tooltip.category', 'Please choose or input the category.')}
             rules={[{ required: true }]}
+            tooltip={t('page.connector.new.tooltip.category', 'Please choose or input the category.')}
           >
             <Select
               className="max-w-600px"
               maxCount={1}
               mode="tags"
-              placeholder="Select or input a category"
+              placeholder={t('page.connector.new.placeholder.category')}
               options={categories.map(cate => {
                 return { value: cate };
               })}
@@ -126,28 +126,26 @@ export function Component() {
             <AssetsIcons iconsMeta={iconsMeta} />
           </Form.Item>
 
-        <Form.Item
+          <Form.Item
             label={t('page.connector.new.labels.config')}
             name="config"
             tooltip={t('page.connector.new.tooltip.config', 'Configurations in JSON format.')}
-         >
-            <Input.TextArea autoSize={{ minRows: 2, maxRows: 30 }} />
+          >
+            <Input.TextArea autoSize={{ maxRows: 30, minRows: 2 }} />
           </Form.Item>
 
-
-         <Form.Item
-          initialValue={false}
+          <Form.Item
+            initialValue={false}
             label={t('page.connector.new.labels.path_hierarchy')}
-          name="path_hierarchy"
-          tooltip={t('page.connector.new.tooltip.path_hierarchy', 'Whether to support access documents via path hierarchy manner.')}
-          valuePropName="checked"
-        >
-          <Switch />
-         </Form.Item>
-
-
-
-      
+            name="path_hierarchy"
+            valuePropName="checked"
+            tooltip={t(
+              'page.connector.new.tooltip.path_hierarchy',
+              'Whether to support access documents via path hierarchy manner.'
+            )}
+          >
+            <Switch />
+          </Form.Item>
 
           <Form.Item
             label={t('page.connector.new.labels.tags')}

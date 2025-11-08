@@ -1,0 +1,56 @@
+{
+  "category": "documentation",
+  "description": "coco server official documentation datasource.",
+  "developer": {
+    "avatar": "https://coco.infini.cloud/extensions/infinilabs/assets/avatar.png",
+    "github_handle": "infinilabs",
+    "id": "infinilabs",
+    "location": "Internet",
+    "name": "infinilabs",
+    "website": "https://github.com/infinilabs"
+  },
+  "icon": "font_coco",
+  "name": "Coco Server Docs",
+  "platforms": [
+    "macos",
+    "linux",
+    "windows"
+  ],
+  "screenshots": [
+    {
+      "title": "Coco Server Docs",
+      "url": "/assets/screenshot.png"
+    }
+  ],
+  "tags": [
+   "coco",
+    "doc",
+    "web"
+  ],
+  "type": "datasource",
+  "url": {
+    "home": "http://coco.rs/connectors/hugo_site"
+  },
+  "version": {
+    "number": "0.1"
+  },
+  "payload": {
+    "type" : "connector",
+    "name" : "Coco Server Docs",
+    "icon" : "font_coco",
+    "connector" : {
+      "id" : "hugo_site",
+      "config" : {
+        "urls" : [
+          "https://docs.infinilabs.com/coco-server/main/index.json"
+        ]
+      }
+    },
+    "sync" : {
+      "enabled": true,
+      "interval" : "600m",
+      "strategy" : "interval"
+    },
+    "enabled" : true
+  }
+}

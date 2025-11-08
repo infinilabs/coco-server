@@ -3,32 +3,47 @@ import type { FormProps } from 'antd';
 
 import InfiniIcon from '@/components/common/icon';
 import { Tags } from '@/components/common/tags';
-import { getConnectorCategory, getConnectorIcons, updateConnector } from '@/service/api/connector';
+import { getConnector, getConnectorCategory, getConnectorIcons, updateConnector } from '@/service/api/connector';
 import { formatESSearchResult } from '@/service/request/es';
 
 import { AssetsIcons } from '../new/assets_icons';
 import { IconSelector } from '../new/icon_selector';
+import { useLoaderData } from 'react-router-dom';
 
 export function Component() {
   const { t } = useTranslation();
   const nav = useNavigate();
-  let { state: initialConnector } = useLocation();
-  const connectorID = initialConnector?.id || '';
-  initialConnector = {
-    ...(initialConnector || {}),
-    assets_icons: initialConnector?.assets?.icons || {},
-    ...(initialConnector?.config || {
-      auth_url: "https://accounts.google.com/o/oauth2/auth",
-      redirect_url: location.origin + "/connector/google_drive/oauth_redirect",
-      token_url: "https://oauth2.googleapis.com/token"
-    }),
-
-    raw_config: initialConnector?.config ? JSON.stringify(initialConnector?.config,null,4) : undefined
-
-  };
-
+  const loaderData = useLoaderData();
+  const connectorID = loaderData.id;
+  const [connector, setConnector] = useState<any>({
+    id: connectorID,
+  });
 
   const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    if (!connectorID) return;
+    setLoading(true);
+    getConnector(connectorID).then(res => {
+      if (res.data?.found === true) {
+        let initialConnector = res.data._source;
+        initialConnector = {
+          ...(initialConnector || {}),
+          assets_icons: initialConnector?.assets?.icons || {},
+          ...(initialConnector?.config || {
+            auth_url: "https://accounts.google.com/o/oauth2/auth",
+            redirect_url: location.origin + "/connector/google_drive/oauth_redirect",
+            token_url: "https://oauth2.googleapis.com/token"
+          }),
+
+          raw_config: initialConnector?.config ? JSON.stringify(initialConnector?.config,null,4) : undefined
+
+        };
+        setConnector(initialConnector);
+      }
+    }).finally(() => {
+      setLoading(false);
+    });
+  }, [connectorID]);
 
   const onFinish: FormProps<any>['onFinish'] = values => {
     const category = typeof values.category === 'string' ? values.category : values.category[0] || '';
@@ -91,6 +106,7 @@ export function Component() {
     <div className="h-full min-h-500px">
       <ACard
         bordered={false}
+        loading={loading}
         className="sm:flex-1-auto min-h-full flex-col-stretch card-wrapper"
       >
         <div className="mb-30px ml--16px flex items-center text-lg font-bold">
@@ -100,7 +116,7 @@ export function Component() {
         <Form
           autoComplete="off"
           colon={false}
-          initialValues={initialConnector}
+          initialValues={connector}
           labelCol={{ span: 4 }}
           layout="horizontal"
           wrapperCol={{ span: 18 }}
@@ -142,12 +158,12 @@ export function Component() {
             name="icon"
             rules={[{ required: true }]}
           >
-            {initialConnector.builtin === true ? (
+            {connector.builtin === true ? (
               <IconWrapper className="w-40px h-40px">
                 <InfiniIcon
                   className="h-2em w-2em"
                   height="2em"
-                  src={initialConnector.icon}
+                  src={connector.icon}
                   width="2em"
                 />
               </IconWrapper>
@@ -155,7 +171,7 @@ export function Component() {
               <IconSelector
                 className="max-w-200px"
                 icons={iconsMeta}
-                readonly={initialConnector.builtin === true}
+                readonly={connector.builtin === true}
               />
             )}
           </Form.Item>
@@ -163,12 +179,12 @@ export function Component() {
             label={t('page.connector.new.labels.assets_icons')}
             name="assets_icons"
           >
-            {initialConnector.builtin === true ? (
+            {connector.builtin === true ? (
               <AssetsIconsView />
             ) : (
               <AssetsIcons
                 iconsMeta={iconsMeta}
-                readonly={initialConnector.builtin === true}
+                readonly={connector.builtin === true}
               />
             )}
           </Form.Item>
@@ -285,3 +301,7 @@ const AssetsIconsView = ({ value = {} }) => {
     </div>
   );
 };
+
+export async function loader({ params }: any) {
+  return params;
+}

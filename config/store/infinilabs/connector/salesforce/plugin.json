@@ -1,0 +1,66 @@
+{
+  "category": "crm",
+  "description": "Integrate with Salesforce to index and search data from your Salesforce org with intelligent field caching and query optimization.",
+  "developer": {
+    "avatar": "https://coco.infini.cloud/extensions/infinilabs/assets/avatar.png",
+    "github_handle": "infinilabs",
+    "id": "infinilabs",
+    "location": "Internet",
+    "name": "infinilabs",
+    "website": "https://github.com/infinilabs"
+  },
+  "icon": "/assets/icons/connector/salesforce/icon.png",
+  "name": "Salesforce Connector",
+  "platforms": [
+    "macos",
+    "linux",
+    "windows"
+  ],
+  "screenshots": [
+    {
+      "title": "Salesforce Connector",
+      "url": "/assets/screenshot.png"
+    }
+  ],
+  "tags": [
+    "crm",
+    "salesforce",
+    "business"
+  ],
+  "type": "connector",
+  "url": {
+    "home": "http://coco.rs/connectors/salesforce"
+  },
+  "version": {
+    "number": "0.1"
+  },
+  "payload": {
+    "name" : "Salesforce Connector",
+    "description" : "Integrate with Salesforce to index and search data from your Salesforce org with intelligent field caching and query optimization.",
+    "category" : "crm",
+    "path_hierarchy" : true,
+    "icon" : "/assets/icons/connector/salesforce/icon.png",
+    "tags" : [
+      "crm",
+      "salesforce",
+      "business"
+    ],
+    "url" : "http://coco.rs/connectors/salesforce",
+    "assets" : {
+      "icons" : {
+        "account" : "/assets/icons/connector/salesforce/account.png",
+        "campaign" : "/assets/icons/connector/salesforce/campaign.png",
+        "case" : "/assets/icons/connector/salesforce/case.png",
+        "contact" : "/assets/icons/connector/salesforce/contact.png",
+        "default" : "/assets/icons/connector/salesforce/icon.png",
+        "lead" : "/assets/icons/connector/salesforce/lead.png",
+        "opportunity" : "/assets/icons/connector/salesforce/opportunity.png"
+      }
+    },
+    "builtin": true,
+    "processor": {
+      "enabled": true,
+      "name": "salesforce"
+    }
+  }
+}

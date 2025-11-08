@@ -4,11 +4,12 @@ import type { GetProp, MenuProps, TableColumnsType, TableProps } from 'antd';
 import Search from 'antd/es/input/Search';
 import type { SorterResult } from 'antd/es/table/interface';
 
+import type { IntegratedStoreModalRef } from '@/components/common/IntegratedStoreModal';
 import InfiniIcon from '@/components/common/icon';
 import { GoogleDriveSVG, HugoSVG, NotionSVG, YuqueSVG } from '@/components/icons';
+import useQueryParams from '@/hooks/common/queryParams';
 import { deleteDatasource, fetchDataSourceList, getConnectorByIDs, updateDatasource } from '@/service/api';
 import { formatESSearchResult } from '@/service/request/es';
-import useQueryParams from '@/hooks/common/queryParams';
 
 type Datasource = Api.Datasource.Datasource;
 
@@ -56,7 +57,7 @@ export function Component() {
     {
       key: '1',
       label: t('common.delete')
-    },
+    }
   ];
 
   const onMenuClick = ({ key, record }: any) => {
@@ -96,15 +97,15 @@ export function Component() {
     // Ensure we preserve all existing sync configuration values
     const currentSync = record.sync || {
       enabled: false,
-      strategy: 'interval',
-      interval: '1h'
+      interval: '1h',
+      strategy: 'interval'
     };
 
     // Ensure all required fields are present
     const completeSync = {
       enabled: currentSync.enabled || false,
-      strategy: currentSync.strategy || 'interval',
-      interval: currentSync.interval || '1h'
+      interval: currentSync.interval || '1h',
+      strategy: currentSync.strategy || 'interval'
     };
 
     // Create the updated sync config, preserving existing values
@@ -169,7 +170,7 @@ export function Component() {
       minWidth: 200,
       render: (value: string, record: Datasource) => {
         let iconSrc = record.icon;
-        if(!iconSrc && data.connectors) {
+        if (!iconSrc && data.connectors) {
           iconSrc = data.connectors[record.connector.id]?.icon;
         }
         if (!iconSrc) return value;
@@ -182,7 +183,7 @@ export function Component() {
               })
             }
           >
-            <IconWrapper className="w-20px h-20px">
+            <IconWrapper className="h-20px w-20px">
               <InfiniIcon
                 height="1em"
                 src={iconSrc}
@@ -209,8 +210,8 @@ export function Component() {
       render: (value: boolean, record: Datasource) => {
         return (
           <Switch
-            size="small"
             checked={value}
+            size="small"
             onChange={v => onSyncEnabledChange(v, record)}
           />
         );
@@ -280,8 +281,8 @@ export function Component() {
   useEffect(fetchData, [queryParams]);
 
   useEffect(() => {
-    setKeyword(queryParams.query)
-  }, [queryParams.query])
+    setKeyword(queryParams.query);
+  }, [queryParams.query]);
 
   const fetchConnectors = async (ids: string[]) => {
     const res = await getConnectorByIDs(ids);
@@ -326,6 +327,8 @@ export function Component() {
     });
   };
 
+  const integratedStoreModalRef = useRef<IntegratedStoreModalRef>(null);
+
   return (
     <ListContainer>
       <ACard
@@ -335,17 +338,19 @@ export function Component() {
       >
         <div className="mb-4 mt-4 flex items-center justify-between">
           <Search
-            value={keyword} 
-            onChange={(e) => setKeyword(e.target.value)} 
             addonBefore={<FilterOutlined />}
             className="max-w-500px"
             enterButton={t('common.refresh')}
+            value={keyword}
+            onChange={e => setKeyword(e.target.value)}
             onSearch={onRefreshClick}
           />
           <Button
             icon={<PlusOutlined />}
             type="primary"
-            onClick={() => nav(`/data-source/new-first`)}
+            onClick={() => {
+              integratedStoreModalRef.current?.open('data-source');
+            }}
           >
             {t('common.add')}
           </Button>
@@ -358,15 +363,17 @@ export function Component() {
           rowSelection={{ ...rowSelection }}
           size="middle"
           pagination={{
-            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
-            pageSize: queryParams.size,
             current: Math.floor(queryParams.from / queryParams.size) + 1,
-            total: data.total?.value || data?.total,
+            pageSize: queryParams.size,
             showSizeChanger: true,
+            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+            total: data.total?.value || data?.total
           }}
           onChange={handleTableChange}
         />
       </ACard>
+
+      <IntegratedStoreModal ref={integratedStoreModalRef} />
     </ListContainer>
   );
 }
