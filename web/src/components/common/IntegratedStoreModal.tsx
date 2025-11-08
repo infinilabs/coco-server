@@ -438,6 +438,8 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
               selectedKeys={[category]}
               style={{ width: 150 }}
               onSelect={({ key }) => {
+                // reset search keyword and tab
+                setSearchKeyboard(undefined);
                 setCategory(key as Category);
               }}
             />
@@ -470,6 +472,7 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
 
                 <Input.Search
                   className="w-60"
+                  value={searchKeyword}
                   onSearch={setSearchKeyboard}
                 />
               </Flex>
