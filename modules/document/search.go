@@ -41,6 +41,7 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		if err != nil {
 			panic(err)
 		}
+		builder.EnableBodyBytes()
 
 		reqUser := security.MustGetUserFromRequest(req)
 		//userID := reqUser.MustGetUserID()
