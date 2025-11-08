@@ -6,6 +6,7 @@ package security
 
 import (
 	"fmt"
+	log "github.com/cihub/seelog"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/orm"
 	"net/http"
@@ -40,6 +41,12 @@ func (h APIHandler) Profile(w http.ResponseWriter, r *http.Request, ps httproute
 	reqUser, err := security.GetUserFromContext(r.Context())
 	if err != nil || reqUser == nil {
 		panic("invalid user")
+	}
+
+	if reqUser.Provider == core.ProviderIntegration {
+		log.Error("user login via INTEGRATION, guest user!")
+		h.WriteError(w, "no profile for guest user", 401)
+		return
 	}
 
 	//TODO get from user's profile, or fallback to account info
