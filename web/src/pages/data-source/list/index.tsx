@@ -448,7 +448,7 @@ export function Component() {
             <Button
               icon={<PlusOutlined />}
               type='primary'
-              onClick={() => integratedStoreModalRef.current?.open('data-source')}
+              onClick={() =>  nav(`/data-source/new-first`)}
             >
               {t('common.add')}
             </Button>

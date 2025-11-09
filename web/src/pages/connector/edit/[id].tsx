@@ -263,10 +263,11 @@ export function Component() {
 
          <Form.Item
             label={t('page.connector.new.labels.path_hierarchy')}
-          name="path_hierarchy"
-          tooltip={t('page.connector.new.tooltip.path_hierarchy', 'Whether to support access documents via path hierarchy manner.')}
-          valuePropName="checked"
-        >
+            name="path_hierarchy"
+            tooltip={t('page.connector.new.tooltip.path_hierarchy', 'Whether to support access documents via path hierarchy manner.')}
+            valuePropName="checked"
+            className='w-0 h-0 m-0 overflow-hidden'
+          >
           <Switch />
          </Form.Item>
 
