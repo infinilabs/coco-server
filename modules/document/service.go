@@ -19,7 +19,7 @@ import (
 
 func QueryDocuments(ctx1 context.Context, userID string, builder *orm.QueryBuilder, query string, datasource, integrationID, category, subcategory, richCategory string) ([]core.Document, *orm.SimpleResult, error) {
 
-	log.Error("old datasource:", datasource, ",integrationID:", integrationID)
+	//log.Error("old datasource:", datasource, ",integrationID:", integrationID)
 
 	builder.Query(query)
 	builder.DefaultQueryField("title.keyword^100", "title^10", "title.pinyin^4", "combined_fulltext")
@@ -33,20 +33,20 @@ func QueryDocuments(ctx1 context.Context, userID string, builder *orm.QueryBuild
 	if err != nil {
 		panic(err)
 	}
-	log.Error("rules: ", util.ToJson(rules, true))
+	//log.Error("rules: ", util.ToJson(rules, true))
 	checkingScopeDatasources := []string{}
 	fullAccessSharedDatasources := []string{}
 	for _, rule := range rules {
 		fullAccessSharedDatasources = append(fullAccessSharedDatasources, rule.ResourceID)
 		checkingScopeDatasources = append(checkingScopeDatasources, rule.ResourceID)
 	}
-	log.Error("fullAccessSharedDatasources: ", fullAccessSharedDatasources)
+	//log.Error("fullAccessSharedDatasources: ", fullAccessSharedDatasources)
 
 	rules, err = sharingService.GetAllCategoryVisibleWithChildrenSharedObjects(userID, "datasource")
 	for _, rule := range rules {
 		checkingScopeDatasources = append(checkingScopeDatasources, rule.ResourceCategoryID)
 	}
-	log.Error("AGAIN checkingScopeDatasources: ", checkingScopeDatasources)
+	//log.Error("AGAIN checkingScopeDatasources: ", checkingScopeDatasources)
 
 	//var mergedDatasourceIDS []string
 
@@ -66,7 +66,7 @@ func QueryDocuments(ctx1 context.Context, userID string, builder *orm.QueryBuild
 		filters = append(filters, datasourceFilter...)
 	}
 	//mergedDatasourceIDS = ds1
-	log.Error("AAA checkingScopeDatasources:", checkingScopeDatasources, "new mergedDatasourceIDS:", mergedDatasourceIDS, ",integrationID:", integrationID)
+	log.Trace("AAA checkingScopeDatasources:", checkingScopeDatasources, "new mergedDatasourceIDS:", mergedDatasourceIDS, ",integrationID:", integrationID)
 	//}
 
 	//if len(mergedDatasourceIDS) == 0 {
@@ -78,13 +78,13 @@ func QueryDocuments(ctx1 context.Context, userID string, builder *orm.QueryBuild
 
 	builder.Filter(filters...)
 
-	log.Error("queryDatasourceIDs:", queryDatasourceIDs)
+	log.Trace("queryDatasourceIDs:", queryDatasourceIDs)
 
 	rules, err = sharingService.GetDirectResourceRulesByResourceCategoryAndUserID(userID, "document", "datasource", checkingScopeDatasources, share.None)
 	if err != nil {
 		panic(err)
 	}
-	log.Error("doc rules:", util.ToJson(rules, true))
+	log.Trace("doc rules:", util.ToJson(rules, true))
 	allowdDocs := []string{}
 	deniedDocs := []string{}
 	for _, rule := range rules {
@@ -126,7 +126,7 @@ func QueryDocuments(ctx1 context.Context, userID string, builder *orm.QueryBuild
 	//	ctx.Set(orm.SharingResourceCategoryID, datasource)
 	//}
 
-	log.Error(builder.ToString())
+	log.Trace(builder.ToString())
 
 	docs := []core.Document{}
 	err, resp := elastic.SearchV2WithResultItemMapper(ctx, &docs, builder, nil)

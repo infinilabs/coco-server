@@ -689,7 +689,7 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
   "created" : "2025-09-29T00:00:00.000000+08:00",
   "updated" : "2025-09-29T00:00:00.000000+08:00",
     "builtin": true,
-    "icon": "/assets/icons/connector/gitlab/icon.png",
+    "icon": "font_gitlab",
     "oauth_connect_implemented": false,
     "path_hierarchy": false,
     "assets": {
@@ -700,7 +700,6 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
     "name": "Gitlab Webhook",
     "category": "Webhook",
     "processor": {
-        "name": "gitlab_webhook_receiver",
-        "enabled": true
+        "enabled": false
       }
 }

@@ -29,12 +29,15 @@ func init() {
 }
 
 type Config struct {
-	Token          string `json:"token"`
-	Endpoint       string `json:"endpoint"`
-	Prompt         string `json:"prompt"`
-	Assistant      string `json:"assistant"`
-	PageSize       int    `json:"page_size"`
-	IncludeOldFile bool   `json:"include_old_file"`
+	Token                string   `json:"token" config:"token"`
+	Endpoint             string   `json:"endpoint" config:"endpoint"`
+	FinalReviewAssistant string   `json:"report_assistant" config:"report_assistant"`
+	SummaryAssistant     string   `json:"summary_assistant" config:"summary_assistant"`
+	PageSize             int      `json:"page_size" config:"page_size"`
+	MaxInputLength       int      `json:"max_input_length" config:"max_input_length"`
+	MaxBatchSize         int      `json:"max_batch_size" config:"max_batch_size"`
+	IncludeOldFile       bool     `json:"include_old_file" config:"include_old_file"`
+	OnEvents             []string `json:"on_events" config:"on_events"`
 }
 
 type Processor struct {
@@ -51,7 +54,7 @@ func init() {
 }
 
 func New(c *config.Config) (pipeline.Processor, error) {
-	cfg := Config{PageSize: 10}
+	cfg := Config{PageSize: 10, MaxBatchSize: 10, MaxInputLength: 10 * 1024, OnEvents: []string{"open", "update", "reopen"}}
 	if err := c.Unpack(&cfg); err != nil {
 		return nil, fmt.Errorf("failed to unpack the configuration of flow_replay processor: %s", err)
 	}
@@ -77,28 +80,27 @@ func (processor *Processor) Process(ctx *pipeline.Context) error {
 			switch event.ObjectAttributes.Action {
 			case "open":
 				doc.Title = fmt.Sprintf("[%v] 创建了 MR: %v", event.User.Name, event.ObjectAttributes.Title)
-				processor.onOpenMR(&doc, &event)
 				break
 			case "update":
 				doc.Title = fmt.Sprintf("[%v] 更新了 MR: %v", event.User.Name, event.ObjectAttributes.Title)
 				break
 			case "close":
 				doc.Title = fmt.Sprintf("[%v] 关闭了 MR: %v", event.User.Name, event.ObjectAttributes.Title)
-				processor.onOpenMR(&doc, &event)
 				break
 			case "reopen":
 				doc.Title = fmt.Sprintf("[%v] 重新打开了 MR: %v", event.User.Name, event.ObjectAttributes.Title)
-				processor.onOpenMR(&doc, &event)
 				break
 			default:
 				//save to store
 				doc.Title = fmt.Sprintf("[%v] [%v] on MR: %v", event.User.Name, event.ObjectAttributes.Action, event.ObjectAttributes.Title)
 			}
 
+			if util.ContainsAnyInArray(event.ObjectAttributes.Action, processor.config.OnEvents) {
+				processor.onOpenMR(&doc, &event)
+			}
+
 			doc.ID = util.GetUUID()
-
 			doc.Category = event.Repository.Name
-
 			doc.Metadata["project_id"] = event.Project.ID
 			doc.Metadata["action"] = event.ObjectAttributes.Action
 			doc.Metadata["mr_id"] = event.ObjectAttributes.IID
@@ -114,37 +116,100 @@ func (processor *Processor) Process(ctx *pipeline.Context) error {
 }
 
 func (processor *Processor) onOpenMR(doc *core2.Document, event *core.MergeRequestEvent) {
-	vars := map[string]any{}
-
 	details, _ := processor.getMRDetail(event.Project.ID, event.ObjectAttributes.IID)
-	diffs, _ := processor.getMRDiffs(event.Project.ID, event.ObjectAttributes.IID)
 
-	if len(diffs) > 0 {
-		previousFile := map[string]*core.FileContent{}
-		for _, diff := range diffs {
-			v, _ := processor.getPreviousFile(event.Project.ID, diff.OldPath, event.ObjectAttributes.TargetBranch)
-			if v != nil {
-				previousFile[diff.OldPath] = v
+	var (
+		pageNo       = 1
+		allSummaries []string
+	)
+
+	log.Debug(util.ToJson(processor.config, true))
+
+	for {
+		log.Infof("Processing MR diffs, page: %d", pageNo)
+		diffs, _ := processor.getMRDiffs(event.Project.ID, event.ObjectAttributes.IID, pageNo)
+		if len(diffs) == 0 {
+			break
+		}
+		pageNo++
+
+		total := len(diffs)
+		batchSize := processor.config.MaxBatchSize
+		totalBatches := (total + batchSize - 1) / batchSize
+
+		for batchIndex := 0; batchIndex < totalBatches; batchIndex++ {
+			start := batchIndex * batchSize
+			end := start + batchSize
+			if end > total {
+				end = total
+			}
+
+			batch := diffs[start:end]
+			previousFiles := make(map[string]*core.FileContent, len(batch))
+			for _, diff := range batch {
+				if v, _ := processor.getPreviousFile(event.Project.ID, diff.OldPath, event.ObjectAttributes.TargetBranch); v != nil {
+					previousFiles[diff.OldPath] = v
+				}
+			}
+
+			localVars := map[string]interface{}{
+				"details":            util.SubStringWithSuffix(util.MustToJSON(details), processor.config.MaxInputLength, "..."),
+				"diffs":              util.SubStringWithSuffix(util.MustToJSON(batch), processor.config.MaxInputLength, "..."),
+				"old_files":          util.SubStringWithSuffix(util.MustToJSON(previousFiles), processor.config.MaxInputLength, "..."),
+				"is_batch":           true,
+				"review_hits":        batchIndex + 1,
+				"batch_total":        totalBatches,
+				"batch_size":         len(batch),
+				"batch_context_note": "本次审查只关注当前批次文件，请不要包含前批次内容。",
+			}
+
+			// --- Single AI call per batch/page to produce incremental summary ---
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			log.Infof("Calling AI summary assistant for page %d, batch %d/%d...", pageNo-1, batchIndex+1, totalBatches)
+
+			pageSummary, err := assistant.AskAssistantSync(ctx, doc.GetOwnerID(), processor.config.SummaryAssistant, doc.Title, localVars)
+			cancel()
+
+			if err != nil {
+				log.Errorf("Summary assistant error (page %d, batch %d): %v", pageNo-1, batchIndex+1, err)
+				continue
+			}
+
+			if pageSummary != "" {
+				log.Infof("Incremental summary collected for page %d, batch %d,\n%v", pageNo-1, batchIndex+1, pageSummary)
+				allSummaries = append(allSummaries, pageSummary)
+				log.Infof("Incremental summary collected for page %d, batch %d", pageNo-1, batchIndex+1)
 			}
 		}
-		vars["details"] = util.MustToJSON(details)
-		vars["diffs"] = util.MustToJSON(diffs)
-		vars["old_files"] = util.MustToJSON(previousFile)
 	}
 
-	//TODO, send to task framework
-	ctx, _ := context.WithTimeout(context.Background(), time.Duration(5)*time.Minute)
+	// ---- Final MR Review ----
+	if len(allSummaries) > 0 {
+		log.Info("Generating final MR review report...")
 
-	finalText, err := assistant.AskAssistantSync(ctx, doc.GetOwnerID(), processor.config.Assistant, doc.Title, vars)
-	if err != nil {
-		panic(err)
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+		defer cancel()
+
+		finalVars := map[string]interface{}{
+			"merge_request_details": util.SubStringWithSuffix(util.MustToJSON(details), processor.config.MaxInputLength, "..."),
+			"all_page_summaries":    strings.Join(allSummaries, "\n\n"),
+			"summary_count":         len(allSummaries),
+		}
+
+		finalReport, err := assistant.AskAssistantSync(ctx, doc.GetOwnerID(), processor.config.FinalReviewAssistant, "Final MR Review Report", finalVars)
+		if err != nil {
+			log.Errorf("Final report generation error: %v", err)
+			return
+		}
+
+		if finalReport != "" {
+			log.Info("Posting final AI review to GitLab...")
+			res, err := processor.postReply(event.Project.ID, event.ObjectAttributes.IID, finalReport)
+			if err != nil {
+				log.Error(err, ",", util.MustToJSON(res))
+			}
+		}
 	}
-
-	log.Debug("get final text: ", finalText)
-	if finalText != "" {
-		processor.postReply(event.Project.ID, event.ObjectAttributes.IID, finalText)
-	}
-
 }
 
 func JoinAPIURL(base string, apiPath string, query map[string]string) string {
@@ -213,11 +278,13 @@ func (processor *Processor) getMRCommits(projectID, mrID int64) ([]core.MRCommit
 
 	return nil, err
 }
-func (processor *Processor) getMRDiffs(projectID, mrID int64) ([]core.MRDiff, error) {
+func (processor *Processor) getMRDiffs(projectID, mrID int64, pageNo int) ([]core.MRDiff, error) {
+	args := map[string]string{"per_page": util.IntToString(processor.config.PageSize)}
+	args["page"] = fmt.Sprintf("%v", pageNo)
 	url := JoinAPIURL(
 		processor.config.Endpoint,
 		fmt.Sprintf("/api/v4/projects/%v/merge_requests/%v/diffs", projectID, mrID),
-		map[string]string{"per_page": util.IntToString(processor.config.PageSize)},
+		args,
 	)
 	req1 := util.NewGetRequest(url, nil)
 	req1.AddHeader("PRIVATE-TOKEN", processor.config.Token)

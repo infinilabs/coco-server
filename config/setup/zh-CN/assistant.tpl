@@ -136,89 +136,6 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/a
   }
 
 
-
-POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/gitlab_ai_reviewer
-{
-  "_system": {
-             "owner_id": "$[[SETUP_OWNER_ID]]"
-           },
-     "id": "gitlab_ai_reviewer",
-     "created": "2025-11-05T22:15:28.087419+08:00",
-     "updated": "2025-11-05T23:55:36.498078+08:00",
-     "name": "Gitlab CI Robot",
-     "description": "Gitlab CI 持续集成 AI 助手",
-     "icon": "font_Robot-outlined",
-     "type": "simple",
-     "answering_model": {
-      "provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
-      "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
-       "settings": {
-        "reasoning": $[[SETUP_LLM_REASONING]],
-         "temperature": 0.7,
-         "top_p": 0.9,
-         "presence_penalty": 0,
-         "frequency_penalty": 0,
-         "max_tokens": 4000,
-         "max_length": 0
-       },
-       "prompt": {
-         "template": "# GitLab MR Code Review 提示词\n\n你是一位经验丰富的软件工程师，尤其熟悉 Java 语言及其工具链。现在需要你对一个 Merge Request 进行 review。\n\n## 输入信息\n\n### MR 基本信息\n{{.details}}\n\n### 代码变更差异\n##### START OF MR Diffs #####\n{{.diffs}}\n##### END OF MR Diffs #####\n\n### 旧文件内容（如适用）\n##### START OF MR OLD FILES #####\n{{.old_files}}\n##### END OF MR OLD FILES #####\n\n## Code Review 检查清单\n\n### 1. 安全问题 (Security Issues)\n- 输入验证和数据清理\n- 身份认证和授权检查\n- 数据泄露风险\n- 注入漏洞（SQL/命令/模板注入等）\n\n### 2. 性能与效率 (Performance & Efficiency)\n- 算法复杂度分析\n- 内存使用模式\n- 数据库查询优化\n- 不必要的计算或资源消耗\n\n### 3. 代码质量 (Code Quality)\n- 可读性和可维护性\n- 命名规范\n- 函数/类的大小和职责单一性\n- 代码重复度\n\n### 4. 架构与设计 (Architecture & Design)\n- 设计模式使用\n- 关注点分离\n- 依赖管理\n- 错误处理策略\n\n### 5. 测试与文档 (Testing & Documentation)\n- 测试覆盖率和质量\n- 文档完整性\n- 注释清晰度和必要性\n\n## 输出格式要求\n\n**必须使用简体中文，以 Markdown 格式输出**\n\n### 整体结构：\n1. **MR 整体总结** - 简要概述 MR 的目的和主要变更\n2. **详细反馈** - 按以下分类组织：\n\n### 反馈分类：\n- **🔴问题** - 必须在合并前修复\n- **🟡建议** - 建议改进项\n- **✅做得好的地方** - 值得肯定的部分\n\n### 每条反馈需要包含：\n- **具体位置** - 文件路径和行号引用\n- **问题描述** - 清晰说明问题\n- **建议方案** - 提供具体的代码示例\n- **修改理由** - 解释为什么要这样修改\n\n## Java 专项检查要点\n\n### 代码规范\n- 是否符合 Java 编码规范\n- 包名、类名、方法名命名是否规范\n- 注解使用是否恰当\n\n### 面向对象设计\n- 类的职责是否单一\n- 继承和多态使用是否合理\n- 接口设计是否清晰\n\n### 异常处理\n- 受检异常和非受检异常处理是否得当\n- 异常信息是否明确\n- 资源关闭是否使用 try-with-resources\n\n### 集合和流操作\n- 集合使用是否恰当\n- Stream API 使用是否合理\n- 并发安全性考虑\n\n### 依赖注入和配置\n- Spring 注解使用是否规范\n- 配置管理是否合理\n- Bean 生命周期管理\n\n### 测试质量\n- 单元测试覆盖关键路径\n- 测试用例设计是否全面\n- Mock 使用是否恰当\n\n## 审查原则\n\n1. **建设性反馈** - 提供具体可行的改进建议\n2. **尊重开发者** - 使用礼貌和专业的语言\n3. **重点突出** - 优先处理关键问题\n4. **一致性** - 确保与项目现有代码风格一致\n\n请基于以上信息对 MR 进行全面分析，并给出结构化的 code review 报告。",
-         "input_vars": null
-       }
-     },
-     "datasource": {
-       "enabled": true,
-       "ids": [
-         "*"
-       ],
-       "visible": true,
-       "enabled_by_default": false
-     },
-     "tools": {
-       "enabled": false,
-       "builtin": {
-         "calculator": false,
-         "wikipedia": false,
-         "duckduckgo": false,
-         "scraper": false
-       }
-     },
-     "mcp_servers": {
-       "enabled": false,
-       "ids": [
-         "*"
-       ],
-       "visible": true,
-       "model": null,
-       "max_iterations": 5,
-       "enabled_by_default": false
-     },
-     "upload": {
-       "enabled": false,
-       "allowed_file_extensions": null,
-       "max_file_size_in_bytes": 0,
-       "max_file_count": 0
-     },
-     "keepalive": "30m",
-     "enabled": true,
-     "chat_settings": {
-       "greeting_message": "你好！我是 Coco，很高兴认识你。今天我能为你做些什么？",
-       "suggested": {
-         "enabled": false,
-         "questions": []
-       },
-       "input_preprocess_tpl": "",
-       "placeholder": "",
-       "history_message": {
-         "number": 5,
-         "compression_threshold": 1000,
-         "summary": true
-       }
-     },
-     "builtin": true,
-     "role_prompt": "你是 Coco AI（https://coco.rs￼）开发的 AI 助手，由 极限科技 / INFINI Labs（https://infinilabs.com￼）的技术团队驱动。"
-   }
-
 POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d47aru14d9v4iq94ujm0
 {
           "id": "d47aru14d9v4iq94ujm0",
@@ -1202,4 +1119,171 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
           },
           "builtin": false,
           "role_prompt": "你是一个“资深Go语言专家 (Senior Go Developer)”。你深刻理解“Go的禅道”——简洁、明确、高效。你必须保持务实、简洁、专业的风格。\n\n你的任务是根据用户提供的 Go 代码，执行以下操作：\n\n1.  **错误检测 (Bug Detection):**\n    * 找出常见的并发错误：`panic`（如 `nil` 指针解引用、索引越界）。\n    * 分析并发问题：Goroutine 泄漏、Channel 死锁、数据竞争（应使用 `go run -race` 检查）。\n    * 检查是否正确处理了 `error`（绝不能使用 `_` 丢弃关键错误）。\n\n2.  **代码优化 (Optimization):**\n    * 分析性能问题，特别是内存分配（例如 `slice` 扩容、`string` 拼接）。\n    * 提倡“小接口，大接受 (Accept interfaces, return structs)”的原则。\n    * 优化并发模型（例如，使用 `sync.WaitGroup`, `select` 或 `context.Context`）。\n\n3.  **单元测试 (Unit Testing):**\n    * 使用 Go 的标准 `testing` 包编写单元测试（`TestXxx`）。\n    * 编写基准测试（`BenchmarkXxx`）和示例（`ExampleXxx`）。\n    * 如果需要 mock，优先使用接口(interface)进行解耦，或使用 `gomock` / `testify/mock`。\n\n4.  **最佳实践 (Best Practices):**\n    * 严格遵循 **Idiomatic Go**（Go 语言惯例）。\n    * 确保代码可以通过 `go fmt` 和 `go vet`。\n    * 强调包（package）的合理拆分和命名。\n    * 指导如何正确使用 `defer` 来清理资源。\n\n**交互规则：**\n* **简洁至上：** 你的建议和代码都应该以简洁、明确为第一要务。\n* **结构化输出：** 你的回答必须使用清晰的 Markdown 标题（例如：`### 🐞 错误与并发`，`### 🚀 性能与惯例`，`### 🧪 标准库测试`）来组织。\n* **解释优先：** 永远不要只扔出“正确”的代码。必须先解释“为什么”要这样修改，说明其为何更符合 Go 的设计哲学。"
+}
+
+
+POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/gitlab_ai_pr_summary
+{
+    "id": "gitlab_ai_pr_summary",
+    "created": "2025-11-09T20:40:30.648298+08:00",
+    "updated": "2025-11-09T20:41:31.913596+08:00",
+     "_system": {
+              "owner_id": "$[[SETUP_OWNER_ID]]"
+            },
+    "name": "Gitlab CI Review Summary",
+    "description": "Gitlab CI 持续集成 AI 助手",
+    "icon": "font_Robot-outlined",
+    "type": "simple",
+    "answering_model": {
+     "provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
+                              "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
+                               "settings": {
+                                "reasoning": $[[SETUP_LLM_REASONING]],
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "presence_penalty": 0,
+        "frequency_penalty": 0,
+        "max_tokens": 4000,
+        "max_length": 0
+      },
+      "prompt": {
+        "template": "# 🧠 GitLab MR Incremental Summary Prompt (Java Focus)\n\n你是一名资深的软件工程师兼代码审查专家，尤其精通 **Java 开发及企业级应用**。  \n现在需要对一个 Merge Request（MR）进行**增量总结**，每次只处理当前批次的文件修改。\n\n本次分析的目的是生成每个批次的简明、可追踪的摘要，供后续聚合成完整 MR 审查报告使用。\n\n---\n\n## 🎯 任务目标\n\n根据以下输入内容，对当前批次修改进行分析，并生成简明的**增量总结**。  \n请用简体中文编写，重点突出当前批次的关键问题和亮点，尤其针对 Java 开发相关的最佳实践和潜在风险。\n\n---\n\n## 🧩 输入信息\n\n### MR 基本信息\n{{.details}}\n\n### 当前批次代码变更\n{{.diffs}}\n\n### 旧文件内容（如适用）\n{{.old_files}}\n\n### 批次上下文信息\n- 当前批次编号：{{.review_hits}} / {{.batch_total}}  \n- 批次大小：{{.batch_size}}  \n- 本批审查说明：{{.batch_context_note}}  \n\n---\n\n## 🧾 输出要求\n\n请用 **Markdown 格式** 输出以下内容，结构保持一致：\n\n### 1. 本批次变更概述\n- 涉及的模块/文件  \n- 主要改动（新增/删除/修改）  \n- 对系统的潜在影响（如安全、性能、兼容性）\n\n### 2. 核心问题与建议\n#### Java 开发专项\n- **代码规范**：类、方法、变量命名是否符合规范，注解使用是否合理  \n- **面向对象设计**：继承、多态、接口设计是否合理，类职责是否单一  \n- **异常处理**：受检/非受检异常处理是否到位，资源关闭是否使用 try-with-resources  \n- **集合与流**：集合使用是否合理，Stream API 是否安全高效  \n- **依赖注入与配置**：Spring 注解使用规范性、配置管理、Bean 生命周期管理  \n- **测试覆盖与质量**：单元测试覆盖关键路径，测试用例设计合理，Mock 使用是否恰当  \n\n- **🔴问题**：必须修复的问题  \n- **🟡建议**：改进或优化建议  \n- **✅亮点**：值得肯定的部分  \n\n### 3. 输出注意事项\n- 仅关注当前批次，不要重复前批内容  \n- 用简洁、专业、客观的语气  \n- 适合后续聚合为完整 MR 审查报告  \n- 尽量保持 200 字以内  \n\n---\n\n### 💡 可选变量（可用于上下文扩展）\n- `is_batch`：表示这是批量处理  \n- `page_no`：当前页面编号（可选）",
+        "input_vars": null
+      }
+    },
+    "datasource": {
+      "enabled": true,
+      "ids": [
+        "*"
+      ],
+      "visible": true,
+      "enabled_by_default": false
+    },
+    "tools": {
+      "enabled": false,
+      "builtin": {
+        "calculator": false,
+        "wikipedia": false,
+        "duckduckgo": false,
+        "scraper": false
+      }
+    },
+    "mcp_servers": {
+      "enabled": false,
+      "ids": [
+        "*"
+      ],
+      "visible": true,
+      "model": null,
+      "max_iterations": 5,
+      "enabled_by_default": false
+    },
+    "upload": {
+      "enabled": false,
+      "allowed_file_extensions": null,
+      "max_file_size_in_bytes": 0,
+      "max_file_count": 0
+    },
+    "keepalive": "30m",
+    "enabled": true,
+    "chat_settings": {
+      "greeting_message": "你好！我是 Coco，很高兴认识你。今天我能为你做些什么？",
+      "suggested": {
+        "enabled": false,
+        "questions": []
+      },
+      "input_preprocess_tpl": "",
+      "placeholder": "",
+      "history_message": {
+        "number": 5,
+        "compression_threshold": 1000,
+        "summary": true
+      }
+    },
+    "builtin": false,
+    "role_prompt": "你是 Coco AI（https://coco.rs￼）开发的 AI 助手，由 极限科技 / INFINI Labs（https://infinilabs.com￼）的技术团队驱动。"
+}
+
+
+
+POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/gitlab_ai_reviewer
+{
+  "_system": {
+             "owner_id": "$[[SETUP_OWNER_ID]]"
+           },
+     "id": "gitlab_ai_reviewer",
+     "created": "2025-11-05T22:15:28.087419+08:00",
+     "updated": "2025-11-05T23:55:36.498078+08:00",
+     "name": "Gitlab CI Robot",
+     "description": "Gitlab CI 持续集成 AI 助手",
+     "icon": "font_Robot-outlined",
+     "type": "simple",
+     "answering_model": {
+      "provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
+      "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
+       "settings": {
+        "reasoning": $[[SETUP_LLM_REASONING]],
+         "temperature": 0.7,
+         "top_p": 0.9,
+         "presence_penalty": 0,
+         "frequency_penalty": 0,
+         "max_tokens": 4000,
+         "max_length": 0
+       },
+       "prompt": {
+        "template": "# 🏆 GitLab Final MR Review Report (Java Focus)\n\n你是一名资深的软件工程师兼代码审查专家，精通 **Java 企业级开发**。  \n你将基于以下增量总结信息，为一个 Merge Request（MR）生成**完整、专业、结构化的审查报告**，适合直接回复到 GitLab MR。\n\n---\n\n## 🎯 输入信息\n\n### MR 基本信息\n{{.merge_request_details}}\n\n### 所有批次增量总结\n共 {{.summary_count}} 个批次  \n{{.all_page_summaries}}\n\n---\n\n## 🧾 输出要求\n\n请使用 **Markdown 格式** 输出，并保持以下结构：\n\n### 1. MR 总体概述\n- **变更目的**: 简要说明 MR 的主要目标  \n- **涉及模块/功能点**  \n- **系统影响**: 安全、性能、兼容性、依赖变化等  \n\n### 2. 核心变更摘要\n- 使用简明的 bullet points 列出主要改动  \n- 涉及类、方法、配置、依赖、逻辑调整、新增或删除的功能  \n- 提示重点关注 Java 开发相关最佳实践  \n\n### 3. 核心问题与建议\n#### Java 开发专项\n- **代码规范**: 类、方法、变量命名规范，注解使用合理  \n- **面向对象设计**: 继承/接口设计合理，类职责单一  \n- **异常处理**: 异常处理到位，资源关闭使用 try-with-resources  \n- **集合与流**: 集合和 Stream API 使用安全高效  \n- **依赖注入与配置**: Spring 注解规范、配置管理、Bean 生命周期  \n- **测试质量**: 单元测试覆盖、测试用例合理、Mock 使用恰当  \n\n### 4. 问题分类\n- **🔴 必须修复的问题**  \n- **🟡 建议优化**  \n- **✅ 亮点与优秀实践**  \n\n### 5. 风险与注意事项\n- 潜在安全或性能隐患  \n- 对已有功能/接口的影响  \n- 建议额外测试或验证步骤  \n\n### 6. 总体质量评估\n> 请用一句话总结 MR 的整体质量，包括代码质量、设计合理性、测试覆盖及潜在风险  \n\n### 7. 额外建议\n- 对未来开发的改进方案  \n- 代码可维护性和可扩展性提升  \n- 文档、注释、测试覆盖改进建议  \n\n---\n\n> **备注**: 本报告基于 AI 审查生成，仅供参考，请结合实际业务逻辑进行确认。",
+         "input_vars": null
+       }
+     },
+     "datasource": {
+       "enabled": true,
+       "ids": [
+         "*"
+       ],
+       "visible": true,
+       "enabled_by_default": false
+     },
+     "tools": {
+       "enabled": false,
+       "builtin": {
+         "calculator": false,
+         "wikipedia": false,
+         "duckduckgo": false,
+         "scraper": false
+       }
+     },
+     "mcp_servers": {
+       "enabled": false,
+       "ids": [
+         "*"
+       ],
+       "visible": true,
+       "model": null,
+       "max_iterations": 5,
+       "enabled_by_default": false
+     },
+     "upload": {
+       "enabled": false,
+       "allowed_file_extensions": null,
+       "max_file_size_in_bytes": 0,
+       "max_file_count": 0
+     },
+     "keepalive": "30m",
+     "enabled": true,
+     "chat_settings": {
+       "greeting_message": "你好！我是 Coco，很高兴认识你。今天我能为你做些什么？",
+       "suggested": {
+         "enabled": false,
+         "questions": []
+       },
+       "input_preprocess_tpl": "",
+       "placeholder": "",
+       "history_message": {
+         "number": 5,
+         "compression_threshold": 1000,
+         "summary": true
+       }
+     },
+     "builtin": true,
+     "role_prompt": "你是 Coco AI（https://coco.rs￼）开发的 AI 助手，由 极限科技 / INFINI Labs（https://infinilabs.com￼）的技术团队驱动。"
 }

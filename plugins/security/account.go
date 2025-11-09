@@ -44,7 +44,7 @@ func (h APIHandler) Profile(w http.ResponseWriter, r *http.Request, ps httproute
 	}
 
 	if reqUser.Provider == core.ProviderIntegration {
-		log.Error("user login via INTEGRATION, guest user!")
+		log.Trace("user login via INTEGRATION, guest user!")
 		h.WriteError(w, "no profile for guest user", 401)
 		return
 	}

@@ -337,7 +337,7 @@ func GetDatasourceByIntegration(integrationID string) ([]string, bool, error) {
 
 func BuildDatasourceFilter(userID string, sharedDatasources []string, queryDatasourceIDs []string, integrationID string, filterDisabled bool) ([]string, []*orm.Clause) {
 
-	log.Error("userID:", userID, ",queryDatasource:", queryDatasourceIDs, ",integrationID:", integrationID)
+	//log.Error("userID:", userID, ",queryDatasource:", queryDatasourceIDs, ",integrationID:", integrationID)
 
 	finalDatasourceIDs := []string{}
 	if integrationID != "" {
@@ -392,7 +392,7 @@ func BuildDatasourceFilter(userID string, sharedDatasources []string, queryDatas
 
 	mustClauses := []*orm.Clause{}
 	if len(finalDatasourceIDs) > 0 {
-		log.Error("HIT finalDatasourceIDs:", finalDatasourceIDs)
+		//log.Error("HIT finalDatasourceIDs:", finalDatasourceIDs)
 		//mergedArray := []string{}
 		//mergedArray = append(finalDatasourceIDs, sharedDatasources...)
 		mustClauses = append(mustClauses, orm.TermsQuery("source.id", finalDatasourceIDs))

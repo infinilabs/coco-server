@@ -95,7 +95,10 @@ POST $[[SETUP_INDEX_PREFIX]]datasource$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/
         "gitlab_incoming_message":{
           "token":"TOKEN",
           "endpoint":"http://xxx.com/",
-          "assistant":"gitlab_ai_reviewer",
+          "report_assistant":"gitlab_ai_reviewer",
+          "summary_assistant":"gitlab_ai_pr_summary",
+           "max_batch_size": 10,
+           "max_input_length": 10240,
           "page_size":10
         }
       }
@@ -107,7 +110,7 @@ POST $[[SETUP_INDEX_PREFIX]]datasource$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/
   "created": "2025-11-05T16:48:21.692002+08:00",
   "name": "Gitlab CI Webhook",
   "id": "gitlab_webhook_datasource",
-  "icon":"font_gitlab",
+    "icon": "font_gitlab",
   "type": "connector",
   "updated": "2025-11-05T17:05:52.885677+08:00",
   "sync": {
