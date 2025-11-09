@@ -7,7 +7,6 @@ package document
 import (
 	"context"
 	"fmt"
-	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/modules/connector"
@@ -22,8 +21,6 @@ import (
 )
 
 func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-
-	log.Error(req.URL.RawQuery)
 
 	var (
 		query        = h.GetParameterOrDefault(req, "query", "")
