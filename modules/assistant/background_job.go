@@ -225,7 +225,7 @@ func finalizeProcessing(ctx *orm.Context, sessionID string, msg *core.ChatMessag
 	))
 }
 
-func processMessageAsync(ctx *orm.Context, reqMsg *core.ChatMessage, params *RAGContext, sender core.MessageSender) error {
+func processMessageAsync(ctx *orm.Context, userID string, reqMsg *core.ChatMessage, params *RAGContext, sender core.MessageSender) error {
 	log.Debugf("Starting async processing for session: %v", params.SessionID)
 
 	replyMsg := createAssistantMessage(params.SessionID, reqMsg.AssistantID, reqMsg.ID)
@@ -342,7 +342,7 @@ func processMessageAsync(ctx *orm.Context, reqMsg *core.ChatMessage, params *RAG
 		if params.DeepThink {
 			fetchSize = 50
 		}
-		docs, _ := processInitialDocumentSearch(ctx, reqMsg, replyMsg, params, fetchSize, sender)
+		docs, _ := processInitialDocumentSearch(ctx, userID, reqMsg, replyMsg, params, fetchSize, sender)
 		params.InputValues["references"] = docs
 
 		if params.DeepThink && len(docs) > 10 {
@@ -654,7 +654,7 @@ func processLLMTools(ctx context.Context, reqMsg *core.ChatMessage, replyMsg *co
 	return answer, nil
 }
 
-func processInitialDocumentSearch(ctx *orm.Context, reqMsg, replyMsg *core.ChatMessage, params *RAGContext, fechSize int, sender core.MessageSender) ([]core.Document, error) {
+func processInitialDocumentSearch(ctx *orm.Context, userID string, reqMsg, replyMsg *core.ChatMessage, params *RAGContext, fechSize int, sender core.MessageSender) ([]core.Document, error) {
 
 	if params.intentModel != nil && (params.AssistantCfg.DeepThinkConfig != nil && params.AssistantCfg.DeepThinkConfig.PickDatasource) && params.QueryIntent != nil {
 		if !params.QueryIntent.NeedNetworkSearch {
@@ -663,24 +663,24 @@ func processInitialDocumentSearch(ctx *orm.Context, reqMsg, replyMsg *core.ChatM
 		}
 	}
 
-	////var query *orm.Query
-	//mustClauses := document.BuildMustFilterClauses(params.category, params.subcategory, params.richCategory, params.username, params.userid)
-	//datasourceClause := document.BuildDatasourceClause(params.datasource, true)
-	//if datasourceClause != nil {
-	//	mustClauses = append(mustClauses, datasourceClause)
-	//}
+	//var query *orm.Query
+	mustClauses := document.BuildMustFilterClauses(params.category, params.subcategory, params.richCategory, params.username, params.userid)
+	datasourceClause := document.BuildDatasourceClause(params.datasource, true)
+	if datasourceClause != nil {
+		mustClauses = append(mustClauses, datasourceClause)
+	}
 
-	////TODO
-	//if params.AssistantCfg.Datasource.Enabled && params.AssistantCfg.Datasource.Filter != nil {
-	//	log.Debug(params.AssistantCfg.Datasource.Filter)
-	//	mustClauses = append(mustClauses, params.AssistantCfg.Datasource.Filter)
-	//}
+	//TODO
+	if params.AssistantCfg.Datasource.Enabled && params.AssistantCfg.Datasource.Filter != nil {
+		log.Debug(params.AssistantCfg.Datasource.Filter)
+		mustClauses = append(mustClauses, params.AssistantCfg.Datasource.Filter)
+	}
 
 	builder := orm.NewQuery()
 	//var shouldClauses interface{}
 	if params.QueryIntent != nil && len(params.QueryIntent.Query) > 0 {
 
-		builder.Should(orm.FuzzyQuery("combined_fulltext", params.QueryIntent.Keyword, 1))
+		builder.Should(orm.TermsQuery("combined_fulltext", params.QueryIntent.Keyword))
 
 		//shouldClauses = document.BuildShouldClauses(params.QueryIntent.Query, params.QueryIntent.Keyword)
 	}
@@ -689,7 +689,7 @@ func processInitialDocumentSearch(ctx *orm.Context, reqMsg, replyMsg *core.ChatM
 	//query = document.BuildTemplatedQuery(from, fechSize, mustClauses, shouldClauses, params.field, reqMsg.Message, params.source, params.tags)
 
 	//if query != nil {
-	docs, _, err := document.QueryDocuments(ctx.Context, builder, reqMsg.Message, params.datasource, "", "", "")
+	docs, _, err := document.QueryDocuments(ctx.Context, userID, builder, reqMsg.Message, params.datasource, "", "", "", "")
 	//docs, err := fetchDocuments(query)
 	if err != nil {
 		log.Error(err)

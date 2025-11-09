@@ -33,7 +33,8 @@ type CorsConfig struct {
 }
 
 type AppearanceConfig struct {
-	Theme string `json:"theme,omitempty" elastic_mapping:"theme:{type:keyword}"` // Theme of the embedding
+	Theme    string `json:"theme,omitempty" elastic_mapping:"theme:{type:keyword}"`       // Theme of the embedding
+	Language string `json:"language,omitempty" elastic_mapping:"language:{type:keyword}"` // Language of the embedding
 }
 type AccessControlConfig struct {
 	Authentication bool `json:"authentication" elastic_mapping:"authentication:{type:keyword}"` // Whether authentication is required
@@ -47,8 +48,9 @@ type ModuleConfig struct {
 }
 
 type SearchModuleConfig struct {
-	Enabled     bool   `json:"enabled" elastic_mapping:"enabled:{type:keyword}"`
-	Placeholder string `json:"placeholder,omitempty" elastic_mapping:"placeholder:{type:keyword}"` // Placeholder text for search input
+	Enabled     bool     `json:"enabled" elastic_mapping:"enabled:{type:keyword}"`
+	Datasource  []string `json:"datasource,omitempty" elastic_mapping:"datasource:{type:keyword}"`   // Datasource ID
+	Placeholder string   `json:"placeholder,omitempty" elastic_mapping:"placeholder:{type:keyword}"` // Placeholder text for search input
 }
 
 type AIChatModuleConfig struct {

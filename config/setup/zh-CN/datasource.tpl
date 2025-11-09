@@ -105,8 +105,9 @@ POST $[[SETUP_INDEX_PREFIX]]datasource$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/
     "id": "gitlab_webhook_receiver"
   },
   "created": "2025-11-05T16:48:21.692002+08:00",
-  "name": "Gitlab",
+  "name": "Gitlab CI Webhook",
   "id": "gitlab_webhook_datasource",
+  "icon":"font_gitlab",
   "type": "connector",
   "updated": "2025-11-05T17:05:52.885677+08:00",
   "sync": {

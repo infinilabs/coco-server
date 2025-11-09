@@ -106,6 +106,7 @@ func reloadConfig() {
 				}
 
 				config.ServerInfo.EncodeIconToBase64 = filebasedConfig.ServerInfo.EncodeIconToBase64
+				config.ServerInfo.Store = filebasedConfig.ServerInfo.Store
 			}
 		}
 	}

@@ -38,6 +38,7 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 	//try to collect assistants
 	if query != "" {
 		builder, err := orm.NewQueryBuilderFromRequest(req)
+
 		if err != nil {
 			panic(err)
 		}
@@ -48,7 +49,7 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		integrationID := req.Header.Get(core.HeaderIntegrationID)
 		//log.Error("integrationID:", integrationID)
 
-		docs1, total, err := QueryDocumentsAndFilter(req.Context(), reqUser, builder, integrationID, query, datasource, category, subcategory, richCategory)
+		docs1, resp, err := QueryDocumentsAndFilter(req.Context(), reqUser, builder, integrationID, query, datasource, category, subcategory, richCategory)
 		//log.Error(docs1, total, err)
 		if err != nil {
 			panic(err)
@@ -92,9 +93,11 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		}
 
 		result := elastic.SearchResponseWithMeta[core.Document]{}
+		util.FromJSONBytes(resp.Raw, &result)
+
 		result.Hits.Hits = docs1
 		result.Hits.Total = util.MapStr{
-			"value":    total,
+			"value":    resp.Total,
 			"relation": "eq",
 		}
 
@@ -306,18 +309,105 @@ func BuildFilters(category string, subcategory string, richCategory string) []*o
 	return mustClauses
 }
 
-func BuildDatasourceFilter(datasource string, filterDisabled bool) []*orm.Clause {
-	mustClauses := []*orm.Clause{}
-	if datasource != "" {
-		if strings.Contains(datasource, ",") {
-			arr := strings.Split(datasource, ",")
-			mustClauses = append(mustClauses, orm.TermsQuery("source.id", arr))
-		} else {
-			mustClauses = append(mustClauses, orm.TermQuery("source.id", datasource))
+// GetDatasourceByIntegration returns the datasource IDs that the integration is allowed to access
+func GetDatasourceByIntegration(integrationID string) ([]string, bool, error) {
+	var items = []core.Integration{}
+	q := orm.Query{
+		Size:  1,
+		Conds: orm.And(orm.Eq("id", integrationID), orm.Eq("enabled", true)),
+	}
+	err, _ := orm.SearchWithJSONMapper(&items, &q)
+	if err != nil {
+		return nil, false, err
+	}
+	if len(items) == 0 {
+		return nil, false, nil
+	}
+	var ret = make([]string, 0, len(items))
+	for _, item := range items {
+		for _, datasourceID := range item.EnabledModule.Search.Datasource {
+			if datasourceID == "*" {
+				return nil, true, nil
+			}
+			ret = append(ret, datasourceID)
 		}
 	}
+	return ret, false, nil
+}
+
+func BuildDatasourceFilter(userID string, sharedDatasources []string, queryDatasourceIDs []string, integrationID string, filterDisabled bool) ([]string, []*orm.Clause) {
+
+	log.Error("userID:", userID, ",queryDatasource:", queryDatasourceIDs, ",integrationID:", integrationID)
+
+	finalDatasourceIDs := []string{}
+	if integrationID != "" {
+		// get queryDatasource by integration id
+		datasourceIDs, hasAll, err := GetDatasourceByIntegration(integrationID)
+		if err != nil {
+			panic(err)
+		}
+		finalDatasourceIDs = datasourceIDs
+		if !hasAll {
+			if len(datasourceIDs) == 0 {
+				// return empty search result when no queryDatasource found
+				panic("integration datasource is empty")
+			}
+			// update queryDatasource filter
+			//if queryDatasource == "" {
+			//	queryDatasource = strings.Join(datasourceIDs, ",")
+			//} else {
+			// calc intersection with queryDatasource and datasourceIDs
+			//queryDatasource = util.StringArrayIntersection(queryDatasourceIDs, datasourceIDs)
+			//if len(queryDatasource) == 0 {
+			//	// return empty search result when intersection queryDatasource ids is empty
+			//	panic("queryDatasource is empty")
+			//}
+			//finalDatasourceIDs = queryDatasource
+			//queryDatasource = strings.Join(queryDatasource, ",")
+			//}
+		} else {
+			//user is select all queryDatasource
+			finalDatasourceIDs = common.GetUsersOwnDatasource(userID)
+		}
+	} else {
+		//if queryDatasource == "" || util.ContainStr(queryDatasource, "*") {
+		//user is select all queryDatasource
+		finalDatasourceIDs = common.GetUsersOwnDatasource(userID)
+		//} else {
+		//	queryDatasource := strings.Split(queryDatasource, ",")
+		//	finalDatasourceIDs = queryDatasource
+		//}
+	}
+
+	if len(queryDatasourceIDs) > 0 {
+		//only merge if the query are specify datasources
+		finalDatasourceIDs = append(finalDatasourceIDs, sharedDatasources...)
+		finalDatasourceIDs = util.StringArrayIntersection(queryDatasourceIDs, finalDatasourceIDs)
+	}
+
+	//datasourceClause := BuildDatasourceClause(queryDatasource, true)
+	//if datasourceClause != nil {
+	//	mustClauses = append(mustClauses, datasourceClause)
+	//}
+
+	mustClauses := []*orm.Clause{}
+	if len(finalDatasourceIDs) > 0 {
+		log.Error("HIT finalDatasourceIDs:", finalDatasourceIDs)
+		//mergedArray := []string{}
+		//mergedArray = append(finalDatasourceIDs, sharedDatasources...)
+		mustClauses = append(mustClauses, orm.TermsQuery("source.id", finalDatasourceIDs))
+	}
+
+	//if queryDatasource != "" {
+	//	if strings.Contains(queryDatasource, ",") {
+	//		arr := strings.Split(queryDatasource, ",")
+	//		mustClauses = append(mustClauses, orm.TermsQuery("source.id", arr))
+	//	} else {
+	//		mustClauses = append(mustClauses, orm.TermQuery("source.id", queryDatasource))
+	//	}
+	//}
 	if !filterDisabled {
-		return mustClauses
+		return finalDatasourceIDs, mustClauses
 	}
 
 	disabledIDs, err := common.GetDisabledDatasourceIDs()
@@ -330,35 +420,5 @@ func BuildDatasourceFilter(datasource string, filterDisabled bool) []*orm.Clause
 		mustClauses = append(mustClauses, orm.MustNotQuery(orm.TermsQuery("source.id", disabledIDs)))
 	}
 
-	return mustClauses
-}
-
-func BuildShouldClauses(query []string, keyword []string) interface{} {
-	clauses := []interface{}{}
-
-	if len(query) > 0 {
-		for _, v := range query {
-			clauses = append(clauses, map[string]interface{}{
-				"match": map[string]interface{}{
-					"combined_fulltext": v,
-				},
-			})
-		}
-	}
-
-	if len(keyword) > 0 {
-		clauses = append(clauses, map[string]interface{}{
-			"terms": map[string]interface{}{
-				"combined_fulltext": keyword,
-			},
-		})
-	}
-
-	clause := util.MapStr{}
-	clause["bool"] = util.MapStr{
-		"should": clauses,
-		"boost":  1,
-	}
-
-	return clause
+	return finalDatasourceIDs, mustClauses
 }

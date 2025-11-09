@@ -135,7 +135,7 @@ func (processor *Processor) onOpenMR(doc *core2.Document, event *core.MergeReque
 	//TODO, send to task framework
 	ctx, _ := context.WithTimeout(context.Background(), time.Duration(5)*time.Minute)
 
-	finalText, err := assistant.AskAssistantSync(ctx, processor.config.Assistant, doc.Title, vars)
+	finalText, err := assistant.AskAssistantSync(ctx, doc.GetOwnerID(), processor.config.Assistant, doc.Title, vars)
 	if err != nil {
 		panic(err)
 	}

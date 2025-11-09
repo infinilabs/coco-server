@@ -6,9 +6,11 @@ package common
 
 import (
 	"infini.sh/coco/core"
+	"infini.sh/framework/core/elastic"
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
+	orm2 "infini.sh/framework/plugins/enterprise/security/orm"
 	"time"
 )
 
@@ -133,4 +135,40 @@ func GetDatasourceConfig(ctx *orm.Context, id string) (*core.DataSource, error) 
 	}
 
 	return nil, errors.New("not found")
+}
+
+func GetUserDatasource(ctx *orm.Context) []string {
+	orm.WithModel(ctx, &core.DataSource{})
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "datasource")
+	ctx.Set(orm.SharingCategoryCheckingChildrenEnabled, true)
+	builder := orm.NewQuery()
+	builder.Size(1000)
+
+	docs := []core.DataSource{}
+
+	_, _ = elastic.SearchV2WithResultItemMapper(ctx, &docs, builder, nil)
+	ids := []string{}
+	for _, v := range docs {
+		ids = append(ids, v.ID)
+	}
+	return ids
+}
+
+func GetUsersOwnDatasource(userID string) []string {
+	ctx := orm.NewContext()
+	ctx.DirectReadAccess()
+	orm.WithModel(ctx, &core.DataSource{})
+	builder := orm.NewQuery()
+	builder.Must(orm.TermQuery(orm2.SystemOwnerQueryField, userID))
+	builder.Size(1000)
+
+	docs := []core.DataSource{}
+
+	_, _ = elastic.SearchV2WithResultItemMapper(ctx, &docs, builder, nil)
+	ids := []string{}
+	for _, v := range docs {
+		ids = append(ids, v.ID)
+	}
+	return ids
 }

@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"infini.sh/coco/core"
+	"infini.sh/framework/core/security"
 	"net/http"
 	"sync"
 
@@ -177,6 +178,7 @@ func (h APIHandler) getChatSessions(w http.ResponseWriter, req *http.Request, ps
 
 func (h APIHandler) createChatSession(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	id := h.GetParameterOrDefault(r, "assistant_id", DefaultAssistantID)
+	userInfo := security.MustGetUserFromRequest(r)
 
 	assistant, exists, err := common.GetAssistant(r, id)
 	if !exists || err != nil {
@@ -238,7 +240,7 @@ func (h APIHandler) createChatSession(w http.ResponseWriter, r *http.Request, ps
 		SessionID:  session.ID,
 		CancelFunc: cancel,
 	})
-	_ = processMessageAsync(orm.NewContextWithParent(ctx), reqMsg, params, streamSender)
+	_ = processMessageAsync(orm.NewContextWithParent(ctx), userInfo.MustGetUserID(), reqMsg, params, streamSender)
 }
 
 func CreateAndSaveNewChatMessage(request *http.Request, assistantID string, req *core.MessageRequest, visible bool) (core.Session, error, *core.ChatMessage, util.MapStr) {
@@ -296,6 +298,8 @@ func (h *APIHandler) askAssistant(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
+	userInfo := security.MustGetUserFromRequest(r)
+
 	//launch the LLM task
 	//streaming output result to HTTP client
 
@@ -342,7 +346,7 @@ func (h *APIHandler) askAssistant(w http.ResponseWriter, r *http.Request, ps htt
 		Flusher: flusher,
 		Ctx:     r.Context(), // assuming this is in an HTTP handler
 	}
-	_ = processMessageAsync(orm.NewContextWithParent(ctx), reqMsg, params, streamSender)
+	_ = processMessageAsync(orm.NewContextWithParent(ctx), userInfo.MustGetUserID(), reqMsg, params, streamSender)
 
 }
 
@@ -486,6 +490,7 @@ func (h APIHandler) cancelReplyMessage(w http.ResponseWriter, req *http.Request,
 
 func (h APIHandler) sendChatMessageV2(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	sessionID := ps.MustGetParameter("session_id")
+	userInfo := security.MustGetUserFromRequest(r)
 
 	ormCtx := orm.NewContextWithParent(r.Context())
 	ormCtx.Refresh = orm.WaitForRefresh
@@ -552,7 +557,7 @@ func (h APIHandler) sendChatMessageV2(w http.ResponseWriter, r *http.Request, ps
 		SessionID:  sessionID,
 		CancelFunc: cancel,
 	})
-	_ = processMessageAsync(orm.NewContextWithParent(ctx), reqMsg, params, streamSender)
+	_ = processMessageAsync(orm.NewContextWithParent(ctx), userInfo.MustGetUserID(), reqMsg, params, streamSender)
 
 }
 

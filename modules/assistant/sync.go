@@ -46,7 +46,7 @@ func (m *MemoryMessageSender) FinalResponse() string {
 
 // AskAssistantSync sends a message to an assistant and waits for a full response.
 // This version is fully detached from APIHandler and HTTP context.
-func AskAssistantSync(ctx context.Context, id string, message string, vars map[string]any) (string, error) {
+func AskAssistantSync(ctx context.Context, userID string, id string, message string, vars map[string]any) (string, error) {
 	ctx1 := orm.NewContextWithParent(ctx)
 	ctx1.DirectAccess()
 	assistant, exists, err := common.InternalGetAssistant(ctx1, id)
@@ -74,7 +74,7 @@ func AskAssistantSync(ctx context.Context, id string, message string, vars map[s
 
 	// Memory-based receiver for synchronous mode
 	receiver := &MemoryMessageSender{}
-	if err := processMessageAsync(ctx1, reqMsg, ragCtx, receiver); err != nil {
+	if err := processMessageAsync(ctx1, userID, reqMsg, ragCtx, receiver); err != nil {
 		return "", fmt.Errorf("process message failed: %w", err)
 	}
 
