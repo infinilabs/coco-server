@@ -1,4 +1,4 @@
-POST $[[SETUP_INDEX_PREFIX]]model-integration$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/full-screen-widget-default
+POST $[[SETUP_INDEX_PREFIX]]integration$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/full-screen-widget-default
 {
           "id": "full-screen-widget-default",
           "created": "2025-11-08T23:32:10.584881+08:00",
