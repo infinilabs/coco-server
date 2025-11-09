@@ -436,7 +436,12 @@ const page: App.I18n.Schema['translation']['page'] = {
       shareTo: '共享',
       permission: '访问权限',
       you: '（你）',
-      inherit: '（继承）'
+      inherit: '（继承）',
+      categories: '分类',
+      type: '类型',
+      created: '创建时间',
+      createdBy: '创建人',
+      updatedBy: '更新人'
     },
     file: {
       title: '文档管理'

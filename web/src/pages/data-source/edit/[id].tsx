@@ -1,5 +1,5 @@
 import type { FormProps } from 'antd';
-import { Button, Form, Input, Spin, Switch, message } from 'antd';
+import { Button, Form, Input, Spin, Switch, Typography, message } from 'antd';
 import { useForm } from 'antd/es/form/Form';
 import { useEffect, useState } from 'react';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -49,6 +49,15 @@ export function Component() {
     id: datasourceID
   });
   const [form] = useForm();
+
+  const [webhookEnabled, setWebhookEnabled] = useState(false)
+  const webhookUrl = useMemo(() => {
+    return datasourceID ? `${window.location.origin}/webhooks/${datasourceID}` : ''
+  }, [datasourceID])
+
+  useEffect(() => {
+    setWebhookEnabled(datasource?.webhook?.enabled)
+  }, [datasource?.webhook?.enabled])
 
   useEffect(() => {
     if (!datasourceID) return;
@@ -439,8 +448,19 @@ export function Component() {
                 label={t('page.datasource.new.labels.webhook')}
                 name={["webhook", "enabled"]}
               >
-                <Switch />
+                <Switch onChange={(checked) => setWebhookEnabled(checked)}/>
               </Form.Item>
+              {
+                webhookEnabled && (
+                  <Form.Item label={`Webhook Url`}>
+                    <Typography.Text 
+                      className="color-[var(--ant-color-text)] rounded-[var(--ant-border-radius)] bg-[var(--ant-color-border)] p-12px"
+                      style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}
+                      copyable
+                    >{webhookUrl}</Typography.Text>
+                  </Form.Item>
+                )
+              }
                <Form.Item
                 label={t('page.datasource.new.labels.enrichment_pipeline')}
                 name="enrichment_pipeline"

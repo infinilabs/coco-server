@@ -57,9 +57,9 @@ export const InsertCode = memo(props => {
       style={{ borderColor }}
     >
       <div className="mb-12px text-lg font-bold">{t('page.integration.code.title')}</div>
-      <div className="color-var(--ant-color-text) mb-12px">{t('page.integration.code.desc')}</div>
+      <div className="color-[var(--ant-color-text)] mb-12px">{t('page.integration.code.desc')}</div>
       <pre
-        className="color-var(--ant-color-text) relative rounded-[var(--ant-border-radius)] bg-[var(--ant-color-border)] p-12px"
+        className="color-[var(--ant-color-text)] relative rounded-[var(--ant-border-radius)] bg-[var(--ant-color-border)] p-12px"
         style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}
       >
         {code}

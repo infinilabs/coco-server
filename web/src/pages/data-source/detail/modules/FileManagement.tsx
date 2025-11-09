@@ -34,6 +34,7 @@ const FileManagement = props => {
   const datasourceID = props.id;
   const [queryParams, setQueryParams] = useQueryParams();
 
+  const responsive = useResponsive();
   const { t } = useTranslation();
 
   const { addSharesToData, isEditorOwner, hasEdit, isResourceShare } = useResource();
@@ -49,6 +50,7 @@ const FileManagement = props => {
 
   const [connector, setConnector] = useState<any>({});
   const [datasource, setDatasource] = useState<any>();
+  const [selectedRecord, setSelectedRecord] = useState<any>();
 
   useEffect(() => {
     if (!datasourceID) return;
@@ -215,9 +217,10 @@ const FileManagement = props => {
               };
             });
           };
-        } else if (record.url) {
-          aProps.href = record.url;
-          aProps.target = '_blank';
+        } else {
+          aProps.onClick = () => {
+            setSelectedRecord(record)
+          }
         }
 
         let shareIcon;
@@ -248,7 +251,7 @@ const FileManagement = props => {
                 ) : (
                   <FontIcon name={record.icon} />
                 )}
-                {record.url || pathHierarchy ? <a {...aProps}>{text}</a> : <span>{text}</span>}
+                <a {...aProps}>{text}</a>
                 {shareIcon}
               </span>
               <span className='h-14px text-10px text-#999'>
@@ -271,12 +274,20 @@ const FileManagement = props => {
             ) : (
               <FontIcon name={record.icon} />
             )}
-            {record.url || pathHierarchy ? <a {...aProps}>{text}</a> : <span>{text}</span>}
+            <a {...aProps}>{text}</a>
             {shareIcon}
           </span>
         );
       },
       title: t('page.datasource.columns.name')
+    },
+    {
+      dataIndex: 'categories',
+      title: t('page.datasource.labels.categories'),
+      hidden: connector?.path_hierarchy && queryParams.view === 'list',
+      render: (value) => {
+        return Array.isArray(value) ? `/${value.join('/')}` : '/'
+      }
     },
     {
       dataIndex: 'owner',
@@ -519,6 +530,12 @@ const FileManagement = props => {
           showSizeChanger: true
         }}
         onChange={onTableChange}
+      />
+      <DocumentDrawer 
+        data={selectedRecord}
+        open={!!selectedRecord}
+        onClose={() => setSelectedRecord(undefined)}
+        isMobile={!responsive.sm}
       />
     </ListContainer>
   );

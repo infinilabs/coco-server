@@ -380,7 +380,12 @@ const page: App.I18n.Schema['translation']['page'] = {
       shareTo: 'Share',
       permission: 'Permission',
       you: ' (you)',
-      inherit: ' (inherit)'
+      inherit: ' (inherit)',
+      categories: 'Categories',
+      type: 'Type',
+      created: 'Created At',
+      createdBy: 'Created By',
+      updatedBy: 'Updated By'
     },
     file: {
       title: 'Document Management'
