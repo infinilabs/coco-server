@@ -1,18 +1,11 @@
-import Icon, {
-  ExclamationCircleOutlined,
-  ExportOutlined,
-  FilterOutlined,
-  PlusOutlined,
-  SettingOutlined
-} from '@ant-design/icons';
-import type { MenuProps } from 'antd';
-import { Button, Dropdown, Form, Image, Input, List, Modal, Spin, Switch, Tag, message } from 'antd';
+import Icon, { ExportOutlined, FilterOutlined, PlusOutlined, SettingOutlined } from '@ant-design/icons';
+import { Button, Form, Image, Input, List, Modal, Spin, Switch, Tag, message } from 'antd';
 import Search from 'antd/es/input/Search';
 
 import type { IntegratedStoreModalRef } from '@/components/common/IntegratedStoreModal';
 import InfiniIcon from '@/components/common/icon';
 import useQueryParams from '@/hooks/common/queryParams';
-import { deleteModelProvider, searchModelPovider, updateModelProvider } from '@/service/api/model-provider';
+import { searchModelPovider, updateModelProvider } from '@/service/api/model-provider';
 import { formatESSearchResult } from '@/service/request/es';
 
 export function Component() {
@@ -65,51 +58,7 @@ export function Component() {
       };
     });
   };
-  const getMenuItems = useCallback((record: any): MenuProps['items'] => {
-    const items: MenuProps['items'] = [
-      {
-        key: '1',
-        label: t('common.edit')
-      }
-    ];
-    if (record.builtin !== true) {
-      items.push({
-        key: '2',
-        label: t('common.delete')
-      });
-    }
-    return items;
-  }, []);
 
-  const onMenuClick = ({ key, record }: any) => {
-    switch (key) {
-      case '2':
-        window?.$modal?.confirm({
-          content: t('page.modelprovider.delete.confirm'),
-          icon: <ExclamationCircleOutlined />,
-          onOk() {
-            deleteModelProvider(record.id).then(res => {
-              if (res.data?.result === 'deleted') {
-                message.success(t('common.deleteSuccess'));
-              }
-              // reload data
-              setQueryParams(old => {
-                return {
-                  ...old,
-                  t: new Date().valueOf()
-                };
-              });
-            });
-          },
-          title: t('common.tip')
-        });
-
-        break;
-      case '1':
-        nav(`/model-provider/edit/${record.id}`);
-        break;
-    }
-  };
   const onItemEnableChange = (record: any, checked: boolean) => {
     setLoading(true);
     updateModelProvider(record.id, {
@@ -245,15 +194,11 @@ export function Component() {
                     >
                       API-key
                     </div>
-                    <div className="inline-block cursor-pointer border border-[var(--ant-color-border)] rounded-[8px] px-4px">
-                      <Dropdown
-                        menu={{
-                          items: getMenuItems(provider),
-                          onClick: ({ key }) => onMenuClick({ key, record: provider })
-                        }}
-                      >
-                        <SettingOutlined className="text-blue-500" />
-                      </Dropdown>
+                    <div
+                      className="inline-block cursor-pointer border border-[var(--ant-color-border)] rounded-[8px] px-4px"
+                      onClick={() => nav(`/model-provider/edit/${provider.id}`)}
+                    >
+                      <SettingOutlined className="text-blue-500" />
                     </div>
                   </div>
                 </div>
