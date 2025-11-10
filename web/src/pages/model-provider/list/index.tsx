@@ -34,7 +34,14 @@ export function Component() {
 
   const fetchData = () => {
     setLoading(true);
-    searchModelPovider(queryParams)
+    // Convert sort array to string format that backend expects
+    const params = {
+      ...queryParams,
+      sort: Array.isArray(queryParams.sort)
+        ? queryParams.sort.map(([field, order]: [string, string]) => `${field}:${order}`).join(',')
+        : queryParams.sort
+    };
+    searchModelPovider(params)
       .then(data => {
         const newData = formatESSearchResult(data.data);
         setData(newData);
@@ -118,23 +125,9 @@ export function Component() {
     })
       .then(res => {
         if (res.data?.result === 'updated') {
-          // update local data
-          setData((oldData: any) => {
-            const newData = oldData.data.map((item: any) => {
-              if (item.id === record.id) {
-                return {
-                  ...item,
-                  enabled: checked
-                };
-              }
-              return item;
-            });
-            return {
-              ...oldData,
-              data: newData
-            };
-          });
           message.success(t('common.updateSuccess'));
+          // Refetch data to ensure proper sorting with enabled items at the top
+          fetchData();
         }
       })
       .finally(() => {
