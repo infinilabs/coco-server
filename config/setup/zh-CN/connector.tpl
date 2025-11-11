@@ -618,3 +618,30 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/n
     "name": "neo4j"
   }
 }
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/jira
+{
+  "id" : "jira",
+  "created" : "2025-11-15T00:00:00.000000+08:00",
+  "updated" : "2025-11-15T00:00:00.000000+08:00",
+  "name" : "Jira 项目连接器",
+  "description" : "提取 Jira 项目的问题、评论和附件数据。",
+  "category" : "website",
+  "icon" : "/assets/icons/connector/jira/icon.png",
+  "tags" : [
+    "project_management",
+    "issues",
+    "atlassian",
+    "web"
+  ],
+  "url" : "http://coco.rs/connectors/jira",
+  "assets" : {
+    "icons" : {
+      "default" : "/assets/icons/connector/jira/icon.png"
+    }
+  },
+  "builtin": true,
+  "processor": {
+    "enabled": true,
+    "name": "jira"
+  }
+}

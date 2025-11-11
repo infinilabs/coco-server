@@ -16,6 +16,7 @@ export const Types = {
   GitLab: 'gitlab',
   GoogleDrive: 'google_drive',
   HugoSite: 'hugo_site',
+  Jira: 'jira',
   Lark: 'lark',
   LocalFS: 'local_fs',
   Mssql: 'mssql',
