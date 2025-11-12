@@ -38,7 +38,7 @@ export const InsertCode = memo(props => {
     if (!id || !widgetType) return undefined
     return `<div id="${widgetType}" style="margin: ${mode === 'page' ? '0' : '10px'} 0; outline: none"></div>
 <script type="module" >
-    import { ${widgetType} } from "${window.location.origin}/integration/${id}/widget";
+    import { ${widgetType} } from "${window.location.origin}${window.location.pathname}integration/${id}/widget";
     ${widgetType}({container: "#${widgetType}"});
 </script>`;
   }, [id, widgetType, mode]);

@@ -95,6 +95,7 @@ const BaseLayout = () => {
     dispatch(setIsMobile(isMobile));
     if (isMobile) {
       dispatch(setLayoutMode('vertical'));
+      dispatch(setSiderCollapse(true))
     }
   }, [isMobile, dispatch]);
 

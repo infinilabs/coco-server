@@ -3,12 +3,14 @@ import { useMemo, useState } from "react";
 import { formatESSearchResult } from "@/service/request/es";
 import { useRequest } from "@sa/hooks";
 import { fetchPrincipals } from "@/service/api/share";
+import { getLocale } from "@/store/slice/app";
 
 export default (props) => {
 
     const { value, onChange, width, className, mode, excluded = [], children, onDropdownVisibleChange } = props;
 
     const { t } = useTranslation();
+      const locale = useAppSelector(getLocale);
 
     const { hasAuth } = useAuth()
 
@@ -147,18 +149,7 @@ export default (props) => {
         onRefresh={permissions.search ? () => {
           fetchFilterData(queryParams, sorter, excluded)
         } : undefined}
-        action={[
-          <a
-            onClick={() => {
-              window.open(
-                `/#/ai-assistant/new`,
-                "_blank"
-              );
-            }}
-          >
-            {t('common.create')}
-          </a>
-        ]}
+        locale={locale}
       >
         {children}
       </DropdownList>

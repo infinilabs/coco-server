@@ -269,6 +269,7 @@ api:
     binding: $[[env.API_BINDING]]
 
 web:
+  base_path: "/coco"
   enabled: true
   embedding_api: false
   network:

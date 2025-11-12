@@ -211,6 +211,7 @@ const DropdownList = (props) => {
         }}
         autoAdjustOverflow={autoAdjustOverflow}
         getPopupContainer={getPopupContainer}
+        destroyTooltipOnHide
       >
         {children ? (
           children

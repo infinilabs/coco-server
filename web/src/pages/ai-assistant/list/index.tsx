@@ -193,10 +193,12 @@ export function Component() {
       }
     },
     {
+      title: t('page.assistant.labels.type'),
       dataIndex: 'type',
       minWidth: 50,
     },
     {
+      title: t('page.assistant.labels.datasource'),
       dataIndex: ['datasource', 'enabled'],
       minWidth: 50,
       render: (value: boolean, record: Assistant) => {
@@ -204,6 +206,7 @@ export function Component() {
       }
     },
     {
+      title: t('page.assistant.labels.mcp_servers'),
       dataIndex: ['mcp_servers', 'enabled'],
       minWidth: 50,
       render: (value: boolean, record: Assistant) => {
@@ -211,6 +214,7 @@ export function Component() {
       }
     },
     {
+      title: t('page.assistant.labels.description'),
       dataIndex: 'description',
       ellipsis: true,
       minWidth: 200,

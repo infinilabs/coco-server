@@ -2,6 +2,7 @@ import DropdownList from "@/common/src/DropdownList";
 import { useMemo, useState } from "react";
 import ModelSettings from "./ModelSettings";
 import InfiniIcon from '@/components/common/icon';
+import { getLocale } from "@/store/slice/app";
 
 const DefaultModelSettings = {
   temperature: 0.7,
@@ -135,6 +136,9 @@ export default (props: any) => {
         return item.id + "_" + item.name;
       })
     }, [providers]) 
+
+
+    const locale = useAppSelector(getLocale);
     
     const [sorter, setSorter] = useState([])
     const [filters, setFilters] = useState({})
@@ -260,6 +264,7 @@ export default (props: any) => {
               setFilters({ type: grps})
             }
           }}
+          locale={locale}
         />
         <div><ModelSettings onChange={onSettingsChange} value={value || {}} /></div>
       </div>

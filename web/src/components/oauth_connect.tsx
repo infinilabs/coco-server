@@ -193,7 +193,7 @@ export default function OAuthConnect({
       });
     } else {
       // Use custom connect URL or default to connector-specific endpoint
-      const endpoint = connectUrl || `${window.location.origin}/connector/${connector?.id}/oauth_connect`;
+      const endpoint = connectUrl || `${window.location.origin}${window.location.pathname}connector/${connector?.id}/oauth_connect`;
       window.location.href = endpoint;
     }
   };

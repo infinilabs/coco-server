@@ -134,7 +134,9 @@ const List = (props) => {
 
   useEffect(() => {
     if (inputRef.current && visible) {
-      inputRef.current.focus();
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 200);
     }
   }, [visible, inputRef]);
 

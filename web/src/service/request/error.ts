@@ -16,10 +16,10 @@ function handleLogout() {
   if (['/search', '/login'].every((item) => !currentPath.startsWith(item))) {
     const rootRoute = getRootRouteIfSearch(getProviderInfo(store.getState()));
     if (rootRoute === 'search' && currentPath === '/') {
-      window.location.href = `/#/search`;
+      window.location.href = `#/search`;
     } else {
       store.dispatch(resetStore());
-      window.location.href = `/#/login?redirect=${currentPath}`;
+      window.location.href = `#/login?redirect=${currentPath}`;
     }
   }
 }

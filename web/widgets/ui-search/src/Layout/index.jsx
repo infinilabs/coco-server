@@ -24,7 +24,7 @@ const BasicLayout = (props) => {
       <Layout id={rootID}>
         {isFirst ? (
           <Content className="bg-[rgba(250,250,250,1)] min-h-[calc(100vh)] flex flex-col items-center justify-center">
-            <div className={`mb-24px w-200px`}>{logo}</div>
+            <div className={`mb-24px w-210px h-68px`}>{logo}</div>
             {welcome && (
               <div
                 className={`${isMobile ? "w-full px-32px" : "w-627px"} mb-60px`}

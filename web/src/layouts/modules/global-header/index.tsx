@@ -45,7 +45,7 @@ const HEADER_PROPS_CONFIG: Record<UnionKey.ThemeLayoutMode, App.Global.HeaderPro
 const GlobalHeader: FC<Props> = memo(({ isMobile, mode, reverse, siderWidth }) => {
   const { showLogo, showMenu, showMenuToggler } = HEADER_PROPS_CONFIG[mode];
 
-  const showToggler = reverse ? true : showMenuToggler;
+  const showToggler = reverse || isMobile ? true : showMenuToggler;
 
   const borderColor = 'var(--ant-color-border)';
 

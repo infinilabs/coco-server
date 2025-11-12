@@ -3,17 +3,20 @@ import { useMemo, useState } from 'react';
 import { getAssistant, searchAssistant } from '@/service/api/assistant';
 import { formatESSearchResult } from '@/service/request/es';
 import { useRequest } from '@sa/hooks';
+import { getLocale } from '@/store/slice/app';
 
 export default props => {
   const { value, onChange, width, className, mode, assistants, excluded = [] } = props;
 
   const { t } = useTranslation();
+  const locale = useAppSelector(getLocale);
 
   const { hasAuth } = useAuth();
 
   const permissions = {
     read: hasAuth('coco#assistant/read'),
-    search: hasAuth('coco#assistant/search')
+    search: hasAuth('coco#assistant/search'),
+    create: hasAuth('coco#assistant/create'),
   };
 
   const {
@@ -128,15 +131,16 @@ export default props => {
         sorterOptions={[{ label: 'Name', key: 'name' }]}
         value={formatValue}
         width={width || '100%'}
-        action={[
+        locale={locale}
+        actions={permissions.create ? [
           <a
             onClick={() => {
-              window.open(`/#/ai-assistant/new`, '_blank');
+              window.open(`#/ai-assistant/new`, '_blank');
             }}
           >
             {t('common.create')}
           </a>
-        ]}
+        ] : []}
         pagination={{
           currentPage: total ? Math.floor(queryParams.from / queryParams.size) + 1 : 0,
           total,
@@ -149,9 +153,9 @@ export default props => {
         }}
         onChange={onChange}
         onSorterChange={setSorter}
-        onRefresh={() => {
+        onRefresh={permissions.search ? () => {
           fetchFilterData(queryParams, sorter, assistants);
-        }}
+        } : undefined}
         onSearchChange={value => {
           setQueryParams(params => ({
             ...params,

@@ -52,7 +52,7 @@ export function Component() {
 
   const [webhookEnabled, setWebhookEnabled] = useState(false)
   const webhookUrl = useMemo(() => {
-    return datasourceID ? `${window.location.origin}/webhooks/${datasourceID}` : ''
+    return datasourceID ? `${window.location.origin}${window.location.pathname}webhooks/${datasourceID}` : ''
   }, [datasourceID])
 
   useEffect(() => {
@@ -121,7 +121,7 @@ export function Component() {
     });
   }, []);
   const copyRef = useRef<HTMLSpanElement | null>(null);
-  const insertDocCmd = `curl -H'X-API-TOKEN: REPLACE_YOUR_API_TOKEN_HERE'  -H 'Content-Type: application/json' -XPOST ${location.origin}/datasource/${datasourceID}/_doc -d'
+  const insertDocCmd = `curl -H'X-API-TOKEN: REPLACE_YOUR_API_TOKEN_HERE'  -H 'Content-Type: application/json' -XPOST ${window.location.origin}${window.location.pathname}datasource/${datasourceID}/_doc -d'
   {
     "title": "I am just a Coco doc that you can search",
     "summary": "Nothing but great start",
