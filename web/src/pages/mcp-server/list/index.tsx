@@ -174,6 +174,7 @@ export function Component() {
       }
     },
     {
+      title: t('page.mcpserver.labels.type'),
       dataIndex: 'type',
       minWidth: 50,
     },
@@ -184,6 +185,7 @@ export function Component() {
       ellipsis: true
     },
     {
+      title: t('page.mcpserver.labels.description'),
       dataIndex: 'description',
       ellipsis: true,
       minWidth: 150,

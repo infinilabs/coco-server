@@ -66,7 +66,7 @@ export function Component() {
         assets_icons: res.data._source?.assets?.icons || {},
         ...(res.data._source?.config || {
           auth_url: "https://accounts.google.com/o/oauth2/auth",
-          redirect_url: location.origin + `/connector/${res.data._source.id}/oauth_redirect`,
+          redirect_url: `${window.location.origin}${window.location.pathname}connector/${res.data._source.id}/oauth_redirect`,
           token_url: "https://oauth2.googleapis.com/token"
         }),
         raw_config: res.data._source?.config ? JSON.stringify(res.data._source?.config,null,4) : undefined

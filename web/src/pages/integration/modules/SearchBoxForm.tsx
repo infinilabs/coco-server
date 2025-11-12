@@ -103,7 +103,7 @@ export const SearchBoxForm = memo(props => {
             className="mb-0px"
             name={['options', 'embedded_icon']}
           >
-            <Input className={itemClassNames} placeholder={`${window.location.origin}/icon.svg`}/>
+            <Input className={itemClassNames} placeholder={`${window.location.origin}${window.location.pathname}icon.svg`}/>
           </Form.Item>
         </Form.Item>
       </>
@@ -129,7 +129,7 @@ export const SearchBoxForm = memo(props => {
             className="mb-0px"
             name={['options', 'floating_icon']}
           >
-            <Input className={itemClassNames}  placeholder={`${window.location.origin}/icon.svg`}/>
+            <Input className={itemClassNames}  placeholder={`${window.location.origin}${window.location.pathname}icon.svg`}/>
           </Form.Item>
         </Form.Item>
       </>

@@ -8,6 +8,7 @@ import DropdownList from '@/common/src/DropdownList';
 import { formatESSearchResult } from '@/service/request/es';
 import { useTranslation } from 'react-i18next';
 import RoleSelect from '@/pages/security/modules/RoleSelect';
+import { getLocale } from '@/store/slice/app';
 
 const { Option } = Select;
 
@@ -21,8 +22,9 @@ interface EditFormProps {
 export const EditForm = memo((props: EditFormProps) => {
   const { actionText, onSubmit, record } = props;
   const { t } = useTranslation();
+  const locale = useAppSelector(getLocale);
+  
   const { endLoading, loading, startLoading } = useLoading();
-
 
   const TYPE_OPTIONS = [
     { key: 'user', label: t('page.auth.labels.user') },
@@ -158,6 +160,7 @@ export const EditForm = memo((props: EditFormProps) => {
             onSearchChange={(query: string) => {
               setPrincipalQueryParams(params => ({ ...params, query, from: 0, type: row.type }));
             }}
+            locale={locale}
           />
         </Form.Item>
         <Form.Item

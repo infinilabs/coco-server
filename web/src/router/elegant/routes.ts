@@ -464,7 +464,8 @@ export const generatedRoutes: GeneratedRoute[] = [
         meta: {
           i18nKey: 'route.role_edit',
           title: 'role_edit',
-          permissions: ['generic#security:role/read', 'generic#security:role/update']
+          permissions: ['generic#security:role/read', 'generic#security:role/update'],
+          activeMenu: 'security'
         }
       },
       {
@@ -474,7 +475,8 @@ export const generatedRoutes: GeneratedRoute[] = [
         meta: {
           i18nKey: 'route.role_new',
           title: 'role_new',
-          permissions: ['generic#security:role/create']
+          permissions: ['generic#security:role/create'],
+          activeMenu: 'security'
         }
       }
     ]
