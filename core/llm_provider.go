@@ -7,7 +7,7 @@ package core
 type ModelProvider struct {
 	CombinedFullText
 
-	Name        string        `json:"name" elastic_mapping:"name:{type:keyword,copy_to:combined_fulltext}"`            // Name of the model provider
+	Name        string        `json:"name" elastic_mapping:"name:{type:keyword,copy_to:combined_fulltext,fields:{text: {type: text}, pinyin: {type: text, analyzer: pinyin_analyzer}}}"`
 	APIKey      string        `json:"api_key" elastic_mapping:"api_key:{type:keyword}"`                                // API key of the model provider
 	APIType     string        `json:"api_type" elastic_mapping:"api_type:{type:keyword}"`                              // API type of the model provider, possible values: openai,gemini, anthropic
 	Icon        string        `json:"icon" elastic_mapping:"icon:{enabled:false}"`                                     // Icon of the model provider

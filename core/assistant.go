@@ -6,7 +6,8 @@ package core
 
 type Assistant struct {
 	CombinedFullText
-	Name           string           `json:"name" elastic_mapping:"name:{type:keyword,copy_to:combined_fulltext}"`
+
+	Name           string           `json:"name" elastic_mapping:"name:{type:keyword,copy_to:combined_fulltext,fields:{text: {type: text}, pinyin: {type: text, analyzer: pinyin_analyzer}}}"`
 	Description    string           `json:"description" elastic_mapping:"description:{type:text,copy_to:combined_fulltext}"`
 	Icon           string           `json:"icon" elastic_mapping:"icon:{enabled:false}"`
 	Type           string           `json:"type" elastic_mapping:"type:{type:keyword}"` // assistant type, default value: "simple", possible values: "simple", "deep_think", "external_workflow"
