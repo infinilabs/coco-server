@@ -13,9 +13,11 @@ import (
 	"infini.sh/coco/plugins/webhooks/gitlab/core"
 	"infini.sh/framework/core/api"
 	"infini.sh/framework/core/config"
+	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/pipeline"
 	"infini.sh/framework/core/queue"
 	"infini.sh/framework/core/util"
+	"net/http"
 	url2 "net/url"
 	"strings"
 	"time"
@@ -38,13 +40,15 @@ type Config struct {
 	MaxBatchSize         int      `json:"max_batch_size" config:"max_batch_size"`
 	IncludeOldFile       bool     `json:"include_old_file" config:"include_old_file"`
 	OnEvents             []string `json:"on_events" config:"on_events"`
+	HttpClient           string   `json:"http_client" config:"http_client"`
 }
 
 type Processor struct {
 	api.Handler
 	Queue *queue.QueueConfig `config:"queue"`
 
-	config *Config
+	config     *Config
+	httpClient *http.Client
 }
 
 const processorName = "gitlab_incoming_message"
@@ -54,11 +58,15 @@ func init() {
 }
 
 func New(c *config.Config) (pipeline.Processor, error) {
-	cfg := Config{PageSize: 10, MaxBatchSize: 10, MaxInputLength: 10 * 1024, OnEvents: []string{"open", "update", "reopen"}}
+	cfg := Config{HttpClient: "default", PageSize: 10, MaxBatchSize: 10, MaxInputLength: 10 * 1024, OnEvents: []string{"open", "update", "reopen"}}
 	if err := c.Unpack(&cfg); err != nil {
 		return nil, fmt.Errorf("failed to unpack the configuration of flow_replay processor: %s", err)
 	}
+
 	runner := Processor{config: &cfg}
+	log.Info("load config:", util.MustToJSON(cfg))
+	log.Info("http config:", util.MustToJSON(global.Env().SystemConfig.HTTPClientConfig))
+	runner.httpClient = api.GetHttpClient(cfg.HttpClient)
 	return &runner, nil
 }
 
@@ -239,7 +247,7 @@ func (processor *Processor) getMRDetail(projectID, mrID int64) (*core.MergeReque
 
 	req1 := util.NewGetRequest(url, nil)
 	req1.AddHeader("PRIVATE-TOKEN", processor.config.Token)
-	res, err := util.ExecuteRequest(req1)
+	res, err := util.ExecuteRequestWithCatchFlag(processor.httpClient, req1, true)
 	if err != nil {
 		return nil, err
 	}
@@ -262,7 +270,7 @@ func (processor *Processor) getMRCommits(projectID, mrID int64) ([]core.MRCommit
 	)
 	req1 := util.NewGetRequest(url, nil)
 	req1.AddHeader("PRIVATE-TOKEN", processor.config.Token)
-	res, err := util.ExecuteRequest(req1)
+	res, err := util.ExecuteRequestWithCatchFlag(processor.httpClient, req1, true)
 	if err != nil {
 		return nil, err
 	}
@@ -288,7 +296,7 @@ func (processor *Processor) getMRDiffs(projectID, mrID int64, pageNo int) ([]cor
 	)
 	req1 := util.NewGetRequest(url, nil)
 	req1.AddHeader("PRIVATE-TOKEN", processor.config.Token)
-	res, err := util.ExecuteRequest(req1)
+	res, err := util.ExecuteRequestWithCatchFlag(processor.httpClient, req1, true)
 	if err != nil {
 		return nil, err
 	}
@@ -312,7 +320,7 @@ func (processor *Processor) getPreviousFile(projectID int64, file string, branch
 	)
 	req1 := util.NewGetRequest(url, nil)
 	req1.AddHeader("PRIVATE-TOKEN", processor.config.Token)
-	res, err := util.ExecuteRequest(req1)
+	res, err := util.ExecuteRequestWithCatchFlag(processor.httpClient, req1, true)
 	if err != nil {
 		return nil, err
 	}
@@ -334,7 +342,6 @@ func (processor *Processor) postReply(projectID, mrID int64, msg string) (*core.
 		processor.config.Endpoint,
 		fmt.Sprintf("/api/v4/projects/%v/merge_requests/%v/notes", projectID, mrID),
 		nil,
-		//map[string]string{"body": util.IntToString(processor.config.PageSize)},
 	)
 
 	bytes := util.MustToJSONBytes(util.MapStr{
@@ -344,7 +351,7 @@ func (processor *Processor) postReply(projectID, mrID int64, msg string) (*core.
 	req1.AddHeader("PRIVATE-TOKEN", processor.config.Token)
 	req1.AddHeader("Content-Type", "application/json")
 
-	res, err := util.ExecuteRequest(req1)
+	res, err := util.ExecuteRequestWithCatchFlag(processor.httpClient, req1, true)
 	if err != nil {
 		return nil, err
 	}

@@ -332,7 +332,7 @@ func GetDatasourceByIntegration(integrationID string) ([]string, bool, error) {
 	return ret, false, nil
 }
 
-func BuildDatasourceFilter(userID string, sharedDatasources []string, queryDatasourceIDs []string, integrationID string, filterDisabled bool) ([]string, []*orm.Clause) {
+func BuildDatasourceFilter(userID string, sharedDatasources []string, queryDatasourceIDs []string, integrationID string, filterDisabled bool) ([]string, []string) {
 
 	//log.Error("userID:", userID, ",queryDatasource:", queryDatasourceIDs, ",integrationID:", integrationID)
 
@@ -387,13 +387,13 @@ func BuildDatasourceFilter(userID string, sharedDatasources []string, queryDatas
 	//	mustClauses = append(mustClauses, datasourceClause)
 	//}
 
-	mustClauses := []*orm.Clause{}
-	if len(finalDatasourceIDs) > 0 {
-		//log.Error("HIT finalDatasourceIDs:", finalDatasourceIDs)
-		//mergedArray := []string{}
-		//mergedArray = append(finalDatasourceIDs, sharedDatasources...)
-		mustClauses = append(mustClauses, orm.TermsQuery("source.id", finalDatasourceIDs))
-	}
+	//mustClauses := []*orm.Clause{}
+	//if len(finalDatasourceIDs) > 0 {
+	//	//log.Error("HIT finalDatasourceIDs:", finalDatasourceIDs)
+	//	//mergedArray := []string{}
+	//	//mergedArray = append(finalDatasourceIDs, sharedDatasources...)
+	//	mustClauses = append(mustClauses, orm.TermsQuery("source.id", finalDatasourceIDs))
+	//}
 
 	//if queryDatasource != "" {
 	//	if strings.Contains(queryDatasource, ",") {
@@ -404,7 +404,7 @@ func BuildDatasourceFilter(userID string, sharedDatasources []string, queryDatas
 	//	}
 	//}
 	if !filterDisabled {
-		return finalDatasourceIDs, mustClauses
+		return finalDatasourceIDs, []string{}
 	}
 
 	disabledIDs, err := common.GetDisabledDatasourceIDs()
@@ -412,10 +412,5 @@ func BuildDatasourceFilter(userID string, sharedDatasources []string, queryDatas
 		panic(err)
 	}
 
-	//TODO verify this filter
-	if len(disabledIDs) > 0 {
-		mustClauses = append(mustClauses, orm.MustNotQuery(orm.TermsQuery("source.id", disabledIDs)))
-	}
-
-	return finalDatasourceIDs, mustClauses
+	return finalDatasourceIDs, disabledIDs
 }

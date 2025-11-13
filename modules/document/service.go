@@ -19,7 +19,7 @@ import (
 
 func QueryDocuments(ctx1 context.Context, userID string, builder *orm.QueryBuilder, query string, datasource, integrationID, category, subcategory, richCategory string) ([]core.Document, *orm.SimpleResult, error) {
 
-	//log.Error("old datasource:", datasource, ",integrationID:", integrationID)
+	log.Trace("old datasource:", datasource, ",integrationID:", integrationID)
 
 	builder.Query(query)
 	builder.DefaultQueryField("title.keyword^100", "title^10", "title.pinyin^4", "combined_fulltext")
@@ -33,20 +33,20 @@ func QueryDocuments(ctx1 context.Context, userID string, builder *orm.QueryBuild
 	if err != nil {
 		panic(err)
 	}
-	//log.Error("rules: ", util.ToJson(rules, true))
+	log.Trace("rules: ", util.ToJson(rules, true))
 	checkingScopeDatasources := []string{}
 	fullAccessSharedDatasources := []string{}
 	for _, rule := range rules {
 		fullAccessSharedDatasources = append(fullAccessSharedDatasources, rule.ResourceID)
 		checkingScopeDatasources = append(checkingScopeDatasources, rule.ResourceID)
 	}
-	//log.Error("fullAccessSharedDatasources: ", fullAccessSharedDatasources)
+	log.Trace("fullAccessSharedDatasources: ", fullAccessSharedDatasources)
 
 	rules, err = sharingService.GetAllCategoryVisibleWithChildrenSharedObjects(userID, "datasource")
 	for _, rule := range rules {
 		checkingScopeDatasources = append(checkingScopeDatasources, rule.ResourceCategoryID)
 	}
-	//log.Error("AGAIN checkingScopeDatasources: ", checkingScopeDatasources)
+	log.Trace("AGAIN checkingScopeDatasources: ", checkingScopeDatasources)
 
 	//var mergedDatasourceIDS []string
 
@@ -61,12 +61,16 @@ func QueryDocuments(ctx1 context.Context, userID string, builder *orm.QueryBuild
 
 	//(user own datasource + shared datasource) intersect query datasource
 	//if datasource != "" && !util.ContainStr(datasource, "*") {
-	mergedDatasourceIDS, datasourceFilter := BuildDatasourceFilter(userID, checkingScopeDatasources, queryDatasourceIDs, integrationID, true)
-	if datasourceFilter != nil {
-		filters = append(filters, datasourceFilter...)
+	mergedDatasourceIDS, disabledIDs := BuildDatasourceFilter(userID, checkingScopeDatasources, queryDatasourceIDs, integrationID, true)
+	//TODO verify this filter
+	if len(disabledIDs) > 0 {
+		filters = append(filters, orm.MustNotQuery(orm.TermsQuery("source.id", disabledIDs)))
+	}
+	if len(checkingScopeDatasources) > 0 {
+		filters = append(filters, orm.MustQuery(orm.TermsQuery("source.id", checkingScopeDatasources)))
 	}
 	//mergedDatasourceIDS = ds1
-	log.Trace("AAA checkingScopeDatasources:", checkingScopeDatasources, "new mergedDatasourceIDS:", mergedDatasourceIDS, ",integrationID:", integrationID)
+	log.Trace("CheckingScopeDatasources:", checkingScopeDatasources, ",new mergedDatasourceIDS:", mergedDatasourceIDS, ",disabledIDs:", disabledIDs, ",integrationID:", integrationID)
 	//}
 
 	//if len(mergedDatasourceIDS) == 0 {
