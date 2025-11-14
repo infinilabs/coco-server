@@ -45,8 +45,6 @@ type RAGContext struct {
 	mcpServers   []string
 	datasource   string
 	category     string
-	username     string
-	userid       string
 	tags         string
 	subcategory  string
 	richCategory string
@@ -120,13 +118,10 @@ func (h APIHandler) getRAGContext(req *http.Request, assistant *core.Assistant) 
 		Size:         h.GetIntOrDefault(req, "size", 10),
 		datasource:   h.GetParameterOrDefault(req, "datasource", ""),
 		category:     h.GetParameterOrDefault(req, "category", ""),
-		username:     h.GetParameterOrDefault(req, "username", ""),
-		userid:       h.GetParameterOrDefault(req, "userid", ""),
 		tags:         h.GetParameterOrDefault(req, "tags", ""),
 		subcategory:  h.GetParameterOrDefault(req, "subcategory", ""),
 		richCategory: h.GetParameterOrDefault(req, "rich_category", ""),
-		//field:        h.GetParameterOrDefault(req, "search_field", "title"),
-		source: h.GetParameterOrDefault(req, "source_fields", "*"),
+		source:       h.GetParameterOrDefault(req, "source_fields", "*"),
 	}
 
 	if v := h.GetParameterOrDefault(req, "mcp_servers", ""); v != "" {
@@ -269,7 +264,6 @@ func processMessageAsync(ctx *orm.Context, userID string, reqMsg *core.ChatMessa
 	params.InputValues["query"] = reqMsg.Message
 
 	// Processing pipeline
-	//log.Error("num of history: ", params.AssistantCfg.ChatSettings.HistoryMessage.Number)
 	if params.AssistantCfg.ChatSettings.HistoryMessage.Number > 0 {
 		history, _ := fetchSessionHistory(ctx, reqMsg, replyMsg, params, params.AssistantCfg.ChatSettings.HistoryMessage.Number, params.InputValues)
 		params.InputValues["history"] = history
@@ -663,35 +657,20 @@ func processInitialDocumentSearch(ctx *orm.Context, userID string, reqMsg, reply
 		}
 	}
 
-	//var query *orm.Query
-	mustClauses := document.BuildMustFilterClauses(params.category, params.subcategory, params.richCategory, params.username, params.userid)
-	datasourceClause := document.BuildDatasourceClause(params.datasource, true)
-	if datasourceClause != nil {
-		mustClauses = append(mustClauses, datasourceClause)
-	}
+	builder := orm.NewQuery()
 
-	//TODO
+	//TODO merge the user defined query to filter
 	if params.AssistantCfg.Datasource.Enabled && params.AssistantCfg.Datasource.Filter != nil {
 		log.Debug(params.AssistantCfg.Datasource.Filter)
-		mustClauses = append(mustClauses, params.AssistantCfg.Datasource.Filter)
 	}
 
-	builder := orm.NewQuery()
-	//var shouldClauses interface{}
 	if params.QueryIntent != nil && len(params.QueryIntent.Query) > 0 {
-
 		builder.Should(orm.TermsQuery("combined_fulltext", params.QueryIntent.Keyword))
-
-		//shouldClauses = document.BuildShouldClauses(params.QueryIntent.Query, params.QueryIntent.Keyword)
+		builder.Should(orm.TermsQuery("combined_fulltext", params.QueryIntent.Query))
 	}
-
-	//from := 0
-	//query = document.BuildTemplatedQuery(from, fechSize, mustClauses, shouldClauses, params.field, reqMsg.Message, params.source, params.tags)
 
 	docs := []core.Document{}
-	//if query != nil {
-	_, err := document.QueryDocuments(ctx.Context, userID, builder, reqMsg.Message, params.datasource, "", "", "", "", &docs)
-	//docs, err := fetchDocuments(query)
+	_, err := document.QueryDocuments(ctx.Context, userID, builder, reqMsg.Message, params.datasource, "", params.category, params.subcategory, params.richCategory, &docs)
 	if err != nil {
 		log.Error(err)
 		return nil, err
@@ -732,8 +711,6 @@ func processInitialDocumentSearch(ctx *orm.Context, userID string, reqMsg, reply
 	}
 	replyMsg.Details = append(replyMsg.Details, core.ProcessingDetails{Order: 20, Type: common.FetchSource, Payload: fetchedDocs})
 	return docs, err
-	//}
-	//return nil, errors.Error("nothing found")
 }
 
 func processPickDocuments(ctx context.Context, reqMsg, replyMsg *core.ChatMessage, params *RAGContext, docs []core.Document, sender core.MessageSender) ([]core.Document, error) {

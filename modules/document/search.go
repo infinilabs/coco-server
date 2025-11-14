@@ -225,53 +225,6 @@ func BuildDatasourceClause(datasource string, filterDisabled bool) interface{} {
 	}
 }
 
-func BuildMustFilterClauses(category string, subcategory string, richCategory string, username string, userid string) []interface{} {
-	mustClauses := []interface{}{}
-
-	// Check and add conditions to mustClauses
-
-	if category != "" {
-		mustClauses = append(mustClauses, map[string]interface{}{
-			"term": map[string]interface{}{
-				"category": category,
-			},
-		})
-	}
-
-	if subcategory != "" {
-		mustClauses = append(mustClauses, map[string]interface{}{
-			"term": map[string]interface{}{
-				"subcategory": subcategory,
-			},
-		})
-	}
-
-	if richCategory != "" {
-		mustClauses = append(mustClauses, map[string]interface{}{
-			"term": map[string]interface{}{
-				"rich_categories.key": richCategory,
-			},
-		})
-	}
-
-	if username != "" {
-		mustClauses = append(mustClauses, map[string]interface{}{
-			"term": map[string]interface{}{
-				"owner.username": username,
-			},
-		})
-	}
-
-	if userid != "" {
-		mustClauses = append(mustClauses, map[string]interface{}{
-			"term": map[string]interface{}{
-				"owner.userid": userid,
-			},
-		})
-	}
-	return mustClauses
-}
-
 func BuildFilters(category string, subcategory string, richCategory string) []*orm.Clause {
 	mustClauses := []*orm.Clause{}
 
