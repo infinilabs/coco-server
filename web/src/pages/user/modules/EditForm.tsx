@@ -60,7 +60,7 @@ export const EditForm = memo((props: EditFormProps) => {
           name="email"
           rules={formRules.email}
         >
-          <Input className={itemClassNames} />
+          <Input className={itemClassNames} disabled={!!record}/>
         </Form.Item>
         {
           record && (
