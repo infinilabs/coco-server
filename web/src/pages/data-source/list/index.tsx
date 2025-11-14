@@ -278,9 +278,7 @@ export function Component() {
     {
       dataIndex: 'updated',
       title: t('page.datasource.labels.updated'),
-      render: (value: number) => {
-        return value ? new Date(value).toISOString() : '';
-      }
+      render: (value: number) => <DateTime value={value} />
     },
     // {
     //   dataIndex: 'sync_status',

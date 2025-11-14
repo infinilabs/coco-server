@@ -1,4 +1,4 @@
-import { Button, Modal } from "antd";
+import { Button } from "antd";
 import { ExclamationCircleOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -179,7 +179,7 @@ export default function OAuthConnect({
         t('page.datasource.missing_config_tip') || 
         `OAuth configuration issues: ${allErrors.join(', ')}`;
 
-      Modal.confirm({
+      window?.$modal?.confirm({
         title: t("common.tip"),
         icon: <ExclamationCircleOutlined />,
         content: errorMessage,

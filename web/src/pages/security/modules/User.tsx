@@ -114,10 +114,7 @@ const User = () => {
     {
       dataIndex: 'created',
       title: t('page.user.labels.created'),
-      render: (value: string) => {
-        const d = dayjs(value);
-        return d.isValid() ? d.format('YYYY-MM-DD HH:mm:ss') : value;
-      }
+      render: (value: string) => <DateTime value={value} />
     },
     {
       fixed: 'right',

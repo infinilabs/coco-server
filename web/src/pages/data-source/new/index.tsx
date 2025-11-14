@@ -31,7 +31,7 @@ import Rdbms from './rdbms';
 import Rss from './rss';
 import S3 from './s3';
 import Yuque from './yuque';
-import OAuthConnect, { OAuthValidationPresets } from '@/components/oauth_connect';
+import OAuthConnect, { OAuthValidationPresets } from '../modules/OauthConnect';
 
 // eslint-disable-next-line complexity
 export function Component() {

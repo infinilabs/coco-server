@@ -92,9 +92,7 @@ export function Component() {
     {
       dataIndex: 'expire_in',
       minWidth: 100,
-      render: (value: number) => {
-        return value ? new Date(value * 1000).toISOString() : '';
-      },
+      render: (value: number) => <DateTime value={value*1000} />,
       title: t('page.apitoken.columns.expire_in')
     },
     {
