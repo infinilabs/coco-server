@@ -55,10 +55,7 @@ const Neo4jForm: React.FC<Neo4jFormProps> = ({ form }) => {
           ? Promise.resolve()
           : Promise.reject(
               new Error(
-                t(
-                  'page.datasource.neo4j.error.incremental_resume_invalid_int',
-                  'Please enter a valid integer value.'
-                )
+                t('page.datasource.neo4j.error.incremental_resume_invalid_int', 'Please enter a valid integer value.')
               )
             );
       }
@@ -68,10 +65,7 @@ const Neo4jForm: React.FC<Neo4jFormProps> = ({ form }) => {
           ? Promise.resolve()
           : Promise.reject(
               new Error(
-                t(
-                  'page.datasource.neo4j.error.incremental_resume_invalid_float',
-                  'Please enter a valid number.'
-                )
+                t('page.datasource.neo4j.error.incremental_resume_invalid_float', 'Please enter a valid number.')
               )
             );
       }
@@ -90,6 +84,7 @@ const Neo4jForm: React.FC<Neo4jFormProps> = ({ form }) => {
   return (
     <>
       <Form.Item
+        initialValue='neo4j://localhost:7687'
         label={t('page.datasource.neo4j.labels.connection_uri', 'Connection URI')}
         name={['config', 'connection_uri']}
         rules={[
@@ -114,7 +109,7 @@ const Neo4jForm: React.FC<Neo4jFormProps> = ({ form }) => {
       >
         <Input
           className={FIELD_WIDTH_CLASS}
-          placeholder="neo4j://localhost:7687"
+          placeholder='neo4j://localhost:7687'
         />
       </Form.Item>
 
@@ -134,7 +129,7 @@ const Neo4jForm: React.FC<Neo4jFormProps> = ({ form }) => {
       >
         <Input
           className={FIELD_WIDTH_CLASS}
-          placeholder="neo4j"
+          placeholder='neo4j'
         />
       </Form.Item>
 
@@ -163,6 +158,7 @@ const Neo4jForm: React.FC<Neo4jFormProps> = ({ form }) => {
       </Form.Item>
 
       <Form.Item
+        initialValue="MATCH (n) WHERE n.type = 'document' RETURN n"
         label={t('page.datasource.neo4j.labels.cypher', 'Cypher Query')}
         name={['config', 'cypher']}
         rules={[
@@ -188,11 +184,11 @@ const Neo4jForm: React.FC<Neo4jFormProps> = ({ form }) => {
             <>
               {fields.map(({ key, name, ...restField }) => (
                 <Space
-                  align="baseline"
+                  wrap
+                  align='baseline'
                   className={FIELD_WIDTH_CLASS}
                   key={key}
                   style={{ display: 'flex', marginBottom: 8, width: '100%' }}
-                  wrap
                 >
                   <Form.Item
                     {...restField}
@@ -229,10 +225,10 @@ const Neo4jForm: React.FC<Neo4jFormProps> = ({ form }) => {
                 </Space>
               ))}
               <Button
-                icon={<PlusCircleOutlined />}
                 className={FIELD_WIDTH_CLASS}
+                icon={<PlusCircleOutlined />}
                 style={{ width: '100%' }}
-                type="dashed"
+                type='dashed'
                 onClick={() => add({ key: '', value: '' })}
               >
                 {t('page.datasource.neo4j.labels.add_parameter', 'Add Parameter')}
@@ -245,7 +241,7 @@ const Neo4jForm: React.FC<Neo4jFormProps> = ({ form }) => {
       <Form.Item
         label={t('page.datasource.rdbms.labels.pagination', 'Enable Pagination')}
         name={['config', 'pagination']}
-        valuePropName="checked"
+        valuePropName='checked'
         tooltip={t(
           'page.datasource.neo4j.tooltip.pagination',
           'Enable if the Cypher query should be paginated. Recommended when the result set is large.'
@@ -253,6 +249,7 @@ const Neo4jForm: React.FC<Neo4jFormProps> = ({ form }) => {
       >
         <Switch />
       </Form.Item>
+
       <Form.Item
         noStyle
         shouldUpdate={(prevValues, currentValues) => prevValues.config?.pagination !== currentValues.config?.pagination}
@@ -291,7 +288,7 @@ const Neo4jForm: React.FC<Neo4jFormProps> = ({ form }) => {
         <Form.Item
           noStyle
           name={['config', 'incremental', 'enabled']}
-          valuePropName="checked"
+          valuePropName='checked'
         >
           <Switch />
         </Form.Item>
@@ -318,11 +315,11 @@ const Neo4jForm: React.FC<Neo4jFormProps> = ({ form }) => {
           >
             <Input
               className={FIELD_WIDTH_CLASS}
-              placeholder="updated"
+              placeholder='updated'
             />
           </Form.Item>
           <Form.Item
-            initialValue="datetime"
+            initialValue='datetime'
             label={t('page.datasource.neo4j.labels.incremental_property_type', 'Watermark Type')}
             name={['config', 'incremental', 'property_type']}
             tooltip={t(
@@ -355,21 +352,21 @@ const Neo4jForm: React.FC<Neo4jFormProps> = ({ form }) => {
           >
             <Input
               className={FIELD_WIDTH_CLASS}
-              placeholder="elementId(n)"
+              placeholder='elementId(n)'
             />
           </Form.Item>
           <Form.Item
             label={t('page.datasource.neo4j.labels.incremental_resume_from', 'Resume From Value')}
             name={['config', 'incremental', 'resume_from']}
+            rules={[{ validator: validateResumeFrom }]}
             tooltip={t(
               'page.datasource.neo4j.tooltip.incremental_resume_from',
               'Optional manual watermark to start from on the first run.'
             )}
-            rules={[{ validator: validateResumeFrom }]}
           >
             <Input
               className={FIELD_WIDTH_CLASS}
-              placeholder="e.g. 2025-01-01T00:00:00Z"
+              placeholder='e.g. 2025-01-01T00:00:00Z'
               style={{ width: '100%' }}
             />
           </Form.Item>
@@ -378,19 +375,20 @@ const Neo4jForm: React.FC<Neo4jFormProps> = ({ form }) => {
 
       <Form.Item label={t('page.datasource.rdbms.labels.data_processing', 'Data Processing')}>
         <Flex
-          align="center"
-          gap="small"
+          align='center'
+          gap='small'
         >
           <span>{t('page.datasource.rdbms.labels.field_mapping', 'Field Mapping')}</span>
           <Form.Item
             noStyle
             name={['config', 'field_mapping', 'enabled']}
-            valuePropName="checked"
+            valuePropName='checked'
           >
             <Switch />
           </Form.Item>
         </Flex>
       </Form.Item>
+
       <Form.Item
         noStyle
         shouldUpdate={(prevValues, currentValues) =>
@@ -401,7 +399,7 @@ const Neo4jForm: React.FC<Neo4jFormProps> = ({ form }) => {
           getFieldValue(['config', 'field_mapping', 'enabled']) ? (
             <Form.Item
               colon={false}
-              label=" "
+              label=' '
             >
               <FieldMapping enabled={getFieldValue(['config', 'field_mapping', 'enabled'])} />
             </Form.Item>
