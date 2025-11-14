@@ -37,9 +37,9 @@ func WebhookHandler(w http.ResponseWriter, req *http.Request, ps httprouter.Para
 			doc.Metadata = map[string]interface{}{}
 			doc.Payload = map[string]interface{}{}
 			doc.Source.ID = datasource.ID
+			doc.Source.Name = datasource.Name
+			doc.Source.Type = "webhook"
 			doc.SetOwnerID(datasource.GetOwnerID())
-
-			//log.Error(util.MustToJSON(datasource.EnrichmentPipeline))
 
 			ctx := pipeline.AcquireContext(*datasource.EnrichmentPipeline)
 			log.Trace("running enrichment pipeline")
