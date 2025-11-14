@@ -253,7 +253,6 @@ func (processor *Processor) getMRDetail(projectID, mrID int64) (*core.MergeReque
 	}
 
 	if res != nil {
-		//log.Error(string(res.Body))
 		detail := core.MergeRequestDetail{}
 		log.Debug(string(res.Body))
 		util.MustFromJSONBytes(res.Body, &detail)
@@ -276,7 +275,6 @@ func (processor *Processor) getMRCommits(projectID, mrID int64) ([]core.MRCommit
 	}
 
 	if res != nil {
-		//log.Error(string(res.Body))
 		commits := []core.MRCommit{}
 		log.Debug(string(res.Body))
 		util.MustFromJSONBytes(res.Body, &commits)
@@ -326,7 +324,6 @@ func (processor *Processor) getPreviousFile(projectID int64, file string, branch
 	}
 
 	if res != nil {
-		//log.Error(string(res.Body))
 		file := core.FileContent{}
 		log.Debug(string(res.Body))
 		util.MustFromJSONBytes(res.Body, &file)

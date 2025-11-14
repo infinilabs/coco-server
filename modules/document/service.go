@@ -11,7 +11,7 @@ import (
 	"infini.sh/framework/core/elastic"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
-	"infini.sh/framework/plugins/enterprise/security/share"
+	"infini.sh/framework/modules/security/share"
 	"strings"
 )
 

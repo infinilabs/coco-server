@@ -294,6 +294,8 @@ web:
     enabled: true
     managed: false #remote managed instance
     authentication:
+      native:
+        enabled: true
       oauth:
         cloud:
           enabled: true
