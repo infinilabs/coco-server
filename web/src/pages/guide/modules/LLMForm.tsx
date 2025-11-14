@@ -106,7 +106,7 @@ const LLMForm = memo(
             name={['llm', 'default_model']}
             rules={[defaultRequiredRule]}
           >
-            <Input />
+            <Input className={inputClassNames} />
           </Form.Item>
           <Form.Item
             className={formItemClassNames}
@@ -126,7 +126,7 @@ const LLMForm = memo(
               name={['llm', 'token']}
               rules={[defaultRequiredRule]}
             >
-              <Input.Password />
+              <Input.Password className={inputClassNames} />
 
               {/* 验证需要新增接口 */}
               {/* <Space.Compact block>
@@ -143,7 +143,7 @@ const LLMForm = memo(
             name={['llm', 'keepalive']}
             rules={[defaultRequiredRule]}
           >
-            <Input />
+            <Input className={inputClassNames} />
           </Form.Item>
 
           <div className='flex justify-between'>

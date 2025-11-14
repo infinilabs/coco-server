@@ -55,7 +55,7 @@ const UserForm = memo(({ form, onSubmit }: { form: FormInstance; onSubmit: () =>
             }
           ]}
         >
-          <Input.Password />
+          <Input.Password className={inputClassNames} />
         </Form.Item>
         <Form.Item
           className={formItemClassNames}
@@ -63,7 +63,7 @@ const UserForm = memo(({ form, onSubmit }: { form: FormInstance; onSubmit: () =>
           name="language"
           initialValue={"zh-CN"}
         >
-          <Select options={[{label:t('common.language.zh'), value:"zh-CN"}, {label: t('common.language.en'), value:"en-US"}]} />
+          <Select className={inputClassNames} options={[{label:t('common.language.zh'), value:"zh-CN"}, {label: t('common.language.en'), value:"en-US"}]} />
         </Form.Item>
         <div className="text-right">
           <Button
