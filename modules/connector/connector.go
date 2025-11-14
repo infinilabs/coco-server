@@ -182,7 +182,7 @@ func (h *APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprou
 
 	var err error
 	//handle url query args, convert to query builder
-	builder, err := orm.NewQueryBuilderFromRequest(req, "name", "combined_fulltext")
+	builder, err := orm.NewQueryBuilderFromRequest(req, "name", "name.pinyin", "combined_fulltext")
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
