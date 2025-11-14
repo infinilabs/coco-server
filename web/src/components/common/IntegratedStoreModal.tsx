@@ -252,16 +252,17 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
     try {
       setInstallation(true);
 
-      const { data } = await request({
+      const res = await request({
         method: 'post',
         url: `/store/server/${id}/_install`
       });
 
-      if (data.acknowledged) {
+      if (res?.data?.acknowledged) {
         message.success(t('page.integratedStoreModal.hints.installSuccess'));
 
         setTimeout(() => {
-          navigate(data.redirect_url);
+          setOpen(false);
+          navigate(res?.data.redirect_url);
         }, 3000);
       }
     } catch (error) {

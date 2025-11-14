@@ -30,11 +30,12 @@ export const init: Init = async currentFullPath => {
   await store.dispatch(setProviderInfo(result.data));
   await store.dispatch(updateRootRouteIfSearch(result.data));
 
+  const setupRequired = Boolean(result.data?.setup_required)
   const isManaged = Boolean(result?.data?.managed)
 
   await store.dispatch(initConstantRoute());
 
-  if (result.data?.setup_required && !isManaged) {
+  if (setupRequired && !isManaged) {
     return {
       name: 'guide'
     };
