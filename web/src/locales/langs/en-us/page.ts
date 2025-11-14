@@ -118,7 +118,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         redirect_url: 'Redirect URI',
         tags: 'Tags',
         token_url: 'Token URI',
-        processor: 'Processor',
+        processor: 'Processor'
       },
       title: 'New Connector',
       tooltip: {
@@ -294,8 +294,8 @@ const page: App.I18n.Schema['translation']['page'] = {
         sync_enabled: 'Sync',
         tags: 'Tags',
         type: 'Type',
-        webhook: "Webhook",
-        enrichment_pipeline: "Enrichment Pipeline"
+        webhook: 'Webhook',
+        enrichment_pipeline: 'Enrichment Pipeline'
       },
       title: '{{connector}} Connection',
       tooltip: {
@@ -407,6 +407,15 @@ const page: App.I18n.Schema['translation']['page'] = {
       name: 'Full Name',
       password: 'Password',
       title: 'Create a user account'
+    },
+    skipModal: {
+      title: 'Skip setup?',
+      hints: {
+        desc: 'If you choose to skip this step, the built-in AI features (e.g., AI assistants) will not be available immediately, as they will be in an unconfigured state without a model.',
+        stepDesc: 'You will need to:',
+        step1: 'Add and manage models in the “LLM Provider” section;',
+        step2: 'Individually configure and select a model for each built-in AI assistant.'
+      }
     }
   },
   home: {
@@ -658,7 +667,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       picking_doc_model: 'Picking Doc Model',
       presence_penalty: 'Presence Penalty',
       presence_penalty_desc: 'the larger the value, the more likely it is to expand to new topics',
-      reasoning: 'Reasoning Mode',
+      reasoning: 'This model supports reasoning mode',
       requestParams: 'Request Params',
       temperature: 'Temperature',
       temperature_desc: 'the larger the value, the more random the response',

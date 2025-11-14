@@ -489,6 +489,15 @@ const page: App.I18n.Schema['translation']['page'] = {
       name: '姓名',
       password: '密码',
       title: '创建一个账户'
+    },
+    skipModal: {
+      title: '确认跳过？',
+      hints: {
+        desc: '如果您选择跳过此步骤，进入系统后内置的 AI 功能（如 AI 助手）将无法立即使用。',
+        stepDesc: '您将需要：',
+        step1: '在 “模型提供商” 中添加并管理模型；',
+        step2: '为每个内置 AI 助手单独选择并配置所需的大模型。'
+      }
     }
   },
   home: {
@@ -717,7 +726,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       picking_doc_model: '文档预选模型',
       presence_penalty: '话题新鲜度',
       presence_penalty_desc: '值越大，越有可能扩展到新话题',
-      reasoning: '推理模式',
+      reasoning: '该模型支持推理模式',
       requestParams: '请求参数',
       temperature: '随机性',
       temperature_desc: '值越大，回复越随机',

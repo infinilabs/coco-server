@@ -1,4 +1,4 @@
-import { Button, Form, Input, Switch } from 'antd';
+import { Button, Form, Input, Modal, Switch } from 'antd';
 import type { FormInstance } from 'antd/lib';
 import { ReactSVG } from 'react-svg';
 
@@ -15,18 +15,25 @@ const LLMForm = memo(
     const { t } = useTranslation();
     const { defaultRequiredRule, formRules } = useFormRules();
     const [type, setType] = useState<ModelType>('deepseek');
+    const [skipModalVisible, setSkipModalVisible] = useState(false);
 
     const ReasoningComp = useMemo(() => {
-      return <Switch key={type} size='small' defaultValue={type==="deepseek"}/>
-    }, [type])
+      return (
+        <Switch
+          defaultValue={type === 'deepseek'}
+          key={type}
+          size='small'
+        />
+      );
+    }, [type]);
 
     return (
       <>
-        <div className="m-b-16px text-32px color-[var(--ant-color-text-heading)]">{t('page.guide.llm.title')}</div>
-        <div className="m-b-64px text-16px color-[var(--ant-color-text)]">{t('page.guide.llm.desc')}</div>
+        <div className='m-b-16px text-32px color-[var(--ant-color-text-heading)]'>{t('page.guide.llm.title')}</div>
+        <div className='m-b-64px text-16px color-[var(--ant-color-text)]'>{t('page.guide.llm.desc')}</div>
         <Form
           form={form}
-          layout="vertical"
+          layout='vertical'
           initialValues={{
             llm: {
               keepalive: '30m',
@@ -44,9 +51,9 @@ const LLMForm = memo(
               options={[
                 {
                   label: (
-                    <span className="deepseek-icon flex items-center">
+                    <span className='deepseek-icon flex items-center'>
                       <ReactSVG
-                        className="m-r-4px"
+                        className='m-r-4px'
                         src={DeepseekSvg}
                       />
                       Deepseek
@@ -56,9 +63,9 @@ const LLMForm = memo(
                 },
                 {
                   label: (
-                    <span className="flex items-center">
+                    <span className='flex items-center'>
                       <ReactSVG
-                        className="m-r-4px"
+                        className='m-r-4px'
                         src={OllamaSvg}
                       />
                       Ollama
@@ -68,9 +75,9 @@ const LLMForm = memo(
                 },
                 {
                   label: (
-                    <span className="flex items-center">
+                    <span className='flex items-center'>
                       <ReactSVG
-                        className="m-r-4px"
+                        className='m-r-4px'
                         src={OpenAISvg}
                       />
                       OpenAI-Compatible
@@ -99,54 +106,88 @@ const LLMForm = memo(
             name={['llm', 'default_model']}
             rules={[defaultRequiredRule]}
           >
-            <Input />
+            <Input className={inputClassNames} />
           </Form.Item>
           <Form.Item
             className={formItemClassNames}
+            colon={false}
             label={t(`page.settings.llm.reasoning`)}
+            layout='horizontal'
             name={['llm', 'reasoning']}
             valuePropName='checked'
           >
             {ReasoningComp}
           </Form.Item>
+
+          {(type === 'openai' || type === 'deepseek') && (
+            <Form.Item
+              className={formItemClassNames}
+              label='Token'
+              name={['llm', 'token']}
+              rules={[defaultRequiredRule]}
+            >
+              <Input.Password className={inputClassNames} />
+
+              {/* 验证需要新增接口 */}
+              {/* <Space.Compact block>
+                <Input.Password />
+
+                <Button type='primary'>验证</Button>
+              </Space.Compact> */}
+            </Form.Item>
+          )}
+
           <Form.Item
             className={formItemClassNames}
             label={t(`page.settings.llm.keepalive`)}
             name={['llm', 'keepalive']}
             rules={[defaultRequiredRule]}
           >
-            <Input />
+            <Input className={inputClassNames} />
           </Form.Item>
-          {(type === 'openai' || type === 'deepseek') && (
-            <Form.Item
-              className={formItemClassNames}
-              label="Token"
-              name={['llm', 'token']}
-              rules={[defaultRequiredRule]}
-            >
-              <Input.Password />
-            </Form.Item>
-          )}
-          <div className="flex justify-between">
+
+          <div className='flex justify-between'>
             <Button
-              className="h-56px px-0 text-14px"
-              size="large"
-              type="link"
-              onClick={() => onSubmit(true)}
+              className='h-56px px-0 text-14px'
+              size='large'
+              type='link'
+              onClick={() => setSkipModalVisible(true)}
             >
               {t('page.guide.setupLater')}
             </Button>
+
             <Button
-              className="h-56px w-56px text-24px"
+              className='h-56px w-56px text-24px'
               loading={loading}
-              size="large"
-              type="primary"
+              size='large'
+              type='primary'
               onClick={() => onSubmit()}
             >
-              <SvgIcon icon="mdi:check" />
+              <SvgIcon icon='mdi:check' />
             </Button>
           </div>
         </Form>
+
+        <Modal
+          centered
+          open={skipModalVisible}
+          title={t('page.guide.skipModal.title')}
+          onCancel={() => {
+            setSkipModalVisible(false);
+          }}
+          onOk={() => {
+            onSubmit(true);
+          }}
+        >
+          <p>{t('page.guide.skipModal.hints.desc')}</p>
+
+          <p className='my-2'>{t('page.guide.skipModal.hints.stepDesc')}</p>
+
+          <ul className='list-disc pl-6'>
+            <li>{t('page.guide.skipModal.hints.step1')}</li>
+            <li>{t('page.guide.skipModal.hints.step2')}</li>
+          </ul>
+        </Modal>
       </>
     );
   }

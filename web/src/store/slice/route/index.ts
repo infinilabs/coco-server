@@ -172,10 +172,11 @@ const handleConstantOrAuthRoutes =
 
 export const initConstantRoute = (filterPaths: string[] = []): AppThunk => async (dispatch, getState) => {
   const providerInfo = getProviderInfo(getState()) || {}
+  const setupRequired = Boolean(providerInfo?.setup_required)
   const isManaged = Boolean(providerInfo?.managed)
   const searchEnabled = Boolean(providerInfo?.search_settings?.enabled)
   const filterPaths: string[] = []
-  if (isManaged) {
+  if (!setupRequired || isManaged) {
     filterPaths.push('/guide')
   }
   if (!searchEnabled) {
