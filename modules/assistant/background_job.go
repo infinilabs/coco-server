@@ -688,8 +688,9 @@ func processInitialDocumentSearch(ctx *orm.Context, userID string, reqMsg, reply
 	//from := 0
 	//query = document.BuildTemplatedQuery(from, fechSize, mustClauses, shouldClauses, params.field, reqMsg.Message, params.source, params.tags)
 
+	docs := []core.Document{}
 	//if query != nil {
-	docs, _, err := document.QueryDocuments(ctx.Context, userID, builder, reqMsg.Message, params.datasource, "", "", "", "")
+	_, err := document.QueryDocuments(ctx.Context, userID, builder, reqMsg.Message, params.datasource, "", "", "", "", &docs)
 	//docs, err := fetchDocuments(query)
 	if err != nil {
 		log.Error(err)

@@ -10,14 +10,13 @@ import (
 	"infini.sh/coco/core"
 	"infini.sh/framework/core/elastic"
 	"infini.sh/framework/core/orm"
-	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
 	orm2 "infini.sh/framework/plugins/enterprise/security/orm"
 	"infini.sh/framework/plugins/enterprise/security/share"
 	"strings"
 )
 
-func QueryDocuments(ctx1 context.Context, userID string, builder *orm.QueryBuilder, query string, datasource, integrationID, category, subcategory, richCategory string) ([]core.Document, *orm.SimpleResult, error) {
+func QueryDocuments(ctx1 context.Context, userID string, builder *orm.QueryBuilder, query string, datasource, integrationID, category, subcategory, richCategory string, outputDocs *[]core.Document) (*orm.SimpleResult, error) {
 
 	log.Trace("old datasource:", datasource, ",integrationID:", integrationID)
 
@@ -35,12 +34,12 @@ func QueryDocuments(ctx1 context.Context, userID string, builder *orm.QueryBuild
 	}
 	log.Trace("rules: ", util.ToJson(rules, true))
 	checkingScopeDatasources := []string{}
-	fullAccessSharedDatasources := []string{}
+	//fullAccessSharedDatasources := []string{}
 	for _, rule := range rules {
-		fullAccessSharedDatasources = append(fullAccessSharedDatasources, rule.ResourceID)
+		//fullAccessSharedDatasources = append(fullAccessSharedDatasources, rule.ResourceID)
 		checkingScopeDatasources = append(checkingScopeDatasources, rule.ResourceID)
 	}
-	log.Trace("fullAccessSharedDatasources: ", fullAccessSharedDatasources)
+	//log.Trace("fullAccessSharedDatasources: ", fullAccessSharedDatasources)
 
 	rules, err = sharingService.GetAllCategoryVisibleWithChildrenSharedObjects(userID, "datasource")
 	for _, rule := range rules {
@@ -48,7 +47,7 @@ func QueryDocuments(ctx1 context.Context, userID string, builder *orm.QueryBuild
 	}
 	log.Trace("AGAIN checkingScopeDatasources: ", checkingScopeDatasources)
 
-	//var mergedDatasourceIDS []string
+	//var mergedFullAccessDatasourceIDS []string
 
 	//get all directly assigned rules assign to document level
 	queryDatasourceIDs := []string{}
@@ -61,28 +60,39 @@ func QueryDocuments(ctx1 context.Context, userID string, builder *orm.QueryBuild
 
 	//(user own datasource + shared datasource) intersect query datasource
 	//if datasource != "" && !util.ContainStr(datasource, "*") {
-	mergedDatasourceIDS, disabledIDs := BuildDatasourceFilter(userID, checkingScopeDatasources, queryDatasourceIDs, integrationID, true)
+	mergedFullAccessDatasourceIDS, disabledIDs := BuildDatasourceFilter(userID, checkingScopeDatasources, queryDatasourceIDs, integrationID, true)
 	//TODO verify this filter
 	if len(disabledIDs) > 0 {
 		filters = append(filters, orm.MustNotQuery(orm.TermsQuery("source.id", disabledIDs)))
 	}
+
+	//mergedFullAccessDatasourceIDS = ds1
+	log.Trace("CheckingScopeDatasources:", checkingScopeDatasources, ",new mergedFullAccessDatasourceIDS:", mergedFullAccessDatasourceIDS, ",disabledIDs:", disabledIDs, ",integrationID:", integrationID)
+	//}
+
+	//if len(mergedFullAccessDatasourceIDS) == 0 {
+	//	panic("no datasources allow to access")
+	//}
+
+	shouldClauses := []*orm.Clause{}
+
+	log.Trace("queryDatasourceIDs:", queryDatasourceIDs)
+
+	log.Trace("mergedFullAccessDatasourceIDS: ", mergedFullAccessDatasourceIDS)
+	if len(mergedFullAccessDatasourceIDS) > 0 {
+		//make sure checking scope include user's own datasource ids
+		checkingScopeDatasources = append(checkingScopeDatasources, mergedFullAccessDatasourceIDS...)
+		shouldClauses = append(shouldClauses, orm.TermsQuery("source.id", mergedFullAccessDatasourceIDS)) //shared with user
+	}
+
 	if len(checkingScopeDatasources) > 0 {
 		filters = append(filters, orm.MustQuery(orm.TermsQuery("source.id", checkingScopeDatasources)))
 	}
-	//mergedDatasourceIDS = ds1
-	log.Trace("CheckingScopeDatasources:", checkingScopeDatasources, ",new mergedDatasourceIDS:", mergedDatasourceIDS, ",disabledIDs:", disabledIDs, ",integrationID:", integrationID)
-	//}
-
-	//if len(mergedDatasourceIDS) == 0 {
-	//	panic("no datasources allow to access")
-	//}
 
 	//filter enabled doc
 	filters = append(filters, orm.BoolQuery(orm.Should, orm.TermQuery("disabled", false), orm.MustNotQuery(orm.ExistsQuery("disabled"))).Parameter("minimum_should_match", 1))
 
 	builder.Filter(filters...)
-
-	log.Trace("queryDatasourceIDs:", queryDatasourceIDs)
 
 	rules, err = sharingService.GetDirectResourceRulesByResourceCategoryAndUserID(userID, "document", "datasource", checkingScopeDatasources, share.None)
 	if err != nil {
@@ -99,12 +109,7 @@ func QueryDocuments(ctx1 context.Context, userID string, builder *orm.QueryBuild
 		}
 	}
 
-	shouldClauses := []*orm.Clause{}
 	shouldClauses = append(shouldClauses, orm.TermQuery(orm2.SystemOwnerQueryField, userID)) //user is the owner
-
-	if len(fullAccessSharedDatasources) > 0 {
-		shouldClauses = append(shouldClauses, orm.TermsQuery("source.id", fullAccessSharedDatasources)) //shared with user
-	}
 
 	if len(allowdDocs) > 0 {
 		shouldClauses = append(shouldClauses, orm.TermsQuery("id", allowdDocs)) //direct shared with user
@@ -132,41 +137,40 @@ func QueryDocuments(ctx1 context.Context, userID string, builder *orm.QueryBuild
 
 	log.Trace(builder.ToString())
 
-	docs := []core.Document{}
-	err, resp := elastic.SearchV2WithResultItemMapper(ctx, &docs, builder, nil)
+	err, resp := elastic.SearchV2WithResultItemMapper(ctx, outputDocs, builder, nil)
 	if err != nil || resp == nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	return docs, resp, nil
+	return resp, nil
 }
 
-func QueryDocumentsAndFilter(ctx1 context.Context, user *security.UserSessionInfo, builder *orm.QueryBuilder, integrationID string, query string, datasource, category, subcategory, richCategory string) ([]elastic.DocumentWithMeta[core.Document], *orm.SimpleResult, error) {
-	docs, resp, err := QueryDocuments(ctx1, user.MustGetUserID(), builder, query, datasource, integrationID, category, subcategory, richCategory)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	////bypass admin
-	//if !util.AnyInArrayEquals(user.Roles, security.RoleAdmin) {
-	//	docs, err = SecondStageFilter(ctx1, user.MustGetUserID(), query, docs)
-	//	if err != nil {
-	//		return nil, nil, err
-	//	}
-	//}
-
-	var final []elastic.DocumentWithMeta[core.Document]
-	for _, v := range docs {
-		doc := elastic.DocumentWithMeta[core.Document]{
-			ID:     v.ID,
-			Source: v,
-		}
-		RefineIcon(ctx1, &v)
-		final = append(final, doc)
-	}
-
-	return final, resp, nil
-}
+//func QueryDocumentsAndFilter(ctx1 context.Context, user *security.UserSessionInfo, builder *orm.QueryBuilder, integrationID string, query string, datasource, category, subcategory, richCategory string) ([]elastic.DocumentWithMeta[core.Document], *orm.SimpleResult, error) {
+//	resp, err := QueryDocuments(ctx1, user.MustGetUserID(), builder, query, datasource, integrationID, category, subcategory, richCategory, outputDocs)
+//	if err != nil {
+//		return nil, nil, err
+//	}
+//
+//	////bypass admin
+//	//if !util.AnyInArrayEquals(user.Roles, security.RoleAdmin) {
+//	//	docs, err = SecondStageFilter(ctx1, user.MustGetUserID(), query, docs)
+//	//	if err != nil {
+//	//		return nil, nil, err
+//	//	}
+//	//}
+//
+//	var final []elastic.DocumentWithMeta[core.Document]
+//	for _, v := range docs {
+//		doc := elastic.DocumentWithMeta[core.Document]{
+//			ID:     v.ID,
+//			Source: v,
+//		}
+//		RefineIcon(ctx1, &v)
+//		final = append(final, doc)
+//	}
+//
+//	return final, resp, nil
+//}
 
 func SecondStageFilter(ctx1 context.Context, userID string, query string, docs []core.Document) ([]core.Document, error) {
 	//double check the document permission

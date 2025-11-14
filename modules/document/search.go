@@ -7,6 +7,7 @@ package document
 import (
 	"context"
 	"fmt"
+	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/modules/connector"
@@ -42,14 +43,24 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		builder.EnableBodyBytes()
 
 		reqUser := security.MustGetUserFromRequest(req)
-		//userID := reqUser.MustGetUserID()
 		integrationID := req.Header.Get(core.HeaderIntegrationID)
-		//log.Error("integrationID:", integrationID)
 
-		docs1, resp, err := QueryDocumentsAndFilter(req.Context(), reqUser, builder, integrationID, query, datasource, category, subcategory, richCategory)
-		//log.Error(docs1, total, err)
+		result := elastic.SearchResponseWithMeta[core.Document]{}
+		resp, err := QueryDocuments(req.Context(), reqUser.MustGetUserID(), builder, query, datasource, integrationID, category, subcategory, richCategory, nil)
 		if err != nil {
 			panic(err)
+		}
+		util.MustFromJSONBytes(resp.Raw, &result)
+
+		docsSize := len(result.Hits.Hits)
+		//update icon
+		if docsSize > 0 {
+			if common.AppConfig().ServerInfo.EncodeIconToBase64 {
+				for i, hit := range result.Hits.Hits {
+					RefineIcon(req.Context(), &hit.Source)
+					result.Hits.Hits[i] = hit
+				}
+			}
 		}
 
 		size := h.GetIntOrDefault(req, "size", 10)
@@ -59,13 +70,14 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		//not for widget integration
 		if integrationID == "" && ((reqUser.Roles != nil && util.AnyInArrayEquals(reqUser.Roles, security.RoleAdmin)) || reqUser.UserAssignedPermission.ValidateFor(perID)) {
 			assistantSize := 2
-			if len(docs1) < 5 {
-				assistantSize = size - (len(docs1))
+			if docsSize < 5 {
+				assistantSize = size - (docsSize)
 			}
 
 			assistants := searchAssistant(req, query, assistantSize)
 			if len(assistants) > 0 {
-				for _, assistant := range assistants {
+				newHits := make([]elastic.DocumentWithMeta[core.Document], 0, len(assistants))
+				for i, assistant := range assistants {
 					doc := core.Document{}
 					doc.ID = assistant.ID
 					doc.Type = "AI Assistant"
@@ -83,25 +95,18 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 						ID:     assistant.ID,
 						Index:  "assistant",
 						Source: doc,
+						Score:  result.Hits.MaxScore + float32(size-i),
 					}
-					docs1 = append(docs1, newHit)
+					//log.Error("new score:",newHit.Score,",",result.Hits.MaxScore)
+					newHits = append(newHits, newHit)
 				}
+				result.Hits.Hits = append(newHits, result.Hits.Hits...)
 			}
-		}
-
-		result := elastic.SearchResponseWithMeta[core.Document]{}
-		util.FromJSONBytes(resp.Raw, &result)
-
-		result.Hits.Hits = docs1
-		result.Hits.Total = util.MapStr{
-			"value":    resp.Total,
-			"relation": "eq",
 		}
 
 		api.WriteJSON(w, result, 200)
 	} else {
-		h.WriteJSON(w, elastic.SearchResponse{}, http.StatusOK)
-		//api.WriteError(w,"query is empty",400)
+		h.WriteJSON(w, elastic.SearchResponse{Hits: elastic.Hits{Total: elastic.TotalHits{Value: 0, Relation: "eq"}}}, http.StatusOK)
 	}
 }
 
@@ -150,13 +155,14 @@ func searchAssistant(req *http.Request, query string, size int) []core.Assistant
 	}
 
 	//handle url query args, convert to query builder
-	builder, err := orm.NewQueryBuilderFromRequest(req, "name", "combined_fulltext")
+	builder, err := orm.NewQueryBuilderFromRequest(req, "name^10", "name.pinyin^5", "combined_fulltext^1")
 	if err != nil {
 		return docs
 	}
 	builder.Query(query)
 	builder.Must(orm.TermQuery("enabled", true))
 	builder.Size(size)
+	builder.Fuzziness(3)
 
 	ctx := orm.NewContextWithParent(req.Context())
 	orm.WithModel(ctx, &core.Assistant{})
@@ -168,28 +174,6 @@ func searchAssistant(req *http.Request, query string, size int) []core.Assistant
 	}
 
 	return docs
-}
-
-func BuildTemplatedQuery(from int, size int, mustClauses []interface{}, shouldClauses interface{}, field string, query string, source string, tags string) *orm.Query {
-	templatedQuery := orm.TemplatedQuery{}
-	templatedQuery.TemplateID = "coco-query-string"
-	if shouldClauses != nil {
-		templatedQuery.TemplateID = "coco-query-string-extra-should"
-	}
-
-	templatedQuery.Parameters = util.MapStr{
-		"from":                 from,
-		"size":                 size,
-		"must_clauses":         mustClauses,
-		"extra_should_clauses": shouldClauses,
-		"field":                field,
-		"query":                query,
-		"source":               strings.Split(source, ","),
-		"tags":                 strings.Split(tags, ","),
-	}
-	q := orm.Query{}
-	q.TemplatedQuery = &templatedQuery
-	return &q
 }
 
 func BuildDatasourceClause(datasource string, filterDisabled bool) interface{} {
@@ -332,9 +316,9 @@ func GetDatasourceByIntegration(integrationID string) ([]string, bool, error) {
 	return ret, false, nil
 }
 
-func BuildDatasourceFilter(userID string, sharedDatasources []string, queryDatasourceIDs []string, integrationID string, filterDisabled bool) ([]string, []string) {
+func BuildDatasourceFilter(userID string, fullAccessDatasourceWithoutChecking []string, queryDatasourceIDs []string, integrationID string, filterDisabled bool) ([]string, []string) {
 
-	//log.Error("userID:", userID, ",queryDatasource:", queryDatasourceIDs, ",integrationID:", integrationID)
+	log.Trace("userID:", userID, ",queryDatasource:", queryDatasourceIDs, ",integrationID:", integrationID)
 
 	finalDatasourceIDs := []string{}
 	if integrationID != "" {
@@ -349,60 +333,24 @@ func BuildDatasourceFilter(userID string, sharedDatasources []string, queryDatas
 				// return empty search result when no queryDatasource found
 				panic("integration datasource is empty")
 			}
-			// update queryDatasource filter
-			//if queryDatasource == "" {
-			//	queryDatasource = strings.Join(datasourceIDs, ",")
-			//} else {
-			// calc intersection with queryDatasource and datasourceIDs
-			//queryDatasource = util.StringArrayIntersection(queryDatasourceIDs, datasourceIDs)
-			//if len(queryDatasource) == 0 {
-			//	// return empty search result when intersection queryDatasource ids is empty
-			//	panic("queryDatasource is empty")
-			//}
-			//finalDatasourceIDs = queryDatasource
-			//queryDatasource = strings.Join(queryDatasource, ",")
-			//}
 		} else {
 			//user is select all queryDatasource
 			finalDatasourceIDs = common.GetUsersOwnDatasource(userID)
+			log.Trace("get user's own ID via all query:", finalDatasourceIDs)
 		}
 	} else {
-		//if queryDatasource == "" || util.ContainStr(queryDatasource, "*") {
 		//user is select all queryDatasource
 		finalDatasourceIDs = common.GetUsersOwnDatasource(userID)
-		//} else {
-		//	queryDatasource := strings.Split(queryDatasource, ",")
-		//	finalDatasourceIDs = queryDatasource
-		//}
+		log.Trace("get user's own ID:", finalDatasourceIDs)
 	}
 
-	if len(queryDatasourceIDs) > 0 {
+	finalDatasourceIDs = append(finalDatasourceIDs, fullAccessDatasourceWithoutChecking...)
+
+	if len(queryDatasourceIDs) > 0 && !util.ContainsAnyInArray("*", queryDatasourceIDs) {
 		//only merge if the query are specify datasources
-		finalDatasourceIDs = append(finalDatasourceIDs, sharedDatasources...)
 		finalDatasourceIDs = util.StringArrayIntersection(queryDatasourceIDs, finalDatasourceIDs)
 	}
 
-	//datasourceClause := BuildDatasourceClause(queryDatasource, true)
-	//if datasourceClause != nil {
-	//	mustClauses = append(mustClauses, datasourceClause)
-	//}
-
-	//mustClauses := []*orm.Clause{}
-	//if len(finalDatasourceIDs) > 0 {
-	//	//log.Error("HIT finalDatasourceIDs:", finalDatasourceIDs)
-	//	//mergedArray := []string{}
-	//	//mergedArray = append(finalDatasourceIDs, sharedDatasources...)
-	//	mustClauses = append(mustClauses, orm.TermsQuery("source.id", finalDatasourceIDs))
-	//}
-
-	//if queryDatasource != "" {
-	//	if strings.Contains(queryDatasource, ",") {
-	//		arr := strings.Split(queryDatasource, ",")
-	//		mustClauses = append(mustClauses, orm.TermsQuery("source.id", arr))
-	//	} else {
-	//		mustClauses = append(mustClauses, orm.TermQuery("source.id", queryDatasource))
-	//	}
-	//}
 	if !filterDisabled {
 		return finalDatasourceIDs, []string{}
 	}
