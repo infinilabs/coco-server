@@ -4,6 +4,7 @@ import { fetchSettings, updateSettings } from '@/service/api/server';
 import { useLoading, useRequest } from '@sa/hooks';
 import IntegrationSelect from '@/pages/integration/modules/IntegrationSelect';
 import { getProviderInfo, setProviderInfo, updateRootRouteIfSearch } from '@/store/slice/server';
+import { initConstantRoute } from '@/store/slice/route';
 
 const SearchSettings = memo(() => {
   const [form] = Form.useForm();
@@ -50,6 +51,7 @@ const SearchSettings = memo(() => {
       }
       dispatch(setProviderInfo(newProviderInfo));
       dispatch(updateRootRouteIfSearch(newProviderInfo));
+      dispatch(initConstantRoute());
       window.$message?.success(t('common.updateSuccess'));
     }
     endLoading();

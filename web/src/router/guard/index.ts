@@ -32,19 +32,7 @@ export const init: Init = async currentFullPath => {
 
   const isManaged = Boolean(result?.data?.managed)
 
-  const searchEnabled = Boolean(result?.data?.search_settings?.enabled)
-
-  const filterPaths = []
-
-  if (isManaged) {
-    filterPaths.push('/guide')
-  }
-
-  if (!searchEnabled) {
-    filterPaths.push('/search')
-  }
-
-  await store.dispatch(initConstantRoute(filterPaths));
+  await store.dispatch(initConstantRoute());
 
   if (result.data?.setup_required && !isManaged) {
     return {

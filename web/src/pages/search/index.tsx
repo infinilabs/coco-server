@@ -4,6 +4,7 @@ import { Spin } from 'antd';
 import { generateRandomString } from '@/utils/common';
 import UserAvatar from '@/layouts/modules/global-header/components/UserAvatar';
 import { localStg } from '@/utils/storage';
+import { getApiBaseUrl } from '@/service/request';
 
 const uuid = `integration-${generateRandomString(8)}`
 
@@ -20,7 +21,7 @@ export function Component() {
     if (search_settings?.integration && search_settings.enabled && containerRef.current && isFirstRef.current) {
       isFirstRef.current = false
       startLoading();
-      import(/* @vite-ignore */ `${window.location.origin}${window.location.pathname}integration/${search_settings?.integration}/widget`)
+      import(/* @vite-ignore */ `${getApiBaseUrl()}integration/${search_settings?.integration}/widget`)
         .then(module => {
           module?.fullscreen && module.fullscreen({ container: `#${uuid}`, rightMenuWidth: 72 });
           endLoading();

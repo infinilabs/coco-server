@@ -285,7 +285,7 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
     return (
       <Card
         className={classNames('group text-xs text-color-3', {
-          'hover:(border-primary bg-primary-50)': !fromClipboard,
+          'hover:(border-primary bg-primary-50) dark:hover:bg-primary-900': !fromClipboard,
           'mt-2 h-50 [&_.ant-card-body]:h-full': fromClipboard
         })}
       >
