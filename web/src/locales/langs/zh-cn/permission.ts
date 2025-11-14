@@ -80,6 +80,7 @@ const permission = {
   // 🛒 扩展商店
   'store:extensions': '扩展商店',
   'coco#store:extensions/create': '创建扩展',
+  'coco#store:extensions/install': '安装扩展',
   'coco#store:extensions/read': '读取扩展',
   'coco#store:extensions/update': '更新扩展',
   'coco#store:extensions/delete': '删除扩展',

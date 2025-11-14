@@ -36,3 +36,5 @@ const FeatureFingerprintThrottle = "fingerprint_throttle"
 
 const DefaultSimpleAuthBackend = "default_simple_auth_backend"
 const DefaultSimpleAuthUserLogin = "coco-default-user"
+
+const SystemOwnerQueryField = "_system.owner_id"

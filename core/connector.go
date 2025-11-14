@@ -7,7 +7,7 @@ package core
 // registered connectors
 type Connector struct {
 	CombinedFullText
-	Name        string   `json:"name,omitempty" elastic_mapping:"name:{type:keyword,copy_to:combined_fulltext}"`            // Source of the document (e.g., "github", "google_drive", "dropbox")
+	Name        string   `json:"name" elastic_mapping:"name:{type:keyword,copy_to:combined_fulltext,fields:{text: {type: text}, pinyin: {type: text, analyzer: pinyin_analyzer}}}"`
 	Description string   `json:"description,omitempty" elastic_mapping:"description:{type:text,copy_to:combined_fulltext}"` // Source of the document (e.g., "github", "google_drive", "dropbox")
 	Category    string   `json:"category,omitempty" elastic_mapping:"category:{type:keyword,copy_to:combined_fulltext}"`    // Primary category of the document (e.g., "report", "article")
 	Icon        string   `json:"icon,omitempty" elastic_mapping:"icon:{enabled:false}"`                                     // Thumbnail image URL, for preview purposes

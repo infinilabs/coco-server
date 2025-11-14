@@ -80,6 +80,7 @@ const permission = {
   // 🛒 Store Extensions
   'store:extensions': 'Store Extensions',
   'coco#store:extensions/create': 'Create Extension',
+  'coco#store:extensions/install': 'Install Extension',
   'coco#store:extensions/read': 'Read Extension',
   'coco#store:extensions/update': 'Update Extension',
   'coco#store:extensions/delete': 'Delete Extension',

@@ -50,6 +50,7 @@ elastic:
     enabled: true
     index_prefix: "coco_"
     override_exists_template: true
+    override_exists_mapping: true
     index_templates:
       "coco-search": |
         {
@@ -269,7 +270,7 @@ api:
     binding: $[[env.API_BINDING]]
 
 web:
-  base_path: "/coco"
+#  base_path: "/coco"
   enabled: true
   embedding_api: false
   network:

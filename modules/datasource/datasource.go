@@ -197,7 +197,7 @@ func GetDatasourceByID(id []string) ([]core.DataSource, error) {
 
 func (h *APIHandler) searchDatasource(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	//handle url query args, convert to query builder
-	builder, err := orm.NewQueryBuilderFromRequest(req, "name", "combined_fulltext")
+	builder, err := orm.NewQueryBuilderFromRequest(req, "name", "name.pinyin", "combined_fulltext")
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return

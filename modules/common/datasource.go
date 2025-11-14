@@ -10,7 +10,6 @@ import (
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
-	orm2 "infini.sh/framework/plugins/enterprise/security/orm"
 	"time"
 )
 
@@ -160,7 +159,7 @@ func GetUsersOwnDatasource(userID string) []string {
 	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.DataSource{})
 	builder := orm.NewQuery()
-	builder.Must(orm.TermQuery(orm2.SystemOwnerQueryField, userID))
+	builder.Must(orm.TermQuery(core.SystemOwnerQueryField, userID))
 	builder.Size(1000)
 
 	docs := []core.DataSource{}

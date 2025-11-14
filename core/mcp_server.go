@@ -6,7 +6,7 @@ package core
 
 type MCPServer struct {
 	CombinedFullText
-	Name        string   `json:"name" elastic_mapping:"name:{type:keyword,copy_to:combined_fulltext}"`
+	Name        string   `json:"name" elastic_mapping:"name:{type:keyword,copy_to:combined_fulltext,fields:{text: {type: text}, pinyin: {type: text, analyzer: pinyin_analyzer}}}"`
 	Description string   `json:"description,omitempty" elastic_mapping:"description:{type:text,copy_to:combined_fulltext}"`
 	Icon        string   `json:"icon,omitempty" elastic_mapping:"icon:{enabled:false}"`                // Display name of this datasource
 	Type        string   `json:"type" elastic_mapping:"type:{type:keyword,copy_to:combined_fulltext}"` // possible values: "sse", "stdio", "streamable_http"
