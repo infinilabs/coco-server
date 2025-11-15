@@ -168,9 +168,6 @@ func (h *APIHandler) searchDocs(w http.ResponseWriter, req *http.Request, ps htt
 		}
 		if len(array) > 0 {
 			pathStr = common.GetFullPathForCategories(array)
-			//builder.Filter(orm.TermQuery("_system.parent_path", pathStr))
-			//log.Trace("adding path hierarchy filter: ", pathStr)
-			//ctx.Set(orm.SharingResourceParentPath, pathStr)
 		}
 	}
 

@@ -16,7 +16,6 @@ import (
 func (h APIHandler) suggest(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
 	var (
-		//context = h.GetParameterOrDefault(req, "context", "")
 		query  = h.GetParameterOrDefault(req, "query", "")
 		from   = h.GetIntOrDefault(req, "from", 0)
 		size   = h.GetIntOrDefault(req, "size", 10)

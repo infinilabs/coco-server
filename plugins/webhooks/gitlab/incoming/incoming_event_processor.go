@@ -87,20 +87,20 @@ func (processor *Processor) Process(ctx *pipeline.Context) error {
 		if ok {
 			switch event.ObjectAttributes.Action {
 			case "open":
-				doc.Title = fmt.Sprintf("[%v] 创建了 MR: %v", event.User.Name, event.ObjectAttributes.Title)
+				doc.Title = fmt.Sprintf("[%v] Created MR: %v", event.User.Name, event.ObjectAttributes.Title)
 				break
 			case "update":
-				doc.Title = fmt.Sprintf("[%v] 更新了 MR: %v", event.User.Name, event.ObjectAttributes.Title)
+				doc.Title = fmt.Sprintf("[%v] Updated MR: %v", event.User.Name, event.ObjectAttributes.Title)
 				break
 			case "close":
-				doc.Title = fmt.Sprintf("[%v] 关闭了 MR: %v", event.User.Name, event.ObjectAttributes.Title)
+				doc.Title = fmt.Sprintf("[%v] Closed MR: %v", event.User.Name, event.ObjectAttributes.Title)
 				break
 			case "reopen":
-				doc.Title = fmt.Sprintf("[%v] 重新打开了 MR: %v", event.User.Name, event.ObjectAttributes.Title)
+				doc.Title = fmt.Sprintf("[%v] Reopened MR: %v", event.User.Name, event.ObjectAttributes.Title)
 				break
 			default:
 				//save to store
-				doc.Title = fmt.Sprintf("[%v] [%v] on MR: %v", event.User.Name, event.ObjectAttributes.Action, event.ObjectAttributes.Title)
+				doc.Title = fmt.Sprintf("[%v] Perform [%v] on MR: %v", event.User.Name, event.ObjectAttributes.Action, event.ObjectAttributes.Title)
 			}
 
 			if util.ContainsAnyInArray(event.ObjectAttributes.Action, processor.config.OnEvents) {
@@ -168,7 +168,7 @@ func (processor *Processor) onOpenMR(doc *core2.Document, event *core.MergeReque
 				"review_hits":        batchIndex + 1,
 				"batch_total":        totalBatches,
 				"batch_size":         len(batch),
-				"batch_context_note": "本次审查只关注当前批次文件，请不要包含前批次内容。",
+				"batch_context_note": "This review focuses only on the current batch. Please do not include any previous batches.",
 			}
 
 			// --- Single AI call per batch/page to produce incremental summary ---
