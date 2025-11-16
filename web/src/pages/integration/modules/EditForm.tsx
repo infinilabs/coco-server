@@ -45,9 +45,15 @@ export const EditForm = memo(props => {
     lightLoading: false,
     lightList: [],
     light: undefined,
+    darkLoading: false,
+    darkList: [],
+    dark: undefined,
     lightMobileLoading: false,
     lightMobileList: [],
-    light_mobile: undefined
+    light_mobile: undefined,
+    darkMobileLoading: false,
+    darkMobileList: [],
+    dark_mobile: undefined
   });
 
   const [aiOverviewLogo, setAIOverviewLogo] = useState({
@@ -131,7 +137,9 @@ export const EditForm = memo(props => {
             },
             logo: {
               light: searchLogos?.light,
-              light_mobile: searchLogos?.light_mobile
+              light_mobile: searchLogos?.light_mobile,
+              dark: searchLogos?.dark,
+              dark_mobile: searchLogos?.dark_mobile
             }
           },
           cors: {

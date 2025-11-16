@@ -4,6 +4,7 @@ import { FullscreenPage } from "./src/index.jsx";
 
 // 导入 UnoCSS 样式
 import "uno.css";
+import { Dropdown } from "antd";
 
 // 简化版的 queryParams hook
 function useSimpleQueryParams(defaultParams = {}) {
@@ -361,9 +362,11 @@ function DevApp() {
   const componentProps = {
     id: "dev-ui-search",
     shadow: null,
+    theme: 'dark',
+    language: 'zh-CN',
     logo: {
-      light: "/favicon.ico",
-      "light-mobile": "/favicon.ico",
+      // light: "/favicon.ico",
+      // "light_mobile": "/favicon.ico",
     },
     placeholder: "搜索任何内容...",
     welcome:
