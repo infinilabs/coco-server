@@ -237,40 +237,40 @@ func TestSetDocumentHierarchy(t *testing.T) {
 		{
 			name:                "single_parent_category",
 			parentCategoryArray: []string{"documents"},
-			expectedCategory:    "/documents",
-			expectedParentPath:  "/documents",
+			expectedCategory:    "/documents/",
+			expectedParentPath:  "/documents/",
 			expectedCategories:  []string{"documents"},
 			desc:                "Single parent category should create proper hierarchy",
 		},
 		{
 			name:                "nested_parent_categories",
 			parentCategoryArray: []string{"documents", "2023", "reports"},
-			expectedCategory:    "/documents/2023/reports",
-			expectedParentPath:  "/documents/2023/reports",
+			expectedCategory:    "/documents/2023/reports/",
+			expectedParentPath:  "/documents/2023/reports/",
 			expectedCategories:  []string{"documents", "2023", "reports"},
 			desc:                "Nested parent categories should create full hierarchy path",
 		},
 		{
 			name:                "deep_nested_categories",
 			parentCategoryArray: []string{"projects", "web-app", "src", "components"},
-			expectedCategory:    "/projects/web-app/src/components",
-			expectedParentPath:  "/projects/web-app/src/components",
+			expectedCategory:    "/projects/web-app/src/components/",
+			expectedParentPath:  "/projects/web-app/src/components/",
 			expectedCategories:  []string{"projects", "web-app", "src", "components"},
 			desc:                "Deep nested categories should preserve full hierarchy",
 		},
 		{
 			name:                "special_characters",
 			parentCategoryArray: []string{"shared", "user@domain.com"},
-			expectedCategory:    "/shared/user@domain.com",
-			expectedParentPath:  "/shared/user@domain.com",
+			expectedCategory:    "/shared/user@domain.com/",
+			expectedParentPath:  "/shared/user@domain.com/",
 			expectedCategories:  []string{"shared", "user@domain.com"},
 			desc:                "Special characters in categories should be preserved",
 		},
 		{
 			name:                "unicode_categories",
 			parentCategoryArray: []string{"共享", "文档", "报告"},
-			expectedCategory:    "/共享/文档/报告",
-			expectedParentPath:  "/共享/文档/报告",
+			expectedCategory:    "/共享/文档/报告/",
+			expectedParentPath:  "/共享/文档/报告/",
 			expectedCategories:  []string{"共享", "文档", "报告"},
 			desc:                "Unicode characters in categories should be preserved",
 		},
@@ -279,7 +279,7 @@ func TestSetDocumentHierarchy(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create a test document
-			doc := &common.Document{
+			doc := &core.Document{
 				Type:  "file",
 				Title: "test.txt",
 			}
@@ -354,8 +354,8 @@ func TestCreateDocumentWithHierarchy(t *testing.T) {
 			size:                2048,
 			parentCategoryArray: []string{"documents", "reports"},
 			idSuffix:            "documents/reports/report.pdf",
-			expectedCategory:    "/documents/reports",
-			expectedParentPath:  "/documents/reports",
+			expectedCategory:    "/documents/reports/",
+			expectedParentPath:  "/documents/reports/",
 			desc:                "Nested file should have proper hierarchical category",
 		},
 		{
@@ -380,8 +380,8 @@ func TestCreateDocumentWithHierarchy(t *testing.T) {
 			size:                0,
 			parentCategoryArray: []string{"documents"},
 			idSuffix:            "folder-documents/reports",
-			expectedCategory:    "/documents",
-			expectedParentPath:  "/documents",
+			expectedCategory:    "/documents/",
+			expectedParentPath:  "/documents/",
 			desc:                "Nested folder should have proper parent category",
 		},
 	}
