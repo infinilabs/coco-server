@@ -5,11 +5,15 @@ import FullscreenModal from './FullscreenModal';
 
 import './ui-search/index.css';
 
+const DARK_MODE_MEDIA_QUERY = '(prefers-color-scheme: dark)'
+
 export default (props) => {
-    const { shadow, id, server, enableQueryParams = true } = props;
+    const { shadow, id, server, enableQueryParams = true, parentTheme } = props;
     const [settings, setSettings] = useState()
 
     const { payload = {}, enabled_module = {} } = settings || {}
+
+    const [theme, setTheme] = useState(window.matchMedia && window.matchMedia(DARK_MODE_MEDIA_QUERY).matches ? 'dark' : 'light')
 
     async function fetchSettings(server, id) {
         if (!server || !id) return;
@@ -134,13 +138,37 @@ export default (props) => {
         fetchSettings(server, id);
     }, [server, id]);
 
+    function onSystemThemeChange(e) {
+        setTheme(e.matches ? 'dark' : 'light')
+    }
+
+    useEffect(() => {
+        const currentTheme = parentTheme || settings?.appearance?.theme
+        if (currentTheme === 'auto') {
+            setTheme(window.matchMedia && window.matchMedia(DARK_MODE_MEDIA_QUERY).matches ? 'dark' : 'light')
+            window.matchMedia(DARK_MODE_MEDIA_QUERY).addEventListener('change', onSystemThemeChange);
+        } else {
+            setTheme(currentTheme)
+        }
+        return () => {
+            if (currentTheme === 'auto') {
+                window.matchMedia(DARK_MODE_MEDIA_QUERY).removeEventListener('change', onSystemThemeChange)
+            }
+        }
+    }, [settings?.appearance?.theme, parentTheme])
+
     const componentProps = {
         ...props,
+        settings,
         id,
         shadow,
+        theme,
+        language: settings?.appearance?.language || 'zh-CN',
         "logo": {
             "light": payload?.logo?.light,
-            "light-mobile": payload?.logo?.light_mobile,
+            "light_mobile": payload?.logo?.light_mobile,
+            "dark": payload?.logo?.dark,
+            "dark_mobile": payload?.logo?.dark_mobile,
         },
         "placeholder": enabled_module?.search?.placeholder,
         "welcome": payload?.welcome || "",
@@ -169,7 +197,7 @@ export default (props) => {
             }
         }
     }
-
+    
     if (settings?.type === 'fullscreen' || settings?.type === 'page') {
         return (
             <FullscreenPage {...componentProps} enableQueryParams={enableQueryParams}/>

@@ -1,24 +1,7 @@
-import { Button, Descriptions, Drawer, Tag } from "antd";
+import { Descriptions, Drawer, Tag, Typography } from "antd";
 import styles from "./index.module.less";
 import Markdown from "./Markdown";
-import { Bot, SquareArrowOutUpRight, Tags, X } from "lucide-react";
-
-import dayjs from "dayjs";
-import relativeTime from 'dayjs/plugin/relativeTime';
-import { getDocument } from "@/service/api";
-dayjs.extend(relativeTime);
-
-export const isWithin7Days = (date) => {
-    const targetDate = dayjs(date);
-    const now = dayjs();
-    const diffInMs = now.diff(targetDate);
-    return diffInMs <= 7 * 24 * 60 * 60 * 1000; 
-}
-
-export const formatDate = (date) => {
-    const targetDate = dayjs(date);
-    return isWithin7Days(date) ? targetDate.fromNow() : targetDate.format('YYYY-MM-DD HH:mm:ss')
-}
+import { Tags, X } from "lucide-react";
 
 export default function DocumentDrawer(props) {
     const { getContainer, data = {}, isMobile, open, onClose } = props;
@@ -40,11 +23,19 @@ export default function DocumentDrawer(props) {
                 getContainer={getContainer}
             >
                 <div className="h-full overflow-auto px-24px">
-                    <div className="color-[#027ffe] text-16px mb-8px">
-                        {data.title}
+                    <div className="mb-8px">
+                        <Typography.Title className="!text-16px">
+                            {data.title}
+                        </Typography.Title>
                     </div>
-                    <div className="color-[#999] mb-16px">
-                        {data.url?.startsWith('http') ? <a onClick={() => data.url && window.open(data.url, '_blank')}>{data.url}</a> : data.url }
+                    <div className="mb-16px">
+                        {data.url?.startsWith('http') ? (
+                            <Typography.Link copyable onClick={() => data.url && window.open(data.url, '_blank')}>
+                                {data.url}
+                            </Typography.Link>
+                        ) : (
+                            <Typography.Text copyable>{data.url}</Typography.Text>
+                        )}
                     </div>
                     {
                         data.tags?.length > 0 && (
@@ -81,7 +72,7 @@ export default function DocumentDrawer(props) {
                             {
                                 key: 'created',
                                 label: t('page.datasource.labels.created'),
-                                children: data.created ? (isWithin7Days(data.created) ? formatDate(data.created) : data.created) : '-',
+                                children: <DateTime value={data.created}/>,
                             },
                             {
                                 key: 'created_by',
@@ -91,7 +82,7 @@ export default function DocumentDrawer(props) {
                             {
                                 key: 'updated',
                                 label: t('page.datasource.labels.updated'),
-                                children: data.last_updated_by?.timestamp ? (isWithin7Days(data.last_updated_by?.timestamp) ? formatDate(data.last_updated_by?.timestamp) : data.last_updated_by?.timestamp) : '-',
+                                children: <DateTime value={data.last_updated_by?.timestamp}/> ,
                             },
                             {
                                 key: 'updated_by',

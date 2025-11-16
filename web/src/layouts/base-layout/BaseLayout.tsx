@@ -2,7 +2,6 @@ import { AdminLayout, LAYOUT_SCROLL_EL_ID } from '@sa/materials';
 import type { LayoutMode } from '@sa/materials';
 import { configResponsive } from 'ahooks';
 import './index.scss';
-import { Suspense } from 'react';
 
 import {
   getContentXScrollable,

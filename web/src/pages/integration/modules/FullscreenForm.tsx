@@ -139,7 +139,46 @@ export const FullscreenForm = memo(props => {
         }}>{t('common.reset')}</Button>
       </div>
     </Form.Item>
-    <Form.Item label=" " name={['logo', 'logo-mobile']}>
+    <Form.Item label=" " name={['logo', 'dark']}>
+      <div className="mb-8px">
+        {t('page.integration.form.labels.logo_dark')}
+      </div>
+      <div style={{ display: "flex", gap: 22 }}>
+        {renderIcon(searchLogos.dark)}
+        <Upload
+          {...uploadProps}
+          showUploadList={false}
+          fileList={searchLogos.darkList}
+          beforeUpload={(file) => {
+            setSearchLogos((state) => ({
+              ...state,
+              darkList: [file],
+              darkLoading: true,
+            }))
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => {
+              setSearchLogos((state) => ({
+                ...state,
+                darkLoading: false,
+                dark: reader.result
+              }))
+            };
+            return false
+          }}
+        >
+          <Button loading={searchLogos.darkLoading} icon={<SvgIcon className="text-12px" icon="mdi:upload" />}>{t('common.upload')}</Button>
+        </Upload>
+        <Button className="px-0" type="link" onClick={() => {
+          setSearchLogos((state) => ({
+            ...state,
+            darkLoading: false,
+            dark: undefined
+          }));
+        }}>{t('common.reset')}</Button>
+      </div>
+    </Form.Item>
+    <Form.Item label=" " name={['logo', 'light_mobile']}>
       <div className="mb-8px">
         {t('page.integration.form.labels.logo_mobile')}
       </div>
@@ -174,6 +213,45 @@ export const FullscreenForm = memo(props => {
             ...state,
             lightMobileLoading: false,
             light_mobile: undefined
+          }))
+        }}>{t('common.reset')}</Button>
+      </div>
+    </Form.Item>
+    <Form.Item label=" " name={['logo', 'dark_mobile']}>
+      <div className="mb-8px">
+        {t('page.integration.form.labels.logo_mobile_dark')}
+      </div>
+      <div style={{ display: "flex", gap: 22 }}>
+        {renderIcon(searchLogos.dark_mobile)}
+        <Upload
+          {...uploadProps}
+          showUploadList={false}
+          fileList={searchLogos.darkMobileList}
+          beforeUpload={(file) => {
+            setSearchLogos((state) => ({
+              ...state,
+              darkMobileList: [file],
+              darkMobileLoading: true,
+            }))
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => {
+              setSearchLogos((state) => ({
+                ...state,
+                darkMobileLoading: false,
+                dark_mobile: reader.result
+              }))
+            };
+            return false
+          }}
+        >
+          <Button loading={searchLogos.darkMobileLoading} icon={<SvgIcon className="text-12px" icon="mdi:upload" />}>{t('common.upload')}</Button>
+        </Upload>
+        <Button className="px-0" type="link" onClick={() => {
+          setSearchLogos((state) => ({
+            ...state,
+            darkMobileLoading: false,
+            dark_mobile: undefined
           }))
         }}>{t('common.reset')}</Button>
       </div>

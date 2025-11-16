@@ -28,7 +28,7 @@ export const displayDate = (value: string | number) => {
     return isWithin7Days(value) ? dayjs(value).fromNow() : formatDate(value);
 }
 
-export default function DateTime(props: { value: string | number, showTooltip: boolean }) {
+export default function DateTime(props: { value: string | number, showTooltip?: boolean }) {
     const { value, showTooltip = true } = props;
     if (!value || !dayjs(value).isValid()) return "-"
     
