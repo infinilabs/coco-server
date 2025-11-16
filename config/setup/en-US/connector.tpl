@@ -1,5 +1,8 @@
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/yuque
 {
+ "_system": {
+            "owner_id": "$[[SETUP_OWNER_ID]]"
+          },
   "id" : "yuque",
   "created" : "2025-03-04T14:26:23.43811+08:00",
   "updated" : "2025-03-04T14:26:23.439214+08:00",
@@ -32,6 +35,9 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/y
 
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/hugo_site
 {
+ "_system": {
+            "owner_id": "$[[SETUP_OWNER_ID]]"
+          },
   "id" : "hugo_site",
   "created" : "2025-03-04T14:27:41.869073+08:00",
   "updated" : "2025-03-04T14:27:41.869288+08:00",
@@ -62,6 +68,9 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/h
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/google_drive
 {
+ "_system": {
+            "owner_id": "$[[SETUP_OWNER_ID]]"
+          },
   "id" : "google_drive",
   "created" : "2025-03-04T15:27:11.359656+08:00",
   "updated" : "2025-03-04T15:27:11.359753+08:00",
@@ -113,6 +122,9 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/notion
 {
+ "_system": {
+            "owner_id": "$[[SETUP_OWNER_ID]]"
+          },
   "id" : "notion",
   "created" : "2025-03-04T15:27:26.620836+08:00",
   "updated" : "2025-03-04T15:27:26.620918+08:00",
@@ -142,6 +154,9 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/n
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/rss
 {
+ "_system": {
+            "owner_id": "$[[SETUP_OWNER_ID]]"
+          },
   "id" : "rss",
   "created" : "2025-07-14T20:50:00.869073+08:00",
   "updated" : "2025-07-14T20:50:00.869073+08:00",
@@ -169,6 +184,9 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/r
 
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/local_fs
 {
+ "_system": {
+            "owner_id": "$[[SETUP_OWNER_ID]]"
+          },
   "id" : "local_fs",
   "created" : "2025-07-18T10:00:00.000000+08:00",
   "updated" : "2025-07-18T10:00:00.000000+08:00",
@@ -196,6 +214,9 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/l
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/s3
 {
+ "_system": {
+            "owner_id": "$[[SETUP_OWNER_ID]]"
+          },
   "id" : "s3",
   "created" : "2025-07-24T00:00:00.000000+08:00",
   "updated" : "2025-07-24T00:00:00.000000+08:00",
@@ -223,6 +244,9 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/s
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/confluence
 {
+ "_system": {
+            "owner_id": "$[[SETUP_OWNER_ID]]"
+          },
   "id" : "confluence",
   "created" : "2025-07-30T00:00:00.000000+08:00",
   "updated" : "2025-07-30T00:00:00.000000+08:00",
@@ -250,6 +274,9 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/c
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/network_drive
 {
+ "_system": {
+            "owner_id": "$[[SETUP_OWNER_ID]]"
+          },
   "id" : "network_drive",
   "created" : "2025-08-05T00:00:00.000000+08:00",
   "updated" : "2025-08-05T00:00:00.000000+08:00",
@@ -278,6 +305,9 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/n
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/postgresql
 {
+ "_system": {
+            "owner_id": "$[[SETUP_OWNER_ID]]"
+          },
   "id" : "postgresql",
   "created" : "2025-08-14T00:00:00.000000+08:00",
   "updated" : "2025-08-14T00:00:00.000000+08:00",
@@ -304,6 +334,9 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/p
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/mysql
 {
+ "_system": {
+            "owner_id": "$[[SETUP_OWNER_ID]]"
+          },
   "id" : "mysql",
   "created" : "2025-08-22T00:00:00.000000+08:00",
   "updated" : "2025-08-22T00:00:00.000000+08:00",
@@ -330,6 +363,9 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/m
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/github
 {
+ "_system": {
+            "owner_id": "$[[SETUP_OWNER_ID]]"
+          },
   "id" : "github",
   "created" : "2025-08-25T00:00:00.000000+08:00",
   "updated" : "2025-08-25T00:00:00.000000+08:00",
@@ -362,6 +398,9 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/gitlab
 {
+ "_system": {
+            "owner_id": "$[[SETUP_OWNER_ID]]"
+          },
   "id" : "gitlab",
   "created" : "2025-08-29T00:00:00.000000+08:00",
   "updated" : "2025-08-29T00:00:00.000000+08:00",
@@ -396,6 +435,9 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/gitea
 {
+ "_system": {
+            "owner_id": "$[[SETUP_OWNER_ID]]"
+          },
   "id" : "gitea",
   "created" : "2025-09-04T00:00:00.000000+08:00",
   "updated" : "2025-09-04T00:00:00.000000+08:00",
@@ -428,6 +470,9 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/feishu
 {
+ "_system": {
+            "owner_id": "$[[SETUP_OWNER_ID]]"
+          },
   "id": "feishu",
   "created": "2025-08-22T00:00:00.000000+08:00",
   "updated": "2025-08-22T00:00:00.000000+08:00",
@@ -467,6 +512,9 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/f
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/lark
 {
+ "_system": {
+            "owner_id": "$[[SETUP_OWNER_ID]]"
+          },
   "id": "lark",
   "created": "2025-09-01T00:00:00.000000+08:00",
   "updated": "2025-09-01T00:00:00.000000+08:00",
@@ -506,6 +554,9 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/l
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/mssql
 {
+ "_system": {
+            "owner_id": "$[[SETUP_OWNER_ID]]"
+          },
   "id" : "mssql",
   "created" : "2025-09-15T00:00:00.000000+08:00",
   "updated" : "2025-09-15T00:00:00.000000+08:00",
@@ -532,6 +583,9 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/m
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/oracle
 {
+ "_system": {
+            "owner_id": "$[[SETUP_OWNER_ID]]"
+          },
   "id" : "oracle",
   "created" : "2025-09-19T00:00:00.000000+08:00",
   "updated" : "2025-09-19T00:00:00.000000+08:00",
@@ -559,6 +613,9 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/o
 
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/salesforce
 {
+ "_system": {
+            "owner_id": "$[[SETUP_OWNER_ID]]"
+          },
   "id" : "salesforce",
   "created" : "2025-09-08T00:00:00.000000+08:00",
   "updated" : "2025-09-08T00:00:00.000000+08:00",
@@ -592,6 +649,9 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/s
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/neo4j
 {
+ "_system": {
+            "owner_id": "$[[SETUP_OWNER_ID]]"
+          },
   "id" : "neo4j",
   "created" : "2025-09-29T00:00:00.000000+08:00",
   "updated" : "2025-09-29T00:00:00.000000+08:00",
@@ -616,4 +676,28 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/n
      "enabled": true,
      "name": "neo4j"
   }
+}
+
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/gitlab_webhook_receiver
+{
+ "_system": {
+            "owner_id": "$[[SETUP_OWNER_ID]]"
+          },
+  "id" : "gitlab_webhook_receiver",
+  "created" : "2025-09-29T00:00:00.000000+08:00",
+  "updated" : "2025-09-29T00:00:00.000000+08:00",
+    "builtin": true,
+    "icon": "font_gitlab",
+    "oauth_connect_implemented": false,
+    "path_hierarchy": false,
+    "assets": {
+      "icons": {
+        "default": "/assets/icons/connector/gitlab/icon.png"
+      }
+    },
+    "name": "Gitlab Webhook",
+    "category": "Webhook",
+    "processor": {
+        "enabled": false
+      }
 }
