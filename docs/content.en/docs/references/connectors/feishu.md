@@ -135,104 +135,12 @@ The Feishu/Lark connector requires the following permissions to function properl
 - **`space:document:retrieve`**: Used to access documents in knowledge bases and spaces, expanding document access scope
 - **`offline_access`**: Allows the app to access resources when user is offline, which is crucial for background sync tasks
 
-## Configuration Architecture
-
-### Connector Level (OAuth Configuration)
-
-The OAuth configuration is now managed at the connector level. This provides better security and centralized management.
-
-#### Feishu Connector Configuration
-```yaml
-connector:
-  feishu:
-    enabled: true
-    interval: "30s"
-    page_size: 100
-    config:
-      # OAuth Configuration (Required for OAuth flow)
-      auth_url: "https://accounts.feishu.cn/open-apis/authen/v1/authorize"
-      token_url: "https://open.feishu.cn/open-apis/authen/v2/oauth/token"
-      redirect_url: "/connector/feishu/oauth_redirect"
-      client_id: "cli_xxxxxxxxxxxxxxxx"
-      client_secret: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-      document_types: ["doc", "sheet", "slides", "mindnote", "bitable", "file", "docx", "folder", "shortcut"]
-      user_access_token: ""  # Optional, for direct token authentication
-```
-
-#### Lark Connector Configuration
-```yaml
-connector:
-  lark:
-    enabled: true
-    interval: "30s"
-    page_size: 100
-    config:
-      # OAuth Configuration (Required for OAuth flow)
-      auth_url: "https://accounts.larksuite.com/open-apis/authen/v1/authorize"
-      token_url: "https://open.larksuite.com/open-apis/authen/v2/oauth/token"
-      redirect_url: "/connector/lark/oauth_redirect"
-      client_id: "cli_xxxxxxxxxxxxxxxx"
-      client_secret: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-      document_types: ["doc", "sheet", "slides", "mindnote", "bitable", "file", "docx", "folder", "shortcut"]
-      user_access_token: ""  # Optional, for direct token authentication
-```
-
-### Datasource Level (Auto-generated)
-
-When using OAuth authentication, datasources are automatically created during the OAuth flow. The system automatically generates:
-
-#### Auto-generated Feishu Datasource
-```yaml
-datasource:
-  id: "auto-generated-id"
-  name: "User's Feishu"  # Auto-generated based on user profile
-  type: "connector"
-  enabled: true
-  sync:
-    enabled: true
-  connector:
-    id: "feishu"
-    config:
-      # OAuth tokens (auto-filled during OAuth flow)
-      access_token: "u-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-      refresh_token: "r-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-      token_expiry: "2024-01-01T12:00:00Z"
-      refresh_token_expiry: "2024-01-31T12:00:00Z"
-      profile:
-        user_id: "ou_xxxxxxxxxxxxxxxx"
-        name: "User Name"
-        email: "user@example.com"
-```
-
-#### Auto-generated Lark Datasource
-```yaml
-datasource:
-  id: "auto-generated-id"
-  name: "User's Lark"  # Auto-generated based on user profile
-  type: "connector"
-  enabled: true
-  sync:
-    enabled: true
-  connector:
-    id: "lark"
-    config:
-      # OAuth tokens (auto-filled during OAuth flow)
-      access_token: "u-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-      refresh_token: "r-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-      token_expiry: "2024-01-01T12:00:00Z"
-      refresh_token_expiry: "2024-01-31T12:00:00Z"
-      profile:
-        user_id: "ou_xxxxxxxxxxxxxxxx"
-        name: "User Name"
-        email: "user@example.com"
-```
-
 ## Register Connectors
 
 ### Register Feishu Connector
 
 ```shell
-curl -XPUT "http://localhost:9000/connector/feishu?replace=true" -d '{
+curl -XPOST "http://localhost:9000/connector/" -d '{
   "name": "Feishu Connector",
   "description": "Index Feishu cloud documents with OAuth 2.0 support.",
   "icon": "/assets/connector/feishu/icon.png",
@@ -258,7 +166,7 @@ curl -XPUT "http://localhost:9000/connector/feishu?replace=true" -d '{
 ### Register Lark Connector
 
 ```shell
-curl -XPUT "http://localhost:9000/connector/lark?replace=true" -d '{
+curl -XPOST "http://localhost:9000/connector/" -d '{
   "name": "Lark Connector",
   "description": "Index Lark cloud documents with OAuth 2.0 support.",
   "icon": "/assets/connector/lark/icon.png",
@@ -280,8 +188,6 @@ curl -XPUT "http://localhost:9000/connector/lark?replace=true" -d '{
   }
 }'
 ```
-
-> Use `feishu` or `lark` as the unique connector ID.
 
 ### Connector Configuration
 

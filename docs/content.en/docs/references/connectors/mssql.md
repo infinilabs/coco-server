@@ -7,7 +7,7 @@ weight: 51
 ## Register MS SQL Connector
 
 ```shell
-curl -XPUT "http://localhost:9000/connector/mssql?replace=true" -d '
+curl -XPOST "http://localhost:9000/connector" -d '
 {
   "name" : "Microsoft SQL Server Connector",
   "description" : "Fetch data from Microsoft SQL Serve database.",
@@ -23,33 +23,13 @@ curl -XPUT "http://localhost:9000/connector/mssql?replace=true" -d '
     "icons" : {
       "default" : "/assets/icons/connector/mssql/icon.png"
     }
-  }
+  },
+     "processor": {
+       "enabled": true,
+       "name": "mssql"
+     }
 }'
 ```
-
-> Use `mssql` as a unique identifier, as it is a builtin connector.
-
-## Update coco-server's config
-
-Below is an example configuration for enabling the MS SQL Connector in coco-server:
-
-```yaml
-connector:
-  mssql:
-    enabled: true
-    queue:
-      name: indexing_documents
-    interval: 30s
-```
-
-### Explanation of Config Parameters
-
-| **Field**    | **Type**  | **Description**                                                                          |
-|--------------|-----------|------------------------------------------------------------------------------------------|
-| `enabled`    | `boolean` | Enables or disables the MS SQL connector. Set to`true` to activate it.                   |
-| `interval`   | `string`  | Specifies the time interval (e.g., `30s`) at which the connector will check for updates. |
-| `queue.name` | `string`  | Defines the name of the queue where indexing tasks will be added.                        |
-
 ## Use the MS SQL Connector
 
 The MS SQL Connector allows you to index data from your database by executing a custom SQL query.

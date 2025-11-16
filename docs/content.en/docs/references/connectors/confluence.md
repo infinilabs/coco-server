@@ -7,7 +7,7 @@ weight: 30
 ## Register Confluence Connector
 
 ```shell
-curl -XPUT "http://localhost:9000/connector/confluence?replace=true" -d '{
+curl -XPOST "http://localhost:9000/connector/" -d '{
   "name": "Confluence wiki Connector",
   "description": "Fetch Confluence Wiki pages and blogposts.",
   "category": "website",
@@ -30,8 +30,6 @@ curl -XPUT "http://localhost:9000/connector/confluence?replace=true" -d '{
   }
 }'
 ```
-
-> Use `confluence` as a unique identifier, as it is a builtin connector.
 
 ## Use the Confluence Connector
 

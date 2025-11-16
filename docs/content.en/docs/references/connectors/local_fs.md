@@ -8,7 +8,7 @@ weight: 30
 ## Register Local FS Connector
 
 ```shell
-curl -XPUT "http://localhost:9000/connector/local_fs?replace=true" -d '{
+curl -XPOST "http://localhost:9000/connector/" -d '{
   "name" : "Local Filesystem Connector",
   "description" : "Scan and fetch metadata from local files.",
   "category" : "local_storage",
@@ -25,31 +25,6 @@ curl -XPUT "http://localhost:9000/connector/local_fs?replace=true" -d '{
   }
 }'
 ```
-
-
-> Use `local_fs` as a unique identifier, as it is a builtin connector.
-
-
-## Update coco-server's config
-
-Below is an example configuration for enabling the Local FS Connector in coco-server:
-
-```shell
-connector:
-  local_fs:
-    enabled: true
-    queue:
-      name: indexing_documents
-    interval: 10s
-```
-
-### Explanation of Config Parameters
-
-| **Field**      | **Type**  | **Description**                                                                         |
-|-----------------|-----------|-----------------------------------------------------------------------------------------|
-| `enabled`      | `boolean` | Enables or disables the Local FS connector. Set to `true` to activate it.           |
-| `interval`     | `string`  | Specifies the time interval (e.g., `60s`) at which the connector will check for updates. |
-| `queue.name`   | `string`  | Defines the name of the queue where indexing tasks will be added.                       |
 
 ## Use the Local FS Connector
 
