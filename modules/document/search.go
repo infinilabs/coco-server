@@ -18,7 +18,6 @@ import (
 	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
 	"net/http"
-	"strings"
 )
 
 func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -174,55 +173,6 @@ func searchAssistant(req *http.Request, query string, size int) []core.Assistant
 	}
 
 	return docs
-}
-
-func BuildDatasourceClause(datasource string, filterDisabled bool) interface{} {
-	var datasourceClause interface{}
-	if datasource != "" {
-		if strings.Contains(datasource, ",") {
-			arr := strings.Split(datasource, ",")
-			datasourceClause = map[string]interface{}{
-				"terms": map[string]interface{}{
-					"source.id": arr,
-				},
-			}
-		} else {
-			datasourceClause = map[string]interface{}{
-				"term": map[string]interface{}{
-					"source.id": datasource,
-				},
-			}
-		}
-	}
-	if !filterDisabled {
-		return datasourceClause
-	}
-
-	disabledIDs, err := common.GetDisabledDatasourceIDs()
-	if err != nil {
-		panic(err)
-	}
-	if len(disabledIDs) == 0 {
-		return datasourceClause
-	}
-	mustNot := map[string]interface{}{
-		"terms": map[string]interface{}{
-			"source.id": disabledIDs,
-		},
-	}
-	if datasourceClause == nil {
-		return map[string]interface{}{
-			"bool": map[string]interface{}{
-				"must_not": mustNot,
-			},
-		}
-	}
-	return map[string]interface{}{
-		"bool": map[string]interface{}{
-			"must_not": mustNot,
-			"must":     datasourceClause,
-		},
-	}
 }
 
 func BuildFilters(category string, subcategory string, richCategory string) []*orm.Clause {
