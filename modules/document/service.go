@@ -51,7 +51,7 @@ func QueryDocuments(ctx1 context.Context, userID string, builder *orm.QueryBuild
 	}
 
 	//(user own datasource + shared datasource) intersect query datasource
-	mergedFullAccessDatasourceIDS, disabledIDs := BuildDatasourceFilter(userID, directAccessDatasources, queryDatasourceIDs, integrationID, true)
+	checkingScopeDatasources, mergedFullAccessDatasourceIDS, disabledIDs := BuildDatasourceFilter(userID, checkingScopeDatasources, directAccessDatasources, queryDatasourceIDs, integrationID, true)
 	if len(disabledIDs) > 0 {
 		filters = append(filters, orm.MustNotQuery(orm.TermsQuery("source.id", disabledIDs)))
 	}

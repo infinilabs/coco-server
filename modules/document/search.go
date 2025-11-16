@@ -217,43 +217,45 @@ func GetDatasourceByIntegration(integrationID string) ([]string, bool, error) {
 	return ret, false, nil
 }
 
-func BuildDatasourceFilter(userID string, directAccessDatasources []string, queryDatasourceIDs []string, integrationID string, filterDisabled bool) ([]string, []string) {
+func BuildDatasourceFilter(userID string, checkingScopeDatasources, directAccessDatasources []string, queryDatasourceIDs []string, integrationID string, filterDisabled bool) ([]string, []string, []string) {
 
-	log.Trace("userID:", userID, ",queryDatasource:", queryDatasourceIDs, ",integrationID:", integrationID)
+	//merge user's own datasource, other shareable datasource, within user's query datasource, within integration's datasource
 
-	finalDatasourceIDs := []string{}
+	//fist, merge the user's accessable datasource
+	userOwnDatasourceIDs := common.GetUsersOwnDatasource(userID)
+	directAccessDatasources = append(directAccessDatasources, userOwnDatasourceIDs...)
+
+	log.Trace("userID:", userID, "user's own", userOwnDatasourceIDs, ",queryDatasource:", queryDatasourceIDs, ",integrationID:", integrationID, ",merged datasources:", directAccessDatasources)
+
+	finalDatasourceIDs := directAccessDatasources
+	if len(queryDatasourceIDs) > 0 && !util.ContainsAnyInArray("*", queryDatasourceIDs) {
+		//only merge if the query are specify datasources
+		finalDatasourceIDs = util.StringArrayIntersection(queryDatasourceIDs, finalDatasourceIDs)
+		checkingScopeDatasources = util.StringArrayIntersection(queryDatasourceIDs, checkingScopeDatasources)
+	}
+
 	if integrationID != "" {
 		// get queryDatasource by integration id
 		datasourceIDs, hasAll, err := GetDatasourceByIntegration(integrationID)
 		if err != nil {
 			panic(err)
 		}
-		finalDatasourceIDs = datasourceIDs
+
+		log.Trace("integration:", integrationID, ", datasource:", datasourceIDs, ",has all:", hasAll)
+
+		//finalDatasourceIDs = datasourceIDs
 		if !hasAll {
-			if len(datasourceIDs) == 0 {
-				// return empty search result when no queryDatasource found
-				panic("integration datasource is empty")
+			if len(datasourceIDs) > 0 {
+				finalDatasourceIDs = util.StringArrayIntersection(datasourceIDs, finalDatasourceIDs)
+				checkingScopeDatasources = util.StringArrayIntersection(datasourceIDs, checkingScopeDatasources)
 			}
-		} else {
-			//user is select all queryDatasource
-			finalDatasourceIDs = common.GetUsersOwnDatasource(userID)
-			log.Trace("get user's own ID via all query:", finalDatasourceIDs)
 		}
-	} else {
-		//user is select all queryDatasource
-		finalDatasourceIDs = common.GetUsersOwnDatasource(userID)
-		log.Trace("get user's own ID:", finalDatasourceIDs)
 	}
 
-	finalDatasourceIDs = append(finalDatasourceIDs, directAccessDatasources...)
-
-	if len(queryDatasourceIDs) > 0 && !util.ContainsAnyInArray("*", queryDatasourceIDs) {
-		//only merge if the query are specify datasources
-		finalDatasourceIDs = util.StringArrayIntersection(queryDatasourceIDs, finalDatasourceIDs)
-	}
+	log.Trace("userID:", userID, "user's own", userOwnDatasourceIDs, ",queryDatasource:", queryDatasourceIDs, ",integrationID:", integrationID, ",final merged directAccess datasources:", finalDatasourceIDs)
 
 	if !filterDisabled {
-		return finalDatasourceIDs, []string{}
+		return checkingScopeDatasources, finalDatasourceIDs, []string{}
 	}
 
 	disabledIDs, err := common.GetDisabledDatasourceIDs()
@@ -261,5 +263,5 @@ func BuildDatasourceFilter(userID string, directAccessDatasources []string, quer
 		panic(err)
 	}
 
-	return finalDatasourceIDs, disabledIDs
+	return checkingScopeDatasources, finalDatasourceIDs, disabledIDs
 }
