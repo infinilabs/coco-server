@@ -89,14 +89,12 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 						Name: "Assistant",
 						Icon: "font_robot",
 					}
-					//newHit := IndexDocument{Index: "assistant", ID: assistant.ID, Source: doc, Score: v2.Hits.MaxScore + 500}
 					newHit := elastic.DocumentWithMeta[core.Document]{
 						ID:     assistant.ID,
 						Index:  "assistant",
 						Source: doc,
 						Score:  result.Hits.MaxScore + float32(size-i),
 					}
-					//log.Error("new score:",newHit.Score,",",result.Hits.MaxScore)
 					newHits = append(newHits, newHit)
 				}
 				result.Hits.Hits = append(newHits, result.Hits.Hits...)
@@ -219,7 +217,7 @@ func GetDatasourceByIntegration(integrationID string) ([]string, bool, error) {
 	return ret, false, nil
 }
 
-func BuildDatasourceFilter(userID string, fullAccessDatasourceWithoutChecking []string, queryDatasourceIDs []string, integrationID string, filterDisabled bool) ([]string, []string) {
+func BuildDatasourceFilter(userID string, directAccessDatasources []string, queryDatasourceIDs []string, integrationID string, filterDisabled bool) ([]string, []string) {
 
 	log.Trace("userID:", userID, ",queryDatasource:", queryDatasourceIDs, ",integrationID:", integrationID)
 
@@ -247,7 +245,7 @@ func BuildDatasourceFilter(userID string, fullAccessDatasourceWithoutChecking []
 		log.Trace("get user's own ID:", finalDatasourceIDs)
 	}
 
-	finalDatasourceIDs = append(finalDatasourceIDs, fullAccessDatasourceWithoutChecking...)
+	finalDatasourceIDs = append(finalDatasourceIDs, directAccessDatasources...)
 
 	if len(queryDatasourceIDs) > 0 && !util.ContainsAnyInArray("*", queryDatasourceIDs) {
 		//only merge if the query are specify datasources

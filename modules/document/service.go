@@ -32,9 +32,11 @@ func QueryDocuments(ctx1 context.Context, userID string, builder *orm.QueryBuild
 		panic(err)
 	}
 	log.Trace("rules: ", util.ToJson(rules, true))
+	directAccessDatasources := []string{}
 	checkingScopeDatasources := []string{}
 	for _, rule := range rules {
 		checkingScopeDatasources = append(checkingScopeDatasources, rule.ResourceID)
+		directAccessDatasources = append(directAccessDatasources, rule.ResourceID)
 	}
 
 	rules, err = sharingService.GetAllCategoryVisibleWithChildrenSharedObjects(userID, "datasource")
@@ -49,12 +51,12 @@ func QueryDocuments(ctx1 context.Context, userID string, builder *orm.QueryBuild
 	}
 
 	//(user own datasource + shared datasource) intersect query datasource
-	mergedFullAccessDatasourceIDS, disabledIDs := BuildDatasourceFilter(userID, checkingScopeDatasources, queryDatasourceIDs, integrationID, true)
+	mergedFullAccessDatasourceIDS, disabledIDs := BuildDatasourceFilter(userID, directAccessDatasources, queryDatasourceIDs, integrationID, true)
 	if len(disabledIDs) > 0 {
 		filters = append(filters, orm.MustNotQuery(orm.TermsQuery("source.id", disabledIDs)))
 	}
 
-	log.Trace("CheckingScopeDatasources:", checkingScopeDatasources, ",queryDatasourceIDs:", queryDatasourceIDs, ",new mergedFullAccessDatasourceIDS:", mergedFullAccessDatasourceIDS, ",disabledIDs:", disabledIDs, ",integrationID:", integrationID)
+	log.Trace("CheckingScopeDatasources:", checkingScopeDatasources, ",directAccessDatasources:", directAccessDatasources, ",queryDatasourceIDs:", queryDatasourceIDs, ",new mergedFullAccessDatasourceIDS:", mergedFullAccessDatasourceIDS, ",disabledIDs:", disabledIDs, ",integrationID:", integrationID)
 
 	shouldClauses := []*orm.Clause{}
 
