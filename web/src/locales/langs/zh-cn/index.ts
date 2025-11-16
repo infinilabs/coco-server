@@ -1,6 +1,7 @@
 import common from './common';
 import form from './form';
 import page from './page';
+import permission from './permission';
 import route from './route';
 import theme from './theme';
 
@@ -57,7 +58,8 @@ const local: App.I18n.Schema['translation'] = {
       build_time: "编译时间",
       build_number: "编译版本号",
     }
-  }
+  },
+  permission
 };
 
 export default local;

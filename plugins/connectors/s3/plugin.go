@@ -7,12 +7,12 @@ package s3
 import (
 	"context"
 	"fmt"
+	"infini.sh/coco/core"
 	"path/filepath"
 	"strings"
 
 	log "github.com/cihub/seelog"
 	"github.com/minio/minio-go/v7"
-	"infini.sh/coco/modules/common"
 	"infini.sh/coco/plugins/connectors"
 	cmn "infini.sh/coco/plugins/connectors/common"
 	"infini.sh/framework/core/config"
@@ -41,7 +41,7 @@ func (p *Plugin) Name() string {
 	return ConnectorS3
 }
 
-func (p *Plugin) Fetch(ctx *pipeline.Context, connector *common.Connector, datasource *common.DataSource) error {
+func (p *Plugin) Fetch(ctx *pipeline.Context, connector *core.Connector, datasource *core.DataSource) error {
 	cfg := Config{}
 	p.MustParseConfig(datasource, &cfg)
 
@@ -102,7 +102,7 @@ func (p *Plugin) Fetch(ctx *pipeline.Context, connector *common.Connector, datas
 			doc.Metadata[k] = v
 		}
 
-		doc.Owner = &common.UserInfo{
+		doc.Owner = &core.UserInfo{
 			UserID:   obj.Owner.ID,
 			UserName: obj.Owner.DisplayName,
 		}
@@ -135,8 +135,8 @@ func (p *Plugin) Fetch(ctx *pipeline.Context, connector *common.Connector, datas
 }
 
 // createFolderDocuments creates document entries for all folders that contain matching files
-func (p *Plugin) createFolderDocuments(ctx *pipeline.Context, foldersWithMatchingFiles map[string]bool, connector *common.Connector, datasource *common.DataSource, cfg Config) {
-	var docs []common.Document
+func (p *Plugin) createFolderDocuments(ctx *pipeline.Context, foldersWithMatchingFiles map[string]bool, connector *core.Connector, datasource *core.DataSource, cfg Config) {
+	var docs []core.Document
 	for folderPath := range foldersWithMatchingFiles {
 		if global.ShuttingDown() {
 			log.Info("[s3 connector] Shutdown signal received, stopping folder creation.")

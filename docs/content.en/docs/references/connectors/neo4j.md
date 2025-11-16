@@ -7,7 +7,7 @@ weight: 60
 ## Register Neo4j Connector
 
 ```shell
-curl -XPUT "http://localhost:9000/connector/neo4j?replace=true" -d '
+curl -XPOST "http://localhost:9000/connector/" -d '
 {
   "name" : "Neo4j Connector",
   "description" : "Fetch data from Neo4j graph database using Cypher.",
@@ -30,8 +30,6 @@ curl -XPUT "http://localhost:9000/connector/neo4j?replace=true" -d '
   }
 }'
 ```
-
-> Use `neo4j` as the unique identifier because it is a built-in connector.
 
 ## Use the Neo4j Connector
 
@@ -59,18 +57,6 @@ Neo4j incremental sync relies on two expressions:
 
 - `Watermark Property`: a Cypher expression returned by your query that monotonically increases (e.g., `datetime.coalesce(n.updated_at, n.created_at)`).
 - `Tie-breaker Property`: a secondary expression that uniquely orders records sharing the same watermark value (e.g., `elementId(n)`).
-
-Example snippet inside the datasource config:
-
-```yaml
-incremental:
-  enabled: true
-  mode: property_watermark
-  property: n.updated_at
-  property_type: datetime
-  tie_breaker: elementId(n)
-  resume_from: 2025-01-01T00:00:00Z
-```
 
 During the first run you can optionally set `resume_from` to seed the starting watermark. Afterwards coco-server persists the last `(property, tie_breaker)` tuple and resumes from there.
 

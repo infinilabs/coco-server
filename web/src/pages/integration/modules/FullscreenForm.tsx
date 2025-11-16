@@ -56,27 +56,27 @@ export const FullscreenForm = memo(props => {
         </Form.Item>
     </Form.Item>
     <Form.Item label=" " >
-        <div className="mb-8px">
-            {t('page.integration.form.labels.datasource')}
-        </div>
-        <Form.Item
-            className="mb-0px"
-            name={['enabled_module', 'search', 'datasource']}
-            rules={[defaultRequiredRule]}
-        >
-            <Select
-                allowClear
-                className={itemClassNames}
-                loading={dataSourceLoading}
-                mode="multiple"
-                options={[{ label: '*', value: '*' }].concat(
-                    dataSource.map(item => ({
-                        label: item.name,
-                        value: item.id
-                    }))
-                )}
-            />
-        </Form.Item>
+      <div className="mb-8px">
+        {t('page.integration.form.labels.datasource')}
+      </div>
+      <Form.Item
+        className="mb-0px"
+        name={['enabled_module', 'search', 'datasource']}
+        rules={[defaultRequiredRule]}
+      >
+        <Select
+          allowClear
+          className={itemClassNames}
+          loading={dataSourceLoading}
+          mode="multiple"
+          options={[{ label: '*', value: '*' }].concat(
+            dataSource.map(item => ({
+              label: item.name,
+              value: item.id
+            }))
+          )}
+        />
+      </Form.Item>
     </Form.Item>
     <Form.Item label=" ">
         <div className="mb-8px">
@@ -373,6 +373,19 @@ export const FullscreenForm = memo(props => {
                                           <InputNumber className={itemClassNames} min={0} step={1}/>
                                       </Form.Item>
                                       <div className="mb-8px">
+                                        输出类型
+                                      </div>
+                                      <Form.Item
+                                          name={[name, 'output']}
+                                          className="mb-8px"
+                                      >
+                                          <Select className={itemClassNames}>
+                                            <Select.Option value="markdown">Markdown</Select.Option>
+                                            <Select.Option value="html">HTML</Select.Option>
+                                            <Select.Option value="text">Text</Select.Option>
+                                          </Select>
+                                      </Form.Item>
+                                      <div className="mb-8px">
                                           {t('page.integration.form.labels.module_chat_ai_assistant')}
                                       </div>
                                       <Form.Item className="mb-8px">
@@ -389,19 +402,6 @@ export const FullscreenForm = memo(props => {
                                                 <span onClick={() => remove(field.name)}><SvgIcon className="text-16px cursor-pointer" icon="mdi:minus-circle-outline" /></span>
                                             </Form.Item>
                                         </div>
-                                      </Form.Item>
-                                      <div className="mb-8px">
-                                        输出类型
-                                      </div>
-                                      <Form.Item
-                                          name={[name, 'output']}
-                                          className="mb-8px"
-                                      >
-                                          <Select className={itemClassNames}>
-                                            <Select.Option value="markdown">Markdown</Select.Option>
-                                            <Select.Option value="html">HTML</Select.Option>
-                                            <Select.Option value="text">Text</Select.Option>
-                                          </Select>
                                       </Form.Item>
                                   </div>
                                   

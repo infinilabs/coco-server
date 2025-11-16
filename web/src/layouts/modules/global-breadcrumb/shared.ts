@@ -15,7 +15,7 @@ export function getBreadcrumbsByRoute(
   index: number = 0,
   breadcrumbs: Extract<ItemType, MenuItemType | SubMenuType>[] = []
 ) {
-  const currentMenu = menus.find(item => item?.key === route.matched[index]?.name) as SubMenuType | undefined;
+  const currentMenu = menus.find(item => item?.key === route.matched[index]?.name || item?.key === route.matched[index]?.meta?.activeMenu) as SubMenuType | undefined;
 
   if (currentMenu) {
     const flattenedChildren = currentMenu.children?.map(item => {

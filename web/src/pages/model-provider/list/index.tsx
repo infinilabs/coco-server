@@ -1,12 +1,12 @@
-import Icon, {
+import {
+  EllipsisOutlined,
   ExclamationCircleOutlined,
   ExportOutlined,
   FilterOutlined,
   PlusOutlined,
   SettingOutlined
 } from '@ant-design/icons';
-import type { MenuProps } from 'antd';
-import { Button, Dropdown, Form, Image, Input, List, Modal, Spin, Switch, Tag, message } from 'antd';
+import { Avatar, Button, Dropdown, Form, Input, List, Modal, Spin, Switch, Table, message } from 'antd';
 import Search from 'antd/es/input/Search';
 
 import type { IntegratedStoreModalRef } from '@/components/common/IntegratedStoreModal';
@@ -16,46 +16,86 @@ import { deleteModelProvider, searchModelPovider, updateModelProvider } from '@/
 import { formatESSearchResult } from '@/service/request/es';
 
 export function Component() {
+  const type = 'table';
+
   const [queryParams, setQueryParams] = useQueryParams({
-    size: 12,
+    size: type === 'table' ? 10 : 12,
     sort: [
       ['enabled', 'desc'],
       ['created', 'desc']
     ]
   });
+
+  const { addSharesToData, isEditorOwner, hasEdit, isResourceShare } = useResource();
+  const resourceType = 'llm-provider';
+
   const { t } = useTranslation();
   const nav = useNavigate();
   const [data, setData] = useState({
-    data: [],
-    total: 0
+    total: 0,
+    data: []
   });
   const [loading, setLoading] = useState(false);
   const [keyword, setKeyword] = useState();
 
-  const fetchData = () => {
-    setLoading(true);
-    searchModelPovider(queryParams)
-      .then(data => {
-        const newData = formatESSearchResult(data.data);
-        setData(newData);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+  const { hasAuth } = useAuth();
+
+  const permissions = {
+    read: hasAuth('coco#model_provider/read'),
+    create: hasAuth('coco#model_provider/create'),
+    update: hasAuth('coco#model_provider/update'),
+    delete: hasAuth('coco#model_provider/delete')
   };
-  useEffect(fetchData, [queryParams]);
+
+  const fetchData = async queryParams => {
+    setLoading(true);
+    const res = await searchModelPovider(queryParams);
+    if (res?.data) {
+      const newData = formatESSearchResult(res?.data);
+      if (newData.data.length > 0) {
+        const resources = newData.data.map(item => ({
+          resource_id: item.id,
+          resource_type: resourceType
+        }));
+        const dataWithShares = await addSharesToData(newData.data, resources);
+        if (dataWithShares) {
+          newData.data = dataWithShares;
+        }
+      }
+      setData(newData);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchData(queryParams);
+  }, [queryParams]);
 
   useEffect(() => {
     setKeyword(queryParams.query);
   }, [queryParams.query]);
 
   const onSearchClick = (query: string) => {
-    setQueryParams({
-      ...queryParams,
-      query,
-      t: new Date().valueOf()
+    setQueryParams(oldParams => {
+      return {
+        ...oldParams,
+        from: query === oldParams.query ? oldParams.from : 0,
+        query,
+        t: new Date().valueOf()
+      };
     });
   };
+
+  const handleTableChange = pagination => {
+    setQueryParams(params => {
+      return {
+        ...params,
+        from: (pagination.current - 1) * pagination.pageSize,
+        size: pagination.pageSize
+      };
+    });
+  };
+
   const onPageChange = (page: number, pageSize: number) => {
     setQueryParams((oldParams: any) => {
       return {
@@ -65,21 +105,28 @@ export function Component() {
       };
     });
   };
-  const getMenuItems = useCallback((record: any): MenuProps['items'] => {
-    const items: MenuProps['items'] = [
-      {
-        key: '1',
-        label: t('common.edit')
-      }
-    ];
-    if (record.builtin !== true) {
+  const getMenuItems = (record: any) => {
+    const items = [];
+    if (permissions.read && permissions.update && hasEdit(record)) {
       items.push({
-        key: '2',
-        label: t('common.delete')
+        label: t('common.edit'),
+        key: '1'
+      });
+    }
+    if (permissions.update && hasEdit(record)) {
+      items.push({
+        label: 'API-key',
+        key: '3'
+      });
+    }
+    if (permissions.delete && record.builtin !== true && isEditorOwner(record)) {
+      items.push({
+        label: t('common.delete'),
+        key: '2'
       });
     }
     return items;
-  }, []);
+  };
 
   const onMenuClick = ({ key, record }: any) => {
     switch (key) {
@@ -100,13 +147,15 @@ export function Component() {
                 };
               });
             });
-          },
-          title: t('common.tip')
+          }
         });
 
         break;
       case '1':
         nav(`/model-provider/edit/${record.id}`);
+        break;
+      case '3':
+        onAPIKeyClick(record);
         break;
     }
   };
@@ -146,7 +195,7 @@ export function Component() {
   const [open, setOpen] = useState(false);
   const onOkClick = () => {
     setOpen(false);
-    fetchData();
+    fetchData(queryParams);
   };
   const onCancelClick = () => {
     setOpen(false);
@@ -157,110 +206,281 @@ export function Component() {
     setOpen(true);
   };
 
+  const columns = [
+    {
+      dataIndex: 'name',
+      minWidth: 150,
+      ellipsis: true,
+      render: (value, record) => {
+        const isShare = isResourceShare(record);
+
+        let shareIcon;
+
+        if (isShare) {
+          shareIcon = (
+            <div className='flex-shrink-0 flex-grow-0'>
+              <SvgIcon
+                className='text-#999'
+                localIcon='share'
+              />
+            </div>
+          );
+        }
+
+        return (
+          <div className='flex items-center gap-1'>
+            {record.icon && (
+              <IconWrapper className='h-20px w-20px flex-shrink-0 flex-grow-0 flex-basis-auto'>
+                <InfiniIcon
+                  height='1em'
+                  src={record.icon}
+                  width='1em'
+                />
+              </IconWrapper>
+            )}
+            {permissions.read && permissions.update && hasEdit(record) ? (
+              <a
+                className='ant-table-cell-ellipsis max-w-150px cursor-pointer text-[var(--ant-color-link)]'
+                onClick={() => nav(`/model-provider/edit/${record.id}`)}
+              >
+                {value}
+              </a>
+            ) : (
+              <span className='ant-table-cell-ellipsis max-w-150px'>{value}</span>
+            )}
+            {record.builtin === true && (
+              <div className='ml-5px flex items-center'>
+                <p className='h-[22px] rounded-[4px] bg-[#eee] px-[10px] font-size-[12px] text-[#999] line-height-[22px]'>
+                  {t('page.modelprovider.labels.builtin')}
+                </p>
+              </div>
+            )}
+            {shareIcon}
+          </div>
+        );
+      },
+      title: t('page.integration.columns.name')
+    },
+    {
+      dataIndex: 'owner',
+      title: t('page.datasource.labels.owner'),
+      width: 200,
+      render: (value, record) => {
+        if (!value) return '-';
+        return (
+          <div className='flex overflow-hidden'>
+            <Avatar.Group
+              max={{ count: 1 }}
+              size='small'
+            >
+              <AvatarLabel
+                data={value}
+                showCard={true}
+              />
+            </Avatar.Group>
+          </div>
+        );
+      }
+    },
+    {
+      dataIndex: 'shares',
+      title: t('page.datasource.labels.shares'),
+      width: 150,
+      render: (value, record) => {
+        if (!value) return '-';
+        return (
+          <Shares
+            record={record}
+            title={record.name}
+            resource={{
+              resource_type: resourceType,
+              resource_id: record.id
+            }}
+            onSuccess={() => fetchData(queryParams)}
+          />
+        );
+      }
+    },
+    {
+      title: t('page.assistant.labels.description'),
+      minWidth: 200,
+      dataIndex: 'description',
+      render: (value, record) => {
+        return <span title={value}>{value}</span>;
+      },
+      ellipsis: true
+    },
+    {
+      dataIndex: 'enabled',
+      title: t('page.assistant.labels.enabled'),
+      width: 80,
+      render: (value, record) => {
+        return (
+          <Switch
+            disabled={!permissions.update || !hasEdit(record)}
+            size='small'
+            value={value}
+            onChange={v => onItemEnableChange(record, v)}
+          />
+        );
+      }
+    },
+    {
+      title: t('common.operation'),
+      fixed: 'right',
+      width: '90px',
+      hidden: !permissions.update && !permissions.delete,
+      render: (_, record) => {
+        const items = getMenuItems(record);
+        if (items.length === 0) return null;
+        return (
+          <Dropdown menu={{ items, onClick: ({ key }) => onMenuClick({ key, record }) }}>
+            <EllipsisOutlined />
+          </Dropdown>
+        );
+      }
+    }
+  ];
+  // rowSelection object indicates the need for row selection
+  const rowSelection = {
+    getCheckboxProps: record => ({
+      name: record.name
+    }),
+    onChange: (selectedRowKeys: React.Key[], selectedRows) => {}
+  };
+
   const integratedStoreModalRef = useRef<IntegratedStoreModalRef>(null);
 
   return (
     <ListContainer>
       <ACard
         bordered={false}
-        className="flex-col-stretch sm:flex-1-hidden card-wrapper"
+        className='flex-col-stretch sm:flex-1-hidden card-wrapper'
       >
-        <div className="mb-4 mt-4 flex items-center justify-between">
+        <div className='mb-4 mt-4 flex items-center justify-between'>
           <Search
             addonBefore={<FilterOutlined />}
-            className="max-w-500px"
+            className='max-w-500px'
             enterButton={t('common.refresh')}
             value={keyword}
             onChange={e => setKeyword(e.target.value)}
             onSearch={onSearchClick}
           />
-          <Button
-            icon={<PlusOutlined />}
-            type="primary"
-            onClick={() => {
-              integratedStoreModalRef.current?.open('model-provider');
-            }}
-          >
-            {t('common.add')}
-          </Button>
-        </div>
-        <List
-          dataSource={data.data}
-          grid={{ column: 3, gutter: 16, sm: 2, xs: 1 }}
-          loading={loading}
-          pagination={{
-            current: Math.floor(queryParams.from / queryParams.size) + 1,
-            onChange: onPageChange,
-            pageSize: queryParams.size,
-            pageSizeOptions: [12, 24, 48, 96],
-            showSizeChanger: true,
-            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
-            total: data.total?.value || data?.total
-          }}
-          renderItem={provider => (
-            <List.Item>
-              <div className="group min-h-[132px] border border-[var(--ant-color-border)] rounded-[8px] p-1em hover:bg-[var(--ant-control-item-bg-hover)]">
-                <div className="flex justify-between">
-                  <div className="flex gap-15px">
-                    <div className="flex items-center gap-8px">
-                      <IconWrapper className="h-40px w-40px">
-                        <InfiniIcon
-                          className="font-size-2em"
-                          height="2em"
-                          src={provider.icon}
-                          width="2em"
-                        />
-                      </IconWrapper>
-                      <span
-                        className="cursor-pointer font-size-1.2em hover:text-blue-500"
-                        onClick={() => nav(`/model-provider/edit/${provider.id}`)}
-                      >
-                        {provider.name}
-                      </span>
-                    </div>
-                    {provider.builtin === true && (
-                      <div className="flex items-center">
-                        <p className="h-[22px] rounded-[4px] bg-[#eee] px-[10px] font-size-[12px] text-[#999] line-height-[22px]">
-                          {t('page.modelprovider.labels.builtin')}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <Switch
-                      checked={provider.enabled}
-                      size="small"
-                      onChange={v => onItemEnableChange(provider, v)}
-                    />
-                  </div>
-                </div>
-                <div className="line-clamp-3 my-[10px] h-[51px] text-xs text-[#999]">{provider.description}</div>
-                <div className="flex gap-1">
-                  <div className="ml-auto flex gap-2">
-                    <div
-                      className="cursor-pointer border border-[var(--ant-color-border)] rounded-[8px] px-10px"
-                      onClick={() => {
-                        onAPIKeyClick(provider);
-                      }}
-                    >
-                      API-key
-                    </div>
-                    <div className="inline-block cursor-pointer border border-[var(--ant-color-border)] rounded-[8px] px-4px">
-                      <Dropdown
-                        menu={{
-                          items: getMenuItems(provider),
-                          onClick: ({ key }) => onMenuClick({ key, record: provider })
-                        }}
-                      >
-                        <SettingOutlined className="text-blue-500" />
-                      </Dropdown>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </List.Item>
+          {permissions.create && (
+            <Button
+              icon={<PlusOutlined />}
+              type='primary'
+              onClick={() => integratedStoreModalRef.current?.open('model-provider')}
+            >
+              {t('common.add')}
+            </Button>
           )}
-        />
+        </div>
+        {type === 'table' ? (
+          <Table
+            columns={columns}
+            dataSource={data.data}
+            loading={loading}
+            rowKey='id'
+            rowSelection={{ ...rowSelection }}
+            size='middle'
+            pagination={{
+              showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+              pageSize: queryParams.size,
+              current: Math.floor(queryParams.from / queryParams.size) + 1,
+              total: data.total?.value || data?.total,
+              showSizeChanger: true
+            }}
+            onChange={handleTableChange}
+          />
+        ) : (
+          <List
+            dataSource={data.data}
+            grid={{ gutter: 16, column: 3, xs: 1, sm: 2 }}
+            loading={loading}
+            pagination={{
+              onChange: onPageChange,
+              showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+              pageSize: queryParams.size,
+              current: Math.floor(queryParams.from / queryParams.size) + 1,
+              total: data.total?.value || data?.total,
+              showSizeChanger: true,
+              pageSizeOptions: [12, 24, 48, 96]
+            }}
+            renderItem={provider => {
+              const operations = getMenuItems(provider);
+              return (
+                <List.Item>
+                  <div className='group min-h-[132px] border border-[var(--ant-color-border)] rounded-[8px] p-1em hover:bg-[var(--ant-control-item-bg-hover)]'>
+                    <div className='flex justify-between'>
+                      <div className='flex gap-15px'>
+                        <div className='flex items-center gap-8px'>
+                          <IconWrapper className='h-40px w-40px'>
+                            <InfiniIcon
+                              className='font-size-2em'
+                              height='2em'
+                              src={provider.icon}
+                              width='2em'
+                            />
+                          </IconWrapper>
+                          {permissions.read && permissions.update && hasEdit(provider) ? (
+                            <a
+                              className='cursor-pointer font-size-1.2em text-[var(--ant-color-link)]'
+                              onClick={() => nav(`/model-provider/edit/${provider.id}`)}
+                            >
+                              {provider.name}
+                            </a>
+                          ) : (
+                            <span className='font-size-1.2em'>{provider.name}</span>
+                          )}
+                        </div>
+                        {provider.builtin === true && (
+                          <div className='flex items-center'>
+                            <p className='h-[22px] rounded-[4px] bg-[#eee] px-[10px] font-size-[12px] text-[#999] line-height-[22px]'>
+                              {t('page.modelprovider.labels.builtin')}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <Switch
+                          checked={provider.enabled}
+                          disabled={!permissions.update || !hasEdit(provider)}
+                          size='small'
+                          onChange={v => onItemEnableChange(provider, v)}
+                        />
+                      </div>
+                    </div>
+                    <div className='line-clamp-3 my-[10px] h-[51px] text-xs text-[#999]'>{provider.description}</div>
+                    <div className='flex gap-1'>
+                      <div className='ml-auto flex gap-2'>
+                        {permissions.update && hasEdit(provider) && (
+                          <div
+                            className='cursor-pointer border border-[var(--ant-color-border)] rounded-[8px] px-10px'
+                            onClick={() => {
+                              onAPIKeyClick(provider);
+                            }}
+                          >
+                            API-key
+                          </div>
+                        )}
+                        {operations?.length > 0 && (
+                          <div className='inline-block cursor-pointer border border-[var(--ant-color-border)] rounded-[8px] px-4px'>
+                            <Dropdown
+                              menu={{ items: operations, onClick: ({ key }) => onMenuClick({ key, record: provider }) }}
+                            >
+                              <SettingOutlined className='text-blue-500' />
+                            </Dropdown>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </List.Item>
+              );
+            }}
+          />
+        )}
         <APIKeyComponent
           open={open}
           record={editValue}
@@ -274,7 +494,7 @@ export function Component() {
   );
 }
 
-const APIKeyComponent = ({ onCancelClick = () => {}, onOkClick = () => {}, open = false, record = {} }) => {
+const APIKeyComponent = ({ record = {}, onOkClick = () => {}, open = false, onCancelClick = () => {} }) => {
   const { t } = useTranslation();
   const [form] = Form.useForm();
   useEffect(() => {
@@ -346,23 +566,23 @@ const APIKeyComponent = ({ onCancelClick = () => {}, onOkClick = () => {}, open 
     >
       <Spin spinning={loading}>
         <Form
-          className="my-2em"
+          className='my-2em'
           form={form}
-          layout="vertical"
+          layout='vertical'
         >
           <Form.Item
-            label={<span className="text-gray-500">{t('page.modelprovider.labels.api_key')}</span>}
-            name="api_key"
+            label={<span className='text-gray-500'>{t('page.modelprovider.labels.api_key')}</span>}
+            name='api_key'
           >
             <Input defaultValue={record.api_key} />
           </Form.Item>
           {apiHref && (
             <div>
               <Button
-                className="m-0 p-0"
+                className='m-0 p-0'
                 href={apiHref}
-                target="_blank"
-                type="link"
+                target='_blank'
+                type='link'
               >
                 {t('page.modelprovider.labels.api_key_source', {
                   model_provider: record.name

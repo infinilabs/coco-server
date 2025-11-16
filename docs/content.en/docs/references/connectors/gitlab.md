@@ -7,7 +7,7 @@ weight: 61
 ## Register GitLab Connector
 
 ```shell
-curl -XPUT "http://localhost:9000/connector/gitlab?replace=true" -d '{
+curl -XPOST "http://localhost:9000/connector/" -d '{
   "name": "GitLab Connector",
   "description": "Fetch repositories, issues, merge requests, wikis, and snippets from GitLab.",
   "icon": "/assets/icons/connector/gitlab/icon.png",

@@ -9,7 +9,6 @@ import (
 
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
-	"infini.sh/coco/plugins/security/filter"
 	"infini.sh/framework/core/api"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/global"
@@ -36,9 +35,9 @@ func init() {
 	api.HandleUIMethod(api.GET, "/provider/_info", handler.providerInfo, api.AllowPublicAccess())
 	api.HandleUIMethod(api.POST, "/setup/_initialize", handler.setupServer, api.AllowPublicAccess())
 
-	api.HandleUIMethod(api.OPTIONS, "/settings", handler.getServerSettings, api.RequirePermission(readPermission), api.Feature(filter.FeatureCORS))
-	api.HandleUIMethod(api.GET, "/settings", handler.getServerSettings, api.RequirePermission(readPermission), api.Feature(filter.FeatureCORS), api.Feature(filter.FeatureMaskSensitiveField),
-		api.Feature(filter.FeatureRemoveSensitiveField))
+	api.HandleUIMethod(api.OPTIONS, "/settings", handler.getServerSettings, api.RequirePermission(readPermission), api.Feature(core.FeatureCORS))
+	api.HandleUIMethod(api.GET, "/settings", handler.getServerSettings, api.RequirePermission(readPermission), api.Feature(core.FeatureCORS), api.Feature(core.FeatureMaskSensitiveField),
+		api.Feature(core.FeatureRemoveSensitiveField))
 	api.HandleUIMethod(api.PUT, "/settings", handler.updateServerSettings, api.RequirePermission(updatePermission))
 
 	//list all icons for connectors
@@ -84,9 +83,11 @@ func (h *APIHandler) providerInfo(w http.ResponseWriter, req *http.Request, ps h
 		if info.ServerInfo.Provider.AuthProvider.SSO.URL == "" {
 			panic("sso url can't be nil")
 		}
+	} else {
+		output["managed"] = false
 	}
 	stats := util.MapStr{}
-	claims, _ := core.ValidateLogin(req)
+	claims, _ := core.ValidateLogin(w, req)
 	if claims != nil {
 		count, err := common.CountAssistants()
 		if err != nil {

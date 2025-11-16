@@ -62,6 +62,7 @@ declare module '@ohh-889/react-auto-route' {
      * It only works when the route mode is "static", if the route mode is "dynamic", it will be ignored
      */
     roles?: string[];
+    permissions?: string[];
     /**
      * Title of the route
      *

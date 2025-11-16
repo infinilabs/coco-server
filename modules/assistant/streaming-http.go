@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	"net/http"
 	"regexp"
@@ -23,7 +24,7 @@ type HTTPStreamSender struct {
 	Ctx     context.Context
 }
 
-func (s *HTTPStreamSender) SendMessage(msg *common.MessageChunk) error {
+func (s *HTTPStreamSender) SendMessage(msg *core.MessageChunk) error {
 
 	if msg == nil || (msg.MessageType == common.Response && strings.TrimSpace(msg.MessageChunk) == "") {
 		return nil

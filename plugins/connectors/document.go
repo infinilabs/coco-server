@@ -6,6 +6,7 @@ package connectors
 
 import (
 	"fmt"
+	"infini.sh/coco/core"
 	"path/filepath"
 	"strings"
 	"time"
@@ -87,7 +88,7 @@ func BuildParentCategoryArray(filePath string) []string {
 
 // SetDocumentHierarchy sets the hierarchy information on a document based on the parent category array.
 // This is a common utility function used by connectors to establish document hierarchy relationships.
-func SetDocumentHierarchy(doc *common.Document, parentCategoryArray []string) {
+func SetDocumentHierarchy(doc *core.Document, parentCategoryArray []string) {
 	if len(parentCategoryArray) > 0 {
 		categoryPath := common.GetFullPathForCategories(parentCategoryArray)
 		doc.Category = categoryPath
@@ -103,10 +104,10 @@ func SetDocumentHierarchy(doc *common.Document, parentCategoryArray []string) {
 // CreateDocumentWithHierarchy creates a document with proper hierarchy settings and basic metadata.
 // This is a common utility function used by connectors to create documents with consistent structure.
 func CreateDocumentWithHierarchy(docType, icon, title, url string, size int,
-	parentCategoryArray []string, datasource *common.DataSource, idSuffix string) common.Document {
+	parentCategoryArray []string, datasource *core.DataSource, idSuffix string) core.Document {
 
-	doc := common.Document{
-		Source: common.DataSourceReference{
+	doc := core.Document{
+		Source: core.DataSourceReference{
 			ID:   datasource.ID,
 			Type: "connector",
 			Name: datasource.Name,
@@ -205,7 +206,7 @@ func (tracker *GitFolderTracker) TrackGitFolders(owner, repo string, contentType
 }
 
 // CreateGitFolderDocuments creates folder documents for all tracked git hierarchy levels
-func (tracker *GitFolderTracker) CreateGitFolderDocuments(datasource *common.DataSource, pushFunc func(doc common.Document)) {
+func (tracker *GitFolderTracker) CreateGitFolderDocuments(datasource *core.DataSource, pushFunc func(doc core.Document)) {
 	// Create organization/user folder documents (Level 1)
 	for owner := range tracker.Organizations {
 		idSuffix := fmt.Sprintf("git-folder-%s", owner)

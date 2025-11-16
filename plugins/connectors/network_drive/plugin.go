@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"infini.sh/coco/core"
 	"io/fs"
 	"net"
 	"path/filepath"
@@ -16,7 +17,6 @@ import (
 
 	log "github.com/cihub/seelog"
 	"github.com/hirochachacha/go-smb2"
-	"infini.sh/coco/modules/common"
 	"infini.sh/coco/plugins/connectors"
 	cmn "infini.sh/coco/plugins/connectors/common"
 	"infini.sh/framework/core/config"
@@ -60,7 +60,7 @@ func (p *Plugin) Name() string {
 	return ConnectorNetworkDrive
 }
 
-func (p *Plugin) Fetch(ctx *pipeline.Context, connector *common.Connector, datasource *common.DataSource) error {
+func (p *Plugin) Fetch(ctx *pipeline.Context, connector *core.Connector, datasource *core.DataSource) error {
 	cfg := Config{}
 	p.MustParseConfig(datasource, &cfg)
 
@@ -78,14 +78,13 @@ func (p *Plugin) Fetch(ctx *pipeline.Context, connector *common.Connector, datas
 		_ = conn.Close()
 	}()
 
-	dialer := &smb2.Dialer{
+	var dialer = &smb2.Dialer{
 		Initiator: &smb2.NTLMInitiator{
 			User:     cfg.Username,
 			Password: cfg.Password,
 			Domain:   cfg.Domain,
 		},
 	}
-
 	scanCtx := context.Background()
 	deadline := time.Now().Add(ConnectionTimeout)
 	dialCtx, cancelOnTimeout := context.WithDeadline(scanCtx, deadline)
@@ -164,7 +163,7 @@ func (p *Plugin) Fetch(ctx *pipeline.Context, connector *common.Connector, datas
 }
 
 // processFile is a helper function to filter, transform, and queue a single file.
-func (p *Plugin) processFile(ctx *pipeline.Context, d fs.DirEntry, currentPath string, cfg *Config, connector *common.Connector, datasource *common.DataSource) {
+func (p *Plugin) processFile(ctx *pipeline.Context, d fs.DirEntry, currentPath string, cfg *Config, connector *core.Connector, datasource *core.DataSource) {
 
 	// Construct a full UNC-style path for the URL field
 	fullPath := fmt.Sprintf("//%s/%s/%s", cfg.Endpoint, cfg.Share, currentPath)
@@ -191,8 +190,8 @@ func (p *Plugin) processFile(ctx *pipeline.Context, d fs.DirEntry, currentPath s
 }
 
 // createFolderDocuments creates document entries for all folders that contain matching files
-func (p *Plugin) createFolderDocuments(ctx *pipeline.Context, foldersWithMatchingFiles map[string]bool, connector *common.Connector, datasource *common.DataSource, cfg *Config) {
-	var docs []common.Document
+func (p *Plugin) createFolderDocuments(ctx *pipeline.Context, foldersWithMatchingFiles map[string]bool, connector *core.Connector, datasource *core.DataSource, cfg *Config) {
+	var docs []core.Document
 	for folderPath := range foldersWithMatchingFiles {
 		if global.ShuttingDown() {
 			log.Info("[network_drive connector] Shutdown signal received, stopping folder creation.")

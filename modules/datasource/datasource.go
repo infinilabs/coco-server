@@ -15,7 +15,7 @@ import (
 )
 
 func (h *APIHandler) createDatasource(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	var obj = &common.DataSource{}
+	var obj = &core.DataSource{}
 	h.MustDecodeJSON(req, obj)
 
 	if obj.Type == "connector" {
@@ -26,7 +26,7 @@ func (h *APIHandler) createDatasource(w http.ResponseWriter, req *http.Request, 
 		ctx := orm.NewContextWithParent(req.Context())
 
 		//check connector
-		connector := common.Connector{}
+		connector := core.Connector{}
 		connector.ID = obj.Connector.ConnectorID
 		exists, err := orm.GetV2(ctx, &connector)
 		if !exists || err != nil {
@@ -58,7 +58,7 @@ func (h *APIHandler) createDatasource(w http.ResponseWriter, req *http.Request, 
 func (h *APIHandler) deleteDatasource(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("id")
 
-	obj := common.DataSource{}
+	obj := core.DataSource{}
 	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
 	ctx.Refresh = orm.WaitForRefresh
@@ -92,7 +92,7 @@ func (h *APIHandler) deleteDatasource(w http.ResponseWriter, req *http.Request, 
 	builder.Filter(orm.TermQuery("source.id", id))
 
 	ctx1 := orm.NewContextWithParent(req.Context())
-	orm.WithModel(ctx1, &common.Document{})
+	orm.WithModel(ctx1, &core.Document{})
 
 	_, err = orm.DeleteByQuery(ctx1, builder)
 	if err != nil {
@@ -111,9 +111,12 @@ func (h *APIHandler) deleteDatasource(w http.ResponseWriter, req *http.Request, 
 func (h *APIHandler) getDatasource(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("id")
 
-	obj := common.DataSource{}
+	obj := core.DataSource{}
 	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "datasource")
+	ctx.Set(orm.SharingCategoryCheckingChildrenEnabled, true)
 
 	exists, err := orm.GetV2(ctx, &obj)
 	if !exists || err != nil {
@@ -140,7 +143,7 @@ func (h *APIHandler) updateDatasource(w http.ResponseWriter, req *http.Request, 
 	replace := h.GetBoolOrDefault(req, "replace", false)
 	var err error
 
-	obj := common.DataSource{}
+	obj := core.DataSource{}
 	err = h.DecodeJSON(req, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -151,6 +154,8 @@ func (h *APIHandler) updateDatasource(w http.ResponseWriter, req *http.Request, 
 	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
 	ctx.Refresh = orm.WaitForRefresh
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "datasource")
 
 	if replace {
 		err = orm.Upsert(ctx, &obj)
@@ -173,7 +178,7 @@ func (h *APIHandler) updateDatasource(w http.ResponseWriter, req *http.Request, 
 	}, 200)
 }
 
-func GetDatasourceByID(id []string) ([]common.DataSource, error) {
+func GetDatasourceByID(id []string) ([]core.DataSource, error) {
 	var err error
 	q := orm.Query{}
 	q.RawQuery, err = core.RewriteQueryWithFilter(q.RawQuery, util.MapStr{
@@ -182,7 +187,7 @@ func GetDatasourceByID(id []string) ([]common.DataSource, error) {
 		},
 	})
 
-	docs := []common.DataSource{}
+	docs := []core.DataSource{}
 	err, _ = orm.SearchWithJSONMapper(&docs, &q)
 	if err != nil {
 		return nil, err
@@ -192,7 +197,7 @@ func GetDatasourceByID(id []string) ([]common.DataSource, error) {
 
 func (h *APIHandler) searchDatasource(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	//handle url query args, convert to query builder
-	builder, err := orm.NewQueryBuilderFromRequest(req, "name", "combined_fulltext")
+	builder, err := orm.NewQueryBuilderFromRequest(req, "name", "name.pinyin", "combined_fulltext")
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -204,27 +209,14 @@ func (h *APIHandler) searchDatasource(w http.ResponseWriter, req *http.Request, 
 		builder.SortBy(orm.Sort{Field: "created", SortType: orm.DESC})
 	}
 
-	//attach filter for cors request
-	if integrationID := req.Header.Get(core.HeaderIntegrationID); integrationID != "" {
-		// get datasource by api token
-		datasourceIDs, hasAll, err := common.GetDatasourceByIntegration(integrationID)
-		if err != nil {
-			panic(err)
-		}
-		if !hasAll {
-			if len(datasourceIDs) == 0 {
-				// return empty search result when no datasource found
-				h.WriteJSON(w, elastic.SearchResponse{}, http.StatusOK)
-				return
-			}
-			builder.Must(orm.TermsQuery("id", datasourceIDs))
-		}
-	}
-
 	ctx := orm.NewContextWithParent(req.Context())
-	orm.WithModel(ctx, &common.DataSource{})
 
-	docs := []common.DataSource{}
+	orm.WithModel(ctx, &core.DataSource{})
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "datasource")
+	ctx.Set(orm.SharingCategoryCheckingChildrenEnabled, true)
+
+	docs := []core.DataSource{}
 
 	err, res := elastic.SearchV2WithResultItemMapper(ctx, &docs, builder, nil)
 	if err != nil {
@@ -239,7 +231,7 @@ func (h *APIHandler) searchDatasource(w http.ResponseWriter, req *http.Request, 
 }
 
 func (h *APIHandler) createDocInDatasource(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	var obj = &common.Document{}
+	var obj = &core.Document{}
 	err := h.DecodeJSON(req, obj)
 	if err != nil {
 		panic(err)
@@ -247,7 +239,7 @@ func (h *APIHandler) createDocInDatasource(w http.ResponseWriter, req *http.Requ
 
 	//TODO cache for speed
 	datasourceID := ps.MustGetParameter("id")
-	datasourceObj := common.DataSource{}
+	datasourceObj := core.DataSource{}
 	datasourceObj.ID = datasourceID
 	ctx := orm.NewContextWithParent(req.Context())
 
@@ -257,7 +249,7 @@ func (h *APIHandler) createDocInDatasource(w http.ResponseWriter, req *http.Requ
 	}
 
 	//replace datasource info
-	sourceRefer := common.DataSourceReference{}
+	sourceRefer := core.DataSourceReference{}
 	sourceRefer.ID = datasourceObj.ID
 	sourceRefer.Type = datasourceObj.Type
 	sourceRefer.Name = datasourceObj.Name
@@ -278,7 +270,7 @@ func (h *APIHandler) createDocInDatasource(w http.ResponseWriter, req *http.Requ
 }
 
 func (h *APIHandler) createDocInDatasourceWithID(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	var obj = &common.Document{}
+	var obj = &core.Document{}
 	err := h.DecodeJSON(req, obj)
 	if err != nil {
 		panic(err)
@@ -288,7 +280,7 @@ func (h *APIHandler) createDocInDatasourceWithID(w http.ResponseWriter, req *htt
 	datasourceID := ps.MustGetParameter("id")
 	docID := ps.MustGetParameter("doc_id")
 	obj.ID = docID
-	datasourceObj := common.DataSource{}
+	datasourceObj := core.DataSource{}
 	datasourceObj.ID = datasourceID
 	ctx := orm.NewContextWithParent(req.Context())
 
@@ -298,7 +290,7 @@ func (h *APIHandler) createDocInDatasourceWithID(w http.ResponseWriter, req *htt
 	}
 
 	//replace datasource info
-	sourceRefer := common.DataSourceReference{}
+	sourceRefer := core.DataSourceReference{}
 	sourceRefer.ID = datasourceObj.ID
 	sourceRefer.Type = datasourceObj.Type
 	sourceRefer.Name = datasourceObj.Name

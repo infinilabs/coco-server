@@ -8,7 +8,6 @@ import (
 	"fmt"
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
-	"infini.sh/coco/modules/common"
 	cmn "infini.sh/coco/plugins/connectors/common"
 	"infini.sh/framework/core/config"
 	"infini.sh/framework/core/errors"
@@ -43,7 +42,7 @@ func (processor *Processor) Name() string {
 	return processorName
 }
 
-func (processor *Processor) Fetch(ctx *pipeline.Context, connector *common.Connector, datasource *common.DataSource) error {
+func (processor *Processor) Fetch(ctx *pipeline.Context, connector *core.Connector, datasource *core.DataSource) error {
 
 	cfg := Config{}
 	processor.MustParseConfig(datasource, &cfg)
@@ -71,7 +70,7 @@ func (processor *Processor) Fetch(ctx *pipeline.Context, connector *common.Conne
 				panic(errors.Errorf("Failed to parse JSON: %v", err))
 			}
 
-			outputDocs := []common.Document{}
+			outputDocs := []core.Document{}
 
 			// Output the parsed data
 			for i, v := range documents {
@@ -80,7 +79,7 @@ func (processor *Processor) Fetch(ctx *pipeline.Context, connector *common.Conne
 					break
 				}
 
-				doc := common.Document{Source: common.DataSourceReference{ID: datasource.ID, Type: "connector", Name: datasource.Name}}
+				doc := core.Document{Source: core.DataSourceReference{ID: datasource.ID, Type: "connector", Name: datasource.Name}}
 
 				if v.Created != "" {
 					doc.Created = ParseTimestamp(v.Created)

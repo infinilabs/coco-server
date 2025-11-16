@@ -33,7 +33,6 @@ export async function fullscreen(options) {
       container: wrapper,
       id: "$[[ID]]",
       server: "$[[ENDPOINT]]",
-      token: "$[[TOKEN]]",
       linkHref
     };
 

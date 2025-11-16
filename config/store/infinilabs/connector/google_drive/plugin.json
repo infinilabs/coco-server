@@ -37,7 +37,7 @@
     "name" : "Google Drive Connector",
     "description" : "Fetch the files metadata from Google Drive.",
     "category" : "cloud_storage",
-    "path_hierarchy":true,
+    "path_hierarchy":false,
     "icon" : "/assets/icons/connector/google_drive/icon.png",
     "tags" : [
       "google",

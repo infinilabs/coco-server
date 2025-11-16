@@ -3,12 +3,21 @@ import { useMemo, useState } from "react";
 import { formatESSearchResult } from "@/service/request/es";
 import { fetchDataSourceList, getDatasource } from "@/service/api";
 import { useRequest } from "@sa/hooks";
+import { getLocale } from "@/store/slice/app";
 
 export default (props) => {
 
     const { value, onChange, width, className, mode } = props;
 
     const { t } = useTranslation();
+    const locale = useAppSelector(getLocale);
+    const { hasAuth } = useAuth()
+
+    const permissions = {
+      read: hasAuth('coco#datasource/read'),
+      search: hasAuth('coco#datasource/search'),
+      create: hasAuth('coco#datasource/create'),
+    };
 
     const {
       data: res,
@@ -39,11 +48,11 @@ export default (props) => {
         ...queryParams,
         sort: sorter.map((item) => `${item[0]}:${item[1]}`).join(',') || 'created:desc',
       })
-    }, [queryParams, sorter])
+    }, [queryParams, sorter, permissions.search])
 
     useEffect(() => {
       if (mode === 'multiple') {
-        if (value && value.some((item) => !!(item?.id && !item?.name))) {
+        if (value && value.some((item) => !!(item?.id && !item?.name)) && permissions.search) {
           fetchItems({
             filter: value.map((item) => `id:${item.id}`),
             from: 0, 
@@ -51,11 +60,11 @@ export default (props) => {
           })
         }
       } else {
-        if (value?.id && !value?.name) {
+        if (value?.id && !value?.name && permissions.read) {
           fetchItem(value.id)
         }
       }
-    }, [JSON.stringify(value), mode])
+    }, [JSON.stringify(value), mode, permissions.search, permissions.read])
 
     const result = useMemo(() => {
       return formatESSearchResult(res);
@@ -112,7 +121,7 @@ export default (props) => {
               });
             },
           }}
-          onRefresh={() => {
+          onRefresh={permissions.search ? () => {
             fetchData({
               ...queryParams,
               sort: sorter.map((item) => ({
@@ -121,19 +130,20 @@ export default (props) => {
                 }
               }))
             })
-          }}
-          action={[
+          } : undefined}
+          locale={locale}
+          actions={permissions.create ? [
             <a
               onClick={() => {
                 window.open(
-                  `/#/data-source/new-first`,
+                  `#/data-source/new-first`,
                   "_blank"
                 );
               }}
             >
               {t('common.create')}
             </a>
-          ]}
+          ] : []}
         />
     )
 }

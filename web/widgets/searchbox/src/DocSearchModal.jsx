@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 export const DocSearchModal = ({
   server,
   settings,
+  refreshSettings,
   onClose,
   triggerBtnType,
   theme,
@@ -16,8 +17,9 @@ export const DocSearchModal = ({
 
   const [isPinned, setIsPinned] = useState(false);
 
-  const { appearance = {}, enabled_module = {}, id, token, type } = settings || {};
+  const { appearance = {}, enabled_module = {}, id, type } = settings || {};
   const { ai_chat, features, search } = enabled_module;
+  const { language } = appearance
 
   const hasModules = [];
   if (search?.enabled) {
@@ -52,7 +54,6 @@ export const DocSearchModal = ({
           <SearchChat
             serverUrl={server}
             headers={{
-              "X-API-TOKEN": token,
               "APP-INTEGRATION-ID": id
             }}
             width={680}
@@ -70,6 +71,9 @@ export const DocSearchModal = ({
               onClose()
             }}
             formatUrl={formatUrl}
+            settings={settings}
+            refreshSettings={refreshSettings}
+            language={language}
           />
         </div>
       </div>

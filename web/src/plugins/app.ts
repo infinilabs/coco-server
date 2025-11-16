@@ -62,7 +62,7 @@ export function setupAppVersionNotification() {
 }
 
 async function getHtmlBuildTime() {
-  const res = await fetch(`/index.html?time=${Date.now()}`, {
+  const res = await fetch(`index.html?time=${Date.now()}`, {
     headers: {
       'Cache-Control': 'no-cache'
     }

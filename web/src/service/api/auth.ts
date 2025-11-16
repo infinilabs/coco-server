@@ -5,11 +5,9 @@ import { request } from '../request';
  *
  * @param password Password
  */
-export function fetchLogin(password: string) {
+export function fetchLogin(data: any) {
   return request<Api.Auth.LoginToken>({
-    data: {
-      password
-    },
+    data,
     method: 'post',
     url: '/account/login'
   });

@@ -39,7 +39,7 @@
     "name" : "Gitea Connector",
     "description" : "Fetch repositories, issues, and pull requests from Gitea.",
     "category" : "website",
-    "path_hierarchy": true,
+    "path_hierarchy":false,
     "icon" : "/assets/icons/connector/gitea/icon.png",
       "tags" : [
       "git",

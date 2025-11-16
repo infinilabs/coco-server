@@ -11,7 +11,7 @@ curl -XPOST "http://localhost:9000/connector" -d '{
     "name": "Google Drive Connector",
     "description": "Fetch the files metadata from Google Drive.",
     "icon": "/assets/connector/google_drive/icon.png",
-    "path_hierarchy":true,
+    "path_hierarchy":false,
     "category": "cloud_storage",
     "tags": [
         "google",

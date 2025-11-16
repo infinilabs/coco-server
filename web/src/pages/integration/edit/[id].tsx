@@ -1,11 +1,12 @@
 import { useRequest } from '@sa/hooks';
-import { Col, Row } from 'antd';
+import { Col, Row, Spin } from 'antd';
 import { type LoaderFunctionArgs, useLoaderData } from 'react-router-dom';
 
 import { fetchIntegration, updateIntegration } from '@/service/api/integration';
 
-import { EditForm } from '../modules/EditForm';
+import { EditForm, isFullscreen } from '../modules/EditForm';
 import { InsertCode } from '../modules/InsertCode';
+import { capitalize } from 'lodash';
 
 export function Component() {
   const id = useLoaderData();
@@ -30,6 +31,11 @@ export function Component() {
     run(id);
   }, []);
 
+  const type = useMemo(() => {
+    if (!data?._source?.type) return ''
+    return isFullscreen(data?._source?.type) ? 'fullscreen' : 'searchbox'
+  }, [data?._source])
+
   return (
     <div className="h-full min-h-500px">
       <ACard
@@ -38,30 +44,35 @@ export function Component() {
       >
         <div className="mb-30px ml--16px flex items-center text-lg font-bold">
           <div className="mr-20px h-1.2em w-10px bg-[#1677FF]" />
-          <div>{t(`page.integration.form.title.edit`)}</div>
+          <div>{type ? `${t(`common.edit`)} ${capitalize(type)}` : t(`page.integration.form.title.edit`)}</div>
         </div>
-        <Row
-          className="px-30px"
-          gutter={24}
-        >
-          <Col>
-            <EditForm
-              actionText={t('common.update')}
-              loading={loading}
-              record={data?._source}
-              onSubmit={onSubmit}
-            />
-          </Col>
-          <Col flex="1">
-            {
-              data && (
-                <InsertCode
-                  { ...(data?._source || {})}
+        {
+          loading ? <Spin></Spin> : type ? (
+            <Row
+              className="px-30px"
+              gutter={24}
+            >
+              <Col>
+                <EditForm
+                  defaultType={type}
+                  actionText={t('common.update')}
+                  loading={loading}
+                  record={data?._source}
+                  onSubmit={onSubmit}
                 />
-              )
-            }
-          </Col>
-        </Row>
+              </Col>
+              <Col flex="1">
+                {
+                  data && (
+                    <InsertCode
+                      { ...(data?._source || {})}
+                    />
+                  )
+                }
+              </Col>
+            </Row>
+          ) : null
+        }
       </ACard>
     </div>
   );

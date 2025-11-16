@@ -1,0 +1,27 @@
+.label {
+    :global {
+        .ant-avatar, .ant-avatar svg {
+            width: 24px !important;
+            height: 24px !important;
+        }
+    }
+    & > div {
+        display: flex;
+        align-items: center;
+        height: 28px;
+        & > span > span:last-child {
+            span {
+                margin: 0 !important;
+            }
+            span:first-child {
+                line-height: 16px;
+                font-size: 12px !important;
+                color: var(--ant-color-text-base) !important;
+            }
+            span:last-child {
+                line-height: 14px;
+                font-size: 10px !important;
+            }
+        }
+    }
+}

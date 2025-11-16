@@ -12,7 +12,8 @@ import { initHomeTab } from '@/store/slice/tab';
 import type { AppThunk } from '../..';
 import { createAppSlice } from '../../createAppSlice';
 
-import { filterAuthRoutesByRoles, getCacheRouteNames, sortRoutesByOrder } from './shared';
+import { filterAuthRoutesByPermissions, getCacheRouteNames, sortRoutesByOrder } from './shared';
+import { getProviderInfo } from '../server';
 
 interface InitialStateType {
   authRoutes: ElegantConstRoute[];
@@ -169,7 +170,18 @@ const handleConstantOrAuthRoutes =
     dispatch(getCacheRoutes(sortRoutes));
   };
 
-export const initConstantRoute = (filterPaths: string[] = []): AppThunk => async dispatch => {
+export const initConstantRoute = (filterPaths: string[] = []): AppThunk => async (dispatch, getState) => {
+  const providerInfo = getProviderInfo(getState()) || {}
+  const setupRequired = Boolean(providerInfo?.setup_required)
+  const isManaged = Boolean(providerInfo?.managed)
+  const searchEnabled = Boolean(providerInfo?.search_settings?.enabled)
+  const filterPaths: string[] = []
+  if (!setupRequired || isManaged) {
+    filterPaths.push('/guide')
+  }
+  if (!searchEnabled) {
+    filterPaths.push('/search')
+  }
   const staticRoute = createStaticRoutes();
   staticRoute.authRoutes = staticRoute.authRoutes.filter((item) => !filterPaths.includes(item.path))
   staticRoute.constantRoutes = staticRoute.constantRoutes.filter((item) => !filterPaths.includes(item.path))
@@ -196,8 +208,8 @@ const initStaticAuthRoute = (): AppThunk => (dispatch, getState) => {
   if (dispatch(isStaticSuper())) {
     dispatch(setAuthRoutes(staticAuthRoutes));
   } else {
-    const userInfo = selectUserInfo(getState());
-    const filteredAuthRoutes = filterAuthRoutesByRoles(staticAuthRoutes, userInfo.roles);
+    const userInfo = selectUserInfo(getState()) || {};
+    const filteredAuthRoutes = filterAuthRoutesByPermissions(staticAuthRoutes, userInfo.permissions);
     dispatch(setAuthRoutes(filteredAuthRoutes));
   }
 
@@ -205,7 +217,7 @@ const initStaticAuthRoute = (): AppThunk => (dispatch, getState) => {
   dispatch(setIsInitAuthRoute(true));
 };
 
-export const resetRouteStore = (): AppThunk => dispatch => {
+export const resetRouteStore = (): AppThunk => (dispatch, getState) => {
   router.resetRoute();
   dispatch(resetRoute());
   dispatch(initConstantRoute());

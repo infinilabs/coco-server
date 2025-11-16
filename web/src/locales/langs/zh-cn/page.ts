@@ -2,7 +2,8 @@ const page: App.I18n.Schema['translation']['page'] = {
   apitoken: {
     columns: {
       expire_in: '过期时间',
-      name: '名称'
+      name: '名称',
+      permissions: '权限'
     },
     create: {
       limit: 'Token 数量超过限制，最多可以创建 5 个 Token。',
@@ -111,7 +112,8 @@ const page: App.I18n.Schema['translation']['page'] = {
         path_hierarchy: '支持目录访问',
         redirect_url: '重定向地址',
         tags: '标签',
-        token_url: 'Token 地址'
+        token_url: 'Token 地址',
+        processor: '处理器'
       },
       title: '新建连接器',
       tooltip: {
@@ -134,6 +136,14 @@ const page: App.I18n.Schema['translation']['page'] = {
       sync_status: '同步状态',
       type: '类型'
     },
+    connect: '连接',
+    delete: {
+      confirm: '确定删除这个数据源？'
+    },
+    edit: {
+      title: '编辑数据源'
+    },
+    every: '每',
     commons: {
       error: {
         datasource_name_required: '请输入数据源名称',
@@ -165,14 +175,6 @@ const page: App.I18n.Schema['translation']['page'] = {
         username: '用于身份验证的用户名。如果使用匿名访问或个人访问令牌，可以留空'
       }
     },
-    connect: '连接',
-    delete: {
-      confirm: '确定删除这个数据源？'
-    },
-    edit: {
-      title: '编辑数据源'
-    },
-    every: '每',
     file_paths_add: '添加文件路径',
     git_commons: {
       error: {
@@ -352,7 +354,9 @@ const page: App.I18n.Schema['translation']['page'] = {
         site_urls: '站点地址',
         sync_enabled: '启用同步',
         tags: '标签',
-        type: '数据源类型'
+        type: '数据源类型',
+        webhook: '启用 Webhook',
+        enrichment_pipeline: 'Enrichment Pipeline'
       },
       title: '连接 {{connector}}',
       tooltip: {
@@ -408,6 +412,43 @@ const page: App.I18n.Schema['translation']['page'] = {
         required: '请输入 {{field}}'
       }
     },
+    labels: {
+      owner: '所有者',
+      shares: '分享',
+      updated: '最后更新时间',
+      size: '大小',
+      externalAccount: '外部账号',
+      cocoAccount: '映射 Coco 用户',
+      mappingStatus: '映射状态',
+      mapped: '已映射',
+      unmapped: '未映射',
+      enabled: '启用状态',
+      permission_sync: '权限同步',
+      isEnabled: '启用',
+      sharesWithPermissions: '有访问权限的团队、人',
+      none: '无权限',
+      view: '可查看',
+      comment: '可评论',
+      edit: '可编辑',
+      share: '可共享',
+      all: '全部',
+      shareToPrincipal: '共享给团队、人',
+      shareTo: '共享',
+      permission: '访问权限',
+      you: '（你）',
+      inherit: '（继承）',
+      categories: '分类',
+      type: '类型',
+      created: '创建时间',
+      createdBy: '创建人',
+      updatedBy: '更新人'
+    },
+    file: {
+      title: '文档管理'
+    },
+    mapping: {
+      title: '映射管理'
+    },
     s3: {
       error: {
         access_key_id_required: '请输入 Access Key ID！',
@@ -438,7 +479,7 @@ const page: App.I18n.Schema['translation']['page'] = {
   guide: {
     llm: {
       desc: '集成大模型后，您将解锁人工智能聊天功能，还能获得智能搜索服务和高效的工作助手。',
-      title: '创建一个账户'
+      title: '集成大模型'
     },
     setupLater: '稍后设置',
     user: {
@@ -448,6 +489,15 @@ const page: App.I18n.Schema['translation']['page'] = {
       name: '姓名',
       password: '密码',
       title: '创建一个账户'
+    },
+    skipModal: {
+      title: '确认跳过？',
+      hints: {
+        desc: '如果您选择跳过此步骤，进入系统后内置的 AI 功能（如 AI 助手）将无法立即使用。',
+        stepDesc: '您将需要：',
+        step1: '在 “模型提供商” 中添加并管理模型；',
+        step2: '为每个内置 AI 助手单独选择并配置所需的大模型。'
+      }
     }
   },
   home: {
@@ -527,6 +577,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         datasource: '数据源',
         description: '描述',
         enable_auth: '启用认证',
+        tourist_mode: '游客模式',
         enable_module: '启用模块',
         enabled: '启用状态',
         feature_chat_history: '聊天历史',
@@ -566,6 +617,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         theme_auto: '自动',
         theme_dark: '深色',
         theme_light: '浅色',
+        language: '语言',
         type: '类型',
         type_fullscreen: 'Fullscreen',
         type_searchbox: 'SearchBox'
@@ -573,6 +625,9 @@ const page: App.I18n.Schema['translation']['page'] = {
       title: {
         edit: '编辑嵌入组件',
         new: '新增嵌入组件'
+      },
+      hints: {
+        tourist_mode: '未登录用户将以该用户的身份进行访问'
       }
     },
     topics: {
@@ -612,6 +667,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     },
     desc: '输入您的凭证信息以访问您的账户。',
     password: '密码',
+    email: '邮箱',
     title: '欢迎'
   },
   mcpserver: {
@@ -630,24 +686,6 @@ const page: App.I18n.Schema['translation']['page'] = {
       icon: '图标',
       name: '名称',
       type: '类型'
-    }
-  },
-  modelprovider: {
-    delete: {
-      confirm: '您确定要删除这个模型提供商吗?'
-    },
-    labels: {
-      api_key: 'API 密钥',
-      api_key_source: '从 {{model_provider}} 获取 API 密钥',
-      api_key_source_normal: '点击这里获取 API 密钥',
-      api_type: 'API 类型',
-      base_url: 'Base URL',
-      builtin: '内置',
-      description: '描述',
-      enabled: '启用状态',
-      icon: '图标',
-      models: '模型',
-      name: '名称'
     }
   },
   settings: {
@@ -688,7 +726,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       picking_doc_model: '文档预选模型',
       presence_penalty: '话题新鲜度',
       presence_penalty_desc: '值越大，越有可能扩展到新话题',
-      reasoning: '推理模式',
+      reasoning: '该模型支持推理模式',
       requestParams: '请求参数',
       temperature: '随机性',
       temperature_desc: '值越大，回复越随机',
@@ -698,14 +736,138 @@ const page: App.I18n.Schema['translation']['page'] = {
       type: '类型'
     },
     search_settings: {
+      title: '搜索设置',
       labels: {
         enabled: '启用状态',
         integration: '组件'
-      },
-      title: '搜索设置'
+      }
     },
     setupLater: '稍后设置'
-  }
+  },
+  webhook: {
+    form: {
+      title: {
+        edit: '编辑 Webhook',
+        new: '新建 Webhook'
+      }
+    },
+    labels: {
+      ai_assistant: 'AI 助手',
+      content_type: 'Content type',
+      datasource: '数据源',
+      file_parse_completed: '文件解析已完成',
+      model_provider: '大模型提供商',
+      name: '名称',
+      payload_url: 'Payload URL',
+      reply_completed: '回复已完成',
+      secret: 'Secret',
+      ssl_verify: 'SSL 验证',
+      sync_completed: '同步完成',
+      test: '测试',
+      test_need_save: '请先保存，再进行测试',
+      triggers: '触发事件'
+    },
+    placeholders: {
+      name: '请输入',
+      payload_url: '请输入',
+      secret: '请输入'
+    }
+  },
+  modelprovider: {
+    labels: {
+      name: '名称',
+      base_url: 'Base URL',
+      description: '描述',
+      api_type: 'API 类型',
+      models: '模型',
+      enabled: '启用状态',
+      icon: '图标',
+      api_key: 'API 密钥',
+      api_key_source: '从 {{model_provider}} 获取 API 密钥',
+      api_key_source_normal: '点击这里获取 API 密钥',
+      builtin: '内置'
+    },
+    delete: {
+      confirm: '您确定要删除这个模型提供商吗?'
+    }
+  },
+  role: {
+    title: '角色',
+    labels: {
+      name: '名称',
+      description: '描述',
+      permission: '权限',
+      object: '操作对象',
+      coco: 'Coco Server',
+      generic: '通用',
+      created: '创建时间'
+    },
+    new: {
+      title: '新增角色'
+    },
+    edit: {
+      title: '编辑角色'
+    },
+    delete: {
+      confirm: `确定要删除角色 "{{name}}" 吗？`
+    }
+  },
+  auth: {
+    title: '授权',
+    labels: {
+      name: '名称',
+      description: '描述',
+      permission: '权限',
+      object: '授权对象',
+      coco: 'Coco Server',
+      user: '人员',
+      team: '团队',
+      userRole: '团队成员角色',
+      teamRole: 'APP 用户角色',
+      roles: '角色',
+      created: '创建时间',
+      auth: '授权',
+      type: '类型'
+    },
+    new: {
+      title: '新增授权'
+    },
+    edit: {
+      title: '编辑授权'
+    },
+    delete: {
+      confirm: `确定要删除授权 "{{name}}" 吗？`
+    }
+  },
+  user: {
+    title: '用户',
+    labels: {
+      name: '姓名',
+      email: '邮箱',
+      roles: '角色',
+      created: '创建时间',
+      password: '密码'
+    },
+    new: {
+      title: '新增用户',
+      copyPassword:
+        '请将此密码保存在安全且易于访问的地方。出于安全原因，你将无法通过用户管理界面再次查看它。如果你丢失了这个密码，可通过编辑用户更新密码。'
+    },
+    edit: {
+      title: '编辑用户'
+    },
+    delete: {
+      confirm: `确定要删除用户 "{{name}}" 吗？`
+    }
+  },
+  search_settings: {
+    labels: {
+      enabled: '启用状态',
+      integration: '组件'
+    },
+    title: '搜索设置'
+  },
+  setupLater: '稍后设置'
 };
 
 export default page;

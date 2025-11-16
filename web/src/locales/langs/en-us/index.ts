@@ -1,6 +1,7 @@
 import common from './common';
 import form from './form';
 import page from './page';
+import permission from './permission';
 import request from './request';
 import route from './route';
 import theme from './theme';
@@ -51,7 +52,8 @@ const local: App.I18n.Schema['translation'] = {
       build_time: "Build Time",
       build_number: "Build Number",
     }
-  }
+  },
+  permission
 };
 
 export default local;
