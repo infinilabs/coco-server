@@ -661,7 +661,11 @@ func processInitialDocumentSearch(ctx *orm.Context, userID string, reqMsg, reply
 
 	//TODO merge the user defined query to filter
 	if params.AssistantCfg.Datasource.Enabled && params.AssistantCfg.Datasource.Filter != nil {
-		log.Debug(params.AssistantCfg.Datasource.Filter)
+		log.Debug("custom filter:", params.AssistantCfg.Datasource.Filter)
+		q := util.MapStr{}
+		q["query"] = params.AssistantCfg.Datasource.Filter
+		builder.SetRequestBodyBytes(util.MustToJSONBytes(q))
+		builder.EnableBodyBytes()
 	}
 
 	if params.QueryIntent != nil && len(params.QueryIntent.Query) > 0 {
