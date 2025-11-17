@@ -188,6 +188,7 @@ export const Neo4jFormConfig = (values: any) => {
   };
 };
 
+// eslint-disable-next-line complexity
 export const MongoDBConfig = (values: any) => {
   const config: any = {
     connection_uri: values.config?.connection_uri || '',
@@ -203,25 +204,37 @@ export const MongoDBConfig = (values: any) => {
     config.sort = values.config.sort;
   }
 
-  if (values.config?.pagination) {
-    config.pagination = true;
+  // Pagination config - always include
+  config.pagination = Boolean(values.config?.pagination);
+  if (config.pagination) {
     config.page_size = values.config?.page_size || 500;
   }
 
   // New nested incremental structure
-  if (values.config?.incremental?.enabled) {
-    config.incremental = {
-      enabled: true,
-      mode: 'property_watermark',
-      property: values.config.incremental.property || '',
-      property_type: values.config.incremental.property_type || 'datetime',
-      tie_breaker: values.config.incremental.tie_breaker || '',
-      resume_from: values.config.incremental.resume_from || ''
-    };
-  }
+  const incremental = values.config?.incremental || {};
+  config.incremental = incremental.enabled
+    ? {
+        enabled: true,
+        mode: 'property_watermark',
+        property: incremental.property || '',
+        property_type: incremental.property_type || 'datetime',
+        tie_breaker: incremental.tie_breaker || '',
+        resume_from: incremental.resume_from || ''
+      }
+    : {
+        enabled: false,
+        mode: '',
+        property: '',
+        property_type: 'datetime',
+        tie_breaker: '',
+        resume_from: ''
+      };
 
+  // Field mapping config - always include
   if (values.config?.field_mapping?.enabled) {
     config.field_mapping = values.config.field_mapping;
+  } else {
+    config.field_mapping = defaultFieldMapping();
   }
 
   return config;

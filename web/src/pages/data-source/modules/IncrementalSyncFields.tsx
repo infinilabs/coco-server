@@ -52,14 +52,14 @@ const IncrementalSyncFields: React.FC<IncrementalSyncFieldsProps> = ({
   return (
     <>
       {/* Incremental Sync Toggle */}
-      <Form.Item
-        label={t(getTranslationKey('labels', 'incremental_sync'), 'Incremental Sync')}
-        tooltip={t(
-          getTranslationKey('tooltip', 'incremental_sync'),
-          'Enable to resume scans from the last seen property value (watermark).'
-        )}
-      >
-        {switchLayout === 'flex' ? (
+      {switchLayout === 'flex' ? (
+        <Form.Item
+          label={t(getTranslationKey('labels', 'incremental_sync'), 'Incremental Sync')}
+          tooltip={t(
+            getTranslationKey('tooltip', 'incremental_sync'),
+            'Enable to resume scans from the last seen property value (watermark).'
+          )}
+        >
           <Flex
             align="center"
             gap="small"
@@ -74,17 +74,21 @@ const IncrementalSyncFields: React.FC<IncrementalSyncFieldsProps> = ({
               <Switch />
             </Form.Item>
           </Flex>
-        ) : (
-          <Form.Item
-            initialValue={false}
-            noStyle
-            name={[...namePrefix, 'incremental', 'enabled']}
-            valuePropName="checked"
-          >
-            <Switch />
-          </Form.Item>
-        )}
-      </Form.Item>
+        </Form.Item>
+      ) : (
+        <Form.Item
+          initialValue={false}
+          label={t(getTranslationKey('labels', 'incremental_sync'), 'Incremental Sync')}
+          name={[...namePrefix, 'incremental', 'enabled']}
+          tooltip={t(
+            getTranslationKey('tooltip', 'incremental_sync'),
+            'Enable to resume scans from the last seen property value (watermark).'
+          )}
+          valuePropName="checked"
+        >
+          <Switch />
+        </Form.Item>
+      )}
 
       {/* Incremental Fields (shown when enabled) */}
       {incrementalEnabled ? (
