@@ -686,6 +686,8 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
             "owner_id": "$[[SETUP_OWNER_ID]]"
           },
   "id" : "gitlab_webhook_receiver",
+    "name" : "Gitlab Webhook（Merge Request）连接器",
+    "description" : "通过 Webhook 来接收来自 Gitlab Merge Requests 来进行代码的自动 Review。",
   "created" : "2025-09-29T00:00:00.000000+08:00",
   "updated" : "2025-09-29T00:00:00.000000+08:00",
     "builtin": true,
