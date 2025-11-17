@@ -66,6 +66,7 @@ const IncrementalSyncFields: React.FC<IncrementalSyncFieldsProps> = ({
           >
             <span>{t(getTranslationKey('labels', 'incremental_sync_enable'), 'Enable Incremental Sync')}</span>
             <Form.Item
+              initialValue={false}
               noStyle
               name={[...namePrefix, 'incremental', 'enabled']}
               valuePropName="checked"
@@ -75,6 +76,7 @@ const IncrementalSyncFields: React.FC<IncrementalSyncFieldsProps> = ({
           </Flex>
         ) : (
           <Form.Item
+            initialValue={false}
             noStyle
             name={[...namePrefix, 'incremental', 'enabled']}
             valuePropName="checked"

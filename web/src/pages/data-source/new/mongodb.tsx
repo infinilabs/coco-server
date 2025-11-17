@@ -165,6 +165,7 @@ const MongoDBForm: React.FC<MongoDBFormProps> = ({ form }) => {
 
       {/* Pagination Section */}
       <Form.Item
+        initialValue={false}
         label={t('page.datasource.mongodb.labels.pagination', 'Enable Pagination')}
         name={['config', 'pagination']}
         tooltip={t('page.datasource.mongodb.tooltip.pagination', 'Enable pagination for large collections')}
@@ -227,6 +228,7 @@ const MongoDBForm: React.FC<MongoDBFormProps> = ({ form }) => {
         >
           <span>{t('page.datasource.mongodb.labels.field_mapping', 'Field Mapping')}</span>
           <Form.Item
+            initialValue={false}
             noStyle
             name={['config', 'field_mapping', 'enabled']}
             valuePropName="checked"
