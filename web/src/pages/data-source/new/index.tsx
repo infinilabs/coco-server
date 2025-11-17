@@ -16,7 +16,7 @@ import { DataSync } from '@/components/datasource/data_sync';
 // @ts-expect-error
 import { Types } from '@/components/datasource/type';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-import OAuthConnect, { OAuthValidationPresets } from '@/components/oauth_connect';
+import OAuthConnect, { OAuthValidationPresets } from '@/pages/data-source/modules/OauthConnect';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-expect-error
 import { IconSelector } from '@/pages/connector/new/icon_selector';
