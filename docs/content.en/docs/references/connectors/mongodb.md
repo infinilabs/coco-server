@@ -55,6 +55,39 @@ The MongoDB connector queries a collection using optional BSON filters, transfor
 
 `Field Mapping`: Optional mapping that aligns document fields with the document schema (`id`, `title`, `content`, metadata, etc.).
 
+#### Authentication
+
+The MongoDB connector requires proper authentication credentials in the connection URI. Here are the common formats:
+
+**Standard MongoDB with authentication:**
+```
+mongodb://username:password@host:port/database?authSource=admin
+```
+
+**MongoDB Atlas (Cloud):**
+```
+mongodb+srv://username:password@cluster.mongodb.net/database
+```
+
+**Common authentication parameters:**
+- `authSource`: Database to authenticate against (often `admin`)
+- `authMechanism`: Authentication mechanism (e.g., `SCRAM-SHA-256`, `SCRAM-SHA-1`)
+- `tls`: Enable TLS/SSL connection (`true` or `false`)
+
+**Example with all auth parameters:**
+```
+mongodb://myUser:myPassword@localhost:27017/myDatabase?authSource=admin&authMechanism=SCRAM-SHA-256
+```
+
+**Troubleshooting authentication errors:**
+1. **"Command find requires authentication"**: Ensure your connection URI includes valid credentials
+2. **Wrong authSource**: Try adding `?authSource=admin` to your connection string
+3. **Permission issues**: Verify the user has `read` permission on the target database:
+   ```javascript
+   // In MongoDB shell
+   db.grantRolesToUser("username", [{role: "read", db: "targetDatabase"}])
+   ```
+
 #### Incremental Sync Fields
 
 MongoDB incremental sync relies on two fields:
@@ -87,7 +120,7 @@ curl -H 'Content-Type: application/json' -XPOST "http://localhost:9000/datasourc
   "connector": {
     "id": "mongodb",
     "config": {
-      "connection_uri": "mongodb://localhost:27017",
+      "connection_uri": "mongodb://username:password@localhost:27017",
       "database": "myapp",
       "collection": "articles",
       "query": "{\"status\": \"published\"}",
@@ -154,7 +187,7 @@ curl -H 'Content-Type: application/json' -XPOST "http://localhost:9000/datasourc
   "connector": {
     "id": "mongodb",
     "config": {
-      "connection_uri": "mongodb+srv://cluster.mongodb.net",
+      "connection_uri": "mongodb+srv://username:password@cluster.mongodb.net/logs",
       "database": "logs",
       "collection": "events",
       "pagination": true,
