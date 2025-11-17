@@ -241,6 +241,10 @@ func BuildDatasourceFilter(userID string, checkingScopeDatasources, directAccess
 			panic(err)
 		}
 
+		if len(datasourceIDs) == 0 {
+			log.Warnf("empty datasource for integration: %v", integrationID)
+		}
+
 		log.Trace("integration:", integrationID, ", datasource:", datasourceIDs, ",has all:", hasAll)
 
 		//finalDatasourceIDs = datasourceIDs
@@ -248,6 +252,10 @@ func BuildDatasourceFilter(userID string, checkingScopeDatasources, directAccess
 			if len(datasourceIDs) > 0 {
 				finalDatasourceIDs = util.StringArrayIntersection(datasourceIDs, finalDatasourceIDs)
 				checkingScopeDatasources = util.StringArrayIntersection(datasourceIDs, checkingScopeDatasources)
+
+				if len(finalDatasourceIDs) == 0 && len(checkingScopeDatasources) == 0 {
+					panic("empty datasource for this integration")
+				}
 			}
 		}
 	}
