@@ -9,12 +9,12 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/andygrunwald/go-jira"
 	log "github.com/cihub/seelog"
-	"infini.sh/coco/modules/common"
+	"infini.sh/coco/core"
 	"infini.sh/coco/plugins/connectors"
 )
 
 // transformToDocument converts a Jira issue into a Document
-func transformToDocument(issue *jira.Issue, ds *common.DataSource, config *Config, includeComments bool) (*common.Document, error) {
+func transformToDocument(issue *jira.Issue, ds *core.DataSource, config *Config, includeComments bool) (*core.Document, error) {
 	if issue == nil || issue.Fields == nil {
 		return nil, fmt.Errorf("invalid issue: nil issue or fields")
 	}
@@ -95,7 +95,7 @@ func transformToDocument(issue *jira.Issue, ds *common.DataSource, config *Confi
 
 	// Set owner (reporter)
 	if issue.Fields.Reporter != nil {
-		doc.Owner = &common.UserInfo{
+		doc.Owner = &core.UserInfo{
 			UserName: issue.Fields.Reporter.DisplayName,
 			UserID:   issue.Fields.Reporter.AccountID,
 		}
@@ -129,7 +129,7 @@ func transformToDocument(issue *jira.Issue, ds *common.DataSource, config *Confi
 }
 
 // transformAttachmentToDocument converts a Jira attachment into a Document
-func transformAttachmentToDocument(issue *jira.Issue, attachment *jira.Attachment, ds *common.DataSource, config *Config) (*common.Document, error) {
+func transformAttachmentToDocument(issue *jira.Issue, attachment *jira.Attachment, ds *core.DataSource, config *Config) (*core.Document, error) {
 	if attachment == nil {
 		return nil, fmt.Errorf("invalid attachment: nil")
 	}
@@ -165,7 +165,7 @@ func transformAttachmentToDocument(issue *jira.Issue, attachment *jira.Attachmen
 
 	// Set owner (attachment author)
 	if attachment.Author != nil {
-		doc.Owner = &common.UserInfo{
+		doc.Owner = &core.UserInfo{
 			UserName: attachment.Author.DisplayName,
 			UserID:   attachment.Author.AccountID,
 		}

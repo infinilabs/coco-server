@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	log "github.com/cihub/seelog"
-	"infini.sh/coco/modules/common"
+	"infini.sh/coco/core"
 	cmn "infini.sh/coco/plugins/connectors/common"
 	"infini.sh/framework/core/config"
 	"infini.sh/framework/core/global"
@@ -39,7 +39,7 @@ func (p *Plugin) Name() string {
 }
 
 // Fetch implements the main data fetching logic for Jira
-func (p *Plugin) Fetch(ctx *pipeline.Context, connector *common.Connector, datasource *common.DataSource) error {
+func (p *Plugin) Fetch(ctx *pipeline.Context, connector *core.Connector, datasource *core.DataSource) error {
 	scanCtx := context.Background()
 
 	// Parse configuration
@@ -126,7 +126,7 @@ func (p *Plugin) Fetch(ctx *pipeline.Context, connector *common.Connector, datas
 			}
 
 			// Collect the document
-			p.BatchCollect(ctx, connector, datasource, []common.Document{*doc})
+			p.BatchCollect(ctx, connector, datasource, []core.Document{*doc})
 
 			totalFetched++
 
@@ -143,7 +143,7 @@ func (p *Plugin) Fetch(ctx *pipeline.Context, connector *common.Connector, datas
 						continue
 					}
 
-					p.BatchCollect(ctx, connector, datasource, []common.Document{*attachDoc})
+					p.BatchCollect(ctx, connector, datasource, []core.Document{*attachDoc})
 				}
 			}
 
