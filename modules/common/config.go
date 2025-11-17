@@ -17,13 +17,13 @@ import (
 )
 
 var (
-	config   *Config
+	config   *core.Config
 	configMu sync.Mutex
 )
 
-func AppConfigFromFile() (*Config, error) {
-	cocoConfig := Config{
-		ServerInfo: &ServerInfo{Version: Version{Number: global.Env().GetVersion()}, Updated: time.Now()},
+func AppConfigFromFile() (*core.Config, error) {
+	cocoConfig := core.Config{
+		ServerInfo: &core.ServerInfo{Version: core.Version{Number: global.Env().GetVersion()}, Updated: time.Now()},
 	}
 
 	ok, err := env.ParseConfig("coco", &cocoConfig)
@@ -34,7 +34,7 @@ func AppConfigFromFile() (*Config, error) {
 	return &cocoConfig, nil
 }
 
-func AppConfig() Config {
+func AppConfig() core.Config {
 
 	if config == nil {
 		reloadConfig()
@@ -62,56 +62,57 @@ func reloadConfig() {
 	}
 
 	if config == nil {
-		config = &Config{}
+		config = &core.Config{}
 	}
 	//read settings from kv
 	buf, _ := kv.GetValue(core.DefaultSettingBucketKey, []byte(core.DefaultServerConfigKey))
 	if buf != nil {
-		si := &ServerInfo{
+		si := &core.ServerInfo{
 			Store: config.ServerInfo.Store, // preserve existing store config
 		}
 		err := util.FromJSONBytes(buf, si)
 		if err == nil {
 			config.ServerInfo = si
-			config.ServerInfo.Version = Version{global.Env().GetVersion()}
+			config.ServerInfo.Version = core.Version{global.Env().GetVersion()}
 		}
-	}
-	buf, _ = kv.GetValue(core.DefaultSettingBucketKey, []byte(core.DefaultAppSettingsKey))
-	if buf != nil {
-		appSettings := &AppSettings{}
-		err := util.FromJSONBytes(buf, appSettings)
-		if err == nil {
-			config.AppSettings = appSettings
-		}
-	}
-	buf, _ = kv.GetValue(core.DefaultSettingBucketKey, []byte(core.DefaultSearchSettingsKey))
-	if buf != nil {
-		searchSettings := &SearchSettings{}
-		err := util.FromJSONBytes(buf, searchSettings)
-		if err == nil {
-			config.SearchSettings = searchSettings
-		}
-	}
-
-	filebasedConfig, _ := AppConfigFromFile()
-	if filebasedConfig != nil {
-		//protect fields on managed mode
-		if filebasedConfig.ServerInfo != nil {
-			if global.Env().SystemConfig.WebAppConfig.Security.Managed {
-				config.ServerInfo.Managed = global.Env().SystemConfig.WebAppConfig.Security.Managed
-				config.ServerInfo.AuthProvider = filebasedConfig.ServerInfo.AuthProvider
-				config.ServerInfo.Provider = filebasedConfig.ServerInfo.Provider
-				config.ServerInfo.Endpoint = filebasedConfig.ServerInfo.Endpoint
-				config.ServerInfo.Public = filebasedConfig.ServerInfo.Public
-				config.ServerInfo.Version = filebasedConfig.ServerInfo.Version
+		buf, _ = kv.GetValue(core.DefaultSettingBucketKey, []byte(core.DefaultAppSettingsKey))
+		if buf != nil {
+			appSettings := &core.AppSettings{}
+			err := util.FromJSONBytes(buf, appSettings)
+			if err == nil {
+				config.AppSettings = appSettings
 			}
+		}
+		buf, _ = kv.GetValue(core.DefaultSettingBucketKey, []byte(core.DefaultSearchSettingsKey))
+		if buf != nil {
+			searchSettings := &core.SearchSettings{}
+			err := util.FromJSONBytes(buf, searchSettings)
+			if err == nil {
+				config.SearchSettings = searchSettings
+			}
+		}
 
-			config.ServerInfo.EncodeIconToBase64 = filebasedConfig.ServerInfo.EncodeIconToBase64
+		filebasedConfig, _ := AppConfigFromFile()
+		if filebasedConfig != nil {
+			//protect fields on managed mode
+			if filebasedConfig.ServerInfo != nil {
+				if global.Env().SystemConfig.WebAppConfig.Security.Managed {
+					config.ServerInfo.Managed = global.Env().SystemConfig.WebAppConfig.Security.Managed
+					config.ServerInfo.AuthProvider = filebasedConfig.ServerInfo.AuthProvider
+					config.ServerInfo.Provider = filebasedConfig.ServerInfo.Provider
+					config.ServerInfo.Endpoint = filebasedConfig.ServerInfo.Endpoint
+					config.ServerInfo.Public = filebasedConfig.ServerInfo.Public
+					config.ServerInfo.Version = filebasedConfig.ServerInfo.Version
+				}
+
+				config.ServerInfo.EncodeIconToBase64 = filebasedConfig.ServerInfo.EncodeIconToBase64
+				config.ServerInfo.Store = filebasedConfig.ServerInfo.Store
+			}
 		}
 	}
 }
 
-func SetAppConfig(c *Config) {
+func SetAppConfig(c *core.Config) {
 	configMu.Lock()
 	defer configMu.Unlock()
 	//save server's config
@@ -133,34 +134,5 @@ func SetAppConfig(c *Config) {
 	reloadConfig()
 }
 
-type Config struct {
-	ServerInfo     *ServerInfo     `config:"server" json:"server,omitempty"`
-	AppSettings    *AppSettings    `config:"app_settings" json:"app_settings,omitempty"`
-	SearchSettings *SearchSettings `config:"search_settings" json:"search_settings,omitempty"`
-}
-
 const OLLAMA = "ollama"
 const OPENAI = "openai"
-
-type AppSettings struct {
-	Chat *ChatConfig `json:"chat,omitempty" config:"chat" `
-}
-
-type ChatConfig struct {
-	ChatStartPageConfig *ChatStartPageConfig `config:"start_page" json:"start_page,omitempty"`
-}
-
-type ChatStartPageConfig struct {
-	Enabled bool `json:"enabled"`
-	Logo    struct {
-		Light string `json:"light"`
-		Dark  string `json:"dark"`
-	} `json:"logo"`
-	Introduction      string   `json:"introduction"`
-	DisplayAssistants []string `json:"display_assistants"`
-}
-
-type SearchSettings struct {
-	Enabled     bool   `json:"enabled"`
-	Integration string `json:"integration"`
-}

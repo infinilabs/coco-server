@@ -20,6 +20,7 @@ import (
 	"infini.sh/framework/modules/pipeline"
 	"infini.sh/framework/modules/queue"
 	queue2 "infini.sh/framework/modules/queue/disk_queue"
+	"infini.sh/framework/modules/security"
 	"infini.sh/framework/modules/task"
 	"infini.sh/framework/modules/web"
 	_ "infini.sh/framework/plugins"
@@ -54,6 +55,7 @@ func main() {
 
 	if app.Setup(func() {
 		module.RegisterSystemModule(&web.WebModule{})
+		module.RegisterSystemModule(&security.Module{})
 		module.RegisterSystemModule(&api.APIModule{})
 		module.RegisterSystemModule(&elastic.ElasticModule{})
 		module.RegisterUserPlugin(&stats.StatsDModule{})

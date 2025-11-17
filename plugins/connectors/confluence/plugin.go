@@ -8,11 +8,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"infini.sh/coco/core"
 	"net/url"
 	"strings"
 
 	log "github.com/cihub/seelog"
-	"infini.sh/coco/modules/common"
 	cmn "infini.sh/coco/plugins/connectors/common"
 	"infini.sh/framework/core/config"
 	"infini.sh/framework/core/global"
@@ -57,7 +57,7 @@ func (p *Plugin) Name() string {
 	return ConnectorConfluence
 }
 
-func (p *Plugin) Fetch(ctx *pipeline.Context, connector *common.Connector, datasource *common.DataSource) error {
+func (p *Plugin) Fetch(ctx *pipeline.Context, connector *core.Connector, datasource *core.DataSource) error {
 	cfg := Config{}
 	p.MustParseConfig(datasource, &cfg)
 	cfg.Endpoint = strings.TrimRight(cfg.Endpoint, "/")
@@ -99,7 +99,7 @@ func (p *Plugin) Fetch(ctx *pipeline.Context, connector *common.Connector, datas
 	return nil
 }
 
-func (p *Plugin) processContent(ctx *pipeline.Context, scanCtx context.Context, handler *ConfluenceHandler, connector *common.Connector, datasource *common.DataSource, cfg *Config, space string, typeName string) error {
+func (p *Plugin) processContent(ctx *pipeline.Context, scanCtx context.Context, handler *ConfluenceHandler, connector *core.Connector, datasource *core.DataSource, cfg *Config, space string, typeName string) error {
 	req := SearchContentRequest{
 		Limit:  PageSize,
 		Expand: strings.Split(PageExpanded, ","),
@@ -141,7 +141,7 @@ func (p *Plugin) processContent(ctx *pipeline.Context, scanCtx context.Context, 
 			return fmt.Errorf("fetching content failed: %v", err)
 		}
 
-		var docs []common.Document
+		var docs []core.Document
 		for _, content := range res.Results {
 			// Check for global shutdown
 			if global.ShuttingDown() {
@@ -172,9 +172,9 @@ func (p *Plugin) processContent(ctx *pipeline.Context, scanCtx context.Context, 
 }
 
 // transformToDocument converts a Confluence Content object to a common.Document.
-func (p *Plugin) transformToDocument(content *Content, datasource *common.DataSource, cfg *Config) (*common.Document, error) {
-	doc := common.Document{
-		Source: common.DataSourceReference{
+func (p *Plugin) transformToDocument(content *Content, datasource *core.DataSource, cfg *Config) (*core.Document, error) {
+	doc := core.Document{
+		Source: core.DataSourceReference{
 			ID:   datasource.ID,
 			Type: "connector",
 			Name: datasource.Name,

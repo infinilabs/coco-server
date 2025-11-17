@@ -6,10 +6,10 @@ package github
 
 import (
 	"fmt"
+	"infini.sh/coco/core"
 
 	log "github.com/cihub/seelog"
 	_ "github.com/google/go-github/v74/github"
-	"infini.sh/coco/modules/common"
 	cmn "infini.sh/coco/plugins/connectors/common"
 	"infini.sh/framework/core/config"
 	"infini.sh/framework/core/pipeline"
@@ -37,7 +37,7 @@ func (p *Plugin) Name() string {
 	return ConnectorGitHub
 }
 
-func (p *Plugin) Fetch(ctx *pipeline.Context, connector *common.Connector, datasource *common.DataSource) error {
+func (p *Plugin) Fetch(ctx *pipeline.Context, connector *core.Connector, datasource *core.DataSource) error {
 	cfg := Config{}
 	p.MustParseConfig(datasource, &cfg)
 

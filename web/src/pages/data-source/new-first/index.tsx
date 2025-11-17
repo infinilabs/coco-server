@@ -50,10 +50,13 @@ export function Component() {
   }, [queryParams.query]);
 
   const onSearchClick = (query: string) => {
-    setQueryParams({
-      ...queryParams,
-      query,
-      t: new Date().getTime()
+    setQueryParams(oldParams => {
+      return {
+        ...oldParams,
+        from: query === oldParams.query ? oldParams.from: 0,
+        query,
+        t: new Date().valueOf()
+      };
     });
   };
   const onPageChange = (page: number, pageSize: number) => {

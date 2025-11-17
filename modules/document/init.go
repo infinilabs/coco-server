@@ -5,6 +5,7 @@
 package document
 
 import (
+	"infini.sh/coco/core"
 	"infini.sh/framework/core/api"
 	"infini.sh/framework/core/security"
 )
@@ -15,6 +16,9 @@ type APIHandler struct {
 
 const Category = "coco"
 const Resource = "document"
+const Search = "search"
+const Assistant = "assistant"
+const QuickAISearchAction = "quick_ai_access"
 
 func init() {
 	handler := APIHandler{}
@@ -33,4 +37,19 @@ func init() {
 	api.HandleUIMethod(api.DELETE, "/document/:doc_id", handler.deleteDoc, api.RequirePermission(deletePermission))
 	api.HandleUIMethod(api.GET, "/document/_search", handler.searchDocs, api.RequirePermission(searchPermission))
 	api.HandleUIMethod(api.DELETE, "/document/", handler.batchDeleteDoc, api.RequirePermission(deletePermission))
+
+	querySearchPermission := security.GetSimplePermission(Category, Search, string(security.Search))
+	assistantSearchPermission := security.GetSimplePermission(Category, Assistant, string(QuickAISearchAction))
+	security.GetOrInitPermissionKeys(querySearchPermission, assistantSearchPermission)
+	security.AssignPermissionsToRoles(querySearchPermission, core.WidgetRole)
+
+	api.HandleUIMethod(api.OPTIONS, "/query/_search", handler.search, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
+	api.HandleUIMethod(api.GET, "/query/_search", handler.search, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
+	api.HandleUIMethod(api.POST, "/query/_search", handler.search, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
+
+	api.HandleUIMethod(api.GET, "/query/_suggest", handler.suggest, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
+	api.HandleUIMethod(api.OPTIONS, "/query/_suggest", handler.suggest, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
+	api.HandleUIMethod(api.GET, "/query/_recommend", handler.recommend, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
+	api.HandleUIMethod(api.OPTIONS, "/query/_recommend", handler.recommend, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
+
 }

@@ -3,6 +3,7 @@ import Clipboard from 'clipboard';
 
 import { Preview } from './Preview';
 import { isFullscreen } from './EditForm';
+import { FULLSCREEN_TYPES, SEARCHBOX_TYPES } from '../list';
 
 export const InsertCode = memo(props => {
   const { id, type, enabled } = props;
@@ -13,9 +14,9 @@ export const InsertCode = memo(props => {
 
   const mode = useMemo(() => {
     if (isFullscreen(type)) {
-      return ['page', 'modal'].includes(type) ? type :  'page'
+      return FULLSCREEN_TYPES.includes(type) ? type :  FULLSCREEN_TYPES[0]
     } else {
-      return ['embedded', 'floating', 'all'].includes(type) ? type : 'embedded'
+      return SEARCHBOX_TYPES.includes(type) ? type : SEARCHBOX_TYPES[0]
     }
   }, [type])
   const { t } = useTranslation();
@@ -37,7 +38,7 @@ export const InsertCode = memo(props => {
     if (!id || !widgetType) return undefined
     return `<div id="${widgetType}" style="margin: ${mode === 'page' ? '0' : '10px'} 0; outline: none"></div>
 <script type="module" >
-    import { ${widgetType} } from "${window.location.origin}/integration/${id}/widget";
+    import { ${widgetType} } from "${window.location.origin}${window.location.pathname}integration/${id}/widget";
     ${widgetType}({container: "#${widgetType}"});
 </script>`;
   }, [id, widgetType, mode]);
@@ -56,9 +57,9 @@ export const InsertCode = memo(props => {
       style={{ borderColor }}
     >
       <div className="mb-12px text-lg font-bold">{t('page.integration.code.title')}</div>
-      <div className="color-var(--ant-color-text) mb-12px">{t('page.integration.code.desc')}</div>
+      <div className="color-[var(--ant-color-text)] mb-12px">{t('page.integration.code.desc')}</div>
       <pre
-        className="color-var(--ant-color-text) relative rounded-[var(--ant-border-radius)] bg-[var(--ant-color-border)] p-12px"
+        className="color-[var(--ant-color-text)] relative rounded-[var(--ant-border-radius)] bg-[var(--ant-color-border)] p-12px"
         style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}
       >
         {code}

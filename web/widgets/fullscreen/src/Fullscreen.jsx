@@ -5,18 +5,21 @@ import FullscreenModal from './FullscreenModal';
 
 import './ui-search/index.css';
 
+const DARK_MODE_MEDIA_QUERY = '(prefers-color-scheme: dark)'
+
 export default (props) => {
-    const { shadow, id, token, server, enableQueryParams = true } = props;
+    const { shadow, id, server, enableQueryParams = true, parentTheme } = props;
     const [settings, setSettings] = useState()
 
     const { payload = {}, enabled_module = {} } = settings || {}
 
-    async function fetchSettings(server, id, token) {
-        if (!server || !id || !token) return;
+    const [theme, setTheme] = useState(window.matchMedia && window.matchMedia(DARK_MODE_MEDIA_QUERY).matches ? 'dark' : 'light')
+
+    async function fetchSettings(server, id) {
+        if (!server || !id) return;
         fetch(`${server}/integration/${id}`, {
             headers: {
                 'APP-INTEGRATION-ID': id,
-                'X-API-TOKEN': token,
                 'Content-Type': 'application/json',
             },
             method: 'GET',
@@ -39,7 +42,6 @@ export default (props) => {
             method: 'POST',
             headers: {
                 'APP-INTEGRATION-ID': id,
-                'X-API-TOKEN': token,
             },
             credentials: 'include',
             body: shouldAgg ? JSON.stringify({
@@ -84,7 +86,6 @@ export default (props) => {
             const response = await fetch(`${server}/assistant/${assistantID}/_ask`, {
                 headers: {
                     'APP-INTEGRATION-ID': id,
-                    'X-API-TOKEN': token,
                 },
                 method: 'POST',
                 credentials: 'include',
@@ -134,16 +135,40 @@ export default (props) => {
     }
 
     useEffect(() => {
-        fetchSettings(server, id, token);
-    }, [server, id, token]);
+        fetchSettings(server, id);
+    }, [server, id]);
+
+    function onSystemThemeChange(e) {
+        setTheme(e.matches ? 'dark' : 'light')
+    }
+
+    useEffect(() => {
+        const currentTheme = parentTheme || settings?.appearance?.theme
+        if (currentTheme === 'auto') {
+            setTheme(window.matchMedia && window.matchMedia(DARK_MODE_MEDIA_QUERY).matches ? 'dark' : 'light')
+            window.matchMedia(DARK_MODE_MEDIA_QUERY).addEventListener('change', onSystemThemeChange);
+        } else {
+            setTheme(currentTheme)
+        }
+        return () => {
+            if (currentTheme === 'auto') {
+                window.matchMedia(DARK_MODE_MEDIA_QUERY).removeEventListener('change', onSystemThemeChange)
+            }
+        }
+    }, [settings?.appearance?.theme, parentTheme])
 
     const componentProps = {
         ...props,
+        settings,
         id,
         shadow,
+        theme,
+        language: settings?.appearance?.language || 'zh-CN',
         "logo": {
             "light": payload?.logo?.light,
-            "light-mobile": payload?.logo?.light_mobile,
+            "light_mobile": payload?.logo?.light_mobile,
+            "dark": payload?.logo?.dark,
+            "dark_mobile": payload?.logo?.dark_mobile,
         },
         "placeholder": enabled_module?.search?.placeholder,
         "welcome": payload?.welcome || "",
@@ -172,7 +197,7 @@ export default (props) => {
             }
         }
     }
-
+    
     if (settings?.type === 'fullscreen' || settings?.type === 'page') {
         return (
             <FullscreenPage {...componentProps} enableQueryParams={enableQueryParams}/>

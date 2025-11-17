@@ -111,6 +111,13 @@ const defaultModelSettings = {
   max_tokens: 4000,
 }
 export const ModelsComponent = ({ value = [], onChange }: any) => {
+
+  const { hasAuth } = useAuth();
+
+  const permissions = {
+    fetchModelProviders: hasAuth('coco#model_provider/search'),
+  }
+
   const initialValue = useMemo(() => {
     const iv = (value || []).map((v: any) => ({
       value: v,
@@ -140,16 +147,18 @@ export const ModelsComponent = ({ value = [], onChange }: any) => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    getLLMModels().then(({data})=>{
-      if(!data?.error){
-        const newData = formatESSearchResult(data);
-        const models = newData.aggregations.models.buckets.map((item: any)=>{
-          return item.key;
-        });
-        setModels(models);
-      }
-    });
-  }, []);
+    if (permissions.fetchModelProviders) {
+      getLLMModels().then(({data})=>{
+        if(!data?.error){
+          const newData = formatESSearchResult(data);
+          const models = newData.aggregations.models.buckets.map((item: any)=>{
+            return item.key;
+          });
+          setModels(models);
+        }
+      });
+    }
+  }, [permissions.fetchModelProviders]);
 
   const onDeleteClick = (key: string) => {
     const newValues = innerValue.filter((v) => v.key !== key);

@@ -1,6 +1,3 @@
-import { ShoppingBag } from 'lucide-react';
-
-import type { IntegratedStoreModalRef } from '@/components/common/IntegratedStoreModal';
 import LangSwitch from '@/components/stateful/LangSwitch';
 import ThemeSchemaSwitch from '@/components/stateful/ThemeSchemaSwitch';
 import DarkModeContainer from '@/components/stateless/common/DarkModeContainer';
@@ -11,6 +8,7 @@ import GlobalBreadcrumb from '../global-breadcrumb';
 import GlobalLogo from '../global-logo';
 
 import UserAvatar from './components/UserAvatar';
+import Shop from './components/Shop';
 
 interface Props {
   isMobile: boolean;
@@ -45,7 +43,7 @@ const HEADER_PROPS_CONFIG: Record<UnionKey.ThemeLayoutMode, App.Global.HeaderPro
 const GlobalHeader: FC<Props> = memo(({ isMobile, mode, reverse, siderWidth }) => {
   const { showLogo, showMenu, showMenuToggler } = HEADER_PROPS_CONFIG[mode];
 
-  const showToggler = reverse ? true : showMenuToggler;
+  const showToggler = reverse || isMobile ? true : showMenuToggler;
 
   const borderColor = 'var(--ant-color-border)';
 
@@ -54,8 +52,6 @@ const GlobalHeader: FC<Props> = memo(({ isMobile, mode, reverse, siderWidth }) =
   const providerInfo = useAppSelector(getProviderInfo);
 
   const { search_settings } = providerInfo || {};
-
-  const integratedStoreModalRef = useRef<IntegratedStoreModalRef>(null);
 
   return (
     <DarkModeContainer
@@ -80,17 +76,7 @@ const GlobalHeader: FC<Props> = memo(({ isMobile, mode, reverse, siderWidth }) =
       </div>
 
       <div className="h-full flex-y-center justify-end">
-        <ButtonIcon
-          className="px-12px"
-          tooltipContent={t('page.integratedStoreModal.title')}
-          onClick={() => {
-            integratedStoreModalRef.current?.open('ai-assistant');
-          }}
-        >
-          <ShoppingBag className="size-4" />
-        </ButtonIcon>
-
-        <IntegratedStoreModal ref={integratedStoreModalRef} />
+        <Shop />
 
         {search_settings?.enabled && (
           <ButtonIcon

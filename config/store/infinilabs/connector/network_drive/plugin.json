@@ -38,7 +38,7 @@
     "name" : "Network Drive Connector",
     "description" : "Scan and extract metadata from network shared files.",
     "category" : "cloud_storage",
-    "path_hierarchy": true,
+    "path_hierarchy":false,
     "icon" : "/assets/icons/connector/network_drive/icon.png",
     "tags" : [
       "filesystem",

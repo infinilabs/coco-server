@@ -7,13 +7,12 @@ package dispatcher
 import (
 	"fmt"
 	"infini.sh/coco/core"
-	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/pipeline"
 )
 
-func (processor *Dispatcher) syncDatasource(c *common.DataSource) error {
+func (processor *Dispatcher) syncDatasource(c *core.DataSource) error {
 
 	//check datasource and connector's config
 	//create pipeline based sub tasks
@@ -22,7 +21,7 @@ func (processor *Dispatcher) syncDatasource(c *common.DataSource) error {
 
 	ctx := orm.NewContext()
 	ctx.DirectReadAccess()
-	connector := common.Connector{}
+	connector := core.Connector{}
 	connector.ID = c.Connector.ConnectorID
 	exists, err := orm.GetV2(ctx, &connector)
 

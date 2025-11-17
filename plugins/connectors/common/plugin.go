@@ -8,12 +8,12 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"infini.sh/coco/core"
 	"time"
 
 	"infini.sh/framework/core/orm"
 
 	log "github.com/cihub/seelog"
-	"infini.sh/coco/modules/common"
 	"infini.sh/coco/plugins/connectors"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/util"
@@ -26,12 +26,12 @@ const (
 type Scanner struct {
 	Name       string
 	DriverName string
-	Connector  *common.Connector
-	Datasource *common.DataSource
+	Connector  *core.Connector
+	Datasource *core.DataSource
 
 	// CollectFunc is called to collect each document (replaces direct queue.Push)
 	// This allows using the ConnectorProcessorBase.Collect() method
-	CollectFunc func(doc common.Document) error
+	CollectFunc func(doc core.Document) error
 
 	// SqlWithLastModified used to query incremental data
 	SqlWithLastModified func(baseQuery string, lastSyncField string) string
@@ -276,9 +276,9 @@ func (s *Scanner) scanRowToMap(rows *sql.Rows, columns []string) (map[string]int
 }
 
 // transformRowToDocument converts a database row (as a map) to a common.Document using field mappings.
-func (s *Scanner) transformRowToDocument(rowMap map[string]interface{}, cfg *Config) (*common.Document, error) {
-	doc := &common.Document{
-		Source: common.DataSourceReference{
+func (s *Scanner) transformRowToDocument(rowMap map[string]interface{}, cfg *Config) (*core.Document, error) {
+	doc := &core.Document{
+		Source: core.DataSourceReference{
 			ID:   s.Datasource.ID,
 			Type: "connector",
 			Name: s.Datasource.Name,
@@ -320,7 +320,7 @@ func (s *Scanner) GetLastSyncValue(datasourceID string) (*time.Time, error) {
 		Value:     []interface{}{datasourceID},
 	}
 
-	var results []common.Document
+	var results []core.Document
 
 	err, _ = orm.SearchWithJSONMapper(&results, &q)
 	if err != nil {

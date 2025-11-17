@@ -1,5 +1,5 @@
 import type { FormProps } from 'antd';
-import { Button, Form, Input, Spin, Switch, message } from 'antd';
+import { Button, Form, Input, Spin, Switch, Typography, message } from 'antd';
 import { useForm } from 'antd/es/form/Form';
 import { useEffect, useState } from 'react';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -50,6 +50,15 @@ export function Component() {
     id: datasourceID
   });
   const [form] = useForm();
+
+  const [webhookEnabled, setWebhookEnabled] = useState(false)
+  const webhookUrl = useMemo(() => {
+    return datasourceID ? `${window.location.origin}${window.location.pathname}webhooks/${datasourceID}` : ''
+  }, [datasourceID])
+
+  useEffect(() => {
+    setWebhookEnabled(datasource?.webhook?.enabled)
+  }, [datasource?.webhook?.enabled])
 
   useEffect(() => {
     if (!datasourceID) return;
@@ -103,7 +112,8 @@ export function Component() {
             interval: datasource?.sync?.interval || '1h'
           },
           raw_config: datasource?.connector?.config? JSON.stringify(datasource?.connector?.config,null,4) : undefined,
-          urls: datasource?.connector?.config?.urls || ['']
+          urls: datasource?.connector?.config?.urls || [''],
+          enrichment_pipeline: datasource?.enrichment_pipeline ? JSON.stringify(datasource?.enrichment_pipeline, null,2) : ''
         });
       }
     });
@@ -117,7 +127,7 @@ export function Component() {
     });
   }, []);
   const copyRef = useRef<HTMLSpanElement | null>(null);
-  const insertDocCmd = `curl -H'X-API-TOKEN: REPLACE_YOUR_API_TOKEN_HERE'  -H 'Content-Type: application/json' -XPOST ${location.origin}/datasource/${datasourceID}/_doc -d'
+  const insertDocCmd = `curl -H'X-API-TOKEN: REPLACE_YOUR_API_TOKEN_HERE'  -H 'Content-Type: application/json' -XPOST ${window.location.origin}${window.location.pathname}datasource/${datasourceID}/_doc -d'
   {
     "title": "I am just a Coco doc that you can search",
     "summary": "Nothing but great start",
@@ -245,6 +255,14 @@ export function Component() {
         break;
       }
     }
+    if(values.enrichment_pipeline) {
+      try {
+        values.enrichment_pipeline = JSON.parse(values.enrichment_pipeline);
+      }catch (e) {
+        message.error("invalid enrichment pipeline JSON format");
+        return;
+      }
+    }
     const sValues = {
       connector: {
         config: {
@@ -263,7 +281,9 @@ export function Component() {
         strategy: values.sync_config?.strategy || 'interval',
         interval: values.sync_config?.interval || '1h'
       },
-      type: 'connector'
+      type: 'connector',
+       webhook: values.webhook,
+      enrichment_pipeline: values.enrichment_pipeline || null
     };
     updateDatasource(datasourceID, sValues).then(res => {
       if (res.data?.result === 'updated') {
@@ -440,6 +460,30 @@ export function Component() {
                 type="connector"
               />
             </Form.Item>
+            <Form.Item
+                label={t('page.datasource.new.labels.webhook')}
+                name={["webhook", "enabled"]}
+              >
+                <Switch onChange={(checked) => setWebhookEnabled(checked)}/>
+              </Form.Item>
+              {
+                webhookEnabled && (
+                  <Form.Item label={`Webhook Url`}>
+                    <Typography.Text 
+                      className="color-[var(--ant-color-text)] rounded-[var(--ant-border-radius)] bg-[var(--ant-color-border)] p-12px"
+                      style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}
+                      copyable
+                    >{webhookUrl}</Typography.Text>
+                  </Form.Item>
+                )
+              }
+               <Form.Item
+                label={t('page.datasource.new.labels.enrichment_pipeline')}
+                name="enrichment_pipeline"
+                tooltip={t('page.connector.new.tooltip.config', 'Configurations in JSON format.')}
+              >
+               <Input.TextArea autoSize={{ maxRows: 30, minRows: 2 }} />
+              </Form.Item>
 
             {!isCustom ? (
               <>
@@ -515,6 +559,14 @@ export function Component() {
                 </Form.Item>
               </>
             )}
+
+            {/* <Form.Item
+              label={t('page.datasource.new.labels.permission_sync_enabled')}
+              name={['sync_config', 'enabled']}
+              valuePropName="checked"
+            >
+              <Switch size="small" />
+            </Form.Item> */}
 
             <Form.Item
               label={t('page.datasource.new.labels.sync_enabled')}

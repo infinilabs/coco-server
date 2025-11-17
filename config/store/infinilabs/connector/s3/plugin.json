@@ -37,7 +37,7 @@
     "name" : "S3 Storage Connector",
     "description" : "Fetch S3 Storage objects metadata.",
     "category" : "cloud_storage",
-    "path_hierarchy": true,
+    "path_hierarchy":false,
     "icon" : "/assets/icons/connector/s3/icon.png",
     "tags" : [
       "s3",

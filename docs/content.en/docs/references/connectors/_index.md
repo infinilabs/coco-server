@@ -48,7 +48,7 @@ curl  -H 'Content-Type: application/json'   -XPOST http://localhost:9000/connect
 
 ### Update a Connector
 ```shell
-curl -XPUT http://localhost:9000/connector/cu0caqt3q95r66at41o0?replace=true -d '{
+curl -XPUT http://localhost:9000/connector/cu0caqt3q95r66at41o0  -d '{
     "name": "Hugo Site Connector",
     "description": "Fetch the index.json file from a specified Hugo site.",
     "icon": "http://coco.infini.cloud/assets/hugo.png",

@@ -7,7 +7,7 @@ weight: 50
 ## Register PostgreSQL Connector
 
 ```shell
-curl -XPUT "http://localhost:9000/connector/postgresql?replace=true" -d '{
+curl -XPOST "http://localhost:9000/connector/" -d '{
   "name": "PostgreSQL Connector",
   "description": "Fetch data from PostgreSQL database.",
   "category": "database",
@@ -30,7 +30,6 @@ curl -XPUT "http://localhost:9000/connector/postgresql?replace=true" -d '{
 }'
 ```
 
-> Use `postgresql` as a unique identifier, as it is a builtin connector.
 
 ## Use the PostgreSQL Connector
 

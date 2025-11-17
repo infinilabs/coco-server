@@ -34,7 +34,6 @@ export async function searchbox(options) {
       container: wrapper,
       id: "$[[ID]]",
       server: "$[[ENDPOINT]]",
-      token: "$[[TOKEN]]",
       linkHref
     };
 

@@ -28,6 +28,7 @@ function createProxyItem(item: App.Service.ServiceConfigItem) {
   const proxy: Record<string, ProxyOptions> = {};
 
   proxy[item.proxyPattern] = {
+    secure: false,
     changeOrigin: true,
     rewrite: path =>
       path?.replace(new RegExp(`^${item.proxyPattern}`), item.key?.startsWith('/') ? item.proxyPattern : ''),

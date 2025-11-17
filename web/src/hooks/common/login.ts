@@ -15,7 +15,7 @@ export function useLogin() {
 
   const dispatch = useAppDispatch();
 
-  async function toLogin(params: { password: string; userName: string }, redirect = true, onSuccess: () => void = () => {}) {
+  async function toLogin(params: { password: string; email: string }, redirect = true, onSuccess: () => void = () => {}) {
     startLoading();
     dispatch(login(params)).then(async (result) => {
       if (result.payload) {

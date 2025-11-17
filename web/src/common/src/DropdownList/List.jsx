@@ -134,7 +134,9 @@ const List = (props) => {
 
   useEffect(() => {
     if (inputRef.current && visible) {
-      inputRef.current.focus();
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 200);
     }
   }, [visible, inputRef]);
 
@@ -159,7 +161,7 @@ const List = (props) => {
   const isCheckAll = useMemo(() => {
     if (!isMultiple) return false;
     if (isMultiple) {
-      if (value?.length === 0) {
+      if (!value || value?.length === 0) {
         return false;
       }
       if (

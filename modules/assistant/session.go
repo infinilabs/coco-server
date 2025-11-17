@@ -8,6 +8,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"infini.sh/coco/core"
+	"infini.sh/framework/core/security"
 	"net/http"
 	"sync"
 
@@ -24,7 +26,7 @@ import (
 func (h APIHandler) getSession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("session_id")
 
-	obj := common.Session{}
+	obj := core.Session{}
 	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
 
@@ -47,7 +49,7 @@ func (h APIHandler) getSession(w http.ResponseWriter, req *http.Request, ps http
 func (h APIHandler) deleteSession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("session_id")
 
-	obj := common.Session{}
+	obj := core.Session{}
 	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
 
@@ -70,7 +72,7 @@ func (h APIHandler) deleteSession(w http.ResponseWriter, req *http.Request, ps h
 	builder.Filter(orm.TermQuery("session_id", id))
 
 	ctx1 := orm.NewContextWithParent(req.Context())
-	orm.WithModel(ctx1, &common.ChatMessage{})
+	orm.WithModel(ctx1, &core.ChatMessage{})
 
 	_, err = orm.DeleteByQuery(ctx1, builder)
 	if err != nil {
@@ -90,7 +92,7 @@ func (h APIHandler) deleteSession(w http.ResponseWriter, req *http.Request, ps h
 
 func (h APIHandler) updateSession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("session_id")
-	obj := common.Session{}
+	obj := core.Session{}
 	var err error
 	err = h.DecodeJSON(req, &obj)
 	if err != nil {
@@ -98,7 +100,7 @@ func (h APIHandler) updateSession(w http.ResponseWriter, req *http.Request, ps h
 		return
 	}
 
-	previousObj := common.Session{}
+	previousObj := core.Session{}
 	previousObj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
 
@@ -145,7 +147,7 @@ func (h APIHandler) updateSession(w http.ResponseWriter, req *http.Request, ps h
 
 func (h APIHandler) getChatSessions(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
-	builder, err := orm.NewQueryBuilderFromRequest(req, "title", "summary")
+	builder, err := orm.NewQueryBuilderFromRequest(req, "title", "title.pinyin", "summary")
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -159,7 +161,7 @@ func (h APIHandler) getChatSessions(w http.ResponseWriter, req *http.Request, ps
 	builder.Not(orm.TermQuery("visible", false))
 
 	ctx := orm.NewContextWithParent(req.Context())
-	orm.WithModel(ctx, &common.Session{})
+	orm.WithModel(ctx, &core.Session{})
 
 	res, err := orm.SearchV2(ctx, builder)
 	if err != nil {
@@ -176,6 +178,7 @@ func (h APIHandler) getChatSessions(w http.ResponseWriter, req *http.Request, ps
 
 func (h APIHandler) createChatSession(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	id := h.GetParameterOrDefault(r, "assistant_id", DefaultAssistantID)
+	userInfo := security.MustGetUserFromRequest(r)
 
 	assistant, exists, err := common.GetAssistant(r, id)
 	if !exists || err != nil {
@@ -186,7 +189,7 @@ func (h APIHandler) createChatSession(w http.ResponseWriter, r *http.Request, ps
 	//launch the LLM task
 	//streaming output result to HTTP client
 
-	var request common.MessageRequest
+	var request core.MessageRequest
 	if err := h.DecodeJSON(r, &request); err != nil {
 		//error can be ignored, since older app version didn't have this option
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -237,18 +240,22 @@ func (h APIHandler) createChatSession(w http.ResponseWriter, r *http.Request, ps
 		SessionID:  session.ID,
 		CancelFunc: cancel,
 	})
-	_ = h.processMessageAsync(ctx, reqMsg, params, streamSender)
+	_ = processMessageAsync(orm.NewContextWithParent(ctx), userInfo.MustGetUserID(), reqMsg, params, streamSender)
 }
 
-func CreateAndSaveNewChatMessage(request *http.Request, assistantID string, req *common.MessageRequest, visible bool) (common.Session, error, *common.ChatMessage, util.MapStr) {
+func CreateAndSaveNewChatMessage(request *http.Request, assistantID string, req *core.MessageRequest, visible bool) (core.Session, error, *core.ChatMessage, util.MapStr) {
+	ctx := orm.NewContextWithParent(request.Context())
+	return InternalCreateAndSaveNewChatMessage(ctx, assistantID, req, visible)
+}
+
+func InternalCreateAndSaveNewChatMessage(ctx *orm.Context, assistantID string, req *core.MessageRequest, visible bool) (core.Session, error, *core.ChatMessage, util.MapStr) {
 
 	//if !rate.GetRateLimiterPerSecond("assistant_new_chat", clientIdentity, 10).Allow() {
 	//	panic("too many requests")
 	//}
-	ctx := orm.NewContextWithParent(request.Context())
 	ctx.Refresh = orm.WaitForRefresh
 
-	obj := common.Session{
+	obj := core.Session{
 		Status:  "active",
 		Visible: visible,
 	}
@@ -260,7 +267,7 @@ func CreateAndSaveNewChatMessage(request *http.Request, assistantID string, req 
 	//save session
 	err := orm.Create(ctx, &obj)
 	if err != nil {
-		return common.Session{}, err, nil, nil
+		return core.Session{}, err, nil, nil
 	}
 
 	result := util.MapStr{
@@ -269,12 +276,12 @@ func CreateAndSaveNewChatMessage(request *http.Request, assistantID string, req 
 		"_source": obj,
 	}
 
-	var firstMessage *common.ChatMessage
+	var firstMessage *core.ChatMessage
 	//save first message to history
 	if req != nil && !req.IsEmpty() {
 		firstMessage, err = saveRequestMessage(ctx, obj.ID, assistantID, req)
 		if err != nil {
-			return common.Session{}, err, nil, nil
+			return core.Session{}, err, nil, nil
 		}
 		result["payload"] = firstMessage
 	}
@@ -291,10 +298,12 @@ func (h *APIHandler) askAssistant(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
+	userInfo := security.MustGetUserFromRequest(r)
+
 	//launch the LLM task
 	//streaming output result to HTTP client
 
-	var request common.MessageRequest
+	var request core.MessageRequest
 	if err := h.DecodeJSON(r, &request); err != nil {
 		//error can be ignored, since older app version didn't have this option
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -337,20 +346,20 @@ func (h *APIHandler) askAssistant(w http.ResponseWriter, r *http.Request, ps htt
 		Flusher: flusher,
 		Ctx:     r.Context(), // assuming this is in an HTTP handler
 	}
-	_ = h.processMessageAsync(ctx, reqMsg, params, streamSender)
+	_ = processMessageAsync(orm.NewContextWithParent(ctx), userInfo.MustGetUserID(), reqMsg, params, streamSender)
 
 }
 
-func saveRequestMessage(ctx *orm.Context, sessionID, assistantID string, req *common.MessageRequest) (*common.ChatMessage, error) {
+func saveRequestMessage(ctx *orm.Context, sessionID, assistantID string, req *core.MessageRequest) (*core.ChatMessage, error) {
 
 	if sessionID == "" || assistantID == "" || req.IsEmpty() {
 		panic("invalid chat message")
 	}
 
-	msg := &common.ChatMessage{
+	msg := &core.ChatMessage{
 		SessionID:   sessionID,
 		AssistantID: assistantID,
-		MessageType: common.MessageTypeUser,
+		MessageType: core.MessageTypeUser,
 		Message:     req.Message,
 		Attachments: req.Attachments,
 	}
@@ -367,7 +376,7 @@ func saveRequestMessage(ctx *orm.Context, sessionID, assistantID string, req *co
 func (h APIHandler) openChatSession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("session_id")
 
-	obj := common.Session{}
+	obj := core.Session{}
 	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
 
@@ -401,13 +410,13 @@ func (h APIHandler) openChatSession(w http.ResponseWriter, req *http.Request, ps
 
 }
 
-func getChatHistoryBySessionInternal(sessionID string, size int) ([]common.ChatMessage, error) {
+func getChatHistoryBySessionInternal(sessionID string, size int) ([]core.ChatMessage, error) {
 	q := orm.Query{}
 	q.Conds = orm.And(orm.Eq("session_id", sessionID))
 	q.From = 0
 	q.Size = size
 	q.AddSort("created", orm.DESC)
-	docs := []common.ChatMessage{}
+	docs := []core.ChatMessage{}
 	err, _ := orm.SearchWithJSONMapper(&docs, &q)
 	if err != nil {
 		return nil, err
@@ -416,19 +425,29 @@ func getChatHistoryBySessionInternal(sessionID string, size int) ([]common.ChatM
 }
 
 func (h APIHandler) getChatHistoryBySession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	q := orm.Query{}
-	q.Conds = orm.And(orm.Eq("session_id", ps.MustGetParameter("session_id")))
-	q.From = h.GetIntOrDefault(req, "from", 0)
-	q.Size = h.GetIntOrDefault(req, "size", 20)
-	q.AddSort("created", orm.ASC)
-
-	err, res := orm.Search(&common.ChatMessage{}, &q)
+	builder, err := orm.NewQueryBuilderFromRequest(req, "message")
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	_, err = h.Write(w, res.Raw)
+	if builder.SizeVal() == 0 {
+		builder.Size(20)
+	}
+
+	builder.SortBy(orm.Sort{Field: "created", SortType: orm.ASC})
+	builder.Must(orm.TermQuery("session_id", ps.MustGetParameter("session_id")))
+
+	ctx := orm.NewContextWithParent(req.Context())
+	orm.WithModel(ctx, &core.ChatMessage{})
+
+	res, err := orm.SearchV2(ctx, builder)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	_, err = h.Write(w, res.Payload.([]byte))
 	if err != nil {
 		h.Error(w, err)
 	}
@@ -471,6 +490,7 @@ func (h APIHandler) cancelReplyMessage(w http.ResponseWriter, req *http.Request,
 
 func (h APIHandler) sendChatMessageV2(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	sessionID := ps.MustGetParameter("session_id")
+	userInfo := security.MustGetUserFromRequest(r)
 
 	ormCtx := orm.NewContextWithParent(r.Context())
 	ormCtx.Refresh = orm.WaitForRefresh
@@ -486,7 +506,7 @@ func (h APIHandler) sendChatMessageV2(w http.ResponseWriter, r *http.Request, ps
 	//launch the LLM task
 	//streaming output result to HTTP client
 
-	var request common.MessageRequest
+	var request core.MessageRequest
 	if err := h.DecodeJSON(r, &request); err != nil {
 		//error can be ignored, since older app version didn't have this option
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -537,7 +557,7 @@ func (h APIHandler) sendChatMessageV2(w http.ResponseWriter, r *http.Request, ps
 		SessionID:  sessionID,
 		CancelFunc: cancel,
 	})
-	_ = h.processMessageAsync(ctx, reqMsg, params, streamSender)
+	_ = processMessageAsync(orm.NewContextWithParent(ctx), userInfo.MustGetUserID(), reqMsg, params, streamSender)
 
 }
 
@@ -551,7 +571,7 @@ func getReplyMessageTaskID(sessionID, messageID string) string {
 func (h APIHandler) closeChatSession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
 	id := ps.MustGetParameter("session_id")
-	obj := common.Session{}
+	obj := core.Session{}
 	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
 

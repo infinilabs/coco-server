@@ -7,7 +7,7 @@ weight: 30
 ## Register Network Drive Connector
 
 ```shell
-curl -XPUT "http://localhost:9000/connector/network_drive?replace=true" -d '{
+curl -XPOST "http://localhost:9000/connector/" -d '{
   "name": "Network Drive Connector",
   "description": "Scan and extract metadata from network shared files.",
   "category": "cloud_storage",
@@ -29,8 +29,6 @@ curl -XPUT "http://localhost:9000/connector/network_drive?replace=true" -d '{
   }
 }'
 ```
-
-> Use `network_drive` as a unique identifier, as it is a builtin connector.
 
 ## Use the Network Drive Connector
 

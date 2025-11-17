@@ -6,12 +6,12 @@ package rss
 
 import (
 	"fmt"
+	"infini.sh/coco/core"
 	cmn "infini.sh/coco/plugins/connectors/common"
 	"infini.sh/framework/core/pipeline"
 
 	log "github.com/cihub/seelog"
 	"github.com/mmcdole/gofeed"
-	"infini.sh/coco/modules/common"
 	config3 "infini.sh/framework/core/config"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/util"
@@ -25,7 +25,7 @@ type Config struct {
 }
 
 // Fetch handles the logic of fetching, parsing, and indexing a single RSS feed.
-func (p *Plugin) Fetch(pipeCtx *pipeline.Context, connector *common.Connector, datasource *common.DataSource) error {
+func (p *Plugin) Fetch(pipeCtx *pipeline.Context, connector *core.Connector, datasource *core.DataSource) error {
 	config := Config{}
 	p.MustParseConfig(datasource, &config)
 
@@ -51,8 +51,8 @@ func (p *Plugin) Fetch(pipeCtx *pipeline.Context, connector *common.Connector, d
 				break
 			}
 
-			doc := common.Document{
-				Source: common.DataSourceReference{
+			doc := core.Document{
+				Source: core.DataSourceReference{
 					ID:   datasource.ID,
 					Type: "connector",
 					Name: datasource.Name,
@@ -73,7 +73,7 @@ func (p *Plugin) Fetch(pipeCtx *pipeline.Context, connector *common.Connector, d
 			}
 
 			if len(item.Authors) > 0 {
-				doc.Owner = &common.UserInfo{
+				doc.Owner = &core.UserInfo{
 					UserName: item.Authors[0].Name,
 				}
 			}

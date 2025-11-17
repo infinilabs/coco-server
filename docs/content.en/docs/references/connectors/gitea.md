@@ -7,7 +7,7 @@ weight: 62
 ## Register Gitea Connector
 
 ```shell
-curl -XPUT "http://localhost:9000/connector/gitea?replace=true" -d '{
+curl -XPOST "http://localhost:9000/connector/" -d '{
   "name": "Gitea Connector",
   "description": "Fetch repositories, issues, pull requests, and wikis from Gitea.",
   "icon": "/assets/icons/connector/gitea/icon.png",
@@ -34,7 +34,6 @@ curl -XPUT "http://localhost:9000/connector/gitea?replace=true" -d '{
 }'
 ```
 
-> Use `gitea` as a unique identifier, as it is a builtin connector.
 
 ## Use the Gitea Connector
 

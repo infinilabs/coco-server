@@ -37,7 +37,7 @@
     "name" : "Local Filesystem Connector",
     "description" : "Scan and fetch metadata from local files.",
     "category" : "local_storage",
-    "path_hierarchy": true,
+    "path_hierarchy":false,
     "icon" : "/assets/icons/connector/local_fs/icon.png",
     "tags" : [
       "storage",

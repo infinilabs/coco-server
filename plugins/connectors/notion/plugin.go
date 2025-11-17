@@ -7,13 +7,13 @@ package notion
 import (
 	"encoding/json"
 	"fmt"
+	"infini.sh/coco/core"
 	cmn "infini.sh/coco/plugins/connectors/common"
 	"infini.sh/framework/core/pipeline"
 	"strings"
 	"time"
 
 	log "github.com/cihub/seelog"
-	"infini.sh/coco/modules/common"
 	config3 "infini.sh/framework/core/config"
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/util"
@@ -47,7 +47,7 @@ func (processor *Plugin) Name() string {
 	return Name
 }
 
-func (this *Plugin) Fetch(pipeCtx *pipeline.Context, connector *common.Connector, datasource *common.DataSource) error {
+func (this *Plugin) Fetch(pipeCtx *pipeline.Context, connector *core.Connector, datasource *core.DataSource) error {
 	cfg := Config{}
 	this.MustParseConfig(datasource, &cfg)
 
@@ -57,7 +57,7 @@ func (this *Plugin) Fetch(pipeCtx *pipeline.Context, connector *common.Connector
 		// Process the current page's results here
 		for i, res := range result.Results {
 			// Process individual result
-			doc := common.Document{Source: common.DataSourceReference{ID: datasource.ID, Type: "connector", Name: datasource.Name}}
+			doc := core.Document{Source: core.DataSourceReference{ID: datasource.ID, Type: "connector", Name: datasource.Name}}
 
 			doc.Created = &res.Created
 			doc.Created = &res.Updated

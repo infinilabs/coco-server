@@ -1,6 +1,9 @@
 # model provider
 POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/deepseek
 {
+ "_system": {
+            "owner_id": "$[[SETUP_OWNER_ID]]"
+          },
   "id" : "deepseek",
   "created" : "2025-03-28T10:25:39.7741+08:00",
   "updated" : "2025-03-28T11:14:47.103278+08:00",
@@ -20,6 +23,9 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
 
 POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/openai
 {
+ "_system": {
+            "owner_id": "$[[SETUP_OWNER_ID]]"
+          },
   "id" : "openai",
   "created" : "2025-03-28T10:24:37.843478+08:00",
   "updated" : "2025-03-31T20:16:18.517692+08:00",
@@ -39,6 +45,9 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
 
 POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/ollama
 {
+ "_system": {
+            "owner_id": "$[[SETUP_OWNER_ID]]"
+          },
   "id" : "ollama",
   "created" : "2025-03-28T10:24:22.378929+08:00",
   "updated" : "2025-03-28T11:22:57.605814+08:00",
@@ -60,6 +69,9 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
 
 POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/gitee_ai
  {
+  "_system": {
+             "owner_id": "$[[SETUP_OWNER_ID]]"
+           },
    "id" : "gitee_ai",
    "created" : "2025-03-28T10:25:39.7741+08:00",
    "updated" : "2025-03-28T11:14:47.103278+08:00",
@@ -86,6 +98,9 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
 
 POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/qianwen
 {
+ "_system": {
+            "owner_id": "$[[SETUP_OWNER_ID]]"
+          },
   "id" : "qianwen",
   "created" : "2025-03-28T10:25:39.7741+08:00",
   "updated" : "2025-03-28T11:14:47.103278+08:00",
@@ -121,6 +136,9 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
 
 POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/openai_compatible
 {
+ "_system": {
+            "owner_id": "$[[SETUP_OWNER_ID]]"
+          },
     "id" : "openai_compatible",
     "created" : "2025-03-28T10:25:39.7741+08:00",
     "updated" : "2025-03-28T11:14:47.103278+08:00",
@@ -141,6 +159,9 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
 
 POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/coco
 {
+ "_system": {
+            "owner_id": "$[[SETUP_OWNER_ID]]"
+          },
   "id" : "coco",
   "created" : "2025-03-28T10:24:22.378929+08:00",
   "updated" : "2025-03-28T11:22:57.605814+08:00",
@@ -159,6 +180,9 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
 
 POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/silicon_flow
 {
+ "_system": {
+            "owner_id": "$[[SETUP_OWNER_ID]]"
+          },
   "id" : "silicon_flow",
   "created" : "2025-03-28T10:24:22.378929+08:00",
   "updated" : "2025-03-28T11:22:57.605814+08:00",
@@ -179,6 +203,9 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
 
 POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/tencent_hunyuan
 {
+ "_system": {
+            "owner_id": "$[[SETUP_OWNER_ID]]"
+          },
   "id" : "tencent_hunyuan",
   "created" : "2025-03-28T10:24:22.378929+08:00",
   "updated" : "2025-03-28T11:22:57.605814+08:00",
@@ -204,6 +231,9 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
 
 POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/gemini
 {
+ "_system": {
+            "owner_id": "$[[SETUP_OWNER_ID]]"
+          },
   "id" : "gemini",
   "created" : "2025-03-28T10:24:22.378929+08:00",
   "updated" : "2025-03-28T11:22:57.605814+08:00",
@@ -224,6 +254,9 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
 
 POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/moonshot
 {
+ "_system": {
+            "owner_id": "$[[SETUP_OWNER_ID]]"
+          },
   "id" : "moonshot",
   "created" : "2025-03-28T10:24:22.378929+08:00",
   "updated" : "2025-03-28T11:22:57.605814+08:00",
@@ -242,6 +275,9 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
 
 POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/minimax
 {
+ "_system": {
+            "owner_id": "$[[SETUP_OWNER_ID]]"
+          },
   "id" : "minimax",
   "created" : "2025-03-28T10:24:22.378929+08:00",
   "updated" : "2025-03-28T11:22:57.605814+08:00",
@@ -263,7 +299,9 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
 }
 
 POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/volcanoArk
-{
+{ "_system": {
+             "owner_id": "$[[SETUP_OWNER_ID]]"
+           },
   "id" : "volcanoArk",
   "created" : "2025-03-28T10:24:22.378929+08:00",
   "updated" : "2025-03-28T11:22:57.605814+08:00",
@@ -285,6 +323,9 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
 
 POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/qianfan
 {
+ "_system": {
+            "owner_id": "$[[SETUP_OWNER_ID]]"
+          },
   "id" : "qianfan",
   "created" : "2025-03-28T10:24:22.378929+08:00",
   "updated" : "2025-03-28T11:22:57.605814+08:00",
@@ -308,6 +349,9 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
 
 POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/cohere
 {
+ "_system": {
+            "owner_id": "$[[SETUP_OWNER_ID]]"
+          },
   "id": "cohere",
   "created": "2025-03-28T11:30:00.000000+08:00",
   "updated": "2025-03-28T11:30:00.000000+08:00",

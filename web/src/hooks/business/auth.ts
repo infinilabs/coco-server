@@ -9,13 +9,14 @@ export function useAuth() {
     }
 
     if (typeof codes === 'string') {
-      return userInfo?.buttons?.includes(codes);
+      return userInfo?.permissions?.includes(codes);
     }
 
-    return codes.some(code => userInfo?.buttons?.includes(code));
+    return codes.every(code => userInfo?.permissions?.includes(code));
   }
 
   return {
-    hasAuth
+    hasAuth,
+    permissions: userInfo?.permissions
   };
 }

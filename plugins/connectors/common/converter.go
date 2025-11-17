@@ -6,13 +6,12 @@ package common
 
 import (
 	"fmt"
+	"infini.sh/coco/core"
 	"strconv"
 	"strings"
 	"time"
 
 	log "github.com/cihub/seelog"
-
-	"infini.sh/coco/modules/common"
 )
 
 type Transformer struct {
@@ -20,7 +19,7 @@ type Transformer struct {
 	Visited map[string]bool
 }
 
-func (t *Transformer) Transform(doc *common.Document, m *Mapping) {
+func (t *Transformer) Transform(doc *core.Document, m *Mapping) {
 	doc.ID = t.getString(m.ID)
 	doc.Title = t.getString(m.Title)
 	doc.URL = t.getString(m.URL)
@@ -38,7 +37,7 @@ func (t *Transformer) Transform(doc *common.Document, m *Mapping) {
 	doc.Tags = t.getStringSlice(m.Tags)
 	doc.Size = t.getInt(m.Size)
 
-	owner := &common.UserInfo{
+	owner := &core.UserInfo{
 		UserAvatar: t.getString(m.Owner.Avatar),
 		UserName:   t.getString(m.Owner.UserName),
 		UserID:     t.getString(m.Owner.UserID),
@@ -62,11 +61,11 @@ func (t *Transformer) Transform(doc *common.Document, m *Mapping) {
 		}
 	}
 
-	doc.LastUpdatedBy = &common.EditorInfo{
+	doc.LastUpdatedBy = &core.EditorInfo{
 		UpdatedAt: t.getTime(m.LastUpdatedBy.Timestamp),
 	}
 
-	user := &common.UserInfo{
+	user := &core.UserInfo{
 		UserAvatar: t.getString(m.LastUpdatedBy.UserInfo.Avatar),
 		UserName:   t.getString(m.LastUpdatedBy.UserInfo.UserName),
 		UserID:     t.getString(m.LastUpdatedBy.UserInfo.UserID),
@@ -239,7 +238,7 @@ func (t *Transformer) getRaw(column string) interface{} {
 	return nil
 }
 
-func isUserEmpty(u *common.UserInfo) bool {
+func isUserEmpty(u *core.UserInfo) bool {
 	if u == nil {
 		return true
 	}

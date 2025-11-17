@@ -39,6 +39,9 @@ const Fullscreen = (props) => {
     rightMenuWidth,
     queryParams = {},
     setQueryParams,
+    onLogoClick,
+    theme = 'light', 
+    language = 'en-US',
   } = props;
 
   const [result, setResult] = useState(formatESResult());
@@ -58,7 +61,7 @@ const Fullscreen = (props) => {
 
   useEffect(() => {
     const checkScreenSize = () => {
-      setIsMobile(window.innerWidth < 768);
+      setIsMobile(window.innerWidth < 640);
     };
 
     checkScreenSize();
@@ -116,7 +119,7 @@ const Fullscreen = (props) => {
     return LIST_TYPES.find((item) => item.type === type) || LIST_TYPES[0];
   }, [type]);
 
-  const commonProps = { isMobile };
+  const commonProps = { isMobile, theme };
 
   const { query, from, size, filter } = queryParams;
 
@@ -131,6 +134,7 @@ const Fullscreen = (props) => {
       filter: {},
       sort: ''
     })
+    if (onLogoClick) onLogoClick()
   }
 
   return (
@@ -162,7 +166,7 @@ const Fullscreen = (props) => {
       }
       resultHeader={<ResultHeader hits={hits} {...commonProps} />}
       aiOverview={
-        !aiOverview?.enabled ? (
+        aiOverview?.enabled ? (
           <AIOverviewWrapper
             askBody={askBody}
             config={aiOverview}

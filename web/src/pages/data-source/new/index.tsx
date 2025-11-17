@@ -32,7 +32,7 @@ import Rdbms from './rdbms';
 import Rss from './rss';
 import S3 from './s3';
 import Yuque from './yuque';
-import OAuthConnect, { OAuthValidationPresets } from '@/components/oauth_connect';
+import OAuthConnect, { OAuthValidationPresets } from '../modules/OauthConnect';
 
 // eslint-disable-next-line complexity
 export function Component() {
@@ -207,6 +207,14 @@ export function Component() {
   // eslint-disable-next-line complexity
   const onFinish: FormProps<any>['onFinish'] = values => {
     let config: any = {};
+    if(values.enrichment_pipeline){
+      try {
+        values.enrichment_pipeline = JSON.parse(values.enrichment_pipeline);
+      }catch (e) {
+        message.error("invalid enrichment pipeline JSON format");
+        return
+      }
+    }
     // eslint-disable-next-line default-case
     switch (type) {
       case Types.Yuque:
@@ -317,7 +325,9 @@ export function Component() {
         strategy: values.sync_config.strategy,
         interval: values.sync_config.interval
       },
-      type: 'connector'
+      type: 'connector',
+      webhook: values.webhook,
+      enrichment_pipeline: values.enrichment_pipeline
     };
     createDatasource(sValues).then(res => {
       if (res.data?.result === 'created') {
@@ -455,6 +465,19 @@ export function Component() {
                   icons={iconsMeta}
                   type="connector"
                 />
+              </Form.Item>
+              <Form.Item
+                label={t('page.datasource.new.labels.webhook')}
+                name={["webhook", "enabled"]}
+              >
+                <Switch />
+              </Form.Item>
+               <Form.Item
+                label={t('page.datasource.new.labels.enrichment_pipeline')}
+                name="enrichment_pipeline"
+                tooltip={t('page.connector.new.tooltip.config', 'Configurations in JSON format.')}
+              >
+               <Input.TextArea autoSize={{ maxRows: 30, minRows: 2 }} />
               </Form.Item>
               {type === Types.Yuque && <Yuque />}
               {type === Types.Notion && <Notion />}

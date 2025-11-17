@@ -8,6 +8,7 @@ import { Tags } from "lucide-react";
 import { SquareArrowOutUpRight } from "lucide-react";
 import { Bot } from "lucide-react";
 import Markdown from "../ChatMessage/Markdown";
+import { Typography } from "antd";
 
 export function ResultDetail(props) {
     const { getContainer, data = {}, isMobile, children } = props;
@@ -41,11 +42,19 @@ export function ResultDetail(props) {
                 getContainer={getContainer}
             >
                 <div className="h-full overflow-auto px-24px">
-                    <div className="color-[#027ffe] text-16px mb-8px">
-                        {data.title}
+                    <div className="mb-8px">
+                        <Typography.Title className="!text-16px">
+                            {data.title}
+                        </Typography.Title>
                     </div>
-                    <div className="color-[#999] mb-16px">
-                        {data.url}
+                    <div className="mb-16px">
+                        {data.url?.startsWith('http') ? (
+                            <Typography.Link copyable onClick={() => data.url && window.open(data.url, '_blank')}>
+                                {data.url}
+                            </Typography.Link>
+                        ) : (
+                            <Typography.Text copyable>{data.url}</Typography.Text>
+                        )}
                     </div>
                     {
                         data.tags?.length > 0 && (
@@ -66,8 +75,8 @@ export function ResultDetail(props) {
                         <Markdown content={data.content} />
                     </div>
                 </div>
-                <div className="absolute bottom-0 w-full pb-24px px-24px">
-                    <div className="bg-#f5f5f5 rounded-20px mb-24px py-24px px-16px">
+                <div className="absolute bottom-0 w-full px-24px">
+                    <div className="bg-#f5f5f5 dark:bg-[rgb(var(--ui-search--layout-bg-color))] rounded-20px mb-24px py-24px px-16px">
                         <Descriptions column={2} colon={false} items={[
                             {
                                 key: 'type',
@@ -102,10 +111,10 @@ export function ResultDetail(props) {
                             ]} 
                         />
                     </div>
-                    <div className="flex gap-8px">
+                    {/* <div className="flex gap-8px">
                         <Button size="large" className="w-50% rounded-36px" onClick={() => data.url && window.open(data.url, '_blank')}><SquareArrowOutUpRight className="w-14px"/> Open</Button>
                         <Button size="large" type="primary" className="w-50% rounded-36px"><Bot className="w-14px"/> AI 解读</Button>
-                    </div>
+                    </div> */}
                 </div>
             </Drawer>
         </>

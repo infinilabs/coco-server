@@ -5,6 +5,7 @@
 package network_drive
 
 import (
+	"infini.sh/coco/core"
 	"reflect"
 	"testing"
 
@@ -147,7 +148,7 @@ func TestMarkParentFoldersAsValid(t *testing.T) {
 }
 
 func TestCreateDocumentWithHierarchy(t *testing.T) {
-	datasource := &common.DataSource{
+	datasource := &core.DataSource{
 		Name: "Test Network Drive",
 	}
 	// Set the ID manually via the embedded ID field
@@ -191,8 +192,8 @@ func TestCreateDocumentWithHierarchy(t *testing.T) {
 			size:                2048,
 			parentCategoryArray: []string{"documents", "reports"},
 			idSuffix:            "server-share-documents/reports/report.pdf",
-			expectedCategory:    "/documents/reports",
-			expectedParentPath:  "/documents/reports",
+			expectedCategory:    "/documents/reports/",
+			expectedParentPath:  "/documents/reports/",
 			desc:                "Nested document should have proper hierarchical category",
 		},
 		{
@@ -219,8 +220,8 @@ func TestCreateDocumentWithHierarchy(t *testing.T) {
 			size:                0,
 			parentCategoryArray: []string{"documents"},
 			idSuffix:            "server-share-folder-documents/reports",
-			expectedCategory:    "/documents",
-			expectedParentPath:  "/documents",
+			expectedCategory:    "/documents/",
+			expectedParentPath:  "/documents/",
 			desc:                "Nested folder should have proper parent category",
 		},
 	}

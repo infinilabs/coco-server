@@ -8,7 +8,9 @@ import Clipboard from 'clipboard';
 import { formatESSearchResult } from '@/service/request/es';
 import useQueryParams from '@/hooks/common/queryParams';
 
-import { createToken, deleteToken, getTokens, renameToken } from '@/service/api';
+import { createToken, deleteToken, getTokens, updateToken } from '@/service/api';
+import Permissions from '@/pages/role/modules/Permissions';
+import { selectUserInfo } from '@/store/slice/auth';
 
 type APIToken = Api.APIToken.APIToken;
 
@@ -20,20 +22,18 @@ export function Component() {
     from: 0
   });
   const { t } = useTranslation();
-  const nav = useNavigate();
 
-  const items: MenuProps['items'] = [
-    {
-      key: '1',
-      label: t('common.rename')
-    },
-    {
-      key: '2',
-      label: t('common.delete')
-    }
-  ];
+  const userInfo = useAppSelector(selectUserInfo);
 
-  const [renameState, setRenameState] = useState({
+  const { hasAuth } = useAuth()
+
+  const permissions = {
+    create: hasAuth('generic#security:auth:api-token/create'),
+    update: hasAuth('generic#security:auth:api-token/update'),
+    delete: hasAuth('generic#security:auth:api-token/delete'),
+  }
+
+  const [editState, setEditState] = useState({
     open: false,
     tokenInfo: {}
   });
@@ -65,7 +65,7 @@ export function Component() {
 
         break;
       case '1':
-        setRenameState({
+        setEditState({
           open: true,
           tokenInfo: record
         });
@@ -92,14 +92,27 @@ export function Component() {
     {
       dataIndex: 'expire_in',
       minWidth: 100,
-      render: (value: number) => {
-        return value ? new Date(value * 1000).toISOString() : '';
-      },
+      render: (value: number) => <DateTime value={value*1000} />,
       title: t('page.apitoken.columns.expire_in')
     },
     {
       fixed: 'right',
+      hidden: !permissions.update && !permissions.delete,
       render: (_, record) => {
+        const items: MenuProps['items'] = [];
+        if (permissions.update) {
+          items.push({
+            key: '1',
+            label: t('common.edit')
+          })
+        }
+        if (permissions.delete) {
+          items.push({
+            key: '2',
+            label: t('common.delete')
+          })
+        }
+        if (items.length === 0) return null;
         return (
           <Dropdown menu={{ items, onClick: ({ key }) => onMenuClick({ key, record }) }}>
             <EllipsisOutlined />
@@ -146,7 +159,7 @@ export function Component() {
     // }
     const tokenName = generateApiTokenName();
     setIsModalOpen(true);
-    modelForm.setFieldsValue({ name: tokenName });
+    modelForm.setFieldsValue({ name: tokenName, permissions: [] });
   };
 
   useEffect(() => {
@@ -154,10 +167,10 @@ export function Component() {
   }, [queryParams.query])
 
   const onSearchClick = (query: string) => {
-    setQueryParams((oldParams: any) => {
+    setQueryParams(oldParams => {
       return {
         ...oldParams,
-        from: 0,
+        from: query === oldParams.query ? oldParams.from: 0,
         query,
         t: new Date().valueOf()
       };
@@ -195,7 +208,10 @@ export function Component() {
             loading: true
           };
         });
-        createToken(values.name)
+        createToken({
+          ...values,
+          permissions: values.permissions?.feature || []
+        })
           .then(({ data }) => {
             setCreateState(old => {
               return {
@@ -244,13 +260,17 @@ export function Component() {
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
           />
-          <Button
-            icon={<PlusOutlined />}
-            type="primary"
-            onClick={onAddClick}
-          >
-            {t('common.add')}
-          </Button>
+          {
+            permissions.create && (
+              <Button
+                icon={<PlusOutlined />}
+                type="primary"
+                onClick={onAddClick}
+              >
+                {t('common.add')}
+              </Button>
+            )
+          }
         </div>
         <Table<APIToken>
           columns={columns}
@@ -276,6 +296,7 @@ export function Component() {
           }}
         />
         <Modal
+          width={900}
           okText={t('common.create')}
           open={isModalOpen}
           title={`${t('common.create')} API Token`}
@@ -302,6 +323,7 @@ export function Component() {
           )}
           onCancel={onModalCancel}
           onOk={onModalOkClick}
+          destroyOnClose
         >
           <Spin spinning={createState.loading}>
             {createState.step === 1 && (
@@ -311,10 +333,16 @@ export function Component() {
                 layout="vertical"
               >
                 <Form.Item
-                  label={<span className="text-gray-500">{t('page.apitoken.columns.name')}</span>}
+                  label={t('page.apitoken.columns.name')}
                   name="name"
                 >
                   <Input />
+                </Form.Item>
+                <Form.Item
+                  label={t('page.apitoken.columns.permissions')}
+                  name="permissions"
+                >
+                  <Permissions filters={{ feature: userInfo?.permissions || []}}/>
                 </Form.Item>
               </Form>
             )}
@@ -328,17 +356,17 @@ export function Component() {
             )}
           </Spin>
         </Modal>
-        <RenameComponent
-          open={renameState.open}
-          tokenInfo={renameState.tokenInfo}
+        <EditComponent
+          open={editState.open}
+          tokenInfo={editState.tokenInfo}
           onCancelClick={() => {
-            setRenameState({
+            setEditState({
               open: false,
               tokenInfo: {}
             });
           }}
           onOkClick={() => {
-            setRenameState({
+            setEditState({
               open: false,
               tokenInfo: {}
             });
@@ -360,16 +388,24 @@ function generateApiTokenName(prefix = 'token') {
   return `${prefix}_${timestamp}_${randomString}`;
 }
 
-const RenameComponent = ({ onCancelClick = () => {}, onOkClick = () => {}, open = false, tokenInfo = {} }) => {
+const EditComponent = ({ onCancelClick = () => {}, onOkClick = () => {}, open = false, tokenInfo = {} }) => {
   const { t } = useTranslation();
   const [form] = useForm();
   const [loading, setLoading] = useState(false);
+  const userInfo = useAppSelector(selectUserInfo);
 
   const onModalOkClick = () => {
     form.validateFields().then(values => {
       setLoading(true);
-      renameToken(tokenInfo.id, values.name)
-        .then(() => {
+      updateToken({
+        id: tokenInfo.id,
+        ...values,
+        permissions: values.permissions?.feature || [] 
+      })
+        .then((res) => {
+          if (res?.data?.result === 'updated') {
+            window.$message?.success(t("common.updateSuccess"));
+          }
           setLoading(false);
           onOkClick();
         })
@@ -378,12 +414,24 @@ const RenameComponent = ({ onCancelClick = () => {}, onOkClick = () => {}, open 
         });
     });
   };
+
+  useEffect(() => {
+    form.setFieldsValue({
+      ...tokenInfo,
+      permissions: {
+        feature: tokenInfo?.permissions || []
+      }
+    })
+  }, [tokenInfo])
+
   return (
     <Modal
+      width={900}
       open={open}
-      title={`${t('common.rename')} API Token`}
+      title={`${t('common.edit')} API Token`}
       onCancel={onCancelClick}
       onOk={onModalOkClick}
+      destroyOnClose
     >
       <Spin spinning={loading}>
         <Form
@@ -395,7 +443,13 @@ const RenameComponent = ({ onCancelClick = () => {}, onOkClick = () => {}, open 
             label={<span className="text-gray-500">{t('page.apitoken.columns.name')}</span>}
             name="name"
           >
-            <Input defaultValue={tokenInfo.name} />
+            <Input />
+          </Form.Item>
+          <Form.Item
+            label={t('page.apitoken.columns.permissions')}
+            name="permissions"
+          >
+            <Permissions filters={{ feature: userInfo?.permissions || []}}/>
           </Form.Item>
         </Form>
       </Spin>
