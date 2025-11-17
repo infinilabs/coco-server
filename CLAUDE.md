@@ -6,7 +6,7 @@
 
 **Branch**: `mongo-connector`
 
-**Build Status**: ✅ Compiles successfully
+**Build Status**: ✅ Backend and Frontend compile successfully
 
 **Objective**: Align MongoDB connector with new package structure after main branch merge.
 
@@ -40,10 +40,17 @@
      - Added mongodb connector import
      - File: `plugins/generated_plugins.go`
 
+  4. **Web Build Fix**:
+     - Fixed broken import path for OAuthConnect component
+     - Component was moved from `components/` to `pages/data-source/modules/`
+     - **File Updated**:
+       - `web/src/pages/data-source/new/index.tsx` - Updated import path from `@/components/oauth_connect` to `@/pages/data-source/modules/OauthConnect`
+
 - **Build Verification**: ✅ Full project builds successfully
   ```bash
   go build ./plugins/connectors/mongodb  # ✅ Success
   go build                               # ✅ Success
+  make build-web                         # ✅ Success
   ```
 
 ### Git Merge History
