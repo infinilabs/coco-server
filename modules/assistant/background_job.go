@@ -661,7 +661,7 @@ func processInitialDocumentSearch(ctx *orm.Context, userID string, reqMsg, reply
 
 	builder := orm.NewQuery()
 
-	//TODO merge the user defined query to filter
+	//merge the user defined query to filter
 	if params.AssistantCfg.Datasource.Enabled && params.AssistantCfg.Datasource.Filter != nil {
 		log.Debug("custom filter:", params.AssistantCfg.Datasource.Filter)
 		q := util.MapStr{}
