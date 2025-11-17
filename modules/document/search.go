@@ -67,7 +67,7 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		perID := security.GetOrInitPermissionKey(assistantSearchPermission)
 
 		//not for widget integration
-		if integrationID == "" && ((reqUser.Roles != nil && util.AnyInArrayEquals(reqUser.Roles, security.RoleAdmin)) || reqUser.UserAssignedPermission.ValidateFor(perID)) {
+		if datasource == "" && integrationID == "" && ((reqUser.Roles != nil && util.AnyInArrayEquals(reqUser.Roles, security.RoleAdmin)) || reqUser.UserAssignedPermission.ValidateFor(perID)) {
 			assistantSize := 2
 			if docsSize < 5 {
 				assistantSize = size - (docsSize)
