@@ -16,20 +16,22 @@ const Guide = memo(() => {
   const handleSubmit = async (isPass?: boolean) => {
     if (step === 0) {
       const params = await form.validateFields();
+      const { confirm_password, ...rest } = params
       setStep(1);
-      setEditValue(params);
+      setEditValue(rest);
     } else if (step === 1) {
       let body;
       if (isPass) {
         body = editValue;
       } else {
         const params = await form.validateFields();
+        const { confirm_password, ...rest } = params
         if(typeof params.llm.reasoning === "undefined") {
           params.llm.reasoning = params.llm.type === "deepseek";
         }
         body = {
           ...(editValue || {}),
-          ...params
+          ...rest
         };
       }
       startLoading();

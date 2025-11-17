@@ -6,9 +6,9 @@ package gitlab
 
 import (
 	"fmt"
+	"infini.sh/coco/core"
 
 	log "github.com/cihub/seelog"
-	"infini.sh/coco/modules/common"
 	cmn "infini.sh/coco/plugins/connectors/common"
 	"infini.sh/framework/core/config"
 	"infini.sh/framework/core/pipeline"
@@ -36,7 +36,7 @@ func (p *Plugin) Name() string {
 	return ConnectorGitLab
 }
 
-func (p *Plugin) Fetch(ctx *pipeline.Context, connector *common.Connector, datasource *common.DataSource) error {
+func (p *Plugin) Fetch(ctx *pipeline.Context, connector *core.Connector, datasource *core.DataSource) error {
 	cfg := Config{}
 	p.MustParseConfig(datasource, &cfg)
 

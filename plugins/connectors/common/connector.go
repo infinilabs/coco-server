@@ -5,10 +5,10 @@
 package common
 
 import (
-	"infini.sh/coco/modules/common"
+	"infini.sh/coco/core"
 	"infini.sh/framework/core/pipeline"
 )
 
 type ConnectorAPI interface {
-	Fetch(pipeCtx *pipeline.Context, connector *common.Connector, datasource *common.DataSource) error
+	Fetch(pipeCtx *pipeline.Context, connector *core.Connector, datasource *core.DataSource) error
 }

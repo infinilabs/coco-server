@@ -15,7 +15,7 @@ import (
 
 func (h *APIHandler) createMCPServer(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
-	var obj = &common.MCPServer{}
+	var obj = &core.MCPServer{}
 	err := h.DecodeJSON(req, obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -40,7 +40,7 @@ func (h *APIHandler) createMCPServer(w http.ResponseWriter, req *http.Request, p
 
 }
 
-func GetMCPServersByID(id []string) ([]common.MCPServer, error) {
+func GetMCPServersByID(id []string) ([]core.MCPServer, error) {
 	var err error
 	q := orm.Query{}
 	q.RawQuery, err = core.RewriteQueryWithFilter(q.RawQuery, util.MapStr{
@@ -49,7 +49,7 @@ func GetMCPServersByID(id []string) ([]common.MCPServer, error) {
 		},
 	})
 
-	docs := []common.MCPServer{}
+	docs := []core.MCPServer{}
 	err, _ = orm.SearchWithJSONMapper(&docs, &q)
 	if err != nil {
 		return nil, err
@@ -60,9 +60,11 @@ func GetMCPServersByID(id []string) ([]common.MCPServer, error) {
 func (h *APIHandler) getMCPServer(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("id")
 
-	obj := common.MCPServer{}
+	obj := core.MCPServer{}
 	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "mcp-server")
 
 	exists, err := orm.GetV2(ctx, &obj)
 	if !exists || err != nil {
@@ -82,9 +84,11 @@ func (h *APIHandler) getMCPServer(w http.ResponseWriter, req *http.Request, ps h
 
 func (h *APIHandler) updateMCPServer(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("id")
-	obj := common.MCPServer{}
+	obj := core.MCPServer{}
 	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "mcp-server")
 
 	exists, err := orm.GetV2(ctx, &obj)
 	if !exists || err != nil {
@@ -95,7 +99,7 @@ func (h *APIHandler) updateMCPServer(w http.ResponseWriter, req *http.Request, p
 		return
 	}
 
-	newObj := common.MCPServer{}
+	newObj := core.MCPServer{}
 	err = h.DecodeJSON(req, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -107,6 +111,8 @@ func (h *APIHandler) updateMCPServer(w http.ResponseWriter, req *http.Request, p
 	newObj.Created = obj.Created
 
 	ctx.Refresh = orm.WaitForRefresh
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "mcp-server")
 
 	err = orm.Update(ctx, &obj)
 	if err != nil {
@@ -123,7 +129,7 @@ func (h *APIHandler) updateMCPServer(w http.ResponseWriter, req *http.Request, p
 func (h *APIHandler) deleteMCPServer(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("id")
 
-	obj := common.MCPServer{}
+	obj := core.MCPServer{}
 	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
 
@@ -152,15 +158,20 @@ func (h *APIHandler) deleteMCPServer(w http.ResponseWriter, req *http.Request, p
 
 func (h *APIHandler) searchMCPServer(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	//handle url query args, convert to query builder
-	builder, err := orm.NewQueryBuilderFromRequest(req, "name", "combined_fulltext")
+	builder, err := orm.NewQueryBuilderFromRequest(req, "name", "name.pinyin", "combined_fulltext")
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	builder.EnableBodyBytes()
-	ctx := orm.NewContextWithParent(req.Context())
-	orm.WithModel(ctx, &common.MCPServer{})
+	if len(builder.Sorts()) == 0 {
+		builder.SortBy(orm.Sort{Field: "created", SortType: orm.DESC})
+	}
 
+	ctx := orm.NewContextWithParent(req.Context())
+	orm.WithModel(ctx, &core.MCPServer{})
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "mcp-server")
 	res, err := orm.SearchV2(ctx, builder)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)

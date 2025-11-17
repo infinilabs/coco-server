@@ -2,7 +2,7 @@ package mongodb
 
 import (
 	log "github.com/cihub/seelog"
-	"infini.sh/coco/modules/common"
+	"infini.sh/coco/core"
 	"infini.sh/coco/plugins/connectors"
 	cmn "infini.sh/coco/plugins/connectors/common"
 	"infini.sh/framework/core/config"
@@ -30,7 +30,7 @@ func (p *Plugin) Name() string {
 }
 
 // Fetch implements the main pipeline execution method for MongoDB connector
-func (p *Plugin) Fetch(ctx *pipeline.Context, connector *common.Connector, datasource *common.DataSource) error {
+func (p *Plugin) Fetch(ctx *pipeline.Context, connector *core.Connector, datasource *core.DataSource) error {
 	// Parse and validate configuration
 	cfg := &Config{}
 	err := connectors.ParseConnectorConfigure(connector, datasource, cfg)
@@ -58,7 +58,7 @@ func (p *Plugin) Fetch(ctx *pipeline.Context, connector *common.Connector, datas
 		config:     cfg,
 		connector:  connector,
 		datasource: datasource,
-		collectFunc: func(doc common.Document) error {
+		collectFunc: func(doc core.Document) error {
 			p.Collect(ctx, connector, datasource, doc)
 			return nil
 		},

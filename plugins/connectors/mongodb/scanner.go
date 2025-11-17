@@ -11,7 +11,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"infini.sh/coco/modules/common"
+	"infini.sh/coco/core"
 	cmn "infini.sh/coco/plugins/connectors/common"
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/global"
@@ -22,10 +22,10 @@ import (
 // scanner handles MongoDB collection scanning with incremental sync support
 type scanner struct {
 	config             *Config
-	connector          *common.Connector
-	datasource         *common.DataSource
+	connector          *core.Connector
+	datasource         *core.DataSource
 	cursorStateManager *cmn.CursorStateManager
-	collectFunc        func(common.Document) error
+	collectFunc        func(core.Document) error
 	client             *mongo.Client
 	collection         *mongo.Collection
 	sortSpec           bson.D // Query components (cached)
@@ -422,8 +422,8 @@ func (s *scanner) executePage(ctx context.Context, filter bson.M, skip, limit in
 	return results, nil
 }
 
-// bsonToDocument transforms a BSON document to a common.Document
-func (s *scanner) bsonToDocument(bsonDoc bson.M) (*common.Document, error) {
+// bsonToDocument transforms a BSON document to a core.Document
+func (s *scanner) bsonToDocument(bsonDoc bson.M) (*core.Document, error) {
 	cfg := s.config
 	doc, err := bsonToDocument(bsonDoc, cfg, s.datasource)
 	if err != nil {

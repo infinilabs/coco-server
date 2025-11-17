@@ -6,6 +6,7 @@ package system
 
 import (
 	log "github.com/cihub/seelog"
+	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/util"
@@ -21,7 +22,7 @@ func (h *APIHandler) getServerSettings(w http.ResponseWriter, req *http.Request,
 }
 
 func (h *APIHandler) updateServerSettings(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	appConfig := common.Config{}
+	appConfig := core.Config{}
 	if err := h.DecodeJSON(req, &appConfig); err != nil {
 		_ = log.Error(err)
 		h.WriteError(w, err.Error(), http.StatusBadRequest)
@@ -30,7 +31,7 @@ func (h *APIHandler) updateServerSettings(w http.ResponseWriter, req *http.Reque
 	oldAppConfig := common.AppConfig()
 	if appConfig.ServerInfo != nil {
 		//merge settings
-		serverCfg := common.ServerInfo{}
+		serverCfg := core.ServerInfo{}
 		err := mergeSettings(oldAppConfig.ServerInfo, appConfig.ServerInfo, &serverCfg)
 		if err != nil {
 			_ = log.Error(err)
@@ -41,7 +42,7 @@ func (h *APIHandler) updateServerSettings(w http.ResponseWriter, req *http.Reque
 	}
 	if appConfig.AppSettings != nil {
 		//merge settings
-		appSettings := common.AppSettings{}
+		appSettings := core.AppSettings{}
 		err := mergeSettings(oldAppConfig.AppSettings, appConfig.AppSettings, &appSettings)
 		if err != nil {
 			_ = log.Error(err)
@@ -52,7 +53,7 @@ func (h *APIHandler) updateServerSettings(w http.ResponseWriter, req *http.Reque
 	}
 	if appConfig.SearchSettings != nil {
 		//merge settings
-		searchSettings := common.SearchSettings{}
+		searchSettings := core.SearchSettings{}
 		err := mergeSettings(oldAppConfig.SearchSettings, appConfig.SearchSettings, &searchSettings)
 		if err != nil {
 			_ = log.Error(err)

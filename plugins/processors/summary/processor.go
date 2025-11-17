@@ -11,7 +11,6 @@ import (
 	"github.com/tmc/langchaingo/llms"
 	"github.com/tmc/langchaingo/llms/ollama"
 	"infini.sh/coco/core"
-	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/config"
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/global"
@@ -121,7 +120,7 @@ func (processor *DocumentSummarizationProcessor) Process(ctx *pipeline.Context) 
 
 			if len(pop) > processor.config.MinInputDocumentLength {
 
-				doc := common.Document{}
+				doc := core.Document{}
 				err := util.FromJSONBytes(pop, &doc)
 				if err != nil {
 					log.Error("error on handle document:", i, err)

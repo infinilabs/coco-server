@@ -9,6 +9,16 @@ export default (props) => {
     });
 
     return (
-        <FullscreenModal {...props} queryParams={queryParamsState} setQueryParams={setQueryParamsState}/>
+        <FullscreenModal 
+            {...props} 
+            queryParams={queryParamsState} 
+            setQueryParams={setQueryParamsState}
+            onLogoClick={() => {
+                setQueryParamsState({
+                    from: 0,
+                    size: 10,
+                })
+            }}
+        />
     )
 }

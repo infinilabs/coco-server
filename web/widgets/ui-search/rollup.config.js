@@ -46,7 +46,7 @@ export default {
     }),
     url({
       include: ['**/*.svg'],
-      limit: 10000, 
+      limit: 10000000, 
     }),
     babel({
       babelHelpers: 'runtime',

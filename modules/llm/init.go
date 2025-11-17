@@ -6,7 +6,6 @@ package llm
 
 import (
 	"infini.sh/coco/core"
-	"infini.sh/coco/plugins/security/filter"
 	"infini.sh/framework/core/api"
 	"infini.sh/framework/core/security"
 )
@@ -45,15 +44,15 @@ func init() {
 	api.HandleUIMethod(api.GET, "/model_provider/:id", handler.get, api.RequireLogin(), api.RequirePermission(readLLMPermission))
 	api.HandleUIMethod(api.PUT, "/model_provider/:id", handler.update, api.RequireLogin(), api.RequirePermission(updateLLMPermission))
 	api.HandleUIMethod(api.DELETE, "/model_provider/:id", handler.delete, api.RequireLogin(), api.RequirePermission(deleteLLMPermission))
-	api.HandleUIMethod(api.GET, "/model_provider/_search", handler.search, api.RequireLogin(), api.RequirePermission(searchLLMPermission), api.Feature(filter.FeatureCORS), api.Feature(filter.FeatureRemoveSensitiveField), api.Label(filter.SensitiveFields, secretKeys))
-	api.HandleUIMethod(api.POST, "/model_provider/_search", handler.search, api.RequireLogin(), api.RequirePermission(searchLLMPermission), api.Feature(filter.FeatureCORS), api.Feature(filter.FeatureRemoveSensitiveField), api.Label(filter.SensitiveFields, secretKeys))
+	api.HandleUIMethod(api.GET, "/model_provider/_search", handler.search, api.RequireLogin(), api.RequirePermission(searchLLMPermission), api.Feature(core.FeatureCORS), api.Feature(core.FeatureRemoveSensitiveField), api.Label(core.SensitiveFields, secretKeys))
+	api.HandleUIMethod(api.POST, "/model_provider/_search", handler.search, api.RequireLogin(), api.RequirePermission(searchLLMPermission), api.Feature(core.FeatureCORS), api.Feature(core.FeatureRemoveSensitiveField), api.Label(core.SensitiveFields, secretKeys))
 
 	api.HandleUIMethod(api.POST, "/mcp_server/", handler.createMCPServer, api.RequirePermission(createMCPServerPermission))
 	api.HandleUIMethod(api.GET, "/mcp_server/:id", handler.getMCPServer, api.RequirePermission(readMCPServerPermission))
 	api.HandleUIMethod(api.PUT, "/mcp_server/:id", handler.updateMCPServer, api.RequirePermission(updateMCPServerPermission))
 	api.HandleUIMethod(api.DELETE, "/mcp_server/:id", handler.deleteMCPServer, api.RequirePermission(deleteMCPServerPermission))
 
-	api.HandleUIMethod(api.GET, "/mcp_server/_search", handler.searchMCPServer, api.RequireLogin(), api.Feature(filter.FeatureCORS), api.RequirePermission(searchMCPServerPermission), api.Feature(filter.FeatureRemoveSensitiveField), api.Label(filter.SensitiveFields, secretKeys))
-	api.HandleUIMethod(api.OPTIONS, "/mcp_server/_search", handler.searchMCPServer, api.RequireLogin(), api.Feature(filter.FeatureCORS), api.RequirePermission(searchMCPServerPermission))
-	api.HandleUIMethod(api.POST, "/mcp_server/_search", handler.searchMCPServer, api.RequireLogin(), api.Feature(filter.FeatureCORS), api.RequirePermission(searchMCPServerPermission), api.Feature(filter.FeatureRemoveSensitiveField), api.Label(filter.SensitiveFields, secretKeys))
+	api.HandleUIMethod(api.GET, "/mcp_server/_search", handler.searchMCPServer, api.RequireLogin(), api.Feature(core.FeatureCORS), api.RequirePermission(searchMCPServerPermission), api.Feature(core.FeatureRemoveSensitiveField), api.Label(core.SensitiveFields, secretKeys))
+	api.HandleUIMethod(api.OPTIONS, "/mcp_server/_search", handler.searchMCPServer, api.RequireLogin(), api.Feature(core.FeatureCORS), api.RequirePermission(searchMCPServerPermission))
+	api.HandleUIMethod(api.POST, "/mcp_server/_search", handler.searchMCPServer, api.RequireLogin(), api.Feature(core.FeatureCORS), api.RequirePermission(searchMCPServerPermission), api.Feature(core.FeatureRemoveSensitiveField), api.Label(core.SensitiveFields, secretKeys))
 }

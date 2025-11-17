@@ -7,7 +7,7 @@ weight: 60
 ## Register GitHub Connector
 
 ```shell
-curl -XPUT "http://localhost:9000/connector/github?replace=true" -d '{
+curl -XPOST "http://localhost:9000/connector/" -d '{
   "name": "GitHub Connector",
   "description": "Fetch repositories, issues, and pull requests from GitHub.",
   "icon": "/assets/icons/connector/github/icon.png",
@@ -33,8 +33,6 @@ curl -XPUT "http://localhost:9000/connector/github?replace=true" -d '{
   }
 }'
 ```
-
-> Use `github` as a unique identifier, as it is a builtin connector.
 
 ## Use the GitHub Connector
 

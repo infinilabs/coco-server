@@ -1,8 +1,7 @@
-import Icon, { EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, PlusOutlined } from '@ant-design/icons';
-import { Button, Dropdown, Image, Modal, Switch, Table, message } from 'antd';
-import type { GetProp, MenuProps, TableColumnsType, TableProps } from 'antd';
+import { EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, PlusOutlined } from '@ant-design/icons';
+import { Avatar, Button, Dropdown, Switch, Table, message } from 'antd';
+import type { MenuProps, TableColumnsType, TableProps } from 'antd';
 import Search from 'antd/es/input/Search';
-import type { SorterResult } from 'antd/es/table/interface';
 
 import type { IntegratedStoreModalRef } from '@/components/common/IntegratedStoreModal';
 import InfiniIcon from '@/components/common/icon';
@@ -10,17 +9,9 @@ import { GoogleDriveSVG, HugoSVG, NotionSVG, YuqueSVG } from '@/components/icons
 import useQueryParams from '@/hooks/common/queryParams';
 import { deleteDatasource, fetchDataSourceList, getConnectorByIDs, updateDatasource } from '@/service/api';
 import { formatESSearchResult } from '@/service/request/es';
+import { Api } from '@/types/api';
 
 type Datasource = Api.Datasource.Datasource;
-
-type TablePaginationConfig = Exclude<GetProp<TableProps, 'pagination'>, boolean>;
-
-interface TableParams {
-  filters?: Parameters<GetProp<TableProps, 'onChange'>>[1];
-  pagination?: TablePaginationConfig;
-  sortField?: SorterResult<any>['field'];
-  sortOrder?: SorterResult<any>['order'];
-}
 
 const TYPES = {
   google_drive: {
@@ -46,19 +37,23 @@ export function Component() {
 
   const { t } = useTranslation();
 
+  const { addSharesToData, isEditorOwner, hasEdit, hasView, isResourceShare } = useResource();
+  const resourceType = 'datasource';
+  const resourceCategoryType = 'connector';
+
+  const { hasAuth } = useAuth();
+
+  const permissions = {
+    read: hasAuth('coco#datasource/read'),
+    readConnector: hasAuth('coco#connector/read'),
+    create: hasAuth('coco#datasource/create'),
+    update: hasAuth('coco#datasource/update'),
+    delete: hasAuth('coco#datasource/delete')
+  };
+
   const { scrollConfig, tableWrapperRef } = useTableScroll();
 
   const nav = useNavigate();
-  const items: MenuProps['items'] = [
-    {
-      key: '2',
-      label: t('common.edit')
-    },
-    {
-      key: '1',
-      label: t('common.delete')
-    }
-  ];
 
   const onMenuClick = ({ key, record }: any) => {
     switch (key) {
@@ -114,8 +109,6 @@ export function Component() {
       enabled: value
     };
 
-    console.log('Updating sync config:', updatedSync); // Debug log
-
     updateDatasource(record.id, {
       ...record,
       sync: updatedSync
@@ -123,7 +116,6 @@ export function Component() {
       .then(res => {
         if (res.data?.result === 'updated') {
           message.success(t('common.updateSuccess'));
-          console.log('Sync update response:', res.data); // Debug log
         }
         // reload data
         setQueryParams(old => {
@@ -167,34 +159,101 @@ export function Component() {
   const columns: TableColumnsType<Datasource> = [
     {
       dataIndex: 'name',
-      minWidth: 200,
+      minWidth: 150,
+      ellipsis: true,
       render: (value: string, record: Datasource) => {
         let iconSrc = record.icon;
         if (!iconSrc && data.connectors) {
           iconSrc = data.connectors[record.connector.id]?.icon;
         }
-        if (!iconSrc) return value;
-        return (
-          <a
-            className="inline-flex items-center gap-1 text-blue-500"
-            onClick={() =>
-              nav(`/data-source/detail/${record.id}`, {
-                state: { connector_id: record.connector?.id || '', datasource_name: record.name }
-              })
-            }
-          >
-            <IconWrapper className="h-20px w-20px">
-              <InfiniIcon
-                height="1em"
-                src={iconSrc}
-                width="1em"
+
+        const isShare = isResourceShare(record);
+
+        let shareIcon;
+
+        if (isShare) {
+          shareIcon = (
+            <div className='flex-shrink-0 flex-grow-0'>
+              <SvgIcon
+                className='text-#999'
+                localIcon='share'
               />
-            </IconWrapper>
-            {value}
-          </a>
+            </div>
+          );
+        }
+
+        return (
+          <div className='flex items-center gap-1'>
+            {iconSrc && (
+              <IconWrapper className='h-20px w-20px flex-shrink-0 flex-grow-0 flex-basis-auto'>
+                <InfiniIcon
+                  height='1em'
+                  src={iconSrc}
+                  width='1em'
+                />
+              </IconWrapper>
+            )}
+            {permissions.read && permissions.readConnector ? (
+              <a
+                className='ant-table-cell-ellipsis max-w-150px cursor-pointer text-[var(--ant-color-link)]'
+                onClick={() =>
+                  nav(`/data-source/detail/${record.id}${isEditorOwner(record) ? '' : '?view=list'}`, {
+                    state: { connector_id: record.connector?.id || '', datasource_name: record.name }
+                  })
+                }
+              >
+                {value}
+              </a>
+            ) : (
+              <span className='ant-table-cell-ellipsis max-w-150px'>{value}</span>
+            )}
+            {shareIcon}
+          </div>
         );
       },
       title: t('page.datasource.columns.name')
+    },
+    {
+      dataIndex: 'owner',
+      title: t('page.datasource.labels.owner'),
+      render: (value, record) => {
+        if (!value) return '-';
+        return (
+          <div className='flex overflow-hidden'>
+            <Avatar.Group
+              max={{ count: 1 }}
+              size='small'
+            >
+              <AvatarLabel
+                data={value}
+                showCard={true}
+              />
+            </Avatar.Group>
+          </div>
+        );
+      }
+    },
+    {
+      dataIndex: 'shares',
+      title: t('page.datasource.labels.shares'),
+      render: (value, record) => {
+        if (!value) return '-';
+        const connector = data.connectors?.[record.connector?.id]
+        if (connector?.path_hierarchy) return '-'
+        return (
+          <Shares
+            record={record}
+            title={record.name}
+            resource={{
+              resource_category_type: resourceCategoryType,
+              resource_category_id: record.connector?.id,
+              resource_type: resourceType,
+              resource_id: record.id
+            }}
+            onSuccess={() => fetchData()}
+          />
+        );
+      }
     },
     {
       minWidth: 100,
@@ -205,13 +264,34 @@ export function Component() {
       },
       title: t('page.datasource.columns.type')
     },
+    // {
+    //   dataIndex: ['sync', 'enabled'],
+    //   title: t('page.datasource.labels.permission_sync'),
+    //   render: (value: number) => {
+    //     return value ? t('page.datasource.labels.isEnabled') : '-'
+    //   },
+    // },
+    // {
+    //   dataIndex: 'strategy',
+    //   title: t('page.datasource.columns.sync_policy'),
+    // },
+    {
+      dataIndex: 'updated',
+      title: t('page.datasource.labels.updated'),
+      render: (value: number) => <DateTime value={value} />
+    },
+    // {
+    //   dataIndex: 'sync_status',
+    //   title: t('page.datasource.columns.sync_status'),
+    // },
     {
       dataIndex: ['sync', 'enabled'],
       render: (value: boolean, record: Datasource) => {
         return (
           <Switch
             checked={value}
-            size="small"
+            disabled={!permissions.update || !hasEdit(record)}
+            size='small'
             onChange={v => onSyncEnabledChange(v, record)}
           />
         );
@@ -224,7 +304,8 @@ export function Component() {
       render: (value: boolean, record: Datasource) => {
         return (
           <Switch
-            size="small"
+            disabled={!permissions.update || !hasEdit(record)}
+            size='small'
             value={value}
             onChange={v => onEnabledChange(v, record)}
           />
@@ -235,7 +316,22 @@ export function Component() {
     },
     {
       fixed: 'right',
+      hidden: !permissions.update && !permissions.delete,
       render: (_, record) => {
+        const items: MenuProps['items'] = [];
+        if (permissions.read && permissions.update && hasEdit(record)) {
+          items.push({
+            key: '2',
+            label: t('common.edit')
+          });
+        }
+        if (permissions.delete && isEditorOwner(record)) {
+          items.push({
+            key: '1',
+            label: t('common.delete')
+          });
+        }
+        if (items.length === 0) return null;
         return (
           <Dropdown menu={{ items, onClick: ({ key }) => onMenuClick({ key, record }) }}>
             <EllipsisOutlined />
@@ -245,7 +341,7 @@ export function Component() {
       title: t('common.operation'),
       width: '90px'
     }
-  ];
+  ].filter(item => Boolean(item));
   // rowSelection object indicates the need for row selection
   const rowSelection: TableProps<Datasource>['rowSelection'] = {
     getCheckboxProps: (record: Datasource) => ({
@@ -264,48 +360,49 @@ export function Component() {
 
   const [keyword, setKeyword] = useState();
 
-  const fetchData = () => {
+  const fetchData = async () => {
     setLoading(true);
-    fetchDataSourceList(queryParams).then(({ data }) => {
-      const newData = formatESSearchResult(data);
+    const res = await fetchDataSourceList(queryParams);
+    if (res?.data) {
+      const newData = formatESSearchResult(res?.data);
+      if (newData.data.length > 0) {
+        const resources = newData.data.map(item => ({
+          resource_id: item.id,
+          resource_type: resourceType,
+          resource_category_type: resourceCategoryType,
+          resource_category_id: item.connector?.id
+        }));
+        const dataWithShares = await addSharesToData(newData.data, resources);
+        if (dataWithShares) {
+          newData.data = dataWithShares;
+        }
+        const connectorRes = await getConnectorByIDs(newData.data.filter((item) => !!item.connector?.id).map(item => item.connector.id));
+        if (connectorRes.data) {
+          const newConnectors = formatESSearchResult(connectorRes.data);
+          const connectors: any = {};
+          newConnectors.data.map(item => {
+            connectors[item.id] = item;
+          });
+          newData.connectors = connectors;
+        }
+      }
       setData((oldData: any) => {
         return {
           ...oldData,
           ...(newData || initialData)
         };
       });
-      setLoading(false);
-    });
+    }
+    setLoading(false);
   };
 
-  useEffect(fetchData, [queryParams]);
+  useEffect(() => {
+    fetchData();
+  }, [queryParams]);
 
   useEffect(() => {
     setKeyword(queryParams.query);
   }, [queryParams.query]);
-
-  const fetchConnectors = async (ids: string[]) => {
-    const res = await getConnectorByIDs(ids);
-    if (res.data) {
-      const newData = formatESSearchResult(res.data);
-      const connectors: any = {};
-      newData.data.map(item => {
-        connectors[item.id] = item;
-      });
-      setData(data => {
-        return {
-          ...data,
-          connectors
-        };
-      });
-    }
-  };
-  useEffect(() => {
-    if (data.data?.length > 0) {
-      const ids = data.data.map(item => item.connector.id);
-      fetchConnectors(ids);
-    }
-  }, [data.data]);
 
   const handleTableChange: TableProps<Datasource>['onChange'] = (pagination, filters, sorter) => {
     setQueryParams(params => {
@@ -320,7 +417,7 @@ export function Component() {
     setQueryParams(oldParams => {
       return {
         ...oldParams,
-        from: 0,
+        from: query === oldParams.query ? oldParams.from : 0,
         query,
         t: new Date().valueOf()
       };
@@ -333,41 +430,39 @@ export function Component() {
     <ListContainer>
       <ACard
         bordered={false}
-        className="flex-col-stretch sm:flex-1-hidden card-wrapper"
+        className='flex-col-stretch sm:flex-1-hidden card-wrapper'
         ref={tableWrapperRef}
       >
-        <div className="mb-4 mt-4 flex items-center justify-between">
+        <div className='mb-4 mt-4 flex items-center justify-between'>
           <Search
             addonBefore={<FilterOutlined />}
-            className="max-w-500px"
+            className='max-w-500px'
             enterButton={t('common.refresh')}
             value={keyword}
             onChange={e => setKeyword(e.target.value)}
             onSearch={onRefreshClick}
           />
-          <Button
-            icon={<PlusOutlined />}
-            type="primary"
-            onClick={() => {
-              integratedStoreModalRef.current?.open('data-source');
-            }}
-          >
-            {t('common.add')}
-          </Button>
+          {permissions.create && (
+            <Button
+              icon={<PlusOutlined />}
+              type='primary'
+              onClick={() =>  nav(`/data-source/new-first`)}
+            >
+              {t('common.add')}
+            </Button>
+          )}
         </div>
         <Table<Datasource>
           columns={columns}
           dataSource={data.data}
           loading={loading}
-          rowKey="id"
+          rowKey='id'
           rowSelection={{ ...rowSelection }}
-          size="middle"
+          size='middle'
           pagination={{
             current: Math.floor(queryParams.from / queryParams.size) + 1,
-            pageSize: queryParams.size,
-            showSizeChanger: true,
-            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
-            total: data.total?.value || data?.total
+            total: data.total?.value || data?.total,
+            showSizeChanger: true
           }}
           onChange={handleTableChange}
         />

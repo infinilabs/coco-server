@@ -52,6 +52,7 @@ const DropdownList = (props) => {
     getPopupContainer = (triggerNode) => triggerNode.parentNode,
     extraData = [],
     showListIcon = true,
+    onDropdownVisibleChange
   } = props;
 
   const [visible, setVisible] = useState(false);
@@ -65,6 +66,7 @@ const DropdownList = (props) => {
   }, [mode, value]);
 
   const handleVisible = (visible) => {
+    onDropdownVisibleChange && onDropdownVisibleChange(visible)
     setVisible(visible);
   };
 
@@ -209,6 +211,7 @@ const DropdownList = (props) => {
         }}
         autoAdjustOverflow={autoAdjustOverflow}
         getPopupContainer={getPopupContainer}
+        destroyTooltipOnHide
       >
         {children ? (
           children

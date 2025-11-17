@@ -7,11 +7,12 @@ import Floating from '@/assets/integration/floating.png';
 import { getDarkMode } from '@/store/slice/theme';
 
 import { HotKeys } from './HotKeys';
-import AIAssistantSelect from '@/pages/ai-assistant/modules/AIAssistantSelect';
 import ChatStartPage from '@/pages/settings/modules/ChatStartPage';
+import { SEARCHBOX_TYPES } from '../list';
+import AIAssistantSelect from '@/pages/ai-assistant/modules/AIAssistantSelect';
 
 export const SearchBoxForm = memo(props => {
-  const { record, startPagelogos, setStartPagelogos, assistants, setAssistants, dataSourceLoading, dataSource, enabledList, setEnabledList } = props;
+  const { form, record, startPagelogos, setStartPagelogos, assistants, setAssistants, dataSourceLoading, dataSource, enabledList, setEnabledList } = props;
   const { t } = useTranslation();
   const { defaultRequiredRule } = useFormRules();
 
@@ -21,8 +22,8 @@ export const SearchBoxForm = memo(props => {
 
   useEffect(() => {
     const mode = record
-      ? ['embedded', 'floating', 'all'].includes(record?.type) ? record?.type : 'embedded'
-      : 'embedded'
+      ? SEARCHBOX_TYPES.includes(record?.type) ? record?.type : SEARCHBOX_TYPES[0]
+      : SEARCHBOX_TYPES[0]
     setMode(mode);
   }, [record]);
 
@@ -102,7 +103,7 @@ export const SearchBoxForm = memo(props => {
             className="mb-0px"
             name={['options', 'embedded_icon']}
           >
-            <Input className={itemClassNames} placeholder={`${window.location.origin}/icon.svg`}/>
+            <Input className={itemClassNames} placeholder={`${window.location.origin}${window.location.pathname}icon.svg`}/>
           </Form.Item>
         </Form.Item>
       </>
@@ -128,7 +129,7 @@ export const SearchBoxForm = memo(props => {
             className="mb-0px"
             name={['options', 'floating_icon']}
           >
-            <Input className={itemClassNames}  placeholder={`${window.location.origin}/icon.svg`}/>
+            <Input className={itemClassNames}  placeholder={`${window.location.origin}${window.location.pathname}icon.svg`}/>
           </Form.Item>
         </Form.Item>
       </>

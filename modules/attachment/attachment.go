@@ -7,6 +7,7 @@ package attachment
 import (
 	"errors"
 	"fmt"
+	"infini.sh/coco/core"
 	"infini.sh/framework/core/elastic"
 	"io"
 	"mime/multipart"
@@ -16,7 +17,6 @@ import (
 	"time"
 
 	log "github.com/cihub/seelog"
-	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/kv"
 	"infini.sh/framework/core/orm"
@@ -81,12 +81,15 @@ func (h APIHandler) getAttachments(w http.ResponseWriter, req *http.Request, ps 
 
 	var err error
 	ctx := orm.NewContextWithParent(req.Context())
-	orm.WithModel(ctx, &common.Attachment{})
+	orm.WithModel(ctx, &core.Attachment{})
 
 	builder, err := orm.NewQueryBuilderFromRequest(req, "name", "description")
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+	if len(builder.Sorts()) == 0 {
+		builder.SortBy(orm.Sort{Field: "created", SortType: orm.DESC})
 	}
 
 	builder.Filter(orm.MustNotQuery(orm.TermQuery("deleted", true)))
@@ -97,7 +100,7 @@ func (h APIHandler) getAttachments(w http.ResponseWriter, req *http.Request, ps 
 
 	}
 
-	docs := []common.Attachment{}
+	docs := []core.Attachment{}
 	err, res := elastic.SearchV2WithResultItemMapper(ctx, &docs, builder, nil)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -136,8 +139,8 @@ func (h APIHandler) getAttachment(w http.ResponseWriter, req *http.Request, ps h
 	_, _ = w.Write(data)
 }
 
-func (h APIHandler) getAttachmentMetadata(req *http.Request, fileID string) (*common.Attachment, bool, error) {
-	attachment := common.Attachment{}
+func (h APIHandler) getAttachmentMetadata(req *http.Request, fileID string) (*core.Attachment, bool, error) {
+	attachment := core.Attachment{}
 	attachment.ID = fileID
 	ctx := orm.NewContextWithParent(req.Context())
 
@@ -196,7 +199,7 @@ func (h APIHandler) deleteAttachment(w http.ResponseWriter, req *http.Request, p
 
 	attachment.Deleted = true
 	t := time.Now()
-	attachment.LastUpdatedBy = &common.EditorInfo{UpdatedAt: &t}
+	attachment.LastUpdatedBy = &core.EditorInfo{UpdatedAt: &t}
 
 	ctx := orm.NewContextWithParent(req.Context())
 	ctx.Refresh = orm.WaitForRefresh
@@ -253,7 +256,7 @@ func uploadToBlobStore(ctx *orm.Context, file multipart.File, fileName string) (
 	fileSize := len(data)
 	mimeType, _ := getMimeType(file)
 
-	attachment := common.Attachment{}
+	attachment := core.Attachment{}
 	attachment.ID = fileID
 	attachment.Name = fileName
 	attachment.Size = fileSize

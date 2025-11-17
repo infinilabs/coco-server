@@ -2,12 +2,12 @@ package feishu
 
 import (
 	"fmt"
+	"infini.sh/coco/core"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
 
-	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
@@ -110,8 +110,8 @@ func oAuthRedirect(w http.ResponseWriter, req *http.Request, ps httprouter.Param
 	log.Infof("[%s connector] Successfully authenticated user: %v", pluginType, profile)
 
 	// Create datasource with OAuth tokens
-	datasource := common.DataSource{
-		SyncConfig: common.SyncConfig{Enabled: true, Interval: "30s"},
+	datasource := core.DataSource{
+		SyncConfig: core.SyncConfig{Enabled: true, Interval: "30s"},
 		Enabled:    true,
 	}
 
@@ -136,7 +136,7 @@ func oAuthRedirect(w http.ResponseWriter, req *http.Request, ps httprouter.Param
 	}
 
 	// Create datasource config with OAuth tokens
-	datasource.Connector = common.ConnectorConfig{
+	datasource.Connector = core.ConnectorConfig{
 		ConnectorID: string(pluginType),
 		Config: util.MapStr{
 			"access_token":  token.AccessToken,
@@ -211,7 +211,7 @@ func getOAuthConfigFromConnector(connectorID string, pluginType PluginType) (*OA
 	}
 
 	// Try to load connector to get OAuth credentials
-	connector := common.Connector{}
+	connector := core.Connector{}
 	connector.ID = connectorID
 	exists, err := orm.Get(&connector)
 	if err == nil && exists && connector.Config != nil {

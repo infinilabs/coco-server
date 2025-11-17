@@ -5,6 +5,7 @@
 package integration
 
 import (
+	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/orm"
@@ -19,7 +20,7 @@ var ver = util.GetUUID()
 
 func (h *APIHandler) widgetWrapper(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	integrationID := ps.MustGetParameter("id")
-	obj := common.Integration{}
+	obj := core.Integration{}
 	obj.ID = integrationID
 	ctx := orm.NewContextWithParent(req.Context()).DirectReadAccess()
 	ctx.Set(orm.ReadPermissionCheckingScope, security.PermissionScopePublic)
@@ -49,8 +50,6 @@ func (h *APIHandler) widgetWrapper(w http.ResponseWriter, req *http.Request, ps 
 		}
 
 		info := common.AppConfig()
-		token := obj.Token
-
 		str = h.fullscreenWrapperTemplate.ExecuteFuncString(func(w io.Writer, tag string) (int, error) {
 			switch tag {
 			case "ID":
@@ -59,9 +58,6 @@ func (h *APIHandler) widgetWrapper(w http.ResponseWriter, req *http.Request, ps 
 				return w.Write([]byte(ver))
 			case "ENDPOINT":
 				endpoint := strings.TrimRight(info.ServerInfo.Endpoint, "/")
-				return w.Write([]byte(endpoint))
-			case "TOKEN":
-				endpoint := token
 				return w.Write([]byte(endpoint))
 			}
 			return -1, nil
@@ -74,8 +70,6 @@ func (h *APIHandler) widgetWrapper(w http.ResponseWriter, req *http.Request, ps 
 		}
 
 		info := common.AppConfig()
-		token := obj.Token
-
 		str = h.searchBoxWrapperTemplate.ExecuteFuncString(func(w io.Writer, tag string) (int, error) {
 			switch tag {
 			case "ID":
@@ -84,9 +78,6 @@ func (h *APIHandler) widgetWrapper(w http.ResponseWriter, req *http.Request, ps 
 				return w.Write([]byte(ver))
 			case "ENDPOINT":
 				endpoint := strings.TrimRight(info.ServerInfo.Endpoint, "/")
-				return w.Write([]byte(endpoint))
-			case "TOKEN":
-				endpoint := token
 				return w.Write([]byte(endpoint))
 			}
 			return -1, nil

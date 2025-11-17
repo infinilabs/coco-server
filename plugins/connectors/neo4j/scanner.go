@@ -11,7 +11,7 @@ import (
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 	"infini.sh/framework/core/pipeline"
 
-	"infini.sh/coco/modules/common"
+	"infini.sh/coco/core"
 	"infini.sh/coco/plugins/connectors"
 	cmn "infini.sh/coco/plugins/connectors/common"
 	"infini.sh/framework/core/global"
@@ -31,11 +31,11 @@ const (
 
 type scanner struct {
 	config             *Config
-	connector          *common.Connector
-	datasource         *common.DataSource
+	connector          *core.Connector
+	datasource         *core.DataSource
 	cursorSerializer   *cmn.CursorSerializer
 	cursorStateManager *cmn.CursorStateManager
-	collectFunc        func(doc common.Document) error
+	collectFunc        func(doc core.Document) error
 }
 
 func (cfg *Config) validate() error {
@@ -362,9 +362,9 @@ func (s *scanner) processResult(ctx context.Context, result neo4j.ResultWithCont
 	return processed, lastCursor, nil
 }
 
-func (s *scanner) transform(payload map[string]interface{}, cfg *Config) (*common.Document, error) {
-	doc := &common.Document{
-		Source: common.DataSourceReference{
+func (s *scanner) transform(payload map[string]interface{}, cfg *Config) (*core.Document, error) {
+	doc := &core.Document{
+		Source: core.DataSourceReference{
 			ID:   s.datasource.ID,
 			Type: "connector",
 			Name: s.datasource.Name,

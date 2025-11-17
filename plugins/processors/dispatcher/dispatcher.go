@@ -6,6 +6,7 @@ package dispatcher
 
 import (
 	"fmt"
+	"infini.sh/coco/core"
 	"infini.sh/framework/core/api"
 	"infini.sh/framework/core/elastic"
 	"infini.sh/framework/core/global"
@@ -53,9 +54,9 @@ func (processor *Dispatcher) Process(ctx *pipeline.Context) error {
 	// get active datasource list
 	ctx1 := orm.NewContextWithParent(ctx)
 	ctx1.DirectReadAccess()
-	orm.WithModel(ctx1, &common.DataSource{})
+	orm.WithModel(ctx1, &core.DataSource{})
 
-	docs := []common.DataSource{}
+	docs := []core.DataSource{}
 
 	from := int64(0)
 	size := int64(10)

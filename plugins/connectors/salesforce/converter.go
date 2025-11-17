@@ -6,6 +6,7 @@ package salesforce
 
 import (
 	"fmt"
+	"infini.sh/coco/core"
 	"strconv"
 	"strings"
 	"time"
@@ -15,13 +16,13 @@ import (
 )
 
 // convertToDocument converts a Salesforce record to a common.Document
-func convertToDocument(record map[string]interface{}, objectType string, datasource *common.DataSource, instanceUrl string) *common.Document {
+func convertToDocument(record map[string]interface{}, objectType string, datasource *core.DataSource, instanceUrl string) *core.Document {
 	if record == nil {
 		return nil
 	}
 
-	doc := &common.Document{
-		Source: common.DataSourceReference{
+	doc := &core.Document{
+		Source: core.DataSourceReference{
 			ID:   datasource.ID,
 			Type: "connector",
 			Name: datasource.Name,
@@ -83,7 +84,7 @@ func convertToDocument(record map[string]interface{}, objectType string, datasou
 }
 
 // convertToDocumentWithHierarchy converts a Salesforce record to a common.Document with proper hierarchy path
-func convertToDocumentWithHierarchy(record map[string]interface{}, objectType string, datasource *common.DataSource, instanceUrl string) *common.Document {
+func convertToDocumentWithHierarchy(record map[string]interface{}, objectType string, datasource *core.DataSource, instanceUrl string) *core.Document {
 	doc := convertToDocument(record, objectType, datasource, instanceUrl)
 	if doc == nil {
 		return nil
@@ -361,8 +362,8 @@ func getTags(record map[string]interface{}, objectType string) []string {
 }
 
 // getOwner extracts owner information from the record
-func getOwner(record map[string]interface{}) common.UserInfo {
-	owner := common.UserInfo{}
+func getOwner(record map[string]interface{}) core.UserInfo {
+	owner := core.UserInfo{}
 
 	if ownerData, ok := record["Owner"].(map[string]interface{}); ok {
 		owner.UserName = getString(ownerData, "Name")

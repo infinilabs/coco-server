@@ -10,15 +10,48 @@ Information about release notes of Coco Server is provided here.
 ## Latest (In development)  
 ### ❌ Breaking changes  
 - refactor: make connectors pipeline-based (#545) #545
+- refactor: re-implemented security features; rerun setup required
 
 ### 🚀 Features  
 - feat: neo4j connector #539
 - feat: add integrated store #551
-### 🐛 Bug fix  
-### ✈️ Improvements  
+- feat: rbac based security
+- feat: user level data ownership & sharing
+- feat: add permission check to management UI
+- feat: add route permission verification
+- feat: add entity card for users
+- feat: add view to document management
+- feat: add webhooks ui page (#558)
+- feat: gitlab merge events webhook processor
+- feat: add extension store integration
+- feat: add support for editing connector processor configuration
+- feat: add base path support for customizing endpoint
+- feat: add pinyin support to `name` fields
+
+### 🐛 Bug fix
+- fix: reset search keyword after extension type changed
+- fix: adjust full-screen widget issues
+
+### ✈️ Improvements
 - chore: change the home page to the search page after enabling search #541
 - chore: update search api to support query dsl #550
 - feat: mongodb connector #552
+- chore: default sort by created
+- chore: adjust locales
+- chore: add confirmation password to user form
+- chore: adjust connector type
+- chore: adjust connector oauth redirect
+- refactor: refactoring for integration
+- refactor: remove token from integration
+- chore: disabled email when editing user
+- chore: adjust search settings
+- refactor: add hover background effect for dark mode
+- chore: fix document search
+- chore: format date
+- refactor: update initial value
+- chore: fix missing datasource name
+- chore: hide modal after installation finishes
+- chore: refactoring via framework change
 
 ## 0.8.0 (2025-09-28)
 

@@ -7,6 +7,7 @@ package salesforce
 import (
 	"context"
 	"fmt"
+	"infini.sh/coco/core"
 	"strings"
 
 	"infini.sh/coco/modules/common"
@@ -68,7 +69,7 @@ func (p *Plugin) extractOAuthConfig(connectorConfig map[string]interface{}) (OAu
 	return oauthConfig, nil
 }
 
-func (p *Plugin) Fetch(ctx *pipeline.Context, connector *common.Connector, datasource *common.DataSource) error {
+func (p *Plugin) Fetch(ctx *pipeline.Context, connector *core.Connector, datasource *core.DataSource) error {
 	cfg := Config{}
 	p.MustParseConfig(datasource, &cfg)
 
@@ -109,8 +110,8 @@ func (p *Plugin) processSalesforceData(
 	ctx *pipeline.Context,
 	client *SalesforceClient,
 	cfg *Config,
-	connector *common.Connector,
-	datasource *common.DataSource,
+	connector *core.Connector,
+	datasource *core.DataSource,
 ) error {
 	// Authenticate with Salesforce
 	authCtx := context.Background()
@@ -174,8 +175,8 @@ func (p *Plugin) processCustomObjects(
 	authCtx context.Context,
 	client *SalesforceClient,
 	cfg *Config,
-	connector *common.Connector,
-	datasource *common.DataSource,
+	connector *core.Connector,
+	datasource *core.DataSource,
 ) error {
 	// Determine which custom objects to sync
 	var customObjectsToSync []string
@@ -219,8 +220,8 @@ func (p *Plugin) processObjectType(
 	authCtx context.Context,
 	client *SalesforceClient,
 	objType string,
-	connector *common.Connector,
-	datasource *common.DataSource,
+	connector *core.Connector,
+	datasource *core.DataSource,
 ) error {
 	log.Debugf("[%s connector] processing object type: %s", ConnectorSalesforce, objType)
 
@@ -257,8 +258,8 @@ func (p *Plugin) processCaseWithFeeds(
 	ctx *pipeline.Context,
 	authCtx context.Context,
 	client *SalesforceClient,
-	connector *common.Connector,
-	datasource *common.DataSource,
+	connector *core.Connector,
+	datasource *core.DataSource,
 ) error {
 	log.Debugf("[%s connector] processing Case objects with Feeds", ConnectorSalesforce)
 
@@ -374,8 +375,8 @@ func (p *Plugin) createSObjectDirectories(
 	authCtx context.Context,
 	client *SalesforceClient,
 	cfg *Config,
-	connector *common.Connector,
-	datasource *common.DataSource,
+	connector *core.Connector,
+	datasource *core.DataSource,
 ) error {
 	// Create Standard Objects directory
 	standardObjectsDoc := common.CreateHierarchyPathFolderDoc(

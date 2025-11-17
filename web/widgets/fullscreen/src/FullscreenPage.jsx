@@ -23,6 +23,21 @@ export default (props) => {
     }
 
     return (
-        <FullscreenPage {...props} {...queryParamsProps}/>
+        <FullscreenPage 
+            {...props} 
+            {...queryParamsProps}
+            onLogoClick={() => {
+                if (enableQueryParams) {
+                    const hashWithoutParams = window.location.hash.split('?')[0] || '';
+                    const newUrl = window.location.origin + window.location.pathname + hashWithoutParams;
+                    history.replaceState(null, '', newUrl);
+                } else {
+                    setQueryParamsState({
+                        from: 0,
+                        size: 10,
+                    })
+                }
+            }}
+        />
     )
 }

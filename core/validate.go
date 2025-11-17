@@ -11,6 +11,7 @@ import (
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/kv"
+	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
 	"net/http"
@@ -25,7 +26,7 @@ const (
 	HeaderIntegrationID        = "APP-INTEGRATION-ID"
 )
 
-func ValidateLoginByAPITokenHeader(r *http.Request) (claims *security.UserClaims, err error) {
+func ValidateLoginByAPITokenHeader(w http.ResponseWriter, r *http.Request) (claims *security.UserClaims, err error) {
 	apiToken := r.Header.Get(HeaderAPIToken)
 
 	if apiToken == "" {
@@ -55,19 +56,69 @@ func ValidateLoginByAPITokenHeader(r *http.Request) (claims *security.UserClaims
 
 	// Safely extract fields with type assertions
 	claims = security.NewUserClaims()
-	claims.System = accessToken.System
-	claims.Provider = accessToken.Provider
-	claims.Login = accessToken.Login
-	claims.Roles = accessToken.Roles
+	claims.SetGetUserID(accessToken.GetOwnerID())
 
-	//claims. //
-	//permissions
+	//claims.System = accessToken.System
+	claims.Provider = "access_token"
+	claims.Login = apiToken
 
-	claims.Source = "token"
+	apiTokenLevelPermission := security.ConvertPermissionKeysToHashSet(accessToken.Permissions)
+	userLevelTokenLevelPermission := security.ConvertPermissionKeysToHashSet(security.MustGetPermissionKeysByUserID(accessToken.GetOwnerID()))
+
+	//log.Error(apiTokenLevelPermission.Values())
+	//log.Error(userLevelTokenLevelPermission.Values())
+
+	intersectedPermission := security.IntersectSetsFast(apiTokenLevelPermission, userLevelTokenLevelPermission)
+	//log.Error(intersectedPermission.Values())
+
+	claims.Permissions = security.ConvertPermissionHashSetToKeys(intersectedPermission)
+
+	//claims.Source = "token"
 	return claims, nil
 }
 
-func ValidateLoginByAuthorizationHeader(r *http.Request) (claims *security.UserClaims, err error) {
+func InternalGetIntegration(id string) (*Integration, error) {
+	obj := Integration{}
+	obj.ID = id
+	ctx := orm.NewContext()
+	ctx.DirectReadAccess()
+	exists, err := orm.GetV2(ctx, &obj)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, errors.New("integration not found")
+	}
+	return &obj, nil
+}
+
+func ValidateLoginByIntegrationHeader(w http.ResponseWriter, r *http.Request) (claims *security.UserClaims, err error) {
+	integrationID := r.Header.Get(HeaderIntegrationID)
+
+	if integrationID == "" {
+		return nil, errors.Error("api integration not found")
+	}
+
+	if integrationID != "" {
+		cfg, _ := InternalGetIntegration(integrationID)
+		if cfg != nil {
+			if cfg.Guest.Enabled && cfg.Guest.RunAs != "" {
+
+				claims = security.NewUserClaims()
+				claims.SetGetUserID(cfg.Guest.RunAs)
+
+				claims.Provider = ProviderIntegration
+				claims.Login = cfg.Guest.RunAs
+				claims.Permissions = security.MustGetPermissionKeysByUserID(cfg.Guest.RunAs)
+				//log.Info("integration:", integrationID, ", run as:", cfg.Guest.RunAs, ",permissions:", claims.Permissions)
+				return claims, nil
+			}
+		}
+	}
+	return nil, errors.Error("invalid claims")
+}
+
+func ValidateLoginByAuthorizationHeader(w http.ResponseWriter, r *http.Request) (claims *security.UserClaims, err error) {
 	var (
 		authorization = r.Header.Get("Authorization")
 		ok            bool
@@ -101,8 +152,8 @@ func ValidateLoginByAuthorizationHeader(r *http.Request) (claims *security.UserC
 	claims, ok = token.Claims.(*security.UserClaims)
 
 	if ok && token.Valid {
-		if claims.Login == "" {
-			err = errors.New("user id is empty")
+		if !claims.IsValid() {
+			err = errors.New("user info is not valid")
 			return nil, err
 		}
 		if !claims.VerifyExpiresAt(time.Now(), true) {
@@ -113,12 +164,12 @@ func ValidateLoginByAuthorizationHeader(r *http.Request) (claims *security.UserC
 	if claims == nil {
 		return nil, errors.Error("invalid claims")
 	}
-	claims.Source = "bearer"
+	//claims.Source = "bearer"
 	return claims, nil
 }
 
-func ValidateLoginByAccessTokenSession(r *http.Request) (claims *security.UserClaims, err error) {
-	exists, sessToken := api.GetSession(r, UserAccessTokenSessionName)
+func ValidateLoginByAccessTokenSession(w http.ResponseWriter, r *http.Request) (claims *security.UserClaims, err error) {
+	exists, sessToken := api.GetSession(w, r, UserAccessTokenSessionName)
 	if !exists || sessToken == nil {
 		return nil, errors.Error("invalid session")
 	}
@@ -146,78 +197,36 @@ func ValidateLoginByAccessTokenSession(r *http.Request) (claims *security.UserCl
 	}
 
 	if token.Valid {
-		if claims.Login == "" {
-			return nil, errors.New("user id is empty")
+		if !claims.IsValid() {
+			err = errors.New("user info is not valid")
+			return nil, err
 		}
 		if !claims.VerifyExpiresAt(time.Now(), true) {
 			return nil, errors.New("token is expired")
 		}
 	}
 
-	claims.Source = "session"
+	//claims.Source = "session"
 	return claims, nil
 }
 
-func ValidateLoginByAccessTokenSession1(r *http.Request) (claims *security.UserClaims, err error) {
-	exists, sessToken := api.GetSession(r, UserAccessTokenSessionName)
+func ValidateLogin(w http.ResponseWriter, r *http.Request) (session *security.UserSessionInfo, err error) {
 
-	if !exists || sessToken == nil {
-		return nil, errors.Error("invalid session")
+	claims, err := ValidateLoginByAccessTokenSession(w, r)
+
+	if claims == nil || !claims.UserSessionInfo.IsValid() {
+		claims, err = ValidateLoginByAuthorizationHeader(w, r)
 	}
 
-	var (
-		tokenStr string
-		ok       bool
-	)
-	if tokenStr, ok = sessToken.(string); !ok {
-		err = errors.New("authorization token is empty")
-		return
+	if claims == nil || !claims.UserSessionInfo.IsValid() {
+		claims, err = ValidateLoginByAPITokenHeader(w, r)
 	}
 
-	token, err1 := jwt.ParseWithClaims(tokenStr, security.NewUserClaims(), func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
-		secret, err := GetSecret()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get secret key: %v", err)
-		}
-		return []byte(secret), nil
-	})
-	if err1 != nil {
-		return
+	if claims == nil || !claims.UserSessionInfo.IsValid() {
+		claims, err = ValidateLoginByIntegrationHeader(w, r)
 	}
 
-	//validate bind tenant
-	claims, ok = token.Claims.(*security.UserClaims)
-
-	if ok && token.Valid {
-		if claims.Login == "" {
-			err = errors.New("user id is empty")
-			return
-		}
-		if !claims.VerifyExpiresAt(time.Now(), true) {
-			err = errors.New("token is expire in")
-			return
-		}
-	}
-	claims.Source = "session"
-	return claims, nil
-}
-
-func ValidateLogin(r *http.Request) (session *security.UserSessionInfo, err error) {
-
-	claims, err := ValidateLoginByAccessTokenSession(r)
-
-	if claims == nil || !claims.UserSessionInfo.ValidInfo() {
-		claims, err = ValidateLoginByAuthorizationHeader(r)
-	}
-
-	if claims == nil || !claims.UserSessionInfo.ValidInfo() {
-		claims, err = ValidateLoginByAPITokenHeader(r)
-	}
-
-	if claims == nil || !claims.UserSessionInfo.ValidInfo() || err != nil {
+	if claims == nil || !claims.UserSessionInfo.IsValid() || err != nil {
 		err = errors.Errorf("invalid user info: %v", err)
 		return
 	}

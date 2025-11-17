@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	log "github.com/cihub/seelog"
-	"infini.sh/coco/modules/common"
+	"infini.sh/coco/core"
 	"infini.sh/coco/plugins/connectors"
 	cmn "infini.sh/coco/plugins/connectors/common"
 	"infini.sh/framework/core/config"
@@ -45,7 +45,7 @@ func (p *Plugin) Name() string {
 	return ConnectorNeo4j
 }
 
-func (p *Plugin) Fetch(ctx *pipeline.Context, connector *common.Connector, datasource *common.DataSource) error {
+func (p *Plugin) Fetch(ctx *pipeline.Context, connector *core.Connector, datasource *core.DataSource) error {
 	if err := connectors.CheckContextDone(ctx); err != nil {
 		_ = log.Warnf("[%s connector] context cancelled before scan for datasource [%s]: %v", ConnectorNeo4j, datasource.Name, err)
 		return fmt.Errorf("context cancelled: %w", err)
@@ -77,7 +77,7 @@ func (p *Plugin) Fetch(ctx *pipeline.Context, connector *common.Connector, datas
 		datasource:         datasource,
 		cursorSerializer:   serializer,
 		cursorStateManager: stateManager,
-		collectFunc: func(doc common.Document) error {
+		collectFunc: func(doc core.Document) error {
 			p.Collect(ctx, connector, datasource, doc)
 			return nil
 		},

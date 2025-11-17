@@ -6,16 +6,17 @@ package document
 
 import (
 	log "github.com/cihub/seelog"
+	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
+	"infini.sh/coco/modules/connector"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
 	"net/http"
-	"path"
 )
 
 func (h *APIHandler) createDoc(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	var obj = &common.Document{}
+	var obj = &core.Document{}
 	err := h.DecodeJSON(req, obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -30,20 +31,17 @@ func (h *APIHandler) createDoc(w http.ResponseWriter, req *http.Request, ps http
 		return
 	}
 
-	h.WriteJSON(w, util.MapStr{
-		"_id":    obj.ID,
-		"result": "created",
-	}, 200)
-
+	h.WriteCreatedOKJSON(w, obj.ID)
 }
 
 func (h *APIHandler) getDoc(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("doc_id")
 
-	obj := common.Document{}
+	obj := core.Document{}
 	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
-
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "document")
 	exists, err := orm.GetV2(ctx, &obj)
 	if !exists || err != nil {
 		h.WriteJSON(w, util.MapStr{
@@ -64,7 +62,7 @@ func (h *APIHandler) updateDoc(w http.ResponseWriter, req *http.Request, ps http
 	id := ps.MustGetParameter("doc_id")
 	ctx := orm.NewContextWithParent(req.Context())
 
-	obj := common.Document{}
+	obj := core.Document{}
 	err := h.DecodeJSON(req, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -74,6 +72,17 @@ func (h *APIHandler) updateDoc(w http.ResponseWriter, req *http.Request, ps http
 	//protect
 	obj.ID = id
 	ctx.Refresh = orm.WaitForRefresh
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "document")
+
+	//update share context
+	ctx.Set(orm.SharingCheckingResourceCategoryEnabled, true)
+	ctx.Set(orm.SharingResourceCategoryType, "datasource")
+	ctx.Set(orm.SharingResourceCategoryFilterField, "source.id")
+	ctx.Set(orm.SharingResourceCategoryID, obj.Source.ID)
+	ctx.Set(orm.SharingResourceParentPath, obj.Category)
+	ctx.Set(orm.SharingCheckingInheritedRulesEnabled, true)
+
 	err = orm.Save(ctx, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -86,7 +95,7 @@ func (h *APIHandler) updateDoc(w http.ResponseWriter, req *http.Request, ps http
 func (h *APIHandler) deleteDoc(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("doc_id")
 
-	obj := common.Document{}
+	obj := core.Document{}
 	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
 
@@ -108,65 +117,79 @@ func (h *APIHandler) searchDocs(w http.ResponseWriter, req *http.Request, ps htt
 		return
 	}
 	builder.EnableBodyBytes()
+	if len(builder.Sorts()) == 0 {
+		builder.SortBy(orm.Sort{Field: "created", SortType: orm.DESC})
+	}
 
 	ctx := orm.NewContextWithParent(req.Context())
-
-	//TODO cache
+	view := h.GetParameter(req, "view")
+	//view := "list"
 	sourceIDs := builder.GetFilterValues("source.id")
+
 	pathHierarchy := false
+	//apply datasource filter //TODO datasource may support multi ids
 	if len(sourceIDs) == 1 {
+		ctx1 := orm.NewContext()
+		ctx1.DirectReadAccess()
 		sourceIDArray, ok := sourceIDs[0].([]interface{})
-		if ok && len(sourceIDArray) == 1 {
+		if ok {
 			sourceID, ok := sourceIDArray[0].(string)
 			if ok {
-				if sourceID != "" {
-					ds := common.DataSource{}
-					ds.ID = sourceID
-					exists, err := orm.GetV2(ctx, &ds)
-					if !exists || err != nil {
-						panic("invalid datasource")
-					}
-
-					conn := common.Connector{}
-					conn.ID = ds.Connector.ConnectorID
-					exists, err = orm.GetV2(ctx, &conn)
-					if !exists || err != nil {
-						panic("invalid connector")
+				ds, err := common.GetDatasourceConfig(ctx1, sourceID)
+				if err != nil {
+					panic(err)
+				}
+				if ds != nil {
+					conn, err := connector.GetConnectorByID(ds.Connector.ConnectorID)
+					if err != nil {
+						panic(err)
 					}
 					if conn.PathHierarchy {
 						pathHierarchy = true
 					}
+
+					ctx.Set(orm.SharingCheckingResourceCategoryEnabled, true)
+					ctx.Set(orm.SharingResourceCategoryType, "datasource")
+					ctx.Set(orm.SharingResourceCategoryFilterField, "source.id")
+					ctx.Set(orm.SharingResourceCategoryID, ds.ID)
 				}
 			}
 		}
 	}
 
-	if pathHierarchy {
-		pathFilterStr := h.GetParameter(req, "path")
-		if pathFilterStr != "" {
-			array := []string{}
-			err = util.FromJson(pathFilterStr, &array)
-			if err != nil {
-				panic(err)
-			}
-			if len(array) > 0 {
-				pathStr := path.Join(array...)
-				if pathStr != "" {
-					if !util.PrefixStr(pathStr, "/") {
-						pathStr = "/" + pathStr
-					}
-				}
-				builder.Filter(orm.TermQuery("_system.parent_path", pathStr))
-				log.Trace("adding path hierarchy filter: ", pathStr)
-			}
-		} else {
-			//if connector enabled path hierarchy, the default path filter is /
-			builder.Filter(orm.TermQuery("_system.parent_path", "/"))
-			log.Trace("adding path hierarchy filter: /")
+	//TODO cache
+	var pathStr = "/"
+	pathFilterStr := h.GetParameter(req, "path")
+	if pathFilterStr != "" {
+		array := []string{}
+		err = util.FromJson(pathFilterStr, &array)
+		if err != nil {
+			panic(err)
+		}
+		if len(array) > 0 {
+			pathStr = common.GetFullPathForCategories(array)
 		}
 	}
 
-	orm.WithModel(ctx, &common.Document{})
+	//path str
+	if view != "list" && pathHierarchy && pathStr != "" {
+		builder.Filter(orm.TermQuery("_system.parent_path", pathStr))
+		log.Trace("adding path hierarchy filter: ", pathStr)
+		ctx.Set(orm.SharingResourceParentPath, pathStr)
+	} else {
+		//apply path filter to list view too
+		if pathStr != "/" {
+			builder.Filter(orm.TermQuery("_system.parent_path", pathStr))
+			log.Trace("adding path hierarchy filter: ", pathStr)
+			ctx.Set(orm.SharingResourceParentPath, pathStr)
+		}
+	}
+
+	orm.WithModel(ctx, &core.Document{})
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "document")
+	ctx.Set(orm.SharingCheckingInheritedRulesEnabled, true)
+
 	res, err := orm.SearchV2(ctx, builder)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -201,7 +224,7 @@ func (h *APIHandler) batchDeleteDoc(w http.ResponseWriter, req *http.Request, ps
 	builder.Filter(orm.TermsQuery("id", ids))
 
 	ctx := orm.NewContextWithParent(req.Context())
-	orm.WithModel(ctx, &common.Document{})
+	orm.WithModel(ctx, &core.Document{})
 
 	_, err = orm.DeleteByQuery(ctx, builder)
 	if err != nil {

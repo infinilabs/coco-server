@@ -3,7 +3,7 @@ import { useRef, useState } from "react";
 import Fullscreen from "./Fullscreen";
 
 const FullscreenPage = (props) => {
-  const { onSearch, queryParams } = props;
+  const { onSearch, queryParams, onLogoClick } = props;
 
   const [isFirst, setIsFirst] = useState(true);
   const isFirstRef = useRef(true);
@@ -18,6 +18,10 @@ const FullscreenPage = (props) => {
           isFirstRef.current = false;
         }
         onSearch(query, callback, setLoading, shouldAgg);
+      }}
+      onLogoClick={() => {
+        setIsFirst(true)
+        onLogoClick && onLogoClick()
       }}
     />
   );

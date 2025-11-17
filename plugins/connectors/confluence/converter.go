@@ -5,16 +5,16 @@
 package confluence
 
 import (
+	"infini.sh/coco/core"
 	"net/url"
 	"strings"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
 	log "github.com/cihub/seelog"
-	"infini.sh/coco/modules/common"
 )
 
-func convertFromWiki(src *Content, doc *common.Document, baseURL *url.URL) {
+func convertFromWiki(src *Content, doc *core.Document, baseURL *url.URL) {
 	if src.Body.View != nil {
 		textContent, err := htmlToText(src.Body.View.Value)
 		if err != nil {
@@ -40,7 +40,7 @@ func convertFromWiki(src *Content, doc *common.Document, baseURL *url.URL) {
 			doc.Created = &t
 		}
 		if src.History.CreatedBy.DisplayName != "" {
-			doc.Owner = &common.UserInfo{
+			doc.Owner = &core.UserInfo{
 				UserName: src.History.CreatedBy.DisplayName,
 				UserID:   src.History.CreatedBy.UserKey,
 			}
@@ -51,7 +51,7 @@ func convertFromWiki(src *Content, doc *common.Document, baseURL *url.URL) {
 			doc.Updated = &t
 		}
 		if src.Version.By != nil && src.Version.By.DisplayName != "" {
-			doc.Owner = &common.UserInfo{
+			doc.Owner = &core.UserInfo{
 				UserName: src.Version.By.DisplayName,
 				UserID:   src.Version.By.UserKey,
 			}
@@ -63,7 +63,7 @@ func convertFromWiki(src *Content, doc *common.Document, baseURL *url.URL) {
 	doc.Metadata["type"] = src.Type
 }
 
-func convertFromAttachment(src *Content, doc *common.Document, baseURL *url.URL) {
+func convertFromAttachment(src *Content, doc *core.Document, baseURL *url.URL) {
 	doc.Content = "" // Attachment src is not indexed directly
 
 	// for attachment get size from `Extensions`
@@ -83,7 +83,7 @@ func convertFromAttachment(src *Content, doc *common.Document, baseURL *url.URL)
 			doc.Updated = &t // For attachments, updated time is same as created time
 		}
 		if src.History.CreatedBy.DisplayName != "" {
-			doc.Owner = &common.UserInfo{
+			doc.Owner = &core.UserInfo{
 				UserName: src.History.CreatedBy.DisplayName,
 				UserID:   src.History.CreatedBy.AccountID,
 			}

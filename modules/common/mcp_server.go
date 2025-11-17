@@ -5,41 +5,15 @@
 package common
 
 import (
-	"infini.sh/framework/core/orm"
 	"time"
+
+	"infini.sh/coco/core"
+	"infini.sh/framework/core/orm"
 )
-
-type MCPServer struct {
-	CombinedFullText
-	Name        string   `json:"name" elastic_mapping:"name:{type:keyword,copy_to:combined_fulltext}"`
-	Description string   `json:"description,omitempty" elastic_mapping:"description:{type:text,copy_to:combined_fulltext}"`
-	Icon        string   `json:"icon,omitempty" elastic_mapping:"icon:{enabled:false}"`                // Display name of this datasource
-	Type        string   `json:"type" elastic_mapping:"type:{type:keyword,copy_to:combined_fulltext}"` // possible values: "sse", "stdio", "streamable_http"
-	Category    string   `json:"category,omitempty" elastic_mapping:"category:{type:keyword,copy_to:combined_fulltext}"`
-	Tags        []string `json:"tags,omitempty" elastic_mapping:"tags:{type:keyword}"`
-
-	Config  interface{} `json:"config,omitempty" elastic_mapping:"config:{enabled:false}"`
-	Enabled bool        `json:"enabled" elastic_mapping:"enabled:{type:boolean}"` // Whether the connector is enabled or not
-}
 
 const StreamableHTTP = "streamable_http"
 const SSE = "sse"
 const Stdio = "stdio"
-
-type SSEConfig struct {
-	URL string `json:"url" elastic_mapping:"url:{type:keyword}"`
-}
-
-// StdioConfig is a struct for the standard input/output configuration
-type StdioConfig struct {
-	Command string            `json:"command"`        // command to run, possible values: npx, uvx
-	Args    []string          `json:"args,omitempty"` // arguments to pass to the command
-	Env     map[string]string `json:"env,omitempty"`  // environment variables
-}
-
-type StreamableHttpConfig struct {
-	URL string `json:"url" elastic_mapping:"url:{type:keyword}"`
-}
 
 const (
 	MCPServerCachePrimary       = "mcp_server"
@@ -47,17 +21,17 @@ const (
 	EnabledMCPServerIDsCacheKey = "enabled_mcp_server_ids"
 )
 
-func GetMPCServer(id string) (*MCPServer, error) {
+func GetMPCServer(id string) (*core.MCPServer, error) {
 	item := GeneralObjectCache.Get(MCPServerItemCacheKey, id)
-	var server *MCPServer
+	var server *core.MCPServer
 	if item != nil && !item.Expired() {
 		var ok bool
-		if server, ok = item.Value().(*MCPServer); ok {
+		if server, ok = item.Value().(*core.MCPServer); ok {
 			return server, nil
 		}
 	}
 
-	server = &MCPServer{}
+	server = &core.MCPServer{}
 	server.ID = id
 	_, err := orm.Get(server)
 	if err != nil {
@@ -84,7 +58,7 @@ func GetAllEnabledMCPServerIDs() ([]string, error) {
 		}
 	}
 	// Cache is empty, read from database and cache the IDs
-	var server []MCPServer
+	var server []core.MCPServer
 	q := orm.Query{
 		Conds: orm.And(orm.Eq("enabled", true)),
 	}

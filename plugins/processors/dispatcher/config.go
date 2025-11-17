@@ -6,5 +6,5 @@ package dispatcher
 
 type Config struct {
 	MaxRunningTimeoutInSeconds int  `json:"max_running_timeout_in_seconds" config:"max_running_timeout_in_seconds"`
-	PipelinesInSync            bool `config:"pipelines_in_sync"`
+	PipelinesInSync            bool `json:"pipelines_in_sync" config:"pipelines_in_sync"`
 }

@@ -7,9 +7,9 @@ export const REG_PHONE =
 /**
  * Password reg
  *
- * 6-18 characters, including letters, numbers, and underscores
+ * 8-18 characters, including uppercase and lowercase letters, numbers, and special characters
  */
-export const REG_PWD = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[~!@#$%^&*()_+-=`{}\[\]:"|;'\\<>?,./])[A-Za-z\d~!@#$%^&*()_+-=`{}\[\]:"|;'\\<>?,./]{6,18}$/;
+export const REG_PWD = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,18}$/;
 
 /** Email reg */
 export const REG_EMAIL = /^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$/;
@@ -23,3 +23,5 @@ export const REG_CODE_FOUR = /^\d{4}$/;
 /** Url reg */
 export const REG_URL =
   /(((^https?:(?:\/\/)?)(?:[-;:&=+$,\w]+@)?[A-Za-z0-9.-]+(?::\d+)?|(?:www.|[-;:&=+$,\w]+@)[A-Za-z0-9.-]+)((?:\/[+~%/.\w-_]*)?\??(?:[-+=&;%@.\w_]*)#?(?:[\w]*))?)$/;
+
+export const REG_NO_SPECIAL = /^[A-Za-z0-9]+$/;

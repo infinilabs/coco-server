@@ -7,7 +7,7 @@ package yuque
 import (
 	"fmt"
 	log "github.com/cihub/seelog"
-	"infini.sh/coco/modules/common"
+	"infini.sh/coco/core"
 	cmn "infini.sh/coco/plugins/connectors/common"
 	config3 "infini.sh/framework/core/config"
 	"infini.sh/framework/core/pipeline"
@@ -30,7 +30,7 @@ type Plugin struct {
 	cmn.ConnectorProcessorBase
 }
 
-func (this *Plugin) Fetch(pipeCtx *pipeline.Context, connector *common.Connector, datasource *common.DataSource) error {
+func (this *Plugin) Fetch(pipeCtx *pipeline.Context, connector *core.Connector, datasource *core.DataSource) error {
 	config := YuqueConfig{}
 	this.MustParseConfig(datasource, &config)
 

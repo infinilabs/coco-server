@@ -7,12 +7,12 @@ package gitlab
 import (
 	"context"
 	"fmt"
+	"infini.sh/coco/core"
 	"net/url"
 	"strings"
 
 	log "github.com/cihub/seelog"
 	gitlabv4 "gitlab.com/gitlab-org/api/client-go"
-	"infini.sh/coco/modules/common"
 	"infini.sh/coco/plugins/connectors"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/pipeline"
@@ -41,7 +41,7 @@ func (w *wikiWrapper) BuildWikiURL(project *gitlabv4.Project) string {
 	return w.baseURL.JoinPath(wikiPath).String()
 }
 
-func (p *Plugin) processProjects(ctx *pipeline.Context, client *gitlabv4.Client, cfg *Config, connector *common.Connector, datasource *common.DataSource) {
+func (p *Plugin) processProjects(ctx *pipeline.Context, client *gitlabv4.Client, cfg *Config, connector *core.Connector, datasource *core.DataSource) {
 	scanCtx := context.Background()
 	isGroup, err := isGroupOwner(scanCtx, client, cfg.Owner)
 	if err != nil {
@@ -66,8 +66,8 @@ func (p *Plugin) processProjects(ctx *pipeline.Context, client *gitlabv4.Client,
 	// Initialize folder tracker for hierarchical structure
 	folderTracker := connectors.NewGitFolderTracker()
 	// Create all folder documents for the hierarchy
-	var folderDocs []common.Document
-	folderTracker.CreateGitFolderDocuments(datasource, func(doc common.Document) {
+	var folderDocs []core.Document
+	folderTracker.CreateGitFolderDocuments(datasource, func(doc core.Document) {
 		folderDocs = append(folderDocs, doc)
 	})
 	if len(folderDocs) > 0 {
@@ -144,9 +144,9 @@ func (p *Plugin) processProjects(ctx *pipeline.Context, client *gitlabv4.Client,
 
 }
 
-func (p *Plugin) processIssues(ctx *pipeline.Context, scanCtx context.Context, client *gitlabv4.Client, project *gitlabv4.Project, connector *common.Connector, datasource *common.DataSource) {
+func (p *Plugin) processIssues(ctx *pipeline.Context, scanCtx context.Context, client *gitlabv4.Client, project *gitlabv4.Project, connector *core.Connector, datasource *core.DataSource) {
 	err := ListIssues(scanCtx, client, project.ID, func(issues []*gitlabv4.Issue) bool {
-		var docs []common.Document
+		var docs []core.Document
 		for _, issue := range issues {
 			if global.ShuttingDown() {
 				return false
@@ -178,9 +178,9 @@ func (p *Plugin) processIssues(ctx *pipeline.Context, scanCtx context.Context, c
 	}
 }
 
-func (p *Plugin) processMergeRequests(ctx *pipeline.Context, scanCtx context.Context, client *gitlabv4.Client, project *gitlabv4.Project, connector *common.Connector, datasource *common.DataSource) {
+func (p *Plugin) processMergeRequests(ctx *pipeline.Context, scanCtx context.Context, client *gitlabv4.Client, project *gitlabv4.Project, connector *core.Connector, datasource *core.DataSource) {
 	err := ListMergeRequests(scanCtx, client, project.ID, func(mrs []*gitlabv4.BasicMergeRequest) bool {
-		var docs []common.Document
+		var docs []core.Document
 		for _, mr := range mrs {
 			if global.ShuttingDown() {
 				return false
@@ -211,9 +211,9 @@ func (p *Plugin) processMergeRequests(ctx *pipeline.Context, scanCtx context.Con
 	}
 }
 
-func (p *Plugin) processWikis(ctx *pipeline.Context, scanCtx context.Context, client *gitlabv4.Client, project *gitlabv4.Project, connector *common.Connector, datasource *common.DataSource) {
+func (p *Plugin) processWikis(ctx *pipeline.Context, scanCtx context.Context, client *gitlabv4.Client, project *gitlabv4.Project, connector *core.Connector, datasource *core.DataSource) {
 	err := ListWikiPages(scanCtx, client, project.ID, func(wikis []*gitlabv4.Wiki) bool {
-		var docs []common.Document
+		var docs []core.Document
 		for _, wiki := range wikis {
 			if global.ShuttingDown() {
 				return false
@@ -232,9 +232,9 @@ func (p *Plugin) processWikis(ctx *pipeline.Context, scanCtx context.Context, cl
 	}
 }
 
-func (p *Plugin) processSnippets(ctx *pipeline.Context, scanCtx context.Context, client *gitlabv4.Client, project *gitlabv4.Project, connector *common.Connector, datasource *common.DataSource) {
+func (p *Plugin) processSnippets(ctx *pipeline.Context, scanCtx context.Context, client *gitlabv4.Client, project *gitlabv4.Project, connector *core.Connector, datasource *core.DataSource) {
 	err := ListProjectSnippets(scanCtx, client, project.ID, func(snippets []*gitlabv4.Snippet) bool {
-		var docs []common.Document
+		var docs []core.Document
 		for _, sn := range snippets {
 			if global.ShuttingDown() {
 				return false
@@ -253,7 +253,7 @@ func (p *Plugin) processSnippets(ctx *pipeline.Context, scanCtx context.Context,
 	}
 }
 
-func (p *Plugin) transformProjectToDocument(project *gitlabv4.Project, datasource *common.DataSource) *common.Document {
+func (p *Plugin) transformProjectToDocument(project *gitlabv4.Project, datasource *core.DataSource) *core.Document {
 	owner := project.Namespace.Name
 
 	// Repository info document - belongs to owner category
@@ -268,7 +268,7 @@ func (p *Plugin) transformProjectToDocument(project *gitlabv4.Project, datasourc
 	doc.Cover = project.AvatarURL
 
 	if project.Owner != nil {
-		doc.Owner = &common.UserInfo{
+		doc.Owner = &core.UserInfo{
 			UserID:     project.Owner.Username,
 			UserName:   project.Owner.Name,
 			UserAvatar: project.Owner.AvatarURL,
@@ -305,7 +305,7 @@ func (p *Plugin) transformProjectToDocument(project *gitlabv4.Project, datasourc
 	return &doc
 }
 
-func (p *Plugin) transformIssueToDocument(issue *gitlabv4.Issue, comments []*gitlabv4.Note, project *gitlabv4.Project, datasource *common.DataSource) *common.Document {
+func (p *Plugin) transformIssueToDocument(issue *gitlabv4.Issue, comments []*gitlabv4.Note, project *gitlabv4.Project, datasource *core.DataSource) *core.Document {
 	owner := project.Namespace.Name
 	repoName := project.Name
 
@@ -332,7 +332,7 @@ func (p *Plugin) transformIssueToDocument(issue *gitlabv4.Issue, comments []*git
 	doc.Tags = tags
 
 	if issue.Author != nil {
-		doc.Owner = &common.UserInfo{
+		doc.Owner = &core.UserInfo{
 			UserID:     issue.Author.Username,
 			UserName:   issue.Author.Name,
 			UserAvatar: issue.Author.AvatarURL,
@@ -356,7 +356,7 @@ func (p *Plugin) transformIssueToDocument(issue *gitlabv4.Issue, comments []*git
 	return &doc
 }
 
-func (p *Plugin) transformMergeRequestToDocument(mr *gitlabv4.BasicMergeRequest, comments []*gitlabv4.Note, project *gitlabv4.Project, datasource *common.DataSource) *common.Document {
+func (p *Plugin) transformMergeRequestToDocument(mr *gitlabv4.BasicMergeRequest, comments []*gitlabv4.Note, project *gitlabv4.Project, datasource *core.DataSource) *core.Document {
 	owner := project.Namespace.Name
 	repoName := project.Name
 
@@ -383,7 +383,7 @@ func (p *Plugin) transformMergeRequestToDocument(mr *gitlabv4.BasicMergeRequest,
 	doc.Tags = tags
 
 	if mr.Author != nil {
-		doc.Owner = &common.UserInfo{
+		doc.Owner = &core.UserInfo{
 			UserID:     mr.Author.Username,
 			UserName:   mr.Author.Name,
 			UserAvatar: mr.Author.AvatarURL,
@@ -407,7 +407,7 @@ func (p *Plugin) transformMergeRequestToDocument(mr *gitlabv4.BasicMergeRequest,
 	return &doc
 }
 
-func (p *Plugin) transformWikiToDocument(wiki *wikiWrapper, project *gitlabv4.Project, datasource *common.DataSource) *common.Document {
+func (p *Plugin) transformWikiToDocument(wiki *wikiWrapper, project *gitlabv4.Project, datasource *core.DataSource) *core.Document {
 	owner := project.Namespace.Name
 	repoName := project.Name
 
@@ -437,7 +437,7 @@ func (p *Plugin) transformWikiToDocument(wiki *wikiWrapper, project *gitlabv4.Pr
 	return &doc
 }
 
-func (p *Plugin) transformSnippetToDocument(sn *gitlabv4.Snippet, project *gitlabv4.Project, datasource *common.DataSource) *common.Document {
+func (p *Plugin) transformSnippetToDocument(sn *gitlabv4.Snippet, project *gitlabv4.Project, datasource *core.DataSource) *core.Document {
 	owner := project.Namespace.Name
 	repoName := project.Name
 
@@ -450,7 +450,7 @@ func (p *Plugin) transformSnippetToDocument(sn *gitlabv4.Snippet, project *gitla
 	// Add GitLab-specific snippet metadata
 	doc.Content = sn.Description
 
-	doc.Owner = &common.UserInfo{
+	doc.Owner = &core.UserInfo{
 		UserID:   sn.Author.Username,
 		UserName: sn.Author.Name,
 	}

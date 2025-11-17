@@ -11,6 +11,7 @@ import (
 	"golang.org/x/oauth2"
 	"google.golang.org/api/drive/v3"
 	"google.golang.org/api/option"
+	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/global"
@@ -211,7 +212,7 @@ func isSamePermission(a, b []*drive.Permission) bool {
 	return true
 }
 
-func (this *Processor) IndexingFolder(pipeCtx *pipeline.Context, connector *common.Connector, datasource *common.DataSource, doc common.Document, srv *drive.Service, q string, batchNumber string) {
+func (this *Processor) IndexingFolder(pipeCtx *pipeline.Context, connector *core.Connector, datasource *core.DataSource, doc core.Document, srv *drive.Service, q string, batchNumber string) {
 
 	//save current folder to index
 	log.Tracef("saving folder: %v, %v, %v", doc.Category, doc.Title, doc.ID)
@@ -347,7 +348,7 @@ func (this *Processor) IndexingFolder(pipeCtx *pipeline.Context, connector *comm
 	return
 }
 
-func (this *Processor) IndexingFile(pipeCtx *pipeline.Context, connector *common.Connector, datasource *common.DataSource, parent []string, folder common.Document, srv *drive.Service, i *drive.File, batchNumber string) {
+func (this *Processor) IndexingFile(pipeCtx *pipeline.Context, connector *core.Connector, datasource *core.DataSource, parent []string, folder core.Document, srv *drive.Service, i *drive.File, batchNumber string) {
 
 	//if processedFileIDs[i.Id] {
 	//check bitmap, if files are processed already, no duplicated progressing
@@ -382,8 +383,8 @@ func (this *Processor) IndexingFile(pipeCtx *pipeline.Context, connector *common
 	}
 
 	// Map Google Drive file to Document struct
-	document := common.Document{
-		Source: common.DataSourceReference{
+	document := core.Document{
+		Source: core.DataSourceReference{
 			ID:   datasource.ID,
 			Name: datasource.Name,
 			Type: "connector",
@@ -393,7 +394,7 @@ func (this *Processor) IndexingFile(pipeCtx *pipeline.Context, connector *common
 		Type:    getType(i.MimeType),
 		Size:    int(i.Size),
 		URL:     fmt.Sprintf("https://drive.google.com/file/d/%s/view", i.Id),
-		Owner: &common.UserInfo{
+		Owner: &core.UserInfo{
 			UserAvatar: i.Owners[0].PhotoLink,
 			UserName:   i.Owners[0].DisplayName,
 			UserID:     i.Owners[0].EmailAddress,
@@ -464,8 +465,8 @@ func (this *Processor) IndexingFile(pipeCtx *pipeline.Context, connector *common
 	//}
 
 	if i.LastModifyingUser != nil {
-		document.LastUpdatedBy = &common.EditorInfo{
-			UserInfo: &common.UserInfo{
+		document.LastUpdatedBy = &core.EditorInfo{
+			UserInfo: &core.UserInfo{
 				UserAvatar: i.LastModifyingUser.PhotoLink,
 				UserName:   i.LastModifyingUser.DisplayName,
 				UserID:     i.LastModifyingUser.EmailAddress,
@@ -478,7 +479,7 @@ func (this *Processor) IndexingFile(pipeCtx *pipeline.Context, connector *common
 
 	// Handle optional fields
 	if i.SharingUser != nil {
-		document.Payload["sharingUser"] = common.UserInfo{
+		document.Payload["sharingUser"] = core.UserInfo{
 			UserAvatar: i.SharingUser.PhotoLink,
 			UserName:   i.SharingUser.DisplayName,
 			UserID:     i.SharingUser.EmailAddress,
@@ -496,13 +497,13 @@ func (this *Processor) IndexingFile(pipeCtx *pipeline.Context, connector *common
 	this.Collect(pipeCtx, connector, datasource, document)
 }
 
-func (this *Processor) createFolderDoc(id, name string, parent []string, datasource *common.DataSource) common.Document {
+func (this *Processor) createFolderDoc(id, name string, parent []string, datasource *core.DataSource) core.Document {
 	shareWithMe := common.CreateHierarchyPathFolderDoc(datasource, id, name, parent)
 	shareWithMe.URL = fmt.Sprintf("https://drive.google.com/file/d/%s/view", id)
 	return shareWithMe
 }
 
-func (this *Processor) startIndexingFiles(pipeCtx *pipeline.Context, connector *common.Connector, datasource *common.DataSource, tok *oauth2.Token) {
+func (this *Processor) startIndexingFiles(pipeCtx *pipeline.Context, connector *core.Connector, datasource *core.DataSource, tok *oauth2.Token) {
 	defer func() {
 		if !global.Env().IsDebug {
 			if r := recover(); r != nil {
@@ -685,7 +686,7 @@ func exportFile(srv *drive.Service, fileID, mimeType, outputPath string) error {
 }
 
 // createDocumentFromFile creates a Document from a Google Drive file
-func (this *Processor) createDocumentFromFile(file *drive.File, datasource *common.DataSource, folderPath []string, ft *FolderTreeBuilder, currentUserEmail string, isMyDrive bool) *common.Document {
+func (this *Processor) createDocumentFromFile(file *drive.File, datasource *core.DataSource, folderPath []string, ft *FolderTreeBuilder, currentUserEmail string, isMyDrive bool) *core.Document {
 	if file == nil {
 		return nil
 	}
@@ -712,8 +713,8 @@ func (this *Processor) createDocumentFromFile(file *drive.File, datasource *comm
 	log.Tracef("Google Drive File: %s (ID: %s) | CreatedAt: %s | UpdatedAt: %s | Parents: %s", file.Name, file.Id, createdAt, updatedAt, file.Parents)
 
 	// Map Google Drive file to Document struct
-	document := common.Document{
-		Source: common.DataSourceReference{
+	document := core.Document{
+		Source: core.DataSourceReference{
 			ID:   datasource.ID,
 			Name: datasource.Name,
 			Type: "connector",
@@ -723,7 +724,7 @@ func (this *Processor) createDocumentFromFile(file *drive.File, datasource *comm
 		Type:    getType(file.MimeType),
 		Size:    int(file.Size),
 		URL:     fmt.Sprintf("https://drive.google.com/file/d/%s/view", file.Id),
-		Owner: &common.UserInfo{
+		Owner: &core.UserInfo{
 			UserAvatar: file.Owners[0].PhotoLink,
 			UserName:   file.Owners[0].DisplayName,
 			UserID:     file.Owners[0].EmailAddress,
@@ -787,8 +788,8 @@ func (this *Processor) createDocumentFromFile(file *drive.File, datasource *comm
 	}
 
 	if file.LastModifyingUser != nil {
-		document.LastUpdatedBy = &common.EditorInfo{
-			UserInfo: &common.UserInfo{
+		document.LastUpdatedBy = &core.EditorInfo{
+			UserInfo: &core.UserInfo{
 				UserAvatar: file.LastModifyingUser.PhotoLink,
 				UserName:   file.LastModifyingUser.DisplayName,
 				UserID:     file.LastModifyingUser.EmailAddress,
@@ -801,7 +802,7 @@ func (this *Processor) createDocumentFromFile(file *drive.File, datasource *comm
 
 	// Handle optional fields
 	if file.SharingUser != nil {
-		document.Payload["sharingUser"] = common.UserInfo{
+		document.Payload["sharingUser"] = core.UserInfo{
 			UserAvatar: file.SharingUser.PhotoLink,
 			UserName:   file.SharingUser.DisplayName,
 			UserID:     file.SharingUser.EmailAddress,

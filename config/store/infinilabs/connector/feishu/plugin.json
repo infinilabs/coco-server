@@ -61,7 +61,7 @@
       "token_url": "https://open.feishu.cn/open-apis/authen/v2/oauth/token"
     },
     "builtin": true,
-    "path_hierarchy": true,
+    "path_hierarchy":false,
     "oauth_connect_implemented": true,
     "processor": {
       "enabled": true,

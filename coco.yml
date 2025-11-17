@@ -50,6 +50,7 @@ elastic:
     enabled: true
     index_prefix: "coco_"
     override_exists_template: true
+    override_exists_mapping: true
     index_templates:
       "coco-search": |
         {
@@ -269,6 +270,7 @@ api:
     binding: $[[env.API_BINDING]]
 
 web:
+#  base_path: "/coco"
   enabled: true
   embedding_api: false
   network:
@@ -292,6 +294,8 @@ web:
     enabled: true
     managed: false #remote managed instance
     authentication:
+      native:
+        enabled: true
       oauth:
         cloud:
           enabled: true
@@ -334,7 +338,6 @@ pipeline:
     processor:
       - indexing_merge:
           input_queue: "indexing_documents"
-#          input_queue: "enriched_documents"
           idle_timeout_in_seconds: 1
           elasticsearch: "prod"
           index_name: "coco_document-v2"

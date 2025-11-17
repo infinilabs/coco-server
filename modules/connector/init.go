@@ -6,7 +6,6 @@ package connector
 
 import (
 	"infini.sh/coco/core"
-	"infini.sh/coco/plugins/security/filter"
 	"infini.sh/framework/core/api"
 	"infini.sh/framework/core/security"
 )
@@ -35,10 +34,10 @@ func init() {
 	api.HandleUIMethod(api.PUT, "/connector/:id", handler.update, api.RequirePermission(updatePermission))
 	api.HandleUIMethod(api.DELETE, "/connector/:id", handler.delete, api.RequirePermission(deletePermission))
 
-	api.HandleUIMethod(api.OPTIONS, "/connector/_search", handler.search, api.RequirePermission(searchPermission), api.Feature(filter.FeatureCORS))
-	api.HandleUIMethod(api.GET, "/connector/_search", handler.search, api.RequirePermission(searchPermission), api.Feature(filter.FeatureCORS),
-		api.Feature(filter.FeatureMaskSensitiveField))
-	api.HandleUIMethod(api.POST, "/connector/_search", handler.search, api.RequirePermission(searchPermission), api.Feature(filter.FeatureCORS),
-		api.Feature(filter.FeatureMaskSensitiveField))
+	api.HandleUIMethod(api.OPTIONS, "/connector/_search", handler.search, api.RequirePermission(searchPermission), api.Feature(core.FeatureCORS))
+	api.HandleUIMethod(api.GET, "/connector/_search", handler.search, api.RequirePermission(searchPermission), api.Feature(core.FeatureCORS),
+		api.Feature(core.FeatureMaskSensitiveField))
+	api.HandleUIMethod(api.POST, "/connector/_search", handler.search, api.RequirePermission(searchPermission), api.Feature(core.FeatureCORS),
+		api.Feature(core.FeatureMaskSensitiveField))
 
 }

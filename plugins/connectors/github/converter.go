@@ -7,11 +7,11 @@ package github
 import (
 	"context"
 	"fmt"
+	"infini.sh/coco/core"
 	"strings"
 
 	log "github.com/cihub/seelog"
 	githubv3 "github.com/google/go-github/v74/github"
-	"infini.sh/coco/modules/common"
 	"infini.sh/coco/plugins/connectors"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/pipeline"
@@ -23,7 +23,7 @@ const (
 	TypeRepository  = "repository"
 )
 
-func (p *Plugin) processRepos(ctx *pipeline.Context, client *githubv3.Client, cfg *Config, connector *common.Connector, datasource *common.DataSource) {
+func (p *Plugin) processRepos(ctx *pipeline.Context, client *githubv3.Client, cfg *Config, connector *core.Connector, datasource *core.DataSource) {
 	scanCtx := context.Background()
 	user, _, err := client.Users.Get(scanCtx, cfg.Owner)
 	if err != nil {
@@ -67,8 +67,8 @@ func (p *Plugin) processRepos(ctx *pipeline.Context, client *githubv3.Client, cf
 			// Track folders for hierarchy
 			folderTracker.TrackGitFolders(cfg.Owner, repo.GetName(), contentTypes)
 			// Create all folder documents for the hierarchy
-			var folderDocs []common.Document
-			folderTracker.CreateGitFolderDocuments(datasource, func(doc common.Document) {
+			var folderDocs []core.Document
+			folderTracker.CreateGitFolderDocuments(datasource, func(doc core.Document) {
 				folderDocs = append(folderDocs, doc)
 			})
 
@@ -105,9 +105,9 @@ func (p *Plugin) processRepos(ctx *pipeline.Context, client *githubv3.Client, cf
 	}
 }
 
-func (p *Plugin) processIssues(ctx *pipeline.Context, scanCtx context.Context, client *githubv3.Client, owner string, repo *githubv3.Repository, connector *common.Connector, datasource *common.DataSource) {
+func (p *Plugin) processIssues(ctx *pipeline.Context, scanCtx context.Context, client *githubv3.Client, owner string, repo *githubv3.Repository, connector *core.Connector, datasource *core.DataSource) {
 	err := ListIssues(scanCtx, client, owner, repo.GetName(), func(issues []*githubv3.Issue) bool {
-		var docs []common.Document
+		var docs []core.Document
 		for _, issue := range issues {
 			if global.ShuttingDown() {
 				return false
@@ -132,9 +132,9 @@ func (p *Plugin) processIssues(ctx *pipeline.Context, scanCtx context.Context, c
 
 }
 
-func (p *Plugin) processPullRequests(ctx *pipeline.Context, scanCtx context.Context, client *githubv3.Client, owner string, repo *githubv3.Repository, connector *common.Connector, datasource *common.DataSource) {
+func (p *Plugin) processPullRequests(ctx *pipeline.Context, scanCtx context.Context, client *githubv3.Client, owner string, repo *githubv3.Repository, connector *core.Connector, datasource *core.DataSource) {
 	err := ListPullRequests(scanCtx, client, owner, repo.GetName(), func(prs []*githubv3.PullRequest) bool {
-		var docs []common.Document
+		var docs []core.Document
 		for _, pr := range prs {
 			if global.ShuttingDown() {
 				return false
@@ -155,7 +155,7 @@ func (p *Plugin) processPullRequests(ctx *pipeline.Context, scanCtx context.Cont
 
 }
 
-func (p *Plugin) transformRepoToDocument(repo *githubv3.Repository, datasource *common.DataSource) *common.Document {
+func (p *Plugin) transformRepoToDocument(repo *githubv3.Repository, datasource *core.DataSource) *core.Document {
 	owner := repo.Owner.GetLogin()
 
 	// Level 3A: Repository info document - belongs to owner category
@@ -167,7 +167,7 @@ func (p *Plugin) transformRepoToDocument(repo *githubv3.Repository, datasource *
 	// Add GitHub-specific repository metadata
 	doc.Summary = repo.GetDescription()
 	doc.Tags = repo.Topics
-	doc.Owner = &common.UserInfo{UserID: owner, UserName: owner, UserAvatar: repo.Owner.GetAvatarURL()}
+	doc.Owner = &core.UserInfo{UserID: owner, UserName: owner, UserAvatar: repo.Owner.GetAvatarURL()}
 
 	created := repo.GetCreatedAt().Time
 	doc.Created = &created
@@ -226,7 +226,7 @@ func (p *pullRequestWrapper) GetLabels() []*githubv3.Label {
 }
 
 // transformContentableToDocument is a generic function to transform issue-like objects into a document.
-func (p *Plugin) transformContentableToDocument(item Contentable, itemType string, comments []*githubv3.IssueComment, repo *githubv3.Repository, datasource *common.DataSource) *common.Document {
+func (p *Plugin) transformContentableToDocument(item Contentable, itemType string, comments []*githubv3.IssueComment, repo *githubv3.Repository, datasource *core.DataSource) *core.Document {
 	owner := repo.Owner.GetLogin()
 	repoName := repo.GetName()
 
@@ -255,7 +255,7 @@ func (p *Plugin) transformContentableToDocument(item Contentable, itemType strin
 	}
 	doc.Tags = tags
 
-	doc.Owner = &common.UserInfo{
+	doc.Owner = &core.UserInfo{
 		UserID:     item.GetUser().GetLogin(),
 		UserName:   item.GetUser().GetLogin(),
 		UserAvatar: item.GetUser().GetAvatarURL(),
@@ -285,10 +285,10 @@ func (p *Plugin) transformContentableToDocument(item Contentable, itemType strin
 	return &doc
 }
 
-func (p *Plugin) transformIssueToDocument(issue *githubv3.Issue, comments []*githubv3.IssueComment, repo *githubv3.Repository, datasource *common.DataSource) *common.Document {
+func (p *Plugin) transformIssueToDocument(issue *githubv3.Issue, comments []*githubv3.IssueComment, repo *githubv3.Repository, datasource *core.DataSource) *core.Document {
 	return p.transformContentableToDocument(&issueWrapper{issue}, TypeIssue, comments, repo, datasource)
 }
 
-func (p *Plugin) transformPullRequestToDocument(pr *githubv3.PullRequest, comments []*githubv3.IssueComment, repo *githubv3.Repository, datasource *common.DataSource) *common.Document {
+func (p *Plugin) transformPullRequestToDocument(pr *githubv3.PullRequest, comments []*githubv3.IssueComment, repo *githubv3.Repository, datasource *core.DataSource) *core.Document {
 	return p.transformContentableToDocument(&pullRequestWrapper{pr}, TypePullRequest, comments, repo, datasource)
 }

@@ -68,6 +68,14 @@ const LoginForm = memo(({ onProvider }: { onProvider?: () => void }) => {
         >
           <Form.Item
             className="m-b-32px"
+            label={t('page.login.email')}
+            name="email"
+            rules={[defaultRequiredRule]}
+          >
+            <Input className="h-40px" />
+          </Form.Item>
+          <Form.Item
+            className="m-b-32px"
             label={t('page.login.password')}
             name="password"
             rules={[defaultRequiredRule]}

@@ -4,10 +4,17 @@ import { fetchSettings, updateSettings } from '@/service/api/server';
 import { useLoading, useRequest } from '@sa/hooks';
 import IntegrationSelect from '@/pages/integration/modules/IntegrationSelect';
 import { getProviderInfo, setProviderInfo, updateRootRouteIfSearch } from '@/store/slice/server';
+import { initConstantRoute } from '@/store/slice/route';
 
 const SearchSettings = memo(() => {
   const [form] = Form.useForm();
   const { t } = useTranslation();
+
+  const { hasAuth } = useAuth()
+
+  const permissions = {
+    update: hasAuth('coco#system/update'),
+  }
 
   const { endLoading, loading, startLoading } = useLoading();
 
@@ -44,6 +51,7 @@ const SearchSettings = memo(() => {
       }
       dispatch(setProviderInfo(newProviderInfo));
       dispatch(updateRootRouteIfSearch(newProviderInfo));
+      dispatch(initConstantRoute());
       window.$message?.success(t('common.updateSuccess'));
     }
     endLoading();
@@ -84,14 +92,18 @@ const SearchSettings = memo(() => {
           <Form.Item label={t('page.settings.search_settings.labels.integration')} name={['integration']}>
             <IntegrationSelect filter={{ enabled: [true], type: ['fullscreen', 'page', 'modal']}}/>
           </Form.Item>
-          <Form.Item label=" " >
-            <Button
-              type="primary"
-              onClick={() => handleSubmit()}
-            >
-              {t('common.update')}
-            </Button>
-          </Form.Item>
+          {
+            permissions.update && (
+              <Form.Item label=" " >
+                <Button
+                  type="primary"
+                  onClick={() => handleSubmit()}
+                >
+                  {t('common.update')}
+                </Button>
+              </Form.Item>
+            )
+          }
         </Form>
       </Spin>
     </ListContainer>

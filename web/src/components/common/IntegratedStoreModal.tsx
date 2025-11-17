@@ -1,5 +1,5 @@
 import { PlusCircleFilled, PlusOutlined } from '@ant-design/icons';
-import { Button, Card, Col, Flex, Input, Menu, Modal, Row, Space, Spin, Typography, message } from 'antd';
+import { Button, Card, Col, Flex, Input, Menu, Modal, Pagination, Row, Space, Spin, Typography, message } from 'antd';
 import type { AnyObject } from 'antd/es/_util/type';
 import type { ItemType, MenuItemType } from 'antd/es/menu/interface';
 import classNames from 'classnames';
@@ -68,8 +68,7 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
   const [open, setOpen] = useState(false);
   const [category, setCategory] = useState<Category>('ai-assistant');
   const navigate = useNavigate();
-  const [loadingData, setLoadingData] = useState(true);
-  const [data, setData] = useState<DataSource[]>([]);
+  const [dataSource, setDataSource] = useState<DataSource[]>([]);
   const [installation, setInstallation] = useState(false);
   const [searchKeyword, setSearchKeyboard] = useState<string>();
   const { t } = useTranslation();
@@ -95,7 +94,7 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
         if (dataSource) {
           setFromClipboard(true);
 
-          setData(castArray(dataSource));
+          setDataSource(castArray(dataSource));
         }
       } catch (error) {
         // eslint-disable-next-line no-console
@@ -132,47 +131,62 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
     }
   }, [category]);
 
-  useAsyncEffect(async () => {
-    try {
-      if (!open || fromClipboard) return;
-
-      setLoadingData(true);
-
-      const params: AnyObject = {};
-
-      if (!isEmpty(searchKeyword)) {
-        params.query = searchKeyword;
-      }
-
-      if (currentTab === 'newest') {
-        params.sort = 'created:desc';
-      }
-      const providerInfo = localStg.get('providerInfo');
-      let storeUrl = `/store/server/_search?filter=type:${requestType}`;
-      if(providerInfo.store?.local === false){
-        storeUrl = providerInfo.store.endpoint + storeUrl
-      }
-      const searchParams = new URLSearchParams();
-      Object.entries(params).forEach(([key, value]) => {
-        searchParams.append(key, value);
-      });
-  
-      storeUrl += `&${searchParams.toString()}`; 
-
-      const res = await fetch(storeUrl, {
-        method: 'get',
-      });
-      const result = await res.json();
-      const { data } = formatESSearchResult(result);
-
-      setData(data);
-    } catch(error) {
-      console.error(error);
-      // do something
-    } finally {
-      setLoadingData(false);
+  const fetchList = async (params: { current: number; pageSize: number }) => {
+    if (!open || fromClipboard) {
+      return {
+        list: [],
+        total: 0
+      };
     }
-  }, [open, requestType, searchKeyword, currentTab, fromClipboard]);
+
+    const { current, pageSize } = params;
+
+    const requestParams: AnyObject = {
+      from: (current - 1) * pageSize,
+      size: pageSize
+    };
+
+    if (!isEmpty(searchKeyword)) {
+      requestParams.query = searchKeyword;
+    }
+
+    if (currentTab === 'newest') {
+      requestParams.sort = 'created:desc';
+    }
+
+    const providerInfo = localStg.get('providerInfo');
+
+    let storeUrl = `/store/server/_search?filter=type:${requestType}`;
+
+    if (providerInfo.store?.local === false) {
+      storeUrl = providerInfo.store.endpoint + storeUrl;
+    }
+
+    const searchParams = new URLSearchParams();
+    Object.entries(requestParams).forEach(([key, value]) => {
+      searchParams.append(key, value);
+    });
+
+    storeUrl += `&${searchParams.toString()}`;
+
+    const res = await fetch(storeUrl, {
+      method: 'get'
+    });
+    const result = await res.json();
+    const { data, total } = formatESSearchResult(result);
+
+    return {
+      list: data as DataSource[],
+      total
+    };
+  };
+
+  const { data, loading, pagination } = usePagination(fetchList, {
+    refreshDeps: [open, requestType, searchKeyword, currentTab, fromClipboard],
+    onSuccess(data) {
+      setDataSource(data.list);
+    }
+  });
 
   const renderTitle = () => {
     if (fromClipboard) {
@@ -184,10 +198,10 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
         <span>{t('page.integratedStoreModal.title')}</span>
 
         <Typography.Link
-          href="https://coco.rs/zh/integration"
-          target="_blank"
+          href='https://coco.rs/zh/integration'
+          target='_blank'
         >
-          <SquareArrowOutUpRight className="size-4 text-primary" />
+          <SquareArrowOutUpRight className='size-4 text-primary' />
         </Typography.Link>
       </Space>
     );
@@ -202,10 +216,10 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
       key: 'model-provider',
       label: t('page.integratedStoreModal.labels.modelProvider')
     },
-    {
-      key: 'data-source',
-      label: t('page.integratedStoreModal.labels.datasource')
-    },
+    // {
+    //   key: 'data-source',
+    //   label: t('page.integratedStoreModal.labels.datasource')
+    // },
     {
       key: 'mcp-server',
       label: t('page.integratedStoreModal.labels.mcpServer')
@@ -230,7 +244,7 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
     if (category === 'data-source') {
       link += '-first';
     }
-
+    setOpen(false);
     navigate(link);
   }, [category, navigate]);
 
@@ -238,16 +252,17 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
     try {
       setInstallation(true);
 
-      const { data } = await request({
+      const res = await request({
         method: 'post',
         url: `/store/server/${id}/_install`
       });
 
-      if (data.acknowledged) {
+      if (res?.data?.acknowledged) {
         message.success(t('page.integratedStoreModal.hints.installSuccess'));
 
         setTimeout(() => {
-          navigate(data.redirect_url);
+          setOpen(false);
+          navigate(res?.data.redirect_url);
         }, 3000);
       }
     } catch (error) {
@@ -260,68 +275,72 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
   const handleOk = () => {
     if (!fromClipboard) return;
 
-    handleInstall(data[0].id);
+    const id = dataSource[0].id;
+
+    if (id) {
+      handleInstall(id);
+    }
   };
 
-  const renderDataCard = (data: DataSource, children?: ReactNode) => {
+  const renderDataCard = (data?: DataSource, children?: ReactNode) => {
     return (
       <Card
         className={classNames('group text-xs text-color-3', {
-          'hover:(border-primary bg-primary-50)': !fromClipboard,
+          'hover:(border-primary bg-primary-50) dark:hover:bg-primary-900': !fromClipboard,
           'mt-2 h-50 [&_.ant-card-body]:h-full': fromClipboard
         })}
       >
         <Flex
           vertical
-          className="h-full"
-          justify="space-between"
+          className='h-full'
+          justify='space-between'
         >
           <Flex
             vertical
             gap={12}
-            justify="space-between"
+            justify='space-between'
           >
             {data?.icon?.startsWith('font_') ? (
               <FontIcon
-                className="text-8"
+                className='text-8'
                 name={data?.icon}
               />
             ) : (
               <img
-                className="size-8"
+                className='size-8'
                 src={data?.icon}
               />
             )}
 
-            <div className="truncate text-sm text-color-1">{data?.name}</div>
+            <div className='truncate text-sm text-color-1'>{data?.name}</div>
 
             <Space>
               <img
-                className="size-4"
+                className='size-4'
                 src={data?.developer?.avatar}
               />
 
               <span>{data?.developer?.name}</span>
             </Space>
 
-            <div className="line-clamp-3">{data?.description}</div>
+            <div className='line-clamp-3'>{data?.description}</div>
           </Flex>
 
           <Flex
-            align="center"
-            justify="space-between"
+            align='center'
+            justify='space-between'
             className={classNames({
               'group-hover:hidden': !fromClipboard
             })}
           >
             <Space>
-              <Eye className="size-4" />
+              <Eye className='size-4' />
 
               <span>{data?.stats?.views || '-'}</span>
             </Space>
 
             <Space>
-              <FolderDown className="size-4" />
+              <FolderDown className='size-4' />
 
               <span>{data?.stats?.installs || '-'}</span>
             </Space>
@@ -335,51 +354,65 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
 
   const renderData = () => {
     return (
-      <Row
-        className="max-h-100 overflow-auto pr-3 [&_.ant-card-body]:h-full [&_.ant-card]:(h-full cursor-pointer transition) children:h-55"
-        gutter={[8, 8]}
-      >
-        <Col span={6}>
-          <Card
-            className="border-primary"
-            classNames={{
-              body: 'flex flex-col items-center justify-center gap-6'
-            }}
-            onClick={handleNew}
-          >
-            <PlusCircleFilled className="text-8 text-primary" />
-
-            <span className="text-primary">{t('page.integratedStoreModal.buttons.custom')}</span>
-          </Card>
-        </Col>
-
-        {data.map(item => {
-          const { id } = item;
-
-          return (
-            <Col
-              key={id}
-              span={6}
+      <>
+        <Row
+          className='max-h-100 overflow-auto pr-3 [&_.ant-card-body]:h-full [&_.ant-card]:(h-full cursor-pointer transition) children:h-55'
+          gutter={[8, 8]}
+        >
+          <Col span={6}>
+            <Card
+              className='border-primary'
+              classNames={{
+                body: 'flex flex-col items-center justify-center gap-6'
+              }}
+              onClick={handleNew}
             >
-              {renderDataCard(
-                item,
-                <div className="hidden -mx-2 -my-1 group-hover:block">
-                  <Button
-                    block
-                    size="small"
-                    type="primary"
-                    onClick={() => {
-                      handleInstall(id);
-                    }}
-                  >
-                    {t('page.integratedStoreModal.buttons.install')}
-                  </Button>
-                </div>
-              )}
-            </Col>
-          );
-        })}
-      </Row>
+              <PlusCircleFilled className='text-8 text-primary' />
+
+              <span className='text-primary'>{t('page.integratedStoreModal.buttons.custom')}</span>
+            </Card>
+          </Col>
+
+          {dataSource.map(item => {
+            const { id } = item;
+
+            return (
+              <Col
+                key={id}
+                span={6}
+              >
+                {renderDataCard(
+                  item,
+                  <div className='hidden -mx-2 -my-1 group-hover:block'>
+                    <Button
+                      block
+                      size='small'
+                      type='primary'
+                      onClick={() => {
+                        handleInstall(id);
+                      }}
+                    >
+                      {t('page.integratedStoreModal.buttons.install')}
+                    </Button>
+                  </div>
+                )}
+              </Col>
+            );
+          })}
+        </Row>
+
+        <Flex
+          className='pr-3 pt-3'
+          justify='end'
+        >
+          <Pagination
+            {...pagination}
+            showQuickJumper
+            size='small'
+            total={data?.total}
+          />
+        </Flex>
+      </>
     );
   };
 
@@ -387,17 +420,17 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
     return (
       <Flex
         vertical
-        align="center"
-        className="h-90 pr-3"
+        align='center'
+        className='h-90 pr-3'
         gap={24}
-        justify="center"
+        justify='center'
       >
         <NoDataIcon size={96} />
 
-        <span className="text-color-3">{t('page.integratedStoreModal.hints.noResults')}</span>
+        <span className='text-color-3'>{t('page.integratedStoreModal.hints.noResults')}</span>
 
         <Button
-          type="primary"
+          type='primary'
           onClick={handleNew}
         >
           <PlusOutlined />
@@ -429,7 +462,7 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
           <>
             <span>{t('page.integratedStoreModal.installModal.hints')}</span>
 
-            {renderDataCard(data[0])}
+            {renderDataCard(dataSource[0])}
           </>
         ) : (
           <Flex>
@@ -438,17 +471,19 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
               selectedKeys={[category]}
               style={{ width: 150 }}
               onSelect={({ key }) => {
+                // reset search keyword and tab
+                setSearchKeyboard(undefined);
                 setCategory(key as Category);
               }}
             />
 
-            <div className="flex-1 pl-4">
+            <div className='flex-1 pl-4'>
               <Flex
-                align="center"
-                className="w-full pr-3"
-                justify="space-between"
+                align='center'
+                className='w-full pr-3'
+                justify='space-between'
               >
-                <Flex align="center">
+                <Flex align='center'>
                   {tabItems.map(item => {
                     const { label, value } = item;
 
@@ -469,13 +504,15 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
                 </Flex>
 
                 <Input.Search
-                  className="w-60"
+                  className='w-60'
+                  value={searchKeyword}
+                  onChange={e => setSearchKeyboard(e.target.value)}
                   onSearch={setSearchKeyboard}
                 />
               </Flex>
 
-              <Spin spinning={loadingData}>
-                <div className="pt-4">{data.length > 0 ? renderData() : renderEmpty()}</div>
+              <Spin spinning={loading}>
+                <div className='pt-4'>{dataSource.length > 0 ? renderData() : renderEmpty()}</div>
               </Spin>
             </div>
           </Flex>
@@ -484,7 +521,7 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
 
       <Spin
         fullscreen
-        rootClassName="z-10000"
+        rootClassName='z-10000'
         spinning={installation}
       />
     </>

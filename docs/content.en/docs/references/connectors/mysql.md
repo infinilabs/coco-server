@@ -7,7 +7,7 @@ weight: 50
 ## Register MySQL Connector
 
 ```shell
-curl -XPUT "http://localhost:9000/connector/mysql?replace=true" -d '{
+curl -XPOST "http://localhost:9000/connector/" -d '{
   "name": "MySQL Connector",
   "description": "Fetch data from MySQL database.",
   "category": "database",
@@ -30,7 +30,6 @@ curl -XPUT "http://localhost:9000/connector/mysql?replace=true" -d '{
 }'
 ```
 
-> Use `mysql` as a unique identifier, as it is a builtin connector.
 
 ## Use the MySQL Connector
 

@@ -8,10 +8,10 @@ import (
 	"context"
 	stderrors "errors"
 	"fmt"
+	"infini.sh/coco/core"
 	"sync"
 	"time"
 
-	"infini.sh/coco/modules/common"
 	config3 "infini.sh/framework/core/config"
 	"infini.sh/framework/core/errors"
 )
@@ -26,7 +26,7 @@ var (
 
 var locker = sync.RWMutex{}
 
-func CanDoSync(datasource common.DataSource) (bool, error) {
+func CanDoSync(datasource core.DataSource) (bool, error) {
 	locker.Lock()
 	defer locker.Unlock()
 
@@ -55,7 +55,7 @@ func CanDoSync(datasource common.DataSource) (bool, error) {
 	return toSync, nil
 }
 
-func ParseConnectorBaseConfigure(connector *common.Connector, config interface{}) error {
+func ParseConnectorBaseConfigure(connector *core.Connector, config interface{}) error {
 	if connector == nil {
 		return errors.New("invalid connector or datasource config")
 	}
@@ -73,7 +73,7 @@ func ParseConnectorBaseConfigure(connector *common.Connector, config interface{}
 }
 
 // ParseConnectorConfigure parse connector data source config
-func ParseConnectorConfigure(connector *common.Connector, datasource *common.DataSource, config interface{}) error {
+func ParseConnectorConfigure(connector *core.Connector, datasource *core.DataSource, config interface{}) error {
 	if connector == nil || datasource == nil {
 		return errors.New("invalid connector or datasource config")
 	}

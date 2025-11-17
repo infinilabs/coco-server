@@ -12,7 +12,7 @@ import { localStg } from '@/utils/storage';
 const PasswordModal = lazy(() => import('./PasswordModal'));
 
 const UserAvatar = memo((props) => {
-  const { className, showHome = false } = props;
+  const { className, showHome = false, showName = true } = props;
   const { t } = useTranslation();
   const userInfo = useAppSelector(selectUserInfo);
   const submit = useSubmit();
@@ -127,7 +127,7 @@ const UserAvatar = memo((props) => {
                 className="text-icon-large"
                 icon="ph:user-circle"
               />
-              <span className="text-16px font-medium">{userInfo.name}</span>
+              {showName && <span className="text-16px font-medium">{userInfo.name}</span>}
             </ButtonIcon>
           </div>
         </Dropdown>

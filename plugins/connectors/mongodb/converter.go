@@ -6,12 +6,12 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
-	"infini.sh/coco/modules/common"
+	"infini.sh/coco/core"
 	cmn "infini.sh/coco/plugins/connectors/common"
 )
 
-// bsonToDocument converts a MongoDB BSON document to a common.Document using field mapping if enabled
-func bsonToDocument(doc bson.M, cfg *Config, datasource *common.DataSource) (*common.Document, error) {
+// bsonToDocument converts a MongoDB BSON document to a core.Document using field mapping if enabled
+func bsonToDocument(doc bson.M, cfg *Config, datasource *core.DataSource) (*core.Document, error) {
 	// Normalize all BSON values to standard Go types
 	payload := make(map[string]interface{})
 	for key, value := range doc {
@@ -19,12 +19,12 @@ func bsonToDocument(doc bson.M, cfg *Config, datasource *common.DataSource) (*co
 	}
 
 	// Create the document with source information
-	result := &common.Document{}
+	result := &core.Document{}
 	result.Payload = payload
 
 	// Set System and Source from datasource
 	result.System = datasource.System
-	result.Source = common.DataSourceReference{
+	result.Source = core.DataSourceReference{
 		ID:   datasource.ID,
 		Type: "connector",
 		Name: datasource.Name,

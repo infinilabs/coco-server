@@ -38,7 +38,7 @@ export const Preview = memo(props => {
       <body>
         <div id="${widgetType}" style="margin: ${mode === 'page' ? '0' : '10px'} 0; outline: none"></div>
         <script type="module" >
-            import { ${widgetType} } from "${window.location.origin}/integration/${params.id}/widget";
+            import { ${widgetType} } from "${window.location.origin}${window.location.pathname}integration/${params.id}/widget";
             ${widgetType}({container: "#${widgetType}", enableQueryParams: false });
         </script>
       </body>

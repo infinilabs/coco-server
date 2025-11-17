@@ -19,7 +19,7 @@ const useScript = (src: string) => {
 };
 
 export const useIconfontScript = () => {
-  useScript('/assets/fonts/icons/iconfont.js');
+  useScript('assets/fonts/icons/iconfont.js');
 };
 
 export default useScript;
