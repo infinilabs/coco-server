@@ -253,7 +253,7 @@ func BuildDatasourceFilter(userID string, checkingScopeDatasources, directAccess
 				finalDatasourceIDs = util.StringArrayIntersection(datasourceIDs, finalDatasourceIDs)
 				checkingScopeDatasources = util.StringArrayIntersection(datasourceIDs, checkingScopeDatasources)
 
-				if len(finalDatasourceIDs) == 0 {
+				if len(finalDatasourceIDs) == 0 && len(checkingScopeDatasources) == 0 {
 					panic("empty datasource for this integration")
 				}
 			}
