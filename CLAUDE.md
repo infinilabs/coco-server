@@ -46,6 +46,22 @@
      - **File Updated**:
        - `web/src/pages/data-source/new/index.tsx` - Updated import path from `@/components/oauth_connect` to `@/pages/data-source/modules/OauthConnect`
 
+  5. **MongoDB Form Switch Components Fix**:
+     - Fixed issue where Switch components were not saving state properly
+     - Added `initialValue={false}` to all Switch components in MongoDB datasource form
+     - Ensures form fields are initialized correctly and included in submission
+     - **Files Updated**:
+       - `web/src/pages/data-source/new/mongodb.tsx` - Added initialValue to pagination and field_mapping switches
+       - `web/src/pages/data-source/modules/IncrementalSyncFields.tsx` - Added initialValue to incremental sync switch
+
+  6. **MongoDB Authentication Documentation**:
+     - Added comprehensive authentication section to MongoDB connector documentation
+     - Documented connection URI formats with credentials
+     - Added troubleshooting guide for common auth errors like "Command find requires authentication"
+     - Updated examples to include authentication credentials
+     - **File Updated**:
+       - `docs/content.en/docs/references/connectors/mongodb.md` - Added authentication section and troubleshooting
+
 - **Build Verification**: ✅ Full project builds successfully
   ```bash
   go build ./plugins/connectors/mongodb  # ✅ Success
