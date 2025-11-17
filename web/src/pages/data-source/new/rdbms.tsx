@@ -62,6 +62,7 @@ export default ({ dbType }: { readonly dbType: string }) => {
   return (
     <>
       <Form.Item
+        initialValue={dbInfo.placeholder}
         label={t('page.datasource.rdbms.labels.connection_uri', 'Connection URI')}
         name={['config', 'connection_uri']}
         tooltip={dbInfo.tooltip}
@@ -78,13 +79,14 @@ export default ({ dbType }: { readonly dbType: string }) => {
         />
       </Form.Item>
       <Form.Item
+        initialValue='SELECT id, title, content, updated_at FROM articles'
         label={t('page.datasource.rdbms.labels.sql', 'SQL Query')}
         name={['config', 'sql']}
         rules={[{ message: t('page.datasource.rdbms.error.sql_required', 'Please input SQL query!'), required: true }]}
         tooltip={dbInfo.sqlTooltip}
       >
         <Input.TextArea
-          placeholder="SELECT id, title, content, updated_at FROM articles"
+          placeholder='SELECT id, title, content, updated_at FROM articles'
           rows={4}
           style={{ width: 500 }}
         />
@@ -98,14 +100,14 @@ export default ({ dbType }: { readonly dbType: string }) => {
         )}
       >
         <Input
-          placeholder="updated"
+          placeholder='updated'
           style={{ width: 500 }}
         />
       </Form.Item>
       <Form.Item
         label={t('page.datasource.rdbms.labels.pagination', 'Enable Pagination')}
         name={['config', 'pagination']}
-        valuePropName="checked"
+        valuePropName='checked'
         tooltip={t(
           'page.datasource.rdbms.tooltip.pagination',
           'Enable if the database query should be paginated. This is recommended for large tables.'
@@ -142,14 +144,14 @@ export default ({ dbType }: { readonly dbType: string }) => {
 
       <Form.Item label={t('page.datasource.rdbms.labels.data_processing', 'Data Processing')}>
         <Flex
-          align="center"
-          gap="small"
+          align='center'
+          gap='small'
         >
           <span>{t('page.datasource.rdbms.labels.field_mapping', 'Field Mapping')}</span>
           <Form.Item
             noStyle
             name={['config', 'field_mapping', 'enabled']}
-            valuePropName="checked"
+            valuePropName='checked'
           >
             <Switch />
           </Form.Item>
@@ -165,7 +167,7 @@ export default ({ dbType }: { readonly dbType: string }) => {
           getFieldValue(['config', 'field_mapping', 'enabled']) ? (
             <Form.Item
               colon={false}
-              label=" "
+              label=' '
             >
               <FieldMapping enabled={getFieldValue(['config', 'field_mapping', 'enabled'])} />
             </Form.Item>

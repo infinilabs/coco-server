@@ -1,5 +1,8 @@
 POST $[[SETUP_INDEX_PREFIX]]datasource$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/coco_server_docs
 {
+ "_system": {
+           "owner_id": "$[[SETUP_OWNER_ID]]"
+         },
   "id" : "coco_server_docs",
   "created" : "2025-03-04T14:26:23.43811+08:00",
   "updated" : "2025-03-04T14:26:23.439214+08:00",
@@ -24,6 +27,9 @@ POST $[[SETUP_INDEX_PREFIX]]datasource$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/
 
 POST $[[SETUP_INDEX_PREFIX]]datasource$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/coco_app_docs
 {
+  "_system": {
+           "owner_id": "$[[SETUP_OWNER_ID]]"
+         },
   "id" : "coco_app_docs",
   "created" : "2025-03-04T14:25:23.43811+08:00",
   "updated" : "2025-03-04T14:25:23.439214+08:00",
@@ -48,6 +54,9 @@ POST $[[SETUP_INDEX_PREFIX]]datasource$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/
 
 POST $[[SETUP_INDEX_PREFIX]]datasource$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/hacker_news
 {
+  "_system": {
+           "owner_id": "$[[SETUP_OWNER_ID]]"
+         },
   "id" : "hacker_news",
   "created" : "2025-03-04T14:25:23.43811+08:00",
   "updated" : "2025-03-04T14:25:23.439214+08:00",

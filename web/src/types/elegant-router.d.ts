@@ -41,6 +41,9 @@ declare module "@elegant-router/types" {
     "ai-assistant_new": "new";
     "api-token": "/api-token";
     "api-token_list": "list";
+    "auth": "/auth";
+    "auth_edit": "edit/:id";
+    "auth_new": "new";
     "connector": "/connector";
     "connector_edit": "edit/:id";
     "connector_new": "new";
@@ -65,8 +68,18 @@ declare module "@elegant-router/types" {
     "model-provider_edit": "edit/:id";
     "model-provider_list": "list";
     "model-provider_new": "new";
+    "role": "/role";
+    "role_edit": "edit/:id";
+    "role_new": "new";
     "search": "/search";
+    "security": "/security";
     "settings": "/settings";
+    "user": "/user";
+    "user_edit": "edit/:id";
+    "user_new": "new";
+    "webhook": "/webhook";
+    "webhook_edit": "edit/:id";
+    "webhook_new": "new";
   };
 
   /**
@@ -116,6 +129,7 @@ declare module "@elegant-router/types" {
     | "500"
     | "ai-assistant"
     | "api-token"
+    | "auth"
     | "connector"
     | "data-source"
     | "guide"
@@ -124,8 +138,12 @@ declare module "@elegant-router/types" {
     | "login"
     | "mcp-server"
     | "model-provider"
+    | "role"
     | "search"
+    | "security"
     | "settings"
+    | "user"
+    | "webhook"
   >;
 
   /**
@@ -149,10 +167,11 @@ declare module "@elegant-router/types" {
     | "404"
     | "500"
     | "ai-assistant_edit"
-    | "ai-assistant"
     | "ai-assistant_list"
     | "ai-assistant_new"
     | "api-token_list"
+    | "auth_edit"
+    | "auth_new"
     | "connector_edit"
     | "connector_new"
     | "data-source_detail"
@@ -172,8 +191,15 @@ declare module "@elegant-router/types" {
     | "model-provider_edit"
     | "model-provider_list"
     | "model-provider_new"
+    | "role_edit"
+    | "role_new"
     | "search"
+    | "security"
     | "settings"
+    | "user_edit"
+    | "user_new"
+    | "webhook_edit"
+    | "webhook_new"
   >;
 
   /**

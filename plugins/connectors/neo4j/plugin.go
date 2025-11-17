@@ -2,9 +2,9 @@ package neo4j
 
 import (
 	"fmt"
+	"infini.sh/coco/core"
 
 	log "github.com/cihub/seelog"
-	"infini.sh/coco/modules/common"
 	"infini.sh/coco/plugins/connectors"
 	cmn "infini.sh/coco/plugins/connectors/common"
 	"infini.sh/framework/core/config"
@@ -31,14 +31,14 @@ func (p *Plugin) Name() string {
 	return ConnectorNeo4j
 }
 
-func (p *Plugin) Fetch(ctx *pipeline.Context, connector *common.Connector, datasource *common.DataSource) error {
+func (p *Plugin) Fetch(ctx *pipeline.Context, connector *core.Connector, datasource *core.DataSource) error {
 	worker := &scanner{
 		name:       ConnectorNeo4j,
 		connector:  connector,
 		datasource: datasource,
 		stateStore: connectors.NewSyncStateStore(),
 		// Use Collect pattern instead of direct queue.Push
-		collectFunc: func(doc common.Document) error {
+		collectFunc: func(doc core.Document) error {
 			p.Collect(ctx, connector, datasource, doc)
 			return nil
 		},

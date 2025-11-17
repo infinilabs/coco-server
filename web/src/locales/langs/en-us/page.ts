@@ -1,10 +1,9 @@
-import { t } from 'i18next';
-
 const page: App.I18n.Schema['translation']['page'] = {
   apitoken: {
     columns: {
       expire_in: 'Expire In',
-      name: 'Name'
+      name: 'Name',
+      permissions: 'Permissions'
     },
     create: {
       limit: 'Access token limit exceeded. Maximum allowed: 5.',
@@ -118,7 +117,8 @@ const page: App.I18n.Schema['translation']['page'] = {
         path_hierarchy: 'Path Hierarchy',
         redirect_url: 'Redirect URI',
         tags: 'Tags',
-        token_url: 'Token URI'
+        token_url: 'Token URI',
+        processor: 'Processor'
       },
       title: 'New Connector',
       tooltip: {
@@ -174,6 +174,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       }
     },
     connect: 'Connect',
+    missing_config_tip:
+      'Google authorization parameters are not configured. Please set them before connecting. Click Confirm to go to the settings page.',
     delete: {
       confirm: 'Are you sure you want to delete this datasource?'
     },
@@ -184,8 +186,6 @@ const page: App.I18n.Schema['translation']['page'] = {
     file_paths_add: 'Add File Path',
     hours: 'hours',
     minutes: 'minutes',
-    missing_config_tip:
-      'Google authorization parameters are not configured. Please set them before connecting. Click Confirm to go to the settings page.',
     neo4j: {
       error: {
         connection_uri_invalid: 'Invalid Neo4j URI format. Use neo4j://host:port',
@@ -290,9 +290,12 @@ const page: App.I18n.Schema['translation']['page'] = {
         scheduled_sync: 'Scheduled Sync',
         scheduled_sync_desc: 'Sync at fixed intervals',
         site_urls: 'Site URLs',
+        permission_sync_enabled: 'Permission Sync',
         sync_enabled: 'Sync',
         tags: 'Tags',
-        type: 'Type'
+        type: 'Type',
+        webhook: 'Webhook',
+        enrichment_pipeline: 'Enrichment Pipeline'
       },
       title: '{{connector}} Connection',
       tooltip: {
@@ -352,7 +355,44 @@ const page: App.I18n.Schema['translation']['page'] = {
     seconds: 'seconds',
     site_urls: 'Site URLs',
     site_urls_add: 'Add URL',
-    title: 'Datasource'
+    title: 'Datasource',
+    labels: {
+      owner: 'Owner',
+      shares: 'Shares',
+      updated: 'Last Updated At',
+      size: 'Size',
+      externalAccount: 'External Account',
+      cocoAccount: 'Mapping Coco User',
+      mappingStatus: 'Mapping Status',
+      mapped: 'Mapped',
+      unmapped: 'Unmapped',
+      enabled: 'Enabled',
+      permission_sync: 'Permission Sync',
+      isEnabled: 'Enabled',
+      sharesWithPermissions: 'teams or users with permissions',
+      none: 'None',
+      view: 'View',
+      comment: 'Comment',
+      edit: 'Edit',
+      share: 'Share',
+      all: 'All',
+      shareToPrincipal: 'Share to teams or users',
+      shareTo: 'Share',
+      permission: 'Permission',
+      you: ' (you)',
+      inherit: ' (inherit)',
+      categories: 'Categories',
+      type: 'Type',
+      created: 'Created At',
+      createdBy: 'Created By',
+      updatedBy: 'Updated By'
+    },
+    file: {
+      title: 'Document Management'
+    },
+    mapping: {
+      title: 'Mapping Management'
+    }
   },
   guide: {
     llm: {
@@ -367,6 +407,15 @@ const page: App.I18n.Schema['translation']['page'] = {
       name: 'Full Name',
       password: 'Password',
       title: 'Create a user account'
+    },
+    skipModal: {
+      title: 'Skip setup?',
+      hints: {
+        desc: 'If you choose to skip this step, the built-in AI features (e.g., AI assistants) will not be available immediately, as they will be in an unconfigured state without a model.',
+        stepDesc: 'You will need to:',
+        step1: 'Add and manage models in the “LLM Provider” section;',
+        step2: 'Individually configure and select a model for each built-in AI assistant.'
+      }
     }
   },
   home: {
@@ -448,6 +497,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         datasource: 'Data Source',
         description: 'Description',
         enable_auth: 'Enable Authentication',
+        tourist_mode: 'Tourist Mode',
         enable_module: 'Enable Module',
         enabled: 'Enabled',
         feature_chat_history: 'Chat History',
@@ -458,8 +508,10 @@ const page: App.I18n.Schema['translation']['page'] = {
         feature_think_active: 'Enable Deep Think',
         hotkey: 'Hotkey',
         hotkey_placeholder: 'Set hotkey to call out CocoAI',
-        logo: 'Logo',
-        logo_mobile: 'Mobile Logo',
+        logo: 'Logo (Light)',
+        logo_mobile: 'Mobile Logo (Light)',
+        logo_dark: 'Logo (Dark)',
+        logo_mobile_dark: 'Mobile Logo (Dark)',
         mode: 'Mode',
         mode_all: 'All',
         mode_embedded: 'Embedded',
@@ -487,6 +539,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         theme_auto: 'Auto',
         theme_dark: 'Dark',
         theme_light: 'Light',
+        language: 'Language',
         type: 'Type',
         type_fullscreen: 'Fullscreen',
         type_searchbox: 'SearchBox'
@@ -494,6 +547,9 @@ const page: App.I18n.Schema['translation']['page'] = {
       title: {
         edit: 'Edit Integration',
         new: 'New Integration'
+      },
+      hints: {
+        tourist_mode: 'Unlogged users will access as this user'
       }
     },
     topics: {
@@ -535,6 +591,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     },
     desc: 'Enter your credentials to access your account.',
     password: 'Password',
+    email: 'Email',
     title: 'Welcome'
   },
   mcpserver: {
@@ -612,7 +669,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       picking_doc_model: 'Picking Doc Model',
       presence_penalty: 'Presence Penalty',
       presence_penalty_desc: 'the larger the value, the more likely it is to expand to new topics',
-      reasoning: 'Reasoning Mode',
+      reasoning: 'This model supports reasoning mode',
       requestParams: 'Request Params',
       temperature: 'Temperature',
       temperature_desc: 'the larger the value, the more random the response',
@@ -629,6 +686,104 @@ const page: App.I18n.Schema['translation']['page'] = {
       title: 'Search Settings'
     },
     setupLater: 'Set Up Later'
+  },
+  webhook: {
+    form: {
+      title: {
+        edit: 'Edit Webhook',
+        new: 'New Webhook'
+      }
+    },
+    labels: {
+      ai_assistant: 'AI Assistant',
+      content_type: 'Content type',
+      datasource: 'Data Source',
+      file_parse_completed: 'File Parsing Completed',
+      model_provider: 'LLM Provider',
+      name: 'Name',
+      payload_url: 'Payload URL',
+      reply_completed: 'Reply Completed',
+      secret: 'Secret',
+      ssl_verify: 'SSL Verify',
+      sync_completed: 'Sync Completed',
+      test: 'Test',
+      test_need_save: 'Please save before testing',
+      triggers: 'Triggers'
+    },
+    placeholders: {
+      name: 'Please input',
+      payload_url: 'Please input',
+      secret: 'Please input'
+    }
+  },
+  role: {
+    title: 'Role',
+    labels: {
+      name: 'Name',
+      description: 'Description',
+      permission: 'Permission',
+      object: 'Object',
+      coco: 'Coco Server',
+      generic: 'Generic',
+      created: 'Created At'
+    },
+    new: {
+      title: 'New Role'
+    },
+    edit: {
+      title: 'Edit Role'
+    },
+    delete: {
+      confirm: `Are you sure you want to delete role "{{name}}" ?`
+    }
+  },
+  auth: {
+    title: 'Authorization',
+    labels: {
+      name: 'Name',
+      description: 'Description',
+      permission: 'Permission',
+      object: 'Authorization Object',
+      coco: 'Coco Server',
+      user: 'User',
+      team: 'Team',
+      userRole: 'Team Member Role',
+      teamRole: 'APP User Role',
+      roles: 'Roles',
+      type: 'Type',
+      created: 'Created At',
+      auth: 'Authorization'
+    },
+    new: {
+      title: 'New Authorization'
+    },
+    edit: {
+      title: 'Edit Authorization'
+    },
+    delete: {
+      confirm: `Are you sure you want to delete authorization "{{name}}" ?`
+    }
+  },
+  user: {
+    title: 'User',
+    labels: {
+      name: 'Full Name',
+      email: 'Email',
+      roles: 'Roles',
+      created: 'Created At',
+      password: 'Password'
+    },
+    new: {
+      title: 'New User',
+      copyPassword:
+        'Please store this password in a secure and easily accessible location. For security reasons, you will not be able to view it again through the user management interface. If you lose this password, you will need to update password by editing user.'
+    },
+    edit: {
+      title: 'Edit User'
+    },
+    delete: {
+      confirm: `Are you sure you want to delete user "{{name}}" ?`
+    }
   }
 };
 

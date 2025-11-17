@@ -6,11 +6,11 @@ package gitea
 
 import (
 	"fmt"
+	"infini.sh/coco/core"
 	"strings"
 
 	sdk "code.gitea.io/sdk/gitea"
 	log "github.com/cihub/seelog"
-	"infini.sh/coco/modules/common"
 	"infini.sh/coco/plugins/connectors"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/pipeline"
@@ -22,7 +22,7 @@ const (
 	TypeRepository  = "repository"
 )
 
-func (p *Plugin) processRepos(ctx *pipeline.Context, client *sdk.Client, cfg *Config, connector *common.Connector, datasource *common.DataSource) {
+func (p *Plugin) processRepos(ctx *pipeline.Context, client *sdk.Client, cfg *Config, connector *core.Connector, datasource *core.DataSource) {
 	isOrg, err := p.isOrgUser(client, cfg.Owner)
 	if err != nil {
 		_ = log.Errorf("[%s connector] failed to get user for [name=%s]: %v", ConnectorGitea, cfg.Owner, err)
@@ -76,8 +76,8 @@ func (p *Plugin) processRepos(ctx *pipeline.Context, client *sdk.Client, cfg *Co
 			// Track folders for hierarchy
 			folderTracker.TrackGitFolders(cfg.Owner, repo.Name, contentTypes)
 			// Create all folder documents for the hierarchy
-			var folderDocs []common.Document
-			folderTracker.CreateGitFolderDocuments(datasource, func(doc common.Document) {
+			var folderDocs []core.Document
+			folderTracker.CreateGitFolderDocuments(datasource, func(doc core.Document) {
 				folderDocs = append(folderDocs, doc)
 			})
 			if len(folderDocs) > 0 {
@@ -110,7 +110,7 @@ func (p *Plugin) processRepos(ctx *pipeline.Context, client *sdk.Client, cfg *Co
 	}
 }
 
-func (p *Plugin) processIssues(ctx *pipeline.Context, client *sdk.Client, repo *sdk.Repository, connector *common.Connector, datasource *common.DataSource) {
+func (p *Plugin) processIssues(ctx *pipeline.Context, client *sdk.Client, repo *sdk.Repository, connector *core.Connector, datasource *core.DataSource) {
 	cursor := NewListIssuesCursor(repo.Owner.UserName, repo.Name)
 
 	for {
@@ -120,7 +120,7 @@ func (p *Plugin) processIssues(ctx *pipeline.Context, client *sdk.Client, repo *
 			break
 		}
 
-		var docs []common.Document
+		var docs []core.Document
 		for _, issue := range issues {
 			if global.ShuttingDown() {
 				return
@@ -148,7 +148,7 @@ func (p *Plugin) processIssues(ctx *pipeline.Context, client *sdk.Client, repo *
 	}
 }
 
-func (p *Plugin) processPullRequests(ctx *pipeline.Context, client *sdk.Client, repo *sdk.Repository, connector *common.Connector, datasource *common.DataSource) {
+func (p *Plugin) processPullRequests(ctx *pipeline.Context, client *sdk.Client, repo *sdk.Repository, connector *core.Connector, datasource *core.DataSource) {
 	cursor := NewListPullRequestsCursor(repo.Owner.UserName, repo.Name)
 
 	for {
@@ -158,7 +158,7 @@ func (p *Plugin) processPullRequests(ctx *pipeline.Context, client *sdk.Client, 
 			break
 		}
 
-		var docs []common.Document
+		var docs []core.Document
 		for _, pr := range prs {
 			if global.ShuttingDown() {
 				return
@@ -197,7 +197,7 @@ func (p *Plugin) isOrgUser(client *sdk.Client, owner string) (bool, error) {
 	return false, err
 }
 
-func (p *Plugin) transformRepoToDocument(repo *sdk.Repository, datasource *common.DataSource) *common.Document {
+func (p *Plugin) transformRepoToDocument(repo *sdk.Repository, datasource *core.DataSource) *core.Document {
 	owner := repo.Owner.UserName
 
 	// Repository info document - belongs to owner category
@@ -210,7 +210,7 @@ func (p *Plugin) transformRepoToDocument(repo *sdk.Repository, datasource *commo
 	doc.Summary = repo.Description
 
 	if repo.Owner != nil {
-		doc.Owner = &common.UserInfo{
+		doc.Owner = &core.UserInfo{
 			UserID:     fmt.Sprintf("%d", repo.Owner.ID),
 			UserName:   repo.Owner.UserName,
 			UserAvatar: repo.Owner.AvatarURL,
@@ -237,7 +237,7 @@ func (p *Plugin) transformRepoToDocument(repo *sdk.Repository, datasource *commo
 }
 
 // transformContentableToDocument is a generic function to transform issue-like objects into a document.
-func (p *Plugin) transformContentableToDocument(item contentable, comments []*sdk.Comment, itemType string, repo *sdk.Repository, datasource *common.DataSource) *common.Document {
+func (p *Plugin) transformContentableToDocument(item contentable, comments []*sdk.Comment, itemType string, repo *sdk.Repository, datasource *core.DataSource) *core.Document {
 	owner := repo.Owner.UserName
 	repoName := repo.Name
 
@@ -268,7 +268,7 @@ func (p *Plugin) transformContentableToDocument(item contentable, comments []*sd
 
 	poster := item.GetPoster()
 	if poster != nil {
-		doc.Owner = &common.UserInfo{
+		doc.Owner = &core.UserInfo{
 			UserID:     fmt.Sprintf("%d", poster.ID),
 			UserName:   poster.UserName,
 			UserAvatar: poster.AvatarURL,
@@ -299,10 +299,10 @@ func (p *Plugin) transformContentableToDocument(item contentable, comments []*sd
 	return &doc
 }
 
-func (p *Plugin) transformIssueToDocument(issue *sdk.Issue, comments []*sdk.Comment, repo *sdk.Repository, datasource *common.DataSource) *common.Document {
+func (p *Plugin) transformIssueToDocument(issue *sdk.Issue, comments []*sdk.Comment, repo *sdk.Repository, datasource *core.DataSource) *core.Document {
 	return p.transformContentableToDocument(&issueWrapper{issue}, comments, TypeIssue, repo, datasource)
 }
 
-func (p *Plugin) transformPullRequestToDocument(pr *sdk.PullRequest, comments []*sdk.Comment, repo *sdk.Repository, datasource *common.DataSource) *common.Document {
+func (p *Plugin) transformPullRequestToDocument(pr *sdk.PullRequest, comments []*sdk.Comment, repo *sdk.Repository, datasource *core.DataSource) *core.Document {
 	return p.transformContentableToDocument(&prWrapper{pr}, comments, TypePullRequest, repo, datasource)
 }

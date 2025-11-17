@@ -5,6 +5,7 @@
 package llm
 
 import (
+	"infini.sh/coco/core"
 	"net/http"
 
 	"infini.sh/coco/modules/common"
@@ -14,7 +15,7 @@ import (
 
 func (h *APIHandler) create(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
-	var obj = &common.ModelProvider{}
+	var obj = &core.ModelProvider{}
 	err := h.DecodeJSON(req, obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -38,10 +39,11 @@ func (h *APIHandler) create(w http.ResponseWriter, req *http.Request, ps httprou
 func (h *APIHandler) get(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("id")
 
-	obj := common.ModelProvider{}
+	obj := core.ModelProvider{}
 	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
-
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "llm-provider")
 	exists, err := orm.GetV2(ctx, &obj)
 	if !exists || err != nil {
 		h.WriteGetMissingJSON(w, id)
@@ -53,9 +55,11 @@ func (h *APIHandler) get(w http.ResponseWriter, req *http.Request, ps httprouter
 
 func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("id")
-	obj := common.ModelProvider{}
+	obj := core.ModelProvider{}
 	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "llm-provider")
 
 	exists, err := orm.GetV2(ctx, &obj)
 	if !exists || err != nil {
@@ -63,7 +67,7 @@ func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprou
 		return
 	}
 
-	newObj := common.ModelProvider{}
+	newObj := core.ModelProvider{}
 	err = h.DecodeJSON(req, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -79,7 +83,8 @@ func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprou
 	newObj.Created = obj.Created
 
 	ctx.Refresh = orm.WaitForRefresh
-
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "llm-provider")
 	err = orm.Update(ctx, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -94,7 +99,7 @@ func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprou
 func (h *APIHandler) delete(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("id")
 
-	obj := common.ModelProvider{}
+	obj := core.ModelProvider{}
 	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
 
@@ -124,7 +129,7 @@ func (h *APIHandler) delete(w http.ResponseWriter, req *http.Request, ps httprou
 func (h *APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
 	//handle url query args, convert to query builder
-	builder, err := orm.NewQueryBuilderFromRequest(req, "name", "combined_fulltext")
+	builder, err := orm.NewQueryBuilderFromRequest(req, "name", "name.pinyin", "combined_fulltext")
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -132,8 +137,9 @@ func (h *APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprou
 	builder.EnableBodyBytes()
 
 	ctx := orm.NewContextWithParent(req.Context())
-	orm.WithModel(ctx, &common.ModelProvider{})
-
+	orm.WithModel(ctx, &core.ModelProvider{})
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "llm-provider")
 	res, err := orm.SearchV2(ctx, builder)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)

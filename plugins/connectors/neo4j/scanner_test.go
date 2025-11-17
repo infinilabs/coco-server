@@ -2,11 +2,11 @@ package neo4j
 
 import (
 	"fmt"
+	"infini.sh/coco/core"
 	"strings"
 	"testing"
 	"time"
 
-	"infini.sh/coco/modules/common"
 	"infini.sh/coco/plugins/connectors"
 )
 
@@ -207,7 +207,7 @@ func contains(s, substr string) bool {
 func TestScannerCollectFunc(t *testing.T) {
 	// Track collected documents
 	var collected []string
-	collectFunc := func(doc common.Document) error {
+	collectFunc := func(doc core.Document) error {
 		collected = append(collected, doc.ID)
 		return nil
 	}
@@ -224,7 +224,7 @@ func TestScannerCollectFunc(t *testing.T) {
 	}
 
 	// Create test document
-	testDoc := common.Document{
+	testDoc := core.Document{
 		Title: "Test Document",
 	}
 	testDoc.ID = "test-id-1"
@@ -248,7 +248,7 @@ func TestScannerCollectFunc(t *testing.T) {
 func TestScannerCollectFuncError(t *testing.T) {
 	// Track calls
 	callCount := 0
-	collectFunc := func(doc common.Document) error {
+	collectFunc := func(doc core.Document) error {
 		callCount++
 		return fmt.Errorf("collection error")
 	}
@@ -260,7 +260,7 @@ func TestScannerCollectFuncError(t *testing.T) {
 	}
 
 	// Create test document
-	testDoc := common.Document{
+	testDoc := core.Document{
 		Title: "Test Document",
 	}
 	testDoc.ID = "test-id-1"

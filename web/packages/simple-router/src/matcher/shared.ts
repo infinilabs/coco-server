@@ -43,13 +43,13 @@ export function normalizeRouteRecord(record: ElegantConstRoute): RouteRecordNorm
   return {
     children:
       record.children?.map(child => {
-        child.redirect ||= child.children && child.children[0].path;
+        child.redirect ||= child.children?.[0]?.path;
         return child;
       }) || [],
     meta: record.meta || {},
     name: record.name,
     path: record.path || '',
-    redirect: record.redirect || (record.children && record.children[0].path)
+    redirect: record.redirect || record.children?.[0]?.path
   };
 }
 

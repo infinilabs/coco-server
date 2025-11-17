@@ -6,13 +6,10 @@ package integration
 
 import (
 	"infini.sh/coco/core"
-	"infini.sh/coco/modules/common"
 	"infini.sh/coco/plugins/security"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/elastic"
-	"infini.sh/framework/core/kv"
 	"infini.sh/framework/core/orm"
-	security2 "infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
 	"net/http"
 	"sync"
@@ -24,22 +21,12 @@ func (h *APIHandler) create(w http.ResponseWriter, req *http.Request, ps httprou
 	ctx := orm.NewContextWithParent(req.Context())
 	ctx.Refresh = orm.WaitForRefresh
 
-	var obj = &common.Integration{}
+	var obj = &core.Integration{}
 	err := h.DecodeJSON(req, obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	//get permissions for this token
-	ret, err := security.CreateAPIToken(ctx, "", "widget", []string{"widget"})
-	if err != nil {
-		h.WriteError(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	obj.Token = ret["access_token"].(string)
-
 	err = orm.Create(ctx, obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -56,10 +43,12 @@ func (h *APIHandler) create(w http.ResponseWriter, req *http.Request, ps httprou
 func (h *APIHandler) get(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("id")
 
-	obj := common.Integration{}
+	obj := core.Integration{}
 	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
-
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "integration")
+	ctx.DirectReadAccess()
 	exists, err := orm.GetV2(ctx, &obj)
 	if !exists || err != nil {
 		h.WriteGetMissingJSON(w, id)
@@ -71,7 +60,7 @@ func (h *APIHandler) get(w http.ResponseWriter, req *http.Request, ps httprouter
 
 func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("id")
-	obj := common.Integration{}
+	obj := core.Integration{}
 	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
 
@@ -81,7 +70,8 @@ func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprou
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "integration")
 	ctx.Refresh = orm.WaitForRefresh
 	err = orm.UpdatePartialFields(ctx, &obj, delta)
 	if err != nil {
@@ -102,7 +92,7 @@ func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprou
 func (h *APIHandler) delete(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("id")
 
-	obj := common.Integration{}
+	obj := core.Integration{}
 	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
 
@@ -126,10 +116,14 @@ func (h *APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprou
 		return
 	}
 	builder.EnableBodyBytes()
+	if len(builder.Sorts()) == 0 {
+		builder.SortBy(orm.Sort{Field: "created", SortType: orm.DESC})
+	}
 
 	ctx := orm.NewContextWithParent(req.Context())
-	orm.WithModel(ctx, &common.Integration{})
-
+	orm.WithModel(ctx, &core.Integration{})
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "integration")
 	res, err := orm.SearchV2(ctx, builder)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -162,47 +156,6 @@ func (h *APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprou
 	h.WriteJSON(w, searchRes, http.StatusOK)
 }
 
-func (h *APIHandler) renewAPIToken(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	ctx := orm.NewContextWithParent(req.Context())
-	ctx.Refresh = orm.WaitForRefresh
-
-	reqUser, err := security2.GetUserFromContext(req.Context())
-	if reqUser == nil || err != nil {
-		panic(err)
-	}
-	id := ps.MustGetParameter("id")
-
-	obj := common.Integration{}
-	obj.ID = id
-
-	exists, err := orm.GetV2(ctx, &obj)
-	if !exists || err != nil {
-		h.WriteJSON(w, util.MapStr{
-			"_id":   id,
-			"found": false,
-		}, http.StatusNotFound)
-		return
-	}
-	if obj.Token != "" {
-		// clear old token
-		kv.DeleteKey(core.KVAccessTokenBucket, []byte(obj.Token))
-	}
-	//create new token form this integration
-	ret, err := security.CreateAPIToken(ctx, "", "widget", []string{"widget"})
-	if err != nil {
-		h.WriteError(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	obj.Token = ret["access_token"].(string)
-	err = orm.Update(ctx, &obj)
-	if err != nil {
-		h.WriteError(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	h.WriteAckOKJSON(w)
-}
-
 func IntegrationAllowOrigin(origin string, req *http.Request) bool {
 	appIntegrationID := req.Header.Get(core.HeaderIntegrationID)
 	if v, ok := integrationOrigins.Load(appIntegrationID); ok {
@@ -223,7 +176,7 @@ var (
 )
 
 func InitIntegrationOrigins() {
-	integrations := []common.Integration{}
+	integrations := []core.Integration{}
 	err, _ := orm.SearchWithJSONMapper(&integrations, &orm.Query{
 		Size:  100,
 		Conds: orm.And(orm.Eq("enabled", true), orm.Eq("cors.enabled", true)),

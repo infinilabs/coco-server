@@ -6,6 +6,7 @@ package local_fs
 
 import (
 	"fmt"
+	"infini.sh/coco/core"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -47,7 +48,7 @@ func (p *Plugin) Name() string {
 	return ConnectorLocalFs
 }
 
-func (p *Plugin) Fetch(ctx *pipeline.Context, connector *common.Connector, datasource *common.DataSource) error {
+func (p *Plugin) Fetch(ctx *pipeline.Context, connector *core.Connector, datasource *core.DataSource) error {
 	cfg := Config{}
 	p.MustParseConfig(datasource, &cfg)
 
@@ -81,7 +82,7 @@ func (p *Plugin) Fetch(ctx *pipeline.Context, connector *common.Connector, datas
 }
 
 // scanPath performs a single DFS traversal to collect files and determine which folders to save
-func (p *Plugin) scanPath(ctx *pipeline.Context, basePath string, connector *common.Connector, datasource *common.DataSource, extMap map[string]bool) {
+func (p *Plugin) scanPath(ctx *pipeline.Context, basePath string, connector *core.Connector, datasource *core.DataSource, extMap map[string]bool) {
 	// Track which folders contain matching files and collect folder info
 	foldersWithMatchingFiles := make(map[string]bool)
 	folderInfos := make(map[string]os.FileInfo)
@@ -147,10 +148,10 @@ func (p *Plugin) markParentFoldersAsValid(filePath, basePath string, foldersWith
 }
 
 // saveDocument saves a document directly without additional folder content checking
-func (p *Plugin) saveDocument(ctx *pipeline.Context, currentPath, basePath string, fileInfo os.FileInfo, connector *common.Connector, datasource *common.DataSource) {
+func (p *Plugin) saveDocument(ctx *pipeline.Context, currentPath, basePath string, fileInfo os.FileInfo, connector *core.Connector, datasource *core.DataSource) {
 	modTime := fileInfo.ModTime()
-	doc := common.Document{
-		Source:   common.DataSourceReference{ID: datasource.ID, Type: "connector", Name: datasource.Name},
+	doc := core.Document{
+		Source:   core.DataSourceReference{ID: datasource.ID, Type: "connector", Name: datasource.Name},
 		Type:     connectors.TypeFile,
 		Category: filepath.Dir(currentPath),
 		Content:  "", // skip content

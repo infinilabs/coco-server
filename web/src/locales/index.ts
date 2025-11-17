@@ -12,7 +12,8 @@ export function setupI18n() {
       escapeValue: false
     },
     lng: localStg.get('lang') || 'zh-CN',
-    resources: locales
+    resources: locales,
+    nsSeparator: '___'
   });
 }
 

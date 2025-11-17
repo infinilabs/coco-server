@@ -7,13 +7,13 @@ package google_drive
 import (
 	"context"
 	"errors"
+	"infini.sh/coco/core"
 	"infini.sh/framework/core/pipeline"
 	"strings"
 	"time"
 
 	log "github.com/cihub/seelog"
 	"golang.org/x/oauth2"
-	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
 )
@@ -33,7 +33,7 @@ type Config struct {
 	Profile      util.MapStr `config:"profile" json:"profile"`
 }
 
-func (this *Processor) Fetch(pipeCtx *pipeline.Context, connector *common.Connector, datasource *common.DataSource) error {
+func (this *Processor) Fetch(pipeCtx *pipeline.Context, connector *core.Connector, datasource *core.DataSource) error {
 	config := Config{}
 	this.MustParseConfig(datasource, &config)
 

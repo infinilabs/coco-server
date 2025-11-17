@@ -5,6 +5,7 @@
 package assistant
 
 import (
+	"infini.sh/coco/core"
 	"infini.sh/framework/core/elastic"
 	"net/http"
 	"time"
@@ -18,7 +19,7 @@ import (
 
 func (h *APIHandler) createAssistant(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
-	var obj = &common.Assistant{}
+	var obj = &core.Assistant{}
 	err := h.DecodeJSON(req, obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -60,7 +61,7 @@ func (h *APIHandler) updateAssistant(w http.ResponseWriter, req *http.Request, p
 	//clear cache
 	common.GeneralObjectCache.Delete(common.AssistantCachePrimary, id)
 
-	obj := common.Assistant{}
+	obj := core.Assistant{}
 	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
 
@@ -71,7 +72,7 @@ func (h *APIHandler) updateAssistant(w http.ResponseWriter, req *http.Request, p
 		return
 	}
 
-	newObj := common.Assistant{}
+	newObj := core.Assistant{}
 	err = h.DecodeJSON(req, &newObj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -87,6 +88,8 @@ func (h *APIHandler) updateAssistant(w http.ResponseWriter, req *http.Request, p
 	newObj.Created = obj.Created
 
 	ctx.Refresh = orm.WaitForRefresh
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "assistant")
 
 	err = orm.Update(ctx, &newObj)
 	if err != nil {
@@ -104,7 +107,7 @@ func (h *APIHandler) deleteAssistant(w http.ResponseWriter, req *http.Request, p
 	common.GeneralObjectCache.Delete(common.AssistantCachePrimary, id)
 	common.ClearAssistantsCache()
 
-	obj := common.Assistant{}
+	obj := core.Assistant{}
 	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
 
@@ -135,17 +138,21 @@ func (h *APIHandler) deleteAssistant(w http.ResponseWriter, req *http.Request, p
 func (h *APIHandler) searchAssistant(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	var err error
 	//handle url query args, convert to query builder
-	builder, err := orm.NewQueryBuilderFromRequest(req, "name", "combined_fulltext")
+	builder, err := orm.NewQueryBuilderFromRequest(req, "name", "name.pinyin", "combined_fulltext")
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	builder.EnableBodyBytes()
+	if len(builder.Sorts()) == 0 {
+		builder.SortBy(orm.Sort{Field: "created", SortType: orm.DESC})
+	}
 
 	ctx := orm.NewContextWithParent(req.Context())
-	orm.WithModel(ctx, &common.Assistant{})
-	docs := []common.Assistant{}
-
+	orm.WithModel(ctx, &core.Assistant{})
+	docs := []core.Assistant{}
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "assistant")
 	err, res := elastic.SearchV2WithResultItemMapper(ctx, &docs, builder, nil)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -162,9 +169,11 @@ func (h *APIHandler) searchAssistant(w http.ResponseWriter, req *http.Request, p
 func (h *APIHandler) cloneAssistant(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("id")
 
-	obj := common.Assistant{}
+	obj := core.Assistant{}
 	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "assistant")
 
 	exists, err := orm.GetV2(ctx, &obj)
 	if !exists || err != nil {

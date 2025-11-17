@@ -12,11 +12,9 @@ export function getTokens(params?: any) {
 }
 
 /** create API Token */
-export function createToken(name: string) {
+export function createToken(data) {
   return request<Api.APIToken.APIToken>({
-    data: {
-      name
-    },
+    data,
     method: 'post',
     url: '/auth/access_token'
   });
@@ -30,13 +28,12 @@ export function deleteToken(tokenID: string) {
   });
 }
 
-/** rename API Token */
-export function renameToken(tokenID: string, name: string) {
+/** update API Token */
+export function updateToken(data) {
+  const { id, ...rest } = data
   return request<Api.APIToken.APIToken>({
-    data: {
-      name
-    },
-    method: 'post',
-    url: `/auth/access_token/${tokenID}/_rename`
+    data: rest,
+    method: 'put',
+    url: `/auth/access_token/${id}`
   });
 }

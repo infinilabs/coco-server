@@ -56,27 +56,27 @@ export const FullscreenForm = memo(props => {
         </Form.Item>
     </Form.Item>
     <Form.Item label=" " >
-        <div className="mb-8px">
-            {t('page.integration.form.labels.datasource')}
-        </div>
-        <Form.Item
-            className="mb-0px"
-            name={['enabled_module', 'search', 'datasource']}
-            rules={[defaultRequiredRule]}
-        >
-            <Select
-                allowClear
-                className={itemClassNames}
-                loading={dataSourceLoading}
-                mode="multiple"
-                options={[{ label: '*', value: '*' }].concat(
-                    dataSource.map(item => ({
-                        label: item.name,
-                        value: item.id
-                    }))
-                )}
-            />
-        </Form.Item>
+      <div className="mb-8px">
+        {t('page.integration.form.labels.datasource')}
+      </div>
+      <Form.Item
+        className="mb-0px"
+        name={['enabled_module', 'search', 'datasource']}
+        rules={[defaultRequiredRule]}
+      >
+        <Select
+          allowClear
+          className={itemClassNames}
+          loading={dataSourceLoading}
+          mode="multiple"
+          options={[{ label: '*', value: '*' }].concat(
+            dataSource.map(item => ({
+              label: item.name,
+              value: item.id
+            }))
+          )}
+        />
+      </Form.Item>
     </Form.Item>
     <Form.Item label=" ">
         <div className="mb-8px">
@@ -139,7 +139,46 @@ export const FullscreenForm = memo(props => {
         }}>{t('common.reset')}</Button>
       </div>
     </Form.Item>
-    <Form.Item label=" " name={['logo', 'logo-mobile']}>
+    <Form.Item label=" " name={['logo', 'dark']}>
+      <div className="mb-8px">
+        {t('page.integration.form.labels.logo_dark')}
+      </div>
+      <div style={{ display: "flex", gap: 22 }}>
+        {renderIcon(searchLogos.dark)}
+        <Upload
+          {...uploadProps}
+          showUploadList={false}
+          fileList={searchLogos.darkList}
+          beforeUpload={(file) => {
+            setSearchLogos((state) => ({
+              ...state,
+              darkList: [file],
+              darkLoading: true,
+            }))
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => {
+              setSearchLogos((state) => ({
+                ...state,
+                darkLoading: false,
+                dark: reader.result
+              }))
+            };
+            return false
+          }}
+        >
+          <Button loading={searchLogos.darkLoading} icon={<SvgIcon className="text-12px" icon="mdi:upload" />}>{t('common.upload')}</Button>
+        </Upload>
+        <Button className="px-0" type="link" onClick={() => {
+          setSearchLogos((state) => ({
+            ...state,
+            darkLoading: false,
+            dark: undefined
+          }));
+        }}>{t('common.reset')}</Button>
+      </div>
+    </Form.Item>
+    <Form.Item label=" " name={['logo', 'light_mobile']}>
       <div className="mb-8px">
         {t('page.integration.form.labels.logo_mobile')}
       </div>
@@ -174,6 +213,45 @@ export const FullscreenForm = memo(props => {
             ...state,
             lightMobileLoading: false,
             light_mobile: undefined
+          }))
+        }}>{t('common.reset')}</Button>
+      </div>
+    </Form.Item>
+    <Form.Item label=" " name={['logo', 'dark_mobile']}>
+      <div className="mb-8px">
+        {t('page.integration.form.labels.logo_mobile_dark')}
+      </div>
+      <div style={{ display: "flex", gap: 22 }}>
+        {renderIcon(searchLogos.dark_mobile)}
+        <Upload
+          {...uploadProps}
+          showUploadList={false}
+          fileList={searchLogos.darkMobileList}
+          beforeUpload={(file) => {
+            setSearchLogos((state) => ({
+              ...state,
+              darkMobileList: [file],
+              darkMobileLoading: true,
+            }))
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => {
+              setSearchLogos((state) => ({
+                ...state,
+                darkMobileLoading: false,
+                dark_mobile: reader.result
+              }))
+            };
+            return false
+          }}
+        >
+          <Button loading={searchLogos.darkMobileLoading} icon={<SvgIcon className="text-12px" icon="mdi:upload" />}>{t('common.upload')}</Button>
+        </Upload>
+        <Button className="px-0" type="link" onClick={() => {
+          setSearchLogos((state) => ({
+            ...state,
+            darkMobileLoading: false,
+            dark_mobile: undefined
           }))
         }}>{t('common.reset')}</Button>
       </div>
@@ -373,6 +451,19 @@ export const FullscreenForm = memo(props => {
                                           <InputNumber className={itemClassNames} min={0} step={1}/>
                                       </Form.Item>
                                       <div className="mb-8px">
+                                        输出类型
+                                      </div>
+                                      <Form.Item
+                                          name={[name, 'output']}
+                                          className="mb-8px"
+                                      >
+                                          <Select className={itemClassNames}>
+                                            <Select.Option value="markdown">Markdown</Select.Option>
+                                            <Select.Option value="html">HTML</Select.Option>
+                                            <Select.Option value="text">Text</Select.Option>
+                                          </Select>
+                                      </Form.Item>
+                                      <div className="mb-8px">
                                           {t('page.integration.form.labels.module_chat_ai_assistant')}
                                       </div>
                                       <Form.Item className="mb-8px">
@@ -389,19 +480,6 @@ export const FullscreenForm = memo(props => {
                                                 <span onClick={() => remove(field.name)}><SvgIcon className="text-16px cursor-pointer" icon="mdi:minus-circle-outline" /></span>
                                             </Form.Item>
                                         </div>
-                                      </Form.Item>
-                                      <div className="mb-8px">
-                                        输出类型
-                                      </div>
-                                      <Form.Item
-                                          name={[name, 'output']}
-                                          className="mb-8px"
-                                      >
-                                          <Select className={itemClassNames}>
-                                            <Select.Option value="markdown">Markdown</Select.Option>
-                                            <Select.Option value="html">HTML</Select.Option>
-                                            <Select.Option value="text">Text</Select.Option>
-                                          </Select>
                                       </Form.Item>
                                   </div>
                                   

@@ -51,7 +51,7 @@ export function getConnectorByIDs(connectorIDs: string[]) {
   return request<Api.Datasource.Connector>({
     method: 'get',
     params: {
-      _source_includes: ['id', 'name', 'icon'].join(','),
+      _source_includes: ['id', 'name', 'icon', 'path_hierarchy'].join(','),
       size: connectorIDs.length
     },
     url: `/connector/_search?${formatSearchFilter({ id: connectorIDs })}`

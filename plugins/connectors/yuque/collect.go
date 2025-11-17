@@ -6,12 +6,12 @@ package yuque
 
 import (
 	"fmt"
+	"infini.sh/coco/core"
 	"infini.sh/framework/core/pipeline"
 	"sort"
 	"strings"
 
 	log "github.com/cihub/seelog"
-	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/queue"
@@ -60,7 +60,7 @@ func (this *Plugin) save(obj interface{}) {
 	}
 }
 
-func (this *Plugin) collect(pipeCtx *pipeline.Context, connector *common.Connector, datasource *common.DataSource, cfg *YuqueConfig) error {
+func (this *Plugin) collect(pipeCtx *pipeline.Context, connector *core.Connector, datasource *core.DataSource, cfg *YuqueConfig) error {
 
 	token := cfg.Token
 
@@ -102,11 +102,11 @@ func (this *Plugin) collect(pipeCtx *pipeline.Context, connector *common.Connect
 // Define a temporary struct for sorting that includes the Level
 type FolderInfo struct {
 	// Temporary struct with RichLabel and Level
-	RichLabel common.RichLabel
+	RichLabel core.RichLabel
 	Level     int
 }
 
-func (this *Plugin) collectBooks(pipeCtx *pipeline.Context, connector *common.Connector, datasource *common.DataSource, login, token string, cfg *YuqueConfig) {
+func (this *Plugin) collectBooks(pipeCtx *pipeline.Context, connector *core.Connector, datasource *core.DataSource, login, token string, cfg *YuqueConfig) {
 
 	const limit = 100
 	offset := 0
@@ -145,7 +145,7 @@ func (this *Plugin) collectBooks(pipeCtx *pipeline.Context, connector *common.Co
 
 			//index toc
 			// Create a map to store folder info by doc's slug, now using RichLabel
-			bookTocMap := make(map[string][]common.RichLabel)
+			bookTocMap := make(map[string][]core.RichLabel)
 			if !cfg.SkipIndexingBookToc {
 				res = get(fmt.Sprintf("/api/v2/repos/%v/toc", bookID), token)
 				bookToc := struct {
@@ -176,7 +176,7 @@ func (this *Plugin) collectBooks(pipeCtx *pipeline.Context, connector *common.Co
 						for currentDoc.ParentUUID != "" {
 							folderPath = append([]FolderInfo{
 								{
-									RichLabel: common.RichLabel{
+									RichLabel: core.RichLabel{
 										Key:   currentDoc.Slug,
 										Label: currentDoc.Title,
 										Icon:  "folder",
@@ -189,7 +189,7 @@ func (this *Plugin) collectBooks(pipeCtx *pipeline.Context, connector *common.Co
 						// Add the current document itself to the path
 						folderPath = append([]FolderInfo{
 							{
-								RichLabel: common.RichLabel{
+								RichLabel: core.RichLabel{
 									Key:   currentDoc.Slug,
 									Label: currentDoc.Title,
 									Icon:  "folder",
@@ -204,8 +204,8 @@ func (this *Plugin) collectBooks(pipeCtx *pipeline.Context, connector *common.Co
 						})
 
 						// Extract the RichLabel part of the sorted folder path and store in bookTocMap
-						var sortedLabels []common.RichLabel
-						sortedLabels = append(sortedLabels, common.RichLabel{
+						var sortedLabels []core.RichLabel
+						sortedLabels = append(sortedLabels, core.RichLabel{
 							Key:   bookDetail.Book.Slug,
 							Label: bookDetail.Book.Name,
 							Icon:  "folder",
@@ -222,8 +222,8 @@ func (this *Plugin) collectBooks(pipeCtx *pipeline.Context, connector *common.Co
 			if cfg.IndexingBooks && (bookDetail.Book.Public > 0 || (cfg.IncludePrivateBook)) {
 
 				//index books
-				document := common.Document{
-					Source: common.DataSourceReference{
+				document := core.Document{
+					Source: core.DataSourceReference{
 						ID:   datasource.ID,
 						Name: datasource.Name,
 						Type: "connector",
@@ -233,7 +233,7 @@ func (this *Plugin) collectBooks(pipeCtx *pipeline.Context, connector *common.Co
 					Type:    book.Type,
 					Size:    bookDetail.Book.ItemsCount,
 					URL:     fmt.Sprintf("https://yuque.com/%v/%v", login, bookDetail.Book.Slug),
-					Owner: &common.UserInfo{
+					Owner: &core.UserInfo{
 						UserAvatar: bookDetail.Book.User.AvatarURL,
 						UserName:   bookDetail.Book.User.Name,
 						UserID:     bookDetail.Book.User.Login,
@@ -302,7 +302,7 @@ func (this *Plugin) collectBooks(pipeCtx *pipeline.Context, connector *common.Co
 
 }
 
-func (this *Plugin) collectDocs(pipeCtx *pipeline.Context, connector *common.Connector, datasource *common.DataSource, login string, bookSlug string, bookID int64, token string, cfg *YuqueConfig, toc *map[string][]common.RichLabel) {
+func (this *Plugin) collectDocs(pipeCtx *pipeline.Context, connector *core.Connector, datasource *core.DataSource, login string, bookSlug string, bookID int64, token string, cfg *YuqueConfig, toc *map[string][]core.RichLabel) {
 
 	const limit = 100
 	offset := 0
@@ -351,7 +351,7 @@ func (this *Plugin) collectDocs(pipeCtx *pipeline.Context, connector *common.Con
 
 }
 
-func (this *Plugin) collectDocDetails(pipeCtx *pipeline.Context, connector *common.Connector, datasource *common.DataSource, bookID int64, docID int64, token string, cfg *YuqueConfig, toc *map[string][]common.RichLabel) {
+func (this *Plugin) collectDocDetails(pipeCtx *pipeline.Context, connector *core.Connector, datasource *core.DataSource, bookID int64, docID int64, token string, cfg *YuqueConfig, toc *map[string][]core.RichLabel) {
 
 	res := get(fmt.Sprintf("/api/v2/repos/%v/docs/%v", bookID, docID), token)
 	doc := struct {
@@ -365,8 +365,8 @@ func (this *Plugin) collectDocDetails(pipeCtx *pipeline.Context, connector *comm
 
 	if cfg.IndexingDocs && (doc.Doc.Public > 0 || (cfg.IncludePrivateDoc)) {
 		//index doc
-		document := common.Document{
-			Source: common.DataSourceReference{
+		document := core.Document{
+			Source: core.DataSourceReference{
 				ID:   datasource.ID,
 				Name: datasource.Name,
 				Type: "connector",
@@ -378,7 +378,7 @@ func (this *Plugin) collectDocDetails(pipeCtx *pipeline.Context, connector *comm
 			Type:    doc.Doc.Type,
 			Size:    doc.Doc.WordCount,
 			URL:     fmt.Sprintf("https://yuque.com/go/doc/%v", doc.Doc.ID),
-			Owner: &common.UserInfo{
+			Owner: &core.UserInfo{
 				UserAvatar: doc.Doc.User.AvatarURL,
 				UserName:   doc.Doc.User.Name,
 				UserID:     doc.Doc.User.Login,
@@ -434,7 +434,7 @@ func (this *Plugin) collectDocDetails(pipeCtx *pipeline.Context, connector *comm
 	}
 }
 
-func (this *Plugin) collectUsers(pipeCtx *pipeline.Context, connector *common.Connector, datasource *common.DataSource, login, token string, cfg *YuqueConfig) {
+func (this *Plugin) collectUsers(pipeCtx *pipeline.Context, connector *core.Connector, datasource *core.DataSource, login, token string, cfg *YuqueConfig) {
 	const pageSize = 100
 	offset := 0
 
@@ -458,7 +458,7 @@ func (this *Plugin) collectUsers(pipeCtx *pipeline.Context, connector *common.Co
 
 		// Process users or groups in the response
 		for _, groupUser := range users.GroupUsers {
-			var document common.Document
+			var document core.Document
 			var idPrefix, docType string
 			var metadata util.MapStr
 
@@ -474,8 +474,8 @@ func (this *Plugin) collectUsers(pipeCtx *pipeline.Context, connector *common.Co
 					"public_books_count": groupUser.User.PublicBooksCount,
 				}
 
-				document = common.Document{
-					Source: common.DataSourceReference{
+				document = core.Document{
+					Source: core.DataSourceReference{
 						ID:   datasource.ID,
 						Name: datasource.Name,
 						Type: "connector",
@@ -503,8 +503,8 @@ func (this *Plugin) collectUsers(pipeCtx *pipeline.Context, connector *common.Co
 					"public_books_count": groupUser.Group.PublicBooksCount,
 				}
 
-				document = common.Document{
-					Source: common.DataSourceReference{
+				document = core.Document{
+					Source: core.DataSourceReference{
 						ID:   datasource.ID,
 						Name: datasource.Name,
 						Type: "connector",

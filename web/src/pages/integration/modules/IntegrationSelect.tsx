@@ -3,12 +3,21 @@ import { useMemo, useState } from "react";
 import { fetchIntegration, fetchIntegrations } from "@/service/api/integration";
 import { formatESSearchResult } from "@/service/request/es";
 import { useRequest } from "@sa/hooks";
+import { getLocale } from "@/store/slice/app";
 
 export default (props) => {
 
     const { value, onChange, width, className, mode, filter, excluded = [] } = props;
 
     const { t } = useTranslation();
+    const locale = useAppSelector(getLocale);
+    const { hasAuth } = useAuth()
+
+    const permissions = {
+      read: hasAuth('coco#integration/read'),
+      search: hasAuth('coco#integration/search'),
+      create: hasAuth('coco#integration/create'),
+    };
 
     const {
       data: res,
@@ -43,12 +52,13 @@ export default (props) => {
     }
 
     useEffect(() => {
+      if (!permissions.search) return;
       fetchFilterData(queryParams, sorter, filter)
-    }, [queryParams, sorter, filter])
+    }, [queryParams, sorter, filter, permissions.search])
 
     useEffect(() => {
       if (mode === 'multiple') {
-        if (value && value.some((item) => !!(item?.id && !item?.name))) {
+        if (value && value.some((item) => !!(item?.id && !item?.name)) && permissions.search) {
           fetchItems({
             filter,
             from: 0, 
@@ -56,11 +66,11 @@ export default (props) => {
           })
         }
       } else {
-        if (value?.id && !value?.name) {
+        if (value?.id && !value?.name && permissions.read) {
           fetchItem(value.id)
         }
       }
-    }, [JSON.stringify(value), mode, filter])
+    }, [JSON.stringify(value), mode, filter, permissions.search, permissions.read])
 
     const result = useMemo(() => {
       const rs = formatESSearchResult(res)
@@ -131,21 +141,22 @@ export default (props) => {
               });
             },
           }}
-          onRefresh={() => {
+          onRefresh={permissions.search ? () => {
             fetchFilterData(queryParams, sorter, filter)
-          }}
-          action={[
+          } : undefined}
+          actions={permissions.create ? [
             <a
               onClick={() => {
                 window.open(
-                  `/#/integration/new`,
+                  `#/integration/new`,
                   "_blank"
                 );
               }}
             >
               {t('common.create')}
             </a>
-          ]}
+          ] : []}
+          locale={locale}
         />
       </div>
     )

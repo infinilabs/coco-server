@@ -3,12 +3,13 @@ package common
 import (
 	"encoding/base64"
 	"fmt"
+	"infini.sh/coco/core"
 	"infini.sh/framework/core/util"
 	"net/http"
 	"net/url"
 )
 
-func ParseAndGetIcon(connector *Connector, icon string) string {
+func ParseAndGetIcon(connector *core.Connector, icon string) string {
 	appCfg := AppConfig()
 
 	icon = internalGetIcon(&appCfg, connector, icon)
@@ -18,7 +19,7 @@ func ParseAndGetIcon(connector *Connector, icon string) string {
 	return icon
 }
 
-func internalGetIcon(appCfg *Config, connector *Connector, icon string) string {
+func internalGetIcon(appCfg *core.Config, connector *core.Connector, icon string) string {
 	link, ok := connector.Assets.Icons[icon]
 	if ok {
 		return AutoGetFullIconURL(appCfg, link)
@@ -28,7 +29,7 @@ func internalGetIcon(appCfg *Config, connector *Connector, icon string) string {
 	return icon
 }
 
-func AutoGetFullIconURL(appCfg *Config, icon string) string {
+func AutoGetFullIconURL(appCfg *core.Config, icon string) string {
 	baseEndpoint := appCfg.ServerInfo.Endpoint
 	if util.PrefixStr(icon, "/") && baseEndpoint != "" {
 		link, err := url.JoinPath(baseEndpoint, icon)
@@ -39,7 +40,7 @@ func AutoGetFullIconURL(appCfg *Config, icon string) string {
 	return icon
 }
 
-func ConvertIconToBase64(appCfg *Config, icon string) string {
+func ConvertIconToBase64(appCfg *core.Config, icon string) string {
 	if appCfg.ServerInfo.EncodeIconToBase64 && util.PrefixStr(icon, "http") {
 		result, err := util.HttpGet(icon)
 		if err == nil && result != nil {

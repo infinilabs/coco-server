@@ -7,7 +7,6 @@ package datasource
 import (
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/document"
-	"infini.sh/coco/plugins/security/filter"
 	"infini.sh/framework/core/api"
 	"infini.sh/framework/core/security"
 )
@@ -38,19 +37,19 @@ func init() {
 	api.HandleUIMethod(api.DELETE, "/datasource/:id", handler.deleteDatasource, api.RequirePermission(deletePermission))
 	api.HandleUIMethod(api.GET, "/datasource/:id", handler.getDatasource, api.RequirePermission(readPermission))
 	api.HandleUIMethod(api.PUT, "/datasource/:id", handler.updateDatasource, api.RequirePermission(updatePermission))
-	api.HandleUIMethod(api.OPTIONS, "/datasource/_search", handler.searchDatasource, api.RequirePermission(searchPermission), api.Feature(filter.FeatureCORS))
+	api.HandleUIMethod(api.OPTIONS, "/datasource/_search", handler.searchDatasource, api.RequirePermission(searchPermission), api.Feature(core.FeatureCORS))
 
 	var secretKeys = map[string]bool{}
 	secretKeys["config"] = true
 
 	api.HandleUIMethod(api.GET, "/datasource/_search", handler.searchDatasource, api.RequirePermission(searchPermission),
-		api.Feature(filter.FeatureCORS), api.Feature(filter.FeatureMaskSensitiveField), api.Feature(filter.FeatureRemoveSensitiveField),
-		api.Label(filter.SensitiveFields, secretKeys))
+		api.Feature(core.FeatureCORS), api.Feature(core.FeatureMaskSensitiveField), api.Feature(core.FeatureRemoveSensitiveField),
+		api.Label(core.SensitiveFields, secretKeys))
 	api.HandleUIMethod(api.POST, "/datasource/_search", handler.searchDatasource, api.RequirePermission(searchPermission),
-		api.Feature(filter.FeatureCORS),
-		api.Feature(filter.FeatureMaskSensitiveField),
-		api.Feature(filter.FeatureRemoveSensitiveField),
-		api.Label(filter.SensitiveFields, secretKeys))
+		api.Feature(core.FeatureCORS),
+		api.Feature(core.FeatureMaskSensitiveField),
+		api.Feature(core.FeatureRemoveSensitiveField),
+		api.Label(core.SensitiveFields, secretKeys))
 
 	//shortcut to indexing docs into this datasource
 	api.HandleUIMethod(api.POST, "/datasource/:id/_doc", handler.createDocInDatasource, api.RequirePermission(createPermission))

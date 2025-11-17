@@ -16,8 +16,8 @@ export function SearchBox(props) {
     }, [query])
 
     return (
-        <div className={`flex w-full h-full items-center justify-center bg-#fff ${styles.searchbox}`}>
-            <div className="w-full h-48px px-12px py-4px border border-solid border-[rgba(235,235,235,1)] rounded-8px">
+        <div className={`flex w-full h-full items-center justify-center bg-[var(--ui-search-antd-color-bg-container)] ${styles.searchbox} rounded-8px`}>
+            <div className="w-full h-48px px-12px py-4px border border-solid border-[var(--ui-search-antd-color-border)] rounded-8px">
                 <Input.Search
                     value={currentKeyword}
                     addonBefore={<Search className="w-16px h-16px"/>} 

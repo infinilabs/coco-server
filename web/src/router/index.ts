@@ -22,7 +22,7 @@ export const router = createRouter({
   init,
   initRoutes: builtinRoutes,
   mode: VITE_ROUTER_HISTORY_MODE,
-  opt: { basename: VITE_BASE_URL }
+  opt: { basename: VITE_ROUTER_HISTORY_MODE === 'hash' ? '/' : VITE_BASE_URL }
 });
 
 export async function setupRouter() {

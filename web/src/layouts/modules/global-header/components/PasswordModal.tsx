@@ -17,7 +17,7 @@ const PasswordModal = ({
 
   const handleSubmit = async () => {
     const params = await form.validateFields();
-    const { error } = await modifyPassword(params.old_password, params.new_password);
+    const { error } = await modifyPassword(params.old_password, params.password);
     if (!error) {
       window.$notification?.success({
         description: t('common.loginAgain'),
@@ -52,8 +52,25 @@ const PasswordModal = ({
         </Form.Item>
         <Form.Item
           label={t('common.newPassword')}
-          name="new_password"
+          name="password"
           rules={formRules.pwd}
+        >
+          <Input.Password />
+        </Form.Item>
+        <Form.Item
+          label={t('common.confirmPassword')}
+          name="confirm_password"
+          rules={[
+            defaultRequiredRule,
+            {
+              validator: async (rule, value) => {
+                const password = await form.getFieldValue('password');
+                if (value && password !== value) {
+                  throw new Error(t('form.pwdConfirm.invalid'));
+                }
+              },
+            }
+          ]}
         >
           <Input.Password />
         </Form.Item>

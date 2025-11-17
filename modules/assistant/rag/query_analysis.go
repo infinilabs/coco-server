@@ -9,6 +9,7 @@ import (
 	"fmt"
 	log "github.com/cihub/seelog"
 	"github.com/tmc/langchaingo/chains"
+	"infini.sh/coco/core"
 	"infini.sh/coco/modules/assistant/langchain"
 	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/util"
@@ -60,7 +61,7 @@ func extractJSON(input string) string {
 	return ""
 }
 
-func ProcessQueryIntent(ctx context.Context, sessionID string, provider *common.ModelProvider, cfg *common.ModelConfig, reqMsg, replyMsg *common.ChatMessage, assistant *common.Assistant, inputValues map[string]any, sender common.MessageSender) (*QueryIntent, error) {
+func ProcessQueryIntent(ctx context.Context, sessionID string, provider *core.ModelProvider, cfg *core.ModelConfig, reqMsg, replyMsg *core.ChatMessage, assistant *core.Assistant, inputValues map[string]any, sender core.MessageSender) (*QueryIntent, error) {
 	// Initialize the LLM
 	llm := langchain.GetLLM(provider.BaseURL, provider.APIType, cfg.Name, provider.APIKey, assistant.Keepalive)
 
@@ -85,7 +86,7 @@ func ProcessQueryIntent(ctx context.Context, sessionID string, provider *common.
 				chunkSeq++
 				//queryIntentBuffer.Write(chunk)
 				fmt.Println(string(chunk))
-				msg := common.NewMessageChunk(sessionID, replyMsg.ID, common.MessageTypeAssistant, reqMsg.ID, common.QueryIntent, string(chunk), chunkSeq)
+				msg := core.NewMessageChunk(sessionID, replyMsg.ID, core.MessageTypeAssistant, reqMsg.ID, common.QueryIntent, string(chunk), chunkSeq)
 				err := sender.SendMessage(msg)
 				if err != nil {
 					_ = log.Error(err)
@@ -111,7 +112,7 @@ func ProcessQueryIntent(ctx context.Context, sessionID string, provider *common.
 	}
 
 	// Attach the query intent to the reply message
-	replyMsg.Details = append(replyMsg.Details, common.ProcessingDetails{
+	replyMsg.Details = append(replyMsg.Details, core.ProcessingDetails{
 		Order:   10,
 		Type:    common.QueryIntent,
 		Payload: queryIntent,

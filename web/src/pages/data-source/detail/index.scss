@@ -1,0 +1,68 @@
+.settings-tabs {
+  .ant-tabs-nav {
+    margin-bottom: 0px;
+    height: 40px;
+  }
+  .ant-tabs-ink-bar {
+    height: 4px !important;
+  }
+  .ant-tabs-nav-wrap {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .ant-tabs-tab {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  .ant-tabs-tab:not(:first-child) {
+    margin-left: 38px;
+  }
+  .ant-tabs-content {
+    display: none;
+    min-height: calc(100vh - 176px);
+    height: auto;
+    padding: 0px 24px;
+  }
+}
+
+.settings-tabs-content {
+  min-height: calc(100vh - 176px);
+  height: auto;
+  padding: 12px 16px;
+  display: flex; 
+  flex-direction: column; 
+}
+
+.settings-tabs-content > div {
+  flex: 1;
+  width: 100%;
+}
+
+.settings-form {
+  & > .ant-form-item > .ant-row {
+    & > .ant-form-item-label {
+      width: 160px;
+    }
+    & > .ant-form-item-control {
+      max-width: 520px;
+    }
+  }
+  .deepseek-icon > div > div {
+    font-size: 32px;
+    padding-top: 3px;
+    margin-right: -8px;
+  }
+  .sub-form-item {
+    .ant-form-item-label > label {
+      color: var(--ant-color-text-description);
+      font-size: var(--ant-font-size);
+      line-height: var(--ant-line-height);
+    }
+  }
+}
+
+.settings-form-help {
+  color: var(--ant-color-text-description);
+  font-size: var(--ant-font-size);
+  line-height: var(--ant-line-height);
+}

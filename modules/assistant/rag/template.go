@@ -6,7 +6,7 @@ package rag
 
 import (
 	"github.com/tmc/langchaingo/prompts"
-	"infini.sh/coco/modules/common"
+	"infini.sh/coco/core"
 	"infini.sh/framework/core/errors"
 	"regexp"
 )
@@ -37,7 +37,7 @@ func extractVariables(template string) []string {
 	return vars
 }
 
-func GetPromptStringByTemplateArgs(cfg *common.ModelConfig, defaultTemplate string, requiredVars []string, inputValues map[string]any) (string, error) {
+func GetPromptStringByTemplateArgs(cfg *core.ModelConfig, defaultTemplate string, requiredVars []string, inputValues map[string]any) (string, error) {
 	promptTemplate, err := GetPromptTemplate(cfg, defaultTemplate, requiredVars, inputValues)
 	if err != nil {
 		return "", err
@@ -50,7 +50,7 @@ func GetPromptStringByTemplateArgs(cfg *common.ModelConfig, defaultTemplate stri
 	return promptValues.String(), nil
 }
 
-func GetPromptTemplate(cfg *common.ModelConfig, defaultTemplate string, requiredVars []string, inputValues map[string]any) (*prompts.PromptTemplate, error) {
+func GetPromptTemplate(cfg *core.ModelConfig, defaultTemplate string, requiredVars []string, inputValues map[string]any) (*prompts.PromptTemplate, error) {
 	template := defaultTemplate
 	inputVars := requiredVars
 

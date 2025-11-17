@@ -8,7 +8,7 @@ weight: 60
 ## Register Salesforce Connector
 
 ```shell
-curl -XPUT "http://localhost:9000/connector/salesforce?replace=true" -d '{
+curl -XPOST "http://localhost:9000/connector/" -d '{
     "name": "Salesforce Connector",
     "description": "Fetch data from Salesforce with intelligent field caching and query optimization.",
     "icon": "/assets/icons/connector/salesforce/icon.png",
@@ -37,8 +37,6 @@ curl -XPUT "http://localhost:9000/connector/salesforce?replace=true" -d '{
     }
 }'
 ```
-
-> Use `salesforce` as a unique identifier, as it is a builtin connector.
 
 ## Use the Salesforce Connector
 

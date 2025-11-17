@@ -9,9 +9,13 @@ import type { RequestInstanceState } from './type';
 const isHttpProxy = import.meta.env.DEV && import.meta.env.VITE_HTTP_PROXY === 'Y';
 const { baseURL, otherBaseURL } = getServiceBaseURL(import.meta.env, isHttpProxy);
 
+export function getApiBaseUrl() {
+  return isHttpProxy ? baseURL : `${window.location.origin}${window.location.pathname}`
+} 
+
 export const request = createFlatRequest<App.Service.Response, RequestInstanceState>(
   {
-    baseURL,
+    baseURL: getApiBaseUrl(),
     headers: {
       // apifoxToken: 'XL299LiMEDZ0H5h3A29PxwQXdMJqWyY2'
     }
