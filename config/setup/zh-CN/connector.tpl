@@ -698,7 +698,6 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
         "default": "/assets/icons/connector/gitlab/icon.png"
       }
     },
-    "name": "Gitlab Webhook",
     "category": "Webhook",
     "processor": {
         "enabled": false
