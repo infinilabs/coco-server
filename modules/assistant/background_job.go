@@ -49,7 +49,8 @@ type RAGContext struct {
 	subcategory  string
 	richCategory string
 	//field        string
-	source string
+	source        string
+	integrationID string
 
 	SessionID string
 
@@ -128,6 +129,7 @@ func (h APIHandler) getRAGContext(req *http.Request, assistant *core.Assistant) 
 		params.mcpServers = strings.Split(v, ",")
 	}
 
+	params.integrationID = h.GetHeader(req, core.HeaderIntegrationID, "")
 	params.AssistantCfg = assistant
 
 	if assistant.Datasource.Enabled && len(params.datasource) > 0 && len(assistant.Datasource.GetIDs()) > 0 {
@@ -674,7 +676,7 @@ func processInitialDocumentSearch(ctx *orm.Context, userID string, reqMsg, reply
 	}
 
 	docs := []core.Document{}
-	_, err := document.QueryDocuments(ctx.Context, userID, builder, reqMsg.Message, params.datasource, "", params.category, params.subcategory, params.richCategory, &docs)
+	_, err := document.QueryDocuments(ctx.Context, userID, builder, reqMsg.Message, params.datasource, params.integrationID, params.category, params.subcategory, params.richCategory, &docs)
 	if err != nil {
 		log.Error(err)
 		return nil, err
