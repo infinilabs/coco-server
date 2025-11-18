@@ -7,7 +7,7 @@ weight: 31
 ## Register Jira Connector
 
 ```shell
-curl -XPUT "http://localhost:9000/connector/jira?replace=true" -d '{
+curl -XPUT "http://localhost:9000/connector/" -d '{
   "name": "Jira Connector",
   "description": "Fetch Jira issues, comments, and attachments from your Jira projects.",
   "category": "project_management",
