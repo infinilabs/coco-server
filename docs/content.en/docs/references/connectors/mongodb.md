@@ -7,7 +7,7 @@ weight: 65
 ## Register MongoDB Connector
 
 ```shell
-curl -XPUT "http://localhost:9000/connector/mongodb?replace=true" -d '
+curl -XPUT "http://localhost:9000/connector/" -d '
 {
   "name" : "MongoDB Connector",
   "description" : "Fetch data from MongoDB collections with incremental sync support.",
