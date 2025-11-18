@@ -193,34 +193,45 @@ export function Component() {
   };
 
   // Handle the default case for unknown connector types - show modal
-  const shouldShowModal = !supportsOAuth && ![
-    Types.Yuque,
-    Types.Notion,
-    Types.HugoSite,
-    Types.GoogleDrive,
-    Types.RSS,
-    Types.LocalFS,
-    Types.S3,
-    Types.Confluence,
-    Types.NetworkDrive,
-    Types.Postgresql,
-    Types.Mysql,
-    Types.GitHub,
-    Types.GitLab,
-    Types.Gitea,
-    Types.Mssql,
-    Types.Oracle,
-    Types.Neo4j,
-    Types.MongoDB,
-    Types.Feishu,
-    Types.Lark
-  ].includes(type);
+  const shouldShowModal =
+    !supportsOAuth &&
+    ![
+      Types.Yuque,
+      Types.Notion,
+      Types.HugoSite,
+      Types.GoogleDrive,
+      Types.RSS,
+      Types.LocalFS,
+      Types.S3,
+      Types.Confluence,
+      Types.NetworkDrive,
+      Types.Postgresql,
+      Types.Mysql,
+      Types.GitHub,
+      Types.GitLab,
+      Types.Gitea,
+      Types.Mssql,
+      Types.Oracle,
+      Types.Neo4j,
+      Types.MongoDB,
+      Types.Feishu,
+      Types.Lark
+    ].includes(type);
 
   const connectorTypeName = getConnectorTypeName();
 
   // eslint-disable-next-line complexity
   const onFinish: FormProps<any>['onFinish'] = values => {
     let config: any = {};
+    if (values.enrichment_pipeline) {
+      try {
+        values.enrichment_pipeline = JSON.parse(values.enrichment_pipeline);
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      } catch (e) {
+        message.error('invalid enrichment pipeline JSON format');
+        return;
+      }
+    }
     // eslint-disable-next-line default-case
     switch (type) {
       case Types.Yuque:
@@ -371,13 +382,13 @@ export function Component() {
       >
         <Spin spinning={createState.loading}>
           <Form
-            className="my-2em"
+            className='my-2em'
             form={modelForm}
-            layout="vertical"
+            layout='vertical'
           >
             <Form.Item
-              label={<span className="text-gray-500">{t('page.apitoken.columns.name')}</span>}
-              name="name"
+              label={<span className='text-gray-500'>{t('page.apitoken.columns.name')}</span>}
+              name='name'
               rules={[{ required: true }]}
             >
               <Input />
@@ -389,13 +400,13 @@ export function Component() {
   }
 
   return (
-    <div className="h-full min-h-500px">
+    <div className='h-full min-h-500px'>
       <ACard
         bordered={false}
-        className="min-h-full flex-col-stretch sm:flex-1-hidden card-wrapper"
+        className='min-h-full flex-col-stretch sm:flex-1-hidden card-wrapper'
       >
-        <div className="mb-30px ml--16px flex items-center text-lg font-bold">
-          <div className="mr-20px h-1.2em w-10px bg-[#1677FF]" />
+        <div className='mb-30px ml--16px flex items-center text-lg font-bold'>
+          <div className='mr-20px h-1.2em w-10px bg-[#1677FF]' />
           <div>
             {t('page.datasource.new.title', {
               connector: connectorTypeName
@@ -418,18 +429,20 @@ export function Component() {
         ) : (
           <div>
             <Form
-              autoComplete="off"
+              autoComplete='off'
               colon={false}
               form={form}
               labelCol={{ span: 4 }}
-              layout="horizontal"
+              layout='horizontal'
               wrapperCol={{ span: 18 }}
               initialValues={{
                 connector: { config: {}, id: type },
                 enabled: true,
-                sync:{
-                  enabled:true,interval: '60s', strategy: 'interval'
-                },
+                sync: {
+                  enabled: true,
+                  interval: '60s',
+                  strategy: 'interval'
+                }
               }}
               onFinish={onFinish}
               onFinishFailed={onFinishFailed}
@@ -450,7 +463,7 @@ export function Component() {
             >
               <Form.Item
                 label={t('page.datasource.new.labels.name')}
-                name="name"
+                name='name'
                 rules={[
                   {
                     message: t(
@@ -461,27 +474,27 @@ export function Component() {
                   }
                 ]}
               >
-                <Input className="max-w-600px" />
+                <Input className='max-w-600px' />
               </Form.Item>
               <Form.Item
                 label={t('page.mcpserver.labels.icon')}
-                name="icon"
+                name='icon'
               >
                 <IconSelector
-                  className="max-w-300px"
+                  className='max-w-300px'
                   icons={iconsMeta}
-                  type="connector"
+                  type='connector'
                 />
               </Form.Item>
               <Form.Item
                 label={t('page.datasource.new.labels.webhook')}
-                name={["webhook", "enabled"]}
+                name={['webhook', 'enabled']}
               >
                 <Switch />
               </Form.Item>
               <Form.Item
                 label={t('page.datasource.new.labels.enrichment_pipeline')}
-                name="enrichment_pipeline"
+                name='enrichment_pipeline'
                 tooltip={t('page.connector.new.tooltip.config', 'Configurations in JSON format.')}
               >
                 <Input.TextArea autoSize={{ maxRows: 30, minRows: 2 }} />
@@ -496,20 +509,20 @@ export function Component() {
               {type === Types.NetworkDrive && <NetworkDrive />}
               {type === Types.Neo4j && <Neo4j form={form} />}
               {type === Types.MongoDB && <MongoDB form={form} />}
-              {type === Types.Postgresql && <Rdbms dbType="postgresql" />}
-              {type === Types.Mysql && <Rdbms dbType="mysql" />}
+              {type === Types.Postgresql && <Rdbms dbType='postgresql' />}
+              {type === Types.Mysql && <Rdbms dbType='mysql' />}
               {type === Types.GitHub && <GitHub />}
               {type === Types.GitLab && <GitLab />}
               {type === Types.Gitea && <Gitea />}
-              {type === Types.Mssql && <Rdbms dbType="mssql" />}
-              {type === Types.Oracle && <Rdbms dbType="oracle" />}
+              {type === Types.Mssql && <Rdbms dbType='mssql' />}
+              {type === Types.Oracle && <Rdbms dbType='oracle' />}
 
               <Form.Item
                 label={t('page.datasource.new.labels.sync_enabled')}
                 name={['sync_config', 'enabled']}
-                valuePropName="checked"
+                valuePropName='checked'
               >
-                <Switch size="small" />
+                <Switch size='small' />
               </Form.Item>
 
               <Form.Item
@@ -521,7 +534,7 @@ export function Component() {
                   return (
                     <Form.Item
                       label={t('page.datasource.new.labels.data_sync')}
-                      name="sync_config"
+                      name='sync_config'
                       style={{ display: isSyncEnabled ? 'block' : 'none' }}
                     >
                       <DataSync />
@@ -532,14 +545,14 @@ export function Component() {
 
               <Form.Item
                 label={t('page.datasource.new.labels.enabled')}
-                name="enabled"
+                name='enabled'
               >
-                <Switch size="small" />
+                <Switch size='small' />
               </Form.Item>
-              <Form.Item label=" ">
+              <Form.Item label=' '>
                 <Button
-                  htmlType="submit"
-                  type="primary"
+                  htmlType='submit'
+                  type='primary'
                 >
                   {t('common.save')}
                 </Button>
