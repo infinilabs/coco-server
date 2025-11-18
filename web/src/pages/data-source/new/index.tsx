@@ -93,6 +93,7 @@ export function Component() {
   };
 
   const validationRules = getValidationRules();
+  // eslint-disable-next-line complexity
   const getConnectorTypeName = () => {
     if (connector?.name) return connector.name;
 
@@ -330,7 +331,9 @@ export function Component() {
         strategy: values.sync_config.strategy,
         interval: values.sync_config.interval
       },
-      type: 'connector'
+      type: 'connector',
+      webhook: values.webhook,
+      enrichment_pipeline: values.enrichment_pipeline
     };
     createDatasource(sValues).then(res => {
       if (res.data?.result === 'created') {
@@ -404,11 +407,12 @@ export function Component() {
             connector={connector}
             validationRules={validationRules}
             connectUrl={
+              // eslint-disable-next-line no-nested-ternary
               type === Types.Feishu
                 ? `/connector/${connector?.id}/feishu/connect`
                 : type === Types.Lark
-                ? `/connector/${connector?.id}/lark/connect`
-                : undefined
+                  ? `/connector/${connector?.id}/lark/connect`
+                  : undefined
             }
           />
         ) : (
@@ -468,6 +472,19 @@ export function Component() {
                   icons={iconsMeta}
                   type="connector"
                 />
+              </Form.Item>
+              <Form.Item
+                label={t('page.datasource.new.labels.webhook')}
+                name={["webhook", "enabled"]}
+              >
+                <Switch />
+              </Form.Item>
+              <Form.Item
+                label={t('page.datasource.new.labels.enrichment_pipeline')}
+                name="enrichment_pipeline"
+                tooltip={t('page.connector.new.tooltip.config', 'Configurations in JSON format.')}
+              >
+                <Input.TextArea autoSize={{ maxRows: 30, minRows: 2 }} />
               </Form.Item>
               {type === Types.Yuque && <Yuque />}
               {type === Types.Notion && <Notion />}
