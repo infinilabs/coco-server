@@ -60,7 +60,7 @@ func init() {
 }
 
 func New(c *config.Config) (pipeline.Processor, error) {
-	cfg := Config{HttpClient: "default", PageSize: 10, IncludeOldFile: true, MaxBatchSize: 10, MaxInputLength: 10 * 1024, OnEvents: []string{"open", "update", "reopen"}}
+	cfg := Config{HttpClient: "default", PageSize: 10, IncludeOldFile: true, MaxBatchSize: 10, MaxInputLength: 100 * 1024, OnEvents: []string{"open", "update", "reopen"}}
 	if err := c.Unpack(&cfg); err != nil {
 		return nil, fmt.Errorf("failed to unpack the configuration of flow_replay processor: %s", err)
 	}
