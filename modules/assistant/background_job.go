@@ -660,6 +660,7 @@ func processInitialDocumentSearch(ctx *orm.Context, userID string, reqMsg, reply
 	}
 
 	builder := orm.NewQuery()
+	builder.Size(fechSize)
 
 	//merge the user defined query to filter
 	if params.AssistantCfg.Datasource.Enabled && params.AssistantCfg.Datasource.Filter != nil {
