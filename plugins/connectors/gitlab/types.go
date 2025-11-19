@@ -14,4 +14,5 @@ type Config struct {
 	IndexMergeRequests bool     `config:"index_merge_requests"`
 	IndexWikis         bool     `config:"index_wikis"`
 	IndexSnippets      bool     `config:"index_snippets"`
+	HttpClient         string   `json:"http_client" config:"http_client"`
 }
