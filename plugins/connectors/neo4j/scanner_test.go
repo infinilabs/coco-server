@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"infini.sh/coco/plugins/connectors"
+	cmn "infini.sh/coco/plugins/connectors/common"
 )
 
 func TestNormalizePropertyType(t *testing.T) {
@@ -23,14 +24,14 @@ func TestNormalizePropertyType(t *testing.T) {
 	}
 
 	for input, expected := range cases {
-		if got := normalizePropertyType(input); got != expected {
-			t.Fatalf("normalizePropertyType(%q) = %q, want %q", input, got, expected)
+		if got := cmn.NormalizePropertyType(input); got != expected {
+			t.Fatalf("NormalizePropertyType(%q) = %q, want %q", input, got, expected)
 		}
 	}
 }
 
 func TestNormalizeCursorValueInt(t *testing.T) {
-	stored, normalized, err := normalizeCursorValue(int64(42), "int")
+	stored, normalized, err := cmn.NormalizeCursorValue(int64(42), "int")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -41,7 +42,7 @@ func TestNormalizeCursorValueInt(t *testing.T) {
 		t.Fatalf("unexpected normalized value: %#v", normalized)
 	}
 
-	decoded, err := decodeCursorValue(stored, "")
+	decoded, err := cmn.DecodeCursorValue(stored, "")
 	if err != nil {
 		t.Fatalf("decode failed: %v", err)
 	}
@@ -50,20 +51,20 @@ func TestNormalizeCursorValueInt(t *testing.T) {
 	}
 }
 
-func TestCursorFactoryFromResume(t *testing.T) {
-	factory := cursorFactory{propertyType: "int"}
-	snapshot, err := factory.fromResume("105")
+func TestCursorSerializerFromResume(t *testing.T) {
+	serializer := cmn.NewCursorSerializer("int")
+	snapshot, err := serializer.FromResume("105")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if snapshot == nil {
 		t.Fatal("expected snapshot")
 	}
-	if snapshot.property.(int64) != 105 {
-		t.Fatalf("unexpected property value: %#v", snapshot.property)
+	if snapshot.Property.(int64) != 105 {
+		t.Fatalf("unexpected property value: %#v", snapshot.Property)
 	}
-	if snapshot.stored.Property.Type != "int" || snapshot.stored.Property.Value != "105" {
-		t.Fatalf("unexpected stored cursor: %#v", snapshot.stored)
+	if snapshot.Stored.Property.Type != "int" || snapshot.Stored.Property.Value != "105" {
+		t.Fatalf("unexpected stored cursor: %#v", snapshot.Stored)
 	}
 }
 
@@ -72,22 +73,22 @@ func TestBuildQueryIncrementalAddsCursorParams(t *testing.T) {
 		Cypher:     "MATCH (n) RETURN n",
 		Pagination: true,
 		PageSize:   25,
-		Incremental: IncrementalConfig{
+		Incremental: cmn.IncrementalConfig{
 			Enabled:      true,
-			Mode:         modePropertyWatermark,
+			Mode:         cmn.ModePropertyWatermark,
 			Property:     "n.updated_at",
 			PropertyType: "int",
 			TieBreaker:   "elementId(n)",
 		},
 	}
 	s := &scanner{}
-	cursor := &cursorSnapshot{
-		stored: &connectors.StoredCursor{
+	cursor := &cmn.CursorWatermark{
+		Stored: &connectors.StoredCursor{
 			Property: connectors.StoredCursorValue{Type: "int", Value: "101"},
 			Tie:      &connectors.StoredCursorValue{Type: "string", Value: "node-1"},
 		},
-		property: int64(101),
-		tie:      "node-1",
+		Property: int64(101),
+		Tie:      "node-1",
 	}
 	query, params, err := s.buildQuery(&cfg, cursor, 0)
 	if err != nil {
@@ -127,9 +128,9 @@ func TestBuildQueryIncrementalDatetimeWrapsCursor(t *testing.T) {
 		Cypher:     "MATCH (n) RETURN n",
 		Pagination: true,
 		PageSize:   50,
-		Incremental: IncrementalConfig{
+		Incremental: cmn.IncrementalConfig{
 			Enabled:      true,
-			Mode:         modePropertyWatermark,
+			Mode:         cmn.ModePropertyWatermark,
 			Property:     "n.updated_at",
 			PropertyType: "datetime",
 			TieBreaker:   "elementId(n)",
@@ -141,13 +142,13 @@ func TestBuildQueryIncrementalDatetimeWrapsCursor(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to parse timestamp: %v", err)
 	}
-	cursor := &cursorSnapshot{
-		stored: &connectors.StoredCursor{
+	cursor := &cmn.CursorWatermark{
+		Stored: &connectors.StoredCursor{
 			Property: connectors.StoredCursorValue{Type: "datetime", Value: ts},
 			Tie:      &connectors.StoredCursorValue{Type: "string", Value: "node-1"},
 		},
-		property: parsed,
-		tie:      "node-1",
+		Property: parsed,
+		Tie:      "node-1",
 	}
 
 	query, params, err := s.buildQuery(&cfg, cursor, 0)
@@ -214,7 +215,6 @@ func TestScannerCollectFunc(t *testing.T) {
 
 	// Create test scanner
 	s := &scanner{
-		name:        "test-neo4j",
 		collectFunc: collectFunc,
 	}
 
@@ -255,7 +255,6 @@ func TestScannerCollectFuncError(t *testing.T) {
 
 	// Create test scanner
 	s := &scanner{
-		name:        "test-neo4j",
 		collectFunc: collectFunc,
 	}
 

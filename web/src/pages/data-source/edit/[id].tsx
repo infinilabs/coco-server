@@ -26,7 +26,8 @@ import GitHub from '../new/github';
 import GitLab from '../new/gitlab';
 import HugoSite from '../new/hugo_site';
 import LocalFS from '../new/local_fs';
-import {GiteaConfig, GithubConfig, GitlabConfig, Neo4jConfig, Neo4jFormConfig, NetworkDriveConfig, RdbmsConfig} from '../new/models';
+import {GiteaConfig, GithubConfig, GitlabConfig, MongoDBConfig, MongoDBFormConfig, Neo4jConfig, Neo4jFormConfig, NetworkDriveConfig, RdbmsConfig} from '../new/models';
+import MongoDB from '../new/mongodb';
 import NetworkDrive from '../new/network_drive';
 import Notion from '../new/notion';
 import Rdbms from '../new/rdbms';
@@ -244,6 +245,10 @@ export function Component() {
         config = Neo4jConfig(values);
         break;
       }
+      case Types.MongoDB: {
+        config = MongoDBConfig(values);
+        break;
+      }
     }
     if(values.enrichment_pipeline) {
       try {
@@ -389,6 +394,12 @@ export function Component() {
       }
       break;
     }
+    case Types.MongoDB: {
+      if (datasource.connector?.config) {
+        datasource.config = MongoDBFormConfig(datasource.connector);
+      }
+      break;
+    }
     default:
       isCustom = true;
   }
@@ -480,6 +491,7 @@ export function Component() {
                 {type === Types.Confluence && <Confluence />}
                 {type === Types.NetworkDrive && <NetworkDrive />}
                 {type === Types.Neo4j && <Neo4j form={form} />}
+                {type === Types.MongoDB && <MongoDB form={form} />}
                 {type === Types.Postgresql && <Rdbms dbType="postgresql" />}
                 {type === Types.Mysql && <Rdbms dbType="mysql" />}
                 {type === Types.GitHub && <GitHub />}
