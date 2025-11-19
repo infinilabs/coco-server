@@ -51,6 +51,8 @@ Information about release notes of Coco Server is provided here.
 - chore: fix missing datasource name
 - chore: hide modal after installation finishes
 - chore: refactoring via framework change
+- chore: add support for gitlab api <=12.0
+- chore: add PKCS#12 for gitlab client
 
 
 ## 0.8.0 (2025-09-28)
