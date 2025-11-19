@@ -51,6 +51,7 @@ Information about release notes of Coco Server is provided here.
 - chore: fix missing datasource name
 - chore: hide modal after installation finishes
 - chore: refactoring via framework change
+- chore: in order to deepthink we should fetch more docs #577
 
 
 ## 0.8.0 (2025-09-28)
