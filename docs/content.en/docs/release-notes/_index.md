@@ -9,6 +9,12 @@ Information about release notes of Coco Server is provided here.
 
 ## Latest (In development)  
 ### ❌ Breaking changes  
+### 🚀 Features  
+### 🐛 Bug fix  
+### ✈️ Improvements  
+
+## 0.9.0 (2025-11-19)
+### ❌ Breaking changes  
 - refactor: make connectors pipeline-based (#545) #545
 - refactor: re-implemented security features; rerun setup required
 
