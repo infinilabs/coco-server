@@ -44,6 +44,8 @@ export default function Code(props, ref) {
         setIsEdit(false);
         setCode();
         fetchData();
+      } else {
+        window?.$message?.error(res?.data?.message || t('common.operateFailed'));
       }
       setLoading(false);
     }

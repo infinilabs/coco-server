@@ -347,12 +347,10 @@ declare namespace App {
             no: string;
             yes: string;
           };
-
           enableOrDisable: {
             enable: string;
             disable: string;
           };
-          preview: string;
           language: any;
           [key: string]: any;
         };
