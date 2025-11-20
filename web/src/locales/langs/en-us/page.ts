@@ -175,7 +175,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     },
     connect: 'Connect',
     missing_config_tip:
-      'Google authorization parameters are not configured. Please set them before connecting. Click Confirm to go to the settings page.',
+      '{{name}} authorization parameters are not configured. Please set them before connecting. Click Confirm to go to the settings page.',
     delete: {
       confirm: 'Are you sure you want to delete this datasource?'
     },

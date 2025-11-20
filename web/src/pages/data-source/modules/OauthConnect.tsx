@@ -110,6 +110,7 @@ interface OAuthConnectProps {
   connector: {
     id?: string;
     config?: OAuthConfig;
+    name?: string;
   };
   connectUrl?: string;
   missingConfigMessage?: string;
@@ -175,9 +176,9 @@ export default function OAuthConnect({
     
     if (allErrors.length > 0) {
       // Build specific error message
+      const processorName = connector?.name;
       const errorMessage = missingConfigMessage || 
-        t('page.datasource.missing_config_tip') || 
-        `OAuth configuration issues: ${allErrors.join(', ')}`;
+        ( processorName ? t('page.datasource.missing_config_tip', { name: processorName }) : `OAuth configuration issues: ${allErrors.join(', ')}`)
 
       window?.$modal?.confirm({
         title: t("common.tip"),
