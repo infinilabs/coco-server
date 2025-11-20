@@ -679,6 +679,37 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/n
   }
 }
 
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/mongodb
+{
+ "_system": {
+            "owner_id": "$[[SETUP_OWNER_ID]]"
+          },
+  "id" : "mongodb",
+  "created" : "2025-10-26T00:00:00.000000+08:00",
+  "updated" : "2025-10-26T00:00:00.000000+08:00",
+  "name" : "MongoDB 连接器",
+  "description" : "从 MongoDB 集合中提取文档，支持基于时间戳或 ObjectId 的增量同步。",
+  "category" : "database",
+  "icon" : "/assets/icons/connector/mongodb/icon.png",
+  "tags" : [
+    "nosql",
+    "database",
+    "mongodb",
+    "document_store"
+  ],
+  "url" : "http://coco.rs/connectors/mongodb",
+  "assets" : {
+    "icons" : {
+      "default" : "/assets/icons/connector/mongodb/icon.png"
+    }
+  },
+  "builtin": true,
+  "processor": {
+    "enabled": true,
+    "name": "mongodb"
+  }
+}
+
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/gitlab_webhook_receiver
 {
  "_system": {

@@ -232,6 +232,51 @@ const page: App.I18n.Schema['translation']['page'] = {
     hours: '小时',
     minutes: '分钟',
     missing_config_tip: 'Google 授权相关参数没有设置，需设置后才能连接，点击确认跳转到设置页面。',
+    mongodb: {
+      error: {
+        collection_required: '请输入集合名称！',
+        connection_uri_invalid: '无效的 MongoDB URI。必须以 mongodb:// 或 mongodb+srv:// 开头',
+        connection_uri_required: '请输入连接地址！',
+        database_required: '请输入数据库名称！',
+        page_size_required: '请输入页面大小！',
+        property_required: '请输入跟踪属性名称！',
+        query_invalid: '查询过滤器的 JSON 格式无效',
+        sort_invalid: '排序规范的 JSON 格式无效',
+        tie_breaker_required: '请输入并列项字段！'
+      },
+      labels: {
+        collection: '集合',
+        connection_uri: '连接地址',
+        data_processing: '数据加工',
+        database: '数据库',
+        field_mapping: '字段映射',
+        incremental_sync: '增量同步',
+        incremental_sync_enable: '启用增量同步',
+        page_size: '页面大小',
+        pagination: '启用分页',
+        property: '跟踪属性',
+        property_type: '属性类型',
+        property_type_datetime: '日期时间',
+        property_type_int: '整数',
+        property_type_string: '字符串',
+        query: '查询过滤器',
+        resume_from: '起始值',
+        sort: '排序规范',
+        tie_breaker: '并列项字段'
+      },
+      tooltip: {
+        connection_uri: 'MongoDB 连接字符串，例如：mongodb://localhost:27017 或 mongodb+srv://cluster.mongodb.net',
+        incremental_sync: '启用后，从上次进度继续扫描，仅同步增量变更。',
+        page_size: '每页获取的文档数（1-10000）',
+        pagination: '为大型集合启用分页',
+        property: '用于跟踪变更的字段名，例如 "updated_at" 或 "_id"',
+        property_type: '跟踪属性的数据类型，用于正确比较',
+        query: '可选的 BSON 查询过滤器（JSON 格式），例如：{"status": "published"}',
+        resume_from: '可选的首次同步手动起始点',
+        sort: '可选的排序规范（JSON 格式），例如：{"updated_at": 1, "_id": 1}',
+        tie_breaker: '当多个文档具有相同属性值时，用于打破平局的次要字段（通常是 "_id"）'
+      }
+    },
     neo4j: {
       error: {
         connection_uri_invalid: '无效的 Neo4j URI 格式。请使用 neo4j://host:port',
@@ -245,6 +290,8 @@ const page: App.I18n.Schema['translation']['page'] = {
         parameter_key_required: '请输入参数键！',
         password_required: '请输入密码！',
         path_property_required: '请输入路径属性！',
+        property_required: '请输入跟踪属性名称！',
+        tie_breaker_required: '请输入并列项字段！',
         username_required: '请输入用户名！'
       },
       labels: {
@@ -278,10 +325,14 @@ const page: App.I18n.Schema['translation']['page'] = {
         password_placeholder: '请输入 Neo4j 密码',
         path_property: '路径属性',
         path_separator: '路径分隔符',
+        property: '跟踪属性',
+        property_type: '属性类型',
         property_type_datetime: '日期时间',
         property_type_float: '浮点数',
         property_type_int: '整数',
         property_type_string: '字符串',
+        resume_from: '起始值',
+        tie_breaker: '并列项字段',
         title_field: '标题字段',
         url_field: 'URL 字段',
         username: '用户名'
@@ -298,7 +349,11 @@ const page: App.I18n.Schema['translation']['page'] = {
         incremental_tie_breaker: '用于区分具有相同水位值记录的表达式，例如 elementId(n)。',
         page_size: '每页要获取的记录数',
         pagination: '如果数据库查询应该分页，请启用此选项。建议对大型图数据库使用此选项。',
-        parameters: '可选的键值对参数，将传递给 Cypher 查询。'
+        parameters: '可选的键值对参数，将传递给 Cypher 查询。',
+        property: '用于跟踪变更的字段名',
+        property_type: '跟踪属性的数据类型，用于正确比较',
+        resume_from: '可选的首次同步手动起始点',
+        tie_breaker: '当多个记录具有相同属性值时，用于打破平局的次要字段'
       }
     },
     network_drive: {

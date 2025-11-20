@@ -7,6 +7,7 @@ package datasource
 import (
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
+	"infini.sh/coco/modules/document"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/elastic"
 	"infini.sh/framework/core/orm"
@@ -204,6 +205,17 @@ func (h *APIHandler) searchDatasource(w http.ResponseWriter, req *http.Request, 
 	}
 
 	builder.EnableBodyBytes()
+
+	integrationID := req.Header.Get(core.HeaderIntegrationID)
+	if integrationID != "" {
+		ids, all, err := document.GetDatasourceByIntegration(integrationID)
+		if err != nil {
+			panic(err)
+		}
+		if !all {
+			builder.Filter(orm.TermsQuery("id", ids))
+		}
+	}
 
 	if len(builder.Sorts()) == 0 {
 		builder.SortBy(orm.Sort{Field: "created", SortType: orm.DESC})

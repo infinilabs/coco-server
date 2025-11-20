@@ -32,9 +32,10 @@ Information about release notes of Coco Server is provided here.
 - fix: reset search keyword after extension type changed
 - fix: adjust full-screen widget issues
 
-### ✈️ Improvements  
+### ✈️ Improvements
 - chore: change the home page to the search page after enabling search #541
 - chore: update search api to support query dsl #550
+- feat: mongodb connector #552
 - chore: default sort by created
 - chore: adjust locales
 - chore: add confirmation password to user form
@@ -51,7 +52,6 @@ Information about release notes of Coco Server is provided here.
 - chore: fix missing datasource name
 - chore: hide modal after installation finishes
 - chore: refactoring via framework change
-
 
 ## 0.8.0 (2025-09-28)
 

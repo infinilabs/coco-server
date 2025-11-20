@@ -18,6 +18,7 @@ export const Types = {
   HugoSite: 'hugo_site',
   Lark: 'lark',
   LocalFS: 'local_fs',
+  MongoDB: 'mongodb',
   Mssql: 'mssql',
   Mysql: 'mysql',
   Neo4j: 'neo4j',

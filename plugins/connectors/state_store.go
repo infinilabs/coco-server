@@ -16,8 +16,9 @@ func init() {
 }
 
 type StoredCursorValue struct {
-	Type  string `json:"type"`
-	Value string `json:"value"`
+	Type    string `json:"type"`               // Normalized type: "int", "datetime", "string", etc.
+	Value   string `json:"value"`              // String representation of the value
+	RawType string `json:"raw_type,omitempty"` // Original BSON type: "ObjectID", "DateTime", etc.
 }
 
 type StoredCursor struct {

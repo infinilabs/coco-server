@@ -352,6 +352,50 @@ const page: App.I18n.Schema['translation']['page'] = {
         prefix: 'Only index objects that begin with this prefix'
       }
     },
+    mongodb: {
+      error: {
+        connection_uri_invalid: 'Invalid MongoDB URI. Must start with mongodb:// or mongodb+srv://',
+        connection_uri_required: 'Please input connection URI!',
+        database_required: 'Please input database name!',
+        collection_required: 'Please input collection name!',
+        query_invalid: 'Invalid JSON format for query',
+        sort_invalid: 'Invalid JSON format for sort',
+        page_size_required: 'Please input page size!',
+        property_required: 'Please input tracking property name!',
+        tie_breaker_required: 'Please input tie-breaker field!'
+      },
+      labels: {
+        connection_uri: 'Connection URI',
+        database: 'Database',
+        collection: 'Collection',
+        query: 'Query Filter',
+        sort: 'Sort Specification',
+        pagination: 'Enable Pagination',
+        page_size: 'Page Size',
+        incremental_sync: 'Incremental Sync',
+        incremental_sync_enable: 'Enable Incremental Sync',
+        property: 'Tracking Property',
+        property_type: 'Property Type',
+        property_type_datetime: 'Datetime',
+        property_type_string: 'String',
+        property_type_int: 'Integer',
+        tie_breaker: 'Tie-breaker Field',
+        resume_from: 'Resume From Value',
+        data_processing: 'Data Processing',
+        field_mapping: 'Field Mapping'
+      },
+      tooltip: {
+        connection_uri: 'MongoDB connection string, e.g., mongodb://localhost:27017 or mongodb+srv://cluster.mongodb.net',
+        query: 'Optional BSON query filter in JSON format, e.g., {"status": "published"}',
+        sort: 'Optional sort specification in JSON format, e.g., {"updated_at": 1, "_id": 1}',
+        pagination: 'Enable pagination for large collections',
+        page_size: 'Number of documents to fetch per page (1-10000)',
+        property: 'Field name used to track changes, e.g., "updated_at" or "_id"',
+        property_type: 'Data type of the tracking property for proper comparison',
+        tie_breaker: 'Secondary field to break ties when multiple documents have the same property value (usually "_id")',
+        resume_from: 'Optional manual starting point for the first sync'
+      }
+    },
     seconds: 'seconds',
     site_urls: 'Site URLs',
     site_urls_add: 'Add URL',
