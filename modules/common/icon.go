@@ -3,10 +3,11 @@ package common
 import (
 	"encoding/base64"
 	"fmt"
-	"infini.sh/coco/core"
-	"infini.sh/framework/core/util"
 	"net/http"
 	"net/url"
+
+	"infini.sh/coco/core"
+	"infini.sh/framework/core/util"
 )
 
 func ParseAndGetIcon(connector *core.Connector, icon string) string {

@@ -1,9 +1,10 @@
 import { MinusCircleOutlined, PlusCircleOutlined } from '@ant-design/icons';
-import { Button, Flex, Form, Input, InputNumber, Select, Space, Switch } from 'antd';
+import { Button, Flex, Form, Input, InputNumber, Space, Switch } from 'antd';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { FieldMapping } from '../modules/FieldMapping';
+import IncrementalSyncFields from '../modules/IncrementalSyncFields';
 
 const { TextArea } = Input;
 
@@ -30,10 +31,8 @@ const Neo4jForm: React.FC<Neo4jFormProps> = ({ form }) => {
   const incrementalEnabled = Form.useWatch(['config', 'incremental', 'enabled'], form);
   const incrementalPropertyType = Form.useWatch(['config', 'incremental', 'property_type'], form);
   const normalizedPropertyType = (incrementalPropertyType || 'datetime')?.toLowerCase();
-  const needsDatetimeResume = incrementalEnabled && normalizedPropertyType === 'datetime';
-
   const validateResumeFrom = (_rule: any, value: string) => {
-    if (!incrementalEnabled || value == null || `${value}`.trim() === '') {
+    if (!incrementalEnabled || value === null || `${value}`.trim() === '') {
       return Promise.resolve();
     }
     const trimmed = `${value}`.trim();
@@ -84,7 +83,6 @@ const Neo4jForm: React.FC<Neo4jFormProps> = ({ form }) => {
   return (
     <>
       <Form.Item
-        initialValue='neo4j://localhost:7687'
         label={t('page.datasource.neo4j.labels.connection_uri', 'Connection URI')}
         name={['config', 'connection_uri']}
         rules={[
@@ -109,7 +107,7 @@ const Neo4jForm: React.FC<Neo4jFormProps> = ({ form }) => {
       >
         <Input
           className={FIELD_WIDTH_CLASS}
-          placeholder='neo4j://localhost:7687'
+          placeholder="neo4j://localhost:7687"
         />
       </Form.Item>
 
@@ -129,7 +127,7 @@ const Neo4jForm: React.FC<Neo4jFormProps> = ({ form }) => {
       >
         <Input
           className={FIELD_WIDTH_CLASS}
-          placeholder='neo4j'
+          placeholder="neo4j"
         />
       </Form.Item>
 
@@ -158,7 +156,6 @@ const Neo4jForm: React.FC<Neo4jFormProps> = ({ form }) => {
       </Form.Item>
 
       <Form.Item
-        initialValue="MATCH (n) WHERE n.type = 'document' RETURN n"
         label={t('page.datasource.neo4j.labels.cypher', 'Cypher Query')}
         name={['config', 'cypher']}
         rules={[
@@ -185,7 +182,7 @@ const Neo4jForm: React.FC<Neo4jFormProps> = ({ form }) => {
               {fields.map(({ key, name, ...restField }) => (
                 <Space
                   wrap
-                  align='baseline'
+                  align="baseline"
                   className={FIELD_WIDTH_CLASS}
                   key={key}
                   style={{ display: 'flex', marginBottom: 8, width: '100%' }}
@@ -228,7 +225,7 @@ const Neo4jForm: React.FC<Neo4jFormProps> = ({ form }) => {
                 className={FIELD_WIDTH_CLASS}
                 icon={<PlusCircleOutlined />}
                 style={{ width: '100%' }}
-                type='dashed'
+                type="dashed"
                 onClick={() => add({ key: '', value: '' })}
               >
                 {t('page.datasource.neo4j.labels.add_parameter', 'Add Parameter')}
@@ -241,7 +238,7 @@ const Neo4jForm: React.FC<Neo4jFormProps> = ({ form }) => {
       <Form.Item
         label={t('page.datasource.rdbms.labels.pagination', 'Enable Pagination')}
         name={['config', 'pagination']}
-        valuePropName='checked'
+        valuePropName="checked"
         tooltip={t(
           'page.datasource.neo4j.tooltip.pagination',
           'Enable if the Cypher query should be paginated. Recommended when the result set is large.'
@@ -249,7 +246,6 @@ const Neo4jForm: React.FC<Neo4jFormProps> = ({ form }) => {
       >
         <Switch />
       </Form.Item>
-
       <Form.Item
         noStyle
         shouldUpdate={(prevValues, currentValues) => prevValues.config?.pagination !== currentValues.config?.pagination}
@@ -278,117 +274,34 @@ const Neo4jForm: React.FC<Neo4jFormProps> = ({ form }) => {
         }
       </Form.Item>
 
-      <Form.Item
-        label={t('page.datasource.neo4j.labels.incremental_sync', 'Incremental Sync')}
-        tooltip={t(
-          'page.datasource.neo4j.tooltip.incremental_sync',
-          'Enable to resume scans from the last seen property value (watermark).'
-        )}
-      >
-        <Form.Item
-          noStyle
-          name={['config', 'incremental', 'enabled']}
-          valuePropName='checked'
-        >
-          <Switch />
-        </Form.Item>
-      </Form.Item>
-
-      {incrementalEnabled ? (
-        <>
-          <Form.Item
-            label={t('page.datasource.neo4j.labels.incremental_property', 'Watermark Property')}
-            name={['config', 'incremental', 'property']}
-            rules={[
-              {
-                message: t(
-                  'page.datasource.neo4j.error.incremental_property_required',
-                  'Please input the incremental property!'
-                ),
-                required: true
-              }
-            ]}
-            tooltip={t(
-              'page.datasource.neo4j.tooltip.incremental_property',
-              'Cypher result field used as the resume watermark. Must exist in every row.'
-            )}
-          >
-            <Input
-              className={FIELD_WIDTH_CLASS}
-              placeholder='updated'
-            />
-          </Form.Item>
-          <Form.Item
-            initialValue='datetime'
-            label={t('page.datasource.neo4j.labels.incremental_property_type', 'Watermark Type')}
-            name={['config', 'incremental', 'property_type']}
-            tooltip={t(
-              'page.datasource.neo4j.tooltip.incremental_property_type',
-              'Choose the data type of the watermark property to ensure stable ordering.'
-            )}
-          >
-            <Select
-              className={FIELD_WIDTH_CLASS}
-              options={propertyTypeOptions}
-              style={{ width: '100%' }}
-            />
-          </Form.Item>
-          <Form.Item
-            label={t('page.datasource.neo4j.labels.incremental_tie_breaker', 'Tie-breaker Property')}
-            name={['config', 'incremental', 'tie_breaker']}
-            rules={[
-              {
-                message: t(
-                  'page.datasource.neo4j.error.incremental_tie_breaker_required',
-                  'Please input the incremental tie-breaker property!'
-                ),
-                required: true
-              }
-            ]}
-            tooltip={t(
-              'page.datasource.neo4j.tooltip.incremental_tie_breaker',
-              'Expression used to break ties when multiple rows share the same watermark value (e.g., elementId(n)).'
-            )}
-          >
-            <Input
-              className={FIELD_WIDTH_CLASS}
-              placeholder='elementId(n)'
-            />
-          </Form.Item>
-          <Form.Item
-            label={t('page.datasource.neo4j.labels.incremental_resume_from', 'Resume From Value')}
-            name={['config', 'incremental', 'resume_from']}
-            rules={[{ validator: validateResumeFrom }]}
-            tooltip={t(
-              'page.datasource.neo4j.tooltip.incremental_resume_from',
-              'Optional manual watermark to start from on the first run.'
-            )}
-          >
-            <Input
-              className={FIELD_WIDTH_CLASS}
-              placeholder='e.g. 2025-01-01T00:00:00Z'
-              style={{ width: '100%' }}
-            />
-          </Form.Item>
-        </>
-      ) : null}
+      <IncrementalSyncFields
+        connectorType="neo4j"
+        form={form}
+        propertyTypeOptions={propertyTypeOptions}
+        switchLayout="inline"
+        validateResumeFrom={validateResumeFrom}
+        placeholders={{
+          property: 'updated',
+          resumeFrom: 'e.g. 2025-01-01T00:00:00Z',
+          tieBreaker: 'elementId(n)'
+        }}
+      />
 
       <Form.Item label={t('page.datasource.rdbms.labels.data_processing', 'Data Processing')}>
         <Flex
-          align='center'
-          gap='small'
+          align="center"
+          gap="small"
         >
           <span>{t('page.datasource.rdbms.labels.field_mapping', 'Field Mapping')}</span>
           <Form.Item
             noStyle
             name={['config', 'field_mapping', 'enabled']}
-            valuePropName='checked'
+            valuePropName="checked"
           >
             <Switch />
           </Form.Item>
         </Flex>
       </Form.Item>
-
       <Form.Item
         noStyle
         shouldUpdate={(prevValues, currentValues) =>
@@ -399,7 +312,7 @@ const Neo4jForm: React.FC<Neo4jFormProps> = ({ form }) => {
           getFieldValue(['config', 'field_mapping', 'enabled']) ? (
             <Form.Item
               colon={false}
-              label=' '
+              label=" "
             >
               <FieldMapping enabled={getFieldValue(['config', 'field_mapping', 'enabled'])} />
             </Form.Item>
