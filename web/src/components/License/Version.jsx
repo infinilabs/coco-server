@@ -1,6 +1,7 @@
 import { Descriptions } from 'antd';
 import dayjs from 'dayjs';
 import PropTypes from 'prop-types';
+import Icon from '@ant-design/icons';
 
 import { DATE_FORMAT } from '.';
 import styles from './Version.module.less';
@@ -18,7 +19,7 @@ Version.propTypes = {
 };
 
 export default function Version({ application }) {
-  const { number, lucene_version, build_snapshot, build_date, build_hash } = application?.version || {};
+  const { number, build_number, build_date, build_hash } = application?.version || {};
   const { t } = useTranslation();
 
   return (
@@ -37,15 +38,20 @@ export default function Version({ application }) {
           }
         >
           <Descriptions.Item label={t('license.labels.version')}>{number}</Descriptions.Item>
-          <Descriptions.Item label={t('license.labels.lucene_version')}>{lucene_version}</Descriptions.Item>
-          <Descriptions.Item label={t('license.labels.build_snapshot')}>
-            {build_snapshot ? t('common.yes') : t('common.no')}
-          </Descriptions.Item>
           <Descriptions.Item label={t('license.labels.build_time')}>
             {dayjs(build_date).format(DATE_FORMAT)}
           </Descriptions.Item>
+          <Descriptions.Item label={t('license.labels.build_number')}>{build_number}</Descriptions.Item>
           <Descriptions.Item label='Hash'>{build_hash}</Descriptions.Item>
         </Descriptions>
+      </div>
+      <div style={{ margin: '10px 0', height: 97, overflow: 'hidden' }}>
+        <IconWrapper className='h-97px'>
+          <Icon
+            component={AGPL}
+            style={{ transform: 'scale(0.2)' }}
+          />
+        </IconWrapper>
       </div>
     </div>
   );

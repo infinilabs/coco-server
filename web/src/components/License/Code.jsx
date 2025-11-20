@@ -28,8 +28,8 @@ export default function Code(props, ref) {
 
   const fetchData = async () => {
     const res = await fetchLicense();
-    if (res?.data?.license) {
-      setLicense(res.data.license);
+    if (res?.data) {
+      setLicense(res.data);
     } else {
       setLicense();
     }

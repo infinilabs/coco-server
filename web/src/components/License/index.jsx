@@ -56,16 +56,14 @@ const LicenseModal = forwardRef((props, ref) => {
       wrapClassName={styles.systemLicense}
       onCancel={onClose}
     >
-      <Tabs defaultActiveKey='version'>
-        {tabs.map(item => (
-          <Tabs.TabPane
-            key={item.key}
-            tab={<div className='px-12px'>{item.title}</div>}
-          >
-            <div className={styles.content}>{item.component({ ...props, onClose }, tabRef)}</div>
-          </Tabs.TabPane>
-        ))}
-      </Tabs>
+      <Tabs
+        defaultActiveKey='version'
+        items={tabs.map(item => ({
+          key: item.key,
+          label: <div className='px-12px'>{item.title}</div>,
+          children: <div className={styles.content}>{item.component({ ...props, onClose }, tabRef)}</div>
+        }))}
+      />
     </Modal>
   );
 });

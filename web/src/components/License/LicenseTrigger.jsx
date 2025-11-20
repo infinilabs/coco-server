@@ -32,14 +32,14 @@ const LicenseTrigger = memo(({ className }) => {
         tooltipContent={null}
         tooltipPlacement='right'
         onClick={() => {
-          if (!loading.root) {
+          if (!loading) {
             licenseRef.current?.open();
           }
         }}
       >
         <Spin
           size='small'
-          spinning={loading.root}
+          spinning={loading}
         >
           <div className='flex gap-8px'>
             <SketchOutlined className='text-14px' />
@@ -49,7 +49,7 @@ const LicenseTrigger = memo(({ className }) => {
       </ButtonIcon>
       <License
         application={data?.application}
-        loading={loading.root}
+        loading={loading}
         ref={licenseRef}
       />
     </>

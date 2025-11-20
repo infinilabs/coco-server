@@ -354,6 +354,7 @@ declare namespace App {
           };
           preview: string;
           language: any;
+          [key: string]: any;
         };
         datatable: {
           itemCount: string;
