@@ -93,7 +93,7 @@ func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprou
 
 	var err error
 	var create *time.Time
-	var builtin bool
+	var builtin, oauthConnectFromDB bool
 	if !replace {
 		obj.ID = id
 
@@ -109,6 +109,7 @@ func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprou
 		id = obj.ID
 		create = obj.Created
 		builtin = obj.Builtin
+		oauthConnectFromDB = obj.OAuthConnectImplemented
 	} else {
 		t := time.Now()
 		create = &t
@@ -119,6 +120,12 @@ func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprou
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+	oauthConnectFromRequest := obj.OAuthConnectImplemented
+	if oauthConnectFromRequest {
+		obj.OAuthConnectImplemented = oauthConnectFromRequest
+	} else if !replace {
+		obj.OAuthConnectImplemented = oauthConnectFromDB
 	}
 
 	//protect
