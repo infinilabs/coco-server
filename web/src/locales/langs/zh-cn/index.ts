@@ -29,7 +29,7 @@ const local: App.I18n.Schema['translation'] = {
     themeConfig: '主题配置',
     themeSchema: '主题',
     unpin: '取消固定',
-    about: '关于',
+    about: '关于'
   },
   page,
   request: {
@@ -52,11 +52,43 @@ const local: App.I18n.Schema['translation'] = {
   },
   theme,
   license: {
-    title: "授权信息",
     labels: {
-      version: "版本",
-      build_time: "编译时间",
-      build_number: "编译版本号",
+      build_number: '编译版本号',
+      build_time: '编译时间',
+      build_snapshot: '编译快照',
+      lucene_version: 'Lucene 版本',
+      version: '版本',
+      license_type: '授权类型',
+      max_nodes: '最大节点数',
+      issue_to: '授权对象',
+      issue_at: '授权颁发时间',
+      expire_at: '授权到期时间',
+      organization: '单位名称',
+      contact: '联系人',
+      email: '单位邮箱',
+      phone: '联系电话',
+      agree: '同意',
+      agreement: '授权协议',
+      agreeRequired: '请勾选同意授权协议'
+    },
+    titles: {
+      version: '版本信息',
+      license: '授权信息',
+      eula: '用户协议'
+    },
+    actions: {
+      buy: '购买咨询',
+      trial: '申请试用',
+      apply: '更新授权',
+      submit: '提交'
+    },
+    tips: {
+      trial: '请如实填写信息，我们将在审核后将授权信息发送至您的邮箱。',
+      error: '错误',
+      failed: '申请失败，您也可以前往官网申请',
+      succeeded: '免费授权申请提交成功，等待系统审核。以下是临时的全功能试用授权。',
+      website: '申请地址：',
+      timeout: '请求超时或者网络错误'
     }
   },
   permission

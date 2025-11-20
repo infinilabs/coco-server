@@ -1,60 +1,71 @@
-import React, {
-  forwardRef,
-  useImperativeHandle,
-  useState,
-  useRef,
-} from "react";
-import { Tabs, Modal } from "antd";
-import styles from "./index.module.less";
-import Version from "./Version";
+import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
+import { Modal, Tabs } from 'antd';
 
-export const DATE_FORMAT = "YYYY.MM.DD HH:mm";
+import Version from './Version';
+import Code from './Code';
+import EULA from './EULA';
+import styles from './index.module.less';
 
-export default forwardRef((props, ref) => {
+export const DATE_FORMAT = 'YYYY.MM.DD HH:mm';
+
+const LicenseModal = forwardRef((props, ref) => {
+  LicenseModal.displayName = 'LicenseModal';
   const [visible, setVisible] = useState(false);
   const tabRef = useRef(null);
   const { t } = useTranslation();
 
   const tabs = [
     {
-      key: "version",
-      title: t("license.title"),
-      component: Version,
+      key: 'version',
+      title: t('license.titles.version'),
+      component: Version
     },
+    {
+      key: 'license',
+      title: t('license.titles.license'),
+      component: Code
+    },
+    {
+      key: 'eula',
+      title: t('license.titles.eula'),
+      component: EULA
+    }
   ];
-
-  useImperativeHandle(ref, () => ({
-    open: onOpen,
-    close: onClose,
-  }));
 
   const onOpen = () => {
     setVisible(true);
   };
 
   const onClose = () => {
+    tabRef.current?.resetCode?.();
     setVisible();
   };
 
+  useImperativeHandle(ref, () => ({
+    open: onOpen,
+    close: onClose
+  }));
+
   return (
     <Modal
-      open={visible}
-      wrapClassName={styles.systemLicense}
       closable
-      footer={null}
-      onCancel={onClose}
       destroyOnClose
-      width={580}
+      footer={null}
+      open={visible}
+      width={560}
+      wrapClassName={styles.systemLicense}
+      onCancel={onClose}
     >
-      <Tabs defaultActiveKey="version">
-        {tabs.map((item) => (
-          <Tabs.TabPane tab={<div className="px-12px">{item.title}</div>} key={item.key}>
-            <div className={styles.content}>
-              {item.component({ ...props, onClose }, tabRef)}
-            </div>
-          </Tabs.TabPane>
-        ))}
-      </Tabs>
+      <Tabs
+        defaultActiveKey='version'
+        items={tabs.map(item => ({
+          key: item.key,
+          label: <div className='px-12px'>{item.title}</div>,
+          children: <div className={styles.content}>{item.component({ ...props, onClose }, tabRef)}</div>
+        }))}
+      />
     </Modal>
   );
 });
+
+export default LicenseModal;

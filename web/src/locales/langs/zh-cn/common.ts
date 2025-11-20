@@ -69,7 +69,9 @@ const common: App.I18n.Schema['translation']['common'] = {
   yesOrNo: {
     no: '否',
     yes: '是'
-  }
+  },
+  operateSuccess: '操作成功',
+  operateFailed: '操作失败'
 };
 
 export default common;
