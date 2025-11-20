@@ -736,6 +736,9 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
 }
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/box
 {
+  "_system": {
+    "owner_id": "$[[SETUP_OWNER_ID]]"
+  },
   "id" : "box",
   "created" : "2025-11-02T00:00:00.000000+08:00",
   "updated" : "2025-11-02T00:00:00.000000+08:00",

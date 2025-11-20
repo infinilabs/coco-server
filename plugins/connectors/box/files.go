@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/pipeline"
 	"infini.sh/framework/core/util"
@@ -34,8 +35,8 @@ type FolderNode struct {
 
 func (processor *Processor) startIndexingFiles(
 	ctx *pipeline.Context,
-	connector *common.Connector,
-	datasource *common.DataSource,
+	connector *core.Connector,
+	datasource *core.DataSource,
 	client *BoxClient,
 ) {
 	processor.startIndexingFilesForUser(ctx, connector, datasource, client, "", "")
@@ -43,8 +44,8 @@ func (processor *Processor) startIndexingFiles(
 
 func (processor *Processor) startIndexingFilesForUser(
 	ctx *pipeline.Context,
-	connector *common.Connector,
-	datasource *common.DataSource,
+	connector *core.Connector,
+	datasource *core.DataSource,
 	client *BoxClient,
 	userID, userName string,
 ) {
@@ -93,8 +94,8 @@ func (processor *Processor) startIndexingFilesForUser(
 
 func (processor *Processor) processFolderRecursively(
 	ctx *pipeline.Context,
-	connector *common.Connector,
-	datasource *common.DataSource,
+	connector *core.Connector,
+	datasource *core.DataSource,
 	client *BoxClient,
 	folder *FolderNode,
 ) {
@@ -150,8 +151,8 @@ func (processor *Processor) processFolderRecursively(
 
 func (processor *Processor) processItem(
 	ctx *pipeline.Context,
-	connector *common.Connector,
-	datasource *common.DataSource,
+	connector *core.Connector,
+	datasource *core.DataSource,
 	item *BoxFile,
 	client *BoxClient,
 	parentFolder *FolderNode,
@@ -192,14 +193,14 @@ func (processor *Processor) processItem(
 
 func (processor *Processor) processFile(
 	ctx *pipeline.Context,
-	connector *common.Connector,
-	datasource *common.DataSource,
+	connector *core.Connector,
+	datasource *core.DataSource,
 	file *BoxFile,
 	parentFolder *FolderNode,
 ) {
 	// Create document
-	doc := common.Document{
-		Source: common.DataSourceReference{
+	doc := core.Document{
+		Source: core.DataSourceReference{
 			ID:   datasource.ID,
 			Type: "connector",
 			Name: datasource.Name,

@@ -136,6 +136,24 @@ func NewBoxClient(config *Config) *BoxClient {
 	}
 }
 
+// NewBoxClientWithTokens creates a new Box client with pre-obtained OAuth tokens
+// This is useful when creating a client right after OAuth authentication
+func NewBoxClientWithTokens(config *Config, accessToken, refreshToken string, expiresIn int64) *BoxClient {
+	tokenCache := &TokenCache{}
+
+	// Set both access token and refresh token
+	tokenCache.Set(accessToken, refreshToken, expiresIn)
+
+	return &BoxClient{
+		config: config,
+		httpClient: &http.Client{
+			Timeout: DefaultTimeout,
+		},
+		tokenCache: tokenCache,
+		baseURL:    BaseURL,
+	}
+}
+
 // TokenResponse represents the Box OAuth token response
 type TokenResponse struct {
 	AccessToken  string `json:"access_token"`
@@ -207,7 +225,17 @@ func (c *BoxClient) Authenticate() error {
 	// Cache the token
 	c.tokenCache.Set(tokenResp.AccessToken, tokenResp.RefreshToken, tokenResp.ExpiresIn)
 
-	log.Debugf("[box client] Successfully authenticated, token expires in %d seconds", tokenResp.ExpiresIn)
+	// Log token info
+	if c.config.IsEnterprise == AccountTypeFree {
+		if tokenResp.RefreshToken != "" {
+			log.Debugf("[box client] Successfully authenticated (Free Account), token expires in %d seconds, refresh_token updated", tokenResp.ExpiresIn)
+		} else {
+			log.Debugf("[box client] Successfully authenticated (Free Account), token expires in %d seconds", tokenResp.ExpiresIn)
+		}
+	} else {
+		log.Debugf("[box client] Successfully authenticated (Enterprise Account), token expires in %d seconds", tokenResp.ExpiresIn)
+	}
+
 	return nil
 }
 
@@ -315,7 +343,7 @@ func (c *BoxClient) GetFolderItems(folderID string, offset, limit int, userID st
 	params := url.Values{}
 	params.Set("offset", fmt.Sprintf("%d", offset))
 	params.Set("limit", fmt.Sprintf("%d", limit))
-	params.Set("fields", "id,type,name,size,description,item_status,sequence_id,etag,created_at,modified_at,url,created_by,modified_by,owned_by,parent,extension,representation_type")
+	params.Set("fields", "id,type,name,size,description,item_status,sequence_id,etag,created_at,modified_at,url,created_by,modified_by,owned_by,parent,extension")
 
 	// Prepare headers for enterprise accounts
 	var headers map[string]string

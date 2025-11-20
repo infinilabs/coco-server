@@ -7,8 +7,9 @@ package box
 import (
 	"fmt"
 
-	"infini.sh/coco/modules/common"
+	"infini.sh/coco/core"
 	cmn "infini.sh/coco/plugins/connectors/common"
+	"infini.sh/framework/core/api"
 	"infini.sh/framework/core/config"
 	"infini.sh/framework/core/pipeline"
 
@@ -41,6 +42,10 @@ type Processor struct {
 
 func init() {
 	pipeline.RegisterProcessorPlugin(NAME, New)
+
+	// Register OAuth routes for Box Free Account
+	api.HandleUIMethod(api.GET, "/connector/:id/box/connect", connect, api.RequireLogin())
+	api.HandleUIMethod(api.GET, "/connector/:id/box/oauth_redirect", oAuthRedirect, api.RequireLogin())
 }
 
 func New(c *config.Config) (pipeline.Processor, error) {
@@ -53,7 +58,7 @@ func (processor *Processor) Name() string {
 	return NAME
 }
 
-func (processor *Processor) Fetch(pipeCtx *pipeline.Context, connector *common.Connector, datasource *common.DataSource) error {
+func (processor *Processor) Fetch(pipeCtx *pipeline.Context, connector *core.Connector, datasource *core.DataSource) error {
 	cfg := Config{}
 	processor.MustParseConfig(datasource, &cfg)
 
@@ -84,15 +89,26 @@ func (processor *Processor) Fetch(pipeCtx *pipeline.Context, connector *common.C
 		}
 	}
 
-	// Initialize the Box client
-	client := NewBoxClient(&cfg)
+	// Try to get client from cache first
+	client, cached := GetCachedClient(datasource.ID)
 
-	// Test connection
-	log.Debugf("[%s connector] testing connection...", NAME)
-	if err := client.Ping(); err != nil {
-		return fmt.Errorf("failed to connect to Box: %v", err)
+	if cached {
+		log.Debugf("[%s connector] Using cached client for datasource: %s", NAME, datasource.ID)
+	} else {
+		// No cached client, create a new one
+		log.Debugf("[%s connector] No cached client found, creating new client for datasource: %s", NAME, datasource.ID)
+		client = NewBoxClient(&cfg)
+
+		// Test connection for new client
+		log.Debugf("[%s connector] testing connection...", NAME)
+		if err := client.Ping(); err != nil {
+			return fmt.Errorf("failed to connect to Box: %v", err)
+		}
+		log.Debugf("[%s connector] connection test successful", NAME)
+
+		// Cache the new client for future use
+		CacheClient(datasource.ID, client)
 	}
-	log.Debugf("[%s connector] connection test successful", NAME)
 
 	// Start processing files
 	log.Debugf("[%s connector] start processing box files for datasource: %s", NAME, datasource.Name)
