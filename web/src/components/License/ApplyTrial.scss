@@ -1,0 +1,27 @@
+.apply-trial-modal {
+  .ant-modal-header {
+    .ant-modal-title {
+      text-align: center;
+      color: #1890ff;
+    }
+  }
+  .tips-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    .tips-text {
+      padding-left: 5px;
+    }
+  }
+  .status-content {
+    min-height: 305px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-flow: column;
+    gap: 15px;
+    .successfully-tips {
+      word-break: break-all;
+    }
+  }
+}

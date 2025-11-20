@@ -382,6 +382,7 @@ declare namespace App {
           themeConfig: string;
           themeSchema: string;
           unpin: string;
+          [key: string]: any;
         };
         page: {
           datasource: {
@@ -392,6 +393,7 @@ declare namespace App {
               sync_policy: string;
               sync_status: string;
               type: string;
+              [key: string]: any;
             };
             new: {
               labels: {
@@ -406,14 +408,18 @@ declare namespace App {
                 scheduled_sync: string;
                 scheduled_sync_desc: string;
                 type: string;
+                [key: string]: any;
               };
               title: string;
+              [key: string]: any;
             };
+            [key: string]: any;
           };
           guide: {
             llm: {
               desc: string;
               title: string;
+              [key: string]: any;
             };
             setupLater: string;
             user: {
@@ -424,6 +430,7 @@ declare namespace App {
               title: string;
               language: string;
             };
+            [key: string]: any;
           };
           home: {
             server: {
@@ -437,7 +444,7 @@ declare namespace App {
               aiAssistantDesc: string;
               dataSource: string;
               dataSourceDesc: string;
-              llm: string;
+              llm: any;
               llmDesc: string;
             };
           };
@@ -467,6 +474,7 @@ declare namespace App {
             desc: string;
             password: string;
             title: string;
+            [key: string]: any;
           };
           settings: {
             llm: {
@@ -486,8 +494,11 @@ declare namespace App {
               top_p: string;
               top_p_desc: string;
               type: string;
+              [key: string]: any;
             };
+            [key: string]: any;
           };
+          [key: string]: any;
         };
         request: {
           logout: string;
@@ -565,6 +576,7 @@ declare namespace App {
             visible: string;
           };
         };
+        [key: string]: any;
       };
     };
 
