@@ -842,10 +842,21 @@ const page: App.I18n.Schema['translation']['page'] = {
       api_key: 'API 密钥',
       api_key_source: '从 {{model_provider}} 获取 API 密钥',
       api_key_source_normal: '点击这里获取 API 密钥',
-      builtin: '内置'
+      builtin: '内置',
+      addModel: '添加模型',
+      modelID: '模型ID',
+      modelType: '模型类型',
+      inferenceMode: '推理模式'
     },
     delete: {
       confirm: '您确定要删除这个模型提供商吗?'
+    },
+    options: {
+      dialogModel: '对话模型'
+    },
+    hints: {
+      selectOrInputModel: '选择或输入一个模型',
+      inferenceMode: '这个模型是否支持推理模式'
     }
   },
   role: {

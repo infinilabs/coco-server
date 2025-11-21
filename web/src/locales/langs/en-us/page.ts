@@ -385,14 +385,16 @@ const page: App.I18n.Schema['translation']['page'] = {
         field_mapping: 'Field Mapping'
       },
       tooltip: {
-        connection_uri: 'MongoDB connection string, e.g., mongodb://localhost:27017 or mongodb+srv://cluster.mongodb.net',
+        connection_uri:
+          'MongoDB connection string, e.g., mongodb://localhost:27017 or mongodb+srv://cluster.mongodb.net',
         query: 'Optional BSON query filter in JSON format, e.g., {"status": "published"}',
         sort: 'Optional sort specification in JSON format, e.g., {"updated_at": 1, "_id": 1}',
         pagination: 'Enable pagination for large collections',
         page_size: 'Number of documents to fetch per page (1-10000)',
         property: 'Field name used to track changes, e.g., "updated_at" or "_id"',
         property_type: 'Data type of the tracking property for proper comparison',
-        tie_breaker: 'Secondary field to break ties when multiple documents have the same property value (usually "_id")',
+        tie_breaker:
+          'Secondary field to break ties when multiple documents have the same property value (usually "_id")',
         resume_from: 'Optional manual starting point for the first sync'
       }
     },
@@ -671,7 +673,18 @@ const page: App.I18n.Schema['translation']['page'] = {
       enabled: 'Enabled',
       icon: 'Icon',
       models: 'Models',
-      name: 'Name'
+      name: 'Name',
+      addModel: 'Add Model',
+      modelID: 'Model ID',
+      modelType: 'Model Type',
+      inferenceMode: 'Inference Mode'
+    },
+    options: {
+      dialogModel: 'Dialog Model'
+    },
+    hints: {
+      selectOrInputModel: 'Select or input a model',
+      inferenceMode: 'Whether this model supports inference mode'
     }
   },
   settings: {
