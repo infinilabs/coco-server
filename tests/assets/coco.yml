@@ -1,0 +1,385 @@
+env:
+  ES_ENDPOINT: http://localhost:9200
+  WEB_BINDING: 0.0.0.0:9000
+  API_BINDING: 0.0.0.0:2900
+
+coco:
+  server:
+    public: false
+    name: "My Coco Server"
+    encode_icon_to_base64: false # enable this if coco-server is using self-signed certs
+#    #[START] for managed mode only, need to configured by coco-server operator
+#    endpoint: "http://localhost:9001/"
+#    auth_provider: #config for app to use
+#      sso:
+#        url: "http://localhost:9001/#/login"
+#    #[END] for managed mode only
+    minimal_client_version:
+      number: "0.3"
+    provider:
+      name: "INFINI Labs"
+      description: "Coco AI Server - Search, Connect, Collaborate, AI-powered enterprise search, all in one space."
+      icon: "https://coco.rs/favicon.ico"
+      website: "https://coco.rs/"
+      eula: "https://coco.rs/#/terms"
+      privacy_policy: "https://coco.rs/privacy"
+      banner: "https://coco.rs/svg/connect.svg"
+      #[START] for managed mode only, config for coco-server to use
+      auth_provider:
+        sso:
+          url: "/sso/login/cloud?provider=coco-cloud&product=coco"
+      #[END] for managed mode only
+
+## Cleanup exists data:
+# curl -u admin:45ff432a5428ade77c7b -k -XDELETE   https://localhost:9200/_template/coco-search
+# curl -u admin:45ff432a5428ade77c7b -k -XDELETE   https://localhost:9200/_template/coco
+# curl -u admin:45ff432a5428ade77c7b -k -XDELETE  https://localhost:9200/_scripts/coco-query-string
+# curl -u admin:45ff432a5428ade77c7b -k -XDELETE  https://localhost:9200/_scripts/coco-query-string-extra-should
+# curl -u admin:45ff432a5428ade77c7b -k -XDELETE   https://localhost:9200/coco_*
+elastic:
+  elasticsearch: prod
+  enabled: true
+  store:
+    enabled: false
+  orm:
+    enabled: true
+    index_prefix: "coco_"
+    override_exists_template: true
+    index_templates:
+      "coco-search": |
+        {
+          "order": 10,
+          "index_patterns": [
+            "coco_*"
+          ],
+          "settings": {
+            "index": {
+              "analysis": {
+                "char_filter": {
+                    "tsconvert" : {
+                        "type" : "stconvert",
+                        "delimiter" : ",",
+                        "keep_both" : false,
+                        "convert_type" : "t2s"
+                    }
+                 },
+                "tokenizer": {
+                      "my_pinyin": {
+                        "type": "pinyin",
+                        "keep_first_letter": true,
+                        "keep_separate_first_letter": true,
+                        "keep_full_pinyin": true,
+                        "keep_original": false,
+                        "limit_first_letter_length": 16,
+                        "lowercase": true
+                      }
+                    },
+                "analyzer": {
+                  "pinyin_analyzer": {
+                     "tokenizer": "my_pinyin"
+                   },
+                  "combined_text_analyzer": {
+                    "char_filter": ["tsconvert"],
+                    "filter": [
+                      "lowercase",
+                      "asciifolding",
+                      "word_delimiter",
+                      "unique"
+                    ],
+                    "tokenizer": "classic"
+                  }
+                }
+              }
+            }
+          },
+          "mappings": {}
+        }
+
+    search_templates:
+      "coco-query-string": |
+        {
+            "from": "{{from}}",
+            "size": "{{size}}",
+            "_source": {
+                "includes": [ "{{#source}}","{{.}}","{{/source}}"],
+                "excludes": [ "payload.*","content" ]
+            },
+            "query": {
+              "bool": {
+                "must": {{#toJson}}must_clauses{{/toJson}},
+                "must_not": [],
+                "should": [
+                  {{#query}}
+                  {
+                    "prefix": {
+                      "{{field}}.keyword": {
+                        "value": "{{query}}",
+                        "boost": 100
+                      }
+                    }
+                  },
+                  {
+                    "match_phrase_prefix": {
+                      "{{field}}": {
+                        "query": "{{query}}",
+                        "boost": 50
+                      }
+                    }
+                  },
+                  {
+                    "match_phrase": {
+                      "{{field}}": {
+                        "query": "{{query}}",
+                        "boost": 30
+                      }
+                    }
+                  },
+                  {
+                    "match": {
+                      "{{field}}": {
+                        "query": "{{query}}",
+                        "fuzziness": "AUTO",
+                        "max_expansions": 10,
+                        "boost": 5,
+                        "prefix_length": 2,
+                        "operator": "and",
+                        "fuzzy_transpositions": true
+                      }
+                    }
+                  },
+                  {
+                    "query_string": {
+                      "fields": ["{{field}}","{{field}}.keyword^10","combined_fulltext"],
+                      "query": "{{query}}",
+                      "fuzziness": "AUTO",
+                      "fuzzy_prefix_length": 2,
+                      "fuzzy_max_expansions": 10,
+                      "boost": 3,
+                      "default_operator": "AND",
+                      "fuzzy_transpositions": true,
+                      "allow_leading_wildcard": false
+                    }
+                  },{"match": {
+                      "{{field}}.pinyin": {
+                          "query": "{{query}}",
+                          "boost": 4
+                          }
+                    }}
+                  {{/query}}
+                ]
+              }
+            }
+        }
+      "coco-query-string-extra-should": |
+        {
+            "from": "{{from}}",
+            "size": "{{size}}",
+            "_source": {
+                "includes": [ "{{#source}}","{{.}}","{{/source}}"],
+                "excludes": [ "payload.*","content" ]
+            },
+            "query": {
+              "bool": {
+                "must": {{#toJson}}must_clauses{{/toJson}},
+                "must_not": [],
+                "should": [
+                  {{#query}}
+                  {
+                    "prefix": {
+                      "{{field}}.keyword": {
+                        "value": "{{query}}",
+                        "boost": 100
+                      }
+                    }
+                  },
+                  {
+                    "match_phrase_prefix": {
+                      "{{field}}": {
+                        "query": "{{query}}",
+                        "boost": 50
+                      }
+                    }
+                  },
+                  {
+                    "match_phrase": {
+                      "{{field}}": {
+                        "query": "{{query}}",
+                        "boost": 30
+                      }
+                    }
+                  },
+                  {
+                    "match": {
+                      "{{field}}": {
+                        "query": "{{query}}",
+                        "fuzziness": "AUTO",
+                        "max_expansions": 10,
+                        "prefix_length": 2,
+                        "boost": 5,
+                        "fuzzy_transpositions": true
+                      }
+                    }
+                  },
+                  {
+                    "query_string": {
+                      "fields": ["{{field}}","{{field}}.keyword^10","combined_fulltext"],
+                      "query": "{{query}}",
+                      "fuzziness": "AUTO",
+                      "fuzzy_prefix_length": 2,
+                      "default_operator": "AND",
+                      "boost": 3,
+                      "fuzzy_max_expansions": 10,
+                      "fuzzy_transpositions": true,
+                      "allow_leading_wildcard": false
+                    }
+                  },{"match": {
+                    "{{field}}.pinyin": {
+                        "query": "{{query}}",
+                        "boost": 4
+                        }
+                    }}
+                  {{/query}}
+                   ,{{#toJson}}extra_should_clauses{{/toJson}}
+                ]
+              }
+            }
+        }
+
+elasticsearch:
+  - name: prod
+    enabled: true
+    endpoints:
+      - $[[env.ES_ENDPOINT]]
+    discovery:
+      enabled: false
+
+api:
+  enabled: true
+  websocket:
+    enabled: false
+  network:
+    binding: $[[env.API_BINDING]]
+
+web:
+  enabled: true
+  embedding_api: false
+  network:
+    binding: $[[env.WEB_BINDING]]
+  tls:
+    enabled: false
+    skip_insecure_verify: true
+    default_domain: "localhost:2900"
+    #    default_domain: "api.coco.rs"
+    auto_issue:
+      enabled: false
+      email: "hello@infinilabs.com"
+      include_default_domain: true
+      domains:
+        - "www.coco.rs"
+      provider:
+        tencent_dns:
+          secret_id: $[[keystore.TENCENT_DNS_ID]] #./bin/coco keystore add TENCENT_DNS_ID
+          secret_key: $[[keystore.TENCENT_DNS_KEY]] #./bin/coco keystore add TENCENT_DNS_KEY
+  security:
+    enabled: true
+    managed: false #remote managed instance
+    authentication:
+      oauth:
+        cloud:
+          enabled: true
+          client_secret: "999999"
+          authorize_url: "http://localhost:9000/oauth/authorize"
+          token_url: "http://localhost:9000/oauth/token"
+          profile_url: "http://localhost:9000/account/profile"
+          redirect_url: "http://localhost:9001/sso/callback/cloud"
+          success_page: "/#/home"
+          failed_page: "/#/login"
+          scopes: [ "openid","email","profile"]
+
+##background jobs
+pipeline:
+  - name: enrich_documents
+    auto_start: false
+    keep_running: true
+    processor:
+      - consumer:
+          auto_commit_offset: true
+          queue_selector:
+            keys:
+              - indexing_documents
+          consumer:
+            group: enriched_documents
+            fetch_max_messages: 10
+          processor:
+            - document_summarization:
+                model: $[[env.ENRICHMENT_MODEL]]
+                input_queue: "indexing_documents"
+                min_input_document_length: 500
+                output_queue:
+                  name: "enriched_documents"
+                  label:
+                    tag: "enriched"
+
+  - name: merge_documents
+    auto_start: true
+    keep_running: true
+    processor:
+      - indexing_merge:
+          input_queue: "indexing_documents"
+#          input_queue: "enriched_documents"
+          idle_timeout_in_seconds: 1
+          elasticsearch: "prod"
+          index_name: "coco_document-v2"
+          key_field: "id"
+          output_queue:
+            name: "merged_documents"
+            label:
+              tag: "merged"
+          worker_size: 1
+          bulk_size_in_kb: 10240
+  - name: ingest_documents
+    auto_start: true
+    keep_running: true
+    processor:
+      - bulk_indexing:
+          bulk:
+            compress: true
+            batch_size_in_mb: 10
+            batch_size_in_docs: 10240
+          consumer:
+            fetch_max_messages: 100
+          queues:
+            type: indexing_merge
+            tag: "merged"
+  - name: connector_dispatcher
+    auto_start: true
+    keep_running: true
+    singleton: true
+    retry_delay_in_ms: 10000
+    processor:
+      - connector_dispatcher:
+          max_running_timeout_in_seconds: 1200
+#          pipelines_in_sync: true
+
+http_client:
+  default:
+    proxy:
+      enabled: false
+      default_config:
+        http_proxy: http://127.0.0.1:7890
+        socket5_proxy: socks5://127.0.0.1:7890
+      override_system_proxy_env: true #override system proxy's environment settings with this proxy settings
+      permitted:
+        - "google.com"
+      denied:
+        - "localhost"
+        - "www.yuque.com"
+        - "yuque.com"
+        - "infinilabs.com"
+        - "api.coco.rs"
+        - "dashscope.aliyuncs.com"
+      domains:
+        "github.com":
+          http_proxy: http://127.0.0.1:7890
+          socket5_proxy: socks5://127.0.0.1:7890
+

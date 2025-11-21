@@ -1,0 +1,116 @@
+runner:
+  total_rounds: 1
+  no_warm: true
+  reset_context: true
+  log_requests: false
+  assert_invalid: true
+  default_endpoint: "$[[env.COCO_SERVER]]"
+
+env:
+  COCO_SERVER: http://127.0.0.1:9000
+
+
+  #
+  # Datasources and Documents
+  #
+  DATASOURCE_1_ID: 'd4cngvq8sig62phqk95g'
+  DATASOURCE_1_NAME: 'datasource_1'
+  DATASOURCE_1_PATH: '/tmp/datasource_1'
+  DATASOURCE_1_PATH_WITH_TAILING_SLASH: '/tmp/datasource_1/'
+  DATASOURCE_2_ID: 'd4cnh5i8sig62phqk9a0'
+  DATASOURCE_2_NAME: 'datasource_2'
+  DATASOURCE_2_PATH: '/tmp/datasource_2'
+  DATASOURCE_2_PATH_WITH_TAILING_SLASH: '/tmp/datasource_2/'
+
+  DATASOURCE_1_DOCUMENT_FILE_A_ID: '497d8b408d2e90bb6a864e4a0dca048d'
+  DATASOURCE_1_DOCUMENT_FILE_A_PATH: '/tmp/datasource_1/file_a'
+  DATASOURCE_1_DOCUMENT_FILE_B_ID: 'dda5b3b6c06214e38cc68c9e9f0dc2a8'
+  DATASOURCE_1_DOCUMENT_FILE_B_PATH: '/tmp/datasource_1/file_b'
+  DATASOURCE_1_DOCUMENT_FILE_C_ID: '0fc4351430af24ab77b5de5f02c0cc07'
+  DATASOURCE_1_DOCUMENT_FILE_C_PATH: '/tmp/datasource_1/file_c'
+  DATASOURCE_1_DOCUMENT_FILE_D_ID: 'b0d7d879b9cf238bb1f1a3ba312500b0'
+  DATASOURCE_1_DOCUMENT_FILE_D_PATH: '/tmp/datasource_1/file_d'
+
+  DATASOURCE_2_DOCUMENT_FILE_A_ID: '6d7e0a7296d11c5757ddc96817954a97'
+  DATASOURCE_2_DOCUMENT_FILE_A_PATH: '/tmp/datasource_2/file_a'
+  DATASOURCE_2_DOCUMENT_FILE_B_ID: 'b9eed8060ba0f13c613dd4b30767a217'
+  DATASOURCE_2_DOCUMENT_FILE_B_PATH: '/tmp/datasource_2/file_b'
+  DATASOURCE_2_DOCUMENT_FILE_C_ID: '0472fceb8960cb294af0087d71bfd197'
+  DATASOURCE_2_DOCUMENT_FILE_C_PATH: '/tmp/datasource_2/file_c'
+  DATASOURCE_2_DOCUMENT_FILE_D_ID: '80d014860118e726feb6e7fcb02f034d'
+  DATASOURCE_2_DOCUMENT_FILE_D_PATH: '/tmp/datasource_2/file_d'
+
+
+  #
+  # Users and passwords
+  #
+  ADMIN_ID: '2305b68a5c7204872dfee9be863db254'
+  A_ID: 'dd3626ce78553287cd9216f4e4974d26'
+  B_ID: '59a0b6a30bc2d87d414f1be3056a637e'
+  C_ID: 'c5e8feedee98778d172a3569f2050e29'
+  D_ID: 'd61b234afd94afd00152ea7bfaf92c31'
+  ADMIN_NAME: 'admin'
+  A_NAME: 'a'
+  B_NAME: 'b'
+  C_NAME: 'c'
+  D_NAME: 'd'
+  ADMIN_MAIL: 'admin@mail.com'
+  A_MAIL: 'a@mail.com'
+  B_MAIL: 'b@mail.com'
+  C_MAIL: 'c@mail.com'
+  D_MAIL: 'd@mail.com'
+  ADMIN_PASSWORD: 'PASSword_123'
+  A_PASSWORD: 'PASSword_123'
+  B_PASSWORD: 'PASSword_123'
+  C_PASSWORD: 'PASSword_123'
+  D_PASSWORD: 'PASSword_123'
+
+  #
+  # Permission
+  #
+  VIEW_ACCESS: 1
+  EDIT_ACCESS: 4
+  COMMENT_ACCESS: 16?
+  SHARE_ACCESS: 8
+
+  #
+  # Easysearch index
+  #
+  DATASOURCE_INDEX: 'coco_datasource-v2'
+
+  #
+  # AI Assistant
+  #
+  AICHAT_A_ID: 'd4cnic28sig62phqk9o0'
+  AICHAT_B_ID: 'd4cnie28sig62phqk9p0'
+  AICHAT_C_ID: 'd4cnijq8sig62phqk9rg'
+  AICHAT_D_ID: 'd4cnimi8sig62phqk9sg'
+
+  AICHAT_A_NAME: 'aichat_a'
+  AICHAT_B_NAME: 'aichat_b'
+  AICHAT_C_NAME: 'aichat_c'
+  AICHAT_D_NAME: 'aichat_d'
+
+  #
+  # mcp
+  #
+  MCP_A_ID: 'd4cnji28sig62phqka6g'
+  MCP_B_ID: 'd4cnjma8sig62phqka7g'
+  MCP_C_ID: 'd4cnjpq8sig62phqka9g'
+  MCP_D_ID: 'd4cnjsq8sig62phqkaag'
+
+  #
+  # LLM
+  #
+  LLM_A_ID: 'd4cnisa8sig62phqk9ug'
+  LLM_B_ID: 'd4cnj0q8sig62phqka0g'
+  LLM_C_ID: 'd4cnj528sig62phqka1g'
+  LLM_D_ID: 'd4cnj9a8sig62phqka3g'
+
+  #
+  # Widget
+  #
+  WIDGET_A_ID: 'd4cnk328sig62phqkacg'
+  WIDGET_B_ID: 'd4cnk8a8sig62phqkaf0'
+  WIDGET_C_ID: 'd4cnkbi8sig62phqkag0'
+  WIDGET_D_ID: 'd4cnkf28sig62phqkahg'

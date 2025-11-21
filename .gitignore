@@ -32,6 +32,8 @@ appveyor.yml
 web/.github/
 web/report*
 log/
+# Loadgen could create data directory
+data/
 generated_*.go
 /assets/static.go
 
