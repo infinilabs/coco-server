@@ -1,4 +1,4 @@
-pkill coco
+kill -SIGTERM $(cat integration_test_coco.pid)
 
 while nc -z 127.0.0.1 9000; do
     echo "Coco Server is still running. Waiting for it to exit..."

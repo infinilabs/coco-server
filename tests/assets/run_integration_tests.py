@@ -13,8 +13,9 @@ def sh(command: str):
     if status != 0:
         print(f"Command [{command}] failed with exit code [{status}], aborting\n", flush=True)
         # print Easysearch logs to make debug easier
-        print(f"{LOG_IDENTIFIER}: Easysearch logs:\n", flush=True)
-        os.system('cat ~/es_install_dir/easysearch.log')
+        if os.getenv("GITHUB_ACTIONS") == "true":
+            print(f"{LOG_IDENTIFIER}: Easysearch logs:\n", flush=True)
+            os.system('cat ~/es_install_dir/easysearch.log')
         exit(1)
 
 # Check if we are in the Coco project root by inspecting if the files specified in 
