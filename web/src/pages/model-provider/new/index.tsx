@@ -180,7 +180,7 @@ export const ModelsComponent = ({ value = [], onChange }: any) => {
   }, [value]);
 
   const [models, setModels] = useState<string[]>([]);
-  const [loading, _setLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (permissions.fetchModelProviders) {
@@ -199,8 +199,6 @@ export const ModelsComponent = ({ value = [], onChange }: any) => {
 
   const handleDelete = (key: string) => {
     const newValues = innerValue.filter(v => v.key !== key);
-
-    console.log('newValues', newValues);
 
     setInnerValue(newValues);
   };
