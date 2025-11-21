@@ -144,6 +144,9 @@ const permission = {
   'generic#security:auth:api-token/delete': 'Delete API Token',
   'generic#security:auth:api-token/search': 'Search API Token',
 
+  'license': 'License',
+  'generic#license/apply': 'Apply License',
+
   // 🧭 Others
   cancel_session: 'Cancel Session'
 };

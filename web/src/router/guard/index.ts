@@ -14,7 +14,7 @@ import { getRouteName, getRoutePath } from '@/router/elegant/transform';
 import { fetchServer } from '@/service/api/server';
 import { store } from '@/store';
 import { isStaticSuper, resetAuth, selectUserInfo } from '@/store/slice/auth';
-import { getRouteHome, initAuthRoute, initConstantRoute } from '@/store/slice/route';
+import { getRouteHome, initAuthRoute, initConstantRoute, setFilterPaths } from '@/store/slice/route';
 import { localStg } from '@/utils/storage';
 import { fetchGetUserInfo } from '@/service/api';
 import { setProviderInfo, updateRootRouteIfSearch } from '@/store/slice/server';
@@ -32,6 +32,17 @@ export const init: Init = async currentFullPath => {
 
   const setupRequired = Boolean(result.data?.setup_required)
   const isManaged = Boolean(result?.data?.managed)
+  const searchEnabled = Boolean(result?.data?.search_settings?.enabled)
+
+  const filterPaths: RoutePath[] = []
+  if (!setupRequired || isManaged) {
+    filterPaths.push('/guide')
+  }
+  if (!searchEnabled) {
+    filterPaths.push('/search')
+  }
+
+  await store.dispatch(setFilterPaths(filterPaths));
 
   await store.dispatch(initConstantRoute());
 

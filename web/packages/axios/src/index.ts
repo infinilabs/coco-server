@@ -34,7 +34,7 @@ function createCommonRequest<ResponseData = any>(
 
     // set request id
     const requestId = nanoid();
-    config.headers.set(REQUEST_ID_KEY, requestId);
+    // config.headers.set(REQUEST_ID_KEY, requestId);
 
     // config abort controller
     if (!config.signal) {

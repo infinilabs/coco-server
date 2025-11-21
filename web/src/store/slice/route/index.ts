@@ -1,4 +1,4 @@
-import type { CustomRoute, ElegantConstRoute, LastLevelRouteKey, RouteKey } from '@elegant-router/types';
+import type { CustomRoute, ElegantConstRoute, LastLevelRouteKey, RouteKey, RoutePath } from '@elegant-router/types';
 import type { PayloadAction } from '@reduxjs/toolkit';
 
 import { router } from '@/router';
@@ -24,6 +24,7 @@ interface InitialStateType {
   removeCacheKey: RouteKey | null;
   routeHome: string;
   sortRoutes: ElegantConstRoute[];
+  filterPaths: RoutePath[]
 }
 
 const initialState: InitialStateType = {
@@ -36,7 +37,8 @@ const initialState: InitialStateType = {
   removeCacheKey: null,
   /** Home route key */
   routeHome: import.meta.env.VITE_ROUTE_HOME,
-  sortRoutes: []
+  sortRoutes: [],
+  filterPaths: []
 };
 
 export const routeSlice = createAppSlice({
@@ -93,6 +95,10 @@ export const routeSlice = createAppSlice({
 
     setSortRoutes: create.reducer((state, { payload }: PayloadAction<ElegantConstRoute[]>) => {
       state.sortRoutes = payload;
+    }),
+
+    setFilterPaths: create.reducer((state, { payload }: PayloadAction<RoutePath[]>) => {
+      state.filterPaths = payload;
     })
   }),
   selectors: {
@@ -103,7 +109,8 @@ export const routeSlice = createAppSlice({
     getRemoveCacheKey: state => state.removeCacheKey,
     getRouteHome: route => route.routeHome,
     getSortRoutes: route => route.sortRoutes,
-    selectCacheRoutes: state => state.cacheRoutes
+    selectCacheRoutes: state => state.cacheRoutes,
+    selectFilterPaths: state => state.filterPaths
   }
 });
 
@@ -119,7 +126,8 @@ export const {
   setIsInitConstantRoute,
   setRemoveCacheKey,
   setRouteHome,
-  setSortRoutes
+  setSortRoutes,
+  setFilterPaths
 } = routeSlice.actions;
 
 export const {
@@ -130,7 +138,8 @@ export const {
   getRemoveCacheKey,
   getRouteHome,
   getSortRoutes,
-  selectCacheRoutes
+  selectCacheRoutes,
+  selectFilterPaths
 } = routeSlice.selectors;
 
 const authRouteMode = import.meta.env.VITE_AUTH_ROUTE_MODE;
@@ -170,18 +179,8 @@ const handleConstantOrAuthRoutes =
     dispatch(getCacheRoutes(sortRoutes));
   };
 
-export const initConstantRoute = (filterPaths: string[] = []): AppThunk => async (dispatch, getState) => {
-  const providerInfo = getProviderInfo(getState()) || {}
-  const setupRequired = Boolean(providerInfo?.setup_required)
-  const isManaged = Boolean(providerInfo?.managed)
-  const searchEnabled = Boolean(providerInfo?.search_settings?.enabled)
-  const filterPaths: string[] = []
-  if (!setupRequired || isManaged) {
-    filterPaths.push('/guide')
-  }
-  if (!searchEnabled) {
-    filterPaths.push('/search')
-  }
+export const initConstantRoute = (): AppThunk => async (dispatch, getState) => {
+  const filterPaths = selectFilterPaths(getState())
   const staticRoute = createStaticRoutes();
   staticRoute.authRoutes = staticRoute.authRoutes.filter((item) => !filterPaths.includes(item.path))
   staticRoute.constantRoutes = staticRoute.constantRoutes.filter((item) => !filterPaths.includes(item.path))
@@ -204,12 +203,14 @@ export const initConstantRoute = (filterPaths: string[] = []): AppThunk => async
 
 const initStaticAuthRoute = (): AppThunk => (dispatch, getState) => {
   const { authRoutes: staticAuthRoutes } = createStaticRoutes();
+  const filterPaths = selectFilterPaths(getState())
+  const filterRoutes = staticAuthRoutes.filter((item) => !filterPaths.includes(item.path))
 
   if (dispatch(isStaticSuper())) {
-    dispatch(setAuthRoutes(staticAuthRoutes));
+    dispatch(setAuthRoutes(filterRoutes));
   } else {
     const userInfo = selectUserInfo(getState()) || {};
-    const filteredAuthRoutes = filterAuthRoutesByPermissions(staticAuthRoutes, userInfo.permissions);
+    const filteredAuthRoutes = filterAuthRoutesByPermissions(filterRoutes, userInfo.permissions);
     dispatch(setAuthRoutes(filteredAuthRoutes));
   }
 

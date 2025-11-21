@@ -144,6 +144,9 @@ const permission = {
   'generic#security:auth:api-token/delete': '删除 API Token',
   'generic#security:auth:api-token/search': '搜索 API Token',
 
+  'license': '授权',
+  'generic#license/apply': '更新授权',
+
   // 🧭 其他
   cancel_session: '取消会话'
 };
