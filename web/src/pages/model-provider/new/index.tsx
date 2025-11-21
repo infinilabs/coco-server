@@ -1,106 +1,145 @@
-import {
-  Button,
-  Form,
-  Input,
-  message,
-  Select,
-  Switch,
-} from 'antd';
+import { Button, Form, Input, List, Select, Switch, message } from 'antd';
 import type { FormProps } from 'antd';
-import {createModelProvider, getLLMModels} from '@/service/api/model-provider';
-import {getConnectorIcons} from '@/service/api/connector';
-import { IconSelector } from "../../connector/new/icon_selector";
-import {MinusCircleOutlined} from "@ant-design/icons";
+import { createModelProvider, getLLMModels } from '@/service/api/model-provider';
+import { getConnectorIcons } from '@/service/api/connector';
+import { MinusCircleOutlined } from '@ant-design/icons';
 import { formatESSearchResult } from '@/service/request/es';
 import ModelSettings from '@/pages/ai-assistant/modules/ModelSettings';
 import { getUUID } from '@/utils/common';
+import { ModalForm, ProFormSelect, ProFormSwitch, ProFormText } from '@ant-design/pro-components';
+import type { AnyObject } from 'antd/es/_util/type';
+// @ts-ignore
+import { IconSelector } from '../../connector/new/icon_selector';
 
 export function Component() {
   const { t } = useTranslation();
   const nav = useNavigate();
 
-  const onFinish: FormProps<any>['onFinish'] = (values) => {
+  const onFinish: FormProps<any>['onFinish'] = values => {
     const newValues = {
-      ...values,
-    }
-    createModelProvider(newValues).then((res)=>{
-      if(res.data?.result == "created"){
-        message.success(t('common.addSuccess'))
+      ...values
+    };
+    createModelProvider(newValues).then(res => {
+      if (res.data?.result == 'created') {
+        message.success(t('common.addSuccess'));
         nav('/model-provider/list', {});
       }
-    })
+    });
   };
-  
-  const onFinishFailed: FormProps<any>['onFinishFailed'] = (errorInfo) => {
+
+  const onFinishFailed: FormProps<any>['onFinishFailed'] = errorInfo => {
     console.log('Failed:', errorInfo);
   };
   const [iconsMeta, setIconsMeta] = useState([]);
   useEffect(() => {
-    getConnectorIcons().then((res)=>{
-      if(res.data?.length > 0){
+    getConnectorIcons().then(res => {
+      if (res.data?.length > 0) {
         setIconsMeta(res.data);
       }
     });
   }, []);
   const { defaultRequiredRule, formRules } = useFormRules();
   const initialValues = {
-    enabled: true,
+    enabled: true
   };
 
   return (
-    <div className="h-full min-h-500px">
+    <div className='h-full min-h-500px'>
       <ACard
         bordered={false}
-        className="min-h-full flex-col-stretch sm:flex-1-hidden card-wrapper"
+        className='min-h-full flex-col-stretch sm:flex-1-hidden card-wrapper'
       >
-        <div className="mb-30px ml--16px flex items-center text-lg font-bold">
-          <div className="mr-20px h-1.2em w-10px bg-[#1677FF]" />
+        <div className='mb-30px ml--16px flex items-center text-lg font-bold'>
+          <div className='mr-20px h-1.2em w-10px bg-[#1677FF]' />
           <div>{t('route.model-provider_new')}</div>
         </div>
-        <div className="px-30px">
-        <Form
-            labelCol={{ span: 4 }}
-            wrapperCol={{ span: 18 }}
-            layout="horizontal"
-            initialValues={initialValues}
+        <div className='px-30px'>
+          <Form
+            autoComplete='off'
             colon={false}
-            autoComplete="off"
+            initialValues={initialValues}
+            labelCol={{ span: 4 }}
+            layout='horizontal'
+            wrapperCol={{ span: 18 }}
             onFinish={onFinish}
             onFinishFailed={onFinishFailed}
           >
-            <Form.Item label={t('page.modelprovider.labels.name')} rules={[{ required: true}]} name="name">
+            <Form.Item
+              label={t('page.modelprovider.labels.name')}
+              name='name'
+              rules={[{ required: true }]}
+            >
               <Input className='max-w-600px' />
             </Form.Item>
-            <Form.Item label={t('page.modelprovider.labels.icon')} name="icon" rules={[{ required: true}]}>
-              <IconSelector type="connector" icons={iconsMeta} className='max-w-600px' />
+            <Form.Item
+              label={t('page.modelprovider.labels.icon')}
+              name='icon'
+              rules={[{ required: true }]}
+            >
+              <IconSelector
+                className='max-w-600px'
+                icons={iconsMeta}
+                type='connector'
+              />
             </Form.Item>
-            <Form.Item label={t('page.modelprovider.labels.api_type')} name="api_type" rules={[{ required: true}]}>
-              <Select options={[{label:"OpenAI", value:"openai"}, {label:"Ollama", value:"ollama"}]} className='max-w-150px' />
+            <Form.Item
+              label={t('page.modelprovider.labels.api_type')}
+              name='api_type'
+              rules={[{ required: true }]}
+            >
+              <Select
+                className='max-w-150px'
+                options={[
+                  { label: 'OpenAI', value: 'openai' },
+                  { label: 'Ollama', value: 'ollama' }
+                ]}
+              />
             </Form.Item>
-            <Form.Item label={t('page.modelprovider.labels.api_key')} name="api_key">
+            <Form.Item
+              label={t('page.modelprovider.labels.api_key')}
+              name='api_key'
+            >
               <Input.Password className='max-w-600px' />
             </Form.Item>
-            <Form.Item label={t('page.modelprovider.labels.base_url')} rules={formRules.endpoint} name="base_url">
+            <Form.Item
+              label={t('page.modelprovider.labels.base_url')}
+              name='base_url'
+              rules={formRules.endpoint}
+            >
               <Input className='max-w-600px' />
             </Form.Item>
-            <Form.Item label={t('page.modelprovider.labels.models')} rules={[{ required: true}]} name="models">
-              <ModelsComponent/>
+            <Form.Item
+              label={t('page.modelprovider.labels.models')}
+              name='models'
+              rules={[{ required: true }]}
+            >
+              <ModelsComponent />
             </Form.Item>
-            <Form.Item label={t('page.modelprovider.labels.description')} name="description">
+            <Form.Item
+              label={t('page.modelprovider.labels.description')}
+              name='description'
+            >
               <Input.TextArea className='w-600px' />
             </Form.Item>
-            <Form.Item label={t('page.modelprovider.labels.enabled')} name="enabled">
-              <Switch size="small" />
+            <Form.Item
+              label={t('page.modelprovider.labels.enabled')}
+              name='enabled'
+            >
+              <Switch size='small' />
             </Form.Item>
-            <Form.Item label=" ">
-              <Button type='primary'  htmlType="submit">{t('common.save')}</Button>
+            <Form.Item label=' '>
+              <Button
+                htmlType='submit'
+                type='primary'
+              >
+                {t('common.save')}
+              </Button>
             </Form.Item>
           </Form>
         </div>
       </ACard>
     </div>
-  )
-
+  );
 }
 
 const defaultModelSettings = {
@@ -108,24 +147,20 @@ const defaultModelSettings = {
   top_p: 0.9,
   presence_penalty: 0,
   frequency_penalty: 0,
-  max_tokens: 4000,
-}
+  max_tokens: 4000
+};
 export const ModelsComponent = ({ value = [], onChange }: any) => {
-
   const { hasAuth } = useAuth();
 
   const permissions = {
-    fetchModelProviders: hasAuth('coco#model_provider/search'),
-  }
+    fetchModelProviders: hasAuth('coco#model_provider/search')
+  };
 
   const initialValue = useMemo(() => {
-    const iv = (value || []).map((v: any) => ({
+    return (value || []).map((v: any) => ({
       value: v,
-      key: getUUID(),
+      key: getUUID()
     }));
-    return iv.length ? iv : [{ value: {
-      settings: defaultModelSettings,
-    }, key: getUUID() }];
   }, [value]);
 
   const [innerValue, setInnerValue] = useState<{ value: any; key: string }[]>(initialValue);
@@ -137,95 +172,165 @@ export const ModelsComponent = ({ value = [], onChange }: any) => {
       prevValueRef.current = value;
       const iv = (value || []).map((v: any) => ({
         value: v,
-        key: getUUID(),
+        key: getUUID()
       }));
-      setInnerValue(iv.length ? iv : [{ value: {settings: defaultModelSettings,}, key: getUUID() }]);
+
+      setInnerValue(iv);
     }
   }, [value]);
 
   const [models, setModels] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, _setLoading] = useState(false);
 
   useEffect(() => {
     if (permissions.fetchModelProviders) {
-      getLLMModels().then(({data})=>{
-        if(!data?.error){
+      getLLMModels().then(({ data }) => {
+        if (!data?.error) {
           const newData = formatESSearchResult(data);
-          const models = newData.aggregations.models.buckets.map((item: any)=>{
+          const models = newData.aggregations.models.buckets.map((item: any) => {
             return item.key;
           });
+
           setModels(models);
         }
       });
     }
   }, [permissions.fetchModelProviders]);
 
-  const onDeleteClick = (key: string) => {
-    const newValues = innerValue.filter((v) => v.key !== key);
-    setInnerValue(newValues.length ? newValues : [{ value: {settings: defaultModelSettings,}, key: getUUID() }]);
-    onChange?.(newValues.map((v) => Array.isArray(v.value) ? v.value[0]: v.value));
+  const handleDelete = (key: string) => {
+    const newValues = innerValue.filter(v => v.key !== key);
+
+    console.log('newValues', newValues);
+
+    setInnerValue(newValues);
   };
 
-  const onAddClick = () => {
-    setInnerValue([...innerValue, { value: {}, key: getUUID() }]);
-  };
+  useEffect(() => {
+    onChange?.(innerValue.filter(v => v.value?.name).map(v => v.value));
+  }, [innerValue]);
 
-  const onItemChange = (key: string, newValue: any) => {
-    const newName = newValue?.[0] || newValue;
-    const updatedValues = innerValue.map((v) =>
-      v.key === key ? { ...v, value: {
-        ...(v.value || {}),
-        name: newName,
-      } } : v
-    );
-    setInnerValue(updatedValues);
-    onChange?.(updatedValues.filter((v) => v.value?.name).map(v => v.value));
-  };
-
-  const {t} = useTranslation();
+  const { t } = useTranslation();
 
   const onSettingsChange = (key: string, settings: any) => {
-    const updatedValues = innerValue.map((v) =>
-      v.key === key ? { ...v, value: {
-        ...(v.value || {}),
-        settings: settings,
-      } } : v
+    const updatedValues = innerValue.map(v =>
+      v.key === key
+        ? {
+            ...v,
+            value: {
+              ...(v.value || {}),
+              settings
+            }
+          }
+        : v
     );
     setInnerValue(updatedValues);
-    const filterValues = updatedValues.filter((v) => v.value?.name).map(v => v.value);
-    onChange?.(filterValues);
-  }
+  };
+
+  const [form] = Form.useForm<AnyObject>();
 
   return (
-    <div>
-      {innerValue.map((v) => (
-        <div key={v.key} className="flex items-center mb-15px">
-          <Select
-            mode="tags"
-            value={v.value?.name || undefined}
-            className="max-w-548px"
-            onChange={(newV) => onItemChange(v.key, newV)}
-            placeholder="Select or input a model"
-            maxCount={1}
-            loading={loading}
-          >
-            {models.map((model) => (
-              <Select.Option key={model} value={model}>
-                {model}
-              </Select.Option>
-            ))}
-          </Select>
-          <div className="ml-10px">
-            <ModelSettings value={v.value?.settings} onChange={(settings) => onSettingsChange(v.key, settings)}/>
-          </div>
-          <div className="cursor-pointer ml-15px" onClick={() => onDeleteClick(v.key)}>
-            <MinusCircleOutlined className='text-[#999]' />
-          </div>
-        </div>
-      ))}
-      <Button type="primary" onClick={onAddClick}>
-        {t('common.add')}
-      </Button>
-    </div>
+    <>
+      {innerValue.length > 0 && (
+        <List
+          bordered
+          dataSource={innerValue}
+          rootClassName='mb-4 max-w-150'
+          size='small'
+          renderItem={item => {
+            const { key, value } = item;
+
+            return (
+              <List.Item
+                actions={[
+                  <span key='inference-mode'>
+                    {value?.settings?.reasoning ? t('page.modelprovider.labels.inferenceMode') : '-'}
+                  </span>,
+                  <ModelSettings
+                    key='model-settings'
+                    value={value?.settings}
+                    onChange={settings => onSettingsChange(key, settings)}
+                  />,
+                  <div
+                    className='cursor-pointer'
+                    key='delete-model'
+                    onClick={() => handleDelete(key)}
+                  >
+                    <MinusCircleOutlined className='text-[#999]' />
+                  </div>
+                ]}
+              >
+                {value?.name ?? '-'}
+              </List.Item>
+            );
+          }}
+        />
+      )}
+
+      <ModalForm
+        form={form}
+        title={t('page.modelprovider.labels.addModel')}
+        trigger={<Button type='primary'>{t('common.add')}</Button>}
+        width={560}
+        modalProps={{
+          centered: true,
+          destroyOnClose: true
+        }}
+        onFinish={async values => {
+          setInnerValue([
+            ...innerValue,
+            {
+              key: getUUID(),
+              value: {
+                ...values,
+                name: values.name[0]
+              }
+            }
+          ]);
+
+          return true;
+        }}
+      >
+        <ProFormSelect
+          label={t('page.modelprovider.labels.modelID')}
+          name='name'
+          fieldProps={{
+            loading,
+            maxCount: 1,
+            mode: 'tags',
+            placeholder: t('page.modelprovider.hints.selectOrInputModel'),
+            options: models.map(model => ({
+              label: model,
+              value: model
+            }))
+          }}
+          rules={[
+            {
+              required: true
+            }
+          ]}
+        />
+
+        <ProFormText
+          initialValue={t('page.modelprovider.options.dialogModel')}
+          label={t('page.modelprovider.labels.modelType')}
+          name='type'
+          fieldProps={{
+            readOnly: true
+          }}
+        />
+
+        <ProFormSwitch
+          initialValue={true}
+          label={t('page.modelprovider.labels.inferenceMode')}
+          name={['settings', 'reasoning']}
+          formItemProps={{
+            layout: 'horizontal',
+            className: 'mb-0!'
+          }}
+        />
+
+        <span className='text-color-3'>{t('page.modelprovider.hints.inferenceMode')}</span>
+      </ModalForm>
+    </>
   );
 };

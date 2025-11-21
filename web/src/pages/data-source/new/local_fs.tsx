@@ -61,7 +61,8 @@ const createExtensionValidator = () => async (_, value: string) => {
 export default () => {
   const { t } = useTranslation();
   const pathValidator = createPathValidator();
-  const extensionValidator= createExtensionValidator();
+  const extensionValidator = createExtensionValidator();
+
   return (
     <>
       <Form.Item
@@ -72,7 +73,7 @@ export default () => {
       >
         <MultiFilePathInput
           addButtonText={t('page.datasource.file_paths_add', 'Add File Path')}
-          placeholder="/path/to/your/folder"
+          placeholder='/path/to/your/folder'
         />
       </Form.Item>
       <Form.Item
@@ -82,7 +83,7 @@ export default () => {
         tooltip={t('page.datasource.new.tooltip.file_extensions', 'Comma-separated list. e.g., pdf, docx, txt')}
       >
         <Input
-          placeholder="pdf, docx, md"
+          placeholder='pdf, docx, md'
           style={{ width: 500 }}
         />
       </Form.Item>
