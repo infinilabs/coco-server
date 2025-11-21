@@ -26,7 +26,6 @@ const Wrapper = (props) => {
     ...otherColor,
     info: isInfoFollowPrimary ? themeColor : otherColor.info
   };
-  console.log('theme', theme)
   const darkMode = theme === 'dark';
   const antdTheme = getAntdTheme(colors, darkMode, themeSettings.tokens);
 
