@@ -198,3 +198,77 @@ export const Neo4jFormConfig = (values: any) => {
     username: config.username || ''
   };
 };
+
+// eslint-disable-next-line complexity
+export const MongoDBConfig = (values: any) => {
+  const config: any = {
+    connection_uri: values.config?.connection_uri || '',
+    database: values.config?.database || '',
+    collection: values.config?.collection || ''
+  };
+
+  if (values.config?.query) {
+    config.query = values.config.query;
+  }
+
+  if (values.config?.sort) {
+    config.sort = values.config.sort;
+  }
+
+  // Pagination config - always include
+  config.pagination = Boolean(values.config?.pagination);
+  if (config.pagination) {
+    config.page_size = values.config?.page_size || 500;
+  }
+
+  // New nested incremental structure
+  const incremental = values.config?.incremental || {};
+  config.incremental = incremental.enabled
+    ? {
+        enabled: true,
+        mode: 'property_watermark',
+        property: incremental.property || '',
+        property_type: incremental.property_type || 'datetime',
+        tie_breaker: incremental.tie_breaker || '',
+        resume_from: incremental.resume_from || ''
+      }
+    : {
+        enabled: false,
+        mode: '',
+        property: '',
+        property_type: 'datetime',
+        tie_breaker: '',
+        resume_from: ''
+      };
+
+  // Field mapping config - always include
+  if (values.config?.field_mapping?.enabled) {
+    config.field_mapping = values.config.field_mapping;
+  } else {
+    config.field_mapping = defaultFieldMapping();
+  }
+
+  return config;
+};
+
+export const MongoDBFormConfig = (values: any) => {
+  const config = values.config || {};
+
+  return {
+    connection_uri: config.connection_uri || '',
+    database: config.database || '',
+    collection: config.collection || '',
+    query: config.query || '',
+    sort: config.sort || '',
+    pagination: Boolean(config.pagination),
+    page_size: config.page_size || 500,
+    incremental: {
+      enabled: Boolean(config.incremental?.enabled),
+      property: config.incremental?.property || '',
+      property_type: config.incremental?.property_type || 'datetime',
+      tie_breaker: config.incremental?.tie_breaker || '',
+      resume_from: config.incremental?.resume_from || ''
+    },
+    field_mapping: config.field_mapping || defaultFieldMapping()
+  };
+};

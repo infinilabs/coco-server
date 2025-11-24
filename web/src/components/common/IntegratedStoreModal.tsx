@@ -169,11 +169,10 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
 
     storeUrl += `&${searchParams.toString()}`;
 
-    const res = await fetch(storeUrl, {
-      method: 'get'
+    const res = await request({
+      url: storeUrl
     });
-    const result = await res.json();
-    const { data, total } = formatESSearchResult(result);
+    const { data, total } = formatESSearchResult(res?.data);
 
     return {
       list: data as DataSource[],

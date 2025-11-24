@@ -19,6 +19,7 @@ export const Types = {
   Jira: 'jira',
   Lark: 'lark',
   LocalFS: 'local_fs',
+  MongoDB: 'mongodb',
   Mssql: 'mssql',
   Mysql: 'mysql',
   Neo4j: 'neo4j',

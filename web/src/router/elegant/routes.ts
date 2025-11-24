@@ -540,7 +540,8 @@ export const generatedRoutes: GeneratedRoute[] = [
         meta: {
           i18nKey: 'route.user_edit',
           title: 'user_edit',
-          permissions: ['generic#security:user/read', 'generic#security:user/update']
+          permissions: ['generic#security:user/read', 'generic#security:user/update'],
+          activeMenu: 'security'
         }
       },
       {
@@ -550,7 +551,8 @@ export const generatedRoutes: GeneratedRoute[] = [
         meta: {
           i18nKey: 'route.user_new',
           title: 'user_new',
-          permissions: ['generic#security:user/create']
+          permissions: ['generic#security:user/create'],
+          activeMenu: 'security'
         }
       }
     ]

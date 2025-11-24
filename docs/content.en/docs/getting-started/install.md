@@ -19,10 +19,10 @@ This method is the simplest way to get Coco Server running. It uses Docker-manag
 docker run -d \
   --name cocoserver \
   -p 9000:9000 \
-  -v data:/app/easysearch/data \
-  -v config:/app/easysearch/config \
-  -v logs:/app/easysearch/logs \
-  infinilabs/coco:0.7.0
+  -v coco_data_vol:/app/easysearch/data \
+  -v coco_config_vol:/app/easysearch/config \
+  -v coco_logs_vol:/app/easysearch/logs \
+  infinilabs/coco:0.9.0
 ```
 
 > 🔒 **SECURITY WARNING**
@@ -32,8 +32,27 @@ docker run -d \
 
 **After running the command:**
 *   Coco Server will be running in the background. Access the Web UI at `http://localhost:9000`.
-*   Your data, configuration, and logs are safely stored in Docker volumes named `data`, `config`, and `logs`.
+*   Your data, configuration, and logs are safely stored in Docker volumes named `coco_data_vol`, `coco_config_vol`, and `coco_logs_vol`.
 
+> **Docker CAP Issue**
+> Some Docker environments may restrict certain capabilities required by Coco Server. If you encounter permission issues, consider the following options:
+- `SYS_PTRACE` capability is required for Coco Server to run properly. If you encounter permission issues, you may need to add `--cap-add=SYS_PTRACE` to the `docker run` command.
+- `SYS_NICE` capability may also be required in some environments.
+- `--security-opt seccomp=unconfined` can be used as a last resort but is not recommended for production due to security implications.
+
+> Here is an example command with added capabilities:
+```bash
+docker run -d \
+  --name cocoserver \
+  --cap-add=SYS_PTRACE \
+  --cap-add=SYS_NICE \
+  --security-opt seccomp=unconfined \
+  -p 9000:9000 \
+  -v coco_data_vol:/app/easysearch/data \
+  -v coco_config_vol:/app/easysearch/config \
+  -v coco_logs_vol:/app/easysearch/logs \
+  infinilabs/coco:0.9.0
+```
 ---
 
 ## 2. Advanced Start (Using Host Directories)
@@ -62,7 +81,7 @@ This clever command runs a temporary container to copy the default configuration
 docker run --rm \
   -v /data/cocoserver/config:/tmp/config \
   --env-file /data/cocoserver/.env \
-  infinilabs/coco:0.7.0 \
+  infinilabs/coco:0.9.0 \
   cp -a /app/easysearch/config/. /tmp/config/
 ```
 *   `--rm`: Automatically removes the container after it exits.
@@ -96,7 +115,7 @@ docker run -d \
   -v /data/cocoserver/config:/app/easysearch/config \
   -v /data/cocoserver/logs:/app/easysearch/logs \
   -e ES_JAVA_OPTS="-Xms2g -Xmx2g" \
-  infinilabs/coco:0.7.0
+  infinilabs/coco:0.9.0
 ```
 *   `--env-file`: Securely loads environment variables (like your password) from the `.env` file.
 
@@ -108,8 +127,8 @@ Follow these steps to upgrade to a new version while preserving all your data. T
 
 **Step 1: Pull the New Image**
 ```bash
-# Replace '0.7.0' with the new version tag.
-docker pull infinilabs/coco:0.7.0
+# Replace '0.9.0' with the new version tag.
+docker pull infinilabs/coco:0.9.0
 ```
 
 **Step 2: Stop and Remove the Old Container**
@@ -152,7 +171,7 @@ docker stop cocoserver && docker rm cocoserver
 
 **Step 3: Remove the Docker Image**
 ```bash
-docker rmi infinilabs/coco:0.7.0
+docker rmi infinilabs/coco:0.9.0
 ```
 
 ## Manual Installation

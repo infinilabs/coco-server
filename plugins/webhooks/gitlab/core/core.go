@@ -4,6 +4,11 @@
 
 package core
 
+type GitlabVersion struct {
+	Version  string `json:"version"`
+	Revision string `json:"revision"`
+}
+
 type MergeRequestEvent struct {
 	ObjectKind       string            `json:"object_kind"`
 	EventType        string            `json:"event_type"`

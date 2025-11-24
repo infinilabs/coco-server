@@ -29,3 +29,6 @@ build-all: init-web-env
 	make build-web
 	make build-widget
 	make build
+
+int-test:
+	./tests/assets/run_integration_tests.py
