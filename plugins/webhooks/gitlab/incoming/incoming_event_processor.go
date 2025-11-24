@@ -18,7 +18,6 @@ import (
 	"infini.sh/framework/core/pipeline"
 	"infini.sh/framework/core/queue"
 	"infini.sh/framework/core/util"
-	"net/http"
 	url2 "net/url"
 	"strings"
 	"time"
@@ -48,9 +47,9 @@ type Processor struct {
 	api.Handler
 	Queue *queue.QueueConfig `config:"queue"`
 
-	config     *Config
-	httpClient *http.Client
-	version    *util.Version
+	config    *Config
+	version   *util.Version
+	tLSConfig *config.TLSConfig
 }
 
 const processorName = "gitlab_incoming_message"
@@ -68,7 +67,11 @@ func New(c *config.Config) (pipeline.Processor, error) {
 	runner := Processor{config: &cfg}
 	log.Debug("load config:", util.MustToJSON(cfg))
 	log.Debug("http config:", util.MustToJSON(global.Env().SystemConfig.HTTPClientConfig))
-	runner.httpClient = api.GetHttpClient(cfg.HttpClient)
+
+	clientConfig, ok := global.Env().SystemConfig.HTTPClientConfig[cfg.HttpClient]
+	if ok {
+		runner.tLSConfig = &clientConfig.TLSConfig
+	}
 
 	ver, err := runner.getVersion()
 	if err != nil {
@@ -375,8 +378,7 @@ func (processor *Processor) getMRDetail(projectID, mrID int64) (string, error) {
 	)
 
 	req1 := util.NewGetRequest(url, nil)
-	req1.AddHeader("PRIVATE-TOKEN", processor.config.Token)
-	res, err := util.ExecuteRequestViaCurl(req1)
+	res, err := processor.ExecuteRequest(req1)
 	if err != nil {
 		return "", err
 	}
@@ -392,8 +394,7 @@ func (processor *Processor) getMRCommits(projectID, mrID int64) ([]core.MRCommit
 		nil, // no query params
 	)
 	req1 := util.NewGetRequest(url, nil)
-	req1.AddHeader("PRIVATE-TOKEN", processor.config.Token)
-	res, err := util.ExecuteRequestViaCurl(req1)
+	res, err := processor.ExecuteRequest(req1)
 	if err != nil {
 		return nil, err
 	}
@@ -418,8 +419,7 @@ func (processor *Processor) getMRDiffs(projectID, mrID int64, pageNo int) ([]cor
 		args,
 	)
 	req1 := util.NewGetRequest(url, nil)
-	req1.AddHeader("PRIVATE-TOKEN", processor.config.Token)
-	res, err := util.ExecuteRequestViaCurl(req1)
+	res, err := processor.ExecuteRequest(req1)
 	if err != nil {
 		return nil, err
 	}
@@ -442,8 +442,7 @@ func (processor *Processor) getMRDiffsV12(projectID, mrID int64) (*core.MergeReq
 		nil,
 	)
 	req1 := util.NewGetRequest(url, nil)
-	req1.AddHeader("PRIVATE-TOKEN", processor.config.Token)
-	res, err := util.ExecuteRequestViaCurl(req1)
+	res, err := processor.ExecuteRequest(req1)
 	if err != nil {
 		return nil, err
 	}
@@ -466,8 +465,7 @@ func (processor *Processor) getPreviousFile(projectID int64, file string, branch
 		map[string]string{"ref": branch},
 	)
 	req1 := util.NewGetRequest(url, nil)
-	req1.AddHeader("PRIVATE-TOKEN", processor.config.Token)
-	res, err := util.ExecuteRequestViaCurl(req1)
+	res, err := processor.ExecuteRequest(req1)
 	if err != nil {
 		return nil, err
 	}
@@ -494,10 +492,9 @@ func (processor *Processor) postReply(projectID, mrID int64, msg string) (*core.
 		"body": msg,
 	})
 	req1 := util.NewPostRequest(url, bytes)
-	req1.AddHeader("PRIVATE-TOKEN", processor.config.Token)
 	req1.AddHeader("Content-Type", "application/json")
 
-	res, err := util.ExecuteRequestViaCurl(req1)
+	res, err := processor.ExecuteRequest(req1)
 	if err != nil {
 		return nil, err
 	}
@@ -513,6 +510,20 @@ func (processor *Processor) postReply(projectID, mrID int64, msg string) (*core.
 	return nil, err
 }
 
+func (processor *Processor) ExecuteRequest(req *util.Request) (*util.Result, error) {
+	req.AddHeader("PRIVATE-TOKEN", processor.config.Token)
+
+	if processor.tLSConfig != nil {
+		if util.ContainStr(processor.tLSConfig.TLSCertFile, "p12") {
+			req.P12File = processor.tLSConfig.TLSCertFile
+			req.P12Password = processor.tLSConfig.TLSCertPassword
+		}
+	}
+
+	res, err := util.ExecuteRequestViaCurl(req)
+	return res, err
+}
+
 func (processor *Processor) getVersion() (*util.Version, error) {
 	url := JoinAPIURL(
 		processor.config.Endpoint,
@@ -520,9 +531,8 @@ func (processor *Processor) getVersion() (*util.Version, error) {
 		nil,
 	)
 	req1 := util.NewGetRequest(url, nil)
-	req1.AddHeader("PRIVATE-TOKEN", processor.config.Token)
 
-	res, err := util.ExecuteRequestViaCurl(req1)
+	res, err := processor.ExecuteRequest(req1)
 	if err != nil {
 		return nil, err
 	}
