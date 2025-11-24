@@ -10,6 +10,7 @@ Information about release notes of Coco Server is provided here.
 ## Latest (In development)  
 ### ❌ Breaking changes  
 ### 🚀 Features  
+- feat: jira connector #567
 ### 🐛 Bug fix  
 ### ✈️ Improvements  
 
@@ -21,7 +22,6 @@ Information about release notes of Coco Server is provided here.
 ### 🚀 Features
 - feat: neo4j connector #539
 - feat: add integrated store #551
-- feat: jira connector #567
 - feat: rbac based security
 - feat: user level data ownership & sharing
 - feat: add permission check to management UI
