@@ -1,0 +1,114 @@
+name: Integration test
+
+env:
+    GO_VERSION: 1.23.4
+    NODEJS_VERSION: 20.18.2
+    PNPM_VERSION: 'latest'
+    ES_ADMIN_PASSWORD: 'F0r_test_ci'
+
+on:
+  pull_request:
+
+jobs:
+  integration_test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout current repository
+        uses: actions/checkout@v4
+        with: 
+          path: coco
+      
+      - name: Move coco to ~/go/src/infini.sh/coco
+        run: |
+          mkdir -p ~/go/src/infini.sh
+          mv ./coco ~/go/src/infini.sh/
+
+      - name: Set up nodejs toolchain
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODEJS_VERSION }}
+      
+      - name: Install pnpm
+        run: npm install -g pnpm@${{ env.PNPM_VERSION }}
+
+      - name: Check nodejs toolchain
+        run: node -v && npm -v && pnpm -v
+
+      - name: Set up go toolchain
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          check-latest: false
+          cache: true
+
+      - name: Clone framework and framework vendor
+        run: |
+          git clone https://github.com/infinilabs/framework.git ~/go/src/infini.sh/framework
+          git clone https://github.com/infinilabs/framework-vendor.git ~/go/src/infini.sh/vendor
+      
+      - name: Build Coco Server
+        working-directory: /home/runner/go/src/infini.sh/coco
+        run:  make build-all
+
+      - name: Set up Easysearch
+        run: |
+          mkdir ~/es_install_dir
+          curl -sSL http://get.infini.cloud | bash -s -- -p easysearch -d ~/es_install_dir -v 1.16.0-20251121-SNAPSHOT
+
+          # Use our config file, which disables security setting
+          cd ~/es_install_dir && rm ./config/easysearch.yml
+          cp ~/go/src/infini.sh/coco/tests/assets/easysearch.yml ~/es_install_dir/config/
+
+          # Create a symlink at the specified path
+          ln -s ~/go/src/infini.sh/coco/tests/assets/easysearch_snapshot_repository /tmp/easysearch_snapshot_repository
+
+          cd ~/es_install_dir && ./bin/initialize.sh -s
+          cd ~/es_install_dir && nohup ./bin/easysearch > easysearch.log 2>&1 &
+
+          # Ensure it starts
+          while ! nc -z 127.0.0.1 9200; do
+              echo "Easysearch is not up. Will re-check in 5 seconds..."
+              sleep 5
+          done
+          # Wait until the cluster reports healthy before continuing
+          while true; do
+              health=$(curl -s http://127.0.0.1:9200/_cluster/health)
+              status=$(echo "$health" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("status", ""))')
+              if [ "$status" = "green" ]; then
+                echo "Easysearch cluster status is green."
+                break
+              fi
+              echo "Easysearch cluster status is $status. Will re-check in 5 seconds..."
+              sleep 5
+          done
+
+          # Create the snapshot repository that we need
+          curl -X POST http://127.0.0.1:9200/_snapshot/repo_ezs \
+            -H "Content-Type: application/json" \
+            -d '{ "type": "fs", "settings": { "location": "/tmp/easysearch_snapshot_repository" } }' \
+            -v -o /tmp/restore_output
+          cat /tmp/restore_output
+     
+      
+      - name: Install Loadgen
+        run: |
+          mkdir ~/loadgen_install_dir
+          curl -sSL http://get.infini.cloud | bash -s -- -p loadgen -d ~/loadgen_install_dir
+          # Move to binary to /usr/bin so that it is in $PATH
+          sudo mv ~/loadgen_install_dir/loadgen-linux-* /usr/bin/loadgen
+          # Make sure it is executable, just in case.
+          chmod +x /usr/bin/loadgen
+          # Run it to verify it is installed
+          loadgen 
+          # Clear the log directory created by Loadgen
+          rm -r log
+
+      - name: Replace Coco configuration file
+        working-directory: /home/runner/go/src/infini.sh/coco
+        run: rm coco.yml && ln -s tests/assets/coco.yml coco.yml
+
+  
+      - name: Run tests
+        working-directory: /home/runner/go/src/infini.sh/coco
+        run: python3 ./tests/assets/run_integration_tests.py
