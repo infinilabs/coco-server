@@ -63,6 +63,10 @@ jobs:
           # Create a symlink at the specified path
           ln -s ~/go/src/infini.sh/coco/tests/assets/easysearch_snapshot_repository /tmp/easysearch_snapshot_repository
 
+          # Install the bundled plugins
+          cd ~/es_install_dir && rmdir plugins
+          mv ~/go/src/infini.sh/coco/tests/assets/plugins ~/es_install_dir/
+
           cd ~/es_install_dir && ./bin/initialize.sh -s
           cd ~/es_install_dir && nohup ./bin/easysearch > easysearch.log 2>&1 &
 
