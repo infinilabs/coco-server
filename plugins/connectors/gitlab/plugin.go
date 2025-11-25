@@ -50,7 +50,7 @@ func (p *Plugin) Fetch(ctx *pipeline.Context, connector *core.Connector, datasou
 		return fmt.Errorf("owner is required for datasource [%s]", datasource.Name)
 	}
 
-	client, err := NewGitLabClient(cfg.Token, cfg.BaseURL)
+	client, err := NewGitLabClient(cfg.Token, cfg.BaseURL, cfg.HttpClient)
 	if err != nil {
 		return fmt.Errorf("failed to create gitlab client for datasource [%s]: %v", datasource.Name, err)
 	}

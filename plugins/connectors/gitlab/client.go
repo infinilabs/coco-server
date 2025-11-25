@@ -8,6 +8,7 @@ import (
 	"context"
 	stderrors "errors"
 	"fmt"
+	"infini.sh/framework/core/api"
 	"net/http"
 
 	gitlabv4 "gitlab.com/gitlab-org/api/client-go"
@@ -21,12 +22,16 @@ const (
 )
 
 // NewGitLabClient creates a new authenticated GitLab client.
-func NewGitLabClient(token string, baseURL string) (*gitlabv4.Client, error) {
-	var options []gitlabv4.ClientOptionFunc
+func NewGitLabClient(token string, baseURL, httpClientCfg string) (*gitlabv4.Client, error) {
+	httpClient := api.GetHttpClient(httpClientCfg)
+
+	options := []gitlabv4.ClientOptionFunc{
+		gitlabv4.WithHTTPClient(httpClient),
+	}
+
 	if baseURL != "" {
 		options = append(options, gitlabv4.WithBaseURL(baseURL))
 	}
-
 	client, err := gitlabv4.NewClient(token, options...)
 	if err != nil {
 		return nil, err
