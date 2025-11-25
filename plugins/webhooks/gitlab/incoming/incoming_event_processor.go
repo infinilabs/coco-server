@@ -5,6 +5,7 @@
 package incoming
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	log "github.com/cihub/seelog"
@@ -18,7 +19,11 @@ import (
 	"infini.sh/framework/core/pipeline"
 	"infini.sh/framework/core/queue"
 	"infini.sh/framework/core/util"
+	"net/http"
 	url2 "net/url"
+	"os"
+	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -39,6 +44,7 @@ type Config struct {
 	MaxInputLength       int      `json:"max_input_length" config:"max_input_length"`
 	MaxBatchSize         int      `json:"max_batch_size" config:"max_batch_size"`
 	IncludeOldFile       bool     `json:"include_old_file" config:"include_old_file"`
+	ViaCurl              bool     `json:"via_curl" config:"via_curl"`
 	OnEvents             []string `json:"on_events" config:"on_events"`
 	HttpClient           string   `json:"http_client" config:"http_client"`
 }
@@ -47,9 +53,9 @@ type Processor struct {
 	api.Handler
 	Queue *queue.QueueConfig `config:"queue"`
 
-	config    *Config
-	version   *util.Version
-	tLSConfig *config.TLSConfig
+	config     *Config
+	version    *util.Version
+	httpClient *http.Client
 }
 
 const processorName = "gitlab_incoming_message"
@@ -59,7 +65,7 @@ func init() {
 }
 
 func New(c *config.Config) (pipeline.Processor, error) {
-	cfg := Config{HttpClient: "default", PageSize: 10, IncludeOldFile: true, MaxBatchSize: 10, MaxInputLength: 100 * 1024, OnEvents: []string{"open", "update", "reopen"}}
+	cfg := Config{HttpClient: "default", PageSize: 10, IncludeOldFile: true, ViaCurl: true, MaxBatchSize: 10, MaxInputLength: 100 * 1024, OnEvents: []string{"open", "update", "reopen"}}
 	if err := c.Unpack(&cfg); err != nil {
 		return nil, fmt.Errorf("failed to unpack the configuration of flow_replay processor: %s", err)
 	}
@@ -68,10 +74,7 @@ func New(c *config.Config) (pipeline.Processor, error) {
 	log.Debug("load config:", util.MustToJSON(cfg))
 	log.Debug("http config:", util.MustToJSON(global.Env().SystemConfig.HTTPClientConfig))
 
-	clientConfig, ok := global.Env().SystemConfig.HTTPClientConfig[cfg.HttpClient]
-	if ok {
-		runner.tLSConfig = &clientConfig.TLSConfig
-	}
+	runner.httpClient = api.GetHttpClient(cfg.HttpClient)
 
 	ver, err := runner.getVersion()
 	if err != nil {
@@ -513,15 +516,132 @@ func (processor *Processor) postReply(projectID, mrID int64, msg string) (*core.
 func (processor *Processor) ExecuteRequest(req *util.Request) (*util.Result, error) {
 	req.AddHeader("PRIVATE-TOKEN", processor.config.Token)
 
-	if processor.tLSConfig != nil {
-		if util.ContainStr(processor.tLSConfig.TLSCertFile, "p12") {
-			req.P12File = processor.tLSConfig.TLSCertFile
-			req.P12Password = processor.tLSConfig.TLSCertPassword
+	if processor.config.ViaCurl {
+		cfg, ok := global.Env().SystemConfig.HTTPClientConfig[processor.config.HttpClient]
+		if !ok {
+			panic("http client config was missing")
+		}
+		return ExecuteRequestViaCurl(req, cfg.TLSConfig.TLSCertFile, cfg.TLSConfig.TLSKeyFile, cfg.TLSConfig.TLSCertPassword)
+	}
+	return util.ExecuteRequestWithCatchFlag(processor.httpClient, req, true)
+}
+
+// ExecuteRequestViaCurl executes a request using curl, automatically handling headers and parameters
+func ExecuteRequestViaCurl(req *util.Request, cert, key, pass string) (*util.Result, error) {
+	if req == nil {
+		return nil, errors.New("request cannot be nil")
+	}
+
+	// Build curl command arguments
+	args := []string{"-k", "-s", "--connect-timeout", "30"}
+
+	// Add method
+	method := strings.ToUpper(req.Method)
+	if method != "" && method != "GET" {
+		args = append(args, "-X", method)
+	}
+
+	// Add headers
+	headers := req.AllHeaders()
+	if headers != nil {
+		for key, value := range headers {
+			args = append(args, "-H", fmt.Sprintf("%s: %s", key, value))
 		}
 	}
 
-	res, err := util.ExecuteRequestViaCurl(req)
-	return res, err
+	// Handle Content-Type if set
+	if req.ContentType != "" {
+		args = append(args, "-H", fmt.Sprintf("Content-Type: %s", req.ContentType))
+	}
+
+	// Add User-Agent if set
+	if req.Agent != "" {
+		args = append(args, "-H", fmt.Sprintf("User-Agent: %s", req.Agent))
+	}
+
+	// Add client certificate
+	if cert != "" {
+		args = append(args, "--cert", cert)
+	}
+	if key != "" {
+		args = append(args, "--key", key)
+	}
+	if pass != "" {
+		args = append(args, "--pass", pass)
+	}
+
+	// Add body data
+	if len(req.Body) > 0 {
+		// Create temporary file for body content
+		tmpFile, err := os.CreateTemp("", "curl_body_*.tmp")
+		if err != nil {
+			return nil, errors.New("failed to create temp file for curl body")
+		}
+		defer os.Remove(tmpFile.Name())
+		defer tmpFile.Close()
+
+		// Write body to temp file
+		if _, err := tmpFile.Write(req.Body); err != nil {
+			return nil, errors.New("failed to write body to temp file")
+		}
+
+		// Use the temp file as data source
+		args = append(args, "--data-binary", "@"+tmpFile.Name())
+	}
+
+	// Add the URL
+	args = append(args, req.Url)
+
+	// Add response headers and status code to output
+	args = append(args, "-w", "\nCURL_STATUS_CODE:%{http_code}\nCURL_RESPONSE_TIME:%{time_total}")
+
+	// Execute curl command
+	cmd := exec.Command("curl", args...)
+
+	log.Debug(args)
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+
+	if err != nil {
+		log.Errorf("curl command failed: %v, stderr: %s", err, stderr.String())
+		return nil, errors.Errorf("curl request failed: %v, stderr: %s", err, stderr.String())
+	}
+
+	// Parse curl output to separate body, headers, and status code
+	output := stdout.String()
+
+	// Find and extract status code
+	statusCode := 200 // Default status
+	if strings.Contains(output, "CURL_STATUS_CODE:") {
+		parts := strings.Split(output, "CURL_STATUS_CODE:")
+		if len(parts) > 1 {
+			statusParts := strings.Split(strings.TrimSpace(parts[1]), "\n")
+			if len(statusParts) > 0 {
+				if code, err := strconv.Atoi(strings.TrimSpace(statusParts[0])); err == nil {
+					statusCode = code
+				}
+			}
+		}
+	}
+
+	// Extract actual body (everything before the CURL_ markers)
+	body := output
+	if curlIndex := strings.LastIndex(output, "\nCURL_STATUS_CODE:"); curlIndex != -1 {
+		body = output[:curlIndex]
+	}
+
+	result := &util.Result{
+		Body:       []byte(body),
+		Headers:    map[string][]string{}, // curl output includes headers mixed with body
+		StatusCode: statusCode,
+		// ResponseTime is not part of Result struct, could log if needed
+	}
+
+	return result, nil
 }
 
 func (processor *Processor) getVersion() (*util.Version, error) {
