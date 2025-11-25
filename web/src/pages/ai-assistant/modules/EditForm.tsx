@@ -1,47 +1,28 @@
-import {
-  Button,
-  Form,
-  Input,
-  message,
-  Select,
-  Switch,
-  InputNumber,
-  Space,
-  Spin,
-} from "antd";
-import type { FormProps } from "antd";
-import {
-  DeleteOutlined,
-  PlusOutlined,
-} from "@ant-design/icons";
-import { useRequest, useLoading } from "@sa/hooks";
+import { Button, Collapse, Flex, Form, Input, InputNumber, Select, Space, Spin, Switch, message } from 'antd';
+import type { FormProps } from 'antd';
+import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
+import { useLoading, useRequest } from '@sa/hooks';
 
-import { getConnectorIcons } from "@/service/api/connector";
-import { IconSelector } from "../../connector/new/icon_selector";
-import {
-  fetchDataSourceList,
-  getEnabledModelProviders,
-} from "@/service/api";
-import { searchMCPServer } from "@/service/api/mcp-server";
-import { AssistantMode } from "./AssistantMode";
-import { DatasourceConfig } from "./DatasourceConfig";
-import { MCPConfig } from "./MCPConfig";
-import { DeepThink } from "./DeepThink";
-import { formatESSearchResult } from "@/service/request/es";
-import ModelSelect from "./ModelSelect";
-import { ToolsConfig } from "./ToolsConfig";
-import { getUUID } from "@/utils/common";
+import { getConnectorIcons } from '@/service/api/connector';
+import { IconSelector } from '../../connector/new/icon_selector';
+import { fetchDataSourceList, getEnabledModelProviders } from '@/service/api';
+import { searchMCPServer } from '@/service/api/mcp-server';
+import { AssistantMode } from './AssistantMode';
+import { DatasourceConfig } from './DatasourceConfig';
+import { MCPConfig } from './MCPConfig';
+import { DeepThink } from './DeepThink';
+import { formatESSearchResult } from '@/service/request/es';
+import ModelSelect from './ModelSelect';
+import { ToolsConfig } from './ToolsConfig';
+import { getUUID } from '@/utils/common';
 import { Tags } from '@/components/common/tags';
-import { getAssistantCategory } from "@/service/api/assistant";
-import { UploadConfig } from "./UploadConfig";
+import { getAssistantCategory } from '@/service/api/assistant';
+import { UploadConfig } from './UploadConfig';
+import classNames from 'classnames';
 
 interface AssistantFormProps {
   initialValues: any;
-  onSubmit: (
-    values: any,
-    startLoading: () => void,
-    endLoading: () => void,
-  ) => void;
+  onSubmit: (values: any, startLoading: () => void, endLoading: () => void) => void;
   mode: string;
   loading: boolean;
 }
@@ -56,14 +37,12 @@ export const EditForm = memo((props: AssistantFormProps) => {
     fetchModelProviders: hasAuth('coco#model_provider/search'),
     fetchMCPServers: hasAuth('coco#mcp_server/search'),
     fetchDataSources: hasAuth('coco#datasource/search')
-  }
+  };
 
   useEffect(() => {
     if (initialValues) {
       if (initialValues.datasource?.filter) {
-        initialValues.datasource.filter = JSON.stringify(
-          initialValues.datasource.filter,
-        );
+        initialValues.datasource.filter = JSON.stringify(initialValues.datasource.filter);
       }
       form.setFieldsValue({
         ...initialValues,
@@ -74,33 +53,37 @@ export const EditForm = memo((props: AssistantFormProps) => {
   const { t } = useTranslation();
   const { endLoading, loading, startLoading } = useLoading();
 
-  const onFinish: FormProps<any>["onFinish"] = (values) => {
+  const onFinish: FormProps<any>['onFinish'] = values => {
     if (values.datasource?.filter) {
       try {
         values.datasource.filter = JSON.parse(values.datasource.filter);
       } catch (e) {
-        message.error("Datasource filter is not valid JSON");
+        message.error('Datasource filter is not valid JSON');
         return;
       }
     } else {
-      if (!values.datasource) values.datasource = {}
+      if (!values.datasource) values.datasource = {};
       values.datasource.filter = null;
     }
     if (values.upload?.allowed_file_extensions) {
-      values.upload.allowed_file_extensions = values.upload.allowed_file_extensions.filter((item) => !!item)
+      values.upload.allowed_file_extensions = values.upload.allowed_file_extensions.filter(item => Boolean(item));
     }
-    onSubmit?.({
-      ...values,
-      category: values?.category?.[0] || '',
-    }, startLoading, endLoading);
+    onSubmit?.(
+      {
+        ...values,
+        category: values?.category?.[0] || ''
+      },
+      startLoading,
+      endLoading
+    );
   };
 
-  const onFinishFailed: FormProps<any>["onFinishFailed"] = (errorInfo) => {
-    console.log("Failed:", errorInfo);
+  const onFinishFailed: FormProps<any>['onFinishFailed'] = errorInfo => {
+    console.log('Failed:', errorInfo);
   };
   const [iconsMeta, setIconsMeta] = useState([]);
   useEffect(() => {
-    getConnectorIcons().then((res) => {
+    getConnectorIcons().then(res => {
       if (res.data?.length > 0) {
         setIconsMeta(res.data);
       }
@@ -108,34 +91,31 @@ export const EditForm = memo((props: AssistantFormProps) => {
   }, []);
   const { defaultRequiredRule, formRules } = useFormRules();
 
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(true);
   const {
     data: result,
     run,
-    loading: dataSourceLoading,
+    loading: dataSourceLoading
   } = useRequest(fetchDataSourceList, {
-    manual: true,
+    manual: true
   });
 
   useEffect(() => {
     if (permissions.fetchDataSources) {
       run({
         from: 0,
-        size: 10000,
+        size: 10000
       });
     }
   }, [permissions.fetchDataSources]);
 
   const dataSource = useMemo(() => {
-    return result?.hits?.hits?.map((item) => ({ ...item._source })) || [];
+    return result?.hits?.hits?.map(item => ({ ...item._source })) || [];
   }, [JSON.stringify(result)]);
 
-  const { data: modelsResult, run: fetchModelProviders } = useRequest(
-    getEnabledModelProviders,
-    {
-      manual: true,
-    },
-  );
+  const { data: modelsResult, run: fetchModelProviders } = useRequest(getEnabledModelProviders, {
+    manual: true
+  });
   const modelProviders = useMemo(() => {
     if (!modelsResult) return [];
     const res = formatESSearchResult(modelsResult);
@@ -147,31 +127,24 @@ export const EditForm = memo((props: AssistantFormProps) => {
     }
   }, [permissions.fetchModelProviders]);
 
-  const { data: mcpServerResult, run: fetchMCPServers } = useRequest(
-    searchMCPServer,
-    {
-      manual: true,
-    },
-  );
+  const { data: mcpServerResult, run: fetchMCPServers } = useRequest(searchMCPServer, {
+    manual: true
+  });
 
   useEffect(() => {
     if (permissions.fetchMCPServers) {
       fetchMCPServers({
         from: 0,
-        size: 10000,
+        size: 10000
       });
     }
   }, [permissions.fetchMCPServers]);
 
   const mcpServers = useMemo(() => {
-    return (
-      mcpServerResult?.hits?.hits?.map((item) => ({ ...item._source })) || []
-    );
+    return mcpServerResult?.hits?.hits?.map(item => ({ ...item._source })) || [];
   }, [JSON.stringify(mcpServerResult)]);
 
-  const [assistantMode, setAssistantMode] = useState(
-    initialValues?.mode || "simple",
-  );
+  const [assistantMode, setAssistantMode] = useState(initialValues?.mode || 'simple');
   useEffect(() => {
     if (initialValues?.type) {
       setAssistantMode(initialValues.type);
@@ -182,12 +155,10 @@ export const EditForm = memo((props: AssistantFormProps) => {
   };
 
   const [suggestedChatChecked, setSuggestedChatChecked] = useState(
-    initialValues?.chat_settings?.suggested?.enabled || false,
+    initialValues?.chat_settings?.suggested?.enabled || false
   );
   useEffect(() => {
-    setSuggestedChatChecked(
-      initialValues?.chat_settings?.suggested?.enabled || false,
-    );
+    setSuggestedChatChecked(initialValues?.chat_settings?.suggested?.enabled || false);
   }, [initialValues?.chat_settings?.suggested?.enabled]);
 
   const [categories, setCategories] = useState([]);
@@ -195,118 +166,300 @@ export const EditForm = memo((props: AssistantFormProps) => {
     getAssistantCategory().then(({ data }) => {
       if (!data?.error) {
         const newData = formatESSearchResult(data);
-        const cates = newData?.aggregations?.categories?.buckets? newData?.aggregations?.categories?.buckets.map((item: any) => {
-          return item.key;
-        }) : [];
+        const cates = newData?.aggregations?.categories?.buckets
+          ? newData?.aggregations?.categories?.buckets.map((item: any) => {
+              return item.key;
+            })
+          : [];
         setCategories(cates);
       }
     });
   }, []);
 
-  const commonFormItemsClassName = `${showAdvanced || assistantMode === "deep_think" ? "" : "h-0px m-0px overflow-hidden"}`
+  const commonFormItemsClassName = `${showAdvanced || assistantMode === 'deep_think' ? '' : 'h-0px m-0px overflow-hidden'}`;
 
-  const commonFormItems = (
-    <>
+  const renderIntentRecognitionCollapse = () => {
+    if (assistantMode !== 'deep_think') return;
+
+    return (
+      <Collapse
+        className='mb-4 w-150'
+        items={[
+          {
+            key: 'intent-recognition',
+            label: t('page.assistant.labels.intent_recognition'),
+            children: (
+              <Form.Item className='mb-0!'>
+                <DeepThink providers={modelProviders} />
+              </Form.Item>
+            )
+          }
+        ]}
+      />
+    );
+  };
+
+  const renderInternetSearchCollapse = () => {
+    return (
+      <Collapse
+        className='mb-4 w-150'
+        items={[
+          {
+            key: 'internet-search',
+            label: t('page.assistant.labels.internet_search'),
+            extra: (
+              <Form.Item
+                className='mb-0! [&_*]:min-h-[unset]!'
+                name={['datasource', 'enabled']}
+              >
+                <Switch size='small' />
+              </Form.Item>
+            ),
+            children: (
+              <>
+                {assistantMode === 'deep_think' && (
+                  <>
+                    <Form.Item
+                      className='mb-4! [&_.ant-form-item-control]:flex-[unset]!'
+                      extra='由模型根据上下文、查询意图等判断是否执行该流程'
+                      initialValue={false}
+                      label='执行策略'
+                      layout='vertical'
+                      name={['config', 'pick_datasource']}
+                    >
+                      <Select
+                        options={[
+                          {
+                            label: '总是执行',
+                            value: true
+                          },
+                          {
+                            label: '智能决策',
+                            value: false
+                          }
+                        ]}
+                      />
+                    </Form.Item>
+
+                    <Form.Item
+                      className='[&_.ant-form-item-control]:flex-[unset]!'
+                      label='文档预选模型'
+                      layout='vertical'
+                      name={['config', 'picking_doc_model']}
+                    >
+                      <ModelSelect
+                        modelType='picking_doc_model'
+                        providers={modelProviders}
+                      />
+                    </Form.Item>
+                  </>
+                )}
+
+                <Form.Item
+                  className='mb-0'
+                  name='datasource'
+                  rules={[{ required: true }]}
+                >
+                  <DatasourceConfig
+                    loading={dataSourceLoading}
+                    options={[{ label: '*', value: '*' }].concat(
+                      dataSource.map(item => ({
+                        label: item.name,
+                        value: item.id
+                      }))
+                    )}
+                  />
+                </Form.Item>
+              </>
+            )
+          }
+        ]}
+      />
+    );
+  };
+
+  const renderLargeModelToolsCollapse = () => {
+    return (
+      <Collapse
+        className='mb-4 w-150'
+        items={[
+          {
+            key: 'large-model-tools',
+            label: t('page.assistant.labels.large_model_tool'),
+            extra: (
+              <Form.Item
+                className='mb-0! [&_*]:(min-h-[unset]!)'
+                name={['mcp_servers', 'enabled']}
+              >
+                <Switch size='small' />
+              </Form.Item>
+            ),
+            children: (
+              <Form.Item
+                className='mb-0 [&_.ant-form-item-control]:flex-[unset]!'
+                name='mcp_servers'
+                rules={[{ required: true }]}
+              >
+                {assistantMode === 'deep_think' && (
+                  <Form.Item
+                    className='mb-4! [&_.ant-form-item-control]:flex-[unset]!'
+                    extra='无论模型是否认为必要，都执行该流程'
+                    initialValue={false}
+                    label='执行策略'
+                    layout='vertical'
+                    name={['config', 'pick_tools']}
+                  >
+                    <Select
+                      options={[
+                        {
+                          label: '总是执行',
+                          value: true
+                        },
+                        {
+                          label: '智能决策',
+                          value: false
+                        }
+                      ]}
+                    />
+                  </Form.Item>
+                )}
+
+                <MCPConfig
+                  modelProviders={modelProviders}
+                  options={[{ label: '*', value: '*' }].concat(
+                    mcpServers.map(item => ({
+                      label: item.name,
+                      value: item.id
+                    }))
+                  )}
+                >
+                  <ToolsConfig />
+                </MCPConfig>
+              </Form.Item>
+            )
+          }
+        ]}
+      />
+    );
+  };
+
+  const renderGenerateAnswersCollapse = () => {
+    if (assistantMode !== 'deep_think') return;
+
+    return (
+      <Collapse
+        className='w-150'
+        items={[
+          {
+            key: 'generate-answers',
+            label: t('page.assistant.labels.generate_response'),
+            children: (
+              <Form.Item
+                className='mb-0! [&_.ant-form-item-control]:flex-[unset]!'
+                label={t('page.assistant.labels.answering_model')}
+                layout='vertical'
+                name={['answering_model']}
+                rules={[{ required: true }]}
+              >
+                <ModelSelect
+                  modelType='answering_model'
+                  providers={modelProviders}
+                />
+              </Form.Item>
+            )
+          }
+        ]}
+      />
+    );
+  };
+
+  const renderUploadConfig = () => {
+    return (
       <Form.Item
-        label={t("page.assistant.labels.datasource")}
-        rules={[{ required: true }]}
-        name={["datasource"]}
         className={commonFormItemsClassName}
-      >
-        <DatasourceConfig
-          loading={dataSourceLoading}
-          options={[{ label: "*", value: "*" }].concat(
-            dataSource.map((item) => ({
-              label: item.name,
-              value: item.id,
-            })),
-          )}
-        />
-      </Form.Item>
-      <Form.Item
-        label={t("page.assistant.labels.mcp_servers")}
+        label={t('page.assistant.labels.upload')}
+        name='upload'
         rules={[{ required: true }]}
-        name="mcp_servers"
-        className={commonFormItemsClassName}
-      >
-        <MCPConfig
-          modelProviders={modelProviders}
-          options={[{ label: "*", value: "*" }].concat(
-            mcpServers.map((item) => ({
-              label: item.name,
-              value: item.id,
-            })),
-          )}
-        />
-      </Form.Item>
-      <Form.Item
-        label={t("page.assistant.labels.upload")}
-        rules={[{ required: true }]}
-        name="upload"
-        className={commonFormItemsClassName}
       >
         <UploadConfig />
       </Form.Item>
-      <Form.Item label={t("page.assistant.labels.tools")} name="tools" className={commonFormItemsClassName}>
-        <ToolsConfig />
-      </Form.Item>
+    );
+  };
+
+  const commonFormItems = (
+    <div
+      className={classNames({
+        hidden: !showAdvanced
+      })}
+    >
       <Form.Item
-        name={"keepalive"}
-        label={t("page.assistant.labels.keepalive")}
-        rules={[defaultRequiredRule]}
         className={commonFormItemsClassName}
+        label={t('page.assistant.labels.system_prompt')}
+        name='role_prompt'
       >
-        <Input className="max-w-600px" />
+        <Input.TextArea
+          className='w-150 h-80!'
+          placeholder={t('page.assistant.hints.system_prompt')}
+        />
       </Form.Item>
-    </>
-  )
+
+      <Form.Item
+        className={commonFormItemsClassName}
+        label={t('page.assistant.labels.keepalive')}
+        name='keepalive'
+        rules={[defaultRequiredRule]}
+      >
+        <Input className='max-w-600px' />
+      </Form.Item>
+    </div>
+  );
 
   return (
     <Spin spinning={props.loading || loading || false}>
       <Form
-        labelCol={{ span: 4 }}
-        wrapperCol={{ span: 18 }}
-        layout="horizontal"
-        initialValues={initialValues}
+        autoComplete='off'
         colon={false}
         form={form}
-        autoComplete="off"
+        initialValues={initialValues}
+        labelCol={{ span: 4 }}
+        layout='horizontal'
+        wrapperCol={{ span: 18 }}
         onFinish={onFinish}
         onFinishFailed={onFinishFailed}
       >
         <Form.Item
-          label={t("page.assistant.labels.name")}
+          label={t('page.assistant.labels.name')}
+          name='name'
           rules={[{ required: true }]}
-          name="name"
         >
-          <Input className="max-w-600px" />
+          <Input className='max-w-600px' />
         </Form.Item>
         <Form.Item
-          label={t("page.assistant.labels.description")}
-          name="description"
+          label={t('page.assistant.labels.description')}
+          name='description'
         >
-          <Input className="max-w-600px" />
+          <Input className='max-w-600px' />
         </Form.Item>
         <Form.Item
-          label={t("page.assistant.labels.icon")}
-          name="icon"
+          label={t('page.assistant.labels.icon')}
+          name='icon'
           rules={[{ required: true }]}
         >
           <IconSelector
-            type="connector"
+            className='max-w-600px'
             icons={iconsMeta}
-            className="max-w-600px"
+            type='connector'
           />
         </Form.Item>
         <Form.Item
           label={t('page.assistant.labels.category')}
-          name="category"
+          name='category'
         >
           <Select
-            className="max-w-600px"
+            className='max-w-600px'
             maxCount={1}
-            mode="tags"
-            placeholder="Select or input a category"
+            mode='tags'
+            placeholder='Select or input a category'
             options={categories.map(cate => {
               return { value: cate };
             })}
@@ -314,64 +467,105 @@ export const EditForm = memo((props: AssistantFormProps) => {
         </Form.Item>
         <Form.Item
           label={t('page.assistant.labels.tags')}
-          name="tags"
+          name='tags'
         >
           <Tags />
         </Form.Item>
         <Form.Item
-          label={t("page.assistant.labels.type")}
-          name="type"
+          label={t('page.assistant.labels.type')}
+          name='type'
           rules={[{ required: true }]}
         >
           <AssistantMode onChange={handleAssistantModeChange} />
         </Form.Item>
-        <Form.Item
-          label={t("page.assistant.labels.answering_model")}
-          rules={[{ required: true }]}
-          name={["answering_model"]}
-        >
-          <ModelSelect width="600px" modelType="answering_model" providers={modelProviders} />
-        </Form.Item>
-        {assistantMode === "deep_think" && (
-          <Form.Item label={t("page.assistant.labels.deep_think_model")}>
-            <DeepThink className="max-w-600px" providers={modelProviders} />
+
+        {assistantMode === 'deep_think' && (
+          <>
+            <Form.Item
+              className={commonFormItemsClassName}
+              label={t('page.assistant.labels.workflow_configuration')}
+            >
+              {renderIntentRecognitionCollapse()}
+
+              {renderInternetSearchCollapse()}
+
+              {renderLargeModelToolsCollapse()}
+
+              {renderGenerateAnswersCollapse()}
+            </Form.Item>
+
+            {renderUploadConfig()}
+          </>
+        )}
+
+        {assistantMode === 'simple' && (
+          <Form.Item
+            label={t('page.assistant.labels.answering_model')}
+            name={['answering_model']}
+            rules={[{ required: true }]}
+          >
+            <ModelSelect
+              modelType='answering_model'
+              providers={modelProviders}
+              showTemplate={false}
+              width='600px'
+            />
           </Form.Item>
         )}
-        { assistantMode === "deep_think" ? commonFormItems : null }
+
+        {assistantMode === 'simple' && (
+          <Form.Item
+            label={t('page.assistant.labels.role_prompt')}
+            name={['prompt', 'template']}
+          >
+            <Input.TextArea
+              className='w-600px'
+              placeholder='Please enter the role prompt instructions'
+              style={{ height: 320 }}
+            />
+          </Form.Item>
+        )}
+
         <Form.Item
-          name="role_prompt"
-          label={t("page.assistant.labels.role_prompt")}
+          label={t('page.assistant.labels.greeting_settings')}
+          name={['chat_settings', 'greeting_message']}
         >
-          <Input.TextArea
-            placeholder="Please enter the role prompt instructions"
-            style={{ height: 320 }}
-            className="w-600px"
-          />
+          <Input.TextArea className='w-600px' />
         </Form.Item>
-        <Form.Item label={t("page.assistant.labels.greeting_settings")} name={["chat_settings", "greeting_message"]}>
-          <Input.TextArea className="w-600px" />
+        <Form.Item
+          label={t('page.assistant.labels.enabled')}
+          name='enabled'
+        >
+          <Switch size='small' />
         </Form.Item>
-        <Form.Item label={t("page.assistant.labels.enabled")} name="enabled">
-          <Switch size="small" />
-        </Form.Item>
-        <Form.Item label=" ">
+        <Form.Item label=' '>
           <Button
-            type="link"
-            className="p-0"
+            className='p-0'
+            type='link'
             onClick={() => setShowAdvanced(!showAdvanced)}
           >
-            {t("common.advanced")}{" "}
-            <SvgIcon
-              icon={`${showAdvanced ? "mdi:chevron-up" : "mdi:chevron-down"}`}
-            />
+            {t('common.advanced')} <SvgIcon icon={`${showAdvanced ? 'mdi:chevron-up' : 'mdi:chevron-down'}`} />
           </Button>
         </Form.Item>
-        { assistantMode === "simple" ? commonFormItems : null }
+
+        {assistantMode === 'simple' && (
+          <Form.Item
+            className={commonFormItemsClassName}
+            label={t('page.assistant.labels.capability_extension')}
+          >
+            {renderInternetSearchCollapse()}
+
+            {renderLargeModelToolsCollapse()}
+          </Form.Item>
+        )}
+
+        {assistantMode === 'simple' && renderUploadConfig()}
+
         <Form.Item
-          className={`${showAdvanced ? "" : "h-0px m-0px overflow-hidden"}`}
-          label={t("page.assistant.labels.chat_settings")}
+          className={`${showAdvanced ? '' : 'h-0px m-0px overflow-hidden'}`}
+          label={t('page.assistant.labels.chat_settings')}
         >
-          <div className="max-w-600px">
+          <div className='max-w-600px'>
             <SuggestedChatForm checked={suggestedChatChecked} />
             {/* <div>
               <p>{t("page.assistant.labels.input_preprocessing")}</p>
@@ -388,63 +582,59 @@ export const EditForm = memo((props: AssistantFormProps) => {
               </Form.Item>
             </div> */}
             <div>
-              <p className="mb-1">{t("page.assistant.labels.input_placeholder")}</p>
-              <Form.Item name={["chat_settings", "placeholder"]}>
-                <Input.TextArea
-                  className="w-600px"
+              <p className='mb-1'>{t('page.assistant.labels.input_placeholder')}</p>
+              <Form.Item name={['chat_settings', 'placeholder']}>
+                <Input.TextArea className='w-600px' />
+              </Form.Item>
+            </div>
+            <div className='flex items-center justify-between'>
+              <div>
+                <p>{t('page.assistant.labels.history_message_number')}</p>
+                <div className='mb-1 text-gray-400 leading-6'>
+                  {t('page.assistant.labels.history_message_number_desc')}
+                </div>
+              </div>
+              <Form.Item name={['chat_settings', 'history_message', 'number']}>
+                <InputNumber
+                  max={64}
+                  min={0}
                 />
               </Form.Item>
             </div>
-            <div className="flex justify-between items-center">
+            <div className='flex items-center justify-between'>
               <div>
-                <p>{t("page.assistant.labels.history_message_number")}</p>
-                <div className="text-gray-400 leading-6 mb-1">
-                  {t("page.assistant.labels.history_message_number_desc")}
+                <p>{t('page.assistant.labels.history_message_compression_threshold')}</p>
+                <div className='mb-1 text-gray-400 leading-6'>
+                  {t('page.assistant.labels.history_message_compression_threshold_desc')}
                 </div>
               </div>
-              <Form.Item name={["chat_settings", "history_message", "number"]}>
-                <InputNumber min={0} max={64} />
+              <Form.Item name={['chat_settings', 'history_message', 'compression_threshold']}>
+                <InputNumber
+                  max={4000}
+                  min={500}
+                />
               </Form.Item>
             </div>
-            <div className="flex justify-between items-center">
+            <div className='flex items-center justify-between'>
               <div>
-                <p>
-                  {t(
-                    "page.assistant.labels.history_message_compression_threshold",
-                  )}
-                </p>
-                <div className="text-gray-400 leading-6 mb-1">
-                  {t(
-                    "page.assistant.labels.history_message_compression_threshold_desc",
-                  )}
-                </div>
+                <p>{t('page.assistant.labels.history_summary')}</p>
+                <div className='mb-1 text-gray-400 leading-6'>{t('page.assistant.labels.history_summary_desc')}</div>
               </div>
-              <Form.Item
-                name={[
-                  "chat_settings",
-                  "history_message",
-                  "compression_threshold",
-                ]}
-              >
-                <InputNumber min={500} max={4000} />
-              </Form.Item>
-            </div>
-            <div className="flex justify-between items-center">
-              <div>
-                <p>{t("page.assistant.labels.history_summary")}</p>
-                <div className="text-gray-400 leading-6 mb-1">
-                  {t("page.assistant.labels.history_summary_desc")}
-                </div>
-              </div>
-              <Form.Item name={["chat_settings", "history_message", "summary"]}>
-                <Switch size="small" />
+              <Form.Item name={['chat_settings', 'history_message', 'summary']}>
+                <Switch size='small' />
               </Form.Item>
             </div>
           </div>
         </Form.Item>
-        <Form.Item label=" ">
-          <Button type="primary" htmlType="submit">
-            {t("common.save")}
+
+        {commonFormItems}
+
+        <Form.Item label=' '>
+          <Button
+            htmlType='submit'
+            type='primary'
+          >
+            {t('common.save')}
           </Button>
         </Form.Item>
       </Form>
@@ -452,7 +642,7 @@ export const EditForm = memo((props: AssistantFormProps) => {
   );
 });
 
-export const SuggestedChatForm = ({ checked }: { checked: boolean }) => {
+export const SuggestedChatForm = ({ checked }: { readonly checked: boolean }) => {
   const { t } = useTranslation();
   const [enabled, setEnabled] = useState(checked);
   useEffect(() => {
@@ -463,18 +653,22 @@ export const SuggestedChatForm = ({ checked }: { checked: boolean }) => {
   };
   return (
     <div>
-      <div className="text-gray-400 leading-6 mb-1 flex gap-1 items-center">
-        {t("page.assistant.labels.suggested_chat")}{" "}
+      <div className='mb-1 flex items-center gap-1 text-gray-400 leading-6'>
+        {t('page.assistant.labels.suggested_chat')}{' '}
         <Form.Item
-          name={["chat_settings", "suggested", "enabled"]}
+          name={['chat_settings', 'suggested', 'enabled']}
           style={{ margin: 0 }}
         >
-          <Switch size="small" onChange={onEnabledChange} defaultChecked />
+          <Switch
+            defaultChecked
+            size='small'
+            onChange={onEnabledChange}
+          />
         </Form.Item>
       </div>
       <Form.Item
-        name={["chat_settings", "suggested", "questions"]}
-        className={`${enabled ? "" : "h-0px m-0px overflow-hidden"}`}
+        className={`${enabled ? '' : 'h-0px m-0px overflow-hidden'}`}
+        name={['chat_settings', 'suggested', 'questions']}
       >
         <SuggestedChat />
       </Form.Item>
@@ -486,13 +680,12 @@ export const SuggestedChat = ({ value = [], onChange }: any) => {
   const initialValue = useMemo(() => {
     const iv = (value || []).map((v: string) => ({
       value: v,
-      key: getUUID(),
+      key: getUUID()
     }));
-    return iv.length ? iv : [{ value: "", key: getUUID() }];
+    return iv.length ? iv : [{ value: '', key: getUUID() }];
   }, [value]);
 
-  const [innerValue, setInnerValue] =
-    useState<{ value: string; key: string }[]>(initialValue);
+  const [innerValue, setInnerValue] = useState<{ value: string; key: string }[]>(initialValue);
   const prevValueRef = useRef<string[]>([]);
 
   // Prevent unnecessary updates
@@ -501,34 +694,28 @@ export const SuggestedChat = ({ value = [], onChange }: any) => {
       prevValueRef.current = value;
       const iv = (value || []).map((v: string) => ({
         value: v,
-        key: getUUID(),
+        key: getUUID()
       }));
-      setInnerValue(iv.length ? iv : [{ value: "", key: getUUID() }]);
+      setInnerValue(iv.length ? iv : [{ value: '', key: getUUID() }]);
     }
   }, [value]);
 
   const onDeleteClick = (key: string) => {
-    const newValues = innerValue.filter((v) => v.key !== key);
-    setInnerValue(
-      newValues.length ? newValues : [{ value: "", key: getUUID() }],
-    );
-    const newValue = newValues.map((v) => v.value);
+    const newValues = innerValue.filter(v => v.key !== key);
+    setInnerValue(newValues.length ? newValues : [{ value: '', key: getUUID() }]);
+    const newValue = newValues.map(v => v.value);
     prevValueRef.current = newValue;
     onChange?.(newValue);
   };
 
   const onAddClick = () => {
-    setInnerValue([...innerValue, { value: "", key: getUUID() }]);
+    setInnerValue([...innerValue, { value: '', key: getUUID() }]);
   };
 
   const onItemChange = (key: string, newValue: string) => {
-    const updatedValues = innerValue.map((v) =>
-      v.key === key ? { ...v, value: newValue } : v,
-    );
+    const updatedValues = innerValue.map(v => (v.key === key ? { ...v, value: newValue } : v));
     setInnerValue(updatedValues);
-    const filterValues = updatedValues
-      .filter((v) => v.value != "")
-      .map((v) => v.value);
+    const filterValues = updatedValues.filter(v => v.value != '').map(v => v.value);
     prevValueRef.current = filterValues;
     onChange?.(filterValues);
   };
@@ -537,17 +724,20 @@ export const SuggestedChat = ({ value = [], onChange }: any) => {
 
   return (
     <div>
-      {innerValue.map((v) => (
-        <div key={v.key} className="flex items-center mb-15px">
+      {innerValue.map(v => (
+        <div
+          className='mb-15px flex items-center'
+          key={v.key}
+        >
           <Input
+            placeholder='eg: what is easysearch?'
             value={v.value}
-            placeholder="eg: what is easysearch?"
-            onChange={(e) => {
+            onChange={e => {
               onItemChange(v.key, e.target.value);
             }}
           />
           <div
-            className="cursor-pointer ml-15px"
+            className='ml-15px cursor-pointer'
             onClick={() => onDeleteClick(v.key)}
           >
             <DeleteOutlined />
@@ -555,11 +745,11 @@ export const SuggestedChat = ({ value = [], onChange }: any) => {
         </div>
       ))}
       <Button
-        type="primary"
         icon={<PlusOutlined />}
         style={{ width: 80 }}
+        type='primary'
         onClick={onAddClick}
-      ></Button>
+      />
     </div>
   );
 };
