@@ -68,7 +68,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       prompt_settings_template: 'Template',
       reasoning: 'Reasoning Mode',
       reasoning_desc: 'Whether this model supports the reasoning mode.',
-      role_prompt: 'Role Prompt',
+      role_prompt: 'Role Prompt Words',
+      system_prompt: 'System Prompt Words',
       show_in_chat: 'Show in chat',
       suggested_chat: 'Suggested chat',
       tags: 'Tags',
@@ -80,12 +81,29 @@ const page: App.I18n.Schema['translation']['page'] = {
       top_p_desc:
         'The scope of selected vocabulary is limited. The lower the value, the more predictable the result; the higher the value, the more diverse the possibilities. It is not recommended to change this alongside randomness.',
       type: 'Type',
-      upload: 'Upload Settings'
+      upload: 'Upload Settings',
+      internet_search: 'Internet Search',
+      document_retrieval: 'Document Retrieval',
+      feature_visibility: 'Feature Visibility',
+      large_model_tool: 'Large Model Tool',
+      tool_invoked_model: 'Tool-invoked Model',
+      prompt_template: 'Prompt Template',
+      mcp_service: 'MCP Service',
+      built_in_large_model_tool: 'Built-in Large Model Tool',
+      intent_recognition: 'Intent Recognition',
+      intent_recognition_model: 'Intent Recognition Model',
+      feature_visibility_deep_thought: 'Feature Visibility (Deep Thought)',
+      generate_response: 'Generate Response',
+      capability_extension: 'Capability Extension',
+      workflow_configuration: 'Workflow Configuration'
     },
     mode: {
       deep_think: 'Deep Think',
       simple: 'Simple',
       workflow: 'External workflow'
+    },
+    hints: {
+      system_prompt: 'Please enter the system prompt instructions'
     }
   },
   connector: {

@@ -65,7 +65,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       prompt_settings_template: '模板',
       reasoning: '推理模式（Reasoning Mode）',
       reasoning_desc: '该模型是否支持  Reasoning 推理模式',
-      role_prompt: '角色提示',
+      role_prompt: '角色提示词',
+      system_prompt: '系统提示词',
       show_in_chat: '在聊天界面中显示',
       suggested_chat: '推荐对话',
       tags: '标签',
@@ -75,12 +76,29 @@ const page: App.I18n.Schema['translation']['page'] = {
       top_p: '词汇多样性 (top_p)',
       top_p_desc: '限制选择的词汇范围，值越低，结果更可预测；值越高，可能性更多样，不推荐和随机性一起更改',
       type: '类型',
-      upload: '上传设置'
+      upload: '上传设置',
+      internet_search: '联网搜索',
+      document_retrieval: '文档检索',
+      feature_visibility: '功能可见性',
+      large_model_tool: '大模型工具',
+      tool_invoked_model: '工具调用模型',
+      prompt_template: '提示词模板',
+      mcp_service: 'MCP 服务',
+      built_in_large_model_tool: '内置大模型工具',
+      intent_recognition: '意图识别',
+      intent_recognition_model: '意图识别模型',
+      feature_visibility_deep_thought: '功能可见性（深度思考）',
+      generate_response: '生成回答',
+      capability_extension: '能力扩展',
+      workflow_configuration: '流程配置'
     },
     mode: {
       deep_think: '深度思考',
       simple: '简单模式',
       workflow: '外部工作流'
+    },
+    hints: {
+      system_prompt: '请输入系统提示词'
     }
   },
   connector: {
