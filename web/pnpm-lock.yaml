@@ -89,6 +89,9 @@ importers:
       mermaid:
         specifier: 11.6.0
         version: 11.6.0
+      normalize-url:
+        specifier: ^8.1.0
+        version: 8.1.0
       nprogress:
         specifier: 0.2.0
         version: 0.2.0
@@ -4399,6 +4402,10 @@ packages:
   normalize-path@3.0.0:
     resolution: {integrity: sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA==}
     engines: {node: '>=0.10.0'}
+
+  normalize-url@8.1.0:
+    resolution: {integrity: sha512-X06Mfd/5aKsRHc0O0J5CUedwnPmnDtLF2+nq+KN9KSDlJHkPuh0JUviWjEWMe0SW/9TDdSLVPuk7L5gGTIA1/w==}
+    engines: {node: '>=14.16'}
 
   npm-check-updates@17.1.9:
     resolution: {integrity: sha512-Gfv5S8NNJKTilM1gesFNYka6bUaBs5LnVyPjApXPQphHijrlLFDMw1uSmwYMZbvJSkLZSOx03e8CHcG0Td5SMA==}
@@ -10873,6 +10880,8 @@ snapshots:
       validate-npm-package-license: 3.0.4
 
   normalize-path@3.0.0: {}
+
+  normalize-url@8.1.0: {}
 
   npm-check-updates@17.1.9: {}
 
