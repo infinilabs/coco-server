@@ -284,6 +284,32 @@ const page: App.I18n.Schema['translation']['page'] = {
         parameters: 'Optional key/value parameters passed to the Cypher query.'
       }
     },
+    jira: {
+      error: {
+        endpoint_invalid: 'Please enter a valid URL',
+        endpoint_prefix: 'URL must start with http:// or https://',
+        endpoint_required: 'Please input Jira URL!',
+        project_key_required: 'Please input Project Key!',
+        token_required: 'Please input Password/Token!',
+        username_required: 'Please input Username!'
+      },
+      labels: {
+        endpoint: 'Jira Server URL',
+        index_attachments: 'Index Attachments',
+        index_comments: 'Index Comments',
+        project_key: 'Project Key',
+        token: 'Password / Token',
+        username: 'Username (Optional)'
+      },
+      tooltip: {
+        endpoint: 'Your Jira instance URL (e.g., https://your-domain.atlassian.net)',
+        index_attachments: 'Whether to index issue attachments',
+        index_comments: 'Whether to index issue comments',
+        project_key: 'The Jira project key you want to index (e.g., "COCO")',
+        token: 'Your password when username is provided (Basic Auth), or your Personal Access Token when username is empty (Bearer Auth)',
+        username: 'Your Jira account username for authentication'
+      }
+    },
     new: {
       labels: {
         client_id: 'Client ID',

@@ -709,6 +709,37 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/m
   }
 }
 
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/jira
+{
+ "_system": {
+            "owner_id": "$[[SETUP_OWNER_ID]]"
+          },
+  "id" : "jira",
+  "created" : "2025-11-15T00:00:00.000000+08:00",
+  "updated" : "2025-11-15T00:00:00.000000+08:00",
+  "name" : "Jira Project Connector",
+  "description" : "Fetch issues, comments, and attachments from Jira projects.",
+  "category" : "website",
+  "icon" : "/assets/icons/connector/jira/icon.png",
+  "tags" : [
+    "project_management",
+    "issues",
+    "atlassian",
+    "web"
+  ],
+  "url" : "http://coco.rs/connectors/jira",
+  "assets" : {
+    "icons" : {
+      "default" : "/assets/icons/connector/jira/icon.png"
+    }
+  },
+  "builtin": true,
+  "processor": {
+    "enabled": true,
+    "name": "jira"
+  }
+}
+
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/gitlab_webhook_receiver
 {
  "_system": {

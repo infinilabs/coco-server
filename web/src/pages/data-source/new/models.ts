@@ -63,6 +63,17 @@ export const GiteaConfig = (values: any) => {
     token: values.config?.token || ''
   };
 };
+
+export const JiraConfig = (values: any) => {
+  return {
+    endpoint: values.config?.endpoint || '',
+    project_key: values.config?.project_key || '',
+    username: values.config?.username || '',
+    token: values.config?.token || '',
+    index_comments: values.config?.index_comments || false,
+    index_attachments: values.config?.index_attachments || false
+  };
+};
 const defaultFieldMapping = () => ({
   enabled: false,
   mapping: {}
