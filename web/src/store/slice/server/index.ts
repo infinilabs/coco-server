@@ -25,6 +25,7 @@ export const serverSlice = createSlice({
   },
   selectors: {
     getProviderInfo: app => app.providerInfo,
+    getServer: app => app.providerInfo?.endpoint || `${window.location.origin}${window.location.pathname}`
   }
 });
 // Action creators are generated for each case reducer function.
@@ -35,6 +36,7 @@ export const {
 // Selectors returned by `slice.selectors` take the root state as their first argument.
 export const {
   getProviderInfo,
+  getServer
 } = serverSlice.selectors;
 
 export const updateRootRouteIfSearch = (providerInfo: any): AppThunk => async dispatch => {

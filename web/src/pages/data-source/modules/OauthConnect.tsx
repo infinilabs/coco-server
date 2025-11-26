@@ -2,6 +2,8 @@ import { Button } from "antd";
 import { ExclamationCircleOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { getServer } from "@/store/slice/server";
+import normalizeUrl from "normalize-url";
 
 interface OAuthConfig {
   client_id?: string;
@@ -129,6 +131,7 @@ export default function OAuthConnect({
 }: OAuthConnectProps) {
   const { t } = useTranslation();
   const nav = useNavigate();
+  const server = useAppSelector(getServer);
 
   // Default validation rules - require all standard OAuth fields
   const defaultValidationRules: ValidationRule[] = [
@@ -194,7 +197,7 @@ export default function OAuthConnect({
       });
     } else {
       // Use custom connect URL or default to connector-specific endpoint
-      const endpoint = connectUrl || `${window.location.origin}${window.location.pathname}connector/${connector?.id}/oauth_connect`;
+      const endpoint = connectUrl || normalizeUrl(`${server}/connector/${connector?.id}/oauth_connect`);
       window.location.href = endpoint;
     }
   };

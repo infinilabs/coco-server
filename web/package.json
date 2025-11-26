@@ -76,6 +76,7 @@
     "lodash": "^4.17.21",
     "lucide-react": "^0.546.0",
     "mermaid": "11.6.0",
+    "normalize-url": "^8.1.0",
     "nprogress": "0.2.0",
     "prop-types": "^15.8.1",
     "query-string": "^9.2.1",

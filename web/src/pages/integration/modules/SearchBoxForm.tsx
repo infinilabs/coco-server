@@ -10,6 +10,8 @@ import { HotKeys } from './HotKeys';
 import ChatStartPage from '@/pages/settings/modules/ChatStartPage';
 import { SEARCHBOX_TYPES } from '../list';
 import AIAssistantSelect from '@/pages/ai-assistant/modules/AIAssistantSelect';
+import { getServer } from '@/store/slice/server';
+import normalizeUrl from 'normalize-url';
 
 export const SearchBoxForm = memo(props => {
   const { form, record, startPagelogos, setStartPagelogos, assistants, setAssistants, dataSourceLoading, dataSource, enabledList, setEnabledList } = props;
@@ -19,6 +21,8 @@ export const SearchBoxForm = memo(props => {
   const darkMode = useAppSelector(getDarkMode);
 
   const [mode, setMode] = useState();
+
+  const server = useAppSelector(getServer);
 
   useEffect(() => {
     const mode = record
@@ -103,7 +107,7 @@ export const SearchBoxForm = memo(props => {
             className="mb-0px"
             name={['options', 'embedded_icon']}
           >
-            <Input className={itemClassNames} placeholder={`${window.location.origin}${window.location.pathname}icon.svg`}/>
+            <Input className={itemClassNames} placeholder={`${normalizeUrl(`${server}/icon.svg`)}`}/>
           </Form.Item>
         </Form.Item>
       </>
@@ -129,7 +133,7 @@ export const SearchBoxForm = memo(props => {
             className="mb-0px"
             name={['options', 'floating_icon']}
           >
-            <Input className={itemClassNames}  placeholder={`${window.location.origin}${window.location.pathname}icon.svg`}/>
+            <Input className={itemClassNames}  placeholder={`${normalizeUrl(`${server}/icon.svg`)}`}/>
           </Form.Item>
         </Form.Item>
       </>
