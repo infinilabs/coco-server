@@ -10,6 +10,7 @@ import { AssetsIcons } from '../new/assets_icons';
 import { IconSelector } from '../new/icon_selector';
 import { useRoute } from '@sa/simple-router';
 import Processor from '../new/processor';
+import { getServer } from '@/store/slice/server';
 
 export function Component() {
   const { t } = useTranslation();
