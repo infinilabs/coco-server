@@ -16,12 +16,10 @@ Box cloud storage connector is used to index files and folders from Box, support
 ## Account Types
 
 ### Box Free Account
-- **Authentication**: OAuth 2.0 with refresh token
 - **Access Scope**: Current authenticated user's files only
 - **Required Credentials**: 
   - `client_id`
   - `client_secret`
-  - `refresh_token` (obtained via OAuth flow)
 
 ### Box Enterprise Account
 - **Authentication**: OAuth 2.0 client credentials
@@ -40,14 +38,7 @@ Box cloud storage connector is used to index files and folders from Box, support
 | `is_enterprise` | string | Account type: "box_free" or "box_enterprise" | Both |
 | `client_id` | string | Box application Client ID | Both |
 | `client_secret` | string | Box application Client Secret | Both |
-| `refresh_token` | string | OAuth refresh token | Free Account only |
 | `enterprise_id` | string | Box Enterprise ID | Enterprise Account only |
-
-### Optional Parameters
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `concurrent_downloads` | int | 15 | Maximum concurrent downloads |
 
 ### Sync Configuration
 
@@ -94,8 +85,8 @@ For proper functionality, the Box application needs:
 
 ### Method 1: Box Free Account
 
-#### Step 1: Obtain Refresh Token
-You need to obtain a refresh token through OAuth flow first (this can be done outside the system or through a separate OAuth setup).
+#### Step 1: Obtain client_id and client_secret
+You need to obtain a client_id and client_secret through OAuth flow first (this can be done outside the system or through a separate OAuth setup).
 
 #### Step 2: Configure Datasource
 ```json
@@ -111,10 +102,8 @@ You need to obtain a refresh token through OAuth flow first (this can be done ou
   "connector": {
     "id": "box",
     "config": {
-      "is_enterprise": "box_free",
       "client_id": "your_client_id",
       "client_secret": "your_client_secret",
-      "refresh_token": "your_refresh_token"
     }
   }
 }
@@ -195,10 +184,8 @@ Box connector preserves the original folder structure:
 
 #### Free Account
 ```
-1. Use refresh_token to get access_token
-2. Cache access_token with expiry time
-3. Auto-refresh when token expires
-4. Update refresh_token if rotated
+1. Cache access_token with expiry time
+2. Auto-refresh when token expires
 ```
 
 #### Enterprise Account
@@ -231,12 +218,10 @@ For Enterprise accounts:
 1. **Authentication Failed**
    - Verify `client_id` and `client_secret` are correct
    - Check if Box application is approved and published
-   - For Free account: Verify `refresh_token` is valid
    - For Enterprise account: Verify `enterprise_id` is correct
 
 2. **Token Expired**
    - System automatically refreshes tokens
-   - Check if refresh_token is still valid (Free account)
    - Verify application credentials haven't changed
 
 3. **No Files Found**
