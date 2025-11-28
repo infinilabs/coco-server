@@ -249,7 +249,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     },
     hours: '小时',
     minutes: '分钟',
-    missing_config_tip: 'Google 授权相关参数没有设置，需设置后才能连接，点击确认跳转到设置页面。',
+    missing_config_tip: '{{name}} 授权相关参数没有设置，需设置后才能连接，点击确认跳转到设置页面。',
     mongodb: {
       error: {
         collection_required: '请输入集合名称！',

@@ -82,6 +82,7 @@ export function Component() {
 
       case Types.Feishu:
       case Types.Lark:
+      case Types.Box:
         // Feishu/Lark have hardcoded endpoints in backend, only need credentials
         return OAuthValidationPresets.feishuLark;
 
@@ -137,6 +138,8 @@ export function Component() {
         return 'Feishu';
       case Types.Lark:
         return 'Lark';
+      case Types.Box:
+        return 'Box';
       default:
         return connector?.id || type || 'Unknown';
     }
@@ -215,7 +218,8 @@ export function Component() {
       Types.Neo4j,
       Types.MongoDB,
       Types.Feishu,
-      Types.Lark
+      Types.Lark,
+      Types.Box
     ].includes(type);
 
   const connectorTypeName = getConnectorTypeName();
@@ -423,7 +427,9 @@ export function Component() {
                 ? `/connector/${connector?.id}/feishu/connect`
                 : type === Types.Lark
                   ? `/connector/${connector?.id}/lark/connect`
-                  : undefined
+                  : type === Types.Box
+                    ? `/connector/${connector?.id}/box/connect`
+                    : undefined
             }
           />
         ) : (

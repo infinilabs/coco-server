@@ -733,3 +733,48 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
         "enabled": false
       }
 }
+
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/box
+{
+  "_system": {
+    "owner_id": "$[[SETUP_OWNER_ID]]"
+  },
+  "id" : "box",
+  "created" : "2025-11-02T00:00:00.000000+08:00",
+  "updated" : "2025-11-02T00:00:00.000000+08:00",
+  "name" : "Box Cloud Storage Connector",
+  "description" : "Index files and folders from Box, supporting both Free and Enterprise accounts with multi-user access.",
+  "category" : "cloud_storage",
+  "path_hierarchy" : false,
+  "icon" : "/assets/icons/connector/box/icon.png",
+  "tags" : [
+    "box",
+    "cloud_storage",
+    "file_sharing"
+  ],
+  "url" : "http://coco.rs/connectors/box",
+  "assets" : {
+    "icons" : {
+      "default" : "/assets/icons/connector/box/icon.png",
+      "bookmark" : "/assets/icons/connector/box/bookmark.png",
+      "boxcanvas" : "/assets/icons/connector/box/boxcanvas.png",
+      "boxnote" : "/assets/icons/connector/box/boxnote.png",
+      "docx" : "/assets/icons/connector/box/docx.png",
+      "excel-spreadsheet" : "/assets/icons/connector/box/excel-spreadsheet.png",
+      "google-docs" : "/assets/icons/connector/box/google-docs.png",
+      "google-sheets" : "/assets/icons/connector/box/google-sheets.png",
+      "google-slides" : "/assets/icons/connector/box/google-slides.png",
+      "keynote" : "/assets/icons/connector/box/keynote.png",
+      "numbers" : "/assets/icons/connector/box/numbers.png",
+      "pages" : "/assets/icons/connector/box/pages.png",
+      "pdf" : "/assets/icons/connector/box/pdf.png",
+      "powerpoint-presentation" : "/assets/icons/connector/box/powerpoint-presentation.png"
+    }
+  },
+  "builtin": true,
+  "oauth_connect_implemented": true,
+  "processor": {
+    "enabled": true,
+    "name": "box"
+  }
+}
