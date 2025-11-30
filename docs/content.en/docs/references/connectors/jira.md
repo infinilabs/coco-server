@@ -31,8 +31,6 @@ curl -XPUT "http://localhost:9000/connector/" -d '{
 }'
 ```
 
-> Use `jira` as a unique identifier, as it is a builtin connector.
-
 ## Use the Jira Connector
 
 The Jira Connector allows you to index issues, comments, and attachments from your Jira projects into your system. Follow these steps to set it up:
