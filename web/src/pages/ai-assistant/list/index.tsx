@@ -9,6 +9,7 @@ import useQueryParams from '@/hooks/common/queryParams';
 import { cloneAssistant, deleteAssistant, searchAssistant, updateAssistant } from '@/service/api/assistant';
 import { formatESSearchResult } from '@/service/request/es';
 import { Api } from '@/types/api';
+import { getServer } from '@/store/slice/server';
 
 type Assistant = Api.LLM.Assistant;
 
@@ -21,6 +22,8 @@ export function Component() {
   const resourceType = 'assistant';
 
   const { hasAuth } = useAuth();
+
+  const server = useAppSelector(getServer);
 
   const permissions = {
     read: hasAuth('coco#assistant/read'),
@@ -129,6 +132,7 @@ export function Component() {
                   height='1em'
                   src={record.icon}
                   width='1em'
+                  server={server}
                 />
               </IconWrapper>
             )}

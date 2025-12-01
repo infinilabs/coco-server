@@ -93,6 +93,10 @@ export function handleError(
 ) {
   // when the request is fail, you can show error message
 
+  if ((error?.config as { [key: string]: any })?.ignoreError) {
+    return null;
+  }
+
   let message = error.message;
   let backendErrorCode = String(error.status || '');
 

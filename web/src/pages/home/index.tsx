@@ -177,10 +177,10 @@ export function Component() {
                 </Form.Item>
               </Form>
             ) : (
-              <div className="p-l-11px">{data?.endpoint}</div>
+              <div title={data?.endpoint || ''} className="p-l-11px overflow-hidden text-ellipsis whitespace-nowrap">{data?.endpoint}</div>
             )}
             {
-              permissions.update && !managed && (
+              permissions.update && !managed && !window.__POWERED_BY_WUJIE__ && (
                 <Button
                   className="absolute right-0 top-0 z-1 h-48px w-30px rounded-12px p-0"
                   id="endpoint-save"

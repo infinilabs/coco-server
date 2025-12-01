@@ -4,6 +4,7 @@ import ModelSettings from './ModelSettings';
 import InfiniIcon from '@/components/common/icon';
 import { getLocale } from '@/store/slice/app';
 import { Form, Input } from 'antd';
+import { getServer } from '@/store/slice/server';
 
 const DefaultModelSettings = {
   temperature: 0.7,
@@ -141,6 +142,7 @@ export default (props: any) => {
   }, [providers]);
 
   const locale = useAppSelector(getLocale);
+  const server = useAppSelector(getServer);
 
   const [sorter, setSorter] = useState([]);
   const [filters, setFilters] = useState({});
@@ -159,6 +161,7 @@ export default (props: any) => {
               height='1em'
               src={item.icon}
               width='1em'
+              server={server}
             />
           </IconWrapper>
         )}

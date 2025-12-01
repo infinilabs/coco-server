@@ -10,7 +10,7 @@ const isHttpProxy = import.meta.env.DEV && import.meta.env.VITE_HTTP_PROXY === '
 const { baseURL, otherBaseURL } = getServiceBaseURL(import.meta.env, isHttpProxy);
 
 export function getApiBaseUrl() {
-  return isHttpProxy ? baseURL : `${window.location.origin}${window.location.pathname}`
+  return isHttpProxy ? baseURL : (getProxyEndpoint() || `${window.location.origin}${window.location.pathname}`)
 } 
 
 export const request = createFlatRequest<App.Service.Response, RequestInstanceState>(

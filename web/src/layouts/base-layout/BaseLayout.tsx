@@ -20,6 +20,7 @@ import GlobalHeader from '../modules/global-header';
 import GlobalMenu from '../modules/global-menu';
 import GlobalSider from '../modules/global-sider';
 import GlobalTab from '../modules/global-tab';
+import { logout } from '@/service/api';
 
 const ThemeDrawer = lazy(() => import('../modules/theme-drawer'));
 
@@ -36,6 +37,7 @@ const BaseLayout = () => {
   const fullContent = useAppSelector(getFullContent);
   const dispatch = useAppDispatch();
   const responsive = useResponsive();
+  const nav = useNavigate()
   const { childLevelMenus, isActiveFirstLevelMenuHasChildren } = useMixMenuContext();
 
   const contentXScrollable = useAppSelector(getContentXScrollable);
@@ -98,7 +100,16 @@ const BaseLayout = () => {
     }
   }, [isMobile, dispatch]);
 
-  const isMicro = window.$wujie?.props?.isMicro;
+  const isMicro = window.__POWERED_BY_WUJIE__;
+
+  useEffect(() => {
+    if (window.$wujie?.props?.onMicroMounted) {
+      window.$wujie?.props?.onMicroMounted({
+        nav,
+        logout: async () => await logout({ ignoreError: true })
+      })
+    }
+  }, [isMicro])
 
   return (
     <AdminLayout
@@ -135,7 +146,7 @@ const BaseLayout = () => {
         )
       }
       Sider={
-        window.$wujie?.props?.isMicro ? null : (
+        isMicro ? null : (
           <GlobalSider
             headerHeight={themeSettings.header.height}
             inverted={themeSettings.sider.inverted}
@@ -146,7 +157,7 @@ const BaseLayout = () => {
         )
       }
     >
-      <GlobalContent />
+      <GlobalContent closePadding={isMicro}/>
 
       <GlobalMenu
         mode={themeSettings.layout.mode}

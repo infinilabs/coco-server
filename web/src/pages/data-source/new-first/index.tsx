@@ -10,6 +10,7 @@ import InfiniIcon from '@/components/common/icon';
 import useQueryParams from '@/hooks/common/queryParams';
 import { searchConnector } from '@/service/api/connector';
 import { formatESSearchResult } from '@/service/request/es';
+import { getServer } from '@/store/slice/server';
 
 const ConnectorCategory = {
   CloudStorage: 'cloud_storage',
@@ -19,6 +20,7 @@ const ConnectorCategory = {
 export function Component() {
   const [queryParams, setQueryParams] = useQueryParams({ from: 0, size: 12 });
   const { t } = useTranslation();
+  const server = useAppSelector(getServer);
   const nav = useNavigate();
   const onAddClick = (key: string) => {
     nav(`/data-source/new/?type=${key}`);
@@ -118,6 +120,7 @@ export function Component() {
                       height="2em"
                       src={connector.icon}
                       width="2em"
+                      server={server}
                     />
                   </IconWrapper>
                   <span className="font-size-1.2em">{connector.name}</span>

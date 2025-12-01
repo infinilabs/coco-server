@@ -55,14 +55,18 @@ export function Component() {
         backgroundColor: darkMode ? 'rgb(var(--layout-bg-color))' : '#fff'
       }}
     >
-      <div className="absolute right-0 top-0 p-10px">
-        <div className="flex-y-center justify-end">
-          <LangSwitch className="px-12px" />
-          <ThemeSchemaSwitch className="px-12px" />
-        </div>
-      </div>
+      {
+        !window.__POWERED_BY_WUJIE__ && (
+          <div className="absolute right-0 top-0 p-10px">
+            <div className="flex-y-center justify-end">
+              <LangSwitch className="px-12px" />
+              <ThemeSchemaSwitch className="px-12px" />
+            </div>
+          </div>
+        )
+      }
       <div
-        className="h-100% w-1/3 bg-[size:100%_auto] bg-top-left bg-no-repeat md:bg-center-left sm:bg-center-left"
+        className="h-100% w-1/3 bg-[size:contain] bg-top-left bg-no-repeat md:bg-center-left sm:bg-center-left"
         style={{ backgroundImage: `url(${backgroundImage})` }}
       />
       <div className="h-100% w-2/3">
