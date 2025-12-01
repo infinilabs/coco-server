@@ -13,7 +13,7 @@ curl -XPUT "http://localhost:9000/connector/box?replace=true" -d '{
     "description": "Index files and folders from Box, supporting both Free and Enterprise accounts with multi-user access.",
     "icon": "/assets/icons/connector/box/icon.png",
     "category": "cloud_storage",
-    "path_hierarchy": true,
+    "path_hierarchy": false,
     "tags": [
         "box",
         "cloud_storage",
@@ -23,12 +23,19 @@ curl -XPUT "http://localhost:9000/connector/box?replace=true" -d '{
     "assets": {
         "icons": {
             "default": "/assets/icons/connector/box/icon.png",
-            "file": "/assets/icons/connector/box/file.png",
-            "folder": "/assets/icons/connector/box/folder.png",
-            "document": "/assets/icons/connector/box/document.png",
-            "spreadsheet": "/assets/icons/connector/box/spreadsheet.png",
-            "presentation": "/assets/icons/connector/box/presentation.png",
-            "pdf": "/assets/icons/connector/box/pdf.png"
+            "bookmark": "/assets/icons/connector/box/bookmark.png",
+            "boxcanvas": "/assets/icons/connector/box/boxcanvas.png",
+            "boxnote": "/assets/icons/connector/box/boxnote.png",
+            "docx": "/assets/icons/connector/box/docx.png",
+            "excel-spreadsheet": "/assets/icons/connector/box/excel-spreadsheet.png",
+            "google-docs": "/assets/icons/connector/box/google-docs.png",
+            "google-sheets": "/assets/icons/connector/box/google-sheets.png",
+            "google-slides": "/assets/icons/connector/box/google-slides.png",
+            "keynote": "/assets/icons/connector/box/keynote.png",
+            "numbers": "/assets/icons/connector/box/numbers.png",
+            "pages": "/assets/icons/connector/box/pages.png",
+            "pdf": "/assets/icons/connector/box/pdf.png",
+            "powerpoint-presentation": "/assets/icons/connector/box/powerpoint-presentation.png"
         }
     },
     "processor": {
@@ -61,7 +68,8 @@ The Box Connector allows you to index files and folders from Box cloud storage w
 
 **Authentication**: OAuth 2.0 Refresh Token Flow
 - **Access Scope**: Current authenticated user's files only
-- **Token Management**: Automatic refresh token rotation
+- **Token Management**: Backend automatically obtains and saves `refresh_token` through OAuth flow
+- **OAuth Flow**: Built-in OAuth flow via UI endpoints - no manual token configuration needed
 - **Use Case**: Personal file indexing
 
 #### Box Enterprise Account
@@ -125,10 +133,10 @@ For proper functionality, the Box application needs:
 > **⚠️ Important**: Before you can use the Box connector, you must configure the following required parameters based on your account type:
 >
 > **For Box Free Account:**
-> - `is_enterprise`: Set to "box_free"
+> - `is_enterprise`: Set to "box_free" (or omit, defaults to "box_free")
 > - `client_id`: OAuth2 client ID from your Box application
 > - `client_secret`: OAuth2 client secret from your Box application
-> - `refresh_token`: OAuth refresh token (obtained through OAuth flow)
+> - `refresh_token`: **Automatically obtained and saved by backend through OAuth flow - you do NOT need to configure this manually**
 >
 > **For Box Enterprise Account:**
 > - `is_enterprise`: Set to "box_enterprise"
@@ -140,27 +148,16 @@ For proper functionality, the Box application needs:
 
 #### Box Free Account Example
 
-```shell
-curl -H 'Content-Type: application/json' -XPOST "http://localhost:9000/datasource/" -d '{
-    "name": "My Box Files",
-    "type": "connector",
-    "enabled": true,
-    "connector": {
-        "id": "box",
-        "config": {
-            "is_enterprise": "box_free",
-            "client_id": "your_client_id",
-            "client_secret": "your_client_secret",
-            "refresh_token": "your_refresh_token",
-            "concurrent_downloads": 15
-        }
-    },
-    "sync": {
-        "enabled": true,
-        "interval": "30s"
-    }
-}'
-```
+**Using OAuth Flow (Required)**
+
+1. Configure the connector with `client_id` and `client_secret` in connector settings
+2. Use the OAuth flow via UI: Navigate to connector detail page and click "Connect"
+3. The backend will automatically:
+   - Exchange authorization code for access and refresh tokens
+   - Save `refresh_token` to the datasource configuration
+   - Create the datasource with proper configuration
+
+> **Note**: For Free Account, `refresh_token` is **automatically obtained and saved by the backend** through the OAuth flow. You do NOT need to manually configure or provide `refresh_token`. Simply use the OAuth flow via the UI.
 
 #### Box Enterprise Account Example
 
@@ -193,7 +190,7 @@ curl -H 'Content-Type: application/json' -XPOST "http://localhost:9000/datasourc
 | `is_enterprise`         | `string`  | Account type: "box_free" or "box_enterprise"                                      | Yes          | Both             |
 | `client_id`             | `string`  | Box application Client ID                                                         | Yes          | Both             |
 | `client_secret`         | `string`  | Box application Client Secret                                                     | Yes          | Both             |
-| `refresh_token`         | `string`  | OAuth refresh token (for Free account)                                            | Yes          | Free only        |
+| `refresh_token`         | `string`  | OAuth refresh token (automatically obtained and saved by backend via OAuth flow - **do NOT configure manually**)  | Auto-managed | Free only |
 | `enterprise_id`         | `string`  | Box Enterprise ID (for Enterprise account)                                        | Yes          | Enterprise only  |
 | `concurrent_downloads`  | `int`     | Maximum concurrent downloads (default: 15)                                        | No           | Both             |
 | `sync.enabled`          | `boolean` | Enable/disable syncing for this datasource                                        | No           | Both             |
@@ -290,14 +287,14 @@ The connector extracts comprehensive metadata:
 ### Common Issues
 
 1. **Authentication Failed**
-   - **Free Account**: Verify `client_id`, `client_secret`, and `refresh_token` are correct
+   - **Free Account**: Verify `client_id` and `client_secret` are correct. Ensure OAuth flow completed successfully (backend automatically saves `refresh_token`).
    - **Enterprise Account**: Verify `client_id`, `client_secret`, and `enterprise_id` are correct
    - Check if Box application is approved and published
    - Ensure application has required scopes
 
 2. **Token Expired**
    - System automatically refreshes tokens
-   - **Free Account**: Check if refresh_token is still valid
+   - **Free Account**: If refresh_token is invalid, re-run OAuth flow to obtain a new one
    - **Enterprise Account**: Verify application credentials haven't changed
    - Review token expiry settings
 
@@ -332,16 +329,18 @@ Use logs to quickly identify and resolve issues.
 
 ## Notes
 
-1. **Account Type Selection**: Must specify either "box_free" or "box_enterprise"
+1. **Account Type Selection**: Must specify either "box_free" or "box_enterprise" (defaults to "box_free" if not specified)
 2. **Different Credentials**: Free and Enterprise accounts require different configuration
-3. **Refresh Token Requirement**: Free accounts must have a valid refresh_token
-4. **Enterprise ID Requirement**: Enterprise accounts must have a valid enterprise_id
-5. **Multi-User Automatic**: Enterprise accounts automatically fetch files from all users
-6. **Token Auto-Refresh**: All tokens are automatically managed and refreshed
-7. **Content Extraction**: File content extraction is handled by coco-server framework
-8. **API Rate Limits**: Be aware of Box API rate limits (typically 1000 requests/minute)
-9. **File Size Limits**: Large files may be excluded based on framework configuration
-10. **Hierarchical Path**: Connector preserves original folder structure with `/` as root
+3. **OAuth Flow Required**: Free accounts **must** use the built-in OAuth flow via UI endpoints - backend automatically obtains and saves `refresh_token`. You do NOT need to manually configure `refresh_token`.
+4. **No Manual Token Configuration**: For Free accounts, `refresh_token` is completely managed by the backend - you never need to provide or configure it manually
+5. **Enterprise ID Requirement**: Enterprise accounts must have a valid enterprise_id
+6. **Multi-User Automatic**: Enterprise accounts automatically fetch files from all users
+7. **Token Auto-Refresh**: All tokens are automatically managed and refreshed
+8. **Content Extraction**: File content extraction is handled by coco-server framework
+9. **API Rate Limits**: Be aware of Box API rate limits (typically 100 requests/minute)
+10. **File Size Limits**: Large files may be excluded based on framework configuration
+11. **Hierarchical Path**: Connector preserves original folder structure with `/` as root
+12. **Path Hierarchy**: Set to `false` - connector uses category hierarchy instead of path hierarchy
 
 ## API Endpoints Used
 
@@ -355,4 +354,26 @@ The connector uses the following Box API endpoints:
 | `/2.0/folders/{id}/items` | List folder contents | Both |
 
 All API calls include automatic retry on 401 errors and support for the `as-user` header in Enterprise accounts.
+
+## OAuth Flow (Free Account)
+
+The Box connector provides built-in OAuth flow for Free accounts. **This is the only way to set up a Free Account datasource.**
+
+### Setup Steps:
+
+1. **Configure Connector**: Set `client_id` and `client_secret` in connector settings
+2. **Initiate OAuth**: Navigate to connector detail page and click "Connect" or visit `/connector/{connector_id}/box/connect`
+3. **Authorize**: You will be redirected to Box authorization page to authorize the application
+4. **Automatic Setup**: Backend automatically:
+   - Exchanges authorization code for access and refresh tokens
+   - Saves `refresh_token` to datasource configuration (you don't need to do anything)
+   - Creates datasource with proper configuration
+   - Caches authenticated client for future use
+
+> **Important**: You do NOT need to manually configure `refresh_token`. The backend handles everything automatically through the OAuth flow.
+
+### OAuth Endpoints:
+
+- `GET /connector/:id/box/connect` - Initiates OAuth flow
+- `GET /connector/:id/box/oauth_redirect` - Handles OAuth callback
 
