@@ -10,7 +10,10 @@ Information about release notes of Coco Server is provided here.
 ## Latest (In development)  
 ### ❌ Breaking changes  
 ### 🚀 Features  
+
+- feat: add metrics module #594
 - feat: jira connector #567
+
 ### 🐛 Bug fix  
 ### ✈️ Improvements  
 
