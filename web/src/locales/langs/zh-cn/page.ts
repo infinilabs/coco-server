@@ -401,6 +401,32 @@ const page: App.I18n.Schema['translation']['page'] = {
         username: '用于网络驱动器身份验证的用户名'
       }
     },
+    jira: {
+      error: {
+        endpoint_invalid: '请输入有效的 URL',
+        endpoint_prefix: 'URL 必须以 http:// 或 https:// 开头',
+        endpoint_required: '请输入 Jira URL！',
+        project_key_required: '请输入项目 Key！',
+        token_required: '请输入密码/令牌！',
+        username_required: '请输入用户名！'
+      },
+      labels: {
+        endpoint: 'Jira 服务器 URL',
+        index_attachments: '索引附件',
+        index_comments: '索引评论',
+        project_key: '项目 Key',
+        token: '密码 / 令牌',
+        username: '用户名（可选）'
+      },
+      tooltip: {
+        endpoint: '您的 Jira 实例 URL（例如：https://your-domain.atlassian.net）',
+        index_attachments: '是否索引问题附件',
+        index_comments: '是否索引问题评论',
+        project_key: '您要索引的 Jira 项目 Key（例如："COCO"）',
+        token: '提供用户名时为密码（Basic Auth），不提供用户名时为个人访问令牌（Bearer Auth）',
+        username: '用于身份验证的 Jira 账户用户名'
+      }
+    },
     new: {
       labels: {
         client_id: '客户端 ID',

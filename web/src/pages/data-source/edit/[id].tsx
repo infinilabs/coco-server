@@ -24,9 +24,10 @@ import Confluence from '../new/confluence';
 import Gitea from '../new/gitea';
 import GitHub from '../new/github';
 import GitLab from '../new/gitlab';
+import Jira from '../new/jira';
 import HugoSite from '../new/hugo_site';
 import LocalFS from '../new/local_fs';
-import {GiteaConfig, GithubConfig, GitlabConfig, MongoDBConfig, MongoDBFormConfig, Neo4jConfig, Neo4jFormConfig, NetworkDriveConfig, RdbmsConfig} from '../new/models';
+import {GiteaConfig, GithubConfig, GitlabConfig, JiraConfig, MongoDBConfig, MongoDBFormConfig, Neo4jConfig, Neo4jFormConfig, NetworkDriveConfig, RdbmsConfig} from '../new/models';
 import MongoDB from '../new/mongodb';
 import NetworkDrive from '../new/network_drive';
 import Notion from '../new/notion';
@@ -95,6 +96,11 @@ export function Component() {
             }
             break;
           case Types.Neo4j:
+            if (datasource.connector?.config) {
+              datasource.config = datasource.connector.config;
+            }
+            break;
+          case Types.Jira:
             if (datasource.connector?.config) {
               datasource.config = datasource.connector.config;
             }
@@ -252,6 +258,10 @@ export function Component() {
         config = MongoDBConfig(values);
         break;
       }
+      case Types.Jira: {
+        config = JiraConfig(values);
+        break;
+      }
     }
     if(values.enrichment_pipeline) {
       try {
@@ -403,6 +413,12 @@ export function Component() {
       }
       break;
     }
+    case Types.Jira: {
+      if (datasource.connector?.config) {
+        datasource.config = JiraConfig(datasource.connector);
+      }
+      break;
+    }
     default:
       isCustom = true;
   }
@@ -500,6 +516,7 @@ export function Component() {
                 {type === Types.GitHub && <GitHub />}
                 {type === Types.GitLab && <GitLab />}
                 {type === Types.Gitea && <Gitea />}
+                {type === Types.Jira && <Jira />}
                 {type === Types.Mssql && <Rdbms dbType="mssql" />}
                 {type === Types.Oracle && <Rdbms dbType="oracle" />}
               </>

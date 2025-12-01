@@ -10,6 +10,7 @@ Information about release notes of Coco Server is provided here.
 ## Latest (In development)  
 ### ❌ Breaking changes  
 ### 🚀 Features  
+- feat: jira connector #567
 ### 🐛 Bug fix  
 ### ✈️ Improvements  
 
@@ -18,7 +19,7 @@ Information about release notes of Coco Server is provided here.
 - refactor: make connectors pipeline-based (#545) #545
 - refactor: re-implemented security features; rerun setup required
 
-### 🚀 Features  
+### 🚀 Features
 - feat: neo4j connector #539
 - feat: add integrated store #551
 - feat: rbac based security
