@@ -12,13 +12,14 @@ import { DatasourceConfig } from './DatasourceConfig';
 import { MCPConfig } from './MCPConfig';
 import { DeepThink } from './DeepThink';
 import { formatESSearchResult } from '@/service/request/es';
-import ModelSelect from './ModelSelect';
+import ModelSelect, { DefaultPromptTemplates } from './ModelSelect';
 import { ToolsConfig } from './ToolsConfig';
 import { getUUID } from '@/utils/common';
 import { Tags } from '@/components/common/tags';
 import { getAssistantCategory } from '@/service/api/assistant';
 import { UploadConfig } from './UploadConfig';
 import classNames from 'classnames';
+import AvailableVariable from './AvailableVariable';
 
 interface AssistantFormProps {
   initialValues: any;
@@ -91,7 +92,7 @@ export const EditForm = memo((props: AssistantFormProps) => {
   }, []);
   const { defaultRequiredRule, formRules } = useFormRules();
 
-  const [showAdvanced, setShowAdvanced] = useState(true);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const {
     data: result,
     run,
@@ -184,6 +185,7 @@ export const EditForm = memo((props: AssistantFormProps) => {
     return (
       <Collapse
         className='mb-4 w-150'
+        defaultActiveKey='intent-recognition'
         items={[
           {
             key: 'intent-recognition',
@@ -208,12 +210,19 @@ export const EditForm = memo((props: AssistantFormProps) => {
             key: 'internet-search',
             label: t('page.assistant.labels.internet_search'),
             extra: (
-              <Form.Item
-                className='mb-0! [&_*]:min-h-[unset]!'
-                name={['datasource', 'enabled']}
+              <div
+                onClick={event => {
+                  event.stopPropagation();
+                }}
               >
-                <Switch size='small' />
-              </Form.Item>
+                <Form.Item
+                  className='mb-0! [&_*]:min-h-[unset]!'
+                  initialValue={false}
+                  name={['datasource', 'enabled']}
+                >
+                  <Switch size='small' />
+                </Form.Item>
+              </div>
             ),
             children: (
               <>
@@ -221,20 +230,20 @@ export const EditForm = memo((props: AssistantFormProps) => {
                   <>
                     <Form.Item
                       className='mb-4! [&_.ant-form-item-control]:flex-[unset]!'
-                      extra='由模型根据上下文、查询意图等判断是否执行该流程'
+                      extra={t('page.assistant.hints.searchExecutionStrategy')}
                       initialValue={false}
-                      label='执行策略'
+                      label={t('page.assistant.labels.executionStrategy')}
                       layout='vertical'
                       name={['config', 'pick_datasource']}
                     >
                       <Select
                         options={[
                           {
-                            label: '总是执行',
+                            label: t('page.assistant.options.alwaysExecute'),
                             value: true
                           },
                           {
-                            label: '智能决策',
+                            label: t('page.assistant.options.intelligentDecisionMaking'),
                             value: false
                           }
                         ]}
@@ -243,12 +252,13 @@ export const EditForm = memo((props: AssistantFormProps) => {
 
                     <Form.Item
                       className='[&_.ant-form-item-control]:flex-[unset]!'
-                      label='文档预选模型'
+                      label={t('page.settings.llm.picking_doc_model')}
                       layout='vertical'
                       name={['config', 'picking_doc_model']}
                     >
                       <ModelSelect
                         modelType='picking_doc_model'
+                        namePrefix={['config', 'picking_doc_model']}
                         providers={modelProviders}
                       />
                     </Form.Item>
@@ -287,12 +297,19 @@ export const EditForm = memo((props: AssistantFormProps) => {
             key: 'large-model-tools',
             label: t('page.assistant.labels.large_model_tool'),
             extra: (
-              <Form.Item
-                className='mb-0! [&_*]:(min-h-[unset]!)'
-                name={['mcp_servers', 'enabled']}
+              <div
+                onClick={event => {
+                  event.stopPropagation();
+                }}
               >
-                <Switch size='small' />
-              </Form.Item>
+                <Form.Item
+                  className='mb-0! [&_*]:(min-h-[unset]!)'
+                  initialValue={false}
+                  name={['mcp_servers', 'enabled']}
+                >
+                  <Switch size='small' />
+                </Form.Item>
+              </div>
             ),
             children: (
               <Form.Item
@@ -303,20 +320,20 @@ export const EditForm = memo((props: AssistantFormProps) => {
                 {assistantMode === 'deep_think' && (
                   <Form.Item
                     className='mb-4! [&_.ant-form-item-control]:flex-[unset]!'
-                    extra='无论模型是否认为必要，都执行该流程'
+                    extra={t('page.assistant.hints.llmExecutionStrategy')}
                     initialValue={false}
-                    label='执行策略'
+                    label={t('page.assistant.labels.executionStrategy')}
                     layout='vertical'
                     name={['config', 'pick_tools']}
                   >
                     <Select
                       options={[
                         {
-                          label: '总是执行',
+                          label: t('page.assistant.options.alwaysExecute'),
                           value: true
                         },
                         {
-                          label: '智能决策',
+                          label: t('page.assistant.options.intelligentDecisionMaking'),
                           value: false
                         }
                       ]}
@@ -363,6 +380,7 @@ export const EditForm = memo((props: AssistantFormProps) => {
               >
                 <ModelSelect
                   modelType='answering_model'
+                  namePrefix={['answering_model']}
                   providers={modelProviders}
                 />
               </Form.Item>
@@ -506,6 +524,7 @@ export const EditForm = memo((props: AssistantFormProps) => {
           >
             <ModelSelect
               modelType='answering_model'
+              namePrefix={['answering_model']}
               providers={modelProviders}
               showTemplate={false}
               width='600px'
@@ -515,8 +534,10 @@ export const EditForm = memo((props: AssistantFormProps) => {
 
         {assistantMode === 'simple' && (
           <Form.Item
+            extra={<AvailableVariable type='answering_model' />}
+            initialValue={DefaultPromptTemplates.answering_model}
             label={t('page.assistant.labels.role_prompt')}
-            name={['prompt', 'template']}
+            name={['answering_model', 'prompt', 'template']}
           >
             <Input.TextArea
               className='w-600px'

@@ -90,7 +90,17 @@ const page: App.I18n.Schema['translation']['page'] = {
       feature_visibility_deep_thought: '功能可见性（深度思考）',
       generate_response: '生成回答',
       capability_extension: '能力扩展',
-      workflow_configuration: '流程配置'
+      workflow_configuration: '流程配置',
+      executionStrategy: '执行策略',
+      availableVariables: '可用变量',
+      availableVariablesDesc: '可用的变量',
+      searchContext: '搜索结果上下文',
+      userQuery: '用户查询内容',
+      chatHistory: '对话历史',
+      toolList: '工具列表',
+      webSources: '网络来源列表',
+      detectedIntent: '识别到的意图',
+      matchedDocs: '匹配到的文档'
     },
     mode: {
       deep_think: '深度思考',
@@ -98,7 +108,13 @@ const page: App.I18n.Schema['translation']['page'] = {
       workflow: '外部工作流'
     },
     hints: {
-      system_prompt: '请输入系统提示词'
+      system_prompt: '请输入系统提示词',
+      searchExecutionStrategy: '由模型根据上下文、查询意图等判断是否执行该流程。',
+      llmExecutionStrategy: '无论模型是否认为必要，都执行该流程。'
+    },
+    options: {
+      intelligentDecisionMaking: '智能决策',
+      alwaysExecute: '总是执行'
     }
   },
   connector: {

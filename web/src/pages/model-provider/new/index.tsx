@@ -10,6 +10,8 @@ import { ModalForm, ProFormSelect, ProFormSwitch, ProFormText } from '@ant-desig
 import type { AnyObject } from 'antd/es/_util/type';
 // @ts-ignore
 import { IconSelector } from '../../connector/new/icon_selector';
+import { Settings } from 'lucide-react';
+import { isArray } from 'lodash';
 
 export function Component() {
   const { t } = useTranslation();
@@ -225,6 +227,8 @@ export const ModelsComponent = ({ value = [], onChange }: any) => {
   };
 
   const [form] = Form.useForm<AnyObject>();
+  const [modelOpen, setModelOpen] = useState(false);
+  const [editKey, setEditKey] = useState<string>();
 
   return (
     <>
@@ -243,10 +247,18 @@ export const ModelsComponent = ({ value = [], onChange }: any) => {
                   <span key='inference-mode'>
                     {value?.settings?.reasoning ? t('page.modelprovider.labels.inferenceMode') : '-'}
                   </span>,
-                  <ModelSettings
-                    key='model-settings'
-                    value={value?.settings}
-                    onChange={settings => onSettingsChange(key, settings)}
+                  <Settings
+                    className='size-4 translate-y-[2px] cursor-pointer text-[#999]'
+                    key='settings'
+                    onClick={() => {
+                      form.setFieldsValue({
+                        ...value
+                      });
+
+                      setEditKey(key);
+
+                      setModelOpen(true);
+                    }}
                   />,
                   <div
                     className='cursor-pointer'
@@ -266,24 +278,45 @@ export const ModelsComponent = ({ value = [], onChange }: any) => {
 
       <ModalForm
         form={form}
+        open={modelOpen}
         title={t('page.modelprovider.labels.addModel')}
         trigger={<Button type='primary'>{t('common.add')}</Button>}
         width={560}
         modalProps={{
           centered: true,
-          destroyOnClose: true
+          destroyOnClose: true,
+          onCancel: () => {
+            setEditKey(undefined);
+            setModelOpen(false);
+          }
         }}
         onFinish={async values => {
-          setInnerValue([
-            ...innerValue,
-            {
-              key: getUUID(),
-              value: {
-                ...values,
-                name: values.name[0]
-              }
-            }
-          ]);
+          const name = isArray(values.name) ? values.name[0] : values.name;
+
+          const matched = innerValue.find(item => item.key === editKey);
+
+          if (matched) {
+            setInnerValue(prev => {
+              return prev.map(item => {
+                if (item.key === editKey) {
+                  return {
+                    ...item,
+                    value: {
+                      ...item.value,
+                      ...values,
+                      name
+                    }
+                  };
+                }
+
+                return item;
+              });
+            });
+
+            return setModelOpen(false);
+          }
+
+          setInnerValue(prev => [...prev, { key: getUUID(), value: { ...values, name } }]);
 
           return true;
         }}

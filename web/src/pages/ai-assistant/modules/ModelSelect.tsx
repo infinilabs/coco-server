@@ -3,7 +3,9 @@ import { useMemo, useState } from 'react';
 import ModelSettings from './ModelSettings';
 import InfiniIcon from '@/components/common/icon';
 import { getLocale } from '@/store/slice/app';
-import { Form, Input } from 'antd';
+import { Flex, Form, Input, Popover, Tooltip } from 'antd';
+import { Info } from 'lucide-react';
+import AvailableVariable from './AvailableVariable';
 
 const DefaultModelSettings = {
   temperature: 0.7,
@@ -13,7 +15,7 @@ const DefaultModelSettings = {
   max_tokens: 4000
 };
 
-const DefaultPromptTemplates = {
+export const DefaultPromptTemplates = {
   answering_model: `You are a helpful AI assistant.
   You will be given a conversation below and a follow-up question.
 
@@ -110,7 +112,7 @@ Wrap the JSON result in <JSON></JSON> tags.
 };
 
 export default (props: any) => {
-  const { value: propsValue, onChange, providers = [], width, modelType, showTemplate = true } = props;
+  const { value: propsValue, onChange, providers = [], width, modelType, showTemplate = true, namePrefix = [] } = props;
   let defaultPromptTpl = '';
   if (DefaultPromptTemplates[modelType]) {
     defaultPromptTpl = DefaultPromptTemplates[modelType];
@@ -286,10 +288,11 @@ export default (props: any) => {
       {showTemplate && (
         <Form.Item
           className='mb-0! mt-4!'
+          help={<AvailableVariable type={modelType} />}
           initialValue={defaultPromptTpl}
           label={t('page.assistant.labels.prompt_template')}
           layout='vertical'
-          name={['prompt', 'template']}
+          name={[...namePrefix, 'prompt', 'template']}
         >
           <Input.TextArea rows={6} />
         </Form.Item>

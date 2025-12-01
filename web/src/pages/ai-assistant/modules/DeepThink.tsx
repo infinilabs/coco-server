@@ -19,6 +19,7 @@ export const DeepThink = (props: DeepThinkProps) => {
       >
         <ModelSelect
           modelType='intent_analysis_model'
+          namePrefix={['config', 'intent_analysis_model']}
           providers={providers}
         />
       </Form.Item>
