@@ -4,9 +4,13 @@ import Clipboard from 'clipboard';
 import { Preview } from './Preview';
 import { isFullscreen } from './EditForm';
 import { FULLSCREEN_TYPES, SEARCHBOX_TYPES } from '../list';
+import { getServer } from '@/store/slice/server';
+import normalizeUrl from 'normalize-url';
 
 export const InsertCode = memo(props => {
   const { id, type, enabled } = props;
+    
+  const server = useAppSelector(getServer);
 
   const widgetType = useMemo(() => {
     return isFullscreen(type) ? 'fullscreen': 'searchbox'
@@ -38,10 +42,10 @@ export const InsertCode = memo(props => {
     if (!id || !widgetType) return undefined
     return `<div id="${widgetType}" style="margin: ${mode === 'page' ? '0' : '10px'} 0; outline: none"></div>
 <script type="module" >
-    import { ${widgetType} } from "${window.location.origin}${window.location.pathname}integration/${id}/widget";
+    import { ${widgetType} } from "${normalizeUrl(`${server}/integration/${id}/widget`)}";
     ${widgetType}({container: "#${widgetType}"});
 </script>`;
-  }, [id, widgetType, mode]);
+  }, [id, widgetType, mode, server]);
 
   useEffect(() => {
     if (copyRef.current) {

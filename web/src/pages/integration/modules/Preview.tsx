@@ -1,5 +1,7 @@
 import { Button, Modal } from 'antd';
 import './Preview.css';
+import { getServer } from '@/store/slice/server';
+import normalizeUrl from 'normalize-url';
 
 export const Preview = memo(props => {
   const { children, params = {}, widgetType, mode } = props;
@@ -7,6 +9,8 @@ export const Preview = memo(props => {
   const { t } = useTranslation();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const server = useAppSelector(getServer);
 
   const showModal = () => {
     setIsModalOpen(true);
@@ -38,13 +42,13 @@ export const Preview = memo(props => {
       <body>
         <div id="${widgetType}" style="margin: ${mode === 'page' ? '0' : '10px'} 0; outline: none"></div>
         <script type="module" >
-            import { ${widgetType} } from "${window.location.origin}${window.location.pathname}integration/${params.id}/widget";
+            import { ${widgetType} } from "${normalizeUrl(`${server}integration/${params.id}/widget`)}";
             ${widgetType}({container: "#${widgetType}", enableQueryParams: false });
         </script>
       </body>
       </html>
     `
-  }, [params.id, widgetType, mode]);
+  }, [params.id, widgetType, mode, server]);
 
   return (
     <>

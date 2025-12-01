@@ -39,6 +39,8 @@ import Yuque from '../new/yuque';
 import { ReactSVG } from 'react-svg';
 import LinkSVG from '@/assets/svg-icon/link.svg';
 import Neo4j from "@/pages/data-source/new/neo4j.tsx";
+import { getServer } from '@/store/slice/server';
+import normalizeUrl from 'normalize-url';
 
 // eslint-disable-next-line complexity
 export function Component() {
@@ -51,11 +53,12 @@ export function Component() {
     id: datasourceID
   });
   const [form] = useForm();
+  const server = useAppSelector(getServer);
 
   const [webhookEnabled, setWebhookEnabled] = useState(false)
   const webhookUrl = useMemo(() => {
-    return datasourceID ? `${window.location.origin}${window.location.pathname}webhooks/${datasourceID}` : ''
-  }, [datasourceID])
+    return datasourceID ? normalizeUrl(`${server}/webhooks/${datasourceID}`) : ''
+  }, [server, datasourceID])
 
   useEffect(() => {
     setWebhookEnabled(datasource?.webhook?.enabled)
@@ -128,7 +131,7 @@ export function Component() {
     });
   }, []);
   const copyRef = useRef<HTMLSpanElement | null>(null);
-  const insertDocCmd = `curl -H'X-API-TOKEN: REPLACE_YOUR_API_TOKEN_HERE'  -H 'Content-Type: application/json' -XPOST ${window.location.origin}${window.location.pathname}datasource/${datasourceID}/_doc -d'
+  const insertDocCmd = `curl -H'X-API-TOKEN: REPLACE_YOUR_API_TOKEN_HERE'  -H 'Content-Type: application/json' -XPOST ${normalizeUrl(`${server}/datasource/${datasourceID}/_doc`)} -d'
   {
     "title": "I am just a Coco doc that you can search",
     "summary": "Nothing but great start",
