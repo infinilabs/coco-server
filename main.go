@@ -17,6 +17,7 @@ import (
 	"infini.sh/framework/core/vfs"
 	"infini.sh/framework/modules/api"
 	"infini.sh/framework/modules/elastic"
+	"infini.sh/framework/modules/metrics"
 	"infini.sh/framework/modules/pipeline"
 	"infini.sh/framework/modules/queue"
 	queue2 "infini.sh/framework/modules/queue/disk_queue"
@@ -64,6 +65,7 @@ func main() {
 		module.RegisterUserPlugin(&queue.Module{})
 		module.RegisterUserPlugin(&pipeline.PipeModule{})
 		module.RegisterUserPlugin(&modules.Coco{})
+		module.RegisterSystemModule(&metrics.MetricsModule{})
 
 		module.Start()
 	}, func() {
