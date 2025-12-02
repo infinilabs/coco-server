@@ -24,6 +24,7 @@ export const ToolsConfig = () => {
             key={item}
             label={capitalize(item)}
             name={['tools', 'builtin', item]}
+            valuePropName='checked'
           >
             <Checkbox />
           </Form.Item>

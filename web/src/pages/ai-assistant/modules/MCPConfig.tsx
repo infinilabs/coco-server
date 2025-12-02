@@ -32,7 +32,39 @@ export const MCPConfig = (props: MCPConfigProps) => {
 
   return (
     <>
-      <div className='mb-2'>{t('page.assistant.labels.tool_invoked_model')}</div>
+      <Form.Item
+        className='relative [&_.ant-form-item-explain-error]:(absolute top-8)'
+        label={t('page.assistant.labels.tool_invoked_model')}
+        layout='vertical'
+        name='mcp_servers'
+        rules={[
+          {
+            required: value.enabled,
+            validator: (_, value) => {
+              if (!value.enabled) {
+                return Promise.resolve();
+              }
+
+              if (!value || !value.id) {
+                return Promise.reject(new Error(t('page.assistant.hints.selectModel')));
+              }
+
+              return Promise.resolve();
+            }
+          }
+        ]}
+      >
+        <ModelSelect
+          modelType='caller_model'
+          namePrefix={['mcp_servers', 'model']}
+          providers={props.modelProviders}
+          value={value.model}
+          width='100%'
+          onChange={onModelChange}
+        />
+      </Form.Item>
+
+      {/* <div className='mb-2'>{t('page.assistant.labels.tool_invoked_model')}</div>
 
       <ModelSelect
         modelType='caller_model'
@@ -41,7 +73,7 @@ export const MCPConfig = (props: MCPConfigProps) => {
         value={value.model}
         width='100%'
         onChange={onModelChange}
-      />
+      /> */}
 
       <Form.Item
         className='mt-4'
