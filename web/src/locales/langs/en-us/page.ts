@@ -82,20 +82,30 @@ const page: App.I18n.Schema['translation']['page'] = {
         'The scope of selected vocabulary is limited. The lower the value, the more predictable the result; the higher the value, the more diverse the possibilities. It is not recommended to change this alongside randomness.',
       type: 'Type',
       upload: 'Upload Settings',
-      internet_search: 'Internet Search',
+      internet_search: 'Search',
       document_retrieval: 'Document Retrieval',
       feature_visibility: 'Feature Visibility',
-      large_model_tool: 'Large Model Tool',
-      tool_invoked_model: 'Tool-invoked Model',
+      large_model_tool: 'LLM Tool',
+      tool_invoked_model: 'Caller Model',
       prompt_template: 'Prompt Template',
       mcp_service: 'MCP Server',
-      built_in_large_model_tool: 'Built-in Large Model Tool',
-      intent_recognition: 'Intent Recognition',
-      intent_recognition_model: 'Intent Recognition Model',
-      feature_visibility_deep_thought: 'Feature Visibility (Deep Thought)',
+      built_in_large_model_tool: 'Built-in LLM Tool',
+      intent_recognition: 'Intent Analysis',
+      intent_recognition_model: 'Intent Analysis Model',
+      feature_visibility_deep_thought: 'Feature Visibility (Deep Think)',
       generate_response: 'Generate Response',
       capability_extension: 'Capability Extension',
-      workflow_configuration: 'Workflow Configuration'
+      workflow_configuration: 'Workflow Configuration',
+      executionStrategy: 'Execution Strategy',
+      availableVariables: 'Available Variables',
+      availableVariablesDesc: 'List of available variables',
+      searchContext: 'Search Results Context',
+      userQuery: 'User Query',
+      chatHistory: 'Chat History',
+      toolList: 'Tool List',
+      webSources: 'Network Sources List',
+      detectedIntent: 'Detected Intent',
+      matchedDocs: 'Retrieved Documents'
     },
     mode: {
       deep_think: 'Deep Think',
@@ -103,7 +113,14 @@ const page: App.I18n.Schema['translation']['page'] = {
       workflow: 'External workflow'
     },
     hints: {
-      system_prompt: 'Please enter the system prompt instructions'
+      system_prompt: 'Please enter the system prompt instructions',
+      searchExecutionStrategy:
+        'The model determines whether to execute the process based on context, query intent, etc.',
+      llmExecutionStrategy: 'Execute the process whether or not the model deems it necessary.'
+    },
+    options: {
+      intelligentDecisionMaking: 'Intelligent Decision Making',
+      alwaysExecute: 'Always Execute'
     }
   },
   connector: {
@@ -724,7 +741,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       inferenceMode: 'Inference Mode'
     },
     options: {
-      dialogModel: 'Dialog Model'
+      dialogModel: 'Chat Model'
     },
     hints: {
       selectOrInputModel: 'Select or input a model',

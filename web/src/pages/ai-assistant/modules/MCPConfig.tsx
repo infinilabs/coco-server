@@ -1,4 +1,4 @@
-import { Flex, Form, InputNumber, Select, Space, Switch } from 'antd';
+import { Flex, Form, InputNumber, Select, Switch } from 'antd';
 import ModelSelect from './ModelSelect';
 import type { ReactNode } from 'react';
 
@@ -36,6 +36,7 @@ export const MCPConfig = (props: MCPConfigProps) => {
 
       <ModelSelect
         modelType='caller_model'
+        namePrefix={['mcp_servers', 'model']}
         providers={props.modelProviders}
         value={value.model}
         width='100%'
