@@ -4,7 +4,7 @@ import type { WatermarkProps } from 'antd';
 
 import { info } from '@/constants/app';
 import { router } from '@/router';
-import { getLocale } from '@/store/slice/app';
+import { changeLocale, getLocale } from '@/store/slice/app';
 import { getDarkMode, getThemeSettings, themeColors } from '@/store/slice/theme';
 import { getAntdTheme, setupThemeVarsToHtml, toggleCssDarkMode } from '@/store/slice/theme/shared';
 import { localStg } from '@/utils/storage';
@@ -48,6 +48,13 @@ const App = () => {
   const locale = useAppSelector(getLocale);
 
   const { antdTheme, themeSettings } = useTheme();
+  const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    if (window.$wujie?.props?.locale) {
+      dispatch(changeLocale(window.$wujie?.props?.locale));
+    }
+  }, [window.$wujie?.props?.locale]);
 
   return (
     <AConfigProvider
@@ -63,7 +70,7 @@ const App = () => {
           {...watermarkProps}
         >
           <RouterProvider
-            fallback={<GlobalLoading />}
+            fallback={<GlobalLoading className={window.__POWERED_BY_WUJIE__ ? 'absolute' : ''} />}
             router={router}
           />
         </AWatermark>

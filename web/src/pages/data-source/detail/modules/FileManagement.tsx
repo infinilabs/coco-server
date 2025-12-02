@@ -15,6 +15,7 @@ import {
 } from '@/service/api';
 import { formatESSearchResult } from '@/service/request/es';
 import useQueryParams from '@/hooks/common/queryParams';
+import { getServer } from '@/store/slice/server';
 
 interface DataType {
   category: string;
@@ -36,6 +37,8 @@ const FileManagement = props => {
 
   const responsive = useResponsive();
   const { t } = useTranslation();
+
+  const server = useAppSelector(getServer);
 
   const { addSharesToData, isEditorOwner, hasEdit, isResourceShare } = useResource();
 
@@ -246,6 +249,7 @@ const FileManagement = props => {
                       height='1em'
                       src={imgSrc}
                       width='1em'
+                      server={server}
                     />
                   </IconWrapper>
                 ) : (
@@ -269,6 +273,7 @@ const FileManagement = props => {
                   height='1em'
                   src={imgSrc}
                   width='1em'
+                  server={server}
                 />
               </IconWrapper>
             ) : (

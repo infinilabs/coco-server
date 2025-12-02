@@ -10,6 +10,7 @@ import { getActiveFirstLevelMenuKey } from '@/store/slice/tab/shared';
 import { MixMenuContext } from '../context';
 
 import { getGlobalMenusByAuthRoutes } from './MenuUtil';
+import { renderToString } from 'react-dom/server';
 
 interface Props {
   readonly children: ReactNode;
@@ -21,6 +22,8 @@ const MenuProvider: FC<Props> = ({ children }) => {
   const menus = getGlobalMenusByAuthRoutes(sortRoutes);
 
   const locale = useAppSelector(getLocale);
+
+  const { t } = useTranslation();
 
   const update = useUpdate();
 
@@ -68,6 +71,42 @@ const MenuProvider: FC<Props> = ({ children }) => {
   useUpdateEffect(() => {
     update();
   }, [locale]);
+
+  useEffect(() => {
+    if (window.$wujie?.props?.onRoutesUpdate) {
+      const formatRoutes = (routes: any[] = [], newRoutes: any[] = [], pathPrefix?: string) => {
+        routes.forEach((item) => {
+          let activeRoute
+          if (item.meta?.activeMenu) {
+            activeRoute = routes.find((r) => r.name === item.meta?.activeMenu)
+          }
+          const route = {
+            ...item,
+            path: `${pathPrefix || ''}${item.path}`,
+            localeName: item.meta?.i18nKey ? t(item.meta?.i18nKey) : undefined,
+            icon: renderToString(<SvgIcon icon={item.meta?.icon} localIcon={item.meta?.localIcon} />),
+            hideInMenu: item.meta?.hideInMenu,
+            activeRoute: pathPrefix ? undefined : (
+              activeRoute ? {
+                ...activeRoute,
+                path: `${activeRoute.path}`,
+                localeName: activeRoute.meta?.i18nKey ? t(activeRoute.meta?.i18nKey) : undefined,
+                icon: renderToString(<SvgIcon icon={activeRoute.meta?.icon} localIcon={activeRoute.meta?.localIcon} />),
+                hideInMenu: activeRoute.meta?.hideInMenu,
+              } : undefined
+            )
+          }
+          newRoutes.push(route)
+          if (item.children) {
+            formatRoutes(item.children, newRoutes, `${route.path}/`)
+          }
+        })
+      }
+      const newRoutes: any[] = []
+      formatRoutes(sortRoutes, newRoutes)
+      window.$wujie?.props?.onRoutesUpdate(newRoutes)
+    }
+  }, [sortRoutes])
 
   const mixMenuContext = {
     activeFirstLevelMenuKey,

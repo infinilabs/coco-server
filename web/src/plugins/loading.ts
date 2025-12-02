@@ -28,7 +28,7 @@ export function setupLoading() {
     .join('\n');
 
   const loading = `
-<div class="fixed-center flex-col" style="${primaryColor}">
+<div class="fixed-center flex-col ${window.__POWERED_BY_WUJIE__ ? "absolute" : "" }" style="${primaryColor}">
   ${logoWithClass}
   <div class="w-48px h-48px my-24px">
     <div class="relative h-full animate-spin">

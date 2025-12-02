@@ -36,8 +36,9 @@ export function modifyPassword(old_password: string, new_password: string) {
 }
 
 /** Logout */
-export function logout() {
+export function logout(options?: any) {
   return request({
+    ...(options || {}),
     method: 'post',
     url: '/account/logout'
   });

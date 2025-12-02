@@ -16,6 +16,7 @@ export function Component() {
   const { t } = useTranslation();
   const nav = useNavigate();
   const [form] = Form.useForm();
+  const server = useAppSelector(getServer);
 
   const route = useRoute();
   const connectorID = route.params.id
@@ -190,6 +191,7 @@ export function Component() {
                   height="2em"
                   src={connector?.icon}
                   width="2em"
+                  server={server}
                 />
               </IconWrapper>
             ) : (
@@ -297,6 +299,7 @@ export function Component() {
 
 const AssetsIconsView = ({ value = {} }) => {
   const { t } = useTranslation();
+  const server = useAppSelector(getServer);
   const icons = Object.keys(value).map(key => {
     return {
       icon: value[key],
@@ -318,6 +321,7 @@ const AssetsIconsView = ({ value = {} }) => {
                   height="1em"
                   src={icon.icon}
                   width="1em"
+                  server={server}
                 />
               </IconWrapper>
               <span>{icon.type}</span>

@@ -11,12 +11,12 @@ const loadingClasses = [
   'right-0 bottom-0 animate-delay-1500'
 ];
 
-const GlobalLoading = memo(() => {
-  const { t } = useTranslation();
+const GlobalLoading = memo((props: any) => {
+  const { className } = props;
   const darkMode = useAppSelector(getDarkMode);
 
   return (
-    <div className="fixed-center flex-col bg-[rgb(var(--layout-bg-color))]">
+    <div className={`fixed-center flex-col bg-[rgb(var(--layout-bg-color))] ${className}`}>
       {darkMode ? (
         <div className="h-128px w-320px">
           <DarkSystemLogo />

@@ -3,8 +3,8 @@ import { useMemo, useState } from 'react';
 import ModelSettings from './ModelSettings';
 import InfiniIcon from '@/components/common/icon';
 import { getLocale } from '@/store/slice/app';
-import { Flex, Form, Input, Popover, Tooltip } from 'antd';
-import { Info } from 'lucide-react';
+import { Form, Input } from 'antd';
+import { getServer } from '@/store/slice/server';
 import AvailableVariable from './AvailableVariable';
 
 const DefaultModelSettings = {
@@ -143,6 +143,7 @@ export default (props: any) => {
   }, [providers]);
 
   const locale = useAppSelector(getLocale);
+  const server = useAppSelector(getServer);
 
   const [sorter, setSorter] = useState([]);
   const [filters, setFilters] = useState({});
@@ -161,6 +162,7 @@ export default (props: any) => {
               height='1em'
               src={item.icon}
               width='1em'
+              server={server}
             />
           </IconWrapper>
         )}

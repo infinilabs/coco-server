@@ -9,6 +9,7 @@ import useQueryParams from '@/hooks/common/queryParams';
 import { deleteMCPServer, searchMCPServer, updateMCPServer } from '@/service/api/mcp-server';
 import { formatESSearchResult } from '@/service/request/es';
 import { Api } from '@/types/api';
+import { getServer } from '@/store/slice/server';
 
 type MCPServer = Api.LLM.MCPServer;
 
@@ -21,6 +22,7 @@ export function Component() {
   const resourceType = 'mcp-server';
 
   const { hasAuth } = useAuth();
+  const server = useAppSelector(getServer);
 
   const permissions = {
     read: hasAuth('coco#mcp_server/read'),
@@ -114,6 +116,7 @@ export function Component() {
                   height='1em'
                   src={record.icon}
                   width='1em'
+                  server={server}
                 />
               </IconWrapper>
             )}
