@@ -3,6 +3,8 @@ package feishu
 import (
 	"fmt"
 	"infini.sh/coco/core"
+	"infini.sh/coco/modules/connector"
+	"infini.sh/coco/plugins/connectors"
 	"net/http"
 	"net/url"
 	"strings"
@@ -210,24 +212,21 @@ func getOAuthConfigFromConnector(connectorID string, pluginType PluginType) (*OA
 		RedirectURL: fmt.Sprintf("/connector/%s/%s/oauth_redirect", connectorID, pluginType),
 	}
 
-	// Try to load connector to get OAuth credentials
-	connector := core.Connector{}
-	connector.ID = connectorID
-	exists, err := orm.Get(&connector)
-	if err == nil && exists && connector.Config != nil {
-		if clientID, ok := connector.Config["client_id"].(string); ok {
-			oauthConfig.ClientID = clientID
-		}
-		if clientSecret, ok := connector.Config["client_secret"].(string); ok {
-			oauthConfig.ClientSecret = clientSecret
-		}
-		if authURL, ok := connector.Config["auth_url"].(string); ok {
-			oauthConfig.AuthURL = authURL
-		}
-		if tokenURL, ok := connector.Config["token_url"].(string); ok {
-			oauthConfig.TokenURL = tokenURL
-		}
+	if connectorID == "" {
+		return nil, fmt.Errorf("connector id is empty")
 	}
+	cfg, err := connector.GetConnectorByID(connectorID)
+	if err != nil || cfg == nil {
+		return nil, fmt.Errorf("invalid connector config")
+	}
+	err = connectors.ParseConnectorBaseConfigure(cfg, &oauthConfig)
+	if err != nil {
+		return nil, fmt.Errorf("invalid oauth config parse from connector")
+	}
+	if oauthConfig.ClientID == "" || oauthConfig.ClientSecret == "" || len(oauthConfig.RedirectURL) == 0 {
+		return nil, fmt.Errorf("missing %s OAuth credentials", pluginType)
+	}
+	log.Infof("oauthConfig: %v", oauthConfig)
 
 	return oauthConfig, nil
 }

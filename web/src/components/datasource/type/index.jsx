@@ -29,7 +29,8 @@ export const Types = {
   Postgresql: 'postgresql',
   RSS: 'rss',
   S3: 's3',
-  Yuque: 'yuque'
+  Yuque: 'yuque',
+  Box: 'box'
 };
 
 export const TypeList = ({

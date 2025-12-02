@@ -1,0 +1,75 @@
+{
+  "category": "cloud_storage",
+  "description": "Index files and folders from Box, supporting both Free and Enterprise accounts with multi-user access.",
+  "developer": {
+    "avatar": "https://coco.infini.cloud/extensions/infinilabs/assets/avatar.png",
+    "github_handle": "infinilabs",
+    "id": "infinilabs",
+    "location": "Internet",
+    "name": "infinilabs",
+    "website": "https://github.com/infinilabs"
+  },
+  "icon": "/assets/icons/connector/box/icon.png",
+  "name": "Box Cloud Storage Connector",
+  "platforms": [
+    "macos",
+    "linux",
+    "windows"
+  ],
+  "screenshots": [
+    {
+      "title": "Box Cloud Storage Connector",
+      "url": "/assets/screenshot.png"
+    }
+  ],
+  "tags": [
+    "box",
+    "cloud_storage",
+    "file_sharing"
+  ],
+  "type": "connector",
+  "url": {
+    "home": "http://coco.rs/connectors/box"
+  },
+  "version": {
+    "number": "0.1"
+  },
+  "payload": {
+    "name": "Box Cloud Storage Connector",
+    "description": "Index files and folders from Box, supporting both Free and Enterprise accounts with multi-user access.",
+    "category": "cloud_storage",
+    "icon": "/assets/icons/connector/box/icon.png",
+    "tags": [
+      "box",
+      "cloud_storage",
+      "file_sharing"
+    ],
+    "url": "http://coco.rs/connectors/box",
+    "assets": {
+      "icons": {
+        "default": "/assets/icons/connector/box/icon.png",
+        "bookmark": "/assets/icons/connector/box/bookmark.png",
+        "boxcanvas": "/assets/icons/connector/box/boxcanvas.png",
+        "boxnote": "/assets/icons/connector/box/boxnote.png",
+        "docx": "/assets/icons/connector/box/docx.png",
+        "excel-spreadsheet": "/assets/icons/connector/box/excel-spreadsheet.png",
+        "google-docs": "/assets/icons/connector/box/google-docs.png",
+        "google-sheets": "/assets/icons/connector/box/google-sheets.png",
+        "google-slides": "/assets/icons/connector/box/google-slides.png",
+        "keynote": "/assets/icons/connector/box/keynote.png",
+        "numbers": "/assets/icons/connector/box/numbers.png",
+        "pages": "/assets/icons/connector/box/pages.png",
+        "pdf": "/assets/icons/connector/box/pdf.png",
+        "powerpoint-presentation": "/assets/icons/connector/box/powerpoint-presentation.png"
+      }
+    },
+    "builtin": true,
+    "path_hierarchy": false,
+    "oauth_connect_implemented": true,
+    "processor": {
+      "enabled": true,
+      "name": "box"
+    }
+  }
+}
+
