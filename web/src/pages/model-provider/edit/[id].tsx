@@ -13,9 +13,11 @@ import { IconSelector } from "../../connector/new/icon_selector";
 import {ModelsComponent} from "../new/index";
 import { LoaderFunctionArgs, useLoaderData } from 'react-router-dom';
 import InfiniIcon from '@/components/common/icon';
+import { getServer } from '@/store/slice/server';
 
 export function Component() {
   const { t } = useTranslation();
+  const server = useAppSelector(getServer);
   const {id}:any = useLoaderData();
   const initialValues = {};
   const [modelProvider, setModelProvider] = useState<any>(initialValues);
@@ -90,7 +92,7 @@ export function Component() {
               
               {modelProvider.builtin === true ? (
                 <IconWrapper className="w-40px h-40px">
-                  <InfiniIcon src={modelProvider.icon} height="2em" width="2em" />
+                  <InfiniIcon src={modelProvider.icon} height="2em" width="2em" server={server}/>
                 </IconWrapper>
               ) : <IconSelector type="connector" icons={iconsMeta} className='max-w-600px' />}
             </Form.Item>

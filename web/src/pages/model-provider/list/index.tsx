@@ -14,6 +14,7 @@ import InfiniIcon from '@/components/common/icon';
 import useQueryParams from '@/hooks/common/queryParams';
 import { deleteModelProvider, searchModelPovider, updateModelProvider } from '@/service/api/model-provider';
 import { formatESSearchResult } from '@/service/request/es';
+import { getServer } from '@/store/slice/server';
 
 export function Component() {
   const type = 'table';
@@ -30,6 +31,7 @@ export function Component() {
   const resourceType = 'llm-provider';
 
   const { t } = useTranslation();
+  const server = useAppSelector(getServer);
   const nav = useNavigate();
   const [data, setData] = useState({
     total: 0,
@@ -235,6 +237,7 @@ export function Component() {
                   height='1em'
                   src={record.icon}
                   width='1em'
+                  server={server}
                 />
               </IconWrapper>
             )}
@@ -421,6 +424,7 @@ export function Component() {
                               height='2em'
                               src={provider.icon}
                               width='2em'
+                              server={server}
                             />
                           </IconWrapper>
                           {permissions.read && permissions.update && hasEdit(provider) ? (

@@ -27,8 +27,9 @@ const themeSchemes: UnionKey.ThemeScheme[] = ['light', 'dark', 'auto'];
 const initTheme = initThemeSettings();
 
 const initialState: InitialStateType = {
-  darkMode:
-    initTheme.themeScheme === 'auto'
+  darkMode: window.$wujie?.props?.theme
+    ? window.$wujie?.props?.theme === 'dark'
+    : initTheme.themeScheme === 'auto'
       ? window.matchMedia && window.matchMedia(DARK_MODE_MEDIA_QUERY).matches
       : initTheme.themeScheme === 'dark',
   settings: initThemeSettings()
@@ -141,6 +142,9 @@ export const themeSlice = createSlice({
   },
   selectors: {
     getDarkMode: theme => {
+      if (window.$wujie?.props?.theme) {
+        return window.$wujie?.props?.theme === 'dark';
+      }
       if (theme.settings.themeScheme === 'auto') {
         return (window.matchMedia && window.matchMedia(DARK_MODE_MEDIA_QUERY).matches) || theme.darkMode;
       }

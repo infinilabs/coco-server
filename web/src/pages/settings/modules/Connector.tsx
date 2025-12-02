@@ -14,13 +14,16 @@ import Icon, { EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, Plus
 
 import { formatESSearchResult } from '@/service/request/es';
 import { Api } from '@/types/api';
+import { getServer } from '@/store/slice/server';
 
 type Connector = Api.Datasource.Connector;
 
 const ConnectorSettings = memo(() => {
   const [queryParams, setQueryParams] = useQueryParams();
 
-  const { t } = useTranslation();
+  const { t } = useTranslation();  
+  const server = useAppSelector(getServer);
+  
   const nav = useNavigate();
 
   const { addSharesToData, isEditorOwner, hasEdit, isResourceShare } = useResource();
@@ -109,6 +112,7 @@ const ConnectorSettings = memo(() => {
                   height='1em'
                   src={record.icon}
                   width='1em'
+                  server={server}
                 />
               ) : (
                 <Icon component={svgIcon} />

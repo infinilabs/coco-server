@@ -35,7 +35,7 @@ export const init: Init = async currentFullPath => {
   const searchEnabled = Boolean(result?.data?.search_settings?.enabled)
 
   const filterPaths: RoutePath[] = []
-  if (!setupRequired || isManaged) {
+  if (!setupRequired || isManaged || window.__POWERED_BY_WUJIE__) {
     filterPaths.push('/guide')
   }
   if (!searchEnabled) {
@@ -46,7 +46,7 @@ export const init: Init = async currentFullPath => {
 
   await store.dispatch(initConstantRoute());
 
-  if (setupRequired && !isManaged) {
+  if (setupRequired && !isManaged && !window.__POWERED_BY_WUJIE__) {
     return {
       name: 'guide'
     };

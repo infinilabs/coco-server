@@ -14,6 +14,8 @@ import type {
   ResponseType
 } from './type';
 
+axios.defaults.withCredentials = true;
+
 function createCommonRequest<ResponseData = any>(
   axiosConfig?: CreateAxiosDefaults,
   options?: Partial<RequestOption<ResponseData>>
