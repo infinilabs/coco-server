@@ -8,7 +8,7 @@ weight: 65
 ## Register Box Connector
 
 ```shell
-curl -XPUT "http://localhost:9000/connector/box?replace=true" -d '{
+curl -XPOST "http://localhost:9000/connector/" -d '{
     "name": "Box Cloud Storage Connector",
     "description": "Index files and folders from Box, supporting both Free and Enterprise accounts with multi-user access.",
     "icon": "/assets/icons/connector/box/icon.png",
@@ -44,8 +44,6 @@ curl -XPUT "http://localhost:9000/connector/box?replace=true" -d '{
     }
 }'
 ```
-
-> Use `box` as a unique identifier, as it is a builtin connector.
 
 ## Use the Box Connector
 
