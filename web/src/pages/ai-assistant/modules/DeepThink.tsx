@@ -12,10 +12,21 @@ export const DeepThink = (props: DeepThinkProps) => {
   return (
     <div className={className}>
       <Form.Item
-        className='[&_.ant-form-item-control]:flex-[unset]!'
+        className='relative [&_.ant-form-item-explain-error]:(absolute top-8) [&_.ant-form-item-control]:flex-[unset]!'
         label={t('page.assistant.labels.intent_recognition_model')}
         layout='vertical'
         name={['config', 'intent_analysis_model']}
+        rules={[
+          {
+            required: true,
+            validator: (_, value) => {
+              if (!value || !value.id) {
+                return Promise.reject(new Error(t('page.assistant.hints.selectModel')));
+              }
+              return Promise.resolve();
+            }
+          }
+        ]}
       >
         <ModelSelect
           modelType='intent_analysis_model'
@@ -27,7 +38,7 @@ export const DeepThink = (props: DeepThinkProps) => {
       <div>{t('page.assistant.labels.feature_visibility_deep_thought')}</div>
 
       <Form.Item
-        className='mb-0!'
+        className='mb-[0]!'
         label={t('page.assistant.labels.show_in_chat')}
         name={['config', 'visible']}
       >

@@ -109,8 +109,9 @@ const page: App.I18n.Schema['translation']['page'] = {
     },
     hints: {
       system_prompt: '请输入系统提示词',
-      searchExecutionStrategy: '由模型根据上下文、查询意图等判断是否执行该流程。',
-      llmExecutionStrategy: '无论模型是否认为必要，都执行该流程。'
+      intelligentDecisionMaking: '由模型根据上下文、查询意图等判断是否执行该流程。',
+      alwaysExecute: '无论模型是否认为必要，都执行该流程。',
+      selectModel: '请选择一个模型'
     },
     options: {
       intelligentDecisionMaking: '智能决策',

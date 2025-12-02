@@ -1,4 +1,4 @@
-import { Button, Collapse, Flex, Form, Input, InputNumber, Select, Space, Spin, Switch, message } from 'antd';
+import { Button, Collapse, Form, Input, InputNumber, Select, Spin, Switch, message } from 'antd';
 import type { FormProps } from 'antd';
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { useLoading, useRequest } from '@sa/hooks';
@@ -146,14 +146,14 @@ export const EditForm = memo((props: AssistantFormProps) => {
   }, [JSON.stringify(mcpServerResult)]);
 
   const [assistantMode, setAssistantMode] = useState(initialValues?.mode || 'simple');
+
+  console.log('assistantMode', assistantMode);
+
   useEffect(() => {
     if (initialValues?.type) {
       setAssistantMode(initialValues.type);
     }
   }, [initialValues?.type]);
-  const handleAssistantModeChange = (value: string) => {
-    setAssistantMode(value);
-  };
 
   const [suggestedChatChecked, setSuggestedChatChecked] = useState(
     initialValues?.chat_settings?.suggested?.enabled || false
@@ -178,6 +178,10 @@ export const EditForm = memo((props: AssistantFormProps) => {
   }, []);
 
   const commonFormItemsClassName = `${showAdvanced || assistantMode === 'deep_think' ? '' : 'h-0px m-0px overflow-hidden'}`;
+
+  const configPickTools = Form.useWatch(['config', 'pick_tools'], form);
+  const configPickDatasource = Form.useWatch(['config', 'pick_datasource'], form);
+  const datasourceEnabled = Form.useWatch(['datasource', 'enabled'], form);
 
   const renderIntentRecognitionCollapse = () => {
     if (assistantMode !== 'deep_think') return;
@@ -230,11 +234,15 @@ export const EditForm = memo((props: AssistantFormProps) => {
                   <>
                     <Form.Item
                       className='mb-4! [&_.ant-form-item-control]:flex-[unset]!'
-                      extra={t('page.assistant.hints.searchExecutionStrategy')}
                       initialValue={false}
                       label={t('page.assistant.labels.executionStrategy')}
                       layout='vertical'
                       name={['config', 'pick_datasource']}
+                      extra={
+                        configPickDatasource
+                          ? t('page.assistant.hints.alwaysExecute')
+                          : t('page.assistant.hints.intelligentDecisionMaking')
+                      }
                     >
                       <Select
                         options={[
@@ -251,10 +259,26 @@ export const EditForm = memo((props: AssistantFormProps) => {
                     </Form.Item>
 
                     <Form.Item
-                      className='[&_.ant-form-item-control]:flex-[unset]!'
+                      className='relative [&_.ant-form-item-explain-error]:(absolute top-8) [&_.ant-form-item-control]:flex-[unset]!'
                       label={t('page.settings.llm.picking_doc_model')}
                       layout='vertical'
                       name={['config', 'picking_doc_model']}
+                      rules={[
+                        {
+                          required: datasourceEnabled,
+                          validator: (_, value) => {
+                            if (!datasourceEnabled) {
+                              return Promise.resolve();
+                            }
+
+                            if (!value || !value.id) {
+                              return Promise.reject(new Error(t('page.assistant.hints.selectModel')));
+                            }
+
+                            return Promise.resolve();
+                          }
+                        }
+                      ]}
                     >
                       <ModelSelect
                         modelType='picking_doc_model'
@@ -312,19 +336,19 @@ export const EditForm = memo((props: AssistantFormProps) => {
               </div>
             ),
             children: (
-              <Form.Item
-                className='mb-0 [&_.ant-form-item-control]:flex-[unset]!'
-                name='mcp_servers'
-                rules={[{ required: true }]}
-              >
+              <>
                 {assistantMode === 'deep_think' && (
                   <Form.Item
                     className='mb-4! [&_.ant-form-item-control]:flex-[unset]!'
-                    extra={t('page.assistant.hints.llmExecutionStrategy')}
                     initialValue={false}
                     label={t('page.assistant.labels.executionStrategy')}
                     layout='vertical'
                     name={['config', 'pick_tools']}
+                    extra={
+                      configPickTools
+                        ? t('page.assistant.hints.alwaysExecute')
+                        : t('page.assistant.hints.intelligentDecisionMaking')
+                    }
                   >
                     <Select
                       options={[
@@ -341,18 +365,23 @@ export const EditForm = memo((props: AssistantFormProps) => {
                   </Form.Item>
                 )}
 
-                <MCPConfig
-                  modelProviders={modelProviders}
-                  options={[{ label: '*', value: '*' }].concat(
-                    mcpServers.map(item => ({
-                      label: item.name,
-                      value: item.id
-                    }))
-                  )}
+                <Form.Item
+                  className='mb-0 [&_.ant-form-item-control]:flex-[unset]!'
+                  name='mcp_servers'
                 >
-                  <ToolsConfig />
-                </MCPConfig>
-              </Form.Item>
+                  <MCPConfig
+                    modelProviders={modelProviders}
+                    options={[{ label: '*', value: '*' }].concat(
+                      mcpServers.map(item => ({
+                        label: item.name,
+                        value: item.id
+                      }))
+                    )}
+                  >
+                    <ToolsConfig />
+                  </MCPConfig>
+                </Form.Item>
+              </>
             )
           }
         ]}
@@ -372,11 +401,21 @@ export const EditForm = memo((props: AssistantFormProps) => {
             label: t('page.assistant.labels.generate_response'),
             children: (
               <Form.Item
-                className='mb-0! [&_.ant-form-item-control]:flex-[unset]!'
+                className='relative [&_.ant-form-item-explain-error]:(absolute top-8) mb-0! [&_.ant-form-item-control]:flex-[unset]!'
                 label={t('page.assistant.labels.answering_model')}
                 layout='vertical'
                 name={['answering_model']}
-                rules={[{ required: true }]}
+                rules={[
+                  {
+                    required: true,
+                    validator: (_, value) => {
+                      if (!value || !value.id) {
+                        return Promise.reject(new Error(t('page.assistant.hints.selectModel')));
+                      }
+                      return Promise.resolve();
+                    }
+                  }
+                ]}
               >
                 <ModelSelect
                   modelType='answering_model'
@@ -494,7 +533,12 @@ export const EditForm = memo((props: AssistantFormProps) => {
           name='type'
           rules={[{ required: true }]}
         >
-          <AssistantMode onChange={handleAssistantModeChange} />
+          <span className='hidden'>{assistantMode}</span>
+
+          <AssistantMode
+            value={assistantMode}
+            onChange={setAssistantMode}
+          />
         </Form.Item>
 
         {assistantMode === 'deep_think' && (
@@ -520,7 +564,17 @@ export const EditForm = memo((props: AssistantFormProps) => {
           <Form.Item
             label={t('page.assistant.labels.answering_model')}
             name={['answering_model']}
-            rules={[{ required: true }]}
+            rules={[
+              {
+                required: true,
+                validator: (_, value) => {
+                  if (!value || !value.id) {
+                    return Promise.reject(new Error(t('page.assistant.hints.selectModel')));
+                  }
+                  return Promise.resolve();
+                }
+              }
+            ]}
           >
             <ModelSelect
               modelType='answering_model'

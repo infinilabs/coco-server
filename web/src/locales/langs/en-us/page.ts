@@ -114,9 +114,10 @@ const page: App.I18n.Schema['translation']['page'] = {
     },
     hints: {
       system_prompt: 'Please enter the system prompt instructions',
-      searchExecutionStrategy:
+      intelligentDecisionMaking:
         'The model determines whether to execute the process based on context, query intent, etc.',
-      llmExecutionStrategy: 'Execute the process whether or not the model deems it necessary.'
+      alwaysExecute: 'Execute the process whether or not the model deems it necessary.',
+      selectModel: 'Please select a model'
     },
     options: {
       intelligentDecisionMaking: 'Intelligent Decision Making',
@@ -323,7 +324,8 @@ const page: App.I18n.Schema['translation']['page'] = {
         index_attachments: 'Whether to index issue attachments',
         index_comments: 'Whether to index issue comments',
         project_key: 'The Jira project key you want to index (e.g., "COCO")',
-        token: 'Your password when username is provided (Basic Auth), or your Personal Access Token when username is empty (Bearer Auth)',
+        token:
+          'Your password when username is provided (Basic Auth), or your Personal Access Token when username is empty (Bearer Auth)',
         username: 'Your Jira account username for authentication'
       }
     },

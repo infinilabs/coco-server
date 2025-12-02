@@ -160,9 +160,9 @@ export default (props: any) => {
           <IconWrapper className='h-20px w-20px'>
             <InfiniIcon
               height='1em'
+              server={server}
               src={item.icon}
               width='1em'
-              server={server}
             />
           </IconWrapper>
         )}
@@ -289,7 +289,7 @@ export default (props: any) => {
 
       {showTemplate && (
         <Form.Item
-          className='mb-0! mt-4!'
+          className='mb-0! mt-6!'
           help={<AvailableVariable type={modelType} />}
           initialValue={defaultPromptTpl}
           label={t('page.assistant.labels.prompt_template')}
