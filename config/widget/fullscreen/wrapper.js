@@ -12,7 +12,9 @@ export async function fullscreen(options) {
 
   const shadow = hostElement.attachShadow({ mode: "open" });
 
-  const linkHref = "$[[ENDPOINT]]/widgets/fullscreen/index.css?v=$[[VER]]";
+  const endpoint = options.endpoint || "$[[ENDPOINT]]";
+
+  const linkHref = endpoint + "/widgets/fullscreen/index.css?v=$[[VER]]";
   const linkElement = document.createElement("link");
   linkElement.rel = "stylesheet";
   linkElement.href = linkHref;
@@ -24,7 +26,7 @@ export async function fullscreen(options) {
     shadow.appendChild(wrapper);
 
     const { fullscreen: originalFullscreen } = await import(
-      "$[[ENDPOINT]]/widgets/fullscreen/index.js?v=$[[VER]]"
+      endpoint + "/widgets/fullscreen/index.js?v=$[[VER]]"
     );
 
     const finalOptions = {
@@ -32,7 +34,7 @@ export async function fullscreen(options) {
       shadow,
       container: wrapper,
       id: "$[[ID]]",
-      server: "$[[ENDPOINT]]",
+      server: endpoint,
       linkHref
     };
 
