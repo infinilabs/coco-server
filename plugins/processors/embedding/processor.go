@@ -147,7 +147,7 @@ func (processor *DocumentSummaryProcessor) Process(ctx *pipeline.Context) error 
 
 				if !processor.config.IncludeSkippedDocumentToOutputQueue {
 					continue
-				}+
+				}
 
 				outputBytes = pop
 			}
