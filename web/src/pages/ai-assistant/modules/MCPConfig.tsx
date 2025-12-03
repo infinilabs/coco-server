@@ -54,14 +54,16 @@ export const MCPConfig = (props: MCPConfigProps) => {
           }
         ]}
       >
-        <ModelSelect
-          modelType='caller_model'
-          namePrefix={['mcp_servers', 'model']}
-          providers={props.modelProviders}
-          value={value.model}
-          width='100%'
-          onChange={onModelChange}
-        />
+        <div>
+          <ModelSelect
+            modelType='caller_model'
+            namePrefix={['mcp_servers', 'model']}
+            providers={props.modelProviders}
+            value={value.model}
+            width='100%'
+            onChange={onModelChange}
+          />
+        </div>
       </Form.Item>
 
       {/* <div className='mb-2'>{t('page.assistant.labels.tool_invoked_model')}</div>
