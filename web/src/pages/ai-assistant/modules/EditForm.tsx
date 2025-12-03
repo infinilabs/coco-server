@@ -69,6 +69,7 @@ export const EditForm = memo((props: AssistantFormProps) => {
     if (values.upload?.allowed_file_extensions) {
       values.upload.allowed_file_extensions = values.upload.allowed_file_extensions.filter(item => Boolean(item));
     }
+
     onSubmit?.(
       {
         ...values,
@@ -146,8 +147,6 @@ export const EditForm = memo((props: AssistantFormProps) => {
   }, [JSON.stringify(mcpServerResult)]);
 
   const [assistantMode, setAssistantMode] = useState(initialValues?.mode || 'simple');
-
-  console.log('assistantMode', assistantMode);
 
   useEffect(() => {
     if (initialValues?.type) {
@@ -533,8 +532,6 @@ export const EditForm = memo((props: AssistantFormProps) => {
           name='type'
           rules={[{ required: true }]}
         >
-          <span className='hidden'>{assistantMode}</span>
-
           <AssistantMode
             value={assistantMode}
             onChange={setAssistantMode}
