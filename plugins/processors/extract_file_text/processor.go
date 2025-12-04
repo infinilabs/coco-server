@@ -1,7 +1,6 @@
 package extract_file_text
 
 import (
-	"fmt"
 	"os/exec"
 
 	log "github.com/cihub/seelog"
@@ -52,6 +51,7 @@ func (p *ExtractFileTextProcessor) Name() string {
 func (p *ExtractFileTextProcessor) Process(ctx *pipeline.Context) error {
 	obj := ctx.Get(p.config.MessageField)
 	if obj == nil {
+		log.Warnf("processor [] receives an empty pipeline context", p.Name())
 		return nil
 	}
 
@@ -81,7 +81,6 @@ func (p *ExtractFileTextProcessor) Process(ctx *pipeline.Context) error {
 				// or maybe we just don't update the Text field.
 			} else {
 				doc.Text = string(output)
-				fmt.Printf("DBG: extracted text length: %d\n", len(doc.Text))
 
 				// Update msg.Data with the new document content
 				updatedDocBytes := util.MustToJSONBytes(doc)

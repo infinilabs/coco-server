@@ -54,6 +54,8 @@ func init() {
 }
 
 func New(c *config.Config) (pipeline.Processor, error) {
+	fmt.Printf("DBG: DocumentSummarization.New()\n")
+
 	cfg := Config{MessageField: core.PipelineContextDocuments, MinInputDocumentLength: 100, MaxInputDocumentLength: 100000, MaxOutputDocumentLength: 10000, IncludeSkippedDocumentToOutputQueue: true}
 
 	if err := c.Unpack(&cfg); err != nil {
@@ -88,10 +90,13 @@ func (processor *DocumentSummarizationProcessor) Name() string {
 }
 
 func (processor *DocumentSummarizationProcessor) Process(ctx *pipeline.Context) error {
+	fmt.Printf("DBG: DocumentSummarization.Process()\n")
+
 	// get message from queue
 	obj := ctx.Get(processor.config.MessageField)
 
 	if obj == nil {
+		log.Warnf("processor [] receives an empty pipeline context", processor.Name())
 		return nil
 	}
 
@@ -159,6 +164,7 @@ func (processor *DocumentSummarizationProcessor) Process(ctx *pipeline.Context) 
 			_ = completion
 
 			text := summary.String()
+			fmt.Printf("DBG: summary len %s \n", len(text))
 			text = processor.removeThinkPattern.ReplaceAllString(text, "")
 
 			if len(text) > 0 {

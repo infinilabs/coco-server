@@ -1,7 +1,6 @@
 package read_file_content
 
 import (
-	"fmt"
 	"os"
 
 	log "github.com/cihub/seelog"
@@ -29,8 +28,6 @@ type Config struct {
 }
 
 func New(c *config.Config) (pipeline.Processor, error) {
-	fmt.Printf("DBG: read_file_content.New invoked\n")
-
 	cfg := Config{
 		MessageField: "messages",
 	}
@@ -52,11 +49,8 @@ func (p *ReadFileContentProcessor) Name() string {
 }
 
 func (p *ReadFileContentProcessor) Process(ctx *pipeline.Context) error {
-	fmt.Printf("DBG: read_file_content.Process invoked.\n")
-
 	obj := ctx.Get(p.config.MessageField)
 	if obj == nil {
-		fmt.Printf("DBG: read_file_content.Process obj is nil for field: %s\n", p.config.MessageField)
 		return nil
 	}
 
