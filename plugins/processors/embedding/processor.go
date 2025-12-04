@@ -76,6 +76,7 @@ func (processor *DocumentEmbeddingProcessor) Name() string {
 }
 
 func (processor *DocumentEmbeddingProcessor) Process(ctx *pipeline.Context) error {
+	fmt.Printf("DocumentEmbeddingProcessor.Process()\n")
 	obj := ctx.Get(processor.config.MessageField)
 
 	if obj == nil {

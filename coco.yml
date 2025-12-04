@@ -325,9 +325,9 @@ pipeline:
           processor:
             - read_file_content: {}
             - extract_file_text: {}
-            - document_summarization:
-                model_provider: deepseek
-                model: deepseek-chat
+            # - document_summarization:
+            #     model_provider: deepseek
+            #     model: deepseek-chat
             - document_embedding:
                 model_provider: qianwen
                 model: text-embedding-v4
