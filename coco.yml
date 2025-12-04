@@ -329,8 +329,8 @@ pipeline:
                 model_provider: deepseek
                 model: deepseek-chat
             - document_embedding:
-                model_provider: deepseek
-                model: deepseek-chat
+                model_provider: qianwen
+                model: text-embedding-v4
                 output_queue:
                   name: "enriched_documents"
 
