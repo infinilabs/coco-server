@@ -45,7 +45,7 @@ export const MCPConfig = (props: MCPConfigProps) => {
                 return Promise.resolve();
               }
 
-              if (!value || !value.id) {
+              if (!value?.model?.id) {
                 return Promise.reject(new Error(t('page.assistant.hints.selectModel')));
               }
 
