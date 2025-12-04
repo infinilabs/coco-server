@@ -26,15 +26,12 @@ import (
 const ProcessorName = "document_embedding"
 
 type Config struct {
-	MessageField param.ParaKey `config:"message_field"`
-	OutputQueue  struct {
-		Name   string                 `config:"name"`
-		Labels map[string]interface{} `config:"label" json:"label,omitempty"`
-	} `config:"output_queue"`
-	ModelProviderID        string `config:"model_provider"`
-	ModelName              string `config:"model"`
-	MinInputDocumentLength int    `config:"min_input_document_length"`
-	MaxInputDocumentLength int    `config:"max_input_document_length"`
+	MessageField           param.ParaKey      `config:"message_field"`
+	OutputQueue            *queue.QueueConfig `config:"output_queue"`
+	ModelProviderID        string             `config:"model_provider"`
+	ModelName              string             `config:"model"`
+	MinInputDocumentLength int                `config:"min_input_document_length"`
+	MaxInputDocumentLength int                `config:"max_input_document_length"`
 }
 
 type DocumentEmbeddingProcessor struct {
@@ -94,7 +91,7 @@ func (processor *DocumentEmbeddingProcessor) Process(ctx *pipeline.Context) erro
 
 	if obj == nil {
 		log.Warnf("processor [] receives an empty pipeline context", processor.Name())
-		return nil;
+		return nil
 	}
 
 	messages := obj.([]queue.Message)

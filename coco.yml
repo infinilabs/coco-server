@@ -327,10 +327,10 @@ pipeline:
             - extract_file_text: {}
             - document_summarization:
                 model_provider: 
-                model: $[[env.ENRICHMENT_MODEL]]
+                model:
             - document_embedding:
                 model_provider: 
-                model: $[[env.ENRICHMENT_MODEL]]
+                model:
                 output_queue:
                   name: "enriched_documents"
 

@@ -66,10 +66,10 @@ func New(c *config.Config) (pipeline.Processor, error) {
 	}
 
 	if cfg.ModelProviderID == "" {
-		panic(errors.New("model_provider can't be empty"))
+		panic("model_provider can't be empty")
 	}
 	if cfg.ModelName == "" {
-		panic(errors.New("model can't be empty"))
+		panic("model can't be empty")
 	}
 
 	processor := DocumentSummarizationProcessor{config: &cfg}
