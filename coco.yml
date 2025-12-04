@@ -323,7 +323,8 @@ pipeline:
             group: enriched_documents
             fetch_max_messages: 10
           processor:
-            - read_file_content:
+            - read_file_content: {}
+            - extract_file_text:
                 output_queue:
                   name: "enriched_documents"
 
