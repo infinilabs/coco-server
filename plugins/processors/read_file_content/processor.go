@@ -65,7 +65,8 @@ func (p *ReadFileContentProcessor) Process(ctx *pipeline.Context) error {
 		return nil
 	}
 
-	for _, msg := range messages {
+	for i := range messages {
+		msg := &messages[i]
 		doc := core.Document{}
 
 		docBytes := msg.Data

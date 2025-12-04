@@ -7,10 +7,15 @@ package summary
 import (
 	"context"
 	"fmt"
+	"regexp"
+	"strings"
+	"time"
+
 	log "github.com/cihub/seelog"
 	"github.com/tmc/langchaingo/llms"
-	"github.com/tmc/langchaingo/llms/ollama"
 	"infini.sh/coco/core"
+	"infini.sh/coco/modules/assistant/langchain"
+	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/config"
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/global"
@@ -18,9 +23,6 @@ import (
 	"infini.sh/framework/core/pipeline"
 	"infini.sh/framework/core/queue"
 	"infini.sh/framework/core/util"
-	"regexp"
-	"strings"
-	"time"
 )
 
 type Config struct {
@@ -33,7 +35,8 @@ type Config struct {
 	MinInputDocumentLength     int    `config:"min_input_document_length"`
 	MaxInputDocumentLength     int    `config:"max_input_document_length"`
 	MaxOutputDocumentLength    int    `config:"max_output_document_length"`
-	SummaryModel               string `config:"model"`
+	ModelProviderID            string `config:"model_provider"`
+	ModelName                  string `config:"model"`
 	OutputSummaryField         string `config:"output_summary_field"`
 	PreviousSummaryField       string `config:"previous_summary_field"`
 
@@ -64,25 +67,27 @@ func New(c *config.Config) (pipeline.Processor, error) {
 		panic("message field is empty")
 	}
 
-	if cfg.OutputQueue.Name == "" {
-		panic(errors.New("name of output_queue can't be nil"))
+	if cfg.ModelProviderID == "" {
+		panic(errors.New("model_provider can't be empty"))
 	}
-	if cfg.SummaryModel == "" {
-		panic(errors.New("summary model can't be empty"))
+	if cfg.ModelName == "" {
+		panic(errors.New("model can't be empty"))
 	}
 
 	runner := DocumentSummarizationProcessor{config: &cfg}
 
-	queueConfig := queue.AdvancedGetOrInitConfig("", cfg.OutputQueue.Name, cfg.OutputQueue.Labels)
-	queueConfig.ReplaceLabels(cfg.OutputQueue.Labels)
+	if cfg.OutputQueue.Name != "" {
+		queueConfig := queue.AdvancedGetOrInitConfig("", cfg.OutputQueue.Name, cfg.OutputQueue.Labels)
+		queueConfig.ReplaceLabels(cfg.OutputQueue.Labels)
 
-	producer, err := queue.AcquireProducer(queueConfig)
-	if err != nil {
-		panic(err)
+		producer, err := queue.AcquireProducer(queueConfig)
+		if err != nil {
+			panic(err)
+		}
+
+		runner.outCfg = queue.AdvancedGetOrInitConfig("", cfg.OutputQueue.Name, cfg.OutputQueue.Labels)
+		runner.producer = producer
 	}
-
-	runner.outCfg = queue.AdvancedGetOrInitConfig("", cfg.OutputQueue.Name, cfg.OutputQueue.Labels)
-	runner.producer = producer
 	// Regular expression to remove <think> content
 	runner.removeThinkPattern = regexp.MustCompile(`(?s)<think>.*?</think>`)
 
@@ -107,14 +112,17 @@ func (processor *DocumentSummarizationProcessor) Process(ctx *pipeline.Context) 
 			return nil
 		}
 
-		llm, err := ollama.New(ollama.WithModel(processor.config.SummaryModel))
+		provider, err := common.GetModelProvider(processor.config.ModelProviderID)
 		if err != nil {
-			panic(err)
+			log.Error("failed to get model provider:", err)
+			return err
 		}
+
+		llm := langchain.GetLLM(provider.BaseURL, provider.APIType, processor.config.ModelName, provider.APIKey, "")
 		ctx := context.Background()
 
-		for i, message := range messages {
-
+		for i := range messages {
+			message := &messages[i]
 			pop := message.Data
 			var outputBytes []byte
 
@@ -175,6 +183,7 @@ Summary:`, processor.config.MaxOutputDocumentLength, util.SubStringWithSuffix(st
 				}
 
 				outputBytes = util.MustToJSONBytes(doc)
+				message.Data = outputBytes
 
 				log.Infof("finished summarize doc, %v, %v, elapsed: %v, summary: %v", doc.ID, doc.Title, util.Since(start), text)
 			} else {
@@ -191,11 +200,13 @@ Summary:`, processor.config.MaxOutputDocumentLength, util.SubStringWithSuffix(st
 			}
 
 			//push to output queue
-			r := queue.ProduceRequest{Topic: processor.outCfg.ID, Data: outputBytes}
-			res := []queue.ProduceRequest{r}
-			_, err = processor.producer.Produce(&res)
-			if err != nil {
-				panic(errors.Errorf("failed to push message to output queue: %v, %s, offset:%v, size:%v, err:%v", processor.outCfg.Name, processor.outCfg.ID, message.Offset.String(), len(outputBytes), err))
+			if processor.producer != nil {
+				r := queue.ProduceRequest{Topic: processor.outCfg.ID, Data: outputBytes}
+				res := []queue.ProduceRequest{r}
+				_, err = processor.producer.Produce(&res)
+				if err != nil {
+					panic(errors.Errorf("failed to push message to output queue: %v, %s, offset:%v, size:%v, err:%v", processor.outCfg.Name, processor.outCfg.ID, message.Offset.String(), len(outputBytes), err))
+				}
 			}
 		}
 	}

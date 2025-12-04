@@ -324,18 +324,15 @@ pipeline:
             fetch_max_messages: 10
           processor:
             - read_file_content: {}
-            - extract_file_text:
+            - extract_file_text: {}
+            - document_summarization:
+                model_provider: 
+                model: $[[env.ENRICHMENT_MODEL]]
+            - document_embedding:
+                model_provider: 
+                model: $[[env.ENRICHMENT_MODEL]]
                 output_queue:
                   name: "enriched_documents"
-
-            # - document_summarization:
-            #     model: $[[env.ENRICHMENT_MODEL]]
-            #     input_queue: "indexing_documents"
-            #     min_input_document_length: 500
-            #     output_queue:
-            #       name: "enriched_documents"
-            #       label:
-            #         tag: "enriched"
 
   - name: merge_documents
     auto_start: true
