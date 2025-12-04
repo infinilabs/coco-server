@@ -25,16 +25,15 @@ import (
 	"infini.sh/framework/core/util"
 )
 
+const ProcessorName = "document_summarization"
+
 type Config struct {
 	MessageField param.ParaKey `config:"message_field"`
-	OutputQueue  struct {
-		Name   string                 `config:"name"`
-		Labels map[string]interface{} `config:"label" json:"label,omitempty"`
-	} `config:"output_queue"`
+	OutputQueue  *queue.QueueConfig `config:"output_queue"`
 	MaxRunningTimeoutInSeconds time.Duration
-	MinInputDocumentLength     int    `config:"min_input_document_length"`
-	MaxInputDocumentLength     int    `config:"max_input_document_length"`
-	MaxOutputDocumentLength    int    `config:"max_output_document_length"`
+	MinInputDocumentLength     uint32    `config:"min_input_document_length"`
+	MaxInputDocumentLength     uint32    `config:"max_input_document_length"`
+	MaxOutputDocumentLength    uint32    `config:"max_output_document_length"`
 	ModelProviderID            string `config:"model_provider"`
 	ModelName                  string `config:"model"`
 	OutputSummaryField         string `config:"output_summary_field"`
@@ -46,13 +45,12 @@ type Config struct {
 
 type DocumentSummarizationProcessor struct {
 	config             *Config
-	outCfg             *queue.QueueConfig
-	producer           queue.ProducerAPI
+	outputQueue *queue.QueueConfig
 	removeThinkPattern *regexp.Regexp
 }
 
 func init() {
-	pipeline.RegisterProcessorPlugin("document_summarization", New)
+	pipeline.RegisterProcessorPlugin(ProcessorName, New)
 }
 
 func New(c *config.Config) (pipeline.Processor, error) {
@@ -64,7 +62,7 @@ func New(c *config.Config) (pipeline.Processor, error) {
 	}
 
 	if cfg.MessageField == "" {
-		panic("message field is empty")
+		cfg.MessageField = "messages"
 	}
 
 	if cfg.ModelProviderID == "" {
@@ -74,141 +72,145 @@ func New(c *config.Config) (pipeline.Processor, error) {
 		panic(errors.New("model can't be empty"))
 	}
 
-	runner := DocumentSummarizationProcessor{config: &cfg}
+	processor := DocumentSummarizationProcessor{config: &cfg}
 
 	if cfg.OutputQueue.Name != "" {
-		queueConfig := queue.AdvancedGetOrInitConfig("", cfg.OutputQueue.Name, cfg.OutputQueue.Labels)
-		queueConfig.ReplaceLabels(cfg.OutputQueue.Labels)
-
-		producer, err := queue.AcquireProducer(queueConfig)
-		if err != nil {
-			panic(err)
-		}
-
-		runner.outCfg = queue.AdvancedGetOrInitConfig("", cfg.OutputQueue.Name, cfg.OutputQueue.Labels)
-		runner.producer = producer
+		processor.outputQueue = queue.SmartGetOrInitConfig(cfg.OutputQueue)
 	}
 	// Regular expression to remove <think> content
-	runner.removeThinkPattern = regexp.MustCompile(`(?s)<think>.*?</think>`)
+	processor.removeThinkPattern = regexp.MustCompile(`(?s)<think>.*?</think>`)
 
-	return &runner, nil
+	return &processor, nil
 }
 
 func (processor *DocumentSummarizationProcessor) Name() string {
-	return "document_enrichment"
+	return ProcessorName
 }
 
 func (processor *DocumentSummarizationProcessor) Process(ctx *pipeline.Context) error {
-
-	//get message from queue
+	// get message from queue
 	obj := ctx.Get(processor.config.MessageField)
-	if obj != nil {
-		messages := obj.([]queue.Message)
-		if global.Env().IsDebug {
-			log.Tracef("get %v messages from context", len(messages))
-		}
 
-		if len(messages) == 0 {
-			return nil
-		}
+	if obj == nil {
+		return nil
+	}
 
-		provider, err := common.GetModelProvider(processor.config.ModelProviderID)
-		if err != nil {
-			log.Error("failed to get model provider:", err)
-			return err
-		}
+	messages := obj.([]queue.Message)
+	if global.Env().IsDebug {
+		log.Tracef("get %v messages from context", len(messages))
+	}
 
-		llm := langchain.GetLLM(provider.BaseURL, provider.APIType, processor.config.ModelName, provider.APIKey, "")
-		ctx := context.Background()
+	if len(messages) == 0 {
+		return nil
+	}
 
-		for i := range messages {
-			message := &messages[i]
-			pop := message.Data
-			var outputBytes []byte
+	provider, err := common.GetModelProvider(processor.config.ModelProviderID)
+	if err != nil {
+		log.Error("failed to get model provider:", err)
+		return err
+	}
 
-			if len(pop) > processor.config.MinInputDocumentLength {
+	llm := langchain.GetLLM(provider.BaseURL, provider.APIType, processor.config.ModelName, provider.APIKey, "")
+	ctx := context.Background()
 
-				doc := core.Document{}
-				err := util.FromJSONBytes(pop, &doc)
-				if err != nil {
-					log.Error("error on handle document:", i, err)
-					continue
-				}
+	for i := range messages {
+		message := &messages[i]
+		pop := message.Data
+		var outputBytes []byte
+		docLen := uint32(len(pop))
 
-				log.Info("start summarize doc: ", doc.ID, ",", doc.Title)
-				start := time.Now()
-
-				prompt := fmt.Sprintf(`You are an expert summarizer tasked with summarizing documents. Your job is to read the provided information below and generate a clean, concise, 
-and accurate summary of the document, considering all fields provided. Make sure your summary reflects the most important points from the document as rich as possible without exceeding %v tokens.
-
-Please use all of the available fields in the document to generate the summary, the document is in JSON format:
-%s
-
-If any of these fields are missing or incomplete, focus on the available ones and fill in the gaps logically, based on your understanding of the document. 
-Make sure the final summary is clear, concise, and easy to understand.
-
-No need return how you think.
-
-Summary:`, processor.config.MaxOutputDocumentLength, util.SubStringWithSuffix(string(pop), processor.config.MaxInputDocumentLength, "..."))
-
-				content := []llms.MessageContent{
-					llms.TextParts(llms.ChatMessageTypeSystem, "You are an expert summarizer, and your task is to generate a concise summary of the document."),
-					llms.TextParts(llms.ChatMessageTypeHuman, prompt),
-				}
-
-				summary := strings.Builder{}
-				completion, err := llm.GenerateContent(ctx, content, llms.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
-					if global.ShuttingDown() {
-						ctx.Done()
-						return errors.New("shutting down")
-					}
-					summary.Write(chunk)
-					return nil
-				}))
-				if err != nil {
-					panic(err)
-				}
-				_ = completion
-
-				text := summary.String()
-				text = processor.removeThinkPattern.ReplaceAllString(text, "")
-
-				if len(text) > 0 {
-					previousSummary := doc.Summary
-					if previousSummary != "" && processor.config.KeepPreviousSummaryContent && processor.config.PreviousSummaryField != "" {
-						doc.Payload[processor.config.PreviousSummaryField] = previousSummary
-					} else {
-						doc.Summary = text
-					}
-				}
-
-				outputBytes = util.MustToJSONBytes(doc)
-				message.Data = outputBytes
-
-				log.Infof("finished summarize doc, %v, %v, elapsed: %v, summary: %v", doc.ID, doc.Title, util.Since(start), text)
-			} else {
-
-				if !processor.config.IncludeSkippedDocumentToOutputQueue {
-					continue
-				}
-
-				outputBytes = pop
+		if docLen > processor.config.MinInputDocumentLength {
+			doc := core.Document{}
+			err := util.FromJSONBytes(pop, &doc)
+			if err != nil {
+				log.Error("error on handle document:", i, err)
+				continue
 			}
 
-			if outputBytes == nil {
-				panic("invalid output")
+			log.Info("start summarize doc: ", doc.ID, ",", doc.Title)
+			start := time.Now()
+
+			// Create a copy of the document for the prompt, excluding 
+			// the content field as it could be binary bytes, which is
+			// not helpful for generating document summary. In cases where
+			// it is a text, field `Document.Text` already provides that,
+			// so it is not needed either.
+			docForPrompt := doc
+			docForPrompt.Content = ""
+
+			promptStr := humanPrompt(processor.config.MaxOutputDocumentLength, docForPrompt)
+
+			content := []llms.MessageContent{
+				llms.TextParts(llms.ChatMessageTypeSystem, "You are an expert summarizer, and your task is to generate a concise summary of the document."),
+				llms.TextParts(llms.ChatMessageTypeHuman, promptStr),
 			}
 
-			//push to output queue
-			if processor.producer != nil {
-				r := queue.ProduceRequest{Topic: processor.outCfg.ID, Data: outputBytes}
-				res := []queue.ProduceRequest{r}
-				_, err = processor.producer.Produce(&res)
-				if err != nil {
-					panic(errors.Errorf("failed to push message to output queue: %v, %s, offset:%v, size:%v, err:%v", processor.outCfg.Name, processor.outCfg.ID, message.Offset.String(), len(outputBytes), err))
+			summary := strings.Builder{}
+			completion, err := llm.GenerateContent(ctx, content, llms.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
+				if global.ShuttingDown() {
+					ctx.Done()
+					return errors.New("shutting down")
 				}
+				summary.Write(chunk)
+				return nil
+			}))
+			if err != nil {
+				panic(err)
+			}
+			_ = completion
+
+			text := summary.String()
+			text = processor.removeThinkPattern.ReplaceAllString(text, "")
+
+			if len(text) > 0 {
+				previousSummary := doc.Summary
+				if previousSummary != "" && processor.config.KeepPreviousSummaryContent && processor.config.PreviousSummaryField != "" {
+					doc.Payload[processor.config.PreviousSummaryField] = previousSummary
+				} else {
+					doc.Summary = text
+				}
+			}
+			message.Data = util.MustToJSONBytes(doc)
+			log.Infof("[%s] finished summarize doc, %v, %v, elapsed: %v, summary: %v", processor.Name(), doc.ID, doc.Title, util.Since(start), text)
+		} else {
+			if !processor.config.IncludeSkippedDocumentToOutputQueue {
+				continue
+			}
+		}
+
+		// push to output queue
+		if processor.outputQueue != nil {
+			if err := queue.Push(processor.outputQueue, message.Data); err != nil {
+				log.Errorf("failed to push document to [%s]'s output queue: %v", processor.Name(), err)
 			}
 		}
 	}
-	return nil
+
+}
+
+// Helper function to construct the human/user prompt.
+func humanPrompt(max_token uint32, document core.Document) string {
+	docBytes := util.MustToJSONBytes(document)
+	return fmt.Sprintf(
+		"You are an expert summarizer tasked with summarizing documents. Your "+
+			"job is to read the provided information below and generate a clean "+
+			"concise, and accurate summary of the document, considering all fields "+
+			"provided. Make sure your summary reflects the most important points "+
+			"from the document as rich as possible without exceeding %v tokens."+
+			"\n"+
+			"The provided document is in JSON format: %s"+
+			"\n"+
+			"Please use all of the available fields in the document to generate "+
+			"the summary. If any of these fields are missing or incomplete, focus "+
+			"on the available ones and fill in the gaps logically, based on "+
+			"your understanding of the document."+
+			"\n"+
+			"Make sure the final summary is clear, concise, and easy to understand."+
+			"\n"+
+			"No need return how you think.",
+
+		// Arguments
+		max_token,
+		string(docBytes),
+	)
 }
