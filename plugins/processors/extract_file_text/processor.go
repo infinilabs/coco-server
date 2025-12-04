@@ -1,7 +1,10 @@
 package extract_file_text
 
 import (
+	"context"
+	"fmt"
 	"os/exec"
+	"time"
 
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
@@ -49,6 +52,7 @@ func (p *ExtractFileTextProcessor) Name() string {
 }
 
 func (p *ExtractFileTextProcessor) Process(ctx *pipeline.Context) error {
+	fmt.Printf("DBG: ExtractFileTextProcessor.Process()\n")
 	obj := ctx.Get(p.config.MessageField)
 	if obj == nil {
 		log.Warnf("processor [] receives an empty pipeline context", p.Name())
@@ -73,7 +77,11 @@ func (p *ExtractFileTextProcessor) Process(ctx *pipeline.Context) error {
 
 		if doc.Type == connectors.TypeFile {
 			// Call extract-cli <doc.Url>
-			cmd := exec.Command("extract-cli", doc.URL)
+			// Use a timeout to prevent hanging
+			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+			defer cancel()
+
+			cmd := exec.CommandContext(ctx, "extract-cli", doc.URL)
 			output, err := cmd.Output()
 			if err != nil {
 				log.Errorf("failed to extract text from %s: %v", doc.URL, err)

@@ -1,6 +1,7 @@
 package read_file_content
 
 import (
+	"fmt"
 	"os"
 
 	log "github.com/cihub/seelog"
@@ -49,6 +50,7 @@ func (p *ReadFileContentProcessor) Name() string {
 }
 
 func (p *ReadFileContentProcessor) Process(ctx *pipeline.Context) error {
+	fmt.Printf("DBG: ReadFileContentProcessor.Process()\n")
 	obj := ctx.Get(p.config.MessageField)
 	if obj == nil {
 		return nil

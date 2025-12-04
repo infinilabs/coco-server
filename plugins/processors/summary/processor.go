@@ -76,7 +76,7 @@ func New(c *config.Config) (pipeline.Processor, error) {
 
 	processor := DocumentSummarizationProcessor{config: &cfg}
 
-	if cfg.OutputQueue.Name != "" {
+	if cfg.OutputQueue != nil {
 		processor.outputQueue = queue.SmartGetOrInitConfig(cfg.OutputQueue)
 	}
 	// Regular expression to remove <think> content
@@ -164,7 +164,7 @@ func (processor *DocumentSummarizationProcessor) Process(ctx *pipeline.Context) 
 			_ = completion
 
 			text := summary.String()
-			fmt.Printf("DBG: summary len %s \n", len(text))
+			fmt.Printf("DBG: summary len %d \n", len(text))
 			text = processor.removeThinkPattern.ReplaceAllString(text, "")
 
 			if len(text) > 0 {

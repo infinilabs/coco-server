@@ -35,9 +35,8 @@ type Config struct {
 }
 
 type DocumentEmbeddingProcessor struct {
-	config   *Config
-	outCfg   *queue.QueueConfig
-	producer queue.ProducerAPI
+	config      *Config
+	outputQueue *queue.QueueConfig
 }
 
 func init() {
@@ -53,12 +52,9 @@ func New(c *config.Config) (pipeline.Processor, error) {
 	}
 
 	if cfg.MessageField == "" {
-		panic("message field is empty")
+		cfg.MessageField = "messages"
 	}
 
-	if cfg.OutputQueue.Name == "" {
-		panic(errors.New("name of output_queue can't be nil"))
-	}
 	if cfg.ModelProviderID == "" {
 		panic(errors.New("model_provider can't be empty"))
 	}
@@ -66,20 +62,13 @@ func New(c *config.Config) (pipeline.Processor, error) {
 		panic(errors.New("model can't be empty"))
 	}
 
-	runner := DocumentEmbeddingProcessor{config: &cfg}
+	processor := DocumentEmbeddingProcessor{config: &cfg}
 
-	queueConfig := queue.AdvancedGetOrInitConfig("", cfg.OutputQueue.Name, cfg.OutputQueue.Labels)
-	queueConfig.ReplaceLabels(cfg.OutputQueue.Labels)
-
-	producer, err := queue.AcquireProducer(queueConfig)
-	if err != nil {
-		panic(err)
+	if cfg.OutputQueue != nil {
+		processor.outputQueue = queue.SmartGetOrInitConfig(cfg.OutputQueue)
 	}
 
-	runner.outCfg = queue.AdvancedGetOrInitConfig("", cfg.OutputQueue.Name, cfg.OutputQueue.Labels)
-	runner.producer = producer
-
-	return &runner, nil
+	return &processor, nil
 }
 
 func (processor *DocumentEmbeddingProcessor) Name() string {
@@ -122,7 +111,6 @@ func (processor *DocumentEmbeddingProcessor) Process(ctx *pipeline.Context) erro
 	for i := range messages {
 		message := &messages[i]
 		pop := message.Data
-		var outputBytes []byte
 
 		doc := core.Document{}
 		err := util.FromJSONBytes(pop, &doc)
@@ -134,9 +122,7 @@ func (processor *DocumentEmbeddingProcessor) Process(ctx *pipeline.Context) erro
 		// Skip if text is too short or too long
 		if len(doc.Text) < processor.config.MinInputDocumentLength {
 			log.Debugf("skipping document %s: text length %d < min %d", doc.ID, len(doc.Text), processor.config.MinInputDocumentLength)
-			// Still push to output queue? Maybe yes, but without embedding.
-			// For now, let's push it as is.
-			outputBytes = pop
+			continue
 		} else {
 			log.Info("start embedding doc: ", doc.ID, ",", doc.Title)
 			start := time.Now()
@@ -149,34 +135,24 @@ func (processor *DocumentEmbeddingProcessor) Process(ctx *pipeline.Context) erro
 
 			embeddings, err := embedder.CreateEmbedding(c, []string{textToEmbed})
 			if err != nil {
-				log.Errorf("failed to create embedding for doc %s: %v", doc.ID, err)
-				// Push original doc without embedding
-				outputBytes = pop
-			} else if len(embeddings) > 0 {
-				// Convert []float32 to []float64
-				var embedding64 []float64
-				for _, v := range embeddings[0] {
-					embedding64 = append(embedding64, float64(v))
-				}
-				doc.Embedding = embedding64
-				outputBytes = util.MustToJSONBytes(doc)
-				message.Data = outputBytes
-				log.Infof("finished embedding doc, %v, %v, elapsed: %v, dims: %v", doc.ID, doc.Title, util.Since(start), len(doc.Embedding))
-			} else {
-				outputBytes = pop
+				panic(fmt.Sprintf("failed to generate embeddings: %s\n", err))
 			}
-		}
 
-		if outputBytes == nil {
-			panic("invalid output")
+			// Convert []float32 to []float64
+			var embedding64 []float64
+			for _, v := range embeddings[0] {
+				embedding64 = append(embedding64, float64(v))
+			}
+			doc.Embedding = embedding64
+			message.Data = util.MustToJSONBytes(doc)
+			log.Infof("finished embedding doc, %v, %v, elapsed: %v, dims: %v", doc.ID, doc.Title, util.Since(start), len(doc.Embedding))
 		}
 
 		//push to output queue
-		r := queue.ProduceRequest{Topic: processor.outCfg.ID, Data: outputBytes}
-		res := []queue.ProduceRequest{r}
-		_, err = processor.producer.Produce(&res)
-		if err != nil {
-			panic(errors.Errorf("failed to push message to output queue: %v, %s, offset:%v, size:%v, err:%v", processor.outCfg.Name, processor.outCfg.ID, message.Offset.String(), len(outputBytes), err))
+		if processor.outputQueue != nil {
+			if err := queue.Push(processor.outputQueue, message.Data); err != nil {
+				log.Errorf("failed to push document to [%s]'s output queue: %v", processor.Name(), err)
+			}
 		}
 	}
 
