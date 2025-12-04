@@ -28,12 +28,12 @@ import (
 const ProcessorName = "document_summarization"
 
 type Config struct {
-	MessageField param.ParaKey `config:"message_field"`
-	OutputQueue  *queue.QueueConfig `config:"output_queue"`
+	MessageField               param.ParaKey      `config:"message_field"`
+	OutputQueue                *queue.QueueConfig `config:"output_queue"`
 	MaxRunningTimeoutInSeconds time.Duration
-	MinInputDocumentLength     uint32    `config:"min_input_document_length"`
-	MaxInputDocumentLength     uint32    `config:"max_input_document_length"`
-	MaxOutputDocumentLength    uint32    `config:"max_output_document_length"`
+	MinInputDocumentLength     uint32 `config:"min_input_document_length"`
+	MaxInputDocumentLength     uint32 `config:"max_input_document_length"`
+	MaxOutputDocumentLength    uint32 `config:"max_output_document_length"`
 	ModelProviderID            string `config:"model_provider"`
 	ModelName                  string `config:"model"`
 	OutputSummaryField         string `config:"output_summary_field"`
@@ -45,7 +45,7 @@ type Config struct {
 
 type DocumentSummarizationProcessor struct {
 	config             *Config
-	outputQueue *queue.QueueConfig
+	outputQueue        *queue.QueueConfig
 	removeThinkPattern *regexp.Regexp
 }
 
@@ -111,12 +111,11 @@ func (processor *DocumentSummarizationProcessor) Process(ctx *pipeline.Context) 
 	}
 
 	llm := langchain.GetLLM(provider.BaseURL, provider.APIType, processor.config.ModelName, provider.APIKey, "")
-	ctx := context.Background()
+	llmCtx := context.Background()
 
 	for i := range messages {
 		message := &messages[i]
 		pop := message.Data
-		var outputBytes []byte
 		docLen := uint32(len(pop))
 
 		if docLen > processor.config.MinInputDocumentLength {
@@ -130,7 +129,7 @@ func (processor *DocumentSummarizationProcessor) Process(ctx *pipeline.Context) 
 			log.Info("start summarize doc: ", doc.ID, ",", doc.Title)
 			start := time.Now()
 
-			// Create a copy of the document for the prompt, excluding 
+			// Create a copy of the document for the prompt, excluding
 			// the content field as it could be binary bytes, which is
 			// not helpful for generating document summary. In cases where
 			// it is a text, field `Document.Text` already provides that,
@@ -146,9 +145,9 @@ func (processor *DocumentSummarizationProcessor) Process(ctx *pipeline.Context) 
 			}
 
 			summary := strings.Builder{}
-			completion, err := llm.GenerateContent(ctx, content, llms.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
+			completion, err := llm.GenerateContent(llmCtx, content, llms.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
 				if global.ShuttingDown() {
-					ctx.Done()
+					llmCtx.Done()
 					return errors.New("shutting down")
 				}
 				summary.Write(chunk)
@@ -185,7 +184,7 @@ func (processor *DocumentSummarizationProcessor) Process(ctx *pipeline.Context) 
 			}
 		}
 	}
-
+	return nil
 }
 
 // Helper function to construct the human/user prompt.
