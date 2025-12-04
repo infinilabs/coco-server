@@ -11,6 +11,7 @@ import (
 
 	log "github.com/cihub/seelog"
 	"github.com/tmc/langchaingo/embeddings"
+	"github.com/tmc/langchaingo/textsplitter"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/assistant/langchain"
 	"infini.sh/coco/modules/common"
@@ -128,34 +129,54 @@ func (processor *DocumentEmbeddingProcessor) Process(ctx *pipeline.Context) erro
 			log.Info("start embedding doc: ", doc.ID, ",", doc.Title)
 			start := time.Now()
 
-			// Truncate if too long (simple truncation, ideally should chunk)
-			textToEmbed := doc.Text
-			if len(textToEmbed) > processor.config.MaxInputDocumentLength {
-				textToEmbed = textToEmbed[:processor.config.MaxInputDocumentLength]
-			}
-
-			embeddings, err := embedder.CreateEmbedding(c, []string{textToEmbed})
+			// Strategy: Truncation (One Document -> One Vector)
+			// We use the splitter to safely get the first chunk that fits the model's limit.
+			chunks, err := splitText(doc.Text)
 			if err != nil {
-				panic(fmt.Sprintf("failed to generate embeddings: %s\n", err))
+				log.Errorf("failed to split text for doc %s: %v", doc.ID, err)
+				continue
 			}
 
-			// Convert []float32 to []float64
-			var embedding64 []float64
-			for _, v := range embeddings[0] {
-				embedding64 = append(embedding64, float64(v))
+			if len(chunks) > 0 {
+				// Only use the first chunk to generate the embedding
+				textToEmbed := chunks[0]
+				if len(chunks) > 1 {
+					log.Warnf("doc %s is too long (%d chunks), truncating to first chunk for embedding", doc.ID, len(chunks))
+				}
+
+				embeddings, err := embedder.CreateEmbedding(c, []string{textToEmbed})
+				if err != nil {
+					log.Errorf("failed to generate embeddings for doc %s: %v", doc.ID, err)
+					continue
+				}
+
+				if len(embeddings) > 0 {
+					// Convert []float32 to []float64
+					var embedding64 []float64
+					for _, v := range embeddings[0] {
+						embedding64 = append(embedding64, float64(v))
+					}
+					doc.Embedding = embedding64
+				}
 			}
-			doc.Embedding = embedding64
+
+			// Push the original document (with embedding) to the output queue
 			message.Data = util.MustToJSONBytes(doc)
-			log.Infof("finished embedding doc, %v, %v, elapsed: %v, dims: %v", doc.ID, doc.Title, util.Since(start), len(doc.Embedding))
-		}
-
-		//push to output queue
-		if processor.outputQueue != nil {
-			if err := queue.Push(processor.outputQueue, message.Data); err != nil {
-				log.Errorf("failed to push document to [%s]'s output queue: %v", processor.Name(), err)
+			if processor.outputQueue != nil {
+				if err := queue.Push(processor.outputQueue, message.Data); err != nil {
+					log.Errorf("failed to push document to [%s]'s output queue: %v", processor.Name(), err)
+				}
 			}
+			log.Infof("finished embedding doc %s, elapsed: %v", doc.ID, util.Since(start))
 		}
 	}
 
 	return nil
+}
+
+func splitText(text string) ([]string, error) {
+	splitter := textsplitter.NewRecursiveCharacter()
+	splitter.ChunkSize = 8000 // Safe limit for 8192 token limit
+	splitter.ChunkOverlap = 0 // No overlap needed for truncation
+	return splitter.SplitText(text)
 }
