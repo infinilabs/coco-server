@@ -212,21 +212,6 @@ export const EditForm = memo((props: AssistantFormProps) => {
           {
             key: 'internet-search',
             label: t('page.assistant.labels.internet_search'),
-            extra: (
-              <div
-                onClick={event => {
-                  event.stopPropagation();
-                }}
-              >
-                <Form.Item
-                  className='mb-0! [&_*]:min-h-[unset]!'
-                  initialValue={false}
-                  name={['datasource', 'enabled']}
-                >
-                  <Switch size='small' />
-                </Form.Item>
-              </div>
-            ),
             children: (
               <>
                 {assistantMode === 'deep_think' && (
@@ -264,12 +249,8 @@ export const EditForm = memo((props: AssistantFormProps) => {
                       name={['config', 'picking_doc_model']}
                       rules={[
                         {
-                          required: datasourceEnabled,
+                          required: true,
                           validator: (_, value) => {
-                            if (!datasourceEnabled) {
-                              return Promise.resolve();
-                            }
-
                             if (!value || !value.id) {
                               return Promise.reject(new Error(t('page.assistant.hints.selectModel')));
                             }
@@ -327,7 +308,6 @@ export const EditForm = memo((props: AssistantFormProps) => {
               >
                 <Form.Item
                   className='mb-0! [&_*]:(min-h-[unset]!)'
-                  initialValue={false}
                   name={['mcp_servers', 'enabled']}
                 >
                   <Switch size='small' />
@@ -473,6 +453,7 @@ export const EditForm = memo((props: AssistantFormProps) => {
   return (
     <Spin spinning={props.loading || loading || false}>
       <Form
+        scrollToFirstError
         autoComplete='off'
         colon={false}
         form={form}
