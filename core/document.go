@@ -41,8 +41,10 @@ type Document struct {
 	Title   string `json:"title,omitempty" elastic_mapping:"title:{type:text,copy_to:combined_fulltext,fields:{keyword: {type: keyword}, pinyin: {type: text, analyzer: pinyin_analyzer}}}"` // Document title
 	Summary string `json:"summary,omitempty" elastic_mapping:"summary:{type:text,copy_to:combined_fulltext}"`                                                                                // Brief summary or description of the document
 
-	Lang    string `json:"lang,omitempty" elastic_mapping:"lang:{type:keyword,copy_to:combined_fulltext}"`    // Language code (e.g., "en", "fr")
-	Content string `json:"content,omitempty" elastic_mapping:"content:{type:text,copy_to:combined_fulltext}"` // Document content for full-text indexing
+	Lang      string    `json:"lang,omitempty" elastic_mapping:"lang:{type:keyword,copy_to:combined_fulltext}"`    // Language code (e.g., "en", "fr")
+	Content   string    `json:"content,omitempty" elastic_mapping:"content:{type:text,copy_to:combined_fulltext}"` // Document content for full-text indexing
+	Text      string    `json:"text,omitempty" elastic_mapping:"text:{type:text,copy_to:combined_fulltext}"`       // Document content in text for full-text indexing
+	Embedding []float64 `json:"embedding,omitempty" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:1024}}"`
 
 	Icon      string `json:"icon,omitempty" elastic_mapping:"icon:{enabled:false}"`           // Icon Key, need work with datasource's assets to get the icon url, if it is a full url, then use it directly
 	Thumbnail string `json:"thumbnail,omitempty" elastic_mapping:"thumbnail:{enabled:false}"` // Thumbnail image URL, for preview purposes

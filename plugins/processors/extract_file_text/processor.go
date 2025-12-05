@@ -1,0 +1,106 @@
+package extract_file_text
+
+import (
+	"context"
+	"fmt"
+	"os/exec"
+	"time"
+
+	log "github.com/cihub/seelog"
+	"infini.sh/coco/core"
+	"infini.sh/coco/plugins/connectors"
+	"infini.sh/framework/core/config"
+	"infini.sh/framework/core/param"
+	"infini.sh/framework/core/pipeline"
+	"infini.sh/framework/core/queue"
+	"infini.sh/framework/core/util"
+)
+
+func init() {
+	pipeline.RegisterProcessorPlugin("extract_file_text", New)
+}
+
+type ExtractFileTextProcessor struct {
+	config      *Config
+	outputQueue *queue.QueueConfig
+}
+
+type Config struct {
+	MessageField param.ParaKey      `config:"message_field"`
+	OutputQueue  *queue.QueueConfig `config:"output_queue"`
+}
+
+func New(c *config.Config) (pipeline.Processor, error) {
+	cfg := Config{
+		MessageField: "messages",
+	}
+	if err := c.Unpack(&cfg); err != nil {
+		return nil, err
+	}
+
+	p := &ExtractFileTextProcessor{config: &cfg}
+
+	if cfg.OutputQueue != nil {
+		p.outputQueue = queue.SmartGetOrInitConfig(cfg.OutputQueue)
+	}
+
+	return p, nil
+}
+
+func (p *ExtractFileTextProcessor) Name() string {
+	return "extract_file_text"
+}
+
+func (p *ExtractFileTextProcessor) Process(ctx *pipeline.Context) error {
+	fmt.Printf("DBG: ExtractFileTextProcessor.Process()\n")
+	obj := ctx.Get(p.config.MessageField)
+	if obj == nil {
+		log.Warnf("processor [] receives an empty pipeline context", p.Name())
+		return nil
+	}
+
+	messages, ok := obj.([]queue.Message)
+	if !ok {
+		return nil
+	}
+
+	for i := range messages {
+		msg := &messages[i]
+		doc := core.Document{}
+
+		docBytes := msg.Data
+		err := util.FromJSONBytes(docBytes, &doc)
+		if err != nil {
+			log.Error("error on handle document:", err)
+			continue
+		}
+
+		if doc.Type == connectors.TypeFile {
+			// Call extract-cli <doc.Url>
+			// Use a timeout to prevent hanging
+			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+			defer cancel()
+
+			cmd := exec.CommandContext(ctx, "extract-cli", doc.URL)
+			output, err := cmd.Output()
+			if err != nil {
+				log.Errorf("failed to extract text from %s: %v", doc.URL, err)
+				// We might want to continue even if extraction fails,
+				// or maybe we just don't update the Text field.
+			} else {
+				doc.Text = string(output)
+
+				// Update msg.Data with the new document content
+				updatedDocBytes := util.MustToJSONBytes(doc)
+				msg.Data = updatedDocBytes
+			}
+		}
+
+		if p.outputQueue != nil {
+			if err := queue.Push(p.outputQueue, msg.Data); err != nil {
+				log.Errorf("failed to push document to [%s]'s output queue: %v", p.Name(), err)
+			}
+		}
+	}
+	return nil
+}

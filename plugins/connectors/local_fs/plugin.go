@@ -154,9 +154,10 @@ func (p *Plugin) saveDocument(ctx *pipeline.Context, currentPath, basePath strin
 		Source:   core.DataSourceReference{ID: datasource.ID, Type: "connector", Name: datasource.Name},
 		Type:     connectors.TypeFile,
 		Category: filepath.Dir(currentPath),
-		Content:  "", // skip content
-		URL:      currentPath,
-		Size:     int(fileInfo.Size()),
+		// skip content here, which will be popluated by the `read_file_content` processor
+		Content: "",
+		URL:     currentPath,
+		Size:    int(fileInfo.Size()),
 	}
 	doc.System = datasource.System
 	if doc.System == nil {
