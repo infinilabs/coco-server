@@ -37,7 +37,14 @@ export const DatasourceConfig = (props: DatasourceConfigProps) => {
       className='w-full'
       direction='vertical'
     >
-      <div className='mb-3 font-bold'>{t('page.assistant.labels.document_retrieval')}</div>
+      <Form.Item
+        className='mb-0!'
+        initialValue={false}
+        label={t('page.assistant.labels.document_retrieval')}
+        name={['datasource', 'enabled']}
+      >
+        <Switch size='small' />
+      </Form.Item>
 
       <Form.Item
         label={t('page.assistant.labels.datasource')}

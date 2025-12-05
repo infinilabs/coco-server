@@ -28,12 +28,12 @@ export function Component() {
     },
     datasource: {
       ids: ['*'],
-      enabled: false,
+      enabled: true,
       visible: true
     },
     mcp_servers: {
       ids: ['*'],
-      enabled: false,
+      enabled: true,
       visible: true
     },
     upload: {
