@@ -180,7 +180,6 @@ export const EditForm = memo((props: AssistantFormProps) => {
 
   const configPickTools = Form.useWatch(['config', 'pick_tools'], form);
   const configPickDatasource = Form.useWatch(['config', 'pick_datasource'], form);
-  const datasourceEnabled = Form.useWatch(['datasource', 'enabled'], form);
 
   const renderIntentRecognitionCollapse = () => {
     if (assistantMode !== 'deep_think') return;
@@ -193,6 +192,7 @@ export const EditForm = memo((props: AssistantFormProps) => {
           {
             key: 'intent-recognition',
             label: t('page.assistant.labels.intent_recognition'),
+            forceRender: true,
             children: (
               <Form.Item className='mb-0!'>
                 <DeepThink providers={modelProviders} />
@@ -212,6 +212,7 @@ export const EditForm = memo((props: AssistantFormProps) => {
           {
             key: 'internet-search',
             label: t('page.assistant.labels.internet_search'),
+            forceRender: true,
             children: (
               <>
                 {assistantMode === 'deep_think' && (
@@ -300,6 +301,7 @@ export const EditForm = memo((props: AssistantFormProps) => {
           {
             key: 'large-model-tools',
             label: t('page.assistant.labels.large_model_tool'),
+            forceRender: true,
             extra: (
               <div
                 onClick={event => {
@@ -378,6 +380,7 @@ export const EditForm = memo((props: AssistantFormProps) => {
           {
             key: 'generate-answers',
             label: t('page.assistant.labels.generate_response'),
+            forceRender: true,
             children: (
               <Form.Item
                 className='relative [&_.ant-form-item-explain-error]:(absolute top-8) mb-0! [&_.ant-form-item-control]:flex-[unset]!'
