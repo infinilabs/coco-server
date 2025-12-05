@@ -118,7 +118,7 @@ func (h *APIHandler) deleteAssistant(w http.ResponseWriter, req *http.Request, p
 		return
 	}
 	if obj.Builtin {
-		h.WriteError(w, "Built-in model providers cannot be deleted", http.StatusForbidden)
+		h.WriteError(w, "Built-in assistant cannot be deleted", http.StatusForbidden)
 
 		return
 	}
