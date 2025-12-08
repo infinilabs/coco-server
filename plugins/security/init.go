@@ -29,6 +29,7 @@ func init() {
 		}
 	})
 
+	api.HandleUIMethod(api.GET, "/account/logout", apiHandler.Logout, api.OptionLogin(), api.Feature(core.FeatureCORS))
 	api.HandleUIMethod(api.POST, "/account/logout", apiHandler.Logout, api.OptionLogin(), api.Feature(core.FeatureCORS))
 	api.HandleUIMethod(api.OPTIONS, "/account/logout", apiHandler.Logout, api.OptionLogin(), api.Feature(core.FeatureCORS))
 

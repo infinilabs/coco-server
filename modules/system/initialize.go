@@ -77,27 +77,30 @@ func (h *APIHandler) setupServer(w http.ResponseWriter, req *http.Request, ps ht
 	} else if info.ServerInfo.Name == "" {
 		info.ServerInfo.Name = "My Coco Server"
 	}
-	if info.ServerInfo.Endpoint == "" {
-		var schema = "http"
-		if req.TLS != nil {
-			schema = "https"
+
+	if !global.Env().SystemConfig.WebAppConfig.Security.Managed {
+		if info.ServerInfo.Endpoint == "" {
+			var schema = "http"
+			if req.TLS != nil {
+				schema = "https"
+			}
+			info.ServerInfo.Endpoint = fmt.Sprintf("%s://%s", schema, req.Host)
 		}
-		info.ServerInfo.Endpoint = fmt.Sprintf("%s://%s", schema, req.Host)
-	}
 
-	if input.Password == "" {
-		panic("password can't be empty")
-	}
+		if input.Password == "" {
+			panic("password can't be empty")
+		}
 
-	user, err := security.MustGetAuthenticationProvider(security.DefaultNativeAuthBackend).CreateUser(input.Name, input.Email, input.Password, true)
-	if user == nil || user.ID == "" {
-		panic("failed to init user")
-	}
+		user, err := security.MustGetAuthenticationProvider(security.DefaultNativeAuthBackend).CreateUser(input.Name, input.Email, input.Password, true)
+		if user == nil || user.ID == "" {
+			panic("failed to init user")
+		}
 
-	//initialize setup templates
-	err = h.initializeSetupTemplates(user.ID, input, info.ServerInfo.Endpoint)
-	if err != nil {
-		panic(err)
+		//initialize setup templates
+		err = h.initializeSetupTemplates(user.ID, input, info.ServerInfo.Endpoint)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	//setup lock
@@ -216,9 +219,7 @@ func (h *APIHandler) initializeSetupTemplates(userID string, setupCfg SetupConfi
 	}
 	return filepath.Walk(baseDir, func(path string, info fs.FileInfo, err error) error {
 		if err != nil {
-			if err != nil {
-				return fmt.Errorf("error accessing path %s: %v", path, err)
-			}
+			return fmt.Errorf("error accessing path %s: %v", path, err)
 		}
 		if info.IsDir() {
 			return nil
