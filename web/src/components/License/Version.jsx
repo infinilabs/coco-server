@@ -2,6 +2,7 @@ import { Descriptions } from 'antd';
 import dayjs from 'dayjs';
 import PropTypes from 'prop-types';
 import Icon from '@ant-design/icons';
+import { getDarkMode } from "@/store/slice/theme";
 
 import { DATE_FORMAT } from '.';
 import styles from './Version.module.less';
@@ -22,6 +23,8 @@ export default function Version({ application }) {
   const { number, build_number, build_date, build_hash } = application?.version || {};
   const { t } = useTranslation();
 
+  const darkMode = useAppSelector(getDarkMode);
+
   return (
     <div className={styles.version}>
       <div className={styles.header}>
@@ -29,7 +32,7 @@ export default function Version({ application }) {
           column={1}
           size='small'
           title={
-            <div className='mt-24px flex items-center'>
+            <div className='mt-24px flex items-center' style={darkMode ? { filter: `drop-shadow(0 0 6px rgba(255, 255, 255, 1))`} : {}}>
               <SvgIcon
                 className='h-85px w-300px'
                 localIcon='logo'
