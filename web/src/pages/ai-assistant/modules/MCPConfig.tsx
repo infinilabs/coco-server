@@ -8,11 +8,12 @@ interface MCPConfigProps {
   readonly options: any[];
   readonly modelProviders: any[];
   readonly children?: ReactNode;
+  readonly mode: string;
 }
 
 export const MCPConfig = (props: MCPConfigProps) => {
   const { t } = useTranslation();
-  const { value = {}, onChange, children } = props;
+  const { value = {}, onChange, children, mode } = props;
 
   const onModelChange = (model: any) => {
     onChange?.({
@@ -39,9 +40,9 @@ export const MCPConfig = (props: MCPConfigProps) => {
         name='mcp_servers'
         rules={[
           {
-            required: value.enabled,
+            required: mode === 'simple' ? false : value.enabled,
             validator: (_, value) => {
-              if (!value.enabled) {
+              if (mode === 'simple' || !value.enabled) {
                 return Promise.resolve();
               }
 

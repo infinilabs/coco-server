@@ -351,6 +351,7 @@ export const EditForm = memo((props: AssistantFormProps) => {
                   name='mcp_servers'
                 >
                   <MCPConfig
+                    mode={assistantMode}
                     modelProviders={modelProviders}
                     options={[{ label: '*', value: '*' }].concat(
                       mcpServers.map(item => ({
