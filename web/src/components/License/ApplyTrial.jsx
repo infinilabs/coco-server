@@ -69,7 +69,7 @@ export default function ApplyTrial(props) {
           const res = await requestTrialLicense({
             ...values,
             locale,
-            product: 'easysearch',
+            product: 'coco',
             version: application?.version?.number
           });
           if (res?.data?.acknowledged) {
