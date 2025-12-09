@@ -61,6 +61,7 @@ func ValidateLoginByAPITokenHeader(w http.ResponseWriter, r *http.Request) (clai
 	//claims.System = accessToken.System
 	claims.Provider = "access_token"
 	claims.Login = apiToken
+	claims.Labels = accessToken.Labels
 
 	apiTokenLevelPermission := security.ConvertPermissionKeysToHashSet(accessToken.Permissions)
 	userLevelTokenLevelPermission := security.ConvertPermissionKeysToHashSet(security.MustGetPermissionKeysByUserID(accessToken.GetOwnerID()))
