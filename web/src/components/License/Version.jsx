@@ -1,7 +1,6 @@
 import { Descriptions } from 'antd';
 import dayjs from 'dayjs';
 import PropTypes from 'prop-types';
-import Icon from '@ant-design/icons';
 import { getDarkMode } from "@/store/slice/theme";
 
 import { DATE_FORMAT } from '.';
@@ -47,14 +46,6 @@ export default function Version({ application }) {
           <Descriptions.Item label={t('license.labels.build_number')}>{build_number}</Descriptions.Item>
           <Descriptions.Item label='Hash'>{build_hash}</Descriptions.Item>
         </Descriptions>
-      </div>
-      <div style={{ margin: '10px 0', height: 97, overflow: 'hidden' }}>
-        <IconWrapper className='h-97px'>
-          <Icon
-            component={AGPL}
-            style={{ transform: 'scale(0.2)' }}
-          />
-        </IconWrapper>
       </div>
     </div>
   );
