@@ -1,10 +1,19 @@
 import { Typography } from 'antd';
+import Icon from '@ant-design/icons';
 
 const { Paragraph } = Typography;
 
 export default function EULA() {
   return (
-    <div className='h-400px overflow-auto px-24px py-16px'>
+    <div className='h-348px overflow-auto px-24px py-16px'>
+      <div style={{ margin: '10px 0', height: 97, overflow: 'hidden' }}>
+        <IconWrapper className='h-97px'>
+          <Icon
+            component={AGPL}
+            style={{ transform: 'scale(0.2)' }}
+          />
+        </IconWrapper>
+      </div>
       <Paragraph>Copyright (C) INFINI Labs & INFINI LIMITED.</Paragraph>
       <Paragraph>
         The Coco Server is offered under the GNU Affero General Public License v3.0 and as commercial software.
