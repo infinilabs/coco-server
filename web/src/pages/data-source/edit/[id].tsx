@@ -27,7 +27,8 @@ import GitLab from '../new/gitlab';
 import Jira from '../new/jira';
 import HugoSite from '../new/hugo_site';
 import LocalFS from '../new/local_fs';
-import {GiteaConfig, GithubConfig, GitlabConfig, JiraConfig, MongoDBConfig, MongoDBFormConfig, Neo4jConfig, Neo4jFormConfig, NetworkDriveConfig, RdbmsConfig} from '../new/models';
+import {GiteaConfig, GithubConfig, GitlabConfig, JiraConfig, MilvusConfig, MilvusFormConfig, MongoDBConfig, MongoDBFormConfig, Neo4jConfig, Neo4jFormConfig, NetworkDriveConfig, RdbmsConfig} from '../new/models';
+import Milvus from '../new/milvus';
 import MongoDB from '../new/mongodb';
 import NetworkDrive from '../new/network_drive';
 import Notion from '../new/notion';
@@ -101,6 +102,11 @@ export function Component() {
             }
             break;
           case Types.Jira:
+            if (datasource.connector?.config) {
+              datasource.config = datasource.connector.config;
+            }
+            break;
+          case Types.Milvus:
             if (datasource.connector?.config) {
               datasource.config = datasource.connector.config;
             }
@@ -252,6 +258,10 @@ export function Component() {
       }
       case Types.Neo4j: {
         config = Neo4jConfig(values);
+        break;
+      }
+      case Types.Milvus: {
+        config = MilvusConfig(values);
         break;
       }
       case Types.MongoDB: {
@@ -407,6 +417,12 @@ export function Component() {
       }
       break;
     }
+    case Types.Milvus: {
+      if (datasource.connector?.config) {
+        datasource.config = MilvusFormConfig(datasource.connector);
+      }
+      break;
+    }
     case Types.MongoDB: {
       if (datasource.connector?.config) {
         datasource.config = MongoDBFormConfig(datasource.connector);
@@ -510,6 +526,7 @@ export function Component() {
                 {type === Types.Confluence && <Confluence />}
                 {type === Types.NetworkDrive && <NetworkDrive />}
                 {type === Types.Neo4j && <Neo4j form={form} />}
+                {type === Types.Milvus && <Milvus form={form} />}
                 {type === Types.MongoDB && <MongoDB form={form} />}
                 {type === Types.Postgresql && <Rdbms dbType="postgresql" />}
                 {type === Types.Mysql && <Rdbms dbType="mysql" />}

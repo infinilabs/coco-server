@@ -272,3 +272,96 @@ export const MongoDBFormConfig = (values: any) => {
     field_mapping: config.field_mapping || defaultFieldMapping()
   };
 };
+
+// eslint-disable-next-line complexity
+export const MilvusConfig = (values: any) => {
+  const config: any = {
+    address: values.config?.address || '',
+    collection: values.config?.collection || ''
+  };
+
+  if (values.config?.username) {
+    config.username = values.config.username;
+  }
+
+  if (values.config?.password) {
+    config.password = values.config.password;
+  }
+
+  if (values.config?.db_name) {
+    config.db_name = values.config.db_name;
+  }
+
+  if (values.config?.output_fields) {
+    const outputFields = values.config.output_fields
+      .split(',')
+      .map((s: string) => s.trim())
+      .filter(Boolean);
+    if (outputFields.length > 0) {
+      config.output_fields = outputFields;
+    }
+  }
+
+  if (values.config?.filter) {
+    config.filter = values.config.filter;
+  }
+
+  // Page size - always include
+  config.page_size = values.config?.page_size || 1000;
+
+  // New nested incremental structure
+  const incremental = values.config?.incremental || {};
+  config.incremental = incremental.enabled
+    ? {
+        enabled: true,
+        mode: 'property_watermark',
+        property: incremental.property || '',
+        property_type: incremental.property_type || 'datetime',
+        tie_breaker: incremental.tie_breaker || '',
+        resume_from: incremental.resume_from || ''
+      }
+    : {
+        enabled: false,
+        mode: '',
+        property: '',
+        property_type: 'datetime',
+        tie_breaker: '',
+        resume_from: ''
+      };
+
+  // Field mapping config - always include
+  if (values.config?.field_mapping?.enabled) {
+    config.field_mapping = values.config.field_mapping;
+  } else {
+    config.field_mapping = defaultFieldMapping();
+  }
+
+  return config;
+};
+
+export const MilvusFormConfig = (values: any) => {
+  const config = values.config || {};
+
+  const outputFieldsStr = Array.isArray(config.output_fields)
+    ? config.output_fields.join(', ')
+    : config.output_fields || '';
+
+  return {
+    address: config.address || '',
+    username: config.username || '',
+    password: config.password || '',
+    db_name: config.db_name || '',
+    collection: config.collection || '',
+    output_fields: outputFieldsStr,
+    filter: config.filter || '',
+    page_size: config.page_size || 1000,
+    incremental: {
+      enabled: Boolean(config.incremental?.enabled),
+      property: config.incremental?.property || '',
+      property_type: config.incremental?.property_type || 'datetime',
+      tie_breaker: config.incremental?.tie_breaker || '',
+      resume_from: config.incremental?.resume_from || ''
+    },
+    field_mapping: config.field_mapping || defaultFieldMapping()
+  };
+};
