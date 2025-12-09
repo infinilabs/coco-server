@@ -57,7 +57,7 @@ export default function DocumentDrawer(props) {
                     </div>
                 </div>
                 <div className="absolute bottom-0 w-full px-24px">
-                    <div className="bg-#f5f5f5 rounded-20px mb-24px py-24px px-16px">
+                    <div className="bg-#f5f5f5 dark:bg-[rgb(var(--layout-bg-color))] rounded-20px mb-24px py-24px px-16px">
                         <Descriptions column={2} colon={false} items={[
                             {
                                 key: 'type',
