@@ -101,7 +101,7 @@ func (h *APIHandler) RequestAccessToken(w http.ResponseWriter, req *http.Request
 		}
 	}
 
-	res, err := CreateAPIToken(reqUser.MustGetUserID(), reqBody.Name, "general", permission)
+	res, err := CreateAPIToken(reqUser, reqBody.Name, "general", permission)
 	if err != nil {
 		panic(err)
 	}
@@ -109,7 +109,7 @@ func (h *APIHandler) RequestAccessToken(w http.ResponseWriter, req *http.Request
 	api.WriteJSON(w, res, 200)
 }
 
-func CreateAPIToken(userID string, tokenName, typeName string, permissions []security.PermissionKey) (util.MapStr, error) {
+func CreateAPIToken(user *security.UserSessionInfo, tokenName, typeName string, permissions []security.PermissionKey) (util.MapStr, error) {
 
 	if tokenName == "" {
 		tokenName = GenerateApiTokenName("")
@@ -125,7 +125,8 @@ func CreateAPIToken(userID string, tokenName, typeName string, permissions []sec
 	tokenID := util.GetUUID()
 	accessToken.ID = tokenID
 	accessToken.AccessToken = accessTokenStr
-	accessToken.SetOwnerID(userID)
+	accessToken.SetOwnerID(user.MustGetUserID())
+	accessToken.Labels = user.Labels
 
 	accessToken.Type = typeName
 	accessToken.Permissions = permissions
