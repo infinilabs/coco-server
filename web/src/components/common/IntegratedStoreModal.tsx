@@ -12,6 +12,7 @@ import FontIcon from '@/components/common/font_icon';
 import { request } from '@/service/request';
 import { formatESSearchResult } from '@/service/request/es';
 import { localStg } from '@/utils/storage';
+import { getDarkMode } from '@/store/slice/theme';
 
 type Category = 'ai-assistant' | 'connector' | 'data-source' | 'mcp-server' | 'model-provider';
 
@@ -74,6 +75,7 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
   const { t } = useTranslation();
   const [fromClipboard, setFromClipboard] = useState(false);
   const [clipboardData, setClipboardData] = useState<DataSource>();
+  const darkMode = useAppSelector(getDarkMode);
 
   useImperativeHandle(ref, () => ({
     async open(category) {
@@ -285,6 +287,7 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
   };
 
   const renderDataCard = (data?: DataSource, children?: ReactNode) => {
+    const iconStyle = darkMode ? { filter: `drop-shadow(0 0 6px rgba(255, 255, 255, 1))`} : {}
     return (
       <Card
         className={classNames('group text-xs text-color-3', {
@@ -306,11 +309,13 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
               <FontIcon
                 className='text-8'
                 name={data?.icon}
+                style={iconStyle}
               />
             ) : (
               <img
                 className='size-8'
                 src={data?.icon}
+                style={iconStyle}
               />
             )}
 
@@ -320,6 +325,7 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
               <img
                 className='size-4'
                 src={data?.developer?.avatar}
+                style={iconStyle}
               />
 
               <span>{data?.developer?.name}</span>
