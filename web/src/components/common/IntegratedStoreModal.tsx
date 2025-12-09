@@ -3,7 +3,7 @@ import { Button, Card, Col, Flex, Input, Menu, Modal, Pagination, Row, Space, Sp
 import type { AnyObject } from 'antd/es/_util/type';
 import type { ItemType, MenuItemType } from 'antd/es/menu/interface';
 import classNames from 'classnames';
-import { castArray, isEmpty } from 'lodash';
+import { isEmpty } from 'lodash';
 import { Eye, FolderDown, SquareArrowOutUpRight } from 'lucide-react';
 import type { ReactNode } from 'react';
 
@@ -73,6 +73,7 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
   const [searchKeyword, setSearchKeyboard] = useState<string>();
   const { t } = useTranslation();
   const [fromClipboard, setFromClipboard] = useState(false);
+  const [clipboardData, setClipboardData] = useState<DataSource>();
 
   useImperativeHandle(ref, () => ({
     async open(category) {
@@ -94,7 +95,7 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
         if (dataSource) {
           setFromClipboard(true);
 
-          setDataSource(castArray(dataSource));
+          setClipboardData(dataSource);
         }
       } catch (error) {
         // eslint-disable-next-line no-console
@@ -232,6 +233,8 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
   const handleCancel = () => {
     if (fromClipboard) {
       setFromClipboard(false);
+
+      setClipboardData(undefined);
     } else {
       setOpen(false);
     }
@@ -461,7 +464,7 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
           <>
             <span>{t('page.integratedStoreModal.installModal.hints')}</span>
 
-            {renderDataCard(dataSource[0])}
+            {renderDataCard(clipboardData)}
           </>
         ) : (
           <Flex>
