@@ -7,6 +7,7 @@ package embedding
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	log "github.com/cihub/seelog"
 	"github.com/tmc/langchaingo/embeddings"
@@ -59,16 +60,19 @@ func New(c *config.Config) (pipeline.Processor, error) {
 	}
 
 	if cfg.ModelProviderID == "" {
-		panic(errors.New("model_provider can't be empty"))
+		panic("model_provider can't be empty")
 	}
 	if cfg.ModelName == "" {
-		panic(errors.New("model can't be empty"))
+		panic("model can't be empty")
 	}
 	if cfg.EmbeddingDimension == 0 {
-		panic(errors.New("embedding_dimension is not specified or set to 0, which is not allowed"))
+		panic("embedding_dimension is not specified or set to 0, which is not allowed")
+	}
+	if !slices.Contains(core.SupportedEmbeddingDimensions, cfg.EmbeddingDimension) {
+		panic(fmt.Sprintf("invalid embedding_dimension, available values %v", core.SupportedEmbeddingDimensions))
 	}
 	if cfg.ChunkSize == 0 {
-		panic(errors.New("chunk_size is not specified or set to 0, which is not allowed"))
+		panic("chunk_size is not specified or set to 0, which is not allowed")
 	}
 
 	processor := DocumentEmbeddingProcessor{config: &cfg}

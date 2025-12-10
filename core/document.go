@@ -138,6 +138,9 @@ type Embedding struct {
 		Having so many `EmbeddingXxx` fields is embarrasing, but we have no choice
 		since vector dimension is part of the type information and elastic mapping
 		has to be static.
+
+		If you add new fields or remove fields to/from the below list, please update
+		variable "SupportedEmbeddingDimensions" as well.
 	*/
 	Embeddings128  []ChunkEmbedding128  `json:"embeddings128" elastic_mapping:"embeddings128:{type:nested}"`
 	Embeddings256  []ChunkEmbedding256  `json:"embeddings256" elastic_mapping:"embeddings256:{type:nested}"`
@@ -150,6 +153,10 @@ type Embedding struct {
 	Embeddings2560 []ChunkEmbedding2560 `json:"embeddings2560" elastic_mapping:"embeddings2560:{type:nested}"`
 	Embeddings4096 []ChunkEmbedding4096 `json:"embeddings4096" elastic_mapping:"embeddings4096:{type:nested}"`
 }
+
+// Embedding dimensions supported by us, it should be kept sync with the 
+// "EmbeddingXxx" fields of struct Embedding
+var SupportedEmbeddingDimensions = []int32{128, 256, 384, 512, 768, 1024, 1536, 2048, 2560, 4096 }
 
 // Set the `EmbeddingsXxx` field using the value provided by `chunkEmbeddings`.
 //
