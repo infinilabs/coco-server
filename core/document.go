@@ -5,8 +5,10 @@
 package core
 
 import (
+	"fmt"
 	"strings"
 	"time"
+	"unsafe"
 )
 
 type RichLabel struct {
@@ -41,8 +43,10 @@ type Document struct {
 	Title   string `json:"title,omitempty" elastic_mapping:"title:{type:text,copy_to:combined_fulltext,fields:{keyword: {type: keyword}, pinyin: {type: text, analyzer: pinyin_analyzer}}}"` // Document title
 	Summary string `json:"summary,omitempty" elastic_mapping:"summary:{type:text,copy_to:combined_fulltext}"`                                                                                // Brief summary or description of the document
 
-	Lang    string `json:"lang,omitempty" elastic_mapping:"lang:{type:keyword,copy_to:combined_fulltext}"`    // Language code (e.g., "en", "fr")
-	Content string `json:"content,omitempty" elastic_mapping:"content:{type:text,copy_to:combined_fulltext}"` // Document content for full-text indexing
+	Lang      string      `json:"lang,omitempty" elastic_mapping:"lang:{type:keyword,copy_to:combined_fulltext}"`    // Language code (e.g., "en", "fr")
+	Content   string      `json:"content,omitempty" elastic_mapping:"content:{type:text,copy_to:combined_fulltext}"` // Document content for full-text indexing
+	Text      []PageText  `json:"text,omitempty" elastic_mapping:"text:{type:nested}"`                               // Document content in text for full-text indexing
+	Embedding []Embedding `json:"embedding,omitempty" elastic_mapping:"embedding:{type:nested}"`
 
 	Icon      string `json:"icon,omitempty" elastic_mapping:"icon:{enabled:false}"`           // Icon Key, need work with datasource's assets to get the icon url, if it is a full url, then use it directly
 	Thumbnail string `json:"thumbnail,omitempty" elastic_mapping:"thumbnail:{enabled:false}"` // Thumbnail image URL, for preview purposes
@@ -112,4 +116,150 @@ type UserInfo struct {
 	UserAvatar string `json:"avatar,omitempty" elastic_mapping:"avatar:{enabled:false}"`                              // Login of the user
 	UserName   string `json:"username,omitempty" elastic_mapping:"username:{type:keyword,copy_to:combined_fulltext}"` // Login of the user
 	UserID     string `json:"userid,omitempty" elastic_mapping:"userid:{type:keyword,copy_to:combined_fulltext}"`     // Unique identifier for the user
+}
+
+type PageText struct {
+	PageNumber int    `json:"page_number" elastic_mapping:"page_number:{type:integer}"`
+	Content    string `json:"content" elastic_mapping:"content:{type:text,analyzer:combined_text_analyzer}"`
+}
+
+type Embedding struct {
+	ModelProvider      string `json:"model_provider" elastic_mapping:"model_provider:{type:keyword}"`
+	Model              string `json:"model" elastic_mapping:"model:{type:keyword}"`
+	EmbeddingDimension int32  `json:"embedding_dimension" elastic_mapping:"embedding_dimension:{type:integer}"`
+
+	/*
+		A document will be split into chunks. An `EmbeddingXxx` field will be used
+		to store these chunks' embeddings.
+
+		Only 1 field will be used, depending on the chosen embedding dimension, see
+		the `EmbeddingDimension` field above.
+
+		Having so many `EmbeddingXxx` fields is embarrasing, but we have no choice
+		since vector dimension is part of the type information and elastic mapping
+		has to be static.
+	*/
+	Embeddings128  []ChunkEmbedding128  `json:"embeddings128" elastic_mapping:"embeddings128:{type:nested}"`
+	Embeddings256  []ChunkEmbedding256  `json:"embeddings256" elastic_mapping:"embeddings256:{type:nested}"`
+	Embeddings384  []ChunkEmbedding384  `json:"embeddings384" elastic_mapping:"embeddings384:{type:nested}"`
+	Embeddings512  []ChunkEmbedding512  `json:"embeddings512" elastic_mapping:"embeddings512:{type:nested}"`
+	Embeddings768  []ChunkEmbedding768  `json:"embeddings768" elastic_mapping:"embeddings768:{type:nested}"`
+	Embeddings1024 []ChunkEmbedding1024 `json:"embeddings1024" elastic_mapping:"embeddings1024:{type:nested}"`
+	Embeddings1536 []ChunkEmbedding1536 `json:"embeddings1536" elastic_mapping:"embeddings1536:{type:nested}"`
+	Embeddings2048 []ChunkEmbedding2048 `json:"embeddings2048" elastic_mapping:"embeddings2048:{type:nested}"`
+	Embeddings2560 []ChunkEmbedding2560 `json:"embeddings2560" elastic_mapping:"embeddings2560:{type:nested}"`
+	Embeddings4096 []ChunkEmbedding4096 `json:"embeddings4096" elastic_mapping:"embeddings4096:{type:nested}"`
+}
+
+// Set the `EmbeddingsXxx` field using the value provided by `chunkEmbeddings`.
+//
+// # Panic
+//
+// Field `EmbeddingDimension` should be set before calling this function, or it
+// panics.
+func (e *Embedding) SetEmbeddings(chunkEmbeddings []ChunkEmbedding) {
+	if e.EmbeddingDimension == 0 {
+		panic("Embedding.EmbeddingDimension is not set (value: 0), don't know which field to set")
+	}
+
+	// ChunkEmbedding and other ChunkEmbeddingXxx types have the same memory
+	// representation so the cast is safe here.
+	switch e.EmbeddingDimension {
+	case 128:
+		e.Embeddings128 = *(*[]ChunkEmbedding128)(unsafe.Pointer(&chunkEmbeddings))
+	case 256:
+		e.Embeddings256 = *(*[]ChunkEmbedding256)(unsafe.Pointer(&chunkEmbeddings))
+	case 384:
+		e.Embeddings384 = *(*[]ChunkEmbedding384)(unsafe.Pointer(&chunkEmbeddings))
+	case 512:
+		e.Embeddings512 = *(*[]ChunkEmbedding512)(unsafe.Pointer(&chunkEmbeddings))
+	case 768:
+		e.Embeddings768 = *(*[]ChunkEmbedding768)(unsafe.Pointer(&chunkEmbeddings))
+	case 1024:
+		e.Embeddings1024 = *(*[]ChunkEmbedding1024)(unsafe.Pointer(&chunkEmbeddings))
+	case 1536:
+		e.Embeddings1536 = *(*[]ChunkEmbedding1536)(unsafe.Pointer(&chunkEmbeddings))
+	case 2048:
+		e.Embeddings2048 = *(*[]ChunkEmbedding2048)(unsafe.Pointer(&chunkEmbeddings))
+	case 2560:
+		e.Embeddings2560 = *(*[]ChunkEmbedding2560)(unsafe.Pointer(&chunkEmbeddings))
+	case 4096:
+		e.Embeddings4096 = *(*[]ChunkEmbedding4096)(unsafe.Pointer(&chunkEmbeddings))
+	default:
+		panic(fmt.Sprintf("unsupported embedding dimension: %d\n", e.EmbeddingDimension))
+	}
+}
+
+// Range of this chunk.
+//
+// A chunk contains roughly the same amount of tokens, say 8192 tokens. And
+// thus, a chunk can span many pages if these pages are small, or it is only
+// part of a page if it is big.
+//
+// In the later case, `Start` and `End` will be in format "<page num>-<sub-page num>"
+// that "<sub-page num>" specifies the part of that page.
+type ChunkRange struct {
+	// Start page of this chunk.
+	Start int `json:"start" elastic_mapping:"start:{type:integer}"`
+	// End page of this chuhk. This is **inclusive**.
+	End int `json:"end" elastic_mapping:"end:{type:integer}"`
+}
+
+// A `ChunkEmbedding` definition without any tag information.
+//
+// It should have the same memory representation as other `ChunkEmbeddingXxx`
+// variants.
+type ChunkEmbedding struct {
+	Range     ChunkRange
+	Embedding []float32
+}
+
+type ChunkEmbedding128 struct {
+	Range     ChunkRange `json:"page_range" elastic_mapping:"page_range:{type:object}"`
+	Embedding []float32  `json:"embedding" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:128}}"`
+}
+
+type ChunkEmbedding256 struct {
+	Range     ChunkRange `json:"page_range" elastic_mapping:"page_range:{type:object}"`
+	Embedding []float32  `json:"embedding" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:256}}"`
+}
+
+type ChunkEmbedding384 struct {
+	Range     ChunkRange `json:"page_range" elastic_mapping:"page_range:{type:object}"`
+	Embedding []float32  `json:"embedding" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:384}}"`
+}
+
+type ChunkEmbedding512 struct {
+	Range     ChunkRange `json:"page_range" elastic_mapping:"page_range:{type:object}"`
+	Embedding []float32  `json:"embedding" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:512}}"`
+}
+
+type ChunkEmbedding768 struct {
+	Range     ChunkRange `json:"page_range" elastic_mapping:"page_range:{type:object}"`
+	Embedding []float32  `json:"embedding" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:768}}"`
+}
+
+type ChunkEmbedding1024 struct {
+	Range     ChunkRange `json:"page_range" elastic_mapping:"page_range:{type:object}"`
+	Embedding []float32  `json:"embedding" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:1024}}"`
+}
+
+type ChunkEmbedding1536 struct {
+	Range     ChunkRange `json:"page_range" elastic_mapping:"page_range:{type:object}"`
+	Embedding []float32  `json:"embedding" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:1536}}"`
+}
+
+type ChunkEmbedding2048 struct {
+	Range     ChunkRange `json:"page_range" elastic_mapping:"page_range:{type:object}"`
+	Embedding []float32  `json:"embedding" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:2048}}"`
+}
+
+type ChunkEmbedding2560 struct {
+	Range     ChunkRange `json:"page_range" elastic_mapping:"page_range:{type:object}"`
+	Embedding []float32  `json:"embedding" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:2560}}"`
+}
+
+type ChunkEmbedding4096 struct {
+	Range     ChunkRange `json:"page_range" elastic_mapping:"page_range:{type:object}"`
+	Embedding []float32  `json:"embedding" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:4096}}"`
 }
