@@ -116,13 +116,12 @@ func (processor *DocumentEmbeddingProcessor) Process(ctx *pipeline.Context) erro
 
 		// Only local file have this now.
 		if doc.Type == connectors.TypeFile && doc.TextEmbeddingChunks != nil {
-			embeddings, err := generateEmbedding(doc.Text, processor.config)
+			err := generateEmbedding(&doc, processor.config)
 			if err != nil {
 				log.Errorf("processor [%s] failed to generate embeddings for document [%s/%s] due to error [%s]", processor.Name(), doc.ID, doc.Title, err)
 			}
 			log.Infof("processor [%s] embeddings of document [%s/%s] generated", processor.Name(), doc.ID, doc.Title)
 
-			doc.Embedding = []core.Embedding{embeddings}
 			// Update msg
 			updatedDocBytes := util.MustToJSONBytes(doc)
 			msg.Data = updatedDocBytes
@@ -182,7 +181,6 @@ func generateEmbedding(document *core.Document, processorConfig *Config) error {
 
 	return nil
 }
-
 
 // According to the specified configuration, init the "EmbedderClient" and
 // return it.

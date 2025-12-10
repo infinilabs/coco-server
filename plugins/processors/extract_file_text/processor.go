@@ -167,10 +167,9 @@ func (p *ExtractFileTextProcessor) Process(ctx *pipeline.Context) error {
 	return nil
 }
 
-
 // Splits page texts into chunks using character count as a token proxy
 // and tracks the page range for each chunk.
-func SplitPagesToChunks(pages []string, chunkSize int) ([]core.TextEmbeddingChunk) {
+func SplitPagesToChunks(pages []string, chunkSize int) []core.TextEmbeddingChunk {
 	// Early return
 	if chunkSize <= 0 {
 		return nil
@@ -212,7 +211,7 @@ func SplitPagesToChunks(pages []string, chunkSize int) ([]core.TextEmbeddingChun
 
 				chunks = append(chunks, core.TextEmbeddingChunk{
 					Range: chunkRange,
-					Text: textChunk,
+					Text:  textChunk,
 					// this field remain uninitialized
 					// Embedding: core.Embedding{},
 				})
@@ -247,12 +246,11 @@ func SplitPagesToChunks(pages []string, chunkSize int) ([]core.TextEmbeddingChun
 		}
 		chunks = append(chunks, core.TextEmbeddingChunk{
 			Range: chunkRange,
-			Text: textChunk,
+			Text:  textChunk,
 			// this field remain uninitialized
 			// Embedding: core.Embedding{},
 		})
 	}
-
 
 	return chunks
 }
