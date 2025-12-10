@@ -327,6 +327,7 @@ pipeline:
             - extract_file_text:
                 tika_endpoint: "http://127.0.0.1:9998"
                 timeout_in_seconds: 180
+                chunk_size: 7000
             - document_summarization:
                 model_provider: deepseek
                 model: deepseek-chat

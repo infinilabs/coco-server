@@ -40,6 +40,7 @@ type Config struct {
 	OutputQueue      *queue.QueueConfig `config:"output_queue"`
 	TikaEndpoint     string             `config:"tika_endpoint"`
 	TimeoutInSeconds int                `config:"timeout_in_seconds"`
+	ChunkSize        int                `config:"chunk_size"`
 }
 
 func New(c *config.Config) (pipeline.Processor, error) {
@@ -131,16 +132,13 @@ func (p *ExtractFileTextProcessor) Process(ctx *pipeline.Context) error {
 				continue
 			}
 
-			var pages []core.PageText
+			var pages []string
 
 			// Find all div with class "page"
 			docHTML.Find("div.page").Each(func(i int, s *goquery.Selection) {
 				pageContent := strings.TrimSpace(s.Text())
 				if pageContent != "" {
-					pages = append(pages, core.PageText{
-						PageNumber: i + 1,
-						Content:    pageContent,
-					})
+					pages = append(pages, pageContent)
 				}
 			})
 
@@ -149,14 +147,11 @@ func (p *ExtractFileTextProcessor) Process(ctx *pipeline.Context) error {
 			if len(pages) == 0 {
 				bodyText := strings.TrimSpace(docHTML.Find("body").Text())
 				if bodyText != "" {
-					pages = append(pages, core.PageText{
-						PageNumber: 1,
-						Content:    bodyText,
-					})
+					pages = append(pages, bodyText)
 				}
 			}
 
-			doc.Text = pages
+			doc.TextEmbeddingChunks = SplitPagesToChunks(pages, p.config.ChunkSize)
 
 			// Update msg.Data with the new document content
 			updatedDocBytes := util.MustToJSONBytes(doc)
@@ -170,4 +165,94 @@ func (p *ExtractFileTextProcessor) Process(ctx *pipeline.Context) error {
 		}
 	}
 	return nil
+}
+
+
+// Splits page texts into chunks using character count as a token proxy
+// and tracks the page range for each chunk.
+func SplitPagesToChunks(pages []string, chunkSize int) ([]core.TextEmbeddingChunk) {
+	// Early return
+	if chunkSize <= 0 {
+		return nil
+	}
+	if len(pages) == 0 {
+		return make([]core.TextEmbeddingChunk, 0)
+	}
+
+	var chunks []core.TextEmbeddingChunk
+
+	buf := make([]rune, 0, chunkSize)
+	// Value 0 means `startPage`` and `lastPage` are not initialized
+	startPage := 0
+	lastPage := 0
+
+	for idx, page := range pages {
+		pageNumber := idx + 1
+		pageChars := []rune(page)
+
+		for len(pageChars) > 0 {
+			nCharsWeWant := chunkSize - len(buf)
+			nCharsWeCanTake := min(nCharsWeWant, len(pageChars))
+			chars := pageChars[:nCharsWeCanTake]
+			buf = append(buf, chars...)
+
+			// Update page range after modifying `buf`
+			if startPage == 0 {
+				startPage = pageNumber
+			}
+			if len(buf) == chunkSize && lastPage == 0 {
+				lastPage = pageNumber
+
+				// `buf` is ready
+				textChunk := string(buf)
+				chunkRange := core.ChunkRange{
+					Start: startPage,
+					End:   lastPage,
+				}
+
+				chunks = append(chunks, core.TextEmbeddingChunk{
+					Range: chunkRange,
+					Text: textChunk,
+					// this field remain uninitialized
+					// Embedding: core.Embedding{},
+				})
+
+				// clear buf and states
+				buf = buf[:0]
+				startPage = 0
+				lastPage = 0
+			}
+
+			// Remove the consumed bytes from `pageChars`
+			pageChars = pageChars[nCharsWeCanTake:]
+		}
+	}
+
+	// We may have a chunk whose size is smaller than `chunkSize`
+	if len(buf) != 0 {
+		// startPage should be updated
+		if startPage == 0 {
+			panic("unreachable: buf got updated but startPage is still 0")
+		}
+		// Set lastPage
+		if lastPage == 0 {
+			lastPage = len(pages)
+		}
+
+		// `buf` is ready
+		textChunk := string(buf)
+		chunkRange := core.ChunkRange{
+			Start: startPage,
+			End:   lastPage,
+		}
+		chunks = append(chunks, core.TextEmbeddingChunk{
+			Range: chunkRange,
+			Text: textChunk,
+			// this field remain uninitialized
+			// Embedding: core.Embedding{},
+		})
+	}
+
+
+	return chunks
 }

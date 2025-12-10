@@ -115,7 +115,7 @@ func (processor *DocumentEmbeddingProcessor) Process(ctx *pipeline.Context) erro
 		}
 
 		// Only local file have this now.
-		if doc.Type == connectors.TypeFile && doc.Text != nil {
+		if doc.Type == connectors.TypeFile && doc.TextEmbeddingChunks != nil {
 			embeddings, err := generateEmbedding(doc.Text, processor.config)
 			if err != nil {
 				log.Errorf("processor [%s] failed to generate embeddings for document [%s/%s] due to error [%s]", processor.Name(), doc.ID, doc.Title, err)
@@ -139,144 +139,50 @@ func (processor *DocumentEmbeddingProcessor) Process(ctx *pipeline.Context) erro
 }
 
 // Generate embeddings for "pages".
-func generateEmbedding(pages []core.PageText, processorConfig *Config) (core.Embedding, error) {
-	chunks := make([]core.ChunkEmbedding, 0, 10)
+func generateEmbedding(document *core.Document, processorConfig *Config) error {
 	embedder, err := getEmbedderClient(processorConfig)
 	if err != nil {
-		return core.Embedding{}, err
+		return err
 	}
-
-	/*
-		Split pages texts to text chunks
-	*/
-	textChunks, chunkRanges := SplitPagesToChunks(pages, processorConfig.ChunkSize)
 
 	/*
 		Generate embeddings for text chunks, in batch
 	*/
 	ctx := context.Background()
-	nChunks := len(textChunks)
+	nChunks := len(document.TextEmbeddingChunks)
 	batchSize := 10
+	batch := make([]string, 0, batchSize)
 	for batchStart := 0; batchStart < nChunks; batchStart += batchSize {
+		// clear batch
+		batch = batch[:0]
+
 		// batchEnd is exclusive
 		batchEnd := batchStart + batchSize
 		if batchEnd > nChunks {
 			batchEnd = nChunks
 		}
 
-		batch := textChunks[batchStart:batchEnd]
+		// Populate batch
+		for _, chunk := range document.TextEmbeddingChunks[batchStart:batchEnd] {
+			batch = append(batch, chunk.Text)
+		}
+
 		embeddings, err := embedder.CreateEmbedding(ctx, batch)
 		if err != nil {
-			return core.Embedding{}, errors.New(fmt.Sprintf("failed to generated embeddings due to error: %s", err))
+			return errors.New(fmt.Sprintf("failed to generated embeddings due to error: %s", err))
 		}
 
 		for relative_idx, embedding := range embeddings {
 			idx := batchStart + relative_idx
-			chunkRange := chunkRanges[idx]
-
-			chunk := core.ChunkEmbedding{
-				Range:     chunkRange,
-				Embedding: embedding,
-			}
-			chunks = append(chunks, chunk)
+			embeddingWrapper := core.Embedding{}
+			embeddingWrapper.SetValue(embedding)
+			document.TextEmbeddingChunks[idx].Embedding = embeddingWrapper
 		}
 	}
 
-	/*
-		Set the corresponding EmbeddingXxx field and return
-	*/
-	embedding := core.Embedding{
-		ModelProvider:      processorConfig.ModelProviderID,
-		Model:              processorConfig.ModelName,
-		EmbeddingDimension: processorConfig.EmbeddingDimension,
-	}
-	embedding.SetEmbeddings(chunks)
-	return embedding, nil
+	return nil
 }
 
-// Splits page texts into chunks using character count as a token proxy
-// and tracks the page range for each chunk.
-func SplitPagesToChunks(pages []core.PageText, chunkSize int) ([]string, []core.ChunkRange) {
-	// Early return
-	if chunkSize <= 0 {
-		return nil, nil
-	}
-	if len(pages) == 0 {
-		return make([]string, 0), make([]core.ChunkRange, 0)
-	}
-
-	var chunks []string
-	var ranges []core.ChunkRange
-
-	buf := make([]rune, 0, chunkSize)
-	// Value 0 means `startPage`` and `lastPage` are not initialized
-	startPage := 0
-	lastPage := 0
-
-	for _, page := range pages {
-		pageNumber := page.PageNumber
-		pageChars := []rune(page.Content)
-
-		for len(pageChars) > 0 {
-			nCharsWeWant := chunkSize - len(buf)
-			nCharsWeCanTake := min(nCharsWeWant, len(pageChars))
-			chars := pageChars[:nCharsWeCanTake]
-			buf = append(buf, chars...)
-
-			// Update page range after modifying `buf`
-			if startPage == 0 {
-				startPage = pageNumber
-			}
-			if len(buf) == chunkSize && lastPage == 0 {
-				lastPage = pageNumber
-
-				// `buf` is ready
-				textChunk := string(buf)
-				chunkRange := core.ChunkRange{
-					Start: startPage,
-					End:   lastPage,
-				}
-				chunks = append(chunks, textChunk)
-				ranges = append(ranges, chunkRange)
-
-				// clear buf and states
-				buf = buf[:0]
-				startPage = 0
-				lastPage = 0
-			}
-
-			// Remove the consumed bytes from `pageChars`
-			pageChars = pageChars[nCharsWeCanTake:]
-		}
-	}
-
-	// We may have a chunk whose size is smaller than `chunkSize`
-	if len(buf) != 0 {
-		// startPage should be updated
-		if startPage == 0 {
-			panic("unreachable: buf got updated but startPage is still 0")
-		}
-		// Set lastPage
-		if lastPage == 0 {
-			lastPage = len(pages)
-		}
-
-		// `buf` is ready
-		textChunk := string(buf)
-		chunkRange := core.ChunkRange{
-			Start: startPage,
-			End:   lastPage,
-		}
-		chunks = append(chunks, textChunk)
-		ranges = append(ranges, chunkRange)
-	}
-
-	if len(chunks) != len(ranges) {
-		panic("chunks and ranges should have the same length")
-	}
-
-	return chunks, ranges
-}
 
 // According to the specified configuration, init the "EmbedderClient" and
 // return it.

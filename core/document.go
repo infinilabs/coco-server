@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"strings"
 	"time"
-	"unsafe"
 )
 
 type RichLabel struct {
@@ -45,8 +44,7 @@ type Document struct {
 
 	Lang      string      `json:"lang,omitempty" elastic_mapping:"lang:{type:keyword,copy_to:combined_fulltext}"`    // Language code (e.g., "en", "fr")
 	Content   string      `json:"content,omitempty" elastic_mapping:"content:{type:text,copy_to:combined_fulltext}"` // Document content for full-text indexing
-	Text      []PageText  `json:"text,omitempty" elastic_mapping:"text:{type:nested}"`                               // Document content in text for full-text indexing
-	Embedding []Embedding `json:"embedding,omitempty" elastic_mapping:"embedding:{type:nested}"`
+	TextEmbeddingChunks []TextEmbeddingChunk `json:"text_embedding_chunks" elastic_mapping:"text_embedding_chunks:{type:nested}"`
 
 	Icon      string `json:"icon,omitempty" elastic_mapping:"icon:{enabled:false}"`           // Icon Key, need work with datasource's assets to get the icon url, if it is a full url, then use it directly
 	Thumbnail string `json:"thumbnail,omitempty" elastic_mapping:"thumbnail:{enabled:false}"` // Thumbnail image URL, for preview purposes
@@ -118,155 +116,75 @@ type UserInfo struct {
 	UserID     string `json:"userid,omitempty" elastic_mapping:"userid:{type:keyword,copy_to:combined_fulltext}"`     // Unique identifier for the user
 }
 
-type PageText struct {
-	PageNumber int    `json:"page_number" elastic_mapping:"page_number:{type:integer}"`
-	Content    string `json:"content" elastic_mapping:"content:{type:text,analyzer:combined_text_analyzer}"`
+type TextEmbeddingChunk struct {
+	Range ChunkRange `json:"range" elastic_mapping:"range:{type:object}"`
+	Text string `json:"text" elastic_mapping:"text:{type:string}"`
+	Embedding Embedding `json:"embedding" elastic_mapping:"embedding:{type:object}"`
+}
+// A `Embedding` stores a chunk's embedding.
+//
+// Only 1 field will be used, depending on the chosen embedding dimension, see
+// the `Dimension` field above.
+//
+// Having so many `EmbeddingXxx` fields is embarrasing, but we have no choice
+// since vector dimension is part of the type information and elastic mapping
+// has to be static.
+//
+// If you add or remove fields, please update variable "SupportedEmbeddingDimensions"
+// as well.
+type Embedding struct {
+	Embedding128  []float32  `json:"embedding128" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:128,model:lsh,similarity:cosine}}"`
+	Embedding256  []float32  `json:"embedding256" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:256,model:lsh,similarity:cosine}}"`
+	Embedding384  []float32  `json:"embedding384" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:384,model:lsh,similarity:cosine}}"`
+	Embedding512  []float32  `json:"embedding512" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:512,model:lsh,similarity:cosine}}"`
+	Embedding768  []float32  `json:"embedding768" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:768,model:lsh,similarity:cosine}}"`
+	Embedding1024 []float32  `json:"embedding1024" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:1024,model:lsh,similarity:cosine}}"`
+	Embedding1536 []float32  `json:"embedding1536" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:1536,model:lsh,similarity:cosine}}"`
+	Embedding2048 []float32  `json:"embedding2048" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:2048,model:lsh,similarity:cosine}}"`
+	Embedding2560 []float32  `json:"embedding2560" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:2560,model:lsh,similarity:cosine}}"`
+	Embedding4096 []float32  `json:"embedding4096" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:4096,model:lsh,similarity:cosine}}"`
 }
 
-type Embedding struct {
-	ModelProvider      string `json:"model_provider" elastic_mapping:"model_provider:{type:keyword}"`
-	Model              string `json:"model" elastic_mapping:"model:{type:keyword}"`
-	EmbeddingDimension int32  `json:"embedding_dimension" elastic_mapping:"embedding_dimension:{type:integer}"`
-
-	/*
-		A document will be split into chunks. An `EmbeddingXxx` field will be used
-		to store these chunks' embeddings.
-
-		Only 1 field will be used, depending on the chosen embedding dimension, see
-		the `EmbeddingDimension` field above.
-
-		Having so many `EmbeddingXxx` fields is embarrasing, but we have no choice
-		since vector dimension is part of the type information and elastic mapping
-		has to be static.
-
-		If you add new fields or remove fields to/from the below list, please update
-		variable "SupportedEmbeddingDimensions" as well.
-	*/
-	Embeddings128  []ChunkEmbedding128  `json:"embeddings128" elastic_mapping:"embeddings128:{type:nested}"`
-	Embeddings256  []ChunkEmbedding256  `json:"embeddings256" elastic_mapping:"embeddings256:{type:nested}"`
-	Embeddings384  []ChunkEmbedding384  `json:"embeddings384" elastic_mapping:"embeddings384:{type:nested}"`
-	Embeddings512  []ChunkEmbedding512  `json:"embeddings512" elastic_mapping:"embeddings512:{type:nested}"`
-	Embeddings768  []ChunkEmbedding768  `json:"embeddings768" elastic_mapping:"embeddings768:{type:nested}"`
-	Embeddings1024 []ChunkEmbedding1024 `json:"embeddings1024" elastic_mapping:"embeddings1024:{type:nested}"`
-	Embeddings1536 []ChunkEmbedding1536 `json:"embeddings1536" elastic_mapping:"embeddings1536:{type:nested}"`
-	Embeddings2048 []ChunkEmbedding2048 `json:"embeddings2048" elastic_mapping:"embeddings2048:{type:nested}"`
-	Embeddings2560 []ChunkEmbedding2560 `json:"embeddings2560" elastic_mapping:"embeddings2560:{type:nested}"`
-	Embeddings4096 []ChunkEmbedding4096 `json:"embeddings4096" elastic_mapping:"embeddings4096:{type:nested}"`
+func (e *Embedding) SetValue(embedding []float32) {
+	dimension := len(embedding)
+	switch dimension {
+	case 128:
+		e.Embedding128 = embedding
+	case 256:
+		e.Embedding256 = embedding
+	case 384:
+		e.Embedding384 = embedding
+	case 512:
+		e.Embedding512 = embedding
+	case 768:
+		e.Embedding768 = embedding
+	case 1024:
+		e.Embedding1024 = embedding
+	case 1536:
+		e.Embedding1536 = embedding
+	case 2048:
+		e.Embedding2048 = embedding
+	case 2560:
+		e.Embedding2560 = embedding
+	case 4096:
+		e.Embedding4096 = embedding
+	default:
+		panic(fmt.Sprintf("embedding's dimension is invalid, we accept %v", SupportedEmbeddingDimensions))
+	}
 }
 
 // Embedding dimensions supported by us, it should be kept sync with the
 // "EmbeddingXxx" fields of struct Embedding
 var SupportedEmbeddingDimensions = []int32{128, 256, 384, 512, 768, 1024, 1536, 2048, 2560, 4096}
 
-// Set the `EmbeddingsXxx` field using the value provided by `chunkEmbeddings`.
-//
-// # Panic
-//
-// Field `EmbeddingDimension` should be set before calling this function, or it
-// panics.
-func (e *Embedding) SetEmbeddings(chunkEmbeddings []ChunkEmbedding) {
-	if e.EmbeddingDimension == 0 {
-		panic("Embedding.EmbeddingDimension is not set (value: 0), don't know which field to set")
-	}
-
-	// ChunkEmbedding and other ChunkEmbeddingXxx types have the same memory
-	// representation so the cast is safe here.
-	switch e.EmbeddingDimension {
-	case 128:
-		e.Embeddings128 = *(*[]ChunkEmbedding128)(unsafe.Pointer(&chunkEmbeddings))
-	case 256:
-		e.Embeddings256 = *(*[]ChunkEmbedding256)(unsafe.Pointer(&chunkEmbeddings))
-	case 384:
-		e.Embeddings384 = *(*[]ChunkEmbedding384)(unsafe.Pointer(&chunkEmbeddings))
-	case 512:
-		e.Embeddings512 = *(*[]ChunkEmbedding512)(unsafe.Pointer(&chunkEmbeddings))
-	case 768:
-		e.Embeddings768 = *(*[]ChunkEmbedding768)(unsafe.Pointer(&chunkEmbeddings))
-	case 1024:
-		e.Embeddings1024 = *(*[]ChunkEmbedding1024)(unsafe.Pointer(&chunkEmbeddings))
-	case 1536:
-		e.Embeddings1536 = *(*[]ChunkEmbedding1536)(unsafe.Pointer(&chunkEmbeddings))
-	case 2048:
-		e.Embeddings2048 = *(*[]ChunkEmbedding2048)(unsafe.Pointer(&chunkEmbeddings))
-	case 2560:
-		e.Embeddings2560 = *(*[]ChunkEmbedding2560)(unsafe.Pointer(&chunkEmbeddings))
-	case 4096:
-		e.Embeddings4096 = *(*[]ChunkEmbedding4096)(unsafe.Pointer(&chunkEmbeddings))
-	default:
-		panic(fmt.Sprintf("unsupported embedding dimension: %d\n", e.EmbeddingDimension))
-	}
-}
-
 // Range of this chunk.
 //
 // A chunk contains roughly the same amount of tokens, say 8192 tokens. And
 // thus, a chunk can span many pages if these pages are small, or it is only
 // part of a page if it is big.
-//
-// In the later case, `Start` and `End` will be in format "<page num>-<sub-page num>"
-// that "<sub-page num>" specifies the part of that page.
 type ChunkRange struct {
 	// Start page of this chunk.
 	Start int `json:"start" elastic_mapping:"start:{type:integer}"`
 	// End page of this chuhk. This is **inclusive**.
 	End int `json:"end" elastic_mapping:"end:{type:integer}"`
-}
-
-// A `ChunkEmbedding` definition without any tag information.
-//
-// It should have the same memory representation as other `ChunkEmbeddingXxx`
-// variants.
-type ChunkEmbedding struct {
-	Range     ChunkRange
-	Embedding []float32
-}
-
-type ChunkEmbedding128 struct {
-	Range     ChunkRange `json:"page_range" elastic_mapping:"page_range:{type:object}"`
-	Embedding []float32  `json:"embedding" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:128,model:lsh,similarity:cosine}}"`
-}
-
-type ChunkEmbedding256 struct {
-	Range     ChunkRange `json:"page_range" elastic_mapping:"page_range:{type:object}"`
-	Embedding []float32  `json:"embedding" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:256,model:lsh,similarity:cosine}}"`
-}
-
-type ChunkEmbedding384 struct {
-	Range     ChunkRange `json:"page_range" elastic_mapping:"page_range:{type:object}"`
-	Embedding []float32  `json:"embedding" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:384,model:lsh,similarity:cosine}}"`
-}
-
-type ChunkEmbedding512 struct {
-	Range     ChunkRange `json:"page_range" elastic_mapping:"page_range:{type:object}"`
-	Embedding []float32  `json:"embedding" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:512,model:lsh,similarity:cosine}}"`
-}
-
-type ChunkEmbedding768 struct {
-	Range     ChunkRange `json:"page_range" elastic_mapping:"page_range:{type:object}"`
-	Embedding []float32  `json:"embedding" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:768,model:lsh,similarity:cosine}}"`
-}
-
-type ChunkEmbedding1024 struct {
-	Range     ChunkRange `json:"page_range" elastic_mapping:"page_range:{type:object}"`
-	Embedding []float32  `json:"embedding" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:1024,model:lsh,similarity:cosine}}"`
-}
-
-type ChunkEmbedding1536 struct {
-	Range     ChunkRange `json:"page_range" elastic_mapping:"page_range:{type:object}"`
-	Embedding []float32  `json:"embedding" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:1536,model:lsh,similarity:cosine}}"`
-}
-
-type ChunkEmbedding2048 struct {
-	Range     ChunkRange `json:"page_range" elastic_mapping:"page_range:{type:object}"`
-	Embedding []float32  `json:"embedding" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:2048,model:lsh,similarity:cosine}}"`
-}
-
-type ChunkEmbedding2560 struct {
-	Range     ChunkRange `json:"page_range" elastic_mapping:"page_range:{type:object}"`
-	Embedding []float32  `json:"embedding" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:2560,model:lsh,similarity:cosine}}"`
-}
-
-type ChunkEmbedding4096 struct {
-	Range     ChunkRange `json:"page_range" elastic_mapping:"page_range:{type:object}"`
-	Embedding []float32  `json:"embedding" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:4096,model:lsh,similarity:cosine}}"`
 }

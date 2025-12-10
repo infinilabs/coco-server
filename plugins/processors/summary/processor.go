@@ -16,7 +16,6 @@ import (
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/assistant/langchain"
 	"infini.sh/coco/modules/common"
-	embedding_processor "infini.sh/coco/plugins/processors/embedding"
 	"infini.sh/framework/core/config"
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/global"
@@ -222,61 +221,7 @@ func summarizeDocument(document *core.Document, config *Config, llm llms.Model, 
 // Chunk the document texts (document.Text), summarize each, then generate
 // the final document summary using these chunk summaries.
 func summarizeDocumentTwoPasses(document *core.Document, config *Config, llm llms.Model, llmCtx context.Context, regexpToRemoveThink *regexp.Regexp) (string, error) {
-	chunkSize := int(config.ModelContextLength) / 2
-	if chunkSize <= 0 {
-		// fallback when model context length is missing or small
-		chunkSize = 4000
-	}
-
-	textChunks, chunkRanges := embedding_processor.SplitPagesToChunks(document.Text, chunkSize)
-	if len(textChunks) == 0 {
-		return "", errors.New("no content to summarize")
-	}
-
-	// Each chunk will get a small summary. If the budget is too low, set it
-	// to 256
-	perChunkLimit := max(config.MaxSummaryLength/uint32(len(textChunks)), 256)
-
-	chunkSummaries := make([]string, 0, len(textChunks))
-	for idx, chunk := range textChunks {
-		chunkRange := chunkRanges[idx]
-		chunkSummary, err := summarizeChunk(llm, llmCtx, regexpToRemoveThink, chunk, chunkRange, perChunkLimit)
-		if err != nil {
-			return "", fmt.Errorf("failed to summarize chunk %d (pages %d-%d): %w", idx, chunkRange.Start, chunkRange.End, err)
-		}
-		chunkSummaries = append(chunkSummaries, fmt.Sprintf("[pages %d-%d]\n%s", chunkRange.Start, chunkRange.End, chunkSummary))
-	}
-
-	finalPromptBuilder := strings.Builder{}
-	finalPromptBuilder.WriteString(fmt.Sprintf(
-		"You are an expert summarizer. Given the following chunk summaries with page ranges, produce a concise overall summary not exceeding %d tokens.\n\n",
-		config.MaxSummaryLength,
-	))
-	for _, cs := range chunkSummaries {
-		finalPromptBuilder.WriteString(cs)
-		finalPromptBuilder.WriteString("\n\n")
-	}
-
-	finalMessages := []llms.MessageContent{
-		llms.TextParts(llms.ChatMessageTypeSystem, "You are an expert summarizer."),
-		llms.TextParts(llms.ChatMessageTypeHuman, finalPromptBuilder.String()),
-	}
-
-	finalSummaryBuilder := strings.Builder{}
-	_, err := llm.GenerateContent(llmCtx, finalMessages, llms.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
-		if global.ShuttingDown() {
-			llmCtx.Done()
-			return errors.New("shutting down")
-		}
-		finalSummaryBuilder.Write(chunk)
-		return nil
-	}))
-	if err != nil {
-		return "", err
-	}
-
-	finalSummary := regexpToRemoveThink.ReplaceAllLiteralString(finalSummaryBuilder.String(), "")
-	return finalSummary, nil
+	return "", nil
 }
 
 // Summarize the passed text chunk

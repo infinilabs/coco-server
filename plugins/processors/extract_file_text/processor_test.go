@@ -2,7 +2,7 @@
  * Web: https://infinilabs.com
  * Email: hello#infini.ltd */
 
-package embedding
+package extract_file_text
 
 import (
 	"testing"
@@ -11,31 +11,37 @@ import (
 )
 
 func TestSplitPagesToChunks_NonPositiveChunkSize(t *testing.T) {
-	chunks, ranges := SplitPagesToChunks([]core.PageText{{PageNumber: 1, Content: "abc"}}, 0)
+	chunks := SplitPagesToChunks([]string{ "abc"}, 0)
 
-	if chunks != nil || ranges != nil {
-		t.Fatalf("expected nil slices for non-positive chunk size, got chunks=%v ranges=%v", chunks, ranges)
+	if chunks != nil {
+		t.Fatalf("expected nil slices for non-positive chunk size, got chunks=%+v", chunks)
 	}
 }
 
 func TestSplitPagesToChunks_EmptyPages(t *testing.T) {
-	chunks, ranges := SplitPagesToChunks([]core.PageText{}, 4)
+	chunks := SplitPagesToChunks([]string{}, 4)
 
-	if len(chunks) != 0 || len(ranges) != 0 {
-		t.Fatalf("expected empty results for empty input, got chunks=%v ranges=%v", chunks, ranges)
+	if len(chunks) != 0 {
+		t.Fatalf("expected empty results for empty input, got chunks=%+v ranges=%v", chunks)
 	}
 }
 
 func TestSplitPagesToChunks_SpansPages(t *testing.T) {
-	pages := []core.PageText{
-		{PageNumber: 1, Content: "abc"},
-		{PageNumber: 2, Content: "def"},
-		{PageNumber: 3, Content: "gh"},
+	pages := []string{
+		"abc",
+		"def",
+		"gh",
 	}
 
-	chunks, ranges := SplitPagesToChunks(pages, 5)
+	chunks := SplitPagesToChunks(pages, 5)
 
-	expectedChunks := []string{"abcde", "fgh"}
+	expectedChunks := []core.TextEmbeddingChunk{
+		Range: core.ChunkRange {
+			Start: 1,
+			End: 2,
+		},
+
+	}
 	expectedRanges := []core.ChunkRange{{Start: 1, End: 2}, {Start: 2, End: 3}}
 
 	if len(chunks) != len(expectedChunks) {
