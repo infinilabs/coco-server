@@ -809,3 +809,46 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/b
     "name": "box"
   }
 }
+
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/dropbox
+{
+  "_system": {
+    "owner_id": "$[[SETUP_OWNER_ID]]"
+  },
+  "id" : "dropbox",
+  "created" : "2025-12-01T00:00:00.000000+08:00",
+  "updated" : "2025-12-01T00:00:00.000000+08:00",
+  "name" : "Dropbox Connector",
+  "description" : "Index files from Dropbox.",
+  "category" : "cloud_storage",
+  "path_hierarchy" : false,
+  "icon" : "/assets/icons/connector/dropbox/icon.png",
+  "tags" : [
+    "dropbox",
+    "cloud_storage",
+    "file_sharing"
+  ],
+  "url" : "http://coco.rs/connectors/dropbox",
+  "assets" : {
+    "icons" : {
+      "default" : "/assets/icons/connector/dropbox/icon.png",
+      "docx" : "/assets/icons/connector/dropbox/docx.png",
+      "gdoc" : "/assets/icons/connector/dropbox/gdoc.png",
+      "gexcel" : "/assets/icons/connector/dropbox/gexcel.png",
+      "gppt" : "/assets/icons/connector/dropbox/gppt.png",
+      "paper" : "/assets/icons/connector/dropbox/paper.png",
+      "pdf" : "/assets/icons/connector/dropbox/pdf.png",
+      "pptx" : "/assets/icons/connector/dropbox/pptx.png",
+      "xlsx" : "/assets/icons/connector/dropbox/xlsx.png"
+    }
+  },
+  "config": {
+    "redirect_uri": "$[[SETUP_SERVER_ENDPOINT]]/connector/dropbox/oauth_redirect"
+  },
+  "builtin": true,
+  "oauth_connect_implemented": true,
+  "processor": {
+    "enabled": true,
+    "name": "dropbox"
+  }
+}
