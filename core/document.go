@@ -223,50 +223,50 @@ type ChunkEmbedding struct {
 
 type ChunkEmbedding128 struct {
 	Range     ChunkRange `json:"page_range" elastic_mapping:"page_range:{type:object}"`
-	Embedding []float32  `json:"embedding" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:128}}"`
+	Embedding []float32  `json:"embedding" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:128,model:lsh,similarity:cosine}}"`
 }
 
 type ChunkEmbedding256 struct {
 	Range     ChunkRange `json:"page_range" elastic_mapping:"page_range:{type:object}"`
-	Embedding []float32  `json:"embedding" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:256}}"`
+	Embedding []float32  `json:"embedding" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:256,model:lsh,similarity:cosine}}"`
 }
 
 type ChunkEmbedding384 struct {
 	Range     ChunkRange `json:"page_range" elastic_mapping:"page_range:{type:object}"`
-	Embedding []float32  `json:"embedding" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:384}}"`
+	Embedding []float32  `json:"embedding" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:384,model:lsh,similarity:cosine}}"`
 }
 
 type ChunkEmbedding512 struct {
 	Range     ChunkRange `json:"page_range" elastic_mapping:"page_range:{type:object}"`
-	Embedding []float32  `json:"embedding" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:512}}"`
+	Embedding []float32  `json:"embedding" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:512,model:lsh,similarity:cosine}}"`
 }
 
 type ChunkEmbedding768 struct {
 	Range     ChunkRange `json:"page_range" elastic_mapping:"page_range:{type:object}"`
-	Embedding []float32  `json:"embedding" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:768}}"`
+	Embedding []float32  `json:"embedding" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:768,model:lsh,similarity:cosine}}"`
 }
 
 type ChunkEmbedding1024 struct {
 	Range     ChunkRange `json:"page_range" elastic_mapping:"page_range:{type:object}"`
-	Embedding []float32  `json:"embedding" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:1024}}"`
+	Embedding []float32  `json:"embedding" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:1024,model:lsh,similarity:cosine}}"`
 }
 
 type ChunkEmbedding1536 struct {
 	Range     ChunkRange `json:"page_range" elastic_mapping:"page_range:{type:object}"`
-	Embedding []float32  `json:"embedding" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:1536}}"`
+	Embedding []float32  `json:"embedding" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:1536,model:lsh,similarity:cosine}}"`
 }
 
 type ChunkEmbedding2048 struct {
 	Range     ChunkRange `json:"page_range" elastic_mapping:"page_range:{type:object}"`
-	Embedding []float32  `json:"embedding" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:2048}}"`
+	Embedding []float32  `json:"embedding" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:2048,model:lsh,similarity:cosine}}"`
 }
 
 type ChunkEmbedding2560 struct {
 	Range     ChunkRange `json:"page_range" elastic_mapping:"page_range:{type:object}"`
-	Embedding []float32  `json:"embedding" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:2560}}"`
+	Embedding []float32  `json:"embedding" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:2560,model:lsh,similarity:cosine}}"`
 }
 
 type ChunkEmbedding4096 struct {
 	Range     ChunkRange `json:"page_range" elastic_mapping:"page_range:{type:object}"`
-	Embedding []float32  `json:"embedding" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:4096}}"`
+	Embedding []float32  `json:"embedding" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:4096,model:lsh,similarity:cosine}}"`
 }
