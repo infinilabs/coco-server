@@ -154,9 +154,9 @@ type Embedding struct {
 	Embeddings4096 []ChunkEmbedding4096 `json:"embeddings4096" elastic_mapping:"embeddings4096:{type:nested}"`
 }
 
-// Embedding dimensions supported by us, it should be kept sync with the 
+// Embedding dimensions supported by us, it should be kept sync with the
 // "EmbeddingXxx" fields of struct Embedding
-var SupportedEmbeddingDimensions = []int32{128, 256, 384, 512, 768, 1024, 1536, 2048, 2560, 4096 }
+var SupportedEmbeddingDimensions = []int32{128, 256, 384, 512, 768, 1024, 1536, 2048, 2560, 4096}
 
 // Set the `EmbeddingsXxx` field using the value provided by `chunkEmbeddings`.
 //
