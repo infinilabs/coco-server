@@ -42,9 +42,9 @@ type Document struct {
 	Title   string `json:"title,omitempty" elastic_mapping:"title:{type:text,copy_to:combined_fulltext,fields:{keyword: {type: keyword}, pinyin: {type: text, analyzer: pinyin_analyzer}}}"` // Document title
 	Summary string `json:"summary,omitempty" elastic_mapping:"summary:{type:text,copy_to:combined_fulltext}"`                                                                                // Brief summary or description of the document
 
-	Lang                string               `json:"lang,omitempty" elastic_mapping:"lang:{type:keyword,copy_to:combined_fulltext}"`    // Language code (e.g., "en", "fr")
-	Content             string               `json:"content,omitempty" elastic_mapping:"content:{type:text,copy_to:combined_fulltext}"` // Document content for full-text indexing
-	Chunks []DocumentChunk `json:"document_chunk" elastic_mapping:"document_chunk:{type:nested}"`
+	Lang    string          `json:"lang,omitempty" elastic_mapping:"lang:{type:keyword,copy_to:combined_fulltext}"`    // Language code (e.g., "en", "fr")
+	Content string          `json:"content,omitempty" elastic_mapping:"content:{type:text,copy_to:combined_fulltext}"` // Document content for full-text indexing
+	Chunks  []DocumentChunk `json:"document_chunk" elastic_mapping:"document_chunk:{type:nested}"`
 
 	Icon      string `json:"icon,omitempty" elastic_mapping:"icon:{enabled:false}"`           // Icon Key, need work with datasource's assets to get the icon url, if it is a full url, then use it directly
 	Thumbnail string `json:"thumbnail,omitempty" elastic_mapping:"thumbnail:{enabled:false}"` // Thumbnail image URL, for preview purposes
@@ -134,16 +134,16 @@ type DocumentChunk struct {
 // If you add or remove fields, please update variable "SupportedEmbeddingDimensions"
 // as well.
 type Embedding struct {
-	Embedding128  []float32 `json:"embedding128" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:128,model:lsh,similarity:cosine}}"`
-	Embedding256  []float32 `json:"embedding256" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:256,model:lsh,similarity:cosine}}"`
-	Embedding384  []float32 `json:"embedding384" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:384,model:lsh,similarity:cosine}}"`
-	Embedding512  []float32 `json:"embedding512" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:512,model:lsh,similarity:cosine}}"`
-	Embedding768  []float32 `json:"embedding768" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:768,model:lsh,similarity:cosine}}"`
-	Embedding1024 []float32 `json:"embedding1024" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:1024,model:lsh,similarity:cosine}}"`
-	Embedding1536 []float32 `json:"embedding1536" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:1536,model:lsh,similarity:cosine}}"`
-	Embedding2048 []float32 `json:"embedding2048" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:2048,model:lsh,similarity:cosine}}"`
-	Embedding2560 []float32 `json:"embedding2560" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:2560,model:lsh,similarity:cosine}}"`
-	Embedding4096 []float32 `json:"embedding4096" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:4096,model:lsh,similarity:cosine}}"`
+	Embedding128  []float32 `json:"embedding128" elastic_mapping:"embedding128:{type:knn_dense_float_vector,knn:{dims:128,model:lsh,similarity:cosine}}"`
+	Embedding256  []float32 `json:"embedding256" elastic_mapping:"embedding256:{type:knn_dense_float_vector,knn:{dims:256,model:lsh,similarity:cosine}}"`
+	Embedding384  []float32 `json:"embedding384" elastic_mapping:"embedding384:{type:knn_dense_float_vector,knn:{dims:384,model:lsh,similarity:cosine}}"`
+	Embedding512  []float32 `json:"embedding512" elastic_mapping:"embedding512:{type:knn_dense_float_vector,knn:{dims:512,model:lsh,similarity:cosine}}"`
+	Embedding768  []float32 `json:"embedding768" elastic_mapping:"embedding768:{type:knn_dense_float_vector,knn:{dims:768,model:lsh,similarity:cosine}}"`
+	Embedding1024 []float32 `json:"embedding1024" elastic_mapping:"embedding1024:{type:knn_dense_float_vector,knn:{dims:1024,model:lsh,similarity:cosine}}"`
+	Embedding1536 []float32 `json:"embedding1536" elastic_mapping:"embedding1536:{type:knn_dense_float_vector,knn:{dims:1536,model:lsh,similarity:cosine}}"`
+	Embedding2048 []float32 `json:"embedding2048" elastic_mapping:"embedding2048:{type:knn_dense_float_vector,knn:{dims:2048,model:lsh,similarity:cosine}}"`
+	Embedding2560 []float32 `json:"embedding2560" elastic_mapping:"embedding2560:{type:knn_dense_float_vector,knn:{dims:2560,model:lsh,similarity:cosine}}"`
+	Embedding4096 []float32 `json:"embedding4096" elastic_mapping:"embedding4096:{type:knn_dense_float_vector,knn:{dims:4096,model:lsh,similarity:cosine}}"`
 }
 
 // Set the actual value of this "Embedding"
