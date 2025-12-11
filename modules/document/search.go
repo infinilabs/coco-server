@@ -54,11 +54,9 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		docsSize := len(result.Hits.Hits)
 		//update icon
 		if docsSize > 0 {
-			if common.AppConfig().ServerInfo.EncodeIconToBase64 {
-				for i, hit := range result.Hits.Hits {
-					RefineIcon(req.Context(), &hit.Source)
-					result.Hits.Hits[i] = hit
-				}
+			for i, hit := range result.Hits.Hits {
+				RefineIcon(req.Context(), &hit.Source)
+				result.Hits.Hits[i] = hit
 			}
 		}
 
@@ -107,41 +105,58 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 	}
 }
 
+// ResolveIcon runs the icon fallback chain:
+// 1. currentIcon
+// 2. datasource.Icon
+// 3. connector.Icon
+func ResolveIcon(
+	connectorConfig *core.Connector,
+	datasourceConfig *core.DataSource,
+	currentIcon string,
+) string {
+
+	// 1. Try current field's icon
+	if icon := common.ParseAndGetIcon(connectorConfig, currentIcon); icon != "" {
+		return icon
+	}
+
+	// 2. Try datasource icon
+	if datasourceConfig.Icon != "" {
+		if icon := common.ParseAndGetIcon(connectorConfig, datasourceConfig.Icon); icon != "" {
+			return icon
+		}
+	}
+
+	// 3. Try connector default icon
+	if icon := common.ParseAndGetIcon(connectorConfig, connectorConfig.Icon); icon != "" {
+		return icon
+	}
+
+	return ""
+}
+
 func RefineIcon(ctx context.Context, doc *core.Document) {
 	ctx1 := orm.NewContextWithParent(ctx)
 	ctx1.DirectReadAccess()
-	// Get the pointer to doc.Source to make sure you're modifying the original
+
 	datasourceConfig, err := common.GetDatasourceConfig(ctx1, doc.Source.ID)
-	if err == nil && datasourceConfig != nil && datasourceConfig.Connector.ConnectorID != "" {
-		connectorConfig, err := connector.GetConnectorConfig(datasourceConfig.Connector.ConnectorID)
+	if err != nil || datasourceConfig == nil || datasourceConfig.Connector.ConnectorID == "" {
+		return
+	}
 
-		if connectorConfig != nil && err == nil {
-			icon := common.ParseAndGetIcon(connectorConfig, doc.Source.Icon)
-			if icon != "" {
-				doc.Source.Icon = icon
-			}
+	connectorConfig, err := connector.GetConnectorConfig(datasourceConfig.Connector.ConnectorID)
+	if err != nil || connectorConfig == nil {
+		return
+	}
 
-			if doc.Source.Icon != "" {
-				icon = common.ParseAndGetIcon(connectorConfig, doc.Source.Icon)
-				if icon != "" {
-					doc.Source.Icon = icon
-				}
-			} else {
-				//try datasource's icon
-				if datasourceConfig.Icon != "" {
-					icon = common.ParseAndGetIcon(connectorConfig, datasourceConfig.Icon)
-					if icon != "" {
-						doc.Source.Icon = icon
-					}
-				} else {
-					//try connector's icon
-					icon = common.ParseAndGetIcon(connectorConfig, connectorConfig.Icon)
-					if icon != "" {
-						doc.Source.Icon = icon
-					}
-				}
-			}
-		}
+	// Update doc.Icon
+	if icon := ResolveIcon(connectorConfig, datasourceConfig, doc.Icon); icon != "" {
+		doc.Icon = icon
+	}
+
+	// Update doc.Source.Icon
+	if icon := ResolveIcon(connectorConfig, datasourceConfig, doc.Source.Icon); icon != "" {
+		doc.Source.Icon = icon
 	}
 }
 
