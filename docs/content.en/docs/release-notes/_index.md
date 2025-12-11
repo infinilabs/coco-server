@@ -21,6 +21,7 @@ Information about release notes of Coco Server is provided here.
 
 - feat: add metrics module #594
 - feat: jira connector #567
+- feat: milvus connector #613
 
 ### 🐛 Bug fix  
 ### ✈️ Improvements  

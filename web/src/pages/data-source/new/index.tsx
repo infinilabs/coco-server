@@ -35,11 +35,13 @@ import {
   GithubConfig,
   GitlabConfig,
   JiraConfig,
+  MilvusConfig,
   MongoDBConfig,
   Neo4jConfig,
   NetworkDriveConfig,
   RdbmsConfig
 } from './models';
+import Milvus from './milvus';
 import MongoDB from './mongodb';
 import Neo4j from './neo4j';
 import NetworkDrive from './network_drive';
@@ -120,6 +122,8 @@ export function Component() {
         return 'Network Drive';
       case Types.Neo4j:
         return 'Neo4j';
+      case Types.Milvus:
+        return 'Milvus';
       case Types.MongoDB:
         return 'MongoDB';
       case Types.Postgresql:
@@ -221,6 +225,7 @@ export function Component() {
       Types.Mssql,
       Types.Oracle,
       Types.Neo4j,
+      Types.Milvus,
       Types.MongoDB,
       Types.Feishu,
       Types.Lark,
@@ -337,6 +342,10 @@ export function Component() {
         config = Neo4jConfig(values);
         break;
       }
+      case Types.Milvus: {
+        config = MilvusConfig(values);
+        break;
+      }
       case Types.MongoDB: {
         config = MongoDBConfig(values);
         break;
@@ -430,16 +439,18 @@ export function Component() {
           <OAuthConnect
             connector={connector}
             validationRules={validationRules}
-            connectUrl={
-              // eslint-disable-next-line no-nested-ternary
-              type === Types.Feishu
-                ? `/connector/${connector?.id}/feishu/connect`
-                : type === Types.Lark
-                  ? `/connector/${connector?.id}/lark/connect`
-                  : type === Types.Box
-                    ? `/connector/${connector?.id}/box/connect`
-                    : undefined
-            }
+            connectUrl={(() => {
+              switch (type) {
+                case Types.Feishu:
+                  return `/connector/${connector?.id}/feishu/connect`;
+                case Types.Lark:
+                  return `/connector/${connector?.id}/lark/connect`;
+                case Types.Box:
+                  return `/connector/${connector?.id}/box/connect`;
+                default:
+                  return undefined;
+              }
+            })()}
           />
         ) : (
           <div>
@@ -524,6 +535,7 @@ export function Component() {
               {type === Types.Jira && <Jira />}
               {type === Types.NetworkDrive && <NetworkDrive />}
               {type === Types.Neo4j && <Neo4j form={form} />}
+              {type === Types.Milvus && <Milvus form={form} />}
               {type === Types.MongoDB && <MongoDB form={form} />}
               {type === Types.Postgresql && <Rdbms dbType='postgresql' />}
               {type === Types.Mysql && <Rdbms dbType='mysql' />}
