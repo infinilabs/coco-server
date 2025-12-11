@@ -14,7 +14,7 @@ func ParseAndGetIcon(connector *core.Connector, icon string) string {
 	appCfg := AppConfig()
 
 	icon = internalGetIcon(&appCfg, connector, icon)
-	if icon != "" {
+	if icon != "" && appCfg.ServerInfo.EncodeIconToBase64 {
 		icon = ConvertIconToBase64(&appCfg, icon)
 	}
 	return icon
