@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	log "github.com/cihub/seelog"
 	"github.com/tmc/langchaingo/llms"
@@ -26,11 +27,13 @@ import (
 )
 
 const ProcessorName = "document_summarization"
+
 // Users are allowed to set the limit of the summary length, which is a soft limit.
 // This is the hard limit.
 const SummaryLengthHardLimit = 300
+
 // We set a minimum context length limit, this is a reasonable limit, it is rare
-// to see a model whose context length is smaller than this value. Even small 
+// to see a model whose context length is smaller than this value. Even small
 // local LLMs have context of 8k tokens.
 const MinimumModelContextLength = 4000
 
@@ -40,7 +43,7 @@ type Config struct {
 	MinInputDocumentLength uint32             `config:"min_input_document_length"`
 	MaxInputDocumentLength uint32             `config:"max_input_document_length"`
 	// Soft limit
-	MaxSummaryLength       uint32             `config:"max_summary_length"`
+	MaxSummaryLength uint32 `config:"max_summary_length"`
 
 	ModelProviderID    string `config:"model_provider"`
 	ModelName          string `config:"model"`
@@ -223,7 +226,7 @@ func summarizeDocument(document *core.Document, config *Config, llm llms.Model, 
 	/*
 		Otherwise, we have to chunk the document and invoke multiple LLM calls.
 	*/
-	summary, err = summarizeDocumentTwoPasses(document, config, llm, llmCtx, regexpToRemoveThink)
+	summary, err = summarizeDocumentMultiPasses(document, config, llm, llmCtx, regexpToRemoveThink)
 	if err != nil {
 		// restore the Content field
 		document.Content = documentContent
@@ -235,36 +238,171 @@ func summarizeDocument(document *core.Document, config *Config, llm llms.Model, 
 	return nil
 }
 
-func summarizeDocumentTwoPasses(document *core.Document, config *Config, llm llms.Model, llmCtx context.Context, regexpToRemoveThink *regexp.Regexp) (string, error) {
-	return "", nil
+func summarizeDocumentMultiPasses(document *core.Document, config *Config, llm llms.Model, llmCtx context.Context, regexpToRemoveThink *regexp.Regexp) (string, error) {
+	chunkSystemPrompt := "You are an expert summarizer. Generate a concise, factual summary."
+	chunkUserPromptPrefix := fmt.Sprintf("Summarize the following content without exceeding %d tokens. Focus on the main points and key details.\n\nContent:\n", config.MaxSummaryLength)
+
+	chunkBudget, err := calculateContentBudget(chunkSystemPrompt, chunkUserPromptPrefix, config.ModelContextLength)
+	if err != nil {
+		return "", err
+	}
+
+	// Build larger chunks from embedding-sized chunks to better utilize model context.
+	originalChunks := make([]string, 0, len(document.Chunks))
+	for _, c := range document.Chunks {
+		text := strings.TrimSpace(c.Text)
+		if text == "" {
+			continue
+		}
+		originalChunks = append(originalChunks, text)
+	}
+	if len(originalChunks) == 0 {
+		return "", fmt.Errorf("document has no chunk text to summarize")
+	}
+
+	mergedChunks := aggregateTexts(originalChunks, chunkBudget)
+	if len(mergedChunks) == 0 {
+		return "", fmt.Errorf("failed to merge document chunks for summarization")
+	}
+
+	chunkSummaries := make([]string, 0, len(mergedChunks))
+	for _, chunkText := range mergedChunks {
+		userPrompt := chunkUserPromptPrefix + chunkText
+		summary, err := generateSummaryFromPrompt(llm, llmCtx, chunkSystemPrompt, userPrompt, regexpToRemoveThink)
+		if err != nil {
+			return "", err
+		}
+		chunkSummaries = append(chunkSummaries, strings.TrimSpace(summary))
+	}
+
+	if len(chunkSummaries) == 0 {
+		return "", fmt.Errorf("no summaries generated for document chunks")
+	}
+	if len(chunkSummaries) == 1 {
+		return chunkSummaries[0], nil
+	}
+
+	// Reduce multiple chunk summaries into a single final summary, recursively if needed.
+	combineSystemPrompt := chunkSystemPrompt
+	combineUserPromptPrefix := fmt.Sprintf("You are given summaries of a larger document. Combine them into a concise summary without exceeding %d tokens. Keep only the essential points.\n\nSummaries:\n", config.MaxSummaryLength)
+	combineBudget, err := calculateContentBudget(combineSystemPrompt, combineUserPromptPrefix, config.ModelContextLength)
+	if err != nil {
+		return "", err
+	}
+
+	current := chunkSummaries
+	for len(current) > 1 {
+		grouped := aggregateTexts(current, combineBudget)
+		next := make([]string, 0, len(grouped))
+		for _, groupText := range grouped {
+			userPrompt := combineUserPromptPrefix + groupText
+			summary, err := generateSummaryFromPrompt(llm, llmCtx, combineSystemPrompt, userPrompt, regexpToRemoveThink)
+			if err != nil {
+				return "", err
+			}
+			next = append(next, strings.TrimSpace(summary))
+		}
+		current = next
+	}
+
+	return current[0], nil
 }
 
-// Summarize the passed text chunk
-func summarizeChunk(llm llms.Model, llmCtx context.Context, regexpToRemoveThink *regexp.Regexp, chunk string, chunkRange core.ChunkRange, tokenLimit uint32) (string, error) {
-	userPrompt := fmt.Sprintf(
-		"Summarize pages %d-%d concisely within %d tokens. Focus on key facts and main ideas. Content:\n%s",
-		chunkRange.Start, chunkRange.End, tokenLimit, chunk,
-	)
+func calculateContentBudget(systemPrompt, userPromptPrefix string, modelContextLength uint32) (int, error) {
+	promptLength := utf8.RuneCountInString(systemPrompt) + utf8.RuneCountInString(userPromptPrefix)
+	budget := int(modelContextLength) - promptLength
+	if budget <= 0 {
+		return 0, fmt.Errorf("model context length is too small for prompts (%d)", promptLength)
+	}
+	return budget, nil
+}
 
-	messages := []llms.MessageContent{
-		llms.TextParts(llms.ChatMessageTypeSystem, "You are an expert summarizer."),
+// aggregateTexts merges texts into larger groups without exceeding the provided budget (rune-based).
+func aggregateTexts(texts []string, budget int) []string {
+	if budget <= 0 {
+		return nil
+	}
+
+	var groups []string
+	var builder strings.Builder
+	currentLen := 0
+	separator := "\n"
+	separatorLen := utf8.RuneCountInString(separator)
+
+	flush := func() {
+		if builder.Len() > 0 {
+			groups = append(groups, builder.String())
+			builder.Reset()
+			currentLen = 0
+		}
+	}
+
+	for _, raw := range texts {
+		text := strings.TrimSpace(raw)
+		if text == "" {
+			continue
+		}
+
+		runes := []rune(text)
+		textLen := len(runes)
+
+		if textLen > budget {
+			flush()
+			for len(runes) > 0 {
+				take := budget
+				if take > len(runes) {
+					take = len(runes)
+				}
+				groups = append(groups, string(runes[:take]))
+				runes = runes[take:]
+			}
+			continue
+		}
+
+		needed := textLen
+		if currentLen > 0 {
+			needed += separatorLen
+		}
+
+		if currentLen > 0 && currentLen+needed > budget {
+			flush()
+		}
+
+		if builder.Len() > 0 {
+			builder.WriteString(separator)
+			currentLen += separatorLen
+		}
+		builder.WriteString(text)
+		currentLen += textLen
+	}
+
+	flush()
+	return groups
+}
+
+func generateSummaryFromPrompt(llm llms.Model, llmCtx context.Context, systemPrompt, userPrompt string, regexpToRemoveThink *regexp.Regexp) (string, error) {
+	message := []llms.MessageContent{
+		llms.TextParts(llms.ChatMessageTypeSystem, systemPrompt),
 		llms.TextParts(llms.ChatMessageTypeHuman, userPrompt),
 	}
 
-	builder := strings.Builder{}
-	_, err := llm.GenerateContent(llmCtx, messages, llms.WithStreamingFunc(func(ctx context.Context, data []byte) error {
+	summaryBuilder := strings.Builder{}
+	completion, err := llm.GenerateContent(llmCtx, message, llms.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
 		if global.ShuttingDown() {
 			llmCtx.Done()
 			return errors.New("shutting down")
 		}
-		builder.Write(data)
+		summaryBuilder.Write(chunk)
 		return nil
 	}))
 	if err != nil {
 		return "", err
 	}
+	_ = completion
 
-	summary := regexpToRemoveThink.ReplaceAllLiteralString(builder.String(), "")
+	summary := summaryBuilder.String()
+	summary = regexpToRemoveThink.ReplaceAllLiteralString(summary, "")
+
 	return summary, nil
 }
 
