@@ -155,7 +155,7 @@ func (processor *DocumentSummarizationProcessor) Process(ctx *pipeline.Context) 
 			start := time.Now()
 			err = summarizeDocument(&doc, processor.config, llm, llmCtx, processor.removeThinkPattern)
 			if err != nil {
-				log.Errorf("[%s] failed to summarize document [%s/%s]", processor.Name(), doc.Title, doc.ID)
+				log.Errorf("[%s] failed to summarize document [%s/%s], error [%s]", processor.Name(), doc.Title, doc.ID, err)
 				continue
 			}
 			log.Infof("[%s] finished summarize doc, %v, %v, elapsed: %v, summary: %v", processor.Name(), doc.ID, doc.Title, util.Since(start), doc.Summary)
@@ -217,6 +217,7 @@ func summarizeDocument(document *core.Document, config *Config, llm llms.Model, 
 		return err
 	}
 	if doneInOnePass {
+		log.Trace("summary generated in one pass")
 		setSummary(document, config, summary)
 		// restore the Content field
 		document.Content = documentContent
@@ -226,6 +227,7 @@ func summarizeDocument(document *core.Document, config *Config, llm llms.Model, 
 	/*
 		Otherwise, we have to chunk the document and invoke multiple LLM calls.
 	*/
+	log.Trace("summary needs to be generated in multiple passes")
 	summary, err = summarizeDocumentMultiPasses(document, config, llm, llmCtx, regexpToRemoveThink)
 	if err != nil {
 		// restore the Content field
@@ -248,6 +250,7 @@ func summarizeDocumentMultiPasses(document *core.Document, config *Config, llm l
 	}
 
 	// Build larger chunks from embedding-sized chunks to better utilize model context.
+	log.Tracef("processor [%s] chunking document", ProcessorName)
 	originalChunks := make([]string, 0, len(document.Chunks))
 	for _, c := range document.Chunks {
 		text := strings.TrimSpace(c.Text)
@@ -265,8 +268,12 @@ func summarizeDocumentMultiPasses(document *core.Document, config *Config, llm l
 		return "", fmt.Errorf("failed to merge document chunks for summarization")
 	}
 
+	log.Debugf("processor [%s]: document got split into [%d] chunks", ProcessorName, len(mergedChunks))
+
+	log.Tracef("processor [%s] summarizing chunks", ProcessorName)
 	chunkSummaries := make([]string, 0, len(mergedChunks))
-	for _, chunkText := range mergedChunks {
+	for idx, chunkText := range mergedChunks {
+		log.Tracef("processor [%s] summarizing chunk [%d]", ProcessorName, idx)
 		userPrompt := chunkUserPromptPrefix + chunkText
 		summary, err := generateSummaryFromPrompt(llm, llmCtx, chunkSystemPrompt, userPrompt, regexpToRemoveThink)
 		if err != nil {
@@ -282,7 +289,11 @@ func summarizeDocumentMultiPasses(document *core.Document, config *Config, llm l
 		return chunkSummaries[0], nil
 	}
 
-	// Reduce multiple chunk summaries into a single final summary, recursively if needed.
+	/*
+		Reduce multiple chunk summaries into a single final summary, recursively
+		if needed.
+	*/
+	log.Tracef("processor [%s] need to summarize summaries", ProcessorName)
 	combineSystemPrompt := chunkSystemPrompt
 	combineUserPromptPrefix := fmt.Sprintf("You are given summaries of a larger document. Combine them into a concise summary without exceeding %d tokens. Keep only the essential points.\n\nSummaries:\n", config.MaxSummaryLength)
 	combineBudget, err := calculateContentBudget(combineSystemPrompt, combineUserPromptPrefix, config.ModelContextLength)
@@ -292,6 +303,7 @@ func summarizeDocumentMultiPasses(document *core.Document, config *Config, llm l
 
 	current := chunkSummaries
 	for len(current) > 1 {
+		log.Debugf("processor [%s]: [%d] summaries to summarize", ProcessorName, len(current))
 		grouped := aggregateTexts(current, combineBudget)
 		next := make([]string, 0, len(grouped))
 		for _, groupText := range grouped {

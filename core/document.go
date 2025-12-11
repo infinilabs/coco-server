@@ -118,7 +118,7 @@ type UserInfo struct {
 
 type DocumentChunk struct {
 	Range     ChunkRange `json:"range" elastic_mapping:"range:{type:object}"`
-	Text      string     `json:"text" elastic_mapping:"text:{type:string}"`
+	Text      string     `json:"text" elastic_mapping:"text:{type:text}"`
 	Embedding Embedding  `json:"embedding" elastic_mapping:"embedding:{type:object}"`
 }
 
@@ -134,16 +134,16 @@ type DocumentChunk struct {
 // If you add or remove fields, please update variable "SupportedEmbeddingDimensions"
 // as well.
 type Embedding struct {
-	Embedding128  []float32 `json:"embedding128" elastic_mapping:"embedding128:{type:knn_dense_float_vector,knn:{dims:128,model:lsh,similarity:cosine}}"`
-	Embedding256  []float32 `json:"embedding256" elastic_mapping:"embedding256:{type:knn_dense_float_vector,knn:{dims:256,model:lsh,similarity:cosine}}"`
-	Embedding384  []float32 `json:"embedding384" elastic_mapping:"embedding384:{type:knn_dense_float_vector,knn:{dims:384,model:lsh,similarity:cosine}}"`
-	Embedding512  []float32 `json:"embedding512" elastic_mapping:"embedding512:{type:knn_dense_float_vector,knn:{dims:512,model:lsh,similarity:cosine}}"`
-	Embedding768  []float32 `json:"embedding768" elastic_mapping:"embedding768:{type:knn_dense_float_vector,knn:{dims:768,model:lsh,similarity:cosine}}"`
-	Embedding1024 []float32 `json:"embedding1024" elastic_mapping:"embedding1024:{type:knn_dense_float_vector,knn:{dims:1024,model:lsh,similarity:cosine}}"`
-	Embedding1536 []float32 `json:"embedding1536" elastic_mapping:"embedding1536:{type:knn_dense_float_vector,knn:{dims:1536,model:lsh,similarity:cosine}}"`
-	Embedding2048 []float32 `json:"embedding2048" elastic_mapping:"embedding2048:{type:knn_dense_float_vector,knn:{dims:2048,model:lsh,similarity:cosine}}"`
-	Embedding2560 []float32 `json:"embedding2560" elastic_mapping:"embedding2560:{type:knn_dense_float_vector,knn:{dims:2560,model:lsh,similarity:cosine}}"`
-	Embedding4096 []float32 `json:"embedding4096" elastic_mapping:"embedding4096:{type:knn_dense_float_vector,knn:{dims:4096,model:lsh,similarity:cosine}}"`
+	Embedding128  []float32 `json:"embedding128" elastic_mapping:"embedding128:{type:knn_dense_float_vector,knn:{dims:128,model:lsh,similarity:cosine,L:99,K:1}}"`
+	Embedding256  []float32 `json:"embedding256" elastic_mapping:"embedding256:{type:knn_dense_float_vector,knn:{dims:256,model:lsh,similarity:cosine,L:99,K:1}}"`
+	Embedding384  []float32 `json:"embedding384" elastic_mapping:"embedding384:{type:knn_dense_float_vector,knn:{dims:384,model:lsh,similarity:cosine,L:99,K:1}}"`
+	Embedding512  []float32 `json:"embedding512" elastic_mapping:"embedding512:{type:knn_dense_float_vector,knn:{dims:512,model:lsh,similarity:cosine,L:99,K:1}}"`
+	Embedding768  []float32 `json:"embedding768" elastic_mapping:"embedding768:{type:knn_dense_float_vector,knn:{dims:768,model:lsh,similarity:cosine,L:99,K:1}}"`
+	Embedding1024 []float32 `json:"embedding1024" elastic_mapping:"embedding1024:{type:knn_dense_float_vector,knn:{dims:1024,model:lsh,similarity:cosine,L:99,K:1}}"`
+	Embedding1536 []float32 `json:"embedding1536" elastic_mapping:"embedding1536:{type:knn_dense_float_vector,knn:{dims:1536,model:lsh,similarity:cosine,L:99,K:1}}"`
+	Embedding2048 []float32 `json:"embedding2048" elastic_mapping:"embedding2048:{type:knn_dense_float_vector,knn:{dims:2048,model:lsh,similarity:cosine,L:99,K:1}}"`
+	Embedding2560 []float32 `json:"embedding2560" elastic_mapping:"embedding2560:{type:knn_dense_float_vector,knn:{dims:2560,model:lsh,similarity:cosine,L:99,K:1}}"`
+	Embedding4096 []float32 `json:"embedding4096" elastic_mapping:"embedding4096:{type:knn_dense_float_vector,knn:{dims:4096,model:lsh,similarity:cosine,L:99,K:1}}"`
 }
 
 // Set the actual value of this "Embedding"

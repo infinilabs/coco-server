@@ -1,5 +1,5 @@
 env:
-  ES_ENDPOINT: https://localhost:9200
+  ES_ENDPOINT: http://192.168.3.119:9200
   ES_USERNAME: admin
   ES_PASSWORD: $[[keystore.ES_PASSWORD]]
   WEB_BINDING: 0.0.0.0:9000
@@ -311,7 +311,7 @@ web:
 ##background jobs
 pipeline:
   - name: enrich_documents
-    auto_start: false
+    auto_start: true
     keep_running: true
     processor:
       - consumer:
@@ -331,7 +331,7 @@ pipeline:
             - document_summarization:
                 model_provider: deepseek
                 model: deepseek-chat
-                model_context_length: 128000
+                model_context_length: 5000
                 max_summary_length: 300
             - document_embedding:
                 model_provider: qianwen
@@ -350,7 +350,7 @@ pipeline:
     keep_running: true
     processor:
       - indexing_merge:
-          input_queue: "indexing_documents"
+          input_queue: "enrich_documents"
           idle_timeout_in_seconds: 1
           elasticsearch: "prod"
           index_name: "coco_document-v2"
