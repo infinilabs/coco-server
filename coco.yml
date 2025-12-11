@@ -331,7 +331,7 @@ pipeline:
             - document_summarization:
                 model_provider: deepseek
                 model: deepseek-chat
-                model_context_length: 5000
+                model_context_length: 128000
                 max_summary_length: 300
             - document_embedding:
                 model_provider: qianwen
@@ -350,7 +350,7 @@ pipeline:
     keep_running: true
     processor:
       - indexing_merge:
-          input_queue: "enrich_documents"
+          input_queue: "enriched_documents"
           idle_timeout_in_seconds: 1
           elasticsearch: "prod"
           index_name: "coco_document-v2"
