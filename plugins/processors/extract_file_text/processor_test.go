@@ -31,7 +31,7 @@ func TestSplitPagesToChunks_SpansPages(t *testing.T) {
 
 	chunks := SplitPagesToChunks(pages, 5)
 
-	expectedChunks := []core.TextEmbeddingChunk{
+	expectedChunks := []core.DocumentChunk{
 		{Range: core.ChunkRange{Start: 1, End: 2}, Text: "abcde"},
 		{Range: core.ChunkRange{Start: 2, End: 3}, Text: "fgh"},
 	}
@@ -55,7 +55,7 @@ func TestSplitPagesToChunks_SinglePageMultipleChunks(t *testing.T) {
 
 	chunks := SplitPagesToChunks(pages, 4)
 
-	expectedChunks := []core.TextEmbeddingChunk{
+	expectedChunks := []core.DocumentChunk{
 		{Range: core.ChunkRange{Start: 1, End: 1}, Text: "abcd"},
 		{Range: core.ChunkRange{Start: 1, End: 1}, Text: "efgh"},
 	}

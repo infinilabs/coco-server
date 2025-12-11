@@ -26,12 +26,20 @@ import (
 )
 
 const ProcessorName = "document_summarization"
+// Users are allowed to set the limit of the summary length, which is a soft limit.
+// This is the hard limit.
+const SummaryLengthHardLimit = 300
+// We set a minimum context length limit, this is a reasonable limit, it is rare
+// to see a model whose context length is smaller than this value. Even small 
+// local LLMs have context of 8k tokens.
+const MinimumModelContextLength = 4000
 
 type Config struct {
 	MessageField           param.ParaKey      `config:"message_field"`
 	OutputQueue            *queue.QueueConfig `config:"output_queue"`
 	MinInputDocumentLength uint32             `config:"min_input_document_length"`
 	MaxInputDocumentLength uint32             `config:"max_input_document_length"`
+	// Soft limit
 	MaxSummaryLength       uint32             `config:"max_summary_length"`
 
 	ModelProviderID    string `config:"model_provider"`
@@ -74,6 +82,15 @@ func New(c *config.Config) (pipeline.Processor, error) {
 	}
 	if cfg.ModelName == "" {
 		panic("model can't be empty")
+	}
+	if cfg.MaxSummaryLength > SummaryLengthHardLimit {
+		log.Warnf("processor [%s] config [MaxSummaryLength] cannot exceed [%d], setting it to [%d]", ProcessorName, SummaryLengthHardLimit, SummaryLengthHardLimit)
+		cfg.MaxSummaryLength = SummaryLengthHardLimit
+	}
+	// This is rare, or unreachable in reality. Even small local LLMs have
+	// context of 8k tokens.
+	if cfg.ModelContextLength < MinimumModelContextLength {
+		panic("Model's context length is too low")
 	}
 
 	processor := DocumentSummarizationProcessor{config: &cfg}
@@ -218,8 +235,6 @@ func summarizeDocument(document *core.Document, config *Config, llm llms.Model, 
 	return nil
 }
 
-// Chunk the document texts (document.Text), summarize each, then generate
-// the final document summary using these chunk summaries.
 func summarizeDocumentTwoPasses(document *core.Document, config *Config, llm llms.Model, llmCtx context.Context, regexpToRemoveThink *regexp.Regexp) (string, error) {
 	return "", nil
 }

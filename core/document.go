@@ -44,7 +44,7 @@ type Document struct {
 
 	Lang                string               `json:"lang,omitempty" elastic_mapping:"lang:{type:keyword,copy_to:combined_fulltext}"`    // Language code (e.g., "en", "fr")
 	Content             string               `json:"content,omitempty" elastic_mapping:"content:{type:text,copy_to:combined_fulltext}"` // Document content for full-text indexing
-	TextEmbeddingChunks []TextEmbeddingChunk `json:"text_embedding_chunks" elastic_mapping:"text_embedding_chunks:{type:nested}"`
+	Chunks []DocumentChunk `json:"document_chunk" elastic_mapping:"document_chunk:{type:nested}"`
 
 	Icon      string `json:"icon,omitempty" elastic_mapping:"icon:{enabled:false}"`           // Icon Key, need work with datasource's assets to get the icon url, if it is a full url, then use it directly
 	Thumbnail string `json:"thumbnail,omitempty" elastic_mapping:"thumbnail:{enabled:false}"` // Thumbnail image URL, for preview purposes
@@ -116,7 +116,7 @@ type UserInfo struct {
 	UserID     string `json:"userid,omitempty" elastic_mapping:"userid:{type:keyword,copy_to:combined_fulltext}"`     // Unique identifier for the user
 }
 
-type TextEmbeddingChunk struct {
+type DocumentChunk struct {
 	Range     ChunkRange `json:"range" elastic_mapping:"range:{type:object}"`
 	Text      string     `json:"text" elastic_mapping:"text:{type:string}"`
 	Embedding Embedding  `json:"embedding" elastic_mapping:"embedding:{type:object}"`
@@ -146,6 +146,7 @@ type Embedding struct {
 	Embedding4096 []float32 `json:"embedding4096" elastic_mapping:"embedding:{type:knn_dense_float_vector,knn:{dims:4096,model:lsh,similarity:cosine}}"`
 }
 
+// Set the actual value of this "Embedding"
 func (e *Embedding) SetValue(embedding []float32) {
 	dimension := len(embedding)
 	switch dimension {
@@ -178,11 +179,11 @@ func (e *Embedding) SetValue(embedding []float32) {
 // "EmbeddingXxx" fields of struct Embedding
 var SupportedEmbeddingDimensions = []int32{128, 256, 384, 512, 768, 1024, 1536, 2048, 2560, 4096}
 
-// Range of this chunk.
+// Range of a chunk.
 //
 // A chunk contains roughly the same amount of tokens, say 8192 tokens. And
 // thus, a chunk can span many pages if these pages are small, or it is only
-// part of a page if it is big.
+// part of a page if the page is big.
 type ChunkRange struct {
 	// Start page of this chunk.
 	Start int `json:"start" elastic_mapping:"start:{type:integer}"`

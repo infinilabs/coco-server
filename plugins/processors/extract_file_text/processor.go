@@ -151,7 +151,7 @@ func (p *ExtractFileTextProcessor) Process(ctx *pipeline.Context) error {
 				}
 			}
 
-			doc.TextEmbeddingChunks = SplitPagesToChunks(pages, p.config.ChunkSize)
+			doc.Chunks = SplitPagesToChunks(pages, p.config.ChunkSize)
 
 			// Update msg.Data with the new document content
 			updatedDocBytes := util.MustToJSONBytes(doc)
@@ -169,16 +169,16 @@ func (p *ExtractFileTextProcessor) Process(ctx *pipeline.Context) error {
 
 // Splits page texts into chunks using character count as a token proxy
 // and tracks the page range for each chunk.
-func SplitPagesToChunks(pages []string, chunkSize int) []core.TextEmbeddingChunk {
+func SplitPagesToChunks(pages []string, chunkSize int) []core.DocumentChunk {
 	// Early return
 	if chunkSize <= 0 {
 		return nil
 	}
 	if len(pages) == 0 {
-		return make([]core.TextEmbeddingChunk, 0)
+		return make([]core.DocumentChunk, 0)
 	}
 
-	var chunks []core.TextEmbeddingChunk
+	var chunks []core.DocumentChunk
 
 	buf := make([]rune, 0, chunkSize)
 	// Value 0 means `startPage`` and `lastPage` are not initialized
@@ -209,7 +209,7 @@ func SplitPagesToChunks(pages []string, chunkSize int) []core.TextEmbeddingChunk
 					End:   lastPage,
 				}
 
-				chunks = append(chunks, core.TextEmbeddingChunk{
+				chunks = append(chunks, core.DocumentChunk{
 					Range: chunkRange,
 					Text:  textChunk,
 					// this field remain uninitialized
@@ -244,7 +244,7 @@ func SplitPagesToChunks(pages []string, chunkSize int) []core.TextEmbeddingChunk
 			Start: startPage,
 			End:   lastPage,
 		}
-		chunks = append(chunks, core.TextEmbeddingChunk{
+		chunks = append(chunks, core.DocumentChunk{
 			Range: chunkRange,
 			Text:  textChunk,
 			// this field remain uninitialized

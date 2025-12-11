@@ -115,7 +115,7 @@ func (processor *DocumentEmbeddingProcessor) Process(ctx *pipeline.Context) erro
 		}
 
 		// Only local file have this now.
-		if doc.Type == connectors.TypeFile && doc.TextEmbeddingChunks != nil {
+		if doc.Type == connectors.TypeFile && doc.Chunks != nil {
 			err := generateEmbedding(&doc, processor.config)
 			if err != nil {
 				log.Errorf("processor [%s] failed to generate embeddings for document [%s/%s] due to error [%s]", processor.Name(), doc.ID, doc.Title, err)
@@ -148,7 +148,7 @@ func generateEmbedding(document *core.Document, processorConfig *Config) error {
 		Generate embeddings for text chunks, in batch
 	*/
 	ctx := context.Background()
-	nChunks := len(document.TextEmbeddingChunks)
+	nChunks := len(document.Chunks)
 	batchSize := 10
 	batch := make([]string, 0, batchSize)
 	for batchStart := 0; batchStart < nChunks; batchStart += batchSize {
@@ -162,7 +162,7 @@ func generateEmbedding(document *core.Document, processorConfig *Config) error {
 		}
 
 		// Populate batch
-		for _, chunk := range document.TextEmbeddingChunks[batchStart:batchEnd] {
+		for _, chunk := range document.Chunks[batchStart:batchEnd] {
 			batch = append(batch, chunk.Text)
 		}
 
@@ -175,7 +175,7 @@ func generateEmbedding(document *core.Document, processorConfig *Config) error {
 			idx := batchStart + relative_idx
 			embeddingWrapper := core.Embedding{}
 			embeddingWrapper.SetValue(embedding)
-			document.TextEmbeddingChunks[idx].Embedding = embeddingWrapper
+			document.Chunks[idx].Embedding = embeddingWrapper
 		}
 	}
 
