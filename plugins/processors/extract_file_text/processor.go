@@ -132,23 +132,22 @@ func (p *ExtractFileTextProcessor) Process(ctx *pipeline.Context) error {
 				continue
 			}
 
+			/*
+				Extract document content, store it in "pages"
+			*/
 			var pages []string
-
+			pagesSelection := docHTML.Find("div.page")
 			// Find all div with class "page"
-			docHTML.Find("div.page").Each(func(i int, s *goquery.Selection) {
-				pageContent := strings.TrimSpace(s.Text())
-				if pageContent != "" {
-					pages = append(pages, pageContent)
-				}
-			})
+			for i = 0; i < pagesSelection.Length(); i++ {
+				s := pagesSelection.Eq(i)
+				appendPage(&pages, s)
+			}
 
 			// If no pages found (maybe not a PDF or Tika returned plain text
 			// wrapped in body), try getting body text
 			if len(pages) == 0 {
-				bodyText := strings.TrimSpace(docHTML.Find("body").Text())
-				if bodyText != "" {
-					pages = append(pages, bodyText)
-				}
+				s := docHTML.Find("body")
+				appendPage(&pages, s)
 			}
 
 			doc.Chunks = SplitPagesToChunks(pages, p.config.ChunkSize)
@@ -165,6 +164,29 @@ func (p *ExtractFileTextProcessor) Process(ctx *pipeline.Context) error {
 		}
 	}
 	return nil
+}
+
+// "s" is a selection of a page ("div.page"), extract and process the page content,
+// then append it to "pages".
+func appendPage(pages *[]string, s *goquery.Selection) {
+	/*
+		Replace <img> tag with "[[Images(fileName)]]"
+	*/
+	s.Find("img").Each(func(i int, img *goquery.Selection) {
+		imageName, exists := img.Attr("src")
+		if exists {
+			// For the images embedded within the document, Tika typically generates
+			// tags like "<img src="embedded:image3.png" alt="image3.png"/>". We need
+			// to remove the "embedded:" prefix as it is useless.
+			imageName = strings.TrimPrefix(imageName, "embedded:")
+			img.ReplaceWithHtml(fmt.Sprintf("[[Images(%s)]]", imageName))
+		}
+	})
+
+	pageContent := strings.TrimSpace(s.Text())
+	if pageContent != "" {
+		*pages = append(*pages, pageContent)
+	}
 }
 
 // Splits page texts into chunks using character count as a token proxy
