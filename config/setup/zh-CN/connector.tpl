@@ -741,6 +741,36 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/j
   }
 }
 
+POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/milvus
+{
+ "_system": {
+            "owner_id": "$[[SETUP_OWNER_ID]]"
+          },
+  "id" : "milvus",
+  "created" : "2025-12-07T00:00:00.000000+08:00",
+  "updated" : "2025-12-07T00:00:00.000000+08:00",
+  "name" : "Milvus 向量数据库连接器",
+  "description" : "从 Milvus 集合中提取向量与标量数据，支持分页与增量同步。",
+  "category" : "vector_database",
+  "icon" : "/assets/icons/connector/milvus/icon.png",
+  "tags" : [
+    "vector",
+    "database",
+    "milvus",
+    "vector_store"
+  ],
+  "url" : "http://coco.rs/connectors/milvus",
+  "assets" : {
+    "icons" : {
+      "default" : "/assets/icons/connector/milvus/icon.png"
+    }
+  },
+  "builtin": true,
+  "processor": {
+    "enabled": true,
+    "name": "milvus"
+  }
+}
 
 POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/gitlab_webhook_receiver
 {
@@ -857,3 +887,4 @@ POST $[[SETUP_INDEX_PREFIX]]connector$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
     "name": "dropbox"
   }
 }
+

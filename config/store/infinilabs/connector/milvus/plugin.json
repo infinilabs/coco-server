@@ -1,0 +1,61 @@
+{
+  "category": "vector_database",
+  "description": "Connect to Milvus vector database and fetch vector and scalar data from collections with incremental sync and pagination support.",
+  "developer": {
+    "avatar": "https://coco.infini.cloud/extensions/infinilabs/assets/avatar.png",
+    "github_handle": "infinilabs",
+    "id": "infinilabs",
+    "location": "Internet",
+    "name": "infinilabs",
+    "website": "https://github.com/infinilabs"
+  },
+  "icon": "/assets/icons/connector/milvus/icon.png",
+  "name": "Milvus Vector Database Connector",
+  "platforms": [
+    "macos",
+    "linux",
+    "windows"
+  ],
+  "screenshots": [
+    {
+      "title": "Milvus Vector Database Connector",
+      "url": "/assets/screenshot.png"
+    }
+  ],
+  "tags": [
+    "vector",
+    "database",
+    "milvus",
+    "vector_store"
+  ],
+  "type": "connector",
+  "url": {
+    "home": "http://coco.rs/connectors/milvus"
+  },
+  "version": {
+    "number": "0.1"
+  },
+  "payload": {
+    "name" : "Milvus Vector Database Connector",
+    "description" : "Fetch vector and scalar data from Milvus collections with incremental sync and pagination.",
+    "category" : "vector_database",
+    "icon" : "/assets/icons/connector/milvus/icon.png",
+    "tags" : [
+      "vector",
+      "database",
+      "milvus",
+      "vector_store"
+    ],
+    "url" : "http://coco.rs/connectors/milvus",
+    "assets" : {
+      "icons" : {
+        "default" : "/assets/icons/connector/milvus/icon.png"
+      }
+    },
+    "builtin": true,
+    "processor": {
+      "enabled": true,
+      "name": "milvus"
+    }
+  }
+}
