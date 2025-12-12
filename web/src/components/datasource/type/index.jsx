@@ -31,7 +31,8 @@ export const Types = {
   RSS: 'rss',
   S3: 's3',
   Yuque: 'yuque',
-  Box: 'box'
+  Box: 'box',
+  Dropbox: 'dropbox'
 };
 
 export const TypeList = ({
