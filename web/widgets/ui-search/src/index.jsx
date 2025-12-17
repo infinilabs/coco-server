@@ -55,7 +55,7 @@ export const FullscreenPage = (props) => {
 
   return (
     <Wrapper {...props}>
-      <Page {...props} root={shadow || document} />
+      <Page {...props} shadowRoot={shadow || document}/>
     </Wrapper>
   );
 };
@@ -65,7 +65,7 @@ export const FullscreenModal = (props) => {
 
   return (
     <Wrapper {...props}>
-      <Modal {...props} root={shadow || document} />
+      <Modal {...props} shadowRoot={shadow || document}/>
     </Wrapper>
   );
 };

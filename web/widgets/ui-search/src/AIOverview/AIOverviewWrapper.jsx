@@ -37,13 +37,13 @@ const AIOverviewWrapper = (props) => {
 
   useEffect(() => {
     handleAsk(askBody?.message, config)
-  }, [askBody?.message, askBody?._t, config])
+  }, [askBody?.message, askBody?.t, config])
 
   useEffect(() => {
-    if (askBody?._t) {
+    if (askBody?.t) {
       setVisible(true)
     }
-  }, [askBody?._t])
+  }, [askBody?.t])
 
   return <AIOverview config={config} data={data} loading={loading} visible={visible} setVisible={setVisible}/>
 }

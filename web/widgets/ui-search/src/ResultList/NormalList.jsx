@@ -1,15 +1,20 @@
-import { List, Typography, Tag } from "antd";
+import { List, Typography, Tag, Spin } from "antd";
 import { memo } from "react";
 import { SquareArrowOutUpRight } from "lucide-react";
-
 import ResultDetail from "../ResultDetail";
 import { formatDate, isWithin7Days } from "../utils/date";
 import { highlightText } from "./highlight";
-
 import styles from "./NormalList.module.less";
 
 export function NormalList(props) {
-  const { getDetailContainer, from, size, hits, onSearch, isMobile, query } = props;
+  const { 
+    getDetailContainer, 
+    data = [], 
+    isMobile, 
+    query,
+    loading,
+    hasMore,
+  } = props;
 
   const searchQuery = query || '';
 
@@ -18,15 +23,8 @@ export function NormalList(props) {
       <List
         itemLayout="vertical"
         size="large"
-        pagination={{
-          onChange: (page, pageSize) => {
-            onSearch((page - 1) * pageSize, pageSize);
-          },
-          pageSize: size,
-          current: Math.round(from / size + 1),
-          total: hits?.total || 0,
-        }}
-        dataSource={hits?.hits || []}
+        pagination={false}
+        dataSource={data || []}
         renderItem={(item, index) => (
           <ResultDetail
             key={item.id}
@@ -118,6 +116,15 @@ export function NormalList(props) {
           </ResultDetail>
         )}
       />
+      {loading && hasMore && (
+        <div style={{
+          textAlign: 'center',
+          padding: '16px 0',
+          marginTop: '8px',
+        }}>
+          <Spin />
+        </div>
+      )}
     </div>
   );
 }
