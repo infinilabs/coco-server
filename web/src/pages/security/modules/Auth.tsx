@@ -7,6 +7,8 @@ import type { TableColumnsType, TableProps } from 'antd';
 import useQueryParams from '@/hooks/common/queryParams';
 import { deleteAuthorization, fetchAuthorizationSearch } from '@/service/api/security';
 import { formatESSearchResult } from '@/service/request/es';
+import { fetchPrincipalSearch } from '@/service/api/security';
+import {useMemo } from 'react';
 
 const Auth = () => {
   const [queryParams, setQueryParams] = useQueryParams();
@@ -79,15 +81,40 @@ const Auth = () => {
     [queryParams, t]
   );
 
+  const {
+      data: principalRes,
+      loading: principalLoading,
+      run: runPrincipalSearch
+    } = useRequest(fetchPrincipalSearch, { manual: true });
+
+  useEffect(() => {
+    runPrincipalSearch({
+      from: 0,
+      size: 1000
+    });
+  }, []);
+  const principals = useMemo(() => {
+    const rs = formatESSearchResult(principalRes?.data);
+    const rsMap: any = {};
+    (rs.data || []).forEach(item => {
+      rsMap[item.id] = item;
+    });
+    return rsMap;
+  }, [principalRes]);
+
   const columns: TableColumnsType<any> = [
     {
       dataIndex: 'display_name',
       title: t('page.auth.labels.auth'),
       render: (value, record) => {
         return (
-          <Typography.Link onClick={()=>nav(`/auth/edit/${record.id}`, {state:record})}>
-            {value}
-          </Typography.Link>
+          <div className='flex items-center'>
+            {record.principal_type === 'user' && principals[record.principal_id] && <img src={principals[record.principal_id].avatar} className='rounded-full inline-block mr-8px' style={{ width: 16, height: 16 }} />}
+            <Typography.Link onClick={()=>nav(`/auth/edit/${record.id}`, {state:record})}>
+              {value}
+            </Typography.Link>
+          </div>
+          
         )
       }
     },

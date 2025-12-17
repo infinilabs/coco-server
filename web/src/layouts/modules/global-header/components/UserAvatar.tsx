@@ -123,10 +123,7 @@ const UserAvatar = memo((props) => {
         >
           <div>
             <ButtonIcon className={`px-12px ${className}`}>
-              <SvgIcon
-                className="text-icon-large"
-                icon="ph:user-circle"
-              />
+              <Avatar src={userInfo.avatar} size={24} />
               {showName && <span className="text-16px font-medium">{userInfo.name}</span>}
             </ButtonIcon>
           </div>
@@ -146,3 +143,26 @@ const UserAvatar = memo((props) => {
 });
 
 export default UserAvatar;
+
+const Avatar = memo((props: { src?: string; size?: number }) => {
+  const { src, size = 24 } = props;
+  return (
+    <div
+      className="rounded-full bg-gray-300 overflow-hidden flex-center"
+      style={{ width: size, height: size }}
+    >
+      {src ? (
+        <img
+          src={src}
+          alt="avatar"
+          style={{ width: size, height: size }}
+        />
+      ) : (
+        <SvgIcon
+          className="text-icon-large"
+          icon="ph:user-circle"
+        />
+      )}
+    </div>
+  );
+});
