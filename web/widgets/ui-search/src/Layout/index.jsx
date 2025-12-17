@@ -80,7 +80,7 @@ const BasicLayout = (props) => {
             pointerEvents: 'auto',
             backdropFilter: 'blur(2px)',
           }}>
-            <Spin size="large" tip={theme === 'dark' ? "加载中..." : "Loading..."} />
+            <Spin />
           </div>
         )}
         {isFirst ? (
