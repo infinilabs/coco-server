@@ -14,7 +14,7 @@ export function Logo(props) {
     }
 
     return (
-        <div className={`w-full h-full flex items-center justify-left ${isMobile ? '' : 'py-8px'}`}>
+        <div className={`w-full h-full flex items-center justify-left ${isMobile ? '' : 'py-8px'} max-w-inherit max-h-inherit object-contain`}>
             <img
                 src={isMobile && !isFirst ? logos.mobile : logos.logo}
                 className="w-full cursor-pointer max-h-100%"

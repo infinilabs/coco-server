@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import BasicLayout from "./Layout";
 import SearchBox from "./SearchBox";
 import Logo from "./Logo";
@@ -9,19 +8,6 @@ import { LIST_TYPES } from "./ResultList";
 import { formatESResult } from "./utils/es";
 import Welcome from "./Welcome";
 import AIOverviewWrapper from "./AIOverview/AIOverviewWrapper";
-
-function generateRandomString(size) {
-  const characters =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  let result = "";
-  for (let i = 0; i < size; i++) {
-    const randomIndex = Math.floor(Math.random() * characters.length);
-    result += characters.charAt(randomIndex);
-  }
-  return result;
-}
-
-const rootID = generateRandomString(16);
 
 const Fullscreen = (props) => {
   const {
@@ -34,7 +20,6 @@ const Fullscreen = (props) => {
     onSearch,
     onAsk,
     config = {},
-    root,
     isFirst = false,
     rightMenuWidth,
     queryParams = {},
@@ -44,67 +29,129 @@ const Fullscreen = (props) => {
     language = 'en-US',
   } = props;
 
+  const containerRef = useRef(null);
   const [result, setResult] = useState(formatESResult());
   const [askBody, setAskBody] = useState();
   const [loading, setLoading] = useState(false);
-
   const [isMobile, setIsMobile] = useState(false);
   const shouldAskRef = useRef(true);
+  const [data, setData] = useState([]);
+  const [hasMore, setHasMore] = useState(false);
+  const loadLock = useRef(false);
+  const isFirstSearchRef = useRef(true);
+  const scrollRef = useRef(0)
 
-  const handleSearch = (query, shouldAsk) => {
+  const resetScroll = () => {
+    scrollRef.current = 0;
+    if (containerRef.current) {
+      try {
+        containerRef.current.scrollTo({
+          top: 0,
+          behavior: 'instant'
+        });
+      } catch (e) {
+        containerRef.current.scrollTop = 0;
+      }
+    }
+  }
+
+  const handleSearch = (queryParams, shouldAsk, isScroll = false) => {
     shouldAskRef.current = shouldAsk;
+    if (!isScroll) {
+      resetScroll();
+      isFirstSearchRef.current = true
+    }
     setQueryParams({
-      ...query,
+      ...queryParams,
       t: new Date().valueOf(),
     });
   };
+
+  const handleScroll = useCallback(() => {
+    if (!containerRef.current || loading || !hasMore || loadLock.current) return;
+
+    const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
+    const distanceToBottom = scrollHeight - scrollTop - clientHeight;
+    if (distanceToBottom < 200) {
+      loadLock.current = true;
+      const { from, size } = queryParams;
+      scrollRef.current = (scrollRef.current || from) + size;
+      handleSearch(queryParams, false, true);
+    }
+  }, [queryParams, loading, hasMore, handleSearch]);
 
   useEffect(() => {
     const checkScreenSize = () => {
       setIsMobile(window.innerWidth < 640);
     };
-
     checkScreenSize();
     window.addEventListener("resize", checkScreenSize);
-
     return () => window.removeEventListener("resize", checkScreenSize);
   }, []);
 
   useEffect(() => {
-    if (queryParams.query) {
-      const shouldAgg =
-        queryParams.filter && Object.keys(queryParams.filter).length === 0;
-      onSearch(
-        queryParams,
-        (res) => {
-          let rs;
-          if (res && !res.error) {
-            rs = formatESResult(res);
-            setResult((os) => ({
-              ...rs,
-              aggregations: res?.aggregations
-                ? rs.aggregations
-                : os.aggregations,
-            }));
-          } else {
+    const contentContainer = containerRef.current;
+    if (!contentContainer || isFirst) return;
+
+    contentContainer.addEventListener("scroll", handleScroll);
+    return () => {
+      contentContainer.removeEventListener("scroll", handleScroll);
+    };
+  }, [isFirst, handleScroll]);
+
+  useEffect(() => {
+    if (!queryParams.query) return;
+
+    const shouldAgg = queryParams.filter && Object.keys(queryParams.filter).length === 0;
+    const isScroll = Number.isInteger(scrollRef.current) && scrollRef.current > 0;
+    
+    loadLock.current = true;
+    setLoading(true);
+    onSearch(
+      {
+        ...queryParams,
+        from: isScroll ? scrollRef.current : queryParams.from,
+      },
+      (res) => {
+        loadLock.current = false;
+        setLoading(false);
+        
+        let rs;
+        if (res && !res.error) {
+          rs = formatESResult(res);
+          setResult((os) => ({
+            ...rs,
+            aggregations: res?.aggregations ? rs.aggregations : os.aggregations,
+          }));
+          
+          const newData = isScroll ? [...data, ...(rs.hits?.hits || [])] : (rs.hits?.hits || []);
+          setData(newData);
+          setHasMore(newData.length < (rs.hits.total || 0));
+          if (!isScroll) isFirstSearchRef.current = false;
+        } else {
+          if (!isScroll) {
             setResult(formatESResult());
+            setData([]);
           }
-          if (shouldAskRef.current) {
-            shouldAskRef.current = false;
-            setAskBody({
-              message: JSON.stringify({
-                query: queryParams.query,
-                result: rs.hits,
-              }),
-              t: new Date().valueOf(),
-            });
-          }
-        },
-        setLoading,
-        shouldAgg,
-      );
-    }
-  }, [queryParams]);
+          setHasMore(false);
+          isFirstSearchRef.current = false;
+        }
+
+        if (shouldAskRef.current) {
+          shouldAskRef.current = false;
+          setAskBody({
+            message: JSON.stringify({
+              query: queryParams.query,
+              result: rs?.hits,
+            }),
+            t: new Date().valueOf(),
+          });
+        }
+      },
+      setLoading,
+      shouldAgg,
+    );
+  }, [JSON.stringify(queryParams)]);
 
   useEffect(() => {
     window.onsearch = (query) =>
@@ -120,38 +167,45 @@ const Fullscreen = (props) => {
   }, [type]);
 
   const commonProps = { isMobile, theme };
-
-  const { query, from, size, filter } = queryParams;
-
+  const { query, filter } = queryParams;
   const { hits, aggregations } = result;
 
   const handleLogoClick = () => {
-    // Return to start by clearing search query and resetting to first page
     setQueryParams({
       from: 0,
       size: 10,
       query: '',
       filter: {},
-      sort: ''
-    })
-    if (onLogoClick) onLogoClick()
-  }
+      sort: '',
+    });
+    setData([]);
+    setHasMore(false);
+    resetScroll();
+    isFirstSearchRef.current = true;
+    if (onLogoClick) onLogoClick();
+  };
+
+  const showFullScreenSpin = loading && isFirstSearchRef.current;
 
   return (
     <BasicLayout
-      rootID={rootID}
+      {...commonProps}
+      initContainer={(ref) => {
+        containerRef.current = ref;
+      }}
+      getContainer={() => containerRef.current}
       isFirst={isFirst}
-      loading={loading}
-      logo={<Logo isFirst={isFirst} onLogoClick={handleLogoClick} {...commonProps} {...logo}/>}
+      loading={showFullScreenSpin}
+      logo={<Logo isFirst={isFirst} onLogoClick={handleLogoClick} {...commonProps} {...logo} />}
       welcome={welcome ? <Welcome {...commonProps} text={welcome} /> : null}
       searchbox={
         <SearchBox
           {...commonProps}
           placeholder={placeholder}
           query={query}
-          onSearch={(query) =>
+          onSearch={(query) => {
             handleSearch({ ...queryParams, from: 0, query }, true)
-          }
+          }}
         />
       }
       rightMenuWidth={rightMenuWidth}
@@ -161,7 +215,9 @@ const Fullscreen = (props) => {
           config={config.aggregations}
           aggregations={aggregations}
           filter={filter}
-          onSearch={(filter) => handleSearch({ ...queryParams, filter })}
+          onSearch={(filter) => {
+            handleSearch({ ...queryParams, filter }, true)
+          }}
         />
       }
       resultHeader={<ResultHeader hits={hits} {...commonProps} />}
@@ -178,14 +234,12 @@ const Fullscreen = (props) => {
         listType ? (
           <listType.component
             {...commonProps}
-            getDetailContainer={() => root.getElementById(rootID)}
-            from={from}
-            size={size}
-            hits={hits}
+            getDetailContainer={() => containerRef.current}
+            data={data}
             query={query}
-            onSearch={(from, size) =>
-              handleSearch({ ...queryParams, from, size })
-            }
+            total={hits?.total || 0}
+            loading={loading}
+            hasMore={hasMore}
           />
         ) : null
       }
@@ -201,8 +255,7 @@ const Fullscreen = (props) => {
           ))}
         </>
       }
-      {...commonProps}
-    ></BasicLayout>
+    />
   );
 };
 
