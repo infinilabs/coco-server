@@ -7,14 +7,15 @@ package attachment
 import (
 	"errors"
 	"fmt"
-	"infini.sh/coco/core"
-	"infini.sh/framework/core/elastic"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"infini.sh/coco/core"
+	"infini.sh/framework/core/elastic"
 
 	log "github.com/cihub/seelog"
 	httprouter "infini.sh/framework/core/api/router"
@@ -53,7 +54,7 @@ func (h APIHandler) uploadAttachment(w http.ResponseWriter, r *http.Request, ps 
 			return
 		}
 		// Upload to S3
-		if fileID, err := uploadToBlobStore(ctx, file, fileHeader.Filename); err != nil {
+		if fileID, err := UploadToBlobStore(ctx, "", file, fileHeader.Filename, "", false); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		} else {
@@ -241,7 +242,18 @@ func getMimeType(file multipart.File) (string, error) {
 	return mimeType, nil
 }
 
-func uploadToBlobStore(ctx *orm.Context, file multipart.File, fileName string) (string, error) {
+// Helper function to upload the attachment specified by [file] to the
+// blob store.
+//
+// Arguments:
+//
+//   - If [fileID] is not an empty string, it will be used as the file ID.
+//     Otherwise, a random ID will be created and used.
+//   - If [ownerID] is not empty, the created attached will set the owner to it.
+//     Otherwise, owner information will be extracted from cotnext [ctx].
+//   - [replaceIfExists]: If this is true and there is already an attachment with
+//     the same file ID eixsts, replace it.
+func UploadToBlobStore(ctx *orm.Context, fileID string, file multipart.File, fileName string, ownerID string, replaceIfExists bool) (string, error) {
 	defer func() {
 		_ = file.Close()
 	}()
@@ -252,7 +264,9 @@ func uploadToBlobStore(ctx *orm.Context, file multipart.File, fileName string) (
 		return "", fmt.Errorf("failed to read file %s: %v", fileName, err)
 	}
 
-	fileID := util.GetUUID()
+	if fileID == "" {
+		fileID = util.GetUUID()
+	}
 	fileSize := len(data)
 	mimeType, _ := getMimeType(file)
 
@@ -264,14 +278,24 @@ func uploadToBlobStore(ctx *orm.Context, file multipart.File, fileName string) (
 	attachment.Icon = getFileExtension(fileName)
 	attachment.URL = fmt.Sprintf("/attachment/%v", fileID)
 	//attachment.Owner //TODO
+	if ownerID != "" {
+		attachment.SetOwnerID(ownerID)
+	}
 
 	//save attachment metadata
-	err = orm.Create(ctx, &attachment)
+	if replaceIfExists {
+		err = orm.Upsert(ctx, &attachment)
+	} else {
+		err = orm.Create(ctx, &attachment)
+	}
 	if err != nil {
 		panic(err)
 	}
 
 	//save attachment payload
+	//
+	// kv.AddValue will replace the previous value if it already exists so we
+	// don't need to check [replaceIfExists] here.
 	err = kv.AddValue(AttachmentKVBucket, []byte(fileID), data)
 	if err != nil {
 		panic(err)
