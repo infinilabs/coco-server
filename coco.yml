@@ -4,6 +4,8 @@ env:
   ES_PASSWORD: $[[keystore.ES_PASSWORD]]
   WEB_BINDING: 0.0.0.0:9000
   API_BINDING: 0.0.0.0:2900
+  # CLOUD_ENDPOINT: "http://localhost:9000"
+  # COCO_API_TOKEN: "your_coco_api_token"
 
 coco:
   server:
@@ -394,3 +396,11 @@ http_client:
           http_proxy: http://127.0.0.1:7890
           socket5_proxy: socks5://127.0.0.1:7890
 
+# enterprise:
+#   security:
+#     rbac:
+#       principal_provider:
+#         endpoint: "$[[env.CLOUD_ENDPOINT]]/organization/member/_search"
+#         cache_to_local: true
+#         cache_ttl_seconds: 300
+#         token: "$[[env.COCO_API_TOKEN]]"
