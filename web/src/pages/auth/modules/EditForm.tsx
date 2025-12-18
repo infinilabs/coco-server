@@ -138,7 +138,11 @@ export const EditForm = memo((props: EditFormProps) => {
             width="100%"
             data={principalResult.data}
             placeholder={t(`page.auth.labels.${principalQueryParams.type}`)}
-            renderLabel={(item: any) => item?.name}
+            renderLabel={(item: any) => <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                {item.avatar && <img src={item.avatar} className='rounded-full w-16px h-16px' />}
+                <span>{item.name}</span>
+                </div>
+            }
             rowKey='id'
             pagination={{
               currentPage: principalResult.total
@@ -150,7 +154,8 @@ export const EditForm = memo((props: EditFormProps) => {
               }
             }}
             renderItem={(item: any) => (
-              <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                {item.avatar && <img src={item.avatar} className='rounded-full' style={{ width: 16, height: 16 }} />}
                 <span>{item.name}</span>
                 {item.description ? (
                   <span style={{ color: 'var(--ant-color-text-tertiary)' }}>{item.description}</span>
