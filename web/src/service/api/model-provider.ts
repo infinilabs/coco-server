@@ -7,10 +7,16 @@ import { formatSearchFilter } from '../request/es';
  *
  */
 export function searchModelPovider(params: any) {
+  const { filter = {}, sort, ...rest } = params || {};
+  // Convert sort array to string format if needed
+  let sortStr = sort;
+  if (Array.isArray(sort)) {
+    sortStr = sort.map(([field, order]: [string, string]) => `${field}:${order}`).join(',');
+  }
   return request<Api.LLM.ModelProvider>({
     method: 'get',
-    params,
-    url: '/model_provider/_search'
+    params: { ...rest, sort: sortStr },
+    url: `/model_provider/_search?${formatSearchFilter(filter)}`
   });
 }
 
