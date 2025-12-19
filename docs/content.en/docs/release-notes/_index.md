@@ -11,6 +11,12 @@ Information about release notes of Coco Server is provided here.
 ### ❌ Breaking changes  
 ### 🚀 Features  
 ### 🐛 Bug fix  
+### ✈️ Improvements  
+
+## 0.10.0 (2025-12-19)
+### ❌ Breaking changes  
+### 🚀 Features  
+### 🐛 Bug fix  
 - fix: resolve icons absolute url for search api #615
 
 ### ✈️ Improvements  
