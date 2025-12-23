@@ -12,6 +12,7 @@ Information about release notes of Coco Server is provided here.
 ### 🚀 Features  
 feat: add milvus connector #613
 feat: add dropbox connector #614
+feat: add simple stats module #622
 
 ### 🐛 Bug fix  
 ### ✈️ Improvements  
