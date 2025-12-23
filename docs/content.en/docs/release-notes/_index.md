@@ -10,6 +10,9 @@ Information about release notes of Coco Server is provided here.
 ## Latest (In development)  
 ### ❌ Breaking changes  
 ### 🚀 Features  
+feat: add milvus connector #613
+feat: add dropbox connector #614
+
 ### 🐛 Bug fix  
 ### ✈️ Improvements  
 
@@ -18,8 +21,10 @@ Information about release notes of Coco Server is provided here.
 ### 🚀 Features  
 ### 🐛 Bug fix  
 - fix: resolve icons absolute url for search api #615
+- fix: display issues after reading clipboard data #609
 
 ### ✈️ Improvements  
+- chore: remove pagination and add infinite scroll in fullscreen (#616)
 
 ## 0.9.1 (2025-12-05)
 ### ❌ Breaking changes  
