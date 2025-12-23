@@ -6,11 +6,12 @@ package security
 
 import (
 	"fmt"
+	"net/http"
+	"strings"
+
 	log "github.com/cihub/seelog"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/orm"
-	"net/http"
-	"strings"
 
 	"golang.org/x/crypto/bcrypt"
 	"infini.sh/coco/core"
@@ -213,7 +214,7 @@ func AddUserAccessTokenToSession(w http.ResponseWriter, r *http.Request, user *s
 		return err, nil
 	}
 
-	api.SetSession(w, r, core.UserAccessTokenSessionName, token["access_token"])
+	api.ForceSetSession(w, r, core.UserAccessTokenSessionName, token["access_token"], true)
 	return nil, token
 }
 
