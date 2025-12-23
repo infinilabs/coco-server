@@ -22,6 +22,7 @@ import (
 	"infini.sh/framework/modules/queue"
 	queue2 "infini.sh/framework/modules/queue/disk_queue"
 	"infini.sh/framework/modules/security"
+	stats2 "infini.sh/framework/modules/stats"
 	"infini.sh/framework/modules/task"
 	"infini.sh/framework/modules/web"
 	_ "infini.sh/framework/plugins"
@@ -66,6 +67,7 @@ func main() {
 		module.RegisterUserPlugin(&pipeline.PipeModule{})
 		module.RegisterUserPlugin(&modules.Coco{})
 		module.RegisterSystemModule(&metrics.MetricsModule{})
+		module.RegisterSystemModule(&stats2.SimpleStatsModule{})
 
 		module.Start()
 	}, func() {
