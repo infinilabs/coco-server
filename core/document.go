@@ -5,6 +5,7 @@
 package core
 
 import (
+	"fmt"
 	"strings"
 	"time"
 )
@@ -41,8 +42,9 @@ type Document struct {
 	Title   string `json:"title,omitempty" elastic_mapping:"title:{type:text,copy_to:combined_fulltext,fields:{keyword: {type: keyword}, pinyin: {type: text, analyzer: pinyin_analyzer}}}"` // Document title
 	Summary string `json:"summary,omitempty" elastic_mapping:"summary:{type:text,copy_to:combined_fulltext}"`                                                                                // Brief summary or description of the document
 
-	Lang    string `json:"lang,omitempty" elastic_mapping:"lang:{type:keyword,copy_to:combined_fulltext}"`    // Language code (e.g., "en", "fr")
-	Content string `json:"content,omitempty" elastic_mapping:"content:{type:text,copy_to:combined_fulltext}"` // Document content for full-text indexing
+	Lang    string          `json:"lang,omitempty" elastic_mapping:"lang:{type:keyword,copy_to:combined_fulltext}"`    // Language code (e.g., "en", "fr")
+	Content string          `json:"content,omitempty" elastic_mapping:"content:{type:text,copy_to:combined_fulltext}"` // Document content for full-text indexing
+	Chunks  []DocumentChunk `json:"document_chunk,omitempty" elastic_mapping:"document_chunk:{type:nested}"`
 
 	Icon      string `json:"icon,omitempty" elastic_mapping:"icon:{enabled:false}"`           // Icon Key, need work with datasource's assets to get the icon url, if it is a full url, then use it directly
 	Thumbnail string `json:"thumbnail,omitempty" elastic_mapping:"thumbnail:{enabled:false}"` // Thumbnail image URL, for preview purposes
@@ -112,4 +114,79 @@ type UserInfo struct {
 	UserAvatar string `json:"avatar,omitempty" elastic_mapping:"avatar:{enabled:false}"`                              // Login of the user
 	UserName   string `json:"username,omitempty" elastic_mapping:"username:{type:keyword,copy_to:combined_fulltext}"` // Login of the user
 	UserID     string `json:"userid,omitempty" elastic_mapping:"userid:{type:keyword,copy_to:combined_fulltext}"`     // Unique identifier for the user
+}
+
+type DocumentChunk struct {
+	Range     ChunkRange `json:"range" elastic_mapping:"range:{type:object}"`
+	Text      string     `json:"text" elastic_mapping:"text:{type:text}"`
+	Embedding Embedding  `json:"embedding" elastic_mapping:"embedding:{type:object}"`
+}
+
+// A `Embedding` stores a chunk's embedding.
+//
+// Only 1 field will be used, depending on the chosen embedding dimension, see
+// the `Dimension` field above.
+//
+// Having so many `EmbeddingXxx` fields is embarrasing, but we have no choice
+// since vector dimension is part of the type information and elastic mapping
+// has to be static.
+//
+// If you add or remove fields, please update variable "SupportedEmbeddingDimensions"
+// as well.
+type Embedding struct {
+	Embedding128  []float32 `json:"embedding128,omitempty" elastic_mapping:"embedding128:{type:knn_dense_float_vector,knn:{dims:128,model:lsh,similarity:cosine,L:99,k:1}}"`
+	Embedding256  []float32 `json:"embedding256,omitempty" elastic_mapping:"embedding256:{type:knn_dense_float_vector,knn:{dims:256,model:lsh,similarity:cosine,L:99,k:1}}"`
+	Embedding384  []float32 `json:"embedding384,omitempty" elastic_mapping:"embedding384:{type:knn_dense_float_vector,knn:{dims:384,model:lsh,similarity:cosine,L:99,k:1}}"`
+	Embedding512  []float32 `json:"embedding512,omitempty" elastic_mapping:"embedding512:{type:knn_dense_float_vector,knn:{dims:512,model:lsh,similarity:cosine,L:99,k:1}}"`
+	Embedding768  []float32 `json:"embedding768,omitempty" elastic_mapping:"embedding768:{type:knn_dense_float_vector,knn:{dims:768,model:lsh,similarity:cosine,L:99,k:1}}"`
+	Embedding1024 []float32 `json:"embedding1024,omitempty" elastic_mapping:"embedding1024:{type:knn_dense_float_vector,knn:{dims:1024,model:lsh,similarity:cosine,L:99,k:1}}"`
+	Embedding1536 []float32 `json:"embedding1536,omitempty" elastic_mapping:"embedding1536:{type:knn_dense_float_vector,knn:{dims:1536,model:lsh,similarity:cosine,L:99,k:1}}"`
+	Embedding2048 []float32 `json:"embedding2048,omitempty" elastic_mapping:"embedding2048:{type:knn_dense_float_vector,knn:{dims:2048,model:lsh,similarity:cosine,L:99,k:1}}"`
+	Embedding2560 []float32 `json:"embedding2560,omitempty" elastic_mapping:"embedding2560:{type:knn_dense_float_vector,knn:{dims:2560,model:lsh,similarity:cosine,L:99,k:1}}"`
+	Embedding4096 []float32 `json:"embedding4096,omitempty" elastic_mapping:"embedding4096:{type:knn_dense_float_vector,knn:{dims:4096,model:lsh,similarity:cosine,L:99,k:1}}"`
+}
+
+// Set the actual value of this "Embedding"
+func (e *Embedding) SetValue(embedding []float32) {
+	dimension := len(embedding)
+	switch dimension {
+	case 128:
+		e.Embedding128 = embedding
+	case 256:
+		e.Embedding256 = embedding
+	case 384:
+		e.Embedding384 = embedding
+	case 512:
+		e.Embedding512 = embedding
+	case 768:
+		e.Embedding768 = embedding
+	case 1024:
+		e.Embedding1024 = embedding
+	case 1536:
+		e.Embedding1536 = embedding
+	case 2048:
+		e.Embedding2048 = embedding
+	case 2560:
+		e.Embedding2560 = embedding
+	case 4096:
+		e.Embedding4096 = embedding
+	default:
+		panic(fmt.Sprintf("embedding's dimension is invalid, we accept %v", SupportedEmbeddingDimensions))
+	}
+}
+
+// Embedding dimensions supported by us, it should be kept sync with the
+// "EmbeddingXxx" fields of struct Embedding
+var SupportedEmbeddingDimensions = []int32{128, 256, 384, 512, 768, 1024, 1536, 2048, 2560, 4096}
+
+// Range of a chunk.
+//
+// A chunk contains roughly the same amount of tokens, say 8192 tokens. And
+// thus, a chunk can span many pages if these pages are small, or it is only
+// part of a page if the page is big.
+type ChunkRange struct {
+	// Start page of this chunk.
+	Start int `json:"start" elastic_mapping:"start:{type:integer}"`
+	// End page of this chuhk. This is **inclusive**.
+	End int `json:"end" elastic_mapping:"end:{type:integer}"`
 }

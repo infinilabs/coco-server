@@ -5,6 +5,9 @@
 package langchain
 
 import (
+	"net/http"
+	"net/http/httputil"
+
 	log "github.com/cihub/seelog"
 	"github.com/tmc/langchaingo/llms"
 	"github.com/tmc/langchaingo/llms/ollama"
@@ -12,8 +15,6 @@ import (
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/global"
-	"net/http"
-	"net/http/httputil"
 )
 
 type LoggingRoundTripper struct {
@@ -61,12 +62,14 @@ func GetLLM(endpoint, apiType, model, token string, keepalive string) llms.Model
 				openai.WithToken(token),
 				openai.WithBaseURL(endpoint),
 				openai.WithModel(model),
+				openai.WithEmbeddingModel(model),
 			)
 		} else {
 			llm, err = openai.New(
 				openai.WithToken(token),
 				openai.WithBaseURL(endpoint),
 				openai.WithModel(model),
+				openai.WithEmbeddingModel(model),
 			)
 		}
 
