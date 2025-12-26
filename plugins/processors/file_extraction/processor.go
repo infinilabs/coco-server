@@ -105,32 +105,46 @@ func (p *FileExtractionProcessor) Process(ctx *pipeline.Context) error {
 	return nil
 }
 
+type Extraction struct {
+	PagesWithoutOcr []string
+	PagesWithOcr    []string
+	Images          map[int][]string
+}
+
 func (p *FileExtractionProcessor) processLocalFile(ctx context.Context, doc *core.Document) error {
 	path := doc.URL
 	ext := strings.ToLower(filepath.Ext(path))
 
-	var pagesWithoutOcr []string
-	var pagesWithOcr []string
+	var extraction Extraction
 	var error error
 
 	switch ext {
 	case ".pdf":
-		pagesWithoutOcr, pagesWithOcr, error = p.processPdf(ctx, doc)
+		extraction, error = p.processPdf(ctx, doc)
 	case ".pptx", ".ppt", ".pptm":
-		pagesWithoutOcr, pagesWithOcr, error = p.processPptx(ctx, doc)
+		extraction, error = p.processPptx(ctx, doc)
 	default:
 		// Use the PDF implementation as a fallback, as it uses Tika for extracting
 		// both text and attachment, which should work with many file types, though
 		// it may not work well.
-		pagesWithoutOcr, pagesWithOcr, error = p.processPdf(ctx, doc)
+		extraction, error = p.processPdf(ctx, doc)
 	}
 
 	if error != nil {
 		return error
 	}
 
-	doc.Chunks = SplitPagesToChunks(pagesWithoutOcr, p.config.ChunkSize)
-	doc.ChunksWithImageContent = SplitPagesToChunks(pagesWithOcr, p.config.ChunkSize)
+	doc.Chunks = SplitPagesToChunks(extraction.PagesWithoutOcr, p.config.ChunkSize)
+	doc.ChunksWithImageContent = SplitPagesToChunks(extraction.PagesWithOcr, p.config.ChunkSize)
+	var images []core.PageImages
+	for pageNum, imagesOfPage := range extraction.Images {
+		pageImages := core.PageImages{}
+		pageImages.Page = pageNum
+		pageImages.Filenames = imagesOfPage
+
+		images = append(images, pageImages)
+	}
+	doc.Images = images
 
 	return nil
 }

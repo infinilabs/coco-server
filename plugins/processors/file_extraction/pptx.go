@@ -18,7 +18,7 @@ import (
 	"infini.sh/coco/core"
 )
 
-func (p *FileExtractionProcessor) processPptx(ctx context.Context, doc *core.Document) ([]string, []string, error) {
+func (p *FileExtractionProcessor) processPptx(ctx context.Context, doc *core.Document) (Extraction, error) {
 	// 1. Context Setup
 	tikaRequestCtx, cancel := context.WithTimeout(ctx, time.Duration(p.config.TimeoutInSeconds)*time.Second)
 	defer cancel()
@@ -26,21 +26,21 @@ func (p *FileExtractionProcessor) processPptx(ctx context.Context, doc *core.Doc
 	// 2. Prepare Temp Directory for Attachments
 	attachmentDirPath, err := os.MkdirTemp("", "attachment-pptx-")
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create temporary directory for extraction: %w", err)
+		return Extraction{}, fmt.Errorf("failed to create temporary directory for extraction: %w", err)
 	}
 	defer os.RemoveAll(attachmentDirPath)
 
 	// 3. Open PPTX File
 	r, err := zip.OpenReader(doc.URL)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to open pptx file [%s]: %w", doc.URL, err)
+		return Extraction{}, fmt.Errorf("failed to open pptx file [%s]: %w", doc.URL, err)
 	}
 	defer r.Close()
 
 	// 4. Extract Images to Temp Dir
 	// We do this first so they are available on disk for the OCR calls later.
 	if err := saveImagesToDisk(r, attachmentDirPath); err != nil {
-		return nil, nil, fmt.Errorf("failed to extract images from pptx: %w", err)
+		return Extraction{}, fmt.Errorf("failed to extract images from pptx: %w", err)
 	}
 
 	// 5. Identify and Sort Slides
@@ -49,20 +49,32 @@ func (p *FileExtractionProcessor) processPptx(ctx context.Context, doc *core.Doc
 		// If strictly no slides found, it might not be a valid pptx or just empty.
 		// Return empty arrays instead of error to allow flow to continue.
 		log.Warnf("No slides found in PPTX %s: %v", doc.URL, err)
-		return []string{}, []string{}, nil
+		return Extraction{
+			PagesWithoutOcr: make([]string, 0),
+			PagesWithOcr:    make([]string, 0),
+			Images:          make(map[int][]string),
+		}, nil
 	}
 
 	var pagesWithoutOcr []string
 	var pagesWithOcr []string
+	var images map[int][]string
 
 	// 6. Process Slides
-	for _, slideFile := range slideFiles {
+	for slideIdx, slideFile := range slideFiles {
 		// A. Build Relationship Map for this slide (rId -> imageFilename)
 		relsMap, err := getSlideRelationships(r, slideFile.Name)
 		if err != nil {
 			log.Warnf("Failed to get relationships for slide %s: %v", slideFile.Name, err)
 			relsMap = make(map[string]string)
 		}
+
+		// We collect all images linked to this slide from the relsMap
+		var slideImages []string
+		for _, filename := range relsMap {
+			slideImages = append(slideImages, filename)
+		}
+		images[slideIdx] = slideImages
 
 		// B. Parse Content & Perform OCR (Dual Extraction)
 		textNoOcr, textOcr, err := p.parseSlideContentDual(tikaRequestCtx, slideFile, relsMap, attachmentDirPath)
@@ -80,10 +92,14 @@ func (p *FileExtractionProcessor) processPptx(ctx context.Context, doc *core.Doc
 	// 7. Upload Attachments
 	err = uploadAttachmentsToBlobStore(ctx, attachmentDirPath, doc)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to upload document attachments: %w", err)
+		return Extraction{}, fmt.Errorf("failed to upload document attachments: %w", err)
 	}
 
-	return pagesWithoutOcr, pagesWithOcr, nil
+	return Extraction{
+		PagesWithoutOcr: pagesWithoutOcr,
+		PagesWithOcr:    pagesWithOcr,
+		Images:          images,
+	}, nil
 }
 
 // --- XML Parsing & OCR Logic ---
