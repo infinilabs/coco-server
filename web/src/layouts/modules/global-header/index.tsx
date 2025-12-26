@@ -78,7 +78,7 @@ const GlobalHeader: FC<Props> = memo(({ isMobile, mode, reverse, siderWidth }) =
       <div className="h-full flex-y-center justify-end">
         <Shop />
 
-        {search_settings?.enabled && (
+        {search_settings?.enabled && search_settings?.integration && (
           <ButtonIcon
             className="px-12px"
             tooltipContent={t('common.search')}

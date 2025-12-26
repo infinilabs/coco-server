@@ -66,7 +66,7 @@ export function Component() {
         )
       }
       <div
-        className="h-100% w-1/3 bg-[size:contain] bg-top-left bg-no-repeat md:bg-center-left sm:bg-center-left"
+        className="h-100% w-1/3 bg-[size:contain] bg-center-left bg-no-repeat md:bg-center-left sm:bg-center-left"
         style={{ backgroundImage: `url(${backgroundImage})` }}
       />
       <div className="h-100% w-2/3">
