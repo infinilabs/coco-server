@@ -76,7 +76,7 @@ export function Component() {
   return (
     <Spin spinning={loading}>
       <div ref={containerRef} id={uuid}></div>
-      <div className="absolute right-12px top-16px z-1 flex-y-center justify-end">
+      <div className="absolute right-12px top-0px h-72px z-1 flex-y-center justify-end">
         {
           isMobile ? (
             <>
