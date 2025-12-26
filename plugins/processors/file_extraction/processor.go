@@ -116,22 +116,22 @@ func (p *FileExtractionProcessor) processLocalFile(ctx context.Context, doc *cor
 	ext := strings.ToLower(filepath.Ext(path))
 
 	var extraction Extraction
-	var error error
+	var err error
 
 	switch ext {
 	case ".pdf":
-		extraction, error = p.processPdf(ctx, doc)
+		extraction, err = p.processPdf(ctx, doc)
 	case ".pptx", ".ppt", ".pptm":
-		extraction, error = p.processPptx(ctx, doc)
+		extraction, err = p.processPptx(ctx, doc)
 	default:
 		// Use the PDF implementation as a fallback, as it uses Tika for extracting
 		// both text and attachment, which should work with many file types, though
 		// it may not work well.
-		extraction, error = p.processPdf(ctx, doc)
+		extraction, err = p.processPdf(ctx, doc)
 	}
 
-	if error != nil {
-		return error
+	if err != nil {
+		return err
 	}
 
 	doc.Chunks = SplitPagesToChunks(extraction.PagesWithoutOcr, p.config.ChunkSize)

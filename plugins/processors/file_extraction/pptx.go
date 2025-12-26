@@ -58,7 +58,7 @@ func (p *FileExtractionProcessor) processPptx(ctx context.Context, doc *core.Doc
 
 	var pagesWithoutOcr []string
 	var pagesWithOcr []string
-	var images map[int][]string
+	images := make(map[int][]string)
 
 	// 6. Process Slides
 	for slideIdx, slideFile := range slideFiles {
@@ -168,13 +168,11 @@ func (p *FileExtractionProcessor) parseSlideContentDual(ctx context.Context, f *
 							log.Warnf("OCR failed for image %s: %v", filename, ocrErr)
 							extractedText = ""
 						} else {
+							defer ocrReader.Close()
+
 							// Read stream to string
 							var buf strings.Builder
 							_, copyErr := io.Copy(&buf, ocrReader)
-							// tikaGetTextPlain typically returns a ReadCloser, ensure it's closed
-							if c, ok := ocrReader.(io.Closer); ok {
-								c.Close()
-							}
 
 							if copyErr != nil {
 								log.Warnf("Failed to read OCR response for %s: %v", filename, copyErr)

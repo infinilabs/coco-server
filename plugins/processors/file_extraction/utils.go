@@ -58,6 +58,7 @@ func tikaGetTextPlain(tikaRequestCtx context.Context, tikaEndpoint string, path 
 	// 5. Check Status Code
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
 		return nil, fmt.Errorf("tika returned error %d: %s", resp.StatusCode, string(body))
 	}
 
@@ -78,7 +79,9 @@ func tikaGetTextHtml(tikaRequestCtx context.Context, tikaEndpoint string, path s
 	}
 	req.Header.Set("Accept", "text/html")
 
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: 60 * time.Second,
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to request tika for %s: %w", path, err)
@@ -86,6 +89,7 @@ func tikaGetTextHtml(tikaRequestCtx context.Context, tikaEndpoint string, path s
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
 		return nil, fmt.Errorf("tika returned status %d for %s: %s", resp.StatusCode, path, string(body))
 	}
 
@@ -209,7 +213,7 @@ func uploadAttachmentsToBlobStore(ctx context.Context, dir string, doc *core.Doc
 
 		_, err = attachment.UploadToBlobStore(ormCtx, fileID, uploadFile, entry.Name(), ownerID, true)
 		if err != nil {
-			return fmt.Errorf("failed to upload attachment %s: %w", entry.Type(), err)
+			return fmt.Errorf("failed to upload attachment %s: %w", entry.Name(), err)
 		}
 	}
 
@@ -230,7 +234,7 @@ func SplitPagesToChunks(pages []string, chunkSize int) []core.DocumentChunk {
 	var chunks []core.DocumentChunk
 
 	buf := make([]rune, 0, chunkSize)
-	// Value 0 means `startPage`` and `lastPage` are not initialized
+	// Value 0 means `startPage` and `lastPage` are not initialized
 	startPage := 0
 	lastPage := 0
 
@@ -261,7 +265,7 @@ func SplitPagesToChunks(pages []string, chunkSize int) []core.DocumentChunk {
 				chunks = append(chunks, core.DocumentChunk{
 					Range: chunkRange,
 					Text:  textChunk,
-					// this field remain uninitialized
+					// this field remains uninitialized
 					// Embedding: core.Embedding{},
 				})
 
@@ -296,7 +300,7 @@ func SplitPagesToChunks(pages []string, chunkSize int) []core.DocumentChunk {
 		chunks = append(chunks, core.DocumentChunk{
 			Range: chunkRange,
 			Text:  textChunk,
-			// this field remain uninitialized
+			// this field remains uninitialized
 			// Embedding: core.Embedding{},
 		})
 	}

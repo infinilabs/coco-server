@@ -39,7 +39,7 @@ func (p *FileExtractionProcessor) processPdf(ctx context.Context, doc *core.Docu
 
 	err = tikaUnpackAllTo(tikaRequestCtx, p.config.TikaEndpoint, path, attachmentDirPath)
 	if err != nil {
-		return Extraction{}, fmt.Errorf("failed to extracte document attachments: %w", err)
+		return Extraction{}, fmt.Errorf("failed to extract document attachments: %w", err)
 	}
 
 	/*
@@ -47,7 +47,7 @@ func (p *FileExtractionProcessor) processPdf(ctx context.Context, doc *core.Docu
 	*/
 	var pagesWithoutOcr []string
 	var pagesWithOcr []string
-	var images map[int][]string
+	images := make(map[int][]string)
 	pagesSelection := docHTML.Find("div.page")
 	// Find all div with class "page"
 	for i := 0; i < pagesSelection.Length(); i++ {
@@ -79,7 +79,7 @@ func (p *FileExtractionProcessor) processPdf(ctx context.Context, doc *core.Docu
 	return Extraction{
 		PagesWithoutOcr: pagesWithoutOcr,
 		PagesWithOcr:    pagesWithOcr,
-		Images:          make(map[int][]string),
+		Images:          images,
 	}, nil
 }
 
@@ -123,9 +123,10 @@ func (p *FileExtractionProcessor) appendPage(tikaRequestCtx context.Context, s *
 
 			var extractedText string
 			if err != nil {
-				log.Warnf("doing OCR failed with: %w ", err)
+				log.Warnf("doing OCR failed with: %v ", err)
 				extractedText = ""
 			} else {
+				defer rc.Close()
 				var buf strings.Builder
 				_, err := io.Copy(&buf, rc)
 				if err != nil {

@@ -189,7 +189,7 @@ var SupportedEmbeddingDimensions = []int32{128, 256, 384, 512, 768, 1024, 1536, 
 type ChunkRange struct {
 	// Start page of this chunk.
 	Start int `json:"start" elastic_mapping:"start:{type:integer}"`
-	// End page of this chuhk. This is **inclusive**.
+	// End page of this chunk. This is **inclusive**.
 	End int `json:"end" elastic_mapping:"end:{type:integer}"`
 }
 
