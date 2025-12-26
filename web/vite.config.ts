@@ -17,7 +17,20 @@ export default defineConfig(configEnv => {
   return {
     base: viteEnv.VITE_BASE_URL,
     build: {
-      outDir: '../.public'
+      outDir: '../.public',
+      emptyOutDir: true,
+      rollupOptions: {
+        output: {
+          manualChunks: (id) => {
+            if (id.includes('node_modules')) {
+              if (id.includes('@ant-design/pro-components') || id.includes('@ant-design/pro-')) {
+                return 'vendor-antd-pro';
+              }
+              return 'vendor-core';
+            }
+          },
+        },
+      },
     },
     css: {
       preprocessorOptions: {

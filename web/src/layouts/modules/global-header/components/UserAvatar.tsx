@@ -146,23 +146,21 @@ export default UserAvatar;
 
 const Avatar = memo((props: { src?: string; size?: number }) => {
   const { src, size = 24 } = props;
-  return (
+  return src ? (
     <div
       className="rounded-full bg-gray-300 overflow-hidden flex-center"
       style={{ width: size, height: size }}
     >
-      {src ? (
-        <img
-          src={src}
-          alt="avatar"
-          style={{ width: size, height: size }}
-        />
-      ) : (
-        <SvgIcon
-          className="text-icon-large"
-          icon="ph:user-circle"
-        />
-      )}
+      <img
+        src={src}
+        alt="avatar"
+        style={{ width: size, height: size }}
+      />
     </div>
+  ) : (
+    <SvgIcon
+      className="text-icon-large"
+      icon="ph:user-circle"
+    />
   );
 });
