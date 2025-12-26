@@ -61,7 +61,7 @@ export function Component() {
           clearAll()
           module?.fullscreen && module.fullscreen({ 
             container: `#${uuid}`, 
-            rightMenuWidth: userInfo ? 78 : 132, 
+            rightMenuWidth: userInfo ? 90 : 136, 
             parentTheme: themeScheme,
           });
           endLoading();
