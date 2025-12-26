@@ -28,7 +28,7 @@ export const EditForm = memo((props: EditFormProps) => {
 
   const TYPE_OPTIONS = [
     { key: 'user', label: t('page.auth.labels.user') },
-    { key: 'team', label: t('page.auth.labels.team') }
+    // { key: 'team', label: t('page.auth.labels.team') }
   ];
 
   const { defaultRequiredRule } = useFormRules();

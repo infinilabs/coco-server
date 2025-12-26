@@ -443,18 +443,6 @@ export function Component() {
           <OAuthConnect
             connector={connector}
             validationRules={validationRules}
-            connectUrl={(() => {
-              switch (type) {
-                case Types.Feishu:
-                  return `/connector/${connector?.id}/feishu/connect`;
-                case Types.Lark:
-                  return `/connector/${connector?.id}/lark/connect`;
-                case Types.Box:
-                  return `/connector/${connector?.id}/box/connect`;
-                default:
-                  return undefined;
-              }
-            })()}
             connectUrl={
               // eslint-disable-next-line no-nested-ternary
               type === Types.Feishu
