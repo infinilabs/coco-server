@@ -17,10 +17,10 @@ export function SearchBox(props) {
 
     return (
         <div className={`flex w-full h-full items-center justify-center bg-[var(--ui-search-antd-color-bg-container)] ${styles.searchbox} rounded-8px`}>
-            <div className="w-full h-48px px-12px py-4px border border-solid border-[var(--ui-search-antd-color-border)] rounded-8px">
+            <div className="w-full h-48px px-12px py-3px border border-solid border-[var(--ui-search-antd-color-border)] rounded-8px">
                 <Input.Search
                     value={currentKeyword}
-                    addonBefore={<Search className="w-16px h-16px"/>} 
+                    addonBefore={<Search className="relative top-2px w-16px h-16px"/>} 
                     enterButton={<CornerDownLeft className="w-14px h-14px"/>}
                     size="large"
                     onChange={(e) => setCurrentKeyword(e.target.value)}
