@@ -16,7 +16,7 @@ import (
 	"infini.sh/framework/core/orm"
 )
 
-func tikaGetTextPlain(tikaRequestCtx context.Context, tikaEndpoint string, path string) (io.ReadCloser, error) {
+func tikaGetTextPlain(tikaRequestCtx context.Context, tikaEndpoint string, timeout int, path string) (io.ReadCloser, error) {
 	if tikaEndpoint == "" || path == "" {
 		return nil, fmt.Errorf("[tika_endpoint] and [path] should not be empty")
 	}
@@ -47,7 +47,7 @@ func tikaGetTextPlain(tikaRequestCtx context.Context, tikaEndpoint string, path 
 	// 4. Send the Request
 	// We use a client with a generous timeout because OCR is slow.
 	client := &http.Client{
-		Timeout: 60 * time.Second,
+		Timeout: time.Duration(timeout) * time.Second,
 	}
 
 	resp, err := client.Do(req)
@@ -65,7 +65,7 @@ func tikaGetTextPlain(tikaRequestCtx context.Context, tikaEndpoint string, path 
 	return resp.Body, nil
 }
 
-func tikaGetTextHtml(tikaRequestCtx context.Context, tikaEndpoint string, path string) (io.ReadCloser, error) {
+func tikaGetTextHtml(tikaRequestCtx context.Context, tikaEndpoint string, timeout int, path string) (io.ReadCloser, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file [%s]: %w", path, err)
@@ -80,7 +80,7 @@ func tikaGetTextHtml(tikaRequestCtx context.Context, tikaEndpoint string, path s
 	req.Header.Set("Accept", "text/html")
 
 	client := &http.Client{
-		Timeout: 60 * time.Second,
+		Timeout: time.Duration(timeout) * time.Second,
 	}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -98,7 +98,7 @@ func tikaGetTextHtml(tikaRequestCtx context.Context, tikaEndpoint string, path s
 
 // Let Tika unpack all the attachments of the file specified by [filePath]
 // to the directory pointed by [to].
-func tikaUnpackAllTo(tikaRequestCtx context.Context, tikaEndpoint, filePath, to string) error {
+func tikaUnpackAllTo(tikaRequestCtx context.Context, tikaEndpoint, filePath, to string, timeout int) error {
 	// 1. Open the source file
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -122,7 +122,9 @@ func tikaUnpackAllTo(tikaRequestCtx context.Context, tikaEndpoint, filePath, to 
 	req.Header.Set("Accept", "application/zip")
 
 	// 4. Send Request
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: time.Duration(timeout) * time.Second,
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to communicate with tika: %w", err)

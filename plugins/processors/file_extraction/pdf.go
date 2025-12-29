@@ -19,7 +19,7 @@ func (p *FileExtractionProcessor) processPdf(ctx context.Context, doc *core.Docu
 	defer cancel()
 
 	path := doc.URL
-	htmlReader, err := tikaGetTextHtml(tikaRequestCtx, p.config.TikaEndpoint, path)
+	htmlReader, err := tikaGetTextHtml(tikaRequestCtx, p.config.TikaEndpoint, p.config.TimeoutInSeconds, path)
 	if err != nil {
 		return Extraction{}, fmt.Errorf("failed to extract text for [%s] using tika: %w", path, err)
 	}
@@ -37,7 +37,7 @@ func (p *FileExtractionProcessor) processPdf(ctx context.Context, doc *core.Docu
 	}
 	defer os.RemoveAll(attachmentDirPath)
 
-	err = tikaUnpackAllTo(tikaRequestCtx, p.config.TikaEndpoint, path, attachmentDirPath)
+	err = tikaUnpackAllTo(tikaRequestCtx, p.config.TikaEndpoint, path, attachmentDirPath, p.config.TimeoutInSeconds)
 	if err != nil {
 		return Extraction{}, fmt.Errorf("failed to extract document attachments: %w", err)
 	}
@@ -119,7 +119,7 @@ func (p *FileExtractionProcessor) appendPage(tikaRequestCtx context.Context, s *
 			imageName = strings.TrimPrefix(imageName, "embedded:")
 			// Construct full path to the extracted image file
 			fullImagePath := filepath.Join(attachmentDir, imageName)
-			rc, err := tikaGetTextPlain(tikaRequestCtx, p.config.TikaEndpoint, fullImagePath)
+			rc, err := tikaGetTextPlain(tikaRequestCtx, p.config.TikaEndpoint, p.config.TimeoutInSeconds, fullImagePath)
 
 			var extractedText string
 			if err != nil {

@@ -161,7 +161,7 @@ func (p *FileExtractionProcessor) parseSlideContentDual(ctx context.Context, f *
 						fullPath := filepath.Join(attachmentDir, filename)
 
 						// Call Tika for OCR
-						ocrReader, ocrErr := tikaGetTextPlain(ctx, p.config.TikaEndpoint, fullPath)
+						ocrReader, ocrErr := tikaGetTextPlain(ctx, p.config.TikaEndpoint, p.config.TimeoutInSeconds, fullPath)
 						var extractedText string
 
 						if ocrErr != nil {
