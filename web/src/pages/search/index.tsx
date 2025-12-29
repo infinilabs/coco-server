@@ -7,6 +7,7 @@ import { localStg } from '@/utils/storage';
 import { getApiBaseUrl } from '@/service/request';
 import { getThemeSettings } from '@/store/slice/theme';
 import { configResponsive } from 'ahooks';
+import { selectUserInfo } from '@/store/slice/auth';
 
 const uuid = `integration-${generateRandomString(8)}`
 
@@ -20,6 +21,7 @@ export function Component() {
   
   const responsive = useResponsive();
 
+  const userInfo = useAppSelector(selectUserInfo);
   const { themeScheme } = useAppSelector(getThemeSettings);
 
   const providerInfo = localStg.get('providerInfo') || {}
@@ -59,7 +61,7 @@ export function Component() {
           clearAll()
           module?.fullscreen && module.fullscreen({ 
             container: `#${uuid}`, 
-            rightMenuWidth: 78, 
+            rightMenuWidth: userInfo ? 90 : 136, 
             parentTheme: themeScheme,
           });
           endLoading();
@@ -69,15 +71,14 @@ export function Component() {
           endLoading();
         });
     }
-  }, [search_settings?.integration, search_settings.enabled, uuid, containerRef.current, themeScheme])
+  }, [search_settings?.integration, search_settings.enabled, uuid, containerRef.current, themeScheme, userInfo])
 
   return (
     <Spin spinning={loading}>
       <div ref={containerRef} id={uuid}></div>
-      <div className="absolute right-12px top-16px z-1 flex-y-center justify-end">
+      <div className="absolute right-12px top-0px h-72px z-1 flex-y-center justify-end">
         {
           isMobile ? (
-            
             <>
                 <ThemeSchemaSwitch className="px-12px" />
                 <UserAvatar className="px-8px" showHome showName={!isMobile}/>
