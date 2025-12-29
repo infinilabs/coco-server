@@ -26,10 +26,6 @@ func tikaGetTextPlain(ctx context.Context, tikaEndpoint string, timeout int, pat
 		return nil, fmt.Errorf("[tika_endpoint] and [path] should not be empty")
 	}
 
-	// Create a fresh context for this Tika request
-	tikaRequestCtx, cancel := context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
-	defer cancel()
-
 	// 1. Open the file
 	file, err := os.Open(path)
 	if err != nil {
@@ -39,9 +35,8 @@ func tikaGetTextPlain(ctx context.Context, tikaEndpoint string, timeout int, pat
 	// and closed by the HTTP client
 
 	// 2. Create the HTTP Request
-	// Tika expects a PUT request with the file binary as the body.
 	url := tikaEndpoint + "/tika"
-	req, err := http.NewRequestWithContext(tikaRequestCtx, "PUT", url, file)
+	req, err := http.NewRequestWithContext(ctx, "PUT", url, file)
 	if err != nil {
 		// Close() req.Body when request fails
 		req.Body.Close()
@@ -77,10 +72,6 @@ func tikaGetTextPlain(ctx context.Context, tikaEndpoint string, timeout int, pat
 }
 
 func tikaGetTextHtml(ctx context.Context, tikaEndpoint string, timeout int, path string) (io.ReadCloser, error) {
-	// Create a fresh context for this Tika request
-	tikaRequestCtx, cancel := context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
-	defer cancel()
-
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file [%s]: %w", path, err)
@@ -89,7 +80,7 @@ func tikaGetTextHtml(ctx context.Context, tikaEndpoint string, timeout int, path
 	// and closed by the HTTP client
 
 	url := fmt.Sprintf("%s/tika", tikaEndpoint)
-	req, err := http.NewRequestWithContext(tikaRequestCtx, "PUT", url, file)
+	req, err := http.NewRequestWithContext(ctx, "PUT", url, file)
 	if err != nil {
 		// Close() req.Body when request fails
 		req.Body.Close()

@@ -211,7 +211,7 @@ func (p *FileExtractionProcessor) parseSlideContentDual(ctx context.Context, f *
 						extractedText = ""
 					} else {
 						extractedText = strings.TrimSpace(buf.String())
-						fmt.Printf("DBG: OCR result [%s]\n", extractedText)
+						log.Debugf("OCR result [%s]", extractedText)
 					}
 				}
 
