@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/attachment"
 	"infini.sh/framework/core/orm"
@@ -35,13 +36,7 @@ func tikaGetTextPlain(tikaRequestCtx context.Context, tikaEndpoint string, timeo
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
-
-	// 3. Set Headers for OCR
-	// "Accept: text/plain" tells Tika we want raw text back.
 	req.Header.Set("Accept", "text/plain")
-
-	// Crucial headers to force OCR:
-	// If the file is a PDF containing scanned images, this header forces Tika to extract and OCR them.
 	req.Header.Set("X-Tika-PDFextractInlineImages", "true")
 
 	// 4. Send the Request
@@ -81,6 +76,8 @@ func tikaGetTextHtml(tikaRequestCtx context.Context, tikaEndpoint string, timeou
 		return nil, fmt.Errorf("failed to create request for %s: %w", path, err)
 	}
 	req.Header.Set("Accept", "text/html")
+	// If [path] points to a PDF file, we need this flag to let it return inline images.
+	req.Header.Set("X-Tika-PDFextractInlineImages", "true")
 
 	client := &http.Client{
 		Timeout: time.Duration(timeout) * time.Second,
@@ -210,6 +207,7 @@ func uploadAttachmentsToBlobStore(ctx context.Context, dir string, doc *core.Doc
 		if err != nil {
 			return fmt.Errorf("failed to open extracted file for upload %s: %w", fullPath, err)
 		}
+		// uploadFile will be closed in `attachment.UploadToBlobStore`
 
 		fileID := doc.ID + entry.Name()
 
@@ -361,7 +359,6 @@ func extractZipFile(f *zip.File, dest string) error {
 func DeferClose(c io.Closer) {
 	closeErr := c.Close()
 	if closeErr != nil {
-		// log.Errorf("Close() failed with error: %s", closeErr)
-		panic(fmt.Sprintf("DBG: %s\n", closeErr))
+		log.Errorf("Close() failed with error: %s", closeErr)
 	}
 }
