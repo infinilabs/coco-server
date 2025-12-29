@@ -31,13 +31,16 @@ func tikaGetTextPlain(tikaRequestCtx context.Context, tikaEndpoint string, timeo
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file: %w", err)
 	}
-	// Note: file is consumed by the HTTP request body and closed by the HTTP client
+	// Note: when request succeeds, file is consumed by the HTTP request body
+	// and closed by the HTTP client
 
 	// 2. Create the HTTP Request
 	// Tika expects a PUT request with the file binary as the body.
 	url := tikaEndpoint + "/tika"
 	req, err := http.NewRequestWithContext(tikaRequestCtx, "PUT", url, file)
 	if err != nil {
+		// Close() req.Body when request fails
+		req.Body.Close()
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 	req.Header.Set("Accept", "text/plain")
@@ -51,6 +54,8 @@ func tikaGetTextPlain(tikaRequestCtx context.Context, tikaEndpoint string, timeo
 
 	resp, err := client.Do(req)
 	if err != nil {
+		// Close() req.Body when request fails
+		req.Body.Close()
 		return nil, fmt.Errorf("failed to send request to Tika: %w", err)
 	}
 
@@ -72,11 +77,14 @@ func tikaGetTextHtml(tikaRequestCtx context.Context, tikaEndpoint string, timeou
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file [%s]: %w", path, err)
 	}
-	// Note: file is consumed by the HTTP request body and closed by the HTTP client
+	// Note: when request succeeds, file is consumed by the HTTP request body
+	// and closed by the HTTP client
 
 	url := fmt.Sprintf("%s/tika", tikaEndpoint)
 	req, err := http.NewRequestWithContext(tikaRequestCtx, "PUT", url, file)
 	if err != nil {
+		// Close() req.Body when request fails
+		req.Body.Close()
 		return nil, fmt.Errorf("failed to create request for %s: %w", path, err)
 	}
 	req.Header.Set("Accept", "text/html")
@@ -88,6 +96,8 @@ func tikaGetTextHtml(tikaRequestCtx context.Context, tikaEndpoint string, timeou
 	}
 	resp, err := client.Do(req)
 	if err != nil {
+		// Close() req.Body when request fails
+		req.Body.Close()
 		return nil, fmt.Errorf("failed to request tika for %s: %w", path, err)
 	}
 
@@ -111,7 +121,8 @@ func tikaUnpackAllTo(tikaRequestCtx context.Context, tikaEndpoint, filePath, to 
 	if err != nil {
 		return fmt.Errorf("failed to open source file %s: %w", filePath, err)
 	}
-	// Note: file is consumed by the HTTP request body and closed by the HTTP client
+	// Note: when request succeeds, file is consumed by the HTTP request body
+	// and closed by the HTTP client.
 
 	// 2. Construct Tika URL (ensure no double slashes)
 	endpoint := strings.TrimRight(tikaEndpoint, "/")
@@ -120,6 +131,8 @@ func tikaUnpackAllTo(tikaRequestCtx context.Context, tikaEndpoint, filePath, to 
 	// 3. Create the Request
 	req, err := http.NewRequestWithContext(tikaRequestCtx, "PUT", unpackUrl, file)
 	if err != nil {
+		// Close() req.Body when request fails
+		req.Body.Close()
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
@@ -134,6 +147,8 @@ func tikaUnpackAllTo(tikaRequestCtx context.Context, tikaEndpoint, filePath, to 
 	}
 	resp, err := client.Do(req)
 	if err != nil {
+		// Close() req.Body when request fails
+		req.Body.Close()
 		return fmt.Errorf("failed to communicate with tika: %w", err)
 	}
 	defer DeferClose(resp.Body)
