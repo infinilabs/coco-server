@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	log "github.com/cihub/seelog"
@@ -104,9 +105,16 @@ func (p *FileExtractionProcessor) processPptx(ctx context.Context, doc *core.Doc
 
 // --- XML Parsing & OCR Logic ---
 
+// ocrTask holds information for parallel OCR processing
+type ocrTask struct {
+	rId      string
+	filename string
+	index    int
+}
+
 // parseSlideContentDual parses the XML of a slide and returns two strings:
 // 1. Text with [[Image(filename)]]
-// 2. Text with [[ImageContentViaOCR(content)]] (performs HTTP calls to Tika)
+// 2. Text with [[ImageContentViaOCR(content)]] (performs HTTP calls to Tika concurrently)
 func (p *FileExtractionProcessor) parseSlideContentDual(ctx context.Context, f *zip.File, rels map[string]string, attachmentDir string) (string, string, error) {
 	rc, err := f.Open()
 	if err != nil {
@@ -120,6 +128,10 @@ func (p *FileExtractionProcessor) parseSlideContentDual(ctx context.Context, f *
 
 	// Track processed image IDs per slide to prevent duplicate markers if XML repeats tags
 	processedRels := make(map[string]bool)
+
+	// Collect OCR tasks for concurrent processing
+	var ocrTasks []ocrTask
+	taskIndex := 0
 
 	for {
 		token, err := decoder.Token()
@@ -154,41 +166,76 @@ func (p *FileExtractionProcessor) parseSlideContentDual(ctx context.Context, f *
 				rId := attr.Value
 				if filename, exists := rels[rId]; exists {
 					if !processedRels[rId] {
-						// 1. Append to No-OCR Builder
+						// Append to No-OCR Builder
 						sbNoOcr.WriteString(fmt.Sprintf("\n[[Image(%s)]]\n", filename))
 
-						// 2. Perform OCR and Append to OCR Builder
-						fullPath := filepath.Join(attachmentDir, filename)
+						// Collect OCR task for parallel processing
+						ocrTasks = append(ocrTasks, ocrTask{
+							rId:      rId,
+							filename: filename,
+							index:    taskIndex,
+						})
 
-						// Call Tika for OCR
-						ocrReader, ocrErr := tikaGetTextPlain(ctx, p.config.TikaEndpoint, p.config.TimeoutInSeconds, fullPath)
-						var extractedText string
-
-						if ocrErr != nil {
-							log.Warnf("OCR failed for image %s: %v", filename, ocrErr)
-							extractedText = ""
-						} else {
-							defer DeferClose(ocrReader)
-
-							// Read stream to string
-							var buf strings.Builder
-							_, copyErr := io.Copy(&buf, ocrReader)
-
-							if copyErr != nil {
-								log.Warnf("Failed to read OCR response for %s: %v", filename, copyErr)
-								extractedText = ""
-							} else {
-								extractedText = strings.TrimSpace(buf.String())
-							}
-						}
-
-						sbOcr.WriteString(fmt.Sprintf("\n[[ImageContentViaOCR(%s)]]\n", extractedText))
+						// Append placeholder in OCR builder
+						sbOcr.WriteString(fmt.Sprintf("\n[[OCR_PLACEHOLDER_%d]]\n", taskIndex))
+						taskIndex++
 
 						processedRels[rId] = true
 					}
 				}
 			}
 		}
+	}
+
+	// Process all OCR tasks concurrently
+	if len(ocrTasks) > 0 {
+		results := make(map[int]string)
+		var mu sync.Mutex
+		var wg sync.WaitGroup
+
+		for _, task := range ocrTasks {
+			wg.Add(1)
+			go func(t ocrTask) {
+				defer wg.Done()
+
+				fullPath := filepath.Join(attachmentDir, t.filename)
+				ocrReader, ocrErr := tikaGetTextPlain(ctx, p.config.TikaEndpoint, p.config.TimeoutInSeconds, fullPath)
+				var extractedText string
+
+				if ocrErr != nil {
+					log.Warnf("OCR failed for image %s: %v", t.filename, ocrErr)
+					extractedText = ""
+				} else {
+					defer DeferClose(ocrReader)
+
+					var buf strings.Builder
+					_, copyErr := io.Copy(&buf, ocrReader)
+
+					if copyErr != nil {
+						log.Warnf("Failed to read OCR response for %s: %v", t.filename, copyErr)
+						extractedText = ""
+					} else {
+						extractedText = strings.TrimSpace(buf.String())
+					}
+				}
+
+				mu.Lock()
+				results[t.index] = extractedText
+				mu.Unlock()
+			}(task)
+		}
+
+		wg.Wait()
+
+		// Replace placeholders with actual OCR results
+		ocrText := sbOcr.String()
+		for i := 0; i < len(ocrTasks); i++ {
+			placeholder := fmt.Sprintf("[[OCR_PLACEHOLDER_%d]]", i)
+			replacement := fmt.Sprintf("[[ImageContentViaOCR(%s)]]", results[i])
+			ocrText = strings.Replace(ocrText, placeholder, replacement, 1)
+		}
+
+		return strings.TrimSpace(sbNoOcr.String()), strings.TrimSpace(ocrText), nil
 	}
 
 	return strings.TrimSpace(sbNoOcr.String()), strings.TrimSpace(sbOcr.String()), nil

@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
@@ -113,15 +114,30 @@ func (p *FileExtractionProcessor) appendPage(tikaRequestCtx context.Context, s *
 	/*
 	 * append to [pagesWithOcr]
 	 */
+	// First pass: collect image paths in order
+	imagePaths := make(map[int]string)
 	sClone.Find("img").Each(func(i int, img *goquery.Selection) {
 		imageName, exists := img.Attr("src")
 		if exists {
 			imageName = strings.TrimPrefix(imageName, "embedded:")
-			// Construct full path to the extracted image file
 			fullImagePath := filepath.Join(attachmentDir, imageName)
-			rc, err := tikaGetTextPlain(tikaRequestCtx, p.config.TikaEndpoint, p.config.TimeoutInSeconds, fullImagePath)
+			imagePaths[i] = fullImagePath
+		}
+	})
 
+	// Process OCR concurrently for all images
+	ocrResults := make(map[int]string)
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+
+	for idx, imagePath := range imagePaths {
+		wg.Add(1)
+		go func(index int, path string) {
+			defer wg.Done()
+
+			rc, err := tikaGetTextPlain(tikaRequestCtx, p.config.TikaEndpoint, p.config.TimeoutInSeconds, path)
 			var extractedText string
+
 			if err != nil {
 				log.Warnf("doing OCR failed with: %v ", err)
 				extractedText = ""
@@ -132,11 +148,23 @@ func (p *FileExtractionProcessor) appendPage(tikaRequestCtx context.Context, s *
 				if err != nil {
 					extractedText = ""
 				} else {
-					extractedText = buf.String()
+					extractedText = strings.TrimSpace(buf.String())
 				}
 			}
 
-			extractedText = strings.TrimSpace(extractedText)
+			mu.Lock()
+			ocrResults[index] = extractedText
+			mu.Unlock()
+		}(idx, imagePath)
+	}
+
+	wg.Wait()
+
+	// Second pass: replace images with OCR results in order
+	sClone.Find("img").Each(func(i int, img *goquery.Selection) {
+		_, exists := img.Attr("src")
+		if exists {
+			extractedText := ocrResults[i]
 			img.ReplaceWithHtml(fmt.Sprintf("[[ImageContentViaOCR(%s)]]", extractedText))
 		}
 	})
