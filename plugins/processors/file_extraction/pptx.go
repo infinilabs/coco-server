@@ -35,7 +35,7 @@ func (p *FileExtractionProcessor) processPptx(ctx context.Context, doc *core.Doc
 	if err != nil {
 		return Extraction{}, fmt.Errorf("failed to open pptx file [%s]: %w", doc.URL, err)
 	}
-	defer r.Close()
+	defer DeferClose(r)
 
 	// 4. Extract Images to Temp Dir
 	// We do this first so they are available on disk for the OCR calls later.
@@ -112,7 +112,7 @@ func (p *FileExtractionProcessor) parseSlideContentDual(ctx context.Context, f *
 	if err != nil {
 		return "", "", err
 	}
-	defer rc.Close()
+	defer DeferClose(rc)
 
 	decoder := xml.NewDecoder(rc)
 	var sbNoOcr strings.Builder
@@ -168,7 +168,7 @@ func (p *FileExtractionProcessor) parseSlideContentDual(ctx context.Context, f *
 							log.Warnf("OCR failed for image %s: %v", filename, ocrErr)
 							extractedText = ""
 						} else {
-							defer ocrReader.Close()
+							defer DeferClose(ocrReader)
 
 							// Read stream to string
 							var buf strings.Builder
@@ -278,7 +278,7 @@ func getSlideRelationships(r *zip.ReadCloser, slidePath string) (map[string]stri
 	if err != nil {
 		return nil, err
 	}
-	defer rc.Close()
+	defer DeferClose(rc)
 
 	// Minimal XML structs
 	type Relationship struct {

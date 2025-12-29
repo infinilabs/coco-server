@@ -11,12 +11,13 @@ import (
 	"strings"
 	"time"
 
+	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/attachment"
 	"infini.sh/framework/core/orm"
 )
 
-func tikaGetTextPlain(tikaRequestCtx context.Context, tikaEndpoint string, timeout int, path string) (io.ReadCloser, error) {
+func tikaGetTextPlain(tikaRequestCtx context.Context, tikaEndpoint string, timeout int, path string) (reader io.ReadCloser, err error) {
 	if tikaEndpoint == "" || path == "" {
 		return nil, fmt.Errorf("[tika_endpoint] and [path] should not be empty")
 	}
@@ -26,7 +27,7 @@ func tikaGetTextPlain(tikaRequestCtx context.Context, tikaEndpoint string, timeo
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file: %w", err)
 	}
-	defer file.Close()
+	defer DeferClose(file)
 
 	// 2. Create the HTTP Request
 	// Tika expects a PUT request with the file binary as the body.
@@ -58,7 +59,10 @@ func tikaGetTextPlain(tikaRequestCtx context.Context, tikaEndpoint string, timeo
 	// 5. Check Status Code
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		resp.Body.Close()
+		err = resp.Body.Close()
+		if err != nil {
+			return nil, fmt.Errorf("Closing response body returned error: %s", err)
+		}
 		return nil, fmt.Errorf("tika returned error %d: %s", resp.StatusCode, string(body))
 	}
 
@@ -70,7 +74,7 @@ func tikaGetTextHtml(tikaRequestCtx context.Context, tikaEndpoint string, timeou
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file [%s]: %w", path, err)
 	}
-	defer file.Close()
+	defer DeferClose(file)
 
 	url := fmt.Sprintf("%s/tika", tikaEndpoint)
 	req, err := http.NewRequestWithContext(tikaRequestCtx, "PUT", url, file)
@@ -89,7 +93,10 @@ func tikaGetTextHtml(tikaRequestCtx context.Context, tikaEndpoint string, timeou
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		resp.Body.Close()
+		err = resp.Body.Close()
+		if err != nil {
+			return nil, fmt.Errorf("Closing response body returned error: %s", err)
+		}
 		return nil, fmt.Errorf("tika returned status %d for %s: %s", resp.StatusCode, path, string(body))
 	}
 
@@ -98,13 +105,13 @@ func tikaGetTextHtml(tikaRequestCtx context.Context, tikaEndpoint string, timeou
 
 // Let Tika unpack all the attachments of the file specified by [filePath]
 // to the directory pointed by [to].
-func tikaUnpackAllTo(tikaRequestCtx context.Context, tikaEndpoint, filePath, to string, timeout int) error {
+func tikaUnpackAllTo(tikaRequestCtx context.Context, tikaEndpoint, filePath, to string, timeout int) (err error) {
 	// 1. Open the source file
 	file, err := os.Open(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to open source file %s: %w", filePath, err)
 	}
-	defer file.Close()
+	defer DeferClose(file)
 
 	// 2. Construct Tika URL (ensure no double slashes)
 	endpoint := strings.TrimRight(tikaEndpoint, "/")
@@ -129,7 +136,7 @@ func tikaUnpackAllTo(tikaRequestCtx context.Context, tikaEndpoint, filePath, to 
 	if err != nil {
 		return fmt.Errorf("failed to communicate with tika: %w", err)
 	}
-	defer resp.Body.Close()
+	defer DeferClose(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
 		// Read a bit of the body for debugging
@@ -161,7 +168,7 @@ func tikaUnpackAllTo(tikaRequestCtx context.Context, tikaEndpoint, filePath, to 
 	if err != nil {
 		return fmt.Errorf("failed to open extracted zip: %w", err)
 	}
-	defer zipReader.Close()
+	defer DeferClose(zipReader)
 
 	if err := os.MkdirAll(to, 0755); err != nil {
 		return fmt.Errorf("failed to create target directory %s: %w", to, err)
@@ -180,7 +187,7 @@ func tikaUnpackAllTo(tikaRequestCtx context.Context, tikaEndpoint, filePath, to 
 
 // Directory [dir] contains document [doc]'s attachments, upload them to
 // the blob store.
-func uploadAttachmentsToBlobStore(ctx context.Context, dir string, doc *core.Document) error {
+func uploadAttachmentsToBlobStore(ctx context.Context, dir string, doc *core.Document) (err error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return fmt.Errorf("failed to read directory: %v", err)
@@ -313,7 +320,7 @@ func SplitPagesToChunks(pages []string, chunkSize int) []core.DocumentChunk {
 // extractZipFile handles the individual file extraction logic with security checks
 //
 // It is a helper function of [tikaUnpackAllTo()].
-func extractZipFile(f *zip.File, dest string) error {
+func extractZipFile(f *zip.File, dest string) (err error) {
 	// 1. "Zip Slip" Vulnerability Protection
 	// Ensure the calculated path is actually inside the destination directory
 	fpath := filepath.Join(dest, f.Name)
@@ -339,13 +346,22 @@ func extractZipFile(f *zip.File, dest string) error {
 	if err != nil {
 		return err
 	}
-	defer outFile.Close()
+	defer DeferClose(outFile)
 
 	rc, err := f.Open()
 	if err != nil {
 		return err
 	}
-	defer rc.Close()
+	defer DeferClose(rc)
 	_, err = io.Copy(outFile, rc)
 	return err
+}
+
+// DeferClose is a utility function used to check the return from
+// Close in a defer statement.
+func DeferClose(c io.Closer) {
+	closeErr := c.Close()
+	if closeErr != nil {
+		log.Errorf("Close() failed with error: %s", closeErr)
+	}
 }

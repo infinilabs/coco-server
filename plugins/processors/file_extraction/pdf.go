@@ -23,7 +23,7 @@ func (p *FileExtractionProcessor) processPdf(ctx context.Context, doc *core.Docu
 	if err != nil {
 		return Extraction{}, fmt.Errorf("failed to extract text for [%s] using tika: %w", path, err)
 	}
-	defer htmlReader.Close()
+	defer DeferClose(htmlReader)
 
 	// Parse HTML response
 	docHTML, err := goquery.NewDocumentFromReader(htmlReader)
@@ -126,7 +126,7 @@ func (p *FileExtractionProcessor) appendPage(tikaRequestCtx context.Context, s *
 				log.Warnf("doing OCR failed with: %v ", err)
 				extractedText = ""
 			} else {
-				defer rc.Close()
+				defer DeferClose(rc)
 				var buf strings.Builder
 				_, err := io.Copy(&buf, rc)
 				if err != nil {
