@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/PuerkitoBio/goquery"
 	log "github.com/cihub/seelog"
@@ -20,11 +19,8 @@ import (
 )
 
 func (p *FileExtractionProcessor) processPdf(ctx context.Context, doc *core.Document) (Extraction, error) {
-	tikaRequestCtx, cancel := context.WithTimeout(ctx, time.Duration(p.config.TimeoutInSeconds)*time.Second)
-	defer cancel()
-
 	path := doc.URL
-	htmlReader, err := tikaGetTextHtml(tikaRequestCtx, p.config.TikaEndpoint, p.config.TimeoutInSeconds, path)
+	htmlReader, err := tikaGetTextHtml(ctx, p.config.TikaEndpoint, p.config.TimeoutInSeconds, path)
 	if err != nil {
 		return Extraction{}, fmt.Errorf("failed to extract text for [%s] using tika: %w", path, err)
 	}
@@ -42,7 +38,7 @@ func (p *FileExtractionProcessor) processPdf(ctx context.Context, doc *core.Docu
 	}
 	defer os.RemoveAll(attachmentDirPath)
 
-	err = tikaUnpackAllTo(tikaRequestCtx, p.config.TikaEndpoint, path, attachmentDirPath, p.config.TimeoutInSeconds)
+	err = tikaUnpackAllTo(ctx, p.config.TikaEndpoint, path, attachmentDirPath, p.config.TimeoutInSeconds)
 	if err != nil {
 		return Extraction{}, fmt.Errorf("failed to extract document attachments: %w", err)
 	}
@@ -60,7 +56,7 @@ func (p *FileExtractionProcessor) processPdf(ctx context.Context, doc *core.Docu
 		pageNum := i + 1
 		imagesOfThisPage := make([]string, 0)
 
-		p.appendPage(tikaRequestCtx, s, attachmentDirPath, &pagesWithoutOcr, &pagesWithOcr, &imagesOfThisPage)
+		p.appendPage(ctx, p.config.TimeoutInSeconds, s, attachmentDirPath, &pagesWithoutOcr, &pagesWithOcr, &imagesOfThisPage)
 		images[pageNum] = imagesOfThisPage
 	}
 
@@ -69,7 +65,7 @@ func (p *FileExtractionProcessor) processPdf(ctx context.Context, doc *core.Docu
 	if len(pagesWithoutOcr) == 0 {
 		imagesOfThisPage := make([]string, 0)
 		s := docHTML.Find("body")
-		p.appendPage(tikaRequestCtx, s, attachmentDirPath, &pagesWithoutOcr, &pagesWithOcr, &imagesOfThisPage)
+		p.appendPage(ctx, p.config.TimeoutInSeconds, s, attachmentDirPath, &pagesWithoutOcr, &pagesWithOcr, &imagesOfThisPage)
 		images[1] = imagesOfThisPage
 	}
 
@@ -91,7 +87,7 @@ func (p *FileExtractionProcessor) processPdf(ctx context.Context, doc *core.Docu
 // appendPage processes a page selection, generating two versions of the text:
 // 1. pagesWithoutOcr: Images are replaced with filenames [[Image(name)]]
 // 2. pagesWithOcr: Images are replaced with their OCR text content [[ImageContentViaOCR(text)]]
-func (p *FileExtractionProcessor) appendPage(tikaRequestCtx context.Context, s *goquery.Selection, attachmentDir string, pagesWithoutOcr, pagesWithOcr *[]string, imagesOfThisPage *[]string) {
+func (p *FileExtractionProcessor) appendPage(ctx context.Context, timeout int, s *goquery.Selection, attachmentDir string, pagesWithoutOcr, pagesWithOcr *[]string, imagesOfThisPage *[]string) {
 	// Clone s because goquery modifies nodes in-place.
 	sClone := s.Clone()
 
@@ -139,20 +135,23 @@ func (p *FileExtractionProcessor) appendPage(tikaRequestCtx context.Context, s *
 		go func(index int, path string) {
 			defer wg.Done()
 
-			rc, err := tikaGetTextPlain(tikaRequestCtx, p.config.TikaEndpoint, p.config.TimeoutInSeconds, path)
+			// Each OCR call gets its own fresh timeout via tikaGetTextPlain
+			rc, err := tikaGetTextPlain(ctx, p.config.TikaEndpoint, timeout, path)
 			var extractedText string
 
 			if err != nil {
-				log.Warnf("doing OCR failed with: %v ", err)
+				log.Warnf("doing OCR failed for image %s (index %d): %v", path, index, err)
 				extractedText = ""
 			} else {
 				defer DeferClose(rc)
 				var buf strings.Builder
 				_, err := io.Copy(&buf, rc)
 				if err != nil {
+					log.Warnf("reading OCR result failed for image %s (index %d): %v", path, index, err)
 					extractedText = ""
 				} else {
 					extractedText = strings.TrimSpace(buf.String())
+					log.Debugf("OCR result for image %s (index %d): [%s]", path, index, extractedText)
 				}
 			}
 

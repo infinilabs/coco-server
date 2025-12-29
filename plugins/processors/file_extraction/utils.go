@@ -21,10 +21,14 @@ import (
 	"infini.sh/framework/core/orm"
 )
 
-func tikaGetTextPlain(tikaRequestCtx context.Context, tikaEndpoint string, timeout int, path string) (io.ReadCloser, error) {
+func tikaGetTextPlain(ctx context.Context, tikaEndpoint string, timeout int, path string) (io.ReadCloser, error) {
 	if tikaEndpoint == "" || path == "" {
 		return nil, fmt.Errorf("[tika_endpoint] and [path] should not be empty")
 	}
+
+	// Create a fresh context for this Tika request
+	tikaRequestCtx, cancel := context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
+	defer cancel()
 
 	// 1. Open the file
 	file, err := os.Open(path)
@@ -72,7 +76,11 @@ func tikaGetTextPlain(tikaRequestCtx context.Context, tikaEndpoint string, timeo
 	return resp.Body, nil
 }
 
-func tikaGetTextHtml(tikaRequestCtx context.Context, tikaEndpoint string, timeout int, path string) (io.ReadCloser, error) {
+func tikaGetTextHtml(ctx context.Context, tikaEndpoint string, timeout int, path string) (io.ReadCloser, error) {
+	// Create a fresh context for this Tika request
+	tikaRequestCtx, cancel := context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
+	defer cancel()
+
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file [%s]: %w", path, err)
@@ -115,7 +123,11 @@ func tikaGetTextHtml(tikaRequestCtx context.Context, tikaEndpoint string, timeou
 
 // Let Tika unpack all the attachments of the file specified by [filePath]
 // to the directory pointed by [to].
-func tikaUnpackAllTo(tikaRequestCtx context.Context, tikaEndpoint, filePath, to string, timeout int) error {
+func tikaUnpackAllTo(ctx context.Context, tikaEndpoint, filePath, to string, timeout int) error {
+	// Create a fresh context for this Tika request
+	tikaRequestCtx, cancel := context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
+	defer cancel()
+
 	// 1. Open the source file
 	file, err := os.Open(filePath)
 	if err != nil {

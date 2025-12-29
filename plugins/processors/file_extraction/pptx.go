@@ -13,18 +13,13 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
 )
 
 func (p *FileExtractionProcessor) processPptx(ctx context.Context, doc *core.Document) (Extraction, error) {
-	// 1. Context Setup
-	tikaRequestCtx, cancel := context.WithTimeout(ctx, time.Duration(p.config.TimeoutInSeconds)*time.Second)
-	defer cancel()
-
-	// 2. Prepare Temp Directory for Attachments
+	// 1. Prepare Temp Directory for Attachments
 	attachmentDirPath, err := os.MkdirTemp("", "attachment-pptx-")
 	if err != nil {
 		return Extraction{}, fmt.Errorf("failed to create temporary directory for extraction: %w", err)
@@ -78,7 +73,7 @@ func (p *FileExtractionProcessor) processPptx(ctx context.Context, doc *core.Doc
 		images[slideIdx] = slideImages
 
 		// B. Parse Content & Perform OCR (Dual Extraction)
-		textNoOcr, textOcr, err := p.parseSlideContentDual(tikaRequestCtx, slideFile, relsMap, attachmentDirPath)
+		textNoOcr, textOcr, err := p.parseSlideContentDual(ctx, slideFile, relsMap, attachmentDirPath)
 		if err != nil {
 			log.Warnf("Failed to parse content for slide %s: %v", slideFile.Name, err)
 			// Append empty strings to keep page count consistent
@@ -216,6 +211,7 @@ func (p *FileExtractionProcessor) parseSlideContentDual(ctx context.Context, f *
 						extractedText = ""
 					} else {
 						extractedText = strings.TrimSpace(buf.String())
+						fmt.Printf("DBG: OCR result [%s]\n", extractedText)
 					}
 				}
 
