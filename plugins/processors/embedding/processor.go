@@ -137,7 +137,7 @@ func (processor *DocumentEmbeddingProcessor) Process(ctx *pipeline.Context) erro
 	return nil
 }
 
-// Generate embeddings for [document.Chunks] and [document.ChunksWithImageContent].
+// Generate embeddings for [document.Chunks].
 func generateEmbedding(ctx context.Context, document *core.Document, processorConfig *Config) error {
 	embedder, err := getEmbedderClient(processorConfig)
 	if err != nil {
@@ -145,10 +145,6 @@ func generateEmbedding(ctx context.Context, document *core.Document, processorCo
 	}
 
 	if err := generateChunkEmbeddings(ctx, embedder, document.Chunks); err != nil {
-		return err
-	}
-
-	if err := generateChunkEmbeddings(ctx, embedder, document.ChunksWithImageContent); err != nil {
 		return err
 	}
 

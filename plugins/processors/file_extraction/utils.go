@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -69,6 +70,37 @@ func tikaGetTextPlain(ctx context.Context, tikaEndpoint string, timeout int, pat
 	}
 
 	return resp.Body, nil
+}
+
+// ocr performs OCR on the file at [path] using Tika, cleans the extracted text
+// by removing all control characters and collapsing multiple spaces, and
+// returns the result.
+func ocr(ctx context.Context, tikaEndpoint string, timeout int, path string) (string, error) {
+	rc, err := tikaGetTextPlain(ctx, tikaEndpoint, timeout, path)
+	if err != nil {
+		return "", err
+	}
+	defer DeferClose(rc)
+
+	data, err := io.ReadAll(rc)
+	if err != nil {
+		return "", err
+	}
+	text := string(data)
+
+	// Clean text: remove all control characters (ASCII < 32)
+	text = strings.Map(func(r rune) rune {
+		if r < 32 {
+			return -1
+		}
+		return r
+	}, text)
+
+	// Replace multiple spaces with a single space
+	re := regexp.MustCompile(` +`)
+	text = re.ReplaceAllString(text, " ")
+
+	return strings.TrimSpace(text), nil
 }
 
 func tikaGetTextHtml(ctx context.Context, tikaEndpoint string, timeout int, path string) (io.ReadCloser, error) {
@@ -205,7 +237,7 @@ func tikaUnpackAllTo(ctx context.Context, tikaEndpoint, filePath, to string, tim
 
 // Directory [dir] contains document [doc]'s attachments, upload them to
 // the blob store.
-func uploadAttachmentsToBlobStore(ctx context.Context, dir string, doc *core.Document) error {
+func uploadAttachmentsToBlobStore(ctx context.Context, dir string, doc *core.Document, imageOCR map[string]string) error {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return fmt.Errorf("failed to read directory: %v", err)
@@ -239,7 +271,8 @@ func uploadAttachmentsToBlobStore(ctx context.Context, dir string, doc *core.Doc
 		ormCtx.DirectAccess()
 		ownerID := doc.GetOwnerID()
 
-		_, err = attachment.UploadToBlobStore(ormCtx, fileID, uploadFile, entry.Name(), ownerID, true)
+		fileContent := imageOCR[entry.Name()]
+		_, err = attachment.UploadToBlobStore(ormCtx, fileID, uploadFile, entry.Name(), ownerID, doc.ID, fileContent, true)
 		if err != nil {
 			return fmt.Errorf("failed to upload attachment %s: %w", entry.Name(), err)
 		}

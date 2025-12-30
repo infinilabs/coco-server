@@ -46,18 +46,16 @@ func (p *FileExtractionProcessor) processPptx(ctx context.Context, doc *core.Doc
 		// Return empty arrays instead of error to allow flow to continue.
 		log.Warnf("No slides found in PPTX %s: %v", doc.URL, err)
 		return Extraction{
-			PagesWithoutOcr: make([]string, 0),
-			PagesWithOcr:    make([]string, 0),
-			Images:          make(map[int][]string),
+			Pages:    make([]string, 0),
+			ImageOCR: make(map[string]string),
 		}, nil
 	}
 
-	var pagesWithoutOcr []string
-	var pagesWithOcr []string
-	images := make(map[int][]string)
+	var pages []string
+	imageOCR := make(map[string]string)
 
 	// 6. Process Slides
-	for slideIdx, slideFile := range slideFiles {
+	for _, slideFile := range slideFiles {
 		// A. Build Relationship Map for this slide (rId -> imageFilename)
 		relsMap, err := getSlideRelationships(r, slideFile.Name)
 		if err != nil {
@@ -65,36 +63,26 @@ func (p *FileExtractionProcessor) processPptx(ctx context.Context, doc *core.Doc
 			relsMap = make(map[string]string)
 		}
 
-		// We collect all images linked to this slide from the relsMap
-		var slideImages []string
-		for _, filename := range relsMap {
-			slideImages = append(slideImages, filename)
-		}
-		images[slideIdx] = slideImages
-
-		// B. Parse Content & Perform OCR (Dual Extraction)
-		textNoOcr, textOcr, err := p.parseSlideContentDual(ctx, slideFile, relsMap, attachmentDirPath)
+		// B. Parse Content & Perform OCR
+		text, err := p.parseSlideContent(ctx, doc.ID, slideFile, relsMap, attachmentDirPath, imageOCR)
 		if err != nil {
 			log.Warnf("Failed to parse content for slide %s: %v", slideFile.Name, err)
 			// Append empty strings to keep page count consistent
-			textNoOcr = ""
-			textOcr = ""
+			text = ""
 		}
 
-		pagesWithoutOcr = append(pagesWithoutOcr, textNoOcr)
-		pagesWithOcr = append(pagesWithOcr, textOcr)
+		pages = append(pages, text)
 	}
 
 	// 7. Upload Attachments
-	err = uploadAttachmentsToBlobStore(ctx, attachmentDirPath, doc)
+	err = uploadAttachmentsToBlobStore(ctx, attachmentDirPath, doc, imageOCR)
 	if err != nil {
 		return Extraction{}, fmt.Errorf("failed to upload document attachments: %w", err)
 	}
 
 	return Extraction{
-		PagesWithoutOcr: pagesWithoutOcr,
-		PagesWithOcr:    pagesWithOcr,
-		Images:          images,
+		Pages:    pages,
+		ImageOCR: imageOCR,
 	}, nil
 }
 
@@ -107,19 +95,17 @@ type ocrTask struct {
 	index    int
 }
 
-// parseSlideContentDual parses the XML of a slide and returns two strings:
-// 1. Text with [[Image(filename)]]
-// 2. Text with [[ImageContentViaOCR(content)]] (performs HTTP calls to Tika concurrently)
-func (p *FileExtractionProcessor) parseSlideContentDual(ctx context.Context, f *zip.File, rels map[string]string, attachmentDir string) (string, string, error) {
+// parseSlideContent parses the XML of a slide and returns the text content.
+// Images are replaced with [[Image(UUID\tOCRText)]] tags.
+func (p *FileExtractionProcessor) parseSlideContent(ctx context.Context, docID string, f *zip.File, rels map[string]string, attachmentDir string, imageOCR map[string]string) (string, error) {
 	rc, err := f.Open()
 	if err != nil {
-		return "", "", err
+		return "", err
 	}
 	defer DeferClose(rc)
 
 	decoder := xml.NewDecoder(rc)
-	var sbNoOcr strings.Builder
-	var sbOcr strings.Builder
+	var sb strings.Builder
 
 	// Track processed image IDs per slide to prevent duplicate markers if XML repeats tags
 	processedRels := make(map[string]bool)
@@ -134,16 +120,15 @@ func (p *FileExtractionProcessor) parseSlideContentDual(ctx context.Context, f *
 			break
 		}
 		if err != nil {
-			return "", "", err
+			return "", err
 		}
 
 		switch t := token.(type) {
 		case xml.StartElement:
 			// Handle Paragraphs (Newlines)
 			if t.Name.Local == "p" && strings.Contains(t.Name.Space, "drawingml") {
-				if sbNoOcr.Len() > 0 {
-					sbNoOcr.WriteString("\n")
-					sbOcr.WriteString("\n")
+				if sb.Len() > 0 {
+					sb.WriteString("\n")
 				}
 			}
 
@@ -151,8 +136,7 @@ func (p *FileExtractionProcessor) parseSlideContentDual(ctx context.Context, f *
 			if t.Name.Local == "t" {
 				var textContent string
 				if err := decoder.DecodeElement(&textContent, &t); err == nil {
-					sbNoOcr.WriteString(textContent)
-					sbOcr.WriteString(textContent)
+					sb.WriteString(textContent)
 				}
 			}
 
@@ -161,9 +145,6 @@ func (p *FileExtractionProcessor) parseSlideContentDual(ctx context.Context, f *
 				rId := attr.Value
 				if filename, exists := rels[rId]; exists {
 					if !processedRels[rId] {
-						// Append to No-OCR Builder
-						sbNoOcr.WriteString(fmt.Sprintf("\n[[Image(%s)]]\n", filename))
-
 						// Collect OCR task for parallel processing
 						ocrTasks = append(ocrTasks, ocrTask{
 							rId:      rId,
@@ -171,8 +152,8 @@ func (p *FileExtractionProcessor) parseSlideContentDual(ctx context.Context, f *
 							index:    taskIndex,
 						})
 
-						// Append placeholder in OCR builder
-						sbOcr.WriteString(fmt.Sprintf("\n[[OCR_PLACEHOLDER_%d]]\n", taskIndex))
+						// Append placeholder in builder
+						sb.WriteString(fmt.Sprintf("\n[[OCR_PLACEHOLDER_%d]]\n", taskIndex))
 						taskIndex++
 
 						processedRels[rId] = true
@@ -194,47 +175,33 @@ func (p *FileExtractionProcessor) parseSlideContentDual(ctx context.Context, f *
 				defer wg.Done()
 
 				fullPath := filepath.Join(attachmentDir, t.filename)
-				ocrReader, ocrErr := tikaGetTextPlain(ctx, p.config.TikaEndpoint, p.config.TimeoutInSeconds, fullPath)
-				var extractedText string
-
-				if ocrErr != nil {
-					log.Warnf("OCR failed for image %s: %v", t.filename, ocrErr)
+				extractedText, err := ocr(ctx, p.config.TikaEndpoint, p.config.TimeoutInSeconds, fullPath)
+				if err != nil {
+					log.Warnf("doing OCR failed for image %s: %v", t.filename, err)
 					extractedText = ""
-				} else {
-					defer DeferClose(ocrReader)
-
-					var buf strings.Builder
-					_, copyErr := io.Copy(&buf, ocrReader)
-
-					if copyErr != nil {
-						log.Warnf("Failed to read OCR response for %s: %v", t.filename, copyErr)
-						extractedText = ""
-					} else {
-						extractedText = strings.TrimSpace(buf.String())
-						log.Debugf("OCR result [%s]", extractedText)
-					}
 				}
 
 				mu.Lock()
 				results[t.index] = extractedText
+				imageOCR[t.filename] = extractedText
 				mu.Unlock()
 			}(task)
 		}
 
 		wg.Wait()
 
-		// Replace placeholders with actual OCR results
-		ocrText := sbOcr.String()
-		for i := 0; i < len(ocrTasks); i++ {
-			placeholder := fmt.Sprintf("[[OCR_PLACEHOLDER_%d]]", i)
-			replacement := fmt.Sprintf("[[ImageContentViaOCR(%s)]]", results[i])
-			ocrText = strings.Replace(ocrText, placeholder, replacement, 1)
+		// Replace placeholders with actual [[Image(UUID\tOCRText)]] tags
+		finalText := sb.String()
+		for _, task := range ocrTasks {
+			placeholder := fmt.Sprintf("[[OCR_PLACEHOLDER_%d]]", task.index)
+			uuid := docID + task.filename
+			tag := fmt.Sprintf("[[Image(%s\t%s)]]", uuid, results[task.index])
+			finalText = strings.Replace(finalText, placeholder, tag, 1)
 		}
-
-		return strings.TrimSpace(sbNoOcr.String()), strings.TrimSpace(ocrText), nil
+		return finalText, nil
 	}
 
-	return strings.TrimSpace(sbNoOcr.String()), strings.TrimSpace(sbOcr.String()), nil
+	return sb.String(), nil
 }
 
 // saveImagesToDisk iterates the zip and saves files in ppt/media/ to outputDir

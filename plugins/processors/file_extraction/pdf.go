@@ -7,7 +7,6 @@ package file_extraction
 import (
 	"context"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -46,82 +45,49 @@ func (p *FileExtractionProcessor) processPdf(ctx context.Context, doc *core.Docu
 	/*
 		Extract document content
 	*/
-	var pagesWithoutOcr []string
-	var pagesWithOcr []string
-	images := make(map[int][]string)
+	var pages []string
+	imageOCR := make(map[string]string)
 	pagesSelection := docHTML.Find("div.page")
 	// Find all div with class "page"
 	for i := 0; i < pagesSelection.Length(); i++ {
 		s := pagesSelection.Eq(i)
-		pageNum := i + 1
-		imagesOfThisPage := make([]string, 0)
-
-		p.appendPage(ctx, p.config.TimeoutInSeconds, s, attachmentDirPath, &pagesWithoutOcr, &pagesWithOcr, &imagesOfThisPage)
-		images[pageNum] = imagesOfThisPage
+		p.appendPage(ctx, p.config.TimeoutInSeconds, doc.ID, s, attachmentDirPath, &pages, imageOCR)
 	}
 
 	// If no pages found (maybe not a PDF or Tika returned plain text
 	// wrapped in body), try getting body text
-	if len(pagesWithoutOcr) == 0 {
-		imagesOfThisPage := make([]string, 0)
+	if len(pages) == 0 {
 		s := docHTML.Find("body")
-		p.appendPage(ctx, p.config.TimeoutInSeconds, s, attachmentDirPath, &pagesWithoutOcr, &pagesWithOcr, &imagesOfThisPage)
-		images[1] = imagesOfThisPage
+		p.appendPage(ctx, p.config.TimeoutInSeconds, doc.ID, s, attachmentDirPath, &pages, imageOCR)
 	}
 
 	/*
 		Upload attachments
 	*/
-	err = uploadAttachmentsToBlobStore(ctx, attachmentDirPath, doc)
+	err = uploadAttachmentsToBlobStore(ctx, attachmentDirPath, doc, imageOCR)
 	if err != nil {
 		return Extraction{}, fmt.Errorf("failed to upload document attachments: %w", err)
 	}
 
 	return Extraction{
-		PagesWithoutOcr: pagesWithoutOcr,
-		PagesWithOcr:    pagesWithOcr,
-		Images:          images,
+		Pages:    pages,
+		ImageOCR: imageOCR,
 	}, nil
 }
 
-// appendPage processes a page selection, generating two versions of the text:
-// 1. pagesWithoutOcr: Images are replaced with filenames [[Image(name)]]
-// 2. pagesWithOcr: Images are replaced with their OCR text content [[ImageContentViaOCR(text)]]
-func (p *FileExtractionProcessor) appendPage(ctx context.Context, timeout int, s *goquery.Selection, attachmentDir string, pagesWithoutOcr, pagesWithOcr *[]string, imagesOfThisPage *[]string) {
-	// Clone s because goquery modifies nodes in-place.
-	sClone := s.Clone()
-
-	/*
-	 * append to [pagesWithoutOcr] and collect the images that appear in this page
-	 */
-	s.Find("img").Each(func(i int, img *goquery.Selection) {
-		imageName, exists := img.Attr("src")
-		if exists {
-			// For the images embedded within the document, Tika typically generates
-			// tags like "<img src="embedded:image3.png" alt="image3.png"/>". We need
-			// to remove the "embedded:" prefix as it is useless.
-			imageName = strings.TrimPrefix(imageName, "embedded:")
-			*imagesOfThisPage = append(*imagesOfThisPage, imageName)
-			img.ReplaceWithHtml(fmt.Sprintf("[[Image(%s)]]", imageName))
-		}
-	})
-
-	pageContent := strings.TrimSpace(s.Text())
-	// Still need to append this page even though its content empty, or the
-	// pages will be out-of-order.
-	*pagesWithoutOcr = append(*pagesWithoutOcr, pageContent)
-
-	/*
-	 * append to [pagesWithOcr]
-	 */
+// appendPage processes a page selection, generating the text content.
+// Images are replaced with [[Image(UUID\tOCRText)]] tags.
+func (p *FileExtractionProcessor) appendPage(ctx context.Context, timeout int, docID string, s *goquery.Selection, attachmentDir string, pages *[]string, imageOCR map[string]string) {
 	// First pass: collect image paths in order
 	imagePaths := make(map[int]string)
-	sClone.Find("img").Each(func(i int, img *goquery.Selection) {
+	imageNames := make(map[int]string)
+	s.Find("img").Each(func(i int, img *goquery.Selection) {
 		imageName, exists := img.Attr("src")
 		if exists {
 			imageName = strings.TrimPrefix(imageName, "embedded:")
 			fullImagePath := filepath.Join(attachmentDir, imageName)
 			imagePaths[i] = fullImagePath
+			imageNames[i] = imageName
 		}
 	})
 
@@ -132,48 +98,39 @@ func (p *FileExtractionProcessor) appendPage(ctx context.Context, timeout int, s
 
 	for idx, imagePath := range imagePaths {
 		wg.Add(1)
-		go func(index int, path string) {
+		go func(index int, path string, name string) {
 			defer wg.Done()
 
-			// Each OCR call gets its own fresh timeout via tikaGetTextPlain
-			rc, err := tikaGetTextPlain(ctx, p.config.TikaEndpoint, timeout, path)
-			var extractedText string
-
+			extractedText, err := ocr(ctx, p.config.TikaEndpoint, timeout, path)
 			if err != nil {
 				log.Warnf("doing OCR failed for image %s (index %d): %v", path, index, err)
 				extractedText = ""
 			} else {
-				defer DeferClose(rc)
-				var buf strings.Builder
-				_, err := io.Copy(&buf, rc)
-				if err != nil {
-					log.Warnf("reading OCR result failed for image %s (index %d): %v", path, index, err)
-					extractedText = ""
-				} else {
-					extractedText = strings.TrimSpace(buf.String())
-					log.Debugf("OCR result for image %s (index %d): [%s]", path, index, extractedText)
-				}
+				log.Debugf("OCR result for image %s (index %d): [%s]", path, index, extractedText)
 			}
 
 			mu.Lock()
 			ocrResults[index] = extractedText
+			imageOCR[name] = extractedText
 			mu.Unlock()
-		}(idx, imagePath)
+		}(idx, imagePath, imageNames[idx])
 	}
 
 	wg.Wait()
 
-	// Second pass: replace images with OCR results in order
-	sClone.Find("img").Each(func(i int, img *goquery.Selection) {
-		_, exists := img.Attr("src")
+	// Second pass: replace images with [[Image(UUID\tOCRText)]] results in order
+	s.Find("img").Each(func(i int, img *goquery.Selection) {
+		imageName, exists := img.Attr("src")
 		if exists {
+			imageName = strings.TrimPrefix(imageName, "embedded:")
 			extractedText := ocrResults[i]
-			img.ReplaceWithHtml(fmt.Sprintf("[[ImageContentViaOCR(%s)]]", extractedText))
+			uuid := docID + imageName
+			img.ReplaceWithHtml(fmt.Sprintf("[[Image(%s\t%s)]]", uuid, extractedText))
 		}
 	})
 
-	pageContentOcr := strings.TrimSpace(sClone.Text())
+	pageContent := strings.TrimSpace(s.Text())
 	// Still need to append this page even though its content empty, or the
 	// pages will be out-of-order.
-	*pagesWithOcr = append(*pagesWithOcr, pageContentOcr)
+	*pages = append(*pages, pageContent)
 }
