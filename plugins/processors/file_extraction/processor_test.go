@@ -73,3 +73,30 @@ func TestSplitPagesToChunks_SinglePageMultipleChunks(t *testing.T) {
 		}
 	}
 }
+
+func TestIsImage(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected bool
+	}{
+		{"image.jpg", true},
+		{"image.JPEG", true},
+		{"image.png", true},
+		{"image.gif", true},
+		{"image.bmp", true},
+		{"image.tiff", true},
+		{"image.webp", true},
+		{"document.pdf", false},
+		{"archive.zip", false},
+		{"no_extension", false},
+		{"path/to/image.png", true},
+		{"path/to/document.docx", false},
+	}
+
+	for _, test := range tests {
+		result := isImage(test.input)
+		if result != test.expected {
+			t.Errorf("isImage(%q) = %v; expected %v", test.input, result, test.expected)
+		}
+	}
+}

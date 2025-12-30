@@ -12,10 +12,10 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
 
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
+	"infini.sh/framework/core/util"
 )
 
 func (p *FileExtractionProcessor) processPptx(ctx context.Context, doc *core.Document) (Extraction, error) {
@@ -39,6 +39,41 @@ func (p *FileExtractionProcessor) processPptx(ctx context.Context, doc *core.Doc
 		return Extraction{}, fmt.Errorf("failed to extract images from pptx: %w", err)
 	}
 
+	/*
+		Pre-process attachments: assign UUIDs and perform OCR for images
+	*/
+	// nameToId maps the original attachment filename (e.g., "image1.png") to
+	// a unique UUID.
+	nameToId := make(map[string]string)
+	// nameToText maps the original attachment filename to its OCR-extracted
+	// text content, if it is an image
+	nameToText := make(map[string]string)
+	entries, err := os.ReadDir(attachmentDirPath)
+	if err != nil {
+		return Extraction{}, fmt.Errorf("failed to read attachment directory: %w", err)
+	}
+
+	for _, entry := range entries {
+		if !entry.Type().IsRegular() {
+			continue
+		}
+		name := entry.Name()
+		// Assign a unique ID for each attachment
+		id := util.GetUUID()
+		nameToId[name] = id
+
+		// If it's an image, perform OCR synchronously
+		if isImage(name) {
+			fullPath := filepath.Join(attachmentDirPath, name)
+			text, err := ocr(ctx, p.config.TikaEndpoint, p.config.TimeoutInSeconds, fullPath)
+			if err != nil {
+				log.Warnf("failed to perform OCR for image [%s]: %v", name, err)
+			} else {
+				nameToText[name] = text
+			}
+		}
+	}
+
 	// 5. Identify and Sort Slides
 	slideFiles, err := getSortedSlideFiles(r)
 	if err != nil {
@@ -52,8 +87,6 @@ func (p *FileExtractionProcessor) processPptx(ctx context.Context, doc *core.Doc
 	}
 
 	var pages []string
-	// filename -> text extracted via OCR
-	imageOCR := make(map[string]string)
 
 	// 6. Process Slides
 	for _, slideFile := range slideFiles {
@@ -65,7 +98,7 @@ func (p *FileExtractionProcessor) processPptx(ctx context.Context, doc *core.Doc
 		}
 
 		// B. Parse Content & Perform OCR
-		text, err := p.parseSlideContent(ctx, doc.ID, slideFile, relsMap, attachmentDirPath, imageOCR)
+		text, err := p.parseSlideContent(slideFile, relsMap, nameToId, nameToText)
 		if err != nil {
 			log.Warnf("Failed to parse content for slide %s: %v", slideFile.Name, err)
 			// Append empty strings to keep page count consistent
@@ -76,9 +109,15 @@ func (p *FileExtractionProcessor) processPptx(ctx context.Context, doc *core.Doc
 	}
 
 	// 7. Upload Attachments
-	attachmentIds, err := uploadAttachmentsToBlobStore(ctx, attachmentDirPath, doc, imageOCR)
+	err = uploadAttachmentsToBlobStore(ctx, attachmentDirPath, doc, nameToId, nameToText)
 	if err != nil {
 		return Extraction{}, fmt.Errorf("failed to upload document attachments: %w", err)
+	}
+
+	// Collect all assigned attachment IDs
+	var attachmentIds []string
+	for _, id := range nameToId {
+		attachmentIds = append(attachmentIds, id)
 	}
 
 	return Extraction{
@@ -89,16 +128,9 @@ func (p *FileExtractionProcessor) processPptx(ctx context.Context, doc *core.Doc
 
 // --- XML Parsing & OCR Logic ---
 
-// ocrTask holds information for parallel OCR processing
-type ocrTask struct {
-	rId      string
-	filename string
-	index    int
-}
-
 // parseSlideContent parses the XML of a slide and returns the text content.
 // Images are replaced with [[Image(UUID\tOCRText)]] tags.
-func (p *FileExtractionProcessor) parseSlideContent(ctx context.Context, docID string, f *zip.File, rels map[string]string, attachmentDir string, imageOCR map[string]string) (string, error) {
+func (p *FileExtractionProcessor) parseSlideContent(f *zip.File, rels map[string]string, nameToId map[string]string, nameToText map[string]string) (string, error) {
 	rc, err := f.Open()
 	if err != nil {
 		return "", err
@@ -110,10 +142,6 @@ func (p *FileExtractionProcessor) parseSlideContent(ctx context.Context, docID s
 
 	// Track processed image IDs per slide to prevent duplicate markers if XML repeats tags
 	processedRels := make(map[string]bool)
-
-	// Collect OCR tasks for concurrent processing
-	var ocrTasks []ocrTask
-	taskIndex := 0
 
 	for {
 		token, err := decoder.Token()
@@ -146,60 +174,19 @@ func (p *FileExtractionProcessor) parseSlideContent(ctx context.Context, docID s
 				rId := attr.Value
 				if filename, exists := rels[rId]; exists {
 					if !processedRels[rId] {
-						// Collect OCR task for parallel processing
-						ocrTasks = append(ocrTasks, ocrTask{
-							rId:      rId,
-							filename: filename,
-							index:    taskIndex,
-						})
-
-						// Append placeholder in builder
-						sb.WriteString(fmt.Sprintf("\n[[OCR_PLACEHOLDER_%d]]\n", taskIndex))
-						taskIndex++
+						uuid, ok := nameToId[filename]
+						if !ok {
+							log.Errorf("attachment ID not found for image: %s", filename)
+							continue
+						}
+						text := nameToText[filename]
+						sb.WriteString(fmt.Sprintf("\n[[Image(%s\t%s)]]\n", uuid, text))
 
 						processedRels[rId] = true
 					}
 				}
 			}
 		}
-	}
-
-	// Process all OCR tasks concurrently
-	if len(ocrTasks) > 0 {
-		results := make(map[int]string)
-		var mu sync.Mutex
-		var wg sync.WaitGroup
-
-		for _, task := range ocrTasks {
-			wg.Add(1)
-			go func(t ocrTask) {
-				defer wg.Done()
-
-				fullPath := filepath.Join(attachmentDir, t.filename)
-				extractedText, err := ocr(ctx, p.config.TikaEndpoint, p.config.TimeoutInSeconds, fullPath)
-				if err != nil {
-					log.Warnf("doing OCR failed for image %s: %v", t.filename, err)
-					extractedText = ""
-				}
-
-				mu.Lock()
-				results[t.index] = extractedText
-				imageOCR[t.filename] = extractedText
-				mu.Unlock()
-			}(task)
-		}
-
-		wg.Wait()
-
-		// Replace placeholders with actual [[Image(UUID\tOCRText)]] tags
-		finalText := sb.String()
-		for _, task := range ocrTasks {
-			placeholder := fmt.Sprintf("[[OCR_PLACEHOLDER_%d]]", task.index)
-			uuid := docID + task.filename
-			tag := fmt.Sprintf("[[Image(%s\t%s)]]", uuid, results[task.index])
-			finalText = strings.Replace(finalText, placeholder, tag, 1)
-		}
-		return finalText, nil
 	}
 
 	return sb.String(), nil

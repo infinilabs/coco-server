@@ -20,7 +20,6 @@ import (
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/attachment"
 	"infini.sh/framework/core/orm"
-	"infini.sh/framework/core/util"
 )
 
 func tikaGetTextPlain(ctx context.Context, tikaEndpoint string, timeout int, path string) (io.ReadCloser, error) {
@@ -102,6 +101,17 @@ func ocr(ctx context.Context, tikaEndpoint string, timeout int, path string) (st
 	text = re.ReplaceAllString(text, " ")
 
 	return strings.TrimSpace(text), nil
+}
+
+// isImage returns true if the file specified by [pathOrName] is an image
+// based on its extension.
+func isImage(pathOrName string) bool {
+	ext := strings.ToLower(filepath.Ext(pathOrName))
+	switch ext {
+	case ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".webp":
+		return true
+	}
+	return false
 }
 
 func tikaGetTextHtml(ctx context.Context, tikaEndpoint string, timeout int, path string) (io.ReadCloser, error) {
@@ -238,15 +248,10 @@ func tikaUnpackAllTo(ctx context.Context, tikaEndpoint, filePath, to string, tim
 
 // Directory [dir] contains document [doc]'s attachments, upload them to
 // the blob store.
-//
-// Return Value
-//   - IDs assigned to the attachments
-func uploadAttachmentsToBlobStore(ctx context.Context, dir string, doc *core.Document, imageOCR map[string]string) ([]string, error) {
-	var attachmentIds []string
-
+func uploadAttachmentsToBlobStore(ctx context.Context, dir string, doc *core.Document, nameToId map[string]string, nameToText map[string]string) error {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read directory: %v", err)
+		return fmt.Errorf("failed to read directory: %v", err)
 	}
 
 	for _, entry := range entries {
@@ -265,12 +270,14 @@ func uploadAttachmentsToBlobStore(ctx context.Context, dir string, doc *core.Doc
 
 		uploadFile, err := os.Open(fullPath)
 		if err != nil {
-			return nil, fmt.Errorf("failed to open extracted file for upload %s: %w", fullPath, err)
+			return fmt.Errorf("failed to open extracted file for upload %s: %w", fullPath, err)
 		}
 		// uploadFile will be closed in `attachment.UploadToBlobStore`
 
-		fileID := util.GetUUID()
-		attachmentIds = append(attachmentIds, fileID)
+		fileID, ok := nameToId[entry.Name()]
+		if !ok {
+			panic(fmt.Sprintf("unreachable: attachment ID not found for file %s; all files in the directory should have been pre-processed and assigned a UUID", entry.Name()))
+		}
 
 		ormCtx := orm.NewContextWithParent(ctx)
 		// Grant read/write access to the database, which is needed because this
@@ -278,14 +285,14 @@ func uploadAttachmentsToBlobStore(ctx context.Context, dir string, doc *core.Doc
 		ormCtx.DirectAccess()
 		ownerID := doc.GetOwnerID()
 
-		fileContent := imageOCR[entry.Name()]
+		fileContent := nameToText[entry.Name()]
 		_, err = attachment.UploadToBlobStore(ormCtx, fileID, uploadFile, entry.Name(), ownerID, doc.ID, fileContent, true)
 		if err != nil {
-			return nil, fmt.Errorf("failed to upload attachment %s: %w", entry.Name(), err)
+			return fmt.Errorf("failed to upload attachment %s: %w", entry.Name(), err)
 		}
 	}
 
-	return attachmentIds, nil
+	return nil
 }
 
 // Splits page texts into chunks using character count as a token proxy
