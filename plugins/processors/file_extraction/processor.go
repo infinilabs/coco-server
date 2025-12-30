@@ -105,9 +105,12 @@ func (p *FileExtractionProcessor) Process(ctx *pipeline.Context) error {
 	return nil
 }
 
+// Extraction represents the result of extracting content from a document.
 type Extraction struct {
-	// An array that contains the conent of all
-	Pages       []string
+	// Pages contains the text content of each page in the document.
+	Pages []string
+	// For every attachment contained in the document, we create one [core.Attachment]
+	// for it. This field contains the their IDs.
 	Attachments []string
 }
 
