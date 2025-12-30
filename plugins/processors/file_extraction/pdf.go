@@ -46,47 +46,45 @@ func (p *FileExtractionProcessor) processPdf(ctx context.Context, doc *core.Docu
 		Extract document content
 	*/
 	var pages []string
+	// filename -> text extracted via OCR
 	imageOCR := make(map[string]string)
 	pagesSelection := docHTML.Find("div.page")
 	// Find all div with class "page"
 	for i := 0; i < pagesSelection.Length(); i++ {
 		s := pagesSelection.Eq(i)
-		p.appendPage(ctx, p.config.TimeoutInSeconds, doc.ID, s, attachmentDirPath, &pages, imageOCR)
+		p.appendPage(ctx, p.config.TimeoutInSeconds, doc.ID, s, attachmentDirPath, &pages, &imageOCR)
 	}
 
 	// If no pages found (maybe not a PDF or Tika returned plain text
 	// wrapped in body), try getting body text
 	if len(pages) == 0 {
 		s := docHTML.Find("body")
-		p.appendPage(ctx, p.config.TimeoutInSeconds, doc.ID, s, attachmentDirPath, &pages, imageOCR)
+		p.appendPage(ctx, p.config.TimeoutInSeconds, doc.ID, s, attachmentDirPath, &pages, &imageOCR)
 	}
 
 	/*
 		Upload attachments
 	*/
-	err = uploadAttachmentsToBlobStore(ctx, attachmentDirPath, doc, imageOCR)
+	attachmentIds, err := uploadAttachmentsToBlobStore(ctx, attachmentDirPath, doc, imageOCR)
 	if err != nil {
 		return Extraction{}, fmt.Errorf("failed to upload document attachments: %w", err)
 	}
 
 	return Extraction{
-		Pages:    pages,
-		ImageOCR: imageOCR,
+		Pages:       pages,
+		Attachments: attachmentIds,
 	}, nil
 }
 
 // appendPage processes a page selection, generating the text content.
 // Images are replaced with [[Image(UUID\tOCRText)]] tags.
-func (p *FileExtractionProcessor) appendPage(ctx context.Context, timeout int, docID string, s *goquery.Selection, attachmentDir string, pages *[]string, imageOCR map[string]string) {
-	// First pass: collect image paths in order
-	imagePaths := make(map[int]string)
+func (p *FileExtractionProcessor) appendPage(ctx context.Context, timeout int, docID string, s *goquery.Selection, attachmentDir string, pages *[]string, imageOCR *map[string]string) {
+	// First pass: collect image names in order
 	imageNames := make(map[int]string)
 	s.Find("img").Each(func(i int, img *goquery.Selection) {
 		imageName, exists := img.Attr("src")
 		if exists {
 			imageName = strings.TrimPrefix(imageName, "embedded:")
-			fullImagePath := filepath.Join(attachmentDir, imageName)
-			imagePaths[i] = fullImagePath
 			imageNames[i] = imageName
 		}
 	})
@@ -96,11 +94,12 @@ func (p *FileExtractionProcessor) appendPage(ctx context.Context, timeout int, d
 	var mu sync.Mutex
 	var wg sync.WaitGroup
 
-	for idx, imagePath := range imagePaths {
+	for idx, imageName := range imageNames {
 		wg.Add(1)
-		go func(index int, path string, name string) {
+		go func(index int, name string) {
 			defer wg.Done()
 
+			path := filepath.Join(attachmentDir, name)
 			extractedText, err := ocr(ctx, p.config.TikaEndpoint, timeout, path)
 			if err != nil {
 				log.Warnf("doing OCR failed for image %s (index %d): %v", path, index, err)
@@ -111,9 +110,9 @@ func (p *FileExtractionProcessor) appendPage(ctx context.Context, timeout int, d
 
 			mu.Lock()
 			ocrResults[index] = extractedText
-			imageOCR[name] = extractedText
+			(*imageOCR)[name] = extractedText
 			mu.Unlock()
-		}(idx, imagePath, imageNames[idx])
+		}(idx, imageName)
 	}
 
 	wg.Wait()

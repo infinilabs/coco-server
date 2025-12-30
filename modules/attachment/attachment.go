@@ -257,6 +257,9 @@ func getMimeType(file multipart.File) (string, error) {
 //     field (e.g., extracted text from an image).
 //   - [replaceIfExists]: If this is true and there is already an attachment with
 //     the same file ID eixsts, replace it.
+//
+// Return value:
+//   - attachment ID: it will be [fileID] if it is not empty
 func UploadToBlobStore(ctx *orm.Context, fileID string, file multipart.File, fileName string, ownerID string, documentID string, fileContent string, replaceIfExists bool) (string, error) {
 	defer func() {
 		_ = file.Close()

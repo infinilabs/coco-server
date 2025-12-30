@@ -46,12 +46,13 @@ func (p *FileExtractionProcessor) processPptx(ctx context.Context, doc *core.Doc
 		// Return empty arrays instead of error to allow flow to continue.
 		log.Warnf("No slides found in PPTX %s: %v", doc.URL, err)
 		return Extraction{
-			Pages:    make([]string, 0),
-			ImageOCR: make(map[string]string),
+			Pages:       nil,
+			Attachments: nil,
 		}, nil
 	}
 
 	var pages []string
+	// filename -> text extracted via OCR
 	imageOCR := make(map[string]string)
 
 	// 6. Process Slides
@@ -75,14 +76,14 @@ func (p *FileExtractionProcessor) processPptx(ctx context.Context, doc *core.Doc
 	}
 
 	// 7. Upload Attachments
-	err = uploadAttachmentsToBlobStore(ctx, attachmentDirPath, doc, imageOCR)
+	attachmentIds, err := uploadAttachmentsToBlobStore(ctx, attachmentDirPath, doc, imageOCR)
 	if err != nil {
 		return Extraction{}, fmt.Errorf("failed to upload document attachments: %w", err)
 	}
 
 	return Extraction{
-		Pages:    pages,
-		ImageOCR: imageOCR,
+		Pages:       pages,
+		Attachments: attachmentIds,
 	}, nil
 }
 

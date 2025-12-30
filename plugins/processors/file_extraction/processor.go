@@ -106,8 +106,9 @@ func (p *FileExtractionProcessor) Process(ctx *pipeline.Context) error {
 }
 
 type Extraction struct {
-	Pages    []string
-	ImageOCR map[string]string
+	// An array that contains the conent of all
+	Pages       []string
+	Attachments []string
 }
 
 func (p *FileExtractionProcessor) processLocalFile(ctx context.Context, doc *core.Document) error {
@@ -134,10 +135,7 @@ func (p *FileExtractionProcessor) processLocalFile(ctx context.Context, doc *cor
 	}
 
 	doc.Chunks = SplitPagesToChunks(extraction.Pages, p.config.ChunkSize)
-	doc.Attachments = make([]string, 0)
-	for imageName := range extraction.ImageOCR {
-		doc.Attachments = append(doc.Attachments, doc.ID+imageName)
-	}
+	doc.Attachments = extraction.Attachments
 
 	return nil
 }
