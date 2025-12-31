@@ -100,3 +100,64 @@ func TestIsImage(t *testing.T) {
 		}
 	}
 }
+
+func TestEscape(t *testing.T) {
+	tests := []struct {
+		name          string
+		input         string
+		charsToEscape []rune
+		expected      string
+	}{
+		{
+			name:          "no escaping needed",
+			input:         "hello world",
+			charsToEscape: []rune{']', '\t'},
+			expected:      "hello world",
+		},
+		{
+			name:          "escape single character",
+			input:         "hello]world",
+			charsToEscape: []rune{']'},
+			expected:      "hello\\]world",
+		},
+		{
+			name:          "escape multiple characters",
+			input:         "hello]world\tagain",
+			charsToEscape: []rune{']', '\t'},
+			expected:      "hello\\]world\\\tagain",
+		},
+		{
+			name:          "escape backslash itself",
+			input:         "hello\\world",
+			charsToEscape: []rune{']'},
+			expected:      "hello\\\\world",
+		},
+		{
+			name:          "mixed escaping",
+			input:         "a\\b]c\td",
+			charsToEscape: []rune{']', '\t'},
+			expected:      "a\\\\b\\]c\\\td",
+		},
+		{
+			name:          "empty input",
+			input:         "",
+			charsToEscape: []rune{']'},
+			expected:      "",
+		},
+		{
+			name:          "only special characters",
+			input:         "\t\t]]\\\\",
+			charsToEscape: []rune{']', '\t'},
+			expected:      "\\\t\\\t\\]\\]\\\\\\\\",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := escape(tt.input, tt.charsToEscape)
+			if result != tt.expected {
+				t.Errorf("escape(%q) = %q; expected %q", tt.input, result, tt.expected)
+			}
+		})
+	}
+}
