@@ -42,9 +42,10 @@ type Document struct {
 	Title   string `json:"title,omitempty" elastic_mapping:"title:{type:text,copy_to:combined_fulltext,fields:{keyword: {type: keyword}, pinyin: {type: text, analyzer: pinyin_analyzer}}}"` // Document title
 	Summary string `json:"summary,omitempty" elastic_mapping:"summary:{type:text,copy_to:combined_fulltext}"`                                                                                // Brief summary or description of the document
 
-	Lang    string          `json:"lang,omitempty" elastic_mapping:"lang:{type:keyword,copy_to:combined_fulltext}"`    // Language code (e.g., "en", "fr")
-	Content string          `json:"content,omitempty" elastic_mapping:"content:{type:text,copy_to:combined_fulltext}"` // Document content for full-text indexing
-	Chunks  []DocumentChunk `json:"document_chunk,omitempty" elastic_mapping:"document_chunk:{type:nested}"`
+	Lang        string          `json:"lang,omitempty" elastic_mapping:"lang:{type:keyword,copy_to:combined_fulltext}"`    // Language code (e.g., "en", "fr")
+	Content     string          `json:"content,omitempty" elastic_mapping:"content:{type:text,copy_to:combined_fulltext}"` // Document content for full-text indexing
+	Chunks      []DocumentChunk `json:"document_chunk,omitempty" elastic_mapping:"document_chunk:{type:nested}"`
+	Attachments []string        `json:"attachments,omitempty" elastic_mapping:"attachments:{type:keyword}"` // IDs of core.Attachment objects associated with this document
 
 	Icon      string `json:"icon,omitempty" elastic_mapping:"icon:{enabled:false}"`           // Icon Key, need work with datasource's assets to get the icon url, if it is a full url, then use it directly
 	Thumbnail string `json:"thumbnail,omitempty" elastic_mapping:"thumbnail:{enabled:false}"` // Thumbnail image URL, for preview purposes
@@ -187,6 +188,6 @@ var SupportedEmbeddingDimensions = []int32{128, 256, 384, 512, 768, 1024, 1536, 
 type ChunkRange struct {
 	// Start page of this chunk.
 	Start int `json:"start" elastic_mapping:"start:{type:integer}"`
-	// End page of this chuhk. This is **inclusive**.
+	// End page of this chunk. This is **inclusive**.
 	End int `json:"end" elastic_mapping:"end:{type:integer}"`
 }

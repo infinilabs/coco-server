@@ -54,7 +54,7 @@ func (h APIHandler) uploadAttachment(w http.ResponseWriter, r *http.Request, ps 
 			return
 		}
 		// Upload to S3
-		if fileID, err := UploadToBlobStore(ctx, "", file, fileHeader.Filename, "", false); err != nil {
+		if fileID, err := UploadToBlobStore(ctx, "", file, fileHeader.Filename, "", "", nil, "", false); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		} else {
@@ -251,9 +251,18 @@ func getMimeType(file multipart.File) (string, error) {
 //     Otherwise, a random ID will be created and used.
 //   - If [ownerID] is not empty, the created attached will set the owner to it.
 //     Otherwise, owner information will be extracted from cotnext [ctx].
+//   - If [documentID] is not empty, it indicates this attachment belongs to a
+//     document, and the ID will be stored in the attachment's metadata.
+//   - If [documentPageNums] is not empty, it indicates the page numbers where
+//     this attachment appears in the document.
+//   - If [fileContent] is not empty, it will be stored in the attachment's text
+//     field (e.g., extracted text from an image).
 //   - [replaceIfExists]: If this is true and there is already an attachment with
 //     the same file ID eixsts, replace it.
-func UploadToBlobStore(ctx *orm.Context, fileID string, file multipart.File, fileName string, ownerID string, replaceIfExists bool) (string, error) {
+//
+// Return value:
+//   - attachment ID: it will be [fileID] if it is not empty
+func UploadToBlobStore(ctx *orm.Context, fileID string, file multipart.File, fileName string, ownerID string, documentID string, documentPageNums []int, fileContent string, replaceIfExists bool) (string, error) {
 	defer func() {
 		_ = file.Close()
 	}()
@@ -277,9 +286,24 @@ func UploadToBlobStore(ctx *orm.Context, fileID string, file multipart.File, fil
 	attachment.MimeType = mimeType
 	attachment.Icon = getFileExtension(fileName)
 	attachment.URL = fmt.Sprintf("/attachment/%v", fileID)
+	attachment.Text = fileContent
 	//attachment.Owner //TODO
 	if ownerID != "" {
 		attachment.SetOwnerID(ownerID)
+	}
+
+	if documentID != "" {
+		if attachment.Metadata == nil {
+			attachment.Metadata = make(map[string]interface{})
+		}
+		attachment.Metadata["document_id"] = documentID
+	}
+
+	if len(documentPageNums) > 0 {
+		if attachment.Metadata == nil {
+			attachment.Metadata = make(map[string]interface{})
+		}
+		attachment.Metadata["document_page_num"] = documentPageNums
 	}
 
 	//save attachment metadata

@@ -137,31 +137,37 @@ func (processor *DocumentEmbeddingProcessor) Process(ctx *pipeline.Context) erro
 	return nil
 }
 
-// Generate embeddings for "pages".
+// Generate embeddings for [document.Chunks].
 func generateEmbedding(ctx context.Context, document *core.Document, processorConfig *Config) error {
 	embedder, err := getEmbedderClient(processorConfig)
 	if err != nil {
 		return err
 	}
 
-	/*
-		Generate embeddings for text chunks, in batch
-	*/
-	nChunks := len(document.Chunks)
+	if err := generateChunkEmbeddings(ctx, embedder, document.Chunks); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func generateChunkEmbeddings(ctx context.Context, embedder embeddings.EmbedderClient, chunks []core.DocumentChunk) error {
+	nChunks := len(chunks)
+	if nChunks == 0 {
+		return nil
+	}
+
 	batchSize := 10
 	batch := make([]string, 0, batchSize)
 	for batchStart := 0; batchStart < nChunks; batchStart += batchSize {
-		// clear batch
 		batch = batch[:0]
 
-		// batchEnd is exclusive
 		batchEnd := batchStart + batchSize
 		if batchEnd > nChunks {
 			batchEnd = nChunks
 		}
 
-		// Populate batch
-		for _, chunk := range document.Chunks[batchStart:batchEnd] {
+		for _, chunk := range chunks[batchStart:batchEnd] {
 			batch = append(batch, chunk.Text)
 		}
 
@@ -170,11 +176,11 @@ func generateEmbedding(ctx context.Context, document *core.Document, processorCo
 			return errors.New(fmt.Sprintf("failed to generated embeddings due to error: %s", err))
 		}
 
-		for relative_idx, embedding := range embeddings {
-			idx := batchStart + relative_idx
+		for relativeIdx, embedding := range embeddings {
+			idx := batchStart + relativeIdx
 			embeddingWrapper := core.Embedding{}
 			embeddingWrapper.SetValue(embedding)
-			document.Chunks[idx].Embedding = embeddingWrapper
+			chunks[idx].Embedding = embeddingWrapper
 		}
 	}
 
