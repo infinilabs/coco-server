@@ -48,6 +48,9 @@ func (p *FileExtractionProcessor) processPptx(ctx context.Context, doc *core.Doc
 	// nameToText maps the original attachment filename to its OCR-extracted
 	// text content, if it is an image
 	nameToText := make(map[string]string)
+	// nameToPageNums maps the original attachment filename to the page numbers
+	// where it appears.
+	nameToPageNums := make(map[string][]int)
 	entries, err := os.ReadDir(attachmentDirPath)
 	if err != nil {
 		return Extraction{}, fmt.Errorf("failed to read attachment directory: %w", err)
@@ -89,7 +92,7 @@ func (p *FileExtractionProcessor) processPptx(ctx context.Context, doc *core.Doc
 	var pages []string
 
 	// 6. Process Slides
-	for _, slideFile := range slideFiles {
+	for i, slideFile := range slideFiles {
 		// A. Build Relationship Map for this slide (rId -> imageFilename)
 		relsMap, err := getSlideRelationships(r, slideFile.Name)
 		if err != nil {
@@ -98,7 +101,7 @@ func (p *FileExtractionProcessor) processPptx(ctx context.Context, doc *core.Doc
 		}
 
 		// B. Parse Content & Perform OCR
-		text, err := p.parseSlideContent(slideFile, relsMap, nameToId, nameToText)
+		text, err := p.parseSlideContent(slideFile, i+1, relsMap, nameToId, nameToText, nameToPageNums)
 		if err != nil {
 			log.Warnf("Failed to parse content for slide %s: %v", slideFile.Name, err)
 			// Append empty strings to keep page count consistent
@@ -109,7 +112,7 @@ func (p *FileExtractionProcessor) processPptx(ctx context.Context, doc *core.Doc
 	}
 
 	// 7. Upload Attachments
-	err = uploadAttachmentsToBlobStore(ctx, attachmentDirPath, doc, nameToId, nameToText)
+	err = uploadAttachmentsToBlobStore(ctx, attachmentDirPath, doc, nameToId, nameToText, nameToPageNums)
 	if err != nil {
 		return Extraction{}, fmt.Errorf("failed to upload document attachments: %w", err)
 	}
@@ -130,7 +133,7 @@ func (p *FileExtractionProcessor) processPptx(ctx context.Context, doc *core.Doc
 
 // parseSlideContent parses the XML of a slide and returns the text content.
 // Images are replaced with [[Image(UUID\tOCRText)]] tags.
-func (p *FileExtractionProcessor) parseSlideContent(f *zip.File, rels map[string]string, nameToId map[string]string, nameToText map[string]string) (string, error) {
+func (p *FileExtractionProcessor) parseSlideContent(f *zip.File, pageNum int, rels map[string]string, nameToId map[string]string, nameToText map[string]string, nameToPageNums map[string][]int) (string, error) {
 	rc, err := f.Open()
 	if err != nil {
 		return "", err
@@ -178,6 +181,10 @@ func (p *FileExtractionProcessor) parseSlideContent(f *zip.File, rels map[string
 						if !ok {
 							panic(fmt.Sprintf("unreachable: attachment ID not found for file %s; all files in the directory should have been pre-processed and assigned a UUID", filename))
 						}
+
+						// Record the page number where this image appears
+						nameToPageNums[filename] = append(nameToPageNums[filename], pageNum)
+
 						// Escape these chars because:
 						// `]`: It is used as the pattern terminator
 						// `\t`: It is used as the separator between UUID and TEXT

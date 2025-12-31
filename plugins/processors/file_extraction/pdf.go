@@ -51,6 +51,9 @@ func (p *FileExtractionProcessor) processPdf(ctx context.Context, doc *core.Docu
 	// nameToText maps the original attachment filename to its OCR-extracted text
 	// content, if it is an image
 	nameToText := make(map[string]string)
+	// nameToPageNums maps the original attachment filename to the page numbers
+	// where it appears.
+	nameToPageNums := make(map[string][]int)
 	entries, err := os.ReadDir(attachmentDirPath)
 	if err != nil {
 		return Extraction{}, fmt.Errorf("failed to read attachment directory: %w", err)
@@ -89,20 +92,20 @@ func (p *FileExtractionProcessor) processPdf(ctx context.Context, doc *core.Docu
 	// Find all div with class "page"
 	for i := 0; i < pagesSelection.Length(); i++ {
 		s := pagesSelection.Eq(i)
-		p.appendPage(s, nameToId, nameToText, &pages)
+		p.appendPage(s, i+1, nameToId, nameToText, nameToPageNums, &pages)
 	}
 
 	// If no pages found (maybe not a PDF or Tika returned plain text
 	// wrapped in body), try getting body text
 	if len(pages) == 0 {
 		s := docHTML.Find("body")
-		p.appendPage(s, nameToId, nameToText, &pages)
+		p.appendPage(s, 1, nameToId, nameToText, nameToPageNums, &pages)
 	}
 
 	/*
 		Upload attachments
 	*/
-	err = uploadAttachmentsToBlobStore(ctx, attachmentDirPath, doc, nameToId, nameToText)
+	err = uploadAttachmentsToBlobStore(ctx, attachmentDirPath, doc, nameToId, nameToText, nameToPageNums)
 	if err != nil {
 		return Extraction{}, fmt.Errorf("failed to upload document attachments: %w", err)
 	}
@@ -121,7 +124,7 @@ func (p *FileExtractionProcessor) processPdf(ctx context.Context, doc *core.Docu
 
 // appendPage processes a page selection, generating the text content.
 // Images are replaced with [[Image(UUID\tOCRText)]] tags.
-func (p *FileExtractionProcessor) appendPage(s *goquery.Selection, nameToId map[string]string, nameToText map[string]string, pages *[]string) {
+func (p *FileExtractionProcessor) appendPage(s *goquery.Selection, pageNum int, nameToId map[string]string, nameToText map[string]string, nameToPageNums map[string][]int, pages *[]string) {
 	s.Find("img").Each(func(i int, img *goquery.Selection) {
 		imageName, exists := img.Attr("src")
 		if exists {
@@ -130,6 +133,10 @@ func (p *FileExtractionProcessor) appendPage(s *goquery.Selection, nameToId map[
 			if !ok {
 				panic(fmt.Sprintf("unreachable: attachment ID not found for file %s; all files in the directory should have been pre-processed and assigned a UUID", imageName))
 			}
+
+			// Record the page number where this image appears
+			nameToPageNums[imageName] = append(nameToPageNums[imageName], pageNum)
+
 			// Escape these chars because:
 			// `]`: It is used as the pattern terminator
 			// `\t`: It is used as the separator between UUID and TEXT

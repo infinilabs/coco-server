@@ -273,7 +273,7 @@ func tikaUnpackAllTo(ctx context.Context, tikaEndpoint, filePath, to string, tim
 
 // Directory [dir] contains document [doc]'s attachments, upload them to
 // the blob store.
-func uploadAttachmentsToBlobStore(ctx context.Context, dir string, doc *core.Document, nameToId map[string]string, nameToText map[string]string) error {
+func uploadAttachmentsToBlobStore(ctx context.Context, dir string, doc *core.Document, nameToId map[string]string, nameToText map[string]string, nameToPageNums map[string][]int) error {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return fmt.Errorf("failed to read directory: %v", err)
@@ -311,7 +311,8 @@ func uploadAttachmentsToBlobStore(ctx context.Context, dir string, doc *core.Doc
 		ownerID := doc.GetOwnerID()
 
 		fileContent := nameToText[entry.Name()]
-		_, err = attachment.UploadToBlobStore(ormCtx, fileID, uploadFile, entry.Name(), ownerID, doc.ID, fileContent, true)
+		pageNums := nameToPageNums[entry.Name()]
+		_, err = attachment.UploadToBlobStore(ormCtx, fileID, uploadFile, entry.Name(), ownerID, doc.ID, pageNums, fileContent, true)
 		if err != nil {
 			return fmt.Errorf("failed to upload attachment %s: %w", entry.Name(), err)
 		}
