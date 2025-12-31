@@ -130,7 +130,10 @@ func (p *FileExtractionProcessor) appendPage(s *goquery.Selection, nameToId map[
 			if !ok {
 				panic(fmt.Sprintf("unreachable: attachment ID not found for file %s; all files in the directory should have been pre-processed and assigned a UUID", imageName))
 			}
-			text := nameToText[imageName]
+			// Escape these chars because:
+			// `]`: It is used as the pattern terminator
+			// `\t`: It is used as the separator between UUID and TEXT
+			text := escape(nameToText[imageName], []rune{']', '\t'})
 			img.ReplaceWithHtml(fmt.Sprintf("[[Image(%s\t%s)]]", uuid, text))
 		}
 	})

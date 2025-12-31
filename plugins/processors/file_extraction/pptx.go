@@ -176,10 +176,12 @@ func (p *FileExtractionProcessor) parseSlideContent(f *zip.File, rels map[string
 					if !processedRels[rId] {
 						uuid, ok := nameToId[filename]
 						if !ok {
-							log.Errorf("attachment ID not found for image: %s", filename)
-							continue
+							panic(fmt.Sprintf("unreachable: attachment ID not found for file %s; all files in the directory should have been pre-processed and assigned a UUID", filename))
 						}
-						text := nameToText[filename]
+						// Escape these chars because:
+						// `]`: It is used as the pattern terminator
+						// `\t`: It is used as the separator between UUID and TEXT
+						text := escape(nameToText[filename], []rune{']', '\t'})
 						sb.WriteString(fmt.Sprintf("\n[[Image(%s\t%s)]]\n", uuid, text))
 
 						processedRels[rId] = true

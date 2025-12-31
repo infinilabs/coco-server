@@ -103,6 +103,31 @@ func ocr(ctx context.Context, tikaEndpoint string, timeout int, path string) (st
 	return strings.TrimSpace(text), nil
 }
 
+// escape replaces each character in charsToEscape with its 
+// backslash-escaped version. 
+// 
+// Backslash `\` will always be escaped as we use it as the 
+// escape character.
+func escape(input string, charsToEscape []rune) string {
+	// Convert the slice of runes to a map for fast lookup
+	escapeMap := make(map[rune]bool)
+	for _, r := range charsToEscape {
+		escapeMap[r] = true
+	}
+	// Always escape the `\` character as we use it as the escape character.
+	escapeMap['\\'] = true
+
+	var builder strings.Builder
+	for _, c := range input {
+		if escapeMap[c] {
+			builder.WriteRune('\\')
+		}
+		builder.WriteRune(c)
+	}
+
+	return builder.String()
+}
+
 // isImage returns true if the file specified by [pathOrName] is an image
 // based on its extension.
 func isImage(pathOrName string) bool {
