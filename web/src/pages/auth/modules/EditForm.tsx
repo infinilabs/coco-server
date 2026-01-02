@@ -4,6 +4,7 @@ import { useLoading, useRequest } from '@sa/hooks';
 
 import { fetchPrincipalSearch } from '@/service/api/security';
 
+// @ts-ignore - DropdownList doesn't have TypeScript declarations
 import DropdownList from '@/common/src/DropdownList';
 import { formatESSearchResult } from '@/service/request/es';
 import { useTranslation } from 'react-i18next';
@@ -28,7 +29,7 @@ export const EditForm = memo((props: EditFormProps) => {
 
   const TYPE_OPTIONS = [
     { key: 'user', label: t('page.auth.labels.user') },
-    // { key: 'team', label: t('page.auth.labels.team') }
+    { key: 'team', label: t('page.auth.labels.team') }
   ];
 
   const { defaultRequiredRule } = useFormRules();
@@ -66,7 +67,7 @@ export const EditForm = memo((props: EditFormProps) => {
       principal_type,
       principal_id: principal?.id,
       display_name: principal?.name,
-      roles: (roles || []).map((item) => item.name)
+      roles: (roles || []).map((item: any) => item.name)
     }, startLoading, endLoading);
   };
 
@@ -82,7 +83,7 @@ export const EditForm = memo((props: EditFormProps) => {
           id: record.principal_id,
           name: record.display_name
         },
-        roles: (record.roles || []).map((item) => ({
+        roles: (record.roles || []).map((item: string) => ({
           name: item
         }))
       })
@@ -113,9 +114,10 @@ export const EditForm = memo((props: EditFormProps) => {
           rules={[defaultRequiredRule]}
         >
           <Select
-            className={itemClassNames} 
+            className={itemClassNames}
             onChange={(val: 'team' | 'user') => {
-              setPrincipalQueryParams((state) => ({...state, type: val}))
+              setPrincipalQueryParams((state) => ({...state, type: val, from: 0}));
+              form.setFieldValue('principal', undefined);
             }}
           >
             {TYPE_OPTIONS.map(t => (
@@ -163,7 +165,7 @@ export const EditForm = memo((props: EditFormProps) => {
               </div>
             )}
             onSearchChange={(query: string) => {
-              setPrincipalQueryParams(params => ({ ...params, query, from: 0, type: row.type }));
+              setPrincipalQueryParams(params => ({ ...params, query, from: 0 }));
             }}
             locale={locale}
           />

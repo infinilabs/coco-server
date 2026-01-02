@@ -109,7 +109,7 @@ const Auth = () => {
       render: (value, record) => {
         return (
           <div className='flex items-center'>
-            {record.principal_type === 'user' && principals[record.principal_id] && <img src={principals[record.principal_id].avatar} className='rounded-full inline-block mr-8px' style={{ width: 16, height: 16 }} />}
+            {(record.principal_type === 'user' || record.principal_type === 'team') && principals[record.principal_id] && <img src={principals[record.principal_id].avatar} className='rounded-full inline-block mr-8px' style={{ width: 16, height: 16 }} />}
             <Typography.Link onClick={()=>nav(`/auth/edit/${record.id}`, {state:record})}>
               {value}
             </Typography.Link>
