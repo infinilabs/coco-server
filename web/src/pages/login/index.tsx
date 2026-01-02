@@ -1,29 +1,11 @@
-import { getPaletteColorByNumber, mixColor } from '@sa/color';
-
 import bgZH from '@/assets/svg-icon/login-zh.svg';
 import bg from '@/assets/svg-icon/login.svg';
 import { getLocale } from '@/store/slice/app';
 import { getIsLogin } from '@/store/slice/auth';
-import { getDarkMode, getThemeSettings } from '@/store/slice/theme';
+import { getDarkMode } from '@/store/slice/theme';
 
 import CocoAI from './modules/CocoAI';
 import LoginForm from './modules/LoginForm';
-
-const COLOR_WHITE = '#ffffff';
-
-function useBgColor() {
-  const darkMode = useAppSelector(getDarkMode);
-  const { themeColor } = useAppSelector(getThemeSettings);
-
-  const bgThemeColor = darkMode ? getPaletteColorByNumber(themeColor, 600) : themeColor;
-  const ratio = darkMode ? 0.5 : 0.2;
-  const bgColor = mixColor(COLOR_WHITE, themeColor, ratio);
-
-  return {
-    bgColor,
-    bgThemeColor
-  };
-}
 
 export function Component() {
   const [searchParams] = useSearchParams();
