@@ -1,33 +1,13 @@
-import { getPaletteColorByNumber, mixColor } from '@sa/color';
-
 import bgZH from '@/assets/svg-icon/login-zh.svg';
 import bg from '@/assets/svg-icon/login.svg';
 import { getLocale } from '@/store/slice/app';
 import { getIsLogin } from '@/store/slice/auth';
-import { getDarkMode, getThemeSettings } from '@/store/slice/theme';
+import { getDarkMode } from '@/store/slice/theme';
 
 import CocoAI from './modules/CocoAI';
 import LoginForm from './modules/LoginForm';
 
-const COLOR_WHITE = '#ffffff';
-
-function useBgColor() {
-  const darkMode = useAppSelector(getDarkMode);
-  const { themeColor } = useAppSelector(getThemeSettings);
-
-  const bgThemeColor = darkMode ? getPaletteColorByNumber(themeColor, 600) : themeColor;
-  const ratio = darkMode ? 0.5 : 0.2;
-  const bgColor = mixColor(COLOR_WHITE, themeColor, ratio);
-
-  return {
-    bgColor,
-    bgThemeColor
-  };
-}
-
 export function Component() {
-  const { bgThemeColor } = useBgColor();
-  const locale = useAppSelector(getLocale);
   const [searchParams] = useSearchParams();
   const isLogin = useAppSelector(getIsLogin);
   const provider = searchParams.get('provider');
@@ -42,6 +22,7 @@ export function Component() {
   });
   const darkMode = useAppSelector(getDarkMode);
 
+  const locale = useAppSelector(getLocale);
   const backgroundImage = locale === 'zh-CN' ? bgZH : bg;
 
   const isToProvider = useMemo(() => {
@@ -66,10 +47,10 @@ export function Component() {
         )
       }
       <div
-        className="h-100% w-1/3 bg-[size:contain] bg-center-left bg-no-repeat md:bg-center-left sm:bg-center-left"
+        className="h-100% w-1/3 bg-[#0087FF] bg-[size:contain] bg-center-left bg-no-repeat hidden lg:block"
         style={{ backgroundImage: `url(${backgroundImage})` }}
       />
-      <div className="h-100% w-2/3">
+      <div className="h-100% w-full lg:w-2/3">
         <div className="items-left size-full flex flex-col justify-center overflow-auto px-10%">
           {cocoAIVisible ? (
             <div className="w-550px">
