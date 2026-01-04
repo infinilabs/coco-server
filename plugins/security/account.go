@@ -41,12 +41,13 @@ func (h APIHandler) Profile(w http.ResponseWriter, r *http.Request, ps httproute
 
 	reqUser, err := security.GetUserFromContext(r.Context())
 	if err != nil || reqUser == nil {
-		panic("invalid user")
+		api.WriteAuthRequiredError(w, "invalid user")
+		return
 	}
 
 	if reqUser.Provider == core.ProviderIntegration {
 		log.Trace("user login via INTEGRATION, guest user!")
-		h.WriteError(w, "no profile for guest user", 401)
+		api.WriteAuthRequiredError(w, "no profile for guest user")
 		return
 	}
 
@@ -57,7 +58,8 @@ func (h APIHandler) Profile(w http.ResponseWriter, r *http.Request, ps httproute
 		panic(err)
 	}
 	if user == nil {
-		panic("user not found")
+		api.WriteAuthRequiredError(w, "user not found")
+		return
 	}
 
 	profile := security.UserProfile{Name: user.Name}

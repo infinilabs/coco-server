@@ -5,6 +5,8 @@
 package filter
 
 import (
+	"net/http"
+
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
 	"infini.sh/framework/core/api"
@@ -13,7 +15,6 @@ import (
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
-	"net/http"
 )
 
 func init() {
@@ -58,6 +59,12 @@ func (f *AuthFilter) ApplyFilter(
 			if claims == nil {
 				o := api.PrepareErrorJson("invalid login", 401)
 				f.WriteJSON(w, o, 401)
+				return
+			}
+
+			//error 403 for empty permission
+			if claims.UserAssignedPermission == nil || claims.UserAssignedPermission.AllowedPermissions == nil || claims.UserAssignedPermission.AllowedPermissions.IsEmpty() {
+				api.WriteAccessDeniedError(w, "no permission")
 				return
 			}
 
