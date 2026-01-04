@@ -5,6 +5,10 @@ package core
 
 import (
 	"fmt"
+	"net/http"
+	"strings"
+	"time"
+
 	log "github.com/cihub/seelog"
 	"github.com/golang-jwt/jwt"
 	"infini.sh/framework/core/api"
@@ -14,9 +18,6 @@ import (
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
-	"net/http"
-	"strings"
-	"time"
 )
 
 const (
@@ -61,20 +62,21 @@ func ValidateLoginByAPITokenHeader(w http.ResponseWriter, r *http.Request) (clai
 	//claims.System = accessToken.System
 	claims.Provider = "access_token"
 	claims.Login = apiToken
-	claims.Labels = accessToken.Labels
+	claims.Data = accessToken.CloneData()
 
 	apiTokenLevelPermission := security.ConvertPermissionKeysToHashSet(accessToken.Permissions)
-	userLevelTokenLevelPermission := security.ConvertPermissionKeysToHashSet(security.MustGetPermissionKeysByUserID(accessToken.GetOwnerID()))
 
-	//log.Error(apiTokenLevelPermission.Values())
-	//log.Error(userLevelTokenLevelPermission.Values())
+	userLevelTokenLevelPermission := security.ConvertPermissionKeysToHashSet(security.MustGetPermissionKeysByUser(claims.UserSessionInfo))
 
 	intersectedPermission := security.IntersectSetsFast(apiTokenLevelPermission, userLevelTokenLevelPermission)
-	//log.Error(intersectedPermission.Values())
+	if global.Env().IsDebug {
+		log.Debug("apiTokenLevelPermission:", apiTokenLevelPermission.Values())
+		log.Debug("userLevelTokenLevelPermission:", userLevelTokenLevelPermission.Values())
+		log.Debug("intersectedPermission:", intersectedPermission.Values())
+	}
 
 	claims.Permissions = security.ConvertPermissionHashSetToKeys(intersectedPermission)
 
-	//claims.Source = "token"
 	return claims, nil
 }
 
@@ -100,22 +102,23 @@ func ValidateLoginByIntegrationHeader(w http.ResponseWriter, r *http.Request) (c
 		return nil, errors.Error("api integration not found")
 	}
 
-	if integrationID != "" {
-		cfg, _ := InternalGetIntegration(integrationID)
-		if cfg != nil {
-			if cfg.Guest.Enabled && cfg.Guest.RunAs != "" {
+	cfg, _ := InternalGetIntegration(integrationID)
+	if cfg != nil {
+		if cfg.Guest.Enabled && cfg.Guest.RunAs != "" {
 
-				claims = security.NewUserClaims()
-				claims.SetGetUserID(cfg.Guest.RunAs)
+			claims = security.NewUserClaims()
+			claims.SetGetUserID(cfg.Guest.RunAs)
 
-				claims.Provider = ProviderIntegration
-				claims.Login = cfg.Guest.RunAs
-				claims.Permissions = security.MustGetPermissionKeysByUserID(cfg.Guest.RunAs)
-				//log.Info("integration:", integrationID, ", run as:", cfg.Guest.RunAs, ",permissions:", claims.Permissions)
-				return claims, nil
-			}
+			claims.Provider = ProviderIntegration
+			claims.Login = cfg.Guest.RunAs
+			claims.UserID = cfg.Guest.RunAs
+			claims.Permissions = security.MustGetPermissionKeysByUser(claims.UserSessionInfo)
+			//claims.Permissions = security.MustGetPermissionKeysByUser(r.Context(), cfg.Guest.RunAs)
+			//log.Info("integration:", integrationID, ", run as:", cfg.Guest.RunAs, ",permissions:", claims.Permissions)
+			return claims, nil
 		}
 	}
+
 	return nil, errors.Error("invalid claims")
 }
 

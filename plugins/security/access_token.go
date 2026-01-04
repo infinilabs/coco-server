@@ -6,11 +6,12 @@ package security
 
 import (
 	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/emirpasic/gods/sets/hashset"
 	"infini.sh/framework/core/api"
 	"infini.sh/framework/core/orm"
-	"net/http"
-	"time"
 
 	"github.com/golang-jwt/jwt"
 	"infini.sh/coco/core"
@@ -93,7 +94,7 @@ func (h *APIHandler) RequestAccessToken(w http.ResponseWriter, req *http.Request
 		reqBody.Name = GenerateApiTokenName("")
 	}
 
-	permission := security.MustGetPermissionKeysByUserID(reqUser.MustGetUserID())
+	permission := security.MustGetPermissionKeysByUser(reqUser)
 	if len(reqBody.Permissions) > 0 {
 		//the permissions should be within' user's own permission scope
 		if !util.IsSuperset(security.ConvertPermissionKeysToHashSet(permission), security.ConvertPermissionKeysToHashSet(reqBody.Permissions)) {
@@ -126,7 +127,7 @@ func CreateAPIToken(user *security.UserSessionInfo, tokenName, typeName string, 
 	accessToken.ID = tokenID
 	accessToken.AccessToken = accessTokenStr
 	accessToken.SetOwnerID(user.MustGetUserID())
-	accessToken.Labels = user.Labels
+	accessToken.Data = user.CloneData()
 
 	accessToken.Type = typeName
 	accessToken.Permissions = permissions
