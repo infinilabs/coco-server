@@ -75,7 +75,7 @@ export default (props) => {
         }
     };
 
-    const handleUpdate = async (currentShares) => {
+    const handleUpdate = async (currentShares: any[]) => {
         const sourceShares = shares.filter((item) => item.principal_id !== editor?.id);
         if (JSON.stringify(sourceShares) !== JSON.stringify(currentShares)) {
             const deletedItems = differenceBy(sourceShares, currentShares, 'principal_id');
@@ -84,13 +84,13 @@ export default (props) => {
                 id: resource?.resource_id,
                 shares: currentShares.filter((item) => item.via !== 'inherit' || item.removeVia).map((item) => ({
                     ...(resource || {}),
-                    "principal_type": "user",
+                    "principal_type": item.principal_type || "user",
                     "principal_id": item.principal_id,
                     permission: item.permission,
                 })),
                 revokes: (deletedItems || []).map((item) => ({
                     "id": item.id,
-                    "principal_type": "user",
+                    "principal_type": item.principal_type || "user",
                     "principal_id": item.principal_id,
                     permission: item.permission
                 }))
