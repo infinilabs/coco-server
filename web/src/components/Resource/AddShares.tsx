@@ -43,7 +43,7 @@ export default function AddShares(props: AddSharesProps) {
             data.push(editor.id)
         }
         return data
-    }, [owner, editor, currentShares ?? []])
+    }, [owner, editor, currentShares])
 
     if (!hasCreate) return null;
 
