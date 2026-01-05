@@ -1,7 +1,19 @@
 import { Button, Form, Select, Space } from "antd";
 import PrincipalSelect from "./PrincipalSelect";
 
-export default function AddShares(props) {
+export interface AddSharesProps {
+    hasCreate: boolean;
+    permissionOptions?: any[];
+    owner?: any;
+    editor?: any;
+    onCancel: () => void;
+    resource?: any;
+    currentShares?: any[];
+    onSubmit: (data: any[]) => void;
+    setLockOpen: (open: boolean) => void;
+}
+
+export default function AddShares(props: AddSharesProps) {
 
     const { hasCreate, permissionOptions = [], owner, editor, onCancel, resource, currentShares, onSubmit, setLockOpen } = props;
 
@@ -9,12 +21,12 @@ export default function AddShares(props) {
     const [form] = Form.useForm();
     const { defaultRequiredRule } = useFormRules();
 
-    const onFinish = async (values) => {
+    const onFinish = async (values: any) => {
         const { permission, shares = [] } = values;
-        onSubmit(currentShares.concat(shares.map((item) => {
+        onSubmit((currentShares ?? []).concat(shares.map((item: any) => {
             const share = {
                 ...(resource || {}),
-                "principal_type": "user",
+                "principal_type": item.type || "user",
                 "principal_id": item.id,
                 permission,
             }
@@ -55,7 +67,7 @@ export default function AddShares(props) {
                     name="permission"
                     rules={[defaultRequiredRule]}
                 >
-                    <Select onDropdownVisibleChange={setLockOpen} options={permissionOptions.map((item) => ({ ...item, value: item.key}))}/>
+                    <Select onDropdownVisibleChange={setLockOpen} options={permissionOptions.map((item: any) => ({ ...item, value: item.key}))}/>
                 </Form.Item>
                 <Form.Item className="mb-0px">
                     <div className="flex items-center justify-right">
