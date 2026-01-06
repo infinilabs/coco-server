@@ -20,6 +20,7 @@ import (
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/attachment"
 	"infini.sh/framework/core/orm"
+	"infini.sh/framework/core/util"
 )
 
 func tikaGetTextPlain(ctx context.Context, tikaEndpoint string, timeout int, path string) (io.ReadCloser, error) {
@@ -312,7 +313,17 @@ func uploadAttachmentsToBlobStore(ctx context.Context, dir string, doc *core.Doc
 
 		fileContent := nameToText[entry.Name()]
 		pageNums := nameToPageNums[entry.Name()]
-		_, err = attachment.UploadToBlobStore(ormCtx, fileID, uploadFile, entry.Name(), ownerID, doc.ID, pageNums, fileContent, true)
+
+		metadata := util.MapStr{}
+		if doc.ID != "" {
+			metadata["document_id"] = doc.ID
+		}
+
+		if len(pageNums) > 0 {
+			metadata["document_page_num"] = pageNums
+		}
+
+		_, err = attachment.UploadToBlobStore(ormCtx, fileID, uploadFile, entry.Name(), ownerID, metadata, fileContent, true)
 		if err != nil {
 			return fmt.Errorf("failed to upload attachment %s: %w", entry.Name(), err)
 		}
