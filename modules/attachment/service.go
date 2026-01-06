@@ -20,7 +20,7 @@ import (
 //   - If [fileID] is not an empty string, it will be used as the file ID.
 //     Otherwise, a random ID will be created and used.
 //   - If [ownerID] is not empty, the created attached will set the owner to it.
-//     Otherwise, owner information will be extracted from cotnext [ctx].
+//     Otherwise, owner information will be extracted from context [ctx].
 //   - If [fileContent] is not empty, it will be stored in the attachment's text
 //     field (e.g., extracted text from an image).
 //   - [replaceIfExists]: If this is true and there is already an attachment with
