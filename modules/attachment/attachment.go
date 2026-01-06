@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"infini.sh/coco/core"
+	api1 "infini.sh/framework/core/api"
 	"infini.sh/framework/core/elastic"
 
 	log "github.com/cihub/seelog"
@@ -287,7 +288,7 @@ func UploadToBlobStore(ctx *orm.Context, fileID string, file multipart.File, fil
 	attachment.Icon = getFileExtension(fileName)
 	attachment.URL = fmt.Sprintf("/attachment/%v", fileID)
 	attachment.Text = fileContent
-	//attachment.Owner //TODO
+
 	if ownerID != "" {
 		attachment.SetOwnerID(ownerID)
 	}
@@ -327,4 +328,32 @@ func UploadToBlobStore(ctx *orm.Context, fileID string, file multipart.File, fil
 
 	log.Debugf("file [%s] successfully uploaded, size: %v", fileName, fileSize)
 	return fileID, nil
+}
+
+func (h APIHandler) getAttachmentStats(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	stats := util.MapStr{}
+	stats["initial_parsing"] = "completed" //initial parse process for attachments, pending,processing,completed, failed or canceled
+	api1.WriteJSON(w, stats, 200)
+}
+
+type AttachmentStatsRequest struct {
+	Attachments []string `json:"attachments"`
+}
+
+func (h APIHandler) batchGetAttachmentStats(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	reqObj := AttachmentStatsRequest{}
+	api1.MustDecodeJSON(req, &reqObj)
+	if len(reqObj.Attachments) == 0 {
+		api1.WriteJSON(w, req, 200)
+		return
+	}
+
+	output := map[string]util.MapStr{}
+	for _, id := range reqObj.Attachments {
+		output[id] = util.MapStr{
+			"initial_parsing": "completed",
+		}
+	}
+	api1.WriteJSON(w, output, 200)
+
 }
