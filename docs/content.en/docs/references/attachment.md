@@ -103,10 +103,10 @@ POST /attachment/_status
 Response
 ```
 {
-  "123 ": {
+  "123": {
     "initial_parsing": "completed"
   },
-  "234 ": {
+  "234": {
     "initial_parsing": "completed"
   }
 }
