@@ -7,6 +7,8 @@ package document
 import (
 	"context"
 	"fmt"
+	"net/http"
+
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
@@ -17,7 +19,6 @@ import (
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
-	"net/http"
 )
 
 func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -44,8 +45,10 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		reqUser := security.MustGetUserFromRequest(req)
 		integrationID := req.Header.Get(core.HeaderIntegrationID)
 
+		teamsID, _ := reqUser.GetStringArray(orm.TeamsIDKey)
+
 		result := elastic.SearchResponseWithMeta[core.Document]{}
-		resp, err := QueryDocuments(req.Context(), reqUser.MustGetUserID(), builder, query, datasource, integrationID, category, subcategory, richCategory, nil)
+		resp, err := QueryDocuments(req.Context(), reqUser.MustGetUserID(), teamsID, builder, query, datasource, integrationID, category, subcategory, richCategory, nil)
 		if err != nil {
 			panic(err)
 		}

@@ -6,18 +6,19 @@ package document
 
 import (
 	"context"
+	"strings"
+
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
 	"infini.sh/framework/core/elastic"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
 	"infini.sh/framework/modules/security/share"
-	"strings"
 )
 
 var sharingService = share.NewSharingService()
 
-func QueryDocuments(ctx1 context.Context, userID string, builder *orm.QueryBuilder, query string, datasource, integrationID, category, subcategory, richCategory string, outputDocs *[]core.Document) (*orm.SimpleResult, error) {
+func QueryDocuments(ctx1 context.Context, userID string, teamsID []string, builder *orm.QueryBuilder, query string, datasource, integrationID, category, subcategory, richCategory string, outputDocs *[]core.Document) (*orm.SimpleResult, error) {
 
 	log.Trace("old datasource:", datasource, ",integrationID:", integrationID)
 
@@ -27,11 +28,12 @@ func QueryDocuments(ctx1 context.Context, userID string, builder *orm.QueryBuild
 
 	filters := BuildFilters(category, subcategory, richCategory)
 
-	rules, err := sharingService.GetDirectResourceRulesByResourceTypeAndUserID(userID, "datasource", nil, share.View)
+	rules, err := sharingService.GetDirectResourceRulesByResourceTypeAndUserID(userID, teamsID, "datasource", nil, share.View)
 	if err != nil {
 		panic(err)
 	}
 	log.Trace("rules: ", util.ToJson(rules, true))
+
 	directAccessDatasources := []string{}
 	checkingScopeDatasources := []string{}
 	for _, rule := range rules {
@@ -39,7 +41,7 @@ func QueryDocuments(ctx1 context.Context, userID string, builder *orm.QueryBuild
 		directAccessDatasources = append(directAccessDatasources, rule.ResourceID)
 	}
 
-	rules, err = sharingService.GetAllCategoryVisibleWithChildrenSharedObjects(userID, "datasource")
+	rules, _ = sharingService.GetAllCategoryVisibleWithChildrenSharedObjects(userID, teamsID, "datasource")
 	for _, rule := range rules {
 		checkingScopeDatasources = append(checkingScopeDatasources, rule.ResourceCategoryID)
 	}
@@ -75,7 +77,7 @@ func QueryDocuments(ctx1 context.Context, userID string, builder *orm.QueryBuild
 
 	builder.Filter(filters...)
 
-	rules, err = sharingService.GetDirectResourceRulesByResourceCategoryAndUserID(userID, "document", "datasource", checkingScopeDatasources, share.None)
+	rules, err = sharingService.GetDirectResourceRulesByResourceCategoryAndUserID(userID, teamsID, "document", "datasource", checkingScopeDatasources, share.None)
 	if err != nil {
 		panic(err)
 	}
