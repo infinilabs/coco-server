@@ -266,6 +266,7 @@ const Fullscreen = (props) => {
             askBody={askBody}
             config={aiOverview}
             onAsk={onAsk}
+            theme={theme}
           />
         ) : null
       }

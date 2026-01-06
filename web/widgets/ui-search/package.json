@@ -50,6 +50,7 @@
     "@babel/runtime": "^7.27.6",
     "@emotion/cache": "^11.14.0",
     "@emotion/react": "^11.14.0",
+    "@infinilabs/ai-answer": "^0.0.3",
     "@infinilabs/doc-detail": "^0.0.0",
     "@infinilabs/filter": "^0.0.11",
     "@infinilabs/search-results": "^0.0.11",

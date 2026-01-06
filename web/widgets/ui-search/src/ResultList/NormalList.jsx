@@ -1,10 +1,8 @@
-import { List, Spin, Drawer } from "antd";
+import { List, Spin } from "antd";
 import { memo, useMemo, useState } from "react";
-import { X } from "lucide-react";
 import ResultDetail from "../ResultDetail";
 import styles from "./NormalList.module.less";
 import SearchResults from "@infinilabs/search-results";
-import { DocDetail } from "@infinilabs/doc-detail";
 
 export function NormalList(props) {
   const {
@@ -90,19 +88,12 @@ export function NormalList(props) {
               )
             }
             return (
-              <ResultDetail
-                key={item.id}
-                getContainer={getDetailContainer}
-                data={item}
-                isMobile={isMobile}
-              >
-                <SearchResults
-                  section={item}
-                  onRecordClick={(record) => {
-                    onOpen(record)
-                  }}
-                />
-              </ResultDetail>
+              <SearchResults
+                section={item}
+                onRecordClick={(record) => {
+                  onOpen(record)
+                }}
+              />
             )
           }}
         />
@@ -116,24 +107,13 @@ export function NormalList(props) {
           </div>
         )}
       </div>
-      <Drawer
-        onClose={onClose}
-        open={open}
-        width={isMobile ? '100%' : 800}
-        closeIcon={null}
-        rootClassName={styles.detail}
+      <ResultDetail 
         getContainer={getDetailContainer}
-        destroyOnHidden
-        classNames={{
-          wrapper: `!overflow-hidden ${isMobile ? '!left-12px !right-12px !w-[calc(100%-24px)]' : '!right-24px'} !top-146px !bottom-24px !rounded-12px !shadow-[0_2px_20px_rgba(0,0,0,0.1)] !dark:shadow-[0_2px_20px_rgba(255,255,255,0.2)]`,
-          body: '!p-24px !rounded-12px'
-        }}
-        mask={false}
-        maskClosable={false}
-      >
-        <X className="color-[#bbb] cursor-pointer absolute right-24px top-24px z-1" onClick={onClose} />
-        <DocDetail data={record || {}}/>
-      </Drawer>
+        open={open}
+        onClose={onClose}
+        data={record || {}}
+        isMobile={isMobile}
+      />
     </>
   );
 }
