@@ -7,7 +7,6 @@ package attachment
 import (
 	"errors"
 	"fmt"
-	"io"
 	"mime/multipart"
 	"net/http"
 	"path/filepath"
@@ -55,7 +54,7 @@ func (h APIHandler) uploadAttachment(w http.ResponseWriter, r *http.Request, ps 
 			return
 		}
 		// Upload to S3
-		if fileID, err := UploadToBlobStore(ctx, "", file, fileHeader.Filename, "", "", nil, "", false); err != nil {
+		if fileID, err := UploadToBlobStore(ctx, "", file, fileHeader.Filename, "", nil, "", false); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		} else {
@@ -241,96 +240,9 @@ func getMimeType(file multipart.File) (string, error) {
 	return mimeType, nil
 }
 
-// Helper function to upload the attachment specified by [file] to the
-// blob store.
-//
-// Arguments:
-//
-//   - If [fileID] is not an empty string, it will be used as the file ID.
-//     Otherwise, a random ID will be created and used.
-//   - If [ownerID] is not empty, the created attached will set the owner to it.
-//     Otherwise, owner information will be extracted from cotnext [ctx].
-//   - If [documentID] is not empty, it indicates this attachment belongs to a
-//     document, and the ID will be stored in the attachment's metadata.
-//   - If [documentPageNums] is not empty, it indicates the page numbers where
-//     this attachment appears in the document.
-//   - If [fileContent] is not empty, it will be stored in the attachment's text
-//     field (e.g., extracted text from an image).
-//   - [replaceIfExists]: If this is true and there is already an attachment with
-//     the same file ID eixsts, replace it.
-//
-// Return value:
-//   - attachment ID: it will be [fileID] if it is not empty
-func UploadToBlobStore(ctx *orm.Context, fileID string, file multipart.File, fileName string, ownerID string, documentID string, documentPageNums []int, fileContent string, replaceIfExists bool) (string, error) {
-	defer func() {
-		_ = file.Close()
-	}()
-
-	// Read file content into memory
-	data, err := io.ReadAll(file)
-	if err != nil || len(data) == 0 {
-		return "", fmt.Errorf("failed to read file %s: %v", fileName, err)
-	}
-
-	if fileID == "" {
-		fileID = util.GetUUID()
-	}
-	fileSize := len(data)
-	mimeType, _ := getMimeType(file)
-
-	attachment := core.Attachment{}
-	attachment.ID = fileID
-	attachment.Name = fileName
-	attachment.Size = fileSize
-	attachment.MimeType = mimeType
-	attachment.Icon = getFileExtension(fileName)
-	attachment.URL = fmt.Sprintf("/attachment/%v", fileID)
-	attachment.Text = fileContent
-
-	if ownerID != "" {
-		attachment.SetOwnerID(ownerID)
-	}
-
-	if documentID != "" {
-		if attachment.Metadata == nil {
-			attachment.Metadata = make(map[string]interface{})
-		}
-		attachment.Metadata["document_id"] = documentID
-	}
-
-	if len(documentPageNums) > 0 {
-		if attachment.Metadata == nil {
-			attachment.Metadata = make(map[string]interface{})
-		}
-		attachment.Metadata["document_page_num"] = documentPageNums
-	}
-
-	//save attachment metadata
-	if replaceIfExists {
-		err = orm.Upsert(ctx, &attachment)
-	} else {
-		err = orm.Create(ctx, &attachment)
-	}
-	if err != nil {
-		panic(err)
-	}
-
-	//save attachment payload
-	//
-	// kv.AddValue will replace the previous value if it already exists so we
-	// don't need to check [replaceIfExists] here.
-	err = kv.AddValue(core.AttachmentKVBucket, []byte(fileID), data)
-	if err != nil {
-		panic(err)
-	}
-
-	log.Debugf("file [%s] successfully uploaded, size: %v", fileName, fileSize)
-	return fileID, nil
-}
-
-func (h APIHandler) getAttachmentStats(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+func (h APIHandler) getAttachmentStatus(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("file_id")
-	out := getAttachmentStats([]string{id})
+	out := getAttachmentStatus([]string{id})
 
 	if out != nil {
 		o, ok := out[id]
@@ -343,24 +255,19 @@ func (h APIHandler) getAttachmentStats(w http.ResponseWriter, req *http.Request,
 	api1.WriteJSON(w, util.MapStr{}, 200)
 }
 
-type AttachmentStatsRequest struct {
+type AttachmentStatusRequest struct {
 	Attachments []string `json:"attachments"`
 }
 
-func (h APIHandler) batchGetAttachmentStats(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	reqObj := AttachmentStatsRequest{}
+func (h APIHandler) batchGetAttachmentStatus(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	reqObj := AttachmentStatusRequest{}
 	api1.MustDecodeJSON(req, &reqObj)
 	if len(reqObj.Attachments) == 0 {
-		api1.WriteJSON(w, req, 200)
+		api1.WriteJSON(w, map[string]util.MapStr{}, 200)
 		return
 	}
 
-	output := map[string]util.MapStr{}
-	for _, id := range reqObj.Attachments {
-		output[id] = util.MapStr{
-			"initial_parsing": "completed",
-		}
-	}
+	output := getAttachmentStatus(reqObj.Attachments)
 	api1.WriteJSON(w, output, 200)
 
 }

@@ -37,8 +37,8 @@ func init() {
 	api.HandleUIMethod(api.POST, "/attachment/_search", handler.getAttachments, api.RequirePermission(searchPermission))
 	api.HandleUIMethod(api.POST, "/attachment/_upload", handler.uploadAttachment, api.RequirePermission(createPermission))
 
-	api.HandleUIMethod(api.GET, "/attachment/:file_id/stats", handler.getAttachmentStats, api.RequirePermission(readPermission))
-	api.HandleUIMethod(api.GET, "/attachment/_stats", handler.batchGetAttachmentStats, api.RequirePermission(readPermission))
-	api.HandleUIMethod(api.POST, "/attachment/_stats", handler.batchGetAttachmentStats, api.RequirePermission(readPermission))
+	api.HandleUIMethod(api.GET, "/attachment/:file_id/status", handler.getAttachmentStatus, api.RequirePermission(readPermission))
+	api.HandleUIMethod(api.GET, "/attachment/_status", handler.batchGetAttachmentStatus, api.RequirePermission(readPermission))
+	api.HandleUIMethod(api.POST, "/attachment/_status", handler.batchGetAttachmentStatus, api.RequirePermission(readPermission))
 
 }

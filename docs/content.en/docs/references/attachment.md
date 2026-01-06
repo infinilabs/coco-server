@@ -77,13 +77,13 @@ Response
 {"took":2,"timed_out":false,"_shards":{"total":1,"successful":1,"skipped":0,"failed":0},"hits":{"total":{"value":2,"relation":"eq"},"max_score":0.87546873,"hits":[{"_index":"coco_attachment","_type":"_doc","_id":"cv9r1krq50k4qhqcqhu0","_score":0.87546873,"_source":{"id":"cv9r1krq50k4qhqcqhu0","created":"2025-03-14T12:30:11.827843+08:00","updated":"2025-03-14T12:30:11.827851+08:00","session":"cu737jrq50kcaicgn7pg","name":"neurips19-diskann.pdf","icon":"pdf","url":"/attachment/cv9r1krq50k4qhqcqhu0","size":2221342}},{"_index":"coco_attachment","_type":"_doc","_id":"cv9r1l3q50k4qhqcqhug","_score":0.87546873,"_source":{"id":"cv9r1l3q50k4qhqcqhug","created":"2025-03-14T12:30:12.857468+08:00","updated":"2025-03-14T12:30:12.857483+08:00","session":"cu737jrq50kcaicgn7pg","name":"Adaptive_searching_in_succinctly_encoded.pdf","icon":"pdf","url":"/attachment/cv9r1l3q50k4qhqcqhug","size":125382}}]}}
 ```
 
-## GET attachment stats
+## GET attachment status
 
 After chat-generated attachments are uploaded, they will be processed by the backend using a default parsing pipeline.
 Since attachment processing goes through intermediate states, an API is required to query the processing status, such as `pending`, `processing`, `completed`, `canceled`, or `failed`.
 
 ```
-curl -X GET http://localhost:9000/attachment/cv9r1krq50k4qhqcqhu0/stats \
+curl -X GET http://localhost:9000/attachment/cv9r1krq50k4qhqcqhu0/status \
   -H "X-API-TOKEN: cv9pnurq50k1hii28630jy429g4b49viecrlj9529onpa6n0lti7yohioitvyotd0677rop5uszc0cnll03j"
 ```
 Response
@@ -93,9 +93,9 @@ Response
 }
 ```
 
-## Batch GET attachment stats
+## Batch GET attachment status
 ```
-POST /attachment/_stats
+POST /attachment/_status
 {
   "attachments":["123","234"]
 }
@@ -103,10 +103,10 @@ POST /attachment/_stats
 Response
 ```
 {
-  "123 ": {
+  "123": {
     "initial_parsing": "completed"
   },
-  "234 ": {
+  "234": {
     "initial_parsing": "completed"
   }
 }

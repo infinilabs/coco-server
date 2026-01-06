@@ -14,10 +14,11 @@ Information about release notes of Coco Server is provided here.
 - feat: add dropbox connector #614
 - feat: add simple stats module #622
 - feat: support team for authorization
-- feat: feat: add attachment stats api #635 
+- feat: add attachment status api #635 
 
 ### 🐛 Bug fix  
 ### ✈️ Improvements  
+- refactor: refactoring attachment API #636
 
 ## 0.10.0 (2025-12-19)
 ### ❌ Breaking changes  
