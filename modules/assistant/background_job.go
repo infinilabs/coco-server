@@ -7,12 +7,15 @@ package assistant
 import (
 	"context"
 	"fmt"
-	"infini.sh/coco/core"
-	"infini.sh/coco/modules/document"
 	"net/http"
 	"runtime"
 	"strings"
 	"time"
+
+	"infini.sh/coco/core"
+	"infini.sh/coco/modules/document"
+	"infini.sh/framework/core/kv"
+	"infini.sh/framework/core/security"
 
 	"infini.sh/coco/modules/assistant/rag"
 	"infini.sh/coco/modules/datasource"
@@ -80,6 +83,14 @@ func (r RAGContext) MustGetAnsweringModel() *core.ModelConfig {
 	if r.AssistantCfg == nil {
 		panic("invalid AssistantCfg")
 	}
+
+	//for background job only, no performance issue need to care
+	for _, v := range r.answeringProvider.Models {
+		if v.Name == r.AssistantCfg.AnsweringModel.Name {
+			r.AssistantCfg.AnsweringModel.Settings.Reasoning = v.Settings.Reasoning
+		}
+	}
+
 	return &r.AssistantCfg.AnsweringModel
 }
 
@@ -676,8 +687,11 @@ func processInitialDocumentSearch(ctx *orm.Context, userID string, reqMsg, reply
 		builder.Should(orm.TermsQuery("combined_fulltext", params.QueryIntent.Query))
 	}
 
+	teamsID := []string{}
+	teamsID = GetTeamsIDByUserID(ctx, userID)
+
 	docs := []core.Document{}
-	_, err := document.QueryDocuments(ctx.Context, userID, nil, builder, reqMsg.Message, params.datasource, params.integrationID, params.category, params.subcategory, params.richCategory, &docs)
+	_, err := document.QueryDocuments(ctx.Context, userID, teamsID, builder, reqMsg.Message, params.datasource, params.integrationID, params.category, params.subcategory, params.richCategory, &docs)
 	if err != nil {
 		log.Error(err)
 		return nil, err
@@ -718,6 +732,39 @@ func processInitialDocumentSearch(ctx *orm.Context, userID string, reqMsg, reply
 	}
 	replyMsg.Details = append(replyMsg.Details, core.ProcessingDetails{Order: 20, Type: common.FetchSource, Payload: fetchedDocs})
 	return docs, err
+}
+
+func GetTeamsIDByUserID(ctx *orm.Context, userID string) []string {
+	if global.Env().SystemConfig.WebAppConfig.Security.Managed {
+
+		sessionUser := security.MustGetUserFromContext(ctx.Context)
+
+		profileKey := fmt.Sprintf("%v:%v", sessionUser.MustGetString(orm.TenantIDKey), userID)
+
+		//get profile
+		data, err := kv.GetValue(core.UserProfileBucketKey, []byte(profileKey))
+		if err != nil {
+			panic(err)
+		}
+
+		p := &security.UserProfile{}
+		util.MustFromJSONBytes(data, p)
+		v, ok := p.GetSystemValue(orm.TeamsIDKey)
+		if ok {
+			v, ok := v.([]interface{})
+			if ok {
+				out := []string{}
+				for _, v1 := range v {
+					x, ok := v1.(string)
+					if ok {
+						out = append(out, x)
+					}
+				}
+				return out
+			}
+		}
+	}
+	return []string{}
 }
 
 func processPickDocuments(ctx context.Context, reqMsg, replyMsg *core.ChatMessage, params *RAGContext, docs []core.Document, sender core.MessageSender) ([]core.Document, error) {

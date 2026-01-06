@@ -278,7 +278,7 @@ func BuildDatasourceFilter(userID string, checkingScopeDatasources, directAccess
 	}
 
 	if len(finalDatasourceIDs) == 0 && len(checkingScopeDatasources) == 0 {
-		panic("empty datasource for this integration")
+		panic("empty datasource")
 	}
 
 	log.Trace("userID:", userID, "user's own", userOwnDatasourceIDs, ",queryDatasource:", queryDatasourceIDs, ",integrationID:", integrationID, ",final merged directAccess datasources:", finalDatasourceIDs)
