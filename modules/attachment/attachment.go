@@ -117,7 +117,7 @@ func (h APIHandler) getAttachments(w http.ResponseWriter, req *http.Request, ps 
 
 func (h APIHandler) getAttachment(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	fileID := ps.MustGetParameter("file_id")
-	data, err := kv.GetValue(AttachmentKVBucket, []byte(fileID))
+	data, err := kv.GetValue(core.AttachmentKVBucket, []byte(fileID))
 	if err != nil || len(data) == 0 {
 		panic("invalid attachment")
 	}
@@ -213,8 +213,6 @@ func (h APIHandler) deleteAttachment(w http.ResponseWriter, req *http.Request, p
 
 	h.WriteDeletedOKJSON(w, fileID)
 }
-
-const AttachmentKVBucket = "file_attachments"
 
 func getFileExtension(fileName string) string {
 	ext := strings.ToLower(filepath.Ext(fileName))
@@ -321,7 +319,7 @@ func UploadToBlobStore(ctx *orm.Context, fileID string, file multipart.File, fil
 	//
 	// kv.AddValue will replace the previous value if it already exists so we
 	// don't need to check [replaceIfExists] here.
-	err = kv.AddValue(AttachmentKVBucket, []byte(fileID), data)
+	err = kv.AddValue(core.AttachmentKVBucket, []byte(fileID), data)
 	if err != nil {
 		panic(err)
 	}
@@ -331,9 +329,18 @@ func UploadToBlobStore(ctx *orm.Context, fileID string, file multipart.File, fil
 }
 
 func (h APIHandler) getAttachmentStats(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	stats := util.MapStr{}
-	stats["initial_parsing"] = "completed" //initial parse process for attachments, pending,processing,completed, failed or canceled
-	api1.WriteJSON(w, stats, 200)
+	id := ps.MustGetParameter("file_id")
+	out := getAttachmentStats([]string{id})
+
+	if out != nil {
+		o, ok := out[id]
+		if ok {
+			api1.WriteJSON(w, o, 200)
+			return
+		}
+	}
+
+	api1.WriteJSON(w, util.MapStr{}, 200)
 }
 
 type AttachmentStatsRequest struct {
