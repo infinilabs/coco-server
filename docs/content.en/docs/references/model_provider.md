@@ -176,4 +176,4 @@ Select the target Model Provider in the list, click `Delete` on the bottom right
 
 
 ### Edit LLM Provider
-Select the targetModel Provider in the card list, click `Edit` on the bottom right of the card to enter the editing page. Modify the configuration and click save to update.
+Select the target Model Provider in the card list, click `Edit` on the bottom right of the card to enter the editing page. Modify the configuration and click save to update.
