@@ -24,7 +24,7 @@ import (
 //   - If [fileContent] is not empty, it will be stored in the attachment's text
 //     field (e.g., extracted text from an image).
 //   - [replaceIfExists]: If this is true and there is already an attachment with
-//     the same file ID eixsts, replace it.
+//     the same file ID exists, replace it.
 //
 // Return value:
 //   - attachment ID: it will be [fileID] if it is not empty

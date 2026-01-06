@@ -263,7 +263,7 @@ func (h APIHandler) batchGetAttachmentStatus(w http.ResponseWriter, req *http.Re
 	reqObj := AttachmentStatusRequest{}
 	api1.MustDecodeJSON(req, &reqObj)
 	if len(reqObj.Attachments) == 0 {
-		api1.WriteJSON(w, req, 200)
+		api1.WriteJSON(w, map[string]util.MapStr{}, 200)
 		return
 	}
 
