@@ -6,7 +6,7 @@ weight: 90
 # LLM Provider
 
 ## Work with *LLM Provider*
-The LLM (Large Language Model) Provider enables seamless integration of various AI models into your application. It supports multiple model types, including Deepseek, OpenAI, and more. This guide provides a comprehensive overview of how to effectively utilize the Model Provider.
+The LLM (Large Language Model) Provider enables seamless integration of various AI models into your application. It supports multiple model types, including Deepseek, OpenAI, and more. This guide provides a comprehensive overview of how to effectively utilize the LLM Provider.
 
 ## LLM Provider API
 Below is the field description for the model provider.
