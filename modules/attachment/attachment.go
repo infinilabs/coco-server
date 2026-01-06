@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"infini.sh/coco/core"
+	api1 "infini.sh/framework/core/api"
 	"infini.sh/framework/core/elastic"
 
 	log "github.com/cihub/seelog"
@@ -116,7 +117,7 @@ func (h APIHandler) getAttachments(w http.ResponseWriter, req *http.Request, ps 
 
 func (h APIHandler) getAttachment(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	fileID := ps.MustGetParameter("file_id")
-	data, err := kv.GetValue(AttachmentKVBucket, []byte(fileID))
+	data, err := kv.GetValue(core.AttachmentKVBucket, []byte(fileID))
 	if err != nil || len(data) == 0 {
 		panic("invalid attachment")
 	}
@@ -213,8 +214,6 @@ func (h APIHandler) deleteAttachment(w http.ResponseWriter, req *http.Request, p
 	h.WriteDeletedOKJSON(w, fileID)
 }
 
-const AttachmentKVBucket = "file_attachments"
-
 func getFileExtension(fileName string) string {
 	ext := strings.ToLower(filepath.Ext(fileName))
 	if len(ext) > 0 {
@@ -287,7 +286,7 @@ func UploadToBlobStore(ctx *orm.Context, fileID string, file multipart.File, fil
 	attachment.Icon = getFileExtension(fileName)
 	attachment.URL = fmt.Sprintf("/attachment/%v", fileID)
 	attachment.Text = fileContent
-	//attachment.Owner //TODO
+
 	if ownerID != "" {
 		attachment.SetOwnerID(ownerID)
 	}
@@ -320,11 +319,48 @@ func UploadToBlobStore(ctx *orm.Context, fileID string, file multipart.File, fil
 	//
 	// kv.AddValue will replace the previous value if it already exists so we
 	// don't need to check [replaceIfExists] here.
-	err = kv.AddValue(AttachmentKVBucket, []byte(fileID), data)
+	err = kv.AddValue(core.AttachmentKVBucket, []byte(fileID), data)
 	if err != nil {
 		panic(err)
 	}
 
 	log.Debugf("file [%s] successfully uploaded, size: %v", fileName, fileSize)
 	return fileID, nil
+}
+
+func (h APIHandler) getAttachmentStats(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	id := ps.MustGetParameter("file_id")
+	out := getAttachmentStats([]string{id})
+
+	if out != nil {
+		o, ok := out[id]
+		if ok {
+			api1.WriteJSON(w, o, 200)
+			return
+		}
+	}
+
+	api1.WriteJSON(w, util.MapStr{}, 200)
+}
+
+type AttachmentStatsRequest struct {
+	Attachments []string `json:"attachments"`
+}
+
+func (h APIHandler) batchGetAttachmentStats(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	reqObj := AttachmentStatsRequest{}
+	api1.MustDecodeJSON(req, &reqObj)
+	if len(reqObj.Attachments) == 0 {
+		api1.WriteJSON(w, req, 200)
+		return
+	}
+
+	output := map[string]util.MapStr{}
+	for _, id := range reqObj.Attachments {
+		output[id] = util.MapStr{
+			"initial_parsing": "completed",
+		}
+	}
+	api1.WriteJSON(w, output, 200)
+
 }
