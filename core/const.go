@@ -17,6 +17,14 @@ const DefaultSearchSettingsKey = "default_search_settings"
 const AttachmentKVBucket = "file_attachments"
 const AttachmentStatsBucket = "attachment_stats"
 
+// attachment status,  `pending`, `processing`, `completed`, `canceled`, or `failed`.
+const AttachmentStageInitialParsing = "initial_parsing"
+const StatusPending = "pending"
+const StatusProcessing = "processing"
+const StatusCompleted = "completed"
+const StatusCanceled = "canceled"
+const StatusFailed = "failed"
+
 const ProviderIntegration = "INTEGRATION"
 
 const WidgetRole = "widget"

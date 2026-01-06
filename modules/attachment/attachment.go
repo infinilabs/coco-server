@@ -54,7 +54,7 @@ func (h APIHandler) uploadAttachment(w http.ResponseWriter, r *http.Request, ps 
 			return
 		}
 		// Upload to S3
-		if fileID, err := UploadToBlobStore(ctx, "", file, fileHeader.Filename, "", nil,  "", false); err != nil {
+		if fileID, err := UploadToBlobStore(ctx, "", file, fileHeader.Filename, "", nil, "", false); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		} else {
@@ -240,9 +240,9 @@ func getMimeType(file multipart.File) (string, error) {
 	return mimeType, nil
 }
 
-func (h APIHandler) getAttachmentStats(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+func (h APIHandler) getAttachmentStatus(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("file_id")
-	out := getAttachmentStats([]string{id})
+	out := getAttachmentStatus([]string{id})
 
 	if out != nil {
 		o, ok := out[id]
@@ -255,24 +255,19 @@ func (h APIHandler) getAttachmentStats(w http.ResponseWriter, req *http.Request,
 	api1.WriteJSON(w, util.MapStr{}, 200)
 }
 
-type AttachmentStatsRequest struct {
+type AttachmentStatusRequest struct {
 	Attachments []string `json:"attachments"`
 }
 
-func (h APIHandler) batchGetAttachmentStats(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	reqObj := AttachmentStatsRequest{}
+func (h APIHandler) batchGetAttachmentStatus(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	reqObj := AttachmentStatusRequest{}
 	api1.MustDecodeJSON(req, &reqObj)
 	if len(reqObj.Attachments) == 0 {
 		api1.WriteJSON(w, req, 200)
 		return
 	}
 
-	output := map[string]util.MapStr{}
-	for _, id := range reqObj.Attachments {
-		output[id] = util.MapStr{
-			"initial_parsing": "completed",
-		}
-	}
+	output := getAttachmentStatus(reqObj.Attachments)
 	api1.WriteJSON(w, output, 200)
 
 }

@@ -91,21 +91,52 @@ func UploadToBlobStore(ctx *orm.Context, fileID string, file multipart.File, fil
 	return fileID, nil
 }
 
-func getAttachmentStats(ids []string) map[string]util.MapStr {
+func getAttachmentStatus(ids []string) map[string]util.MapStr {
 	out := make(map[string]util.MapStr)
 	for _, id := range ids {
-		v, err := kv.GetValue(core.AttachmentStatsBucket, []byte(id))
-		if err == nil {
-			obj := util.MapStr{}
-			util.MustFromJSONBytes(v, &obj)
-			out[id] = obj
+		stats := GetAttachmentStats(id)
+		if stats != nil {
+			out[id] = stats
 		} else {
 			//TODO remove this when the actual pipeline is ready
 			obj := util.MapStr{
-				"initial_parsing": "completed",
+				core.AttachmentStageInitialParsing: "completed",
 			}
 			out[id] = obj
 		}
 	}
+
 	return out
+}
+
+func GetAttachmentStats(id string) util.MapStr {
+	v, err := kv.GetValue(core.AttachmentStatsBucket, []byte(id))
+	if err == nil {
+		obj := util.MapStr{}
+		util.MustFromJSONBytes(v, &obj)
+
+		return obj
+	}
+
+	return nil
+}
+
+func UpdateAttachmentStats(id string, stats util.MapStr) {
+	if stats == nil {
+		return
+	}
+
+	prevStats := GetAttachmentStats(id)
+	if prevStats == nil {
+		prevStats = stats
+	} else {
+		for k, v := range stats {
+			prevStats[k] = v
+		}
+	}
+
+	err := kv.AddValue(core.AttachmentStatsBucket, []byte(id), util.MustToJSONBytes(prevStats))
+	if err != nil {
+		panic(err)
+	}
 }
