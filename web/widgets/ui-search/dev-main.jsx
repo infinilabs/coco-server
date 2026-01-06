@@ -74,7 +74,7 @@ function DevApp() {
               title: "禁止使用未充分烘干的焊条进行电弧焊熔焊",
               type: "pdf",
               updated: "2025-08-08T02:45:38.382266717Z",
-              url: "http://coco.infini.cloud/bq/1.GBT 22086-2008《铝及铝合金弧焊推荐工艺》.pdf",
+              url: "https://gips1.baidu.com/it/u=3579958525,4293415030&fm=3074&app=3074&f=PNG?w=2560&h=1440",
             },
           },
           {
@@ -189,6 +189,115 @@ function DevApp() {
               updated: "2025-08-08T02:45:40.199695999Z",
               url: "http://coco.infini.cloud/bq/3.GBT 12611-2008《金属零（部）件镀覆前质量控制技术要求》.pdf",
             },
+          },
+          // image
+          {
+            _index: "coco_document-v2",
+            _type: "_doc",
+            _id: "d2alse8qlqbca26pbjv0",
+            _score: 0.6860195,
+            _source: {
+              category: "壁纸",
+              content: "",
+              created: "2025-08-08T02:17:29.394215628Z",
+              icon: "",
+              id: "d2alse8qlqbca26pbju7",
+              lang: "cn",
+              last_updated_by: {
+                timestamp: "2025-08-08T02:25:00Z",
+                user: {
+                  username: "test",
+                },
+              },
+              owner: {
+                username: "test",
+              },
+              size: 1048576,
+              source: {
+                id: "d2aloi8qlqbca26pbilg",
+                name: "壁纸",
+                type: "connector",
+              },
+              summary: "",
+              tags: ["壁纸"],
+              title: "黑色壁纸全屏🌌,探索星空的奥秘✨",
+              type: "image",
+              updated: "2025-08-08T02:45:38.382266717Z",
+              thumbnail: "https://gips1.baidu.com/it/u=3579958525,4293415030&fm=3074&app=3074&f=PNG?w=2560&h=1440",
+              url: "https://gips1.baidu.com/it/u=3579958525,4293415030&fm=3074&app=3074&f=PNG?w=2560&h=1440",
+            },
+          },
+          {
+            _index: "coco_document-v2",
+            _type: "_doc",
+            _id: "d2alse8qlqbca26pbjv0",
+            _score: 0.6860195,
+            _source: {
+              category: "壁纸",
+              content: "",
+              created: "2025-08-08T02:17:29.394215628Z",
+              icon: "",
+              id: "d2alse8qlqbca26pbju1",
+              lang: "cn",
+              last_updated_by: {
+                timestamp: "2025-08-08T02:25:00Z",
+                user: {
+                  username: "test",
+                },
+              },
+              owner: {
+                username: "test",
+              },
+              size: 1048576,
+              source: {
+                id: "d2aloi8qlqbca26pbilg",
+                name: "壁纸",
+                type: "connector",
+              },
+              summary: "",
+              tags: ["壁纸"],
+              title: "摄影壁纸创意图,捕捉山水间的灵动之美🏞️",
+              type: "image",
+              updated: "2025-08-08T02:45:38.382266717Z",
+              thumbnail: "https://img1.baidu.com/it/u=3879890807,997649473&fm=253&fmt=auto&app=138&f=JPEG?w=889&h=500",
+              url: "https://img1.baidu.com/it/u=3879890807,997649473&fm=253&fmt=auto&app=138&f=JPEG?w=889&h=500",
+            },
+          },
+          {
+            _index: "coco_document-v2",
+            _type: "_doc",
+            _id: "d2alse8qlqbca26pbjv0",
+            _score: 0.6860195,
+            _source: {
+              category: "壁纸",
+              content: "",
+              created: "2025-08-08T02:17:29.394215628Z",
+              icon: "",
+              id: "d2alse8qlqbca26pbju8",
+              lang: "cn",
+              last_updated_by: {
+                timestamp: "2025-08-08T02:25:00Z",
+                user: {
+                  username: "test",
+                },
+              },
+              owner: {
+                username: "test",
+              },
+              size: 1048576,
+              source: {
+                id: "d2aloi8qlqbca26pbilg",
+                name: "壁纸",
+                type: "connector",
+              },
+              summary: "",
+              tags: ["壁纸"],
+              title: "摄影壁纸创意图,捕捉山水间的灵动之美🏞️",
+              type: "image",
+              updated: "2025-08-08T02:45:38.382266717Z",
+              thumbnail: "https://img2.baidu.com/it/u=1088560728,493918909&fm=253&app=138&f=JPEG?w=889&h=500",
+              url: "https://img2.baidu.com/it/u=1088560728,493918909&fm=253&app=138&f=JPEG?w=889&h=500",
+            }
           },
         ],
       },
@@ -362,7 +471,7 @@ function DevApp() {
   const componentProps = {
     id: "dev-ui-search",
     shadow: null,
-    theme: 'dark',
+    theme: 'light',
     language: 'zh-CN',
     logo: {
       // light: "/favicon.ico",

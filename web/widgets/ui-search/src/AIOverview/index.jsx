@@ -31,21 +31,21 @@ const AIOverview = (props) => {
 
   return (
     <div
-      className={`flex flex-col gap-2 relative rounded-3 text-[#333]  dark:text-[#D8D8D8] bg-white dark:bg-[#141414] shadow-[0_4px_8px_rgba(0,0,0,0.1)] dark:shadow-[0_4px_20px_rgba(255,255,255,0.2)]`}
+      className={`flex flex-col gap-2 relative rounded-3 text-[#333]  dark:text-[#D8D8D8] bg-white dark:bg-[#141414] border border-[var(--ui-search-antd-color-border-secondary)]`}
       style={{
         maxHeight: config.height ? config.height : "auto",
       }}
     >
-      <div
+      {/* <div
         className="absolute top-2 right-2 flex items-center justify-center size-[20px] border rounded-md cursor-pointer dark:border-[#282828]"
         onClick={() => {
           setVisible(false);
         }}
       >
         <X className="size-4" />
-      </div>
+      </div> */}
       {config.title && (
-        <div className="flex item-center gap-1 pt-4 px-4">
+        <div className="flex item-center gap-1 pt-6 px-6">
           {config.logo?.light ? (
             <img src={config.logo.light} className="size-4" />
           ) : (
@@ -60,7 +60,7 @@ const AIOverview = (props) => {
       <div
         ref={divRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-auto text-sm px-4 pb-4"
+        className="flex-1 overflow-auto text-sm px-6 pb-4 mb-2"
       >
         <ChatMessage
           key="current"
@@ -75,7 +75,7 @@ const AIOverview = (props) => {
           {...data}
           isTyping={loading}
           rootClassName="!py-0"
-          actionClassName="absolute bottom-2 left-3 !m-0"
+          actionClassName="absolute bottom-4 left-6 !m-0"
           actionIconSize={12}
           showActions={config.showActions}
           output={config.output}
@@ -83,7 +83,7 @@ const AIOverview = (props) => {
       </div>
 
       <div
-        className={clsx("min-h-[20px]", {
+        className={clsx("min-h-[24px]", {
           hidden: loading || config.showActions === false,
         })}
       />

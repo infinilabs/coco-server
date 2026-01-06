@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import BasicLayout from "./Layout";
 import SearchBox from "./SearchBox";
 import Logo from "./Logo";
 import Aggregations from "./Aggregations";
@@ -8,19 +7,23 @@ import { LIST_TYPES } from "./ResultList";
 import { formatESResult } from "./utils/es";
 import Welcome from "./Welcome";
 import AIOverviewWrapper from "./AIOverview/AIOverviewWrapper";
+import Categories from "./Categories";
+import { ChartColumn } from "lucide-react";
+import { ListFilter } from "lucide-react";
+import HomeLayout from "./Layout/HomeLayout";
+import BasicLayout from "./Layout/BasicLayout";
 
 const Fullscreen = (props) => {
   const {
     logo = {},
     placeholder,
     welcome,
-    type,
     aiOverview,
     widgets = [],
     onSearch,
     onAsk,
     config = {},
-    isFirst = false,
+    isHome = false,
     rightMenuWidth,
     queryParams = {},
     setQueryParams,
@@ -38,7 +41,7 @@ const Fullscreen = (props) => {
   const [data, setData] = useState([]);
   const [hasMore, setHasMore] = useState(false);
   const loadLock = useRef(false);
-  const isFirstSearchRef = useRef(true);
+  const isHomeSearchRef = useRef(true);
   const scrollRef = useRef(0)
 
   const resetScroll = () => {
@@ -59,7 +62,7 @@ const Fullscreen = (props) => {
     shouldAskRef.current = shouldAsk;
     if (!isScroll) {
       resetScroll();
-      isFirstSearchRef.current = true
+      isHomeSearchRef.current = true
     }
     setQueryParams({
       ...queryParams,
@@ -82,7 +85,7 @@ const Fullscreen = (props) => {
 
   useEffect(() => {
     const checkScreenSize = () => {
-      setIsMobile(window.innerWidth < 640);
+      setIsMobile(window.innerWidth < 768);
     };
     checkScreenSize();
     window.addEventListener("resize", checkScreenSize);
@@ -91,13 +94,13 @@ const Fullscreen = (props) => {
 
   useEffect(() => {
     const contentContainer = containerRef.current;
-    if (!contentContainer || isFirst) return;
+    if (!contentContainer || isHome) return;
 
     contentContainer.addEventListener("scroll", handleScroll);
     return () => {
       contentContainer.removeEventListener("scroll", handleScroll);
     };
-  }, [isFirst, handleScroll]);
+  }, [isHome, handleScroll]);
 
   useEffect(() => {
     if (!queryParams.query) return;
@@ -127,14 +130,14 @@ const Fullscreen = (props) => {
           const newData = isScroll ? [...data, ...(rs.hits?.hits || [])] : (rs.hits?.hits || []);
           setData(newData);
           setHasMore(newData.length < (rs.hits.total || 0));
-          if (!isScroll) isFirstSearchRef.current = false;
+          if (!isScroll) isHomeSearchRef.current = false;
         } else {
           if (!isScroll) {
             setResult(formatESResult());
             setData([]);
           }
           setHasMore(false);
-          isFirstSearchRef.current = false;
+          isHomeSearchRef.current = false;
         }
 
         if (shouldAskRef.current) {
@@ -161,13 +164,14 @@ const Fullscreen = (props) => {
     };
   }, [queryParams]);
 
+  const { query, filter, type = 'all' } = queryParams;
+
   const listType = useMemo(() => {
     if (!LIST_TYPES || LIST_TYPES.length === 0) return undefined;
     return LIST_TYPES.find((item) => item.type === type) || LIST_TYPES[0];
   }, [type]);
 
   const commonProps = { isMobile, theme };
-  const { query, filter } = queryParams;
   const { hits, aggregations } = result;
 
   const handleLogoClick = () => {
@@ -181,22 +185,17 @@ const Fullscreen = (props) => {
     setData([]);
     setHasMore(false);
     resetScroll();
-    isFirstSearchRef.current = true;
+    isHomeSearchRef.current = true;
     if (onLogoClick) onLogoClick();
   };
 
-  const showFullScreenSpin = loading && isFirstSearchRef.current;
+  const showFullScreenSpin = loading && isHomeSearchRef.current;
 
-  return (
-    <BasicLayout
+  return isHome ? (
+    <HomeLayout 
       {...commonProps}
-      initContainer={(ref) => {
-        containerRef.current = ref;
-      }}
-      getContainer={() => containerRef.current}
-      isFirst={isFirst}
       loading={showFullScreenSpin}
-      logo={<Logo isFirst={isFirst} onLogoClick={handleLogoClick} {...commonProps} {...logo} />}
+      logo={<Logo isHome={isHome} {...commonProps} {...logo} />}
       welcome={welcome ? <Welcome {...commonProps} text={welcome} /> : null}
       searchbox={
         <SearchBox
@@ -208,6 +207,46 @@ const Fullscreen = (props) => {
           }}
         />
       }
+    />
+  ) : (
+    <BasicLayout
+      {...commonProps}
+      initContainer={(ref) => {
+        containerRef.current = ref;
+      }}
+      getContainer={() => containerRef.current}
+      loading={showFullScreenSpin}
+      logo={<Logo isHome={isHome} onLogoClick={handleLogoClick} {...commonProps} {...logo} />}
+      welcome={welcome ? <Welcome {...commonProps} text={welcome} /> : null}
+      searchbox={
+        <SearchBox
+          {...commonProps}
+          placeholder={placeholder}
+          query={query}
+          onSearch={(query) => {
+            handleSearch({ ...queryParams, from: 0, query }, true)
+          }}
+          minimize={true}
+        />
+      }
+      tabs={(
+        <Categories 
+          type={queryParams?.type}
+          onChange={(type) => {
+            setQueryParams({
+              ...queryParams,
+              type,
+              t: new Date().valueOf(),
+            });
+          }}
+        />
+      )}
+      tools={(
+        <div className="h-46px flex items-center gap-8px">
+          <ListFilter className="w-16px h-16px"/>
+          <ChartColumn className="w-16px h-16px"/>
+        </div>
+      )}
       rightMenuWidth={rightMenuWidth}
       aggregations={
         <Aggregations
@@ -222,7 +261,7 @@ const Fullscreen = (props) => {
       }
       resultHeader={<ResultHeader hits={hits} {...commonProps} />}
       aiOverview={
-        aiOverview?.enabled ? (
+        listType?.showAIOverview && aiOverview?.enabled ? (
           <AIOverviewWrapper
             askBody={askBody}
             config={aiOverview}

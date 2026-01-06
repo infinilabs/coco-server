@@ -5,22 +5,22 @@ import Fullscreen from "./Fullscreen";
 const FullscreenPage = (props) => {
   const { onSearch, queryParams, onLogoClick } = props;
 
-  const [isFirst, setIsFirst] = useState(true);
-  const isFirstRef = useRef(true);
+  const [isHome, setIsHome] = useState(true);
+  const isHomeRef = useRef(true);
 
   return (
     <Fullscreen
       {...props}
-      isFirst={queryParams.query ? false : isFirst}
+      isHome={queryParams.query ? false : isHome}
       onSearch={(query, callback, setLoading, shouldAgg) => {
-        if (isFirstRef.current) {
-          setIsFirst(false);
-          isFirstRef.current = false;
+        if (isHomeRef.current) {
+          setIsHome(false);
+          isHomeRef.current = false;
         }
         onSearch(query, callback, setLoading, shouldAgg);
       }}
       onLogoClick={() => {
-        setIsFirst(true)
+        setIsHome(true)
         onLogoClick && onLogoClick()
       }}
     />

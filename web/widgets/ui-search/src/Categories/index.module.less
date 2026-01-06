@@ -1,0 +1,20 @@
+.categories {
+    padding: 0;
+
+    :global {
+        .ant-tabs-nav {
+            margin-bottom: 0;
+        }
+        .ant-tabs-tab {
+            padding-left: 6px;
+            padding-right: 6px;
+        }
+        .ant-tabs-tab+.ant-tabs-tab {
+            margin-left: 40px;
+        }
+
+        .ant-tabs-nav::before {
+            border: 0;
+        }
+    }
+}
