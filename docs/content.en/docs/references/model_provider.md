@@ -1,5 +1,5 @@
 ---
-title: "Model Provider"
+title: "LLM Provider"
 weight: 90
 ---
 

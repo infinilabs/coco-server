@@ -84,7 +84,7 @@ func (r RAGContext) MustGetAnsweringModel() *core.ModelConfig {
 		panic("invalid AssistantCfg")
 	}
 
-	//for background job only, no performance issue need to care
+	//for background job only, no performance issue need to care right now
 	for _, v := range r.answeringProvider.Models {
 		if v.Name == r.AssistantCfg.AnsweringModel.Name {
 			r.AssistantCfg.AnsweringModel.Settings.Reasoning = v.Settings.Reasoning
