@@ -9,8 +9,8 @@ export function ImageList(props) {
     const key = index + 1;
     const width = Math.round(Math.random() * (600 - 200) + 200);
     const height = Math.round(Math.random() * (600 - 200) + 200);
-    const thumbnailWidth = width * 0.5;
-    const thumbnailHeight = height * 0.5;
+    const thumbnailWidth = Math.round(width * 0.5);
+    const thumbnailHeight = Math.round(height * 0.5);
 
     return {
       id: key,
