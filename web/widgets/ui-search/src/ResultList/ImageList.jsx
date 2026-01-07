@@ -1,14 +1,16 @@
-import { memo, useRef, useState } from "react";
+import { memo, useMemo, useRef, useState } from "react";
 import { Masonry, Skeleton } from "antd";
 import { ChevronRight } from "lucide-react";
-import { useSize } from "ahooks";
+import { useInViewport, useSize } from "ahooks";
 import clsx from "clsx";
 
 const MasonryItem = (props) => {
   const { data } = props;
   const containerRef = useRef(null);
   const containerSize = useSize(containerRef);
-  const [loading, setLoading] = useState(true);
+  const imgRef = useRef(null);
+  const [loaded, setLoaded] = useState(false);
+  const [inViewport] = useInViewport(imgRef);
 
   const calcHeight = () => {
     const { width, height } = data?.metadata?.image_media_metadata ?? {};
@@ -16,16 +18,22 @@ const MasonryItem = (props) => {
     return Math.round((containerSize?.width * height) / width);
   };
 
+  const imgSrc = useMemo(() => {
+    if (loaded) return data?.thumbnail;
+
+    return inViewport ? data?.thumbnail : void 0;
+  }, [inViewport, loaded]);
+
   return (
     <div ref={containerRef} className="group relative cursor-pointer">
       <div
         className="relative w-full rounded-lg overflow-hidden"
         style={{
-          height: calcHeight(),
+          height: calcHeight() || 0,
         }}
       >
         <Skeleton.Node
-          active={loading}
+          active
           classNames={{
             root: "size-full!",
             content: "size-full!",
@@ -33,25 +41,27 @@ const MasonryItem = (props) => {
         />
 
         <img
-          src={data?.thumbnail}
+          ref={imgRef}
+          src={imgSrc}
           alt={data?.title}
           className={clsx(
-            "absolute inset-0 object-cover opacity-0 transition",
+            "absolute inset-0 size-full object-cover opacity-0 transition",
             {
-              "opacity-100": !loading,
+              "opacity-100": loaded,
             },
           )}
           onLoad={() => {
-            setLoading(false);
+            console.log("image loaded");
+            setLoaded(true);
           }}
         />
       </div>
 
       <div
         className={clsx(
-          "absolute left-0 bottom-0 w-full p-3 text-white opacity-0 transition group-hover:opacity-100",
+          "absolute left-0 bottom-0 w-full p-3 text-white opacity-0 transition",
           {
-            hidden: loading,
+            "group-hover:opacity-100": loaded,
           },
         )}
       >
@@ -70,7 +80,7 @@ const MasonryItem = (props) => {
 export function ImageList(props) {
   const { getDetailContainer, data = [], isMobile, loading, hasMore } = props;
 
-  const items = Array.from({ length: 50 }, (_, index) => {
+  const items = Array.from({ length: 100 }, (_, index) => {
     const key = index + 1;
     const width = Math.round(Math.random() * (600 - 200) + 200);
     const height = Math.round(Math.random() * (600 - 200) + 200);
