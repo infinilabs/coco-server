@@ -9,8 +9,8 @@ export function ImageList(props) {
     const key = index + 1;
     const width = Math.round(Math.random() * (600 - 200) + 200);
     const height = Math.round(Math.random() * (600 - 200) + 200);
-    const thumbnailWidth = width * 0.5;
-    const thumbnailHeight = height * 0.5;
+    const thumbnailWidth = Math.round(width * 0.5);
+    const thumbnailHeight = Math.round(height * 0.5);
 
     return {
       id: key,
@@ -53,10 +53,10 @@ export function ImageList(props) {
             />
           </div>
 
-          <div className="absolute left-0 bottom-0 w-full p-3 text-3.5 text-white opacity-0 transition group-hover:opacity-100">
-            <div>{data?.title}</div>
+          <div className="absolute left-0 bottom-0 w-full p-3 text-white opacity-0 transition group-hover:opacity-100">
+            <div className="text-3.5">{data?.title}</div>
 
-            <div className="inline-flex items-center flex-wrap gap-0.5">
+            <div className="inline-flex items-center flex-wrap gap-0.5 text-3">
               <span>{data?.source?.name}</span>
               <ChevronRight className="size-3" />
               <span>{data?.category}</span>
