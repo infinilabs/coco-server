@@ -110,6 +110,7 @@ func QueryDocuments(ctx1 context.Context, userID string, teamsID []string, build
 
 	ctx := orm.NewContextWithParent(ctx1)
 	ctx.DirectReadAccess()
+
 	orm.WithModel(ctx, &core.Document{})
 	log.Trace(builder.ToString())
 

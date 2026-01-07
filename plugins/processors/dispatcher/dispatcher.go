@@ -6,13 +6,15 @@ package dispatcher
 
 import (
 	"fmt"
+	"time"
+
 	"infini.sh/coco/core"
 	"infini.sh/framework/core/api"
 	"infini.sh/framework/core/elastic"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/queue"
+	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
-	"time"
 
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/modules/common"
@@ -54,6 +56,8 @@ func (processor *Dispatcher) Process(ctx *pipeline.Context) error {
 	// get active datasource list
 	ctx1 := orm.NewContextWithParent(ctx)
 	ctx1.DirectReadAccess()
+	ctx1.Set(orm.ReadPermissionCheckingScope, security.PermissionScopePlatform)
+
 	orm.WithModel(ctx1, &core.DataSource{})
 
 	docs := []core.DataSource{}
