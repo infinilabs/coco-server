@@ -41,7 +41,11 @@ func QueryDocuments(ctx1 context.Context, userID string, teamsID []string, build
 		directAccessDatasources = append(directAccessDatasources, rule.ResourceID)
 	}
 
-	rules, _ = sharingService.GetAllCategoryVisibleWithChildrenSharedObjects(userID, teamsID, "datasource")
+	rules, err = sharingService.GetAllCategoryVisibleWithChildrenSharedObjects(userID, teamsID, "datasource")
+	if err != nil {
+		panic(err)
+	}
+
 	for _, rule := range rules {
 		checkingScopeDatasources = append(checkingScopeDatasources, rule.ResourceCategoryID)
 	}
