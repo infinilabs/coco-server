@@ -1,5 +1,10 @@
 .searchbox {
     :global {
+        .ant-input-affix-wrapper {
+            background: transparent;
+            padding-left: 9px;
+            padding-right: 9px;
+        }
         .ant-input-group-addon {
             background-color: var(--ui-search-antd-color-bg-container);
             border: 0;
@@ -22,6 +27,19 @@
             height: 24px;
             border-radius: 50% !important;
             padding: 0;
+        }
+    }
+}
+
+.listItem {
+
+    .enter {
+        display: none;
+    }
+
+    &.active, &:hover {
+        .enter {
+            display: block;
         }
     }
 }
