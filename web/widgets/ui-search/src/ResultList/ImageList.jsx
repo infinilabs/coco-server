@@ -1,6 +1,71 @@
-import { memo } from "react";
-import { Masonry } from "antd";
+import { memo, useRef, useState } from "react";
+import { Masonry, Skeleton } from "antd";
 import { ChevronRight } from "lucide-react";
+import { useSize } from "ahooks";
+import clsx from "clsx";
+
+const MasonryItem = (props) => {
+  const { data } = props;
+  const containerRef = useRef(null);
+  const containerSize = useSize(containerRef);
+  const [loading, setLoading] = useState(true);
+
+  const calcHeight = () => {
+    const { width, height } = data?.metadata?.image_media_metadata ?? {};
+
+    return Math.round((containerSize?.width * height) / width);
+  };
+
+  return (
+    <div ref={containerRef} className="group relative cursor-pointer">
+      <div
+        className="relative w-full rounded-lg overflow-hidden"
+        style={{
+          height: calcHeight(),
+        }}
+      >
+        <Skeleton.Node
+          active={loading}
+          classNames={{
+            root: "size-full!",
+            content: "size-full!",
+          }}
+        />
+
+        <img
+          src={data?.thumbnail}
+          alt={data?.title}
+          className={clsx(
+            "absolute inset-0 object-cover opacity-0 transition",
+            {
+              "opacity-100": !loading,
+            },
+          )}
+          onLoad={() => {
+            setLoading(false);
+          }}
+        />
+      </div>
+
+      <div
+        className={clsx(
+          "absolute left-0 bottom-0 w-full p-3 text-white opacity-0 transition group-hover:opacity-100",
+          {
+            hidden: loading,
+          },
+        )}
+      >
+        <div className="text-3.5">{data?.title}</div>
+
+        <div className="inline-flex items-center flex-wrap gap-0.5 text-3">
+          <span>{data?.source?.name}</span>
+          <ChevronRight className="size-3" />
+          <span>{data?.category}</span>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export function ImageList(props) {
   const { getDetailContainer, data = [], isMobile, loading, hasMore } = props;
@@ -43,27 +108,7 @@ export function ImageList(props) {
         key: item.id,
         data: item,
       }))}
-      itemRender={({ data }) => (
-        <div className="group relative cursor-pointer">
-          <div className="w-full rounded-lg overflow-hidden">
-            <img
-              src={data?.thumbnail}
-              alt={data?.title}
-              className="w-full object-cover"
-            />
-          </div>
-
-          <div className="absolute left-0 bottom-0 w-full p-3 text-white opacity-0 transition group-hover:opacity-100">
-            <div className="text-3.5">{data?.title}</div>
-
-            <div className="inline-flex items-center flex-wrap gap-0.5 text-3">
-              <span>{data?.source?.name}</span>
-              <ChevronRight className="size-3" />
-              <span>{data?.category}</span>
-            </div>
-          </div>
-        </div>
-      )}
+      itemRender={(item) => <MasonryItem {...item} />}
     />
   );
 }
