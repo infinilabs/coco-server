@@ -15,6 +15,7 @@ const BasicLayout = (props) => {
     searchbox,
     tabs,
     tools,
+    toolbar,
     aggregations,
     resultHeader,
     aiOverview,
@@ -101,7 +102,8 @@ const BasicLayout = (props) => {
             }
           </div>
           <div className={`pt-32px ${isMobile ? 'px-16px' : 'pl-56px pr-96px'}`}>
-            <div className="pl-24px mb-16px">{resultHeader}</div>
+            {toolbar && <div className="pl-24px mb-16px">{toolbar}</div> }
+            <div className={`${isMobile ? '' : 'pl-24px'} mb-16px`}>{resultHeader}</div>
             {aiOverview && <div className="mb-12px">{aiOverview}</div>}
             <div className="mb-24px">{resultList}</div>
           </div>

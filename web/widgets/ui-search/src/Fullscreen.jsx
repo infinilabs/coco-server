@@ -12,6 +12,7 @@ import { ChartColumn } from "lucide-react";
 import { ListFilter } from "lucide-react";
 import HomeLayout from "./Layout/HomeLayout";
 import BasicLayout from "./Layout/BasicLayout";
+import Toolbar from "./Toolbar";
 
 const Fullscreen = (props) => {
   const {
@@ -43,6 +44,7 @@ const Fullscreen = (props) => {
   const loadLock = useRef(false);
   const isHomeSearchRef = useRef(true);
   const scrollRef = useRef(0)
+  const [showToolbar, setShowToolbar] = useState(false);
 
   const resetScroll = () => {
     scrollRef.current = 0;
@@ -243,10 +245,11 @@ const Fullscreen = (props) => {
       )}
       tools={(
         <div className="h-46px flex items-center gap-8px">
-          <ListFilter className="w-16px h-16px"/>
-          <ChartColumn className="w-16px h-16px"/>
+          <ListFilter strokeWidth={1} className="w-16px h-16px cursor-pointer" onClick={() => setShowToolbar((prev) => !prev)}/>
+          <ChartColumn strokeWidth={1} className="w-16px h-16px cursor-pointer"/>
         </div>
       )}
+      toolbar={showToolbar ? <Toolbar /> : null}
       rightMenuWidth={rightMenuWidth}
       aggregations={
         <Aggregations
