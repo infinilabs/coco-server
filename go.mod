@@ -30,7 +30,6 @@ require (
 	github.com/cihub/seelog v0.0.0-00010101000000-000000000000
 	github.com/disintegration/imaging v1.6.2
 	github.com/emirpasic/gods v1.18.1
-	github.com/gen2brain/go-fitz v1.24.14
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/google/go-github/v74 v74.0.0
@@ -99,7 +98,6 @@ require (
 	github.com/dgraph-io/ristretto/v2 v2.2.0 // indirect
 	github.com/dlclark/regexp2 v1.10.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
-	github.com/ebitengine/purego v0.8.0 // indirect
 	github.com/fatih/structs v1.1.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
@@ -152,7 +150,6 @@ require (
 	github.com/jmoiron/jsonq v0.0.0-20150511023944-e874b168d07e // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/jupiterrider/ffi v0.2.0 // indirect
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
 	github.com/kardianos/service v1.2.2 // indirect
 	github.com/kennygrant/sanitize v1.2.4 // indirect

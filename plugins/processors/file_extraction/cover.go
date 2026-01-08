@@ -20,7 +20,6 @@ import (
 	"github.com/chromedp/cdproto/runtime"
 	"github.com/chromedp/chromedp"
 	"github.com/disintegration/imaging"
-	"github.com/gen2brain/go-fitz"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
@@ -115,22 +114,39 @@ func generateImageCover(imagePath, outPath string) error {
 	return jpeg.Encode(out, img, &jpeg.Options{Quality: 85})
 }
 
-// generatePdfCover generates a cover from the first page of a PDF
+// generatePdfCover generates a cover from the first page of a PDF using pdftoppm
 func generatePdfCover(pdfPath, outPath string) error {
-	doc, err := fitz.New(pdfPath)
+	// Create temp directory for pdftoppm output
+	tmpDir, err := os.MkdirTemp("", "pdf-cover-")
 	if err != nil {
-		return fmt.Errorf("failed to open PDF: %w", err)
+		return fmt.Errorf("failed to create temp dir: %w", err)
 	}
-	defer doc.Close()
+	defer os.RemoveAll(tmpDir)
 
-	// Render first page (index 0)
-	img, err := doc.Image(0)
-	if err != nil {
-		return fmt.Errorf("failed to render PDF page: %w", err)
+	// Output prefix for pdftoppm (it will create prefix-1.jpg)
+	outputPrefix := filepath.Join(tmpDir, "page")
+
+	// Run pdftoppm to convert first page to JPEG
+	// -f 1 -l 1: first page only
+	// -jpeg: output as JPEG
+	// -r 150: 150 DPI (good balance of quality and size)
+	cmd := exec.Command("pdftoppm", "-f", "1", "-l", "1", "-jpeg", "-r", "150", pdfPath, outputPrefix)
+	if output, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("pdftoppm failed (output: %s): %w", string(output), err)
 	}
 
-	// Save as JPEG
-	return saveImageAsJpeg(img, outPath)
+	// pdftoppm creates files like page-1.jpg
+	generatedFile := outputPrefix + "-1.jpg"
+	if _, err := os.Stat(generatedFile); os.IsNotExist(err) {
+		// Try alternative naming (page-01.jpg for multi-digit padding)
+		generatedFile = outputPrefix + "-01.jpg"
+		if _, err := os.Stat(generatedFile); os.IsNotExist(err) {
+			return fmt.Errorf("pdftoppm output file not found")
+		}
+	}
+
+	// Copy to output path
+	return copyLocalFile(generatedFile, outPath)
 }
 
 // generateOfficeCover generates a cover for Office documents by converting to PDF first

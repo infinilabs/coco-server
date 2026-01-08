@@ -45,7 +45,7 @@ jobs:
       - name: Install native dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libmupdf-dev chromium-browser
+          sudo apt-get install -y poppler-utils chromium-browser
 
       - name: Clone framework and framework vendor
         run: |
