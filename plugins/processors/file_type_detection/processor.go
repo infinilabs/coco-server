@@ -26,7 +26,7 @@ const ProcessorName = "file_type_detection"
 
 // Supported connector IDs for file type detection
 var supportedConnectors = map[string]bool{
-	s3.ConnectorS3:         true,
+	s3.ConnectorS3:            true,
 	local_fs.ConnectorLocalFs: true,
 }
 
