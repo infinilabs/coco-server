@@ -41,19 +41,13 @@ var predefinedColors = []PredefinedColor{
 	{"brown", colorful.Color{R: 0.64, G: 0.16, B: 0.16}},
 }
 
-// ExtractDominantColors extracts the top 3 dominant colors from an image file
+// ExtractDominantColors extracts the top 3 dominant colors from an image
 // and returns them as lowercase English color names.
-func ExtractDominantColors(imagePath string) ([]string, error) {
-	// Load image
-	img, err := loadImageFile(imagePath)
-	if err != nil {
-		return nil, err
-	}
-
+func ExtractDominantColors(img image.Image) ([]string, error) {
 	// Extract dominant colors using k-means clustering
 	dominantColors, err := prominentcolor.Kmeans(img)
 	if err != nil {
-		log.Warnf("failed to extract dominant colors from [%s]: %v", imagePath, err)
+		log.Warnf("failed to extract dominant colors: %v", err)
 		return nil, err
 	}
 

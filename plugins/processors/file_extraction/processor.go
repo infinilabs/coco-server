@@ -179,12 +179,17 @@ func (p *FileExtractionProcessor) processDocument(ctx context.Context, doc *core
 	// Step 2: Extract dominant colors (for images)
 	contentType, _ := doc.Metadata["content_type"].(string)
 	if contentType == "image" {
-		colors, err := ExtractDominantColors(localPath)
+		img, err := loadImageFile(localPath)
 		if err != nil {
-			log.Warnf("processor [%s] failed to extract colors for [%s]: %v", p.Name(), doc.Title, err)
+			log.Warnf("processor [%s] failed to load image for color extraction [%s]: %v", p.Name(), doc.Title, err)
 		} else {
-			doc.Metadata["colors"] = colors
-			log.Debugf("processor [%s] extracted colors for [%s]: %v", p.Name(), doc.Title, colors)
+			colors, err := ExtractDominantColors(img)
+			if err != nil {
+				log.Warnf("processor [%s] failed to extract colors for [%s]: %v", p.Name(), doc.Title, err)
+			} else {
+				doc.Metadata["colors"] = colors
+				log.Debugf("processor [%s] extracted colors for [%s]: %v", p.Name(), doc.Title, colors)
+			}
 		}
 	}
 

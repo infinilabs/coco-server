@@ -5,12 +5,8 @@
 package file_extraction
 
 import (
-	"bytes"
 	"image"
 	"image/color"
-	"image/png"
-	"os"
-	"path/filepath"
 	"testing"
 )
 
@@ -87,17 +83,10 @@ func TestMapHexToColorName_InvalidHex(t *testing.T) {
 }
 
 func TestExtractDominantColors_SolidColorImage(t *testing.T) {
-	// Create a temporary solid red image
+	// Create a solid red image
 	img := createSolidColorImage(100, 100, color.RGBA{R: 255, G: 0, B: 0, A: 255})
 
-	tmpDir := t.TempDir()
-	imgPath := filepath.Join(tmpDir, "red.png")
-
-	if err := saveImageAsPNG(img, imgPath); err != nil {
-		t.Fatalf("failed to save test image: %v", err)
-	}
-
-	colors, err := ExtractDominantColors(imgPath)
+	colors, err := ExtractDominantColors(img)
 	if err != nil {
 		t.Fatalf("ExtractDominantColors failed: %v", err)
 	}
@@ -116,14 +105,7 @@ func TestExtractDominantColors_MultiColorImage(t *testing.T) {
 	// Create an image with distinct color regions
 	img := createMultiColorImage(300, 100)
 
-	tmpDir := t.TempDir()
-	imgPath := filepath.Join(tmpDir, "multi.png")
-
-	if err := saveImageAsPNG(img, imgPath); err != nil {
-		t.Fatalf("failed to save test image: %v", err)
-	}
-
-	colors, err := ExtractDominantColors(imgPath)
+	colors, err := ExtractDominantColors(img)
 	if err != nil {
 		t.Fatalf("ExtractDominantColors failed: %v", err)
 	}
@@ -143,30 +125,9 @@ func TestExtractDominantColors_MultiColorImage(t *testing.T) {
 	}
 }
 
-func TestExtractDominantColors_NonexistentFile(t *testing.T) {
-	_, err := ExtractDominantColors("/nonexistent/path/image.png")
-	if err == nil {
-		t.Error("expected error for nonexistent file, got nil")
-	}
-}
-
-func TestExtractDominantColors_InvalidImageFile(t *testing.T) {
-	tmpDir := t.TempDir()
-	invalidPath := filepath.Join(tmpDir, "invalid.png")
-
-	// Write non-image data
-	if err := os.WriteFile(invalidPath, []byte("not an image"), 0644); err != nil {
-		t.Fatalf("failed to create invalid file: %v", err)
-	}
-
-	_, err := ExtractDominantColors(invalidPath)
-	if err == nil {
-		t.Error("expected error for invalid image file, got nil")
-	}
-}
-
 // Helper functions for creating test images
-
+//
+// Generate an image with 1 color
 func createSolidColorImage(width, height int, c color.Color) image.Image {
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
 	for y := 0; y < height; y++ {
@@ -177,6 +138,9 @@ func createSolidColorImage(width, height int, c color.Color) image.Image {
 	return img
 }
 
+// Helper functions for creating test images
+//
+// Generate an image with 3 color (red, green, blue)
 func createMultiColorImage(width, height int) image.Image {
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
 	sectionWidth := width / 3
@@ -197,12 +161,4 @@ func createMultiColorImage(width, height int) image.Image {
 		}
 	}
 	return img
-}
-
-func saveImageAsPNG(img image.Image, path string) error {
-	var buf bytes.Buffer
-	if err := png.Encode(&buf, img); err != nil {
-		return err
-	}
-	return os.WriteFile(path, buf.Bytes(), 0644)
 }
