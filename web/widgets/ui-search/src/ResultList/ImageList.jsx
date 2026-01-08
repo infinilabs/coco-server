@@ -1,6 +1,6 @@
 import { memo, useMemo, useRef, useState } from "react";
 import { Masonry, Skeleton } from "antd";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, ImageOff } from "lucide-react";
 import { useInViewport, useSize } from "ahooks";
 import clsx from "clsx";
 
@@ -9,8 +9,9 @@ const MasonryItem = (props) => {
   const containerRef = useRef(null);
   const containerSize = useSize(containerRef);
   const imgRef = useRef(null);
-  const [loaded, setLoaded] = useState(false);
   const [inViewport] = useInViewport(imgRef);
+  const [loaded, setLoaded] = useState(false);
+  const [errored, setErrored] = useState(false);
 
   const calcHeight = () => {
     const { width, height } = data?.metadata?.image_media_metadata ?? {};
@@ -33,7 +34,7 @@ const MasonryItem = (props) => {
         }}
       >
         <Skeleton.Node
-          active
+          active={!errored}
           classNames={{
             root: "size-full!",
             content: "size-full!",
@@ -51,10 +52,23 @@ const MasonryItem = (props) => {
             },
           )}
           onLoad={() => {
-            console.log("image loaded");
             setLoaded(true);
           }}
+          onError={() => {
+            setErrored(true);
+          }}
         />
+
+        <div
+          className={clsx(
+            "absolute inset-0 size-full flex items-center justify-center opacity-0",
+            {
+              "opacity-100": errored,
+            },
+          )}
+        >
+          <ImageOff className="text-[#999]" />
+        </div>
       </div>
 
       <div
@@ -91,7 +105,10 @@ export function ImageList(props) {
       id: key,
       title: `title${key}`,
       category: "Category",
-      thumbnail: `https://picsum.photos/${thumbnailWidth}/${thumbnailHeight}`,
+      thumbnail:
+        key % 10 === 0
+          ? "error"
+          : `https://picsum.photos/${thumbnailWidth}/${thumbnailHeight}`,
       source: {
         name: "Source",
       },
