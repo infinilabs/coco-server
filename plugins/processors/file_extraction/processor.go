@@ -74,10 +74,9 @@ func (p *FileExtractionProcessor) Process(ctx *pipeline.Context) error {
 	}
 
 	for i := range messages {
-		msg := &messages[i]
 		doc := core.Document{}
 
-		docBytes := msg.Data
+		docBytes := messages[i].Data
 		err := util.FromJSONBytes(docBytes, &doc)
 		if err != nil {
 			log.Error("processor [%s] failed to deserialize document from bytes: [%s]", p.Name(), err)
@@ -91,17 +90,20 @@ func (p *FileExtractionProcessor) Process(ctx *pipeline.Context) error {
 				log.Errorf("processor [%s] failed to extract file [%s]'s content: %s", p.Name(), doc.Title, err)
 				continue
 			}
-			// Update msg.Data with the new document content
-			updatedDocBytes := util.MustToJSONBytes(doc)
-			msg.Data = updatedDocBytes
+			// Update messages[i].Data in-place with the new document content
+			messages[i].Data = util.MustToJSONBytes(doc)
 		}
+	}
 
-		if p.outputQueue != nil {
-			if err := queue.Push(p.outputQueue, msg.Data); err != nil {
+	// Push all processed messages to output queue in batch
+	if p.outputQueue != nil {
+		for i := range messages {
+			if err := queue.Push(p.outputQueue, messages[i].Data); err != nil {
 				log.Errorf("failed to push document to [%s]'s output queue: %v", p.Name(), err)
 			}
 		}
 	}
+
 	return nil
 }
 
