@@ -5,14 +5,16 @@
 package document
 
 import (
+	"net/http"
+
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/modules/connector"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/orm"
+	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
-	"net/http"
 )
 
 func (h *APIHandler) createDoc(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -131,6 +133,8 @@ func (h *APIHandler) searchDocs(w http.ResponseWriter, req *http.Request, ps htt
 	if len(sourceIDs) == 1 {
 		ctx1 := orm.NewContext()
 		ctx1.DirectReadAccess()
+		ctx1.Set(orm.PermissionCheckingScope, security.PermissionScopePlatform)
+
 		sourceIDArray, ok := sourceIDs[0].([]interface{})
 		if ok {
 			sourceID, ok := sourceIDArray[0].(string)

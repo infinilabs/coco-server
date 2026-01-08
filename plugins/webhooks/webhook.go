@@ -6,6 +6,8 @@ package webhooks
 
 import (
 	"context"
+	"net/http"
+
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
@@ -15,15 +17,18 @@ import (
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/pipeline"
 	"infini.sh/framework/core/queue"
+	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/task"
 	"infini.sh/framework/core/util"
-	"net/http"
 )
 
 func WebhookHandler(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	datasourceID := ps.MustGetParameter("id")
 	ctx := orm.NewContext()
 	ctx.DirectReadAccess()
+
+	ctx.Set(orm.PermissionCheckingScope, security.PermissionScopePlatform)
+
 	datasource, err := common.GetDatasourceConfig(ctx, datasourceID)
 	if err != nil {
 		panic(err)
