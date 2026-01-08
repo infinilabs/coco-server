@@ -25,8 +25,6 @@ func (h *APIHandler) widgetWrapper(w http.ResponseWriter, req *http.Request, ps 
 	obj.ID = integrationID
 	ctx := orm.NewContextWithParent(req.Context()).DirectReadAccess()
 
-	ctx.Set(orm.ReadPermissionCheckingScope, security.PermissionScopePlatform)
-
 	ctx.Set(orm.ReadPermissionCheckingScope, security.PermissionScopePublic)
 
 	exists, err := orm.GetV2(ctx, &obj)
