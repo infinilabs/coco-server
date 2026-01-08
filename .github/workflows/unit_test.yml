@@ -189,6 +189,11 @@ jobs:
             - name: Check go toolchain
               run: go version
 
+            - name: Install native dependencies
+              run: |
+                sudo apt-get update
+                sudo apt-get install -y libmupdf-dev chromium-browser
+
             - name: Cache Build Output
               uses: actions/cache@v4
               with:
