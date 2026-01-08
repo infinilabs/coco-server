@@ -330,6 +330,18 @@ pipeline:
                 chunk_size: 7000
                 vision_model_provider: qianwen
                 vision_model: qwen-vl-max
+                cover_s3:
+                  endpoint: "192.168.3.181:9101"
+                  access_key_id: "cloud_s3_accesskey"
+                  secret_access_key: "cloud_s3_secretkey"
+                  bucket: "ai_search_covers"
+                  use_ssl: false
+                document_s3:
+                  endpoint: "192.168.3.181:9101"
+                  access_key_id: "cloud_s3_accesskey"
+                  secret_access_key: "cloud_s3_secretkey"
+                  bucket: "ai_search_documents"
+                  use_ssl: false
             - document_summarization:
                 model_provider: deepseek
                 model: deepseek-chat

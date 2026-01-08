@@ -51,6 +51,10 @@ type Config struct {
 	// Vision model configuration for image processing
 	VisionModelProviderID string `config:"vision_model_provider"`
 	VisionModelName       string `config:"vision_model"`
+
+	// S3 configuration for cover and document storage
+	CoverS3    *S3Config `config:"cover_s3"`
+	DocumentS3 *S3Config `config:"document_s3"`
 }
 
 func New(c *config.Config) (pipeline.Processor, error) {
@@ -61,6 +65,14 @@ func New(c *config.Config) (pipeline.Processor, error) {
 	}
 	if err := c.Unpack(&cfg); err != nil {
 		return nil, err
+	}
+
+	// Validate required S3 configurations
+	if cfg.CoverS3 == nil {
+		panic("file_extraction processor: cover_s3 configuration is required")
+	}
+	if cfg.DocumentS3 == nil {
+		panic("file_extraction processor: document_s3 configuration is required")
 	}
 
 	p := &FileExtractionProcessor{config: &cfg}
@@ -183,7 +195,7 @@ func (p *FileExtractionProcessor) processDocument(ctx context.Context, doc *core
 		log.Warnf("processor [%s] failed to generate cover for [%s]: %v", p.Name(), doc.Title, err)
 	} else {
 		coverObjectName := doc.ID + "_cover.jpg"
-		coverURL, err := uploadToS3(ctx, CoverS3Config, coverPath, coverObjectName)
+		coverURL, err := uploadToS3(ctx, *p.config.CoverS3, coverPath, coverObjectName)
 		if err != nil {
 			log.Warnf("processor [%s] failed to upload cover for [%s]: %v", p.Name(), doc.Title, err)
 		} else {
@@ -201,7 +213,7 @@ func (p *FileExtractionProcessor) processDocument(ctx context.Context, doc *core
 	// Step 5: Upload file to S3 for preview
 	ext := filepath.Ext(localPath)
 	documentObjectName := doc.ID + ext
-	previewURL, err := uploadToS3(ctx, DocumentS3Config, localPath, documentObjectName)
+	previewURL, err := uploadToS3(ctx, *p.config.DocumentS3, localPath, documentObjectName)
 	if err != nil {
 		log.Warnf("processor [%s] failed to upload document [%s] for preview: %v", p.Name(), doc.Title, err)
 	} else {

@@ -2,6 +2,12 @@
  * Web: https://infinilabs.com
  * Email: hello#infini.ltd */
 
+// Utilies needed to interact with S3
+//
+// * We download S3 files to lcoal disk to process them
+// * We upload documents and their covers to S3 so that we can preview them
+//   using the preview URL.
+
 package file_extraction
 
 import (
@@ -18,31 +24,12 @@ import (
 
 // S3Config holds S3 connection configuration
 type S3Config struct {
-	Endpoint        string
-	AccessKeyID     string
-	SecretAccessKey string
-	Bucket          string
-	UseSSL          bool
+	Endpoint        string `config:"endpoint"`
+	AccessKeyID     string `config:"access_key_id"`
+	SecretAccessKey string `config:"secret_access_key"`
+	Bucket          string `config:"bucket"`
+	UseSSL          bool   `config:"use_ssl"`
 }
-
-// Hardcoded S3 configurations for cover and document storage
-var (
-	CoverS3Config = S3Config{
-		Endpoint:        "192.168.3.181:9101",
-		AccessKeyID:     "cloud_s3_accesskey",
-		SecretAccessKey: "cloud_s3_secretkey",
-		Bucket:          "ai_search_covers",
-		UseSSL:          false,
-	}
-
-	DocumentS3Config = S3Config{
-		Endpoint:        "192.168.3.181:9101",
-		AccessKeyID:     "cloud_s3_accesskey",
-		SecretAccessKey: "cloud_s3_secretkey",
-		Bucket:          "ai_search_documents",
-		UseSSL:          false,
-	}
-)
 
 // newS3Client creates a new minio client with the given configuration
 func newS3Client(cfg S3Config) (*minio.Client, error) {
