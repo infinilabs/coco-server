@@ -56,7 +56,7 @@ func (processor *Dispatcher) Process(ctx *pipeline.Context) error {
 	// get active datasource list
 	ctx1 := orm.NewContextWithParent(ctx)
 	ctx1.DirectReadAccess()
-	ctx1.Set(orm.PermissionCheckingScope, security.PermissionScopePlatform)
+	ctx1.PermissionScope(security.PermissionScopePlatform)
 
 	orm.WithModel(ctx1, &core.DataSource{})
 

@@ -24,7 +24,7 @@ func (processor *Dispatcher) syncDatasource(c *core.DataSource) error {
 	ctx := orm.NewContext()
 	ctx.DirectReadAccess()
 
-	ctx.Set(orm.PermissionCheckingScope, security.PermissionScopePlatform)
+	ctx.PermissionScope(security.PermissionScopePlatform)
 
 	connector := core.Connector{}
 	connector.ID = c.Connector.ConnectorID
