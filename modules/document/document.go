@@ -133,7 +133,7 @@ func (h *APIHandler) searchDocs(w http.ResponseWriter, req *http.Request, ps htt
 	if len(sourceIDs) == 1 {
 		ctx1 := orm.NewContext()
 		ctx1.DirectReadAccess()
-		ctx1.Set(orm.ReadPermissionCheckingScope, security.PermissionScopePlatform)
+		ctx1.Set(orm.PermissionCheckingScope, security.PermissionScopePlatform)
 
 		sourceIDArray, ok := sourceIDs[0].([]interface{})
 		if ok {

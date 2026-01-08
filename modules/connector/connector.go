@@ -78,7 +78,7 @@ func GetConnectorByID(id string) (*core.Connector, error) {
 	ctx := orm.NewContext()
 	ctx.DirectReadAccess()
 
-	ctx.Set(orm.ReadPermissionCheckingScope, security.PermissionScopePlatform)
+	ctx.Set(orm.PermissionCheckingScope, security.PermissionScopePlatform)
 
 	exists, err := orm.GetV2(ctx, &obj)
 	if exists && err == nil {
@@ -206,7 +206,7 @@ func (h *APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprou
 
 	ctx := orm.NewContextWithParent(req.Context())
 	orm.WithModel(ctx, &core.Connector{})
-	ctx.Set(orm.ReadPermissionCheckingScope, security.PermissionScopePlatform)
+	ctx.Set(orm.PermissionCheckingScope, security.PermissionScopePlatform)
 
 	appConfig := common.AppConfig()
 	var connectors []core.Connector

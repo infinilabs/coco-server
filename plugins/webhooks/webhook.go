@@ -27,7 +27,7 @@ func WebhookHandler(w http.ResponseWriter, req *http.Request, ps httprouter.Para
 	ctx := orm.NewContext()
 	ctx.DirectReadAccess()
 
-	ctx.Set(orm.ReadPermissionCheckingScope, security.PermissionScopePlatform)
+	ctx.Set(orm.PermissionCheckingScope, security.PermissionScopePlatform)
 
 	datasource, err := common.GetDatasourceConfig(ctx, datasourceID)
 	if err != nil {

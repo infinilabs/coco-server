@@ -141,7 +141,7 @@ func ResolveIcon(
 func RefineIcon(ctx context.Context, doc *core.Document) {
 	ctx1 := orm.NewContextWithParent(ctx)
 	ctx1.DirectReadAccess()
-	ctx1.Set(orm.ReadPermissionCheckingScope, security.PermissionScopePlatform)
+	ctx1.Set(orm.PermissionCheckingScope, security.PermissionScopePlatform)
 
 	datasourceConfig, err := common.GetDatasourceConfig(ctx1, doc.Source.ID)
 	if err != nil || datasourceConfig == nil || datasourceConfig.Connector.ConnectorID == "" {
