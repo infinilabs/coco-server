@@ -323,6 +323,7 @@ pipeline:
             group: enriched_documents
             fetch_max_messages: 10
           processor:
+            - file_type_detection: {}
             - file_extraction:
                 tika_endpoint: "http://127.0.0.1:9998"
                 timeout_in_seconds: 360
