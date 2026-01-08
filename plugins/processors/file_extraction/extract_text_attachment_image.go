@@ -129,13 +129,3 @@ func truncateString(s string, maxLen int) string {
 	}
 	return s[:maxLen] + "..."
 }
-
-// isImageExtension returns true if the file extension indicates an image
-func isImageExtension(ext string) bool {
-	ext = strings.ToLower(ext)
-	switch ext {
-	case ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".tiff", ".tif":
-		return true
-	}
-	return false
-}
