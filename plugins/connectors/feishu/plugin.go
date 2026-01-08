@@ -7,10 +7,12 @@ package feishu
 import (
 	"encoding/json"
 	"fmt"
-	"infini.sh/coco/core"
 	"net/url"
 	"strings"
 	"time"
+
+	"infini.sh/coco/core"
+	"infini.sh/framework/core/security"
 
 	"infini.sh/coco/modules/common"
 	cmn "infini.sh/coco/plugins/connectors/common"
@@ -221,6 +223,8 @@ func (this *Plugin) Fetch(ctx *pipeline.Context, connector *core.Connector, data
 					// Save updated token to datasource
 					datasource.Connector.Config = cfg
 					ormCtx := orm.NewContext().DirectAccess()
+					ormCtx.PermissionScope(security.PermissionScopePlatform)
+
 					if err := orm.Update(ormCtx, datasource); err != nil {
 						return errors.Errorf("[%s connector] failed to save refreshed token: %v", this.PluginType, err)
 					}

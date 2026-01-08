@@ -8,10 +8,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/orm"
+	"infini.sh/framework/core/security"
+
 	"strings"
 	"sync"
 )
@@ -49,6 +52,8 @@ func (m *MemoryMessageSender) FinalResponse() string {
 func AskAssistantSync(ctx context.Context, userID string, id string, message string, vars map[string]any) (string, error) {
 	ctx1 := orm.NewContextWithParent(ctx)
 	ctx1.DirectAccess()
+	ctx1.PermissionScope(security.PermissionScopePlatform)
+
 	assistant, exists, err := common.InternalGetAssistant(ctx1, id)
 	if !exists || err != nil {
 		return "", fmt.Errorf("assistant %s not found: %w", id, err)
