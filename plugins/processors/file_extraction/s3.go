@@ -14,6 +14,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"mime"
 	"os"
 	"path/filepath"
 
@@ -84,8 +85,8 @@ func uploadToS3(ctx context.Context, cfg S3Config, localPath, objectName string)
 		return "", fmt.Errorf("failed to get file info: %w", err)
 	}
 
-	// Detect content type
-	contentType := detectContentType(localPath)
+	// Detect MIME type
+	contentType := detectMimeType(localPath)
 
 	// Upload
 	_, err = client.PutObject(ctx, cfg.Bucket, objectName, file, fileInfo.Size(), minio.PutObjectOptions{
@@ -106,80 +107,21 @@ func uploadToS3(ctx context.Context, cfg S3Config, localPath, objectName string)
 	return previewURL, nil
 }
 
-// uploadBytesToS3 uploads bytes directly to S3 and returns the preview URL
-func uploadBytesToS3(ctx context.Context, cfg S3Config, data []byte, objectName, contentType string) (string, error) {
-	client, err := newS3Client(cfg)
-	if err != nil {
-		return "", err
-	}
-
-	reader := io.NopCloser(io.NewSectionReader(
-		&bytesReaderAt{data: data}, 0, int64(len(data)),
-	))
-
-	_, err = client.PutObject(ctx, cfg.Bucket, objectName, reader, int64(len(data)), minio.PutObjectOptions{
-		ContentType: contentType,
-	})
-	if err != nil {
-		return "", fmt.Errorf("failed to upload bytes to [%s/%s]: %w", cfg.Bucket, objectName, err)
-	}
-
-	schema := "http"
-	if cfg.UseSSL {
-		schema = "https"
-	}
-	previewURL := fmt.Sprintf("%s://%s/%s/%s", schema, cfg.Endpoint, cfg.Bucket, objectName)
-
-	log.Debugf("successfully uploaded bytes to [%s], preview URL: %s", objectName, previewURL)
-	return previewURL, nil
-}
-
-// bytesReaderAt implements io.ReaderAt for []byte
-type bytesReaderAt struct {
-	data []byte
-}
-
-func (b *bytesReaderAt) ReadAt(p []byte, off int64) (n int, err error) {
-	if off >= int64(len(b.data)) {
-		return 0, io.EOF
-	}
-	n = copy(p, b.data[off:])
-	if n < len(p) {
-		err = io.EOF
-	}
-	return
-}
-
-// detectContentType returns the MIME type based on file extension
-func detectContentType(path string) string {
+// detectMimeType returns the MIME type based on file extension.
+//
+// Fall back to "application/octet-stream" if unknown.
+func detectMimeType(path string) string {
 	ext := filepath.Ext(path)
-	switch ext {
-	case ".jpg", ".jpeg":
-		return "image/jpeg"
-	case ".png":
-		return "image/png"
-	case ".gif":
-		return "image/gif"
-	case ".webp":
-		return "image/webp"
-	case ".pdf":
-		return "application/pdf"
-	case ".docx":
-		return "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-	case ".pptx":
-		return "application/vnd.openxmlformats-officedocument.presentationml.presentation"
-	case ".xlsx":
-		return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-	case ".md":
-		return "text/markdown"
-	case ".txt":
-		return "text/plain"
-	default:
+	mimeType := mime.TypeByExtension(ext)
+	if mimeType == "" {
 		return "application/octet-stream"
 	}
+	return mimeType
 }
 
 // copyLocalFile copies a local file to the destination path
+//
+// TODO(SteveLauC): check if framework provides such a funciton, if so, reuse it.
 func copyLocalFile(src, dst string) error {
 	// Ensure parent directory exists
 	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
