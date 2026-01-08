@@ -328,6 +328,8 @@ pipeline:
                 tika_endpoint: "http://127.0.0.1:9998"
                 timeout_in_seconds: 360
                 chunk_size: 7000
+                vision_model_provider: qianwen
+                vision_model: qwen-vl-max
             - document_summarization:
                 model_provider: deepseek
                 model: deepseek-chat
