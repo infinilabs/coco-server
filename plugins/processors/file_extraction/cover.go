@@ -109,7 +109,7 @@ func generateImageCover(imagePath, outPath string) error {
 	if err != nil {
 		return fmt.Errorf("failed to create output file: %w", err)
 	}
-	defer out.Close()
+	defer DeferClose(out)
 
 	return jpeg.Encode(out, img, &jpeg.Options{Quality: 85})
 }
@@ -272,7 +272,7 @@ func saveImageAsJpeg(img image.Image, outPath string) error {
 	if err != nil {
 		return fmt.Errorf("failed to create output file: %w", err)
 	}
-	defer out.Close()
+	defer DeferClose(out)
 
 	return jpeg.Encode(out, img, &jpeg.Options{Quality: 85})
 }

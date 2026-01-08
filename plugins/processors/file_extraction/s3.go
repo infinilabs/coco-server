@@ -77,7 +77,7 @@ func uploadToS3(ctx context.Context, cfg S3Config, localPath, objectName string)
 	if err != nil {
 		return "", fmt.Errorf("failed to open file for upload: %w", err)
 	}
-	defer file.Close()
+	defer DeferClose(file)
 
 	// Get file info for size
 	fileInfo, err := file.Stat()
@@ -132,13 +132,13 @@ func copyLocalFile(src, dst string) error {
 	if err != nil {
 		return fmt.Errorf("failed to open source file: %w", err)
 	}
-	defer srcFile.Close()
+	defer DeferClose(srcFile)
 
 	dstFile, err := os.Create(dst)
 	if err != nil {
 		return fmt.Errorf("failed to create destination file: %w", err)
 	}
-	defer dstFile.Close()
+	defer DeferClose(dstFile)
 
 	_, err = io.Copy(dstFile, srcFile)
 	if err != nil {

@@ -85,7 +85,7 @@ func loadImageFile(filePath string) (image.Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer DeferClose(f)
 
 	img, _, err := image.Decode(f)
 	if err != nil {
