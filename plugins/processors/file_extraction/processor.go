@@ -68,6 +68,13 @@ func New(c *config.Config) (pipeline.Processor, error) {
 
 	p := &FileExtractionProcessor{config: &cfg}
 
+	/*
+		Validate configuration
+	*/
+	if p.config.VisionModelProviderID == "" || p.config.VisionModelName == "" {
+		panic("Vision model is not configured")
+	}
+
 	if cfg.OutputQueue != nil {
 		p.outputQueue = queue.SmartGetOrInitConfig(cfg.OutputQueue)
 	}

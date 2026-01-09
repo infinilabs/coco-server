@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"mime"
 	"os"
 	"path/filepath"
 	"strings"
@@ -32,11 +33,6 @@ Be factual and descriptive. Do not make assumptions about things not visible in 
 // processImage processes an image file using a vision model to extract text description.
 // Returns an Extraction with the vision model's description as text content.
 func (p *FileExtractionProcessor) processImage(ctx context.Context, imagePath string) (Extraction, error) {
-	// Get vision model configuration
-	if p.config.VisionModelProviderID == "" || p.config.VisionModelName == "" {
-		return Extraction{}, fmt.Errorf("vision model not configured")
-	}
-
 	// Get model provider
 	provider, err := common.GetModelProvider(p.config.VisionModelProviderID)
 	if err != nil {
@@ -96,20 +92,10 @@ func localImageToDataURI(imagePath string) (llms.ContentPart, error) {
 		return nil, fmt.Errorf("failed to read image file: %w", err)
 	}
 
-	// Determine MIME type based on extension
-	mimeType := "image/jpeg"
-	ext := strings.ToLower(filepath.Ext(imagePath))
-	switch ext {
-	case ".png":
-		mimeType = "image/png"
-	case ".webp":
-		mimeType = "image/webp"
-	case ".gif":
-		mimeType = "image/gif"
-	case ".bmp":
-		mimeType = "image/bmp"
-	case ".tiff", ".tif":
-		mimeType = "image/tiff"
+	// Determine MIME type
+	mimeType := mime.TypeByExtension(filepath.Ext(imagePath))
+	if mimeType == "" {
+		panic(fmt.Sprintf("unreachable: unknown MIME type for image extension: %s", filepath.Ext(imagePath)))
 	}
 
 	// Encode to base64
