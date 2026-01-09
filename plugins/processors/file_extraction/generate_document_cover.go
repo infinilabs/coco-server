@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"image"
 	"image/jpeg"
+	"image/png"
 	_ "image/png"
 	"os"
 	"os/exec"
@@ -33,26 +34,35 @@ const (
 	CoverHeight = 180
 )
 
-// CssStyle defines styling for Markdown rendering
-const CssStyle = `
+// CssStyleForThumbnail is optimized for thumbnail generation
+// Features: larger fonts, reduced padding, hidden images for cleaner text rendering
+const CssStyleForThumbnail = `
 <style>
     body {
-        font-family: "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial, sans-serif;
-        font-size: 16px;
-        line-height: 1.6;
-        color: #333;
-        padding: 40px;
+        font-family: system-ui, -apple-system, "Microsoft YaHei", sans-serif;
+        font-size: 28px;
+        line-height: 1.4;
+        color: #24292e;
+        padding: 24px;
         margin: 0;
         background-color: #fff;
+        overflow: hidden;
     }
-    h1, h2, h3 { color: #2c3e50; margin-top: 24px; margin-bottom: 16px; }
-    h1 { font-size: 32px; border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; }
-    h2 { font-size: 24px; border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; }
-    p { margin-bottom: 16px; }
-    code { background-color: #f6f8fa; padding: 0.2em 0.4em; border-radius: 3px; font-family: monospace; }
-    pre { background-color: #f6f8fa; padding: 16px; overflow: auto; border-radius: 6px; }
+    h1 { 
+        font-size: 48px;
+        color: #0366d6; 
+        border-bottom: 4px solid #eaecef;
+        margin-top: 0;
+        margin-bottom: 24px;
+        padding-bottom: 12px;
+    }
+    h2 { font-size: 36px; border-bottom: 3px solid #eaecef; margin-top: 24px; }
+    h3 { font-size: 32px; margin-top: 20px; }
+    p, li { margin-bottom: 16px; }
+    code { background-color: #f6f8fa; padding: 4px 8px; font-family: monospace; font-weight: bold; }
+    pre { background-color: #f6f8fa; padding: 16px; overflow: hidden; border-radius: 6px; }
     blockquote { border-left: 4px solid #dfe2e5; color: #6a737d; padding-left: 1em; margin: 0; }
-    img { max-width: 100%; }
+    img { display: none; }
 </style>
 `
 
@@ -196,10 +206,10 @@ func generateMarkdownCover(mdPath, outPath string) error {
 		),
 	)
 
-	// Build full HTML document
+	// Build full HTML document with thumbnail-optimized CSS
 	var buf bytes.Buffer
 	buf.WriteString(`<!DOCTYPE html><html><head><meta charset="UTF-8">`)
-	buf.WriteString(CssStyle)
+	buf.WriteString(CssStyleForThumbnail)
 	buf.WriteString(`</head><body>`)
 
 	if err := mdParser.Convert(mdData, &buf); err != nil {
@@ -213,6 +223,7 @@ func generateMarkdownCover(mdPath, outPath string) error {
 }
 
 // takeHTMLScreenshot renders HTML and takes a screenshot using headless Chrome
+// Optimized for thumbnail generation: uses small viewport with 2x scale for crisp text
 func takeHTMLScreenshot(htmlContent, outPath string) error {
 	// Configure Chrome options
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
@@ -235,9 +246,11 @@ func takeHTMLScreenshot(htmlContent, outPath string) error {
 	var screenshotBuf []byte
 
 	// Execute screenshot task
+	// Use 640x360 viewport with 2x scale to get 1280x720 output with large, readable text
+	// Then resize to 320x180 - the 2:1 ratio preserves sharpness
 	err := chromedp.Run(ctx,
 		chromedp.Navigate("about:blank"),
-		chromedp.EmulateViewport(1280, 720),
+		chromedp.EmulateViewport(640, 360, chromedp.EmulateScale(2.0)),
 		chromedp.ActionFunc(func(ctx context.Context) error {
 			js := fmt.Sprintf(`document.open(); document.write(%q); document.close();`, htmlContent)
 			_, exp, err := runtime.Evaluate(js).Do(ctx)
@@ -249,30 +262,36 @@ func takeHTMLScreenshot(htmlContent, outPath string) error {
 			}
 			return nil
 		}),
-		chromedp.Sleep(500*time.Millisecond),
-		chromedp.FullScreenshot(&screenshotBuf, 90),
+		chromedp.Sleep(200*time.Millisecond),
+		// Use CaptureScreenshot (viewport only) instead of FullScreenshot (entire page)
+		// This avoids compressing a long document into a tiny thumbnail
+		chromedp.CaptureScreenshot(&screenshotBuf),
 	)
 
 	if err != nil {
 		return fmt.Errorf("chrome screenshot failed: %w", err)
 	}
 
-	// Decode and save
+	// Decode the screenshot
 	img, err := imaging.Decode(bytes.NewReader(screenshotBuf))
 	if err != nil {
 		return fmt.Errorf("failed to decode screenshot: %w", err)
 	}
 
-	return saveImageAsJpeg(img, outPath)
+	// Resize from 1280x720 to 320x180 using Lanczos for sharp downsampling
+	resized := imaging.Resize(img, CoverWidth, CoverHeight, imaging.Lanczos)
+
+	// Save as PNG - much better for text than JPEG (no compression artifacts)
+	return saveImageAsPng(resized, outPath)
 }
 
-// saveImageAsJpeg saves an image as JPEG with quality 85
-func saveImageAsJpeg(img image.Image, outPath string) error {
+// saveImageAsPng saves an image as PNG (better for text/line art than JPEG)
+func saveImageAsPng(img image.Image, outPath string) error {
 	out, err := os.Create(outPath)
 	if err != nil {
 		return fmt.Errorf("failed to create output file: %w", err)
 	}
 	defer DeferClose(out)
 
-	return jpeg.Encode(out, img, &jpeg.Options{Quality: 85})
+	return png.Encode(out, img)
 }
