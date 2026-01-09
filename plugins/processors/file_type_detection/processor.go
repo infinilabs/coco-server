@@ -12,6 +12,7 @@ import (
 
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
+	"infini.sh/coco/plugins/connectors"
 	"infini.sh/coco/plugins/connectors/local_fs"
 	"infini.sh/coco/plugins/connectors/s3"
 	utils "infini.sh/coco/plugins/processors"
@@ -94,7 +95,8 @@ func (p *FileTypeDetectionProcessor) Process(ctx *pipeline.Context) error {
 			continue
 		}
 
-		if !supportedConnectors[connectorID] {
+		if !supportedConnectors[connectorID] || doc.Type != connectors.TypeFile {
+			log.Debugf("processor [%s] skipping document [%s] as it is not a [file] that come from [local_fs/s3]", p.Name(), doc.ID, connectorID)
 			continue
 		}
 

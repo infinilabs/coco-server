@@ -13,11 +13,13 @@ import (
 
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
+	"infini.sh/coco/modules/attachment"
 	"infini.sh/coco/plugins/connectors"
 	"infini.sh/coco/plugins/connectors/local_fs"
 	"infini.sh/coco/plugins/connectors/s3"
 	utils "infini.sh/coco/plugins/processors"
 	"infini.sh/framework/core/config"
+	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/param"
 	"infini.sh/framework/core/pipeline"
 	"infini.sh/framework/core/queue"
@@ -51,13 +53,10 @@ type Config struct {
 	// Vision model configuration for image processing
 	VisionModelProviderID string `config:"vision_model_provider"`
 	VisionModelName       string `config:"vision_model"`
-
-	// S3 configuration for cover and document storage
-	CoverS3    *S3Config `config:"cover_s3"`
-	DocumentS3 *S3Config `config:"document_s3"`
 }
 
 func New(c *config.Config) (pipeline.Processor, error) {
+	// Default values
 	cfg := Config{
 		MessageField:     core.PipelineContextDocuments,
 		TikaEndpoint:     "http://127.0.0.1:9998",
@@ -65,14 +64,6 @@ func New(c *config.Config) (pipeline.Processor, error) {
 	}
 	if err := c.Unpack(&cfg); err != nil {
 		return nil, err
-	}
-
-	// Validate required S3 configurations
-	if cfg.CoverS3 == nil {
-		panic("file_extraction processor: cover_s3 configuration is required")
-	}
-	if cfg.DocumentS3 == nil {
-		panic("file_extraction processor: document_s3 configuration is required")
 	}
 
 	p := &FileExtractionProcessor{config: &cfg}
@@ -110,10 +101,6 @@ func (p *FileExtractionProcessor) Process(ctx *pipeline.Context) error {
 			continue
 		}
 
-		if doc.Type != connectors.TypeFile {
-			continue
-		}
-
 		// Check if document is from a supported connector
 		connectorID, err := utils.GetConnectorID(&doc)
 		if err != nil {
@@ -121,8 +108,8 @@ func (p *FileExtractionProcessor) Process(ctx *pipeline.Context) error {
 			continue
 		}
 
-		if !supportedConnectors[connectorID] {
-			log.Debugf("processor [%s] skipping document [%s] from unsupported connector [%s]", p.Name(), doc.ID, connectorID)
+		if !supportedConnectors[connectorID] || doc.Type != connectors.TypeFile {
+			log.Debugf("processor [%s] skipping document [%s] as it is not a [file] that come from [local_fs/s3]", p.Name(), doc.ID, connectorID)
 			continue
 		}
 
@@ -150,12 +137,17 @@ func (p *FileExtractionProcessor) Process(ctx *pipeline.Context) error {
 }
 
 // processDocument is the main processing logic for a document.
+//
 // It performs the following steps:
+//
 // 1. Download/copy file to temp directory
 // 2. Extract dominant colors (for images)
 // 3. Generate and upload cover
 // 4. Extract text and attachments
 // 5. Upload file to S3 for preview
+//
+// If a step fails, we skip that step and continue with the rest if we can, try
+// our best to do perform all the steps.
 func (p *FileExtractionProcessor) processDocument(ctx context.Context, doc *core.Document, connectorID string) error {
 	// Create temp directory for processing
 	tempDir, err := os.MkdirTemp("", "file-extraction-")
@@ -164,22 +156,27 @@ func (p *FileExtractionProcessor) processDocument(ctx context.Context, doc *core
 	}
 	defer os.RemoveAll(tempDir)
 
-	// Step 1: Download/copy file to temp directory
-	localPath, err := p.downloadToLocal(ctx, doc, connectorID, tempDir)
+	/*
+	 * Step 1: Download/copy file to temp directory
+	 */
+	docLocalPath, err := p.downloadToLocal(ctx, doc, connectorID, tempDir)
 	if err != nil {
+		// The following steps are dependent on this, if this fails, error out.
 		return fmt.Errorf("failed to download file to local: %w", err)
 	}
-	log.Debugf("processor [%s] file downloaded to [%s]", p.Name(), localPath)
+	log.Debugf("processor [%s] file downloaded to [%s]", p.Name(), docLocalPath)
 
-	// Initialize metadata if nil
+	// Initialize metadata if nil as we need to write to it.
 	if doc.Metadata == nil {
 		doc.Metadata = make(map[string]interface{})
 	}
 
-	// Step 2: Extract dominant colors (for images)
+	/*
+	 * Step 2: Extract dominant colors (for images)
+	 */
 	contentType, _ := doc.Metadata["content_type"].(string)
 	if contentType == "image" {
-		img, err := loadImageFile(localPath)
+		img, err := loadImageFile(docLocalPath)
 		if err != nil {
 			log.Warnf("processor [%s] failed to load image for color extraction [%s]: %v", p.Name(), doc.Title, err)
 		} else {
@@ -193,45 +190,54 @@ func (p *FileExtractionProcessor) processDocument(ctx context.Context, doc *core
 		}
 	}
 
-	// Step 3: Generate and upload cover
-	coverPath := filepath.Join(tempDir, "cover.jpg")
-	err = GenerateCover(localPath, coverPath)
+	/*
+	 * Step 3: Generate and upload cover
+	 */
+	coverFilename := doc.ID + "_cover.jpg"
+	coverPath := filepath.Join(tempDir, coverFilename)
+	err = GenerateCover(docLocalPath, coverPath)
 	if err != nil {
 		log.Warnf("processor [%s] failed to generate cover for [%s]: %v", p.Name(), doc.Title, err)
 	} else {
-		coverObjectName := doc.ID + "_cover.jpg"
-		coverURL, err := uploadToS3(ctx, *p.config.CoverS3, coverPath, coverObjectName)
+		// Open cover file for upload
+		coverFile, err := os.Open(coverPath)
 		if err != nil {
-			log.Warnf("processor [%s] failed to upload cover for [%s]: %v", p.Name(), doc.Title, err)
+			log.Warnf("processor [%s] failed to open cover file for [%s]: %v", p.Name(), doc.Title, err)
 		} else {
-			doc.Cover = coverURL
-			log.Debugf("processor [%s] uploaded cover for [%s]: %s", p.Name(), doc.Title, coverURL)
+			// Create ORM context with direct access (required for background processor)
+			ormCtx := orm.NewContextWithParent(ctx)
+			ormCtx.DirectAccess()
+
+			// Get owner ID from document
+			ownerID := doc.GetOwnerID()
+
+			// Upload to blob store
+			attachmentID, err := attachment.UploadToBlobStore(ormCtx, "", coverFile, coverFilename, ownerID, nil, "", true)
+			if err != nil {
+				log.Warnf("processor [%s] failed to upload cover for [%s]: %v", p.Name(), doc.Title, err)
+			} else {
+				// Set cover as attachment reference
+				doc.Cover = "attachment://" + attachmentID
+				log.Debugf("processor [%s] uploaded cover for [%s]: %s", p.Name(), doc.Title, doc.Cover)
+			}
 		}
 	}
 
-	// Step 4: Extract text and attachments
-	err = p.extractTextAndAttachment(ctx, doc, localPath)
+	/*
+	 * Step 4: Extract text and attachments
+	 */
+	err = p.extractTextAndAttachment(ctx, doc, docLocalPath)
 	if err != nil {
-		return fmt.Errorf("failed to extract text and attachments: %w", err)
-	}
-
-	// Step 5: Upload file to S3 for preview
-	ext := filepath.Ext(localPath)
-	documentObjectName := doc.ID + ext
-	previewURL, err := uploadToS3(ctx, *p.config.DocumentS3, localPath, documentObjectName)
-	if err != nil {
-		log.Warnf("processor [%s] failed to upload document [%s] for preview: %v", p.Name(), doc.Title, err)
+		log.Warnf("processor [%s] failed to extract text/attachments for [%s]: %v", p.Name(), doc.Title, err)
 	} else {
-		doc.Metadata["preview_url"] = previewURL
-		log.Debugf("processor [%s] uploaded document for preview [%s]: %s", p.Name(), doc.Title, previewURL)
+		log.Debugf("processor [%s] extracted text/attachments for [%s]: %v", p.Name(), doc.Title)
 	}
 
 	return nil
 }
 
-// downloadToLocal downloads or copies a file to the local temp directory.
-// For S3: downloads using the datasource connector config.
-// For local_fs: copies the file.
+// downloadToLocal downloads or copies [doc]'s file to the local temp
+// directory, then returns the its local path.
 func (p *FileExtractionProcessor) downloadToLocal(ctx context.Context, doc *core.Document, connectorID string, tempDir string) (string, error) {
 	// Determine local file path
 	fileName := filepath.Base(doc.URL)
@@ -289,7 +295,7 @@ func (p *FileExtractionProcessor) downloadFromS3Connector(ctx context.Context, d
 	}
 
 	// Download the file
-	if err := downloadFromS3(ctx, cfg, objectKey, localPath); err != nil {
+	if err := downloadFromS3(ctx, &cfg, objectKey, localPath); err != nil {
 		return "", err
 	}
 

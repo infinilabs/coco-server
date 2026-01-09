@@ -490,7 +490,7 @@ type S3Config struct {
 }
 
 // newS3Client creates a new minio client with the given configuration
-func newS3Client(cfg S3Config) (*minio.Client, error) {
+func newS3Client(cfg *S3Config) (*minio.Client, error) {
 	client, err := minio.New(cfg.Endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(cfg.AccessKeyID, cfg.SecretAccessKey, ""),
 		Secure: cfg.UseSSL,
@@ -502,7 +502,7 @@ func newS3Client(cfg S3Config) (*minio.Client, error) {
 }
 
 // downloadFromS3 downloads a file from S3 to a local path
-func downloadFromS3(ctx context.Context, cfg S3Config, objectKey, localPath string) error {
+func downloadFromS3(ctx context.Context, cfg *S3Config, objectKey, localPath string) error {
 	client, err := newS3Client(cfg)
 	if err != nil {
 		return err
@@ -523,7 +523,7 @@ func downloadFromS3(ctx context.Context, cfg S3Config, objectKey, localPath stri
 }
 
 // uploadToS3 uploads a local file to S3 and returns the preview URL
-func uploadToS3(ctx context.Context, cfg S3Config, localPath, objectName string) (string, error) {
+func uploadToS3(ctx context.Context, cfg *S3Config, localPath, objectName string) (string, error) {
 	client, err := newS3Client(cfg)
 	if err != nil {
 		return "", err
@@ -565,7 +565,7 @@ func uploadToS3(ctx context.Context, cfg S3Config, localPath, objectName string)
 }
 
 // uploadBytesToS3 uploads bytes directly to S3 and returns the preview URL
-func uploadBytesToS3(ctx context.Context, cfg S3Config, data []byte, objectName, contentType string) (string, error) {
+func uploadBytesToS3(ctx context.Context, cfg *S3Config, data []byte, objectName, contentType string) (string, error) {
 	client, err := newS3Client(cfg)
 	if err != nil {
 		return "", err
