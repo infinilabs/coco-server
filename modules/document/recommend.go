@@ -5,9 +5,11 @@
 package document
 
 import (
+	"net/http"
+
+	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
 	httprouter "infini.sh/framework/core/api/router"
-	"net/http"
 )
 
 func (h APIHandler) recommend(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -17,6 +19,9 @@ func (h APIHandler) recommend(w http.ResponseWriter, req *http.Request, ps httpr
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
+
+	tag := ps.ByName("tag") //eg: hot
+	log.Trace("recommend tag:", tag)
 
 	// Placeholder: Generate some recommendations based on the request (in a real scenario, this would query a recommendation engine)
 	recommendations := []core.RecommendEntityCard{
@@ -51,7 +56,6 @@ func (h APIHandler) recommend(w http.ResponseWriter, req *http.Request, ps httpr
 
 	// Create the response
 	response := core.RecommendResponse{
-		UserID:          recommendReq.UserID,
 		Recommendations: recommendations,
 		Total:           len(recommendations),
 	}
