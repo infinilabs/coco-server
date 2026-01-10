@@ -1,5 +1,5 @@
 env:
-  ES_ENDPOINT: https://localhost:9200
+  ES_ENDPOINT: http://192.168.3.119:9200
   ES_USERNAME: admin
   ES_PASSWORD: $[[keystore.ES_PASSWORD]]
   WEB_BINDING: 0.0.0.0:9000
@@ -323,11 +323,13 @@ pipeline:
             group: enriched_documents
             fetch_max_messages: 10
           processor:
-            - read_local_file_content: {}
+            - file_type_detection: {}
             - file_extraction:
                 tika_endpoint: "http://127.0.0.1:9998"
                 timeout_in_seconds: 360
                 chunk_size: 7000
+                vision_model_provider: qianwen
+                vision_model: qwen-vl-max
             - document_summarization:
                 model_provider: deepseek
                 model: deepseek-chat

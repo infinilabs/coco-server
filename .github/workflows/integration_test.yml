@@ -42,6 +42,11 @@ jobs:
           check-latest: false
           cache: true
 
+      - name: Install native dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y poppler-utils chromium-browser
+
       - name: Clone framework and framework vendor
         run: |
           git clone https://github.com/infinilabs/framework.git ~/go/src/infini.sh/framework

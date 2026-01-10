@@ -42,3 +42,6 @@ generated_*.go
 
 docs/.hugo_build.lock
 /plugins/enterprise/
+
+CLAUDE.md
+AGENTS.md
