@@ -160,7 +160,7 @@ func GetUsersOwnDatasource(userID string) []string {
 	ctx := orm.NewContext()
 	ctx.DirectReadAccess()
 
-	ctx.Set(orm.PermissionCheckingScope, security.PermissionScopePlatform)
+	ctx.PermissionScope(security.PermissionScopePlatform)
 
 	orm.WithModel(ctx, &core.DataSource{})
 	builder := orm.NewQuery()

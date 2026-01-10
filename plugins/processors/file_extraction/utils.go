@@ -20,6 +20,7 @@ import (
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/attachment"
 	"infini.sh/framework/core/orm"
+	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
 )
 
@@ -309,6 +310,8 @@ func uploadAttachmentsToBlobStore(ctx context.Context, dir string, doc *core.Doc
 		// Grant read/write access to the database, which is needed because this
 		// is a background processor, which has no user token stored in ctx.
 		ormCtx.DirectAccess()
+		ormCtx.PermissionScope(security.PermissionScopePlatform)
+
 		ownerID := doc.GetOwnerID()
 
 		fileContent := nameToText[entry.Name()]
