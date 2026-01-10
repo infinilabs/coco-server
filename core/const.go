@@ -48,3 +48,6 @@ const DefaultSimpleAuthBackend = "default_simple_auth_backend"
 const DefaultSimpleAuthUserLogin = "coco-default-user"
 
 const SystemOwnerQueryField = "_system.owner_id"
+
+const SuggestTagFieldNames = "field_names"
+const SuggestTagFieldValues = "field_values"

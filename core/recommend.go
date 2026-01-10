@@ -6,7 +6,6 @@ package core
 
 // RecommendRequest represents the input for the recommend API
 type RecommendRequest struct {
-	UserID             string   `json:"user_id"`                       // ID of the user making the recommendation request
 	RecentInteractions []string `json:"recent_interactions,omitempty"` // Optional, list of recent user interactions (e.g., clicks, views)
 	Context            string   `json:"context,omitempty"`             // Optional, current context of the user (e.g., active category, search context)
 	Filters            []string `json:"filters,omitempty"`             // Optional, filters applied to recommendations (e.g., category, tags)
@@ -28,7 +27,6 @@ type RecommendEntityCard struct {
 
 // RecommendResponse represents the response structure for the recommend API
 type RecommendResponse struct {
-	UserID          string                `json:"user_id"`         // ID of the user receiving recommendations
 	Recommendations []RecommendEntityCard `json:"recommendations"` // List of recommended entity cards
 	Total           int                   `json:"total"`           // Total number of recommendations
 }
