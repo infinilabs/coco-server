@@ -25,6 +25,8 @@ import (
 )
 
 const ProcessorName = "file_type_detection"
+const FieldMimeType = "mime_type"
+const FieldContentType = "content_type"
 
 // Supported connector IDs for file type detection
 var supportedConnectors = map[string]bool{
@@ -95,6 +97,16 @@ func (p *FileTypeDetectionProcessor) Process(ctx *pipeline.Context) error {
 			continue
 		}
 
+		// Skip if metadata fields were already set
+		if doc.Metadata != nil {
+			if _, hasMimeType := doc.Metadata[FieldMimeType]; hasMimeType {
+				if _, hasContentType := doc.Metadata[FieldContentType]; hasContentType {
+					log.Debugf("processor [%s] skipping document [%s] as metadata fields already set", p.Name(), doc.ID)
+					continue
+				}
+			}
+		}
+
 		// Only process documents from s3 or local_fs connectors
 		connectorID, err := utils.GetConnectorID(&doc)
 		if err != nil {
@@ -114,8 +126,8 @@ func (p *FileTypeDetectionProcessor) Process(ctx *pipeline.Context) error {
 
 		// Detect file types from Title (filename)
 		mimeType, contentType := detectFileTypes(doc.Title)
-		doc.Metadata["mime_type"] = mimeType
-		doc.Metadata["content_type"] = contentType
+		doc.Metadata[FieldMimeType] = mimeType
+		doc.Metadata[FieldContentType] = contentType
 
 		log.Infof("processor [%s] detected mime_type=%s, content_type=%s for document [%s]", p.Name(), mimeType, contentType, doc.Title)
 
