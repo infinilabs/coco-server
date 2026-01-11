@@ -335,6 +335,7 @@ pipeline:
                 model_provider: deepseek
                 model: deepseek-chat
                 model_context_length: 128000
+                ai_insights_max_length: 500
             - extract_tags:
                 model_provider: deepseek
                 model: deepseek-chat
