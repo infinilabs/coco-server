@@ -17,8 +17,8 @@ import (
 	"infini.sh/framework/core/util"
 )
 
-func (p *FileExtractionProcessor) processPdf(ctx context.Context, doc *core.Document) (Extraction, error) {
-	path := doc.URL
+func (p *FileExtractionProcessor) processPdf(ctx context.Context, doc *core.Document, localPath string) (Extraction, error) {
+	path := localPath
 	htmlReader, err := tikaGetTextHtml(ctx, p.config.TikaEndpoint, p.config.TimeoutInSeconds, path)
 	if err != nil {
 		return Extraction{}, fmt.Errorf("failed to extract text for [%s] using tika: %w", path, err)

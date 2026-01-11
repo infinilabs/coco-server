@@ -105,8 +105,14 @@ func (processor *DocumentEmbeddingProcessor) Process(ctx *pipeline.Context) erro
 		return nil
 	}
 
-	for _, msg := range messages {
-		docBytes := msg.Data
+	for i := range messages {
+		// Check shutdown before processing each document
+		if global.ShuttingDown() {
+			log.Infof("[%s] shutting down, skipping remaining %d documents", processor.Name(), len(messages)-i)
+			return nil
+		}
+
+		docBytes := messages[i].Data
 		doc := core.Document{}
 		err := util.FromJSONBytes(docBytes, &doc)
 		if err != nil {
@@ -122,13 +128,15 @@ func (processor *DocumentEmbeddingProcessor) Process(ctx *pipeline.Context) erro
 			}
 			log.Infof("processor [%s] embeddings of document [%s/%s] generated", processor.Name(), doc.ID, doc.Title)
 
-			// Update msg
-			updatedDocBytes := util.MustToJSONBytes(doc)
-			msg.Data = updatedDocBytes
+			// Update messages[i].Data in-place
+			messages[i].Data = util.MustToJSONBytes(doc)
 		}
+	}
 
-		if processor.outputQueue != nil {
-			if err := queue.Push(processor.outputQueue, msg.Data); err != nil {
+	// Push all processed messages to output queue in batch
+	if processor.outputQueue != nil {
+		for i := range messages {
+			if err := queue.Push(processor.outputQueue, messages[i].Data); err != nil {
 				log.Error("failed to push document to [%s]'s output queue: %v\n", processor.Name(), err)
 			}
 		}
