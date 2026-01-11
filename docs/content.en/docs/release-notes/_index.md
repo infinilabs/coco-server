@@ -16,6 +16,7 @@ Information about release notes of Coco Server is provided here.
 - feat: support team for authorization
 - feat: add attachment status api #635 
 - feat: implement query suggest api #642
+- feat: implement recommend api #643
 
 ### 🐛 Bug fix  
 ### ✈️ Improvements  

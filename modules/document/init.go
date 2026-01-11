@@ -11,11 +11,13 @@ import (
 	"infini.sh/framework/core/env"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/security"
+	"infini.sh/framework/core/util"
 )
 
 type APIHandler struct {
 	api.Handler
 	documentMetadata string
+	recommendConfigs map[string]core.RecommendResponse
 }
 
 const Category = "coco"
@@ -57,6 +59,9 @@ func init() {
 	api.HandleUIMethod(api.GET, "/query/_suggest/:tag", handler.suggest, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
 	api.HandleUIMethod(api.OPTIONS, "/query/_suggest/:tag", handler.suggest, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
 
+	api.HandleUIMethod(api.GET, "/query/_recommend", handler.recommend, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
+	api.HandleUIMethod(api.OPTIONS, "/query/_recommend", handler.recommend, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
+
 	api.HandleUIMethod(api.GET, "/query/_recommend/:tag", handler.recommend, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
 	api.HandleUIMethod(api.OPTIONS, "/query/_recommend/:tag", handler.recommend, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
 
@@ -71,6 +76,23 @@ func init() {
 
 		handler.documentMetadata = cfg.DocumentMetadata
 		log.Trace("document metadata:", handler.documentMetadata)
+
+		cfg1 := map[string]string{}
+		ok, err = env.ParseConfig("recommend", &cfg1)
+		if ok && err != nil && global.Env().SystemConfig.Configs.PanicOnConfigError {
+			panic(err)
+		}
+
+		recommends := map[string]core.RecommendResponse{}
+		for k, v := range cfg1 {
+			recommend := core.RecommendResponse{}
+			err := util.FromJson(v, &recommend)
+			if err != nil {
+				panic(err)
+			}
+			recommends[k] = recommend
+		}
+		handler.recommendConfigs = recommends
 	})
 
 }
