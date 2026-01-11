@@ -27,6 +27,6 @@ type RecommendEntityCard struct {
 
 // RecommendResponse represents the response structure for the recommend API
 type RecommendResponse struct {
-	Recommendations []RecommendEntityCard `json:"recommendations"` // List of recommended entity cards
-	Total           int                   `json:"total"`           // Total number of recommendations
+	Recommendations []RecommendEntityCard `json:"recommendations,omitempty"` // List of recommended entity cards
+	Total           int                   `json:"total,omitempty"`           // Total number of recommendations
 }
