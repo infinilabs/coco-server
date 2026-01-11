@@ -17,6 +17,7 @@ import (
 	"infini.sh/coco/plugins/connectors/s3"
 	utils "infini.sh/coco/plugins/processors"
 	"infini.sh/framework/core/config"
+	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/param"
 	"infini.sh/framework/core/pipeline"
@@ -84,8 +85,8 @@ func (p *FileTypeDetectionProcessor) Process(ctx *pipeline.Context) error {
 	for i := range messages {
 		// Check shutdown before processing each document
 		if global.ShuttingDown() {
-			log.Infof("[%s] shutting down, skipping remaining %d documents", p.Name(), len(messages)-i)
-			return nil
+			log.Debugf("[%s] shutting down, skipping remaining %d documents", p.Name(), len(messages)-i)
+			return errors.New("shutting down")
 		}
 
 		doc := core.Document{}

@@ -113,8 +113,8 @@ func (p *FileExtractionProcessor) Process(ctx *pipeline.Context) error {
 	for i := range messages {
 		// Check shutdown before processing each document
 		if global.ShuttingDown() {
-			log.Infof("[%s] shutting down, skipping remaining %d documents", p.Name(), len(messages)-i)
-			return nil
+			log.Debugf("[%s] shutting down, skipping remaining %d documents", p.Name(), len(messages)-i)
+			return fmt.Errorf("shutting down")
 		}
 
 		doc := core.Document{}
@@ -199,8 +199,8 @@ func (p *FileExtractionProcessor) processDocument(ctx context.Context, doc *core
 
 	// Check shutdown before proceeding with extraction steps
 	if global.ShuttingDown() {
-		log.Infof("[%s] shutting down, skipping extraction steps for document [%s]", p.Name(), doc.Title)
-		return nil
+		log.Debugf("[%s] shutting down, skipping extraction steps for document [%s]", p.Name(), doc.Title)
+		return fmt.Errorf("shutting down")
 	}
 
 	/*
@@ -224,8 +224,8 @@ func (p *FileExtractionProcessor) processDocument(ctx context.Context, doc *core
 
 	// Check shutdown before next step
 	if global.ShuttingDown() {
-		log.Infof("[%s] shutting down, skipping extraction steps for document [%s]", p.Name(), doc.Title)
-		return nil
+		log.Debugf("[%s] shutting down, skipping extraction steps for document [%s]", p.Name(), doc.Title)
+		return fmt.Errorf("shutting down")
 	}
 
 	/*
@@ -245,8 +245,8 @@ func (p *FileExtractionProcessor) processDocument(ctx context.Context, doc *core
 
 	// Check shutdown before next step
 	if global.ShuttingDown() {
-		log.Infof("[%s] shutting down, skipping extraction steps for document [%s]", p.Name(), doc.Title)
-		return nil
+		log.Debugf("[%s] shutting down, skipping extraction steps for document [%s]", p.Name(), doc.Title)
+		return fmt.Errorf("shutting down")
 	}
 
 	/*
@@ -304,8 +304,8 @@ func (p *FileExtractionProcessor) processDocument(ctx context.Context, doc *core
 
 	// Check shutdown before next step
 	if global.ShuttingDown() {
-		log.Infof("[%s] shutting down, skipping extraction steps for document [%s]", p.Name(), doc.Title)
-		return nil
+		log.Debugf("[%s] shutting down, skipping extraction steps for document [%s]", p.Name(), doc.Title)
+		return fmt.Errorf("shutting down")
 	}
 
 	/*
@@ -320,8 +320,8 @@ func (p *FileExtractionProcessor) processDocument(ctx context.Context, doc *core
 
 	// Check shutdown before next step
 	if global.ShuttingDown() {
-		log.Infof("[%s] shutting down, skipping extraction steps for document [%s]", p.Name(), doc.Title)
-		return nil
+		log.Debugf("[%s] shutting down, skipping extraction steps for document [%s]", p.Name(), doc.Title)
+		return fmt.Errorf("shutting down")
 	}
 
 	/*

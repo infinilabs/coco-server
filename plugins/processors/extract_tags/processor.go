@@ -114,8 +114,8 @@ func (processor *ExtractTagsProcessor) Process(ctx *pipeline.Context) error {
 	for i := range messages {
 		// Check shutdown before processing each document
 		if global.ShuttingDown() {
-			log.Infof("[%s] shutting down, skipping remaining %d documents", processor.Name(), len(messages)-i)
-			return nil
+			log.Debugf("[%s] shutting down, skipping remaining %d documents", processor.Name(), len(messages)-i)
+			return errors.New("shutting down")
 		}
 
 		message := &messages[i]
