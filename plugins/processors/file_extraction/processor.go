@@ -142,10 +142,10 @@ func (p *FileExtractionProcessor) Process(ctx *pipeline.Context) error {
 			continue
 		}
 
-		log.Infof("processor [%s] processing file [%s] from connector [%s]", p.Name(), doc.Title, connectorID)
+		log.Infof("processor [%s] processing file [%s/%s] from connector [%s]", p.Name(), doc.Title, doc.ID, connectorID)
 		err = p.processDocument(ctx.Context, &doc, connectorID)
 		if err != nil {
-			log.Errorf("processor [%s] failed to process file [%s]: %s", p.Name(), doc.Title, err)
+			log.Errorf("processor [%s] failed to process file [%s/%s]: %s", p.Name(), doc.Title, doc.ID, err)
 			continue
 		}
 
@@ -199,7 +199,7 @@ func (p *FileExtractionProcessor) processDocument(ctx context.Context, doc *core
 	/*
 	 * Step 1: Download/copy file to temp directory
 	 */
-	log.Tracef("[%s] step 1/6: downloading file to local temp directory for [%s]", p.Name(), doc.Title)
+	log.Tracef("[%s] step 1/6: downloading file to local temp directory for [%s/%s]", p.Name(), doc.Title, doc.ID)
 	docLocalPath, err := p.downloadToLocal(ctx, doc, connectorID, tempDir)
 	if err != nil {
 		// The following steps are dependent on this, if this fails, error out.
@@ -214,74 +214,74 @@ func (p *FileExtractionProcessor) processDocument(ctx context.Context, doc *core
 
 	// Check shutdown before proceeding with extraction steps
 	if global.ShuttingDown() {
-		log.Debugf("[%s] shutting down, skipping extraction steps for document [%s]", p.Name(), doc.Title)
+		log.Debugf("[%s] shutting down, skipping extraction steps for document [%s/%s]", p.Name(), doc.Title, doc.ID)
 		return fmt.Errorf("shutting down")
 	}
 
 	/*
 	 * Step 2: Extract dominant colors (for images)
 	 */
-	log.Tracef("[%s] step 2/6: extracting dominant colors for [%s]", p.Name(), doc.Title)
+	log.Tracef("[%s] step 2/6: extracting dominant colors for [%s/%s]", p.Name(), doc.Title, doc.ID)
 	contentType, _ := doc.Metadata["content_type"].(string)
 	if contentType == "image" {
 		img, err := loadImageFile(docLocalPath)
 		if err != nil {
-			log.Warnf("processor [%s] failed to load image for color extraction [%s]: %v", p.Name(), doc.Title, err)
+			log.Warnf("processor [%s] failed to load image for color extraction [%s/%s]: %v", p.Name(), doc.Title, doc.ID, err)
 		} else {
 			colors, err := ExtractDominantColors(img)
 			if err != nil {
-				log.Warnf("processor [%s] failed to extract colors for [%s]: %v", p.Name(), doc.Title, err)
+				log.Warnf("processor [%s] failed to extract colors for [%s/%s]: %v", p.Name(), doc.Title, doc.ID, err)
 			} else {
 				doc.Metadata["colors"] = colors
-				log.Debugf("processor [%s] extracted colors for [%s]: %v", p.Name(), doc.Title, colors)
+				log.Debugf("processor [%s] extracted colors for [%s/%s]: %v", p.Name(), doc.Title, doc.ID, colors)
 			}
 		}
 	}
 
 	// Check shutdown before next step
 	if global.ShuttingDown() {
-		log.Debugf("[%s] shutting down, skipping extraction steps for document [%s]", p.Name(), doc.Title)
+		log.Debugf("[%s] shutting down, skipping extraction steps for document [%s/%s]", p.Name(), doc.Title, doc.ID)
 		return fmt.Errorf("shutting down")
 	}
 
 	/*
 	 * Step 3: Store image width/height
 	 */
-	log.Tracef("[%s] step 3/6: extracting image dimensions for [%s]", p.Name(), doc.Title)
+	log.Tracef("[%s] step 3/6: extracting image dimensions for [%s/%s]", p.Name(), doc.Title, doc.ID)
 	if contentType == "image" {
 		img, err := loadImageFile(docLocalPath)
 		if err != nil {
-			log.Warnf("processor [%s] failed to load image for dimension extraction [%s]: %v", p.Name(), doc.Title, err)
+			log.Warnf("processor [%s] failed to load image for dimension extraction [%s/%s]: %v", p.Name(), doc.Title, doc.ID, err)
 		} else {
 			bounds := img.Bounds()
 			doc.Metadata["width"] = bounds.Dx()
 			doc.Metadata["height"] = bounds.Dy()
-			log.Debugf("processor [%s] extracted dimensions for [%s]: %dx%d", p.Name(), doc.Title, bounds.Dx(), bounds.Dy())
+			log.Debugf("processor [%s] extracted dimensions for [%s/%s]: %dx%d", p.Name(), doc.Title, doc.ID, bounds.Dx(), bounds.Dy())
 		}
 	}
 
 	// Check shutdown before next step
 	if global.ShuttingDown() {
-		log.Debugf("[%s] shutting down, skipping extraction steps for document [%s]", p.Name(), doc.Title)
+		log.Debugf("[%s] shutting down, skipping extraction steps for document [%s/%s]", p.Name(), doc.Title, doc.ID)
 		return fmt.Errorf("shutting down")
 	}
 
 	/*
 	 * Step 4: Generate and upload cover and thumbnail (if it is an image)
 	 */
-	log.Tracef("[%s] step 4/6: generating and uploading cover/thumbnail for [%s]", p.Name(), doc.Title)
+	log.Tracef("[%s] step 4/6: generating and uploading cover/thumbnail for [%s/%s]", p.Name(), doc.Title, doc.ID)
 	coverFilename := doc.ID + "_cover.png"
 	coverPath := filepath.Join(tempDir, coverFilename)
 	thumbnailFilename := doc.ID + "_thumbnail.png"
 	thumbnailPath := filepath.Join(tempDir, thumbnailFilename)
 	err = GenerateCoverAndThumbnail(docLocalPath, coverPath, thumbnailPath)
 	if err != nil {
-		log.Warnf("processor [%s] failed to generate cover for [%s]: %v", p.Name(), doc.Title, err)
+		log.Warnf("processor [%s] failed to generate cover for [%s/%s]: %v", p.Name(), doc.Title, doc.ID, err)
 	} else {
 		// Open cover file for upload
 		coverFile, err := os.Open(coverPath)
 		if err != nil {
-			log.Warnf("processor [%s] failed to open cover file for [%s]: %v", p.Name(), doc.Title, err)
+			log.Warnf("processor [%s] failed to open cover file for [%s/%s]: %v", p.Name(), doc.Title, doc.ID, err)
 		} else {
 			// Create ORM context with direct access (required for background processor)
 			ormCtx := orm.NewContextWithParent(ctx)
@@ -293,26 +293,26 @@ func (p *FileExtractionProcessor) processDocument(ctx context.Context, doc *core
 			// Upload to blob store
 			attachmentID, err := attachment.UploadToBlobStore(ormCtx, "", coverFile, coverFilename, ownerID, nil, "", true)
 			if err != nil {
-				log.Warnf("processor [%s] failed to upload cover for [%s]: %v", p.Name(), doc.Title, err)
+				log.Warnf("processor [%s] failed to upload cover for [%s/%s]: %v", p.Name(), doc.Title, doc.ID, err)
 			} else {
 				// Set cover as attachment reference
 				doc.Cover = "attachment://" + attachmentID
-				log.Debugf("processor [%s] uploaded cover for [%s]: %s", p.Name(), doc.Title, doc.Cover)
+				log.Debugf("processor [%s] uploaded cover for [%s/%s]: %s", p.Name(), doc.Title, doc.ID, doc.Cover)
 			}
 
 			// Upload thumbnail as well, only images have thumbnail
 			if contentType == "image" {
 				thumbnailFile, err := os.Open(thumbnailPath)
 				if err != nil {
-					log.Warnf("processor [%s] failed to open thumbnail file for [%s]: %v", p.Name(), doc.Title, err)
+					log.Warnf("processor [%s] failed to open thumbnail file for [%s/%s]: %v", p.Name(), doc.Title, doc.ID, err)
 				} else {
 					thumbnailAttachmentID, err := attachment.UploadToBlobStore(ormCtx, "", thumbnailFile, thumbnailFilename, ownerID, nil, "", true)
 					if err != nil {
-						log.Warnf("processor [%s] failed to upload thumbnail for [%s]: %v", p.Name(), doc.Title, err)
+						log.Warnf("processor [%s] failed to upload thumbnail for [%s/%s]: %v", p.Name(), doc.Title, doc.ID, err)
 					} else {
 						// Set thumbnail as attachment reference
 						doc.Thumbnail = "attachment://" + thumbnailAttachmentID
-						log.Debugf("processor [%s] uploaded thumbnail for [%s]: %s", p.Name(), doc.Title, doc.Thumbnail)
+						log.Debugf("processor [%s] uploaded thumbnail for [%s/%s]: %s", p.Name(), doc.Title, doc.ID, doc.Thumbnail)
 					}
 					thumbnailFile.Close()
 				}
@@ -322,31 +322,31 @@ func (p *FileExtractionProcessor) processDocument(ctx context.Context, doc *core
 
 	// Check shutdown before next step
 	if global.ShuttingDown() {
-		log.Debugf("[%s] shutting down, skipping extraction steps for document [%s]", p.Name(), doc.Title)
+		log.Debugf("[%s] shutting down, skipping extraction steps for document [%s/%s]", p.Name(), doc.Title, doc.ID)
 		return fmt.Errorf("shutting down")
 	}
 
 	/*
 	 * Step 5: Extract text and attachments
 	 */
-	log.Tracef("[%s] step 5/6: extracting text and attachments for [%s]", p.Name(), doc.Title)
+	log.Tracef("[%s] step 5/6: extracting text and attachments for [%s/%s]", p.Name(), doc.Title, doc.ID)
 	err = p.extractTextAndAttachment(ctx, doc, docLocalPath)
 	if err != nil {
-		log.Warnf("processor [%s] failed to extract text/attachments for [%s]: %v", p.Name(), doc.Title, err)
+		log.Warnf("processor [%s] failed to extract text/attachments for [%s/%s]: %v", p.Name(), doc.Title, doc.ID, err)
 	} else {
-		log.Debugf("processor [%s] extracted text/attachments for [%s]: %v", p.Name(), doc.Title)
+		log.Debugf("processor [%s] extracted text/attachments for [%s/%s]: %v", p.Name(), doc.Title, doc.ID)
 	}
 
 	// Check shutdown before next step
 	if global.ShuttingDown() {
-		log.Debugf("[%s] shutting down, skipping extraction steps for document [%s]", p.Name(), doc.Title)
+		log.Debugf("[%s] shutting down, skipping extraction steps for document [%s/%s]", p.Name(), doc.Title, doc.ID)
 		return fmt.Errorf("shutting down")
 	}
 
 	/*
 	 * Step 6: Extract faces and recognize names (optional, skip on error)
 	 */
-	log.Tracef("[%s] step 6/6: extracting faces and recognizing names for [%s]", p.Name(), doc.Title)
+	log.Tracef("[%s] step 6/6: extracting faces and recognizing names for [%s/%s]", p.Name(), doc.Title, doc.ID)
 	allowedTypes := map[string]bool{
 		"image": true,
 		"pptx":  true,
@@ -357,7 +357,7 @@ func (p *FileExtractionProcessor) processDocument(ctx context.Context, doc *core
 	if allowedTypes[contentType] {
 		err = p.extractFacesAndRecognizeNames(ctx, doc, docLocalPath, contentType)
 		if err != nil {
-			log.Warnf("processor [%s] failed to extract faces for [%s]: %v", p.Name(), doc.Title, err)
+			log.Warnf("processor [%s] failed to extract faces for [%s/%s]: %v", p.Name(), doc.Title, doc.ID, err)
 		}
 	}
 

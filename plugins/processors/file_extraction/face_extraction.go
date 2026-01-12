@@ -21,7 +21,7 @@ func (p *FileExtractionProcessor) extractFacesAndRecognizeNames(ctx context.Cont
 		return fmt.Errorf("failed to initialize pigo classifier: %w", err)
 	}
 
-	log.Infof("[%s] starting face extraction for document [%s]", p.Name(), doc.Title)
+	log.Infof("[%s] starting face extraction for document [%s/%s]", p.Name(), doc.Title, doc.ID)
 
 	// Step 1: Extract surrounding text map for each embedded image
 	surroundingTextMap, err := extractSurroundingText(ctx, p, localPath, doc, contentType)
@@ -52,7 +52,7 @@ func (p *FileExtractionProcessor) extractFacesAndRecognizeNames(ctx context.Cont
 	}
 
 	if len(imageFiles) == 0 {
-		log.Debugf("[%s] no images found in document [%s]", p.Name(), doc.Title)
+		log.Debugf("[%s] no images found in document [%s/%s]", p.Name(), doc.Title, doc.ID)
 		return nil
 	}
 
@@ -153,7 +153,7 @@ func (p *FileExtractionProcessor) extractFacesAndRecognizeNames(ctx context.Cont
 	// Convert []User to a format that can be stored in metadata
 	doc.Metadata["users"] = allUsers
 
-	log.Infof("[%s] completed face extraction for [%s]: extracted %d user(s)", p.Name(), doc.Title, len(allUsers))
+	log.Infof("[%s] completed face extraction for [%s/%s]: extracted %d user(s)", p.Name(), doc.Title, doc.ID, len(allUsers))
 
 	return nil
 }

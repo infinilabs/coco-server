@@ -133,7 +133,7 @@ func (p *FileTypeDetectionProcessor) Process(ctx *pipeline.Context) error {
 		doc.Metadata[FieldMimeType] = mimeType
 		doc.Metadata[FieldContentType] = contentType
 
-		log.Infof("processor [%s] detected mime_type=%s, content_type=%s for document [%s]", p.Name(), mimeType, contentType, doc.Title)
+		log.Infof("processor [%s] detected mime_type=%s, content_type=%s for document [%s/%s]", p.Name(), mimeType, contentType, doc.Title, doc.ID)
 
 		// Update message data in-place
 		messages[i].Data = util.MustToJSONBytes(doc)
