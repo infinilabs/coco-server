@@ -17,9 +17,9 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/cihub/seelog"
 	"github.com/chromedp/cdproto/runtime"
 	"github.com/chromedp/chromedp"
+	log "github.com/cihub/seelog"
 	"github.com/disintegration/imaging"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
