@@ -154,7 +154,7 @@ func (processor *DocumentSummarizationProcessor) Process(ctx *pipeline.Context) 
 				log.Errorf("[%s] failed to summarize document [%s/%s], error [%s]", processor.Name(), doc.Title, doc.ID, err)
 				continue
 			}
-			log.Infof("[%s] finished summarize doc, %v, %v, elapsed: %v, short_summary: %v, ai_insights: %v",
+			log.Infof("[%s] finished summarizing doc [%s/%s], elapsed: [%v], short_summary: [%v], ai_insights_length: [%v]",
 				processor.Name(), doc.Title, doc.ID, util.Since(start), doc.Summary,
 				len(fmt.Sprintf("%v", doc.Metadata["ai_insights"])))
 			message.Data = util.MustToJSONBytes(doc)
