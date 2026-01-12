@@ -8,3 +8,7 @@
     0%, 100% { opacity: 0.3; }
     50% { opacity: 1; }
 }
+
+.ui-search .ui-search-chat-message .user-select-text {
+    border-color: var(--ui-search-antd-color-border-secondary);
+}
