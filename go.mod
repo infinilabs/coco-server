@@ -24,7 +24,9 @@ require (
 	code.gitea.io/sdk/gitea v0.22.0
 	github.com/EdlinOrg/prominentcolor v1.0.0
 	github.com/PuerkitoBio/goquery v1.8.1
+	github.com/WqyJh/go-openai-realtime v0.6.1
 	github.com/andygrunwald/go-jira v1.16.0
+	github.com/buger/jsonparser v1.1.1
 	github.com/chromedp/cdproto v0.0.0-20241003230502-a4a8f7c660df
 	github.com/chromedp/chromedp v0.11.0
 	github.com/cihub/seelog v0.0.0-00010101000000-000000000000
@@ -84,7 +86,6 @@ require (
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/bits-and-blooms/bitset v1.12.0 // indirect
 	github.com/bkaradzic/go-lz4 v1.0.0 // indirect
-	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/caddyserver/certmagic v0.23.0 // indirect
 	github.com/caddyserver/zerossl v0.1.3 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
@@ -93,6 +94,7 @@ require (
 	github.com/cockroachdb/errors v1.9.1 // indirect
 	github.com/cockroachdb/logtags v0.0.0-20211118104740-dabe8e521a4f // indirect
 	github.com/cockroachdb/redact v1.1.3 // indirect
+	github.com/coder/websocket v1.8.12 // indirect
 	github.com/davidmz/go-pageant v1.0.2 // indirect
 	github.com/dgraph-io/badger/v4 v4.7.0 // indirect
 	github.com/dgraph-io/ristretto v0.2.0 // indirect
@@ -253,5 +255,8 @@ require (
 	google.golang.org/protobuf v1.36.8 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/cheggaaa/pb.v1 v1.0.28 // indirect
+	infini.sh/license v0.0.0-00010101000000-000000000000 // indirect
 	nhooyr.io/websocket v1.8.7 // indirect
 )
+
+replace infini.sh/license => ../license
