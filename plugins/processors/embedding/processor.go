@@ -127,9 +127,9 @@ func (processor *DocumentEmbeddingProcessor) Process(ctx *pipeline.Context) erro
 		if doc.Type == connectors.TypeFile && doc.Chunks != nil {
 			err := generateEmbedding(ctx.Context, &doc, processor.config)
 			if err != nil {
-				log.Errorf("processor [%s] failed to generate embeddings for document [%s/%s] due to error [%s]", processor.Name(), doc.ID, doc.Title, err)
+				log.Errorf("processor [%s] failed to generate embeddings for document [%s/%s] due to error [%s]", processor.Name(), doc.Title, doc.ID, err)
 			}
-			log.Infof("processor [%s] embeddings of document [%s/%s] generated", processor.Name(), doc.ID, doc.Title)
+			log.Infof("processor [%s] embeddings of document [%s/%s] generated", processor.Name(), doc.Title, doc.ID)
 
 			// Update messages[i].Data in-place
 			messages[i].Data = util.MustToJSONBytes(doc)
@@ -137,7 +137,7 @@ func (processor *DocumentEmbeddingProcessor) Process(ctx *pipeline.Context) erro
 			// Enqueue immediately after processing
 			if processor.outputQueue != nil {
 				if err := queue.Push(processor.outputQueue, messages[i].Data); err != nil {
-					log.Errorf("processor [%s] failed to push document [%s/%s] to output queue: %v", processor.Name(), doc.ID, doc.Title, err)
+					log.Errorf("processor [%s] failed to push document [%s/%s] to output queue: %v", processor.Name(), doc.Title, doc.ID, err)
 				} else {
 					enqueued[i] = true
 				}

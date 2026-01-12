@@ -105,7 +105,7 @@ func (p *FileTypeDetectionProcessor) Process(ctx *pipeline.Context) error {
 		if doc.Metadata != nil {
 			if _, hasMimeType := doc.Metadata[FieldMimeType]; hasMimeType {
 				if _, hasContentType := doc.Metadata[FieldContentType]; hasContentType {
-					log.Debugf("processor [%s] skipping document [%s/%s] as metadata fields already set", p.Name(), doc.ID, doc.Title)
+					log.Debugf("processor [%s] skipping document [%s/%s] as metadata fields already set", p.Name(), doc.Title, doc.ID)
 					continue
 				}
 			}
@@ -114,12 +114,12 @@ func (p *FileTypeDetectionProcessor) Process(ctx *pipeline.Context) error {
 		// Only process documents from s3 or local_fs connectors
 		connectorID, err := utils.GetConnectorID(&doc)
 		if err != nil {
-			log.Warnf("processor [%s] failed to get connector ID for document [%s/%s]: %v", p.Name(), doc.ID, doc.Title, err)
+			log.Warnf("processor [%s] failed to get connector ID for document [%s/%s]: %v", p.Name(), doc.Title, doc.ID, err)
 			continue
 		}
 
 		if !supportedConnectors[connectorID] || doc.Type != connectors.TypeFile {
-			log.Debugf("processor [%s] skipping document [%s/%s] as it is not a [file] that come from [local_fs/s3], connector [%s]", p.Name(), doc.ID, doc.Title, connectorID)
+			log.Debugf("processor [%s] skipping document [%s/%s] as it is not a [file] that come from [local_fs/s3], connector [%s]", p.Name(), doc.Title, doc.ID, connectorID)
 			continue
 		}
 
@@ -141,7 +141,7 @@ func (p *FileTypeDetectionProcessor) Process(ctx *pipeline.Context) error {
 		// Enqueue immediately after processing
 		if p.outputQueue != nil {
 			if err := queue.Push(p.outputQueue, messages[i].Data); err != nil {
-				log.Errorf("processor [%s] failed to push document [%s/%s] to output queue: %v", p.Name(), doc.ID, doc.Title, err)
+				log.Errorf("processor [%s] failed to push document [%s/%s] to output queue: %v", p.Name(), doc.Title, doc.ID, err)
 			} else {
 				enqueued[i] = true
 			}

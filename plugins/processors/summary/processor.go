@@ -147,7 +147,7 @@ func (processor *DocumentSummarizationProcessor) Process(ctx *pipeline.Context) 
 				continue
 			}
 
-			log.Infof("processor [%s] start summarizing document [%s/%s]", processor.Name(), doc.ID, doc.Title)
+			log.Infof("processor [%s] start summarizing document [%s/%s]", processor.Name(), doc.Title, doc.ID)
 			start := time.Now()
 			err = summarizeDocument(llmCtx, &doc, processor.config, llm, processor.removeThinkPattern)
 			if err != nil {
@@ -155,14 +155,14 @@ func (processor *DocumentSummarizationProcessor) Process(ctx *pipeline.Context) 
 				continue
 			}
 			log.Infof("[%s] finished summarize doc, %v, %v, elapsed: %v, short_summary: %v, ai_insights: %v",
-				processor.Name(), doc.ID, doc.Title, util.Since(start), doc.Summary,
+				processor.Name(), doc.Title, doc.ID, util.Since(start), doc.Summary,
 				len(fmt.Sprintf("%v", doc.Metadata["ai_insights"])))
 			message.Data = util.MustToJSONBytes(doc)
 
 			// Enqueue immediately after processing
 			if processor.outputQueue != nil {
 				if err := queue.Push(processor.outputQueue, message.Data); err != nil {
-					log.Errorf("processor [%s] failed to push document [%s/%s] to output queue: %v", processor.Name(), doc.ID, doc.Title, err)
+					log.Errorf("processor [%s] failed to push document [%s/%s] to output queue: %v", processor.Name(), doc.Title, doc.ID, err)
 				} else {
 					enqueued[i] = true
 				}

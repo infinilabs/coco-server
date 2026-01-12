@@ -139,7 +139,7 @@ func (p *FileExtractionProcessor) Process(ctx *pipeline.Context) error {
 
 		// Only process [file] documents from [local_fs] and [s3]
 		if !supportedConnectors[connectorID] || doc.Type != connectors.TypeFile {
-			log.Debugf("processor [%s] skipping document [%s/%s] as it is not a [file] that come from [local_fs/s3], connector [%s]", p.Name(), doc.ID, doc.Title, connectorID)
+			log.Debugf("processor [%s] skipping document [%s/%s] as it is not a [file] that come from [local_fs/s3], connector [%s]", p.Name(), doc.Title, doc.ID, connectorID)
 			continue
 		}
 
@@ -156,7 +156,7 @@ func (p *FileExtractionProcessor) Process(ctx *pipeline.Context) error {
 		// Enqueue immediately after processing
 		if p.outputQueue != nil {
 			if err := queue.Push(p.outputQueue, messages[i].Data); err != nil {
-				log.Errorf("processor [%s] failed to push document [%s/%s] to output queue: %v", p.Name(), doc.ID, doc.Title, err)
+				log.Errorf("processor [%s] failed to push document [%s/%s] to output queue: %v", p.Name(), doc.Title, doc.ID, err)
 			} else {
 				enqueued[i] = true
 			}

@@ -143,7 +143,7 @@ func (processor *ExtractTagsProcessor) Process(ctx *pipeline.Context) error {
 			continue
 		}
 
-		log.Infof("processor [%s] start extracting tags for document [%s/%s]", processor.Name(), doc.ID, doc.Title)
+		log.Infof("processor [%s] start extracting tags for document [%s/%s]", processor.Name(), doc.Title, doc.ID)
 		start := time.Now()
 		tags, err := extractTagsFromInsights(llmCtx, aiInsightsStr, processor.config, llm, processor.removeThinkPattern)
 		if err != nil {
@@ -152,13 +152,13 @@ func (processor *ExtractTagsProcessor) Process(ctx *pipeline.Context) error {
 		}
 		doc.Tags = tags
 		log.Infof("[%s] finished extracting tags for doc, %v, %v, elapsed: %v, tags: %v",
-			processor.Name(), doc.ID, doc.Title, util.Since(start), tags)
+			processor.Name(), doc.Title, doc.ID, util.Since(start), tags)
 		message.Data = util.MustToJSONBytes(doc)
 
 		// Enqueue immediately after processing
 		if processor.outputQueue != nil {
 			if err := queue.Push(processor.outputQueue, message.Data); err != nil {
-				log.Errorf("processor [%s] failed to push document [%s/%s] to output queue: %v", processor.Name(), doc.ID, doc.Title, err)
+				log.Errorf("processor [%s] failed to push document [%s/%s] to output queue: %v", processor.Name(), doc.Title, doc.ID, err)
 			} else {
 				enqueued[i] = true
 			}
