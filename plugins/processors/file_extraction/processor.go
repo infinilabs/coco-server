@@ -199,6 +199,7 @@ func (p *FileExtractionProcessor) processDocument(ctx context.Context, doc *core
 	/*
 	 * Step 1: Download/copy file to temp directory
 	 */
+	log.Tracef("[%s] step 1/6: downloading file to local temp directory for [%s]", p.Name(), doc.Title)
 	docLocalPath, err := p.downloadToLocal(ctx, doc, connectorID, tempDir)
 	if err != nil {
 		// The following steps are dependent on this, if this fails, error out.
@@ -220,6 +221,7 @@ func (p *FileExtractionProcessor) processDocument(ctx context.Context, doc *core
 	/*
 	 * Step 2: Extract dominant colors (for images)
 	 */
+	log.Tracef("[%s] step 2/6: extracting dominant colors for [%s]", p.Name(), doc.Title)
 	contentType, _ := doc.Metadata["content_type"].(string)
 	if contentType == "image" {
 		img, err := loadImageFile(docLocalPath)
@@ -245,6 +247,7 @@ func (p *FileExtractionProcessor) processDocument(ctx context.Context, doc *core
 	/*
 	 * Step 3: Store image width/height
 	 */
+	log.Tracef("[%s] step 3/6: extracting image dimensions for [%s]", p.Name(), doc.Title)
 	if contentType == "image" {
 		img, err := loadImageFile(docLocalPath)
 		if err != nil {
@@ -266,6 +269,7 @@ func (p *FileExtractionProcessor) processDocument(ctx context.Context, doc *core
 	/*
 	 * Step 4: Generate and upload cover and thumbnail (if it is an image)
 	 */
+	log.Tracef("[%s] step 4/6: generating and uploading cover/thumbnail for [%s]", p.Name(), doc.Title)
 	coverFilename := doc.ID + "_cover.png"
 	coverPath := filepath.Join(tempDir, coverFilename)
 	thumbnailFilename := doc.ID + "_thumbnail.png"
@@ -325,6 +329,7 @@ func (p *FileExtractionProcessor) processDocument(ctx context.Context, doc *core
 	/*
 	 * Step 5: Extract text and attachments
 	 */
+	log.Tracef("[%s] step 5/6: extracting text and attachments for [%s]", p.Name(), doc.Title)
 	err = p.extractTextAndAttachment(ctx, doc, docLocalPath)
 	if err != nil {
 		log.Warnf("processor [%s] failed to extract text/attachments for [%s]: %v", p.Name(), doc.Title, err)
@@ -341,6 +346,7 @@ func (p *FileExtractionProcessor) processDocument(ctx context.Context, doc *core
 	/*
 	 * Step 6: Extract faces and recognize names (optional, skip on error)
 	 */
+	log.Tracef("[%s] step 6/6: extracting faces and recognizing names for [%s]", p.Name(), doc.Title)
 	allowedTypes := map[string]bool{
 		"image": true,
 		"pptx":  true,
