@@ -144,7 +144,7 @@ func (processor *DocumentSummarizationProcessor) Process(ctx *pipeline.Context) 
 				continue
 			}
 
-			log.Info("start summarize doc: ", doc.ID, ",", doc.Title)
+			log.Infof("processor [%s] start summarizing document [%s/%s]", processor.Name(), doc.ID, doc.Title)
 			start := time.Now()
 			err = summarizeDocument(llmCtx, &doc, processor.config, llm, processor.removeThinkPattern)
 			if err != nil {

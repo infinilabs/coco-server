@@ -102,7 +102,7 @@ func (p *FileTypeDetectionProcessor) Process(ctx *pipeline.Context) error {
 		if doc.Metadata != nil {
 			if _, hasMimeType := doc.Metadata[FieldMimeType]; hasMimeType {
 				if _, hasContentType := doc.Metadata[FieldContentType]; hasContentType {
-					log.Debugf("processor [%s] skipping document [%s] as metadata fields already set", p.Name(), doc.ID)
+					log.Debugf("processor [%s] skipping document [%s/%s] as metadata fields already set", p.Name(), doc.ID, doc.Title)
 					continue
 				}
 			}
@@ -111,12 +111,12 @@ func (p *FileTypeDetectionProcessor) Process(ctx *pipeline.Context) error {
 		// Only process documents from s3 or local_fs connectors
 		connectorID, err := utils.GetConnectorID(&doc)
 		if err != nil {
-			log.Warnf("processor [%s] failed to get connector ID for document [%s]: %v", p.Name(), doc.ID, err)
+			log.Warnf("processor [%s] failed to get connector ID for document [%s/%s]: %v", p.Name(), doc.ID, doc.Title, err)
 			continue
 		}
 
 		if !supportedConnectors[connectorID] || doc.Type != connectors.TypeFile {
-			log.Debugf("processor [%s] skipping document [%s] as it is not a [file] that come from [local_fs/s3]", p.Name(), doc.ID, connectorID)
+			log.Debugf("processor [%s] skipping document [%s/%s] as it is not a [file] that come from [local_fs/s3], connector [%s]", p.Name(), doc.ID, doc.Title, connectorID)
 			continue
 		}
 

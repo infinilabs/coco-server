@@ -135,7 +135,7 @@ func (p *FileExtractionProcessor) Process(ctx *pipeline.Context) error {
 
 		// Only process [file] documents from [local_fs] and [s3]
 		if !supportedConnectors[connectorID] || doc.Type != connectors.TypeFile {
-			log.Debugf("processor [%s] skipping document [%s] as it is not a [file] that come from [local_fs/s3]", p.Name(), doc.ID, connectorID)
+			log.Debugf("processor [%s] skipping document [%s/%s] as it is not a [file] that come from [local_fs/s3], connector [%s]", p.Name(), doc.ID, doc.Title, connectorID)
 			continue
 		}
 

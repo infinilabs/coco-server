@@ -142,7 +142,7 @@ func (processor *ExtractTagsProcessor) Process(ctx *pipeline.Context) error {
 			continue
 		}
 
-		log.Info("start extracting tags for doc: ", doc.ID, ",", doc.Title)
+		log.Infof("processor [%s] start extracting tags for document [%s/%s]", processor.Name(), doc.ID, doc.Title)
 		start := time.Now()
 		tags, err := extractTagsFromInsights(llmCtx, aiInsightsStr, processor.config, llm, processor.removeThinkPattern)
 		if err != nil {

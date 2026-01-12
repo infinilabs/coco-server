@@ -137,7 +137,7 @@ func (processor *DocumentEmbeddingProcessor) Process(ctx *pipeline.Context) erro
 	if processor.outputQueue != nil {
 		for i := range messages {
 			if err := queue.Push(processor.outputQueue, messages[i].Data); err != nil {
-				log.Error("failed to push document to [%s]'s output queue: %v\n", processor.Name(), err)
+				log.Errorf("processor [%s] failed to push message to output queue: %v", processor.Name(), err)
 			}
 		}
 	}
