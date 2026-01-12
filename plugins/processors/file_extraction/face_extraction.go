@@ -31,7 +31,7 @@ func (p *FileExtractionProcessor) extractFacesAndRecognizeNames(ctx context.Cont
 	log.Tracef("[%s] found surrounding text for %d images", p.Name(), len(surroundingTextMap))
 
 	// Step 2: Extract all embedded images to temp directory
-	tempDir, err := os.MkdirTemp("", "face-extraction-*")
+	tempDir, err := os.MkdirTemp("", "coco-face-extraction-*")
 	if err != nil {
 		return fmt.Errorf("failed to create temp directory: %w", err)
 	}

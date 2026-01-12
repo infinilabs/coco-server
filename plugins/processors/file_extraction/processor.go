@@ -190,7 +190,7 @@ func (p *FileExtractionProcessor) Process(ctx *pipeline.Context) error {
 // our best to do perform all the steps.
 func (p *FileExtractionProcessor) processDocument(ctx context.Context, doc *core.Document, connectorID string) error {
 	// Create temp directory for processing
-	tempDir, err := os.MkdirTemp("", "file-extraction-")
+	tempDir, err := os.MkdirTemp("", "coco-file-extraction-*")
 	if err != nil {
 		return fmt.Errorf("failed to create temp directory: %w", err)
 	}
