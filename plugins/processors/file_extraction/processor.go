@@ -338,7 +338,7 @@ func (p *FileExtractionProcessor) processDocument(ctx context.Context, doc *core
 	if err != nil {
 		log.Warnf("processor [%s] failed to extract text/attachments for [%s/%s]: %v", p.Name(), doc.Title, doc.ID, err)
 	} else {
-		log.Debugf("processor [%s] extracted text/attachments for [%s/%s]: %v", p.Name(), doc.Title, doc.ID)
+		log.Debugf("processor [%s] extracted text/attachments for [%s/%s]", p.Name(), doc.Title, doc.ID)
 	}
 
 	// Check shutdown before next step
