@@ -17,6 +17,7 @@ import (
 	"strings"
 	"time"
 
+	log "github.com/cihub/seelog"
 	"github.com/chromedp/cdproto/runtime"
 	"github.com/chromedp/chromedp"
 	"github.com/disintegration/imaging"
@@ -73,6 +74,7 @@ const CssStyleForThumbnail = `
 // If file is an image, we also generate a thumbnail for it.
 func GenerateCoverAndThumbnail(file, coverOutPath, thumbnailOutPath string) error {
 	ext := strings.ToLower(filepath.Ext(file))
+	log.Tracef("generating cover/thumbnail for file type %s: %s", ext, file)
 
 	var err error
 	switch ext {
@@ -98,20 +100,24 @@ func GenerateCoverAndThumbnail(file, coverOutPath, thumbnailOutPath string) erro
 	}
 
 	// Resize the generated cover to standard dimensions
+	log.Tracef("resizing cover to %dx%d: %s", CoverWidth, CoverHeight, coverOutPath)
 	return resizeCover(coverOutPath, CoverWidth, CoverHeight)
 }
 
 // resizeCover resizes and crops an image to exact dimensions using Fill
 func resizeCover(imagePath string, width, height int) error {
+	log.Tracef("opening image for resizing: %s", imagePath)
 	img, err := imaging.Open(imagePath)
 	if err != nil {
 		return fmt.Errorf("failed to open image for resizing: %w", err)
 	}
 
 	// Fill crops to exact dimensions using Top anchor (good for docs with titles)
+	log.Tracef("cropping image to %dx%d using Top anchor", width, height)
 	resized := imaging.Fill(img, width, height, imaging.Top, imaging.Lanczos)
 
 	// Save back to the same path as PNG
+	log.Tracef("saving resized image as PNG: %s", imagePath)
 	out, err := os.Create(imagePath)
 	if err != nil {
 		return err
@@ -124,6 +130,7 @@ func resizeCover(imagePath string, width, height int) error {
 // If width > ThumbMaxWidth, scales down proportionally. Otherwise uses original.
 // Output is always PNG (metadata stripped, format unified).
 func GenerateThumbnail(inputPath, outPath string) error {
+	log.Tracef("generating thumbnail: %s -> %s", inputPath, outPath)
 	img, err := imaging.Open(inputPath)
 	if err != nil {
 		return fmt.Errorf("failed to open image for thumbnail: %w", err)
@@ -131,17 +138,21 @@ func GenerateThumbnail(inputPath, outPath string) error {
 
 	bounds := img.Bounds()
 	width := bounds.Dx()
+	log.Tracef("original image width: %d, max thumbnail width: %d", width, ThumbMaxWidth)
 
 	var finalImg image.Image
 
 	// If width exceeds limit, resize proportionally (height=0 preserves aspect ratio)
 	if width > ThumbMaxWidth {
+		log.Tracef("resizing image to width %d (preserving aspect ratio)", ThumbMaxWidth)
 		finalImg = imaging.Resize(img, ThumbMaxWidth, 0, imaging.Lanczos)
 	} else {
+		log.Tracef("image width within limit, using original")
 		finalImg = img
 	}
 
 	// Save as PNG
+	log.Tracef("saving thumbnail as PNG: %s", outPath)
 	out, err := os.Create(outPath)
 	if err != nil {
 		return err
@@ -151,6 +162,7 @@ func GenerateThumbnail(inputPath, outPath string) error {
 }
 
 func generateImageCover(imagePath, outPath string) error {
+	log.Tracef("generating image cover by copying: %s -> %s", imagePath, outPath)
 	data, err := os.ReadFile(imagePath)
 	if err != nil {
 		return err
@@ -160,8 +172,9 @@ func generateImageCover(imagePath, outPath string) error {
 
 // generatePdfCover generates a cover from the first page of a PDF using pdftoppm
 func generatePdfCover(pdfPath, outPath string) error {
+	log.Tracef("generating PDF cover: %s", pdfPath)
 	// Create temp directory for pdftoppm output
-	tmpDir, err := os.MkdirTemp("", "pdf-cover-")
+	tmpDir, err := os.MkdirTemp("", "coco-pdf-cover-")
 	if err != nil {
 		return fmt.Errorf("failed to create temp dir: %w", err)
 	}
@@ -174,6 +187,7 @@ func generatePdfCover(pdfPath, outPath string) error {
 	// -f 1 -l 1: first page only
 	// -jpeg: output as JPEG
 	// -r 150: 150 DPI (good balance of quality and size)
+	log.Tracef("running pdftoppm to extract first page at 150 DPI")
 	cmd := exec.Command("pdftoppm", "-f", "1", "-l", "1", "-jpeg", "-r", "150", pdfPath, outputPrefix)
 	if output, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("pdftoppm failed (output: %s): %w", string(output), err)
@@ -183,6 +197,7 @@ func generatePdfCover(pdfPath, outPath string) error {
 	generatedFile := outputPrefix + "-1.jpg"
 	if _, err := os.Stat(generatedFile); os.IsNotExist(err) {
 		// Try alternative naming (page-01.jpg for multi-digit padding)
+		log.Tracef("trying alternative file naming: page-01.jpg")
 		generatedFile = outputPrefix + "-01.jpg"
 		if _, err := os.Stat(generatedFile); os.IsNotExist(err) {
 			return fmt.Errorf("pdftoppm output file not found")
@@ -190,19 +205,22 @@ func generatePdfCover(pdfPath, outPath string) error {
 	}
 
 	// Copy to output path
+	log.Tracef("copying generated PDF cover to: %s", outPath)
 	return copyLocalFile(generatedFile, outPath)
 }
 
 // generateOfficeCover generates a cover for Office documents by converting to PDF first
 func generateOfficeCover(filePath, outPath string) error {
+	log.Tracef("generating Office cover: %s", filePath)
 	// Create temporary directory for PDF conversion
-	tmpDir, err := os.MkdirTemp("", "office-cover-")
+	tmpDir, err := os.MkdirTemp("", "coco-office-cover-")
 	if err != nil {
 		return fmt.Errorf("failed to create temp dir: %w", err)
 	}
 	defer os.RemoveAll(tmpDir)
 
 	// Convert to PDF using LibreOffice
+	log.Tracef("converting Office document to PDF using LibreOffice")
 	cmd := exec.Command("soffice", "--headless", "--convert-to", "pdf", filePath, "--outdir", tmpDir)
 	if output, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("soffice conversion failed (output: %s): %w", string(output), err)
@@ -217,11 +235,13 @@ func generateOfficeCover(filePath, outPath string) error {
 		return fmt.Errorf("converted PDF not found at %s", pdfPath)
 	}
 
+	log.Tracef("extracting cover from converted PDF")
 	return generatePdfCover(pdfPath, outPath)
 }
 
 // generateMarkdownCover generates a cover by rendering Markdown to HTML and taking a screenshot
 func generateMarkdownCover(mdPath, outPath string) error {
+	log.Tracef("generating Markdown cover: %s", mdPath)
 	// Read Markdown file
 	mdData, err := os.ReadFile(mdPath)
 	if err != nil {
@@ -229,6 +249,7 @@ func generateMarkdownCover(mdPath, outPath string) error {
 	}
 
 	// Configure Markdown parser with GitHub Flavored Markdown
+	log.Tracef("parsing Markdown with GitHub Flavored Markdown")
 	mdParser := goldmark.New(
 		goldmark.WithExtensions(extension.GFM),
 		goldmark.WithParserOptions(
@@ -253,12 +274,14 @@ func generateMarkdownCover(mdPath, outPath string) error {
 	fullHTML := buf.String()
 
 	// Take screenshot using headless Chrome
+	log.Tracef("taking screenshot of rendered Markdown")
 	return takeHTMLScreenshot(fullHTML, outPath)
 }
 
 // takeHTMLScreenshot renders HTML and takes a screenshot using headless Chrome
 // Optimized for thumbnail generation: uses small viewport with 2x scale for crisp text
 func takeHTMLScreenshot(htmlContent, outPath string) error {
+	log.Tracef("taking HTML screenshot with headless Chrome")
 	// Configure Chrome options
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
 		chromedp.Flag("headless", true),
@@ -282,6 +305,7 @@ func takeHTMLScreenshot(htmlContent, outPath string) error {
 	// Execute screenshot task
 	// Use 640x360 viewport with 2x scale to get 1280x720 output with large, readable text
 	// Then resize to 320x180 - the 2:1 ratio preserves sharpness
+	log.Tracef("rendering HTML with 640x360 viewport at 2x scale")
 	err := chromedp.Run(ctx,
 		chromedp.Navigate("about:blank"),
 		chromedp.EmulateViewport(640, 360, chromedp.EmulateScale(2.0)),
@@ -307,6 +331,7 @@ func takeHTMLScreenshot(htmlContent, outPath string) error {
 	}
 
 	// Decode the screenshot
+	log.Tracef("decoding screenshot and resizing to %dx%d", CoverWidth, CoverHeight)
 	img, err := imaging.Decode(bytes.NewReader(screenshotBuf))
 	if err != nil {
 		return fmt.Errorf("failed to decode screenshot: %w", err)
@@ -316,6 +341,7 @@ func takeHTMLScreenshot(htmlContent, outPath string) error {
 	resized := imaging.Resize(img, CoverWidth, CoverHeight, imaging.Lanczos)
 
 	// Save as PNG - much better for text than JPEG (no compression artifacts)
+	log.Tracef("saving screenshot as PNG: %s", outPath)
 	return saveImageAsPng(resized, outPath)
 }
 
