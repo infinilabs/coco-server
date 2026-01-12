@@ -125,6 +125,9 @@ func (processor *DocumentSummarizationProcessor) Process(ctx *pipeline.Context) 
 	llmCtx, cancelFunc := context.WithCancel(ctx.Context)
 	defer cancelFunc()
 
+	// Track which documents have been enqueued
+	enqueued := make(map[int]bool)
+
 	for i := range messages {
 		// Check shutdown before processing each document
 		if global.ShuttingDown() {
@@ -155,16 +158,27 @@ func (processor *DocumentSummarizationProcessor) Process(ctx *pipeline.Context) 
 				processor.Name(), doc.ID, doc.Title, util.Since(start), doc.Summary,
 				len(fmt.Sprintf("%v", doc.Metadata["ai_insights"])))
 			message.Data = util.MustToJSONBytes(doc)
+
+			// Enqueue immediately after processing
+			if processor.outputQueue != nil {
+				if err := queue.Push(processor.outputQueue, message.Data); err != nil {
+					log.Errorf("processor [%s] failed to push document [%s/%s] to output queue: %v", processor.Name(), doc.ID, doc.Title, err)
+				} else {
+					enqueued[i] = true
+				}
+			}
 		} else {
-			// Document was skipped (too short), include it in output queue
+			// Document was skipped (too short), will be enqueued in final pass
 		}
 	}
 
-	// Push all processed messages to output queue in batch
+	// Enqueue any documents that were skipped (not enqueued during processing)
 	if processor.outputQueue != nil {
 		for i := range messages {
-			if err := queue.Push(processor.outputQueue, messages[i].Data); err != nil {
-				log.Errorf("failed to push document to [%s]'s output queue: %v", processor.Name(), err)
+			if !enqueued[i] {
+				if err := queue.Push(processor.outputQueue, messages[i].Data); err != nil {
+					log.Errorf("processor [%s] failed to push skipped document [%d] to output queue: %v", processor.Name(), i, err)
+				}
 			}
 		}
 	}

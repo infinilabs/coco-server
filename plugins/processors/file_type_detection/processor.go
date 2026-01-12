@@ -82,6 +82,9 @@ func (p *FileTypeDetectionProcessor) Process(ctx *pipeline.Context) error {
 		return nil
 	}
 
+	// Track which documents have been enqueued
+	enqueued := make(map[int]bool)
+
 	for i := range messages {
 		// Check shutdown before processing each document
 		if global.ShuttingDown() {
@@ -134,13 +137,24 @@ func (p *FileTypeDetectionProcessor) Process(ctx *pipeline.Context) error {
 
 		// Update message data in-place
 		messages[i].Data = util.MustToJSONBytes(doc)
+
+		// Enqueue immediately after processing
+		if p.outputQueue != nil {
+			if err := queue.Push(p.outputQueue, messages[i].Data); err != nil {
+				log.Errorf("processor [%s] failed to push document [%s/%s] to output queue: %v", p.Name(), doc.ID, doc.Title, err)
+			} else {
+				enqueued[i] = true
+			}
+		}
 	}
 
-	// Push all processed messages to output queue in batch
+	// Enqueue any documents that were skipped (not enqueued during processing)
 	if p.outputQueue != nil {
 		for i := range messages {
-			if err := queue.Push(p.outputQueue, messages[i].Data); err != nil {
-				log.Errorf("processor [%s] failed to push message to output queue: %v", p.Name(), err)
+			if !enqueued[i] {
+				if err := queue.Push(p.outputQueue, messages[i].Data); err != nil {
+					log.Errorf("processor [%s] failed to push skipped document [%d] to output queue: %v", p.Name(), i, err)
+				}
 			}
 		}
 	}

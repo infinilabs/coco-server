@@ -105,6 +105,9 @@ func (processor *DocumentEmbeddingProcessor) Process(ctx *pipeline.Context) erro
 		return nil
 	}
 
+	// Track which documents have been enqueued
+	enqueued := make(map[int]bool)
+
 	for i := range messages {
 		// Check shutdown before processing each document
 		if global.ShuttingDown() {
@@ -130,14 +133,25 @@ func (processor *DocumentEmbeddingProcessor) Process(ctx *pipeline.Context) erro
 
 			// Update messages[i].Data in-place
 			messages[i].Data = util.MustToJSONBytes(doc)
+
+			// Enqueue immediately after processing
+			if processor.outputQueue != nil {
+				if err := queue.Push(processor.outputQueue, messages[i].Data); err != nil {
+					log.Errorf("processor [%s] failed to push document [%s/%s] to output queue: %v", processor.Name(), doc.ID, doc.Title, err)
+				} else {
+					enqueued[i] = true
+				}
+			}
 		}
 	}
 
-	// Push all processed messages to output queue in batch
+	// Enqueue any documents that were skipped (not enqueued during processing)
 	if processor.outputQueue != nil {
 		for i := range messages {
-			if err := queue.Push(processor.outputQueue, messages[i].Data); err != nil {
-				log.Errorf("processor [%s] failed to push message to output queue: %v", processor.Name(), err)
+			if !enqueued[i] {
+				if err := queue.Push(processor.outputQueue, messages[i].Data); err != nil {
+					log.Errorf("processor [%s] failed to push skipped document [%d] to output queue: %v", processor.Name(), i, err)
+				}
 			}
 		}
 	}

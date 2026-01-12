@@ -111,6 +111,9 @@ func (processor *ExtractTagsProcessor) Process(ctx *pipeline.Context) error {
 	llmCtx, cancelFunc := context.WithCancel(ctx.Context)
 	defer cancelFunc()
 
+	// Track which documents have been enqueued
+	enqueued := make(map[int]bool)
+
 	for i := range messages {
 		// Check shutdown before processing each document
 		if global.ShuttingDown() {
@@ -130,15 +133,13 @@ func (processor *ExtractTagsProcessor) Process(ctx *pipeline.Context) error {
 
 		aiInsights, hasAIInsights := doc.Metadata["ai_insights"]
 		if !hasAIInsights {
-			log.Tracef("[%s] document [%s/%s] has no ai_insights, skipping tag extraction", processor.Name(), doc.Title, doc.ID)
-			message.Data = util.MustToJSONBytes(doc)
+			log.Debugf("[%s] document [%s/%s] has no ai_insights, skipping tag extraction", processor.Name(), doc.Title, doc.ID)
 			continue
 		}
 
 		aiInsightsStr, ok := aiInsights.(string)
 		if !ok || strings.TrimSpace(aiInsightsStr) == "" {
-			log.Tracef("[%s] document [%s/%s] has empty ai_insights, skipping tag extraction", processor.Name(), doc.Title, doc.ID)
-			message.Data = util.MustToJSONBytes(doc)
+			log.Debugf("[%s] document [%s/%s] has empty ai_insights, skipping tag extraction", processor.Name(), doc.Title, doc.ID)
 			continue
 		}
 
@@ -153,12 +154,24 @@ func (processor *ExtractTagsProcessor) Process(ctx *pipeline.Context) error {
 		log.Infof("[%s] finished extracting tags for doc, %v, %v, elapsed: %v, tags: %v",
 			processor.Name(), doc.ID, doc.Title, util.Since(start), tags)
 		message.Data = util.MustToJSONBytes(doc)
+
+		// Enqueue immediately after processing
+		if processor.outputQueue != nil {
+			if err := queue.Push(processor.outputQueue, message.Data); err != nil {
+				log.Errorf("processor [%s] failed to push document [%s/%s] to output queue: %v", processor.Name(), doc.ID, doc.Title, err)
+			} else {
+				enqueued[i] = true
+			}
+		}
 	}
 
+	// Enqueue any documents that were skipped (not enqueued during processing)
 	if processor.outputQueue != nil {
 		for i := range messages {
-			if err := queue.Push(processor.outputQueue, messages[i].Data); err != nil {
-				log.Errorf("failed to push document to [%s]'s output queue: %v", processor.Name(), err)
+			if !enqueued[i] {
+				if err := queue.Push(processor.outputQueue, messages[i].Data); err != nil {
+					log.Errorf("processor [%s] failed to push skipped document [%d] to output queue: %v", processor.Name(), i, err)
+				}
 			}
 		}
 	}
