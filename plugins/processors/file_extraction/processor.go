@@ -24,6 +24,7 @@ import (
 	"infini.sh/framework/core/param"
 	"infini.sh/framework/core/pipeline"
 	"infini.sh/framework/core/queue"
+	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
 )
 
@@ -278,14 +279,17 @@ func (p *FileExtractionProcessor) processDocument(ctx context.Context, doc *core
 	if err != nil {
 		log.Warnf("processor [%s] failed to generate cover for [%s/%s]: %v", p.Name(), doc.Title, doc.ID, err)
 	} else {
+		log.Tracef("[%s] step 4/6: cover/thumbnail for [%s/%s] generated", p.Name(), doc.Title, doc.ID)
 		// Open cover file for upload
 		coverFile, err := os.Open(coverPath)
 		if err != nil {
 			log.Warnf("processor [%s] failed to open cover file for [%s/%s]: %v", p.Name(), doc.Title, doc.ID, err)
 		} else {
+			log.Tracef("[%s] step 4/6: uploading cover/thumbnail for [%s/%s] to blob store", p.Name(), doc.Title, doc.ID)
 			// Create ORM context with direct access (required for background processor)
 			ormCtx := orm.NewContextWithParent(ctx)
 			ormCtx.DirectAccess()
+			ormCtx.PermissionScope(security.PermissionScopePlatform)
 
 			// Get owner ID from document
 			ownerID := doc.GetOwnerID()
