@@ -61,6 +61,29 @@ func (h *APIHandler) getDoc(w http.ResponseWriter, req *http.Request, ps httprou
 	}, 200)
 }
 
+func (h *APIHandler) getDocRawContent(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	id := ps.MustGetParameter("doc_id")
+
+	obj := core.Document{}
+	obj.ID = id
+	ctx := orm.NewContextWithParent(req.Context())
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "document")
+	exists, err := orm.GetV2(ctx, &obj)
+	if !exists || err != nil {
+		h.WriteJSON(w, util.MapStr{
+			"_id":   id,
+			"found": false,
+		}, http.StatusNotFound)
+		return
+	}
+
+	//if obj.URL != "" && util.GetBool(obj.Metadata, "url_is_raw_content") {
+	//
+	//}
+
+}
+
 func (h *APIHandler) updateDoc(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("doc_id")
 	ctx := orm.NewContextWithParent(req.Context())
