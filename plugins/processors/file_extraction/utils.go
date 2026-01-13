@@ -636,7 +636,7 @@ func loadLocalImageToContentPart(imagePath string, imageContenFormat string) (ll
 	}
 
 	switch imageContenFormat {
-	case "url":
+	case "data_uri":
 		base64Str := base64.StdEncoding.EncodeToString(imageBytes)
 		dataURI := fmt.Sprintf("data:%s;base64,%s", mimeType, base64Str)
 		return llms.ImageURLPart(dataURI), nil

@@ -38,10 +38,10 @@ func (p *FileExtractionProcessor) processImage(ctx context.Context, imagePath st
 	// Create LLM client
 	llm := langchain.GetLLM(provider.BaseURL, provider.APIType, p.config.VisionModelName, provider.APIKey, "")
 
-	// Convert image to data URI or binary based on config
+	// Convert image to llms.ContentPart based on config
 	imagePart, err := loadLocalImageToContentPart(imagePath, p.config.ImageContentFormat)
 	if err != nil {
-		return Extraction{}, fmt.Errorf("failed to convert image to binary: %w", err)
+		return Extraction{}, fmt.Errorf("failed to convert image to llms.ContentPart: %w", err)
 	}
 
 	// Build message with image
