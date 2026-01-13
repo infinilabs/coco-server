@@ -40,11 +40,10 @@ into dense vector representations.
 ### Example
 
 ```yaml
-processors:
-  - type: embedding
-    model_provider: openai
-    model: text-embedding-3-small
-    embedding_dimension: 1536
+- document_embedding:
+  model_provider: openai
+  model: text-embedding-3-small
+  embedding_dimension: 1536
 ```
 
 ---
@@ -64,11 +63,10 @@ Extracts structured tags from AI insights stored in document metadata using an L
 ### Example
 
 ```yaml
-processors:
-  - type: extract_tags
-    model_provider: openai
-    model: gpt-4o-mini
-    model_context_length: 4000
+- extract_tags:
+  model_provider: openai
+  model: gpt-4o-mini
+  model_context_length: 4000
 ```
 
 ---
@@ -92,14 +90,13 @@ Comprehensive file processing for various file types. Extracts text content, met
 ### Example
 
 ```yaml
-processors:
-  - type: file_extraction
-    tika_endpoint: http://127.0.0.1:9998
-    tika_timeout_in_seconds: 120
-    chunk_size: 7000
-    vision_model_provider: openai
-    vision_model: gpt-4o
-    pigo_facefinder_path: /path/to/pigo/facefinder
+- file_extraction:
+  tika_endpoint: http://127.0.0.1:9998
+  tika_timeout_in_seconds: 120
+  chunk_size: 7000
+  vision_model_provider: openai
+  vision_model: gpt-4o
+  pigo_facefinder_path: /path/to/pigo/facefinder
 ```
 
 ---
@@ -115,8 +112,7 @@ No additional configuration required.
 ### Example
 
 ```yaml
-processors:
-  - type: file_type_detection
+- file_type_detection: {}
 ```
 
 ---
@@ -139,12 +135,11 @@ Generates AI-powered document summaries and insights with structured analysis.
 ### Example
 
 ```yaml
-processors:
-  - type: summary
-    model_provider: openai
-    model: gpt-4o-mini
-    model_context_length: 4000
-    min_input_document_length: 100
-    max_input_document_length: 100000
-    ai_insights_max_length: 500
+- document_summarization:
+  model_provider: openai
+  model: gpt-4o-mini
+  model_context_length: 4000
+  min_input_document_length: 100
+  max_input_document_length: 100000
+  ai_insights_max_length: 500
 ```
