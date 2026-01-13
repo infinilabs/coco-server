@@ -6,9 +6,14 @@ package file_extraction
 
 import (
 	"archive/zip"
+	"bytes"
 	"context"
 	"encoding/base64"
 	"fmt"
+	_ "image/gif"
+	"image/jpeg"
+	_ "image/png"
+
 	"io"
 	"mime"
 	"net/http"
@@ -18,7 +23,12 @@ import (
 	"strings"
 	"time"
 
+	_ "golang.org/x/image/bmp"
+	_ "golang.org/x/image/tiff"
+	_ "golang.org/x/image/webp"
+
 	log "github.com/cihub/seelog"
+	"github.com/disintegration/imaging"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/tmc/langchaingo/llms"
@@ -574,25 +584,90 @@ func copyLocalFile(src, dst string) error {
 
 // localImageToDataURI reads a local image file and converts it to a data URI format
 // that can be used with vision models.
+//
+// If image is larger than 5MB, compress it.
+// If image is not in format jpeg/png, we convert it to jpeg, in case the vision model
+// does not support it.
 func localImageToDataURI(imagePath string) (llms.ContentPart, error) {
+	const MaxImageBytes = 5 * 1024 * 1024
+	// We only allow jpeg and png, in case the vision model does not support
+	// other types.
+	var AllowedImageType = map[string]bool{
+		"image/jpeg": true,
+		"image/png":  true,
+	}
+
 	// Read file
-	imgBytes, err := os.ReadFile(imagePath)
+	imageBytes, err := os.ReadFile(imagePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read image file: %w", err)
 	}
-
-	// Determine MIME type
 	mimeType := mime.TypeByExtension(filepath.Ext(imagePath))
 	if mimeType == "" {
 		return nil, fmt.Errorf("unknown MIME type for image extension: %s", filepath.Ext(imagePath))
 	}
 
+	if len(imageBytes) > MaxImageBytes {
+		compressedImageBytes, err := compressImage(imageBytes)
+		if err != nil {
+			return nil, fmt.Errorf("faild to compress image [%s]", imagePath)
+		}
+
+		// after compression, it will be converted into jpeg
+		mimeType = "image/jpeg"
+		imageBytes = compressedImageBytes
+	}
+
+	// Convert it to "image/jpeg"
+	if !AllowedImageType[mimeType] {
+		img, err := imaging.Decode(bytes.NewReader(imageBytes))
+		if err != nil {
+			return nil, fmt.Errorf("decode failed: %w", err)
+		}
+
+		var buf bytes.Buffer
+		err = jpeg.Encode(&buf, img, &jpeg.Options{Quality: 75})
+		if err != nil {
+			return nil, fmt.Errorf("encode jpeg failed: %w", err)
+		}
+
+		mimeType = "image/jpeg"
+		imageBytes = buf.Bytes()
+	}
+
 	// Encode to base64
-	base64Str := base64.StdEncoding.EncodeToString(imgBytes)
+	base64Str := base64.StdEncoding.EncodeToString(imageBytes)
 
 	// Build data URI
 	dataURI := fmt.Sprintf("data:%s;base64,%s", mimeType, base64Str)
 
 	// Return as ImageURLPart (data URI is treated as URL by the API)
 	return llms.ImageURLPart(dataURI), nil
+}
+
+// Compress the image bytes by restricting it width/height to be under
+// 1024, then its size won't exceed 4MB.
+func compressImage(data []byte) ([]byte, error) {
+	const DimensionLen = 1024
+
+	img, err := imaging.Decode(bytes.NewReader(data))
+	if err != nil {
+		return nil, fmt.Errorf("decode failed: %w", err)
+	}
+
+	bounds := img.Bounds()
+	width := bounds.Dx()
+	height := bounds.Dy()
+
+	if width > DimensionLen || height > DimensionLen {
+		img = imaging.Fit(img, DimensionLen, DimensionLen, imaging.Lanczos)
+	}
+
+	var buf bytes.Buffer
+	err = jpeg.Encode(&buf, img, &jpeg.Options{Quality: 75})
+	if err != nil {
+		return nil, fmt.Errorf("encode jpeg failed: %w", err)
+	}
+
+	return buf.Bytes(), nil
 }
