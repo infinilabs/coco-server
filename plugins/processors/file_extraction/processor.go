@@ -56,6 +56,9 @@ type Config struct {
 	VisionModelProviderID string `config:"vision_model_provider"`
 	VisionModelName       string `config:"vision_model"`
 
+	// Image content format: "url" (data URI) or "binary" (raw bytes)
+	ImageContentFormat string `config:"image_content_format"`
+
 	// Pigo face finder configuration for face detection
 	PigoFacefinderPath string `config:"pigo_facefinder_path"`
 }
@@ -66,6 +69,7 @@ func New(c *config.Config) (pipeline.Processor, error) {
 		MessageField:         core.PipelineContextDocuments,
 		TikaEndpoint:         "http://127.0.0.1:9998",
 		TikaTimeoutInSeconds: 120,
+		ImageContentFormat:   "url",
 	}
 	if err := c.Unpack(&cfg); err != nil {
 		return nil, err

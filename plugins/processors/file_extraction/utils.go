@@ -582,13 +582,13 @@ func copyLocalFile(src, dst string) error {
 	return nil
 }
 
-// localImageToDataURI reads a local image file and converts it to a data URI format
-// that can be used with vision models.
+// Reads a local image file and converts it to content part that can
+// be used with vision models.
 //
 // If image is larger than 5MB, compress it.
 // If image is not in format jpeg/png, we convert it to jpeg, in case the vision model
 // does not support it.
-func localImageToDataURI(imagePath string) (llms.ContentPart, error) {
+func loadLocalImageToContentPart(imagePath string, imageContenFormat string) (llms.ContentPart, error) {
 	const MaxImageBytes = 5 * 1024 * 1024
 	// We only allow jpeg and png, in case the vision model does not support
 	// other types.
@@ -635,14 +635,16 @@ func localImageToDataURI(imagePath string) (llms.ContentPart, error) {
 		imageBytes = buf.Bytes()
 	}
 
-	// Encode to base64
-	base64Str := base64.StdEncoding.EncodeToString(imageBytes)
-
-	// Build data URI
-	dataURI := fmt.Sprintf("data:%s;base64,%s", mimeType, base64Str)
-
-	// Return as ImageURLPart (data URI is treated as URL by the API)
-	return llms.ImageURLPart(dataURI), nil
+	switch imageContenFormat {
+	case "url":
+		base64Str := base64.StdEncoding.EncodeToString(imageBytes)
+		dataURI := fmt.Sprintf("data:%s;base64,%s", mimeType, base64Str)
+		return llms.ImageURLPart(dataURI), nil
+	case "binary":
+		return llms.BinaryPart(mimeType, imageBytes), nil
+	default:
+		panic(fmt.Sprintf("unknown [image_content_format] value: [%s]", imageContenFormat))
+	}
 }
 
 // Compress the image bytes by restricting it width/height to be under

@@ -28,9 +28,9 @@ func recognizeFacesWithAI(ctx context.Context, processor *FileExtractionProcesso
 	var parts []llms.ContentPart
 
 	// Add original image
-	originalImgPart, err := localImageToDataURI(originalImgPath)
+	originalImgPart, err := loadLocalImageToContentPart(originalImgPath, processor.config.ImageContentFormat)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load original image: %w", err)
+		return nil, fmt.Errorf("failed to convert image to binary: %w", err)
 	}
 	parts = append(parts, llms.TextPart("Original image:"))
 	parts = append(parts, originalImgPart)
@@ -38,7 +38,7 @@ func recognizeFacesWithAI(ctx context.Context, processor *FileExtractionProcesso
 
 	// Add each face image with numbering
 	for i, faceImgPath := range faceImages {
-		faceImgPart, err := localImageToDataURI(faceImgPath)
+		faceImgPart, err := loadLocalImageToContentPart(faceImgPath, processor.config.ImageContentFormat)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load face image %s: %w", faceImgPath, err)
 		}
