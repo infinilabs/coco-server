@@ -1,5 +1,5 @@
 env:
-  ES_ENDPOINT: http://192.168.3.119:9200
+  ES_ENDPOINT: https://localhost:9200
   ES_USERNAME: admin
   ES_PASSWORD: $[[keystore.ES_PASSWORD]]
   WEB_BINDING: 0.0.0.0:9000
@@ -311,7 +311,7 @@ web:
 ##background jobs
 pipeline:
   - name: enrich_documents
-    auto_start: true
+    auto_start: false
     keep_running: true
     processor:
       - consumer:
@@ -328,9 +328,9 @@ pipeline:
                 tika_endpoint: "http://127.0.0.1:9998"
                 timeout_in_seconds: 360
                 chunk_size: 7000
-                vision_model_provider: ollama
-                vision_model: qwen3-vl:2b
-                pigo_facefinder_path: "/Users/steve/Documents/workspace/go/pigo_deps/facefinder"
+                vision_model_provider: qianwen
+                vision_model: qwen-vl-max
+                pigo_facefinder_path: ""
             - document_summarization:
                 model_provider: deepseek
                 model: deepseek-chat
