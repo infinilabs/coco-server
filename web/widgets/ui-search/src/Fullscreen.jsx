@@ -264,7 +264,9 @@ const Fullscreen = props => {
     onHistorySearch,
     onHistoryRefresh,
     onHistoryRename,
-    onHistoryRemove
+    onHistoryRemove,
+    language = 'en-US',
+    onSuggestion,
   } = props;
 
   const containerRef = useRef(null);
@@ -340,7 +342,7 @@ const Fullscreen = props => {
   }, [isHome, handleScroll]);
 
   useEffect(() => {
-    if (!queryParams.query) return;
+    if (!queryParams.query && !queryParams.filters) return;
 
     const shouldAgg = queryParams.filter && Object.keys(queryParams.filter).length === 0;
     const isScroll = Number.isInteger(scrollRef.current) && scrollRef.current > 0;
@@ -400,7 +402,7 @@ const Fullscreen = props => {
     };
   }, [queryParams]);
 
-  const { query, filter, type = 'all' } = queryParams;
+  const { query, filter, type = 'all', filters = [] } = queryParams;
 
   const listType = useMemo(() => {
     if (!LIST_TYPES || LIST_TYPES.length === 0) return undefined;

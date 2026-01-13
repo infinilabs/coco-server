@@ -2,9 +2,9 @@ import { Button, Dropdown, Space } from "antd";
 import { ChevronDown, Globe, Hammer, Search } from "lucide-react";
 
 export default (props) => {
-    const { selectedItem } = props; 
+    const { type } = props; 
 
-    if (selectedItem?.action === 'deepthink') {
+    if (type === 'deepthink') {
         return (
             <Space size={0}>
                 <Button className="!px-12px rounded-16px !text-#1784FC !bg-[rgba(204,232,250,1)] !border-0 mr-4px">
@@ -27,7 +27,7 @@ export default (props) => {
                 />
             </Space>
         )
-    } else if (selectedItem?.action === 'deepresearch') {
+    } else if (type === 'deepresearch') {
         return (
             <Space size={0}>
                 <Button className="!px-12px rounded-16px !text-#1784FC !bg-[rgba(204,232,250,1)] !border-0 mr-4px">

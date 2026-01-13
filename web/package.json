@@ -62,7 +62,7 @@
     "@sa/simple-router": "workspace:*",
     "@sa/utils": "workspace:*",
     "ahooks": "3.8.1",
-    "antd": "5.21.6",
+    "antd": "6.1.3",
     "classnames": "2.5.1",
     "clipboard": "2.0.11",
     "clsx": "2.1.1",
@@ -98,6 +98,7 @@
     "remark-gfm": "4.0.1",
     "remark-math": "6.0.0",
     "typeit": "8.8.7",
+    "ui-search": "workspace:*",
     "use-debounce": "10.0.4"
   },
   "devDependencies": {

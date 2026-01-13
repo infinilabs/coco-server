@@ -11,7 +11,7 @@ const AIOverview = (props) => {
       content={data.response.message_chunk || ""}
       onContinue={() => console.log('点击了继续追问')}
       maxHeight={Number.isInteger(Number(config.height)) ? Number(config.height) - 154 : undefined}
-      theme={theme}
+      // theme={theme}
     />
   )
 };

@@ -53,7 +53,7 @@ const LoginForm = memo(({ onProvider }: { onProvider?: () => void }) => {
               if (window.$wujie?.props?.onExternal) {
                 window.$wujie?.props?.onExternal(normalizeUrl(`${getProxyEndpoint()}${sso_url}`))
               } else {
-                window.open(`${sso_url}&redirect_url=${encodeURIComponent(window.location.href)}`, '_self')
+                window.open(normalizeUrl(`${import.meta.env.VITE_SERVICE_BASE_URL || ''}${sso_url}&redirect_url=${encodeURIComponent(window.location.href)}`), '_self')
               }
             }}
           >
