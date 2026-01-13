@@ -494,13 +494,33 @@ export const generatedRoutes: GeneratedRoute[] = [
   {
     name: 'search',
     path: '/search',
-    component: 'layout.blank$view.search',
+    component: 'layout.blank',
     meta: {
       i18nKey: 'route.search',
       title: 'search',
       constant: true,
       hideInMenu: true
-    }
+    },
+    children: [
+      {
+        name: 'search_chat',
+        path: 'chat',
+        component: 'view.search_chat',
+        meta: {
+          i18nKey: 'route.search_chat',
+          title: 'search_chat'
+        }
+      },
+      {
+        name: 'search_search',
+        path: 'search',
+        component: 'view.search_search',
+        meta: {
+          i18nKey: 'route.search_search',
+          title: 'search_search'
+        }
+      }
+    ]
   },
   {
     name: 'security',

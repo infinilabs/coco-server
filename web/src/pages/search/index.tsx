@@ -9,664 +9,88 @@ import { getThemeSettings } from '@/store/slice/theme';
 import { configResponsive } from 'ahooks';
 import { selectUserInfo } from '@/store/slice/auth';
 
-import { FullscreenPage } from 'ui-search';
-
 const uuid = `integration-${generateRandomString(8)}`
 
 configResponsive({ sm: 640 });
-function useSimpleQueryParams(defaultParams = {}) {
-  const [params, setParams] = useState({
-    from: 0,
-    size: 10,
-    sort: [],
-    filter: {},
-    ...defaultParams,
-  });
 
-  return [params, setParams];
-}
 export function Component() {
-  const [queryParams, setQueryParams] = useSimpleQueryParams();
-    const [queryParamsState, setQueryParamsState] = useState({
-      from: 0,
-      size: 10,
+  const { endLoading, loading, startLoading } = useLoading();
+  const containerRef = useRef(null)
+  const isFirstRef = useRef(true)
+  const themeRef = useRef('')
+  
+  const responsive = useResponsive();
+
+  const userInfo = useAppSelector(selectUserInfo);
+  const { themeScheme } = useAppSelector(getThemeSettings);
+
+  const providerInfo = localStg.get('providerInfo') || {}
+
+  const { search_settings } = providerInfo;
+
+  const isMobile = !responsive.sm;
+
+  const clearAll = () => {
+    const originalDiv = containerRef.current;
+    if (!originalDiv) return; 
+
+    const newDiv = document.createElement('div');
+
+    newDiv.id = originalDiv.id; 
+    newDiv.className = originalDiv.className; 
+    newDiv.ref = originalDiv.ref;
+
+    Array.from(originalDiv.attributes).forEach(attr => {
+      if (!['id', 'class', 'ref'].includes(attr.name)) { 
+        newDiv.setAttribute(attr.name, attr.value);
+      }
     });
-  
-    const enableQueryParams = true;
-  
-    // 模拟搜索 API
-    const mockSearch = (query, callback, setLoading, shouldAgg = true) => {
-      const res = {
-        took: 4,
-        hits: {
-          total: {
-            relation: "eq",
-            value: 4,
-          },
-          max_score: 3.1079693,
-          hits: [
-            {
-              _index: "coco_document-v2",
-              _type: "_doc",
-              _id: "d2alse8qlqbca26pbju0",
-              _score: 3.1079693,
-              _source: {
-                category: "焊接",
-                content:
-                  '| **专业分类**: | 焊接  | **标准**: | 《QJ1843A-96<br>结构钢、不锈钢熔焊工艺规范》 |\n| :--------| :---- | :---- |:----|\n|**禁用内容**:|禁止使用未充分烘干的焊条进行电弧焊熔焊。|**建议工艺**:|焊条使用前应按规定进行烘干，酸性焊条一般在150℃-200℃、1h-2h烘干;碱性焊条一般在300℃-400℃、1h-2h烘干。|\n禁止图片|<img src="http://coco.infini.cloud/bq/pics/27.jpg" width="260" height="200"> |推荐图片|<img src="http://coco.infini.cloud/bq/pics/28.jpg" width="260" height="200">|',
-                created: "2025-08-08T02:17:29.394215628Z",
-                icon: "http://coco.infini.cloud/bq/hanjie.png",
-                id: "d2alse8qlqbca26pbju0",
-                lang: "cn",
-                last_updated_by: {
-                  timestamp: "2025-08-08T02:25:00Z",
-                  user: {
-                    username: "liukj",
-                  },
-                },
-                owner: {
-                  username: "liukj",
-                },
-                size: 1048576,
-                source: {
-                  id: "d2aloi8qlqbca26pbilg",
-                  name: "BQ",
-                  type: "connector",
-                },
-                summary:
-                  "禁用内容: 禁止使用未充分烘干的焊条进行电弧焊熔焊。 建议工艺: 焊条使用前应按规定进行烘干，酸性焊条一般在150℃-200℃、1h-2h烘干;碱性焊条一般在300℃-400℃、1h-2h烘干。 专业分类: 焊接 标准: 《QJ1843A-96<br>结构钢、不锈钢熔焊工艺规范》",
-                tags: ["焊接"],
-                title: "禁止使用未充分烘干的焊条进行电弧焊熔焊",
-                // type: "pdf",
-                updated: "2025-08-08T02:45:38.382266717Z",
-                url: "http://coco.infini.cloud/bq/1.GBT 22086-2008《铝及铝合金弧焊推荐工艺》.pdf",
-                cover: "https://gips1.baidu.com/it/u=3579958525,4293415030&fm=3074&app=3074&f=PNG?w=2560&h=1440",
-                metadata: {
-                  content_type: "pdf",
-                  preview_url: "http://coco.infini.cloud/bq/1.GBT 22086-2008《铝及铝合金弧焊推荐工艺》.pdf"
-                }
-              },
-            },
-            {
-              _index: "coco_document-v2",
-              _type: "_doc",
-              _id: "d2alse8qlqbca26pbjug",
-              _score: 2.9599512,
-              _source: {
-                category: "焊接",
-                content:
-                  '| **专业分类**: | 焊接  | **标准**: | 《QJ2864B-2018<br>铝及铝合金熔焊工艺规范》；《QJI843A-96<br>结构钢、不锈钢熔焊工艺规范》 |\n| :--------| :---- | :---- |:----|\n|**禁用内容**:|熔焊焊接禁止在焊缝交叉处起弧、收弧:多层熔焊焊接各层处起弧、收弧位置严禁重叠。|**建议工艺**:|起弧和收弧应避开焊缝交叉处:多层或多道焊时起弧和收弧位置应错开。|\n禁止图片|<img src="http://coco.infini.cloud/bq/pics/29.jpg" width="260" height="200"> |推荐图片|<img src="http://coco.infini.cloud/bq/pics/30.jpg" width="260" height="200">|',
-                created: "2025-08-08T02:17:29.556803343Z",
-                icon: "http://coco.infini.cloud/bq/hanjie.png",
-                id: "d2alse8qlqbca26pbjug",
-                lang: "cn",
-                last_updated_by: {
-                  timestamp: "2025-08-08T02:25:00Z",
-                  user: {
-                    username: "liukj",
-                  },
-                },
-                owner: {
-                  username: "liukj",
-                },
-                size: 1048576,
-                source: {
-                  id: "d2aloi8qlqbca26pbilg",
-                  name: "BQ",
-                  type: "connector",
-                },
-                summary:
-                  "禁用内容: 熔焊焊接禁止在焊缝交叉处起弧、收弧:多层熔焊焊接各层处起弧、收弧位置严禁重叠。 建议工艺: 起弧和收弧应避开焊缝交叉处:多层或多道焊时起弧和收弧位置应错开。 专业分类: 焊接 标准: 《QJ2864B-2018<br>铝及铝合金熔焊工艺规范》；《QJI843A-96<br>结构钢、不锈钢熔焊工艺规范》",
-                tags: ["焊接"],
-                title:
-                  "熔焊焊接禁止在焊缝交叉处起弧、收弧:多层熔焊焊接各层处起弧、收弧位置严禁重叠",
-                // type: "pdf",
-                updated: "2025-08-08T02:45:39.149459334Z",
-                url: "http://coco.infini.cloud/bq/1.GBT 22086-2008《铝及铝合金弧焊推荐工艺》.pdf",
-                metadata: {
-                  content_type: "pdf",
-                  preview_url: "http://coco.infini.cloud/bq/1.GBT 22086-2008《铝及铝合金弧焊推荐工艺》.pdf"
-                }
-              },
-            },
-            {
-              _index: "coco_document-v2",
-              _type: "_doc",
-              _id: "d2alsdgqlqbca26pbjo0",
-              _score: 0.8037008,
-              _source: {
-                category: "热处理",
-                content:
-                  '| **专业分类**: | 热处理  | **标准**: | 《GB/T34883-2017<br>离子渗氦》 |\n| :--------| :---- | :---- |:----|\n|**禁用内容**:|禁止使用热导式电阻真空计测量离子渗氨的工作气压。|**建议工艺**:|一般采用薄膜式真空计测量离子渗氮的工作气压。|\n禁止图片|<img src="http://coco.infini.cloud/bq/pics/3.jpg" width="260" height="200"> |推荐图片|<img src="http://coco.infini.cloud/bq/pics/4.jpg" width="260" height="200">|',
-                created: "2025-08-08T02:17:26.372827278Z",
-                icon: "http://coco.infini.cloud/bq/jiare.png",
-                id: "d2alsdgqlqbca26pbjo0",
-                lang: "cn",
-                last_updated_by: {
-                  timestamp: "2025-08-08T02:25:00Z",
-                  user: {
-                    username: "liukj",
-                  },
-                },
-                owner: {
-                  username: "liukj",
-                },
-                size: 1048576,
-                source: {
-                  id: "d2aloi8qlqbca26pbilg",
-                  name: "BQ",
-                  type: "connector",
-                },
-                summary:
-                  "禁用内容: 禁止使用热导式电阻真空计测量离子渗氨的工作气压。 建议工艺: 一般采用薄膜式真空计测量离子渗氮的工作气压。 专业分类: 热处理 标准: 《GB/T34883-2017<br>离子渗氦》",
-                tags: ["热处理"],
-                title: "禁止使用热导式电阻真空计测量离子渗氨的工作气压",
-                // type: "pdf",
-                updated: "2025-08-08T02:45:18.088085437Z",
-                url: "http://coco.infini.cloud/bq/2.GB 6514-2023《涂装作业安全规程 涂漆工艺安全及其通风》.pdf",
-                metadata: {
-                  content_type: "pdf",
-                  preview_url: "http://coco.infini.cloud/bq/2.GB 6514-2023《涂装作业安全规程 涂漆工艺安全及其通风》.pdf"
-                }
-              },
-            },
-            {
-              _index: "coco_document-v2",
-              _type: "_doc",
-              _id: "d2alse8qlqbca26pbjv0",
-              _score: 0.6860195,
-              _source: {
-                category: "机械加工",
-                content:
-                  '| **专业分类**: | 机械加工  | **标准**: | 《GB/T12611-2008<br>金属零(部)件镀覆前质量控制技术要求》 |\n| :--------| :---- | :---- |:----|\n|**禁用内容**:|需瓷质阳极化的铝合金零件精加工(表面粗糙度值小于Ra0.4)时，禁止采用乳化液冷却。|**建议工艺**:|采用煤油、珩磨油等无腐蚀性的冷却液。|\n禁止图片|<img src="http://coco.infini.cloud/bq/pics/31.jpg" width="260" height="200"> |推荐图片|<img src="http://coco.infini.cloud/bq/pics/32.jfif" width="260" height="200">|',
-                created: "2025-08-08T02:17:29.919289601Z",
-                icon: "http://coco.infini.cloud/bq/jixie.png",
-                id: "d2alse8qlqbca26pbjv0",
-                lang: "cn",
-                last_updated_by: {
-                  timestamp: "2025-08-08T02:25:00Z",
-                  user: {
-                    username: "liukj",
-                  },
-                },
-                owner: {
-                  username: "liukj",
-                },
-                size: 1048576,
-                source: {
-                  id: "d2aloi8qlqbca26pbilg",
-                  name: "BQ",
-                  type: "connector",
-                },
-                summary:
-                  "禁用内容: 需瓷质阳极化的铝合金零件精加工(表面粗糙度值小于Ra0.4)时，禁止采用乳化液冷却。 建议工艺: 采用煤油、珩磨油等无腐蚀性的冷却液。 专业分类: 机械加工 标准: 《GB/T12611-2008<br>金属零(部)件镀覆前质量控制技术要求》",
-                tags: ["机械加工"],
-                title:
-                  "需瓷质阳极化的铝合金零件精加工(表面粗糙度值小于Ra0.4)时，禁止采用乳化液冷却",
-                // type: "pdf",
-                updated: "2025-08-08T02:45:40.199695999Z",
-                url: "http://coco.infini.cloud/bq/3.GBT 12611-2008《金属零（部）件镀覆前质量控制技术要求》.pdf",
-                metadata: {
-                  content_type: "pdf",
-                  preview_url: "http://coco.infini.cloud/bq/3.GBT 12611-2008《金属零（部）件镀覆前质量控制技术要求》.pdf"
-                }
-              },
-            },
-            // image
-            {
-              _index: "coco_document-v2",
-              _type: "_doc",
-              _id: "d2alse8qlqbca26pbjv0",
-              _score: 0.6860195,
-              _source: {
-                category: "壁纸",
-                content: "",
-                created: "2025-08-08T02:17:29.394215628Z",
-                icon: "",
-                id: "d2alse8qlqbca26pbju7",
-                lang: "cn",
-                last_updated_by: {
-                  timestamp: "2025-08-08T02:25:00Z",
-                  user: {
-                    username: "test",
-                  },
-                },
-                owner: {
-                  username: "test",
-                },
-                size: 1048576,
-                source: {
-                  id: "d2aloi8qlqbca26pbilg",
-                  name: "壁纸",
-                  type: "connector",
-                },
-                summary: "",
-                tags: ["壁纸"],
-                title: "黑色壁纸全屏🌌,探索星空的奥秘✨",
-                // type: "image",
-                updated: "2025-08-08T02:45:38.382266717Z",
-                cover: "https://gips1.baidu.com/it/u=3579958525,4293415030&fm=3074&app=3074&f=PNG?w=2560&h=1440",
-                url: "https://gips1.baidu.com/it/u=3579958525,4293415030&fm=3074&app=3074&f=PNG?w=2560&h=1440",
-                metadata: {
-                  content_type: "image",
-                  preview_url: "https://gips1.baidu.com/it/u=3579958525,4293415030&fm=3074&app=3074&f=PNG?w=2560&h=1440"
-                }
-              },
-            },
-            {
-              _index: "coco_document-v2",
-              _type: "_doc",
-              _id: "d2alse8qlqbca26pbjv0",
-              _score: 0.6860195,
-              _source: {
-                category: "壁纸",
-                content: "",
-                created: "2025-08-08T02:17:29.394215628Z",
-                icon: "",
-                id: "d2alse8qlqbca26pbju1",
-                lang: "cn",
-                last_updated_by: {
-                  timestamp: "2025-08-08T02:25:00Z",
-                  user: {
-                    username: "test",
-                  },
-                },
-                owner: {
-                  username: "test",
-                },
-                size: 1048576,
-                source: {
-                  id: "d2aloi8qlqbca26pbilg",
-                  name: "壁纸",
-                  type: "connector",
-                },
-                summary: "",
-                tags: ["壁纸"],
-                title: "摄影壁纸创意图,捕捉山水间的灵动之美🏞️",
-                // type: "image",
-                updated: "2025-08-08T02:45:38.382266717Z",
-                cover: "https://img1.baidu.com/it/u=3879890807,997649473&fm=253&fmt=auto&app=138&f=JPEG?w=889&h=500",
-                url: "https://img1.baidu.com/it/u=3879890807,997649473&fm=253&fmt=auto&app=138&f=JPEG?w=889&h=500",
-                metadata: {
-                  content_type: "image",
-                  preview_url: "https://img1.baidu.com/it/u=3879890807,997649473&fm=253&fmt=auto&app=138&f=JPEG?w=889&h=500"
-                }
-              },
-            },
-            {
-              _index: "coco_document-v2",
-              _type: "_doc",
-              _id: "d2alse8qlqbca26pbjv0",
-              _score: 0.6860195,
-              _source: {
-                category: "壁纸",
-                content: "",
-                created: "2025-08-08T02:17:29.394215628Z",
-                icon: "",
-                id: "d2alse8qlqbca26pbju8",
-                lang: "cn",
-                last_updated_by: {
-                  timestamp: "2025-08-08T02:25:00Z",
-                  user: {
-                    username: "test",
-                  },
-                },
-                owner: {
-                  username: "test",
-                },
-                size: 1048576,
-                source: {
-                  id: "d2aloi8qlqbca26pbilg",
-                  name: "壁纸",
-                  type: "connector",
-                },
-                summary: "",
-                tags: ["壁纸"],
-                title: "摄影壁纸创意图,捕捉山水间的灵动之美🏞️",
-                // type: "image", 
-                updated: "2025-08-08T02:45:38.382266717Z",
-                cover: "https://img2.baidu.com/it/u=1088560728,493918909&fm=253&app=138&f=JPEG?w=889&h=500",
-                url: "https://img2.baidu.com/it/u=1088560728,493918909&fm=253&app=138&f=JPEG?w=889&h=500",
-                metadata: {
-                  content_type: "image",
-                  preview_url: "https://img2.baidu.com/it/u=1088560728,493918909&fm=253&app=138&f=JPEG?w=889&h=500"
-                }
-              }
-            },
-          ],
-        },
-        aggregations: {
-          category: {
-            buckets: [
-              {
-                doc_count: 2,
-                key: "焊接",
-              },
-              {
-                doc_count: 1,
-                key: "机械加工",
-              },
-              {
-                doc_count: 1,
-                key: "热处理",
-              },
-            ],
-          },
-          lang: {
-            buckets: [
-              {
-                doc_count: 4,
-                key: "cn",
-              },
-            ],
-          },
-          "source.id": {
-            buckets: [
-              {
-                doc_count: 4,
-                key: "d2aloi8qlqbca26pbilg",
-                top: {
-                  hits: {
-                    hits: [
-                      {
-                        _id: "d2alse8qlqbca26pbju0",
-                        _index: "coco_document-v2",
-                        _score: 3.1079693,
-                        _source: {
-                          source: {
-                            name: "BQ",
-                          },
-                        },
-                        _type: "_doc",
-                      },
-                    ],
-                    max_score: 3.1079693,
-                    total: {
-                      relation: "eq",
-                      value: 4,
-                    },
-                  },
-                },
-              },
-            ],
-          },
-          type: {
-            buckets: [
-              {
-                doc_count: 4,
-                key: "pdf",
-              },
-            ],
-          },
-        },
-      };
-      callback(res);
-    };
-  
-    // 模拟 AI 助手 API - 参考 Fullscreen.jsx 的实现
-    const mockAsk = async (assistantID, message, callback, setLoading) => {
-      setLoading(true);
-  
-      try {
-        // 首先返回初始消息创建响应
-        const initialResponse = {
-          "_id": "d3b3o50qlqbfo2h3q3bg",
-          "_source": {
-            "id": "d3b3o50qlqbfo2h3q3bg",
-            "created": new Date().toISOString(),
-            "updated": new Date().toISOString(),
-            "_system": {
-              "owner_id": "cvv85fk61mdus565iqig",
-              "tenant_id": "cvv85fk61mdus565iqi0"
-            },
-            "status": "active",
-            "title": JSON.stringify(message),
-            "visible": false
-          },
-          "payload": {
-            "id": "d3b3o50qlqbfo2h3q3c0",
-            "created": new Date().toISOString(),
-            "updated": new Date().toISOString(),
-            "_system": {
-              "owner_id": "cvv85fk61mdus565iqig",
-              "tenant_id": "cvv85fk61mdus565iqi0"
-            },
-            "type": "user",
-            "session_id": "d3b3o50qlqbfo2h3q3bg",
-            "from": "",
-            "message": JSON.stringify(message),
-            "details": null,
-            "up_vote": 0,
-            "down_vote": 0,
-            "assistant_id": assistantID
-          },
-          "result": "created"
-        };
-  
-        callback(initialResponse);
-  
-        // 模拟流式响应的文本块
-        const responseText = "The search results contain two PDF documents related to industrial standards and practices:\n\n1. **Thermal Treatment Standard (GB/T34883-2017)**:\n   - Prohibits the use of thermal conductivity resistance vacuum gauges for measuring ion nitriding working gas pressure.\n   - Recommends using thin-film vacuum gauges instead.\n   - Category: Thermal treatment.\n\n2. **Metal Parts Coating Quality Control (GB/T12611-2008)**:\n   - Prohibits the use of emulsion coolant for precision machining of aluminum parts requiring porcelain anodization (surface roughness less than Ra0.4).\n   - Suggests using non-corrosive coolants like kerosene or honing oil.\n   - Category: Mechanical processing.\n\nBoth documents provide specific guidelines on prohibited and recommended practices in their respective fields.";
-  
-        const words = responseText.split(' ');
-        const sessionId = "d3b3o50qlqbfo2h3q3bg";
-        const messageId = "d3b3o50qlqbfo2h3q3cg";
-        const replyToMessage = "d3b3o50qlqbfo2h3q3c0";
-  
-        // 首先发送空的开始块
-        callback({
-          "session_id": sessionId,
-          "message_id": messageId,
-          "message_type": "assistant",
-          "reply_to_message": replyToMessage,
-          "chunk_sequence": 0,
-          "chunk_type": "response",
-          "message_chunk": ""
-        });
-  
-        // 逐个发送单词块，模拟真实的流式响应
-        for (let i = 0; i < words.length; i++) {
-          await new Promise(resolve => setTimeout(resolve, 50 + Math.random() * 100)); // 随机延迟 50-150ms
-  
-          const chunk = i === 0 ? words[i] : ` ${words[i]}`;
-  
-          callback({
-            "session_id": sessionId,
-            "message_id": messageId,
-            "message_type": "assistant",
-            "reply_to_message": replyToMessage,
-            "chunk_sequence": i + 1,
-            "chunk_type": "response",
-            "message_chunk": chunk
+
+    originalDiv.parentNode?.replaceChild(newDiv, originalDiv);
+
+    containerRef.current = newDiv;
+  };
+
+  useEffect(() => {
+    if (search_settings?.integration && search_settings.enabled && containerRef.current && (isFirstRef.current || themeRef.current !== themeScheme)) {
+      isFirstRef.current = false
+      themeRef.current = themeScheme
+      startLoading();
+      import(/* @vite-ignore */ `${getApiBaseUrl()}integration/${search_settings?.integration}/widget`)
+        .then(module => {
+          clearAll()
+          module?.fullscreen && module.fullscreen({ 
+            container: `#${uuid}`, 
+            rightMenuWidth: userInfo ? 90 : 136, 
+            parentTheme: themeScheme,
           });
-        }
-  
-        // 发送结束标记
-        await new Promise(resolve => setTimeout(resolve, 200));
-        callback({
-          "session_id": sessionId,
-          "message_id": messageId,
-          "message_type": "system",
-          "reply_to_message": replyToMessage,
-          "chunk_sequence": 0,
-          "chunk_type": "reply_end",
-          "message_chunk": "Processing completed"
+          endLoading();
+        })
+        .catch(err => {
+          console.log(err)
+          endLoading();
         });
-  
-        setLoading(false);
-  
-      } catch (error) {
-        setLoading(false);
-        console.error('Mock ask error:', error);
-      }
-    };
-  
-    const mockSuggestion = async (tag, params, callback) => {
-      let res
-      if (tag === 'field_names') {
-        res = {
-          "query": "/Users/medcl/go/src/infini.sh/coco/web/widgets",
-          "suggestions": [
-            {
-              "suggestion": "Category",
-              "payload": { 
-                "field_name": "category", 
-                "field_data_type": "keyword", 
-                "support_multi_select": true  
-              }
-            },
-          ]
-        }
-      } else if (tag === 'field_values') {
-        res = {
-          "query": "/Users/medcl/go/src/infini.sh/coco/web/widgets",
-          "suggestions": [
-            {
-              "suggestion": "/Users/medcl/go/src/infini.sh/coco/web/widgets/ui-search/node_modules/lucide-react/dist/esm/icons/"
-            },
-            {
-              "suggestion": "/Users/medcl/go/src/infini.sh/coco/web/widgets/ui-search/node_modules/@ant-design/icons/"
-            },
-            {
-              "suggestion": "/Users/medcl/go/src/infini.sh/coco/web/widgets/ui-search/node_modules/@ant-design/icons/lib/icons/"
-            },
-            {
-              "suggestion": "/Users/medcl/go/src/infini.sh/coco/web/widgets/ui-search/node_modules/@ant-design/icons-svg/es/asn/"
-            },
-            {
-              "suggestion": "/Users/medcl/go/src/infini.sh/coco/web/widgets/ui-search/node_modules/@ant-design/icons-svg/lib/asn/"
-            },
-            {
-              "suggestion": "/Users/medcl/go/src/infini.sh/coco/web/widgets/ui-search/node_modules/@ant-design/icons/es/icons/"
-            },
-            {
-              "suggestion": "/Users/medcl/go/src/infini.sh/coco/web/widgets/ui-search/node_modules/lodash-es/"
-            },
-            {
-              "suggestion": "/Users/medcl/go/src/infini.sh/coco/web/widgets/ui-search/node_modules/lodash/"
-            },
-            {
-              "suggestion": "/Users/medcl/go/src/infini.sh/coco/web/widgets/ui-search/node_modules/caniuse-lite/data/features/"
-            },
-            {
-              "suggestion": "/Users/medcl/go/src/infini.sh/coco/web/widgets/ui-search/node_modules/"
-            }
-          ]
-        }
-      } else {
-        res = {
-          "query": "coo",
-          "suggestions": [
-            {
-              "suggestion": "coco.go",
-              "score": 23.244903564453125,
-              "icon": "file",
-              "source": "/Users/medcl/go/src/infini.sh/coco/modules/"
-            },
-            {
-              "suggestion": "coco",
-              "score": 23.20406150817871,
-              "icon": "file",
-              "source": "/Users/medcl/go/src/infini.sh/coco/bin/"
-            },
-            {
-              "suggestion": "Coco",
-              "score": 23.20406150817871,
-              "icon": "font_filetype-folder",
-              "source": "/Users/medcl/go/src/infini.sh/coco/data/coco/nodes/d1vg52p4d9v5665coilg/badger/"
-            },
-            {
-              "suggestion": "coco.log",
-              "score": 21.88849306274414,
-              "icon": "file",
-              "source": "/Users/medcl/go/src/infini.sh/coco/bin/log/coco/nodes/d1vg52p4d9v5665coilg/"
-            },
-            {
-              "suggestion": "coco_app_docs",
-              "score": 21.81048011779785,
-              "icon": "font_filetype-folder",
-              "source": "/Users/medcl/go/src/infini.sh/coco/bin/config/store/infinilabs/datasource/"
-            },
-            {
-              "suggestion": "stop_coco.sh",
-              "score": 21.717334747314453,
-              "icon": "file",
-              "source": "/Users/medcl/go/src/infini.sh/coco/tests/assets/"
-            },
-            {
-              "suggestion": "docco.css",
-              "score": 21.63386344909668,
-              "icon": "file",
-              "source": "/Users/medcl/go/src/infini.sh/coco/web/node_modules/.pnpm/highlight.js@11.11.1/node_modules/highlight.js/styles/"
-            },
-            {
-              "suggestion": "coco_server_docs",
-              "score": 21.408918380737305,
-              "icon": "font_filetype-folder"
-            }
-          ]
-        }
-      }
-      callback(res)
     }
-  
-    // 构建 componentProps，参考 Fullscreen.jsx 的结构
-    const componentProps = {
-      id: "dev-ui-search",
-      shadow: null,
-      theme: 'light',
-      language: 'zh-CN',
-      logo: {
-        // light: "/favicon.ico",
-        // "light_mobile": "/favicon.ico",
-      },
-      placeholder: "搜索任何内容...",
-      welcome:
-        "欢迎使用 UI Search 开发环境！您可以在这里测试搜索功能和 AI 助手。",
-      aiOverview: {
-        enabled: true,
-        showActions: true,
-        assistant: "dev-assistant",
-        title: "AI 概览",
-        height: 400,
-      },
-      widgets: [],
-      onSearch: mockSearch,
-      onAsk: mockAsk,
-      config: {
-        aggregations: {
-          "source.id": {
-            displayName: "source",
-          },
-          lang: {
-            displayName: "language",
-          },
-          category: {
-            displayName: "category",
-          },
-          type: {
-            displayName: "type",
-          },
-        },
-      },
-      onSuggestion: mockSuggestion,
-    };
-  
-    const queryParamsProps = enableQueryParams
-      ? {
-        queryParams,
-        setQueryParams,
-      }
-      : {
-        queryParams: queryParamsState,
-        setQueryParams: setQueryParamsState,
-      };
-  
-    return (
-      <FullscreenPage
-        {...componentProps}
-        {...queryParamsProps}
-        enableQueryParams={enableQueryParams}
-      />
-    );
+  }, [search_settings?.integration, search_settings.enabled, uuid, containerRef.current, themeScheme, userInfo])
+
+  return (
+    <Spin spinning={loading}>
+      <div ref={containerRef} id={uuid}></div>
+      <div className="absolute right-12px top-0px h-72px z-1 flex-y-center justify-end">
+        {
+          isMobile ? (
+            <>
+                <ThemeSchemaSwitch className="px-12px" />
+                <UserAvatar className="px-8px" showHome showName={!isMobile}/>
+            </>
+          ) : (
+            <>
+                <ThemeSchemaSwitch className="px-12px" />
+                <UserAvatar className="px-8px" showHome showName={!isMobile}/>
+            </>
+          )
+        }
+      </div>
+    </Spin>
+  );
 }
