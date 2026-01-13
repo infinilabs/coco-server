@@ -12,6 +12,7 @@ import (
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/modules/connector"
 	httprouter "infini.sh/framework/core/api/router"
+	"infini.sh/framework/core/elastic"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
@@ -200,10 +201,17 @@ func (h *APIHandler) searchDocs(w http.ResponseWriter, req *http.Request, ps htt
 		return
 	}
 
-	_, err = h.Write(w, res.Payload.([]byte))
-	if err != nil {
-		h.Error(w, err)
+	result := elastic.SearchResponseWithMeta[core.Document]{}
+	util.MustFromJSONBytes(res.Payload.([]byte), &result)
+
+	nDocs := len(result.Hits.Hits)
+	if nDocs > 0 {
+		for i := range result.Hits.Hits {
+			RefineIcon(req.Context(), &result.Hits.Hits[i].Source)
+		}
 	}
+
+	h.WriteJSON(w, result, 200)
 }
 
 func (h *APIHandler) batchDeleteDoc(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {

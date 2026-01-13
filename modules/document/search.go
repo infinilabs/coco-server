@@ -57,9 +57,8 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		docsSize := len(result.Hits.Hits)
 		//update icon
 		if docsSize > 0 {
-			for i, hit := range result.Hits.Hits {
-				RefineIcon(req.Context(), &hit.Source)
-				result.Hits.Hits[i] = hit
+			for i := range result.Hits.Hits {
+				RefineIcon(req.Context(), &result.Hits.Hits[i].Source)
 			}
 		}
 
