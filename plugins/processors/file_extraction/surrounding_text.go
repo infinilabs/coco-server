@@ -126,7 +126,7 @@ func extractTextFromSlide(slideFile *zip.File) (string, error) {
 // extractSurroundingTextUsingTika extracts surrounding text for images in Word documents using Tika HTML
 func extractSurroundingTextUsingTika(ctx context.Context, processor *FileExtractionProcessor, localPath string) (map[string]SurroundingText, error) {
 	// Get HTML from Tika
-	htmlReader, err := tikaGetTextHtml(ctx, processor.config.TikaEndpoint, processor.config.TimeoutInSeconds, localPath)
+	htmlReader, err := tikaGetTextHtml(ctx, processor.config.TikaEndpoint, processor.config.TikaTimeoutInSeconds, localPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get HTML from Tika: %w", err)
 	}

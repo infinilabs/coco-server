@@ -161,7 +161,7 @@ func (p *FileExtractionProcessor) extractFacesAndRecognizeNames(ctx context.Cont
 // extractEmbeddedImages extracts all embedded images from a document to the temp directory
 func (p *FileExtractionProcessor) extractEmbeddedImages(ctx context.Context, localPath string, tempDir string) ([]string, error) {
 	// Use Tika to unpack all attachments
-	if err := tikaUnpackAllTo(ctx, p.config.TikaEndpoint, localPath, tempDir, p.config.TimeoutInSeconds); err != nil {
+	if err := tikaUnpackAllTo(ctx, p.config.TikaEndpoint, localPath, tempDir, p.config.TikaTimeoutInSeconds); err != nil {
 		return nil, fmt.Errorf("tika unpack failed: %w", err)
 	}
 

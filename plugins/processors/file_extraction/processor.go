@@ -46,11 +46,11 @@ type FileExtractionProcessor struct {
 }
 
 type Config struct {
-	MessageField     param.ParaKey      `config:"message_field"`
-	OutputQueue      *queue.QueueConfig `config:"output_queue"`
-	TikaEndpoint     string             `config:"tika_endpoint"`
-	TimeoutInSeconds int                `config:"timeout_in_seconds"`
-	ChunkSize        int                `config:"chunk_size"`
+	MessageField         param.ParaKey      `config:"message_field"`
+	OutputQueue          *queue.QueueConfig `config:"output_queue"`
+	TikaEndpoint         string             `config:"tika_endpoint"`
+	TikaTimeoutInSeconds int                `config:"tika_timeout_in_seconds"`
+	ChunkSize            int                `config:"chunk_size"`
 
 	// Vision model configuration for image processing
 	VisionModelProviderID string `config:"vision_model_provider"`
@@ -63,9 +63,9 @@ type Config struct {
 func New(c *config.Config) (pipeline.Processor, error) {
 	// Default values
 	cfg := Config{
-		MessageField:     core.PipelineContextDocuments,
-		TikaEndpoint:     "http://127.0.0.1:9998",
-		TimeoutInSeconds: 120,
+		MessageField:         core.PipelineContextDocuments,
+		TikaEndpoint:         "http://127.0.0.1:9998",
+		TikaTimeoutInSeconds: 120,
 	}
 	if err := c.Unpack(&cfg); err != nil {
 		return nil, err
@@ -86,6 +86,9 @@ func New(c *config.Config) (pipeline.Processor, error) {
 	}
 	if _, err := os.Stat(cfg.PigoFacefinderPath); os.IsNotExist(err) {
 		panic(fmt.Sprintf("Processor [%s] pigo_facefinder_path file does not exist: %s", ProcessorName, cfg.PigoFacefinderPath))
+	}
+	if cfg.ChunkSize <= 0 {
+		panic(fmt.Sprintf("Processor [%s] configuration [chunk_size] is not set or invalid, should be a positive number", ProcessorName))
 	}
 
 	if cfg.OutputQueue != nil {

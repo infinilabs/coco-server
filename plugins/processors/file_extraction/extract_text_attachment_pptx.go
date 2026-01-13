@@ -68,7 +68,7 @@ func (p *FileExtractionProcessor) processPptx(ctx context.Context, doc *core.Doc
 		// If it's an image, perform OCR synchronously
 		if isImage(name) {
 			fullPath := filepath.Join(attachmentDirPath, name)
-			text, err := ocr(ctx, p.config.TikaEndpoint, p.config.TimeoutInSeconds, fullPath)
+			text, err := ocr(ctx, p.config.TikaEndpoint, p.config.TikaTimeoutInSeconds, fullPath)
 			if err != nil {
 				log.Warnf("failed to perform OCR for image [%s]: %v", name, err)
 			} else {
