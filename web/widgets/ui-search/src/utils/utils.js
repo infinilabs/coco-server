@@ -8,3 +8,17 @@ export function generateRandomString(size) {
   }
   return result;
 }
+
+export function calculateCharLength(str) {
+  if (!str) return 0;
+  let totalLength = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charAt(i);
+    if (/[\u4e00-\u9fa5\u3000-\u303f\uff00-\uffef]/.test(char)) {
+      totalLength += 2;
+    } else {
+      totalLength += 1;
+    }
+  }
+  return totalLength;
+}

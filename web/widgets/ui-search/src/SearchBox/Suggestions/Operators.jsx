@@ -1,71 +1,92 @@
 import { Button, List } from "antd";
-import { CornerDownLeft, MessageCircle, Search } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { CornerDownLeft, Minus, Plus, Slash } from "lucide-react";
+import { useState, useEffect, useRef, useMemo } from "react";
 
 import styles from "./index.module.less";
 
-export default (props) => {
-    const { keyword, suggestions = [], onSelectItem, onClickItem } = props;
+export const SUGGESTION_OPERATORS = "suggestion_operators"
 
-    const mergedData = [
-        {
-            action: "search",
-            icon: <Search className="w-16px h-16px" />,
-            desc: `快速查找 | 直达文件与结果`,
-            type: "quickAccess",
-        },
-        {
-            action: "deepthink",
-            icon: <MessageCircle className="w-16px h-16px" />,
-            desc: `深度思考 | AI 提炼，结论优先`,
-            type: "quickAccess",
-        },
-        {
-            action: "deepresearch",
-            icon: <Search className="w-16px h-16px" />,
-            desc: `深度研究 | 多步推理，综合分析`,
-            type: "quickAccess",
-        },
-        ...suggestions.map((item, index) => ({ ...item, isFirst: index === 0 })),
-    ];
+export const OPERATOR_ICONS = {
+    "and": (
+        <Button
+            shape="circle"
+            className={`!bg-#1784FC !text-#fff !border-0 !rounded-50% !w-12px !min-w-12px !h-12px !p-0`}
+            classNames={{ icon: `w-8px h-8px !text-8px` }}
+            icon={<Plus className="w-8px h-8px" />}
+        />
+    ),
+    "or": (
+        <Button
+            shape="circle"
+            className={`!bg-#8BBD7A !text-#fff !border-0 !rounded-50% !w-12px !min-w-12px !h-12px !p-0`}
+            classNames={{ icon: `w-8px h-8px !text-8px` }}
+            icon={<Minus className="w-8px h-8px rotate-105" />}
+        />
+    ),
+    "not": (
+        <Button
+            shape="circle"
+            className={`!bg-#F15A5A !text-#fff !border-0 !rounded-50% !w-12px !min-w-12px !h-12px !p-0`}
+            classNames={{ icon: `w-8px h-8px !text-8px` }}
+            icon={<Minus className="w-8px h-8px" />}
+        />
+    )
+}
+
+export default (props) => {
+    const { onItemClick } = props;
 
     const [activeIndex, setActiveIndex] = useState(0);
     const itemRefs = useRef([]);
+
+    const data = [
+        {
+            suggestion: 'and',
+            source: `满足全部条件`,
+            icon: OPERATOR_ICONS['and'],
+            dividerTitle: '条件组合'
+        },
+        {
+            suggestion: 'or',
+            source: `满足任一条件`,
+            icon: OPERATOR_ICONS['or'],
+        },
+        {
+            suggestion: 'not',
+            source: `排除条件`,
+            icon: OPERATOR_ICONS['not'],
+        },
+    ]
 
     useEffect(() => {
         const handleKeyDown = (e) => {
             if (![38, 40, 13].includes(e.keyCode)) return;
 
-            const totalItems = mergedData.length;
+            const totalItems = data.length;
             if (totalItems === 0) return;
 
             e.preventDefault();
 
             switch (e.keyCode) {
-                case 40: // 下键
+                case 40: // down
                     setActiveIndex((prev) => {
                         let index;
                         if (prev === -1) {
-                            // 未选中时，按下键直接选中第一项
                             index = 0;
                         } else {
-                            // 已选中时，循环切换下一项
                             index = (prev + 1) % totalItems;
                         }
-                        onSelectItem?.(mergedData[index]);
                         return index;
                     });
                     break;
-                case 38: // 上键
-                    // 未选中时，上键直接不生效
+                case 38: // up
                     if (activeIndex === -1) return;
                     setActiveIndex((prev) => {
                         const index = (prev - 1 + totalItems) % totalItems;
-                        onSelectItem?.(mergedData[index]);
                         return index;
                     });
                     break;
-                case 13: // 回车
+                case 13: // enter
                     if (activeIndex >= 0 && activeIndex < totalItems) {
                         itemRefs.current[activeIndex]?.click();
                     }
@@ -79,7 +100,7 @@ export default (props) => {
         return () => {
             document.removeEventListener("keydown", handleKeyDown);
         };
-    }, [mergedData.length, onSelectItem, activeIndex]); 
+    }, [data, activeIndex]);
 
     return (
         <List
@@ -87,15 +108,15 @@ export default (props) => {
             itemLayout="vertical"
             size="large"
             pagination={false}
-            dataSource={mergedData}
+            dataSource={data}
             renderItem={(item, index) => {
                 const isActive = activeIndex === index;
 
                 return (
                     <>
-                        {item.type === "suggestion" && item.isFirst && (
+                        {item.dividerTitle && (
                             <div className="py-11px px-8px text-12px text-[var(--ui-search-antd-color-text-description)]">
-                                搜索建议
+                                {item.dividerTitle}
                             </div>
                         )}
                         <div
@@ -103,21 +124,31 @@ export default (props) => {
                             className={`${styles.listItem} ${isActive ? styles.active : ''} cursor-pointer relative h-40px pl-8px pr-40px flex flex-nowrap items-center rounded-8px 
                 hover:bg-[rgba(233,240,254,1)] 
                 ${isActive ? "bg-[rgba(233,240,254,1)]" : ""}`}
-                            onClick={() => onClickItem?.(item)}
+                            onClick={() => {
+                                onItemClick?.(item)
+                            }}
                         >
-                            <div className="mr-8px text-[var(--ui-search-antd-color-text-description)] flex-shrink-0">
-                                {item.icon}
-                            </div>
+                            {
+                                item.icon && (
+                                    <div className="mr-8px text-[var(--ui-search-antd-color-text-description)] flex-shrink-0">
+                                        {item.icon}
+                                    </div>
+                                )
+                            }
 
                             <div className="mr-12px flex-shrink-1 max-w-[100%] min-w-0">
                                 <div className="truncate whitespace-nowrap">
-                                    {item.type === "quickAccess" ? keyword : item.keyword}
+                                    {item.suggestion}
                                 </div>
                             </div>
 
-                            <div className="w-210px text-[var(--ui-search-antd-color-text-description)] flex-shrink-0">
-                                -{item.desc}
-                            </div>
+                            {
+                                item.source && (
+                                    <div className="w-210px text-[var(--ui-search-antd-color-text-description)] flex-shrink-0">
+                                        {item.source}
+                                    </div>
+                                )
+                            }
 
                             <Button
                                 className={`${styles.enter} absolute right-8px top-8px !w-24px !h-24px rounded-8px border-0`}
@@ -126,7 +157,7 @@ export default (props) => {
                                 icon={<CornerDownLeft className="w-14px h-14px" />}
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    onClickItem?.(item);
+                                    onItemClick?.(item);
                                 }}
                             />
                         </div>

@@ -1,45 +1,22 @@
 .searchbox {
+}
+
+.input {
+    border: 0 !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+.inputWrapper {
     :global {
         .ant-input-affix-wrapper {
             background: transparent;
-            padding-left: 9px;
-            padding-right: 9px;
-        }
-        .ant-input-group-addon {
-            background-color: var(--ui-search-antd-color-bg-container);
-            border: 0;
             padding: 0;
         }
         .ant-input-outlined {
             border: 0;
             outline: none;
             box-shadow: none;
-        }
-        .ant-input-group-addon {
-            border: 0;
-            padding-left: 2px !important;
-        }
-        .ant-input-search {
-            align-items: center;
-        }
-        .ant-input-search-btn {
-            width: 24px;
-            height: 24px;
-            border-radius: 50% !important;
-            padding: 0;
-        }
-    }
-}
-
-.listItem {
-
-    .enter {
-        display: none;
-    }
-
-    &.active, &:hover {
-        .enter {
-            display: block;
         }
     }
 }

@@ -31,15 +31,15 @@ export function NormalList(props) {
     if (!Array.isArray(data) || data.length === 0) return [];
     const ALLOWED_MERGE_TYPES = ['image', 'video'];
     const result = [];
-    let currentType = data[0].type;
+    let currentType = data[0].metadata?.content_type;
     let tempGroup = [data[0]];
 
     for (let i = 1; i < data.length; i++) {
       const currentItem = data[i];
-      const isCurrentAllowed = ALLOWED_MERGE_TYPES.includes(currentItem.type);
+      const isCurrentAllowed = ALLOWED_MERGE_TYPES.includes(currentItem.metadata?.content_type);
       const isLastAllowed = ALLOWED_MERGE_TYPES.includes(currentType);
 
-      if (isCurrentAllowed && currentItem.type === currentType) {
+      if (isCurrentAllowed && currentItem.metadata?.content_type === currentType) {
         tempGroup.push(currentItem);
       } else {
         if (isLastAllowed && tempGroup.length > 1) {
@@ -47,7 +47,7 @@ export function NormalList(props) {
         } else {
           result.push(...tempGroup);
         }
-        currentType = currentItem.type;
+        currentType = currentItem.metadata?.content_type;
         tempGroup = [currentItem];
       }
     }
@@ -58,7 +58,7 @@ export function NormalList(props) {
     } else {
       result.push(...tempGroup);
     }
-
+    
     return result;
   }, [data])
 
@@ -77,7 +77,7 @@ export function NormalList(props) {
                   <SearchResults
                     footerAction={{
                       label: "More",
-                      onClick: () => { }
+                      onClick: () => { console.log("more...") }
                     }}
                     section={item}
                     onRecordClick={(record) => {
