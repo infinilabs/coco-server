@@ -476,7 +476,8 @@ func buildAnalysisPrompt(documentJson string, maxLength uint32) string {
 			"Requirements:\n"+
 			"- Length: Approximately %d tokens\n"+
 			"- Content: Detailed document interpretation including key insights, themes, and relationships\n"+
-			"- MUST include: A Mermaid mind map in a code block (```mermaid ... ```) showing the document structure\n\n"+
+			"- MUST include: A Mermaid mind map in a code block (```mermaid ... ```) showing the document structure\n"+
+			"- IMPORTANT: Focus on the document content itself; do not mention that you are analyzing JSON or metadata structure\n\n"+
 			"Document JSON:\n%s\n\n"+
 			"Generate the analysis now. End with a ```mermaid mindmap``` block.",
 		maxLength,
