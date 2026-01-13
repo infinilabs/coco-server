@@ -22,15 +22,23 @@ replace github.com/cihub/seelog => ../vendor/src/github.com/cihub/seelog
 
 require (
 	code.gitea.io/sdk/gitea v0.22.0
+	github.com/EdlinOrg/prominentcolor v1.0.0
 	github.com/PuerkitoBio/goquery v1.8.1
+	github.com/WqyJh/go-openai-realtime v0.6.1
 	github.com/andygrunwald/go-jira v1.16.0
+	github.com/buger/jsonparser v1.1.1
+	github.com/chromedp/cdproto v0.0.0-20241003230502-a4a8f7c660df
+	github.com/chromedp/chromedp v0.11.0
 	github.com/cihub/seelog v0.0.0-00010101000000-000000000000
+	github.com/disintegration/imaging v1.6.2
 	github.com/emirpasic/gods v1.18.1
+	github.com/esimov/pigo v1.4.6
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/google/go-github/v74 v74.0.0
 	github.com/hirochachacha/go-smb2 v1.1.0
 	github.com/lib/pq v1.10.9
+	github.com/lucasb-eyer/go-colorful v1.2.0
 	github.com/mark3labs/mcp-go v0.43.1
 	github.com/microsoft/go-mssqldb v1.9.3
 	github.com/milvus-io/milvus-sdk-go/v2 v2.4.2
@@ -40,9 +48,11 @@ require (
 	github.com/sijms/go-ora/v2 v2.9.0
 	github.com/stretchr/testify v1.11.1
 	github.com/tmc/langchaingo v0.1.14-0.20250213044659-d3e43b632176
+	github.com/yuin/goldmark v1.7.8
 	gitlab.com/gitlab-org/api/client-go v0.142.4
 	go.mongodb.org/mongo-driver v1.14.0
 	golang.org/x/crypto v0.43.0
+	golang.org/x/image v0.21.0
 	golang.org/x/oauth2 v0.30.0
 	google.golang.org/api v0.229.0
 	infini.sh/framework v0.0.0-00010101000000-000000000000
@@ -76,14 +86,15 @@ require (
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/bits-and-blooms/bitset v1.12.0 // indirect
 	github.com/bkaradzic/go-lz4 v1.0.0 // indirect
-	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/caddyserver/certmagic v0.23.0 // indirect
 	github.com/caddyserver/zerossl v0.1.3 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
+	github.com/chromedp/sysutil v1.0.0 // indirect
 	github.com/cockroachdb/errors v1.9.1 // indirect
 	github.com/cockroachdb/logtags v0.0.0-20211118104740-dabe8e521a4f // indirect
 	github.com/cockroachdb/redact v1.1.3 // indirect
+	github.com/coder/websocket v1.8.12 // indirect
 	github.com/davidmz/go-pageant v1.0.2 // indirect
 	github.com/dgraph-io/badger/v4 v4.7.0 // indirect
 	github.com/dgraph-io/ristretto v0.2.0 // indirect
@@ -102,6 +113,9 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
+	github.com/gobwas/httphead v0.1.0 // indirect
+	github.com/gobwas/pool v0.2.1 // indirect
+	github.com/gobwas/ws v1.4.0 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/gocolly/colly v1.2.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
@@ -166,7 +180,9 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe // indirect
 	github.com/mschoch/smat v0.2.0 // indirect
+	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 // indirect
 	github.com/nikolalohinski/gonja v1.5.3 // indirect
+	github.com/oliamb/cutter v0.2.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.3 // indirect
 	github.com/pierrec/lz4/v4 v4.1.22 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
@@ -239,5 +255,8 @@ require (
 	google.golang.org/protobuf v1.36.8 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/cheggaaa/pb.v1 v1.0.28 // indirect
+	infini.sh/license v0.0.0-00010101000000-000000000000 // indirect
 	nhooyr.io/websocket v1.8.7 // indirect
 )
+
+replace infini.sh/license => ../license

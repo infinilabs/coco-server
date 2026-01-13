@@ -17,7 +17,6 @@ import (
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/assistant/langchain"
 	"infini.sh/coco/modules/common"
-	"infini.sh/coco/plugins/connectors"
 	"infini.sh/framework/core/config"
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/global"
@@ -29,10 +28,6 @@ import (
 
 const ProcessorName = "document_summarization"
 
-// Users are allowed to set the limit of the summary length, which is a soft limit.
-// This is the hard limit.
-const SummaryLengthHardLimit = 300
-
 // We set a minimum context length limit, this is a reasonable limit, it is rare
 // to see a model whose context length is smaller than this value. Even small
 // local LLMs have context of 8k tokens.
@@ -43,17 +38,11 @@ type Config struct {
 	OutputQueue            *queue.QueueConfig `config:"output_queue"`
 	MinInputDocumentLength uint32             `config:"min_input_document_length"`
 	MaxInputDocumentLength uint32             `config:"max_input_document_length"`
-	// Soft limit
-	MaxSummaryLength uint32 `config:"max_summary_length"`
 
-	ModelProviderID    string `config:"model_provider"`
-	ModelName          string `config:"model"`
-	ModelContextLength uint32 `config:"model_context_length"`
-
-	PreviousSummaryField       string `config:"previous_summary_field"`
-	KeepPreviousSummaryContent bool   `config:"keep_previous_summary_content"`
-
-	IncludeSkippedDocumentToOutputQueue bool `config:"include_skipped_document_to_output_queue"`
+	ModelProviderID     string `config:"model_provider"`
+	ModelName           string `config:"model"`
+	ModelContextLength  uint32 `config:"model_context_length"`
+	AIInsightsMaxLength uint32 `config:"ai_insights_max_length"`
 }
 
 type DocumentSummarizationProcessor struct {
@@ -67,11 +56,11 @@ func init() {
 }
 
 func New(c *config.Config) (pipeline.Processor, error) {
-	cfg := Config{MessageField: core.PipelineContextDocuments, MinInputDocumentLength: 100, MaxInputDocumentLength: 100000, MaxSummaryLength: 10000, IncludeSkippedDocumentToOutputQueue: true}
+	cfg := Config{MessageField: core.PipelineContextDocuments, MinInputDocumentLength: 100, MaxInputDocumentLength: 100000, AIInsightsMaxLength: 500}
 
 	if err := c.Unpack(&cfg); err != nil {
 		log.Error(err)
-		return nil, fmt.Errorf("failed to unpack the configuration of flow_replay processor: %s", err)
+		return nil, fmt.Errorf("failed to unpack the configuration of %s processor: %s", ProcessorName, err)
 	}
 
 	/*
@@ -86,10 +75,6 @@ func New(c *config.Config) (pipeline.Processor, error) {
 	}
 	if cfg.ModelName == "" {
 		panic("model can't be empty")
-	}
-	if cfg.MaxSummaryLength > SummaryLengthHardLimit {
-		log.Warnf("processor [%s] config [MaxSummaryLength] cannot exceed [%d], setting it to [%d]", ProcessorName, SummaryLengthHardLimit, SummaryLengthHardLimit)
-		cfg.MaxSummaryLength = SummaryLengthHardLimit
 	}
 	// This is rare, or unreachable in reality. Even small local LLMs have
 	// context of 8k tokens.
@@ -140,12 +125,21 @@ func (processor *DocumentSummarizationProcessor) Process(ctx *pipeline.Context) 
 	llmCtx, cancelFunc := context.WithCancel(ctx.Context)
 	defer cancelFunc()
 
+	// Track which documents have been enqueued
+	enqueued := make(map[int]bool)
+
 	for i := range messages {
+		// Check shutdown before processing each document
+		if global.ShuttingDown() {
+			log.Debugf("[%s] shutting down, skipping remaining %d documents", processor.Name(), len(messages)-i)
+			return errors.New("shutting down")
+		}
+
 		message := &messages[i]
 		pop := message.Data
 		docLen := uint32(len(pop))
 
-		if docLen > processor.config.MinInputDocumentLength {
+		if docLen >= processor.config.MinInputDocumentLength {
 			doc := core.Document{}
 			err := util.FromJSONBytes(pop, &doc)
 			if err != nil {
@@ -153,93 +147,93 @@ func (processor *DocumentSummarizationProcessor) Process(ctx *pipeline.Context) 
 				continue
 			}
 
-			log.Info("start summarize doc: ", doc.ID, ",", doc.Title)
+			log.Infof("processor [%s] start summarizing document [%s/%s]", processor.Name(), doc.Title, doc.ID)
 			start := time.Now()
 			err = summarizeDocument(llmCtx, &doc, processor.config, llm, processor.removeThinkPattern)
 			if err != nil {
 				log.Errorf("[%s] failed to summarize document [%s/%s], error [%s]", processor.Name(), doc.Title, doc.ID, err)
 				continue
 			}
-			log.Infof("[%s] finished summarize doc, %v, %v, elapsed: %v, summary: %v", processor.Name(), doc.ID, doc.Title, util.Since(start), doc.Summary)
+			log.Infof("[%s] finished summarizing doc [%s/%s], elapsed: [%v], short_summary: [%v], ai_insights_length: [%v]",
+				processor.Name(), doc.Title, doc.ID, util.Since(start), doc.Summary,
+				len(fmt.Sprintf("%v", doc.Metadata["ai_insights"])))
 			message.Data = util.MustToJSONBytes(doc)
-		} else {
-			if !processor.config.IncludeSkippedDocumentToOutputQueue {
-				continue
-			}
-		}
 
-		// push to output queue
-		if processor.outputQueue != nil {
-			if err := queue.Push(processor.outputQueue, message.Data); err != nil {
-				log.Errorf("failed to push document to [%s]'s output queue: %v", processor.Name(), err)
+			// Enqueue immediately after processing
+			if processor.outputQueue != nil {
+				if err := queue.Push(processor.outputQueue, message.Data); err != nil {
+					log.Errorf("processor [%s] failed to push document [%s/%s] to output queue: %v", processor.Name(), doc.Title, doc.ID, err)
+				} else {
+					enqueued[i] = true
+				}
+			}
+		} else {
+			// Document was skipped (too short), will be enqueued in final pass
+		}
+	}
+
+	// Enqueue any documents that were skipped (not enqueued during processing)
+	if processor.outputQueue != nil {
+		for i := range messages {
+			if !enqueued[i] {
+				if err := queue.Push(processor.outputQueue, messages[i].Data); err != nil {
+					log.Errorf("processor [%s] failed to push skipped document [%d] to output queue: %v", processor.Name(), i, err)
+				}
 			}
 		}
 	}
+
 	return nil
 }
 
-// Helper function to set document.Summary to summary and keep if the previous
-// summary if needed.
-func setSummary(document *core.Document, config *Config, summary string) {
-	/*
-		Do not discard the previous summary if specified
-	*/
-	previousSummary := document.Summary
-	if previousSummary != "" && config.KeepPreviousSummaryContent && config.PreviousSummaryField != "" {
-		document.Payload[config.PreviousSummaryField] = previousSummary
+// Helper function to set both document.Summary and document.Metadata["ai_insights"]
+func setSummaryAndInsights(document *core.Document, shortSummary string, aiInsights string) {
+	// Initialize Metadata if nil
+	if document.Metadata == nil {
+		document.Metadata = make(map[string]interface{})
 	}
 
-	document.Summary = summary
+	document.Summary = shortSummary
+	document.Metadata["ai_insights"] = aiInsights
 }
 
-// Main logic of this processor, generate document summary and store it in
-// "document.Summary".
+// Main logic of this processor, generate AI insights and summary for this document.
 func summarizeDocument(ctx context.Context, document *core.Document, config *Config, llm llms.Model, regexpToRemoveThink *regexp.Regexp) error {
-	/*
-		For local files, excluding the content field as it could be binary
-		data, which is not helpful for generating document summary. In cases
-		where it is a text string, field `Document.DocumentChunk` already
-		provides that, so it is not needed either.
-	*/
-	if document.Type == connectors.TypeFile {
-		documentContent := document.Content
-		document.Content = ""
+	// Stage 1: Generate ai_insights (~500 tokens, Markdown+Mermaid)
+	var aiInsights string
+	var err error
 
-		defer func() {
-			document.Content = documentContent
-		}()
-	}
-
-	/*
-		If the length of prompt and document won't exceed model's context
-		length, we do it in one pass, i.e., only one LLM call. Otherwise,
-		we need to chunk the document and summarize chunks.
-	*/
-	doneInOnePass, summary, err := trySummarizeDocumentOnePass(ctx, document, config, llm, regexpToRemoveThink)
+	doneInOnePass, summary, err := tryGenerateAIInsightsOnePass(ctx, document, config, llm, regexpToRemoveThink)
 	if err != nil {
 		return err
 	}
+
 	if doneInOnePass {
-		log.Trace("summary generated in one pass")
-		setSummary(document, config, summary)
-		return nil
+		log.Trace("ai_insights generated in one pass")
+		aiInsights = summary
+	} else {
+		log.Trace("ai_insights needs to be generated in multiple passes")
+		aiInsights, err = summarizeDocumentMultiPasses(ctx, document, config, llm, regexpToRemoveThink)
+		if err != nil {
+			return err
+		}
 	}
 
-	/*
-		Otherwise, we have to chunk the document and invoke multiple LLM calls.
-	*/
-	log.Trace("summary needs to be generated in multiple passes")
-	summary, err = summarizeDocumentMultiPasses(ctx, document, config, llm, regexpToRemoveThink)
+	// Stage 2: Generate short_summary (~50 tokens) from ai_insights
+	log.Trace("generating short_summary from ai_insights")
+	shortSummary, err := generateShortSummaryFromInsights(ctx, llm, aiInsights, regexpToRemoveThink)
 	if err != nil {
 		return err
 	}
-	setSummary(document, config, summary)
+
+	// Stage 3: Store both in document
+	setSummaryAndInsights(document, shortSummary, aiInsights)
 	return nil
 }
 
 func summarizeDocumentMultiPasses(ctx context.Context, document *core.Document, config *Config, llm llms.Model, regexpToRemoveThink *regexp.Regexp) (string, error) {
 	chunkSystemPrompt := "You are an expert summarizer. Generate a concise, factual summary."
-	chunkUserPromptPrefix := fmt.Sprintf("Summarize the following content without exceeding %d tokens. Focus on the main points and key details.\n\nContent:\n", config.MaxSummaryLength)
+	chunkUserPromptPrefix := "Summarize the following content without exceeding 500 tokens. Focus on the main points and key details.\n\nContent:\n"
 
 	chunkBudget, err := calculateContentBudget(chunkSystemPrompt, chunkUserPromptPrefix, config.ModelContextLength)
 	if err != nil {
@@ -267,6 +261,7 @@ func summarizeDocumentMultiPasses(ctx context.Context, document *core.Document, 
 
 	log.Debugf("processor [%s]: document got split into [%d] chunks", ProcessorName, len(mergedChunks))
 
+	// Map phase: Summarize each chunk
 	log.Tracef("processor [%s] summarizing chunks", ProcessorName)
 	chunkSummaries := make([]string, 0, len(mergedChunks))
 	for idx, chunkText := range mergedChunks {
@@ -283,16 +278,14 @@ func summarizeDocumentMultiPasses(ctx context.Context, document *core.Document, 
 		return "", fmt.Errorf("no summaries generated for document chunks")
 	}
 	if len(chunkSummaries) == 1 {
-		return chunkSummaries[0], nil
+		// Single chunk: directly generate analysis with Mermaid
+		return generateAIInsightsFromSummary(ctx, llm, chunkSummaries[0], config.AIInsightsMaxLength, regexpToRemoveThink)
 	}
 
-	/*
-		Reduce multiple chunk summaries into a single final summary, recursively
-		if needed.
-	*/
+	// Reduce phase: Combine summaries recursively
 	log.Tracef("processor [%s] need to summarize summaries", ProcessorName)
 	combineSystemPrompt := chunkSystemPrompt
-	combineUserPromptPrefix := fmt.Sprintf("You are given summaries of a larger document. Combine them into a concise summary without exceeding %d tokens. Keep only the essential points.\n\nSummaries:\n", config.MaxSummaryLength)
+	combineUserPromptPrefix := "You are given summaries of a larger document. Combine them into a concise summary without exceeding 500 tokens. Keep only the essential points.\n\nSummaries:\n"
 	combineBudget, err := calculateContentBudget(combineSystemPrompt, combineUserPromptPrefix, config.ModelContextLength)
 	if err != nil {
 		return "", err
@@ -301,7 +294,15 @@ func summarizeDocumentMultiPasses(ctx context.Context, document *core.Document, 
 	current := chunkSummaries
 	for len(current) > 1 {
 		log.Debugf("processor [%s]: [%d] summaries to summarize", ProcessorName, len(current))
+
 		grouped := aggregateTexts(current, combineBudget)
+
+		// Final pass: Generate full Markdown+Mermaid analysis
+		if len(grouped) == 1 {
+			return generateAIInsightsFromSummary(ctx, llm, grouped[0], config.AIInsightsMaxLength, regexpToRemoveThink)
+		}
+
+		// Intermediate pass: Plain text summary
 		next := make([]string, 0, len(grouped))
 		for _, groupText := range grouped {
 			userPrompt := combineUserPromptPrefix + groupText
@@ -314,7 +315,8 @@ func summarizeDocumentMultiPasses(ctx context.Context, document *core.Document, 
 		current = next
 	}
 
-	return current[0], nil
+	// Final single summary: Convert to full analysis
+	return generateAIInsightsFromSummary(ctx, llm, current[0], config.AIInsightsMaxLength, regexpToRemoveThink)
 }
 
 func calculateContentBudget(systemPrompt, userPromptPrefix string, modelContextLength uint32) (int, error) {
@@ -389,6 +391,7 @@ func aggregateTexts(texts []string, budget int) []string {
 	return groups
 }
 
+// Base/helper function to do summary generation.
 func generateSummaryFromPrompt(ctx context.Context, llm llms.Model, systemPrompt, userPrompt string, regexpToRemoveThink *regexp.Regexp) (string, error) {
 	message := []llms.MessageContent{
 		llms.TextParts(llms.ChatMessageTypeSystem, systemPrompt),
@@ -415,68 +418,97 @@ func generateSummaryFromPrompt(ctx context.Context, llm llms.Model, systemPrompt
 	return summary, nil
 }
 
-// Try summarizing the document in one pass
-func trySummarizeDocumentOnePass(ctx context.Context, document *core.Document, config *Config, llm llms.Model, regexpToRemoveThink *regexp.Regexp) (bool, string, error) {
-	const SystemPrompt = "You are an expert summarizer, and your task is to generate a concise summary of the document."
+// generateAIInsightsFromSummary converts a plain summary into full Markdown+Mermaid analysis
+func generateAIInsightsFromSummary(ctx context.Context, llm llms.Model, summary string, maxLength uint32, regexpToRemoveThink *regexp.Regexp) (string, error) {
+	systemPrompt := "You are an expert document analyst. Generate comprehensive analysis in Markdown format with Mermaid mind maps."
+	userPrompt := buildFinalAnalysisPrompt(summary, maxLength)
+	return generateSummaryFromPrompt(ctx, llm, systemPrompt, userPrompt, regexpToRemoveThink)
+}
+
+// generateShortSummaryFromInsights generates a ~50 token summary from the analysis
+func generateShortSummaryFromInsights(ctx context.Context, llm llms.Model, aiInsights string, regexpToRemoveThink *regexp.Regexp) (string, error) {
+	systemPrompt := "You are an expert summarizer. Generate highly concise summaries."
+	userPrompt := buildShortSummaryPrompt(aiInsights)
+	return generateSummaryFromPrompt(ctx, llm, systemPrompt, userPrompt, regexpToRemoveThink)
+}
+
+// Try generating ai_insights in one pass
+func tryGenerateAIInsightsOnePass(ctx context.Context, document *core.Document, config *Config, llm llms.Model, regexpToRemoveThink *regexp.Regexp) (bool, string, error) {
+	const SystemPrompt = "You are an expert document analyst. Generate comprehensive analysis in Markdown format with Mermaid mind maps."
 
 	documentJson := util.MustToJSON(document)
-	userPrompt := onePassUserPrompt(config.MaxSummaryLength, documentJson)
-	// Check if do it in one pass
+	userPrompt := buildAnalysisPrompt(documentJson, config.AIInsightsMaxLength)
+
+	// Check if doable in one pass
 	if uint32(len(userPrompt)+len(SystemPrompt)) > config.ModelContextLength {
-		// Unfortunately, we cann't.
 		return false, "", nil
 	}
 
-	/*
-		Summary can be generated in one pass
-	*/
 	message := []llms.MessageContent{
 		llms.TextParts(llms.ChatMessageTypeSystem, SystemPrompt),
 		llms.TextParts(llms.ChatMessageTypeHuman, userPrompt),
 	}
 
-	summaryBuilder := strings.Builder{}
-	completion, err := llm.GenerateContent(ctx, message, llms.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
+	builder := strings.Builder{}
+	_, err := llm.GenerateContent(ctx, message, llms.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
 		if global.ShuttingDown() {
 			ctx.Done()
 			return errors.New("shutting down")
 		}
-		summaryBuilder.Write(chunk)
+		builder.Write(chunk)
 		return nil
 	}))
 	if err != nil {
-		panic(err)
+		return false, "", err
 	}
-	_ = completion
 
-	summary := summaryBuilder.String()
-	summary = regexpToRemoveThink.ReplaceAllLiteralString(summary, "")
-
-	return true, summary, nil
+	result := builder.String()
+	result = regexpToRemoveThink.ReplaceAllLiteralString(result, "")
+	return true, result, nil
 }
 
-// Return the user prompt when we can summarize this document in 1 LLM call.
-func onePassUserPrompt(max_token uint32, documentJson string) string {
+// buildAnalysisPrompt generates prompt for deep analysis with Mermaid mind map
+//
+// Used in [tryGenerateAIInsightsOnePass]
+func buildAnalysisPrompt(documentJson string, maxLength uint32) string {
 	return fmt.Sprintf(
-		"You are an expert summarizer tasked with summarizing documents. Your "+
-			"job is to read the provided document below and generate a clean "+
-			"concise, and accurate summary for it, considering all fields "+
-			"provided. Make sure your summary reflects the most important points "+
-			"from the document as rich as possible without exceeding %v tokens."+
-			"\n"+
-			"The provided document is in JSON format: %s"+
-			"\n"+
-			"Please use all of the available fields in the document to generate "+
-			"the summary. If any of these fields are missing or incomplete, focus "+
-			"on the available ones and fill in the gaps logically, based on "+
-			"your understanding of the document."+
-			"\n"+
-			"Make sure the final summary is clear, concise, and easy to understand."+
-			"\n"+
-			"No need return how you think.",
-
-		// Arguments
-		max_token,
+		"You are an expert document analyst. Analyze the following document and generate a comprehensive analysis in Markdown format.\n\n"+
+			"Requirements:\n"+
+			"- Length: Approximately %d tokens\n"+
+			"- Content: Detailed document interpretation including key insights, themes, and relationships\n"+
+			"- MUST include: A Mermaid mind map in a code block (```mermaid ... ```) showing the document structure\n"+
+			"- IMPORTANT: Focus on the document content itself; do not mention that you are analyzing JSON or metadata structure\n\n"+
+			"Document JSON:\n%s\n\n"+
+			"Generate the analysis now. End with a ```mermaid mindmap``` block.",
+		maxLength,
 		documentJson,
+	)
+}
+
+// buildShortSummaryPrompt generates prompt for concise summary from analysis
+func buildShortSummaryPrompt(analysis string) string {
+	return fmt.Sprintf(
+		"You are an expert summarizer. Based on the following document analysis, generate a highly concise summary.\n\n"+
+			"Requirements:\n"+
+			"- Length: Approximately 50 tokens (1-2 sentences)\n"+
+			"- Content: Pure text, no markdown formatting\n"+
+			"- Focus: The core message or takeaway\n\n"+
+			"Analysis to summarize:\n%s",
+		analysis,
+	)
+}
+
+// buildFinalAnalysisPrompt generates prompt for final Markdown+Mermaid output (from combined summaries)
+func buildFinalAnalysisPrompt(combinedSummary string, maxLength uint32) string {
+	return fmt.Sprintf(
+		"You are an expert document analyst. Transform the following combined summary into a comprehensive Markdown analysis.\n\n"+
+			"Requirements:\n"+
+			"- Length: Approximately %d tokens\n"+
+			"- Content: Detailed interpretation with key insights\n"+
+			"- MUST include: A Mermaid mind map in a code block (```mermaid ... ```) showing document structure\n\n"+
+			"Combined Summary:\n%s\n\n"+
+			"Generate the final analysis with Mermaid mind map.",
+		maxLength,
+		combinedSummary,
 	)
 }

@@ -32,7 +32,6 @@ type Config struct {
 	ModelProviderID    string             `config:"model_provider"`
 	ModelName          string             `config:"model"`
 	EmbeddingDimension int32              `config:"embedding_dimension"`
-	ChunkSize          int                `config:"chunk_size"`
 }
 
 type DocumentEmbeddingProcessor struct {
@@ -71,9 +70,6 @@ func New(c *config.Config) (pipeline.Processor, error) {
 	if !slices.Contains(core.SupportedEmbeddingDimensions, cfg.EmbeddingDimension) {
 		panic(fmt.Sprintf("invalid embedding_dimension, available values %v", core.SupportedEmbeddingDimensions))
 	}
-	if cfg.ChunkSize == 0 {
-		panic("chunk_size is not specified or set to 0, which is not allowed")
-	}
 
 	processor := DocumentEmbeddingProcessor{config: &cfg}
 
@@ -105,8 +101,17 @@ func (processor *DocumentEmbeddingProcessor) Process(ctx *pipeline.Context) erro
 		return nil
 	}
 
-	for _, msg := range messages {
-		docBytes := msg.Data
+	// Track which documents have been enqueued
+	enqueued := make(map[int]bool)
+
+	for i := range messages {
+		// Check shutdown before processing each document
+		if global.ShuttingDown() {
+			log.Debugf("[%s] shutting down, skipping remaining %d documents", processor.Name(), len(messages)-i)
+			return errors.New("shutting down")
+		}
+
+		docBytes := messages[i].Data
 		doc := core.Document{}
 		err := util.FromJSONBytes(docBytes, &doc)
 		if err != nil {
@@ -118,18 +123,31 @@ func (processor *DocumentEmbeddingProcessor) Process(ctx *pipeline.Context) erro
 		if doc.Type == connectors.TypeFile && doc.Chunks != nil {
 			err := generateEmbedding(ctx.Context, &doc, processor.config)
 			if err != nil {
-				log.Errorf("processor [%s] failed to generate embeddings for document [%s/%s] due to error [%s]", processor.Name(), doc.ID, doc.Title, err)
+				log.Errorf("processor [%s] failed to generate embeddings for document [%s/%s] due to error [%s]", processor.Name(), doc.Title, doc.ID, err)
 			}
-			log.Infof("processor [%s] embeddings of document [%s/%s] generated", processor.Name(), doc.ID, doc.Title)
+			log.Infof("processor [%s] embeddings of document [%s/%s] generated", processor.Name(), doc.Title, doc.ID)
 
-			// Update msg
-			updatedDocBytes := util.MustToJSONBytes(doc)
-			msg.Data = updatedDocBytes
+			// Update messages[i].Data in-place
+			messages[i].Data = util.MustToJSONBytes(doc)
+
+			// Enqueue immediately after processing
+			if processor.outputQueue != nil {
+				if err := queue.Push(processor.outputQueue, messages[i].Data); err != nil {
+					log.Errorf("processor [%s] failed to push document [%s/%s] to output queue: %v", processor.Name(), doc.Title, doc.ID, err)
+				} else {
+					enqueued[i] = true
+				}
+			}
 		}
+	}
 
-		if processor.outputQueue != nil {
-			if err := queue.Push(processor.outputQueue, msg.Data); err != nil {
-				log.Error("failed to push document to [%s]'s output queue: %v\n", processor.Name(), err)
+	// Enqueue any documents that were skipped (not enqueued during processing)
+	if processor.outputQueue != nil {
+		for i := range messages {
+			if !enqueued[i] {
+				if err := queue.Push(processor.outputQueue, messages[i].Data); err != nil {
+					log.Errorf("processor [%s] failed to push skipped document [%d] to output queue: %v", processor.Name(), i, err)
+				}
 			}
 		}
 	}
