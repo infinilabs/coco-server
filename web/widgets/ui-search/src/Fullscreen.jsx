@@ -278,12 +278,8 @@ const Fullscreen = props => {
   const [hasMore, setHasMore] = useState(false);
   const loadLock = useRef(false);
   const isHomeSearchRef = useRef(true);
-<<<<<<< HEAD
   const scrollRef = useRef(0)
   const [showToolbar, setShowToolbar] = useState(false);
-=======
-  const scrollRef = useRef(0);
->>>>>>> 7d63228c97447a285423e86fa6dd3285f83597c1
 
   const resetScroll = () => {
     scrollRef.current = 0;
