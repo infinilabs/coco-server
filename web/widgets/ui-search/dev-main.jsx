@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import "./src/i18n"; // Initialize i18n
 import { createRoot } from "react-dom/client";
 import { FullscreenPage } from "./src/index.jsx";
 
@@ -26,6 +27,194 @@ function DevApp() {
     from: 0,
     size: 10,
   });
+
+  const [activeChat, setActiveChat] = useState("1");
+  const [chats, setChats] = useState([
+    {
+      _id: "1",
+      _source: {
+        title: "Initial Chat",
+        created: new Date().toISOString(),
+        updated: new Date().toISOString()
+      },
+      messages: [
+        {
+          _id: "1-1",
+          _source: {
+            type: "assistant",
+            message: "Hello! I am your AI assistant. How can I help you today?",
+            created: new Date().toISOString(),
+            user: { username: "Assistant" }
+          }
+        },
+        {
+          _id: "1-2",
+          _source: {
+            type: "user",
+            message: "what is coco?",
+            created: new Date().toISOString(),
+            user: { username: "User" },
+            attachments: ["1", "2", "3"]
+          }
+        }
+      ]
+    },
+    {
+      _id: "2",
+      _source: {
+        title: "Welding Standards Inquiry",
+        created: new Date(Date.now() - 86400000).toISOString(),
+        updated: new Date(Date.now() - 86400000).toISOString()
+      },
+      messages: [
+        {
+          _id: "2-1",
+          _source: {
+            type: "user",
+            message: "Show me some welding standards.",
+            created: new Date().toISOString(),
+            user: { username: "User" }
+          }
+        },
+        {
+          _id: "2-2",
+          _source: {
+            type: "assistant",
+            message: "Here are some relevant details:\n\n- **Standard**: QJ1843A-96\n- **Category**: Welding",
+            created: new Date().toISOString(),
+            user: { username: "Assistant" }
+          }
+        }
+      ]
+    },
+    {
+      _id: "3",
+      _source: {
+        title: "Previous Week Discussion",
+        created: new Date(Date.now() - 604800000).toISOString(),
+        updated: new Date(Date.now() - 604800000).toISOString()
+      },
+      messages: []
+    }
+  ]);
+
+  const onHistorySelect = (chat) => {
+    const chatId = chat._id || chat;
+    console.log("History selected:", chatId);
+    setActiveChat(chatId);
+  };
+
+  const handleSendMessage = async (content) => {
+    if (!activeChat) return;
+
+    const newMessage = {
+      _id: Date.now().toString(),
+      _source: {
+        type: "user",
+        message: content,
+        created: new Date().toISOString(),
+        user: { username: "User" }
+      }
+    };
+
+    setChats(prevChats => prevChats.map(chat => {
+      if (chat._id === activeChat) {
+        return {
+          ...chat,
+          messages: [...(chat.messages || []), newMessage]
+        };
+      }
+      return chat;
+    }));
+
+    // Simulate assistant response
+    setTimeout(() => {
+        const assistantMsg = {
+            _id: (Date.now() + 1).toString(),
+            _source: {
+                type: "assistant",
+                message: "I received your message: " + content + "\n\nBased on my analysis, here is a comprehensive answer.\n\nCoco AI is designed to help you find information quickly and efficiently.",
+                created: new Date().toISOString(),
+                user: { username: "Assistant" },
+                details: [
+                    {
+                        type: "query_intent",
+                        payload: {
+                            category: "General Inquiry",
+                            intent: "User Interaction",
+                            query: [content],
+                            keyword: ["interaction", "test"],
+                            suggestion: ["Tell me more about Coco AI", "How does search work?"]
+                        }
+                    },
+                    {
+                        type: "think",
+                        description: "The user has sent a message. I need to acknowledge it and provide a relevant response.\n\n1. Analyze input content.\n2. Retrieve relevant knowledge.\n3. Formulate response."
+                    },
+                    {
+                        type: "fetch_source",
+                        payload: [
+                            {
+                                id: "doc_1",
+                                title: "Coco AI Documentation",
+                                summary: "Official documentation for Coco AI features and usage.",
+                                url: "https://docs.coco-ai.com"
+                            },
+                            {
+                                id: "doc_2",
+                                title: "User Guide",
+                                summary: "Comprehensive guide for new users.",
+                                url: "https://guide.coco-ai.com"
+                            }
+                        ]
+                    }
+                ]
+            }
+        };
+        setChats(prevChats => prevChats.map(chat => {
+            if (chat._id === activeChat) {
+                return {
+                ...chat,
+                messages: [...(chat.messages || []), assistantMsg]
+                };
+            }
+            return chat;
+        }));
+    }, 1000);
+  };
+
+  const currentChatObj = chats.find(c => c._id === activeChat);
+  const currentMessages = currentChatObj ? currentChatObj.messages : [];
+
+
+  const onHistorySearch = (query) => {
+    console.log("History search:", query);
+    // Simulate client-side filtering for dev
+    // In real app, this might be a server call or just local filtering
+  };
+
+  const onHistoryRefresh = async () => {
+    console.log("History refreshing...");
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    console.log("History refreshed");
+  };
+
+  const onHistoryRename = async (chatId, newTitle) => {
+    console.log("Rename chat:", chatId, newTitle);
+    setChats(chats.map(chat =>
+      chat._id === chatId
+        ? { ...chat, _source: { ...chat._source, title: newTitle } }
+        : chat
+    ));
+  };
+
+  const onHistoryRemove = async (chatId) => {
+    console.log("Remove chat:", chatId);
+    setChats(chats.filter(chat => chat._id !== chatId));
+    if (activeChat === chatId) {
+      setActiveChat(null);
+    }
+  };
 
   const enableQueryParams = true;
 
@@ -490,6 +679,19 @@ function DevApp() {
     widgets: [],
     onSearch: mockSearch,
     onAsk: mockAsk,
+    onLogoClick: () => {
+      console.log('logo click')
+    },
+    messages: currentMessages,
+    onSendMessage: handleSendMessage,
+    // History props
+    chats: chats,
+    activeChat: activeChat,
+    onHistorySelect: onHistorySelect,
+    onHistorySearch: onHistorySearch,
+    onHistoryRefresh: onHistoryRefresh,
+    onHistoryRename: onHistoryRename,
+    onHistoryRemove: onHistoryRemove,
     config: {
       aggregations: {
         "source.id": {
