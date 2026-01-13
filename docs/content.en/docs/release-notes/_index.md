@@ -19,6 +19,9 @@ Information about release notes of Coco Server is provided here.
 - feat: implement recommend api #643
 
 ### 🐛 Bug fix  
+
+- fix: refine doc.Icon and doc.Source.Icon in searchDoc() #644
+
 ### ✈️ Improvements  
 - refactor: refactoring attachment API #636
 
