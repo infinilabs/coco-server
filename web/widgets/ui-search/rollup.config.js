@@ -17,7 +17,7 @@ export default {
       file: 'dist/index.js',
       format: 'esm',
       sourcemap: false,
-      inlineDynamicImports: true 
+      inlineDynamicImports: true
     },
     // {
     //   file: 'dist/index.iife.js',
@@ -31,7 +31,7 @@ export default {
     //   },
     // },
   ],
-  external: ['react', 'react-dom', 'react-is'],
+  external: ['react', 'react-dom'],
   context: 'window',
   plugins: [
     deletePlugin({ targets: 'dist/*' }),
@@ -46,7 +46,7 @@ export default {
     }),
     url({
       include: ['**/*.svg'],
-      limit: 10000000, 
+      limit: 10000000,
     }),
     babel({
       babelHelpers: 'runtime',
@@ -60,7 +60,7 @@ export default {
       ],
       exclude: 'node_modules/**',
       plugins: [
-        '@babel/plugin-transform-runtime', 
+        '@babel/plugin-transform-runtime',
       ],
     }),
     postcss({
@@ -81,8 +81,8 @@ export default {
   ],
   onwarn(warning, warn) {
     if (warning.code === 'MODULE_LEVEL_DIRECTIVE') {
-      return; 
+      return;
     }
     warn(warning);
   },
-};  
+};
