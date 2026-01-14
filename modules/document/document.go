@@ -10,6 +10,7 @@ import (
 	"io"
 	"mime"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -143,15 +144,20 @@ func (h *APIHandler) getDocRawContent(w http.ResponseWriter, req *http.Request, 
 				return
 			}
 
-			// Extract objectKey from document URL
-			// URL format: s3://endpoint/bucket/objectKey
-			// We need to extract just the objectKey part
-			parts := strings.SplitN(obj.URL, "/", 5)
-			if len(parts) < 5 {
+			// Extract objectKey from document URL using net/url
+			// URL format: http(s)://endpoint/bucket/objectKey
+			u, err := url.Parse(obj.URL)
+			if err != nil {
 				h.WriteError(w, fmt.Sprintf("invalid S3 URL format: %s", obj.URL), http.StatusBadRequest)
 				return
 			}
-			objectKey := parts[4]
+			// u.Path will be like "/bucket/objectKey", trim the leading "/bucket/"
+			prefix := "/" + cfg.Bucket + "/"
+			if !strings.HasPrefix(u.Path, prefix) {
+				h.WriteError(w, fmt.Sprintf("S3 URL path does not match bucket: %s", obj.URL), http.StatusBadRequest)
+				return
+			}
+			objectKey := strings.TrimPrefix(u.Path, prefix)
 
 			// Get object stream (does not download content yet)
 			objStream, err := client.GetObject(req.Context(), cfg.Bucket, objectKey, minio.GetObjectOptions{})
@@ -174,11 +180,15 @@ func (h *APIHandler) getDocRawContent(w http.ResponseWriter, req *http.Request, 
 			}
 
 			// Set HTTP headers
-			if info.ContentType != "" {
-				w.Header().Set("Content-Type", info.ContentType)
-			} else {
-				w.Header().Set("Content-Type", "application/octet-stream")
+			contentType := info.ContentType
+			if contentType == "" {
+				// Fall back to detecting Content-Type from object key extension
+				contentType = mime.TypeByExtension(filepath.Ext(objectKey))
+				if contentType == "" {
+					contentType = "application/octet-stream"
+				}
 			}
+			w.Header().Set("Content-Type", contentType)
 			w.Header().Set("Content-Length", strconv.FormatInt(info.Size, 10))
 
 			// Stream data directly from S3 to HTTP response
@@ -186,7 +196,6 @@ func (h *APIHandler) getDocRawContent(w http.ResponseWriter, req *http.Request, 
 			if err != nil {
 				log.Errorf("error streaming S3 object: %v", err)
 			}
-
 		case "local_fs":
 			// Stream from local filesystem
 			fileLocalPath := obj.URL
@@ -196,8 +205,6 @@ func (h *APIHandler) getDocRawContent(w http.ResponseWriter, req *http.Request, 
 			if err != nil {
 				if os.IsNotExist(err) {
 					h.WriteError(w, "file not found", http.StatusNotFound)
-				} else if os.IsPermission(err) {
-					h.WriteError(w, "permission denied", http.StatusForbidden)
 				} else {
 					h.WriteError(w, fmt.Sprintf("failed to open file: %v", err), http.StatusInternalServerError)
 				}
@@ -224,7 +231,6 @@ func (h *APIHandler) getDocRawContent(w http.ResponseWriter, req *http.Request, 
 
 			// Stream file content using http.ServeContent (handles range requests, etc.)
 			http.ServeContent(w, req, filepath.Base(fileLocalPath), fileInfo.ModTime(), file)
-
 		default:
 			h.WriteError(w, fmt.Sprintf("unsupported connector: %s", connectorID), http.StatusBadRequest)
 		}
