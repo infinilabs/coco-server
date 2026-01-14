@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { Button, Input } from 'antd';
 import { PanelLeftClose, RefreshCw, Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { debounce } from 'lodash';
+import debounce from 'lodash/debounce';
 import clsx from 'clsx';
 import HistoryListContent from './HistoryListContent';
 

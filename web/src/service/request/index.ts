@@ -33,6 +33,15 @@ export const request = createFlatRequest<App.Service.Response, RequestInstanceSt
       handleError(error, request);
     },
     async onRequest(config) {
+      const { headers } = config;
+
+      // set token
+      const token = localStg.get('token');
+      const Authorization = token ? `Bearer ${token}` : null;
+      if (Authorization) {
+        Object.assign(headers, { Authorization });
+      }
+
       if (import.meta.env.VITE_SERVICE_TOKEN) {
         Object.assign(config.headers, { 'X-API-TOKEN': import.meta.env.VITE_SERVICE_TOKEN });
       }

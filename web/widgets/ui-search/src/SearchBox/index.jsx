@@ -10,7 +10,7 @@ import FilterFields, { SUGGESTION_FILTER_FIELDS } from "./suggestions/FilterFiel
 import FilterValues, { SUGGESTION_FILTER_VALUES } from "./suggestions/FilterValues";
 import Filters from "./Filters";
 import { calculateCharLength } from "../utils/utils";
-import { cloneDeep } from "lodash";
+import cloneDeep from "lodash/cloneDeep";
 import Operators, { SUGGESTION_OPERATORS } from "./Suggestions/Operators";
 
 export function SearchBox(props) {

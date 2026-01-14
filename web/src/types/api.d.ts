@@ -1,5 +1,3 @@
-import { b } from 'vite/dist/node/types.d-aGj9QkWt';
-
 /**
  * Namespace Api
  *
@@ -333,4 +331,8 @@ declare namespace Api {
       description: string;
     }
   }
+}
+
+declare module 'ui-search' {
+  export const FullscreenPage: any;
 }

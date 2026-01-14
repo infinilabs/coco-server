@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { cloneDeep } from "lodash";
+import cloneDeep from "lodash/cloneDeep";
 
 import FilterDefaultSvg from "../icons/filter-default.svg"
 import AllSvg from "../icons/all.svg"

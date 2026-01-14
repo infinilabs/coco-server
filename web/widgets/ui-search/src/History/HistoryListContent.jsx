@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { groupBy, isNil } from 'lodash';
+import groupBy from "lodash/groupBy";
+import isNil from "lodash/isNil";
 import dayjs from 'dayjs';
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
 import HistoryListItem from './HistoryListItem';

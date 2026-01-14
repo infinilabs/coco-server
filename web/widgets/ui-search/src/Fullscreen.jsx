@@ -22,25 +22,66 @@ import ChatHeader from './ChatHeader';
 function renderChatMode({
   activeChat,
   assistants,
+  assistantPage,
+  assistantTotal,
   chats,
   commonProps,
   currentAssistant,
   isHistoryOpen,
   messages,
+  query_intent,
+  tools,
+  fetch_source,
+  pick_source,
+  deep_read,
+  think,
+  response,
+  timedoutShow,
+  Question,
+  curChatEnd,
+  onNewChat,
+  registerStreamHandler,
   onAssistantRefresh,
   onAssistantSelect,
+  onAssistantPrevPage,
+  onAssistantNextPage,
+  onAssistantSearch,
   onToggleHistory,
   onHistoryRefresh,
   onHistoryRemove,
   onHistoryRename,
   onHistorySearch,
   onHistorySelect,
-  onSendMessage
+  onSendMessage,
+  language,
+  apiConfig,
+  onStream
 }) {
   return (
     <ChatLayout
       {...commonProps}
-      content={<ChatContent messages={messages} />}
+      content={
+        <ChatContent
+          activeChat={activeChat}
+          messages={messages}
+          query_intent={query_intent}
+          tools={tools}
+          fetch_source={fetch_source}
+          pick_source={pick_source}
+          deep_read={deep_read}
+          think={think}
+          response={response}
+          timedoutShow={timedoutShow}
+          Question={Question}
+          curChatEnd={curChatEnd}
+          handleSendMessage={onSendMessage}
+          registerStreamHandler={registerStreamHandler}
+          theme={commonProps.theme}
+          locale={language === 'zh-CN' ? 'zh' : 'en'}
+          apiConfig={apiConfig}
+          onStream={onStream}
+        />
+      }
       input={<ChatInput onSendMessage={onSendMessage} />}
       sidebarCollapsed={!isHistoryOpen}
       header={
@@ -48,9 +89,15 @@ function renderChatMode({
           activeChat={activeChat}
           assistants={assistants}
           currentAssistant={currentAssistant}
+          assistantPage={assistantPage}
+          assistantTotal={assistantTotal}
+          onNewChat={onNewChat}
           showChatHistory={true}
           onAssistantRefresh={onAssistantRefresh}
           onAssistantSelect={onAssistantSelect}
+          onAssistantPrevPage={onAssistantPrevPage}
+          onAssistantNextPage={onAssistantNextPage}
+          onAssistantSearch={onAssistantSearch}
           onToggleHistory={onToggleHistory}
         />
       }
@@ -257,6 +304,9 @@ const Fullscreen = props => {
     currentAssistant,
     onAssistantRefresh,
     onAssistantSelect,
+    onNewChat,
+    assistantPage,
+    assistantTotal,
     // History props
     chats = [],
     activeChat,
@@ -429,25 +479,45 @@ const Fullscreen = props => {
 
   const showFullScreenSpin = loading && isHomeSearchRef.current;
 
-  const isChatMode = messages && messages.length > 0;
+  const isChatMode = true;
   if (isChatMode) {
     return renderChatMode({
       activeChat,
       assistants,
+      assistantPage,
+      assistantTotal,
       chats,
       commonProps,
       currentAssistant,
       isHistoryOpen,
       messages,
+      query_intent: props.query_intent,
+      tools: props.tools,
+      fetch_source: props.fetch_source,
+      pick_source: props.pick_source,
+      deep_read: props.deep_read,
+      think: props.think,
+      response: props.response,
+      timedoutShow: props.timedoutShow,
+      Question: props.Question,
+      curChatEnd: props.curChatEnd,
+      onNewChat,
+      registerStreamHandler: props.registerStreamHandler,
       onAssistantRefresh,
       onAssistantSelect,
+      onAssistantPrevPage: props.onAssistantPrevPage,
+      onAssistantNextPage: props.onAssistantNextPage,
+      onAssistantSearch: props.onAssistantSearch,
       onToggleHistory: () => setIsHistoryOpen(open => !open),
       onHistoryRefresh,
       onHistoryRemove,
       onHistoryRename,
       onHistorySearch,
       onHistorySelect,
-      onSendMessage
+      onSendMessage,
+      language,
+      apiConfig: props.apiConfig,
+      onStream: props.onStream
     });
   }
 
@@ -522,13 +592,25 @@ Fullscreen.propTypes = {
   currentAssistant: PropTypes.any,
   onAssistantRefresh: PropTypes.func,
   onAssistantSelect: PropTypes.func,
+  onNewChat: PropTypes.func,
+  registerStreamHandler: PropTypes.func,
   chats: PropTypes.array,
   activeChat: PropTypes.any,
   onHistorySelect: PropTypes.func,
   onHistorySearch: PropTypes.func,
   onHistoryRefresh: PropTypes.func,
   onHistoryRename: PropTypes.func,
-  onHistoryRemove: PropTypes.func
+  onHistoryRemove: PropTypes.func,
+  query_intent: PropTypes.any,
+  tools: PropTypes.any,
+  fetch_source: PropTypes.any,
+  pick_source: PropTypes.any,
+  deep_read: PropTypes.any,
+  think: PropTypes.any,
+  response: PropTypes.any,
+  timedoutShow: PropTypes.bool,
+  Question: PropTypes.string,
+  curChatEnd: PropTypes.bool
 };
 
 export default Fullscreen;

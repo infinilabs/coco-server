@@ -1,6 +1,6 @@
 import { Button, Select, Space } from "antd";
 import { useRef, useEffect } from "react";
-import { cloneDeep } from "lodash";
+import cloneDeep from "lodash/cloneDeep";
 import { OPERATOR_ICONS } from "../Suggestions/Operators";
 import styles from "./index.module.less"
 import { X } from "lucide-react";
