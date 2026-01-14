@@ -1,14 +1,15 @@
-package assistant
+package common
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"infini.sh/coco/core"
-	"infini.sh/coco/modules/common"
 	"net/http"
 	"regexp"
 	"strings"
+
+	"infini.sh/coco/core"
+	"infini.sh/coco/modules/common"
 )
 
 // Heavily based on Kubernetes' (https://github.com/GoogleCloudPlatform/kubernetes) detection code.

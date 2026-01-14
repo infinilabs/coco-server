@@ -2,11 +2,12 @@
  * Web: https://infinilabs.com
  * Email: hello#infini.ltd */
 
-package rag
+package langchain
 
 import (
-	"infini.sh/framework/core/util"
 	"testing"
+
+	"infini.sh/framework/core/util"
 )
 
 func TestExtractJSON(t *testing.T) {

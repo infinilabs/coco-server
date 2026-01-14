@@ -8,9 +8,17 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"net/http"
+	url2 "net/url"
+	"os"
+	"os/exec"
+	"strconv"
+	"strings"
+	"time"
+
 	log "github.com/cihub/seelog"
 	core2 "infini.sh/coco/core"
-	"infini.sh/coco/modules/assistant"
+	"infini.sh/coco/modules/assistant/service"
 	"infini.sh/coco/plugins/webhooks/gitlab/core"
 	"infini.sh/framework/core/api"
 	"infini.sh/framework/core/config"
@@ -19,13 +27,6 @@ import (
 	"infini.sh/framework/core/pipeline"
 	"infini.sh/framework/core/queue"
 	"infini.sh/framework/core/util"
-	"net/http"
-	url2 "net/url"
-	"os"
-	"os/exec"
-	"strconv"
-	"strings"
-	"time"
 )
 
 func init() {
@@ -206,7 +207,7 @@ func (processor *Processor) onOpenMR(doc *core2.Document, event *core.MergeReque
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 			log.Infof("Calling AI summary assistant for page %d, batch %d/%d...", pageNo-1, batchIndex+1, totalBatches)
 
-			pageSummary, err := assistant.AskAssistantSync(ctx, doc.GetOwnerID(), processor.config.SummaryAssistant, doc.Title, localVars)
+			pageSummary, err := service.AskAssistantSync(ctx, doc.GetOwnerID(), processor.config.SummaryAssistant, doc.Title, localVars)
 			cancel()
 
 			if err != nil {
@@ -235,7 +236,7 @@ func (processor *Processor) onOpenMR(doc *core2.Document, event *core.MergeReque
 			"summary_count":         len(allSummaries),
 		}
 
-		finalReport, err := assistant.AskAssistantSync(ctx, doc.GetOwnerID(), processor.config.FinalReviewAssistant, "Final MR Review Report", finalVars)
+		finalReport, err := service.AskAssistantSync(ctx, doc.GetOwnerID(), processor.config.FinalReviewAssistant, "Final MR Review Report", finalVars)
 		if err != nil {
 			log.Errorf("Final report generation error: %v", err)
 			return err
@@ -308,7 +309,7 @@ func (processor *Processor) onOpenMRV12(doc *core2.Document, event *core.MergeRe
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 		log.Infof("Calling AI summary assistant for page %d, batch %d/%d...", pageNo-1, batchIndex+1, totalBatches)
 
-		pageSummary, err := assistant.AskAssistantSync(ctx, doc.GetOwnerID(), processor.config.SummaryAssistant, doc.Title, localVars)
+		pageSummary, err := service.AskAssistantSync(ctx, doc.GetOwnerID(), processor.config.SummaryAssistant, doc.Title, localVars)
 		cancel()
 
 		if err != nil {
@@ -336,7 +337,7 @@ func (processor *Processor) onOpenMRV12(doc *core2.Document, event *core.MergeRe
 			"summary_count":         len(allSummaries),
 		}
 
-		finalReport, err := assistant.AskAssistantSync(ctx, doc.GetOwnerID(), processor.config.FinalReviewAssistant, "Final MR Review Report", finalVars)
+		finalReport, err := service.AskAssistantSync(ctx, doc.GetOwnerID(), processor.config.FinalReviewAssistant, "Final MR Review Report", finalVars)
 		if err != nil {
 			log.Errorf("Final report generation error: %v", err)
 			return err

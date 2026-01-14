@@ -2,22 +2,22 @@
  * Web: https://infinilabs.com
  * Email: hello#infini.ltd */
 
-package assistant
+package service
 
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"runtime"
 	"strings"
 	"time"
 
 	"infini.sh/coco/core"
+	common2 "infini.sh/coco/modules/assistant/common"
+	"infini.sh/coco/modules/assistant/deep_research"
 	"infini.sh/coco/modules/document"
 	"infini.sh/framework/core/kv"
 	"infini.sh/framework/core/security"
 
-	"infini.sh/coco/modules/assistant/rag"
 	"infini.sh/coco/modules/datasource"
 	"infini.sh/coco/modules/llm"
 
@@ -37,176 +37,6 @@ import (
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
 )
-
-// Helper types and methods
-type RAGContext struct {
-	SearchDB     bool
-	DeepThink    bool
-	MCP          bool
-	From         int
-	Size         int
-	mcpServers   []string
-	datasource   string
-	category     string
-	tags         string
-	subcategory  string
-	richCategory string
-	//field        string
-	source        string
-	integrationID string
-
-	SessionID string
-
-	//prepare for final response
-	sourceDocsSummaryBlock string
-
-	//history
-	chatHistory *memory.ChatMessageHistory
-
-	QueryIntent  *rag.QueryIntent
-	pickedDocIDS []string
-
-	intentModel     *core.ModelConfig
-	pickingDocModel *core.ModelConfig
-	//answeringModel      *common.ModelConfig
-	intentModelProvider *core.ModelProvider
-	pickingDocProvider  *core.ModelProvider
-	answeringProvider   *core.ModelProvider
-
-	AssistantCfg *core.Assistant
-
-	//user input values
-	InputValues map[string]any
-}
-
-func (r RAGContext) MustGetAnsweringModel() *core.ModelConfig {
-	if r.AssistantCfg == nil {
-		panic("invalid AssistantCfg")
-	}
-
-	//for background job only, no performance issue need to care right now
-	for _, v := range r.answeringProvider.Models {
-		if v.Name == r.AssistantCfg.AnsweringModel.Name {
-			r.AssistantCfg.AnsweringModel.Settings.Reasoning = v.Settings.Reasoning
-		}
-	}
-
-	return &r.AssistantCfg.AnsweringModel
-}
-
-func (r RAGContext) GetAnsweringProvider() *core.ModelProvider {
-
-	if r.answeringProvider != nil {
-		return r.answeringProvider
-	}
-
-	if r.AssistantCfg == nil {
-		panic("invalid AssistantCfg")
-	}
-
-	modelProvider, err := common.GetModelProvider(r.AssistantCfg.AnsweringModel.ProviderID)
-	if err != nil {
-		panic(fmt.Errorf("failed to get model provider: %w", err))
-	}
-
-	if modelProvider == nil {
-		panic("invalid modelProvider")
-	}
-
-	r.answeringProvider = modelProvider
-
-	return modelProvider
-}
-
-const DefaultAssistantID = "default"
-
-func (h APIHandler) getRAGContext(req *http.Request, assistant *core.Assistant) (*RAGContext, error) {
-
-	params := &RAGContext{
-		SearchDB:     h.GetBoolOrDefault(req, "search", false),
-		DeepThink:    h.GetBoolOrDefault(req, "deep_thinking", false),
-		MCP:          h.GetBoolOrDefault(req, "mcp", false),
-		From:         h.GetIntOrDefault(req, "from", 0),
-		Size:         h.GetIntOrDefault(req, "size", 10),
-		datasource:   h.GetParameterOrDefault(req, "datasource", ""),
-		category:     h.GetParameterOrDefault(req, "category", ""),
-		tags:         h.GetParameterOrDefault(req, "tags", ""),
-		subcategory:  h.GetParameterOrDefault(req, "subcategory", ""),
-		richCategory: h.GetParameterOrDefault(req, "rich_category", ""),
-		source:       h.GetParameterOrDefault(req, "source_fields", "*"),
-	}
-
-	if v := h.GetParameterOrDefault(req, "mcp_servers", ""); v != "" {
-		params.mcpServers = strings.Split(v, ",")
-	}
-
-	params.integrationID = h.GetHeader(req, core.HeaderIntegrationID, "")
-	params.AssistantCfg = assistant
-
-	if assistant.Datasource.Enabled && len(params.datasource) > 0 && len(assistant.Datasource.GetIDs()) > 0 {
-		if params.datasource == "" {
-			params.datasource = strings.Join(assistant.Datasource.GetIDs(), ",")
-		} else {
-			// calc intersection with datasource and assistant datasourceIDs
-			queryDatasource := strings.Split(params.datasource, ",")
-			queryDatasource = util.StringArrayIntersection(queryDatasource, assistant.Datasource.GetIDs())
-			params.datasource = strings.Join(queryDatasource, ",")
-		}
-	}
-
-	log.Trace(assistant.MCPConfig.Enabled, assistant.MCPConfig.GetIDs(), ",", params.mcpServers)
-
-	if params.MCP && assistant.MCPConfig.Enabled && len(params.mcpServers) > 0 && len(assistant.MCPConfig.GetIDs()) > 0 {
-		if len(params.mcpServers) == 0 {
-			params.mcpServers = assistant.MCPConfig.GetIDs()
-		} else {
-			// calc intersection with datasource and assistant datasourceIDs
-			queryMcpServers := params.mcpServers
-			queryMcpServers = util.StringArrayIntersection(queryMcpServers, assistant.MCPConfig.GetIDs())
-			params.mcpServers = queryMcpServers
-		}
-	} else {
-		params.mcpServers = make([]string, 0)
-	}
-
-	if params.DeepThink {
-		if assistant.Type == common.AssistantTypeDeepThink {
-			deepThinkCfg := core.DeepThinkConfig{}
-			buf := util.MustToJSONBytes(assistant.Config)
-			util.MustFromJSONBytes(buf, &deepThinkCfg)
-
-			// set intent analysis model params
-			params.pickingDocModel = &deepThinkCfg.PickingDocModel
-			modelProvider, err := common.GetModelProvider(deepThinkCfg.PickingDocModel.ProviderID)
-			if err != nil {
-				return nil, fmt.Errorf("failed to get picking doc model provider: %w", err)
-			}
-			params.pickingDocProvider = modelProvider
-
-			// set picking doc model params
-			params.intentModel = &deepThinkCfg.IntentAnalysisModel
-			modelProvider, err = common.GetModelProvider(deepThinkCfg.IntentAnalysisModel.ProviderID)
-			if err != nil {
-				return nil, fmt.Errorf("failed to get intent model provider: %w", err)
-			}
-			params.intentModelProvider = modelProvider
-		} else {
-			// reset DeepThink to false if assistant is not deep think type
-			params.DeepThink = false
-		}
-	}
-	if assistant.AnsweringModel.ProviderID == "" {
-		return nil, fmt.Errorf("assistant [%s] has no answering model configured. Please set it up first", assistant.Name)
-	}
-	modelProvider, err := common.GetModelProvider(assistant.AnsweringModel.ProviderID)
-	if err != nil {
-		return params, fmt.Errorf("failed to get model provider: %w", err)
-	}
-	//params.answeringModel = &assistant.AnsweringModel
-	params.answeringProvider = modelProvider
-
-	return params, nil
-}
 
 func createAssistantMessage(sessionID, assistantID, requestMessageID string) *core.ChatMessage {
 	msg := &core.ChatMessage{
@@ -233,7 +63,7 @@ func finalizeProcessing(ctx *orm.Context, sessionID string, msg *core.ChatMessag
 	))
 }
 
-func processMessageAsync(ctx *orm.Context, userID string, reqMsg *core.ChatMessage, params *RAGContext, sender core.MessageSender) error {
+func ProcessMessageAsync(ctx *orm.Context, userID string, reqMsg *core.ChatMessage, params *common2.RAGContext, sender core.MessageSender) error {
 	log.Debugf("Starting async processing for session: %v", params.SessionID)
 
 	replyMsg := createAssistantMessage(params.SessionID, reqMsg.AssistantID, reqMsg.ID)
@@ -263,8 +93,8 @@ func processMessageAsync(ctx *orm.Context, userID string, reqMsg *core.ChatMessa
 		}
 		finalizeProcessing(ctx, params.SessionID, replyMsg, sender)
 		// clear the inflight message task
-		taskID := getReplyMessageTaskID(params.SessionID, reqMsg.ID)
-		inflightMessages.Delete(taskID)
+		taskID := GetReplyMessageTaskID(params.SessionID, reqMsg.ID)
+		InflightMessages.Delete(taskID)
 	}()
 
 	reqMsg.Details = make([]core.ProcessingDetails, 0)
@@ -284,93 +114,191 @@ func processMessageAsync(ctx *orm.Context, userID string, reqMsg *core.ChatMessa
 		params.InputValues["history"] = "</empty>"
 	}
 
-	if params.DeepThink && params.intentModel != nil {
-
-		//tool_list
-		//network_sources
-
-		if params.AssistantCfg.DeepThinkConfig == nil {
-			panic("invalid deep think config")
-		}
-
-		if params.AssistantCfg.DeepThinkConfig.PickDatasource {
-			var datasourceStr = strings.Builder{}
-			if len(params.AssistantCfg.Datasource.GetIDs()) > 0 {
-				ds, err := datasource.GetDatasourceByID(params.AssistantCfg.Datasource.GetIDs())
-				if err == nil && ds != nil {
-					for _, v := range ds {
-						datasourceStr.WriteString(fmt.Sprintf("ID: %v, Name: %v, Description: %v \n", v.ID, v.Name, v.Description))
-					}
-				}
-			}
-			params.InputValues["network_sources"] = datasourceStr.String()
-		}
-
-		if params.AssistantCfg.DeepThinkConfig.PickTools {
-			var mcpServers = strings.Builder{}
-			if len(params.AssistantCfg.MCPConfig.GetIDs()) > 0 {
-				ds, err := llm.GetMCPServersByID(params.AssistantCfg.MCPConfig.GetIDs())
-				if err == nil && ds != nil {
-					for _, v := range ds {
-						mcpServers.WriteString(fmt.Sprintf("Name: %v, Desc: %v \n", v.Name, v.Description))
-					}
-				}
+	var err error
+	switch params.AssistantCfg.Type {
+	case core.AssistantTypeDeepThink:
+		return RunDeepThinkTask(
+			ctx,
+			userID,
+			params,
+			params.AssistantCfg,
+			reqMsg,
+			replyMsg,
+			sender,
+		)
+	case core.AssistantTypeDeepResearch:
+		log.Info("start running deep research")
+		err = deep_research.RunDeepResearch(reqMsg.Message, params.AssistantCfg)
+		log.Info("end running deep research")
+		break
+	default:
+		//simple mode
+		var toolsMayHavePromisedResult = false
+		if params.MCP && ((params.AssistantCfg.MCPConfig.Enabled && len(params.MCPServers) > 0) || params.AssistantCfg.ToolsConfig.Enabled) {
+			//process LLM tools / functions
+			answer, err := processLLMTools(ctx, reqMsg, replyMsg, params, params.InputValues, sender)
+			if err != nil {
+				log.Error(answer, err)
 			}
 
-			params.InputValues["tool_list"] = mcpServers.String()
+			if answer != "" {
+				if params.AssistantCfg.DeepThinkConfig != nil && params.AssistantCfg.DeepThinkConfig.ToolsPromisedResultSize > 0 && len(answer) > params.AssistantCfg.DeepThinkConfig.ToolsPromisedResultSize {
+					toolsMayHavePromisedResult = true
+				}
+				params.InputValues["tools_output"] = answer
+			}
 		}
 
-		queryIntent, err := rag.ProcessQueryIntent(ctx, params.SessionID, params.intentModelProvider, params.intentModel, reqMsg, replyMsg, params.AssistantCfg, params.InputValues, sender)
-		if err != nil {
-			log.Error("error on processing query intent analysis: ", err)
+		if params.SearchDB && !toolsMayHavePromisedResult && params.AssistantCfg.Datasource.Enabled && len(params.AssistantCfg.Datasource.GetIDs()) > 0 {
+			var fetchSize = 10
+			//if params.DeepThink {
+			//	fetchSize = 50
+			//}
+			docs, _ := processInitialDocumentSearch(ctx, userID, reqMsg, replyMsg, params, fetchSize, sender)
+			params.InputValues["references"] = docs
+
+			//if params.DeepThink && len(docs) > 10 {
+			//	//re-pick top docs
+			//	docs, _ = processPickDocuments(ctx, reqMsg, replyMsg, params, docs, sender)
+			//	_ = fetchDocumentInDepth(ctx, reqMsg, replyMsg, params, docs, params.InputValues, sender)
+			//}
 		}
-		// Store the query intent in the processing parameters
-		params.QueryIntent = queryIntent
+
+		err = generateFinalResponse(ctx, reqMsg, replyMsg, params, params.InputValues, sender)
+		log.Info("async reply task done for query:", reqMsg.Message)
+		break
+	}
+	return err
+}
+
+func RunDeepThinkTask(ctx *orm.Context, userID string, params *common2.RAGContext, cfg *core.Assistant, reqMsg, replyMsg *core.ChatMessage, sender core.MessageSender) error {
+
+	////if cfg.Type == core.AssistantTypeDeepThink {
+	//deepThinkCfg := core.DeepThinkConfig{}
+	//buf := util.MustToJSONBytes(cfg.Config)
+	//util.MustFromJSONBytes(buf, &deepThinkCfg)
+	//
+	if cfg.DeepThinkConfig == nil {
+		panic("invalid deep think config")
+	}
+	// set intent analysis model params
+	//params.pickingDocModel = &deepThinkCfg.PickingDocModel
+	//modelProvider, err := common.GetModelProvider(deepThinkCfg.PickingDocModel.ProviderID)
+	//if err != nil {
+	//	panic(err)
+	//	//return nil, fmt.Errorf("failed to get picking doc model provider: %w", err)
+	//}
+	//params.pickingDocProvider = modelProvider
+
+	// set picking doc model params
+	//params.intentModel = &deepThinkCfg.IntentAnalysisModel
+	//modelProvider, err = common.GetModelProvider(deepThinkCfg.IntentAnalysisModel.ProviderID)
+	//if err != nil {
+	//	return nil, fmt.Errorf("failed to get intent model provider: %w", err)
+	//}
+	//params.intentModelProvider = modelProvider
+	//} else {
+	//	// reset DeepThink to false if assistant is not deep think type
+	//	params.DeepThink = false
+	//}
+
+	//if params.intentModel != nil {
+
+	//tool_list
+	//network_sources
+
+	if cfg.DeepThinkConfig.PickDatasource {
+		var datasourceStr = strings.Builder{}
+		if len(params.AssistantCfg.Datasource.GetIDs()) > 0 {
+			ds, err := datasource.GetDatasourceByID(params.AssistantCfg.Datasource.GetIDs())
+			if err == nil && ds != nil {
+				for _, v := range ds {
+					datasourceStr.WriteString(fmt.Sprintf("ID: %v, Name: %v, Description: %v \n", v.ID, v.Name, v.Description))
+				}
+			}
+		}
+		params.InputValues["network_sources"] = datasourceStr.String()
 	}
 
-	var toolsMayHavePromisedResult = false
-	if params.MCP && ((params.AssistantCfg.MCPConfig.Enabled && len(params.mcpServers) > 0) || params.AssistantCfg.ToolsConfig.Enabled) {
-		//process LLM tools / functions
-		answer, err := processLLMTools(ctx, reqMsg, replyMsg, params, params.InputValues, sender)
-		if err != nil {
-			log.Error(answer, err)
+	if cfg.DeepThinkConfig.PickTools {
+		var mcpServers = strings.Builder{}
+		if len(params.AssistantCfg.MCPConfig.GetIDs()) > 0 {
+			ds, err := llm.GetMCPServersByID(params.AssistantCfg.MCPConfig.GetIDs())
+			if err == nil && ds != nil {
+				for _, v := range ds {
+					mcpServers.WriteString(fmt.Sprintf("Name: %v, Desc: %v \n", v.Name, v.Description))
+				}
+			}
 		}
 
-		if answer != "" {
-			if params.AssistantCfg.DeepThinkConfig != nil && params.AssistantCfg.DeepThinkConfig.ToolsPromisedResultSize > 0 && len(answer) > params.AssistantCfg.DeepThinkConfig.ToolsPromisedResultSize {
-				toolsMayHavePromisedResult = true
+		params.InputValues["tool_list"] = mcpServers.String()
+	}
+
+	queryIntent, err := langchain.ProcessQueryIntent(ctx, params.SessionID, &cfg.DeepThinkConfig.IntentAnalysisModel, reqMsg, replyMsg, params.AssistantCfg, params.InputValues, sender)
+	if err != nil {
+		log.Error("error on processing query intent analysis: ", err)
+		return err
+	}
+	// Store the query intent in the processing parameters
+	//params.QueryIntent = queryIntent
+	//}
+
+	params.InputValues["intent"] = util.MustToJSON(params.QueryIntent)
+
+	var toolsMayHavePromisedResult = false
+	if params.MCP && ((params.AssistantCfg.MCPConfig.Enabled && len(params.MCPServers) > 0) || params.AssistantCfg.ToolsConfig.Enabled) {
+		if !(cfg.DeepThinkConfig.PickTools && !queryIntent.NeedCallTools) {
+			//call tools
+			//process LLM tools / functions
+			answer, err := processLLMTools(ctx, reqMsg, replyMsg, params, params.InputValues, sender)
+			if err != nil {
+				log.Error(answer, err)
+				return err
 			}
-			params.InputValues["tools_output"] = answer
+
+			if answer != "" {
+				if params.AssistantCfg.DeepThinkConfig != nil && params.AssistantCfg.DeepThinkConfig.ToolsPromisedResultSize > 0 && len(answer) > params.AssistantCfg.DeepThinkConfig.ToolsPromisedResultSize {
+					toolsMayHavePromisedResult = true
+				}
+				params.InputValues["tools_output"] = answer
+			}
+		} else {
+			log.Info("intent analyzer decided to skip call LLM tools")
 		}
+	} else {
+		log.Info("LLM tools not enabled, skip call LLM tools")
 	}
 
 	if params.SearchDB && !toolsMayHavePromisedResult && params.AssistantCfg.Datasource.Enabled && len(params.AssistantCfg.Datasource.GetIDs()) > 0 {
-		var fetchSize = 10
-		if params.DeepThink {
-			fetchSize = 50
-		}
-		docs, _ := processInitialDocumentSearch(ctx, userID, reqMsg, replyMsg, params, fetchSize, sender)
-		params.InputValues["references"] = docs
 
-		if params.DeepThink && len(docs) > 10 {
-			//re-pick top docs
-			docs, _ = processPickDocuments(ctx, reqMsg, replyMsg, params, docs, sender)
-			_ = fetchDocumentInDepth(ctx, reqMsg, replyMsg, params, docs, params.InputValues, sender)
+		if !(cfg.DeepThinkConfig.PickDatasource && !queryIntent.NeedNetworkSearch) {
+			var fetchSize = 50
+			//if params.DeepThink {
+			//	fetchSize = 50
+			//}
+			docs, _ := processInitialDocumentSearch(ctx, userID, reqMsg, replyMsg, params, fetchSize, sender)
+			params.InputValues["references"] = docs
+
+			if len(docs) > 10 {
+				//re-pick top docs
+				docs, _ = processPickDocuments(ctx, reqMsg, replyMsg, params, docs, sender)
+				_ = fetchDocumentInDepth(ctx, reqMsg, replyMsg, params, docs, params.InputValues, sender)
+			}
 		}
 	}
 
-	err := generateFinalResponse(ctx, reqMsg, replyMsg, params, params.InputValues, sender)
+	err = generateFinalResponse(ctx, reqMsg, replyMsg, params, params.InputValues, sender)
 	log.Info("async reply task done for query:", reqMsg.Message)
 	return err
 }
 
-func fetchSessionHistory(ctx context.Context, reqMsg, replyMsg *core.ChatMessage, params *RAGContext, size int, inputValues map[string]any) (string, error) {
+func fetchSessionHistory(ctx context.Context, reqMsg, replyMsg *core.ChatMessage, params *common2.RAGContext, size int, inputValues map[string]any) (string, error) {
 	var historyStr = strings.Builder{}
 
 	chatHistory := memory.NewChatMessageHistory(memory.WithPreviousMessages([]llms.ChatMessage{}))
 
 	//get chat history
-	history, err := getChatHistoryBySessionInternal(params.SessionID, size)
+	history, err := GetChatHistoryBySessionInternal(params.SessionID, size)
 	if err != nil {
 		return "", err
 	}
@@ -410,23 +338,23 @@ func fetchSessionHistory(ctx context.Context, reqMsg, replyMsg *core.ChatMessage
 	}
 	historyStr.WriteString("</conversation>")
 
-	params.chatHistory = chatHistory
+	params.ChatHistory = chatHistory
 
 	return historyStr.String(), nil
 }
 
-func processLLMTools(ctx context.Context, reqMsg *core.ChatMessage, replyMsg *core.ChatMessage, params *RAGContext, inputValues map[string]any, sender core.MessageSender) (string, error) {
+func processLLMTools(ctx context.Context, reqMsg *core.ChatMessage, replyMsg *core.ChatMessage, params *common2.RAGContext, inputValues map[string]any, sender core.MessageSender) (string, error) {
 	if params == nil || params.AssistantCfg == nil {
 		//return nil
 		panic("invalid assistant config, skip")
 	}
 
-	if params.intentModel != nil && (params.AssistantCfg.DeepThinkConfig != nil && params.AssistantCfg.DeepThinkConfig.PickTools) {
-		if !params.QueryIntent.NeedCallTools {
-			log.Info("intent analyzer decided to skip call LLM tools")
-			return "", nil
-		}
-	}
+	//if params.intentModel != nil && (params.AssistantCfg.DeepThinkConfig != nil && params.AssistantCfg.DeepThinkConfig.PickTools) {
+	//	if !params.QueryIntent.NeedCallTools {
+	//		log.Info("intent analyzer decided to skip call LLM tools")
+	//		return "", nil
+	//	}
+	//}
 
 	//get llm for mcp, use answering model if not mcp specified model
 	providerID := params.MustGetAnsweringModel().ProviderID
@@ -440,12 +368,20 @@ func processLLMTools(ctx context.Context, reqMsg *core.ChatMessage, replyMsg *co
 		}
 	}
 
-	modelProvider, err := common.GetModelProvider(providerID)
+	//modelProvider, err := common.GetModelProvider(providerID)
+	//if err != nil {
+	//	return "", err
+	//}
+	//llm := langchain.GetLLM(modelProvider.BaseURL, modelProvider.APIType, modelName, modelProvider.APIKey, params.AssistantCfg.Keepalive)
+
+	//get model config
+	//get model
+
+	llm, err := langchain.SimplyGetLLM(providerID, modelName, "")
 	if err != nil {
-		return "", err
+		panic(err)
 	}
 
-	llm := langchain.GetLLM(modelProvider.BaseURL, modelProvider.APIType, modelName, modelProvider.APIKey, params.AssistantCfg.Keepalive)
 	agentTools := []langchaingoTools.Tool{}
 
 	if params.AssistantCfg.ToolsConfig.Enabled {
@@ -482,9 +418,9 @@ func processLLMTools(ctx context.Context, reqMsg *core.ChatMessage, replyMsg *co
 		}
 	}()
 
-	log.Debug("found total ", len(params.mcpServers), " mcp servers")
+	log.Debug("found total ", len(params.MCPServers), " mcp servers")
 
-	for _, id := range params.mcpServers {
+	for _, id := range params.MCPServers {
 		v, err := common.GetMPCServer(id)
 		if err != nil || v == nil {
 			log.Errorf("Failed to get MPC Server [%s]: %v", id, err)
@@ -621,8 +557,8 @@ func processLLMTools(ctx context.Context, reqMsg *core.ChatMessage, replyMsg *co
 	}
 
 	buffer := memory.NewConversationBuffer()
-	if params.chatHistory != nil {
-		buffer.ChatHistory = params.chatHistory
+	if params.ChatHistory != nil {
+		buffer.ChatHistory = params.ChatHistory
 	}
 
 	answerBuffer := strings.Builder{}
@@ -661,14 +597,14 @@ func processLLMTools(ctx context.Context, reqMsg *core.ChatMessage, replyMsg *co
 	return answer, nil
 }
 
-func processInitialDocumentSearch(ctx *orm.Context, userID string, reqMsg, replyMsg *core.ChatMessage, params *RAGContext, fechSize int, sender core.MessageSender) ([]core.Document, error) {
+func processInitialDocumentSearch(ctx *orm.Context, userID string, reqMsg, replyMsg *core.ChatMessage, params *common2.RAGContext, fechSize int, sender core.MessageSender) ([]core.Document, error) {
 
-	if params.intentModel != nil && (params.AssistantCfg.DeepThinkConfig != nil && params.AssistantCfg.DeepThinkConfig.PickDatasource) && params.QueryIntent != nil {
-		if !params.QueryIntent.NeedNetworkSearch {
-			log.Info("intent analyzer decided to skip fetch datasource")
-			return []core.Document{}, nil
-		}
-	}
+	//if params.intentModel != nil && (params.AssistantCfg.DeepThinkConfig != nil && params.AssistantCfg.DeepThinkConfig.PickDatasource) && params.QueryIntent != nil {
+	//	if !params.QueryIntent.NeedNetworkSearch {
+	//		log.Info("intent analyzer decided to skip fetch datasource")
+	//		return []core.Document{}, nil
+	//	}
+	//}
 
 	builder := orm.NewQuery()
 	builder.Size(fechSize)
@@ -691,7 +627,7 @@ func processInitialDocumentSearch(ctx *orm.Context, userID string, reqMsg, reply
 	teamsID = GetTeamsIDByUserID(ctx, userID)
 
 	docs := []core.Document{}
-	_, err := document.QueryDocuments(ctx.Context, userID, teamsID, builder, reqMsg.Message, params.datasource, params.integrationID, params.category, params.subcategory, params.richCategory, &docs)
+	_, err := document.QueryDocuments(ctx.Context, userID, teamsID, builder, reqMsg.Message, params.Datasource, params.IntegrationID, params.Category, params.Subcategory, params.RichCategory, &docs)
 	if err != nil {
 		log.Error(err)
 		return nil, err
@@ -728,7 +664,7 @@ func processInitialDocumentSearch(ctx *orm.Context, userID string, reqMsg, reply
 		sb.WriteString(fmt.Sprintf("<Payload total=%v>\n", len(docs)))
 		sb.WriteString(util.MustToJSON(fetchedDocs))
 		sb.WriteString("</Payload>")
-		params.sourceDocsSummaryBlock = sb.String()
+		params.SourceDocsSummaryBlock = sb.String()
 	}
 	replyMsg.Details = append(replyMsg.Details, core.ProcessingDetails{Order: 20, Type: common.FetchSource, Payload: fetchedDocs})
 	return docs, err
@@ -767,7 +703,7 @@ func GetTeamsIDByUserID(ctx *orm.Context, userID string) []string {
 	return []string{}
 }
 
-func processPickDocuments(ctx context.Context, reqMsg, replyMsg *core.ChatMessage, params *RAGContext, docs []core.Document, sender core.MessageSender) ([]core.Document, error) {
+func processPickDocuments(ctx context.Context, reqMsg, replyMsg *core.ChatMessage, params *common2.RAGContext, docs []core.Document, sender core.MessageSender) ([]core.Document, error) {
 
 	if len(docs) == 0 {
 		return nil, nil
@@ -777,16 +713,16 @@ func processPickDocuments(ctx context.Context, reqMsg, replyMsg *core.ChatMessag
 	_ = sender.SendMessage(echoMsg)
 
 	promptTemplate := common.PickingDocPromptTemplate
-	if params.pickingDocModel != nil && params.pickingDocModel.PromptConfig != nil && params.pickingDocModel.PromptConfig.PromptTemplate != "" {
-		promptTemplate = params.pickingDocModel.PromptConfig.PromptTemplate
+	if params.AssistantCfg.DeepThinkConfig.PickingDocModel.PromptConfig.PromptTemplate != "" {
+		promptTemplate = params.AssistantCfg.DeepThinkConfig.PickingDocModel.PromptConfig.PromptTemplate
 	}
 	// Create the prompt template
 	inputValues := map[string]any{
 		"query":  reqMsg.Message,
 		"intent": util.MustToJSON(params.QueryIntent),
-		"docs":   params.sourceDocsSummaryBlock,
+		"docs":   params.SourceDocsSummaryBlock,
 	}
-	finalPrompt, err := rag.GetPromptStringByTemplateArgs(params.pickingDocModel, promptTemplate, []string{"query", "intent", "summary"}, inputValues)
+	finalPrompt, err := langchain.GetPromptStringByTemplateArgs(&params.AssistantCfg.DeepThinkConfig.PickingDocModel, promptTemplate, []string{"query", "intent", "summary"}, inputValues)
 	if err != nil {
 		panic(err)
 	}
@@ -800,11 +736,19 @@ func processPickDocuments(ctx context.Context, reqMsg, replyMsg *core.ChatMessag
 	log.Debug("start filtering documents")
 	var pickedDocsBuffer = strings.Builder{}
 	var chunkSeq = 0
-	llm := langchain.GetLLM(params.pickingDocProvider.BaseURL, params.pickingDocProvider.APIType, params.pickingDocModel.Name, params.pickingDocProvider.APIKey, params.AssistantCfg.Keepalive)
+	//llm := langchain.GetLLM(params.pickingDocProvider.BaseURL, params.pickingDocProvider.APIType, params.pickingDocModel.Name, params.pickingDocProvider.APIKey, params.AssistantCfg.Keepalive)
+
+	llm, err := langchain.SimplyGetLLM(params.AssistantCfg.DeepThinkConfig.PickingDocModel.ProviderID, params.AssistantCfg.DeepThinkConfig.PickingDocModel.Name, "")
+	if err != nil {
+		panic(err)
+	}
+
+	//options:=langchain.GetLLOptions(&params.AssistantCfg.DeepThinkConfig.PickingDocModel)
+
 	log.Trace(content)
 	if _, err := llm.GenerateContent(ctx, content,
-		llms.WithMaxLength(langchain.GetMaxLength(params.pickingDocModel, params.pickingDocProvider, 32768)),
-		llms.WithMaxTokens(langchain.GetMaxTokens(params.pickingDocModel, params.pickingDocProvider, 32768)),
+		llms.WithMaxLength(util.GetIntOrDefault(params.AssistantCfg.DeepThinkConfig.PickingDocModel.Settings.MaxLength, 32768)),
+		llms.WithMaxTokens(util.GetIntOrDefault(params.AssistantCfg.DeepThinkConfig.PickingDocModel.Settings.MaxTokens, 32768)),
 		llms.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
 			if len(chunk) > 0 {
 				chunkSeq++
@@ -822,7 +766,7 @@ func processPickDocuments(ctx context.Context, reqMsg, replyMsg *core.ChatMessag
 
 	log.Debug(pickedDocsBuffer.String())
 
-	pickeDocs, err := rag.PickedDocumentFromString(pickedDocsBuffer.String())
+	pickeDocs, err := langchain.PickedDocumentFromString(pickedDocsBuffer.String())
 	if err != nil {
 		return nil, err
 	}
@@ -836,7 +780,7 @@ func processPickDocuments(ctx context.Context, reqMsg, replyMsg *core.ChatMessag
 
 	var pickedDocIDS []string
 	var pickedFullDoc = []core.Document{}
-	var validPickedDocs = []rag.PickedDocument{}
+	var validPickedDocs = []langchain.PickedDocument{}
 	for _, v := range pickeDocs {
 		x, v1 := docsMap[v.ID]
 		if v1 {
@@ -854,7 +798,7 @@ func processPickDocuments(ctx context.Context, reqMsg, replyMsg *core.ChatMessag
 		replyMsg.Details = append(replyMsg.Details, detail)
 	}
 
-	params.pickedDocIDS = pickedDocIDS
+	params.PickedDocIDS = pickedDocIDS
 
 	log.Debug("valid picked document results:", validPickedDocs)
 
@@ -863,10 +807,10 @@ func processPickDocuments(ctx context.Context, reqMsg, replyMsg *core.ChatMessag
 	return docs, err
 }
 
-func fetchDocumentInDepth(ctx *orm.Context, reqMsg, replyMsg *core.ChatMessage, params *RAGContext, docs []core.Document, inputValues map[string]any, sender core.MessageSender) error {
-	if len(params.pickedDocIDS) > 0 {
+func fetchDocumentInDepth(ctx *orm.Context, reqMsg, replyMsg *core.ChatMessage, params *common2.RAGContext, docs []core.Document, inputValues map[string]any, sender core.MessageSender) error {
+	if len(params.PickedDocIDS) > 0 {
 		var query = orm.Query{}
-		query.Conds = orm.And(orm.InStringArray("_id", params.pickedDocIDS))
+		query.Conds = orm.And(orm.InStringArray("_id", params.PickedDocIDS))
 
 		pickedFullDoc, err := fetchDocuments(&query)
 
@@ -890,7 +834,7 @@ func fetchDocumentInDepth(ctx *orm.Context, reqMsg, replyMsg *core.ChatMessage, 
 	return nil
 }
 
-func generateFinalResponse(taskCtx context.Context, reqMsg, replyMsg *core.ChatMessage, params *RAGContext, inputValues map[string]any, sender core.MessageSender) error {
+func generateFinalResponse(taskCtx context.Context, reqMsg, replyMsg *core.ChatMessage, params *common2.RAGContext, inputValues map[string]any, sender core.MessageSender) error {
 
 	echoMsg := core.NewMessageChunk(params.SessionID, replyMsg.ID, core.MessageTypeAssistant, reqMsg.ID, common.Response, string(""), 0)
 	_ = sender.SendMessage(echoMsg)
@@ -921,20 +865,15 @@ func generateFinalResponse(taskCtx context.Context, reqMsg, replyMsg *core.ChatM
 	chunkSeq := 0
 	var err error
 
-	provider := params.GetAnsweringProvider()
-	//log.Error(util.ToJson(provider, true))
-	//log.Error(util.ToJson(params.AssistantCfg, true))
-	//llm := langchain.GetLLM(params.answeringProvider.BaseURL, params.answeringProvider.APIType, params.answeringModel.Name, params.answeringProvider.APIKey, params.AssistantCfg.Keepalive) //deepseek-r1 /deepseek-v3
-
-	llm := langchain.GetLLM(provider.BaseURL, provider.APIType, params.MustGetAnsweringModel().Name, provider.APIKey, params.AssistantCfg.Keepalive) //deepseek-r1 /deepseek-v3
-	appConfig := common.AppConfig()
-
-	log.Trace(params.MustGetAnsweringModel(), ",", util.MustToJSON(appConfig))
+	llm, err := langchain.SimplyGetLLM(params.AssistantCfg.AnsweringModel.ProviderID, params.AssistantCfg.AnsweringModel.Name, "")
+	if err != nil {
+		panic(err)
+	}
 
 	options := []llms.CallOption{}
-	maxTokens := langchain.GetMaxTokens(params.MustGetAnsweringModel(), params.GetAnsweringProvider(), 1024)
-	temperature := langchain.GetTemperature(params.MustGetAnsweringModel(), params.GetAnsweringProvider(), 0.8)
-	maxLength := langchain.GetMaxLength(params.MustGetAnsweringModel(), params.GetAnsweringProvider(), 0)
+	maxTokens := langchain.GetMaxTokens(params.MustGetAnsweringModel(), 1024)
+	temperature := langchain.GetTemperature(params.MustGetAnsweringModel(), 0.8)
+	maxLength := langchain.GetMaxLength(params.MustGetAnsweringModel(), 0)
 	options = append(options, llms.WithMaxTokens(maxTokens))
 	options = append(options, llms.WithMaxLength(maxLength))
 	options = append(options, llms.WithTemperature(temperature))
@@ -1026,7 +965,7 @@ func generateFinalResponse(taskCtx context.Context, reqMsg, replyMsg *core.ChatM
 	}
 
 	// Create the prompt template
-	finalPrompt, err := rag.GetPromptStringByTemplateArgs(params.MustGetAnsweringModel(), template, []string{"query", "context"}, inputValues)
+	finalPrompt, err := langchain.GetPromptStringByTemplateArgs(params.MustGetAnsweringModel(), template, []string{"query", "context"}, inputValues)
 	if err != nil {
 		panic(err)
 	}
