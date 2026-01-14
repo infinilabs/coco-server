@@ -87,6 +87,8 @@ func (h *APIHandler) getDoc(w http.ResponseWriter, req *http.Request, ps httprou
 }
 
 func (h *APIHandler) getDocRawContent(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	fmt.Printf("DBG: get raw content")
+
 	id := ps.MustGetParameter("doc_id")
 
 	obj := core.Document{}
@@ -95,7 +97,12 @@ func (h *APIHandler) getDocRawContent(w http.ResponseWriter, req *http.Request, 
 	ctx.Set(orm.SharingEnabled, true)
 	ctx.Set(orm.SharingResourceType, "document")
 	exists, err := orm.GetV2(ctx, &obj)
-	if !exists || err != nil {
+	if err != nil {
+		h.WriteError(w, fmt.Sprintf("failed to acquire the document: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	if !exists {
 		h.WriteJSON(w, util.MapStr{
 			"_id":   id,
 			"found": false,
@@ -172,7 +179,10 @@ func (h *APIHandler) getDocRawContent(w http.ResponseWriter, req *http.Request, 
 			if err != nil {
 				// Check if it's a 404
 				if minio.ToErrorResponse(err).Code == "NoSuchKey" {
-					h.WriteError(w, "file not found", http.StatusNotFound)
+					h.WriteJSON(w, util.MapStr{
+						"_id":   id,
+						"found": false,
+					}, http.StatusNotFound)
 					return
 				}
 				h.WriteError(w, fmt.Sprintf("failed to stat S3 object: %v", err), http.StatusInternalServerError)
@@ -204,7 +214,10 @@ func (h *APIHandler) getDocRawContent(w http.ResponseWriter, req *http.Request, 
 			file, err := os.Open(fileLocalPath)
 			if err != nil {
 				if os.IsNotExist(err) {
-					h.WriteError(w, "file not found", http.StatusNotFound)
+					h.WriteJSON(w, util.MapStr{
+						"_id":   id,
+						"found": false,
+					}, http.StatusNotFound)
 				} else {
 					h.WriteError(w, fmt.Sprintf("failed to open file: %v", err), http.StatusInternalServerError)
 				}
