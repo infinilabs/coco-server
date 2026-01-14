@@ -86,6 +86,7 @@ const route: App.I18n.Schema['translation']['route'] = {
   user_edit: 'Edit User',
   connector_new: 'New Connector',
   connector_edit: 'Edit Connector',
+  preview: 'Document Preview'
 };
 
 export default route;

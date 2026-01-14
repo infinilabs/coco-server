@@ -16,6 +16,7 @@ export function Component() {
   const [data, setData] = useState<any>();
   const [error, setError] = useState<any>();
   const [sourceUrl, setSourceUrl] = useState<string>();
+  const { t } = useTranslation();
 
   useMount(async () => {
     try {
@@ -52,9 +53,9 @@ export function Component() {
       return (
         <div className='mt-30 flex justify-center'>
           <div className='border border-border-secondary rounded-lg bg-black/3 px-6 py-10 dark:bg-white/7'>
-            <div className='font-bold'>您将离开 Coco AI，打开文件的原始链接</div>
+            <div className='font-bold'>{t('page.preview.hints.leave')}</div>
 
-            <div className='mt-1'>Coco AI 无法保证外部链接的可用性与安全性</div>
+            <div className='mt-1'>{t('page.preview.hints.externalLinkWarning')}</div>
 
             <div className='mt-4'>
               <Typography.Text type='secondary'>{sourceUrl}</Typography.Text>
@@ -69,7 +70,7 @@ export function Component() {
                 window.open(sourceUrl);
               }}
             >
-              继续访问
+              {t('page.preview.buttons.continueVisiting')}
             </Button>
           </div>
         </div>
@@ -92,7 +93,7 @@ export function Component() {
           <Result
             status='404'
             subTitle={String(error)}
-            title='抱歉，出错了'
+            title={t('page.preview.hints.failed')}
             extra={
               <Button
                 type='primary'
@@ -100,7 +101,7 @@ export function Component() {
                   window.location.reload();
                 }}
               >
-                重新加载
+                {t('page.preview.buttons.reload')}
               </Button>
             }
           />
@@ -126,6 +127,20 @@ export function Component() {
             />
           )
         }}
+        i18n={{
+          labels: {
+            type: t('page.preview.labels.type'),
+            size: t('page.preview.labels.size'),
+            createdBy: t('page.preview.labels.createdBy'),
+            createdAt: t('page.preview.labels.createdAt'),
+            updatedAt: t('page.preview.labels.updatedAt'),
+            preview: t('page.preview.labels.preview'),
+            aiInterpretation: t('page.preview.labels.aiInterpretation')
+          },
+          buttons: {
+            openSource: t('page.preview.buttons.openSource')
+          }
+        }}
         openSourceButtonProps={{
           onClick() {
             setSourceUrl(data?.url);
@@ -150,7 +165,7 @@ export function Component() {
           />
         </div>
 
-        <span className='text-xl font-bold'>文档预览</span>
+        <span className='text-xl font-bold'>{t('page.preview.title')}</span>
       </div>
 
       <div className='mt-8 flex-1 overflow-hidden'>{renderContent()}</div>
