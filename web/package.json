@@ -53,7 +53,7 @@
     "@ant-design/pro-components": "^2.8.10",
     "@better-scroll/core": "2.5.1",
     "@iconify/react": "5.0.2",
-    "@infinilabs/doc-detail": "^0.0.4",
+    "@infinilabs/doc-detail": "^0.0.5",
     "@infinilabs/entity-ui": "^0.0.5",
     "@reduxjs/toolkit": "2.3.0",
     "@sa/axios": "workspace:*",
