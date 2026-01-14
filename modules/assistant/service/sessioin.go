@@ -18,12 +18,12 @@ import (
 
 var InflightMessages = sync.Map{}
 
-func InternalCreateAndSaveNewChatMessage(ctx *orm.Context, assistantID string, req *core.MessageRequest, visible bool) (core.Session, error, *core.ChatMessage, util.MapStr) {
+func InternalCreateAndSaveNewChatMessage(ctx context.Context, assistantID string, req *core.MessageRequest, visible bool) (core.Session, error, *core.ChatMessage, util.MapStr) {
 
-	//if !rate.GetRateLimiterPerSecond("assistant_new_chat", clientIdentity, 10).Allow() {
-	//	panic("too many requests")
-	//}
-	ctx.Refresh = orm.WaitForRefresh
+	ctx1 := orm.NewContextWithParent(ctx)
+	ctx1.DirectAccess()
+	ctx1.PermissionScope(security.PermissionScopePlatform)
+	ctx1.Refresh = orm.WaitForRefresh
 
 	obj := core.Session{
 		Status:  "active",
@@ -35,7 +35,7 @@ func InternalCreateAndSaveNewChatMessage(ctx *orm.Context, assistantID string, r
 	}
 
 	//save session
-	err := orm.Create(ctx, &obj)
+	err := orm.Create(ctx1, &obj)
 	if err != nil {
 		return core.Session{}, err, nil, nil
 	}
@@ -49,7 +49,7 @@ func InternalCreateAndSaveNewChatMessage(ctx *orm.Context, assistantID string, r
 	var firstMessage *core.ChatMessage
 	//save first message to history
 	if req != nil && !req.IsEmpty() {
-		firstMessage, err = SaveRequestMessage(ctx, obj.ID, assistantID, req)
+		firstMessage, err = SaveRequestMessage(ctx1, obj.ID, assistantID, req)
 		if err != nil {
 			return core.Session{}, err, nil, nil
 		}
@@ -123,11 +123,7 @@ func GetReplyMessageTaskID(sessionID, messageID string) string {
 // AskAssistantSync sends a message to an assistant and waits for a full response.
 // This version is fully detached from APIHandler and HTTP context.
 func AskAssistantSync(ctx context.Context, userID string, id string, message string, vars map[string]any) (string, error) {
-	ctx1 := orm.NewContextWithParent(ctx)
-	ctx1.DirectAccess()
-	ctx1.PermissionScope(security.PermissionScopePlatform)
-
-	assistant, exists, err := InternalGetAssistant(ctx1, id)
+	assistant, exists, err := InternalGetAssistant(ctx, id)
 	if !exists || err != nil {
 		return "", fmt.Errorf("assistant %s not found: %w", id, err)
 	}
@@ -140,7 +136,7 @@ func AskAssistantSync(ctx context.Context, userID string, id string, message str
 	request := core.MessageRequest{
 		Message: message,
 	}
-	session, err, reqMsg, _ := InternalCreateAndSaveNewChatMessage(ctx1, id, &request, false)
+	session, err, reqMsg, _ := InternalCreateAndSaveNewChatMessage(ctx, id, &request, false)
 	if err != nil || reqMsg == nil {
 		return "", fmt.Errorf("failed to create chat message: %w", err)
 	}
@@ -152,7 +148,7 @@ func AskAssistantSync(ctx context.Context, userID string, id string, message str
 
 	// Memory-based receiver for synchronous mode
 	receiver := &common.MemoryMessageSender{}
-	if err := ProcessMessageAsync(ctx1, userID, reqMsg, ragCtx, receiver); err != nil {
+	if err := ProcessMessageAsync(ctx, userID, reqMsg, ragCtx, receiver); err != nil {
 		return "", fmt.Errorf("process message failed: %w", err)
 	}
 

@@ -121,12 +121,12 @@ func (processor *Processor) Process(ctx *pipeline.Context) error {
 
 			if util.ContainsAnyInArray(event.ObjectAttributes.Action, processor.config.OnEvents) {
 				if processor.version.Major() < 16 {
-					err := processor.onOpenMRV12(&doc, &event)
+					err := processor.onOpenMRV12(ctx, &doc, &event)
 					if err != nil {
 						panic(err)
 					}
 				} else {
-					err := processor.onOpenMR(&doc, &event)
+					err := processor.onOpenMR(ctx, &doc, &event)
 					if err != nil {
 						panic(err)
 					}
@@ -151,7 +151,7 @@ func (processor *Processor) Process(ctx *pipeline.Context) error {
 	return nil
 }
 
-func (processor *Processor) onOpenMR(doc *core2.Document, event *core.MergeRequestEvent) error {
+func (processor *Processor) onOpenMR(ctx1 context.Context, doc *core2.Document, event *core.MergeRequestEvent) error {
 	details, _ := processor.getMRDetail(event.Project.ID, event.ObjectAttributes.IID)
 
 	var (
@@ -204,7 +204,7 @@ func (processor *Processor) onOpenMR(doc *core2.Document, event *core.MergeReque
 			}
 
 			// --- Single AI call per batch/page to produce incremental summary ---
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			ctx, cancel := context.WithTimeout(ctx1, 5*time.Minute)
 			log.Infof("Calling AI summary assistant for page %d, batch %d/%d...", pageNo-1, batchIndex+1, totalBatches)
 
 			pageSummary, err := service.AskAssistantSync(ctx, doc.GetOwnerID(), processor.config.SummaryAssistant, doc.Title, localVars)
@@ -227,7 +227,7 @@ func (processor *Processor) onOpenMR(doc *core2.Document, event *core.MergeReque
 	if len(allSummaries) > 0 {
 		log.Info("Generating final MR review report...")
 
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+		ctx, cancel := context.WithTimeout(ctx1, 10*time.Minute)
 		defer cancel()
 
 		finalVars := map[string]interface{}{
@@ -256,7 +256,7 @@ func (processor *Processor) onOpenMR(doc *core2.Document, event *core.MergeReque
 	return nil
 }
 
-func (processor *Processor) onOpenMRV12(doc *core2.Document, event *core.MergeRequestEvent) error {
+func (processor *Processor) onOpenMRV12(ctx1 context.Context, doc *core2.Document, event *core.MergeRequestEvent) error {
 	details, _ := processor.getMRDetail(event.Project.ID, event.ObjectAttributes.IID)
 
 	var (
@@ -306,7 +306,7 @@ func (processor *Processor) onOpenMRV12(doc *core2.Document, event *core.MergeRe
 		}
 
 		// --- Single AI call per batch/page to produce incremental summary ---
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		ctx, cancel := context.WithTimeout(ctx1, 5*time.Minute)
 		log.Infof("Calling AI summary assistant for page %d, batch %d/%d...", pageNo-1, batchIndex+1, totalBatches)
 
 		pageSummary, err := service.AskAssistantSync(ctx, doc.GetOwnerID(), processor.config.SummaryAssistant, doc.Title, localVars)
@@ -328,7 +328,7 @@ func (processor *Processor) onOpenMRV12(doc *core2.Document, event *core.MergeRe
 	if len(allSummaries) > 0 {
 		log.Info("Generating final MR review report...")
 
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+		ctx, cancel := context.WithTimeout(ctx1, 10*time.Minute)
 		defer cancel()
 
 		finalVars := map[string]interface{}{

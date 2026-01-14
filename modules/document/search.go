@@ -45,10 +45,8 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		reqUser := security.MustGetUserFromRequest(req)
 		integrationID := req.Header.Get(core.HeaderIntegrationID)
 
-		teamsID, _ := reqUser.GetStringArray(orm.TeamsIDKey)
-
 		result := elastic.SearchResponseWithMeta[core.Document]{}
-		resp, err := QueryDocuments(req.Context(), reqUser.MustGetUserID(), teamsID, builder, query, datasource, integrationID, category, subcategory, richCategory, nil)
+		resp, err := QueryDocuments(req.Context(), builder, query, datasource, integrationID, category, subcategory, richCategory, nil)
 		if err != nil {
 			panic(err)
 		}

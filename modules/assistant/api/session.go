@@ -295,7 +295,7 @@ func (h *APIHandler) askAssistant(w http.ResponseWriter, r *http.Request, ps htt
 		Flusher: flusher,
 		Ctx:     r.Context(), // assuming this is in an HTTP handler
 	}
-	_ = service.ProcessMessageAsync(orm.NewContextWithParent(ctx), userInfo.MustGetUserID(), reqMsg, params, streamSender)
+	_ = service.ProcessMessageAsync(ctx, userInfo.MustGetUserID(), reqMsg, params, streamSender)
 
 }
 

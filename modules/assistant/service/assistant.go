@@ -5,12 +5,12 @@
 package service
 
 import (
+	"context"
 	"net/http"
 	"time"
 
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
-
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
 )
@@ -21,7 +21,7 @@ func GetAssistant(req *http.Request, assistantID string) (*core.Assistant, bool,
 	return InternalGetAssistant(ctx, assistantID)
 }
 
-func InternalGetAssistant(ctx *orm.Context, assistantID string) (*core.Assistant, bool, error) {
+func InternalGetAssistant(ctx context.Context, assistantID string) (*core.Assistant, bool, error) {
 	item := common.GeneralObjectCache.Get(core.AssistantCachePrimary, assistantID)
 	var assistant *core.Assistant
 	if item != nil && !item.Expired() {
@@ -32,10 +32,10 @@ func InternalGetAssistant(ctx *orm.Context, assistantID string) (*core.Assistant
 	}
 	assistant = &core.Assistant{}
 	assistant.ID = assistantID
-	ctx.Set(orm.SharingEnabled, true)
-	ctx.Set(orm.SharingResourceType, "assistant")
 
-	exists, err := orm.GetV2(ctx, assistant)
+	ctx1 := orm.NewContextWithParent(ctx)
+	ctx1.DirectAccess()
+	exists, err := orm.GetV2(ctx1, assistant)
 	if err != nil {
 		return nil, exists, err
 	}

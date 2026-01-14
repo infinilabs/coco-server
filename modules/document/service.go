@@ -12,21 +12,30 @@ import (
 	"infini.sh/coco/core"
 	"infini.sh/framework/core/elastic"
 	"infini.sh/framework/core/orm"
+	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
 	"infini.sh/framework/modules/security/share"
 )
 
 var sharingService = share.NewSharingService()
 
-func QueryDocuments(ctx1 context.Context, userID string, teamsID []string, builder *orm.QueryBuilder, query string, datasource, integrationID, category, subcategory, richCategory string, outputDocs *[]core.Document) (*orm.SimpleResult, error) {
+func QueryDocuments(ctx1 context.Context, builder *orm.QueryBuilder, query string, datasource, integrationID, category, subcategory, richCategory string, outputDocs *[]core.Document) (*orm.SimpleResult, error) {
+	filters := BuildFilters(category, subcategory, richCategory)
+	builder.Filter(filters...)
+	return InternalQueryDocuments(ctx1, builder, query, datasource, integrationID, outputDocs)
+}
 
-	log.Trace("old datasource:", datasource, ",integrationID:", integrationID)
+func InternalQueryDocuments(ctx1 context.Context, builder *orm.QueryBuilder, query string, datasource, integrationID string, outputDocs *[]core.Document) (*orm.SimpleResult, error) {
+
+	reqUser := security.MustGetUserFromContext(ctx1)
+	userID := reqUser.MustGetUserID()
+	teamsID, _ := reqUser.GetStringArray(orm.TeamsIDKey)
+
+	//log.Trace("old datasource:", datasource, ",integrationID:", integrationID)
 
 	builder.Query(query)
 	builder.DefaultQueryField("title.keyword^100", "title^10", "title.pinyin^4", "combined_fulltext")
 	builder.Exclude("payload.*")
-
-	filters := BuildFilters(category, subcategory, richCategory)
 
 	rules, err := sharingService.GetDirectResourceRulesByResourceTypeAndUserID(userID, teamsID, "datasource", nil, share.View)
 	if err != nil {
@@ -56,6 +65,7 @@ func QueryDocuments(ctx1 context.Context, userID string, teamsID []string, build
 		queryDatasourceIDs = strings.Split(datasource, ",")
 	}
 
+	filters := []*orm.Clause{}
 	//(user own datasource + shared datasource) intersect query datasource
 	checkingScopeDatasources, mergedFullAccessDatasourceIDS, disabledIDs := BuildDatasourceFilter(userID, checkingScopeDatasources, directAccessDatasources, queryDatasourceIDs, integrationID, true)
 	if len(disabledIDs) > 0 {

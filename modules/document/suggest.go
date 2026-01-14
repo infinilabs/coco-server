@@ -107,18 +107,12 @@ func (h *APIHandler) suggestDocuments(w http.ResponseWriter, req *http.Request, 
 
 		builder.Include("title", "category", "icon", "source.name")
 
-		//ctx := orm.WithCollapseFieldForContext(req.Context(), "title.keyword")
-		ctx := req.Context()
-
 		builder.Collapse("title.keyword")
 
-		reqUser := security.MustGetUserFromRequest(req)
 		integrationID := req.Header.Get(core.HeaderIntegrationID)
 
-		teamsID, _ := reqUser.GetStringArray(orm.TeamsIDKey)
-
 		result := elastic.SearchResponseWithMeta[core.Document]{}
-		resp, err := QueryDocuments(ctx, reqUser.MustGetUserID(), teamsID, builder, query, datasource, integrationID, category, subcategory, richCategory, nil)
+		resp, err := QueryDocuments(req.Context(), builder, query, datasource, integrationID, category, subcategory, richCategory, nil)
 		if err != nil {
 			panic(err)
 		}

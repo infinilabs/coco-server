@@ -52,8 +52,11 @@ func createAssistantMessage(sessionID, assistantID, requestMessageID string) *co
 	return msg
 }
 
-func finalizeProcessing(ctx *orm.Context, sessionID string, msg *core.ChatMessage, sender core.MessageSender) {
-	if err := orm.Save(ctx, msg); err != nil {
+func finalizeProcessing(ctx context.Context, sessionID string, msg *core.ChatMessage, sender core.MessageSender) {
+
+	ctx1 := orm.NewContextWithParent(ctx)
+
+	if err := orm.Save(ctx1, msg); err != nil {
 		_ = log.Errorf("Failed to save assistant message: %v", err)
 	}
 
@@ -63,7 +66,7 @@ func finalizeProcessing(ctx *orm.Context, sessionID string, msg *core.ChatMessag
 	))
 }
 
-func ProcessMessageAsync(ctx *orm.Context, userID string, reqMsg *core.ChatMessage, params *common2.RAGContext, sender core.MessageSender) error {
+func ProcessMessageAsync(ctx context.Context, userID string, reqMsg *core.ChatMessage, params *common2.RAGContext, sender core.MessageSender) error {
 	log.Debugf("Starting async processing for session: %v", params.SessionID)
 
 	replyMsg := createAssistantMessage(params.SessionID, reqMsg.AssistantID, reqMsg.ID)
@@ -128,7 +131,7 @@ func ProcessMessageAsync(ctx *orm.Context, userID string, reqMsg *core.ChatMessa
 		)
 	case core.AssistantTypeDeepResearch:
 		log.Info("start running deep research")
-		err = deep_research.RunDeepResearch(reqMsg.Message, params.AssistantCfg)
+		err = deep_research.RunDeepResearch(ctx, reqMsg.Message, params.AssistantCfg)
 		log.Info("end running deep research")
 		break
 	default:
@@ -171,7 +174,7 @@ func ProcessMessageAsync(ctx *orm.Context, userID string, reqMsg *core.ChatMessa
 	return err
 }
 
-func RunDeepThinkTask(ctx *orm.Context, userID string, params *common2.RAGContext, cfg *core.Assistant, reqMsg, replyMsg *core.ChatMessage, sender core.MessageSender) error {
+func RunDeepThinkTask(ctx context.Context, userID string, params *common2.RAGContext, cfg *core.Assistant, reqMsg, replyMsg *core.ChatMessage, sender core.MessageSender) error {
 
 	////if cfg.Type == core.AssistantTypeDeepThink {
 	//deepThinkCfg := core.DeepThinkConfig{}
@@ -315,15 +318,15 @@ func fetchSessionHistory(ctx context.Context, reqMsg, replyMsg *core.ChatMessage
 		switch v.MessageType {
 		case core.MessageTypeSystem:
 			msg := llms.SystemChatMessage{Content: msgText}
-			_ = chatHistory.AddMessage(context.Background(), msg)
+			_ = chatHistory.AddMessage(ctx, msg)
 			break
 		case core.MessageTypeAssistant:
 			msg := llms.AIChatMessage{Content: msgText}
-			_ = chatHistory.AddMessage(context.Background(), msg)
+			_ = chatHistory.AddMessage(ctx, msg)
 			break
 		case core.MessageTypeUser:
 			msg := llms.HumanChatMessage{Content: msgText}
-			_ = chatHistory.AddMessage(context.Background(), msg)
+			_ = chatHistory.AddMessage(ctx, msg)
 			break
 		}
 
@@ -587,7 +590,7 @@ func processLLMTools(ctx context.Context, reqMsg *core.ChatMessage, replyMsg *co
 	}
 
 	log.Debugf("start call LLM tools")
-	answer, err := chains.Run(context.Background(), executor, reqMsg.Message)
+	answer, err := chains.Run(ctx, executor, reqMsg.Message)
 	if err != nil {
 		return answerBuffer.String(), fmt.Errorf("error running chains: %w", err)
 	}
@@ -597,7 +600,7 @@ func processLLMTools(ctx context.Context, reqMsg *core.ChatMessage, replyMsg *co
 	return answer, nil
 }
 
-func processInitialDocumentSearch(ctx *orm.Context, userID string, reqMsg, replyMsg *core.ChatMessage, params *common2.RAGContext, fechSize int, sender core.MessageSender) ([]core.Document, error) {
+func processInitialDocumentSearch(ctx context.Context, userID string, reqMsg, replyMsg *core.ChatMessage, params *common2.RAGContext, fechSize int, sender core.MessageSender) ([]core.Document, error) {
 
 	//if params.intentModel != nil && (params.AssistantCfg.DeepThinkConfig != nil && params.AssistantCfg.DeepThinkConfig.PickDatasource) && params.QueryIntent != nil {
 	//	if !params.QueryIntent.NeedNetworkSearch {
@@ -623,11 +626,14 @@ func processInitialDocumentSearch(ctx *orm.Context, userID string, reqMsg, reply
 		builder.Should(orm.TermsQuery("combined_fulltext", params.QueryIntent.Query))
 	}
 
-	teamsID := []string{}
-	teamsID = GetTeamsIDByUserID(ctx, userID)
+	teamsID := GetTeamsIDByUserID(ctx, userID)
+	if len(teamsID) > 0 {
+		ctx = context.WithValue(ctx, orm.TeamsIDKey, teamsID)
+	}
+	ctx = context.WithValue(ctx, orm.OwnerIDKey, userID)
 
 	docs := []core.Document{}
-	_, err := document.QueryDocuments(ctx.Context, userID, teamsID, builder, reqMsg.Message, params.Datasource, params.IntegrationID, params.Category, params.Subcategory, params.RichCategory, &docs)
+	_, err := document.QueryDocuments(ctx, builder, reqMsg.Message, params.Datasource, params.IntegrationID, params.Category, params.Subcategory, params.RichCategory, &docs)
 	if err != nil {
 		log.Error(err)
 		return nil, err
@@ -670,10 +676,10 @@ func processInitialDocumentSearch(ctx *orm.Context, userID string, reqMsg, reply
 	return docs, err
 }
 
-func GetTeamsIDByUserID(ctx *orm.Context, userID string) []string {
+func GetTeamsIDByUserID(ctx context.Context, userID string) []string {
 	if global.Env().SystemConfig.WebAppConfig.Security.Managed {
 
-		sessionUser := security.MustGetUserFromContext(ctx.Context)
+		sessionUser := security.MustGetUserFromContext(ctx)
 
 		profileKey := fmt.Sprintf("%v:%v", sessionUser.MustGetString(orm.TenantIDKey), userID)
 
@@ -807,7 +813,7 @@ func processPickDocuments(ctx context.Context, reqMsg, replyMsg *core.ChatMessag
 	return docs, err
 }
 
-func fetchDocumentInDepth(ctx *orm.Context, reqMsg, replyMsg *core.ChatMessage, params *common2.RAGContext, docs []core.Document, inputValues map[string]any, sender core.MessageSender) error {
+func fetchDocumentInDepth(ctx context.Context, reqMsg, replyMsg *core.ChatMessage, params *common2.RAGContext, docs []core.Document, inputValues map[string]any, sender core.MessageSender) error {
 	if len(params.PickedDocIDS) > 0 {
 		var query = orm.Query{}
 		query.Conds = orm.And(orm.InStringArray("_id", params.PickedDocIDS))
