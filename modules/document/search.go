@@ -6,8 +6,10 @@ package document
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"net/http"
+	"strings"
 
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
@@ -16,6 +18,7 @@ import (
 	"infini.sh/framework/core/api"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/elastic"
+	"infini.sh/framework/core/kv"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
@@ -59,6 +62,7 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		if docsSize > 0 {
 			for i := range result.Hits.Hits {
 				RefineIcon(req.Context(), &result.Hits.Hits[i].Source)
+				RefineCoverThumbnail(req.Context(), &result.Hits.Hits[i].Source)
 			}
 		}
 
@@ -161,6 +165,81 @@ func RefineIcon(ctx context.Context, doc *core.Document) {
 	if icon := ResolveIcon(connectorConfig, datasourceConfig, doc.Source.Icon); icon != "" {
 		doc.Source.Icon = icon
 	}
+}
+
+// RefineCoverThumbnail converts Cover and Thumbnail from "attachment://UUID"
+// to Base64 Data URI format for preview capability.
+//
+// If the attachment cannot be found or loaded, the field is left unchanged.
+func RefineCoverThumbnail(ctx context.Context, doc *core.Document) {
+	if doc.Cover != "" && strings.HasPrefix(doc.Cover, "attachment://") {
+		if dataURI := convertAttachmentToDataURI(ctx, doc.Cover); dataURI != "" {
+			doc.Cover = dataURI
+		}
+	}
+	if doc.Thumbnail != "" && strings.HasPrefix(doc.Thumbnail, "attachment://") {
+		if dataURI := convertAttachmentToDataURI(ctx, doc.Thumbnail); dataURI != "" {
+			doc.Thumbnail = dataURI
+		}
+	}
+}
+
+// convertAttachmentToDataURI converts an attachment reference to a Base64 Data URI.
+// Returns empty string if conversion fails.
+func convertAttachmentToDataURI(ctx context.Context, attachmentRef string) string {
+	// Extract UUID from "attachment://UUID"
+	uuid := strings.TrimPrefix(attachmentRef, "attachment://")
+	if uuid == attachmentRef {
+		// Prefix not found
+		return ""
+	}
+
+	/*
+		Get binary data from KV store
+	*/
+	data, err := kv.GetValue(core.AttachmentKVBucket, []byte(uuid))
+	if err != nil || len(data) == 0 {
+		log.Tracef("attachment data not found in KV store for %s: %v", uuid, err)
+		return ""
+	}
+
+	/*
+		Get attachment metadata for MIME type
+	*/
+	mimeType := ""
+
+	ctx1 := orm.NewContextWithParent(ctx)
+	ctx1.DirectReadAccess()
+	ctx1.PermissionScope(security.PermissionScopePlatform)
+
+	attachment := core.Attachment{}
+	attachment.SetID(uuid)
+	exists, err := orm.GetV2(ctx1, &attachment)
+	if err != nil {
+		log.Warnf("failed to get attachment metadata for [%s]", uuid)
+		mimeType = http.DetectContentType(data)
+	} else {
+		// Log if the attachment is not found
+		if !exists {
+			log.Warnf("attachment metadata not found for %s", uuid)
+		}
+
+		// Determine MIME type
+		if exists && attachment.MimeType != "" {
+			mimeType = attachment.MimeType
+		} else {
+			mimeType = http.DetectContentType(data)
+		}
+	}
+
+	/*
+		Encode to Base64 Data URI
+	*/
+	base64Data := base64.StdEncoding.EncodeToString(data)
+	dataURI := fmt.Sprintf("data:%s;base64,%s", mimeType, base64Data)
+
+	log.Tracef("converted attachment %s to Data URI (size: %d bytes)", uuid, len(data))
+	return dataURI
 }
 
 func searchAssistant(req *http.Request, query string, size int) []core.Assistant {
