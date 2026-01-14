@@ -119,6 +119,9 @@ func (h *APIHandler) searchDocs(w http.ResponseWriter, req *http.Request, ps htt
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	// Omit these fields. The frontend does not need them, and they are large enough
+	// to slow us down.
+	builder.Exclude("payload.*", "document_chunk")
 	builder.EnableBodyBytes()
 	if len(builder.Sorts()) == 0 {
 		builder.SortBy(orm.Sort{Field: "created", SortType: orm.DESC})
