@@ -11,20 +11,6 @@ import (
 	"infini.sh/coco/modules/datasource"
 )
 
-// GetConnectorID returns the connector ID for the given document.
-func GetConnectorID(doc *core.Document) (string, error) {
-	ds, err := GetDatasource(doc)
-	if err != nil {
-		return "", err
-	}
-
-	if ds.Connector.ConnectorID == "" {
-		return "", fmt.Errorf("datasource has no connector ID")
-	}
-
-	return ds.Connector.ConnectorID, nil
-}
-
 // GetDatasource returns the datasource for the given document.
 func GetDatasource(doc *core.Document) (*core.DataSource, error) {
 	if doc.Source.ID == "" {
@@ -40,4 +26,18 @@ func GetDatasource(doc *core.Document) (*core.DataSource, error) {
 	}
 
 	return &datasources[0], nil
+}
+
+// GetConnectorID returns the connector ID for the given document.
+func GetConnectorID(doc *core.Document) (string, error) {
+	ds, err := GetDatasource(doc)
+	if err != nil {
+		return "", err
+	}
+
+	if ds.Connector.ConnectorID == "" {
+		return "", fmt.Errorf("datasource has no connector ID")
+	}
+
+	return ds.Connector.ConnectorID, nil
 }

@@ -5,9 +5,19 @@
 package document
 
 import (
+	"encoding/json"
+	"fmt"
+	"io"
+	"mime"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
 
 	log "github.com/cihub/seelog"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/modules/connector"
@@ -17,6 +27,20 @@ import (
 	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
 )
+
+// s3Config defines S3 configuration.
+//
+// This is defined locally to avoid circular import with
+// plugins/connectors/s3.
+type s3Config struct {
+	AccessKeyID     string   `config:"access_key_id"`
+	SecretAccessKey string   `config:"secret_access_key"`
+	Bucket          string   `config:"bucket"`
+	Endpoint        string   `config:"endpoint"`
+	UseSSL          bool     `config:"use_ssl"`
+	Prefix          string   `config:"prefix"`
+	Extensions      []string `config:"extensions"`
+}
 
 func (h *APIHandler) createDoc(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	var obj = &core.Document{}
@@ -78,10 +102,137 @@ func (h *APIHandler) getDocRawContent(w http.ResponseWriter, req *http.Request, 
 		return
 	}
 
-	//if obj.URL != "" && util.GetBool(obj.Metadata, "url_is_raw_content") {
-	//
-	//}
+	// Handle empty URL
+	if obj.URL == "" {
+		h.WriteError(w, "document has no URL", http.StatusBadRequest)
+		return
+	}
 
+	// Check if URL is raw content or external URL
+	if obj.Metadata["url_is_raw_content"] == true {
+		datasourceID := obj.Source.ID
+		datasource, err := common.GetDatasourceConfig(ctx, datasourceID)
+		if err != nil {
+			h.WriteError(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		connectorID := datasource.Connector.ConnectorID
+
+		switch connectorID {
+		case "s3":
+			// Stream from S3
+			// Parse S3 config from datasource
+			configJSON, err := json.Marshal(datasource.Connector.Config)
+			if err != nil {
+				h.WriteError(w, fmt.Sprintf("failed to parse S3 config: %v", err), http.StatusInternalServerError)
+				return
+			}
+			var cfg s3Config
+			if err := json.Unmarshal(configJSON, &cfg); err != nil {
+				h.WriteError(w, fmt.Sprintf("failed to parse S3 config: %v", err), http.StatusInternalServerError)
+				return
+			}
+
+			// Create minio client
+			client, err := minio.New(cfg.Endpoint, &minio.Options{
+				Creds:  credentials.NewStaticV4(cfg.AccessKeyID, cfg.SecretAccessKey, ""),
+				Secure: cfg.UseSSL,
+			})
+			if err != nil {
+				h.WriteError(w, fmt.Sprintf("failed to create S3 client: %v", err), http.StatusInternalServerError)
+				return
+			}
+
+			// Extract objectKey from document URL
+			// URL format: s3://endpoint/bucket/objectKey
+			// We need to extract just the objectKey part
+			parts := strings.SplitN(obj.URL, "/", 5)
+			if len(parts) < 5 {
+				h.WriteError(w, fmt.Sprintf("invalid S3 URL format: %s", obj.URL), http.StatusBadRequest)
+				return
+			}
+			objectKey := parts[4]
+
+			// Get object stream (does not download content yet)
+			objStream, err := client.GetObject(req.Context(), cfg.Bucket, objectKey, minio.GetObjectOptions{})
+			if err != nil {
+				h.WriteError(w, fmt.Sprintf("failed to get S3 object: %v", err), http.StatusInternalServerError)
+				return
+			}
+			defer objStream.Close()
+
+			// Get object metadata
+			info, err := objStream.Stat()
+			if err != nil {
+				// Check if it's a 404
+				if minio.ToErrorResponse(err).Code == "NoSuchKey" {
+					h.WriteError(w, "file not found", http.StatusNotFound)
+					return
+				}
+				h.WriteError(w, fmt.Sprintf("failed to stat S3 object: %v", err), http.StatusInternalServerError)
+				return
+			}
+
+			// Set HTTP headers
+			if info.ContentType != "" {
+				w.Header().Set("Content-Type", info.ContentType)
+			} else {
+				w.Header().Set("Content-Type", "application/octet-stream")
+			}
+			w.Header().Set("Content-Length", strconv.FormatInt(info.Size, 10))
+
+			// Stream data directly from S3 to HTTP response
+			_, err = io.Copy(w, objStream)
+			if err != nil {
+				log.Errorf("error streaming S3 object: %v", err)
+			}
+
+		case "local_fs":
+			// Stream from local filesystem
+			fileLocalPath := obj.URL
+
+			// Open file
+			file, err := os.Open(fileLocalPath)
+			if err != nil {
+				if os.IsNotExist(err) {
+					h.WriteError(w, "file not found", http.StatusNotFound)
+				} else if os.IsPermission(err) {
+					h.WriteError(w, "permission denied", http.StatusForbidden)
+				} else {
+					h.WriteError(w, fmt.Sprintf("failed to open file: %v", err), http.StatusInternalServerError)
+				}
+				return
+			}
+			defer file.Close()
+
+			// Get file info
+			fileInfo, err := file.Stat()
+			if err != nil {
+				h.WriteError(w, fmt.Sprintf("failed to stat file: %v", err), http.StatusInternalServerError)
+				return
+			}
+
+			// Detect Content-Type
+			contentType := mime.TypeByExtension(filepath.Ext(fileLocalPath))
+			if contentType == "" {
+				contentType = "application/octet-stream"
+			}
+
+			// Set HTTP headers
+			w.Header().Set("Content-Type", contentType)
+			w.Header().Set("Content-Length", strconv.FormatInt(fileInfo.Size(), 10))
+
+			// Stream file content using http.ServeContent (handles range requests, etc.)
+			http.ServeContent(w, req, filepath.Base(fileLocalPath), fileInfo.ModTime(), file)
+
+		default:
+			h.WriteError(w, fmt.Sprintf("unsupported connector: %s", connectorID), http.StatusBadRequest)
+		}
+
+	} else {
+		// Redirect to external URL
+		http.Redirect(w, req, obj.URL, http.StatusFound)
+	}
 }
 
 func (h *APIHandler) updateDoc(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
