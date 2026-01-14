@@ -33,6 +33,8 @@ export const themeVars: App.Theme.ThemeTokenCSSVars = {
     nprogress: 'rgb(var(--nprogress-color))',
     'text-1': 'var(--ant-color-text)',
     'text-2': 'var(--ant-color-text-secondary)',
-    'text-3': 'var(--ant-color-text-tertiary)'
+    'text-3': 'var(--ant-color-text-tertiary)',
+    border: 'var(--ant-color-border)',
+    'border-secondary': 'var(--ant-color-border-secondary)'
   }
 };
