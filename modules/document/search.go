@@ -8,6 +8,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
+	"strings"
 
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
@@ -59,6 +61,7 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		if docsSize > 0 {
 			for i := range result.Hits.Hits {
 				RefineIcon(req.Context(), &result.Hits.Hits[i].Source)
+				RefineCoverThumbnail(req.Context(), &result.Hits.Hits[i].Source)
 			}
 		}
 
@@ -160,6 +163,28 @@ func RefineIcon(ctx context.Context, doc *core.Document) {
 	// Update doc.Source.Icon
 	if icon := ResolveIcon(connectorConfig, datasourceConfig, doc.Source.Icon); icon != "" {
 		doc.Source.Icon = icon
+	}
+}
+
+// RefineCoverThumbnail converts Cover and Thumbnail from "attachment://UUID"
+// to full attachment URL for preview capability.
+func RefineCoverThumbnail(ctx context.Context, doc *core.Document) {
+	appCfg := common.AppConfig()
+	baseEndpoint := appCfg.ServerInfo.Endpoint
+
+	if doc.Cover != "" && strings.HasPrefix(doc.Cover, "attachment://") {
+		uuid := strings.TrimPrefix(doc.Cover, "attachment://")
+		relativePath := fmt.Sprintf("/attachment/%s", uuid)
+		if fullURL, err := url.JoinPath(baseEndpoint, relativePath); err == nil {
+			doc.Cover = fullURL
+		}
+	}
+	if doc.Thumbnail != "" && strings.HasPrefix(doc.Thumbnail, "attachment://") {
+		uuid := strings.TrimPrefix(doc.Thumbnail, "attachment://")
+		relativePath := fmt.Sprintf("/attachment/%s", uuid)
+		if fullURL, err := url.JoinPath(baseEndpoint, relativePath); err == nil {
+			doc.Thumbnail = fullURL
+		}
 	}
 }
 

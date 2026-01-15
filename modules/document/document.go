@@ -404,6 +404,7 @@ func (h *APIHandler) searchDocs(w http.ResponseWriter, req *http.Request, ps htt
 	if nDocs > 0 {
 		for i := range result.Hits.Hits {
 			RefineIcon(req.Context(), &result.Hits.Hits[i].Source)
+			RefineCoverThumbnail(req.Context(), &result.Hits.Hits[i].Source)
 		}
 	}
 
