@@ -1,6 +1,6 @@
 import { DocDetail } from '@infinilabs/doc-detail';
 import { Button, Result, Spin, Typography } from 'antd';
-import { useSearchParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { filesize } from 'filesize';
 
 import { request } from '@/service/request';
@@ -9,8 +9,7 @@ import logoDark from '@/assets/imgs/coco-logo-text-dark.svg';
 import DateTime from '@/components/DateTime';
 
 export function Component() {
-  const [searchParams] = useSearchParams();
-  const id = searchParams.get('document');
+  const { id } = useParams();
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>();

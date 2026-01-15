@@ -86,7 +86,7 @@ const route: App.I18n.Schema['translation']['route'] = {
   user_edit: '编辑用户',
   connector_new: '新增连接器',
   connector_edit: '编辑连接器',
-  preview: '文档预览'
+  preview_document: '文档预览'
 };
 
 export default route;

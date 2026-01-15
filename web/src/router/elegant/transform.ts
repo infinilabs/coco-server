@@ -250,6 +250,7 @@ const routeMap: RouteMap = {
   "model-provider_list": "list",
   "model-provider_new": "new",
   "preview": "/preview",
+  "preview_document": "document/:id",
   "role": "/role",
   "role_edit": "edit/:id",
   "role_new": "new",

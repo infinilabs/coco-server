@@ -69,6 +69,7 @@ declare module "@elegant-router/types" {
     "model-provider_list": "list";
     "model-provider_new": "new";
     "preview": "/preview";
+    "preview_document": "document/:id";
     "role": "/role";
     "role_edit": "edit/:id";
     "role_new": "new";
@@ -193,7 +194,7 @@ declare module "@elegant-router/types" {
     | "model-provider_edit"
     | "model-provider_list"
     | "model-provider_new"
-    | "preview"
+    | "preview_document"
     | "role_edit"
     | "role_new"
     | "search"
