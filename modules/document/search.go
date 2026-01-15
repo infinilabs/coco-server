@@ -62,6 +62,7 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 			for i := range result.Hits.Hits {
 				RefineIcon(req.Context(), &result.Hits.Hits[i].Source)
 				RefineCoverThumbnail(req.Context(), &result.Hits.Hits[i].Source)
+				RefineURL(req.Context(), &result.Hits.Hits[i].Source)
 			}
 		}
 
@@ -186,6 +187,14 @@ func RefineCoverThumbnail(ctx context.Context, doc *core.Document) {
 			doc.Thumbnail = fullURL
 		}
 	}
+}
+
+// RefineURL converts [doc.URL] to [ENDPOINT/#/preview/document/DOC_ID]
+func RefineURL(ctx context.Context, doc *core.Document) {
+	appCfg := common.AppConfig()
+	baseEndpoint := appCfg.ServerInfo.Endpoint
+
+	doc.URL = fmt.Sprintf("%s/#/preview/document/%s", baseEndpoint, doc.ID)
 }
 
 func searchAssistant(req *http.Request, query string, size int) []core.Assistant {
