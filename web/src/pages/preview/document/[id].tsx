@@ -1,4 +1,4 @@
-import { DocDetail } from '@infinilabs/doc-detail';
+import { ActionButton, DocDetail } from '@infinilabs/doc-detail';
 import { Button, Result, Spin, Typography } from 'antd';
 import { useParams } from 'react-router-dom';
 import { filesize } from 'filesize';
@@ -7,6 +7,7 @@ import { request } from '@/service/request';
 import logoLight from '@/assets/imgs/coco-logo-text-light.svg';
 import logoDark from '@/assets/imgs/coco-logo-text-dark.svg';
 import DateTime from '@/components/DateTime';
+import { SquareArrowOutUpRight } from 'lucide-react';
 
 export function Component() {
   const { id } = useParams();
@@ -110,6 +111,17 @@ export function Component() {
 
     return (
       <DocDetail
+        actionButtons={[
+          <ActionButton
+            icon={<SquareArrowOutUpRight />}
+            key='openSource'
+            onClick={() => {
+              setSourceUrl(data?.url);
+            }}
+          >
+            {t('page.preview.buttons.openSource')}
+          </ActionButton>
+        ]}
         data={{
           ...data,
           size: filesize(data?.size ?? 0),
@@ -135,14 +147,6 @@ export function Component() {
             updatedAt: t('page.preview.labels.updatedAt'),
             preview: t('page.preview.labels.preview'),
             aiInterpretation: t('page.preview.labels.aiInterpretation')
-          },
-          buttons: {
-            openSource: t('page.preview.buttons.openSource')
-          }
-        }}
-        openSourceButtonProps={{
-          onClick() {
-            setSourceUrl(data?.url);
           }
         }}
       />
