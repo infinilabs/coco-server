@@ -51,7 +51,7 @@ func (p *Plugin) Fetch(ctx *pipeline.Context, connector *core.Connector, datasou
 		return fmt.Errorf("owner is required for datasource [%s]", datasource.Name)
 	}
 
-	client := NewGitHubClient(cfg.Token)
+	client := NewGitHubClient(ctx, cfg.Token)
 
 	p.processRepos(ctx, client, &cfg, connector, datasource)
 

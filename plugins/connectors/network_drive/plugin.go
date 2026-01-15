@@ -8,12 +8,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"infini.sh/coco/core"
 	"io/fs"
 	"net"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"infini.sh/coco/core"
 
 	log "github.com/cihub/seelog"
 	"github.com/hirochachacha/go-smb2"
@@ -85,7 +86,7 @@ func (p *Plugin) Fetch(ctx *pipeline.Context, connector *core.Connector, datasou
 			Domain:   cfg.Domain,
 		},
 	}
-	scanCtx := context.Background()
+	scanCtx := ctx
 	deadline := time.Now().Add(ConnectionTimeout)
 	dialCtx, cancelOnTimeout := context.WithDeadline(scanCtx, deadline)
 	defer cancelOnTimeout() // release resource even though not time out

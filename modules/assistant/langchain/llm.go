@@ -31,6 +31,29 @@ func (lrt *LoggingRoundTripper) RoundTrip(req *http.Request) (*http.Response, er
 	return lrt.original.RoundTrip(req)
 }
 
+func SimplyGetLLM(providerID, modelName string, keepalive string) (llms.Model, error) {
+
+	modelProvider, err := common.GetModelProvider(providerID)
+	if err != nil {
+		return nil, err
+	}
+
+	llm := GetLLM(modelProvider.BaseURL, modelProvider.APIType, modelName, modelProvider.APIKey, keepalive)
+
+	return llm, nil
+}
+func GetLLMByConfig(model core.ModelConfig) (llms.Model, error) {
+
+	modelProvider, err := common.GetModelProvider(model.ProviderID)
+	if err != nil {
+		return nil, err
+	}
+
+	llm := GetLLM(modelProvider.BaseURL, modelProvider.APIType, model.Name, modelProvider.APIKey, model.Keepalive)
+
+	return llm, nil
+}
+
 func GetLLM(endpoint, apiType, model, token string, keepalive string) llms.Model {
 	if model == "" {
 		panic("model is empty")
@@ -80,19 +103,19 @@ func GetLLM(endpoint, apiType, model, token string, keepalive string) llms.Model
 	}
 }
 
-func GetTemperature(model *core.ModelConfig, modelProvider *core.ModelProvider, defaultValue float64) float64 {
+func GetTemperature(model *core.ModelConfig, defaultValue float64) float64 {
 	temperature := 0.0
 	if model.Settings.Temperature > 0 {
 		temperature = model.Settings.Temperature
 	}
 	if temperature == 0 {
-		for _, m := range modelProvider.Models {
-			if m.Name == model.Name {
-				if m.Settings.Temperature > 0 {
-					temperature = m.Settings.Temperature
-				}
-				break
-			}
+		modelProvider, err := common.GetModelProvider(model.ProviderID)
+		if err != nil {
+			panic(err)
+		}
+		v := modelProvider.GetModelConfig(model.Name)
+		if v != nil {
+			temperature = v.Settings.Temperature
 		}
 	}
 	if temperature == 0 {
@@ -101,19 +124,19 @@ func GetTemperature(model *core.ModelConfig, modelProvider *core.ModelProvider, 
 	return temperature
 }
 
-func GetMaxLength(model *core.ModelConfig, modelProvider *core.ModelProvider, defaultValue int) int {
+func GetMaxLength(model *core.ModelConfig, defaultValue int) int {
 	maxLength := 0
 	if model.Settings.MaxLength > 0 {
 		maxLength = model.Settings.MaxLength
 	}
 	if maxLength == 0 {
-		for _, m := range modelProvider.Models {
-			if m.Name == model.Name {
-				if m.Settings.MaxLength > 0 {
-					maxLength = m.Settings.MaxLength
-				}
-				break
-			}
+		modelProvider, err := common.GetModelProvider(model.ProviderID)
+		if err != nil {
+			panic(err)
+		}
+		v := modelProvider.GetModelConfig(model.Name)
+		if v != nil {
+			maxLength = v.Settings.MaxLength
 		}
 	}
 	if maxLength == 0 {
@@ -122,23 +145,35 @@ func GetMaxLength(model *core.ModelConfig, modelProvider *core.ModelProvider, de
 	return maxLength
 }
 
-func GetMaxTokens(model *core.ModelConfig, modelProvider *core.ModelProvider, defaultValue int) int {
+func GetMaxTokens(model *core.ModelConfig, defaultValue int) int {
 	var maxTokens int = 0
 	if model.Settings.MaxTokens > 0 {
 		maxTokens = model.Settings.MaxTokens
 	}
 	if maxTokens == 0 {
-		for _, m := range modelProvider.Models {
-			if m.Name == model.Name {
-				if m.Settings.MaxTokens > 0 {
-					maxTokens = m.Settings.MaxTokens
-				}
-				break
-			}
+		modelProvider, err := common.GetModelProvider(model.ProviderID)
+		if err != nil {
+			panic(err)
+		}
+
+		v := modelProvider.GetModelConfig(model.Name)
+		if v != nil {
+			maxTokens = v.Settings.MaxTokens
 		}
 	}
 	if maxTokens == 0 {
 		maxTokens = defaultValue
 	}
 	return maxTokens
+}
+
+func GetLLOptions(model *core.ModelConfig) []llms.CallOption {
+	options := []llms.CallOption{}
+	maxTokens := GetMaxTokens(model, 8192)
+	temperature := GetTemperature(model, 0.9)
+	//maxLength := GetMaxLength(model, 0)
+	options = append(options, llms.WithMaxTokens(maxTokens))
+	//options = append(options, llms.WithMaxLength(maxLength))
+	options = append(options, llms.WithTemperature(temperature))
+	return options
 }
