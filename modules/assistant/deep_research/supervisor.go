@@ -150,8 +150,8 @@ func CreateSupervisorGraph(ctx context.Context, config *core.DeepResearchConfig,
 			return nil, fmt.Errorf("report generation failed: %w", err)
 		}
 
-		finalContent := allChunks.String()
-		log.Info("[Supervisor] Streaming content fragments:", finalContent)
+		//finalContent := allChunks.String()
+		//log.Info("[Supervisor] Streaming content fragments:", finalContent)
 
 		// CRITICAL FIX: The response contains broken tool call fragments from streaming
 		// We need to find the actual tool calls vs fragments
@@ -267,7 +267,7 @@ func CreateSupervisorGraph(ctx context.Context, config *core.DeepResearchConfig,
 			thinkCalls = ExtractToolCallsByName(toolCalls, "think_tool")
 		}
 
-		log.Info("[Supervisor] Final tool counts:", len(conductResearchCalls), "research calls,", len(thinkCalls), "think calls")
+		log.Info("[Supervisor] Final tool counts:", len(conductResearchCalls), " research calls,", len(thinkCalls), " think calls")
 
 		// Continue with normal tool execution but fix the fragmented tool calls
 		// Handle ConductResearch calls in parallel (up to max concurrent)

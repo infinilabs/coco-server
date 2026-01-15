@@ -13,26 +13,15 @@ import (
 	log "github.com/cihub/seelog"
 	"github.com/tmc/langchaingo/chains"
 	"infini.sh/coco/core"
+	common2 "infini.sh/coco/modules/assistant/common"
 	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/util"
 )
 
-type QueryIntent struct {
-	Category   string   `json:"category"`
-	Intent     string   `json:"intent"`
-	Query      []string `json:"query"`
-	Keyword    []string `json:"keyword"`
-	Suggestion []string `json:"suggestion"`
-
-	NeedPlanTasks     bool `json:"need_plan_tasks"`     //if it is not a simple task
-	NeedCallTools     bool `json:"need_call_tools"`     //if it is necessary
-	NeedNetworkSearch bool `json:"need_network_search"` //if need external data sources
-}
-
-func QueryAnalysisFromString(str string) (*QueryIntent, error) {
+func QueryAnalysisFromString(str string) (*common2.QueryIntent, error) {
 	log.Trace("input:", str)
 	jsonContent := extractJSON(str)
-	obj := QueryIntent{}
+	obj := common2.QueryIntent{}
 	err := util.FromJSONBytes([]byte(jsonContent), &obj)
 	if err != nil {
 		return nil, err
@@ -61,7 +50,7 @@ func extractJSON(input string) string {
 	return ""
 }
 
-func ProcessQueryIntent(ctx context.Context, sessionID string, model *core.ModelConfig, reqMsg, replyMsg *core.ChatMessage, assistant *core.Assistant, inputValues map[string]any, sender core.MessageSender) (*QueryIntent, error) {
+func ProcessQueryIntent(ctx context.Context, sessionID string, model *core.ModelConfig, reqMsg, replyMsg *core.ChatMessage, assistant *core.Assistant, inputValues map[string]any, sender core.MessageSender) (*common2.QueryIntent, error) {
 	// Initialize the LLM
 	llm, err := SimplyGetLLM(model.ProviderID, model.Name, assistant.Keepalive)
 

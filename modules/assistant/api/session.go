@@ -8,7 +8,9 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"time"
 
+	"github.com/smallnest/langgraphgo/log"
 	_ "github.com/tmc/langchaingo/llms/ollama"
 	"infini.sh/coco/core"
 	common2 "infini.sh/coco/modules/assistant/common"
@@ -204,7 +206,6 @@ func (h APIHandler) createChatSession(w http.ResponseWriter, r *http.Request, ps
 		return
 	}
 
-	ctx := r.Context()
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		h.Error(w, errors.New("http.Flusher not supported"))
@@ -225,7 +226,9 @@ func (h APIHandler) createChatSession(w http.ResponseWriter, r *http.Request, ps
 		return
 	}
 	// Create a context with cancel to handle the message asynchronously
-	ctx, cancel := context.WithCancel(r.Context())
+	ctx := context.WithoutCancel(r.Context())
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+
 	streamSender := &common2.HTTPStreamSender{
 		Enc:     enc,
 		Flusher: flusher,
@@ -236,7 +239,7 @@ func (h APIHandler) createChatSession(w http.ResponseWriter, r *http.Request, ps
 		SessionID:  session.ID,
 		CancelFunc: cancel,
 	})
-	_ = service.ProcessMessageAsync(orm.NewContextWithParent(ctx), userInfo.MustGetUserID(), reqMsg, params, streamSender)
+	_ = service.ProcessMessageAsync(ctx, userInfo.MustGetUserID(), reqMsg, params, streamSender)
 }
 
 func (h *APIHandler) askAssistant(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -270,7 +273,8 @@ func (h *APIHandler) askAssistant(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
-	ctx := r.Context()
+	ctx := context.WithoutCancel(r.Context())
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		h.Error(w, errors.New("http.Flusher not supported"))
@@ -293,8 +297,15 @@ func (h *APIHandler) askAssistant(w http.ResponseWriter, r *http.Request, ps htt
 	streamSender := &common2.HTTPStreamSender{
 		Enc:     enc,
 		Flusher: flusher,
-		Ctx:     r.Context(), // assuming this is in an HTTP handler
+		Ctx:     ctx, // Use the timeout context for consistency
 	}
+
+	replyMsgTaskID := service.GetReplyMessageTaskID(session.ID, reqMsg.ID)
+	service.InflightMessages.Store(replyMsgTaskID, common2.MessageTask{
+		SessionID:  session.ID,
+		CancelFunc: cancel,
+	})
+
 	_ = service.ProcessMessageAsync(ctx, userInfo.MustGetUserID(), reqMsg, params, streamSender)
 
 }
@@ -368,6 +379,7 @@ func (h APIHandler) getChatHistoryBySession(w http.ResponseWriter, req *http.Req
 func (h APIHandler) cancelReplyMessage(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	sessionID := ps.MustGetParameter("session_id")
 	messageID := h.GetParameterOrDefault(req, "message_id", "")
+	log.Info("cancel reply to message: ", messageID, ", session: ", sessionID)
 	taskID := service.GetReplyMessageTaskID(sessionID, messageID)
 	service.StopMessageReplyTask(taskID)
 	h.WriteAckOKJSON(w)
@@ -430,7 +442,8 @@ func (h APIHandler) sendChatMessageV2(w http.ResponseWriter, r *http.Request, ps
 		return
 	}
 	// Create a context with cancel to handle the message asynchronously
-	ctx, cancel := context.WithCancel(r.Context())
+	ctx := context.WithoutCancel(r.Context())
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	streamSender := &common2.HTTPStreamSender{
 		Enc:     enc,
 		Flusher: flusher,
@@ -441,7 +454,7 @@ func (h APIHandler) sendChatMessageV2(w http.ResponseWriter, r *http.Request, ps
 		SessionID:  sessionID,
 		CancelFunc: cancel,
 	})
-	_ = service.ProcessMessageAsync(orm.NewContextWithParent(ctx), userInfo.MustGetUserID(), reqMsg, params, streamSender)
+	_ = service.ProcessMessageAsync(ctx, userInfo.MustGetUserID(), reqMsg, params, streamSender)
 
 }
 

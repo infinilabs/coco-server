@@ -12,7 +12,6 @@ import (
 	"infini.sh/coco/modules/assistant/common"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/security"
-	"infini.sh/framework/core/task"
 	"infini.sh/framework/core/util"
 )
 
@@ -102,11 +101,7 @@ func StopMessageReplyTask(taskID string) {
 		v1, ok := v.(common.MessageTask)
 		if ok {
 			seelog.Debug("stop task:", v1)
-			if v1.TaskID != "" {
-				task.StopTask(v1.TaskID)
-			} else if v1.CancelFunc != nil {
-				v1.CancelFunc()
-			}
+			v1.CancelFunc()
 		}
 	} else {
 		_ = seelog.Warnf("task id [%s] was not found", taskID)

@@ -166,6 +166,8 @@ func GetFinalReportPrompt(researchBrief, userMessages, findings string) string {
 - 适当使用要点或编号列表
 - 提及时对来源进行适当的引用或参考
 - 专业、信息丰富的语气
+- 输出的报告不需要额外的 #报告说明 之类的东西，只需要报告正文内容本身即可
+- 输出的报告格式不需要额外包裹 markdown 脚注，只需要 Markdown 内容本身
 
 报告应详尽但简洁，注重质量和相关性而非长度。`, researchBrief, userMessages, findings)
 }

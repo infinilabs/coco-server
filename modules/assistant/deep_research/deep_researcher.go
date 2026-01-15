@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	log "github.com/cihub/seelog"
+	"infini.sh/coco/modules/common"
 
 	"github.com/gomarkdown/markdown"
 	"github.com/gomarkdown/markdown/html"
@@ -16,8 +17,7 @@ import (
 	"infini.sh/coco/modules/assistant/langchain"
 )
 
-// CreateDeepResearcherGraph creates the complete deep research workflow
-func CreateDeepResearcherGraph(ctx context.Context, config *core.DeepResearchConfig) (*graph.StateRunnable, error) {
+func CreateDeepResearcherGraph(ctx context.Context, config *core.DeepResearchConfig, reqMsg, replyMsg *core.ChatMessage, sender core.MessageSender) (*graph.StateRunnable, error) {
 
 	// Create researcher subgraph
 	researcherGraph, err := CreateResearcherGraph(ctx, config)
@@ -136,15 +136,22 @@ func CreateDeepResearcherGraph(ctx context.Context, config *core.DeepResearchCon
 
 		log.Infof("[Final Report] Generating report with %d research findings", len(notes))
 
-		finalBuffer := strings.Builder{}
-		resp, err := langchain.DirectGenerate(ctx, &config.ReportModel, langchain.GetPromptMessages(&config.ReportModel, "", prompt, nil, nil), nil, func(chunk []byte, seq int) {
-			finalBuffer.Write(chunk)
+		resp, err := langchain.DirectGenerate(ctx, &config.ReportModel, langchain.GetPromptMessages(&config.ReportModel, "", prompt, nil, nil), func(chunk []byte, seq int) {
+			msg := core.NewMessageChunk(reqMsg.SessionID, replyMsg.ID, core.MessageTypeAssistant, reqMsg.ID, common.Think, string(chunk), seq)
+			err = sender.SendMessage(msg)
+			if err != nil {
+				panic(err)
+			}
+		}, func(chunk []byte, seq int) {
+			msg := core.NewMessageChunk(reqMsg.SessionID, replyMsg.ID, core.MessageTypeAssistant, reqMsg.ID, common.Response, string(chunk), seq)
+			err = sender.SendMessage(msg)
+			if err != nil {
+				panic(err)
+			}
 		})
 		if err != nil {
 			return nil, fmt.Errorf("report generation failed: %w", err)
 		}
-
-		//finalReport := finalBuffer.String()
 
 		finalReport := resp.Choices[0].Content
 
@@ -154,6 +161,8 @@ func CreateDeepResearcherGraph(ctx context.Context, config *core.DeepResearchCon
 		finalReport = strings.TrimPrefix(finalReport, "```markdown")
 		finalReport = strings.TrimPrefix(finalReport, "```")
 		finalReport = strings.TrimSuffix(finalReport, "```")
+
+		finalReportInMarkdown := finalReport
 
 		// Convert Markdown to HTML
 		extensions := parser.CommonExtensions | parser.AutoHeadingIDs | parser.NoEmptyLineBeforeBlock
@@ -169,7 +178,8 @@ func CreateDeepResearcherGraph(ctx context.Context, config *core.DeepResearchCon
 		log.Infof("[Final Report] Report generated successfully (%d characters)", len(finalReportHTML))
 
 		return map[string]interface{}{
-			"final_report": finalReportHTML,
+			"markdown_report": finalReportInMarkdown,
+			"html_report":     finalReportHTML,
 			"messages": []llms.MessageContent{
 				llms.TextParts(llms.ChatMessageTypeAI, finalReport),
 			},

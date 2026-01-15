@@ -7,6 +7,7 @@ import (
 
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/modules/assistant/langchain"
+	"infini.sh/coco/modules/assistant/tools"
 
 	"github.com/smallnest/langgraphgo/graph"
 	"github.com/tmc/langchaingo/llms"
@@ -24,8 +25,8 @@ func CreateResearcherGraph(ctx context.Context, config *core.DeepResearchConfig)
 	workflow.SetSchema(schema)
 
 	// Initialize search tool
-	searchTool := &TavilySearchTool{APIKey: "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"}
-	enterpriseSearchTool := &EnterpriseSearchTool{}
+	searchTool := &tools.TavilySearchTool{APIKey: "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"}
+	enterpriseSearchTool := &tools.EnterpriseSearchTool{}
 	thinkTool := &ThinkToolImpl{}
 
 	// Researcher node - conducts research using search tools
@@ -121,7 +122,9 @@ func CreateResearcherGraph(ctx context.Context, config *core.DeepResearchConfig)
 		var resp *llms.ContentResponse
 		var researcherChunks strings.Builder
 
-		resp, err := langchain.DirectGenerate(ctx, &config.ResearchModel, msgs, nil, func(chunk []byte, seq int) {
+		resp, err := langchain.DirectGenerate(ctx, &config.ResearchModel, msgs, func(chunk []byte, seq int) {
+
+		}, func(chunk []byte, seq int) {
 			researcherChunks.Write(chunk)
 		}, llms.WithTools(toolDefs))
 		if err != nil {

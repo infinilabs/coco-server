@@ -8,14 +8,15 @@ import (
 	log "github.com/cihub/seelog"
 	"github.com/tmc/langchaingo/llms"
 	"infini.sh/coco/core"
+	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/util"
 )
 
-func RunDeepResearch(ctx context.Context, userQuery string, cfg *core.Assistant) error {
+func RunDeepResearch(ctx context.Context, userQuery string, cfg *core.Assistant, reqMsg, replyMsg *core.ChatMessage, sender core.MessageSender) error {
 
 	config := cfg.DeepResearchConfig
 
-	log.Error(util.ToJson(config, true))
+	log.Debug("deep research config: ", util.ToJson(config, true))
 
 	log.Trace("=== Open Deep Research ===")
 	log.Debugf("Research Model: %s", config.ResearchModel)
@@ -23,9 +24,27 @@ func RunDeepResearch(ctx context.Context, userQuery string, cfg *core.Assistant)
 	log.Debugf("Max Researcher Iterations: %d", config.MaxResearcherIterations)
 	log.Debugf("Max Concurrent Research Units: %d", config.MaxConcurrentResearchUnits)
 
+	//response
+	reasoningBuffer := strings.Builder{}
+	messageBuffer := strings.Builder{}
+	// note: we use defer to ensure that the response message is saved after processing
+	// even if user cancels the task or if an error occurs
+	defer func() {
+		//save response message to system
+		if messageBuffer.Len() > 0 {
+			replyMsg.Message = messageBuffer.String()
+		} else {
+			log.Warnf("seems empty reply for query: %v", replyMsg)
+		}
+		if reasoningBuffer.Len() > 0 {
+			detail := core.ProcessingDetails{Order: 50, Type: common.Think, Description: reasoningBuffer.String()}
+			replyMsg.Details = append(replyMsg.Details, detail)
+		}
+	}()
+
 	// Create deep researcher graph
 	log.Debug("Initializing Deep Researcher...")
-	deepResearcher, err := CreateDeepResearcherGraph(ctx, config)
+	deepResearcher, err := CreateDeepResearcherGraph(ctx, config, reqMsg, replyMsg, sender)
 	if err != nil {
 		log.Errorf("Failed to create deep researcher: %v", err)
 		return nil
@@ -53,19 +72,19 @@ func RunDeepResearch(ctx context.Context, userQuery string, cfg *core.Assistant)
 
 	// Extract final report
 	resultState := result.(map[string]interface{})
-	finalReport, ok := resultState["final_report"].(string)
+	finalReport, ok := resultState["markdown_report"].(string)
 	if !ok {
 		log.Error("No final report generated")
 		return nil
 	}
 
+	messageBuffer.WriteString(finalReport)
+
 	// Display results
 	log.Info("\n" + strings.Repeat("=", 80))
 	log.Info("RESEARCH COMPLETE")
 	log.Info(strings.Repeat("=", 80))
-	fmt.Println()
-	fmt.Println(finalReport)
-	fmt.Println()
+	log.Info(finalReport)
 	log.Info(strings.Repeat("=", 80))
 
 	// Display metadata

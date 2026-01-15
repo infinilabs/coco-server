@@ -1,4 +1,4 @@
-package deep_research
+package tools
 
 import (
 	"context"
@@ -29,11 +29,11 @@ func (t *EnterpriseSearchTool) Description() string {
 
 // Call executes the search
 func (t *EnterpriseSearchTool) Call(ctx context.Context, input string) (string, error) {
-	log.Info("start call EnterpriseSearchTool:", input)
-	defer log.Info("end call EnterpriseSearchTool:", input)
+	log.Trace("start call EnterpriseSearchTool:", input)
+	defer log.Trace("end call EnterpriseSearchTool:", input)
 
 	userInfo := security.MustGetUserFromContext(ctx)
-	log.Error("hit enterprise_search_tool, MustGetUserID: ", userInfo.MustGetUserID())
+	log.Info("hit enterprise_search_tool, user: ", userInfo.MustGetUserID(), ", query:", input)
 
 	// Format results
 	var results []string
@@ -45,9 +45,10 @@ func (t *EnterpriseSearchTool) Call(ctx context.Context, input string) (string, 
 		panic(err)
 	}
 
-	log.Error("hit enterprise_search_tool, output: ", util.ToJson(output, true))
+	//log.Error("hit enterprise_search_tool, output: ", util.ToJson(output, true))
 
 	for i, result := range output {
+		log.Info("result[", i, "]:", result.Title)
 		results = append(results, fmt.Sprintf(
 			"[Result %d]\nTitle: %s\nURL: %s\nContent: %s\n",
 			i+1, result.Title, result.URL, result.Content,

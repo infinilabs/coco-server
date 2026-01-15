@@ -8,7 +8,6 @@ import (
 	log "github.com/cihub/seelog"
 	"github.com/tmc/langchaingo/memory"
 	"infini.sh/coco/core"
-	"infini.sh/coco/modules/assistant/langchain"
 	"infini.sh/coco/modules/common"
 	api1 "infini.sh/framework/core/api"
 	"infini.sh/framework/core/util"
@@ -36,7 +35,7 @@ type RAGContext struct {
 	//history
 	ChatHistory *memory.ChatMessageHistory
 
-	QueryIntent  *langchain.QueryIntent
+	QueryIntent  *QueryIntent
 	PickedDocIDS []string
 
 	//pickingDocModel *core.ModelConfig

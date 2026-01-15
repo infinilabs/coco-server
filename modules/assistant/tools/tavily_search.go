@@ -1,4 +1,4 @@
-package deep_research
+package tools
 
 import (
 	"context"
