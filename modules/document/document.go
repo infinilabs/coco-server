@@ -5,6 +5,7 @@
 package document
 
 import (
+	"fmt"
 	"net/http"
 
 	log "github.com/cihub/seelog"
@@ -119,6 +120,42 @@ func (h *APIHandler) searchDocs(w http.ResponseWriter, req *http.Request, ps htt
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// Get search_type parameter, default to "hybrid"
+	searchType := h.GetParameter(req, "search_type")
+	if searchType == "" {
+		searchType = "hybrid"
+	}
+
+	// Get the query text for semantic/hybrid search
+	queryText := h.GetParameter(req, "query")
+
+	// Modify the query based on search_type
+	switch searchType {
+	case "semantic":
+		// Pure semantic search - replace the main query with nested semantic query
+		if queryText != "" {
+			semanticClause := orm.SemanticQuery("document_chunk.embedding.embedding1024", queryText, 0, "")
+			nestedClause := orm.NestedQuery("document_chunk", semanticClause)
+			builder.Must(nestedClause)
+		}
+	case "hybrid":
+		// Hybrid search: combine text match + semantic
+		if queryText != "" {
+			matchClause := orm.MatchQuery("document_chunk.text", queryText)
+			semanticClause := orm.SemanticQuery("document_chunk.embedding.embedding1024", queryText, 0, "")
+			hybridClause := orm.HybridQuery(matchClause, semanticClause)
+			nestedClause := orm.NestedQuery("document_chunk", hybridClause)
+			builder.Must(nestedClause)
+		}
+	case "keyword":
+		// Pure keyword search - default behavior from NewQueryBuilderFromRequest
+		// No additional modification needed
+	default:
+		h.WriteError(w, fmt.Sprintf("invalid search_type: %s, must be one of: semantic, hybrid, keyword", searchType), http.StatusBadRequest)
+		return
+	}
+
 	// Omit these fields. The frontend does not need them, and they are large enough
 	// to slow us down.
 	builder.Exclude("payload.*", "document_chunk")
