@@ -18,6 +18,7 @@ Information about release notes of Coco Server is provided here.
 - feat: implement query suggest api #642
 - feat: implement recommend api #643
 - feat: convert document cover/thumbnail to attachment URL for preview #645
+- feat: add RefineURL to convert document URL to preview format #649
 
 ### 🐛 Bug fix  
 
