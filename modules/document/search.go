@@ -189,12 +189,12 @@ func RefineCoverThumbnail(ctx context.Context, doc *core.Document) {
 	}
 }
 
-// RefineURL converts [doc.URL] to [ENDPOINT/#/preview?document=DOC_ID]
+// RefineURL converts [doc.URL] to [ENDPOINT/#/preview/document/DOC_ID]
 func RefineURL(ctx context.Context, doc *core.Document) {
 	appCfg := common.AppConfig()
 	baseEndpoint := appCfg.ServerInfo.Endpoint
 
-	doc.URL = fmt.Sprintf("%s/#/preview?document=%s", baseEndpoint, doc.ID)
+	doc.URL = fmt.Sprintf("%s/#/preview/document/%s", baseEndpoint, doc.ID)
 }
 
 func searchAssistant(req *http.Request, query string, size int) []core.Assistant {
