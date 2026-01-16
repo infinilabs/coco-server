@@ -39,8 +39,10 @@ type Document struct {
 	//use rich_categories for icon need to display for each category
 	RichCategories []RichLabel `json:"rich_categories,omitempty" elastic_mapping:"rich_categories:{type:object}"` // Full hierarchy of categories, useful for detailed classification, with icon decoration
 
-	Title   string `json:"title,omitempty" elastic_mapping:"title:{type:text,copy_to:combined_fulltext,fields:{keyword: {type: keyword}, pinyin: {type: text, analyzer: pinyin_analyzer}}}"` // Document title
-	Summary string `json:"summary,omitempty" elastic_mapping:"summary:{type:text,copy_to:combined_fulltext}"`                                                                                // Brief summary or description of the document
+	Title      string     `json:"title,omitempty" elastic_mapping:"title:{type:text,copy_to:combined_fulltext,fields:{keyword: {type: keyword}, pinyin: {type: text, analyzer: pinyin_analyzer}}}"` // Document title
+	AiInsights AiInsignts `json:"ai_insights,omitempty" elastic_mapping:"ai_insights:{type:object}"`                                                                                                // Struct containing AI Insights
+
+	Summary string `json:"summary,omitempty" elastic_mapping:"summary:{type:text,copy_to:combined_fulltext}"` // Brief summary or description of the document
 
 	Lang        string          `json:"lang,omitempty" elastic_mapping:"lang:{type:keyword,copy_to:combined_fulltext}"`    // Language code (e.g., "en", "fr")
 	Content     string          `json:"content,omitempty" elastic_mapping:"content:{type:text,copy_to:combined_fulltext}"` // Document content for full-text indexing
@@ -121,6 +123,11 @@ type DocumentChunk struct {
 	Range     ChunkRange `json:"range" elastic_mapping:"range:{type:object}"`
 	Text      string     `json:"text" elastic_mapping:"text:{type:text}"`
 	Embedding Embedding  `json:"embedding" elastic_mapping:"embedding:{type:object}"`
+}
+
+type AiInsignts struct {
+	Text      string    `json:"text" elastic_mapping:"text:{type:text}"`
+	Embedding Embedding `json:"embedding" elastic_mapping:"embedding:{type:object}"`
 }
 
 // A `Embedding` stores a chunk's embedding.

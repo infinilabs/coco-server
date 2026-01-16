@@ -186,15 +186,13 @@ func (processor *DocumentSummarizationProcessor) Process(ctx *pipeline.Context) 
 	return nil
 }
 
-// Helper function to set both document.Summary and document.Metadata["ai_insights"]
-func setSummaryAndInsights(document *core.Document, shortSummary string, aiInsights string) {
-	// Initialize Metadata if nil
-	if document.Metadata == nil {
-		document.Metadata = make(map[string]interface{})
-	}
-
+// Helper function to set both document.Summary and document.AiInsights
+func setSummaryAndInsights(document *core.Document, shortSummary string, aiInsightsText string) {
 	document.Summary = shortSummary
-	document.Metadata["ai_insights"] = aiInsights
+
+	aiInsights := core.AiInsignts{}
+	aiInsights.Text = aiInsightsText
+	document.AiInsights = aiInsights
 }
 
 // Main logic of this processor, generate AI insights and summary for this document.

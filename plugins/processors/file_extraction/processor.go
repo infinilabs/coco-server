@@ -534,6 +534,7 @@ func (p *FileExtractionProcessor) extractTextAndAttachment(ctx context.Context, 
 
 	doc.Chunks = SplitPagesToChunks(extraction.Pages, p.config.ChunkSize)
 	doc.Attachments = extraction.Attachments
+	doc.Content = strings.Join(extraction.Pages, " ")
 
 	return nil
 }
