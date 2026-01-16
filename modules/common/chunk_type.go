@@ -6,6 +6,12 @@ package common
 
 // Define constants for the various stages
 const (
+	//common
+	ReplyStart = "reply_start"
+	Response   = "response" //formal response by assistant
+	ReplyEnd   = "reply_end"
+
+	//deep think related
 	QueryIntent  = "query_intent"
 	Tools        = "tools"
 	QueryRewrite = "query_rewrite"
@@ -13,7 +19,6 @@ const (
 	PickSource   = "pick_source"
 	DeepRead     = "deep_read"
 	Think        = "think"    //reasoning message by LLM
-	Response     = "response" //formal response by assistant
 	References   = "references"
-	ReplyEnd     = "reply_end"
+
 )

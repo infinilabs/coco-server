@@ -85,7 +85,7 @@ func RunDeepSearchTask(ctx context.Context, userID string, params *common2.RAGCo
 	if params.SearchDB && !toolsMayHavePromisedResult && params.AssistantCfg.Datasource.Enabled && len(params.AssistantCfg.Datasource.GetIDs()) > 0 {
 		if !(cfg.DeepThinkConfig.PickDatasource && !queryIntent.NeedNetworkSearch) {
 			var fetchSize = 50
-			docs, _ := tools.InitialDocumentBriefSearch(ctx, userID, reqMsg, replyMsg, params, fetchSize, sender)
+			docs, _ := tools.InitialDocumentBriefSearch(ctx, userID, reqMsg, replyMsg, params, 0, fetchSize, sender)
 			params.InputValues["references"] = util.MustToJSON(docs)
 
 			if len(docs) > 10 {

@@ -18,9 +18,10 @@ import (
 )
 
 func InitialDocumentBriefSearch(ctx context.Context, userID string, reqMsg, replyMsg *core.ChatMessage,
-	params *common2.RAGContext, fechSize int, sender core.MessageSender) ([]core.Document, error) {
+	params *common2.RAGContext, from, fechSize int, sender core.MessageSender) ([]core.Document, error) {
 
 	builder := orm.NewQuery()
+	builder.From(from)
 	builder.Size(fechSize)
 
 	//merge the user defined query to filter

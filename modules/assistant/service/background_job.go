@@ -154,7 +154,7 @@ func ProcessMessageAsync(ctx context.Context, userID string, reqMsg, replyMsg *c
 
 		if params.SearchDB && !toolsMayHavePromisedResult && params.AssistantCfg.Datasource.Enabled && len(params.AssistantCfg.Datasource.GetIDs()) > 0 {
 			var fetchSize = 10
-			docs, _ := tools.InitialDocumentBriefSearch(ctx, userID, reqMsg, replyMsg, params, fetchSize, sender)
+			docs, _ := tools.InitialDocumentBriefSearch(ctx, userID, reqMsg, replyMsg, params, 0, fetchSize, sender)
 			params.InputValues["references"] = docs
 		}
 
