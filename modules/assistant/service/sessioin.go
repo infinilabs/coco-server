@@ -141,9 +141,11 @@ func AskAssistantSync(ctx context.Context, userID string, id string, message str
 	ragCtx.SessionID = session.ID
 	ragCtx.InputValues = vars
 
+	replyMsg := CreateAssistantReplyMessage(session.ID, reqMsg.AssistantID, reqMsg.ID)
+
 	// Memory-based receiver for synchronous mode
 	receiver := &common.MemoryMessageSender{}
-	if err := ProcessMessageAsync(ctx, userID, reqMsg, ragCtx, receiver); err != nil {
+	if err := ProcessMessageAsync(ctx, userID, reqMsg, replyMsg, ragCtx, receiver); err != nil {
 		return "", fmt.Errorf("process message failed: %w", err)
 	}
 

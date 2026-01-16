@@ -21,9 +21,10 @@ func GenerateResponse(taskCtx context.Context, provider *core.ModelProvider, mod
 	reqMsg, replyMsg *core.ChatMessage, sessionID string, rolePrompt string,
 	inputValues map[string]any, sender core.MessageSender) error {
 
-	echoMsg := core.NewMessageChunk(sessionID, replyMsg.ID, core.MessageTypeAssistant, reqMsg.ID, common.Response, string(""), 0)
-	_ = sender.SendMessage(echoMsg)
-	replyMsg.Message += echoMsg.MessageChunk
+	err := sender.SendChunkMessage(core.MessageTypeAssistant, common.Response, string(""), 0)
+	if err != nil {
+		panic(err)
+	}
 
 	// Prepare the system message
 	content := []llms.MessageContent{
@@ -48,7 +49,6 @@ func GenerateResponse(taskCtx context.Context, provider *core.ModelProvider, mod
 		}
 	}()
 	chunkSeq := 0
-	var err error
 
 	llm, err := SimplyGetLLM(modelConfig.ProviderID, modelConfig.Name, modelConfig.Keepalive)
 	if err != nil {
@@ -74,9 +74,7 @@ func GenerateResponse(taskCtx context.Context, provider *core.ModelProvider, mod
 				if len(reasoningChunk) > 0 {
 					chunkSeq += 1
 					reasoningBuffer.Write(reasoningChunk)
-					msg := core.NewMessageChunk(sessionID, replyMsg.ID, core.MessageTypeAssistant, reqMsg.ID, common.Think, string(reasoningChunk), chunkSeq)
-					//log.Info(util.MustToJSON(msg))
-					err = sender.SendMessage(msg)
+					err = sender.SendChunkMessage(core.MessageTypeAssistant, common.Think, string(reasoningChunk), chunkSeq)
 					if err != nil {
 						panic(err)
 					}
@@ -87,8 +85,7 @@ func GenerateResponse(taskCtx context.Context, provider *core.ModelProvider, mod
 				if len(chunk) > 0 {
 					chunkSeq += 1
 
-					msg := core.NewMessageChunk(sessionID, replyMsg.ID, core.MessageTypeAssistant, reqMsg.ID, common.Response, string(chunk), chunkSeq)
-					err = sender.SendMessage(msg)
+					err = sender.SendChunkMessage(core.MessageTypeAssistant, common.Response, string(chunk), chunkSeq)
 					if err != nil {
 						panic(err)
 					}
@@ -107,8 +104,10 @@ func GenerateResponse(taskCtx context.Context, provider *core.ModelProvider, mod
 			if len(chunk) > 0 {
 				log.Trace(string(chunk))
 				chunkSeq += 1
-				msg := core.NewMessageChunk(sessionID, replyMsg.ID, core.MessageTypeAssistant, reqMsg.ID, common.Response, string(chunk), chunkSeq)
-				err = sender.SendMessage(msg)
+				err = sender.SendChunkMessage(core.MessageTypeAssistant, common.Response, string(chunk), chunkSeq)
+				if err != nil {
+					panic(err)
+				}
 				messageBuffer.Write(chunk)
 			}
 			return nil
@@ -282,10 +281,7 @@ func DirectGenerate(taskCtx context.Context, modelConfig *core.ModelConfig, msgs
 
 func GenerateFinalResponse(taskCtx context.Context, reqMsg, replyMsg *core.ChatMessage, params *common2.RAGContext,
 	inputValues map[string]any, sender core.MessageSender) error {
-
-	echoMsg := core.NewMessageChunk(params.SessionID, replyMsg.ID, core.MessageTypeAssistant, reqMsg.ID, common.Response, string(""), 0)
-	_ = sender.SendMessage(echoMsg)
-	replyMsg.Message += echoMsg.MessageChunk
+	_ = sender.SendChunkMessage(core.MessageTypeAssistant, common.Response, string(""), 0)
 
 	// Prepare the system message
 	content := []llms.MessageContent{
@@ -300,6 +296,7 @@ func GenerateFinalResponse(taskCtx context.Context, reqMsg, replyMsg *core.ChatM
 	defer func() {
 		//save response message to system
 		if messageBuffer.Len() > 0 {
+			log.Error("set message buffer:", messageBuffer.String())
 			replyMsg.Message = messageBuffer.String()
 		} else {
 			log.Warnf("seems empty reply for query: %v", replyMsg)
@@ -343,9 +340,7 @@ func GenerateFinalResponse(taskCtx context.Context, reqMsg, replyMsg *core.ChatM
 				if len(reasoningChunk) > 0 {
 					chunkSeq += 1
 					reasoningBuffer.Write(reasoningChunk)
-					msg := core.NewMessageChunk(params.SessionID, replyMsg.ID, core.MessageTypeAssistant, reqMsg.ID, common.Think, string(reasoningChunk), chunkSeq)
-					//log.Info(util.MustToJSON(msg))
-					err = sender.SendMessage(msg)
+					err = sender.SendChunkMessage(core.MessageTypeAssistant, common.Think, string(reasoningChunk), chunkSeq)
 					if err != nil {
 						panic(err)
 					}
@@ -356,13 +351,11 @@ func GenerateFinalResponse(taskCtx context.Context, reqMsg, replyMsg *core.ChatM
 				if len(chunk) > 0 {
 					chunkSeq += 1
 
-					msg := core.NewMessageChunk(params.SessionID, replyMsg.ID, core.MessageTypeAssistant, reqMsg.ID, common.Response, string(chunk), chunkSeq)
-					err = sender.SendMessage(msg)
+					err = sender.SendChunkMessage(core.MessageTypeAssistant, common.Response, string(chunk), chunkSeq)
 					if err != nil {
 						panic(err)
 					}
 
-					//log.Debug(msg)
 					messageBuffer.Write(chunk)
 				}
 
@@ -376,36 +369,38 @@ func GenerateFinalResponse(taskCtx context.Context, reqMsg, replyMsg *core.ChatM
 			if len(chunk) > 0 {
 				log.Trace(string(chunk))
 				chunkSeq += 1
-				msg := core.NewMessageChunk(params.SessionID, replyMsg.ID, core.MessageTypeAssistant, reqMsg.ID, common.Response, string(chunk), chunkSeq)
-				err = sender.SendMessage(msg)
+				err = sender.SendChunkMessage(core.MessageTypeAssistant, common.Response, string(chunk), chunkSeq)
 				messageBuffer.Write(chunk)
 			}
 			return nil
 		}))
 	}
 
-	contextPrompt := ``
+	//for context is not set
+	if _, ok := inputValues["context"]; !ok {
+		contextPrompt := ``
 
-	if v, ok := inputValues["history"]; ok {
-		text, ok := v.(string)
-		if ok {
-			if params.AssistantCfg.ChatSettings.HistoryMessage.CompressionThreshold > 0 && len(text) > params.AssistantCfg.ChatSettings.HistoryMessage.CompressionThreshold {
-				//log.Error("history is too large: %v, compressing, target size: %v", len(text), params.AssistantCfg.ChatSettings.HistoryMessage.CompressionThreshold)
-				//TODO compress history
+		if v, ok := inputValues["history"]; ok {
+			text, ok := v.(string)
+			if ok {
+				if params.AssistantCfg.ChatSettings.HistoryMessage.CompressionThreshold > 0 && len(text) > params.AssistantCfg.ChatSettings.HistoryMessage.CompressionThreshold {
+					//log.Error("history is too large: %v, compressing, target size: %v", len(text), params.AssistantCfg.ChatSettings.HistoryMessage.CompressionThreshold)
+					//TODO compress history
+				}
+				contextPrompt += fmt.Sprintf("\nConversation:\n%v\n", text)
 			}
-			contextPrompt += fmt.Sprintf("\nConversation:\n%v\n", text)
 		}
-	}
 
-	if v, ok := inputValues["references"]; ok {
-		contextPrompt += util.SubString(fmt.Sprintf("\nReferences:\n%v\n", v), 0, 4096*2) //TODO
-	}
+		if v, ok := inputValues["references"]; ok {
+			contextPrompt += util.SubString(fmt.Sprintf("\nReferences:\n%v\n", v), 0, 4096*2) //TODO
+		}
 
-	if v, ok := inputValues["tools_output"]; ok {
-		contextPrompt += fmt.Sprintf("\nTools Output:\n%v\n", v)
-	}
+		if v, ok := inputValues["tools_output"]; ok {
+			contextPrompt += fmt.Sprintf("\nTools Output:\n%v\n", v)
+		}
 
-	inputValues["context"] = contextPrompt
+		inputValues["context"] = contextPrompt
+	}
 
 	template := common.GenerateAnswerPromptTemplate
 	if params.AssistantCfg.AnsweringModel.PromptConfig != nil && params.AssistantCfg.AnsweringModel.PromptConfig.PromptTemplate != "" {

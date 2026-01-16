@@ -64,10 +64,8 @@ func InitialDocumentBriefSearch(ctx context.Context, userID string, reqMsg, repl
 
 			chunkData := simplifiedReferences[start:end]
 
-			chunkMsg := core.NewMessageChunk(params.SessionID, replyMsg.ID, core.MessageTypeAssistant, reqMsg.ID,
+			err = sender.SendChunkMessage(core.MessageTypeAssistant,
 				common.FetchSource, string(chunkData), chunkSeq)
-
-			err = sender.SendMessage(chunkMsg)
 			if err != nil {
 				log.Error(err)
 				return nil, err

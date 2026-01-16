@@ -73,10 +73,7 @@ func ProcessQueryIntent(ctx context.Context, sessionID string, model *core.Model
 		chains.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
 			if len(chunk) > 0 {
 				chunkSeq++
-				//queryIntentBuffer.Write(chunk)
-				fmt.Println(string(chunk))
-				msg := core.NewMessageChunk(sessionID, replyMsg.ID, core.MessageTypeAssistant, reqMsg.ID, common.QueryIntent, string(chunk), chunkSeq)
-				err := sender.SendMessage(msg)
+				err = sender.SendChunkMessage(core.MessageTypeAssistant, common.QueryIntent, string(chunk), chunkSeq)
 				if err != nil {
 					_ = log.Error(err)
 					return err

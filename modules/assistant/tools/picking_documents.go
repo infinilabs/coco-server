@@ -20,8 +20,10 @@ func PickingDocuments(ctx context.Context, reqMsg, replyMsg *core.ChatMessage,
 		return nil, nil
 	}
 
-	echoMsg := core.NewMessageChunk(params.SessionID, replyMsg.ID, core.MessageTypeAssistant, reqMsg.ID, common.PickSource, string(""), 0)
-	_ = sender.SendMessage(echoMsg)
+	err := sender.SendChunkMessage(core.MessageTypeAssistant, common.PickSource, string(""), 0)
+	if err != nil {
+		panic(err)
+	}
 
 	promptTemplate := common.PickingDocPromptTemplate
 	if params.AssistantCfg.DeepThinkConfig.PickingDocModel.PromptConfig.PromptTemplate != "" {
@@ -64,8 +66,7 @@ func PickingDocuments(ctx context.Context, reqMsg, replyMsg *core.ChatMessage,
 			if len(chunk) > 0 {
 				chunkSeq++
 				pickedDocsBuffer.Write(chunk)
-				msg := core.NewMessageChunk(params.SessionID, replyMsg.ID, core.MessageTypeAssistant, reqMsg.ID, common.PickSource, string(chunk), chunkSeq)
-				err := sender.SendMessage(msg)
+				err = sender.SendChunkMessage(core.MessageTypeAssistant, common.PickSource, string(chunk), chunkSeq)
 				if err != nil {
 					return err
 				}

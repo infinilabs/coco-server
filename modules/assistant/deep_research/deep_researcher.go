@@ -137,14 +137,12 @@ func CreateDeepResearcherGraph(ctx context.Context, config *core.DeepResearchCon
 		log.Infof("[Final Report] Generating report with %d research findings", len(notes))
 
 		resp, err := langchain.DirectGenerate(ctx, &config.ReportModel, langchain.GetPromptMessages(&config.ReportModel, "", prompt, nil, nil), func(chunk []byte, seq int) {
-			msg := core.NewMessageChunk(reqMsg.SessionID, replyMsg.ID, core.MessageTypeAssistant, reqMsg.ID, common.Think, string(chunk), seq)
-			err = sender.SendMessage(msg)
+			err = sender.SendChunkMessage(core.MessageTypeAssistant, common.Think, string(chunk), seq)
 			if err != nil {
 				panic(err)
 			}
 		}, func(chunk []byte, seq int) {
-			msg := core.NewMessageChunk(reqMsg.SessionID, replyMsg.ID, core.MessageTypeAssistant, reqMsg.ID, common.Response, string(chunk), seq)
-			err = sender.SendMessage(msg)
+			err = sender.SendChunkMessage(core.MessageTypeAssistant, common.Response, string(chunk), seq)
 			if err != nil {
 				panic(err)
 			}

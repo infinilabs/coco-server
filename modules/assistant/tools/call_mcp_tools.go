@@ -228,8 +228,10 @@ func CallLLMTools(ctx context.Context, reqMsg *core.ChatMessage, replyMsg *core.
 	callback.CustomWriteFunc = func(chunk string) {
 		if chunk != "" {
 			answerBuffer.WriteString(chunk)
-			echoMsg := core.NewMessageChunk(params.SessionID, replyMsg.ID, core.MessageTypeAssistant, reqMsg.ID, common.Tools, chunk, toolsSeq)
-			_ = sender.SendMessage(echoMsg)
+			err = sender.SendChunkMessage(core.MessageTypeAssistant, common.Tools, chunk, toolsSeq)
+			if err != nil {
+				panic(err)
+			}
 		}
 		toolsSeq++
 	}

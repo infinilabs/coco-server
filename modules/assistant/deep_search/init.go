@@ -86,7 +86,7 @@ func RunDeepSearchTask(ctx context.Context, userID string, params *common2.RAGCo
 		if !(cfg.DeepThinkConfig.PickDatasource && !queryIntent.NeedNetworkSearch) {
 			var fetchSize = 50
 			docs, _ := tools.InitialDocumentBriefSearch(ctx, userID, reqMsg, replyMsg, params, fetchSize, sender)
-			params.InputValues["references"] = docs
+			params.InputValues["references"] = util.MustToJSON(docs)
 
 			if len(docs) > 10 {
 				//re-pick top docs

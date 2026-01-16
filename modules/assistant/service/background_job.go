@@ -13,7 +13,7 @@ import (
 
 	"infini.sh/coco/core"
 	common2 "infini.sh/coco/modules/assistant/common"
-	"infini.sh/coco/modules/assistant/deep_research"
+	deep_research2 "infini.sh/coco/modules/assistant/deep_research_v2"
 	"infini.sh/coco/modules/assistant/deep_search"
 	"infini.sh/coco/modules/assistant/tools"
 
@@ -50,16 +50,16 @@ func finalizeProcessing(ctx context.Context, sessionID string, msg *core.ChatMes
 		_ = log.Errorf("Failed to save assistant message: %v", err)
 	}
 
-	_ = sender.SendMessage(core.NewMessageChunk(
-		sessionID, msg.ID, core.MessageTypeSystem, msg.ReplyMessageID,
+	_ = sender.SendChunkMessage(core.MessageTypeSystem,
 		common.ReplyEnd, "Processing completed", 0,
-	))
+	)
 }
 
-func ProcessMessageAsync(ctx context.Context, userID string, reqMsg *core.ChatMessage, params *common2.RAGContext, sender core.MessageSender) error {
+func ProcessMessageAsync(ctx context.Context, userID string, reqMsg, replyMsg *core.ChatMessage, params *common2.RAGContext, sender core.MessageSender) error {
 	log.Debugf("Starting async processing for session: %v", params.SessionID)
 
-	replyMsg := CreateAssistantReplyMessage(params.SessionID, reqMsg.AssistantID, reqMsg.ID)
+	var err error
+	//messageBuffer := strings.Builder{}
 
 	defer func() {
 		if !global.Env().IsDebug {
@@ -76,14 +76,19 @@ func ProcessMessageAsync(ctx context.Context, userID string, reqMsg *core.ChatMe
 				msg := fmt.Sprintf("⚠️ error in async processing message reply, %v", v)
 				if replyMsg.Message == "" {
 					replyMsg.Message = msg
-					_ = sender.SendMessage(core.NewMessageChunk(
-						params.SessionID, replyMsg.ID, core.MessageTypeSystem, reqMsg.ID,
+					_ = sender.SendChunkMessage(core.MessageTypeSystem,
 						common.Response, msg, 0,
-					))
+					)
 				}
 				_ = log.Error(msg)
 			}
 		}
+
+		if err != nil {
+			log.Errorf("Failed to process message reply: %v", err)
+			replyMsg.Message += err.Error()
+		}
+
 		finalizeProcessing(ctx, params.SessionID, replyMsg, sender)
 		// clear the inflight message task
 		taskID := GetReplyMessageTaskID(params.SessionID, reqMsg.ID)
@@ -108,7 +113,6 @@ func ProcessMessageAsync(ctx context.Context, userID string, reqMsg *core.ChatMe
 		params.InputValues["history"] = "</empty>"
 	}
 
-	var err error
 	switch params.AssistantCfg.Type {
 	case core.AssistantTypeDeepThink:
 		return deep_search.RunDeepSearchTask(
@@ -122,9 +126,12 @@ func ProcessMessageAsync(ctx context.Context, userID string, reqMsg *core.ChatMe
 		)
 	case core.AssistantTypeDeepResearch:
 		log.Info("start running deep research")
-		err = deep_research.RunDeepResearch(ctx, reqMsg.Message, params.AssistantCfg, reqMsg,
+		err = deep_research2.RunDeepResearchV2(ctx, reqMsg.Message, params.AssistantCfg.DeepResearchConfig, reqMsg,
 			replyMsg,
 			sender)
+		//err = deep_research.RunDeepResearch(ctx, reqMsg.Message, params.AssistantCfg.DeepResearchConfig, reqMsg,
+		//	replyMsg,
+		//	sender)
 		log.Info("end running deep research")
 		break
 	default:

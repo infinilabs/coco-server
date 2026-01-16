@@ -23,8 +23,7 @@ func FetchDocumentInDepth(ctx context.Context, reqMsg, replyMsg *core.ChatMessag
 		for _, v := range pickedFullDoc {
 			str := "Analyzing:  " + string(v.Title) + "\n"
 			strBuilder.WriteString(str)
-			chunkMsg := core.NewMessageChunk(params.SessionID, replyMsg.ID, core.MessageTypeAssistant, reqMsg.ID, common.DeepRead, str, chunkSeq)
-			err = sender.SendMessage(chunkMsg)
+			err = sender.SendChunkMessage(core.MessageTypeAssistant, common.DeepRead, str, chunkSeq)
 			if err != nil {
 				return err
 			}

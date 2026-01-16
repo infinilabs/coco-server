@@ -18,6 +18,11 @@ type MemoryMessageSender struct {
 	messages []string
 }
 
+func (m *MemoryMessageSender) SendChunkMessage(messageType, chunkType, messageChunk string, chunkSequence int) error {
+	msg := core.NewMessageChunk("", "", messageType, "", chunkType, messageChunk, chunkSequence)
+	return m.SendMessage(msg)
+}
+
 func (m *MemoryMessageSender) SendMessage(msg *core.MessageChunk) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()

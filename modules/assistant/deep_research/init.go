@@ -2,6 +2,7 @@ package deep_research
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -12,9 +13,7 @@ import (
 	"infini.sh/framework/core/util"
 )
 
-func RunDeepResearch(ctx context.Context, userQuery string, cfg *core.Assistant, reqMsg, replyMsg *core.ChatMessage, sender core.MessageSender) error {
-
-	config := cfg.DeepResearchConfig
+func RunDeepResearch(ctx context.Context, userQuery string, config *core.DeepResearchConfig, reqMsg, replyMsg *core.ChatMessage, sender core.MessageSender) error {
 
 	log.Debug("deep research config: ", util.ToJson(config, true))
 
@@ -47,7 +46,7 @@ func RunDeepResearch(ctx context.Context, userQuery string, cfg *core.Assistant,
 	deepResearcher, err := CreateDeepResearcherGraph(ctx, config, reqMsg, replyMsg, sender)
 	if err != nil {
 		log.Errorf("Failed to create deep researcher: %v", err)
-		return nil
+		return err
 	}
 
 	// Define research query
@@ -67,15 +66,14 @@ func RunDeepResearch(ctx context.Context, userQuery string, cfg *core.Assistant,
 	result, err := deepResearcher.Invoke(ctx, initialState)
 	if err != nil {
 		log.Errorf("Research execution failed: %v", err)
-		return nil
+		return err
 	}
 
 	// Extract final report
 	resultState := result.(map[string]interface{})
 	finalReport, ok := resultState["markdown_report"].(string)
 	if !ok {
-		log.Error("No final report generated")
-		return nil
+		return errors.New("No final report generated")
 	}
 
 	messageBuffer.WriteString(finalReport)

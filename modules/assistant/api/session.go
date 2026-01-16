@@ -225,21 +225,30 @@ func (h APIHandler) createChatSession(w http.ResponseWriter, r *http.Request, ps
 		h.Error(w, err)
 		return
 	}
+
 	// Create a context with cancel to handle the message asynchronously
 	ctx := context.WithoutCancel(r.Context())
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 
+	replyMsg := service.CreateAssistantReplyMessage(params.SessionID, reqMsg.AssistantID, reqMsg.ID)
+
 	streamSender := &common2.HTTPStreamSender{
+		ReqMsg:   reqMsg,
+		ReplyMsg: replyMsg,
+
 		Enc:     enc,
 		Flusher: flusher,
 		Ctx:     ctx, // assuming this is in an HTTP handler
+
 	}
+
 	replyMsgTaskID := service.GetReplyMessageTaskID(session.ID, reqMsg.ID)
 	service.InflightMessages.Store(replyMsgTaskID, common2.MessageTask{
 		SessionID:  session.ID,
 		CancelFunc: cancel,
 	})
-	_ = service.ProcessMessageAsync(ctx, userInfo.MustGetUserID(), reqMsg, params, streamSender)
+
+	_ = service.ProcessMessageAsync(ctx, userInfo.MustGetUserID(), reqMsg, replyMsg, params, streamSender)
 }
 
 func (h *APIHandler) askAssistant(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -273,8 +282,6 @@ func (h *APIHandler) askAssistant(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
-	ctx := context.WithoutCancel(r.Context())
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		h.Error(w, errors.New("http.Flusher not supported"))
@@ -294,19 +301,27 @@ func (h *APIHandler) askAssistant(w http.ResponseWriter, r *http.Request, ps htt
 		h.Error(w, err)
 		return
 	}
-	streamSender := &common2.HTTPStreamSender{
-		Enc:     enc,
-		Flusher: flusher,
-		Ctx:     ctx, // Use the timeout context for consistency
-	}
 
-	replyMsgTaskID := service.GetReplyMessageTaskID(session.ID, reqMsg.ID)
+	ctx := context.WithoutCancel(r.Context())
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+
+	sessionID := reqMsg.SessionID
+	replyMsgTaskID := service.GetReplyMessageTaskID(sessionID, reqMsg.ID)
 	service.InflightMessages.Store(replyMsgTaskID, common2.MessageTask{
-		SessionID:  session.ID,
+		SessionID:  sessionID,
 		CancelFunc: cancel,
 	})
+	replyMsg := service.CreateAssistantReplyMessage(params.SessionID, reqMsg.AssistantID, reqMsg.ID)
 
-	_ = service.ProcessMessageAsync(ctx, userInfo.MustGetUserID(), reqMsg, params, streamSender)
+	streamSender := &common2.HTTPStreamSender{
+		ReqMsg:   reqMsg,
+		ReplyMsg: replyMsg,
+		Enc:      enc,
+		Flusher:  flusher,
+		Ctx:      ctx, // Use the timeout context for consistency
+	}
+
+	_ = service.ProcessMessageAsync(ctx, userInfo.MustGetUserID(), reqMsg, replyMsg, params, streamSender)
 
 }
 
@@ -444,17 +459,22 @@ func (h APIHandler) sendChatMessageV2(w http.ResponseWriter, r *http.Request, ps
 	// Create a context with cancel to handle the message asynchronously
 	ctx := context.WithoutCancel(r.Context())
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+
+	replyMsg := service.CreateAssistantReplyMessage(params.SessionID, reqMsg.AssistantID, reqMsg.ID)
+
 	streamSender := &common2.HTTPStreamSender{
-		Enc:     enc,
-		Flusher: flusher,
-		Ctx:     ctx, // assuming this is in an HTTP handler
+		ReqMsg:   reqMsg,
+		ReplyMsg: replyMsg,
+		Enc:      enc,
+		Flusher:  flusher,
+		Ctx:      ctx, // assuming this is in an HTTP handler
 	}
 	replyMsgTaskID := service.GetReplyMessageTaskID(sessionID, reqMsg.ID)
 	service.InflightMessages.Store(replyMsgTaskID, common2.MessageTask{
 		SessionID:  sessionID,
 		CancelFunc: cancel,
 	})
-	_ = service.ProcessMessageAsync(ctx, userInfo.MustGetUserID(), reqMsg, params, streamSender)
+	_ = service.ProcessMessageAsync(ctx, userInfo.MustGetUserID(), reqMsg, replyMsg, params, streamSender)
 
 }
 
