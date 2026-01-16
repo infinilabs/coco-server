@@ -8,9 +8,15 @@ import logoLight from '@/assets/imgs/coco-logo-text-light.svg';
 import logoDark from '@/assets/imgs/coco-logo-text-dark.svg';
 import DateTime from '@/components/DateTime';
 import { SquareArrowOutUpRight } from 'lucide-react';
+import classNames from 'classnames';
+import type { ReactNode } from 'react';
 
 export function Component() {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
+  const mode = searchParams.get('mode');
+
+  const embedded = mode === 'embedded';
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>();
@@ -18,12 +24,8 @@ export function Component() {
   const [sourceUrl, setSourceUrl] = useState<string>();
   const { t } = useTranslation();
 
-  useMount(async () => {
+  useAsyncEffect(async () => {
     try {
-      if (!id) {
-        throw new Error('地址栏缺少必需的 document 参数。');
-      }
-
       const { data } = await request({
         method: 'get',
         url: `/document/${id}`
@@ -46,7 +48,32 @@ export function Component() {
     } finally {
       setLoading(false);
     }
-  });
+  }, [id]);
+
+  const renderActionButtons = (): ReactNode[] => {
+    if (embedded) {
+      return [
+        <Button
+          className='size-6!'
+          data-src={data?.url}
+          icon={<SquareArrowOutUpRight className='size-3.5 text-primary' />}
+          key='openSource'
+        />
+      ];
+    }
+
+    return [
+      <ActionButton
+        icon={<SquareArrowOutUpRight />}
+        key='openSource'
+        onClick={() => {
+          setSourceUrl(data?.url);
+        }}
+      >
+        {t('page.preview.buttons.openSource')}
+      </ActionButton>
+    ];
+  };
 
   const renderContent = () => {
     if (sourceUrl) {
@@ -111,17 +138,7 @@ export function Component() {
 
     return (
       <DocDetail
-        actionButtons={[
-          <ActionButton
-            icon={<SquareArrowOutUpRight />}
-            key='openSource'
-            onClick={() => {
-              setSourceUrl(data?.url);
-            }}
-          >
-            {t('page.preview.buttons.openSource')}
-          </ActionButton>
-        ]}
+        actionButtons={renderActionButtons()}
         data={{
           ...data,
           size: filesize(data?.size ?? 0),
@@ -154,24 +171,36 @@ export function Component() {
   };
 
   return (
-    <div className='h-screen flex flex-col bg-container children:px-40'>
-      <div className='h-20 flex items-center justify-between border-b border-border-secondary'>
-        <div className='children:h-10'>
-          <img
-            className='dark:hidden'
-            src={logoLight}
-          />
+    <div
+      className={classNames('h-screen flex flex-col bg-container', {
+        'children:px-40': !embedded
+      })}
+    >
+      {!embedded && (
+        <div className='h-20 flex items-center justify-between border-b border-border-secondary'>
+          <div className='children:h-10'>
+            <img
+              className='dark:hidden'
+              src={logoLight}
+            />
 
-          <img
-            className='hidden dark:block'
-            src={logoDark}
-          />
+            <img
+              className='hidden dark:block'
+              src={logoDark}
+            />
+          </div>
+
+          <span className='text-xl font-bold'>{t('page.preview.title')}</span>
         </div>
+      )}
 
-        <span className='text-xl font-bold'>{t('page.preview.title')}</span>
+      <div
+        className={classNames('flex-1 overflow-hidden', {
+          'mt-8': !embedded
+        })}
+      >
+        {renderContent()}
       </div>
-
-      <div className='mt-8 flex-1 overflow-hidden'>{renderContent()}</div>
     </div>
   );
 }
