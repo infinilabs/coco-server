@@ -40,7 +40,7 @@ type Document struct {
 	RichCategories []RichLabel `json:"rich_categories,omitempty" elastic_mapping:"rich_categories:{type:object}"` // Full hierarchy of categories, useful for detailed classification, with icon decoration
 
 	Title      string     `json:"title,omitempty" elastic_mapping:"title:{type:text,copy_to:combined_fulltext,fields:{keyword: {type: keyword}, pinyin: {type: text, analyzer: pinyin_analyzer}}}"` // Document title
-	AiInsights AiInsignts `json:"ai_insights,omitempty" elastic_mapping:"ai_insights:{type:object}"`                                                                                                // Struct containing AI Insights
+	AiInsights AiInsights `json:"ai_insights,omitempty" elastic_mapping:"ai_insights:{type:object}"`                                                                                                // Struct containing AI Insights
 
 	Summary string `json:"summary,omitempty" elastic_mapping:"summary:{type:text,copy_to:combined_fulltext}"` // Brief summary or description of the document
 
@@ -125,7 +125,7 @@ type DocumentChunk struct {
 	Embedding Embedding  `json:"embedding" elastic_mapping:"embedding:{type:object}"`
 }
 
-type AiInsignts struct {
+type AiInsights struct {
 	Text      string    `json:"text" elastic_mapping:"text:{type:text}"`
 	Embedding Embedding `json:"embedding" elastic_mapping:"embedding:{type:object}"`
 }

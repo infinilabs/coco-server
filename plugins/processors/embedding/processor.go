@@ -166,7 +166,7 @@ func generateEmbedding(ctx context.Context, document *core.Document, processorCo
 		return err
 	}
 
-	// Generate embedding for document.AiInsignts.Text
+	// Generate embedding for document.AiInsights.Text
 	if document.AiInsights.Text != "" {
 		embedding, err := embedder.CreateEmbedding(ctx, []string{document.AiInsights.Text})
 		if err != nil {

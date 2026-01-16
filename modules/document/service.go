@@ -26,7 +26,7 @@ func QueryDocuments(ctx1 context.Context, userID string, teamsID []string, build
 	builder.DefaultQueryField("title.keyword^100", "title^10", "title.pinyin^4", "combined_fulltext")
 	// Omit these fields. The frontend does not need them, and they are large enough
 	// to slow us down.
-	builder.Exclude("payload.*", "document_chunk")
+	builder.Exclude("payload.*", "document_chunk", "ai_insights.embedding")
 
 	filters := BuildFilters(category, subcategory, richCategory)
 

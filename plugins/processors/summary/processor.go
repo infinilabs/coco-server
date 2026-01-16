@@ -190,7 +190,7 @@ func (processor *DocumentSummarizationProcessor) Process(ctx *pipeline.Context) 
 func setSummaryAndInsights(document *core.Document, shortSummary string, aiInsightsText string) {
 	document.Summary = shortSummary
 
-	aiInsights := core.AiInsignts{}
+	aiInsights := core.AiInsights{}
 	aiInsights.Text = aiInsightsText
 	document.AiInsights = aiInsights
 }
