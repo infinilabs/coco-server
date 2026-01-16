@@ -904,6 +904,28 @@ const page: App.I18n.Schema['translation']['page'] = {
     delete: {
       confirm: `Are you sure you want to delete user "{{name}}" ?`
     }
+  },
+  preview: {
+    title: 'Document Preview',
+    labels: {
+      type: 'Type',
+      size: 'Size',
+      createdBy: 'Created By',
+      createdAt: 'Created At',
+      updatedAt: 'Updated At',
+      preview: 'Preview',
+      aiInterpretation: 'AI Interpretation'
+    },
+    buttons: {
+      openSource: 'Open Source',
+      reload: 'Reload',
+      continueVisiting: 'Continue Visiting'
+    },
+    hints: {
+      failed: 'Sorry, something went wrong',
+      leave: 'You are about to leave Coco AI and open the original link of the file',
+      externalLinkWarning: 'Coco AI cannot guarantee the availability and security of external links'
+    }
   }
 };
 

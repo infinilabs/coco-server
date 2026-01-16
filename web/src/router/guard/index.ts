@@ -20,26 +20,25 @@ import { fetchGetUserInfo } from '@/service/api';
 import { setProviderInfo, updateRootRouteIfSearch } from '@/store/slice/server';
 
 function shouldRedirectLogin(path: string) {
-  return ['provider', 'request_id', 'product'].every((keyword) => !path.includes(keyword))
+  return ['provider', 'request_id', 'product'].every(keyword => !path.includes(keyword));
 }
 
 export const init: Init = async currentFullPath => {
-
   const result = await fetchServer();
 
   await store.dispatch(setProviderInfo(result.data));
   await store.dispatch(updateRootRouteIfSearch(result.data));
 
-  const setupRequired = Boolean(result.data?.setup_required)
-  const isManaged = Boolean(result?.data?.managed)
-  const searchEnabled = Boolean(result?.data?.search_settings?.enabled)
+  const setupRequired = Boolean(result.data?.setup_required);
+  const isManaged = Boolean(result?.data?.managed);
+  const searchEnabled = Boolean(result?.data?.search_settings?.enabled);
 
-  const filterPaths: RoutePath[] = []
+  const filterPaths: RoutePath[] = [];
   if (!setupRequired || isManaged) {
-    filterPaths.push('/guide')
+    filterPaths.push('/guide');
   }
   if (!searchEnabled) {
-    filterPaths.push('/search')
+    filterPaths.push('/search');
   }
 
   await store.dispatch(setFilterPaths(filterPaths));
@@ -54,25 +53,28 @@ export const init: Init = async currentFullPath => {
 
   const { data: user, error } = await fetchGetUserInfo();
 
-  const isLogin = !!user && !user.error && !error
+  const isLogin = Boolean(user) && !user.error && !error;
 
   if (isLogin) {
     localStg.set('userInfo', user);
     await store.dispatch(resetAuth());
     await store.dispatch(initAuthRoute());
-    if (currentFullPath.startsWith('/guide') || (currentFullPath.startsWith('/login') && shouldRedirectLogin(currentFullPath))) {
-      return '/'
+    if (
+      currentFullPath.startsWith('/guide') ||
+      (currentFullPath.startsWith('/login') && shouldRedirectLogin(currentFullPath))
+    ) {
+      return '/';
     }
   } else {
     localStg.remove('userInfo');
     await store.dispatch(resetAuth());
     await store.dispatch(initAuthRoute());
-    if (['/search', '/login'].every((item) => !currentFullPath.startsWith(item))) {
+    if (['/search', '/login'].every(item => !currentFullPath.startsWith(item))) {
       const loginRoute: RouteKey = 'login';
       const routeHome = getRouteHome(store.getState());
 
       if (routeHome === 'search') {
-        return { name: routeHome }
+        return { name: routeHome };
       }
 
       const query = getRouteQueryOfLoginRoute(currentFullPath, routeHome as RouteKey);
@@ -123,10 +125,12 @@ export const createRouteGuard: BeforeEach = (to, _, blockerOrJump) => {
   const isLogin = Boolean(userInfo);
   const needLogin = !to.meta.constant;
 
-  const routePermissions = to.meta.permissions || []
-  const shouldAllPermissions = to.meta?.permissionLogic !== 'or'
+  const routePermissions = to.meta.permissions || [];
+  const shouldAllPermissions = to.meta?.permissionLogic !== 'or';
 
-  const hasPermissions = shouldAllPermissions ? routePermissions.every((p) => userInfo?.permissions?.includes(p)) : routePermissions.some((p) => userInfo?.permissions?.includes(p))
+  const hasPermissions = shouldAllPermissions
+    ? routePermissions.every(p => userInfo?.permissions?.includes(p))
+    : routePermissions.some(p => userInfo?.permissions?.includes(p));
 
   const hasAuth = store.dispatch(isStaticSuper()) || !routePermissions.length || hasPermissions;
 
@@ -134,8 +138,8 @@ export const createRouteGuard: BeforeEach = (to, _, blockerOrJump) => {
     // if it is login route when logged in, then switch to the root page
     {
       callback: () => {
-        window.location.href = "/"
-        return false
+        window.location.href = '/';
+        return false;
       },
       condition: isLogin && to.path.includes('login') && !shouldRedirectLogin(to.path)
     },
@@ -149,7 +153,10 @@ export const createRouteGuard: BeforeEach = (to, _, blockerOrJump) => {
     // if the route need login but the user is not logged in, then switch to the login page
     {
       callback: () => {
-        return blockerOrJump({ name: loginRoute, query: { redirect: to.fullPath } });
+        return blockerOrJump({
+          name: loginRoute,
+          query: { redirect: to.fullPath }
+        });
       },
       condition: !isLogin && needLogin
     },

@@ -23,7 +23,7 @@ const LoginForm = memo(({ onProvider }: { onProvider?: () => void }) => {
 
   const providerInfo = localStg.get('providerInfo');
   const managed = Boolean(providerInfo?.managed);
-  
+
   async function handleSubmit() {
     const params = await form.validateFields();
     if (onProvider) {
@@ -39,65 +39,72 @@ const LoginForm = memo(({ onProvider }: { onProvider?: () => void }) => {
 
   return (
     <>
-      <div className="m-b-16px text-32px color-[var(--ant-color-text-heading)]">{t('page.login.title')}</div>
-      <div className="m-b-64px text-16px color-[var(--ant-color-text)]">{t('page.login.desc')}</div>
+      <div className='m-b-16px text-32px color-[var(--ant-color-text-heading)]'>
+        {t('page.login.title')}
+      </div>
+      <div className='m-b-64px text-16px color-[var(--ant-color-text)]'>
+        {t('page.login.desc')}
+      </div>
       {managed ? (
-        <div className="mt-24px">
+        <div className='mt-24px'>
           <Button
             block
-            className="h-40px flex items-center justify-between border-[#0087FF] rounded-4px bg-white px-16px text-14px text-[#0087FF] font-normal leading-20px font-[PingFangSC-regular]"
+            className='h-40px flex items-center justify-between border-[#0087FF] rounded-4px bg-white px-16px text-14px text-[#0087FF] font-normal leading-20px font-[PingFangSC-regular]'
             style={{ width: '440px' }}
-            type="default"
+            type='default'
             onClick={() => {
               const sso_url = providerInfo?.provider?.auth_provider?.sso?.url;
+
               if (window.$wujie?.props?.onExternal) {
-                window.$wujie?.props?.onExternal(normalizeUrl(`${getProxyEndpoint()}${sso_url}`))
+                window.$wujie?.props?.onExternal(
+                  normalizeUrl(`${getProxyEndpoint()}${sso_url}`)
+                );
               } else {
-                window.open(`${sso_url}&redirect_url=${encodeURIComponent(window.location.href)}`, '_self')
+                window.open(
+                  `https://dev.infini.cloud:27200${sso_url}&redirect_url=${encodeURIComponent(window.location.href)}`,
+                  '_self'
+                );
               }
             }}
           >
-            <div className="flex items-center gap-8px">
+            <div className='flex items-center gap-8px'>
               <img
-                alt="infini cloud"
-                className="h-20px w-20px"
+                alt='infini cloud'
+                className='h-20px w-20px'
                 src={INFINICloud}
               />
               <span>{t('page.login.cloud')}</span>
             </div>
-            <SvgIcon icon="mdi:arrow-right" />
+            <SvgIcon icon='mdi:arrow-right' />
           </Button>
         </div>
       ) : (
-        <Form
-          form={form}
-          layout="vertical"
-        >
+        <Form form={form} layout='vertical'>
           <Form.Item
-            className="m-b-32px"
+            className='m-b-32px'
             label={t('page.login.email')}
-            name="email"
+            name='email'
             rules={[defaultRequiredRule]}
           >
-            <Input className="h-40px" />
+            <Input className='h-40px' />
           </Form.Item>
           <Form.Item
-            className="m-b-32px"
+            className='m-b-32px'
             label={t('page.login.password')}
-            name="password"
+            name='password'
             rules={[defaultRequiredRule]}
           >
-            <Input.Password className="h-40px" />
+            <Input.Password className='h-40px' />
           </Form.Item>
-          <div className="text-right">
+          <div className='text-right'>
             <Button
-              className="h-56px w-56px text-24px"
+              className='h-56px w-56px text-24px'
               loading={loading}
-              size="large"
-              type="primary"
+              size='large'
+              type='primary'
               onClick={handleSubmit}
             >
-              <SvgIcon icon="mdi:arrow-right" />
+              <SvgIcon icon='mdi:arrow-right' />
             </Button>
           </div>
         </Form>

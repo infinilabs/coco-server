@@ -21,16 +21,16 @@ export default defineConfig(configEnv => {
       emptyOutDir: true,
       rollupOptions: {
         output: {
-          manualChunks: (id) => {
+          manualChunks: id => {
             if (id.includes('node_modules')) {
               if (id.includes('@ant-design/pro-components') || id.includes('@ant-design/pro-')) {
                 return 'vendor-antd-pro';
               }
               return 'vendor-core';
             }
-          },
-        },
-      },
+          }
+        }
+      }
     },
     css: {
       preprocessorOptions: {
@@ -42,7 +42,7 @@ export default defineConfig(configEnv => {
           // 启用JavaScript表达式的解析功能
           javascriptEnabled: true,
           // 自定义修改默认的Less变量
-          modifyVars: {} 
+          modifyVars: {}
         }
       }
     },
