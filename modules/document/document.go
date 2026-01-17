@@ -87,8 +87,6 @@ func (h *APIHandler) getDoc(w http.ResponseWriter, req *http.Request, ps httprou
 }
 
 func (h *APIHandler) getDocRawContent(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	fmt.Printf("DBG: get raw content")
-
 	id := ps.MustGetParameter("doc_id")
 
 	obj := core.Document{}
@@ -314,7 +312,7 @@ func (h *APIHandler) searchDocs(w http.ResponseWriter, req *http.Request, ps htt
 	}
 	// Omit these fields. The frontend does not need them, and they are large enough
 	// to slow us down.
-	builder.Exclude("payload.*", "document_chunk")
+	builder.Exclude("payload.*", "document_chunk", "ai_insights.embedding")
 	builder.EnableBodyBytes()
 	if len(builder.Sorts()) == 0 {
 		builder.SortBy(orm.Sort{Field: "created", SortType: orm.DESC})
