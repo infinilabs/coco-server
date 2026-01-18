@@ -50,14 +50,26 @@ export function Component() {
     }
   }, [id]);
 
+  const openTauriUrl = (url: string) => {
+    window.parent.postMessage(
+      {
+        type: 'OPEN_TAURI_URL',
+        payload: { url }
+      },
+      '*'
+    );
+  };
+
   const renderActionButtons = (): ReactNode[] => {
     if (embedded) {
       return [
         <Button
           className='size-6!'
-          data-src={data?.url}
           icon={<SquareArrowOutUpRight className='size-3.5 text-primary' />}
           key='openSource'
+          onClick={() => {
+            openTauriUrl(data?.url);
+          }}
         />
       ];
     }
@@ -79,7 +91,7 @@ export function Component() {
     if (sourceUrl) {
       return (
         <div className='mt-30 flex justify-center'>
-          <div className='border border-border-secondary rounded-lg bg-black/3 px-6 py-10 dark:bg-white/7'>
+          <div className='border-border-secondary border rounded-lg bg-black/3 px-6 py-10 dark:bg-white/7'>
             <div className='font-bold'>{t('page.preview.hints.leave')}</div>
 
             <div className='mt-1'>{t('page.preview.hints.externalLinkWarning')}</div>
@@ -141,6 +153,7 @@ export function Component() {
         actionButtons={renderActionButtons()}
         data={{
           ...data,
+          url: `https://dev.infini.cloud:27200/document/${id}/raw_content/${data?.title}`,
           size: filesize(data?.size ?? 0),
           created: (
             <DateTime
@@ -177,7 +190,7 @@ export function Component() {
       })}
     >
       {!embedded && (
-        <div className='h-20 flex items-center justify-between border-b border-border-secondary'>
+        <div className='border-border-secondary h-20 flex items-center justify-between border-b'>
           <div className='children:h-10'>
             <img
               className='dark:hidden'
