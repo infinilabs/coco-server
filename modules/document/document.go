@@ -345,13 +345,11 @@ func (h *APIHandler) deleteDoc(w http.ResponseWriter, req *http.Request, ps http
 
 func (h *APIHandler) searchDocs(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	//handle url query args, convert to query builder
-	defaultFields := []string{"title", "summary", "combined_fulltext"}
-	builder, err := orm.NewQueryBuilderFromRequest(req, defaultFields...)
+	builder, err := orm.NewQueryBuilderFromRequest(req, "title", "summary", "combined_fulltext")
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
 	// Omit these fields. The frontend does not need them, and they are large enough
 	// to slow us down.
 	builder.Exclude("payload.*", "document_chunk", "ai_insights.embedding")
