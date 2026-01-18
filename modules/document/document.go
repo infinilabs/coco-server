@@ -5,7 +5,6 @@
 package document
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"mime"
@@ -13,8 +12,8 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
+	"time"
 
 	log "github.com/cihub/seelog"
 	"github.com/minio/minio-go/v7"
@@ -34,13 +33,31 @@ import (
 // This is defined locally to avoid circular import with
 // plugins/connectors/s3.
 type s3Config struct {
-	AccessKeyID     string   `config:"access_key_id"`
-	SecretAccessKey string   `config:"secret_access_key"`
-	Bucket          string   `config:"bucket"`
-	Endpoint        string   `config:"endpoint"`
-	UseSSL          bool     `config:"use_ssl"`
-	Prefix          string   `config:"prefix"`
-	Extensions      []string `config:"extensions"`
+	Endpoint        string `config:"endpoint"`
+	AccessKeyID     string `config:"access_key_id"`
+	SecretAccessKey string `config:"secret_access_key"`
+	Bucket          string `config:"bucket"`
+	UseSSL          bool   `config:"use_ssl"`
+}
+
+// getStringFromMap safely extracts a string from a map
+func getStringFromMap(m map[string]interface{}, key string) string {
+	if v, ok := m[key]; ok {
+		if s, ok := v.(string); ok {
+			return s
+		}
+	}
+	return ""
+}
+
+// getBoolFromMap safely extracts a bool from a map
+func getBoolFromMap(m map[string]interface{}, key string) bool {
+	if v, ok := m[key]; ok {
+		if b, ok := v.(bool); ok {
+			return b
+		}
+	}
+	return false
 }
 
 func (h *APIHandler) createDoc(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -124,18 +141,32 @@ func (h *APIHandler) getDocRawContent(w http.ResponseWriter, req *http.Request, 
 		}
 		connectorID := datasource.Connector.ConnectorID
 
+		var (
+			reader   io.ReadSeeker
+			closer   io.Closer
+			mimeType string
+			fileName string
+			modTime  time.Time
+		)
+
 		switch connectorID {
 		case "s3":
-			// Stream from S3
-			// Parse S3 config from datasource
-			configJSON, err := json.Marshal(datasource.Connector.Config)
-			if err != nil {
-				h.WriteError(w, fmt.Sprintf("failed to parse S3 config: %v", err), http.StatusInternalServerError)
+			// Extract S3 configuration
+			connectorConfig, ok := datasource.Connector.Config.(map[string]interface{})
+			if !ok {
+				h.WriteError(w, "failed to parse S3 config: invalid config type", http.StatusInternalServerError)
 				return
 			}
-			var cfg s3Config
-			if err := json.Unmarshal(configJSON, &cfg); err != nil {
-				h.WriteError(w, fmt.Sprintf("failed to parse S3 config: %v", err), http.StatusInternalServerError)
+			cfg := s3Config{
+				Endpoint:        getStringFromMap(connectorConfig, "endpoint"),
+				AccessKeyID:     getStringFromMap(connectorConfig, "access_key_id"),
+				SecretAccessKey: getStringFromMap(connectorConfig, "secret_access_key"),
+				Bucket:          getStringFromMap(connectorConfig, "bucket"),
+				UseSSL:          getBoolFromMap(connectorConfig, "use_ssl"),
+			}
+
+			if cfg.Endpoint == "" || cfg.AccessKeyID == "" || cfg.SecretAccessKey == "" || cfg.Bucket == "" {
+				h.WriteError(w, "s3 config is invalid: missing required fields", http.StatusInternalServerError)
 				return
 			}
 
@@ -170,11 +201,11 @@ func (h *APIHandler) getDocRawContent(w http.ResponseWriter, req *http.Request, 
 				h.WriteError(w, fmt.Sprintf("failed to get S3 object: %v", err), http.StatusInternalServerError)
 				return
 			}
-			defer objStream.Close()
 
 			// Get object metadata
 			info, err := objStream.Stat()
 			if err != nil {
+				objStream.Close()
 				// Check if it's a 404
 				if minio.ToErrorResponse(err).Code == "NoSuchKey" {
 					h.WriteJSON(w, util.MapStr{
@@ -187,23 +218,12 @@ func (h *APIHandler) getDocRawContent(w http.ResponseWriter, req *http.Request, 
 				return
 			}
 
-			// Set HTTP headers
-			contentType := info.ContentType
-			if contentType == "" {
-				// Fall back to detecting Content-Type from object key extension
-				contentType = mime.TypeByExtension(filepath.Ext(objectKey))
-				if contentType == "" {
-					contentType = "application/octet-stream"
-				}
-			}
-			w.Header().Set("Content-Type", contentType)
-			w.Header().Set("Content-Length", strconv.FormatInt(info.Size, 10))
+			reader = objStream
+			closer = objStream
+			mimeType = info.ContentType
+			fileName = filepath.Base(objectKey)
+			modTime = info.LastModified
 
-			// Stream data directly from S3 to HTTP response
-			_, err = io.Copy(w, objStream)
-			if err != nil {
-				log.Errorf("error streaming S3 object: %v", err)
-			}
 		case "local_fs":
 			// Stream from local filesystem
 			fileLocalPath := obj.URL
@@ -221,30 +241,50 @@ func (h *APIHandler) getDocRawContent(w http.ResponseWriter, req *http.Request, 
 				}
 				return
 			}
-			defer file.Close()
 
 			// Get file info
 			fileInfo, err := file.Stat()
 			if err != nil {
+				file.Close()
 				h.WriteError(w, fmt.Sprintf("failed to stat file: %v", err), http.StatusInternalServerError)
 				return
 			}
 
-			// Detect Content-Type
-			contentType := mime.TypeByExtension(filepath.Ext(fileLocalPath))
-			if contentType == "" {
-				contentType = "application/octet-stream"
-			}
+			reader = file
+			closer = file
+			fileName = filepath.Base(fileLocalPath)
+			modTime = fileInfo.ModTime()
 
-			// Set HTTP headers
-			w.Header().Set("Content-Type", contentType)
-			w.Header().Set("Content-Length", strconv.FormatInt(fileInfo.Size(), 10))
-
-			// Stream file content using http.ServeContent (handles range requests, etc.)
-			http.ServeContent(w, req, filepath.Base(fileLocalPath), fileInfo.ModTime(), file)
 		default:
 			h.WriteError(w, fmt.Sprintf("unsupported connector: %s", connectorID), http.StatusBadRequest)
+			return
 		}
+
+		if closer != nil {
+			defer closer.Close()
+		}
+
+		if mimeType == "" {
+			// Fall back to detecting Content-Type from object key extension
+			mimeType = mime.TypeByExtension(filepath.Ext(fileName))
+			if mimeType == "" {
+				mimeType = "application/octet-stream"
+			}
+		}
+		w.Header().Set("Content-Type", mimeType)
+
+		// Set Content-Disposition
+		disposition := "attachment"
+		if strings.HasPrefix(mimeType, "image/") ||
+			strings.HasPrefix(mimeType, "video/") ||
+			strings.HasPrefix(mimeType, "audio/") ||
+			mimeType == "application/pdf" {
+			disposition = "inline"
+		}
+		w.Header().Set("Content-Disposition", disposition+"; filename=\""+fileName+"\"")
+
+		// Stream file content using http.ServeContent (handles range requests, etc.)
+		http.ServeContent(w, req, fileName, modTime, reader)
 
 	} else {
 		// Redirect to external URL
