@@ -12,8 +12,8 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
+	"time"
 
 	log "github.com/cihub/seelog"
 	"github.com/minio/minio-go/v7"
@@ -141,6 +141,14 @@ func (h *APIHandler) getDocRawContent(w http.ResponseWriter, req *http.Request, 
 		}
 		connectorID := datasource.Connector.ConnectorID
 
+		var (
+			reader   io.ReadSeeker
+			closer   io.Closer
+			mimeType string
+			fileName string
+			modTime  time.Time
+		)
+
 		switch connectorID {
 		case "s3":
 			// Extract S3 configuration
@@ -193,11 +201,11 @@ func (h *APIHandler) getDocRawContent(w http.ResponseWriter, req *http.Request, 
 				h.WriteError(w, fmt.Sprintf("failed to get S3 object: %v", err), http.StatusInternalServerError)
 				return
 			}
-			defer objStream.Close()
 
 			// Get object metadata
 			info, err := objStream.Stat()
 			if err != nil {
+				objStream.Close()
 				// Check if it's a 404
 				if minio.ToErrorResponse(err).Code == "NoSuchKey" {
 					h.WriteJSON(w, util.MapStr{
@@ -210,35 +218,12 @@ func (h *APIHandler) getDocRawContent(w http.ResponseWriter, req *http.Request, 
 				return
 			}
 
-			// Set HTTP headers
-			contentType := info.ContentType
-			if contentType == "" {
-				// Fall back to detecting Content-Type from object key extension
-				contentType = mime.TypeByExtension(filepath.Ext(objectKey))
-				if contentType == "" {
-					contentType = "application/octet-stream"
-				}
-			}
-			w.Header().Set("Content-Type", contentType)
-			w.Header().Set("Content-Length", strconv.FormatInt(info.Size, 10))
+			reader = objStream
+			closer = objStream
+			mimeType = info.ContentType
+			fileName = filepath.Base(objectKey)
+			modTime = info.LastModified
 
-			// Set Content-Disposition to inline for these file types
-			// so that browser can preview them
-			disposition := "attachment"
-			if strings.HasPrefix(contentType, "image/") ||
-				strings.HasPrefix(contentType, "video/") ||
-				strings.HasPrefix(contentType, "audio/") ||
-				contentType == "application/pdf" {
-				disposition = "inline"
-			}
-			fileName := filepath.Base(objectKey)
-			w.Header().Set("Content-Disposition", disposition+"; filename=\""+fileName+"\"")
-
-			// Stream data directly from S3 to HTTP response
-			_, err = io.Copy(w, objStream)
-			if err != nil {
-				log.Errorf("error streaming S3 object: %v", err)
-			}
 		case "local_fs":
 			// Stream from local filesystem
 			fileLocalPath := obj.URL
@@ -256,42 +241,50 @@ func (h *APIHandler) getDocRawContent(w http.ResponseWriter, req *http.Request, 
 				}
 				return
 			}
-			defer file.Close()
 
 			// Get file info
 			fileInfo, err := file.Stat()
 			if err != nil {
+				file.Close()
 				h.WriteError(w, fmt.Sprintf("failed to stat file: %v", err), http.StatusInternalServerError)
 				return
 			}
 
-			// Detect Content-Type
-			contentType := mime.TypeByExtension(filepath.Ext(fileLocalPath))
-			if contentType == "" {
-				contentType = "application/octet-stream"
-			}
+			reader = file
+			closer = file
+			fileName = filepath.Base(fileLocalPath)
+			modTime = fileInfo.ModTime()
 
-			// Set HTTP headers
-			w.Header().Set("Content-Type", contentType)
-			w.Header().Set("Content-Length", strconv.FormatInt(fileInfo.Size(), 10))
-
-			// Set Content-Disposition to inline for these file types
-			// so that browser can preview them
-			disposition := "attachment"
-			if strings.HasPrefix(contentType, "image/") ||
-				strings.HasPrefix(contentType, "video/") ||
-				strings.HasPrefix(contentType, "audio/") ||
-				contentType == "application/pdf" {
-				disposition = "inline"
-			}
-			fileName := filepath.Base(fileLocalPath)
-			w.Header().Set("Content-Disposition", disposition+"; filename=\""+fileName+"\"")
-
-			// Stream file content using http.ServeContent (handles range requests, etc.)
-			http.ServeContent(w, req, filepath.Base(fileLocalPath), fileInfo.ModTime(), file)
 		default:
 			h.WriteError(w, fmt.Sprintf("unsupported connector: %s", connectorID), http.StatusBadRequest)
+			return
 		}
+
+		if closer != nil {
+			defer closer.Close()
+		}
+
+		if mimeType == "" {
+			// Fall back to detecting Content-Type from object key extension
+			mimeType = mime.TypeByExtension(filepath.Ext(fileName))
+			if mimeType == "" {
+				mimeType = "application/octet-stream"
+			}
+		}
+		w.Header().Set("Content-Type", mimeType)
+
+		// Set Content-Disposition
+		disposition := "attachment"
+		if strings.HasPrefix(mimeType, "image/") ||
+			strings.HasPrefix(mimeType, "video/") ||
+			strings.HasPrefix(mimeType, "audio/") ||
+			mimeType == "application/pdf" {
+			disposition = "inline"
+		}
+		w.Header().Set("Content-Disposition", disposition+"; filename=\""+fileName+"\"")
+
+		// Stream file content using http.ServeContent (handles range requests, etc.)
+		http.ServeContent(w, req, fileName, modTime, reader)
 
 	} else {
 		// Redirect to external URL
