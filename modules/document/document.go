@@ -350,10 +350,79 @@ func (h *APIHandler) searchDocs(w http.ResponseWriter, req *http.Request, ps htt
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// Get search_type parameter, default to "hybrid"
+	searchType := h.GetParameter(req, "search_type")
+	if searchType == "" {
+		searchType = "hybrid"
+	}
+
+	// Get the query text for semantic/hybrid search
+	queryText := h.GetParameter(req, "query")
+
+	// Get fuzziness parameter, default to 3
+	fuzzinessStr := h.GetParameter(req, "fuzziness")
+	fuzziness := 3 // default
+	if fuzzinessStr != "" {
+		fuzziness, err = strconv.Atoi(fuzzinessStr)
+		if err != nil || fuzziness < 0 || fuzziness > 5 {
+			h.WriteError(w, "fuzziness must be between 0 and 5", http.StatusBadRequest)
+			return
+		}
+	}
+
+	// Modify the query based on search_type
+	switch searchType {
+	case "semantic":
+		if queryText != "" {
+			semanticClause := orm.SemanticQuery("ai_insights.embedding.embedding1024", queryText, 0, "")
+			builder.Must(semanticClause)
+		}
+	case "hybrid":
+		if queryText != "" {
+			textClauses, err := orm.BuildFuzzinessQueryClauses(queryText, fuzziness, []string{"ai_insights.text"})
+			if err != nil {
+				h.WriteError(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			var textClause *orm.Clause
+			if len(textClauses) == 1 {
+				textClause = textClauses[0]
+			} else {
+				textClause = orm.ShouldQuery(textClauses...)
+			}
+
+			// Semantic clause on ai_insights.embedding
+			semanticClause := orm.SemanticQuery("ai_insights.embedding.embedding1024", queryText, 0, "")
+
+			// Combine with HybridQuery
+			hybridClause := orm.HybridQuery(textClause, semanticClause)
+			builder.Must(hybridClause)
+		}
+	case "keyword":
+		if queryText != "" {
+			textClauses, err := orm.BuildFuzzinessQueryClauses(queryText, fuzziness, []string{"title", "summary", "combined_fulltext"})
+			if err != nil {
+				h.WriteError(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			if len(textClauses) == 1 {
+				builder.Must(textClauses[0])
+			} else {
+				builder.Must(orm.ShouldQuery(textClauses...))
+			}
+		}
+	default:
+		h.WriteError(w, fmt.Sprintf("invalid search_type: %s, must be one of: semantic, hybrid, keyword", searchType), http.StatusBadRequest)
+		return
+	}
+
 	// Omit these fields. The frontend does not need them, and they are large enough
 	// to slow us down.
 	builder.Exclude("payload.*", "document_chunk", "ai_insights.embedding")
 	builder.EnableBodyBytes()
+	// Let framework skip the buildFuzzinessQuery() call as we did it here.
+	builder.SetFuzzinessBuilt(true)
 	if len(builder.Sorts()) == 0 {
 		builder.SortBy(orm.Sort{Field: "created", SortType: orm.DESC})
 	}
