@@ -222,6 +222,18 @@ func (h *APIHandler) getDocRawContent(w http.ResponseWriter, req *http.Request, 
 			w.Header().Set("Content-Type", contentType)
 			w.Header().Set("Content-Length", strconv.FormatInt(info.Size, 10))
 
+			// Set Content-Disposition to inline for these file types
+			// so that browser can preview them
+			disposition := "attachment"
+			if strings.HasPrefix(contentType, "image/") ||
+				strings.HasPrefix(contentType, "video/") ||
+				strings.HasPrefix(contentType, "audio/") ||
+				contentType == "application/pdf" {
+				disposition = "inline"
+			}
+			fileName := filepath.Base(objectKey)
+			w.Header().Set("Content-Disposition", disposition+"; filename=\""+fileName+"\"")
+
 			// Stream data directly from S3 to HTTP response
 			_, err = io.Copy(w, objStream)
 			if err != nil {
@@ -262,6 +274,18 @@ func (h *APIHandler) getDocRawContent(w http.ResponseWriter, req *http.Request, 
 			// Set HTTP headers
 			w.Header().Set("Content-Type", contentType)
 			w.Header().Set("Content-Length", strconv.FormatInt(fileInfo.Size(), 10))
+
+			// Set Content-Disposition to inline for these file types
+			// so that browser can preview them
+			disposition := "attachment"
+			if strings.HasPrefix(contentType, "image/") ||
+				strings.HasPrefix(contentType, "video/") ||
+				strings.HasPrefix(contentType, "audio/") ||
+				contentType == "application/pdf" {
+				disposition = "inline"
+			}
+			fileName := filepath.Base(fileLocalPath)
+			w.Header().Set("Content-Disposition", disposition+"; filename=\""+fileName+"\"")
 
 			// Stream file content using http.ServeContent (handles range requests, etc.)
 			http.ServeContent(w, req, filepath.Base(fileLocalPath), fileInfo.ModTime(), file)
