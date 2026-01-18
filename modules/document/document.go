@@ -345,7 +345,8 @@ func (h *APIHandler) deleteDoc(w http.ResponseWriter, req *http.Request, ps http
 
 func (h *APIHandler) searchDocs(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	//handle url query args, convert to query builder
-	builder, err := orm.NewQueryBuilderFromRequest(req, "title", "summary", "combined_fulltext")
+	defaultFields := []string{"title", "summary", "combined_fulltext"}
+	builder, err := orm.NewQueryBuilderFromRequest(req, defaultFields...)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -380,7 +381,7 @@ func (h *APIHandler) searchDocs(w http.ResponseWriter, req *http.Request, ps htt
 		}
 	case "hybrid":
 		if queryText != "" {
-			textClauses, err := orm.BuildFuzzinessQueryClauses(queryText, fuzziness, []string{"ai_insights.text"})
+			textClauses, err := orm.BuildFuzzinessQueryClauses(queryText, fuzziness, defaultFields)
 			if err != nil {
 				h.WriteError(w, err.Error(), http.StatusBadRequest)
 				return
@@ -401,7 +402,7 @@ func (h *APIHandler) searchDocs(w http.ResponseWriter, req *http.Request, ps htt
 		}
 	case "keyword":
 		if queryText != "" {
-			textClauses, err := orm.BuildFuzzinessQueryClauses(queryText, fuzziness, []string{"title", "summary", "combined_fulltext"})
+			textClauses, err := orm.BuildFuzzinessQueryClauses(queryText, fuzziness, defaultFields)
 			if err != nil {
 				h.WriteError(w, err.Error(), http.StatusBadRequest)
 				return
