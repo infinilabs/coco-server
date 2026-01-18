@@ -28,6 +28,7 @@ import (
 const ProcessorName = "file_type_detection"
 const FieldMimeType = "mime_type"
 const FieldContentType = "content_type"
+const FieldContentCategory = "content_category"
 
 // Supported connector IDs for file type detection
 var supportedConnectors = map[string]bool{
@@ -101,16 +102,6 @@ func (p *FileTypeDetectionProcessor) Process(ctx *pipeline.Context) error {
 			continue
 		}
 
-		// Skip if metadata fields were already set
-		if doc.Metadata != nil {
-			if _, hasMimeType := doc.Metadata[FieldMimeType]; hasMimeType {
-				if _, hasContentType := doc.Metadata[FieldContentType]; hasContentType {
-					log.Debugf("processor [%s] skipping document [%s/%s] as metadata fields already set", p.Name(), doc.Title, doc.ID)
-					continue
-				}
-			}
-		}
-
 		// Only process documents from s3 or local_fs connectors
 		connectorID, err := utils.GetConnectorID(&doc)
 		if err != nil {
@@ -128,12 +119,18 @@ func (p *FileTypeDetectionProcessor) Process(ctx *pipeline.Context) error {
 			doc.Metadata = make(map[string]interface{})
 		}
 
-		// Detect file types from Title (filename)
-		mimeType, contentType := detectFileTypes(doc.Title)
-		doc.Metadata[FieldMimeType] = mimeType
-		doc.Metadata[FieldContentType] = contentType
-
-		log.Infof("processor [%s] detected mime_type=%s, content_type=%s for document [%s/%s]", p.Name(), mimeType, contentType, doc.Title, doc.ID)
+		// Set MIME type/content type/content category if needed
+		if doc.Metadata[FieldMimeType] == "" || doc.Metadata[FieldContentType] == "" {
+			mimeType, contentType := detectFileTypes(doc.Title)
+			doc.Metadata[FieldMimeType] = mimeType
+			doc.Metadata[FieldContentType] = contentType
+			log.Infof("processor [%s] detected mime_type=%s, content_type=%s for document [%s/%s]", p.Name(), mimeType, contentType, doc.Title, doc.ID)
+		}
+		if doc.Metadata[FieldContentCategory] == "" {
+			contentCategory := categorizeContentType(doc.Metadata[FieldContentType].(string))
+			doc.Metadata[FieldContentCategory] = contentCategory
+			log.Infof("processor [%s] detected content_category=%s for document [%s/%s]", p.Name(), contentCategory, doc.Title, doc.ID)
+		}
 
 		// Update message data in-place
 		messages[i].Data = util.MustToJSONBytes(doc)
@@ -198,6 +195,21 @@ func getContentType(ext string) string {
 	// XLSX (includes .xls for backward compatibility)
 	case ".xls", ".xlsx":
 		return "xlsx"
+	default:
+		return ""
+	}
+}
+
+// Categorize content types into content categories.
+func categorizeContentType(contentType string) string {
+	switch contentType {
+	case "image":
+		return "image"
+	case "video":
+		return "video"
+	// Markdown
+	case "markdown", "pdf", "docx", "pptx", "xlsx":
+		return "doc"
 	default:
 		return ""
 	}
