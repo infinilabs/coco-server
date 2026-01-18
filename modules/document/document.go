@@ -34,13 +34,14 @@ import (
 // This is defined locally to avoid circular import with
 // plugins/connectors/s3.
 type s3Config struct {
-	AccessKeyID     string   `config:"access_key_id"`
-	SecretAccessKey string   `config:"secret_access_key"`
-	Bucket          string   `config:"bucket"`
-	Endpoint        string   `config:"endpoint"`
-	UseSSL          bool     `config:"use_ssl"`
-	Prefix          string   `config:"prefix"`
-	Extensions      []string `config:"extensions"`
+	AccessKeyID     string   `json:"access_key_id" config:"access_key_id"`
+	SecretAccessKey string   `json:"secret_access_key" config:"secret_access_key"`
+	Bucket          string   `json:"bucket" config:"bucket"`
+	Endpoint        string   `json:"endpoint" config:"endpoint"`
+	Region          string   `json:"region" config:"region"`
+	UseSSL          bool     `json:"use_ssl" config:"use_ssl"`
+	Prefix          string   `json:"prefix" config:"prefix"`
+	Extensions      []string `json:"extensions" config:"extensions"`
 }
 
 func (h *APIHandler) createDoc(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -143,6 +144,7 @@ func (h *APIHandler) getDocRawContent(w http.ResponseWriter, req *http.Request, 
 			client, err := minio.New(cfg.Endpoint, &minio.Options{
 				Creds:  credentials.NewStaticV4(cfg.AccessKeyID, cfg.SecretAccessKey, ""),
 				Secure: cfg.UseSSL,
+				Region: cfg.Region,
 			})
 			if err != nil {
 				h.WriteError(w, fmt.Sprintf("failed to create S3 client: %v", err), http.StatusInternalServerError)
