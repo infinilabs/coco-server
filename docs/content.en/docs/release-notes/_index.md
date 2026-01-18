@@ -20,6 +20,7 @@ Information about release notes of Coco Server is provided here.
 - feat: impl document raw content interface #648
 - feat: convert document cover/thumbnail to attachment URL for preview #645
 - feat: add RefineURL to convert document URL to preview format #649
+- feat: semantic/hybrid search #651
 
 
 ### 🐛 Bug fix  
