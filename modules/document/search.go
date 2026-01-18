@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	log "github.com/cihub/seelog"
@@ -31,7 +32,18 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		category     = h.GetParameterOrDefault(req, "category", "")
 		subcategory  = h.GetParameterOrDefault(req, "subcategory", "")
 		richCategory = h.GetParameterOrDefault(req, "rich_category", "")
+		searchType   = h.GetParameterOrDefault(req, "search_type", "keyword")
+		fuzzinessStr = h.GetParameterOrDefault(req, "fuzziness", "3")
 	)
+
+	// Parse fuzziness
+	var fuzziness = 3 // default to 3
+	if fuzzinessStr != "" {
+		parsed, err := strconv.Atoi(fuzzinessStr)
+		if err != nil && fuzziness >= 0 && fuzziness <= 5 {
+			fuzziness = parsed
+		}
+	}
 
 	query = util.CleanUserQuery(query)
 
@@ -50,7 +62,7 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		teamsID, _ := reqUser.GetStringArray(orm.TeamsIDKey)
 
 		result := elastic.SearchResponseWithMeta[core.Document]{}
-		resp, err := QueryDocuments(req.Context(), reqUser.MustGetUserID(), teamsID, builder, query, datasource, integrationID, category, subcategory, richCategory, nil)
+		resp, err := QueryDocuments(req.Context(), reqUser.MustGetUserID(), teamsID, builder, query, datasource, integrationID, category, subcategory, richCategory, searchType, fuzziness, nil)
 		if err != nil {
 			panic(err)
 		}

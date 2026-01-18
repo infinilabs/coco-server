@@ -691,7 +691,7 @@ func processInitialDocumentSearch(ctx *orm.Context, userID string, reqMsg, reply
 	teamsID = GetTeamsIDByUserID(ctx, userID)
 
 	docs := []core.Document{}
-	_, err := document.QueryDocuments(ctx.Context, userID, teamsID, builder, reqMsg.Message, params.datasource, params.integrationID, params.category, params.subcategory, params.richCategory, &docs)
+	_, err := document.QueryDocuments(ctx.Context, userID, teamsID, builder, reqMsg.Message, params.datasource, params.integrationID, params.category, params.subcategory, params.richCategory, "keyword", 3, &docs)
 	if err != nil {
 		log.Error(err)
 		return nil, err
