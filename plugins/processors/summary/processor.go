@@ -14,10 +14,10 @@ import (
 
 	log "github.com/cihub/seelog"
 	"github.com/tmc/langchaingo/llms"
-	"golang.org/x/text/language"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/assistant/langchain"
 	"infini.sh/coco/modules/common"
+	utils "infini.sh/coco/plugins/processors"
 	"infini.sh/framework/core/config"
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/global"
@@ -67,20 +67,7 @@ func New(c *config.Config) (pipeline.Processor, error) {
 		return nil, fmt.Errorf("failed to unpack the configuration of %s processor: %s", ProcessorName, err)
 	}
 
-	// Default to English if not set
-	if cfg.LLMGenerationLang == "" {
-		cfg.LLMGenerationLang = "en-US"
-	}
-
-	// Validate and normalize language tag
-	tag, err := language.Parse(cfg.LLMGenerationLang)
-	if err != nil {
-		log.Warnf("Processor [%s]: invalid llm_generation_lang %q, falling back to en-US: %v", ProcessorName, cfg.LLMGenerationLang, err)
-		cfg.LLMGenerationLang = "en-US"
-	} else {
-		// Normalize to BCP 47 format (e.g., "en_US" -> "en-US")
-		cfg.LLMGenerationLang = tag.String()
-	}
+	cfg.LLMGenerationLang = utils.ValidateAndNormalizeLLMLang(ProcessorName, cfg.LLMGenerationLang)
 
 	/*
 		Validate configuration
@@ -437,32 +424,32 @@ func generateSummaryFromPrompt(ctx context.Context, llm llms.Model, systemPrompt
 
 // generateAIInsightsFromSummary converts a plain summary into full Markdown+Mermaid analysis
 func generateAIInsightsFromSummary(ctx context.Context, llm llms.Model, summary string, maxLength uint32, lang string, regexpToRemoveThink *regexp.Regexp) (string, error) {
-	systemPrompt := "You are an expert document analyst. Generate comprehensive analysis in Markdown format with Mermaid mind maps."
+	systemPrompt := fmt.Sprintf("You are an expert document analyst. Generate comprehensive analysis in Markdown format with Mermaid mind maps. Your response MUST be in %s.", lang)
 	userPrompt := buildFinalAnalysisPrompt(summary, maxLength, lang)
 	return generateSummaryFromPrompt(ctx, llm, systemPrompt, userPrompt, regexpToRemoveThink)
 }
 
 // generateShortSummaryFromInsights generates a ~50 token summary from the analysis
 func generateShortSummaryFromInsights(ctx context.Context, llm llms.Model, aiInsights string, lang string, regexpToRemoveThink *regexp.Regexp) (string, error) {
-	systemPrompt := "You are an expert summarizer. Generate highly concise summaries."
+	systemPrompt := fmt.Sprintf("You are an expert summarizer. Generate highly concise summaries in %s.", lang)
 	userPrompt := buildShortSummaryPrompt(aiInsights, lang)
 	return generateSummaryFromPrompt(ctx, llm, systemPrompt, userPrompt, regexpToRemoveThink)
 }
 
 // Try generating ai_insights in one pass
 func tryGenerateAIInsightsOnePass(ctx context.Context, document *core.Document, config *Config, llm llms.Model, regexpToRemoveThink *regexp.Regexp) (bool, string, error) {
-	const SystemPrompt = "You are an expert document analyst. Generate comprehensive analysis in Markdown format with Mermaid mind maps."
+	systemPrompt := fmt.Sprintf("You are an expert document analyst. Generate comprehensive analysis in Markdown format with Mermaid mind maps. Your response MUST be in %s.", config.LLMGenerationLang)
 
 	documentJson := util.MustToJSON(document)
 	userPrompt := buildAnalysisPrompt(documentJson, config.AIInsightsMaxLength, config.LLMGenerationLang)
 
 	// Check if doable in one pass
-	if uint32(len(userPrompt)+len(SystemPrompt)) > config.ModelContextLength {
+	if uint32(len(userPrompt)+len(systemPrompt)) > config.ModelContextLength {
 		return false, "", nil
 	}
 
 	message := []llms.MessageContent{
-		llms.TextParts(llms.ChatMessageTypeSystem, SystemPrompt),
+		llms.TextParts(llms.ChatMessageTypeSystem, systemPrompt),
 		llms.TextParts(llms.ChatMessageTypeHuman, userPrompt),
 	}
 

@@ -7,6 +7,8 @@ package utils
 import (
 	"fmt"
 
+	log "github.com/cihub/seelog"
+	"golang.org/x/text/language"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/datasource"
 )
@@ -40,4 +42,24 @@ func GetConnectorID(doc *core.Document) (string, error) {
 	}
 
 	return ds.Connector.ConnectorID, nil
+}
+
+// ValidateAndNormalizeLLMLang validates and normalizes a language tag for LLM generation.
+// Defaults to "en-US" if empty or invalid.
+// Returns the normalized BCP 47 language tag (e.g., "en-US", "zh-CN").
+func ValidateAndNormalizeLLMLang(processorName, lang string) string {
+	// Default to English if not set
+	if lang == "" {
+		return "en-US"
+	}
+
+	// Validate and normalize language tag
+	tag, err := language.Parse(lang)
+	if err != nil {
+		log.Warnf("Processor [%s]: invalid llm_generation_lang %q, falling back to en-US: %v", processorName, lang, err)
+		return "en-US"
+	}
+
+	// Normalize to BCP 47 format (e.g., "en_US" -> "en-US")
+	return tag.String()
 }

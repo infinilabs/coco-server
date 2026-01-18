@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	log "github.com/cihub/seelog"
-	"golang.org/x/text/language"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/attachment"
 	"infini.sh/coco/plugins/connectors"
@@ -79,20 +78,7 @@ func New(c *config.Config) (pipeline.Processor, error) {
 		return nil, err
 	}
 
-	// Default to English if not set
-	if cfg.LLMGenerationLang == "" {
-		cfg.LLMGenerationLang = "en-US"
-	}
-
-	// Validate and normalize language tag
-	tag, err := language.Parse(cfg.LLMGenerationLang)
-	if err != nil {
-		log.Warnf("Processor [%s]: invalid llm_generation_lang %q, falling back to en-US: %v", ProcessorName, cfg.LLMGenerationLang, err)
-		cfg.LLMGenerationLang = "en-US"
-	} else {
-		// Normalize to BCP 47 format (e.g., "en_US" -> "en-US")
-		cfg.LLMGenerationLang = tag.String()
-	}
+	cfg.LLMGenerationLang = utils.ValidateAndNormalizeLLMLang(ProcessorName, cfg.LLMGenerationLang)
 
 	p := &FileExtractionProcessor{config: &cfg}
 

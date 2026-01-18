@@ -14,10 +14,10 @@ import (
 
 	log "github.com/cihub/seelog"
 	"github.com/tmc/langchaingo/llms"
-	"golang.org/x/text/language"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/assistant/langchain"
 	"infini.sh/coco/modules/common"
+	utils "infini.sh/coco/plugins/processors"
 	"infini.sh/framework/core/config"
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/global"
@@ -61,20 +61,7 @@ func New(c *config.Config) (pipeline.Processor, error) {
 		return nil, fmt.Errorf("failed to unpack the configuration of %s processor: %s", ProcessorName, err)
 	}
 
-	// Default to English if not set
-	if cfg.LLMGenerationLang == "" {
-		cfg.LLMGenerationLang = "en-US"
-	}
-
-	// Validate and normalize language tag
-	tag, err := language.Parse(cfg.LLMGenerationLang)
-	if err != nil {
-		log.Warnf("Processor [%s]: invalid llm_generation_lang %q, falling back to en-US: %v", ProcessorName, cfg.LLMGenerationLang, err)
-		cfg.LLMGenerationLang = "en-US"
-	} else {
-		// Normalize to BCP 47 format (e.g., "en_US" -> "en-US")
-		cfg.LLMGenerationLang = tag.String()
-	}
+	cfg.LLMGenerationLang = utils.ValidateAndNormalizeLLMLang(ProcessorName, cfg.LLMGenerationLang)
 
 	if cfg.MessageField == "" {
 		cfg.MessageField = core.PipelineContextDocuments
@@ -199,7 +186,7 @@ func (processor *ExtractTagsProcessor) Process(ctx *pipeline.Context) error {
 }
 
 func extractTagsFromInsights(ctx context.Context, aiInsights string, config *Config, llm llms.Model, regexpToRemoveThink *regexp.Regexp) ([]string, error) {
-	systemPrompt := "You are an expert tag extractor. Analyze document insights and extract relevant tags."
+	systemPrompt := fmt.Sprintf("You are an expert tag extractor. Analyze document insights and extract relevant tags. Your response MUST be in %s.", config.LLMGenerationLang)
 	userPrompt := buildTagExtractionPrompt(aiInsights, config.LLMGenerationLang)
 
 	message := []llms.MessageContent{
