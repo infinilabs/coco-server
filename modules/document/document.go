@@ -355,7 +355,7 @@ func (h *APIHandler) searchDocs(w http.ResponseWriter, req *http.Request, ps htt
 	// Get search_type parameter, default to "hybrid"
 	searchType := h.GetParameter(req, "search_type")
 	if searchType == "" {
-		searchType = "hybrid"
+		searchType = "keyword"
 	}
 
 	// Get the query text for semantic/hybrid search
