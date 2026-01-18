@@ -5,7 +5,6 @@
 package document
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"mime"
@@ -34,14 +33,31 @@ import (
 // This is defined locally to avoid circular import with
 // plugins/connectors/s3.
 type s3Config struct {
-	AccessKeyID     string   `json:"access_key_id" config:"access_key_id"`
-	SecretAccessKey string   `json:"secret_access_key" config:"secret_access_key"`
-	Bucket          string   `json:"bucket" config:"bucket"`
-	Endpoint        string   `json:"endpoint" config:"endpoint"`
-	Region          string   `json:"region" config:"region"`
-	UseSSL          bool     `json:"use_ssl" config:"use_ssl"`
-	Prefix          string   `json:"prefix" config:"prefix"`
-	Extensions      []string `json:"extensions" config:"extensions"`
+	Endpoint        string `config:"endpoint"`
+	AccessKeyID     string `config:"access_key_id"`
+	SecretAccessKey string `config:"secret_access_key"`
+	Bucket          string `config:"bucket"`
+	UseSSL          bool   `config:"use_ssl"`
+}
+
+// getStringFromMap safely extracts a string from a map
+func getStringFromMap(m map[string]interface{}, key string) string {
+	if v, ok := m[key]; ok {
+		if s, ok := v.(string); ok {
+			return s
+		}
+	}
+	return ""
+}
+
+// getBoolFromMap safely extracts a bool from a map
+func getBoolFromMap(m map[string]interface{}, key string) bool {
+	if v, ok := m[key]; ok {
+		if b, ok := v.(bool); ok {
+			return b
+		}
+	}
+	return false
 }
 
 func (h *APIHandler) createDoc(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -127,16 +143,22 @@ func (h *APIHandler) getDocRawContent(w http.ResponseWriter, req *http.Request, 
 
 		switch connectorID {
 		case "s3":
-			// Stream from S3
-			// Parse S3 config from datasource
-			configJSON, err := json.Marshal(datasource.Connector.Config)
-			if err != nil {
-				h.WriteError(w, fmt.Sprintf("failed to parse S3 config: %v", err), http.StatusInternalServerError)
+			// Extract S3 configuration
+			connectorConfig, ok := datasource.Connector.Config.(map[string]interface{})
+			if !ok {
+				h.WriteError(w, "failed to parse S3 config: invalid config type", http.StatusInternalServerError)
 				return
 			}
-			var cfg s3Config
-			if err := json.Unmarshal(configJSON, &cfg); err != nil {
-				h.WriteError(w, fmt.Sprintf("failed to parse S3 config: %v", err), http.StatusInternalServerError)
+			cfg := s3Config{
+				Endpoint:        getStringFromMap(connectorConfig, "endpoint"),
+				AccessKeyID:     getStringFromMap(connectorConfig, "access_key_id"),
+				SecretAccessKey: getStringFromMap(connectorConfig, "secret_access_key"),
+				Bucket:          getStringFromMap(connectorConfig, "bucket"),
+				UseSSL:          getBoolFromMap(connectorConfig, "use_ssl"),
+			}
+
+			if cfg.Endpoint == "" || cfg.AccessKeyID == "" || cfg.SecretAccessKey == "" || cfg.Bucket == "" {
+				h.WriteError(w, "s3 config is invalid: missing required fields", http.StatusInternalServerError)
 				return
 			}
 
@@ -144,7 +166,6 @@ func (h *APIHandler) getDocRawContent(w http.ResponseWriter, req *http.Request, 
 			client, err := minio.New(cfg.Endpoint, &minio.Options{
 				Creds:  credentials.NewStaticV4(cfg.AccessKeyID, cfg.SecretAccessKey, ""),
 				Secure: cfg.UseSSL,
-				Region: cfg.Region,
 			})
 			if err != nil {
 				h.WriteError(w, fmt.Sprintf("failed to create S3 client: %v", err), http.StatusInternalServerError)
