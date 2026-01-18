@@ -84,12 +84,16 @@ type State struct {
 	Plan            []string     `json:"plan"`             // Research plan steps
 	StepResults     []StepResult `json:"step_results"`     // Detailed results per step
 	ResearchResults []string     `json:"research_results"` // Legacy format for backward compatibility
-	Images          []string     `json:"images"`           // Global image list
-	MarkdownReport  string       `json:"markdown_report"`
-	FinalReport     string       `json:"final_report"`
-	PodcastScript   string       `json:"podcast_script"`
-	GeneratePodcast bool         `json:"generate_podcast"`
-	Step            int          `json:"step"`
+
+	Images []string `json:"images"` // Global image list
+
+	MarkdownReport string `json:"markdown_report"`
+	FinalReport    string `json:"final_report"`
+
+	PodcastScript   string `json:"podcast_script"`
+	GeneratePodcast bool   `json:"generate_podcast"`
+
+	//Step            int          `json:"step"`
 	// Chapter Management
 	ChapterOutline   []ChapterOutline           `json:"chapter_outline"`  // Report chapter structure
 	ChapterContents  map[string]*ChapterContent `json:"chapter_contents"` // Content per chapter
@@ -99,8 +103,8 @@ type State struct {
 	Config        *core.DeepResearchConfig `json:"-"`
 	Sender        core.MessageSender       `json:"-"`
 	SearchManager *SearchToolManager       `json:"-"` // Search tool manager
-	Progress      ResearchProgress         `json:"-"` // Real-time progress tracking
-	StartTime     int64                    `json:"-"` // Unix timestamp for timing
+	//Progress      ResearchProgress         `json:"-"` // Real-time progress tracking
+	StartTime int64 `json:"-"` // Unix timestamp for timing
 }
 
 // NewGraph creates and configures the research agent graph.

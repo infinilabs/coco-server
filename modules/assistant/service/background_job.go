@@ -60,6 +60,9 @@ func ProcessMessageAsync(ctx context.Context, userID string, reqMsg, replyMsg *c
 
 	var err error
 	//messageBuffer := strings.Builder{}
+	_ = sender.SendChunkMessage(core.MessageTypeSystem,
+		common.ReplyStart, "", 0,
+	)
 
 	defer func() {
 		if !global.Env().IsDebug {
@@ -74,12 +77,13 @@ func ProcessMessageAsync(ctx context.Context, userID string, reqMsg, replyMsg *c
 					v = r.(string)
 				}
 				msg := fmt.Sprintf("⚠️ error in async processing message reply, %v", v)
-				if replyMsg.Message == "" {
-					replyMsg.Message = msg
-					_ = sender.SendChunkMessage(core.MessageTypeSystem,
-						common.Response, msg, 0,
-					)
+				if replyMsg.Message != "" {
+					replyMsg.Message += "\n\n"
 				}
+				replyMsg.Message += msg
+				_ = sender.SendChunkMessage(core.MessageTypeSystem,
+					common.Response, msg, 0,
+				)
 				_ = log.Error(msg)
 			}
 		}

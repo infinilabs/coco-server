@@ -16,6 +16,9 @@ import (
 	"github.com/gomarkdown/markdown/parser"
 	"github.com/tmc/langchaingo/llms"
 	"github.com/tmc/langchaingo/llms/openai"
+	"infini.sh/coco/core"
+	"infini.sh/coco/modules/common"
+	"infini.sh/framework/core/util"
 )
 
 type logKey struct{}
@@ -39,6 +42,8 @@ func logf(ctx context.Context, format string, args ...interface{}) {
 func PlannerNode(ctx context.Context, state interface{}) (interface{}, error) {
 	s := state.(*State)
 	logf(ctx, "--- 规划节点：正在为查询 '%s' 进行规划 ---\n", s.Request.Query)
+
+	state.(*State).Sender.SendChunkMessage(core.MessageTypeAssistant, common.ResearchPlannerStart, "", 0)
 
 	llm, err := getLLM()
 	if err != nil {
@@ -93,9 +98,13 @@ func PlannerNode(ctx context.Context, state interface{}) (interface{}, error) {
 
 	// Format plan for better readability
 	formattedPlan := "生成的计划：\n"
+
+	state.(*State).Sender.SendChunkMessage(core.MessageTypeAssistant, common.ResearchPlannerEnd, util.MustToJSON(s.Plan), 0)
+
 	for _, step := range s.Plan {
 		formattedPlan += fmt.Sprintf("%s\n", step)
 	}
+
 	logf(ctx, "%s", formattedPlan)
 	if s.GeneratePodcast {
 		logf(ctx, "检测到播客生成意图。\n")
@@ -118,7 +127,7 @@ func ResearcherNode(ctx context.Context, state interface{}) (interface{}, error)
 	if s.StartTime == 0 {
 		s.StartTime = time.Now().Unix()
 		// Initialize material management
-		s.AllMaterials = []MaterialReference{}
+		//s.AllMaterials = []MaterialReference{}
 		s.MaterialRegistry = make(map[string]bool)
 		// Initialize chapter contents
 		s.ChapterContents = make(map[string]*ChapterContent)
@@ -157,6 +166,10 @@ func ResearcherNode(ctx context.Context, state interface{}) (interface{}, error)
 	for stepIndex, step := range s.Plan {
 		stepStartTime := time.Now()
 
+		payload := util.MapStr{}
+		payload["plan"] = step
+		state.(*State).Sender.SendChunkMessage(core.MessageTypeAssistant, common.ResearchResearcherStart, util.MustToJSON(payload), 0)
+
 		// Update current step status
 		if stepIndex < len(s.StepResults) {
 			s.StepResults[stepIndex].Status = "in_progress"
@@ -166,6 +179,21 @@ func ResearcherNode(ctx context.Context, state interface{}) (interface{}, error)
 
 		var stepSearchQueries []string
 		var stepMaterials []MaterialReference
+
+		//TODO convert `step` to queries `keywords`
+		query := step
+		searchPayload := util.MapStr{}
+		searchPayload["plan"] = step
+		searchPayload["step"] = util.MapStr{
+			"type": "search",
+			"name": "搜索资料",
+			"payload": util.MapStr{
+				"from":  0,
+				"size":  10,
+				"query": query,
+			},
+		} //TODO, convert to query
+		state.(*State).Sender.SendChunkMessage(core.MessageTypeAssistant, common.ResearchResearcherStepStart, util.MustToJSON(searchPayload), 0)
 
 		// Step 1: Initial search for this research step
 		initialSearchCollection, err := s.SearchManager.SearchWithFeedback(ctx, step, true) // internal first
@@ -181,6 +209,18 @@ func ResearcherNode(ctx context.Context, state interface{}) (interface{}, error)
 			}
 			continue
 		}
+
+		searchPayload = util.MapStr{}
+		searchPayload["plan"] = step
+		searchPayload["step"] = util.MapStr{
+			"type": "search",
+			"name": "搜索资料",
+			"payload": util.MapStr{
+				"total": 10,
+				"hits":  initialSearchCollection.Results,
+			},
+		} //TODO, convert to query
+		state.(*State).Sender.SendChunkMessage(core.MessageTypeAssistant, common.ResearchResearcherStepEnd, util.MustToJSON(searchPayload), 0)
 
 		// Step 2: Analyze search results and potentially refine search
 		if !initialSearchCollection.IsSufficient {
@@ -262,6 +302,8 @@ func ResearcherNode(ctx context.Context, state interface{}) (interface{}, error)
 
 		// Step 7: Update chapter progress
 		s.updateChapterProgress(stepIndex, allocatedMaterials)
+
+		state.(*State).Sender.SendChunkMessage(core.MessageTypeAssistant, common.ResearchResearcherEnd, util.MustToJSON(payload), 0)
 	}
 
 	s.ResearchResults = results
@@ -289,6 +331,9 @@ var imgRe = regexp.MustCompile(`\[IMAGE_(\d+)[：:]([^\]]+)\]`)
 
 // ReporterNode compiles the final report using organized chapter structure and materials.
 func ReporterNode(ctx context.Context, state interface{}) (interface{}, error) {
+
+	state.(*State).Sender.SendChunkMessage(core.MessageTypeAssistant, common.ResearchReporterStart, "", 0)
+
 	s := state.(*State)
 	logf(ctx, "--- 报告节点：基于章节结构生成最终报告 ---\n")
 
@@ -510,6 +555,8 @@ func (s *State) generateChapterOutline(ctx context.Context) error {
 		return fmt.Errorf("failed to parse chapter outline: %v", err)
 	}
 
+	log.Info("生成报告章节：", util.ToJson(chapters, true))
+
 	s.ChapterOutline = chapters
 	return nil
 }
@@ -518,8 +565,8 @@ func (s *State) generateChapterOutline(ctx context.Context) error {
 func (s *State) convertToMaterials(collection *SearchResultCollection, stepNumber int) []MaterialReference {
 	var materials []MaterialReference
 
-	for i, result := range collection.Results {
-		materialID := fmt.Sprintf("material_%d_step_%d", i, stepNumber)
+	for _, result := range collection.Results {
+		materialID := fmt.Sprintf("material_%v", result.URL)
 
 		// Check if material already exists
 		if _, exists := s.MaterialRegistry[materialID]; exists {
@@ -549,7 +596,7 @@ func (s *State) convertToMaterials(collection *SearchResultCollection, stepNumbe
 		s.MaterialRegistry[materialID] = true
 	}
 
-	s.AllMaterials = append(s.AllMaterials, materials...)
+	//s.AllMaterials = append(s.AllMaterials, materials...)
 	return materials
 }
 
@@ -597,6 +644,7 @@ func (s *State) distributeMaterialsToChapters(materials []MaterialReference, ste
 	return allocatedMaterials
 }
 
+// TODO move it to LLM
 // calculateRelevance calculates relevance score between content and keywords
 func (s *State) calculateRelevance(content string, keywords []string, additionalTerms []string) float64 {
 	if len(keywords) == 0 && len(additionalTerms) == 0 {

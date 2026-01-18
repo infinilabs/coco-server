@@ -239,7 +239,6 @@ func (h APIHandler) createChatSession(w http.ResponseWriter, r *http.Request, ps
 		Enc:     enc,
 		Flusher: flusher,
 		Ctx:     ctx, // assuming this is in an HTTP handler
-
 	}
 
 	replyMsgTaskID := service.GetReplyMessageTaskID(session.ID, reqMsg.ID)

@@ -50,6 +50,8 @@ type MessageChunk struct {
 	ChunkSequence  int    `json:"chunk_sequence"`
 	ChunkType      string `json:"chunk_type"`
 	MessageChunk   string `json:"message_chunk"`
+	Streaming      bool   `json:"streaming,omitempty"`
+	ContentType    string `json:"content_type,omitempty"`
 }
 
 func NewMessageChunk(sessionId, messageId, messageType, replyToMessage, chunkType, messageChunk string, chunkSequence int) *MessageChunk {
