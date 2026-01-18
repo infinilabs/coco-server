@@ -24,6 +24,8 @@ export function Aggregations(props) {
     onSearch(newFilters);
   };
 
+  if (!aggregations || aggregations.length === 0) return null
+
   return (
     <div>
       {aggregations.map((aggregation, index) => {
@@ -33,7 +35,7 @@ export function Aggregations(props) {
         return (
           <div key={aggregation.key} className="mb-24px">
             <FilterCheckboxGroup
-              defaultExpand={index === 0} 
+              defaultExpand={index <= 2} 
               title={<div>{(config?.[aggregation.key]?.displayName || aggregation.key)?.toUpperCase()}</div>}
               value={filterList}
               options={aggregation.list.map((item) => ({

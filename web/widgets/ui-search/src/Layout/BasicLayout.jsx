@@ -20,7 +20,7 @@ const BasicLayout = (props) => {
     resultHeader,
     aiOverview,
     resultList,
-    widgets,
+    recommends,
     isMobile,
     theme,
   } = props;
@@ -77,20 +77,20 @@ const BasicLayout = (props) => {
           <div className="w-full pl-80px pt-32px">{aggregations}</div>
         </Sider>
         <Content className="bg-[rgb(var(--ui-search--layout-bg-color))] min-w-400px max-w-840px" style={{ overflow: 'visible' }}>
-          <div className={`position-sticky top-0 z-10 bg-[rgb(var(--ui-search--layout-bg-color))] pt-16px h-122px ${isMobile ? 'px-16px' : 'pl-80px'}`}>
+          <div className={`position-sticky top-0 z-10 bg-[rgb(var(--ui-search--layout-bg-color))] pt-16px h-122px ${isMobile ? 'px-16px' : 'pl-56px pr-96px'}`}>
             <div className={`flex gap-8px items-center`}>
               { isMobile && (
                 <div className={`h-40px w-40px`}>
                   {logo}
                 </div>
               )}
-              <div className="flex-1">
+              <div className={`flex-1`}>
                 {searchbox}
               </div>
             </div>
             {
               tabs && (
-                <div className={`w-full pt-12px ${isMobile ? '' : 'pr-120px'} flex items-center justify-between`}>
+                <div className={`w-full pt-12px ${isMobile ? '' : 'pr-24px'} flex items-center justify-between`}>
                   <div>
                       {tabs}
                   </div>
@@ -110,8 +110,8 @@ const BasicLayout = (props) => {
         </Content>
         <Sider width={400} className="bg-[rgb(var(--ui-search--layout-bg-color))]" breakpoint="md" collapsedWidth={0} trigger={null}>
           <div className="position-sticky top-0 z-10 bg-[rgb(var(--ui-search--layout-bg-color))] pt-16px h-122px"></div>
-          <div className={`${isMobile ? "w-full" : "flex-1"} flex flex-col gap-16px`}>
-            {widgets}
+          <div className={`${isMobile ? "w-full" : "flex-1"} flex flex-col gap-16px pt-32px`}>
+            {recommends}
           </div>
         </Sider>
         {scrollContainer && backTopShow && !loading && (

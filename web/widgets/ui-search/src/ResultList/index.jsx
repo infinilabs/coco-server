@@ -8,6 +8,11 @@ export const LIST_TYPES = [
     showAIOverview: true,
   },
   {
+    type: "doc",
+    component: NormalList,
+    showAIOverview: false,
+  },
+  {
     type: "image",
     component: ImageList,
     showAIOverview: false,

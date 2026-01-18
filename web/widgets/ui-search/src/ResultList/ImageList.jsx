@@ -14,7 +14,7 @@ const MasonryItem = (props) => {
   const [errored, setErrored] = useState(false);
 
   const calcHeight = () => {
-    const { width, height } = data?.metadata?.image_media_metadata ?? {};
+    const { width, height } = data?.metadata ?? {};
 
     return Math.round((containerSize?.width * height) / width);
   };
@@ -23,7 +23,7 @@ const MasonryItem = (props) => {
     if (loaded) return data?.thumbnail;
 
     return inViewport ? data?.thumbnail : void 0;
-  }, [inViewport, loaded]);
+  }, [inViewport, loaded, data?.thumbnail]);
 
   return (
     <div ref={containerRef} className="group relative cursor-pointer">
@@ -94,33 +94,6 @@ const MasonryItem = (props) => {
 export function ImageList(props) {
   const { getDetailContainer, data = [], isMobile, loading, hasMore } = props;
 
-  const items = Array.from({ length: 100 }, (_, index) => {
-    const key = index + 1;
-    const width = Math.round(Math.random() * (600 - 200) + 200);
-    const height = Math.round(Math.random() * (600 - 200) + 200);
-    const thumbnailWidth = Math.round(width * 0.5);
-    const thumbnailHeight = Math.round(height * 0.5);
-
-    return {
-      id: key,
-      title: `title${key}`,
-      category: "Category",
-      thumbnail:
-        key % 10 === 0
-          ? "error"
-          : `https://picsum.photos/${thumbnailWidth}/${thumbnailHeight}`,
-      source: {
-        name: "Source",
-      },
-      metadata: {
-        image_media_metadata: {
-          width,
-          height,
-        },
-      },
-    };
-  });
-
   return (
     <Masonry
       columns={{
@@ -131,11 +104,9 @@ export function ImageList(props) {
         xs: 2,
       }}
       gutter={16}
-      items={items.map((item) => ({
-        key: item.id,
-        data: item,
-      }))}
-      itemRender={(item) => <MasonryItem {...item} />}
+      // items={data.filter((item) => item.metadata?.content_category === 'image')}
+      items={data}
+      itemRender={(item) => <MasonryItem data={item} />}
     />
   );
 }
