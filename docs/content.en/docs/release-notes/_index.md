@@ -16,10 +16,21 @@ Information about release notes of Coco Server is provided here.
 - feat: add attachment status api #635 
 - feat: implement query suggest api #642
 - feat: implement recommend api #643
+- feat: impl document raw content interface #648
+- feat: convert document cover/thumbnail to attachment URL for preview #645
+- feat: add RefineURL to convert document URL to preview format #649
+- feat: add llm_generation_lang config to AI-based processors #656
+- feat: detect content category and store it in metadata.content_category #655
+- feat: semantic/hybrid search #651
 
 ### 🐛 Bug fix  
+
+- fix: refine doc.Icon and doc.Source.Icon in searchDoc() #644
+- fix: read s3 config directly in raw_content interface #654
+
 ### ✈️ Improvements  
 - refactor: refactoring attachment API #636
+- refactor: omit field document_chunk in search interface #647
 
 ## 0.10.0 (2025-12-19)
 ### ❌ Breaking changes  

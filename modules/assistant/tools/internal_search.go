@@ -45,7 +45,7 @@ func InitialDocumentBriefSearch(ctx context.Context, userID string, reqMsg, repl
 	ctx = context.WithValue(ctx, orm.OwnerIDKey, userID)
 
 	docs := []core.Document{}
-	_, err := document.QueryDocuments(ctx, builder, reqMsg.Message, params.Datasource, params.IntegrationID, params.Category, params.Subcategory, params.RichCategory, &docs)
+	_, err := document.QueryDocuments(ctx, builder, reqMsg.Message, params.Datasource, params.IntegrationID, params.Category, params.Subcategory, params.RichCategory, "keyword", 3, &docs)
 	if err != nil {
 		log.Error(err)
 		return nil, err

@@ -80,6 +80,8 @@ func UploadToBlobStore(ctx *orm.Context, fileID string, file multipart.File, fil
 		panic(err)
 	}
 
+	log.Tracef("uploading files: attachment [%s/%s] created", fileName, fileID)
+
 	//save attachment payload
 	//
 	// kv.AddValue will replace the previous value if it already exists so we
@@ -88,6 +90,7 @@ func UploadToBlobStore(ctx *orm.Context, fileID string, file multipart.File, fil
 	if err != nil {
 		panic(err)
 	}
+	log.Tracef("uploading files: payload [%s/%s] stored", fileName, fileID)
 
 	log.Debugf("file [%s] successfully uploaded, size: %v", fileName, fileSize)
 	return fileID, nil

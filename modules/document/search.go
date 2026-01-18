@@ -8,6 +8,9 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
+	"strconv"
+	"strings"
 
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
@@ -29,7 +32,18 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		category     = h.GetParameterOrDefault(req, "category", "")
 		subcategory  = h.GetParameterOrDefault(req, "subcategory", "")
 		richCategory = h.GetParameterOrDefault(req, "rich_category", "")
+		searchType   = h.GetParameterOrDefault(req, "search_type", "keyword")
+		fuzzinessStr = h.GetParameterOrDefault(req, "fuzziness", "3")
 	)
+
+	// Parse fuzziness
+	var fuzziness = 3 // default to 3
+	if fuzzinessStr != "" {
+		parsed, err := strconv.Atoi(fuzzinessStr)
+		if err != nil && fuzziness >= 0 && fuzziness <= 5 {
+			fuzziness = parsed
+		}
+	}
 
 	query = util.CleanUserQuery(query)
 
@@ -46,7 +60,7 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		integrationID := req.Header.Get(core.HeaderIntegrationID)
 
 		result := elastic.SearchResponseWithMeta[core.Document]{}
-		resp, err := QueryDocuments(req.Context(), builder, query, datasource, integrationID, category, subcategory, richCategory, nil)
+		resp, err := QueryDocuments(req.Context(), builder, query, datasource, integrationID, category, subcategory, richCategory, searchType, fuzziness, nil)
 		if err != nil {
 			panic(err)
 		}
@@ -55,9 +69,10 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		docsSize := len(result.Hits.Hits)
 		//update icon
 		if docsSize > 0 {
-			for i, hit := range result.Hits.Hits {
-				RefineIcon(req.Context(), &hit.Source)
-				result.Hits.Hits[i] = hit
+			for i := range result.Hits.Hits {
+				RefineIcon(req.Context(), &result.Hits.Hits[i].Source)
+				RefineCoverThumbnail(req.Context(), &result.Hits.Hits[i].Source)
+				RefineURL(req.Context(), &result.Hits.Hits[i].Source)
 			}
 		}
 
@@ -160,6 +175,36 @@ func RefineIcon(ctx context.Context, doc *core.Document) {
 	if icon := ResolveIcon(connectorConfig, datasourceConfig, doc.Source.Icon); icon != "" {
 		doc.Source.Icon = icon
 	}
+}
+
+// RefineCoverThumbnail converts Cover and Thumbnail from "attachment://UUID"
+// to full attachment URL for preview capability.
+func RefineCoverThumbnail(ctx context.Context, doc *core.Document) {
+	appCfg := common.AppConfig()
+	baseEndpoint := appCfg.ServerInfo.Endpoint
+
+	if doc.Cover != "" && strings.HasPrefix(doc.Cover, "attachment://") {
+		uuid := strings.TrimPrefix(doc.Cover, "attachment://")
+		relativePath := fmt.Sprintf("/attachment/%s", uuid)
+		if fullURL, err := url.JoinPath(baseEndpoint, relativePath); err == nil {
+			doc.Cover = fullURL
+		}
+	}
+	if doc.Thumbnail != "" && strings.HasPrefix(doc.Thumbnail, "attachment://") {
+		uuid := strings.TrimPrefix(doc.Thumbnail, "attachment://")
+		relativePath := fmt.Sprintf("/attachment/%s", uuid)
+		if fullURL, err := url.JoinPath(baseEndpoint, relativePath); err == nil {
+			doc.Thumbnail = fullURL
+		}
+	}
+}
+
+// RefineURL converts [doc.URL] to [ENDPOINT/#/preview/document/DOC_ID]
+func RefineURL(ctx context.Context, doc *core.Document) {
+	appCfg := common.AppConfig()
+	baseEndpoint := appCfg.ServerInfo.Endpoint
+
+	doc.URL = fmt.Sprintf("%s/#/preview/document/%s", baseEndpoint, doc.ID)
 }
 
 func searchAssistant(req *http.Request, query string, size int) []core.Assistant {

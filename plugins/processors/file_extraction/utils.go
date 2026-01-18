@@ -6,9 +6,16 @@ package file_extraction
 
 import (
 	"archive/zip"
+	"bytes"
 	"context"
+	"encoding/base64"
 	"fmt"
+	_ "image/gif"
+	"image/jpeg"
+	_ "image/png"
+
 	"io"
+	"mime"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -16,7 +23,15 @@ import (
 	"strings"
 	"time"
 
+	_ "golang.org/x/image/bmp"
+	_ "golang.org/x/image/tiff"
+	_ "golang.org/x/image/webp"
+
 	log "github.com/cihub/seelog"
+	"github.com/disintegration/imaging"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
+	"github.com/tmc/langchaingo/llms"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/attachment"
 	"infini.sh/framework/core/orm"
@@ -470,4 +485,191 @@ func DeferClose(c io.Closer) {
 	if closeErr != nil {
 		log.Errorf("Close() failed with error: %s", closeErr)
 	}
+}
+
+/*
+ * Utilities needed to interact with S3
+ *
+ * * We download S3 files to local disk to process them
+ * * We upload documents and their covers to S3 so that we can preview them
+ *   using the preview URL.
+ */
+
+// S3Config holds S3 connection configuration
+type S3Config struct {
+	Endpoint        string `config:"endpoint"`
+	AccessKeyID     string `config:"access_key_id"`
+	SecretAccessKey string `config:"secret_access_key"`
+	Bucket          string `config:"bucket"`
+	UseSSL          bool   `config:"use_ssl"`
+}
+
+// newS3Client creates a new minio client with the given configuration
+func newS3Client(cfg *S3Config) (*minio.Client, error) {
+	client, err := minio.New(cfg.Endpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(cfg.AccessKeyID, cfg.SecretAccessKey, ""),
+		Secure: cfg.UseSSL,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create S3 client: %w", err)
+	}
+	return client, nil
+}
+
+// downloadFromS3 downloads a file from S3 to a local path
+func downloadFromS3(ctx context.Context, cfg *S3Config, objectKey, localPath string) error {
+	client, err := newS3Client(cfg)
+	if err != nil {
+		return err
+	}
+
+	// Ensure parent directory exists
+	if err := os.MkdirAll(filepath.Dir(localPath), 0755); err != nil {
+		return fmt.Errorf("failed to create directory for download: %w", err)
+	}
+
+	err = client.FGetObject(ctx, cfg.Bucket, objectKey, localPath, minio.GetObjectOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to download object [%s] from bucket [%s]: %w", objectKey, cfg.Bucket, err)
+	}
+
+	log.Debugf("successfully downloaded [%s/%s] to [%s]", cfg.Bucket, objectKey, localPath)
+	return nil
+}
+
+// bytesReaderAt implements io.ReaderAt for []byte
+type bytesReaderAt struct {
+	data []byte
+}
+
+func (b *bytesReaderAt) ReadAt(p []byte, off int64) (n int, err error) {
+	if off >= int64(len(b.data)) {
+		return 0, io.EOF
+	}
+	n = copy(p, b.data[off:])
+	if n < len(p) {
+		err = io.EOF
+	}
+	return
+}
+
+// copyLocalFile copies a local file to the destination path
+//
+// TODO(SteveLauC): check if framework provides such a funciton, if so, reuse it.
+func copyLocalFile(src, dst string) error {
+	// Ensure parent directory exists
+	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
+		return fmt.Errorf("failed to create directory: %w", err)
+	}
+
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return fmt.Errorf("failed to open source file: %w", err)
+	}
+	defer DeferClose(srcFile)
+
+	dstFile, err := os.Create(dst)
+	if err != nil {
+		return fmt.Errorf("failed to create destination file: %w", err)
+	}
+	defer DeferClose(dstFile)
+
+	_, err = io.Copy(dstFile, srcFile)
+	if err != nil {
+		return fmt.Errorf("failed to copy file: %w", err)
+	}
+
+	return nil
+}
+
+// Reads a local image file and converts it to content part that can
+// be used with vision models.
+//
+// If image is larger than 5MB, compress it.
+// If image is not in format jpeg/png, we convert it to jpeg, in case the vision model
+// does not support it.
+func loadLocalImageToContentPart(imagePath string, imageContenFormat string) (llms.ContentPart, error) {
+	const MaxImageBytes = 5 * 1024 * 1024
+	// We only allow jpeg and png, in case the vision model does not support
+	// other types.
+	var AllowedImageType = map[string]bool{
+		"image/jpeg": true,
+		"image/png":  true,
+	}
+
+	// Read file
+	imageBytes, err := os.ReadFile(imagePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read image file: %w", err)
+	}
+	mimeType := mime.TypeByExtension(filepath.Ext(imagePath))
+	if mimeType == "" {
+		return nil, fmt.Errorf("unknown MIME type for image extension: %s", filepath.Ext(imagePath))
+	}
+
+	if len(imageBytes) > MaxImageBytes {
+		compressedImageBytes, err := compressImage(imageBytes)
+		if err != nil {
+			return nil, fmt.Errorf("faild to compress image [%s]", imagePath)
+		}
+
+		// after compression, it will be converted into jpeg
+		mimeType = "image/jpeg"
+		imageBytes = compressedImageBytes
+	}
+
+	// Convert it to "image/jpeg"
+	if !AllowedImageType[mimeType] {
+		img, err := imaging.Decode(bytes.NewReader(imageBytes))
+		if err != nil {
+			return nil, fmt.Errorf("decode failed: %w", err)
+		}
+
+		var buf bytes.Buffer
+		err = jpeg.Encode(&buf, img, &jpeg.Options{Quality: 75})
+		if err != nil {
+			return nil, fmt.Errorf("encode jpeg failed: %w", err)
+		}
+
+		mimeType = "image/jpeg"
+		imageBytes = buf.Bytes()
+	}
+
+	switch imageContenFormat {
+	case "data_uri":
+		base64Str := base64.StdEncoding.EncodeToString(imageBytes)
+		dataURI := fmt.Sprintf("data:%s;base64,%s", mimeType, base64Str)
+		return llms.ImageURLPart(dataURI), nil
+	case "binary":
+		return llms.BinaryPart(mimeType, imageBytes), nil
+	default:
+		panic(fmt.Sprintf("unknown [image_content_format] value: [%s]", imageContenFormat))
+	}
+}
+
+// Compress the image bytes by restricting it width/height to be under
+// 1024, then its size won't exceed 4MB.
+func compressImage(data []byte) ([]byte, error) {
+	const DimensionLen = 1024
+
+	img, err := imaging.Decode(bytes.NewReader(data))
+	if err != nil {
+		return nil, fmt.Errorf("decode failed: %w", err)
+	}
+
+	bounds := img.Bounds()
+	width := bounds.Dx()
+	height := bounds.Dy()
+
+	if width > DimensionLen || height > DimensionLen {
+		img = imaging.Fit(img, DimensionLen, DimensionLen, imaging.Lanczos)
+	}
+
+	var buf bytes.Buffer
+	err = jpeg.Encode(&buf, img, &jpeg.Options{Quality: 75})
+	if err != nil {
+		return nil, fmt.Errorf("encode jpeg failed: %w", err)
+	}
+
+	return buf.Bytes(), nil
 }

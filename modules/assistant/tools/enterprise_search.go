@@ -40,7 +40,7 @@ func (t *EnterpriseSearchTool) Call(ctx context.Context, input string) (string, 
 
 	builder := orm.NewQuery()
 	output := []core.Document{}
-	_, err := document.InternalQueryDocuments(ctx, builder, input, "", "", &output)
+	_, err := document.QueryDocuments(ctx, builder, input, "", "", "", "", "", "keyword", 3, &output)
 	if err != nil {
 		panic(err)
 	}
