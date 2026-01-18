@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	log "github.com/cihub/seelog"
+	"golang.org/x/text/language"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/attachment"
 	"infini.sh/coco/plugins/connectors"
@@ -61,6 +62,9 @@ type Config struct {
 
 	// Pigo face finder configuration for face detection
 	PigoFacefinderPath string `config:"pigo_facefinder_path"`
+
+	// Language for LLM-generated content (BCP 47 language tag, e.g., "en-US", "zh-CN")
+	LLMGenerationLang string `config:"llm_generation_lang"`
 }
 
 func New(c *config.Config) (pipeline.Processor, error) {
@@ -73,6 +77,21 @@ func New(c *config.Config) (pipeline.Processor, error) {
 	}
 	if err := c.Unpack(&cfg); err != nil {
 		return nil, err
+	}
+
+	// Default to English if not set
+	if cfg.LLMGenerationLang == "" {
+		cfg.LLMGenerationLang = "en-US"
+	}
+
+	// Validate and normalize language tag
+	tag, err := language.Parse(cfg.LLMGenerationLang)
+	if err != nil {
+		log.Warnf("Processor [%s]: invalid llm_generation_lang %q, falling back to en-US: %v", ProcessorName, cfg.LLMGenerationLang, err)
+		cfg.LLMGenerationLang = "en-US"
+	} else {
+		// Normalize to BCP 47 format (e.g., "en_US" -> "en-US")
+		cfg.LLMGenerationLang = tag.String()
 	}
 
 	p := &FileExtractionProcessor{config: &cfg}

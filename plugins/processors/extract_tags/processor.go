@@ -14,6 +14,7 @@ import (
 
 	log "github.com/cihub/seelog"
 	"github.com/tmc/langchaingo/llms"
+	"golang.org/x/text/language"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/assistant/langchain"
 	"infini.sh/coco/modules/common"
@@ -37,6 +38,9 @@ type Config struct {
 	ModelProviderID    string `config:"model_provider"`
 	ModelName          string `config:"model"`
 	ModelContextLength uint32 `config:"model_context_length"`
+
+	// Language for LLM-generated content (BCP 47 language tag, e.g., "en-US", "zh-CN")
+	LLMGenerationLang string `config:"llm_generation_lang"`
 }
 
 type ExtractTagsProcessor struct {
@@ -55,6 +59,21 @@ func New(c *config.Config) (pipeline.Processor, error) {
 	if err := c.Unpack(&cfg); err != nil {
 		log.Error(err)
 		return nil, fmt.Errorf("failed to unpack the configuration of %s processor: %s", ProcessorName, err)
+	}
+
+	// Default to English if not set
+	if cfg.LLMGenerationLang == "" {
+		cfg.LLMGenerationLang = "en-US"
+	}
+
+	// Validate and normalize language tag
+	tag, err := language.Parse(cfg.LLMGenerationLang)
+	if err != nil {
+		log.Warnf("Processor [%s]: invalid llm_generation_lang %q, falling back to en-US: %v", ProcessorName, cfg.LLMGenerationLang, err)
+		cfg.LLMGenerationLang = "en-US"
+	} else {
+		// Normalize to BCP 47 format (e.g., "en_US" -> "en-US")
+		cfg.LLMGenerationLang = tag.String()
 	}
 
 	if cfg.MessageField == "" {
@@ -181,7 +200,7 @@ func (processor *ExtractTagsProcessor) Process(ctx *pipeline.Context) error {
 
 func extractTagsFromInsights(ctx context.Context, aiInsights string, config *Config, llm llms.Model, regexpToRemoveThink *regexp.Regexp) ([]string, error) {
 	systemPrompt := "You are an expert tag extractor. Analyze document insights and extract relevant tags."
-	userPrompt := buildTagExtractionPrompt(aiInsights)
+	userPrompt := buildTagExtractionPrompt(aiInsights, config.LLMGenerationLang)
 
 	message := []llms.MessageContent{
 		llms.TextParts(llms.ChatMessageTypeSystem, systemPrompt),
@@ -212,7 +231,7 @@ func extractTagsFromInsights(ctx context.Context, aiInsights string, config *Con
 	return normalizeTags(tags), nil
 }
 
-func buildTagExtractionPrompt(aiInsights string) string {
+func buildTagExtractionPrompt(aiInsights string, lang string) string {
 	return fmt.Sprintf(
 		"Extract 3-8 relevant tags from the following document analysis.\n"+
 			"Focus on: main topics, technologies, domains, and key concepts.\n\n"+
@@ -220,9 +239,11 @@ func buildTagExtractionPrompt(aiInsights string) string {
 			"- Return ONLY a valid JSON array of strings\n"+
 			"- Each tag should be 1-3 words\n"+
 			"- Tags should be descriptive and specific\n"+
+			"- Tags MUST be in %s\n"+
 			"- Format: [\"tag1\", \"tag2\", \"tag3\"]\n\n"+
 			"Document Analysis:\n%s\n\n"+
 			"Generate the JSON array of tags now.",
+		lang,
 		aiInsights,
 	)
 }
