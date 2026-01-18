@@ -21,6 +21,8 @@ Information about release notes of Coco Server is provided here.
 - feat: convert document cover/thumbnail to attachment URL for preview #645
 - feat: add RefineURL to convert document URL to preview format #649
 - feat: add llm_generation_lang config to AI-based processors #656
+- feat: semantic/hybrid search #651
+
 
 ### 🐛 Bug fix  
 

@@ -6,6 +6,7 @@ package document
 
 import (
 	"net/http"
+	"strconv"
 
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
@@ -94,8 +95,18 @@ func (h *APIHandler) suggestDocuments(w http.ResponseWriter, req *http.Request, 
 		category     = h.GetParameterOrDefault(req, "category", "")
 		subcategory  = h.GetParameterOrDefault(req, "subcategory", "")
 		richCategory = h.GetParameterOrDefault(req, "rich_category", "")
+		searchType   = h.GetParameterOrDefault(req, "search_type", "keyword")
+		fuzzinessStr = h.GetParameterOrDefault(req, "fuzziness", "3")
 	)
 
+	// Parse fuzziness
+	var fuzziness = 3 // default to 3
+	if fuzzinessStr != "" {
+		parsed, err := strconv.Atoi(fuzzinessStr)
+		if err != nil && fuzziness >= 0 && fuzziness <= 5 {
+			fuzziness = parsed
+		}
+	}
 	query = util.CleanUserQuery(query)
 	response := &core.SuggestResponse[interface{}]{}
 
@@ -118,7 +129,7 @@ func (h *APIHandler) suggestDocuments(w http.ResponseWriter, req *http.Request, 
 		teamsID, _ := reqUser.GetStringArray(orm.TeamsIDKey)
 
 		result := elastic.SearchResponseWithMeta[core.Document]{}
-		resp, err := QueryDocuments(ctx, reqUser.MustGetUserID(), teamsID, builder, query, datasource, integrationID, category, subcategory, richCategory, nil)
+		resp, err := QueryDocuments(ctx, reqUser.MustGetUserID(), teamsID, builder, query, datasource, integrationID, category, subcategory, richCategory, searchType, fuzziness, nil)
 		if err != nil {
 			panic(err)
 		}
