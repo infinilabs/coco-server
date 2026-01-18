@@ -16,7 +16,9 @@ import (
 	"infini.sh/framework/core/global"
 )
 
-const imageDescriptionPrompt = `You are an expert image analyst. Describe the content of this image in detail.
+// buildImageDescriptionPrompt generates a prompt for image description in the specified language.
+func buildImageDescriptionPrompt(lang string) string {
+	return fmt.Sprintf(`You are an expert image analyst. Describe the content of this image in detail.
 Focus on:
 1. Main subjects and objects visible in the image
 2. Colors, composition, and visual elements
@@ -24,7 +26,10 @@ Focus on:
 4. The overall context or purpose of the image
 
 Provide a comprehensive description that would help someone understand what this image contains without seeing it.
-Be factual and descriptive. Do not make assumptions about things not visible in the image.`
+Be factual and descriptive. Do not make assumptions about things not visible in the image.
+
+IMPORTANT: Your response MUST be in %s.`, lang)
+}
 
 // processImage processes an image file using a vision model to extract text description.
 // Returns an Extraction with the vision model's description as text content.
@@ -49,7 +54,7 @@ func (p *FileExtractionProcessor) processImage(ctx context.Context, imagePath st
 		{
 			Role: llms.ChatMessageTypeHuman,
 			Parts: []llms.ContentPart{
-				llms.TextPart(imageDescriptionPrompt),
+				llms.TextPart(buildImageDescriptionPrompt(p.config.LLMGenerationLang)),
 				imagePart,
 			},
 		},
