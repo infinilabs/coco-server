@@ -96,6 +96,8 @@ func (h *APIHandler) getDoc(w http.ResponseWriter, req *http.Request, ps httprou
 		return
 	}
 
+	RefineDocument(req.Context(), &obj)
+
 	h.WriteJSON(w, util.MapStr{
 		"found":   true,
 		"_id":     id,
@@ -441,9 +443,7 @@ func (h *APIHandler) searchDocs(w http.ResponseWriter, req *http.Request, ps htt
 	nDocs := len(result.Hits.Hits)
 	if nDocs > 0 {
 		for i := range result.Hits.Hits {
-			RefineIcon(req.Context(), &result.Hits.Hits[i].Source)
-			RefineCoverThumbnail(req.Context(), &result.Hits.Hits[i].Source)
-			RefineURL(req.Context(), &result.Hits.Hits[i].Source)
+			RefineDocument(req.Context(), &result.Hits.Hits[i].Source)
 		}
 	}
 

@@ -70,9 +70,7 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		//update icon
 		if docsSize > 0 {
 			for i := range result.Hits.Hits {
-				RefineIcon(req.Context(), &result.Hits.Hits[i].Source)
-				RefineCoverThumbnail(req.Context(), &result.Hits.Hits[i].Source)
-				RefineURL(req.Context(), &result.Hits.Hits[i].Source)
+				RefineDocument(req.Context(), &result.Hits.Hits[i].Source)
 			}
 		}
 
@@ -119,6 +117,12 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 	} else {
 		h.WriteJSON(w, elastic.SearchResponse{Hits: elastic.Hits{Total: elastic.TotalHits{Value: 0, Relation: "eq"}}}, http.StatusOK)
 	}
+}
+
+func RefineDocument(ctx context.Context, doc *core.Document) {
+	RefineIcon(ctx, doc)
+	RefineCoverThumbnail(ctx, doc)
+	RefineURL(ctx, doc)
 }
 
 // ResolveIcon runs the icon fallback chain:
