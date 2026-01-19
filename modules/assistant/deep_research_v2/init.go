@@ -78,8 +78,9 @@ func RunDeepResearchV2(ctx context.Context, query string, config *core.DeepResea
 	if finalState.MarkdownReport == "" {
 		log.Error("  警告: MarkdownReport 为空！")
 	}
+	replyMsg.Payload = report
 
-	messageBuffer.WriteString(finalState.MarkdownReport)
+	//messageBuffer.WriteString(finalState.MarkdownReport)
 
 	return nil
 }

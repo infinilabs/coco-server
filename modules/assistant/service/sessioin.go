@@ -73,8 +73,6 @@ func SaveRequestMessage(ctx *orm.Context, sessionID, assistantID string, req *co
 	}
 	msg.ID = util.GetUUID()
 
-	msg.Parameters = util.MapStr{}
-
 	if err := orm.Create(ctx, msg); err != nil {
 		return nil, err
 	}
