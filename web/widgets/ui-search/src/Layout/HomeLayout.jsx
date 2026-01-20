@@ -13,6 +13,7 @@ const HomeLayout = (props) => {
     searchbox,
     isMobile,
     theme,
+    recommends
   } = props;
 
   const themeClass = theme === 'dark' ? DARK_CLASS : 'light';
@@ -37,6 +38,9 @@ const HomeLayout = (props) => {
           )}
           <div className={`${isMobile ? "w-full px-24px" : "w-720px"} mt-80px`}>
             {searchbox}
+            <div className={`w-full mt-40px`}>
+              {recommends}
+            </div>
           </div>
         </Content>
       </Layout>

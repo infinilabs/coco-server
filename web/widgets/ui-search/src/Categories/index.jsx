@@ -3,16 +3,16 @@ import styles from "./index.module.less";
 
 export function Categories(props) {
 
-  const { type = "all", onChange } = props;
+  const { category = "all", onChange } = props;
 
   return (
-    <Tabs className={styles.categories} activeKey={type} items={[
+    <Tabs className={styles.categories} activeKey={category || "all"} items={[
       {
         key: 'all',
         label: '全部',
       },
       {
-        key: 'file',
+        key: 'doc',
         label: '文档',
       },
       {

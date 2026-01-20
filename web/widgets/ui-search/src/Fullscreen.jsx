@@ -1,16 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import SearchBox from "./SearchBox";
-import Logo from "./Logo";
-import Aggregations from "./Aggregations";
-import ResultHeader from "./ResultHeader";
 import { LIST_TYPES } from "./ResultList";
 import { formatESResult } from "./utils/es";
-import Welcome from "./Welcome";
-import AIOverviewWrapper from "./AIOverview/AIOverviewWrapper";
-import Categories from "./Categories";
-import HomeLayout from "./Layout/HomeLayout";
-import BasicLayout from "./Layout/BasicLayout";
-import Toolbar from "./Toolbar";
 import PropTypes from 'prop-types';
 import { ChartColumn, ListFilter } from 'lucide-react';
 import { useTranslation } from "react-i18next";
@@ -18,6 +8,9 @@ import { useTranslation } from "react-i18next";
 import ChatLayout from './Layout/ChatLayout';
 import ChatHeader from './ChatHeader';
 import { History, Chat, AssistantList, ChatInput } from "@infinilabs/ai-chat";
+import { debounce } from 'lodash';
+import Home from "./pages/Home";
+import Search from "./pages/Search";
 
 function renderChatMode({
   activeChat,
@@ -86,179 +79,12 @@ function renderChatMode({
   );
 }
 
-function renderHomeMode({ commonProps, isHome, loading, logo, onSearch: onSearchSubmit, placeholder, query, welcome }) {
-  return (
-    <HomeLayout
-      {...commonProps}
-      loading={loading}
-      logo={
-        <Logo
-          isHome={isHome}
-          {...commonProps}
-          {...logo}
-        />
-      }
-      searchbox={
-        <SearchBox
-          {...commonProps}
-          placeholder={placeholder}
-          query={query}
-          onSearch={onSearchSubmit}
-        />
-      }
-      welcome={
-        welcome ? (
-          <Welcome
-            {...commonProps}
-            text={welcome}
-          />
-        ) : null
-      }
-    />
-  );
-}
-
-function renderSearchMode({
-  aggregations,
-  aiOverview,
-  askBody,
-  commonProps,
-  config,
-  data,
-  filter,
-  getContainer,
-  handleLogoClick,
-  hits,
-  hasMore,
-  initContainer,
-  isHome,
-  listType,
-  loading,
-  logo,
-  onAsk,
-  onSearchFilter,
-  onSearchQuery,
-  placeholder,
-  query,
-  queryParams,
-  rightMenuWidth,
-  showFullScreenSpin,
-  setQueryParams,
-  theme,
-  welcome,
-  widgets
-}) {
-  return (
-    <BasicLayout
-      {...commonProps}
-      getContainer={getContainer}
-      initContainer={initContainer}
-      loading={showFullScreenSpin}
-      rightMenuWidth={rightMenuWidth}
-      aggregations={
-        <Aggregations
-          {...commonProps}
-          aggregations={aggregations}
-          config={config.aggregations}
-          filter={filter}
-          onSearch={onSearchFilter}
-        />
-      }
-      aiOverview={
-        listType?.showAIOverview && aiOverview?.enabled ? (
-          <AIOverviewWrapper
-            askBody={askBody}
-            config={aiOverview}
-            theme={theme}
-            onAsk={onAsk}
-          />
-        ) : null
-      }
-      logo={
-        <Logo
-          isHome={isHome}
-          onLogoClick={handleLogoClick}
-          {...commonProps}
-          {...logo}
-        />
-      }
-      resultHeader={
-        <ResultHeader
-          hits={hits}
-          {...commonProps}
-        />
-      }
-      resultList={
-        listType ? (
-          <listType.component
-            {...commonProps}
-            data={data}
-            getDetailContainer={getContainer}
-            hasMore={hasMore}
-            loading={loading}
-            query={query}
-            total={hits?.total || 0}
-          />
-        ) : null
-      }
-      searchbox={
-        <SearchBox
-          {...commonProps}
-          minimize={true}
-          placeholder={placeholder}
-          query={query}
-          onSearch={onSearchQuery}
-        />
-      }
-      tabs={
-        <Categories
-          type={queryParams?.type}
-          onChange={type => {
-            setQueryParams({
-              ...queryParams,
-              type,
-              t: new Date().valueOf()
-            });
-          }}
-        />
-      }
-      tools={
-        <div className='h-46px flex items-center gap-8px'>
-          <ListFilter className='h-16px w-16px' />
-          <ChartColumn className='h-16px w-16px' />
-        </div>
-      }
-      welcome={
-        welcome ? (
-          <Welcome
-            {...commonProps}
-            text={welcome}
-          />
-        ) : null
-      }
-      widgets={
-        <>
-          {widgets.map((item, index) => (
-            <AIOverviewWrapper
-              askBody={askBody}
-              config={item}
-              key={index}
-              onAsk={onAsk}
-            />
-          ))}
-        </>
-      }
-    />
-  );
-}
-
 const Fullscreen = props => {
   const {
     logo = {},
     placeholder,
     welcome,
     aiOverview,
-    widgets = [],
     onSearch,
     onAsk,
     config = {},
@@ -287,6 +113,7 @@ const Fullscreen = props => {
     onHistoryRemove,
     language = 'en-US',
     onSuggestion,
+    onRecommend,
   } = props;
 
   const containerRef = useRef(null);
@@ -356,7 +183,7 @@ const Fullscreen = props => {
 
   useEffect(() => {
     const contentContainer = containerRef.current;
-    if (!contentContainer || isHome) return () => {};
+    if (!contentContainer || isHome) return () => { };
 
     contentContainer.addEventListener('scroll', handleScroll);
     return () => {
@@ -425,12 +252,9 @@ const Fullscreen = props => {
     };
   }, [queryParams]);
 
-  const { query, filter, type = 'all', filters = [] } = queryParams;
+  const debouncedSuggestion = debounce(onSuggestion, 500);
 
-  const listType = useMemo(() => {
-    if (!LIST_TYPES || LIST_TYPES.length === 0) return undefined;
-    return LIST_TYPES.find(item => item.type === type) || LIST_TYPES[0];
-  }, [type]);
+  const { query, filter, filters = [] } = queryParams;
 
   const commonProps = { isMobile, theme };
   const { hits, aggregations } = result;
@@ -515,50 +339,54 @@ const Fullscreen = props => {
   }
 
   if (isHome) {
-    return renderHomeMode({
-      commonProps,
-      isHome,
-      loading: showFullScreenSpin,
-      logo,
-      onSearch: query => handleSearch({ ...queryParams, from: 0, query }, true),
-      placeholder,
-      query,
-      welcome
-    });
+    return (
+      <Home
+        commonProps={commonProps}
+        loading={showFullScreenSpin}
+        logo={logo}
+        onSearch={(query, filters) => handleSearch({ ...queryParams, from: 0, query, filters }, true)}
+        placeholder={placeholder}
+        welcome={welcome}
+        queryParams={queryParams}
+        setQueryParams={setQueryParams}
+        onSuggestion={debouncedSuggestion}
+        onRecommend={onRecommend}
+      />
+    )
   }
 
-  return renderSearchMode({
-    aggregations,
-    aiOverview,
-    askBody,
-    commonProps,
-    config,
-    data,
-    filter,
-    getContainer: () => containerRef.current,
-    handleLogoClick,
-    hasMore,
-    hits,
-    initContainer: ref => {
-      containerRef.current = ref;
-    },
-    isHome,
-    listType,
-    loading,
-    logo,
-    onAsk,
-    onSearchFilter: filter => handleSearch({ ...queryParams, filter }, true),
-    onSearchQuery: query => handleSearch({ ...queryParams, from: 0, query }, true),
-    placeholder,
-    query,
-    queryParams,
-    rightMenuWidth,
-    showFullScreenSpin,
-    setQueryParams,
-    theme,
-    welcome,
-    widgets
-  });
+  return (
+    <Search
+      aggregations={aggregations}
+      aiOverview={aiOverview}
+      askBody={askBody}
+      commonProps={commonProps}
+      config={config}
+      data={data}
+      filter={filter}
+      getContainer={() => containerRef.current}
+      handleLogoClick={handleLogoClick}
+      hasMore={hasMore}
+      hits={hits}
+      initContainer={ref => {
+        containerRef.current = ref;
+      }}
+      loading={loading}
+      logo={logo}
+      placeholder={placeholder}
+      rightMenuWidth={rightMenuWidth}
+      theme={theme}
+      welcome={welcome}
+      showFullScreenSpin={showFullScreenSpin}
+      queryParams={queryParams}
+      setQueryParams={setQueryParams}
+      onSearchFilter={filter => handleSearch({ ...queryParams, filter }, true)}
+      onSearch={(query, filters) => handleSearch({ ...queryParams, from: 0, query, filters }, true)}
+      onAsk={onAsk}
+      onSuggestion={debouncedSuggestion}
+      onRecommend={onRecommend}
+    />
+  )
 };
 
 Fullscreen.propTypes = {
@@ -568,7 +396,6 @@ Fullscreen.propTypes = {
   aiOverview: PropTypes.shape({
     enabled: PropTypes.bool
   }),
-  widgets: PropTypes.array,
   onSearch: PropTypes.func,
   onAsk: PropTypes.func,
   config: PropTypes.object,

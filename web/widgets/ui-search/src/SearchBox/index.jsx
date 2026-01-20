@@ -2,7 +2,7 @@ import { Input } from "antd";
 import styles from "./index.module.less";
 import { useEffect, useMemo, useState, useRef } from "react";
 import { Search } from "lucide-react";
-import SearchActions from "./SearchActions";
+import SearchActions, { ACTION_TYPE_SEARCH } from "./SearchActions";
 import Operations from "./Operations";
 import Tips, { SUGGESTION_TIPS } from "./suggestions/Tips";
 import Keywords, { SUGGESTION_KEYWORDS } from "./suggestions/Keywords";
@@ -12,105 +12,125 @@ import Filters from "./Filters";
 import { calculateCharLength } from "../utils/utils";
 import cloneDeep from "lodash/cloneDeep";
 import Operators, { SUGGESTION_OPERATORS } from "./Suggestions/Operators";
+import { Attachments } from "@infinilabs/attachments";
+
+const DEFAULT_SUGGESTIONS_SIZE = 5;
 
 export function SearchBox(props) {
-  const { placeholder, query, filters = [], onSearch, minimize = false, onSuggestion } = props;
-
-  const [currentKeyword, setCurrentKeyword] = useState(query);
-  const [currentFilters, setCurrentFilters] = useState([]);
+  const { placeholder, queryParams, setQueryParams, onSearch, minimize = false, onSuggestion } = props;
+  const [currentQueryParams, setCurrentQueryParams] = useState(queryParams);
+  const { query, filters = [], action_type, search_type } = currentQueryParams
   const [suggestions, setSuggestions] = useState({});
-  const [actionType, setActionType] = useState();
-
-  const [mainInputState, setMainInputState] = useState({
-    active: false
-  });
-
-  const [filterState, setFilterState] = useState({
-    type: 'none',
-    index: -1
-  });
+  const [attachments, setAttachments] = useState([]);
+  const [mainInputActive, setMainInputActive] = useState(false);
+  const [filterState, setFilterState] = useState({ type: 'none', index: -1 });
+  const [attachmentActive, setAttachmentActive] = useState(false);
 
   const isClickingSuggestion = useRef(false);
   const inputRef = useRef(null);
   const textAreaRef = useRef(null);
+  const expandedInputRef = useRef(null);
 
-  const handleSearch = (keyword, filters) => {
-    setMainInputState({ active: false });
+  const showExpandedPanel = useMemo(() => {
+    return mainInputActive || filterState.type !== 'none' || attachmentActive;
+  }, [mainInputActive, filterState.type, attachmentActive]);
+
+  const searchable = useMemo(() => {
+    return (
+      (query || '').trim().length > 0 ||
+      filters.some(filter => !!filter.value && !(Array.isArray(filter.value) && filter.value.length === 0))
+    );
+  }, [query, filters]);
+
+  const handleQueryParamsChange = (field, value) => {
+    setCurrentQueryParams((prev) => {
+      const newQueryParams = cloneDeep(prev);
+      newQueryParams[field] = value;
+      return newQueryParams
+    })
+  }
+
+  const handleSearch = (keyword, filters, actionType, searchType) => {
+    onSearch(keyword, filters, actionType, searchType);
+    setMainInputActive(false);
     setFilterState({ type: 'none', index: -1 });
+    setAttachmentActive(false)
     setSuggestions({});
-    setActionType();
-    onSearch(keyword, filters);
   };
 
-  const changeSuggestions = async (keyword) => {
+  const changeSuggestions = (keyword) => {
     const formatKeyword = (keyword || '').trim();
     const hasKeyword = formatKeyword.length > 0;
-    if (!mainInputState.active && filterState.type === 'none') {
+
+    if (!mainInputActive && filterState.type === 'none') {
       setSuggestions({});
       return;
     }
 
-    if (mainInputState.active) {
+    let suggestionType = null;
+    if (mainInputActive) {
       if (!hasKeyword) {
-        setSuggestions({ type: SUGGESTION_TIPS });
-        return;
+        suggestionType = SUGGESTION_TIPS;
+      } else if (formatKeyword === '/') {
+        suggestionType = SUGGESTION_FILTER_FIELDS;
+      } else {
+        suggestionType = SUGGESTION_KEYWORDS;
       }
-
-      if (formatKeyword === '/') {
-        setSuggestions({
-          type: SUGGESTION_FILTER_FIELDS,
-        });
-        return;
-      }
-
-      setSuggestions({
-        type: SUGGESTION_KEYWORDS,
-      });
-      return; 
+    } else if (filterState.type === 'filterInput') {
+      suggestionType = SUGGESTION_FILTER_VALUES;
+    } else if (filterState.type === 'filterActive') {
+      suggestionType = SUGGESTION_OPERATORS;
     }
 
-    if (filterState.type === 'filterInput' || filterState.type === 'filterActive') {
-      if (filterState.type === 'filterInput') {
-        setSuggestions({
-          type: SUGGESTION_FILTER_VALUES,
-        });
-      } else if (filterState.type === 'filterActive') {
-        setSuggestions({
-          type: SUGGESTION_OPERATORS,
-        });
-      }
-    }
-  };
-
-  const handleMainInputFocus = () => {
-    setMainInputState({ active: true });
-    setFilterState({ type: 'none', index: -1 });
-  };
-
-  const handleMainInputBlur = () => {
-    setTimeout(() => {
-      if (!isClickingSuggestion.current) {
-        setMainInputState({ active: false });
-      }
-    }, 100);
-  };
-
-  const handleFilterInputFocus = (index) => {
-    setFilterState({
-      type: 'filterInput',
-      index: index
+    setSuggestions({
+      type: suggestionType,
+      from: 0,
+      size: DEFAULT_SUGGESTIONS_SIZE
     });
   };
 
-  const handleFilterInputBlur = () => {
-    setTimeout(() => {
-      if (!isClickingSuggestion.current) {
-        setFilterState({
-          type: 'none',
-          index: -1
-        });
-      }
-    }, 100);
+  const handleSuggestionItemClick = (handler) => {
+    return (item) => {
+      isClickingSuggestion.current = true;
+      handler(item);
+      setTimeout(() => (isClickingSuggestion.current = false), 200);
+    };
+  };
+
+  const handleAddFilter = (item) => {
+    const newFilters = cloneDeep(filters);
+    newFilters.push({ field: item, operator: 'or' });
+    handleQueryParamsChange('filters', newFilters)
+    handleQueryParamsChange('query', query?.endsWith('/') ? query.slice(0, -1) : query)
+    setFilterState({ type: 'filterInput', index: newFilters.length - 1 });
+    setMainInputActive(false);
+  };
+
+  const handleOperatorChange = (item) => {
+    const { index } = filterState;
+    if (filterState.type !== 'filterActive' || index === -1 || index >= filters.length) return;
+
+    const newFilters = cloneDeep(filters);
+    newFilters[index].operator = item.suggestion;
+    handleQueryParamsChange('filters', newFilters)
+  };
+
+  const handleFilterValueToggle = (item) => {
+    const { index } = filterState;
+    if ((filterState.type !== 'filterInput' && filterState.type !== 'filterActive') || index === -1 || index >= filters.length) return;
+
+    const newFilters = cloneDeep(filters);
+    const filter = newFilters[index];
+    if (!filter.value) filter.value = [];
+
+    const valueIndex = filter.value.findIndex(v => v === item.suggestion);
+    if (valueIndex === -1) {
+      filter.value.push(item.suggestion);
+    } else {
+      filter.value.splice(valueIndex, 1);
+    }
+
+    handleQueryParamsChange('filters', newFilters)
   };
 
   const handleFilterActiveToggle = (index) => {
@@ -119,291 +139,264 @@ export function SearchBox(props) {
       setSuggestions({});
       return;
     }
+
     const isCurrentActive = filterState.type === 'filterActive' && filterState.index === index;
+    setFilterState(isCurrentActive
+      ? { type: 'none', index: -1 }
+      : { type: 'filterActive', index });
 
-    if (isCurrentActive) {
-      setFilterState({ type: 'none', index: -1 });
-      setSuggestions({});
-    } else {
-      setFilterState({ type: 'filterActive', index: index });
-    }
+    if (isCurrentActive) setSuggestions({});
   };
 
-  const handleOperatorItemClick = (item) => {
-    const { type, index } = filterState;
-    if (type !== 'filterActive' || index === -1 || index >= currentFilters.length) {
-      return;
-    }
-
-    const newFilters = cloneDeep(currentFilters);
-    newFilters[index].operator = item.suggestion;
-    setCurrentFilters(newFilters);
+  const handleInputFocus = () => {
+    setMainInputActive(true);
+    setFilterState({ type: 'none', index: -1 });
+    setTimeout(() => expandedInputRef.current?.focus(), 0);
   };
 
-  const handleFilterValueItemClick = (item) => {
-    const { type, index } = filterState;
-    if ((type !== 'filterInput' && type !== 'filterActive') || index === -1 || index >= currentFilters.length) {
-      return;
-    }
-
-    setCurrentFilters((prev) => {
-      const newFilters = cloneDeep(prev);
-      if (!newFilters[index].value) {
-        newFilters[index].value = []
-      }
-      const operatorIndex = newFilters[index].value.findIndex((v) => v === item.suggestion)
-      if (operatorIndex === -1) {
-        newFilters[index].value.push(item.suggestion)
-      } else {
-        newFilters[index].value.splice(operatorIndex, 1)
-      }
-      return newFilters;
-    });
+  const handleInputBlur = () => {
+    setTimeout(() => {
+      if (!isClickingSuggestion.current) setMainInputActive(false);
+    }, 100);
   };
 
-  const wrapSuggestionClick = (handler) => {
-    return (item) => {
-      isClickingSuggestion.current = true;
-      handler(item);
-      setTimeout(() => {
-        isClickingSuggestion.current = false;
-      }, 200);
-    };
-  };
-
-  const handleAddFilter = (item) => {
-    let index = 0
-
-    setCurrentFilters((prev) => {
-      const newFilters = cloneDeep(prev);
-      newFilters.push({ field: item, operator: 'or' });
-      index = newFilters.length - 1;
-      return newFilters;
-    });
-
-    setCurrentKeyword((prevKeyword) => {
-      if (prevKeyword && prevKeyword.endsWith('/')) {
-        return prevKeyword.slice(0, -1);
-      }
-      return prevKeyword;
-    });
-
-    setMainInputState({ active: false });
+  const handleFilterInputFocus = (index) => {
     setFilterState({ type: 'filterInput', index });
   };
 
-  useEffect(() => {
-    setCurrentKeyword(query);
-  }, [query]);
-
-  useEffect(() => {
-    if (filters) {
-      setCurrentFilters(filters);
-    }
-  }, [JSON.stringify(filters)]);
-
-  useEffect(() => {
-    changeSuggestions(currentKeyword);
-  }, [currentKeyword, mainInputState, filterState]);
-
-  const handleSuggestionsResult = (res) => {
-    if (Array.isArray(res.suggestions)) {
-      setSuggestions((prev) => ({
-        ...prev,
-        data: res.suggestions
-      }))
-    }
-  }
-
-  useEffect(() => {
-    if (suggestions.type === SUGGESTION_KEYWORDS) {
-      const showSuggestions = calculateCharLength(currentKeyword) < 40;
-      if (showSuggestions) {
-        onSuggestion(undefined, {
-          query: currentKeyword,
-          form: 0,
-          size: 10
-        }, handleSuggestionsResult)
-      }
-    } else if (suggestions.type === SUGGESTION_FILTER_FIELDS) {
-      onSuggestion(suggestions.type, {
-        query: currentKeyword,
-        form: 0,
-        size: 10
-      }, handleSuggestionsResult)
-    } else if (suggestions.type === SUGGESTION_FILTER_VALUES) {
-      const filter = filterState.index >= 0 && filterState.index < currentFilters.length ? currentFilters[filterState.index] : null
-      if (filter?.field?.payload?.field_name) {
-        onSuggestion(suggestions.type, {
-          field_name: filter?.field?.payload?.field_name,
-          query: currentKeyword,
-          form: 0,
-          size: 10
-        }, handleSuggestionsResult)
-      }
-    }
-  }, [suggestions.type, currentKeyword, filterState, currentFilters])
-
-  useEffect(() => {
-    if (filterState.type !== 'filterInput' && filterState.type !== 'filterActive') {
-      const cleanedFilters = cloneDeep(currentFilters).filter(filter => {
-        const value = filter.value;
-        if (!value || (Array.isArray(value) && value.length === 0)) return false;
-        return true;
-      });
-      if (cleanedFilters.length !== currentFilters.length) {
-        setCurrentFilters(cleanedFilters);
-      }
-    }
-  }, [filterState.type, currentFilters]);
-
-  const handleTabKeyDown = (e) => {
-    if (e.key === 'Tab') {
-      e.preventDefault();
-
-      if (minimize) {
-        if (inputRef.current) {
-          inputRef.current.focus();
-        }
-      } else {
-        if (textAreaRef.current) {
-          textAreaRef.current.focus();
-        }
-      }
-    }
+  const handleFilterInputBlur = () => {
+    setTimeout(() => {
+      if (!isClickingSuggestion.current) setFilterState({ type: 'none', index: -1 });
+    }, 100);
   };
 
-  useEffect(() => {
-    document.addEventListener('keydown', handleTabKeyDown);
-
-    return () => {
-      document.removeEventListener('keydown', handleTabKeyDown);
-    };
-  }, [minimize]);
-
-  const searchable = useMemo(() => {
-    return (
-      (currentKeyword || '').trim().length > 0 ||
-      currentFilters.some(filter => !!filter.value && !(Array.isArray(filter.value) && filter.value.length === 0))
-    );
-  }, [currentKeyword, currentFilters]);
+  const handleSuggestionsResult = (res) => {
+    setSuggestions(prev => ({
+      ...prev,
+      data: Array.isArray(res?.suggestions) ? res.suggestions : []
+    }));
+  };
 
   const renderSuggestions = () => {
-    if ((!mainInputState.active && filterState.type === 'none') || !suggestions.type) return null;
-    switch (suggestions.type) {
+    const { type, data = [] } = suggestions;
+    if (!type || (!mainInputActive && filterState.type === 'none')) return null;
+
+    switch (type) {
       case SUGGESTION_TIPS:
         return <Tips />;
       case SUGGESTION_KEYWORDS:
         return (
           <Keywords
-            keyword={currentKeyword}
-            data={suggestions.data || []}
+            keyword={query}
+            data={data}
             onItemSelect={(item) => {
-              if (item.action) setActionType(item.action)
+              handleQueryParamsChange('action_type', item.action || ACTION_TYPE_SEARCH)
             }}
-            onItemClick={wrapSuggestionClick((item) => handleSearch(item.keyword || currentKeyword, currentFilters))}
+            onItemClick={handleSuggestionItemClick((item) => handleSearch(item.suggestion || query, filters, action_type, search_type))}
           />
         );
       case SUGGESTION_FILTER_FIELDS:
         return (
           <FilterFields
-            data={suggestions.data || []}
-            onItemClick={wrapSuggestionClick(handleAddFilter)}
+            data={data}
+            onItemClick={handleSuggestionItemClick(handleAddFilter)}
+            loadNext={() => setSuggestions(prev => ({
+              ...prev,
+              from: prev.from + DEFAULT_SUGGESTIONS_SIZE
+            }))}
           />
         );
       case SUGGESTION_FILTER_VALUES:
         return (
           <FilterValues
-            data={suggestions.data || []}
-            filter={filterState.index >= 0 && filterState.index < currentFilters.length ? currentFilters[filterState.index] : null}
-            onItemClick={wrapSuggestionClick(handleFilterValueItemClick)}
+            data={data}
+            filter={filters[filterState.index] || null}
+            onItemClick={handleSuggestionItemClick(handleFilterValueToggle)}
           />
         );
       case SUGGESTION_OPERATORS:
-        return <Operators
-          onItemClick={wrapSuggestionClick(handleOperatorItemClick)}
-        />;
+        return (
+          <Operators onItemClick={handleSuggestionItemClick(handleOperatorChange)} />
+        );
       default:
         return null;
     }
   };
 
-  const showExpandedPanel = mainInputState.active || filterState.type !== 'none';
+  const renderTextArea = (ref, className = "", onBlur) => (
+    <Input.TextArea
+      ref={ref}
+      placeholder={placeholder}
+      autoSize={{ minRows: 1, maxRows: 6 }}
+      classNames={{ textarea: '!text-16px !px-16px !mb-14px !bg-transparent' }}
+      value={query}
+      onChange={(e) => handleQueryParamsChange('query', e.target.value)}
+      onFocus={handleInputFocus}
+      onBlur={onBlur}
+      className={`${styles.input} ${className}`}
+    />
+  );
 
-  const activedInput = (
-    <div
-      className={`pt-16px pb-12px rounded-12px overflow-hidden shadow-[0_2px_20px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_20px_rgba(255,255,255,0.2)] border border-[rgba(235,235,235,1)] dark:border-[rgba(50,50,50,1)] ${styles.searchbox}`}
-    >
-      <Filters
-        className={"mb-14px px-16px"}
-        filters={currentFilters}
-        onFiltersChange={setCurrentFilters}
-        onFilterInputFocus={handleFilterInputFocus}
-        onFilterInputBlur={handleFilterInputBlur}
-        onFilterActiveToggle={handleFilterActiveToggle}
-        focusIndex={filterState.type === 'filterInput' ? filterState.index : -1}
-        activeIndex={filterState.type === 'filterActive' ? filterState.index : -1}
+  const renderActionBar = () => (
+    <div className="flex justify-between items-center px-12px">
+      <SearchActions actionType={action_type} searchType={search_type} onSearchTypeChange={(type) => handleQueryParamsChange('search_type', type)} />
+      <Operations 
+        attachments={attachments}
+        setAttachments={(attachments) => {
+          setAttachments(attachments)
+          setAttachmentActive(attachments.length > 0)
+        }}
+        onSearch={() => handleSearch(query, filters, action_type, search_type)} 
+        disabled={!searchable} 
       />
-      <Input.TextArea
-        ref={textAreaRef}
-        placeholder={placeholder}
-        autoSize={{ minRows: 1, maxRows: 6 }}
-        classNames={{ textarea: '!text-16px !px-16px  !mb-14px !bg-transparent' }}
-        value={currentKeyword}
-        onChange={(e) => setCurrentKeyword(e.target.value)}
-        onFocus={handleMainInputFocus}
-        onBlur={handleMainInputBlur}
-        className={styles.input}
-      />
-      {renderSuggestions()}
-      <div className="flex justify-between items-center px-12px">
-        <SearchActions type={actionType} />
-        <Operations onSearch={() => handleSearch(currentKeyword, currentFilters)} disabled={!searchable} />
-      </div>
     </div>
   );
 
-  return minimize ? (
-    <div className={`relative flex w-full h-full items-center justify-center ${styles.searchbox} rounded-8px`}>
-      <div className={`w-full h-48px pl-16px pr-10px rounded-12px border border-[rgba(235,235,235,1)] dark:border-[rgba(50,50,50,1)]`}>
-        <div className="items-center w-full h-full flex gap-8px">
-          <Search className="relative top-2px w-16px h-16px flex-shrink-0 text-#999" />
-          <div className="flex-shrink-0">
-            <Filters
-              filters={currentFilters}
-              onFiltersChange={setCurrentFilters}
-              onFilterInputFocus={handleFilterInputFocus}
-              onFilterActiveToggle={handleFilterActiveToggle}
-              focusIndex={filterState.type === 'filterInput' ? filterState.index : -1}
-              activeIndex={filterState.type === 'filterActive' ? filterState.index : -1}
-            />
-          </div>
+  const renderExpandedPanel = () => {
+    if (!showExpandedPanel) return null;
+
+    return (
+      <div className="absolute left-0 top-0 z-100 w-full">
+        <div className={`py-12px rounded-12px bg-white overflow-hidden shadow-[0_2px_20px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_20px_rgba(255,255,255,0.2)] border border-[rgba(235,235,235,1)] dark:border-[rgba(50,50,50,1)] `}>
+          {
+            attachments.length > 0 && (
+              <div className="mb-14px px-16px">
+                <Attachments data={attachments} onItemRemove={(item) => {
+                  const index = attachments.findIndex((a) => a.id === item.id)
+                  if (index !== -1) {
+                    const newAttachments = cloneDeep(attachments)
+                    newAttachments.splice(index, 1)
+                    setAttachments(newAttachments)
+                  }
+                }}/>
+              </div>
+            )
+          }
+          <Filters
+            className="mb-14px px-16px"
+            filters={filters}
+            onFiltersChange={(filters) => handleQueryParamsChange('filters', filters)}
+            onFilterInputFocus={handleFilterInputFocus}
+            onFilterInputBlur={handleFilterInputBlur}
+            onFilterActiveToggle={handleFilterActiveToggle}
+            focusIndex={filterState.type === 'filterInput' ? filterState.index : -1}
+            activeIndex={filterState.type === 'filterActive' ? filterState.index : -1}
+          />
+          {renderTextArea(expandedInputRef, '', handleInputBlur)}
+          {renderSuggestions()}
+          {renderActionBar()}
+        </div>
+      </div>
+    );
+  };
+
+  useEffect(() => {
+    setCurrentQueryParams({
+      ...(queryParams || {}),
+      query: queryParams?.query || '',
+      filters: Array.isArray(queryParams?.filters) ? queryParams.filters : []
+    })
+  }, [JSON.stringify(queryParams)])
+
+  useEffect(() => {
+    changeSuggestions(query);
+  }, [query, mainInputActive, filterState]);
+
+  useEffect(() => {
+    if (filterState.type !== 'filterInput' && filterState.type !== 'filterActive') {
+      const cleanedFilters = cloneDeep(filters).filter(filter => {
+        const value = filter.value;
+        return !!value && !(Array.isArray(value) && value.length === 0);
+      });
+      if (cleanedFilters.length !== filters.length) {
+        handleQueryParamsChange('filters', cleanedFilters)
+      }
+    }
+  }, [filterState.type, filters]);
+
+  useEffect(() => {
+    const { type, from = 0, size = DEFAULT_SUGGESTIONS_SIZE } = suggestions;
+    if (!type || !onSuggestion) return;
+
+    let suggestionParams = { from, size };
+    switch (type) {
+      case SUGGESTION_KEYWORDS:
+        if (calculateCharLength(query) < 40) {
+          suggestionParams.query = query;
+          onSuggestion(undefined, suggestionParams, handleSuggestionsResult);
+        }
+        break;
+      case SUGGESTION_FILTER_FIELDS:
+        suggestionParams.query = query?.endsWith('/') ? query.slice(0, -1) : query;
+        onSuggestion(type, suggestionParams, handleSuggestionsResult);
+        break;
+      case SUGGESTION_FILTER_VALUES:
+        const filter = filters[filterState.index];
+        if (filter?.field?.payload?.field_name) {
+          suggestionParams = {
+            ...suggestionParams,
+            field_name: filter.field.payload.field_name,
+            query: query
+          };
+          onSuggestion(type, suggestionParams, handleSuggestionsResult);
+        }
+        break;
+    }
+  }, [suggestions.type, suggestions.from, suggestions.size, query, filterState, filters, onSuggestion]);
+
+  useEffect(() => {
+    const handleTabKeyDown = (e) => {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        expandedInputRef.current?.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleTabKeyDown);
+    return () => document.removeEventListener('keydown', handleTabKeyDown);
+  }, []);
+
+  return (
+    <div className={`relative w-full rounded-12px ${showExpandedPanel ? '' : 'border'} border-[rgba(235,235,235,1)] dark:border-[rgba(50,50,50,1)] ${minimize ? 'h-48px' : `h-105px ${showExpandedPanel ? '' : 'shadow-[0_2px_20px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_20px_rgba(255,255,255,0.2)]'}`}`}>
+      {minimize ? (
+        <div className="px-12px items-center w-full h-full flex gap-8px">
+          {
+            filters.length > 0 && (
+              <div className="flex-shrink-0">
+                <Filters
+                  filters={filters}
+                  onFiltersChange={(filters) => handleQueryParamsChange('filters', filters)}
+                  onFilterInputFocus={handleFilterInputFocus}
+                  onFilterActiveToggle={handleFilterActiveToggle}
+                  focusIndex={-1}
+                  activeIndex={-1}
+                />
+              </div>
+            )
+          }
           <div className={`${styles.inputWrapper} w-full`}>
             <Input
               ref={inputRef}
-              value={currentKeyword}
+              value={query}
               size="large"
-              onChange={(e) => setCurrentKeyword(e.target.value)}
-              suffix={<Operations size={24} onSearch={() => handleSearch(currentKeyword, currentFilters)} disabled={!searchable} />}
+              onChange={(e) => handleQueryParamsChange('query', e.target.value)}
+              suffix={<Operations size={24} onSearch={() => handleSearch(query, filters, action_type, search_type)} disabled={!searchable} />}
               placeholder={placeholder}
               autoFocus
               className="flex-1 w-full"
-              onFocus={() => {
-                handleMainInputFocus()
-                setTimeout(() => {
-                  textAreaRef.current.focus()
-                }, 0)
-              }}
+              onFocus={handleInputFocus}
+              onBlur={() => { return }}
             />
           </div>
         </div>
-      </div>
-      <div className={`absolute left-0 top-0 z-10 w-full bg-#fff ${showExpandedPanel ? '' : 'hidden'}`}>
-        {activedInput}
-      </div>
+      ) : (
+        <div className="py-12px">
+          {renderTextArea(textAreaRef, '!mb-14px')}
+          {renderActionBar()}
+        </div>
+      )}
+      {renderExpandedPanel()}
     </div>
-  ) : (
-    activedInput
   );
 }
 

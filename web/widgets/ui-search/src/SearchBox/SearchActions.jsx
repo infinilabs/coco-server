@@ -1,15 +1,22 @@
 import { Button, Dropdown, Space } from "antd";
 import { ChevronDown, Globe, Hammer, Search } from "lucide-react";
 
-export default (props) => {
-    const { type } = props; 
+export const ACTION_TYPE_SEARCH = 'search'
+export const ACTION_TYPE_SEARCH_HYBRID = 'hybrid'
+export const ACTION_TYPE_SEARCH_KEYWORD = 'keyword'
+export const ACTION_TYPE_SEARCH_SEMANTIC = 'semantic'
+export const ACTION_TYPE_DEEPTHINK = 'deepthink'
+export const ACTION_TYPE_DEEPSEARCH = 'deepresearch'
 
-    if (type === 'deepthink') {
+export default (props) => {
+    const { actionType, searchType = ACTION_TYPE_SEARCH_HYBRID, onSearchTypeChange } = props;
+
+    if (actionType === ACTION_TYPE_DEEPTHINK) {
         return (
             <Space size={0}>
                 <Button className="!px-12px rounded-16px !text-#1784FC !bg-[rgba(204,232,250,1)] !border-0 mr-4px">
                     <Space size={4}>
-                        <Search className="w-16px h-16px"/>
+                        <Search className="w-16px h-16px" />
                         深度思考
                     </Space>
                 </Button>
@@ -27,12 +34,12 @@ export default (props) => {
                 />
             </Space>
         )
-    } else if (type === 'deepresearch') {
+    } else if (actionType === ACTION_TYPE_DEEPSEARCH) {
         return (
             <Space size={0}>
                 <Button className="!px-12px rounded-16px !text-#1784FC !bg-[rgba(204,232,250,1)] !border-0 mr-4px">
                     <Space size={4}>
-                        <Search className="w-16px h-16px"/>
+                        <Search className="w-16px h-16px" />
                         深度研究
                     </Space>
                 </Button>
@@ -45,26 +52,27 @@ export default (props) => {
             </Space>
         )
     } else {
+        const items = [
+            {
+                key: ACTION_TYPE_SEARCH_HYBRID,
+                label: '混合搜索',
+            },
+            {
+                key: ACTION_TYPE_SEARCH_KEYWORD,
+                label: '关键词搜索',
+            },
+            {
+                key: ACTION_TYPE_SEARCH_SEMANTIC,
+                label: '语义搜索',
+            },
+        ]
         return (
             <div>
-                <Dropdown menu={{ items: [
-                    {
-                        key: '1',
-                        label: '混合搜索',
-                    },
-                    {
-                        key: '2',
-                        label: '关键词搜索',
-                    },
-                    {
-                        key: '3',
-                        label: '语义搜索',
-                    },
-                ]}}>
+                <Dropdown menu={{ items, onClick: ({key}) => onSearchTypeChange(key) }}>
                     <Button className="!px-12px rounded-16px text-[var(--ui-search-antd-color-text-description)]">
                         <Space size={4}>
-                            <Search className="w-16px h-16px"/>
-                            混合搜索
+                            <Search className="w-16px h-16px" />
+                            {items.find((item) => item.key === searchType)?.label}
                             <ChevronDown className="w-20px h-20px" />
                         </Space>
                     </Button>
