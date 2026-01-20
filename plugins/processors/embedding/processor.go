@@ -155,7 +155,7 @@ func (processor *DocumentEmbeddingProcessor) Process(ctx *pipeline.Context) erro
 	return nil
 }
 
-// Generate embeddings for [document.Chunks].
+// Generate embeddings for [document.Chunks] and [document.AiInsights.Embedding].
 func generateEmbedding(ctx context.Context, document *core.Document, processorConfig *Config) error {
 	embedder, err := getEmbedderClient(processorConfig)
 	if err != nil {
@@ -164,6 +164,17 @@ func generateEmbedding(ctx context.Context, document *core.Document, processorCo
 
 	if err := generateChunkEmbeddings(ctx, embedder, document.Chunks); err != nil {
 		return err
+	}
+
+	// Generate embedding for document.AiInsights.Text
+	if document.AiInsights.Text != "" {
+		embedding, err := embedder.CreateEmbedding(ctx, []string{document.AiInsights.Text})
+		if err != nil {
+			return errors.New(fmt.Sprintf("failed to generate AI insights embedding: %s", err))
+		}
+		if len(embedding) > 0 {
+			document.AiInsights.Embedding.SetValue(embedding[0])
+		}
 	}
 
 	return nil

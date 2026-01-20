@@ -130,10 +130,19 @@ func (h APIHandler) getAttachment(w http.ResponseWriter, req *http.Request, ps h
 	}
 
 	// Set headers
-	w.Header().Set("Content-Disposition", "attachment; filename=\""+attachment.Name+"\"")
+	// Use inline for images, videos, audio and PDFs to allow browser preview
+	disposition := "attachment"
+	// Set MIME type and determine the disposition value
 	if attachment.MimeType != "" {
+		if strings.HasPrefix(attachment.MimeType, "image/") ||
+			strings.HasPrefix(attachment.MimeType, "video/") ||
+			strings.HasPrefix(attachment.MimeType, "audio/") ||
+			attachment.MimeType == "application/pdf" {
+			disposition = "inline"
+		}
 		w.Header().Set("Content-Type", attachment.MimeType)
 	}
+	w.Header().Set("Content-Disposition", disposition+"; filename=\""+attachment.Name+"\"")
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(data)))
 
 	// Write file data to response

@@ -61,6 +61,9 @@ type Config struct {
 
 	// Pigo face finder configuration for face detection
 	PigoFacefinderPath string `config:"pigo_facefinder_path"`
+
+	// Language for LLM-generated content (BCP 47 language tag, e.g., "en-US", "zh-CN")
+	LLMGenerationLang string `config:"llm_generation_lang"`
 }
 
 func New(c *config.Config) (pipeline.Processor, error) {
@@ -74,6 +77,8 @@ func New(c *config.Config) (pipeline.Processor, error) {
 	if err := c.Unpack(&cfg); err != nil {
 		return nil, err
 	}
+
+	cfg.LLMGenerationLang = utils.ValidateAndNormalizeLLMLang(ProcessorName, cfg.LLMGenerationLang)
 
 	p := &FileExtractionProcessor{config: &cfg}
 
@@ -534,6 +539,7 @@ func (p *FileExtractionProcessor) extractTextAndAttachment(ctx context.Context, 
 
 	doc.Chunks = SplitPagesToChunks(extraction.Pages, p.config.ChunkSize)
 	doc.Attachments = extraction.Attachments
+	doc.Content = strings.Join(extraction.Pages, " ")
 
 	return nil
 }
