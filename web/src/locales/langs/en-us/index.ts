@@ -41,7 +41,8 @@ const local: App.I18n.Schema['translation'] = {
     title: 'Coco Server',
     updateCancel: 'Later',
     updateConfirm: 'Refresh immediately',
-    updateContent: 'A new version of the system has been detected. Do you want to refresh the page immediately?',
+    updateContent:
+      'A new version of the system has been detected. Do you want to refresh the page immediately?',
     updateTitle: 'System Version Update Notification'
   },
   theme,
@@ -77,13 +78,48 @@ const local: App.I18n.Schema['translation'] = {
       submit: 'Submit'
     },
     tips: {
-      trial: 'Please provide the information accurately, we will email you the license information after verification.',
+      trial:
+        'Please provide the information accurately, we will email you the license information after verification.',
       error: 'Error message',
       failed: 'Submission failed. You can try visiting our website to apply for a free license.',
       succeeded:
         'You have successfully applied for a free trial license. The system will review your application soon. Meanwhile, you can use this temporary trial license with full features.',
       website: 'Please Visit:',
       timeout: 'Request timeout or network problem'
+    }
+  },
+  assistant: {
+    chat: {
+      timedout: 'Request timed out. Please try again later.',
+      greetings: 'Ask anything about your data, systems, or documents.'
+    },
+    message: {
+      logo: 'Assistant Logo'
+    }
+  },
+  history_list: {
+    search: {
+      placeholder: 'Search history...'
+    },
+    no_history: 'No history',
+    date: {
+      today: 'Today',
+      yesterday: 'Yesterday',
+      last7Days: 'Previous 7 days',
+      last30Days: 'Previous 30 days'
+    },
+    menu: {
+      rename: 'Rename',
+      delete: 'Delete'
+    },
+    delete_modal: {
+      title: 'Delete Chat',
+      button: {
+        delete: 'Delete',
+        cancel: 'Cancel'
+      },
+      description:
+        'Are you sure you want to delete "{{title}}"? This action cannot be undone.'
     }
   },
   permission

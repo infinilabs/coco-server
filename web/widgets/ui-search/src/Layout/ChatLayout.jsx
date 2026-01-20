@@ -1,11 +1,13 @@
 import { Layout } from 'antd';
+import { Sparkles } from 'lucide-react';
 import PropTypes from 'prop-types';
-import styles from './index.module.less';
+
 import { DARK_CLASS } from '../theme/shared';
 import GlobalLoading from '../GlobalLoading';
 import logoTextDark from '../assets/images/logo-text-dark.svg';
 import logoTextLight from '../assets/images/logo-text-light.svg';
-import { Sparkles } from 'lucide-react';
+
+import styles from './index.module.less';
 
 const { Content, Sider } = Layout;
 
@@ -59,7 +61,7 @@ const ChatLayout = props => {
         >
           <div className='h-full flex flex-col'>
             <div className='h-16 flex shrink-0 items-center bg-[#F3F4F6] px-4 dark:bg-[#1F2937]'>{logoNode}</div>
-            <div className='flex-1 overflow-y-auto'>{sidebar}</div>
+            <div className='flex-1 overflow-y-auto bg-[#F3F4F6] dark:bg-[#1F2937]'>{sidebar}</div>
           </div>
         </Sider>
       )}

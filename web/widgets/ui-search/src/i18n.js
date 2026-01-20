@@ -5,6 +5,7 @@ const resources = {
   en: {
     translation: {
       "assistant.chat.timedout": "Request timed out. Please try again later.",
+      "assistant.chat.greetings": "Ask anything about your data, systems, or documents.",
       "assistant.message.logo": "Assistant Logo",
       "history_list.search.placeholder": "Search history...",
       "history_list.no_history": "No history",
@@ -23,6 +24,7 @@ const resources = {
   zh: {
     translation: {
       "assistant.chat.timedout": "请求超时，请稍后再试。",
+      "assistant.chat.greetings": "可以向我提问，与搜索相关或与业务相关的问题。",
       "assistant.message.logo": "助手图标",
       "history_list.search.placeholder": "搜索历史...",
       "history_list.no_history": "暂无历史记录",

@@ -18,7 +18,19 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': resolve(__dirname, 'src')
+      '@': resolve(__dirname, 'src'),
+      '@chat-message': resolve(
+        __dirname,
+        '../../../../ui-common/packages/ChatMessage/src/components/index.tsx'
+      ),
+      '@infinilabs/chat-message': resolve(
+        __dirname,
+        '../../../../ui-common/packages/ChatMessage/src/components/index.tsx'
+      ),
+      '@infinilabs/ai-chat': resolve(
+        __dirname,
+        '../../../../ui-common/packages/AIChat/dist/index.js'
+      )
     }
   },
   build: {

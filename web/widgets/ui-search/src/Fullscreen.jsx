@@ -13,103 +13,73 @@ import BasicLayout from "./Layout/BasicLayout";
 import Toolbar from "./Toolbar";
 import PropTypes from 'prop-types';
 import { ChartColumn, ListFilter } from 'lucide-react';
+import { useTranslation } from "react-i18next";
+
 import ChatLayout from './Layout/ChatLayout';
-import ChatContent from './ChatContent';
-import ChatInput from './ChatContent/ChatInput';
-import HistoryList from './History';
 import ChatHeader from './ChatHeader';
+import { History, Chat, AssistantList, ChatInput } from "@infinilabs/ai-chat";
 
 function renderChatMode({
   activeChat,
-  assistants,
-  assistantPage,
-  assistantTotal,
-  chats,
   commonProps,
-  currentAssistant,
   isHistoryOpen,
-  messages,
-  query_intent,
-  tools,
-  fetch_source,
-  pick_source,
-  deep_read,
-  think,
-  response,
-  timedoutShow,
-  Question,
-  curChatEnd,
   onNewChat,
-  registerStreamHandler,
-  onAssistantRefresh,
-  onAssistantSelect,
-  onAssistantPrevPage,
-  onAssistantNextPage,
-  onAssistantSearch,
   onToggleHistory,
-  onHistoryRefresh,
-  onHistoryRemove,
-  onHistoryRename,
-  onHistorySearch,
-  onHistorySelect,
   onSendMessage,
   language,
   apiConfig,
-  onStream
+  chatRef,
+  inputValue,
+  changeInput,
+  isDeepThinkActive,
+  setIsDeepThinkActive
 }) {
+  const { BaseUrl, Token } = apiConfig || {};
+
   return (
     <ChatLayout
       {...commonProps}
       content={
-        <ChatContent
-          activeChat={activeChat}
-          messages={messages}
-          query_intent={query_intent}
-          tools={tools}
-          fetch_source={fetch_source}
-          pick_source={pick_source}
-          deep_read={deep_read}
-          think={think}
-          response={response}
-          timedoutShow={timedoutShow}
-          Question={Question}
-          curChatEnd={curChatEnd}
-          handleSendMessage={onSendMessage}
-          registerStreamHandler={registerStreamHandler}
-          theme={commonProps.theme}
+        <Chat
+          ref={chatRef}
+          BaseUrl={BaseUrl}
+          formatUrl={(url) => `${BaseUrl}${url}`}
+          Token={Token}
           locale={language === 'zh-CN' ? 'zh' : 'en'}
-          apiConfig={apiConfig}
-          onStream={onStream}
         />
       }
-      input={<ChatInput onSendMessage={onSendMessage} />}
+      input={
+        <ChatInput
+          onSend={onSendMessage}
+          disabled={false}
+          isChatMode={true}
+          inputValue={inputValue}
+          changeInput={changeInput}
+          isDeepThinkActive={isDeepThinkActive}
+          setIsDeepThinkActive={setIsDeepThinkActive}
+          chatPlaceholder={language === 'zh-CN' ? '请输入问题...' : 'Type a message...'}
+        />
+      }
       sidebarCollapsed={!isHistoryOpen}
       header={
         <ChatHeader
-          activeChat={activeChat}
-          assistants={assistants}
-          currentAssistant={currentAssistant}
-          assistantPage={assistantPage}
-          assistantTotal={assistantTotal}
           onNewChat={onNewChat}
           showChatHistory={true}
-          onAssistantRefresh={onAssistantRefresh}
-          onAssistantSelect={onAssistantSelect}
-          onAssistantPrevPage={onAssistantPrevPage}
-          onAssistantNextPage={onAssistantNextPage}
-          onAssistantSearch={onAssistantSearch}
           onToggleHistory={onToggleHistory}
+          AssistantList={
+            <AssistantList
+              BaseUrl={BaseUrl}
+              Token={Token}
+              locale={language === 'zh-CN' ? 'zh' : 'en'}
+            />
+          }
         />
       }
       sidebar={
-        <HistoryList
-          active={activeChat}
-          chats={chats}
-          onRefresh={onHistoryRefresh}
-          onRemove={onHistoryRemove}
-          onRename={onHistoryRename}
-          onSearch={onHistorySearch}
-          onSelect={onHistorySelect}
+        <History
+          BaseUrl={BaseUrl}
+          Token={Token}
+          locale={language === 'zh-CN' ? 'zh' : 'en'}
         />
       }
     />
@@ -332,6 +302,9 @@ const Fullscreen = props => {
   const isHomeSearchRef = useRef(true);
   const scrollRef = useRef(0)
   const [showToolbar, setShowToolbar] = useState(false);
+  const [inputValue, setInputValue] = useState("");
+  const [isDeepThinkActive, setIsDeepThinkActive] = useState(false);
+  const { t } = useTranslation();
 
   const resetScroll = () => {
     scrollRef.current = 0;
@@ -479,6 +452,21 @@ const Fullscreen = props => {
 
   const showFullScreenSpin = loading && isHomeSearchRef.current;
 
+  const chatRef = useRef(null);
+  const handleChatSendMessage = async (params) => {
+    if (chatRef.current) {
+      chatRef.current.init(params);
+    }
+  };
+
+  const handleNewChat = () => {
+    if (onNewChat) {
+      onNewChat();
+    } else if (chatRef.current) {
+      chatRef.current.clearChat();
+    }
+  };
+
   const isChatMode = true;
   if (isChatMode) {
     return renderChatMode({
@@ -501,7 +489,7 @@ const Fullscreen = props => {
       timedoutShow: props.timedoutShow,
       Question: props.Question,
       curChatEnd: props.curChatEnd,
-      onNewChat,
+      onNewChat: handleNewChat,
       registerStreamHandler: props.registerStreamHandler,
       onAssistantRefresh,
       onAssistantSelect,
@@ -514,10 +502,15 @@ const Fullscreen = props => {
       onHistoryRename,
       onHistorySearch,
       onHistorySelect,
-      onSendMessage,
+      onSendMessage: handleChatSendMessage,
+      inputValue,
+      changeInput: setInputValue,
+      isDeepThinkActive,
+      setIsDeepThinkActive,
       language,
       apiConfig: props.apiConfig,
-      onStream: props.onStream
+      onStream: props.onStream,
+      chatRef
     });
   }
 

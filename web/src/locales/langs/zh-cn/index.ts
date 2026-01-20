@@ -91,6 +91,39 @@ const local: App.I18n.Schema['translation'] = {
       timeout: '请求超时或者网络错误'
     }
   },
+  assistant: {
+    chat: {
+      timedout: '请求超时，请稍后再试。',
+      greetings: '可以向我提问，与搜索相关或与业务相关的问题。'
+    },
+    message: {
+      logo: '助手图标'
+    }
+  },
+  history_list: {
+    search: {
+      placeholder: '搜索历史...'
+    },
+    no_history: '暂无历史记录',
+    date: {
+      today: '今天',
+      yesterday: '昨天',
+      last7Days: '过去 7 天',
+      last30Days: '过去 30 天'
+    },
+    menu: {
+      rename: '重命名',
+      delete: '删除'
+    },
+    delete_modal: {
+      title: '删除会话',
+      button: {
+        delete: '删除',
+        cancel: '取消'
+      },
+      description: '确定要删除会话 "{{title}}" 吗？此操作无法撤销。'
+    }
+  },
   permission
 };
 
