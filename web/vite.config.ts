@@ -50,7 +50,10 @@ export default defineConfig(configEnv => {
     define: {
       BUILD_TIME: JSON.stringify(buildTime)
     },
-    optimizeDeps: { include },
+    optimizeDeps: { 
+      include,
+      exclude: ['@infinilabs/ai-chat']
+    },
     plugins: setupVitePlugins(viteEnv, buildTime),
     preview: {
       port: 9725
