@@ -1060,7 +1060,29 @@ const page: App.I18n.Schema['translation']['page'] = {
     },
     title: '搜索设置'
   },
-  setupLater: '稍后设置'
+  setupLater: '稍后设置',
+  preview: {
+    title: '文档预览',
+    labels: {
+      type: '类型',
+      size: '大小',
+      createdBy: '创建者',
+      createdAt: '创建时间',
+      updatedAt: '最后更新时间',
+      preview: '预览',
+      aiInterpretation: 'AI 解读'
+    },
+    buttons: {
+      openSource: '打开来源',
+      reload: '重新加载',
+      continueVisiting: '继续访问'
+    },
+    hints: {
+      failed: '抱歉，出错了',
+      leave: '您将离开 Coco AI，打开文件的原始链接',
+      externalLinkWarning: 'Coco AI 无法保证外部链接的可用性与安全性'
+    }
+  }
 };
 
 export default page;

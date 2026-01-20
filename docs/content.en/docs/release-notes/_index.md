@@ -23,6 +23,7 @@ Information about release notes of Coco Server is provided here.
 - feat: add llm_generation_lang config to AI-based processors #656
 - feat: detect content category and store it in metadata.content_category #655
 - feat: semantic/hybrid search #651
+- feat: add document preview page #646
 
 ### 🐛 Bug fix  
 
