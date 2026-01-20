@@ -107,7 +107,7 @@ export function transformElegantRouteToReactRoute(
 
   try {
     if (component) {
-      if (isSingleLevelRoute(route)) {
+      if (isSingleLevelRoute(route) && component.includes(FIRST_LEVEL_ROUTE_COMPONENT_SPLIT)) {
         const { layout, view } = getSingleLevelRouteComponent(component);
 
         if (layout) {

@@ -14,7 +14,6 @@ import Search from "./pages/Search";
 import { ACTION_TYPE_SEARCH_KEYWORD } from "./SearchBox/SearchActions";
 
 function renderChatMode({
-  activeChat,
   commonProps,
   isHistoryOpen,
   onNewChat,
@@ -37,7 +36,7 @@ function renderChatMode({
         <Chat
           ref={chatRef}
           BaseUrl={BaseUrl}
-          formatUrl={(url) => `${BaseUrl}${url}`}
+          formatUrl={(data) => `${BaseUrl}${data.url}`}
           Token={Token}
           locale={language === 'zh-CN' ? 'zh' : 'en'}
         />
@@ -273,7 +272,12 @@ const Fullscreen = props => {
     };
   }, [queryParams]);
 
-  const debouncedSuggestion = debounce(onSuggestion, 500);
+  const debouncedSuggestion = useMemo(() => {
+    if (typeof onSuggestion === 'function') {
+      return debounce(onSuggestion, 500);
+    }
+    return () => {};
+  }, [onSuggestion]);
 
   const { query, filter, filters = [] } = queryParams;
 
