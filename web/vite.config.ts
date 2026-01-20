@@ -57,33 +57,8 @@ export default defineConfig(configEnv => {
     },
     resolve: {
       alias: {
-        'stream': 'readable-stream',
         '@': fileURLToPath(new URL('./src', import.meta.url)),
         '~': fileURLToPath(new URL('./', import.meta.url)),
-        '@infinilabs/ai-chat': fileURLToPath(
-          new URL(
-            '../../ui-common/packages/AIChat/dist/index.js',
-            import.meta.url
-          )
-        ),
-        '@infinilabs/chat-message': fileURLToPath(
-          new URL(
-            '../../ui-common/packages/ChatMessage/src/components/index.tsx',
-            import.meta.url
-          )
-        ),
-        'react': fileURLToPath(
-          new URL(
-            './node_modules/react',
-            import.meta.url
-          )
-        ),
-        'react-dom': fileURLToPath(
-          new URL(
-            './node_modules/react-dom',
-            import.meta.url
-          )
-        )
       }
     },
     server: {
