@@ -72,8 +72,6 @@ declare module "@elegant-router/types" {
     "role_edit": "edit/:id";
     "role_new": "new";
     "search": "/search";
-    "search_chat": "chat";
-    "search_search": "search";
     "security": "/security";
     "settings": "/settings";
     "user": "/user";
@@ -195,9 +193,7 @@ declare module "@elegant-router/types" {
     | "model-provider_new"
     | "role_edit"
     | "role_new"
-    | "search_chat"
     | "search"
-    | "search_search"
     | "security"
     | "settings"
     | "user_edit"

@@ -443,8 +443,8 @@ importers:
         specifier: ^0.0.6
         version: 0.0.6(@ant-design/icons@6.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@emotion/is-prop-valid@1.4.0)(@types/react@18.3.12)(immer@11.1.3)(react-dom@18.3.1(react@18.3.1))(react-i18next@16.5.3(i18next@25.7.4(typescript@5.6.3))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3))(react@18.3.1)(typescript@5.6.3)(use-sync-external-store@1.6.0(react@18.3.1))(vite@5.4.10(@types/node@22.8.6)(less@4.5.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.46.0))
       '@infinilabs/doc-detail':
-        specifier: ^0.0.10
-        version: 0.0.10(@emotion/is-prop-valid@1.4.0)(@types/react@18.3.12)(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ^0.0.11
+        version: 0.0.11(@emotion/is-prop-valid@1.4.0)(@types/react@18.3.12)(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@infinilabs/filter':
         specifier: ^0.0.11
         version: 0.0.11(@emotion/is-prop-valid@1.4.0)(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -1829,8 +1829,8 @@ packages:
       react-dom: ^18.3.1
       react-i18next: '>=11.0.0'
 
-  '@infinilabs/doc-detail@0.0.10':
-    resolution: {integrity: sha512-R9p2E04BW2eTzm8E/A+1LnwEFndAq6b0yNZiGabasDRXGUvyflsRWCe8PdgXDO1utLb/3x+7UuhBtaakr6uDEg==}
+  '@infinilabs/doc-detail@0.0.11':
+    resolution: {integrity: sha512-nmv7CBQsP0N/lQH1NYK2I1oN1fe3qu04gp1S/otBOgN2bFdaPw8TA26CU9gSdJr+e9L2A0KdOwJgkqPDnb9JBg==}
     peerDependencies:
       antd: '>=5'
       react: '>=17'
@@ -10033,11 +10033,12 @@ snapshots:
       - moment
       - typescript
 
-  '@infinilabs/doc-detail@0.0.10(@emotion/is-prop-valid@1.4.0)(@types/react@18.3.12)(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@infinilabs/doc-detail@0.0.11(@emotion/is-prop-valid@1.4.0)(@types/react@18.3.12)(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@ant-design/x': 2.1.3(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@ant-design/x-markdown': 2.1.3(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@infinilabs/markdown': 0.0.2(@types/react@18.3.12)(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      ahooks: 3.9.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       antd: 6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       clsx: 2.1.1
       docx-preview: 0.3.7

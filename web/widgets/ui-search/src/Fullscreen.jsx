@@ -1,83 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { LIST_TYPES } from "./ResultList";
 import { formatESResult } from "./utils/es";
 import PropTypes from 'prop-types';
-import { ChartColumn, ListFilter } from 'lucide-react';
 import { useTranslation } from "react-i18next";
 
-import ChatLayout from './Layout/ChatLayout';
-import ChatHeader from './ChatHeader';
-import { History, Chat, AssistantList, ChatInput } from "@infinilabs/ai-chat";
 import { debounce } from 'lodash';
 import Home from "./pages/Home";
 import Search from "./pages/Search";
 import { ACTION_TYPE_SEARCH_KEYWORD } from "./SearchBox/SearchActions";
-
-function renderChatMode({
-  commonProps,
-  isHistoryOpen,
-  onNewChat,
-  onToggleHistory,
-  onSendMessage,
-  language,
-  apiConfig,
-  chatRef,
-  inputValue,
-  changeInput,
-  isDeepThinkActive,
-  setIsDeepThinkActive
-}) {
-  const { BaseUrl, Token, endpoint } = apiConfig || {};
-
-  return (
-    <ChatLayout
-      {...commonProps}
-      content={
-        <Chat
-          ref={chatRef}
-          BaseUrl={BaseUrl}
-          formatUrl={(data) => `${endpoint}${BaseUrl}${data.url}`}
-          Token={Token}
-          locale={language === 'zh-CN' ? 'zh' : 'en'}
-        />
-      }
-      input={
-        <ChatInput
-          onSend={onSendMessage}
-          disabled={false}
-          isChatMode={true}
-          inputValue={inputValue}
-          changeInput={changeInput}
-          isDeepThinkActive={isDeepThinkActive}
-          setIsDeepThinkActive={setIsDeepThinkActive}
-          chatPlaceholder={language === 'zh-CN' ? '请输入问题...' : 'Type a message...'}
-        />
-      }
-      sidebarCollapsed={!isHistoryOpen}
-      header={
-        <ChatHeader
-          onNewChat={onNewChat}
-          showChatHistory={true}
-          onToggleHistory={onToggleHistory}
-          AssistantList={
-            <AssistantList
-              BaseUrl={BaseUrl}
-              Token={Token}
-              locale={language === 'zh-CN' ? 'zh' : 'en'}
-            />
-          }
-        />
-      }
-      sidebar={
-        <History
-          BaseUrl={BaseUrl}
-          Token={Token}
-          locale={language === 'zh-CN' ? 'zh' : 'en'}
-        />
-      }
-    />
-  );
-}
+import Chat from "./pages/Chat";
 
 const Fullscreen = props => {
   const {
@@ -94,27 +24,12 @@ const Fullscreen = props => {
     setQueryParams,
     onLogoClick,
     theme = 'light',
-    messages = [],
-    onSendMessage,
-    assistants = [],
-    currentAssistant,
-    onAssistantRefresh,
-    onAssistantSelect,
     onNewChat,
-    assistantPage,
-    assistantTotal,
-    // History props
-    chats = [],
-    activeChat,
-    onHistorySelect,
-    onHistorySearch,
-    onHistoryRefresh,
-    onHistoryRename,
-    onHistoryRemove,
     language = 'en-US',
     onSuggestion,
     onRecommend,
     getRawContent,
+    apiConfig,
   } = props;
 
   const containerRef = useRef(null);
@@ -122,7 +37,6 @@ const Fullscreen = props => {
   const [askBody, setAskBody] = useState();
   const [loading, setLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [isHistoryOpen, setIsHistoryOpen] = useState(true);
   const shouldAskRef = useRef(true);
   const shouldAggRef = useRef(true);
   const [data, setData] = useState([]);
@@ -131,8 +45,6 @@ const Fullscreen = props => {
   const isHomeSearchRef = useRef(true);
   const scrollRef = useRef(0)
   const [showToolbar, setShowToolbar] = useState(false);
-  const [inputValue, setInputValue] = useState("");
-  const [isDeepThinkActive, setIsDeepThinkActive] = useState(false);
   const { t } = useTranslation();
   const queryFiltersRef = useRef([]);
 
@@ -198,7 +110,7 @@ const Fullscreen = props => {
   }, [isHome, handleScroll]);
 
   useEffect(() => {
-    if (!queryParams.query && (!Array.isArray(queryFiltersRef.current)|| queryFiltersRef.current.length === 0)) return;
+    if (!queryParams.query && (!Array.isArray(queryFiltersRef.current) || queryFiltersRef.current.length === 0)) return;
 
     const isScroll = Number.isInteger(scrollRef.current) && scrollRef.current > 0;
 
@@ -276,7 +188,7 @@ const Fullscreen = props => {
     if (typeof onSuggestion === 'function') {
       return debounce(onSuggestion, 500);
     }
-    return () => {};
+    return () => { };
   }, [onSuggestion]);
 
   const { query, filter, filters = [] } = queryParams;
@@ -301,66 +213,24 @@ const Fullscreen = props => {
 
   const showFullScreenSpin = loading && isHomeSearchRef.current;
 
-  const chatRef = useRef(null);
-  const handleChatSendMessage = async (params) => {
-    if (chatRef.current) {
-      chatRef.current.init(params);
-    }
-  };
+  const { mode = 'search' } = queryParams
 
-  const handleNewChat = () => {
-    if (onNewChat) {
-      onNewChat();
-    } else if (chatRef.current) {
-      chatRef.current.clearChat();
-    }
-  };
-
-  const isChatMode = true;
-  if (isChatMode) {
-    return renderChatMode({
-      activeChat,
-      assistants,
-      assistantPage,
-      assistantTotal,
-      chats,
-      commonProps,
-      currentAssistant,
-      isHistoryOpen,
-      messages,
-      query_intent: props.query_intent,
-      tools: props.tools,
-      fetch_source: props.fetch_source,
-      pick_source: props.pick_source,
-      deep_read: props.deep_read,
-      think: props.think,
-      response: props.response,
-      timedoutShow: props.timedoutShow,
-      Question: props.Question,
-      curChatEnd: props.curChatEnd,
-      onNewChat: handleNewChat,
-      registerStreamHandler: props.registerStreamHandler,
-      onAssistantRefresh,
-      onAssistantSelect,
-      onAssistantPrevPage: props.onAssistantPrevPage,
-      onAssistantNextPage: props.onAssistantNextPage,
-      onAssistantSearch: props.onAssistantSearch,
-      onToggleHistory: () => setIsHistoryOpen(open => !open),
-      onHistoryRefresh,
-      onHistoryRemove,
-      onHistoryRename,
-      onHistorySearch,
-      onHistorySelect,
-      onSendMessage: handleChatSendMessage,
-      inputValue,
-      changeInput: setInputValue,
-      isDeepThinkActive,
-      setIsDeepThinkActive,
-      language,
-      apiConfig: props.apiConfig,
-      onStream: props.onStream,
-      chatRef
-    });
+  if (mode === 'chat') {
+    return (
+      <Chat
+        commonProps={commonProps}
+        onNewChat={onNewChat}
+        language={language}
+        apiConfig={apiConfig}
+        queryParams={queryParams}
+        onBackToSearch={() => {
+          setQueryParams({
+            ...queryParams,
+            mode: 'search'
+          });
+        }}
+      />
+    )
   }
 
   if (isHome) {
@@ -411,6 +281,12 @@ const Fullscreen = props => {
       onSuggestion={debouncedSuggestion}
       onRecommend={onRecommend}
       getRawContent={getRawContent}
+      onChatContinue={() => {
+        setQueryParams({
+          ...queryParams,
+          mode: 'chat'
+        });
+      }}
     />
   )
 };

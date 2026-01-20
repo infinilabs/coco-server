@@ -1,7 +1,7 @@
 import { AIAnswer } from '@infinilabs/ai-answer';
 
 const AIOverview = (props) => {
-  const { config = {}, data, loading, visible, setVisible, theme } = props;
+  const { config = {}, data, loading, visible, setVisible, theme, onChatContinue } = props;
 
   if (!data || !data.response || !visible) return null;
 
@@ -9,7 +9,7 @@ const AIOverview = (props) => {
     <AIAnswer
       title="智能解读"
       content={data.response.message_chunk || ""}
-      onContinue={() => console.log('点击了继续追问')}
+      onContinue={() => onChatContinue?.()}
       maxHeight={Number.isInteger(Number(config.height)) ? Number(config.height) - 154 : undefined}
       // theme={theme}
     />

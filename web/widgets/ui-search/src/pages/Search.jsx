@@ -37,6 +37,7 @@ export default function Search({
   onSuggestion,
   onRecommend,
   getRawContent,
+  onChatContinue
 }) {
 
   const { query, filter } = queryParams;
@@ -159,6 +160,7 @@ export default function Search({
             config={aiOverview}
             theme={theme}
             onAsk={onAsk}
+            onChatContinue={onChatContinue}
           />
         ) : null
       }

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import AIOverview from ".";
 
 const AIOverviewWrapper = (props) => {
-  const { askBody, config, onAsk, theme } = props;
+  const { askBody, config, onAsk, theme, onChatContinue } = props;
 
   const [data, setData] = useState();
   const [loading, setLoading] = useState(false)
@@ -45,7 +45,7 @@ const AIOverviewWrapper = (props) => {
     }
   }, [askBody?.t])
 
-  return <AIOverview config={config} data={data} loading={loading} visible={visible} setVisible={setVisible} theme={theme}/>
+  return <AIOverview config={config} data={data} loading={loading} visible={visible} setVisible={setVisible} theme={theme} onChatContinue={onChatContinue}/>
 }
 
 export default AIOverviewWrapper
