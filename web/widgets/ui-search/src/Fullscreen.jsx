@@ -27,7 +27,7 @@ function renderChatMode({
   isDeepThinkActive,
   setIsDeepThinkActive
 }) {
-  const { BaseUrl, Token } = apiConfig || {};
+  const { BaseUrl, Token, endpoint } = apiConfig || {};
 
   return (
     <ChatLayout
@@ -36,7 +36,7 @@ function renderChatMode({
         <Chat
           ref={chatRef}
           BaseUrl={BaseUrl}
-          formatUrl={(data) => `${BaseUrl}${data.url}`}
+          formatUrl={(data) => `${endpoint}${BaseUrl}${data.url}`}
           Token={Token}
           locale={language === 'zh-CN' ? 'zh' : 'en'}
         />

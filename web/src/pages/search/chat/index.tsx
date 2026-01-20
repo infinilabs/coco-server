@@ -35,8 +35,7 @@ export function Component() {
       // "light_mobile": "/favicon.ico",
     },
     placeholder: '搜索任何内容...',
-    welcome:
-      '欢迎使用 UI Search 开发环境！您可以在这里测试搜索功能和 AI 助手。',
+    welcome: '欢迎使用 UI Search 开发环境！您可以在这里测试搜索功能和 AI 助手。',
     aiOverview: {
       enabled: true,
       showActions: true,
@@ -63,7 +62,8 @@ export function Component() {
     },
     apiConfig: {
       BaseUrl: getApiBaseUrl(),
-      Token: import.meta.env.VITE_SERVICE_TOKEN
+      Token: import.meta.env.VITE_SERVICE_TOKEN,
+      endpoint: getEndpoint()
     }
   };
 
