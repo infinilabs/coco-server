@@ -6,10 +6,10 @@ import BasicLayout from "../Layout/BasicLayout";
 import Logo from "../Logo";
 import ResultHeader from "../ResultHeader";
 import SearchBox from "../SearchBox";
-import Welcome from "../Welcome";
 import Recommends from "../Recommends";
 import { LIST_TYPES } from "../ResultList";
 import MediaLayout from "../Layout/MediaLayout";
+import { useState } from "react";
 
 export default function Search({
   aggregations,
@@ -34,13 +34,15 @@ export default function Search({
   showFullScreenSpin,
   setQueryParams,
   theme,
-  welcome,
   onSuggestion,
   onRecommend,
+  getRawContent,
 }) {
 
   const { query, filter } = queryParams;
   const content_category = queryParams?.['metadata.content_category']
+  const [siderCollapse, setSiderCollapse] = useState(false)
+  const [detailCollapse, setDetailCollapse] = useState(true)
 
   const listType = useMemo(() => {
     if (!LIST_TYPES || LIST_TYPES.length === 0) return undefined;
@@ -55,6 +57,8 @@ export default function Search({
         initContainer={initContainer}
         loading={showFullScreenSpin}
         rightMenuWidth={rightMenuWidth}
+        siderCollapse={siderCollapse}
+        detailCollapse={detailCollapse}
         aggregations={
           aggregations?.length > 0 ? (
             <Aggregations
@@ -75,8 +79,10 @@ export default function Search({
         }
         resultHeader={
           <ResultHeader
-            hits={hits}
             {...commonProps}
+            hits={hits}
+            siderCollapse={siderCollapse}
+            setSiderCollapse={setSiderCollapse}
           />
         }
         resultList={
@@ -89,6 +95,8 @@ export default function Search({
               loading={loading}
               query={query}
               total={hits?.total || 0}
+              setDetailCollapse={setDetailCollapse}
+              getRawContent={getRawContent}
             />
           ) : null
         }
@@ -132,6 +140,7 @@ export default function Search({
       initContainer={initContainer}
       loading={showFullScreenSpin}
       rightMenuWidth={rightMenuWidth}
+      siderCollapse={siderCollapse}
       aggregations={
         aggregations?.length > 0 ? (
           <Aggregations
@@ -162,8 +171,10 @@ export default function Search({
       }
       resultHeader={
         <ResultHeader
-          hits={hits}
           {...commonProps}
+          hits={hits}
+          siderCollapse={siderCollapse}
+          setSiderCollapse={setSiderCollapse}
         />
       }
       resultList={
@@ -176,6 +187,8 @@ export default function Search({
             loading={loading}
             query={query}
             total={hits?.total || 0}
+            setDetailCollapse={setDetailCollapse}
+            getRawContent={getRawContent}
           />
         ) : null
       }
@@ -194,11 +207,14 @@ export default function Search({
         <Categories
           category={content_category}
           onChange={category => {
-            setQueryParams({
+            let shouldAgg = false
+            if (category !== content_category) {
+              shouldAgg = true
+            }
+            onSearch({ 
               ...queryParams,
               'metadata.content_category': category !== 'all' ? category : '',
-              t: new Date().valueOf()
-            });
+            }, false, shouldAgg);
           }}
         />
       }

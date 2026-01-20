@@ -17,8 +17,6 @@ export default (props) => {
 
     const btnStyle = { minWidth: size, width: size, height: size }
 
-    console.log('attachments', attachments)
-    
     return (
         <Space size={4} styles={{ item: { lineHeight: 1 } }}>
             <Upload 

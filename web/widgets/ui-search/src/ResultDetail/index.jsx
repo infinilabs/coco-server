@@ -1,10 +1,10 @@
 import { Drawer } from "antd";
 import styles from "./index.module.less";
-import { X } from "lucide-react";
-import { DocDetail } from "@infinilabs/doc-detail";
+import { SquareArrowOutUpRight, X } from "lucide-react";
+import { ActionButton, DocDetail } from "@infinilabs/doc-detail";
 
 export function ResultDetail(props) {
-    const { getContainer, data = {}, isMobile, open, onClose } = props;
+    const { getContainer, data = {}, isMobile, open, onClose, getRawContent } = props;
 
     return (
         <Drawer
@@ -23,7 +23,21 @@ export function ResultDetail(props) {
             maskClosable={false}
         >
             <X className="color-[#bbb] cursor-pointer absolute right-24px top-24px z-1" onClick={onClose} />
-            <DocDetail data={data} />
+            <DocDetail 
+                data={{
+                    ...(data || {}),
+                    url: getRawContent ? getRawContent(data) : data?.url
+                }} 
+                actionButtons={[
+                    <ActionButton onClick={() => {
+                        if (data?.url?.startsWith('http')) {
+                            window.open(data.url)
+                        }
+                    }} key="open" icon={<SquareArrowOutUpRight />}>
+                        Open Source
+                    </ActionButton>,
+                ]}
+            />
         </Drawer>
     );
 }

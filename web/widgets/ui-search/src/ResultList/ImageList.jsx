@@ -3,14 +3,15 @@ import { Masonry, Skeleton } from "antd";
 import { ChevronRight, ImageOff } from "lucide-react";
 import { useInViewport, useSize } from "ahooks";
 import clsx from "clsx";
+import ResultDetail from "../ResultDetail";
 
 const MasonryItem = (props) => {
-  const { data } = props;
+  const { data, onItemClick } = props;
   const containerRef = useRef(null);
   const containerSize = useSize(containerRef);
   const imgRef = useRef(null);
   const [inViewport] = useInViewport(imgRef);
-  const [loaded, setLoaded] = useState(false);
+  const [loaded, setLoaded] = useState(true);
   const [errored, setErrored] = useState(false);
 
   const calcHeight = () => {
@@ -26,7 +27,7 @@ const MasonryItem = (props) => {
   }, [inViewport, loaded, data?.thumbnail]);
 
   return (
-    <div ref={containerRef} className="group relative cursor-pointer">
+    <div ref={containerRef} onClick={() => onItemClick(data)} className="group relative cursor-pointer">
       <div
         className="relative w-full rounded-lg overflow-hidden"
         style={{
@@ -34,7 +35,7 @@ const MasonryItem = (props) => {
         }}
       >
         <Skeleton.Node
-          active={!errored}
+          active={!loaded && !errored}
           classNames={{
             root: "size-full!",
             content: "size-full!",
@@ -46,9 +47,10 @@ const MasonryItem = (props) => {
           src={imgSrc}
           alt={data?.title}
           className={clsx(
-            "absolute inset-0 size-full object-cover opacity-0 transition",
+            "absolute inset-0 size-full object-cover transition",
             {
               "opacity-100": loaded,
+              "opacity-0": !loaded
             },
           )}
           onLoad={() => {
@@ -92,22 +94,46 @@ const MasonryItem = (props) => {
 };
 
 export function ImageList(props) {
-  const { getDetailContainer, data = [], isMobile, loading, hasMore } = props;
+  const { getDetailContainer, data = [], isMobile, loading, hasMore, setDetailCollapse, getRawContent } = props;
+
+  const [open, setOpen] = useState(false);
+  const [record, setRecord] = useState();
+
+  const onOpen = (record) => {
+    setRecord(record);
+    setOpen(true);
+    setDetailCollapse(false)
+  };
+
+  const onClose = () => {
+    setOpen(false);
+    setRecord();
+    setDetailCollapse(true)
+  };
 
   return (
-    <Masonry
-      columns={{
-        xl: 6,
-        lg: 5,
-        md: 4,
-        sm: 3,
-        xs: 2,
-      }}
-      gutter={16}
-      // items={data.filter((item) => item.metadata?.content_category === 'image')}
-      items={data}
-      itemRender={(item) => <MasonryItem data={item} />}
-    />
+    <>
+      <Masonry
+        columns={{
+          xl: 6,
+          lg: 5,
+          md: 4,
+          sm: 3,
+          xs: 2,
+        }}
+        gutter={16}
+        items={data.filter((item) => item.metadata?.content_category === 'image')}
+        itemRender={(item) => <MasonryItem data={item} onItemClick={(item) => onOpen(item)}/>}
+      />
+      <ResultDetail 
+        getContainer={getDetailContainer}
+        open={open}
+        onClose={onClose}
+        data={record || {}}
+        isMobile={isMobile}
+        getRawContent={getRawContent}
+      />
+    </>
   );
 }
 

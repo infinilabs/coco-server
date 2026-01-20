@@ -14,6 +14,54 @@ import queryString from 'query-string';
 
 configResponsive({ sm: 640 });
 
+const AGGS_DEFAULT = {
+  "aggs": {
+    "category": { "terms": { "field": "category" } },
+    "source.id": {
+      "terms": {
+        "field": "source.id"
+      },
+      "aggs": {
+        "top": {
+          "top_hits": {
+            "size": 1,
+            "_source": ["source.name"]
+          }
+        }
+      }
+    },
+    "type": { "terms": { "field": "type" } },
+    "tag": { "terms": { "field": "tags" } },
+  }
+}
+
+const AGGS_IMAGE = {
+  "aggs": {
+    "category": { "terms": { "field": "category" } },
+    "source.id": {
+      "terms": {
+        "field": "source.id"
+      },
+      "aggs": {
+        "top": {
+          "top_hits": {
+            "size": 1,
+            "_source": ["source.name"]
+          }
+        }
+      }
+    },
+    "type": { "terms": { "field": "type" } },
+    "tag": { "terms": { "field": "tags" } },
+    "color": { "terms": { "field": "metadata.colors" } },
+  }
+}
+
+const AGGS: any = {
+  'all': AGGS_DEFAULT,
+  'image': AGGS_IMAGE
+}
+
 export function Component() {
   const containerRef = useRef(null)
 
@@ -38,26 +86,7 @@ export function Component() {
     const { filter = {}, ...rest } = query
     const filterStr = Object.keys(filter).map((key) => `filter=${key}:any(${filter[key].join(',')})`).join('&')
     const searchStr = `${filterStr ? filterStr + '&' : ''}v2=true&${queryString.stringify(rest)}`
-    const body = true ? JSON.stringify({
-      "aggs": {
-        "category": { "terms": { "field": "category" } },
-        "source.id": {
-          "terms": {
-            "field": "source.id"
-          },
-          "aggs": {
-            "top": {
-              "top_hits": {
-                "size": 1,
-                "_source": ["source.name"]
-              }
-            }
-          }
-        },
-        "type": { "terms": { "field": "type" } },
-        "tag": { "terms": { "field": "tags" } },
-      }
-    }) : undefined
+    const body = shouldAgg ? JSON.stringify(AGGS[query['metadata.content_category']] || AGGS['all']) : undefined
     const headers = { 'APP-INTEGRATION-ID': search_settings?.integration }
     const res = await querySearch(body, searchStr, { headers })
     if (callback) callback(res.data)
@@ -173,12 +202,24 @@ export function Component() {
     "config": {
       "aggregations": {
         "source.id": {
-          "displayName": "source"
+          "displayName": "source",
         },
         "lang": {
           "displayName": "language"
+        },
+        "color": {
+          'type': 'color'
+        },
+        "tag": {
+          'type': 'tag'
         }
       }
+    },
+    getRawContent: (item: any) => {
+      if (item.id && item.title) {
+        return `${getEndpoint()}${getApiBaseUrl()}/document/${item.id}/raw_content/${item.title}`
+      }
+      return ''
     }
   }
 

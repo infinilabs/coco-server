@@ -12,6 +12,8 @@ export function NormalList(props) {
     query,
     loading,
     hasMore,
+    setDetailCollapse,
+    getRawContent
   } = props;
 
   const [open, setOpen] = useState(false);
@@ -20,11 +22,13 @@ export function NormalList(props) {
   const onOpen = (record) => {
     setRecord(record);
     setOpen(true);
+    setDetailCollapse(true)
   };
 
   const onClose = () => {
     setOpen(false);
     setRecord();
+    setDetailCollapse(false)
   };
 
   return (
@@ -66,6 +70,7 @@ export function NormalList(props) {
         onClose={onClose}
         data={record || {}}
         isMobile={isMobile}
+        getRawContent={getRawContent}
       />
     </>
   );

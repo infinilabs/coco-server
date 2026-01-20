@@ -21,6 +21,8 @@ const MediaLayout = (props) => {
     resultList,
     isMobile,
     theme,
+    siderCollapse,
+    detailCollapse
   } = props;
 
   const themeClass = theme === 'dark' ? DARK_CLASS : 'light';
@@ -65,7 +67,7 @@ const MediaLayout = (props) => {
       }}
     >
       <GlobalLoading loading={loading} theme={theme} />
-      <Header className="!h-auto bg-[rgb(var(--ui-search--layout-bg-color))] border-b border-[var(--ui-search-antd-color-border-secondary)]">
+      <Header className="relative z-1001 !p-0 !h-auto bg-[rgb(var(--ui-search--layout-bg-color))] border-b border-[var(--ui-search-antd-color-border-secondary)]">
         <Layout className="bg-[rgb(var(--ui-search--layout-bg-color))]">
           <Sider width={280} breakpoint="md" collapsedWidth={0} trigger={null}>
             <div className={`position-sticky top-0 z-10 bg-[rgb(var(--ui-search--layout-bg-color))] pt-16px h-122px w-full pl-80px`}>
@@ -75,7 +77,7 @@ const MediaLayout = (props) => {
             </div>
           </Sider>
           <Content className="bg-[rgb(var(--ui-search--layout-bg-color))] min-w-400px max-w-840px" style={{ overflow: 'visible' }}>
-            <div className={`position-sticky top-0 z-10 bg-[rgb(var(--ui-search--layout-bg-color))] pt-16px h-122px ${isMobile ? 'px-16px' : 'pl-56px pr-96px'}`}>
+            <div className={`position-sticky top-0 z-10 bg-[rgb(var(--ui-search--layout-bg-color))] pt-16px h-122px ${isMobile ? 'px-16px' : 'pl-40px pr-96px'}`}>
               <div className={`flex gap-8px items-center`}>
                 {isMobile && (
                   <div className={`h-40px w-40px`}>
@@ -88,7 +90,7 @@ const MediaLayout = (props) => {
               </div>
               {
                 tabs && (
-                  <div className={`w-full pt-12px ${isMobile ? '' : 'pr-24px'} flex items-center justify-between`}>
+                  <div className={`w-full pt-12px flex items-center justify-between`}>
                     <div>
                       {tabs}
                     </div>
@@ -108,16 +110,16 @@ const MediaLayout = (props) => {
       <Content>
         <Layout>
           {
-            aggregations && (
+            aggregations && !siderCollapse && (
               <Sider width={280} className="bg-[rgb(var(--ui-search--layout-bg-color))]" breakpoint="md" collapsedWidth={0} trigger={null}>
                 <div className="w-full pl-80px pt-32px">{aggregations}</div>
               </Sider>
             )
           }
-          <Content className={`bg-[rgb(var(--ui-search--layout-bg-color))] min-w-400px ${aggregations ? 'w-[calc(100%-280px)]' : 'w-[calc(100%)]'}`} style={{ overflow: 'visible' }}>
-            <div className={`pt-32px ${isMobile ? 'px-16px' : 'px-28px'}`}>
+          <Content className={`bg-[rgb(var(--ui-search--layout-bg-color))] min-w-400px ${aggregations && !siderCollapse ? 'w-[calc(100%-280px)]' : 'w-[calc(100%)]'}`} style={{ overflow: 'visible' }}>
+            <div className={`pt-32px ${isMobile ? 'px-16px' : 'pl-40px pr-24px'} ${detailCollapse ? 'w-full' : 'w-[calc(100%-820px)]'}`}>
               {toolbar && <div className="pl-24px mb-16px">{toolbar}</div>}
-              <div className={`${isMobile ? '' : 'pl-24px'} mb-16px`}>{resultHeader}</div>
+              <div className={`mb-16px`}>{resultHeader}</div>
               <div className="mb-24px">{resultList}</div>
             </div>
           </Content>

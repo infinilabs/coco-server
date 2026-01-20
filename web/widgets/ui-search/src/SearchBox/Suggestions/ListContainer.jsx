@@ -17,7 +17,8 @@ const ListContainer = forwardRef((props, ref) => {
     defaultRows = 5,
     useGlobalKeydown = false,
     globalActiveIndex = -1,
-    onGlobalSelect
+    onGlobalSelect,
+    className
   } = props;
 
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -212,14 +213,14 @@ const ListContainer = forwardRef((props, ref) => {
   return (
     <>
       {title && (
-        <div className="py-11px px-16px text-12px text-[var(--ui-search-antd-color-text-description)]">
+        <div className="py-14px px-16px text-12px text-[var(--ui-search-antd-color-text-description)]">
           {title}
         </div>
       )}
       <div
         ref={scrollContainerRef}
         id={scrollID}
-        className="px-8px mb-12px overflow-auto"
+        className={`px-8px mb-12px overflow-auto ${className}`}
         style={{ 
           maxHeight: 40 * defaultRows,
           scrollBehavior: 'smooth'
@@ -243,8 +244,8 @@ const ListContainer = forwardRef((props, ref) => {
                 <div key={index}>
                   <div
                     ref={el => itemRefs.current[index] = el}
-                    className={`${styles.listItem} ${isActive ? styles.active : ''} cursor-pointer relative h-40px pl-8px pr-40px flex flex-nowrap items-center rounded-8px 
-                    hover:bg-[rgba(233,240,254,1)] 
+                    className={`${styles.listItem} ${isActive ? styles.active : ''}  relative h-40px pl-8px pr-40px flex flex-nowrap items-center rounded-8px 
+                    ${onItemClick ? 'cursor-pointer hover:bg-[rgba(233,240,254,1)] ' : " "} 
                     ${isActive ? "bg-[rgba(233,240,254,1)]" : ""}`}
                     onClick={() => handleItemClick(item, index)}
                   >

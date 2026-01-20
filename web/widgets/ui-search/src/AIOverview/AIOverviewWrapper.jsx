@@ -37,7 +37,7 @@ const AIOverviewWrapper = (props) => {
 
   useEffect(() => {
     handleAsk(askBody?.message, config)
-  }, [askBody?.message, askBody?.t, config])
+  }, [askBody?.message, askBody?.t, JSON.stringify(config)])
 
   useEffect(() => {
     if (askBody?.t) {

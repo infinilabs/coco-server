@@ -1,6 +1,6 @@
 import { Input } from "antd";
 import styles from "./index.module.less";
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef, useCallback } from "react"; // 新增 useCallback
 import { Search } from "lucide-react";
 import SearchActions, { ACTION_TYPE_SEARCH } from "./SearchActions";
 import Operations from "./Operations";
@@ -27,6 +27,7 @@ export function SearchBox(props) {
   const [attachmentActive, setAttachmentActive] = useState(false);
 
   const isClickingSuggestion = useRef(false);
+  const isClickingSearchAction = useRef(false);
   const inputRef = useRef(null);
   const textAreaRef = useRef(null);
   const expandedInputRef = useRef(null);
@@ -42,6 +43,23 @@ export function SearchBox(props) {
     );
   }, [query, filters]);
 
+  const handleSearchActionClick = () => {
+    isClickingSearchAction.current = true;
+  };
+
+  const handleSearchActionDropdownClose = useCallback(() => {
+    isClickingSearchAction.current = false;
+    setTimeout(() => {
+      if (expandedInputRef.current) {
+        expandedInputRef.current.focus();
+      } else if (textAreaRef.current) {
+        textAreaRef.current.focus();
+      } else if (inputRef.current) {
+        inputRef.current.focus();
+      }
+    }, 50);
+  }, []);
+
   const handleQueryParamsChange = (field, value) => {
     setCurrentQueryParams((prev) => {
       const newQueryParams = cloneDeep(prev);
@@ -50,8 +68,14 @@ export function SearchBox(props) {
     })
   }
 
-  const handleSearch = (keyword, filters, actionType, searchType) => {
-    onSearch(keyword, filters, actionType, searchType);
+  const handleSearch = (query, filters, actionType, searchType) => {
+    let shouldAsk = false
+    let shouldAgg = false
+    if (query !== queryParams?.query || JSON.stringify(filters) !== JSON.stringify(queryParams?.filters)) {
+      shouldAsk = true
+      shouldAgg = true
+    }
+    onSearch({ query, filters, action_type: actionType, search_type: searchType }, shouldAsk, shouldAgg);
     setMainInputActive(false);
     setFilterState({ type: 'none', index: -1 });
     setAttachmentActive(false)
@@ -151,12 +175,21 @@ export function SearchBox(props) {
   const handleInputFocus = () => {
     setMainInputActive(true);
     setFilterState({ type: 'none', index: -1 });
-    setTimeout(() => expandedInputRef.current?.focus(), 0);
+    setTimeout(() => {
+      const textareaDom = expandedInputRef.current?.resizableTextArea?.textArea;
+      if (textareaDom) {
+        textareaDom.focus();
+        const len = textareaDom.value.length;
+        textareaDom.setSelectionRange(len, len);
+      }
+    }, 0);
   };
 
   const handleInputBlur = () => {
     setTimeout(() => {
-      if (!isClickingSuggestion.current) setMainInputActive(false);
+      if (!isClickingSuggestion.current && !isClickingSearchAction.current) {
+        setMainInputActive(false);
+      }
     }, 100);
   };
 
@@ -239,7 +272,13 @@ export function SearchBox(props) {
 
   const renderActionBar = () => (
     <div className="flex justify-between items-center px-12px">
-      <SearchActions actionType={action_type} searchType={search_type} onSearchTypeChange={(type) => handleQueryParamsChange('search_type', type)} />
+      <SearchActions 
+        actionType={action_type} 
+        searchType={search_type} 
+        onSearchTypeChange={(type) => handleQueryParamsChange('search_type', type)} 
+        onButtonClick={handleSearchActionClick}
+        onDropdownClose={handleSearchActionDropdownClose} // 传递关闭回调
+      />
       <Operations 
         attachments={attachments}
         setAttachments={(attachments) => {
@@ -253,10 +292,8 @@ export function SearchBox(props) {
   );
 
   const renderExpandedPanel = () => {
-    if (!showExpandedPanel) return null;
-
     return (
-      <div className="absolute left-0 top-0 z-100 w-full">
+      <div className={`absolute left-0 top-0 z-100 w-full ${showExpandedPanel ? '' : 'h-0 overflow-hidden'}`}>
         <div className={`py-12px rounded-12px bg-white overflow-hidden shadow-[0_2px_20px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_20px_rgba(255,255,255,0.2)] border border-[rgba(235,235,235,1)] dark:border-[rgba(50,50,50,1)] `}>
           {
             attachments.length > 0 && (
@@ -357,7 +394,7 @@ export function SearchBox(props) {
   }, []);
 
   return (
-    <div className={`relative w-full rounded-12px ${showExpandedPanel ? '' : 'border'} border-[rgba(235,235,235,1)] dark:border-[rgba(50,50,50,1)] ${minimize ? 'h-48px' : `h-105px ${showExpandedPanel ? '' : 'shadow-[0_2px_20px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_20px_rgba(255,255,255,0.2)]'}`}`}>
+    <div className={`${styles.searchbox} relative w-full rounded-12px ${showExpandedPanel ? '' : 'border'} border-[rgba(235,235,235,1)] dark:border-[rgba(50,50,50,1)] ${minimize ? 'h-48px' : `h-105px ${showExpandedPanel ? '' : 'shadow-[0_2px_20px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_20px_rgba(255,255,255,0.2)]'}`}`}>
       {minimize ? (
         <div className="px-12px items-center w-full h-full flex gap-8px">
           {
@@ -382,7 +419,6 @@ export function SearchBox(props) {
               onChange={(e) => handleQueryParamsChange('query', e.target.value)}
               suffix={<Operations size={24} onSearch={() => handleSearch(query, filters, action_type, search_type)} disabled={!searchable} />}
               placeholder={placeholder}
-              autoFocus
               className="flex-1 w-full"
               onFocus={handleInputFocus}
               onBlur={() => { return }}

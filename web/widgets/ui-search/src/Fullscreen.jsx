@@ -11,6 +11,7 @@ import { History, Chat, AssistantList, ChatInput } from "@infinilabs/ai-chat";
 import { debounce } from 'lodash';
 import Home from "./pages/Home";
 import Search from "./pages/Search";
+import { ACTION_TYPE_SEARCH_KEYWORD } from "./SearchBox/SearchActions";
 
 function renderChatMode({
   activeChat,
@@ -114,6 +115,7 @@ const Fullscreen = props => {
     language = 'en-US',
     onSuggestion,
     onRecommend,
+    getRawContent,
   } = props;
 
   const containerRef = useRef(null);
@@ -123,6 +125,7 @@ const Fullscreen = props => {
   const [isMobile, setIsMobile] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(true);
   const shouldAskRef = useRef(true);
+  const shouldAggRef = useRef(true);
   const [data, setData] = useState([]);
   const [hasMore, setHasMore] = useState(false);
   const loadLock = useRef(false);
@@ -132,6 +135,7 @@ const Fullscreen = props => {
   const [inputValue, setInputValue] = useState("");
   const [isDeepThinkActive, setIsDeepThinkActive] = useState(false);
   const { t } = useTranslation();
+  const queryFiltersRef = useRef([]);
 
   const resetScroll = () => {
     scrollRef.current = 0;
@@ -147,14 +151,17 @@ const Fullscreen = props => {
     }
   };
 
-  const handleSearch = (queryParams, shouldAsk, isScroll = false) => {
+  const handleSearch = (queryParams, shouldAsk, shouldAgg, isScroll = false) => {
     shouldAskRef.current = shouldAsk;
+    shouldAggRef.current = shouldAgg;
     if (!isScroll) {
       resetScroll();
       isHomeSearchRef.current = true;
     }
+    const { filters, ...rest } = queryParams
+    queryFiltersRef.current = filters || []
     setQueryParams({
-      ...queryParams,
+      ...rest,
       t: new Date().valueOf()
     });
   };
@@ -168,7 +175,7 @@ const Fullscreen = props => {
       loadLock.current = true;
       const { from, size } = queryParams;
       scrollRef.current = (scrollRef.current || from) + size;
-      handleSearch(queryParams, false, true);
+      handleSearch(queryParams, false, false, true);
     }
   }, [queryParams, loading, hasMore, handleSearch]);
 
@@ -192,17 +199,31 @@ const Fullscreen = props => {
   }, [isHome, handleScroll]);
 
   useEffect(() => {
-    if (!queryParams.query && !queryParams.filters) return;
+    if (!queryParams.query && (!Array.isArray(queryFiltersRef.current)|| queryFiltersRef.current.length === 0)) return;
 
-    const shouldAgg = queryParams.filter && Object.keys(queryParams.filter).length === 0;
     const isScroll = Number.isInteger(scrollRef.current) && scrollRef.current > 0;
 
     loadLock.current = true;
     setLoading(true);
+    const { t, ...rest } = queryParams
+    const filters = {}
+    if (Array.isArray(queryFiltersRef.current)) {
+      queryFiltersRef.current.map((item) => {
+        const field = item.field?.payload?.field_name
+        if (field && item.value) {
+          filters[field] = Array.isArray(item.value) ? item.value : [item.value]
+        }
+      })
+    }
     onSearch(
       {
-        ...queryParams,
-        from: isScroll ? scrollRef.current : queryParams.from
+        ...rest,
+        search_type: queryParams?.search_type || ACTION_TYPE_SEARCH_KEYWORD,
+        from: isScroll ? scrollRef.current : queryParams.from,
+        filter: {
+          ...(rest.filter || {}),
+          ...filters
+        }
       },
       res => {
         loadLock.current = false;
@@ -241,12 +262,12 @@ const Fullscreen = props => {
         }
       },
       setLoading,
-      shouldAgg
+      shouldAggRef.current
     );
   }, [JSON.stringify(queryParams)]);
 
   useEffect(() => {
-    window.onsearch = query => handleSearch({ ...queryParams, from: 0, query }, true);
+    window.onsearch = query => handleSearch({ ...queryParams, from: 0, query }, true, true);
     return () => {
       window.onsearch = undefined;
     };
@@ -344,7 +365,7 @@ const Fullscreen = props => {
         commonProps={commonProps}
         loading={showFullScreenSpin}
         logo={logo}
-        onSearch={(query, filters) => handleSearch({ ...queryParams, from: 0, query, filters }, true)}
+        onSearch={(params, shouldAsk, shouldAgg) => handleSearch({ ...queryParams, ...params, from: 0 }, shouldAsk, shouldAgg)}
         placeholder={placeholder}
         welcome={welcome}
         queryParams={queryParams}
@@ -380,11 +401,12 @@ const Fullscreen = props => {
       showFullScreenSpin={showFullScreenSpin}
       queryParams={queryParams}
       setQueryParams={setQueryParams}
-      onSearchFilter={filter => handleSearch({ ...queryParams, filter }, true)}
-      onSearch={(query, filters) => handleSearch({ ...queryParams, from: 0, query, filters }, true)}
+      onSearchFilter={filter => handleSearch({ ...queryParams, filter }, false, false)}
+      onSearch={(params, shouldAsk, shouldAgg) => handleSearch({ ...queryParams, ...params, from: 0 }, shouldAsk, shouldAgg)}
       onAsk={onAsk}
       onSuggestion={debouncedSuggestion}
       onRecommend={onRecommend}
+      getRawContent={getRawContent}
     />
   )
 };

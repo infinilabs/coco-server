@@ -147,6 +147,7 @@ export default (props) => {
         <>
             <ListContainer
                 {...props}
+                className={data.length !== 0 ? "!mb-0" : ""}
                 ref={el => setListRef(SUGGESTION_ACTIONS, el)}
                 type={SUGGESTION_ACTIONS}
                 data={actions}

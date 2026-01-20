@@ -96,7 +96,7 @@ export default function Filters({
                     filterRefs.current[index] = el;
                   }}
                   value={filter.value || []}
-                  onChange={(value) => handleFiltersChange(index, 'value', value)}
+                  // onChange={(value) => handleFiltersChange(index, 'value', value)}
                   onFocus={() => handleInputFocus(index)}
                   onBlur={() => handleInputBlur(index)}
                   options={[]}

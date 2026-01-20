@@ -9,7 +9,13 @@ export const ACTION_TYPE_DEEPTHINK = 'deepthink'
 export const ACTION_TYPE_DEEPSEARCH = 'deepresearch'
 
 export default (props) => {
-    const { actionType, searchType = ACTION_TYPE_SEARCH_HYBRID, onSearchTypeChange } = props;
+    const { 
+        actionType, 
+        searchType = ACTION_TYPE_SEARCH_KEYWORD, 
+        onSearchTypeChange,
+        onButtonClick,
+        onDropdownClose 
+    } = props;
 
     if (actionType === ACTION_TYPE_DEEPTHINK) {
         return (
@@ -66,10 +72,35 @@ export default (props) => {
                 label: '语义搜索',
             },
         ]
+        
+        const handleVisibleChange = (visible) => {
+            if (!visible && onDropdownClose) {
+                onDropdownClose();
+            }
+        };
+        
         return (
             <div>
-                <Dropdown menu={{ items, onClick: ({key}) => onSearchTypeChange(key) }}>
-                    <Button className="!px-12px rounded-16px text-[var(--ui-search-antd-color-text-description)]">
+                <Dropdown 
+                    menu={{ 
+                        items, 
+                        onClick: ({key}) => {
+                            onSearchTypeChange(key);
+                        } 
+                    }}
+                    trigger={['click']}
+                    placement="bottomLeft"
+                    onOpenChange={handleVisibleChange} 
+                >
+                    <Button 
+                        className="!px-12px rounded-16px text-[var(--ui-search-antd-color-text-description)]"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (onButtonClick) {
+                                onButtonClick();
+                            }
+                        }}
+                    >
                         <Space size={4}>
                             <Search className="w-16px h-16px" />
                             {items.find((item) => item.key === searchType)?.label}
