@@ -151,6 +151,12 @@ func (h *APIHandler) getDocRawContent(w http.ResponseWriter, req *http.Request, 
 			modTime  time.Time
 		)
 
+		defer func() {
+			if closer != nil {
+				closer.Close()
+			}
+		}()
+
 		switch connectorID {
 		case "s3":
 			// Extract S3 configuration
@@ -207,7 +213,10 @@ func (h *APIHandler) getDocRawContent(w http.ResponseWriter, req *http.Request, 
 			// Get object metadata
 			info, err := objStream.Stat()
 			if err != nil {
-				objStream.Close()
+				if objStream != nil {
+					objStream.Close()
+				}
+				log.Error(fmt.Sprintf("failed to get S3 object: %v, %v, %v, %v", cfg.Bucket, objectKey, id, err), http.StatusInternalServerError)
 				// Check if it's a 404
 				if minio.ToErrorResponse(err).Code == "NoSuchKey" {
 					h.WriteJSON(w, util.MapStr{
