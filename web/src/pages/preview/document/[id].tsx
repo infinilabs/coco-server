@@ -188,11 +188,7 @@ export function Component() {
 
   return (
     <div className='h-screen bg-container'>
-      <div
-        className={classNames('h-full flex flex-col', {
-          'max-w-240 m-auto': !embedded
-        })}
-      >
+      <div className={classNames('h-full flex flex-col', [embedded ? 'p-6' : 'max-w-240 m-auto'])}>
         {!embedded && (
           <div className='h-20 flex items-center justify-between border-b border-border-secondary'>
             <div className='children:h-10'>
