@@ -6,11 +6,22 @@
 // biome-ignore lint: disable
 export {}
 declare global {
+  const AButton: typeof import('antd')['Button']
+  const ACard: typeof import('antd')['Card']
+  const ACheckbox: typeof import('antd')['Checkbox']
+  const AColorPicker: typeof import('antd')['ColorPicker']
   const AConfigProvider: typeof import('antd')['ConfigProvider']
   const ADD: typeof import('antd')['DD']
+  const ADivider: typeof import('antd')['Divider']
+  const ADrawer: typeof import('antd')['Drawer']
+  const AFlex: typeof import('antd')['Flex']
   const AGPL: typeof import('../components/License/AGPL.jsx')['default']
+  const AInput: typeof import('antd')['Input']
   const AMenu: typeof import('antd')['Menu']
   const ARG: typeof import('antd')['RG']
+  const ASpace: typeof import('antd')['Space']
+  const ASwitch: typeof import('antd')['Switch']
+  const ATooltip: typeof import('antd')['Tooltip']
   const AWatermark: typeof import('antd')['Watermark']
   const AddShares: typeof import('../components/Resource/AddShares')['default']
   const AppProvider: typeof import('../components/stateful/AppProvider')['default']

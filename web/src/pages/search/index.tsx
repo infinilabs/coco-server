@@ -84,8 +84,8 @@ export function Component() {
   const onSearch = async (queryParams: { [key: string]: any }, callback: (data: any) => void, setLoading: (loading: boolean) => void) => {
     if (setLoading) setLoading(true)
     const { filter = {}, filter_payload, ...rest } = queryParams
-    const filterStr = Object.keys(filter).map((key) => `filter=${key}:any(${filter[key].join(',')})`).join('&')
-    const searchStr = `${filterStr ? filterStr + '&' : ''}v2=true&${queryString.stringify(rest)}`
+    const filterStr = Object.keys(filter).filter((key) => !!filter[key]).map((key) => `filter=${key}:any(${filter[key].join(',')})`).join('&')
+    const searchStr = `${filterStr ? filterStr + '&' : ''}${queryString.stringify(rest)}`
     const headers = { 'APP-INTEGRATION-ID': search_settings?.integration }
     const res = await querySearch({}, searchStr, { headers })
     if (callback) callback(res.data)
@@ -94,8 +94,9 @@ export function Component() {
 
   const onAggregation = async (queryParams: { [key: string]: any }, callback: (data: any) => void, setLoading: (loading: boolean) => void) => {
     if (setLoading) setLoading(true)
-    const { query } = queryParams
-    const searchStr = `v2=true&${queryString.stringify({ query })}`
+    const { query, filter } = queryParams
+    const filterStr = Object.keys(filter).filter((key) => !!filter[key]).map((key) => `filter=${key}:any(${filter[key].join(',')})`).join('&')
+    const searchStr = `${filterStr ? filterStr + '&' : ''}${queryString.stringify({ query })}`
     const body = JSON.stringify(AGGS[queryParams['metadata.content_category']] || AGGS['all'])
     const headers = { 'APP-INTEGRATION-ID': search_settings?.integration }
     const res = await querySearch(body, searchStr, { headers })
@@ -150,6 +151,7 @@ export function Component() {
             const json = JSON.parse(lines[i]);
             if (json && !(json._id && json._source && json.result)) {
               callback(json)
+              setLoading(false)
             }
           } catch (error) {
             console.log("error:", lines[i])

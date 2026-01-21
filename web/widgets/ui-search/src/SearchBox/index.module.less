@@ -1,6 +1,52 @@
 .searchbox {
     line-height: 1;
+
+    &.gradientBorder {
+        position: relative;
+        z-index: 1;
+
+        &::before {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: -1px;
+            right: -1px;
+            bottom: -1px;
+            border-radius: 12px;
+            background: linear-gradient(90deg, #7000FF, #00DBFF, #7000FF);
+            background-size: 200% 200%;
+            z-index: -1;
+            animation: gradientFlow 3s ease infinite;
+            opacity: 0.2;
+            filter: blur(20px);
+        }
+
+        &::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 12px;
+            background: inherit;
+            z-index: -1;
+        }
+    }
 }
+
+@keyframes gradientFlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
 .input {
     border: 0 !important;
     outline: none !important;
@@ -13,6 +59,7 @@
             background: transparent;
             padding: 0;
         }
+
         .ant-input-outlined {
             border: 0;
             outline: none;

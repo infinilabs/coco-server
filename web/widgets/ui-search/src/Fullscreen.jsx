@@ -137,7 +137,6 @@ const Fullscreen = props => {
   }, [isHome, handleScroll]);
 
   useEffect(() => {
-    console.log(queryParams)
     if (!queryParams?.query && isEmpty(queryParams?.filter)) return;
 
     const isScroll = Number.isInteger(scrollRef.current) && scrollRef.current > 0;
@@ -147,12 +146,21 @@ const Fullscreen = props => {
       setLoading(true);
     }
     
-    const { t, ...rest } = queryParams
+    const { t, filter = {}, ...rest } = queryParams;
+    const newFilter = {
+      ...filter,
+      'metadata.content_category': queryParams['metadata.content_category'] !== 'all' ? [queryParams['metadata.content_category']] : undefined,
+    }
     onSearch(
       {
         ...rest,
+        filter: {
+          ...filter,
+          'metadata.content_category': queryParams['metadata.content_category'] !== 'all' ? [queryParams['metadata.content_category']] : undefined,
+        },
         search_type: queryParams?.search_type || ACTION_TYPE_SEARCH_KEYWORD,
         from: isScroll ? scrollRef.current : queryParams.from,
+        'metadata.content_category': undefined
       },
       res => {
         loadLock.current = false;
@@ -187,12 +195,12 @@ const Fullscreen = props => {
 
         if (onAggregation && shouldAggRef.current) {
           setLoading(true);
-          onAggregation({ query: queryParams.query }, (res) => {
+          onAggregation({ query: queryParams.query, filter: newFilter }, (res) => {
             shouldAskRef.current = false
             if (res && !res.error) {
               rs = formatESResult(res);
               setResult(os => ({
-                ...rs,
+                ...os,
                 aggregations: res?.aggregations ? rs.aggregations : os.aggregations
               }));
             }

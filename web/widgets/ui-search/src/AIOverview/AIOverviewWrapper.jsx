@@ -11,6 +11,7 @@ const AIOverviewWrapper = (props) => {
   const handleAsk = (message, config) => {
     if (message && config.assistant) {
       setData()
+      setLoading(true)
       onAsk(config.assistant, message, (res) => {
         setData((prev) => handleMessage(res, prev))
       }, setLoading)

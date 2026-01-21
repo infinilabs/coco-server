@@ -281,21 +281,21 @@ export function SearchBox(props) {
 
   const renderActionBar = () => (
     <div className="flex justify-between items-center px-12px">
-      <SearchActions 
-        actionType={action_type} 
-        searchType={search_type} 
-        onSearchTypeChange={(type) => handleQueryParamsChange('search_type', type)} 
+      <SearchActions
+        actionType={action_type}
+        searchType={search_type}
+        onSearchTypeChange={(type) => handleQueryParamsChange('search_type', type)}
         onButtonClick={handleSearchActionClick}
         onDropdownClose={handleSearchActionDropdownClose} // 传递关闭回调
       />
-      <Operations 
+      <Operations
         attachments={attachments}
         setAttachments={(attachments) => {
           setAttachments(attachments)
           setAttachmentActive(attachments.length > 0)
         }}
-        onSearch={() => handleSearch(query, filters, action_type, search_type)} 
-        disabled={!searchable} 
+        onSearch={() => handleSearch(query, filters, action_type, search_type)}
+        disabled={!searchable}
       />
     </div>
   );
@@ -314,7 +314,7 @@ export function SearchBox(props) {
                     newAttachments.splice(index, 1)
                     setAttachments(newAttachments)
                   }
-                }}/>
+                }} />
               </div>
             )
           }
@@ -403,7 +403,15 @@ export function SearchBox(props) {
   }, []);
 
   return (
-    <div className={`${styles.searchbox} relative w-full rounded-12px ${showExpandedPanel ? '' : 'border'} border-[rgba(235,235,235,1)] dark:border-[rgba(50,50,50,1)] ${minimize ? 'h-48px' : `h-105px ${showExpandedPanel ? '' : 'shadow-[0_2px_20px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_20px_rgba(255,255,255,0.2)]'}`}`}>
+    <div className={`
+      ${styles.searchbox}
+      relative w-full rounded-12px 
+      ${showExpandedPanel ? '' : 'border'} 
+    border-[rgba(235,235,235,1)] dark:border-[rgba(50,50,50,1)] 
+      ${minimize ? 'h-48px' : `h-105px ${showExpandedPanel ? '' : 'shadow-[0_2px_20px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_20px_rgba(255,255,255,0.2)]'}`}
+      ${!minimize ? styles.gradientBorder : ''}
+      bg-[rgb(var(--ui-search--layout-bg-color))]
+    `}>
       {minimize ? (
         <div className="px-12px items-center w-full h-full flex gap-8px">
           {
