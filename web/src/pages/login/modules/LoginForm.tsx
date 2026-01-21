@@ -54,13 +54,12 @@ const LoginForm = memo(({ onProvider }: { onProvider?: () => void }) => {
             type='default'
             onClick={() => {
               const sso_url = providerInfo?.provider?.auth_provider?.sso?.url;
-
               if (window.$wujie?.props?.onExternal) {
                 window.$wujie?.props?.onExternal(
                   normalizeUrl(`${getProxyEndpoint()}${sso_url}`)
                 );
               } else {
-                window.open(normalizeUrl(`${import.meta.env.VITE_SERVICE_BASE_URL || ''}${sso_url}&redirect_url=${encodeURIComponent(window.location.href)}`), '_self')
+                window.open(normalizeUrl(`${getEndpoint()}/${sso_url}&redirect_url=${encodeURIComponent(window.location.href)}`), '_self')
               }
             }}
           >

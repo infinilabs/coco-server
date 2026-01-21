@@ -81,13 +81,12 @@ export function SearchBox(props) {
       filters.forEach((item) => {
         const field = item.field?.field_name
         if (item.field?.field_name && item.value) {
-          newFilter[field] = Array.isArray(item.value) ? item.value : [item.value]
+          newFilter[field] = Array.isArray(item.value) ? item.value : (item.value ? [item.value] : [])
         }
       })
     }
     onSearch({ query, filter: newFilter, action_type: actionType, search_type: searchType, mode: !actionType || actionType === ACTION_TYPE_SEARCH ? 'search' : 'chat' }, shouldAsk, shouldAgg);
     setMainInputActive(false);
-    console.log('handleSearch')
     setFilterState({ type: 'none', index: -1 });
     setAttachmentActive(false)
     setSuggestions({});
@@ -116,7 +115,7 @@ export function SearchBox(props) {
     if (mainInputActive) {
       if (!hasKeyword) {
         suggestionType = SUGGESTION_TIPS;
-      } 
+      }
       else if (isSlashAtCursor) {
         suggestionType = SUGGESTION_FILTER_FIELDS;
       } else {
@@ -147,7 +146,7 @@ export function SearchBox(props) {
     const newFilters = cloneDeep(filters);
     newFilters.push({ field: item.payload, operator: 'or' });
     handleQueryParamsChange('filters', newFilters)
-    
+
     const newQuery = query?.split('');
     if (newQuery && cursorPosition > 0 && newQuery[cursorPosition - 1] === '/') {
       newQuery.splice(cursorPosition - 1, 1);
@@ -155,9 +154,9 @@ export function SearchBox(props) {
     } else {
       handleQueryParamsChange('query', query?.endsWith('/') ? query.slice(0, -1) : query)
     }
-    
+
     setShouldFocusNewFilter(true);
-    
+
     setFilterState({ type: 'filterInput', index: newFilters.length - 1 });
     setMainInputActive(false);
   };
@@ -191,14 +190,12 @@ export function SearchBox(props) {
 
   const handleFilterActiveToggle = (index) => {
     if (index === -1) {
-    console.log('handleFilterActiveToggle')
       setFilterState({ type: 'none', index: -1 });
       setSuggestions({});
       return;
     }
 
     const isCurrentActive = filterState.type === 'filterActive' && filterState.index === index;
-    console.log('handleFilterActiveToggle2')
 
     setFilterState(isCurrentActive
       ? { type: 'none', index: -1 }
@@ -208,7 +205,6 @@ export function SearchBox(props) {
   };
 
   const handleInputFocus = () => {
-    console.log('handleInputFocus')
     setMainInputActive(true);
     setFilterState({ type: 'none', index: -1 });
     setTimeout(() => {
@@ -217,7 +213,7 @@ export function SearchBox(props) {
         textareaDom.focus();
         const len = textareaDom.value.length;
         textareaDom.setSelectionRange(len, len);
-        setCursorPosition(len); 
+        setCursorPosition(len);
       }
     }, 0);
   };
@@ -235,7 +231,6 @@ export function SearchBox(props) {
   };
 
   const handleFilterInputBlur = () => {
-    console.log('handleFilterInputBlur')
     setTimeout(() => {
       if (!isClickingSuggestion.current) setFilterState({ type: 'none', index: -1 });
     }, 100);
@@ -301,18 +296,34 @@ export function SearchBox(props) {
       ref={ref}
       placeholder={placeholder}
       autoSize={{ minRows: 1, maxRows: 6 }}
-      classNames={{ textarea: '!text-16px !px-16px !mb-14px !bg-transparent' }}
+      classNames={{ textarea: '!text-16px !bg-transparent' }}
       value={query}
       onChange={(e) => {
         handleQueryParamsChange('query', e.target.value);
         setCursorPosition(e.target.selectionStart);
       }}
-      onSelect={handleCursorPositionChange} 
-      onClick={handleCursorPositionChange}  
+      onSelect={handleCursorPositionChange}
+      onClick={handleCursorPositionChange}
       onFocus={handleInputFocus}
       onBlur={onBlur}
       className={`${styles.input} ${className}`}
     />
+  );
+
+  const renderFilters = () => (
+    filters.length > 0 ? (
+      <div className="flex-shrink-0">
+        <Filters
+          filters={filters}
+          onFiltersChange={(filters) => handleQueryParamsChange('filters', filters)}
+          onFilterInputFocus={handleFilterInputFocus}
+          onFilterActiveToggle={handleFilterActiveToggle}
+          focusIndex={-1}
+          activeIndex={-1}
+          shouldFocusNewFilter={shouldFocusNewFilter}
+        />
+      </div>
+    ) : null
   );
 
   const renderActionBar = () => (
@@ -355,7 +366,7 @@ export function SearchBox(props) {
             )
           }
           <Filters
-            className="mb-14px px-16px"
+            className="mb-14px px-16px h-33px"
             filters={filters}
             onFiltersChange={(filters) => handleQueryParamsChange('filters', filters)}
             onFilterInputFocus={handleFilterInputFocus}
@@ -365,7 +376,7 @@ export function SearchBox(props) {
             activeIndex={filterState.type === 'filterActive' ? filterState.index : -1}
             shouldFocusNewFilter={shouldFocusNewFilter}
           />
-          {renderTextArea(expandedInputRef, '', handleInputBlur)}
+          {renderTextArea(expandedInputRef, '!mb-14px !px-16px', handleInputBlur)}
           {renderSuggestions()}
           {renderActionBar()}
         </div>
@@ -393,7 +404,7 @@ export function SearchBox(props) {
 
   useEffect(() => {
     changeSuggestions(query);
-  }, [query, mainInputActive, filterState, isSlashAtCursor]); 
+  }, [query, mainInputActive, filterState, isSlashAtCursor]);
 
   useEffect(() => {
     if (filterState.type !== 'filterInput' && filterState.type !== 'filterActive') {
@@ -436,7 +447,7 @@ export function SearchBox(props) {
         }
         break;
     }
-  }, [suggestions.type, suggestions.from, suggestions.size, query, filterState, filters, onSuggestion, cursorPosition]); 
+  }, [suggestions.type, suggestions.from, suggestions.size, query, filterState, filters, onSuggestion, cursorPosition]);
   useEffect(() => {
     const handleTabKeyDown = (e) => {
       if (e.key === 'Tab') {
@@ -448,10 +459,6 @@ export function SearchBox(props) {
     document.addEventListener('keydown', handleTabKeyDown);
     return () => document.removeEventListener('keydown', handleTabKeyDown);
   }, []);
-
-  console.log('mainInputActive', mainInputActive)
-  console.log('filterState', filterState)
-  console.log('suggestions', suggestions)
 
   return (
     <div className={`
@@ -465,21 +472,7 @@ export function SearchBox(props) {
     `}>
       {minimize ? (
         <div className="px-12px items-center w-full h-full flex gap-8px">
-          {
-            filters.length > 0 && (
-              <div className="flex-shrink-0">
-                <Filters
-                  filters={filters}
-                  onFiltersChange={(filters) => handleQueryParamsChange('filters', filters)}
-                  onFilterInputFocus={handleFilterInputFocus}
-                  onFilterActiveToggle={handleFilterActiveToggle}
-                  focusIndex={-1}
-                  activeIndex={-1}
-                  shouldFocusNewFilter={shouldFocusNewFilter}
-                />
-              </div>
-            )
-          }
+          {renderFilters()}
           <div className={`${styles.inputWrapper} w-full`}>
             <Input
               ref={inputRef}
@@ -501,7 +494,10 @@ export function SearchBox(props) {
         </div>
       ) : (
         <div className="py-12px">
-          {renderTextArea(textAreaRef, '!mb-14px')}
+          <div className="items-center w-full h-full flex gap-8px px-16px mb-14px">
+            {renderFilters()}
+            {renderTextArea(textAreaRef, '!px-0')}
+          </div>
           {renderActionBar()}
         </div>
       )}

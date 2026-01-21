@@ -150,15 +150,12 @@ const Fullscreen = props => {
     const { t, filter = {}, ...rest } = queryParams;
     const newFilter = {
       ...filter,
-      'metadata.content_category': queryParams['metadata.content_category'] !== 'all' ? [queryParams['metadata.content_category']] : undefined,
+      'metadata.content_category': queryParams['metadata.content_category'] && queryParams['metadata.content_category'] !== 'all' ? [queryParams['metadata.content_category']] : undefined,
     }
     onSearch(
       {
         ...rest,
-        filter: {
-          ...filter,
-          'metadata.content_category': queryParams['metadata.content_category'] !== 'all' ? [queryParams['metadata.content_category']] : undefined,
-        },
+        filter: newFilter,
         search_type: queryParams?.search_type || ACTION_TYPE_SEARCH_KEYWORD,
         from: isScroll ? scrollRef.current : queryParams.from,
         'metadata.content_category': undefined
