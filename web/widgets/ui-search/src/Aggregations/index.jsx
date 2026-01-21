@@ -33,7 +33,7 @@ export function Aggregations(props) {
         const type = config?.[aggregation.key]?.type || 'checkbox';
         const commonProps = {
           defaultExpand: index <= 2,
-          title: <div>{(config?.[aggregation.key]?.displayName || aggregation.key)?.toUpperCase()}</div>,
+          title: <div>{(config?.[aggregation.key]?.label || aggregation.key)?.toUpperCase()}</div>,
           value: currentFilters[aggregation.key],
           onChange: (value) => {
             onChange(value, aggregation)

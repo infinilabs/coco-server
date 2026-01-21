@@ -1,9 +1,10 @@
-import { memo, useMemo, useRef, useState } from "react";
+import { memo, useMemo, useRef, useState, useEffect } from "react";
 import { Masonry, Skeleton } from "antd";
 import { ChevronRight, ImageOff } from "lucide-react";
 import { useInViewport, useSize } from "ahooks";
 import clsx from "clsx";
 import ResultDetail from "../ResultDetail";
+import { Spin } from "antd";
 
 const MasonryItem = (props) => {
   const { data, onItemClick } = props;
@@ -98,6 +99,30 @@ export function ImageList(props) {
 
   const [open, setOpen] = useState(false);
   const [record, setRecord] = useState();
+  const masonryContainerRef = useRef(null);
+  const containerSize = useSize(masonryContainerRef);
+  const [columns, setColumns] = useState(2);
+
+  const calculateColumns = useMemo(() => {
+    if (!containerSize?.width) return isMobile ? 1 : 2;
+    
+    const MIN_ITEM_WIDTH = 300;
+    const GUTTER = 16;
+    
+    let calculatedColumns = Math.floor(containerSize.width / (MIN_ITEM_WIDTH + GUTTER));
+    
+    calculatedColumns = Math.max(1, Math.min(calculatedColumns, 8));
+    
+    if (isMobile) {
+      calculatedColumns = Math.max(1, calculatedColumns);
+    }
+    
+    return calculatedColumns;
+  }, [containerSize?.width, isMobile]);
+
+  useEffect(() => {
+    setColumns(calculateColumns);
+  }, [calculateColumns]);
 
   const onOpen = (record) => {
     setRecord(record);
@@ -113,18 +138,25 @@ export function ImageList(props) {
 
   return (
     <>
-      <Masonry
-        columns={{
-          xl: 6,
-          lg: 5,
-          md: 4,
-          sm: 3,
-          xs: 2,
-        }}
-        gutter={16}
-        items={data.filter((item) => item.metadata?.content_category === 'image')}
-        itemRender={(item) => <MasonryItem data={item} onItemClick={(item) => onOpen(item)}/>}
-      />
+      <div ref={masonryContainerRef} style={{ width: '100%' }}>
+        <Masonry
+          columns={columns}
+          gutter={16}
+          items={data.filter((item) => item.metadata?.content_category === 'image')}
+          itemRender={(item) => <MasonryItem data={item} onItemClick={(item) => onOpen(item)}/>}
+          style={{ width: '100%' }}
+        />
+        {loading && hasMore && (
+          <div style={{
+            textAlign: 'center',
+            padding: '16px 0',
+            marginTop: '8px',
+          }}>
+            <Spin />
+          </div>
+        )}
+      </div>
+      
       <ResultDetail 
         getContainer={getDetailContainer}
         open={open}

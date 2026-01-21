@@ -81,12 +81,22 @@ export function Component() {
     manual: true
   });
 
-  const onSearch = async (query: { [key: string]: any }, callback: (data: any) => void, setLoading: (loading: boolean) => void, shouldAgg: boolean) => {
+  const onSearch = async (queryParams: { [key: string]: any }, callback: (data: any) => void, setLoading: (loading: boolean) => void) => {
     if (setLoading) setLoading(true)
-    const { filter = {}, ...rest } = query
+    const { filter = {}, filter_payload, ...rest } = queryParams
     const filterStr = Object.keys(filter).map((key) => `filter=${key}:any(${filter[key].join(',')})`).join('&')
     const searchStr = `${filterStr ? filterStr + '&' : ''}v2=true&${queryString.stringify(rest)}`
-    const body = shouldAgg ? JSON.stringify(AGGS[query['metadata.content_category']] || AGGS['all']) : undefined
+    const headers = { 'APP-INTEGRATION-ID': search_settings?.integration }
+    const res = await querySearch({}, searchStr, { headers })
+    if (callback) callback(res.data)
+    if (setLoading) setLoading(false)
+  }
+
+  const onAggregation = async (queryParams: { [key: string]: any }, callback: (data: any) => void, setLoading: (loading: boolean) => void) => {
+    if (setLoading) setLoading(true)
+    const { query } = queryParams
+    const searchStr = `v2=true&${queryString.stringify({ query })}`
+    const body = JSON.stringify(AGGS[queryParams['metadata.content_category']] || AGGS['all'])
     const headers = { 'APP-INTEGRATION-ID': search_settings?.integration }
     const res = await querySearch(body, searchStr, { headers })
     if (callback) callback(res.data)
@@ -196,23 +206,38 @@ export function Component() {
       "showActions": false,
     })) : [],
     "onSearch": onSearch,
+    "onAggregation": onAggregation,
     "onAsk": onAsk,
     "onSuggestion": onSuggestion,
     "onRecommend": onRecommend,
     "config": {
       "aggregations": {
         "source.id": {
-          "displayName": "source",
+          "label": "source",
+          "payload": { field_name: 'source.id', field_data_type: 'keyword', support_multi_select: true }
         },
         "lang": {
-          "displayName": "language"
+          "label": "language",
+          "payload": { field_name: 'lang', field_data_type: 'keyword', support_multi_select: true }
         },
         "color": {
-          'type': 'color'
+          'label': 'color',
+          'type': 'color',
+          "payload": { field_name: 'color', field_data_type: 'keyword', support_multi_select: true }
         },
         "tag": {
-          'type': 'tag'
-        }
+          'label': 'tag',
+          'type': 'tag',
+          "payload": { field_name: 'tag', field_data_type: 'keyword', support_multi_select: true }
+        },
+        "category": {
+          'label': 'category',
+          "payload": { field_name: 'category', field_data_type: 'keyword', support_multi_select: true }
+        },
+        "type": {
+          'label': 'type',
+          "payload": { field_name: 'type', field_data_type: 'keyword', support_multi_select: true }
+        },
       }
     },
     getRawContent: (item: any) => {
@@ -225,6 +250,11 @@ export function Component() {
       BaseUrl: getApiBaseUrl(),
       Token: import.meta.env.VITE_SERVICE_TOKEN,
       endpoint: getEndpoint()
+    },
+    onLogoClick: () => {
+      const hashWithoutParams = window.location.hash.split('?')[0] || '';
+      const newUrl = window.location.origin + window.location.pathname + hashWithoutParams;
+      history.replaceState(null, '', newUrl);
     }
   }
 
@@ -243,7 +273,7 @@ export function Component() {
           }}
         />
       </div>
-      <div className="absolute right-12px top-0px h-72px z-1 flex-y-center justify-end">
+      <div className="absolute right-12px top-0px h-72px z-1002 flex-y-center justify-end">
         {
           isMobile ? (
             <>

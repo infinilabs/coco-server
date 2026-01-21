@@ -75,7 +75,16 @@ export function SearchBox(props) {
       shouldAsk = true
       shouldAgg = true
     }
-    onSearch({ query, filters, action_type: actionType, search_type: searchType }, shouldAsk, shouldAgg);
+    const newFilter = cloneDeep(queryParams?.filter)
+    if (Array.isArray(filters) && filters.length > 0) {
+      filters.forEach((item) => {
+        const field = item.field?.payload?.field_name
+        if (item.field?.payload?.field_name && item.value) {
+          newFilter[field] = Array.isArray(item.value) ? item.value : [item.value]
+        }
+      })
+    }
+    onSearch({ query, filter: newFilter, action_type: actionType, search_type: searchType }, shouldAsk, shouldAgg);
     setMainInputActive(false);
     setFilterState({ type: 'none', index: -1 });
     setAttachmentActive(false)

@@ -3,7 +3,7 @@ import { formatESResult } from "./utils/es";
 import PropTypes from 'prop-types';
 import { useTranslation } from "react-i18next";
 
-import { debounce } from 'lodash';
+import { debounce, isEmpty } from 'lodash';
 import Home from "./pages/Home";
 import Search from "./pages/Search";
 import { ACTION_TYPE_SEARCH_KEYWORD } from "./SearchBox/SearchActions";
@@ -16,6 +16,7 @@ const Fullscreen = props => {
     welcome,
     aiOverview,
     onSearch,
+    onAggregation,
     onAsk,
     config = {},
     isHome = false,
@@ -45,7 +46,8 @@ const Fullscreen = props => {
   const scrollRef = useRef(0)
   const [showToolbar, setShowToolbar] = useState(false);
   const { t } = useTranslation();
-  const queryFiltersRef = useRef([]);
+  const checkViewportRef = useRef(false);
+  const isViewportLoadingRef = useRef(false);
 
   const resetScroll = () => {
     scrollRef.current = 0;
@@ -68,10 +70,8 @@ const Fullscreen = props => {
       resetScroll();
       isHomeSearchRef.current = true;
     }
-    const { filters, ...rest } = queryParams
-    queryFiltersRef.current = filters || []
     setQueryParams({
-      ...rest,
+      ...queryParams,
       t: new Date().valueOf()
     });
   };
@@ -85,9 +85,37 @@ const Fullscreen = props => {
       loadLock.current = true;
       const { from, size } = queryParams;
       scrollRef.current = (scrollRef.current || from) + size;
+      isViewportLoadingRef.current = false;
       handleSearch(queryParams, false, false, true);
     }
   }, [queryParams, loading, hasMore, handleSearch]);
+
+  const checkViewportAndLoad = useCallback(() => {
+    if (
+      !containerRef.current || 
+      loading || 
+      !hasMore || 
+      loadLock.current ||
+      isHome
+    ) {
+      checkViewportRef.current = false;
+      return;
+    }
+
+    const { scrollHeight, clientHeight } = containerRef.current;
+    const isViewportFilled = scrollHeight > clientHeight + 10;
+
+    if (!isViewportFilled && hasMore) {
+      loadLock.current = true;
+      isViewportLoadingRef.current = true;
+      const { from, size } = queryParams;
+      scrollRef.current = (scrollRef.current || from) + size;
+      handleSearch(queryParams, false, false, true);
+      checkViewportRef.current = true;
+    } else {
+      checkViewportRef.current = false;
+    }
+  }, [containerRef, loading, hasMore, loadLock, isHome, queryParams, handleSearch]);
 
   useEffect(() => {
     const checkScreenSize = () => {
@@ -109,35 +137,29 @@ const Fullscreen = props => {
   }, [isHome, handleScroll]);
 
   useEffect(() => {
-    if (!queryParams.query && (!Array.isArray(queryFiltersRef.current) || queryFiltersRef.current.length === 0)) return;
+    console.log(queryParams)
+    if (!queryParams?.query && isEmpty(queryParams?.filter)) return;
 
     const isScroll = Number.isInteger(scrollRef.current) && scrollRef.current > 0;
 
     loadLock.current = true;
-    setLoading(true);
-    const { t, ...rest } = queryParams
-    const filters = {}
-    if (Array.isArray(queryFiltersRef.current)) {
-      queryFiltersRef.current.map((item) => {
-        const field = item.field?.payload?.field_name
-        if (field && item.value) {
-          filters[field] = Array.isArray(item.value) ? item.value : [item.value]
-        }
-      })
+    if (!isViewportLoadingRef.current) {
+      setLoading(true);
     }
+    
+    const { t, ...rest } = queryParams
     onSearch(
       {
         ...rest,
         search_type: queryParams?.search_type || ACTION_TYPE_SEARCH_KEYWORD,
         from: isScroll ? scrollRef.current : queryParams.from,
-        filter: {
-          ...(rest.filter || {}),
-          ...filters
-        }
       },
       res => {
         loadLock.current = false;
-        setLoading(false);
+        if (!isViewportLoadingRef.current) {
+          setLoading(false);
+        }
+        isViewportLoadingRef.current = false;
 
         let rs;
         if (res && !res.error) {
@@ -151,6 +173,8 @@ const Fullscreen = props => {
           setData(newData);
           setHasMore(newData.length < (rs.hits.total || 0));
           if (!isScroll) isHomeSearchRef.current = false;
+
+          checkViewportRef.current = true;
         } else {
           if (!isScroll) {
             setResult(formatESResult());
@@ -158,6 +182,22 @@ const Fullscreen = props => {
           }
           setHasMore(false);
           isHomeSearchRef.current = false;
+          checkViewportRef.current = false;
+        }
+
+        if (onAggregation && shouldAggRef.current) {
+          setLoading(true);
+          onAggregation({ query: queryParams.query }, (res) => {
+            shouldAskRef.current = false
+            if (res && !res.error) {
+              rs = formatESResult(res);
+              setResult(os => ({
+                ...rs,
+                aggregations: res?.aggregations ? rs.aggregations : os.aggregations
+              }));
+            }
+            setLoading(false);
+          })
         }
 
         if (shouldAskRef.current) {
@@ -171,10 +211,34 @@ const Fullscreen = props => {
           });
         }
       },
-      setLoading,
-      shouldAggRef.current
+      (loadingState) => {
+        if (!isViewportLoadingRef.current) {
+          setLoading(loadingState);
+        }
+      }
     );
   }, [JSON.stringify(queryParams)]);
+
+  useEffect(() => {
+    if (!checkViewportRef.current) return;
+    
+    const timer = setTimeout(() => {
+      checkViewportAndLoad();
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [checkViewportRef.current, checkViewportAndLoad]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (containerRef.current && hasMore && !loading && !loadLock.current) {
+        checkViewportRef.current = true;
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [hasMore, loading]);
 
   useEffect(() => {
     window.onsearch = query => handleSearch({ ...queryParams, from: 0, query }, true, true);
@@ -273,7 +337,9 @@ const Fullscreen = props => {
       showFullScreenSpin={showFullScreenSpin}
       queryParams={queryParams}
       setQueryParams={setQueryParams}
-      onSearchFilter={filter => handleSearch({ ...queryParams, filter }, false, false)}
+      onSearchFilter={(filter, filter_payload) => {
+        handleSearch({ ...queryParams, filter, filter_payload }, false, false)
+      }}
       onSearch={(params, shouldAsk, shouldAgg) => handleSearch({ ...queryParams, ...params, from: 0 }, shouldAsk, shouldAgg)}
       onAsk={onAsk}
       onSuggestion={debouncedSuggestion}
@@ -296,40 +362,21 @@ Fullscreen.propTypes = {
   aiOverview: PropTypes.shape({
     enabled: PropTypes.bool
   }),
-  onSearch: PropTypes.func,
+  onSearch: PropTypes.func.isRequired,
   onAsk: PropTypes.func,
   config: PropTypes.object,
   isHome: PropTypes.bool,
   rightMenuWidth: PropTypes.number,
-  queryParams: PropTypes.object,
-  setQueryParams: PropTypes.func,
+  queryParams: PropTypes.object.isRequired,
+  setQueryParams: PropTypes.func.isRequired,
   onLogoClick: PropTypes.func,
   theme: PropTypes.oneOf(['light', 'dark']),
   language: PropTypes.string,
-  messages: PropTypes.array,
-  onSendMessage: PropTypes.func,
-  assistants: PropTypes.array,
-  currentAssistant: PropTypes.any,
-  onAssistantRefresh: PropTypes.func,
-  onAssistantSelect: PropTypes.func,
-  registerStreamHandler: PropTypes.func,
-  chats: PropTypes.array,
-  activeChat: PropTypes.any,
-  onHistorySelect: PropTypes.func,
-  onHistorySearch: PropTypes.func,
-  onHistoryRefresh: PropTypes.func,
-  onHistoryRename: PropTypes.func,
-  onHistoryRemove: PropTypes.func,
-  query_intent: PropTypes.any,
-  tools: PropTypes.any,
-  fetch_source: PropTypes.any,
-  pick_source: PropTypes.any,
-  deep_read: PropTypes.any,
-  think: PropTypes.any,
-  response: PropTypes.any,
-  timedoutShow: PropTypes.bool,
-  Question: PropTypes.string,
-  curChatEnd: PropTypes.bool
+  onNewChat: PropTypes.func,
+  onSuggestion: PropTypes.func,
+  onRecommend: PropTypes.func,
+  getRawContent: PropTypes.func,
+  apiConfig: PropTypes.object
 };
 
 export default Fullscreen;

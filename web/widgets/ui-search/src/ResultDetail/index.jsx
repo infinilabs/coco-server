@@ -10,7 +10,7 @@ export function ResultDetail(props) {
         <Drawer
             onClose={onClose}
             open={open}
-            width={isMobile ? '100%' : 800}
+            size={isMobile ? '100%' : 800}
             closeIcon={null}
             rootClassName={styles.detail}
             getContainer={getContainer}
