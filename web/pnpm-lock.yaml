@@ -434,14 +434,11 @@ importers:
         specifier: ^0.0.4
         version: 0.0.4(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(vite@5.4.10(@types/node@22.8.6)(less@4.5.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.46.0))
       '@infinilabs/ai-chat':
-        specifier: file:../../../../ui-common/packages/AIChat
-        version: file:../../ui-common/packages/AIChat(@ant-design/icons@6.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.12)(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3)(use-sync-external-store@1.6.0(react@18.3.1))
+        specifier: ^0.0.3
+        version: 0.0.3(@ant-design/icons@6.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.12)(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3)(use-sync-external-store@1.6.0(react@18.3.1))
       '@infinilabs/attachments':
         specifier: ^0.0.1
         version: 0.0.1(@ant-design/icons@6.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@infinilabs/chat-message':
-        specifier: ^0.0.6
-        version: 0.0.6(@ant-design/icons@6.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@emotion/is-prop-valid@1.4.0)(@types/react@18.3.12)(immer@11.1.3)(react-dom@18.3.1(react@18.3.1))(react-i18next@16.5.3(i18next@25.7.4(typescript@5.6.3))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3))(react@18.3.1)(typescript@5.6.3)(use-sync-external-store@1.6.0(react@18.3.1))(vite@5.4.10(@types/node@22.8.6)(less@4.5.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.46.0))
       '@infinilabs/doc-detail':
         specifier: ^0.0.11
         version: 0.0.11(@emotion/is-prop-valid@1.4.0)(@types/react@18.3.12)(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -1800,10 +1797,10 @@ packages:
       react: '>=18'
       react-dom: '>=18'
 
-  '@infinilabs/ai-chat@file:../../ui-common/packages/AIChat':
-    resolution: {directory: ../../ui-common/packages/AIChat, type: directory}
+  '@infinilabs/ai-chat@0.0.3':
+    resolution: {integrity: sha512-CjkDzWzRfp9P68WAXqQL32ekfGPeZkbe/29SpPVL9YdgHBA2hOUxTOprXfvZKPHRr/Su2qAdCp6kZJwq8tmcrQ==}
     peerDependencies:
-      antd: ^6.2.0
+      antd: 6.1.3
       react: ^18.3.1
       react-dom: ^18.3.1
 
@@ -1815,15 +1812,8 @@ packages:
       react: '>=18'
       react-dom: '>=18'
 
-  '@infinilabs/chat-message@0.0.6':
-    resolution: {integrity: sha512-12yy9RlFPlfSKR5k28Wr1x91GuRbowjBIN6x/60ZeMHEOBOOAVBSFKm2ITORGz2xuwfMp5yhVtqU/3uKqTQNeQ==}
-    peerDependencies:
-      react: ^18.3.1
-      react-dom: ^18.3.1
-      react-i18next: '>=11.0.0'
-
-  '@infinilabs/chat-message@0.0.7':
-    resolution: {integrity: sha512-64YXiHm5muRTQ/CVuZ1cPwO9tSgQC6AKa1ehRBT1BjwfgQ/jJ5Xr8n7DtKgg8BZcg4RGg/Emdh/yB8XzYMn1Lg==}
+  '@infinilabs/chat-message@0.0.8':
+    resolution: {integrity: sha512-lYNQKXfvW7pTtEzmqk7TfcMQIWWzgSPKfEJWW1fI5DDlZr13YKgCXl4lXaGZx0m6XcSAcjZB+z51LbO2+sRzPQ==}
     peerDependencies:
       react: ^18.3.1
       react-dom: ^18.3.1
@@ -7196,12 +7186,6 @@ packages:
       '@types/react': '>=18'
       react: '>=18'
 
-  react-markdown@9.1.0:
-    resolution: {integrity: sha512-xaijuJB0kzGiUdG7nc2MOMDUDBWPyGAjZtUrow9XxUeua8IqeP+VlIfAZ3bphpcLTnSZXz6z9jcVC/TCwbfgdw==}
-    peerDependencies:
-      '@types/react': '>=18'
-      react: '>=18'
-
   react-pdf@10.3.0:
     resolution: {integrity: sha512-2LQzC9IgNVAX8gM+6F+1t/70a9/5RWThYxc+CWAmT2LW/BRmnj+35x1os5j/nR2oldyf8L+hCAMBmVKU8wrYFA==}
     peerDependencies:
@@ -9927,10 +9911,10 @@ snapshots:
       - '@types/react'
       - vite
 
-  '@infinilabs/ai-chat@file:../../ui-common/packages/AIChat(@ant-design/icons@6.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.12)(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3)(use-sync-external-store@1.6.0(react@18.3.1))':
+  '@infinilabs/ai-chat@0.0.3(@ant-design/icons@6.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.12)(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3)(use-sync-external-store@1.6.0(react@18.3.1))':
     dependencies:
       '@emotion/is-prop-valid': 1.4.0
-      '@infinilabs/chat-message': 0.0.7(@ant-design/icons@6.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@emotion/is-prop-valid@1.4.0)(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react-i18next@16.5.3(i18next@25.7.4(typescript@5.6.3))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3))(react@18.3.1)(typescript@5.6.3)
+      '@infinilabs/chat-message': 0.0.8(@ant-design/icons@6.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@emotion/is-prop-valid@1.4.0)(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react-i18next@16.5.3(i18next@25.7.4(typescript@5.6.3))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3))(react@18.3.1)(typescript@5.6.3)
       ahooks: 3.9.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       antd: 6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       axios: 1.13.2
@@ -9974,43 +9958,7 @@ snapshots:
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
 
-  '@infinilabs/chat-message@0.0.6(@ant-design/icons@6.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@emotion/is-prop-valid@1.4.0)(@types/react@18.3.12)(immer@11.1.3)(react-dom@18.3.1(react@18.3.1))(react-i18next@16.5.3(i18next@25.7.4(typescript@5.6.3))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3))(react@18.3.1)(typescript@5.6.3)(use-sync-external-store@1.6.0(react@18.3.1))(vite@5.4.10(@types/node@22.8.6)(less@4.5.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.46.0))':
-    dependencies:
-      '@ant-design/x-markdown': 2.1.3(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@infinilabs/attachments': 0.0.1(@ant-design/icons@6.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(antd@6.2.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@tailwindcss/vite': 4.1.18(vite@5.4.10(@types/node@22.8.6)(less@4.5.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.46.0))
-      ahooks: 3.9.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      antd: 6.2.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      clsx: 2.1.1
-      i18next: 25.7.4(typescript@5.6.3)
-      lucide-react: 0.461.0(react@18.3.1)
-      mermaid: 11.6.0
-      motion: 12.27.1(@emotion/is-prop-valid@1.4.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      react: 18.3.1
-      react-dom: 18.3.1(react@18.3.1)
-      react-i18next: 16.5.3(i18next@25.7.4(typescript@5.6.3))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3)
-      react-markdown: 9.1.0(@types/react@18.3.12)(react@18.3.1)
-      rehype-highlight: 7.0.2
-      rehype-katex: 7.0.1
-      remark-breaks: 4.0.0
-      remark-gfm: 4.0.1
-      remark-math: 6.0.0
-      use-debounce: 10.0.4(react@18.3.1)
-      zustand: 5.0.10(@types/react@18.3.12)(immer@11.1.3)(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1))
-    transitivePeerDependencies:
-      - '@ant-design/icons'
-      - '@emotion/is-prop-valid'
-      - '@types/react'
-      - date-fns
-      - immer
-      - luxon
-      - moment
-      - supports-color
-      - typescript
-      - use-sync-external-store
-      - vite
-
-  '@infinilabs/chat-message@0.0.7(@ant-design/icons@6.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@emotion/is-prop-valid@1.4.0)(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react-i18next@16.5.3(i18next@25.7.4(typescript@5.6.3))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3))(react@18.3.1)(typescript@5.6.3)':
+  '@infinilabs/chat-message@0.0.8(@ant-design/icons@6.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@emotion/is-prop-valid@1.4.0)(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react-i18next@16.5.3(i18next@25.7.4(typescript@5.6.3))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3))(react@18.3.1)(typescript@5.6.3)':
     dependencies:
       '@infinilabs/attachments': 0.0.1(@ant-design/icons@6.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(antd@6.2.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@infinilabs/markdown': 0.0.2(@types/react@18.3.12)(antd@6.2.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -10339,7 +10287,7 @@ snapshots:
   '@rc-component/collapse@1.2.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@babel/runtime': 7.28.6
-      '@rc-component/motion': 1.1.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@rc-component/motion': 1.2.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@rc-component/util': 1.7.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       clsx: 2.1.1
       react: 18.3.1
@@ -10370,7 +10318,7 @@ snapshots:
 
   '@rc-component/dialog@1.8.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@rc-component/motion': 1.1.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@rc-component/motion': 1.2.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@rc-component/portal': 2.2.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@rc-component/util': 1.7.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       clsx: 2.1.1
@@ -10388,7 +10336,7 @@ snapshots:
 
   '@rc-component/drawer@1.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@rc-component/motion': 1.1.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@rc-component/motion': 1.2.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@rc-component/portal': 2.2.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@rc-component/util': 1.7.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       clsx: 2.1.1
@@ -10422,7 +10370,7 @@ snapshots:
 
   '@rc-component/image@1.6.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@rc-component/motion': 1.1.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@rc-component/motion': 1.2.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@rc-component/portal': 2.2.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@rc-component/util': 1.7.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       clsx: 2.1.1
@@ -16357,24 +16305,6 @@ snapshots:
   react-lifecycles-compat@3.0.4: {}
 
   react-markdown@10.1.0(@types/react@18.3.12)(react@18.3.1):
-    dependencies:
-      '@types/hast': 3.0.4
-      '@types/mdast': 4.0.4
-      '@types/react': 18.3.12
-      devlop: 1.1.0
-      hast-util-to-jsx-runtime: 2.3.6
-      html-url-attributes: 3.0.1
-      mdast-util-to-hast: 13.2.1
-      react: 18.3.1
-      remark-parse: 11.0.0
-      remark-rehype: 11.1.2
-      unified: 11.0.5
-      unist-util-visit: 5.0.0
-      vfile: 6.0.3
-    transitivePeerDependencies:
-      - supports-color
-
-  react-markdown@9.1.0(@types/react@18.3.12)(react@18.3.1):
     dependencies:
       '@types/hast': 3.0.4
       '@types/mdast': 4.0.4

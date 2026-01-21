@@ -21,7 +21,7 @@ export default defineConfig(configEnv => {
       emptyOutDir: true,
       rollupOptions: {
         output: {
-          manualChunks: (id) => {
+          manualChunks: id => {
             if (id.includes('node_modules')) {
               if (id.includes('@ant-design/pro-components') || id.includes('@ant-design/pro-')) {
                 return 'vendor-antd-pro';
@@ -29,9 +29,9 @@ export default defineConfig(configEnv => {
               return 'vendor-core';
             }
             return undefined;
-          },
-        },
-      },
+          }
+        }
+      }
     },
     css: {
       preprocessorOptions: {
@@ -50,7 +50,7 @@ export default defineConfig(configEnv => {
     define: {
       BUILD_TIME: JSON.stringify(buildTime)
     },
-    optimizeDeps: { 
+    optimizeDeps: {
       include,
       exclude: ['@infinilabs/ai-chat']
     },
@@ -61,7 +61,7 @@ export default defineConfig(configEnv => {
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url)),
-        '~': fileURLToPath(new URL('./', import.meta.url)),
+        '~': fileURLToPath(new URL('./', import.meta.url))
       }
     },
     server: {

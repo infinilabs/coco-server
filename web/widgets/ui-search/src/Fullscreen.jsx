@@ -24,7 +24,6 @@ const Fullscreen = props => {
     setQueryParams,
     onLogoClick,
     theme = 'light',
-    onNewChat,
     language = 'en-US',
     onSuggestion,
     onRecommend,
@@ -219,7 +218,6 @@ const Fullscreen = props => {
     return (
       <Chat
         commonProps={commonProps}
-        onNewChat={onNewChat}
         language={language}
         apiConfig={apiConfig}
         queryParams={queryParams}
@@ -314,7 +312,6 @@ Fullscreen.propTypes = {
   currentAssistant: PropTypes.any,
   onAssistantRefresh: PropTypes.func,
   onAssistantSelect: PropTypes.func,
-  onNewChat: PropTypes.func,
   registerStreamHandler: PropTypes.func,
   chats: PropTypes.array,
   activeChat: PropTypes.any,
