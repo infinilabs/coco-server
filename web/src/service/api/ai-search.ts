@@ -34,3 +34,11 @@ export function fetchRecommends(tag: string | undefined, options?: any) {
     url: `/query/_recommend${tag ? `/${tag}` : ''}`
   });
 }
+
+export function fetchFieldsMeta(fields: string[], options?: any) {
+  return request({
+    ...(options || {}),
+    method: 'get',
+    url: `/field_meta/${fields.join(',')}`
+  });
+}

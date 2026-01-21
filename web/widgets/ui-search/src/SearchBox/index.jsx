@@ -1,7 +1,6 @@
 import { Input } from "antd";
 import styles from "./index.module.less";
-import { useEffect, useMemo, useState, useRef, useCallback } from "react"; // 新增 useCallback
-import { Search } from "lucide-react";
+import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import SearchActions, { ACTION_TYPE_SEARCH } from "./SearchActions";
 import Operations from "./Operations";
 import Tips, { SUGGESTION_TIPS } from "./suggestions/Tips";
@@ -17,7 +16,7 @@ import { Attachments } from "@infinilabs/attachments";
 const DEFAULT_SUGGESTIONS_SIZE = 5;
 
 export function SearchBox(props) {
-  const { placeholder, queryParams, setQueryParams, onSearch, minimize = false, onSuggestion } = props;
+  const { placeholder, queryParams, setQueryParams, onSearch, minimize = false, onSuggestion, filterFieldsMeta = {} } = props;
   const [currentQueryParams, setCurrentQueryParams] = useState(queryParams);
   const { query, filters = [], action_type, search_type } = currentQueryParams
   const [suggestions, setSuggestions] = useState({});
@@ -25,6 +24,8 @@ export function SearchBox(props) {
   const [mainInputActive, setMainInputActive] = useState(false);
   const [filterState, setFilterState] = useState({ type: 'none', index: -1 });
   const [attachmentActive, setAttachmentActive] = useState(false);
+  const [cursorPosition, setCursorPosition] = useState(0);
+  const [shouldFocusNewFilter, setShouldFocusNewFilter] = useState(false);
 
   const isClickingSuggestion = useRef(false);
   const isClickingSearchAction = useRef(false);
@@ -78,18 +79,29 @@ export function SearchBox(props) {
     const newFilter = cloneDeep(queryParams?.filter)
     if (Array.isArray(filters) && filters.length > 0) {
       filters.forEach((item) => {
-        const field = item.field?.payload?.field_name
-        if (item.field?.payload?.field_name && item.value) {
+        const field = item.field?.field_name
+        if (item.field?.field_name && item.value) {
           newFilter[field] = Array.isArray(item.value) ? item.value : [item.value]
         }
       })
     }
-    onSearch({ query, filter: newFilter, action_type: actionType, search_type: searchType, mode: actionType !== ACTION_TYPE_SEARCH ? 'chat' : 'search' }, shouldAsk, shouldAgg);
+    onSearch({ query, filter: newFilter, action_type: actionType, search_type: searchType, mode: !actionType || actionType === ACTION_TYPE_SEARCH ? 'search' : 'chat' }, shouldAsk, shouldAgg);
     setMainInputActive(false);
+    console.log('handleSearch')
     setFilterState({ type: 'none', index: -1 });
     setAttachmentActive(false)
     setSuggestions({});
   };
+
+  const handleCursorPositionChange = (e) => {
+    const { target } = e;
+    setCursorPosition(target.selectionStart);
+  };
+
+  const isSlashAtCursor = useMemo(() => {
+    if (!query || cursorPosition < 0 || cursorPosition > query.length) return false;
+    return query.charAt(cursorPosition - 1) === '/' || query.charAt(cursorPosition) === '/';
+  }, [query, cursorPosition]);
 
   const changeSuggestions = (keyword) => {
     const formatKeyword = (keyword || '').trim();
@@ -104,7 +116,8 @@ export function SearchBox(props) {
     if (mainInputActive) {
       if (!hasKeyword) {
         suggestionType = SUGGESTION_TIPS;
-      } else if (formatKeyword === '/') {
+      } 
+      else if (isSlashAtCursor) {
         suggestionType = SUGGESTION_FILTER_FIELDS;
       } else {
         suggestionType = SUGGESTION_KEYWORDS;
@@ -132,9 +145,19 @@ export function SearchBox(props) {
 
   const handleAddFilter = (item) => {
     const newFilters = cloneDeep(filters);
-    newFilters.push({ field: item, operator: 'or' });
+    newFilters.push({ field: item.payload, operator: 'or' });
     handleQueryParamsChange('filters', newFilters)
-    handleQueryParamsChange('query', query?.endsWith('/') ? query.slice(0, -1) : query)
+    
+    const newQuery = query?.split('');
+    if (newQuery && cursorPosition > 0 && newQuery[cursorPosition - 1] === '/') {
+      newQuery.splice(cursorPosition - 1, 1);
+      handleQueryParamsChange('query', newQuery.join(''));
+    } else {
+      handleQueryParamsChange('query', query?.endsWith('/') ? query.slice(0, -1) : query)
+    }
+    
+    setShouldFocusNewFilter(true);
+    
     setFilterState({ type: 'filterInput', index: newFilters.length - 1 });
     setMainInputActive(false);
   };
@@ -168,12 +191,15 @@ export function SearchBox(props) {
 
   const handleFilterActiveToggle = (index) => {
     if (index === -1) {
+    console.log('handleFilterActiveToggle')
       setFilterState({ type: 'none', index: -1 });
       setSuggestions({});
       return;
     }
 
     const isCurrentActive = filterState.type === 'filterActive' && filterState.index === index;
+    console.log('handleFilterActiveToggle2')
+
     setFilterState(isCurrentActive
       ? { type: 'none', index: -1 }
       : { type: 'filterActive', index });
@@ -182,6 +208,7 @@ export function SearchBox(props) {
   };
 
   const handleInputFocus = () => {
+    console.log('handleInputFocus')
     setMainInputActive(true);
     setFilterState({ type: 'none', index: -1 });
     setTimeout(() => {
@@ -190,6 +217,7 @@ export function SearchBox(props) {
         textareaDom.focus();
         const len = textareaDom.value.length;
         textareaDom.setSelectionRange(len, len);
+        setCursorPosition(len); 
       }
     }, 0);
   };
@@ -207,16 +235,19 @@ export function SearchBox(props) {
   };
 
   const handleFilterInputBlur = () => {
+    console.log('handleFilterInputBlur')
     setTimeout(() => {
       if (!isClickingSuggestion.current) setFilterState({ type: 'none', index: -1 });
     }, 100);
   };
 
   const handleSuggestionsResult = (res) => {
-    setSuggestions(prev => ({
-      ...prev,
-      data: Array.isArray(res?.suggestions) ? res.suggestions : []
-    }));
+    setSuggestions(prev => {
+      return {
+        ...prev,
+        data: Array.isArray(res?.suggestions) ? res.suggestions : []
+      }
+    });
   };
 
   const renderSuggestions = () => {
@@ -272,7 +303,12 @@ export function SearchBox(props) {
       autoSize={{ minRows: 1, maxRows: 6 }}
       classNames={{ textarea: '!text-16px !px-16px !mb-14px !bg-transparent' }}
       value={query}
-      onChange={(e) => handleQueryParamsChange('query', e.target.value)}
+      onChange={(e) => {
+        handleQueryParamsChange('query', e.target.value);
+        setCursorPosition(e.target.selectionStart);
+      }}
+      onSelect={handleCursorPositionChange} 
+      onClick={handleCursorPositionChange}  
       onFocus={handleInputFocus}
       onBlur={onBlur}
       className={`${styles.input} ${className}`}
@@ -286,7 +322,7 @@ export function SearchBox(props) {
         searchType={search_type}
         onSearchTypeChange={(type) => handleQueryParamsChange('search_type', type)}
         onButtonClick={handleSearchActionClick}
-        onDropdownClose={handleSearchActionDropdownClose} // 传递关闭回调
+        onDropdownClose={handleSearchActionDropdownClose}
       />
       <Operations
         attachments={attachments}
@@ -327,6 +363,7 @@ export function SearchBox(props) {
             onFilterActiveToggle={handleFilterActiveToggle}
             focusIndex={filterState.type === 'filterInput' ? filterState.index : -1}
             activeIndex={filterState.type === 'filterActive' ? filterState.index : -1}
+            shouldFocusNewFilter={shouldFocusNewFilter}
           />
           {renderTextArea(expandedInputRef, '', handleInputBlur)}
           {renderSuggestions()}
@@ -337,16 +374,26 @@ export function SearchBox(props) {
   };
 
   useEffect(() => {
+    const fields = Object.keys(queryParams?.filter || {})
     setCurrentQueryParams({
       ...(queryParams || {}),
       query: queryParams?.query || '',
-      filters: Array.isArray(queryParams?.filters) ? queryParams.filters : []
+      filters: fields.map((field) => {
+        if (filterFieldsMeta[field]) {
+          return {
+            field: filterFieldsMeta[field],
+            value: queryParams?.filter?.[field]
+          }
+        } else {
+          return undefined
+        }
+      }).filter((item) => !!item)
     })
-  }, [JSON.stringify(queryParams)])
+  }, [JSON.stringify(queryParams), JSON.stringify(filterFieldsMeta)])
 
   useEffect(() => {
     changeSuggestions(query);
-  }, [query, mainInputActive, filterState]);
+  }, [query, mainInputActive, filterState, isSlashAtCursor]); 
 
   useEffect(() => {
     if (filterState.type !== 'filterInput' && filterState.type !== 'filterActive') {
@@ -373,23 +420,23 @@ export function SearchBox(props) {
         }
         break;
       case SUGGESTION_FILTER_FIELDS:
-        suggestionParams.query = query?.endsWith('/') ? query.slice(0, -1) : query;
+        const queryBeforeCursor = query?.substring(0, cursorPosition);
+        suggestionParams.query = queryBeforeCursor?.endsWith('/') ? queryBeforeCursor.slice(0, -1) : queryBeforeCursor;
         onSuggestion(type, suggestionParams, handleSuggestionsResult);
         break;
       case SUGGESTION_FILTER_VALUES:
         const filter = filters[filterState.index];
-        if (filter?.field?.payload?.field_name) {
+        if (filter?.field?.field_name) {
           suggestionParams = {
             ...suggestionParams,
-            field_name: filter.field.payload.field_name,
+            field_name: filter.field.field_name,
             query: query
           };
           onSuggestion(type, suggestionParams, handleSuggestionsResult);
         }
         break;
     }
-  }, [suggestions.type, suggestions.from, suggestions.size, query, filterState, filters, onSuggestion]);
-
+  }, [suggestions.type, suggestions.from, suggestions.size, query, filterState, filters, onSuggestion, cursorPosition]); 
   useEffect(() => {
     const handleTabKeyDown = (e) => {
       if (e.key === 'Tab') {
@@ -401,6 +448,10 @@ export function SearchBox(props) {
     document.addEventListener('keydown', handleTabKeyDown);
     return () => document.removeEventListener('keydown', handleTabKeyDown);
   }, []);
+
+  console.log('mainInputActive', mainInputActive)
+  console.log('filterState', filterState)
+  console.log('suggestions', suggestions)
 
   return (
     <div className={`
@@ -424,6 +475,7 @@ export function SearchBox(props) {
                   onFilterActiveToggle={handleFilterActiveToggle}
                   focusIndex={-1}
                   activeIndex={-1}
+                  shouldFocusNewFilter={shouldFocusNewFilter}
                 />
               </div>
             )
@@ -433,7 +485,12 @@ export function SearchBox(props) {
               ref={inputRef}
               value={query}
               size="large"
-              onChange={(e) => handleQueryParamsChange('query', e.target.value)}
+              onChange={(e) => {
+                handleQueryParamsChange('query', e.target.value);
+                setCursorPosition(e.target.selectionStart);
+              }}
+              onSelect={handleCursorPositionChange}
+              onClick={handleCursorPositionChange}
               suffix={<Operations size={24} onSearch={() => handleSearch(query, filters, action_type, search_type)} disabled={!searchable} />}
               placeholder={placeholder}
               className="flex-1 w-full"

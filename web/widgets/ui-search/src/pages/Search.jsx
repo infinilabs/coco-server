@@ -9,7 +9,7 @@ import SearchBox from "../SearchBox";
 import Recommends from "../Recommends";
 import { LIST_TYPES } from "../ResultList";
 import MediaLayout from "../Layout/MediaLayout";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 export default function Search({
   aggregations,
@@ -37,18 +37,28 @@ export default function Search({
   onSuggestion,
   onRecommend,
   getRawContent,
-  onChatContinue
+  onChatContinue,
+  getFieldsMeta
 }) {
 
   const { query, filter } = queryParams;
   const content_category = queryParams?.['metadata.content_category']
   const [siderCollapse, setSiderCollapse] = useState(false)
   const [detailCollapse, setDetailCollapse] = useState(true)
+  const [filterFieldsMeta, setFilterFieldsMeta] = useState({})
 
   const listType = useMemo(() => {
     if (!LIST_TYPES || LIST_TYPES.length === 0) return undefined;
     return LIST_TYPES.find(item => item.type === content_category) || LIST_TYPES[0];
   }, [content_category]);
+
+  useEffect(() => {
+    const keys = Object.keys(filter)
+    if (keys.length === 0) return;
+    getFieldsMeta(keys, (res) => {
+      setFilterFieldsMeta(res)
+    })
+  }, [JSON.stringify(filter)])
 
   if (listType.type === 'image') {
     return (
@@ -68,6 +78,7 @@ export default function Search({
               config={config.aggregations}
               filter={filter}
               onSearch={onSearchFilter}
+              filterFieldsMeta={filterFieldsMeta}
             />
           ) : null
         }
@@ -110,6 +121,7 @@ export default function Search({
             setQueryParams={setQueryParams}
             onSearch={onSearch}
             onSuggestion={onSuggestion}
+            filterFieldsMeta={filterFieldsMeta}
           />
         }
         tabs={
@@ -150,6 +162,7 @@ export default function Search({
             config={config.aggregations}
             filter={filter}
             onSearch={onSearchFilter}
+            filterFieldsMeta={filterFieldsMeta}
           />
         ) : null
       }
@@ -203,6 +216,7 @@ export default function Search({
           setQueryParams={setQueryParams}
           onSearch={onSearch}
           onSuggestion={onSuggestion}
+          filterFieldsMeta={filterFieldsMeta}
         />
       }
       tabs={

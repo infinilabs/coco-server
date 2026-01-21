@@ -30,6 +30,7 @@ const Fullscreen = props => {
     onRecommend,
     getRawContent,
     apiConfig,
+    getFieldsMeta
   } = props;
 
   const containerRef = useRef(null);
@@ -346,8 +347,8 @@ const Fullscreen = props => {
       showFullScreenSpin={showFullScreenSpin}
       queryParams={queryParams}
       setQueryParams={setQueryParams}
-      onSearchFilter={(filter, filter_payload) => {
-        handleSearch({ ...queryParams, filter, filter_payload }, false, false)
+      onSearchFilter={(filter) => {
+        handleSearch({ ...queryParams, filter }, false, false)
       }}
       onSearch={(params, shouldAsk, shouldAgg) => handleSearch({ ...queryParams, ...params, from: 0 }, shouldAsk, shouldAgg)}
       onAsk={onAsk}
@@ -360,6 +361,7 @@ const Fullscreen = props => {
           mode: 'chat'
         });
       }}
+      getFieldsMeta={getFieldsMeta}
     />
   )
 };

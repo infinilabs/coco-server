@@ -7,8 +7,7 @@ export default (props) => {
     const { filter = {}, ...rest } = props;
 
     const { field = {}, value = [] } = filter || {}
-    const { payload = {} } = field || {}
-    const { support_multi_select } = payload || {}
+    const { support_multi_select } = field || {}
 
     return (
         <ListContainer

@@ -1,5 +1,5 @@
 import { Button, Select, Space } from "antd";
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react"; 
 import cloneDeep from "lodash/cloneDeep";
 import { OPERATOR_ICONS } from "../Suggestions/Operators";
 import styles from "./index.module.less"
@@ -10,39 +10,65 @@ export default function Filters({
   onFiltersChange,
   onFilterInputFocus,
   onFilterInputBlur,
-  // 替换：接收切换逻辑
   onFilterActiveToggle,
   focusIndex,
   activeIndex,
-  className
+  className,
+  shouldFocusNewFilter = false,
+  isHandlingSuggestion = false
 }) {
   const filterRefs = useRef([]);
   const prevFilterCountRef = useRef(0);
+  const [localShouldFocus, setLocalShouldFocus] = useState(false);
+  const lastFilterCountRef = useRef(0);
+  const autoFocusedIndexRef = useRef(-1);
+
+  useEffect(() => {
+    if (shouldFocusNewFilter) {
+      setLocalShouldFocus(true);
+      lastFilterCountRef.current = filters.length;
+    }
+  }, [shouldFocusNewFilter, filters.length]);
 
   useEffect(() => {
     const currentFilterCount = filters.length;
-    if (currentFilterCount > prevFilterCountRef.current) {
+    
+    if (localShouldFocus && currentFilterCount > lastFilterCountRef.current && currentFilterCount > 0) {
       const newFilterIndex = currentFilterCount - 1;
       setTimeout(() => {
         const newInputRef = filterRefs.current[newFilterIndex];
         if (newInputRef) {
+          autoFocusedIndexRef.current = newFilterIndex;
           newInputRef.focus();
           if (onFilterInputFocus) {
             onFilterInputFocus(newFilterIndex);
           }
+          setLocalShouldFocus(false);
+          lastFilterCountRef.current = currentFilterCount;
         }
       }, 0);
     }
+    
     prevFilterCountRef.current = currentFilterCount;
-  }, [filters, onFilterInputFocus]);
+  }, [filters, onFilterInputFocus, localShouldFocus]); 
 
-  const handleFiltersChange = (index, key, value) => {
-    const newFilters = cloneDeep(filters);
-    newFilters[index][key] = value;
-    onFiltersChange(newFilters);
-  };
+  useEffect(() => {
+    if (localShouldFocus && filters.length === lastFilterCountRef.current && filters.length > 0) {
+      const newFilterIndex = filters.length - 1;
+      setTimeout(() => {
+        const newInputRef = filterRefs.current[newFilterIndex];
+        if (newInputRef) {
+          autoFocusedIndexRef.current = newFilterIndex;
+          newInputRef.focus();
+          if (onFilterInputFocus) {
+            onFilterInputFocus(newFilterIndex);
+          }
+          setLocalShouldFocus(false);
+        }
+      }, 100);
+    }
+  }, [localShouldFocus, filters.length, onFilterInputFocus]);
 
-  // 核心修改：点击Addon切换激活状态
   const handleFilterAddonClick = (index) => {
     if (onFilterActiveToggle) {
       onFilterActiveToggle(index);
@@ -58,11 +84,22 @@ export default function Filters({
   const handleInputBlur = (index) => {
     if (onFilterInputBlur) {
       setTimeout(() => {
-        if (focusIndex === index) {
+        const shouldTriggerBlur = 
+          !isHandlingSuggestion && 
+          autoFocusedIndexRef.current !== index &&
+          focusIndex === index;
+        
+        if (shouldTriggerBlur) {
           onFilterInputBlur();
+          autoFocusedIndexRef.current = -1;
         }
-      }, 0);
+      }, 150); 
     }
+  };
+
+  const setFilterRef = (el, index) => {
+    if (!filterRefs.current) filterRefs.current = [];
+    filterRefs.current[index] = el;
   };
 
   if (!filters || filters.length === 0) return null;
@@ -70,35 +107,32 @@ export default function Filters({
   return (
     <div className={`flex flex-wrap items-center gap-4px ${className}`}>
       {filters
-        .filter((filter) => !!filter.field?.suggestion)
+        .filter((filter) => !!filter.field?.field_label)
         .map((filter, index) => {
-          // 判断当前filter是否处于激活状态
           const isActive = activeIndex === index;
+          const isFocused = focusIndex === index;
 
           return (
             <div 
-              key={index} 
-              className={`flex items-center gap-4px ${styles.item} ${isActive ? styles.active : ""}`}
+              key={`filter-${index}-${filter.field?.field_name || filter.field?.field_label}`} 
+              className={`flex items-center gap-4px ${styles.item} ${isActive ? styles.active : ""} ${isFocused ? styles.focused : ""}`}
             >
-              {/* 仅激活状态且有operator时显示图标 */}
               {isActive && filter.operator && OPERATOR_ICONS[filter.operator]}
               <Space.Compact className="cursor-pointer">
                 <Space.Addon 
                   onClick={() => handleFilterAddonClick(index)}
                 >
-                  {filter.field.suggestion}
+                  {filter.field.field_label}
                 </Space.Addon>
                 <Select
                   mode="tags"
                   style={{ minWidth: 74 }}
                   styles={{ popup: { root: { display: 'none'} }}}
-                  ref={(el) => {
-                    filterRefs.current[index] = el;
-                  }}
+                  ref={(el) => setFilterRef(el, index)}
                   value={filter.value || []}
-                  // onChange={(value) => handleFiltersChange(index, 'value', value)}
                   onFocus={() => handleInputFocus(index)}
                   onBlur={() => handleInputBlur(index)}
+                  onMouseDown={(e) => e.preventDefault()}
                   options={[]}
                   maxTagCount={3}
                   suffixIcon={null}

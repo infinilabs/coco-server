@@ -8,7 +8,7 @@ import { fetchIntegration } from '@/service/api/integration';
 import { useRequest } from '@sa/hooks';
 import useQueryParams from '@/hooks/common/queryParams';
 import { FullscreenPage } from 'ui-search';
-import { querySearch, fetchSuggestions, fetchRecommends } from '@/service/api/ai-search';
+import { querySearch, fetchSuggestions, fetchRecommends, fetchFieldsMeta } from '@/service/api/ai-search';
 import { getApiBaseUrl } from '@/service/request';
 import queryString from 'query-string';
 
@@ -83,7 +83,7 @@ export function Component() {
 
   const onSearch = async (queryParams: { [key: string]: any }, callback: (data: any) => void, setLoading: (loading: boolean) => void) => {
     if (setLoading) setLoading(true)
-    const { filter = {}, filter_payload, ...rest } = queryParams
+    const { filter = {}, ...rest } = queryParams
     const filterStr = Object.keys(filter).filter((key) => !!filter[key]).map((key) => `filter=${key}:any(${filter[key].join(',')})`).join('&')
     const searchStr = `${filterStr ? filterStr + '&' : ''}${queryString.stringify(rest)}`
     const headers = { 'APP-INTEGRATION-ID': search_settings?.integration }
@@ -172,6 +172,20 @@ export function Component() {
     if (callback) callback(res.data)
   }
 
+  async function getFieldsMeta(fields: string[], callback: (data: any) => void) {
+    if (!Array.isArray(fields) || fields.length === 0) {
+      callback({})
+      return;
+    }
+    const headers = { 'APP-INTEGRATION-ID': search_settings?.integration }
+    const res = await fetchFieldsMeta(fields, { headers })
+    if (callback && res && !res.error) {
+      callback(res.data)
+    } else {
+      callback({})
+    }
+  }
+
   async function onRecommend(tag: string | undefined, callback: (data: any) => void) {
     const headers = { 'APP-INTEGRATION-ID': search_settings?.integration }
     const res = await fetchRecommends(tag, { headers })
@@ -257,7 +271,8 @@ export function Component() {
       const hashWithoutParams = window.location.hash.split('?')[0] || '';
       const newUrl = window.location.origin + window.location.pathname + hashWithoutParams;
       history.replaceState(null, '', newUrl);
-    }
+    },
+    getFieldsMeta
   }
 
   return (
