@@ -10,7 +10,7 @@ const isHttpProxy = import.meta.env.DEV && import.meta.env.VITE_HTTP_PROXY === '
 const { baseURL, otherBaseURL } = getServiceBaseURL(import.meta.env, isHttpProxy);
 
 export function getApiBaseUrl() {
-  return isHttpProxy ? baseURL : (getProxyEndpoint() || `${window.location.origin}${window.location.pathname}`)
+  return isHttpProxy ? baseURL : getProxyEndpoint() || `${window.location.origin}${window.location.pathname}`;
 }
 
 export const request = createFlatRequest<App.Service.Response, RequestInstanceState>(
@@ -33,9 +33,10 @@ export const request = createFlatRequest<App.Service.Response, RequestInstanceSt
       handleError(error, request);
     },
     async onRequest(config) {
-      if (import.meta.env.VITE_SERVICE_TOKEN) {
+      if (import.meta.env.DEV && import.meta.env.VITE_SERVICE_TOKEN) {
         Object.assign(config.headers, { 'X-API-TOKEN': import.meta.env.VITE_SERVICE_TOKEN });
       }
+
       return config;
     },
     transformBackendResponse(response) {

@@ -6,22 +6,32 @@ package core
 
 import "infini.sh/framework/core/param"
 
-var DefaultSettingBucketKey = "default_setting_bucket"
+const DefaultSettingBucketKey = "default_setting_bucket"
 
-// var DefaultUserProfileKey = "default_user_profile" //TODO to be removed
-var UserProfileBucketKey = "user_profile"
-var DefaultUserPasswordKey = "default_user_password"
-var DefaultServerConfigKey = "default_server_config"
-var DefaultAppSettingsKey = "default_app_settings"
-var DefaultSearchSettingsKey = "default_search_settings"
+const UserProfileBucketKey = "user_profile"
+const DefaultUserPasswordKey = "default_user_password"
+const DefaultServerConfigKey = "default_server_config"
+const DefaultAppSettingsKey = "default_app_settings"
+const DefaultSearchSettingsKey = "default_search_settings"
+
+const AttachmentKVBucket = "file_attachments"
+const AttachmentStatsBucket = "attachment_stats"
+
+// attachment status,  `pending`, `processing`, `completed`, `canceled`, or `failed`.
+const AttachmentStageInitialParsing = "initial_parsing"
+const StatusPending = "pending"
+const StatusProcessing = "processing"
+const StatusCompleted = "completed"
+const StatusCanceled = "canceled"
+const StatusFailed = "failed"
 
 const ProviderIntegration = "INTEGRATION"
 
-var WidgetRole = "widget"
+const WidgetRole = "widget"
 
-var PipelineContextConnector param.ParaKey = "__connector"
-var PipelineContextDatasource param.ParaKey = "__datasource"
-var PipelineContextDocuments param.ParaKey = "messages"
+const PipelineContextConnector param.ParaKey = "__connector"
+const PipelineContextDatasource param.ParaKey = "__datasource"
+const PipelineContextDocuments param.ParaKey = "messages"
 
 // re-export
 const FeatureMaskSensitiveField = "feature_sensitive_fields"
@@ -38,3 +48,6 @@ const DefaultSimpleAuthBackend = "default_simple_auth_backend"
 const DefaultSimpleAuthUserLogin = "coco-default-user"
 
 const SystemOwnerQueryField = "_system.owner_id"
+
+const SuggestTagFieldNames = "field_names"
+const SuggestTagFieldValues = "field_values"

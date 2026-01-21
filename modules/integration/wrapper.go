@@ -5,15 +5,16 @@
 package integration
 
 import (
+	"io"
+	"net/http"
+	"strings"
+
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
-	"io"
-	"net/http"
-	"strings"
 )
 
 var ver = util.GetUUID()
@@ -23,7 +24,8 @@ func (h *APIHandler) widgetWrapper(w http.ResponseWriter, req *http.Request, ps 
 	obj := core.Integration{}
 	obj.ID = integrationID
 	ctx := orm.NewContextWithParent(req.Context()).DirectReadAccess()
-	ctx.Set(orm.ReadPermissionCheckingScope, security.PermissionScopePublic)
+
+	ctx.PermissionScope(security.PermissionScopePublic)
 
 	exists, err := orm.GetV2(ctx, &obj)
 	if !exists || err != nil {

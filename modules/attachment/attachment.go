@@ -7,7 +7,6 @@ package attachment
 import (
 	"errors"
 	"fmt"
-	"io"
 	"mime/multipart"
 	"net/http"
 	"path/filepath"
@@ -15,6 +14,7 @@ import (
 	"time"
 
 	"infini.sh/coco/core"
+	api1 "infini.sh/framework/core/api"
 	"infini.sh/framework/core/elastic"
 
 	log "github.com/cihub/seelog"
@@ -54,7 +54,7 @@ func (h APIHandler) uploadAttachment(w http.ResponseWriter, r *http.Request, ps 
 			return
 		}
 		// Upload to S3
-		if fileID, err := UploadToBlobStore(ctx, "", file, fileHeader.Filename, "", "", nil, "", false); err != nil {
+		if fileID, err := UploadToBlobStore(ctx, "", file, fileHeader.Filename, "", nil, "", false); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		} else {
@@ -116,7 +116,7 @@ func (h APIHandler) getAttachments(w http.ResponseWriter, req *http.Request, ps 
 
 func (h APIHandler) getAttachment(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	fileID := ps.MustGetParameter("file_id")
-	data, err := kv.GetValue(AttachmentKVBucket, []byte(fileID))
+	data, err := kv.GetValue(core.AttachmentKVBucket, []byte(fileID))
 	if err != nil || len(data) == 0 {
 		panic("invalid attachment")
 	}
@@ -130,10 +130,19 @@ func (h APIHandler) getAttachment(w http.ResponseWriter, req *http.Request, ps h
 	}
 
 	// Set headers
-	w.Header().Set("Content-Disposition", "attachment; filename=\""+attachment.Name+"\"")
+	// Use inline for images, videos, audio and PDFs to allow browser preview
+	disposition := "attachment"
+	// Set MIME type and determine the disposition value
 	if attachment.MimeType != "" {
+		if strings.HasPrefix(attachment.MimeType, "image/") ||
+			strings.HasPrefix(attachment.MimeType, "video/") ||
+			strings.HasPrefix(attachment.MimeType, "audio/") ||
+			attachment.MimeType == "application/pdf" {
+			disposition = "inline"
+		}
 		w.Header().Set("Content-Type", attachment.MimeType)
 	}
+	w.Header().Set("Content-Disposition", disposition+"; filename=\""+attachment.Name+"\"")
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(data)))
 
 	// Write file data to response
@@ -213,8 +222,6 @@ func (h APIHandler) deleteAttachment(w http.ResponseWriter, req *http.Request, p
 	h.WriteDeletedOKJSON(w, fileID)
 }
 
-const AttachmentKVBucket = "file_attachments"
-
 func getFileExtension(fileName string) string {
 	ext := strings.ToLower(filepath.Ext(fileName))
 	if len(ext) > 0 {
@@ -242,89 +249,34 @@ func getMimeType(file multipart.File) (string, error) {
 	return mimeType, nil
 }
 
-// Helper function to upload the attachment specified by [file] to the
-// blob store.
-//
-// Arguments:
-//
-//   - If [fileID] is not an empty string, it will be used as the file ID.
-//     Otherwise, a random ID will be created and used.
-//   - If [ownerID] is not empty, the created attached will set the owner to it.
-//     Otherwise, owner information will be extracted from cotnext [ctx].
-//   - If [documentID] is not empty, it indicates this attachment belongs to a
-//     document, and the ID will be stored in the attachment's metadata.
-//   - If [documentPageNums] is not empty, it indicates the page numbers where
-//     this attachment appears in the document.
-//   - If [fileContent] is not empty, it will be stored in the attachment's text
-//     field (e.g., extracted text from an image).
-//   - [replaceIfExists]: If this is true and there is already an attachment with
-//     the same file ID eixsts, replace it.
-//
-// Return value:
-//   - attachment ID: it will be [fileID] if it is not empty
-func UploadToBlobStore(ctx *orm.Context, fileID string, file multipart.File, fileName string, ownerID string, documentID string, documentPageNums []int, fileContent string, replaceIfExists bool) (string, error) {
-	defer func() {
-		_ = file.Close()
-	}()
+func (h APIHandler) getAttachmentStatus(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	id := ps.MustGetParameter("file_id")
+	out := getAttachmentStatus([]string{id})
 
-	// Read file content into memory
-	data, err := io.ReadAll(file)
-	if err != nil || len(data) == 0 {
-		return "", fmt.Errorf("failed to read file %s: %v", fileName, err)
-	}
-
-	if fileID == "" {
-		fileID = util.GetUUID()
-	}
-	fileSize := len(data)
-	mimeType, _ := getMimeType(file)
-
-	attachment := core.Attachment{}
-	attachment.ID = fileID
-	attachment.Name = fileName
-	attachment.Size = fileSize
-	attachment.MimeType = mimeType
-	attachment.Icon = getFileExtension(fileName)
-	attachment.URL = fmt.Sprintf("/attachment/%v", fileID)
-	attachment.Text = fileContent
-	//attachment.Owner //TODO
-	if ownerID != "" {
-		attachment.SetOwnerID(ownerID)
-	}
-
-	if documentID != "" {
-		if attachment.Metadata == nil {
-			attachment.Metadata = make(map[string]interface{})
+	if out != nil {
+		o, ok := out[id]
+		if ok {
+			api1.WriteJSON(w, o, 200)
+			return
 		}
-		attachment.Metadata["document_id"] = documentID
 	}
 
-	if len(documentPageNums) > 0 {
-		if attachment.Metadata == nil {
-			attachment.Metadata = make(map[string]interface{})
-		}
-		attachment.Metadata["document_page_num"] = documentPageNums
+	api1.WriteJSON(w, util.MapStr{}, 200)
+}
+
+type AttachmentStatusRequest struct {
+	Attachments []string `json:"attachments"`
+}
+
+func (h APIHandler) batchGetAttachmentStatus(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	reqObj := AttachmentStatusRequest{}
+	api1.MustDecodeJSON(req, &reqObj)
+	if len(reqObj.Attachments) == 0 {
+		api1.WriteJSON(w, map[string]util.MapStr{}, 200)
+		return
 	}
 
-	//save attachment metadata
-	if replaceIfExists {
-		err = orm.Upsert(ctx, &attachment)
-	} else {
-		err = orm.Create(ctx, &attachment)
-	}
-	if err != nil {
-		panic(err)
-	}
+	output := getAttachmentStatus(reqObj.Attachments)
+	api1.WriteJSON(w, output, 200)
 
-	//save attachment payload
-	//
-	// kv.AddValue will replace the previous value if it already exists so we
-	// don't need to check [replaceIfExists] here.
-	err = kv.AddValue(AttachmentKVBucket, []byte(fileID), data)
-	if err != nil {
-		panic(err)
-	}
-
-	log.Debugf("file [%s] successfully uploaded, size: %v", fileName, fileSize)
-	return fileID, nil
 }

@@ -5,13 +5,19 @@
 package document
 
 import (
+	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
 	"infini.sh/framework/core/api"
+	"infini.sh/framework/core/env"
+	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/security"
+	"infini.sh/framework/core/util"
 )
 
 type APIHandler struct {
 	api.Handler
+	documentMetadata string
+	recommendConfigs map[string]core.RecommendResponse
 }
 
 const Category = "coco"
@@ -33,6 +39,7 @@ func init() {
 	//for internal document management, security should be enabled
 	api.HandleUIMethod(api.POST, "/document/", handler.createDoc, api.RequirePermission(createPermission))
 	api.HandleUIMethod(api.GET, "/document/:doc_id", handler.getDoc, api.RequirePermission(readPermission))
+	api.HandleUIMethod(api.GET, "/document/:doc_id/raw_content/:hint", handler.getDocRawContent, api.RequirePermission(readPermission))
 	api.HandleUIMethod(api.PUT, "/document/:doc_id", handler.updateDoc, api.RequirePermission(updatePermission))
 	api.HandleUIMethod(api.DELETE, "/document/:doc_id", handler.deleteDoc, api.RequirePermission(deletePermission))
 	api.HandleUIMethod(api.GET, "/document/_search", handler.searchDocs, api.RequirePermission(searchPermission))
@@ -49,7 +56,44 @@ func init() {
 
 	api.HandleUIMethod(api.GET, "/query/_suggest", handler.suggest, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
 	api.HandleUIMethod(api.OPTIONS, "/query/_suggest", handler.suggest, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
+
+	api.HandleUIMethod(api.GET, "/query/_suggest/:tag", handler.suggest, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
+	api.HandleUIMethod(api.OPTIONS, "/query/_suggest/:tag", handler.suggest, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
+
 	api.HandleUIMethod(api.GET, "/query/_recommend", handler.recommend, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
 	api.HandleUIMethod(api.OPTIONS, "/query/_recommend", handler.recommend, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
+
+	api.HandleUIMethod(api.GET, "/query/_recommend/:tag", handler.recommend, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
+	api.HandleUIMethod(api.OPTIONS, "/query/_recommend/:tag", handler.recommend, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
+
+	global.RegisterFuncAfterSetup(func() {
+		cfg := struct {
+			DocumentMetadata string `json:"document_metadata" config:"document_metadata"`
+		}{}
+		ok, err := env.ParseConfig("suggest", &cfg)
+		if ok && err != nil && global.Env().SystemConfig.Configs.PanicOnConfigError {
+			panic(err)
+		}
+
+		handler.documentMetadata = cfg.DocumentMetadata
+		log.Trace("document metadata:", handler.documentMetadata)
+
+		cfg1 := map[string]string{}
+		ok, err = env.ParseConfig("recommend", &cfg1)
+		if ok && err != nil && global.Env().SystemConfig.Configs.PanicOnConfigError {
+			panic(err)
+		}
+
+		recommends := map[string]core.RecommendResponse{}
+		for k, v := range cfg1 {
+			recommend := core.RecommendResponse{}
+			err := util.FromJson(v, &recommend)
+			if err != nil {
+				panic(err)
+			}
+			recommends[k] = recommend
+		}
+		handler.recommendConfigs = recommends
+	})
 
 }

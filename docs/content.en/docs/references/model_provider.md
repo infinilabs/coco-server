@@ -1,14 +1,14 @@
 ---
-title: "Model Provider"
+title: "LLM Provider"
 weight: 90
 ---
 
-# Model Provider
+# LLM Provider
 
-## Work with *Model Provider*
-The Model Provider enables seamless integration of various AI models into your application. It supports multiple model types, including Deepseek, OpenAI, and more. This guide provides a comprehensive overview of how to effectively utilize the Model Provider.
+## Work with *LLM Provider*
+The LLM (Large Language Model) Provider enables seamless integration of various AI models into your application. It supports multiple model types, including Deepseek, OpenAI, and more. This guide provides a comprehensive overview of how to effectively utilize the LLM Provider.
 
-## Model Provider API
+## LLM Provider API
 Below is the field description for the model provider.
 
 | **Field**     | **Type**        | **Description**                                                                                                                                                                                            |
@@ -23,7 +23,7 @@ Below is the field description for the model provider.
 | `builtin`     | `boolean`       | Indicates whether the model provider is built-in.                                                                                                                                                          |
 | `description` | `string`        | A brief description of the model provider.                                                                                                                                                                 |
 
-### Create a model provider
+### Create a LLM provider
 
 ```shell
 //request
@@ -76,13 +76,13 @@ curl  -H 'Content-Type: application/json'   -XPOST http://localhost:9000/model_p
 }
 ```
 
-### View a Model Provider
+### View a LLM Provider
 ```shell
 curl -XGET http://localhost:9000/model_provider/cvj0hjlath21mqh6jbh0
 ```
 
 
-### Delete the Model Provider
+### Delete the LLM Provider
 
 ```shell
 //request
@@ -96,7 +96,7 @@ curl  -H 'Content-Type: application/json'   -XDELETE http://localhost:9000/model
 ```
 
 
-### Update a Model Provider
+### Update a LLM Provider
 ```shell
 curl -XPUT http://localhost:9000/model_provider/cvj0hjlath21mqh6jbh0 -d '{
   "name" : "Coco AI",
@@ -147,14 +147,14 @@ curl -XPUT http://localhost:9000/model_provider/cvj0hjlath21mqh6jbh0 -d '{
 }
 ```
 
-### Search Model Providers
+### Search LLM Providers
 ```shell
 curl -XGET http://localhost:9000/model_provider/_search
 ```
 
-## Model Providers UI Management
+## LLM Providers UI Management
 
-### Model Providers
+### LLM Providers
 Log in to the Coco-Server admin dashboard, click `Model Providers` in the left menu to view all Model Provider lists, as shown below:  
 {{% load-img "/img/model-provider/list.png" "Model Provider list" %}}
 
@@ -166,14 +166,14 @@ Enter keywords `coco` in the search box above the list and click the `Refresh` b
 {{% load-img "/img/model-provider/filter-list.png" "Model Provider search" %}}
 
 
-### Add Model Provider
+### Add LLM Provider
 Click `Add` in the top-right corner of the list to create a new Model Provider, as shown below:  
 {{% load-img "/img/model-provider/add.png" "add Model Provider" %}}
 
-### Delete Model Provider
+### Delete LLM Provider
 Select the target Model Provider in the list, click `Delete` on the bottom right of the card, and confirm in the pop-up dialog to complete the deletion. As shown below:  
 {{% load-img "/img/model-provider/delete.png" "delete Model Provider" %}}
 
 
-### Edit Model Provider
-Select the targetModel Provider in the card list, click `Edit` on the bottom right of the card to enter the editing page. Modify the configuration and click save to update.
+### Edit LLM Provider
+Select the target Model Provider in the card list, click `Edit` on the bottom right of the card to enter the editing page. Modify the configuration and click save to update.

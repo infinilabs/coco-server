@@ -192,6 +192,12 @@ func (p *Plugin) saveDocument(ctx *pipeline.Context, currentPath, basePath strin
 	doc.Created = &modTime
 	doc.Updated = &modTime
 
+	// Set metadata
+	if doc.Metadata == nil {
+		doc.Metadata = make(map[string]interface{})
+	}
+	doc.Metadata["url_is_raw_content"] = true
+
 	doc.ID = util.MD5digest(fmt.Sprintf("%s-%s", datasource.ID, currentPath))
 
 	p.Collect(ctx, connector, datasource, doc)

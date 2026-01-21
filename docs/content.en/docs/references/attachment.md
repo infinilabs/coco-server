@@ -7,13 +7,13 @@ weight: 100
 
 Attachment API are used to upload your local files to Coco server.
 
-## Upload attachment in chat session
+## Upload attachment
 
-`curl -X POST http://localhost:9000/chat/[session_id]/_upload -F "files=LOCAL_FILE"`
+`curl -X POST http://localhost:9000/attachment/_upload -F "files=LOCAL_FILE"`
 
 Example
 ```
-curl -X POST http://localhost:9000/chat/cu737jrq50kcaicgn7pg/_upload \
+curl -X POST http://localhost:9000/attachment/_upload \
   -H "X-API-TOKEN: cv9pnurq50k1hii28630jy429g4b49viecrlj9529onpa6n0lti7yohioitvyotd0677rop5uszc0cnll03j" \
   -F "files=@/Users/medcl/Downloads/tmp/neurips19-diskann.pdf" \
   -F "files=@/Users/medcl/Downloads/tmp/Adaptive_searching_in_succinctly_encoded.pdf"
@@ -75,4 +75,39 @@ curl -X GET http://localhost:9000/attachment/_search\?session\=cu737jrq50kcaicgn
 Response
 ```
 {"took":2,"timed_out":false,"_shards":{"total":1,"successful":1,"skipped":0,"failed":0},"hits":{"total":{"value":2,"relation":"eq"},"max_score":0.87546873,"hits":[{"_index":"coco_attachment","_type":"_doc","_id":"cv9r1krq50k4qhqcqhu0","_score":0.87546873,"_source":{"id":"cv9r1krq50k4qhqcqhu0","created":"2025-03-14T12:30:11.827843+08:00","updated":"2025-03-14T12:30:11.827851+08:00","session":"cu737jrq50kcaicgn7pg","name":"neurips19-diskann.pdf","icon":"pdf","url":"/attachment/cv9r1krq50k4qhqcqhu0","size":2221342}},{"_index":"coco_attachment","_type":"_doc","_id":"cv9r1l3q50k4qhqcqhug","_score":0.87546873,"_source":{"id":"cv9r1l3q50k4qhqcqhug","created":"2025-03-14T12:30:12.857468+08:00","updated":"2025-03-14T12:30:12.857483+08:00","session":"cu737jrq50kcaicgn7pg","name":"Adaptive_searching_in_succinctly_encoded.pdf","icon":"pdf","url":"/attachment/cv9r1l3q50k4qhqcqhug","size":125382}}]}}
+```
+
+## GET attachment status
+
+After chat-generated attachments are uploaded, they will be processed by the backend using a default parsing pipeline.
+Since attachment processing goes through intermediate states, an API is required to query the processing status, such as `pending`, `processing`, `completed`, `canceled`, or `failed`.
+
+```
+curl -X GET http://localhost:9000/attachment/cv9r1krq50k4qhqcqhu0/status \
+  -H "X-API-TOKEN: cv9pnurq50k1hii28630jy429g4b49viecrlj9529onpa6n0lti7yohioitvyotd0677rop5uszc0cnll03j"
+```
+Response
+```
+{
+"initial_parsing": "completed"
+}
+```
+
+## Batch GET attachment status
+```
+POST /attachment/_status
+{
+  "attachments":["123","234"]
+}
+```
+Response
+```
+{
+  "123": {
+    "initial_parsing": "completed"
+  },
+  "234": {
+    "initial_parsing": "completed"
+  }
+}
 ```

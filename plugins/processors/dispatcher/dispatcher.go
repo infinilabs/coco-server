@@ -6,13 +6,16 @@ package dispatcher
 
 import (
 	"fmt"
+	"time"
+
 	"infini.sh/coco/core"
 	"infini.sh/framework/core/api"
 	"infini.sh/framework/core/elastic"
+	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/queue"
+	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
-	"time"
 
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/modules/common"
@@ -54,6 +57,8 @@ func (processor *Dispatcher) Process(ctx *pipeline.Context) error {
 	// get active datasource list
 	ctx1 := orm.NewContextWithParent(ctx)
 	ctx1.DirectReadAccess()
+	ctx1.PermissionScope(security.PermissionScopePlatform)
+
 	orm.WithModel(ctx1, &core.DataSource{})
 
 	docs := []core.DataSource{}
@@ -64,7 +69,8 @@ func (processor *Dispatcher) Process(ctx *pipeline.Context) error {
 NextPage:
 
 	if global.ShuttingDown() {
-		return nil
+		log.Debugf("[%s] shutting down, skipping pagination", processor.Name())
+		return errors.New("shutting down")
 	}
 
 	builder := orm.NewQuery()
@@ -82,8 +88,8 @@ NextPage:
 		for _, doc := range docs {
 
 			if global.ShuttingDown() {
-				return nil
-				//return errors.New("shutting down")
+				log.Debugf("[%s] shutting down, skipping remaining datasources", processor.Name())
+				return errors.New("shutting down")
 			}
 
 			// handle each datasource

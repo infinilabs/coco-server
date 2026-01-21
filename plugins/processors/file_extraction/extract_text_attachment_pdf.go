@@ -17,9 +17,9 @@ import (
 	"infini.sh/framework/core/util"
 )
 
-func (p *FileExtractionProcessor) processPdf(ctx context.Context, doc *core.Document) (Extraction, error) {
-	path := doc.URL
-	htmlReader, err := tikaGetTextHtml(ctx, p.config.TikaEndpoint, p.config.TimeoutInSeconds, path)
+func (p *FileExtractionProcessor) processPdf(ctx context.Context, doc *core.Document, localPath string) (Extraction, error) {
+	path := localPath
+	htmlReader, err := tikaGetTextHtml(ctx, p.config.TikaEndpoint, p.config.TikaTimeoutInSeconds, path)
 	if err != nil {
 		return Extraction{}, fmt.Errorf("failed to extract text for [%s] using tika: %w", path, err)
 	}
@@ -37,7 +37,7 @@ func (p *FileExtractionProcessor) processPdf(ctx context.Context, doc *core.Docu
 	}
 	defer os.RemoveAll(attachmentDirPath)
 
-	err = tikaUnpackAllTo(ctx, p.config.TikaEndpoint, path, attachmentDirPath, p.config.TimeoutInSeconds)
+	err = tikaUnpackAllTo(ctx, p.config.TikaEndpoint, path, attachmentDirPath, p.config.TikaTimeoutInSeconds)
 	if err != nil {
 		return Extraction{}, fmt.Errorf("failed to extract document attachments: %w", err)
 	}
@@ -75,7 +75,7 @@ func (p *FileExtractionProcessor) processPdf(ctx context.Context, doc *core.Docu
 		// If it's an image, perform OCR synchronously
 		if isImage(name) {
 			fullPath := filepath.Join(attachmentDirPath, name)
-			text, err := ocr(ctx, p.config.TikaEndpoint, p.config.TimeoutInSeconds, fullPath)
+			text, err := ocr(ctx, p.config.TikaEndpoint, p.config.TikaTimeoutInSeconds, fullPath)
 			if err != nil {
 				log.Warnf("failed to perform OCR for image [%s]: %v", name, err)
 			} else {

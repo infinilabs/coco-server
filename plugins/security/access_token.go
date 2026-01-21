@@ -137,6 +137,8 @@ func CreateAPIToken(user *security.UserSessionInfo, tokenName, typeName string, 
 	ctx := orm.NewContext()
 	ctx.DirectAccess()
 	ctx.Refresh = orm.WaitForRefresh
+	ctx.PermissionScope(security.PermissionScopePlatform)
+
 	err := orm.Create(ctx, &accessToken)
 	if err != nil {
 		panic(err)

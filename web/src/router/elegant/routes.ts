@@ -452,6 +452,27 @@ export const generatedRoutes: GeneratedRoute[] = [
     ]
   },
   {
+    name: 'preview',
+    path: '/preview',
+    component: 'layout.blank',
+    meta: {
+      i18nKey: 'route.preview',
+      title: 'preview',
+      hideInMenu: true
+    },
+    children: [
+      {
+        name: 'preview_document',
+        path: 'document/:id',
+        component: 'view.preview_document',
+        meta: {
+          i18nKey: 'route.preview_document',
+          title: 'preview_document'
+        }
+      }
+    ]
+  },
+  {
     name: 'role',
     path: '/role',
     component: 'layout.base',

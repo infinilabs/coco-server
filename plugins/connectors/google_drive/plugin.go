@@ -7,10 +7,12 @@ package google_drive
 import (
 	"context"
 	"errors"
-	"infini.sh/coco/core"
-	"infini.sh/framework/core/pipeline"
 	"strings"
 	"time"
+
+	"infini.sh/coco/core"
+	"infini.sh/framework/core/pipeline"
+	"infini.sh/framework/core/security"
 
 	log "github.com/cihub/seelog"
 	"golang.org/x/oauth2"
@@ -97,6 +99,7 @@ func (this *Processor) Fetch(pipeCtx *pipeline.Context, connector *core.Connecto
 				log.Debugf("updating datasource with new refresh token: %v", datasource.ID)
 
 				ctx := orm.NewContext().DirectAccess()
+				ctx.PermissionScope(security.PermissionScopePlatform)
 
 				// Optionally, save the new tokens in your store (e.g., database or config)
 				err = orm.Update(ctx, datasource)

@@ -11,6 +11,7 @@ import (
 	"infini.sh/framework/core/elastic"
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/orm"
+	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
 )
 
@@ -158,6 +159,9 @@ func GetUserDatasource(ctx *orm.Context) []string {
 func GetUsersOwnDatasource(userID string) []string {
 	ctx := orm.NewContext()
 	ctx.DirectReadAccess()
+
+	ctx.PermissionScope(security.PermissionScopePlatform)
+
 	orm.WithModel(ctx, &core.DataSource{})
 	builder := orm.NewQuery()
 	builder.Must(orm.TermQuery(core.SystemOwnerQueryField, userID))

@@ -5,7 +5,7 @@
 package core
 
 // Suggestion represents an individual suggestion returned by the API
-type Suggestion struct {
+type Suggestion[T any] struct {
 	Suggestion            string      `json:"suggestion"`
 	HighlightedSuggestion string      `json:"highlighted_suggestion,omitempty"`  // Optional, Highlighted Suggestion
 	Score                 float64     `json:"score,omitempty"`                   // Optional, Score of the Suggestion
@@ -16,16 +16,16 @@ type Suggestion struct {
 	Breadcrumbs           []Link      `json:"breadcrumbs,omitempty"`             // Optional, breadcrumb navigation links
 	Context               interface{} `json:"context,omitempty"`                 // Optional, Context of the Suggestion
 	EstimateNumberOfHits  int         `json:"estimate_number_of_hits,omitempty"` // Optional, Estimate Number of Hits
-	Payload               interface{} `json:"payload,omitempty"`                 // Optional, Payload of the Suggestion
+	Payload               T           `json:"payload,omitempty"`                 // Optional, Payload of the Suggestion
 	URL                   string      `json:"url,omitempty"`                     // URL to the entity
 }
 
 // SuggestResponse represents the response structure for the suggest API
-type SuggestResponse struct {
-	Query          string       `json:"query,omitempty"`
-	RecentSearches []Suggestion `json:"recent_searches,omitempty"`
-	Suggestions    []Suggestion `json:"suggestions,omitempty"`
-	Banner         *Link        `json:"banner,omitempty"`
+type SuggestResponse[T any] struct {
+	Query          string          `json:"query,omitempty"`
+	RecentSearches []Suggestion[T] `json:"recent_searches,omitempty"`
+	Suggestions    []Suggestion[T] `json:"suggestions,omitempty"`
+	Banner         *Link           `json:"banner,omitempty"`
 }
 
 type Link struct {

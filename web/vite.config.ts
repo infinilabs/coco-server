@@ -28,7 +28,6 @@ export default defineConfig(configEnv => {
               }
               return 'vendor-core';
             }
-            return undefined;
           }
         }
       }

@@ -6,10 +6,12 @@ package dispatcher
 
 import (
 	"fmt"
+
 	"infini.sh/coco/core"
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/pipeline"
+	"infini.sh/framework/core/security"
 )
 
 func (processor *Dispatcher) syncDatasource(c *core.DataSource) error {
@@ -21,6 +23,9 @@ func (processor *Dispatcher) syncDatasource(c *core.DataSource) error {
 
 	ctx := orm.NewContext()
 	ctx.DirectReadAccess()
+
+	ctx.PermissionScope(security.PermissionScopePlatform)
+
 	connector := core.Connector{}
 	connector.ID = c.Connector.ConnectorID
 	exists, err := orm.GetV2(ctx, &connector)

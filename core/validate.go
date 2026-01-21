@@ -85,6 +85,9 @@ func InternalGetIntegration(id string) (*Integration, error) {
 	obj.ID = id
 	ctx := orm.NewContext()
 	ctx.DirectReadAccess()
+
+	ctx.PermissionScope(security.PermissionScopePlatform)
+
 	exists, err := orm.GetV2(ctx, &obj)
 	if err != nil {
 		return nil, err

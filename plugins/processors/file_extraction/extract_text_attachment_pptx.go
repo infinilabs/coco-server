@@ -18,7 +18,7 @@ import (
 	"infini.sh/framework/core/util"
 )
 
-func (p *FileExtractionProcessor) processPptx(ctx context.Context, doc *core.Document) (Extraction, error) {
+func (p *FileExtractionProcessor) processPptx(ctx context.Context, doc *core.Document, localPath string) (Extraction, error) {
 	// 1. Prepare Temp Directory for Attachments
 	attachmentDirPath, err := os.MkdirTemp("", "attachment-pptx-")
 	if err != nil {
@@ -27,9 +27,9 @@ func (p *FileExtractionProcessor) processPptx(ctx context.Context, doc *core.Doc
 	defer os.RemoveAll(attachmentDirPath)
 
 	// 3. Open PPTX File
-	r, err := zip.OpenReader(doc.URL)
+	r, err := zip.OpenReader(localPath)
 	if err != nil {
-		return Extraction{}, fmt.Errorf("failed to open pptx file [%s]: %w", doc.URL, err)
+		return Extraction{}, fmt.Errorf("failed to open pptx file [%s]: %w", localPath, err)
 	}
 	defer DeferClose(r)
 
@@ -68,7 +68,7 @@ func (p *FileExtractionProcessor) processPptx(ctx context.Context, doc *core.Doc
 		// If it's an image, perform OCR synchronously
 		if isImage(name) {
 			fullPath := filepath.Join(attachmentDirPath, name)
-			text, err := ocr(ctx, p.config.TikaEndpoint, p.config.TimeoutInSeconds, fullPath)
+			text, err := ocr(ctx, p.config.TikaEndpoint, p.config.TikaTimeoutInSeconds, fullPath)
 			if err != nil {
 				log.Warnf("failed to perform OCR for image [%s]: %v", name, err)
 			} else {
@@ -82,7 +82,7 @@ func (p *FileExtractionProcessor) processPptx(ctx context.Context, doc *core.Doc
 	if err != nil {
 		// If strictly no slides found, it might not be a valid pptx or just empty.
 		// Return empty arrays instead of error to allow flow to continue.
-		log.Warnf("No slides found in PPTX %s: %v", doc.URL, err)
+		log.Warnf("No slides found in PPTX %s: %v", localPath, err)
 		return Extraction{
 			Pages:       nil,
 			Attachments: nil,
