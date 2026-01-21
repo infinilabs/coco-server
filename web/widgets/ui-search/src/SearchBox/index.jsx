@@ -84,7 +84,7 @@ export function SearchBox(props) {
         }
       })
     }
-    onSearch({ query, filter: newFilter, action_type: actionType, search_type: searchType }, shouldAsk, shouldAgg);
+    onSearch({ query, filter: newFilter, action_type: actionType, search_type: searchType, mode: actionType !== ACTION_TYPE_SEARCH ? 'chat' : 'search' }, shouldAsk, shouldAgg);
     setMainInputActive(false);
     setFilterState({ type: 'none', index: -1 });
     setAttachmentActive(false)

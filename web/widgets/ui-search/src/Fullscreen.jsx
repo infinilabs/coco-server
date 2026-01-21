@@ -296,6 +296,7 @@ const Fullscreen = props => {
         onBackToSearch={() => {
           setQueryParams({
             ...queryParams,
+            action_type: undefined,
             mode: 'search'
           });
         }}
