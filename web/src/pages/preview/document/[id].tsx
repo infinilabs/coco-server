@@ -187,35 +187,37 @@ export function Component() {
   };
 
   return (
-    <div
-      className={classNames('h-screen flex flex-col bg-container', {
-        'children:px-40': !embedded
-      })}
-    >
-      {!embedded && (
-        <div className='h-20 flex items-center justify-between border-b border-border-secondary'>
-          <div className='children:h-10'>
-            <img
-              className='dark:hidden'
-              src={logoLight}
-            />
-
-            <img
-              className='hidden dark:block'
-              src={logoDark}
-            />
-          </div>
-
-          <span className='text-xl font-bold'>{t('page.preview.title')}</span>
-        </div>
-      )}
-
+    <div className='h-screen bg-container'>
       <div
-        className={classNames('flex-1 overflow-hidden', {
-          'mt-8': !embedded
+        className={classNames('h-full flex flex-col', {
+          'max-w-240 m-auto': !embedded
         })}
       >
-        {renderContent()}
+        {!embedded && (
+          <div className='h-20 flex items-center justify-between border-b border-border-secondary'>
+            <div className='children:h-10'>
+              <img
+                className='dark:hidden'
+                src={logoLight}
+              />
+
+              <img
+                className='hidden dark:block'
+                src={logoDark}
+              />
+            </div>
+
+            <span className='text-xl font-bold'>{t('page.preview.title')}</span>
+          </div>
+        )}
+
+        <div
+          className={classNames('flex-1 overflow-hidden', {
+            'mt-8': !embedded
+          })}
+        >
+          {renderContent()}
+        </div>
       </div>
     </div>
   );
