@@ -11,7 +11,6 @@ import (
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/assistant/common"
 	"infini.sh/framework/core/orm"
-	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
 )
 
@@ -21,7 +20,6 @@ func InternalCreateAndSaveNewChatMessage(ctx context.Context, assistantID string
 
 	ctx1 := orm.NewContextWithParent(ctx)
 	ctx1.DirectAccess()
-	ctx1.PermissionScope(security.PermissionScopePlatform)
 	ctx1.Refresh = orm.WaitForRefresh
 
 	obj := core.Session{
