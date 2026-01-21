@@ -16,12 +16,12 @@ const ListContainer = forwardRef((props, ref) => {
     renderPrefix, 
     defaultRows = 5,
     useGlobalKeydown = false,
-    globalActiveIndex = -1,
+    globalActiveIndex = 0,
     onGlobalSelect,
     className
   } = props;
 
-  const [activeIndex, setActiveIndex] = useState(-1);
+  const [activeIndex, setActiveIndex] = useState(0);
   const itemRefs = useRef([]);
   const [dataSource, setDataSource] = useState([]);
   const hasMoreRefs = useRef(true);
@@ -239,7 +239,7 @@ const ListContainer = forwardRef((props, ref) => {
             size="large"
             dataSource={dataSource}
             renderItem={(item, index) => {
-              const isActive = activeIndex === index;
+              const isActive = activeIndex === index && !!onItemClick;
               return (
                 <div key={index}>
                   <div

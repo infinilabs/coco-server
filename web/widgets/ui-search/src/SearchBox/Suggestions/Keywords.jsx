@@ -39,7 +39,7 @@ export default (props) => {
     const actionsLength = actions.length;
 
     // 全局选中索引
-    const [globalActiveIndex, setGlobalActiveIndex] = useState(-1);
+    const [globalActiveIndex, setGlobalActiveIndex] = useState(0);
     // 子组件引用，用于触发点击事件
     const listRefs = useRef({
         [SUGGESTION_ACTIONS]: null,
