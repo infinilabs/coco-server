@@ -40,7 +40,7 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 	var fuzziness = 3 // default to 3
 	if fuzzinessStr != "" {
 		parsed, err := strconv.Atoi(fuzzinessStr)
-		if err != nil && fuzziness >= 0 && fuzziness <= 5 {
+		if err != nil && parsed >= 0 && parsed <= 5 {
 			fuzziness = parsed
 		}
 	}
@@ -48,7 +48,7 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 	query = util.CleanUserQuery(query)
 
 	//try to collect assistants
-	if query != "" {
+	if query != "" || h.GetParameter(req, "filter") != "" {
 		builder, err := orm.NewQueryBuilderFromRequest(req)
 
 		if err != nil {
@@ -78,7 +78,7 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		assistantSearchPermission := security.GetSimplePermission(Category, Assistant, string(QuickAISearchAction))
 		perID := security.GetOrInitPermissionKey(assistantSearchPermission)
 
-		//not for widget integration
+		//only for app search, not for widget integration or AI search portal
 		if datasource == "" && integrationID == "" && ((reqUser.Roles != nil && util.AnyInArrayEquals(reqUser.Roles, security.RoleAdmin)) || reqUser.UserAssignedPermission.ValidateFor(perID)) {
 			assistantSize := 2
 			if docsSize < 5 {

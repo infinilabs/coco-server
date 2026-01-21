@@ -7,6 +7,7 @@ package document
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
@@ -16,6 +17,34 @@ import (
 	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
 )
+
+func (h *APIHandler) getFieldMeta(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+
+	fieldName := ps.ByName("field_name")
+	if fieldName == "" {
+		fieldName = h.MustGetParameter(w, req, "field_name")
+	}
+
+	out := map[string]FieldMetadata{}
+	if fieldName != "" && h.fieldMetadata != nil {
+		if util.ContainStr(fieldName, ",") {
+			fieldNames := strings.Split(fieldName, ",")
+			for _, fieldName := range fieldNames {
+				v, ok := h.fieldMetadata[fieldName]
+				if ok {
+					out[fieldName] = v
+				}
+			}
+		} else {
+			v, ok := h.fieldMetadata[fieldName]
+			if ok {
+				out[fieldName] = v
+			}
+		}
+	}
+
+	h.WriteJSON(w, out, 200)
+}
 
 func (h *APIHandler) suggest(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
@@ -45,25 +74,28 @@ func (h *APIHandler) suggest(w http.ResponseWriter, req *http.Request, ps httpro
 }
 
 type FieldMetadata struct {
-	FieldName          string `json:"field_name"`
-	FieldDataType      string `json:"field_data_type"`
-	SupportMultiSelect bool   `json:"support_multi_select"`
+	FieldIcon          string `json:"field_icon" config:"field_icon"`
+	FieldLabel         string `json:"field_label" config:"field_label"`
+	FieldDescription   string `json:"field_description" config:"field_description"`
+	FieldName          string `json:"field_name" config:"field_name"`
+	FieldDataType      string `json:"field_data_type" config:"field_data_type"`
+	SupportMultiSelect bool   `json:"support_multi_select" config:"support_multi_select"`
 }
 
 func (h *APIHandler) suggestFieldNames(w http.ResponseWriter, req *http.Request, query string, from int, size int) *core.SuggestResponse[FieldMetadata] {
 	response := &core.SuggestResponse[FieldMetadata]{}
 
-	if h.documentMetadata != "" {
-		err := util.FromJson(h.documentMetadata, &response)
-		if err != nil {
-			panic(err)
-		}
-	}
-
 	out := []core.Suggestion[FieldMetadata]{}
-	for _, v := range response.Suggestions {
-		if util.PrefixStr(v.Suggestion, query) || util.ContainStr(v.Suggestion, query) || util.PrefixStr(v.Payload.FieldName, query) || util.ContainStr(v.Payload.FieldName, query) {
-			out = append(out, v)
+	if h.fieldMetadata != nil {
+		for k, v := range h.fieldMetadata {
+			if util.PrefixStr(k, query) || util.ContainStr(k, query) || util.PrefixStr(v.FieldName, query) || util.ContainStr(v.FieldName, query) {
+				i := core.Suggestion[FieldMetadata]{}
+				i.Suggestion = v.FieldLabel
+				i.Icon = v.FieldIcon
+				i.Source = v.FieldDescription
+				i.Payload = v
+				out = append(out, i)
+			}
 		}
 	}
 
@@ -103,7 +135,7 @@ func (h *APIHandler) suggestDocuments(w http.ResponseWriter, req *http.Request, 
 	var fuzziness = 3 // default to 3
 	if fuzzinessStr != "" {
 		parsed, err := strconv.Atoi(fuzzinessStr)
-		if err != nil && fuzziness >= 0 && fuzziness <= 5 {
+		if err != nil && parsed >= 0 && parsed <= 5 {
 			fuzziness = parsed
 		}
 	}

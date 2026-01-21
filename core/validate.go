@@ -70,9 +70,9 @@ func ValidateLoginByAPITokenHeader(w http.ResponseWriter, r *http.Request) (clai
 
 	intersectedPermission := security.IntersectSetsFast(apiTokenLevelPermission, userLevelTokenLevelPermission)
 	if global.Env().IsDebug {
-		log.Debug("apiTokenLevelPermission:", apiTokenLevelPermission.Values())
-		log.Debug("userLevelTokenLevelPermission:", userLevelTokenLevelPermission.Values())
-		log.Debug("intersectedPermission:", intersectedPermission.Values())
+		log.Trace("apiTokenLevelPermission:", apiTokenLevelPermission.Values())
+		log.Trace("userLevelTokenLevelPermission:", userLevelTokenLevelPermission.Values())
+		log.Trace("intersectedPermission:", intersectedPermission.Values())
 	}
 
 	claims.Permissions = security.ConvertPermissionHashSetToKeys(intersectedPermission)
