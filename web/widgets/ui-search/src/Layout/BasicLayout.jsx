@@ -65,10 +65,12 @@ const BasicLayout = (props) => {
       style={{
         height: '100vh',
         overflowY: loading ? 'hidden' : 'auto',
+        paddingTop: '122px',
+        boxSizing: 'border-box'
       }}
     >
       <GlobalLoading loading={loading} theme={theme} />
-      <Header className="relative z-1001 !p-0 !h-auto bg-[rgb(var(--ui-search--layout-bg-color))] border-b border-[var(--ui-search-antd-color-border-secondary)]">
+      <Header className="fixed top-0 left-0 right-0 z-1001 !p-0 !h-auto bg-[rgb(var(--ui-search--layout-bg-color))] border-b border-[var(--ui-search-antd-color-border-secondary)]">
         <Layout className="bg-[rgb(var(--ui-search--layout-bg-color))]">
           <Sider width={280} breakpoint="md" collapsedWidth={0} trigger={null}>
             <div className={`position-sticky top-0 z-10 bg-[rgb(var(--ui-search--layout-bg-color))] pt-16px h-122px w-full pl-80px`}>
