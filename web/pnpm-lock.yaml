@@ -440,8 +440,8 @@ importers:
         specifier: ^0.0.5
         version: 0.0.5(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(vite@5.4.10(@types/node@22.8.6)(less@4.5.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.46.0))
       '@infinilabs/ai-chat':
-        specifier: ^0.0.5
-        version: 0.0.5(@ant-design/icons@6.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.12)(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3)(use-sync-external-store@1.6.0(react@18.3.1))
+        specifier: ^0.0.6
+        version: 0.0.6(@ant-design/icons@6.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.12)(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3)(use-sync-external-store@1.6.0(react@18.3.1))
       '@infinilabs/attachments':
         specifier: ^0.0.1
         version: 0.0.1(@ant-design/icons@6.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -1806,8 +1806,8 @@ packages:
       react: '>=18'
       react-dom: '>=18'
 
-  '@infinilabs/ai-chat@0.0.5':
-    resolution: {integrity: sha512-F2mk/Kefo7J/oixn0F9PrPdPj5WDuUpiX7RrmAvOYAwzBOC/kW740341xAMrlVWtnVQeb6jbzaoepLaNgyyBLg==}
+  '@infinilabs/ai-chat@0.0.6':
+    resolution: {integrity: sha512-tp2LalPFaplve11LwCWnng6sYuVX/C90A3B4fcwhC2TmPE7dVzT1c+LGy/sQBlWMdUNaf0OD4SKVZ0I+V5Vlsg==}
     peerDependencies:
       antd: 6.1.3
       react: ^18.3.1
@@ -1821,8 +1821,8 @@ packages:
       react: '>=18'
       react-dom: '>=18'
 
-  '@infinilabs/chat-message@0.0.10':
-    resolution: {integrity: sha512-BZ1AzOviqQ55grFoc56f4++iRwIgQljfrp9AwAg5NsUShF22Dd2/SYPQnos7cSj/xWbzTV2TK5A9rMt53/b9eA==}
+  '@infinilabs/chat-message@0.0.11':
+    resolution: {integrity: sha512-yxFqOFkMf772rv4vc27uID1338TBqLMpds59S4mDg9dI1yPp/GVDdhGWkYhW6GGS+k4gfCwtSbSd+Vdera70Dg==}
     peerDependencies:
       antd: ^6.1.3
       react: ^18.3.1
@@ -9920,10 +9920,10 @@ snapshots:
       - '@types/react'
       - vite
 
-  '@infinilabs/ai-chat@0.0.5(@ant-design/icons@6.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.12)(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3)(use-sync-external-store@1.6.0(react@18.3.1))':
+  '@infinilabs/ai-chat@0.0.6(@ant-design/icons@6.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.12)(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3)(use-sync-external-store@1.6.0(react@18.3.1))':
     dependencies:
       '@emotion/is-prop-valid': 1.4.0
-      '@infinilabs/chat-message': 0.0.10(@ant-design/icons@6.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@emotion/is-prop-valid@1.4.0)(@types/react@18.3.12)(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react-i18next@16.5.3(i18next@25.7.4(typescript@5.6.3))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3))(react@18.3.1)(typescript@5.6.3)
+      '@infinilabs/chat-message': 0.0.11(@ant-design/icons@6.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@emotion/is-prop-valid@1.4.0)(@types/react@18.3.12)(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react-i18next@16.5.3(i18next@25.7.4(typescript@5.6.3))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3))(react@18.3.1)(typescript@5.6.3)
       ahooks: 3.9.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       antd: 6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       axios: 1.13.2
@@ -9964,7 +9964,7 @@ snapshots:
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
 
-  '@infinilabs/chat-message@0.0.10(@ant-design/icons@6.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@emotion/is-prop-valid@1.4.0)(@types/react@18.3.12)(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react-i18next@16.5.3(i18next@25.7.4(typescript@5.6.3))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3))(react@18.3.1)(typescript@5.6.3)':
+  '@infinilabs/chat-message@0.0.11(@ant-design/icons@6.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@emotion/is-prop-valid@1.4.0)(@types/react@18.3.12)(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react-i18next@16.5.3(i18next@25.7.4(typescript@5.6.3))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3))(react@18.3.1)(typescript@5.6.3)':
     dependencies:
       '@infinilabs/attachments': 0.0.1(@ant-design/icons@6.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@infinilabs/markdown': 0.0.2(@types/react@18.3.12)(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
