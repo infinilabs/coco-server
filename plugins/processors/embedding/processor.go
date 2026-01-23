@@ -14,7 +14,6 @@ import (
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/assistant/langchain"
 	"infini.sh/coco/modules/common"
-	"infini.sh/coco/plugins/connectors"
 	"infini.sh/framework/core/config"
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/global"
@@ -119,15 +118,24 @@ func (processor *DocumentEmbeddingProcessor) Process(ctx *pipeline.Context) erro
 			continue
 		}
 
-		// Only local file have this now.
-		if doc.Type == connectors.TypeFile && doc.Chunks != nil {
-			err := generateEmbedding(ctx.Context, &doc, processor.config)
-			if err != nil {
-				log.Errorf("processor [%s] failed to generate embeddings for document [%s/%s] due to error [%s]", processor.Name(), doc.Title, doc.ID, err)
+		modified, errs := generateEmbedding(ctx.Context, &doc, processor.config)
+		/* Log out the corresponding state */
+		if len(errs) != 0 {
+			if modified {
+				log.Errorf("processor [%s] failed to generate embeddings for document [%s/%s] _partially_ due to error [%v]", processor.Name(), doc.Title, doc.ID, errs)
+			} else {
+				log.Errorf("processor [%s] failed to generate embeddings for document [%s/%s] due to error [%v]", processor.Name(), doc.Title, doc.ID, errs)
 			}
-			log.Infof("processor [%s] embeddings of document [%s/%s] generated", processor.Name(), doc.Title, doc.ID)
+		} else {
+			if modified {
+				log.Infof("processor [%s] embeddings of document [%s/%s] generated", processor.Name(), doc.Title, doc.ID)
+			} else {
+				log.Infof("processor [%s] skipped document [%s/%s]", processor.Name(), doc.Title, doc.ID)
+			}
+		}
 
-			// Update messages[i].Data in-place
+		if modified {
+			// Update messages[i].Data if doc gets modified
 			messages[i].Data = util.MustToJSONBytes(doc)
 
 			// Enqueue immediately after processing
@@ -156,34 +164,47 @@ func (processor *DocumentEmbeddingProcessor) Process(ctx *pipeline.Context) erro
 }
 
 // Generate embeddings for [document.Chunks] and [document.AiInsights.Embedding].
-func generateEmbedding(ctx context.Context, document *core.Document, processorConfig *Config) error {
+//
+// Return a bool value indicating if `document` gets modified or not.
+func generateEmbedding(ctx context.Context, document *core.Document, processorConfig *Config) (bool, []error) {
+	var modified bool
+	var finalErrs []error
+
 	embedder, err := getEmbedderClient(processorConfig)
 	if err != nil {
-		return err
+		return false, []error{err}
 	}
 
-	if err := generateChunkEmbeddings(ctx, embedder, document.Chunks); err != nil {
-		return err
+	chunkGenerated, err := generateChunkEmbeddings(ctx, embedder, document.Chunks)
+	if chunkGenerated {
+		modified = true
+	}
+	if err != nil {
+		finalErrs = append(finalErrs, err)
 	}
 
 	// Generate embedding for document.AiInsights.Text
 	if document.AiInsights.Text != "" {
 		embedding, err := embedder.CreateEmbedding(ctx, []string{document.AiInsights.Text})
 		if err != nil {
-			return errors.New(fmt.Sprintf("failed to generate AI insights embedding: %s", err))
+			finalErrs = append(finalErrs, err)
 		}
 		if len(embedding) > 0 {
 			document.AiInsights.Embedding.SetValue(embedding[0])
+			modified = true
 		}
 	}
 
-	return nil
+	return modified, finalErrs
 }
 
-func generateChunkEmbeddings(ctx context.Context, embedder embeddings.EmbedderClient, chunks []core.DocumentChunk) error {
+// generateChunkEmbeddings generates embeddings for document chunks.
+//
+// Return a bool value indicating if `chunks` get modified or not.
+func generateChunkEmbeddings(ctx context.Context, embedder embeddings.EmbedderClient, chunks []core.DocumentChunk) (bool, error) {
 	nChunks := len(chunks)
 	if nChunks == 0 {
-		return nil
+		return false, nil
 	}
 
 	batchSize := 10
@@ -202,7 +223,7 @@ func generateChunkEmbeddings(ctx context.Context, embedder embeddings.EmbedderCl
 
 		embeddings, err := embedder.CreateEmbedding(ctx, batch)
 		if err != nil {
-			return errors.New(fmt.Sprintf("failed to generated embeddings due to error: %s", err))
+			return false, errors.New(fmt.Sprintf("failed to generated embeddings due to error: %s", err))
 		}
 
 		for relativeIdx, embedding := range embeddings {
@@ -213,7 +234,7 @@ func generateChunkEmbeddings(ctx context.Context, embedder embeddings.EmbedderCl
 		}
 	}
 
-	return nil
+	return true, nil
 }
 
 // According to the specified configuration, init the "EmbedderClient" and

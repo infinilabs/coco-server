@@ -29,6 +29,7 @@ Information about release notes of Coco Server is provided here.
 
 - fix: refine doc.Icon and doc.Source.Icon in searchDoc() #644
 - fix: read s3 config directly in raw_content interface #654
+- fix: generate embedding if we have text #658
 
 ### ✈️ Improvements  
 - refactor: refactoring attachment API #636
