@@ -120,14 +120,14 @@ func (p *FileTypeDetectionProcessor) Process(ctx *pipeline.Context) error {
 		}
 
 		// Set MIME type/content type/content category if needed
-		if doc.Metadata[FieldMimeType] == "" || doc.Metadata[FieldContentType] == "" {
+		if isMetadataEmpty(doc.Metadata, FieldMimeType) || isMetadataEmpty(doc.Metadata, FieldContentType) {
 			mimeType, contentType := detectFileTypes(doc.Title)
 			doc.Metadata[FieldMimeType] = mimeType
 			doc.Metadata[FieldContentType] = contentType
 			log.Infof("processor [%s] detected mime_type=%s, content_type=%s for document [%s/%s]", p.Name(), mimeType, contentType, doc.Title, doc.ID)
 		}
-		if doc.Metadata[FieldContentCategory] == "" {
-			contentCategory := categorizeContentType(doc.Metadata[FieldContentType].(string))
+		if isMetadataEmpty(doc.Metadata, FieldContentCategory) {
+			contentCategory := categorizeContentType(getStringFromMetadata(doc.Metadata, FieldContentType))
 			doc.Metadata[FieldContentCategory] = contentCategory
 			log.Infof("processor [%s] detected content_category=%s for document [%s/%s]", p.Name(), contentCategory, doc.Title, doc.ID)
 		}
@@ -213,4 +213,45 @@ func categorizeContentType(contentType string) string {
 	default:
 		return ""
 	}
+}
+
+// isMetadataEmpty returns true if the value is nil, empty string, or not a string type.
+// This safely handles map[string]interface{} lookups where the key may not exist
+// or the value may be of a different type.
+func isMetadataEmpty(metadata map[string]interface{}, key string) bool {
+	if metadata == nil {
+		return true
+	}
+	val, exists := metadata[key]
+	if !exists {
+		return true
+	}
+	if val == nil {
+		return true
+	}
+	str, ok := val.(string)
+	if !ok {
+		return true
+	}
+	return str == ""
+}
+
+// getStringFromMetadata safely returns a string value from metadata.
+// Returns empty string if key doesn't exist, value is nil, or value is not a string.
+func getStringFromMetadata(metadata map[string]interface{}, key string) string {
+	if metadata == nil {
+		return ""
+	}
+	val, exists := metadata[key]
+	if !exists {
+		return ""
+	}
+	if val == nil {
+		return ""
+	}
+	str, ok := val.(string)
+	if !ok {
+		return ""
+	}
+	return str
 }
