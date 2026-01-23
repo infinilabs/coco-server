@@ -137,21 +137,15 @@ func (processor *ExtractTagsProcessor) Process(ctx *pipeline.Context) error {
 			continue
 		}
 
-		aiInsights, hasAIInsights := doc.Metadata["ai_insights"]
-		if !hasAIInsights {
+		aiInsights := doc.AiInsights.Text
+		if len(aiInsights) == 0 {
 			log.Debugf("[%s] document [%s/%s] has no ai_insights, skipping tag extraction", processor.Name(), doc.Title, doc.ID)
-			continue
-		}
-
-		aiInsightsStr, ok := aiInsights.(string)
-		if !ok || strings.TrimSpace(aiInsightsStr) == "" {
-			log.Debugf("[%s] document [%s/%s] has empty ai_insights, skipping tag extraction", processor.Name(), doc.Title, doc.ID)
 			continue
 		}
 
 		log.Infof("processor [%s] start extracting tags for document [%s/%s]", processor.Name(), doc.Title, doc.ID)
 		start := time.Now()
-		tags, err := extractTagsFromInsights(llmCtx, aiInsightsStr, processor.config, llm, processor.removeThinkPattern)
+		tags, err := extractTagsFromInsights(llmCtx, aiInsights, processor.config, llm, processor.removeThinkPattern)
 		if err != nil {
 			log.Errorf("[%s] failed to extract tags for document [%s/%s], error [%s]", processor.Name(), doc.Title, doc.ID, err)
 			continue
