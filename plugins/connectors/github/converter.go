@@ -7,8 +7,9 @@ package github
 import (
 	"context"
 	"fmt"
-	"infini.sh/coco/core"
 	"strings"
+
+	"infini.sh/coco/core"
 
 	log "github.com/cihub/seelog"
 	githubv3 "github.com/google/go-github/v74/github"
@@ -24,7 +25,7 @@ const (
 )
 
 func (p *Plugin) processRepos(ctx *pipeline.Context, client *githubv3.Client, cfg *Config, connector *core.Connector, datasource *core.DataSource) {
-	scanCtx := context.Background()
+	scanCtx := ctx
 	user, _, err := client.Users.Get(scanCtx, cfg.Owner)
 	if err != nil {
 		_ = log.Errorf("[%s connector] failed to get user for [name=%s]: %v", ConnectorGitHub, cfg.Owner, err)

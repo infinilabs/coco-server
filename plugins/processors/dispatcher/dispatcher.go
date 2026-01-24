@@ -11,6 +11,7 @@ import (
 	"infini.sh/coco/core"
 	"infini.sh/framework/core/api"
 	"infini.sh/framework/core/elastic"
+	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/queue"
 	"infini.sh/framework/core/security"
@@ -68,7 +69,8 @@ func (processor *Dispatcher) Process(ctx *pipeline.Context) error {
 NextPage:
 
 	if global.ShuttingDown() {
-		return nil
+		log.Debugf("[%s] shutting down, skipping pagination", processor.Name())
+		return errors.New("shutting down")
 	}
 
 	builder := orm.NewQuery()
@@ -86,8 +88,8 @@ NextPage:
 		for _, doc := range docs {
 
 			if global.ShuttingDown() {
-				return nil
-				//return errors.New("shutting down")
+				log.Debugf("[%s] shutting down, skipping remaining datasources", processor.Name())
+				return errors.New("shutting down")
 			}
 
 			// handle each datasource

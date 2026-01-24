@@ -140,7 +140,7 @@ func oAuthRedirect(w http.ResponseWriter, req *http.Request, ps httprouter.Param
 
 	// Exchange the authorization code for an access token
 	// Use a detached context with timeout to ensure token exchange completes even if the request context is canceled
-	oauthCtx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	oauthCtx, cancel := context.WithTimeout(req.Context(), 60*time.Second)
 	defer cancel()
 
 	// Inject a custom HTTP client into the context to ensure proxy settings are respected

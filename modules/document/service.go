@@ -6,25 +6,84 @@ package document
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
 	"infini.sh/framework/core/elastic"
 	"infini.sh/framework/core/orm"
+	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
 	"infini.sh/framework/modules/security/share"
 )
 
 var sharingService = share.NewSharingService()
 
-func QueryDocuments(ctx1 context.Context, userID string, teamsID []string, builder *orm.QueryBuilder, query string, datasource, integrationID, category, subcategory, richCategory string, outputDocs *[]core.Document) (*orm.SimpleResult, error) {
+//func QueryDocuments(ctx1 context.Context, builder *orm.QueryBuilder, query string, datasource, integrationID, category, subcategory, richCategory string, outputDocs *[]core.Document) (*orm.SimpleResult, error) {
+//	filters := BuildFilters(category, subcategory, richCategory)
+//	builder.Filter(filters...)
+//	return InternalQueryDocuments(ctx1, builder, query, datasource, integrationID, outputDocs)
+//}
 
+func QueryDocuments(ctx1 context.Context, builder *orm.QueryBuilder, query string,
+	datasource, integrationID, category, subcategory, richCategory, searchType string, fuzziness int,
+	outputDocs *[]core.Document) (*orm.SimpleResult, error) {
 	log.Trace("old datasource:", datasource, ",integrationID:", integrationID)
 
+	reqUser := security.MustGetUserFromContext(ctx1)
+	userID := reqUser.MustGetUserID()
+	teamsID, _ := reqUser.GetStringArray(orm.TeamsIDKey)
+
+	defaultFields := []string{"title.keyword^100", "title^10", "title.pinyin^4", "combined_fulltext"}
+
 	builder.Query(query)
-	builder.DefaultQueryField("title.keyword^100", "title^10", "title.pinyin^4", "combined_fulltext")
-	builder.Exclude("payload.*")
+	builder.DefaultQueryField(defaultFields...)
+	// Omit these fields. The frontend does not need them, and they are large enough
+	// to slow us down.
+	builder.Exclude("payload.*", "document_chunk", "ai_insights.embedding")
+	// Let framework skip the buildFuzzinessQuery() call as we did it here.
+	builder.SkipFuzziness()
+
+	/*
+		Search type support:
+	*/
+	// Modify the query based on search_type
+	switch searchType {
+	case "semantic":
+		semanticClause := orm.SemanticQuery("ai_insights.embedding.embedding1024", query, 0, "")
+		builder.Must(semanticClause)
+	case "hybrid":
+		textClauses, err := orm.BuildFuzzinessQueryClauses(query, fuzziness, defaultFields)
+		if err != nil {
+			return nil, err
+		}
+		var textClause *orm.Clause
+		if len(textClauses) == 1 {
+			textClause = textClauses[0]
+		} else {
+			textClause = orm.ShouldQuery(textClauses...)
+		}
+
+		// Semantic clause on ai_insights.embedding
+		semanticClause := orm.SemanticQuery("ai_insights.embedding.embedding1024", query, 0, "")
+
+		// Combine with HybridQuery
+		hybridClause := orm.HybridQuery(textClause, semanticClause)
+		builder.Must(hybridClause)
+	case "keyword":
+		textClauses, err := orm.BuildFuzzinessQueryClauses(query, fuzziness, defaultFields)
+		if err != nil {
+			return nil, err
+		}
+		if len(textClauses) == 1 {
+			builder.Must(textClauses[0])
+		} else {
+			builder.Must(orm.ShouldQuery(textClauses...))
+		}
+	default:
+		return nil, fmt.Errorf("invalid search_type: %s, must be one of: semantic, hybrid, keyword", searchType)
+	}
 
 	filters := BuildFilters(category, subcategory, richCategory)
 

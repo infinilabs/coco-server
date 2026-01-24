@@ -30,7 +30,7 @@ import (
 //
 // Return value:
 //   - attachment ID: it will be [fileID] if it is not empty
-func UploadToBlobStore(ctx *orm.Context, fileID string, file multipart.File, fileName string, ownerID string, metadata util.MapStr, fileVerboseText string, replaceIfExists bool) (string, error) {
+func UploadToBlobStore(ctx *orm.Context, fileID string, file multipart.File, header *multipart.FileHeader, fileName string, ownerID string, metadata util.MapStr, fileVerboseText string, replaceIfExists bool) (string, error) {
 	defer func() {
 		_ = file.Close()
 	}()
@@ -45,7 +45,7 @@ func UploadToBlobStore(ctx *orm.Context, fileID string, file multipart.File, fil
 		fileID = util.GetUUID()
 	}
 	fileSize := len(data)
-	mimeType, _ := getMimeType(file)
+	mimeType, err := DetectMimeType(fileName, file, header)
 
 	attachment := core.Attachment{}
 	attachment.ID = fileID
@@ -80,6 +80,8 @@ func UploadToBlobStore(ctx *orm.Context, fileID string, file multipart.File, fil
 		panic(err)
 	}
 
+	log.Tracef("uploading files: attachment [%s/%s] created", fileName, fileID)
+
 	//save attachment payload
 	//
 	// kv.AddValue will replace the previous value if it already exists so we
@@ -88,6 +90,7 @@ func UploadToBlobStore(ctx *orm.Context, fileID string, file multipart.File, fil
 	if err != nil {
 		panic(err)
 	}
+	log.Tracef("uploading files: payload [%s/%s] stored", fileName, fileID)
 
 	log.Debugf("file [%s] successfully uploaded, size: %v", fileName, fileSize)
 	return fileID, nil

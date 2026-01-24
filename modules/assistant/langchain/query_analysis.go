@@ -1,0 +1,108 @@
+/* Copyright © INFINI LTD. All rights reserved.
+ * Web: https://infinilabs.com
+ * Email: hello#infini.ltd */
+
+package langchain
+
+import (
+	"context"
+	"fmt"
+	"regexp"
+	"strings"
+
+	log "github.com/cihub/seelog"
+	"github.com/tmc/langchaingo/chains"
+	"infini.sh/coco/core"
+	common2 "infini.sh/coco/modules/assistant/common"
+	"infini.sh/coco/modules/common"
+	"infini.sh/framework/core/util"
+)
+
+func QueryAnalysisFromString(str string) (*common2.QueryIntent, error) {
+	log.Trace("input:", str)
+	jsonContent := extractJSON(str)
+	obj := common2.QueryIntent{}
+	err := util.FromJSONBytes([]byte(jsonContent), &obj)
+	if err != nil {
+		return nil, err
+	}
+	return &obj, nil
+}
+
+var jsonBlockTag = regexp.MustCompile(`(?m)(.*?)\<JSON\>([\w\W]+)\<\/JSON\>(.*?)`)
+var jsonMarkdownTag = regexp.MustCompile(`(?m)(.*?[\x60]{3,})json([\w\W]+)([\x60]{3,})(.*?)`)
+
+func extractJSON(input string) string {
+	matches := jsonMarkdownTag.FindAllStringSubmatch(input, -1)
+	if len(matches) > 0 {
+		if len(matches[0]) > 2 {
+			return strings.TrimSpace(matches[0][2])
+		}
+	}
+
+	matches = jsonBlockTag.FindAllStringSubmatch(input, -1)
+	if len(matches) > 0 {
+		if len(matches[0]) > 2 {
+			return strings.TrimSpace(matches[0][2])
+		}
+	}
+
+	return ""
+}
+
+func ProcessQueryIntent(ctx context.Context, sessionID string, model *core.ModelConfig, reqMsg, replyMsg *core.ChatMessage, assistant *core.Assistant, inputValues map[string]any, sender core.MessageSender) (*common2.QueryIntent, error) {
+	// Initialize the LLM
+	llm, err := SimplyGetLLM(model.ProviderID, model.Name, assistant.Keepalive)
+
+	// Create the prompt template
+	promptTemplate, err := GetPromptTemplate(model, common.QueryIntentPromptTemplate, []string{"history", "query"}, inputValues)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create the LLM chain
+	llmChain := chains.NewLLMChain(llm, promptTemplate)
+
+	var chunkSeq = 0
+	//temperature := GetTemperature(cfg, provider, 0.8)
+	//maxTokens := GetMaxTokens(cfg, provider, 1024)
+
+	// Execute the chain
+	output, err := chains.Call(ctx, llmChain, inputValues, chains.WithTemperature(util.GetFloat64OrDefault(model.Settings.Temperature, 0.9)),
+		chains.WithMaxTokens(util.GetIntOrDefault(model.Settings.MaxTokens, 1024)),
+		chains.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
+			if len(chunk) > 0 {
+				chunkSeq++
+				err = sender.SendChunkMessage(core.MessageTypeAssistant, common.QueryIntent, string(chunk), chunkSeq)
+				if err != nil {
+					_ = log.Error(err)
+					return err
+				}
+			}
+			return nil
+		}))
+	if err != nil {
+		return nil, fmt.Errorf("error executing LLM chain: %w", err)
+	}
+
+	// Extract the generated text
+	generatedText, ok := output["text"].(string)
+	if !ok {
+		return nil, fmt.Errorf("unexpected output type: %T", output["text"])
+	}
+
+	// Parse the generated text to extract the JSON
+	queryIntent, err := QueryAnalysisFromString(generatedText)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing query intent: %w", err)
+	}
+
+	// Attach the query intent to the reply message
+	replyMsg.Details = append(replyMsg.Details, core.ProcessingDetails{
+		Order:   10,
+		Type:    common.QueryIntent,
+		Payload: queryIntent,
+	})
+
+	return queryIntent, nil
+}

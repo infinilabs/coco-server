@@ -7,9 +7,10 @@ package s3
 import (
 	"context"
 	"fmt"
-	"infini.sh/coco/core"
 	"path/filepath"
 	"strings"
+
+	"infini.sh/coco/core"
 
 	log "github.com/cihub/seelog"
 	"github.com/minio/minio-go/v7"
@@ -78,7 +79,7 @@ func (p *Plugin) Fetch(ctx *pipeline.Context, connector *core.Connector, datasou
 		// Create file document using helper
 		parentCategoryArray := connectors.BuildParentCategoryArray(obj.Key)
 		title := filepath.Base(obj.Key)
-		url := fmt.Sprintf("%s://%s.%s/%s", cfg.Schema(), cfg.Bucket, cfg.Endpoint, obj.Key)
+		url := fmt.Sprintf("%s://%s/%s/%s", cfg.Schema(), cfg.Endpoint, cfg.Bucket, obj.Key)
 		idSuffix := fmt.Sprintf("%s-%s", cfg.Bucket, obj.Key)
 
 		doc := connectors.CreateDocumentWithHierarchy(connectors.TypeFile, connectors.TypeFile, title, url, int(obj.Size),
@@ -101,6 +102,8 @@ func (p *Plugin) Fetch(ctx *pipeline.Context, connector *core.Connector, datasou
 		for k, v := range obj.UserTags {
 			doc.Metadata[k] = v
 		}
+
+		doc.Metadata["url_is_raw_content"] = true
 
 		doc.Owner = &core.UserInfo{
 			UserID:   obj.Owner.ID,

@@ -5,7 +5,6 @@
 package google_drive
 
 import (
-	"context"
 	"errors"
 	"strings"
 	"time"
@@ -73,7 +72,7 @@ func (this *Processor) Fetch(pipeCtx *pipeline.Context, connector *core.Connecto
 				log.Debugf("Current token expiry: %v", tok.Expiry)
 				log.Debugf("Refresh token present: %v", tok.RefreshToken != "")
 
-				tokenSource := oAuthConfig.TokenSource(context.Background(), &tok)
+				tokenSource := oAuthConfig.TokenSource(pipeCtx, &tok)
 				refreshedToken, err := tokenSource.Token()
 				if err != nil {
 					log.Errorf("Failed to refresh token: %v", err)

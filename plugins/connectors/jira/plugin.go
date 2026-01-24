@@ -1,7 +1,6 @@
 package jira
 
 import (
-	"context"
 	"fmt"
 
 	log "github.com/cihub/seelog"
@@ -40,7 +39,7 @@ func (p *Plugin) Name() string {
 
 // Fetch implements the main data fetching logic for Jira
 func (p *Plugin) Fetch(ctx *pipeline.Context, connector *core.Connector, datasource *core.DataSource) error {
-	scanCtx := context.Background()
+	scanCtx := ctx
 
 	// Parse configuration
 	cfg := &Config{}
