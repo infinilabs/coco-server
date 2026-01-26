@@ -13,14 +13,27 @@ import (
 	"infini.sh/coco/core"
 	"infini.sh/framework/core/elastic"
 	"infini.sh/framework/core/orm"
+	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
 	"infini.sh/framework/modules/security/share"
 )
 
 var sharingService = share.NewSharingService()
 
-func QueryDocuments(ctx1 context.Context, userID string, teamsID []string, builder *orm.QueryBuilder, query string, datasource, integrationID, category, subcategory, richCategory, searchType string, fuzziness int, outputDocs *[]core.Document) (*orm.SimpleResult, error) {
+//func QueryDocuments(ctx1 context.Context, builder *orm.QueryBuilder, query string, datasource, integrationID, category, subcategory, richCategory string, outputDocs *[]core.Document) (*orm.SimpleResult, error) {
+//	filters := BuildFilters(category, subcategory, richCategory)
+//	builder.Filter(filters...)
+//	return InternalQueryDocuments(ctx1, builder, query, datasource, integrationID, outputDocs)
+//}
+
+func QueryDocuments(ctx1 context.Context, builder *orm.QueryBuilder, query string,
+	datasource, integrationID, category, subcategory, richCategory, searchType string, fuzziness int,
+	outputDocs *[]core.Document) (*orm.SimpleResult, error) {
 	log.Trace("old datasource:", datasource, ",integrationID:", integrationID)
+
+	reqUser := security.MustGetUserFromContext(ctx1)
+	userID := reqUser.MustGetUserID()
+	teamsID, _ := reqUser.GetStringArray(orm.TeamsIDKey)
 
 	defaultFields := []string{"title.keyword^100", "title^10", "title.pinyin^4", "combined_fulltext"}
 
@@ -30,7 +43,7 @@ func QueryDocuments(ctx1 context.Context, userID string, teamsID []string, build
 	// to slow us down.
 	builder.Exclude("payload.*", "document_chunk", "ai_insights.embedding")
 	// Let framework skip the buildFuzzinessQuery() call as we did it here.
-	builder.SetFuzzinessBuilt(true)
+	builder.SkipFuzziness()
 
 	/*
 		Search type support:

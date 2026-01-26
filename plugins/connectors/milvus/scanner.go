@@ -47,7 +47,7 @@ func (s *scanner) Scan(ctx *pipeline.Context) error {
 	}
 	defer func() {
 		if collectionLoaded {
-			releaseCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			releaseCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 			defer cancel()
 			if err := s.releaseCollection(releaseCtx); err != nil {
 				_ = log.Warnf("[%s] [%s] failed to release collection %q: %v", ConnectorName, s.datasource.Name, s.config.Collection, err)

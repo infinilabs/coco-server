@@ -16,8 +16,8 @@ import (
 
 type APIHandler struct {
 	api.Handler
-	documentMetadata string
 	recommendConfigs map[string]core.RecommendResponse
+	fieldMetadata    map[string]FieldMetadata
 }
 
 const Category = "coco"
@@ -50,6 +50,10 @@ func init() {
 	security.GetOrInitPermissionKeys(querySearchPermission, assistantSearchPermission)
 	security.AssignPermissionsToRoles(querySearchPermission, core.WidgetRole)
 
+	api.HandleUIMethod(api.OPTIONS, "/field_meta/:field_name", handler.getFieldMeta, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
+	api.HandleUIMethod(api.GET, "/field_meta/:field_name", handler.getFieldMeta, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
+	api.HandleUIMethod(api.POST, "/field_meta/:field_name", handler.getFieldMeta, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
+
 	api.HandleUIMethod(api.OPTIONS, "/query/_search", handler.search, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
 	api.HandleUIMethod(api.GET, "/query/_search", handler.search, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
 	api.HandleUIMethod(api.POST, "/query/_search", handler.search, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
@@ -67,16 +71,14 @@ func init() {
 	api.HandleUIMethod(api.OPTIONS, "/query/_recommend/:tag", handler.recommend, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
 
 	global.RegisterFuncAfterSetup(func() {
-		cfg := struct {
-			DocumentMetadata string `json:"document_metadata" config:"document_metadata"`
-		}{}
-		ok, err := env.ParseConfig("suggest", &cfg)
+
+		fieldMetadata := map[string]FieldMetadata{}
+		ok, err := env.ParseConfig("field_metadata", &fieldMetadata)
 		if ok && err != nil && global.Env().SystemConfig.Configs.PanicOnConfigError {
 			panic(err)
 		}
-
-		handler.documentMetadata = cfg.DocumentMetadata
-		log.Trace("document metadata:", handler.documentMetadata)
+		handler.fieldMetadata = fieldMetadata
+		log.Trace(util.ToJson(fieldMetadata, true))
 
 		cfg1 := map[string]string{}
 		ok, err = env.ParseConfig("recommend", &cfg1)

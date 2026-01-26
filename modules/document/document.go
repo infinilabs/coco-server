@@ -96,6 +96,8 @@ func (h *APIHandler) getDoc(w http.ResponseWriter, req *http.Request, ps httprou
 		return
 	}
 
+	RefineDocument(req.Context(), &obj)
+
 	h.WriteJSON(w, util.MapStr{
 		"found":   true,
 		"_id":     id,
@@ -148,6 +150,12 @@ func (h *APIHandler) getDocRawContent(w http.ResponseWriter, req *http.Request, 
 			fileName string
 			modTime  time.Time
 		)
+
+		defer func() {
+			if closer != nil {
+				closer.Close()
+			}
+		}()
 
 		switch connectorID {
 		case "s3":
@@ -205,7 +213,10 @@ func (h *APIHandler) getDocRawContent(w http.ResponseWriter, req *http.Request, 
 			// Get object metadata
 			info, err := objStream.Stat()
 			if err != nil {
-				objStream.Close()
+				if objStream != nil {
+					objStream.Close()
+				}
+				log.Error(fmt.Sprintf("failed to get S3 object: %v, %v, %v, %v", cfg.Bucket, objectKey, id, err), http.StatusInternalServerError)
 				// Check if it's a 404
 				if minio.ToErrorResponse(err).Code == "NoSuchKey" {
 					h.WriteJSON(w, util.MapStr{
@@ -441,9 +452,7 @@ func (h *APIHandler) searchDocs(w http.ResponseWriter, req *http.Request, ps htt
 	nDocs := len(result.Hits.Hits)
 	if nDocs > 0 {
 		for i := range result.Hits.Hits {
-			RefineIcon(req.Context(), &result.Hits.Hits[i].Source)
-			RefineCoverThumbnail(req.Context(), &result.Hits.Hits[i].Source)
-			RefineURL(req.Context(), &result.Hits.Hits[i].Source)
+			RefineDocument(req.Context(), &result.Hits.Hits[i].Source)
 		}
 	}
 

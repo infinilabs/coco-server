@@ -40,7 +40,7 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 	var fuzziness = 3 // default to 3
 	if fuzzinessStr != "" {
 		parsed, err := strconv.Atoi(fuzzinessStr)
-		if err != nil && fuzziness >= 0 && fuzziness <= 5 {
+		if err != nil && parsed >= 0 && parsed <= 5 {
 			fuzziness = parsed
 		}
 	}
@@ -48,7 +48,7 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 	query = util.CleanUserQuery(query)
 
 	//try to collect assistants
-	if query != "" {
+	if query != "" || h.GetParameter(req, "filter") != "" {
 		builder, err := orm.NewQueryBuilderFromRequest(req)
 
 		if err != nil {
@@ -59,10 +59,8 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		reqUser := security.MustGetUserFromRequest(req)
 		integrationID := req.Header.Get(core.HeaderIntegrationID)
 
-		teamsID, _ := reqUser.GetStringArray(orm.TeamsIDKey)
-
 		result := elastic.SearchResponseWithMeta[core.Document]{}
-		resp, err := QueryDocuments(req.Context(), reqUser.MustGetUserID(), teamsID, builder, query, datasource, integrationID, category, subcategory, richCategory, searchType, fuzziness, nil)
+		resp, err := QueryDocuments(req.Context(), builder, query, datasource, integrationID, category, subcategory, richCategory, searchType, fuzziness, nil)
 		if err != nil {
 			panic(err)
 		}
@@ -72,9 +70,7 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		//update icon
 		if docsSize > 0 {
 			for i := range result.Hits.Hits {
-				RefineIcon(req.Context(), &result.Hits.Hits[i].Source)
-				RefineCoverThumbnail(req.Context(), &result.Hits.Hits[i].Source)
-				RefineURL(req.Context(), &result.Hits.Hits[i].Source)
+				RefineDocument(req.Context(), &result.Hits.Hits[i].Source)
 			}
 		}
 
@@ -82,7 +78,7 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		assistantSearchPermission := security.GetSimplePermission(Category, Assistant, string(QuickAISearchAction))
 		perID := security.GetOrInitPermissionKey(assistantSearchPermission)
 
-		//not for widget integration
+		//only for app search, not for widget integration or AI search portal
 		if datasource == "" && integrationID == "" && ((reqUser.Roles != nil && util.AnyInArrayEquals(reqUser.Roles, security.RoleAdmin)) || reqUser.UserAssignedPermission.ValidateFor(perID)) {
 			assistantSize := 2
 			if docsSize < 5 {
@@ -121,6 +117,12 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 	} else {
 		h.WriteJSON(w, elastic.SearchResponse{Hits: elastic.Hits{Total: elastic.TotalHits{Value: 0, Relation: "eq"}}}, http.StatusOK)
 	}
+}
+
+func RefineDocument(ctx context.Context, doc *core.Document) {
+	RefineIcon(ctx, doc)
+	RefineCoverThumbnail(ctx, doc)
+	RefineURL(ctx, doc)
 }
 
 // ResolveIcon runs the icon fallback chain:

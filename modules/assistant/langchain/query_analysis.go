@@ -2,37 +2,26 @@
  * Web: https://infinilabs.com
  * Email: hello#infini.ltd */
 
-package rag
+package langchain
 
 import (
 	"context"
 	"fmt"
+	"regexp"
+	"strings"
+
 	log "github.com/cihub/seelog"
 	"github.com/tmc/langchaingo/chains"
 	"infini.sh/coco/core"
-	"infini.sh/coco/modules/assistant/langchain"
+	common2 "infini.sh/coco/modules/assistant/common"
 	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/util"
-	"regexp"
-	"strings"
 )
 
-type QueryIntent struct {
-	Category   string   `json:"category"`
-	Intent     string   `json:"intent"`
-	Query      []string `json:"query"`
-	Keyword    []string `json:"keyword"`
-	Suggestion []string `json:"suggestion"`
-
-	NeedPlanTasks     bool `json:"need_plan_tasks"`     //if it is not a simple task
-	NeedCallTools     bool `json:"need_call_tools"`     //if it is necessary
-	NeedNetworkSearch bool `json:"need_network_search"` //if need external data sources
-}
-
-func QueryAnalysisFromString(str string) (*QueryIntent, error) {
+func QueryAnalysisFromString(str string) (*common2.QueryIntent, error) {
 	log.Trace("input:", str)
 	jsonContent := extractJSON(str)
-	obj := QueryIntent{}
+	obj := common2.QueryIntent{}
 	err := util.FromJSONBytes([]byte(jsonContent), &obj)
 	if err != nil {
 		return nil, err
@@ -61,12 +50,12 @@ func extractJSON(input string) string {
 	return ""
 }
 
-func ProcessQueryIntent(ctx context.Context, sessionID string, provider *core.ModelProvider, cfg *core.ModelConfig, reqMsg, replyMsg *core.ChatMessage, assistant *core.Assistant, inputValues map[string]any, sender core.MessageSender) (*QueryIntent, error) {
+func ProcessQueryIntent(ctx context.Context, sessionID string, model *core.ModelConfig, reqMsg, replyMsg *core.ChatMessage, assistant *core.Assistant, inputValues map[string]any, sender core.MessageSender) (*common2.QueryIntent, error) {
 	// Initialize the LLM
-	llm := langchain.GetLLM(provider.BaseURL, provider.APIType, cfg.Name, provider.APIKey, assistant.Keepalive)
+	llm, err := SimplyGetLLM(model.ProviderID, model.Name, assistant.Keepalive)
 
 	// Create the prompt template
-	promptTemplate, err := GetPromptTemplate(cfg, common.QueryIntentPromptTemplate, []string{"history", "query"}, inputValues)
+	promptTemplate, err := GetPromptTemplate(model, common.QueryIntentPromptTemplate, []string{"history", "query"}, inputValues)
 	if err != nil {
 		return nil, err
 	}
@@ -75,19 +64,16 @@ func ProcessQueryIntent(ctx context.Context, sessionID string, provider *core.Mo
 	llmChain := chains.NewLLMChain(llm, promptTemplate)
 
 	var chunkSeq = 0
-	temperature := langchain.GetTemperature(cfg, provider, 0.8)
-	maxTokens := langchain.GetMaxTokens(cfg, provider, 1024)
+	//temperature := GetTemperature(cfg, provider, 0.8)
+	//maxTokens := GetMaxTokens(cfg, provider, 1024)
 
 	// Execute the chain
-	output, err := chains.Call(ctx, llmChain, inputValues, chains.WithTemperature(temperature),
-		chains.WithMaxTokens(maxTokens),
+	output, err := chains.Call(ctx, llmChain, inputValues, chains.WithTemperature(util.GetFloat64OrDefault(model.Settings.Temperature, 0.9)),
+		chains.WithMaxTokens(util.GetIntOrDefault(model.Settings.MaxTokens, 1024)),
 		chains.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
 			if len(chunk) > 0 {
 				chunkSeq++
-				//queryIntentBuffer.Write(chunk)
-				fmt.Println(string(chunk))
-				msg := core.NewMessageChunk(sessionID, replyMsg.ID, core.MessageTypeAssistant, reqMsg.ID, common.QueryIntent, string(chunk), chunkSeq)
-				err := sender.SendMessage(msg)
+				err = sender.SendChunkMessage(core.MessageTypeAssistant, common.QueryIntent, string(chunk), chunkSeq)
 				if err != nil {
 					_ = log.Error(err)
 					return err
