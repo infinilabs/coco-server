@@ -21,27 +21,9 @@ import (
 	"infini.sh/framework/core/util"
 )
 
-type logKey struct{}
-
-func logf(ctx context.Context, format string, args ...interface{}) {
-	msg := fmt.Sprintf(format, args...)
-	// Always print to stdout
-	fmt.Print(msg)
-
-	// If log channel exists in context, send it there too
-	if ch, ok := ctx.Value(logKey{}).(chan string); ok {
-		// Non-blocking send to avoid stalling if channel is full or no one listening
-		select {
-		case ch <- msg:
-		default:
-		}
-	}
-}
-
 // PlannerNode generates a research plan based on the query.
 func PlannerNode(ctx context.Context, state interface{}) (interface{}, error) {
 	s := state.(*State)
-	logf(ctx, "--- 规划节点：正在为查询 '%s' 进行规划 ---\n", s.Request.Query)
 
 	state.(*State).Sender.SendChunkMessage(core.MessageTypeAssistant, common.ResearchPlannerStart, "", 0)
 
@@ -77,7 +59,6 @@ func PlannerNode(ctx context.Context, state interface{}) (interface{}, error) {
 	}
 
 	if err := json.Unmarshal([]byte(completion), &output); err != nil {
-		logf(ctx, "JSON 解析失败 (%v)，尝试简单解析\n", err)
 		// Fallback: simple parsing
 		lines := strings.Split(completion, "\n")
 		var plan []string
@@ -105,18 +86,12 @@ func PlannerNode(ctx context.Context, state interface{}) (interface{}, error) {
 		formattedPlan += fmt.Sprintf("%s\n", step)
 	}
 
-	logf(ctx, "%s", formattedPlan)
-	if s.GeneratePodcast {
-		logf(ctx, "检测到播客生成意图。\n")
-	}
-
 	return s, nil
 }
 
 // ResearcherNode executes the research plan using real search with feedback mechanism and chapter management.
 func ResearcherNode(ctx context.Context, state interface{}) (interface{}, error) {
 	s := state.(*State)
-	logf(ctx, "--- 研究节点：正在执行研究计划（使用真实搜索和章节管理） ---\n")
 
 	llm, err := getLLM()
 	if err != nil {
@@ -175,8 +150,6 @@ func ResearcherNode(ctx context.Context, state interface{}) (interface{}, error)
 			s.StepResults[stepIndex].Status = "in_progress"
 		}
 
-		logf(ctx, "\n>>> 研究步骤 %d/%d: %s\n", stepIndex+1, len(s.Plan), step)
-
 		var stepSearchQueries []string
 		var stepMaterials []MaterialReference
 
@@ -224,7 +197,6 @@ func ResearcherNode(ctx context.Context, state interface{}) (interface{}, error)
 
 		// Step 2: Analyze search results and potentially refine search
 		if !initialSearchCollection.IsSufficient {
-			logf(ctx, "当前搜索结果不足，正在优化搜索策略...\n")
 
 			// Generate refinement query based on initial results analysis
 			refinementPrompt := fmt.Sprintf(`基于以下搜索结果分析，为这个研究步骤生成一个更具体的搜索查询：
@@ -240,7 +212,6 @@ func ResearcherNode(ctx context.Context, state interface{}) (interface{}, error)
 
 			refinementQuery, err := llms.GenerateFromSinglePrompt(ctx, llm, refinementPrompt)
 			if err == nil && strings.TrimSpace(refinementQuery) != "" {
-				logf(ctx, "优化搜索查询: %s\n", refinementQuery)
 				stepSearchQueries = append(stepSearchQueries, refinementQuery)
 
 				// Perform refined search
@@ -249,7 +220,6 @@ func ResearcherNode(ctx context.Context, state interface{}) (interface{}, error)
 					// Combine initial and refined results
 					initialSearchCollection.Results = append(initialSearchCollection.Results, refinedCollection.Results...)
 					initialSearchCollection.evaluateSearchQuality() // Re-evaluate
-					logf(ctx, "搜索优化完成，新置信度: %.2f%%\n", initialSearchCollection.Confidence*100)
 				}
 			}
 		}
@@ -309,19 +279,6 @@ func ResearcherNode(ctx context.Context, state interface{}) (interface{}, error)
 	s.ResearchResults = results
 	s.Images = allImages
 
-	// Count total materials across all chapters
-	totalMaterials := 0
-	for _, content := range s.ChapterContents {
-		totalMaterials += len(content.Materials)
-	}
-
-	logf(ctx, "研究步骤完成：共处理了 %d 个步骤，总计 %d 个素材已分配到 %d 个章节\n", len(s.StepResults), totalMaterials, len(s.ChapterContents))
-	for _, content := range s.ChapterContents {
-		if len(content.Materials) > 0 {
-			logf(ctx, "章节 '%s': %d 个素材, 状态 '%s'\n", content.Title, len(content.Materials), content.Status)
-		}
-	}
-
 	return s, nil
 }
 
@@ -335,7 +292,6 @@ func ReporterNode(ctx context.Context, state interface{}) (interface{}, error) {
 	state.(*State).Sender.SendChunkMessage(core.MessageTypeAssistant, common.ResearchReporterStart, "", 0)
 
 	s := state.(*State)
-	logf(ctx, "--- 报告节点：基于章节结构生成最终报告 ---\n")
 
 	llm, err := getLLM()
 	if err != nil {
@@ -344,19 +300,16 @@ func ReporterNode(ctx context.Context, state interface{}) (interface{}, error) {
 
 	// Strategy: Use the structured chapter approach if we have organized materials
 	if len(s.ChapterOutline) > 0 && len(s.ChapterContents) > 0 {
-		logf(ctx, "使用智能章节结构生成报告...\n")
 		return s.generateChapterBasedReport(ctx, llm)
 	}
 
 	// Fallback: Use traditional approach
-	logf(ctx, "传统方法生成报告（未使用章节结构）...\n")
 	return s.generateTraditionalReport(ctx, llm)
 }
 
 // PodcastNode generates a podcast script based on the research results.
 func PodcastNode(ctx context.Context, state interface{}) (interface{}, error) {
 	s := state.(*State)
-	logf(ctx, "--- 播客节点：正在生成播客脚本 ---\n")
 
 	llm, err := getLLM()
 	if err != nil {
@@ -404,7 +357,6 @@ func PodcastNode(ctx context.Context, state interface{}) (interface{}, error) {
 	}
 
 	if err := json.Unmarshal([]byte(completion), &script); err != nil {
-		logf(ctx, "播客脚本 JSON 解析失败 (%v)，使用原始文本\n", err)
 		s.PodcastScript = fmt.Sprintf("<pre>%s</pre>", completion)
 		return s, nil
 	}
@@ -452,7 +404,6 @@ func PodcastNode(ctx context.Context, state interface{}) (interface{}, error) {
 	sb.WriteString("</div>")
 
 	s.PodcastScript = sb.String()
-	logf(ctx, "播客脚本已生成。\n")
 	return s, nil
 }
 
@@ -950,18 +901,8 @@ func (s *State) extractKeyPoints(ctx context.Context, llm llms.Model, content st
 
 // generateChapterBasedReport creates a structured report based on the chapter outline and generated content
 func (s *State) generateChapterBasedReport(ctx context.Context, llm llms.Model) (*State, error) {
-	logf(ctx, "正在基于章节结构生成高质量研究报告...\n")
-	logf(ctx, "章节大纲数量: %d, ChapterContents数量: %d\n", len(s.ChapterOutline), len(s.ChapterContents))
 
 	// Debug output for chapters
-	for i, chapter := range s.ChapterOutline {
-		if content, exists := s.ChapterContents[chapter.ID]; exists {
-			logf(ctx, "Chapter %d (%s): %d materials, status: %s, content length: %d\n",
-				i+1, chapter.Title, len(content.Materials), content.Status, len(content.Content))
-		} else {
-			logf(ctx, "Chapter %d (%s): 无内容对象!\n", i+1, chapter.Title)
-		}
-	}
 
 	contents := s.ChapterContents
 	var reportBuilder strings.Builder
@@ -980,34 +921,21 @@ func (s *State) generateChapterBasedReport(ctx context.Context, llm llms.Model) 
 		}
 	}
 
-	logf(ctx, "收集到的要点数量：%d\n", len(allKeyPoints))
-
 	if len(allKeyPoints) > 0 {
-		logf(ctx, "生成要点列表：%d 项\n", len(allKeyPoints))
 		for _, point := range allKeyPoints {
 			reportBuilder.WriteString(fmt.Sprintf("- %s\n", point))
 		}
 		reportBuilder.WriteString("\n")
 	} else {
-		logf(ctx, "没有找到要点，摘要部分将为空\n")
 		reportBuilder.WriteString("本研究按照系统性分析方法，对主题进行了深入调研。\n\n")
 	}
 	reportBuilder.WriteString("## 目录\n\n")
-	for i, chapter := range s.ChapterOutline {
-		reportBuilder.WriteString(fmt.Sprintf("%d. [%s](#%s)\n", i+1, chapter.Title, strings.ToLower(strings.ReplaceAll(chapter.Title, " ", "-"))))
+	for _, chapter := range s.ChapterOutline {
+		reportBuilder.WriteString(fmt.Sprintf("%d. [%s](#%s)\n", len(s.ChapterOutline), chapter.Title, strings.ToLower(strings.ReplaceAll(chapter.Title, " ", "-"))))
 	}
 	reportBuilder.WriteString("\n---\n\n")
 
 	// Step 1: Check if we need to generate chapter content
-	logf(ctx, "检查章节内容状态：%d 个章节在结构大纲中\n", len(s.ChapterOutline))
-	for i, chapter := range s.ChapterOutline {
-		if content, exists := contents[chapter.ID]; exists {
-			logf(ctx, "第 %d 章 '%s': %d 个素材，内容长度 %d，状态 '%s'\n", i+1, chapter.Title, len(content.Materials), len(content.Content), content.Status)
-		} else {
-			logf(ctx, "第 %d 章 '%s': 未找到内容对象！\n", i+1, chapter.Title)
-		}
-	}
-
 	needsGeneration := false
 	for _, chapter := range s.ChapterOutline {
 		if content, exists := contents[chapter.ID]; exists {
@@ -1020,15 +948,12 @@ func (s *State) generateChapterBasedReport(ctx context.Context, llm llms.Model) 
 
 	// Generate chapter content if needed
 	if needsGeneration {
-		logf(ctx, "正在生成章节内容，因为有章节缺少已生成内容...\n")
 		contents = s.generateChapterContent(ctx, llm)
 	}
 
 	// Step 2: Generate each chapter content
-	logf(ctx, "正在生成 %d 个章节的内容\n", len(s.ChapterOutline))
-	for i, chapter := range s.ChapterOutline {
+	for _, chapter := range s.ChapterOutline {
 		if content, exists := contents[chapter.ID]; exists && content.Content != "" {
-			logf(ctx, "第 %d 章: %s\n", i+1, chapter.Title)
 
 			reportBuilder.WriteString(fmt.Sprintf("## %s\n\n", chapter.Title))
 			reportBuilder.WriteString(content.Content + "\n\n")
@@ -1071,8 +996,6 @@ func (s *State) generateChapterBasedReport(ctx context.Context, llm llms.Model) 
 	renderer := html.NewRenderer(opts)
 
 	s.FinalReport = string(markdown.Render(doc, renderer))
-	logf(ctx, "基于章节结构的最终报告已生成！共 %d 章节，%d 张图片\n",
-		len(s.ChapterOutline), len(s.Images))
 
 	return s, nil
 }
