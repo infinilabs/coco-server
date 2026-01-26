@@ -75,7 +75,7 @@ func WebhookHandler(w http.ResponseWriter, req *http.Request, ps httprouter.Para
 					}
 				}
 				return nil
-			}, context.WithValue(req.Context(), "ctx", ctx))
+			}, context.WithValue(context.Background(), "ctx", ctx))
 		}
 	} else {
 		panic(errors.Errorf("invalid webhook config: %v", datasource.Name))

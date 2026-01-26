@@ -30,7 +30,7 @@ import (
 //
 // Return value:
 //   - attachment ID: it will be [fileID] if it is not empty
-func UploadToBlobStore(ctx *orm.Context, fileID string, file multipart.File, header *multipart.FileHeader, fileName string, ownerID string, metadata util.MapStr, fileVerboseText string, replaceIfExists bool) (string, error) {
+func UploadToBlobStore(ctx *orm.Context, fileID string, file multipart.File, fileName string, ownerID string, metadata util.MapStr, fileVerboseText string, replaceIfExists bool) (string, error) {
 	defer func() {
 		_ = file.Close()
 	}()
@@ -45,7 +45,7 @@ func UploadToBlobStore(ctx *orm.Context, fileID string, file multipart.File, hea
 		fileID = util.GetUUID()
 	}
 	fileSize := len(data)
-	mimeType, err := DetectMimeType(fileName, file, header)
+	mimeType, _ := getMimeType(file)
 
 	attachment := core.Attachment{}
 	attachment.ID = fileID

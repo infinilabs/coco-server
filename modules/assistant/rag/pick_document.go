@@ -2,7 +2,7 @@
  * Web: https://infinilabs.com
  * Email: hello#infini.ltd */
 
-package langchain
+package rag
 
 import "infini.sh/framework/core/util"
 

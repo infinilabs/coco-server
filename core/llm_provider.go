@@ -4,8 +4,6 @@
 
 package core
 
-import "sync"
-
 type ModelProvider struct {
 	CombinedFullText
 
@@ -19,34 +17,4 @@ type ModelProvider struct {
 	Builtin     bool          `json:"builtin" elastic_mapping:"builtin:{type:keyword}"`                                // Whether the model provider is builtin
 	Description string        `json:"description" elastic_mapping:"description:{type:text,copy_to:combined_fulltext}"` // Description of the model provider
 	Website     string        `json:"website" elastic_mapping:"website:{type:keyword}"`                                // Website of the model provider
-
-	models    map[string]*ModelConfig
-	getLocker sync.RWMutex
-}
-
-func (provider *ModelProvider) GetModelConfig(name string) *ModelConfig {
-	if provider == nil {
-		return nil
-	}
-
-	provider.getLocker.RLock()
-	if v, ok := provider.models[name]; ok {
-		provider.getLocker.RUnlock()
-		return v
-	}
-	provider.getLocker.RUnlock()
-
-	provider.getLocker.Lock()
-	defer provider.getLocker.Unlock()
-
-	if provider.models == nil {
-		provider.models = make(map[string]*ModelConfig)
-	}
-
-	for i := range provider.Models {
-		m := &provider.Models[i]
-		provider.models[m.Name] = m
-	}
-
-	return provider.models[name]
 }

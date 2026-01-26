@@ -7,12 +7,6 @@ package google_drive
 import (
 	"context"
 	"fmt"
-	"io"
-	"os"
-	"runtime"
-	"strings"
-	"time"
-
 	log "github.com/cihub/seelog"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/drive/v3"
@@ -24,6 +18,11 @@ import (
 	"infini.sh/framework/core/pipeline"
 	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
+	"io"
+	"os"
+	"runtime"
+	"strings"
+	"time"
 )
 
 func getIcon(fileType string) string {
@@ -531,9 +530,10 @@ func (this *Processor) startIndexingFiles(pipeCtx *pipeline.Context, connector *
 		panic("invalid oauth config")
 	}
 
-	client := oAuthConfig.Client(pipeCtx, tok)
+	client := oAuthConfig.Client(context.Background(), tok)
 	client.Timeout = this.timeout
-	srv, err := drive.NewService(pipeCtx, option.WithHTTPClient(client))
+	ctx := context.Background()
+	srv, err := drive.NewService(ctx, option.WithHTTPClient(client))
 	if err != nil {
 		panic(err)
 	}

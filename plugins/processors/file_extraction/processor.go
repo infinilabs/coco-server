@@ -307,7 +307,7 @@ func (p *FileExtractionProcessor) processDocument(ctx context.Context, doc *core
 			ownerID := doc.GetOwnerID()
 
 			// Upload to blob store
-			attachmentID, err := attachment.UploadToBlobStore(ormCtx, "", coverFile, nil, coverFilename, ownerID, nil, "", true)
+			attachmentID, err := attachment.UploadToBlobStore(ormCtx, "", coverFile, coverFilename, ownerID, nil, "", true)
 			if err != nil {
 				log.Warnf("processor [%s] failed to upload cover for [%s/%s]: %v", p.Name(), doc.Title, doc.ID, err)
 			} else {
@@ -322,7 +322,7 @@ func (p *FileExtractionProcessor) processDocument(ctx context.Context, doc *core
 				if err != nil {
 					log.Warnf("processor [%s] failed to open thumbnail file for [%s/%s]: %v", p.Name(), doc.Title, doc.ID, err)
 				} else {
-					thumbnailAttachmentID, err := attachment.UploadToBlobStore(ormCtx, "", thumbnailFile, nil, thumbnailFilename, ownerID, nil, "", true)
+					thumbnailAttachmentID, err := attachment.UploadToBlobStore(ormCtx, "", thumbnailFile, thumbnailFilename, ownerID, nil, "", true)
 					if err != nil {
 						log.Warnf("processor [%s] failed to upload thumbnail for [%s/%s]: %v", p.Name(), doc.Title, doc.ID, err)
 					} else {

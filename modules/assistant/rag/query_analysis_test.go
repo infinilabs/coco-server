@@ -2,13 +2,11 @@
  * Web: https://infinilabs.com
  * Email: hello#infini.ltd */
 
-package langchain
+package rag
 
 import (
-	"testing"
-
-	"infini.sh/coco/modules/assistant/common"
 	"infini.sh/framework/core/util"
+	"testing"
 )
 
 func TestExtractJSON(t *testing.T) {
@@ -76,7 +74,7 @@ func TestParseJSON(t *testing.T) {
 	tests := []struct {
 		name        string
 		input       string
-		expected    common.QueryIntent
+		expected    QueryIntent
 		expectError bool
 	}{
 		{
@@ -88,7 +86,7 @@ func TestParseJSON(t *testing.T) {
 				"keyword": ["test"],
 				"suggestion": ["test"]
 			}`,
-			expected: common.QueryIntent{
+			expected: QueryIntent{
 				Category:   "Greeting",
 				Intent:     "Test",
 				Query:      []string{"test"},
@@ -115,7 +113,7 @@ func TestParseJSON(t *testing.T) {
 				"keyword": ["中文"],
 				"suggestion": ["欢迎"]
 			}`,
-			expected: common.QueryIntent{
+			expected: QueryIntent{
 				Category:   "问候",
 				Intent:     "测试",
 				Query:      []string{"你好"},
@@ -128,7 +126,7 @@ func TestParseJSON(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var result = common.QueryIntent{}
+			var result = QueryIntent{}
 			err := util.FromJson(tt.input, &result)
 
 			if tt.expectError {

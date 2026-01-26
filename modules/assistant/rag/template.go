@@ -2,14 +2,13 @@
  * Web: https://infinilabs.com
  * Email: hello#infini.ltd */
 
-package langchain
+package rag
 
 import (
-	"regexp"
-
 	"github.com/tmc/langchaingo/prompts"
 	"infini.sh/coco/core"
 	"infini.sh/framework/core/errors"
+	"regexp"
 )
 
 // extractVariables parses a Go template string and returns a slice of unique variable names

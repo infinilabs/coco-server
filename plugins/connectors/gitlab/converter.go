@@ -7,10 +7,9 @@ package gitlab
 import (
 	"context"
 	"fmt"
+	"infini.sh/coco/core"
 	"net/url"
 	"strings"
-
-	"infini.sh/coco/core"
 
 	log "github.com/cihub/seelog"
 	gitlabv4 "gitlab.com/gitlab-org/api/client-go"
@@ -43,7 +42,7 @@ func (w *wikiWrapper) BuildWikiURL(project *gitlabv4.Project) string {
 }
 
 func (p *Plugin) processProjects(ctx *pipeline.Context, client *gitlabv4.Client, cfg *Config, connector *core.Connector, datasource *core.DataSource) {
-	scanCtx := ctx
+	scanCtx := context.Background()
 	isGroup, err := isGroupOwner(scanCtx, client, cfg.Owner)
 	if err != nil {
 		_ = log.Errorf("[%s connector] failed to check whether the owner is a group [Owner=%s]: %v", ConnectorGitLab, cfg.Owner, err)

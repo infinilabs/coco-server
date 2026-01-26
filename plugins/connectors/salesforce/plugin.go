@@ -7,9 +7,8 @@ package salesforce
 import (
 	"context"
 	"fmt"
-	"strings"
-
 	"infini.sh/coco/core"
+	"strings"
 
 	"infini.sh/coco/modules/common"
 	cmn "infini.sh/coco/plugins/connectors/common"
@@ -115,7 +114,7 @@ func (p *Plugin) processSalesforceData(
 	datasource *core.DataSource,
 ) error {
 	// Authenticate with Salesforce
-	authCtx := ctx
+	authCtx := context.Background()
 	if err := client.Authenticate(authCtx); err != nil {
 		return fmt.Errorf("failed to authenticate with Salesforce: %v", err)
 	}

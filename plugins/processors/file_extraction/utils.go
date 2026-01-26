@@ -341,7 +341,7 @@ func uploadAttachmentsToBlobStore(ctx context.Context, dir string, doc *core.Doc
 			metadata["document_page_num"] = pageNums
 		}
 
-		_, err = attachment.UploadToBlobStore(ormCtx, fileID, uploadFile, nil, entry.Name(), ownerID, metadata, fileContent, true)
+		_, err = attachment.UploadToBlobStore(ormCtx, fileID, uploadFile, entry.Name(), ownerID, metadata, fileContent, true)
 		if err != nil {
 			return fmt.Errorf("failed to upload attachment %s: %w", entry.Name(), err)
 		}

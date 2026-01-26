@@ -5,11 +5,8 @@
 package attachment
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
-	"io"
-	m1 "mime"
 	"mime/multipart"
 	"net/http"
 	"path/filepath"
@@ -57,7 +54,7 @@ func (h APIHandler) uploadAttachment(w http.ResponseWriter, r *http.Request, ps 
 			return
 		}
 		// Upload to S3
-		if fileID, err := UploadToBlobStore(ctx, "", file, fileHeader, fileHeader.Filename, "", nil, "", false); err != nil {
+		if fileID, err := UploadToBlobStore(ctx, "", file, fileHeader.Filename, "", nil, "", false); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		} else {
@@ -136,25 +133,15 @@ func (h APIHandler) getAttachment(w http.ResponseWriter, req *http.Request, ps h
 	// Use inline for images, videos, audio and PDFs to allow browser preview
 	disposition := "attachment"
 	// Set MIME type and determine the disposition value
-	mineType := attachment.MimeType
-
-	if mineType == "" {
-		if attachment.Name != "" {
-			mineType, _ = GetMimeTypeByFileExtension(attachment.Name)
-		}
-	}
-
-	if mineType != "" {
-		if strings.HasPrefix(mineType, "image/") ||
-			strings.HasPrefix(mineType, "text/") ||
-			strings.HasPrefix(mineType, "video/") ||
-			strings.HasPrefix(mineType, "audio/") ||
-			mineType == "application/pdf" {
+	if attachment.MimeType != "" {
+		if strings.HasPrefix(attachment.MimeType, "image/") ||
+			strings.HasPrefix(attachment.MimeType, "video/") ||
+			strings.HasPrefix(attachment.MimeType, "audio/") ||
+			attachment.MimeType == "application/pdf" {
 			disposition = "inline"
 		}
-		w.Header().Set("Content-Type", mineType)
+		w.Header().Set("Content-Type", attachment.MimeType)
 	}
-
 	w.Header().Set("Content-Disposition", disposition+"; filename=\""+attachment.Name+"\"")
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(data)))
 
@@ -243,79 +230,23 @@ func getFileExtension(fileName string) string {
 	return ""
 }
 
-// Custom MIME map to support real-world files Go doesn't know
-var extMime = map[string]string{
-	".heic": "image/heic",
-	".heif": "image/heif",
-	".webp": "image/webp",
-	".mov":  "video/quicktime",
-	".m4a":  "audio/mp4",
-	".md":   "text/markdown",
-	".csv":  "text/csv",
-	".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-	".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-	".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-	".zip":  "application/zip",
-	".rar":  "application/vnd.rar",
-}
-
-func DetectMimeType(fileName string, file multipart.File, header *multipart.FileHeader) (string, error) {
-	// 1. Try MIME type from multipart headers
-	if header != nil {
-		if ct := header.Header.Get("Content-Type"); ct != "" {
-			return ct, nil
-		}
-	}
-	// 2. Try sniffing first 512 bytes
-	var rs io.ReadSeeker
-	var ok bool
-	if rs, ok = file.(io.ReadSeeker); !ok {
-		// if not seekable, wrap in bytes.Reader
-		data, err := io.ReadAll(file)
-		if err != nil {
-			return "", err
-		}
-		rs = bytes.NewReader(data)
-	}
-
+func getMimeType(file multipart.File) (string, error) {
+	// Read first 512 bytes for MIME type detection
 	buffer := make([]byte, 512)
-	n, err := rs.Read(buffer)
-	if err != nil && err != io.EOF {
+	_, err := file.Read(buffer)
+	if err != nil {
 		return "", err
 	}
 
-	// reset pointer
-	_, _ = rs.Seek(0, io.SeekStart)
-
-	// sniff bytes
-	mime := http.DetectContentType(buffer[:n])
-	if mime != "application/octet-stream" && mime != "" {
-		return mime, nil
+	// Reset the file pointer after reading
+	_, err = file.Seek(0, 0)
+	if err != nil {
+		return "", err
 	}
 
-	// 3. Fallback to file extension
-	ext, err := GetMimeTypeByFileExtension(fileName)
-	if ext != "" {
-		return ext, nil
-	}
-
-	// final fallback
-	return "application/octet-stream", nil
-}
-
-func GetMimeTypeByFileExtension(fileName string) (string, error) {
-	ext := strings.ToLower(filepath.Ext(fileName))
-	if ext != "" {
-		// Try custom map first
-		if v, ok := extMime[ext]; ok {
-			return v, nil
-		}
-		// Then try Go's built-in extension table
-		if v := m1.TypeByExtension(ext); v != "" {
-			return v, nil
-		}
-	}
-	return "", nil
+	// Detect content type
+	mimeType := http.DetectContentType(buffer)
+	return mimeType, nil
 }
 
 func (h APIHandler) getAttachmentStatus(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {

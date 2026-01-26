@@ -15,11 +15,11 @@ import (
 const DefaultPageSize = 100
 
 // NewGitHubClient creates a new authenticated GitHub client.
-func NewGitHubClient(ctx context.Context, token string) *githubv3.Client {
+func NewGitHubClient(token string) *githubv3.Client {
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: token},
 	)
-	tc := oauth2.NewClient(ctx, ts)
+	tc := oauth2.NewClient(context.Background(), ts)
 
 	return githubv3.NewClient(tc)
 }

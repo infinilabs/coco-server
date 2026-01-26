@@ -2,23 +2,24 @@
  * Web: https://infinilabs.com
  * Email: hello#infini.ltd */
 
-package api
+package assistant
 
 import (
 	"context"
 	"encoding/json"
-	"net/http"
-	"time"
-
-	"github.com/smallnest/langgraphgo/log"
-	_ "github.com/tmc/langchaingo/llms/ollama"
+	"fmt"
 	"infini.sh/coco/core"
-	common2 "infini.sh/coco/modules/assistant/common"
-	"infini.sh/coco/modules/assistant/service"
+	"infini.sh/framework/core/security"
+	"net/http"
+	"sync"
+
+	log "github.com/cihub/seelog"
+	_ "github.com/tmc/langchaingo/llms/ollama"
+	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/orm"
-	"infini.sh/framework/core/security"
+	"infini.sh/framework/core/task"
 	"infini.sh/framework/core/util"
 )
 
@@ -176,10 +177,10 @@ func (h APIHandler) getChatSessions(w http.ResponseWriter, req *http.Request, ps
 }
 
 func (h APIHandler) createChatSession(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	id := h.GetParameterOrDefault(r, "assistant_id", common2.DefaultAssistantID)
+	id := h.GetParameterOrDefault(r, "assistant_id", DefaultAssistantID)
 	userInfo := security.MustGetUserFromRequest(r)
 
-	assistant, exists, err := service.GetAssistant(r, id)
+	assistant, exists, err := common.GetAssistant(r, id)
 	if !exists || err != nil {
 		h.WriteOpRecordNotFoundJSON(w, id)
 		return
@@ -194,7 +195,7 @@ func (h APIHandler) createChatSession(w http.ResponseWriter, r *http.Request, ps
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	session, err, reqMsg, finalResult := service.CreateAndSaveNewChatMessage(r, id, &request, true)
+	session, err, reqMsg, finalResult := CreateAndSaveNewChatMessage(r, id, &request, true)
 	if err != nil {
 		h.Error(w, err)
 		return
@@ -206,6 +207,7 @@ func (h APIHandler) createChatSession(w http.ResponseWriter, r *http.Request, ps
 		return
 	}
 
+	ctx := r.Context()
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		h.Error(w, errors.New("http.Flusher not supported"))
@@ -220,40 +222,77 @@ func (h APIHandler) createChatSession(w http.ResponseWriter, r *http.Request, ps
 	_ = enc.Encode(finalResult)
 	flusher.Flush()
 
-	params, err := common2.NewRagContext(r, assistant, session.ID)
+	params, err := h.getRAGContext(r, assistant)
 	if err != nil {
 		h.Error(w, err)
 		return
 	}
-
+	params.SessionID = session.ID
 	// Create a context with cancel to handle the message asynchronously
-	ctx := context.WithoutCancel(r.Context())
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
-
-	replyMsg := service.CreateAssistantReplyMessage(params.SessionID, reqMsg.AssistantID, reqMsg.ID)
-
-	streamSender := &common2.HTTPStreamSender{
-		ReqMsg:   reqMsg,
-		ReplyMsg: replyMsg,
-
+	ctx, cancel := context.WithCancel(r.Context())
+	streamSender := &HTTPStreamSender{
 		Enc:     enc,
 		Flusher: flusher,
 		Ctx:     ctx, // assuming this is in an HTTP handler
 	}
-
-	replyMsgTaskID := service.GetReplyMessageTaskID(session.ID, reqMsg.ID)
-	service.InflightMessages.Store(replyMsgTaskID, common2.MessageTask{
+	replyMsgTaskID := getReplyMessageTaskID(session.ID, reqMsg.ID)
+	inflightMessages.Store(replyMsgTaskID, MessageTask{
 		SessionID:  session.ID,
 		CancelFunc: cancel,
 	})
+	_ = processMessageAsync(orm.NewContextWithParent(ctx), userInfo.MustGetUserID(), reqMsg, params, streamSender)
+}
 
-	_ = service.ProcessMessageAsync(ctx, userInfo.MustGetUserID(), reqMsg, replyMsg, params, streamSender)
+func CreateAndSaveNewChatMessage(request *http.Request, assistantID string, req *core.MessageRequest, visible bool) (core.Session, error, *core.ChatMessage, util.MapStr) {
+	ctx := orm.NewContextWithParent(request.Context())
+	return InternalCreateAndSaveNewChatMessage(ctx, assistantID, req, visible)
+}
+
+func InternalCreateAndSaveNewChatMessage(ctx *orm.Context, assistantID string, req *core.MessageRequest, visible bool) (core.Session, error, *core.ChatMessage, util.MapStr) {
+
+	//if !rate.GetRateLimiterPerSecond("assistant_new_chat", clientIdentity, 10).Allow() {
+	//	panic("too many requests")
+	//}
+	ctx.Refresh = orm.WaitForRefresh
+
+	obj := core.Session{
+		Status:  "active",
+		Visible: visible,
+	}
+
+	if req != nil && req.Message != "" {
+		obj.Title = util.SubString(req.Message, 0, 50)
+	}
+
+	//save session
+	err := orm.Create(ctx, &obj)
+	if err != nil {
+		return core.Session{}, err, nil, nil
+	}
+
+	result := util.MapStr{
+		"_id":     obj.ID,
+		"result":  "created",
+		"_source": obj,
+	}
+
+	var firstMessage *core.ChatMessage
+	//save first message to history
+	if req != nil && !req.IsEmpty() {
+		firstMessage, err = saveRequestMessage(ctx, obj.ID, assistantID, req)
+		if err != nil {
+			return core.Session{}, err, nil, nil
+		}
+		result["payload"] = firstMessage
+	}
+
+	return obj, err, firstMessage, result
 }
 
 func (h *APIHandler) askAssistant(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("id")
 
-	assistant, exists, err := service.GetAssistant(r, id)
+	assistant, exists, err := common.GetAssistant(r, id)
 	if !exists || err != nil {
 		h.WriteOpRecordNotFoundJSON(w, id)
 		return
@@ -275,12 +314,13 @@ func (h *APIHandler) askAssistant(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
-	session, err, reqMsg, finalResult := service.CreateAndSaveNewChatMessage(r, id, &request, false)
+	session, err, reqMsg, finalResult := CreateAndSaveNewChatMessage(r, id, &request, false)
 	if err != nil || reqMsg == nil {
 		h.Error(w, err)
 		return
 	}
 
+	ctx := r.Context()
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		h.Error(w, errors.New("http.Flusher not supported"))
@@ -295,33 +335,42 @@ func (h *APIHandler) askAssistant(w http.ResponseWriter, r *http.Request, ps htt
 	_ = enc.Encode(finalResult)
 	flusher.Flush()
 
-	params, err := common2.NewRagContext(r, assistant, session.ID)
+	params, err := h.getRAGContext(r, assistant)
 	if err != nil {
 		h.Error(w, err)
 		return
 	}
+	params.SessionID = session.ID
+	streamSender := &HTTPStreamSender{
+		Enc:     enc,
+		Flusher: flusher,
+		Ctx:     r.Context(), // assuming this is in an HTTP handler
+	}
+	_ = processMessageAsync(orm.NewContextWithParent(ctx), userInfo.MustGetUserID(), reqMsg, params, streamSender)
 
-	ctx := context.WithoutCancel(r.Context())
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+}
 
-	sessionID := reqMsg.SessionID
-	replyMsgTaskID := service.GetReplyMessageTaskID(sessionID, reqMsg.ID)
-	service.InflightMessages.Store(replyMsgTaskID, common2.MessageTask{
-		SessionID:  sessionID,
-		CancelFunc: cancel,
-	})
-	replyMsg := service.CreateAssistantReplyMessage(params.SessionID, reqMsg.AssistantID, reqMsg.ID)
+func saveRequestMessage(ctx *orm.Context, sessionID, assistantID string, req *core.MessageRequest) (*core.ChatMessage, error) {
 
-	streamSender := &common2.HTTPStreamSender{
-		ReqMsg:   reqMsg,
-		ReplyMsg: replyMsg,
-		Enc:      enc,
-		Flusher:  flusher,
-		Ctx:      ctx, // Use the timeout context for consistency
+	if sessionID == "" || assistantID == "" || req.IsEmpty() {
+		panic("invalid chat message")
 	}
 
-	_ = service.ProcessMessageAsync(ctx, userInfo.MustGetUserID(), reqMsg, replyMsg, params, streamSender)
+	msg := &core.ChatMessage{
+		SessionID:   sessionID,
+		AssistantID: assistantID,
+		MessageType: core.MessageTypeUser,
+		Message:     req.Message,
+		Attachments: req.Attachments,
+	}
+	msg.ID = util.GetUUID()
 
+	msg.Parameters = util.MapStr{}
+
+	if err := orm.Create(ctx, msg); err != nil {
+		return nil, err
+	}
+	return msg, nil
 }
 
 func (h APIHandler) openChatSession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -361,6 +410,20 @@ func (h APIHandler) openChatSession(w http.ResponseWriter, req *http.Request, ps
 
 }
 
+func getChatHistoryBySessionInternal(sessionID string, size int) ([]core.ChatMessage, error) {
+	q := orm.Query{}
+	q.Conds = orm.And(orm.Eq("session_id", sessionID))
+	q.From = 0
+	q.Size = size
+	q.AddSort("created", orm.DESC)
+	docs := []core.ChatMessage{}
+	err, _ := orm.SearchWithJSONMapper(&docs, &q)
+	if err != nil {
+		return nil, err
+	}
+	return docs, nil
+}
+
 func (h APIHandler) getChatHistoryBySession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	builder, err := orm.NewQueryBuilderFromRequest(req, "message")
 	if err != nil {
@@ -390,12 +453,38 @@ func (h APIHandler) getChatHistoryBySession(w http.ResponseWriter, req *http.Req
 	}
 }
 
+var inflightMessages = sync.Map{}
+
+type MessageTask struct {
+	SessionID string
+	// Deprecated
+	TaskID string
+
+	CancelFunc func()
+}
+
+func stopMessageReplyTask(taskID string) {
+	v, ok := inflightMessages.Load(taskID)
+	if ok {
+		v1, ok := v.(MessageTask)
+		if ok {
+			log.Debug("stop task:", v1)
+			if v1.TaskID != "" {
+				task.StopTask(v1.TaskID)
+			} else if v1.CancelFunc != nil {
+				v1.CancelFunc()
+			}
+		}
+	} else {
+		_ = log.Warnf("task id [%s] was not found", taskID)
+	}
+}
+
 func (h APIHandler) cancelReplyMessage(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	sessionID := ps.MustGetParameter("session_id")
 	messageID := h.GetParameterOrDefault(req, "message_id", "")
-	log.Info("cancel reply to message: ", messageID, ", session: ", sessionID)
-	taskID := service.GetReplyMessageTaskID(sessionID, messageID)
-	service.StopMessageReplyTask(taskID)
+	taskID := getReplyMessageTaskID(sessionID, messageID)
+	stopMessageReplyTask(taskID)
 	h.WriteAckOKJSON(w)
 }
 
@@ -406,9 +495,9 @@ func (h APIHandler) sendChatMessageV2(w http.ResponseWriter, r *http.Request, ps
 	ormCtx := orm.NewContextWithParent(r.Context())
 	ormCtx.Refresh = orm.WaitForRefresh
 
-	id := h.GetParameterOrDefault(r, "assistant_id", common2.DefaultAssistantID)
+	id := h.GetParameterOrDefault(r, "assistant_id", DefaultAssistantID)
 
-	assistant, exists, err := service.GetAssistant(r, id)
+	assistant, exists, err := common.GetAssistant(r, id)
 	if !exists || err != nil {
 		h.WriteOpRecordNotFoundJSON(w, id)
 		return
@@ -424,7 +513,7 @@ func (h APIHandler) sendChatMessageV2(w http.ResponseWriter, r *http.Request, ps
 		return
 	}
 
-	reqMsg, err := service.SaveRequestMessage(ormCtx, sessionID, id, &request)
+	reqMsg, err := saveRequestMessage(ormCtx, sessionID, id, &request)
 	if err != nil {
 		h.Error(w, err)
 		return
@@ -450,31 +539,33 @@ func (h APIHandler) sendChatMessageV2(w http.ResponseWriter, r *http.Request, ps
 	_ = enc.Encode(response)
 	flusher.Flush()
 
-	params, err := common2.NewRagContext(r, assistant, sessionID)
+	params, err := h.getRAGContext(r, assistant)
 	if err != nil {
 		h.Error(w, err)
 		return
 	}
+	params.SessionID = sessionID
 	// Create a context with cancel to handle the message asynchronously
-	ctx := context.WithoutCancel(r.Context())
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
-
-	replyMsg := service.CreateAssistantReplyMessage(params.SessionID, reqMsg.AssistantID, reqMsg.ID)
-
-	streamSender := &common2.HTTPStreamSender{
-		ReqMsg:   reqMsg,
-		ReplyMsg: replyMsg,
-		Enc:      enc,
-		Flusher:  flusher,
-		Ctx:      ctx, // assuming this is in an HTTP handler
+	ctx, cancel := context.WithCancel(r.Context())
+	streamSender := &HTTPStreamSender{
+		Enc:     enc,
+		Flusher: flusher,
+		Ctx:     ctx, // assuming this is in an HTTP handler
 	}
-	replyMsgTaskID := service.GetReplyMessageTaskID(sessionID, reqMsg.ID)
-	service.InflightMessages.Store(replyMsgTaskID, common2.MessageTask{
+	replyMsgTaskID := getReplyMessageTaskID(sessionID, reqMsg.ID)
+	inflightMessages.Store(replyMsgTaskID, MessageTask{
 		SessionID:  sessionID,
 		CancelFunc: cancel,
 	})
-	_ = service.ProcessMessageAsync(ctx, userInfo.MustGetUserID(), reqMsg, replyMsg, params, streamSender)
+	_ = processMessageAsync(orm.NewContextWithParent(ctx), userInfo.MustGetUserID(), reqMsg, params, streamSender)
 
+}
+
+func getReplyMessageTaskID(sessionID, messageID string) string {
+	if messageID == "" {
+		return sessionID
+	}
+	return fmt.Sprintf("%s_%s", sessionID, messageID)
 }
 
 func (h APIHandler) closeChatSession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {

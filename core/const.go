@@ -51,12 +51,3 @@ const SystemOwnerQueryField = "_system.owner_id"
 
 const SuggestTagFieldNames = "field_names"
 const SuggestTagFieldValues = "field_values"
-
-const (
-	AssistantTypeSimple           = "simple"
-	AssistantTypeDeepThink        = "deep_think"
-	AssistantTypeDeepResearch     = "deep_research"
-	AssistantTypeExternalWorkflow = "external_workflow"
-
-	AssistantCachePrimary = "assistant"
-)

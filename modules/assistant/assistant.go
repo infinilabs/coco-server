@@ -2,15 +2,13 @@
  * Web: https://infinilabs.com
  * Email: hello#infini.ltd */
 
-package api
+package assistant
 
 import (
+	"infini.sh/coco/core"
+	"infini.sh/framework/core/elastic"
 	"net/http"
 	"time"
-
-	"infini.sh/coco/core"
-	"infini.sh/coco/modules/assistant/service"
-	"infini.sh/framework/core/elastic"
 
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/modules/common"
@@ -38,7 +36,7 @@ func (h *APIHandler) createAssistant(w http.ResponseWriter, req *http.Request, p
 		return
 	}
 
-	service.ClearAssistantsCache()
+	common.ClearAssistantsCache()
 
 	h.WriteCreatedOKJSON(w, obj.ID)
 
@@ -47,7 +45,7 @@ func (h *APIHandler) createAssistant(w http.ResponseWriter, req *http.Request, p
 func (h *APIHandler) getAssistant(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("id")
 
-	obj, exists, err := service.GetAssistant(req, id)
+	obj, exists, err := common.GetAssistant(req, id)
 	if !exists || err != nil {
 		_ = log.Error(err)
 		h.WriteOpRecordNotFoundJSON(w, id)
@@ -61,7 +59,7 @@ func (h *APIHandler) updateAssistant(w http.ResponseWriter, req *http.Request, p
 	id := ps.MustGetParameter("id")
 
 	//clear cache
-	common.GeneralObjectCache.Delete(core.AssistantCachePrimary, id)
+	common.GeneralObjectCache.Delete(common.AssistantCachePrimary, id)
 
 	obj := core.Assistant{}
 	obj.ID = id
@@ -106,8 +104,8 @@ func (h *APIHandler) deleteAssistant(w http.ResponseWriter, req *http.Request, p
 	id := ps.MustGetParameter("id")
 
 	//clear cache
-	common.GeneralObjectCache.Delete(core.AssistantCachePrimary, id)
-	service.ClearAssistantsCache()
+	common.GeneralObjectCache.Delete(common.AssistantCachePrimary, id)
+	common.ClearAssistantsCache()
 
 	obj := core.Assistant{}
 	obj.ID = id

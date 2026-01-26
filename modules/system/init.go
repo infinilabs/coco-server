@@ -8,7 +8,6 @@ import (
 	"net/http"
 
 	"infini.sh/coco/core"
-	"infini.sh/coco/modules/assistant/service"
 	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/api"
 	httprouter "infini.sh/framework/core/api/router"
@@ -90,7 +89,7 @@ func (h *APIHandler) providerInfo(w http.ResponseWriter, req *http.Request, ps h
 	stats := util.MapStr{}
 	claims, _ := core.ValidateLogin(w, req)
 	if claims != nil {
-		count, err := service.CountAssistants()
+		count, err := common.CountAssistants()
 		if err != nil {
 			panic(err)
 		}

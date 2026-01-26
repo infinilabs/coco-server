@@ -282,7 +282,7 @@ curl  -H 'Content-Type: application/json'   -XPOST http://localhost:9000/chat/cs
 
 ```shell
 //request
-curl -N -H 'Content-Type: application/json'   -XPOST http://localhost:9000/chat/_create?assistant_id=xxxxxx -d'{
+curl -N -H 'Content-Type: application/json'   -XPOST http://localhost:9000/chat/_create -d'{
   "message":"how are you doing?"
 }'
 ```

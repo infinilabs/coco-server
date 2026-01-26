@@ -45,7 +45,7 @@ func GetMPCServer(id string) (*core.MCPServer, error) {
 func ClearMCPServerCache() {
 	GeneralObjectCache.Delete(MCPServerCachePrimary, EnabledMCPServerIDsCacheKey)
 	GeneralObjectCache.DeleteAll(MCPServerItemCacheKey)
-	GeneralObjectCache.DeleteAll(core.AssistantCachePrimary)
+	GeneralObjectCache.DeleteAll(AssistantCachePrimary)
 }
 
 func GetAllEnabledMCPServerIDs() ([]string, error) {

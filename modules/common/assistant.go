@@ -2,17 +2,24 @@
  * Web: https://infinilabs.com
  * Email: hello#infini.ltd */
 
-package service
+package common
 
 import (
-	"context"
 	"net/http"
 	"time"
 
 	"infini.sh/coco/core"
-	"infini.sh/coco/modules/common"
+
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
+)
+
+const (
+	AssistantTypeSimple           = "simple"
+	AssistantTypeDeepThink        = "deep_think"
+	AssistantTypeExternalWorkflow = "external_workflow"
+
+	AssistantCachePrimary = "assistant"
 )
 
 // GetAssistant retrieves the assistant object from the cache or database.
@@ -21,8 +28,8 @@ func GetAssistant(req *http.Request, assistantID string) (*core.Assistant, bool,
 	return InternalGetAssistant(ctx, assistantID)
 }
 
-func InternalGetAssistant(ctx context.Context, assistantID string) (*core.Assistant, bool, error) {
-	item := common.GeneralObjectCache.Get(core.AssistantCachePrimary, assistantID)
+func InternalGetAssistant(ctx *orm.Context, assistantID string) (*core.Assistant, bool, error) {
+	item := GeneralObjectCache.Get(AssistantCachePrimary, assistantID)
 	var assistant *core.Assistant
 	if item != nil && !item.Expired() {
 		var ok bool
@@ -32,17 +39,17 @@ func InternalGetAssistant(ctx context.Context, assistantID string) (*core.Assist
 	}
 	assistant = &core.Assistant{}
 	assistant.ID = assistantID
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "assistant")
 
-	ctx1 := orm.NewContextWithParent(ctx)
-	ctx1.DirectAccess()
-	exists, err := orm.GetV2(ctx1, assistant)
+	exists, err := orm.GetV2(ctx, assistant)
 	if err != nil {
 		return nil, exists, err
 	}
 
 	//expand datasource is the datasource is `*`
 	if util.ContainsAnyInArray("*", assistant.Datasource.IDs) {
-		ids, err := common.GetAllEnabledDatasourceIDs()
+		ids, err := GetAllEnabledDatasourceIDs()
 		if err != nil {
 			panic(err)
 		}
@@ -50,7 +57,7 @@ func InternalGetAssistant(ctx context.Context, assistantID string) (*core.Assist
 	}
 
 	if util.ContainsAnyInArray("*", assistant.MCPConfig.IDs) {
-		ids, err := common.GetAllEnabledMCPServerIDs()
+		ids, err := GetAllEnabledMCPServerIDs()
 		if err != nil {
 			panic(err)
 		}
@@ -63,34 +70,24 @@ func InternalGetAssistant(ctx context.Context, assistantID string) (*core.Assist
 	}
 
 	if assistant.AnsweringModel.PromptConfig == nil {
-		assistant.AnsweringModel.PromptConfig = &core.PromptConfig{PromptTemplate: common.GenerateAnswerPromptTemplate}
+		assistant.AnsweringModel.PromptConfig = &core.PromptConfig{PromptTemplate: GenerateAnswerPromptTemplate}
 	} else if assistant.AnsweringModel.PromptConfig.PromptTemplate == "" {
-		assistant.AnsweringModel.PromptConfig.PromptTemplate = common.GenerateAnswerPromptTemplate
+		assistant.AnsweringModel.PromptConfig.PromptTemplate = GenerateAnswerPromptTemplate
 	}
 
-	switch assistant.Type {
-	case core.AssistantTypeDeepThink:
-		cfg := core.DeepThinkConfig{}
+	if assistant.Type == AssistantTypeDeepThink {
+		deepThinkCfg := core.DeepThinkConfig{}
 		buf := util.MustToJSONBytes(assistant.Config)
-		util.MustFromJSONBytes(buf, &cfg)
+		util.MustFromJSONBytes(buf, &deepThinkCfg)
 
-		if cfg.IntentAnalysisModel.PromptConfig == nil {
-			cfg.IntentAnalysisModel.PromptConfig = &core.PromptConfig{PromptTemplate: common.QueryIntentPromptTemplate}
-		} else if cfg.IntentAnalysisModel.PromptConfig.PromptTemplate == "" {
-			cfg.IntentAnalysisModel.PromptConfig.PromptTemplate = common.QueryIntentPromptTemplate
+		if deepThinkCfg.IntentAnalysisModel.PromptConfig == nil {
+			deepThinkCfg.IntentAnalysisModel.PromptConfig = &core.PromptConfig{PromptTemplate: QueryIntentPromptTemplate}
+		} else if deepThinkCfg.IntentAnalysisModel.PromptConfig.PromptTemplate == "" {
+			deepThinkCfg.IntentAnalysisModel.PromptConfig.PromptTemplate = QueryIntentPromptTemplate
 		}
 
-		//assistant.Config = deepThinkCfg
-		assistant.DeepThinkConfig = &cfg
-		break
-	case core.AssistantTypeDeepResearch:
-		cfg := core.DeepResearchConfig{}
-		buf := util.MustToJSONBytes(assistant.Config)
-		util.MustFromJSONBytes(buf, &cfg)
-
-		//assistant.Config = cfg
-		assistant.DeepResearchConfig = &cfg
-		break
+		assistant.Config = deepThinkCfg
+		assistant.DeepThinkConfig = &deepThinkCfg
 	}
 
 	if assistant.RolePrompt == "" {
@@ -98,18 +95,18 @@ func InternalGetAssistant(ctx context.Context, assistantID string) (*core.Assist
 	}
 
 	// Cache the assistant object
-	common.GeneralObjectCache.Set(core.AssistantCachePrimary, assistantID, assistant, time.Duration(30)*time.Minute)
+	GeneralObjectCache.Set(AssistantCachePrimary, assistantID, assistant, time.Duration(30)*time.Minute)
 	return assistant, true, nil
 }
 
 var TotalAssistantsCacheKey = "total_assistants"
 
 func ClearAssistantsCache() {
-	common.GeneralObjectCache.Delete(core.AssistantCachePrimary, TotalAssistantsCacheKey)
+	GeneralObjectCache.Delete(AssistantCachePrimary, TotalAssistantsCacheKey)
 }
 
 func CountAssistants() (int64, error) {
-	item := common.GeneralObjectCache.Get(core.AssistantCachePrimary, TotalAssistantsCacheKey)
+	item := GeneralObjectCache.Get(AssistantCachePrimary, TotalAssistantsCacheKey)
 	var assistantCache int64
 	if item != nil && !item.Expired() {
 		var ok bool
@@ -127,7 +124,7 @@ func CountAssistants() (int64, error) {
 	}
 	count, err := orm.Count(core.Assistant{}, util.MustToJSONBytes(queryDsl))
 	if err == nil {
-		common.GeneralObjectCache.Set(core.AssistantCachePrimary, TotalAssistantsCacheKey, count, time.Duration(30)*time.Minute)
+		GeneralObjectCache.Set(AssistantCachePrimary, TotalAssistantsCacheKey, count, time.Duration(30)*time.Minute)
 	}
 
 	return count, err
