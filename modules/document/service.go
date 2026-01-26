@@ -30,7 +30,7 @@ func QueryDocuments(ctx1 context.Context, userID string, teamsID []string, build
 	// to slow us down.
 	builder.Exclude("payload.*", "document_chunk", "ai_insights.embedding")
 	// Let framework skip the buildFuzzinessQuery() call as we did it here.
-	builder.SetFuzzinessBuilt(true)
+	builder.SkipFuzziness()
 
 	/*
 		Search type support:
