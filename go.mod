@@ -4,6 +4,8 @@ go 1.25.0
 
 replace infini.sh/framework => ../framework
 
+replace infini.sh/license => ../license
+
 replace github.com/libdns/libdns => ../vendor/src/github.com/libdns/libdns
 
 replace github.com/libdns/tencentcloud => ../vendor/src/github.com/libdns/tencentcloud
@@ -33,12 +35,12 @@ require (
 	github.com/disintegration/imaging v1.6.2
 	github.com/emirpasic/gods v1.18.1
 	github.com/esimov/pigo v1.4.6
+	github.com/go-faker/faker/v4 v4.1.0
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/gomarkdown/markdown v0.0.0-20250810172220-2e2c11897d1a
 	github.com/google/go-github/v74 v74.0.0
 	github.com/hirochachacha/go-smb2 v1.1.0
-	github.com/larksuite/oapi-sdk-go/v3 v3.4.26
 	github.com/lib/pq v1.10.9
 	github.com/lucasb-eyer/go-colorful v1.2.0
 	github.com/mark3labs/mcp-go v0.43.1
@@ -258,5 +260,6 @@ require (
 	google.golang.org/protobuf v1.36.8 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/cheggaaa/pb.v1 v1.0.28 // indirect
+	infini.sh/license v0.0.0-00010101000000-000000000000 // indirect
 	nhooyr.io/websocket v1.8.7 // indirect
 )
