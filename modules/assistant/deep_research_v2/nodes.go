@@ -77,14 +77,7 @@ func PlannerNode(ctx context.Context, state interface{}) (interface{}, error) {
 		s.GeneratePodcast = output.GeneratePodcast
 	}
 
-	// Format plan for better readability
-	formattedPlan := "生成的计划：\n"
-
 	state.(*State).Sender.SendChunkMessage(core.MessageTypeAssistant, common.ResearchPlannerEnd, util.MustToJSON(s.Plan), 0)
-
-	for _, step := range s.Plan {
-		formattedPlan += fmt.Sprintf("%s\n", step)
-	}
 
 	return s, nil
 }
