@@ -81,6 +81,7 @@ type DeepResearchConfig struct {
 	ToolsConfig      ToolsConfig `json:"tools_config"`      // Tool availability settings
 	EnableFactCheck  bool        `json:"enable_fact_check"` // Cross-reference facts across sources
 	CitationTracking bool        `json:"citation_tracking"` // Track citations and references
+	TavilyAPIKey     string      `json:"tavily_api_key"`    // Tavily API key for external web search
 
 	// Advanced Settings
 	RetryAttempts             int                `json:"retry_attempts"`     // Number of retry attempts on failure
@@ -292,6 +293,7 @@ func DefaultDeepResearchConfig() *DeepResearchConfig {
 		},
 		EnableFactCheck:   true,
 		CitationTracking:  true,
+		TavilyAPIKey:      "", // Empty by default, user must configure
 		RetryAttempts:     3,
 		ProgressReporting: true,
 		RateLimiting: RateLimitingConfig{
@@ -388,6 +390,11 @@ func (cfg *DeepResearchConfig) Validate() error {
 	}
 	if !validFormat {
 		return fmt.Errorf("report_format must be one of: markdown, html, pdf")
+	}
+
+	// Validate Tavily API key
+	if cfg.TavilyAPIKey == "" {
+		return fmt.Errorf("tavily_api_key is required")
 	}
 
 	return nil

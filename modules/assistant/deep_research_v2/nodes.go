@@ -103,8 +103,7 @@ func ResearcherNode(ctx context.Context, state interface{}) (interface{}, error)
 
 	// Initialize search manager if not already present
 	if s.SearchManager == nil {
-		tavilyAPIKey := "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" // Hardcoded test key as fallback
-		s.SearchManager = NewSearchToolManager(tavilyAPIKey)
+		s.SearchManager = NewSearchToolManager(s.Config.TavilyAPIKey)
 	}
 
 	// Initialize chapter outline if not present
