@@ -82,7 +82,6 @@ func InternalGetAssistant(ctx context.Context, assistantID string) (*core.Assist
 
 		//assistant.Config = deepThinkCfg
 		assistant.DeepThinkConfig = &cfg
-		break
 	case core.AssistantTypeDeepResearch:
 		cfg := core.DeepResearchConfig{}
 		buf := util.MustToJSONBytes(assistant.Config)
@@ -90,7 +89,6 @@ func InternalGetAssistant(ctx context.Context, assistantID string) (*core.Assist
 
 		//assistant.Config = cfg
 		assistant.DeepResearchConfig = &cfg
-		break
 	}
 
 	if assistant.RolePrompt == "" {
