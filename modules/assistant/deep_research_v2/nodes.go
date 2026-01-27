@@ -15,8 +15,8 @@ import (
 	"github.com/gomarkdown/markdown/html"
 	"github.com/gomarkdown/markdown/parser"
 	"github.com/tmc/langchaingo/llms"
-	"github.com/tmc/langchaingo/llms/openai"
 	"infini.sh/coco/core"
+	"infini.sh/coco/modules/assistant/langchain"
 	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/util"
 )
@@ -27,7 +27,7 @@ func PlannerNode(ctx context.Context, state interface{}) (interface{}, error) {
 
 	state.(*State).Sender.SendChunkMessage(core.MessageTypeAssistant, common.ResearchPlannerStart, "", 0)
 
-	llm, err := getLLM()
+	llm, err := langchain.GetLLMByConfig(s.Config.PlanningModel)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +86,7 @@ func PlannerNode(ctx context.Context, state interface{}) (interface{}, error) {
 func ResearcherNode(ctx context.Context, state interface{}) (interface{}, error) {
 	s := state.(*State)
 
-	llm, err := getLLM()
+	llm, err := langchain.GetLLMByConfig(s.Config.ResearchModel)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +108,7 @@ func ResearcherNode(ctx context.Context, state interface{}) (interface{}, error)
 
 	// Initialize chapter outline if not present
 	if len(s.ChapterOutline) == 0 {
-		err := s.generateChapterOutline(ctx)
+		err := s.generateChapterOutline(ctx, llm)
 		if err != nil {
 			log.Warnf("Failed to generate chapter outline: %v", err)
 		}
@@ -285,7 +285,7 @@ func ReporterNode(ctx context.Context, state interface{}) (interface{}, error) {
 
 	s := state.(*State)
 
-	llm, err := getLLM()
+	llm, err := langchain.GetLLMByConfig(s.Config.ReportModel)
 	if err != nil {
 		return nil, err
 	}
@@ -303,7 +303,7 @@ func ReporterNode(ctx context.Context, state interface{}) (interface{}, error) {
 func PodcastNode(ctx context.Context, state interface{}) (interface{}, error) {
 	s := state.(*State)
 
-	llm, err := getLLM()
+	llm, err := langchain.GetLLMByConfig(s.Config.PodcastModel)
 	if err != nil {
 		return nil, err
 	}
@@ -399,12 +399,6 @@ func PodcastNode(ctx context.Context, state interface{}) (interface{}, error) {
 	return s, nil
 }
 
-func getLLM() (llms.Model, error) {
-	// Use DeepSeek as per user preference
-	// Ensure OPENAI_API_KEY and OPENAI_API_BASE are set in the environment
-	return openai.New()
-}
-
 // extractImageURLs extracts image URLs from search results
 func extractImageURLs(collection *SearchResultCollection) []string {
 	var images []string
@@ -445,14 +439,9 @@ func extractImageURLs(collection *SearchResultCollection) []string {
 }
 
 // generateChapterOutline creates an intelligent chapter structure for the report
-func (s *State) generateChapterOutline(ctx context.Context) error {
+func (s *State) generateChapterOutline(ctx context.Context, llm llms.Model) error {
 	if len(s.Plan) == 0 {
 		return fmt.Errorf("no research plan available")
-	}
-
-	llm, err := getLLM()
-	if err != nil {
-		return err
 	}
 
 	prompt := fmt.Sprintf(`基于以下研究查询和研究计划，生成一份详细的报告章节大纲。章节应该逻辑清晰，覆盖研究的所有重要方面，每个章节都要有明确的重点和相关关键词。
