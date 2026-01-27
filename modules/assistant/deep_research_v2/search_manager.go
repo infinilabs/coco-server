@@ -286,20 +286,20 @@ func (collection *SearchResultCollection) FormatResultsForLLM() string {
 	}
 
 	var builder strings.Builder
-	builder.WriteString(fmt.Sprintf("关于'%s'的搜索结果（共%d条）:\n\n", collection.Query, len(collection.Results)))
+	builder.WriteString(fmt.Sprintf("Search results for '%s' (total %d items):\n\n", collection.Query, len(collection.Results)))
 
 	for i, result := range collection.Results {
 		builder.WriteString(fmt.Sprintf("[%d] %s\n", i+1, result.Title))
-		builder.WriteString(fmt.Sprintf("来源: %s\n", result.Source))
+		builder.WriteString(fmt.Sprintf("Source: %s\n", result.Source))
 		if result.URL != "" {
-			builder.WriteString(fmt.Sprintf("链接: %s\n", result.URL))
+			builder.WriteString(fmt.Sprintf("Link: %s\n", result.URL))
 		}
-		builder.WriteString(fmt.Sprintf("内容: %s\n\n", result.Content))
+		builder.WriteString(fmt.Sprintf("Content: %s\n\n", result.Content))
 	}
 
-	builder.WriteString(fmt.Sprintf("搜索质量评估: 置信度 %.1f%%，内容%s",
+	builder.WriteString(fmt.Sprintf("Search quality assessment: confidence %.1f%%, content %s",
 		collection.Confidence*100,
-		map[bool]string{true: "充足", false: "不足"}[collection.IsSufficient]))
+		map[bool]string{true: "sufficient", false: "insufficient"}[collection.IsSufficient]))
 
 	return builder.String()
 }

@@ -154,7 +154,7 @@ func ResearcherNode(ctx context.Context, state interface{}) (interface{}, error)
 		searchPayload["plan"] = step
 		searchPayload["step"] = util.MapStr{
 			"type": "search",
-			"name": "搜索资料",
+			"name": "Search Materials",
 			"payload": util.MapStr{
 				"from":  0,
 				"size":  10,
@@ -167,7 +167,7 @@ func ResearcherNode(ctx context.Context, state interface{}) (interface{}, error)
 		initialSearchCollection, err := s.SearchManager.SearchWithFeedback(ctx, step, true) // internal first
 		if err != nil {
 			log.Warnf("Initial search failed for step '%s': %v", step, err)
-			defErrorResult := fmt.Sprintf("Step: %s\nFindings: 搜索失败：%v", step, err)
+			defErrorResult := fmt.Sprintf("Step: %s\nFindings: Search failed: %v", step, err)
 			results = append(results, defErrorResult)
 
 			if stepIndex < len(s.StepResults) {
@@ -182,7 +182,7 @@ func ResearcherNode(ctx context.Context, state interface{}) (interface{}, error)
 		searchPayload["plan"] = step
 		searchPayload["step"] = util.MapStr{
 			"type": "search",
-			"name": "搜索资料",
+			"name": "Search Materials",
 			"payload": util.MapStr{
 				"total": 10,
 				"hits":  initialSearchCollection.Results,
@@ -237,7 +237,7 @@ Generate a more specific search query to obtain more detailed or relevant inform
 		completion, err := llms.GenerateFromSinglePrompt(ctx, llm, findingsPrompt)
 		if err != nil {
 			log.Warnf("Analysis failed for step '%s': %v", step, err)
-			errorResult := fmt.Sprintf("Step: %s\nFindings: 分析失败：%v\n\n搜索结果：%s",
+			errorResult := fmt.Sprintf("Step: %s\nFindings: Analysis failed: %v\n\nSearch results: %s",
 				step, err, initialSearchCollection.FormatResultsForLLM())
 			results = append(results, errorResult)
 
@@ -375,7 +375,7 @@ Create in %s.`, researchData, s.Request.Query, reportLang)
         <h2 style="margin: 0;">%s</h2>
         <button onclick="window.exportPodcastJson()" style="background-color: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 5px;">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-            导出 JSON 脚本
+            Export JSON Script
         </button>
     </div>
     <div id="podcastJsonData" style="display:none">%s</div>
