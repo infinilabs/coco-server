@@ -502,7 +502,7 @@ Requirements:
 		return fmt.Errorf("failed to parse chapter outline: %v", err)
 	}
 
-	log.Info("生成报告章节：", util.ToJson(chapters, true))
+	log.Info("Generated report chapters: ", util.ToJson(chapters, true))
 
 	s.ChapterOutline = chapters
 	return nil
@@ -654,7 +654,7 @@ func (s *State) initializeChapterContent(chapterID string) {
 func (s *State) generateChapterAwareAnalysisPrompt(step string, allocatedMaterials []MaterialReference, stepIndex int) string {
 	materialsInfo := ""
 	if len(allocatedMaterials) > 0 {
-		materialsInfo = fmt.Sprintf("\n已分配素材：\n")
+		materialsInfo = "\n已分配素材：\n"
 		for _, material := range allocatedMaterials {
 			materialsInfo += fmt.Sprintf("- %s (%s)\n", material.Title, material.Summary[:min(len(material.Summary), 100)])
 		}

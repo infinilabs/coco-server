@@ -282,7 +282,7 @@ func (collection *SearchResultCollection) evaluateSearchQuality() {
 // FormatResultsForLLM formats search results for LLM consumption
 func (collection *SearchResultCollection) FormatResultsForLLM() string {
 	if len(collection.Results) == 0 {
-		return "未找到相关搜索结果。"
+		return ""
 	}
 
 	var builder strings.Builder
