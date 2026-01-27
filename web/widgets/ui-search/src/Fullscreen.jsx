@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { formatESResult } from "./utils/es";
 import PropTypes from 'prop-types';
-import { useTranslation } from "react-i18next";
 
 import { debounce, isEmpty } from 'lodash';
 import Home from "./pages/Home";
@@ -46,8 +45,7 @@ const Fullscreen = props => {
   const isHomeSearchRef = useRef(true);
   const scrollRef = useRef(0)
   const [showToolbar, setShowToolbar] = useState(false);
-  const { t } = useTranslation();
-  const checkViewportRef = useRef(false);
+  const [checkViewport, setCheckViewport] = useState(false);
   const isViewportLoadingRef = useRef(false);
 
   const resetScroll = () => {
@@ -99,23 +97,38 @@ const Fullscreen = props => {
       loadLock.current ||
       isHome
     ) {
-      checkViewportRef.current = false;
+      setCheckViewport(false);
       return;
     }
 
-    const { scrollHeight, clientHeight } = containerRef.current;
-    const isViewportFilled = scrollHeight > clientHeight + 10;
+    const checkAfterRender = () => {
+      if (loading || !hasMore || loadLock.current) {
+        setCheckViewport(false);
+        return;
+      }
 
-    if (!isViewportFilled && hasMore) {
-      loadLock.current = true;
-      isViewportLoadingRef.current = true;
-      const { from, size } = queryParams;
-      scrollRef.current = (scrollRef.current || from) + size;
-      handleSearch(queryParams, false, false, true);
-      checkViewportRef.current = true;
-    } else {
-      checkViewportRef.current = false;
-    }
+      const container = containerRef.current;
+      const { scrollHeight, clientHeight, scrollTop } = container;
+      
+      const heightDiff = scrollHeight - clientHeight;
+      const hasRealScrollbar = heightDiff > 20;
+      const isViewportReallyFilled = hasRealScrollbar || scrollTop > 0;
+
+      if (!isViewportReallyFilled && hasMore) {
+        loadLock.current = true;
+        isViewportLoadingRef.current = true;
+        const { from, size } = queryParams;
+        scrollRef.current = (scrollRef.current || from) + size;
+        handleSearch(queryParams, false, false, true);
+        setCheckViewport(true);
+      } else {
+        setCheckViewport(false);
+      }
+    };
+
+    requestAnimationFrame(() => {
+      setTimeout(checkAfterRender, 200);
+    });
   }, [containerRef, loading, hasMore, loadLock, isHome, queryParams, handleSearch]);
 
   useEffect(() => {
@@ -180,7 +193,7 @@ const Fullscreen = props => {
           setHasMore(newData.length < (rs.hits.total || 0));
           if (!isScroll) isHomeSearchRef.current = false;
 
-          checkViewportRef.current = true;
+          setCheckViewport(true);
         } else {
           if (!isScroll) {
             setResult(formatESResult());
@@ -188,7 +201,7 @@ const Fullscreen = props => {
           }
           setHasMore(false);
           isHomeSearchRef.current = false;
-          checkViewportRef.current = false;
+          setCheckViewport(false);
         }
 
         if (onAggregation && shouldAggRef.current) {
@@ -226,19 +239,31 @@ const Fullscreen = props => {
   }, [JSON.stringify(queryParams)]);
 
   useEffect(() => {
-    if (!checkViewportRef.current) return;
+    if (!checkViewport) return;
     
     const timer = setTimeout(() => {
       checkViewportAndLoad();
-    }, 100);
+    }, 300);
 
     return () => clearTimeout(timer);
-  }, [checkViewportRef.current, checkViewportAndLoad]);
+  }, [checkViewport, checkViewportAndLoad]);
+
+  useEffect(() => {
+    if (data.length > 0 && !Number.isInteger(scrollRef.current) || scrollRef.current === 0) {
+      const timer = setTimeout(() => {
+        if (hasMore && !loading && !loadLock.current) {
+          setCheckViewport(true);
+        }
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [data, hasMore, loading]);
 
   useEffect(() => {
     const handleResize = () => {
       if (containerRef.current && hasMore && !loading && !loadLock.current) {
-        checkViewportRef.current = true;
+        setCheckViewport(true);
       }
     };
 
@@ -345,7 +370,7 @@ const Fullscreen = props => {
       queryParams={queryParams}
       setQueryParams={setQueryParams}
       onSearchFilter={(filter) => {
-        handleSearch({ ...queryParams, filter }, false, false)
+        handleSearch({ ...queryParams, filter }, false, true)
       }}
       onSearch={(params, shouldAsk, shouldAgg) => handleSearch({ ...queryParams, ...params, from: 0 }, shouldAsk, shouldAgg)}
       onAsk={onAsk}

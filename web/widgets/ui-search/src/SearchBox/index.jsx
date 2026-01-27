@@ -12,13 +12,14 @@ import { calculateCharLength } from "../utils/utils";
 import cloneDeep from "lodash/cloneDeep";
 import Operators, { SUGGESTION_OPERATORS } from "./Suggestions/Operators";
 import { Attachments } from "@infinilabs/attachments";
+import { isEmpty } from "lodash";
 
 const DEFAULT_SUGGESTIONS_SIZE = 5;
 
 export function SearchBox(props) {
   const { placeholder, queryParams, setQueryParams, onSearch, minimize = false, onSuggestion, filterFieldsMeta = {} } = props;
   const [currentQueryParams, setCurrentQueryParams] = useState(queryParams);
-  const { query, filters = [], action_type, search_type } = currentQueryParams
+  const { query, filter = {}, filters = [], action_type, search_type } = currentQueryParams
   const [suggestions, setSuggestions] = useState({});
   const [attachments, setAttachments] = useState([]);
   const [mainInputActive, setMainInputActive] = useState(false);
@@ -40,9 +41,10 @@ export function SearchBox(props) {
   const searchable = useMemo(() => {
     return (
       (query || '').trim().length > 0 ||
-      filters.some(filter => !!filter.value && !(Array.isArray(filter.value) && filter.value.length === 0))
+      filters.some(filter => !!filter.value && !(Array.isArray(filter.value) && filter.value.length === 0)) ||
+      !isEmpty(filter)
     );
-  }, [query, filters]);
+  }, [query, filters, filter]);
 
   const handleSearchActionClick = () => {
     isClickingSearchAction.current = true;
@@ -70,12 +72,6 @@ export function SearchBox(props) {
   }
 
   const handleSearch = (query, filters, actionType, searchType) => {
-    let shouldAsk = false
-    let shouldAgg = false
-    if (query !== queryParams?.query || JSON.stringify(filters) !== JSON.stringify(queryParams?.filters)) {
-      shouldAsk = true
-      shouldAgg = true
-    }
     const newFilter = cloneDeep(queryParams?.filter)
     if (Array.isArray(filters) && filters.length > 0) {
       filters.forEach((item) => {
@@ -85,7 +81,7 @@ export function SearchBox(props) {
         }
       })
     }
-    onSearch({ query, filter: newFilter, action_type: actionType, search_type: searchType, mode: !actionType || actionType === ACTION_TYPE_SEARCH ? 'search' : 'chat' }, shouldAsk, shouldAgg);
+    onSearch({ query, filter: newFilter, action_type: actionType, search_type: searchType, mode: !actionType || actionType === ACTION_TYPE_SEARCH ? 'search' : 'chat' }, true, true);
     setMainInputActive(false);
     setFilterState({ type: 'none', index: -1 });
     setAttachmentActive(false)
