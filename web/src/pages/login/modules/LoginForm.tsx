@@ -60,10 +60,7 @@ const LoginForm = memo(({ onProvider }: { onProvider?: () => void }) => {
                   normalizeUrl(`${getProxyEndpoint()}${sso_url}`)
                 );
               } else {
-                window.open(
-                  `https://dev.infini.cloud:27200${sso_url}&redirect_url=${encodeURIComponent(window.location.href)}`,
-                  '_self'
-                );
+                window.open(normalizeUrl(`${getEndpoint()}/${sso_url}&redirect_url=${encodeURIComponent(window.location.href)}`), '_self')
               }
             }}
           >
