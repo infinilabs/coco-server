@@ -7,6 +7,8 @@ package core
 import (
 	"fmt"
 	"time"
+
+	"golang.org/x/text/language"
 )
 
 type Assistant struct {
@@ -76,6 +78,7 @@ type DeepResearchConfig struct {
 	GeneratePodcast bool   `json:"generate_podcast"` // Enable podcast generation
 	IncludeImages   bool   `json:"include_images"`   // Include relevant images in report
 	VisualElements  bool   `json:"visual_elements"`  // Include charts, timelines, etc.
+	ReportLang      string `json:"report_lang"`      // Report language (BCP 47: "en-US", "zh-CN", etc.)
 
 	// Tool Integration Settings
 	ToolsConfig      ToolsConfig `json:"tools_config"`      // Tool availability settings
@@ -278,6 +281,7 @@ func DefaultDeepResearchConfig() *DeepResearchConfig {
 		QualityThreshold:           0.7,
 		Language:                   "zh-CN",
 		TimeHorizon:                "recent",
+		ReportLang:                 "en-US",
 		ReportFormat:               "html",
 		GeneratePodcast:            false, // Default to false - can be explicitly enabled
 		IncludeImages:              true,
@@ -333,6 +337,9 @@ func (cfg *DeepResearchConfig) Validate() error {
 	if cfg.ReportModel.Name == "" {
 		return fmt.Errorf("report model name is required")
 	}
+
+	// Validate and normalize report language
+	cfg.ReportLang = validateAndNormalizeReportLang(cfg.ReportLang)
 
 	// Validate research limits
 	if cfg.MaxSteps <= 0 {
@@ -564,4 +571,20 @@ func parseModelConfig(modelConfig map[string]interface{}) ModelConfig {
 	}
 
 	return smodel
+}
+
+// validateAndNormalizeReportLang validates and normalizes the report language.
+// Defaults to "en-US" if empty or invalid.
+func validateAndNormalizeReportLang(lang string) string {
+	if lang == "" {
+		return "en-US"
+	}
+
+	tag, err := language.Parse(lang)
+	if err != nil {
+		// Fallback to en-US if invalid
+		return "en-US"
+	}
+
+	return tag.String()
 }

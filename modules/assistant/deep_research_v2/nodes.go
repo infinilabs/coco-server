@@ -32,14 +32,17 @@ func PlannerNode(ctx context.Context, state interface{}) (interface{}, error) {
 		return nil, err
 	}
 
-	prompt := fmt.Sprintf(`你是一名研究规划师。请为以下查询创建一个分步研究计划：%s。
-同时，请判断用户是否希望同时生成播客（Podcast）脚本（例如查询中包含"播客"、"podcast"、"对话"、"脚本"等意图，或者用户明确要求生成播客）。
-请以 JSON 格式返回结果，格式如下：
+	prompt := fmt.Sprintf(`You are a research planner. Create a step-by-step research plan for the following query: %s.
+
+Also determine if the user wants to generate a podcast script (check for keywords like "podcast", "dialogue", "script" in the query).
+
+Return the result in JSON format:
 {
-    "plan": ["步骤1", "步骤2", ...],
+    "plan": ["step 1", "step 2", ...],
     "generate_podcast": true/false
 }
-必须使用中文回复。`, s.Request.Query)
+
+Respond in English.`, s.Request.Query)
 
 	completion, err := llms.GenerateFromSinglePrompt(ctx, llm, prompt)
 	if err != nil {
@@ -191,13 +194,13 @@ func ResearcherNode(ctx context.Context, state interface{}) (interface{}, error)
 		if !initialSearchCollection.IsSufficient {
 
 			// Generate refinement query based on initial results analysis
-			refinementPrompt := fmt.Sprintf(`基于以下搜索结果分析，为这个研究步骤生成一个更具体的搜索查询：
+			refinementPrompt := fmt.Sprintf(`Based on the following search results analysis, generate a more specific search query for this research step:
 
-研究步骤：%s
-初始搜索结果：%s
-当前置信度：%.2f%%
+Research step: %s
+Initial search results: %s
+Current confidence: %.2f%%
 
-请生成一个更具体的搜索查询来获得更详细或相关的信息。只返回搜索查询，不要其他内容。`,
+Generate a more specific search query to obtain more detailed or relevant information. Only return the search query, nothing else.`,
 				step,
 				initialSearchCollection.FormatResultsForLLM(),
 				initialSearchCollection.Confidence*100)
@@ -309,24 +312,30 @@ func PodcastNode(ctx context.Context, state interface{}) (interface{}, error) {
 	}
 
 	researchData := strings.Join(s.ResearchResults, "\n\n")
-	prompt := fmt.Sprintf(`你是一名专业的播客制作人。请根据以下研究结果，创作一段引人入胜的播客对话脚本。
-对话应该由两名主持人（Host 1 和 Host 2）进行，风格轻松幽默，通俗易懂。
-请深入讨论研究结果中的关键点，并加入一些生动的例子或类比。
+	reportLang := s.Config.ReportLang
+	if reportLang == "" {
+		reportLang = "en-US"
+	}
 
-请以 JSON 格式返回结果，格式如下：
+	prompt := fmt.Sprintf(`You are a professional podcast producer. Based on the following research results, create an engaging podcast dialogue script.
+
+The dialogue should be conducted by two hosts (Host 1 and Host 2), with a relaxed, humorous, and accessible style.
+Deeply discuss the key points from the research results, adding vivid examples or analogies.
+
+Return the result in JSON format:
 {
-    "title": "播客标题",
+    "title": "Podcast Title",
     "lines": [
-        {"speaker": "Host 1", "content": "对话内容..."},
-        {"speaker": "Host 2", "content": "对话内容..."}
+        {"speaker": "Host 1", "content": "dialogue content..."},
+        {"speaker": "Host 2", "content": "dialogue content..."}
     ]
 }
 
-研究结果：
+Research results:
 %s
 
-原始查询：%s
-必须使用中文创作。`, researchData, s.Request.Query)
+Original query: %s
+Create in %s.`, researchData, s.Request.Query, reportLang)
 
 	completion, err := llms.GenerateFromSinglePrompt(ctx, llm, prompt)
 	if err != nil {
@@ -444,31 +453,37 @@ func (s *State) generateChapterOutline(ctx context.Context, llm llms.Model) erro
 		return fmt.Errorf("no research plan available")
 	}
 
-	prompt := fmt.Sprintf(`基于以下研究查询和研究计划，生成一份详细的报告章节大纲。章节应该逻辑清晰，覆盖研究的所有重要方面，每个章节都要有明确的重点和相关关键词。
+	reportLang := s.Config.ReportLang
+	if reportLang == "" {
+		reportLang = "en-US"
+	}
 
-研究查询：%s
-研究计划：
+	prompt := fmt.Sprintf(`Based on the following research query and research plan, generate a detailed report chapter outline. Chapters should be logically structured, covering all important aspects of the research, with clear focus and relevant keywords for each chapter.
+
+Research query: %s
+Research plan:
 %s
 
-请生成 JSON 格式的章节大纲，格式如下：
+Generate JSON format chapter outline:
 [
   {
     "id": "chapter_1",
-    "title": "章节标题",
-    "description": "章节内容描述",
-    "priority": 5,  // 1-5 重要程度
-    "keywords": ["关键词1", "关键词2"],
-    "related_steps": [1, 2, 3]  // 相关的研究步骤编号
+    "title": "Chapter Title",
+    "description": "Chapter content description",
+    "priority": 5,  // 1-5 importance level
+    "keywords": ["keyword1", "keyword2"],
+    "related_steps": [1, 2, 3]  // Related research step numbers
   }
 ]
 
-要求：
-1. 生成 4-8 个章节
-2. 章节逻辑递进，从基础到深入
-3. 使用中文标题和描述
-4. 准确关联相关的研究步骤`,
+Requirements:
+1. Generate 4-8 chapters
+2. Chapters should progress logically, from basic to in-depth
+3. Use %s for titles and descriptions
+4. Accurately relate to relevant research steps`,
 		s.Request.Query,
-		strings.Join(s.Plan, "\n"))
+		strings.Join(s.Plan, "\n"),
+		reportLang)
 
 	completion, err := llms.GenerateFromSinglePrompt(ctx, llm, prompt)
 	if err != nil {
@@ -645,21 +660,27 @@ func (s *State) generateChapterAwareAnalysisPrompt(step string, allocatedMateria
 		}
 	}
 
-	return fmt.Sprintf(`你是一名研究员。请基于以下搜索结果，为这个研究步骤提供详细发现和洞察。
+	reportLang := s.Config.ReportLang
+	if reportLang == "" {
+		reportLang = "en-US"
+	}
 
-研究步骤：%s
-搜索结果详细信息：%s
+	return fmt.Sprintf(`You are a researcher. Based on the following search results, provide detailed findings and insights for this research step.
+
+Research step: %s
+Search results details: %s
 %s
 
-要求：
-1. 提供详细的发现和洞察
-2. 如果搜索结果不足，请明确指出
-3. 使用中文回复
-4. 按重要程度组织内容
-5. 结合已分配的章节素材进行分析`,
+Requirements:
+1. Provide detailed findings and insights
+2. If search results are insufficient, clearly state so
+3. Respond in %s
+4. Organize content by importance
+5. Combine analysis with assigned chapter materials`,
 		step,
-		"已搜索到的结果", // For preview, not actual search results - replaced direct call
-		materialsInfo)
+		"searched results", // For preview, not actual search results - replaced direct call
+		materialsInfo,
+		reportLang)
 }
 
 // updateChapterProgress updates chapter progress and status
@@ -701,11 +722,16 @@ func (s *State) generateTraditionalReport(ctx context.Context, llm llms.Model) (
 
 	imageInfo := ""
 	if len(s.Images) > 0 {
-		imageInfo = fmt.Sprintf("\n\n注意：研究过程中收集到 %d 张相关图片。在报告中适当的位置，你可以使用 [IMAGE_X：图片标题] 占位符来标记应该插入图片的位置（X 为 1 到 %d）。", len(s.Images), len(s.Images))
+		imageInfo = fmt.Sprintf("\n\nNote: During the research, %d relevant images were collected. In the report, you can use [IMAGE_X:Image Title] placeholders to mark where images should be inserted (X is 1 to %d).", len(s.Images), len(s.Images))
 	}
 
-	prompt := fmt.Sprintf("你是一名资深报告撰写员。请根据以下研究结果撰写一份全面的最终报告。使用 Markdown 格式。%s必须使用中文撰写报告：\n\n%s\n\n原始查询是：%s",
-		imageInfo, researchData, s.Request.Query)
+	reportLang := s.Config.ReportLang
+	if reportLang == "" {
+		reportLang = "en-US"
+	}
+
+	prompt := fmt.Sprintf("You are a senior report writer. Based on the following research results, write a comprehensive final report. Use Markdown format. %sWrite the report in %s:\n\n%s\n\nOriginal query was: %s",
+		imageInfo, reportLang, researchData, s.Request.Query)
 
 	completion, err := llms.GenerateFromSinglePrompt(ctx, llm, prompt)
 	if err != nil {
@@ -771,30 +797,36 @@ func (s *State) generateChapterContent(ctx context.Context, llm llms.Model) map[
 		materialsInfo := s.buildMaterialsInfo(content.Materials)
 		log.Infof("Generating content for chapter %s with %d materials", content.Title, len(content.Materials))
 
+		reportLang := s.Config.ReportLang
+		if reportLang == "" {
+			reportLang = "en-US"
+		}
+
 		// Generate comprehensive chapter content from materials
-		prompt := fmt.Sprintf(`你是专业的报告撰写员。
+		prompt := fmt.Sprintf(`You are a professional report writer.
 
-研究主题：%s
-章节标题：%s
+Research topic: %s
+Chapter title: %s
 
-基于以下经过智能分类的研究素材，为这个章节撰写详细的专业报告：
+Based on the following intelligently categorized research materials, write a detailed professional report for this chapter:
 
 %s
 
-要求：
-1. 内容必须基于提供的素材，不可加入虚构信息
-2. 保持学术性和专业性风格
-3. 整合所有相关素材，深度分析洞察
-4. 使用清晰的Markdown格式，合理的层次结构
-5. 按照逻辑结构组织内容，从基础到深入
-6. 在每个重要观点后标注相关的素材来源（如[1]、[2]等）
-7. 字数控制在1000-2000字
-8. 使用中文撰写
+Requirements:
+1. Content must be based on provided materials, do not add fictional information
+2. Maintain academic and professional style
+3. Integrate all relevant materials with in-depth analysis and insights
+4. Use clear Markdown format with reasonable hierarchy
+5. Organize content logically, from basic to in-depth
+6. Cite relevant material sources after each key point (e.g., [1], [2])
+7. Word count: 1000-2000 words
+8. Write in %s
 
-直接生成章节正文，不要添加额外的说明文字。`,
+Generate the chapter content directly, do not add explanatory text.`,
 			s.Request.Query,
 			content.Title,
-			materialsInfo)
+			materialsInfo,
+			reportLang)
 
 		completion, err := llms.GenerateFromSinglePrompt(ctx, llm, prompt)
 		if err != nil {
@@ -828,19 +860,19 @@ func (s *State) generateChapterContent(ctx context.Context, llm llms.Model) map[
 func (s *State) buildMaterialsInfo(materials []MaterialReference) string {
 	var builder strings.Builder
 
-	builder.WriteString("## 研究素材汇总\n\n")
+	builder.WriteString("## Research Materials Summary\n\n")
 	for i, material := range materials {
 		if i > 10 { // Limit for clarity
-			builder.WriteString(fmt.Sprintf("\n... 以及 %d 个其他相关素材\n", len(materials)-10))
+			builder.WriteString(fmt.Sprintf("\n... and %d other related materials\n", len(materials)-10))
 			break
 		}
 
-		builder.WriteString(fmt.Sprintf("### 素材[%d]: %s\n", i+1, material.Title))
-		builder.WriteString(fmt.Sprintf("- 来源: %s (相关度: %.2f)\n", material.Source, material.Relevance))
+		builder.WriteString(fmt.Sprintf("### Material[%d]: %s\n", i+1, material.Title))
+		builder.WriteString(fmt.Sprintf("- Source: %s (Relevance: %.2f)\n", material.Source, material.Relevance))
 		if material.URL != "" {
-			builder.WriteString(fmt.Sprintf("- 链接: %s\n", material.URL))
+			builder.WriteString(fmt.Sprintf("- Link: %s\n", material.URL))
 		}
-		builder.WriteString(fmt.Sprintf("- 内容摘要: %s\n", material.Summary))
+		builder.WriteString(fmt.Sprintf("- Content Summary: %s\n", material.Summary))
 		builder.WriteString("\n")
 	}
 	return builder.String()
@@ -848,17 +880,22 @@ func (s *State) buildMaterialsInfo(materials []MaterialReference) string {
 
 // extractKeyPoints extracts the main points from generated content
 func (s *State) extractKeyPoints(ctx context.Context, llm llms.Model, content string) ([]string, error) {
-	prompt := fmt.Sprintf(`请从以下内容中提取3-5个最重要的观点/要点，每个要点简短明了：
+	reportLang := s.Config.ReportLang
+	if reportLang == "" {
+		reportLang = "en-US"
+	}
 
-内容:
+	prompt := fmt.Sprintf(`Extract 3-5 of the most important points/key takeaways from the following content, each point should be concise and clear:
+
+Content:
 %s
 
-返回格式：
-- 要点1
-- 要点2
-- 要点3...
+Return format:
+- Point 1
+- Point 2
+- Point 3...
 
-不要添加其他文字`, content)
+Do not add other text. Respond in %s.`, content, reportLang)
 
 	completion, err := llms.GenerateFromSinglePrompt(ctx, llm, prompt)
 	if err != nil {
