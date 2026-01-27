@@ -338,8 +338,13 @@ func (cfg *DeepResearchConfig) Validate() error {
 		return fmt.Errorf("report model name is required")
 	}
 
-	// Validate and normalize report language
-	cfg.ReportLang = validateAndNormalizeReportLang(cfg.ReportLang)
+	// Validate report_lang if it is set
+	if cfg.ReportLang != "" {
+		_, err := language.Parse(cfg.ReportLang)
+		if err != nil {
+			return fmt.Errorf("report_lang is invalid: [%s]", err)
+		}
+	}
 
 	// Validate research limits
 	if cfg.MaxSteps <= 0 {
@@ -491,6 +496,9 @@ func MergeDeepResearchConfig(userConfig, defaultConfig *DeepResearchConfig) *Dee
 	if len(userConfig.Validation.DomainCredentials) == 0 {
 		userConfig.Validation.DomainCredentials = defaultConfig.Validation.DomainCredentials
 	}
+	if userConfig.ReportLang == "" {
+		userConfig.ReportLang = defaultConfig.ReportLang
+	}
 
 	return userConfig
 }
@@ -571,20 +579,4 @@ func parseModelConfig(modelConfig map[string]interface{}) ModelConfig {
 	}
 
 	return smodel
-}
-
-// validateAndNormalizeReportLang validates and normalizes the report language.
-// Defaults to "en-US" if empty or invalid.
-func validateAndNormalizeReportLang(lang string) string {
-	if lang == "" {
-		return "en-US"
-	}
-
-	tag, err := language.Parse(lang)
-	if err != nil {
-		// Fallback to en-US if invalid
-		return "en-US"
-	}
-
-	return tag.String()
 }
