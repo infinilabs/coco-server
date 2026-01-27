@@ -110,8 +110,6 @@ func NewRagContext(req *http.Request, assistant *core.Assistant, sessionID strin
 	//params.answeringModel = &assistant.AnsweringModel
 	params.answeringProvider = modelProvider
 
-	params.AssistantCfg.DeepResearchConfig = core.DefaultDeepResearchConfig()
-
 	return params, nil
 }
 

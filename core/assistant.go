@@ -6,6 +6,7 @@ package core
 
 import (
 	"fmt"
+	"slices"
 	"time"
 
 	"golang.org/x/text/language"
@@ -362,15 +363,8 @@ func (cfg *DeepResearchConfig) Validate() error {
 
 	// Validate research depth
 	validDepths := []string{"basic", "comprehensive", "exhaustive"}
-	validDepth := false
-	for _, depth := range validDepths {
-		if cfg.ResearchDepth == depth {
-			validDepth = true
-			break
-		}
-	}
-	if !validDepth {
-		return fmt.Errorf("research_depth must be one of: basic, comprehensive, exhaustive")
+	if !slices.Contains(validDepths, cfg.ResearchDepth) {
+		return fmt.Errorf("research_depth must be one of: %v", validDepths)
 	}
 
 	// Validate language
@@ -380,28 +374,14 @@ func (cfg *DeepResearchConfig) Validate() error {
 
 	// Validate time horizon
 	validHorizons := []string{"recent", "last_year", "last_2_years", "custom"}
-	validHorizon := false
-	for _, horizon := range validHorizons {
-		if cfg.TimeHorizon == horizon {
-			validHorizon = true
-			break
-		}
-	}
-	if !validHorizon {
-		return fmt.Errorf("time_horizon must be one of: recent, last_year, last_2_years, custom")
+	if !slices.Contains(validHorizons, cfg.TimeHorizon) {
+		return fmt.Errorf("time_horizon must be one of: %v", validHorizons)
 	}
 
 	// Validate report format
 	validFormats := []string{"markdown", "html", "pdf"}
-	validFormat := false
-	for _, format := range validFormats {
-		if cfg.ReportFormat == format {
-			validFormat = true
-			break
-		}
-	}
-	if !validFormat {
-		return fmt.Errorf("report_format must be one of: markdown, html, pdf")
+	if !slices.Contains(validFormats, cfg.ReportFormat) {
+		return fmt.Errorf("report_format must be one of: %v", validFormats)
 	}
 
 	// Validate Tavily API key
@@ -409,37 +389,14 @@ func (cfg *DeepResearchConfig) Validate() error {
 		return fmt.Errorf("tavily_api_key is required")
 	}
 
-	return nil
-}
-
-// GetTimeoutDuration converts timeout string to time.Duration
-func (cfg *DeepResearchConfig) GetTimeoutDuration() time.Duration {
-	switch cfg.Timeout {
-	case "30m":
-		return 30 * time.Minute
-	case "1h":
-		return 1 * time.Hour
-	case "2h":
-		return 2 * time.Hour
-	case "4h":
-		return 4 * time.Hour
-	case "8h":
-		return 8 * time.Hour
-	default:
-		// Default to 1 hour
-		return 1 * time.Hour
-	}
-}
-
-// IsResearchDepthValid checks if a research depth value is valid
-func IsResearchDepthValid(depth string) bool {
-	validDepths := []string{"basic", "comprehensive", "exhaustive"}
-	for _, validDepth := range validDepths {
-		if depth == validDepth {
-			return true
+	// Validate Timeout
+	if cfg.Timeout != "" {
+		if _, err := time.ParseDuration(cfg.Timeout); err != nil {
+			return fmt.Errorf("timeout is invalid: %s", err)
 		}
 	}
-	return false
+
+	return nil
 }
 
 // MergeDeepResearchConfig merges user config with defaults
@@ -501,82 +458,4 @@ func MergeDeepResearchConfig(userConfig, defaultConfig *DeepResearchConfig) *Dee
 	}
 
 	return userConfig
-}
-
-// Helper type assertion
-func fixModelSettingsType(settings interface{}) ModelSettings {
-	if settingsObj, ok := settings.(map[string]interface{}); ok {
-		maxTokens := int(0)
-		topP := float64(0)
-		temperature := float64(0)
-		if mt, ok := settingsObj["max_tokens"].(float64); ok {
-			maxTokens = int(mt)
-		}
-		if tp, ok := settingsObj["top_p"].(float64); ok {
-			topP = tp
-		}
-		if temp, ok := settingsObj["temperature"].(float64); ok {
-			temperature = temp
-		}
-		return ModelSettings{
-			MaxTokens:   maxTokens,
-			Temperature: temperature,
-			TopP:        topP,
-		}
-	}
-	return ModelSettings{}
-}
-
-// ParseDeepResearchConfig parses assistant config into DeepResearchConfig
-func ParseDeepResearchConfig(config map[string]interface{}) (*DeepResearchConfig, error) {
-	parsedConfig := DefaultDeepResearchConfig()
-
-	if planningModel, ok := config["planning_model"].(map[string]interface{}); ok {
-		// Parse model configuration...
-		parsedModel := parseModelConfig(planningModel)
-		if parsedModel.Name != "" {
-			parsedConfig.PlanningModel = parsedModel
-		}
-	}
-
-	if researchModel, ok := config["research_model"].(map[string]interface{}); ok {
-		parsedModel := parseModelConfig(researchModel)
-		if parsedModel.Name != "" {
-			parsedConfig.ResearchModel = parsedModel
-		}
-	}
-
-	// Continue parsing other models and settings...
-
-	if maxSteps, ok := config["max_steps"].(float64); ok {
-		parsedConfig.MaxSteps = int(maxSteps)
-	}
-
-	if researchDepth, ok := config["research_depth"].(string); ok {
-		if IsResearchDepthValid(researchDepth) {
-			parsedConfig.ResearchDepth = researchDepth
-		}
-	}
-
-	// Continue parsing other settings...
-
-	return parsedConfig, nil
-}
-
-func parseModelConfig(modelConfig map[string]interface{}) ModelConfig {
-	smodel := ModelConfig{}
-
-	if providerID, ok := modelConfig["provider_id"].(string); ok {
-		smodel.ProviderID = providerID
-	}
-
-	if name, ok := modelConfig["name"].(string); ok {
-		smodel.Name = name
-	}
-
-	if settings, ok := modelConfig["settings"].(map[string]interface{}); ok {
-		smodel.Settings = fixModelSettingsType(settings)
-	}
-
-	return smodel
 }
