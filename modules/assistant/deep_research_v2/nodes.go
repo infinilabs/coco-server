@@ -15,49 +15,34 @@ import (
 	"github.com/gomarkdown/markdown/html"
 	"github.com/gomarkdown/markdown/parser"
 	"github.com/tmc/langchaingo/llms"
-	"github.com/tmc/langchaingo/llms/openai"
 	"infini.sh/coco/core"
+	"infini.sh/coco/modules/assistant/langchain"
 	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/util"
 )
 
-type logKey struct{}
-
-func logf(ctx context.Context, format string, args ...interface{}) {
-	msg := fmt.Sprintf(format, args...)
-	// Always print to stdout
-	fmt.Print(msg)
-
-	// If log channel exists in context, send it there too
-	if ch, ok := ctx.Value(logKey{}).(chan string); ok {
-		// Non-blocking send to avoid stalling if channel is full or no one listening
-		select {
-		case ch <- msg:
-		default:
-		}
-	}
-}
-
 // PlannerNode generates a research plan based on the query.
 func PlannerNode(ctx context.Context, state interface{}) (interface{}, error) {
 	s := state.(*State)
-	logf(ctx, "--- 规划节点：正在为查询 '%s' 进行规划 ---\n", s.Request.Query)
 
 	state.(*State).Sender.SendChunkMessage(core.MessageTypeAssistant, common.ResearchPlannerStart, "", 0)
 
-	llm, err := getLLM()
+	llm, err := langchain.GetLLMByConfig(s.Config.PlanningModel)
 	if err != nil {
 		return nil, err
 	}
 
-	prompt := fmt.Sprintf(`你是一名研究规划师。请为以下查询创建一个分步研究计划：%s。
-同时，请判断用户是否希望同时生成播客（Podcast）脚本（例如查询中包含"播客"、"podcast"、"对话"、"脚本"等意图，或者用户明确要求生成播客）。
-请以 JSON 格式返回结果，格式如下：
+	prompt := fmt.Sprintf(`You are a research planner. Create a step-by-step research plan for the following query: %s.
+
+Also determine if the user wants to generate a podcast script (check for keywords like "podcast", "dialogue", "script" in the query).
+
+Return the result in JSON format:
 {
-    "plan": ["步骤1", "步骤2", ...],
+    "plan": ["step 1", "step 2", ...],
     "generate_podcast": true/false
 }
-必须使用中文回复。`, s.Request.Query)
+
+Respond in English.`, s.Request.Query)
 
 	completion, err := llms.GenerateFromSinglePrompt(ctx, llm, prompt)
 	if err != nil {
@@ -77,7 +62,6 @@ func PlannerNode(ctx context.Context, state interface{}) (interface{}, error) {
 	}
 
 	if err := json.Unmarshal([]byte(completion), &output); err != nil {
-		logf(ctx, "JSON 解析失败 (%v)，尝试简单解析\n", err)
 		// Fallback: simple parsing
 		lines := strings.Split(completion, "\n")
 		var plan []string
@@ -96,19 +80,7 @@ func PlannerNode(ctx context.Context, state interface{}) (interface{}, error) {
 		s.GeneratePodcast = output.GeneratePodcast
 	}
 
-	// Format plan for better readability
-	formattedPlan := "生成的计划：\n"
-
 	state.(*State).Sender.SendChunkMessage(core.MessageTypeAssistant, common.ResearchPlannerEnd, util.MustToJSON(s.Plan), 0)
-
-	for _, step := range s.Plan {
-		formattedPlan += fmt.Sprintf("%s\n", step)
-	}
-
-	logf(ctx, "%s", formattedPlan)
-	if s.GeneratePodcast {
-		logf(ctx, "检测到播客生成意图。\n")
-	}
 
 	return s, nil
 }
@@ -116,9 +88,8 @@ func PlannerNode(ctx context.Context, state interface{}) (interface{}, error) {
 // ResearcherNode executes the research plan using real search with feedback mechanism and chapter management.
 func ResearcherNode(ctx context.Context, state interface{}) (interface{}, error) {
 	s := state.(*State)
-	logf(ctx, "--- 研究节点：正在执行研究计划（使用真实搜索和章节管理） ---\n")
 
-	llm, err := getLLM()
+	llm, err := langchain.GetLLMByConfig(s.Config.ResearchModel)
 	if err != nil {
 		return nil, err
 	}
@@ -135,13 +106,12 @@ func ResearcherNode(ctx context.Context, state interface{}) (interface{}, error)
 
 	// Initialize search manager if not already present
 	if s.SearchManager == nil {
-		tavilyAPIKey := "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" // Hardcoded test key as fallback
-		s.SearchManager = NewSearchToolManager(tavilyAPIKey)
+		s.SearchManager = NewSearchToolManager(s.Config.TavilyAPIKey)
 	}
 
 	// Initialize chapter outline if not present
 	if len(s.ChapterOutline) == 0 {
-		err := s.generateChapterOutline(ctx)
+		err := s.generateChapterOutline(ctx, llm)
 		if err != nil {
 			log.Warnf("Failed to generate chapter outline: %v", err)
 		}
@@ -175,8 +145,6 @@ func ResearcherNode(ctx context.Context, state interface{}) (interface{}, error)
 			s.StepResults[stepIndex].Status = "in_progress"
 		}
 
-		logf(ctx, "\n>>> 研究步骤 %d/%d: %s\n", stepIndex+1, len(s.Plan), step)
-
 		var stepSearchQueries []string
 		var stepMaterials []MaterialReference
 
@@ -186,7 +154,7 @@ func ResearcherNode(ctx context.Context, state interface{}) (interface{}, error)
 		searchPayload["plan"] = step
 		searchPayload["step"] = util.MapStr{
 			"type": "search",
-			"name": "搜索资料",
+			"name": "Search Materials",
 			"payload": util.MapStr{
 				"from":  0,
 				"size":  10,
@@ -199,7 +167,7 @@ func ResearcherNode(ctx context.Context, state interface{}) (interface{}, error)
 		initialSearchCollection, err := s.SearchManager.SearchWithFeedback(ctx, step, true) // internal first
 		if err != nil {
 			log.Warnf("Initial search failed for step '%s': %v", step, err)
-			defErrorResult := fmt.Sprintf("Step: %s\nFindings: 搜索失败：%v", step, err)
+			defErrorResult := fmt.Sprintf("Step: %s\nFindings: Search failed: %v", step, err)
 			results = append(results, defErrorResult)
 
 			if stepIndex < len(s.StepResults) {
@@ -214,7 +182,7 @@ func ResearcherNode(ctx context.Context, state interface{}) (interface{}, error)
 		searchPayload["plan"] = step
 		searchPayload["step"] = util.MapStr{
 			"type": "search",
-			"name": "搜索资料",
+			"name": "Search Materials",
 			"payload": util.MapStr{
 				"total": 10,
 				"hits":  initialSearchCollection.Results,
@@ -224,23 +192,21 @@ func ResearcherNode(ctx context.Context, state interface{}) (interface{}, error)
 
 		// Step 2: Analyze search results and potentially refine search
 		if !initialSearchCollection.IsSufficient {
-			logf(ctx, "当前搜索结果不足，正在优化搜索策略...\n")
 
 			// Generate refinement query based on initial results analysis
-			refinementPrompt := fmt.Sprintf(`基于以下搜索结果分析，为这个研究步骤生成一个更具体的搜索查询：
+			refinementPrompt := fmt.Sprintf(`Based on the following search results analysis, generate a more specific search query for this research step:
 
-研究步骤：%s
-初始搜索结果：%s
-当前置信度：%.2f%%
+Research step: %s
+Initial search results: %s
+Current confidence: %.2f%%
 
-请生成一个更具体的搜索查询来获得更详细或相关的信息。只返回搜索查询，不要其他内容。`,
+Generate a more specific search query to obtain more detailed or relevant information. Only return the search query, nothing else.`,
 				step,
 				initialSearchCollection.FormatResultsForLLM(),
 				initialSearchCollection.Confidence*100)
 
 			refinementQuery, err := llms.GenerateFromSinglePrompt(ctx, llm, refinementPrompt)
 			if err == nil && strings.TrimSpace(refinementQuery) != "" {
-				logf(ctx, "优化搜索查询: %s\n", refinementQuery)
 				stepSearchQueries = append(stepSearchQueries, refinementQuery)
 
 				// Perform refined search
@@ -249,7 +215,6 @@ func ResearcherNode(ctx context.Context, state interface{}) (interface{}, error)
 					// Combine initial and refined results
 					initialSearchCollection.Results = append(initialSearchCollection.Results, refinedCollection.Results...)
 					initialSearchCollection.evaluateSearchQuality() // Re-evaluate
-					logf(ctx, "搜索优化完成，新置信度: %.2f%%\n", initialSearchCollection.Confidence*100)
 				}
 			}
 		}
@@ -272,7 +237,7 @@ func ResearcherNode(ctx context.Context, state interface{}) (interface{}, error)
 		completion, err := llms.GenerateFromSinglePrompt(ctx, llm, findingsPrompt)
 		if err != nil {
 			log.Warnf("Analysis failed for step '%s': %v", step, err)
-			errorResult := fmt.Sprintf("Step: %s\nFindings: 分析失败：%v\n\n搜索结果：%s",
+			errorResult := fmt.Sprintf("Step: %s\nFindings: Analysis failed: %v\n\nSearch results: %s",
 				step, err, initialSearchCollection.FormatResultsForLLM())
 			results = append(results, errorResult)
 
@@ -309,19 +274,6 @@ func ResearcherNode(ctx context.Context, state interface{}) (interface{}, error)
 	s.ResearchResults = results
 	s.Images = allImages
 
-	// Count total materials across all chapters
-	totalMaterials := 0
-	for _, content := range s.ChapterContents {
-		totalMaterials += len(content.Materials)
-	}
-
-	logf(ctx, "研究步骤完成：共处理了 %d 个步骤，总计 %d 个素材已分配到 %d 个章节\n", len(s.StepResults), totalMaterials, len(s.ChapterContents))
-	for _, content := range s.ChapterContents {
-		if len(content.Materials) > 0 {
-			logf(ctx, "章节 '%s': %d 个素材, 状态 '%s'\n", content.Title, len(content.Materials), content.Status)
-		}
-	}
-
 	return s, nil
 }
 
@@ -335,53 +287,55 @@ func ReporterNode(ctx context.Context, state interface{}) (interface{}, error) {
 	state.(*State).Sender.SendChunkMessage(core.MessageTypeAssistant, common.ResearchReporterStart, "", 0)
 
 	s := state.(*State)
-	logf(ctx, "--- 报告节点：基于章节结构生成最终报告 ---\n")
 
-	llm, err := getLLM()
+	llm, err := langchain.GetLLMByConfig(s.Config.ReportModel)
 	if err != nil {
 		return nil, err
 	}
 
 	// Strategy: Use the structured chapter approach if we have organized materials
 	if len(s.ChapterOutline) > 0 && len(s.ChapterContents) > 0 {
-		logf(ctx, "使用智能章节结构生成报告...\n")
 		return s.generateChapterBasedReport(ctx, llm)
 	}
 
 	// Fallback: Use traditional approach
-	logf(ctx, "传统方法生成报告（未使用章节结构）...\n")
 	return s.generateTraditionalReport(ctx, llm)
 }
 
 // PodcastNode generates a podcast script based on the research results.
 func PodcastNode(ctx context.Context, state interface{}) (interface{}, error) {
 	s := state.(*State)
-	logf(ctx, "--- 播客节点：正在生成播客脚本 ---\n")
 
-	llm, err := getLLM()
+	llm, err := langchain.GetLLMByConfig(s.Config.PodcastModel)
 	if err != nil {
 		return nil, err
 	}
 
 	researchData := strings.Join(s.ResearchResults, "\n\n")
-	prompt := fmt.Sprintf(`你是一名专业的播客制作人。请根据以下研究结果，创作一段引人入胜的播客对话脚本。
-对话应该由两名主持人（Host 1 和 Host 2）进行，风格轻松幽默，通俗易懂。
-请深入讨论研究结果中的关键点，并加入一些生动的例子或类比。
+	reportLang := s.Config.ReportLang
+	if reportLang == "" {
+		reportLang = "en-US"
+	}
 
-请以 JSON 格式返回结果，格式如下：
+	prompt := fmt.Sprintf(`You are a professional podcast producer. Based on the following research results, create an engaging podcast dialogue script.
+
+The dialogue should be conducted by two hosts (Host 1 and Host 2), with a relaxed, humorous, and accessible style.
+Deeply discuss the key points from the research results, adding vivid examples or analogies.
+
+Return the result in JSON format:
 {
-    "title": "播客标题",
+    "title": "Podcast Title",
     "lines": [
-        {"speaker": "Host 1", "content": "对话内容..."},
-        {"speaker": "Host 2", "content": "对话内容..."}
+        {"speaker": "Host 1", "content": "dialogue content..."},
+        {"speaker": "Host 2", "content": "dialogue content..."}
     ]
 }
 
-研究结果：
+Research results:
 %s
 
-原始查询：%s
-必须使用中文创作。`, researchData, s.Request.Query)
+Original query: %s
+Create in %s.`, researchData, s.Request.Query, reportLang)
 
 	completion, err := llms.GenerateFromSinglePrompt(ctx, llm, prompt)
 	if err != nil {
@@ -404,7 +358,6 @@ func PodcastNode(ctx context.Context, state interface{}) (interface{}, error) {
 	}
 
 	if err := json.Unmarshal([]byte(completion), &script); err != nil {
-		logf(ctx, "播客脚本 JSON 解析失败 (%v)，使用原始文本\n", err)
 		s.PodcastScript = fmt.Sprintf("<pre>%s</pre>", completion)
 		return s, nil
 	}
@@ -422,7 +375,7 @@ func PodcastNode(ctx context.Context, state interface{}) (interface{}, error) {
         <h2 style="margin: 0;">%s</h2>
         <button onclick="window.exportPodcastJson()" style="background-color: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 5px;">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-            导出 JSON 脚本
+            Export JSON Script
         </button>
     </div>
     <div id="podcastJsonData" style="display:none">%s</div>
@@ -452,14 +405,7 @@ func PodcastNode(ctx context.Context, state interface{}) (interface{}, error) {
 	sb.WriteString("</div>")
 
 	s.PodcastScript = sb.String()
-	logf(ctx, "播客脚本已生成。\n")
 	return s, nil
-}
-
-func getLLM() (llms.Model, error) {
-	// Use DeepSeek as per user preference
-	// Ensure OPENAI_API_KEY and OPENAI_API_BASE are set in the environment
-	return openai.New()
 }
 
 // extractImageURLs extracts image URLs from search results
@@ -502,41 +448,42 @@ func extractImageURLs(collection *SearchResultCollection) []string {
 }
 
 // generateChapterOutline creates an intelligent chapter structure for the report
-func (s *State) generateChapterOutline(ctx context.Context) error {
+func (s *State) generateChapterOutline(ctx context.Context, llm llms.Model) error {
 	if len(s.Plan) == 0 {
 		return fmt.Errorf("no research plan available")
 	}
 
-	llm, err := getLLM()
-	if err != nil {
-		return err
+	reportLang := s.Config.ReportLang
+	if reportLang == "" {
+		reportLang = "en-US"
 	}
 
-	prompt := fmt.Sprintf(`基于以下研究查询和研究计划，生成一份详细的报告章节大纲。章节应该逻辑清晰，覆盖研究的所有重要方面，每个章节都要有明确的重点和相关关键词。
+	prompt := fmt.Sprintf(`Based on the following research query and research plan, generate a detailed report chapter outline. Chapters should be logically structured, covering all important aspects of the research, with clear focus and relevant keywords for each chapter.
 
-研究查询：%s
-研究计划：
+Research query: %s
+Research plan:
 %s
 
-请生成 JSON 格式的章节大纲，格式如下：
+Generate JSON format chapter outline:
 [
   {
     "id": "chapter_1",
-    "title": "章节标题",
-    "description": "章节内容描述",
-    "priority": 5,  // 1-5 重要程度
-    "keywords": ["关键词1", "关键词2"],
-    "related_steps": [1, 2, 3]  // 相关的研究步骤编号
+    "title": "Chapter Title",
+    "description": "Chapter content description",
+    "priority": 5,  // 1-5 importance level
+    "keywords": ["keyword1", "keyword2"],
+    "related_steps": [1, 2, 3]  // Related research step numbers
   }
 ]
 
-要求：
-1. 生成 4-8 个章节
-2. 章节逻辑递进，从基础到深入
-3. 使用中文标题和描述
-4. 准确关联相关的研究步骤`,
+Requirements:
+1. Generate 4-8 chapters
+2. Chapters should progress logically, from basic to in-depth
+3. Use %s for titles and descriptions
+4. Accurately relate to relevant research steps`,
 		s.Request.Query,
-		strings.Join(s.Plan, "\n"))
+		strings.Join(s.Plan, "\n"),
+		reportLang)
 
 	completion, err := llms.GenerateFromSinglePrompt(ctx, llm, prompt)
 	if err != nil {
@@ -555,7 +502,7 @@ func (s *State) generateChapterOutline(ctx context.Context) error {
 		return fmt.Errorf("failed to parse chapter outline: %v", err)
 	}
 
-	log.Info("生成报告章节：", util.ToJson(chapters, true))
+	log.Info("Generated report chapters: ", util.ToJson(chapters, true))
 
 	s.ChapterOutline = chapters
 	return nil
@@ -707,27 +654,33 @@ func (s *State) initializeChapterContent(chapterID string) {
 func (s *State) generateChapterAwareAnalysisPrompt(step string, allocatedMaterials []MaterialReference, stepIndex int) string {
 	materialsInfo := ""
 	if len(allocatedMaterials) > 0 {
-		materialsInfo = fmt.Sprintf("\n已分配素材：\n")
+		materialsInfo = "\nAllocated materials:\n"
 		for _, material := range allocatedMaterials {
 			materialsInfo += fmt.Sprintf("- %s (%s)\n", material.Title, material.Summary[:min(len(material.Summary), 100)])
 		}
 	}
 
-	return fmt.Sprintf(`你是一名研究员。请基于以下搜索结果，为这个研究步骤提供详细发现和洞察。
+	reportLang := s.Config.ReportLang
+	if reportLang == "" {
+		reportLang = "en-US"
+	}
 
-研究步骤：%s
-搜索结果详细信息：%s
+	return fmt.Sprintf(`You are a researcher. Based on the following search results, provide detailed findings and insights for this research step.
+
+Research step: %s
+Search results details: %s
 %s
 
-要求：
-1. 提供详细的发现和洞察
-2. 如果搜索结果不足，请明确指出
-3. 使用中文回复
-4. 按重要程度组织内容
-5. 结合已分配的章节素材进行分析`,
+Requirements:
+1. Provide detailed findings and insights
+2. If search results are insufficient, clearly state so
+3. Respond in %s
+4. Organize content by importance
+5. Combine analysis with assigned chapter materials`,
 		step,
-		"已搜索到的结果", // For preview, not actual search results - replaced direct call
-		materialsInfo)
+		"searched results", // For preview, not actual search results - replaced direct call
+		materialsInfo,
+		reportLang)
 }
 
 // updateChapterProgress updates chapter progress and status
@@ -769,11 +722,16 @@ func (s *State) generateTraditionalReport(ctx context.Context, llm llms.Model) (
 
 	imageInfo := ""
 	if len(s.Images) > 0 {
-		imageInfo = fmt.Sprintf("\n\n注意：研究过程中收集到 %d 张相关图片。在报告中适当的位置，你可以使用 [IMAGE_X：图片标题] 占位符来标记应该插入图片的位置（X 为 1 到 %d）。", len(s.Images), len(s.Images))
+		imageInfo = fmt.Sprintf("\n\nNote: During the research, %d relevant images were collected. In the report, you can use [IMAGE_X:Image Title] placeholders to mark where images should be inserted (X is 1 to %d).", len(s.Images), len(s.Images))
 	}
 
-	prompt := fmt.Sprintf("你是一名资深报告撰写员。请根据以下研究结果撰写一份全面的最终报告。使用 Markdown 格式。%s必须使用中文撰写报告：\n\n%s\n\n原始查询是：%s",
-		imageInfo, researchData, s.Request.Query)
+	reportLang := s.Config.ReportLang
+	if reportLang == "" {
+		reportLang = "en-US"
+	}
+
+	prompt := fmt.Sprintf("You are a senior report writer. Based on the following research results, write a comprehensive final report. Use Markdown format. %sWrite the report in %s:\n\n%s\n\nOriginal query was: %s",
+		imageInfo, reportLang, researchData, s.Request.Query)
 
 	completion, err := llms.GenerateFromSinglePrompt(ctx, llm, prompt)
 	if err != nil {
@@ -839,30 +797,36 @@ func (s *State) generateChapterContent(ctx context.Context, llm llms.Model) map[
 		materialsInfo := s.buildMaterialsInfo(content.Materials)
 		log.Infof("Generating content for chapter %s with %d materials", content.Title, len(content.Materials))
 
+		reportLang := s.Config.ReportLang
+		if reportLang == "" {
+			reportLang = "en-US"
+		}
+
 		// Generate comprehensive chapter content from materials
-		prompt := fmt.Sprintf(`你是专业的报告撰写员。
+		prompt := fmt.Sprintf(`You are a professional report writer.
 
-研究主题：%s
-章节标题：%s
+Research topic: %s
+Chapter title: %s
 
-基于以下经过智能分类的研究素材，为这个章节撰写详细的专业报告：
+Based on the following intelligently categorized research materials, write a detailed professional report for this chapter:
 
 %s
 
-要求：
-1. 内容必须基于提供的素材，不可加入虚构信息
-2. 保持学术性和专业性风格
-3. 整合所有相关素材，深度分析洞察
-4. 使用清晰的Markdown格式，合理的层次结构
-5. 按照逻辑结构组织内容，从基础到深入
-6. 在每个重要观点后标注相关的素材来源（如[1]、[2]等）
-7. 字数控制在1000-2000字
-8. 使用中文撰写
+Requirements:
+1. Content must be based on provided materials, do not add fictional information
+2. Maintain academic and professional style
+3. Integrate all relevant materials with in-depth analysis and insights
+4. Use clear Markdown format with reasonable hierarchy
+5. Organize content logically, from basic to in-depth
+6. Cite relevant material sources after each key point (e.g., [1], [2])
+7. Word count: 1000-2000 words
+8. Write in %s
 
-直接生成章节正文，不要添加额外的说明文字。`,
+Generate the chapter content directly, do not add explanatory text.`,
 			s.Request.Query,
 			content.Title,
-			materialsInfo)
+			materialsInfo,
+			reportLang)
 
 		completion, err := llms.GenerateFromSinglePrompt(ctx, llm, prompt)
 		if err != nil {
@@ -896,19 +860,19 @@ func (s *State) generateChapterContent(ctx context.Context, llm llms.Model) map[
 func (s *State) buildMaterialsInfo(materials []MaterialReference) string {
 	var builder strings.Builder
 
-	builder.WriteString("## 研究素材汇总\n\n")
+	builder.WriteString("## Research Materials Summary\n\n")
 	for i, material := range materials {
 		if i > 10 { // Limit for clarity
-			builder.WriteString(fmt.Sprintf("\n... 以及 %d 个其他相关素材\n", len(materials)-10))
+			builder.WriteString(fmt.Sprintf("\n... and %d other related materials\n", len(materials)-10))
 			break
 		}
 
-		builder.WriteString(fmt.Sprintf("### 素材[%d]: %s\n", i+1, material.Title))
-		builder.WriteString(fmt.Sprintf("- 来源: %s (相关度: %.2f)\n", material.Source, material.Relevance))
+		builder.WriteString(fmt.Sprintf("### Material[%d]: %s\n", i+1, material.Title))
+		builder.WriteString(fmt.Sprintf("- Source: %s (Relevance: %.2f)\n", material.Source, material.Relevance))
 		if material.URL != "" {
-			builder.WriteString(fmt.Sprintf("- 链接: %s\n", material.URL))
+			builder.WriteString(fmt.Sprintf("- Link: %s\n", material.URL))
 		}
-		builder.WriteString(fmt.Sprintf("- 内容摘要: %s\n", material.Summary))
+		builder.WriteString(fmt.Sprintf("- Content Summary: %s\n", material.Summary))
 		builder.WriteString("\n")
 	}
 	return builder.String()
@@ -916,21 +880,26 @@ func (s *State) buildMaterialsInfo(materials []MaterialReference) string {
 
 // extractKeyPoints extracts the main points from generated content
 func (s *State) extractKeyPoints(ctx context.Context, llm llms.Model, content string) ([]string, error) {
-	prompt := fmt.Sprintf(`请从以下内容中提取3-5个最重要的观点/要点，每个要点简短明了：
+	reportLang := s.Config.ReportLang
+	if reportLang == "" {
+		reportLang = "en-US"
+	}
 
-内容:
+	prompt := fmt.Sprintf(`Extract 3-5 of the most important points/key takeaways from the following content, each point should be concise and clear:
+
+Content:
 %s
 
-返回格式：
-- 要点1
-- 要点2
-- 要点3...
+Return format:
+- Point 1
+- Point 2
+- Point 3...
 
-不要添加其他文字`, content)
+Do not add other text. Respond in %s.`, content, reportLang)
 
 	completion, err := llms.GenerateFromSinglePrompt(ctx, llm, prompt)
 	if err != nil {
-		return []string{"内容分析要点"}, err
+		return nil, err
 	}
 
 	lines := strings.Split(completion, "\n")
@@ -942,26 +911,13 @@ func (s *State) extractKeyPoints(ctx context.Context, llm llms.Model, content st
 		}
 	}
 
-	if len(keyPoints) == 0 {
-		keyPoints = []string{"相关内容要点"}
-	}
 	return keyPoints, nil
 }
 
 // generateChapterBasedReport creates a structured report based on the chapter outline and generated content
 func (s *State) generateChapterBasedReport(ctx context.Context, llm llms.Model) (*State, error) {
-	logf(ctx, "正在基于章节结构生成高质量研究报告...\n")
-	logf(ctx, "章节大纲数量: %d, ChapterContents数量: %d\n", len(s.ChapterOutline), len(s.ChapterContents))
 
 	// Debug output for chapters
-	for i, chapter := range s.ChapterOutline {
-		if content, exists := s.ChapterContents[chapter.ID]; exists {
-			logf(ctx, "Chapter %d (%s): %d materials, status: %s, content length: %d\n",
-				i+1, chapter.Title, len(content.Materials), content.Status, len(content.Content))
-		} else {
-			logf(ctx, "Chapter %d (%s): 无内容对象!\n", i+1, chapter.Title)
-		}
-	}
 
 	contents := s.ChapterContents
 	var reportBuilder strings.Builder
@@ -980,34 +936,21 @@ func (s *State) generateChapterBasedReport(ctx context.Context, llm llms.Model) 
 		}
 	}
 
-	logf(ctx, "收集到的要点数量：%d\n", len(allKeyPoints))
-
 	if len(allKeyPoints) > 0 {
-		logf(ctx, "生成要点列表：%d 项\n", len(allKeyPoints))
 		for _, point := range allKeyPoints {
 			reportBuilder.WriteString(fmt.Sprintf("- %s\n", point))
 		}
 		reportBuilder.WriteString("\n")
 	} else {
-		logf(ctx, "没有找到要点，摘要部分将为空\n")
 		reportBuilder.WriteString("本研究按照系统性分析方法，对主题进行了深入调研。\n\n")
 	}
 	reportBuilder.WriteString("## 目录\n\n")
-	for i, chapter := range s.ChapterOutline {
-		reportBuilder.WriteString(fmt.Sprintf("%d. [%s](#%s)\n", i+1, chapter.Title, strings.ToLower(strings.ReplaceAll(chapter.Title, " ", "-"))))
+	for _, chapter := range s.ChapterOutline {
+		reportBuilder.WriteString(fmt.Sprintf("%d. [%s](#%s)\n", len(s.ChapterOutline), chapter.Title, strings.ToLower(strings.ReplaceAll(chapter.Title, " ", "-"))))
 	}
 	reportBuilder.WriteString("\n---\n\n")
 
 	// Step 1: Check if we need to generate chapter content
-	logf(ctx, "检查章节内容状态：%d 个章节在结构大纲中\n", len(s.ChapterOutline))
-	for i, chapter := range s.ChapterOutline {
-		if content, exists := contents[chapter.ID]; exists {
-			logf(ctx, "第 %d 章 '%s': %d 个素材，内容长度 %d，状态 '%s'\n", i+1, chapter.Title, len(content.Materials), len(content.Content), content.Status)
-		} else {
-			logf(ctx, "第 %d 章 '%s': 未找到内容对象！\n", i+1, chapter.Title)
-		}
-	}
-
 	needsGeneration := false
 	for _, chapter := range s.ChapterOutline {
 		if content, exists := contents[chapter.ID]; exists {
@@ -1020,15 +963,12 @@ func (s *State) generateChapterBasedReport(ctx context.Context, llm llms.Model) 
 
 	// Generate chapter content if needed
 	if needsGeneration {
-		logf(ctx, "正在生成章节内容，因为有章节缺少已生成内容...\n")
 		contents = s.generateChapterContent(ctx, llm)
 	}
 
 	// Step 2: Generate each chapter content
-	logf(ctx, "正在生成 %d 个章节的内容\n", len(s.ChapterOutline))
-	for i, chapter := range s.ChapterOutline {
+	for _, chapter := range s.ChapterOutline {
 		if content, exists := contents[chapter.ID]; exists && content.Content != "" {
-			logf(ctx, "第 %d 章: %s\n", i+1, chapter.Title)
 
 			reportBuilder.WriteString(fmt.Sprintf("## %s\n\n", chapter.Title))
 			reportBuilder.WriteString(content.Content + "\n\n")
@@ -1071,8 +1011,6 @@ func (s *State) generateChapterBasedReport(ctx context.Context, llm llms.Model) 
 	renderer := html.NewRenderer(opts)
 
 	s.FinalReport = string(markdown.Render(doc, renderer))
-	logf(ctx, "基于章节结构的最终报告已生成！共 %d 章节，%d 张图片\n",
-		len(s.ChapterOutline), len(s.Images))
 
 	return s, nil
 }

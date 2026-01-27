@@ -137,7 +137,6 @@ func ProcessMessageAsync(ctx context.Context, userID string, reqMsg, replyMsg *c
 		//	replyMsg,
 		//	sender)
 		log.Info("end running deep research")
-		break
 	default:
 		//simple mode
 		var toolsMayHavePromisedResult = false
