@@ -654,7 +654,7 @@ func (s *State) initializeChapterContent(chapterID string) {
 func (s *State) generateChapterAwareAnalysisPrompt(step string, allocatedMaterials []MaterialReference, stepIndex int) string {
 	materialsInfo := ""
 	if len(allocatedMaterials) > 0 {
-		materialsInfo = "\n已分配素材：\n"
+		materialsInfo = "\nAllocated materials:\n"
 		for _, material := range allocatedMaterials {
 			materialsInfo += fmt.Sprintf("- %s (%s)\n", material.Title, material.Summary[:min(len(material.Summary), 100)])
 		}
@@ -899,7 +899,7 @@ Do not add other text. Respond in %s.`, content, reportLang)
 
 	completion, err := llms.GenerateFromSinglePrompt(ctx, llm, prompt)
 	if err != nil {
-		return []string{"内容分析要点"}, err
+		return nil, err
 	}
 
 	lines := strings.Split(completion, "\n")
@@ -911,9 +911,6 @@ Do not add other text. Respond in %s.`, content, reportLang)
 		}
 	}
 
-	if len(keyPoints) == 0 {
-		keyPoints = []string{"相关内容要点"}
-	}
 	return keyPoints, nil
 }
 
