@@ -42,22 +42,40 @@
     "icon" : "font_tongyiqianwenTongyi-Qianwen",
     "models" : [
       {
-        "name" : "tongyi-intent-detect-v3"
+        "name" : "tongyi-intent-detect-v3",
+        "settings" : {
+          "reasoning" : false
+        }
       },
       {
-        "name" : "deepseek-r1-distill-qwen-32b"
+        "name" : "deepseek-r1-distill-qwen-32b",
+        "settings" : {
+          "reasoning" : true
+        }
       },
       {
-        "name" : "deepseek-r1"
+        "name" : "deepseek-r1",
+        "settings" : {
+          "reasoning" : true
+        }
       },
       {
-        "name" : "qwen-max"
+        "name" : "qwen-max",
+        "settings" : {
+          "reasoning" : false
+        }
       },
       {
-        "name" : "qwq-plus"
+        "name" : "qwq-plus",
+        "settings" : {
+          "reasoning" : true
+        }
       },
       {
-        "name" : "qwen2.5-32b-instruct"
+        "name" : "qwen2.5-32b-instruct",
+        "settings" : {
+          "reasoning" : false
+        }
       }
     ],
     "base_url" : "https://dashscope.aliyuncs.com/compatible-mode/v1",

@@ -42,13 +42,22 @@
     "icon" : "font_gitee",
     "models" : [
       {
-        "name" : "deepseek-ai/DeepSeek-R1"
+        "name" : "deepseek-ai/DeepSeek-R1",
+        "settings" : {
+          "reasoning" : true
+        }
       },
       {
-        "name" : "deepseek-ai/DeepSeek-V3"
+        "name" : "deepseek-ai/DeepSeek-V3",
+        "settings" : {
+          "reasoning" : false
+        }
       },
       {
-        "name" : "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B"
+        "name" : "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
+        "settings" : {
+          "reasoning" : true
+        }
       }
     ],
     "base_url" : "https://ai.gitee.com",

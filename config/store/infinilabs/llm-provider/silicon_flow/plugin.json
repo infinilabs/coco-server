@@ -41,9 +41,9 @@
     "base_url" : "https://api.siliconflow.cn",
     "icon" : "font_siliconflow",
     "models" : [
-      {"name": "BAAI/bge-m3"},
-      {"name": "deepseek-ai/DeepSeek-R1"},
-      {"name": "deepseek-ai/DeepSeek-V3"}
+      {"name": "BAAI/bge-m3", "settings":{"reasoning":false}},
+      {"name": "deepseek-ai/DeepSeek-R1", "settings":{"reasoning":true}},
+      {"name": "deepseek-ai/DeepSeek-V3", "settings":{"reasoning":false}}
     ],
     "enabled" : false,
     "builtin" : true,

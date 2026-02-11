@@ -41,10 +41,10 @@
     "base_url": "https://api.cohere.ai/v1",
     "icon": "/assets/icons/llm/cohere.svg",
     "models": [
-      {"name": "command-r-plus"},
-      {"name": "command-r"},
-      {"name": "embed-english-v3"},
-      {"name": "embed-multilingual-v3"}
+      {"name": "command-r-plus", "settings":{"reasoning":true}},
+      {"name": "command-r", "settings":{"reasoning":true}},
+      {"name": "embed-english-v3", "settings":{"reasoning":false}},
+      {"name": "embed-multilingual-v3", "settings":{"reasoning":false}}
     ],
     "enabled": false,
     "builtin": true,
