@@ -41,10 +41,10 @@
     "base_url" : "https://ark.cn-beijing.volces.com/api/v3/",
     "icon" : "font_VolcanoArk",
     "models" : [
-      {"name": "doubao-1.5-vision-pro"},
-      {"name": "doubao-1.5-pro-32k"},
-      {"name": "doubao-1.5-pro-32k-character"},
-      {"name": "Doubao-1.5-pro-256k"}
+      {"name": "doubao-1.5-vision-pro", "settings":{"reasoning":false}},
+      {"name": "doubao-1.5-pro-32k", "settings":{"reasoning":false}},
+      {"name": "doubao-1.5-pro-32k-character", "settings":{"reasoning":false}},
+      {"name": "Doubao-1.5-pro-256k", "settings":{"reasoning":false}}
     ],
     "enabled" : false,
     "builtin" : true,

@@ -8,7 +8,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"infini.sh/framework/core/security"
 	"io"
 	"io/fs"
 	"net/http"
@@ -16,6 +15,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"infini.sh/framework/core/security"
 
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
@@ -256,7 +257,7 @@ func (h *APIHandler) initializeTemplate(userID string, dslTplFile string, indexP
 		apiKey = setupCfg.LLM.Token
 		apiType = setupCfg.LLM.Type
 		baseURL = setupCfg.LLM.Endpoint
-		defaultModel = fmt.Sprintf(`{"name": "%s"}`, setupCfg.LLM.DefaultModel)
+		defaultModel = fmt.Sprintf(`{"name": "%s", "settings":{"reasoning": %v}}`, setupCfg.LLM.DefaultModel, setupCfg.LLM.Reasoning)
 		answeringModel = fmt.Sprintf(`{"provider_id": "coco", "name": "%s",  "prompt": { "template": "{{.query}}" }}`, setupCfg.LLM.DefaultModel)
 	}
 

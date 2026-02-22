@@ -41,12 +41,12 @@
     "base_url" : "https://qianfan.baidubce.com/v2/",
     "icon" : "font_Qianfan",
     "models" : [
-      {"name": "ERNIE-4.0"},
-      {"name": "ERNIE 4.0 Trubo"},
-      {"name": "ERNlE Speed"},
-      {"name": "ERNIE Lite"},
-      {"name": "BGE Large ZH"},
-      {"name": "BGE Large EN"}
+      {"name": "ERNIE-4.0", "settings":{"reasoning":false}},
+      {"name": "ERNIE 4.0 Trubo", "settings":{"reasoning":false}},
+      {"name": "ERNlE Speed", "settings":{"reasoning":false}},
+      {"name": "ERNIE Lite", "settings":{"reasoning":false}},
+      {"name": "BGE Large ZH", "settings":{"reasoning":false}},
+      {"name": "BGE Large EN", "settings":{"reasoning":false}}
     ],
     "enabled" : false,
     "builtin" : true,
