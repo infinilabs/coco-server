@@ -35,7 +35,7 @@ func RunDeepResearchV2(ctx context.Context, query string, config *core.DeepResea
 		}
 	}()
 
-	log.Infof("正在启动 Deep-Research 研究代理，查询内容：%s\n", query)
+	log.Infof("Starting Deep-Research research agent, query: %s\n", query)
 
 	graph, err := NewGraph()
 	if err != nil {
@@ -68,15 +68,15 @@ func RunDeepResearchV2(ctx context.Context, query string, config *core.DeepResea
 	report["attachment"] = attachment.ID
 	finalState.Sender.SendChunkMessage(core.MessageTypeAssistant, common.ResearchReporterEnd, util.MustToJSON(report), 0)
 
-	log.Info("报告生成完成：")
-	log.Info("  MarkdownReport 长度: ", len(finalState.MarkdownReport))
-	log.Info("  FinalReport 长度: ", len(finalState.FinalReport))
-	log.Info("  章节大纲数量: ", len(finalState.ChapterOutline))
-	log.Info("  章节大纲: ", util.ToJson(finalState.ChapterOutline, true))
-	log.Info("  ChapterContents 数量: ", len(finalState.ChapterContents))
+	log.Info("Report generation completed:")
+	log.Info("  MarkdownReport length: ", len(finalState.MarkdownReport))
+	log.Info("  FinalReport length: ", len(finalState.FinalReport))
+	log.Info("  ChapterOutline count: ", len(finalState.ChapterOutline))
+	log.Info("  ChapterOutline: ", util.ToJson(finalState.ChapterOutline, true))
+	log.Info("  ChapterContents count: ", len(finalState.ChapterContents))
 	log.Info("  ChapterContents: ", util.ToJson(finalState.ChapterContents, true))
 	if finalState.MarkdownReport == "" {
-		log.Error("  警告: MarkdownReport 为空！")
+		log.Error("  WARNING: MarkdownReport is empty!")
 	}
 	replyMsg.Payload = report
 
