@@ -41,14 +41,14 @@
     "base_url" : "https://api.hunyuan.cloud.tencent.com",
     "icon" : "font_hunyuan",
     "models" : [
-      {"name": "hunyuan-pro"},
-      {"name": "hunyuan-standard"},
-      {"name": "hunyuan-lite"},
-      {"name": "hunyuan-standard-256k"},
-      {"name": "hunyuan-vision"},
-      {"name": "hunyuan-code"},
-      {"name": "hunyuan-role"},
-      {"name": "hunyuan-turbo"}
+      {"name": "hunyuan-pro", "settings":{"reasoning":false}},
+      {"name": "hunyuan-standard", "settings":{"reasoning":false}},
+      {"name": "hunyuan-lite", "settings":{"reasoning":false}},
+      {"name": "hunyuan-standard-256k", "settings":{"reasoning":false}},
+      {"name": "hunyuan-vision", "settings":{"reasoning":false}},
+      {"name": "hunyuan-code", "settings":{"reasoning":false}},
+      {"name": "hunyuan-role", "settings":{"reasoning":false}},
+      {"name": "hunyuan-turbo", "settings":{"reasoning":false}}
     ],
     "enabled" : false,
     "builtin" : true,

@@ -41,8 +41,8 @@
     "base_url" : "https://api.deepseek.com/v1",
     "icon" : "font_deepseek",
     "models" : [
-      {"name":"deepseek-chat"},
-      {"name":"deepseek-reasoner"}
+      {"name":"deepseek-chat", "settings":{"reasoning":false}},
+      {"name":"deepseek-reasoner", "settings":{"reasoning":true}}
     ],
     "enabled" : false,
     "builtin" : true,

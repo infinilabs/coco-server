@@ -42,8 +42,8 @@
     "base_url" : "https://api.openai.com",
     "icon" : "/assets/icons/llm/openai.svg",
     "models" : [
-      {"name":"gpt-4o-mini"},
-      {"name":"gpt-4o"}
+      {"name":"gpt-4o-mini", "settings":{"reasoning":false}},
+      {"name":"gpt-4o", "settings":{"reasoning":false}}
     ],
     "enabled" : false,
     "builtin" : true,

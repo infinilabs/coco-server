@@ -41,10 +41,10 @@
     "base_url" : "http://127.0.0.1:11434",
     "icon" : "/assets/icons/llm/ollama.svg",
     "models" : [
-      {"name":"qwen2.5:32b"},
-      {"name":"deepseek-r1:32b"},
-      {"name":"deepseek-r1:14b"},
-      {"name":"deepseek-r1:8b"}
+      {"name":"qwen2.5:32b", "settings":{"reasoning":false}},
+      {"name":"deepseek-r1:32b", "settings":{"reasoning":true}},
+      {"name":"deepseek-r1:14b", "settings":{"reasoning":true}},
+      {"name":"deepseek-r1:8b", "settings":{"reasoning":true}}
     ],
     "enabled" : false,
     "builtin" : true,

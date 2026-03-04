@@ -41,7 +41,7 @@
     "base_url" : "https://api.moonshot.cn",
     "icon" : "font_Moonshot",
     "models" : [
-      {"name": "moonshot-v1-auto"}
+      {"name": "moonshot-v1-auto", "settings":{"reasoning":true}}
     ],
     "enabled" : false,
     "builtin" : true,

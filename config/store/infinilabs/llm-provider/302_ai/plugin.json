@@ -42,19 +42,24 @@
     "icon" : "https://302.ai/img/logo.ico",
     "models" : [
       {
-        "name" : "deepseek-v3.1"
+        "name" : "deepseek-v3.1",
+        "settings":{"reasoning":false}
       },
       {
-        "name" : "deepseek-r1"
+        "name" : "deepseek-r1",
+        "settings":{"reasoning":true}
       },
       {
-        "name" : "qwen-max"
+        "name" : "qwen-max",
+        "settings":{"reasoning":true}
       },
       {
-        "name" : "Doubao-1.5-pro-32k"
+        "name" : "Doubao-1.5-pro-32k",
+        "settings":{"reasoning":false}
       },
       {
-        "name" : "kimi-latest"
+        "name" : "kimi-latest",
+        "settings":{"reasoning":true}
       }
     ],
     "base_url" : "https://api.302ai.cn",
