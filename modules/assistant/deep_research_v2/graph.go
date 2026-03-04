@@ -12,10 +12,10 @@ type StepResult struct {
 	StepNumber     int      `json:"step_number"`
 	StepQuery      string   `json:"step_query"`
 	SearchResults  string   `json:"search_results"`
-	Analysis       string   `json:"analysis"`
+	Analysis       string   `json:"analysis"` // Synthesized findings from a research step
 	Images         []string `json:"images"`
-	Status         string   `json:"status"` // "pending", "in_progress", "completed", "failed"
-	Confidence     float64  `json:"confidence"`
+	Status         string   `json:"status"`          // "pending", "in_progress", "completed", "failed"
+	Confidence     float64  `json:"confidence"`      //  The quality/sufficiency score (0.0 to 1.0) of search results for a step
 	SearchQueries  []string `json:"search_queries"`  // List of all search queries used for this step
 	ProcessingTime string   `json:"processing_time"` // Time taken to process this step
 	ErrorMessage   string   `json:"error_message"`   // Error details if failed
