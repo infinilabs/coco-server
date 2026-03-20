@@ -5,6 +5,7 @@ go 1.25.0
 replace infini.sh/framework => ../framework
 
 replace github.com/cihub/seelog => ../framework/lib/seelog
+replace infini.sh/license => ../license
 
 require (
 	code.gitea.io/sdk/gitea v0.22.0
@@ -240,5 +241,6 @@ require (
 	google.golang.org/protobuf v1.36.8 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/cheggaaa/pb.v1 v1.0.28 // indirect
+	infini.sh/license v0.0.0-00010101000000-000000000000 // indirect
 	nhooyr.io/websocket v1.8.7 // indirect
 )
