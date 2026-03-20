@@ -68,7 +68,7 @@ export const themeSettings = {
         'base-text': 'rgb(31, 31, 31)',
         container: 'rgb(255, 255, 255)',
         inverted: 'rgb(0, 20, 40)',
-        layout: 'rgba(238,240,243,1)'
+        layout: 'rgba(255,255,255,1)'
       }
     }
   },
@@ -115,7 +115,7 @@ export const overrideThemeSettings = {
         'base-text': 'rgb(31, 31, 31)',
         container: 'rgb(255, 255, 255)',
         inverted: 'rgb(0, 20, 40)',
-        layout: 'rgba(238,240,243,1)'
+        layout: 'rgba(255,255,255,1)'
       }
     }
   },

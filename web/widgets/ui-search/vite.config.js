@@ -16,9 +16,12 @@ export default defineConfig({
     open: true,
     host: true
   },
+  optimizeDeps: {
+    exclude: ['@infinilabs/ai-chat']
+  },
   resolve: {
     alias: {
-      '@': resolve(__dirname, 'src')
+      '@': resolve(__dirname, 'src'),
     }
   },
   build: {

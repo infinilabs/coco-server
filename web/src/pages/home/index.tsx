@@ -228,7 +228,7 @@ export function Component() {
       </Card>
       <Card
         className="p-32px"
-        classNames={{ body: 'flex gap-32px justify-start !p-0 -mx-32px' }}
+        classNames={{ body: 'flex gap-32px justify-start !p-0' }}
       >
         <Row
           className="w-100%"

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import "./src/i18n"; // Initialize i18n
 import { createRoot } from "react-dom/client";
 import { FullscreenPage } from "./src/index.jsx";
 
@@ -26,6 +27,194 @@ function DevApp() {
     from: 0,
     size: 10,
   });
+
+  const [activeChat, setActiveChat] = useState("1");
+  const [chats, setChats] = useState([
+    {
+      _id: "1",
+      _source: {
+        title: "Initial Chat",
+        created: new Date().toISOString(),
+        updated: new Date().toISOString()
+      },
+      messages: [
+        {
+          _id: "1-1",
+          _source: {
+            type: "assistant",
+            message: "Hello! I am your AI assistant. How can I help you today?",
+            created: new Date().toISOString(),
+            user: { username: "Assistant" }
+          }
+        },
+        {
+          _id: "1-2",
+          _source: {
+            type: "user",
+            message: "what is coco?",
+            created: new Date().toISOString(),
+            user: { username: "User" },
+            attachments: ["1", "2", "3"]
+          }
+        }
+      ]
+    },
+    {
+      _id: "2",
+      _source: {
+        title: "Welding Standards Inquiry",
+        created: new Date(Date.now() - 86400000).toISOString(),
+        updated: new Date(Date.now() - 86400000).toISOString()
+      },
+      messages: [
+        {
+          _id: "2-1",
+          _source: {
+            type: "user",
+            message: "Show me some welding standards.",
+            created: new Date().toISOString(),
+            user: { username: "User" }
+          }
+        },
+        {
+          _id: "2-2",
+          _source: {
+            type: "assistant",
+            message: "Here are some relevant details:\n\n- **Standard**: QJ1843A-96\n- **Category**: Welding",
+            created: new Date().toISOString(),
+            user: { username: "Assistant" }
+          }
+        }
+      ]
+    },
+    {
+      _id: "3",
+      _source: {
+        title: "Previous Week Discussion",
+        created: new Date(Date.now() - 604800000).toISOString(),
+        updated: new Date(Date.now() - 604800000).toISOString()
+      },
+      messages: []
+    }
+  ]);
+
+  const onHistorySelect = (chat) => {
+    const chatId = chat._id || chat;
+    console.log("History selected:", chatId);
+    setActiveChat(chatId);
+  };
+
+  const handleSendMessage = async (content) => {
+    if (!activeChat) return;
+
+    const newMessage = {
+      _id: Date.now().toString(),
+      _source: {
+        type: "user",
+        message: content,
+        created: new Date().toISOString(),
+        user: { username: "User" }
+      }
+    };
+
+    setChats(prevChats => prevChats.map(chat => {
+      if (chat._id === activeChat) {
+        return {
+          ...chat,
+          messages: [...(chat.messages || []), newMessage]
+        };
+      }
+      return chat;
+    }));
+
+    // Simulate assistant response
+    setTimeout(() => {
+        const assistantMsg = {
+            _id: (Date.now() + 1).toString(),
+            _source: {
+                type: "assistant",
+                message: "I received your message: " + content + "\n\nBased on my analysis, here is a comprehensive answer.\n\nCoco AI is designed to help you find information quickly and efficiently.",
+                created: new Date().toISOString(),
+                user: { username: "Assistant" },
+                details: [
+                    {
+                        type: "query_intent",
+                        payload: {
+                            category: "General Inquiry",
+                            intent: "User Interaction",
+                            query: [content],
+                            keyword: ["interaction", "test"],
+                            suggestion: ["Tell me more about Coco AI", "How does search work?"]
+                        }
+                    },
+                    {
+                        type: "think",
+                        description: "The user has sent a message. I need to acknowledge it and provide a relevant response.\n\n1. Analyze input content.\n2. Retrieve relevant knowledge.\n3. Formulate response."
+                    },
+                    {
+                        type: "fetch_source",
+                        payload: [
+                            {
+                                id: "doc_1",
+                                title: "Coco AI Documentation",
+                                summary: "Official documentation for Coco AI features and usage.",
+                                url: "https://docs.coco-ai.com"
+                            },
+                            {
+                                id: "doc_2",
+                                title: "User Guide",
+                                summary: "Comprehensive guide for new users.",
+                                url: "https://guide.coco-ai.com"
+                            }
+                        ]
+                    }
+                ]
+            }
+        };
+        setChats(prevChats => prevChats.map(chat => {
+            if (chat._id === activeChat) {
+                return {
+                ...chat,
+                messages: [...(chat.messages || []), assistantMsg]
+                };
+            }
+            return chat;
+        }));
+    }, 1000);
+  };
+
+  const currentChatObj = chats.find(c => c._id === activeChat);
+  const currentMessages = currentChatObj ? currentChatObj.messages : [];
+
+
+  const onHistorySearch = (query) => {
+    console.log("History search:", query);
+    // Simulate client-side filtering for dev
+    // In real app, this might be a server call or just local filtering
+  };
+
+  const onHistoryRefresh = async () => {
+    console.log("History refreshing...");
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    console.log("History refreshed");
+  };
+
+  const onHistoryRename = async (chatId, newTitle) => {
+    console.log("Rename chat:", chatId, newTitle);
+    setChats(chats.map(chat =>
+      chat._id === chatId
+        ? { ...chat, _source: { ...chat._source, title: newTitle } }
+        : chat
+    ));
+  };
+
+  const onHistoryRemove = async (chatId) => {
+    console.log("Remove chat:", chatId);
+    setChats(chats.filter(chat => chat._id !== chatId));
+    if (activeChat === chatId) {
+      setActiveChat(null);
+    }
+  };
 
   const enableQueryParams = true;
 
@@ -72,9 +261,14 @@ function DevApp() {
                 "禁用内容: 禁止使用未充分烘干的焊条进行电弧焊熔焊。 建议工艺: 焊条使用前应按规定进行烘干，酸性焊条一般在150℃-200℃、1h-2h烘干;碱性焊条一般在300℃-400℃、1h-2h烘干。 专业分类: 焊接 标准: 《QJ1843A-96<br>结构钢、不锈钢熔焊工艺规范》",
               tags: ["焊接"],
               title: "禁止使用未充分烘干的焊条进行电弧焊熔焊",
-              type: "pdf",
+              // type: "pdf",
               updated: "2025-08-08T02:45:38.382266717Z",
               url: "http://coco.infini.cloud/bq/1.GBT 22086-2008《铝及铝合金弧焊推荐工艺》.pdf",
+              cover: "https://gips1.baidu.com/it/u=3579958525,4293415030&fm=3074&app=3074&f=PNG?w=2560&h=1440",
+              metadata: {
+                content_type: "pdf",
+                preview_url: "http://coco.infini.cloud/bq/1.GBT 22086-2008《铝及铝合金弧焊推荐工艺》.pdf"
+              }
             },
           },
           {
@@ -110,9 +304,13 @@ function DevApp() {
               tags: ["焊接"],
               title:
                 "熔焊焊接禁止在焊缝交叉处起弧、收弧:多层熔焊焊接各层处起弧、收弧位置严禁重叠",
-              type: "pdf",
+              // type: "pdf",
               updated: "2025-08-08T02:45:39.149459334Z",
               url: "http://coco.infini.cloud/bq/1.GBT 22086-2008《铝及铝合金弧焊推荐工艺》.pdf",
+              metadata: {
+                content_type: "pdf",
+                preview_url: "http://coco.infini.cloud/bq/1.GBT 22086-2008《铝及铝合金弧焊推荐工艺》.pdf"
+              }
             },
           },
           {
@@ -147,9 +345,13 @@ function DevApp() {
                 "禁用内容: 禁止使用热导式电阻真空计测量离子渗氨的工作气压。 建议工艺: 一般采用薄膜式真空计测量离子渗氮的工作气压。 专业分类: 热处理 标准: 《GB/T34883-2017<br>离子渗氦》",
               tags: ["热处理"],
               title: "禁止使用热导式电阻真空计测量离子渗氨的工作气压",
-              type: "pdf",
+              // type: "pdf",
               updated: "2025-08-08T02:45:18.088085437Z",
               url: "http://coco.infini.cloud/bq/2.GB 6514-2023《涂装作业安全规程 涂漆工艺安全及其通风》.pdf",
+              metadata: {
+                content_type: "pdf",
+                preview_url: "http://coco.infini.cloud/bq/2.GB 6514-2023《涂装作业安全规程 涂漆工艺安全及其通风》.pdf"
+              }
             },
           },
           {
@@ -185,10 +387,135 @@ function DevApp() {
               tags: ["机械加工"],
               title:
                 "需瓷质阳极化的铝合金零件精加工(表面粗糙度值小于Ra0.4)时，禁止采用乳化液冷却",
-              type: "pdf",
+              // type: "pdf",
               updated: "2025-08-08T02:45:40.199695999Z",
               url: "http://coco.infini.cloud/bq/3.GBT 12611-2008《金属零（部）件镀覆前质量控制技术要求》.pdf",
+              metadata: {
+                content_type: "pdf",
+                preview_url: "http://coco.infini.cloud/bq/3.GBT 12611-2008《金属零（部）件镀覆前质量控制技术要求》.pdf"
+              }
             },
+          },
+          // image
+          {
+            _index: "coco_document-v2",
+            _type: "_doc",
+            _id: "d2alse8qlqbca26pbjv0",
+            _score: 0.6860195,
+            _source: {
+              category: "壁纸",
+              content: "",
+              created: "2025-08-08T02:17:29.394215628Z",
+              icon: "",
+              id: "d2alse8qlqbca26pbju7",
+              lang: "cn",
+              last_updated_by: {
+                timestamp: "2025-08-08T02:25:00Z",
+                user: {
+                  username: "test",
+                },
+              },
+              owner: {
+                username: "test",
+              },
+              size: 1048576,
+              source: {
+                id: "d2aloi8qlqbca26pbilg",
+                name: "壁纸",
+                type: "connector",
+              },
+              summary: "",
+              tags: ["壁纸"],
+              title: "黑色壁纸全屏🌌,探索星空的奥秘✨",
+              // type: "image",
+              updated: "2025-08-08T02:45:38.382266717Z",
+              cover: "https://gips1.baidu.com/it/u=3579958525,4293415030&fm=3074&app=3074&f=PNG?w=2560&h=1440",
+              url: "https://gips1.baidu.com/it/u=3579958525,4293415030&fm=3074&app=3074&f=PNG?w=2560&h=1440",
+              metadata: {
+                content_type: "image",
+                preview_url: "https://gips1.baidu.com/it/u=3579958525,4293415030&fm=3074&app=3074&f=PNG?w=2560&h=1440"
+              }
+            },
+          },
+          {
+            _index: "coco_document-v2",
+            _type: "_doc",
+            _id: "d2alse8qlqbca26pbjv0",
+            _score: 0.6860195,
+            _source: {
+              category: "壁纸",
+              content: "",
+              created: "2025-08-08T02:17:29.394215628Z",
+              icon: "",
+              id: "d2alse8qlqbca26pbju1",
+              lang: "cn",
+              last_updated_by: {
+                timestamp: "2025-08-08T02:25:00Z",
+                user: {
+                  username: "test",
+                },
+              },
+              owner: {
+                username: "test",
+              },
+              size: 1048576,
+              source: {
+                id: "d2aloi8qlqbca26pbilg",
+                name: "壁纸",
+                type: "connector",
+              },
+              summary: "",
+              tags: ["壁纸"],
+              title: "摄影壁纸创意图,捕捉山水间的灵动之美🏞️",
+              // type: "image",
+              updated: "2025-08-08T02:45:38.382266717Z",
+              cover: "https://img1.baidu.com/it/u=3879890807,997649473&fm=253&fmt=auto&app=138&f=JPEG?w=889&h=500",
+              url: "https://img1.baidu.com/it/u=3879890807,997649473&fm=253&fmt=auto&app=138&f=JPEG?w=889&h=500",
+              metadata: {
+                content_type: "image",
+                preview_url: "https://img1.baidu.com/it/u=3879890807,997649473&fm=253&fmt=auto&app=138&f=JPEG?w=889&h=500"
+              }
+            },
+          },
+          {
+            _index: "coco_document-v2",
+            _type: "_doc",
+            _id: "d2alse8qlqbca26pbjv0",
+            _score: 0.6860195,
+            _source: {
+              category: "壁纸",
+              content: "",
+              created: "2025-08-08T02:17:29.394215628Z",
+              icon: "",
+              id: "d2alse8qlqbca26pbju8",
+              lang: "cn",
+              last_updated_by: {
+                timestamp: "2025-08-08T02:25:00Z",
+                user: {
+                  username: "test",
+                },
+              },
+              owner: {
+                username: "test",
+              },
+              size: 1048576,
+              source: {
+                id: "d2aloi8qlqbca26pbilg",
+                name: "壁纸",
+                type: "connector",
+              },
+              summary: "",
+              tags: ["壁纸"],
+              title: "摄影壁纸创意图,捕捉山水间的灵动之美🏞️",
+              // type: "image", 
+              updated: "2025-08-08T02:45:38.382266717Z",
+              cover: "https://img2.baidu.com/it/u=1088560728,493918909&fm=253&app=138&f=JPEG?w=889&h=500",
+              url: "https://img2.baidu.com/it/u=1088560728,493918909&fm=253&app=138&f=JPEG?w=889&h=500",
+              metadata: {
+                content_type: "image",
+                preview_url: "https://img2.baidu.com/it/u=1088560728,493918909&fm=253&app=138&f=JPEG?w=889&h=500"
+              }
+            }
           },
         ],
       },
@@ -358,11 +685,120 @@ function DevApp() {
     }
   };
 
+  const mockSuggestion = async (tag, params, callback) => {
+    let res
+    if (tag === 'field_names') {
+      res = {
+        "query": "/Users/medcl/go/src/infini.sh/coco/web/widgets",
+        "suggestions": [
+          {
+            "suggestion": "Category",
+            "payload": { 
+              "field_name": "category", 
+              "field_data_type": "keyword", 
+              "support_multi_select": true  
+            }
+          },
+        ]
+      }
+    } else if (tag === 'field_values') {
+      res = {
+        "query": "/Users/medcl/go/src/infini.sh/coco/web/widgets",
+        "suggestions": [
+          {
+            "suggestion": "/Users/medcl/go/src/infini.sh/coco/web/widgets/ui-search/node_modules/lucide-react/dist/esm/icons/"
+          },
+          {
+            "suggestion": "/Users/medcl/go/src/infini.sh/coco/web/widgets/ui-search/node_modules/@ant-design/icons/"
+          },
+          {
+            "suggestion": "/Users/medcl/go/src/infini.sh/coco/web/widgets/ui-search/node_modules/@ant-design/icons/lib/icons/"
+          },
+          {
+            "suggestion": "/Users/medcl/go/src/infini.sh/coco/web/widgets/ui-search/node_modules/@ant-design/icons-svg/es/asn/"
+          },
+          {
+            "suggestion": "/Users/medcl/go/src/infini.sh/coco/web/widgets/ui-search/node_modules/@ant-design/icons-svg/lib/asn/"
+          },
+          {
+            "suggestion": "/Users/medcl/go/src/infini.sh/coco/web/widgets/ui-search/node_modules/@ant-design/icons/es/icons/"
+          },
+          {
+            "suggestion": "/Users/medcl/go/src/infini.sh/coco/web/widgets/ui-search/node_modules/lodash-es/"
+          },
+          {
+            "suggestion": "/Users/medcl/go/src/infini.sh/coco/web/widgets/ui-search/node_modules/lodash/"
+          },
+          {
+            "suggestion": "/Users/medcl/go/src/infini.sh/coco/web/widgets/ui-search/node_modules/caniuse-lite/data/features/"
+          },
+          {
+            "suggestion": "/Users/medcl/go/src/infini.sh/coco/web/widgets/ui-search/node_modules/"
+          }
+        ]
+      }
+    } else {
+      res = {
+        "query": "coo",
+        "suggestions": [
+          {
+            "suggestion": "coco.go",
+            "score": 23.244903564453125,
+            "icon": "file",
+            "source": "/Users/medcl/go/src/infini.sh/coco/modules/"
+          },
+          {
+            "suggestion": "coco",
+            "score": 23.20406150817871,
+            "icon": "file",
+            "source": "/Users/medcl/go/src/infini.sh/coco/bin/"
+          },
+          {
+            "suggestion": "Coco",
+            "score": 23.20406150817871,
+            "icon": "font_filetype-folder",
+            "source": "/Users/medcl/go/src/infini.sh/coco/data/coco/nodes/d1vg52p4d9v5665coilg/badger/"
+          },
+          {
+            "suggestion": "coco.log",
+            "score": 21.88849306274414,
+            "icon": "file",
+            "source": "/Users/medcl/go/src/infini.sh/coco/bin/log/coco/nodes/d1vg52p4d9v5665coilg/"
+          },
+          {
+            "suggestion": "coco_app_docs",
+            "score": 21.81048011779785,
+            "icon": "font_filetype-folder",
+            "source": "/Users/medcl/go/src/infini.sh/coco/bin/config/store/infinilabs/datasource/"
+          },
+          {
+            "suggestion": "stop_coco.sh",
+            "score": 21.717334747314453,
+            "icon": "file",
+            "source": "/Users/medcl/go/src/infini.sh/coco/tests/assets/"
+          },
+          {
+            "suggestion": "docco.css",
+            "score": 21.63386344909668,
+            "icon": "file",
+            "source": "/Users/medcl/go/src/infini.sh/coco/web/node_modules/.pnpm/highlight.js@11.11.1/node_modules/highlight.js/styles/"
+          },
+          {
+            "suggestion": "coco_server_docs",
+            "score": 21.408918380737305,
+            "icon": "font_filetype-folder"
+          }
+        ]
+      }
+    }
+    callback(res)
+  }
+
   // 构建 componentProps，参考 Fullscreen.jsx 的结构
   const componentProps = {
     id: "dev-ui-search",
     shadow: null,
-    theme: 'dark',
+    theme: 'light',
     language: 'zh-CN',
     logo: {
       // light: "/favicon.ico",
@@ -376,11 +812,24 @@ function DevApp() {
       showActions: true,
       assistant: "dev-assistant",
       title: "AI 概览",
-      height: "400px",
+      height: 400,
     },
     widgets: [],
     onSearch: mockSearch,
     onAsk: mockAsk,
+    onLogoClick: () => {
+      console.log('logo click')
+    },
+    messages: currentMessages,
+    onSendMessage: handleSendMessage,
+    // History props
+    chats: chats,
+    activeChat: activeChat,
+    onHistorySelect: onHistorySelect,
+    onHistorySearch: onHistorySearch,
+    onHistoryRefresh: onHistoryRefresh,
+    onHistoryRename: onHistoryRename,
+    onHistoryRemove: onHistoryRemove,
     config: {
       aggregations: {
         "source.id": {
@@ -397,17 +846,18 @@ function DevApp() {
         },
       },
     },
+    onSuggestion: mockSuggestion,
   };
 
   const queryParamsProps = enableQueryParams
     ? {
-        queryParams,
-        setQueryParams,
-      }
+      queryParams,
+      setQueryParams,
+    }
     : {
-        queryParams: queryParamsState,
-        setQueryParams: setQueryParamsState,
-      };
+      queryParams: queryParamsState,
+      setQueryParams: setQueryParamsState,
+    };
 
   return (
     <FullscreenPage
