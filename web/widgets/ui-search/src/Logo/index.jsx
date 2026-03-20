@@ -3,7 +3,7 @@ import logoDarkSvg from "../icons/logo-dark.svg"
 import logoMobileSvg from "../icons/coco.svg"
 
 export function Logo(props) {
-    const { isFirst, isMobile, theme, onLogoClick } = props;
+    const { isHome, isMobile, theme, onLogoClick } = props;
 
     const logos = theme === 'dark' ? {
         logo: props['dark'] || logoDarkSvg,
@@ -14,11 +14,11 @@ export function Logo(props) {
     }
 
     return (
-        <div className={`w-full h-full flex items-center justify-left ${isMobile ? '' : 'py-8px'} max-w-inherit max-h-inherit object-contain`}>
+        <div className={`w-full h-full flex items-center justify-left max-w-inherit max-h-inherit object-contain`}>
             <img
-                src={isMobile && !isFirst ? logos.mobile : logos.logo}
+                src={isMobile && !isHome ? logos.mobile : logos.logo}
                 className="w-full cursor-pointer max-h-100%"
-                onClick={onLogoClick}
+                onClick={() => onLogoClick?.()}
                 alt="Logo"
             />
         </div>

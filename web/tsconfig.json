@@ -24,6 +24,6 @@
     "forceConsistentCasingInFileNames": true,
     "isolatedModules": true
   },
-  "include": ["./**/*.ts", "./**/*.tsx"],
+  "include": ["./**/*.ts", "./**/*.tsx", "widgets/ui-search/src/Layout/ChatLayout.jsx"],
   "exclude": ["node_modules", "dist"]
 }

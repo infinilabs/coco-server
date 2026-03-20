@@ -14,7 +14,8 @@ export default function useQueryParams(defaultParams = {}) {
         from: 'number',
         size: 'number',
         sort: 'string',
-        filter: 'string[]'
+        filter: 'string[]',
+        mode: 'string',
       }
     });
 

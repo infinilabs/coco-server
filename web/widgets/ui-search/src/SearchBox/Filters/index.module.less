@@ -1,0 +1,18 @@
+.item {
+    :global {
+        .ant-select {
+            padding-right: 0px;
+        }
+        .ant-select-selection-item-remove {
+            display: none !important;
+        }
+    }
+
+    &.active {
+        :global {
+            .ant-select-selection-item-remove {
+                display: inline-flex !important;
+            }
+        }
+    }
+}

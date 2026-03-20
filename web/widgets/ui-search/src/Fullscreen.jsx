@@ -1,32 +1,35 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import BasicLayout from "./Layout";
-import SearchBox from "./SearchBox";
-import Logo from "./Logo";
-import Aggregations from "./Aggregations";
-import ResultHeader from "./ResultHeader";
-import { LIST_TYPES } from "./ResultList";
 import { formatESResult } from "./utils/es";
-import Welcome from "./Welcome";
-import AIOverviewWrapper from "./AIOverview/AIOverviewWrapper";
+import PropTypes from 'prop-types';
 
-const Fullscreen = (props) => {
+import { debounce, isEmpty } from 'lodash';
+import Home from "./pages/Home";
+import Search from "./pages/Search";
+import { ACTION_TYPE_SEARCH_KEYWORD } from "./SearchBox/SearchActions";
+import Chat from "./pages/Chat";
+
+const Fullscreen = props => {
   const {
     logo = {},
     placeholder,
     welcome,
-    type,
     aiOverview,
-    widgets = [],
     onSearch,
+    onAggregation,
     onAsk,
     config = {},
-    isFirst = false,
+    isHome = false,
     rightMenuWidth,
     queryParams = {},
     setQueryParams,
     onLogoClick,
-    theme = 'light', 
+    theme = 'light',
     language = 'en-US',
+    onSuggestion,
+    onRecommend,
+    getRawContent,
+    apiConfig,
+    getFieldsMeta
   } = props;
 
   const containerRef = useRef(null);
@@ -35,11 +38,15 @@ const Fullscreen = (props) => {
   const [loading, setLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const shouldAskRef = useRef(true);
+  const shouldAggRef = useRef(true);
   const [data, setData] = useState([]);
   const [hasMore, setHasMore] = useState(false);
   const loadLock = useRef(false);
-  const isFirstSearchRef = useRef(true);
+  const isHomeSearchRef = useRef(true);
   const scrollRef = useRef(0)
+  const [showToolbar, setShowToolbar] = useState(false);
+  const [checkViewport, setCheckViewport] = useState(false);
+  const isViewportLoadingRef = useRef(false);
 
   const resetScroll = () => {
     scrollRef.current = 0;
@@ -49,21 +56,22 @@ const Fullscreen = (props) => {
           top: 0,
           behavior: 'instant'
         });
-      } catch (e) {
+      } catch {
         containerRef.current.scrollTop = 0;
       }
     }
-  }
+  };
 
-  const handleSearch = (queryParams, shouldAsk, isScroll = false) => {
+  const handleSearch = (queryParams, shouldAsk, shouldAgg, isScroll = false) => {
     shouldAskRef.current = shouldAsk;
+    shouldAggRef.current = shouldAgg;
     if (!isScroll) {
       resetScroll();
-      isFirstSearchRef.current = true
+      isHomeSearchRef.current = true;
     }
     setQueryParams({
       ...queryParams,
-      t: new Date().valueOf(),
+      t: new Date().valueOf()
     });
   };
 
@@ -76,65 +84,139 @@ const Fullscreen = (props) => {
       loadLock.current = true;
       const { from, size } = queryParams;
       scrollRef.current = (scrollRef.current || from) + size;
-      handleSearch(queryParams, false, true);
+      isViewportLoadingRef.current = false;
+      handleSearch(queryParams, false, false, true);
     }
   }, [queryParams, loading, hasMore, handleSearch]);
 
+  const checkViewportAndLoad = useCallback(() => {
+    if (
+      !containerRef.current || 
+      loading || 
+      !hasMore || 
+      loadLock.current ||
+      isHome
+    ) {
+      setCheckViewport(false);
+      return;
+    }
+
+    const checkAfterRender = () => {
+      if (loading || !hasMore || loadLock.current) {
+        setCheckViewport(false);
+        return;
+      }
+
+      const container = containerRef.current;
+      const { scrollHeight, clientHeight, scrollTop } = container;
+      
+      const heightDiff = scrollHeight - clientHeight;
+      const hasRealScrollbar = heightDiff > 20;
+      const isViewportReallyFilled = hasRealScrollbar || scrollTop > 0;
+
+      if (!isViewportReallyFilled && hasMore) {
+        loadLock.current = true;
+        isViewportLoadingRef.current = true;
+        const { from, size } = queryParams;
+        scrollRef.current = (scrollRef.current || from) + size;
+        handleSearch(queryParams, false, false, true);
+        setCheckViewport(true);
+      } else {
+        setCheckViewport(false);
+      }
+    };
+
+    requestAnimationFrame(() => {
+      setTimeout(checkAfterRender, 200);
+    });
+  }, [containerRef, loading, hasMore, loadLock, isHome, queryParams, handleSearch]);
+
   useEffect(() => {
     const checkScreenSize = () => {
-      setIsMobile(window.innerWidth < 640);
+      setIsMobile(window.innerWidth < 768);
     };
     checkScreenSize();
-    window.addEventListener("resize", checkScreenSize);
-    return () => window.removeEventListener("resize", checkScreenSize);
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
   useEffect(() => {
     const contentContainer = containerRef.current;
-    if (!contentContainer || isFirst) return;
+    if (!contentContainer || isHome) return () => { };
 
-    contentContainer.addEventListener("scroll", handleScroll);
+    contentContainer.addEventListener('scroll', handleScroll);
     return () => {
-      contentContainer.removeEventListener("scroll", handleScroll);
+      contentContainer.removeEventListener('scroll', handleScroll);
     };
-  }, [isFirst, handleScroll]);
+  }, [isHome, handleScroll]);
 
   useEffect(() => {
-    if (!queryParams.query) return;
+    if (!queryParams?.query && isEmpty(queryParams?.filter)) return;
 
-    const shouldAgg = queryParams.filter && Object.keys(queryParams.filter).length === 0;
     const isScroll = Number.isInteger(scrollRef.current) && scrollRef.current > 0;
-    
+
     loadLock.current = true;
-    setLoading(true);
+    if (!isViewportLoadingRef.current) {
+      setLoading(true);
+    }
+    
+    const { t, filter = {}, ...rest } = queryParams;
+    const newFilter = {
+      ...filter,
+      'metadata.content_category': queryParams['metadata.content_category'] && queryParams['metadata.content_category'] !== 'all' ? [queryParams['metadata.content_category']] : undefined,
+    }
     onSearch(
       {
-        ...queryParams,
+        ...rest,
+        filter: newFilter,
+        search_type: queryParams?.search_type || ACTION_TYPE_SEARCH_KEYWORD,
         from: isScroll ? scrollRef.current : queryParams.from,
+        'metadata.content_category': undefined
       },
-      (res) => {
+      res => {
         loadLock.current = false;
-        setLoading(false);
-        
+        if (!isViewportLoadingRef.current) {
+          setLoading(false);
+        }
+        isViewportLoadingRef.current = false;
+
         let rs;
         if (res && !res.error) {
           rs = formatESResult(res);
-          setResult((os) => ({
+          setResult(os => ({
             ...rs,
-            aggregations: res?.aggregations ? rs.aggregations : os.aggregations,
+            aggregations: res?.aggregations ? rs.aggregations : os.aggregations
           }));
-          
-          const newData = isScroll ? [...data, ...(rs.hits?.hits || [])] : (rs.hits?.hits || []);
+
+          const newData = isScroll ? [...data, ...(rs.hits?.hits || [])] : rs.hits?.hits || [];
           setData(newData);
           setHasMore(newData.length < (rs.hits.total || 0));
-          if (!isScroll) isFirstSearchRef.current = false;
+          if (!isScroll) isHomeSearchRef.current = false;
+
+          setCheckViewport(true);
         } else {
           if (!isScroll) {
             setResult(formatESResult());
             setData([]);
           }
           setHasMore(false);
-          isFirstSearchRef.current = false;
+          isHomeSearchRef.current = false;
+          setCheckViewport(false);
+        }
+
+        if (onAggregation && shouldAggRef.current) {
+          setLoading(true);
+          onAggregation({ query: queryParams.query, filter: newFilter }, (res) => {
+            shouldAskRef.current = false
+            if (res && !res.error) {
+              rs = formatESResult(res);
+              setResult(os => ({
+                ...os,
+                aggregations: res?.aggregations ? rs.aggregations : os.aggregations
+              }));
+            }
+            setLoading(false);
+          })
         }
 
         if (shouldAskRef.current) {
@@ -142,32 +224,70 @@ const Fullscreen = (props) => {
           setAskBody({
             message: JSON.stringify({
               query: queryParams.query,
-              result: rs?.hits,
+              result: rs?.hits
             }),
-            t: new Date().valueOf(),
+            t: new Date().valueOf()
           });
         }
       },
-      setLoading,
-      shouldAgg,
+      (loadingState) => {
+        if (!isViewportLoadingRef.current) {
+          setLoading(loadingState);
+        }
+      }
     );
   }, [JSON.stringify(queryParams)]);
 
   useEffect(() => {
-    window.onsearch = (query) =>
-      handleSearch({ ...queryParams, from: 0, query }, true);
+    if (!checkViewport) return;
+    
+    const timer = setTimeout(() => {
+      checkViewportAndLoad();
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [checkViewport, checkViewportAndLoad]);
+
+  useEffect(() => {
+    if (data.length > 0 && !Number.isInteger(scrollRef.current) || scrollRef.current === 0) {
+      const timer = setTimeout(() => {
+        if (hasMore && !loading && !loadLock.current) {
+          setCheckViewport(true);
+        }
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [data, hasMore, loading]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (containerRef.current && hasMore && !loading && !loadLock.current) {
+        setCheckViewport(true);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [hasMore, loading]);
+
+  useEffect(() => {
+    window.onsearch = query => handleSearch({ ...queryParams, from: 0, query }, true, true);
     return () => {
       window.onsearch = undefined;
     };
   }, [queryParams]);
 
-  const listType = useMemo(() => {
-    if (!LIST_TYPES || LIST_TYPES.length === 0) return undefined;
-    return LIST_TYPES.find((item) => item.type === type) || LIST_TYPES[0];
-  }, [type]);
+  const debouncedSuggestion = useMemo(() => {
+    if (typeof onSuggestion === 'function') {
+      return debounce(onSuggestion, 500);
+    }
+    return () => { };
+  }, [onSuggestion]);
+
+  const { query, filter, filters = [] } = queryParams;
 
   const commonProps = { isMobile, theme };
-  const { query, filter } = queryParams;
   const { hits, aggregations } = result;
 
   const handleLogoClick = () => {
@@ -176,87 +296,120 @@ const Fullscreen = (props) => {
       size: 10,
       query: '',
       filter: {},
-      sort: '',
+      sort: ''
     });
     setData([]);
     setHasMore(false);
     resetScroll();
-    isFirstSearchRef.current = true;
+    isHomeSearchRef.current = true;
     if (onLogoClick) onLogoClick();
   };
 
-  const showFullScreenSpin = loading && isFirstSearchRef.current;
+  const showFullScreenSpin = loading && isHomeSearchRef.current;
+
+  const { mode = 'search' } = queryParams
+
+  if (mode === 'chat') {
+    return (
+      <Chat
+        commonProps={commonProps}
+        language={language}
+        apiConfig={apiConfig}
+        queryParams={queryParams}
+        onBackToSearch={() => {
+          setQueryParams({
+            ...queryParams,
+            action_type: undefined,
+            mode: 'search'
+          });
+        }}
+      />
+    )
+  }
+
+  if (isHome) {
+    return (
+      <Home
+        commonProps={commonProps}
+        loading={showFullScreenSpin}
+        logo={logo}
+        onSearch={(params, shouldAsk, shouldAgg) => handleSearch({ ...queryParams, ...params, from: 0 }, shouldAsk, shouldAgg)}
+        placeholder={placeholder}
+        welcome={welcome}
+        queryParams={queryParams}
+        setQueryParams={setQueryParams}
+        onSuggestion={debouncedSuggestion}
+        onRecommend={onRecommend}
+      />
+    )
+  }
 
   return (
-    <BasicLayout
-      {...commonProps}
-      initContainer={(ref) => {
+    <Search
+      aggregations={aggregations}
+      aiOverview={aiOverview}
+      askBody={askBody}
+      commonProps={commonProps}
+      config={config}
+      data={data}
+      filter={filter}
+      getContainer={() => containerRef.current}
+      handleLogoClick={handleLogoClick}
+      hasMore={hasMore}
+      hits={hits}
+      initContainer={ref => {
         containerRef.current = ref;
       }}
-      getContainer={() => containerRef.current}
-      isFirst={isFirst}
-      loading={showFullScreenSpin}
-      logo={<Logo isFirst={isFirst} onLogoClick={handleLogoClick} {...commonProps} {...logo} />}
-      welcome={welcome ? <Welcome {...commonProps} text={welcome} /> : null}
-      searchbox={
-        <SearchBox
-          {...commonProps}
-          placeholder={placeholder}
-          query={query}
-          onSearch={(query) => {
-            handleSearch({ ...queryParams, from: 0, query }, true)
-          }}
-        />
-      }
+      loading={loading}
+      logo={logo}
+      placeholder={placeholder}
       rightMenuWidth={rightMenuWidth}
-      aggregations={
-        <Aggregations
-          {...commonProps}
-          config={config.aggregations}
-          aggregations={aggregations}
-          filter={filter}
-          onSearch={(filter) => {
-            handleSearch({ ...queryParams, filter }, true)
-          }}
-        />
-      }
-      resultHeader={<ResultHeader hits={hits} {...commonProps} />}
-      aiOverview={
-        aiOverview?.enabled ? (
-          <AIOverviewWrapper
-            askBody={askBody}
-            config={aiOverview}
-            onAsk={onAsk}
-          />
-        ) : null
-      }
-      resultList={
-        listType ? (
-          <listType.component
-            {...commonProps}
-            getDetailContainer={() => containerRef.current}
-            data={data}
-            query={query}
-            total={hits?.total || 0}
-            loading={loading}
-            hasMore={hasMore}
-          />
-        ) : null
-      }
-      widgets={
-        <>
-          {widgets.map((item, index) => (
-            <AIOverviewWrapper
-              key={index}
-              askBody={askBody}
-              config={item}
-              onAsk={onAsk}
-            />
-          ))}
-        </>
-      }
+      theme={theme}
+      welcome={welcome}
+      showFullScreenSpin={showFullScreenSpin}
+      queryParams={queryParams}
+      setQueryParams={setQueryParams}
+      onSearchFilter={(filter) => {
+        handleSearch({ ...queryParams, filter }, false, true)
+      }}
+      onSearch={(params, shouldAsk, shouldAgg) => handleSearch({ ...queryParams, ...params, from: 0 }, shouldAsk, shouldAgg)}
+      onAsk={onAsk}
+      onSuggestion={debouncedSuggestion}
+      onRecommend={onRecommend}
+      getRawContent={getRawContent}
+      onChatContinue={() => {
+        setQueryParams({
+          ...queryParams,
+          mode: 'chat'
+        });
+      }}
+      getFieldsMeta={getFieldsMeta}
     />
-  );
+  )
+};
+
+Fullscreen.propTypes = {
+  logo: PropTypes.object,
+  placeholder: PropTypes.string,
+  welcome: PropTypes.string,
+  aiOverview: PropTypes.shape({
+    enabled: PropTypes.bool
+  }),
+  onSearch: PropTypes.func.isRequired,
+  onAsk: PropTypes.func,
+  config: PropTypes.object,
+  isHome: PropTypes.bool,
+  rightMenuWidth: PropTypes.number,
+  queryParams: PropTypes.object.isRequired,
+  setQueryParams: PropTypes.func.isRequired,
+  onLogoClick: PropTypes.func,
+  theme: PropTypes.oneOf(['light', 'dark']),
+  language: PropTypes.string,
+  onNewChat: PropTypes.func,
+  onSuggestion: PropTypes.func,
+  onRecommend: PropTypes.func,
+  getRawContent: PropTypes.func,
+  apiConfig: PropTypes.object
 };
 
 export default Fullscreen;

@@ -21,6 +21,6 @@ export const formatESResult = (res) => {
     }
     return {
         hits,
-        aggregations  
+        aggregations: aggregations.filter((item) => !!item.list && item.list.length > 0)  
     }
 }

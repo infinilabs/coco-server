@@ -54,7 +54,6 @@ const LoginForm = memo(({ onProvider }: { onProvider?: () => void }) => {
             type='default'
             onClick={() => {
               const sso_url = providerInfo?.provider?.auth_provider?.sso?.url;
-
               if (window.$wujie?.props?.onExternal) {
                 window.$wujie?.props?.onExternal(
                   normalizeUrl(`${getProxyEndpoint()}/${sso_url}`)

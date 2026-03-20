@@ -1,9 +1,10 @@
-import { ListFilter } from "lucide-react";
+import { ListFilter, PanelRightOpen } from "lucide-react";
 
 export function ResultHeader(props) {
-  const { hits, isMobile } = props;
+  const { hits, isMobile, siderCollapse, setSiderCollapse } = props;
   return (
-    <div className="flex justify-between items-center w-full text-[#999]">
+    <div className="flex gap-8px items-center w-full text-[#999]">
+      <PanelRightOpen className="w-16px h-16px cursor-pointer" onClick={() => setSiderCollapse(!siderCollapse)} />
       <div className="text-12px">
         Found {hits?.total || 0} records ({hits?.took || 0} millisecond)
       </div>
