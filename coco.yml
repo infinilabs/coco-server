@@ -1,7 +1,7 @@
 env:
   ES_ENDPOINT: https://localhost:9200
   ES_USERNAME: admin
-  ES_PASSWORD: $[[keystore.ES_PASSWORD]]
+  ES_PASSWORD: passWORD123!
   WEB_BINDING: 0.0.0.0:9000
   API_BINDING: 0.0.0.0:2900
 
@@ -330,7 +330,7 @@ pipeline:
                 chunk_size: 7000
                 vision_model_provider: qianwen
                 vision_model: qwen-vl-max
-                pigo_facefinder_path: ""
+                pigo_facefinder_path: "/opt/pigo/facefinder"
             - document_summarization:
                 model_provider: deepseek
                 model: deepseek-chat
