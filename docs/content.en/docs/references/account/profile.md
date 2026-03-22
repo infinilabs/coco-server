@@ -28,25 +28,25 @@ Below is the field description for the profile object.
 
 ### Get Profile
 
+Requires authentication. Returns the current user's profile information and permissions.
+
 #### Request
 
 ```bash
-curl -XGET http://localhost:9000/account/profile
+curl -XGET http://localhost:9000/account/profile \
+  -H "Authorization: Bearer <access_token>"
 ```
 #### Response
 
-```bash
+```json
 {
   "id": "user123",
-  "username": "jdoe",
+  "name": "jdoe",
   "email": "jdoe@example.com",
-  "avatar": "https://example.com/images/avatar.jpg",
-  "created": "2024-01-01T10:00:00Z",
-  "updated": "2025-01-01T10:00:00Z",
-  "roles": ["admin", "editor"],
-  "preferences": {
-    "theme": "dark",
-    "language": "en"
-  }
+  "permissions": [
+    "coco:document:create",
+    "coco:document:read",
+    "coco:search:search"
+  ]
 }
 ```
