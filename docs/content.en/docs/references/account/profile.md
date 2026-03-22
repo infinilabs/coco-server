@@ -11,18 +11,12 @@ weight: 50
 
 Below is the field description for the profile object.
 
-| **Field**            | **Type**            | **Description**                                                                                      |
-|----------------------|---------------------|------------------------------------------------------------------------------------------------------|
-| `id`                 | `string`            | Unique identifier for the user profile.                                                              |
-| `username`           | `string`            | User's display name or username.                                                                     |
-| `email`              | `string`            | User's email address.                                                                               |
-| `avatar`             | `string` (URL)      | URL to the user's avatar image.                                                                      |
-| `created`            | `string` (datetime) | Timestamp when the profile was created.                                                              |
-| `updated`            | `string` (datetime) | Timestamp when the profile was last updated.                                                         |
-| `roles`              | `array[string]`     | List of roles assigned to the user, e.g., `["admin", "editor"]`.                                     |
-| `preferences`        | `object`            | User-specific preferences or settings.                                                               |
-| `preferences.theme`  | `string`            | Preferred theme, e.g., `dark` or `light`.                                                            |
-| `preferences.language` | `string`          | Preferred language, e.g., `en`, `fr`.                                                                |
+| **Field**       | **Type**        | **Description**                                                                      |
+|-----------------|-----------------|--------------------------------------------------------------------------------------|
+| `id`            | `string`        | Unique identifier for the user profile.                                              |
+| `name`          | `string`        | User's display name.                                                                 |
+| `email`         | `string`        | User's email address.                                                                |
+| `permissions`   | `array[string]` | List of permission keys assigned to the user, e.g., `["coco:document:read"]`.        |
 
 ---
 

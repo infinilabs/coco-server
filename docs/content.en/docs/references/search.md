@@ -83,7 +83,7 @@ curl  -XGET http://localhost:9000/query/_suggest\?query\=buss
   "suggestions": [
     {
       "suggestion": "Q3 Business Report",
-      "highlighted_suggestion": "Q3 <em>Buss</em>iness Report",
+      "highlighted_suggestion": "Q3 <em>Bus</em>iness Report",
       "score": 0.99,
       "icon": "pdf",
       "source": {
