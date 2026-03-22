@@ -7,7 +7,7 @@ weight: 90
 
 ## Work with *MCP Server*
 
-TThe MCP Server provides commonly used MCP configurations for large model calls.
+The MCP Server provides commonly used MCP configurations for large model calls.
 
 ## MCP Server API
 
@@ -19,11 +19,10 @@ Below is the field description for the MCP Server.
 | `type`     | `string`  | The type to access the API of the MCP Server, possible values: stdio, streamable http.                                            |
 | `icon`     | `string`  | The icon representing the MCP Server in the UI.                                                                                   |
 | `category` | `string`  | The category of the MCP Server.                                                                                                   |
-| `icon`     | `string`  | The icon representing the model provider in the UI.                                                                               |
 | `config`   | `object`  | The specify config for the type, e.g., {"args":["@playwright/mcp@latest", "--headless"], "command": "npx", "env": {"key1":"v1"}}. |
 | `enabled`  | `boolean` | Enables or disables MCP Server.                                                                                                   |
 
-### Create a model provider
+### Create a MCP Server
 
 ```shell
 //request
@@ -66,10 +65,10 @@ curl  -H 'Content-Type: application/json'   -XDELETE http://localhost:9000/mcp_s
 {
   "_id": "d07jnoac7k8ff566lar0",
   "result": "deleted"
-}'
+}
 ```
 
-### Update a Model Provider
+### Update a MCP Server
 
 ```shell
 curl -XPUT http://localhost:9000/mcp_server/d07jnoac7k8ff566lar0 -d '{

@@ -7,9 +7,17 @@ weight: 60
 
 ## Logout API
 
-The Logout API securely logs the user out from the COCO server.
+The Logout API securely logs the user out from the Coco Server. It destroys the current session.
 
-Example request:
-```
-curl -XPOST http://localhost:9000/account/logout
+Both `GET` and `POST` methods are supported.
+
+```shell
+//request
+curl -XPOST http://localhost:9000/account/logout \
+  -H "Authorization: Bearer <access_token>"
+
+//response
+{
+  "status": "ok"
+}
 ```

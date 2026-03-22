@@ -92,7 +92,7 @@ curl  -H 'Content-Type: application/json'   -XDELETE http://localhost:9000/model
 {
   "_id": "cvj0hjlath21mqh6jbh0",
   "result": "deleted"
-}'
+}
 ```
 
 
