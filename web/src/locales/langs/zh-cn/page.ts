@@ -977,7 +977,10 @@ const page: App.I18n.Schema['translation']['page'] = {
       confirm: '您确定要删除这个模型提供商吗?'
     },
     options: {
-      dialogModel: '对话模型'
+      dialogModel: '对话模型',
+      chatModel: '对话模型',
+      visionModel: '视觉模型',
+      embeddingModel: '向量化模型'
     },
     hints: {
       selectOrInputModel: '选择或输入一个模型',

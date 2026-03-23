@@ -743,7 +743,10 @@ const page: App.I18n.Schema['translation']['page'] = {
       inferenceMode: 'Inference Mode'
     },
     options: {
-      dialogModel: 'Chat Model'
+      dialogModel: 'Chat Model',
+      chatModel: 'Chat Model',
+      visionModel: 'Vision Model',
+      embeddingModel: 'Embedding Model'
     },
     hints: {
       selectOrInputModel: 'Select or input a model',
