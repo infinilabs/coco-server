@@ -7,6 +7,32 @@ weight: 50
 
 ## Assistant API Reference
 
+Below is the field description for the assistant.
+
+| **Field**                              | **Type**        | **Description**                                                                                                      |
+|----------------------------------------|-----------------|----------------------------------------------------------------------------------------------------------------------|
+| `name`                                 | `string`        | The assistant's name.                                                                                                |
+| `description`                          | `string`        | A brief description of the assistant.                                                                                |
+| `icon`                                 | `string`        | The icon representing the assistant in the UI.                                                                       |
+| `type`                                 | `string`        | The assistant type, e.g., `deep_think`.                                                                              |
+| `config.intent_analysis_model`         | `object`        | Model configuration for intent analysis. Contains `name`, `provider_id`, and `settings`.                             |
+| `config.picking_doc_model`             | `object`        | Model configuration for document picking. Contains `name`, `provider_id`, and `settings`.                            |
+| `answering_model`                      | `object`        | Model configuration for generating answers. Contains `name`, `provider_id`, and `settings`.                          |
+| `answering_model.settings`             | `object`        | Model settings: `temperature`, `top_p`, `presence_penalty`, `frequency_penalty`, `max_tokens`.                       |
+| `datasource`                           | `object`        | Datasource configuration. Contains `enabled`, `ids` (array of IDs), `visible`, and optional `filter`.               |
+| `mcp_servers`                          | `object`        | MCP server configuration. Contains `enabled`, `ids` (array, use `["*"]` for all), `visible`, `max_iterations`, `model`. |
+| `tools`                                | `object`        | Built-in tool configuration. Contains `enabled` and `builtin` (object with tool flags).                              |
+| `tools.builtin`                        | `object`        | Built-in tools: `calculator`, `wikipedia`, `duckduckgo`, `scraper` (each a boolean).                                 |
+| `keepalive`                            | `string`        | Session keepalive duration, e.g., `30m`.                                                                             |
+| `enabled`                              | `boolean`       | Enables or disables the assistant.                                                                                   |
+| `builtin`                              | `boolean`       | Indicates whether the assistant is built-in.                                                                         |
+| `role_prompt`                          | `string`        | Custom system prompt for the assistant's role.                                                                       |
+| `chat_settings`                        | `object`        | Chat behavior configuration.                                                                                         |
+| `chat_settings.greeting_message`       | `string`        | The greeting message shown when a chat session starts.                                                               |
+| `chat_settings.suggested`              | `object`        | Suggested questions config. Contains `enabled` (boolean) and `questions` (array of strings).                         |
+| `chat_settings.input_preprocess_tpl`   | `string`        | Template for preprocessing user input before sending to the model.                                                   |
+| `chat_settings.history_message`        | `object`        | Chat history config. Contains `number` (int), `compression_threshold` (int), and `summary` (boolean).               |
+
 ### Create an AI assistant
 
 ```shell
@@ -77,7 +103,7 @@ curl -XPOST http://localhost:9000/assistant/ -d'{
   "tools": {
     "builtin": {
       "calculator": true, 
-      "wikipedia: false, 
+      "wikipedia": false, 
       "duckduckgo": false, 
       "scraper": false
     },
@@ -178,7 +204,7 @@ curl -XPUT http://localhost:9000/assistant/cvuak1lath2dlgqqpcjg -d'{
   "tools": {
     "builtin": {
       "calculator": true, 
-      "wikipedia: false, 
+      "wikipedia": false, 
       "duckduckgo": false, 
       "scraper": false
     },
@@ -225,7 +251,7 @@ curl  -H 'Content-Type: application/json'   -XDELETE http://localhost:9000/assis
 {
   "_id": "cvuak1lath2dlgqqpcjg",
   "result": "deleted"
-}'
+}
 ```
 
 ### Search AI assistant
@@ -237,6 +263,19 @@ curl -X POST "http://localhost:9000/assistant/_search" -d'
 }'
 ```
 
+### Ask an AI assistant
+
+Send a question directly to an assistant without creating a chat session. This API uses HTTP Streaming.
+
+```shell
+//request
+curl -N -H 'Content-Type: application/json' -XPOST http://localhost:9000/assistant/cvuak1lath2dlgqqpcjg/_ask -d'{
+  "message": "What is Coco Server?"
+}'
+```
+
+The response uses the same chunk-based streaming format as the chat `_chat` endpoint.
+
 ### Clone an AI assistant
 ```shell
 //request
@@ -245,7 +284,7 @@ curl -XPOST http://localhost:9000/assistant/cvuak1lath2dlgqqpcjg/_clone
 {
   "_id": "d04r1gic7k812t6qg3n0",
   "result": "created"
-}'
+}
 ```
 
 ### Retrieve Chat History (sessions)
@@ -373,7 +412,7 @@ curl -XPUT http://localhost:9000/chat/csk30fjq50k7l4akku9g -d'
 ### Delete Chat Session
 ```shell
 //request
-curl -DELETE http://localhost:9000/chat/csk30fjq50k7l4akku9g
+curl -XDELETE http://localhost:9000/chat/csk30fjq50k7l4akku9g
 
 //response
 {

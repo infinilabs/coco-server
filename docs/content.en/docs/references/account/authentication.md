@@ -7,54 +7,68 @@ weight: 10
 
 ## Authentication Methods
 
-The API supports two methods of authentication:
+The API supports three methods of authentication:
 
 ### 1. Login API
 
-Use the X-API-TOKEN header with your token value.
+Authenticate with the Coco Server to obtain a JWT access token.
 
-Example request:
-```
-curl -XPOST http://localhost:9000/account/login -d'{
-	"password":"mypassword"
+**Password-only login** (single-user mode):
+```shell
+curl -H 'Content-Type: application/json' -XPOST http://localhost:9000/account/login -d'{
+  "password": "mypassword"
 }'
 ```
 
-The response should be looks like this:
+**Email and password login** (multi-user mode):
+```shell
+curl -H 'Content-Type: application/json' -XPOST http://localhost:9000/account/login -d'{
+  "email": "admin@example.com",
+  "password": "mypassword"
+}'
 ```
+
+Response:
+```json
 {
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NDA4Mjg5OTksInByb3ZpZGVyIjoic2ltcGxlIiwibG9naW4iOiJjb2NvLWRlZmF1bHQtdXNlciIsInVzZXJfaWQiOiJjb2NvLWRlZmF1bHQtdXNlciIsInJvbGVzIjpbXX0.iqn2uuyX7jE3H4earkW-0hbM2lK6q9Oy5lPUv0pVtLI",
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "expire_in": 86400,
   "id": "coco-default-user",
   "status": "ok",
   "username": "coco-default-user"
 }
 ```
-The `access_token` can be used in `Bearer Authorization`.
+
+| **Field**      | **Type** | **Description**                                         |
+|----------------|----------|---------------------------------------------------------|
+| `access_token` | `string` | JWT token for Bearer authentication (valid for 24 hours). |
+| `expire_in`    | `int`    | Token validity duration in seconds.                      |
+| `id`           | `string` | User ID.                                                 |
+| `status`       | `string` | Response status (`ok`).                                  |
+| `username`     | `string` | Username of the authenticated user.                      |
 
 ### 2. Bearer Authentication
 
-Use Basic Authentication by passing a `Authorization` header with the `access_token` returned by login API.
-
-Example request:
+Use the `Authorization` header with the `access_token` returned by the Login API.
 
 ```bash
-curl -XGET http://localhost:9000/<api_need_authentication> \
+curl -XGET http://localhost:9000/<api_endpoint> \
   -H "Authorization: Bearer <access_token>"
 ```
 
-The actual example should be looks like this:
-```
-curl    -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NDA4Mjg5OTksInByb3ZpZGVyIjoic2ltcGxlIiwibG9naW4iOiJjb2NvLWRlZmF1bHQtdXNlciIsInVzZXJfaWQiOiJjb2NvLWRlZmF1bHQtdXNlciIsInJvbGVzIjpbXX0.iqn2uuyX7jE3H4earkW-0hbM2lK6q9Oy5lPUv0pVtLI"  http://localhost:9000/account/profile
+Example:
+```shell
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  http://localhost:9000/account/profile
 ```
 
 ### 3. API Token Authentication
 
-Use the X-API-TOKEN header with your token value, how to get the `X-API-TOKEN` can be found in this doc: [Request API Token](./access_token.md)
+Use the `X-API-TOKEN` header with a long-lived API token. See [API Token](./access_token) for how to create tokens.
 
-Example request:
-```
+```shell
 curl -XGET http://localhost:9000/account/profile \
-  -H "X-API-TOKEN: xxxxx"
+  -H "X-API-TOKEN: a1b2c3d4-5678-90ab-cdef-1234567890ab_randomchars..."
 ```
 
+> API Tokens are valid for 365 days and are suitable for automated integrations and applications.

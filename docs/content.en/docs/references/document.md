@@ -132,7 +132,16 @@ curl   -XGET http://localhost:9000/document/cso9vr3q50k38nobvmcg
 
 ```shell
 //request
-curl  -H 'Content-Type: application/json'   -XPUT http://localhost:9000/document/cso9vr3q50k38nobvmcg -d'{ "source": "google_drive", ...OMITTED... , "timestamp": "2024-11-01T15:30:00Z" } }'
+curl  -H 'Content-Type: application/json'   -XPUT http://localhost:9000/document/cso9vr3q50k38nobvmcg -d'{
+  "source": {
+    "type":"connector",
+    "name":"My Hugo Site",
+    "id":"e806831dacc3"
+  },
+  "title": "Q3 Business Report - Updated",
+  "summary": "An updated overview of the company financial performance for Q3.",
+  "tags": ["finance", "quarterly", "business", "report", "updated"]
+}'
 
 //response
 {
@@ -153,3 +162,57 @@ curl  -XDELETE http://localhost:9000/document/cso9vr3q50k38nobvmcg
   "result": "deleted"
 }
 ```
+
+### Search Documents
+
+```shell
+//request
+curl -XGET http://localhost:9000/document/_search
+
+//response
+{
+  "took": 5,
+  "hits": {
+    "total": { "value": 10, "relation": "eq" },
+    "hits": [
+      {
+        "_id": "cso9vr3q50k38nobvmcg",
+        "_source": {
+          "id": "cso9vr3q50k38nobvmcg",
+          "title": "Q3 Business Report",
+          "category": "report",
+          "created": "2024-11-10T19:58:36.009086+08:00",
+          "updated": "2024-11-10T19:58:36.009092+08:00"
+        }
+      }
+    ]
+  }
+}
+```
+
+### Batch Delete Documents
+
+```shell
+//request
+curl -H 'Content-Type: application/json' -XDELETE http://localhost:9000/document/ -d'["cso9vr3q50k38nobvmcg", "cso9vr3q50k38nobvmcx"]'
+
+//response
+{
+  "acknowledged": true
+}
+```
+
+### Get Document Raw Content
+
+```shell
+//request
+curl -XGET http://localhost:9000/document/cso9vr3q50k38nobvmcg/raw_content/text
+
+//response
+(Raw document content is returned based on the hint parameter)
+```
+
+| Parameter | Type   | Description                                              |
+|-----------|--------|----------------------------------------------------------|
+| `doc_id`  | string | The document ID.                                         |
+| `hint`    | string | Content type hint, e.g., `text`, `html`, `markdown`.     |

@@ -9,6 +9,26 @@ weight: 90
 
 Datasource defines where the data comes from, usually we can use a specify connector to fetch data from a specify datasource.
 
+Below is the field description for the datasource.
+
+| **Field**                    | **Type**   | **Description**                                                                                          |
+|------------------------------|------------|----------------------------------------------------------------------------------------------------------|
+| `name`                       | `string`   | The datasource's name.                                                                                   |
+| `type`                       | `string`   | The datasource type, e.g., `connector`.                                                                  |
+| `description`                | `string`   | A brief description of the datasource.                                                                   |
+| `icon`                       | `string`   | The icon representing the datasource in the UI.                                                          |
+| `category`                   | `string`   | The category of the datasource.                                                                          |
+| `tags`                       | `array`    | Tags associated with the datasource.                                                                     |
+| `connector.id`               | `string`   | The ID of the connector to use with this datasource.                                                     |
+| `connector.config`           | `object`   | Connector-specific configuration. Refer to the [connector reference](./connectors/) for details.         |
+| `sync_config.enabled`        | `boolean`  | Enables or disables automatic synchronization.                                                           |
+| `sync_config.strategy`       | `string`   | Sync strategy to use.                                                                                    |
+| `sync_config.interval`       | `string`   | Sync interval, e.g., `30m`, `1h`.                                                                       |
+| `sync_config.page_size`      | `int`      | Number of items per sync page.                                                                           |
+| `webhook_config.enabled`     | `boolean`  | Enables or disables webhook-based ingestion.                                                             |
+| `enrichment_pipeline`        | `object`   | Pipeline configuration for document enrichment (embedding, extraction, etc.).                             |
+| `enabled`                    | `boolean`  | Enables or disables the datasource.                                                                      |
+
 ### Create a Datasource
 
 We can use the connector to connect specify datasource.
@@ -47,11 +67,13 @@ curl -XGET http://localhost:9000/datasource/cu1rf03q50k43nn2pi6g
 
 ```shell
 //request
-curl  -H 'Content-Type: application/json'   -XDELETE http://localhost:9000/datasource/cu1rf03q50k43nn2pi6g -d'
+curl  -H 'Content-Type: application/json'   -XDELETE http://localhost:9000/datasource/cu1rf03q50k43nn2pi6g
+
+//response
 {
   "_id": "cu1rf03q50k43nn2pi6g",
   "result": "deleted"
-}'
+}
 ```
 
 

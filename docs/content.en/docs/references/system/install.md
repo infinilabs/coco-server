@@ -6,18 +6,41 @@ weight: 500
 # System Initialization
 
 ## Initialization API
-```
-curl -XPOST http://localhost:9000/setup/_initialize -d'
-{
-	"name":"Coco",
-	"email":"hello@coco.rs",
-	"password":"mypassword",
-	"llm":{
-		  "type":"ollama",
-		  "endpoint":"http://xxx",
-		  "default_model":"deepseek_r1"
-	}
+
+Initialize the Coco Server with an admin account and optional LLM configuration. This endpoint can only be called once — subsequent calls will return an error.
+
+### Parameters
+
+| **Field**          | **Type**  | **Required** | **Description**                                                  |
+|--------------------|-----------|--------------|------------------------------------------------------------------|
+| `name`             | `string`  | Yes          | Server name (becomes "{name}'s Coco Server").                    |
+| `email`            | `string`  | Yes          | Admin user email address.                                        |
+| `password`         | `string`  | Yes          | Admin user password.                                             |
+| `llm.type`         | `string`  | No           | LLM provider type, e.g., `openai`, `ollama`.                    |
+| `llm.endpoint`     | `string`  | No           | LLM API endpoint URL.                                            |
+| `llm.default_model`| `string`  | No           | Default model name, e.g., `deepseek-r1`.                        |
+| `llm.token`        | `string`  | No           | API token for the LLM provider.                                  |
+| `llm.reasoning`    | `boolean` | No           | Enable reasoning mode for the model.                             |
+| `language`         | `string`  | No           | Language setting: `en-US` or `zh-CN` (default: `zh-CN`).        |
+
+```shell
+//request
+curl -H 'Content-Type: application/json' -XPOST http://localhost:9000/setup/_initialize -d'{
+  "name": "Coco",
+  "email": "hello@coco.rs",
+  "password": "mypassword",
+  "llm": {
+    "type": "ollama",
+    "endpoint": "http://localhost:11434",
+    "default_model": "deepseek-r1"
+  },
+  "language": "en-US"
 }'
+
+//response
+{
+  "status": "ok"
+}
 ```
 
 ## Initialization UI Management
