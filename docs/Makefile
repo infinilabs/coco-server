@@ -40,12 +40,39 @@ docs-config: docs-init
 
 docs-build: docs-config
 	hugo --minify --theme book --destination="$(OUTPUT)/$(PRODUCT)/$(VERSION)" \
-        --baseURL="/$(PRODUCT)/$(VERSION)"
+        --baseURL="https://docs.infinilabs.com/$(PRODUCT)/$(VERSION)"
 	@$(MAKE) docs-restore-generated-file
+	@$(MAKE) docs-update-robots
 
 docs-serve: docs-config
 	hugo serve
 	@$(MAKE) docs-restore-generated-file
+
+docs-update-robots:
+	@echo "Updating robots.txt with sitemap entry..."
+	@mkdir -p $(OUTPUT)
+	@touch $(OUTPUT)/robots.txt
+	@if [ ! -s $(OUTPUT)/robots.txt ]; then \
+		echo "Adding default robots.txt content..."; \
+		echo "User-agent: *" > $(OUTPUT)/robots.txt; \
+		echo "Allow: /" >> $(OUTPUT)/robots.txt; \
+		echo "Allow: /llms.txt" >> $(OUTPUT)/robots.txt; \
+		echo "" >> $(OUTPUT)/robots.txt; \
+	fi
+	@SITEMAP_LINE="Sitemap: https://docs.infinilabs.com/$(PRODUCT)/$(VERSION)/sitemap.xml"; \
+	if ! grep -Fq "$$SITEMAP_LINE" $(OUTPUT)/robots.txt; then \
+		echo "$$SITEMAP_LINE" >> $(OUTPUT)/robots.txt; \
+		echo "Added sitemap entry to robots.txt"; \
+	else \
+		echo "Sitemap entry already exists in robots.txt"; \
+	fi
+	@LLMS_LINE="X-llms-txt: https://docs.infinilabs.com/$(PRODUCT)/$(VERSION)/llms.txt"; \
+	if ! grep -Fq "$$LLMS_LINE" $(OUTPUT)/robots.txt; then \
+		echo "$$LLMS_LINE" >> $(OUTPUT)/robots.txt; \
+		echo "Added llms.txt entry to robots.txt"; \
+	else \
+		echo "LLMs.txt entry already exists in robots.txt"; \
+	fi
 
 docs-place-redirect:
 	echo "<!DOCTYPE html> <html> <head> <meta http-equiv=refresh content=0;url=main /> </head> <body> <p><a href=main />REDIRECT TO THE LATEST_VERSION</a>.</p> </body> </html>" > $(OUTPUT)/$(PRODUCT)/index.html
