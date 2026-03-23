@@ -341,13 +341,16 @@ export const ModelsComponent = ({ value = [], onChange }: any) => {
           ]}
         />
 
-        <ProFormText
-          initialValue={t('page.modelprovider.options.dialogModel')}
+        <ProFormSelect
+          initialValue='chat'
           label={t('page.modelprovider.labels.modelType')}
           name='type'
-          fieldProps={{
-            readOnly: true
-          }}
+          options={[
+            { label: t('page.modelprovider.options.chatModel'), value: 'chat' },
+            { label: t('page.modelprovider.options.visionModel'), value: 'vision' },
+            { label: t('page.modelprovider.options.embeddingModel'), value: 'embedding' }
+          ]}
+          rules={[{ required: true }]}
         />
 
         <ProFormSwitch

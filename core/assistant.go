@@ -162,6 +162,7 @@ type BuiltinToolsConfig struct {
 type ModelConfig struct {
 	ProviderID   string        `json:"provider_id,omitempty"`
 	Name         string        `json:"name"`
+	Type         string        `json:"type,omitempty"` // chat, vision, embedding; metadata only, not consumed by langchain-go
 	Settings     ModelSettings `json:"settings"`
 	PromptConfig *PromptConfig `json:"prompt,omitempty"`
 	Keepalive    string        `json:"keepalive"`
