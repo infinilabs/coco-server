@@ -6,6 +6,8 @@ package api
 
 import (
 	"infini.sh/coco/core"
+	"infini.sh/coco/modules/assistant/deep_search"
+	"infini.sh/coco/modules/assistant/service"
 	"infini.sh/framework/core/api"
 	"infini.sh/framework/core/security"
 )
@@ -84,4 +86,8 @@ func init() {
 	api.HandleUIMethod(api.OPTIONS, "/assistant/_search", handler.searchAssistant, api.RequirePermission(searchAssistantPermission), api.Feature(core.FeatureCORS))
 	api.HandleUIMethod(api.POST, "/assistant/_search", handler.searchAssistant, api.RequirePermission(searchAssistantPermission), api.Feature(core.FeatureCORS))
 	api.HandleUIMethod(api.POST, "/assistant/:id/_clone", handler.cloneAssistant, api.RequirePermission(createAssistantPermission))
+
+	// Register MCP search server
+	mcpBasePath := "/search/mcp/"
+	api.HandleUI(mcpBasePath, deep_search.NewMCPHandler(mcpBasePath, service.InternalGetAssistant))
 }

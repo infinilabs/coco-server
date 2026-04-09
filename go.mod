@@ -2,6 +2,8 @@ module infini.sh/coco
 
 go 1.25.0
 
+replace infini.sh/license => ../license
+
 replace infini.sh/framework => ../framework
 
 replace github.com/libdns/libdns => ../vendor/src/github.com/libdns/libdns
@@ -41,7 +43,7 @@ require (
 	github.com/larksuite/oapi-sdk-go/v3 v3.4.26
 	github.com/lib/pq v1.10.9
 	github.com/lucasb-eyer/go-colorful v1.2.0
-	github.com/mark3labs/mcp-go v0.43.1
+	github.com/mark3labs/mcp-go v0.46.0
 	github.com/microsoft/go-mssqldb v1.9.3
 	github.com/milvus-io/milvus-sdk-go/v2 v2.4.2
 	github.com/minio/minio-go/v7 v7.0.90
@@ -135,6 +137,7 @@ require (
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/go-github v17.0.0+incompatible // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
+	github.com/google/jsonschema-go v0.4.2 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.6 // indirect
@@ -258,5 +261,6 @@ require (
 	google.golang.org/protobuf v1.36.8 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/cheggaaa/pb.v1 v1.0.28 // indirect
+	infini.sh/license v0.0.0-00010101000000-000000000000 // indirect
 	nhooyr.io/websocket v1.8.7 // indirect
 )

@@ -90,12 +90,15 @@ func ProcessQueryIntent(ctx context.Context, sessionID string, model *core.Model
 	if !ok {
 		return nil, fmt.Errorf("unexpected output type: %T", output["text"])
 	}
+	fmt.Printf("[QueryIntent] LLM raw response:\n%s\n", generatedText)
 
 	// Parse the generated text to extract the JSON
 	queryIntent, err := QueryAnalysisFromString(generatedText)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing query intent: %w", err)
 	}
+
+	fmt.Printf("[QueryIntent] Parsed: intent=%s, queries=%v, keywords=%v\n", queryIntent.Intent, queryIntent.Query, queryIntent.Keyword)
 
 	// Attach the query intent to the reply message
 	replyMsg.Details = append(replyMsg.Details, core.ProcessingDetails{
