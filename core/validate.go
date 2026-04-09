@@ -57,7 +57,9 @@ func ValidateLoginByAPITokenHeader(w http.ResponseWriter, r *http.Request) (clai
 
 	// Safely extract fields with type assertions
 	claims = security.NewUserClaims()
-	claims.SetGetUserID(accessToken.GetOwnerID())
+	ownerID := accessToken.GetOwnerID()
+	fmt.Printf("DBG: claims, owner ID set[%s]\n", ownerID)
+	claims.SetGetUserID(ownerID)
 
 	//claims.System = accessToken.System
 	claims.Provider = "access_token"

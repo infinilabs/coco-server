@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"infini.sh/coco/core"
 	common2 "infini.sh/coco/modules/assistant/common"
@@ -16,11 +17,13 @@ import (
 	"infini.sh/framework/core/util"
 )
 
-func RunDeepSearchTask(ctx context.Context, userID string, params *common2.RAGContext, cfg *core.Assistant,
-	reqMsg, replyMsg *core.ChatMessage, sender core.MessageSender) error {
+// RunSearchPipeline executes the full search pipeline: intent analysis, optional
+// tool calling, initial document search, and re-pick with in-depth fetch.
+func RunSearchPipeline(ctx context.Context, userID string, params *common2.RAGContext, cfg *core.Assistant,
+	reqMsg, replyMsg *core.ChatMessage, sender core.MessageSender) ([]core.Document, error) {
 
 	if cfg.DeepThinkConfig == nil {
-		panic("invalid deep think config")
+		return nil, fmt.Errorf("invalid deep think config")
 	}
 
 	if cfg.DeepThinkConfig.PickDatasource {
@@ -50,11 +53,13 @@ func RunDeepSearchTask(ctx context.Context, userID string, params *common2.RAGCo
 		params.InputValues["tool_list"] = mcpServers.String()
 	}
 
+	intentStart := time.Now()
 	queryIntent, err := langchain.ProcessQueryIntent(ctx, params.SessionID, &cfg.DeepThinkConfig.IntentAnalysisModel, reqMsg, replyMsg, params.AssistantCfg, params.InputValues, sender)
 	if err != nil {
 		log.Error("error on processing query intent analysis: ", err)
-		return err
+		return nil, err
 	}
+	fmt.Printf("[SearchPipeline] ProcessQueryIntent took %v\n", time.Since(intentStart))
 
 	params.InputValues["intent"] = util.MustToJSON(params.QueryIntent)
 
@@ -66,7 +71,7 @@ func RunDeepSearchTask(ctx context.Context, userID string, params *common2.RAGCo
 			answer, err := tools.CallLLMTools(ctx, reqMsg, replyMsg, params, params.InputValues, sender)
 			if err != nil {
 				log.Error(answer, err)
-				return err
+				return nil, err
 			}
 
 			if answer != "" {
@@ -82,18 +87,36 @@ func RunDeepSearchTask(ctx context.Context, userID string, params *common2.RAGCo
 		log.Info("LLM tools not enabled, skip call LLM tools")
 	}
 
+	var docs []core.Document
 	if params.SearchDB && !toolsMayHavePromisedResult && params.AssistantCfg.Datasource.Enabled && len(params.AssistantCfg.Datasource.GetIDs()) > 0 {
 		if !(cfg.DeepThinkConfig.PickDatasource && !queryIntent.NeedNetworkSearch) {
 			var fetchSize = 50
-			docs, _ := tools.InitialDocumentBriefSearch(ctx, userID, reqMsg, replyMsg, params, 0, fetchSize, sender)
+			searchStart := time.Now()
+			docs, _ = tools.InitialDocumentBriefSearch(ctx, userID, reqMsg, replyMsg, params, 0, fetchSize, sender)
+			fmt.Printf("[SearchPipeline] InitialDocumentBriefSearch took %v, returned %d docs\n", time.Since(searchStart), len(docs))
 			params.InputValues["references"] = util.MustToJSON(docs)
 
 			if len(docs) > 10 {
 				//re-pick top docs
+				pickStart := time.Now()
 				docs, _ = tools.PickingDocuments(ctx, reqMsg, replyMsg, params, docs, sender)
+				fmt.Printf("[SearchPipeline] PickingDocuments took %v, returned %d docs\n", time.Since(pickStart), len(docs))
+				fetchStart := time.Now()
 				_ = tools.FetchDocumentInDepth(ctx, reqMsg, replyMsg, params, docs, params.InputValues, sender)
+				fmt.Printf("[SearchPipeline] FetchDocumentInDepth took %v\n", time.Since(fetchStart))
 			}
 		}
+	}
+
+	return docs, nil
+}
+
+func RunDeepSearchTask(ctx context.Context, userID string, params *common2.RAGContext, cfg *core.Assistant,
+	reqMsg, replyMsg *core.ChatMessage, sender core.MessageSender) error {
+
+	_, err := RunSearchPipeline(ctx, userID, params, cfg, reqMsg, replyMsg, sender)
+	if err != nil {
+		return err
 	}
 
 	err = langchain.GenerateFinalResponse(ctx, reqMsg, replyMsg, params, params.InputValues, sender)
