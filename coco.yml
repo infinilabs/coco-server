@@ -1,21 +1,24 @@
 env:
   ES_ENDPOINT: https://localhost:9200
   ES_USERNAME: admin
-  ES_PASSWORD: $[[keystore.ES_PASSWORD]]
-  WEB_BINDING: 0.0.0.0:9000
-  API_BINDING: 0.0.0.0:2900
+  ES_PASSWORD: passWORD123!
+  WEB_BINDING: 127.0.0.1:9001
+  API_BINDING: 127.0.0.1:2900 
+  CLOUD_ENDPOINT: https://app.infini.cloud
+
+
+node.id: cva0liehpcenc96m4di1
 
 coco:
   server:
     public: false
-    name: "My Coco Server"
+    name: "Coco Cloud"
     encode_icon_to_base64: false # enable this if coco-server is using self-signed certs
-#    #[START] for managed mode only, need to configured by coco-server operator
-#    endpoint: "http://localhost:9001/"
-#    auth_provider: #config for app to use
-#      sso:
-#        url: "http://localhost:9001/#/login"
-#    #[END] for managed mode only
+    endpoint: "http://127.0.0.1:9001/"
+    auth_provider: 
+      sso:
+        url: "http://127.0.0.1:9001/#/login"
+
     minimal_client_version:
       number: "0.3"
     provider:
@@ -292,21 +295,24 @@ web:
           secret_key: $[[keystore.TENCENT_DNS_KEY]] #./bin/coco keystore add TENCENT_DNS_KEY
   security:
     enabled: true
-    managed: false #remote managed instance
+    managed: true #remote managed instance
     authentication:
       native:
         enabled: true
       oauth:
         cloud:
           enabled: true
+          provider: cloud
           client_secret: "999999"
-          authorize_url: "http://localhost:9000/oauth/authorize"
-          token_url: "http://localhost:9000/oauth/token"
-          profile_url: "http://localhost:9000/account/profile"
-          redirect_url: "http://localhost:9001/sso/callback/cloud"
+          authorize_url: "https://app.infini.cloud/oauth/authorize"
+          token_url: "https://app.infini.cloud/oauth/token"
+          profile_url: "https://app.infini.cloud/account/profile"
+          redirect_url: "http://127.0.0.1:9001/sso/callback/cloud"
           success_page: "/#/home"
           failed_page: "/#/login"
           scopes: [ "openid","email","profile"]
+          bootstrap_admin_users: ["d7ac821f89mi24jsr96g"] # coco admin uuid
+
 
 ##background jobs
 pipeline:
@@ -330,7 +336,7 @@ pipeline:
                 chunk_size: 7000
                 vision_model_provider: qianwen
                 vision_model: qwen-vl-max
-                pigo_facefinder_path: ""
+                pigo_facefinder_path: "/Users/steve/Downloads/facefinder"
             - document_summarization:
                 model_provider: deepseek
                 model: deepseek-chat
@@ -414,6 +420,12 @@ http_client:
         "github.com":
           http_proxy: http://127.0.0.1:7890
           socket5_proxy: socks5://127.0.0.1:7890
+  oauth_cloud:
+    tls:
+      default_domain: "app.infini.cloud"
+      skip_insecure_verify: true
+
+
 recommend:
   default: '{ "recommendations": [ { "title": "Coco AI v0.9 Released: Automated AI Review & Plugin Architecture", "description": "Coco AI v0.9 introduces full support for automated AI review of GitLab merge requests and a plugin-based architecture for expanded data connectors.", "score": 0.99, "url": "https://blog.infinilabs.com/posts/2025/11-21-product-released-coco-ai-v0.9/", "category": "Product Release", "breadcrumbs": [ { "name": "Blog", "url": "/blog" }, { "name": "Product Release", "url": "/category/release" } ] }, { "title": "Coco AI v0.8 Released: Extensions, Linux Search & More", "description": "Coco AI v0.8 brings window management extensions, new connectors including Linux file search, and view extensions across platforms.", "score": 0.96, "url": "https://blog.infinilabs.com/posts/2025/09-29-product-released-coco-ai-v0.8/", "category": "Product Release", "breadcrumbs": [ { "name": "Blog", "url": "/blog" }, { "name": "Product Release", "url": "/category/release" } ] }, { "title": "Coco AI v0.6 Released: Introducing the Extension Store", "description": "Coco AI 0.6.0 adds an extension store to browse and install third-party extensions, expanding the platforms extensibility.", "score": 0.95, "url": "https://blog.infinilabs.com/posts/2025/06-29-product-released-coco-ai-v0.6/", "category": "Product Release", "breadcrumbs": [ { "name": "Blog", "url": "/blog" }, { "name": "Product Release", "url": "/category/release" } ] }, { "title": "Coco AI v0.5 Released: Local Plugins & Smarter Search", "description": "Coco AI v0.5 introduces local plugins, smarter application search, and instant AI commands, improving productivity and customization.", "score": 0.94, "url": "https://blog.infinilabs.com/posts/2025/06-11-product-released-coco-ai-v0.5/", "category": "Product Release", "breadcrumbs": [ { "name": "Blog", "url": "/blog" }, { "name": "Product Release", "url": "/category/release" } ] }, { "title": "Create Your Own AI Assistant: Coco AI v0.1.0 Released", "description": "Announcing the first preview release of Coco AI v0.1.0 a unified AI search and personal assistant tool that works across local and cloud data.", "score": 0.92, "url": "https://blog.infinilabs.com/posts/2025/02-14-product-released-coco-ai-v0.1/", "category": "Product Launch", "breadcrumbs": [ { "name": "Blog", "url": "/blog" }, { "name": "Product Launch", "url": "/category/news" } ] } ], "total": 5 }'
   hot_topics_for_homepage: '{ "recommendations": [ { "title": "Introducing Coco AI in Two Minutes  A Quick Start Video", "description": "A quick start video guide introducing Coco AI and showing how it works with Google Drive.", "score": 0.92, "url": "https://blog.infinilabs.com/posts/2024/a-quick-start-viideo-to-introduce-coco-ai-in-two-minutes/", "category": "Tutorial", "breadcrumbs": [ { "name": "Blog", "url": "/blog" }, { "name": "Tutorial", "url": "/category/tutorial" } ] }, { "title": "Coco AI v0.2 Released", "description": "Announcement of Coco AI v0.2, focusing on unified AI search, personal knowledge management, and enhanced productivity tools.", "score": 0.90, "url": "https://blog.infinilabs.com/posts/2025/03-16-product-released-coco-ai-v0.2/", "category": "Product Release", "breadcrumbs": [ { "name": "Blog", "url": "/blog" }, { "name": "Product Release", "url": "/category/release" } ] }, { "title": "Coco AI v0.3 Released", "description": "Announcement of Coco AI v0.3 with powerful widget integration for external platforms.", "score": 0.91, "url": "https://blog.infinilabs.com/posts/2025/04-06-product-released-coco-ai-v0.3/", "category": "Product Release", "breadcrumbs": [ { "name": "Blog", "url": "/blog" }, { "name": "Product Release", "url": "/category/release" } ] }, { "title": "Coco AI v0.4 Released", "description": "Details on Coco AI v0.4 with improved assistant settings and support for MCP.", "score": 0.93, "url": "https://blog.infinilabs.com/posts/2025/04-28-product-released-coco-ai-v0.4/", "category": "Product Release", "breadcrumbs": [ { "name": "Blog", "url": "/blog" }, { "name": "Product Release", "url": "/category/release" } ] }, { "title": "Coco AI v0.7 Released", "description": "Coco AI v0.7 introduces a brand new file search experience and fullscreen integrations.", "score": 0.94, "url": "https://blog.infinilabs.com/posts/2025/07-28-product-released-coco-ai-v0.7/", "category": "Product Release", "breadcrumbs": [ { "name": "Blog", "url": "/blog" }, { "name": "Product Release", "url": "/category/release" } ] } ], "total": 5 }'
@@ -421,3 +433,11 @@ recommend:
 
 suggest:
   document_metadata: '{ "query": "", "recent_searches": [], "suggestions": [ { "suggestion": "Source", "icon": "database", "source": "The data source of the document.", "payload": { "field_name": "source.id", "field_data_type": "keyword", "support_multi_select": true } }, { "suggestion": "Category", "icon": "folder", "source": "Primary category of the document, e.g., report.", "payload": { "field_name": "category", "field_data_type": "keyword", "support_multi_select": true } }, { "suggestion": "Subcategory", "icon": "folder", "source": "Secondary category of the document, e.g., 2024.", "payload": { "field_name": "subcategory", "field_data_type": "keyword", "support_multi_select": true } }, { "suggestion": "Categories", "icon": "folder", "source": "List of categories the document belongs to.", "payload": { "field_name": "categories", "field_data_type": "keyword", "support_multi_select": true } }, { "suggestion": "Title", "icon": "heading-1", "source": "Title of the document.", "payload": { "field_name": "title", "field_data_type": "text", "support_multi_select": false } }, { "suggestion": "Summary", "icon": "book-open-text", "source": "A brief summary of the document content.", "payload": { "field_name": "summary", "field_data_type": "text", "support_multi_select": false } }, { "suggestion": "Type", "icon": "case-sensitive", "source": "Type of the document, e.g., PDF.", "payload": { "field_name": "type", "field_data_type": "keyword", "support_multi_select": false } }, { "suggestion": "Lang", "icon": "case-sensitive", "source": "Language of the document.", "payload": { "field_name": "lang", "field_data_type": "keyword", "support_multi_select": false } }, { "suggestion": "Content", "icon": "text", "source": "The main content or body of the document.", "payload": { "field_name": "content", "field_data_type": "text", "support_multi_select": false } }, { "suggestion": "Icon", "icon": "link", "source": "URL to the documents icon.", "payload": { "field_name": "icon", "field_data_type": "url", "support_multi_select": false } }, { "suggestion": "Thumbnail", "icon": "link", "source": "URL to the documents thumbnail image.", "payload": { "field_name": "thumbnail", "field_data_type": "url", "support_multi_select": false } }, { "suggestion": "Tags", "icon": "tag", "source": "Tags associated with the document.", "payload": { "field_name": "tags", "field_data_type": "keyword", "support_multi_select": true } }, { "suggestion": "URL", "icon": "link", "source": "URL link to the document.", "payload": { "field_name": "url", "field_data_type": "url", "support_multi_select": false } }, { "suggestion": "Size", "icon": "number", "source": "Size of the document in bytes.", "payload": { "field_name": "size", "field_data_type": "integer", "support_multi_select": false } }, { "suggestion": "Owner Avatar", "icon": "link", "source": "URL to the owners avatar image.", "payload": { "field_name": "owner.avatar", "field_data_type": "url", "support_multi_select": false } }, { "suggestion": "Owner Username", "icon": "case-sensitive", "source": "Username of the owner.", "payload": { "field_name": "owner.username", "field_data_type": "keyword", "support_multi_select": false } }, { "suggestion": "Owner Userid", "icon": "case-sensitive", "source": "User ID of the owner.", "payload": { "field_name": "owner.userid", "field_data_type": "keyword", "support_multi_select": false } }, { "suggestion": "Last Updated By User Avatar", "icon": "link", "source": "URL to the avatar of the last editor.", "payload": { "field_name": "last_updated_by.user.avatar", "field_data_type": "url", "support_multi_select": false } }, { "suggestion": "Last Updated By User Username", "icon": "case-sensitive", "source": "Username of the last editor.", "payload": { "field_name": "last_updated_by.user.username", "field_data_type": "keyword", "support_multi_select": false } }, { "suggestion": "Last Updated By User Userid", "icon": "case-sensitive", "source": "User ID of the last editor.", "payload": { "field_name": "last_updated_by.user.userid", "field_data_type": "keyword", "support_multi_select": false } }, { "suggestion": "Last Updated Timestamp", "icon": "calendar", "source": "Timestamp of the last update.", "payload": { "field_name": "last_updated_by.timestamp", "field_data_type": "datetime", "support_multi_select": false } } ] }'
+
+enterprise:
+  security:
+    rbac:
+      principal_provider:
+        enabled: true
+        endpoint: "$[[env.CLOUD_ENDPOINT]]"
+        token: d7ccen1f89mknvh8dcb075x8gwwtqedd768ybkvk26gcan3cbd9lsx89k8enxnek0du8dskwfi3d0le6z1p0
