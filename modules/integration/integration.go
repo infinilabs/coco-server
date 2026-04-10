@@ -5,15 +5,17 @@
 package integration
 
 import (
-	"infini.sh/coco/core"
-	"infini.sh/coco/plugins/security"
-	httprouter "infini.sh/framework/core/api/router"
-	"infini.sh/framework/core/elastic"
-	"infini.sh/framework/core/orm"
-	"infini.sh/framework/core/util"
 	"net/http"
 	"sync"
 	"time"
+
+	"infini.sh/coco/core"
+	cocosecurity "infini.sh/coco/plugins/security"
+	httprouter "infini.sh/framework/core/api/router"
+	"infini.sh/framework/core/elastic"
+	"infini.sh/framework/core/orm"
+	frameworksecurity "infini.sh/framework/core/security"
+	"infini.sh/framework/core/util"
 )
 
 func (h *APIHandler) create(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -42,10 +44,24 @@ func (h *APIHandler) create(w http.ResponseWriter, req *http.Request, ps httprou
 
 func (h *APIHandler) get(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("id")
+	ctx := orm.NewContextWithParent(req.Context())
+
+	if reqUser, err := frameworksecurity.GetUserFromContext(req.Context()); err != nil || reqUser == nil {
+		sessionInfo, err := core.ResolveGuestUserSessionByIntegrationID(id)
+		if err != nil {
+			h.WriteError(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+		if sessionInfo == nil {
+			h.WriteError(w, "invalid guest user", http.StatusUnauthorized)
+			return
+		}
+		ctx.Context = frameworksecurity.AddUserToContext(ctx.Context, sessionInfo)
+	}
 
 	obj := core.Integration{}
 	obj.ID = id
-	ctx := orm.NewContextWithParent(req.Context())
+
 	ctx.Set(orm.SharingEnabled, true)
 	ctx.Set(orm.SharingResourceType, "integration")
 	ctx.DirectReadAccess()
@@ -140,7 +156,7 @@ func (h *APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprou
 
 		for _, hit := range searchRes.Hits.Hits {
 			if token, ok := hit.Source["token"].(string); ok && token != "" {
-				tokenObj, err := security.GetToken(token)
+				tokenObj, err := cocosecurity.GetToken(token)
 				if tokenObj == nil && err == nil {
 					// token is not found in the kv, here we set it as expired
 					hit.Source["token_expire_in"] = time.Time{}.Unix()

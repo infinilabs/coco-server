@@ -18,6 +18,7 @@ import (
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
+	managedorm "infini.sh/framework/plugins/enterprise/managed"
 )
 
 const (
@@ -98,6 +99,135 @@ func InternalGetIntegration(id string) (*Integration, error) {
 	return &obj, nil
 }
 
+func ResolveGuestUserSessionByIntegrationID(id string) (*security.UserSessionInfo, error) {
+	cfg, err := InternalGetIntegration(id)
+	if err != nil {
+		return nil, err
+	}
+	return ResolveGuestUserSessionByIntegration(cfg)
+}
+
+func ResolveGuestUserSessionByIntegration(cfg *Integration) (*security.UserSessionInfo, error) {
+	if cfg == nil {
+		return nil, errors.New("integration not found")
+	}
+
+	if !cfg.Guest.Enabled || cfg.Guest.RunAs == "" {
+		return nil, errors.New("integration guest run_as is not configured")
+	}
+
+	tenantID := ""
+	if global.Env().SystemConfig.WebAppConfig.Security.Managed {
+		tenantID, _ = managedorm.GetTenantInfo(cfg)
+	}
+
+	sessionInfo, err := resolveUserSessionByID(cfg.Guest.RunAs, tenantID)
+	if err != nil {
+		if global.Env().IsDebug {
+			log.Warnf("failed to resolve integration guest run_as [%s], fallback to raw session: %v", cfg.Guest.RunAs, err)
+		}
+
+		sessionInfo = &security.UserSessionInfo{}
+		sessionInfo.Login = cfg.Guest.RunAs
+		sessionInfo.SetGetUserID(cfg.Guest.RunAs)
+		if tenantID != "" {
+			managedorm.SetUserSessionWithTenantInfo(sessionInfo, tenantID, cfg.Guest.RunAs)
+		}
+	}
+
+	sessionInfo.Provider = ProviderIntegration
+	if sessionInfo.Login == "" {
+		sessionInfo.Login = cfg.Guest.RunAs
+	}
+	if sessionInfo.UserID == "" {
+		sessionInfo.SetGetUserID(cfg.Guest.RunAs)
+	}
+
+	sessionInfo.Permissions = security.MustGetPermissionKeysByUser(sessionInfo)
+	sessionInfo.UserAssignedPermission = security.GetUserPermissions(sessionInfo)
+
+	return sessionInfo, nil
+}
+
+func resolveUserSessionByID(userID, tenantID string) (*security.UserSessionInfo, error) {
+	if userID == "" {
+		return nil, errors.New("user id is required")
+	}
+
+	sessionInfo := &security.UserSessionInfo{}
+
+	if global.Env().SystemConfig.WebAppConfig.Security.Managed {
+		if tenantID == "" {
+			return nil, errors.New("tenant id is required for managed user lookup")
+		}
+
+		profile, err := getManagedUserProfileByID(tenantID, userID)
+		if err != nil {
+			return nil, err
+		}
+		if profile == nil {
+			return nil, errors.Errorf("user [%s] was not found", userID)
+		}
+
+		resolvedUserID := firstNonEmptyString(profile.ID, userID)
+		sessionInfo.Login = firstNonEmptyString(profile.Email, profile.Name, resolvedUserID)
+		sessionInfo.Roles = profile.Roles
+		sessionInfo.SetGetUserID(resolvedUserID)
+		managedorm.SetUserSessionWithTenantInfo(sessionInfo, tenantID, resolvedUserID)
+		return sessionInfo, nil
+	}
+
+	provider, account, err := security.GetUserByID(userID)
+	if err != nil || account == nil {
+		exists, accountByLogin, loginErr := security.GetUserByLogin(userID)
+		if loginErr == nil && exists && accountByLogin != nil {
+			account = accountByLogin
+			provider = security.DefaultNativeAuthBackend
+		} else {
+			if err != nil {
+				return nil, err
+			}
+			return nil, errors.Errorf("user [%s] was not found", userID)
+		}
+	}
+
+	resolvedUserID := firstNonEmptyString(account.ID, userID)
+	sessionInfo.Provider = provider
+	sessionInfo.Login = firstNonEmptyString(account.Email, account.Name, resolvedUserID)
+	sessionInfo.Roles = account.Roles
+	sessionInfo.SetGetUserID(resolvedUserID)
+
+	return sessionInfo, nil
+}
+
+func getManagedUserProfileByID(tenantID, userID string) (*security.UserProfile, error) {
+	profileKey := fmt.Sprintf("%s:%s", tenantID, userID)
+	data, err := kv.GetValue(UserProfileBucketKey, []byte(profileKey))
+	if err != nil {
+		return nil, err
+	}
+	if len(data) == 0 {
+		return nil, nil
+	}
+
+	profile := &security.UserProfile{}
+	err = util.FromJSONBytes(data, profile)
+	if err != nil {
+		return nil, err
+	}
+
+	return profile, nil
+}
+
+func firstNonEmptyString(values ...string) string {
+	for _, value := range values {
+		if value != "" {
+			return value
+		}
+	}
+	return ""
+}
+
 func ValidateLoginByIntegrationHeader(w http.ResponseWriter, r *http.Request) (claims *security.UserClaims, err error) {
 	integrationID := r.Header.Get(HeaderIntegrationID)
 
@@ -107,19 +237,14 @@ func ValidateLoginByIntegrationHeader(w http.ResponseWriter, r *http.Request) (c
 
 	cfg, _ := InternalGetIntegration(integrationID)
 	if cfg != nil {
-		if cfg.Guest.Enabled && cfg.Guest.RunAs != "" {
-
-			claims = security.NewUserClaims()
-			claims.SetGetUserID(cfg.Guest.RunAs)
-
-			claims.Provider = ProviderIntegration
-			claims.Login = cfg.Guest.RunAs
-			claims.UserID = cfg.Guest.RunAs
-			claims.Permissions = security.MustGetPermissionKeysByUser(claims.UserSessionInfo)
-			//claims.Permissions = security.MustGetPermissionKeysByUser(r.Context(), cfg.Guest.RunAs)
-			//log.Info("integration:", integrationID, ", run as:", cfg.Guest.RunAs, ",permissions:", claims.Permissions)
-			return claims, nil
+		sessionInfo, err := ResolveGuestUserSessionByIntegration(cfg)
+		if err != nil {
+			return nil, err
 		}
+
+		claims = security.NewUserClaims()
+		claims.UserSessionInfo = sessionInfo
+		return claims, nil
 	}
 
 	return nil, errors.Error("invalid claims")

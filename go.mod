@@ -3,6 +3,7 @@ module infini.sh/coco
 go 1.25.0
 
 replace infini.sh/framework => ../framework
+replace infini.sh/license => ../license
 
 replace github.com/libdns/libdns => ../vendor/src/github.com/libdns/libdns
 
@@ -61,6 +62,7 @@ require (
 	golang.org/x/text v0.31.0
 	google.golang.org/api v0.229.0
 	infini.sh/framework v0.0.0-00010101000000-000000000000
+	infini.sh/license v0.0.0-00010101000000-000000000000
 )
 
 require (
