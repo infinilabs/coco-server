@@ -11,6 +11,11 @@ Information about release notes of Coco Server is provided here.
 ### ❌ Breaking changes  
 ### 🚀 Features  
 ### 🐛 Bug fix  
+- fix: refine doc.Icon and doc.Source.Icon in searchDoc() #644
+- fix: read s3 config directly in raw_content interface #654
+- fix: generate embedding if we have text #658
+- fix: handle nil and missing keys in metadata empty checks #660
+- fix(hugo connector): do not assume URLs are relative #670
 ### ✈️ Improvements  
 
 ## 0.10.0 (2025-12-19)
