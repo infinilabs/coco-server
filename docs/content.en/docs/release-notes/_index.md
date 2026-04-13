@@ -31,10 +31,12 @@ Information about release notes of Coco Server is provided here.
 - fix: generate embedding if we have text #658
 - fix: handle nil and missing keys in metadata empty checks #660
 - fix(hugo connector): do not assume URLs are relative #670
+- fix: ValidateLoginByIntegrationHeader should set tenantID #671
 
 ### ✈️ Improvements  
 - refactor: refactoring attachment API #636
 - refactor: omit field document_chunk in search interface #647
+- revert: stop refining document URLs #671 
 
 ## 0.10.0 (2025-12-19)
 ### ❌ Breaking changes  
