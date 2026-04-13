@@ -122,7 +122,7 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 func RefineDocument(ctx context.Context, doc *core.Document) {
 	RefineIcon(ctx, doc)
 	RefineCoverThumbnail(ctx, doc)
-	RefineURL(ctx, doc)
+	// RefineURL(ctx, doc)
 }
 
 // ResolveIcon runs the icon fallback chain:
