@@ -4,6 +4,8 @@ go 1.24.1
 
 replace infini.sh/framework => ../framework
 
+replace infini.sh/license => ../license
+
 replace github.com/libdns/libdns => ../vendor/src/github.com/libdns/libdns
 
 replace github.com/libdns/tencentcloud => ../vendor/src/github.com/libdns/tencentcloud
@@ -46,6 +48,7 @@ require (
 	golang.org/x/oauth2 v0.30.0
 	google.golang.org/api v0.229.0
 	infini.sh/framework v0.0.0-00010101000000-000000000000
+	infini.sh/license v0.0.0-00010101000000-000000000000
 )
 
 require (
@@ -66,6 +69,7 @@ require (
 	github.com/Masterminds/sprig/v3 v3.2.3 // indirect
 	github.com/OneOfOne/xxhash v1.2.8 // indirect
 	github.com/RoaringBitmap/roaring v1.9.4 // indirect
+	github.com/WqyJh/go-openai-realtime v0.6.1 // indirect
 	github.com/andybalholm/brotli v1.1.1 // indirect
 	github.com/andybalholm/cascadia v1.3.2 // indirect
 	github.com/antchfx/htmlquery v1.3.0 // indirect
@@ -84,6 +88,7 @@ require (
 	github.com/cockroachdb/errors v1.9.1 // indirect
 	github.com/cockroachdb/logtags v0.0.0-20211118104740-dabe8e521a4f // indirect
 	github.com/cockroachdb/redact v1.1.3 // indirect
+	github.com/coder/websocket v1.8.12 // indirect
 	github.com/davidmz/go-pageant v1.0.2 // indirect
 	github.com/dgraph-io/badger/v4 v4.7.0 // indirect
 	github.com/dgraph-io/ristretto v0.2.0 // indirect
