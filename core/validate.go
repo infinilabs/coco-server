@@ -18,6 +18,7 @@ import (
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
+	framework_managed "infini.sh/framework/plugins/enterprise/managed"
 )
 
 const (
@@ -39,7 +40,7 @@ func ValidateLoginByAPITokenHeader(w http.ResponseWriter, r *http.Request) (clai
 		return nil, err
 	}
 
-	if bytes == nil || len(bytes) == 0 {
+	if len(bytes) == 0 {
 		return nil, errors.Errorf("invalid %s", HeaderAPIToken)
 	}
 
@@ -47,7 +48,7 @@ func ValidateLoginByAPITokenHeader(w http.ResponseWriter, r *http.Request) (clai
 	util.MustFromJSONBytes(bytes, &accessToken)
 
 	if global.Env().IsDebug {
-		log.Debug("get AccessToken from store:", util.MustToJSON(accessToken))
+		log.Debug("get AccessToken from store:", util.MustToJSON(&accessToken))
 	}
 
 	expireAtTime := time.Unix(accessToken.ExpireIn, 0) // Convert to time.Time
@@ -102,27 +103,42 @@ func ValidateLoginByIntegrationHeader(w http.ResponseWriter, r *http.Request) (c
 	integrationID := r.Header.Get(HeaderIntegrationID)
 
 	if integrationID == "" {
-		return nil, errors.Error("api integration not found")
+		return nil, errors.Errorf("request header %s not found", HeaderIntegrationID)
 	}
 
-	cfg, _ := InternalGetIntegration(integrationID)
-	if cfg != nil {
-		if cfg.Guest.Enabled && cfg.Guest.RunAs != "" {
+	cfg, err := InternalGetIntegration(integrationID)
+	if err != nil {
+		return nil, errors.Errorf("failed to acquire integration [%s]: %s", integrationID, err.Error())
+	}
 
-			claims = security.NewUserClaims()
-			claims.SetGetUserID(cfg.Guest.RunAs)
+	if cfg == nil {
+		return nil, errors.Errorf("failed to acquire integration [%s]: it exists, but the JSON stored in db is nil", integrationID)
+	}
 
-			claims.Provider = ProviderIntegration
-			claims.Login = cfg.Guest.RunAs
-			claims.UserID = cfg.Guest.RunAs
-			claims.Permissions = security.MustGetPermissionKeysByUser(claims.UserSessionInfo)
-			//claims.Permissions = security.MustGetPermissionKeysByUser(r.Context(), cfg.Guest.RunAs)
-			//log.Info("integration:", integrationID, ", run as:", cfg.Guest.RunAs, ",permissions:", claims.Permissions)
-			return claims, nil
+	if !cfg.Guest.Enabled {
+		return nil, errors.Errorf("guest mode is not enabled")
+	}
+
+	if cfg.Guest.RunAs == "" {
+		return nil, errors.Errorf("guest mode is enabled but no [RunAs] user configured")
+	}
+
+	claims = security.NewUserClaims()
+	claims.Provider = ProviderIntegration
+	claims.Login = cfg.Guest.RunAs
+	claims.SetGetUserID(cfg.Guest.RunAs)
+
+	if global.Env().SystemConfig.WebAppConfig.Security.Managed {
+		tenantID, ownerID := framework_managed.GetTenantInfo(cfg)
+		if tenantID == "" {
+			return nil, errors.Error("managed is enabled, but tenantID is not set")
 		}
+
+		framework_managed.SetUserSessionWithTenantInfo(claims.UserSessionInfo, tenantID, ownerID)
 	}
 
-	return nil, errors.Error("invalid claims")
+	claims.Permissions = security.MustGetPermissionKeysByUser(claims.UserSessionInfo)
+	return claims, nil
 }
 
 func ValidateLoginByAuthorizationHeader(w http.ResponseWriter, r *http.Request) (claims *security.UserClaims, err error) {
