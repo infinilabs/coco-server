@@ -258,7 +258,7 @@ export function Component() {
     },
     getRawContent: (item: any) => {
       if (item.id && item.title) {
-        return `${getEndpoint()}${getApiBaseUrl()}/document/${item.id}/raw_content/${item.title}`
+        return `${getApiBaseUrl()}/document/${item.id}/raw_content/${item.title}`;
       }
       return ''
     },
