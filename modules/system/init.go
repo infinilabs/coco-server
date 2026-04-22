@@ -88,7 +88,7 @@ func (h *APIHandler) providerInfo(w http.ResponseWriter, req *http.Request, ps h
 		output["managed"] = false
 	}
 	stats := util.MapStr{}
-	claims, _ := core.ValidateLogin(w, req)
+	claims, _ := security.ValidateLogin(w, req)
 	if claims != nil {
 		count, err := service.CountAssistants()
 		if err != nil {

@@ -27,7 +27,7 @@ export function Component() {
 
   const items: any[] = [];
 
-  if (permissions.viewAuth && providerInfo?.managed) {
+  if (permissions.viewAuth && providerInfo?.security?.managed) {
     items.push({
       component: Auth,
       key: "auth",
@@ -35,7 +35,7 @@ export function Component() {
     });
   }
 
-  if (permissions.viewUser && !providerInfo?.managed) {
+  if (permissions.viewUser && !providerInfo?.security?.managed) {
     items.push({
       component: User,
       key: "user",

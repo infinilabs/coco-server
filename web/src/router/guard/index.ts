@@ -30,7 +30,7 @@ export const init: Init = async currentFullPath => {
   await store.dispatch(updateRootRouteIfSearch(result.data));
 
   const setupRequired = Boolean(result.data?.setup_required);
-  const isManaged = Boolean(result?.data?.managed);
+  const isManaged = Boolean(result?.data?.security?.managed);
   const searchEnabled = Boolean(result?.data?.search_settings?.enabled);
 
   const filterPaths: RoutePath[] = [];

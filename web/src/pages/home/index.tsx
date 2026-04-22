@@ -48,7 +48,7 @@ export function Component() {
   const [isEndpointEditing, setIsEndpointEditing] = useState(false);
 
   const providerInfo = localStg.get('providerInfo');
-  const managed = Boolean(providerInfo?.managed);
+  const managed = Boolean(providerInfo?.security?.managed);
 
   const {
     data,

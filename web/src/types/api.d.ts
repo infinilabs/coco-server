@@ -232,6 +232,14 @@ declare namespace Api {
   }
 
   namespace Server {
+    type OAuthProvider = {
+      name?: string;
+      icon?: string;
+      url?: string;
+      description?: string;
+      type?: string;
+    };
+
     type Info = {
       auth_provider: {
         sso: {
@@ -254,6 +262,13 @@ declare namespace Api {
       updated: string;
       version: {
         number: string;
+      };
+      security?: {
+        managed?: boolean;
+        auth?: {
+          native?: boolean;
+          oauth?: Record<string, OAuthProvider>;
+        };
       };
     };
   }

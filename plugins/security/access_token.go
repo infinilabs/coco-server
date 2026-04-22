@@ -6,6 +6,9 @@ package security
 
 import (
 	"fmt"
+	log "github.com/cihub/seelog"
+	"infini.sh/framework/core/errors"
+	"infini.sh/framework/core/global"
 	"net/http"
 	"time"
 
@@ -13,65 +16,77 @@ import (
 	"infini.sh/framework/core/api"
 	"infini.sh/framework/core/orm"
 
-	"github.com/golang-jwt/jwt"
-	"infini.sh/coco/core"
 	httprouter "infini.sh/framework/core/api/router"
-	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/kv"
 	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
 )
 
-func GetPermissionKeys(u *security.UserSessionInfo) []security.PermissionKey {
-	//TODO cache, catch permission updates
-	keys := security.MustGetPermissionKeysByRole(u.Roles)
-	if len(u.Permissions) > 0 {
-		keys = append(keys, u.Permissions...)
+func init() {
+	security.RegisterHTTPAuthFilterProvider("api_token", byAPITokenHeader)
+}
+
+const (
+	KVAccessTokenBucket = "access_token"
+	HeaderAPIToken      = "X-API-TOKEN"
+)
+
+func byAPITokenHeader(w http.ResponseWriter, r *http.Request) (claims *security.UserClaims, err error) {
+	apiToken := r.Header.Get(HeaderAPIToken)
+
+	if apiToken == "" {
+		return nil, errors.Error("api token not found")
 	}
-	return keys
+
+	bytes, err := kv.GetValue(KVAccessTokenBucket, []byte(apiToken))
+	if err != nil {
+		return nil, err
+	}
+
+	if bytes == nil || len(bytes) == 0 {
+		return nil, errors.Errorf("invalid %s", HeaderAPIToken)
+	}
+
+	accessToken := security.AccessToken{}
+	util.MustFromJSONBytes(bytes, &accessToken)
+
+	if global.Env().IsDebug {
+		log.Debug("get AccessToken from store:", util.MustToJSON(accessToken))
+	}
+
+	expireAtTime := time.Unix(accessToken.ExpireIn, 0) // Convert to time.Time
+	if time.Now().After(expireAtTime) {
+		return nil, errors.Error("token expired")
+	}
+
+	// Safely extract fields with type assertions
+	claims = security.NewUserClaims()
+	claims.SetUserID(accessToken.GetOwnerID())
+
+	claims.Provider = "access_token"
+	claims.Login = apiToken
+	claims.Data = accessToken.CloneData()
+
+	apiTokenLevelPermission := security.ConvertPermissionKeysToHashSet(accessToken.Permissions)
+
+	userLevelTokenLevelPermission := security.ConvertPermissionKeysToHashSet(security.GetAllPermissionsForUser(claims.UserSessionInfo))
+
+	intersectedPermission := security.IntersectSetsFast(apiTokenLevelPermission, userLevelTokenLevelPermission)
+	if global.Env().IsDebug {
+		log.Trace("apiTokenLevelPermission:", apiTokenLevelPermission.Values())
+		log.Trace("userLevelTokenLevelPermission:", userLevelTokenLevelPermission.Values())
+		log.Trace("intersectedPermission:", intersectedPermission.Values())
+	}
+
+	claims.Permissions = security.ConvertPermissionHashSetToKeys(intersectedPermission)
+
+	return claims, nil
 }
 
 func GetPermissionHashSet(u *security.UserSessionInfo) *hashset.Set {
-	//TODO cache, catch permission updates
-	keys := GetPermissionKeys(u)
+	keys := security.GetAllPermissionsForUser(u)
 	set := security.ConvertPermissionKeysToHashSet(keys)
 	return set
-}
-
-func GenerateJWTAccessToken(user *security.UserSessionInfo) (map[string]interface{}, error) {
-
-	var data map[string]interface{}
-	t := time.Now()
-	if user.LastLogin.Timestamp == nil {
-		user.LastLogin.Timestamp = &t
-	}
-
-	token1 := jwt.NewWithClaims(jwt.SigningMethodHS256, security.UserClaims{
-		UserSessionInfo: user,
-		RegisteredClaims: &jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
-		},
-	})
-
-	secret, err := core.GetSecret()
-	if err != nil {
-		return nil, errors.Errorf("failed to get secret key: %v", err)
-	}
-
-	tokenString, err := token1.SignedString([]byte(secret))
-	if tokenString == "" || err != nil {
-		return nil, errors.Errorf("failed to generate access_token for user: %v", user)
-	}
-
-	data = util.MapStr{
-		"access_token": tokenString,
-		"expire_in":    time.Now().Unix() + 86400, //24h
-	}
-
-	data["status"] = "ok"
-
-	return data, err
-
 }
 
 func (h *APIHandler) RequestAccessToken(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -94,7 +109,7 @@ func (h *APIHandler) RequestAccessToken(w http.ResponseWriter, req *http.Request
 		reqBody.Name = GenerateApiTokenName("")
 	}
 
-	permission := security.MustGetPermissionKeysByUser(reqUser)
+	permission := security.GetAllPermissionsForUser(reqUser)
 	if len(reqBody.Permissions) > 0 {
 		//the permissions should be within' user's own permission scope
 		if !util.IsSuperset(security.ConvertPermissionKeysToHashSet(permission), security.ConvertPermissionKeysToHashSet(reqBody.Permissions)) {
@@ -145,7 +160,7 @@ func CreateAPIToken(user *security.UserSessionInfo, tokenName, typeName string, 
 	}
 
 	// save access token to store
-	err = kv.AddValue(core.KVAccessTokenBucket, []byte(accessTokenStr), util.MustToJSONBytes(accessToken))
+	err = kv.AddValue(KVAccessTokenBucket, []byte(accessTokenStr), util.MustToJSONBytes(accessToken))
 	if err != nil {
 		panic(err)
 	}
@@ -191,7 +206,7 @@ func (h *APIHandler) DeleteAccessToken(w http.ResponseWriter, req *http.Request,
 	}
 
 	if token.AccessToken != "" {
-		err = kv.DeleteKey(core.KVAccessTokenBucket, []byte(token.AccessToken))
+		err = kv.DeleteKey(KVAccessTokenBucket, []byte(token.AccessToken))
 		if err != nil {
 			panic(err)
 		}
@@ -201,7 +216,7 @@ func (h *APIHandler) DeleteAccessToken(w http.ResponseWriter, req *http.Request,
 }
 
 func GetToken(token string) (*security.AccessToken, error) {
-	tokenBytes, err := kv.GetValue(core.KVAccessTokenBucket, []byte(token))
+	tokenBytes, err := kv.GetValue(KVAccessTokenBucket, []byte(token))
 	if err != nil {
 		panic(err)
 	}
@@ -264,7 +279,7 @@ func (h *APIHandler) UpdateAccessToken(w http.ResponseWriter, req *http.Request,
 	}
 
 	// save access token to store
-	err = kv.AddValue(core.KVAccessTokenBucket, []byte(token.AccessToken), util.MustToJSONBytes(token))
+	err = kv.AddValue(KVAccessTokenBucket, []byte(token.AccessToken), util.MustToJSONBytes(token))
 	if err != nil {
 		panic(err)
 	}

@@ -22,7 +22,7 @@ const UserAvatar = memo((props) => {
   const location = useLocation();
 
   const providerInfo = localStg.get('providerInfo');
-  const managed = Boolean(providerInfo?.managed);
+  const managed = Boolean(providerInfo?.security?.managed);
   const [passwordVisible, setPasswordVisible] = useState(false);
 
   async function handleLogout() {
