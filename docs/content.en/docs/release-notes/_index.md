@@ -35,6 +35,8 @@ Information about release notes of Coco Server is provided here.
 ### ✈️ Improvements  
 - refactor: refactoring attachment API #636
 - refactor: omit field document_chunk in search interface #647
+- refactor: refactoring security framework #672
+
 
 ## 0.10.0 (2025-12-19)
 ### ❌ Breaking changes  
