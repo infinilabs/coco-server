@@ -8,6 +8,13 @@ export function fetchServer() {
   });
 }
 
+export function fetchProviderInfo() {
+  return request<Api.Server.Info>({
+    method: 'get',
+    url: '/provider/_info'
+  });
+}
+
 /** Get settings */
 export function fetchSettings() {
   return request({

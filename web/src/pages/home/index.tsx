@@ -2,7 +2,7 @@ import { useLoading, useRequest } from '@sa/hooks';
 import { Button, Card, Col, Form, Input, Row, Spin } from 'antd';
 import Clipboard from 'clipboard';
 
-import { fetchServer, updateSettings } from '@/service/api/server';
+import { fetchProviderInfo, updateSettings } from '@/service/api/server';
 import { selectUserInfo } from '@/store/slice/auth';
 import { getDarkMode } from '@/store/slice/theme';
 import { localStg } from '@/utils/storage';
@@ -54,9 +54,11 @@ export function Component() {
     data,
     loading: dataLoading,
     run
-  } = useRequest(fetchServer, {
+  } = useRequest(fetchProviderInfo, {
     manual: true
   });
+
+  const endpoint = data?.endpoint || getEndpoint();
 
   const handleSubmit = async (field: 'endpoint' | 'name', callback?: () => void) => {
     const params = await form.validateFields([field]);
@@ -76,31 +78,29 @@ export function Component() {
     if (callback) callback();
   };
 
-  const initClipboard = (text?: string) => {
-    if (!domRef.current || !text) return;
-
-    const clipboard = new Clipboard(domRef.current, {
-      text: () => text
-    });
-
-    clipboard.on('success', () => {
-      window.$message?.success(t('common.copySuccess'));
-    });
-  };
-
   useMount(() => {
     run();
   });
 
   useEffect(() => {
-    if (domRef.current) {
-      initClipboard(data?.endpoint);
-    }
-  }, [data?.endpoint, domRef.current]);
+    if (!domRef.current || !endpoint) return;
+
+    const clipboard = new Clipboard(domRef.current, {
+      text: () => endpoint
+    });
+
+    clipboard.on('success', () => {
+      window.$message?.success(t('common.copySuccess'));
+    });
+
+    return () => {
+      clipboard.destroy();
+    };
+  }, [endpoint, domRef.current]);
 
   useEffect(() => {
-    form.setFieldsValue({ endpoint: data?.endpoint, name: data?.name });
-  }, [JSON.stringify(data)]);
+    form.setFieldsValue({ endpoint, name: data?.name });
+  }, [endpoint, data?.name]);
 
   return (
     <Spin spinning={dataLoading || loading}>
@@ -170,14 +170,14 @@ export function Component() {
                     className="h-48px w-[calc(100%+30px)] p-r-32px"
                     onBlur={e => {
                       if (e.relatedTarget?.id !== 'endpoint-save') {
-                        form.setFieldsValue({ endpoint: data?.endpoint });
+                        form.setFieldsValue({ endpoint });
                       }
                     }}
                   />
                 </Form.Item>
               </Form>
             ) : (
-              <div title={data?.endpoint || ''} className="p-l-11px overflow-hidden text-ellipsis whitespace-nowrap">{data?.endpoint}</div>
+              <div title={endpoint} className="p-l-11px overflow-hidden text-ellipsis whitespace-nowrap">{endpoint}</div>
             )}
             {
               permissions.update && !managed && !window.__POWERED_BY_WUJIE__ && (
