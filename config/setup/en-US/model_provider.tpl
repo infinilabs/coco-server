@@ -388,7 +388,7 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
   "name": "Cohere",
   "api_key": "",
   "api_type": "cohere",
-  "base_url": "https://api.cohere.ai/v1",
+  "base_url": "https://api.cohere.ai/compatibility/v1",
   "icon": "/assets/icons/llm/cohere.svg",
   "models": [
     {"name": "command-r-plus", "settings":{"reasoning":true}},
