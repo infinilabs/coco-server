@@ -70,20 +70,42 @@ jobs:
           cd ~/es_install_dir && ./bin/initialize.sh -s
           cd ~/es_install_dir && nohup ./bin/easysearch > easysearch.log 2>&1 &
 
+          start_time=$(date +%s)
+          timeout_secs=300
+          log_with_time() {
+              printf '[%s] %s\n' "$(date '+%H:%M:%S')" "$1"
+          }
+
           # Ensure it starts
           while ! nc -z 127.0.0.1 9200; do
-              echo "Easysearch is not up. Will re-check in 5 seconds..."
+              now=$(date +%s)
+              elapsed=$((now - start_time))
+              if [ "$elapsed" -ge "$timeout_secs" ]; then
+                log_with_time "Easysearch did not open port 9200 within ${timeout_secs}s."
+                tail -n 200 ~/es_install_dir/easysearch.log
+                exit 1
+              fi
+              log_with_time "Easysearch is not up after ${elapsed}s. Will re-check in 5 seconds..."
               sleep 5
           done
+          log_with_time "Easysearch is listening on 127.0.0.1:9200."
+
           # Wait until the cluster reports healthy before continuing
           while true; do
+              now=$(date +%s)
+              elapsed=$((now - start_time))
+              if [ "$elapsed" -ge "$timeout_secs" ]; then
+                log_with_time "Easysearch cluster did not become green within ${timeout_secs}s."
+                tail -n 200 ~/es_install_dir/easysearch.log
+                exit 1
+              fi
               health=$(curl -s http://127.0.0.1:9200/_cluster/health)
               status=$(echo "$health" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("status", ""))')
               if [ "$status" = "green" ]; then
-                echo "Easysearch cluster status is green."
+                log_with_time "Easysearch cluster status is green."
                 break
               fi
-              echo "Easysearch cluster status is $status. Will re-check in 5 seconds..."
+              log_with_time "Easysearch cluster status is ${status:-unknown} after ${elapsed}s. Will re-check in 5 seconds..."
               sleep 5
           done
 
