@@ -54,7 +54,7 @@ jobs:
       - name: Set up Easysearch
         run: |
           mkdir ~/es_install_dir
-          curl -sSL http://get.infini.cloud | bash -s -- -p easysearch -d ~/es_install_dir -v 1.16.0-20251121-SNAPSHOT
+          curl -sSL http://get.infini.cloud | bash -s -- -p easysearch -d ~/es_install_dir -v 2.1.2
 
           # Use our config file, which disables security setting
           cd ~/es_install_dir && rm ./config/easysearch.yml
