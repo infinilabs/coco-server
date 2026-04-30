@@ -45,8 +45,14 @@ jobs:
       - name: Clone framework and framework vendor
         run: |
           git clone https://github.com/infinilabs/framework.git ~/go/src/infini.sh/framework
-          git clone git@github.com:infinilabs/framework-enterprise-plugins.git ~/go/src/infini.sh/framework/plugins/enterprise
           git clone https://github.com/infinilabs/framework-vendor.git ~/go/src/infini.sh/vendor
+
+      - name: Clone framework enterprise plugin
+        uses: actions/checkout@v4
+        with: 
+          repository: infinilabs/framework-enterprise-plugins
+          path: ~/go/src/infini.sh/framework/plugins/enterprise
+          token: ${{ secrets.REPO_PAT }}
       
       - name: Build Coco Server
         working-directory: /home/runner/go/src/infini.sh/coco
