@@ -62,6 +62,24 @@ jobs:
         run: |
           mkdir -p ~/go/src/infini.sh/framework/plugins
           mv ./framework-enterprise-plugin ~/go/src/infini.sh/framework/plugins/enterprise
+
+      - name: Checkout license repository
+        uses: actions/checkout@v4
+        with:
+          repository: infinilabs/license
+          path: license
+          token: ${{ secrets.REPO_PAT }}
+
+      - name: Move license to ~/go/src/infini.sh/license
+        run: |
+          mkdir -p ~/go/src/infini.sh
+          mv ./license ~/go/src/infini.sh/license
+
+      - name: Configure local Go module replacements
+        working-directory: /home/runner/go/src/infini.sh/coco
+        run: |
+          go mod edit -replace=infini.sh/license=../license
+          go mod edit -require=infini.sh/license@v0.0.0-00010101000000-000000000000
       
       - name: Build Coco Server
         working-directory: /home/runner/go/src/infini.sh/coco
