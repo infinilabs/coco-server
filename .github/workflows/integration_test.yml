@@ -51,7 +51,7 @@ jobs:
         uses: actions/checkout@v4
         with: 
           repository: infinilabs/framework-enterprise-plugins
-          path: ~/go/src/infini.sh/framework/plugins/enterprise
+          path: /home/runner/go/src/infini.sh/framework/plugins/enterprise
           token: ${{ secrets.REPO_PAT }}
       
       - name: Build Coco Server
