@@ -3,11 +3,11 @@
   "description": "Cohere provides advanced APIs for natural language understanding, generation, and embeddings (including the Command-R and Embed v3 series). These models are optimized for reasoning, retrieval-augmented generation (RAG), multilingual semantic search, and enterprise-scale AI applications, offering strong performance and cost-efficiency.",
   "developer": {
     "avatar": "https://coco.infini.cloud/extensions/infinilabs/assets/avatar.png",
-    "github_handle": "infinilabs",
-    "id": "infinilabs",
+    "github_handle": "cohere-ai",
+    "id": "cohere",
     "location": "Internet",
-    "name": "infinilabs",
-    "website": "https://github.com/infinilabs"
+    "name": "Cohere",
+    "website": "https://docs.cohere.com/docs/compatibility-api"
   },
   "icon": "/assets/icons/llm/cohere.svg",
   "name": "Cohere",
@@ -29,7 +29,7 @@
   ],
   "type": "llm-provider",
   "url": {
-    "home": "https://api.cohere.ai/v1"
+    "home": "https://api.cohere.ai/compatibility/v1"
   },
   "version": {
     "number": "0.1"
@@ -37,8 +37,8 @@
   "payload": {
     "name": "Cohere",
     "api_key": "",
-    "api_type": "cohere",
-    "base_url": "https://api.cohere.ai/v1",
+    "api_type": "openai",
+    "base_url": "https://api.cohere.ai/compatibility/v1",
     "icon": "/assets/icons/llm/cohere.svg",
     "models": [
       {"name": "command-r-plus", "settings":{"reasoning":true}},
