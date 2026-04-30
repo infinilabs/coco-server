@@ -43,24 +43,28 @@ func init() {
 
 	//list all icons for connectors
 	api.HandleUIMethod(api.GET, "/icons/list", handler.getIcons, api.AllowPublicAccess())
+
+	api.RegisterAppSetting("setup_required", func() interface{} {
+		return global.Env().SetupRequired()
+	})
+
+	api.RegisterAppSetting("search_settings", func() interface{} {
+		info := common.AppConfig()
+		return info.SearchSettings
+	})
+
 }
 
 func (h *APIHandler) providerInfo(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+
+	output := util.MapStr{}
+
 	info := common.AppConfig()
 	json := util.MustToJSONBytes(&info.ServerInfo)
-	output := util.MapStr{}
 	err := util.FromJSONBytes(json, &output)
 	if err != nil {
 		panic(err)
 	}
-
-	searchSettings := util.MapStr{}
-	searchSettingsJson := util.MustToJSONBytes(&info.SearchSettings)
-	err = util.FromJSONBytes(searchSettingsJson, &searchSettings)
-	if err != nil {
-		panic(err)
-	}
-	output["search_settings"] = searchSettings
 
 	overallHealthType := global.Env().GetOverallHealth()
 	obj := util.MapStr{
@@ -72,23 +76,10 @@ func (h *APIHandler) providerInfo(w http.ResponseWriter, req *http.Request, ps h
 		obj["services"] = services
 	}
 
-	isSetup := isAlreadyDoneSetup()
-	if !isSetup {
-		output["setup_required"] = true
-	}
-
 	output["health"] = obj
 
-	if global.Env().SystemConfig.WebAppConfig.Security.Managed {
-		output["managed"] = true
-		if info.ServerInfo.Provider.AuthProvider.SSO.URL == "" {
-			panic("sso url can't be nil")
-		}
-	} else {
-		output["managed"] = false
-	}
 	stats := util.MapStr{}
-	claims, _ := core.ValidateLogin(w, req)
+	claims, _ := security.ValidateLogin(w, req)
 	if claims != nil {
 		count, err := service.CountAssistants()
 		if err != nil {

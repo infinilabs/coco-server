@@ -21,6 +21,8 @@ import GlobalMenu from '../modules/global-menu';
 import GlobalSider from '../modules/global-sider';
 import GlobalTab from '../modules/global-tab';
 import { logout } from '@/service/api';
+import { fetchProviderInfo } from '@/service/api/server';
+import { setServer } from '@/store/slice/server';
 
 const ThemeDrawer = lazy(() => import('../modules/theme-drawer'));
 
@@ -91,6 +93,16 @@ const BaseLayout = () => {
   }
   const siderWidth = getSiderWidth();
   const siderCollapsedWidth = getSiderCollapsedWidth();
+
+  useEffect(() => {
+    async function updateServerEndpoint() {
+      const res = await fetchProviderInfo()
+      if (res.data?.endpoint) {
+        dispatch(setServer(res.data.endpoint))
+      }
+    }
+    updateServerEndpoint()
+  }, [])
 
   useLayoutEffect(() => {
     dispatch(setIsMobile(isMobile));

@@ -4,6 +4,13 @@ import { request } from '../request';
 export function fetchServer() {
   return request<Api.Server.Info>({
     method: 'get',
+    url: '/setting/application'
+  });
+}
+
+export function fetchProviderInfo() {
+  return request<Api.Server.Info>({
+    method: 'get',
     url: '/provider/_info'
   });
 }

@@ -29,10 +29,6 @@ func init() {
 		}
 	})
 
-	api.HandleUIMethod(api.GET, "/account/logout", apiHandler.Logout, api.OptionLogin(), api.Feature(core.FeatureCORS))
-	api.HandleUIMethod(api.POST, "/account/logout", apiHandler.Logout, api.OptionLogin(), api.Feature(core.FeatureCORS))
-	api.HandleUIMethod(api.OPTIONS, "/account/logout", apiHandler.Logout, api.OptionLogin(), api.Feature(core.FeatureCORS))
-
 	createTokenPermission := security.GetSimplePermission("generic", "security:auth:api-token", security.Create)
 	updateTokenPermission := security.GetSimplePermission("generic", "security:auth:api-token", security.Update)
 	deleteTokenPermission := security.GetSimplePermission("generic", "security:auth:api-token", security.Delete)

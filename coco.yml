@@ -306,7 +306,10 @@ web:
           redirect_url: "http://localhost:9001/sso/callback/cloud"
           success_page: "/#/home"
           failed_page: "/#/login"
-          scopes: [ "openid","email","profile"]
+          scopes: [ "openid","email","profile" ]
+    authorization:
+      native:
+        enabled: true
 
 ##background jobs
 pipeline:

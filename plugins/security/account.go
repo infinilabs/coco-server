@@ -19,15 +19,7 @@ import (
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/kv"
 	"infini.sh/framework/core/security"
-	"infini.sh/framework/core/util"
 )
-
-func (h APIHandler) Logout(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	api.DestroySession(w, r)
-	h.WriteOKJSON(w, util.MapStr{
-		"status": "ok",
-	})
-}
 
 func (h APIHandler) Profile(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
@@ -174,7 +166,7 @@ func (h APIHandler) Login(w http.ResponseWriter, r *http.Request, ps httprouter.
 		sessionInfo.Provider = core.DefaultSimpleAuthBackend
 		sessionInfo.Login = core.DefaultSimpleAuthUserLogin
 		sessionInfo.Roles = []string{security.RoleAdmin}
-		sessionInfo.SetGetUserID(core.DefaultSimpleAuthUserLogin)
+		sessionInfo.SetUserID(core.DefaultSimpleAuthUserLogin)
 	} else {
 		err, account, success := h.checkPasswordForEmail(req.Email, req.Password)
 		if err != nil {
@@ -188,10 +180,10 @@ func (h APIHandler) Login(w http.ResponseWriter, r *http.Request, ps httprouter.
 		sessionInfo.Provider = security.DefaultNativeAuthBackend
 		sessionInfo.Login = account.Email
 		sessionInfo.Roles = account.Roles
-		sessionInfo.SetGetUserID(account.ID)
+		sessionInfo.SetUserID(account.ID)
 	}
 
-	err, token := AddUserAccessTokenToSession(w, r, &sessionInfo)
+	err, token := security.AddUserToSession(w, r, &sessionInfo)
 	if err != nil {
 		h.ErrorInternalServer(w, "failed to authorize user")
 		return
@@ -202,22 +194,6 @@ func (h APIHandler) Login(w http.ResponseWriter, r *http.Request, ps httprouter.
 	} else {
 		h.WriteOKJSON(w, token)
 	}
-}
-
-func AddUserAccessTokenToSession(w http.ResponseWriter, r *http.Request, user *security.UserSessionInfo) (error, map[string]interface{}) {
-
-	if user == nil {
-		panic("invalid user")
-	}
-
-	// Generate access token
-	token, err := GenerateJWTAccessToken(user)
-	if err != nil {
-		return err, nil
-	}
-
-	api.ForceSetSession(w, r, core.UserAccessTokenSessionName, token["access_token"], true)
-	return nil, token
 }
 
 func (h APIHandler) checkPasswordForEmail(email, password string) (error, *security.UserAccount, bool) {

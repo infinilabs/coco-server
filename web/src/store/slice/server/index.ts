@@ -22,6 +22,12 @@ export const serverSlice = createSlice({
       state.providerInfo = payload;
       localStg.set('providerInfo', payload);
     },
+    setServer(state, { payload }: PayloadAction<string>) {
+      if (state.providerInfo) {
+        state.providerInfo.endpoint = payload;
+        localStg.set('providerInfo', state.providerInfo);
+      }
+    }
   },
   selectors: {
     getProviderInfo: app => app.providerInfo,
@@ -31,6 +37,7 @@ export const serverSlice = createSlice({
 // Action creators are generated for each case reducer function.
 export const {
   setProviderInfo,
+  setServer
 } = serverSlice.actions;
 
 // Selectors returned by `slice.selectors` take the root state as their first argument.

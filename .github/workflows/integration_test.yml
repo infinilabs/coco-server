@@ -46,6 +46,40 @@ jobs:
         run: |
           git clone https://github.com/infinilabs/framework.git ~/go/src/infini.sh/framework
           git clone https://github.com/infinilabs/framework-vendor.git ~/go/src/infini.sh/vendor
+
+      - name: Clone framework enterprise plugin
+        uses: actions/checkout@v4
+        with: 
+          repository: infinilabs/framework-enterprise-plugins
+          # We cannot directly clone into the ~/go dir as that is not under the runner work dir
+          #
+          # Repository path '/home/runner/go/src/infini.sh/framework/plugins/enterprise' is not 
+          # under '/home/runner/work/coco-server/coco-server'
+          path: framework-enterprise-plugin
+          token: ${{ secrets.REPO_PAT }}
+      
+      - name: Move framework-enterprise to ~/go/src/infini.sh/framework/plugins/enterprise
+        run: |
+          mkdir -p ~/go/src/infini.sh/framework/plugins
+          mv ./framework-enterprise-plugin ~/go/src/infini.sh/framework/plugins/enterprise
+
+      - name: Checkout license repository
+        uses: actions/checkout@v4
+        with:
+          repository: infinilabs/license
+          path: license
+          token: ${{ secrets.REPO_PAT }}
+
+      - name: Move license to ~/go/src/infini.sh/license
+        run: |
+          mkdir -p ~/go/src/infini.sh
+          mv ./license ~/go/src/infini.sh/license
+
+      - name: Configure local Go module replacements
+        working-directory: /home/runner/go/src/infini.sh/coco
+        run: |
+          go mod edit -replace=infini.sh/license=../license
+          go mod edit -require=infini.sh/license@v0.0.0-00010101000000-000000000000
       
       - name: Build Coco Server
         working-directory: /home/runner/go/src/infini.sh/coco
@@ -54,7 +88,7 @@ jobs:
       - name: Set up Easysearch
         run: |
           mkdir ~/es_install_dir
-          curl -sSL http://get.infini.cloud | bash -s -- -p easysearch -d ~/es_install_dir -v 1.16.0-20251121-SNAPSHOT
+          curl -sSL http://get.infini.cloud | bash -s -- -p easysearch -d ~/es_install_dir -v 2.1.2
 
           # Use our config file, which disables security setting
           cd ~/es_install_dir && rm ./config/easysearch.yml
@@ -70,20 +104,42 @@ jobs:
           cd ~/es_install_dir && ./bin/initialize.sh -s
           cd ~/es_install_dir && nohup ./bin/easysearch > easysearch.log 2>&1 &
 
+          start_time=$(date +%s)
+          timeout_secs=300
+          log_with_time() {
+              printf '[%s] %s\n' "$(date '+%H:%M:%S')" "$1"
+          }
+
           # Ensure it starts
           while ! nc -z 127.0.0.1 9200; do
-              echo "Easysearch is not up. Will re-check in 5 seconds..."
+              now=$(date +%s)
+              elapsed=$((now - start_time))
+              if [ "$elapsed" -ge "$timeout_secs" ]; then
+                log_with_time "Easysearch did not open port 9200 within ${timeout_secs}s."
+                tail -n 200 ~/es_install_dir/easysearch.log
+                exit 1
+              fi
+              log_with_time "Easysearch is not up after ${elapsed}s. Will re-check in 5 seconds..."
               sleep 5
           done
+          log_with_time "Easysearch is listening on 127.0.0.1:9200."
+
           # Wait until the cluster reports healthy before continuing
           while true; do
+              now=$(date +%s)
+              elapsed=$((now - start_time))
+              if [ "$elapsed" -ge "$timeout_secs" ]; then
+                log_with_time "Easysearch cluster did not become green within ${timeout_secs}s."
+                tail -n 200 ~/es_install_dir/easysearch.log
+                exit 1
+              fi
               health=$(curl -s http://127.0.0.1:9200/_cluster/health)
               status=$(echo "$health" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("status", ""))')
               if [ "$status" = "green" ]; then
-                echo "Easysearch cluster status is green."
+                log_with_time "Easysearch cluster status is green."
                 break
               fi
-              echo "Easysearch cluster status is $status. Will re-check in 5 seconds..."
+              log_with_time "Easysearch cluster status is ${status:-unknown} after ${elapsed}s. Will re-check in 5 seconds..."
               sleep 5
           done
 
