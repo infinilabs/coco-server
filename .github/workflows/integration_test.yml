@@ -83,7 +83,7 @@ jobs:
       
       - name: Build Coco Server
         working-directory: /home/runner/go/src/infini.sh/coco
-        run:  make build
+        run:  make build-all
 
       - name: Set up Easysearch
         run: |
