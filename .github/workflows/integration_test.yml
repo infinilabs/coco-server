@@ -51,8 +51,17 @@ jobs:
         uses: actions/checkout@v4
         with: 
           repository: infinilabs/framework-enterprise-plugins
-          path: /home/runner/go/src/infini.sh/framework/plugins/enterprise
+          # We cannot directly clone into the ~/go dir as that is not under the runner work dir
+          #
+          # Repository path '/home/runner/go/src/infini.sh/framework/plugins/enterprise' is not 
+          # under '/home/runner/work/coco-server/coco-server'
+          path: framework-enterprise-plugin
           token: ${{ secrets.REPO_PAT }}
+      
+      - name: Move framework-enterprise to ~/go/src/infini.sh/framework/plugins/enterprise
+        run: |
+          mkdir -p ~/go/src/infini.sh/framework/plugins
+          mv ./framework-enterprise-plugin ~/go/src/infini.sh/framework/plugins/enterprise
       
       - name: Build Coco Server
         working-directory: /home/runner/go/src/infini.sh/coco
