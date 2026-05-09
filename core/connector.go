@@ -25,7 +25,7 @@ type Connector struct {
 	OAuthConnectImplemented bool `json:"oauth_connect_implemented" elastic_mapping:"oauth_connect_implemented:{type:boolean}"`
 
 	Processor struct {
-		Enabled bool   `json:"enabled" elastic_mapping:"enabled:{type:keyword}"`
+		Enabled bool   `json:"enabled" elastic_mapping:"enabled:{type:boolean}"`
 		Name    string `json:"name,omitempty" elastic_mapping:"name:{type:keyword,copy_to:combined_fulltext}"`
 	} `json:"processor,omitempty" elastic_mapping:"processor:{type:object}"`
 }
