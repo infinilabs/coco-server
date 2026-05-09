@@ -45,7 +45,7 @@ func init() {
 	api.HandleUIMethod(api.GET, "/icons/list", handler.getIcons, api.AllowPublicAccess())
 
 	api.RegisterAppSetting("setup_required", func() interface{} {
-		return !isAlreadyDoneSetup()
+		return global.Env().SetupRequired()
 	})
 
 	api.RegisterAppSetting("search_settings", func() interface{} {

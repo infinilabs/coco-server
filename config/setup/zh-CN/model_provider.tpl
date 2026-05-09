@@ -358,8 +358,8 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
   "updated": "2025-03-28T11:32:00.000000+08:00",
   "name": "Cohere",
   "api_key": "",
-  "api_type": "cohere",
-  "base_url": "https://api.cohere.ai/v1",
+  "api_type": "openai",
+  "base_url": "https://api.cohere.ai/compatibility/v1",
   "icon": "/assets/icons/llm/cohere.svg",
   "models": [
     {"name": "command-r-plus"},
