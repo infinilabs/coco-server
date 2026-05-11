@@ -30,11 +30,5 @@ build-all: init-web-env
 	make build-widget
 	make build
 
-build-all-linux-amd64: init-web-env
-	(rm -rif .public/)
-	make build-web
-	make build-widget
-	make build-linux-amd64
-
 int-test:
 	./tests/assets/run_integration_tests.py
