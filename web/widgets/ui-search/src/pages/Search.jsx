@@ -41,7 +41,7 @@ export default function Search({
   getFieldsMeta
 }) {
 
-  const { query, filter } = queryParams;
+  const { query, filter, aggfilter = {} } = queryParams;
   const content_category = queryParams?.['metadata.content_category']
   const [siderCollapse, setSiderCollapse] = useState(false)
   const [detailCollapse, setDetailCollapse] = useState(true)
@@ -55,7 +55,8 @@ export default function Search({
   useEffect(() => {
     const keys = Object.keys(filter)
     if (keys.length === 0) return;
-    getFieldsMeta(keys, (res) => {
+    const rawKeys = keys.map(k => k.startsWith('!') ? k.slice(1) : k);
+    getFieldsMeta(rawKeys, (res) => {
       setFilterFieldsMeta(res)
     })
   }, [JSON.stringify(filter)])
@@ -160,7 +161,7 @@ export default function Search({
             {...commonProps}
             aggregations={aggregations}
             config={config.aggregations}
-            filter={filter}
+            filter={aggfilter}
             onSearch={onSearchFilter}
             filterFieldsMeta={filterFieldsMeta}
           />
@@ -236,8 +237,8 @@ export default function Search({
       }
       tools={
         <div className='h-46px flex items-center gap-8px'>
-          <ListFilter className='h-16px w-16px' />
-          <ChartColumn className='h-16px w-16px' />
+          {/* <ListFilter className='h-16px w-16px' />
+          <ChartColumn className='h-16px w-16px' /> */}
         </div>
       }
       recommends={<Recommends showTitle={true} onRecommend={(callback) => onRecommend("hot_topics_for_search_result", callback)} />}

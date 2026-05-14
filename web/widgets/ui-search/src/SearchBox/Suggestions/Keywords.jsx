@@ -1,14 +1,37 @@
-import { MessageCircle, Search } from "lucide-react";
+import { createLucideIcon, MessageCircle, Search } from "lucide-react";
 import ListContainer from "./ListContainer";
 import { useState, useEffect, useRef } from "react";
 
 export const SUGGESTION_ACTIONS = "suggestion_actions"
 export const SUGGESTION_KEYWORDS = "suggestion_keywords"
 
+const Deepresearch = createLucideIcon('Deepresearch', [
+  ['path', { 
+    d: 'M336.353882 358.219294c94.870588-93.846588 199.619765-155.166118 289.370353-180.705882 92.521412-26.443294 151.672471-11.264 180.645647 17.347764 28.973176 28.672 44.333176 87.160471 17.648942 178.718118-25.901176 88.726588-87.943529 192.271059-182.753883 286.117647-94.930824 93.846588-199.619765 155.166118-289.370353 180.705883-92.581647 26.443294-151.732706 11.264-180.705882-17.468236l-51.440941 50.898824 10.962823 9.938823c117.579294 96.737882 364.483765 21.985882 561.935059-173.236706 203.776-201.547294 277.684706-455.137882 165.165177-566.452705l-10.962824-9.938824C729.268706 37.406118 482.484706 112.158118 284.973176 307.380706 81.136941 508.867765 7.228235 762.458353 119.747765 873.833412l51.440941-50.838588c-28.973176-28.672-44.272941-87.160471-17.648941-178.657883 25.901176-88.726588 87.943529-192.271059 182.814117-286.117647z',
+    transform: 'scale(0.0234375)',
+    fill: 'currentColor',
+    stroke: 'none',
+    key: 'orbit-1' 
+  }],
+  ['path', { 
+    d: 'M641.445647 360.869647C546.514824 265.938824 441.705412 203.896471 351.894588 177.995294c-92.641882-26.684235-151.973647-11.444706-181.127529 17.769412-29.153882 29.153882-44.453647 88.425412-17.709177 181.067294 25.901176 89.810824 87.943529 194.56 182.874353 289.551059 94.930824 94.870588 199.68 156.973176 289.551059 182.874353 92.641882 26.684235 151.973647 11.444706 181.12753-17.709177l51.079529 51.07953-10.962824 9.999059c-113.844706 94.689882-348.762353 26.985412-542.72-156.431059l-19.215058-18.672941C81.016471 513.626353 7.047529 257.204706 119.627294 144.564706c112.64-112.64 369.121882-38.671059 572.897882 165.165176l18.733177 19.215059c189.560471 200.402824 255.518118 444.536471 146.432 553.622588l-51.079529-51.079529c29.153882-29.214118 44.393412-88.545882 17.709176-181.127529-25.901176-89.810824-87.943529-194.56-182.874353-289.551059z',
+    transform: 'scale(0.0234375)',
+    fill: 'currentColor',
+    stroke: 'none',
+    key: 'orbit-2' 
+  }],
+  ['path', { 
+    d: 'M488.688941 388.517647l34.093177 86.377412 86.377411 34.032941-86.377411 34.093176-34.093177 86.377412-34.032941-86.377412-86.437647-34.093176 86.437647-34.032941 34.032941-86.437647z',
+    transform: 'scale(0.0234375)',
+    fill: 'currentColor',
+    stroke: 'none',
+    key: 'star-center' 
+  }],
+]);
+
 export default (props) => {
     const { keyword, data = [], onItemSelect, onItemClick } = props;
 
-    // 定义 actions 数据
     const actions = [
         {
             action: "search",
@@ -24,40 +47,31 @@ export default (props) => {
         },
         {
             action: "deepresearch",
-            icon: <Search className="w-16px h-16px" />,
+            icon: <Deepresearch className="w-16px h-16px" />,
             suggestion: keyword,
             source: `深度研究 | 多步推理，综合分析`,
         },
-    ].filter(item => !!item?.suggestion); // 过滤无效项
+    ].filter(item => !!item?.suggestion);
 
-    // 过滤后的 keywords 数据
     const keywords = data.filter(item => !!item?.suggestion);
 
-    // 合并所有数据（actions + keywords）
     const combinedData = useRef([...actions, ...keywords]);
-    // 记录 actions 数据长度，用于区分两个列表
     const actionsLength = actions.length;
 
-    // 全局选中索引
     const [globalActiveIndex, setGlobalActiveIndex] = useState(0);
-    // 子组件引用，用于触发点击事件
     const listRefs = useRef({
         [SUGGESTION_ACTIONS]: null,
         [SUGGESTION_KEYWORDS]: null
     });
 
-    // 更新合并数据
     useEffect(() => {
         combinedData.current = [...actions, ...keywords];
-        // 如果选中索引超出新数据长度，重置为 -1
         if (globalActiveIndex >= combinedData.current.length) {
             setGlobalActiveIndex(-1);
         }
     }, [actions, keywords]);
 
-    // 统一的键盘事件处理（仅在有多个列表时启用）
     useEffect(() => {
-        // 只有当存在多个有效列表时才注册全局键盘事件
         const hasMultipleLists = (actions.length > 0 && keywords.length > 0);
         if (!hasMultipleLists || !onItemClick) return;
 
@@ -70,34 +84,28 @@ export default (props) => {
             e.preventDefault();
             let newIndex = -1
             switch (e.keyCode) {
-                case 40: // 下键
+                case 40:
                     newIndex = globalActiveIndex === -1 ? 0 : globalActiveIndex + 1;
-                    // 限制最大索引为 合并数据长度 - 1
                     if (newIndex >= combinedData.current.length) {
                         newIndex = combinedData.current.length - 1;
                     }
-                    // ... 其他逻辑
                     setGlobalActiveIndex(newIndex);
                     onItemSelect(combinedData.current?.[newIndex])
                     break;
 
-                case 38: // 上键
+                case 38: 
                     if (globalActiveIndex === -1) return;
                     newIndex = globalActiveIndex - 1;
-                    // 限制最小索引为 0
                     if (newIndex < 0) {
                         newIndex = 0;
                     }
-                    // ... 其他逻辑
                     setGlobalActiveIndex(newIndex);
                     onItemSelect(combinedData.current?.[newIndex])
                     break;
-                case 13: // 回车
+                case 13: 
                     if (globalActiveIndex >= 0 && globalActiveIndex < totalItems) {
                         const item = combinedData.current[globalActiveIndex];
-                        // 触发点击事件
                         onItemClick?.(item);
-                        // 通知对应子组件触发点击
                         if (globalActiveIndex < actionsLength) {
                             listRefs.current[SUGGESTION_ACTIONS]?.triggerItemClick(globalActiveIndex);
                         } else {
@@ -117,30 +125,24 @@ export default (props) => {
         };
     }, [globalActiveIndex, onItemClick, actionsLength, actions.length, keywords.length]);
 
-    // 子组件回调：设置引用和获取相对索引
     const setListRef = (type, ref) => {
         listRefs.current[type] = ref;
     };
 
-    // 计算子组件的本地激活索引
     const getLocalActiveIndex = (type) => {
-        // 只有存在多个列表时才使用全局索引
         const hasMultipleLists = (actions.length > 0 && keywords.length > 0);
         if (!hasMultipleLists) return -1;
 
         if (globalActiveIndex === -1) return -1;
 
         if (type === SUGGESTION_ACTIONS) {
-            // actions 列表：索引在 actions 范围内才有效
             return globalActiveIndex < actionsLength ? globalActiveIndex : -1;
         } else {
-            // keywords 列表：索引转换为本地索引
             const localIndex = globalActiveIndex - actionsLength;
             return localIndex >= 0 && localIndex < keywords.length ? localIndex : -1;
         }
     };
 
-    // 判断是否启用全局键盘模式
     const useGlobalKeydown = (actions.length > 0 && keywords.length > 0);
 
     return (

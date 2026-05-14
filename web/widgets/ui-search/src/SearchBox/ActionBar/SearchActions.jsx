@@ -31,12 +31,14 @@ export default (props) => {
                     icon={<Globe strokeWidth={1} className="w-16px h-16px" />}
                     type="text"
                     shape="circle"
+                    disabled
                 />
                 <Button
                     classNames={{ icon: `w-16px h-16px !text-16px` }}
                     icon={<Hammer strokeWidth={1} className="w-16px h-16px" />}
                     type="text"
                     shape="circle"
+                    disabled
                 />
             </Space>
         )
@@ -54,6 +56,7 @@ export default (props) => {
                     icon={<Globe strokeWidth={1} className="w-16px h-16px" />}
                     type="text"
                     shape="circle"
+                    disabled
                 />
             </Space>
         )

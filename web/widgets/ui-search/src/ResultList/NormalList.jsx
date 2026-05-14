@@ -13,7 +13,8 @@ export function NormalList(props) {
     loading,
     hasMore,
     setDetailCollapse,
-    getRawContent
+    getRawContent,
+    apiConfig
   } = props;
 
   const [open, setOpen] = useState(false);
@@ -71,6 +72,7 @@ export function NormalList(props) {
         data={record || {}}
         isMobile={isMobile}
         getRawContent={getRawContent}
+        apiConfig={apiConfig}
       />
     </>
   );

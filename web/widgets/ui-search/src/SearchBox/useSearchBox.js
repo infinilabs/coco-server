@@ -1,0 +1,445 @@
+import { useEffect, useMemo, useState, useRef, useCallback } from "react";
+import { ACTION_TYPE_SEARCH } from "./ActionBar/SearchActions";
+import { SUGGESTION_TIPS } from "./Suggestions/Tips";
+import { SUGGESTION_KEYWORDS } from "./Suggestions/Keywords";
+import { SUGGESTION_FILTER_FIELDS } from "./Suggestions/FilterFields";
+import { SUGGESTION_FILTER_VALUES } from "./Suggestions/FilterValues";
+import { SUGGESTION_OPERATORS } from "./Suggestions/Operators";
+import { calculateCharLength } from "../utils/utils";
+import cloneDeep from "lodash/cloneDeep";
+import { isEmpty } from "lodash";
+
+export const DEFAULT_SUGGESTIONS_SIZE = 5;
+
+// Extract colon field pattern: "word:" at end of text before cursor
+function extractColonFieldQuery(query, cursorPosition) {
+  if (!query || cursorPosition <= 0) return null;
+  const textBeforeCursor = query.substring(0, cursorPosition);
+  const match = textBeforeCursor.match(/(\S+):$/);
+  return match ? match[1] : null;
+}
+
+export default function useSearchBox({ queryParams, onSearch, onSuggestion, filterFieldsMeta = {} }) {
+  const [currentQueryParams, setCurrentQueryParams] = useState(queryParams);
+  const { query, filter = {}, filters = [], action_type, search_type } = currentQueryParams;
+  const [suggestions, setSuggestions] = useState({});
+  const [attachments, setAttachments] = useState([]);
+  const [mainInputActive, setMainInputActive] = useState(false);
+  const [filterState, setFilterState] = useState({ type: 'none', index: -1 });
+  const [attachmentActive, setAttachmentActive] = useState(false);
+  const [cursorPosition, setCursorPosition] = useState(0);
+  const [shouldFocusNewFilter, setShouldFocusNewFilter] = useState(false);
+  const [filterSearchValue, setFilterSearchValue] = useState('');
+
+  const isClickingSuggestion = useRef(false);
+  const isClickingSearchAction = useRef(false);
+  const inputRef = useRef(null);
+  const textAreaRef = useRef(null);
+  const expandedInputRef = useRef(null);
+
+  const showExpandedPanel = useMemo(() => {
+    return mainInputActive || filterState.type !== 'none' || attachmentActive;
+  }, [mainInputActive, filterState.type, attachmentActive]);
+
+  const searchable = useMemo(() => {
+    return (
+      (query || '').trim().length > 0 ||
+      filters.some(f => !!f.value && !(Array.isArray(f.value) && f.value.length === 0)) ||
+      !isEmpty(filter)
+    );
+  }, [query, filters, filter]);
+
+  const isSlashAtCursor = useMemo(() => {
+    if (!query || cursorPosition < 0 || cursorPosition > query.length) return false;
+    return query.charAt(cursorPosition - 1) === '/' || query.charAt(cursorPosition) === '/';
+  }, [query, cursorPosition]);
+
+  // Detect "keyword:" pattern at cursor for field matching
+  const colonFieldQuery = useMemo(() => {
+    if (!mainInputActive) return null;
+    return extractColonFieldQuery(query, cursorPosition);
+  }, [mainInputActive, query, cursorPosition]);
+
+  // Derived: determine which suggestion type to display based on current input context
+  const suggestionType = useMemo(() => {
+    if (!mainInputActive && filterState.type === 'none') return null;
+    if (mainInputActive) {
+      if (!(query || '').trim()) return SUGGESTION_TIPS;
+      if (isSlashAtCursor) return SUGGESTION_FILTER_FIELDS;
+      if (colonFieldQuery) return SUGGESTION_FILTER_FIELDS;
+      return SUGGESTION_KEYWORDS;
+    }
+    if (filterState.type === 'filterInput') return SUGGESTION_FILTER_VALUES;
+    if (filterState.type === 'filterActive') return SUGGESTION_OPERATORS;
+    return null;
+  }, [mainInputActive, filterState.type, query, isSlashAtCursor, colonFieldQuery]);
+
+  const handleSearchActionClick = () => {
+    isClickingSearchAction.current = true;
+  };
+
+  const handleSearchActionDropdownClose = useCallback(() => {
+    setTimeout(() => {
+      isClickingSearchAction.current = false;
+      if (expandedInputRef.current) expandedInputRef.current.focus();
+      else if (textAreaRef.current) textAreaRef.current.focus();
+      else if (inputRef.current) inputRef.current.focus();
+    }, 50);
+  }, []);
+
+  const handleQueryParamsChange = useCallback((field, value) => {
+    setCurrentQueryParams(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  const handleSearch = (searchQuery, searchFilters, actionType, searchType) => {
+    const newFilter = {};
+    // Rebuild filter from current filters array
+    if (Array.isArray(searchFilters) && searchFilters.length > 0) {
+      searchFilters.forEach((item) => {
+        const field = item.field?.field_name;
+        if (field && item.value) {
+          const key = item.operator === 'not' ? `!${field}` : field;
+          newFilter[key] = Array.isArray(item.value) ? item.value : (item.value ? [item.value] : []);
+        }
+      });
+    }
+    onSearch({
+      query: searchQuery,
+      filter: newFilter,
+      action_type: actionType,
+      search_type: searchType,
+      mode: !actionType || actionType === ACTION_TYPE_SEARCH ? 'search' : 'chat'
+    }, true, true);
+    setMainInputActive(false);
+    setFilterState({ type: 'none', index: -1 });
+    setAttachmentActive(false);
+    setSuggestions({});
+  };
+
+  const triggerSearch = () => handleSearch(query, filters, action_type, search_type);
+
+  const handleCursorPositionChange = (e) => {
+    setCursorPosition(e.target.selectionStart);
+  };
+
+  const handleInputChange = (e) => {
+    handleQueryParamsChange('query', e.target.value);
+    setCursorPosition(e.target.selectionStart);
+  };
+
+  const handleSuggestionItemClick = (handler) => {
+    return (item) => {
+      isClickingSuggestion.current = true;
+      handler(item);
+      setTimeout(() => (isClickingSuggestion.current = false), 200);
+    };
+  };
+
+  const loadNextSuggestion = useCallback(() => {
+    setSuggestions(prev => ({ ...prev, from: prev.from + DEFAULT_SUGGESTIONS_SIZE }));
+  }, []);
+
+  const handleAddFilter = (item) => {
+    const newFilters = cloneDeep(filters);
+    newFilters.push({ field: item.payload, operator: 'and' });
+    handleQueryParamsChange('filters', newFilters);
+
+    // Remove the trigger text ("/" or "keyword:") from query
+    if (colonFieldQuery) {
+      // Remove "keyword:" pattern from query
+      const textBeforeCursor = query.substring(0, cursorPosition);
+      const textAfterCursor = query.substring(cursorPosition);
+      const cleanedBefore = textBeforeCursor.replace(/\S+:$/, '');
+      handleQueryParamsChange('query', cleanedBefore + textAfterCursor);
+    } else {
+      const chars = query?.split('');
+      if (chars && cursorPosition > 0 && chars[cursorPosition - 1] === '/') {
+        chars.splice(cursorPosition - 1, 1);
+        handleQueryParamsChange('query', chars.join(''));
+      } else {
+        handleQueryParamsChange('query', query?.endsWith('/') ? query.slice(0, -1) : query);
+      }
+    }
+
+    setShouldFocusNewFilter(true);
+    setFilterState({ type: 'filterInput', index: newFilters.length - 1 });
+    setMainInputActive(false);
+  };
+
+  const handleOperatorChange = (item) => {
+    const { index } = filterState;
+    if (filterState.type !== 'filterActive' || index === -1 || index >= filters.length) return;
+
+    const newFilters = cloneDeep(filters);
+    newFilters[index].operator = item.suggestion;
+    handleQueryParamsChange('filters', newFilters);
+  };
+
+  const handleFilterValueToggle = (item) => {
+    const { index } = filterState;
+    if ((filterState.type !== 'filterInput' && filterState.type !== 'filterActive') || index === -1) return;
+
+    setCurrentQueryParams(prev => {
+      const prevFilters = prev.filters || [];
+      if (index >= prevFilters.length) return prev;
+
+      const newFilters = cloneDeep(prevFilters);
+      const f = newFilters[index];
+      if (!f.value) f.value = [];
+
+      const valueIndex = f.value.findIndex(v => v === item.suggestion);
+      if (valueIndex === -1) f.value.push(item.suggestion);
+      else f.value.splice(valueIndex, 1);
+
+      // Single-select: auto-complete after selecting a value
+      if (!f.field?.support_multi_select && f.value.length > 0) {
+        setTimeout(() => {
+          setFilterState({ type: 'none', index: -1 });
+          setSuggestions({});
+        }, 100);
+      }
+
+      return { ...prev, filters: newFilters };
+    });
+  };
+
+  // Complete filter editing: close panel and trigger search
+  const handleFilterComplete = useCallback(() => {
+    setFilterState({ type: 'none', index: -1 });
+    setSuggestions({});
+    // Trigger search after a brief delay to allow state to settle
+    setTimeout(() => {
+      handleSearch(query, filters, action_type, search_type);
+    }, 50);
+  }, [query, filters, action_type, search_type]);
+
+  // Delete a filter by index
+  const handleFilterDelete = useCallback((index) => {
+    if (index < 0 || index >= filters.length) return;
+    const newFilters = cloneDeep(filters);
+    newFilters.splice(index, 1);
+    handleQueryParamsChange('filters', newFilters);
+    if (filterState.index === index) {
+      setFilterState({ type: 'none', index: -1 });
+      setSuggestions({});
+    } else if (filterState.index > index) {
+      setFilterState(prev => ({ ...prev, index: prev.index - 1 }));
+    }
+  }, [filters, filterState, handleQueryParamsChange]);
+
+  // Re-enter filter value editing by clicking value area
+  const handleFilterValueEdit = useCallback((index) => {
+    setFilterState({ type: 'filterInput', index });
+    setMainInputActive(false);
+  }, []);
+
+  const handleFilterActiveToggle = (index) => {
+    if (index === -1) {
+      setFilterState({ type: 'none', index: -1 });
+      setSuggestions({});
+      return;
+    }
+
+    const isCurrentActive = filterState.type === 'filterActive' && filterState.index === index;
+    setFilterState(isCurrentActive ? { type: 'none', index: -1 } : { type: 'filterActive', index });
+    if (isCurrentActive) setSuggestions({});
+  };
+
+  // Click outside to close expanded panel when filter is active
+  useEffect(() => {
+    if (filterState.type === 'none') return;
+
+    const handleClickOutside = (e) => {
+      // Find the searchbox root element
+      const searchboxEl = expandedInputRef.current?.resizableTextArea?.textArea?.closest('[class*="searchbox"]')
+        || document.querySelector('[class*="searchbox"]');
+      if (searchboxEl && !searchboxEl.contains(e.target)) {
+        setFilterState({ type: 'none', index: -1 });
+        setSuggestions({});
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [filterState.type]);
+
+  const handleInputFocus = () => {
+    setMainInputActive(true);
+    if (filterState.type !== 'none' || filterState.index !== -1) {
+      setFilterState({ type: 'none', index: -1 });
+    }
+    setTimeout(() => {
+      const textareaDom = expandedInputRef.current?.resizableTextArea?.textArea;
+      if (textareaDom) {
+        textareaDom.focus();
+        const len = textareaDom.value.length;
+        textareaDom.setSelectionRange(len, len);
+        setCursorPosition(len);
+      }
+    }, 0);
+  };
+
+  const handleInputBlur = () => {
+    setTimeout(() => {
+      if (!document.hasFocus()) return;
+      if (!isClickingSuggestion.current && !isClickingSearchAction.current) {
+        setMainInputActive(false);
+      }
+    }, 100);
+  };
+
+  const handleFilterInputFocus = (index) => {
+    setFilterState({ type: 'filterInput', index });
+  };
+
+  const handleFilterInputBlur = () => {
+    setTimeout(() => {
+      if (!isClickingSuggestion.current) setFilterState({ type: 'none', index: -1 });
+    }, 100);
+  };
+
+  const handleSuggestionsResult = useCallback((expectedType, res) => {
+    setSuggestions(prev => {
+      // Ignore stale results from a different suggestion type
+      if (prev.type !== expectedType) return prev;
+      return {
+        ...prev,
+        data: Array.isArray(res?.suggestions) ? res.suggestions : []
+      };
+    });
+  }, []);
+
+  const handleAttachmentsChange = (newAttachments) => {
+    setAttachments(newAttachments);
+    setAttachmentActive(newAttachments.length > 0);
+  };
+
+  const handleAttachmentRemove = (item) => {
+    const index = attachments.findIndex(a => a.id === item.id);
+    if (index !== -1) {
+      const newAttachments = cloneDeep(attachments);
+      newAttachments.splice(index, 1);
+      setAttachments(newAttachments);
+    }
+  };
+
+  // Sync queryParams prop to internal state
+  useEffect(() => {
+    const fields = Object.keys(queryParams?.filter || {});
+    setCurrentQueryParams({
+      ...(queryParams || {}),
+      query: queryParams?.query || '',
+      filters: fields.map((field) => {
+        const isNot = field.startsWith('!');
+        const rawField = isNot ? field.slice(1) : field;
+        const meta = filterFieldsMeta[rawField] || filterFieldsMeta[field];
+        if (meta) {
+          return { field: meta, value: queryParams?.filter?.[field], operator: isNot ? 'not' : 'and' };
+        }
+        return undefined;
+      }).filter(Boolean)
+    });
+  }, [JSON.stringify(queryParams), JSON.stringify(filterFieldsMeta)]);
+
+  // Reset suggestions when suggestion type or query context changes
+  useEffect(() => {
+    if (!suggestionType) {
+      setSuggestions({});
+      return;
+    }
+    setSuggestions({ type: suggestionType, from: 0, size: DEFAULT_SUGGESTIONS_SIZE });
+  }, [suggestionType, query]);
+
+  // Clean empty filters when not actively editing
+  useEffect(() => {
+    if (filterState.type !== 'filterInput' && filterState.type !== 'filterActive') {
+      const cleanedFilters = cloneDeep(filters).filter(f => {
+        const value = f.value;
+        return !!value && !(Array.isArray(value) && value.length === 0);
+      });
+      if (cleanedFilters.length !== filters.length) {
+        handleQueryParamsChange('filters', cleanedFilters);
+      }
+    }
+  }, [filterState.type, filters]);
+
+  // Fetch suggestion data from server
+  useEffect(() => {
+    const { from = 0, size = DEFAULT_SUGGESTIONS_SIZE } = suggestions;
+    if (!suggestionType || !onSuggestion) return;
+
+    let suggestionParams = { from, size };
+    switch (suggestionType) {
+      case SUGGESTION_KEYWORDS:
+        if (calculateCharLength(query) < 40) {
+          suggestionParams.query = query;
+          onSuggestion(undefined, suggestionParams, (res) => handleSuggestionsResult(SUGGESTION_KEYWORDS, res));
+        }
+        break;
+      case SUGGESTION_FILTER_FIELDS: {
+        if (colonFieldQuery) {
+          // "keyword:" pattern - use keyword as search query for fields
+          suggestionParams.query = colonFieldQuery;
+        } else {
+          const queryBeforeCursor = query?.substring(0, cursorPosition);
+          suggestionParams.query = queryBeforeCursor?.endsWith('/') ? queryBeforeCursor.slice(0, -1) : queryBeforeCursor;
+        }
+        onSuggestion(suggestionType, suggestionParams, (res) => handleSuggestionsResult(SUGGESTION_FILTER_FIELDS, res));
+        break;
+      }
+      case SUGGESTION_FILTER_VALUES: {
+        const f = filters[filterState.index];
+        if (f?.field?.field_name) {
+          suggestionParams = { ...suggestionParams, field_name: f.field.field_name, query: filterSearchValue };
+          onSuggestion(suggestionType, suggestionParams, (res) => handleSuggestionsResult(SUGGESTION_FILTER_VALUES, res));
+        }
+        break;
+      }
+    }
+  }, [suggestionType, suggestions.from, suggestions.size, query, filterState.type, filterState.index, filters, onSuggestion, cursorPosition, colonFieldQuery, filterSearchValue]);
+
+  // Global Tab key handler
+  useEffect(() => {
+    const handleTabKeyDown = (e) => {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        expandedInputRef.current?.focus();
+      }
+    };
+    document.addEventListener('keydown', handleTabKeyDown);
+    return () => document.removeEventListener('keydown', handleTabKeyDown);
+  }, []);
+
+  return {
+    query, filters, action_type, search_type,
+    suggestions, loadNextSuggestion,
+    attachments,
+    showExpandedPanel, searchable,
+    shouldFocusNewFilter,
+    filterState, mainInputActive,
+    inputRef, textAreaRef, expandedInputRef,
+    handleSearchActionClick,
+    handleSearchActionDropdownClose,
+    handleQueryParamsChange,
+    handleCursorPositionChange,
+    handleInputChange,
+    handleInputFocus,
+    handleInputBlur,
+    handleFilterInputFocus,
+    handleFilterInputBlur,
+    handleFilterActiveToggle,
+    handleSuggestionItemClick,
+    handleSearch,
+    handleAddFilter,
+    handleFilterValueToggle,
+    handleOperatorChange,
+    handleFilterComplete,
+    handleFilterDelete,
+    handleFilterValueEdit,
+    filterSearchValue,
+    handleFilterSearchChange: setFilterSearchValue,
+    handleAttachmentsChange,
+    handleAttachmentRemove,
+    triggerSearch,
+  };
+}

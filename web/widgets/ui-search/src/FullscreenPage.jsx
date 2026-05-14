@@ -12,7 +12,7 @@ const FullscreenPage = (props) => {
   return (
     <Fullscreen
       {...props}
-      isHome={queryParams?.query || !isEmpty(queryParams?.filter) ? false : isHome}
+      isHome={queryParams?.query || !isEmpty(queryParams?.filter) || !isEmpty(queryParams?.aggfilter) ? false : isHome}
       onSearch={(query, callback, setLoading, shouldAgg) => {
         if (isHomeRef.current) {
           setIsHome(false);

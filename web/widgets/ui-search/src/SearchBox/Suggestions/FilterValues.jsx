@@ -4,7 +4,7 @@ import ListContainer from "./ListContainer";
 export const SUGGESTION_FILTER_VALUES = "field_values"
 
 export default (props) => {
-    const { filter = {}, ...rest } = props;
+    const { filter = {}, onComplete, ...rest } = props;
 
     const { field = {}, value = [] } = filter || {}
     const { support_multi_select } = field || {}

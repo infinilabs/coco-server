@@ -95,7 +95,7 @@ const MasonryItem = (props) => {
 };
 
 export function ImageList(props) {
-  const { getDetailContainer, data = [], isMobile, loading, hasMore, setDetailCollapse, getRawContent } = props;
+  const { getDetailContainer, data = [], isMobile, loading, hasMore, setDetailCollapse, getRawContent, apiConfig } = props;
 
   const [open, setOpen] = useState(false);
   const [record, setRecord] = useState();
@@ -164,6 +164,7 @@ export function ImageList(props) {
         data={record || {}}
         isMobile={isMobile}
         getRawContent={getRawContent}
+        apiConfig={apiConfig}
       />
     </>
   );

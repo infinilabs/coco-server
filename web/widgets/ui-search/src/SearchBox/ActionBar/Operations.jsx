@@ -107,6 +107,7 @@ export default (props) => {
                 type="primary"
                 shape="circle"
                 icon={<Search className="w-14px h-14px" />}
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => onSearch && onSearch()}
             />
         </Space>

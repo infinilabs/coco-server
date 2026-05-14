@@ -31,29 +31,32 @@ export const OPERATOR_ICONS = {
     )
 }
 
-export default (props) => {
+export default ({ currentOperator, ...props }) => {
+    const data = [
+        {
+            suggestion: 'and',
+            source: `满足全部条件`,
+            icon: OPERATOR_ICONS['and'],
+            dividerTitle: '条件组合'
+        },
+        // {
+        //     suggestion: 'or',
+        //     source: `满足任一条件`,
+        //     icon: OPERATOR_ICONS['or'],
+        // },
+        {
+            suggestion: 'not',
+            source: `排除条件`,
+            icon: OPERATOR_ICONS['not'],
+        },
+    ];
+    const defaultActiveIndex = currentOperator ? data.findIndex(d => d.suggestion === currentOperator) : 0;
     return (
         <ListContainer
             type={SUGGESTION_OPERATORS}
             title="条件组合"
-            data={[
-                {
-                    suggestion: 'and',
-                    source: `满足全部条件`,
-                    icon: OPERATOR_ICONS['and'],
-                    dividerTitle: '条件组合'
-                },
-                {
-                    suggestion: 'or',
-                    source: `满足任一条件`,
-                    icon: OPERATOR_ICONS['or'],
-                },
-                {
-                    suggestion: 'not',
-                    source: `排除条件`,
-                    icon: OPERATOR_ICONS['not'],
-                },
-            ]}
+            data={data}
+            defaultActiveIndex={defaultActiveIndex >= 0 ? defaultActiveIndex : 0}
             {...props}
         />
     )

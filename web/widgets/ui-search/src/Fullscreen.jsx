@@ -5,7 +5,7 @@ import PropTypes from 'prop-types';
 import { debounce, isEmpty } from 'lodash';
 import Home from "./pages/Home";
 import Search from "./pages/Search";
-import { ACTION_TYPE_SEARCH_KEYWORD } from "./SearchBox/SearchActions";
+import { ACTION_TYPE_SEARCH_KEYWORD } from "./SearchBox/ActionBar/SearchActions";
 import Chat from "./pages/Chat";
 
 const Fullscreen = props => {
@@ -151,7 +151,7 @@ const Fullscreen = props => {
   }, [isHome, handleScroll]);
 
   useEffect(() => {
-    if (!queryParams?.query && isEmpty(queryParams?.filter)) return;
+    if (!queryParams?.query && isEmpty(queryParams?.filter) && isEmpty(queryParams?.aggfilter)) return;
 
     const isScroll = Number.isInteger(scrollRef.current) && scrollRef.current > 0;
 
@@ -160,11 +160,21 @@ const Fullscreen = props => {
       setLoading(true);
     }
     
-    const { t, filter = {}, ...rest } = queryParams;
-    const newFilter = {
+    const { t, filter = {}, aggfilter = {}, ...rest } = queryParams;
+    const filterWithoutAgg = {
       ...filter,
       'metadata.content_category': queryParams['metadata.content_category'] && queryParams['metadata.content_category'] !== 'all' ? [queryParams['metadata.content_category']] : undefined,
     }
+    const newFilter = { ...filterWithoutAgg };
+    Object.keys(aggfilter).forEach(key => {
+      if (newFilter[key] !== undefined && aggfilter[key] !== undefined) {
+        const filterVal = Array.isArray(newFilter[key]) ? newFilter[key] : [newFilter[key]];
+        const aggVal = Array.isArray(aggfilter[key]) ? aggfilter[key] : [aggfilter[key]];
+        newFilter[key] = [...new Set([...filterVal, ...aggVal])];
+      } else if (aggfilter[key] !== undefined) {
+        newFilter[key] = aggfilter[key];
+      }
+    });
     onSearch(
       {
         ...rest,
@@ -206,7 +216,7 @@ const Fullscreen = props => {
 
         if (onAggregation && shouldAggRef.current) {
           setLoading(true);
-          onAggregation({ query: queryParams.query, filter: newFilter }, (res) => {
+          onAggregation({ query: queryParams.query, filter: filterWithoutAgg }, (res) => {
             shouldAskRef.current = false
             if (res && !res.error) {
               rs = formatESResult(res);
@@ -285,9 +295,9 @@ const Fullscreen = props => {
     return () => { };
   }, [onSuggestion]);
 
-  const { query, filter, filters = [] } = queryParams;
+  const { query, filter, aggfilter, filters = [] } = queryParams;
 
-  const commonProps = { isMobile, theme };
+  const commonProps = { isMobile, theme, apiConfig };
   const { hits, aggregations } = result;
 
   const handleLogoClick = () => {
@@ -296,6 +306,7 @@ const Fullscreen = props => {
       size: 10,
       query: '',
       filter: {},
+      aggfilter: {},
       sort: ''
     });
     setData([]);
@@ -369,8 +380,8 @@ const Fullscreen = props => {
       showFullScreenSpin={showFullScreenSpin}
       queryParams={queryParams}
       setQueryParams={setQueryParams}
-      onSearchFilter={(filter) => {
-        handleSearch({ ...queryParams, filter }, false, true)
+      onSearchFilter={(aggfilter) => {
+        handleSearch({ ...queryParams, aggfilter }, false, false)
       }}
       onSearch={(params, shouldAsk, shouldAgg) => handleSearch({ ...queryParams, ...params, from: 0 }, shouldAsk, shouldAgg)}
       onAsk={onAsk}

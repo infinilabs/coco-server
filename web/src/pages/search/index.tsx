@@ -31,7 +31,7 @@ const AGGS_DEFAULT = {
       }
     },
     "type": { "terms": { "field": "type" } },
-    "tag": { "terms": { "field": "tags" } },
+    "tags": { "terms": { "field": "tags" } },
   }
 }
 
@@ -84,7 +84,7 @@ export function Component() {
   const onSearch = async (queryParams: { [key: string]: any }, callback: (data: any) => void, setLoading: (loading: boolean) => void) => {
     if (setLoading) setLoading(true)
     const { filter = {}, ...rest } = queryParams
-    const filterStr = Object.keys(filter).filter((key) => !!filter[key]).map((key) => `filter=${key}:any(${filter[key].join(',')})`).join('&')
+    const filterStr = Object.keys(filter).filter((key) => !!filter[key]).map((key) => `filter=${key}:any(${Array.isArray(filter[key]) ? filter[key].join(',') : filter[key]})`).join('&')
     const searchStr = `${filterStr ? filterStr + '&' : ''}${queryString.stringify(rest)}`
     const headers = { 'APP-INTEGRATION-ID': search_settings?.integration }
     const res = await querySearch({}, searchStr, { headers })
@@ -95,7 +95,7 @@ export function Component() {
   const onAggregation = async (queryParams: { [key: string]: any }, callback: (data: any) => void, setLoading: (loading: boolean) => void) => {
     if (setLoading) setLoading(true)
     const { query, filter } = queryParams
-    const filterStr = Object.keys(filter).filter((key) => !!filter[key]).map((key) => `filter=${key}:any(${filter[key].join(',')})`).join('&')
+    const filterStr = Object.keys(filter).filter((key) => !!filter[key]).map((key) => `filter=${key}:any(${Array.isArray(filter[key]) ? filter[key].join(',') : filter[key]})`).join('&')
     const searchStr = `${filterStr ? filterStr + '&' : ''}${queryString.stringify({ query })}`
     const body = JSON.stringify(AGGS[queryParams['metadata.content_category']] || AGGS['all'])
     const headers = { 'APP-INTEGRATION-ID': search_settings?.integration }
@@ -241,10 +241,10 @@ export function Component() {
           'type': 'color',
           "payload": { field_name: 'color', field_data_type: 'keyword', support_multi_select: true }
         },
-        "tag": {
+        "tags": {
           'label': 'tag',
           'type': 'tag',
-          "payload": { field_name: 'tag', field_data_type: 'keyword', support_multi_select: true }
+          "payload": { field_name: 'tags', field_data_type: 'keyword', support_multi_select: true }
         },
         "category": {
           'label': 'category',
@@ -265,7 +265,10 @@ export function Component() {
     apiConfig: {
       BaseUrl: getApiBaseUrl(),
       Token: import.meta.env.VITE_SERVICE_TOKEN,
-      endpoint: getEndpoint()
+      endpoint: getEndpoint(),
+      headers: {
+        'APP-INTEGRATION-ID': search_settings?.integration,
+      }
     },
     onLogoClick: () => {
       const hashWithoutParams = window.location.hash.split('?')[0] || '';

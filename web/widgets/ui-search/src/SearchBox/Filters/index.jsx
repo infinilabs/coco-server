@@ -11,9 +11,13 @@ export default function Filters({
   onFilterInputFocus,
   onFilterInputBlur,
   onFilterActiveToggle,
+  onFilterDelete,
+  onFilterValueEdit,
+  onFilterComplete,
+  onFilterSearch,
   focusIndex,
   activeIndex,
-  className,
+  className = '',
   shouldFocusNewFilter = false,
   isHandlingSuggestion = false
 }) {
@@ -75,6 +79,17 @@ export default function Filters({
     }
   };
 
+  const handleValueAreaClick = (index) => {
+    if (onFilterValueEdit) {
+      onFilterValueEdit(index);
+    }
+    // Focus the select input
+    setTimeout(() => {
+      const ref = filterRefs.current[index];
+      if (ref) ref.focus();
+    }, 0);
+  };
+
   const handleInputFocus = (index) => {
     if (onFilterInputFocus) {
       onFilterInputFocus(index);
@@ -97,12 +112,35 @@ export default function Filters({
     }
   };
 
+  const handleKeyDown = (e, index) => {
+    // Prevent antd Select from creating tags on Enter;
+    // value selection is handled by the suggestion ListContainer
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      return;
+    }
+    // Backspace on empty value to delete filter
+    if (e.key === 'Backspace') {
+      const filter = filters[index];
+      const hasValue = filter?.value && (Array.isArray(filter.value) ? filter.value.length > 0 : !!filter.value);
+      const hasSearchText = e.target?.value?.length > 0;
+      if (!hasValue && !hasSearchText) {
+        e.preventDefault();
+        if (onFilterDelete) {
+          onFilterDelete(index);
+        }
+      }
+    }
+  };
+
   const setFilterRef = (el, index) => {
     if (!filterRefs.current) filterRefs.current = [];
     filterRefs.current[index] = el;
   };
 
   if (!filters || filters.length === 0) return null;
+
+  const hasMultipleFilters = filters.filter(f => !!f.field?.field_label).length > 1;
 
   return (
     <div className={`flex flex-wrap items-center gap-4px ${className}`}>
@@ -111,13 +149,17 @@ export default function Filters({
         .map((filter, index) => {
           const isActive = activeIndex === index;
           const isFocused = focusIndex === index;
+          const operator = filter.operator || 'and';
+          // // and/not always visible; or visible when active
+          // const showOperator = operator !== 'or' || isActive;
+          const showOperator = isActive;
 
           return (
             <div 
               key={`filter-${index}-${filter.field?.field_name || filter.field?.field_label}`} 
               className={`flex items-center gap-4px ${styles.item} ${isActive ? styles.active : ""} ${isFocused ? styles.focused : ""}`}
             >
-              {isActive && filter.operator && OPERATOR_ICONS[filter.operator]}
+              {showOperator && OPERATOR_ICONS[operator]}
               <Space.Compact className="cursor-pointer">
                 <Space.Addon 
                   onClick={() => handleFilterAddonClick(index)}
@@ -126,17 +168,42 @@ export default function Filters({
                 </Space.Addon>
                 <Select
                   mode="tags"
+                  maxTagCount={3}
+                  maxTagPlaceholder={() => '...'}
                   style={{ minWidth: 74 }}
-                  styles={{ popup: { root: { display: 'none'} }}}
+                  styles={{ popup: { root: { display: 'none'} }, content: { flexWrap: 'nowrap' } }}
                   ref={(el) => setFilterRef(el, index)}
                   value={filter.value || []}
                   onFocus={() => handleInputFocus(index)}
                   onBlur={() => handleInputBlur(index)}
-                  onMouseDown={(e) => e.preventDefault()}
+                  onSearch={(val) => onFilterSearch && onFilterSearch(val)}
+                  onMouseDown={(e) => {
+                    // Allow clicks on tag remove button to pass through
+                    if (e.target.closest('.ant-select-selection-item-remove')) {
+                      return;
+                    }
+                    e.preventDefault();
+                    handleValueAreaClick(index);
+                  }}
+                  onDeselect={(removedValue) => {
+                    // Remove the deselected value and enter edit mode
+                    const newFilters = cloneDeep(filters);
+                    const f = newFilters[index];
+                    if (Array.isArray(f.value)) {
+                      f.value = f.value.filter(v => v !== removedValue);
+                    }
+                    onFiltersChange(newFilters);
+                    if (onFilterValueEdit) {
+                      onFilterValueEdit(index);
+                    }
+                    setTimeout(() => {
+                      const ref = filterRefs.current[index];
+                      if (ref) ref.focus();
+                    }, 0);
+                  }}
+                  onInputKeyDown={(e) => handleKeyDown(e, index)}
                   options={[]}
-                  maxTagCount={3}
                   suffixIcon={null}
-                  maxTagTextLength={10}
                 />
               </Space.Compact>
               {isActive && (
@@ -146,10 +213,14 @@ export default function Filters({
                     classNames={{ icon: `w-8px h-8px !text-8px` }}
                     icon={<X className="w-8px h-8px" />}
                     onClick={() => {
-                      const newFilters = cloneDeep(filters);
-                      newFilters.splice(index, 1);
-                      onFiltersChange(newFilters);
-                      handleFilterAddonClick(-1);
+                      if (onFilterDelete) {
+                        onFilterDelete(index);
+                      } else {
+                        const newFilters = cloneDeep(filters);
+                        newFilters.splice(index, 1);
+                        onFiltersChange(newFilters);
+                        handleFilterAddonClick(-1);
+                      }
                     }}
                 />
               )}

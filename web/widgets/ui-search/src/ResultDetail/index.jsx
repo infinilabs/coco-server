@@ -4,7 +4,7 @@ import { SquareArrowOutUpRight, X } from "lucide-react";
 import { ActionButton, DocDetail } from "@infinilabs/doc-detail";
 
 export function ResultDetail(props) {
-    const { getContainer, data = {}, isMobile, open, onClose, getRawContent } = props;
+    const { getContainer, data = {}, isMobile, open, onClose, getRawContent, apiConfig } = props;
 
     return (
         <Drawer
@@ -24,6 +24,7 @@ export function ResultDetail(props) {
         >
             <X className="color-[#bbb] cursor-pointer absolute right-24px top-24px z-1" onClick={onClose} />
             <DocDetail 
+                requestHeaders={apiConfig?.headers}
                 data={{
                     ...(data || {}),
                     url: getRawContent ? getRawContent(data) : data?.url

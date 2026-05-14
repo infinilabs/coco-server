@@ -18,10 +18,11 @@ const ListContainer = forwardRef((props, ref) => {
     useGlobalKeydown = false,
     globalActiveIndex = 0,
     onGlobalSelect,
-    className
+    className,
+    defaultActiveIndex = 0
   } = props;
 
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [activeIndex, setActiveIndex] = useState(defaultActiveIndex);
   const itemRefs = useRef([]);
   const [dataSource, setDataSource] = useState([]);
   const hasMoreRefs = useRef(true);
@@ -33,14 +34,16 @@ const ListContainer = forwardRef((props, ref) => {
     isAtBottom: false
   });
 
-  // 同步全局激活索引
   useEffect(() => {
     if (useGlobalKeydown) {
       setActiveIndex(globalActiveIndex);
     }
   }, [useGlobalKeydown, globalActiveIndex]);
 
-  // 核心：渐进式滚动逻辑
+  useEffect(() => {
+    setActiveIndex(defaultActiveIndex);
+  }, [defaultActiveIndex]);
+
   useEffect(() => {
     if (
       activeIndex === -1 || 
@@ -129,7 +132,6 @@ const ListContainer = forwardRef((props, ref) => {
     }
   }, [data]);
 
-  // 本地键盘事件：移除取模运算，限制索引边界
   useEffect(() => {
     if (useGlobalKeydown || !onItemClick) return;
 
@@ -140,29 +142,32 @@ const ListContainer = forwardRef((props, ref) => {
       if (totalItems === 0) return;
 
       e.preventDefault();
+      // Stop propagation in capture phase to prevent antd Select (in tags mode)
+      // from also processing Enter and creating its own tag.
+      e.stopPropagation();
 
       switch (e.keyCode) {
-        case 40: // 下键：索引最大到 totalItems - 1
+        case 40: 
           keyDirectionRef.current = 'down';
           setActiveIndex((prev) => {
-            // 移除 % 循环 → 边界限制：不能超过最后一项索引
             if (prev === -1) return 0;
             if (prev >= totalItems - 1) return totalItems - 1;
             return prev + 1;
           });
           break;
-        case 38: // 上键：索引最小到 0
+        case 38: 
           keyDirectionRef.current = 'up';
           setActiveIndex((prev) => {
-            // 移除 % 循环 → 边界限制：不能小于 0
             if (prev <= 0) return 0;
             if (prev === -1) return -1;
             return prev - 1;
           });
           break;
-        case 13: // 回车
+        case 13: 
           if (activeIndex >= 0 && activeIndex < totalItems) {
-            itemRefs.current[activeIndex]?.click();
+            keyDirectionRef.current = 'none';
+            scrollBoundaryRef.current = { isAtTop: false, isAtBottom: false };
+            onItemClick(dataSource[activeIndex]);
           }
           break;
         default:
@@ -170,8 +175,10 @@ const ListContainer = forwardRef((props, ref) => {
       }
     };
 
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
+    // Use capture phase so this handler fires BEFORE antd Select's internal
+    // keydown handler (which is attached to the input in bubble phase).
+    document.addEventListener("keydown", handleKeyDown, true);
+    return () => document.removeEventListener("keydown", handleKeyDown, true);
   }, [useGlobalKeydown, dataSource, activeIndex, onItemClick]);
 
   useEffect(() => {
@@ -213,14 +220,14 @@ const ListContainer = forwardRef((props, ref) => {
   return (
     <>
       {title && (
-        <div className="py-14px px-16px text-12px text-[var(--ui-search-antd-color-text-description)]">
+        <div className="py-14px px-12px text-12px text-[var(--ui-search-antd-color-text-description)]">
           {title}
         </div>
       )}
       <div
         ref={scrollContainerRef}
         id={scrollID}
-        className={`px-8px mb-12px overflow-auto ${className}`}
+        className={`px-4px mb-12px overflow-auto ${className}`}
         style={{ 
           maxHeight: 40 * defaultRows,
           scrollBehavior: 'smooth'
@@ -252,15 +259,15 @@ const ListContainer = forwardRef((props, ref) => {
                     {renderPrefix?.(item)}
                     {item.icon && (
                       <BasicIcon 
-                        className={"w-16px h-16px mr-8px text-[var(--ui-search-antd-color-text-description)] flex-shrink-0"} 
+                        className={"flex justify-center items-center w-16px h-16px mr-8px text-[var(--ui-search-antd-color-text-description)] flex-shrink-0"} 
                         icon={item.icon}
                       />
                     )}
-                    <div className="mr-12px flex-shrink-1 max-w-[100%] min-w-0">
+                    <div className="mr-12px flex-1 min-w-0">
                       <div className="truncate whitespace-nowrap">{item.suggestion}</div>
                     </div>
                     {item.source && (
-                      <Typography.Text type="secondary" style={{ width: 200 }} ellipsis>
+                      <Typography.Text type="secondary" className="flex-shrink-0" style={{ maxWidth: 200 }} ellipsis>
                         {item.source}
                       </Typography.Text>
                     )}
