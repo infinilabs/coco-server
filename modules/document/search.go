@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 
@@ -134,7 +133,6 @@ func ResolveIcon(
 	datasourceConfig *core.DataSource,
 	currentIcon string,
 ) string {
-
 	// 1. Try current field's icon
 	if icon := common.ParseAndGetIcon(connectorConfig, currentIcon); icon != "" {
 		return icon
@@ -182,33 +180,23 @@ func RefineIcon(ctx context.Context, doc *core.Document) {
 }
 
 // RefineCoverThumbnail converts Cover and Thumbnail from "attachment://UUID"
-// to full attachment URL for preview capability.
+// to relative attachment URL for preview capability.
 func RefineCoverThumbnail(ctx context.Context, doc *core.Document) {
-	appCfg := common.AppConfig()
-	baseEndpoint := appCfg.ServerInfo.Endpoint
-
 	if doc.Cover != "" && strings.HasPrefix(doc.Cover, "attachment://") {
 		uuid := strings.TrimPrefix(doc.Cover, "attachment://")
 		relativePath := fmt.Sprintf("/attachment/%s", uuid)
-		if fullURL, err := url.JoinPath(baseEndpoint, relativePath); err == nil {
-			doc.Cover = fullURL
-		}
+		doc.Cover = relativePath
 	}
 	if doc.Thumbnail != "" && strings.HasPrefix(doc.Thumbnail, "attachment://") {
 		uuid := strings.TrimPrefix(doc.Thumbnail, "attachment://")
 		relativePath := fmt.Sprintf("/attachment/%s", uuid)
-		if fullURL, err := url.JoinPath(baseEndpoint, relativePath); err == nil {
-			doc.Thumbnail = fullURL
-		}
+		doc.Thumbnail = relativePath
 	}
 }
 
 // RefineURL converts [doc.URL] to [ENDPOINT/#/preview/document/DOC_ID]
 func RefineURL(ctx context.Context, doc *core.Document) {
-	appCfg := common.AppConfig()
-	baseEndpoint := appCfg.ServerInfo.Endpoint
-
-	doc.URL = fmt.Sprintf("%s/#/preview/document/%s", baseEndpoint, doc.ID)
+	doc.URL = fmt.Sprintf("#/preview/document/%s", doc.ID)
 }
 
 func searchAssistant(req *http.Request, query string, size int) []core.Assistant {
