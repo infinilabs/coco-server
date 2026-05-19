@@ -56,7 +56,7 @@
     "@emotion/cache": "^11.14.0",
     "@emotion/is-prop-valid": "^1.4.0",
     "@emotion/react": "^11.14.0",
-    "@infinilabs/ai-answer": "file:D:\\Workspace\\ui-common\\packages\\AIAnswer",
+    "@infinilabs/ai-answer": "^0.0.7",
     "@infinilabs/ai-chat": "^0.0.6",
     "@infinilabs/attachments": "^0.0.1",
     "@infinilabs/chat-message": "^0.0.6",
