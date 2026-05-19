@@ -43,8 +43,9 @@ export default function Search({
 
   const { query, filter, aggfilter = {} } = queryParams;
   const content_category = queryParams?.['metadata.content_category']
-  const [siderCollapse, setSiderCollapse] = useState(false)
+  const [siderCollapse, setSiderCollapse] = useState(true)
   const [detailCollapse, setDetailCollapse] = useState(true)
+  const [recommendsCollapse, setRecommendsCollapse] = useState(true)
   const [filterFieldsMeta, setFilterFieldsMeta] = useState({})
 
   const listType = useMemo(() => {
@@ -155,6 +156,9 @@ export default function Search({
       loading={showFullScreenSpin}
       rightMenuWidth={rightMenuWidth}
       siderCollapse={siderCollapse}
+      setSiderCollapse={setSiderCollapse}
+      recommendsCollapse={recommendsCollapse}
+      setRecommendsCollapse={setRecommendsCollapse}
       aggregations={
         aggregations?.length > 0 ? (
           <Aggregations
@@ -191,6 +195,8 @@ export default function Search({
           hits={hits}
           siderCollapse={siderCollapse}
           setSiderCollapse={setSiderCollapse}
+          recommendsCollapse={recommendsCollapse}
+          setRecommendsCollapse={setRecommendsCollapse}
         />
       }
       resultList={

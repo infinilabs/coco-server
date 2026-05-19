@@ -1,10 +1,10 @@
-import { FloatButton, Layout } from "antd";
+import { Drawer, FloatButton, Layout } from "antd";
 import styles from "./index.module.less";
 import { DARK_CLASS } from "../theme/shared";
-import { useCallback, useEffect, useState } from "react";
+import { cloneElement, useCallback, useEffect, useRef, useState } from "react";
 import GlobalLoading from "../GlobalLoading";
 
-const { Header, Content, Sider } = Layout;
+const { Content, Sider } = Layout;
 
 const BasicLayout = (props) => {
   const {
@@ -23,12 +23,17 @@ const BasicLayout = (props) => {
     recommends,
     isMobile,
     theme,
-    siderCollapse
+    siderCollapse,
+    setSiderCollapse,
+    recommendsCollapse,
+    setRecommendsCollapse
   } = props;
 
   const themeClass = theme === 'dark' ? DARK_CLASS : 'light';
   const scrollContainer = getContainer();
   const [backTopShow, setBackTopShow] = useState(false);
+  const [leftDrawerOpen, setLeftDrawerOpen] = useState(false);
+  const [rightDrawerOpen, setRightDrawerOpen] = useState(false);
 
   const handleContainerScroll = useCallback(() => {
     if (!scrollContainer || loading) return;
@@ -58,82 +63,205 @@ const BasicLayout = (props) => {
     });
   }, [scrollContainer, loading]);
 
+  const bgClass = 'bg-[rgb(var(--ui-search--layout-bg-color))]';
+
+  // Use refs to track current collapse state without re-creating observer
+  const siderCollapseRef = useRef(siderCollapse);
+  const recommendsCollapseRef = useRef(recommendsCollapse);
+
+  useEffect(() => { siderCollapseRef.current = siderCollapse; }, [siderCollapse]);
+  useEffect(() => { recommendsCollapseRef.current = recommendsCollapse; }, [recommendsCollapse]);
+
+  // Auto-collapse/expand based on container width
+  // Priority: collapse right first, then left; expand left first, then right
+  useEffect(() => {
+    const container = scrollContainer;
+    if (!container || isMobile) return;
+
+    const LEFT_WIDTH = 280;
+    const RIGHT_WIDTH = 400;
+    const MIN_CENTER = 450;
+
+    const handleResize = () => {
+      const totalWidth = container.clientWidth;
+
+      // Calculate what fits
+      const fitsLeftAndRight = totalWidth - LEFT_WIDTH - RIGHT_WIDTH >= MIN_CENTER;
+      const fitsLeftOnly = totalWidth - LEFT_WIDTH >= MIN_CENTER;
+
+      let targetLeftCollapse, targetRightCollapse;
+
+      if (fitsLeftAndRight && aggregations && recommends) {
+        targetLeftCollapse = false;
+        targetRightCollapse = false;
+      } else if (fitsLeftOnly && aggregations) {
+        targetLeftCollapse = false;
+        targetRightCollapse = true;
+      } else {
+        targetLeftCollapse = true;
+        targetRightCollapse = true;
+      }
+
+      // Only update if changed (compare with ref to get current value)
+      if (aggregations && siderCollapseRef.current !== targetLeftCollapse) {
+        setSiderCollapse(targetLeftCollapse);
+      }
+      if (recommends && recommendsCollapseRef.current !== targetRightCollapse) {
+        setRecommendsCollapse(targetRightCollapse);
+      }
+    };
+
+    const observer = new ResizeObserver(handleResize);
+    observer.observe(container);
+
+    return () => observer.disconnect();
+  }, [scrollContainer, isMobile, aggregations, recommends, setSiderCollapse, setRecommendsCollapse]);
+
+  // Close drawers when collapse state changes to collapsed
+  useEffect(() => {
+    if (siderCollapse) setLeftDrawerOpen(false);
+  }, [siderCollapse]);
+
+  useEffect(() => {
+    if (recommendsCollapse) setRightDrawerOpen(false);
+  }, [recommendsCollapse]);
+
+  const showLeftSider = aggregations && !siderCollapse && !isMobile;
+  const showRightSider = recommends && !recommendsCollapse && !isMobile;
+
+  const siderProps = {
+    breakpoint: 'md',
+    collapsedWidth: 0,
+    trigger: null,
+    className: bgClass,
+  };
+
+  const showLogoInCenter = !showLeftSider;
+
   return (
     <Layout
       ref={initContainer}
-      className={`${styles.uiSearch} relative w-full h-100vh overflow-x-hidden overflow-y-auto bg-[rgb(var(--ui-search--layout-bg-color))] ui-search ${themeClass}`}
+      className={`${styles.uiSearch} relative w-full h-100vh overflow-x-hidden overflow-y-auto ${bgClass} ui-search ${themeClass}`}
       style={{
         height: '100vh',
         overflowY: loading ? 'hidden' : 'auto',
-        paddingTop: '122px',
-        boxSizing: 'border-box'
       }}
     >
       <GlobalLoading loading={loading} theme={theme} />
-      <Header className="fixed top-0 left-0 right-0 z-1001 !p-0 !h-auto bg-[rgb(var(--ui-search--layout-bg-color))] border-b border-[var(--ui-search-antd-color-border-secondary)]">
-        <Layout className="bg-[rgb(var(--ui-search--layout-bg-color))]">
-          <Sider width={280} breakpoint="md" collapsedWidth={0} trigger={null}>
-            <div className={`position-sticky top-0 z-10 bg-[rgb(var(--ui-search--layout-bg-color))] pt-16px h-122px w-full pl-80px`}>
-              <div className={`h-48px w-full`}>
-                {logo}
+
+      {/* Full-width header divider to keep tab line continuous */}
+      <div className="sticky top-[122px] z-1002 h-0 border-b border-[var(--ui-search-antd-color-border-secondary)] pointer-events-none" />
+
+      {/* Unified Left-Center-Right Layout */}
+      <Layout className={bgClass} style={{ minHeight: '100%' }}>
+        {/* Left Column: Logo + Aggregations */}
+        {aggregations && (
+          isMobile || siderCollapse ? (
+            <Drawer
+              placement="left"
+              open={leftDrawerOpen}
+              onClose={() => setLeftDrawerOpen(false)}
+              closeIcon={null}
+              getContainer={getContainer}
+              push={false}
+              classNames={{
+                wrapper: `!overflow-hidden !left-12px !top-146px !bottom-24px !rounded-12px !shadow-[0_2px_20px_rgba(0,0,0,0.1)] !dark:shadow-[0_2px_20px_rgba(255,255,255,0.2)]`,
+                body: '!p-16px !rounded-12px',
+                mask: '!bg-transparent !backdrop-filter-none'
+              }}
+              maskClosable
+              width={280}
+              autoFocus={false}
+            >
+              {aggregations}
+            </Drawer>
+          ) : (
+            <Sider width={280} {...siderProps} style={{ overflow: 'visible' }}>
+              {/* Header part */}
+              <div className={`sticky top-0 z-1001 pt-16px h-122px w-full pl-80px ${bgClass}`}>
+                <div className="h-48px w-full">{logo}</div>
               </div>
-            </div>
-          </Sider>
-          <Content className="bg-[rgb(var(--ui-search--layout-bg-color))] min-w-400px max-w-840px" style={{ overflow: 'visible' }}>
-            <div className={`position-sticky top-0 z-10 bg-[rgb(var(--ui-search--layout-bg-color))] pt-16px h-122px ${isMobile ? 'px-16px' : 'pl-56px pr-96px'}`}>
-              <div className={`flex gap-8px items-center`}>
-                {isMobile && (
-                  <div className={`h-40px w-40px`}>
-                    {logo}
-                  </div>
+              {/* Content part */}
+              <div className="w-full pl-80px pt-32px">{aggregations}</div>
+            </Sider>
+          )
+        )}
+
+        {/* Center Column: Search/Tabs + Results */}
+        <Content
+          className={`${bgClass} min-w-400px ${showLeftSider && showRightSider ? 'max-w-840px' : !showLeftSider && !showRightSider ? '' : 'max-w-1120px'}`}
+          style={{ overflow: 'visible' }}
+        >
+          {/* Header part */}
+          <div className={`sticky top-0 z-1001 ${bgClass}`}>
+            <div className={`pt-16px h-122px ${isMobile ? 'px-16px' : 'pl-56px pr-96px'}`}>
+              <div className="flex gap-8px items-center">
+                {showLogoInCenter && (
+                  <div className={isMobile ? 'h-40px w-40px' : 'h-48px w-48px'}>{logo}</div>
                 )}
-                <div className={`flex-1 ${isMobile ? '' : 'px-24px'}`}>
+                <div className={`flex-1 ${isMobile ? '' : 'px-16px'}`}>
                   {searchbox}
                 </div>
               </div>
-              {
-                tabs && (
-                  <div className={`w-full pt-12px ${isMobile ? '' : 'px-24px'} flex items-center justify-between`}>
-                    <div>
-                      {tabs}
-                    </div>
-                    <div>
-                      {tools}
-                    </div>
-                  </div>
-                )
-              }
+              {tabs && (
+                <div className={`w-full pt-12px ${isMobile ? '' : 'px-16px'} flex items-center justify-between`}>
+                  <div>{tabs}</div>
+                  <div>{tools}</div>
+                </div>
+              )}
             </div>
-          </Content>
-          <Sider width={400} className="bg-[rgb(var(--ui-search--layout-bg-color))]" breakpoint="md" collapsedWidth={0} trigger={null}>
-            <div className="position-sticky top-0 z-10 bg-[rgb(var(--ui-search--layout-bg-color))] pt-16px h-122px"></div>
-          </Sider>
-        </Layout>
-      </Header>
-      <Content className="bg-[rgb(var(--ui-search--layout-bg-color))]">
-        <Layout className="bg-[rgb(var(--ui-search--layout-bg-color))]">
-          {
-            aggregations && !siderCollapse && (
-              <Sider width={280} className="bg-[rgb(var(--ui-search--layout-bg-color))]" breakpoint="md" collapsedWidth={0} trigger={null}>
-                <div className="w-full pl-80px pt-32px">{aggregations}</div>
-              </Sider>
-            )
-          }
-          <Content className={`bg-[rgb(var(--ui-search--layout-bg-color))] min-w-400px ${aggregations && !siderCollapse ? 'max-w-840px' : 'max-w-1120px'}`} style={{ overflow: 'visible' }}>
-            <div className={`pt-32px ${isMobile ? 'px-16px' : 'pl-56px pr-96px'}`}>
-              {toolbar && <div className="pl-24px mb-16px">{toolbar}</div>}
-              <div className={`${isMobile ? '' : 'pl-24px'} mb-16px`}>{resultHeader}</div>
-              {aiOverview && <div className="mb-12px">{aiOverview}</div>}
-              <div className="mb-24px">{resultList}</div>
+          </div>
+          {/* Content part */}
+          <div className={`pt-32px ${isMobile ? 'px-0px' : 'pl-56px pr-96px'}`}>
+            {toolbar && <div className="pl-16px mb-16px">{toolbar}</div>}
+            <div className="px-16px mb-16px">
+              {resultHeader && cloneElement(resultHeader, {
+                hasRecommends: !!recommends,
+                leftDrawerOpen,
+                setLeftDrawerOpen,
+                rightDrawerOpen,
+                setRightDrawerOpen
+              })}
             </div>
-          </Content>
-          <Sider width={400} className="bg-[rgb(var(--ui-search--layout-bg-color))]" breakpoint="md" collapsedWidth={0} trigger={null}>
-            <div className={`${isMobile ? "w-full" : "flex-1"} flex flex-col gap-16px pt-32px`}>
+            {aiOverview}
+            <div className="mb-24px">{resultList}</div>
+          </div>
+        </Content>
+
+        {/* Right Column: Spacer + Recommends */}
+        {recommends && (
+          isMobile || recommendsCollapse ? (
+            <Drawer
+              placement="right"
+              open={rightDrawerOpen}
+              onClose={() => setRightDrawerOpen(false)}
+              closeIcon={null}
+              getContainer={getContainer}
+              destroyOnHidden
+              push={false}
+              classNames={{
+                wrapper: `!overflow-hidden !right-12px !top-146px !bottom-24px !rounded-12px !shadow-[0_2px_20px_rgba(0,0,0,0.1)] !dark:shadow-[0_2px_20px_rgba(255,255,255,0.2)]`,
+                body: '!p-16px !rounded-12px',
+                mask: '!bg-transparent !backdrop-filter-none'
+              }}
+              maskClosable
+              width={400}
+            >
               {recommends}
-            </div>
-          </Sider>
-        </Layout>
-      </Content>
+            </Drawer>
+          ) : (
+            <Sider width={400} {...siderProps} style={{ overflow: 'visible' }}>
+              {/* Header part */}
+              <div className={`sticky top-0 z-1001 pt-16px h-122px ${bgClass}`} />
+              {/* Content part */}
+              <div className="flex-1 flex flex-col gap-16px pt-32px">
+                {recommends}
+              </div>
+            </Sider>
+          )
+        )}
+      </Layout>
+
       {scrollContainer && backTopShow && !loading && (
         <FloatButton.BackTop
           target={() => scrollContainer}
@@ -144,7 +272,7 @@ const BasicLayout = (props) => {
             right: 24,
             bottom: 24,
             zIndex: 9999,
-            display: backTopShow ? "flex" : "none",
+            display: backTopShow ? 'flex' : 'none',
           }}
         />
       )}

@@ -10,6 +10,7 @@ import useQueryParams from '@/hooks/common/queryParams';
 import { FullscreenPage } from 'ui-search';
 import { querySearch, fetchSuggestions, fetchRecommends, fetchFieldsMeta } from '@/service/api/ai-search';
 import { getApiBaseUrl } from '@/service/request';
+import normalizeUrl from 'normalize-url';
 import queryString from 'query-string';
 
 configResponsive({ sm: 640 });
@@ -65,6 +66,51 @@ const AGGS: any = {
 export function Component() {
   const containerRef = useRef(null)
 
+  const normalizeCoverIconUrl = (data: any) => {
+    if (!data?.hits?.hits || !Array.isArray(data.hits.hits)) {
+      return data;
+    }
+
+    let baseUrl = getApiBaseUrl();
+    if (!baseUrl.toLowerCase().startsWith('http')) {
+      baseUrl = `${window.location.origin}${window.location.pathname}/${baseUrl}`;
+    }
+    const normalizedHits = data.hits.hits.map((item: any) => {
+      const source = item?._source;
+      if (!source || typeof source !== 'object') {
+        return item;
+      }
+
+      const normalizeField = (value: any) => {
+        if (typeof value !== 'string' || !value) return value;
+        const text = value.toLowerCase();
+        if (text.startsWith('/') || text.startsWith('#/')) {
+          return normalizeUrl(`${baseUrl}/${value}`);
+        }
+        return value;
+      };
+
+      return {
+        ...item,
+        _source: {
+          ...source,
+          cover: normalizeField(source.cover),
+          icon: normalizeField(source.icon),
+          url: normalizeField(source.url),
+          thumbnail: normalizeField(source.thumbnail),
+        }
+      };
+    });
+
+    return {
+      ...data,
+      hits: {
+        ...data.hits,
+        hits: normalizedHits
+      }
+    };
+  };
+
   const responsive = useResponsive();
 
   const [queryParams, setQueryParams] = useQueryParams({ mode: 'search' });
@@ -88,7 +134,7 @@ export function Component() {
     const searchStr = `${filterStr ? filterStr + '&' : ''}${queryString.stringify(rest)}`
     const headers = { 'APP-INTEGRATION-ID': search_settings?.integration }
     const res = await querySearch({}, searchStr, { headers })
-    if (callback) callback(res.data)
+    if (callback) callback(normalizeCoverIconUrl(res.data))
     if (setLoading) setLoading(false)
   }
 

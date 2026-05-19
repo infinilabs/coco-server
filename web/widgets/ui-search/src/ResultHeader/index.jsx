@@ -1,14 +1,48 @@
-import { ListFilter, PanelRightOpen } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from "lucide-react";
 
 export function ResultHeader(props) {
-  const { hits, isMobile, siderCollapse, setSiderCollapse } = props;
+  const {
+    hits, isMobile,
+    hasRecommends,
+    siderCollapse, setSiderCollapse,
+    recommendsCollapse, setRecommendsCollapse,
+    leftDrawerOpen, setLeftDrawerOpen,
+    rightDrawerOpen, setRightDrawerOpen
+  } = props;
+
+  const handleLeftToggle = () => {
+    if (isMobile || siderCollapse) {
+      // In drawer mode: toggle drawer open/close
+      setLeftDrawerOpen(!leftDrawerOpen);
+    } else {
+      // In sider mode: collapse it
+      setSiderCollapse(true);
+    }
+  };
+
+  const handleRightToggle = () => {
+    if (isMobile || recommendsCollapse) {
+      // In drawer mode: toggle drawer open/close
+      setRightDrawerOpen(!rightDrawerOpen);
+    } else {
+      // In sider mode: collapse it
+      setRecommendsCollapse(true);
+    }
+  };
+
+  const showRightToggle = hasRecommends && (isMobile || recommendsCollapse);
+  const LeftToggleIcon = (isMobile || siderCollapse) && !leftDrawerOpen ? PanelRightOpen : PanelLeftOpen;
+  const RightToggleIcon = showRightToggle && !rightDrawerOpen ? PanelLeftOpen : PanelRightOpen;
+
   return (
     <div className="flex gap-8px items-center w-full text-[#999]">
-      <PanelRightOpen className="w-16px h-16px cursor-pointer" onClick={() => setSiderCollapse(!siderCollapse)} />
-      <div className="text-12px">
-        Found {hits?.total || 0} records ({hits?.took || 0} millisecond)
+      <LeftToggleIcon className="w-16px h-16px cursor-pointer" onClick={handleLeftToggle} />
+      <div className="text-12px flex-1">
+        Found {hits?.total || 0} records ({hits?.took || 0} millisecond)
       </div>
-      {isMobile ? <ListFilter className="w-14px h-14px" /> : null}
+      {showRightToggle && (
+        <RightToggleIcon className="w-16px h-16px cursor-pointer" onClick={handleRightToggle} />
+      )}
     </div>
   );
 }

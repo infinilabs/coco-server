@@ -51,6 +51,7 @@ export function NormalList(props) {
                 onRecordClick={(record) => {
                   onOpen(record)
                 }}
+                requestHeaders={apiConfig?.headers}
               />
             )
           }}

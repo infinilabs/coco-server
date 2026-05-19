@@ -14,7 +14,7 @@ const AIOverview = (props) => {
         onContinue={() => onChatContinue?.()}
         maxHeight={Number.isInteger(Number(config.height)) ? Number(config.height) - 154 : undefined}
         theme={theme}
-        containerClass="!border-0 !pt-8px !pb-0px"
+        containerClass="!border-0 px-16px !pt-16px !pb-16px"
       />
     </Spin>
   )

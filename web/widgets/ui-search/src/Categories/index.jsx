@@ -19,10 +19,10 @@ export function Categories(props) {
         key: 'image',
         label: '图片',
       },
-      {
-        key: 'video',
-        label: '视频',
-      },
+      // {
+      //   key: 'video',
+      //   label: '视频',
+      // },
     ]} onChange={onChange} />
   )
 }
