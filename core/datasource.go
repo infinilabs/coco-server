@@ -29,6 +29,9 @@ type DataSource struct {
 	WebhookConfig WebhookConfig `json:"webhook,omitempty" elastic_mapping:"webhook:{type:object}"`
 
 	//OAuthConfig OAuthConfig `json:"oauth_config,omitempty" elastic_mapping:"oauth_config:{type:object}"`
+
+	// For the documents that come from this data source, process it in this way.
+	DocumentProcessingConfig ProcessingConfig `json:"document_processing_config,omitempty" elastic_mapping:"document_processing_config:{type:object}"`
 }
 
 type WebhookConfig struct {
@@ -50,4 +53,15 @@ type SyncConfig struct {
 type ConnectorConfig struct {
 	ConnectorID string      `json:"id,omitempty" elastic_mapping:"id:{type:keyword}"`          // Connector ID for the datasource
 	Config      interface{} `json:"config,omitempty" elastic_mapping:"config:{enabled:false}"` // Configs for this Connector, also pass to connector's processor
+}
+
+// If enabled, run the specified pipeline to process the input objects.
+//
+// Currently, object can be:
+//
+// * core.Document
+// * core.Attachment
+type ProcessingConfig struct {
+	Enabled  bool   `json:"enabled" elastic_mapping:"enabled:{type:keyword}"`
+	Pipeline string `json:"pipeline" elastic_mapping:"pipeline"`
 }

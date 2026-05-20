@@ -187,27 +187,6 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
     "description" : "A fully compatible alternative to OpenAI's API, offering lower-cost and higher-concurrency model calls, supporting private deployment and multi-model hosting."
 }
 
-POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/coco
-{
- "_system": {
-            "owner_id": "$[[SETUP_OWNER_ID]]"
-          },
-  "id" : "coco",
-  "created" : "2025-03-28T10:24:22.378929+08:00",
-  "updated" : "2025-03-28T11:22:57.605814+08:00",
-  "name" : "Coco AI",
-  "api_key" : "$[[SETUP_LLM_API_KEY]]",
-  "api_type" : "$[[SETUP_LLM_API_TYPE]]",
-  "base_url" : "$[[SETUP_LLM_BASE_URL]]",
-  "icon" : "font_coco",
-  "models" : [
-     $[[SETUP_LLM_DEFAULT_MODEL]]
-  ],
-  "enabled" : $[[SETUP_LLM_ENABLED]],
-  "builtin" : true,
-  "description": "Coco AI Custom Model Provider for Configuring Default AI Assistant."
-}
-
 POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/silicon_flow
 {
  "_system": {

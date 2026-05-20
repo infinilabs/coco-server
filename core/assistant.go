@@ -122,6 +122,10 @@ type UploadConfig struct {
 	AllowedFileExtensions []string `json:"allowed_file_extensions"`
 	MaxFileSizeInBytes    int      `json:"max_file_size_in_bytes"`
 	MaxFileCount          int      `json:"max_file_count"`
+	// Pipeline to use for processing uploaded attachments.
+	// Falls back to the default pipeline configured in settings if omitted.
+	// Errors if neither this field nor the settings default is set.
+	Pipeline string `json:"pipeline"`
 }
 
 type DatasourceConfig struct {

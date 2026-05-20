@@ -91,6 +91,22 @@ func reloadConfig() {
 				config.SearchSettings = searchSettings
 			}
 		}
+		buf, _ = kv.GetValue(core.DefaultSettingBucketKey, []byte(core.DefaultModelKey))
+		if buf != nil {
+			defaultModel := &core.DefaultModel{}
+			err := util.FromJSONBytes(buf, defaultModel)
+			if err == nil {
+				config.DefaultModel = defaultModel
+			}
+		}
+		buf, _ = kv.GetValue(core.DefaultSettingBucketKey, []byte(core.DefaultDocumentProcessingKey))
+		if buf != nil {
+			docProcessing := &core.DocumentProcessing{}
+			err := util.FromJSONBytes(buf, docProcessing)
+			if err == nil {
+				config.DocumentProcessing = docProcessing
+			}
+		}
 
 		filebasedConfig, _ := AppConfigFromFile()
 		if filebasedConfig != nil {
@@ -127,6 +143,16 @@ func SetAppConfig(c *core.Config) {
 	}
 	//save search's config
 	err = kv.AddValue(core.DefaultSettingBucketKey, []byte(core.DefaultSearchSettingsKey), util.MustToJSONBytes(c.SearchSettings))
+	if err != nil {
+		panic(err)
+	}
+	//save default-model config
+	err = kv.AddValue(core.DefaultSettingBucketKey, []byte(core.DefaultModelKey), util.MustToJSONBytes(c.DefaultModel))
+	if err != nil {
+		panic(err)
+	}
+	//save document-processing config
+	err = kv.AddValue(core.DefaultSettingBucketKey, []byte(core.DefaultDocumentProcessingKey), util.MustToJSONBytes(c.DocumentProcessing))
 	if err != nil {
 		panic(err)
 	}

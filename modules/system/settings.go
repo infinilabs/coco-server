@@ -5,12 +5,13 @@
 package system
 
 import (
+	"net/http"
+
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/util"
-	"net/http"
 )
 
 type ServerSettings struct {
@@ -61,6 +62,28 @@ func (h *APIHandler) updateServerSettings(w http.ResponseWriter, req *http.Reque
 			return
 		}
 		oldAppConfig.SearchSettings = &searchSettings
+	}
+	if appConfig.DefaultModel != nil {
+		//merge settings
+		defaultModel := core.DefaultModel{}
+		err := mergeSettings(oldAppConfig.DefaultModel, appConfig.DefaultModel, &defaultModel)
+		if err != nil {
+			_ = log.Error(err)
+			h.WriteError(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		oldAppConfig.DefaultModel = &defaultModel
+	}
+	if appConfig.DocumentProcessing != nil {
+		//merge settings
+		docProcessing := core.DocumentProcessing{}
+		err := mergeSettings(oldAppConfig.DocumentProcessing, appConfig.DocumentProcessing, &docProcessing)
+		if err != nil {
+			_ = log.Error(err)
+			h.WriteError(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		oldAppConfig.DocumentProcessing = &docProcessing
 	}
 	common.SetAppConfig(&oldAppConfig)
 	h.WriteAckOKJSON(w)

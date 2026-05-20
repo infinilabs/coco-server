@@ -157,27 +157,6 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
     "description" : "全兼容 OpenAI API 接口的替代方案，提供更低成本/更高并发的模型调用，支持私有化部署与多模型托管。"
 }
 
-POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/coco
-{
- "_system": {
-            "owner_id": "$[[SETUP_OWNER_ID]]"
-          },
-  "id" : "coco",
-  "created" : "2025-03-28T10:24:22.378929+08:00",
-  "updated" : "2025-03-28T11:22:57.605814+08:00",
-  "name" : "Coco AI",
-  "api_key" : "$[[SETUP_LLM_API_KEY]]",
-  "api_type" : "$[[SETUP_LLM_API_TYPE]]",
-  "base_url" : "$[[SETUP_LLM_BASE_URL]]",
-  "icon" : "font_coco",
-  "models" : [
-     $[[SETUP_LLM_DEFAULT_MODEL]]
-  ],
-  "enabled" : $[[SETUP_LLM_ENABLED]],
-  "builtin" : true,
-  "description": "Coco AI 自定义模型提供商，用于配置默认 AI 助手"
-}
-
 POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/silicon_flow
 {
  "_system": {

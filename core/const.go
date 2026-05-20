@@ -13,6 +13,8 @@ const DefaultUserPasswordKey = "default_user_password"
 const DefaultServerConfigKey = "default_server_config"
 const DefaultAppSettingsKey = "default_app_settings"
 const DefaultSearchSettingsKey = "default_search_settings"
+const DefaultModelKey = "default_model"
+const DefaultDocumentProcessingKey = "default_document_processing"
 
 const AttachmentKVBucket = "file_attachments"
 const AttachmentStatsBucket = "attachment_stats"
