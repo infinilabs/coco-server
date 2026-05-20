@@ -63,4 +63,8 @@ type DocumentProcessing struct {
 	// If the user didn't specify which pipeline to run to process the fetched
 	// documents in an data source's settings, use this one.
 	DefaultPipelineForDocument string `config:"default_pipeline_for_document" json:"default_pipeline_for_document,omitempty"`
+	// Default language used by pipeline stages that invoke an LLM to generate
+	// content (summaries, tags, etc.) when no per-pipeline override is set.
+	// Expected to be a BCP 47 tag, e.g. "en-US", "zh-CN".
+	LLMGenerationLanguage string `config:"llm_generation_language" json:"llm_generation_language,omitempty"`
 }
