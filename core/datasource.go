@@ -63,5 +63,5 @@ type ConnectorConfig struct {
 // * core.Attachment
 type ProcessingConfig struct {
 	Enabled  bool   `json:"enabled" elastic_mapping:"enabled:{type:keyword}"`
-	Pipeline string `json:"pipeline" elastic_mapping:"pipeline"`
+	Pipeline string `json:"pipeline" elastic_mapping:"pipeline:{type:keyword}"`
 }
