@@ -15,8 +15,9 @@ export default function Chat({
   apiConfig,
   onBackToSearch,
   queryParams,
+  setQueryParams,
 }) {
-  const { BaseUrl, Token, endpoint } = apiConfig || {};
+  const { BaseUrl, Token, endpoint, headers } = apiConfig || {};
 
   const chatRef = useRef(null);
 
@@ -29,13 +30,7 @@ export default function Chat({
     const query = queryParams?.query;
     if (query && query !== processedQuery.current && chatRef.current) {
       processedQuery.current = query;
-      // chatRef.current.clearChat();
-      // setTimeout(() => {
-      //   chatRef.current.init({
-      //     message: query,
-      //   });
-      // }, 300);
-      setInputValue(query);
+      chatRef.current?.init({ message: query });
     }
   }, [queryParams?.query]);
 
@@ -58,16 +53,23 @@ export default function Chat({
         <AIChat
           ref={chatRef}
           BaseUrl={BaseUrl}
-          formatUrl={(data) => `${endpoint}${BaseUrl}${data.url}`}
+          formatUrl={(data) => {
+            if (!data.url) return "";
+            if (data.url.startsWith("http")) {
+              return data.url;
+            }
+            return `${BaseUrl}${endpoint}${data.url}`;
+          }}
           Token={Token}
+          headers={headers}
           locale={language === "zh-CN" ? "zh" : "en"}
         />
       }
       input={
         <ChatInput
           locale={language === "zh-CN" ? "zh" : "en"}
-          onSend={onSendMessage}
           inputValue={inputValue}
+          onSend={onSendMessage}
           changeInput={setInputValue}
           chatPlaceholder={
             language === "zh-CN" ? "请输入问题..." : "Type a message..."
@@ -83,6 +85,7 @@ export default function Chat({
             <AssistantList
               BaseUrl={BaseUrl}
               Token={Token}
+              headers={headers}
               locale={language === "zh-CN" ? "zh" : "en"}
             />
           }
@@ -93,6 +96,7 @@ export default function Chat({
         <History
           BaseUrl={BaseUrl}
           Token={Token}
+          headers={headers}
           locale={language === "zh-CN" ? "zh" : "en"}
         />
       }

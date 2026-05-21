@@ -33,6 +33,7 @@ export default function useSearchBox({ queryParams, onSearch, onSuggestion, filt
 
   const isClickingSuggestion = useRef(false);
   const isClickingSearchAction = useRef(false);
+  const isSearchTriggered = useRef(false);
   const inputRef = useRef(null);
   const textAreaRef = useRef(null);
   const expandedInputRef = useRef(null);
@@ -114,6 +115,13 @@ export default function useSearchBox({ queryParams, onSearch, onSuggestion, filt
     setFilterState({ type: 'none', index: -1 });
     setAttachmentActive(false);
     setSuggestions({});
+    isSearchTriggered.current = true;
+    setTimeout(() => { isSearchTriggered.current = false; }, 200);
+    // Blur inputs to prevent re-triggering focus events
+    if (inputRef.current?.input) inputRef.current.input.blur();
+    if (expandedInputRef.current?.resizableTextArea?.textArea) {
+      expandedInputRef.current.resizableTextArea.textArea.blur();
+    }
   };
 
   const triggerSearch = () => handleSearch(query, filters, action_type, search_type);
@@ -264,11 +272,16 @@ export default function useSearchBox({ queryParams, onSearch, onSuggestion, filt
   }, [filterState.type]);
 
   const handleInputFocus = () => {
+    if (isSearchTriggered.current) {
+      isSearchTriggered.current = false;
+      return;
+    }
     setMainInputActive(true);
     if (filterState.type !== 'none' || filterState.index !== -1) {
       setFilterState({ type: 'none', index: -1 });
     }
     setTimeout(() => {
+      if (isSearchTriggered.current) return;
       const textareaDom = expandedInputRef.current?.resizableTextArea?.textArea;
       if (textareaDom) {
         textareaDom.focus();

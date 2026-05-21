@@ -334,6 +334,7 @@ const Fullscreen = props => {
             mode: 'search'
           });
         }}
+        setQueryParams={setQueryParams}
       />
     )
   }
@@ -390,7 +391,7 @@ const Fullscreen = props => {
       getRawContent={getRawContent}
       onChatContinue={() => {
         setQueryParams({
-          ...queryParams,
+          query: queryParams.query || '',
           mode: 'chat'
         });
       }}

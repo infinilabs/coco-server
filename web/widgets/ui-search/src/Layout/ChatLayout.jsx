@@ -29,7 +29,7 @@ const ChatLayout = props => {
           src={logoTextDark}
         />
       </div>
-      <div className='bg---ui-search-antd-color-bg-container ml-4 flex items-center gap-1 border border-[#bbb] rounded-full px-2 py-1.5'>
+      <div className='ml-4 flex items-center gap-1 border border-[var(--ui-search-antd-color-border)] rounded-full px-2 py-1.5'>
         <Sparkles
           className='h-4 w-4 text-[#7C3AED]'
           fill='currentColor'
@@ -54,14 +54,14 @@ const ChatLayout = props => {
       {!isMobile && !sidebarCollapsed && (
         <Sider
           breakpoint='md'
-          className='h-full border-r border-[#ebebeb] bg-[rgb(var(--ui-search--layout-bg-color))]'
+          className='h-full border-r border-[var(--ui-search-antd-color-border-secondary)] bg-[rgb(var(--ui-search--layout-bg-color))]'
           collapsedWidth='0'
           trigger={null}
           width={260}
         >
           <div className='h-full flex flex-col'>
             <div className='h-16 flex shrink-0 items-center bg-[#F3F4F6] px-4 dark:bg-[#1F2937]'>{logoNode}</div>
-            <div className='flex-1 overflow-y-auto bg-[#F3F4F6] dark:bg-[#1F2937]'>{sidebar}</div>
+            <div className='flex-1 overflow-y-hidden bg-[#F3F4F6] dark:bg-[#1F2937]'>{sidebar}</div>
           </div>
         </Sider>
       )}
@@ -76,8 +76,10 @@ const ChatLayout = props => {
         )}
 
         {/* Chat Messages Area */}
-        <Content className='relative w-full flex-1 overflow-y-auto'>
-          <div className='mx-auto h-full max-w-4xl w-full px-4 py-4'>{content}</div>
+        <Content className='relative w-full flex-1 overflow-hidden'>
+          <div className='h-full w-full'>
+            {content}
+          </div>
         </Content>
 
         {/* Input Area - Fixed at bottom of the main layout column */}

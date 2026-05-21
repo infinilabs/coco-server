@@ -1,38 +1,35 @@
 import PropTypes from "prop-types";
+import { Button } from "antd";
 import { History, MessageSquarePlus, Search } from "lucide-react";
 
 const ChatHeader = (props) => {
   const { onToggleHistory, onNewChat, onBackToSearch, AssistantList } = props;
 
   return (
-    <div className="h-full w-full flex items-center justify-between px-4 border-b border-[#ebebeb] box-border">
+    <div className="h-full w-full flex items-center justify-between px-4 border-b border-[var(--ui-search-antd-color-border-secondary)] box-border">
       <div className="min-w-0 flex items-center gap-2">
-        <button
-          className="cursor-pointer border border-[#ebebeb] rounded-xl p-2 hover:bg-gray-100 dark:hover:bg-gray-800"
-          type="button"
+        <Button
+          icon={<History className="h-4 w-4" />}
           onClick={onToggleHistory}
-        >
-          <History className="h-4 w-4" />
-        </button>
+          className="!rounded-12px"
+        />
 
         {AssistantList}
 
-        <button
-          className="cursor-pointer rounded-lg px-2 py-1.5 border border-[#ebebeb] hover:bg-gray-100 dark:hover:bg-gray-800"
-          type="button"
+        <Button
+          icon={<MessageSquarePlus className="h-4 w-4 !text-[var(--ui-search-antd-color-primary)]" />}
           onClick={onNewChat}
-        >
-          <MessageSquarePlus className="relative top-0.5 h-4 w-4 text-[#0387FF]" />
-        </button>
+          className="!rounded-12px"
+        />
 
-        <button
-          className="h-8 flex cursor-pointer items-center gap-2 border border-[rgba(235,235,235,1)] rounded-full bg-(--ui-search-antd-color-bg-container) px-3 text-sm text-[#999] dark:border-[rgba(50,50,50,1)]"
-          type="button"
+        <Button
+          shape="round"
+          icon={<Search className="h-4 w-4 !text-[var(--ui-search-antd-color-primary)]" />}
           onClick={onBackToSearch}
+          className="!rounded-12px"
         >
-          <Search className="h-4 w-4 text-[#0387FF]" />
-          <span>返回搜索</span>
-        </button>
+          返回搜索
+        </Button>
       </div>
 
       <div className="w-200px" />

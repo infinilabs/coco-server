@@ -21,8 +21,8 @@ importers:
         specifier: 5.0.2
         version: 5.0.2(react@18.3.1)
       '@infinilabs/doc-detail':
-        specifier: ^0.0.15
-        version: 0.0.15(@emotion/is-prop-valid@1.4.0)(@types/react@18.3.12)(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ^0.0.17
+        version: 0.0.17(@emotion/is-prop-valid@1.4.0)(@types/react@18.3.12)(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@infinilabs/entity-ui':
         specifier: ^0.0.5
         version: 0.0.5(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -422,8 +422,14 @@ importers:
   widgets/ui-search:
     dependencies:
       '@ant-design/cssinjs':
-        specifier: ^1.24.0
-        version: 1.24.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ^2.0.1
+        version: 2.1.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@ant-design/x':
+        specifier: ^2.1.3
+        version: 2.7.0(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@ant-design/x-markdown':
+        specifier: ^2.1.3
+        version: 2.7.0(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@babel/runtime':
         specifier: ^7.27.6
         version: 7.29.2
@@ -440,8 +446,8 @@ importers:
         specifier: ^0.0.7
         version: 0.0.7(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@infinilabs/ai-chat':
-        specifier: ^0.0.6
-        version: 0.0.6(@ant-design/icons@6.2.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.12)(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3)(use-sync-external-store@1.6.0(react@18.3.1))
+        specifier: ^0.0.8
+        version: 0.0.8(@ant-design/icons@6.2.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.12)(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3)(use-sync-external-store@1.6.0(react@18.3.1))
       '@infinilabs/attachments':
         specifier: ^0.0.1
         version: 0.0.1(@ant-design/icons@6.2.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -449,8 +455,8 @@ importers:
         specifier: ^0.0.6
         version: 0.0.6(@ant-design/icons@6.2.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@emotion/is-prop-valid@1.4.0)(@types/react@18.3.12)(immer@11.1.8)(react-dom@18.3.1(react@18.3.1))(react-i18next@16.6.6(i18next@25.10.10(typescript@5.6.3))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3))(react@18.3.1)(typescript@5.6.3)(use-sync-external-store@1.6.0(react@18.3.1))(vite@5.4.10(@types/node@22.8.6)(less@4.6.4)(lightningcss@1.32.0)(sass@1.99.0)(terser@5.47.1))
       '@infinilabs/doc-detail':
-        specifier: ^0.0.15
-        version: 0.0.15(@emotion/is-prop-valid@1.4.0)(@types/react@18.3.12)(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ^0.0.17
+        version: 0.0.17(@emotion/is-prop-valid@1.4.0)(@types/react@18.3.12)(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@infinilabs/filter':
         specifier: ^0.0.11
         version: 0.0.11(@emotion/is-prop-valid@1.4.0)(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -1822,8 +1828,8 @@ packages:
       react: '>=18'
       react-dom: '>=18'
 
-  '@infinilabs/ai-chat@0.0.6':
-    resolution: {integrity: sha512-tp2LalPFaplve11LwCWnng6sYuVX/C90A3B4fcwhC2TmPE7dVzT1c+LGy/sQBlWMdUNaf0OD4SKVZ0I+V5Vlsg==}
+  '@infinilabs/ai-chat@0.0.8':
+    resolution: {integrity: sha512-7sso4olN5Wc/ogDi4H8EspHX3esQdUh8lK6q6YlYBoe9aMitif221H+1IqjbjoojPnxI+7Pqn+1obQPcLCZ01Q==}
     peerDependencies:
       antd: 6.1.3
       react: ^18.3.1
@@ -1852,8 +1858,8 @@ packages:
       react-dom: ^18.3.1
       react-i18next: '>=11.0.0'
 
-  '@infinilabs/doc-detail@0.0.15':
-    resolution: {integrity: sha512-A6PHxxe6rFi2saIYXG4zwCKIkLPSqUB/1eFIlX4DkHX71+xk3N9HJMFs8z27t/UpezY/64A6QcC6G6kvvHf3mw==}
+  '@infinilabs/doc-detail@0.0.17':
+    resolution: {integrity: sha512-5vEoMD9rJLNTrMLZV+g18QZNpxF/SKpSQJ9nLi2p/RHRyW0sdRqGHYDGTOKsPnKzazxm44JKWID75WBbGyVk3g==}
     peerDependencies:
       antd: '>=5'
       react: '>=17'
@@ -1880,8 +1886,8 @@ packages:
       react: '>=18'
       react-dom: '>=18'
 
-  '@infinilabs/markdown@0.0.4':
-    resolution: {integrity: sha512-TuLUZZY3eo4GsXBP8c8MLw4WGBcfJEOyc6oxuP0iVNj/4acNrjMttkIo7g2/P35NnsTqPZYiFYVRh94Qj5iTfw==}
+  '@infinilabs/markdown@0.0.7':
+    resolution: {integrity: sha512-Okj5y5WYgufHN3cbKTSFS9hVClrlNGf5VSS39YjQuxwujBGcE7HLJCjL2HcosWli+rlYLcvZMGMSKBUGIdEbNw==}
     peerDependencies:
       antd: '>=5'
       react: '>=18'
@@ -10180,7 +10186,7 @@ snapshots:
     transitivePeerDependencies:
       - '@types/react'
 
-  '@infinilabs/ai-chat@0.0.6(@ant-design/icons@6.2.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.12)(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3)(use-sync-external-store@1.6.0(react@18.3.1))':
+  '@infinilabs/ai-chat@0.0.8(@ant-design/icons@6.2.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.12)(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3)(use-sync-external-store@1.6.0(react@18.3.1))':
     dependencies:
       '@emotion/is-prop-valid': 1.4.0
       '@infinilabs/chat-message': 0.0.11(@ant-design/icons@6.2.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@emotion/is-prop-valid@1.4.0)(@types/react@18.3.12)(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react-i18next@16.6.6(i18next@25.10.10(typescript@5.6.3))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3))(react@18.3.1)(typescript@5.6.3)
@@ -10281,11 +10287,11 @@ snapshots:
       - use-sync-external-store
       - vite
 
-  '@infinilabs/doc-detail@0.0.15(@emotion/is-prop-valid@1.4.0)(@types/react@18.3.12)(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@infinilabs/doc-detail@0.0.17(@emotion/is-prop-valid@1.4.0)(@types/react@18.3.12)(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@ant-design/x': 2.7.0(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@ant-design/x-markdown': 2.7.0(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@infinilabs/markdown': 0.0.4(@types/react@18.3.12)(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@infinilabs/markdown': 0.0.7(@types/react@18.3.12)(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       ahooks: 3.9.7(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       antd: 6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       clsx: 2.1.1
@@ -10331,8 +10337,9 @@ snapshots:
     transitivePeerDependencies:
       - '@types/react'
 
-  '@infinilabs/markdown@0.0.4(@types/react@18.3.12)(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@infinilabs/markdown@0.0.7(@types/react@18.3.12)(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
+      '@ant-design/cssinjs': 2.1.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@ant-design/x': 2.7.0(antd@6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@ant-design/x-markdown': 2.7.0(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       antd: 6.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
