@@ -18,6 +18,7 @@ import (
 	common2 "infini.sh/coco/modules/assistant/common"
 	"infini.sh/coco/modules/assistant/langchain"
 	"infini.sh/coco/modules/common"
+	llmmodule "infini.sh/coco/modules/llm"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/util"
 )
@@ -28,16 +29,23 @@ func CallLLMTools(ctx context.Context, reqMsg *core.ChatMessage, replyMsg *core.
 		panic("invalid assistant config, skip")
 	}
 
-	//get llm for mcp, use answering model if not mcp specified model
-	providerID := params.MustGetAnsweringModel().ProviderID
-	modelName := params.MustGetAnsweringModel().Name
-	if params.AssistantCfg.MCPConfig.Enabled {
-		if params.AssistantCfg.MCPConfig.Model != nil {
-			if params.AssistantCfg.MCPConfig.Model.Name != "" {
-				modelName = params.AssistantCfg.MCPConfig.Model.Name
-				providerID = params.AssistantCfg.MCPConfig.Model.ProviderID
-			}
-		}
+	// Resolve the picking-tool model: MCPConfig.Model override -> settings
+	// PickingToolModel -> settings LanguageModel; if still nothing, fall back
+	// to the answering model (which is guaranteed resolved at this point).
+	override := &core.ModelId{}
+	if params.AssistantCfg.MCPConfig.Enabled && params.AssistantCfg.MCPConfig.Model != nil {
+		override.ProviderID = params.AssistantCfg.MCPConfig.Model.ProviderID
+		override.ID = params.AssistantCfg.MCPConfig.Model.Name
+	}
+	resolvedTool := llmmodule.ResolveAssistantModel(core.AssistantModelUsePickingTool, override)
+	var providerID, modelName string
+	if resolvedTool != nil {
+		providerID = resolvedTool.ProviderID
+		modelName = resolvedTool.ID
+	} else {
+		answering := params.MustGetAnsweringModel()
+		providerID = answering.ProviderID
+		modelName = answering.Name
 	}
 
 	llm, err := langchain.SimplyGetLLM(providerID, modelName, "")

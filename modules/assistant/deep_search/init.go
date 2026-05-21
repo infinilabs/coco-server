@@ -50,6 +50,18 @@ func RunDeepSearchTask(ctx context.Context, userID string, params *common2.RAGCo
 		params.InputValues["tool_list"] = mcpServers.String()
 	}
 
+	// Resolve the intent analysis model: assistant override -> settings
+	// default -> settings language model.
+	resolvedIntent := llm.ResolveAssistantModel(core.AssistantModelUseIntentAnalysis, &core.ModelId{
+		ProviderID: cfg.DeepThinkConfig.IntentAnalysisModel.ProviderID,
+		ID:         cfg.DeepThinkConfig.IntentAnalysisModel.Name,
+	})
+	if resolvedIntent == nil {
+		return fmt.Errorf("no intent analysis model configured and no default in settings")
+	}
+	cfg.DeepThinkConfig.IntentAnalysisModel.ProviderID = resolvedIntent.ProviderID
+	cfg.DeepThinkConfig.IntentAnalysisModel.Name = resolvedIntent.ID
+
 	queryIntent, err := langchain.ProcessQueryIntent(ctx, params.SessionID, &cfg.DeepThinkConfig.IntentAnalysisModel, reqMsg, replyMsg, params.AssistantCfg, params.InputValues, sender)
 	if err != nil {
 		log.Error("error on processing query intent analysis: ", err)

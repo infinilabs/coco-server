@@ -12,9 +12,23 @@ import (
 	"golang.org/x/text/language"
 )
 
+// AssistantModelUse identifies a place in the assistant chat flow that needs
+// an LLM. Each value maps to a default model in Settings.DefaultModel; if that
+// is not configured, callers fall back to Settings.DefaultModel.LanguageModel.
+//
+// Unlike LLMType (which categorizes a model itself: language / vision /
+// embedding), AssistantModelUse describes a *use case* within the chat flow.
+type AssistantModelUse int
+
+const (
+	AssistantModelUseAnswering AssistantModelUse = iota
+	AssistantModelUseIntentAnalysis
+	AssistantModelUsePickingDoc
+	AssistantModelUsePickingTool
+)
+
 type Assistant struct {
 	CombinedFullText
-
 	Name           string           `json:"name" elastic_mapping:"name:{type:keyword,copy_to:combined_fulltext,fields:{text: {type: text}, pinyin: {type: text, analyzer: pinyin_analyzer}}}"`
 	Description    string           `json:"description" elastic_mapping:"description:{type:text,copy_to:combined_fulltext}"`
 	Icon           string           `json:"icon" elastic_mapping:"icon:{enabled:false}"`

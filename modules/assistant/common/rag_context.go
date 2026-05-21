@@ -9,6 +9,7 @@ import (
 	"github.com/tmc/langchaingo/memory"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
+	llmmodule "infini.sh/coco/modules/llm"
 	api1 "infini.sh/framework/core/api"
 	"infini.sh/framework/core/util"
 )
@@ -100,10 +101,21 @@ func NewRagContext(req *http.Request, assistant *core.Assistant, sessionID strin
 		params.MCPServers = make([]string, 0)
 	}
 
-	if assistant.AnsweringModel.ProviderID == "" {
-		return nil, fmt.Errorf("assistant [%s] has no answering model configured. Please set it up first", assistant.Name)
+	// Resolve the answering model: assistant override -> settings default ->
+	// settings language model.
+	resolved := llmmodule.ResolveAssistantModel(core.AssistantModelUseAnswering, &core.ModelId{
+		ProviderID: assistant.AnsweringModel.ProviderID,
+		ID:         assistant.AnsweringModel.Name,
+	})
+	if resolved == nil {
+		return nil, fmt.Errorf("assistant [%s] has no answering model configured and no default in settings. Please set it up first", assistant.Name)
 	}
-	modelProvider, err := common.GetModelProvider(assistant.AnsweringModel.ProviderID)
+	// Apply the resolved provider/model so downstream callers that read
+	// assistant.AnsweringModel.ProviderID / Name observe the effective model.
+	assistant.AnsweringModel.ProviderID = resolved.ProviderID
+	assistant.AnsweringModel.Name = resolved.ID
+
+	modelProvider, err := common.GetModelProvider(resolved.ProviderID)
 	if err != nil {
 		return params, fmt.Errorf("failed to get model provider: %w", err)
 	}

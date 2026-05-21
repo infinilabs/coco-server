@@ -42,3 +42,48 @@ func defaultModelFor(d *core.DefaultModel, t core.LLMType) *core.ModelId {
 	}
 	return nil
 }
+
+// ResolveAssistantModel picks the ModelId to use for the given assistant model
+// use case, applying the fallback chain:
+//  1. `override` if it's fully populated (both ProviderID and ID set) — this is
+//     the model configured at the assistant level
+//  2. The matching default model for the use case from
+//     Settings.DefaultModel (e.g. AnsweringModel, IntentAnalysisModel, ...)
+//  3. Settings.DefaultModel.LanguageModel as a last resort, since these are all
+//     language-model use cases
+//
+// Returns nil if none of the above yields a complete ModelId.
+func ResolveAssistantModel(use core.AssistantModelUse, override *core.ModelId) *core.ModelId {
+	if override != nil && override.ProviderID != "" && override.ID != "" {
+		return override
+	}
+	cfg := common.AppConfig()
+	if m := defaultModelForUse(cfg.DefaultModel, use); m != nil && m.ProviderID != "" && m.ID != "" {
+		return m
+	}
+	if cfg.DefaultModel != nil {
+		if m := cfg.DefaultModel.LanguageModel; m != nil && m.ProviderID != "" && m.ID != "" {
+			return m
+		}
+	}
+	return nil
+}
+
+// defaultModelForUse returns d's configured default ModelId for the given
+// assistant model use, or nil when nothing is configured.
+func defaultModelForUse(d *core.DefaultModel, use core.AssistantModelUse) *core.ModelId {
+	if d == nil {
+		return nil
+	}
+	switch use {
+	case core.AssistantModelUseAnswering:
+		return d.AnsweringModel
+	case core.AssistantModelUseIntentAnalysis:
+		return d.IntentAnalysisModel
+	case core.AssistantModelUsePickingDoc:
+		return d.PickingDocModel
+	case core.AssistantModelUsePickingTool:
+		return d.PickingToolModel
+	}
+	return nil
+}
