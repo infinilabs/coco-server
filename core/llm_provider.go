@@ -24,6 +24,17 @@ type ModelProvider struct {
 	getLocker sync.RWMutex
 }
 
+// LLMType identifies the kind of LLM a caller needs. It only enumerates real
+// model categories; use cases like intent analysis or answering are not model
+// types and have their own fallback handled at their call sites.
+type LLMType string
+
+const (
+	LLMTypeLanguage  LLMType = "language"
+	LLMTypeVision    LLMType = "vision"
+	LLMTypeEmbedding LLMType = "embedding"
+)
+
 func (provider *ModelProvider) GetModelConfig(name string) *ModelConfig {
 	if provider == nil {
 		return nil

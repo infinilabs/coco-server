@@ -11,19 +11,25 @@ import (
 	"strings"
 
 	"github.com/tmc/langchaingo/llms"
+	"infini.sh/coco/core"
 	"infini.sh/coco/modules/assistant/langchain"
 	"infini.sh/coco/modules/common"
+	llmmodule "infini.sh/coco/modules/llm"
 )
 
 // recognizeFacesWithAI uses vision model to identify names for each detected face
 func recognizeFacesWithAI(ctx context.Context, processor *FileExtractionProcessor, originalImgPath string, faceImages []string, surroundingText SurroundingText) ([]FaceRecognitionResult, error) {
-	// Get vision model
-	provider, err := common.GetModelProvider(processor.config.VisionModelProviderID)
+	// Resolve vision model (falls back to default_model.vision_model from settings)
+	modelId := llmmodule.ResolveModel(core.LLMTypeVision, &core.ModelId{ProviderID: processor.config.VisionModelProviderID, ID: processor.config.VisionModelName})
+	if modelId == nil {
+		return nil, fmt.Errorf("[%s] no vision model configured: set vision_model_provider/vision_model in pipeline config or configure a default vision model in settings", ProcessorName)
+	}
+	provider, err := common.GetModelProvider(modelId.ProviderID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get vision model provider: %w", err)
 	}
 
-	llm := langchain.GetLLM(provider.BaseURL, provider.APIType, processor.config.VisionModelName, provider.APIKey, "")
+	llm := langchain.GetLLM(provider.BaseURL, provider.APIType, modelId.ID, provider.APIKey, "")
 
 	var parts []llms.ContentPart
 

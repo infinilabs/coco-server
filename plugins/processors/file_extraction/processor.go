@@ -85,9 +85,6 @@ func New(c *config.Config) (pipeline.Processor, error) {
 	/*
 		Validate configuration
 	*/
-	if p.config.VisionModelProviderID == "" || p.config.VisionModelName == "" {
-		panic(fmt.Sprintf("Processor [%s]: Vision model is not configured", ProcessorName))
-	}
 
 	// Validate pigo_facefinder_path
 	if cfg.PigoFacefinderPath == "" {

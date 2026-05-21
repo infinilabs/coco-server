@@ -11,8 +11,10 @@ import (
 
 	log "github.com/cihub/seelog"
 	"github.com/tmc/langchaingo/llms"
+	"infini.sh/coco/core"
 	"infini.sh/coco/modules/assistant/langchain"
 	"infini.sh/coco/modules/common"
+	llmmodule "infini.sh/coco/modules/llm"
 	"infini.sh/framework/core/global"
 )
 
@@ -34,14 +36,18 @@ IMPORTANT: Your response MUST be in %s.`, lang)
 // processImage processes an image file using a vision model to extract text description.
 // Returns an Extraction with the vision model's description as text content.
 func (p *FileExtractionProcessor) processImage(ctx context.Context, imagePath string) (Extraction, error) {
-	// Get model provider
-	provider, err := common.GetModelProvider(p.config.VisionModelProviderID)
+	// Resolve vision model (falls back to default_model.vision_model from settings)
+	modelId := llmmodule.ResolveModel(core.LLMTypeVision, &core.ModelId{ProviderID: p.config.VisionModelProviderID, ID: p.config.VisionModelName})
+	if modelId == nil {
+		return Extraction{}, fmt.Errorf("[%s] no vision model configured: set vision_model_provider/vision_model in pipeline config or configure a default vision model in settings", p.Name())
+	}
+	provider, err := common.GetModelProvider(modelId.ProviderID)
 	if err != nil {
 		return Extraction{}, fmt.Errorf("failed to get vision model provider: %w", err)
 	}
 
 	// Create LLM client
-	llm := langchain.GetLLM(provider.BaseURL, provider.APIType, p.config.VisionModelName, provider.APIKey, "")
+	llm := langchain.GetLLM(provider.BaseURL, provider.APIType, modelId.ID, provider.APIKey, "")
 
 	// Convert image to llms.ContentPart based on config
 	imagePart, err := loadLocalImageToContentPart(imagePath, p.config.ImageContentFormat)

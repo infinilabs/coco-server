@@ -14,6 +14,7 @@ import (
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/assistant/langchain"
 	"infini.sh/coco/modules/common"
+	llmmodule "infini.sh/coco/modules/llm"
 	"infini.sh/framework/core/config"
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/global"
@@ -57,12 +58,6 @@ func New(c *config.Config) (pipeline.Processor, error) {
 		cfg.MessageField = core.PipelineContextDocuments
 	}
 
-	if cfg.ModelProviderID == "" {
-		panic("model_provider can't be empty")
-	}
-	if cfg.ModelName == "" {
-		panic("model can't be empty")
-	}
 	if cfg.EmbeddingDimension == 0 {
 		panic("embedding_dimension is not specified or set to 0, which is not allowed")
 	}
@@ -240,13 +235,17 @@ func generateChunkEmbeddings(ctx context.Context, embedder embeddings.EmbedderCl
 // According to the specified configuration, init the "EmbedderClient" and
 // return it.
 func getEmbedderClient(cfg *Config) (embeddings.EmbedderClient, error) {
-	provider, err := common.GetModelProvider(cfg.ModelProviderID)
+	modelId := llmmodule.ResolveModel(core.LLMTypeEmbedding, &core.ModelId{ProviderID: cfg.ModelProviderID, ID: cfg.ModelName})
+	if modelId == nil {
+		return nil, fmt.Errorf("no embedding model configured: set model_provider/model in pipeline config or configure a default embedding model in settings")
+	}
+	provider, err := common.GetModelProvider(modelId.ProviderID)
 	if err != nil {
 		log.Error("failed to get model provider: ", err)
 		return nil, err
 	}
 
-	model := langchain.GetLLM(provider.BaseURL, provider.APIType, cfg.ModelName, provider.APIKey, "")
+	model := langchain.GetLLM(provider.BaseURL, provider.APIType, modelId.ID, provider.APIKey, "")
 	// Check if the LLM client supports embeddings
 	embedder, ok := model.(embeddings.EmbedderClient)
 
