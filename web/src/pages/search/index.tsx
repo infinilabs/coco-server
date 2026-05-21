@@ -10,7 +10,6 @@ import useQueryParams from '@/hooks/common/queryParams';
 import { FullscreenPage } from 'ui-search';
 import { querySearch, fetchSuggestions, fetchRecommends, fetchFieldsMeta } from '@/service/api/ai-search';
 import { getApiBaseUrl } from '@/service/request';
-import normalizeUrl from 'normalize-url';
 import queryString from 'query-string';
 
 configResponsive({ sm: 640 });
@@ -66,51 +65,6 @@ const AGGS: any = {
 export function Component() {
   const containerRef = useRef(null)
 
-  const normalizeCoverIconUrl = (data: any) => {
-    if (!data?.hits?.hits || !Array.isArray(data.hits.hits)) {
-      return data;
-    }
-
-    let baseUrl = getApiBaseUrl();
-    if (!baseUrl.toLowerCase().startsWith('http')) {
-      baseUrl = `${window.location.origin}${window.location.pathname}/${baseUrl}`;
-    }
-    const normalizedHits = data.hits.hits.map((item: any) => {
-      const source = item?._source;
-      if (!source || typeof source !== 'object') {
-        return item;
-      }
-
-      const normalizeField = (value: any) => {
-        if (typeof value !== 'string' || !value) return value;
-        const text = value.toLowerCase();
-        if (text.startsWith('/') || text.startsWith('#/')) {
-          return normalizeUrl(`${baseUrl}/${value}`);
-        }
-        return value;
-      };
-
-      return {
-        ...item,
-        _source: {
-          ...source,
-          cover: normalizeField(source.cover),
-          icon: normalizeField(source.icon),
-          url: normalizeField(source.url),
-          thumbnail: normalizeField(source.thumbnail),
-        }
-      };
-    });
-
-    return {
-      ...data,
-      hits: {
-        ...data.hits,
-        hits: normalizedHits
-      }
-    };
-  };
-
   const responsive = useResponsive();
 
   const [queryParams, setQueryParams] = useQueryParams({ mode: 'search' });
@@ -134,7 +88,7 @@ export function Component() {
     const searchStr = `${filterStr ? filterStr + '&' : ''}${queryString.stringify(rest)}`
     const headers = { 'APP-INTEGRATION-ID': search_settings?.integration }
     const res = await querySearch({}, searchStr, { headers })
-    if (callback) callback(normalizeCoverIconUrl(res.data))
+    if (callback) callback(res.data)
     if (setLoading) setLoading(false)
   }
 
@@ -339,17 +293,17 @@ export function Component() {
           }}
         />
       </div>
-      <div className="absolute right-12px top-0px h-72px z-1002 flex-y-center justify-end">
+      <div className="absolute right-12px top-0px h-72px z-1002 flex-y-center justify-end pointer-events-none">
         {
           isMobile ? (
             <>
-              <ThemeSchemaSwitch className="px-12px" />
-              <UserAvatar className="px-8px" showHome showName={!isMobile} />
+              <ThemeSchemaSwitch className="px-12px pointer-events-auto" />
+              <UserAvatar className="px-8px pointer-events-auto" showHome showName={!isMobile} />
             </>
           ) : (
             <>
-              <ThemeSchemaSwitch className="px-12px" />
-              <UserAvatar className="px-8px" showHome showName={!isMobile} />
+              <ThemeSchemaSwitch className="px-12px pointer-events-auto" />
+              <UserAvatar className="px-8px pointer-events-auto" showHome showName={!isMobile} />
             </>
           )
         }

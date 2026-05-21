@@ -129,7 +129,7 @@ const UserAvatar = memo((props) => {
           </div>
         </Dropdown>
       ) : (
-        <Button className={`px-12px ${className}`} onClick={loginOrRegister}>{t('page.login.common.loginOrRegister')}</Button>
+        <Button className={`px-12px ${className}`} onClick={loginOrRegister}>{t('page.login.common.login')}</Button>
       )}
       <Suspense>
         <PasswordModal

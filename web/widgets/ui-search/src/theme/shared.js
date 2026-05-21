@@ -183,7 +183,7 @@ export function getAntdTheme(
       }
     },
     cssVar: {
-      prefix: `${VAR_PREFIX}-antd`,
+      // prefix: `${VAR_PREFIX}-antd`,
     },
     token: {
       colorBgContainer: containerBgColor,

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FullscreenModal } from './ui-search';
+import { FullscreenModal } from 'ui-search';
 
 export default (props) => {
 

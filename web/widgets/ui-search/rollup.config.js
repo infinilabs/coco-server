@@ -41,8 +41,9 @@ export default {
     }),
     resolve({ extensions: ['.js', '.jsx'], browser: true }),
     commonjs({
-      include: 'node_modules/**',
-      transformMixedEsModules: true
+      include: /node_modules/,
+      transformMixedEsModules: true,
+      requireReturnsDefault: 'auto',
     }),
     url({
       include: ['**/*.svg'],

@@ -150,7 +150,7 @@ const BasicLayout = (props) => {
       <GlobalLoading loading={loading} theme={theme} />
 
       {/* Full-width header divider to keep tab line continuous */}
-      <div className="sticky top-[122px] z-1002 h-0 border-b border-[var(--ui-search-antd-color-border-secondary)] pointer-events-none" />
+      <div className="sticky top-[122px] z-1002 h-0 border-b border-[var(--ant-color-border-secondary)] pointer-events-none" />
 
       {/* Unified Left-Center-Right Layout */}
       <Layout className={bgClass} style={{ minHeight: '100%' }}>

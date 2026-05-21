@@ -10,5 +10,5 @@
 }
 
 .ui-search .ui-search-chat-message .user-select-text {
-    border-color: var(--ui-search-antd-color-border-secondary);
+    border-color: var(--ant-color-border-secondary);
 }

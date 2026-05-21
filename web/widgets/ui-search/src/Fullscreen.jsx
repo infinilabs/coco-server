@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { formatESResult } from "./utils/es";
+import { normalizeCoverIconUrl } from "./utils/utils";
 import PropTypes from 'prop-types';
 
 import { debounce, isEmpty } from 'lodash';
@@ -192,6 +193,7 @@ const Fullscreen = props => {
 
         let rs;
         if (res && !res.error) {
+          res = normalizeCoverIconUrl(res, apiConfig?.BaseUrl);
           rs = formatESResult(res);
           setResult(os => ({
             ...rs,

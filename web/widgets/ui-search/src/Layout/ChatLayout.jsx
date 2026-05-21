@@ -29,7 +29,7 @@ const ChatLayout = props => {
           src={logoTextDark}
         />
       </div>
-      <div className='ml-4 flex items-center gap-1 border border-[var(--ui-search-antd-color-border)] rounded-full px-2 py-1.5'>
+      <div className='ml-4 flex items-center gap-1 border border-[var(--ant-color-border)] rounded-full px-2 py-1.5'>
         <Sparkles
           className='h-4 w-4 text-[#7C3AED]'
           fill='currentColor'
@@ -54,7 +54,7 @@ const ChatLayout = props => {
       {!isMobile && !sidebarCollapsed && (
         <Sider
           breakpoint='md'
-          className='h-full border-r border-[var(--ui-search-antd-color-border-secondary)] bg-[rgb(var(--ui-search--layout-bg-color))]'
+          className='h-full border-r border-[var(--ant-color-border-secondary)] bg-[rgb(var(--ui-search--layout-bg-color))]'
           collapsedWidth='0'
           trigger={null}
           width={260}

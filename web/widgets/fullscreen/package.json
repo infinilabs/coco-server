@@ -28,9 +28,9 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup",
-    "build:server": "tsup && mkdir -p ../../../.public/widgets/fullscreen && cp dist/index.css dist/index.js ../../../.public/widgets/fullscreen",
-    "demo": "cd dist && http-server",
+    "build": "cd ../ui-search && pnpm build && cd ../fullscreen && tsup",
+    "build:server": "cd ../ui-search && pnpm build && cd ../fullscreen && tsup && mkdir -p ../../../.public/widgets/fullscreen && cp dist/index.css dist/index.js ../../../.public/widgets/fullscreen",
+    "demo": "http-server",
     "format": "prettier --write \"./**/*.{js,jsx,ts,tsx,json,html,css}\" --ignore-path .gitignore",
     "format:check": "prettier --check \"./**/*.{js,jsx,ts,tsx,json,html,css}\" --ignore-path .gitignore",
     "prepublishOnly": "pnpm build",
@@ -41,7 +41,8 @@
     "fullscreen": "link:",
     "query-string": "9.2.2",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "ui-search": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "^18.3.1",

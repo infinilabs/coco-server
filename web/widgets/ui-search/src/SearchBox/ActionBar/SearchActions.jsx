@@ -96,7 +96,7 @@ export default (props) => {
                     onOpenChange={handleVisibleChange} 
                 >
                     <Button 
-                        className="!px-12px rounded-16px text-[var(--ui-search-antd-color-text-description)]"
+                        className="!px-12px rounded-16px text-[var(--ant-color-text-description)]"
                         onClick={(e) => {
                             e.stopPropagation();
                             if (onButtonClick) {

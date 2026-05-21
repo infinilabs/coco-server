@@ -6,7 +6,7 @@ const ChatHeader = (props) => {
   const { onToggleHistory, onNewChat, onBackToSearch, AssistantList } = props;
 
   return (
-    <div className="h-full w-full flex items-center justify-between px-4 border-b border-[var(--ui-search-antd-color-border-secondary)] box-border">
+    <div className="h-full w-full flex items-center justify-between px-4 border-b border-[var(--ant-color-border-secondary)] box-border">
       <div className="min-w-0 flex items-center gap-2">
         <Button
           icon={<History className="h-4 w-4" />}
@@ -17,14 +17,14 @@ const ChatHeader = (props) => {
         {AssistantList}
 
         <Button
-          icon={<MessageSquarePlus className="h-4 w-4 !text-[var(--ui-search-antd-color-primary)]" />}
+          icon={<MessageSquarePlus className="h-4 w-4 !text-[var(--ant-color-primary)]" />}
           onClick={onNewChat}
           className="!rounded-12px"
         />
 
         <Button
           shape="round"
-          icon={<Search className="h-4 w-4 !text-[var(--ui-search-antd-color-primary)]" />}
+          icon={<Search className="h-4 w-4 !text-[var(--ant-color-primary)]" />}
           onClick={onBackToSearch}
           className="!rounded-12px"
         >

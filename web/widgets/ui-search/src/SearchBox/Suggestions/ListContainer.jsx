@@ -220,7 +220,7 @@ const ListContainer = forwardRef((props, ref) => {
   return (
     <>
       {title && (
-        <div className="py-14px px-12px text-12px text-[var(--ui-search-antd-color-text-description)]">
+        <div className="py-14px px-12px text-12px text-[var(--ant-color-text-description)]">
           {title}
         </div>
       )}
@@ -259,7 +259,7 @@ const ListContainer = forwardRef((props, ref) => {
                     {renderPrefix?.(item)}
                     {item.icon && (
                       <BasicIcon 
-                        className={"flex justify-center items-center w-16px h-16px mr-8px text-[var(--ui-search-antd-color-text-description)] flex-shrink-0"} 
+                        className={"flex justify-center items-center w-16px h-16px mr-8px text-[var(--ant-color-text-description)] flex-shrink-0"} 
                         icon={item.icon}
                       />
                     )}

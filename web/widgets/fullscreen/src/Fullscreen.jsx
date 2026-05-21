@@ -1,11 +1,69 @@
 import { useEffect, useState } from 'react';
+import queryString from 'query-string';
 
 import FullscreenPage from './FullscreenPage';
 import FullscreenModal from './FullscreenModal';
 
-import './ui-search/index.css';
-
 const DARK_MODE_MEDIA_QUERY = '(prefers-color-scheme: dark)'
+
+const AGGS_DEFAULT = {
+    aggs: {
+        category: { terms: { field: 'category' } },
+        'source.id': {
+            terms: {
+                field: 'source.id',
+            },
+            aggs: {
+                top: {
+                    top_hits: {
+                        size: 1,
+                        _source: ['source.name'],
+                    },
+                },
+            },
+        },
+        type: { terms: { field: 'type' } },
+        tags: { terms: { field: 'tags' } },
+    },
+}
+
+const AGGS_IMAGE = {
+    aggs: {
+        category: { terms: { field: 'category' } },
+        'source.id': {
+            terms: {
+                field: 'source.id',
+            },
+            aggs: {
+                top: {
+                    top_hits: {
+                        size: 1,
+                        _source: ['source.name'],
+                    },
+                },
+            },
+        },
+        type: { terms: { field: 'type' } },
+        tag: { terms: { field: 'tags' } },
+        color: { terms: { field: 'metadata.colors' } },
+    },
+}
+
+const AGGS = {
+    all: AGGS_DEFAULT,
+    image: AGGS_IMAGE,
+}
+
+function buildFilterString(filter = {}) {
+    return Object.keys(filter)
+        .filter((key) => filter[key] !== undefined && filter[key] !== null && filter[key] !== '')
+        .map((key) => {
+            const filterValue = Array.isArray(filter[key]) ? filter[key].join(',') : filter[key]
+            return `filter=${key}:any(${filterValue})`
+        })
+        .join('&')
+}
+
 
 export default (props) => {
     const { shadow, id, server, enableQueryParams = true, parentTheme } = props;
@@ -14,6 +72,10 @@ export default (props) => {
     const { payload = {}, enabled_module = {} } = settings || {}
 
     const [theme, setTheme] = useState(window.matchMedia && window.matchMedia(DARK_MODE_MEDIA_QUERY).matches ? 'dark' : 'light')
+
+    const apiHeaders = {
+        'APP-INTEGRATION-ID': id,
+    }
 
     async function fetchSettings(server, id) {
         if (!server || !id) return;
@@ -34,36 +96,44 @@ export default (props) => {
         .catch(error => console.log('error', error));
     }
 
-    function search(query, callback, setLoading, shouldAgg) {
+    function search(query, callback, setLoading) {
         if (setLoading) setLoading(true)
-        const { filter = {} } = query
-        const filterStr = Object.keys(filter).map((key) => `filter=${key}:any(${filter[key].join(',')})`).join('&')
-        fetch(`${server}/query/_search?${filterStr ? filterStr + '&' : ''}query=${query.query}&from=${query.from}&size=${query.size}&v2=true`, {
+        const { filter = {}, ...rest } = query
+        const filterStr = buildFilterString(filter)
+        const searchStr = `${filterStr ? filterStr + '&' : ''}${queryString.stringify(rest)}`
+        fetch(`${server}/query/_search?${searchStr}`, {
+            method: 'POST',
+            headers: apiHeaders,
+            credentials: 'include',
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('response was not ok');
+            return response.json();
+        })
+        .then(data => {
+            callback(data)
+        })
+        .catch(error => {
+            console.error('error:', error);
+            callback({ error })
+        }).finally(() => {
+            if (setLoading) setLoading(false)
+        })
+    }
+
+    function aggregate(query, callback, setLoading) {
+        if (setLoading) setLoading(true)
+        const { query: keyword, filter = {}, ...rest } = query
+        const filterStr = buildFilterString(filter)
+        const searchStr = `${filterStr ? filterStr + '&' : ''}${queryString.stringify({ query: keyword, ...rest })}`
+        fetch(`${server}/query/_search?${searchStr}`, {
             method: 'POST',
             headers: {
-                'APP-INTEGRATION-ID': id,
+                ...apiHeaders,
+                'Content-Type': 'application/json',
             },
             credentials: 'include',
-            body: shouldAgg ? JSON.stringify({
-                "aggs": {
-                    "category": { "terms": { "field": "category" } },
-                    "lang": { "terms": { "field": "lang" } },
-                    "source.id": {
-                    "terms":  {
-                        "field": "source.id"
-                    },
-                    "aggs": {
-                        "top": {
-                        "top_hits": {
-                            "size": 1,
-                            "_source": ["source.name"]
-                        }
-                        }
-                    }
-                    },
-                    "type": { "terms": { "field": "type" } }
-                }
-            }) : undefined
+            body: JSON.stringify(AGGS[query['metadata.content_category']] || AGGS.all),
         })
         .then(response => {
             if (!response.ok) throw new Error('response was not ok');
@@ -85,7 +155,8 @@ export default (props) => {
         try {
             const response = await fetch(`${server}/assistant/${assistantID}/_ask`, {
                 headers: {
-                    'APP-INTEGRATION-ID': id,
+                    ...apiHeaders,
+                    'content-type': 'text/plain',
                 },
                 method: 'POST',
                 credentials: 'include',
@@ -97,6 +168,8 @@ export default (props) => {
             if (!response.ok) {
                 throw new Error(`HTTP error! Status: ${response.status}`);
             }
+            
+            setLoading(false)
 
             const reader = response.body.getReader();
             const decoder = new TextDecoder('utf-8');
@@ -106,7 +179,6 @@ export default (props) => {
             const { done, value } = await reader.read();
 
             if (done) {
-                setLoading(false)
                 break;
             }
 
@@ -131,6 +203,72 @@ export default (props) => {
         } catch (error) {
             setLoading(false)
             console.error('error:', error);
+        }
+    }
+
+    async function suggest(tag, params, callback) {
+        try {
+            const search = queryString.stringify(params || {})
+            const response = await fetch(`${server}/query/_suggest${tag ? `/${tag}` : ''}${search ? `?${search}` : ''}`, {
+                method: 'GET',
+                headers: apiHeaders,
+                credentials: 'include',
+            })
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`)
+            }
+
+            const data = await response.json()
+            callback?.(data)
+        } catch (error) {
+            console.error('error:', error)
+            callback?.({})
+        }
+    }
+
+    async function recommend(tag, callback) {
+        try {
+            const response = await fetch(`${server}/query/_recommend${tag ? `/${tag}` : ''}`, {
+                method: 'GET',
+                headers: apiHeaders,
+                credentials: 'include',
+            })
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`)
+            }
+
+            const data = await response.json()
+            callback?.(data)
+        } catch (error) {
+            console.error('error:', error)
+            callback?.({})
+        }
+    }
+
+    async function getFieldsMeta(fields, callback) {
+        if (!Array.isArray(fields) || fields.length === 0) {
+            callback?.({})
+            return
+        }
+
+        try {
+            const response = await fetch(`${server}/field_meta/${fields.join(',')}`, {
+                method: 'GET',
+                headers: apiHeaders,
+                credentials: 'include',
+            })
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`)
+            }
+
+            const data = await response.json()
+            callback?.(data)
+        } catch (error) {
+            console.error('error:', error)
+            callback?.({})
         }
     }
 
@@ -183,18 +321,66 @@ export default (props) => {
         "onSearch": (query, callback, setLoading, shouldAgg = true) => {
             search(query, callback, setLoading, shouldAgg)
         },
+        "onAggregation": (query, callback, setLoading) => {
+            aggregate(query, callback, setLoading)
+        },
         "onAsk": (assistanID, message, callback, setLoading) => {
             ask(assistanID, message, callback, setLoading)
+        },
+        "onSuggestion": (tag, params, callback) => {
+            suggest(tag, params, callback)
+        },
+        "onRecommend": (tag, callback) => {
+            recommend(tag, callback)
         },
         "config": {
             "aggregations": {
                 "source.id": {
-                    "displayName": "source"
+                    "label": "source",
+                    "payload": { field_name: 'source.id', field_data_type: 'keyword', support_multi_select: true }
                 },
                 "lang": {
-                    "displayName": "language"
+                    "label": "language",
+                    "payload": { field_name: 'lang', field_data_type: 'keyword', support_multi_select: true }
+                },
+                "color": {
+                    "label": "color",
+                    "type": "color",
+                    "payload": { field_name: 'color', field_data_type: 'keyword', support_multi_select: true }
+                },
+                "tags": {
+                    "label": "tag",
+                    "type": "tag",
+                    "payload": { field_name: 'tags', field_data_type: 'keyword', support_multi_select: true }
+                },
+                "category": {
+                    "label": "category",
+                    "payload": { field_name: 'category', field_data_type: 'keyword', support_multi_select: true }
+                },
+                "type": {
+                    "label": "type",
+                    "payload": { field_name: 'type', field_data_type: 'keyword', support_multi_select: true }
                 }
             }
+        },
+        "getRawContent": (item) => {
+            if (item?.id && item?.title) {
+                return `${server.replace(/\/$/, '')}/document/${item.id}/raw_content/${item.title}`
+            }
+            return ''
+        },
+        "apiConfig": {
+            "BaseUrl": server,
+            "endpoint": server,
+            "headers": apiHeaders,
+        },
+        "getFieldsMeta": (fields, callback) => {
+            getFieldsMeta(fields, callback)
+        },
+        "onLogoClick": () => {
+            const currentUrl = new URL(window.location.href)
+            currentUrl.search = ''
+            history.replaceState(null, '', currentUrl.toString())
         }
     }
     

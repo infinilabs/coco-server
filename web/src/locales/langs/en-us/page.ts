@@ -691,6 +691,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       confirm: 'Confirm',
       confirmPasswordPlaceholder: 'Please enter password again',
       loginOrRegister: 'Login / Register',
+      login: 'Login',
       loginSuccess: 'Login successfully',
       passwordPlaceholder: 'Please enter password',
       phonePlaceholder: 'Please enter phone number',

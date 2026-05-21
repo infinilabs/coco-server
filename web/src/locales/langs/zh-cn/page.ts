@@ -840,6 +840,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       confirm: '确定',
       confirmPasswordPlaceholder: '请再次输入密码',
       loginOrRegister: '登录 / 注册',
+      login: '登录',
       loginSuccess: '登录成功',
       passwordPlaceholder: '请输入密码',
       phonePlaceholder: '请输入手机号',
