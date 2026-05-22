@@ -431,8 +431,8 @@ func (h *APIHandler) initializeTemplate(userID string, dslTplFile string, indexP
 }
 
 // applySetupDefaultModels sets the server's default language/vision/embedding
-// models. 
-// 
+// models.
+//
 // Detailed procedures: for each provided selection the function:
 //
 //  1. Resolves the model provider — either an existing one (builtin or

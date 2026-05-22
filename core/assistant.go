@@ -179,9 +179,9 @@ type BuiltinToolsConfig struct {
 
 // ModelConfig describes a model entry. Its fields split into two groups:
 //
-//   - Static fields: describe the model itself and come from the provider 
+//   - Static fields: describe the model itself and come from the provider
 //     definition. They identify the model and declare its intrinsic capabilities.
-//   - Runtime fields: control how the model is invoked at inference time and 
+//   - Runtime fields: control how the model is invoked at inference time and
 //     may vary per call site.
 type ModelConfig struct {
 	// --- Static fields: identity & capability ---

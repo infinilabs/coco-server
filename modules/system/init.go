@@ -45,10 +45,8 @@ func init() {
 	//list all icons for connectors
 	api.HandleUIMethod(api.GET, "/icons/list", handler.getIcons, api.AllowPublicAccess())
 
-	api.RegisterAppSetting("setup", func() interface{} {
-		return util.MapStr{
-			"required": !isSetupDone(),
-		}
+	api.RegisterAppSetting("setup_required", func() interface{} {
+		return !isSetupDone()
 	})
 
 	api.RegisterAppSetting("search_settings", func() interface{} {
