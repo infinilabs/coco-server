@@ -40,8 +40,8 @@
     "icon" : "font_Robot-outlined",
     "type" : "simple",
     "answering_model": {
-      "provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
-      "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
+      "provider_id": "",
+      "name": "",
       "settings": {
         "temperature": 0,
         "top_p": 0,
