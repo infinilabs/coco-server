@@ -177,9 +177,17 @@ type BuiltinToolsConfig struct {
 	Scraper    bool `json:"scraper"`
 }
 
+// ModelConfig describes a model entry. Its fields split into two groups:
+//
+//   - Static fields: describe the model itself and come from the provider 
+//     definition. They identify the model and declare its intrinsic capabilities.
+//   - Runtime fields: control how the model is invoked at inference time and 
+//     may vary per call site.
 type ModelConfig struct {
+	// --- Static fields: identity & capability ---
+
 	ProviderID string  `json:"provider_id,omitempty"`
-	Name       string  `json:"name"`
+	Name       string  `json:"name"`           // model ID
 	Type       LLMType `json:"type,omitempty"` // LLMTypeLanguage, LLMTypeVision, LLMTypeEmbedding
 	// SupportReasoning reports whether the model is *capable* of running in
 	// reasoning mode.
@@ -190,10 +198,13 @@ type ModelConfig struct {
 	// Distinct from ModelSettings.Reasoning, which controls whether reasoning is
 	// actually *used* at inference time (and is only honored on models where
 	// SupportReasoning is true).
-	SupportReasoning bool          `json:"support_reasoning,omitempty"`
-	Settings          ModelSettings `json:"settings"`
-	PromptConfig      *PromptConfig `json:"prompt,omitempty"`
-	Keepalive         string        `json:"keepalive"`
+	SupportReasoning bool `json:"support_reasoning,omitempty"`
+
+	// --- Runtime fields: per-invocation behavior ---
+
+	Settings     ModelSettings `json:"settings"`
+	PromptConfig *PromptConfig `json:"prompt,omitempty"`
+	Keepalive    string        `json:"keepalive"`
 }
 
 type PromptConfig struct {
