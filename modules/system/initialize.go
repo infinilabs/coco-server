@@ -62,8 +62,8 @@ type SetupDefaultModelConfig struct {
 //  2. Model: exactly one of ModelID or Model must be set.
 //     - ModelID picks an already-registered model on the provider (by name).
 //     - Model defines a new model to add to the provider, including whether
-//       it supports reasoning mode (Model.SupportReasoning, language models
-//       only).
+//     it supports reasoning mode (Model.SupportReasoning, language models
+//     only).
 //
 // APIToken is the provider-level API token; it is written to the provider
 // regardless of which model dimension is used.
@@ -430,14 +430,27 @@ func (h *APIHandler) initializeTemplate(userID string, dslTplFile string, indexP
 	return err
 }
 
-// applySetupDefaultModels processes the language/vision/embedding selections
-// from the setup wizard. For each provided selection it:
-//  1. Updates an existing builtin provider (when ModelProvider.ID is set) with
-//     the user's API token, or
-//  2. Creates a new custom provider on the fly (when ModelProvider.ID is empty
-//     but other fields describe a provider), and
-//  3. Records a ModelId reference in info.DefaultModel so settings persistence
-//     picks them up.
+// applySetupDefaultModels sets the server's default language/vision/embedding
+// models. 
+// 
+// Detailed procedures: for each provided selection the function:
+//
+//  1. Resolves the model provider — either an existing one (builtin or
+//     previously created, identified by ModelProvider.ID) or a brand-new
+//     custom provider (described by ModelProvider's other fields).
+//
+//  2. For an existing provider, updates the API key and, if the caller also
+//     supplies a model definition (Model field), upserts that model into the
+//     provider's model list with the correct LLM type and SupportReasoning
+//     flag. Alternatively the caller may reference an already-registered
+//     model on the provider by name (ModelID field) without touching the
+//     model list.
+//
+//  3. For a new custom provider, creates the provider and registers the
+//     supplied model definition as its first entry.
+//
+//  4. Records a ModelId{ProviderID, ModelName} in info.DefaultModel so the
+//     settings persistence layer picks it up.
 //
 // Skipped silently when input has no model selections at all.
 func (h *APIHandler) applySetupDefaultModels(req *http.Request, input *SetupDefaultModelConfig, info *core.Config) error {
