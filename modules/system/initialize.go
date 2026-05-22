@@ -38,12 +38,17 @@ type SetupConfig struct {
 	Name     string `json:"name,omitempty"`
 	Email    string `json:"email,omitempty"`
 	Password string `json:"password,omitempty"`
-	// Default models picked in the setup wizard. All fields are optional;
-	// the wizard allows users to skip model configuration entirely.
+	Language string `json:"language,omitempty"`
+}
+
+// SetupDefaultModelConfig is the payload for the default-model setup API,
+// which lets the user pick default language/vision/embedding models. Every
+// selection is optional and the endpoint may be called multiple times; it
+// does not affect the overall setup completion state.
+type SetupDefaultModelConfig struct {
 	LanguageModel  *SetupModelConfig `json:"language_model,omitempty"`
 	VisionModel    *SetupModelConfig `json:"vision_model,omitempty"`
 	EmbeddingModel *SetupModelConfig `json:"embedding_model,omitempty"`
-	Language       string            `json:"language,omitempty"`
 }
 
 // SetupModelConfig describes a single model selection in the setup wizard.
@@ -75,27 +80,30 @@ type SetupModelProvider struct {
 	APIToken    string `json:"api_token,omitempty"`
 }
 
-var SetupLock = ".setup_lock"
+// SetupDoneKey marks server initialization as finished. Once present the
+// setup wizard is considered complete and re-running it is rejected.
+var SetupDoneKey = ".setup_done"
 
-func isAlreadyDoneSetup() bool {
-	exists, err := kv.ExistsKey(core.DefaultSettingBucketKey, []byte(SetupLock))
-	if exists || err != nil {
-		global.Env().EnableSetup(false)
-		return true
-	}
-	global.Env().EnableSetup(true)
-	return false
+// isSetupDone reports whether server initialization has finished, and keeps
+// the framework-level setup gate in sync.
+func isSetupDone() bool {
+	exists, err := kv.ExistsKey(core.DefaultSettingBucketKey, []byte(SetupDoneKey))
+	done := exists || err != nil
+	global.Env().EnableSetup(!done)
+	return done
 }
 
-func (h *APIHandler) setupServer(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	isSetup := isAlreadyDoneSetup()
-	if isSetup {
-		panic("the server has already been initialized")
+// setupInitialize runs the server initialization wizard: create the admin
+// user and populate the bundled ES templates (model providers, assistants,
+// MCP servers, roles, etc.). The done flag is only written after the ES
+// refresh succeeds, so that a partial failure leaves the wizard re-runnable.
+func (h *APIHandler) setupInitialize(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	if isSetupDone() {
+		panic("setup has already been completed")
 	}
 
 	input := SetupConfig{}
-	err := h.DecodeJSON(req, &input)
-	if err != nil {
+	if err := h.DecodeJSON(req, &input); err != nil {
 		panic(err)
 	}
 
@@ -124,36 +132,95 @@ func (h *APIHandler) setupServer(w http.ResponseWriter, req *http.Request, ps ht
 		if user == nil || user.ID == "" {
 			panic("failed to init user")
 		}
+		if err != nil {
+			panic(err)
+		}
 
 		//initialize setup templates
-		err = h.initializeSetupTemplates(user.ID, input, info.ServerInfo.Endpoint)
-		if err != nil {
+		if err := h.initializeSetupTemplates(user.ID, input, info.ServerInfo.Endpoint); err != nil {
 			panic(err)
 		}
 	}
 
-	// Apply default-model selections from the wizard: create/update the underlying
-	// model providers as needed, then record references in info.DefaultModel.
+	// Force ES to refresh so that the documents written above are visible to
+	// the very next request — the default-model setup API needs to list the
+	// freshly inserted model providers via _search.
+	if err := refreshSetupIndices(); err != nil {
+		panic(fmt.Errorf("refresh setup indices: %w", err))
+	}
+
+	//save app config
+	common.SetAppConfig(&info)
+
+	// Mark setup as done last so partial failures above leave the wizard
+	// re-runnable.
+	if err := kv.AddValue(core.DefaultSettingBucketKey, []byte(SetupDoneKey), []byte(time.Now().String())); err != nil {
+		panic(err)
+	}
+	isSetupDone()
+
+	h.WriteAckOKJSON(w)
+}
+
+// setupInitializeDefaultModel persists the user's default model selections
+// (language/vision/embedding).
+//
+// NOTE: on the UI the initialization wizard is presented as two steps, but in
+// the backend "initialization" is a single step (setupInitialize) — this
+// endpoint is an independent default-model setter that does NOT affect the
+// overall setup completion state and may be called repeatedly. Keep this UI
+// vs. backend mismatch in mind when wiring the wizard.
+func (h *APIHandler) setupInitializeDefaultModel(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	input := SetupDefaultModelConfig{}
+	if err := h.DecodeJSON(req, &input); err != nil {
+		panic(err)
+	}
+
+	info := common.AppConfig()
+
 	if err := h.applySetupDefaultModels(req, &input, &info); err != nil {
 		panic(err)
 	}
 
-	//setup lock
-	err = kv.AddValue(core.DefaultSettingBucketKey, []byte(SetupLock), []byte(time.Now().String()))
-	if err != nil {
-		panic(err)
+	// Refresh model-provider index so that any provider just created/updated
+	// is immediately visible to subsequent reads.
+	if err := refreshModelProviderIndex(); err != nil {
+		panic(fmt.Errorf("refresh model-provider index: %w", err))
 	}
-	//save app config
+
 	common.SetAppConfig(&info)
 
 	h.WriteAckOKJSON(w)
 }
 
-func clearSetupLock() {
-	err := kv.DeleteKey(core.DefaultSettingBucketKey, []byte(SetupLock))
-	if err != nil {
+// refreshSetupIndices forces an ES refresh on every coco-prefixed index so
+// setup's bulk writes are searchable to subsequent reads.
+func refreshSetupIndices() error {
+	prefix := setupIndexPrefix()
+	esClient := elastic.GetClient(global.MustLookupString(elastic.GlobalSystemElasticsearchID))
+	return esClient.Refresh(prefix + "*")
+}
+
+// refreshModelProviderIndex forces an ES refresh on the model-provider index
+// after default-model setup writes provider documents.
+func refreshModelProviderIndex() error {
+	prefix := setupIndexPrefix()
+	esClient := elastic.GetClient(global.MustLookupString(elastic.GlobalSystemElasticsearchID))
+	return esClient.Refresh(prefix + "model-provider" + common.GetSchemaSuffix())
+}
+
+// setupIndexPrefix returns the configured ES index prefix, defaulting to
+// "coco_" when none is set.
+func setupIndexPrefix() string {
+	cfg := elastic1.ORMConfig{}
+	exist, err := env.ParseConfig("elastic.orm", &cfg)
+	if exist && err != nil && global.Env().SystemConfig.Configs.PanicOnConfigError {
 		panic(err)
 	}
+	if cfg.IndexPrefix == "" {
+		return "coco_"
+	}
+	return cfg.IndexPrefix
 }
 
 func (h *APIHandler) initializeConnector() error {
@@ -346,7 +413,7 @@ func (h *APIHandler) initializeTemplate(userID string, dslTplFile string, indexP
 //     picks them up.
 //
 // Skipped silently when input has no model selections at all.
-func (h *APIHandler) applySetupDefaultModels(req *http.Request, input *SetupConfig, info *core.Config) error {
+func (h *APIHandler) applySetupDefaultModels(req *http.Request, input *SetupDefaultModelConfig, info *core.Config) error {
 	if input.LanguageModel == nil && input.VisionModel == nil && input.EmbeddingModel == nil {
 		return nil
 	}
