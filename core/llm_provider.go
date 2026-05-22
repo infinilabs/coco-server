@@ -4,7 +4,10 @@
 
 package core
 
-import "sync"
+import (
+	"fmt"
+	"sync"
+)
 
 type ModelProvider struct {
 	CombinedFullText
@@ -60,4 +63,25 @@ func (provider *ModelProvider) GetModelConfig(name string) *ModelConfig {
 	}
 
 	return provider.models[name]
+}
+
+// ValidateModelConfig rejects a model definition that sets SupportReasoning
+// on a non-language model type. When Type is unset the model is assumed to be
+// a language model and the flag is allowed.
+func (m *ModelConfig) ValidateModelConfig() error {
+	if m.SupportReasoning && m.Type != "" && m.Type != LLMTypeLanguage {
+		return fmt.Errorf("model %q: support_reasoning is only valid for language models", m.Name)
+	}
+	return nil
+}
+
+// ValidateModels calls ValidateModelConfig on every entry in provider.Models
+// and returns the first error encountered.
+func (provider *ModelProvider) ValidateModels() error {
+	for i := range provider.Models {
+		if err := provider.Models[i].ValidateModelConfig(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
