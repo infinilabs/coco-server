@@ -42,34 +42,21 @@
     "icon" : "https://www.tokenpony.cn/tokenpony-web/logo.png",
     "models" : [
       {
-        "name" : "deepseek-v3.1-terminus",
-        "settings" : {
-          "reasoning" : false
-        }
+        "name" : "deepseek-v3.1-terminus", "type":"language"
       },
       {
         "name" : "deepseek-ocr",
-        "settings" : {
-          "reasoning" : false
-        }
+        "type" : "vision"
       },
       {
-        "name" : "qwen3-32b",
-        "settings" : {
-          "reasoning" : false
-        }
+        "name" : "qwen3-32b", "type":"language",
+        "support_reasoning" : true
       },
       {
-        "name" : "glm-4.6",
-        "settings" : {
-          "reasoning" : false
-        }
+        "name" : "glm-4.6", "type":"language"
       },
       {
-        "name" : "hunyuan-a13b-instruct",
-        "settings" : {
-          "reasoning" : false
-        }
+        "name" : "hunyuan-a13b-instruct", "type":"language"
       }
     ],
     "base_url" : "https://api.tokenpony.cn/v1",

@@ -41,11 +41,11 @@
     "base_url" : "https://api.minimax.chat/v1/",
     "icon" : "font_MiniMax",
     "models" : [
-      {"name": "abab5.5s", "settings":{"reasoning":false}},
-      {"name": "abab6.5s", "settings":{"reasoning":false}},
-      {"name": "abab6.5g", "settings":{"reasoning":false}},
-      {"name": "abab6.5t", "settings":{"reasoning":true}},
-      {"name": "minimax-01", "settings":{"reasoning":true}}
+      {"name": "abab5.5s", "type":"language"},
+      {"name": "abab6.5s", "type":"language"},
+      {"name": "abab6.5g", "type":"language"},
+      {"name": "abab6.5t", "type":"language", "support_reasoning":true},
+      {"name": "minimax-01", "type":"language", "support_reasoning":true}
     ],
     "enabled" : false,
     "builtin" : true,

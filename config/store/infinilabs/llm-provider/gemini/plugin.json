@@ -41,9 +41,9 @@
     "base_url" : "https://generativelanguage.googleapis.com",
     "icon" : "font_gemini-ai",
     "models" : [
-      {"name": "gemini-2.0-flash", "settings":{"reasoning":false}},
-      {"name": "gemini-1.5-flash", "settings":{"reasoning":false}},
-      {"name": "gemini-1.5-pro", "settings":{"reasoning":true}}
+      {"name": "gemini-2.0-flash", "type":"language"},
+      {"name": "gemini-1.5-flash", "type":"language"},
+      {"name": "gemini-1.5-pro", "type":"language", "support_reasoning":true}
     ],
     "enabled" : false,
     "builtin" : true,

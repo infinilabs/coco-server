@@ -13,8 +13,8 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
   "base_url" : "https://api.deepseek.com/v1",
   "icon" : "font_deepseek",
   "models" : [
-    {"name":"deepseek-chat", "settings":{"reasoning":false}},
-    {"name":"deepseek-reasoner", "settings":{"reasoning":true}}
+    {"name":"deepseek-chat", "type":"language"},
+    {"name":"deepseek-reasoner", "type":"language", "support_reasoning":true}
   ],
   "enabled" : false,
   "builtin" : true,
@@ -35,8 +35,8 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
   "base_url" : "https://api.openai.com",
   "icon" : "/assets/icons/llm/openai.svg",
   "models" : [
-     {"name":"gpt-4o-mini", "settings":{"reasoning":false}},
-     {"name":"gpt-4o", "settings":{"reasoning":false}}
+     {"name":"gpt-4o-mini", "type":"language"},
+     {"name":"gpt-4o", "type":"language"}
   ],
   "enabled" : false,
   "builtin" : true,
@@ -57,10 +57,10 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
   "base_url" : "http://127.0.0.1:11434",
   "icon" : "/assets/icons/llm/ollama.svg",
   "models" : [
-     {"name":"qwen2.5:32b", "settings":{"reasoning":false}},
-     {"name":"deepseek-r1:32b", "settings":{"reasoning":true}},
-     {"name":"deepseek-r1:14b", "settings":{"reasoning":true}},
-     {"name":"deepseek-r1:8b", "settings":{"reasoning":true}}
+     {"name":"qwen2.5:32b", "type":"language"},
+     {"name":"deepseek-r1:32b", "type":"language", "support_reasoning":true},
+     {"name":"deepseek-r1:14b", "type":"language", "support_reasoning":true},
+     {"name":"deepseek-r1:8b", "type":"language", "support_reasoning":true}
   ],
   "enabled" : false,
   "builtin" : true,
@@ -81,22 +81,15 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
    "icon" : "font_gitee",
    "models" : [
      {
-       "name" : "deepseek-ai/DeepSeek-R1",
-        "settings" : {
-          "reasoning" : true
-        }
+       "name" : "deepseek-ai/DeepSeek-R1", "type":"language",
+       "support_reasoning" : true
      },
      {
-       "name" : "deepseek-ai/DeepSeek-V3",
-       "settings" : {
-          "reasoning" : false
-       }
+       "name" : "deepseek-ai/DeepSeek-V3", "type":"language"
      },
      {
-       "name" : "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
-        "settings" : {
-          "reasoning" : true
-        }
+       "name" : "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B", "type":"language",
+       "support_reasoning" : true
      }
    ],
    "base_url" : "https://ai.gitee.com",
@@ -119,41 +112,26 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
   "icon" : "font_tongyiqianwenTongyi-Qianwen",
   "models" : [
     {
-      "name" : "tongyi-intent-detect-v3",
-      "settings" : {
-        "reasoning" : false
-      }
+      "name" : "tongyi-intent-detect-v3", "type":"language"
     },
     {
-      "name" : "deepseek-r1-distill-qwen-32b",
-       "settings" : {
-        "reasoning" : true
-      }
+      "name" : "deepseek-r1-distill-qwen-32b", "type":"language",
+      "support_reasoning" : true
     },
     {
-      "name" : "deepseek-r1",
-       "settings" : {
-        "reasoning" : true
-      }
+      "name" : "deepseek-r1", "type":"language",
+      "support_reasoning" : true
     },
-     {
-       "name" : "qwen-max",
-        "settings" : {
-          "reasoning" : false
-        }
-     },
-     {
-       "name" : "qwq-plus",
-        "settings" : {
-          "reasoning" : true
-        }
-     },
-     {
-       "name" : "qwen2.5-32b-instruct",
-        "settings" : {
-          "reasoning" : false
-        }
-     }
+    {
+      "name" : "qwen-max", "type":"language"
+    },
+    {
+      "name" : "qwq-plus", "type":"language",
+      "support_reasoning" : true
+    },
+    {
+      "name" : "qwen2.5-32b-instruct", "type":"language"
+    }
   ],
   "base_url" : "https://dashscope.aliyuncs.com/compatible-mode/v1",
   "enabled" : false,
@@ -175,10 +153,8 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
     "icon" : "font_openai",
     "models" : [
       {
-        "name" : "deepseek-r1",
-        "settings" : {
-          "reasoning" : true
-        }
+        "name" : "deepseek-r1", "type":"language",
+        "support_reasoning" : true
       }
     ],
     "base_url" : "",
@@ -201,9 +177,9 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
   "base_url" : "https://api.siliconflow.cn",
   "icon" : "font_siliconflow",
   "models" : [
-    {"name": "BAAI/bge-m3", "settings":{"reasoning":false}},
-    {"name": "deepseek-ai/DeepSeek-R1", "settings":{"reasoning":true}},
-    {"name": "deepseek-ai/DeepSeek-V3", "settings":{"reasoning":false}}
+    {"name": "BAAI/bge-m3", "type":"embedding"},
+    {"name": "deepseek-ai/DeepSeek-R1", "type":"language", "support_reasoning":true},
+    {"name": "deepseek-ai/DeepSeek-V3", "type":"language"}
   ],
   "enabled" : false,
   "builtin" : true,
@@ -224,14 +200,14 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
   "base_url" : "https://api.hunyuan.cloud.tencent.com",
   "icon" : "font_hunyuan",
   "models" : [
-    {"name": "hunyuan-pro", "settings":{"reasoning":false}},
-    {"name": "hunyuan-standard", "settings":{"reasoning":false}},
-    {"name": "hunyuan-lite", "settings":{"reasoning":false}},
-    {"name": "hunyuan-standard-256k", "settings":{"reasoning":false}},
-    {"name": "hunyuan-vision", "settings":{"reasoning":false}},
-    {"name": "hunyuan-code", "settings":{"reasoning":false}},
-    {"name": "hunyuan-role", "settings":{"reasoning":false}},
-    {"name": "hunyuan-turbo", "settings":{"reasoning":false}}
+    {"name": "hunyuan-pro", "type":"language"},
+    {"name": "hunyuan-standard", "type":"language"},
+    {"name": "hunyuan-lite", "type":"language"},
+    {"name": "hunyuan-standard-256k", "type":"language"},
+    {"name": "hunyuan-vision", "type":"vision"},
+    {"name": "hunyuan-code", "type":"language"},
+    {"name": "hunyuan-role", "type":"language"},
+    {"name": "hunyuan-turbo", "type":"language"}
   ],
   "enabled" : false,
   "builtin" : true,
@@ -252,9 +228,9 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
   "base_url" : "https://generativelanguage.googleapis.com",
   "icon" : "font_gemini-ai",
   "models" : [
-    {"name": "gemini-2.0-flash", "settings":{"reasoning":false}},
-    {"name": "gemini-1.5-flash", "settings":{"reasoning":false}},
-    {"name": "gemini-1.5-pro", "settings":{"reasoning":true}}
+    {"name": "gemini-2.0-flash", "type":"language"},
+    {"name": "gemini-1.5-flash", "type":"language"},
+    {"name": "gemini-1.5-pro", "type":"language", "support_reasoning":true}
   ],
   "enabled" : false,
   "builtin" : true,
@@ -275,7 +251,7 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
   "base_url" : "https://api.moonshot.cn",
   "icon" : "font_Moonshot",
   "models" : [
-    {"name": "moonshot-v1-auto", "settings":{"reasoning":true}}
+    {"name": "moonshot-v1-auto", "type":"language", "support_reasoning":true}
   ],
   "enabled" : false,
   "builtin" : true,
@@ -296,11 +272,11 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
   "base_url" : "https://api.minimax.chat/v1/",
   "icon" : "font_MiniMax",
   "models" : [
-    {"name": "abab5.5s", "settings":{"reasoning":false}},
-    {"name": "abab6.5s", "settings":{"reasoning":false}},
-    {"name": "abab6.5g", "settings":{"reasoning":false}},
-    {"name": "abab6.5t", "settings":{"reasoning":true}},
-    {"name": "minimax-01", "settings":{"reasoning":true}}
+    {"name": "abab5.5s", "type":"language"},
+    {"name": "abab6.5s", "type":"language"},
+    {"name": "abab6.5g", "type":"language"},
+    {"name": "abab6.5t", "type":"language", "support_reasoning":true},
+    {"name": "minimax-01", "type":"language", "support_reasoning":true}
   ],
   "enabled" : false,
   "builtin" : true,
@@ -320,10 +296,10 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
   "base_url" : "https://ark.cn-beijing.volces.com/api/v3/",
   "icon" : "font_VolcanoArk",
   "models" : [
-    {"name": "doubao-1.5-vision-pro", "settings":{"reasoning":false}},
-    {"name": "doubao-1.5-pro-32k", "settings":{"reasoning":false}},
-    {"name": "doubao-1.5-pro-32k-character", "settings":{"reasoning":false}},
-    {"name": "Doubao-1.5-pro-256k", "settings":{"reasoning":false}}
+    {"name": "doubao-1.5-vision-pro", "type":"vision"},
+    {"name": "doubao-1.5-pro-32k", "type":"language"},
+    {"name": "doubao-1.5-pro-32k-character", "type":"language"},
+    {"name": "Doubao-1.5-pro-256k", "type":"language"}
   ],
   "enabled" : false,
   "builtin" : true,
@@ -344,12 +320,12 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
   "base_url" : "https://qianfan.baidubce.com/v2/",
   "icon" : "font_Qianfan",
   "models" : [
-    {"name": "ERNIE-4.0", "settings":{"reasoning":false}},
-    {"name": "ERNIE 4.0 Trubo", "settings":{"reasoning":false}},
-    {"name": "ERNlE Speed", "settings":{"reasoning":false}},
-    {"name": "ERNIE Lite", "settings":{"reasoning":false}},
-    {"name": "BGE Large ZH", "settings":{"reasoning":false}},
-    {"name": "BGE Large EN", "settings":{"reasoning":false}}
+    {"name": "ERNIE-4.0", "type":"language"},
+    {"name": "ERNIE 4.0 Trubo", "type":"language"},
+    {"name": "ERNlE Speed", "type":"language"},
+    {"name": "ERNIE Lite", "type":"language"},
+    {"name": "BGE Large ZH", "type":"embedding"},
+    {"name": "BGE Large EN", "type":"embedding"}
   ],
   "enabled" : false,
   "builtin" : true,
@@ -370,10 +346,10 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
   "base_url": "https://api.cohere.ai/compatibility/v1",
   "icon": "/assets/icons/llm/cohere.svg",
   "models": [
-    {"name": "command-r-plus", "settings":{"reasoning":true}},
-    {"name": "command-r", "settings":{"reasoning":true}},
-    {"name": "embed-english-v3", "settings":{"reasoning":false}},
-    {"name": "embed-multilingual-v3", "settings":{"reasoning":false}}
+    {"name": "command-r-plus", "type":"language", "support_reasoning":true},
+    {"name": "command-r", "type":"language", "support_reasoning":true},
+    {"name": "embed-english-v3", "type":"embedding"},
+    {"name": "embed-multilingual-v3", "type":"embedding"}
   ],
   "enabled": false,
   "builtin": true,
