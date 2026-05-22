@@ -176,6 +176,12 @@ func (h *APIHandler) setupInitializeDefaultModel(w http.ResponseWriter, req *htt
 		panic(err)
 	}
 
+	// Validate the payload before doing any persistence
+	if err := validateProviderTokenConsistency(&input); err != nil {
+		h.WriteError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	info := common.AppConfig()
 
 	if err := h.applySetupDefaultModels(req, &input, &info); err != nil {
@@ -456,6 +462,49 @@ func (h *APIHandler) applySetupDefaultModels(req *http.Request, input *SetupDefa
 	}
 	if embeddingRef != nil {
 		info.DefaultModel.EmbeddingModel = embeddingRef
+	}
+	return nil
+}
+
+// validateProviderTokenConsistency ensures that, when multiple selections in
+// the same request reference the same builtin model provider (matched by
+// ModelProvider.ID), they all carry the same api_token. Custom providers
+// (those without an ID) are not deduplicated — each one is created
+// independently.
+func validateProviderTokenConsistency(input *SetupDefaultModelConfig) error {
+	type role struct {
+		name string
+		cfg  *SetupModelConfig
+	}
+	roles := []role{
+		{"language_model", input.LanguageModel},
+		{"vision_model", input.VisionModel},
+		{"embedding_model", input.EmbeddingModel},
+	}
+
+	type seenEntry struct {
+		role  string
+		token string
+	}
+	seen := map[string]seenEntry{}
+	for _, r := range roles {
+		if r.cfg == nil {
+			continue
+		}
+		sp := r.cfg.ModelProvider
+		if sp.ID == "" {
+			continue
+		}
+		if prev, ok := seen[sp.ID]; ok {
+			if prev.token != r.cfg.APIToken {
+				return fmt.Errorf(
+					"conflicting api_token for the same model provider used by %s and %s",
+					prev.role, r.name,
+				)
+			}
+			continue
+		}
+		seen[sp.ID] = seenEntry{role: r.name, token: r.cfg.APIToken}
 	}
 	return nil
 }
