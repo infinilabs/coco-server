@@ -178,12 +178,22 @@ type BuiltinToolsConfig struct {
 }
 
 type ModelConfig struct {
-	ProviderID   string        `json:"provider_id,omitempty"`
-	Name         string        `json:"name"`
-	Type         LLMType       `json:"type,omitempty"` // LLMTypeLanguage, LLMTypeVision, LLMTypeEmbedding
-	Settings     ModelSettings `json:"settings"`
-	PromptConfig *PromptConfig `json:"prompt,omitempty"`
-	Keepalive    string        `json:"keepalive"`
+	ProviderID string  `json:"provider_id,omitempty"`
+	Name       string  `json:"name"`
+	Type       LLMType `json:"type,omitempty"` // LLMTypeLanguage, LLMTypeVision, LLMTypeEmbedding
+	// SupportReasoning reports whether the model is *capable* of running in
+	// reasoning mode.
+	//
+	// Only meaningful when Type == LLMTypeLanguage; ignored
+	// for vision / embedding models.
+	//
+	// Distinct from ModelSettings.Reasoning, which controls whether reasoning is
+	// actually *used* at inference time (and is only honored on models where
+	// SupportReasoning is true).
+	SupportReasoning bool          `json:"support_reasoning,omitempty"`
+	Settings          ModelSettings `json:"settings"`
+	PromptConfig      *PromptConfig `json:"prompt,omitempty"`
+	Keepalive         string        `json:"keepalive"`
 }
 
 type PromptConfig struct {

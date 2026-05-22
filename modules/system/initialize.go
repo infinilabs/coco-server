@@ -53,19 +53,41 @@ type SetupDefaultModelConfig struct {
 
 // SetupModelConfig describes a single model selection in the setup wizard.
 //
-// Two shapes are accepted:
-//  1. Built-in provider: ModelProvider.ID identifies an existing builtin provider,
-//     and APIToken / ModelID are supplied by the user.
-//  2. Custom provider: ModelProvider carries the full provider definition
-//     (Name, BaseURL, APIType, etc.) to be created on the fly.
+// Two independent dimensions:
+//
+//  1. Provider: ModelProvider.ID refers to an existing (builtin or previously
+//     created) provider; otherwise ModelProvider's other fields define a new
+//     custom provider to be created on the fly.
+//
+//  2. Model: exactly one of ModelID or Model must be set.
+//     - ModelID picks an already-registered model on the provider (by name).
+//     - Model defines a new model to add to the provider, including whether
+//       it supports reasoning mode (Model.SupportReasoning, language models
+//       only).
+//
+// APIToken is the provider-level API token; it is written to the provider
+// regardless of which model dimension is used.
 type SetupModelConfig struct {
 	ModelProvider SetupModelProvider `json:"model_provider,omitempty"`
-	ModelID       string             `json:"model_id,omitempty"`
-	APIToken      string             `json:"api_token,omitempty"`
+
+	ModelID string         `json:"model_id,omitempty"`
+	Model   *SetupModelDef `json:"model,omitempty"`
+
+	APIToken string `json:"api_token,omitempty"`
+}
+
+// SetupModelDef defines a new model to be added to the selected provider.
+type SetupModelDef struct {
+	ID string `json:"id"`
+	// SupportReasoning indicates whether this model is capable of reasoning
+	// mode. Only meaningful for language models; ignored for vision /
+	// embedding.
+	SupportReasoning bool `json:"support_reasoning,omitempty"`
 }
 
 // SetupModelProvider is either a reference (ID only) to a builtin provider,
-// or a full custom provider definition.
+// or a full custom provider definition. The API token always travels at the
+// SetupModelConfig level, not here.
 type SetupModelProvider struct {
 	ID string `json:"id,omitempty"`
 
@@ -77,7 +99,6 @@ type SetupModelProvider struct {
 	Icon        string `json:"icon,omitempty"`
 	BaseURL     string `json:"base_url,omitempty"`
 	APIType     string `json:"api_type,omitempty"` // "openai" or "ollama"
-	APIToken    string `json:"api_token,omitempty"`
 }
 
 // SetupDoneKey marks server initialization as finished. Once present the
@@ -177,7 +198,7 @@ func (h *APIHandler) setupInitializeDefaultModel(w http.ResponseWriter, req *htt
 	}
 
 	// Validate the payload before doing any persistence
-	if err := validateProviderTokenConsistency(&input); err != nil {
+	if err := validateDefaultModelConfig(&input); err != nil {
 		h.WriteError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -427,26 +448,26 @@ func (h *APIHandler) applySetupDefaultModels(req *http.Request, input *SetupDefa
 	ctx := orm.NewContextWithParent(req.Context())
 	ctx.Refresh = orm.WaitForRefresh
 
-	resolve := func(m *SetupModelConfig) (*core.ModelId, error) {
+	resolve := func(m *SetupModelConfig, llmType core.LLMType) (*core.ModelId, error) {
 		if m == nil {
 			return nil, nil
 		}
-		providerID, err := ensureSetupModelProvider(ctx, m)
+		providerID, modelName, err := ensureSetupModelProvider(ctx, m, llmType)
 		if err != nil {
 			return nil, err
 		}
-		return &core.ModelId{ProviderID: providerID, ID: m.ModelID}, nil
+		return &core.ModelId{ProviderID: providerID, ID: modelName}, nil
 	}
 
-	languageRef, err := resolve(input.LanguageModel)
+	languageRef, err := resolve(input.LanguageModel, core.LLMTypeLanguage)
 	if err != nil {
 		return fmt.Errorf("apply language model: %w", err)
 	}
-	visionRef, err := resolve(input.VisionModel)
+	visionRef, err := resolve(input.VisionModel, core.LLMTypeVision)
 	if err != nil {
 		return fmt.Errorf("apply vision model: %w", err)
 	}
-	embeddingRef, err := resolve(input.EmbeddingModel)
+	embeddingRef, err := resolve(input.EmbeddingModel, core.LLMTypeEmbedding)
 	if err != nil {
 		return fmt.Errorf("apply embedding model: %w", err)
 	}
@@ -466,90 +487,150 @@ func (h *APIHandler) applySetupDefaultModels(req *http.Request, input *SetupDefa
 	return nil
 }
 
-// validateProviderTokenConsistency ensures that, when multiple selections in
-// the same request reference the same builtin model provider (matched by
-// ModelProvider.ID), they all carry the same api_token. Custom providers
-// (those without an ID) are not deduplicated — each one is created
-// independently.
-func validateProviderTokenConsistency(input *SetupDefaultModelConfig) error {
-	type role struct {
-		name string
-		cfg  *SetupModelConfig
+// validateDefaultModelConfig validates the default-model setup payload. Rules:
+//  1. Exactly one of model_id or model must be set per selection.
+//  2. When model is set, model.id is required.
+//  3. support_reasoning is only valid on language model selections; it is
+//     rejected for vision and embedding models.
+//  4. A custom provider (ModelProvider.ID is empty) must use the model field
+//     to define a new model — model_id is not allowed because there are no
+//     pre-registered models to reference on a provider that does not exist yet.
+//  5. When multiple selections reference the same builtin provider (matched by
+//     ModelProvider.ID), they must all carry the same api_token.
+func validateDefaultModelConfig(input *SetupDefaultModelConfig) error {
+	type roleEntry struct {
+		name   string
+		cfg    *SetupModelConfig
+		isLang bool
 	}
-	roles := []role{
-		{"language_model", input.LanguageModel},
-		{"vision_model", input.VisionModel},
-		{"embedding_model", input.EmbeddingModel},
+	roles := []roleEntry{
+		{"language_model", input.LanguageModel, true},
+		{"vision_model", input.VisionModel, false},
+		{"embedding_model", input.EmbeddingModel, false},
 	}
 
-	type seenEntry struct {
+	type seenProvider struct {
 		role  string
 		token string
 	}
-	seen := map[string]seenEntry{}
+	seenProviders := map[string]seenProvider{}
+
 	for _, r := range roles {
 		if r.cfg == nil {
 			continue
 		}
-		sp := r.cfg.ModelProvider
-		if sp.ID == "" {
-			continue
+		hasID := r.cfg.ModelID != ""
+		hasModel := r.cfg.Model != nil
+
+		// Rule 1
+		if hasID == hasModel {
+			return fmt.Errorf("%s: exactly one of model_id or model must be set", r.name)
 		}
-		if prev, ok := seen[sp.ID]; ok {
-			if prev.token != r.cfg.APIToken {
-				return fmt.Errorf(
-					"conflicting api_token for the same model provider used by %s and %s",
-					prev.role, r.name,
-				)
+		if hasModel {
+			// Rule 2
+			if r.cfg.Model.ID == "" {
+				return fmt.Errorf("%s: model.id is required", r.name)
 			}
-			continue
+			// Rule 3
+			if !r.isLang && r.cfg.Model.SupportReasoning {
+				return fmt.Errorf("%s: support_reasoning is only valid for language models", r.name)
+			}
 		}
-		seen[sp.ID] = seenEntry{role: r.name, token: r.cfg.APIToken}
+		// Rule 4
+		if r.cfg.ModelProvider.ID == "" && hasID {
+			return fmt.Errorf("%s: model_id cannot be used with a custom provider; use model instead", r.name)
+		}
+		// Rule 5
+		if pid := r.cfg.ModelProvider.ID; pid != "" {
+			if prev, ok := seenProviders[pid]; ok {
+				if prev.token != r.cfg.APIToken {
+					return fmt.Errorf(
+						"conflicting api_token for the same model provider used by %s and %s",
+						prev.role, r.name,
+					)
+				}
+			} else {
+				seenProviders[pid] = seenProvider{role: r.name, token: r.cfg.APIToken}
+			}
+		}
 	}
 	return nil
 }
 
 // ensureSetupModelProvider creates or updates the underlying model provider for
-// a single setup-wizard model selection and returns its provider ID.
-func ensureSetupModelProvider(ctx *orm.Context, m *SetupModelConfig) (string, error) {
+// a single setup-wizard model selection and returns (providerID, modelName).
+// llmType identifies the role the selection plays so that any newly added
+// model carries the correct Type when written to ES.
+func ensureSetupModelProvider(ctx *orm.Context, m *SetupModelConfig, llmType core.LLMType) (string, string, error) {
 	sp := m.ModelProvider
 
-	// Built-in provider: update its API key in place.
+	modelName := m.ModelID
+	if m.Model != nil {
+		modelName = m.Model.ID
+	}
+
+	// Existing provider (builtin or previously created): update API key,
+	// optionally appending a freshly defined model.
 	if sp.ID != "" {
 		provider := core.ModelProvider{}
 		provider.ID = sp.ID
 		exists, err := orm.GetV2(ctx, &provider)
 		if err != nil {
-			return "", err
+			return "", "", err
 		}
 		if !exists {
-			return "", fmt.Errorf("model provider [%s] not found", sp.ID)
+			return "", "", fmt.Errorf("model provider [%s] not found", sp.ID)
 		}
 		provider.APIKey = m.APIToken
 		provider.Enabled = true
+		if m.Model != nil {
+			upsertProviderModel(&provider, *m.Model, llmType)
+		}
 		if err := orm.Update(ctx, &provider); err != nil {
-			return "", err
+			return "", "", err
 		}
 		common.GeneralObjectCache.Delete(common.ModelProviderCachePrimary, provider.ID)
-		return provider.ID, nil
+		return provider.ID, modelName, nil
 	}
 
-	// Custom provider: create a new one.
+	// Custom provider: create a new one with the selected model registered.
 	provider := &core.ModelProvider{
 		Name:        sp.Name,
 		Description: sp.Description,
 		Icon:        sp.Icon,
 		BaseURL:     sp.BaseURL,
 		APIType:     sp.APIType,
-		APIKey:      sp.APIToken,
+		APIKey:      m.APIToken,
 		Enabled:     true,
 		Builtin:     false,
 	}
-	if m.ModelID != "" {
-		provider.Models = []core.ModelConfig{{Name: m.ModelID}}
-	}
+	provider.Models = []core.ModelConfig{newProviderModel(modelName, m.Model, llmType)}
 	if err := orm.Create(ctx, provider); err != nil {
-		return "", err
+		return "", "", err
 	}
-	return provider.ID, nil
+	return provider.ID, modelName, nil
+}
+
+// newProviderModel builds a ModelConfig for an ES write, carrying the role's
+// LLM type and (when provided) the SupportReasoning flag.
+func newProviderModel(name string, def *SetupModelDef, llmType core.LLMType) core.ModelConfig {
+	mc := core.ModelConfig{Name: name, Type: llmType}
+	if def != nil {
+		mc.SupportReasoning = def.SupportReasoning
+	}
+	return mc
+}
+
+// upsertProviderModel adds the freshly-defined model to provider.Models, or
+// updates the matching entry in place when one with the same name already
+// exists.
+func upsertProviderModel(provider *core.ModelProvider, def SetupModelDef, llmType core.LLMType) {
+	for i := range provider.Models {
+		if provider.Models[i].Name == def.ID {
+			provider.Models[i].Type = llmType
+			provider.Models[i].SupportReasoning = def.SupportReasoning
+			return
+		}
+	}
+	provider.Models = append(provider.Models, newProviderModel(def.ID, &def, llmType))
 }
