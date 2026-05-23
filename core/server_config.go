@@ -23,14 +23,13 @@ type ServerInfo struct {
 
 // Provider represents the "provider" section of the configuration.
 type Provider struct {
-	Name          string       `json:"name" config:"name"`                             // Config key for provider name
-	Icon          string       `json:"icon" config:"icon"`                             // Config key for provider icon
-	Website       string       `json:"website" config:"website"`                       // Config key for provider website
-	EULA          string       `json:"eula" config:"eula"`                             // Config key for provider EULA
-	PrivacyPolicy string       `json:"privacy_policy" config:"privacy_policy"`         // Config key for privacy policy
-	Banner        string       `json:"banner" config:"banner"`                         // Config key for provider banner
-	Description   string       `json:"description" config:"description"`               // Config key for provider description
-	AuthProvider  AuthProvider `json:"auth_provider,omitempty" config:"auth_provider"` // Config key for auth provider
+	Name          string `json:"name" config:"name"`                     // Config key for provider name
+	Icon          string `json:"icon" config:"icon"`                     // Config key for provider icon
+	Website       string `json:"website" config:"website"`               // Config key for provider website
+	EULA          string `json:"eula" config:"eula"`                     // Config key for provider EULA
+	PrivacyPolicy string `json:"privacy_policy" config:"privacy_policy"` // Config key for privacy policy
+	Banner        string `json:"banner" config:"banner"`                 // Config key for provider banner
+	Description   string `json:"description" config:"description"`       // Config key for provider description
 }
 
 // Version represents the "version" section of the configuration.
