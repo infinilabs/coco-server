@@ -98,7 +98,7 @@ export const generatedRoutes: GeneratedRoute[] = [
       title: 'api-token',
       order: 4,
       localIcon: 'security',
-      permissions: ['generic#security:authorization/search']
+      permissions: ['generic#security:auth:api-token/search']
     },
     children: [
       {
@@ -110,7 +110,7 @@ export const generatedRoutes: GeneratedRoute[] = [
           title: 'api-token_list',
           hideInMenu: true,
           activeMenu: 'api-token',
-          permissions: ['generic#security:authorization/search']
+          permissions: ['generic#security:auth:api-token/search']
         }
       }
     ]
