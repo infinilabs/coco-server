@@ -28,9 +28,9 @@ type Assistant struct {
 	MCPConfig      MCPConfig        `json:"mcp_servers,omitempty" elastic_mapping:"mcp_servers:{type:object,enabled:false}"`
 	UploadConfig   UploadConfig     `json:"upload,omitempty" elastic_mapping:"upload:{type:object,enabled:false}"`
 	Keepalive      string           `json:"keepalive" elastic_mapping:"keepalive:{type:keyword}"`
-	Enabled        bool             `json:"enabled" elastic_mapping:"enabled:{type:keyword}"`
+	Enabled        bool             `json:"enabled" elastic_mapping:"enabled:{type:boolean}"`
 	ChatSettings   ChatSettings     `json:"chat_settings" elastic_mapping:"chat_settings:{type:object,enabled:false}"`
-	Builtin        bool             `json:"builtin" elastic_mapping:"builtin:{type:keyword}"`          // Whether the model provider is builtin
+	Builtin        bool             `json:"builtin" elastic_mapping:"builtin:{type:boolean}"`          // Whether the model provider is builtin
 	RolePrompt     string           `json:"role_prompt" elastic_mapping:"role_prompt:{enabled:false}"` // Role prompt for the assistant
 
 	DeepThinkConfig    *DeepThinkConfig    `json:"-"`

@@ -299,6 +299,9 @@ web:
       oauth:
         cloud:
           enabled: true
+          icon: "https://app.infini.cloud/favicon.ico"
+          name: "使用 INFINI Cloud 登录"
+          provider: cloud
           client_secret: "999999"
           authorize_url: "http://localhost:9000/oauth/authorize"
           token_url: "http://localhost:9000/oauth/token"

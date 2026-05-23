@@ -9,6 +9,8 @@ Information about release notes of Coco Server is provided here.
 
 ## Latest (In development)  
 ### ❌ Breaking changes  
+- refactor: change boolean fields to use boolean mappings
+
 ### 🚀 Features  
 - feat: add dropbox connector #614
 - feat: add simple stats module #622
@@ -36,6 +38,7 @@ Information about release notes of Coco Server is provided here.
 - refactor: refactoring attachment API #636
 - refactor: omit field document_chunk in search interface #647
 - refactor: refactoring security framework #672
+- chore: remove unused configs in default config
 
 
 ## 0.10.0 (2025-12-19)

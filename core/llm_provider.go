@@ -15,8 +15,8 @@ type ModelProvider struct {
 	Icon        string        `json:"icon" elastic_mapping:"icon:{enabled:false}"`                                     // Icon of the model provider
 	Models      []ModelConfig `json:"models" elastic_mapping:"models:{type:object,enabled:false}"`                     // Models provided by the model provider
 	BaseURL     string        `json:"base_url" elastic_mapping:"base_url:{enabled:false}"`                             // Base URL of the model provider
-	Enabled     bool          `json:"enabled" elastic_mapping:"enabled:{type:keyword}"`                                // Whether the model provider is enabled
-	Builtin     bool          `json:"builtin" elastic_mapping:"builtin:{type:keyword}"`                                // Whether the model provider is builtin
+	Enabled     bool          `json:"enabled" elastic_mapping:"enabled:{type:boolean}"`                                // Whether the model provider is enabled
+	Builtin     bool          `json:"builtin" elastic_mapping:"builtin:{type:boolean}"`                                // Whether the model provider is builtin
 	Description string        `json:"description" elastic_mapping:"description:{type:text,copy_to:combined_fulltext}"` // Description of the model provider
 	Website     string        `json:"website" elastic_mapping:"website:{type:keyword}"`                                // Website of the model provider
 

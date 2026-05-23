@@ -19,16 +19,16 @@ type Integration struct {
 	Guest         GuestAccessConfig   `json:"guest,omitempty" elastic_mapping:"guest:{type:object}"`                   // Guest configuration
 	//Token         string              `json:"token,omitempty" elastic_mapping:"token:{type:keyword}"`                                       // Token for authentication
 	Description string `json:"description,omitempty" elastic_mapping:"description:{type:keyword,copy_to:combined_fulltext}"` // Description of the embedding
-	Enabled     bool   `json:"enabled" elastic_mapping:"enabled:{type:keyword}"`                                             // Whether the embedding is enabled
+	Enabled     bool   `json:"enabled" elastic_mapping:"enabled:{type:boolean}"`                                             // Whether the embedding is enabled
 }
 
 type GuestAccessConfig struct {
-	Enabled bool   `json:"enabled" elastic_mapping:"enabled:{type:keyword}"`
+	Enabled bool   `json:"enabled" elastic_mapping:"enabled:{type:boolean}"`
 	RunAs   string `json:"run_as,omitempty" elastic_mapping:"run_as:{type:keyword}"`
 }
 
 type CorsConfig struct {
-	Enabled        bool     `json:"enabled" elastic_mapping:"enabled:{type:keyword}"`                           // Whether CORS is enabled
+	Enabled        bool     `json:"enabled" elastic_mapping:"enabled:{type:boolean}"`                           // Whether CORS is enabled
 	AllowedOrigins []string `json:"allowed_origins,omitempty" elastic_mapping:"allowed_origins:{type:keyword}"` // Allowed origins
 }
 
@@ -37,8 +37,8 @@ type AppearanceConfig struct {
 	Language string `json:"language,omitempty" elastic_mapping:"language:{type:keyword}"` // Language of the embedding
 }
 type AccessControlConfig struct {
-	Authentication bool `json:"authentication" elastic_mapping:"authentication:{type:keyword}"` // Whether authentication is required
-	ChatHistory    bool `json:"chat_history" elastic_mapping:"chat_history:{type:keyword}"`     // Whether chat history is enabled
+	Authentication bool `json:"authentication" elastic_mapping:"authentication:{type:boolean}"` // Whether authentication is required
+	ChatHistory    bool `json:"chat_history" elastic_mapping:"chat_history:{type:boolean}"`     // Whether chat history is enabled
 }
 
 type ModuleConfig struct {
@@ -48,13 +48,13 @@ type ModuleConfig struct {
 }
 
 type SearchModuleConfig struct {
-	Enabled     bool     `json:"enabled" elastic_mapping:"enabled:{type:keyword}"`
+	Enabled     bool     `json:"enabled" elastic_mapping:"enabled:{type:boolean}"`
 	Datasource  []string `json:"datasource,omitempty" elastic_mapping:"datasource:{type:keyword}"`   // Datasource ID
 	Placeholder string   `json:"placeholder,omitempty" elastic_mapping:"placeholder:{type:keyword}"` // Placeholder text for search input
 }
 
 type AIChatModuleConfig struct {
-	Enabled           bool                `json:"enabled" elastic_mapping:"enabled:{type:keyword}"`
+	Enabled           bool                `json:"enabled" elastic_mapping:"enabled:{type:boolean}"`
 	Placeholder       string              `json:"placeholder,omitempty" elastic_mapping:"placeholder:{type:keyword}"`                           // Placeholder text for search input
 	Assistants        []string            `json:"assistants,omitempty" elastic_mapping:"assistants:{type:keyword}"`                             // Assistant ID
 	StartPageSettings ChatStartPageConfig `json:"start_page_config,omitempty" elastic_mapping:"start_page_config:{type:object, enabled:false}"` // Start page settings
