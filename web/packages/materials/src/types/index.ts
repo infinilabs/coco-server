@@ -230,6 +230,9 @@ export interface AdminLayoutProps
   scrollMode?: LayoutScrollMode;
   /** The class of the scroll wrapper element */
   scrollWrapperClass?: string;
+
+  topBanner?: React.ReactNode;
+  topBannerHeight?: number;
 }
 
 type Kebab<S extends string> = S extends Uncapitalize<S> ? S : `-${Uncapitalize<S>}`;

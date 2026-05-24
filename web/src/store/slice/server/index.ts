@@ -5,13 +5,18 @@ import { localStg } from '@/utils/storage';
 import { AppThunk } from '@/store';
 import { getRootRouteIfSearch } from './shared';
 import { handleUpdateRootRouteRedirect, setRouteHome } from '../route';
+import { isEmpty } from 'lodash';
 
 interface InitialStateType {
   providerInfo: any;
+  defaultModel: any;
+  defaultModelTips: boolean;
 }
 
 const initialState: InitialStateType = {
-  providerInfo: {}
+  providerInfo: {},
+  defaultModel: {},
+  defaultModelTips: false
 };
 
 export const serverSlice = createSlice({
@@ -27,23 +32,36 @@ export const serverSlice = createSlice({
         state.providerInfo.endpoint = payload;
         localStg.set('providerInfo', state.providerInfo);
       }
+    },
+    setDefaultModel(state, { payload }: PayloadAction<any>) {
+      state.defaultModel = payload;
+      state.defaultModelTips = isEmpty(payload);
+    },
+    setDefaultModelTips(state, { payload }: PayloadAction<any>) {
+      state.defaultModelTips = payload;
     }
   },
   selectors: {
     getProviderInfo: app => app.providerInfo,
-    getServer: app => app.providerInfo?.endpoint || `${window.location.origin}${window.location.pathname}`
+    getServer: app => app.providerInfo?.endpoint || `${window.location.origin}${window.location.pathname}`,
+    getDefaultModel: app => app.defaultModel,
+    getDefaultModelTips: app => app.defaultModelTips
   }
 });
 // Action creators are generated for each case reducer function.
 export const {
   setProviderInfo,
-  setServer
+  setServer,
+  setDefaultModel,
+  setDefaultModelTips,
 } = serverSlice.actions;
 
 // Selectors returned by `slice.selectors` take the root state as their first argument.
 export const {
   getProviderInfo,
-  getServer
+  getServer,
+  getDefaultModel,
+  getDefaultModelTips,
 } = serverSlice.selectors;
 
 export const updateRootRouteIfSearch = (providerInfo: any): AppThunk => async dispatch => {

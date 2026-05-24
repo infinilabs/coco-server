@@ -39,5 +39,6 @@ declare namespace StorageType {
     token: string;
     /** The user info */
     userInfo: Api.Auth.UserInfo;
+    [key: string]: any;
   }
 }

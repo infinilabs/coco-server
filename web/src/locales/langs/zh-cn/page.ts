@@ -657,11 +657,40 @@ const page: App.I18n.Schema['translation']['page'] = {
     site_urls_add: '新增站点地址'
   },
   guide: {
+    labels: {
+      modelProvider: '模型提供商',
+      modelProviderName: '模型提供商名称',
+      model: '模型',
+      modelID: '模型 ID',
+      apiSecret: 'API 密钥',
+      custom: '自定义',
+      apiType: 'API 类型',
+      baseUrl: 'Base URL',
+      tips: '当前有默认模型未配置。内置 AI 功能在未单独指定模型时，将使用默认模型运行；如未配置，部分功能可能无法正常工作。',
+      tipsSettings: '立即配置',
+      ignoreTips: '不再提醒',
+      tipsSuccess: '默认模型已全部配置完成，开始体验完整 AI 能力',
+      tipsSuccessButton: '好的',
+    },
+    languageModel: {
+      title: '语言模型',
+      desc: '用于对话、问答、内容生成等基础 AI 能力'
+    },
+    visionModel: {
+      title: '视觉模型',
+      desc: '用于图像内容理解与解析，支持识别、描述生成与多模态处理'
+    },
+    embeddingModel: {
+      title: 'Embedding 模型',
+      desc: '用于将内容转换为向量，以支持语义搜索与相似度匹配'
+    },
     llm: {
-      desc: '集成大模型后，您将解锁人工智能聊天功能，还能获得智能搜索服务和高效的工作助手。',
-      title: '集成大模型'
+      desc: '选择默认使用的 AI 模型，用于对话、图像理解与语义搜索等基础能力。后续可在设置中随时调整。',
+      title: '配置默认模型'
     },
     setupLater: '稍后设置',
+    next: '下一步',
+    previous: '上一步',
     user: {
       desc: '设置一个新的账户以管理访问权限。',
       email: '邮箱',
@@ -673,10 +702,8 @@ const page: App.I18n.Schema['translation']['page'] = {
     skipModal: {
       title: '确认跳过？',
       hints: {
-        desc: '如果您选择跳过此步骤，进入系统后内置的 AI 功能（如 AI 助手）将无法立即使用。',
-        stepDesc: '您将需要：',
-        step1: '在 “模型提供商” 中添加并管理模型；',
-        step2: '为每个内置 AI 助手单独选择并配置所需的大模型。'
+        desc1: '当前未设置默认模型。如果跳过此步骤，部分内置 AI 功能（如 AI 助手、文档处理 Pipeline）在未单独指定模型前将无法正常运行。',
+        desc2: '您可以稍后在“模型提供商”中添加模型，并在“系统配置”中设置默认模型。',
       }
     }
   },

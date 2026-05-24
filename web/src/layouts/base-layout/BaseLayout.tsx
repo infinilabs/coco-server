@@ -21,8 +21,12 @@ import GlobalMenu from '../modules/global-menu';
 import GlobalSider from '../modules/global-sider';
 import GlobalTab from '../modules/global-tab';
 import { logout } from '@/service/api';
-import { fetchProviderInfo } from '@/service/api/server';
-import { setServer } from '@/store/slice/server';
+import { fetchProviderInfo, fetchSettings } from '@/service/api/server';
+import { getDefaultModelTips, setDefaultModel, setServer } from '@/store/slice/server';
+import DefaultModel from '@/pages/guide/modules/DefaultModel';
+import { isEmpty } from 'lodash';
+import TopBanner, { TopBannerHeight } from '../modules/top-banner';
+import { localStg } from '@/utils/storage';
 
 const ThemeDrawer = lazy(() => import('../modules/theme-drawer'));
 
@@ -41,9 +45,14 @@ const BaseLayout = () => {
   const responsive = useResponsive();
   const nav = useNavigate()
   const { childLevelMenus, isActiveFirstLevelMenuHasChildren } = useMixMenuContext();
+  const { hasAuth } = useAuth()
+  const permissions = {
+    settings: hasAuth('coco#system/read'),
+  }
 
   const contentXScrollable = useAppSelector(getContentXScrollable);
   const mixSiderFixed = useAppSelector(getMixSiderFixed);
+  const defaultModelTips = useAppSelector(getDefaultModelTips);
 
   const layoutMode = themeSettings.layout.mode.includes(LAYOUT_MODE_VERTICAL)
     ? LAYOUT_MODE_VERTICAL
@@ -93,6 +102,21 @@ const BaseLayout = () => {
   }
   const siderWidth = getSiderWidth();
   const siderCollapsedWidth = getSiderCollapsedWidth();
+
+  useEffect(() => {
+    async function updateDefaultModel() {
+      const res = await fetchSettings()
+      dispatch(setDefaultModel(res.data.default_model || {}))
+      const isEmptyDefaultModel = isEmpty(res.data.default_model)
+      const defaultModelGuide = localStg.get('defaultModelGuide')
+      if (!defaultModelGuide) {
+        localStg.set('defaultModelGuide', isEmptyDefaultModel.toString())
+      }
+    }
+    if (permissions.settings) {
+      updateDefaultModel()
+    }
+  }, []);
 
   useEffect(() => {
     async function updateServerEndpoint() {
@@ -168,13 +192,20 @@ const BaseLayout = () => {
           />
         )
       }
+      topBanner={isMicro || !defaultModelTips || localStg.get('ignoreDefaultModelTips') === 'true' ? null : (
+        <TopBanner />
+      )}
+      topBannerHeight={TopBannerHeight}
     >
-      <GlobalContent closePadding={isMicro}/>
+      <GlobalContent closePadding={isMicro} />
 
       <GlobalMenu
         mode={themeSettings.layout.mode}
         reverse={themeSettings.layout.reverseHorizontalMix}
       />
+      {
+        localStg.get('defaultModelGuide') === 'true' && <DefaultModel />
+      }
       {/* <Suspense fallback={null}>
         <ThemeDrawer />
       </Suspense> */}
