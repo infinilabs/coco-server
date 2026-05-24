@@ -5,9 +5,11 @@
 package system
 
 import (
+	"fmt"
 	"net/http"
 
 	log "github.com/cihub/seelog"
+	"golang.org/x/text/language"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
@@ -75,6 +77,12 @@ func (h *APIHandler) updateServerSettings(w http.ResponseWriter, req *http.Reque
 		oldAppConfig.DefaultModel = &defaultModel
 	}
 	if appConfig.DocumentProcessing != nil {
+		if lang := appConfig.DocumentProcessing.LLMGenerationLanguage; lang != "" {
+			if _, err := language.Parse(lang); err != nil {
+				h.WriteError(w, fmt.Sprintf("invalid llm_generation_language %q: %v", lang, err), http.StatusBadRequest)
+				return
+			}
+		}
 		//merge settings
 		docProcessing := core.DocumentProcessing{}
 		err := mergeSettings(oldAppConfig.DocumentProcessing, appConfig.DocumentProcessing, &docProcessing)
