@@ -24,7 +24,7 @@ export function fetchSettings() {
 }
 
 /** Update server's settings */
-export function updateSettings(data: { llm?: any; server?: any; app_settings?: any; search_settings?: any }) {
+export function updateSettings(data: any) {
   return request({
     data,
     method: 'put',

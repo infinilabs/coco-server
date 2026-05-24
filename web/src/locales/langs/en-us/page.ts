@@ -836,6 +836,19 @@ const page: App.I18n.Schema['translation']['page'] = {
       },
       title: 'Search Settings'
     },
+    default_model: {
+      labels: {
+        default_model: 'Default Model',
+        default_model_desc: 'This configuration will be applied as the default value for AI assistants and document processing pipelines that do not have a separately specified model.',
+        ai_assistant: 'AI Assistant',
+        ai_assistant_desc: 'Specify dedicated models for different stages of the AI assistant to optimize performance and cost. If not configured, the language model from the default model will be used.',
+        intent_analysis_model: 'Intent Analysis Model',
+        picking_doc_model: 'Picking Doc Model',
+        picking_tool_model: 'Picking Tool Model',
+        answering_model: 'Answering Model'
+      },
+      title: 'Default Model'
+    },
     setupLater: 'Set Up Later'
   },
   webhook: {

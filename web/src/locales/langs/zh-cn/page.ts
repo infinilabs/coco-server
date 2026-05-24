@@ -952,6 +952,19 @@ const page: App.I18n.Schema['translation']['page'] = {
         integration: '组件'
       }
     },
+    default_model: {
+      labels: {
+        default_model: '默认模型',
+        default_model_desc: '该配置将作为默认值应用于未单独指定模型的 AI 助手和文档处理 Pipeline。',
+        ai_assistant: 'AI 助手',
+        ai_assistant_desc: '为 AI 助手不同阶段指定专用模型，以优化性能与成本，未配置时使用默认模型中的语言模型',
+        intent_analysis_model: '意图识别模型',
+        picking_doc_model: '文档预选模型',
+        picking_tool_model: '工具调用模型',
+        answering_model: '应答模型'
+      },
+      title: '默认模型'
+    },
     setupLater: '稍后设置'
   },
   webhook: {

@@ -9,6 +9,8 @@ import { getUUID } from '@/utils/common';
 import headBg from '@/assets/imgs/model-guide.png';
 import { InfoCircleOutlined } from '@ant-design/icons';
 import { localStg } from '@/utils/storage';
+import { fetchSettings } from '@/service/api/server';
+import { setDefaultModel } from '@/store/slice/server';
 
 const CUSTOM_PROVIDER_ID = getUUID()
 const CUSTOM_MODEL_ID = getUUID()
@@ -170,6 +172,7 @@ const DefaultModel = memo(({ }: {}) => {
   const [step, setStep] = useState(0);
   const [editValues, setEditValues] = useState<any>({});
   const [isSuccess, setIsSuccess] = useState(false);
+  const dispatch = useAppDispatch();
 
   const stepList = useMemo(() => {
     return [
@@ -235,9 +238,15 @@ const DefaultModel = memo(({ }: {}) => {
     });
     endLoading();
     if (!error) {
+      updateDefaultModel();
       setIsSuccess(true);
     }
   };
+
+  const updateDefaultModel = async () => {
+    const res = await fetchSettings()
+    dispatch(setDefaultModel(res.data.default_model || {}))
+  }
 
   const onClose = () => {
     setOpen(false);
