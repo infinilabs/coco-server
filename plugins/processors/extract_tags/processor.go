@@ -62,6 +62,11 @@ func New(c *config.Config) (pipeline.Processor, error) {
 		return nil, fmt.Errorf("failed to unpack the configuration of %s processor: %s", ProcessorName, err)
 	}
 
+	if cfg.LLMGenerationLang == "" {
+		if appCfg := common.AppConfig(); appCfg.DocumentProcessing != nil && appCfg.DocumentProcessing.LLMGenerationLanguage != "" {
+			cfg.LLMGenerationLang = appCfg.DocumentProcessing.LLMGenerationLanguage
+		}
+	}
 	cfg.LLMGenerationLang = utils.ValidateAndNormalizeLLMLang(ProcessorName, cfg.LLMGenerationLang)
 
 	if cfg.MessageField == "" {

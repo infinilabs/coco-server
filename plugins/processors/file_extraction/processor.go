@@ -14,6 +14,7 @@ import (
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/attachment"
+	"infini.sh/coco/modules/common"
 	"infini.sh/coco/plugins/connectors"
 	"infini.sh/coco/plugins/connectors/local_fs"
 	"infini.sh/coco/plugins/connectors/s3"
@@ -78,6 +79,11 @@ func New(c *config.Config) (pipeline.Processor, error) {
 		return nil, err
 	}
 
+	if cfg.LLMGenerationLang == "" {
+		if appCfg := common.AppConfig(); appCfg.DocumentProcessing != nil && appCfg.DocumentProcessing.LLMGenerationLanguage != "" {
+			cfg.LLMGenerationLang = appCfg.DocumentProcessing.LLMGenerationLanguage
+		}
+	}
 	cfg.LLMGenerationLang = utils.ValidateAndNormalizeLLMLang(ProcessorName, cfg.LLMGenerationLang)
 
 	p := &FileExtractionProcessor{config: &cfg}
