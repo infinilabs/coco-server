@@ -6,14 +6,12 @@ package integration
 
 import (
 	"infini.sh/coco/core"
-	"infini.sh/coco/plugins/security"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/elastic"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
 	"net/http"
 	"sync"
-	"time"
 )
 
 func (h *APIHandler) create(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -138,18 +136,20 @@ func (h *APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprou
 			panic(err)
 		}
 
-		for _, hit := range searchRes.Hits.Hits {
-			if token, ok := hit.Source["token"].(string); ok && token != "" {
-				tokenObj, err := security.GetToken(token)
-				if tokenObj == nil && err == nil {
-					// token is not found in the kv, here we set it as expired
-					hit.Source["token_expire_in"] = time.Time{}.Unix()
-				}
-				if tokenObj != nil {
-					hit.Source["token_expire_in"] = tokenObj.ExpireIn
-				}
-			}
-		}
+		// NOTICE: i don't think we should modify anything when do search!
+
+		//for _, hit := range searchRes.Hits.Hits {
+		//	if token, ok := hit.Source["token"].(string); ok && token != "" {
+		//		tokenObj, err := security.GetToken(token)
+		//		if tokenObj == nil && err == nil {
+		//			// token is not found in the kv, here we set it as expired
+		//			hit.Source["token_expire_in"] = time.Time{}.Unix()
+		//		}
+		//		if tokenObj != nil {
+		//			hit.Source["token_expire_in"] = tokenObj.ExpireIn
+		//		}
+		//	}
+		//}
 
 	}
 

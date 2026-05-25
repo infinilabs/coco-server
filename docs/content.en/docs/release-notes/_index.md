@@ -39,7 +39,8 @@ Information about release notes of Coco Server is provided here.
 - refactor: omit field document_chunk in search interface #647
 - refactor: refactoring security framework #672
 - chore: remove unused configs in default config
--chore: add facefinder to default config #680
+- chore: add facefinder to default config #680
+- refactor: refactoring access_token #679
 
 ## 0.10.0 (2025-12-19)
 ### ❌ Breaking changes  
