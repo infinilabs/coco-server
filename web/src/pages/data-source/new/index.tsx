@@ -3,7 +3,7 @@
 // @ts-ignore
 
 import type { FormProps } from 'antd';
-import { Button, Form, Input, Modal, Spin, Switch, message } from 'antd';
+import { Button, Form, Input, Modal, Select, Spin, Switch, message } from 'antd';
 import { useForm } from 'antd/es/form/Form';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -50,6 +50,8 @@ import Rdbms from './rdbms';
 import Rss from './rss';
 import S3 from './s3';
 import Yuque from './yuque';
+import { getEnablePipelines } from '@/service/api/pipeline';
+import { formatESSearchResult } from '@/service/request/es';
 
 // eslint-disable-next-line complexity
 export function Component() {
@@ -155,6 +157,20 @@ export function Component() {
         return connector?.id || type || 'Unknown';
     }
   };
+
+  const [pipelineList, setPipelineList] = useState<any[]>([]);
+
+  const fetchPipelines = async () => {
+    const res = await getEnablePipelines()
+    if (res?.data) {
+      const newResult = formatESSearchResult(res?.data);
+      setPipelineList(newResult.data as any);
+    }
+  }
+
+  useEffect(() => {
+    fetchPipelines();
+  }, [])
 
   useEffect(() => {
     getConnector(type).then(res => {
@@ -276,9 +292,9 @@ export function Component() {
       case Types.LocalFS: {
         const extensions = values.config?.extensions_str
           ? values.config.extensions_str
-              .split(',')
-              .map((s: string) => s.trim())
-              .filter(Boolean)
+            .split(',')
+            .map((s: string) => s.trim())
+            .filter(Boolean)
           : [];
         config = {
           extensions,
@@ -289,9 +305,9 @@ export function Component() {
       case Types.S3: {
         const extensions: Array<string> = values.config?.extensions_str
           ? values.config.extensions_str
-              .split(',')
-              .map((s: string) => s.trim())
-              .filter(Boolean)
+            .split(',')
+            .map((s: string) => s.trim())
+            .filter(Boolean)
           : [];
         config = {
           access_key_id: values.config?.access_key_id || '',
@@ -370,7 +386,8 @@ export function Component() {
       },
       type: 'connector',
       webhook: values.webhook,
-      enrichment_pipeline: values.enrichment_pipeline
+      enrichment_pipeline: values.enrichment_pipeline,
+      document_processing_config: values.document_processing_config
     };
     createDatasource(sValues).then(res => {
       if (res.data?.result === 'created') {
@@ -570,6 +587,36 @@ export function Component() {
                       style={{ display: isSyncEnabled ? 'block' : 'none' }}
                     >
                       <DataSync />
+                    </Form.Item>
+                  );
+                }}
+              </Form.Item>
+
+              <Form.Item
+                label={t('page.datasource.new.labels.document_analysis')}
+                name={['document_processing_config', 'enabled']}
+              >
+                <Switch size='small' />
+              </Form.Item>
+
+              <Form.Item
+                shouldUpdate={(prev, curr) => prev.document_processing_config?.enabled !== curr.document_processing_config?.enabled}
+                noStyle
+              >
+                {({ getFieldValue }) => {
+                  const isDocumentProcessingEnabled = getFieldValue(['document_processing_config', 'enabled']);
+                  return (
+                    <Form.Item
+                      label="Pipeline"
+                      name={['document_processing_config', 'pipeline']}
+                      style={{ display: isDocumentProcessingEnabled ? 'block' : 'none' }}
+                    >
+                      <Select
+                        options={pipelineList.map(item => ({
+                          label: item.name,
+                          value: item.id
+                        }))}
+                      />
                     </Form.Item>
                   );
                 }}

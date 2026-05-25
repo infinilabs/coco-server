@@ -358,7 +358,8 @@ const page: App.I18n.Schema['translation']['page'] = {
         tags: 'Tags',
         type: 'Type',
         webhook: 'Webhook',
-        enrichment_pipeline: 'Enrichment Pipeline'
+        enrichment_pipeline: 'Enrichment Pipeline',
+        document_analysis: 'Document Analysis',
       },
       title: '{{connector}} Connection',
       tooltip: {
@@ -768,11 +769,13 @@ const page: App.I18n.Schema['translation']['page'] = {
       addModel: 'Add Model',
       modelID: 'Model ID',
       modelType: 'Model Type',
-      inferenceMode: 'Inference Mode'
+      inferenceMode: 'Inference Mode',
+      setAsDefaultModel: 'Set as Default Model'
     },
     options: {
       dialogModel: 'Chat Model',
       chatModel: 'Chat Model',
+      languageModel: 'Language Model',
       visionModel: 'Vision Model',
       embeddingModel: 'Embedding Model'
     },
@@ -848,6 +851,16 @@ const page: App.I18n.Schema['translation']['page'] = {
         answering_model: 'Answering Model'
       },
       title: 'Default Model'
+    },
+    document_processing: {
+      labels: {
+        default_pipeline_for_attachment: 'Chat Attachment',
+        default_pipeline_for_document: 'Data Source Document',
+        output_language: 'Output Language',
+        processing_pipeline: 'Processing Pipeline',
+        output_language_desc: 'Controls the output language of AI-generated content in the pipeline, including summaries, tags, and analysis results.',
+      }, 
+      title: 'Document Processing',
     },
     setupLater: 'Set Up Later'
   },

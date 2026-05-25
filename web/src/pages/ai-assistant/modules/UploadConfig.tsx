@@ -1,5 +1,8 @@
 import { Input, InputNumber, Select, Space, Switch } from 'antd';
 import classNames from 'classnames';
+import { useLoading, useRequest } from '@sa/hooks';
+import { getEnablePipelines } from '@/service/api/pipeline';
+import { formatESSearchResult } from '@/service/request/es';
 
 interface UploadConfigProps {
   readonly value?: any;
@@ -38,6 +41,23 @@ export const UploadConfig = (props: UploadConfigProps) => {
   const [maxFileSize, setMaxFileSize] = useState({ value: 1, unit: 1024 * 1024 });
   const formatRef = useRef(true);
 
+  const { endLoading, loading, startLoading } = useLoading();
+  const [pipelineList, setPipelineList] = useState([]);
+
+  const fetchPipelines = async () => {
+    startLoading();
+    const res = await getEnablePipelines()
+    if (res?.data) {
+      const newResult = formatESSearchResult(res?.data);
+      setPipelineList(newResult.data as any);
+    }
+    endLoading();
+  }
+
+  useEffect(() => {
+    fetchPipelines();
+  }, []);
+
   useEffect(() => {
     if (formatRef.current && value.max_file_size_in_bytes) {
       formatRef.current = false;
@@ -57,7 +77,7 @@ export const UploadConfig = (props: UploadConfigProps) => {
 
   return (
     <Space
-      direction='vertical'
+      orientation='vertical'
       className={classNames('w-600px', {
         'mt-[5px]': value.enabled
       })}
@@ -72,7 +92,7 @@ export const UploadConfig = (props: UploadConfigProps) => {
         <>
           <Space
             className='w-full'
-            direction='vertical'
+            orientation='vertical'
           >
             <p className='mt-10px text-[#999]'>{t('page.assistant.labels.allowed_file_extensions')}</p>
             <Input
@@ -88,7 +108,7 @@ export const UploadConfig = (props: UploadConfigProps) => {
             />
           </Space>
 
-          <Space direction='vertical'>
+          <Space orientation='vertical'>
             <p className='mt-10px text-[#999]'>{t('page.assistant.labels.max_file_size_in_bytes')}</p>
             <InputNumber
               className='w-148px'
@@ -129,7 +149,7 @@ export const UploadConfig = (props: UploadConfigProps) => {
             />
           </Space>
 
-          <Space direction='vertical'>
+          <Space orientation='vertical'>
             <p className='mt-10px text-[#999]'>{t('page.assistant.labels.max_file_count')}</p>
             <InputNumber
               max={100}
@@ -139,6 +159,24 @@ export const UploadConfig = (props: UploadConfigProps) => {
                 onChange?.({
                   ...value,
                   max_file_count: v
+                });
+              }}
+            />
+          </Space>
+
+          <Space orientation='vertical' className='w-full'>
+            <p className='mt-10px text-[#999]'>{t('page.settings.document_processing.labels.processing_pipeline')}</p>
+            <Select
+              className='w-full'
+              options={pipelineList.map(item => ({
+                label: item.name,
+                value: item.id
+              }))}
+              value={value.pipeline}
+              onChange={v => {
+                onChange?.({
+                  ...value,
+                  pipeline: v
                 });
               }}
             />

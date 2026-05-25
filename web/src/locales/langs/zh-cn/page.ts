@@ -536,7 +536,8 @@ const page: App.I18n.Schema['translation']['page'] = {
         tags: '标签',
         type: '数据源类型',
         webhook: '启用 Webhook',
-        enrichment_pipeline: 'Enrichment Pipeline'
+        enrichment_pipeline: 'Enrichment Pipeline',
+        document_analysis: '文档分析',
       },
       title: '连接 {{connector}}',
       tooltip: {
@@ -965,6 +966,16 @@ const page: App.I18n.Schema['translation']['page'] = {
       },
       title: '默认模型'
     },
+    document_processing: {
+      labels: {
+        default_pipeline_for_attachment: '聊天附件处理',
+        default_pipeline_for_document: '数据源文档处理',
+        output_language: '输出语言',
+        processing_pipeline: '处理 Pipeline',
+        output_language_desc: '控制 Pipeline 中 AI 生成内容的输出语言，包括摘要、标签与分析结果等。',
+      }, 
+      title: '文档处理',
+    },
     setupLater: '稍后设置'
   },
   webhook: {
@@ -1012,7 +1023,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       addModel: '添加模型',
       modelID: '模型ID',
       modelType: '模型类型',
-      inferenceMode: '推理模式'
+      inferenceMode: '推理模式',
+      setAsDefaultModel: '设为默认模型'
     },
     delete: {
       confirm: '您确定要删除这个模型提供商吗?'
@@ -1020,8 +1032,9 @@ const page: App.I18n.Schema['translation']['page'] = {
     options: {
       dialogModel: '对话模型',
       chatModel: '对话模型',
+      languageModel: '语言模型',
       visionModel: '视觉模型',
-      embeddingModel: '向量化模型'
+      embeddingModel: 'Embedding 模型'
     },
     hints: {
       selectOrInputModel: '选择或输入一个模型',

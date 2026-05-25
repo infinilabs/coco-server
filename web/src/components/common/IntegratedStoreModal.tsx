@@ -87,6 +87,8 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
 
         const { id } = JSON.parse(text);
 
+        if (!id) return;
+
         const { data } = await request({
           method: 'get',
           url: `/store/server/${id}`
