@@ -48,6 +48,8 @@ const BaseLayout = () => {
   const { hasAuth } = useAuth()
   const permissions = {
     settings: hasAuth('coco#system/read'),
+    updateSettings: hasAuth('coco#system/update'),
+    updateModelProvider: hasAuth('coco#model_provider/update'),
   }
 
   const contentXScrollable = useAppSelector(getContentXScrollable);
@@ -204,7 +206,7 @@ const BaseLayout = () => {
         reverse={themeSettings.layout.reverseHorizontalMix}
       />
       {
-        localStg.get('defaultModelGuide') === 'true' && <DefaultModel />
+        permissions.updateSettings && permissions.updateModelProvider && localStg.get('defaultModelGuide') === 'true' && <DefaultModel />
       }
       {/* <Suspense fallback={null}>
         <ThemeDrawer />

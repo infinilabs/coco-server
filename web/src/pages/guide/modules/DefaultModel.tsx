@@ -20,6 +20,12 @@ const ModelForm = memo(({ form, name, modelProviderList }: { form: FormInstance,
   const { defaultRequiredRule } = useFormRules();
   const { t } = useTranslation();
 
+  const { hasAuth } = useAuth()
+
+  const permissions = {
+    createModelProvider: hasAuth('coco#model_provider/create'),
+  }
+
   const modelProviderID = Form.useWatch([name, 'model_provider', 'id'], form);
   const modelID = Form.useWatch([name, 'model_id'], form);
 
@@ -45,7 +51,7 @@ const ModelForm = memo(({ form, name, modelProviderList }: { form: FormInstance,
               size="large"
               options={modelProviderList
                 .map(provider => ({ label: provider.name, value: provider.id }))
-                .concat([{ label: t(`page.guide.labels.custom`), value: CUSTOM_PROVIDER_ID }])
+                .concat(permissions.createModelProvider ? [{ label: t(`page.guide.labels.custom`), value: CUSTOM_PROVIDER_ID }] : [])
               }
             />
           </Form.Item>
@@ -174,6 +180,11 @@ const DefaultModel = memo(({ }: {}) => {
   const [isSuccess, setIsSuccess] = useState(false);
   const dispatch = useAppDispatch();
 
+  const { hasAuth } = useAuth()
+  const permissions = {
+    searchModelPovider: hasAuth('coco#model_provider/search'),
+  }
+
   const stepList = useMemo(() => {
     return [
       {
@@ -238,6 +249,7 @@ const DefaultModel = memo(({ }: {}) => {
     });
     endLoading();
     if (!error) {
+      localStg.set('defaultModelGuide', 'false')
       updateDefaultModel();
       setIsSuccess(true);
     }
@@ -254,7 +266,9 @@ const DefaultModel = memo(({ }: {}) => {
   }
 
   useEffect(() => {
-    fetchModelProvider();
+    if (permissions.searchModelPovider) {
+      fetchModelProvider();
+    }
   }, []);
 
   return (
@@ -316,7 +330,7 @@ const DefaultModel = memo(({ }: {}) => {
                   step > 0 ? (
                     <Button
                       className='w-80px'
-                      loading={loading}
+                      disabled={loading}
                       variant="solid"
                       onClick={() => {
                         setStep(step - 1)
@@ -330,7 +344,7 @@ const DefaultModel = memo(({ }: {}) => {
                   step < 2 ? (
                     <Button
                       className='w-80px'
-                      loading={loading}
+                      disabled={loading}
                       color="primary"
                       variant="solid"
                       onClick={() => {

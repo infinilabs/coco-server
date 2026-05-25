@@ -7,7 +7,7 @@ import { formatESSearchResult } from '@/service/request/es';
 import ModelSelect from './ModelSelect';
 import { setDefaultModel } from '@/store/slice/server';
 
-const SearchSettings = memo(() => {
+const DefaultModel = memo(() => {
   const [form] = Form.useForm();
   const { t } = useTranslation();
 
@@ -32,7 +32,7 @@ const SearchSettings = memo(() => {
 
   const fetchModelProvider = async () => {
     startLoading();
-    const res = await searchModelPovider({ from: 0, size: 10000 })
+    const res = await searchModelPovider({ from: 0, size: 10000, filter: { enabled: [true] } });
     if (res?.data) {
       const newResult = formatESSearchResult(res?.data);
       setModelProviderList(newResult.data as any);
@@ -186,21 +186,25 @@ const SearchSettings = memo(() => {
             label={t('page.settings.default_model.labels.intent_analysis_model')}
             name="intent_analysis_model"
             modelProviderList={modelProviderList}
+            type="language"
           />
           <ModelSelectItem 
             label={t('page.settings.default_model.labels.picking_doc_model')}
             name="picking_doc_model"
             modelProviderList={modelProviderList}
+            type="language"
           />
           <ModelSelectItem 
             label={t('page.settings.default_model.labels.picking_tool_model')}
             name="picking_tool_model"
             modelProviderList={modelProviderList}
+            type="language"
           />
           <ModelSelectItem 
             label={t('page.settings.default_model.labels.answering_model')}
             name="answering_model"
             modelProviderList={modelProviderList}
+            type="language"
           />
           {
             permissions.update && (
@@ -220,7 +224,7 @@ const SearchSettings = memo(() => {
   );
 });
 
-export default SearchSettings;
+export default DefaultModel;
 
 const ModelSelectItem = ({ label, desc, name, modelProviderList = [], type }: { label: string, desc?: string, name: string, modelProviderList?: any[], type?: string }) => {
   
