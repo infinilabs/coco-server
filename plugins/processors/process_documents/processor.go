@@ -5,7 +5,6 @@
 package process_documents
 
 import (
-	"context"
 	"fmt"
 
 	log "github.com/cihub/seelog"
@@ -16,6 +15,7 @@ import (
 	"infini.sh/framework/core/param"
 	"infini.sh/framework/core/pipeline"
 	"infini.sh/framework/core/queue"
+	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
 )
 
@@ -86,7 +86,7 @@ func (p *ProcessDocumentsProcessor) Process(ctx *pipeline.Context) error {
 	return nil
 }
 
-// processMessage handles a single document message: resolves the 
+// processMessage handles a single document message: resolves the
 // pipeline for its datasource, runs it, and writes the processed document to
 // the output queue. Falls back to a direct passthrough on any error or when
 // no pipeline is configured.
@@ -103,7 +103,9 @@ func (p *ProcessDocumentsProcessor) processMessage(msg queue.Message) error {
 		return p.passthrough(msg)
 	}
 
-	ormCtx := orm.NewContextWithParent(context.Background())
+	ormCtx := orm.NewContext()
+	ormCtx.DirectReadAccess()
+	ormCtx.PermissionScope(security.PermissionScopePlatform)
 
 	// Fetch the datasource to read its processing config.
 	ds := core.DataSource{}

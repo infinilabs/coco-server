@@ -23,7 +23,6 @@ require (
 	github.com/gomarkdown/markdown v0.0.0-20250810172220-2e2c11897d1a
 	github.com/google/go-github/v74 v74.0.0
 	github.com/hirochachacha/go-smb2 v1.1.0
-	github.com/larksuite/oapi-sdk-go/v3 v3.4.26
 	github.com/lib/pq v1.10.9
 	github.com/lucasb-eyer/go-colorful v1.2.0
 	github.com/mark3labs/mcp-go v0.43.1
