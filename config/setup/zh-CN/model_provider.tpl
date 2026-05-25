@@ -13,8 +13,8 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
   "base_url" : "https://api.deepseek.com/v1",
   "icon" : "font_deepseek",
   "models" : [
-    {"name":"deepseek-chat", "type":"language"},
-    {"name":"deepseek-reasoner", "type":"language", "support_reasoning":true}
+    {"name":"deepseek-v4-pro", "type":"language", "support_reasoning":true},
+    {"name":"deepseek-v4-flash", "type":"language", "support_reasoning":true}
   ],
   "enabled" : false,
   "builtin" : true,
@@ -35,8 +35,18 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
   "base_url" : "https://api.openai.com",
   "icon" : "/assets/icons/llm/openai.svg",
   "models" : [
+     {"name":"gpt-5.5", "type":"language", "support_reasoning":true},
+     {"name":"gpt-5.5-pro", "type":"language", "support_reasoning":true},
+     {"name":"gpt-5.4", "type":"language", "support_reasoning":true},
+     {"name":"gpt-5.4-pro", "type":"language", "support_reasoning":true},
+     {"name":"gpt-5.4-mini", "type":"language", "support_reasoning":true},
+     {"name":"gpt-5.4-nano", "type":"language", "support_reasoning":true},
+     {"name":"gpt-4.1", "type":"language"},
+     {"name":"gpt-4o", "type":"language"},
      {"name":"gpt-4o-mini", "type":"language"},
-     {"name":"gpt-4o", "type":"language"}
+     {"name":"text-embedding-3-large", "type":"embedding"},
+     {"name":"text-embedding-3-small", "type":"embedding"},
+     {"name":"text-embedding-ada-002", "type":"embedding"}
   ],
   "enabled" : false,
   "builtin" : true,
@@ -111,27 +121,18 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
   "api_type" : "openai",
   "icon" : "font_tongyiqianwenTongyi-Qianwen",
   "models" : [
-    {
-      "name" : "tongyi-intent-detect-v3", "type":"language"
-    },
-    {
-      "name" : "deepseek-r1-distill-qwen-32b", "type":"language",
-      "support_reasoning" : true
-    },
-    {
-      "name" : "deepseek-r1", "type":"language",
-      "support_reasoning" : true
-    },
-    {
-      "name" : "qwen-max", "type":"language"
-    },
-    {
-      "name" : "qwq-plus", "type":"language",
-      "support_reasoning" : true
-    },
-    {
-      "name" : "qwen2.5-32b-instruct", "type":"language"
-    }
+    {"name":"qwen3.7-max", "type":"language", "support_reasoning":true},
+    {"name":"qwen3.6-plus", "type":"language", "support_reasoning":true},
+    {"name":"qwen3.6-flash", "type":"language", "support_reasoning":true},
+    {"name":"qwen3.5-plus", "type":"language", "support_reasoning":true},
+    {"name":"qwen3.5-flash", "type":"language", "support_reasoning":true},
+    {"name":"deepseek-v4-pro", "type":"language", "support_reasoning":true},
+    {"name":"deepseek-v4-flash", "type":"language", "support_reasoning":true},
+    {"name":"kimi-k2.6", "type":"language", "support_reasoning":true},
+    {"name":"glm-5.1", "type":"language", "support_reasoning":true},
+    {"name":"MiniMax/MiniMax-M2.7", "type":"language", "support_reasoning":true},
+    {"name":"mimo-v2.5-pro", "type":"language", "support_reasoning":true},
+    {"name":"text-embedding-v4", "type":"embedding"}
   ],
   "base_url" : "https://dashscope.aliyuncs.com/compatible-mode/v1",
   "enabled" : false,
@@ -200,18 +201,19 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
   "base_url" : "https://api.hunyuan.cloud.tencent.com",
   "icon" : "font_hunyuan",
   "models" : [
-    {"name": "hunyuan-pro", "type":"language"},
-    {"name": "hunyuan-standard", "type":"language"},
+    {"name": "hy3-preview", "type":"language", "support_reasoning":true},
+    {"name": "hunyuan-t1-latest", "type":"language", "support_reasoning":true},
+    {"name": "hunyuan-a13b", "type":"language", "support_reasoning":true},
+    {"name": "hunyuan-turbos-latest", "type":"language"},
     {"name": "hunyuan-lite", "type":"language"},
-    {"name": "hunyuan-standard-256k", "type":"language"},
-    {"name": "hunyuan-vision", "type":"vision"},
-    {"name": "hunyuan-code", "type":"language"},
-    {"name": "hunyuan-role", "type":"language"},
-    {"name": "hunyuan-turbo", "type":"language"}
+    {"name": "hunyuan-role-latest", "type":"language"},
+    {"name": "hy-mt2-pro", "type":"language"},
+    {"name": "hunyuan-vision-1.5-instruct", "type":"vision"},
+    {"name": "hunyuan-t1-vision-20250916", "type":"vision", "support_reasoning":true}
   ],
   "enabled" : false,
   "builtin" : true,
-  "description": "腾讯混元提供的模型，例如 hunyuan-standard、 hunyuan-standard-256k, hunyuan-pro, hunyuan-role…"
+  "description": "腾讯混元大模型，支持 hunyuan-t1、hunyuan-a13b 等最新模型，提供强大的生成能力和多模态理解能力。"
 }
 
 POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/gemini
@@ -228,9 +230,14 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
   "base_url" : "https://generativelanguage.googleapis.com",
   "icon" : "font_gemini-ai",
   "models" : [
-    {"name": "gemini-2.0-flash", "type":"language"},
-    {"name": "gemini-1.5-flash", "type":"language"},
-    {"name": "gemini-1.5-pro", "type":"language", "support_reasoning":true}
+    {"name": "gemini-3.5-flash", "type":"language", "support_reasoning":true},
+    {"name": "gemini-3.1-pro-preview", "type":"language", "support_reasoning":true},
+    {"name": "gemini-3.1-flash-lite", "type":"language"},
+    {"name": "gemini-2.5-pro", "type":"language", "support_reasoning":true},
+    {"name": "gemini-2.5-flash", "type":"language", "support_reasoning":true},
+    {"name": "gemini-2.5-flash-lite", "type":"language"},
+    {"name": "gemini-embedding-2", "type":"embedding"},
+    {"name": "gemini-embedding-001", "type":"embedding"}
   ],
   "enabled" : false,
   "builtin" : true,
@@ -251,11 +258,18 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
   "base_url" : "https://api.moonshot.cn",
   "icon" : "font_Moonshot",
   "models" : [
-    {"name": "moonshot-v1-auto", "type":"language", "support_reasoning":true}
+    {"name": "kimi-k2.6", "type":"language", "support_reasoning":true},
+    {"name": "kimi-k2.5", "type":"language", "support_reasoning":true},
+    {"name": "moonshot-v1-128k", "type":"language"},
+    {"name": "moonshot-v1-32k", "type":"language"},
+    {"name": "moonshot-v1-8k", "type":"language"},
+    {"name": "moonshot-v1-128k-vision-preview", "type":"vision"},
+    {"name": "moonshot-v1-32k-vision-preview", "type":"vision"},
+    {"name": "moonshot-v1-8k-vision-preview", "type":"vision"}
   ],
   "enabled" : false,
   "builtin" : true,
-  "description": "Moonshot 提供的模型，例如 moonshot-v1-8k、moonshot-v1-32k 和 moonshot-v1-128k。"
+  "description": "Moonshot（月之暗面）提供的模型，包括 kimi-k2.6、moonshot-v1-8k、moonshot-v1-32k 和 moonshot-v1-128k。"
 }
 
 POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/minimax
@@ -272,11 +286,11 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
   "base_url" : "https://api.minimax.chat/v1/",
   "icon" : "font_MiniMax",
   "models" : [
-    {"name": "abab5.5s", "type":"language"},
-    {"name": "abab6.5s", "type":"language"},
-    {"name": "abab6.5g", "type":"language"},
-    {"name": "abab6.5t", "type":"language", "support_reasoning":true},
-    {"name": "minimax-01", "type":"language", "support_reasoning":true}
+    {"name": "MiniMax-M2.7", "type":"language", "support_reasoning":true},
+    {"name": "MiniMax-M2.7-highspeed", "type":"language", "support_reasoning":true},
+    {"name": "MiniMax-M2.5", "type":"language", "support_reasoning":true},
+    {"name": "MiniMax-M2.5-highspeed", "type":"language", "support_reasoning":true},
+    {"name": "M2-her", "type":"language"}
   ],
   "enabled" : false,
   "builtin" : true,
@@ -321,12 +335,16 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
   "base_url" : "https://qianfan.baidubce.com/v2/",
   "icon" : "font_Qianfan",
   "models" : [
-    {"name": "ERNIE-4.0", "type":"language"},
-    {"name": "ERNIE 4.0 Trubo", "type":"language"},
-    {"name": "ERNlE Speed", "type":"language"},
-    {"name": "ERNIE Lite", "type":"language"},
-    {"name": "BGE Large ZH", "type":"embedding"},
-    {"name": "BGE Large EN", "type":"embedding"}
+    {"name": "ernie-5.1", "type":"language", "support_reasoning":true},
+    {"name": "ernie-5.0", "type":"language", "support_reasoning":true},
+    {"name": "ernie-x1.1", "type":"language", "support_reasoning":true},
+    {"name": "ernie-x1-turbo", "type":"language", "support_reasoning":true},
+    {"name": "ernie-4.5-turbo", "type":"language"},
+    {"name": "ernie-4.5-turbo-vl", "type":"vision"},
+    {"name": "ernie-4.5", "type":"language"},
+    {"name": "bge-large-zh", "type":"embedding"},
+    {"name": "bge-large-en", "type":"embedding"},
+    {"name": "embedding", "type":"embedding"}
   ],
   "enabled" : false,
   "builtin" : true,

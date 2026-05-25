@@ -42,8 +42,18 @@
     "base_url" : "https://api.openai.com",
     "icon" : "/assets/icons/llm/openai.svg",
     "models" : [
+      {"name":"gpt-5.5", "type":"language", "support_reasoning":true},
+      {"name":"gpt-5.5-pro", "type":"language", "support_reasoning":true},
+      {"name":"gpt-5.4", "type":"language", "support_reasoning":true},
+      {"name":"gpt-5.4-pro", "type":"language", "support_reasoning":true},
+      {"name":"gpt-5.4-mini", "type":"language", "support_reasoning":true},
+      {"name":"gpt-5.4-nano", "type":"language", "support_reasoning":true},
+      {"name":"gpt-4.1", "type":"language"},
+      {"name":"gpt-4o", "type":"language"},
       {"name":"gpt-4o-mini", "type":"language"},
-      {"name":"gpt-4o", "type":"language"}
+      {"name":"text-embedding-3-large", "type":"embedding"},
+      {"name":"text-embedding-3-small", "type":"embedding"},
+      {"name":"text-embedding-ada-002", "type":"embedding"}
     ],
     "enabled" : false,
     "builtin" : true,

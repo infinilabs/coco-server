@@ -41,27 +41,18 @@
     "api_type" : "openai",
     "icon" : "font_tongyiqianwenTongyi-Qianwen",
     "models" : [
-      {
-        "name" : "tongyi-intent-detect-v3", "type":"language"
-      },
-      {
-        "name" : "deepseek-r1-distill-qwen-32b", "type":"language",
-        "support_reasoning" : true
-      },
-      {
-        "name" : "deepseek-r1", "type":"language",
-        "support_reasoning" : true
-      },
-      {
-        "name" : "qwen-max", "type":"language"
-      },
-      {
-        "name" : "qwq-plus", "type":"language",
-        "support_reasoning" : true
-      },
-      {
-        "name" : "qwen2.5-32b-instruct", "type":"language"
-      }
+      {"name":"qwen3.7-max", "type":"language", "support_reasoning":true},
+      {"name":"qwen3.6-plus", "type":"language", "support_reasoning":true},
+      {"name":"qwen3.6-flash", "type":"language", "support_reasoning":true},
+      {"name":"qwen3.5-plus", "type":"language", "support_reasoning":true},
+      {"name":"qwen3.5-flash", "type":"language", "support_reasoning":true},
+      {"name":"deepseek-v4-pro", "type":"language", "support_reasoning":true},
+      {"name":"deepseek-v4-flash", "type":"language", "support_reasoning":true},
+      {"name":"kimi-k2.6", "type":"language", "support_reasoning":true},
+      {"name":"glm-5.1", "type":"language", "support_reasoning":true},
+      {"name":"MiniMax/MiniMax-M2.7", "type":"language", "support_reasoning":true},
+      {"name":"mimo-v2.5-pro", "type":"language", "support_reasoning":true},
+      {"name":"text-embedding-v4", "type":"embedding"}
     ],
     "base_url" : "https://dashscope.aliyuncs.com/compatible-mode/v1",
     "enabled" : false,
