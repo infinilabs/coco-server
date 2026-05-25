@@ -142,6 +142,9 @@ web:
     authentication:
       native:
         enabled: true
+      access_token:
+        enabled: true
+        native: true
       oauth:
         cloud:
           enabled: true
