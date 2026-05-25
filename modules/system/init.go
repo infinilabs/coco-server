@@ -35,7 +35,7 @@ func init() {
 	handler := APIHandler{}
 	api.HandleUIMethod(api.GET, "/provider/_info", handler.providerInfo, api.AllowPublicAccess())
 	api.HandleUIMethod(api.POST, "/setup/_initialize", handler.setupInitialize, api.AllowPublicAccess())
-	api.HandleUIMethod(api.POST, "/setup/_initialize/default_model", handler.setupInitializeDefaultModel, api.AllowPublicAccess())
+	api.HandleUIMethod(api.POST, "/setup/_initialize/default_model", handler.setupInitializeDefaultModel, api.RequireLogin(), api.RequirePermission(updatePermission))
 
 	api.HandleUIMethod(api.OPTIONS, "/settings", handler.getServerSettings, api.RequirePermission(readPermission), api.Feature(core.FeatureCORS))
 	api.HandleUIMethod(api.GET, "/settings", handler.getServerSettings, api.RequirePermission(readPermission), api.Feature(core.FeatureCORS), api.Feature(core.FeatureMaskSensitiveField),
