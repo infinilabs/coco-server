@@ -179,7 +179,7 @@ pipeline:
                 chunk_size: 7000
                 vision_model_provider: qianwen
                 vision_model: qwen-vl-max
-                pigo_facefinder_path: "config/ai"
+                pigo_facefinder_path: "config/ai/facefinder"
             - document_summarization:
                 model_provider: deepseek
                 model: deepseek-chat
