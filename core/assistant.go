@@ -213,6 +213,10 @@ type PromptConfig struct {
 }
 
 type ModelSettings struct {
+	// Reasoning controls whether reasoning mode is requested at inference time.
+	// This field is only meaningful when the model's SupportReasoning is true;
+	// if SupportReasoning is false, the backend will not read or act on this
+	// field even if it is set to true.
 	Reasoning        bool    `json:"reasoning"`
 	Temperature      float64 `json:"temperature"`
 	TopP             float64 `json:"top_p"`

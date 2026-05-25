@@ -57,7 +57,7 @@ func GenerateResponse(taskCtx context.Context, provider *core.ModelProvider, mod
 
 	options := GetLLOptions(modelConfig)
 
-	if modelConfig.Settings.Reasoning {
+	if modelConfig.SupportReasoning && modelConfig.Settings.Reasoning {
 		options = append(options, llms.WithStreamingReasoningFunc(func(ctx context.Context, reasoningChunk []byte, chunk []byte) error {
 			log.Trace(string(reasoningChunk), ",", string(chunk))
 			// Use taskCtx here to check for cancellation or other context-specific logic
@@ -194,7 +194,7 @@ func DirectGenerate(taskCtx context.Context, modelConfig *core.ModelConfig, msgs
 
 	options := GetLLOptions(modelConfig)
 	chunkSeq := 0
-	if modelConfig.Settings.Reasoning {
+	if modelConfig.SupportReasoning && modelConfig.Settings.Reasoning {
 		options = append(options, llms.WithStreamingReasoningFunc(func(ctx context.Context, reasoningChunk []byte, chunk []byte) error {
 			log.Trace(string(reasoningChunk), ",", string(chunk))
 			// Use taskCtx here to check for cancellation or other context-specific logic
@@ -322,7 +322,7 @@ func GenerateFinalResponse(taskCtx context.Context, reqMsg, replyMsg *core.ChatM
 	options = append(options, llms.WithMaxLength(maxLength))
 	options = append(options, llms.WithTemperature(temperature))
 
-	if params.MustGetAnsweringModel().Settings.Reasoning {
+	if params.MustGetAnsweringModel().SupportReasoning && params.MustGetAnsweringModel().Settings.Reasoning {
 		options = append(options, llms.WithStreamingReasoningFunc(func(ctx context.Context, reasoningChunk []byte, chunk []byte) error {
 			log.Trace(string(reasoningChunk), ",", string(chunk))
 
