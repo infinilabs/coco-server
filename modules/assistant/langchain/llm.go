@@ -175,5 +175,11 @@ func GetLLOptions(model *core.ModelConfig) []llms.CallOption {
 	options = append(options, llms.WithMaxTokens(maxTokens))
 	//options = append(options, llms.WithMaxLength(maxLength))
 	options = append(options, llms.WithTemperature(temperature))
+	if model.Settings.Reasoning {
+		options = append(options, llms.WithThinking(&llms.ThinkingConfig{
+			Mode:           llms.ThinkingModeAuto,
+			StreamThinking: true,
+		}))
+	}
 	return options
 }
