@@ -7,6 +7,7 @@ package attachment
 import (
 	"infini.sh/coco/core"
 	"infini.sh/framework/core/api"
+	"infini.sh/framework/core/queue"
 	"infini.sh/framework/core/security"
 )
 
@@ -14,10 +15,15 @@ type APIHandler struct {
 	api.Handler
 }
 
+// attachmentProcessingQueue is initialized once at startup and shared by all
+// upload handlers to push newly uploaded attachment IDs for post-processing.
+var attachmentProcessingQueue *queue.QueueConfig
+
 const Category = "coco"
 const Datasource = "attachment"
 
 func init() {
+	attachmentProcessingQueue = queue.SmartGetOrInitConfig(&queue.QueueConfig{Name: core.AttachmentProcessingQueue})
 
 	createPermission := security.GetSimplePermission(Category, Datasource, string(security.Create))
 	updatePermission := security.GetSimplePermission(Category, Datasource, string(security.Update))

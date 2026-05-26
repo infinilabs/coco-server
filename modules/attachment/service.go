@@ -102,12 +102,6 @@ func getAttachmentStatus(ids []string) map[string]util.MapStr {
 		stats := GetAttachmentStats(id)
 		if stats != nil {
 			out[id] = stats
-		} else {
-			//TODO remove this when the actual pipeline is ready
-			obj := util.MapStr{
-				core.AttachmentStageInitialParsing: "completed",
-			}
-			out[id] = obj
 		}
 	}
 

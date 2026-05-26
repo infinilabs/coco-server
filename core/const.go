@@ -19,6 +19,11 @@ const DefaultDocumentProcessingKey = "default_document_processing"
 const AttachmentKVBucket = "file_attachments"
 const AttachmentStatsBucket = "attachment_stats"
 
+// AttachmentProcessingQueue is the name of the queue that the attachment upload
+// handler pushes newly uploaded attachment IDs into. The process_attachments
+// pipeline processor consumes this queue to run post-upload processing pipelines.
+const AttachmentProcessingQueue = "attachment_processing"
+
 // attachment status,  `pending`, `processing`, `completed`, `canceled`, or `failed`.
 const AttachmentStageInitialParsing = "initial_parsing"
 const StatusPending = "pending"
@@ -34,6 +39,17 @@ const WidgetRole = "widget"
 const PipelineContextConnector param.ParaKey = "__connector"
 const PipelineContextDatasource param.ParaKey = "__datasource"
 const PipelineContextDocuments param.ParaKey = "messages"
+
+// PipelineContextAttachmentMeta is the pipeline context key that holds the
+// *core.Attachment metadata object for the attachment being processed.
+// Sub-pipelines invoked by process_attachments read and update this value;
+// the processor writes the final value back to Elasticsearch.
+const PipelineContextAttachmentMeta param.ParaKey = "attachment_meta"
+
+// PipelineContextAttachmentData is the pipeline context key that holds the
+// raw binary content ([]byte) of the attachment being processed, as read from
+// the KV blob store.
+const PipelineContextAttachmentData param.ParaKey = "attachment_data"
 
 // re-export
 const FeatureMaskSensitiveField = "feature_sensitive_fields"
