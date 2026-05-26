@@ -38,22 +38,6 @@ export const MCPConfig = (props: MCPConfigProps) => {
         label={t('page.assistant.labels.tool_invoked_model')}
         layout='vertical'
         name='mcp_servers'
-        rules={[
-          {
-            required: mode === 'simple' ? false : value.enabled,
-            validator: (_, value) => {
-              if (mode === 'simple' || !value.enabled) {
-                return Promise.resolve();
-              }
-
-              if (!value?.model?.id) {
-                return Promise.reject(new Error(t('page.assistant.hints.selectModel')));
-              }
-
-              return Promise.resolve();
-            }
-          }
-        ]}
       >
         <div>
           <ModelSelect
@@ -63,6 +47,8 @@ export const MCPConfig = (props: MCPConfigProps) => {
             value={value.model}
             width='100%'
             onChange={onModelChange}
+            allowClear={true}
+            placeholder={t('page.assistant.labels.modelSelectPlaceholder')}
           />
         </div>
       </Form.Item>

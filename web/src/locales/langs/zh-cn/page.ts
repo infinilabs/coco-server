@@ -100,7 +100,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       toolList: '工具列表',
       webSources: '网络来源列表',
       detectedIntent: '识别到的意图',
-      matchedDocs: '匹配到的文档'
+      matchedDocs: '匹配到的文档',
+      modelSelectPlaceholder: '使用默认模型'
     },
     mode: {
       deep_think: '深度思考',

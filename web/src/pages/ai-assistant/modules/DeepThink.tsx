@@ -16,22 +16,13 @@ export const DeepThink = (props: DeepThinkProps) => {
         label={t('page.assistant.labels.intent_recognition_model')}
         layout='vertical'
         name={['config', 'intent_analysis_model']}
-        rules={[
-          {
-            required: true,
-            validator: (_, value) => {
-              if (!value || !value.id) {
-                return Promise.reject(new Error(t('page.assistant.hints.selectModel')));
-              }
-              return Promise.resolve();
-            }
-          }
-        ]}
       >
         <ModelSelect
           modelType='intent_analysis_model'
           namePrefix={['config', 'intent_analysis_model']}
           providers={providers}
+          allowClear={true}
+          placeholder={t('page.assistant.labels.modelSelectPlaceholder')}
         />
       </Form.Item>
 

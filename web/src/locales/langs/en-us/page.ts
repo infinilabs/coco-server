@@ -105,7 +105,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       toolList: 'Tool List',
       webSources: 'Network Sources List',
       detectedIntent: 'Detected Intent',
-      matchedDocs: 'Retrieved Documents'
+      matchedDocs: 'Retrieved Documents',
+      modelSelectPlaceholder: 'Use default model'
     },
     mode: {
       deep_think: 'Deep Think',

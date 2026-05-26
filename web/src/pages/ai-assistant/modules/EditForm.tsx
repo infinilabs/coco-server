@@ -248,23 +248,13 @@ export const EditForm = memo((props: AssistantFormProps) => {
                       label={t('page.settings.llm.picking_doc_model')}
                       layout='vertical'
                       name={['config', 'picking_doc_model']}
-                      rules={[
-                        {
-                          required: true,
-                          validator: (_, value) => {
-                            if (!value || !value.id) {
-                              return Promise.reject(new Error(t('page.assistant.hints.selectModel')));
-                            }
-
-                            return Promise.resolve();
-                          }
-                        }
-                      ]}
                     >
                       <ModelSelect
                         modelType='picking_doc_model'
                         namePrefix={['config', 'picking_doc_model']}
                         providers={modelProviders}
+                        allowClear={true}
+                        placeholder={t('page.assistant.labels.modelSelectPlaceholder')}
                       />
                     </Form.Item>
                   </>
@@ -388,22 +378,13 @@ export const EditForm = memo((props: AssistantFormProps) => {
                 label={t('page.assistant.labels.answering_model')}
                 layout='vertical'
                 name={['answering_model']}
-                rules={[
-                  {
-                    required: true,
-                    validator: (_, value) => {
-                      if (!value || !value.id) {
-                        return Promise.reject(new Error(t('page.assistant.hints.selectModel')));
-                      }
-                      return Promise.resolve();
-                    }
-                  }
-                ]}
               >
                 <ModelSelect
                   modelType='answering_model'
                   namePrefix={['answering_model']}
                   providers={modelProviders}
+                  allowClear={true}
+                  placeholder={t('page.assistant.labels.modelSelectPlaceholder')}
                 />
               </Form.Item>
             )
@@ -546,17 +527,6 @@ export const EditForm = memo((props: AssistantFormProps) => {
           <Form.Item
             label={t('page.assistant.labels.answering_model')}
             name={['answering_model']}
-            rules={[
-              {
-                required: true,
-                validator: (_, value) => {
-                  if (!value || !value.id) {
-                    return Promise.reject(new Error(t('page.assistant.hints.selectModel')));
-                  }
-                  return Promise.resolve();
-                }
-              }
-            ]}
           >
             <ModelSelect
               modelType='answering_model'
@@ -564,6 +534,8 @@ export const EditForm = memo((props: AssistantFormProps) => {
               providers={modelProviders}
               showTemplate={false}
               width='600px'
+              allowClear={true}
+              placeholder={t('page.assistant.labels.modelSelectPlaceholder')}
             />
           </Form.Item>
         )}

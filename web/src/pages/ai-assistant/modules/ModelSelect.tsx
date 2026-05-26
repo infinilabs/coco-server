@@ -112,7 +112,7 @@ Wrap the JSON result in <JSON></JSON> tags.
 };
 
 export default (props: any) => {
-  const { value: propsValue, onChange, providers = [], width, modelType, showTemplate = true, namePrefix = [] } = props;
+  const { value: propsValue, onChange, providers = [], width, modelType, showTemplate = true, namePrefix = [], allowClear = false, placeholder = '' } = props;
   let defaultPromptTpl = '';
   if (DefaultPromptTemplates[modelType]) {
     defaultPromptTpl = DefaultPromptTemplates[modelType];
@@ -232,6 +232,7 @@ export default (props: any) => {
     <>
       <div className='flex items-center gap-2'>
         <DropdownList
+          allowClear={allowClear}
           data={formatData}
           defaultGroupVisible={true}
           dropdownWidth={width}
@@ -240,7 +241,7 @@ export default (props: any) => {
           groupOptions={groupOptions}
           groups={groups}
           locale={locale}
-          placeholder='Please select'
+          placeholder={placeholder}
           renderItem={item => item.name}
           rowKey='id'
           searchKey='name'
