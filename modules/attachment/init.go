@@ -7,6 +7,7 @@ package attachment
 import (
 	"infini.sh/coco/core"
 	"infini.sh/framework/core/api"
+	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/queue"
 	"infini.sh/framework/core/security"
 )
@@ -15,15 +16,21 @@ type APIHandler struct {
 	api.Handler
 }
 
-// attachmentProcessingQueue is initialized once at startup and shared by all
-// upload handlers to push newly uploaded attachment IDs for post-processing.
+// attachmentProcessingQueue is the queue that upload handlers push attachment
+// IDs into for post-upload processing. It is initialised in an AfterSetup
+// callback so that the KV store (required by SmartGetOrInitConfig) is
+// guaranteed to be registered before this call executes, and before the HTTP
+// server starts accepting requests.
 var attachmentProcessingQueue *queue.QueueConfig
 
 const Category = "coco"
 const Datasource = "attachment"
 
 func init() {
-	attachmentProcessingQueue = queue.SmartGetOrInitConfig(&queue.QueueConfig{Name: core.AttachmentProcessingQueue})
+	// Depends on the KV module; run after setup to ensure it is ready.
+	global.RegisterFuncAfterSetup(func() {
+		attachmentProcessingQueue = queue.SmartGetOrInitConfig(&queue.QueueConfig{Name: core.AttachmentProcessingQueue})
+	})
 
 	createPermission := security.GetSimplePermission(Category, Datasource, string(security.Create))
 	updatePermission := security.GetSimplePermission(Category, Datasource, string(security.Update))
