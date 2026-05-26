@@ -2,7 +2,7 @@
  * Web: https://infinilabs.com
  * Email: hello#infini.ltd */
 
-package file_extraction
+package face_extraction
 
 import (
 	"context"
@@ -15,12 +15,16 @@ import (
 	"infini.sh/coco/modules/assistant/langchain"
 	"infini.sh/coco/modules/common"
 	llmmodule "infini.sh/coco/modules/llm"
+	"infini.sh/coco/plugins/processors/fileproc"
 )
 
-// recognizeFacesWithAI uses vision model to identify names for each detected face
-func recognizeFacesWithAI(ctx context.Context, processor *FileExtractionProcessor, originalImgPath string, faceImages []string, surroundingText SurroundingText) ([]FaceRecognitionResult, error) {
-	// Resolve vision model (falls back to default_model.vision_model from settings)
-	modelId := llmmodule.ResolveModel(core.LLMTypeVision, &core.ModelId{ProviderID: processor.config.VisionModelProviderID, ID: processor.config.VisionModelName})
+// recognizeFacesWithAI sends the original image and individual face crops to a
+// vision model and returns the name identified for each face.
+func recognizeFacesWithAI(ctx context.Context, p *FaceExtractionProcessor, originalImgPath string, faceImages []string, surroundingText SurroundingText) ([]FaceRecognitionResult, error) {
+	modelId := llmmodule.ResolveModel(core.LLMTypeVision, &core.ModelId{
+		ProviderID: p.config.VisionModelProviderID,
+		ID:         p.config.VisionModelName,
+	})
 	if modelId == nil {
 		return nil, fmt.Errorf("[%s] no vision model configured: set vision_model_provider/vision_model in pipeline config or configure a default vision model in settings", ProcessorName)
 	}
@@ -33,27 +37,20 @@ func recognizeFacesWithAI(ctx context.Context, processor *FileExtractionProcesso
 
 	var parts []llms.ContentPart
 
-	// Add original image
-	originalImgPart, err := loadLocalImageToContentPart(originalImgPath, processor.config.ImageContentFormat)
+	originalPart, err := fileproc.LoadLocalImageToContentPart(originalImgPath, p.config.ImageContentFormat)
 	if err != nil {
-		return nil, fmt.Errorf("failed to convert original image to llms.ContentPart: %w", err)
+		return nil, fmt.Errorf("failed to convert original image: %w", err)
 	}
-	parts = append(parts, llms.TextPart("Original image:"))
-	parts = append(parts, originalImgPart)
-	parts = append(parts, llms.TextPart("\n\n"))
+	parts = append(parts, llms.TextPart("Original image:"), originalPart, llms.TextPart("\n\n"))
 
-	// Add each face image with numbering
 	for i, faceImgPath := range faceImages {
-		faceImgPart, err := loadLocalImageToContentPart(faceImgPath, processor.config.ImageContentFormat)
+		facePart, err := fileproc.LoadLocalImageToContentPart(faceImgPath, p.config.ImageContentFormat)
 		if err != nil {
-			return nil, fmt.Errorf("failed to load face image %s to llms.ContentPart: %w", faceImgPath, err)
+			return nil, fmt.Errorf("failed to load face image %s: %w", faceImgPath, err)
 		}
-		parts = append(parts, llms.TextPart(fmt.Sprintf("Face %d:", i)))
-		parts = append(parts, faceImgPart)
-		parts = append(parts, llms.TextPart("\n"))
+		parts = append(parts, llms.TextPart(fmt.Sprintf("Face %d:", i)), facePart, llms.TextPart("\n"))
 	}
 
-	// Build context from surrounding text
 	contextHint := ""
 	if surroundingText.Before != "" || surroundingText.After != "" {
 		contextHint = "\nSurrounding text context:\n"
@@ -93,10 +90,7 @@ Notes:
 	parts = append(parts, llms.TextPart(prompt))
 
 	content := []llms.MessageContent{
-		{
-			Role:  llms.ChatMessageTypeHuman,
-			Parts: parts,
-		},
+		{Role: llms.ChatMessageTypeHuman, Parts: parts},
 	}
 
 	completion, err := llm.GenerateContent(ctx, content)
@@ -104,19 +98,16 @@ Notes:
 		return nil, fmt.Errorf("vision model API call failed: %w", err)
 	}
 
-	// Parse response
 	resp := completion.Choices[0].Content
 
-	// Clean and parse JSON - handle markdown code blocks
+	// Strip optional markdown code fence
 	jsonStr := resp
 	if strings.HasPrefix(jsonStr, "```json") {
 		jsonStr = strings.TrimPrefix(jsonStr, "```json")
-		jsonStr = strings.TrimSuffix(jsonStr, "```")
-		jsonStr = strings.TrimSpace(jsonStr)
+		jsonStr = strings.TrimSuffix(strings.TrimSpace(jsonStr), "```")
 	} else if strings.HasPrefix(jsonStr, "```") {
 		jsonStr = strings.TrimPrefix(jsonStr, "```")
-		jsonStr = strings.TrimSuffix(jsonStr, "```")
-		jsonStr = strings.TrimSpace(jsonStr)
+		jsonStr = strings.TrimSuffix(strings.TrimSpace(jsonStr), "```")
 	}
 
 	start := strings.Index(jsonStr, "[")
@@ -124,12 +115,10 @@ Notes:
 	if start == -1 || end == -1 || end < start {
 		return nil, fmt.Errorf("no valid JSON array found in response: %s", resp)
 	}
-	cleanJson := jsonStr[start : end+1]
 
 	var results []FaceRecognitionResult
-	if err := json.Unmarshal([]byte(cleanJson), &results); err != nil {
-		return nil, fmt.Errorf("failed to parse JSON: %w (raw: %s)", err, cleanJson)
+	if err := json.Unmarshal([]byte(jsonStr[start:end+1]), &results); err != nil {
+		return nil, fmt.Errorf("failed to parse JSON: %w (raw: %s)", err, jsonStr[start:end+1])
 	}
-
 	return results, nil
 }
