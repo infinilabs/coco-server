@@ -74,7 +74,7 @@ func ContentTypeFromURL(url string) string {
 func IsImage(pathOrName string) bool {
 	ext := strings.ToLower(filepath.Ext(pathOrName))
 	switch ext {
-	case ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".webp", ".jfif":
+	case ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".tif", ".webp", ".jfif":
 		return true
 	}
 	return false

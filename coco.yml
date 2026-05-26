@@ -180,6 +180,22 @@ pipeline:
                 output_queue:
                       name: "documents_processed"
 
+  - name: process_attachments
+    enabled: true
+    auto_start: true
+    keep_running: true
+    processor:
+      - consumer:
+          auto_commit_offset: true
+          queue_selector:
+            keys:
+              - attachment_processing
+          consumer:
+            group: process_attachments
+            fetch_max_messages: 10
+          processor:
+            - process_attachments: {}
+
   - name: merge_documents
     auto_start: true
     keep_running: true

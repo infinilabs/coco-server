@@ -2,7 +2,7 @@
  * Web: https://infinilabs.com
  * Email: hello#infini.ltd */
 
-package document_cover
+package generate_cover
 
 import (
 	"bytes"
