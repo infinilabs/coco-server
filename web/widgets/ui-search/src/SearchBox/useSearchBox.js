@@ -34,6 +34,8 @@ export default function useSearchBox({ queryParams, onSearch, onSuggestion, filt
   const isClickingSuggestion = useRef(false);
   const isClickingSearchAction = useRef(false);
   const isSearchTriggered = useRef(false);
+  const blurTimeoutRef = useRef(null);
+  const lastClickOutsideTime = useRef(0);
   const inputRef = useRef(null);
   const textAreaRef = useRef(null);
   const expandedInputRef = useRef(null);
@@ -253,28 +255,43 @@ export default function useSearchBox({ queryParams, onSearch, onSuggestion, filt
     if (isCurrentActive) setSuggestions({});
   };
 
-  // Click outside to close expanded panel when filter is active
+  // Click outside to close expanded panel
   useEffect(() => {
-    if (filterState.type === 'none') return;
+    if (filterState.type === 'none' && !mainInputActive) return;
 
     const handleClickOutside = (e) => {
       // Find the searchbox root element
       const searchboxEl = expandedInputRef.current?.resizableTextArea?.textArea?.closest('[class*="searchbox"]')
         || document.querySelector('[class*="searchbox"]');
       if (searchboxEl && !searchboxEl.contains(e.target)) {
-        setFilterState({ type: 'none', index: -1 });
-        setSuggestions({});
+        if (filterState.type !== 'none') {
+          setFilterState({ type: 'none', index: -1 });
+          setSuggestions({});
+        }
+        if (mainInputActive) {
+          setMainInputActive(false);
+          lastClickOutsideTime.current = Date.now();
+        }
       }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [filterState.type]);
+  }, [filterState.type, mainInputActive]);
 
   const handleInputFocus = () => {
     if (isSearchTriggered.current) {
       isSearchTriggered.current = false;
       return;
+    }
+    // Prevent reopening right after click-outside closed the panel
+    if (Date.now() - lastClickOutsideTime.current < 200) {
+      return;
+    }
+    // Cancel any pending blur timeout to prevent race condition
+    if (blurTimeoutRef.current) {
+      clearTimeout(blurTimeoutRef.current);
+      blurTimeoutRef.current = null;
     }
     setMainInputActive(true);
     if (filterState.type !== 'none' || filterState.index !== -1) {
@@ -293,7 +310,8 @@ export default function useSearchBox({ queryParams, onSearch, onSuggestion, filt
   };
 
   const handleInputBlur = () => {
-    setTimeout(() => {
+    blurTimeoutRef.current = setTimeout(() => {
+      blurTimeoutRef.current = null;
       if (!document.hasFocus()) return;
       if (!isClickingSuggestion.current && !isClickingSearchAction.current) {
         setMainInputActive(false);

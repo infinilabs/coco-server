@@ -3,6 +3,7 @@ import styles from "./index.module.less";
 import { DARK_CLASS } from "../theme/shared";
 import { cloneElement, useCallback, useEffect, useRef, useState } from "react";
 import GlobalLoading from "../GlobalLoading";
+import SearchHeaderLayout from "./SearchHeaderLayout";
 
 const { Content, Sider } = Layout;
 
@@ -25,6 +26,7 @@ const BasicLayout = (props) => {
     theme,
     siderCollapse,
     setSiderCollapse,
+    rightMenuWidth,
     recommendsCollapse,
     setRecommendsCollapse
   } = props;
@@ -68,6 +70,8 @@ const BasicLayout = (props) => {
   // Use refs to track current collapse state without re-creating observer
   const siderCollapseRef = useRef(siderCollapse);
   const recommendsCollapseRef = useRef(recommendsCollapse);
+  const userCollapsedLeftRef = useRef(false);
+  const userCollapsedRightRef = useRef(false);
 
   useEffect(() => { siderCollapseRef.current = siderCollapse; }, [siderCollapse]);
   useEffect(() => { recommendsCollapseRef.current = recommendsCollapse; }, [recommendsCollapse]);
@@ -104,10 +108,20 @@ const BasicLayout = (props) => {
 
       // Only update if changed (compare with ref to get current value)
       if (aggregations && siderCollapseRef.current !== targetLeftCollapse) {
-        setSiderCollapse(targetLeftCollapse);
+        if (targetLeftCollapse === false && userCollapsedLeftRef.current) {
+          // Don't auto-expand if user manually collapsed
+        } else {
+          if (targetLeftCollapse) userCollapsedLeftRef.current = false;
+          setSiderCollapse(targetLeftCollapse);
+        }
       }
       if (recommends && recommendsCollapseRef.current !== targetRightCollapse) {
-        setRecommendsCollapse(targetRightCollapse);
+        if (targetRightCollapse === false && userCollapsedRightRef.current) {
+          // Don't auto-expand if user manually collapsed
+        } else {
+          if (targetRightCollapse) userCollapsedRightRef.current = false;
+          setRecommendsCollapse(targetRightCollapse);
+        }
       }
     };
 
@@ -136,8 +150,6 @@ const BasicLayout = (props) => {
     className: bgClass,
   };
 
-  const showLogoInCenter = !showLeftSider;
-
   return (
     <Layout
       ref={initContainer}
@@ -149,11 +161,23 @@ const BasicLayout = (props) => {
     >
       <GlobalLoading loading={loading} theme={theme} />
 
-      {/* Full-width header divider to keep tab line continuous */}
-      <div className="sticky top-[122px] z-1002 h-0 border-b border-[var(--ant-color-border-secondary)] pointer-events-none" />
+      <SearchHeaderLayout
+        logo={logo}
+        searchbox={searchbox}
+        tabs={tabs}
+        tools={tools}
+        isMobile={isMobile}
+        showLeftSider={showLeftSider}
+        showRightSider={showRightSider}
+        leftWidth={280}
+        rightWidth={400}
+        centerPadding={isMobile ? 'px-16px' : 'pl-72px pr-112px'}
+        centerMaxWidth={'max-w-840px'}
+        rightMenuWidth={rightMenuWidth}
+      />
 
       {/* Unified Left-Center-Right Layout */}
-      <Layout className={bgClass} style={{ minHeight: '100%' }}>
+      <Layout className={bgClass} style={{ minHeight: '100%', paddingTop: '122px' }}>
         {/* Left Column: Logo + Aggregations */}
         {aggregations && (
           isMobile || siderCollapse ? (
@@ -177,10 +201,6 @@ const BasicLayout = (props) => {
             </Drawer>
           ) : (
             <Sider width={280} {...siderProps} style={{ overflow: 'visible' }}>
-              {/* Header part */}
-              <div className={`sticky top-0 z-1001 pt-16px h-122px w-full pl-80px ${bgClass}`}>
-                <div className="h-48px w-full">{logo}</div>
-              </div>
               {/* Content part */}
               <div className="w-full pl-80px pt-32px">{aggregations}</div>
             </Sider>
@@ -192,31 +212,16 @@ const BasicLayout = (props) => {
           className={`${bgClass} min-w-400px ${showLeftSider && showRightSider ? 'max-w-840px' : !showLeftSider && !showRightSider ? '' : 'max-w-1120px'}`}
           style={{ overflow: 'visible' }}
         >
-          {/* Header part */}
-          <div className={`sticky top-0 z-1001 ${bgClass}`}>
-            <div className={`pt-16px h-122px ${isMobile ? 'px-16px' : 'pl-56px pr-96px'}`}>
-              <div className="flex gap-8px items-center">
-                {showLogoInCenter && (
-                  <div className={isMobile ? 'h-40px w-40px' : 'h-48px w-48px'}>{logo}</div>
-                )}
-                <div className={`flex-1 ${isMobile ? '' : 'px-16px'}`}>
-                  {searchbox}
-                </div>
-              </div>
-              {tabs && (
-                <div className={`w-full pt-12px ${isMobile ? '' : 'px-16px'} flex items-center justify-between`}>
-                  <div>{tabs}</div>
-                  <div>{tools}</div>
-                </div>
-              )}
-            </div>
-          </div>
           {/* Content part */}
           <div className={`pt-32px ${isMobile ? 'px-0px' : 'pl-56px pr-96px'}`}>
             {toolbar && <div className="pl-16px mb-16px">{toolbar}</div>}
             <div className="px-16px mb-16px">
               {resultHeader && cloneElement(resultHeader, {
                 hasRecommends: !!recommends,
+                userCollapsedLeft: userCollapsedLeftRef.current,
+                userCollapsedRight: userCollapsedRightRef.current,
+                setSiderCollapse: (v) => { userCollapsedLeftRef.current = !!v; setSiderCollapse(v); },
+                setRecommendsCollapse: (v) => { userCollapsedRightRef.current = !!v; setRecommendsCollapse(v); },
                 leftDrawerOpen,
                 setLeftDrawerOpen,
                 rightDrawerOpen,
@@ -251,8 +256,6 @@ const BasicLayout = (props) => {
             </Drawer>
           ) : (
             <Sider width={400} {...siderProps} style={{ overflow: 'visible' }}>
-              {/* Header part */}
-              <div className={`sticky top-0 z-1001 pt-16px h-122px ${bgClass}`} />
               {/* Content part */}
               <div className="flex-1 flex flex-col gap-16px pt-32px">
                 {recommends}

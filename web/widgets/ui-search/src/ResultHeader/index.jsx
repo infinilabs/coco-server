@@ -6,26 +6,37 @@ export function ResultHeader(props) {
     hasRecommends,
     siderCollapse, setSiderCollapse,
     recommendsCollapse, setRecommendsCollapse,
+    userCollapsedLeft, userCollapsedRight,
     leftDrawerOpen, setLeftDrawerOpen,
     rightDrawerOpen, setRightDrawerOpen
   } = props;
 
   const handleLeftToggle = () => {
-    if (isMobile || siderCollapse) {
-      // In drawer mode: toggle drawer open/close
+    if (isMobile) {
+      setLeftDrawerOpen(!leftDrawerOpen);
+    } else if (siderCollapse && userCollapsedLeft) {
+      // User manually collapsed: re-expand as sider
+      setSiderCollapse(false);
+    } else if (siderCollapse) {
+      // Auto-collapsed (not enough space): use drawer
       setLeftDrawerOpen(!leftDrawerOpen);
     } else {
-      // In sider mode: collapse it
+      // Sider showing: collapse it
       setSiderCollapse(true);
     }
   };
 
   const handleRightToggle = () => {
-    if (isMobile || recommendsCollapse) {
-      // In drawer mode: toggle drawer open/close
+    if (isMobile) {
+      setRightDrawerOpen(!rightDrawerOpen);
+    } else if (recommendsCollapse && userCollapsedRight) {
+      // User manually collapsed: re-expand as sider
+      setRecommendsCollapse(false);
+    } else if (recommendsCollapse) {
+      // Auto-collapsed (not enough space): use drawer
       setRightDrawerOpen(!rightDrawerOpen);
     } else {
-      // In sider mode: collapse it
+      // Sider showing: collapse it
       setRecommendsCollapse(true);
     }
   };

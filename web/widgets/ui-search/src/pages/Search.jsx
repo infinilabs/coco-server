@@ -71,6 +71,7 @@ export default function Search({
         loading={showFullScreenSpin}
         rightMenuWidth={rightMenuWidth}
         siderCollapse={siderCollapse}
+        setSiderCollapse={setSiderCollapse}
         detailCollapse={detailCollapse}
         aggregations={
           aggregations?.length > 0 ? (
@@ -97,6 +98,8 @@ export default function Search({
             hits={hits}
             siderCollapse={siderCollapse}
             setSiderCollapse={setSiderCollapse}
+            recommendsCollapse={recommendsCollapse}
+            setRecommendsCollapse={setRecommendsCollapse}
           />
         }
         resultList={
@@ -137,12 +140,6 @@ export default function Search({
               });
             }}
           />
-        }
-        tools={
-          <div className='h-46px flex items-center gap-8px'>
-            <ListFilter className='h-16px w-16px' />
-            <ChartColumn className='h-16px w-16px' />
-          </div>
         }
       />
     );
@@ -240,12 +237,6 @@ export default function Search({
             }, false, shouldAgg);
           }}
         />
-      }
-      tools={
-        <div className='h-46px flex items-center gap-8px'>
-          {/* <ListFilter className='h-16px w-16px' />
-          <ChartColumn className='h-16px w-16px' /> */}
-        </div>
       }
       recommends={<Recommends showTitle={true} onRecommend={(callback) => onRecommend("hot_topics_for_search_result", callback)} />}
     />

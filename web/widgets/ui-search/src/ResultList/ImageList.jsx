@@ -5,9 +5,10 @@ import { useInViewport, useSize } from "ahooks";
 import clsx from "clsx";
 import ResultDetail from "../ResultDetail";
 import { Spin } from "antd";
+import { AuthImage } from "./AuthImage";
 
 const MasonryItem = (props) => {
-  const { data, onItemClick } = props;
+  const { data, onItemClick, apiConfig } = props;
   const containerRef = useRef(null);
   const containerSize = useSize(containerRef);
   const imgRef = useRef(null);
@@ -43,7 +44,7 @@ const MasonryItem = (props) => {
           }}
         />
 
-        <img
+        <AuthImage
           ref={imgRef}
           src={imgSrc}
           alt={data?.title}
@@ -60,6 +61,8 @@ const MasonryItem = (props) => {
           onError={() => {
             setErrored(true);
           }}
+          requestHeaders={apiConfig?.headers}
+          loading="lazy"
         />
 
         <div
@@ -143,7 +146,7 @@ export function ImageList(props) {
           columns={columns}
           gutter={16}
           items={data.filter((item) => item.metadata?.content_category === 'image')}
-          itemRender={(item) => <MasonryItem data={item} onItemClick={(item) => onOpen(item)}/>}
+          itemRender={(item) => <MasonryItem data={item} onItemClick={(item) => onOpen(item)} apiConfig={apiConfig}/>}
           style={{ width: '100%' }}
         />
         {loading && hasMore && (

@@ -64,12 +64,15 @@ const AGGS: any = {
 
 export function Component() {
   const containerRef = useRef(null)
+  const topActionsRef = useRef<HTMLDivElement | null>(null)
 
   const responsive = useResponsive();
 
   const [queryParams, setQueryParams] = useQueryParams({ mode: 'search' });
 
   const darkMode = useAppSelector(getDarkMode);
+
+  const [rightMenuWidth, setRightMenuWidth] = useState(0);
 
   const providerInfo = localStg.get('providerInfo') || {}
 
@@ -80,6 +83,31 @@ export function Component() {
   const { data, loading, run } = useRequest(fetchIntegration, {
     manual: true
   });
+
+  useEffect(() => {
+    const element = topActionsRef.current;
+
+    if (!element) {
+      return;
+    }
+
+    const updateRightMenuWidth = () => {
+      const width = Math.ceil(element.getBoundingClientRect().width);
+      setRightMenuWidth(width > 0 ? width : 0);
+    };
+
+    updateRightMenuWidth();
+
+    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(updateRightMenuWidth) : null;
+
+    observer?.observe(element);
+    window.addEventListener('resize', updateRightMenuWidth);
+
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener('resize', updateRightMenuWidth);
+    };
+  }, [isMobile]);
 
   const onSearch = async (queryParams: { [key: string]: any }, callback: (data: any) => void, setLoading: (loading: boolean) => void) => {
     if (setLoading) setLoading(true)
@@ -213,6 +241,7 @@ export function Component() {
     },
     "placeholder": enabled_module?.search?.placeholder,
     "welcome": payload?.welcome || "",
+    rightMenuWidth,
     "aiOverview": {
       ...(payload?.ai_overview || {}),
       "showActions": true,
@@ -293,20 +322,9 @@ export function Component() {
           }}
         />
       </div>
-      <div className="absolute right-12px top-0px h-72px z-1002 flex-y-center justify-end pointer-events-none">
-        {
-          isMobile ? (
-            <>
-              <ThemeSchemaSwitch className="px-12px pointer-events-auto" />
-              <UserAvatar className="px-8px pointer-events-auto" showHome showName={!isMobile} />
-            </>
-          ) : (
-            <>
-              <ThemeSchemaSwitch className="px-12px pointer-events-auto" />
-              <UserAvatar className="px-8px pointer-events-auto" showHome showName={!isMobile} />
-            </>
-          )
-        }
+      <div ref={topActionsRef} className="absolute right-16px top-16px h-48px z-1002 flex-y-center justify-end pointer-events-none overflow-visible">
+        <ThemeSchemaSwitch className="px-12px pointer-events-auto" />
+        <UserAvatar className="px-8px pointer-events-auto" showHome showName={!isMobile} />
       </div>
     </Spin>
   );
