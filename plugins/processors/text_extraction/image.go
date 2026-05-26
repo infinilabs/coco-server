@@ -2,7 +2,7 @@
  * Web: https://infinilabs.com
  * Email: hello#infini.ltd */
 
-package file_extraction
+package text_extraction
 
 import (
 	"context"
@@ -15,10 +15,12 @@ import (
 	"infini.sh/coco/modules/assistant/langchain"
 	"infini.sh/coco/modules/common"
 	llmmodule "infini.sh/coco/modules/llm"
+	"infini.sh/coco/plugins/processors/fileproc"
 	"infini.sh/framework/core/global"
 )
 
-// buildImageDescriptionPrompt generates a prompt for image description in the specified language.
+// buildImageDescriptionPrompt returns a prompt that asks the vision model to
+// describe the image in the given language.
 func buildImageDescriptionPrompt(lang string) string {
 	return fmt.Sprintf(`You are an expert image analyst. Describe the content of this image in detail.
 Focus on:
@@ -33,29 +35,28 @@ Be factual and descriptive. Do not make assumptions about things not visible in 
 IMPORTANT: Your response MUST be in %s.`, lang)
 }
 
-// processImage processes an image file using a vision model to extract text description.
-// Returns an Extraction with the vision model's description as text content.
-func (p *FileExtractionProcessor) processImage(ctx context.Context, imagePath string) (Extraction, error) {
-	// Resolve vision model (falls back to default_model.vision_model from settings)
-	modelId := llmmodule.ResolveModel(core.LLMTypeVision, &core.ModelId{ProviderID: p.config.VisionModelProviderID, ID: p.config.VisionModelName})
+// processImage uses a vision model to generate a text description of the image
+// and returns it as a single-page Extraction.
+func (p *TextExtractionProcessor) processImage(ctx context.Context, imagePath string) (fileproc.Extraction, error) {
+	modelId := llmmodule.ResolveModel(core.LLMTypeVision, &core.ModelId{
+		ProviderID: p.config.VisionModelProviderID,
+		ID:         p.config.VisionModelName,
+	})
 	if modelId == nil {
-		return Extraction{}, fmt.Errorf("[%s] no vision model configured: set vision_model_provider/vision_model in pipeline config or configure a default vision model in settings", p.Name())
+		return fileproc.Extraction{}, fmt.Errorf("[%s] no vision model configured: set vision_model_provider/vision_model in pipeline config or configure a default vision model in settings", p.Name())
 	}
 	provider, err := common.GetModelProvider(modelId.ProviderID)
 	if err != nil {
-		return Extraction{}, fmt.Errorf("failed to get vision model provider: %w", err)
+		return fileproc.Extraction{}, fmt.Errorf("failed to get vision model provider: %w", err)
 	}
 
-	// Create LLM client
 	llm := langchain.GetLLM(provider.BaseURL, provider.APIType, modelId.ID, provider.APIKey, "")
 
-	// Convert image to llms.ContentPart based on config
-	imagePart, err := loadLocalImageToContentPart(imagePath, p.config.ImageContentFormat)
+	imagePart, err := fileproc.LoadLocalImageToContentPart(imagePath, p.config.ImageContentFormat)
 	if err != nil {
-		return Extraction{}, fmt.Errorf("failed to convert image to llms.ContentPart: %w", err)
+		return fileproc.Extraction{}, fmt.Errorf("failed to convert image to content part: %w", err)
 	}
 
-	// Build message with image
 	messages := []llms.MessageContent{
 		{
 			Role: llms.ChatMessageTypeHuman,
@@ -66,7 +67,6 @@ func (p *FileExtractionProcessor) processImage(ctx context.Context, imagePath st
 		},
 	}
 
-	// Generate description
 	var description strings.Builder
 	_, err = llm.GenerateContent(ctx, messages, llms.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
 		if global.ShuttingDown() {
@@ -75,22 +75,19 @@ func (p *FileExtractionProcessor) processImage(ctx context.Context, imagePath st
 		description.Write(chunk)
 		return nil
 	}))
-
 	if err != nil {
-		return Extraction{}, fmt.Errorf("failed to generate image description: %w", err)
+		return fileproc.Extraction{}, fmt.Errorf("failed to generate image description: %w", err)
 	}
 
 	descriptionText := strings.TrimSpace(description.String())
 	log.Debugf("generated image description for [%s]: %s", imagePath, truncateString(descriptionText, 100))
 
-	// Return as single page (will be chunked by the caller)
-	return Extraction{
+	return fileproc.Extraction{
 		Pages:       []string{descriptionText},
-		Attachments: []string{}, // Images don't have attachments
+		Attachments: []string{},
 	}, nil
 }
 
-// truncateString truncates a string to maxLen characters, adding "..." if truncated
 func truncateString(s string, maxLen int) string {
 	if len(s) <= maxLen {
 		return s

@@ -2,7 +2,7 @@
  * Web: https://infinilabs.com
  * Email: hello#infini.ltd */
 
-package file_extraction
+package face_extraction
 
 import (
 	"archive/zip"
@@ -15,41 +15,36 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"infini.sh/coco/core"
+	"infini.sh/coco/plugins/processors/fileproc"
 )
 
-// extractSurroundingText extracts embedded images and their surrounding text from a document.
-// Returns a map keyed by image filename.
-func extractSurroundingText(ctx context.Context, processor *FileExtractionProcessor, localPath string, doc *core.Document, contentType string) (map[string]SurroundingText, error) {
+// extractSurroundingText returns a map from image filename to surrounding text
+// context.  Strategy depends on contentType.
+func extractSurroundingText(ctx context.Context, tikaEndpoint string, tikaTimeout int, localPath string, doc *core.Document, contentType string) (map[string]SurroundingText, error) {
 	switch contentType {
 	case "image":
 		return extractSurroundingTextForImage(doc)
 	case "pptx":
 		return extractSurroundingTextForPptx(localPath)
-	case "docx", "xlsx", "pdf":
-		return extractSurroundingTextUsingTika(ctx, processor, localPath)
 	default:
-		return extractSurroundingTextUsingTika(ctx, processor, localPath)
+		return extractSurroundingTextUsingTika(ctx, tikaEndpoint, tikaTimeout, localPath)
 	}
 }
 
-// extractSurroundingTextForImage uses the LLM vision description as surrounding text
+// extractSurroundingTextForImage uses doc.Chunks[0] (LLM vision description)
+// as the "After" context for the image itself.
 func extractSurroundingTextForImage(doc *core.Document) (map[string]SurroundingText, error) {
 	result := make(map[string]SurroundingText)
-
-	// The image itself is the "embedded" picture
-	// Use Chunks[0].Text (LLM vision description) as "After" text
+	st := SurroundingText{}
 	if len(doc.Chunks) > 0 && doc.Chunks[0].Text != "" {
-		result[filepath.Base(doc.URL)] = SurroundingText{
-			After: doc.Chunks[0].Text,
-		}
-	} else {
-		result[filepath.Base(doc.URL)] = SurroundingText{}
+		st.After = doc.Chunks[0].Text
 	}
-
+	result[filepath.Base(doc.URL)] = st
 	return result, nil
 }
 
-// extractSurroundingTextForPptx extracts surrounding text for images in PowerPoint files
+// extractSurroundingTextForPptx extracts per-slide text from a PPTX zip and
+// maps each embedded image filename to the text of the slide it appears on.
 func extractSurroundingTextForPptx(localPath string) (map[string]SurroundingText, error) {
 	r, err := zip.OpenReader(localPath)
 	if err != nil {
@@ -59,40 +54,30 @@ func extractSurroundingTextForPptx(localPath string) (map[string]SurroundingText
 
 	result := make(map[string]SurroundingText)
 
-	// Get all slide files
-	slideFiles, err := getSortedSlideFiles(r)
+	slideFiles, err := fileproc.GetSortedSlideFiles(r)
 	if err != nil {
 		return result, nil
 	}
 
-	// Process each slide
 	for _, slideFile := range slideFiles {
-		// Get image relationships for this slide
-		relsMap, err := getSlideRelationships(r, slideFile.Name)
+		relsMap, err := fileproc.GetSlideRelationships(r, slideFile.Name)
 		if err != nil {
 			continue
 		}
-
-		// Extract text content from slide
 		slideText, err := extractTextFromSlide(slideFile)
 		if err != nil {
 			continue
 		}
-
-		// For each image in the slide, use the slide text as context
 		for _, filename := range relsMap {
 			if _, exists := result[filename]; !exists {
-				result[filename] = SurroundingText{
-					After: slideText,
-				}
+				result[filename] = SurroundingText{After: slideText}
 			}
 		}
 	}
-
 	return result, nil
 }
 
-// extractTextFromSlide extracts all text from a slide XML
+// extractTextFromSlide reads all <a:t> text nodes from a slide XML.
 func extractTextFromSlide(slideFile *zip.File) (string, error) {
 	rc, err := slideFile.Open()
 	if err != nil {
@@ -111,7 +96,6 @@ func extractTextFromSlide(slideFile *zip.File) (string, error) {
 		if err != nil {
 			return "", err
 		}
-
 		if t, ok := token.(xml.StartElement); ok && t.Name.Local == "t" {
 			var textContent string
 			if err := decoder.DecodeElement(&textContent, &t); err == nil {
@@ -119,20 +103,18 @@ func extractTextFromSlide(slideFile *zip.File) (string, error) {
 			}
 		}
 	}
-
 	return strings.Join(textParts, " "), nil
 }
 
-// extractSurroundingTextUsingTika extracts surrounding text for images in Word documents using Tika HTML
-func extractSurroundingTextUsingTika(ctx context.Context, processor *FileExtractionProcessor, localPath string) (map[string]SurroundingText, error) {
-	// Get HTML from Tika
-	htmlReader, err := tikaGetTextHtml(ctx, processor.config.TikaEndpoint, processor.config.TikaTimeoutInSeconds, localPath)
+// extractSurroundingTextUsingTika uses Tika HTML output to find the text
+// immediately before and after each embedded image.
+func extractSurroundingTextUsingTika(ctx context.Context, tikaEndpoint string, tikaTimeout int, localPath string) (map[string]SurroundingText, error) {
+	htmlReader, err := fileproc.TikaGetTextHtml(ctx, tikaEndpoint, tikaTimeout, localPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get HTML from Tika: %w", err)
 	}
 	defer htmlReader.Close()
 
-	// Parse HTML with goquery
 	doc, err := goquery.NewDocumentFromReader(htmlReader)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse HTML: %w", err)
@@ -140,7 +122,6 @@ func extractSurroundingTextUsingTika(ctx context.Context, processor *FileExtract
 
 	result := make(map[string]SurroundingText)
 
-	// Find all embedded images
 	doc.Find("img[src^=\"embedded:\"]").Each(func(_ int, s *goquery.Selection) {
 		src, exists := s.Attr("src")
 		if !exists {
@@ -153,7 +134,6 @@ func extractSurroundingTextUsingTika(ctx context.Context, processor *FileExtract
 			return
 		}
 
-		// Extract text from siblings (before/after the image)
 		allSiblings := parent.Contents()
 		imgNode := s.Get(0)
 		imgIndex := -1
@@ -164,7 +144,6 @@ func extractSurroundingTextUsingTika(ctx context.Context, processor *FileExtract
 			}
 			return true
 		})
-
 		if imgIndex == -1 {
 			return
 		}
@@ -172,23 +151,18 @@ func extractSurroundingTextUsingTika(ctx context.Context, processor *FileExtract
 		beforeText := strings.TrimSpace(allSiblings.Slice(0, imgIndex).Text())
 		afterText := strings.TrimSpace(allSiblings.Slice(imgIndex+1, goquery.ToEnd).Text())
 
-		// Fallback: check parent's siblings
 		if beforeText == "" {
-			if prevParent := parent.Prev(); prevParent.Length() > 0 {
-				beforeText = strings.TrimSpace(prevParent.Text())
+			if prev := parent.Prev(); prev.Length() > 0 {
+				beforeText = strings.TrimSpace(prev.Text())
 			}
 		}
-
 		if afterText == "" {
-			if nextParent := parent.Next(); nextParent.Length() > 0 {
-				afterText = strings.TrimSpace(nextParent.Text())
+			if next := parent.Next(); next.Length() > 0 {
+				afterText = strings.TrimSpace(next.Text())
 			}
 		}
 
-		result[filename] = SurroundingText{
-			Before: beforeText,
-			After:  afterText,
-		}
+		result[filename] = SurroundingText{Before: beforeText, After: afterText}
 	})
 
 	return result, nil
