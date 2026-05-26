@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-function isAssetUrl(url: string): boolean {
+function isAssetUrl(url) {
   try {
     const parsed = new URL(url);
     return parsed.pathname.startsWith("/assets");
@@ -9,18 +9,18 @@ function isAssetUrl(url: string): boolean {
   }
 }
 
-export function AuthImage(props: any) {
+export function AuthImage(props) {
   const { src, requestHeaders, ...rest } = props;
   const needsAuth = !!(src && requestHeaders && !isAssetUrl(src));
-  const [blobUrl, setBlobUrl] = useState<string | undefined>(undefined);
-  const urlRef = useRef<string | undefined>(undefined);
+  const [blobUrl, setBlobUrl] = useState(undefined);
+  const urlRef = useRef(undefined);
 
   useEffect(() => {
     if (!src || !needsAuth) return;
 
     let cancelled = false;
 
-    fetch(src, { headers: requestHeaders! })
+    fetch(src, { headers: requestHeaders })
       .then((res) => res.blob())
       .then((blob) => {
         if (cancelled) return;
