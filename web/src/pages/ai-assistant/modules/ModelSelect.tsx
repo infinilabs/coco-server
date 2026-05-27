@@ -113,7 +113,13 @@ Wrap the JSON result in <JSON></JSON> tags.
 };
 
 export default (props: any) => {
-  const { value: propsValue, onChange, providers = [], width, modelType, showTemplate = true, namePrefix = [], allowClear = false, placeholder = '', defaultModel } = props;
+  const { showSettings = true, value: propsValue, onChange, providers = [], width, modelType, showTemplate = true, namePrefix = [], allowClear = false, placeholder = '', defaultModel, onRefresh } = props;
+
+  const { hasAuth } = useAuth()
+
+  const permissions = {
+    createModelProviders: hasAuth('coco#model_provider/create'),
+  }
 
   const grps = useMemo(() => {
     return providers.map((item: any) => {
@@ -194,31 +200,31 @@ export default (props: any) => {
     if (!newValue.model) {
       newValue.model = model;
     }
-    if (!newValue.settings) {
+    if (!newValue.settings && showSettings) {
       newValue.settings = DefaultModelSettings;
     }
-    if (!newValue.prompt) {
+    if (!newValue.prompt && showTemplate) {
       newValue.prompt = {
         template: defaultPromptTpl
       };
     }
     return newValue;
-  }, [propsValue, providers, defaultPromptTpl]);
+  }, [propsValue, providers, defaultPromptTpl, showSettings, showTemplate]);
 
   const filterOptions = useMemo(() => {
     return showGroup
       ? []
       : [
-          {
-            label: 'Type',
+        {
+          label: 'Type',
+          key: 'type',
+          list: providers.map((item: any) => ({
             key: 'type',
-            list: providers.map((item: any) => ({
-              key: 'type',
-              value: `${item.id}_${item.name}`,
-              label: renderProvider(item)
-            }))
-          }
-        ];
+            value: `${item.id}_${item.name}`,
+            label: renderProvider(item)
+          }))
+        }
+      ];
   }, [showGroup, providers]);
 
   const groupOptions = useMemo(() => {
@@ -237,8 +243,8 @@ export default (props: any) => {
 
   const onSelectValueChange = (model: any) => {
     const {
-      settings, 
-      prompt 
+      settings,
+      prompt
     } = propsValue || {};
     const { name = '', provider_id = '' } = model || {};
     onChange?.({
@@ -308,14 +314,31 @@ export default (props: any) => {
               setFilters({ type: grps });
             }
           }}
+          onRefresh={onRefresh}
+          actions={permissions.createModelProviders ? [
+            <a
+              onClick={() => {
+                window.open(
+                  `#/model-provider/new`,
+                  "_blank"
+                );
+              }}
+            >
+              {t('common.create')}
+            </a>
+          ] : []}
         />
-        <div>
-          <ModelSettings
-            model={formatValue?.model || defaultModel}
-            value={formatValue || {}}
-            onChange={onSettingsChange}
-          />
-        </div>
+        {
+          showSettings && (
+            <div>
+              <ModelSettings
+                model={formatValue?.model || defaultModel}
+                value={formatValue || {}}
+                onChange={onSettingsChange}
+              />
+            </div>
+          )
+        }
       </div>
 
       {showTemplate && (

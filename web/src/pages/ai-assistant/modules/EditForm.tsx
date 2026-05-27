@@ -148,6 +148,11 @@ export const EditForm = memo((props: AssistantFormProps) => {
     return provider.models.find((model: any) => model.name === defaultModelSettings.id);
   }, [defaultModelSettings, modelProviders]);
 
+  const onModelRefresh = useMemo(() => {
+    if (!permissions.fetchModelProviders) return;
+    return () => fetchModelProviders(10000);
+  }, [permissions.fetchModelProviders]);
+
   useEffect(() => {
     if (permissions.fetchModelProviders) {
       fetchModelProviders(10000);
@@ -220,7 +225,7 @@ export const EditForm = memo((props: AssistantFormProps) => {
             forceRender: true,
             children: (
               <Form.Item className='mb-0!'>
-                <DeepThink providers={modelProviders} defaultModel={defaultModel} />
+                <DeepThink providers={modelProviders} defaultModel={defaultModel} onModelRefresh={onModelRefresh}/>
               </Form.Item>
             )
           }
@@ -281,6 +286,7 @@ export const EditForm = memo((props: AssistantFormProps) => {
                         allowClear={true}
                         placeholder={t('page.assistant.labels.modelSelectPlaceholder')}
                         defaultModel={defaultModel}
+                        onRefresh={onModelRefresh}
                       />
                     </Form.Item>
                   </>
@@ -375,6 +381,8 @@ export const EditForm = memo((props: AssistantFormProps) => {
                         value: item.id
                       }))
                     )}
+                    defaultModel={defaultModel}
+                    onModelRefresh={onModelRefresh}
                   >
                     <ToolsConfig />
                   </MCPConfig>
@@ -412,6 +420,7 @@ export const EditForm = memo((props: AssistantFormProps) => {
                   allowClear={true}
                   placeholder={t('page.assistant.labels.modelSelectPlaceholder')}
                   defaultModel={defaultModel}
+                  onRefresh={onModelRefresh}
                 />
               </Form.Item>
             )
@@ -564,6 +573,7 @@ export const EditForm = memo((props: AssistantFormProps) => {
               allowClear={true}
               placeholder={t('page.assistant.labels.modelSelectPlaceholder')}
               defaultModel={defaultModel}
+              onRefresh={onModelRefresh}
             />
           </Form.Item>
         )}

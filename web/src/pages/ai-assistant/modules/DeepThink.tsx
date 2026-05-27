@@ -5,10 +5,11 @@ interface DeepThinkProps {
   readonly providers: any[];
   readonly className?: string;
   readonly defaultModel?: any;
+  readonly onModelRefresh?: () => void;
 }
 
 export const DeepThink = (props: DeepThinkProps) => {
-  const { providers = [], className, defaultModel } = props;
+  const { providers = [], className, defaultModel, onModelRefresh } = props;
   const { t } = useTranslation();
   return (
     <div className={className}>
@@ -25,6 +26,7 @@ export const DeepThink = (props: DeepThinkProps) => {
           allowClear={true}
           placeholder={t('page.assistant.labels.modelSelectPlaceholder')}
           defaultModel={defaultModel}
+          onRefresh={onModelRefresh}
         />
       </Form.Item>
 

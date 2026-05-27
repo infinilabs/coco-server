@@ -21,7 +21,7 @@ const TopBanner = memo(() => {
         <Typography.Text className="!color-white truncate" ellipsis={{ tooltip: true }}>
           {t('page.guide.labels.tips')}
         </Typography.Text>
-        <Typography.Link className="!color-white !underline flex-shrink-0">
+        <Typography.Link className="!color-white !underline flex-shrink-0" onClick={() => nav('/settings?tab=default_model')}>
           {t('page.guide.labels.tipsSettings')}
         </Typography.Link>
       </div>

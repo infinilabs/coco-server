@@ -4,8 +4,8 @@ import { fetchSettings, updateSettings } from '@/service/api/server';
 import { useLoading, useRequest } from '@sa/hooks';
 import { searchModelPovider } from '@/service/api/model-provider';
 import { formatESSearchResult } from '@/service/request/es';
-import ModelSelect from './ModelSelect';
 import { setDefaultModel } from '@/store/slice/server';
+import ModelSelect from '@/pages/ai-assistant/modules/ModelSelect';
 
 const DefaultModel = memo(() => {
   const [form] = Form.useForm();
@@ -15,6 +15,7 @@ const DefaultModel = memo(() => {
 
   const permissions = {
     update: hasAuth('coco#system/update'),
+    fetchModelProviders: hasAuth('coco#model_provider/search'),
   }
 
   const { endLoading, loading, startLoading } = useLoading();
@@ -42,8 +43,15 @@ const DefaultModel = memo(() => {
 
   useEffect(() => {
     run();
-    fetchModelProvider();
+    if (permissions.fetchModelProviders) {
+      fetchModelProvider();
+    }
   }, []);
+
+  const onModelRefresh = useMemo(() => {
+    if (!permissions.fetchModelProviders) return;
+    return () => fetchModelProvider();
+  }, [permissions.fetchModelProviders]);
 
   const handleSubmit = async () => {
     const params = await form.validateFields();
@@ -162,6 +170,7 @@ const DefaultModel = memo(() => {
             name="language_model"
             modelProviderList={modelProviderList}
             type="language"
+            onRefresh={onModelRefresh}
           />
           <ModelSelectItem 
             label={t('page.guide.visionModel.title')}
@@ -169,6 +178,7 @@ const DefaultModel = memo(() => {
             name="vision_model"
             modelProviderList={modelProviderList}
             type="vision"
+            onRefresh={onModelRefresh}
           />
           <ModelSelectItem 
             label={t('page.guide.embeddingModel.title')}
@@ -176,6 +186,7 @@ const DefaultModel = memo(() => {
             name="embedding_model"
             modelProviderList={modelProviderList}
             type="embedding"
+            onRefresh={onModelRefresh}
           />
           <Form.Item
             label={<span className='color-[var(--ant-color-text-tertiary)]'>{t('page.settings.default_model.labels.ai_assistant')}</span>}
@@ -187,24 +198,28 @@ const DefaultModel = memo(() => {
             name="intent_analysis_model"
             modelProviderList={modelProviderList}
             type="language"
+            onRefresh={onModelRefresh}
           />
           <ModelSelectItem 
             label={t('page.settings.default_model.labels.picking_doc_model')}
             name="picking_doc_model"
             modelProviderList={modelProviderList}
             type="language"
+            onRefresh={onModelRefresh}
           />
           <ModelSelectItem 
             label={t('page.settings.default_model.labels.picking_tool_model')}
             name="picking_tool_model"
             modelProviderList={modelProviderList}
             type="language"
+            onRefresh={onModelRefresh}
           />
           <ModelSelectItem 
             label={t('page.settings.default_model.labels.answering_model')}
             name="answering_model"
             modelProviderList={modelProviderList}
             type="language"
+            onRefresh={onModelRefresh}
           />
           {
             permissions.update && (
@@ -226,7 +241,7 @@ const DefaultModel = memo(() => {
 
 export default DefaultModel;
 
-const ModelSelectItem = ({ label, desc, name, modelProviderList = [], type }: { label: string, desc?: string, name: string, modelProviderList?: any[], type?: string }) => {
+const ModelSelectItem = ({ label, desc, name, modelProviderList = [], type, onRefresh }: { label: string, desc?: string, name: string, modelProviderList?: any[], type?: string, onRefresh?: () => void }) => {
   
   const providers = useMemo(() => {
     if (!type) return modelProviderList;
@@ -245,6 +260,9 @@ const ModelSelectItem = ({ label, desc, name, modelProviderList = [], type }: { 
       <Form.Item noStyle name={name}>
         <ModelSelect
           providers={providers}
+          showSettings={false}
+          showTemplate={false}
+          onRefresh={onRefresh}
         />
       </Form.Item>
     </Form.Item>

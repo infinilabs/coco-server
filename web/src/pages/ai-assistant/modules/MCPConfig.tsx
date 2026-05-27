@@ -9,11 +9,13 @@ interface MCPConfigProps {
   readonly modelProviders: any[];
   readonly children?: ReactNode;
   readonly mode: string;
+  readonly defaultModel?: any;
+  readonly onModelRefresh?: () => void;
 }
 
 export const MCPConfig = (props: MCPConfigProps) => {
   const { t } = useTranslation();
-  const { value = {}, onChange, children, mode } = props;
+  const { value = {}, onChange, children, mode, defaultModel, onModelRefresh } = props;
 
   const onModelChange = (model: any) => {
     onChange?.({
@@ -49,6 +51,8 @@ export const MCPConfig = (props: MCPConfigProps) => {
             onChange={onModelChange}
             allowClear={true}
             placeholder={t('page.assistant.labels.modelSelectPlaceholder')}
+            defaultModel={defaultModel}
+            onRefresh={onModelRefresh}
           />
         </div>
       </Form.Item>
