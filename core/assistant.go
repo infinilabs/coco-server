@@ -182,7 +182,7 @@ type BuiltinToolsConfig struct {
 type ModelConfig struct {
 	// --- Static fields: identity & capability ---
 
-	ProviderID string  `json:"provider_id,omitempty"`
+	ProviderID string  `json:"provider_id"`
 	Name       string  `json:"name"`           // model ID
 	Type       LLMType `json:"type,omitempty"` // LLMTypeLanguage, LLMTypeVision, LLMTypeEmbedding
 	// SupportReasoning reports whether the model is *capable* of running in
