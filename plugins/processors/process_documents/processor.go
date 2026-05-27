@@ -100,7 +100,7 @@ func (p *ProcessDocumentsProcessor) processMessage(msg queue.Message) error {
 
 	// No datasource reference — nothing to look up.
 	if doc.Source.ID == "" {
-		return p.passthrough(msg)
+		return p.pushWithProcessed(msg.Data, false)
 	}
 
 	ormCtx := orm.NewContext()
@@ -113,7 +113,7 @@ func (p *ProcessDocumentsProcessor) processMessage(msg queue.Message) error {
 	exists, err := orm.GetV2(ormCtx, &ds)
 	if err != nil || !exists {
 		log.Debugf("processor [%s] datasource [%s] not found (err=%v), passing through", p.Name(), doc.Source.ID, err)
-		return p.passthrough(msg)
+		return p.pushWithProcessed(msg.Data, false)
 	}
 
 	// Resolve the enrichment pipeline name: datasource-level first, then global default.
@@ -129,7 +129,7 @@ func (p *ProcessDocumentsProcessor) processMessage(msg queue.Message) error {
 
 	if pipelineName == "" {
 		// No pipeline configured — pass through directly.
-		return p.passthrough(msg)
+		return p.pushWithProcessed(msg.Data, false)
 	}
 
 	// Load the pipeline config (pipeline name == ES document ID).
@@ -138,46 +138,45 @@ func (p *ProcessDocumentsProcessor) processMessage(msg queue.Message) error {
 	exists, err = orm.GetV2(ormCtx, &pipelineCfg)
 	if err != nil || !exists {
 		log.Warnf("processor [%s] pipeline [%s] not found (err=%v), passing through", p.Name(), pipelineName, err)
-		return p.passthrough(msg)
+		return p.pushWithProcessed(msg.Data, false)
 	}
 
 	// Compile the processor chain from the stored config.
 	processorCfgs, err := pipelineCfg.GetProcessorsConfig()
 	if err != nil {
 		log.Errorf("processor [%s] failed to build processor configs for pipeline [%s]: %v", p.Name(), pipelineName, err)
-		return p.passthrough(msg)
+		return p.pushWithProcessed(msg.Data, false)
 	}
 
 	procs, err := pipeline.NewPipeline(processorCfgs)
 	if err != nil {
 		log.Errorf("processor [%s] failed to instantiate pipeline [%s]: %v", p.Name(), pipelineName, err)
-		return p.passthrough(msg)
+		return p.pushWithProcessed(msg.Data, false)
 	}
 
 	// Run the enrichment pipeline synchronously in the current goroutine.
 	subCtx := pipeline.AcquireContext(pipelineCfg)
 	subCtx.Set(p.config.MessageField, []queue.Message{msg})
 
+	pipelineSucceeded := true
 	if err := procs.Process(subCtx); err != nil {
 		log.Errorf("processor [%s] pipeline [%s] returned error: %v — forwarding whatever was enriched", p.Name(), pipelineName, err)
+		pipelineSucceeded = false
 	}
 
 	// Retrieve the (possibly processed) messages from the sub-context.
-	processed, ok := subCtx.Get(p.config.MessageField).([]queue.Message)
-	if !ok || len(processed) == 0 {
+	enriched, ok := subCtx.Get(p.config.MessageField).([]queue.Message)
+	if !ok || len(enriched) == 0 {
 		log.Warnf("processor [%s] sub-pipeline [%s] produced no output, passing through original", p.Name(), pipelineName)
-		return p.passthrough(msg)
+		return p.pushWithProcessed(msg.Data, false)
 	}
 
 	// Write every processed document to the output queue.
 	// A sub-pipeline processor (e.g. a splitter or "duplicate" processor) may
 	// expand one input document into multiple output documents, so we iterate
 	// over the full slice rather than assuming a 1-to-1 mapping.
-	for _, em := range processed {
-		if p.outputQueue == nil {
-			continue
-		}
-		if err := queue.Push(p.outputQueue, em.Data); err != nil {
+	for _, em := range enriched {
+		if err := p.pushWithProcessed(em.Data, pipelineSucceeded); err != nil {
 			log.Errorf("processor [%s] failed to push enriched document to output queue: %v", p.Name(), err)
 		}
 	}
@@ -185,12 +184,26 @@ func (p *ProcessDocumentsProcessor) processMessage(msg queue.Message) error {
 	return nil
 }
 
-// passthrough writes the original (unenriched) message directly to the output
-// queue. Used when no pipeline is configured or when an error prevents
-// enrichment from completing.
+// passthrough writes the original message to the output queue without
+// modification. Used only when the message cannot be deserialized, making
+// it impossible to stamp the Processed field.
 func (p *ProcessDocumentsProcessor) passthrough(msg queue.Message) error {
 	if p.outputQueue == nil {
 		return nil
 	}
 	return queue.Push(p.outputQueue, msg.Data)
+}
+
+// pushWithProcessed stamps doc.Processed, re-serializes, and pushes to the
+// output queue. Falls back to the raw bytes if (de)serialization fails.
+func (p *ProcessDocumentsProcessor) pushWithProcessed(data []byte, processed bool) error {
+	if p.outputQueue == nil {
+		return nil
+	}
+	doc := core.Document{}
+	if err := util.FromJSONBytes(data, &doc); err != nil {
+		return queue.Push(p.outputQueue, data)
+	}
+	doc.Processed = processed
+	return queue.Push(p.outputQueue, util.MustToJSONBytes(&doc))
 }

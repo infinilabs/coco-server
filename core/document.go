@@ -61,6 +61,7 @@ type Document struct {
 
 	LastUpdatedBy *EditorInfo `json:"last_updated_by,omitempty" elastic_mapping:"last_updated_by:{type:object}"` // Struct containing last update information
 	Disabled      bool        `json:"disabled,omitempty" elastic_mapping:"disabled:{type:boolean}"`              // Whether the document is disabled or not
+	Processed     bool        `json:"processed" elastic_mapping:"processed:{type:boolean}"`                       // Whether the document was successfully processed by a pipeline
 }
 
 func (document *Document) GetAllCategories() string {
