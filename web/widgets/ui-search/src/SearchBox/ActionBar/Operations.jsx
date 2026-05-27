@@ -77,7 +77,7 @@ export default (props) => {
             >
                 <Button
                     style={btnStyle}
-                    classNames={{ icon: `w-16px h-16px !text-16px` }}
+                    classNames={{ icon: `w-16px h-16px !text-16px flex items-center justify-center` }}
                     icon={<Paperclip className="w-16px h-16px" />}
                     type="text"
                     shape="circle"
@@ -85,7 +85,7 @@ export default (props) => {
             </Upload>
             <Button
                 style={btnStyle}
-                classNames={{ icon: `w-16px h-16px !text-16px` }}
+                classNames={{ icon: `w-16px h-16px !text-16px flex items-center justify-center` }}
                 icon={<Image className="w-16px h-16px" />}
                 type="text"
                 shape="circle"
@@ -93,7 +93,7 @@ export default (props) => {
             />
             <Button
                 style={btnStyle}
-                classNames={{ icon: `w-16px h-16px !text-16px` }}
+                classNames={{ icon: `w-16px h-16px !text-16px flex items-center justify-center` }}
                 icon={<Mic className="w-16px h-16px" />}
                 type="text"
                 shape="circle"

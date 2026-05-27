@@ -322,9 +322,9 @@ export function Component() {
           }}
         />
       </div>
-      <div ref={topActionsRef} className="absolute right-16px top-16px h-48px z-1002 flex-y-center justify-end pointer-events-none overflow-visible">
-        <ThemeSchemaSwitch className="px-12px pointer-events-auto" />
-        <UserAvatar className="px-8px pointer-events-auto" showHome showName={!isMobile} />
+      <div ref={topActionsRef} className="absolute right-16px top-16px h-48px z-1002 flex-y-center justify-end">
+        <ThemeSchemaSwitch className="px-12px" />
+        <UserAvatar className="px-8px" showHome showName={!isMobile} />
       </div>
     </Spin>
   );

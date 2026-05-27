@@ -114,7 +114,6 @@ export default (props) => {
             callback(data)
         })
         .catch(error => {
-            console.error('error:', error);
             callback({ error })
         }).finally(() => {
             if (setLoading) setLoading(false)
@@ -143,7 +142,6 @@ export default (props) => {
             callback(data)
         })
         .catch(error => {
-            console.error('error:', error);
             callback({ error })
         }).finally(() => {
             if (setLoading) setLoading(false)
@@ -202,7 +200,6 @@ export default (props) => {
             }
         } catch (error) {
             setLoading(false)
-            console.error('error:', error);
         }
     }
 
@@ -222,8 +219,7 @@ export default (props) => {
             const data = await response.json()
             callback?.(data)
         } catch (error) {
-            console.error('error:', error)
-            callback?.({})
+            callback?.()
         }
     }
 
@@ -242,14 +238,51 @@ export default (props) => {
             const data = await response.json()
             callback?.(data)
         } catch (error) {
-            console.error('error:', error)
-            callback?.({})
+            callback?.()
+        }
+    }
+
+    async function fetchProfile(callback) {
+        try {
+            const response = await fetch(`${server}/account/profile`, {
+                method: 'GET',
+                headers: apiHeaders,
+                credentials: 'include',
+            })
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`)
+            }
+
+            const data = await response.json()
+            callback?.(data)
+        } catch (error) {
+            callback?.()
+        }
+    }
+
+    async function onLogout(callback) {
+        try {
+            const response = await fetch(`${server}/account/logout`, {
+                method: 'POST',
+                headers: apiHeaders,
+                credentials: 'include',
+            })
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`)
+            }
+
+            const data = await response.json()
+            callback?.(data)
+        } catch (error) {
+            callback?.()
         }
     }
 
     async function getFieldsMeta(fields, callback) {
         if (!Array.isArray(fields) || fields.length === 0) {
-            callback?.({})
+            callback?.()
             return
         }
 
@@ -267,8 +300,7 @@ export default (props) => {
             const data = await response.json()
             callback?.(data)
         } catch (error) {
-            console.error('error:', error)
-            callback?.({})
+            callback?.()
         }
     }
 
@@ -381,7 +413,14 @@ export default (props) => {
             const currentUrl = new URL(window.location.href)
             currentUrl.search = ''
             history.replaceState(null, '', currentUrl.toString())
-        }
+        },
+        "getProfile": (callback) => {
+            fetchProfile(callback)
+        },
+        "onLogout": (callback) => {
+            onLogout(callback)
+        },
+        showTopAction: true
     }
     
     if (settings?.type === 'fullscreen' || settings?.type === 'page') {
