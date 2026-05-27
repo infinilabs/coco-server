@@ -99,8 +99,15 @@ func (p *ProcessAttachmentsProcessor) processMessage(msg queue.Message) error {
 	if appCfg := common.AppConfig(); appCfg.DocumentProcessing != nil {
 		pipelineName = appCfg.DocumentProcessing.DefaultPipelineForAttachment
 	}
+	// When no attachment processing pipeline is configured, there is nothing
+	// further to do for this attachment. Mark it as completed so that
+	// downstream consumers (e.g. chat flows that block on attachment status)
+	// do not wait forever for a pipeline that will never run.
 	if pipelineName == "" {
-		log.Debugf("processor [%s] no attachment pipeline configured, skipping attachment [%s]", p.Name(), attachmentID)
+		log.Debugf("processor [%s] no attachment pipeline configured, marking attachment [%s] as completed", p.Name(), attachmentID)
+		attachmentmod.UpdateAttachmentStats(attachmentID, util.MapStr{
+			core.AttachmentStageInitialParsing: core.StatusCompleted,
+		})
 		return nil
 	}
 
