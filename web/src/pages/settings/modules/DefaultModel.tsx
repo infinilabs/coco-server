@@ -6,6 +6,7 @@ import { searchModelPovider } from '@/service/api/model-provider';
 import { formatESSearchResult } from '@/service/request/es';
 import { setDefaultModel } from '@/store/slice/server';
 import ModelSelect from '@/pages/ai-assistant/modules/ModelSelect';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 
 const DefaultModel = memo(() => {
   const [form] = Form.useForm();
@@ -20,6 +21,7 @@ const DefaultModel = memo(() => {
 
   const { endLoading, loading, startLoading } = useLoading();
   const [modelProviderList, setModelProviderList] = useState([]);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const dispatch = useAppDispatch();
 
@@ -164,7 +166,7 @@ const DefaultModel = memo(() => {
           >
             <div className='color-[var(--ant-color-text-tertiary)]'>{t('page.settings.default_model.labels.default_model_desc')}</div>
           </Form.Item>
-          <ModelSelectItem 
+          <ModelSelectItem
             label={t('page.guide.languageModel.title')}
             desc={t('page.guide.languageModel.desc')}
             name="language_model"
@@ -172,7 +174,7 @@ const DefaultModel = memo(() => {
             type="language"
             onRefresh={onModelRefresh}
           />
-          <ModelSelectItem 
+          <ModelSelectItem
             label={t('page.guide.visionModel.title')}
             desc={t('page.guide.visionModel.desc')}
             name="vision_model"
@@ -180,7 +182,7 @@ const DefaultModel = memo(() => {
             type="vision"
             onRefresh={onModelRefresh}
           />
-          <ModelSelectItem 
+          <ModelSelectItem
             label={t('page.guide.embeddingModel.title')}
             desc={t('page.guide.embeddingModel.desc')}
             name="embedding_model"
@@ -188,39 +190,54 @@ const DefaultModel = memo(() => {
             type="embedding"
             onRefresh={onModelRefresh}
           />
-          <Form.Item
-            label={<span className='color-[var(--ant-color-text-tertiary)]'>{t('page.settings.default_model.labels.ai_assistant')}</span>}
-          >
-            <div className='color-[var(--ant-color-text-tertiary)]'>{t('page.settings.default_model.labels.ai_assistant_desc')}</div>
+          <Form.Item label=' '>
+            <Button
+              className='p-0'
+              type='link'
+              onClick={() => setShowAdvanced(!showAdvanced)}
+            >
+              {t('common.advanced')} {showAdvanced ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </Button>
           </Form.Item>
-          <ModelSelectItem 
-            label={t('page.settings.default_model.labels.intent_analysis_model')}
-            name="intent_analysis_model"
-            modelProviderList={modelProviderList}
-            type="language"
-            onRefresh={onModelRefresh}
-          />
-          <ModelSelectItem 
-            label={t('page.settings.default_model.labels.picking_doc_model')}
-            name="picking_doc_model"
-            modelProviderList={modelProviderList}
-            type="language"
-            onRefresh={onModelRefresh}
-          />
-          <ModelSelectItem 
-            label={t('page.settings.default_model.labels.picking_tool_model')}
-            name="picking_tool_model"
-            modelProviderList={modelProviderList}
-            type="language"
-            onRefresh={onModelRefresh}
-          />
-          <ModelSelectItem 
-            label={t('page.settings.default_model.labels.answering_model')}
-            name="answering_model"
-            modelProviderList={modelProviderList}
-            type="language"
-            onRefresh={onModelRefresh}
-          />
+          {
+            showAdvanced ? (
+              <>
+                <Form.Item
+                  label={<span className='color-[var(--ant-color-text-tertiary)]'>{t('page.settings.default_model.labels.ai_assistant')}</span>}
+                >
+                  <div className='color-[var(--ant-color-text-tertiary)]'>{t('page.settings.default_model.labels.ai_assistant_desc')}</div>
+                </Form.Item>
+                <ModelSelectItem
+                  label={t('page.settings.default_model.labels.intent_analysis_model')}
+                  name="intent_analysis_model"
+                  modelProviderList={modelProviderList}
+                  type="language"
+                  onRefresh={onModelRefresh}
+                />
+                <ModelSelectItem
+                  label={t('page.settings.default_model.labels.picking_doc_model')}
+                  name="picking_doc_model"
+                  modelProviderList={modelProviderList}
+                  type="language"
+                  onRefresh={onModelRefresh}
+                />
+                <ModelSelectItem
+                  label={t('page.settings.default_model.labels.picking_tool_model')}
+                  name="picking_tool_model"
+                  modelProviderList={modelProviderList}
+                  type="language"
+                  onRefresh={onModelRefresh}
+                />
+                <ModelSelectItem
+                  label={t('page.settings.default_model.labels.answering_model')}
+                  name="answering_model"
+                  modelProviderList={modelProviderList}
+                  type="language"
+                  onRefresh={onModelRefresh}
+                />
+              </>
+            ) : null
+          }
           {
             permissions.update && (
               <Form.Item label=" " >
@@ -242,7 +259,7 @@ const DefaultModel = memo(() => {
 export default DefaultModel;
 
 const ModelSelectItem = ({ label, desc, name, modelProviderList = [], type, onRefresh }: { label: string, desc?: string, name: string, modelProviderList?: any[], type?: string, onRefresh?: () => void }) => {
-  
+
   const providers = useMemo(() => {
     if (!type) return modelProviderList;
     return modelProviderList.map(item => {
@@ -256,7 +273,7 @@ const ModelSelectItem = ({ label, desc, name, modelProviderList = [], type, onRe
   return (
     <Form.Item label=" ">
       <div className='m-b-4px'>{label}</div>
-      { desc && <div className='m-b-8px color-[var(--ant-color-text-tertiary)]'>{desc}</div> }
+      {desc && <div className='m-b-8px color-[var(--ant-color-text-tertiary)]'>{desc}</div>}
       <Form.Item noStyle name={name}>
         <ModelSelect
           providers={providers}
