@@ -6,6 +6,7 @@ import { getLocale } from '@/store/slice/app';
 import { Form, Input } from 'antd';
 import { getServer } from '@/store/slice/server';
 import AvailableVariable from './AvailableVariable';
+import { cloneDeep } from 'lodash';
 
 const DefaultModelSettings = {
   temperature: 0.7,
@@ -112,29 +113,7 @@ Wrap the JSON result in <JSON></JSON> tags.
 };
 
 export default (props: any) => {
-  const { value: propsValue, onChange, providers = [], width, modelType, showTemplate = true, namePrefix = [], allowClear = false, placeholder = '' } = props;
-  let defaultPromptTpl = '';
-  if (DefaultPromptTemplates[modelType]) {
-    defaultPromptTpl = DefaultPromptTemplates[modelType];
-  }
-  const value = propsValue ?? {
-    settings: DefaultModelSettings,
-    prompt: {
-      template: defaultPromptTpl
-    }
-  };
-
-  if (value?.provider_id && !value.id) {
-    value.id = `${value.provider_id}_${value.name}`;
-  }
-  if (!value.settings) {
-    value.settings = DefaultModelSettings;
-  }
-  if (!value.prompt) {
-    value.prompt = {
-      template: defaultPromptTpl
-    };
-  }
+  const { value: propsValue, onChange, providers = [], width, modelType, showTemplate = true, namePrefix = [], allowClear = false, placeholder = '', defaultModel } = props;
 
   const grps = useMemo(() => {
     return providers.map((item: any) => {
@@ -179,12 +158,52 @@ export default (props: any) => {
           type: `${item.id}_${item.name}`,
           provider_id: item.id,
           id: `${item.id}_${model.name}`,
-          name: model.name
+          name: model.name,
+          model: model,
         });
       });
     });
     return models;
   }, [providers]);
+
+  const defaultPromptTpl = useMemo(() => {
+    return DefaultPromptTemplates[modelType] || '';
+  }, [modelType]);
+
+  const formatValue = useMemo(() => {
+    const newValue = cloneDeep(propsValue) ?? {
+      settings: DefaultModelSettings,
+      prompt: {
+        template: defaultPromptTpl
+      }
+    };
+
+    const { provider_id, name } = newValue || {};
+
+    const provider = providers.find((p: any) => p.id === provider_id);
+    const model = provider?.models?.find((m: any) => m.name === name);
+
+    if (!newValue.id) {
+      newValue.id = provider_id && name ? `${provider_id}_${name}` : '';
+    }
+
+    if (!newValue.type) {
+      newValue.type = provider ? `${provider.id}_${provider.name}` : '';
+    }
+
+    if (!newValue.model) {
+      newValue.model = model;
+    }
+    if (!newValue.settings) {
+      newValue.settings = DefaultModelSettings;
+    }
+    if (!newValue.prompt) {
+      newValue.prompt = {
+        template: defaultPromptTpl
+      };
+    }
+    return newValue;
+  }, [propsValue, providers, defaultPromptTpl]);
 
   const filterOptions = useMemo(() => {
     return showGroup
@@ -217,7 +236,17 @@ export default (props: any) => {
   }, [grps]);
 
   const onSelectValueChange = (model: any) => {
-    onChange?.(model);
+    const {
+      settings, 
+      prompt 
+    } = propsValue || {};
+    const { name = '', provider_id = '' } = model || {};
+    onChange?.({
+      name,
+      provider_id,
+      settings,
+      prompt
+    });
   };
 
   const onSettingsChange = (values: any) => {
@@ -247,7 +276,7 @@ export default (props: any) => {
           searchKey='name'
           sorter={sorter}
           sorterOptions={[{ label: 'Name', key: 'name' }]}
-          value={value}
+          value={formatValue}
           width={width || '100%'}
           renderLabel={item => {
             const provider = providers.find(p => p.id === item.provider_id);
@@ -282,7 +311,8 @@ export default (props: any) => {
         />
         <div>
           <ModelSettings
-            value={value || {}}
+            model={formatValue?.model || defaultModel}
+            value={formatValue || {}}
             onChange={onSettingsChange}
           />
         </div>

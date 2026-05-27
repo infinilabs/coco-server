@@ -4,10 +4,11 @@ import ModelSelect from './ModelSelect';
 interface DeepThinkProps {
   readonly providers: any[];
   readonly className?: string;
+  readonly defaultModel?: any;
 }
 
 export const DeepThink = (props: DeepThinkProps) => {
-  const { providers = [], className } = props;
+  const { providers = [], className, defaultModel } = props;
   const { t } = useTranslation();
   return (
     <div className={className}>
@@ -23,6 +24,7 @@ export const DeepThink = (props: DeepThinkProps) => {
           providers={providers}
           allowClear={true}
           placeholder={t('page.assistant.labels.modelSelectPlaceholder')}
+          defaultModel={defaultModel}
         />
       </Form.Item>
 
