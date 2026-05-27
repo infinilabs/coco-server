@@ -209,7 +209,7 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
     {"name": "hunyuan-role-latest", "type":"language"},
     {"name": "hy-mt2-pro", "type":"language"},
     {"name": "hunyuan-vision-1.5-instruct", "type":"vision"},
-    {"name": "hunyuan-t1-vision-20250916", "type":"vision", "support_reasoning":true}
+    {"name": "hunyuan-t1-vision-20250916", "type":"vision"}
   ],
   "enabled" : false,
   "builtin" : true,
