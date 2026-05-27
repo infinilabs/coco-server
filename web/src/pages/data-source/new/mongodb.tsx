@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import { FieldMapping } from '../modules/FieldMapping';
 import IncrementalSyncFields from '../modules/IncrementalSyncFields';
+import TestConnectionButton from '../modules/TestConnectionButton';
 
 const { TextArea } = Input;
 
@@ -111,6 +112,16 @@ const MongoDBForm: React.FC<MongoDBFormProps> = ({ form }) => {
           placeholder="documents"
         />
       </Form.Item>
+
+      {form && (
+        <Form.Item colon={false} label=" ">
+          <TestConnectionButton
+            configFields={[['config', 'connection_uri'], ['config', 'database'], ['config', 'collection']]}
+            connectorId="mongodb"
+            form={form}
+          />
+        </Form.Item>
+      )}
 
       {/* Query Section */}
       <Form.Item

@@ -21,6 +21,7 @@ const (
 
 func init() {
 	pipeline.RegisterProcessorPlugin(ConnectorMSSQL, New)
+	core.RegisterConnectionTester(ConnectorMSSQL, &connectionTester{})
 }
 
 func New(c *config.Config) (pipeline.Processor, error) {

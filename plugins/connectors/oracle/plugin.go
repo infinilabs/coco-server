@@ -23,6 +23,7 @@ const (
 
 func init() {
 	pipeline.RegisterProcessorPlugin(ConnectorOracle, New)
+	core.RegisterConnectionTester(ConnectorOracle, &connectionTester{})
 }
 
 func New(c *config.Config) (pipeline.Processor, error) {

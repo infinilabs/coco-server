@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 
 import { FieldMapping } from '../modules/FieldMapping';
 import IncrementalSyncFields from '../modules/IncrementalSyncFields';
+import TestConnectionButton from '../modules/TestConnectionButton';
 
 const { TextArea } = Input;
 
@@ -154,6 +155,16 @@ const Neo4jForm: React.FC<Neo4jFormProps> = ({ form }) => {
           placeholder={t('page.datasource.neo4j.labels.auth_token_placeholder', 'Optional Neo4j auth token')}
         />
       </Form.Item>
+
+      {form && (
+        <Form.Item colon={false} label=" ">
+          <TestConnectionButton
+            configFields={[['config', 'connection_uri']]}
+            connectorId="neo4j"
+            form={form}
+          />
+        </Form.Item>
+      )}
 
       <Form.Item
         label={t('page.datasource.neo4j.labels.cypher', 'Cypher Query')}

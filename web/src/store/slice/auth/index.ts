@@ -24,6 +24,7 @@ export const authSlice = createAppSlice({
         const { data, error } = await fetchLogin(params);
         // 1. stored in the localStorage, the later requests need it in headers
         if (!error) {
+          localStg.set("token", data.access_token);
           const { data: userInfo, error: userInfoError } = await fetchGetUserInfo();
 
           if (!userInfoError) {

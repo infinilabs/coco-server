@@ -50,6 +50,18 @@ export function deleteDatasource(dataourceID: string) {
   });
 }
 
+export function testDatasourceConnection(body: { connector_id: string; config: any }) {
+  return request({
+    data: body,
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    ignoreError: true,
+    method: 'post',
+    url: '/datasource/_test_connection'
+  } as any);
+}
+
 export function getDatasource(dataourceID: string) {
   return request({
     method: 'get',
