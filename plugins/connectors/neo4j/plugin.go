@@ -29,6 +29,7 @@ type Config struct {
 
 func init() {
 	pipeline.RegisterProcessorPlugin(ConnectorNeo4j, New)
+	core.RegisterConnectionTester(ConnectorNeo4j, &connectionTester{})
 }
 
 type Plugin struct {

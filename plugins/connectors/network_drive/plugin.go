@@ -49,6 +49,7 @@ type Plugin struct {
 
 func init() {
 	pipeline.RegisterProcessorPlugin(ConnectorNetworkDrive, New)
+	core.RegisterConnectionTester(ConnectorNetworkDrive, &connectionTester{})
 }
 
 func New(c *config.Config) (pipeline.Processor, error) {

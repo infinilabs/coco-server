@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import { FieldMapping } from '../modules/FieldMapping';
 import IncrementalSyncFields from '../modules/IncrementalSyncFields';
+import TestConnectionButton from '../modules/TestConnectionButton';
 
 const { TextArea } = Input;
 
@@ -107,6 +108,16 @@ const MilvusForm: React.FC<MilvusFormProps> = ({ form }) => {
           placeholder="my_collection"
         />
       </Form.Item>
+
+      {form && (
+        <Form.Item colon={false} label=" ">
+          <TestConnectionButton
+            configFields={[['config', 'address'], ['config', 'collection']]}
+            connectorId="milvus"
+            form={form}
+          />
+        </Form.Item>
+      )}
 
       {/* Query Section */}
       <Form.Item

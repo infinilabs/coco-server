@@ -37,6 +37,12 @@ export const request = createFlatRequest<App.Service.Response, RequestInstanceSt
         Object.assign(config.headers, { 'X-API-TOKEN': import.meta.env.VITE_SERVICE_TOKEN });
       }
 
+      // set token
+      const token = localStg.get('token');
+      if (token) {
+        Object.assign(config.headers, { Authorization: `Bearer ${token}` });
+      }
+
       return config;
     },
     transformBackendResponse(response) {

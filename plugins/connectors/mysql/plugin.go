@@ -21,6 +21,7 @@ const (
 
 func init() {
 	pipeline.RegisterProcessorPlugin(ConnectorMySQL, New)
+	core.RegisterConnectionTester(ConnectorMySQL, &connectionTester{})
 }
 
 func New(c *config.Config) (pipeline.Processor, error) {

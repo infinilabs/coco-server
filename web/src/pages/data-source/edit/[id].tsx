@@ -524,18 +524,18 @@ export function Component() {
                 {type === Types.LocalFS && <LocalFS />}
                 {type === Types.S3 && <S3 />}
                 {type === Types.Confluence && <Confluence />}
-                {type === Types.NetworkDrive && <NetworkDrive />}
+                {type === Types.NetworkDrive && <NetworkDrive form={form} />}
                 {type === Types.Neo4j && <Neo4j form={form} />}
                 {type === Types.Milvus && <Milvus form={form} />}
                 {type === Types.MongoDB && <MongoDB form={form} />}
-                {type === Types.Postgresql && <Rdbms dbType="postgresql" />}
-                {type === Types.Mysql && <Rdbms dbType="mysql" />}
+                {type === Types.Postgresql && <Rdbms dbType="postgresql" form={form} />}
+                {type === Types.Mysql && <Rdbms dbType="mysql" form={form} />}
                 {type === Types.GitHub && <GitHub />}
                 {type === Types.GitLab && <GitLab />}
                 {type === Types.Gitea && <Gitea />}
                 {type === Types.Jira && <Jira />}
-                {type === Types.Mssql && <Rdbms dbType="mssql" />}
-                {type === Types.Oracle && <Rdbms dbType="oracle" />}
+                {type === Types.Mssql && <Rdbms dbType="mssql" form={form} />}
+                {type === Types.Oracle && <Rdbms dbType="oracle" form={form} />}
               </>
             ) : (
               <>

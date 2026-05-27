@@ -3,9 +3,10 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { FieldMapping } from '../modules/FieldMapping';
+import TestConnectionButton from '../modules/TestConnectionButton';
 
 // eslint-disable-next-line react/display-name,react-refresh/only-export-components
-export default ({ dbType }: { readonly dbType: string }) => {
+export default ({ dbType, form }: { readonly dbType: string; readonly form?: any }) => {
   const { t } = useTranslation();
 
   // eslint-disable-next-line @typescript-eslint/no-shadow
@@ -22,14 +23,14 @@ export default ({ dbType }: { readonly dbType: string }) => {
         };
       case 'mssql':
         return {
-          placeholder: 'sqlserver://user:password@host:1433/database',
+          placeholder: 'sqlserver://user:password@host:1433?database=database',
           sqlTooltip: t(
             'page.datasource.rdbms.tooltip.sql.mssql',
             'The SQL query to execute for fetching data. An ORDER BY clause is required for pagination.'
           ),
           tooltip: t(
             'page.datasource.rdbms.tooltip.connection_uri.mssql',
-            'MS SQL connection string. e.g., sqlserver://user:password@host:1433/database'
+            'MS SQL connection string. e.g., sqlserver://user:password@host:1433?database=database'
           )
         };
       case 'oracle':
@@ -62,7 +63,6 @@ export default ({ dbType }: { readonly dbType: string }) => {
   return (
     <>
       <Form.Item
-        initialValue={dbInfo.placeholder}
         label={t('page.datasource.rdbms.labels.connection_uri', 'Connection URI')}
         name={['config', 'connection_uri']}
         tooltip={dbInfo.tooltip}
@@ -78,8 +78,16 @@ export default ({ dbType }: { readonly dbType: string }) => {
           style={{ width: 500 }}
         />
       </Form.Item>
+      {form && (
+        <Form.Item colon={false} label=' '>
+          <TestConnectionButton
+            configFields={[['config', 'connection_uri']]}
+            connectorId={dbType}
+            form={form}
+          />
+        </Form.Item>
+      )}
       <Form.Item
-        initialValue='SELECT id, title, content, updated_at FROM articles'
         label={t('page.datasource.rdbms.labels.sql', 'SQL Query')}
         name={['config', 'sql']}
         rules={[{ message: t('page.datasource.rdbms.error.sql_required', 'Please input SQL query!'), required: true }]}
