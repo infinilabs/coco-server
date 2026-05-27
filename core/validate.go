@@ -6,7 +6,6 @@ package core
 import (
 	"net/http"
 
-	"infini.sh/framework/core/api"
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/security"
@@ -17,7 +16,9 @@ const (
 )
 
 func init() {
-	security.RegisterHTTPAuthFilterProvider("app_integration_id", ValidateLoginByIntegrationHeader)
+	// priority 50: runs after session_token (10) and bearer_token (20),
+	// so integration guest auth only activates when no real login is present.
+	security.RegisterHTTPAuthFilterProviderWithPriority("app_integration_id", ValidateLoginByIntegrationHeader, 50)
 }
 
 func InternalGetIntegration(id string) (*Integration, error) {
@@ -43,25 +44,6 @@ func ValidateLoginByIntegrationHeader(w http.ResponseWriter, r *http.Request) (c
 
 	if integrationID == "" {
 		return nil, errors.Error("api integration not found")
-	}
-
-	// Workaround: security.ValidateLogin iterates auth providers via
-	// sync.Map.Range whose order is non-deterministic. If this provider runs
-	// before session_token / bearer_token and the request already carries a
-	// valid session or Bearer token, returning nil here causes Range to
-	// continue and lets the higher-priority provider identify the real user,
-	// preventing an already-logged-in user from being treated as a guest.
-	//
-	// TODO: the framework's HTTP auth backend should support a priority/order
-	// mechanism so that session_token and bearer_token always take precedence
-	// over integration auth without requiring this workaround.
-	if _, sessToken := api.GetSession(w, r, security.UserAccessTokenSessionName); sessToken != nil {
-		return nil, errors.Error("session present, skipping integration auth")
-	}
-
-
-	if r.Header.Get("Authorization") != "" {
-		return nil, errors.Error("bearer token present, skipping integration auth")
 	}
 
 	cfg, _ := InternalGetIntegration(integrationID)
