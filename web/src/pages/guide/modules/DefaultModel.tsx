@@ -16,7 +16,7 @@ const CUSTOM_PROVIDER_ID = getUUID()
 const CUSTOM_MODEL_ID = getUUID()
 
 const ModelForm = memo(({ form, name, modelProviderList }: { form: FormInstance, name: string, modelProviderList: any[] }) => {
-  const formItemClassNames = 'm-b-24px [&_label]:!color-[var(--ant-color-text-secondary)]';
+  const formItemClassNames = '[&_.ant-input]:!leading-24px [&_.ant-input]:!text-14px [&_.ant-select-content]:!text-14px m-b-24px [&_label]:!color-[var(--ant-color-text-secondary)]';
   const { defaultRequiredRule } = useFormRules();
   const { t } = useTranslation();
 
@@ -32,6 +32,10 @@ const ModelForm = memo(({ form, name, modelProviderList }: { form: FormInstance,
   const modelProvider = useMemo(() => {
     return modelProviderList.find((item) => item.id === modelProviderID)
   }, [modelProviderList, modelProviderID])
+
+  useEffect(() => {
+    form.resetFields([[name, 'model_id'], [name, 'model', 'id']]);
+  }, [modelProviderID, form, name])
 
   return (
     <Form
@@ -176,7 +180,6 @@ const DefaultModel = memo(({ }: {}) => {
   const [open, setOpen] = useState(true);
   const [modelProviderList, setModelProviderList] = useState([]);
   const [step, setStep] = useState(0);
-  const [editValues, setEditValues] = useState<any>({});
   const [isSuccess, setIsSuccess] = useState(false);
   const dispatch = useAppDispatch();
 
@@ -217,11 +220,8 @@ const DefaultModel = memo(({ }: {}) => {
 
   const onStepChange = async (current: number) => {
     const values = await form.validateFields();
-    setEditValues((prev: any) => ({
-      ...prev,
-      ...values
-    }))
-    setStep(current);
+    const res = await handleSubmit(values)
+    if (res) setStep(current);
   }
 
   const formatModelValues = (values: any) => {
@@ -235,24 +235,20 @@ const DefaultModel = memo(({ }: {}) => {
     };
   }
 
-  const handleSubmit = async () => {
-    const values = await form.validateFields();
-    const totalValues = {
-      ...editValues,
-      ...values,
-    }
+  const handleSubmit = async (values: any) => {
+    const body = {} as any;
+    Object.keys(values).forEach((key) => {
+      body[`${key}_model`] = formatModelValues(values[key])
+    })
     startLoading();
-    const { error } = await setupModel({
-      "language_model": formatModelValues(totalValues.language),
-      "vision_model": formatModelValues(totalValues.vision),
-      "embedding_model": formatModelValues(totalValues.embedding)
-    });
+    const { error } = await setupModel(body);
     endLoading();
     if (!error) {
       localStg.set('defaultModelGuide', 'false')
       updateDefaultModel();
-      setIsSuccess(true);
+      return true;
     }
+    return false;
   };
 
   const updateDefaultModel = async () => {
@@ -344,7 +340,7 @@ const DefaultModel = memo(({ }: {}) => {
                   step < 2 ? (
                     <Button
                       className='w-80px'
-                      disabled={loading}
+                      loading={loading}
                       color="primary"
                       variant="solid"
                       onClick={() => {
@@ -359,8 +355,10 @@ const DefaultModel = memo(({ }: {}) => {
                       loading={loading}
                       color="primary"
                       variant="solid"
-                      onClick={() => {
-                        handleSubmit();
+                      onClick={async () => {
+                        const values = await form.getFieldsValue();
+                        const res = await handleSubmit(values);
+                        if (res) setIsSuccess(true);
                       }}
                     >
                       {t('common.ok')}
