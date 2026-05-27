@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from 'react-i18next';
 
 export default function Recommends(props) {
     const { onRecommend, showTitle = false } = props;
     const [data, setData] = useState([]);
+    const { t } = useTranslation();
 
     useEffect(() => {
         onRecommend?.(res => {
@@ -16,7 +18,7 @@ export default function Recommends(props) {
         <div className="recommends-container">
             {
                 showTitle && (
-                    <div className="text-16px text-[rgba(25,25,26,1)] dark:text-[rgba(230,230,230,1)] mb-16px">相关搜索</div>
+                    <div className="text-16px text-[rgba(25,25,26,1)] dark:text-[rgba(230,230,230,1)] mb-16px">{t('labels.relatedSearch')}</div>
                 )
             }
             {data.map((item, index) => (

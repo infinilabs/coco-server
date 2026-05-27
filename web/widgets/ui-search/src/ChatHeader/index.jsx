@@ -1,9 +1,11 @@
 import PropTypes from "prop-types";
 import { Button } from "antd";
 import { History, MessageSquarePlus, Search } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 const ChatHeader = (props) => {
   const { onToggleHistory, onNewChat, onBackToSearch, AssistantList } = props;
+  const { t } = useTranslation();
 
   return (
     <div className="h-full w-full flex items-center justify-between px-4 border-b border-[var(--ant-color-border-secondary)] box-border">
@@ -28,7 +30,7 @@ const ChatHeader = (props) => {
           onClick={onBackToSearch}
           className="!rounded-12px"
         >
-          返回搜索
+          {t('labels.backToSearch')}
         </Button>
       </div>
 

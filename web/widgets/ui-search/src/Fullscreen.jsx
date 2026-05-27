@@ -6,7 +6,7 @@ import PropTypes from 'prop-types';
 import { debounce, isEmpty } from 'lodash';
 import Home from "./pages/Home";
 import Search from "./pages/Search";
-import { ACTION_TYPE_SEARCH_KEYWORD } from "./SearchBox/ActionBar/SearchActions";
+import { ACTION_TYPE_SEARCH_HYBRID, ACTION_TYPE_SEARCH_KEYWORD } from "./SearchBox/ActionBar/SearchActions";
 import Chat from "./pages/Chat";
 
 const Fullscreen = props => {
@@ -180,7 +180,7 @@ const Fullscreen = props => {
       {
         ...rest,
         filter: newFilter,
-        search_type: queryParams?.search_type || ACTION_TYPE_SEARCH_KEYWORD,
+        search_type: queryParams?.search_type || ACTION_TYPE_SEARCH_HYBRID,
         from: isScroll ? scrollRef.current : queryParams.from,
         'metadata.content_category': undefined
       },
@@ -299,7 +299,7 @@ const Fullscreen = props => {
 
   const { query, filter, aggfilter, filters = [] } = queryParams;
 
-  const commonProps = { isMobile, theme, apiConfig };
+  const commonProps = { isMobile, theme, apiConfig, language };
   const { hits, aggregations } = result;
 
   const handleLogoClick = () => {
@@ -326,7 +326,6 @@ const Fullscreen = props => {
     return (
       <Chat
         commonProps={commonProps}
-        language={language}
         apiConfig={apiConfig}
         queryParams={queryParams}
         onBackToSearch={() => {

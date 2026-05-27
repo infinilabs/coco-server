@@ -3,14 +3,20 @@ import { useEffect, useRef, useState } from "react";
 import Fullscreen from "./Fullscreen";
 import { isEmpty } from "lodash";
 import UserAvatar from "./UserAvatar";
+import { I18nextProvider, useTranslation } from 'react-i18next';
+import i18nInstance from "./i18n";
 
 const FullscreenPage = (props) => {
-  const { settings, onSearch, queryParams, setQueryParams, onLogoClick, apiConfig, getProfile, onLogout, showTopAction } = props;
+  const { language, settings, onSearch, queryParams, setQueryParams, onLogoClick, apiConfig, getProfile, onLogout, showTopAction } = props;
 
   const [isHome, setIsHome] = useState(true);
   const isHomeRef = useRef(true);
   const topActionsRef = useRef(null)
   const [rightMenuWidth, setRightMenuWidth] = useState(0);
+
+  useEffect(() => {
+    i18nInstance.changeLanguage(language);
+  }, [language]);
 
   useEffect(() => {
     const element = topActionsRef.current;
@@ -38,7 +44,7 @@ const FullscreenPage = (props) => {
   }, [showTopAction]);
 
   return (
-    <>
+    <I18nextProvider i18n={i18nInstance}>
       <Fullscreen
         {...props}
         isHome={queryParams?.query || !isEmpty(queryParams?.filter) || !isEmpty(queryParams?.aggfilter) ? false : isHome}
@@ -67,7 +73,7 @@ const FullscreenPage = (props) => {
           </div>
         )
       }
-    </>
+    </I18nextProvider>
   );
 };
 

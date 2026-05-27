@@ -1,6 +1,7 @@
 import { CircleUser, LogOut, RefreshCw, SquareArrowOutUpRight } from "lucide-react";
 import clsx from "clsx";
 import { useEffect, useState } from "react";
+import { useTranslation } from 'react-i18next';
 import { Button, Popover } from "antd";
 
 const UserAvatar = (props) => {
@@ -8,6 +9,7 @@ const UserAvatar = (props) => {
   const { settings, getProfile, onLogout, apiConfig } = props;
 
   const [loginInfo, setLoginInfo] = useState(); 
+  const { t } = useTranslation();
 
   const fetchLoginInfo = () => {
     getProfile?.((data) => {
@@ -25,7 +27,7 @@ const UserAvatar = (props) => {
         content={(
           <div className="p-3">
             <div className="flex items-center justify-between mb-2">
-              <span>账户信息</span>
+              <span>{t('labels.accountInfo')}</span>
 
               <Button 
                 className="!w-24px !h-24px" 
@@ -72,10 +74,7 @@ const UserAvatar = (props) => {
               ) : (
                 <div className="flex flex-col items-center gap-3">
                   <span className="text-[#999]">
-                    {settings?.guest?.enabled
-                      ? '游客模式，登录解锁完整体验'
-                      : '请登录您的账户以开始。'
-                    }
+                    {settings?.guest?.enabled ? t('labels.guestTip') : t('labels.pleaseLogin')}
                   </span>
 
                   <Button  
@@ -85,7 +84,7 @@ const UserAvatar = (props) => {
                       apiConfig?.endpoint && window.open(`${apiConfig.endpoint}${apiConfig.endpoint.endsWith('/') ? '#/login' : '/#/login'}`);
                     }}
                   >
-                    <span>登录</span>
+                    <span>{t('labels.login')}</span>
 
                     <SquareArrowOutUpRight size={16} />
                   </Button>

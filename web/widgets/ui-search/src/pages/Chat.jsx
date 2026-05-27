@@ -5,6 +5,7 @@ import {
   ChatInput,
 } from "@infinilabs/ai-chat";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from 'react-i18next';
 
 import ChatHeader from "../ChatHeader";
 import ChatLayout from "../Layout/ChatLayout";
@@ -20,6 +21,7 @@ export default function Chat({
   const { BaseUrl, Token, endpoint, headers } = apiConfig || {};
 
   const chatRef = useRef(null);
+  const { t } = useTranslation();
 
   const [isHistoryOpen, setIsHistoryOpen] = useState(true);
   const [inputValue, setInputValue] = useState("");
@@ -71,9 +73,7 @@ export default function Chat({
           inputValue={inputValue}
           onSend={onSendMessage}
           changeInput={setInputValue}
-          chatPlaceholder={
-            language === "zh-CN" ? "请输入问题..." : "Type a message..."
-          }
+          chatPlaceholder={t('labels.inputPlaceholder')}
         />
       }
       sidebarCollapsed={!isHistoryOpen}

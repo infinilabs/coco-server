@@ -23,7 +23,7 @@ const SearchHeaderLayout = ({
   const [showLogoInCenter, setShowLogoInCenter] = useState(false);
 
   return (
-    <div className={`fixed top-0 left-0 right-0 z-1001 !p-0 h-auto ${BG_CLASS} border-b border-[var(--ant-color-border-secondary)]`}>
+    <div className={`fixed top-0 left-0 right-0 z-88 !p-0 h-auto ${BG_CLASS} border-b border-[var(--ant-color-border-secondary)]`}>
       <Layout className={BG_CLASS}>
         <Sider onBreakpoint={(broken) => setShowLogoInCenter(broken)} width={leftWidth} breakpoint="md" collapsedWidth={0} trigger={null} className={BG_CLASS}>
           <div className={`pt-16px h-122px w-full pl-80px ${BG_CLASS}`}>

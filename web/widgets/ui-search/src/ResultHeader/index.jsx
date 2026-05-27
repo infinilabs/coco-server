@@ -1,4 +1,5 @@
 import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 export function ResultHeader(props) {
   const {
@@ -10,6 +11,8 @@ export function ResultHeader(props) {
     leftDrawerOpen, setLeftDrawerOpen,
     rightDrawerOpen, setRightDrawerOpen
   } = props;
+
+  const { t } = useTranslation();
 
   const handleLeftToggle = () => {
     if (isMobile) {
@@ -49,7 +52,7 @@ export function ResultHeader(props) {
     <div className="flex gap-8px items-center w-full text-[#999]">
       <LeftToggleIcon className="w-16px h-16px cursor-pointer" onClick={handleLeftToggle} />
       <div className="text-12px flex-1">
-        Found {hits?.total || 0} records ({hits?.took || 0} millisecond)
+        {t('labels.resultsWithTime', { count: hits?.total || 0, took: hits?.took || 0 })}
       </div>
       {showRightToggle && (
         <RightToggleIcon className="w-16px h-16px cursor-pointer" onClick={handleRightToggle} />

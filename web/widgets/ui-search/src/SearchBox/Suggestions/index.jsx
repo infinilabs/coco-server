@@ -34,7 +34,7 @@ export default function Suggestions({
           keyword={query}
           data={data}
           onItemSelect={(item) => handleQueryParamsChange('action_type', item.action || ACTION_TYPE_SEARCH)}
-          onItemClick={handleSuggestionItemClick((item) => handleSearch(item.suggestion || query, filters, action_type, search_type))}
+          onItemClick={handleSuggestionItemClick((item) => handleSearch(item.suggestion || query, filters, item.action || action_type, search_type))}
         />
       );
     case SUGGESTION_FILTER_FIELDS:

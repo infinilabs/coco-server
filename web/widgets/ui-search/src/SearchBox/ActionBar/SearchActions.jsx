@@ -11,11 +11,13 @@ export const ACTION_TYPE_DEEPSEARCH = 'deepresearch'
 export default (props) => {
     const { 
         actionType, 
-        searchType = ACTION_TYPE_SEARCH_KEYWORD, 
+        searchType = ACTION_TYPE_SEARCH_HYBRID, 
         onSearchTypeChange,
         onButtonClick,
         onDropdownClose 
     } = props;
+
+    const { t } = useTranslation();
 
     if (actionType === ACTION_TYPE_DEEPTHINK) {
         return (
@@ -23,7 +25,7 @@ export default (props) => {
                 <Button className="!px-12px rounded-16px !text-#1784FC !bg-[rgba(204,232,250,1)] !border-0 mr-4px">
                     <Space size={4}>
                         <Search className="w-16px h-16px" />
-                        深度思考
+                        {t('labels.deepThink')}
                     </Space>
                 </Button>
                 <Button
@@ -48,7 +50,7 @@ export default (props) => {
                 <Button className="!px-12px rounded-16px !text-#1784FC !bg-[rgba(204,232,250,1)] !border-0 mr-4px">
                     <Space size={4}>
                         <Search className="w-16px h-16px" />
-                        深度研究
+                        {t('labels.deepResearch')}
                     </Space>
                 </Button>
                 <Button
@@ -64,15 +66,15 @@ export default (props) => {
         const items = [
             {
                 key: ACTION_TYPE_SEARCH_HYBRID,
-                label: '混合搜索',
+                label: t('labels.hybrid'),
             },
             {
                 key: ACTION_TYPE_SEARCH_KEYWORD,
-                label: '关键词搜索',
+                label: t('labels.keyword'),
             },
             {
                 key: ACTION_TYPE_SEARCH_SEMANTIC,
-                label: '语义搜索',
+                label: t('labels.semantic'),
             },
         ]
         

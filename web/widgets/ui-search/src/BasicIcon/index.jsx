@@ -25,10 +25,10 @@ export const AsyncLucideIcon = ({
         if (Icon) {
           setIconComponent(Icon);
         } else {
-          console.error(`Lucide 中无 "${pascalCaseKey}" 图标（key: ${iconKey}）`);
+          console.error(`Lucide has no "${pascalCaseKey}" icon (key: ${iconKey})`);
         }
       } catch (error) {
-        console.error('动态加载 Lucide 图标失败：', error);
+        console.error('Failed to dynamically load Lucide icon:', error);
       }
     };
 

@@ -11,6 +11,7 @@ import { FullscreenPage } from 'ui-search';
 import { querySearch, fetchSuggestions, fetchRecommends, fetchFieldsMeta } from '@/service/api/ai-search';
 import { getApiBaseUrl } from '@/service/request';
 import queryString from 'query-string';
+import { getLocale } from '@/store/slice/app';
 
 configResponsive({ sm: 640 });
 
@@ -71,6 +72,8 @@ export function Component() {
   const [queryParams, setQueryParams] = useQueryParams({ mode: 'search' });
 
   const darkMode = useAppSelector(getDarkMode);
+
+  const locale = useAppSelector(getLocale);
 
   const [rightMenuWidth, setRightMenuWidth] = useState(0);
 
@@ -232,7 +235,7 @@ export function Component() {
     settings: data?._source,
     id: search_settings?.integration,
     theme: darkMode ? 'dark' : 'light',
-    language: data?._source?.appearance?.language || 'zh-CN',
+    language: locale,
     "logo": {
       "light": payload?.logo?.light,
       "light_mobile": payload?.logo?.light_mobile,
@@ -322,7 +325,8 @@ export function Component() {
           }}
         />
       </div>
-      <div ref={topActionsRef} className="absolute right-16px top-16px h-48px z-1002 flex-y-center justify-end">
+      <div ref={topActionsRef} style={{ top: queryParams.mode === 'chat' ? 8 : 16 }} className="absolute right-8px h-48px z-1002 flex-y-center justify-end">
+        <LangSwitch className="px-12px" />
         <ThemeSchemaSwitch className="px-12px" />
         <UserAvatar className="px-8px" showHome showName={!isMobile} />
       </div>

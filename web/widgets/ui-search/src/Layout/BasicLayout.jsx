@@ -170,7 +170,7 @@ const BasicLayout = (props) => {
         showLeftSider={showLeftSider}
         showRightSider={showRightSider}
         leftWidth={280}
-        rightWidth={400}
+        rightWidth={isMobile ? 0 : 400}
         centerPadding={isMobile ? 'px-16px' : 'pl-72px pr-112px'}
         centerMaxWidth={'max-w-840px'}
         rightMenuWidth={rightMenuWidth}

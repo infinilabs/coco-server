@@ -1,6 +1,7 @@
 import { createLucideIcon, MessageCircle, Search } from "lucide-react";
 import ListContainer from "./ListContainer";
 import { useState, useEffect, useRef } from "react";
+import { useTranslation } from 'react-i18next';
 
 export const SUGGESTION_ACTIONS = "suggestion_actions"
 export const SUGGESTION_KEYWORDS = "suggestion_keywords"
@@ -31,25 +32,26 @@ const Deepresearch = createLucideIcon('Deepresearch', [
 
 export default (props) => {
     const { keyword, data = [], onItemSelect, onItemClick } = props;
+    const { t } = useTranslation();
 
     const actions = [
         {
             action: "search",
             icon: <Search className="w-16px h-16px" />,
             suggestion: keyword,
-            source: `快速查找 | 直达文件与结果`,
+            source: t('labels.quickFind'),
         },
         {
             action: "deepthink",
             icon: <MessageCircle className="w-16px h-16px" />,
             suggestion: keyword,
-            source: `深度思考 | AI 提炼，结论优先`,
+            source: t('labels.deepThinkShort'),
         },
         {
             action: "deepresearch",
             icon: <Deepresearch className="w-16px h-16px" />,
             suggestion: keyword,
-            source: `深度研究 | 多步推理，综合分析`,
+            source: t('labels.deepResearchShort'),
         },
     ].filter(item => !!item?.suggestion);
 
@@ -163,7 +165,7 @@ export default (props) => {
                 {...props}
                 ref={el => setListRef(SUGGESTION_KEYWORDS, el)}
                 type={SUGGESTION_KEYWORDS}
-                title="搜索建议"
+                title={t('labels.suggestionsTitle')}
                 data={data}
                 useGlobalKeydown={useGlobalKeydown}
                 globalActiveIndex={getLocalActiveIndex(SUGGESTION_KEYWORDS)}

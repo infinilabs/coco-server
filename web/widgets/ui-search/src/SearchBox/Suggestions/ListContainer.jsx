@@ -267,7 +267,7 @@ const ListContainer = forwardRef((props, ref) => {
                       <div className="truncate whitespace-nowrap">{item.suggestion}</div>
                     </div>
                     {item.source && (
-                      <Typography.Text type="secondary" className="flex-shrink-0" style={{ maxWidth: 200 }} ellipsis>
+                      <Typography.Text type="secondary" className="flex-shrink-0" >
                         {item.source}
                       </Typography.Text>
                     )}

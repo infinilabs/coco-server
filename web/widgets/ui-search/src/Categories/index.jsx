@@ -1,23 +1,26 @@
 import { Tabs } from "antd";
 import styles from "./index.module.less";
+import { useTranslation } from 'react-i18next';
 
 export function Categories(props) {
 
   const { category = "all", onChange } = props;
 
+  const { t } = useTranslation();
+
   return (
     <Tabs className={styles.categories} activeKey={category || "all"} items={[
       {
         key: 'all',
-        label: '全部',
+        label: t('labels.all'),
       },
       {
         key: 'doc',
-        label: '文档',
+        label: t('labels.document'),
       },
       {
         key: 'image',
-        label: '图片',
+        label: t('labels.image'),
       },
       // {
       //   key: 'video',
