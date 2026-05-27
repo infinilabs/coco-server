@@ -25,7 +25,7 @@ Information about release notes of Coco Server is provided here.
 - feat: detect content category and store it in metadata.content_category #655
 - feat: semantic/hybrid search #651
 - feat: add document preview page #646
-- feat: add test connection api for datasource, support mongodb/postgresql/mysql/mssql/oracle/neo4j/milvus/network_drive
+- feat: add test connection api for datasource, support mongodb/postgresql/mysql/mssql/oracle/neo4j/milvus/network_drive #682
 
 ### 🐛 Bug fix  
 
@@ -34,10 +34,10 @@ Information about release notes of Coco Server is provided here.
 - fix: generate embedding if we have text #658
 - fix: handle nil and missing keys in metadata empty checks #660
 - fix(hugo connector): do not assume URLs are relative #670
-- fix(auth): restore JWT/session→ctx wiring lost in framework security refactor
-- fix(web): persist access token to localStorage and inject Authorization header on subsequent requests
-- fix(mssql connector): detect silent fallback to master when the configured database is missing or inaccessible
-- fix(datasource form): drop placeholder-as-initialValue so example strings are no longer submitted as real values
+- fix(auth): restore JWT/session→ctx wiring lost in framework security refactor #682
+- fix(web): persist access token to localStorage and inject Authorization header on subsequent requests #682
+- fix(mssql connector): detect silent fallback to master when the configured database is missing or inaccessible #682
+- fix(datasource form): drop placeholder-as-initialValue so example strings are no longer submitted as real values #682
 
 ### ✈️ Improvements  
 - refactor: refactoring attachment API #636
@@ -46,7 +46,7 @@ Information about release notes of Coco Server is provided here.
 - chore: remove unused configs in default config
 - chore: add facefinder to default config #680
 - refactor: refactoring access_token #679
-- chore(datasource form): use sqlserver query-form URI hint (?database=) to avoid the path-as-instance-name pitfall
+- chore(datasource form): use sqlserver query-form URI hint (?database=) to avoid the path-as-instance-name pitfall #682
 
 ## 0.10.0 (2025-12-19)
 ### ❌ Breaking changes  
