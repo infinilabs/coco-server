@@ -154,6 +154,10 @@ func (p *ProcessAttachmentsProcessor) processMessage(msg queue.Message) error {
 	subMessages := []queue.Message{{Data: util.MustToJSONBytes(&attachment)}}
 	subCtx := pipeline.AcquireContext(pipelineCfg)
 	subCtx.Set(core.PipelineContextDocuments, subMessages)
+	// Downstream processors consult the framework pipeline state via ShouldContinue.
+	// This synchronous caller does not rely on runtime lifecycle semantics itself,
+	// but the sub-context must be marked started so the processor chain can run.
+	subCtx.Started()
 
 	if err := procs.Process(subCtx); err != nil {
 		log.Errorf("processor [%s] pipeline [%s] returned error for attachment [%s]: %v — skipping write-back", p.Name(), pipelineName, attachmentID, err)
@@ -200,6 +204,7 @@ func (p *ProcessAttachmentsProcessor) processMessage(msg queue.Message) error {
 	// Persist the updated metadata.
 	writeCtx := orm.NewContext()
 	writeCtx.DirectAccess()
+	writeCtx.Refresh = orm.WaitForRefresh
 	writeCtx.PermissionScope(security.PermissionScopePlatform)
 	if err := orm.Update(writeCtx, &updatedAttachment); err != nil {
 		attachmentmod.UpdateAttachmentStats(attachmentID, util.MapStr{

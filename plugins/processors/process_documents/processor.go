@@ -157,6 +157,10 @@ func (p *ProcessDocumentsProcessor) processMessage(msg queue.Message) error {
 	// Run the enrichment pipeline synchronously in the current goroutine.
 	subCtx := pipeline.AcquireContext(pipelineCfg)
 	subCtx.Set(p.config.MessageField, []queue.Message{msg})
+	// Downstream processors consult the framework pipeline state via ShouldContinue.
+	// This synchronous caller does not rely on runtime lifecycle semantics itself,
+	// but the sub-context must be marked started so the processor chain can run.
+	subCtx.Started()
 
 	pipelineSucceeded := true
 	if err := procs.Process(subCtx); err != nil {
