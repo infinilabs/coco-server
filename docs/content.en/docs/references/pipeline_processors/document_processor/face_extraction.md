@@ -22,8 +22,8 @@ vision model. Results are stored in `doc.Metadata["faces"]`.
 | Image | Faces detected directly |
 | PDF, PPTX, DOCX | Faces detected in embedded images |
 
-> **Depends on** `text_extraction` — this processor must run after
-> `text_extraction` so that `doc.Chunks` is available for building context
+> **Depends on** `document_text_attachment_extraction` — this processor must run after
+> `document_text_attachment_extraction` so that `doc.Chunks` is available for building context
 > for the vision model prompt.
 
 > **Note:** Face detection requires `pigo_facefinder_path` to be set. If

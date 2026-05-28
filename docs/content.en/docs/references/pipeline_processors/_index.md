@@ -34,4 +34,5 @@ serialized document.
 ### Attachment Processors
 
 Operate on **attachments** (`core.Attachment`). Each pipeline message carries
-the attachment metadata and its binary content.
+the serialized attachment metadata. Attachment processors load the binary
+content themselves when they need it.

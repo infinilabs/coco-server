@@ -1,18 +1,22 @@
 ---
-title: "Text Extraction"
+title: "Document Text Attachment Extraction"
 weight: 3
 ---
 
-## Text Extraction Processor
+## Document Text Attachment Extraction Processor
 
-Extracts the full text content from a document and splits it into chunks. Embedded 
-images are extracted and linked as attachments.
+Extracts the full text content from a document and splits it into chunks.
+
+When `extract_attachments` is enabled, embedded images are extracted and linked
+as attachments. When it is disabled, the processor extracts text only.
+
+> **Note**: For attachment text extraction, use `attachment_text_extraction` instead.
 
 ### Requirements
 
 | Service | Required for |
 |---|---|
-| [Apache Tika](https://tika.apache.org/) server | Text extraction from PDF, DOCX, XLSX, and OCR fallback |
+| [Apache Tika](https://tika.apache.org/) server | Text extraction from PDF, DOCX, XLSX, and other Tika-backed formats; also used for embedded-image OCR when `extract_attachments` is enabled |
 
 ### Supported formats
 
@@ -32,6 +36,7 @@ images are extracted and linked as attachments.
 | `tika_endpoint` | string | No | `http://127.0.0.1:9998` | Apache Tika server URL |
 | `tika_timeout_in_seconds` | int | No | `120` | Per-file Tika timeout |
 | `chunk_size` | int | **Yes** | — | Maximum character length of each text chunk |
+| `extract_attachments` | bool | No | `true` | Whether embedded attachments/images are extracted from documents |
 | `vision_model_provider` | string | No | — | Provider ID for the vision model used to describe images |
 | `vision_model` | string | No | — | Model name for image description |
 | `image_content_format` | string | No | `data_uri` | How images are sent to the vision model: `data_uri` or `binary` |
@@ -40,9 +45,10 @@ images are extracted and linked as attachments.
 ### Example
 
 ```yaml
-- text_extraction:
+- document_text_attachment_extraction:
     tika_endpoint: http://127.0.0.1:9998
     chunk_size: 7000
+    extract_attachments: true
     vision_model_provider: openai
     vision_model: gpt-4o
     output_queue:

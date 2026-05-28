@@ -16,8 +16,8 @@ import (
 )
 
 // extractFacesAndRecognizeNames is the main orchestration for face extraction
-// and recognition.  It must run AFTER text_extraction so that doc.Chunks is
-// populated (used by extractSurroundingText for image files).
+// and recognition. It must run AFTER document_text_attachment_extraction so
+// that doc.Chunks is populated (used by extractSurroundingText for image files).
 func (p *FaceExtractionProcessor) extractFacesAndRecognizeNames(ctx context.Context, doc *core.Document, localPath, contentType string) error {
 	if err := initPigoClassifier(p.config.PigoFacefinderPath); err != nil {
 		return fmt.Errorf("failed to initialize pigo classifier: %w", err)
