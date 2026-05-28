@@ -152,5 +152,10 @@
   "lint-staged": {
     "*": "eslint --fix"
   },
+  "pnpm": {
+    "overrides": {
+      "@infinilabs/ai-chat": "link:../../ui-common/packages/AIChat"
+    }
+  },
   "website": "https://coco.rs/"
 }

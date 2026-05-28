@@ -1,7 +1,6 @@
 import react from '@vitejs/plugin-react';
 import type { PluginOption } from 'vite';
 import Inspect from 'vite-plugin-inspect';
-import removeConsole from 'vite-plugin-remove-console';
 
 import { setupAutoImport } from './auto-import';
 import { setupHtmlPlugin } from './html';
@@ -18,7 +17,6 @@ export function setupVitePlugins(viteEnv: Env.ImportMeta, buildTime: string) {
     ...setupUnPluginIcon(viteEnv),
     setupElegantRouter(),
     Inspect(),
-    removeConsole(),
     setupHtmlPlugin(buildTime),
     setupProjectInfo()
   ];

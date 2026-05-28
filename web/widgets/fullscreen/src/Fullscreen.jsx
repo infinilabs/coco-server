@@ -166,8 +166,19 @@ export default (props) => {
             if (!response.ok) {
                 throw new Error(`HTTP error! Status: ${response.status}`);
             }
-            
-            setLoading(false)
+
+            // Keep the loading indicator on until the first non-heartbeat
+            // chunk arrives (e.g. the assistant's real response). The backend
+            // may stream `attachment_waiting` / system chunks for some time
+            // before producing actual content; clearing loading on
+            // `response.ok` would prematurely end the thinking state.
+            let loadingCleared = false
+            const clearLoadingOnce = () => {
+                if (!loadingCleared) {
+                    loadingCleared = true
+                    setLoading(false)
+                }
+            }
 
             const reader = response.body.getReader();
             const decoder = new TextDecoder('utf-8');
@@ -177,6 +188,7 @@ export default (props) => {
             const { done, value } = await reader.read();
 
             if (done) {
+                clearLoadingOnce()
                 break;
             }
 
@@ -189,6 +201,12 @@ export default (props) => {
                 try {
                     const json = JSON.parse(lines[i]);
                     if (json && !(json._id && json._source && json.result)) {
+                        // The first "response" chunk means content is flowing;
+                        // we can safely hand off the visual state to the
+                        // typing indicator owned by the chunk consumer.
+                        if (json?.chunk_type === 'response') {
+                            clearLoadingOnce()
+                        }
                         callback(json)
                     }
                 } catch (error) {
