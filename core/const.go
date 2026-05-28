@@ -46,7 +46,6 @@ const PipelineContextConnector param.ParaKey = "__connector"
 const PipelineContextDatasource param.ParaKey = "__datasource"
 const PipelineContextDocuments param.ParaKey = "messages"
 
-
 // re-export
 const FeatureMaskSensitiveField = "feature_sensitive_fields"
 const FeatureRemoveSensitiveField = "feature_sensitive_fields_remove_sensitive_field"
