@@ -17,6 +17,59 @@ import (
 	"infini.sh/framework/core/util"
 )
 
+// Hard-coded attachment prompt budget. Mirrors the references truncation
+// pattern (`util.SubString(..., 0, 4096*2)` elsewhere in this file) until a
+// proper ChatSettings.ContextBudget configuration block lands.
+//
+// TODO: move attachmentsSectionMaxChars / perAttachmentMaxChars /
+// maxAttachmentsInPrompt to ChatSettings.ContextBudget alongside references
+// and history, so deployments can tune the prompt budget without a code
+// change.
+const (
+	attachmentsSectionMaxChars = 4096 * 2
+	perAttachmentMaxChars      = 2048
+	maxAttachmentsInPrompt     = 8
+)
+
+// formatAttachmentsSection renders the attachment metadata + extracted text
+// into a single prompt-ready string. It returns an empty string when there
+// is nothing to inject. Truncation is character-based (not token-aware) to
+// stay consistent with how references are clipped.
+func formatAttachmentsSection(value any) string {
+	atts, ok := value.([]*core.Attachment)
+	if !ok || len(atts) == 0 {
+		return ""
+	}
+	if len(atts) > maxAttachmentsInPrompt {
+		atts = atts[:maxAttachmentsInPrompt]
+	}
+	var b strings.Builder
+	for i, a := range atts {
+		if a == nil {
+			continue
+		}
+		name := a.Name
+		if name == "" {
+			name = a.ID
+		}
+		mime := a.MimeType
+		if mime == "" {
+			mime = "unknown"
+		}
+		text := strings.TrimSpace(a.Text)
+		if text == "" {
+			text = "(no extractable text)"
+		} else {
+			text = util.SubString(text, 0, perAttachmentMaxChars)
+		}
+		fmt.Fprintf(&b, "[%d] Name: %s | MimeType: %s\n%s\n\n", i+1, name, mime, text)
+	}
+	if b.Len() == 0 {
+		return ""
+	}
+	return util.SubString(fmt.Sprintf("\nAttachments:\n%s", b.String()), 0, attachmentsSectionMaxChars)
+}
+
 func GenerateResponse(taskCtx context.Context, provider *core.ModelProvider, modelConfig *core.ModelConfig,
 	reqMsg, replyMsg *core.ChatMessage, sessionID string, rolePrompt string,
 	inputValues map[string]any, sender core.MessageSender) error {
@@ -129,6 +182,10 @@ func GenerateResponse(taskCtx context.Context, provider *core.ModelProvider, mod
 
 	if v, ok := inputValues["references"]; ok {
 		contextPrompt += util.SubString(fmt.Sprintf("\nReferences:\n%v\n", v), 0, 4096*2) //TODO
+	}
+
+	if v, ok := inputValues["attachments"]; ok {
+		contextPrompt += formatAttachmentsSection(v)
 	}
 
 	if v, ok := inputValues["tools_output"]; ok {
@@ -393,6 +450,10 @@ func GenerateFinalResponse(taskCtx context.Context, reqMsg, replyMsg *core.ChatM
 
 		if v, ok := inputValues["references"]; ok {
 			contextPrompt += util.SubString(fmt.Sprintf("\nReferences:\n%v\n", v), 0, 4096*2) //TODO
+		}
+
+		if v, ok := inputValues["attachments"]; ok {
+			contextPrompt += formatAttachmentsSection(v)
 		}
 
 		if v, ok := inputValues["tools_output"]; ok {

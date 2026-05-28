@@ -46,8 +46,8 @@ func init() {
 	api.HandleUIMethod(api.GET, "/attachment/:file_id", handler.getAttachment, api.RequirePermission(readPermission), api.AllowOPTIONSS(), api.Feature(core.FeatureCORS))
 	api.HandleUIMethod(api.DELETE, "/attachment/:file_id", handler.deleteAttachment, api.RequirePermission(deletePermission))
 	api.HandleUIMethod(api.HEAD, "/attachment/:file_id", handler.checkAttachment, api.RequirePermission(readPermission))
-	api.HandleUIMethod(api.GET, "/attachment/_search", handler.getAttachments, api.RequirePermission(searchPermission))
-	api.HandleUIMethod(api.POST, "/attachment/_search", handler.getAttachments, api.RequirePermission(searchPermission))
+	api.HandleUIMethod(api.GET, "/attachment/_search", handler.getAttachments, api.RequirePermission(searchPermission), api.AllowOPTIONSS(), api.Feature(core.FeatureCORS))
+	api.HandleUIMethod(api.POST, "/attachment/_search", handler.getAttachments, api.RequirePermission(searchPermission), api.AllowOPTIONSS(), api.Feature(core.FeatureCORS))
 	api.HandleUIMethod(api.POST, "/attachment/_upload", handler.uploadAttachment, api.RequirePermission(createPermission))
 
 	api.HandleUIMethod(api.GET, "/attachment/:file_id/status", handler.getAttachmentStatus, api.RequirePermission(readPermission))
