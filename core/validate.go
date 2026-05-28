@@ -50,7 +50,7 @@ func ValidateLoginByIntegrationHeader(w http.ResponseWriter, r *http.Request) (c
 			claims = security.NewUserClaims()
 			claims.SetUserID(cfg.Guest.RunAs)
 
-			claims.Provider = ProviderIntegration
+			claims.Provider = security.DefaultNativeAuthBackend
 			claims.Login = cfg.Guest.RunAs
 			claims.UserID = cfg.Guest.RunAs
 			claims.Permissions = security.GetAllPermissionsForUser(claims.UserSessionInfo)
