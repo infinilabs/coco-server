@@ -52,7 +52,7 @@ POST $[[SETUP_INDEX_PREFIX]]pipelineconfigv2/$[[SETUP_DOC_TYPE]]/enrich_document
         "face_extraction": {
           "tika_endpoint": "http://127.0.0.1:9998",
           "tika_timeout_in_seconds": 360,
-          "pigo_facefinder_path": ""
+          "pigo_facefinder_path": "./config/ai/facefinder"
         }
       },
       {
