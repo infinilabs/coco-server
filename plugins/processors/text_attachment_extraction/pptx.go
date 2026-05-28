@@ -20,7 +20,7 @@ import (
 	"infini.sh/framework/core/util"
 )
 
-func (p *TextAttachmentExtractionProcessor) processPptx(ctx context.Context, doc *core.Document, localPath string) (fileproc.Extraction, error) {
+func (p *DocumentTextAttachmentExtractionProcessor) processPptx(ctx context.Context, doc *core.Document, localPath string) (fileproc.Extraction, error) {
 	r, err := zip.OpenReader(localPath)
 	if err != nil {
 		return fileproc.Extraction{}, fmt.Errorf("failed to open pptx file [%s]: %w", localPath, err)
@@ -105,7 +105,7 @@ func (p *TextAttachmentExtractionProcessor) processPptx(ctx context.Context, doc
 
 // parseSlideContent parses a slide's XML and returns text with [[Image(...)]] markers.
 // When attachment extraction is disabled (nameToId is empty), image markers are skipped.
-func (p *TextAttachmentExtractionProcessor) parseSlideContent(f *zip.File, pageNum int, rels map[string]string, nameToId map[string]string, nameToText map[string]string, nameToPageNums map[string][]int) (string, error) {
+func (p *DocumentTextAttachmentExtractionProcessor) parseSlideContent(f *zip.File, pageNum int, rels map[string]string, nameToId map[string]string, nameToText map[string]string, nameToPageNums map[string][]int) (string, error) {
 	rc, err := f.Open()
 	if err != nil {
 		return "", err

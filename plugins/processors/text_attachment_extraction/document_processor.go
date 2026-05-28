@@ -27,7 +27,7 @@ import (
 	"infini.sh/framework/core/util"
 )
 
-const ProcessorName = "text_attachment_extraction"
+const DocumentProcessorName = "document_text_attachment_extraction"
 
 var supportedConnectors = map[string]bool{
 	s3.ConnectorS3:            true,
@@ -35,19 +35,20 @@ var supportedConnectors = map[string]bool{
 }
 
 func init() {
-	pipeline.RegisterProcessorPlugin(ProcessorName, New)
+	pipeline.RegisterProcessorPlugin(DocumentProcessorName, NewDocumentProcessor)
 }
 
-type TextAttachmentExtractionProcessor struct {
-	config      *Config
+// DocumentTextAttachmentExtractionProcessor extracts text and attachments from document files.
+type DocumentTextAttachmentExtractionProcessor struct {
+	config      *DocumentConfig
 	outputQueue *queue.QueueConfig
 }
 
-// Config holds configuration for the text_attachment_extraction processor.
+// DocumentConfig holds configuration for the document_text_attachment_extraction processor.
 // TikaEndpoint / TikaTimeoutInSeconds are only used when processing file types
 // that require Apache Tika (e.g. PDF, DOCX).  PPTX and plain images are
 // handled without Tika.
-type Config struct {
+type DocumentConfig struct {
 	MessageField param.ParaKey      `config:"message_field"`
 	OutputQueue  *queue.QueueConfig `config:"output_queue"`
 
@@ -57,7 +58,7 @@ type Config struct {
 
 	// ExtractAttachments controls whether embedded attachments (images, etc.)
 	// are extracted from documents. When false, attachment extraction, OCR,
-	//把这个 package 的文件夹的名字改成 text attachment extraction，package 的名字也改成这个 image markers, and upload are all skipped. Defaults to true.
+	// image markers, and upload are all skipped. Defaults to true.
 	ExtractAttachments *bool `config:"extract_attachments"`
 
 	// Vision model used for image-file description
@@ -69,8 +70,8 @@ type Config struct {
 	LLMGenerationLang string `config:"llm_generation_lang"`
 }
 
-func New(c *config.Config) (pipeline.Processor, error) {
-	cfg := Config{
+func NewDocumentProcessor(c *config.Config) (pipeline.Processor, error) {
+	cfg := DocumentConfig{
 		MessageField:         core.PipelineContextDocuments,
 		TikaEndpoint:         "http://127.0.0.1:9998",
 		TikaTimeoutInSeconds: 120,
@@ -85,10 +86,10 @@ func New(c *config.Config) (pipeline.Processor, error) {
 			cfg.LLMGenerationLang = appCfg.DocumentProcessing.LLMGenerationLanguage
 		}
 	}
-	cfg.LLMGenerationLang = utils.ValidateAndNormalizeLLMLang(ProcessorName, cfg.LLMGenerationLang)
+	cfg.LLMGenerationLang = utils.ValidateAndNormalizeLLMLang(DocumentProcessorName, cfg.LLMGenerationLang)
 
 	if cfg.ChunkSize <= 0 {
-		panic(fmt.Sprintf("processor [%s] configuration [chunk_size] is not set or invalid, should be a positive number", ProcessorName))
+		panic(fmt.Sprintf("processor [%s] configuration [chunk_size] is not set or invalid, should be a positive number", DocumentProcessorName))
 	}
 
 	// Default ExtractAttachments to true if not explicitly set.
@@ -97,18 +98,18 @@ func New(c *config.Config) (pipeline.Processor, error) {
 		cfg.ExtractAttachments = &defaultTrue
 	}
 
-	p := &TextAttachmentExtractionProcessor{config: &cfg}
+	p := &DocumentTextAttachmentExtractionProcessor{config: &cfg}
 	if cfg.OutputQueue != nil {
 		p.outputQueue = queue.SmartGetOrInitConfig(cfg.OutputQueue)
 	}
 	return p, nil
 }
 
-func (p *TextAttachmentExtractionProcessor) Name() string {
-	return ProcessorName
+func (p *DocumentTextAttachmentExtractionProcessor) Name() string {
+	return DocumentProcessorName
 }
 
-func (p *TextAttachmentExtractionProcessor) Process(ctx *pipeline.Context) error {
+func (p *DocumentTextAttachmentExtractionProcessor) Process(ctx *pipeline.Context) error {
 	obj := ctx.Get(p.config.MessageField)
 	if obj == nil {
 		log.Warnf("processor [%s] receives an empty pipeline context", p.Name())
@@ -175,7 +176,7 @@ func (p *TextAttachmentExtractionProcessor) Process(ctx *pipeline.Context) error
 	return nil
 }
 
-func (p *TextAttachmentExtractionProcessor) processDocument(ctx context.Context, doc *core.Document, connectorID string) error {
+func (p *DocumentTextAttachmentExtractionProcessor) processDocument(ctx context.Context, doc *core.Document, connectorID string) error {
 	tempDir, err := os.MkdirTemp("", "coco-text-extraction-*")
 	if err != nil {
 		return fmt.Errorf("failed to create temp directory: %w", err)
@@ -201,7 +202,7 @@ func (p *TextAttachmentExtractionProcessor) processDocument(ctx context.Context,
 }
 
 // extractTextAndAttachment dispatches to the correct extractor based on file extension.
-func (p *TextAttachmentExtractionProcessor) extractTextAndAttachment(ctx context.Context, doc *core.Document, localPath string) error {
+func (p *DocumentTextAttachmentExtractionProcessor) extractTextAndAttachment(ctx context.Context, doc *core.Document, localPath string) error {
 	ext := strings.ToLower(filepath.Ext(localPath))
 
 	var (

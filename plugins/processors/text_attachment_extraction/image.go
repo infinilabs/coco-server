@@ -37,7 +37,7 @@ IMPORTANT: Your response MUST be in %s.`, lang)
 
 // processImage uses a vision model to generate a text description of the image
 // and returns it as a single-page Extraction.
-func (p *TextAttachmentExtractionProcessor) processImage(ctx context.Context, imagePath string) (fileproc.Extraction, error) {
+func (p *DocumentTextAttachmentExtractionProcessor) processImage(ctx context.Context, imagePath string) (fileproc.Extraction, error) {
 	modelId := llmmodule.ResolveModel(core.LLMTypeVision, &core.ModelId{
 		ProviderID: p.config.VisionModelProviderID,
 		ID:         p.config.VisionModelName,

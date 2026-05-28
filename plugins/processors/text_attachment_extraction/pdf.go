@@ -18,7 +18,7 @@ import (
 	"infini.sh/framework/core/util"
 )
 
-func (p *TextAttachmentExtractionProcessor) processPdf(ctx context.Context, doc *core.Document, localPath string) (fileproc.Extraction, error) {
+func (p *DocumentTextAttachmentExtractionProcessor) processPdf(ctx context.Context, doc *core.Document, localPath string) (fileproc.Extraction, error) {
 	htmlReader, err := fileproc.TikaGetTextHtml(ctx, p.config.TikaEndpoint, p.config.TikaTimeoutInSeconds, localPath)
 	if err != nil {
 		return fileproc.Extraction{}, fmt.Errorf("failed to extract text for [%s] using tika: %w", localPath, err)
@@ -103,7 +103,7 @@ func (p *TextAttachmentExtractionProcessor) processPdf(ctx context.Context, doc 
 // appendPage processes a goquery page selection and appends its text (with image
 // markers) to pages.  Images are replaced with [[Image(UUID\tOCRText)]] tags.
 // When attachment extraction is disabled (nameToId is empty), img tags are simply removed.
-func (p *TextAttachmentExtractionProcessor) appendPage(s *goquery.Selection, pageNum int, nameToId map[string]string, nameToText map[string]string, nameToPageNums map[string][]int, pages *[]string) {
+func (p *DocumentTextAttachmentExtractionProcessor) appendPage(s *goquery.Selection, pageNum int, nameToId map[string]string, nameToText map[string]string, nameToPageNums map[string][]int, pages *[]string) {
 	s.Find("img").Each(func(i int, img *goquery.Selection) {
 		imageName, exists := img.Attr("src")
 		if exists {

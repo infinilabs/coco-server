@@ -4,9 +4,8 @@
 
 // Package process_attachments provides the process_attachments pipeline
 // processor, which consumes attachment IDs from a queue, retrieves each
-// attachment's metadata from Easysearch and its binary content from the
-// KV blob store, runs a user-configured sub-pipeline against them, and
-// writes the updated metadata back to Elasticsearch.
+// attachment's metadata from Easysearch, runs a user-configured sub-pipeline
+// against it, and writes the updated metadata back to Easysearch.
 package process_attachments
 
 import (
@@ -18,7 +17,6 @@ import (
 	"infini.sh/coco/modules/common"
 	fwconfig "infini.sh/framework/core/config"
 	"infini.sh/framework/core/global"
-	"infini.sh/framework/core/kv"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/param"
 	"infini.sh/framework/core/pipeline"
@@ -39,9 +37,9 @@ type Config struct {
 }
 
 // ProcessAttachmentsProcessor reads attachment IDs from the pipeline context,
-// retrieves each attachment's metadata and binary data, invokes the
-// globally-configured attachment processing sub-pipeline, and persists the
-// updated metadata back to Easysearch.
+// retrieves each attachment's metadata, invokes the globally-configured
+// attachment processing sub-pipeline, and persists the updated metadata back
+// to Easysearch.
 type ProcessAttachmentsProcessor struct {
 	config *Config
 }
@@ -127,13 +125,6 @@ func (p *ProcessAttachmentsProcessor) processMessage(msg queue.Message) error {
 		return nil
 	}
 
-	// Fetch binary data from the KV blob store.
-	data, err := kv.GetValue(core.AttachmentKVBucket, []byte(attachmentID))
-	if err != nil || len(data) == 0 {
-		log.Warnf("processor [%s] binary data for attachment [%s] not found in blob store, skipping", p.Name(), attachmentID)
-		return nil
-	}
-
 	// Load and compile the sub-pipeline.
 	pipelineCfg := pipeline.PipelineConfigV2{}
 	pipelineCfg.ID = pipelineName
@@ -158,11 +149,11 @@ func (p *ProcessAttachmentsProcessor) processMessage(msg queue.Message) error {
 		core.AttachmentStageInitialParsing: core.StatusProcessing,
 	})
 
-	// Run the sub-pipeline with attachment metadata serialized in []queue.Message
-	// and binary data in PipelineContextAttachmentData.
+	// Run the sub-pipeline with attachment metadata serialized in []queue.Message.
+	// Attachment processors load binary data themselves if they need it.
+	subMessages := []queue.Message{{Data: util.MustToJSONBytes(&attachment)}}
 	subCtx := pipeline.AcquireContext(pipelineCfg)
-	subCtx.Set(core.PipelineContextDocuments, []queue.Message{{Data: util.MustToJSONBytes(&attachment)}})
-	subCtx.Set(core.PipelineContextAttachmentData, data)
+	subCtx.Set(core.PipelineContextDocuments, subMessages)
 
 	if err := procs.Process(subCtx); err != nil {
 		log.Errorf("processor [%s] pipeline [%s] returned error for attachment [%s]: %v — skipping write-back", p.Name(), pipelineName, attachmentID, err)
@@ -172,10 +163,15 @@ func (p *ProcessAttachmentsProcessor) processMessage(msg queue.Message) error {
 		return nil
 	}
 
-	// Retrieve the updated metadata set by the sub-pipeline.
-	updatedAttachment, ok := subCtx.Get(core.PipelineContextAttachmentMeta).(*core.Attachment)
-	if !ok || updatedAttachment == nil {
-		log.Warnf("processor [%s] sub-pipeline [%s] produced no updated metadata for attachment [%s], skipping write-back", p.Name(), pipelineName, attachmentID)
+	// Retrieve the updated metadata from the sub-pipeline message payload.
+	if len(subMessages) == 0 {
+		log.Warnf("processor [%s] sub-pipeline [%s] produced no messages for attachment [%s], skipping write-back", p.Name(), pipelineName, attachmentID)
+		return nil
+	}
+
+	updatedAttachment := core.Attachment{}
+	if err := util.FromJSONBytes(subMessages[0].Data, &updatedAttachment); err != nil {
+		log.Warnf("processor [%s] sub-pipeline [%s] produced invalid attachment payload for [%s]: %v, skipping write-back", p.Name(), pipelineName, attachmentID, err)
 		return nil
 	}
 
@@ -204,7 +200,7 @@ func (p *ProcessAttachmentsProcessor) processMessage(msg queue.Message) error {
 	// Persist the updated metadata.
 	writeCtx := orm.NewContext()
 	writeCtx.PermissionScope(security.PermissionScopePlatform)
-	if err := orm.Update(writeCtx, updatedAttachment); err != nil {
+	if err := orm.Update(writeCtx, &updatedAttachment); err != nil {
 		attachmentmod.UpdateAttachmentStats(attachmentID, util.MapStr{
 			core.AttachmentStageInitialParsing: core.StatusFailed,
 		})

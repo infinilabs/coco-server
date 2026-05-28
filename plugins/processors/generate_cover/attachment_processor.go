@@ -70,35 +70,26 @@ func (p *GenerateAttachmentCoverProcessor) Process(ctx *pipeline.Context) error 
 		return nil
 	}
 
-	// Get binary data from context if available (set by process_attachments).
-	// If not present, processMessage will fetch from KV.
-	var binaryData []byte
-	if rawData := ctx.Get(core.PipelineContextAttachmentData); rawData != nil {
-		if data, ok := rawData.([]byte); ok {
-			binaryData = data
-		}
-	}
-
 	for i := range messages {
 		if global.ShuttingDown() {
 			log.Debugf("[%s] shutting down, skipping remaining %d messages", p.Name(), len(messages)-i)
 			return fmt.Errorf("shutting down")
 		}
-		updatedAtt, err := p.processMessage(ctx.Context, messages[i], binaryData)
+		updatedAtt, err := p.processMessage(ctx.Context, messages[i])
 		if err != nil {
 			log.Errorf("processor [%s] failed to process message %d: %v", p.Name(), i, err)
 			continue
 		}
-		// Set updated attachment back to context for process_attachments to retrieve.
+		// Write the updated attachment back to the message for the caller to persist.
 		if updatedAtt != nil {
-			ctx.Set(core.PipelineContextAttachmentMeta, updatedAtt)
+			messages[i].Data = util.MustToJSONBytes(updatedAtt)
 		}
 	}
 	return nil
 }
 
 // processMessage handles a single serialized attachment message.
-func (p *GenerateAttachmentCoverProcessor) processMessage(ctx context.Context, msg queue.Message, binaryData []byte) (*core.Attachment, error) {
+func (p *GenerateAttachmentCoverProcessor) processMessage(ctx context.Context, msg queue.Message) (*core.Attachment, error) {
 	// Deserialize attachment from message data.
 	att := &core.Attachment{}
 	if err := util.FromJSONBytes(msg.Data, att); err != nil {
@@ -113,15 +104,10 @@ func (p *GenerateAttachmentCoverProcessor) processMessage(ctx context.Context, m
 		return nil, nil
 	}
 
-	// Use binary data from context if available, otherwise fetch from KV.
-	data := binaryData
-	if len(data) == 0 {
-		var err error
-		data, err = kv.GetValue(core.AttachmentKVBucket, []byte(att.ID))
-		if err != nil || len(data) == 0 {
-			log.Warnf("processor [%s] binary data for attachment [%s] not found in blob store, skipping", p.Name(), att.ID)
-			return nil, nil
-		}
+	data, err := kv.GetValue(core.AttachmentKVBucket, []byte(att.ID))
+	if err != nil || len(data) == 0 {
+		log.Warnf("processor [%s] binary data for attachment [%s] not found in blob store, skipping", p.Name(), att.ID)
+		return nil, nil
 	}
 
 	// Process the attachment: generate cover and thumbnail.
