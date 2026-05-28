@@ -2,7 +2,7 @@
  * Web: https://infinilabs.com
  * Email: hello#infini.ltd */
 
-package text_extraction
+package text_attachment_extraction
 
 import (
 	"context"
@@ -27,7 +27,7 @@ import (
 	"infini.sh/framework/core/util"
 )
 
-const ProcessorName = "text_extraction"
+const ProcessorName = "text_attachment_extraction"
 
 var supportedConnectors = map[string]bool{
 	s3.ConnectorS3:            true,
@@ -38,12 +38,12 @@ func init() {
 	pipeline.RegisterProcessorPlugin(ProcessorName, New)
 }
 
-type TextExtractionProcessor struct {
+type TextAttachmentExtractionProcessor struct {
 	config      *Config
 	outputQueue *queue.QueueConfig
 }
 
-// Config holds configuration for the text_extraction processor.
+// Config holds configuration for the text_attachment_extraction processor.
 // TikaEndpoint / TikaTimeoutInSeconds are only used when processing file types
 // that require Apache Tika (e.g. PDF, DOCX).  PPTX and plain images are
 // handled without Tika.
@@ -54,6 +54,11 @@ type Config struct {
 	TikaEndpoint         string `config:"tika_endpoint"`
 	TikaTimeoutInSeconds int    `config:"tika_timeout_in_seconds"`
 	ChunkSize            int    `config:"chunk_size"`
+
+	// ExtractAttachments controls whether embedded attachments (images, etc.)
+	// are extracted from documents. When false, attachment extraction, OCR,
+	//把这个 package 的文件夹的名字改成 text attachment extraction，package 的名字也改成这个 image markers, and upload are all skipped. Defaults to true.
+	ExtractAttachments *bool `config:"extract_attachments"`
 
 	// Vision model used for image-file description
 	VisionModelProviderID string `config:"vision_model_provider"`
@@ -86,18 +91,24 @@ func New(c *config.Config) (pipeline.Processor, error) {
 		panic(fmt.Sprintf("processor [%s] configuration [chunk_size] is not set or invalid, should be a positive number", ProcessorName))
 	}
 
-	p := &TextExtractionProcessor{config: &cfg}
+	// Default ExtractAttachments to true if not explicitly set.
+	if cfg.ExtractAttachments == nil {
+		defaultTrue := true
+		cfg.ExtractAttachments = &defaultTrue
+	}
+
+	p := &TextAttachmentExtractionProcessor{config: &cfg}
 	if cfg.OutputQueue != nil {
 		p.outputQueue = queue.SmartGetOrInitConfig(cfg.OutputQueue)
 	}
 	return p, nil
 }
 
-func (p *TextExtractionProcessor) Name() string {
+func (p *TextAttachmentExtractionProcessor) Name() string {
 	return ProcessorName
 }
 
-func (p *TextExtractionProcessor) Process(ctx *pipeline.Context) error {
+func (p *TextAttachmentExtractionProcessor) Process(ctx *pipeline.Context) error {
 	obj := ctx.Get(p.config.MessageField)
 	if obj == nil {
 		log.Warnf("processor [%s] receives an empty pipeline context", p.Name())
@@ -164,7 +175,7 @@ func (p *TextExtractionProcessor) Process(ctx *pipeline.Context) error {
 	return nil
 }
 
-func (p *TextExtractionProcessor) processDocument(ctx context.Context, doc *core.Document, connectorID string) error {
+func (p *TextAttachmentExtractionProcessor) processDocument(ctx context.Context, doc *core.Document, connectorID string) error {
 	tempDir, err := os.MkdirTemp("", "coco-text-extraction-*")
 	if err != nil {
 		return fmt.Errorf("failed to create temp directory: %w", err)
@@ -190,7 +201,7 @@ func (p *TextExtractionProcessor) processDocument(ctx context.Context, doc *core
 }
 
 // extractTextAndAttachment dispatches to the correct extractor based on file extension.
-func (p *TextExtractionProcessor) extractTextAndAttachment(ctx context.Context, doc *core.Document, localPath string) error {
+func (p *TextAttachmentExtractionProcessor) extractTextAndAttachment(ctx context.Context, doc *core.Document, localPath string) error {
 	ext := strings.ToLower(filepath.Ext(localPath))
 
 	var (

@@ -2,7 +2,7 @@
  * Web: https://infinilabs.com
  * Email: hello#infini.ltd */
 
-package text_extraction
+package text_attachment_extraction
 
 import (
 	"archive/zip"
@@ -20,44 +20,49 @@ import (
 	"infini.sh/framework/core/util"
 )
 
-func (p *TextExtractionProcessor) processPptx(ctx context.Context, doc *core.Document, localPath string) (fileproc.Extraction, error) {
-	attachmentDirPath, err := os.MkdirTemp("", "attachment-pptx-")
-	if err != nil {
-		return fileproc.Extraction{}, fmt.Errorf("failed to create temporary directory: %w", err)
-	}
-	defer os.RemoveAll(attachmentDirPath)
-
+func (p *TextAttachmentExtractionProcessor) processPptx(ctx context.Context, doc *core.Document, localPath string) (fileproc.Extraction, error) {
 	r, err := zip.OpenReader(localPath)
 	if err != nil {
 		return fileproc.Extraction{}, fmt.Errorf("failed to open pptx file [%s]: %w", localPath, err)
 	}
 	defer fileproc.DeferClose(r)
 
-	if err := saveImagesToDisk(r, attachmentDirPath); err != nil {
-		return fileproc.Extraction{}, fmt.Errorf("failed to extract images from pptx: %w", err)
-	}
-
 	nameToId := make(map[string]string)
 	nameToText := make(map[string]string)
 	nameToPageNums := make(map[string][]int)
 
-	entries, err := os.ReadDir(attachmentDirPath)
-	if err != nil {
-		return fileproc.Extraction{}, fmt.Errorf("failed to read attachment directory: %w", err)
-	}
-	for _, entry := range entries {
-		if !entry.Type().IsRegular() {
-			continue
+	var attachmentDirPath string
+
+	// Only extract attachments when enabled.
+	if *p.config.ExtractAttachments {
+		attachmentDirPath, err = os.MkdirTemp("", "attachment-pptx-")
+		if err != nil {
+			return fileproc.Extraction{}, fmt.Errorf("failed to create temporary directory: %w", err)
 		}
-		name := entry.Name()
-		nameToId[name] = util.GetUUID()
-		if fileproc.IsImage(name) {
-			fullPath := filepath.Join(attachmentDirPath, name)
-			text, err := fileproc.OCR(ctx, p.config.TikaEndpoint, p.config.TikaTimeoutInSeconds, fullPath)
-			if err != nil {
-				log.Warnf("failed to perform OCR for image [%s]: %v", name, err)
-			} else {
-				nameToText[name] = text
+		defer os.RemoveAll(attachmentDirPath)
+
+		if err := saveImagesToDisk(r, attachmentDirPath); err != nil {
+			return fileproc.Extraction{}, fmt.Errorf("failed to extract images from pptx: %w", err)
+		}
+
+		entries, err := os.ReadDir(attachmentDirPath)
+		if err != nil {
+			return fileproc.Extraction{}, fmt.Errorf("failed to read attachment directory: %w", err)
+		}
+		for _, entry := range entries {
+			if !entry.Type().IsRegular() {
+				continue
+			}
+			name := entry.Name()
+			nameToId[name] = util.GetUUID()
+			if fileproc.IsImage(name) {
+				fullPath := filepath.Join(attachmentDirPath, name)
+				text, err := fileproc.OCR(ctx, p.config.TikaEndpoint, p.config.TikaTimeoutInSeconds, fullPath)
+				if err != nil {
+					log.Warnf("failed to perform OCR for image [%s]: %v", name, err)
+				} else {
+					nameToText[name] = text
+				}
 			}
 		}
 	}
@@ -84,19 +89,23 @@ func (p *TextExtractionProcessor) processPptx(ctx context.Context, doc *core.Doc
 		pages = append(pages, text)
 	}
 
-	if err := fileproc.UploadAttachmentsToBlobStore(ctx, attachmentDirPath, doc, nameToId, nameToText, nameToPageNums); err != nil {
-		return fileproc.Extraction{}, fmt.Errorf("failed to upload document attachments: %w", err)
+	if *p.config.ExtractAttachments && attachmentDirPath != "" {
+		if err := fileproc.UploadAttachmentsToBlobStore(ctx, attachmentDirPath, doc, nameToId, nameToText, nameToPageNums); err != nil {
+			return fileproc.Extraction{}, fmt.Errorf("failed to upload document attachments: %w", err)
+		}
 	}
 
 	var attachmentIds []string
 	for _, id := range nameToId {
 		attachmentIds = append(attachmentIds, id)
 	}
+
 	return fileproc.Extraction{Pages: pages, Attachments: attachmentIds}, nil
 }
 
 // parseSlideContent parses a slide's XML and returns text with [[Image(...)]] markers.
-func (p *TextExtractionProcessor) parseSlideContent(f *zip.File, pageNum int, rels map[string]string, nameToId map[string]string, nameToText map[string]string, nameToPageNums map[string][]int) (string, error) {
+// When attachment extraction is disabled (nameToId is empty), image markers are skipped.
+func (p *TextAttachmentExtractionProcessor) parseSlideContent(f *zip.File, pageNum int, rels map[string]string, nameToId map[string]string, nameToText map[string]string, nameToPageNums map[string][]int) (string, error) {
 	rc, err := f.Open()
 	if err != nil {
 		return "", err
@@ -134,7 +143,9 @@ func (p *TextExtractionProcessor) parseSlideContent(f *zip.File, pageNum int, re
 				if filename, exists := rels[rId]; exists && !processedRels[rId] {
 					uuid, ok := nameToId[filename]
 					if !ok {
-						panic(fmt.Sprintf("unreachable: attachment ID not found for file %s", filename))
+						// Attachment extraction disabled or image not found; skip marker.
+						processedRels[rId] = true
+						continue
 					}
 					nameToPageNums[filename] = append(nameToPageNums[filename], pageNum)
 					text := fileproc.Escape(nameToText[filename], []rune{']', '\t'})
