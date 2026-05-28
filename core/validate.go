@@ -53,9 +53,13 @@ func ValidateLoginByIntegrationHeader(w http.ResponseWriter, r *http.Request) (c
 			claims = security.NewUserClaims()
 			claims.SetUserID(cfg.Guest.RunAs)
 
-			claims.Provider = ProviderIntegration
+			claims.Provider = security.DefaultNativeAuthBackend
 			claims.Login = cfg.Guest.RunAs
 			claims.UserID = cfg.Guest.RunAs
+			// Mark this session as integration-authenticated so downstream handlers
+			// (e.g. /account/profile, enterprise tenant filter) can distinguish a
+			// real native-backend login from an integration guest run-as session.
+			claims.Set(UserSessionInfoKeyIntegration, integrationID)
 			claims.Permissions = security.GetAllPermissionsForUser(claims.UserSessionInfo)
 			//claims.Permissions = security.MustGetPermissionKeysByUser(r.Context(), cfg.Guest.RunAs)
 			//log.Info("integration:", integrationID, ", run as:", cfg.Guest.RunAs, ",permissions:", claims.Permissions)

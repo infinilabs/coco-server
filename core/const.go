@@ -32,7 +32,13 @@ const StatusCompleted = "completed"
 const StatusCanceled = "canceled"
 const StatusFailed = "failed"
 
-const ProviderIntegration = "INTEGRATION"
+// UserSessionInfoKeyIntegration is a marker key stored on UserSessionInfo's
+// embedded param.Parameters by the integration auth backend. When this key is
+// present on a UserSessionInfo, the session was constructed by
+// ValidateLoginByIntegrationHeader (i.e. it is an integration-authenticated
+// guest run-as session, not a real user login). The associated value is the
+// originating integration ID (string).
+const UserSessionInfoKeyIntegration param.ParaKey = "integration"
 
 const WidgetRole = "widget"
 
