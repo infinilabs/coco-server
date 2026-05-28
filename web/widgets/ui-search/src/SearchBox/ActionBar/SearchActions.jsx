@@ -1,5 +1,6 @@
 import { Button, Dropdown, Space } from "antd";
 import { ChevronDown, Globe, Hammer, Search } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 export const ACTION_TYPE_SEARCH = 'search'
 export const ACTION_TYPE_SEARCH_HYBRID = 'hybrid'
@@ -11,7 +12,7 @@ export const ACTION_TYPE_DEEPSEARCH = 'deepresearch'
 export default (props) => {
     const { 
         actionType, 
-        searchType = ACTION_TYPE_SEARCH_HYBRID, 
+        searchType = ACTION_TYPE_SEARCH_KEYWORD, 
         onSearchTypeChange,
         onButtonClick,
         onDropdownClose 

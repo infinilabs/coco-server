@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useRef, useCallback } from "react";
-import { ACTION_TYPE_SEARCH } from "./ActionBar/SearchActions";
+import { ACTION_TYPE_SEARCH, ACTION_TYPE_SEARCH_HYBRID, ACTION_TYPE_SEARCH_KEYWORD } from "./ActionBar/SearchActions";
 import { SUGGESTION_TIPS } from "./Suggestions/Tips";
 import { SUGGESTION_KEYWORDS } from "./Suggestions/Keywords";
 import { SUGGESTION_FILTER_FIELDS } from "./Suggestions/FilterFields";
@@ -21,7 +21,7 @@ function extractColonFieldQuery(query, cursorPosition) {
 
 export default function useSearchBox({ queryParams, onSearch, onSuggestion, filterFieldsMeta = {} }) {
   const [currentQueryParams, setCurrentQueryParams] = useState(queryParams);
-  const { query, filter = {}, filters = [], action_type, search_type } = currentQueryParams;
+  const { query, filter = {}, filters = [], action_type, search_type = ACTION_TYPE_SEARCH_KEYWORD } = currentQueryParams;
   const [suggestions, setSuggestions] = useState({});
   const [attachments, setAttachments] = useState([]);
   const [mainInputActive, setMainInputActive] = useState(false);

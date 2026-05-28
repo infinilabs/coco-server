@@ -65,10 +65,12 @@ export default function Chat({
           Token={Token}
           headers={headers}
           locale={language === "zh-CN" ? "zh" : "en"}
+          t={t}
         />
       }
       input={
         <ChatInput
+          t={t}
           locale={language === "zh-CN" ? "zh" : "en"}
           inputValue={inputValue}
           onSend={onSendMessage}
@@ -87,6 +89,7 @@ export default function Chat({
               Token={Token}
               headers={headers}
               locale={language === "zh-CN" ? "zh" : "en"}
+              t={t}
             />
           }
           onBackToSearch={onBackToSearch}
@@ -98,6 +101,7 @@ export default function Chat({
           Token={Token}
           headers={headers}
           locale={language === "zh-CN" ? "zh" : "en"}
+          t={t}
         />
       }
     />

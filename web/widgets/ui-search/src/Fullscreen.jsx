@@ -180,7 +180,7 @@ const Fullscreen = props => {
       {
         ...rest,
         filter: newFilter,
-        search_type: queryParams?.search_type || ACTION_TYPE_SEARCH_HYBRID,
+        search_type: queryParams?.search_type || ACTION_TYPE_SEARCH_KEYWORD,
         from: isScroll ? scrollRef.current : queryParams.from,
         'metadata.content_category': undefined
       },
