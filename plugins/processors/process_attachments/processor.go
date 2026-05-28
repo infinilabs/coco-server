@@ -158,9 +158,10 @@ func (p *ProcessAttachmentsProcessor) processMessage(msg queue.Message) error {
 		core.AttachmentStageInitialParsing: core.StatusProcessing,
 	})
 
-	// Run the sub-pipeline with attachment metadata and data in context.
+	// Run the sub-pipeline with attachment metadata serialized in []queue.Message
+	// and binary data in PipelineContextAttachmentData.
 	subCtx := pipeline.AcquireContext(pipelineCfg)
-	subCtx.Set(core.PipelineContextAttachmentMeta, &attachment)
+	subCtx.Set(core.PipelineContextDocuments, []queue.Message{{Data: util.MustToJSONBytes(&attachment)}})
 	subCtx.Set(core.PipelineContextAttachmentData, data)
 
 	if err := procs.Process(subCtx); err != nil {

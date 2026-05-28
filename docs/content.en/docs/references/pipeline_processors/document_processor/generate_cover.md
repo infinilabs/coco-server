@@ -1,19 +1,15 @@
 ---
-title: "Generate Cover"
+title: "Generate Document Cover"
 weight: 2
 ---
 
-## Generate Cover Processor
+## Generate Document Cover Processor
 
-Generates a cover image and a thumbnail for a document or an attachment.
+Generates a cover image and a thumbnail for a document.
 
-**Document mode** — result is stored in `doc.Cover` and `doc.Thumbnail`.  
-**Attachment mode** — result is stored in `attachment.metadata.cover` and
-`attachment.metadata.thumbnail`.
+> **Note**: For attachment cover generation, use `generate_attachment_cover` instead.
 
-The processor detects which mode to use automatically:
-- If `attachment_meta` is present in the pipeline context → attachment mode
-- Otherwise → document mode (reads from the message queue field)
+Result is stored in `doc.Cover` and `doc.Thumbnail`.
 
 | Supported format | Notes |
 |---|---|
@@ -34,19 +30,13 @@ The processor detects which mode to use automatically:
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `message_field` | string | No | `messages` | Pipeline context key containing the `[]queue.Message` to process (document mode only) |
-| `output_queue` | object | No | `null` | Queue to push processed documents to (document mode only) |
+| `message_field` | string | No | `messages` | Pipeline context key containing the `[]queue.Message` to process |
+| `output_queue` | object | No | `null` | Queue to push processed documents to |
 
-### Example — document pipeline
+### Example
 
 ```yaml
-- generate_cover:
+- generate_document_cover:
     output_queue:
       name: "documents_with_cover"
-```
-
-### Example — attachment pipeline
-
-```yaml
-- generate_cover: {}
 ```

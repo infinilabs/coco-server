@@ -82,11 +82,15 @@ func (processor *DocumentEmbeddingProcessor) Process(ctx *pipeline.Context) erro
 	obj := ctx.Get(processor.config.MessageField)
 
 	if obj == nil {
-		log.Warnf("processor [] receives an empty pipeline context", processor.Name())
+		log.Warnf("processor [%s] receives an empty pipeline context", processor.Name())
 		return nil
 	}
 
-	messages := obj.([]queue.Message)
+	messages, ok := obj.([]queue.Message)
+	if !ok {
+		log.Warnf("processor [%s] context value is not []queue.Message", processor.Name())
+		return nil
+	}
 	if global.Env().IsDebug {
 		log.Tracef("processor [%s] get %v messages from context", processor.Name(), len(messages))
 	}

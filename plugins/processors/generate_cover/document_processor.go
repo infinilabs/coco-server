@@ -28,7 +28,7 @@ import (
 	"infini.sh/framework/core/util"
 )
 
-const ProcessorName = "generate_cover"
+const ProcessorName = "generate_document_cover"
 
 var supportedConnectors = map[string]bool{
 	s3.ConnectorS3:            true,
@@ -39,7 +39,7 @@ func init() {
 	pipeline.RegisterProcessorPlugin(ProcessorName, New)
 }
 
-type GenerateCoverProcessor struct {
+type GenerateDocumentCoverProcessor struct {
 	config      *Config
 	outputQueue *queue.QueueConfig
 }
@@ -57,37 +57,18 @@ func New(c *config.Config) (pipeline.Processor, error) {
 		return nil, err
 	}
 
-	p := &GenerateCoverProcessor{config: &cfg}
+	p := &GenerateDocumentCoverProcessor{config: &cfg}
 	if cfg.OutputQueue != nil {
 		p.outputQueue = queue.SmartGetOrInitConfig(cfg.OutputQueue)
 	}
 	return p, nil
 }
 
-func (p *GenerateCoverProcessor) Name() string {
+func (p *GenerateDocumentCoverProcessor) Name() string {
 	return ProcessorName
 }
 
-func (p *GenerateCoverProcessor) Process(ctx *pipeline.Context) error {
-	// Attachment mode: triggered when attachment meta is present in context.
-	if rawMeta := ctx.Get(core.PipelineContextAttachmentMeta); rawMeta != nil {
-		att, ok := rawMeta.(*core.Attachment)
-		if !ok {
-			return fmt.Errorf("processor [%s]: %s is not *core.Attachment", p.Name(), core.PipelineContextAttachmentMeta)
-		}
-		rawData := ctx.Get(core.PipelineContextAttachmentData)
-		if rawData == nil {
-			log.Warnf("processor [%s] skipping attachment [%s]: no binary data in context", p.Name(), att.ID)
-			return nil
-		}
-		data, ok := rawData.([]byte)
-		if !ok {
-			return fmt.Errorf("processor [%s]: %s is not []byte", p.Name(), core.PipelineContextAttachmentData)
-		}
-		return p.processAttachment(ctx.Context, att, data)
-	}
-
-	// Document mode: reads serialized documents from the message queue field.
+func (p *GenerateDocumentCoverProcessor) Process(ctx *pipeline.Context) error {
 	obj := ctx.Get(p.config.MessageField)
 	if obj == nil {
 		log.Warnf("processor [%s] receives an empty pipeline context", p.Name())
@@ -96,6 +77,7 @@ func (p *GenerateCoverProcessor) Process(ctx *pipeline.Context) error {
 
 	messages, ok := obj.([]queue.Message)
 	if !ok {
+		log.Warnf("processor [%s] context value is not []queue.Message", p.Name())
 		return nil
 	}
 
@@ -157,7 +139,7 @@ func (p *GenerateCoverProcessor) Process(ctx *pipeline.Context) error {
 // processDocument downloads the file, generates its cover/thumbnail, then
 // uploads the results to the blob store and records the attachment references
 // in doc.Cover and doc.Thumbnail.
-func (p *GenerateCoverProcessor) processDocument(ctx context.Context, doc *core.Document, connectorID string) error {
+func (p *GenerateDocumentCoverProcessor) processDocument(ctx context.Context, doc *core.Document, connectorID string) error {
 	tempDir, err := os.MkdirTemp("", "coco-generate-cover-*")
 	if err != nil {
 		return fmt.Errorf("failed to create temp directory: %w", err)
@@ -224,82 +206,5 @@ func (p *GenerateCoverProcessor) processDocument(ctx context.Context, doc *core.
 	return nil
 }
 
-// processAttachment takes binary content already in memory, writes it to a
-// temp file, generates a cover and (for image files) a thumbnail, uploads both
-// to the blob store, and records the resulting URLs in att.Metadata["cover"]
-// and att.Metadata["thumbnail"].
-func (p *GenerateCoverProcessor) processAttachment(ctx context.Context, att *core.Attachment, data []byte) error {
-	tempDir, err := os.MkdirTemp("", "coco-generate-cover-*")
-	if err != nil {
-		return fmt.Errorf("failed to create temp directory: %w", err)
-	}
-	defer os.RemoveAll(tempDir)
-
-	// Use the original filename so that GenerateCoverAndThumbnail can detect
-	// the file type from its extension. filepath.Base guards against att.Name
-	// being an absolute or relative path (e.g. "../etc/passwd").
-	filename := filepath.Base(att.Name)
-	if filename == "" || filename == "." {
-		filename = att.ID
-	}
-	localPath := filepath.Join(tempDir, filename)
-	if err := os.WriteFile(localPath, data, 0600); err != nil {
-		return fmt.Errorf("failed to write attachment to temp file: %w", err)
-	}
-
-	if global.ShuttingDown() {
-		return fmt.Errorf("shutting down")
-	}
-
-	coverFilename := att.ID + "_cover.png"
-	coverPath := filepath.Join(tempDir, coverFilename)
-	thumbnailFilename := att.ID + "_thumbnail.png"
-	thumbnailPath := filepath.Join(tempDir, thumbnailFilename)
-
-	if err := GenerateCoverAndThumbnail(localPath, coverPath, thumbnailPath); err != nil {
-		log.Warnf("processor [%s] failed to generate cover for attachment [%s]: %v", p.Name(), att.ID, err)
-		return nil // non-fatal
-	}
-
-	ormCtx := orm.NewContextWithParent(ctx)
-	ormCtx.DirectAccess()
-	ormCtx.PermissionScope(security.PermissionScopePlatform)
-
-	ownerID := att.GetOwnerID()
-
-	if att.Metadata == nil {
-		att.Metadata = make(map[string]interface{})
-	}
-
-	coverFile, err := os.Open(coverPath)
-	if err != nil {
-		log.Warnf("processor [%s] failed to open cover for attachment [%s]: %v", p.Name(), att.ID, err)
-		return nil
-	}
-	coverID, err := attachment.UploadToBlobStore(ormCtx, "", coverFile, nil, coverFilename, ownerID, nil, "", true)
-	coverFile.Close()
-	if err != nil {
-		log.Warnf("processor [%s] failed to upload cover for attachment [%s]: %v", p.Name(), att.ID, err)
-	} else {
-		att.Metadata["cover"] = "attachment://" + coverID
-		log.Debugf("processor [%s] uploaded cover for attachment [%s]: %s", p.Name(), att.ID, att.Metadata["cover"])
-	}
-
-	if fileproc.IsImage(filename) {
-		thumbnailFile, err := os.Open(thumbnailPath)
-		if err != nil {
-			log.Warnf("processor [%s] failed to open thumbnail for attachment [%s]: %v", p.Name(), att.ID, err)
-		} else {
-			thumbnailID, err := attachment.UploadToBlobStore(ormCtx, "", thumbnailFile, nil, thumbnailFilename, ownerID, nil, "", true)
-			thumbnailFile.Close()
-			if err != nil {
-				log.Warnf("processor [%s] failed to upload thumbnail for attachment [%s]: %v", p.Name(), att.ID, err)
-			} else {
-				att.Metadata["thumbnail"] = "attachment://" + thumbnailID
-				log.Debugf("processor [%s] uploaded thumbnail for attachment [%s]: %s", p.Name(), att.ID, att.Metadata["thumbnail"])
-			}
-		}
-	}
-
-	return nil
-}
+// Ensure the interface is satisfied at compile time.
+var _ pipeline.Processor = (*GenerateDocumentCoverProcessor)(nil)
