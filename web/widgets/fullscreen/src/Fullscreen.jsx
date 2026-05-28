@@ -122,9 +122,9 @@ export default (props) => {
 
     function aggregate(query, callback, setLoading) {
         if (setLoading) setLoading(true)
-        const { query: keyword, filter = {}, ...rest } = query
+        const { query: keyword, filter = {}, search_type, ...rest } = query
         const filterStr = buildFilterString(filter)
-        const searchStr = `${filterStr ? filterStr + '&' : ''}${queryString.stringify({ query: keyword, ...rest })}`
+        const searchStr = `${filterStr ? filterStr + '&' : ''}${queryString.stringify({ query: keyword, search_type })}`
         fetch(`${server}/query/_search?${searchStr}`, {
             method: 'POST',
             headers: {

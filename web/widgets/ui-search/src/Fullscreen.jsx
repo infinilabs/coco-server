@@ -218,7 +218,11 @@ const Fullscreen = props => {
 
         if (onAggregation && shouldAggRef.current) {
           setLoading(true);
-          onAggregation({ query: queryParams.query, filter: filterWithoutAgg }, (res) => {
+          onAggregation({ 
+            query: queryParams.query,
+            search_type: queryParams?.search_type || ACTION_TYPE_SEARCH_KEYWORD, 
+            filter: filterWithoutAgg 
+          }, (res) => {
             shouldAskRef.current = false
             if (res && !res.error) {
               rs = formatESResult(res);

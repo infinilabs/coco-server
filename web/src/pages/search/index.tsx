@@ -125,9 +125,9 @@ export function Component() {
 
   const onAggregation = async (queryParams: { [key: string]: any }, callback: (data: any) => void, setLoading: (loading: boolean) => void) => {
     if (setLoading) setLoading(true)
-    const { query, filter } = queryParams
+    const { query, filter, search_type } = queryParams
     const filterStr = Object.keys(filter).filter((key) => !!filter[key]).map((key) => `filter=${key}:any(${Array.isArray(filter[key]) ? filter[key].join(',') : filter[key]})`).join('&')
-    const searchStr = `${filterStr ? filterStr + '&' : ''}${queryString.stringify({ query })}`
+    const searchStr = `${filterStr ? filterStr + '&' : ''}${queryString.stringify({ query, search_type })}`
     const body = JSON.stringify(AGGS[queryParams['metadata.content_category']] || AGGS['all'])
     const headers = { 'APP-INTEGRATION-ID': search_settings?.integration }
     const res = await querySearch(body, searchStr, { headers })
