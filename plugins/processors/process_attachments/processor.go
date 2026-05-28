@@ -199,6 +199,7 @@ func (p *ProcessAttachmentsProcessor) processMessage(msg queue.Message) error {
 
 	// Persist the updated metadata.
 	writeCtx := orm.NewContext()
+	writeCtx.DirectAccess()
 	writeCtx.PermissionScope(security.PermissionScopePlatform)
 	if err := orm.Update(writeCtx, &updatedAttachment); err != nil {
 		attachmentmod.UpdateAttachmentStats(attachmentID, util.MapStr{
