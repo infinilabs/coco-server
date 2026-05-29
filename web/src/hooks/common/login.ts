@@ -1,8 +1,8 @@
 import { useLoading } from '@sa/hooks';
 import { useTranslation } from 'react-i18next';
 
-import { getUerName, login, resetStore } from '@/store/slice/auth';
-import { initAuthRoute } from '@/store/slice/route';
+import { getUerName, login, resetAuth, resetStore } from '@/store/slice/auth';
+import { initAuthRoute, initConstantRoute } from '@/store/slice/route';
 
 import { useAppDispatch } from '../business/useStore';
 
@@ -22,6 +22,9 @@ export function useLogin() {
         const userName = dispatch(getUerName());
   
         if (userName) {
+          await dispatch(initConstantRoute());
+          await dispatch(resetAuth());
+          await dispatch(initAuthRoute());
           await dispatch(initAuthRoute());
   
           if (redirect) {

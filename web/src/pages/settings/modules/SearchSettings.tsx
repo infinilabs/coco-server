@@ -4,7 +4,8 @@ import { fetchSettings, updateSettings } from '@/service/api/server';
 import { useLoading, useRequest } from '@sa/hooks';
 import IntegrationSelect from '@/pages/integration/modules/IntegrationSelect';
 import { getApplicationSetting, setApplicationSetting, updateRootRouteIfSearch } from '@/store/slice/server';
-import { initConstantRoute } from '@/store/slice/route';
+import { initAuthRoute, initConstantRoute, selectFilterPaths, setFilterPaths } from '@/store/slice/route';
+import { resetAuth } from '@/store/slice/auth';
 
 const SearchSettings = memo(() => {
   const [form] = Form.useForm();
@@ -20,6 +21,7 @@ const SearchSettings = memo(() => {
 
   const dispatch = useAppDispatch();
   const applicationSetting = useAppSelector(getApplicationSetting);
+  const filterPaths = useAppSelector(selectFilterPaths);
     
   const {
     data,
@@ -49,9 +51,12 @@ const SearchSettings = memo(() => {
         ...applicationSetting,
         search_settings
       }
-      dispatch(setApplicationSetting(newApplicationSetting));
-      dispatch(updateRootRouteIfSearch(newApplicationSetting));
-      dispatch(initConstantRoute());
+      await dispatch(setApplicationSetting(newApplicationSetting));
+      await dispatch(updateRootRouteIfSearch(newApplicationSetting));
+      await dispatch(setFilterPaths(filterPaths.filter(path => path !== '/search')));
+      await dispatch(initConstantRoute());
+      await dispatch(resetAuth());
+      await dispatch(initAuthRoute());
       window.$message?.success(t('common.updateSuccess'));
     }
     endLoading();
