@@ -263,7 +263,7 @@ export default function useSearchBox({ queryParams, onSearch, onSuggestion, filt
       // Find the searchbox root element
       const searchboxEl = expandedInputRef.current?.resizableTextArea?.textArea?.closest('[class*="searchbox"]')
         || document.querySelector('[class*="searchbox"]');
-      if (searchboxEl && !searchboxEl.contains(e.target)) {
+      if (searchboxEl && !searchboxEl.contains(e.target) && !isClickingSearchAction.current) {
         if (filterState.type !== 'none') {
           setFilterState({ type: 'none', index: -1 });
           setSuggestions({});
@@ -375,6 +375,8 @@ export default function useSearchBox({ queryParams, onSearch, onSuggestion, filt
   // Reset suggestions when suggestion type or query context changes
   useEffect(() => {
     if (!suggestionType) {
+      // If user is interacting with search action (changing search type), don't clear suggestions
+      if (isClickingSearchAction.current) return;
       setSuggestions({});
       return;
     }
