@@ -173,28 +173,17 @@ type BuiltinToolsConfig struct {
 	Scraper    bool `json:"scraper"`
 }
 
-// ModelConfig describes a model entry. Its fields split into two groups:
+// ModelConfig is a runtime reference to a model, specifying which model to use
+// and how to use it. This is stored in assistant configurations.
 //
-//   - Static fields: describe the model itself and come from the provider
-//     definition. They identify the model and declare its intrinsic capabilities.
-//   - Runtime fields: control how the model is invoked at inference time and
-//     may vary per call site.
+// This is distinct from Model (in llm_provider.go), which describes a model's
+// static, immutable capabilities. ModelConfig references a Model by ProviderID
+// and Name, and adds runtime settings that control inference behavior.
 type ModelConfig struct {
-	// --- Static fields: identity & capability ---
+	// --- Reference fields: identify the model ---
 
-	ProviderID string  `json:"provider_id"`
-	Name       string  `json:"name"`           // model ID
-	Type       LLMType `json:"type,omitempty"` // LLMTypeLanguage, LLMTypeVision, LLMTypeEmbedding
-	// SupportReasoning reports whether the model is *capable* of running in
-	// reasoning mode.
-	//
-	// Only meaningful when Type == LLMTypeLanguage; ignored
-	// for vision / embedding models.
-	//
-	// Distinct from ModelSettings.Reasoning, which controls whether reasoning is
-	// actually *used* at inference time (and is only honored on models where
-	// SupportReasoning is true).
-	SupportReasoning bool `json:"support_reasoning,omitempty"`
+	ProviderID string `json:"provider_id"` // references the ModelProvider
+	Name       string `json:"name"`        // references Model.Name within the provider
 
 	// --- Runtime fields: per-invocation behavior ---
 

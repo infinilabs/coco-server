@@ -110,7 +110,7 @@ func GenerateResponse(taskCtx context.Context, provider *core.ModelProvider, mod
 
 	options := GetLLOptions(modelConfig)
 
-	if modelConfig.SupportReasoning && modelConfig.Settings.Reasoning {
+	if common.ModelSupportsReasoning(modelConfig.ProviderID, modelConfig.Name) && modelConfig.Settings.Reasoning {
 		options = append(options, llms.WithStreamingReasoningFunc(func(ctx context.Context, reasoningChunk []byte, chunk []byte) error {
 			log.Trace(string(reasoningChunk), ",", string(chunk))
 			// Use taskCtx here to check for cancellation or other context-specific logic
@@ -251,7 +251,7 @@ func DirectGenerate(taskCtx context.Context, modelConfig *core.ModelConfig, msgs
 
 	options := GetLLOptions(modelConfig)
 	chunkSeq := 0
-	if modelConfig.SupportReasoning && modelConfig.Settings.Reasoning {
+	if common.ModelSupportsReasoning(modelConfig.ProviderID, modelConfig.Name) && modelConfig.Settings.Reasoning {
 		options = append(options, llms.WithStreamingReasoningFunc(func(ctx context.Context, reasoningChunk []byte, chunk []byte) error {
 			log.Trace(string(reasoningChunk), ",", string(chunk))
 			// Use taskCtx here to check for cancellation or other context-specific logic
@@ -373,14 +373,14 @@ func GenerateFinalResponse(taskCtx context.Context, reqMsg, replyMsg *core.ChatM
 	}
 
 	options := []llms.CallOption{}
-	maxTokens := GetMaxTokens(params.MustGetAnsweringModel(), 1024)
-	temperature := GetTemperature(params.MustGetAnsweringModel(), 0.8)
-	maxLength := GetMaxLength(params.MustGetAnsweringModel(), 0)
+	maxTokens := GetMaxTokens(answeringModel, 1024)
+	temperature := GetTemperature(answeringModel, 0.8)
+	maxLength := GetMaxLength(answeringModel, 0)
 	options = append(options, llms.WithMaxTokens(maxTokens))
 	options = append(options, llms.WithMaxLength(maxLength))
 	options = append(options, llms.WithTemperature(temperature))
 
-	if params.MustGetAnsweringModel().SupportReasoning && params.MustGetAnsweringModel().Settings.Reasoning {
+	if common.ModelSupportsReasoning(answeringModel.ProviderID, answeringModel.Name) && answeringModel.Settings.Reasoning {
 		options = append(options, llms.WithStreamingReasoningFunc(func(ctx context.Context, reasoningChunk []byte, chunk []byte) error {
 			log.Trace(string(reasoningChunk), ",", string(chunk))
 

@@ -617,21 +617,21 @@ func ensureSetupModelProvider(ctx *orm.Context, m *SetupModelConfig, llmType cor
 		Enabled:     true,
 		Builtin:     false,
 	}
-	provider.Models = []core.ModelConfig{newProviderModel(modelName, m.Model, llmType)}
+	provider.Models = []core.Model{newProviderModel(modelName, m.Model, llmType)}
 	if err := orm.Create(ctx, provider); err != nil {
 		return "", "", err
 	}
 	return provider.ID, modelName, nil
 }
 
-// newProviderModel builds a ModelConfig for an ES write, carrying the role's
+// newProviderModel builds a Model for an ES write, carrying the role's
 // LLM type and (when provided) the SupportReasoning flag.
-func newProviderModel(name string, def *SetupModelDef, llmType core.LLMType) core.ModelConfig {
-	mc := core.ModelConfig{Name: name, Type: llmType}
+func newProviderModel(name string, def *SetupModelDef, llmType core.LLMType) core.Model {
+	m := core.Model{Name: name, Type: llmType}
 	if def != nil {
-		mc.SupportReasoning = def.SupportReasoning
+		m.SupportReasoning = def.SupportReasoning
 	}
-	return mc
+	return m
 }
 
 // upsertProviderModel adds the freshly-defined model to provider.Models, or

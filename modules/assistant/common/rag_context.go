@@ -119,17 +119,6 @@ func (r RAGContext) MustGetAnsweringModel() *core.ModelConfig {
 	model.ProviderID = resolved.ProviderID
 	model.Name = resolved.ID
 
-	// Merge reasoning capability from provider's model definition
-	modelProvider, err := common.GetModelProvider(resolved.ProviderID)
-	if err == nil && modelProvider != nil {
-		for _, v := range modelProvider.Models {
-			if v.Name == resolved.ID {
-				model.SupportReasoning = v.SupportReasoning
-				break
-			}
-		}
-	}
-
 	return &model
 }
 

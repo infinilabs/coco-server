@@ -124,7 +124,7 @@ func validateLanguageModelType(modelId *core.ModelId, fieldName string) error {
 	if err != nil {
 		return fmt.Errorf("%s: provider %q not found", fieldName, modelId.ProviderID)
 	}
-	m := provider.GetModelConfig(modelId.ID)
+	m := provider.GetModel(modelId.ID)
 	if m == nil {
 		// model not in provider's builtin list; skip type check
 		return nil
