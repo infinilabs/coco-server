@@ -9,7 +9,7 @@ import ActionBar from "./ActionBar";
 import { ListFilter } from "lucide-react";
 
 export function SearchBox(props) {
-  const { placeholder, queryParams, onSearch, minimize = false, onSuggestion, filterFieldsMeta = {} } = props;
+  const { placeholder, queryParams, setQueryParams, onSearch, minimize = false, onSuggestion, filterFieldsMeta = {} } = props;
   const sb = useSearchBox({ queryParams, onSearch, onSuggestion, filterFieldsMeta });
 
   const actionBarProps = {
@@ -40,6 +40,12 @@ export function SearchBox(props) {
     handleFilterValueToggle: sb.handleFilterValueToggle,
     handleOperatorChange: sb.handleOperatorChange,
     handleFilterComplete: sb.handleFilterComplete,
+    turnToChat: (item) => {
+      setQueryParams({
+        query: item.suggestion,
+        mode: 'chat',
+      })
+    }
   };
 
   const renderTextArea = (ref, className = "", onBlur) => (
@@ -116,7 +122,7 @@ export function SearchBox(props) {
       )}
       {/* Expanded Panel */}
       <div className={`absolute left-0 top-0 z-100 w-full ${sb.showExpandedPanel ? '' : 'h-0 overflow-hidden'}`}>
-        <div className="py-12px rounded-12px bg-white overflow-hidden shadow-[0_2px_20px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_20px_rgba(255,255,255,0.2)] border border-[rgba(235,235,235,1)] dark:border-[rgba(50,50,50,1)]">
+        <div className="py-12px rounded-12px bg-[rgb(var(--ui-search--layout-bg-color))] overflow-hidden shadow-[0_2px_20px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_20px_rgba(255,255,255,0.2)] border border-[rgba(235,235,235,1)] dark:border-[rgba(50,50,50,1)]">
           {sb.attachments.length > 0 && (
             <div className="mb-14px px-16px">
               <Attachments data={sb.attachments} onItemRemove={sb.handleAttachmentRemove} />

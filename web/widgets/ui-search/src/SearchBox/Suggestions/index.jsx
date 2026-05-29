@@ -21,6 +21,7 @@ export default function Suggestions({
   handleFilterValueToggle,
   handleOperatorChange,
   handleFilterComplete,
+  turnToChat
 }) {
   const { type, data = [] } = suggestions;
   if (!type || (!mainInputActive && filterState.type === 'none')) return null;
@@ -34,7 +35,13 @@ export default function Suggestions({
           keyword={query}
           data={data}
           onItemSelect={(item) => handleQueryParamsChange('action_type', item.action || ACTION_TYPE_SEARCH)}
-          onItemClick={handleSuggestionItemClick((item) => handleSearch(item.suggestion || query, filters, item.action || action_type, search_type))}
+          onItemClick={handleSuggestionItemClick((item) => {
+            if (item.action === 'deepthink' || item.action === 'deepresearch') {
+              turnToChat(item);
+              return;
+            }
+            handleSearch(item.suggestion || query, filters, item.action || action_type, search_type)
+          })}
         />
       );
     case SUGGESTION_FILTER_FIELDS:
