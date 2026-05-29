@@ -19,6 +19,14 @@ function extractColonFieldQuery(query, cursorPosition) {
   return match ? match[1] : null;
 }
 
+// Extract slash+keyword pattern: "/word" at end of text before cursor
+function extractSlashFieldQuery(query, cursorPosition) {
+  if (!query || cursorPosition <= 0) return null;
+  const textBeforeCursor = query.substring(0, cursorPosition);
+  const match = textBeforeCursor.match(/\/(\S+)$/);
+  return match ? match[1] : null;
+}
+
 export default function useSearchBox({ queryParams, onSearch, onSuggestion, filterFieldsMeta = {} }) {
   const [currentQueryParams, setCurrentQueryParams] = useState(queryParams);
   const { query, filter = {}, filters = [], action_type, search_type = ACTION_TYPE_SEARCH_KEYWORD } = currentQueryParams;
@@ -57,10 +65,15 @@ export default function useSearchBox({ queryParams, onSearch, onSuggestion, filt
     return query.charAt(cursorPosition - 1) === '/' || query.charAt(cursorPosition) === '/';
   }, [query, cursorPosition]);
 
-  // Detect "keyword:" pattern at cursor for field matching
+  // Detect "keyword:" and "/keyword" patterns at cursor for field matching
   const colonFieldQuery = useMemo(() => {
     if (!mainInputActive) return null;
     return extractColonFieldQuery(query, cursorPosition);
+  }, [mainInputActive, query, cursorPosition]);
+
+  const slashFieldQuery = useMemo(() => {
+    if (!mainInputActive) return null;
+    return extractSlashFieldQuery(query, cursorPosition);
   }, [mainInputActive, query, cursorPosition]);
 
   // Derived: determine which suggestion type to display based on current input context
@@ -69,13 +82,13 @@ export default function useSearchBox({ queryParams, onSearch, onSuggestion, filt
     if (mainInputActive) {
       if (!(query || '').trim()) return SUGGESTION_TIPS;
       if (isSlashAtCursor) return SUGGESTION_FILTER_FIELDS;
-      if (colonFieldQuery) return SUGGESTION_FILTER_FIELDS;
+      if (colonFieldQuery || slashFieldQuery) return SUGGESTION_FILTER_FIELDS;
       return SUGGESTION_KEYWORDS;
     }
     if (filterState.type === 'filterInput') return SUGGESTION_FILTER_VALUES;
     if (filterState.type === 'filterActive') return SUGGESTION_OPERATORS;
     return null;
-  }, [mainInputActive, filterState.type, query, isSlashAtCursor, colonFieldQuery]);
+  }, [mainInputActive, filterState.type, query, isSlashAtCursor, colonFieldQuery, slashFieldQuery]);
 
   const handleSearchActionClick = () => {
     isClickingSearchAction.current = true;
@@ -155,11 +168,11 @@ export default function useSearchBox({ queryParams, onSearch, onSuggestion, filt
     handleQueryParamsChange('filters', newFilters);
 
     // Remove the trigger text ("/" or "keyword:") from query
-    if (colonFieldQuery) {
-      // Remove "keyword:" pattern from query
+    if (colonFieldQuery || slashFieldQuery) {
+      // Remove "keyword:" or "/keyword" pattern from query
       const textBeforeCursor = query.substring(0, cursorPosition);
       const textAfterCursor = query.substring(cursorPosition);
-      const cleanedBefore = textBeforeCursor.replace(/\S+:$/, '');
+      const cleanedBefore = colonFieldQuery ? textBeforeCursor.replace(/\S+:$/, '') : textBeforeCursor.replace(/\/\S*$/, '');
       handleQueryParamsChange('query', cleanedBefore + textAfterCursor);
     } else {
       const chars = query?.split('');
@@ -413,6 +426,9 @@ export default function useSearchBox({ queryParams, onSearch, onSuggestion, filt
         if (colonFieldQuery) {
           // "keyword:" pattern - use keyword as search query for fields
           suggestionParams.query = colonFieldQuery;
+        } else if (slashFieldQuery) {
+          // "/keyword" pattern - use keyword after slash
+          suggestionParams.query = slashFieldQuery;
         } else {
           const queryBeforeCursor = query?.substring(0, cursorPosition);
           suggestionParams.query = queryBeforeCursor?.endsWith('/') ? queryBeforeCursor.slice(0, -1) : queryBeforeCursor;
