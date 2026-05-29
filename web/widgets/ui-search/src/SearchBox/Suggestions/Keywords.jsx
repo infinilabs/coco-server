@@ -31,10 +31,10 @@ const Deepresearch = createLucideIcon('Deepresearch', [
 ]);
 
 export default (props) => {
-    const { keyword, data = [], onItemSelect, onItemClick } = props;
+    const { keyword, data = [], onItemSelect, onItemClick, action_type } = props;
     const { t } = useTranslation();
 
-    const actions = [
+    const actions = useMemo(() => [
         {
             action: "search",
             icon: <Search className="w-16px h-16px" />,
@@ -53,14 +53,21 @@ export default (props) => {
             suggestion: keyword,
             source: t('labels.deepResearchShort'),
         },
-    ].filter(item => !!item?.suggestion);
+    ].filter(item => !!item?.suggestion), [keyword, t]);
 
-    const keywords = data.filter(item => !!item?.suggestion);
+    const keywords = useMemo(() => data.filter(item => !!item?.suggestion), [data]);
 
-    const combinedData = useRef([...actions, ...keywords]);
+    const combinedData = useRef([]);
     const actionsLength = actions.length;
 
-    const [globalActiveIndex, setGlobalActiveIndex] = useState(0);
+    const [globalActiveIndex, setGlobalActiveIndex] = useState(() => {
+        if (action_type) {
+            const index = actions.findIndex(item => item.action === action_type);
+            return index >= 0 ? index : 0;
+        }
+        return 0;
+    });
+
     const listRefs = useRef({
         [SUGGESTION_ACTIONS]: null,
         [SUGGESTION_KEYWORDS]: null
@@ -68,10 +75,18 @@ export default (props) => {
 
     useEffect(() => {
         combinedData.current = [...actions, ...keywords];
+        if (action_type) {
+            const index = actions.findIndex(item => item.action === action_type);
+            if (index >= 0) {
+                setGlobalActiveIndex(index);
+                onItemSelect(combinedData.current?.[index])
+                return;
+            }
+        }
         if (globalActiveIndex >= combinedData.current.length) {
             setGlobalActiveIndex(-1);
         }
-    }, [actions, keywords]);
+    }, [actions, keywords, action_type]);
 
     useEffect(() => {
         const hasMultipleLists = (actions.length > 0 && keywords.length > 0);

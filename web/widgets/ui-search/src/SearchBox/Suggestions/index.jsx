@@ -34,6 +34,7 @@ export default function Suggestions({
         <Keywords
           keyword={query}
           data={data}
+          action_type={action_type}
           onItemSelect={(item) => handleQueryParamsChange('action_type', item.action || ACTION_TYPE_SEARCH)}
           onItemClick={handleSuggestionItemClick((item) => {
             if (item.action === 'deepthink' || item.action === 'deepresearch') {

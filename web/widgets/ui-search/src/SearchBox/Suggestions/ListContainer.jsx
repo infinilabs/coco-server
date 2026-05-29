@@ -22,7 +22,8 @@ const ListContainer = forwardRef((props, ref) => {
     defaultActiveIndex = 0
   } = props;
 
-  const [activeIndex, setActiveIndex] = useState(defaultActiveIndex);
+  const [activeIndex, setActiveIndex] = useState(() => (typeof globalActiveIndex === 'number') ? globalActiveIndex : defaultActiveIndex);
+
   const itemRefs = useRef([]);
   const [dataSource, setDataSource] = useState([]);
   const hasMoreRefs = useRef(true);
@@ -35,14 +36,8 @@ const ListContainer = forwardRef((props, ref) => {
   });
 
   useEffect(() => {
-    if (useGlobalKeydown) {
-      setActiveIndex(globalActiveIndex);
-    }
-  }, [useGlobalKeydown, globalActiveIndex]);
-
-  useEffect(() => {
-    setActiveIndex(defaultActiveIndex);
-  }, [defaultActiveIndex]);
+    setActiveIndex(typeof globalActiveIndex === 'number' ? globalActiveIndex : defaultActiveIndex);
+  }, [globalActiveIndex, defaultActiveIndex]);
 
   useEffect(() => {
     if (
