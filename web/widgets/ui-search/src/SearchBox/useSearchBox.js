@@ -490,5 +490,9 @@ export default function useSearchBox({ queryParams, onSearch, onSuggestion, filt
     handleAttachmentsChange,
     handleAttachmentRemove,
     triggerSearch,
+    // expose for parent components to detect context changes
+    suggestionType,
+    colonFieldQuery,
+    slashFieldQuery,
   };
 }

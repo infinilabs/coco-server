@@ -1,10 +1,11 @@
-import { Button, List, Typography } from "antd";
+import { Button, List, Spin, Typography } from "antd";
 import { CornerDownLeft } from "lucide-react";
 import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 
 import styles from "./index.module.less";
 import BasicIcon from "../../BasicIcon";
 import InfiniteScroll from 'react-infinite-scroll-component';
+import { DEFAULT_SUGGESTIONS_SIZE } from "../useSearchBox";
 
 const ListContainer = forwardRef((props, ref) => {
   const { 
@@ -14,18 +15,19 @@ const ListContainer = forwardRef((props, ref) => {
     onItemClick, 
     loadNext, 
     renderPrefix, 
-    defaultRows = 5,
+    defaultRows = DEFAULT_SUGGESTIONS_SIZE,
     useGlobalKeydown = false,
     globalActiveIndex = 0,
     onGlobalSelect,
-    className,
+    className = '',
     defaultActiveIndex = 0
-  , language } = props;
+  , language,
+    resetKey } = props;
     
   const lang = language ? (language.startsWith('zh') ? 'zh' : 'en') : 'en';
 
   const getItemDescription = (item) => {
-    const fd = item?.field_description;
+    const fd = item?.payload?.field_description;
     let desc = null;
     if (fd) {
       if (typeof fd === 'string') desc = fd;
@@ -129,8 +131,9 @@ const ListContainer = forwardRef((props, ref) => {
     if (loadNext) {
       if (data.length > 0) {
         setDataSource((prev) => [...prev, ...data].filter(item => !!item?.suggestion));
-        hasMoreRefs.current = true;
-        setHasMore(true);
+        const hasMore = data.length >= defaultRows;
+        hasMoreRefs.current = hasMore;
+        setHasMore(hasMore);
       } else {
         hasMoreRefs.current = false;
         setHasMore(false);
@@ -138,7 +141,15 @@ const ListContainer = forwardRef((props, ref) => {
     } else {
       setDataSource(data.filter(item => !!item?.suggestion));
     }
-  }, [data]);
+  }, [data, defaultRows]);
+
+  // Reset dataSource when suggestion context changes (e.g., suggestion type or field trigger)
+  useEffect(() => {
+    if (typeof resetKey === 'undefined') return;
+    setDataSource([]);
+    hasMoreRefs.current = true;
+    setHasMore(true);
+  }, [resetKey]);
 
   useEffect(() => {
     if (useGlobalKeydown || !onItemClick) return;
@@ -298,6 +309,13 @@ const ListContainer = forwardRef((props, ref) => {
             }}
           />
         </InfiniteScroll>
+        <div>
+          {loadNext && hasMore && (
+            <div className="flex justify-center py-12px text-[var(--ant-color-text-description)]">
+              <Spin size="small" />
+            </div>
+          )}
+        </div>
       </div>
     </>
   );

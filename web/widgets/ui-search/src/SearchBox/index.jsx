@@ -46,7 +46,8 @@ export function SearchBox(props) {
         mode: 'chat',
       })
     },
-    language
+    language,
+    resetKey: `${sb.suggestionType || ''}::${sb.colonFieldQuery || ''}::${sb.slashFieldQuery || ''}`
   };
 
   const renderTextArea = (ref, className = "", onBlur) => (

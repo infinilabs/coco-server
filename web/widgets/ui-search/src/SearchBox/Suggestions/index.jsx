@@ -22,7 +22,8 @@ export default function Suggestions({
   handleOperatorChange,
   handleFilterComplete,
   turnToChat,
-  language
+  language,
+  resetKey
 }) {
 
   const { type, data = [] } = suggestions;
@@ -55,6 +56,7 @@ export default function Suggestions({
           onItemClick={handleSuggestionItemClick(handleAddFilter)}
           loadNext={onLoadNext}
           language={language}
+          resetKey={resetKey}
         />
       );
     case SUGGESTION_FILTER_VALUES:
@@ -65,6 +67,7 @@ export default function Suggestions({
           onItemClick={handleSuggestionItemClick(handleFilterValueToggle)}
           onComplete={handleFilterComplete}
           language={language}
+          resetKey={resetKey}
         />
       );
     case SUGGESTION_OPERATORS:
