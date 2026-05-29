@@ -52,6 +52,14 @@ func (h *APIHandler) suggest(w http.ResponseWriter, req *http.Request, ps httpro
 		size  = h.GetIntOrDefault(req, "size", 10)
 	)
 
+	// Ensure non-negative values
+	if from < 0 {
+		from = 0
+	}
+	if size < 0 {
+		size = 10
+	}
+
 	var response interface{}
 	tag := ps.ByName("tag")
 	log.Trace("suggest tag:", tag)
