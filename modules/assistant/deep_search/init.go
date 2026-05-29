@@ -59,10 +59,12 @@ func RunDeepSearchTask(ctx context.Context, userID string, params *common2.RAGCo
 	if resolvedIntent == nil {
 		return fmt.Errorf("no intent analysis model configured and no default in settings")
 	}
-	cfg.DeepThinkConfig.IntentAnalysisModel.ProviderID = resolvedIntent.ProviderID
-	cfg.DeepThinkConfig.IntentAnalysisModel.Name = resolvedIntent.ID
 
-	queryIntent, err := langchain.ProcessQueryIntent(ctx, params.SessionID, &cfg.DeepThinkConfig.IntentAnalysisModel, reqMsg, replyMsg, params.AssistantCfg, params.InputValues, sender)
+	intentModel := cfg.DeepThinkConfig.IntentAnalysisModel
+	intentModel.ProviderID = resolvedIntent.ProviderID
+	intentModel.Name = resolvedIntent.ID
+
+	queryIntent, err := langchain.ProcessQueryIntent(ctx, params.SessionID, &intentModel, reqMsg, replyMsg, params.AssistantCfg, params.InputValues, sender)
 	if err != nil {
 		log.Error("error on processing query intent analysis: ", err)
 		return err

@@ -61,8 +61,6 @@ func PickingDocuments(ctx context.Context, reqMsg, replyMsg *core.ChatMessage,
 	if resolvedPick == nil {
 		return nil, fmt.Errorf("no picking-doc model configured and no default in settings")
 	}
-	params.AssistantCfg.DeepThinkConfig.PickingDocModel.ProviderID = resolvedPick.ProviderID
-	params.AssistantCfg.DeepThinkConfig.PickingDocModel.Name = resolvedPick.ID
 
 	llm, err := langchain.SimplyGetLLM(resolvedPick.ProviderID, resolvedPick.ID, "")
 	if err != nil {

@@ -39,12 +39,6 @@ type RAGContext struct {
 	QueryIntent  *QueryIntent
 	PickedDocIDS []string
 
-	//pickingDocModel *core.ModelConfig
-	//answeringModel      *common.ModelConfig
-	//intentModelProvider *core.ModelProvider
-	//pickingDocProvider  *core.ModelProvider
-	answeringProvider *core.ModelProvider
-
 	AssistantCfg *core.Assistant
 
 	//user input values
@@ -101,56 +95,49 @@ func NewRagContext(req *http.Request, assistant *core.Assistant, sessionID strin
 		params.MCPServers = make([]string, 0)
 	}
 
-	// Resolve the answering model: assistant override -> settings default ->
-	// settings language model.
-	resolved := llmmodule.ResolveAssistantModel(core.AssistantModelUseAnswering, &core.ModelId{
-		ProviderID: assistant.AnsweringModel.ProviderID,
-		ID:         assistant.AnsweringModel.Name,
-	})
-	if resolved == nil {
-		return nil, fmt.Errorf("assistant [%s] has no answering model configured and no default in settings. Please set it up first", assistant.Name)
-	}
-	// Apply the resolved provider/model so downstream callers that read
-	// assistant.AnsweringModel.ProviderID / Name observe the effective model.
-	assistant.AnsweringModel.ProviderID = resolved.ProviderID
-	assistant.AnsweringModel.Name = resolved.ID
-
-	modelProvider, err := common.GetModelProvider(resolved.ProviderID)
-	if err != nil {
-		return params, fmt.Errorf("failed to get model provider: %w", err)
-	}
-	//params.answeringModel = &assistant.AnsweringModel
-	params.answeringProvider = modelProvider
-
 	return params, nil
 }
 
+// MustGetAnsweringModel resolves and returns the effective answering model.
+// If the assistant has no model configured, it falls back to the system default.
 func (r RAGContext) MustGetAnsweringModel() *core.ModelConfig {
 	if r.AssistantCfg == nil {
 		panic("invalid AssistantCfg")
 	}
 
-	//for background job only, no performance issue need to care right now
-	for _, v := range r.answeringProvider.Models {
-		if v.Name == r.AssistantCfg.AnsweringModel.Name {
-			r.AssistantCfg.AnsweringModel.Settings.Reasoning = v.Settings.Reasoning
+	// Resolve on demand: assistant override -> settings default -> settings language model
+	resolved := llmmodule.ResolveAssistantModel(core.AssistantModelUseAnswering, &core.ModelId{
+		ProviderID: r.AssistantCfg.AnsweringModel.ProviderID,
+		ID:         r.AssistantCfg.AnsweringModel.Name,
+	})
+	if resolved == nil {
+		panic(fmt.Sprintf("assistant [%s] has no answering model configured and no default in settings", r.AssistantCfg.Name))
+	}
+
+	// Build a ModelConfig with the resolved identity and the assistant's settings
+	model := r.AssistantCfg.AnsweringModel
+	model.ProviderID = resolved.ProviderID
+	model.Name = resolved.ID
+
+	// Merge reasoning capability from provider's model definition
+	modelProvider, err := common.GetModelProvider(resolved.ProviderID)
+	if err == nil && modelProvider != nil {
+		for _, v := range modelProvider.Models {
+			if v.Name == resolved.ID {
+				model.SupportReasoning = v.SupportReasoning
+				break
+			}
 		}
 	}
 
-	return &r.AssistantCfg.AnsweringModel
+	return &model
 }
 
+// GetAnsweringProvider resolves and returns the model provider for the answering model.
 func (r RAGContext) GetAnsweringProvider() *core.ModelProvider {
+	model := r.MustGetAnsweringModel()
 
-	if r.answeringProvider != nil {
-		return r.answeringProvider
-	}
-
-	if r.AssistantCfg == nil {
-		panic("invalid AssistantCfg")
-	}
-
-	modelProvider, err := common.GetModelProvider(r.AssistantCfg.AnsweringModel.ProviderID)
+	modelProvider, err := common.GetModelProvider(model.ProviderID)
 	if err != nil {
 		panic(fmt.Errorf("failed to get model provider: %w", err))
 	}
@@ -158,8 +145,6 @@ func (r RAGContext) GetAnsweringProvider() *core.ModelProvider {
 	if modelProvider == nil {
 		panic("invalid modelProvider")
 	}
-
-	r.answeringProvider = modelProvider
 
 	return modelProvider
 }

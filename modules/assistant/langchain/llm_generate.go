@@ -366,7 +366,8 @@ func GenerateFinalResponse(taskCtx context.Context, reqMsg, replyMsg *core.ChatM
 	chunkSeq := 0
 	var err error
 
-	llm, err := SimplyGetLLM(params.AssistantCfg.AnsweringModel.ProviderID, params.AssistantCfg.AnsweringModel.Name, "")
+	answeringModel := params.MustGetAnsweringModel()
+	llm, err := SimplyGetLLM(answeringModel.ProviderID, answeringModel.Name, "")
 	if err != nil {
 		panic(err)
 	}
