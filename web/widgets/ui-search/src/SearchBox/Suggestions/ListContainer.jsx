@@ -20,7 +20,20 @@ const ListContainer = forwardRef((props, ref) => {
     onGlobalSelect,
     className,
     defaultActiveIndex = 0
-  } = props;
+  , language } = props;
+    
+  const lang = language ? (language.startsWith('zh') ? 'zh' : 'en') : 'en';
+
+  const getItemDescription = (item) => {
+    const fd = item?.field_description;
+    let desc = null;
+    if (fd) {
+      if (typeof fd === 'string') desc = fd;
+      else if (typeof fd === 'object') desc = fd[lang] || fd.en || fd.zh || null;
+    }
+    if (!desc) desc = item?.source || null;
+    return desc;
+  };
 
   const [activeIndex, setActiveIndex] = useState(() => (typeof globalActiveIndex === 'number') ? globalActiveIndex : defaultActiveIndex);
 
@@ -242,6 +255,7 @@ const ListContainer = forwardRef((props, ref) => {
             dataSource={dataSource}
             renderItem={(item, index) => {
               const isActive = activeIndex === index && !!onItemClick;
+              const desc = getItemDescription(item);
               return (
                 <div key={index}>
                   <div
@@ -261,9 +275,9 @@ const ListContainer = forwardRef((props, ref) => {
                     <div className="mr-12px flex-1 min-w-0">
                       <div className="truncate whitespace-nowrap">{item.suggestion}</div>
                     </div>
-                    {item.source && (
+                    {desc && (
                       <Typography.Text type="secondary" className="flex-shrink-0" >
-                        {item.source}
+                        {desc}
                       </Typography.Text>
                     )}
                     {onItemClick && (

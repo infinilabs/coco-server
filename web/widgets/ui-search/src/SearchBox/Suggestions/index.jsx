@@ -21,8 +21,10 @@ export default function Suggestions({
   handleFilterValueToggle,
   handleOperatorChange,
   handleFilterComplete,
-  turnToChat
+  turnToChat,
+  language
 }) {
+
   const { type, data = [] } = suggestions;
   if (!type || (!mainInputActive && filterState.type === 'none')) return null;
 
@@ -43,6 +45,7 @@ export default function Suggestions({
             }
             handleSearch(item.suggestion || query, filters, item.action || action_type, search_type)
           })}
+          language={language}
         />
       );
     case SUGGESTION_FILTER_FIELDS:
@@ -51,6 +54,7 @@ export default function Suggestions({
           data={data}
           onItemClick={handleSuggestionItemClick(handleAddFilter)}
           loadNext={onLoadNext}
+          language={language}
         />
       );
     case SUGGESTION_FILTER_VALUES:
@@ -60,10 +64,11 @@ export default function Suggestions({
           filter={filters[filterState.index] || null}
           onItemClick={handleSuggestionItemClick(handleFilterValueToggle)}
           onComplete={handleFilterComplete}
+          language={language}
         />
       );
     case SUGGESTION_OPERATORS:
-      return <Operators currentOperator={filters[filterState.index]?.operator} onItemClick={handleSuggestionItemClick(handleOperatorChange)} />;
+      return <Operators currentOperator={filters[filterState.index]?.operator} onItemClick={handleSuggestionItemClick(handleOperatorChange)} language={language} />;
     default:
       return null;
   }

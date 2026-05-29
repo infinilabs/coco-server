@@ -9,7 +9,7 @@ import ActionBar from "./ActionBar";
 import { ListFilter } from "lucide-react";
 
 export function SearchBox(props) {
-  const { placeholder, queryParams, setQueryParams, onSearch, minimize = false, onSuggestion, filterFieldsMeta = {} } = props;
+  const { placeholder, queryParams, setQueryParams, onSearch, minimize = false, onSuggestion, filterFieldsMeta = {}, language } = props;
   const sb = useSearchBox({ queryParams, onSearch, onSuggestion, filterFieldsMeta });
 
   const actionBarProps = {
@@ -45,7 +45,8 @@ export function SearchBox(props) {
         query: item.suggestion,
         mode: 'chat',
       })
-    }
+    },
+    language
   };
 
   const renderTextArea = (ref, className = "", onBlur) => (
