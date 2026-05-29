@@ -14,7 +14,7 @@ export default function ActionBar({
   className = "",
 }) {
   return (
-    <div className={`flex justify-between items-center px-12px m-t-8px ${className}`}>
+    <div className={`flex justify-between items-center px-12px ${className}`}>
       <SearchActions
         actionType={action_type}
         searchType={search_type}

@@ -247,8 +247,8 @@ const ListContainer = forwardRef((props, ref) => {
                   <div
                     ref={el => itemRefs.current[index] = el}
                     className={`${styles.listItem} ${isActive ? styles.active : ''}  relative h-40px pl-8px pr-40px flex flex-nowrap items-center rounded-8px 
-                    ${onItemClick ? 'cursor-pointer hover:bg-[rgba(233,240,254,1)] ' : " "} 
-                    ${isActive ? "bg-[rgba(233,240,254,1)]" : ""}`}
+                    ${onItemClick ? 'cursor-pointer hover:bg-[rgba(233,240,254,1)] dark:hover:bg-[rgba(255,255,255,0.05)]' : " "} 
+                    ${isActive ? "bg-[rgba(233,240,254,1)] dark:bg-[rgba(255,255,255,0.05)]" : ""}`}
                     onClick={() => handleItemClick(item, index)}
                   >
                     {renderPrefix?.(item)}

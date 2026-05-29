@@ -89,7 +89,7 @@ export function SearchBox(props) {
       ${sb.showExpandedPanel ? '' : 'border'} 
       border-[rgba(235,235,235,1)] dark:border-[rgba(50,50,50,1)] 
       ${minimize ? 'h-48px' : `h-103px ${sb.showExpandedPanel ? '' : 'shadow-[0_2px_20px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_20px_rgba(255,255,255,0.2)]'}`}
-      ${!minimize ? styles.gradientBorder : ''}
+      ${!minimize && !sb.showExpandedPanel ? styles.gradientBorder : ''}
       bg-[rgb(var(--ui-search--layout-bg-color))]
     `}>
       {minimize ? (
@@ -121,31 +121,33 @@ export function SearchBox(props) {
         </div>
       )}
       {/* Expanded Panel */}
-      <div className={`absolute left-0 top-0 z-100 w-full ${sb.showExpandedPanel ? '' : 'h-0 overflow-hidden'}`}>
-        <div className="py-12px rounded-12px bg-[rgb(var(--ui-search--layout-bg-color))] overflow-hidden shadow-[0_2px_20px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_20px_rgba(255,255,255,0.2)] border border-[rgba(235,235,235,1)] dark:border-[rgba(50,50,50,1)]">
-          {sb.attachments.length > 0 && (
-            <div className="mb-14px px-16px">
-              <Attachments data={sb.attachments} onItemRemove={sb.handleAttachmentRemove} />
-            </div>
-          )}
-          <Filters
-            className="mb-14px px-12px"
-            filters={sb.filters}
-            onFiltersChange={(filters) => sb.handleQueryParamsChange('filters', filters)}
-            onFilterInputFocus={sb.handleFilterInputFocus}
-            onFilterInputBlur={sb.handleFilterInputBlur}
-            onFilterActiveToggle={sb.handleFilterActiveToggle}
-            onFilterDelete={sb.handleFilterDelete}
-            onFilterValueEdit={sb.handleFilterValueEdit}
-            onFilterComplete={sb.handleFilterComplete}
-            onFilterSearch={sb.handleFilterSearchChange}
-            focusIndex={sb.filterState.type === 'filterInput' ? sb.filterState.index : -1}
-            activeIndex={sb.filterState.type === 'filterActive' ? sb.filterState.index : -1}
-            shouldFocusNewFilter={sb.shouldFocusNewFilter}
-          />
-          {renderTextArea(sb.expandedInputRef, '!mb-14px !px-12px', sb.handleInputBlur)}
-          <Suggestions {...suggestionProps} />
-          <ActionBar {...actionBarProps} />
+      <div className={`absolute left-0 top-0 z-100 w-full ${sb.showExpandedPanel ? '' : 'h-0 overflow-hidden'} `}>
+        <div className={`${styles.gradientBorder} rounded-12px overflow-visible`}> 
+          <div className={`py-12px rounded-12px bg-[rgb(var(--ui-search--layout-bg-color))] overflow-hidden shadow-[0_2px_20px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_20px_rgba(255,255,255,0.2)] border border-[rgba(235,235,235,1)] dark:border-[rgba(50,50,50,1)]`}>
+            {sb.attachments.length > 0 && (
+              <div className="mb-14px px-16px">
+                <Attachments data={sb.attachments} onItemRemove={sb.handleAttachmentRemove} />
+              </div>
+            )}
+            <Filters
+              className="mb-14px px-12px"
+              filters={sb.filters}
+              onFiltersChange={(filters) => sb.handleQueryParamsChange('filters', filters)}
+              onFilterInputFocus={sb.handleFilterInputFocus}
+              onFilterInputBlur={sb.handleFilterInputBlur}
+              onFilterActiveToggle={sb.handleFilterActiveToggle}
+              onFilterDelete={sb.handleFilterDelete}
+              onFilterValueEdit={sb.handleFilterValueEdit}
+              onFilterComplete={sb.handleFilterComplete}
+              onFilterSearch={sb.handleFilterSearchChange}
+              focusIndex={sb.filterState.type === 'filterInput' ? sb.filterState.index : -1}
+              activeIndex={sb.filterState.type === 'filterActive' ? sb.filterState.index : -1}
+              shouldFocusNewFilter={sb.shouldFocusNewFilter}
+            />
+            {renderTextArea(sb.expandedInputRef, '!mb-14px !px-12px', sb.handleInputBlur)}
+            <Suggestions {...suggestionProps} />
+            <ActionBar {...actionBarProps} />
+          </div>
         </div>
       </div>
     </div>
