@@ -1,11 +1,9 @@
 import { Avatar, Button, Form, Input, InputNumber, Radio, Select, Switch, Upload } from 'antd';
 
 import AIAssistantSelect from '@/pages/ai-assistant/modules/AIAssistantSelect';
-import { PlusOutlined } from '@ant-design/icons';
-import { cloneDeep } from 'lodash';
 
 export const FullscreenForm = memo(props => {
-  const { searchLogos, setSearchLogos, aiOverviewLogo, setAIOverviewLogo, widgetsLogo, setWidgetsLogo, dataSourceLoading, dataSource, enabledList, setEnabledList } = props;
+  const { searchLogos, setSearchLogos, aiOverviewLogo, setAIOverviewLogo, dataSourceLoading, dataSource, enabledList, setEnabledList } = props;
   const { t } = useTranslation();
   const { defaultRequiredRule } = useFormRules();
 
@@ -355,154 +353,6 @@ export const FullscreenForm = memo(props => {
                   <Select.Option value="text">Text</Select.Option>
                 </Select>
             </Form.Item>
-          </Form.Item>
-        </>
-      )
-    }
-    <Form.Item label=" ">
-        <Form.Item
-            className="mb-0px"
-            label={t('page.integration.form.labels.module_ai_widgets')}
-            name={['payload', 'ai_widgets', 'enabled']}
-        >
-            <Switch size="small" onChange={(checked) => setEnabledList((state) => ({ ...state, ai_widgets: checked }))}/>
-        </Form.Item>
-    </Form.Item>
-    {
-      enabledList?.ai_widgets && (
-        <>
-          <Form.Item label=" ">
-              <Form.Item className="mb-0px">
-                  <Form.List name={['payload', 'ai_widgets', 'widgets']}>
-                      {(fields, { add, remove }) => (
-                        <>
-                            {fields.map((field, index) => {
-                              const { key, name, ...restField } = field;
-                              return (
-                                  <div key={index} >
-                                      <div className="mb-8px">
-                                          {t('page.integration.form.labels.module_ai_widgets_title')} {` ${index + 1}`}
-                                      </div>
-                                      <div className="mb-8px">
-                                          {t('page.integration.form.labels.module_ai_overview_title')}
-                                      </div>
-                                      <Form.Item
-                                          name={[name, 'title']}
-                                          className="mb-8px"
-                                      >
-                                          <Input className={itemClassNames} />
-                                      </Form.Item>
-                                      <div className="mb-8px">
-                                        {t('page.integration.form.labels.logo')}
-                                      </div>
-                                      <div style={{ display: "flex", gap: 22 }} className="mb-8px">
-                                        {renderIcon(widgetsLogo[name]?.light)}
-                                        <Upload
-                                          {...uploadProps}
-                                          showUploadList={false}
-                                          fileList={widgetsLogo[name]?.lightList}
-                                          beforeUpload={(file) => {
-                                            setWidgetsLogo((logos) => {
-                                              const newLogos = cloneDeep(logos)
-                                              newLogos[name] = {
-                                                ...(newLogos[name] || {}),
-                                                lightList: [file],
-                                                lightLoading: true,
-                                              }
-                                              return newLogos
-                                            })
-                                            const reader = new FileReader();
-                                            reader.readAsDataURL(file);
-                                            reader.onload = () => {
-                                              setWidgetsLogo((logos) => {
-                                                const newLogos = cloneDeep(logos)
-                                                newLogos[name] = {
-                                                  ...(newLogos[name] || {}),
-                                                  lightLoading: false,
-                                                  light: reader.result
-                                                }
-                                                return newLogos
-                                              })
-                                            };
-                                            return false
-                                          }}
-                                        >
-                                          <Button loading={widgetsLogo[name]?.lightLoading} icon={<SvgIcon className="text-12px" icon="mdi:upload" />}>{t('common.upload')}</Button>
-                                        </Upload>
-                                        <Button className="px-0" type="link" onClick={() => {
-                                          setWidgetsLogo((logos) => {
-                                            const newLogos = cloneDeep(logos)
-                                            newLogos[name] = {
-                                              ...(newLogos[name] || {}),
-                                              lightLoading: false,
-                                              light: undefined
-                                            }
-                                            return newLogos
-                                          })
-                                        }}>{t('common.reset')}</Button>
-                                      </div>
-                                      <div className="mb-8px">
-                                          {t('page.integration.form.labels.module_ai_overview_height')}
-                                      </div>
-                                      <Form.Item
-                                          name={[name, 'height']}
-                                          className="mb-8px"
-                                      >
-                                          <InputNumber className={itemClassNames} min={0} step={1}/>
-                                      </Form.Item>
-                                      <div className="mb-8px">
-                                        输出类型
-                                      </div>
-                                      <Form.Item
-                                          name={[name, 'output']}
-                                          className="mb-8px"
-                                      >
-                                          <Select className={itemClassNames}>
-                                            <Select.Option value="markdown">Markdown</Select.Option>
-                                            <Select.Option value="html">HTML</Select.Option>
-                                            <Select.Option value="text">Text</Select.Option>
-                                          </Select>
-                                      </Form.Item>
-                                      <div className="mb-8px">
-                                          {t('page.integration.form.labels.module_chat_ai_assistant')}
-                                      </div>
-                                      <Form.Item className="mb-8px">
-                                        <div className="flex gap-6px">
-                                            <Form.Item
-                                                {...restField}
-                                                name={[name, 'assistant']}
-                                                rules={enabledList?.ai_widgets?.[name]? [defaultRequiredRule] : []}
-                                                className="flex-1 mb-8px"
-                                            >
-                                              <AIAssistantSelect className={itemClassNames}/>
-                                            </Form.Item>
-                                            <Form.Item className="mb-8px">
-                                                <span onClick={() => remove(field.name)}><SvgIcon className="text-16px cursor-pointer" icon="mdi:minus-circle-outline" /></span>
-                                            </Form.Item>
-                                        </div>
-                                      </Form.Item>
-                                  </div>
-                                  
-                              )
-                            })}
-                            <Form.Item className="mb-0px">
-                                <Button className="!w-80px" type="primary" disabled={fields.length >= 8} icon={<PlusOutlined />} onClick={() => {
-                                  add({ title: '', height: 200, output: 'markdown' })
-                                  setWidgetsLogo((logos) => {
-                                    const newLogos = cloneDeep(logos)
-                                    newLogos.push({
-                                      lightLoading: false,
-                                      lightList: [],
-                                      light: undefined,
-                                    }) 
-                                    return newLogos
-                                  })
-                                }}></Button>
-                            </Form.Item>
-                        </>
-                      )}
-                  </Form.List>
-              </Form.Item>
           </Form.Item>
         </>
       )
