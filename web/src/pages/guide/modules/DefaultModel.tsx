@@ -244,7 +244,6 @@ const DefaultModel = memo(({ }: {}) => {
     const { error } = await setupModel(body);
     endLoading();
     if (!error) {
-      localStg.set('defaultModelGuide', 'false')
       updateDefaultModel();
       return true;
     }
