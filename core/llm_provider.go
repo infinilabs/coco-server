@@ -16,7 +16,7 @@ import (
 // This is distinct from ModelConfig, which describes how a model is *used*
 // (runtime settings like temperature, max tokens, etc.).
 type Model struct {
-	Name string  `json:"name"` // model ID / name
+	Name string  `json:"name"`           // model ID / name
 	Type LLMType `json:"type,omitempty"` // LLMTypeLanguage, LLMTypeVision, LLMTypeEmbedding
 
 	// SupportReasoning reports whether this model is capable of reasoning mode.
