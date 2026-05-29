@@ -12,6 +12,7 @@ import { querySearch, fetchSuggestions, fetchRecommends, fetchFieldsMeta } from 
 import { getApiBaseUrl } from '@/service/request';
 import queryString from 'query-string';
 import { getLocale } from '@/store/slice/app';
+import { getApplicationSetting } from '@/store/slice/server';
 
 configResponsive({ sm: 640 });
 
@@ -77,9 +78,9 @@ export function Component() {
 
   const [rightMenuWidth, setRightMenuWidth] = useState(0);
 
-  const providerInfo = localStg.get('providerInfo') || {}
+  const applicationSetting = useAppSelector(getApplicationSetting);
 
-  const { search_settings } = providerInfo;
+  const { search_settings } = applicationSetting || {};
 
   const isMobile = !responsive.sm;
 

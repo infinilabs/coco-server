@@ -22,7 +22,7 @@ import GlobalSider from '../modules/global-sider';
 import GlobalTab from '../modules/global-tab';
 import { logout } from '@/service/api';
 import { fetchProviderInfo, fetchSettings } from '@/service/api/server';
-import { getDefaultModelTips, setDefaultModel, setServer } from '@/store/slice/server';
+import { getDefaultModelTips, setDefaultModel, setProviderInfo } from '@/store/slice/server';
 import DefaultModel from '@/pages/guide/modules/DefaultModel';
 import { isEmpty } from 'lodash';
 import TopBanner, { TopBannerHeight } from '../modules/top-banner';
@@ -123,8 +123,8 @@ const BaseLayout = () => {
   useEffect(() => {
     async function updateServerEndpoint() {
       const res = await fetchProviderInfo()
-      if (res.data?.endpoint) {
-        dispatch(setServer(res.data.endpoint))
+      if (res.data) {
+        dispatch(setProviderInfo(res.data))
       }
     }
     updateServerEndpoint()

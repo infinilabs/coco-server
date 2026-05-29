@@ -51,17 +51,17 @@ const PARAMETERS = [
       />
     )
   },
-  {
-    key: 'reasoning',
-    isSupport: (model: any) => {
-      return model?.['support_reasoning'];
-    },
-    input: (props: any) => (
-      <Switch
-        {...props}
-      />
-    )
-  }
+  // {
+  //   key: 'reasoning',
+  //   isSupport: (model: any) => {
+  //     return model?.['support_reasoning'];
+  //   },
+  //   input: (props: any) => (
+  //     <Switch
+  //       {...props}
+  //     />
+  //   )
+  // }
 ];
 
 export default (props: ModelSettingsProps) => {

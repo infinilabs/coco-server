@@ -3,7 +3,7 @@ import '../index.scss';
 import { fetchSettings, updateSettings } from '@/service/api/server';
 import { useLoading, useRequest } from '@sa/hooks';
 import IntegrationSelect from '@/pages/integration/modules/IntegrationSelect';
-import { getProviderInfo, setProviderInfo, updateRootRouteIfSearch } from '@/store/slice/server';
+import { getApplicationSetting, setApplicationSetting, updateRootRouteIfSearch } from '@/store/slice/server';
 import { initConstantRoute } from '@/store/slice/route';
 
 const SearchSettings = memo(() => {
@@ -19,7 +19,7 @@ const SearchSettings = memo(() => {
   const { endLoading, loading, startLoading } = useLoading();
 
   const dispatch = useAppDispatch();
-  const providerInfo = useAppSelector(getProviderInfo);
+  const applicationSetting = useAppSelector(getApplicationSetting);
     
   const {
     data,
@@ -45,12 +45,12 @@ const SearchSettings = memo(() => {
        search_settings
     });
     if (result?.data?.acknowledged) {
-      const newProviderInfo = {
-        ...providerInfo,
+      const newApplicationSetting = {
+        ...applicationSetting,
         search_settings
       }
-      dispatch(setProviderInfo(newProviderInfo));
-      dispatch(updateRootRouteIfSearch(newProviderInfo));
+      dispatch(setApplicationSetting(newApplicationSetting));
+      dispatch(updateRootRouteIfSearch(newApplicationSetting));
       dispatch(initConstantRoute());
       window.$message?.success(t('common.updateSuccess'));
     }

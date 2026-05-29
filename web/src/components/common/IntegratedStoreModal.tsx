@@ -13,6 +13,7 @@ import { request } from '@/service/request';
 import { formatESSearchResult } from '@/service/request/es';
 import { localStg } from '@/utils/storage';
 import { getDarkMode } from '@/store/slice/theme';
+import { getProviderInfo } from '@/store/slice/server';
 
 type Category = 'ai-assistant' | 'connector' | 'data-source' | 'mcp-server' | 'model-provider';
 
@@ -76,6 +77,8 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
   const [fromClipboard, setFromClipboard] = useState(false);
   const [clipboardData, setClipboardData] = useState<DataSource>();
   const darkMode = useAppSelector(getDarkMode);
+
+  const providerInfo = useAppSelector(getProviderInfo);
 
   useImperativeHandle(ref, () => ({
     async open(category) {
@@ -158,8 +161,6 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
     if (currentTab === 'newest') {
       requestParams.sort = 'created:desc';
     }
-
-    const providerInfo = localStg.get('providerInfo');
 
     let storeUrl = `/store/server/_search?filter=type:${requestType}`;
 

@@ -1,7 +1,7 @@
 import { request } from '../request';
 
 /** Get server's info */
-export function fetchServer() {
+export function fetchApplicationSetting() {
   return request<Api.Server.Info>({
     method: 'get',
     url: '/setting/application'

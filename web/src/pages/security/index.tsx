@@ -5,7 +5,7 @@ import Role from "./modules/Role";
 
 import "./index.scss";
 import User from "./modules/User";
-import { getProviderInfo } from "@/store/slice/server";
+import { getApplicationSetting } from "@/store/slice/server";
 
 export function Component() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -19,7 +19,7 @@ export function Component() {
     viewRole: hasAuth("generic#security:role/search"),
   };
 
-  const providerInfo = useAppSelector(getProviderInfo);
+  const applicationSetting = useAppSelector(getApplicationSetting);
 
   const onChange = (key: string) => {
     setSearchParams({ tab: key });
@@ -27,7 +27,7 @@ export function Component() {
 
   const items: any[] = [];
 
-  if (permissions.viewAuth && providerInfo?.security?.managed) {
+  if (permissions.viewAuth && applicationSetting?.security?.managed) {
     items.push({
       component: Auth,
       key: "auth",
@@ -35,7 +35,7 @@ export function Component() {
     });
   }
 
-  if (permissions.viewUser && !providerInfo?.security?.managed) {
+  if (permissions.viewUser && !applicationSetting?.security?.managed) {
     items.push({
       component: User,
       key: "user",

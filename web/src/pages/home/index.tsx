@@ -5,7 +5,7 @@ import Clipboard from 'clipboard';
 import { fetchProviderInfo, updateSettings } from '@/service/api/server';
 import { selectUserInfo } from '@/store/slice/auth';
 import { getDarkMode } from '@/store/slice/theme';
-import { localStg } from '@/utils/storage';
+import { getApplicationSetting } from '@/store/slice/server';
 
 const SETTINGS = [
   {
@@ -47,8 +47,8 @@ export function Component() {
   const [isNameEditing, setIsNameEditing] = useState(false);
   const [isEndpointEditing, setIsEndpointEditing] = useState(false);
 
-  const providerInfo = localStg.get('providerInfo');
-  const managed = Boolean(providerInfo?.security?.managed);
+  const applicationSetting = useAppSelector(getApplicationSetting);
+  const managed = Boolean(applicationSetting?.security?.managed);
 
   const {
     data,

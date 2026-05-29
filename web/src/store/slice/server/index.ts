@@ -8,12 +8,14 @@ import { handleUpdateRootRouteRedirect, setRouteHome } from '../route';
 import { isEmpty } from 'lodash';
 
 interface InitialStateType {
+  applicationSetting: any;
   providerInfo: any;
   defaultModel: any;
   defaultModelTips: boolean;
 }
 
 const initialState: InitialStateType = {
+  applicationSetting: {},
   providerInfo: {},
   defaultModel: {},
   defaultModelTips: false
@@ -23,15 +25,11 @@ export const serverSlice = createSlice({
   initialState,
   name: 'server',
   reducers: {
+    setApplicationSetting(state, { payload }: PayloadAction<any>){
+      state.applicationSetting = payload;
+    },
     setProviderInfo(state, { payload }: PayloadAction<any>) {
       state.providerInfo = payload;
-      localStg.set('providerInfo', payload);
-    },
-    setServer(state, { payload }: PayloadAction<string>) {
-      if (state.providerInfo) {
-        state.providerInfo.endpoint = payload;
-        localStg.set('providerInfo', state.providerInfo);
-      }
     },
     setDefaultModel(state, { payload }: PayloadAction<any>) {
       state.defaultModel = payload;
@@ -42,6 +40,7 @@ export const serverSlice = createSlice({
     }
   },
   selectors: {
+    getApplicationSetting: app => app.applicationSetting,
     getProviderInfo: app => app.providerInfo,
     getServer: app => app.providerInfo?.endpoint || `${window.location.origin}${window.location.pathname}`,
     getDefaultModel: app => app.defaultModel,
@@ -50,22 +49,23 @@ export const serverSlice = createSlice({
 });
 // Action creators are generated for each case reducer function.
 export const {
+  setApplicationSetting,
   setProviderInfo,
-  setServer,
   setDefaultModel,
   setDefaultModelTips,
 } = serverSlice.actions;
 
 // Selectors returned by `slice.selectors` take the root state as their first argument.
 export const {
+  getApplicationSetting,
   getProviderInfo,
   getServer,
   getDefaultModel,
   getDefaultModelTips,
 } = serverSlice.selectors;
 
-export const updateRootRouteIfSearch = (providerInfo: any): AppThunk => async dispatch => {
-  const rootRoute = getRootRouteIfSearch(providerInfo) as any
+export const updateRootRouteIfSearch = (applicationSetting: any): AppThunk => async dispatch => {
+  const rootRoute = getRootRouteIfSearch(applicationSetting) as any
   dispatch(setRouteHome(rootRoute));
   handleUpdateRootRouteRedirect(rootRoute)
 };

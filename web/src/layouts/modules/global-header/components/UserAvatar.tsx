@@ -8,6 +8,7 @@ import { logout } from '@/service/api';
 import { store } from '@/store';
 import { resetStore, selectUserInfo } from '@/store/slice/auth';
 import { localStg } from '@/utils/storage';
+import { getApplicationSetting } from '@/store/slice/server';
 
 const PasswordModal = lazy(() => import('./PasswordModal'));
 
@@ -21,8 +22,8 @@ const UserAvatar = memo((props) => {
   const nav = useNavigate();
   const location = useLocation();
 
-  const providerInfo = localStg.get('providerInfo');
-  const managed = Boolean(providerInfo?.security?.managed);
+  const applicationSetting = useAppSelector(getApplicationSetting);
+  const managed = Boolean(applicationSetting?.security?.managed);
   const [passwordVisible, setPasswordVisible] = useState(false);
 
   async function handleLogout() {
