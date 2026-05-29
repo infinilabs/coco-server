@@ -170,7 +170,16 @@ const ListContainer = forwardRef((props, ref) => {
           keyDirectionRef.current = 'down';
           setActiveIndex((prev) => {
             if (prev === -1) return 0;
-            if (prev >= totalItems - 1) return totalItems - 1;
+            if (prev >= totalItems - 1) {
+              // already at last item: scroll to bottom to let InfiniteScroll trigger `next`
+              if (scrollContainerRef.current) {
+                try {
+                  scrollContainerRef.current.scrollTo({ top: scrollContainerRef.current.scrollHeight, behavior: 'smooth' });
+                } catch (e) {
+                }
+              }
+              return totalItems - 1;
+            }
             return prev + 1;
           });
           break;
