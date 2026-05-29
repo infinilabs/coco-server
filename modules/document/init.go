@@ -6,6 +6,7 @@ package document
 
 import (
 	log "github.com/cihub/seelog"
+	"github.com/emirpasic/gods/maps/treemap"
 	"infini.sh/coco/core"
 	"infini.sh/framework/core/api"
 	"infini.sh/framework/core/env"
@@ -17,7 +18,7 @@ import (
 type APIHandler struct {
 	api.Handler
 	recommendConfigs map[string]core.RecommendResponse
-	fieldMetadata    map[string]FieldMetadata
+	fieldMetadata    *treemap.Map
 }
 
 const Category = "coco"
@@ -72,13 +73,17 @@ func init() {
 
 	global.RegisterFuncAfterSetup(func() {
 
-		fieldMetadata := map[string]FieldMetadata{}
-		ok, err := env.ParseConfig("field_metadata", &fieldMetadata)
+		fieldMetadataMap := map[string]FieldMetadata{}
+		ok, err := env.ParseConfig("field_metadata", &fieldMetadataMap)
 		if ok && err != nil && global.Env().SystemConfig.Configs.PanicOnConfigError {
 			panic(err)
 		}
-		handler.fieldMetadata = fieldMetadata
-		log.Trace(util.ToJson(fieldMetadata, true))
+		// Convert to TreeMap for sorted iteration by key
+		handler.fieldMetadata = treemap.NewWithStringComparator()
+		for k, v := range fieldMetadataMap {
+			handler.fieldMetadata.Put(k, v)
+		}
+		log.Trace(util.ToJson(fieldMetadataMap, true))
 
 		cfg1 := map[string]string{}
 		ok, err = env.ParseConfig("recommend", &cfg1)

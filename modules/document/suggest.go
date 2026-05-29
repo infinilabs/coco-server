@@ -29,16 +29,14 @@ func (h *APIHandler) getFieldMeta(w http.ResponseWriter, req *http.Request, ps h
 	if fieldName != "" && h.fieldMetadata != nil {
 		if util.ContainStr(fieldName, ",") {
 			fieldNames := strings.Split(fieldName, ",")
-			for _, fieldName := range fieldNames {
-				v, ok := h.fieldMetadata[fieldName]
-				if ok {
-					out[fieldName] = v
+			for _, fn := range fieldNames {
+				if v, ok := h.fieldMetadata.Get(fn); ok {
+					out[fn] = v.(FieldMetadata)
 				}
 			}
 		} else {
-			v, ok := h.fieldMetadata[fieldName]
-			if ok {
-				out[fieldName] = v
+			if v, ok := h.fieldMetadata.Get(fieldName); ok {
+				out[fieldName] = v.(FieldMetadata)
 			}
 		}
 	}
@@ -72,32 +70,47 @@ func (h *APIHandler) suggest(w http.ResponseWriter, req *http.Request, ps httpro
 }
 
 type FieldMetadata struct {
-	FieldIcon          string `json:"field_icon" config:"field_icon"`
-	FieldLabel         string `json:"field_label" config:"field_label"`
-	FieldDescription   string `json:"field_description" config:"field_description"`
-	FieldName          string `json:"field_name" config:"field_name"`
-	FieldDataType      string `json:"field_data_type" config:"field_data_type"`
-	SupportMultiSelect bool   `json:"support_multi_select" config:"support_multi_select"`
+	FieldIcon          string            `json:"field_icon" config:"field_icon"`
+	FieldLabel         string            `json:"field_label" config:"field_label"`
+	FieldDescription   map[string]string `json:"field_description" config:"field_description"`
+	FieldName          string            `json:"field_name" config:"field_name"`
+	FieldDataType      string            `json:"field_data_type" config:"field_data_type"`
+	SupportMultiSelect bool              `json:"support_multi_select" config:"support_multi_select"`
 }
 
 func (h *APIHandler) suggestFieldNames(w http.ResponseWriter, req *http.Request, query string, from int, size int) *core.SuggestResponse[FieldMetadata] {
 	response := &core.SuggestResponse[FieldMetadata]{}
 
-	out := []core.Suggestion[FieldMetadata]{}
+	all := []core.Suggestion[FieldMetadata]{}
 	if h.fieldMetadata != nil {
-		for k, v := range h.fieldMetadata {
-			if util.PrefixStr(k, query) || util.ContainStr(k, query) || util.PrefixStr(v.FieldName, query) || util.ContainStr(v.FieldName, query) {
+		it := h.fieldMetadata.Iterator()
+		for it.Next() {
+			k := it.Key().(string)
+			v := it.Value().(FieldMetadata)
+			if util.PrefixStr(k, query) || util.ContainStr(k, query) ||
+				util.PrefixStr(v.FieldName, query) || util.ContainStr(v.FieldName, query) ||
+				util.PrefixStr(v.FieldLabel, query) || util.ContainStr(v.FieldLabel, query) {
 				i := core.Suggestion[FieldMetadata]{}
 				i.Suggestion = v.FieldLabel
 				i.Icon = v.FieldIcon
-				i.Source = v.FieldDescription
 				i.Payload = v
-				out = append(out, i)
+				all = append(all, i)
 			}
 		}
 	}
 
-	response.Suggestions = out
+	// Apply pagination
+	total := len(all)
+	if from >= total {
+		response.Suggestions = []core.Suggestion[FieldMetadata]{}
+	} else {
+		end := from + size
+		if end > total {
+			end = total
+		}
+		response.Suggestions = all[from:end]
+	}
+
 	response.Query = query
 
 	return response
