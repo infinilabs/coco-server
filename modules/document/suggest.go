@@ -61,10 +61,8 @@ func (h *APIHandler) suggest(w http.ResponseWriter, req *http.Request, ps httpro
 	switch tag {
 	case core.SuggestTagFieldNames:
 		response = h.suggestFieldNames(w, req, query, from, size)
-		break
 	case core.SuggestTagFieldValues:
 		response = h.suggestFieldValues(w, req, query, from, size)
-		break
 	default:
 		response = h.suggestDocuments(w, req, query, from, size)
 	}
