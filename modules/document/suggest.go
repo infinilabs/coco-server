@@ -52,6 +52,14 @@ func (h *APIHandler) suggest(w http.ResponseWriter, req *http.Request, ps httpro
 		size  = h.GetIntOrDefault(req, "size", 10)
 	)
 
+	// Ensure non-negative values
+	if from < 0 {
+		from = 0
+	}
+	if size < 0 {
+		size = 10
+	}
+
 	var response interface{}
 	tag := ps.ByName("tag")
 	log.Trace("suggest tag:", tag)
@@ -185,7 +193,6 @@ func (h *APIHandler) suggestDocuments(w http.ResponseWriter, req *http.Request, 
 }
 
 func (h *APIHandler) suggestFieldValues(w http.ResponseWriter, req *http.Request, query string, from int, size int) *core.SuggestResponse[interface{}] {
-
 	fieldName := h.MustGetParameter(w, req, "field_name")
 
 	builder := orm.NewQuery()
@@ -194,11 +201,17 @@ func (h *APIHandler) suggestFieldValues(w http.ResponseWriter, req *http.Request
 	builder.Fuzziness(5)
 	builder.Size(0)
 
+	// Fetch from + size buckets to support pagination
+	aggSize := from + size
+	if aggSize < 10 {
+		aggSize = 10
+	}
+
 	rootAggs := map[string]orm.Aggregation{
 		"suggestions": (&orm.TermsAggregation{
 			Field:   fieldName,
 			Include: query + ".*",
-			Size:    10,
+			Size:    aggSize,
 		}),
 	}
 	builder.SetAggregations(rootAggs)
@@ -212,7 +225,7 @@ func (h *APIHandler) suggestFieldValues(w http.ResponseWriter, req *http.Request
 	if err != nil {
 		panic(err)
 	}
-	out := []core.Suggestion[interface{}]{}
+	all := []core.Suggestion[interface{}]{}
 
 	bytes, ok := res.Payload.([]byte)
 	if ok {
@@ -220,13 +233,23 @@ func (h *APIHandler) suggestFieldValues(w http.ResponseWriter, req *http.Request
 		util.MustFromJSONBytes(bytes, &resp)
 		if v, ok := resp.Aggregations["suggestions"]; ok {
 			for _, bucket := range v.Buckets {
-				out = append(out, core.Suggestion[interface{}]{Suggestion: bucket.Key})
+				all = append(all, core.Suggestion[interface{}]{Suggestion: bucket.Key})
 			}
 		}
 	}
 
+	// Apply pagination
 	response := &core.SuggestResponse[interface{}]{}
-	response.Suggestions = out
+	total := len(all)
+	if from >= total {
+		response.Suggestions = []core.Suggestion[interface{}]{}
+	} else {
+		end := from + size
+		if end > total {
+			end = total
+		}
+		response.Suggestions = all[from:end]
+	}
 	response.Query = query
 
 	return response

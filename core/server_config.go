@@ -49,5 +49,6 @@ type SSO struct {
 
 type StoreConfig struct {
 	Endpoint string `json:"endpoint" config:"endpoint"` // store service endpoint
-	Local    bool   `json:"local" config:"local"`       // whether use local store service
+	// If this is true and the endpoint is a valid endpoint, then extension store will be enabled.
+	Enabled bool `json:"enabled" config:"enabled"`
 }
