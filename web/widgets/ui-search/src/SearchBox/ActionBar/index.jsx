@@ -12,6 +12,7 @@ export default function ActionBar({
   onSearch,
   searchable,
   className = "",
+  onAttachmentUpload
 }) {
   return (
     <div className={`flex justify-between items-center px-12px ${className}`}>
@@ -27,6 +28,7 @@ export default function ActionBar({
         setAttachments={onAttachmentsChange}
         onSearch={onSearch}
         disabled={!searchable}
+        onAttachmentUpload={onAttachmentUpload}
       />
     </div>
   );

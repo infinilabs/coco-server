@@ -9,8 +9,28 @@ import ActionBar from "./ActionBar";
 import { ListFilter } from "lucide-react";
 
 export function SearchBox(props) {
-  const { placeholder, queryParams, setQueryParams, onSearch, minimize = false, onSuggestion, filterFieldsMeta = {}, language } = props;
-  const sb = useSearchBox({ queryParams, onSearch, onSuggestion, filterFieldsMeta });
+  const { 
+    placeholder, 
+    queryParams, 
+    setQueryParams, 
+    onSearch, 
+    minimize = false, 
+    onSuggestion, 
+    filterFieldsMeta = {}, 
+    language, 
+    onUpload,
+    attachments,
+    setAttachments 
+  } = props;
+  const sb = useSearchBox({ 
+    queryParams, 
+    onSearch, 
+    onSuggestion, 
+    filterFieldsMeta, 
+    onUpload,
+    attachments,
+    setAttachments
+  });
 
   const actionBarProps = {
     action_type: sb.action_type,
@@ -22,6 +42,7 @@ export function SearchBox(props) {
     onAttachmentsChange: sb.handleAttachmentsChange,
     onSearch: sb.triggerSearch,
     searchable: sb.searchable,
+    onAttachmentUpload: sb.handleAttachmentUpload
   };
 
   const suggestionProps = {
@@ -41,9 +62,10 @@ export function SearchBox(props) {
     handleOperatorChange: sb.handleOperatorChange,
     handleFilterComplete: sb.handleFilterComplete,
     turnToChat: (item) => {
-      setQueryParams({
+      onSearch({
         query: item.suggestion,
-        mode: 'chat',
+        attachments: attachments,
+        mode: 'chat'
       })
     },
     language,
@@ -89,7 +111,7 @@ export function SearchBox(props) {
       ${styles.searchbox}
       relative w-full rounded-12px 
       ${sb.showExpandedPanel ? '' : 'border'} 
-      border-[rgba(235,235,235,1)] dark:border-[rgba(50,50,50,1)] 
+      border-[#F0F0F0] dark:border-[#303030] 
       ${minimize ? 'h-48px' : `h-103px ${sb.showExpandedPanel ? '' : 'shadow-[0_2px_20px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_20px_rgba(255,255,255,0.2)]'}`}
       ${!minimize && !sb.showExpandedPanel ? styles.gradientBorder : ''}
       bg-[rgb(var(--ui-search--layout-bg-color))]
@@ -105,7 +127,7 @@ export function SearchBox(props) {
               onChange={sb.handleInputChange}
               onSelect={sb.handleCursorPositionChange}
               onClick={sb.handleCursorPositionChange}
-              suffix={<Operations size={24} onSearch={sb.triggerSearch} disabled={!sb.searchable} />}
+              suffix={<Operations size={24} onSearch={sb.triggerSearch} disabled={!sb.searchable} attachments={sb.attachments} setAttachments={sb.handleAttachmentsChange} onAttachmentUpload={sb.handleAttachmentUpload}/>}
               placeholder={placeholder}
               className="flex-1 w-full"
               onFocus={sb.handleInputFocus}
@@ -125,9 +147,9 @@ export function SearchBox(props) {
       {/* Expanded Panel */}
       <div className={`absolute left-0 top-0 z-100 w-full ${sb.showExpandedPanel ? '' : 'h-0 overflow-hidden'} `}>
         <div className={`${styles.gradientBorder} rounded-12px overflow-visible`}> 
-          <div className={`py-12px rounded-12px bg-[rgb(var(--ui-search--layout-bg-color))] overflow-hidden shadow-[0_2px_20px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_20px_rgba(255,255,255,0.2)] border border-[rgba(235,235,235,1)] dark:border-[rgba(50,50,50,1)]`}>
+          <div className={`py-12px rounded-12px bg-[rgb(var(--ui-search--layout-bg-color))] overflow-hidden shadow-[0_2px_20px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_20px_rgba(255,255,255,0.2)] border border-[#F0F0F0] dark:border-[#303030]`}>
             {sb.attachments.length > 0 && (
-              <div className="mb-14px px-16px">
+              <div className="mb-14px px-8px">
                 <Attachments data={sb.attachments} onItemRemove={sb.handleAttachmentRemove} />
               </div>
             )}

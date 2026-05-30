@@ -13,22 +13,24 @@ const ChatHeader = (props) => {
         <Button
           icon={<History className="h-4 w-4" />}
           onClick={onToggleHistory}
-          className="!rounded-12px"
+          className="!rounded-12px border-[#F0F0F0] dark:border-[#303030]"
         />
 
-        {AssistantList}
+        <div className="border-[#F0F0F0] dark:border-[#303030]">
+          {AssistantList}
+        </div>
 
         <Button
           icon={<MessageSquarePlus className="h-4 w-4 !text-[var(--ant-color-primary)]" />}
           onClick={onNewChat}
-          className="!rounded-12px"
+          className="!rounded-12px border-[#F0F0F0] dark:border-[#303030]"
         />
 
         <Button
           shape="round"
           icon={<Search className="h-4 w-4 !text-[var(--ant-color-primary)]" />}
           onClick={onBackToSearch}
-          className="!rounded-12px"
+          className="!rounded-12px border-[#F0F0F0] dark:border-[#303030]"
         >
           {t('labels.backToSearch')}
         </Button>

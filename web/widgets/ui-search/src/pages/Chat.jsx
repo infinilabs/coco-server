@@ -15,8 +15,7 @@ export default function Chat({
   language,
   apiConfig,
   onBackToSearch,
-  queryParams,
-  setQueryParams,
+  defaultParams,
 }) {
   const { BaseUrl, Token, endpoint, headers } = apiConfig || {};
 
@@ -27,14 +26,21 @@ export default function Chat({
   const [inputValue, setInputValue] = useState("");
 
   // continue chat
-  const processedQuery = useRef(null);
+  const processedParams = useRef(null);
   useEffect(() => {
-    const query = queryParams?.query;
-    if (query && query !== processedQuery.current && chatRef.current) {
-      processedQuery.current = query;
-      chatRef.current?.init({ message: query });
+    if (JSON.stringify(defaultParams) !== JSON.stringify(processedParams.current)) {
+      processedParams.current = defaultParams;
+      if ((!defaultParams?.query || !defaultParams?.query.trim()) && defaultParams?.attachments?.length === 0) {
+        return;
+      }
+      chatRef.current?.init({ 
+        message: defaultParams.query || '',
+        attachments: (defaultParams.attachments || [])
+        .filter((a) => a.status === "uploaded" && a.id)
+        .map((a) => a.id), 
+      });
     }
-  }, [queryParams?.query]);
+  }, [JSON.stringify(defaultParams)]);
 
   const onSendMessage = async (params) => {
     if (chatRef.current) {

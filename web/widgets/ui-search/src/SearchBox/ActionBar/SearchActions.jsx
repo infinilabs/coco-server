@@ -99,7 +99,7 @@ export default (props) => {
                     onOpenChange={handleVisibleChange} 
                 >
                     <Button 
-                        className="!px-12px rounded-16px text-[var(--ant-color-text-description)]"
+                        className="border-[#F0F0F0] dark:border-[#303030] !px-12px rounded-16px text-[var(--ant-color-text-description)]"
                         onClick={(e) => {
                             e.stopPropagation();
                             if (onButtonClick) {

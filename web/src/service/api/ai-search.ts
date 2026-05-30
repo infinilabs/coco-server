@@ -42,3 +42,16 @@ export function fetchFieldsMeta(fields: string[], options?: any) {
     url: `/field_meta/${fields.join(',')}`
   });
 }
+
+export function uploadAttachment(files: any[], options?: any) {
+  const formData = new FormData();
+  for (const f of files) {
+    formData.append('files', f, f.name);
+  }
+  return request({
+    ...(options || {}),
+    method: 'post',
+    url: `/attachment/_upload`,
+    data: formData
+  });
+}

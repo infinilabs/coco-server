@@ -6,7 +6,7 @@ import PropTypes from 'prop-types';
 import { debounce, isEmpty } from 'lodash';
 import Home from "./pages/Home";
 import Search from "./pages/Search";
-import { ACTION_TYPE_SEARCH_HYBRID, ACTION_TYPE_SEARCH_KEYWORD } from "./SearchBox/ActionBar/SearchActions";
+import { ACTION_TYPE_SEARCH, ACTION_TYPE_SEARCH_HYBRID, ACTION_TYPE_SEARCH_KEYWORD } from "./SearchBox/ActionBar/SearchActions";
 import Chat from "./pages/Chat";
 
 const Fullscreen = props => {
@@ -30,7 +30,8 @@ const Fullscreen = props => {
     onRecommend,
     getRawContent,
     apiConfig,
-    getFieldsMeta
+    getFieldsMeta,
+    onUpload
   } = props;
 
   const containerRef = useRef(null);
@@ -48,6 +49,18 @@ const Fullscreen = props => {
   const [showToolbar, setShowToolbar] = useState(false);
   const [checkViewport, setCheckViewport] = useState(false);
   const isViewportLoadingRef = useRef(false);
+  const [chatParams, setChatParams] = useState({});
+  const [attachments, setAttachments] = useState([]);
+
+  const onChat = (params) => {
+    setChatParams({
+      query: params.query,
+      attachments: params.attachments
+    });
+    setQueryParams({
+      mode: 'chat',
+    })
+  }
 
   const resetScroll = () => {
     scrollRef.current = 0;
@@ -92,9 +105,9 @@ const Fullscreen = props => {
 
   const checkViewportAndLoad = useCallback(() => {
     if (
-      !containerRef.current || 
-      loading || 
-      !hasMore || 
+      !containerRef.current ||
+      loading ||
+      !hasMore ||
       loadLock.current ||
       isHome
     ) {
@@ -110,7 +123,7 @@ const Fullscreen = props => {
 
       const container = containerRef.current;
       const { scrollHeight, clientHeight, scrollTop } = container;
-      
+
       const heightDiff = scrollHeight - clientHeight;
       const hasRealScrollbar = heightDiff > 20;
       const isViewportReallyFilled = hasRealScrollbar || scrollTop > 0;
@@ -160,7 +173,7 @@ const Fullscreen = props => {
     if (!isViewportLoadingRef.current) {
       setLoading(true);
     }
-    
+
     const { t, filter = {}, aggfilter = {}, ...rest } = queryParams;
     const filterWithoutAgg = {
       ...filter,
@@ -218,10 +231,10 @@ const Fullscreen = props => {
 
         if (onAggregation && shouldAggRef.current) {
           setLoading(true);
-          onAggregation({ 
+          onAggregation({
             query: queryParams.query,
-            search_type: queryParams?.search_type || ACTION_TYPE_SEARCH_KEYWORD, 
-            filter: filterWithoutAgg 
+            search_type: queryParams?.search_type || ACTION_TYPE_SEARCH_KEYWORD,
+            filter: filterWithoutAgg
           }, (res) => {
             shouldAskRef.current = false
             if (res && !res.error) {
@@ -256,7 +269,7 @@ const Fullscreen = props => {
 
   useEffect(() => {
     if (!checkViewport) return;
-    
+
     const timer = setTimeout(() => {
       checkViewportAndLoad();
     }, 300);
@@ -271,7 +284,7 @@ const Fullscreen = props => {
           setCheckViewport(true);
         }
       }, 500);
-      
+
       return () => clearTimeout(timer);
     }
   }, [data, hasMore, loading]);
@@ -335,11 +348,12 @@ const Fullscreen = props => {
         onBackToSearch={() => {
           setQueryParams({
             ...queryParams,
-            action_type: undefined,
+            action_type: ACTION_TYPE_SEARCH,
             mode: 'search'
           });
         }}
         setQueryParams={setQueryParams}
+        defaultParams={chatParams}
       />
     )
   }
@@ -350,13 +364,25 @@ const Fullscreen = props => {
         commonProps={commonProps}
         loading={showFullScreenSpin}
         logo={logo}
-        onSearch={(params, shouldAsk, shouldAgg) => handleSearch({ ...queryParams, ...params, from: 0 }, shouldAsk, shouldAgg)}
+        onSearch={(params, shouldAsk, shouldAgg) => {
+          if (params.mode === 'chat') {
+            onChat({
+              query: params.query || '',
+              attachments: params.attachments || attachments || [],
+            });
+            return;
+          };
+          handleSearch({ ...queryParams, ...params, from: 0 }, shouldAsk, shouldAgg)
+        }}
         placeholder={placeholder}
         welcome={welcome}
         queryParams={queryParams}
         setQueryParams={setQueryParams}
         onSuggestion={debouncedSuggestion}
         onRecommend={onRecommend}
+        onUpload={onUpload}
+        attachments={attachments}
+        setAttachments={setAttachments}
       />
     )
   }
@@ -389,18 +415,30 @@ const Fullscreen = props => {
       onSearchFilter={(aggfilter) => {
         handleSearch({ ...queryParams, aggfilter }, false, false)
       }}
-      onSearch={(params, shouldAsk, shouldAgg) => handleSearch({ ...queryParams, ...params, from: 0 }, shouldAsk, shouldAgg)}
+      onSearch={(params, shouldAsk, shouldAgg) => {
+        if (params.mode === 'chat') {
+          onChat({
+            query: params.query || '',
+            attachments: params.attachments || attachments || [],
+          });
+          return;
+        };
+        handleSearch({ ...queryParams, ...params, from: 0 }, shouldAsk, shouldAgg)
+      }}
       onAsk={onAsk}
       onSuggestion={debouncedSuggestion}
       onRecommend={onRecommend}
       getRawContent={getRawContent}
       onChatContinue={() => {
-        setQueryParams({
+        onChat({
           query: queryParams.query || '',
-          mode: 'chat'
+          attachments: attachments || [],
         });
       }}
       getFieldsMeta={getFieldsMeta}
+      onUpload={onUpload}
+      attachments={attachments}
+      setAttachments={setAttachments}
     />
   )
 };
@@ -426,6 +464,7 @@ Fullscreen.propTypes = {
   onSuggestion: PropTypes.func,
   onRecommend: PropTypes.func,
   getRawContent: PropTypes.func,
+  onUpload: PropTypes.func,
   apiConfig: PropTypes.object
 };
 

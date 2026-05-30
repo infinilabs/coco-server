@@ -27,14 +27,20 @@ function extractSlashFieldQuery(query, cursorPosition) {
   return match ? match[1] : null;
 }
 
-export default function useSearchBox({ queryParams, onSearch, onSuggestion, filterFieldsMeta = {} }) {
+export default function useSearchBox({ 
+  queryParams, 
+  onSearch, 
+  onSuggestion, 
+  filterFieldsMeta = {}, 
+  onUpload,
+  attachments = [],
+  setAttachments, 
+}) {
   const [currentQueryParams, setCurrentQueryParams] = useState(queryParams);
   const { query, filter = {}, filters = [], action_type, search_type = ACTION_TYPE_SEARCH_KEYWORD } = currentQueryParams;
   const [suggestions, setSuggestions] = useState({});
-  const [attachments, setAttachments] = useState([]);
   const [mainInputActive, setMainInputActive] = useState(false);
   const [filterState, setFilterState] = useState({ type: 'none', index: -1 });
-  const [attachmentActive, setAttachmentActive] = useState(false);
   const [cursorPosition, setCursorPosition] = useState(0);
   const [shouldFocusNewFilter, setShouldFocusNewFilter] = useState(false);
   const [filterSearchValue, setFilterSearchValue] = useState('');
@@ -49,16 +55,16 @@ export default function useSearchBox({ queryParams, onSearch, onSuggestion, filt
   const expandedInputRef = useRef(null);
 
   const showExpandedPanel = useMemo(() => {
-    return mainInputActive || filterState.type !== 'none' || attachmentActive;
-  }, [mainInputActive, filterState.type, attachmentActive]);
+    return mainInputActive || filterState.type !== 'none';
+  }, [mainInputActive, filterState.type]);
 
   const searchable = useMemo(() => {
     return (
       (query || '').trim().length > 0 ||
       filters.some(f => !!f.value && !(Array.isArray(f.value) && f.value.length === 0)) ||
-      !isEmpty(filter)
+      !isEmpty(filter) || attachments.length > 0
     );
-  }, [query, filters, filter]);
+  }, [query, filters, filter, attachments]);
 
   const isSlashAtCursor = useMemo(() => {
     if (!query || cursorPosition < 0 || cursorPosition > query.length) return false;
@@ -108,27 +114,34 @@ export default function useSearchBox({ queryParams, onSearch, onSuggestion, filt
   }, []);
 
   const handleSearch = (searchQuery, searchFilters, actionType, searchType) => {
-    const newFilter = {};
-    // Rebuild filter from current filters array
-    if (Array.isArray(searchFilters) && searchFilters.length > 0) {
-      searchFilters.forEach((item) => {
-        const field = item.field?.field_name;
-        if (field && item.value) {
-          const key = item.operator === 'not' ? `!${field}` : field;
-          newFilter[key] = Array.isArray(item.value) ? item.value : (item.value ? [item.value] : []);
-        }
-      });
+    if (attachments.length > 0) {
+      onSearch({
+        query: searchQuery,
+        attachments: attachments,
+        mode: 'chat'
+      })
+    } else {
+      const newFilter = {};
+      // Rebuild filter from current filters array
+      if (Array.isArray(searchFilters) && searchFilters.length > 0) {
+        searchFilters.forEach((item) => {
+          const field = item.field?.field_name;
+          if (field && item.value) {
+            const key = item.operator === 'not' ? `!${field}` : field;
+            newFilter[key] = Array.isArray(item.value) ? item.value : (item.value ? [item.value] : []);
+          }
+        });
+      }
+      onSearch({
+        query: searchQuery,
+        filter: newFilter,
+        action_type: actionType,
+        search_type: searchType,
+        mode: !actionType || actionType === ACTION_TYPE_SEARCH ? 'search' : 'chat'
+      }, true, true);
     }
-    onSearch({
-      query: searchQuery,
-      filter: newFilter,
-      action_type: actionType,
-      search_type: searchType,
-      mode: !actionType || actionType === ACTION_TYPE_SEARCH ? 'search' : 'chat'
-    }, true, true);
     setMainInputActive(false);
     setFilterState({ type: 'none', index: -1 });
-    setAttachmentActive(false);
     setSuggestions({});
     isSearchTriggered.current = true;
     setTimeout(() => { isSearchTriggered.current = false; }, 200);
@@ -140,6 +153,10 @@ export default function useSearchBox({ queryParams, onSearch, onSuggestion, filt
   };
 
   const triggerSearch = () => handleSearch(query, filters, action_type, search_type);
+
+  const handleAttachmentUpload = (files, cb) => {
+    if (onUpload) onUpload(files, cb);
+  }
 
   const handleCursorPositionChange = (e) => {
     setCursorPosition(e.target.selectionStart);
@@ -355,7 +372,7 @@ export default function useSearchBox({ queryParams, onSearch, onSuggestion, filt
 
   const handleAttachmentsChange = (newAttachments) => {
     setAttachments(newAttachments);
-    setAttachmentActive(newAttachments.length > 0);
+    setMainInputActive(true);
   };
 
   const handleAttachmentRemove = (item) => {
@@ -494,5 +511,6 @@ export default function useSearchBox({ queryParams, onSearch, onSuggestion, filt
     suggestionType,
     colonFieldQuery,
     slashFieldQuery,
+    handleAttachmentUpload
   };
 }

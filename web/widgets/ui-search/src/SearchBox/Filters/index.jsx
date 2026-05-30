@@ -163,10 +163,12 @@ export default function Filters({
               <Space.Compact className="cursor-pointer">
                 <Space.Addon 
                   onClick={() => handleFilterAddonClick(index)}
+                  className="border-[#F0F0F0] dark:border-[#303030]"
                 >
                   {filter.field.field_label}
                 </Space.Addon>
                 <Select
+                  className="border-[#F0F0F0] dark:border-[#303030]"
                   mode="tags"
                   maxTagCount={3}
                   maxTagPlaceholder={() => '...'}

@@ -38,7 +38,10 @@ export default function Search({
   onRecommend,
   getRawContent,
   onChatContinue,
-  getFieldsMeta
+  getFieldsMeta,
+  onUpload,
+  attachments,
+  setAttachments
 }) {
 
   const { query, filter, aggfilter = {} } = queryParams;
@@ -127,6 +130,9 @@ export default function Search({
             onSearch={onSearch}
             onSuggestion={onSuggestion}
             filterFieldsMeta={filterFieldsMeta}
+            onUpload={onUpload}
+            attachments={attachments}
+            setAttachments={setAttachments}
           />
         }
         tabs={
@@ -220,7 +226,10 @@ export default function Search({
           setQueryParams={setQueryParams}
           onSearch={onSearch}
           onSuggestion={onSuggestion}
+          onUpload={onUpload}
           filterFieldsMeta={filterFieldsMeta}
+          attachments={attachments}
+          setAttachments={setAttachments}
         />
       }
       tabs={
@@ -231,7 +240,7 @@ export default function Search({
             if (category !== content_category) {
               shouldAgg = true
             }
-            onSearch({ 
+            onSearch({
               ...queryParams,
               'metadata.content_category': category !== 'all' ? category : '',
             }, false, shouldAgg);

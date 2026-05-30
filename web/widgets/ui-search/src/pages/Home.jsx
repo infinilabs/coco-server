@@ -15,6 +15,9 @@ export default function Home({
     setQueryParams, 
     onSuggestion, 
     onRecommend,
+    onUpload,
+    attachments,
+    setAttachments
 }) {
   return (
     <HomeLayout
@@ -35,6 +38,9 @@ export default function Home({
           setQueryParams={setQueryParams}
           onSearch={onSearch}
           onSuggestion={onSuggestion}
+          onUpload={onUpload}
+          attachments={attachments}
+          setAttachments={setAttachments}
         />
       }
       welcome={

@@ -8,7 +8,7 @@ import { fetchIntegration } from '@/service/api/integration';
 import { useRequest } from '@sa/hooks';
 import useQueryParams from '@/hooks/common/queryParams';
 import { FullscreenPage } from 'ui-search';
-import { querySearch, fetchSuggestions, fetchRecommends, fetchFieldsMeta } from '@/service/api/ai-search';
+import { querySearch, fetchSuggestions, fetchRecommends, fetchFieldsMeta, uploadAttachment } from '@/service/api/ai-search';
 import { getApiBaseUrl } from '@/service/request';
 import queryString from 'query-string';
 import { getLocale } from '@/store/slice/app';
@@ -224,6 +224,16 @@ export function Component() {
     if (callback) callback(res.data)
   }
 
+  async function onUpload(files: any[], callback: (data: any) => void) {
+    const headers = { 'APP-INTEGRATION-ID': search_settings?.integration }
+    const res = await uploadAttachment(files, { headers })
+    if (callback && res && !res.error) {
+      callback(res.data)
+    } else {
+      callback({})
+    }
+  }
+
   useEffect(() => {
     if (search_settings?.integration) {
       run(search_settings?.integration);
@@ -308,7 +318,8 @@ export function Component() {
       const newUrl = window.location.origin + window.location.pathname + hashWithoutParams;
       history.replaceState(null, '', newUrl);
     },
-    getFieldsMeta
+    getFieldsMeta,
+    onUpload
   }
 
   return (
