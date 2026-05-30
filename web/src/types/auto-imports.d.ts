@@ -7,6 +7,7 @@
 export {}
 declare global {
   const AButton: typeof import('antd')['Button']
+  const ACTION: typeof import('antd')['CTION']
   const ACard: typeof import('antd')['Card']
   const ACheckbox: typeof import('antd')['Checkbox']
   const AColorPicker: typeof import('antd')['ColorPicker']

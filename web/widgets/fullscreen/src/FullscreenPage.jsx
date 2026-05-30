@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 import useQueryParams from './hooks/queryParams';
-import { FullscreenPage } from './ui-search';
+import { FullscreenPage } from 'ui-search';
 
 export default (props) => {
 

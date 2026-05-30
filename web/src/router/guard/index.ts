@@ -11,22 +11,22 @@ import type {
 
 import { $t } from '@/locales';
 import { getRouteName, getRoutePath } from '@/router/elegant/transform';
-import { fetchServer } from '@/service/api/server';
+import { fetchApplicationSetting } from '@/service/api/server';
 import { store } from '@/store';
 import { isStaticSuper, resetAuth, selectUserInfo } from '@/store/slice/auth';
 import { getRouteHome, initAuthRoute, initConstantRoute, setFilterPaths } from '@/store/slice/route';
 import { localStg } from '@/utils/storage';
 import { fetchGetUserInfo } from '@/service/api';
-import { setProviderInfo, updateRootRouteIfSearch } from '@/store/slice/server';
+import { setApplicationSetting, updateRootRouteIfSearch } from '@/store/slice/server';
 
 function shouldRedirectLogin(path: string) {
   return ['provider', 'request_id', 'product'].every(keyword => !path.includes(keyword));
 }
 
 export const init: Init = async currentFullPath => {
-  const result = await fetchServer();
+  const result = await fetchApplicationSetting();
 
-  await store.dispatch(setProviderInfo(result.data));
+  await store.dispatch(setApplicationSetting(result.data));
   await store.dispatch(updateRootRouteIfSearch(result.data));
 
   const setupRequired = Boolean(result.data?.setup_required);

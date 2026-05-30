@@ -1,6 +1,6 @@
-export function getRootRouteIfSearch(providerInfo: any) {
+export function getRootRouteIfSearch(applicationSetting: any) {
   let root = import.meta.env.VITE_ROUTE_HOME
-  if (providerInfo?.search_settings?.enabled && providerInfo?.search_settings?.integration) {
+  if (applicationSetting?.search_settings?.enabled && applicationSetting?.search_settings?.integration) {
     root = 'search'
   } else {
     root

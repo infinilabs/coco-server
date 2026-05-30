@@ -20,6 +20,7 @@ import { getAssistantCategory } from '@/service/api/assistant';
 import { UploadConfig } from './UploadConfig';
 import classNames from 'classnames';
 import AvailableVariable from './AvailableVariable';
+import { fetchSettings } from '@/service/api/server';
 
 interface AssistantFormProps {
   initialValues: any;
@@ -37,8 +38,21 @@ export const EditForm = memo((props: AssistantFormProps) => {
   const permissions = {
     fetchModelProviders: hasAuth('coco#model_provider/search'),
     fetchMCPServers: hasAuth('coco#mcp_server/search'),
-    fetchDataSources: hasAuth('coco#datasource/search')
+    fetchDataSources: hasAuth('coco#datasource/search'),
+    fetchSettings: hasAuth('coco#system/read')
   };
+
+  const [defaultModelSettings, setDefaultModelSettings] = useState<any>();
+
+  useEffect(() => {
+    if (permissions.fetchSettings) {
+      fetchSettings().then(res => {
+        if (res.data?.default_model) {
+          setDefaultModelSettings(res.data?.default_model?.language_model);
+        }
+      })
+    }
+  }, []);
 
   useEffect(() => {
     if (initialValues) {
@@ -121,8 +135,24 @@ export const EditForm = memo((props: AssistantFormProps) => {
   const modelProviders = useMemo(() => {
     if (!modelsResult) return [];
     const res = formatESSearchResult(modelsResult);
-    return res.data;
+    return res.data.map((item: any) => ({
+      ...item,
+      models: item.models?.filter((model: any) => model.type === 'language') || []
+    }));
   }, [JSON.stringify(modelsResult)]);
+
+  const defaultModel = useMemo(() => {
+    if (!defaultModelSettings || modelProviders.length === 0) return null;
+    const provider = modelProviders.find((item: any) => item.id === defaultModelSettings.provider_id);
+    if (!provider) return null;
+    return provider.models.find((model: any) => model.name === defaultModelSettings.id);
+  }, [defaultModelSettings, modelProviders]);
+
+  const onModelRefresh = useMemo(() => {
+    if (!permissions.fetchModelProviders) return;
+    return () => fetchModelProviders(10000);
+  }, [permissions.fetchModelProviders]);
+
   useEffect(() => {
     if (permissions.fetchModelProviders) {
       fetchModelProviders(10000);
@@ -195,7 +225,7 @@ export const EditForm = memo((props: AssistantFormProps) => {
             forceRender: true,
             children: (
               <Form.Item className='mb-0!'>
-                <DeepThink providers={modelProviders} />
+                <DeepThink providers={modelProviders} defaultModel={defaultModel} onModelRefresh={onModelRefresh}/>
               </Form.Item>
             )
           }
@@ -248,23 +278,15 @@ export const EditForm = memo((props: AssistantFormProps) => {
                       label={t('page.settings.llm.picking_doc_model')}
                       layout='vertical'
                       name={['config', 'picking_doc_model']}
-                      rules={[
-                        {
-                          required: true,
-                          validator: (_, value) => {
-                            if (!value || !value.id) {
-                              return Promise.reject(new Error(t('page.assistant.hints.selectModel')));
-                            }
-
-                            return Promise.resolve();
-                          }
-                        }
-                      ]}
                     >
                       <ModelSelect
                         modelType='picking_doc_model'
                         namePrefix={['config', 'picking_doc_model']}
                         providers={modelProviders}
+                        allowClear={true}
+                        placeholder={t('page.assistant.labels.modelSelectPlaceholder')}
+                        defaultModel={defaultModel}
+                        onRefresh={onModelRefresh}
                       />
                     </Form.Item>
                   </>
@@ -359,6 +381,8 @@ export const EditForm = memo((props: AssistantFormProps) => {
                         value: item.id
                       }))
                     )}
+                    defaultModel={defaultModel}
+                    onModelRefresh={onModelRefresh}
                   >
                     <ToolsConfig />
                   </MCPConfig>
@@ -388,22 +412,15 @@ export const EditForm = memo((props: AssistantFormProps) => {
                 label={t('page.assistant.labels.answering_model')}
                 layout='vertical'
                 name={['answering_model']}
-                rules={[
-                  {
-                    required: true,
-                    validator: (_, value) => {
-                      if (!value || !value.id) {
-                        return Promise.reject(new Error(t('page.assistant.hints.selectModel')));
-                      }
-                      return Promise.resolve();
-                    }
-                  }
-                ]}
               >
                 <ModelSelect
                   modelType='answering_model'
                   namePrefix={['answering_model']}
                   providers={modelProviders}
+                  allowClear={true}
+                  placeholder={t('page.assistant.labels.modelSelectPlaceholder')}
+                  defaultModel={defaultModel}
+                  onRefresh={onModelRefresh}
                 />
               </Form.Item>
             )
@@ -546,17 +563,6 @@ export const EditForm = memo((props: AssistantFormProps) => {
           <Form.Item
             label={t('page.assistant.labels.answering_model')}
             name={['answering_model']}
-            rules={[
-              {
-                required: true,
-                validator: (_, value) => {
-                  if (!value || !value.id) {
-                    return Promise.reject(new Error(t('page.assistant.hints.selectModel')));
-                  }
-                  return Promise.resolve();
-                }
-              }
-            ]}
           >
             <ModelSelect
               modelType='answering_model'
@@ -564,6 +570,10 @@ export const EditForm = memo((props: AssistantFormProps) => {
               providers={modelProviders}
               showTemplate={false}
               width='600px'
+              allowClear={true}
+              placeholder={t('page.assistant.labels.modelSelectPlaceholder')}
+              defaultModel={defaultModel}
+              onRefresh={onModelRefresh}
             />
           </Form.Item>
         )}

@@ -25,6 +25,7 @@ import (
 	"infini.sh/framework/core/env"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/kv"
+	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/pipeline"
 	"infini.sh/framework/core/util"
 	"infini.sh/framework/lib/fasthttp"
@@ -37,37 +38,93 @@ type SetupConfig struct {
 	Name     string `json:"name,omitempty"`
 	Email    string `json:"email,omitempty"`
 	Password string `json:"password,omitempty"`
-	LLM      struct {
-		Type         string `json:"type,omitempty"`
-		Endpoint     string `json:"endpoint,omitempty"`
-		DefaultModel string `json:"default_model,omitempty"`
-		Token        string `json:"token,omitempty"`
-		Reasoning    bool   `json:"reasoning,omitempty"` // Whether to enable reasoning mode
-	} `json:"llm,omitempty"`
 	Language string `json:"language,omitempty"`
 }
 
-var SetupLock = ".setup_lock"
-
-func isAlreadyDoneSetup() bool {
-	exists, err := kv.ExistsKey(core.DefaultSettingBucketKey, []byte(SetupLock))
-	if exists || err != nil {
-		global.Env().EnableSetup(false)
-		return true
-	}
-	global.Env().EnableSetup(true)
-	return false
+// SetupDefaultModelConfig is the payload for the default-model setup API,
+// which lets the user pick default language/vision/embedding models. Every
+// selection is optional and the endpoint may be called multiple times; it
+// does not affect the overall setup completion state.
+type SetupDefaultModelConfig struct {
+	LanguageModel  *SetupModelConfig `json:"language_model,omitempty"`
+	VisionModel    *SetupModelConfig `json:"vision_model,omitempty"`
+	EmbeddingModel *SetupModelConfig `json:"embedding_model,omitempty"`
 }
 
-func (h *APIHandler) setupServer(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	isSetup := isAlreadyDoneSetup()
-	if isSetup {
-		panic("the server has already been initialized")
+// SetupModelConfig describes a single model selection in the setup wizard.
+//
+// Two independent dimensions:
+//
+//  1. Provider: ModelProvider.ID refers to an existing (builtin or previously
+//     created) provider; otherwise ModelProvider's other fields define a new
+//     custom provider to be created on the fly.
+//
+//  2. Model: exactly one of ModelID or Model must be set.
+//     - ModelID picks an already-registered model on the provider (by name).
+//     - Model defines a new model to add to the provider, including whether
+//     it supports reasoning mode (Model.SupportReasoning, language models
+//     only).
+//
+// APIToken is the provider-level API token; it is written to the provider
+// regardless of which model dimension is used.
+type SetupModelConfig struct {
+	ModelProvider SetupModelProvider `json:"model_provider,omitempty"`
+
+	ModelID string         `json:"model_id,omitempty"`
+	Model   *SetupModelDef `json:"model,omitempty"`
+
+	APIToken string `json:"api_token,omitempty"`
+}
+
+// SetupModelDef defines a new model to be added to the selected provider.
+type SetupModelDef struct {
+	ID string `json:"id"`
+	// SupportReasoning indicates whether this model is capable of reasoning
+	// mode. Only meaningful for language models; ignored for vision /
+	// embedding.
+	SupportReasoning bool `json:"support_reasoning,omitempty"`
+}
+
+// SetupModelProvider is either a reference (ID only) to a builtin provider,
+// or a full custom provider definition. The API token always travels at the
+// SetupModelConfig level, not here.
+type SetupModelProvider struct {
+	ID string `json:"id,omitempty"`
+
+	/*
+	 * Fields for a new provider
+	 */
+	Name        string `json:"name,omitempty"`
+	Description string `json:"description,omitempty"`
+	Icon        string `json:"icon,omitempty"`
+	BaseURL     string `json:"base_url,omitempty"`
+	APIType     string `json:"api_type,omitempty"` // "openai" or "ollama"
+}
+
+// SetupDoneKey marks server initialization as finished. Once present the
+// setup wizard is considered complete and re-running it is rejected.
+var SetupDoneKey = ".setup_done"
+
+// isSetupDone reports whether server initialization has finished, and keeps
+// the framework-level setup gate in sync.
+func isSetupDone() bool {
+	exists, err := kv.ExistsKey(core.DefaultSettingBucketKey, []byte(SetupDoneKey))
+	done := exists || err != nil
+	global.Env().EnableSetup(!done)
+	return done
+}
+
+// setupInitialize runs the server initialization wizard: create the admin
+// user and populate the bundled ES templates (model providers, assistants,
+// MCP servers, roles, etc.). The done flag is only written after the ES
+// refresh succeeds, so that a partial failure leaves the wizard re-runnable.
+func (h *APIHandler) setupInitialize(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	if isSetupDone() {
+		panic("setup has already been completed")
 	}
 
 	input := SetupConfig{}
-	err := h.DecodeJSON(req, &input)
-	if err != nil {
+	if err := h.DecodeJSON(req, &input); err != nil {
 		panic(err)
 	}
 
@@ -96,30 +153,101 @@ func (h *APIHandler) setupServer(w http.ResponseWriter, req *http.Request, ps ht
 		if user == nil || user.ID == "" {
 			panic("failed to init user")
 		}
+		if err != nil {
+			panic(err)
+		}
 
 		//initialize setup templates
-		err = h.initializeSetupTemplates(user.ID, input, info.ServerInfo.Endpoint)
-		if err != nil {
+		if err := h.initializeSetupTemplates(user.ID, input, info.ServerInfo.Endpoint); err != nil {
 			panic(err)
 		}
 	}
 
-	//setup lock
-	err = kv.AddValue(core.DefaultSettingBucketKey, []byte(SetupLock), []byte(time.Now().String()))
-	if err != nil {
+	// Force ES to refresh so that the documents written above are visible to
+	// the very next request — the default-model setup API needs to list the
+	// freshly inserted model providers via _search.
+	if err := refreshSetupIndices(); err != nil {
+		panic(fmt.Errorf("refresh setup indices: %w", err))
+	}
+
+	//save app config
+	common.SetAppConfig(&info)
+
+	// Mark setup as done last so partial failures above leave the wizard
+	// re-runnable.
+	if err := kv.AddValue(core.DefaultSettingBucketKey, []byte(SetupDoneKey), []byte(time.Now().String())); err != nil {
 		panic(err)
 	}
-	//save app config
+	isSetupDone()
+
+	h.WriteAckOKJSON(w)
+}
+
+// setupInitializeDefaultModel persists the user's default model selections
+// (language/vision/embedding).
+//
+// NOTE: on the UI the initialization wizard is presented as two steps, but in
+// the backend "initialization" is a single step (setupInitialize) — this
+// endpoint is an independent default-model setter that does NOT affect the
+// overall setup completion state and may be called repeatedly. Keep this UI
+// vs. backend mismatch in mind when wiring the wizard.
+func (h *APIHandler) setupInitializeDefaultModel(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	input := SetupDefaultModelConfig{}
+	if err := h.DecodeJSON(req, &input); err != nil {
+		panic(err)
+	}
+
+	// Validate the payload before doing any persistence
+	if err := validateDefaultModelConfig(&input); err != nil {
+		h.WriteError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	info := common.AppConfig()
+
+	if err := h.applySetupDefaultModels(req, &input, &info); err != nil {
+		panic(err)
+	}
+
+	// Refresh model-provider index so that any provider just created/updated
+	// is immediately visible to subsequent reads.
+	if err := refreshModelProviderIndex(); err != nil {
+		panic(fmt.Errorf("refresh model-provider index: %w", err))
+	}
+
 	common.SetAppConfig(&info)
 
 	h.WriteAckOKJSON(w)
 }
 
-func clearSetupLock() {
-	err := kv.DeleteKey(core.DefaultSettingBucketKey, []byte(SetupLock))
-	if err != nil {
+// refreshSetupIndices forces an ES refresh on every coco-prefixed index so
+// setup's bulk writes are searchable to subsequent reads.
+func refreshSetupIndices() error {
+	prefix := setupIndexPrefix()
+	esClient := elastic.GetClient(global.MustLookupString(elastic.GlobalSystemElasticsearchID))
+	return esClient.Refresh(prefix + "*")
+}
+
+// refreshModelProviderIndex forces an ES refresh on the model-provider index
+// after default-model setup writes provider documents.
+func refreshModelProviderIndex() error {
+	prefix := setupIndexPrefix()
+	esClient := elastic.GetClient(global.MustLookupString(elastic.GlobalSystemElasticsearchID))
+	return esClient.Refresh(prefix + "model-provider" + common.GetSchemaSuffix())
+}
+
+// setupIndexPrefix returns the configured ES index prefix, defaulting to
+// "coco_" when none is set.
+func setupIndexPrefix() string {
+	cfg := elastic1.ORMConfig{}
+	exist, err := env.ParseConfig("elastic.orm", &cfg)
+	if exist && err != nil && global.Env().SystemConfig.Configs.PanicOnConfigError {
 		panic(err)
 	}
+	if cfg.IndexPrefix == "" {
+		return "coco_"
+	}
+	return cfg.IndexPrefix
 }
 
 func (h *APIHandler) initializeConnector() error {
@@ -244,22 +372,6 @@ func (h *APIHandler) initializeTemplate(userID string, dslTplFile string, indexP
 
 	var tpl *fasttemplate.Template
 	tpl, err = fasttemplate.NewTemplate(string(dsl), "$[[", "]]")
-	var (
-		modelProvideEnabled = false
-		apiKey              = ""
-		apiType             = "openai"
-		baseURL             = ""
-		defaultModel        = ""
-		answeringModel      = "null"
-	)
-	if setupCfg.LLM.Endpoint != "" {
-		modelProvideEnabled = true
-		apiKey = setupCfg.LLM.Token
-		apiType = setupCfg.LLM.Type
-		baseURL = setupCfg.LLM.Endpoint
-		defaultModel = fmt.Sprintf(`{"name": "%s", "settings":{"reasoning": %v}}`, setupCfg.LLM.DefaultModel, setupCfg.LLM.Reasoning)
-		answeringModel = fmt.Sprintf(`{"provider_id": "coco", "name": "%s",  "prompt": { "template": "{{.query}}" }}`, setupCfg.LLM.DefaultModel)
-	}
 
 	if tpl == nil {
 		panic("invalid template file")
@@ -275,24 +387,6 @@ func (h *APIHandler) initializeTemplate(userID string, dslTplFile string, indexP
 			return w.Write([]byte(common.GetSchemaSuffix()))
 		case "SETUP_DOC_TYPE":
 			return w.Write([]byte(docType))
-		case "SETUP_LLM_ENABLED":
-			return w.Write([]byte(fmt.Sprintf("%v", modelProvideEnabled)))
-		case "SETUP_LLM_API_KEY":
-			return w.Write([]byte(apiKey))
-		case "SETUP_LLM_API_TYPE":
-			return w.Write([]byte(apiType))
-		case "SETUP_LLM_BASE_URL":
-			return w.Write([]byte(baseURL))
-		case "SETUP_LLM_DEFAULT_MODEL":
-			return w.Write([]byte(defaultModel))
-		case "SETUP_LLM_REASONING":
-			return w.Write([]byte(fmt.Sprintf("%v", setupCfg.LLM.Reasoning)))
-		case "SETUP_ASSISTANT_ANSWERING_MODEL":
-			return w.Write([]byte(answeringModel))
-		case "SETUP_LLM_PROVIDER_ID":
-			return w.Write([]byte("coco"))
-		case "SETUP_LLM_DEFAULT_MODEL_ID":
-			return w.Write([]byte(setupCfg.LLM.DefaultModel))
 		case "SETUP_SERVER_ENDPOINT":
 			return w.Write([]byte(serverEndpoint))
 		}
@@ -334,4 +428,222 @@ func (h *APIHandler) initializeTemplate(userID string, dslTplFile string, indexP
 
 	_, err, _ = replay.ReplayLines(req, res, pipeline.AcquireContext(pipeline.PipelineConfigV2{}), lines, parts[0], parts[1], username, password)
 	return err
+}
+
+// applySetupDefaultModels sets the server's default language/vision/embedding
+// models.
+//
+// Detailed procedures: for each provided selection the function:
+//
+//  1. Resolves the model provider — either an existing one (builtin or
+//     previously created, identified by ModelProvider.ID) or a brand-new
+//     custom provider (described by ModelProvider's other fields).
+//
+//  2. For an existing provider, updates the API key and, if the caller also
+//     supplies a model definition (Model field), upserts that model into the
+//     provider's model list with the correct LLM type and SupportReasoning
+//     flag. Alternatively the caller may reference an already-registered
+//     model on the provider by name (ModelID field) without touching the
+//     model list.
+//
+//  3. For a new custom provider, creates the provider and registers the
+//     supplied model definition as its first entry.
+//
+//  4. Records a ModelId{ProviderID, ModelName} in info.DefaultModel so the
+//     settings persistence layer picks it up.
+//
+// Skipped silently when input has no model selections at all.
+func (h *APIHandler) applySetupDefaultModels(req *http.Request, input *SetupDefaultModelConfig, info *core.Config) error {
+	if input.LanguageModel == nil && input.VisionModel == nil && input.EmbeddingModel == nil {
+		return nil
+	}
+
+	ctx := orm.NewContextWithParent(req.Context())
+	ctx.Refresh = orm.WaitForRefresh
+
+	resolve := func(m *SetupModelConfig, llmType core.LLMType) (*core.ModelId, error) {
+		if m == nil {
+			return nil, nil
+		}
+		providerID, modelName, err := ensureSetupModelProvider(ctx, m, llmType)
+		if err != nil {
+			return nil, err
+		}
+		return &core.ModelId{ProviderID: providerID, ID: modelName}, nil
+	}
+
+	languageRef, err := resolve(input.LanguageModel, core.LLMTypeLanguage)
+	if err != nil {
+		return fmt.Errorf("apply language model: %w", err)
+	}
+	visionRef, err := resolve(input.VisionModel, core.LLMTypeVision)
+	if err != nil {
+		return fmt.Errorf("apply vision model: %w", err)
+	}
+	embeddingRef, err := resolve(input.EmbeddingModel, core.LLMTypeEmbedding)
+	if err != nil {
+		return fmt.Errorf("apply embedding model: %w", err)
+	}
+
+	if info.DefaultModel == nil {
+		info.DefaultModel = &core.DefaultModel{}
+	}
+	if languageRef != nil {
+		info.DefaultModel.LanguageModel = languageRef
+	}
+	if visionRef != nil {
+		info.DefaultModel.VisionModel = visionRef
+	}
+	if embeddingRef != nil {
+		info.DefaultModel.EmbeddingModel = embeddingRef
+	}
+	return nil
+}
+
+// validateDefaultModelConfig validates the default-model setup payload. Rules:
+//  1. Exactly one of model_id or model must be set per selection.
+//  2. When model is set, model.id is required.
+//  3. support_reasoning is only valid on language model selections; it is
+//     rejected for vision and embedding models.
+//  4. A custom provider (ModelProvider.ID is empty) must use the model field
+//     to define a new model — model_id is not allowed because there are no
+//     pre-registered models to reference on a provider that does not exist yet.
+//  5. When multiple selections reference the same builtin provider (matched by
+//     ModelProvider.ID), they must all carry the same api_token.
+func validateDefaultModelConfig(input *SetupDefaultModelConfig) error {
+	type roleEntry struct {
+		name   string
+		cfg    *SetupModelConfig
+		isLang bool
+	}
+	roles := []roleEntry{
+		{"language_model", input.LanguageModel, true},
+		{"vision_model", input.VisionModel, false},
+		{"embedding_model", input.EmbeddingModel, false},
+	}
+
+	type seenProvider struct {
+		role  string
+		token string
+	}
+	seenProviders := map[string]seenProvider{}
+
+	for _, r := range roles {
+		if r.cfg == nil {
+			continue
+		}
+		hasID := r.cfg.ModelID != ""
+		hasModel := r.cfg.Model != nil
+
+		// Rule 1
+		if hasID == hasModel {
+			return fmt.Errorf("%s: exactly one of model_id or model must be set", r.name)
+		}
+		if hasModel {
+			// Rule 2
+			if r.cfg.Model.ID == "" {
+				return fmt.Errorf("%s: model.id is required", r.name)
+			}
+			// Rule 3
+			if !r.isLang && r.cfg.Model.SupportReasoning {
+				return fmt.Errorf("%s: support_reasoning is only valid for language models", r.name)
+			}
+		}
+		// Rule 4
+		if r.cfg.ModelProvider.ID == "" && hasID {
+			return fmt.Errorf("%s: model_id cannot be used with a custom provider; use model instead", r.name)
+		}
+		// Rule 5
+		if pid := r.cfg.ModelProvider.ID; pid != "" {
+			if prev, ok := seenProviders[pid]; ok {
+				if prev.token != r.cfg.APIToken {
+					return fmt.Errorf(
+						"conflicting api_token for the same model provider used by %s and %s",
+						prev.role, r.name,
+					)
+				}
+			} else {
+				seenProviders[pid] = seenProvider{role: r.name, token: r.cfg.APIToken}
+			}
+		}
+	}
+	return nil
+}
+
+// ensureSetupModelProvider creates or updates the underlying model provider for
+// a single setup-wizard model selection and returns (providerID, modelName).
+// llmType identifies the role the selection plays so that any newly added
+// model carries the correct Type when written to ES.
+func ensureSetupModelProvider(ctx *orm.Context, m *SetupModelConfig, llmType core.LLMType) (string, string, error) {
+	sp := m.ModelProvider
+
+	modelName := m.ModelID
+	if m.Model != nil {
+		modelName = m.Model.ID
+	}
+
+	// Existing provider (builtin or previously created): update API key,
+	// optionally appending a freshly defined model.
+	if sp.ID != "" {
+		provider := core.ModelProvider{}
+		provider.ID = sp.ID
+		exists, err := orm.GetV2(ctx, &provider)
+		if err != nil {
+			return "", "", err
+		}
+		if !exists {
+			return "", "", fmt.Errorf("model provider [%s] not found", sp.ID)
+		}
+		provider.APIKey = m.APIToken
+		provider.Enabled = true
+		if m.Model != nil {
+			upsertProviderModel(&provider, *m.Model, llmType)
+		}
+		if err := orm.Update(ctx, &provider); err != nil {
+			return "", "", err
+		}
+		common.GeneralObjectCache.Delete(common.ModelProviderCachePrimary, provider.ID)
+		return provider.ID, modelName, nil
+	}
+
+	// Custom provider: create a new one with the selected model registered.
+	provider := &core.ModelProvider{
+		Name:        sp.Name,
+		Description: sp.Description,
+		Icon:        sp.Icon,
+		BaseURL:     sp.BaseURL,
+		APIType:     sp.APIType,
+		APIKey:      m.APIToken,
+		Enabled:     true,
+		Builtin:     false,
+	}
+	provider.Models = []core.Model{newProviderModel(modelName, m.Model, llmType)}
+	if err := orm.Create(ctx, provider); err != nil {
+		return "", "", err
+	}
+	return provider.ID, modelName, nil
+}
+
+// newProviderModel builds a Model for an ES write, carrying the role's
+// LLM type and (when provided) the SupportReasoning flag.
+func newProviderModel(name string, def *SetupModelDef, llmType core.LLMType) core.Model {
+	m := core.Model{Name: name, Type: llmType}
+	if def != nil {
+		m.SupportReasoning = def.SupportReasoning
+	}
+	return m
+}
+
+// upsertProviderModel adds the freshly-defined model to provider.Models, or
+// updates the matching entry in place when one with the same name already
+// exists.
+func upsertProviderModel(provider *core.ModelProvider, def SetupModelDef, llmType core.LLMType) {
+	for i := range provider.Models {
+		if provider.Models[i].Name == def.ID {
+			provider.Models[i].Type = llmType
+			provider.Models[i].SupportReasoning = def.SupportReasoning
+			return
+		}
+	}
+	provider.Models = append(provider.Models, newProviderModel(def.ID, &def, llmType))
 }

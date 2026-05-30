@@ -5,8 +5,9 @@
 package llm
 
 import (
-	"infini.sh/coco/core"
 	"net/http"
+
+	"infini.sh/coco/core"
 
 	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
@@ -19,6 +20,11 @@ func (h *APIHandler) create(w http.ResponseWriter, req *http.Request, ps httprou
 	err := h.DecodeJSON(req, obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if err := obj.ValidateModels(); err != nil {
+		h.WriteError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -71,6 +77,11 @@ func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprou
 	err = h.DecodeJSON(req, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if err := obj.ValidateModels(); err != nil {
+		h.WriteError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 

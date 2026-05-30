@@ -2,6 +2,7 @@ package tools
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	log "github.com/cihub/seelog"
@@ -10,6 +11,7 @@ import (
 	common2 "infini.sh/coco/modules/assistant/common"
 	"infini.sh/coco/modules/assistant/langchain"
 	"infini.sh/coco/modules/common"
+	llmmodule "infini.sh/coco/modules/llm"
 	"infini.sh/framework/core/util"
 )
 
@@ -49,9 +51,18 @@ func PickingDocuments(ctx context.Context, reqMsg, replyMsg *core.ChatMessage,
 	log.Debug("start filtering documents")
 	var pickedDocsBuffer = strings.Builder{}
 	var chunkSeq = 0
-	//llm := langchain.GetLLM(params.pickingDocProvider.BaseURL, params.pickingDocProvider.APIType, params.pickingDocModel.Name, params.pickingDocProvider.APIKey, params.AssistantCfg.Keepalive)
 
-	llm, err := langchain.SimplyGetLLM(params.AssistantCfg.DeepThinkConfig.PickingDocModel.ProviderID, params.AssistantCfg.DeepThinkConfig.PickingDocModel.Name, "")
+	// Resolve the picking-doc model: assistant override -> settings default
+	// -> settings language model.
+	resolvedPick := llmmodule.ResolveAssistantModel(core.AssistantModelUsePickingDoc, &core.ModelId{
+		ProviderID: params.AssistantCfg.DeepThinkConfig.PickingDocModel.ProviderID,
+		ID:         params.AssistantCfg.DeepThinkConfig.PickingDocModel.Name,
+	})
+	if resolvedPick == nil {
+		return nil, fmt.Errorf("no picking-doc model configured and no default in settings")
+	}
+
+	llm, err := langchain.SimplyGetLLM(resolvedPick.ProviderID, resolvedPick.ID, "")
 	if err != nil {
 		panic(err)
 	}

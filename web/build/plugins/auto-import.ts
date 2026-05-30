@@ -24,6 +24,9 @@ export function setupAutoImport(viteEnv: Env.ImportMeta) {
 function autoImportAntd(componentName: string) {
   const pattern = /^A[A-Z]/;
   if (pattern.test(componentName)) {
+    if (componentName.includes('_') || componentName.length <= 3) {
+      return null;
+    }
     return { from: 'antd', name: componentName.slice(1) };
   }
   return null;

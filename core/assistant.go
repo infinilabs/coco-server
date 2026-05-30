@@ -12,9 +12,23 @@ import (
 	"golang.org/x/text/language"
 )
 
+// AssistantModelUse identifies a place in the assistant chat flow that needs
+// an LLM. Each value maps to a default model in Settings.DefaultModel; if that
+// is not configured, callers fall back to Settings.DefaultModel.LanguageModel.
+//
+// Unlike LLMType (which categorizes a model itself: language / vision /
+// embedding), AssistantModelUse describes a *use case* within the chat flow.
+type AssistantModelUse int
+
+const (
+	AssistantModelUseAnswering AssistantModelUse = iota
+	AssistantModelUseIntentAnalysis
+	AssistantModelUsePickingDoc
+	AssistantModelUsePickingTool
+)
+
 type Assistant struct {
 	CombinedFullText
-
 	Name           string           `json:"name" elastic_mapping:"name:{type:keyword,copy_to:combined_fulltext,fields:{text: {type: text}, pinyin: {type: text, analyzer: pinyin_analyzer}}}"`
 	Description    string           `json:"description" elastic_mapping:"description:{type:text,copy_to:combined_fulltext}"`
 	Icon           string           `json:"icon" elastic_mapping:"icon:{enabled:false}"`
@@ -159,9 +173,20 @@ type BuiltinToolsConfig struct {
 	Scraper    bool `json:"scraper"`
 }
 
+// ModelConfig is a runtime reference to a model, specifying which model to use
+// and how to use it. This is stored in assistant configurations.
+//
+// This is distinct from Model (in llm_provider.go), which describes a model's
+// static, immutable capabilities. ModelConfig references a Model by ProviderID
+// and Name, and adds runtime settings that control inference behavior.
 type ModelConfig struct {
-	ProviderID   string        `json:"provider_id,omitempty"`
-	Name         string        `json:"name"`
+	// --- Reference fields: identify the model ---
+
+	ProviderID string `json:"provider_id"` // references the ModelProvider
+	Name       string `json:"name"`        // references Model.Name within the provider
+
+	// --- Runtime fields: per-invocation behavior ---
+
 	Settings     ModelSettings `json:"settings"`
 	PromptConfig *PromptConfig `json:"prompt,omitempty"`
 	Keepalive    string        `json:"keepalive"`
@@ -173,6 +198,10 @@ type PromptConfig struct {
 }
 
 type ModelSettings struct {
+	// Reasoning controls whether reasoning mode is requested at inference time.
+	// This field is only meaningful when the model's SupportReasoning is true;
+	// if SupportReasoning is false, the backend will not read or act on this
+	// field even if it is set to true.
 	Reasoning        bool    `json:"reasoning"`
 	Temperature      float64 `json:"temperature"`
 	TopP             float64 `json:"top_p"`

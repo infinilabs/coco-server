@@ -14,7 +14,8 @@ import InfiniIcon from '@/components/common/icon';
 import useQueryParams from '@/hooks/common/queryParams';
 import { deleteModelProvider, searchModelPovider, updateModelProvider } from '@/service/api/model-provider';
 import { formatESSearchResult } from '@/service/request/es';
-import { getServer } from '@/store/slice/server';
+import { getApplicationSetting, getServer } from '@/store/slice/server';
+import { isStoreEnabled } from '@/layouts/modules/global-header/components/Shop';
 
 export function Component() {
   const type = 'table';
@@ -39,6 +40,7 @@ export function Component() {
   });
   const [loading, setLoading] = useState(false);
   const [keyword, setKeyword] = useState();
+  const applicationSetting = useAppSelector(getApplicationSetting);
 
   const { hasAuth } = useAuth();
 
@@ -349,7 +351,7 @@ export function Component() {
     getCheckboxProps: record => ({
       name: record.name
     }),
-    onChange: (selectedRowKeys: React.Key[], selectedRows) => {}
+    onChange: (selectedRowKeys: React.Key[], selectedRows) => { }
   };
 
   const integratedStoreModalRef = useRef<IntegratedStoreModalRef>(null);
@@ -373,7 +375,13 @@ export function Component() {
             <Button
               icon={<PlusOutlined />}
               type='primary'
-              onClick={() => integratedStoreModalRef.current?.open('model-provider')}
+              onClick={() => {
+                if (isStoreEnabled(applicationSetting)) {
+                  integratedStoreModalRef.current?.open('model-provider')
+                } else {
+                  nav('/model-provider/new');
+                }
+              }}
             >
               {t('common.add')}
             </Button>
@@ -498,7 +506,7 @@ export function Component() {
   );
 }
 
-const APIKeyComponent = ({ record = {}, onOkClick = () => {}, open = false, onCancelClick = () => {} }) => {
+const APIKeyComponent = ({ record = {}, onOkClick = () => { }, open = false, onCancelClick = () => { } }) => {
   const { t } = useTranslation();
   const [form] = Form.useForm();
   useEffect(() => {

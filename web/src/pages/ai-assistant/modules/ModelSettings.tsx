@@ -1,6 +1,7 @@
 import { Form, Input, InputNumber, Modal, Switch } from 'antd';
 
 interface ModelSettingsProps {
+  readonly model?: any;
   readonly value?: any;
   readonly onChange?: (value: any) => void;
 }
@@ -49,10 +50,22 @@ const PARAMETERS = [
         step={0.1}
       />
     )
-  }
+  },
+  // {
+  //   key: 'reasoning',
+  //   isSupport: (model: any) => {
+  //     return model?.['support_reasoning'];
+  //   },
+  //   input: (props: any) => (
+  //     <Switch
+  //       {...props}
+  //     />
+  //   )
+  // }
 ];
 
 export default (props: ModelSettingsProps) => {
+  const { model } = props;
   const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
   const onClose = () => {
@@ -97,27 +110,32 @@ export default (props: ModelSettingsProps) => {
           <div className='ant-modal-header'>
             <div className='ant-modal-title'>{t('page.assistant.labels.model_settings')}</div>
           </div>
-          {PARAMETERS.map(item => (
-            <div
-              className='mb-8px flex items-center justify-between'
-              key={item.key}
-            >
-              <div className='[flex:1]'>
-                <div className='mb-5px color-[var(--ant-form-label-color)]'>
-                  {t(`page.assistant.labels.${item.key}`)}
+          {PARAMETERS.map(item => {
+            if (item.isSupport && !item.isSupport(model)) {
+              return null;
+            }
+            return (
+              <div
+                className='mb-8px flex items-center justify-between'
+                key={item.key}
+              >
+                <div className='[flex:1]'>
+                  <div className='mb-5px color-[var(--ant-form-label-color)]'>
+                    {t(`page.assistant.labels.${item.key}`)}
+                  </div>
+                  <div className='mb-10px text-[12px] text-gray-400'>{t(`page.assistant.labels.${item.key}_desc`)}</div>
                 </div>
-                <div className='mb-10px text-[12px] text-gray-400'>{t(`page.assistant.labels.${item.key}_desc`)}</div>
+                <div>
+                  <Form.Item
+                    label=''
+                    name={['settings', item.key]}
+                  >
+                    <item.input />
+                  </Form.Item>
+                </div>
               </div>
-              <div>
-                <Form.Item
-                  label=''
-                  name={['settings', item.key]}
-                >
-                  <item.input />
-                </Form.Item>
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </Form>
       </Modal>
     </div>

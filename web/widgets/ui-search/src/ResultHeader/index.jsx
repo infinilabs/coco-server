@@ -1,13 +1,62 @@
-import { ListFilter } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 export function ResultHeader(props) {
-  const { hits, isMobile } = props;
+  const {
+    hits, isMobile,
+    hasRecommends,
+    siderCollapse, setSiderCollapse,
+    recommendsCollapse, setRecommendsCollapse,
+    userCollapsedLeft, userCollapsedRight,
+    leftDrawerOpen, setLeftDrawerOpen,
+    rightDrawerOpen, setRightDrawerOpen
+  } = props;
+
+  const { t } = useTranslation();
+
+  const handleLeftToggle = () => {
+    if (isMobile) {
+      setLeftDrawerOpen(!leftDrawerOpen);
+    } else if (siderCollapse && userCollapsedLeft) {
+      // User manually collapsed: re-expand as sider
+      setSiderCollapse(false);
+    } else if (siderCollapse) {
+      // Auto-collapsed (not enough space): use drawer
+      setLeftDrawerOpen(!leftDrawerOpen);
+    } else {
+      // Sider showing: collapse it
+      setSiderCollapse(true);
+    }
+  };
+
+  const handleRightToggle = () => {
+    if (isMobile) {
+      setRightDrawerOpen(!rightDrawerOpen);
+    } else if (recommendsCollapse && userCollapsedRight) {
+      // User manually collapsed: re-expand as sider
+      setRecommendsCollapse(false);
+    } else if (recommendsCollapse) {
+      // Auto-collapsed (not enough space): use drawer
+      setRightDrawerOpen(!rightDrawerOpen);
+    } else {
+      // Sider showing: collapse it
+      setRecommendsCollapse(true);
+    }
+  };
+
+  const showRightToggle = hasRecommends && (isMobile || recommendsCollapse);
+  const LeftToggleIcon = (isMobile || siderCollapse) && !leftDrawerOpen ? PanelRightOpen : PanelLeftOpen;
+  const RightToggleIcon = showRightToggle && !rightDrawerOpen ? PanelLeftOpen : PanelRightOpen;
+
   return (
-    <div className="flex justify-between items-center w-full text-[#999]">
-      <div className="text-12px">
-        Found {hits?.total || 0} records ({hits?.took || 0} millisecond)
+    <div className="flex gap-8px items-center w-full text-[#999]">
+      <LeftToggleIcon className="w-16px h-16px cursor-pointer" onClick={handleLeftToggle} />
+      <div className="text-12px flex-1">
+        {t('labels.resultsWithTime', { count: hits?.total || 0, took: hits?.took || 0 })}
       </div>
-      {isMobile ? <ListFilter className="w-14px h-14px" /> : null}
+      {showRightToggle && (
+        <RightToggleIcon className="w-16px h-16px cursor-pointer" onClick={handleRightToggle} />
+      )}
     </div>
   );
 }

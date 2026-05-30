@@ -4,8 +4,6 @@ interface AssistantModeProps {
 }
 
 export const AssistantMode = (props: AssistantModeProps) => {
-  console.log('AssistantMode props', props);
-
   const { t } = useTranslation();
   const { value, onChange } = props;
   const modes = [

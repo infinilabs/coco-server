@@ -7,9 +7,10 @@ package common
 // Define constants for the various stages
 const (
 	//common
-	ReplyStart = "reply_start"
-	Response   = "response" //formal response by assistant
-	ReplyEnd   = "reply_end"
+	ReplyStart        = "reply_start"
+	Response          = "response" //formal response by assistant
+	ReplyEnd          = "reply_end"
+	AttachmentWaiting = "attachment_waiting" //heartbeat chunk emitted while waiting for attachment processing to finish
 
 	//deep think related
 	QueryIntent  = "query_intent"

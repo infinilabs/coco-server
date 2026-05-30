@@ -54,7 +54,7 @@ export const Preview = memo(props => {
     <>
       <span onClick={showModal}>{children}</span>
       <Modal
-        destroyOnClose
+        destroyOnHidden
         closeIcon={null}
         focusTriggerAfterClose={false}
         footer={null}
@@ -64,6 +64,9 @@ export const Preview = memo(props => {
         wrapClassName="full-screen-modal"
         onCancel={handleCancel}
         onOk={handleOk}
+        classNames={{
+          container: 'h-100vh'
+        }}
       >
         <Button
           className="absolute right-12px top-12px"

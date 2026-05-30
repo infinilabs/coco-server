@@ -16,6 +16,7 @@ import (
 	deep_research2 "infini.sh/coco/modules/assistant/deep_research_v2"
 	"infini.sh/coco/modules/assistant/deep_search"
 	"infini.sh/coco/modules/assistant/tools"
+	attachmentmod "infini.sh/coco/modules/attachment"
 
 	log "github.com/cihub/seelog"
 	"github.com/tmc/langchaingo/llms"
@@ -106,6 +107,14 @@ func ProcessMessageAsync(ctx context.Context, userID string, reqMsg, replyMsg *c
 	// Prepare input values
 	if params.InputValues == nil {
 		params.InputValues = map[string]any{}
+	}
+
+	// Wait for any attachments referenced by this request to finish their
+	// initial parsing before invoking the LLM. The stream stays open during
+	// the wait; the client remains in "thinking" state until either the
+	// attachments are ready or the wait fails/times out.
+	if err = waitAndAttachAttachments(ctx, reqMsg, params, sender); err != nil {
+		return err
 	}
 
 	params.InputValues["query"] = reqMsg.Message
@@ -215,4 +224,89 @@ func FetchSessionHistory(ctx context.Context, reqMsg *core.ChatMessage, size int
 	historyStr.WriteString("</conversation>")
 
 	return chatHistory, historyStr.String(), nil
+}
+
+// attachmentWaitTimeout bounds how long ProcessMessageAsync will block waiting
+// for attachment initial-parsing to complete before failing the chat. The
+// outer HTTP context (e.g. sendChatMessageV2) currently uses a 5 minute total
+// budget; keeping the wait well below that leaves room for the actual LLM call.
+const attachmentWaitTimeout = 90 * time.Second
+
+// attachmentWaitHeartbeat controls how frequently a keepalive chunk is emitted
+// while waiting. This is the cap of the underlying polling backoff so the UI
+// receives a steady-but-not-noisy progress signal.
+const attachmentWaitHeartbeat = 5 * time.Second
+
+// waitAndAttachAttachments blocks until every attachment referenced by reqMsg
+// reaches a terminal initial_parsing state. On success it stores the loaded
+// attachments into params.InputValues["attachments"] so downstream prompt
+// assembly can inject their text.
+//
+// Behavior:
+//   - empty / missing attachment list: no-op.
+//   - all referenced attachments missing-or-deleted: skip wait, no-op.
+//   - any attachment in failed/canceled state: surface a system error chunk
+//     and abort the chat without calling the LLM.
+//   - context canceled (e.g. client disconnect): propagate the cancellation;
+//     finalize will not emit additional chunks on a broken stream.
+//   - wait timeout: surface a timeout system chunk and abort the chat.
+func waitAndAttachAttachments(ctx context.Context, reqMsg *core.ChatMessage, params *common2.RAGContext, sender core.MessageSender) error {
+	if reqMsg == nil || len(reqMsg.Attachments) == 0 {
+		return nil
+	}
+
+	// Filter out deleted / missing attachments up front so we don't block on
+	// IDs that will never have stats written for them.
+	live := attachmentmod.LoadAttachmentsForChat(reqMsg.Attachments)
+	if len(live) == 0 {
+		log.Debugf("attachment wait: no live attachments to wait for in session [%s]", params.SessionID)
+		return nil
+	}
+	liveIDs := make([]string, 0, len(live))
+	for _, a := range live {
+		if a != nil {
+			liveIDs = append(liveIDs, a.ID)
+		}
+	}
+
+	heartbeat := func(pending []string) {
+		// The chunk content is informational; the main signal is its arrival,
+		// which keeps reverse proxies from idling out the chunked response.
+		_ = sender.SendChunkMessage(core.MessageTypeSystem,
+			common.AttachmentWaiting,
+			fmt.Sprintf("waiting for %d attachment(s) to finish processing", len(pending)),
+			0,
+		)
+	}
+
+	failedIDs, waitErr := attachmentmod.WaitForAttachmentsCompletion(ctx, liveIDs, attachmentWaitTimeout, heartbeat)
+	if waitErr != nil {
+		if ctx.Err() != nil {
+			// Outer context canceled (client disconnect / explicit stop): just
+			// propagate so the caller's finalize flow can run.
+			return ctx.Err()
+		}
+		// Wait-scoped timeout.
+		msg := fmt.Sprintf("attachment processing timed out after %s", attachmentWaitTimeout)
+		_ = sender.SendChunkMessage(core.MessageTypeSystem, common.Response, msg, 0)
+		return fmt.Errorf("%s", msg)
+	}
+	if len(failedIDs) > 0 {
+		msg := fmt.Sprintf("attachment processing failed for: %s", strings.Join(failedIDs, ", "))
+		_ = sender.SendChunkMessage(core.MessageTypeSystem, common.Response, msg, 0)
+		return fmt.Errorf("%s", msg)
+	}
+
+	// Re-read metadata so that Attachment.Text reflects whatever the processor
+	// wrote during the wait. The underlying store is eventually consistent;
+	// a missing Text at this point is not an error, the prompt formatter will
+	// substitute a placeholder.
+	refreshed := attachmentmod.LoadAttachmentsForChat(liveIDs)
+	if len(refreshed) == 0 {
+		// Attachments disappeared (deleted between wait start and now): fall
+		// back to whatever we loaded up front rather than failing the chat.
+		refreshed = live
+	}
+	params.InputValues["attachments"] = refreshed
+	return nil
 }

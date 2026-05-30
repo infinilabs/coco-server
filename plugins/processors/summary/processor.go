@@ -17,6 +17,7 @@ import (
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/assistant/langchain"
 	"infini.sh/coco/modules/common"
+	llmmodule "infini.sh/coco/modules/llm"
 	utils "infini.sh/coco/plugins/processors"
 	"infini.sh/framework/core/config"
 	"infini.sh/framework/core/errors"
@@ -67,6 +68,11 @@ func New(c *config.Config) (pipeline.Processor, error) {
 		return nil, fmt.Errorf("failed to unpack the configuration of %s processor: %s", ProcessorName, err)
 	}
 
+	if cfg.LLMGenerationLang == "" {
+		if appCfg := common.AppConfig(); appCfg.DocumentProcessing != nil && appCfg.DocumentProcessing.LLMGenerationLanguage != "" {
+			cfg.LLMGenerationLang = appCfg.DocumentProcessing.LLMGenerationLanguage
+		}
+	}
 	cfg.LLMGenerationLang = utils.ValidateAndNormalizeLLMLang(ProcessorName, cfg.LLMGenerationLang)
 
 	/*
@@ -76,15 +82,9 @@ func New(c *config.Config) (pipeline.Processor, error) {
 		cfg.MessageField = core.PipelineContextDocuments
 	}
 
-	if cfg.ModelProviderID == "" {
-		panic("model_provider can't be empty")
-	}
-	if cfg.ModelName == "" {
-		panic("model can't be empty")
-	}
 	// This is rare, or unreachable in reality. Even small local LLMs have
 	// context of 8k tokens.
-	if cfg.ModelContextLength < MinimumModelContextLength {
+	if cfg.ModelContextLength > 0 && cfg.ModelContextLength < MinimumModelContextLength {
 		panic("Model's context length is too low")
 	}
 
@@ -108,11 +108,15 @@ func (processor *DocumentSummarizationProcessor) Process(ctx *pipeline.Context) 
 	obj := ctx.Get(processor.config.MessageField)
 
 	if obj == nil {
-		log.Warnf("processor [] receives an empty pipeline context", processor.Name())
+		log.Warnf("processor [%s] receives an empty pipeline context", processor.Name())
 		return nil
 	}
 
-	messages := obj.([]queue.Message)
+	messages, ok := obj.([]queue.Message)
+	if !ok {
+		log.Warnf("processor [%s] context value is not []queue.Message", processor.Name())
+		return nil
+	}
 	if global.Env().IsDebug {
 		log.Tracef("get %v messages from context", len(messages))
 	}
@@ -121,13 +125,18 @@ func (processor *DocumentSummarizationProcessor) Process(ctx *pipeline.Context) 
 		return nil
 	}
 
-	provider, err := common.GetModelProvider(processor.config.ModelProviderID)
+	modelId := llmmodule.ResolveModel(core.LLMTypeLanguage, &core.ModelId{ProviderID: processor.config.ModelProviderID, ID: processor.config.ModelName})
+	if modelId == nil {
+		return fmt.Errorf("[%s] no language model configured: set model_provider/model in pipeline config or configure a default language model in settings", processor.Name())
+	}
+	provider, err := common.GetModelProvider(modelId.ProviderID)
 	if err != nil {
 		log.Error("failed to get model provider:", err)
 		return err
 	}
 
-	llm := langchain.GetLLM(provider.BaseURL, provider.APIType, processor.config.ModelName, provider.APIKey, "")
+	modelName := modelId.ID
+	llm := langchain.GetLLM(provider.BaseURL, provider.APIType, modelName, provider.APIKey, "")
 	llmCtx, cancelFunc := context.WithCancel(ctx.Context)
 	defer cancelFunc()
 

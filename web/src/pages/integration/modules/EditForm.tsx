@@ -62,8 +62,6 @@ export const EditForm = memo(props => {
     light: undefined
   });
 
-  const [widgetsLogo, setWidgetsLogo] = useState([]);
-
   const {
     data: result,
     loading: dataSourceLoading,
@@ -97,7 +95,7 @@ export const EditForm = memo(props => {
     const { search = {}, ai_chat = {} } = enabled_module;
     const { datasource = [] } = search;
     const { assistants = [] } = ai_chat;
-    const { ai_overview = {}, ai_widgets = {} } = payload;
+    const { ai_overview = {} } = payload;
     const formatGuest = {
       ...guest,
       run_as: guest.enabled && guest.run_as?.id ? guest.run_as?.id : undefined
@@ -122,18 +120,6 @@ export const EditForm = memo(props => {
               logo: {
                 light: aiOverviewLogo?.light
               }
-            },
-            ai_widgets: {
-              ...ai_widgets,
-              widgets: ai_widgets.widgets
-                ? ai_widgets.widgets.map((item, index) => ({
-                  ...item,
-                  assistant: item.assistant?.id,
-                  logo: {
-                    light: widgetsLogo[index]?.light
-                  }
-                }))
-                : []
             },
             logo: {
               light: searchLogos?.light,
@@ -201,9 +187,6 @@ export const EditForm = memo(props => {
     if (type === 'fullscreen') {
       setSearchLogos(state => ({ ...state, ...(record.payload?.logo || {}) }));
       setAIOverviewLogo(state => ({ ...state, ...(record.payload?.ai_overview?.logo || {}) }));
-      setWidgetsLogo(
-        record.payload?.ai_widgets?.widgets ? record.payload?.ai_widgets?.widgets.map(item => item.logo) : []
-      );
       const initValue = {
         ...record,
         ...commonValues,
@@ -236,20 +219,6 @@ export const EditForm = memo(props => {
               height: 200,
               output: 'markdown'
             },
-          ai_widgets: record.payload?.ai_widgets
-            ? {
-              ...record.payload.ai_widgets,
-              widgets: record.payload?.ai_widgets.widgets
-                ? record.payload?.ai_widgets.widgets.map(item => ({
-                  ...item,
-                  assistant: { id: item.assistant }
-                }))
-                : []
-            }
-            : {
-              enabled: true,
-              widgets: []
-            }
         },
         type: 'fullscreen',
         fullscreen_mode: FULLSCREEN_TYPES.includes(record?.type) ? record?.type : FULLSCREEN_TYPES[0],
@@ -257,7 +226,6 @@ export const EditForm = memo(props => {
       setEnabledList({
         search: true,
         ai_overview: initValue.payload?.ai_overview?.enabled,
-        ai_widgets: initValue.payload?.ai_widgets?.enabled
       });
       form.setFieldsValue(initValue);
     } else {
@@ -350,10 +318,6 @@ export const EditForm = memo(props => {
               title: 'AI Overview',
               height: 200
             },
-            ai_widgets: {
-              enabled: true,
-              widgets: []
-            }
           },
           name: `widget-${generateRandomString(8)}`,
           enabled: true,
@@ -363,7 +327,6 @@ export const EditForm = memo(props => {
         setEnabledList({
           search: true,
           ai_overview: initValue.payload?.ai_overview?.enabled,
-          ai_widgets: initValue.payload?.ai_widgets?.enabled
         });
         form.setFieldsValue(initValue);
       } else {
@@ -486,8 +449,6 @@ export const EditForm = memo(props => {
             setAIOverviewLogo={setAIOverviewLogo}
             setEnabledList={setEnabledList}
             setSearchLogos={setSearchLogos}
-            setWidgetsLogo={setWidgetsLogo}
-            widgetsLogo={widgetsLogo}
           />
         )}
         <Form.Item

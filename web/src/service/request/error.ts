@@ -8,13 +8,13 @@ import { resetStore } from '@/store/slice/auth';
 
 import { handleExpiredRequest, showErrorMsg } from './shared';
 import type { RequestInstanceState } from './type';
-import { getProviderInfo } from '@/store/slice/server';
+import { getApplicationSetting } from '@/store/slice/server';
 import { getRootRouteIfSearch } from '@/store/slice/server/shared';
 
 function handleLogout() {
   const currentPath = window.location.hash.replace('#', '') || '/';
   if (['/search', '/login'].every((item) => !currentPath.startsWith(item))) {
-    const rootRoute = getRootRouteIfSearch(getProviderInfo(store.getState()));
+    const rootRoute = getRootRouteIfSearch(getApplicationSetting(store.getState()));
     if (rootRoute === 'search' && currentPath === '/') {
       window.location.href = `#/search`;
     } else {

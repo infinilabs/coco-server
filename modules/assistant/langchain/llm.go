@@ -104,67 +104,24 @@ func GetLLM(endpoint, apiType, model, token string, keepalive string) llms.Model
 }
 
 func GetTemperature(model *core.ModelConfig, defaultValue float64) float64 {
-	temperature := 0.0
 	if model.Settings.Temperature > 0 {
-		temperature = model.Settings.Temperature
+		return model.Settings.Temperature
 	}
-	if temperature == 0 {
-		modelProvider, err := common.GetModelProvider(model.ProviderID)
-		if err != nil {
-			panic(err)
-		}
-		v := modelProvider.GetModelConfig(model.Name)
-		if v != nil {
-			temperature = v.Settings.Temperature
-		}
-	}
-	if temperature == 0 {
-		temperature = defaultValue
-	}
-	return temperature
+	return defaultValue
 }
 
 func GetMaxLength(model *core.ModelConfig, defaultValue int) int {
-	maxLength := 0
 	if model.Settings.MaxLength > 0 {
-		maxLength = model.Settings.MaxLength
+		return model.Settings.MaxLength
 	}
-	if maxLength == 0 {
-		modelProvider, err := common.GetModelProvider(model.ProviderID)
-		if err != nil {
-			panic(err)
-		}
-		v := modelProvider.GetModelConfig(model.Name)
-		if v != nil {
-			maxLength = v.Settings.MaxLength
-		}
-	}
-	if maxLength == 0 {
-		maxLength = defaultValue
-	}
-	return maxLength
+	return defaultValue
 }
 
 func GetMaxTokens(model *core.ModelConfig, defaultValue int) int {
-	var maxTokens int = 0
 	if model.Settings.MaxTokens > 0 {
-		maxTokens = model.Settings.MaxTokens
+		return model.Settings.MaxTokens
 	}
-	if maxTokens == 0 {
-		modelProvider, err := common.GetModelProvider(model.ProviderID)
-		if err != nil {
-			panic(err)
-		}
-
-		v := modelProvider.GetModelConfig(model.Name)
-		if v != nil {
-			maxTokens = v.Settings.MaxTokens
-		}
-	}
-	if maxTokens == 0 {
-		maxTokens = defaultValue
-	}
-	return maxTokens
+	return defaultValue
 }
 
 func GetLLOptions(model *core.ModelConfig) []llms.CallOption {
@@ -175,5 +132,12 @@ func GetLLOptions(model *core.ModelConfig) []llms.CallOption {
 	options = append(options, llms.WithMaxTokens(maxTokens))
 	//options = append(options, llms.WithMaxLength(maxLength))
 	options = append(options, llms.WithTemperature(temperature))
+	// Check if the model supports reasoning and reasoning is enabled in settings
+	if common.ModelSupportsReasoning(model.ProviderID, model.Name) && model.Settings.Reasoning {
+		options = append(options, llms.WithThinking(&llms.ThinkingConfig{
+			Mode:           llms.ThinkingModeAuto,
+			StreamThinking: true,
+		}))
+	}
 	return options
 }

@@ -4,9 +4,8 @@ import { createModelProvider, getLLMModels } from '@/service/api/model-provider'
 import { getConnectorIcons } from '@/service/api/connector';
 import { MinusCircleOutlined } from '@ant-design/icons';
 import { formatESSearchResult } from '@/service/request/es';
-import ModelSettings from '@/pages/ai-assistant/modules/ModelSettings';
 import { getUUID } from '@/utils/common';
-import { ModalForm, ProFormSelect, ProFormSwitch, ProFormText } from '@ant-design/pro-components';
+import { ModalForm, ProFormSelect, ProFormSwitch } from '@ant-design/pro-components';
 import type { AnyObject } from 'antd/es/_util/type';
 // @ts-ignore
 import { IconSelector } from '../../connector/new/icon_selector';
@@ -144,13 +143,6 @@ export function Component() {
   );
 }
 
-const defaultModelSettings = {
-  temperature: 0.7,
-  top_p: 0.9,
-  presence_penalty: 0,
-  frequency_penalty: 0,
-  max_tokens: 4000
-};
 export const ModelsComponent = ({ value = [], onChange }: any) => {
   const { hasAuth } = useAuth();
 
@@ -341,19 +333,22 @@ export const ModelsComponent = ({ value = [], onChange }: any) => {
           ]}
         />
 
-        <ProFormText
-          initialValue={t('page.modelprovider.options.dialogModel')}
+        <ProFormSelect
+          initialValue='language'
           label={t('page.modelprovider.labels.modelType')}
           name='type'
-          fieldProps={{
-            readOnly: true
-          }}
+          options={[
+            { label: t('page.modelprovider.options.languageModel'), value: 'language' },
+            { label: t('page.modelprovider.options.visionModel'), value: 'vision' },
+            { label: t('page.modelprovider.options.embeddingModel'), value: 'embedding' }
+          ]}
+          rules={[{ required: true }]}
         />
 
         <ProFormSwitch
           initialValue={true}
           label={t('page.modelprovider.labels.inferenceMode')}
-          name={['settings', 'reasoning']}
+          name={['support_reasoning']}
           formItemProps={{
             layout: 'horizontal',
             className: 'mb-0!'

@@ -17,6 +17,59 @@ import (
 	"infini.sh/framework/core/util"
 )
 
+// Hard-coded attachment prompt budget. Mirrors the references truncation
+// pattern (`util.SubString(..., 0, 4096*2)` elsewhere in this file) until a
+// proper ChatSettings.ContextBudget configuration block lands.
+//
+// TODO: move attachmentsSectionMaxChars / perAttachmentMaxChars /
+// maxAttachmentsInPrompt to ChatSettings.ContextBudget alongside references
+// and history, so deployments can tune the prompt budget without a code
+// change.
+const (
+	attachmentsSectionMaxChars = 4096 * 2
+	perAttachmentMaxChars      = 2048
+	maxAttachmentsInPrompt     = 8
+)
+
+// formatAttachmentsSection renders the attachment metadata + extracted text
+// into a single prompt-ready string. It returns an empty string when there
+// is nothing to inject. Truncation is character-based (not token-aware) to
+// stay consistent with how references are clipped.
+func formatAttachmentsSection(value any) string {
+	atts, ok := value.([]*core.Attachment)
+	if !ok || len(atts) == 0 {
+		return ""
+	}
+	if len(atts) > maxAttachmentsInPrompt {
+		atts = atts[:maxAttachmentsInPrompt]
+	}
+	var b strings.Builder
+	for i, a := range atts {
+		if a == nil {
+			continue
+		}
+		name := a.Name
+		if name == "" {
+			name = a.ID
+		}
+		mime := a.MimeType
+		if mime == "" {
+			mime = "unknown"
+		}
+		text := strings.TrimSpace(a.Text)
+		if text == "" {
+			text = "(no extractable text)"
+		} else {
+			text = util.SubString(text, 0, perAttachmentMaxChars)
+		}
+		fmt.Fprintf(&b, "[%d] Name: %s | MimeType: %s\n%s\n\n", i+1, name, mime, text)
+	}
+	if b.Len() == 0 {
+		return ""
+	}
+	return util.SubString(fmt.Sprintf("\nAttachments:\n%s", b.String()), 0, attachmentsSectionMaxChars)
+}
+
 func GenerateResponse(taskCtx context.Context, provider *core.ModelProvider, modelConfig *core.ModelConfig,
 	reqMsg, replyMsg *core.ChatMessage, sessionID string, rolePrompt string,
 	inputValues map[string]any, sender core.MessageSender) error {
@@ -57,7 +110,7 @@ func GenerateResponse(taskCtx context.Context, provider *core.ModelProvider, mod
 
 	options := GetLLOptions(modelConfig)
 
-	if modelConfig.Settings.Reasoning {
+	if common.ModelSupportsReasoning(modelConfig.ProviderID, modelConfig.Name) && modelConfig.Settings.Reasoning {
 		options = append(options, llms.WithStreamingReasoningFunc(func(ctx context.Context, reasoningChunk []byte, chunk []byte) error {
 			log.Trace(string(reasoningChunk), ",", string(chunk))
 			// Use taskCtx here to check for cancellation or other context-specific logic
@@ -131,6 +184,10 @@ func GenerateResponse(taskCtx context.Context, provider *core.ModelProvider, mod
 		contextPrompt += util.SubString(fmt.Sprintf("\nReferences:\n%v\n", v), 0, 4096*2) //TODO
 	}
 
+	if v, ok := inputValues["attachments"]; ok {
+		contextPrompt += formatAttachmentsSection(v)
+	}
+
 	if v, ok := inputValues["tools_output"]; ok {
 		contextPrompt += fmt.Sprintf("\nTools Output:\n%v\n", v)
 	}
@@ -194,7 +251,7 @@ func DirectGenerate(taskCtx context.Context, modelConfig *core.ModelConfig, msgs
 
 	options := GetLLOptions(modelConfig)
 	chunkSeq := 0
-	if modelConfig.Settings.Reasoning {
+	if common.ModelSupportsReasoning(modelConfig.ProviderID, modelConfig.Name) && modelConfig.Settings.Reasoning {
 		options = append(options, llms.WithStreamingReasoningFunc(func(ctx context.Context, reasoningChunk []byte, chunk []byte) error {
 			log.Trace(string(reasoningChunk), ",", string(chunk))
 			// Use taskCtx here to check for cancellation or other context-specific logic
@@ -309,20 +366,21 @@ func GenerateFinalResponse(taskCtx context.Context, reqMsg, replyMsg *core.ChatM
 	chunkSeq := 0
 	var err error
 
-	llm, err := SimplyGetLLM(params.AssistantCfg.AnsweringModel.ProviderID, params.AssistantCfg.AnsweringModel.Name, "")
+	answeringModel := params.MustGetAnsweringModel()
+	llm, err := SimplyGetLLM(answeringModel.ProviderID, answeringModel.Name, "")
 	if err != nil {
 		panic(err)
 	}
 
 	options := []llms.CallOption{}
-	maxTokens := GetMaxTokens(params.MustGetAnsweringModel(), 1024)
-	temperature := GetTemperature(params.MustGetAnsweringModel(), 0.8)
-	maxLength := GetMaxLength(params.MustGetAnsweringModel(), 0)
+	maxTokens := GetMaxTokens(answeringModel, 1024)
+	temperature := GetTemperature(answeringModel, 0.8)
+	maxLength := GetMaxLength(answeringModel, 0)
 	options = append(options, llms.WithMaxTokens(maxTokens))
 	options = append(options, llms.WithMaxLength(maxLength))
 	options = append(options, llms.WithTemperature(temperature))
 
-	if params.MustGetAnsweringModel().Settings.Reasoning {
+	if common.ModelSupportsReasoning(answeringModel.ProviderID, answeringModel.Name) && answeringModel.Settings.Reasoning {
 		options = append(options, llms.WithStreamingReasoningFunc(func(ctx context.Context, reasoningChunk []byte, chunk []byte) error {
 			log.Trace(string(reasoningChunk), ",", string(chunk))
 
@@ -393,6 +451,10 @@ func GenerateFinalResponse(taskCtx context.Context, reqMsg, replyMsg *core.ChatM
 
 		if v, ok := inputValues["references"]; ok {
 			contextPrompt += util.SubString(fmt.Sprintf("\nReferences:\n%v\n", v), 0, 4096*2) //TODO
+		}
+
+		if v, ok := inputValues["attachments"]; ok {
+			contextPrompt += formatAttachmentsSection(v)
 		}
 
 		if v, ok := inputValues["tools_output"]; ok {

@@ -1,6 +1,6 @@
-import { DownOutlined, EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined } from '@ant-design/icons';
+import { CheckCircleFilled, CloseCircleFilled, DownOutlined, EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined } from '@ant-design/icons';
 import type { MenuProps, TableColumnsType, TableProps } from 'antd';
-import { Avatar, Dropdown, Switch, Table, message } from 'antd';
+import { Avatar, Dropdown, Table, message } from 'antd';
 import Search from 'antd/es/input/Search';
 
 import FontIcon from '@/components/common/font_icon';
@@ -361,6 +361,13 @@ const FileManagement = props => {
     //   },
     //   title: t('page.datasource.columns.searchable')
     // },
+    {
+      title: t('common.status'),
+      dataIndex: 'processed',
+      render: (processed: boolean) => {
+        return processed === true ? <CheckCircleFilled className='text-[var(--ant-color-success)]' /> : <CloseCircleFilled className='text-[var(--ant-color-error)]' />
+      }
+    },
     {
       fixed: 'right',
       hidden: !permissions.delete,

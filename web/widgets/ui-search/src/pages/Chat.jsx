@@ -1,0 +1,115 @@
+import {
+  History,
+  Chat as AIChat,
+  AssistantList,
+  ChatInput,
+} from "@infinilabs/ai-chat";
+import { useEffect, useRef, useState } from "react";
+import { useTranslation } from 'react-i18next';
+
+import ChatHeader from "../ChatHeader";
+import ChatLayout from "../Layout/ChatLayout";
+
+export default function Chat({
+  commonProps,
+  language,
+  apiConfig,
+  onBackToSearch,
+  defaultParams,
+}) {
+  const { BaseUrl, Token, endpoint, headers } = apiConfig || {};
+
+  const chatRef = useRef(null);
+  const { t } = useTranslation();
+
+  const [isHistoryOpen, setIsHistoryOpen] = useState(true);
+  const [inputValue, setInputValue] = useState("");
+
+  // continue chat
+  const processedParams = useRef(null);
+  useEffect(() => {
+    if (JSON.stringify(defaultParams) !== JSON.stringify(processedParams.current)) {
+      processedParams.current = defaultParams;
+      if ((!defaultParams?.query || !defaultParams?.query.trim()) && defaultParams?.attachments?.length === 0) {
+        return;
+      }
+      chatRef.current?.init({ 
+        message: defaultParams.query || '',
+        attachments: (defaultParams.attachments || [])
+        .filter((a) => a.status === "uploaded" && a.id)
+        .map((a) => a.id), 
+      });
+    }
+  }, [JSON.stringify(defaultParams)]);
+
+  const onSendMessage = async (params) => {
+    if (chatRef.current) {
+      chatRef.current.init(params);
+    }
+  };
+
+  const handleNewChat = () => {
+    if (chatRef.current) {
+      chatRef.current.clearChat();
+    }
+  };
+
+  return (
+    <ChatLayout
+      {...commonProps}
+      content={
+        <AIChat
+          ref={chatRef}
+          BaseUrl={BaseUrl}
+          formatUrl={(data) => {
+            if (!data.url) return "";
+            if (data.url.startsWith("http")) {
+              return data.url;
+            }
+            return `${BaseUrl}${endpoint}${data.url}`;
+          }}
+          Token={Token}
+          headers={headers}
+          locale={language === "zh-CN" ? "zh" : "en"}
+          t={t}
+        />
+      }
+      input={
+        <ChatInput
+          t={t}
+          locale={language === "zh-CN" ? "zh" : "en"}
+          inputValue={inputValue}
+          onSend={onSendMessage}
+          changeInput={setInputValue}
+          chatPlaceholder={t('labels.inputPlaceholder')}
+        />
+      }
+      sidebarCollapsed={!isHistoryOpen}
+      header={
+        <ChatHeader
+          onNewChat={handleNewChat}
+          onToggleHistory={() => setIsHistoryOpen((open) => !open)}
+          AssistantList={
+            <AssistantList
+              BaseUrl={BaseUrl}
+              Token={Token}
+              headers={headers}
+              locale={language === "zh-CN" ? "zh" : "en"}
+              t={t}
+            />
+          }
+          onBackToSearch={onBackToSearch}
+        />
+      }
+      sidebar={
+        <History
+          BaseUrl={BaseUrl}
+          Token={Token}
+          headers={headers}
+          locale={language === "zh-CN" ? "zh" : "en"}
+          t={t}
+        />
+      }
+    />
+  );
+}

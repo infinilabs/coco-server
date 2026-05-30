@@ -2,7 +2,7 @@ import LangSwitch from '@/components/stateful/LangSwitch';
 import ThemeSchemaSwitch from '@/components/stateful/ThemeSchemaSwitch';
 import DarkModeContainer from '@/components/stateless/common/DarkModeContainer';
 import { GLOBAL_HEADER_MENU_ID } from '@/constants/app';
-import { getProviderInfo } from '@/store/slice/server';
+import { getApplicationSetting } from '@/store/slice/server';
 
 import GlobalBreadcrumb from '../global-breadcrumb';
 import GlobalLogo from '../global-logo';
@@ -49,9 +49,9 @@ const GlobalHeader: FC<Props> = memo(({ isMobile, mode, reverse, siderWidth }) =
 
   const nav = useNavigate();
   const { t } = useTranslation();
-  const providerInfo = useAppSelector(getProviderInfo);
+  const applicationSetting = useAppSelector(getApplicationSetting);
 
-  const { search_settings } = providerInfo || {};
+  const { search_settings } = applicationSetting || {};
 
   return (
     <DarkModeContainer

@@ -6,6 +6,7 @@ import { getLocale } from '@/store/slice/app';
 import { getDarkMode, getThemeSettings } from '@/store/slice/theme';
 
 import Guide from './modules/Guide';
+import { localStg } from '@/utils/storage';
 
 const COLOR_WHITE = '#ffffff';
 
@@ -29,6 +30,10 @@ export function Component() {
   const darkMode = useAppSelector(getDarkMode);
 
   const backgroundImage = locale === 'zh-CN' ? bgZH : bg;
+
+  useEffect(() => {
+    localStg.set('defaultModelGuide', 'true')
+  }, []);
 
   return (
     <div

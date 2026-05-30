@@ -105,7 +105,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       toolList: 'Tool List',
       webSources: 'Network Sources List',
       detectedIntent: 'Detected Intent',
-      matchedDocs: 'Retrieved Documents'
+      matchedDocs: 'Retrieved Documents',
+      modelSelectPlaceholder: 'Use default model'
     },
     mode: {
       deep_think: 'Deep Think',
@@ -358,7 +359,8 @@ const page: App.I18n.Schema['translation']['page'] = {
         tags: 'Tags',
         type: 'Type',
         webhook: 'Webhook',
-        enrichment_pipeline: 'Enrichment Pipeline'
+        enrichment_pipeline: 'Enrichment Pipeline',
+        document_analysis: 'Document Analysis',
       },
       title: '{{connector}} Connection',
       tooltip: {
@@ -504,11 +506,40 @@ const page: App.I18n.Schema['translation']['page'] = {
     }
   },
   guide: {
+    labels: {
+      modelProvider: 'Model Provider',
+      modelProviderName: 'Model Provider Name',
+      model: 'Model',
+      modelID: 'Model ID',
+      apiSecret: 'API Secret',
+      custom: 'Custom',
+      apiType: 'API Type',
+      baseUrl: 'Base URL',
+      tips: 'No default model is set. Built-in AI features will use the default model if no specific model is specified; if not configured, some features may not work properly.',
+      tipsSettings: 'Configure Now',
+      ignoreTips: 'Do not remind again',
+      tipsSuccess: 'All default models have been configured. Start experiencing the full AI capabilities.',
+      tipsSuccessButton: 'OK',
+    },
+    languageModel: {
+      title: 'Language Model',
+      desc: 'Used for core AI capabilities such as conversations, Q&A, and content generation.'
+    },
+    visionModel: {
+      title: 'Vision Model',
+      desc: 'Used for image understanding and analysis, supporting recognition, description generation, and multimodal processing.'
+    },
+    embeddingModel: {
+      title: 'Embedding Model',
+      desc: 'Used to convert content into vectors to support semantic search and similarity matching.'
+    },
     llm: {
-      desc: 'After integrating a large model, you will unlock the AI chat feature, providing intelligent search and an efficient work assistant.',
-      title: 'Connect to a Large Model'
+      desc: 'Choose the default AI model used for core capabilities such as conversations, image understanding, and semantic search. You can change this later in Settings.',
+      title: 'Configure Default Model'
     },
     setupLater: 'Set Up Later',
+    next: 'Next',
+    previous: 'Previous',
     user: {
       desc: 'Set up a new user account to manage access and permissions.',
       email: 'Email',
@@ -520,10 +551,8 @@ const page: App.I18n.Schema['translation']['page'] = {
     skipModal: {
       title: 'Skip setup?',
       hints: {
-        desc: 'If you choose to skip this step, the built-in AI features (e.g., AI assistants) will not be available immediately, as they will be in an unconfigured state without a model.',
-        stepDesc: 'You will need to:',
-        step1: 'Add and manage models in the “LLM Provider” section;',
-        step2: 'Individually configure and select a model for each built-in AI assistant.'
+        desc1: 'No default model is set. If you skip this step, some built-in AI features (e.g., AI Assistant, Document Processing Pipeline) will not function properly until a model is specified.',
+        desc2: 'You can add models later in the "Model Provider" section and set the default model in "System Configuration".',
       }
     }
   },
@@ -691,6 +720,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       confirm: 'Confirm',
       confirmPasswordPlaceholder: 'Please enter password again',
       loginOrRegister: 'Login / Register',
+      login: 'Login',
       loginSuccess: 'Login successfully',
       passwordPlaceholder: 'Please enter password',
       phonePlaceholder: 'Please enter phone number',
@@ -740,10 +770,15 @@ const page: App.I18n.Schema['translation']['page'] = {
       addModel: 'Add Model',
       modelID: 'Model ID',
       modelType: 'Model Type',
-      inferenceMode: 'Inference Mode'
+      inferenceMode: 'Inference Mode',
+      setAsDefaultModel: 'Set as Default Model'
     },
     options: {
-      dialogModel: 'Chat Model'
+      dialogModel: 'Chat Model',
+      chatModel: 'Chat Model',
+      languageModel: 'Language Model',
+      visionModel: 'Vision Model',
+      embeddingModel: 'Embedding Model'
     },
     hints: {
       selectOrInputModel: 'Select or input a model',
@@ -804,6 +839,29 @@ const page: App.I18n.Schema['translation']['page'] = {
         integration: 'Integration'
       },
       title: 'Search Settings'
+    },
+    default_model: {
+      labels: {
+        default_model: 'Default Model',
+        default_model_desc: 'This configuration will be applied as the default value for AI assistants and document processing pipelines that do not have a separately specified model.',
+        ai_assistant: 'AI Assistant',
+        ai_assistant_desc: 'Specify dedicated models for different stages of the AI assistant to optimize performance and cost. If not configured, the language model from the default model will be used.',
+        intent_analysis_model: 'Intent Analysis Model',
+        picking_doc_model: 'Picking Doc Model',
+        picking_tool_model: 'Picking Tool Model',
+        answering_model: 'Answering Model'
+      },
+      title: 'Default Model'
+    },
+    document_processing: {
+      labels: {
+        default_pipeline_for_attachment: 'Chat Attachment',
+        default_pipeline_for_document: 'Data Source Document',
+        output_language: 'Output Language',
+        processing_pipeline: 'Processing Pipeline',
+        output_language_desc: 'Controls the output language of AI-generated content in the pipeline, including summaries, tags, and analysis results.',
+      }, 
+      title: 'Document Processing',
     },
     setupLater: 'Set Up Later'
   },
