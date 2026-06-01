@@ -35,28 +35,28 @@ type Assistant struct {
 	Type        string   `json:"type" elastic_mapping:"type:{type:keyword}"` // assistant type, default value: "simple", possible values: "simple", "deep_think", "external_workflow", "deep_research"
 	Category    string   `json:"category,omitempty" elastic_mapping:"category:{type:keyword}"`
 	Tags        []string `json:"tags,omitempty" elastic_mapping:"tags:{type:keyword}"`
-	// Assistant-specific configuration settings
-	//
-	// * simple:        not used; this field is always nil.
-	// * deep_think:    split between two places — common fields (AnsweringModel,
-	//                  Datasource, ToolsConfig, …) stay on Assistant, while
-	//                  deep-think-specific fields live in DeepThinkConfig.
-	// * deep_research: all configuration is contained entirely in
-	//                  DeepResearchConfig; no fields on Assistant are used.
+	Keepalive      string           `json:"keepalive" elastic_mapping:"keepalive:{type:keyword}"`
+	Enabled        bool             `json:"enabled" elastic_mapping:"enabled:{type:boolean}"`
+	Builtin        bool            `json:"builtin" elastic_mapping:"builtin:{type:boolean}"`          // Whether the model provider is builtin
+	UploadConfig   UploadConfig     `json:"upload,omitempty" elastic_mapping:"upload:{type:object,enabled:false}"`
+
+	// This field contains assistant-specific configuration settings
 	//
 	// After loading, Config is decoded into the corresponding typed field:
 	// DeepThinkConfig or DeepResearchConfig (both tagged json:"-").
 	Config         interface{}      `json:"config,omitempty" elastic_mapping:"config:{enabled:false}"`
+	// used by  simple/deep_think
 	AnsweringModel ModelConfig      `json:"answering_model" elastic_mapping:"answering_model:{type:object,enabled:false}"`
+	// used by simple/deep_think; deep_research uses InternalSearch.DatasourceIDs instead
 	Datasource     DatasourceConfig `json:"datasource" elastic_mapping:"datasource:{type:object,enabled:false}"`
+	// used by simple/deep_think
 	ToolsConfig    ToolsConfig      `json:"tools,omitempty" elastic_mapping:"tools:{type:object,enabled:false}"`
+	// used by simple/deep_think
 	MCPConfig      MCPConfig        `json:"mcp_servers,omitempty" elastic_mapping:"mcp_servers:{type:object,enabled:false}"`
-	UploadConfig   UploadConfig     `json:"upload,omitempty" elastic_mapping:"upload:{type:object,enabled:false}"`
-	Keepalive      string           `json:"keepalive" elastic_mapping:"keepalive:{type:keyword}"`
-	Enabled        bool             `json:"enabled" elastic_mapping:"enabled:{type:boolean}"`
+	// used by simple/deep_think
 	ChatSettings   ChatSettings     `json:"chat_settings" elastic_mapping:"chat_settings:{type:object,enabled:false}"`
-	Builtin        bool             `json:"builtin" elastic_mapping:"builtin:{type:boolean}"`          // Whether the model provider is builtin
-	RolePrompt     string           `json:"role_prompt" elastic_mapping:"role_prompt:{enabled:false}"` // Role prompt for the assistant
+	// used by simple/deep_think (passed as system prompt to GenerateFinalResponse)
+	RolePrompt     string           `json:"role_prompt" elastic_mapping:"role_prompt:{enabled:false}"`
 
 	// DeepThinkConfig and DeepResearchConfig are populated at load time by
 	// decoding Config into the appropriate type (based on Type). They are not
