@@ -66,8 +66,6 @@ func NewSearchToolManager(tavilyAPIKey string, searchEngines []string, maxResult
 		case "wikipedia":
 			wt := wikitool.New(webAgent)
 			sm.wikiTool = &wt
-		case "bing":
-			log.Debug("Bing search engine is not supported, skipping")
 		}
 	}
 

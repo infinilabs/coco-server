@@ -84,7 +84,7 @@ type DeepResearchConfig struct {
 	ReportLang     string `json:"report_lang"`     // Report language as a BCP 47 tag, e.g. "en-US", "zh-CN".
 
 	// Search
-	SearchEngines []string `json:"search_engines"` // Enabled engines: "duckduckgo", "wikipedia", "bing".
+	SearchEngines []string `json:"search_engines"` // Enabled engines: "duckduckgo", "wikipedia"
 
 	// External integrations
 	TavilyAPIKey string `json:"tavily_api_key"` // Tavily API key; enables paid web search when set.

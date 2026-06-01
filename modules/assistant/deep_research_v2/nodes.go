@@ -663,8 +663,9 @@ func (s *State) generateChapterContent(ctx context.Context, llm llms.Model) map[
 	for chapterID, content := range s.ChapterContents {
 		content.Status = "generating"
 
+		i18n := getReportI18n(s.Config.ReportLang)
 		if len(content.Materials) == 0 {
-			content.Content = fmt.Sprintf("# %s\n\n暂无可用的研究素材。", content.Title)
+			content.Content = fmt.Sprintf("# %s\n\n%s", content.Title, i18n.NoMaterials)
 			content.Status = "completed"
 			s.ChapterContents[chapterID] = content
 			continue
@@ -708,7 +709,7 @@ Generate the chapter content directly, do not add explanatory text.`,
 		completion, err := llms.GenerateFromSinglePrompt(ctx, llm, prompt)
 		if err != nil {
 			log.Warnf("Failed to generate chapter content for %s: %v", chapterID, err)
-			content.Content = fmt.Sprintf("# %s\n\n内容生成失败：%v", content.Title, err)
+			content.Content = fmt.Sprintf("# %s\n\n"+i18n.GenerationFailed, content.Title, err)
 			content.Status = "error"
 		} else {
 			completion = strings.TrimSpace(completion)
@@ -803,7 +804,8 @@ func (s *State) generateChapterBasedReport(ctx context.Context, llm llms.Model) 
 	reportBuilder.WriteString(fmt.Sprintf("# %s\n\n", s.Request.Query))
 
 	// Summary section
-	reportBuilder.WriteString("## 摘要\n\n")
+	i18n := getReportI18n(s.Config.ReportLang)
+	reportBuilder.WriteString(fmt.Sprintf("## %s\n\n", i18n.Summary))
 	allKeyPoints := []string{}
 	for _, chapter := range s.ChapterOutline {
 		if content, exists := contents[chapter.ID]; exists {
@@ -819,9 +821,9 @@ func (s *State) generateChapterBasedReport(ctx context.Context, llm llms.Model) 
 		}
 		reportBuilder.WriteString("\n")
 	} else {
-		reportBuilder.WriteString("本研究按照系统性分析方法，对主题进行了深入调研。\n\n")
+		reportBuilder.WriteString(i18n.FallbackIntro + "\n\n")
 	}
-	reportBuilder.WriteString("## 目录\n\n")
+	reportBuilder.WriteString(fmt.Sprintf("## %s\n\n", i18n.TableOfContents))
 	for _, chapter := range s.ChapterOutline {
 		reportBuilder.WriteString(fmt.Sprintf("%d. [%s](#%s)\n", len(s.ChapterOutline), chapter.Title, strings.ToLower(strings.ReplaceAll(chapter.Title, " ", "-"))))
 	}
@@ -880,6 +882,42 @@ func (s *State) generateChapterBasedReport(ctx context.Context, llm llms.Model) 
 	return s, nil
 }
 
+// reportI18n holds UI strings for generated report sections.
+type reportI18n struct {
+	Summary         string
+	TableOfContents string
+	FallbackIntro   string
+	NoMaterials     string
+	GenerationFailed string // printf format — must contain one %v
+}
+
+// getReportI18n returns UI strings for the primary language subtag derived
+// from a BCP 47 tag (e.g. "zh-CN" → "zh"). Defaults to English.
+func getReportI18n(lang string) reportI18n {
+	primary := strings.ToLower(lang)
+	if idx := strings.IndexByte(primary, '-'); idx >= 0 {
+		primary = primary[:idx]
+	}
+	switch primary {
+	case "zh":
+		return reportI18n{
+			Summary:          "摘要",
+			TableOfContents:  "目录",
+			FallbackIntro:    "本研究按照系统性分析方法，对主题进行了深入调研。",
+			NoMaterials:      "暂无可用的研究素材。",
+			GenerationFailed: "内容生成失败：%v",
+		}
+	default:
+		return reportI18n{
+			Summary:          "Summary",
+			TableOfContents:  "Table of Contents",
+			FallbackIntro:    "This research conducted a systematic and in-depth analysis of the topic.",
+			NoMaterials:      "No research materials available.",
+			GenerationFailed: "Content generation failed: %v",
+		}
+	}
+}
+
 // Utility functions
 func containsInt(slice []int, value int) bool {
 	for _, v := range slice {
@@ -927,15 +965,6 @@ func (s *State) GetChapterPreview(ctx context.Context, chapterID string) (*Chapt
 	return nil, fmt.Errorf("chapter %s not found", chapterID)
 }
 
-// getChapterDescription gets chapter description from outline
-func (s *State) getChapterDescription(chapterID string) string {
-	for _, chapter := range s.ChapterOutline {
-		if chapter.ID == chapterID {
-			return chapter.Description
-		}
-	}
-	return ""
-}
 
 // GetAllChaptersPreview returns preview for all chapters
 func (s *State) GetAllChaptersPreview() map[string]*ChapterContent {
