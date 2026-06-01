@@ -80,20 +80,17 @@ func InternalGetAssistant(ctx context.Context, assistantID string) (*core.Assist
 			cfg.IntentAnalysisModel.PromptConfig.PromptTemplate = common.QueryIntentPromptTemplate
 		}
 
-		//assistant.Config = deepThinkCfg
 		assistant.DeepThinkConfig = &cfg
 	case core.AssistantTypeDeepResearch:
 		// Deserialize the config
 		userCfg := core.DeepResearchConfig{}
 		buf := util.MustToJSONBytes(assistant.Config)
 		util.MustFromJSONBytes(buf, &userCfg)
-		// Validate the user config and merge it with default values
+		// Validate the user config
 		if err = userCfg.Validate(); err != nil {
 			return nil, exists, err
 		}
-		cfg := core.MergeDeepResearchConfig(&userCfg, core.DefaultDeepResearchConfig())
-
-		assistant.DeepResearchConfig = cfg
+		assistant.DeepResearchConfig = &userCfg
 	}
 
 	if assistant.RolePrompt == "" {

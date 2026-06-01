@@ -60,25 +60,13 @@ func SearchWithConfig(ctx context.Context, query string, cfg *core.DeepResearchC
 
 	if isInternalFirst {
 		doInternal()
-		if !isContentSufficient(collection, cfg.ResearchDepth) {
-			log.Info("Internal search insufficient, proceeding with external search")
-			doExternal()
-		}
+		doExternal()
 	} else {
 		doExternal()
 		doInternal()
 	}
 
 	collection.evaluateSearchQuality()
-
-	// Fallback: retry external if still insufficient
-	if !isContentSufficient(collection, cfg.ResearchDepth) {
-		if fallback, err := runExternalEngine(ctx, cfg, query); err == nil && len(fallback) > 0 {
-			collection.Results = append(collection.Results, fallback...)
-			log.Infof("External fallback yielded %d results", len(fallback))
-			collection.evaluateSearchQuality()
-		}
-	}
 
 	collection.IsSufficient = isContentSufficient(collection, cfg.ResearchDepth)
 	log.Infof("Search completed. Total results: %d, Sufficient: %t, Confidence: %.2f",

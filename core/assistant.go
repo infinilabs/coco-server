@@ -29,34 +29,34 @@ const (
 
 type Assistant struct {
 	CombinedFullText
-	Name        string   `json:"name" elastic_mapping:"name:{type:keyword,copy_to:combined_fulltext,fields:{text: {type: text}, pinyin: {type: text, analyzer: pinyin_analyzer}}}"`
-	Description string   `json:"description" elastic_mapping:"description:{type:text,copy_to:combined_fulltext}"`
-	Icon        string   `json:"icon" elastic_mapping:"icon:{enabled:false}"`
-	Type        string   `json:"type" elastic_mapping:"type:{type:keyword}"` // assistant type, default value: "simple", possible values: "simple", "deep_think", "external_workflow", "deep_research"
-	Category    string   `json:"category,omitempty" elastic_mapping:"category:{type:keyword}"`
-	Tags        []string `json:"tags,omitempty" elastic_mapping:"tags:{type:keyword}"`
-	// Assistant-specific configuration settings
-	//
-	// * simple:        not used; this field is always nil.
-	// * deep_think:    split between two places — common fields (AnsweringModel,
-	//                  Datasource, ToolsConfig, …) stay on Assistant, while
-	//                  deep-think-specific fields live in DeepThinkConfig.
-	// * deep_research: all configuration is contained entirely in
-	//                  DeepResearchConfig; no fields on Assistant are used.
+	Name         string       `json:"name" elastic_mapping:"name:{type:keyword,copy_to:combined_fulltext,fields:{text: {type: text}, pinyin: {type: text, analyzer: pinyin_analyzer}}}"`
+	Description  string       `json:"description" elastic_mapping:"description:{type:text,copy_to:combined_fulltext}"`
+	Icon         string       `json:"icon" elastic_mapping:"icon:{enabled:false}"`
+	Type         string       `json:"type" elastic_mapping:"type:{type:keyword}"` // assistant type, default value: "simple", possible values: "simple", "deep_think", "external_workflow", "deep_research"
+	Category     string       `json:"category,omitempty" elastic_mapping:"category:{type:keyword}"`
+	Tags         []string     `json:"tags,omitempty" elastic_mapping:"tags:{type:keyword}"`
+	Keepalive    string       `json:"keepalive" elastic_mapping:"keepalive:{type:keyword}"`
+	Enabled      bool         `json:"enabled" elastic_mapping:"enabled:{type:boolean}"`
+	Builtin      bool         `json:"builtin" elastic_mapping:"builtin:{type:boolean}"` // Whether the model provider is builtin
+	UploadConfig UploadConfig `json:"upload,omitempty" elastic_mapping:"upload:{type:object,enabled:false}"`
+
+	// This field contains assistant-specific configuration settings
 	//
 	// After loading, Config is decoded into the corresponding typed field:
 	// DeepThinkConfig or DeepResearchConfig (both tagged json:"-").
-	Config         interface{}      `json:"config,omitempty" elastic_mapping:"config:{enabled:false}"`
-	AnsweringModel ModelConfig      `json:"answering_model" elastic_mapping:"answering_model:{type:object,enabled:false}"`
-	Datasource     DatasourceConfig `json:"datasource" elastic_mapping:"datasource:{type:object,enabled:false}"`
-	ToolsConfig    ToolsConfig      `json:"tools,omitempty" elastic_mapping:"tools:{type:object,enabled:false}"`
-	MCPConfig      MCPConfig        `json:"mcp_servers,omitempty" elastic_mapping:"mcp_servers:{type:object,enabled:false}"`
-	UploadConfig   UploadConfig     `json:"upload,omitempty" elastic_mapping:"upload:{type:object,enabled:false}"`
-	Keepalive      string           `json:"keepalive" elastic_mapping:"keepalive:{type:keyword}"`
-	Enabled        bool             `json:"enabled" elastic_mapping:"enabled:{type:boolean}"`
-	ChatSettings   ChatSettings     `json:"chat_settings" elastic_mapping:"chat_settings:{type:object,enabled:false}"`
-	Builtin        bool             `json:"builtin" elastic_mapping:"builtin:{type:boolean}"`          // Whether the model provider is builtin
-	RolePrompt     string           `json:"role_prompt" elastic_mapping:"role_prompt:{enabled:false}"` // Role prompt for the assistant
+	Config interface{} `json:"config,omitempty" elastic_mapping:"config:{enabled:false}"`
+	// used by  simple/deep_think
+	AnsweringModel ModelConfig `json:"answering_model" elastic_mapping:"answering_model:{type:object,enabled:false}"`
+	// used by simple/deep_think; deep_research uses InternalSearch.DatasourceIDs instead
+	Datasource DatasourceConfig `json:"datasource" elastic_mapping:"datasource:{type:object,enabled:false}"`
+	// used by simple/deep_think
+	ToolsConfig ToolsConfig `json:"tools,omitempty" elastic_mapping:"tools:{type:object,enabled:false}"`
+	// used by simple/deep_think
+	MCPConfig MCPConfig `json:"mcp_servers,omitempty" elastic_mapping:"mcp_servers:{type:object,enabled:false}"`
+	// used by simple/deep_think
+	ChatSettings ChatSettings `json:"chat_settings" elastic_mapping:"chat_settings:{type:object,enabled:false}"`
+	// used by simple/deep_think (passed as system prompt to GenerateFinalResponse)
+	RolePrompt string `json:"role_prompt" elastic_mapping:"role_prompt:{enabled:false}"`
 
 	// DeepThinkConfig and DeepResearchConfig are populated at load time by
 	// decoding Config into the appropriate type (based on Type). They are not
@@ -83,9 +83,8 @@ type DeepResearchInternalSearchConfig struct {
 
 // DeepResearchExternalSearchConfig controls external web search behaviour.
 type DeepResearchExternalSearchConfig struct {
-	Enabled bool   `json:"enabled"`           // Enable external web search.
-	Engine  string `json:"engine"`            // One of: "duckduckgo", "wikipedia", "tavily".
-	APIKey  string `json:"api_key,omitempty"` // Required when Engine is "tavily".
+	Engine string `json:"engine"`            // One of: "duckduckgo", "wikipedia", "tavily"; empty = disabled.
+	APIKey string `json:"api_key,omitempty"` // Required when Engine is "tavily".
 }
 
 type DeepResearchConfig struct {
@@ -230,75 +229,8 @@ func (cfg *MCPConfig) GetIDs() []string {
 	return cfg.IDs
 }
 
-// DefaultDeepResearchConfig returns default deep research configuration
-func DefaultDeepResearchConfig() *DeepResearchConfig {
-	return &DeepResearchConfig{
-		PlanningModel: ModelConfig{
-			ProviderID: "qianwen", // Default provider
-			Name:       "qwq-plus",
-			Settings: ModelSettings{
-				Temperature: 0.7,
-				TopP:        0.95,
-				MaxTokens:   2000,
-			},
-		},
-		ResearchModel: ModelConfig{
-			ProviderID: "qianwen",
-			Name:       "qwq-plus",
-			Settings: ModelSettings{
-				Temperature: 0.6,
-				TopP:        0.9,
-				MaxTokens:   1500,
-			},
-		},
-		SynthesisModel: ModelConfig{
-			ProviderID: "qianwen",
-			Name:       "qwq-plus",
-			Settings: ModelSettings{
-				Temperature: 0.5,
-				TopP:        0.95,
-				MaxTokens:   4000,
-			},
-		},
-		ReportModel: ModelConfig{
-			ProviderID: "qianwen",
-			Name:       "qwq-plus",
-			Settings: ModelSettings{
-				Temperature: 0.7,
-				TopP:        0.9,
-				MaxTokens:   10000,
-			},
-		},
-		MaxSteps:                50,
-		MaxResearcherIterations: 10,
-		MaxResults:              100,
-		Timeout:                 "1h",
-		ResearchDepth:           "comprehensive",
-		IncludeSources:          true,
-		SourceFormat:            "APA",
-		InternalSearch:          DeepResearchInternalSearchConfig{},
-		ExternalSearch:          DeepResearchExternalSearchConfig{Enabled: true, Engine: "duckduckgo"},
-		ReportLang:              "en-US",
-		ReportFormat:            "markdown",
-	}
-}
-
 // Validate validates the deep research configuration
 func (cfg *DeepResearchConfig) Validate() error {
-	// Validate required models
-	if cfg.PlanningModel.Name == "" {
-		return fmt.Errorf("planning model name is required")
-	}
-	if cfg.ResearchModel.Name == "" {
-		return fmt.Errorf("research model name is required")
-	}
-	if cfg.SynthesisModel.Name == "" {
-		return fmt.Errorf("synthesis model name is required")
-	}
-	if cfg.ReportModel.Name == "" {
-		return fmt.Errorf("report model name is required")
-	}
-
 	// Validate report_lang if it is set
 	if cfg.ReportLang != "" {
 		_, err := language.Parse(cfg.ReportLang)
@@ -314,13 +246,8 @@ func (cfg *DeepResearchConfig) Validate() error {
 	if cfg.MaxResults <= 0 {
 		return fmt.Errorf("max_results must be positive")
 	}
-	// At least external search must be enabled
-	if !cfg.ExternalSearch.Enabled {
-		return fmt.Errorf("external_search must be enabled")
-	}
-
-	// Validate external search engine
-	if cfg.ExternalSearch.Enabled {
+	// Validate external search engine if one is configured
+	if cfg.ExternalSearch.Engine != "" {
 		validEngines := []string{"duckduckgo", "wikipedia", "tavily"}
 		if !slices.Contains(validEngines, cfg.ExternalSearch.Engine) {
 			return fmt.Errorf("external_search.engine must be one of: %v", validEngines)
