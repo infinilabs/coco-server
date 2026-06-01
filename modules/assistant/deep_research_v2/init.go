@@ -15,7 +15,7 @@ import (
 	"infini.sh/framework/core/util"
 )
 
-func RunDeepResearchV2(ctx context.Context, query string, config *core.DeepResearchConfig, reqMsg, replyMsg *core.ChatMessage, sender core.MessageSender) error {
+func RunDeepResearchV2(ctx context.Context, query string, config *core.DeepResearchConfig, reqMsg, replyMsg *core.ChatMessage, attachments []*core.Attachment, sender core.MessageSender) error {
 
 	//response
 	reasoningBuffer := strings.Builder{}
@@ -44,8 +44,9 @@ func RunDeepResearchV2(ctx context.Context, query string, config *core.DeepResea
 	}
 
 	initialState := &State{
-		Config: config,
-		Sender: sender,
+		Config:      config,
+		Sender:      sender,
+		Attachments: attachments,
 		Request: Request{
 			Query: query,
 		},

@@ -97,7 +97,8 @@ type State struct {
 	Sender        core.MessageSender       `json:"-"`
 	SearchManager *SearchToolManager       `json:"-"` // Search tool manager
 	//Progress      ResearchProgress         `json:"-"` // Real-time progress tracking
-	StartTime int64 `json:"-"` // Unix timestamp for timing
+	StartTime   int64              `json:"-"` // Unix timestamp for timing
+	Attachments []*core.Attachment `json:"-"` // User-uploaded files; text is injected into the planner prompt.
 }
 
 // NewGraph creates and configures the research agent graph.

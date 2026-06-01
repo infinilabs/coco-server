@@ -139,8 +139,12 @@ func ProcessMessageAsync(ctx context.Context, userID string, reqMsg, replyMsg *c
 		)
 	case core.AssistantTypeDeepResearch:
 		log.Info("start running deep research")
+		var attachments []*core.Attachment
+		if v, ok := params.InputValues["attachments"]; ok {
+			attachments, _ = v.([]*core.Attachment)
+		}
 		err = deep_research2.RunDeepResearchV2(ctx, reqMsg.Message, params.AssistantCfg.DeepResearchConfig, reqMsg,
-			replyMsg,
+			replyMsg, attachments,
 			sender)
 		//err = deep_research.RunDeepResearch(ctx, reqMsg.Message, params.AssistantCfg.DeepResearchConfig, reqMsg,
 		//	replyMsg,
