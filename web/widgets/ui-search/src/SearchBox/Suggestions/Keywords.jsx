@@ -1,6 +1,6 @@
 import { createLucideIcon, MessageCircle, Search } from "lucide-react";
 import ListContainer from "./ListContainer";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useTranslation } from 'react-i18next';
 
 export const SUGGESTION_ACTIONS = "suggestion_actions"
@@ -107,7 +107,9 @@ export default (props) => {
                         newIndex = combinedData.current.length - 1;
                     }
                     setGlobalActiveIndex(newIndex);
-                    onItemSelect(combinedData.current?.[newIndex])
+                    if (newIndex < actionsLength) {
+                        onItemSelect(combinedData.current?.[newIndex]);
+                    }
                     break;
 
                 case 38: 
@@ -117,7 +119,9 @@ export default (props) => {
                         newIndex = 0;
                     }
                     setGlobalActiveIndex(newIndex);
-                    onItemSelect(combinedData.current?.[newIndex])
+                    if (newIndex < actionsLength) {
+                        onItemSelect(combinedData.current?.[newIndex]);
+                    }
                     break;
                 case 13: 
                     if (globalActiveIndex >= 0 && globalActiveIndex < totalItems) {
@@ -162,6 +166,14 @@ export default (props) => {
 
     const useGlobalKeydown = (actions.length > 0 && keywords.length > 0);
 
+    const actionsDefaultActiveIndex = useMemo(() => {
+        if (action_type) {
+            const index = actions.findIndex(item => item.action === action_type);
+            return index >= 0 ? index : 0;
+        }
+        return 0;
+    }, [action_type, actions]);
+
     return (
         <>
             <ListContainer
@@ -172,8 +184,10 @@ export default (props) => {
                 data={actions}
                 useGlobalKeydown={useGlobalKeydown}
                 globalActiveIndex={getLocalActiveIndex(SUGGESTION_ACTIONS)}
+                defaultActiveIndex={actionsDefaultActiveIndex}
                 onGlobalSelect={(localIndex) => {
                     setGlobalActiveIndex(localIndex);
+                    onItemSelect(combinedData.current?.[localIndex]);
                 }}
             />
             <ListContainer
@@ -185,7 +199,8 @@ export default (props) => {
                 useGlobalKeydown={useGlobalKeydown}
                 globalActiveIndex={getLocalActiveIndex(SUGGESTION_KEYWORDS)}
                 onGlobalSelect={(localIndex) => {
-                    setGlobalActiveIndex(actionsLength + localIndex);
+                    const globalIndex = actionsLength + localIndex;
+                    setGlobalActiveIndex(globalIndex);
                 }}
             />
         </>

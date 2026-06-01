@@ -26,7 +26,7 @@ export default (props) => {
     const { t } = useTranslation();
 
     return (
-        <Space size={4} styles={{ item: { lineHeight: 1 } }}>
+        <Space size={4} className="!leading-none">
             <Upload
                 name={'attachments'}
                 multiple
@@ -54,7 +54,7 @@ export default (props) => {
                                     if (!res?.acknowledged || serverIds.length === 0) {
                                         return {
                                             ...a,
-                                            status: "error",
+                                            status: "failed",
                                             error: res?.error?.message || t("search.input.attachment_upload_failed") || "Upload failed",
                                         };
                                     }
@@ -72,6 +72,7 @@ export default (props) => {
                         icon={<Paperclip className="w-16px h-16px" />}
                         type="text"
                         shape="circle"
+                        onMouseDown={(e) => e.preventDefault()}
                     />
                 </Badge>
             </Upload>

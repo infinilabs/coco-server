@@ -24,6 +24,7 @@ const UserAvatar = (props) => {
   return (
     <div className="flex items-center relative text-sm">
       <Popover
+        getPopupContainer={(trigger) => trigger.parentElement}
         content={(
           <div className="p-3">
             <div className="flex items-center justify-between mb-2">

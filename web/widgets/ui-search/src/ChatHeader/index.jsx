@@ -8,7 +8,7 @@ const ChatHeader = (props) => {
   const { t } = useTranslation();
 
   return (
-    <div className="h-full w-full flex items-center justify-between px-4 border-b border-[var(--ant-color-border-secondary)] box-border">
+    <div className="h-full w-full flex items-center justify-between px-4 border-b border-solid border-[var(--ant-color-border-secondary)] box-border">
       <div className="min-w-0 flex items-center gap-2">
         <Button
           icon={<History className="h-4 w-4" />}

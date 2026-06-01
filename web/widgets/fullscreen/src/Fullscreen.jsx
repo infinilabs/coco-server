@@ -4,6 +4,8 @@ import queryString from 'query-string';
 import FullscreenPage from './FullscreenPage';
 import FullscreenModal from './FullscreenModal';
 
+import 'ui-search/css';
+
 const DARK_MODE_MEDIA_QUERY = '(prefers-color-scheme: dark)'
 
 const AGGS_DEFAULT = {
@@ -298,6 +300,30 @@ export default (props) => {
         }
     }
 
+    async function onUpload(files, callback) {
+        try {
+            const formData = new FormData();
+            for (const f of files) {
+                formData.append('files', f, f.name);
+            }
+            const response = await fetch(`${server}/attachment/_upload`, {
+                method: 'POST',
+                headers: apiHeaders,
+                body: formData,
+                credentials: 'include',
+            })
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`)
+            }
+
+            const data = await response.json()
+            callback?.(data)
+        } catch (error) {
+            callback?.()
+        }
+    }
+
     async function getFieldsMeta(fields, callback) {
         if (!Array.isArray(fields) || fields.length === 0) {
             callback?.()
@@ -424,21 +450,16 @@ export default (props) => {
             "endpoint": server,
             "headers": apiHeaders,
         },
-        "getFieldsMeta": (fields, callback) => {
-            getFieldsMeta(fields, callback)
-        },
+        "getFieldsMeta": getFieldsMeta,
         "onLogoClick": () => {
             const currentUrl = new URL(window.location.href)
             currentUrl.search = ''
             history.replaceState(null, '', currentUrl.toString())
         },
-        "getProfile": (callback) => {
-            fetchProfile(callback)
-        },
-        "onLogout": (callback) => {
-            onLogout(callback)
-        },
-        showTopAction: true
+        "getProfile": fetchProfile,
+        "onLogout": onLogout,
+        showTopAction: true,
+        onUpload
     }
     
     if (settings?.type === 'fullscreen' || settings?.type === 'page') {

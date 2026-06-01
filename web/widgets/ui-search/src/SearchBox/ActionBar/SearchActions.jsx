@@ -24,7 +24,7 @@ export default (props) => {
         return (
             <Space size={0}>
                 <Button className="!px-12px rounded-16px !text-#1784FC !bg-[rgba(204,232,250,1)] !border-0 mr-4px">
-                    <Space size={4}>
+                    <Space size={4} className="!leading-none">
                         <Search className="w-16px h-16px" />
                         {t('labels.deepThink')}
                     </Space>
@@ -49,7 +49,7 @@ export default (props) => {
         return (
             <Space size={0}>
                 <Button className="!px-12px rounded-16px !text-#1784FC !bg-[rgba(204,232,250,1)] !border-0 mr-4px">
-                    <Space size={4}>
+                    <Space size={4} className="!leading-none">
                         <Search className="w-16px h-16px" />
                         {t('labels.deepResearch')}
                     </Space>
@@ -97,6 +97,7 @@ export default (props) => {
                     trigger={['click']}
                     placement="bottomLeft"
                     onOpenChange={handleVisibleChange} 
+                    getPopupContainer={(trigger) => trigger.parentElement}
                 >
                     <Button 
                         className="border-[#F0F0F0] dark:border-[#303030] !px-12px rounded-16px text-[var(--ant-color-text-description)]"
@@ -107,7 +108,7 @@ export default (props) => {
                             }
                         }}
                     >
-                        <Space size={4}>
+                        <Space size={4} className="!leading-none">
                             <Search className="w-16px h-16px" />
                             {items.find((item) => item.key === searchType)?.label}
                             <ChevronDown className="w-20px h-20px" />

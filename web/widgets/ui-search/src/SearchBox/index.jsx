@@ -110,7 +110,7 @@ export function SearchBox(props) {
     <div className={`
       ${styles.searchbox}
       relative w-full rounded-12px 
-      ${sb.showExpandedPanel ? '' : 'border'} 
+      ${sb.showExpandedPanel ? '' : 'border border-solid'} 
       border-[#F0F0F0] dark:border-[#303030] 
       ${minimize ? 'h-48px' : `h-103px ${sb.showExpandedPanel ? '' : 'shadow-[0_2px_20px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_20px_rgba(255,255,255,0.2)]'}`}
       ${!minimize && !sb.showExpandedPanel ? styles.gradientBorder : ''}
@@ -147,7 +147,7 @@ export function SearchBox(props) {
       {/* Expanded Panel */}
       <div className={`absolute left-0 top-0 z-100 w-full ${sb.showExpandedPanel ? '' : 'h-0 overflow-hidden'} `}>
         <div className={`${styles.gradientBorder} rounded-12px overflow-visible`}> 
-          <div className={`py-12px rounded-12px bg-[rgb(var(--ui-search--layout-bg-color))] overflow-hidden shadow-[0_2px_20px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_20px_rgba(255,255,255,0.2)] border border-[#F0F0F0] dark:border-[#303030]`}>
+          <div className={`py-12px rounded-12px bg-[rgb(var(--ui-search--layout-bg-color))] overflow-hidden shadow-[0_2px_20px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_20px_rgba(255,255,255,0.2)] border border-solid border-[#F0F0F0] dark:border-[#303030]`}>
             {sb.attachments.length > 0 && (
               <div className="mb-14px px-8px">
                 <Attachments data={sb.attachments} onItemRemove={sb.handleAttachmentRemove} />

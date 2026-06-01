@@ -1,4 +1,5 @@
-@import './reset.css';
+@layer base, properties;
+@import './reset.css' layer(base);
 @import './nprogress.css';
 html,
 body,

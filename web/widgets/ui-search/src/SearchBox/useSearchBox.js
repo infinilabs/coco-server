@@ -280,20 +280,28 @@ export default function useSearchBox({
       return;
     }
 
-    const isCurrentActive = filterState.type === 'filterActive' && filterState.index === index;
-    setFilterState(isCurrentActive ? { type: 'none', index: -1 } : { type: 'filterActive', index });
-    if (isCurrentActive) setSuggestions({});
+    const isCurrentActive = (filterState.type === 'filterActive' || filterState.type === 'filterInput') && filterState.index === index;
+    // If the same filter is already active, do nothing (keep panel open)
+    if (isCurrentActive) return;
+    setFilterState({ type: 'filterActive', index });
   };
 
   // Click outside to close expanded panel
   useEffect(() => {
     if (filterState.type === 'none' && !mainInputActive) return;
 
+    const rootNode = expandedInputRef.current?.resizableTextArea?.textArea?.getRootNode()
+      || inputRef.current?.input?.getRootNode()
+      || document;
+    const eventTarget = rootNode === document ? document : rootNode;
+
     const handleClickOutside = (e) => {
       // Find the searchbox root element
       const searchboxEl = expandedInputRef.current?.resizableTextArea?.textArea?.closest('[class*="searchbox"]')
-        || document.querySelector('[class*="searchbox"]');
-      if (searchboxEl && !searchboxEl.contains(e.target) && !isClickingSearchAction.current) {
+        || (rootNode instanceof ShadowRoot ? rootNode : document).querySelector('[class*="searchbox"]');
+      // Use composedPath() to get the actual target inside Shadow DOM
+      const actualTarget = e.composedPath ? e.composedPath()[0] : e.target;
+      if (searchboxEl && !searchboxEl.contains(actualTarget) && !isClickingSearchAction.current) {
         if (filterState.type !== 'none') {
           setFilterState({ type: 'none', index: -1 });
           setSuggestions({});
@@ -305,8 +313,8 @@ export default function useSearchBox({
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    eventTarget.addEventListener('mousedown', handleClickOutside);
+    return () => eventTarget.removeEventListener('mousedown', handleClickOutside);
   }, [filterState.type, mainInputActive]);
 
   const handleInputFocus = () => {
@@ -466,14 +474,19 @@ export default function useSearchBox({
 
   // Global Tab key handler
   useEffect(() => {
+    const rootNode = expandedInputRef.current?.resizableTextArea?.textArea?.getRootNode()
+      || inputRef.current?.input?.getRootNode()
+      || document;
+    const eventTarget = rootNode === document ? document : rootNode;
+
     const handleTabKeyDown = (e) => {
       if (e.key === 'Tab') {
         e.preventDefault();
         expandedInputRef.current?.focus();
       }
     };
-    document.addEventListener('keydown', handleTabKeyDown);
-    return () => document.removeEventListener('keydown', handleTabKeyDown);
+    eventTarget.addEventListener('keydown', handleTabKeyDown);
+    return () => eventTarget.removeEventListener('keydown', handleTabKeyDown);
   }, []);
 
   return {

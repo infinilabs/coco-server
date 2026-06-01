@@ -36,11 +36,13 @@ export const Preview = memo(props => {
           html, body {
             padding: 0;
             margin: 0;
+            height: 100%;
+            width: 100%;
           }
         </style>
       </head>
       <body>
-        <div id="${widgetType}" style="margin: ${mode === 'page' ? '0' : '10px'} 0; outline: none"></div>
+        <div id="${widgetType}" style="margin: ${mode === 'page' ? '0' : '10px'} 0; outline: none; ${widgetType === 'fullscreen' ? 'height: 100%;' : ''}"></div>
         <script type="module" >
             import { ${widgetType} } from "${normalizeUrl(`${server}/integration/${params.id}/widget`)}";
             ${widgetType}({container: "#${widgetType}", enableQueryParams: false });
@@ -65,7 +67,7 @@ export const Preview = memo(props => {
         onCancel={handleCancel}
         onOk={handleOk}
         classNames={{
-          container: 'h-100vh'
+          container: 'h-100vh !p-0'
         }}
       >
         <Button

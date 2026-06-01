@@ -63,7 +63,7 @@ const FullscreenPage = (props) => {
       />
       {
         showTopAction && (
-          <div ref={topActionsRef} className="pl-16px absolute right-16px top-16px h-48px z-1002 flex-y-center justify-end">
+          <div ref={topActionsRef} style={{ top: queryParams.mode === 'chat' ? 8 : 16 }} className="pl-16px absolute right-16px h-48px z-1002 flex items-center">
             <UserAvatar 
               settings={settings} 
               apiConfig={apiConfig} 

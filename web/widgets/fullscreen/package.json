@@ -28,14 +28,14 @@
     "dist"
   ],
   "scripts": {
-    "build": "cd ../ui-search && pnpm build && cd ../fullscreen && tsup",
-    "build:server": "cd ../ui-search && pnpm build && cd ../fullscreen && tsup && mkdir -p ../../../.public/widgets/fullscreen && cp dist/index.css dist/index.js ../../../.public/widgets/fullscreen",
+    "build:dev": "vite build",
+    "build": "cd ../ui-search && pnpm install && pnpm build && cd ../fullscreen && pnpm install && vite build",
+    "build:server": "pnpm build && mkdir -p ../../../.public/widgets/fullscreen && cp dist/index.css dist/index.js ../../../.public/widgets/fullscreen",
     "demo": "http-server",
     "format": "prettier --write \"./**/*.{js,jsx,ts,tsx,json,html,css}\" --ignore-path .gitignore",
     "format:check": "prettier --check \"./**/*.{js,jsx,ts,tsx,json,html,css}\" --ignore-path .gitignore",
     "prepublishOnly": "pnpm build",
-    "ts:check": "tsc --noEmit",
-    "watch": "tsup --watch"
+    "ts:check": "tsc --noEmit"
   },
   "dependencies": {
     "fullscreen": "link:",
@@ -47,11 +47,13 @@
   "devDependencies": {
     "@types/react": "^18.3.1",
     "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^5.1.1",
     "esbuild": "0.21.5",
     "esbuild-plugin-svgr": "^3.1.0",
     "http-server": "^14.1.1",
     "prettier": "3.3.2",
-    "tsup": "^8.4.0",
-    "typescript": "^5.5.2"
+    "typescript": "^5.5.2",
+    "vite": "7.2.4",
+    "vite-plugin-svgr": "^5.2.0"
   }
 }

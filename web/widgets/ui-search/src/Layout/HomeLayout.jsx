@@ -20,14 +20,10 @@ const HomeLayout = (props) => {
 
   return (
       <Layout 
-        className={`${styles.uiSearch} relative w-full h-100vh overflow-x-hidden overflow-y-auto bg-[rgb(var(--ui-search--layout-bg-color))] ui-search ${themeClass}`}
-        style={{ 
-          height: '100vh',
-          overflowY: 'hidden',
-        }}
+        className={`${styles.uiSearch} relative w-full h-full overflow-x-hidden overflow-y-hidden bg-[rgb(var(--ui-search--layout-bg-color))] ui-search ${themeClass}`}
       >
         <GlobalLoading loading={loading} theme={theme} />
-        <Content className="bg-[rgb(var(--ui-search--layout-bg-color))] h-[calc(100vh)] flex flex-col items-center justify-start pt-[calc(100vh/4)]">
+        <Content className="bg-[rgb(var(--ui-search--layout-bg-color))] w-full h-full flex flex-col items-center justify-start absolute top-15% left-0">
           <div className={`max-w-320px max-h-320px`}>{logo}</div>
           {welcome && (
             <div

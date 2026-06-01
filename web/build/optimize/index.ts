@@ -1,3 +1,3 @@
-const include = ['ahooks', 'echarts', 'i18next', 'lodash', 'immer', 'react-i18next'];
+const include = ['ahooks', 'echarts', 'i18next', 'lodash', 'immer', 'react-i18next', 'ui-search/source'];
 
 export { include };

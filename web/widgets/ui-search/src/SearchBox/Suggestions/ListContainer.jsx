@@ -37,7 +37,10 @@ const ListContainer = forwardRef((props, ref) => {
     return desc;
   };
 
-  const [activeIndex, setActiveIndex] = useState(() => (typeof globalActiveIndex === 'number') ? globalActiveIndex : defaultActiveIndex);
+  const [activeIndex, setActiveIndex] = useState(() => {
+    if (useGlobalKeydown && typeof globalActiveIndex === 'number' && globalActiveIndex >= 0) return globalActiveIndex;
+    return defaultActiveIndex;
+  });
 
   const itemRefs = useRef([]);
   const [dataSource, setDataSource] = useState([]);
@@ -51,8 +54,10 @@ const ListContainer = forwardRef((props, ref) => {
   });
 
   useEffect(() => {
-    setActiveIndex(typeof globalActiveIndex === 'number' ? globalActiveIndex : defaultActiveIndex);
-  }, [globalActiveIndex, defaultActiveIndex]);
+    if (useGlobalKeydown) {
+      setActiveIndex(typeof globalActiveIndex === 'number' ? globalActiveIndex : defaultActiveIndex);
+    }
+  }, [globalActiveIndex, defaultActiveIndex, useGlobalKeydown]);
 
   useEffect(() => {
     if (
@@ -284,6 +289,15 @@ const ListContainer = forwardRef((props, ref) => {
                     ${onItemClick ? 'cursor-pointer hover:bg-[rgba(233,240,254,1)] dark:hover:bg-[rgba(255,255,255,0.05)]' : " "} 
                     ${isActive ? "bg-[rgba(233,240,254,1)] dark:bg-[rgba(255,255,255,0.05)]" : ""}`}
                     onClick={() => handleItemClick(item, index)}
+                    onMouseEnter={() => {
+                      if (!onItemClick) return;
+                      keyDirectionRef.current = 'none';
+                      if (useGlobalKeydown && onGlobalSelect) {
+                        onGlobalSelect(index);
+                      } else {
+                        setActiveIndex(index);
+                      }
+                    }}
                   >
                     {renderPrefix?.(item)}
                     {item.icon && (

@@ -19,6 +19,7 @@ export const AsyncLucideIcon = ({
           .map(part => part.charAt(0).toUpperCase() + part.slice(1))
           .join('');
 
+        /* @vite-ignore */  
         const lucideModule = await import('lucide-react');
         const Icon = lucideModule[pascalCaseKey];
 

@@ -1,13 +1,12 @@
 import { Spin } from 'antd';
 
 import UserAvatar from '@/layouts/modules/global-header/components/UserAvatar';
-import { localStg } from '@/utils/storage';
 import { getDarkMode } from '@/store/slice/theme';
 import { configResponsive } from 'ahooks';
 import { fetchIntegration } from '@/service/api/integration';
 import { useRequest } from '@sa/hooks';
 import useQueryParams from '@/hooks/common/queryParams';
-import { FullscreenPage } from 'ui-search';
+import { FullscreenPage } from 'ui-search/source';
 import { querySearch, fetchSuggestions, fetchRecommends, fetchFieldsMeta, uploadAttachment } from '@/service/api/ai-search';
 import { getApiBaseUrl } from '@/service/request';
 import queryString from 'query-string';
@@ -65,7 +64,6 @@ const AGGS: any = {
 }
 
 export function Component() {
-  const containerRef = useRef(null)
   const topActionsRef = useRef<HTMLDivElement | null>(null)
 
   const responsive = useResponsive();
@@ -323,20 +321,15 @@ export function Component() {
   }
 
   return (
-    <Spin spinning={loading}>
-      <div ref={containerRef}>
-        <FullscreenPage
-          {...componentProps}
-          enableQueryParams={true}
-          queryParams={queryParams}
-          setQueryParams={setQueryParams}
-          onLogoClick={() => {
-            const hashWithoutParams = window.location.hash.split('?')[0] || '';
-            const newUrl = window.location.origin + window.location.pathname + hashWithoutParams;
-            history.replaceState(null, '', newUrl);
-          }}
-        />
-      </div>
+    <Spin spinning={loading} classNames={{
+      wrapper: 'h-full [&_.ant-spin-container]:h-full',
+    }}>
+      <FullscreenPage
+        {...componentProps}
+        enableQueryParams={true}
+        queryParams={queryParams}
+        setQueryParams={setQueryParams}
+      />
       <div ref={topActionsRef} style={{ top: queryParams.mode === 'chat' ? 8 : 16 }} className="absolute right-8px h-48px z-1002 flex-y-center justify-end">
         <LangSwitch className="px-12px" />
         <ThemeSchemaSwitch className="px-12px" />

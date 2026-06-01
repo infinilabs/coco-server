@@ -354,6 +354,8 @@ const Fullscreen = props => {
         }}
         setQueryParams={setQueryParams}
         defaultParams={chatParams}
+        setDefaultParams={setChatParams}
+        setAttachments={setAttachments}
       />
     )
   }

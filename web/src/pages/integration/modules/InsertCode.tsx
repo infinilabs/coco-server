@@ -40,7 +40,7 @@ export const InsertCode = memo(props => {
 
   const code = useMemo(() => {
     if (!id || !widgetType) return undefined
-    return `<div id="${widgetType}" style="margin: ${mode === 'page' ? '0' : '10px'} 0; outline: none"></div>
+    return `<div id="${widgetType}" style="margin: ${mode === 'page' ? '0' : '10px'} 0; outline: none; ${widgetType === 'fullscreen' ? 'height: 100%;' : ''}"></div>
 <script type="module" >
     import { ${widgetType} } from "${normalizeUrl(`${server}/integration/${id}/widget`)}";
     ${widgetType}({container: "#${widgetType}"});

@@ -104,9 +104,8 @@ const MediaLayout = (props) => {
   return (
     <Layout
       ref={initContainer}
-      className={`${styles.uiSearch} relative w-full h-100vh overflow-x-hidden overflow-y-auto bg-[rgb(var(--ui-search--layout-bg-color))] ui-search ${themeClass}`}
+      className={`${styles.uiSearch} relative w-full h-full overflow-x-hidden overflow-y-auto bg-[rgb(var(--ui-search--layout-bg-color))] ui-search ${themeClass}`}
       style={{
-        height: '100vh',
         overflowY: loading ? 'hidden' : 'auto',
       }}
     >

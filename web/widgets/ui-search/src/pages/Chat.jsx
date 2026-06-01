@@ -16,6 +16,8 @@ export default function Chat({
   apiConfig,
   onBackToSearch,
   defaultParams,
+  setDefaultParams,
+  setAttachments
 }) {
   const { BaseUrl, Token, endpoint, headers } = apiConfig || {};
 
@@ -39,6 +41,8 @@ export default function Chat({
         .filter((a) => a.status === "uploaded" && a.id)
         .map((a) => a.id), 
       });
+      setDefaultParams({})
+      setAttachments([]);
     }
   }, [JSON.stringify(defaultParams)]);
 
