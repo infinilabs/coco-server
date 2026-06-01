@@ -14,6 +14,10 @@ import (
 	"infini.sh/coco/core"
 )
 
+// defaultMaxToolCallIterations is a fallback for the legacy v1 researcher.
+const defaultMaxToolCallIterations = 20
+const defaultCompressionModelMaxTokens = 8192
+
 // CreateResearcherGraph creates the researcher subgraph for conducting focused research
 func CreateResearcherGraph(ctx context.Context, config *core.DeepResearchConfig) (*graph.MessageGraph, error) {
 	workflow := graph.NewMessageGraph()
@@ -43,11 +47,11 @@ func CreateResearcherGraph(ctx context.Context, config *core.DeepResearchConfig)
 
 		toolCallIterations, _ := mState["tool_call_iterations"].(int)
 
-		//log.Error("config.MaxToolCallIterations:", config.MaxToolCallIterations)
+		//log.Error("config.MaxToolCallIterations:", defaultMaxToolCallIterations)
 
 		// Check iteration limit
-		if toolCallIterations >= config.MaxToolCallIterations {
-			log.Infof("[Researcher] Reached max tool call iterations (%d), ending research", config.MaxToolCallIterations)
+		if toolCallIterations >= defaultMaxToolCallIterations {
+			log.Infof("[Researcher] Reached max tool call iterations (%d), ending research", defaultMaxToolCallIterations)
 			return map[string]interface{}{
 				"messages": []llms.MessageContent{
 					llms.TextParts(llms.ChatMessageTypeAI, "研究完成 - 达到迭代限制。"),
@@ -56,7 +60,7 @@ func CreateResearcherGraph(ctx context.Context, config *core.DeepResearchConfig)
 		}
 
 		// Prepare messages with system prompt
-		systemPrompt := GetResearcherSystemPrompt(config.MaxToolCallIterations)
+		systemPrompt := GetResearcherSystemPrompt(defaultMaxToolCallIterations)
 
 		var msgs []llms.MessageContent
 		// Always start with system message
@@ -293,7 +297,7 @@ func CreateResearcherGraph(ctx context.Context, config *core.DeepResearchConfig)
 			llms.TextParts(llms.ChatMessageTypeHuman, prompt),
 		}, nil, func(chunk []byte, seq int) {
 			//allChunks.Write(chunk)
-		}, llms.WithMaxTokens(config.CompressionModelMaxTokens))
+		}, llms.WithMaxTokens(defaultCompressionModelMaxTokens))
 		if err != nil {
 			return nil, fmt.Errorf("report generation failed: %w", err)
 		}

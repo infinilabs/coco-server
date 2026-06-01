@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	log "github.com/cihub/seelog"
+	duckduckgotool "github.com/tmc/langchaingo/tools/duckduckgo"
+	wikitool "github.com/tmc/langchaingo/tools/wikipedia"
 	"infini.sh/coco/modules/assistant/tools"
 )
 
@@ -30,14 +32,46 @@ type SearchResultCollection struct {
 type SearchToolManager struct {
 	externalSearch *tools.TavilySearchTool
 	internalSearch *tools.EnterpriseSearchTool
+	ddgTool        *duckduckgotool.Tool
+	wikiTool       *wikitool.Tool
+	searchEngines  []string
+	researchDepth  string
 }
 
 // NewSearchToolManager creates a new search tool manager
-func NewSearchToolManager(tavilyAPIKey string) *SearchToolManager {
-	return &SearchToolManager{
-		externalSearch: &tools.TavilySearchTool{APIKey: tavilyAPIKey},
-		internalSearch: &tools.EnterpriseSearchTool{},
+func NewSearchToolManager(tavilyAPIKey string, searchEngines []string, maxResults int, researchDepth string) *SearchToolManager {
+	if maxResults <= 0 {
+		maxResults = 5
 	}
+	if researchDepth == "" {
+		researchDepth = "comprehensive"
+	}
+	const webAgent = "Mozilla/5.0 (compatible; CocoResearch/1.0)"
+
+	sm := &SearchToolManager{
+		externalSearch: &tools.TavilySearchTool{APIKey: tavilyAPIKey, MaxResults: maxResults},
+		internalSearch: &tools.EnterpriseSearchTool{},
+		searchEngines:  searchEngines,
+		researchDepth:  researchDepth,
+	}
+
+	for _, engine := range searchEngines {
+		switch engine {
+		case "duckduckgo":
+			if ddg, err := duckduckgotool.New(maxResults, webAgent); err == nil {
+				sm.ddgTool = ddg
+			} else {
+				log.Warnf("Failed to initialize duckduckgo tool: %v", err)
+			}
+		case "wikipedia":
+			wt := wikitool.New(webAgent)
+			sm.wikiTool = &wt
+		case "bing":
+			log.Debug("Bing search engine is not supported, skipping")
+		}
+	}
+
+	return sm
 }
 
 // SearchWithFeedback performs a comprehensive search with internal first, external as supplement
@@ -90,6 +124,28 @@ func (sm *SearchToolManager) SearchWithFeedback(ctx context.Context, query strin
 
 	// Assess search quality and sufficiency
 	collection.evaluateSearchQuality()
+	// If still insufficient, try configured free search engines as fallback
+	if !sm.isContentSufficient(collection) {
+		for _, engine := range sm.searchEngines {
+			var engineResults []SearchResult
+			var engineErr error
+			switch engine {
+			case "duckduckgo":
+				engineResults, engineErr = sm.performDuckduckgoSearch(ctx, query)
+			case "wikipedia":
+				engineResults, engineErr = sm.performWikipediaSearch(ctx, query)
+			default:
+				continue
+			}
+			if engineErr != nil {
+				log.Warnf("Search engine %q failed for query %q: %v", engine, query, engineErr)
+			} else {
+				collection.Results = append(collection.Results, engineResults...)
+				log.Infof("Search engine %q yielded %d results", engine, len(engineResults))
+			}
+		}
+		collection.evaluateSearchQuality()
+	}
 	// Set IsSufficient based on content sufficiency check
 	collection.IsSufficient = sm.isContentSufficient(collection)
 
@@ -203,35 +259,68 @@ func (sm *SearchToolManager) parseExternalResults(result string, query string) [
 	return results
 }
 
+// performDuckduckgoSearch executes DuckDuckGo search
+func (sm *SearchToolManager) performDuckduckgoSearch(ctx context.Context, query string) ([]SearchResult, error) {
+	if sm.ddgTool == nil {
+		return nil, fmt.Errorf("duckduckgo tool not initialized")
+	}
+	result, err := sm.ddgTool.Call(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("duckduckgo search failed: %w", err)
+	}
+	return []SearchResult{{
+		Source:  "duckduckgo",
+		Title:   query,
+		Content: result,
+		Score:   0.6,
+	}}, nil
+}
+
+// performWikipediaSearch executes Wikipedia search
+func (sm *SearchToolManager) performWikipediaSearch(ctx context.Context, query string) ([]SearchResult, error) {
+	if sm.wikiTool == nil {
+		return nil, fmt.Errorf("wikipedia tool not initialized")
+	}
+	result, err := sm.wikiTool.Call(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("wikipedia search failed: %w", err)
+	}
+	wikiURL := fmt.Sprintf("https://en.wikipedia.org/wiki/%s", strings.ReplaceAll(query, " ", "_"))
+	return []SearchResult{{
+		Source:  "wikipedia",
+		Title:   query,
+		URL:     wikiURL,
+		Content: result,
+		Score:   0.75,
+	}}, nil
+}
+
 // isContentSufficient checks if we have enough quality content
 func (sm *SearchToolManager) isContentSufficient(collection *SearchResultCollection) bool {
-	if len(collection.Results) < 2 {
+	var minResults int
+	var minContentLen int
+	switch sm.researchDepth {
+	case "basic":
+		minResults = 1
+		minContentLen = 500
+	case "exhaustive":
+		minResults = 4
+		minContentLen = 2000
+	default: // "comprehensive"
+		minResults = 2
+		minContentLen = 1000
+	}
+
+	if len(collection.Results) < minResults {
 		return false
 	}
 
-	// Check total content length
 	totalContentLen := 0
 	for _, result := range collection.Results {
 		totalContentLen += len(result.Content)
 	}
 
-	// We need at least 1000 characters of meaningful content
-	if totalContentLen < 1000 {
-		return false
-	}
-
-	// Check if we have diverse sources
-	hasInternal := false
-	hasExternal := false
-	for _, result := range collection.Results {
-		if result.Source == "internal" {
-			hasInternal = true
-		} else {
-			hasExternal = true
-		}
-	}
-
-	return hasInternal || hasExternal
+	return totalContentLen >= minContentLen
 }
 
 // evaluateSearchQuality assesses the overall quality of search results

@@ -4,9 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/url"
-	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
@@ -32,17 +29,30 @@ func PlannerNode(ctx context.Context, state interface{}) (interface{}, error) {
 		return nil, err
 	}
 
+	maxSteps := s.Config.MaxSteps
+	if maxSteps <= 0 {
+		maxSteps = 10
+	}
+
+	depthHint := map[string]string{
+		"basic":         "3-5",
+		"comprehensive": "5-10",
+		"exhaustive":    "10-15",
+	}[s.Config.ResearchDepth]
+	if depthHint == "" {
+		depthHint = "5-10"
+	}
+
 	prompt := fmt.Sprintf(`You are a research planner. Create a step-by-step research plan for the following query: %s.
 
-Also determine if the user wants to generate a podcast script (check for keywords like "podcast", "dialogue", "script" in the query).
+Generate no more than %d research steps. Aim for %s steps based on the %s research depth.
 
 Return the result in JSON format:
 {
-    "plan": ["step 1", "step 2", ...],
-    "generate_podcast": true/false
+    "plan": ["step 1", "step 2", ...]
 }
 
-Respond in English.`, s.Request.Query)
+Respond in English.`, s.Request.Query, maxSteps, depthHint, s.Config.ResearchDepth)
 
 	completion, err := llms.GenerateFromSinglePrompt(ctx, llm, prompt)
 	if err != nil {
@@ -57,8 +67,7 @@ Respond in English.`, s.Request.Query)
 	completion = strings.TrimSpace(completion)
 
 	var output struct {
-		Plan            []string `json:"plan"`
-		GeneratePodcast bool     `json:"generate_podcast"`
+		Plan []string `json:"plan"`
 	}
 
 	if err := json.Unmarshal([]byte(completion), &output); err != nil {
@@ -72,12 +81,13 @@ Respond in English.`, s.Request.Query)
 			}
 		}
 		s.Plan = plan
-		// Default to false if JSON parsing fails, unless we find keywords in query
-		queryLower := strings.ToLower(s.Request.Query)
-		s.GeneratePodcast = strings.Contains(queryLower, "播客") || strings.Contains(queryLower, "podcast")
 	} else {
 		s.Plan = output.Plan
-		s.GeneratePodcast = output.GeneratePodcast
+	}
+
+	// Enforce MaxSteps limit
+	if maxSteps > 0 && len(s.Plan) > maxSteps {
+		s.Plan = s.Plan[:maxSteps]
 	}
 
 	state.(*State).Sender.SendChunkMessage(core.MessageTypeAssistant, common.ResearchPlannerEnd, util.MustToJSON(s.Plan), 0)
@@ -106,7 +116,12 @@ func ResearcherNode(ctx context.Context, state interface{}) (interface{}, error)
 
 	// Initialize search manager if not already present
 	if s.SearchManager == nil {
-		s.SearchManager = NewSearchToolManager(s.Config.TavilyAPIKey)
+		s.SearchManager = NewSearchToolManager(
+			s.Config.TavilyAPIKey,
+			s.Config.SearchEngines,
+			s.Config.MaxResults,
+			s.Config.ResearchDepth,
+		)
 	}
 
 	// Initialize chapter outline if not present
@@ -130,10 +145,29 @@ func ResearcherNode(ctx context.Context, state interface{}) (interface{}, error)
 	}
 
 	var results []string
-	var allImages []string
+
+	// Get synthesis LLM for the analysis step (falls back to ResearchModel if not configured)
+	synthesisLLM := llm
+	if s.Config.SynthesisModel.Name != "" {
+		if sl, err := langchain.GetLLMByConfig(s.Config.SynthesisModel); err == nil {
+			synthesisLLM = sl
+		} else {
+			log.Warnf("Failed to get synthesis model, falling back to research model: %v", err)
+		}
+	}
+
+	// Respect MaxResearcherIterations limit
+	maxIter := s.Config.MaxResearcherIterations
+	if maxIter <= 0 {
+		maxIter = len(s.Plan)
+	}
 
 	// Process each research step with feedback-based search and chapter distribution
 	for stepIndex, step := range s.Plan {
+		if stepIndex >= maxIter {
+			log.Infof("Reached MaxResearcherIterations (%d), stopping", maxIter)
+			break
+		}
 		stepStartTime := time.Now()
 
 		payload := util.MapStr{}
@@ -227,14 +261,10 @@ Generate a more specific search query to obtain more detailed or relevant inform
 		// Step 4: Distribute materials to relevant chapters
 		allocatedMaterials := s.distributeMaterialsToChapters(stepMaterials, stepIndex)
 
-		// Step 5: Collect images from search results (extract from URLs or content)
-		imagesInThisStep := extractImageURLs(initialSearchCollection)
-		allImages = append(allImages, imagesInThisStep...)
-
-		// Step 6: Analyze and synthesize findings with chapter-aware context
+		// Step 5: Analyze and synthesize findings with chapter-aware context
 		findingsPrompt := s.generateChapterAwareAnalysisPrompt(step, allocatedMaterials, stepIndex)
 
-		completion, err := llms.GenerateFromSinglePrompt(ctx, llm, findingsPrompt)
+		completion, err := llms.GenerateFromSinglePrompt(ctx, synthesisLLM, findingsPrompt)
 		if err != nil {
 			log.Warnf("Analysis failed for step '%s': %v", step, err)
 			errorResult := fmt.Sprintf("Step: %s\nFindings: Analysis failed: %v\n\nSearch results: %s",
@@ -260,7 +290,6 @@ Generate a more specific search query to obtain more detailed or relevant inform
 				s.StepResults[stepIndex].SearchQueries = stepSearchQueries
 				s.StepResults[stepIndex].SearchResults = initialSearchCollection.FormatResultsForLLM()
 				s.StepResults[stepIndex].Confidence = initialSearchCollection.Confidence
-				s.StepResults[stepIndex].Images = imagesInThisStep
 				s.StepResults[stepIndex].ProcessingTime = time.Since(stepStartTime).String()
 			}
 		}
@@ -272,14 +301,9 @@ Generate a more specific search query to obtain more detailed or relevant inform
 	}
 
 	s.ResearchResults = results
-	s.Images = allImages
 
 	return s, nil
 }
-
-// Replace image placeholders with actual image tags
-// Regex matches [IMAGE_X：Title] or [IMAGE_X:Title]
-var imgRe = regexp.MustCompile(`\[IMAGE_(\d+)[：:]([^\]]+)\]`)
 
 // ReporterNode compiles the final report using organized chapter structure and materials.
 func ReporterNode(ctx context.Context, state interface{}) (interface{}, error) {
@@ -300,151 +324,6 @@ func ReporterNode(ctx context.Context, state interface{}) (interface{}, error) {
 
 	// Fallback: Use traditional approach
 	return s.generateTraditionalReport(ctx, llm)
-}
-
-// PodcastNode generates a podcast script based on the research results.
-func PodcastNode(ctx context.Context, state interface{}) (interface{}, error) {
-	s := state.(*State)
-
-	llm, err := langchain.GetLLMByConfig(s.Config.PodcastModel)
-	if err != nil {
-		return nil, err
-	}
-
-	researchData := strings.Join(s.ResearchResults, "\n\n")
-	reportLang := s.Config.ReportLang
-	if reportLang == "" {
-		reportLang = "en-US"
-	}
-
-	prompt := fmt.Sprintf(`You are a professional podcast producer. Based on the following research results, create an engaging podcast dialogue script.
-
-The dialogue should be conducted by two hosts (Host 1 and Host 2), with a relaxed, humorous, and accessible style.
-Deeply discuss the key points from the research results, adding vivid examples or analogies.
-
-Return the result in JSON format:
-{
-    "title": "Podcast Title",
-    "lines": [
-        {"speaker": "Host 1", "content": "dialogue content..."},
-        {"speaker": "Host 2", "content": "dialogue content..."}
-    ]
-}
-
-Research results:
-%s
-
-Original query: %s
-Create in %s.`, researchData, s.Request.Query, reportLang)
-
-	completion, err := llms.GenerateFromSinglePrompt(ctx, llm, prompt)
-	if err != nil {
-		return nil, err
-	}
-
-	// Clean up JSON
-	completion = strings.TrimSpace(completion)
-	completion = strings.TrimPrefix(completion, "```json")
-	completion = strings.TrimPrefix(completion, "```")
-	completion = strings.TrimSuffix(completion, "```")
-	completion = strings.TrimSpace(completion)
-
-	var script struct {
-		Title string `json:"title"`
-		Lines []struct {
-			Speaker string `json:"speaker"`
-			Content string `json:"content"`
-		} `json:"lines"`
-	}
-
-	if err := json.Unmarshal([]byte(completion), &script); err != nil {
-		s.PodcastScript = fmt.Sprintf("<pre>%s</pre>", completion)
-		return s, nil
-	}
-
-	// Serialize script back to JSON for export
-	jsonBytes, _ := json.Marshal(script)
-	jsonString := string(jsonBytes)
-	jsonString = strings.ReplaceAll(jsonString, "</div>", "<\\/div>") // Escape for HTML embedding
-
-	// Render HTML
-	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf(`
-<div class="podcast-container" style="max-width: 800px; margin: 0 auto; font-family: 'Inter', sans-serif;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h2 style="margin: 0;">%s</h2>
-        <button onclick="window.exportPodcastJson()" style="background-color: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 5px;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-            Export JSON Script
-        </button>
-    </div>
-    <div id="podcastJsonData" style="display:none">%s</div>
-`, script.Title, jsonString))
-
-	for _, line := range script.Lines {
-		speakerClass := "host-1"
-		bgColor := "#e6f7ff"
-		borderColor := "#1890ff"
-		textColor := "#0050b3"
-
-		if strings.Contains(strings.ToLower(line.Speaker), "2") {
-			speakerClass = "host-2"
-			bgColor = "#fff0f6"
-			borderColor = "#eb2f96"
-			textColor = "#9e1068"
-		}
-
-		sb.WriteString(fmt.Sprintf(`
-    <div class="podcast-message %s" style="margin-bottom: 20px; padding: 20px; border-radius: 8px; border-left: 5px solid %s; background-color: %s; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
-        <div class="speaker-name" style="font-weight: 700; margin-bottom: 8px; color: %s; text-transform: uppercase; letter-spacing: 0.5px;">%s</div>
-        <div class="message-content" style="line-height: 1.6; color: #333; font-size: 16px;">%s</div>
-    </div>
-`, speakerClass, borderColor, bgColor, textColor, line.Speaker, line.Content))
-	}
-
-	sb.WriteString("</div>")
-
-	s.PodcastScript = sb.String()
-	return s, nil
-}
-
-// extractImageURLs extracts image URLs from search results
-func extractImageURLs(collection *SearchResultCollection) []string {
-	var images []string
-	imageExtensions := []string{".jpg", ".jpeg", ".png", ".gif", ".svg", ".webp"}
-
-	for _, result := range collection.Results {
-		// Check URL field for image URLs
-		if result.URL != "" {
-			parsedURL, err := url.Parse(result.URL)
-			if err == nil {
-				for _, ext := range imageExtensions {
-					if strings.HasSuffix(strings.ToLower(parsedURL.Path), ext) {
-						images = append(images, result.URL)
-						break
-					}
-				}
-			}
-		}
-
-		// Check content field for image URLs using regex
-		imgRegex := regexp.MustCompile(`https?://[^\s]+\.(?:jpg|jpeg|png|gif|svg|webp)`)
-		if matches := imgRegex.FindAllString(result.Content, -1); len(matches) > 0 {
-			images = append(images, matches...)
-		}
-	}
-
-	// Remove duplicates while preserving order
-	seen := make(map[string]bool)
-	var uniqueImages []string
-	for _, img := range images {
-		if !seen[img] {
-			seen[img] = true
-			uniqueImages = append(uniqueImages, img)
-		}
-	}
-
-	return uniqueImages
 }
 
 // generateChapterOutline creates an intelligent chapter structure for the report
@@ -720,18 +599,13 @@ func (s *State) updateChapterProgress(stepIndex int, materials []MaterialReferen
 func (s *State) generateTraditionalReport(ctx context.Context, llm llms.Model) (*State, error) {
 	researchData := strings.Join(s.ResearchResults, "\n\n")
 
-	imageInfo := ""
-	if len(s.Images) > 0 {
-		imageInfo = fmt.Sprintf("\n\nNote: During the research, %d relevant images were collected. In the report, you can use [IMAGE_X:Image Title] placeholders to mark where images should be inserted (X is 1 to %d).", len(s.Images), len(s.Images))
-	}
-
 	reportLang := s.Config.ReportLang
 	if reportLang == "" {
 		reportLang = "en-US"
 	}
 
-	prompt := fmt.Sprintf("You are a senior report writer. Based on the following research results, write a comprehensive final report. Use Markdown format. %sWrite the report in %s:\n\n%s\n\nOriginal query was: %s",
-		imageInfo, reportLang, researchData, s.Request.Query)
+	prompt := fmt.Sprintf("You are a senior report writer. Based on the following research results, write a comprehensive final report. Use Markdown format. Write the report in %s:\n\n%s\n\nOriginal query was: %s",
+		reportLang, researchData, s.Request.Query)
 
 	completion, err := llms.GenerateFromSinglePrompt(ctx, llm, prompt)
 	if err != nil {
@@ -756,25 +630,6 @@ func (s *State) generateTraditionalReport(ctx context.Context, llm llms.Model) (
 	renderer := html.NewRenderer(opts)
 
 	s.FinalReport = string(markdown.Render(doc, renderer))
-
-	// Process image placeholders
-	s.FinalReport = imgRe.ReplaceAllStringFunc(s.FinalReport, func(match string) string {
-		parts := imgRe.FindStringSubmatch(match)
-		if len(parts) < 3 {
-			return match
-		}
-		idxStr := parts[1]
-		title := strings.TrimSpace(parts[2])
-
-		idx, err := strconv.Atoi(idxStr)
-		if err != nil || idx < 1 || idx > len(s.Images) {
-			return match
-		}
-
-		imgURL := s.Images[idx-1]
-		return fmt.Sprintf(`<img src="%s" alt="%s" style="max-width: 90%%; display: block; margin: 10px auto;" />`,
-			imgURL, title)
-	})
 
 	return s, nil
 }
@@ -976,25 +831,13 @@ func (s *State) generateChapterBasedReport(ctx context.Context, llm llms.Model) 
 			// Add references or source citations if configured
 			if s.Config != nil && s.Config.IncludeSources {
 				if len(content.Materials) > 0 {
-					reportBuilder.WriteString("### 参考资料\n\n")
+					reportBuilder.WriteString("### References\n\n")
 					for j, material := range content.Materials {
-						if material.URL != "" {
-							reportBuilder.WriteString(fmt.Sprintf("[%d] [%s](%s)\n", j+1, material.Title, material.URL))
-						} else {
-							reportBuilder.WriteString(fmt.Sprintf("[%d] %s\n", j+1, material.Title))
-						}
+						reportBuilder.WriteString(formatCitation(j+1, material.Title, material.URL, material.Source, s.Config.SourceFormat) + "\n")
 					}
 					reportBuilder.WriteString("\n")
 				}
 			}
-		}
-	}
-
-	// Add collected images at the end
-	if len(s.Images) > 0 {
-		reportBuilder.WriteString("## 相关图片\n\n")
-		for i, imgURL := range s.Images {
-			reportBuilder.WriteString(fmt.Sprintf("<img src=\"%s\" alt=\"图片 %d\" style=\"max-width: 90%%; display: block; margin: 10px auto;\" />\n\n", imgURL, i+1))
 		}
 	}
 
@@ -1030,6 +873,28 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+// formatCitation formats a reference citation based on the requested style.
+// Supports "APA" and "MLA"; defaults to Markdown link format.
+func formatCitation(n int, title, url, source, format string) string {
+	switch strings.ToUpper(format) {
+	case "APA":
+		if url != "" {
+			return fmt.Sprintf("[%d] %s. *%s*. %s", n, title, source, url)
+		}
+		return fmt.Sprintf("[%d] %s. *%s*.", n, title, source)
+	case "MLA":
+		if url != "" {
+			return fmt.Sprintf("[%d] \"%s.\" *%s*, %s.", n, title, source, url)
+		}
+		return fmt.Sprintf("[%d] \"%s.\" *%s*.", n, title, source)
+	default:
+		if url != "" {
+			return fmt.Sprintf("[%d] [%s](%s)", n, title, url)
+		}
+		return fmt.Sprintf("[%d] %s", n, title)
+	}
 }
 
 // GetChapterPreview returns a preview of chapter content

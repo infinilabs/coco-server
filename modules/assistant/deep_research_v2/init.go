@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
@@ -50,7 +51,17 @@ func RunDeepResearchV2(ctx context.Context, query string, config *core.DeepResea
 		},
 	}
 
-	result, err := graph.Invoke(ctx, initialState)
+	// Apply timeout if configured
+	invokeCtx := ctx
+	if config.Timeout != "" {
+		if d, err := time.ParseDuration(config.Timeout); err == nil {
+			var cancel context.CancelFunc
+			invokeCtx, cancel = context.WithTimeout(ctx, d)
+			defer cancel()
+		}
+	}
+
+	result, err := graph.Invoke(invokeCtx, initialState)
 	if err != nil {
 		panic(errors.Errorf("Graph execution failed: %v", err))
 	}
@@ -59,13 +70,26 @@ func RunDeepResearchV2(ctx context.Context, query string, config *core.DeepResea
 	log.Info("\n=== Final Report ===")
 	log.Info(finalState.MarkdownReport)
 
-	attachment := saveReport(ctx, "Research-Report.md", finalState.MarkdownReport)
+	reportFormat := config.ReportFormat
+	if reportFormat == "" {
+		reportFormat = "markdown"
+	}
+
+	var reportContent string
+	if reportFormat == "html" {
+		reportContent = finalState.FinalReport
+	} else {
+		reportContent = finalState.MarkdownReport
+	}
+
+	attachment := saveReport(ctx, reportFormat, reportContent)
 
 	report := util.MapStr{}
 	report["title"] = attachment.Name
 	report["url"] = attachment.URL
 	report["created"] = attachment.Created
 	report["attachment"] = attachment.ID
+	report["format"] = reportFormat
 	finalState.Sender.SendChunkMessage(core.MessageTypeAssistant, common.ResearchReporterEnd, util.MustToJSON(report), 0)
 
 	log.Info("Report generation completed:")
@@ -85,12 +109,17 @@ func RunDeepResearchV2(ctx context.Context, query string, config *core.DeepResea
 	return nil
 }
 
-func saveReport(ctx context.Context, title, report string) core.Attachment {
+func saveReport(ctx context.Context, reportFormat, report string) core.Attachment {
 	attachment := core.Attachment{}
 	attachment.ID = util.GetUUID()
-	attachment.Name = title
+	if reportFormat == "html" {
+		attachment.Name = "Research-Report.html"
+		attachment.MimeType = "text/html; charset=UTF-8"
+	} else {
+		attachment.Name = "Research-Report.md"
+		attachment.MimeType = "text/markdown; charset=UTF-8"
+	}
 	attachment.Size = len(report)
-	attachment.MimeType = "text/markdown; charset=UTF-8"
 	attachment.Icon = "book-open"
 	attachment.URL = fmt.Sprintf("/attachment/%v", attachment.ID)
 	attachment.Text = report

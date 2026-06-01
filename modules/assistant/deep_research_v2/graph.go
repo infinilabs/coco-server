@@ -12,8 +12,7 @@ type StepResult struct {
 	StepNumber     int      `json:"step_number"`
 	StepQuery      string   `json:"step_query"`
 	SearchResults  string   `json:"search_results"`
-	Analysis       string   `json:"analysis"` // Synthesized findings from a research step
-	Images         []string `json:"images"`
+	Analysis       string   `json:"analysis"`        // Synthesized findings from a research step
 	Status         string   `json:"status"`          // "pending", "in_progress", "completed", "failed"
 	Confidence     float64  `json:"confidence"`      //  The quality/sufficiency score (0.0 to 1.0) of search results for a step
 	SearchQueries  []string `json:"search_queries"`  // List of all search queries used for this step
@@ -74,8 +73,7 @@ type ChapterContent struct {
 
 // Request represents the initial input to the research agent.
 type Request struct {
-	Query    string `json:"query"`
-	MaxSteps int    `json:"max_steps,omitempty"` // Example of an additional parameter
+	Query string `json:"query"`
 }
 
 // State represents the state of the research agent.
@@ -85,20 +83,15 @@ type State struct {
 	StepResults     []StepResult `json:"step_results"`     // Detailed results per step
 	ResearchResults []string     `json:"research_results"` // Legacy format for backward compatibility
 
-	Images []string `json:"images"` // Global image list
-
 	MarkdownReport string `json:"markdown_report"`
 	FinalReport    string `json:"final_report"`
 
-	PodcastScript   string `json:"podcast_script"`
-	GeneratePodcast bool   `json:"generate_podcast"`
-
 	//Step            int          `json:"step"`
 	// Chapter Management
-	ChapterOutline   []ChapterOutline           `json:"chapter_outline"`  // Report chapter structure
-	ChapterContents  map[string]*ChapterContent `json:"chapter_contents"` // Content per chapter
-	AllMaterials     []MaterialReference        `json:"all_materials"`    // All collected materials
-	MaterialRegistry map[string]bool            `json:"-"`                // Track material uniqueness
+	ChapterOutline   []ChapterOutline           `json:"chapter_outline"`         // Report chapter structure
+	ChapterContents  map[string]*ChapterContent `json:"chapter_contents"`        // Content per chapter
+	AllMaterials     []MaterialReference        `json:"all_materials,omitempty"` // All collected materials (reserved)
+	MaterialRegistry map[string]bool            `json:"-"`                       // Track material uniqueness
 	// System
 	Config        *core.DeepResearchConfig `json:"-"`
 	Sender        core.MessageSender       `json:"-"`
@@ -115,7 +108,6 @@ func NewGraph() (*graph.StateRunnable, error) {
 	workflow.AddNode("planner", "Research planning node", PlannerNode)
 	workflow.AddNode("researcher", "Research execution node", ResearcherNode)
 	workflow.AddNode("reporter", "Report generation node", ReporterNode)
-	workflow.AddNode("podcast", "Podcast script generation node", PodcastNode)
 
 	// Add edges
 	// Start -> Planner
@@ -127,17 +119,10 @@ func NewGraph() (*graph.StateRunnable, error) {
 	// Researcher -> Reporter
 	workflow.AddEdge("researcher", "reporter")
 
-	// Reporter -> Podcast (Conditional) or END
+	// Reporter -> END
 	workflow.AddConditionalEdge("reporter", func(ctx context.Context, state interface{}) string {
-		s := state.(*State)
-		if s.GeneratePodcast {
-			return "podcast"
-		}
 		return graph.END
 	})
-
-	// Podcast -> End
-	workflow.AddEdge("podcast", graph.END)
 
 	return workflow.Compile()
 }

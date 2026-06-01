@@ -63,72 +63,31 @@ type DeepThinkConfig struct {
 }
 
 type DeepResearchConfig struct {
-	// Research Model Configuration
-	PlanningModel  ModelConfig `json:"planning_model"`  // For research planning and query decomposition
-	ResearchModel  ModelConfig `json:"research_model"`  // For individual research step analysis
-	SynthesisModel ModelConfig `json:"synthesis_model"` // For information synthesis across sources
-	ReportModel    ModelConfig `json:"report_model"`    // For final report generation
-	PodcastModel   ModelConfig `json:"podcast_model"`   // For podcast script generation
+	// Models — one per pipeline stage; each may point to a different provider/model.
+	PlanningModel  ModelConfig `json:"planning_model"`  // Decomposes the query into a step-by-step research plan.
+	ResearchModel  ModelConfig `json:"research_model"`  // Analyzes search results for each individual research step.
+	SynthesisModel ModelConfig `json:"synthesis_model"` // Synthesizes findings across sources within a step.
+	ReportModel    ModelConfig `json:"report_model"`    // Writes the final structured report.
 
-	// Research Execution Settings
-	MaxSteps                   int    `json:"max_steps"` // Maximum steps in research workflow
-	MaxResearcherIterations    int    `json:"max_researcher_iterations"`
-	MaxConcurrentResearchUnits int    `json:"max_concurrent_research_units"`
-	MaxResults                 int    `json:"max_results"`           // Maximum search results per query
-	Timeout                    string `json:"timeout"`               // Research timeout (e.g., "1h", "30m")
-	ResearchDepth              string `json:"research_depth"`        // "basic", "comprehensive", "exhaustive"
-	IncludeSources             bool   `json:"include_sources"`       // Include sources in final report
-	SourceFormat               string `json:"source_format"`         // "APA", "MLA", etc.
-	HandleContradictions       bool   `json:"handle_contradictions"` // Detect and handle conflicting information
+	// Execution limits
+	MaxSteps                   int    `json:"max_steps"`                     // Max steps the planner may generate.
+	MaxResearcherIterations    int    `json:"max_researcher_iterations"`     // Max researcher loop iterations over the plan.
+	MaxConcurrentResearchUnits int    `json:"max_concurrent_research_units"` // Max parallel research workers (v1 only).
+	MaxResults                 int    `json:"max_results"`                   // Max search results fetched per query.
+	Timeout                    string `json:"timeout"`                       // Total research deadline; Go duration string, e.g. "30m", "1h".
+	ResearchDepth              string `json:"research_depth"`                // Effort level: "basic", "comprehensive", or "exhaustive".
 
-	// Search Configuration
-	SearchEngines      []string `json:"search_engines"` // Enabled search engines ["duckduckgo", "wikipedia", "bing"]
-	MaxSourcesPerQuery int      `json:"max_sources_per_query"`
-	QualityThreshold   float64  `json:"quality_threshold"` // Minimum quality score (0.0-1.0)
-	Language           string   `json:"language"`          // Target language ("zh-CN", "en" etc.)
-	TimeHorizon        string   `json:"time_horizon"`      // Time range for research ("recent", "last_year", "custom")
+	// Output
+	IncludeSources bool   `json:"include_sources"` // Append a citations section to the report.
+	SourceFormat   string `json:"source_format"`   // Citation style: "APA", "MLA", or empty for plain Markdown links.
+	ReportFormat   string `json:"report_format"`   // Rendered format: "markdown" (default) or "html".
+	ReportLang     string `json:"report_lang"`     // Report language as a BCP 47 tag, e.g. "en-US", "zh-CN".
 
-	// Output Configuration
-	ReportFormat    string `json:"report_format"`    // "markdown", "html", "pdf"
-	GeneratePodcast bool   `json:"generate_podcast"` // Enable podcast generation
-	IncludeImages   bool   `json:"include_images"`   // Include relevant images in report
-	VisualElements  bool   `json:"visual_elements"`  // Include charts, timelines, etc.
-	ReportLang      string `json:"report_lang"`      // Report language (BCP 47: "en-US", "zh-CN", etc.)
+	// Search
+	SearchEngines []string `json:"search_engines"` // Enabled engines: "duckduckgo", "wikipedia", "bing".
 
-	// Tool Integration Settings
-	ToolsConfig      ToolsConfig `json:"tools_config"`      // Tool availability settings
-	EnableFactCheck  bool        `json:"enable_fact_check"` // Cross-reference facts across sources
-	CitationTracking bool        `json:"citation_tracking"` // Track citations and references
-	TavilyAPIKey     string      `json:"tavily_api_key"`    // Tavily API key for external web search
-
-	// Advanced Settings
-	RetryAttempts             int                `json:"retry_attempts"`     // Number of retry attempts on failure
-	RateLimiting              RateLimitingConfig `json:"rate_limiting"`      // API rate limiting settings
-	ProgressReporting         bool               `json:"progress_reporting"` // Enable detailed progress reporting
-	Validation                ValidationConfig   `json:"validation"`         // Content validation settings
-	MaxToolCallIterations     int                `json:"max_tool_call_iterations"`
-	CompressionModelMaxTokens int                `json:"compression_model_max_tokens"`
-}
-
-// RateLimitingConfig defines rate limiting for external APIs
-type RateLimitingConfig struct {
-	WebSearchRequests int `json:"web_search_requests_per_minute"`
-	WikipediaRequests int `json:"wikipedia_requests_per_minute"`
-	LLMRequests       int `json:"llm_requests_per_minute"`
-	RetryDelayMs      int `json:"retry_delay_ms"`
-	MaxRetryAttempts  int `json:"max_retry_attempts"`
-}
-
-// ValidationConfig defines content validation settings
-type ValidationConfig struct {
-	MinSourceQuality     float64            `json:"min_source_quality"`     // Minimum source quality score
-	MinRelevanceScore    float64            `json:"min_relevance_score"`    // Minimum relevance score
-	ContentFreshnessDays int                `json:"content_freshness_days"` // Maximum age of research content in days
-	DomainCredentials    map[string]float64 `json:"domain_credentials"`     // Domain reputation scores
-}
-
-type WorkflowConfig struct {
-	// Workflow-specific configuration
+	// External integrations
+	TavilyAPIKey string `json:"tavily_api_key"` // Tavily API key; enables paid web search when set.
 }
 
 type UploadConfig struct {
@@ -286,69 +245,17 @@ func DefaultDeepResearchConfig() *DeepResearchConfig {
 				MaxTokens:   10000,
 			},
 		},
-		PodcastModel: ModelConfig{
-			ProviderID: "qianwen",
-			Name:       "qwq-plus",
-			Settings: ModelSettings{
-				Temperature: 0.8, // Slightly more creative for podcast generation
-				TopP:        0.95,
-				MaxTokens:   2500,
-			},
-		},
-		MaxSteps:                   50,
-		MaxResearcherIterations:    10,
-		MaxConcurrentResearchUnits: 3,
-		MaxToolCallIterations:      20,
-		CompressionModelMaxTokens:  8192,
-		MaxResults:                 100,
-		Timeout:                    "1h",
-		ResearchDepth:              "comprehensive",
-		IncludeSources:             true,
-		SourceFormat:               "APA",
-		HandleContradictions:       true,
-		SearchEngines:              []string{"duckduckgo", "wikipedia", "bing"},
-		MaxSourcesPerQuery:         20,
-		QualityThreshold:           0.7,
-		Language:                   "zh-CN",
-		TimeHorizon:                "recent",
-		ReportLang:                 "en-US",
-		ReportFormat:               "html",
-		GeneratePodcast:            false, // Default to false - can be explicitly enabled
-		IncludeImages:              true,
-		VisualElements:             true,
-		ToolsConfig: ToolsConfig{
-			Enabled: true,
-			BuiltinTools: BuiltinToolsConfig{
-				Calculator: false,
-				Wikipedia:  true,
-				Duckduckgo: true,
-				Scraper:    true,
-			},
-		},
-		EnableFactCheck:   true,
-		CitationTracking:  true,
-		TavilyAPIKey:      "", // Empty by default, user must configure
-		RetryAttempts:     3,
-		ProgressReporting: true,
-		RateLimiting: RateLimitingConfig{
-			WebSearchRequests: 30,
-			WikipediaRequests: 60,
-			LLMRequests:       120,
-			RetryDelayMs:      1000,
-			MaxRetryAttempts:  3,
-		},
-		Validation: ValidationConfig{
-			MinSourceQuality:     0.5,
-			MinRelevanceScore:    0.3,
-			ContentFreshnessDays: 90,
-			DomainCredentials: map[string]float64{
-				"wikipedia.org":    0.9,
-				"academic.com":     0.85,
-				"researchgate.net": 0.8,
-				"medium.com":       0.6,
-				"blogspot.com":     0.5,
-			},
-		},
+		MaxSteps:                50,
+		MaxResearcherIterations: 10,
+		MaxResults:              100,
+		Timeout:                 "1h",
+		ResearchDepth:           "comprehensive",
+		IncludeSources:          true,
+		SourceFormat:            "APA",
+		SearchEngines:           []string{"duckduckgo", "wikipedia", "bing"},
+		ReportLang:              "en-US",
+		ReportFormat:            "markdown",
+		TavilyAPIKey:            "", // Empty by default, user must configure
 	}
 }
 
@@ -386,9 +293,6 @@ func (cfg *DeepResearchConfig) Validate() error {
 	if len(cfg.SearchEngines) == 0 {
 		return fmt.Errorf("at least one search engine must be enabled")
 	}
-	if cfg.QualityThreshold < 0 || cfg.QualityThreshold > 1 {
-		return fmt.Errorf("quality_threshold must be between 0 and 1")
-	}
 
 	// Validate research depth
 	validDepths := []string{"basic", "comprehensive", "exhaustive"}
@@ -396,19 +300,8 @@ func (cfg *DeepResearchConfig) Validate() error {
 		return fmt.Errorf("research_depth must be one of: %v", validDepths)
 	}
 
-	// Validate language
-	if cfg.Language != "zh-CN" && cfg.Language != "en" {
-		return fmt.Errorf("language must be either zh-CN or en")
-	}
-
-	// Validate time horizon
-	validHorizons := []string{"recent", "last_year", "last_2_years", "custom"}
-	if !slices.Contains(validHorizons, cfg.TimeHorizon) {
-		return fmt.Errorf("time_horizon must be one of: %v", validHorizons)
-	}
-
 	// Validate report format
-	validFormats := []string{"markdown", "html", "pdf"}
+	validFormats := []string{"markdown", "html"}
 	if !slices.Contains(validFormats, cfg.ReportFormat) {
 		return fmt.Errorf("report_format must be one of: %v", validFormats)
 	}
@@ -446,9 +339,6 @@ func MergeDeepResearchConfig(userConfig, defaultConfig *DeepResearchConfig) *Dee
 	if userConfig.ReportModel.Name == "" {
 		userConfig.ReportModel = defaultConfig.ReportModel
 	}
-	if userConfig.PodcastModel.Name == "" {
-		userConfig.PodcastModel = defaultConfig.PodcastModel
-	}
 	if userConfig.MaxSteps == 0 {
 		userConfig.MaxSteps = defaultConfig.MaxSteps
 	}
@@ -464,23 +354,11 @@ func MergeDeepResearchConfig(userConfig, defaultConfig *DeepResearchConfig) *Dee
 	if len(userConfig.SearchEngines) == 0 {
 		userConfig.SearchEngines = defaultConfig.SearchEngines
 	}
-	if userConfig.QualityThreshold == 0 {
-		userConfig.QualityThreshold = defaultConfig.QualityThreshold
-	}
-	if userConfig.Language == "" {
-		userConfig.Language = defaultConfig.Language
-	}
-	if userConfig.TimeHorizon == "" {
-		userConfig.TimeHorizon = defaultConfig.TimeHorizon
+	if userConfig.MaxResearcherIterations == 0 {
+		userConfig.MaxResearcherIterations = defaultConfig.MaxResearcherIterations
 	}
 	if userConfig.ReportFormat == "" {
 		userConfig.ReportFormat = defaultConfig.ReportFormat
-	}
-	if userConfig.RateLimiting.WebSearchRequests == 0 {
-		userConfig.RateLimiting = defaultConfig.RateLimiting
-	}
-	if len(userConfig.Validation.DomainCredentials) == 0 {
-		userConfig.Validation.DomainCredentials = defaultConfig.Validation.DomainCredentials
 	}
 	if userConfig.ReportLang == "" {
 		userConfig.ReportLang = defaultConfig.ReportLang
