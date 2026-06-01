@@ -11,6 +11,7 @@ import { AssistantMode } from './AssistantMode';
 import { DatasourceConfig } from './DatasourceConfig';
 import { MCPConfig } from './MCPConfig';
 import { DeepThink } from './DeepThink';
+import { DeepResearchLimits, DeepResearchOutput, DeepResearchSearch, DeepResearchModels } from './DeepResearch';
 import { formatESSearchResult } from '@/service/request/es';
 import ModelSelect, { DefaultPromptTemplates } from './ModelSelect';
 import { ToolsConfig } from './ToolsConfig';
@@ -559,6 +560,40 @@ export const EditForm = memo((props: AssistantFormProps) => {
           </>
         )}
 
+        {assistantMode === 'deep_research' && (
+          <>
+            <Form.Item
+              label={t('page.assistant.labels.deep_research_limits')}
+            >
+              <DeepResearchLimits />
+            </Form.Item>
+            <Form.Item
+              label={t('page.assistant.labels.deep_research_output')}
+            >
+              <DeepResearchOutput />
+            </Form.Item>
+            <Form.Item
+              label={t('page.assistant.labels.deep_research_search')}
+            >
+              <DeepResearchSearch
+                datasourceOptions={dataSource.map((item: any) => ({
+                  label: item.name,
+                  value: item.id
+                }))}
+              />
+            </Form.Item>
+            <Form.Item
+              label={t('page.assistant.labels.deep_research_models')}
+            >
+              <DeepResearchModels
+                providers={modelProviders}
+                defaultModel={defaultModel}
+                onModelRefresh={onModelRefresh}
+              />
+            </Form.Item>
+          </>
+        )}
+
         {assistantMode === 'simple' && (
           <Form.Item
             label={t('page.assistant.labels.answering_model')}
@@ -654,6 +689,9 @@ export const EditForm = memo((props: AssistantFormProps) => {
                 <Input.TextArea className='w-600px' />
               </Form.Item>
             </div>
+            {/* history_message fields are only relevant for simple / deep_think modes;
+                deep_research does not use chat history context */}
+            {assistantMode !== 'deep_research' && (
             <div className='flex items-center justify-between'>
               <div>
                 <p>{t('page.assistant.labels.history_message_number')}</p>
@@ -668,6 +706,8 @@ export const EditForm = memo((props: AssistantFormProps) => {
                 />
               </Form.Item>
             </div>
+            )}
+            {assistantMode !== 'deep_research' && (
             <div className='flex items-center justify-between'>
               <div>
                 <p>{t('page.assistant.labels.history_message_compression_threshold')}</p>
@@ -682,6 +722,8 @@ export const EditForm = memo((props: AssistantFormProps) => {
                 />
               </Form.Item>
             </div>
+            )}
+            {assistantMode !== 'deep_research' && (
             <div className='flex items-center justify-between'>
               <div>
                 <p>{t('page.assistant.labels.history_summary')}</p>
@@ -691,6 +733,7 @@ export const EditForm = memo((props: AssistantFormProps) => {
                 <Switch size='small' />
               </Form.Item>
             </div>
+            )}
           </div>
         </Form.Item>
 

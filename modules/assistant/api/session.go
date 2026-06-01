@@ -22,6 +22,24 @@ import (
 	"infini.sh/framework/core/util"
 )
 
+// resolveTimeout returns the request timeout for a given assistant.
+// For deep_research assistants the timeout comes from DeepResearchConfig.Timeout
+// (default 30 min). All other types default to 5 minutes.
+func resolveTimeout(assistant *core.Assistant) time.Duration {
+	const defaultTimeout = 5 * time.Minute
+	const deepResearchDefault = 30 * time.Minute
+
+	if assistant == nil || assistant.Type != core.AssistantTypeDeepResearch {
+		return defaultTimeout
+	}
+	if assistant.DeepResearchConfig != nil && assistant.DeepResearchConfig.Timeout != "" {
+		if d, err := time.ParseDuration(assistant.DeepResearchConfig.Timeout); err == nil && d > 0 {
+			return d
+		}
+	}
+	return deepResearchDefault
+}
+
 func (h APIHandler) getSession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("session_id")
 
@@ -228,7 +246,7 @@ func (h APIHandler) createChatSession(w http.ResponseWriter, r *http.Request, ps
 
 	// Create a context with cancel to handle the message asynchronously
 	ctx := context.WithoutCancel(r.Context())
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	ctx, cancel := context.WithTimeout(ctx, resolveTimeout(assistant))
 
 	replyMsg := service.CreateAssistantReplyMessage(params.SessionID, reqMsg.AssistantID, reqMsg.ID)
 
@@ -302,7 +320,7 @@ func (h *APIHandler) askAssistant(w http.ResponseWriter, r *http.Request, ps htt
 	}
 
 	ctx := context.WithoutCancel(r.Context())
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	ctx, cancel := context.WithTimeout(ctx, resolveTimeout(assistant))
 
 	sessionID := reqMsg.SessionID
 	replyMsgTaskID := service.GetReplyMessageTaskID(sessionID, reqMsg.ID)
@@ -457,7 +475,7 @@ func (h APIHandler) sendChatMessageV2(w http.ResponseWriter, r *http.Request, ps
 	}
 	// Create a context with cancel to handle the message asynchronously
 	ctx := context.WithoutCancel(r.Context())
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	ctx, cancel := context.WithTimeout(ctx, resolveTimeout(assistant))
 
 	replyMsg := service.CreateAssistantReplyMessage(params.SessionID, reqMsg.AssistantID, reqMsg.ID)
 

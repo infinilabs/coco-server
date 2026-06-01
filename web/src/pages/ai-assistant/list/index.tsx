@@ -204,7 +204,7 @@ export function Component() {
       dataIndex: 'type',
       minWidth: 50,
       render: (value: string, record: Assistant) => {
-        return ['simple', 'deep_think'].includes(value) ? t(`page.assistant.mode.${value}`) : '-';
+        return ['simple', 'deep_think', 'deep_research'].includes(value) ? t(`page.assistant.mode.${value}`) : '-';
       }
     },
     {
