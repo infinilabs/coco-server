@@ -35,7 +35,18 @@ type Assistant struct {
 	Type           string           `json:"type" elastic_mapping:"type:{type:keyword}"` // assistant type, default value: "simple", possible values: "simple", "deep_think", "external_workflow", "deep_research"
 	Category       string           `json:"category,omitempty" elastic_mapping:"category:{type:keyword}"`
 	Tags           []string         `json:"tags,omitempty" elastic_mapping:"tags:{type:keyword}"`
-	Config         interface{}      `json:"config,omitempty" elastic_mapping:"config:{enabled:false}"` // Assistant-specific configuration settings with type
+	// Assistant-specific configuration settings
+	//
+	// * simple:        not used; this field is always nil.
+	// * deep_think:    split between two places — common fields (AnsweringModel,
+	//                  Datasource, ToolsConfig, …) stay on Assistant, while
+	//                  deep-think-specific fields live in DeepThinkConfig.
+	// * deep_research: all configuration is contained entirely in
+	//                  DeepResearchConfig; no fields on Assistant are used.
+	//
+	// After loading, Config is decoded into the corresponding typed field:
+	// DeepThinkConfig or DeepResearchConfig (both tagged json:"-").
+	Config         interface{}      `json:"config,omitempty" elastic_mapping:"config:{enabled:false}"`
 	AnsweringModel ModelConfig      `json:"answering_model" elastic_mapping:"answering_model:{type:object,enabled:false}"`
 	Datasource     DatasourceConfig `json:"datasource" elastic_mapping:"datasource:{type:object,enabled:false}"`
 	ToolsConfig    ToolsConfig      `json:"tools,omitempty" elastic_mapping:"tools:{type:object,enabled:false}"`
@@ -47,6 +58,9 @@ type Assistant struct {
 	Builtin        bool             `json:"builtin" elastic_mapping:"builtin:{type:boolean}"`          // Whether the model provider is builtin
 	RolePrompt     string           `json:"role_prompt" elastic_mapping:"role_prompt:{enabled:false}"` // Role prompt for the assistant
 
+	// DeepThinkConfig and DeepResearchConfig are populated at load time by
+	// decoding Config into the appropriate type (based on Type). They are not
+	// persisted; json:"-" keeps them out of serialization.
 	DeepThinkConfig    *DeepThinkConfig    `json:"-"`
 	DeepResearchConfig *DeepResearchConfig `json:"-"`
 }
@@ -60,6 +74,18 @@ type DeepThinkConfig struct {
 	ToolsPromisedResultSize int  `json:"tools_promised_result_size"`
 
 	Visible bool `json:"visible"` // Whether the deep think mode is visible to the user
+}
+
+// DeepResearchInternalSearchConfig controls enterprise (internal) search behaviour.
+type DeepResearchInternalSearchConfig struct {
+	DatasourceIDs []string `json:"datasource_ids,omitempty"` // Restrict to these IDs; empty = all accessible.
+}
+
+// DeepResearchExternalSearchConfig controls external web search behaviour.
+type DeepResearchExternalSearchConfig struct {
+	Enabled bool   `json:"enabled"`           // Enable external web search.
+	Engine  string `json:"engine"`            // One of: "duckduckgo", "wikipedia", "tavily".
+	APIKey  string `json:"api_key,omitempty"` // Required when Engine is "tavily".
 }
 
 type DeepResearchConfig struct {
@@ -84,10 +110,8 @@ type DeepResearchConfig struct {
 	ReportLang     string `json:"report_lang"`     // Report language as a BCP 47 tag, e.g. "en-US", "zh-CN".
 
 	// Search
-	SearchEngines []string `json:"search_engines"` // Enabled engines: "duckduckgo", "wikipedia"
-
-	// External integrations
-	TavilyAPIKey string `json:"tavily_api_key"` // Tavily API key; enables paid web search when set.
+	InternalSearch DeepResearchInternalSearchConfig `json:"internal_search"` // Internal enterprise search settings.
+	ExternalSearch DeepResearchExternalSearchConfig `json:"external_search"` // External web search settings.
 }
 
 type UploadConfig struct {
@@ -252,10 +276,10 @@ func DefaultDeepResearchConfig() *DeepResearchConfig {
 		ResearchDepth:           "comprehensive",
 		IncludeSources:          true,
 		SourceFormat:            "APA",
-		SearchEngines:           []string{"duckduckgo", "wikipedia", "bing"},
-		ReportLang:              "en-US",
-		ReportFormat:            "markdown",
-		TavilyAPIKey:            "", // Empty by default, user must configure
+		InternalSearch: DeepResearchInternalSearchConfig{},
+		ExternalSearch: DeepResearchExternalSearchConfig{Enabled: true, Engine: "duckduckgo"},
+		ReportLang:    "en-US",
+		ReportFormat:  "markdown",
 	}
 }
 
@@ -290,8 +314,20 @@ func (cfg *DeepResearchConfig) Validate() error {
 	if cfg.MaxResults <= 0 {
 		return fmt.Errorf("max_results must be positive")
 	}
-	if len(cfg.SearchEngines) == 0 {
-		return fmt.Errorf("at least one search engine must be enabled")
+	// At least external search must be enabled
+	if !cfg.ExternalSearch.Enabled {
+		return fmt.Errorf("external_search must be enabled")
+	}
+
+	// Validate external search engine
+	if cfg.ExternalSearch.Enabled {
+		validEngines := []string{"duckduckgo", "wikipedia", "tavily"}
+		if !slices.Contains(validEngines, cfg.ExternalSearch.Engine) {
+			return fmt.Errorf("external_search.engine must be one of: %v", validEngines)
+		}
+		if cfg.ExternalSearch.Engine == "tavily" && cfg.ExternalSearch.APIKey == "" {
+			return fmt.Errorf("external_search.api_key is required when engine is \"tavily\"")
+		}
 	}
 
 	// Validate research depth
@@ -304,11 +340,6 @@ func (cfg *DeepResearchConfig) Validate() error {
 	validFormats := []string{"markdown", "html"}
 	if !slices.Contains(validFormats, cfg.ReportFormat) {
 		return fmt.Errorf("report_format must be one of: %v", validFormats)
-	}
-
-	// Validate Tavily API key
-	if cfg.TavilyAPIKey == "" {
-		return fmt.Errorf("tavily_api_key is required")
 	}
 
 	// Validate Timeout
@@ -351,9 +382,6 @@ func MergeDeepResearchConfig(userConfig, defaultConfig *DeepResearchConfig) *Dee
 	if userConfig.ResearchDepth == "" {
 		userConfig.ResearchDepth = defaultConfig.ResearchDepth
 	}
-	if len(userConfig.SearchEngines) == 0 {
-		userConfig.SearchEngines = defaultConfig.SearchEngines
-	}
 	if userConfig.MaxResearcherIterations == 0 {
 		userConfig.MaxResearcherIterations = defaultConfig.MaxResearcherIterations
 	}
@@ -362,6 +390,9 @@ func MergeDeepResearchConfig(userConfig, defaultConfig *DeepResearchConfig) *Dee
 	}
 	if userConfig.ReportLang == "" {
 		userConfig.ReportLang = defaultConfig.ReportLang
+	}
+	if userConfig.ExternalSearch.Engine == "" {
+		userConfig.ExternalSearch = defaultConfig.ExternalSearch
 	}
 
 	return userConfig

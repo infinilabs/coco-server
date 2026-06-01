@@ -129,21 +129,8 @@ func ResearcherNode(ctx context.Context, state interface{}) (interface{}, error)
 	// Initialize state components if not present
 	if s.StartTime == 0 {
 		s.StartTime = time.Now().Unix()
-		// Initialize material management
-		//s.AllMaterials = []MaterialReference{}
 		s.MaterialRegistry = make(map[string]bool)
-		// Initialize chapter contents
 		s.ChapterContents = make(map[string]*ChapterContent)
-	}
-
-	// Initialize search manager if not already present
-	if s.SearchManager == nil {
-		s.SearchManager = NewSearchToolManager(
-			s.Config.TavilyAPIKey,
-			s.Config.SearchEngines,
-			s.Config.MaxResults,
-			s.Config.ResearchDepth,
-		)
 	}
 
 	// Initialize chapter outline if not present
@@ -220,7 +207,7 @@ func ResearcherNode(ctx context.Context, state interface{}) (interface{}, error)
 		state.(*State).Sender.SendChunkMessage(core.MessageTypeAssistant, common.ResearchResearcherStepStart, util.MustToJSON(searchPayload), 0)
 
 		// Step 1: Initial search for this research step
-		initialSearchCollection, err := s.SearchManager.SearchWithFeedback(ctx, step, true) // internal first
+		initialSearchCollection, err := SearchWithConfig(ctx, step, s.Config, true) // internal first
 		if err != nil {
 			log.Warnf("Initial search failed for step '%s': %v", step, err)
 			defErrorResult := fmt.Sprintf("Step: %s\nFindings: Search failed: %v", step, err)
@@ -266,7 +253,7 @@ Generate a more specific search query to obtain more detailed or relevant inform
 				stepSearchQueries = append(stepSearchQueries, refinementQuery)
 
 				// Perform refined search
-				refinedCollection, err := s.SearchManager.SearchWithFeedback(ctx, refinementQuery, false) // external search
+				refinedCollection, err := SearchWithConfig(ctx, refinementQuery, s.Config, false) // external first
 				if err == nil {
 					// Combine initial and refined results
 					initialSearchCollection.Results = append(initialSearchCollection.Results, refinedCollection.Results...)
@@ -884,10 +871,10 @@ func (s *State) generateChapterBasedReport(ctx context.Context, llm llms.Model) 
 
 // reportI18n holds UI strings for generated report sections.
 type reportI18n struct {
-	Summary         string
-	TableOfContents string
-	FallbackIntro   string
-	NoMaterials     string
+	Summary          string
+	TableOfContents  string
+	FallbackIntro    string
+	NoMaterials      string
 	GenerationFailed string // printf format — must contain one %v
 }
 
@@ -964,7 +951,6 @@ func (s *State) GetChapterPreview(ctx context.Context, chapterID string) (*Chapt
 	}
 	return nil, fmt.Errorf("chapter %s not found", chapterID)
 }
-
 
 // GetAllChaptersPreview returns preview for all chapters
 func (s *State) GetAllChaptersPreview() map[string]*ChapterContent {

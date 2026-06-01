@@ -93,11 +93,9 @@ type State struct {
 	AllMaterials     []MaterialReference        `json:"all_materials,omitempty"` // All collected materials (reserved)
 	MaterialRegistry map[string]bool            `json:"-"`                       // Track material uniqueness
 	// System
-	Config        *core.DeepResearchConfig `json:"-"`
-	Sender        core.MessageSender       `json:"-"`
-	SearchManager *SearchToolManager       `json:"-"` // Search tool manager
-	//Progress      ResearchProgress         `json:"-"` // Real-time progress tracking
-	StartTime   int64              `json:"-"` // Unix timestamp for timing
+	Config    *core.DeepResearchConfig `json:"-"`
+	Sender    core.MessageSender       `json:"-"`
+	StartTime int64                    `json:"-"` // Unix timestamp for timing
 	Attachments []*core.Attachment `json:"-"` // User-uploaded files; text is injected into the planner prompt.
 }
 
