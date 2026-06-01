@@ -93,10 +93,10 @@ type State struct {
 	AllMaterials     []MaterialReference        `json:"all_materials,omitempty"` // All collected materials (reserved)
 	MaterialRegistry map[string]bool            `json:"-"`                       // Track material uniqueness
 	// System
-	Config    *core.DeepResearchConfig `json:"-"`
-	Sender    core.MessageSender       `json:"-"`
-	StartTime int64                    `json:"-"` // Unix timestamp for timing
-	Attachments []*core.Attachment `json:"-"` // User-uploaded files; text is injected into the planner prompt.
+	Config      *core.DeepResearchConfig `json:"-"`
+	Sender      core.MessageSender       `json:"-"`
+	StartTime   int64                    `json:"-"` // Unix timestamp for timing
+	Attachments []*core.Attachment       `json:"-"` // User-uploaded files; text is injected into the planner prompt.
 }
 
 // NewGraph creates and configures the research agent graph.

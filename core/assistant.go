@@ -29,12 +29,12 @@ const (
 
 type Assistant struct {
 	CombinedFullText
-	Name           string           `json:"name" elastic_mapping:"name:{type:keyword,copy_to:combined_fulltext,fields:{text: {type: text}, pinyin: {type: text, analyzer: pinyin_analyzer}}}"`
-	Description    string           `json:"description" elastic_mapping:"description:{type:text,copy_to:combined_fulltext}"`
-	Icon           string           `json:"icon" elastic_mapping:"icon:{enabled:false}"`
-	Type           string           `json:"type" elastic_mapping:"type:{type:keyword}"` // assistant type, default value: "simple", possible values: "simple", "deep_think", "external_workflow", "deep_research"
-	Category       string           `json:"category,omitempty" elastic_mapping:"category:{type:keyword}"`
-	Tags           []string         `json:"tags,omitempty" elastic_mapping:"tags:{type:keyword}"`
+	Name        string   `json:"name" elastic_mapping:"name:{type:keyword,copy_to:combined_fulltext,fields:{text: {type: text}, pinyin: {type: text, analyzer: pinyin_analyzer}}}"`
+	Description string   `json:"description" elastic_mapping:"description:{type:text,copy_to:combined_fulltext}"`
+	Icon        string   `json:"icon" elastic_mapping:"icon:{enabled:false}"`
+	Type        string   `json:"type" elastic_mapping:"type:{type:keyword}"` // assistant type, default value: "simple", possible values: "simple", "deep_think", "external_workflow", "deep_research"
+	Category    string   `json:"category,omitempty" elastic_mapping:"category:{type:keyword}"`
+	Tags        []string `json:"tags,omitempty" elastic_mapping:"tags:{type:keyword}"`
 	// Assistant-specific configuration settings
 	//
 	// * simple:        not used; this field is always nil.
@@ -276,10 +276,10 @@ func DefaultDeepResearchConfig() *DeepResearchConfig {
 		ResearchDepth:           "comprehensive",
 		IncludeSources:          true,
 		SourceFormat:            "APA",
-		InternalSearch: DeepResearchInternalSearchConfig{},
-		ExternalSearch: DeepResearchExternalSearchConfig{Enabled: true, Engine: "duckduckgo"},
-		ReportLang:    "en-US",
-		ReportFormat:  "markdown",
+		InternalSearch:          DeepResearchInternalSearchConfig{},
+		ExternalSearch:          DeepResearchExternalSearchConfig{Enabled: true, Engine: "duckduckgo"},
+		ReportLang:              "en-US",
+		ReportFormat:            "markdown",
 	}
 }
 
