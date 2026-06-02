@@ -12,7 +12,6 @@ import (
 	"github.com/gomarkdown/markdown/html"
 	"github.com/gomarkdown/markdown/parser"
 	"github.com/tmc/langchaingo/llms"
-	"infini.sh/coco/core"
 	"infini.sh/coco/modules/assistant/langchain"
 	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/util"
@@ -22,7 +21,7 @@ import (
 func PlannerNode(ctx context.Context, state interface{}) (interface{}, error) {
 	s := state.(*State)
 
-	state.(*State).Sender.SendChunkMessage(core.MessageTypeAssistant, common.ResearchPlannerStart, "", 0)
+	s.sendAndCollect(common.ResearchPlannerStart, "")
 
 	planningModel, err := resolveStageModel(s.Config.PlanningModel, "planning")
 	if err != nil {
@@ -116,7 +115,7 @@ Respond in English.`, s.Request.Query, maxSteps, depthHint, s.Config.ResearchDep
 		s.Plan = s.Plan[:maxSteps]
 	}
 
-	state.(*State).Sender.SendChunkMessage(core.MessageTypeAssistant, common.ResearchPlannerEnd, util.MustToJSON(s.Plan), 0)
+	s.sendAndCollect(common.ResearchPlannerEnd, util.MustToJSON(s.Plan))
 
 	return s, nil
 }
@@ -192,7 +191,7 @@ func ResearcherNode(ctx context.Context, state interface{}) (interface{}, error)
 
 		payload := util.MapStr{}
 		payload["plan"] = step
-		state.(*State).Sender.SendChunkMessage(core.MessageTypeAssistant, common.ResearchResearcherStart, util.MustToJSON(payload), 0)
+		s.sendAndCollect(common.ResearchResearcherStart, util.MustToJSON(payload))
 
 		// Update current step status
 		if stepIndex < len(s.StepResults) {
@@ -215,7 +214,7 @@ func ResearcherNode(ctx context.Context, state interface{}) (interface{}, error)
 				"query": query,
 			},
 		} //TODO, convert to query
-		state.(*State).Sender.SendChunkMessage(core.MessageTypeAssistant, common.ResearchResearcherStepStart, util.MustToJSON(searchPayload), 0)
+		s.sendAndCollect(common.ResearchResearcherStepStart, util.MustToJSON(searchPayload))
 
 		// Step 1: Initial search for this research step
 		initialSearchCollection, err := SearchWithConfig(ctx, step, s.Config, true) // internal first
@@ -283,7 +282,7 @@ Generate a more specific search query to obtain more detailed or relevant inform
 				"hits":  initialSearchCollection.Results,
 			},
 		}
-		state.(*State).Sender.SendChunkMessage(core.MessageTypeAssistant, common.ResearchResearcherStepEnd, util.MustToJSON(searchPayload), 0)
+		s.sendAndCollect(common.ResearchResearcherStepEnd, util.MustToJSON(searchPayload))
 
 		stepSearchQueries = append(stepSearchQueries, step)
 
@@ -329,7 +328,7 @@ Generate a more specific search query to obtain more detailed or relevant inform
 		// Step 7: Update chapter progress
 		s.updateChapterProgress(stepIndex, allocatedMaterials)
 
-		state.(*State).Sender.SendChunkMessage(core.MessageTypeAssistant, common.ResearchResearcherEnd, util.MustToJSON(payload), 0)
+		s.sendAndCollect(common.ResearchResearcherEnd, util.MustToJSON(payload))
 	}
 
 	s.ResearchResults = results
@@ -340,9 +339,9 @@ Generate a more specific search query to obtain more detailed or relevant inform
 // ReporterNode compiles the final report using organized chapter structure and materials.
 func ReporterNode(ctx context.Context, state interface{}) (interface{}, error) {
 
-	state.(*State).Sender.SendChunkMessage(core.MessageTypeAssistant, common.ResearchReporterStart, "", 0)
-
 	s := state.(*State)
+
+	s.sendAndCollect(common.ResearchReporterStart, "")
 
 	reportModel, err := resolveStageModel(s.Config.ReportModel, "report")
 	if err != nil {

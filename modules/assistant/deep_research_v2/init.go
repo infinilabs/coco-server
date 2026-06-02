@@ -20,6 +20,10 @@ func RunDeepResearchV2(ctx context.Context, query string, config *core.DeepResea
 	//response
 	reasoningBuffer := strings.Builder{}
 	messageBuffer := strings.Builder{}
+
+	// completedState will be set after graph.Invoke so the defer can access collected chunks.
+	var completedState *State
+
 	// note: we use defer to ensure that the response message is saved after processing
 	// even if user cancels the task or if an error occurs
 	defer func() {
@@ -33,6 +37,14 @@ func RunDeepResearchV2(ctx context.Context, query string, config *core.DeepResea
 		if reasoningBuffer.Len() > 0 {
 			detail := core.ProcessingDetails{Order: 50, Type: common.Think, Description: reasoningBuffer.String()}
 			replyMsg.Details = append(replyMsg.Details, detail)
+		}
+		// Persist all collected deep research chunks so the frontend can replay them from history.
+		if completedState != nil && len(completedState.Chunks) > 0 {
+			replyMsg.Details = append(replyMsg.Details, core.ProcessingDetails{
+				Order:   10,
+				Type:    "deep_research",
+				Payload: completedState.Chunks,
+			})
 		}
 	}()
 
@@ -68,6 +80,7 @@ func RunDeepResearchV2(ctx context.Context, query string, config *core.DeepResea
 	}
 
 	finalState := result.(*State)
+	completedState = finalState
 	log.Info("\n=== Final Report ===")
 	log.Info(finalState.MarkdownReport)
 
@@ -91,7 +104,7 @@ func RunDeepResearchV2(ctx context.Context, query string, config *core.DeepResea
 	report["created"] = attachment.Created
 	report["attachment"] = attachment.ID
 	report["format"] = reportFormat
-	finalState.Sender.SendChunkMessage(core.MessageTypeAssistant, common.ResearchReporterEnd, util.MustToJSON(report), 0)
+	finalState.sendAndCollect(common.ResearchReporterEnd, util.MustToJSON(report))
 
 	log.Info("Report generation completed:")
 	log.Info("  MarkdownReport length: ", len(finalState.MarkdownReport))

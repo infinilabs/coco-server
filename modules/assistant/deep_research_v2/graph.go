@@ -76,6 +76,13 @@ type Request struct {
 	Query string `json:"query"`
 }
 
+// ChunkRecord is a lightweight representation of a streamed chunk,
+// saved to ProcessingDetails so the frontend can replay the deep research UI from history.
+type ChunkRecord struct {
+	ChunkType    string `json:"chunk_type"`
+	MessageChunk string `json:"message_chunk,omitempty"`
+}
+
 // State represents the state of the research agent.
 type State struct {
 	Request         Request      `json:"request"`
@@ -97,6 +104,13 @@ type State struct {
 	Sender      core.MessageSender       `json:"-"`
 	StartTime   int64                    `json:"-"` // Unix timestamp for timing
 	Attachments []*core.Attachment       `json:"-"` // User-uploaded files; text is injected into the planner prompt.
+	Chunks      []ChunkRecord            `json:"-"` // Collected streaming chunks for persistence
+}
+
+// sendAndCollect sends a chunk to the client and records it for later persistence.
+func (s *State) sendAndCollect(chunkType, messageChunk string) {
+	s.Sender.SendChunkMessage(core.MessageTypeAssistant, chunkType, messageChunk, 0)
+	s.Chunks = append(s.Chunks, ChunkRecord{ChunkType: chunkType, MessageChunk: messageChunk})
 }
 
 // NewGraph creates and configures the research agent graph.
