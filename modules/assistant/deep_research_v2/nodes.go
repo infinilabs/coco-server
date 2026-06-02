@@ -24,7 +24,11 @@ func PlannerNode(ctx context.Context, state interface{}) (interface{}, error) {
 
 	state.(*State).Sender.SendChunkMessage(core.MessageTypeAssistant, common.ResearchPlannerStart, "", 0)
 
-	llm, err := langchain.GetLLMByConfig(s.Config.PlanningModel)
+	planningModel, err := resolveStageModel(s.Config.PlanningModel, "planning")
+	if err != nil {
+		return nil, err
+	}
+	llm, err := langchain.GetLLMByConfig(planningModel)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +125,11 @@ Respond in English.`, s.Request.Query, maxSteps, depthHint, s.Config.ResearchDep
 func ResearcherNode(ctx context.Context, state interface{}) (interface{}, error) {
 	s := state.(*State)
 
-	llm, err := langchain.GetLLMByConfig(s.Config.ResearchModel)
+	researchModel, err := resolveStageModel(s.Config.ResearchModel, "research")
+	if err != nil {
+		return nil, err
+	}
+	llm, err := langchain.GetLLMByConfig(researchModel)
 	if err != nil {
 		return nil, err
 	}
@@ -336,7 +344,11 @@ func ReporterNode(ctx context.Context, state interface{}) (interface{}, error) {
 
 	s := state.(*State)
 
-	llm, err := langchain.GetLLMByConfig(s.Config.ReportModel)
+	reportModel, err := resolveStageModel(s.Config.ReportModel, "report")
+	if err != nil {
+		return nil, err
+	}
+	llm, err := langchain.GetLLMByConfig(reportModel)
 	if err != nil {
 		return nil, err
 	}
