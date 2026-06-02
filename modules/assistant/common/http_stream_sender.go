@@ -43,7 +43,6 @@ func (s *HTTPStreamSender) SendChunkMessage(messageType, chunkType, messageChunk
 }
 
 func (s *HTTPStreamSender) SendMessage(msg *core.MessageChunk) error {
-	log.Info(util.MustToJSON(msg))
 	if msg == nil || (msg.MessageType == common.Response && strings.TrimSpace(msg.MessageChunk) == "") {
 		return nil
 	}
@@ -52,6 +51,7 @@ func (s *HTTPStreamSender) SendMessage(msg *core.MessageChunk) error {
 	case <-s.Ctx.Done():
 		return fmt.Errorf("client disconnected")
 	default:
+		log.Info(util.MustToJSON(msg))
 		if err := s.Enc.Encode(msg); err != nil {
 			return err
 		}
