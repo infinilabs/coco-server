@@ -1083,8 +1083,8 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
                 "temperature": 0.7,
                 "max_length": 0
               },
-              "name": "deepseek-chat",
-              "provider_id": "d46s8uh4d9v4iq94qlfg",
+              "name": "",
+              "provider_id": "",
               "prompt": {
                 "template": "",
                 "input_vars": null
