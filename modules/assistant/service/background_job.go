@@ -126,8 +126,10 @@ func ProcessMessageAsync(ctx context.Context, userID string, reqMsg, replyMsg *c
 		params.InputValues["history"] = "</empty>"
 	}
 
-	switch params.AssistantCfg.Type {
-	case core.AssistantTypeDeepThink:
+	// For deep_think assistants, only activate deep-think mode when the
+	// request explicitly sets deep_thinking=true; otherwise fall through to
+	// simple mode so the user can get a fast answer without the full pipeline.
+	if params.AssistantCfg.Type == core.AssistantTypeDeepThink && params.DeepThink {
 		return deep_search.RunDeepSearchTask(
 			ctx,
 			userID,
@@ -137,6 +139,9 @@ func ProcessMessageAsync(ctx context.Context, userID string, reqMsg, replyMsg *c
 			replyMsg,
 			sender,
 		)
+	}
+
+	switch params.AssistantCfg.Type {
 	case core.AssistantTypeDeepResearch:
 		log.Info("start running deep research")
 		var attachments []*core.Attachment
