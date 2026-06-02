@@ -390,7 +390,7 @@ func (h APIHandler) getChatHistoryBySession(w http.ResponseWriter, req *http.Req
 		builder.Size(20)
 	}
 
-	builder.SortBy(orm.Sort{Field: "created", SortType: orm.ASC})
+	builder.SortBy(orm.Sort{Field: "created", SortType: orm.DESC})
 	builder.Must(orm.TermQuery("session_id", ps.MustGetParameter("session_id")))
 
 	ctx := orm.NewContextWithParent(req.Context())

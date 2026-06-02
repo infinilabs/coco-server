@@ -353,7 +353,6 @@ func GenerateFinalResponse(taskCtx context.Context, reqMsg, replyMsg *core.ChatM
 	defer func() {
 		//save response message to system
 		if messageBuffer.Len() > 0 {
-			log.Error("set message buffer:", messageBuffer.String())
 			replyMsg.Message = messageBuffer.String()
 		} else {
 			log.Warnf("seems empty reply for query: %v", replyMsg)

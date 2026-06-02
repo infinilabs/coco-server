@@ -8,10 +8,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/smallnest/langgraphgo/log"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
-	"infini.sh/framework/core/util"
 )
 
 // Heavily based on Kubernetes' (https://github.com/GoogleCloudPlatform/kubernetes) detection code.
@@ -51,7 +49,6 @@ func (s *HTTPStreamSender) SendMessage(msg *core.MessageChunk) error {
 	case <-s.Ctx.Done():
 		return fmt.Errorf("client disconnected")
 	default:
-		log.Info(util.MustToJSON(msg))
 		if err := s.Enc.Encode(msg); err != nil {
 			return err
 		}

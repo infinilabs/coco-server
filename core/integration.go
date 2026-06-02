@@ -12,7 +12,7 @@ type Integration struct {
 	Hotkey  string      `json:"hotkey,omitempty" elastic_mapping:"hotkey:{type:keyword}"`                       // Hotkey for the integration
 	Name    string      `json:"name" elastic_mapping:"name:{type:keyword,copy_to:combined_fulltext,fields:{text: {type: text}, pinyin: {type: text, analyzer: pinyin_analyzer}}}"`
 
-	EnabledModule ModuleConfig        `json:"enabled_module,omitempty" elastic_mapping:"enabled_module:{type:object}"` // Enabled module configuration
+	EnabledModule ModuleConfig `json:"enabled_module,omitempty" elastic_mapping:"enabled_module:{type:object}"` // Enabled module configuration
 
 	// Optional: specify a dedicated assistant ID for DeepThink mode.
 	// If not set, the DeepThink option will not appear in the search dropdown when using this integration instance.
