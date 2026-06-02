@@ -1,7 +1,8 @@
 import { Badge, Button, Space, Upload } from "antd";
 import { cloneDeep } from "lodash";
-import { Image, Mic, Paperclip, Search } from "lucide-react";
+import { Image, Mic, MessageCircle, Paperclip, Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import Deepresearch from "../../icons/Deepresearch";
 
 export function getFileNameAndExt(fileName) {
     if (!fileName) return;
@@ -20,10 +21,21 @@ function formatBytes(n) {
 }
 
 export default (props) => {
-    const { size = 32, disabled = false, onSearch, attachments = [], setAttachments, onAttachmentUpload } = props;
+    const { size = 32, disabled = false, onSearch, attachments = [], setAttachments, onAttachmentUpload, action_type } = props;
 
     const btnStyle = { minWidth: size, width: size, height: size }
     const { t } = useTranslation();
+
+    const getActionIcon = () => {
+        switch (action_type) {
+            case 'deepthink':
+                return <MessageCircle className="w-14px h-14px" />;
+            case 'deepresearch':
+                return <Deepresearch className="w-14px h-14px" />;
+            default:
+                return <Search className="w-14px h-14px" />;
+        }
+    };
 
     return (
         <Space size={4} className="!leading-none">
@@ -76,7 +88,7 @@ export default (props) => {
                     />
                 </Badge>
             </Upload>
-            <Button
+            {/* <Button
                 style={btnStyle}
                 classNames={{ icon: `w-16px h-16px !text-16px flex items-center justify-center` }}
                 icon={<Image className="w-16px h-16px" />}
@@ -91,7 +103,7 @@ export default (props) => {
                 type="text"
                 shape="circle"
                 disabled
-            />
+            /> */}
             <Button
                 style={btnStyle}
                 className={`border-0 ml-4px !rounded-50%`}
@@ -99,7 +111,7 @@ export default (props) => {
                 disabled={disabled}
                 type="primary"
                 shape="circle"
-                icon={<Search className="w-14px h-14px" />}
+                icon={getActionIcon()}
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => onSearch && onSearch()}
             />

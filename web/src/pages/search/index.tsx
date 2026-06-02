@@ -12,6 +12,7 @@ import { getApiBaseUrl } from '@/service/request';
 import queryString from 'query-string';
 import { getLocale } from '@/store/slice/app';
 import { getApplicationSetting } from '@/store/slice/server';
+import { searchAssistant } from '@/service/api/assistant';
 
 configResponsive({ sm: 640 });
 
@@ -82,9 +83,40 @@ export function Component() {
 
   const isMobile = !responsive.sm;
 
-  const { data, loading, run } = useRequest(fetchIntegration, {
-    manual: true
-  });
+  const [integration, setIntegration] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+
+  const getIntegrationSettings = async (integrationID: string) => {
+    setLoading(true)
+    const res = await fetchIntegration(integrationID);
+    if (res?.data) {
+      const { deep_research_assistant, deep_think_assistant } = res.data?._source || {}
+      const integrationData = {
+        ...(res.data._source || {}),
+      }
+      if (deep_research_assistant || deep_think_assistant) {
+        const assistantRes = await searchAssistant({
+          from: 0,
+          size: 10000,
+          filter: {
+            id: [deep_research_assistant, deep_think_assistant].filter((id) => !!id)
+          }
+        });
+        if (assistantRes?.data?.hits?.hits?.length) {
+          assistantRes.data.hits.hits.forEach((item: any) => {
+            if (item._id === deep_research_assistant) {
+              integrationData.deep_research_assistant_entity = item._source
+            }
+            if (item._id === deep_think_assistant) {
+              integrationData.deep_think_assistant_entity = item._source
+            }
+          })
+        }
+      }
+      setIntegration(integrationData)
+    }
+    setLoading(false)
+  }
 
   useEffect(() => {
     const element = topActionsRef.current;
@@ -202,17 +234,17 @@ export function Component() {
     if (callback) callback(res.data)
   }
 
-  async function getFieldsMeta(fields: string[], callback: (data: any) => void) {
+  async function getFieldsMeta(fields: string[], callback?: (data: any) => void) {
     if (!Array.isArray(fields) || fields.length === 0) {
-      callback({})
+      callback?.({})
       return;
     }
     const headers = { 'APP-INTEGRATION-ID': search_settings?.integration }
     const res = await fetchFieldsMeta(fields, { headers })
-    if (callback && res && !res.error) {
-      callback(res.data)
+    if (res && !res.error) {
+      callback?.(res.data)
     } else {
-      callback({})
+      callback?.({})
     }
   }
 
@@ -222,26 +254,26 @@ export function Component() {
     if (callback) callback(res.data)
   }
 
-  async function onUpload(files: any[], callback: (data: any) => void) {
+  async function onUpload(files: any[], callback?: (data: any) => void) {
     const headers = { 'APP-INTEGRATION-ID': search_settings?.integration }
     const res = await uploadAttachment(files, { headers })
-    if (callback && res && !res.error) {
-      callback(res.data)
+    if (res && !res.error) {
+      callback?.(res.data)
     } else {
-      callback({})
+      callback?.({})
     }
   }
 
   useEffect(() => {
     if (search_settings?.integration) {
-      run(search_settings?.integration);
+      getIntegrationSettings(search_settings?.integration);
     }
   }, [search_settings?.integration]);
 
-  const { payload = {}, enabled_module = {} } = data?._source || {}
+  const { payload = {}, enabled_module = {} } = integration || {}
 
   const componentProps = {
-    settings: data?._source,
+    settings: integration,
     id: search_settings?.integration,
     theme: darkMode ? 'dark' : 'light',
     language: locale,

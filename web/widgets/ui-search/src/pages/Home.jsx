@@ -17,7 +17,8 @@ export default function Home({
     onRecommend,
     onUpload,
     attachments,
-    setAttachments
+    setAttachments,
+    settings
 }) {
   return (
     <HomeLayout
@@ -41,6 +42,7 @@ export default function Home({
           onUpload={onUpload}
           attachments={attachments}
           setAttachments={setAttachments}
+          settings={settings}
         />
       }
       welcome={

@@ -29,7 +29,7 @@ export default (props) => {
                         {t('labels.deepThink')}
                     </Space>
                 </Button>
-                <Button
+                {/* <Button
                     classNames={{ icon: `w-16px h-16px !text-16px` }}
                     icon={<Globe strokeWidth={1} className="w-16px h-16px" />}
                     type="text"
@@ -42,7 +42,7 @@ export default (props) => {
                     type="text"
                     shape="circle"
                     disabled
-                />
+                /> */}
             </Space>
         )
     } else if (actionType === ACTION_TYPE_DEEPSEARCH) {
@@ -54,13 +54,13 @@ export default (props) => {
                         {t('labels.deepResearch')}
                     </Space>
                 </Button>
-                <Button
+                {/* <Button
                     classNames={{ icon: `w-16px h-16px !text-16px` }}
                     icon={<Globe strokeWidth={1} className="w-16px h-16px" />}
                     type="text"
                     shape="circle"
                     disabled
-                />
+                /> */}
             </Space>
         )
     } else {

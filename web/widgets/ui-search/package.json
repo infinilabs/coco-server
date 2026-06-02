@@ -60,7 +60,7 @@
     "@emotion/is-prop-valid": "^1.4.0",
     "@emotion/react": "^11.14.0",
     "@infinilabs/ai-answer": "^0.0.11",
-    "@infinilabs/ai-chat": "0.0.20",
+    "@infinilabs/ai-chat": "^0.0.23",
     "@infinilabs/attachments": "^0.0.4",
     "@infinilabs/doc-detail": "^0.0.19",
     "@infinilabs/filter": "^0.0.14",

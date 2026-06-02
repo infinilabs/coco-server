@@ -81,21 +81,47 @@ export default (props) => {
 
     async function fetchSettings(server, id) {
         if (!server || !id) return;
-        fetch(`${server}/integration/${id}`, {
-            headers: {
-                'APP-INTEGRATION-ID': id,
-                'Content-Type': 'application/json',
-            },
-            method: 'GET',
-            credentials: 'include',
-        })
-        .then(response => response.json())
-        .then(result => {
+        try {
+            const response = await fetch(`${server}/integration/${id}`, {
+                headers: {
+                    'APP-INTEGRATION-ID': id,
+                    'Content-Type': 'application/json',
+                },
+                method: 'GET',
+                credentials: 'include',
+            });
+            const result = await response.json();
             if (result?._source) {
-                setSettings(result?._source);
+                const integrationData = { ...result._source };
+                const { deep_research_assistant, deep_think_assistant } = integrationData;
+                if (deep_research_assistant || deep_think_assistant) {
+                    const ids = [deep_research_assistant, deep_think_assistant].filter((id) => !!id);
+                    const filterStr = ids.map((id) => `filter=id:any(${id})`).join('&');
+                    const assistantRes = await fetch(`${server}/assistant/_search?from=0&size=10000&${filterStr}`, {
+                        headers: {
+                            'APP-INTEGRATION-ID': id,
+                            'Content-Type': 'application/json',
+                        },
+                        method: 'GET',
+                        credentials: 'include',
+                    });
+                    const assistantData = await assistantRes.json();
+                    if (assistantData?.hits?.hits?.length) {
+                        assistantData.hits.hits.forEach((item) => {
+                            if (item._id === deep_research_assistant) {
+                                integrationData.deep_research_assistant_entity = item._source;
+                            }
+                            if (item._id === deep_think_assistant) {
+                                integrationData.deep_think_assistant_entity = item._source;
+                            }
+                        });
+                    }
+                }
+                setSettings(integrationData);
             }
-        })
-        .catch(error => console.log('error', error));
+        } catch (error) {
+            console.log('error', error);
+        }
     }
 
     function search(query, callback, setLoading) {

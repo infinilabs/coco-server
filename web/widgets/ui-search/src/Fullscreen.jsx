@@ -364,13 +364,16 @@ const Fullscreen = props => {
         commonProps={commonProps}
         loading={showFullScreenSpin}
         logo={logo}
+        settings={settings}
         onSearch={(params, shouldAsk, shouldAgg) => {
           if (params.mode === 'chat') {
-            let assistant_id;
-            if (params.action === 'deepthink') {
-              assistant_id = settings?.deep_think_assistant;
-            } else if (params.action === 'deepresearch') {
-              assistant_id = settings?.deep_research_assistant;
+            let assistant_id = params.assistant_id;
+            if (!assistant_id) {
+              if (params.action === 'deepthink') {
+                assistant_id = settings?.deep_think_assistant;
+              } else if (params.action === 'deepresearch') {
+                assistant_id = settings?.deep_research_assistant;
+              }
             }
             onChat({
               query: params.query || '',
@@ -400,6 +403,7 @@ const Fullscreen = props => {
       aiOverview={aiOverview}
       askBody={askBody}
       commonProps={commonProps}
+      settings={settings}
       config={config}
       data={data}
       filter={filter}
@@ -424,11 +428,13 @@ const Fullscreen = props => {
       }}
       onSearch={(params, shouldAsk, shouldAgg) => {
         if (params.mode === 'chat') {
-          let assistant_id;
-          if (params.action === 'deepthink') {
-            assistant_id = settings?.deep_think_assistant;
-          } else if (params.action === 'deepresearch') {
-            assistant_id = settings?.deep_research_assistant;
+          let assistant_id = params.assistant_id;
+          if (!assistant_id) {
+            if (params.action === 'deepthink') {
+              assistant_id = settings?.deep_think_assistant;
+            } else if (params.action === 'deepresearch') {
+              assistant_id = settings?.deep_research_assistant;
+            }
           }
           onChat({
             query: params.query || '',

@@ -20,7 +20,8 @@ export function SearchBox(props) {
     language, 
     onUpload,
     attachments,
-    setAttachments 
+    setAttachments,
+    settings
   } = props;
   const sb = useSearchBox({ 
     queryParams, 
@@ -66,10 +67,12 @@ export function SearchBox(props) {
         query: item.suggestion,
         attachments: attachments,
         mode: 'chat',
-        action: item.action
+        action: item.action,
+        assistant_id: item.assistant_id
       })
     },
     language,
+    settings,
     resetKey: `${sb.suggestionType || ''}::${sb.colonFieldQuery || ''}::${sb.slashFieldQuery || ''}`
   };
 
@@ -128,7 +131,7 @@ export function SearchBox(props) {
               onChange={sb.handleInputChange}
               onSelect={sb.handleCursorPositionChange}
               onClick={sb.handleCursorPositionChange}
-              suffix={<Operations size={24} onSearch={sb.triggerSearch} disabled={!sb.searchable} attachments={sb.attachments} setAttachments={sb.handleAttachmentsChange} onAttachmentUpload={sb.handleAttachmentUpload}/>}
+              suffix={<Operations size={24} onSearch={sb.triggerSearch} disabled={!sb.searchable} attachments={sb.attachments} setAttachments={sb.handleAttachmentsChange} onAttachmentUpload={sb.handleAttachmentUpload} action_type={sb.action_type}/>}
               placeholder={placeholder}
               className="flex-1 w-full"
               onFocus={sb.handleInputFocus}

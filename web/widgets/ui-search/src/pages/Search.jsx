@@ -41,7 +41,8 @@ export default function Search({
   getFieldsMeta,
   onUpload,
   attachments,
-  setAttachments
+  setAttachments,
+  settings
 }) {
 
   const { query, filter, aggfilter = {} } = queryParams;
@@ -133,6 +134,7 @@ export default function Search({
             onUpload={onUpload}
             attachments={attachments}
             setAttachments={setAttachments}
+            settings={settings}
           />
         }
         tabs={
@@ -230,6 +232,7 @@ export default function Search({
           filterFieldsMeta={filterFieldsMeta}
           attachments={attachments}
           setAttachments={setAttachments}
+          settings={settings}
         />
       }
       tabs={

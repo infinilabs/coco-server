@@ -1,37 +1,14 @@
-import { createLucideIcon, MessageCircle, Search } from "lucide-react";
+import { MessageCircle, Search } from "lucide-react";
 import ListContainer from "./ListContainer";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useTranslation } from 'react-i18next';
+import Deepresearch from "../../icons/Deepresearch";
 
 export const SUGGESTION_ACTIONS = "suggestion_actions"
 export const SUGGESTION_KEYWORDS = "suggestion_keywords"
 
-const Deepresearch = createLucideIcon('Deepresearch', [
-  ['path', { 
-    d: 'M336.353882 358.219294c94.870588-93.846588 199.619765-155.166118 289.370353-180.705882 92.521412-26.443294 151.672471-11.264 180.645647 17.347764 28.973176 28.672 44.333176 87.160471 17.648942 178.718118-25.901176 88.726588-87.943529 192.271059-182.753883 286.117647-94.930824 93.846588-199.619765 155.166118-289.370353 180.705883-92.581647 26.443294-151.732706 11.264-180.705882-17.468236l-51.440941 50.898824 10.962823 9.938823c117.579294 96.737882 364.483765 21.985882 561.935059-173.236706 203.776-201.547294 277.684706-455.137882 165.165177-566.452705l-10.962824-9.938824C729.268706 37.406118 482.484706 112.158118 284.973176 307.380706 81.136941 508.867765 7.228235 762.458353 119.747765 873.833412l51.440941-50.838588c-28.973176-28.672-44.272941-87.160471-17.648941-178.657883 25.901176-88.726588 87.943529-192.271059 182.814117-286.117647z',
-    transform: 'scale(0.0234375)',
-    fill: 'currentColor',
-    stroke: 'none',
-    key: 'orbit-1' 
-  }],
-  ['path', { 
-    d: 'M641.445647 360.869647C546.514824 265.938824 441.705412 203.896471 351.894588 177.995294c-92.641882-26.684235-151.973647-11.444706-181.127529 17.769412-29.153882 29.153882-44.453647 88.425412-17.709177 181.067294 25.901176 89.810824 87.943529 194.56 182.874353 289.551059 94.930824 94.870588 199.68 156.973176 289.551059 182.874353 92.641882 26.684235 151.973647 11.444706 181.12753-17.709177l51.079529 51.07953-10.962824 9.999059c-113.844706 94.689882-348.762353 26.985412-542.72-156.431059l-19.215058-18.672941C81.016471 513.626353 7.047529 257.204706 119.627294 144.564706c112.64-112.64 369.121882-38.671059 572.897882 165.165176l18.733177 19.215059c189.560471 200.402824 255.518118 444.536471 146.432 553.622588l-51.079529-51.079529c29.153882-29.214118 44.393412-88.545882 17.709176-181.127529-25.901176-89.810824-87.943529-194.56-182.874353-289.551059z',
-    transform: 'scale(0.0234375)',
-    fill: 'currentColor',
-    stroke: 'none',
-    key: 'orbit-2' 
-  }],
-  ['path', { 
-    d: 'M488.688941 388.517647l34.093177 86.377412 86.377411 34.032941-86.377411 34.093176-34.093177 86.377412-34.032941-86.377412-86.437647-34.093176 86.437647-34.032941 34.032941-86.437647z',
-    transform: 'scale(0.0234375)',
-    fill: 'currentColor',
-    stroke: 'none',
-    key: 'star-center' 
-  }],
-]);
-
 export default (props) => {
-    const { keyword, data = [], onItemSelect, onItemClick, action_type } = props;
+    const { keyword, data = [], onItemSelect, onItemClick, action_type, settings } = props;
     const { t } = useTranslation();
 
     const actions = useMemo(() => [
@@ -41,19 +18,21 @@ export default (props) => {
             suggestion: keyword,
             source: t('labels.quickFind'),
         },
-        {
+        settings?.deep_think_assistant_entity?.type === 'deep_think' ? {
             action: "deepthink",
             icon: <MessageCircle className="w-16px h-16px" />,
             suggestion: keyword,
             source: t('labels.deepThinkShort'),
-        },
-        {
+            assistant_id: settings?.deep_think_assistant_entity?.id,
+        } : null,
+        settings?.deep_research_assistant_entity?.type === 'deep_research' ? {
             action: "deepresearch",
             icon: <Deepresearch className="w-16px h-16px" />,
             suggestion: keyword,
             source: t('labels.deepResearchShort'),
-        },
-    ].filter(item => !!item?.suggestion), [keyword, t]);
+            assistant_id: settings?.deep_research_assistant_entity?.id,
+        } : null,
+    ].filter(item => !!item?.suggestion), [keyword, t, settings]);
 
     const keywords = useMemo(() => data.filter(item => !!item?.suggestion), [data]);
 
@@ -72,10 +51,15 @@ export default (props) => {
         [SUGGESTION_ACTIONS]: null,
         [SUGGESTION_KEYWORDS]: null
     });
+    const skipActionTypeResetRef = useRef(false);
 
     useEffect(() => {
         combinedData.current = [...actions, ...keywords];
         if (action_type) {
+            if (skipActionTypeResetRef.current) {
+                skipActionTypeResetRef.current = false;
+                return;
+            }
             const index = actions.findIndex(item => item.action === action_type);
             if (index >= 0) {
                 setGlobalActiveIndex(index);
@@ -109,6 +93,9 @@ export default (props) => {
                     setGlobalActiveIndex(newIndex);
                     if (newIndex < actionsLength) {
                         onItemSelect(combinedData.current?.[newIndex]);
+                    } else {
+                        skipActionTypeResetRef.current = true;
+                        onItemSelect({ ...combinedData.current?.[newIndex], action: "search" });
                     }
                     break;
 
@@ -121,6 +108,9 @@ export default (props) => {
                     setGlobalActiveIndex(newIndex);
                     if (newIndex < actionsLength) {
                         onItemSelect(combinedData.current?.[newIndex]);
+                    } else {
+                        skipActionTypeResetRef.current = true;
+                        onItemSelect({ ...combinedData.current?.[newIndex], action: "search" });
                     }
                     break;
                 case 13: 
@@ -201,6 +191,8 @@ export default (props) => {
                 onGlobalSelect={(localIndex) => {
                     const globalIndex = actionsLength + localIndex;
                     setGlobalActiveIndex(globalIndex);
+                    skipActionTypeResetRef.current = true;
+                    onItemSelect({ ...combinedData.current?.[globalIndex], action: "search" });
                 }}
             />
         </>

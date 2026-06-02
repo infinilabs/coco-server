@@ -29,6 +29,7 @@ export default function ActionBar({
         onSearch={onSearch}
         disabled={!searchable}
         onAttachmentUpload={onAttachmentUpload}
+        action_type={action_type}
       />
     </div>
   );

@@ -23,6 +23,7 @@ export default function Suggestions({
   handleFilterComplete,
   turnToChat,
   language,
+  settings,
   resetKey
 }) {
 
@@ -38,6 +39,7 @@ export default function Suggestions({
           keyword={query}
           data={data}
           action_type={action_type}
+          settings={settings}
           onItemSelect={(item) => handleQueryParamsChange('action_type', item.action || ACTION_TYPE_SEARCH)}
           onItemClick={handleSuggestionItemClick((item) => {
             if (item.action === 'deepthink' || item.action === 'deepresearch') {
