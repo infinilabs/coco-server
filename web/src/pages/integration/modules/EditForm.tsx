@@ -91,6 +91,8 @@ export const EditForm = memo(props => {
 
   const handleSubmit = async () => {
     const params = await form.validateFields();
+    const hasDeepThinkAssistantField = Object.prototype.hasOwnProperty.call(params, 'deep_think_assistant');
+    const hasDeepResearchAssistantField = Object.prototype.hasOwnProperty.call(params, 'deep_research_assistant');
     const {
       searchbox_mode,
       fullscreen_mode,
@@ -106,8 +108,8 @@ export const EditForm = memo(props => {
     const { datasource = [] } = search;
     const { assistants = [] } = ai_chat;
     const { ai_overview = {} } = payload;
-    const normalizedDeepThinkAssistant = deep_think_assistant?.id;
-    const normalizedDeepResearchAssistant = deep_research_assistant?.id;
+    const normalizedDeepThinkAssistant = hasDeepThinkAssistantField ? deep_think_assistant?.id : record?.deep_think_assistant;
+    const normalizedDeepResearchAssistant = hasDeepResearchAssistantField ? deep_research_assistant?.id : record?.deep_research_assistant;
     const formatGuest = {
       ...guest,
       run_as: guest.enabled && guest.run_as?.id ? guest.run_as?.id : undefined

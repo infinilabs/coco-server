@@ -149,27 +149,27 @@ export const SearchBoxForm = memo(props => {
     </Form.Item>
     <Form.Item
       label={t('page.integration.form.labels.search_settings')}
+      name="enabled_module"
     >
-      <div className="mb-8px">
-        {t('page.integration.form.labels.enabled')}
-      </div>
       <Form.Item
+        className="mb-0px"
         name={['enabled_module', 'search', 'enabled']}
         valuePropName="checked"
-        className="mb-0px"
       >
         <Switch size="small" onChange={(checked) => setEnabledList((state) => ({ ...state, search: checked }))}/>
       </Form.Item>
-      {
-        enabledList?.search && (
-          <>
-            <div className="mb-8px pt-8px">
+    </Form.Item>
+    {
+      enabledList?.search && (
+        <>
+          <Form.Item label=" ">
+            <div className="mb-8px">
               {t('page.integration.form.labels.datasource')}
             </div>
             <Form.Item
+              className="mb-0px"
               name={['enabled_module', 'search', 'datasource']}
               rules={[defaultRequiredRule]}
-              className="mb-8px"
             >
               <Select
                 allowClear
@@ -184,60 +184,41 @@ export const SearchBoxForm = memo(props => {
                 )}
               />
             </Form.Item>
+          </Form.Item>
+          <Form.Item label=" ">
             <div className="mb-8px">
               {t('page.integration.form.labels.module_search_placeholder')}
             </div>
             <Form.Item
-              name={['enabled_module', 'search', 'placeholder']}
               className="mb-0px"
+              name={['enabled_module', 'search', 'placeholder']}
             >
               <Input className={itemClassNames} />
             </Form.Item>
-          </>
-        )
-      }
-    </Form.Item>
-    <Form.Item
-      label={t('page.integration.form.labels.conversation_settings')}
-    >
-      <div className="mb-8px">
-        {t('page.integration.form.labels.deep_think_assistant')}
-      </div>
-      <Form.Item
-        className="mb-8px"
-        name="deep_think_assistant"
-      >
-        <AIAssistantSelect allowClear className={itemClassNames} filter={{ type: ['deep_think'] }} />
-      </Form.Item>
-      <div className="mb-8px">
-        {t('page.integration.form.labels.deep_research_assistant')}
-      </div>
-      <Form.Item
-        className="mb-8px"
-        name="deep_research_assistant"
-      >
-        <AIAssistantSelect allowClear className={itemClassNames} filter={{ type: ['deep_research'] }} />
-      </Form.Item>
-      <div className="mb-8px">
-        {t('page.integration.form.labels.module_chat')}
-      </div>
+          </Form.Item>
+        </>
+      )
+    }
+    <Form.Item label=" ">
       <Form.Item
         className="mb-0px"
+        label={t('page.integration.form.labels.module_chat')}
         name={['enabled_module', 'ai_chat', 'enabled']}
-        valuePropName="checked"
       >
         <Switch size="small" onChange={(checked) => setEnabledList((state) => ({ ...state, ai_chat: checked }))}/>
       </Form.Item>
-      {
-        enabledList?.ai_chat && (
-          <>
-            <div className="mb-8px pt-8px">
+    </Form.Item>
+    {
+      enabledList?.ai_chat && (
+        <>
+          <Form.Item label=" ">
+            <div className="mb-8px">
               {t('page.integration.form.labels.module_chat_ai_assistant')}
             </div>
             <Form.Item
               name={['enabled_module', 'ai_chat', 'assistants']}
               rules={[defaultRequiredRule]}
-              className="mb-8px"
+              className="mb-0px"
             >
               <AIAssistantSelect mode="multiple" className={itemClassNames} onChange={(as) => {
                 setAssistants(as)
@@ -249,24 +230,23 @@ export const SearchBoxForm = memo(props => {
                 })
               }}/>
             </Form.Item>
+          </Form.Item>
+          <Form.Item label=" ">
             <div className="mb-8px">
               {t('page.integration.form.labels.module_chat_placeholder')}
             </div>
             <Form.Item
-              className="mb-8px"
+              className="mb-0px"
               name={['enabled_module', 'ai_chat', 'placeholder']}
             >
               <Input className={itemClassNames} />
             </Form.Item>
-            <div className="mb-8px">
-              {t('page.integration.form.labels.module_chat_start_page')}
-            </div>
-            <Form.Item className="mb-0px">
-              <ChatStartPage assistants={assistants} isSub={true} startPageSettings={record?.enabled_module?.ai_chat?.start_page_config} logo={startPagelogos} setLogo={setStartPagelogos}/>
-            </Form.Item>
-          </>
-        )
-      }
+          </Form.Item>
+        </>
+      )
+    }
+    <Form.Item label=" ">
+      <ChatStartPage assistants={assistants} isSub={true} startPageSettings={record?.enabled_module?.ai_chat?.start_page_config} logo={startPagelogos} setLogo={setStartPagelogos}/>
     </Form.Item>
     {/* <Form.Item label=" ">
       <div className="mb-8px">
