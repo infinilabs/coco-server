@@ -74,6 +74,11 @@ func RunDeepResearchV2(ctx context.Context, query string, config *core.DeepResea
 		}
 	}
 
+	// Point completedState to initialState now so the defer can persist
+	// whatever chunks have been collected even if graph.Invoke panics
+	// (e.g. on context cancellation).
+	completedState = initialState
+
 	result, err := graph.Invoke(invokeCtx, initialState)
 	if err != nil {
 		panic(errors.Errorf("Graph execution failed: %v", err))

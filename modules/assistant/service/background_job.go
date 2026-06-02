@@ -82,15 +82,22 @@ func ProcessMessageAsync(ctx context.Context, userID string, reqMsg, replyMsg *c
 				case string:
 					v = r.(string)
 				}
-				msg := fmt.Sprintf("⚠️ error in async processing message reply, %v", v)
-				if replyMsg.Message != "" {
-					replyMsg.Message += "\n\n"
+
+				// If the context was cancelled (user switched chat or clicked cancel),
+				// treat it as a graceful stop — no error message to the user.
+				if ctx.Err() != nil {
+					log.Infof("async processing cancelled by user: %v", v)
+				} else {
+					msg := fmt.Sprintf("⚠️ error in async processing message reply, %v", v)
+					if replyMsg.Message != "" {
+						replyMsg.Message += "\n\n"
+					}
+					replyMsg.Message += msg
+					_ = sender.SendChunkMessage(core.MessageTypeSystem,
+						common.Response, msg, 0,
+					)
+					_ = log.Error(msg)
 				}
-				replyMsg.Message += msg
-				_ = sender.SendChunkMessage(core.MessageTypeSystem,
-					common.Response, msg, 0,
-				)
-				_ = log.Error(msg)
 			}
 		}
 
