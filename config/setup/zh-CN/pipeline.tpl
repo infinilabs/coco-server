@@ -34,7 +34,7 @@ POST $[[SETUP_INDEX_PREFIX]]pipelineconfigv2/$[[SETUP_DOC_TYPE]]/enrich_document
     "owner_id": "$[[SETUP_OWNER_ID]]"
   },
   "id": "enrich_documents",
-  "name": "Enrich Documents",
+  "name": "文档增强",
   "enabled": true,
   "processor": [
       {
@@ -80,7 +80,7 @@ POST $[[SETUP_INDEX_PREFIX]]pipelineconfigv2/$[[SETUP_DOC_TYPE]]/enrich_attachme
     "owner_id": "$[[SETUP_OWNER_ID]]"
   },
   "id": "enrich_attachments",
-  "name": "Enrich Attachments",
+  "name": "附件增强",
   "enabled": true,
   "processor": [
       {
