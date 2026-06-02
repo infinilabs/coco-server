@@ -91,11 +91,23 @@ export const EditForm = memo(props => {
 
   const handleSubmit = async () => {
     const params = await form.validateFields();
-    const { searchbox_mode, fullscreen_mode, cors = {}, enabled_module = {}, start_page = {}, payload = {}, guest = {} } = params;
+    const {
+      searchbox_mode,
+      fullscreen_mode,
+      cors = {},
+      enabled_module = {},
+      start_page = {},
+      payload = {},
+      guest = {},
+      deep_think_assistant,
+      deep_research_assistant
+    } = params;
     const { search = {}, ai_chat = {} } = enabled_module;
     const { datasource = [] } = search;
     const { assistants = [] } = ai_chat;
     const { ai_overview = {} } = payload;
+    const normalizedDeepThinkAssistant = deep_think_assistant?.id;
+    const normalizedDeepResearchAssistant = deep_research_assistant?.id;
     const formatGuest = {
       ...guest,
       run_as: guest.enabled && guest.run_as?.id ? guest.run_as?.id : undefined
@@ -104,6 +116,8 @@ export const EditForm = memo(props => {
       type === 'fullscreen'
         ? {
           ...params,
+          deep_think_assistant: normalizedDeepThinkAssistant,
+          deep_research_assistant: normalizedDeepResearchAssistant,
           guest: formatGuest,
           enabled_module: {
             search: {
@@ -136,6 +150,8 @@ export const EditForm = memo(props => {
         }
         : {
           ...params,
+          deep_think_assistant: normalizedDeepThinkAssistant,
+          deep_research_assistant: normalizedDeepResearchAssistant,
           guest: formatGuest,
           enabled_module: {
             ...enabled_module,
@@ -174,6 +190,8 @@ export const EditForm = memo(props => {
           ...(record.cors || {}),
           allowed_origins: record.cors?.allowed_origins ? record.cors?.allowed_origins.join(',') : ''
         },
+        deep_research_assistant: record.deep_research_assistant ? { id: record.deep_research_assistant } : undefined,
+        deep_think_assistant: record.deep_think_assistant ? { id: record.deep_think_assistant } : undefined,
         guest: {
           ...(record.guest || {}),
           run_as: record.guest?.enabled && record.guest?.run_as ? { id: record.guest?.run_as } : undefined

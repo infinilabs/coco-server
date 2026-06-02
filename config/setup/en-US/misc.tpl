@@ -42,6 +42,8 @@ POST $[[SETUP_INDEX_PREFIX]]integration$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]
               }
             }
           },
+          "deep_think_assistant": "",
+          "deep_research_assistant": "",
           "access_control": {
             "authentication": false,
             "chat_history": false
