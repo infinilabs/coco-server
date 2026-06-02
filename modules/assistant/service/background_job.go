@@ -44,8 +44,12 @@ func CreateAssistantReplyMessage(sessionID, assistantID, requestMessageID string
 
 // save response and send END signal to receiver
 func finalizeProcessing(ctx context.Context, sessionID string, msg *core.ChatMessage, sender core.MessageSender) {
-
-	ctx1 := orm.NewContextWithParent(ctx)
+	// Use a fresh background context with timeout for saving, so a cancelled
+	// request context (e.g. from Ctrl-C / graceful shutdown) does not prevent
+	// the reply message from being persisted.
+	saveCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	ctx1 := orm.NewContextWithParent(saveCtx)
 
 	if err := orm.Save(ctx1, msg); err != nil {
 		_ = log.Errorf("Failed to save assistant message: %v", err)
