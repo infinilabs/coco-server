@@ -17,6 +17,8 @@ func (m *MessageRequest) IsEmpty() bool {
 	return m.Message == "" && len(m.Attachments) == 0
 }
 
+// ChatMessage is a persisted chat message stored in Elasticsearch.
+// Each user question or assistant reply is saved as one ChatMessage record.
 type ChatMessage struct {
 	orm.ORMObjectBase
 	MessageType string   `json:"type"` // user, assistant, system
@@ -42,6 +44,8 @@ type ProcessingDetails struct {
 	Payload     interface{} `json:"payload"` //<Payload>{JSON}</Payload>
 }
 
+// MessageChunk is a streaming fragment sent to the client over chunked HTTP.
+// The LLM response and system status updates are delivered as a sequence of these chunks in real time.
 type MessageChunk struct {
 	SessionId      string `json:"session_id"`
 	MessageId      string `json:"message_id"`
