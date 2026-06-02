@@ -32,7 +32,10 @@ export default function Chat({
   useEffect(() => {
     if (JSON.stringify(defaultParams) !== JSON.stringify(processedParams.current)) {
       processedParams.current = defaultParams;
-      if ((!defaultParams?.query || !defaultParams?.query.trim()) && defaultParams?.attachments?.length === 0) {
+      if ((!defaultParams?.query || !defaultParams?.query.trim()) 
+        && defaultParams?.attachments?.length === 0
+        && !defaultParams?.assistant_id
+      ) {
         return;
       }
       chatRef.current?.init({ 
@@ -40,6 +43,7 @@ export default function Chat({
         attachments: (defaultParams.attachments || [])
         .filter((a) => a.status === "uploaded" && a.id)
         .map((a) => a.id), 
+        assistant_id: defaultParams.assistant_id
       });
       setDefaultParams({})
       setAttachments([]);
@@ -86,12 +90,16 @@ export default function Chat({
           onSend={onSendMessage}
           changeInput={setInputValue}
           chatPlaceholder={t('labels.inputPlaceholder')}
+          onCancel={() => {
+            chatRef.current.cancelChat();
+          }}
         />
       }
       sidebarCollapsed={!isHistoryOpen}
       header={
         <ChatHeader
           onNewChat={handleNewChat}
+          isHistoryOpen={isHistoryOpen}
           onToggleHistory={() => setIsHistoryOpen((open) => !open)}
           AssistantList={
             <AssistantList

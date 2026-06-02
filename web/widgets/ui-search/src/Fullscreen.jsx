@@ -31,7 +31,8 @@ const Fullscreen = props => {
     getRawContent,
     apiConfig,
     getFieldsMeta,
-    onUpload
+    onUpload,
+    settings
   } = props;
 
   const containerRef = useRef(null);
@@ -53,10 +54,7 @@ const Fullscreen = props => {
   const [attachments, setAttachments] = useState([]);
 
   const onChat = (params) => {
-    setChatParams({
-      query: params.query,
-      attachments: params.attachments
-    });
+    setChatParams(params);
     setQueryParams({
       mode: 'chat',
     })
@@ -368,9 +366,16 @@ const Fullscreen = props => {
         logo={logo}
         onSearch={(params, shouldAsk, shouldAgg) => {
           if (params.mode === 'chat') {
+            let assistant_id;
+            if (params.action === 'deepthink') {
+              assistant_id = settings?.deep_think_assistant;
+            } else if (params.action === 'deepresearch') {
+              assistant_id = settings?.deep_research_assistant;
+            }
             onChat({
               query: params.query || '',
               attachments: params.attachments || attachments || [],
+              assistant_id,
             });
             return;
           };
@@ -419,9 +424,16 @@ const Fullscreen = props => {
       }}
       onSearch={(params, shouldAsk, shouldAgg) => {
         if (params.mode === 'chat') {
+          let assistant_id;
+          if (params.action === 'deepthink') {
+            assistant_id = settings?.deep_think_assistant;
+          } else if (params.action === 'deepresearch') {
+            assistant_id = settings?.deep_research_assistant;
+          }
           onChat({
             query: params.query || '',
             attachments: params.attachments || attachments || [],
+            assistant_id,
           });
           return;
         };
@@ -435,6 +447,7 @@ const Fullscreen = props => {
         onChat({
           query: queryParams.query || '',
           attachments: attachments || [],
+          assistant_id: settings?.payload?.ai_overview?.assistant,
         });
       }}
       getFieldsMeta={getFieldsMeta}
