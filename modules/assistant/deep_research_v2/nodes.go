@@ -173,6 +173,9 @@ func ResearcherNode(ctx context.Context, state interface{}) (interface{}, error)
 
 	// Process each research step with feedback-based search and chapter distribution
 	for stepIndex, step := range s.Plan {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		if stepIndex >= maxIter {
 			log.Infof("Reached MaxResearcherIterations (%d), stopping", maxIter)
 			break
@@ -231,7 +234,6 @@ func ResearcherNode(ctx context.Context, state interface{}) (interface{}, error)
 				"hits":  initialSearchCollection.Results,
 			},
 		} //TODO, convert to query
-		state.(*State).Sender.SendChunkMessage(core.MessageTypeAssistant, common.ResearchResearcherStepEnd, util.MustToJSON(searchPayload), 0)
 
 		// Step 2: Analyze search results and potentially refine search
 		if !initialSearchCollection.IsSufficient {
@@ -261,6 +263,19 @@ Generate a more specific search query to obtain more detailed or relevant inform
 				}
 			}
 		}
+
+		// Send step end with all combined results (initial + refined)
+		searchPayload = util.MapStr{}
+		searchPayload["plan"] = step
+		searchPayload["step"] = util.MapStr{
+			"type": "search",
+			"name": "Search Materials",
+			"payload": util.MapStr{
+				"total": len(initialSearchCollection.Results),
+				"hits":  initialSearchCollection.Results,
+			},
+		}
+		state.(*State).Sender.SendChunkMessage(core.MessageTypeAssistant, common.ResearchResearcherStepEnd, util.MustToJSON(searchPayload), 0)
 
 		stepSearchQueries = append(stepSearchQueries, step)
 

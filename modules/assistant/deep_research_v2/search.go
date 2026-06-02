@@ -3,6 +3,7 @@ package deep_research
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"strings"
 
 	log "github.com/cihub/seelog"
@@ -99,7 +100,7 @@ func runExternalEngine(ctx context.Context, cfg *core.DeepResearchConfig, query 
 		if err != nil {
 			return nil, fmt.Errorf("duckduckgo search failed: %w", err)
 		}
-		return []SearchResult{{Source: "duckduckgo", Title: query, Content: result, Score: 0.6}}, nil
+		return parseDDGResults(result, "duckduckgo", 0.6), nil
 
 	case "wikipedia":
 		wt := wikitool.New(webAgent)
@@ -138,6 +139,57 @@ func parseResults(raw, source string, baseScore float64) []SearchResult {
 			case strings.HasPrefix(line, "Content:"):
 				cur.Content = strings.TrimSpace(strings.TrimPrefix(line, "Content:"))
 			}
+		}
+	}
+	if cur != nil && cur.Title != "" {
+		results = append(results, *cur)
+	}
+	return results
+}
+
+// decodeDDGRedirectURL extracts the real URL from a DuckDuckGo redirect URL.
+// DDG wraps result URLs as: https://duckduckgo.com/l/?uddg=<encoded-url>&rut=...
+func decodeDDGRedirectURL(rawURL string) string {
+	if !strings.Contains(rawURL, "duckduckgo.com/l/") {
+		return rawURL
+	}
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		return rawURL
+	}
+	if uddg := parsed.Query().Get("uddg"); uddg != "" {
+		return uddg
+	}
+	return rawURL
+}
+
+// parseDDGResults parses the "Title:/Description:/URL:" block format returned by the DuckDuckGo tool.
+// Each result is a block of consecutive non-empty lines; blocks are separated by blank lines.
+func parseDDGResults(raw, source string, baseScore float64) []SearchResult {
+	var results []SearchResult
+	var cur *SearchResult
+	for _, line := range strings.Split(raw, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			if cur != nil && cur.Title != "" {
+				results = append(results, *cur)
+				cur = nil
+			}
+			continue
+		}
+		if cur == nil {
+			cur = &SearchResult{Source: source, Score: baseScore}
+		}
+		switch {
+		case strings.HasPrefix(line, "Title:"):
+			cur.Title = strings.TrimSpace(strings.TrimPrefix(line, "Title:"))
+		case strings.HasPrefix(line, "URL:"):
+			rawURL := strings.TrimSpace(strings.TrimPrefix(line, "URL:"))
+			cur.URL = decodeDDGRedirectURL(rawURL)
+		case strings.HasPrefix(line, "Description:"):
+			cur.Content = strings.TrimSpace(strings.TrimPrefix(line, "Description:"))
+		case strings.HasPrefix(line, "Content:"):
+			cur.Content = strings.TrimSpace(strings.TrimPrefix(line, "Content:"))
 		}
 	}
 	if cur != nil && cur.Title != "" {
