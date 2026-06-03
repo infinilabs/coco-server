@@ -101,6 +101,8 @@ export function Component() {
           filter: {
             id: [deep_research_assistant, deep_think_assistant].filter((id) => !!id)
           }
+        }, {
+          headers: { 'APP-INTEGRATION-ID': search_settings?.integration }
         });
         if (assistantRes?.data?.hits?.hits?.length) {
           assistantRes.data.hits.hits.forEach((item: any) => {
