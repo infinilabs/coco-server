@@ -51,7 +51,7 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
     },
     "input_preprocess_tpl" : "",
     "history_message" : {
-      "number" : 5,
+      "number": 30,
       "compression_threshold" : 1000,
       "summary" : true
     }
@@ -126,7 +126,7 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/a
       },
       "input_preprocess_tpl": "",
       "history_message": {
-        "number": 5,
+        "number": 30,
         "compression_threshold": 1000,
         "summary": true
       }
@@ -227,7 +227,7 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
             "input_preprocess_tpl": "",
             "placeholder": "",
             "history_message": {
-              "number": 5,
+              "number": 30,
               "compression_threshold": 1000,
               "summary": true
             }
@@ -327,7 +327,7 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
             "input_preprocess_tpl": "",
             "placeholder": "",
             "history_message": {
-              "number": 5,
+              "number": 30,
               "compression_threshold": 1000,
               "summary": true
             }
@@ -428,7 +428,7 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
             "input_preprocess_tpl": "",
             "placeholder": "",
             "history_message": {
-              "number": 5,
+              "number": 30,
               "compression_threshold": 1000,
               "summary": true
             }
@@ -512,7 +512,7 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
             "input_preprocess_tpl": "",
             "placeholder": "",
             "history_message": {
-              "number": 5,
+              "number": 30,
               "compression_threshold": 1000,
               "summary": true
             }
@@ -612,7 +612,7 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
             "input_preprocess_tpl": "",
             "placeholder": "",
             "history_message": {
-              "number": 5,
+              "number": 30,
               "compression_threshold": 1000,
               "summary": true
             }
@@ -712,7 +712,7 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
             "input_preprocess_tpl": "",
             "placeholder": "",
             "history_message": {
-              "number": 5,
+              "number": 30,
               "compression_threshold": 1000,
               "summary": true
             }
@@ -812,7 +812,7 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
             "input_preprocess_tpl": "",
             "placeholder": "",
             "history_message": {
-              "number": 5,
+              "number": 30,
               "compression_threshold": 1000,
               "summary": true
             }
@@ -912,7 +912,7 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
             "input_preprocess_tpl": "",
             "placeholder": "",
             "history_message": {
-              "number": 5,
+              "number": 30,
               "compression_threshold": 1000,
               "summary": true
             }
@@ -1012,7 +1012,7 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
             "input_preprocess_tpl": "",
             "placeholder": "",
             "history_message": {
-              "number": 5,
+              "number": 30,
               "compression_threshold": 1000,
               "summary": true
             }
@@ -1112,7 +1112,7 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
             "input_preprocess_tpl": "",
             "placeholder": "",
             "history_message": {
-              "number": 5,
+              "number": 30,
               "compression_threshold": 1000,
               "summary": true
             }
@@ -1195,7 +1195,7 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
       "input_preprocess_tpl": "",
       "placeholder": "",
       "history_message": {
-        "number": 5,
+        "number": 30,
         "compression_threshold": 1000,
         "summary": true
       }
@@ -1279,7 +1279,7 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
        "input_preprocess_tpl": "",
        "placeholder": "",
        "history_message": {
-         "number": 5,
+         "number": 30,
          "compression_threshold": 1000,
          "summary": true
        }
