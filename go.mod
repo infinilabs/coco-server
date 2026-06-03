@@ -19,6 +19,7 @@ require (
 	github.com/chromedp/chromedp v0.11.0
 	github.com/cihub/seelog v0.0.0-00010101000000-000000000000
 	github.com/disintegration/imaging v1.6.2
+	github.com/emirpasic/gods v1.18.1
 	github.com/esimov/pigo v1.4.6
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/gomarkdown/markdown v0.0.0-20250810172220-2e2c11897d1a
@@ -94,7 +95,6 @@ require (
 	github.com/dlclark/regexp2 v1.10.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/ebitengine/purego v0.10.0 // indirect
-	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/fatih/structs v1.1.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
@@ -244,3 +244,5 @@ require (
 	infini.sh/license v0.0.0-00010101000000-000000000000 // indirect
 	nhooyr.io/websocket v1.8.7 // indirect
 )
+
+replace github.com/tmc/langchaingo => github.com/infinilabs/langchaingo v0.0.0-20260603083656-7933b3e0062c

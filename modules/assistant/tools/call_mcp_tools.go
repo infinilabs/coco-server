@@ -252,6 +252,14 @@ func CallLLMTools(ctx context.Context, reqMsg *core.ChatMessage, replyMsg *core.
 		agents.WithMaxIterations(params.AssistantCfg.MCPConfig.MaxIterations),
 		agents.WithCallbacksHandler(&callback),
 		agents.WithMemory(buffer),
+		agents.WithParserErrorHandler(agents.NewParserErrorHandler(func(err string) string {
+			return "Your output format was incorrect. You must respond in one of the following two formats:\n" +
+				"1. To use a tool:\n" +
+				"Action: <tool_name>\nAction Input: <input>\n" +
+				"2. To give a final answer:\n" +
+				"AI: <your answer>\n" +
+				"Do NOT include the tool result in your output. Wait for the Observation."
+		})),
 	)
 	if err != nil {
 		return answerBuffer.String(), fmt.Errorf("error on executor: %w", err)
