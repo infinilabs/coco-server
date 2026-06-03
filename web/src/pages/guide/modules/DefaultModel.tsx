@@ -15,7 +15,7 @@ import { setDefaultModel } from '@/store/slice/server';
 const CUSTOM_PROVIDER_ID = getUUID()
 const CUSTOM_MODEL_ID = getUUID()
 
-const ModelForm = memo(({ form, name, modelProviderList }: { form: FormInstance, name: string, modelProviderList: any[] }) => {
+const ModelForm = memo(({ form, name, modelProviderList, apiTokenCache }: { form: FormInstance, name: string, modelProviderList: any[], apiTokenCache: React.MutableRefObject<Record<string, string>> }) => {
   const formItemClassNames = '[&_.ant-input]:!leading-24px [&_.ant-input]:!text-14px [&_.ant-select-content]:!text-14px m-b-24px [&_label]:!color-[var(--ant-color-text-secondary)]';
   const { defaultRequiredRule } = useFormRules();
   const { t } = useTranslation();
@@ -33,9 +33,21 @@ const ModelForm = memo(({ form, name, modelProviderList }: { form: FormInstance,
     return modelProviderList.find((item) => item.id === modelProviderID)
   }, [modelProviderList, modelProviderID])
 
+  const prevNameRef = useRef(name);
   useEffect(() => {
-    form.resetFields([[name, 'model_id'], [name, 'model', 'id']]);
+      if (prevNameRef.current === name) {
+        form.resetFields([[name, 'model_id'], [name, 'model', 'id']]);
+      }
+      prevNameRef.current = name;
   }, [modelProviderID, form, name])
+
+  const prevProviderRef = useRef<string | undefined>();
+  useEffect(() => {
+    if (modelProviderID && modelProviderID !== prevProviderRef.current && modelProviderID !== CUSTOM_PROVIDER_ID && apiTokenCache.current[modelProviderID]) {
+      form.setFieldValue([name, 'api_token'], apiTokenCache.current[modelProviderID]);
+    }
+    prevProviderRef.current = modelProviderID;
+  }, [modelProviderID, name, form, apiTokenCache])
 
   return (
     <Form
@@ -181,6 +193,7 @@ const DefaultModel = memo(({ }: {}) => {
   const [modelProviderList, setModelProviderList] = useState([]);
   const [step, setStep] = useState(0);
   const [isSuccess, setIsSuccess] = useState(false);
+  const apiTokenCache = useRef<Record<string, string>>({});
   const dispatch = useAppDispatch();
 
   const { hasAuth } = useAuth()
@@ -219,9 +232,19 @@ const DefaultModel = memo(({ }: {}) => {
   }
 
   const onStepChange = async (current: number) => {
-    const values = await form.validateFields();
-    const res = await handleSubmit(values)
-    if (res) setStep(current);
+    if (current > step) {
+      const values = await form.validateFields();
+      const currentKey = stepList[step].key;
+      const providerId = values[currentKey]?.model_provider?.id;
+      const apiToken = values[currentKey]?.api_token;
+      if (providerId && providerId !== CUSTOM_PROVIDER_ID && apiToken) {
+        apiTokenCache.current[providerId] = apiToken;
+      }
+      const res = await handleSubmit(values)
+      if (res) setStep(current);
+    } else {
+      setStep(current);
+    }
   }
 
   const formatModelValues = (values: any) => {
@@ -309,6 +332,7 @@ const DefaultModel = memo(({ }: {}) => {
               form={form}
               name={stepList[step].key}
               modelProviderList={modelProviderList}
+              apiTokenCache={apiTokenCache}
             />
 
             <div className='flex justify-between m-t-32px'>
