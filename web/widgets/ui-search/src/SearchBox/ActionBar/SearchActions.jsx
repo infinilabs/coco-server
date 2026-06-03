@@ -25,7 +25,7 @@ export default (props) => {
             <Space size={0}>
                 <Button className="!px-12px rounded-16px !text-#1784FC !bg-[rgba(204,232,250,1)] !border-0 mr-4px">
                     <Space size={4} className="!leading-none">
-                        <Telescope className="w-16px h-16px" />
+                        <Brain className="w-16px h-16px" />
                         {t('labels.deepThink')}
                     </Space>
                 </Button>
@@ -50,7 +50,7 @@ export default (props) => {
             <Space size={0}>
                 <Button className="!px-12px rounded-16px !text-#1784FC !bg-[rgba(204,232,250,1)] !border-0 mr-4px">
                     <Space size={4} className="!leading-none">
-                        <Brain className="w-16px h-16px" />
+                        <Telescope className="w-16px h-16px" />
                         {t('labels.deepResearch')}
                     </Space>
                 </Button>

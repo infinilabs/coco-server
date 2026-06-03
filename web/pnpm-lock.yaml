@@ -495,8 +495,8 @@ importers:
         specifier: ^0.0.11
         version: 0.0.11(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@infinilabs/ai-chat':
-        specifier: ^0.0.26
-        version: 0.0.26(@ant-design/icons@6.2.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.12)(antd@6.1.3(date-fns@4.3.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3)(use-sync-external-store@1.6.0(react@18.3.1))
+        specifier: ^0.0.27
+        version: 0.0.27(@ant-design/icons@6.2.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.12)(antd@6.1.3(date-fns@4.3.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3)(use-sync-external-store@1.6.0(react@18.3.1))
       '@infinilabs/attachments':
         specifier: ^0.0.4
         version: 0.0.4(@ant-design/icons@6.2.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(antd@6.1.3(date-fns@4.3.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -2036,8 +2036,8 @@ packages:
       react: '>=18'
       react-dom: '>=18'
 
-  '@infinilabs/ai-chat@0.0.26':
-    resolution: {integrity: sha512-Q5OZywlu3Jg9ojb3Zo+zZocChBLgyJBQUwleDjPxPdo3uVgW+Jfgk+2GFNRGgyNC4SXBQkTMEnb6F7pPbpz0bA==}
+  '@infinilabs/ai-chat@0.0.27':
+    resolution: {integrity: sha512-WHIRgEhluZEcnNyBgBrq8t/lCgy5dea83gxMXY8QRd2Sx83a2VKNt9zFbbO0BOfZ+Bm0eYjKpfDVKUZG6+6gfw==}
     peerDependencies:
       antd: 6.1.3
       react: ^18.3.1
@@ -3818,8 +3818,8 @@ packages:
     peerDependencies:
       axios: 0.x || 1.x
 
-  axios@1.16.1:
-    resolution: {integrity: sha512-caYkukvroVPO8KrzuJEb50Hm07KwfBZPEC3VeFHTsqWHvKTsy54hjJz9BS/cdaypROE2rH6xvm9mHX4fgWkr3A==}
+  axios@1.17.0:
+    resolution: {integrity: sha512-J8SwNxprqqpbfenehxWYXE7CW+wM1BB4w3+N+g+/Wx40xM4rsLrfPmHHxSWIxJLYDgSY/HqlFPIYb2/S3rxafw==}
 
   axios@1.7.7:
     resolution: {integrity: sha512-S4kL7XrjgBmvdGut0sN3yJxqYzrDOnivkBiN0OFs6hLiUam3UPvswUo0kqGyhqUZGEOytHyumEdXsAkgCOUf3Q==}
@@ -10401,14 +10401,14 @@ snapshots:
     transitivePeerDependencies:
       - '@types/react'
 
-  '@infinilabs/ai-chat@0.0.26(@ant-design/icons@6.2.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.12)(antd@6.1.3(date-fns@4.3.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3)(use-sync-external-store@1.6.0(react@18.3.1))':
+  '@infinilabs/ai-chat@0.0.27(@ant-design/icons@6.2.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.12)(antd@6.1.3(date-fns@4.3.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3)(use-sync-external-store@1.6.0(react@18.3.1))':
     dependencies:
       '@emotion/is-prop-valid': 1.4.0
       '@infinilabs/attachments': 0.0.4(@ant-design/icons@6.2.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(antd@6.1.3(date-fns@4.3.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@infinilabs/chat-message': 0.0.19(@ant-design/icons@6.2.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@emotion/is-prop-valid@1.4.0)(@types/react@18.3.12)(antd@6.1.3(date-fns@4.3.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react-i18next@16.6.6(i18next@25.10.10(typescript@5.6.3))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3))(react@18.3.1)(typescript@5.6.3)
       ahooks: 3.9.7(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       antd: 6.1.3(date-fns@4.3.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      axios: 1.16.1
+      axios: 1.17.0
       clsx: 2.1.1
       dayjs: 1.11.20
       i18next: 25.10.10(typescript@5.6.3)
@@ -12491,7 +12491,7 @@ snapshots:
       axios: 1.7.7
       is-retry-allowed: 2.2.0
 
-  axios@1.16.1:
+  axios@1.17.0:
     dependencies:
       follow-redirects: 1.16.0
       form-data: 4.0.5
