@@ -4,7 +4,7 @@ import {
   AssistantList,
   ChatInput,
 } from "@infinilabs/ai-chat";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from 'react-i18next';
 
 import ChatHeader from "../ChatHeader";
@@ -12,7 +12,6 @@ import ChatLayout from "../Layout/ChatLayout";
 
 export default function Chat({
   commonProps,
-  language,
   apiConfig,
   onBackToSearch,
   defaultParams,
@@ -20,6 +19,7 @@ export default function Chat({
   setAttachments
 }) {
   const { BaseUrl, Token, endpoint, headers } = apiConfig || {};
+  const { language } = commonProps || {};
 
   const chatRef = useRef(null);
   const { t } = useTranslation();
@@ -62,6 +62,10 @@ export default function Chat({
     }
   };
 
+  const locale = useMemo(() => {
+    return language === "zh-CN" ? "zh" : "en"
+  }, [language]);
+
   return (
     <ChatLayout
       {...commonProps}
@@ -78,14 +82,14 @@ export default function Chat({
           }}
           Token={Token}
           headers={headers}
-          locale={language === "zh-CN" ? "zh" : "en"}
+          locale={locale}
           t={t}
         />
       }
       input={
         <ChatInput
           t={t}
-          locale={language === "zh-CN" ? "zh" : "en"}
+          locale={locale}
           inputValue={inputValue}
           onSend={onSendMessage}
           changeInput={setInputValue}
@@ -106,7 +110,7 @@ export default function Chat({
               BaseUrl={BaseUrl}
               Token={Token}
               headers={headers}
-              locale={language === "zh-CN" ? "zh" : "en"}
+              locale={locale}
               t={t}
             />
           }
@@ -121,7 +125,7 @@ export default function Chat({
           BaseUrl={BaseUrl}
           Token={Token}
           headers={headers}
-          locale={language === "zh-CN" ? "zh" : "en"}
+          locale={locale}
           t={t}
         />
       }

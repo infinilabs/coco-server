@@ -27,7 +27,7 @@ const FullscreenModal = (props) => {
                 style={{ top: 0, margin: 0, padding: 0, maxWidth: '100vw' }}
                 width={'100%'}
                 onCancel={() => setVisible(false)}
-                destroyOnClose
+                destroyOnHidden
                 getContainer={root}
                 footer={null}
                 styles={{ 
