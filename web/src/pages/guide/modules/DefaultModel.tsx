@@ -33,21 +33,16 @@ const ModelForm = memo(({ form, name, modelProviderList, apiTokenCache }: { form
     return modelProviderList.find((item) => item.id === modelProviderID)
   }, [modelProviderList, modelProviderID])
 
-  const prevNameRef = useRef(name);
-  useEffect(() => {
-      if (prevNameRef.current === name) {
-        form.resetFields([[name, 'model_id'], [name, 'model', 'id']]);
-      }
-      prevNameRef.current = name;
-  }, [modelProviderID, form, name])
-
-  const prevProviderRef = useRef<string | undefined>();
-  useEffect(() => {
-    if (modelProviderID && modelProviderID !== prevProviderRef.current && modelProviderID !== CUSTOM_PROVIDER_ID && apiTokenCache.current[modelProviderID]) {
-      form.setFieldValue([name, 'api_token'], apiTokenCache.current[modelProviderID]);
+  const handleProviderChange = (value: string) => {
+    // Reset model fields when provider changes
+    form.resetFields([[name, 'model_id'], [name, 'model', 'id']]);
+    // Handle api_token: use cache or clear
+    if (value !== CUSTOM_PROVIDER_ID && apiTokenCache.current[value]) {
+      form.setFieldValue([name, 'api_token'], apiTokenCache.current[value]);
+    } else {
+      form.setFieldValue([name, 'api_token'], undefined);
     }
-    prevProviderRef.current = modelProviderID;
-  }, [modelProviderID, name, form, apiTokenCache])
+  };
 
   return (
     <Form
@@ -65,6 +60,7 @@ const ModelForm = memo(({ form, name, modelProviderList, apiTokenCache }: { form
           >
             <Select
               size="large"
+              onChange={handleProviderChange}
               options={modelProviderList
                 .map(provider => ({ label: provider.name, value: provider.id }))
                 .concat(permissions.createModelProvider ? [{ label: t(`page.guide.labels.custom`), value: CUSTOM_PROVIDER_ID }] : [])
