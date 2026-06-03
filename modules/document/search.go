@@ -271,6 +271,17 @@ func GetDatasourceByIntegration(integrationID string) ([]string, bool, error) {
 	return ret, false, nil
 }
 
+// BuildDatasourceFilter computes the final set of datasource IDs a user is allowed to search,
+// by merging the user's own datasources, shared datasources, the query-requested datasources,
+// and the integration-scoped datasources.
+//
+// Returns:
+//   - checkingScopeDatasources: datasource IDs that require further document-level permission checks
+//     (e.g. datasources shared at category level where individual documents may still be denied).
+//   - finalDatasourceIDs: datasource IDs the user has full direct access to (user-owned + directly shared).
+//   - disabledIDs: datasource IDs that are currently disabled and should be excluded from search results.
+//
+// If the user has no accessible datasources at all, all three slices are returned as nil.
 func BuildDatasourceFilter(userID string, checkingScopeDatasources, directAccessDatasources []string, queryDatasourceIDs []string, integrationID string, filterDisabled bool) ([]string, []string, []string) {
 
 	//merge user's own datasource, other shareable datasource, within user's query datasource, within integration's datasource
@@ -314,7 +325,7 @@ func BuildDatasourceFilter(userID string, checkingScopeDatasources, directAccess
 	}
 
 	if len(finalDatasourceIDs) == 0 && len(checkingScopeDatasources) == 0 {
-		panic("empty datasource")
+		return nil, nil, nil
 	}
 
 	log.Trace("userID:", userID, "user's own", userOwnDatasourceIDs, ",queryDatasource:", queryDatasourceIDs, ",integrationID:", integrationID, ",final merged directAccess datasources:", finalDatasourceIDs)

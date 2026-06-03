@@ -117,6 +117,12 @@ func QueryDocuments(ctx1 context.Context, builder *orm.QueryBuilder, query strin
 
 	//(user own datasource + shared datasource) intersect query datasource
 	checkingScopeDatasources, mergedFullAccessDatasourceIDS, disabledIDs := BuildDatasourceFilter(userID, checkingScopeDatasources, directAccessDatasources, queryDatasourceIDs, integrationID, true)
+
+	// User has no accessible datasources, return empty result directly to avoid unfiltered search.
+	if len(checkingScopeDatasources) == 0 && len(mergedFullAccessDatasourceIDS) == 0 {
+		return &orm.SimpleResult{Raw: []byte(`{"hits":{"total":{"value":0,"relation":"eq"},"hits":[]}}`), Total: 0}, nil
+	}
+
 	if len(disabledIDs) > 0 {
 		filters = append(filters, orm.MustNotQuery(orm.TermsQuery("source.id", disabledIDs)))
 	}
