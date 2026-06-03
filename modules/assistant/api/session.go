@@ -411,9 +411,10 @@ func (h APIHandler) getChatHistoryBySession(w http.ResponseWriter, req *http.Req
 func (h APIHandler) cancelReplyMessage(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	sessionID := ps.MustGetParameter("session_id")
 	messageID := h.GetParameterOrDefault(req, "message_id", "")
+	lang := h.GetParameterOrDefault(req, "lang", "")
 	log.Info("cancel reply to message: ", messageID, ", session: ", sessionID)
 	taskID := service.GetReplyMessageTaskID(sessionID, messageID)
-	service.StopMessageReplyTask(taskID)
+	service.StopMessageReplyTask(taskID, lang)
 	h.WriteAckOKJSON(w)
 }
 
