@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 
 	"github.com/cihub/seelog"
@@ -91,17 +92,48 @@ func GetChatHistoryBySessionInternal(sessionID string, size int) ([]core.ChatMes
 	return docs, nil
 }
 
-func StopMessageReplyTask(taskID string) {
+// StopMessageReplyTask cancels the in-flight async reply identified by taskID.
+// lang is the caller's UI language (e.g. "zh-CN"); it is written into the task
+// before calling CancelFunc so that the async processor (background_job.go) can
+// read it back and persist a localized cancellation message. This is necessary
+// because the backend has no i18n framework — the frontend is the only place
+// that knows the user's preferred language.
+func StopMessageReplyTask(taskID string, lang string) {
 	v, ok := InflightMessages.Load(taskID)
 	if ok {
 		v1, ok := v.(common.MessageTask)
 		if ok {
 			seelog.Debug("stop task:", v1)
+			// Store lang back before cancelling so the deferred cleanup
+			// in background_job.go can read it from InflightMessages.
+			v1.CancelLang = lang
+			InflightMessages.Store(taskID, v1)
 			v1.CancelFunc()
 		}
-	} else {
-		_ = seelog.Warnf("task id [%s] was not found", taskID)
+		return
 	}
+
+	// If the exact taskID was not found and it looks like a bare sessionID
+	// (no underscore), try to find any inflight task for this session.
+	if !strings.Contains(taskID, "_") {
+		InflightMessages.Range(func(key, value any) bool {
+			k, _ := key.(string)
+			if strings.HasPrefix(k, taskID+"_") {
+				task, ok := value.(common.MessageTask)
+				if ok && task.CancelFunc != nil {
+					seelog.Debugf("stop task by session prefix: %s", k)
+					task.CancelLang = lang
+					InflightMessages.Store(k, task)
+					task.CancelFunc()
+				}
+				return false // stop iteration after first match
+			}
+			return true
+		})
+		return
+	}
+
+	_ = seelog.Warnf("task id [%s] was not found", taskID)
 }
 
 func StopAllMessageReplyTasks() int {

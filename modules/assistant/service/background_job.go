@@ -28,6 +28,19 @@ import (
 	"infini.sh/framework/core/util"
 )
 
+// getCancelledMessage returns a localized "task cancelled" message based on
+// the CancelLang stored in the inflight task. The cancel API writes the user's
+// UI language into the task right before triggering cancellation, so we can
+// read it here and produce an appropriate message without a full i18n system.
+func getCancelledMessage(taskID string) string {
+	if v, ok := InflightMessages.Load(taskID); ok {
+		if task, ok := v.(common2.MessageTask); ok && strings.HasPrefix(task.CancelLang, "zh") {
+			return "~~该任务已被取消。~~"
+		}
+	}
+	return "~~This task has been cancelled.~~"
+}
+
 func CreateAssistantReplyMessage(sessionID, assistantID, requestMessageID string) *core.ChatMessage {
 	msg := &core.ChatMessage{
 		SessionID:      sessionID,
@@ -71,6 +84,8 @@ func ProcessMessageAsync(ctx context.Context, userID string, reqMsg, replyMsg *c
 	)
 
 	defer func() {
+		taskID := GetReplyMessageTaskID(params.SessionID, reqMsg.ID)
+
 		if !global.Env().IsDebug {
 			if r := recover(); r != nil {
 				var v string
@@ -85,8 +100,11 @@ func ProcessMessageAsync(ctx context.Context, userID string, reqMsg, replyMsg *c
 
 				// If the context was cancelled (user switched chat or clicked cancel),
 				// treat it as a graceful stop — no error message to the user.
-				if ctx.Err() != nil {
+				if ctx.Err() != nil || strings.Contains(v, "context canceled") || strings.Contains(v, "context deadline exceeded") {
 					log.Infof("async processing cancelled by user: %v", v)
+					if replyMsg.Message == "" {
+						replyMsg.Message = getCancelledMessage(taskID)
+					}
 				} else {
 					msg := fmt.Sprintf("⚠️ error in async processing message reply, %v", v)
 					if replyMsg.Message != "" {
@@ -102,13 +120,19 @@ func ProcessMessageAsync(ctx context.Context, userID string, reqMsg, replyMsg *c
 		}
 
 		if err != nil {
-			log.Errorf("Failed to process message reply: %v", err)
-			replyMsg.Message += err.Error()
+			if ctx.Err() != nil || strings.Contains(err.Error(), "context canceled") || strings.Contains(err.Error(), "context deadline exceeded") {
+				log.Infof("async processing cancelled: %v", err)
+				if replyMsg.Message == "" {
+					replyMsg.Message = getCancelledMessage(taskID)
+				}
+			} else {
+				log.Errorf("Failed to process message reply: %v", err)
+				replyMsg.Message += err.Error()
+			}
 		}
 
 		finalizeProcessing(ctx, params.SessionID, replyMsg, sender)
 		// clear the inflight message task
-		taskID := GetReplyMessageTaskID(params.SessionID, reqMsg.ID)
 		InflightMessages.Delete(taskID)
 
 		log.Info("finished async processing message")
