@@ -172,7 +172,7 @@ export default function Filters({
                   mode="tags"
                   maxTagCount={3}
                   maxTagPlaceholder={() => '...'}
-                  style={{ minWidth: 74 }}
+                  style={{ minWidth: 'auto' }}
                   styles={{ popup: { root: { display: 'none'} }, content: { flexWrap: 'nowrap' } }}
                   ref={(el) => setFilterRef(el, index)}
                   value={filter.value || []}

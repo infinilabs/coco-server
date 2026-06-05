@@ -262,6 +262,16 @@ export default function useSearchBox({
     if (filterState.index === index) {
       setFilterState({ type: 'none', index: -1 });
       setSuggestions({});
+      // Cancel pending blur to prevent panel flicker
+      if (blurTimeoutRef.current) {
+        clearTimeout(blurTimeoutRef.current);
+        blurTimeoutRef.current = null;
+      }
+      // Keep panel open by activating the main input
+      setMainInputActive(true);
+      setTimeout(() => {
+        if (expandedInputRef.current) expandedInputRef.current.focus();
+      }, 50);
     } else if (filterState.index > index) {
       setFilterState(prev => ({ ...prev, index: prev.index - 1 }));
     }
@@ -389,6 +399,16 @@ export default function useSearchBox({
       const newAttachments = cloneDeep(attachments);
       newAttachments.splice(index, 1);
       setAttachments(newAttachments);
+      // Cancel pending blur to prevent panel flicker
+      if (blurTimeoutRef.current) {
+        clearTimeout(blurTimeoutRef.current);
+        blurTimeoutRef.current = null;
+      }
+      // Keep panel open by activating the main input
+      setMainInputActive(true);
+      setTimeout(() => {
+        if (expandedInputRef.current) expandedInputRef.current.focus();
+      }, 50);
     }
   };
 
