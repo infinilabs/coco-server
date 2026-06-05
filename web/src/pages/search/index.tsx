@@ -354,10 +354,16 @@ export function Component() {
     onUpload
   }
 
+  if (loading) {
+    return (
+      <GlobalLoading spinning={loading} />
+    )
+  }
+
+  if (!integration) return null;
+
   return (
-    <Spin spinning={loading} classNames={{
-      wrapper: 'h-full [&_.ant-spin-container]:h-full',
-    }}>
+    <>
       <FullscreenPage
         {...componentProps}
         enableQueryParams={true}
@@ -369,6 +375,6 @@ export function Component() {
         <ThemeSchemaSwitch className="px-12px" />
         <UserAvatar className="px-8px" showHome showName={!isMobile} />
       </div>
-    </Spin>
+    </>
   );
 }

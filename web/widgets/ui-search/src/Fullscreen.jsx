@@ -344,11 +344,7 @@ const Fullscreen = props => {
         apiConfig={apiConfig}
         queryParams={queryParams}
         onBackToSearch={() => {
-          setQueryParams({
-            ...queryParams,
-            action_type: ACTION_TYPE_SEARCH,
-            mode: 'search'
-          });
+          handleLogoClick();
         }}
         setQueryParams={setQueryParams}
         defaultParams={chatParams}

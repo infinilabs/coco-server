@@ -95,10 +95,10 @@ const BasicLayout = (props) => {
 
       let targetLeftCollapse, targetRightCollapse;
 
-      if (fitsLeftAndRight && aggregations && recommends) {
+      if (fitsLeftAndRight && recommends) {
         targetLeftCollapse = false;
         targetRightCollapse = false;
-      } else if (fitsLeftOnly && aggregations) {
+      } else if (fitsLeftOnly ) {
         targetLeftCollapse = false;
         targetRightCollapse = true;
       } else {
@@ -107,7 +107,7 @@ const BasicLayout = (props) => {
       }
 
       // Only update if changed (compare with ref to get current value)
-      if (aggregations && siderCollapseRef.current !== targetLeftCollapse) {
+      if (siderCollapseRef.current !== targetLeftCollapse) {
         if (targetLeftCollapse === false && userCollapsedLeftRef.current) {
           // Don't auto-expand if user manually collapsed
         } else {
@@ -129,7 +129,7 @@ const BasicLayout = (props) => {
     observer.observe(container);
 
     return () => observer.disconnect();
-  }, [scrollContainer, isMobile, aggregations, recommends, setSiderCollapse, setRecommendsCollapse]);
+  }, [scrollContainer, isMobile, recommends, setSiderCollapse, setRecommendsCollapse]);
 
   // Close drawers when collapse state changes to collapsed
   useEffect(() => {
@@ -140,7 +140,7 @@ const BasicLayout = (props) => {
     if (recommendsCollapse) setRightDrawerOpen(false);
   }, [recommendsCollapse]);
 
-  const showLeftSider = aggregations && !siderCollapse && !isMobile;
+  const showLeftSider = !siderCollapse && !isMobile;
   const showRightSider = recommends && !recommendsCollapse && !isMobile;
 
   const siderProps = {
@@ -178,7 +178,7 @@ const BasicLayout = (props) => {
       {/* Unified Left-Center-Right Layout */}
       <Layout className={bgClass} style={{ minHeight: '100%', paddingTop: '122px' }}>
         {/* Left Column: Logo + Aggregations */}
-        {aggregations && (
+        {(
           isMobile || siderCollapse ? (
             <Drawer
               placement="left"

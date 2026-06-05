@@ -24,7 +24,7 @@ const HomeLayout = (props) => {
       >
         <GlobalLoading loading={loading} theme={theme} />
         <Content className="bg-[rgb(var(--ui-search--layout-bg-color))] w-full h-full flex flex-col items-center justify-start absolute top-15% left-0">
-          <div className={`max-w-320px max-h-320px`}>{logo}</div>
+          <div className={`max-w-320px max-h-56px`}>{logo}</div>
           {welcome && (
             <div
               className={`${isMobile ? "w-full px-32px" : "w-627px"} mt-24px`}
