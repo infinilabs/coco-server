@@ -119,7 +119,7 @@ export const FullscreenForm = memo(props => {
           setSearchLogos((state) => ({
             ...state,
             lightLoading: false,
-            light: undefined
+            light: ''
           }));
         }}>{t('common.reset')}</Button>
       </div>
@@ -158,7 +158,7 @@ export const FullscreenForm = memo(props => {
           setSearchLogos((state) => ({
             ...state,
             darkLoading: false,
-            dark: undefined
+            dark: ''
           }));
         }}>{t('common.reset')}</Button>
       </div>
@@ -197,7 +197,7 @@ export const FullscreenForm = memo(props => {
           setSearchLogos((state) => ({
             ...state,
             lightMobileLoading: false,
-            light_mobile: undefined
+            light_mobile: ''
           }))
         }}>{t('common.reset')}</Button>
       </div>
@@ -236,7 +236,7 @@ export const FullscreenForm = memo(props => {
           setSearchLogos((state) => ({
             ...state,
             darkMobileLoading: false,
-            dark_mobile: undefined
+            dark_mobile: ''
           }))
         }}>{t('common.reset')}</Button>
       </div>
@@ -297,7 +297,7 @@ export const FullscreenForm = memo(props => {
                 setAIOverviewLogo((state) => ({
                   ...state,
                   lightLoading: false,
-                  light: undefined
+                  light: ''
                 }));
               }}>{t('common.reset')}</Button>
             </div>

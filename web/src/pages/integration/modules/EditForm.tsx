@@ -132,16 +132,16 @@ export const EditForm = memo(props => {
             ...payload,
             ai_overview: {
               ...ai_overview,
-              assistant: ai_overview?.assistant?.id,
+              assistant: ai_overview?.assistant?.id || '',
               logo: {
-                light: aiOverviewLogo?.light
+                light: aiOverviewLogo?.light || '',
               }
             },
             logo: {
-              light: searchLogos?.light,
-              light_mobile: searchLogos?.light_mobile,
-              dark: searchLogos?.dark,
-              dark_mobile: searchLogos?.dark_mobile
+              light: searchLogos?.light || '',
+              light_mobile: searchLogos?.light_mobile || '',
+              dark: searchLogos?.dark || '',
+              dark_mobile: searchLogos?.dark_mobile || ''
             }
           },
           cors: {
@@ -168,8 +168,8 @@ export const EditForm = memo(props => {
                 ...start_page,
                 display_assistants: start_page?.display_assistants?.map(item => item.id),
                 logo: {
-                  light: startPagelogos.light,
-                  dark: startPagelogos.dark
+                  light: startPagelogos.light || '',
+                  dark: startPagelogos.dark || ''
                 }
               }
             }
