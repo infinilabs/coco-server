@@ -336,7 +336,7 @@ export const EditForm = memo(props => {
             ai_overview: {
               enabled: true,
               title: 'AI Overview',
-              height: 200
+              height: 320
             },
           },
           name: `widget-${generateRandomString(8)}`,

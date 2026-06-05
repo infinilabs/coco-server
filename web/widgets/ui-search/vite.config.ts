@@ -1,14 +1,12 @@
-import { defineConfig } from 'vite'
+import { defineConfig, type PluginOption } from 'vite'
 import react from '@vitejs/plugin-react'
 import { resolve } from 'path'
 import UnoCSS from '@unocss/vite'
 
 export default defineConfig({
   plugins: [
-    react(),
-    UnoCSS({
-      configFile: resolve(__dirname, '../../uno.config.ts')
-    })
+    react() as PluginOption,
+    UnoCSS() as PluginOption
   ],
   root: '.',
   server: {
@@ -20,6 +18,7 @@ export default defineConfig({
     exclude: ['@infinilabs/ai-chat']
   },
   resolve: {
+    extensions: ['.ts', '.tsx', '.js', '.jsx'],
     alias: {
       '@': resolve(__dirname, 'src'),
     }
@@ -28,7 +27,7 @@ export default defineConfig({
     outDir: 'dist',
     lib: {
       entry: resolve(__dirname, 'src/index.jsx'),
-      name: 'UISearch',
+      formats: ['es'],
       fileName: 'index'
     },
     rollupOptions: {
@@ -37,11 +36,16 @@ export default defineConfig({
         globals: {
           react: 'React',
           'react-dom': 'ReactDOM'
-        }
+        },
+        assetFileNames: 'index.[ext]'
       }
-    }
+    },
+    cssCodeSplit: false,
   },
   css: {
+    modules: {
+      generateScopedName: '[name]__[local]___[hash:base64:5]',
+    },
     preprocessorOptions: {
       less: {
         javascriptEnabled: true

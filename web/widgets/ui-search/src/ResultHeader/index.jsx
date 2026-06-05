@@ -50,12 +50,12 @@ export function ResultHeader(props) {
 
   return (
     <div className="flex gap-8px items-center w-full text-[#999]">
-      <LeftToggleIcon className="w-16px h-16px cursor-pointer" onClick={handleLeftToggle} />
+      <LeftToggleIcon className="text-[#666] w-16px h-16px cursor-pointer" onClick={handleLeftToggle} />
       <div className="text-12px flex-1">
         {t('labels.resultsWithTime', { count: hits?.total || 0, took: hits?.took || 0 })}
       </div>
       {showRightToggle && (
-        <RightToggleIcon className="w-16px h-16px cursor-pointer" onClick={handleRightToggle} />
+        <RightToggleIcon className="text-[#666] w-16px h-16px cursor-pointer" onClick={handleRightToggle} />
       )}
     </div>
   );

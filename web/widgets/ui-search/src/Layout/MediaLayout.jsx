@@ -139,7 +139,7 @@ const MediaLayout = (props) => {
                   mask: '!bg-transparent !backdrop-filter-none'
                 }}
                 maskClosable
-                width={280}
+                size={280}
                 autoFocus={false}
               >
                 {aggregations}

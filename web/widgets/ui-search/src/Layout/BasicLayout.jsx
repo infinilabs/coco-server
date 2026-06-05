@@ -191,7 +191,7 @@ const BasicLayout = (props) => {
                 mask: '!bg-transparent !backdrop-filter-none'
               }}
               maskClosable
-              width={280}
+              size={280}
               autoFocus={false}
             >
               {aggregations}
@@ -247,7 +247,7 @@ const BasicLayout = (props) => {
                 mask: '!bg-transparent !backdrop-filter-none'
               }}
               maskClosable
-              width={400}
+              size={400}
             >
               {recommends}
             </Drawer>
