@@ -285,9 +285,9 @@ const ListContainer = forwardRef((props, ref) => {
                 <div key={index}>
                   <div
                     ref={el => itemRefs.current[index] = el}
-                    className={`${styles.listItem} ${isActive ? styles.active : ''}  relative h-40px pl-8px pr-40px flex flex-nowrap items-center rounded-8px 
+                    className={`${styles.listItem} ${isActive ? styles.active : ''}  relative h-40px pl-8px flex flex-nowrap items-center rounded-8px 
                     ${onItemClick ? 'cursor-pointer hover:bg-[rgba(233,240,254,1)] dark:hover:bg-[rgba(255,255,255,0.05)]' : " "} 
-                    ${isActive ? "bg-[rgba(233,240,254,1)] dark:bg-[rgba(255,255,255,0.05)]" : ""}`}
+                    ${isActive ? "bg-[rgba(233,240,254,1)] dark:bg-[rgba(255,255,255,0.05)] pr-40px" : "pr-8px"}`}
                     onClick={() => handleItemClick(item, index)}
                     onMouseEnter={() => {
                       if (!onItemClick) return;
@@ -314,7 +314,7 @@ const ListContainer = forwardRef((props, ref) => {
                         {desc}
                       </Typography.Text>
                     )}
-                    {onItemClick && (
+                    {onItemClick && isActive && (
                       <Button
                         className={`${styles.enter} absolute right-8px top-8px !w-24px !h-24px rounded-8px border-0`}
                         classNames={{ icon: `w-14px h-14px !text-14px` }}

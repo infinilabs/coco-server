@@ -185,7 +185,10 @@ export default (props) => {
                 ref={el => setListRef(SUGGESTION_KEYWORDS, el)}
                 type={SUGGESTION_KEYWORDS}
                 title={t('labels.suggestionsTitle')}
-                data={data}
+                data={data.map((item) => ({
+                    ...item,
+                    icon: <Search className="w-16px h-16px" />
+                }))}
                 useGlobalKeydown={useGlobalKeydown}
                 globalActiveIndex={getLocalActiveIndex(SUGGESTION_KEYWORDS)}
                 onGlobalSelect={(localIndex) => {
