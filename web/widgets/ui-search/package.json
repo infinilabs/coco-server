@@ -73,6 +73,8 @@
     "lodash": "^4.17.21",
     "lucide-react": "^0.525.0",
     "mermaid": "11.6.0",
+    "motion": "^12.23.26",
+    "nprogress": "0.2.0",
     "react-copy-to-clipboard": "^5.1.0",
     "react-i18next": "15.1.0",
     "react-infinite-scroll-component": "^6.1.1",

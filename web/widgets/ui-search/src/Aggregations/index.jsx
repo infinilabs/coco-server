@@ -2,7 +2,7 @@ import { useState } from "react";
 import cloneDeep from "lodash/cloneDeep";
 
 import FilterDefaultSvg from "../icons/filter-default.svg"
-import { FilterCheckboxGroup, FilterColorPicker, FilterTags } from "@infinilabs/filter";
+import { FilterCheckboxGroup, FilterColorPicker, FilterTags } from "./Filter";
 
 export function Aggregations(props) {
   const { config = {}, aggregations = [], filter = {}, onSearch } = props;
@@ -26,7 +26,7 @@ export function Aggregations(props) {
   if (!aggregations || aggregations.length === 0) return null
 
   return (
-    <div>
+    <>
       {aggregations.map((aggregation, index) => {
         let count = 0;
         aggregation.list.forEach((item) => (count += item.count));
@@ -79,7 +79,7 @@ export function Aggregations(props) {
           </div>
         );
       })}
-    </div>
+    </>
   );
 }
 

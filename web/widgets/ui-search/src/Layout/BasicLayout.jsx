@@ -2,7 +2,7 @@ import { Drawer, FloatButton, Layout } from "antd";
 import styles from "./index.module.less";
 import { DARK_CLASS } from "../theme/shared";
 import { cloneElement, useCallback, useEffect, useRef, useState } from "react";
-import GlobalLoading from "../GlobalLoading";
+import useNProgress from "../hooks/useNProgress";
 import SearchHeaderLayout from "./SearchHeaderLayout";
 
 const { Content, Sider } = Layout;
@@ -64,6 +64,8 @@ const BasicLayout = (props) => {
       behavior: "smooth",
     });
   }, [scrollContainer, loading]);
+
+  useNProgress(loading);
 
   const bgClass = 'bg-[rgb(var(--ui-search--layout-bg-color))]';
 
@@ -154,11 +156,7 @@ const BasicLayout = (props) => {
     <Layout
       ref={initContainer}
       className={`${styles.uiSearch} relative w-full h-full overflow-x-hidden overflow-y-auto ${bgClass} ui-search ${themeClass}`}
-      style={{
-        overflowY: loading ? 'hidden' : 'auto',
-      }}
     >
-      <GlobalLoading loading={loading} theme={theme} />
 
       <SearchHeaderLayout
         logo={logo}
