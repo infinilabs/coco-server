@@ -26,18 +26,23 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     lib: {
-      entry: resolve(__dirname, 'src/index.jsx'),
+      entry: resolve(__dirname, 'src/index.tsx'),
       formats: ['es'],
       fileName: 'index'
     },
     rollupOptions: {
-      external: ['react', 'react-dom'],
+      external: [
+        'react',
+        'react-dom',
+        'react/jsx-runtime',
+      ],
       output: {
         globals: {
           react: 'React',
           'react-dom': 'ReactDOM'
         },
-        assetFileNames: 'index.[ext]'
+        assetFileNames: 'index.[ext]',
+        inlineDynamicImports: true,
       }
     },
     cssCodeSplit: false,

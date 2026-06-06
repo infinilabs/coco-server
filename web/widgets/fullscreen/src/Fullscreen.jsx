@@ -96,7 +96,7 @@ export default (props) => {
                 const { deep_research_assistant, deep_think_assistant } = integrationData;
                 if (deep_research_assistant || deep_think_assistant) {
                     const ids = [deep_research_assistant, deep_think_assistant].filter((id) => !!id);
-                    const filterStr = ids.map((id) => `filter=id:any(${id})`).join('&');
+                    const filterStr = `filter=id:any(${ids.join(',')})`;
                     const assistantRes = await fetch(`${server}/assistant/_search?from=0&size=10000&${filterStr}`, {
                         headers: {
                             'APP-INTEGRATION-ID': id,

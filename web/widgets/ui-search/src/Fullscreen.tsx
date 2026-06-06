@@ -1,0 +1,488 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { formatESResult } from "./utils/es";
+import { normalizeCoverIconUrl } from "./utils/utils";
+
+import { debounce, isEmpty } from 'lodash';
+import Home from "./pages/Home";
+import Search from "./pages/Search";
+import { ACTION_TYPE_SEARCH_KEYWORD } from "./SearchBox/ActionBar/SearchActions";
+import Chat from "./pages/Chat";
+
+interface FullscreenProps {
+  logo?: Record<string, any>;
+  placeholder?: string;
+  welcome?: string;
+  aiOverview?: { enabled?: boolean };
+  onSearch?: (...args: any[]) => void;
+  onAggregation?: (...args: any[]) => void;
+  onAsk?: (...args: any[]) => void;
+  config?: Record<string, any>;
+  isHome?: boolean;
+  rightMenuWidth?: number;
+  queryParams?: Record<string, any>;
+  setQueryParams?: (params: any) => void;
+  onLogoClick?: () => void;
+  theme?: 'light' | 'dark';
+  language?: string;
+  onSuggestion?: (...args: any[]) => void;
+  onRecommend?: (...args: any[]) => void;
+  getRawContent?: (...args: any[]) => any;
+  apiConfig?: Record<string, any>;
+  getFieldsMeta?: (...args: any[]) => any;
+  onUpload?: (...args: any[]) => void;
+  settings?: Record<string, any>;
+  [key: string]: any;
+}
+
+const Fullscreen = (props: FullscreenProps) => {
+  const {
+    logo = {},
+    placeholder,
+    welcome,
+    aiOverview,
+    onSearch,
+    onAggregation,
+    onAsk,
+    config = {},
+    isHome = false,
+    rightMenuWidth,
+    queryParams = {},
+    setQueryParams,
+    onLogoClick,
+    theme = 'light',
+    language = 'en-US',
+    onSuggestion,
+    onRecommend,
+    getRawContent,
+    apiConfig,
+    getFieldsMeta,
+    onUpload,
+    settings
+  } = props;
+
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [result, setResult] = useState(formatESResult());
+  const [askBody, setAskBody] = useState<any>();
+  const [loading, setLoading] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const shouldAskRef = useRef(true);
+  const shouldAggRef = useRef(true);
+  const [data, setData] = useState<any[]>([]);
+  const [hasMore, setHasMore] = useState(false);
+  const loadLock = useRef(false);
+  const isHomeSearchRef = useRef(true);
+  const scrollRef = useRef(0)
+  const [checkViewport, setCheckViewport] = useState(false);
+  const isViewportLoadingRef = useRef(false);
+  const [chatParams, setChatParams] = useState<Record<string, any>>({});
+  const [attachments, setAttachments] = useState<any[]>([]);
+
+  const onChat = (params: Record<string, any>) => {
+    setChatParams(params);
+    setQueryParams?.({
+      mode: 'chat',
+    })
+  }
+
+  const resetScroll = () => {
+    scrollRef.current = 0;
+    if (containerRef.current) {
+      try {
+        containerRef.current.scrollTo({
+          top: 0,
+          behavior: 'instant'
+        });
+      } catch {
+        containerRef.current.scrollTop = 0;
+      }
+    }
+  };
+
+  const handleSearch = (queryParams: Record<string, any>, shouldAsk: boolean, shouldAgg: boolean, isScroll = false) => {
+    shouldAskRef.current = shouldAsk;
+    shouldAggRef.current = shouldAgg;
+    if (!isScroll) {
+      resetScroll();
+      isHomeSearchRef.current = true;
+    }
+    setQueryParams?.({
+      ...queryParams,
+      t: new Date().valueOf()
+    });
+  };
+
+  const handleScroll = useCallback(() => {
+    if (!containerRef.current || loading || !hasMore || loadLock.current) return;
+
+    const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
+    const distanceToBottom = scrollHeight - scrollTop - clientHeight;
+    if (distanceToBottom < 200) {
+      loadLock.current = true;
+      const { from, size } = queryParams;
+      scrollRef.current = (scrollRef.current || from) + size;
+      isViewportLoadingRef.current = false;
+      handleSearch(queryParams, false, false, true);
+    }
+  }, [queryParams, loading, hasMore, handleSearch]);
+
+  const checkViewportAndLoad = useCallback(() => {
+    if (
+      !containerRef.current ||
+      loading ||
+      !hasMore ||
+      loadLock.current ||
+      isHome
+    ) {
+      setCheckViewport(false);
+      return;
+    }
+
+    const checkAfterRender = () => {
+      if (loading || !hasMore || loadLock.current) {
+        setCheckViewport(false);
+        return;
+      }
+
+      const container = containerRef.current;
+      if (!container) return;
+      const { scrollHeight, clientHeight, scrollTop } = container;
+
+      const heightDiff = scrollHeight - clientHeight;
+      const hasRealScrollbar = heightDiff > 20;
+      const isViewportReallyFilled = hasRealScrollbar || scrollTop > 0;
+
+      if (!isViewportReallyFilled && hasMore) {
+        loadLock.current = true;
+        isViewportLoadingRef.current = true;
+        const { from, size } = queryParams;
+        scrollRef.current = (scrollRef.current || from) + size;
+        handleSearch(queryParams, false, false, true);
+        setCheckViewport(true);
+      } else {
+        setCheckViewport(false);
+      }
+    };
+
+    requestAnimationFrame(() => {
+      setTimeout(checkAfterRender, 200);
+    });
+  }, [containerRef, loading, hasMore, loadLock, isHome, queryParams, handleSearch]);
+
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
+
+  useEffect(() => {
+    const contentContainer = containerRef.current;
+    if (!contentContainer || isHome) return () => { };
+
+    contentContainer.addEventListener('scroll', handleScroll);
+    return () => {
+      contentContainer.removeEventListener('scroll', handleScroll);
+    };
+  }, [isHome, handleScroll]);
+
+  useEffect(() => {
+    if (queryParams.mode === 'chat' || !queryParams?.query && isEmpty(queryParams?.filter) && isEmpty(queryParams?.aggfilter)) return;
+
+    const isScroll = Number.isInteger(scrollRef.current) && scrollRef.current > 0;
+
+    loadLock.current = true;
+    if (!isViewportLoadingRef.current) {
+      setLoading(true);
+    }
+
+    const { t, filter = {}, aggfilter = {}, ...rest } = queryParams;
+    const filterWithoutAgg = {
+      ...filter,
+      'metadata.content_category': queryParams['metadata.content_category'] && queryParams['metadata.content_category'] !== 'all' ? [queryParams['metadata.content_category']] : undefined,
+    }
+    const newFilter = { ...filterWithoutAgg };
+    Object.keys(aggfilter).forEach(key => {
+      if (newFilter[key] !== undefined && aggfilter[key] !== undefined) {
+        const filterVal = Array.isArray(newFilter[key]) ? newFilter[key] : [newFilter[key]];
+        const aggVal = Array.isArray(aggfilter[key]) ? aggfilter[key] : [aggfilter[key]];
+        newFilter[key] = [...new Set([...filterVal, ...aggVal])];
+      } else if (aggfilter[key] !== undefined) {
+        newFilter[key] = aggfilter[key];
+      }
+    });
+    onSearch?.(
+      {
+        ...rest,
+        filter: newFilter,
+        search_type: queryParams?.search_type || ACTION_TYPE_SEARCH_KEYWORD,
+        from: isScroll ? scrollRef.current : queryParams.from,
+        'metadata.content_category': undefined
+      },
+      (res: any) => {
+        loadLock.current = false;
+        if (!isViewportLoadingRef.current) {
+          setLoading(false);
+        }
+        isViewportLoadingRef.current = false;
+
+        let rs: any;
+        if (res && !res.error) {
+          res = normalizeCoverIconUrl(res, apiConfig?.BaseUrl);
+          rs = formatESResult(res);
+          setResult(os => ({
+            ...rs,
+            aggregations: res?.aggregations ? rs.aggregations : os.aggregations
+          }));
+
+          const newData = isScroll ? [...data, ...(rs.hits?.hits || [])] : rs.hits?.hits || [];
+          setData(newData);
+          setHasMore(newData.length < (rs.hits.total || 0));
+          if (!isScroll) isHomeSearchRef.current = false;
+
+          setCheckViewport(true);
+        } else {
+          if (!isScroll) {
+            setResult(formatESResult());
+            setData([]);
+          }
+          setHasMore(false);
+          isHomeSearchRef.current = false;
+          setCheckViewport(false);
+        }
+
+        if (onAggregation && shouldAggRef.current) {
+          setLoading(true);
+          onAggregation({
+            query: queryParams.query,
+            search_type: queryParams?.search_type || ACTION_TYPE_SEARCH_KEYWORD,
+            filter: filterWithoutAgg
+          }, (res: any) => {
+            shouldAskRef.current = false
+            if (res && !res.error) {
+              rs = formatESResult(res);
+              setResult(os => ({
+                ...os,
+                aggregations: res?.aggregations ? rs.aggregations : os.aggregations
+              }));
+            }
+            setLoading(false);
+          })
+        }
+
+        if (shouldAskRef.current) {
+          shouldAskRef.current = false;
+          setAskBody({
+            message: JSON.stringify({
+              query: queryParams.query,
+              result: rs?.hits
+            }),
+            t: new Date().valueOf()
+          });
+        }
+      },
+      (loadingState: boolean) => {
+        if (!isViewportLoadingRef.current) {
+          setLoading(loadingState);
+        }
+      }
+    );
+  }, [JSON.stringify(queryParams)]);
+
+  useEffect(() => {
+    if (!checkViewport) return;
+
+    const timer = setTimeout(() => {
+      checkViewportAndLoad();
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [checkViewport, checkViewportAndLoad]);
+
+  useEffect(() => {
+    if (data.length > 0 && !Number.isInteger(scrollRef.current) || scrollRef.current === 0) {
+      const timer = setTimeout(() => {
+        if (hasMore && !loading && !loadLock.current) {
+          setCheckViewport(true);
+        }
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [data, hasMore, loading]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (containerRef.current && hasMore && !loading && !loadLock.current) {
+        setCheckViewport(true);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [hasMore, loading]);
+
+  useEffect(() => {
+    (window as any).onsearch = (query: string) => handleSearch({ ...queryParams, from: 0, query }, true, true);
+    return () => {
+      (window as any).onsearch = undefined;
+    };
+  }, [queryParams]);
+
+  const debouncedSuggestion = useMemo(() => {
+    if (typeof onSuggestion === 'function') {
+      return debounce(onSuggestion, 500);
+    }
+    return () => { };
+  }, [onSuggestion]);
+
+  const { query, filter, aggfilter, filters = [] } = queryParams;
+
+  const commonProps = { isMobile, theme, apiConfig, language };
+  const { hits, aggregations } = result;
+
+  const handleLogoClick = () => {
+    setQueryParams?.({
+      from: 0,
+      size: 10,
+      query: '',
+      filter: {},
+      aggfilter: {},
+      sort: ''
+    });
+    setData([]);
+    setHasMore(false);
+    resetScroll();
+    isHomeSearchRef.current = true;
+    if (onLogoClick) onLogoClick();
+  };
+
+  const showFullScreenSpin = loading && isHomeSearchRef.current;
+
+  const { mode = 'search' } = queryParams
+
+  if (mode === 'chat') {
+    return (
+      <Chat
+        commonProps={commonProps}
+        apiConfig={apiConfig}
+        queryParams={queryParams}
+        onBackToSearch={() => {
+          handleLogoClick();
+        }}
+        setQueryParams={setQueryParams}
+        defaultParams={chatParams}
+        setDefaultParams={setChatParams}
+        setAttachments={setAttachments}
+      />
+    )
+  }
+
+  if (isHome) {
+    return (
+      <Home
+        commonProps={commonProps}
+        loading={showFullScreenSpin}
+        logo={logo}
+        settings={settings}
+        onSearch={(params: Record<string, any>, shouldAsk: boolean, shouldAgg: boolean) => {
+          if (params.mode === 'chat') {
+            let assistant_id = params.assistant_id;
+            if (!assistant_id) {
+              if (params.action === 'deepthink') {
+                assistant_id = settings?.deep_think_assistant;
+              } else if (params.action === 'deepresearch') {
+                assistant_id = settings?.deep_research_assistant;
+              }
+            }
+            onChat({
+              query: params.query || '',
+              attachments: params.attachments || attachments || [],
+              assistant_id,
+            });
+            return;
+          };
+          handleSearch({ ...queryParams, ...params, from: 0 }, shouldAsk, shouldAgg)
+        }}
+        placeholder={placeholder}
+        welcome={welcome}
+        queryParams={queryParams}
+        setQueryParams={setQueryParams}
+        onSuggestion={debouncedSuggestion}
+        onRecommend={onRecommend}
+        onUpload={onUpload}
+        attachments={attachments}
+        setAttachments={setAttachments}
+      />
+    )
+  }
+
+  return (
+    <Search
+      aggregations={aggregations}
+      aiOverview={aiOverview}
+      askBody={askBody}
+      commonProps={commonProps}
+      settings={settings}
+      config={config}
+      data={data}
+      filter={filter}
+      getContainer={() => containerRef.current}
+      handleLogoClick={handleLogoClick}
+      hasMore={hasMore}
+      hits={hits}
+      initContainer={(ref: HTMLDivElement | null) => {
+        containerRef.current = ref;
+      }}
+      loading={loading}
+      logo={logo}
+      placeholder={placeholder}
+      rightMenuWidth={rightMenuWidth}
+      theme={theme}
+      welcome={welcome}
+      showFullScreenSpin={showFullScreenSpin}
+      queryParams={queryParams}
+      setQueryParams={setQueryParams}
+      onSearchFilter={(aggfilter: Record<string, any>) => {
+        handleSearch({ ...queryParams, aggfilter }, false, false)
+      }}
+      onSearch={(params: Record<string, any>, shouldAsk: boolean, shouldAgg: boolean) => {
+        if (params.mode === 'chat') {
+          let assistant_id = params.assistant_id;
+          if (!assistant_id) {
+            if (params.action === 'deepthink') {
+              assistant_id = settings?.deep_think_assistant;
+            } else if (params.action === 'deepresearch') {
+              assistant_id = settings?.deep_research_assistant;
+            }
+          }
+          onChat({
+            query: params.query || '',
+            attachments: params.attachments || attachments || [],
+            assistant_id,
+          });
+          return;
+        };
+        handleSearch({ ...queryParams, ...params, from: 0 }, shouldAsk, shouldAgg)
+      }}
+      onAsk={onAsk}
+      onSuggestion={debouncedSuggestion}
+      onRecommend={onRecommend}
+      getRawContent={getRawContent}
+      onChatContinue={() => {
+        onChat({
+          query: queryParams.query || '',
+          attachments: attachments || [],
+          assistant_id: settings?.payload?.ai_overview?.assistant,
+        });
+      }}
+      getFieldsMeta={getFieldsMeta}
+      onUpload={onUpload}
+      attachments={attachments}
+      setAttachments={setAttachments}
+    />
+  )
+};
+
+export default Fullscreen;
