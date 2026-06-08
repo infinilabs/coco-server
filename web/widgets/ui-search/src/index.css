@@ -3,3 +3,13 @@
 .ui-search .ui-search-chat-message .user-select-text {
     border-color: var(--ant-color-border-secondary);
 }
+
+/* Fix mermaid.render() temporary container causing extra scrollbar on body */
+body > [id^="dmermaid-"],
+body > [id^="mermaid-"] {
+    position: absolute !important;
+    width: 0 !important;
+    height: 0 !important;
+    overflow: hidden !important;
+    visibility: hidden !important;
+}

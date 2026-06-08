@@ -44,6 +44,13 @@ const resources = {
         resultsWithTime: "Found {{count}} record ({{took}} millisecond)",
         resultsWithTime_plural: "Found {{count}} records ({{took}} milliseconds)",
         openSource: "Open Source",
+        type: "Type",
+        size: "Size",
+        createdBy: "Created By",
+        createdAt: "Created At",
+        updatedAt: "Updated At",
+        preview: "Preview",
+        aiInterpretation: "AI Interpretation",
       },
       history_list: {
         search: {
@@ -237,6 +244,13 @@ const resources = {
         collapse: "收起",
         resultsWithTime: "共找到 {{count}} 条记录（{{took}} 毫秒）",
         openSource: "打开来源",
+        type: "类型",
+        size: "大小",
+        createdBy: "创建者",
+        createdAt: "创建时间",
+        updatedAt: "更新时间",
+        preview: "预览",
+        aiInterpretation: "AI 解读",
       },
       history_list: {
         search: {

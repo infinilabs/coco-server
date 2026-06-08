@@ -1015,7 +1015,8 @@ const page: App.I18n.Schema['translation']['page'] = {
     buttons: {
       openSource: 'Open Source',
       reload: 'Reload',
-      continueVisiting: 'Continue Visiting'
+      continueVisiting: 'Continue Visiting',
+      cancel: 'Cancel'
     },
     hints: {
       failed: 'Sorry, something went wrong',

@@ -1171,7 +1171,8 @@ const page: App.I18n.Schema['translation']['page'] = {
     buttons: {
       openSource: '打开来源',
       reload: '重新加载',
-      continueVisiting: '继续访问'
+      continueVisiting: '继续访问',
+      cancel: '取消'
     },
     hints: {
       failed: '抱歉，出错了',

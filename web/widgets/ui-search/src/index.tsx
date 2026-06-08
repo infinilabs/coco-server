@@ -4,6 +4,8 @@ import React, { useEffect } from "react";
 import { default as Page } from "./FullscreenPage";
 import { default as Modal } from "./FullscreenModal";
 
+export { DocDetail, ActionButton } from "./ResultDetail/DocDetail";
+
 import "./index.css";
 import { ConfigProvider } from "antd";
 

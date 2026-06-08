@@ -1,9 +1,9 @@
-import { ActionButton, DocDetail } from '@infinilabs/doc-detail';
+import { ActionButton, DocDetail } from 'ui-search/source';
 import { Button, Result, Spin, Typography } from 'antd';
 import { useParams } from 'react-router-dom';
 import { filesize } from 'filesize';
 
-import { request } from '@/service/request';
+import { getApiBaseUrl, request } from '@/service/request';
 import logoLight from '@/assets/imgs/coco-logo-text-light.svg';
 import logoDark from '@/assets/imgs/coco-logo-text-dark.svg';
 import DateTime from '@/components/DateTime';
@@ -93,27 +93,38 @@ export function Component() {
 
   const renderContent = () => {
     if (sourceUrl) {
+      const url = sourceUrl.startsWith('http') ? sourceUrl : `${getApiBaseUrl()}${sourceUrl}`;
       return (
         <div className='mt-30 flex justify-center'>
-          <div className='max-w-150 border border-border-secondary rounded-lg bg-black/3 px-6 py-10 dark:bg-white/7'>
+          <div className='max-w-640px border border-border-secondary rounded-lg bg-black/3 px-6 py-10 dark:bg-white/7'>
             <div className='font-bold'>{t('page.preview.hints.leave')}</div>
 
             <div className='mt-1'>{t('page.preview.hints.externalLinkWarning')}</div>
 
             <div className='mt-4'>
-              <Typography.Text type='secondary'>{sourceUrl}</Typography.Text>
+              <Typography.Text type='secondary'>{url}</Typography.Text>
             </div>
 
             <Button
-              className='mt-10'
+              className='mt-10 min-w-100px'
               shape='round'
               size='large'
               type='primary'
               onClick={() => {
-                window.open(sourceUrl);
+                window.open(url);
               }}
             >
               {t('page.preview.buttons.continueVisiting')}
+            </Button>
+            <Button
+              className='ml-12px mt-10 min-w-100px'
+              shape='round'
+              size='large'
+              onClick={() => {
+                setSourceUrl(undefined);
+              }}
+            >
+              {t('page.preview.buttons.cancel')}
             </Button>
           </div>
         </div>
@@ -159,16 +170,20 @@ export function Component() {
           ...data,
           size: filesize(data?.size ?? 0),
           created: (
-            <DateTime
-              showTooltip={false}
-              value={data?.created}
-            />
+            data?.created ? (
+              <DateTime
+                showTooltip={false}
+                value={data?.created}
+              />
+            ) : null
           ),
           updated: (
-            <DateTime
-              showTooltip={false}
-              value={data?.updated}
-            />
+            data?.updated ? (
+              <DateTime
+                showTooltip={false}
+                value={data?.updated}
+              />
+            ) : null
           )
         }}
         i18n={{

@@ -20,9 +20,6 @@ importers:
       '@iconify/react':
         specifier: 5.0.2
         version: 5.0.2(react@18.3.1)
-      '@infinilabs/doc-detail':
-        specifier: 0.0.19
-        version: 0.0.19(@emotion/is-prop-valid@1.4.0)(@types/react@18.3.12)(antd@6.1.3(date-fns@4.3.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@infinilabs/entity-ui':
         specifier: ^0.0.5
         version: 0.0.5(antd@6.1.3(date-fns@4.3.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -494,15 +491,18 @@ importers:
       '@infinilabs/attachments':
         specifier: ^0.0.4
         version: 0.0.4(@ant-design/icons@6.2.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(antd@6.1.3(date-fns@4.3.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@infinilabs/doc-detail':
-        specifier: ^0.0.19
-        version: 0.0.19(@emotion/is-prop-valid@1.4.0)(@types/react@18.3.12)(antd@6.1.3(date-fns@4.3.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@infinilabs/markdown':
+        specifier: ^0.0.9
+        version: 0.0.9(@types/react@18.3.12)(antd@6.1.3(date-fns@4.3.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@infinilabs/search-results':
         specifier: ^0.0.20
         version: 0.0.20(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@unocss/vite':
         specifier: 0.63.6
         version: 0.63.6(rollup@4.60.3)(typescript@5.9.3)(vite@5.4.10(@types/node@22.8.6)(less@4.6.4)(lightningcss@1.32.0)(sass@1.99.0)(terser@5.47.1))
+      ahooks:
+        specifier: 3.8.1
+        version: 3.8.1(react@18.3.1)
       clsx:
         specifier: 2.1.1
         version: 2.1.1
@@ -512,6 +512,12 @@ importers:
       dayjs:
         specifier: ^1.11.13
         version: 1.11.13
+      docx-preview:
+        specifier: ^0.3.7
+        version: 0.3.7
+      filesize:
+        specifier: ^11.0.16
+        version: 11.0.17
       i18next:
         specifier: 23.16.4
         version: 23.16.4
@@ -530,6 +536,9 @@ importers:
       nprogress:
         specifier: 0.2.0
         version: 0.2.0
+      pptx-preview:
+        specifier: ^1.0.7
+        version: 1.0.7
       react-copy-to-clipboard:
         specifier: ^5.1.0
         version: 5.1.1(react@18.3.1)
@@ -545,6 +554,9 @@ importers:
       react-markdown:
         specifier: 10.1.0
         version: 10.1.0(@types/react@18.3.12)(react@18.3.1)
+      react-pdf:
+        specifier: ^10.4.1
+        version: 10.4.1(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       rehype-highlight:
         specifier: 7.0.2
         version: 7.0.2
@@ -1536,13 +1548,6 @@ packages:
       react: ^18.3.1
       react-dom: ^18.3.1
       react-i18next: '>=11.0.0'
-
-  '@infinilabs/doc-detail@0.0.19':
-    resolution: {integrity: sha512-goU7JlW7JLRxFBdamIORGoe4jooQnkDhN38Zi2wzvxrwkVSymXsSs5tJHD72r3Bk9soXSZ3eNSnQgR3gsMLuqQ==}
-    peerDependencies:
-      antd: '>=5'
-      react: '>=17'
-      react-dom: '>=17'
 
   '@infinilabs/entity-ui@0.0.5':
     resolution: {integrity: sha512-HO99Sz9yLLOcxvZYkqzMzqYu45k10zK09VGpD5+OlkH4ZCGo4HGxvc72M2Ad7ISBqcfP2IKVdCc48Nk4pDkEnA==}
@@ -7319,7 +7324,6 @@ packages:
 
   uuid@10.0.0:
     resolution: {integrity: sha512-8XkAphELsDnEGrDxUOHB3RGvXz6TeuYSGEZBOjtTtPm2lwhGBjLgOzLHB63IUWfBpNucQjND6d3AOudO+H3RWQ==}
-    deprecated: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
     hasBin: true
 
   uuid@11.1.1:
@@ -8576,26 +8580,6 @@ snapshots:
       - '@emotion/is-prop-valid'
       - '@types/react'
       - typescript
-
-  '@infinilabs/doc-detail@0.0.19(@emotion/is-prop-valid@1.4.0)(@types/react@18.3.12)(antd@6.1.3(date-fns@4.3.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
-    dependencies:
-      '@ant-design/x': 2.7.0(antd@6.1.3(date-fns@4.3.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@ant-design/x-markdown': 2.7.0(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@infinilabs/markdown': 0.0.9(@types/react@18.3.12)(antd@6.1.3(date-fns@4.3.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      ahooks: 3.9.7(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      antd: 6.1.3(date-fns@4.3.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      clsx: 2.1.1
-      docx-preview: 0.3.7
-      lucide-react: 0.562.0(react@18.3.1)
-      motion: 12.38.0(@emotion/is-prop-valid@1.4.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      pptx-preview: 1.0.7
-      react: 18.3.1
-      react-dom: 18.3.1(react@18.3.1)
-      react-pdf: 10.4.1(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      tailwind-merge: 3.6.0
-    transitivePeerDependencies:
-      - '@emotion/is-prop-valid'
-      - '@types/react'
 
   '@infinilabs/entity-ui@0.0.5(antd@6.1.3(date-fns@4.3.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
@@ -10473,6 +10457,12 @@ snapshots:
       '@vue/compiler-ssr': 3.5.34
       '@vue/shared': 3.5.34
       vue: 3.5.34(typescript@5.6.3)
+
+  '@vue/server-renderer@3.5.34(vue@3.5.34(typescript@5.9.3))':
+    dependencies:
+      '@vue/compiler-ssr': 3.5.34
+      '@vue/shared': 3.5.34
+      vue: 3.5.34(typescript@5.9.3)
 
   '@vue/shared@3.5.34': {}
 
@@ -15861,7 +15851,7 @@ snapshots:
       '@vue/compiler-dom': 3.5.34
       '@vue/compiler-sfc': 3.5.34
       '@vue/runtime-dom': 3.5.34
-      '@vue/server-renderer': 3.5.34(vue@3.5.34(typescript@5.6.3))
+      '@vue/server-renderer': 3.5.34(vue@3.5.34(typescript@5.9.3))
       '@vue/shared': 3.5.34
     optionalDependencies:
       typescript: 5.9.3

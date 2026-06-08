@@ -292,10 +292,11 @@ const BasicLayout: FC<BasicLayoutProps> = (props) => {
           visibilityHeight={0}
           duration={300}
           onClick={handleBackTopClick}
+          className="!border-[#F0F0F0] !dark:border-[#303030] "
           style={{
             right: 24,
             bottom: 24,
-            zIndex: 9999,
+            zIndex: 999,
             display: backTopShow ? 'flex' : 'none',
           }}
         />

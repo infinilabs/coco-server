@@ -351,4 +351,6 @@ declare namespace Api {
 declare module 'ui-search/source' {
   export const FullscreenPage: any;
   export const FullscreenModal: any;
+  export const DocDetail: any;
+  export const ActionButton: any;
 }

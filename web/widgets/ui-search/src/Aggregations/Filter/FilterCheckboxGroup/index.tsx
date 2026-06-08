@@ -116,7 +116,7 @@ const FilterCheckboxGroup: FC<FilterCheckboxGroupProps> = (props) => {
       {options.length > 5 && (
         <div
           className={clsx(
-            "inline-flex items-center gap-2 mt-4 text-primary cursor-pointer",
+            "inline-flex items-center gap-2 mt-4 text-[--ant-color-primary] cursor-pointer",
             classNames?.more
           )}
           onClick={handleExpandMore}
