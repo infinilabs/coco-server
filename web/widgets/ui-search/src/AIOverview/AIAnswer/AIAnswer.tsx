@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback, type CSSProperties } from "react";
 import { XMarkdown } from "@ant-design/x-markdown";
-import AIOverviewIcon from "../../icons/AIOverview";
+import AIOverviewIcon from "../../icons/AIOverviewIcon";
 import clsx from "clsx";
 import "./index.css";
 
@@ -105,7 +105,7 @@ export function AIAnswer({
       <div
         ref={containerRef}
         className={clsx(
-          "p-6 rounded-xl border border-[#EBEBEB] bg-transparent text-[#333] dark:border-slate-700 dark:bg-transparent dark:text-slate-200",
+          "p-6 rounded-xl border border-[#EBEBEB] bg-transparent text-[#333] dark:text-#666 dark:border-slate-700 dark:bg-transparent",
           containerClass
         )}
         style={containerStyle}

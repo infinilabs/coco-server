@@ -6,8 +6,8 @@ import { useMemo, useState, type FC, type HTMLAttributes, type ReactNode } from 
 import Preview from "./components/Preview";
 import AIInterpretation from "./components/AIInterpretation";
 import { clsx } from "clsx";
-import PreviewIcon from "../../../icons/Preview";
-import AIInsightIcon from "../../../icons/AIInsight";
+import PreviewIcon from "../../../icons/PreviewIcon";
+import AIInsightIcon from "../../../icons/AIInsightIcon";
 import { AuthImage } from "../../../ResultList/AuthImage";
 
 const { Text } = Typography;

@@ -2,7 +2,7 @@ import { Badge, Button, Space, Upload } from "antd";
 import { MessageCircle, Paperclip, Search } from "lucide-react";
 import { type FC } from "react";
 import { useTranslation } from "react-i18next";
-import Deepresearch from "../../icons/Deepresearch";
+import DeepresearchIcon from "../../icons/DeepresearchIcon";
 
 export function getFileNameAndExt(fileName: string | undefined): string | undefined {
     if (!fileName) return;
@@ -41,7 +41,7 @@ const Operations: FC<OperationsProps> = (props) => {
             case 'deepthink':
                 return <MessageCircle className="w-14px h-14px" />;
             case 'deepresearch':
-                return <Deepresearch className="w-14px h-14px" />;
+                return <DeepresearchIcon className="w-14px h-14px" />;
             default:
                 return <Search className="w-14px h-14px" />;
         }

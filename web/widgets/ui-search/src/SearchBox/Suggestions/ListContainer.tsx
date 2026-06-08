@@ -1,11 +1,11 @@
 import { Button, List, Spin, Typography } from "antd";
-import { CornerDownLeft } from "lucide-react";
 import { useState, useEffect, useRef, forwardRef, useImperativeHandle, type ReactNode } from "react";
 
 import styles from "./index.module.less";
 import BasicIcon from "../../BasicIcon";
 import InfiniteScroll from 'react-infinite-scroll-component';
 import { DEFAULT_SUGGESTIONS_SIZE } from "../useSearchBox";
+import EnterIcon from "../../icons/EnterIcon";
 
 interface ListContainerProps {
   type?: string;
@@ -333,10 +333,10 @@ const ListContainer = forwardRef<any, ListContainerProps>((props, ref) => {
                     )}
                     {onItemClick && isActive && (
                       <Button
-                        className={`${styles.enter} absolute right-8px top-8px !w-24px !h-24px rounded-8px border-0`}
+                        className={`${styles.enter} absolute right-8px top-8px !w-24px !h-24px rounded-8px !border-0 dark:!bg-[rgb(var(--ui-search--layout-bg-color))] !shadow-none`}
                         classNames={{ icon: `w-14px h-14px !text-14px` }}
                         size="small"
-                        icon={<CornerDownLeft className="w-14px h-14px" />}
+                        icon={<EnterIcon className="w-14px h-14px !text-[#333] dark:!text-#666" />}
                         onClick={(e) => {
                           e.stopPropagation();
                           handleItemClick(item, index);

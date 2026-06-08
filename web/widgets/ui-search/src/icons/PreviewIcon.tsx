@@ -1,6 +1,6 @@
 import { createLucideIcon } from "lucide-react";
 
-const Preview = createLucideIcon('Preview', [
+const PreviewIcon = createLucideIcon('PreviewIcon', [
   ['path', { 
     d: 'M938.666667 938.666667c-12.8 0-21.333333-4.266667-29.866667-12.8l-136.533333-136.533334c-17.066667-17.066667-17.066667-42.666667 0-59.733333s42.666667-17.066667 59.733333 0l136.533333 136.533333c17.066667 17.066667 17.066667 42.666667 0 59.733334-8.533333 8.533333-17.066667 12.8-29.866666 12.8z',
     transform: 'scale(0.0234375)',
@@ -24,4 +24,4 @@ const Preview = createLucideIcon('Preview', [
   }],
 ]);
 
-export default Preview;
+export default PreviewIcon;

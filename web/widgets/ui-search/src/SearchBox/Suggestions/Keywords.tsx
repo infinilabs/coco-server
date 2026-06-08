@@ -2,7 +2,7 @@ import { MessageCircle, Search } from "lucide-react";
 import ListContainer from "./ListContainer";
 import { useState, useEffect, useRef, useMemo, type FC } from "react";
 import { useTranslation } from 'react-i18next';
-import Deepresearch from "../../icons/Deepresearch";
+import DeepresearchIcon from "../../icons/DeepresearchIcon";
 
 export const SUGGESTION_ACTIONS = "suggestion_actions"
 export const SUGGESTION_KEYWORDS = "suggestion_keywords"
@@ -37,7 +37,7 @@ const Keywords: FC<KeywordsProps> = (props) => {
         } : null,
         settings?.deep_research_assistant_entity?.type === 'deep_research' ? {
             action: "deepresearch",
-            icon: <Deepresearch className="w-16px h-16px" />,
+            icon: <DeepresearchIcon className="w-16px h-16px" />,
             suggestion: keyword,
             source: t('labels.deepResearchShort'),
             assistant_id: settings?.deep_research_assistant_entity?.id,

@@ -64,7 +64,7 @@ export function ListItem({
           ) : null}
 
           {item.breadcrumbs?.length || item.author || item.date ? (
-            <div className="mt-2 flex min-w-0 items-center gap-3 text-[#666] dark:text-white/80">
+            <div className="mt-2 flex min-w-0 items-center gap-8px text-[#666] dark:text-white/80">
               <div className="min-w-0 shrink-0">
                 <BreadcrumbsLine breadcrumbs={item.breadcrumbs} />
               </div>
@@ -73,10 +73,10 @@ export function ListItem({
                   <span className="h-3 w-px flex-none bg-[#666]" aria-hidden="true" />
                 ) : null
               }
-              <div className="flex min-w-0 flex-1 items-center gap-2">
+              <div className="flex min-w-0 flex-1 items-center gap-6px">
                 <AuthorDate author={item.author} date={item.date} />
                 {item.href ? (
-                  <span className="flex-none text-[#007EFF] hover:brightness-110" onClick={(e) => {
+                  <span className="flex-none text-[#007EFF] hover:bg-black/5 dark:hover:bg-white/10 p-2px rounded-2px" onClick={(e) => {
                     e.stopPropagation();
                     window.open(item.href, "_blank");
                   }}>
