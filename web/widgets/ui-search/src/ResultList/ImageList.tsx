@@ -84,7 +84,7 @@ const MasonryItem: FC<MasonryItemProps> = (props) => {
 
       <div
         className={clsx(
-          "absolute left-0 bottom-0 w-full p-3 text-white opacity-0 transition",
+          "absolute left-0 bottom-0 w-full p-3 text-14px text-white opacity-0 transition bg-gradient-to-t from-black/60 to-transparent rounded-b-lg",
           {
             "group-hover:opacity-100": loaded,
           },
@@ -92,7 +92,7 @@ const MasonryItem: FC<MasonryItemProps> = (props) => {
       >
         <div className="text-3.5">{data?.title}</div>
 
-        <div className="inline-flex items-center flex-wrap gap-0.5 text-3">
+        <div className="inline-flex items-center flex-wrap gap-0.5 text-12px">
           <span>{data?.source?.name}</span>
           <ChevronRight className="size-3" />
           <span>{data?.category}</span>
@@ -108,6 +108,7 @@ interface ImageListProps {
   isMobile?: boolean;
   loading?: boolean;
   hasMore?: boolean;
+  onLoadMore?: () => void;
   setDetailCollapse?: (v: boolean) => void;
   getRawContent?: (data: Record<string, any>) => string;
   apiConfig?: Record<string, any>;
@@ -115,19 +116,55 @@ interface ImageListProps {
 }
 
 export function ImageList(props: ImageListProps) {
-  const { getDetailContainer, data = [], isMobile, loading, hasMore, setDetailCollapse, getRawContent, apiConfig } = props;
+  const { getDetailContainer, data = [], isMobile, loading, hasMore, onLoadMore, setDetailCollapse, getRawContent, apiConfig } = props;
 
   const [open, setOpen] = useState(false);
   const [record, setRecord] = useState<Record<string, any> | undefined>();
   const masonryContainerRef = useRef<HTMLDivElement>(null);
   const containerSize = useSize(masonryContainerRef);
   const [columns, setColumns] = useState(2);
+  const loadingRef = useRef(loading);
+  const hasMoreRef = useRef(hasMore);
+
+  useEffect(() => { loadingRef.current = loading; }, [loading]);
+  useEffect(() => { hasMoreRef.current = hasMore; }, [hasMore]);
 
   useEffect(() => {
     setOpen(false);
     setRecord(undefined);
     setDetailCollapse?.(true);
   }, [data]);
+
+  useEffect(() => {
+    const container = getDetailContainer?.();
+    if (!container) return;
+
+    const checkAndLoad = () => {
+      const { scrollHeight, clientHeight } = container;
+      if (scrollHeight - container.scrollTop - clientHeight < 200 && hasMoreRef.current && !loadingRef.current) {
+        onLoadMore?.();
+      }
+    };
+
+    container.addEventListener("scroll", checkAndLoad);
+    return () => {
+      container.removeEventListener("scroll", checkAndLoad);
+    };
+  }, [getDetailContainer, onLoadMore]);
+
+  // If content doesn't fill the container (no scrollbar), auto-load more
+  useEffect(() => {
+    const container = getDetailContainer?.();
+    if (!container || !hasMore || loading) return;
+
+    const timer = setTimeout(() => {
+      if (container.scrollHeight <= container.clientHeight && hasMoreRef.current && !loadingRef.current) {
+        onLoadMore?.();
+      }
+    }, 200);
+
+    return () => clearTimeout(timer);
+  }, [data.length, hasMore, loading, getDetailContainer, onLoadMore]);
 
   const calculateColumns = useMemo(() => {
     if (!containerSize?.width) return isMobile ? 1 : 2;

@@ -234,7 +234,7 @@ const BasicLayout: FC<BasicLayoutProps> = (props) => {
           style={{ overflow: 'visible' }}
         >
           {/* Content part */}
-          <div className={`pt-32px ${isMobile ? 'px-0px' : 'pl-56px pr-96px'}`}>
+          <div className={`py-32px ${isMobile ? 'px-0px' : 'pl-56px pr-96px'}`}>
             {toolbar && <div className="pl-16px mb-16px">{toolbar}</div>}
             <div className="px-16px mb-16px">
               {resultHeader && cloneElement(resultHeader, {

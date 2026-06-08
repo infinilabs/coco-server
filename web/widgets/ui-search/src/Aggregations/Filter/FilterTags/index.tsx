@@ -93,7 +93,7 @@ const FilterTags: FC<FilterTagsProps> = (props) => {
         key={value}
         style={style}
         className={clsx(
-          "border border-solid hover:border-[#007EFF] hover:bg-[rgba(0,126,255,0.1)] border-[#F0F0F0] dark:border-[#303030] text-12px text-[#666] inline-flex items-center justify-center h-24px px-1 cursor-pointer rounded-8px transition-colors text-[#666] dark:text-white/80",
+          "border border-solid hover:border-[#007EFF] hover:bg-[rgba(0,126,255,0.1)] border-[#F0F0F0] dark:border-[#303030] text-12px inline-flex items-center justify-center h-24px px-1 cursor-pointer rounded-8px transition-colors text-[#666] dark:text-white/80",
           {
             "!border-[#007EFF] !bg-[rgba(0,126,255,0.1)]": propsValue.includes(value),
           },

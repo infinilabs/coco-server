@@ -42,6 +42,7 @@ interface SearchProps {
   attachments?: any[];
   setAttachments?: (attachments: any[]) => void;
   settings?: Record<string, any>;
+  onLoadMore?: () => void;
   [key: string]: any;
 }
 
@@ -76,7 +77,8 @@ export default function Search({
   onUpload,
   attachments,
   setAttachments,
-  settings
+  settings,
+  onLoadMore
 }: SearchProps) {
 
   const { query, filter, aggfilter = {} } = queryParams || {};
@@ -133,6 +135,7 @@ export default function Search({
           <ResultHeader
             {...commonProps}
             hits={hits}
+            hasAggregations={aggregations?.length > 0}
             siderCollapse={siderCollapse}
             setSiderCollapse={setSiderCollapse}
             recommendsCollapse={recommendsCollapse}
@@ -150,6 +153,7 @@ export default function Search({
               total={hits?.total || 0}
               setDetailCollapse={setDetailCollapse}
               getRawContent={getRawContent}
+              onLoadMore={onLoadMore}
             />
           ) : null
         }
@@ -230,6 +234,7 @@ export default function Search({
           {...commonProps}
           hits={hits}
           siderCollapse={siderCollapse}
+          hasAggregations={aggregations?.length > 0}
           setSiderCollapse={setSiderCollapse}
           recommendsCollapse={recommendsCollapse}
           setRecommendsCollapse={setRecommendsCollapse}
@@ -247,6 +252,7 @@ export default function Search({
             total={hits?.total || 0}
             setDetailCollapse={setDetailCollapse}
             getRawContent={getRawContent}
+            onLoadMore={onLoadMore}
           />
         ) : null
       }

@@ -5,6 +5,7 @@ import { type FC } from "react";
 interface ResultHeaderProps {
   hits?: { total?: number; took?: number };
   isMobile?: boolean;
+  hasAggregations?: boolean;
   hasRecommends?: boolean;
   siderCollapse?: boolean;
   setSiderCollapse?: (v: boolean) => void;
@@ -21,6 +22,7 @@ interface ResultHeaderProps {
 export const ResultHeader: FC<ResultHeaderProps> = (props) => {
   const {
     hits, isMobile,
+    hasAggregations,
     hasRecommends,
     siderCollapse, setSiderCollapse,
     recommendsCollapse, setRecommendsCollapse,
@@ -67,12 +69,16 @@ export const ResultHeader: FC<ResultHeaderProps> = (props) => {
 
   return (
     <div className="flex gap-8px items-center w-full text-[#999]">
-      <LeftToggleIcon className="text-[#666] w-16px h-16px cursor-pointer" onClick={handleLeftToggle} />
+      {
+        hasAggregations && (
+          <LeftToggleIcon className="text-[#666] dark:text-white/80 w-16px h-16px cursor-pointer" onClick={handleLeftToggle} />
+        )
+      }
       <div className="text-12px flex-1">
         {t('labels.resultsWithTime', { count: hits?.total || 0, took: hits?.took || 0 })}
       </div>
       {showRightToggle && (
-        <RightToggleIcon className="text-[#666] w-16px h-16px cursor-pointer" onClick={handleRightToggle} />
+        <RightToggleIcon className="text-[#666] dark:text-white/80 w-16px h-16px cursor-pointer" onClick={handleRightToggle} />
       )}
     </div>
   );

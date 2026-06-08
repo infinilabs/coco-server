@@ -8,6 +8,7 @@ import AIInterpretation from "./components/AIInterpretation";
 import { clsx } from "clsx";
 import PreviewIcon from "../../../icons/Preview";
 import AIInsightIcon from "../../../icons/AIInsight";
+import { AuthImage } from "../../../ResultList/AuthImage";
 
 const { Text } = Typography;
 
@@ -156,8 +157,12 @@ const DocDetail: FC<DocDetailProps> = (props) => {
       className={clsx("flex flex-col h-full overflow-hidden", className)}
       {...rest}
     >
-      <div className={clsx("text-20px text-[--ant-color-primary] break-words", mode === "embedded" ? "pr-24px" : "")}>
-        <img src={data?.icon} className="w-20px h-20px inline-block align-middle mr-8px" />
+      <div className={clsx("text-20px text-[#1A0CAB] break-words", mode === "embedded" ? "pr-24px" : "")}>
+        <AuthImage
+          src={data?.icon}
+          className={"w-20px h-20px inline-block align-middle mr-8px"}
+          requestHeaders={requestHeaders}
+        />
         <span className="align-middle">{data?.title}</span>
       </div>
 

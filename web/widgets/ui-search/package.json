@@ -47,7 +47,7 @@
     "@infinilabs/ai-chat": "^0.0.27",
     "@infinilabs/attachments": "^0.0.4",
     "@infinilabs/markdown": "^0.0.9",
-    "@infinilabs/search-results": "^0.0.20",
+    "@tanstack/react-virtual": "^3.14.2",
     "@unocss/vite": "0.63.6",
     "ahooks": "3.8.1",
     "clsx": "2.1.1",

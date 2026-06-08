@@ -1,4 +1,9 @@
-import { useEffect, useRef, useState, forwardRef, type ImgHTMLAttributes } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
+import type React from "react";
+
+import { RequestHeadersContext } from "./RequestHeadersContext";
+
+type AuthImageProps = React.ImgHTMLAttributes<HTMLImageElement>;
 
 function isAssetUrl(url: string): boolean {
   try {
@@ -9,13 +14,9 @@ function isAssetUrl(url: string): boolean {
   }
 }
 
-interface AuthImageProps extends ImgHTMLAttributes<HTMLImageElement> {
-  src?: string;
-  requestHeaders?: Record<string, string>;
-}
-
-export const AuthImage = forwardRef<HTMLImageElement, AuthImageProps>((props, ref) => {
-  const { src, requestHeaders, ...rest } = props;
+export function AuthImage(props: AuthImageProps) {
+  const requestHeaders = useContext(RequestHeadersContext);
+  const { src, ...rest } = props;
   const needsAuth = !!(src && requestHeaders && !isAssetUrl(src));
   const [blobUrl, setBlobUrl] = useState<string | undefined>(undefined);
   const urlRef = useRef<string | undefined>(undefined);
@@ -25,7 +26,7 @@ export const AuthImage = forwardRef<HTMLImageElement, AuthImageProps>((props, re
 
     let cancelled = false;
 
-    fetch(src, { headers: requestHeaders })
+    fetch(src, { headers: requestHeaders! })
       .then((res) => res.blob())
       .then((blob) => {
         if (cancelled) return;
@@ -47,8 +48,8 @@ export const AuthImage = forwardRef<HTMLImageElement, AuthImageProps>((props, re
   }, [src, needsAuth, requestHeaders]);
 
   if (!needsAuth) {
-    return <img ref={ref} {...rest} src={src} />;
+    return <img {...props} />;
   }
 
-  return <img ref={ref} {...rest} src={blobUrl} />;
-})
+  return <img {...rest} src={blobUrl} />;
+}

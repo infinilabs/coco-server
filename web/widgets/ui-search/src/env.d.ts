@@ -16,7 +16,3 @@ declare module '@infinilabs/ai-chat' {
 declare module '@infinilabs/attachments' {
   export const Attachments: any;
 }
-declare module '@infinilabs/search-results' {
-  const SearchResults: any;
-  export default SearchResults;
-}
