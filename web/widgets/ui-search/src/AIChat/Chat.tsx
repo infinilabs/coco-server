@@ -469,18 +469,21 @@ const InnerChatAI = memo(
 
       const createNewChat = useCallback(
         async (params: SendMessageParams) => {
-          const text = params.message ?? "";
-          const attachments = params.attachments;
-          if (!text && (!attachments || attachments.length === 0)) return;
+          const { message = "", attachments, datasource = [], mcp_servers = [], ...rest } = params;
+          if (!message && (!attachments || attachments.length === 0)) return;
 
           setTimedoutShow(false);
-          console.log("[createNewChat]", text.slice(0, 50));
 
           try {
             const res = await postJSON<{ _id: string; _source: Record<string, unknown> }>({
               url: "/chat/_create",
-              body: { message: text, attachments },
-              queryParams: { assistant_id: params.assistant_id || currentAssistant?._id || "" },
+              body: { message, attachments },
+              queryParams: { 
+                assistant_id: params.assistant_id || currentAssistant?._id || "", 
+                ...(rest || {}),
+                datasource: datasource instanceof Array ? datasource.join(",") : undefined,
+                mcp_servers: mcp_servers instanceof Array ? mcp_servers.join(",") : undefined,  
+              },
               headers: headersProp,
             });
             setActiveSessionId(res._id);
@@ -496,14 +499,25 @@ const InnerChatAI = memo(
       const sendMessage = useCallback(
         async (sessionId: string, params?: SendMessageParams) => {
           if (!sessionId || !params) return;
-          const text = params.message ?? "";
-          const attachments = params.attachments;
-          if (!text && (!attachments || attachments.length === 0)) return;
+          const { message = "", attachments, datasource = [], mcp_servers = [], ...rest } = params;
+          if (!message && (!attachments || attachments.length === 0)) return;
 
           setTimedoutShow(false);
 
           try {
-            await postJSON({ url: `/chat/${sessionId}/_send`, body: { message: text, attachments }, headers: headersProp });
+            await postJSON({ 
+              url: `/chat/${sessionId}/_send`, 
+              body: { 
+                message, 
+                attachments,
+              }, 
+              queryParams: { 
+                ...(rest || {}),
+                datasource: datasource instanceof Array ? datasource.join(",") : undefined,
+                mcp_servers: mcp_servers instanceof Array ? mcp_servers.join(",") : undefined,  
+              },
+              headers: headersProp 
+            });
           } catch (err) {
             console.error("sendMessage error:", err);
           }

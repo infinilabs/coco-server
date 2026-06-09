@@ -6,7 +6,7 @@ import { type TFunction } from "i18next";
 import { ChevronDown, Search, Check } from "lucide-react";
 
 import i18n from "../i18n";
-import { Input, type InputRef } from "antd";
+import { Button, Input, type InputRef } from "antd";
 import { Post } from "./api/axiosRequest";
 import { useChatStore } from "./stores/chatStore";
 import FontIcon from "./FontIcon";
@@ -136,12 +136,9 @@ function InnerAssistantList({ assistantIDs = [], locale = "en", t: tProp }: Assi
 
   return (
     <div className="relative">
-      <button
-        className="bg-transparent border-[#F0F0F0] dark:border-[#303030] border border-solid flex cursor-pointer items-center gap-1 rounded-xl px-2 py-1.5 transition-colors"
-        style={{
-          color: 'var(--ant-color-text)',
-        }}
-        type="button"
+      <Button
+        shape="round"
+        className="!rounded-12px border-[#F0F0F0] dark:border-[#303030] !px-8px"
         onClick={() => {
           setOpen((v) => !v);
           setTimeout(() => {
@@ -170,8 +167,8 @@ function InnerAssistantList({ assistantIDs = [], locale = "en", t: tProp }: Assi
         <span className="text-sm">
           {currentAssistant?._source?.name || t("assistant_list.default_name")}
         </span>
-        <ChevronDown className="h-4 w-4" style={{ color: 'var(--ant-color-text-secondary)' }} />
-      </button>
+        <ChevronDown className="h-4 w-4" />
+      </Button>
 
       {open && (
         <div

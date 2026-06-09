@@ -28,7 +28,7 @@ export function MediaItem({
         onItemClick?.(item);
       }}
       className={clsx(
-        "group block w-full rounded-xl border border-transparent text-left no-underline transition-colors",
+        "bg-transparent group block w-full rounded-xl border border-transparent text-left no-underline transition-colors",
       )}
     >
       <div className="overflow-hidden rounded-lg ring-1 ring-slate-200 dark:ring-slate-700">

@@ -1,7 +1,8 @@
 import { type FC, type ReactNode } from "react";
 import { Button } from "antd";
-import { MessageSquarePlus, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { useTranslation } from 'react-i18next';
+import NewChatIcon from "../icons/NewChatIcon";
 
 const LeftSvg: FC<{ className?: string }> = ({ className }) => (
   <svg viewBox="0 0 48 48" width="1em" height="1em" filter="none" className={className}>
@@ -15,6 +16,14 @@ const RightSvg: FC<{ className?: string }> = ({ className }) => (
   <svg viewBox="0 0 48 48" width="1em" height="1em" filter="none" className={className}>
     <g>
     <rect x="6" y="6" width="36" height="36" rx="3" fill="none" stroke="currentColor" strokeWidth="4" strokeLinejoin="round"></rect><path d="M18 6V42" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" fill="none"></path><path d="M11 6H36" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" fill="none"></path><path d="M11 42H36" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" fill="none"></path><path d="M32 20L28 24L32 28" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" fill="none"></path>
+    </g>
+  </svg>
+)
+
+const NewChatSvg: FC<{ className?: string }> = ({ className }) => (
+  <svg viewBox="0 0 32 32" width="1em" height="1em" filter="none" className={className}>
+    <g>
+    <path d="M18.667 4v2.667h-13.333v17.847l2.351-1.847h18.983v-9.333h2.667v10.667c0 0.736-0.597 1.333-1.333 1.333v0h-19.393l-5.94 4.667v-24.667c0-0.736 0.597-1.333 1.333-1.333v0h14.667zM25.333 4v-4h2.667v4h4v2.667h-4v4h-2.667v-4h-4v-2.667h4z" fill="rgba(3,135,255,1)"></path>
     </g>
   </svg>
 )
@@ -40,12 +49,10 @@ const ChatHeader: FC<ChatHeaderProps> = (props) => {
           className="!rounded-12px border-[#F0F0F0] dark:border-[#303030]"
         />
 
-        <div className="border-[#F0F0F0] dark:border-[#303030]">
-          {AssistantList}
-        </div>
+        {AssistantList}
 
         <Button
-          icon={<MessageSquarePlus className="h-4 w-4 !text-[var(--ant-color-primary)]" />}
+          icon={<NewChatSvg className="h-4 w-4 !text-[var(--ant-color-primary)]" />}
           onClick={onNewChat}
           className="!rounded-12px border-[#F0F0F0] dark:border-[#303030]"
         />
@@ -54,7 +61,7 @@ const ChatHeader: FC<ChatHeaderProps> = (props) => {
           shape="round"
           icon={<Search className="h-4 w-4 !text-[var(--ant-color-primary)]" />}
           onClick={onBackToSearch}
-          className="!rounded-12px border-[#F0F0F0] dark:border-[#303030]"
+          className="text-[#999] !rounded-12px border-[#F0F0F0] dark:border-[#303030] !px-8px"
         >
           {t('labels.backToSearch')}
         </Button>
