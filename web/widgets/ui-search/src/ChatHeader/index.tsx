@@ -2,7 +2,6 @@ import { type FC, type ReactNode } from "react";
 import { Button } from "antd";
 import { Search } from "lucide-react";
 import { useTranslation } from 'react-i18next';
-import NewChatIcon from "../icons/NewChatIcon";
 
 const LeftSvg: FC<{ className?: string }> = ({ className }) => (
   <svg viewBox="0 0 48 48" width="1em" height="1em" filter="none" className={className}>

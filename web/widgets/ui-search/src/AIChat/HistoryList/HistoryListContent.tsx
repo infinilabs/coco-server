@@ -90,28 +90,26 @@ const HistoryListContent: FC<HistoryListContentProps> = ({
 
   return (
     <>
-      <div className="py-4">
-        {Object.entries(sortedList).map(([label, list]) => (
-          <div key={label}>
-            <div className="text-14px text-[#999] py-8px">{t(label)}</div>
-            <ul className="p-0">
-              {list.map((item) => (
-                <HistoryListItem
-                  key={item._id}
-                  item={item}
-                  active={active}
-                  onSelect={onSelect}
-                  onRename={onRename}
-                  handleDelete={() => handleDelete(item)}
-                  renamingId={renamingId}
-                  deletingId={deletingId}
-                  t={t}
-                />
-              ))}
-            </ul>
-          </div>
-        ))}
-      </div>
+      {Object.entries(sortedList).map(([label, list]) => (
+        <div key={label}>
+          <div className="text-14px text-[#999] py-8px">{t(label)}</div>
+          <ul className="p-0">
+            {list.map((item) => (
+              <HistoryListItem
+                key={item._id}
+                item={item}
+                active={active}
+                onSelect={onSelect}
+                onRename={onRename}
+                handleDelete={() => handleDelete(item)}
+                renamingId={renamingId}
+                deletingId={deletingId}
+                t={t}
+              />
+            ))}
+          </ul>
+        </div>
+      ))}
 
       <DeleteDialog
         isOpen={isOpen}
