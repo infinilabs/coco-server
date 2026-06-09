@@ -14,9 +14,6 @@ export default defineConfig({
     open: true,
     host: true
   },
-  optimizeDeps: {
-    exclude: ['@infinilabs/ai-chat']
-  },
   resolve: {
     extensions: ['.ts', '.tsx', '.js', '.jsx'],
     alias: {

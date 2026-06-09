@@ -7,12 +7,7 @@ declare module "*.svg" {
   const content: string;
   export default content;
 }
-declare module '@infinilabs/ai-chat' {
-  export const History: any;
-  export const Chat: any;
-  export const AssistantList: any;
-  export const ChatInput: any;
-}
+
 declare module '@infinilabs/attachments' {
   export const Attachments: any;
 }
