@@ -55,7 +55,7 @@ Return the result in JSON format:
     "plan": ["step 1", "step 2", ...]
 }
 
-Respond in English.`, s.Request.Query, maxSteps, depthHint, s.Config.ResearchDepth)
+Respond in %s.`, s.Request.Query, maxSteps, depthHint, s.Config.ResearchDepth, reportLang(s.Config.ReportLang))
 
 	// Prepend uploaded document content so the planner can treat them as primary source material.
 	if len(s.Attachments) > 0 {
@@ -367,11 +367,6 @@ func (s *State) generateChapterOutline(ctx context.Context, llm llms.Model) erro
 		return fmt.Errorf("no research plan available")
 	}
 
-	reportLang := s.Config.ReportLang
-	if reportLang == "" {
-		reportLang = "en-US"
-	}
-
 	prompt := fmt.Sprintf(`Based on the following research query and research plan, generate a detailed report chapter outline. Chapters should be logically structured, covering all important aspects of the research, with clear focus and relevant keywords for each chapter.
 
 Research query: %s
@@ -397,7 +392,7 @@ Requirements:
 4. Accurately relate to relevant research steps`,
 		s.Request.Query,
 		strings.Join(s.Plan, "\n"),
-		reportLang)
+		reportLang(s.Config.ReportLang))
 
 	completion, err := llms.GenerateFromSinglePrompt(ctx, llm, prompt)
 	if err != nil {
@@ -574,11 +569,6 @@ func (s *State) generateChapterAwareAnalysisPrompt(step string, allocatedMateria
 		}
 	}
 
-	reportLang := s.Config.ReportLang
-	if reportLang == "" {
-		reportLang = "en-US"
-	}
-
 	return fmt.Sprintf(`You are a researcher. Based on the following search results, provide detailed findings and insights for this research step.
 
 Research step: %s
@@ -594,7 +584,7 @@ Requirements:
 		step,
 		"searched results", // For preview, not actual search results - replaced direct call
 		materialsInfo,
-		reportLang)
+		reportLang(s.Config.ReportLang))
 }
 
 // updateChapterProgress updates chapter progress and status
@@ -634,13 +624,8 @@ func (s *State) updateChapterProgress(stepIndex int, materials []MaterialReferen
 func (s *State) generateTraditionalReport(ctx context.Context, llm llms.Model) (*State, error) {
 	researchData := strings.Join(s.ResearchResults, "\n\n")
 
-	reportLang := s.Config.ReportLang
-	if reportLang == "" {
-		reportLang = "en-US"
-	}
-
 	prompt := fmt.Sprintf("You are a senior report writer. Based on the following research results, write a comprehensive final report. Use Markdown format. Write the report in %s:\n\n%s\n\nOriginal query was: %s",
-		reportLang, researchData, s.Request.Query)
+		reportLang(s.Config.ReportLang), researchData, s.Request.Query)
 
 	completion, err := llms.GenerateFromSinglePrompt(ctx, llm, prompt)
 	if err != nil {
@@ -688,11 +673,6 @@ func (s *State) generateChapterContent(ctx context.Context, llm llms.Model) map[
 		materialsInfo := s.buildMaterialsInfo(content.Materials)
 		log.Infof("Generating content for chapter %s with %d materials", content.Title, len(content.Materials))
 
-		reportLang := s.Config.ReportLang
-		if reportLang == "" {
-			reportLang = "en-US"
-		}
-
 		// Generate comprehensive chapter content from materials
 		prompt := fmt.Sprintf(`You are a professional report writer.
 
@@ -717,7 +697,7 @@ Generate the chapter content directly, do not add explanatory text.`,
 			s.Request.Query,
 			content.Title,
 			materialsInfo,
-			reportLang)
+			reportLang(s.Config.ReportLang))
 
 		completion, err := llms.GenerateFromSinglePrompt(ctx, llm, prompt)
 		if err != nil {
@@ -771,11 +751,6 @@ func (s *State) buildMaterialsInfo(materials []MaterialReference) string {
 
 // extractKeyPoints extracts the main points from generated content
 func (s *State) extractKeyPoints(ctx context.Context, llm llms.Model, content string) ([]string, error) {
-	reportLang := s.Config.ReportLang
-	if reportLang == "" {
-		reportLang = "en-US"
-	}
-
 	prompt := fmt.Sprintf(`Extract 3-5 of the most important points/key takeaways from the following content, each point should be concise and clear:
 
 Content:
@@ -786,7 +761,7 @@ Return format:
 - Point 2
 - Point 3...
 
-Do not add other text. Respond in %s.`, content, reportLang)
+Do not add other text. Respond in %s.`, content, reportLang(s.Config.ReportLang))
 
 	completion, err := llms.GenerateFromSinglePrompt(ctx, llm, prompt)
 	if err != nil {
@@ -929,6 +904,15 @@ func getReportI18n(lang string) reportI18n {
 			GenerationFailed: "Content generation failed: %v",
 		}
 	}
+}
+
+// reportLang returns the configured report language, defaulting to en-US when
+// unset. This mirrors the fallback used throughout the other node functions.
+func reportLang(lang string) string {
+	if lang == "" {
+		return "en-US"
+	}
+	return lang
 }
 
 // Utility functions
