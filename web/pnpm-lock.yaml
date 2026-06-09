@@ -503,6 +503,9 @@ importers:
       ahooks:
         specifier: 3.8.1
         version: 3.8.1(react@18.3.1)
+      axios:
+        specifier: 1.7.7
+        version: 1.7.7
       clsx:
         specifier: 2.1.1
         version: 2.1.1
@@ -521,6 +524,9 @@ importers:
       i18next:
         specifier: 23.16.4
         version: 23.16.4
+      immer:
+        specifier: ^11.1.8
+        version: 11.1.8
       lodash:
         specifier: ^4.17.21
         version: 4.18.1
@@ -578,6 +584,9 @@ importers:
       use-debounce:
         specifier: 10.0.4
         version: 10.0.4(react@18.3.1)
+      zustand:
+        specifier: ^5.0.14
+        version: 5.0.14(@types/react@18.3.12)(immer@11.1.8)(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1))
     devDependencies:
       '@unocss/postcss':
         specifier: ^66.2.3

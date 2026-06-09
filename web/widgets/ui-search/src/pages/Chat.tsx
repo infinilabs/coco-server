@@ -3,7 +3,7 @@ import {
   Chat as AIChat,
   AssistantList,
   ChatInput,
-} from "@infinilabs/ai-chat";
+} from "../AIChat";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from 'react-i18next';
 

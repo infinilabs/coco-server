@@ -8,6 +8,7 @@ import logoTextDark from '../assets/images/logo-text-dark.svg';
 import logoTextLight from '../assets/images/logo-text-light.svg';
 
 import styles from './index.module.less';
+import ChatIcon from '../icons/ChatIcon';
 
 const { Content, Sider } = Layout;
 
@@ -32,7 +33,7 @@ const ChatLayout: FC<ChatLayoutProps> = (props) => {
   useNProgress(loading);
 
   const logoNode = logo ?? (
-    <div className='flex items-center gap-2'>
+    <div className='flex items-center gap-16px'>
       <div className='flex items-center'>
         <img
           alt='Coco'
@@ -45,12 +46,12 @@ const ChatLayout: FC<ChatLayoutProps> = (props) => {
           src={logoTextDark}
         />
       </div>
-      <div className='ml-4 flex items-center gap-1 border border-solid border-[var(--ant-color-border)] rounded-full px-2 py-1.5'>
-        <Sparkles
+      <div className='flex items-center gap-1 rounded-9px px-2 py-1.5 bg-[#FFF] dark:bg-[#000]'>
+        <ChatIcon
           className='h-4 w-4 text-[#7C3AED]'
           fill='currentColor'
         />
-        <span className='text-xs text-[#999]'>Chat</span>
+        <span className='text-12px text-#333 dark:text-#ccc'>Chat</span>
       </div>
     </div>
   );
@@ -72,7 +73,7 @@ const ChatLayout: FC<ChatLayoutProps> = (props) => {
           width={260}
         >
           <div className='h-full flex flex-col'>
-            <div className='h-16 flex shrink-0 items-center bg-[#F3F4F6] px-4 dark:bg-[#1F2937]'>{logoNode}</div>
+            <div className='h-16 flex shrink-0 items-center bg-[#F3F4F6] px-14px dark:bg-[#1F2937]'>{logoNode}</div>
             <div className='flex-1 overflow-y-hidden bg-[#F3F4F6] dark:bg-[#1F2937]'>{sidebar}</div>
           </div>
         </Sider>

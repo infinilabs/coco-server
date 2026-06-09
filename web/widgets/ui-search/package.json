@@ -50,12 +50,14 @@
     "@tanstack/react-virtual": "^3.14.2",
     "@unocss/vite": "0.63.6",
     "ahooks": "3.8.1",
+    "axios": "1.7.7",
     "clsx": "2.1.1",
     "colord": "2.9.3",
     "dayjs": "^1.11.13",
     "docx-preview": "^0.3.7",
     "filesize": "^11.0.16",
     "i18next": "23.16.4",
+    "immer": "^11.1.8",
     "lodash": "^4.17.21",
     "lucide-react": "^0.525.0",
     "mermaid": "11.6.0",
@@ -74,6 +76,7 @@
     "remark-breaks": "4.0.0",
     "remark-gfm": "4.0.1",
     "remark-math": "6.0.0",
-    "use-debounce": "10.0.4"
+    "use-debounce": "10.0.4",
+    "zustand": "^5.0.14"
   }
 }
