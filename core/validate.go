@@ -53,8 +53,7 @@ func ValidateLoginByIntegrationHeader(w http.ResponseWriter, r *http.Request) (c
 			claims.Provider = ProviderIntegration
 			claims.Login = cfg.Guest.RunAs
 			claims.UserID = cfg.Guest.RunAs
-			claims.Permissions = security.GetAllPermissionsForUser(claims.UserSessionInfo)
-			//claims.Permissions = security.MustGetPermissionKeysByUser(r.Context(), cfg.Guest.RunAs)
+			claims.UserAssignedPermission = security.NewUserAssignedPermission(security.GetAllPermissionsForUser(claims.UserSessionInfo),nil)
 			//log.Info("integration:", integrationID, ", run as:", cfg.Guest.RunAs, ",permissions:", claims.Permissions)
 			return claims, nil
 		}
