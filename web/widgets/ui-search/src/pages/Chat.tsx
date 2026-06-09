@@ -37,6 +37,12 @@ export default function Chat({
   const [isHistoryOpen, setIsHistoryOpen] = useState(true);
   const [inputValue, setInputValue] = useState("");
 
+  useEffect(() => {
+    return () => {
+      chatRef.current?.clearChat();
+    }
+  }, [])
+
   // continue chat
   const processedParams = useRef<Record<string, any> | null>(null);
   useEffect(() => {
@@ -107,6 +113,7 @@ export default function Chat({
           onCancel={() => {
             chatRef.current?.cancelChat();
           }}
+          disabled={false}
         />
       }
       sidebarCollapsed={!isHistoryOpen}

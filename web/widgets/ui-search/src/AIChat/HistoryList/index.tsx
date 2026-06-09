@@ -6,17 +6,17 @@ import { Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { type TFunction } from "i18next";
 
-import type { Session } from "../types/chat";
+import type { Chat } from "../types/chat";
 import HistoryListContent from "./HistoryListContent";
 import RefreshIcon from "../../icons/RefreshIcon";
 
 interface HistoryListProps {
   historyPanelId?: string;
-  chats: Session[];
-  active?: Session;
+  chats: Chat[];
+  active?: Chat;
   onSearch: (keyword: string) => void;
   onRefresh: () => void;
-  onSelect: (chat: Session) => void;
+  onSelect: (chat: Chat) => void;
   onRename: (chatId: string, title: string) => void;
   onRemove: (chatId: string) => void;
   renamingId?: string;
@@ -44,7 +44,7 @@ const HistoryList: FC<HistoryListProps> = (props) => {
   const [isRefresh, setIsRefresh] = useState(false);
   const [keyword, setKeyword] = useState("");
 
-  const filteredSessions = useMemo(() => {
+  const filteredChats = useMemo(() => {
     if (!keyword) return chats;
     
     return chats.filter(chat => {
@@ -107,7 +107,7 @@ const HistoryList: FC<HistoryListProps> = (props) => {
 
       <div className="flex-1 px-14px overflow-auto mt-8px">
         <HistoryListContent
-          chats={filteredSessions}
+          chats={filteredChats}
           active={active}
           onSelect={onSelect}
           onRename={onRename}

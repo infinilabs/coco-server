@@ -10,7 +10,7 @@
   "exports": {
     ".": "./dist/index.js",
     "./css": "./dist/index.css",
-    "./source": "./src/index.jsx"
+    "./source": "./src/index.tsx"
   },
   "main": "./dist/index.js",
   "scripts": {

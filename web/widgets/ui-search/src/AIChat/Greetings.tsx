@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { type TFunction } from "i18next";
-import Markdown from "@infinilabs/markdown";
+import { ChatMessage } from "./ChatMessage/components";
 
 import { useChatStore } from "./stores/chatStore";
 
@@ -23,15 +23,20 @@ export const Greetings = ({ t: tProp }: GreetingsProps) => {
     (state) => state.currentAssistant as Assistant | null
   );
 
-  const message =
-    currentAssistant?._source?.chat_settings?.greeting_message ||
-    t("assistant.chat.greetings");
-
   return (
-    <div className="w-full py-8 pl-7">
-      <div className="cm-markdown prose dark:prose-invert prose-sm max-w-none">
-        <Markdown content={message} />
-      </div>
-    </div>
+    <ChatMessage
+      key={"greetings"}
+      message={{
+        _id: "greetings",
+        _source: {
+          type: "assistant",
+          message:
+            currentAssistant?._source?.chat_settings?.greeting_message ||
+            t("assistant.chat.greetings"),
+        },
+      }}
+      currentAssistant={currentAssistant}
+      t={t}
+    />
   );
 };

@@ -13,12 +13,12 @@ import { type TFunction } from "i18next";
 import { Pencil, Trash2 } from "lucide-react";
 import { Popover, Input } from "antd";
 
-import type { Session } from "../types/chat";
+import type { Chat } from "../types/chat";
 
 interface HistoryListItemProps {
-  item: Session;
-  active?: Session;
-  onSelect: (chat: Session) => void;
+  item: Chat;
+  active?: Chat;
+  onSelect: (chat: Chat) => void;
   onRename: (chatId: string, title: string) => void;
   handleDelete: () => void;
   renamingId?: string;

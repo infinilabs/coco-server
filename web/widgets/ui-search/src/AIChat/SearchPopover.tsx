@@ -177,19 +177,7 @@ export default function SearchPopover({
             onOpenChange={setOpen}
             placement="bottomLeft"
             getPopupContainer={(node) => {
-              let el = node.parentElement;
-              while (el && el !== document.body && el !== document.documentElement) {
-                const { overflowY } = getComputedStyle(el);
-                if (overflowY === "auto" || overflowY === "scroll") {
-                  const parent = el.parentElement;
-                  if (parent && parent !== document.documentElement) {
-                    return parent;
-                  }
-                  return el;
-                }
-                el = el.parentElement;
-              }
-              return document.body;
+              return (node?.closest?.('.ui-search') || node?.parentElement || document.body) as HTMLElement;
             }}
             content={
               <div
@@ -197,17 +185,16 @@ export default function SearchPopover({
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex justify-between items-center px-1">
-                    <span className="text-sm font-medium">{t("search.input.searchPopover.title") || "Select"}</span>
-                    <button
-                      className="bg-transparent p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded-md transition-colors"
-                      onClick={handleRefresh}
-                    >
-                      <RefreshIcon
-                        className={`size-3 text-[#0287FF] transition-transform duration-1000 ${
-                          isRefreshDataSource ? "animate-spin" : ""
+                  <span className="text-sm font-medium">{t("search.input.searchPopover.title") || "Select"}</span>
+                  <button
+                    className="cursor-pointer bg-transparent border-0 p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded-md transition-colors"
+                    onClick={handleRefresh}
+                  >
+                    <RefreshIcon
+                      className={`size-3 text-[#0287FF] transition-transform duration-1000 ${isRefreshDataSource ? "animate-spin" : ""
                         }`}
-                      />
-                    </button>
+                    />
+                  </button>
                 </div>
                 <div className="flex items-center gap-2 px-2 py-1 border rounded-md border border-solid border-[#F0F0F0] dark:border-[#303030]">
                   <Input

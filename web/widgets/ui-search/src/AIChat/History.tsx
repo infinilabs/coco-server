@@ -3,7 +3,7 @@ import { I18nextProvider, useTranslation } from "react-i18next";
 import { type TFunction } from "i18next";
 import { message } from "antd";
 
-import type { Session } from "./types/chat";
+import type { Chat } from "./types/chat";
 import { useChatStore } from "./stores/chatStore";
 import { Get, Put, Delete } from "./api/axiosRequest";
 import HistoryList from "./HistoryList";
@@ -27,30 +27,29 @@ function InnerHistory({
   const { t: tOriginal } = useTranslation();
   const t = tProp || tOriginal;
 
-  const sessions = useChatStore((s) => s.sessions);
-  const setSessions = useChatStore((s) => s.setSessions);
-  const activeSessionId = useChatStore((s) => s.activeSessionId);
-  const setActiveSessionId = useChatStore((s) => s.setActiveSessionId);
-  const setActiveSessionSource = useChatStore((s) => s.setActiveSessionSource);
-  const historyVersion = useChatStore((s) => s.historyVersion);
+  const chats = useChatStore((state) => state.chats);
+  const setChats = useChatStore((state) => state.setChats);
+  const activeChat = useChatStore((state) => state.activeChat);
+  const setActiveChat = useChatStore((state) => state.setActiveChat);
+  const historyVersion = useChatStore((state) => state.historyVersion);
 
   const [messageApi, contextHolder] = message.useMessage();
+
   const [keyword, setKeyword] = useState("");
   const [renamingId, setRenamingId] = useState<string>("");
   const [deletingId, setDeletingId] = useState<string>("");
 
   useEffect(() => {
-    if (locale && i18n.language !== locale) {
-      i18n.changeLanguage(locale);
+    if (!BaseUrl) {
+      return;
     }
-  }, [locale]);
-
-  useEffect(() => {
-    if (!BaseUrl) return;
     const store = { state: { endpoint_http: BaseUrl } };
     localStorage.setItem("app-store", JSON.stringify(store));
+
     const mergedHeaders: Record<string, string> = { ...headersProp };
-    if (Token) mergedHeaders["X-API-TOKEN"] = Token;
+    if (Token) {
+      mergedHeaders["X-API-TOKEN"] = Token;
+    }
     if (Object.keys(mergedHeaders).length > 0) {
       localStorage.setItem("headers", JSON.stringify(mergedHeaders));
     }
@@ -59,72 +58,108 @@ function InnerHistory({
   const fetchChatHistory = useCallback(async () => {
     try {
       const [err, res] = await Get<{
-        hits?: { hits?: Session[] };
-      }>("/chat/_history", { from: 0, size: 100, keyword }, undefined, headersProp);
-      if (err) return;
-      const hits = (res?.hits?.hits as Session[] | undefined) || [];
-      setSessions(hits);
+        hits?: { hits?: Chat[] };
+      }>("/chat/_history", {
+        from: 0,
+        size: 100,
+        keyword,
+      }, undefined, headersProp);
+      if (err) {
+        return;
+      }
+      const hits = (res?.hits?.hits as Chat[] | undefined) || [];
+      setChats(hits);
     } catch (e) {
       console.error(e);
     }
-  }, [keyword, setSessions, headersProp]);
+  }, [keyword, setChats, headersProp]);
 
-  useEffect(() => { fetchChatHistory(); }, [fetchChatHistory]);
-  useEffect(() => { if (historyVersion > 0) fetchChatHistory(); }, [historyVersion, fetchChatHistory]);
+  useEffect(() => {
+    fetchChatHistory();
+  }, [fetchChatHistory]);
+
+  useEffect(() => {
+    if (historyVersion > 0) {
+      fetchChatHistory();
+    }
+  }, [historyVersion, fetchChatHistory]);
 
   const onSelect = useCallback(
-    (session: Session) => {
-      setActiveSessionId(session._id);
-      setActiveSessionSource(session._source);
+    async (chat: Chat) => {
+      setActiveChat(chat);
     },
-    [setActiveSessionId, setActiveSessionSource],
+    [setActiveChat],
   );
 
   const onRename = useCallback(
     async (chatId: string, title: string) => {
+      const key = "rename_message";
       try {
         setRenamingId(chatId);
         const [err] = await Put(`/chat/${chatId}`, { title }, {}, headersProp);
         if (err) {
-          messageApi.open({ key: "rename", type: "error", content: t("history_list.operate.rename_error") });
+          messageApi.open({
+            key,
+            type: "error",
+            content: t("history_list.operate.rename_error"),
+          });
           return;
         }
         await fetchChatHistory();
-      } catch (e) { console.error(e); }
-      finally { setRenamingId(""); }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setRenamingId("");
+      }
     },
     [messageApi, t, fetchChatHistory, headersProp],
   );
 
   const onRemove = useCallback(
     async (chatId: string) => {
+      const key = "delete_message";
+
       try {
         setDeletingId(chatId);
+
         const [err] = await Delete(`/chat/${chatId}`, {}, headersProp);
         if (err) {
-          messageApi.open({ key: "delete", type: "error", content: t("history_list.operate.delete_error") });
+          messageApi.open({
+            key,
+            type: "error",
+            content: t("history_list.operate.delete_error"),
+          });
           return;
         }
-        if (activeSessionId === chatId) {
-          setActiveSessionId(undefined);
-          setActiveSessionSource(undefined);
-        }
-        await fetchChatHistory();
-      } catch (e) { console.error(e); }
-      finally { setDeletingId(""); }
-    },
-    [messageApi, t, fetchChatHistory, headersProp, activeSessionId, setActiveSessionId, setActiveSessionSource],
-  );
 
-  // Adapt to HistoryList's expected interface
-  const activeChat = activeSessionId ? { _id: activeSessionId } : undefined;
+        // Clear active chat if the deleted item is the current one
+        if (activeChat?._id === chatId) {
+          setActiveChat(undefined);
+        }
+
+        // Fetch latest history after successful deletion
+        await fetchChatHistory();
+      } catch (e) {
+        console.error(e);
+
+        messageApi.open({
+          key,
+          type: "error",
+          content: t("history_list.operate.delete_error"),
+        });
+      } finally {
+        setDeletingId("");
+      }
+    },
+    [messageApi, t, fetchChatHistory, headersProp, activeChat, setActiveChat],
+  );
 
   return (
     <>
       {contextHolder}
       <HistoryList
         historyPanelId="history-panel"
-        chats={sessions}
+        chats={chats}
         active={activeChat}
         onSearch={setKeyword}
         onRefresh={fetchChatHistory}

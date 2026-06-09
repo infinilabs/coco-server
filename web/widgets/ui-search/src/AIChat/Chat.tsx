@@ -9,37 +9,44 @@ import {
 } from "react";
 import { I18nextProvider, useTranslation } from "react-i18next";
 import { type TFunction } from "i18next";
+import { type ChatMessageRef } from "./ChatMessage/components";
 
 import i18n from "../i18n";
 import { useChatStore, type IChatStore } from "./stores/chatStore";
 import { ChatContent } from "./ChatContent";
-import type { ChatItem, IChunk, Session } from "./types/chat";
-import { postJSON } from "./api/streamFetch";
+import type { Chat, ChatMessageItem, IChunkData } from "./types/chat";
+import { streamPost } from "./api/streamFetch";
 import { Get, Post } from "./api/axiosRequest";
 import { useIconfontScript } from "./hooks/useScript";
 
-const POLL_INTERVAL_MS = 500;
-
-const DEEP_RESEARCH_CHUNK_TYPES = [
-  "research_planner_start",
-  "research_planner_end",
-  "research_researcher_start",
-  "research_researcher_step_start",
-  "research_researcher_step_end",
-  "research_researcher_end",
-  "research_reporter_start",
-  "research_reporter_end",
-];
-
+/**
+ * ChatAI 组件接口定义
+ * @property BaseUrl - API 基础地址
+ * @property Token - 认证 Token (可选)
+ * @property formatUrl - 自定义 URL 格式化函数 (可选)
+ * @property locale - 语言环境 (可选)
+ * @property t - 国际化翻译函数 (可选)
+ */
 interface ChatAIProps {
   BaseUrl: string;
   Token?: string;
   headers?: Record<string, string>;
-  formatUrl?: (data: any) => string;
+  formatUrl?: (data: IChunkData) => string;
   locale?: string;
   t?: TFunction;
 }
 
+/**
+ * 发送消息参数接口
+ * @property message - 消息内容
+ * @property attachments - 附件列表 (ID 数组)
+ * @property search - 是否启用搜索
+ * @property deep_thinking - 是否启用深度思考
+ * @property mcp - 是否启用 MCP
+ * @property datasource - 数据源
+ * @property mcp_servers - MCP 服务器配置
+ * @property assistant_id - 助手 ID
+ */
 export interface SendMessageParams {
   message?: string;
   attachments?: string[];
@@ -51,533 +58,593 @@ export interface SendMessageParams {
   assistant_id?: string;
 }
 
+/**
+ * ChatAI 组件对外暴露的引用接口
+ * @property init - 初始化并发送消息
+ * @property cancelChat - 取消当前对话生成
+ * @property clearChat - 清除当前对话状态
+ * @property onSelectChat - 切换当前选中的对话
+ */
 export interface ChatAIRef {
   init: (params: SendMessageParams) => void;
   cancelChat: () => void;
   clearChat: () => void;
-  onSelectChat: (chat: Session) => void;
+  onSelectChat: (chat: Chat) => void;
 }
 
 /**
- * Replay a single chunk into the items array (batch mode, for history).
- * Mutates the array in place for efficiency.
+ * 内部 ChatAI 组件实现
+ * 处理核心聊天逻辑、状态管理和消息流式传输
  */
-function replayChunk(c: IChunk, items: ChatItem[]) {
-  switch (c.type) {
-    case "user_message":
-      items.push({ type: "user", text: c.text ?? "" });
-      break;
-    case "message_start":
-      break;
-    case "text_delta": {
-      const last = items[items.length - 1];
-      if (last?.type === "assistant") last.text += c.text ?? "";
-      else items.push({ type: "assistant", text: c.text ?? "" });
-      break;
-    }
-    case "reasoning_delta":
-      break;
-    case "query_intent": {
-      const last = items[items.length - 1];
-      if (last?.type === "query_intent") last.text += c.text ?? "";
-      else items.push({ type: "query_intent", text: c.text ?? "" });
-      break;
-    }
-    case "fetch_source": {
-      const last = items[items.length - 1];
-      if (last?.type === "fetch_source") last.text += c.text ?? "";
-      else items.push({ type: "fetch_source", text: c.text ?? "" });
-      break;
-    }
-    case "pick_source": {
-      const last = items[items.length - 1];
-      if (last?.type === "pick_source") last.text += c.text ?? "";
-      else items.push({ type: "pick_source", text: c.text ?? "" });
-      break;
-    }
-    case "deep_read": {
-      const last = items[items.length - 1];
-      if (last?.type === "deep_read") last.text += "&" + (c.text ?? "");
-      else items.push({ type: "deep_read", text: c.text ?? "" });
-      break;
-    }
-    case "tool_call_start":
-      items.push({
-        type: "tool_call",
-        toolName: c.tool_name ?? "",
-        toolId: c.tool_id ?? "",
-        args: "",
-        result: "",
-      });
-      break;
-    case "tool_call_args": {
-      for (let i = items.length - 1; i >= 0; i--) {
-        if (items[i].type === "tool_call") {
-          (items[i] as ChatItem & { type: "tool_call" }).args += c.text ?? "";
-          break;
-        }
-      }
-      break;
-    }
-    case "tool_result": {
-      const tid = c.tool_id;
-      for (let i = items.length - 1; i >= 0; i--) {
-        const it = items[i];
-        if (it.type === "tool_call" && (!tid || it.toolId === tid)) {
-          it.result = c.text ?? "";
-          break;
-        }
-      }
-      break;
-    }
-    case "research_reporter_end": {
-      if (c.text) {
-        try {
-          items.push({ type: "payload", data: JSON.parse(c.text) });
-        } catch {}
-      }
-      break;
-    }
-    default:
-      if (DEEP_RESEARCH_CHUNK_TYPES.includes(c.type)) {
-        const last = items[items.length - 1];
-        if (last?.type === "deep_research") {
-          last.chunks.push(c);
-        } else {
-          items.push({ type: "deep_research", chunks: [c] });
-        }
-      }
-      break;
-  }
-}
-
-/**
- * Apply a single live chunk to React state (incremental update for polling).
- */
-function applyChunk(
-  c: IChunk,
-  setItems: IChatStore["setItems"],
-  pushItem: IChatStore["pushItem"],
-  updateLastItem: IChatStore["updateLastItem"],
-) {
-  switch (c.type) {
-    case "user_message":
-      pushItem({ type: "user", text: c.text ?? "" });
-      break;
-    case "message_start":
-      break;
-    case "text_delta": {
-      const items = useChatStore.getState().items;
-      const last = items[items.length - 1];
-      if (last?.type === "assistant") {
-        updateLastItem((item) =>
-          item.type === "assistant" ? { ...item, text: item.text + (c.text ?? "") } : item
-        );
-      } else {
-        pushItem({ type: "assistant", text: c.text ?? "" });
-      }
-      break;
-    }
-    case "reasoning_delta":
-      break;
-    case "query_intent": {
-      const items = useChatStore.getState().items;
-      const last = items[items.length - 1];
-      if (last?.type === "query_intent") {
-        updateLastItem((item) =>
-          item.type === "query_intent" ? { ...item, text: item.text + (c.text ?? "") } : item
-        );
-      } else {
-        pushItem({ type: "query_intent", text: c.text ?? "" });
-      }
-      break;
-    }
-    case "fetch_source": {
-      const items = useChatStore.getState().items;
-      const last = items[items.length - 1];
-      if (last?.type === "fetch_source") {
-        updateLastItem((item) =>
-          item.type === "fetch_source" ? { ...item, text: item.text + (c.text ?? "") } : item
-        );
-      } else {
-        pushItem({ type: "fetch_source", text: c.text ?? "" });
-      }
-      break;
-    }
-    case "pick_source": {
-      const items = useChatStore.getState().items;
-      const last = items[items.length - 1];
-      if (last?.type === "pick_source") {
-        updateLastItem((item) =>
-          item.type === "pick_source" ? { ...item, text: item.text + (c.text ?? "") } : item
-        );
-      } else {
-        pushItem({ type: "pick_source", text: c.text ?? "" });
-      }
-      break;
-    }
-    case "deep_read": {
-      const items = useChatStore.getState().items;
-      const last = items[items.length - 1];
-      if (last?.type === "deep_read") {
-        updateLastItem((item) =>
-          item.type === "deep_read" ? { ...item, text: item.text + "&" + (c.text ?? "") } : item
-        );
-      } else {
-        pushItem({ type: "deep_read", text: c.text ?? "" });
-      }
-      break;
-    }
-    case "tool_call_start":
-      pushItem({
-        type: "tool_call",
-        toolName: c.tool_name ?? "",
-        toolId: c.tool_id ?? "",
-        args: "",
-        result: "",
-      });
-      break;
-    case "tool_call_args": {
-      // Find last tool_call and append args.
-      const items = useChatStore.getState().items;
-      for (let i = items.length - 1; i >= 0; i--) {
-        if (items[i].type === "tool_call") {
-          const idx = i;
-          setItems(items.map((it, j) =>
-            j === idx && it.type === "tool_call"
-              ? { ...it, args: it.args + (c.text ?? "") }
-              : it
-          ));
-          break;
-        }
-      }
-      break;
-    }
-    case "tool_result": {
-      const items = useChatStore.getState().items;
-      const tid = c.tool_id;
-      for (let i = items.length - 1; i >= 0; i--) {
-        const it = items[i];
-        if (it.type === "tool_call" && (!tid || it.toolId === tid)) {
-          const idx = i;
-          setItems(items.map((x, j) =>
-            j === idx && x.type === "tool_call"
-              ? { ...x, result: c.text ?? "" }
-              : x
-          ));
-          break;
-        }
-      }
-      break;
-    }
-    case "research_reporter_end": {
-      if (c.text) {
-        try { pushItem({ type: "payload", data: JSON.parse(c.text) }); } catch {}
-      }
-      break;
-    }
-    default:
-      if (DEEP_RESEARCH_CHUNK_TYPES.includes(c.type)) {
-        const items = useChatStore.getState().items;
-        const last = items[items.length - 1];
-        if (last?.type === "deep_research") {
-          updateLastItem((item) =>
-            item.type === "deep_research"
-              ? { ...item, chunks: [...item.chunks, c] }
-              : item
-          );
-        } else {
-          pushItem({ type: "deep_research", chunks: [c] });
-        }
-      }
-      break;
-  }
-}
-
 const InnerChatAI = memo(
   forwardRef<ChatAIRef, ChatAIProps>(
-    ({ BaseUrl: _BaseUrl, formatUrl, headers: headersProp = {}, locale: _locale, t: tProp }, ref) => {
+    ({ BaseUrl, formatUrl, headers: headersProp = {}, locale, t: tProp }, ref) => {
+      // 动态加载 iconfont 脚本
       useIconfontScript();
+
       const { t: tOriginal } = useTranslation();
       const t = tProp || tOriginal;
+      const baseUrl = BaseUrl;
 
-      const isStreaming = useChatStore((s) => s.isStreaming);
-      const setIsStreaming = useChatStore((s) => s.setIsStreaming);
-      const activeSessionId = useChatStore((s) => s.activeSessionId);
-      const setActiveSessionId = useChatStore((s) => s.setActiveSessionId);
-      const setActiveSessionSource = useChatStore((s) => s.setActiveSessionSource);
-      const setItems = useChatStore((s) => s.setItems);
-      const pushItem = useChatStore((s) => s.pushItem);
-      const updateLastItem = useChatStore((s) => s.updateLastItem);
-      const currentAssistant = useChatStore((s) => s.currentAssistant);
-      const setCurrentAssistant = useChatStore((s) => s.setCurrentAssistant);
-      const incrementHistoryVersion = useChatStore((s) => s.incrementHistoryVersion);
+      // 从全局 Store 获取聊天状态
+      const curChatEnd = useChatStore((state) => state.curChatEnd); // 当前对话是否结束
+      const setCurChatEnd = useChatStore((state) => state.setCurChatEnd);
+      const activeChat = useChatStore((state) => state.activeChat); // 当前选中的对话
+      const setActiveChat = useChatStore((state) => state.setActiveChat);
+      const currentAssistant = useChatStore((state) => state.currentAssistant); // 当前助手信息
+      const setCurrentAssistant = useChatStore((state) => state.setCurrentAssistant);
+      const incrementHistoryVersion = useChatStore((state) => state.incrementHistoryVersion);
 
-      const [timedoutShow, setTimedoutShow] = useState(false);
+      // 本地状态
+      const [timedoutShow, setTimedoutShow] = useState(false); // 超时提示显示状态
+      const [Question, setQuestion] = useState<string>(""); // 当前正在处理的问题文本
+      const [activeMessageGen, setActiveMessageGen] = useState(0); // 用于强制 ActiveChatMessage 重新挂载
 
-      const seqRef = useRef(0);
-      const lastSessionIdRef = useRef<string | undefined>(undefined);
+      // Refs 用于在闭包和异步操作中保持最新值
+      const curIdRef = useRef(""); // 当前生成的消息 ID
+      const curSessionIdRef = useRef(""); // 当前会话 ID
+      const activeMessageRef = useRef<ChatMessageRef>(null); // 活跃消息组件的引用
+      const streamGenRef = useRef(0); // 流式请求的代次，用于切换后忽略旧流的渲染
+      const generatingSessionRef = useRef<string | undefined>(undefined); // 当前正在生成回复的会话 ID
+      const fetchHistoryRef = useRef<(chatId: string) => Promise<void>>(); // 避免 handleStreamMessage 的循环依赖
 
-      const headersRef = useRef(headersProp);
-      headersRef.current = headersProp;
-      const setIsStreamingRef = useRef(setIsStreaming);
-      setIsStreamingRef.current = setIsStreaming;
-      const incrementHistoryVersionRef = useRef(incrementHistoryVersion);
-      incrementHistoryVersionRef.current = incrementHistoryVersion;
+      type ChatStreamSingle = {
+        _id?: string;
+        _source?: {
+          [key: string]: unknown;
+        };
+        payload?: {
+          id?: string;
+          session_id?: string;
+          [key: string]: unknown;
+        };
+      };
 
-      // --- Poll state ---
-      const pollControllerRef = useRef<AbortController | null>(null);
-      const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-      function closePoll() {
-        if (pollControllerRef.current) {
-          pollControllerRef.current.abort();
-          pollControllerRef.current = null;
-        }
-      }
-
-      function stopPolling() {
-        if (pollTimerRef.current) {
-          clearInterval(pollTimerRef.current);
-          pollTimerRef.current = null;
-        }
-        closePoll();
-      }
-
-      function startPolling() {
-        if (!pollTimerRef.current) {
-          pollTimerRef.current = setInterval(pollLoop, POLL_INTERVAL_MS);
-        }
-      }
-
-      async function pollLoop() {
-        const sid = useChatStore.getState().activeSessionId;
-        if (!sid || pollControllerRef.current) return;
-
-        const controller = new AbortController();
-        pollControllerRef.current = controller;
-
-        const appStore = JSON.parse(localStorage.getItem("app-store") || "{}");
-        let baseURL: string = appStore.state?.endpoint_http;
-        if (!baseURL || baseURL === "undefined") baseURL = "";
-        const fullUrl = `${baseURL}/chat/${sid}/_poll?since=${seqRef.current}`;
-
-        try {
-          const headersStorage = JSON.parse(localStorage.getItem("headers") || "{}") as Record<string, string>;
-          const res = await fetch(fullUrl, {
-            method: "GET",
-            headers: { ...headersStorage, ...headersRef.current },
-            credentials: "include",
-            signal: controller.signal,
-          });
-          if (!res.ok || !res.body) return;
-
-          const reader = res.body.getReader();
-          const decoder = new TextDecoder("utf-8");
-          let buffer = "";
-
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split("\n");
-            for (let i = 0; i < lines.length - 1; i++) {
-              const line = lines[i].trim();
-              if (!line) continue;
-              try {
-                const chunk = JSON.parse(line) as IChunk;
-                console.log("[poll chunk]", chunk.type, chunk.text?.slice(0, 50) ?? "", "items:", useChatStore.getState().items.length);
-                if (chunk.type === "seq_sync") {
-                  if (chunk.seq) seqRef.current = chunk.seq;
-                  continue;
-                }
-                if (chunk.type === "agent_loop_end") {
-                  if (useChatStore.getState().isStreaming) {
-                    incrementHistoryVersionRef.current();
-                  }
-                  setIsStreamingRef.current(false);
-                  closePoll();
-                  continue;
-                }
-                if (!useChatStore.getState().isStreaming) {
-                  setIsStreamingRef.current(true);
-                }
-                if (chunk.type === "message_start") continue;
-                console.log("[applyChunk]", chunk.type, "items before:", useChatStore.getState().items.length);
-                applyChunk(chunk, setItems, pushItem, updateLastItem);
-              } catch {}
-            }
-            buffer = lines[lines.length - 1];
-          }
-        } catch {
-          setIsStreamingRef.current(false);
-        } finally {
-          pollControllerRef.current = null;
-        }
-      }
-
-      useEffect(() => {
-        const sid = activeSessionId;
-        if (!sid) { stopPolling(); return; }
-        startPolling();
-        return () => { closePoll(); stopPolling(); };
-      }, [activeSessionId]);
-
-      const fetchHistory = useCallback(
-        async (sessionId: string) => {
+      /**
+       * 处理流式消息回调
+       * 负责解析服务端返回的数据流，更新消息列表或处理流式 chunks
+       */
+      const handleStreamMessage = useCallback(
+        (msg: string) => {
           try {
-            const [err, res] = await Get<{ chunks: IChunk[]; max_seq: number }>(
-              `/chat/${sessionId}/_history`, {}, undefined, headersProp
-            );
-            if (err || !res || !res.chunks) return;
-            if (res.max_seq) seqRef.current = res.max_seq;
-            const currentSid = useChatStore.getState().activeSessionId;
-            if (currentSid !== sessionId) return;
-            const items: ChatItem[] = [];
-            console.log("[fetchHistory] chunks:", res.chunks.length, "sessionId:", sessionId);
-            for (const c of res.chunks) replayChunk(c, items);
-            console.log("[fetchHistory] replayed items:", items.length, items.map(i => i.type));
-            setItems(items);
-          } catch (e) { console.error(e); }
-        },
-        [setItems, headersProp],
-      );
+            // Attempt to parse the message, as it might be a JSON string
+            if (msg.startsWith("{") && msg.endsWith("}")) {
+              //
+            }
 
-      const onSelectChat = useCallback(
-        async (session?: Session) => {
-          console.log("[onSelectChat]", session?._id);
-          setIsStreaming(false);
-          setTimedoutShow(false);
-          setActiveSessionId(session?._id);
-          setActiveSessionSource(session?._source);
-          seqRef.current = 0;
-          setItems([]);
-          if (session?._id) {
-            await fetchHistory(session._id);
+            // 逻辑分支 1: 处理历史记录或完整消息更新
+            // 通过检查消息中是否包含特定关键字来判断是否为历史记录或用户消息回执
+            if (
+              msg.includes('"user"') &&
+              msg.includes("_source") &&
+              msg.includes("result")
+            ) {
+              // ... (现有的解析逻辑)
+              const parsed = JSON.parse(msg) as
+                | ChatMessageItem[]
+                | ChatStreamSingle;
+              // ... (其余的现有逻辑)
+              let nextChat: Chat;
+
+              // 使用最新的 store 状态，避免闭包捕获的旧值
+              const latestActiveChat = useChatStore.getState().activeChat;
+
+              if (Array.isArray(parsed)) {
+                // 情况 A: 收到消息数组（通常是加载历史记录）
+                const hits = parsed as ChatMessageItem[];
+                const first = hits[0];
+                let resolvedSessionId = "";
+                if (first) {
+                  // 更新当前消息 ID 和会话 ID
+                  curIdRef.current = first._id;
+                  const source = first._source as { [key: string]: unknown };
+                  const sessionId = source.session_id as string | undefined;
+                  if (sessionId) {
+                    curSessionIdRef.current = sessionId;
+                    resolvedSessionId = sessionId;
+                  }
+                }
+                // 获取当前活动聊天对象或创建一个新的基础对象
+                const baseChat: Chat = latestActiveChat || {
+                  _id: first?._id ?? "",
+                };
+                // 合并新消息到消息列表中（先移除乐观插入的临时消息）
+                const existingMessages = (baseChat.messages || []).filter(
+                  (m) => !m._id.startsWith("optimistic-")
+                );
+                nextChat = {
+                  ...baseChat,
+                  // 如果 baseChat._id 为空（新建会话的乐观状态），用后端返回的 session_id 覆盖
+                  _id: baseChat._id || resolvedSessionId || first?._id || "",
+                  messages: [...existingMessages, ...hits],
+                };
+              } else {
+                // 情况 B: 收到单个消息对象（通常是新发送的用户消息回执）
+                const withPayload = parsed as ChatStreamSingle;
+                const payload = withPayload.payload ?? {};
+                const id = payload.id;
+                const sessionId = payload.session_id;
+
+                // 更新当前消息 ID 和会话 ID
+                if (typeof id === "string") {
+                  curIdRef.current = id;
+                }
+                if (typeof sessionId === "string") {
+                  curSessionIdRef.current = sessionId;
+                  // Keep generatingSessionRef in sync when backend creates a new session
+                  if (generatingSessionRef.current) {
+                    generatingSessionRef.current = sessionId;
+                  }
+                }
+
+                // 构造标准消息项对象
+                const messageItem: ChatMessageItem = {
+                  _id:
+                    withPayload._id ??
+                    (typeof id === "string" ? id : "") ??
+                    latestActiveChat?._id ??
+                    "",
+                  _source: {
+                    ...(withPayload._source || {}),
+                    ...payload,
+                  } as ChatMessageItem["_source"],
+                };
+
+                // 获取当前活动聊天对象或创建一个新的基础对象
+                const baseChat: Chat = latestActiveChat || {
+                  _id: messageItem._id,
+                };
+
+                // 将新消息追加到消息列表中（先移除乐观插入的临时消息）
+                const existingMessages = (baseChat.messages || []).filter(
+                  (m) => !m._id.startsWith("optimistic-")
+                );
+                nextChat = {
+                  ...baseChat,
+                  // 如果 baseChat._id 为空（新建会话的乐观状态），用后端返回的 session_id 覆盖
+                  _id: baseChat._id || (typeof sessionId === "string" ? sessionId : "") || messageItem._id,
+                  messages: [...existingMessages, messageItem],
+                };
+              }
+
+              // 更新全局活动聊天状态，触发 UI 重绘
+              // 同步更新 lastActiveChatIdRef，防止 useEffect 在 finally 清除
+              // generatingSessionRef 后误触发 onSelectChat
+              if (nextChat._id) {
+                // 当 _id 从空变为真实值时（新建会话首次获取后端 ID），立即刷新历史列表
+                if (!lastActiveChatIdRef.current || lastActiveChatIdRef.current !== nextChat._id) {
+                  const prevId = latestActiveChat?._id;
+                  if (!prevId && nextChat._id) {
+                    incrementHistoryVersion();
+                  }
+                }
+                lastActiveChatIdRef.current = nextChat._id;
+              }
+              setActiveChat(nextChat);
+            }
+
+            // 逻辑分支 2: 处理流式 Chunks (打字机效果、思考过程等)
+            const chunkData = JSON.parse(msg);
+
+            if (chunkData.chunk_type) {
+              // 标记回复开始
+              if (chunkData.chunk_type === "reply_start") {
+                activeMessageRef.current?.reset(); // 收到新回复后再清空上一条，避免发送期间屏幕空白
+                setCurChatEnd(false);
+              }
+
+              // 将 chunk 数据传递给活跃的消息组件进行展示
+              activeMessageRef.current?.addChunk(chunkData);
+
+              // 标记回复结束
+              if (chunkData.chunk_type === "reply_end") {
+                setCurChatEnd(true);
+                // 流式结束后，不立即 fetchHistory 加载到 messages，
+                // 让 AI 回答留在 ActiveChatMessage 的 chunk 数据中继续展示，
+                // 避免 messages 列表与 ActiveChatMessage 同时渲染导致重复。
+                // 下次 sendMessage 时 fetchHistory + reset 会正确完成内容切换。
+                incrementHistoryVersion();
+              }
+            }
+          } catch (error) {
+            // JSON 解析失败或其他错误处理
+            console.error("Failed to parse chat message:", error);
           }
         },
-        [setActiveSessionId, setActiveSessionSource, setIsStreaming, setItems, fetchHistory],
+        [setActiveChat, setCurChatEnd, incrementHistoryVersion],
       );
 
-      useEffect(() => {
-        const id = activeSessionId;
-        if (!id) return;
-        if (id === lastSessionIdRef.current) return;
-        lastSessionIdRef.current = id;
-        onSelectChat({ _id: id, _source: useChatStore.getState().activeSessionSource });
-      }, [activeSessionId, onSelectChat]);
+      /**
+       * 准备新的聊天会话
+       * 重置当前消息状态，为新一轮问答做准备
+       */
+      const prepareChatSession = useCallback(async (value: string) => {
+        activeMessageRef.current?.reset(); // 重置活跃消息组件状态
+        setTimedoutShow(false);
+        setQuestion(value); // 设置当前问题文本
+      }, []);
 
+      /**
+       * 拉取指定会话的历史记录
+       * @param chatId - 会话 ID
+       */
+      const fetchHistory = useCallback(
+        async (chatId: string) => {
+          try {
+            const [err, res] = await Get<{
+              hits: { hits: ChatMessageItem[] };
+            }>(`/chat/${chatId}/_history`, {
+              from: 0,
+              size: 1000,
+            }, undefined, headersProp);
+            if (err || !res) return;
+            const hits = (res?.hits?.hits ?? []) as ChatMessageItem[];
+
+            // 获取最新状态以确保我们在更新正确的聊天
+            const currentActive = useChatStore.getState().activeChat;
+            if (currentActive?._id === chatId) {
+              setActiveChat({
+                ...currentActive,
+                messages: hits,
+              });
+            }
+          } catch (e) {
+            console.error(e);
+          }
+        },
+        [setActiveChat, headersProp],
+      );
+
+      // 保持 fetchHistoryRef 始终指向最新的 fetchHistory
+      fetchHistoryRef.current = fetchHistory;
+
+      /**
+       * 创建新会话并发送第一条消息
+       */
       const createNewChat = useCallback(
         async (params: SendMessageParams) => {
-          const { message = "", attachments, datasource = [], mcp_servers = [], ...rest } = params;
-          if (!message && (!attachments || attachments.length === 0)) return;
+          const text = params.message ?? "";
+          const attachments = params.attachments;
+          // 如果没有文本且没有附件，则不发送
+          if (!text && (!attachments || attachments.length === 0)) {
+            return;
+          }
+          await prepareChatSession(text);
+          setCurChatEnd(false); // 立即进入生成状态，按钮开始转圈
+          generatingSessionRef.current = curSessionIdRef.current || activeChat?._id;
 
-          setTimedoutShow(false);
+          // 乐观插入用户消息，立即隐藏欢迎语并显示用户消息
+          const optimisticUserMessage: ChatMessageItem = {
+            _id: `optimistic-${Date.now()}`,
+            _source: {
+              type: "user",
+              message: text,
+            },
+          };
+          setActiveChat({
+            _id: "",
+            messages: [optimisticUserMessage],
+          });
 
+          // 构建查询参数，包含助手配置
+          const queryParams = {
+            search: params.search,
+            deep_thinking: params.deep_thinking,
+            mcp: params.mcp,
+            datasource: params.datasource,
+            mcp_servers: params.mcp_servers,
+            assistant_id: params.assistant_id || currentAssistant?._id || "",
+          };
+
+          // 发送创建会话请求
+          const gen = ++streamGenRef.current;
           try {
-            const res = await postJSON<{ _id: string; _source: Record<string, unknown> }>({
+            await streamPost({
               url: "/chat/_create",
-              body: { message, attachments },
-              queryParams: { 
-                assistant_id: params.assistant_id || currentAssistant?._id || "", 
-                ...(rest || {}),
-                datasource: datasource instanceof Array ? datasource.join(",") : undefined,
-                mcp_servers: mcp_servers instanceof Array ? mcp_servers.join(",") : undefined,  
-              },
-              headers: headersProp,
-            });
-            setActiveSessionId(res._id);
-            setActiveSessionSource(res._source as Session["_source"]);
-            incrementHistoryVersion();
-          } catch (err) {
-            console.error("createNewChat error:", err);
-          }
-        },
-        [currentAssistant?._id, headersProp, setActiveSessionId, setActiveSessionSource, setItems, incrementHistoryVersion],
-      );
-
-      const sendMessage = useCallback(
-        async (sessionId: string, params?: SendMessageParams) => {
-          if (!sessionId || !params) return;
-          const { message = "", attachments, datasource = [], mcp_servers = [], ...rest } = params;
-          if (!message && (!attachments || attachments.length === 0)) return;
-
-          setTimedoutShow(false);
-
-          try {
-            await postJSON({ 
-              url: `/chat/${sessionId}/_send`, 
-              body: { 
-                message, 
+              body: {
+                message: text,
                 attachments,
-              }, 
-              queryParams: { 
-                ...(rest || {}),
-                datasource: datasource instanceof Array ? datasource.join(",") : undefined,
-                mcp_servers: mcp_servers instanceof Array ? mcp_servers.join(",") : undefined,  
               },
-              headers: headersProp 
+              queryParams,
+              headers: headersProp,
+              onMessage: (msg) => {
+                if (streamGenRef.current !== gen) return;
+                handleStreamMessage(msg);
+              },
             });
-          } catch (err) {
-            console.error("sendMessage error:", err);
+          } finally {
+            if (streamGenRef.current === gen) {
+              setCurChatEnd(true);
+              generatingSessionRef.current = undefined;
+            }
+          }
+
+          // 历史列表已在 handleStreamMessage 中首次获取到真实 session_id 时刷新
+        },
+        [handleStreamMessage, prepareChatSession, currentAssistant?._id, headersProp, setCurChatEnd, setActiveChat],
+      );
+
+      /**
+       * 在现有会话中发送消息
+       */
+      const sendMessage = useCallback(
+        async (chat: Chat, params?: SendMessageParams) => {
+          if (!chat?._id || !params) return;
+          const text = params.message ?? "";
+          const attachments = params.attachments;
+          if (!text && (!attachments || attachments.length === 0)) {
+            return;
+          }
+          setTimedoutShow(false);
+          setQuestion(text);
+          generatingSessionRef.current = chat._id;
+
+          // 拉取历史，将之前的 AI 回答从服务器加载到 activeChat.messages
+          await fetchHistory(chat._id);
+          // fetchHistory 完成后，之前的 AI 回答已持久化到 messages 列表中，
+          // 此时可以安全 reset 活跃消息组件，避免旧的 chunk 数据（含 suggestion）残留显示
+          activeMessageRef.current?.reset();
+          setCurChatEnd(false); // 立即进入生成状态，按钮开始转圈
+
+          // 乐观追加用户消息到本地状态，使其立即可见
+          const currentChat = useChatStore.getState().activeChat;
+          if (currentChat) {
+            const userMessage: ChatMessageItem = {
+              _id: `optimistic-${Date.now()}`,
+              _source: {
+                type: "user",
+                message: text,
+              },
+            };
+            setActiveChat({
+              ...currentChat,
+              messages: [...(currentChat.messages || []), userMessage],
+            });
+          }
+
+          const queryParams = {
+            search: params.search,
+            deep_thinking: params.deep_thinking,
+            mcp: params.mcp,
+            datasource: params.datasource,
+            mcp_servers: params.mcp_servers,
+            assistant_id: params.assistant_id || currentAssistant?._id || "",
+          };
+
+          // 发送聊天消息请求
+          const gen = ++streamGenRef.current;
+          try {
+            await streamPost({
+              url: `/chat/${chat._id}/_chat`,
+              body: { message: text, attachments },
+              queryParams,
+              headers: headersProp,
+              onMessage: (msg) => {
+                if (streamGenRef.current !== gen) return;
+                handleStreamMessage(msg);
+              },
+            });
+          } finally {
+            if (streamGenRef.current === gen) {
+              setCurChatEnd(true);
+              generatingSessionRef.current = undefined;
+            }
           }
         },
-        [headersProp],
+        [
+          fetchHistory,
+          currentAssistant?._id,
+          handleStreamMessage,
+          headersProp,
+          setCurChatEnd,
+        ],
       );
 
+      /**
+       * 处理发送消息的统一入口
+       * 根据是否存在 activeChat 决定是创建新会话还是追加消息
+       */
       const handleSendMessage = useCallback(
-        async (params?: SendMessageParams) => {
-          if (isStreaming) return;
-          if (!activeSessionId) await createNewChat(params || {});
-          else await sendMessage(activeSessionId, params);
+        async (chat?: Chat, params?: SendMessageParams) => {
+          if (!curChatEnd) return; // 如果当前正在生成中，阻止发送
+
+          if (!chat?._id) {
+            await createNewChat(params || {});
+          } else {
+            await sendMessage(chat, params);
+          }
         },
-        [createNewChat, isStreaming, sendMessage, activeSessionId],
+        [createNewChat, curChatEnd, sendMessage],
       );
 
+      /**
+       * 取消当前对话生成
+       */
       const cancelChat = useCallback(async () => {
-        closePoll();
-        const sid = useChatStore.getState().activeSessionId;
-        if (sid) {
-          try { await Post(`/chat/${sid}/_cancel`, undefined, {}, headersProp); } catch {}
+        // 递增 generation，使进行中的流回调不再处理
+        streamGenRef.current++;
+        const sessionToCancel = generatingSessionRef.current || activeChat?._id;
+        generatingSessionRef.current = undefined;
+
+        if (sessionToCancel) {
+          try {
+            await Post(
+              `/chat/${sessionToCancel}/_cancel?message_id=${curIdRef.current}&lang=${locale || i18n.language}`,
+              undefined,
+              {},
+              headersProp,
+            );
+          } catch (e) {
+            console.error(e);
+          }
+          // 取消后重新拉取历史，获取干净的消息列表
+          const currentActive = useChatStore.getState().activeChat;
+          if (currentActive?._id) {
+            await fetchHistory(currentActive._id);
+          }
         }
-        setIsStreaming(false);
-      }, [setIsStreaming, headersProp]);
+        setCurChatEnd(true); // 强制标记为结束
+      }, [setCurChatEnd, headersProp, fetchHistory]);
 
-      const clearChat = useCallback(() => { onSelectChat(undefined); }, [onSelectChat]);
+      /**
+       * 切换当前选中的对话
+       * 负责重置状态并加载新对话的历史记录
+       */
+      const onSelectChat = useCallback(
+        async (chat?: Chat) => {
+          const generatingSession = generatingSessionRef.current;
+          const curChatEndNow = useChatStore.getState().curChatEnd;
+          // 递增 generation，使旧流的回调不再渲染
+          streamGenRef.current++;
 
+          // If a response is in progress, cancel it before switching.
+          // Use generatingSessionRef (not activeChat from closure) to get the
+          // correct session ID, because activeChat may have already been
+          // updated by the stream handler (e.g. backend created a new session).
+          if (generatingSession && !curChatEndNow) {
+            generatingSessionRef.current = undefined;
+            Post(
+              `/chat/${generatingSession}/_cancel?message_id=${curIdRef.current}&lang=${locale || i18n.language}`,
+              undefined,
+              {},
+              headersProp,
+            ).catch(console.error);
+          }
+
+          activeMessageRef.current?.reset(); // 重置上一条消息的 UI 状态
+          setActiveMessageGen((v) => v + 1); // 强制 ActiveChatMessage 重新挂载，彻底清除旧 chunk 数据
+          setCurChatEnd(true);
+          setTimedoutShow(false);
+          setQuestion(""); // 重置问题文本，避免切换聊天后残留旧问题
+
+          setActiveChat(chat);
+          if (chat?._id) {
+            await fetchHistory(chat?._id); // 加载历史记录
+          }
+        },
+        [setActiveChat, setCurChatEnd, fetchHistory, headersProp],
+      );
+
+      /**
+       * 清除当前选中的对话（返回初始状态）
+       */
+      const clearChat = useCallback(() => {
+        onSelectChat(undefined);
+      }, [onSelectChat]);
+
+      // Use a ref to track the last processed active chat ID
+      const lastActiveChatIdRef = useRef<string | undefined>(undefined);
+
+      useEffect(() => {
+        if (activeChat?._id && activeChat._id !== lastActiveChatIdRef.current) {
+          lastActiveChatIdRef.current = activeChat._id;
+
+          // Skip if a stream is currently generating — the session change came
+          // from the stream handler (e.g. backend created a new session), not
+          // from a user click.  Otherwise, load history for the selected chat.
+          if (!generatingSessionRef.current) {
+            setTimeout(() => {
+              onSelectChat(activeChat);
+            }, 0);
+          }
+        }
+      }, [activeChat?._id, onSelectChat]);
+
+      // 生成文件预览 URL 的辅助函数
+      const getFileUrl = useCallback(
+        (path: string) =>
+          `${baseUrl?.replace(/\/$/, "")}/files/${encodeURIComponent(path)}`,
+        [baseUrl],
+      );
+
+      /**
+       * 等待 assistantList 就绪后执行回调
+       * 如果列表已有数据则立即执行，否则订阅 store 变化等待填充
+       */
       const waitForAssistantList = useCallback(
         (callback: (list: NonNullable<IChatStore["assistantList"]>) => void) => {
           const list = useChatStore.getState().assistantList;
-          if (list && list.length > 0) { callback(list); return; }
-          const unsub = useChatStore.subscribe((state) => {
-            if (state.assistantList && state.assistantList.length > 0) { unsub(); callback(state.assistantList); }
+          if (list && list.length > 0) {
+            callback(list);
+            return;
+          }
+          const unsubscribe = useChatStore.subscribe((state) => {
+            if (state.assistantList && state.assistantList.length > 0) {
+              unsubscribe();
+              callback(state.assistantList);
+            }
           });
-        }, [],
+        },
+        [],
       );
 
+      // 暴露给父组件的方法
       useImperativeHandle(ref, () => ({
         init: (params: SendMessageParams) => {
           const proceed = () => {
-            handleSendMessage(params);
+            if (!activeChat?._id) {
+              createNewChat(params);
+            } else {
+              handleSendMessage(activeChat, params);
+            }
           };
+
+          // 如果传入了 assistant_id，等待 assistantList 就绪后再切换助手并发送
           if (params.assistant_id) {
             waitForAssistantList((list) => {
-              const current = useChatStore.getState().currentAssistant;
+              const latestCurrentAssistant = useChatStore.getState().currentAssistant;
               const target = list.find((a) => a._id === params.assistant_id);
-              if (params.assistant_id !== current?._id) setCurrentAssistant(target ?? { _id: params.assistant_id! });
+              if (params.assistant_id !== latestCurrentAssistant?._id) {
+                setCurrentAssistant(target ?? { _id: params.assistant_id! });
+              }
               const targetType = (target?._source?.type as string) || "simple";
-              if (targetType === "deep_think") params.deep_thinking = true;
-              if (targetType === "simple" || targetType === "deep_think") {
-                const ds = target?._source?.datasource as { enabled?: boolean; enabled_by_default?: boolean } | undefined;
-                if ((ds?.enabled ?? true) && ds?.enabled_by_default) params.search = true;
-                const mcp = target?._source?.mcp_servers as { enabled?: boolean; enabled_by_default?: boolean } | undefined;
-                if ((mcp?.enabled ?? true) && mcp?.enabled_by_default) params.mcp = true;
+              if (targetType === "deep_think") {
+                params.deep_thinking = true;
+              }
+              const showSearchMCP = targetType === "simple" || targetType === "deep_think";
+              if (showSearchMCP) {
+                const ds = target?._source?.datasource as
+                  | { enabled?: boolean; enabled_by_default?: boolean; ids?: string[] }
+                  | undefined;
+                if ((ds?.enabled ?? true) && ds?.enabled_by_default) {
+                  params.search = true;
+                }
+                const mcp = target?._source?.mcp_servers as
+                  | { enabled?: boolean; enabled_by_default?: boolean; ids?: string[] }
+                  | undefined;
+                if ((mcp?.enabled ?? true) && mcp?.enabled_by_default) {
+                  params.mcp = true;
+                }
               }
               proceed();
             });
-          } else proceed();
+          } else {
+            proceed();
+          }
         },
-        cancelChat: () => cancelChat(),
+        cancelChat: () => {
+          cancelChat();
+        },
         clearChat,
         onSelectChat,
       }));
@@ -585,14 +652,21 @@ const InnerChatAI = memo(
       return (
         <div className="flex flex-col rounded-md h-full overflow-hidden relative">
           <ChatContent
+            activeChat={activeChat}
+            activeMessageRef={activeMessageRef}
+            activeMessageGen={activeMessageGen}
             timedoutShow={timedoutShow}
+            Question={Question}
             handleSendMessage={(message) =>
-              handleSendMessage({
+              handleSendMessage(activeChat, {
                 message: Array.isArray(message) ? message.join("") : String(message ?? ""),
               })
             }
+            getFileUrl={getFileUrl}
             formatUrl={formatUrl}
+            curIdRef={curIdRef}
             t={t}
+            currentAssistant={currentAssistant}
           />
         </div>
       );
@@ -601,9 +675,13 @@ const InnerChatAI = memo(
 );
 
 const ChatAI = memo(
-  forwardRef<ChatAIRef, ChatAIProps>((props, ref) => (
-    <I18nextProvider i18n={i18n}><InnerChatAI {...props} ref={ref} /></I18nextProvider>
-  )),
+  forwardRef<ChatAIRef, ChatAIProps>((props, ref) => {
+    return (
+      <I18nextProvider i18n={i18n}>
+        <InnerChatAI {...props} ref={ref} />
+      </I18nextProvider>
+    );
+  }),
 );
 
 export default ChatAI;

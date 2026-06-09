@@ -133,10 +133,10 @@ export function AIAnswer({
           style={{
             maxHeight: collapsed && showToggle && bodyMaxHeight != null ? bodyMaxHeight : undefined,
             maskImage: collapsed && showToggle
-              ? "linear-gradient(to bottom, black 60%, transparent 100%)"
+              ? "linear-gradient(to bottom, black calc(100% - 40px), transparent 100%)"
               : undefined,
             WebkitMaskImage: collapsed && showToggle
-              ? "linear-gradient(to bottom, black 60%, transparent 100%)"
+              ? "linear-gradient(to bottom, black calc(100% - 40px), transparent 100%)"
               : undefined,
           }}
         >

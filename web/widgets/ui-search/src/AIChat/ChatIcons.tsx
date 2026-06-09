@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  Send,
   Square,
   Paperclip,
   //Mic
@@ -60,7 +61,7 @@ const ChatIcons: React.FC<ChatIconsProps> = ({
 }) => {
   const { t: tOriginal } = useTranslation();
   const t = tProp || tOriginal;
-  const setIsStreaming = useChatStore((state) => state.setIsStreaming);
+  const setCurChatEnd = useChatStore((state) => state.setCurChatEnd);
 
   const renderSendButton = () => {
     const canSend = !!inputValue?.trim() || (canSendWithoutText && !disableSend);
@@ -71,7 +72,7 @@ const ChatIcons: React.FC<ChatIconsProps> = ({
             <button
               type="button"
               className={clsx(
-                "bg-transparent relative flex items-center justify-center rounded-full shrink-0 transition-colors",
+                "cursor-pointer bg-transparent border-0 relative flex items-center justify-center rounded-full shrink-0 transition-colors",
                 onAttachClick
                   ? "text-[#999] hover:text-[#666] dark:text-[#666] dark:hover:text-[#999] cursor-pointer"
                   : "text-[#ccc] dark:text-[#444] cursor-not-allowed"
@@ -115,7 +116,7 @@ const ChatIcons: React.FC<ChatIconsProps> = ({
           )} */}
           <button
             className={clsx(
-              "flex items-center justify-center rounded-full transition-colors p-0 shrink-0 aspect-square cursor-pointer",
+              "border-0 flex items-center justify-center rounded-full transition-colors p-0 shrink-0 aspect-square cursor-pointer",
               {
                 "bg-[#027FFE] text-white": canSend,
                 "bg-[#0000000a] dark:bg-[#ffffff0a] text-[#ccc] dark:text-[#666] cursor-not-allowed":
@@ -148,17 +149,17 @@ const ChatIcons: React.FC<ChatIconsProps> = ({
 
     return (
       <button
-        className="flex items-center justify-center rounded-full shrink-0 cursor-pointer bg-[#0072FF] transition-colors"
-        style={{ width: "32px", height: "32px" }}
+        className="border-0 flex items-center justify-center rounded-full shrink-0 cursor-pointer bg-[#0072FF] transition-colors"
+        style={{ width: "24px", height: "24px" }}
         onClick={() => {
           onCancel();
           disabledChange?.();
-          setIsStreaming(false);
+          setCurChatEnd(true);
         }}
         title={t("search.input.stop") || "Stop"}
       >
         <Square
-          size={12}
+          size={10}
           strokeWidth={2}
           className="text-white fill-white"
           aria-label={t("search.input.stop") || "Stop"}

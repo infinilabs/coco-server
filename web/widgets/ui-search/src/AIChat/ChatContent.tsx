@@ -1,155 +1,207 @@
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import type { UIEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { type TFunction } from "i18next";
-import Markdown from "@infinilabs/markdown";
+import { ChatMessage, type ChatMessageRef } from "./ChatMessage/components";
+import { Post } from "./api/axiosRequest";
 
 import { Greetings } from "./Greetings";
 import { useChatScroll } from "./hooks/useChatScroll";
-import { useChatStore } from "./stores/chatStore";
+import type { Chat, IChunkData } from "./types/chat";
+import { useConnectStore } from "./stores/connectStore";
 import ScrollToBottom from "./Common/ScrollToBottom";
-import type { ChatItem } from "./types/chat";
+import { useChatStore, type Assistant } from "./stores/chatStore";
 
-function RenderItem({ item, formatUrl: _formatUrl, t }: { item: ChatItem; formatUrl?: (data: any) => string; t: TFunction }) {
-  switch (item.type) {
-    case "user":
-      return (
-        <div className="w-full py-4 flex justify-end">
-          <div className="max-w-[80%] px-4 py-2 rounded-lg bg-[#f0f0f0] dark:bg-[#2a2a2a] text-sm">
-            {item.text}
-          </div>
-        </div>
-      );
-    case "assistant":
-      return (
-        <div className="w-full py-2">
-          <div className="cm-markdown prose dark:prose-invert prose-sm max-w-none">
-            <Markdown content={item.text} />
-          </div>
-        </div>
-      );
-
-    case "query_intent":
-      return (
-        <div className="w-full py-1 text-xs text-gray-400">
-          <span>{t("chat.query_intent", "Query intent")}: </span>
-          <span>{item.text}</span>
-        </div>
-      );
-    case "fetch_source":
-      return (
-        <div className="w-full py-1 text-xs text-gray-400">
-          <span>{t("chat.fetch_source", "Fetching sources...")}</span>
-        </div>
-      );
-    case "pick_source":
-      return (
-        <div className="w-full py-1 text-xs text-gray-400">
-          <span>{t("chat.pick_source", "Selecting sources...")}</span>
-        </div>
-      );
-    case "deep_read":
-      return (
-        <div className="w-full py-1 text-xs text-gray-400">
-          <span>{t("chat.deep_read", "Deep reading...")}</span>
-        </div>
-      );
-    case "tool_call":
-      return (
-        <div className="w-full py-2 border border-gray-200 dark:border-gray-700 rounded-md text-xs">
-          <div className="px-3 py-1 font-semibold border-b border-gray-200 dark:border-gray-700">
-            ⚙ {item.toolName}
-          </div>
-          {item.args && <div className="px-3 py-1 font-mono whitespace-pre-wrap max-h-32 overflow-auto">{item.args}</div>}
-          {item.result && <div className="px-3 py-1 border-t border-gray-200 dark:border-gray-700 whitespace-pre-wrap max-h-32 overflow-auto">{item.result}</div>}
-        </div>
-      );
-    case "deep_research":
-      return (
-        <div className="w-full py-1 text-xs text-gray-400">
-          <span>{t("chat.deep_research", "Researching...")} ({item.chunks.length} steps)</span>
-        </div>
-      );
-    case "payload":
-      return null;
-    default:
-      return null;
-  }
-}
-
-interface ChatContentProps {
-  timedoutShow: boolean;
-  handleSendMessage: (content: string) => void;
-  formatUrl?: (data: any) => string;
+export interface ActiveChatMessageProps {
+  activeMessageRef?: React.RefObject<ChatMessageRef>;
+  activeChat?: Chat;
+  curChatEnd: boolean;
+  Question: string;
+  handleSendMessage: (content: string, newChat?: Chat) => void;
+  formatUrl?: (data: IChunkData) => string;
+  assistantList?: Assistant[];
+  currentAssistant?: Assistant;
   t?: TFunction;
 }
 
+export const ActiveChatMessage = ({
+  activeMessageRef,
+  activeChat,
+  curChatEnd,
+  Question,
+  handleSendMessage,
+  formatUrl,
+  assistantList,
+  currentAssistant,
+  t
+}: ActiveChatMessageProps) => {
+  const allMessages = activeChat?.messages || [];
+
+  return (
+    <ChatMessage
+      key={"current"}
+      ref={activeMessageRef}
+      message={{
+        _id: "current",
+        _source: {
+          type: "assistant",
+          assistant_id:
+            allMessages[allMessages.length - 1]?._source?.assistant_id,
+          message: "",
+          question: Question,
+        },
+      }}
+      onResend={handleSendMessage}
+      isTyping={!curChatEnd}
+      formatUrl={formatUrl}
+      assistantList={assistantList}
+      currentAssistant={currentAssistant}
+      t={t}
+    />
+  );
+};
+
+interface ChatContentProps {
+  activeChat?: Chat;
+  activeMessageRef?: React.RefObject<ChatMessageRef>;
+  activeMessageGen?: number;
+  timedoutShow: boolean;
+  Question: string;
+  handleSendMessage: (content: string, newChat?: Chat) => void;
+  getFileUrl: (path: string) => string;
+  formatUrl?: (data: IChunkData) => string;
+  curIdRef: React.MutableRefObject<string>;
+  t?: TFunction;
+  currentAssistant?: Assistant;
+}
+
 export const ChatContent = ({
+  activeChat,
+  activeMessageRef,
+  activeMessageGen = 0,
   timedoutShow,
-  handleSendMessage: _handleSendMessage,
+  Question,
+  handleSendMessage,
   formatUrl,
   t: tProp,
 }: ChatContentProps) => {
   const { t: tOriginal } = useTranslation();
   const t = tProp || tOriginal;
 
-  const items = useChatStore((s) => s.items);
-  const isStreaming = useChatStore((s) => s.isStreaming);
-  const activeSessionId = useChatStore((s) => s.activeSessionId);
+  const fetchAttachments = useCallback(async (ids: string[]) => {
+    const [, res] = await Post<{ hits?: { hits?: unknown[] } }>(
+      "/attachment/_search",
+      { attachments: ids },
+    );
+    return (res?.hits?.hits ?? []) as { _id: string; _source: Record<string, unknown> }[];
+  }, []);
+
+  const setCurrentSessionId = useConnectStore(
+    (state) => state.setCurrentSessionId
+  );
+
+  const curChatEnd = useChatStore((state) => state.curChatEnd);
+  const assistantList = useChatStore((state) => state.assistantList);
+  const currentAssistant = useChatStore((state) => state.currentAssistant);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { scrollToBottom, resetUserScrolling } = useChatScroll(scrollRef);
-  const [isAtBottom, setIsAtBottom] = useState(true);
-  const [prevSessionId, setPrevSessionId] = useState(activeSessionId);
 
-  if (activeSessionId !== prevSessionId) {
-    setPrevSessionId(activeSessionId);
+  const { scrollToBottom, resetUserScrolling } = useChatScroll(scrollRef);
+
+  const [isAtBottom, setIsAtBottom] = useState(true);
+  const [prevChatId, setPrevChatId] = useState(activeChat?._id);
+
+  if (activeChat?._id !== prevChatId) {
+    setPrevChatId(activeChat?._id);
     setIsAtBottom(true);
     resetUserScrolling();
   }
 
   useEffect(() => {
-    scrollToBottom(true);
-  }, [activeSessionId, items.length, scrollToBottom]);
+    setCurrentSessionId(activeChat?._id);
+  }, [activeChat?._id, setCurrentSessionId]);
 
   useEffect(() => {
-    return () => { scrollToBottom.cancel(); };
+    scrollToBottom(true);
+  }, [activeChat?._id, activeChat?.messages?.length, scrollToBottom]);
+
+  useEffect(() => {
+    return () => {
+      scrollToBottom.cancel();
+    };
   }, [scrollToBottom]);
 
   const handleScroll = (event: UIEvent<HTMLDivElement>) => {
-    const { scrollHeight, scrollTop, clientHeight } = event.currentTarget;
-    setIsAtBottom(scrollHeight - scrollTop - clientHeight < 50);
+    const { scrollHeight, scrollTop, clientHeight } =
+      event.currentTarget as HTMLDivElement;
+
+    const isAtBottom = scrollHeight - scrollTop - clientHeight < 50;
+
+    setIsAtBottom(isAtBottom);
   };
 
   return (
-    <div className="flex-1 overflow-hidden flex flex-col justify-between relative user-select-text">
+    <div className="flex-1 overflow-hidden flex flex-col justify-between relative">
       <div
         ref={scrollRef}
-        className="flex-1 w-full overflow-x-hidden overflow-y-auto custom-scrollbar relative"
+        className="flex-1 w-full overflow-x-hidden overflow-y-auto relative px-4"
         onScroll={handleScroll}
       >
-        <div className="max-w-4xl mx-auto px-4">
-          {items.length === 0 && <Greetings t={t} />}
+        <div className="max-w-4xl mx-auto">
+          {(!activeChat || activeChat?.messages?.length === 0) && (
+            <Greetings t={t} />
+          )}
 
-          {items.map((item, i) => (
-            <RenderItem key={i} item={item} formatUrl={formatUrl} t={t} />
+          {activeChat?.messages?.map((message) => (
+            <ChatMessage
+              key={message._id}
+              message={message}
+              isTyping={false}
+              onResend={handleSendMessage}
+              formatUrl={formatUrl}
+              assistantList={assistantList}
+              fetchAttachments={fetchAttachments}
+              t={t}
+            />
           ))}
 
-          {isStreaming && (
-            <div className="py-2">
-              <div className="inline-block w-1.5 h-5 ml-0.5 -mb-0.5 bg-[#666] dark:bg-[#A3A3A3] rounded-sm animate-pulse" />
-            </div>
+          {(activeChat || !curChatEnd) && (
+            <ActiveChatMessage
+              key={activeMessageGen}
+              activeMessageRef={activeMessageRef}
+              activeChat={activeChat}
+              curChatEnd={curChatEnd}
+              Question={Question}
+              handleSendMessage={handleSendMessage}
+              formatUrl={formatUrl}
+              assistantList={assistantList}
+              currentAssistant={currentAssistant}
+              t={t}
+            />
           )}
 
-          {timedoutShow && (
-            <div className="py-4 text-sm text-red-500">
-              {t("assistant.chat.timedout")}
-            </div>
-          )}
+          {timedoutShow ? (
+            <ChatMessage
+              key={"timedout"}
+              message={{
+                _id: "timedout",
+                _source: {
+                  type: "assistant",
+                  message: t("assistant.chat.timedout"),
+                  question: Question,
+                },
+              }}
+              onResend={handleSendMessage}
+              isTyping={false}
+              t={t}
+            />
+          ) : null}
           <div ref={messagesEndRef} />
         </div>
+
       </div>
+
       <ScrollToBottom scrollRef={scrollRef} isAtBottom={isAtBottom} />
     </div>
   );

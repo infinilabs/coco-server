@@ -117,7 +117,7 @@ export default function ChatInput({
   const { t: tOriginal } = useTranslation();
   const t = tProp || tOriginal;
 
-  const isStreaming = useChatStore((state) => state.isStreaming);
+  const curChatEnd = useChatStore((state) => state.curChatEnd);
   const currentAssistant = useChatStore((state) => state.currentAssistant);
 
   // -------------------- Visibility by assistant type --------------------
@@ -374,7 +374,7 @@ export default function ChatInput({
   const renderExtraIcon = () => (
     <div className="flex items-center gap-2 w-fit">
       <ChatIcons
-        curChatEnd={!isStreaming}
+        curChatEnd={curChatEnd}
         inputValue={inputValue}
         onSend={handleIconSend}
         onCancel={onCancel}

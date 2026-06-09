@@ -1,6 +1,11 @@
 import { create } from "zustand";
 
-import type { ChatItem, Session } from "../types/chat";
+interface SynthesizeItem {
+  id: string;
+  content: string;
+}
+
+import type { Chat, ChatMessageSource } from "../types/chat";
 
 export interface AssistantSource {
   name?: string;
@@ -14,67 +19,75 @@ export interface Assistant {
 }
 
 export type IChatStore = {
-  // Streaming state
-  isStreaming: boolean;
-  setIsStreaming: (value: boolean) => void;
-
-  // Session
-  activeSessionId: string | undefined;
-  setActiveSessionId: (id: string | undefined) => void;
-  activeSessionSource: Session["_source"];
-  setActiveSessionSource: (source: Session["_source"]) => void;
-
-  // Session list (for history panel)
-  sessions: Session[];
-  setSessions: (sessions: Session[]) => void;
-
-  // Chat items (the render state, driven directly by chunks)
-  items: ChatItem[];
-  setItems: (items: ChatItem[]) => void;
-  pushItem: (item: ChatItem) => void;
-  updateLastItem: (updater: (item: ChatItem) => ChatItem) => void;
-
-  // Assistant
+  curChatEnd: boolean;
+  setCurChatEnd: (value: boolean) => void;
+  stopChat: boolean;
+  setStopChat: (value: boolean) => void;
+  connected: boolean;
+  setConnected: (value: boolean) => void;
+  messages: string;
+  setMessages: (value: string | ((prev: string) => string)) => void;
+  synthesizeItem?: SynthesizeItem;
+  setSynthesizeItem: (synthesizeItem?: SynthesizeItem) => void;
+  chats: Chat[];
+  setChats: (chats: Chat[]) => void;
+  activeChat?: Chat;
+  setActiveChat: (chat?: Chat) => void;
   currentAssistant?: Assistant;
   setCurrentAssistant: (assistant?: Assistant) => void;
   assistantList?: Assistant[];
   setAssistantList: (assistantList: Assistant[]) => void;
-
-  // History panel version counter (triggers re-fetch of session list)
+  updateLastMessage: (updates: Partial<ChatMessageSource>) => void;
   historyVersion: number;
   incrementHistoryVersion: () => void;
 };
 
-export const useChatStore = create<IChatStore>()((set) => ({
-  isStreaming: false,
-  setIsStreaming: (value: boolean) => set({ isStreaming: value }),
+export const useChatStore = create<IChatStore>()(
+  (set) => ({
+      curChatEnd: true,
+      setCurChatEnd: (value: boolean) => set(() => ({ curChatEnd: value })),
+      stopChat: false,
+      setStopChat: (value: boolean) => set(() => ({ stopChat: value })),
+      connected: false,
+      setConnected: (value: boolean) => set(() => ({ connected: value })),
+      messages: "",
+      setMessages: (value: string | ((prev: string) => string)) =>
+        set((state) => ({
+          messages: typeof value === "function" ? value(state.messages) : value,
+        })),
+      setSynthesizeItem: (synthesizeItem?: SynthesizeItem) => {
+        return set(() => ({ synthesizeItem }));
+      },
+      chats: [],
+      setChats: (chats: Chat[]) => set(() => ({ chats })),
+      activeChat: undefined,
+      setActiveChat: (chat?: Chat) => set(() => ({ activeChat: chat })),
+      currentAssistant: undefined,
+      setCurrentAssistant: (assistant?: Assistant) =>
+        set(() => ({ currentAssistant: assistant })),
+      assistantList: [],
+      setAssistantList: (assistantList: Assistant[]) =>
+        set(() => ({ assistantList })),
+      historyVersion: 0,
+      incrementHistoryVersion: () =>
+        set((state) => ({ historyVersion: state.historyVersion + 1 })),
+      updateLastMessage: (updates: Partial<ChatMessageSource>) =>
+        set((state) => {
+          if (!state.activeChat || !state.activeChat.messages) return {};
+          const messages = [...state.activeChat.messages];
+          const lastIndex = messages.length - 1;
+          if (lastIndex < 0) return {};
 
-  activeSessionId: undefined,
-  setActiveSessionId: (id) => set({ activeSessionId: id }),
-  activeSessionSource: undefined,
-  setActiveSessionSource: (source) => set({ activeSessionSource: source }),
+          const lastMessage = { ...messages[lastIndex] };
+          lastMessage._source = { ...lastMessage._source, ...updates };
+          messages[lastIndex] = lastMessage;
 
-  sessions: [],
-  setSessions: (sessions) => set({ sessions }),
-
-  items: [],
-  setItems: (items) => set({ items }),
-  pushItem: (item) => set((state) => ({ items: [...state.items, item] })),
-  updateLastItem: (updater) =>
-    set((state) => {
-      const items = [...state.items];
-      const last = items[items.length - 1];
-      if (!last) return {};
-      items[items.length - 1] = updater(last);
-      return { items };
+          return {
+            activeChat: {
+              ...state.activeChat,
+              messages,
+            },
+          };
+        }),
     }),
-
-  currentAssistant: undefined,
-  setCurrentAssistant: (assistant) => set({ currentAssistant: assistant }),
-  assistantList: [],
-  setAssistantList: (assistantList) => set({ assistantList }),
-
-  historyVersion: 0,
-  incrementHistoryVersion: () =>
-    set((state) => ({ historyVersion: state.historyVersion + 1 })),
-}));
+);

@@ -5,7 +5,7 @@ import { groupBy, isNil } from "lodash";
 import dayjs from "dayjs";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 
-import type { Session } from "../types/chat";
+import type { Chat } from "../types/chat";
 import NoDataImage from "../NoDataImage";
 import DeleteDialog from "./DeleteDialog";
 import HistoryListItem from "./HistoryListItem";
@@ -13,9 +13,9 @@ import HistoryListItem from "./HistoryListItem";
 dayjs.extend(isSameOrAfter);
 
 interface HistoryListContentProps {
-  chats: Session[];
-  active?: Session;
-  onSelect: (chat: Session) => void;
+  chats: Chat[];
+  active?: Chat;
+  onSelect: (chat: Chat) => void;
   onRename: (chatId: string, title: string) => void;
   onRemove: (chatId: string) => void;
   renamingId?: string;
@@ -37,7 +37,7 @@ const HistoryListContent: FC<HistoryListContentProps> = ({
   const t = tProp || tOriginal;
 
   const [isOpen, setIsOpen] = useState(false);
-  const [highlightItem, setHighlightItem] = useState<Session>({} as Session);
+  const [highlightItem, setHighlightItem] = useState<Chat>({} as Chat);
 
   const sortedList = useMemo(() => {
     if (isNil(chats)) return {};
@@ -75,7 +75,7 @@ const HistoryListContent: FC<HistoryListContentProps> = ({
     setIsOpen(false);
   };
 
-  const handleDelete = useCallback((chat: Session) => {
+  const handleDelete = useCallback((chat: Chat) => {
     setHighlightItem(chat);
     setIsOpen(true);
   }, []);
@@ -90,26 +90,26 @@ const HistoryListContent: FC<HistoryListContentProps> = ({
 
   return (
     <>
-      {Object.entries(sortedList).map(([label, list]) => (
-        <div key={label}>
+        {Object.entries(sortedList).map(([label, list]) => (
+          <div key={label}>
           <div className="text-14px text-[#999] py-8px">{t(label)}</div>
-          <ul className="p-0">
-            {list.map((item) => (
-              <HistoryListItem
-                key={item._id}
-                item={item}
-                active={active}
-                onSelect={onSelect}
-                onRename={onRename}
-                handleDelete={() => handleDelete(item)}
-                renamingId={renamingId}
-                deletingId={deletingId}
-                t={t}
-              />
-            ))}
-          </ul>
-        </div>
-      ))}
+            <ul className="p-0">
+              {list.map((item) => (
+                <HistoryListItem
+                  key={item._id}
+                  item={item}
+                  active={active}
+                  onSelect={onSelect}
+                  onRename={onRename}
+                  handleDelete={() => handleDelete(item)}
+                  renamingId={renamingId}
+                  deletingId={deletingId}
+                  t={t}
+                />
+              ))}
+            </ul>
+          </div>
+        ))}
 
       <DeleteDialog
         isOpen={isOpen}

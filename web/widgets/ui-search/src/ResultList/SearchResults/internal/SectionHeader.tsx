@@ -66,7 +66,7 @@ export function SectionHeader({
           <button
             type="button"
             className={clsx(
-              "min-w-0 cursor-pointer bg-transparent p-0 text-left text-xl",
+              "min-w-0 cursor-pointer border-0 bg-transparent p-0 text-left text-xl",
               titleClassName
             )}
             onClick={titleAction.onClick}

@@ -114,7 +114,7 @@ const AutoResizeTextarea = forwardRef<
           autoCapitalize="none"
           spellCheck="false"
           className={clsx(
-            "auto-resize-textarea text-base flex-1 outline-none w-full min-w-[200px] bg-transparent custom-scrollbar resize-none overflow-y-auto",
+            "border-0 auto-resize-textarea text-base flex-1 outline-none w-full min-w-[200px] bg-transparent custom-scrollbar resize-none overflow-y-auto",
             {
               "overflow-y-hidden": lineCount === 1,
             }

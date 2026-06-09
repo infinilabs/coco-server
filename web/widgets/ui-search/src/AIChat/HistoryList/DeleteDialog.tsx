@@ -2,12 +2,12 @@ import { Modal, Button } from "antd";
 import { useTranslation } from "react-i18next";
 import { type TFunction } from "i18next";
 
-import { type Session } from "../types/chat";
+import { type Chat } from "../types/chat";
 import { type KeyboardEvent } from "react";
 
 interface DeleteDialogProps {
   isOpen: boolean;
-  active?: Session;
+  active?: Chat;
   setIsOpen: (isOpen: boolean) => void;
   handleRemove: () => void;
   t?: TFunction;

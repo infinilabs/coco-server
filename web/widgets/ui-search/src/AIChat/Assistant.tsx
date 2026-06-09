@@ -19,6 +19,7 @@ interface AssistantListProps {
   assistantIDs?: string[];
   locale?: string;
   t?: TFunction;
+  headers?: Record<string, string>;
 }
 
 interface AssistantHit {
@@ -37,12 +38,6 @@ function InnerAssistantList({ assistantIDs = [], locale = "en", t: tProp }: Assi
   const currentAssistant = useChatStore((state) => state.currentAssistant);
   const setCurrentAssistant = useChatStore((state) => state.setCurrentAssistant);
   const setAssistantList = useChatStore((state) => state.setAssistantList);
-
-  useEffect(() => {
-    if (locale && i18n.language !== locale) {
-      i18n.changeLanguage(locale);
-    }
-  }, [locale]);
 
   const [assistants, setAssistants] = useState<AssistantHit[]>([]);
 
@@ -186,7 +181,7 @@ function InnerAssistantList({ assistantIDs = [], locale = "en", t: tProp }: Assi
               {t("assistant_list.title")}（{total}）
             </div>
             <button
-              className="bg-transparent h-6 w-6 flex items-center justify-center cursor-pointer rounded transition-colors"
+              className="bg-transparent border-0 h-6 w-6 flex items-center justify-center cursor-pointer rounded transition-colors"
               style={{ color: 'var(--ant-color-text)' }}
               type="button"
               onClick={(e) => {
@@ -235,7 +230,7 @@ function InnerAssistantList({ assistantIDs = [], locale = "en", t: tProp }: Assi
                     <button
                       key={assistant._id}
                       className={clsx(
-                        "bg-transparent hover:bg-[#EDEDED] dark:hover:bg-[#353F4D] w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm transition-colors",
+                        "cursor-pointer bg-transparent border-0 hover:bg-[#EDEDED] dark:hover:bg-[#353F4D] w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm transition-colors",
                         isActive ? "font-medium" : ""
                       )}
                       style={{

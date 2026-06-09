@@ -50,7 +50,7 @@ export function AIAnswerActions({
   }, [speaking]);
 
   const baseBtnClass =
-    "inline-flex items-center justify-center p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 dark:focus-visible:ring-slate-600";
+    "bg-transparent border-0 inline-flex items-center justify-center p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 dark:focus-visible:ring-slate-600";
   const defaultBtnClass =
     "text-[#666] hover:bg-slate-50 dark:text-white/80 dark:hover:bg-slate-800";
 

@@ -47,7 +47,7 @@ export default function MCPPopover({
   const [totalPage, setTotalPage] = useState(0);
   const [visibleList, setVisibleList] = useState<DataSource[]>([]);
   const searchInputRef = useRef<InputRef>(null);
-  
+
   const [dataList, setDataList] = useState<DataSource[]>([]);
   const [keyword, setKeyword] = useState("");
   const debouncedKeyword = useDebounce(keyword, { wait: 500 });
@@ -64,12 +64,12 @@ export default function MCPPopover({
       }
       const data = res.length
         ? [
-            {
-              id: "all",
-              name: "search.input.searchPopover.allScope",
-            },
-            ...res,
-          ]
+          {
+            id: "all",
+            name: "search.input.searchPopover.allScope",
+          },
+          ...res,
+        ]
         : [];
 
       setDataList(data);
@@ -133,12 +133,12 @@ export default function MCPPopover({
     if (page === totalPage) return;
     setPage(page + 1);
   };
-  
+
   const handleRefresh = async () => {
     setIsRefreshDataSource(true);
     await getDataSourceList();
     setTimeout(() => {
-        setIsRefreshDataSource(false);
+      setIsRefreshDataSource(false);
     }, 1000);
   };
 
@@ -160,9 +160,9 @@ export default function MCPPopover({
       onClick={() => setIsMCPActive(!isMCPActive)}
       title={t("search.input.MCP") || "MCP"}
     >
-       <Hammer
-          className={clsx("size-4", isMCPActive ? "text-[var(--ant-color-primary)]" : "text-#333 dark:text-#666")}
-        />
+      <Hammer
+        className={clsx("size-4", isMCPActive ? "text-[var(--ant-color-primary)]" : "text-#333 dark:text-#666")}
+      />
 
       {isMCPActive && (
         <>
@@ -176,19 +176,7 @@ export default function MCPPopover({
             onOpenChange={setOpen}
             placement="bottomLeft"
             getPopupContainer={(node) => {
-              let el = node.parentElement;
-              while (el && el !== document.body && el !== document.documentElement) {
-                const { overflowY } = getComputedStyle(el);
-                if (overflowY === "auto" || overflowY === "scroll") {
-                  const parent = el.parentElement;
-                  if (parent && parent !== document.documentElement) {
-                    return parent;
-                  }
-                  return el;
-                }
-                el = el.parentElement;
-              }
-              return document.body;
+              return (node?.closest?.('.ui-search') || node?.parentElement || document.body) as HTMLElement;
             }}
             content={
               <div
@@ -196,19 +184,18 @@ export default function MCPPopover({
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex justify-between items-center px-1">
-                    <span className="text-sm font-medium">{t("search.input.searchPopover.title") || "Select"}</span>
-                    <button
-                      className="bg-transparent p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded-md transition-colors"
-                      onClick={handleRefresh}
-                    >
-                      <RefreshIcon
-                        className={`size-3 text-[#0287FF] transition-transform duration-1000 ${
-                          isRefreshDataSource ? "animate-spin" : ""
+                  <span className="text-sm font-medium">{t("search.input.searchPopover.title") || "Select"}</span>
+                  <button
+                    className="cursor-pointer bg-transparent border-0 p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded-md transition-colors"
+                    onClick={handleRefresh}
+                  >
+                    <RefreshIcon
+                      className={`size-3 text-[#0287FF] transition-transform duration-1000 ${isRefreshDataSource ? "animate-spin" : ""
                         }`}
-                      />
-                    </button>
+                    />
+                  </button>
                 </div>
-                
+
                 <div className="flex items-center gap-2 px-2 py-1 border rounded-md border border-solid border-[#F0F0F0] dark:border-[#303030]">
                   <Input
                     autoFocus
