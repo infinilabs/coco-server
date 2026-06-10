@@ -25,7 +25,6 @@ export function useLogin() {
           await dispatch(initConstantRoute());
           await dispatch(resetAuth());
           await dispatch(initAuthRoute());
-          await dispatch(initAuthRoute());
   
           if (redirect) {
             await redirectFromLogin(redirect);

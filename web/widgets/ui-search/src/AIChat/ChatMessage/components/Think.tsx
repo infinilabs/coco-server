@@ -1,9 +1,10 @@
-import {Loader, Brain, ChevronDown, ChevronUp } from "lucide-react";
+import {Loader, ChevronDown, ChevronRight } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { type TFunction } from "i18next";
 
 import type { IChunkData } from "../types/chat";
+import CheckIcon from "../../../icons/CheckIcon";
 
 interface ThinkProps {
   Detail?: any;
@@ -33,34 +34,34 @@ export const Think = ({ Detail, ChunkData, loading, t: tProp }: ThinkProps) => {
   if (!ChunkData && !Detail) return null;
 
   return (
-    <div className="space-y-2 mb-3 w-full">
+    <div className="space-y-2 mb-8px w-full">
       <button
         onClick={() => setIsThinkingExpanded((prev) => !prev)}
-        className="cursor-pointer bg-transparent hover:bg-[#EDEDED] dark:hover:bg-[#3A3A3A] inline-flex items-center gap-2 px-2 py-1 rounded-xl transition-colors border border-solid border-[#F0F0F0] dark:border-[#303030]"
+        className="text-[#101010] dark:text-[#F5F5F5] cursor-pointer bg-transparent hover:bg-[#EDEDED] dark:hover:bg-[#3A3A3A] inline-flex items-center gap-2 px-2 py-2px rounded-12px transition-colors border border-solid border-[#F0F0F0] dark:border-[#303030]"
       >
         {loading ? (
           <>
-            <Loader className="w-4 h-4 animate-spin text-[#1990FF]" />
-            <span className="text-xs text-[#999999] italic">
+            <Loader className="w-14px h-14px animate-spin" />
+            <span className="italic">
               {t(`assistant.message.steps.${ChunkData?.chunk_type}`)}
             </span>
           </>
         ) : (
           <>
-            <Brain className="w-4 h-4 text-[#38C200]" />
-            <span className="text-xs text-[#999999]">
+            <CheckIcon className="w-14px h-14px" />
+            <span className="">
               {t("assistant.message.steps.thoughtTime")}
             </span>
           </>
         )}
         {isThinkingExpanded ? (
-          <ChevronUp className="w-4 h-4 text-[#999999]" />
+          <ChevronDown className="w-4 h-4" />
         ) : (
-          <ChevronDown className="w-4 h-4 text-[#999999]" />
+          <ChevronRight className="w-4 h-4" />
         )}
       </button>
       {isThinkingExpanded && (
-        <div className="pl-2 pt-1 border-l-2 border-[#F0F0F0] dark:border-[#303030]">
+        <div className="ml-15px pl-6px pt-1 border-l-1 border-[#bbb] dark:border-[#333]">
           <div className="text-[#8b8b8b] dark:text-[#a6a6a6] space-y-2">
             {data?.split("\n").map(
               (paragraph, idx) =>

@@ -1,8 +1,8 @@
 import {
-  ChevronUp,
   ChevronDown,
   SquareArrowOutUpRight,
   Globe,
+  ChevronRight,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -10,7 +10,7 @@ import { type TFunction } from "i18next";
 
 import { OpenURLWithBrowser } from "../utils/index";
 import type { IChunkData } from "../types/chat";
-import RetrieveIcon from "../icons/Retrieve";
+import CheckIcon from "../../../icons/CheckIcon";
 
 interface FetchSourceProps {
   Detail?: any;
@@ -95,7 +95,7 @@ export const FetchSource = ({
 
   return (
     <div
-      className={`mt-2 mb-2 max-w-full w-full md:w-[610px] ${
+      className={`mb-8px max-w-full w-full md:w-[610px] ${
         isSourceExpanded
           ? "rounded-lg overflow-hidden border border-solid border-[#F0F0F0] dark:border-[#303030]"
           : ""
@@ -103,15 +103,15 @@ export const FetchSource = ({
     >
       <button
         onClick={() => setIsSourceExpanded((prev) => !prev)}
-        className={`bg-transparent hover:bg-[#EDEDED] dark:hover:bg-[#3A3A3A] cursor-pointer inline-flex justify-between items-center gap-2 px-2 py-1 rounded-xl transition-colors whitespace-nowrap ${
+        className={`text-[#101010] dark:text-[#F5F5F5] bg-transparent hover:bg-[#EDEDED] dark:hover:bg-[#3A3A3A] cursor-pointer inline-flex justify-between items-center gap-2 px-2 py-2px rounded-12px transition-colors whitespace-nowrap ${
           isSourceExpanded
             ? "w-full"
             : "border border-solid border-[#F0F0F0] dark:border-[#303030]"
         }`}
       >
         <div className="flex-1 min-w-0 flex items-center gap-2">
-          <RetrieveIcon className="w-4 h-4 text-[#38C200] shrink-0" />
-          <span className="text-xs text-[#999999]">
+          <CheckIcon className="w-14px h-14px shrink-0" />
+          <span>
             {t(
               `assistant.message.steps.${ChunkData?.chunk_type || Detail.type}`,
               {
@@ -121,13 +121,13 @@ export const FetchSource = ({
           </span>
         </div>
         {isSourceExpanded ? (
-          <ChevronUp className="w-4 h-4 text-[#999999]" />
+          <ChevronDown className="w-4 h-4" />
         ) : (
-          <ChevronDown className="w-4 h-4 text-[#999999]" />
+          <ChevronRight className="w-4 h-4" />
         )}
       </button>
 
-      {isSourceExpanded && (
+      {isSourceExpanded && data?.length > 0 && (
         <>
           {data?.map((item, idx) => (
             <div
