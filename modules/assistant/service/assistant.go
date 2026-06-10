@@ -39,6 +39,9 @@ func InternalGetAssistant(ctx context.Context, assistantID string) (*core.Assist
 	if err != nil {
 		return nil, exists, err
 	}
+	if !exists {
+		return nil, false, nil
+	}
 
 	//expand datasource is the datasource is `*`
 	if util.ContainsAnyInArray("*", assistant.Datasource.IDs) {
@@ -86,7 +89,11 @@ func InternalGetAssistant(ctx context.Context, assistantID string) (*core.Assist
 		userCfg := core.DeepResearchConfig{}
 		buf := util.MustToJSONBytes(assistant.Config)
 		util.MustFromJSONBytes(buf, &userCfg)
-		// Validate the user config
+		// Apply defaults for fields not set in the stored config before validating.
+		// Without this, zero-valued fields (e.g. max_steps=0) fail validation even
+		// though the assistant record itself is valid.
+		core.MergeDeepResearchConfig(&userCfg)
+		// Validate the merged config
 		if err = userCfg.Validate(); err != nil {
 			return nil, exists, err
 		}

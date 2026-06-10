@@ -78,39 +78,79 @@ type DeepThinkConfig struct {
 
 // DeepResearchInternalSearchConfig controls enterprise (internal) search behaviour.
 type DeepResearchInternalSearchConfig struct {
-	DatasourceIDs []string `json:"datasource_ids,omitempty"` // Restrict to these IDs; empty = all accessible.
+	// Optional. Restricts internal search to these datasource IDs. Default: empty,
+	// which allows all accessible datasources.
+	DatasourceIDs []string `json:"datasource_ids,omitempty"`
 }
 
 // DeepResearchExternalSearchConfig controls external web search behaviour.
 type DeepResearchExternalSearchConfig struct {
-	Engine string `json:"engine"`            // One of: "duckduckgo", "wikipedia", "tavily"; empty = disabled.
-	APIKey string `json:"api_key,omitempty"` // Required when Engine is "tavily".
+	// Optional. External search engine: "duckduckgo", "wikipedia", or "tavily".
+	// Default: "duckduckgo".
+	Engine string `json:"engine"`
+	// Required when Engine is "tavily"; otherwise optional. Default: "".
+	APIKey string `json:"api_key,omitempty"`
 }
 
 type DeepResearchConfig struct {
 	// Models — one per pipeline stage; each may point to a different provider/model.
-	PlanningModel  ModelConfig `json:"planning_model"`  // Decomposes the query into a step-by-step research plan.
-	ResearchModel  ModelConfig `json:"research_model"`  // Analyzes search results for each individual research step.
-	SynthesisModel ModelConfig `json:"synthesis_model"` // Synthesizes findings across sources within a step.
-	ReportModel    ModelConfig `json:"report_model"`    // Writes the final structured report.
+	// When a field is empty, the assistant's top-level AnsweringModel is used as
+	// a fallback for that stage.
+
+	// Optional. Model used to decompose the query into a step-by-step research
+	// plan. Default: empty, which falls back to the assistant's AnsweringModel.
+	PlanningModel ModelConfig `json:"planning_model"`
+	// Optional. Model used to analyze search results for each individual research
+	// step. Default: empty, which falls back to the assistant's AnsweringModel.
+	ResearchModel ModelConfig `json:"research_model"`
+	// Optional. Model used to synthesize findings across sources within a step.
+	// Default: empty, which falls back to the assistant's AnsweringModel.
+	SynthesisModel ModelConfig `json:"synthesis_model"`
+	// Optional. Model used to write the final structured report. Default: empty,
+	// which falls back to the assistant's AnsweringModel.
+	ReportModel ModelConfig `json:"report_model"`
 
 	// Execution limits
-	MaxSteps                   int    `json:"max_steps"`                     // Max steps the planner may generate.
-	MaxResearcherIterations    int    `json:"max_researcher_iterations"`     // Max researcher loop iterations over the plan.
-	MaxConcurrentResearchUnits int    `json:"max_concurrent_research_units"` // Max parallel research workers (v1 only).
-	MaxResults                 int    `json:"max_results"`                   // Max search results fetched per query.
-	Timeout                    string `json:"timeout"`                       // Total research deadline; Go duration string, e.g. "30m", "1h".
-	ResearchDepth              string `json:"research_depth"`                // Effort level: "basic", "comprehensive", or "exhaustive".
+
+	// Optional. Maximum number of research steps the planner may generate.
+	// Default: 5. If provided, it must be positive.
+	MaxSteps int `json:"max_steps"`
+	// Optional. Maximum number of researcher loop iterations over the plan.
+	// Default: 5.
+	MaxResearcherIterations int `json:"max_researcher_iterations"`
+	// Optional. Maximum number of parallel research workers (v1 pipeline only).
+	// Default: 5.
+	MaxConcurrentResearchUnits int `json:"max_concurrent_research_units"`
+	// Optional. Maximum number of search results fetched per query. Default: 5.
+	// If provided, it must be positive.
+	MaxResults int `json:"max_results"`
+	// Optional. Total research deadline as a Go duration string, e.g. "30m" or
+	// "1h". Default: "" (no timeout).
+	Timeout string `json:"timeout"`
+	// Optional. Effort level for the research pipeline: "basic", "comprehensive",
+	// or "exhaustive". Default: "basic".
+	ResearchDepth string `json:"research_depth"`
 
 	// Output
-	IncludeSources bool   `json:"include_sources"` // Append a citations section to the report.
-	SourceFormat   string `json:"source_format"`   // Citation style: "APA", "MLA", or empty for plain Markdown links.
-	ReportFormat   string `json:"report_format"`   // Rendered format: "markdown" (default) or "html".
-	ReportLang     string `json:"report_lang"`     // Report language as a BCP 47 tag, e.g. "en-US", "zh-CN".
+
+	// Optional. When true, appends a citations section to the report. Default: false.
+	IncludeSources bool `json:"include_sources"`
+	// Optional. Citation style: "APA", "MLA", or "" for plain Markdown links.
+	// Default: "".
+	SourceFormat string `json:"source_format"`
+	// Optional. Rendered output format: "markdown" or "html". Default: "markdown".
+	ReportFormat string `json:"report_format"`
+	// Optional. Report language as a BCP 47 tag, e.g. "en-US" or "zh-CN".
+	// Default: "" (inherits system locale).
+	ReportLang string `json:"report_lang"`
 
 	// Search
-	InternalSearch DeepResearchInternalSearchConfig `json:"internal_search"` // Internal enterprise search settings.
-	ExternalSearch DeepResearchExternalSearchConfig `json:"external_search"` // External web search settings.
+
+	// Optional. Internal enterprise search settings. Default: zero value, which
+	// allows all accessible datasources.
+	InternalSearch DeepResearchInternalSearchConfig `json:"internal_search"`
+	// Optional. External web search settings. Default: duckduckgo.
+	ExternalSearch DeepResearchExternalSearchConfig `json:"external_search"`
 }
 
 type UploadConfig struct {
@@ -279,48 +319,42 @@ func (cfg *DeepResearchConfig) Validate() error {
 	return nil
 }
 
-// MergeDeepResearchConfig merges user config with defaults
-func MergeDeepResearchConfig(userConfig, defaultConfig *DeepResearchConfig) *DeepResearchConfig {
+// MergeDeepResearchConfig fills zero-valued fields in userConfig with hardcoded
+// defaults. Fields whose zero value is already the intended default (e.g.
+// Timeout, ReportLang, model configs) are left untouched.
+func MergeDeepResearchConfig(userConfig *DeepResearchConfig) *DeepResearchConfig {
+	d := DeepResearchConfig{
+		MaxSteps:                   5,
+		MaxResearcherIterations:    5,
+		MaxConcurrentResearchUnits: 5,
+		MaxResults:                 5,
+		ResearchDepth:              "basic",
+		ReportFormat:               "markdown",
+		ExternalSearch:             DeepResearchExternalSearchConfig{Engine: "duckduckgo"},
+	}
 	if userConfig == nil {
-		return defaultConfig
-	}
-
-	if userConfig.PlanningModel.Name == "" {
-		userConfig.PlanningModel = defaultConfig.PlanningModel
-	}
-	if userConfig.ResearchModel.Name == "" {
-		userConfig.ResearchModel = defaultConfig.ResearchModel
-	}
-	if userConfig.SynthesisModel.Name == "" {
-		userConfig.SynthesisModel = defaultConfig.SynthesisModel
-	}
-	if userConfig.ReportModel.Name == "" {
-		userConfig.ReportModel = defaultConfig.ReportModel
+		return &d
 	}
 	if userConfig.MaxSteps == 0 {
-		userConfig.MaxSteps = defaultConfig.MaxSteps
-	}
-	if userConfig.MaxResults == 0 {
-		userConfig.MaxResults = defaultConfig.MaxResults
-	}
-	if userConfig.Timeout == "" {
-		userConfig.Timeout = defaultConfig.Timeout
-	}
-	if userConfig.ResearchDepth == "" {
-		userConfig.ResearchDepth = defaultConfig.ResearchDepth
+		userConfig.MaxSteps = d.MaxSteps
 	}
 	if userConfig.MaxResearcherIterations == 0 {
-		userConfig.MaxResearcherIterations = defaultConfig.MaxResearcherIterations
+		userConfig.MaxResearcherIterations = d.MaxResearcherIterations
+	}
+	if userConfig.MaxConcurrentResearchUnits == 0 {
+		userConfig.MaxConcurrentResearchUnits = d.MaxConcurrentResearchUnits
+	}
+	if userConfig.MaxResults == 0 {
+		userConfig.MaxResults = d.MaxResults
+	}
+	if userConfig.ResearchDepth == "" {
+		userConfig.ResearchDepth = d.ResearchDepth
 	}
 	if userConfig.ReportFormat == "" {
-		userConfig.ReportFormat = defaultConfig.ReportFormat
-	}
-	if userConfig.ReportLang == "" {
-		userConfig.ReportLang = defaultConfig.ReportLang
+		userConfig.ReportFormat = d.ReportFormat
 	}
 	if userConfig.ExternalSearch.Engine == "" {
-		userConfig.ExternalSearch = defaultConfig.ExternalSearch
+		userConfig.ExternalSearch.Engine = d.ExternalSearch.Engine
 	}
-
 	return userConfig
 }
