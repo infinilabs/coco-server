@@ -635,6 +635,10 @@ const InnerChatAI = memo(
               onSelectChat(activeChat);
             }, 0);
           }
+        } else if (!activeChat?._id && lastActiveChatIdRef.current) {
+          // Active chat was cleared externally (e.g. deleted from history)
+          lastActiveChatIdRef.current = undefined;
+          onSelectChat(undefined);
         }
       }, [activeChat?._id, onSelectChat]);
 

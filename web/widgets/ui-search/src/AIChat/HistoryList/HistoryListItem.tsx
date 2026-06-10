@@ -191,7 +191,7 @@ const HistoryListItem: FC<HistoryListItemProps> = ({
           <span className="truncate">{title}</span>
         )}
 
-        {(isHovered || isDeleting || isSelected || open) && (<div
+        {(isHovered || isDeleting || isSelected || open) && !(isEdit || isRenaming) && (<div
           className="flex items-center gap-2"
           onClick={(e) => {
             e.stopPropagation();
