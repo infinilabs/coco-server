@@ -39,3 +39,11 @@ const (
 	ResearchReporterStart = "research_reporter_start"
 	ResearchReporterEnd   = "research_reporter_end"
 )
+
+// Agent loop exit reasons carried in the reply_end payload.
+const (
+	ReasonCompleted     = "completed"
+	ReasonUserCancelled = "user_cancelled"
+	ReasonError         = "error"
+	ReasonTimeout       = "timeout"
+)

@@ -28,17 +28,25 @@ import (
 	"infini.sh/framework/core/util"
 )
 
-// getCancelledMessage returns a localized "task cancelled" message based on
-// the CancelLang stored in the inflight task. The cancel API writes the user's
-// UI language into the task right before triggering cancellation, so we can
-// read it here and produce an appropriate message without a full i18n system.
-func getCancelledMessage(taskID string) string {
-	if v, ok := InflightMessages.Load(taskID); ok {
-		if task, ok := v.(common2.MessageTask); ok && strings.HasPrefix(task.CancelLang, "zh") {
-			return "~~该任务已被取消。~~"
+// determineExitReason classifies why the assistant processing loop ended.
+// It checks the context and task metadata to distinguish user cancellation
+// (explicit cancel button) from timeout, error, and normal completion.
+func determineExitReason(ctx context.Context, err error, taskID string) string {
+	if ctx.Err() != nil {
+		if v, ok := InflightMessages.Load(taskID); ok {
+			if task, ok := v.(common2.MessageTask); ok && task.CancelLang != "" {
+				return common.ReasonUserCancelled
+			}
 		}
+		if ctx.Err() == context.DeadlineExceeded {
+			return common.ReasonTimeout
+		}
+		return common.ReasonUserCancelled
 	}
-	return "~~This task has been cancelled.~~"
+	if err != nil {
+		return common.ReasonError
+	}
+	return common.ReasonCompleted
 }
 
 func CreateAssistantReplyMessage(sessionID, assistantID, requestMessageID string) *core.ChatMessage {
@@ -56,7 +64,16 @@ func CreateAssistantReplyMessage(sessionID, assistantID, requestMessageID string
 }
 
 // save response and send END signal to receiver
-func finalizeProcessing(ctx context.Context, sessionID string, msg *core.ChatMessage, sender core.MessageSender) {
+func finalizeProcessing(ctx context.Context, sessionID string, msg *core.ChatMessage, sender core.MessageSender, reason string) {
+	payload := util.MustToJSON(util.MapStr{"reason": reason})
+
+	// Persist the termination reason so history replay knows how the loop ended.
+	msg.Details = append(msg.Details, core.ProcessingDetails{
+		Order:   99,
+		Type:    common.ReplyEnd,
+		Payload: util.MapStr{"reason": reason},
+	})
+
 	// Use a fresh background context with timeout for saving, so a cancelled
 	// request context (e.g. from Ctrl-C / graceful shutdown) does not prevent
 	// the reply message from being persisted.
@@ -70,7 +87,7 @@ func finalizeProcessing(ctx context.Context, sessionID string, msg *core.ChatMes
 	}
 
 	_ = sender.SendChunkMessage(core.MessageTypeSystem,
-		common.ReplyEnd, "Processing completed", 0,
+		common.ReplyEnd, payload, 0,
 	)
 }
 
@@ -102,19 +119,9 @@ func ProcessMessageAsync(ctx context.Context, userID string, reqMsg, replyMsg *c
 				// treat it as a graceful stop — no error message to the user.
 				if ctx.Err() != nil || strings.Contains(v, "context canceled") || strings.Contains(v, "context deadline exceeded") {
 					log.Infof("async processing cancelled by user: %v", v)
-					if replyMsg.Message == "" {
-						replyMsg.Message = getCancelledMessage(taskID)
-					}
 				} else {
-					msg := fmt.Sprintf("⚠️ error in async processing message reply, %v", v)
-					if replyMsg.Message != "" {
-						replyMsg.Message += "\n\n"
-					}
-					replyMsg.Message += msg
-					_ = sender.SendChunkMessage(core.MessageTypeSystem,
-						common.Response, msg, 0,
-					)
-					_ = log.Error(msg)
+					_ = log.Errorf("panic in async processing: %v", v)
+					err = fmt.Errorf("%s", v)
 				}
 			}
 		}
@@ -122,16 +129,13 @@ func ProcessMessageAsync(ctx context.Context, userID string, reqMsg, replyMsg *c
 		if err != nil {
 			if ctx.Err() != nil || strings.Contains(err.Error(), "context canceled") || strings.Contains(err.Error(), "context deadline exceeded") {
 				log.Infof("async processing cancelled: %v", err)
-				if replyMsg.Message == "" {
-					replyMsg.Message = getCancelledMessage(taskID)
-				}
 			} else {
 				log.Errorf("Failed to process message reply: %v", err)
-				replyMsg.Message += err.Error()
 			}
 		}
 
-		finalizeProcessing(ctx, params.SessionID, replyMsg, sender)
+		reason := determineExitReason(ctx, err, taskID)
+		finalizeProcessing(ctx, params.SessionID, replyMsg, sender, reason)
 		// clear the inflight message task
 		InflightMessages.Delete(taskID)
 
