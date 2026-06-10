@@ -50,6 +50,10 @@ type ChatMessage struct {
 	//   Type="deep_research" (Order=10)  — Payload: array of ChunkRecord from deep research v2
 	//     [{"chunk_type":"research_planner_start|…|research_reporter_end", "message_chunk":"JSON string"}]
 	//     These are the serialized streaming chunks replayed by the frontend to reconstruct the research UI.
+	//
+	//   Type="reply_end"     (Order=99)  — Payload: loop termination reason map
+	//     {"reason":"completed|user_cancelled|error|timeout"}
+	//     Persisted so history replay can restore terminal state after refresh.
 	Details []ProcessingDetails `json:"details"`
 
 	UpVote      int    `json:"up_vote"`
@@ -69,7 +73,7 @@ type ChatMessage struct {
 // the full Type→Payload schema.
 type ProcessingDetails struct {
 	Order       int         `json:"order"`
-	Type        string      `json:"type"`        // One of: query_intent, fetch_source, pick_source, deep_read, think, deep_research
+	Type        string      `json:"type"`        // One of: query_intent, fetch_source, pick_source, deep_read, think, deep_research, reply_end
 	Description string      `json:"description"` // Human-readable text (used by deep_read and think when Payload is nil)
 	Payload     interface{} `json:"payload"`     // Structured data; concrete type depends on Type (see ChatMessage.Details doc)
 }
