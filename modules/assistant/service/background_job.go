@@ -81,6 +81,7 @@ func finalizeProcessing(ctx context.Context, sessionID string, msg *core.ChatMes
 	defer cancel()
 	ctx1 := orm.NewContextWithParent(saveCtx)
 	ctx1.DirectAccess()
+	ctx1.Refresh = orm.WaitForRefresh
 
 	if err := orm.Save(ctx1, msg); err != nil {
 		_ = log.Errorf("Failed to save assistant message: %v", err)
