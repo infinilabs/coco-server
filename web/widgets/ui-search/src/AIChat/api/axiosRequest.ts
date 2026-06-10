@@ -9,11 +9,41 @@ import {
   // handleGeneralError,
   handleNetworkError,
 } from "./tools";
+import { useChatStore } from "../stores/chatStore";
 
 type Fn = (data: unknown) => unknown;
 
 type RequestParams = Record<string, unknown>;
 type RequestHeaders = Record<string, string>;
+
+const PROXY_PREFIXES: readonly string[] = [
+  "account",
+  "chat",
+  "query",
+  "connector",
+  "integration",
+  "assistant",
+  "datasource",
+  "settings",
+  "mcp_server",
+  "attachment",
+];
+
+function resolveBaseURL(url: string): string {
+  const { baseUrl } = useChatStore.getState();
+
+  const meta = import.meta as unknown as { env?: { DEV?: boolean } };
+  const isDev = meta.env?.DEV === true;
+  const shouldProxy =
+    isDev &&
+    url.startsWith("/") &&
+    PROXY_PREFIXES.some((p) => url.startsWith(`/${p}`));
+
+  if (!baseUrl || baseUrl === "undefined" || shouldProxy) {
+    return "";
+  }
+  return baseUrl;
+}
 
 axios.interceptors.request.use((config) => {
   config = handleChangeRequestHeader(config);
@@ -81,30 +111,7 @@ export const Get = <T>(
   headers: RequestHeaders = {}
 ): Promise<[unknown, T | undefined]> =>
   new Promise((resolve) => {
-    const appStore = JSON.parse(localStorage.getItem("app-store") || "{}");
-
-    const meta = import.meta as unknown as { env?: { DEV?: boolean } };
-    const isDev = meta.env?.DEV === true;
-    const PROXY_PREFIXES: readonly string[] = [
-      "account",
-      "chat",
-      "query",
-      "connector",
-      "integration",
-      "assistant",
-      "datasource",
-      "settings",
-      "mcp_server",
-    ];
-    const shouldProxy =
-      isDev &&
-      url.startsWith("/") &&
-      PROXY_PREFIXES.some((p) => url.startsWith(`/${p}`));
-
-    let baseURL: string = appStore.state?.endpoint_http as string;
-    if (!baseURL || baseURL === "undefined" || shouldProxy) {
-      baseURL = "";
-    }
+    const baseURL = resolveBaseURL(url);
 
     axios
       .get<T>(baseURL + url, { params, headers, withCredentials: true })
@@ -131,30 +138,7 @@ export const Post = <T>(
   headers: RequestHeaders = {}
 ): Promise<[unknown, T | undefined]> => {
   return new Promise((resolve) => {
-    const appStore = JSON.parse(localStorage.getItem("app-store") || "{}");
-
-    const meta = import.meta as unknown as { env?: { DEV?: boolean } };
-    const isDev = meta.env?.DEV === true;
-    const PROXY_PREFIXES: readonly string[] = [
-      "account",
-      "chat",
-      "query",
-      "connector",
-      "integration",
-      "assistant",
-      "datasource",
-      "settings",
-      "mcp_server",
-    ];
-    const shouldProxy =
-      isDev &&
-      url.startsWith("/") &&
-      PROXY_PREFIXES.some((p) => url.startsWith(`/${p}`));
-
-    let baseURL: string = appStore.state?.endpoint_http as string;
-    if (!baseURL || baseURL === "undefined" || shouldProxy) {
-      baseURL = "";
-    }
+    const baseURL = resolveBaseURL(url);
 
     const config: AxiosRequestConfig = {
       params,
@@ -181,30 +165,7 @@ export const Put = <T>(
   headers: RequestHeaders = {}
 ): Promise<[unknown, T | undefined]> => {
   return new Promise((resolve) => {
-    const appStore = JSON.parse(localStorage.getItem("app-store") || "{}");
-
-    const meta = import.meta as unknown as { env?: { DEV?: boolean } };
-    const isDev = meta.env?.DEV === true;
-    const PROXY_PREFIXES: readonly string[] = [
-      "account",
-      "chat",
-      "query",
-      "connector",
-      "integration",
-      "assistant",
-      "datasource",
-      "settings",
-      "mcp_server",
-    ];
-    const shouldProxy =
-      isDev &&
-      url.startsWith("/") &&
-      PROXY_PREFIXES.some((p) => url.startsWith(`/${p}`));
-
-    let baseURL: string = appStore.state?.endpoint_http as string;
-    if (!baseURL || baseURL === "undefined" || shouldProxy) {
-      baseURL = "";
-    }
+    const baseURL = resolveBaseURL(url);
 
     const config: AxiosRequestConfig = {
       params,
@@ -242,31 +203,7 @@ export const Upload = <T>(
   onProgress?: (percent: number) => void
 ): Promise<[unknown, T | undefined]> => {
   return new Promise((resolve) => {
-    const appStore = JSON.parse(localStorage.getItem("app-store") || "{}");
-
-    const meta = import.meta as unknown as { env?: { DEV?: boolean } };
-    const isDev = meta.env?.DEV === true;
-    const PROXY_PREFIXES: readonly string[] = [
-      "account",
-      "chat",
-      "query",
-      "connector",
-      "integration",
-      "assistant",
-      "datasource",
-      "settings",
-      "mcp_server",
-      "attachment",
-    ];
-    const shouldProxy =
-      isDev &&
-      url.startsWith("/") &&
-      PROXY_PREFIXES.some((p) => url.startsWith(`/${p}`));
-
-    let baseURL: string = appStore.state?.endpoint_http as string;
-    if (!baseURL || baseURL === "undefined" || shouldProxy) {
-      baseURL = "";
-    }
+    const baseURL = resolveBaseURL(url);
 
     const formData = new FormData();
     for (const f of files) {
@@ -309,30 +246,7 @@ export const Delete = <T>(
   headers: RequestHeaders = {}
 ): Promise<[unknown, T | undefined]> => {
   return new Promise((resolve) => {
-    const appStore = JSON.parse(localStorage.getItem("app-store") || "{}");
-
-    const meta = import.meta as unknown as { env?: { DEV?: boolean } };
-    const isDev = meta.env?.DEV === true;
-    const PROXY_PREFIXES: readonly string[] = [
-      "account",
-      "chat",
-      "query",
-      "connector",
-      "integration",
-      "assistant",
-      "datasource",
-      "settings",
-      "mcp_server",
-    ];
-    const shouldProxy =
-      isDev &&
-      url.startsWith("/") &&
-      PROXY_PREFIXES.some((p) => url.startsWith(`/${p}`));
-
-    let baseURL: string = appStore.state?.endpoint_http as string;
-    if (!baseURL || baseURL === "undefined" || shouldProxy) {
-      baseURL = "";
-    }
+    const baseURL = resolveBaseURL(url);
 
     const config: AxiosRequestConfig = {
       params,

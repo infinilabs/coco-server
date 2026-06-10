@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { I18nextProvider, useTranslation } from "react-i18next";
 import { type TFunction } from "i18next";
 import { message } from "antd";
@@ -32,6 +32,8 @@ function InnerHistory({
   const activeChat = useChatStore((state) => state.activeChat);
   const setActiveChat = useChatStore((state) => state.setActiveChat);
   const historyVersion = useChatStore((state) => state.historyVersion);
+  const setBaseUrl = useChatStore((state) => state.setBaseUrl);
+  const setAuthHeaders = useChatStore((state) => state.setAuthHeaders);
 
   const [messageApi, contextHolder] = message.useMessage();
 
@@ -43,19 +45,23 @@ function InnerHistory({
     if (!BaseUrl) {
       return;
     }
-    const store = { state: { endpoint_http: BaseUrl } };
-    localStorage.setItem("app-store", JSON.stringify(store));
+    setBaseUrl(BaseUrl);
 
     const mergedHeaders: Record<string, string> = { ...headersProp };
     if (Token) {
       mergedHeaders["X-API-TOKEN"] = Token;
     }
     if (Object.keys(mergedHeaders).length > 0) {
-      localStorage.setItem("headers", JSON.stringify(mergedHeaders));
+      setAuthHeaders(mergedHeaders);
     }
-  }, [BaseUrl, Token, headersProp]);
+  }, [BaseUrl, Token, headersProp, setBaseUrl, setAuthHeaders]);
+
+  const lastFetchTimeRef = useRef(0);
 
   const fetchChatHistory = useCallback(async () => {
+    const now = Date.now();
+    if (now - lastFetchTimeRef.current < 500) return;
+    lastFetchTimeRef.current = now;
     try {
       const [err, res] = await Get<{
         hits?: { hits?: Chat[] };
@@ -76,13 +82,7 @@ function InnerHistory({
 
   useEffect(() => {
     fetchChatHistory();
-  }, [fetchChatHistory]);
-
-  useEffect(() => {
-    if (historyVersion > 0) {
-      fetchChatHistory();
-    }
-  }, [historyVersion, fetchChatHistory]);
+  }, [fetchChatHistory, historyVersion]);
 
   const onSelect = useCallback(
     async (chat: Chat) => {

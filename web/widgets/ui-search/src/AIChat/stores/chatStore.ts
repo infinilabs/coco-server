@@ -19,6 +19,10 @@ export interface Assistant {
 }
 
 export type IChatStore = {
+  baseUrl: string;
+  setBaseUrl: (value: string) => void;
+  authHeaders: Record<string, string>;
+  setAuthHeaders: (value: Record<string, string>) => void;
   curChatEnd: boolean;
   setCurChatEnd: (value: boolean) => void;
   stopChat: boolean;
@@ -44,6 +48,10 @@ export type IChatStore = {
 
 export const useChatStore = create<IChatStore>()(
   (set) => ({
+      baseUrl: "",
+      setBaseUrl: (value: string) => set(() => ({ baseUrl: value })),
+      authHeaders: {},
+      setAuthHeaders: (value: Record<string, string>) => set(() => ({ authHeaders: value })),
       curChatEnd: true,
       setCurChatEnd: (value: boolean) => set(() => ({ curChatEnd: value })),
       stopChat: false,

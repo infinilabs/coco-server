@@ -168,7 +168,7 @@ export const MessageActions = ({
 
   return (
     <div className={clsx("flex items-center gap-4px mt-16px", actionClassName)}>
-      {!isRefreshOnly && (
+      {!isRefreshOnly && content && (
         <button
           id={copyButtonId}
           onClick={handleCopy}
@@ -253,7 +253,7 @@ export const MessageActions = ({
           />
         </button>
       )}
-      {!isRefreshOnly && (
+      {!isRefreshOnly && content && (
         <>
           <button
             onClick={handleSpeak}

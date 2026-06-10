@@ -15,7 +15,7 @@ export function renderSection(
 ) {
   if (section.layout === "list") {
     return (
-      <div className={clsx("space-y-6", section.className)}>
+      <div className={clsx("", section.className)}>
         {!hideHeader && (
           <SectionHeader
             title={section.title}

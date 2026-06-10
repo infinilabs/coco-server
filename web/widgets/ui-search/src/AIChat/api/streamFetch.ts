@@ -1,3 +1,5 @@
+import { useChatStore } from "../stores/chatStore";
+
 export async function streamPost({
   url,
   body,
@@ -18,15 +20,12 @@ export async function streamPost({
   onError?: (err: unknown) => void;
   signal?: AbortSignal;
 }) {
-  const appStore = JSON.parse(localStorage.getItem("app-store") || "{}");
+  const { baseUrl, authHeaders } = useChatStore.getState();
 
-  let baseURL = appStore.state?.endpoint_http;
+  let baseURL = baseUrl;
   if (!baseURL || baseURL === "undefined") {
     baseURL = "";
   }
-
-  const headersStr = localStorage.getItem("headers") || "{}";
-  const headersStorage = JSON.parse(headersStr) as Record<string, string>;
 
   const queryInit: Record<string, string> = {};
   if (queryParams) {
@@ -43,7 +42,7 @@ export async function streamPost({
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        ...headersStorage,
+        ...authHeaders,
         ...(headers || {}),
       },
       credentials: "include",

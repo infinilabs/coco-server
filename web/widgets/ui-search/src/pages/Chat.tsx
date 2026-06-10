@@ -38,7 +38,12 @@ export default function Chat({
   const [inputValue, setInputValue] = useState("");
 
   useEffect(() => {
+    const handleBeforeUnload = () => {
+      chatRef.current?.clearChat();
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
     return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
       chatRef.current?.clearChat();
     }
   }, [])
@@ -91,7 +96,7 @@ export default function Chat({
             if (data.url.startsWith("http")) {
               return data.url;
             }
-            return `${BaseUrl}${endpoint}${data.url}`;
+            return `${BaseUrl}${data.url}`;
           }}
           Token={Token}
           headers={headers}

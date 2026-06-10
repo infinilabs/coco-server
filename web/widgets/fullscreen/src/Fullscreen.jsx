@@ -416,10 +416,6 @@ export default (props) => {
             ...(payload?.ai_overview || {}),
             "showActions": true,
         },
-        "widgets": payload.ai_widgets?.enabled && payload.ai_widgets?.widgets ? payload.ai_widgets?.widgets.map((item) => ({
-            ...item,
-            "showActions": false,
-        })) : [],
         "onSearch": (query, callback, setLoading, shouldAgg = true) => {
             search(query, callback, setLoading, shouldAgg)
         },

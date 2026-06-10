@@ -61,7 +61,6 @@ const ChatIcons: React.FC<ChatIconsProps> = ({
 }) => {
   const { t: tOriginal } = useTranslation();
   const t = tProp || tOriginal;
-  const setCurChatEnd = useChatStore((state) => state.setCurChatEnd);
 
   const renderSendButton = () => {
     const canSend = !!inputValue?.trim() || (canSendWithoutText && !disableSend);
@@ -154,7 +153,6 @@ const ChatIcons: React.FC<ChatIconsProps> = ({
         onClick={() => {
           onCancel();
           disabledChange?.();
-          setCurChatEnd(true);
         }}
         title={t("search.input.stop") || "Stop"}
       >

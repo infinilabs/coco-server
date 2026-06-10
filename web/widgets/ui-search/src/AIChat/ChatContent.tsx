@@ -23,6 +23,7 @@ export interface ActiveChatMessageProps {
   currentAssistant?: Assistant;
   theme?: string;
   t?: TFunction;
+  onCancel?: () => void;
 }
 
 export const ActiveChatMessage = ({
@@ -35,7 +36,8 @@ export const ActiveChatMessage = ({
   assistantList,
   currentAssistant,
   theme,
-  t
+  t,
+  onCancel,
 }: ActiveChatMessageProps) => {
   const allMessages = activeChat?.messages || [];
 
@@ -54,6 +56,7 @@ export const ActiveChatMessage = ({
         },
       }}
       onResend={handleSendMessage}
+      onCancel={onCancel}
       isTyping={!curChatEnd}
       formatUrl={formatUrl}
       assistantList={assistantList}
@@ -77,6 +80,7 @@ interface ChatContentProps {
   t?: TFunction;
   currentAssistant?: Assistant;
   theme?: string;
+  onCancel?: () => void;
 }
 
 export const ChatContent = ({
@@ -89,6 +93,7 @@ export const ChatContent = ({
   formatUrl,
   t: tProp,
   theme,
+  onCancel,
 }: ChatContentProps) => {
   const { t: tOriginal } = useTranslation();
   const t = tProp || tOriginal;
@@ -164,6 +169,7 @@ export const ChatContent = ({
               message={message}
               isTyping={false}
               onResend={handleSendMessage}
+              onCancel={onCancel}
               formatUrl={formatUrl}
               assistantList={assistantList}
               fetchAttachments={fetchAttachments}
@@ -185,6 +191,7 @@ export const ChatContent = ({
               currentAssistant={currentAssistant}
               theme={theme}
               t={t}
+              onCancel={onCancel}
             />
           )}
 

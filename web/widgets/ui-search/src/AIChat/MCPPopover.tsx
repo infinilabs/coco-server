@@ -39,7 +39,7 @@ export default function MCPPopover({
   getMCPByServer,
   t: tProp,
 }: MCPPopoverProps) {
-  const { t: tOriginal } = useTranslation("ai_chat");
+  const { t: tOriginal } = useTranslation();
   const t = tProp || tOriginal;
 
   const [open, setOpen] = useState(false);

@@ -11,6 +11,7 @@ import {
 import { useTranslation } from "react-i18next";
 
 import { clsx } from "clsx"
+import { TFunction } from "i18next";
 
 const MAX_HEIGHT = 240;
 
@@ -23,6 +24,7 @@ interface AutoResizeTextareaProps {
   onLineCountChange?: (lineCount: number) => void;
   firstLineMaxWidth: number;
   disabled?: boolean;
+  t?: TFunction;
 }
 
 // Forward ref to allow parent to interact with this component
@@ -40,13 +42,14 @@ const AutoResizeTextarea = forwardRef<
       onLineCountChange,
       firstLineMaxWidth,
       disabled,
+      t: tProp,
     },
     ref
   ) => {
-    const { t } = useTranslation("ai_chat");
+    const { t: tOriginal } = useTranslation();
+    const t = tProp || tOriginal;
     const [isComposition, { setTrue, setFalse }] = useBoolean();
     const textareaRef = useRef<HTMLTextAreaElement>(null);
-    const calcRef = useRef<HTMLDivElement>(null);
 
     // Expose methods to the parent via ref
     useImperativeHandle(ref, () => ({
@@ -69,32 +72,27 @@ const AutoResizeTextarea = forwardRef<
     useEffect(() => {
       const textarea = textareaRef.current;
 
-      if (!textarea || !calcRef.current) return;
+      if (!textarea) return;
 
       textarea.style.height = "auto";
+      textarea.style.minHeight = "auto";
 
       const computedStyle = getComputedStyle(textarea);
       const lineHeight = parseInt(computedStyle.lineHeight);
+      const scrollHeight = textarea.scrollHeight;
+
       let height = lineHeight;
       let minHeight = lineHeight;
-      const hasNewline = /[\r\n]/.test(input);
-      const hasContent = input.length > 0;
-      const firstLineExceeds =
-        hasContent &&
-        (calcRef.current?.offsetWidth ?? 0) >= Math.max(firstLineMaxWidth - 32, 0);
 
-      if (hasNewline || firstLineExceeds) {
+      if (scrollHeight > lineHeight) {
         minHeight = lineHeight * 2;
-        height = Math.min(
-          Math.max(minHeight, textarea.scrollHeight),
-          MAX_HEIGHT
-        );
+        height = Math.min(Math.max(minHeight, scrollHeight), MAX_HEIGHT);
       }
 
       textarea.style.height = `${height}px`;
       textarea.style.minHeight = `${minHeight}px`;
 
-      onLineCountChange?.(height / lineHeight);
+      onLineCountChange?.(Math.round(height / lineHeight));
     }, [input, firstLineMaxWidth, onLineCountChange]);
 
     const handleChange = useCallback(
@@ -114,7 +112,7 @@ const AutoResizeTextarea = forwardRef<
           autoCapitalize="none"
           spellCheck="false"
           className={clsx(
-            "border-0 auto-resize-textarea text-base flex-1 outline-none w-full min-w-[200px] bg-transparent custom-scrollbar resize-none overflow-y-auto",
+            "break-all border-0 auto-resize-textarea text-base flex-1 outline-none w-full min-w-[200px] bg-transparent custom-scrollbar resize-none overflow-y-auto",
             {
               "overflow-y-hidden": lineCount === 1,
             }
@@ -135,10 +133,6 @@ const AutoResizeTextarea = forwardRef<
           rows={1}
           disabled={disabled}
         />
-
-        <div ref={calcRef} className="absolute whitespace-nowrap -z-10 opacity-0 pointer-events-none">
-          {input}
-        </div>
       </>
     );
   }

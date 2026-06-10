@@ -5,7 +5,7 @@ import { motion } from "motion/react";
 export type ActionButtonProps = ButtonProps;
 
 const ActionButton: FC<ActionButtonProps> = (props) => {
-  const { icon, children, onMouseOver, onMouseOut, ...rest } = props;
+  const { icon, children, onMouseOver, onMouseOut, className = '', ...rest } = props;
 
   const [hovered, setHovered] = useState(false);
 
@@ -27,7 +27,7 @@ const ActionButton: FC<ActionButtonProps> = (props) => {
       color="primary"
       variant="filled"
       shape="round"
-      className="gap-0"
+      className={`gap-0 ${className}`}
       onMouseOver={handleMouseOver}
       onMouseOut={handleMouseOut}
     >

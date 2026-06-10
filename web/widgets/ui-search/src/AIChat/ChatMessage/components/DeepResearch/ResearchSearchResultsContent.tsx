@@ -57,7 +57,7 @@ export const ResearchSearchResultsContent = ({
   }, [hits]);
 
   return (
-    <div className="pb-8 max-w-[730px]">
+    <div className="max-w-[730px]">
       <SearchResults
         section={records}
         theme={theme || "light"}
@@ -65,6 +65,7 @@ export const ResearchSearchResultsContent = ({
         onRecordClick={(record) => {
           if (typeof record.url === "string") window.open(record.url, "_blank");
         }}
+        className="[&>div>*+*]:relative [&>div>*+*]:before:content-[''] [&>div>*+*]:before:absolute [&>div>*+*]:before:top-0 [&>div>*+*]:before:left-4 [&>div>*+*]:before:right-4 [&>div>*+*]:before:h-px [&>div>*+*]:before:bg-[#F0F0F0] dark:[&>div>*+*]:before:bg-[#303030]"
       />
     </div>
   );

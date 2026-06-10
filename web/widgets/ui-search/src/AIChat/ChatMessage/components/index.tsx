@@ -5,6 +5,7 @@ import {
   forwardRef,
   useImperativeHandle,
   useRef,
+  useMemo,
 } from "react";
 import { useTranslation, I18nextProvider } from "react-i18next";
 import clsx from "clsx";
@@ -48,6 +49,7 @@ export interface ChatMessageProps {
   message: IChatMessage;
   isTyping?: boolean;
   onResend?: (value: string) => void;
+  onCancel?: () => void;
   hide_assistant?: boolean;
   rootClassName?: string;
   actionClassName?: string;
@@ -91,6 +93,7 @@ const InnerChatMessage = memo(
       message,
       isTyping,
       onResend,
+      onCancel,
       hide_assistant = false,
       rootClassName,
       actionClassName,
@@ -121,6 +124,7 @@ const InnerChatMessage = memo(
         think,
         response,
         deepResearch,
+        replyEnd,
       },
       handlers,
       clearAllChunkData,
@@ -135,6 +139,7 @@ const InnerChatMessage = memo(
       think: false,
       response: false,
       deepResearch: false,
+      replyEnd: false,
     });
 
     const inThinkRef = useRef<boolean>(false);
@@ -195,7 +200,7 @@ const InnerChatMessage = memo(
         ) {
           handlers.deal_deep_research(chunkData);
         } else if (chunkData.chunk_type === "reply_end") {
-          //
+          handlers.deal_reply_end(chunkData);
         }
       },
       reset: () => {
@@ -210,6 +215,7 @@ const InnerChatMessage = memo(
           think: false,
           response: false,
           deepResearch: false,
+          replyEnd: false,
         });
         inThinkRef.current = false;
       },
@@ -244,11 +250,39 @@ const InnerChatMessage = memo(
     const source = message?._source;
     const messageContent = source?.message || "";
 
+    
     const payload = source?.payload;
 
     const attachments = source?.attachments ?? [];
     const details = source?.details || [];
+    const deepResearchDetail = details.find((item) => item.type === "deep_research")
     const question = source?.question || "";
+
+    const endChunk = useMemo(() => {
+      const endDetail = details.find((item) => item.type === "reply_end");
+      if (endDetail) {
+        return endDetail;
+      }
+      const last = replyEnd?.length > 0 ? replyEnd[replyEnd.length - 1] : undefined;
+      let payload;
+      try {
+        payload = last && last.message_chunk ? JSON.parse(last.message_chunk) : undefined;
+      } catch (e) {
+
+      }
+      return last ? {
+        type: last.chunk_type,
+        payload
+      } : undefined;
+    }, [details, replyEnd])
+
+    const isCancelled = useMemo(() => {
+      return endChunk?.payload?.reason === "user_cancelled";
+    }, [endChunk]);
+
+    const isError = useMemo(() => {
+      return endChunk?.payload?.reason === "error";
+    }, [endChunk]);
 
     const showActions =
       isTyping === false && (messageContent || response?.message_chunk);
@@ -335,22 +369,44 @@ const InnerChatMessage = memo(
             />
           </div>
 
-          <PayloadCard payload={payload as any} formatUrl={formatUrl} />
+          {
+            !deepResearchDetail && (
+              <PayloadCard payload={payload as any} formatUrl={formatUrl} />
+            )
+          }
 
           <DeepResearch
-            Detail={details.find((item) => item.type === "deep_research")}
+            detail={deepResearchDetail}
+            endChunk={endChunk}
             ChunkData={deepResearch}
             question={question}
             formatUrl={formatUrl}
             theme={resolvedTheme}
             t={t}
+            payload={payload as any}
+            onCancel={onCancel}
           />
 
-          {isTyping && (
+          {
+            isCancelled && (
+              <div className="mt-16px text-14px leading-20px text-[#999]">
+                {t("deepResearch.status.cancelled")}
+              </div>
+            )
+          }
+          {
+            isError && (
+              <div className="mt-16px text-14px leading-20px text-[#F04444]">
+                {t("deepResearch.status.error")}
+              </div>
+            )
+          }
+
+          {deepResearch.length === 0 && isTyping && (
             <div className="inline-block w-1.5 h-5 ml-0.5 -mb-0.5 bg-[#666666] dark:bg-[#A3A3A3] rounded-sm animate-typing" />
           )}
 
-          {showActions && (
+          {(showActions || endChunk) && (
             <MessageActions
               id={message._id ?? ""}
               content={messageContent || response?.message_chunk || ""}

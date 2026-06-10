@@ -67,7 +67,7 @@ const InputControls = ({
   const t = tProp || tOriginal;
 
   return (
-    <div className="flex items-center pt-3 gap-2">
+    <div className="flex items-center gap-2">
       {showDeepResearch && (<div
         className={clsx(
           "flex items-center justify-center gap-1 h-6 px-2 rounded-full transition cursor-pointer",

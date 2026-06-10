@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { type TFunction } from "i18next";
-import { Loader, Hourglass, CirclePause, Check } from "lucide-react";
+import { Hourglass, BookOpen, Search, Square, Ban } from "lucide-react";
 
 import { DeepResearchDrawer } from "./DeepResearchDrawer";
 import type {
@@ -13,14 +13,24 @@ import type {
 } from "./ResearchStepsContent";
 import type { ResearchReportData } from "./ResearchReportContent";
 import type { IChunkData } from "../../types/chat";
+import CheckIcon from "../../../../icons/CheckIcon";
+import CloseIcon from "../../../../icons/CloseIcon";
 
 interface DeepResearchProps {
-  Detail?: { type: string; payload?: IChunkData[] };
+  detail?: { type: string; payload?: IChunkData[] };
+  endChunk?: {
+    type: string;
+    payload?: {
+      reason: "completed" | "user_cancelled" | "error" | "timeout"
+    }
+  };
   ChunkData?: IChunkData[];
   question?: string;
   formatUrl?: (data: any) => string;
   theme?: "light" | "dark";
   t?: TFunction;
+  payload?: any;
+  onCancel?: () => void;
 }
 
 interface DeepResearchState {
@@ -218,27 +228,30 @@ const deriveDeepResearchState = (chunks: IChunkData[]): DeepResearchState => {
 };
 
 export const DeepResearch = ({
-  Detail,
+  detail,
+  endChunk,
   ChunkData = [],
   question,
   formatUrl,
   theme,
   t: tProp,
+  payload,
+  onCancel,
 }: DeepResearchProps) => {
   const { t: tOriginal } = useTranslation();
   const t = tProp || tOriginal;
-  const [isDrawerOpen, setIsDrawerOpen] = useState(true);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [drawerDefaultTab, setDrawerDefaultTab] = useState(
     t("deepResearch.tab.steps"),
   );
 
   // Merge persisted detail chunks (from ES history) with live streaming chunks.
-  // Detail.payload contains the saved chunks; ChunkData contains real-time ones.
+  // detail.payload contains the saved chunks; ChunkData contains real-time ones.
   const allChunks = useMemo(() => {
-    const saved = Detail?.payload ?? [];
+    const saved = detail?.payload ?? [];
     if (ChunkData.length > 0) return ChunkData;
     return saved;
-  }, [Detail?.payload, ChunkData]);
+  }, [detail?.payload, ChunkData]);
 
   const {
     deepResearchPlans,
@@ -251,7 +264,7 @@ export const DeepResearch = ({
     deepResearchReporterStarted,
     deepResearchReporterFinished,
     deepResearchReportData,
-    deepResearchSearchMap,
+    deepResearchSearchMap
   } = useMemo(() => deriveDeepResearchState(allChunks), [allChunks]);
 
   const hasDeepResearchPlan =
@@ -281,21 +294,25 @@ export const DeepResearch = ({
       deepResearchReportProgress) /
     3;
 
+  const mergedPayload = payload || deepResearchReportData;
+
   const statusText = useMemo(() => {
-    if (deepResearchReporterFinished) {
+    if (endChunk?.payload?.reason === "completed") {
+      return mergedPayload?.title || t("deepResearch.status.completed");
+    } else if (deepResearchReporterFinished) {
       if (typeof deepResearchResultCount === "number") {
-        return `深度研究完成 · 找到 ${deepResearchResultCount} 条相关结果`;
+        return t("deepResearch.status.completedWithCount", { count: deepResearchResultCount });
       }
-      return "深度研究完成";
+      return t("deepResearch.status.completed");
     }
     if (deepResearchReporterStarted) {
-      return "正在编写研究报告";
+      return t("deepResearch.status.writingReport");
     }
     if (deepResearchResearcherStarted) {
-      return "正在执行研究计划";
+      return t("deepResearch.status.executingPlan");
     }
     if (deepResearchPlans.length > 0) {
-      return "正在规划研究计划";
+      return t("deepResearch.status.planningResearch");
     }
     return undefined;
   }, [
@@ -304,6 +321,9 @@ export const DeepResearch = ({
     deepResearchReporterStarted,
     deepResearchResearcherStarted,
     deepResearchPlans.length,
+    endChunk,
+    mergedPayload,
+    t
   ]);
 
   const steps = useMemo<StepItem[]>(() => {
@@ -325,17 +345,17 @@ export const DeepResearch = ({
       const searchInfo = deepResearchSearchMap[title];
       const searches: StepSearch[] | undefined = searchInfo?.query
         ? [
-            {
-              id: `step-${index + 1}-search-1`,
-              query: searchInfo.query,
-              resultCount: searchInfo.resultCount,
-              status:
-                typeof searchInfo.resultCount === "number"
-                  ? ("done" as StepSearchStatus)
-                  : ("searching" as StepSearchStatus),
-              hits: searchInfo.hits,
-            },
-          ]
+          {
+            id: `step-${index + 1}-search-1`,
+            query: searchInfo.query,
+            resultCount: searchInfo.resultCount,
+            status:
+              typeof searchInfo.resultCount === "number"
+                ? ("done" as StepSearchStatus)
+                : ("searching" as StepSearchStatus),
+            hits: searchInfo.hits,
+          },
+        ]
         : undefined;
 
       return {
@@ -412,8 +432,22 @@ export const DeepResearch = ({
     return t("deepResearch.status.preparing");
   }, [statusText, normalizedProgress, deepResearchResultCount, t]);
 
-  // 如果没有数据，不显示组件
-  if (!ChunkData.length) {
+  const isCompleted = useMemo(() => {
+    if (endChunk?.payload?.reason === "completed") {
+      return true;
+    }
+    return false;
+  }, [endChunk, normalizedProgress]);
+
+  const isCancelled = useMemo(() => {
+    return endChunk?.payload?.reason === "user_cancelled";
+  }, [endChunk]);
+
+  const isError = useMemo(() => {
+    return endChunk?.payload?.reason === "error";
+  }, [endChunk]);
+
+  if (!allChunks.length) {
     return null;
   }
 
@@ -422,38 +456,63 @@ export const DeepResearch = ({
       <div
         className="w-full my-3 cursor-pointer"
         onClick={() => {
-          setDrawerDefaultTab(t("deepResearch.tab.steps"));
+          setDrawerDefaultTab(isCompleted ? t("deepResearch.tab.report") : t("deepResearch.tab.steps"));
           setIsDrawerOpen(true);
         }}
       >
-        <div className="w-full rounded-xl border border-[#EEF0F3] bg-[#F3F4F6] dark:border-[#1D3A6F] dark:bg-[#020817] p-4">
+        <div className="w-full rounded-8px border border-[#EEF0F3] bg-[#F3F4F6] dark:border-[#1D3A6F] dark:bg-[#020817] p-4">
           <div className="flex items-center gap-2 mb-4">
-            <Hourglass className="h-4 w-4 text-[#148EFF] cm-hourglass-rotate" />
-            <div className="text-sm font-medium text-[#333] dark:text-[#E5E7EB] truncate">
-              {stepTitle || "——"}
-            </div>
-          </div>
-
-          <div className="mt-2 flex items-center justify-between rounded-full bg-white px-3 py-2 text-sm text-[#333] dark:bg-[#111827] dark:text-[#D1D5DB]">
-            <div className="flex min-w-0 items-center gap-2 flex-1">
-              {normalizedProgress >= 1 ? (
-                <Check className="h-4 w-4 text-[#22C55E] shrink-0" />
+            {
+              isCompleted ? (
+                <>
+                  <BookOpen className="h-4 w-4 text-[#148EFF] shrink-0" />
+                  <div className="text-14px leading-24px font-medium text-[#333] dark:text-[#E5E7EB] truncate">
+                    {t("deepResearch.status.reportHeader")}
+                  </div>
+                </>
               ) : (
-                <Loader className="h-4 w-4 animate-spin text-[#148EFF] shrink-0" />
-              )}
+                <>
+                  <Hourglass className={`h-4 w-4 text-[#148EFF] shrink-0 ${(isCancelled || isError) ? "" : "animate-spin"}`} />
+                  <div className="text-sm font-medium text-[#333] dark:text-[#E5E7EB] truncate">
+                    {stepTitle || "——"}
+                  </div>
+                </>
+              )
+            }
+          </div>
+          {
+            isCompleted && (
+              <div className="flex items-center gap-2 mb-4 text-[#999] leading-20px">
+                {t("deepResearch.status.reportDescription")}
+              </div>
+            )
+          }
+          <div className="mt-2 flex items-center justify-between rounded-4px bg-white px-3 py-2 text-sm text-[#333] dark:bg-[#111827] dark:text-[#D1D5DB]">
+            <div className="flex min-w-0 items-center gap-2 flex-1">
+              {
+                isCompleted ? (
+                  <BookOpen className="h-4 w-4 shrink-0 text-[#148EFF]" />
+                ) : (
+                  <Search className="h-4 w-4 text-[#148EFF] shrink-0" />
+                )
+              }
               <div className="flex min-w-0 items-center flex-1">
                 <span className="whitespace-nowrap shrink-0">
                   {displayStatus}
                 </span>
-                <span className="text-[#999] dark:text-[#A6A6A6] truncate ml-1">
-                  ｜ {deepResearchQuery || question}
-                </span>
+                {
+                  !isCompleted && (deepResearchQuery || question) && (
+                    <span className="text-[#999] dark:text-[#A6A6A6] truncate ml-1">
+                      ｜ {deepResearchQuery || question}
+                    </span>
+                  )
+                }
               </div>
             </div>
             <div className="ml-2 flex items-center gap-2 shrink-0">
               {normalizedProgress < 1 &&
-              typeof deepResearchResultCount === "number" ? (
-                <div className="flex py-0.5 px-1 items-center justify-center rounded-full border border-solid border-[#018AE5] bg-white text-xs font-medium text-[#018AE5] dark:bg-[#020617]">
+                typeof deepResearchResultCount === "number" ? (
+                <div className="min-w-24px flex px-1 items-center justify-center rounded-12px border border-solid border-[rgba(1,138,229,0.21)] bg-transparent text-xs font-medium text-[#1784FC] dark:text-[#7EC2FF]">
                   {deepResearchResultCount}
                 </div>
               ) : null}
@@ -476,17 +535,35 @@ export const DeepResearch = ({
           <div className="mt-5 w-full flex items-center gap-2 overflow-hidden">
             <div className="h-2 rounded-full flex-1 items-center bg-white dark:bg-[#1F2937]">
               <div
-                className={`h-full rounded-full transition-all ${
-                  normalizedProgress >= 1 ? "bg-[#00C868]" : "bg-[#1784FC]"
-                }`}
+                className={`h-full rounded-full transition-all ${isCancelled ? "bg-[#999]" : isError ? "bg-[#F04444]" : normalizedProgress >= 1 ? "bg-[#00C868]" : "bg-[#1784FC]"
+                  }`}
                 style={{ width: `${normalizedProgress * 100}%` }}
               />
             </div>
-            <div className="flex items-center justify-center cursor-not-allowed opacity-50">
-              {normalizedProgress >= 1 ? (
-                <Check className="h-4 w-4 text-[#22C55E]" />
+            <div className="flex items-center justify-center">
+              {isCancelled ? (
+                <Ban className="h-4 w-4 text-[#999]" />
+              ) : isError ? (
+                <CloseIcon className="h-4 w-4 text-[#F04444]" />
+              ) : isCompleted && normalizedProgress >= 1 ? (
+                <CheckIcon className="h-4 w-4 text-[#22C55E]" />
               ) : (
-                <CirclePause className="h-4 w-4 text-[#1784FC]" />
+                <button
+                  className="border-0 flex items-center justify-center rounded-full shrink-0 cursor-pointer bg-[#0072FF] transition-colors"
+                  style={{ width: "16px", height: "16px" }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onCancel?.();
+                  }}
+                  title={t("search.input.stop") || "Stop"}
+                >
+                  <Square
+                    size={6}
+                    strokeWidth={2}
+                    className="text-white fill-white"
+                    aria-label={t("search.input.stop") || "Stop"}
+                  />
+                </button>
               )}
             </div>
           </div>
@@ -500,7 +577,7 @@ export const DeepResearch = ({
         plannerStatus={plannerStatus}
         executionStatus={executionStatus}
         reportStatus={reportStatus}
-        reportData={deepResearchReportData}
+        reportData={mergedPayload}
         searchHits={searchHits}
         formatUrl={formatUrl}
         theme={theme}

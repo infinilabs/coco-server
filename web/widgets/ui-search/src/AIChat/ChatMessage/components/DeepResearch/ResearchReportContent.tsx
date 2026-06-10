@@ -1,4 +1,4 @@
-import { FileText, ExternalLink } from "lucide-react";
+import { FileText, SquareArrowOutUpRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { type TFunction } from "i18next";
 import Markdown from "@infinilabs/markdown";
@@ -31,7 +31,7 @@ export const ResearchReportContent = ({
 
   if (!content && !data) {
     return (
-      <div className="px-6 pb-8 max-w-[730px] h-full flex flex-col items-center justify-center text-center">
+      <div className="px-6 max-w-[730px] h-full flex flex-col items-center justify-center text-center">
         <div className="mb-2 text-base font-medium text-[#333333] dark:text-[#E5E7EB]">
           {t("deepResearch.report.generatingTitle")}
         </div>
@@ -43,8 +43,8 @@ export const ResearchReportContent = ({
   }
 
   return (
-    <div className="px-2 pb-8 max-w-[730px]">
-      {data && (
+    <div className="max-w-[730px]">
+      {/* {data && (
         <div className="mb-6 p-4 border border-gray-200 dark:border-gray-800 rounded-xl bg-gray-50 dark:bg-gray-900 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
@@ -67,11 +67,11 @@ export const ResearchReportContent = ({
               className="p-2 text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer"
               title={t("deepResearch.button.view")}
             >
-              <ExternalLink className="w-5 h-5" />
+              <SquareArrowOutUpRight className="w-5 h-5" />
             </a>
           )}
         </div>
-      )}
+      )} */}
       {content && (
         data?.format === "html" ? (
           <iframe

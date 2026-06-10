@@ -1,4 +1,5 @@
 import type { InternalAxiosRequestConfig } from "axios";
+import { useChatStore } from "../stores/chatStore";
 
 export const handleChangeRequestHeader = (
   config: InternalAxiosRequestConfig
@@ -9,10 +10,9 @@ export const handleChangeRequestHeader = (
 export const handleConfigureAuth = (
   config: InternalAxiosRequestConfig
 ): InternalAxiosRequestConfig => {
-  const headersStr = localStorage.getItem("headers") || "{}";
-  const headers = JSON.parse(headersStr) as Record<string, string>;
+  const { authHeaders } = useChatStore.getState();
 
-  config.headers = Object.assign(config.headers || {}, headers);
+  config.headers = Object.assign(config.headers || {}, authHeaders);
 
   return config;
 };

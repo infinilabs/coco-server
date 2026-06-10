@@ -1,4 +1,4 @@
-import { FileText, ExternalLink } from "lucide-react";
+import { FileText, SquareArrowOutUpRight } from "lucide-react";
 import { useState } from "react";
 
 import { DeepResearchDrawer } from "./DeepResearch/DeepResearchDrawer";
@@ -53,7 +53,7 @@ export const PayloadCard = ({ payload, formatUrl }: PayloadCardProps) => {
               title="Open Link"
               onClick={(e) => e.stopPropagation()}
             >
-              <ExternalLink className="w-5 h-5" />
+              <SquareArrowOutUpRight className="w-5 h-5" />
             </a>
           )}
         </div>

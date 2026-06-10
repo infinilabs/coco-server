@@ -352,6 +352,7 @@ export default function ChatInput({
         onLineCountChange={setLineCount}
         firstLineMaxWidth={containerSize?.width ?? 0}
         disabled={disabled}
+        t={t}
       />
     );
   };
@@ -432,25 +433,14 @@ export default function ChatInput({
         }}
       >
         <div
-          className={clsx("min-h-[48px] w-full px-12px py-8px bg-transparent", {
-            "flex items-center gap-2": lineCount === 1,
-          })}
+          className="min-h-[48px] w-full px-12px py-8px bg-transparent relative"
         >
           {renderTextarea()}
-
-          {lineCount === 1 && renderExtraIcon()}
-
-          {lineCount > 1 && (
-            <div className="flex items-center mt-2">
-              <div className="flex-1"></div>
-              <div className="self-end">{renderExtraIcon()}</div>
-            </div>
-          )}
         </div>
       </div>
 
       {(showDeepThink || showDeepResearch || datasource.visible || mcp_servers.visible) && (
-      <div className="pb-2">
+      <div className="flex gap-2 justify-between items-center px-4px pt-8px pb-4px">
         <InputControls
           isDeepThinkActive={isDeepThinkActive}
           setIsDeepThinkActive={setIsDeepThinkActive}
@@ -471,6 +461,7 @@ export default function ChatInput({
           getMCPByServer={getMCPServers}
           t={t}
         />
+        {renderExtraIcon()}
       </div>
       )}
     </div>

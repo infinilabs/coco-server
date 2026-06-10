@@ -12,7 +12,7 @@ import { getApplicationSetting } from '@/store/slice/server';
 
 const PasswordModal = lazy(() => import('./PasswordModal'));
 
-const UserAvatar = memo((props) => {
+const UserAvatar = memo((props: { className?: string; showHome?: boolean; showName?: boolean }) => {
   const { className, showHome = false, showName = true } = props;
   const { t } = useTranslation();
   const userInfo = useAppSelector(selectUserInfo);

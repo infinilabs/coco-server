@@ -11,6 +11,7 @@ export default function useMessageChunkData() {
   const [think, setThink] = useState<IChunkData>();
   const [response, setResponse] = useState<IChunkData>();
   const [deepResearch, setDeepResearch] = useState<IChunkData[]>([]);
+  const [replyEnd, setReplyEnd] = useState<IChunkData[]>([]);
 
   const handlers = {
     deal_query_intent: useCallback((data: IChunkData) => {
@@ -79,6 +80,9 @@ export default function useMessageChunkData() {
     deal_deep_research: useCallback((data: IChunkData) => {
       setDeepResearch((prev) => [...prev, data]);
     }, []),
+    deal_reply_end: useCallback((data: IChunkData) => {
+      setReplyEnd((prev) => [...prev, data]);
+    }, []),
   };
 
   const clearAllChunkData = () => {
@@ -91,6 +95,7 @@ export default function useMessageChunkData() {
       setThink(undefined);
       setResponse(undefined);
       setDeepResearch([]);
+      setReplyEnd([]);
       setTimeout(resolve, 0);
     });
   };
@@ -105,6 +110,7 @@ export default function useMessageChunkData() {
       think,
       response,
       deepResearch,
+      replyEnd,
     },
     handlers,
     clearAllChunkData,

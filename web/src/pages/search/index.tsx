@@ -174,7 +174,7 @@ export function Component() {
     const body = JSON.stringify({
       message: JSON.stringify(message),
     })
-    const headers = { 'APP-INTEGRATION-ID': search_settings?.integration, 'content-type': 'text/plain' }
+    const headers: Record<string, any> = { 'APP-INTEGRATION-ID': search_settings?.integration, 'content-type': 'text/plain' }
     if (import.meta.env.VITE_SERVICE_TOKEN) {
       headers['X-API-TOKEN'] = import.meta.env.VITE_SERVICE_TOKEN
     }
@@ -292,10 +292,6 @@ export function Component() {
       ...(payload?.ai_overview || {}),
       "showActions": true,
     },
-    "widgets": payload.ai_widgets?.enabled && payload.ai_widgets?.widgets ? payload.ai_widgets?.widgets.map((item) => ({
-      ...item,
-      "showActions": false,
-    })) : [],
     "onSearch": onSearch,
     "onAggregation": onAggregation,
     "onAsk": onAsk,
@@ -370,7 +366,7 @@ export function Component() {
         queryParams={queryParams}
         setQueryParams={setQueryParams}
       />
-      <div ref={topActionsRef} style={{ top: queryParams.mode === 'chat' ? 8 : 16 }} className="absolute right-8px h-48px z-1002 flex-y-center justify-end">
+      <div ref={topActionsRef} style={{ top: (queryParams as any).mode === 'chat' ? 8 : 16 }} className="absolute right-8px h-48px z-1002 flex-y-center justify-end">
         <LangSwitch className="px-12px" />
         <ThemeSchemaSwitch className="px-12px" />
         <UserAvatar className="px-8px" showHome showName={!isMobile} />

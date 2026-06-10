@@ -95,6 +95,19 @@ const InnerChatAI = memo(
       const currentAssistant = useChatStore((state) => state.currentAssistant); // 当前助手信息
       const setCurrentAssistant = useChatStore((state) => state.setCurrentAssistant);
       const incrementHistoryVersion = useChatStore((state) => state.incrementHistoryVersion);
+      const setBaseUrl = useChatStore((state) => state.setBaseUrl);
+      const setAuthHeaders = useChatStore((state) => state.setAuthHeaders);
+
+      // 初始化 store 中的 baseUrl 和 authHeaders
+      useEffect(() => {
+        if (BaseUrl) {
+          setBaseUrl(BaseUrl);
+        }
+        const mergedHeaders: Record<string, string> = { ...headersProp };
+        if (Object.keys(mergedHeaders).length > 0) {
+          setAuthHeaders(mergedHeaders);
+        }
+      }, [BaseUrl, headersProp, setBaseUrl, setAuthHeaders]);
 
       // 本地状态
       const [timedoutShow, setTimedoutShow] = useState(false); // 超时提示显示状态
@@ -193,9 +206,7 @@ const InnerChatAI = memo(
                 if (typeof sessionId === "string") {
                   curSessionIdRef.current = sessionId;
                   // Keep generatingSessionRef in sync when backend creates a new session
-                  if (generatingSessionRef.current) {
-                    generatingSessionRef.current = sessionId;
-                  }
+                  generatingSessionRef.current = sessionId;
                 }
 
                 // 构造标准消息项对象
@@ -369,7 +380,16 @@ const InnerChatAI = memo(
               queryParams,
               headers: headersProp,
               onMessage: (msg) => {
-                if (streamGenRef.current !== gen) return;
+                if (streamGenRef.current !== gen) {
+                  // Allow reply_end through even after cancel so the component can handle the reason
+                  try {
+                    const parsed = JSON.parse(msg);
+                    if (parsed.chunk_type === "reply_end") {
+                      activeMessageRef.current?.addChunk(parsed);
+                    }
+                  } catch {}
+                  return;
+                }
                 handleStreamMessage(msg);
               },
             });
@@ -388,22 +408,21 @@ const InnerChatAI = memo(
       const openChat = useCallback(
         async (params: { session_id: string, assistant_id: string }) => {
           try {
-            const res = await Post(
+            const res = await Post<{ found: boolean }>(
               `/chat/${params.session_id}/_open`,
               undefined,
               {},
               headersProp,
             );
             if (res?.[1]?.found) {
-              // 1 刷新history 列表
               incrementHistoryVersion();
-              // 2 激活 为 session_id 的 chat
               streamGenRef.current++;
               activeMessageRef.current?.reset();
               setActiveMessageGen((v) => v + 1);
               setCurChatEnd(true);
               setTimedoutShow(false);
               setQuestion("");
+              lastActiveChatIdRef.current = params.session_id;
               setActiveChat({ _id: params.session_id });
               await fetchHistory(params.session_id);
             }
@@ -479,7 +498,16 @@ const InnerChatAI = memo(
               queryParams,
               headers: headersProp,
               onMessage: (msg) => {
-                if (streamGenRef.current !== gen) return;
+                if (streamGenRef.current !== gen) {
+                  // Allow reply_end through even after cancel so the component can handle the reason
+                  try {
+                    const parsed = JSON.parse(msg);
+                    if (parsed.chunk_type === "reply_end") {
+                      activeMessageRef.current?.addChunk(parsed);
+                    }
+                  } catch {}
+                  return;
+                }
                 handleStreamMessage(msg);
               },
             });
@@ -522,7 +550,7 @@ const InnerChatAI = memo(
       const cancelChat = useCallback(async () => {
         // 递增 generation，使进行中的流回调不再处理
         streamGenRef.current++;
-        const sessionToCancel = generatingSessionRef.current || activeChat?._id;
+        const sessionToCancel = generatingSessionRef.current || useChatStore.getState().activeChat?._id;
         generatingSessionRef.current = undefined;
 
         if (sessionToCancel) {
@@ -536,14 +564,9 @@ const InnerChatAI = memo(
           } catch (e) {
             console.error(e);
           }
-          // 取消后重新拉取历史，获取干净的消息列表
-          const currentActive = useChatStore.getState().activeChat;
-          if (currentActive?._id) {
-            await fetchHistory(currentActive._id);
-          }
         }
         setCurChatEnd(true); // 强制标记为结束
-      }, [setCurChatEnd, headersProp, fetchHistory]);
+      }, [setCurChatEnd, headersProp]);
 
       /**
        * 切换当前选中的对话
@@ -578,7 +601,10 @@ const InnerChatAI = memo(
 
           setActiveChat(chat);
           if (chat?._id) {
+            lastActiveChatIdRef.current = chat._id;
             await fetchHistory(chat?._id); // 加载历史记录
+          } else {
+            lastActiveChatIdRef.current = undefined;
           }
         },
         [setActiveChat, setCurChatEnd, fetchHistory, headersProp],
@@ -587,9 +613,12 @@ const InnerChatAI = memo(
       /**
        * 清除当前选中的对话（返回初始状态）
        */
-      const clearChat = useCallback(() => {
+      const clearChat = useCallback(async () => {
+        if (!useChatStore.getState().curChatEnd) {
+          cancelChat();
+        }
         onSelectChat(undefined);
-      }, [onSelectChat]);
+      }, [onSelectChat, cancelChat]);
 
       // Use a ref to track the last processed active chat ID
       const lastActiveChatIdRef = useRef<string | undefined>(undefined);
@@ -708,6 +737,7 @@ const InnerChatAI = memo(
             t={t}
             currentAssistant={currentAssistant}
             theme={theme}
+            onCancel={cancelChat}
           />
         </div>
       );
