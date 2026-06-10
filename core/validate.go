@@ -60,7 +60,7 @@ func ValidateLoginByIntegrationHeader(w http.ResponseWriter, r *http.Request) (c
 			// (e.g. /account/profile, enterprise tenant filter) can distinguish a
 			// real native-backend login from an integration guest run-as session.
 			claims.Set(UserSessionInfoKeyIntegration, integrationID)
-			claims.UserAssignedPermission = security.NewUserAssignedPermission(security.GetAllPermissionsForUser(claims.UserSessionInfo),nil)
+			claims.UserAssignedPermission = security.NewUserAssignedPermission(security.GetAllPermissionsForUser(claims.UserSessionInfo), nil)
 			//log.Info("integration:", integrationID, ", run as:", cfg.Guest.RunAs, ",permissions:", claims.Permissions)
 			return claims, nil
 		}
