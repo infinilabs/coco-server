@@ -243,6 +243,7 @@ const InnerChatMessage = memo(
 
     const source = message?._source;
     const messageContent = source?.message || "";
+
     const payload = source?.payload;
 
     const attachments = source?.attachments ?? [];
@@ -330,6 +331,7 @@ const InnerChatMessage = memo(
           <div className="cm-markdown">
             <Markdown
               content={messageContent || response?.message_chunk || ""}
+              dark={resolvedTheme === "dark"}
             />
           </div>
 

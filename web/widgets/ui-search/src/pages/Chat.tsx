@@ -26,10 +26,10 @@ export default function Chat({
   onBackToSearch,
   defaultParams,
   setDefaultParams,
-  setAttachments
+  setAttachments,
 }: ChatProps) {
   const { BaseUrl, Token, endpoint, headers } = apiConfig || {};
-  const { language } = commonProps || {};
+  const { language, theme } = commonProps || {};
 
   const chatRef = useRef<any>(null);
   const { t } = useTranslation();
@@ -48,17 +48,13 @@ export default function Chat({
   useEffect(() => {
     if (JSON.stringify(defaultParams) !== JSON.stringify(processedParams.current)) {
       processedParams.current = defaultParams || null;
-      if ((!defaultParams?.query || !defaultParams?.query.trim()) 
-        && defaultParams?.attachments?.length === 0
+      if ((!defaultParams?.session_id || !defaultParams?.session_id.trim()) 
         && !defaultParams?.assistant_id
       ) {
         return;
       }
-      chatRef.current?.init({ 
-        message: defaultParams?.query || '',
-        attachments: (defaultParams?.attachments || [])
-        .filter((a: any) => a.status === "uploaded" && a.id)
-        .map((a: any) => a.id), 
+      chatRef.current?.openChat({ 
+        session_id: defaultParams?.session_id || '',
         assistant_id: defaultParams?.assistant_id
       });
       setDefaultParams?.({})
@@ -88,6 +84,7 @@ export default function Chat({
       content={
         <AIChat
           ref={chatRef}
+          theme={theme}
           BaseUrl={BaseUrl}
           formatUrl={(data: any) => {
             if (!data.url) return "";

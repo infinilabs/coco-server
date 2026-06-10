@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import AIOverview from ".";
 
 interface AskBody {
@@ -15,6 +15,7 @@ interface AIOverviewConfig {
 interface ChunkData {
   chunk_type: string;
   message_chunk: string;
+  session_id: string;
 }
 
 type DataState = Record<string, { message_chunk: string }> | undefined;
@@ -29,7 +30,7 @@ interface AIOverviewWrapperProps {
     setLoading: (loading: boolean) => void
   ) => void;
   theme?: "light" | "dark" | "auto";
-  onChatContinue?: () => void;
+  onChatContinue?: (session_id: string) => void;
 }
 
 const AIOverviewWrapper = (props: AIOverviewWrapperProps) => {
@@ -38,9 +39,13 @@ const AIOverviewWrapper = (props: AIOverviewWrapperProps) => {
   const [data, setData] = useState<DataState>();
   const [loading, setLoading] = useState(false);
   const [visible, setVisible] = useState(true);
+  const sessionIdRef = useRef<string | undefined>(undefined);
 
   const handleMessage = (data: ChunkData, prevData: DataState): DataState => {
     const type = data.chunk_type;
+    if (sessionIdRef.current !== data.session_id) {
+      sessionIdRef.current = data.session_id;
+    }
     const item = prevData?.[type];
     let newMessage = item ? item.message_chunk : '';
     if (type === 'deep_read') {
@@ -85,7 +90,7 @@ const AIOverviewWrapper = (props: AIOverviewWrapperProps) => {
       visible={visible}
       setVisible={setVisible}
       theme={theme}
-      onChatContinue={onChatContinue}
+      onChatContinue={() => sessionIdRef.current && onChatContinue?.(sessionIdRef.current)}
     />
   );
 };

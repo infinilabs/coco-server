@@ -21,6 +21,7 @@ export interface ActiveChatMessageProps {
   formatUrl?: (data: IChunkData) => string;
   assistantList?: Assistant[];
   currentAssistant?: Assistant;
+  theme?: string;
   t?: TFunction;
 }
 
@@ -33,6 +34,7 @@ export const ActiveChatMessage = ({
   formatUrl,
   assistantList,
   currentAssistant,
+  theme,
   t
 }: ActiveChatMessageProps) => {
   const allMessages = activeChat?.messages || [];
@@ -56,6 +58,7 @@ export const ActiveChatMessage = ({
       formatUrl={formatUrl}
       assistantList={assistantList}
       currentAssistant={currentAssistant}
+      theme={theme as any}
       t={t}
     />
   );
@@ -73,6 +76,7 @@ interface ChatContentProps {
   curIdRef: React.MutableRefObject<string>;
   t?: TFunction;
   currentAssistant?: Assistant;
+  theme?: string;
 }
 
 export const ChatContent = ({
@@ -84,6 +88,7 @@ export const ChatContent = ({
   handleSendMessage,
   formatUrl,
   t: tProp,
+  theme,
 }: ChatContentProps) => {
   const { t: tOriginal } = useTranslation();
   const t = tProp || tOriginal;
@@ -162,6 +167,7 @@ export const ChatContent = ({
               formatUrl={formatUrl}
               assistantList={assistantList}
               fetchAttachments={fetchAttachments}
+              theme={theme as any}
               t={t}
             />
           ))}
@@ -177,6 +183,7 @@ export const ChatContent = ({
               formatUrl={formatUrl}
               assistantList={assistantList}
               currentAssistant={currentAssistant}
+              theme={theme}
               t={t}
             />
           )}
@@ -194,6 +201,7 @@ export const ChatContent = ({
               }}
               onResend={handleSendMessage}
               isTyping={false}
+              theme={theme as any}
               t={t}
             />
           ) : null}

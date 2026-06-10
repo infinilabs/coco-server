@@ -1,9 +1,9 @@
-import { Button, List, Spin, Typography } from "antd";
-import { useState, useEffect, useRef, forwardRef, useImperativeHandle, type ReactNode } from "react";
+import { Button, Spin, Typography } from "antd";
+import { useState, useEffect, useRef, forwardRef, useImperativeHandle, useCallback, type ReactNode } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 
 import styles from "./index.module.less";
 import BasicIcon from "../../BasicIcon";
-import InfiniteScroll from 'react-infinite-scroll-component';
 import { DEFAULT_SUGGESTIONS_SIZE } from "../useSearchBox";
 import EnterIcon from "../../icons/EnterIcon";
 
@@ -24,6 +24,8 @@ interface ListContainerProps {
   resetKey?: string;
 }
 
+const ITEM_HEIGHT = 40;
+
 const ListContainer = forwardRef<any, ListContainerProps>((props, ref) => {
   const { 
     type, 
@@ -37,9 +39,10 @@ const ListContainer = forwardRef<any, ListContainerProps>((props, ref) => {
     globalActiveIndex = 0,
     onGlobalSelect,
     className = '',
-    defaultActiveIndex = 0
-  , language,
-    resetKey } = props;
+    defaultActiveIndex = 0,
+    language,
+    resetKey
+  } = props;
     
   const lang = language ? (language.startsWith('zh') ? 'zh' : 'en') : 'en';
 
@@ -59,95 +62,65 @@ const ListContainer = forwardRef<any, ListContainerProps>((props, ref) => {
     return defaultActiveIndex;
   });
 
-  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [dataSource, setDataSource] = useState<any[]>([]);
   const hasMoreRefs = useRef(true);
   const [hasMore, setHasMore] = useState(true);
+  const loadingRef = useRef(false);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const keyDirectionRef = useRef('none');
-  const scrollBoundaryRef = useRef({
-    isAtTop: false,
-    isAtBottom: false
+
+  const virtualizer = useVirtualizer({
+    count: dataSource.length,
+    getScrollElement: () => scrollContainerRef.current,
+    estimateSize: () => ITEM_HEIGHT,
+    overscan: 5,
   });
+
+  const scrollToIndex = useCallback((index: number, direction: string) => {
+    if (index < 0 || index >= dataSource.length) return;
+    const align = direction === 'down' ? 'end' : direction === 'up' ? 'start' : 'auto';
+    virtualizer.scrollToIndex(index, { align, behavior: 'smooth' });
+  }, [dataSource.length, virtualizer]);
 
   useEffect(() => {
     if (useGlobalKeydown) {
-      setActiveIndex(typeof globalActiveIndex === 'number' ? globalActiveIndex : defaultActiveIndex);
+      const idx = typeof globalActiveIndex === 'number' ? globalActiveIndex : defaultActiveIndex;
+      setActiveIndex(idx);
+      scrollToIndex(idx, keyDirectionRef.current);
     }
-  }, [globalActiveIndex, defaultActiveIndex, useGlobalKeydown]);
+  }, [globalActiveIndex, defaultActiveIndex, useGlobalKeydown, scrollToIndex]);
 
+  // Only scroll when activeIndex changes due to user interaction (keyboard/mouse),
+  // not when dataSource grows (which would reset scroll to top).
+  const prevActiveIndexRef = useRef(activeIndex);
   useEffect(() => {
-    if (
-      activeIndex === -1 || 
-      activeIndex >= itemRefs.current.length ||
-      !scrollContainerRef.current ||
-      !itemRefs.current[activeIndex]
-    ) {
-      scrollBoundaryRef.current = { isAtTop: false, isAtBottom: false };
-      keyDirectionRef.current = 'none';
-      return;
+    if (activeIndex !== prevActiveIndexRef.current) {
+      prevActiveIndexRef.current = activeIndex;
+      if (activeIndex >= 0 && activeIndex < dataSource.length) {
+        scrollToIndex(activeIndex, keyDirectionRef.current);
+      }
     }
+  }, [activeIndex]);
+
+  // Trigger loadNext when scrolling near the end
+  useEffect(() => {
+    if (!loadNext || !hasMore || !hasMoreRefs.current || loadingRef.current) return;
 
     const container = scrollContainerRef.current;
-    const activeElement = itemRefs.current[activeIndex];
-    const containerRect = container.getBoundingClientRect();
-    const elementRect = activeElement.getBoundingClientRect();
-    
-    const elementTopInContainer = elementRect.top - containerRect.top + container.scrollTop;
-    const elementBottomInContainer = elementTopInContainer + elementRect.height;
-    const containerHeight = containerRect.height;
-    const containerScrollTop = container.scrollTop;
-    const direction = keyDirectionRef.current;
+    if (!container) return;
 
-    let targetScrollTop = containerScrollTop;
-    const boundary = scrollBoundaryRef.current;
-
-    const isElementInView = elementTopInContainer >= containerScrollTop && elementBottomInContainer <= containerScrollTop + containerHeight;
-    if (direction === 'none' || (isElementInView && !boundary.isAtTop && !boundary.isAtBottom)) {
-      scrollBoundaryRef.current = { isAtTop: false, isAtBottom: false };
-    }
-
-    if (direction === 'down') {
-      if (boundary.isAtBottom) {
-        targetScrollTop = elementBottomInContainer - containerHeight;
-      } else {
-        const willReachBottom = elementBottomInContainer > containerScrollTop + containerHeight;
-        if (willReachBottom) {
-          targetScrollTop = elementBottomInContainer - containerHeight;
-          scrollBoundaryRef.current.isAtBottom = true;
-        } else {
-          targetScrollTop = containerScrollTop;
-        }
+    const handleScroll = () => {
+      if (!hasMoreRefs.current || loadingRef.current) return;
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      if (scrollTop + clientHeight >= scrollHeight - ITEM_HEIGHT) {
+        loadingRef.current = true;
+        loadNext();
       }
-    } else if (direction === 'up') {
-      if (boundary.isAtTop) {
-        targetScrollTop = elementTopInContainer;
-      } else {
-        const willReachTop = elementTopInContainer < containerScrollTop;
-        if (willReachTop) {
-          targetScrollTop = elementTopInContainer;
-          scrollBoundaryRef.current.isAtTop = true;
-        } else {
-          targetScrollTop = containerScrollTop;
-        }
-      }
-    } else {
-      if (elementBottomInContainer > containerScrollTop + containerHeight) {
-        targetScrollTop = elementBottomInContainer - containerHeight;
-      } else if (elementTopInContainer < containerScrollTop) {
-        targetScrollTop = elementTopInContainer;
-      }
-    }
+    };
 
-    targetScrollTop = Math.max(0, Math.min(targetScrollTop, container.scrollHeight - containerHeight));
-    if (Math.abs(containerScrollTop - targetScrollTop) > 1) {
-      container.scrollTo({
-        top: targetScrollTop,
-        behavior: 'smooth'
-      });
-    }
-
-  }, [activeIndex]);
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [loadNext, hasMore, dataSource.length]);
 
   useEffect(() => {
     if (loadNext) {
@@ -160,6 +133,7 @@ const ListContainer = forwardRef<any, ListContainerProps>((props, ref) => {
         hasMoreRefs.current = false;
         setHasMore(false);
       }
+      loadingRef.current = false;
     } else {
       setDataSource(data.filter(item => !!item?.suggestion));
     }
@@ -171,6 +145,7 @@ const ListContainer = forwardRef<any, ListContainerProps>((props, ref) => {
     setDataSource([]);
     hasMoreRefs.current = true;
     setHasMore(true);
+    loadingRef.current = false;
   }, [resetKey]);
 
   useEffect(() => {
@@ -192,16 +167,7 @@ const ListContainer = forwardRef<any, ListContainerProps>((props, ref) => {
           keyDirectionRef.current = 'down';
           setActiveIndex((prev) => {
             if (prev === -1) return 0;
-            if (prev >= totalItems - 1) {
-              // already at last item: scroll to bottom to let InfiniteScroll trigger `next`
-              if (scrollContainerRef.current) {
-                try {
-                  scrollContainerRef.current.scrollTo({ top: scrollContainerRef.current.scrollHeight, behavior: 'smooth' });
-                } catch (e) {
-                }
-              }
-              return totalItems - 1;
-            }
+            if (prev >= totalItems - 1) return totalItems - 1;
             return prev + 1;
           });
           break;
@@ -216,7 +182,6 @@ const ListContainer = forwardRef<any, ListContainerProps>((props, ref) => {
         case 13: 
           if (activeIndex >= 0 && activeIndex < totalItems) {
             keyDirectionRef.current = 'none';
-            scrollBoundaryRef.current = { isAtTop: false, isAtBottom: false };
             onItemClick(dataSource[activeIndex]);
           }
           break;
@@ -231,14 +196,10 @@ const ListContainer = forwardRef<any, ListContainerProps>((props, ref) => {
     return () => document.removeEventListener("keydown", handleKeyDown, true);
   }, [useGlobalKeydown, dataSource, activeIndex, onItemClick]);
 
-  useEffect(() => {
-    itemRefs.current = itemRefs.current.slice(0, dataSource.length);
-  }, [dataSource]);
-
   useImperativeHandle(ref, () => ({
     triggerItemClick: (index: number) => {
-      if (index >= 0 && index < itemRefs.current.length) {
-        itemRefs.current[index]?.click();
+      if (index >= 0 && index < dataSource.length) {
+        handleItemClick(dataSource[index], index);
       }
     },
     getListLength: () => dataSource.length,
@@ -253,11 +214,8 @@ const ListContainer = forwardRef<any, ListContainerProps>((props, ref) => {
 
   if (dataSource.length === 0) return null;
 
-  const scrollID = `${type}-scroll-container`;
-
   const handleItemClick = (item: any, index: number) => {
     keyDirectionRef.current = 'none';
-    scrollBoundaryRef.current = { isAtTop: false, isAtBottom: false };
     
     if (useGlobalKeydown && onGlobalSelect) {
       onGlobalSelect(index);
@@ -276,86 +234,87 @@ const ListContainer = forwardRef<any, ListContainerProps>((props, ref) => {
       )}
       <div
         ref={scrollContainerRef}
-        id={scrollID}
         className={`px-4px mb-12px overflow-auto ${className}`}
         style={{ 
-          maxHeight: 40 * defaultRows,
-          scrollBehavior: 'smooth'
+          maxHeight: ITEM_HEIGHT * defaultRows,
         }}
       >
-        <InfiniteScroll
-          dataLength={dataSource.length}
-          next={() => loadNext && hasMore && hasMoreRefs.current && loadNext()}
-          hasMore={hasMore}
-          scrollableTarget={scrollID}
-          scrollThreshold={1}
-          loader={null}
+        <div
+          style={{
+            height: `${virtualizer.getTotalSize()}px`,
+            width: '100%',
+            position: 'relative',
+          }}
         >
-          <List
-            itemLayout="vertical"
-            size="large"
-            dataSource={dataSource}
-            renderItem={(item, index) => {
-              const isActive = activeIndex === index && !!onItemClick;
-              const desc = getItemDescription(item);
-              return (
-                <div key={index}>
-                  <div
-                    ref={el => itemRefs.current[index] = el}
-                    className={`${styles.listItem} ${isActive ? styles.active : ''}  relative h-40px pl-8px flex flex-nowrap items-center rounded-8px 
-                    ${onItemClick ? 'cursor-pointer hover:bg-[rgba(233,240,254,1)] dark:hover:bg-[rgba(255,255,255,0.05)]' : " "} 
-                    ${isActive ? "bg-[rgba(233,240,254,1)] dark:bg-[rgba(255,255,255,0.05)] pr-40px" : "pr-8px"}`}
-                    onClick={() => handleItemClick(item, index)}
-                    onMouseEnter={() => {
-                      if (!onItemClick) return;
-                      keyDirectionRef.current = 'none';
-                      if (useGlobalKeydown && onGlobalSelect) {
-                        onGlobalSelect(index);
-                      } else {
-                        setActiveIndex(index);
-                      }
-                    }}
-                  >
-                    {renderPrefix?.(item)}
-                    {item.icon && (
-                      <BasicIcon 
-                        className={"flex justify-center items-center w-16px h-16px mr-8px text-[var(--ant-color-text-description)] flex-shrink-0"} 
-                        icon={item.icon}
-                      />
-                    )}
-                    <div className="mr-12px flex-1 min-w-0">
-                      <div className="truncate whitespace-nowrap">{item.suggestion}</div>
-                    </div>
-                    {desc && (
-                      <Typography.Text type="secondary" className="flex-shrink-0" >
-                        {desc}
-                      </Typography.Text>
-                    )}
-                    {onItemClick && isActive && (
-                      <Button
-                        className={`${styles.enter} absolute right-8px top-8px !w-24px !h-24px rounded-8px !border-0 dark:!bg-[rgb(var(--ui-search--layout-bg-color))] !shadow-none`}
-                        classNames={{ icon: `w-14px h-14px !text-14px` }}
-                        size="small"
-                        icon={<EnterIcon className="w-14px h-14px !text-[#333] dark:!text-#666" />}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleItemClick(item, index);
-                        }}
-                      />
-                    )}
+          {virtualizer.getVirtualItems().map((virtualRow) => {
+            const index = virtualRow.index;
+            const item = dataSource[index];
+            const isActive = activeIndex === index && !!onItemClick;
+            const desc = getItemDescription(item);
+            return (
+              <div
+                key={virtualRow.key}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: `${virtualRow.size}px`,
+                  transform: `translateY(${virtualRow.start}px)`,
+                }}
+              >
+                <div
+                  className={`${styles.listItem} ${isActive ? styles.active : ''} relative h-40px pl-8px flex flex-nowrap items-center rounded-8px 
+                  ${onItemClick ? 'cursor-pointer hover:bg-[rgba(233,240,254,1)] dark:hover:bg-[rgba(255,255,255,0.05)]' : " "} 
+                  ${isActive ? "bg-[rgba(233,240,254,1)] dark:bg-[rgba(255,255,255,0.05)] pr-40px" : "pr-8px"}`}
+                  onClick={() => handleItemClick(item, index)}
+                  onMouseEnter={() => {
+                    if (!onItemClick) return;
+                    keyDirectionRef.current = 'none';
+                    if (useGlobalKeydown && onGlobalSelect) {
+                      onGlobalSelect(index);
+                    } else {
+                      setActiveIndex(index);
+                    }
+                  }}
+                >
+                  {renderPrefix?.(item)}
+                  {item.icon && (
+                    <BasicIcon 
+                      className={"flex justify-center items-center w-16px h-16px mr-8px text-[var(--ant-color-text-description)] flex-shrink-0"} 
+                      icon={item.icon}
+                    />
+                  )}
+                  <div className="mr-12px flex-1 min-w-0">
+                    <div className="leading-22px truncate whitespace-nowrap">{item.suggestion}</div>
                   </div>
+                  {desc && (
+                    <Typography.Text type="secondary" className="flex-shrink-0" >
+                      {desc}
+                    </Typography.Text>
+                  )}
+                  {onItemClick && isActive && (
+                    <Button
+                      className={`${styles.enter} absolute right-8px top-8px !w-24px !h-24px rounded-8px !border-0 dark:!bg-[rgb(var(--ui-search--layout-bg-color))] !shadow-none`}
+                      classNames={{ icon: `w-14px h-14px !text-14px` }}
+                      size="small"
+                      icon={<EnterIcon className="w-14px h-14px !text-[#333] dark:!text-#666" />}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleItemClick(item, index);
+                      }}
+                    />
+                  )}
                 </div>
-              );
-            }}
-          />
-        </InfiniteScroll>
-        <div>
-          {loadNext && hasMore && (
-            <div className="flex justify-center py-12px text-[var(--ant-color-text-description)]">
-              <Spin size="small" />
-            </div>
-          )}
+              </div>
+            );
+          })}
         </div>
+        {loadNext && hasMore && (
+          <div className="flex justify-center py-12px text-[var(--ant-color-text-description)]">
+            <Spin size="small" />
+          </div>
+        )}
       </div>
     </>
   );

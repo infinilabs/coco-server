@@ -369,11 +369,12 @@ const Fullscreen = (props: FullscreenProps) => {
       onSuggestion={debouncedSuggestion}
       onRecommend={onRecommend}
       getRawContent={getRawContent}
-      onChatContinue={() => {
+      onChatContinue={(session_id) => {
         onChat({
           query: queryParams.query || '',
           attachments: attachments || [],
           assistant_id: settings?.payload?.ai_overview?.assistant,
+          session_id,
         });
       }}
       getFieldsMeta={getFieldsMeta}

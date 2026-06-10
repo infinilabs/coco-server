@@ -34,6 +34,7 @@ interface ChatAIProps {
   formatUrl?: (data: IChunkData) => string;
   locale?: string;
   t?: TFunction;
+  theme?: string;
 }
 
 /**
@@ -78,7 +79,7 @@ export interface ChatAIRef {
  */
 const InnerChatAI = memo(
   forwardRef<ChatAIRef, ChatAIProps>(
-    ({ BaseUrl, formatUrl, headers: headersProp = {}, locale, t: tProp }, ref) => {
+    ({ BaseUrl, formatUrl, headers: headersProp = {}, locale, t: tProp, theme }, ref) => {
       // 动态加载 iconfont 脚本
       useIconfontScript();
 
@@ -384,6 +385,44 @@ const InnerChatAI = memo(
         [handleStreamMessage, prepareChatSession, currentAssistant?._id, headersProp, setCurChatEnd, setActiveChat],
       );
 
+      const openChat = useCallback(
+        async (params: { session_id: string, assistant_id: string }) => {
+          try {
+            const res = await Post(
+              `/chat/${params.session_id}/_open`,
+              undefined,
+              {},
+              headersProp,
+            );
+            if (res?.[1]?.found) {
+              // 1 刷新history 列表
+              incrementHistoryVersion();
+              // 2 激活 为 session_id 的 chat
+              streamGenRef.current++;
+              activeMessageRef.current?.reset();
+              setActiveMessageGen((v) => v + 1);
+              setCurChatEnd(true);
+              setTimedoutShow(false);
+              setQuestion("");
+              setActiveChat({ _id: params.session_id });
+              await fetchHistory(params.session_id);
+            }
+          } catch (e) {
+            console.error(e);
+          }
+          if (params.assistant_id) {
+            waitForAssistantList((list) => {
+              const latestCurrentAssistant = useChatStore.getState().currentAssistant;
+              const target = list.find((a) => a._id === params.assistant_id);
+              if (params.assistant_id !== latestCurrentAssistant?._id) {
+                setCurrentAssistant(target ?? { _id: params.assistant_id! });
+              }
+            });
+          }
+        },
+        [headersProp, incrementHistoryVersion, setCurChatEnd, setActiveChat, fetchHistory, setCurrentAssistant],
+      );
+
       /**
        * 在现有会话中发送消息
        */
@@ -642,6 +681,7 @@ const InnerChatAI = memo(
             proceed();
           }
         },
+        openChat,
         cancelChat: () => {
           cancelChat();
         },
@@ -667,6 +707,7 @@ const InnerChatAI = memo(
             curIdRef={curIdRef}
             t={t}
             currentAssistant={currentAssistant}
+            theme={theme}
           />
         </div>
       );

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback, type CSSProperties } from "react";
-import { XMarkdown } from "@ant-design/x-markdown";
+import Markdown from "@infinilabs/markdown";
 import AIOverviewIcon from "../../icons/AIOverviewIcon";
 import clsx from "clsx";
 import "./index.css";
@@ -141,7 +141,7 @@ export function AIAnswer({
           }}
         >
           {content && !loading ? (
-            <XMarkdown content={content}/>
+            <Markdown content={content} dark={theme === "dark"} />
           ) : (
             <span
               className="animate-typing inline-block w-1.5 h-5 ml-0.5 -mb-0.5 bg-[#666666] dark:bg-[#A3A3A3] rounded-sm "

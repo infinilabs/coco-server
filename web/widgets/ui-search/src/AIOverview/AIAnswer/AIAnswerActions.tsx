@@ -96,25 +96,14 @@ export function AIAnswerActions({
           className={`${baseBtnClass} ${defaultBtnClass}`}
           onClick={async () => {
             try {
-              if (copyText) {
-                if (navigator.clipboard && window.isSecureContext) {
-                  await navigator.clipboard.writeText(copyText);
-                } else {
-                  const textarea = document.createElement("textarea");
-                  textarea.value = copyText;
-                  textarea.style.position = "fixed";
-                  textarea.style.opacity = "0";
-                  document.body.appendChild(textarea);
-                  textarea.select();
-                  document.execCommand("copy");
-                  document.body.removeChild(textarea);
-                }
+              if (copyText && navigator.clipboard) {
+                await navigator.clipboard.writeText(copyText);
+                onCopy?.(copyText);
+                setCopied(true);
               }
-              onCopy?.(copyText);
             } catch {
               onCopy?.(copyText);
             }
-            setCopied(true);
           }}
         >
           {copied ? <Check className="h-4 w-4 text-[#1677ff]" /> : <Copy className="h-4 w-4" />}

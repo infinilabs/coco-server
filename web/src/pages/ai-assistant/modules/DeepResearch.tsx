@@ -128,7 +128,6 @@ export const DeepResearchSearch = ({ datasourceOptions }: DeepResearchSearchProp
         label={t('page.assistant.labels.external_search_engine')}
         layout='vertical'
         name={['config', 'external_search', 'engine']}
-        rules={[{ required: true }]}
       >
         <Select
           className='max-w-600px'

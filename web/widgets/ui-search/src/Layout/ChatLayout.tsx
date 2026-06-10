@@ -1,5 +1,4 @@
 import { Layout } from 'antd';
-import { Sparkles } from 'lucide-react';
 import { type FC, type ReactNode } from 'react';
 
 import { DARK_CLASS } from '../theme/shared';

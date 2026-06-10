@@ -36,7 +36,7 @@ interface SearchProps {
   onSuggestion?: (...args: any[]) => void;
   onRecommend?: (...args: any[]) => void;
   getRawContent?: (...args: any[]) => any;
-  onChatContinue?: () => void;
+  onChatContinue?: (session_id: string) => void;
   getFieldsMeta?: (...args: any[]) => any;
   onUpload?: (...args: any[]) => void;
   attachments?: any[];

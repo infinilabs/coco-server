@@ -47,6 +47,7 @@ const HistoryListItem: FC<HistoryListItemProps> = ({
 
   const [isEdit, setIsEdit] = useState(false);
   const [open, setOpen] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
   const onContextMenu = useCallback(
     (e: React.MouseEvent) => {
@@ -142,6 +143,8 @@ const HistoryListItem: FC<HistoryListItemProps> = ({
 
         onSelect(item);
       }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       onContextMenu={onContextMenu}
     >
       <div
@@ -188,7 +191,7 @@ const HistoryListItem: FC<HistoryListItemProps> = ({
           <span className="truncate">{title}</span>
         )}
 
-        <div
+        {(isHovered || isDeleting || isSelected || open) && (<div
           className="flex items-center gap-2"
           onClick={(e) => {
             e.stopPropagation();
@@ -237,7 +240,7 @@ const HistoryListItem: FC<HistoryListItemProps> = ({
               </button>
             </Popover>
           )}
-        </div>
+        </div>)}
       </div>
     </li>
   );
