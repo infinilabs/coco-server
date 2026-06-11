@@ -273,5 +273,17 @@ func CallLLMTools(ctx context.Context, reqMsg *core.ChatMessage, replyMsg *core.
 
 	log.Debug("MCP call answer:", answer)
 
+	toolsOutput := answerBuffer.String()
+	if toolsOutput == "" {
+		toolsOutput = answer
+	}
+	if toolsOutput != "" {
+		replyMsg.Details = append(replyMsg.Details, core.ProcessingDetails{
+			Order:   15,
+			Type:    common.Tools,
+			Payload: toolsOutput,
+		})
+	}
+
 	return answer, nil
 }

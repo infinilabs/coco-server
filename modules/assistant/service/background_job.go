@@ -35,18 +35,18 @@ func determineExitReason(ctx context.Context, err error, taskID string) string {
 	if ctx.Err() != nil {
 		if v, ok := InflightMessages.Load(taskID); ok {
 			if task, ok := v.(common2.MessageTask); ok && task.CancelLang != "" {
-				return common.ReasonUserCancelled
+				return common.ReplyEndReasonUserCancelled
 			}
 		}
 		if ctx.Err() == context.DeadlineExceeded {
-			return common.ReasonTimeout
+			return common.ReplyEndReasonTimeout
 		}
-		return common.ReasonUserCancelled
+		return common.ReplyEndReasonUserCancelled
 	}
 	if err != nil {
-		return common.ReasonError
+		return common.ReplyEndReasonError
 	}
-	return common.ReasonCompleted
+	return common.ReplyEndReasonCompleted
 }
 
 func CreateAssistantReplyMessage(sessionID, assistantID, requestMessageID string) *core.ChatMessage {
@@ -64,14 +64,18 @@ func CreateAssistantReplyMessage(sessionID, assistantID, requestMessageID string
 }
 
 // save response and send END signal to receiver
-func finalizeProcessing(ctx context.Context, sessionID string, msg *core.ChatMessage, sender core.MessageSender, reason string) {
-	payload := util.MustToJSON(util.MapStr{"reason": reason})
+func finalizeProcessing(ctx context.Context, sessionID string, msg *core.ChatMessage, sender core.MessageSender, reason string, processingErr error) {
+	payloadMap := util.MapStr{"reason": reason}
+	if reason == common.ReplyEndReasonError && processingErr != nil {
+		payloadMap["error"] = processingErr.Error()
+	}
+	payload := util.MustToJSON(payloadMap)
 
 	// Persist the termination reason so history replay knows how the loop ended.
 	msg.Details = append(msg.Details, core.ProcessingDetails{
 		Order:   99,
 		Type:    common.ReplyEnd,
-		Payload: util.MapStr{"reason": reason},
+		Payload: payloadMap,
 	})
 
 	// Use a fresh background context with timeout for saving, so a cancelled
@@ -136,7 +140,7 @@ func ProcessMessageAsync(ctx context.Context, userID string, reqMsg, replyMsg *c
 		}
 
 		reason := determineExitReason(ctx, err, taskID)
-		finalizeProcessing(ctx, params.SessionID, replyMsg, sender, reason)
+		finalizeProcessing(ctx, params.SessionID, replyMsg, sender, reason, err)
 		// clear the inflight message task
 		InflightMessages.Delete(taskID)
 

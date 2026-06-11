@@ -42,7 +42,7 @@ func RunDeepResearchV2(ctx context.Context, query string, config *core.DeepResea
 		if completedState != nil && len(completedState.Chunks) > 0 {
 			replyMsg.Details = append(replyMsg.Details, core.ProcessingDetails{
 				Order:   10,
-				Type:    "deep_research",
+				Type:    common.DeepResearch,
 				Payload: completedState.Chunks,
 			})
 		}
