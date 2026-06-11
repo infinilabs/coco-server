@@ -1,17 +1,17 @@
 import {
-  CheckCircle,
-  Loader,
   Search,
   FileText,
   ChevronDown,
-  PencilLine,
-  BookOpenText,
+  BookOpen,
   List,
   ChevronUp,
+  Hourglass,
 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { type TFunction } from "i18next";
+import CheckIcon from "../../../../icons/CheckIcon";
+import EditIcon from "../../../../icons/EditIcon";
 
 /**
  * 步骤状态类型定义
@@ -172,10 +172,10 @@ export const ResearchStepsContent = ({
           }`}
         >
           {planner === "in_progress" ? (
-            <Loader className="w-5 h-5 text-[#1784FC] animate-spin" />
+            <Hourglass className="w-5 h-5 text-[#1784FC] animate-spin" />
           ) : (
-            <PencilLine
-              className={`w-4 h-4 ${
+            <EditIcon
+              className={`w-5 h-5 ${
                 planner === "pending" ? "text-[#999]" : "text-[#1784FC]"
               }`}
             />
@@ -188,7 +188,7 @@ export const ResearchStepsContent = ({
 
         {/* 计划列表展开开关 */}
         <div
-          className="border border-[#EEF0F3] dark:border-[#1D3A6F] rounded-lg p-3 bg-white dark:bg-[#020817] flex justify-between items-center cursor-pointer hover:bg-gray-50 dark:hover:bg-[#111827] transition-colors"
+          className="border border-[#F0F0F0] dark:border-[#303030] rounded-lg p-3 bg-transparent flex justify-between items-center cursor-pointer hover:bg-gray-50 dark:hover:bg-[#111827] transition-colors"
           onClick={() => setPlansExpanded((prev) => !prev)}
         >
           <div className="flex items-center gap-2 text-sm text-[#333] dark:text-[#E5E7EB]">
@@ -204,7 +204,7 @@ export const ResearchStepsContent = ({
 
         {/* 计划列表详情 */}
         {plansExpanded && data.length > 0 && (
-          <div className="mt-2 space-y-1 rounded-lg bg-white dark:bg-[#020817] border border-[#EEF0F3] dark:border-[#1D3A6F] p-3">
+          <div className="mt-2 space-y-1 rounded-lg bg-transparent border border-[#F0F0F0] dark:border-[#303030] p-3">
             {data.map((step, index) => (
               <div key={step.id} className="flex items-start gap-2 text-sm">
                 <span className="text-[#999] dark:text-[#A6A6A6]">
@@ -220,7 +220,7 @@ export const ResearchStepsContent = ({
       </div>
 
       {/* 执行阶段 */}
-      <div className="pt-2">
+      <div className="">
         <div
           className={`flex items-center gap-2 text-base font-medium mb-4 ${
             execution === "pending"
@@ -228,7 +228,7 @@ export const ResearchStepsContent = ({
               : "text-[#333] dark:text-[#E5E7EB]"
           }`}
         >
-          <List className="w-4 h-4 text-[#1784FC]" />
+          <List className="w-5 h-5 text-[#1784FC]" />
           {t("deepResearch.steps.executeTitle")}
         </div>
 
@@ -262,12 +262,12 @@ export const ResearchStepsContent = ({
 
               {/* 完成状态图标 */}
               {step.status === "done" && (
-                <CheckCircle className="absolute left-0 top-0 w-4 h-4 text-[#1784FC]" />
+                <CheckIcon className="absolute left-0 top-2px w-4 h-4 text-[#1784FC]" />
               )}
 
               {/* 进行中状态图标 */}
               {step.status === "in_progress" && (
-                <Loader className="absolute left-0 top-0 w-4 h-4 text-[#1784FC] animate-spin" />
+                <Hourglass className="absolute left-0 top-2px w-4 h-4 text-[#1784FC] animate-spin" />
               )}
 
               {/* 等待中的简化展示 */}
@@ -282,7 +282,7 @@ export const ResearchStepsContent = ({
                 <>
                   {/* 步骤标题 */}
                   <h3
-                    className={`text-sm font-bold mb-1 ${
+                    className={`text-sm font-bold mb-16px ${
                       step.status === "pending"
                         ? "text-[#999999] dark:text-[#666]"
                         : "text-[#333333] dark:text-[#E5E7EB]"
@@ -293,14 +293,14 @@ export const ResearchStepsContent = ({
 
                   {/* 步骤描述 */}
                   {step.description && (
-                    <p className="text-[#999] dark:text-[#A6A6A6] text-sm mt-4">
+                    <p className="text-[#999] dark:text-[#A6A6A6] text-sm mb-8px">
                       {step.description}
                     </p>
                   )}
 
                   {/* 搜索任务列表 */}
                   {step.searches && (
-                    <div className="mt-2 space-y-3">
+                    <div className="space-y-3">
                       {step.searches.map((search) =>
                         search.status === "searching" ? (
                           // 正在搜索状态
@@ -313,16 +313,20 @@ export const ResearchStepsContent = ({
                               <span className="text-[#333] dark:text-[#E5E7EB] shrink-0">
                                 {t("deepResearch.steps.searching")}
                               </span>
-                              <span className="text-[#999] dark:text-[#A6A6A6] truncate">
-                                ｜ {search.query}
-                              </span>
+                              {
+                                search.query && (
+                                  <span className="text-[#999] dark:text-[#A6A6A6] truncate">
+                                    ｜ {search.query}
+                                  </span>
+                                )
+                              }
                             </div>
                           </div>
                         ) : (
                           // 搜索完成状态
                           <div key={search.id}>
                             <div
-                              className="flex items-center justify-between border border-gray-200 dark:border-[#1D3A6F] rounded-lg p-3 bg-gray-50 dark:bg-[#111827] cursor-pointer hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors"
+                              className="flex items-center justify-between border border-[#F0F0F0] dark:border-[#303030] rounded-lg p-3 bg-transparent cursor-pointer hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors"
                               onClick={() => toggleSearch(search.id)}
                             >
                               <div className="flex items-center gap-2 text-sm overflow-hidden">
@@ -330,13 +334,17 @@ export const ResearchStepsContent = ({
                                 <span className="text-[#333] dark:text-[#E5E7EB] shrink-0">
                                   {t("deepResearch.steps.searchTitle")}
                                 </span>
-                                <span className="text-[#999] dark:text-[#A6A6A6] truncate">
-                                  ｜ {search.query}
-                                </span>
+                                {
+                                  search.query && (
+                                    <span className="text-[#999] dark:text-[#A6A6A6] truncate">
+                                      ｜ {search.query}
+                                    </span>
+                                  )
+                                }
                               </div>
                               {typeof search.resultCount === "number" && (
-                                <div className="flex items-center gap-1">
-                                  <div className="bg-blue-50 dark:bg-blue-900/20 text-[#1784FC] px-2 py-0.5 rounded-full text-xs font-medium">
+                                <div className="flex items-center gap-8px">
+                                  <div className="min-w-24px flex px-1 items-center justify-center rounded-12px border border-solid border-[rgba(1,138,229,0.21)] bg-transparent text-xs font-medium text-[#1784FC] dark:text-[#7EC2FF]">
                                     {search.resultCount}
                                   </div>
                                   {expandedSearches.has(search.id) ? (
@@ -354,7 +362,7 @@ export const ResearchStepsContent = ({
                                 {search.hits.map((hit, idx) => (
                                   <div
                                     key={idx}
-                                    className="p-3 bg-white dark:bg-[#020817] border border-gray-100 dark:border-[#1D3A6F] rounded-lg hover:border-blue-200 dark:hover:border-blue-800 transition-colors cursor-pointer group"
+                                    className="p-3 bg-transparent border border-[#F0F0F0] dark:border-[#303030] rounded-lg hover:border-blue-200 dark:hover:border-blue-800 transition-colors cursor-pointer group"
                                     onClick={() =>
                                       hit.url && window.open(hit.url, "_blank")
                                     }
@@ -387,7 +395,7 @@ export const ResearchStepsContent = ({
 
                       {/* 优化计划提示 */}
                       {step.showOptimizePlan && (
-                        <div className="border border-gray-200 dark:border-[#1D3A6F] rounded-lg p-3 bg-white dark:bg-[#020817] flex justify-between items-center cursor-pointer hover:bg-gray-50 dark:hover:bg-[#111827] transition-colors">
+                        <div className="border border-[#F0F0F0] dark:border-[#303030] rounded-lg p-3 bg-transparent flex justify-between items-center cursor-pointer hover:bg-gray-50 dark:hover:bg-[#111827] transition-colors">
                           <div className="flex items-center gap-2 text-sm">
                             <FileText className="w-4 h-4 text-[#1784FC]" />
                             <span className="text-[#333] dark:text-[#E5E7EB]">
@@ -406,7 +414,7 @@ export const ResearchStepsContent = ({
         })}
 
         {/* 报告生成阶段 */}
-        <div className="pt-2">
+        <div className="">
           <div
             className={`flex items-center gap-2 text-base font-medium mb-4 ${
               report === "pending"
@@ -415,10 +423,10 @@ export const ResearchStepsContent = ({
             }`}
           >
             {report === "in_progress" ? (
-             <Loader className="w-5 h-5 text-blue-500 animate-spin" />
+             <Hourglass className="w-5 h-5 text-blue-500 animate-spin" />
             ) : (
-              <BookOpenText
-                className={`w-4 h-4 ${
+              <BookOpen
+                className={`w-5 h-5 ${
                   report === "pending" ? "text-[#999]" : "text-[#1784FC]"
                 }`}
               />

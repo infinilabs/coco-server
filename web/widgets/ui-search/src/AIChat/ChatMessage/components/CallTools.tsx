@@ -47,7 +47,7 @@ export const CallTools = ({ Detail, ChunkData, loading, t: tProp }: CallToolsPro
             <CheckIcon className="w-14px h-14px" />
           )}
           <span className={`${loading ? "italic" : ""}`}>
-            {t(`assistant.message.steps.${ChunkData?.chunk_type}`)}
+            {t(`assistant.message.steps.${Detail?.type || ChunkData?.chunk_type}`)}
           </span>
         </>
         {isThinkingExpanded ? (

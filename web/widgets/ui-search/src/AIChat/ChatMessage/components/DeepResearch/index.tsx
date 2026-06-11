@@ -460,7 +460,7 @@ export const DeepResearch = ({
           setIsDrawerOpen(true);
         }}
       >
-        <div className="w-full rounded-8px border border-[#EEF0F3] bg-[#F3F4F6] dark:border-[#1D3A6F] dark:bg-[#020817] p-4">
+        <div className="w-full rounded-8px border border-[#F0F0F0] dark:border-[#303030] bg-[#F3F4F6] dark:bg-[#020817] p-4">
           <div className="flex items-center gap-2 mb-4">
             {
               isCompleted ? (
