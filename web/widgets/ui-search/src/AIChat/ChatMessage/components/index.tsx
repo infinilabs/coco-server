@@ -399,8 +399,17 @@ const InnerChatMessage = memo(
           }
           {
             isError && (
-              <div className="mt-16px text-14px leading-20px text-[#F04444]">
-                {isDeepResearching ? t("deepResearch.status.error") : t("labels.error")}
+              <div className="mt-16px px-12px rounded-8px border border-[#F0F0F0] dark:border-[#303030] ">
+                <div className="h-38px leading-38px text-12px text-[#333] dark:text-[#E5E7EB] font-700">
+                  {isDeepResearching ? t("deepResearch.status.error") : t("labels.error")}
+                </div>
+                {
+                  endChunk?.payload?.error && (
+                    <div className="py-8px h-42px border-t border-[#F0F0F0] dark:border-[#303030] leading-16px text-12px text-[#333] dark:text-[#E5E7EB]">
+                      {endChunk?.payload?.error}
+                    </div>
+                  )
+                }
               </div>
             )
           }
