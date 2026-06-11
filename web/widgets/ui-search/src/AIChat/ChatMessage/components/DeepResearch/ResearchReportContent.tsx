@@ -82,9 +82,7 @@ export const ResearchReportContent = ({
             title="research-report"
           />
         ) : (
-          <div className="cm-markdown">
-            <Markdown content={content} />
-          </div>
+          <Markdown content={content} />
         )
       )}
 
@@ -98,9 +96,7 @@ export const ResearchReportContent = ({
             title="research-report"
           />
         ) : (
-          <div className="cm-markdown">
-            <Markdown url={formatUrl ? formatUrl({ url: data.url }) : data.url} />
-          </div>
+          <Markdown url={formatUrl ? formatUrl({ url: data.url }) : data.url} />
         )
       )}
     </div>

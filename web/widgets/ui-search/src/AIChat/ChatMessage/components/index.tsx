@@ -31,8 +31,6 @@ import { PayloadCard } from "./PayloadCard";
 
 import { type TFunction } from "i18next";
 
-import "./index.css";
-
 const DEEP_RESEARCH_CHUNK_TYPES = [
   "research_planner_start",
   "research_planner_progress",
@@ -253,7 +251,7 @@ const InnerChatMessage = memo(
     
     const payload = source?.payload;
 
-    const attachments = source?.attachments ?? [];
+    const attachments = useMemo(() => source?.attachments ?? [], [source?.attachments]);
     const details = source?.details || [];
     const deepResearchDetail = details.find((item) => item.type === "deep_research")
     const question = source?.question || "";
@@ -307,7 +305,9 @@ const InnerChatMessage = memo(
       !!response?.message_chunk ||
       !!payload ||
       isTyping ||
-      (suggestion && suggestion.length > 0);
+      (suggestion && suggestion.length > 0)
+      || isCancelled
+      || isError;
     
     const isDeepResearching = useMemo(() => {
       return !!deepResearchDetail || deepResearch?.length > 0;
@@ -366,12 +366,10 @@ const InnerChatMessage = memo(
             t={t}
           />
 
-          <div className="cm-markdown">
-            <Markdown
-              content={messageContent || response?.message_chunk || ""}
-              dark={resolvedTheme === "dark"}
-            />
-          </div>
+          <Markdown
+            content={messageContent || response?.message_chunk || ""}
+            dark={resolvedTheme === "dark"}
+          />
 
           {
             !deepResearchDetail && (

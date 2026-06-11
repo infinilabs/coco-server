@@ -58,7 +58,7 @@ export const CallTools = ({ Detail, ChunkData, loading, t: tProp }: CallToolsPro
       </button>
       {isThinkingExpanded && (
         <div className="ml-15px pl-6px pt-1 border-l-1 border-[#bbb] dark:border-[#333]">
-          <div className="text-[#8b8b8b] dark:text-[#a6a6a6] space-y-2 cm-markdown">
+          <div className="text-[#8b8b8b] dark:text-[#a6a6a6] space-y-2">
             <Markdown content={data || ""} />
             {/* {data?.split("\n").map(
               (paragraph, idx) =>

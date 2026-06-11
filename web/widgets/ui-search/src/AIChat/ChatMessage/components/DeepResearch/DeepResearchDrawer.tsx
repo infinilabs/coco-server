@@ -98,7 +98,6 @@ export const DeepResearchDrawer = ({
                 </div>
               ) : (
                 <Segmented
-                  className="cm-deep-research-segmented"
                   value={activeTab}
                   onChange={(val) => setActiveTab(val as string)}
                   options={[
@@ -106,6 +105,11 @@ export const DeepResearchDrawer = ({
                     t("deepResearch.tab.steps"),
                     t("deepResearch.tab.searchResults"),
                   ]}
+                  classNames={{
+                    root: "!p-4px !bg-transparent border border-[#F0F0F0] dark:border-[#303030] rounded-8px",
+                    item: "h-32px !rounded-8px !bg-white dark:!bg-black [&:not(:last-child)]:mr-4px [&.ant-segmented-item-selected]:!bg-[rgba(1,138,229,0.09)] dark:[&.ant-segmented-item-selected]:!bg-[rgba(100,181,246,0.2)] [&:not(.ant-segmented-item-selected)]:hover:!bg-[rgba(1,138,229,0.09)] dark:[&:not(.ant-segmented-item-selected)]:hover:!bg-[rgba(100,181,246,0.2)]",
+                    label: "!px-16px h-full !rounded-8px text-16px text-[#333] dark:text-[#E5E7EB] [.ant-segmented-item-selected>&]:!text-[#1784FC] dark:[.ant-segmented-item-selected>&]:!text-[#7EC2FF] [.ant-segmented-item:not(.ant-segmented-item-selected):hover>&]:!text-[#1784FC] dark:[.ant-segmented-item:not(.ant-segmented-item-selected):hover>&]:!text-[#7EC2FF]",
+                  }}
                 />
               )}
               <div className="flex items-center gap-2">
