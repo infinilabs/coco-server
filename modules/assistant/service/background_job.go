@@ -81,7 +81,7 @@ func finalizeProcessing(ctx context.Context, sessionID string, msg *core.ChatMes
 	defer cancel()
 	ctx1 := orm.NewContextWithParent(saveCtx)
 	ctx1.DirectAccess()
-	ctx1.Refresh = orm.WaitForRefresh
+	ctx1.Refresh = orm.ImmediatelyRefresh
 
 	if err := orm.Save(ctx1, msg); err != nil {
 		_ = log.Errorf("Failed to save assistant message: %v", err)
@@ -192,9 +192,6 @@ func ProcessMessageAsync(ctx context.Context, userID string, reqMsg, replyMsg *c
 		err = deep_research2.RunDeepResearchV2(ctx, reqMsg.Message, params.AssistantCfg.DeepResearchConfig, reqMsg,
 			replyMsg, attachments,
 			sender)
-		//err = deep_research.RunDeepResearch(ctx, reqMsg.Message, params.AssistantCfg.DeepResearchConfig, reqMsg,
-		//	replyMsg,
-		//	sender)
 		log.Info("end running deep research")
 	default:
 		//simple mode
@@ -222,7 +219,6 @@ func ProcessMessageAsync(ctx context.Context, userID string, reqMsg, replyMsg *c
 
 		err = langchain.GenerateFinalResponse(ctx, reqMsg, replyMsg, params, params.InputValues, sender)
 		log.Info("async reply task done for query:", reqMsg.Message)
-		break
 	}
 	return err
 }
