@@ -58,9 +58,9 @@ function InnerHistory({
 
   const lastFetchTimeRef = useRef(0);
 
-  const fetchChatHistory = useCallback(async () => {
+  const fetchChatHistory = useCallback(async (force?: boolean) => {
     const now = Date.now();
-    if (now - lastFetchTimeRef.current < 500) return;
+    if (!force && now - lastFetchTimeRef.current < 500) return;
     lastFetchTimeRef.current = now;
     try {
       const [err, res] = await Get<{
@@ -81,7 +81,7 @@ function InnerHistory({
   }, [keyword, setChats, headersProp]);
 
   useEffect(() => {
-    fetchChatHistory();
+    fetchChatHistory(historyVersion > 0);
   }, [fetchChatHistory, historyVersion]);
 
   const onSelect = useCallback(

@@ -2,10 +2,10 @@ import { Modal, Button } from "antd";
 import { useTranslation } from "react-i18next";
 import { type TFunction } from "i18next";
 
-import { type Chat } from "../types/chat";
+import { type Chat } from "./types/chat";
 import { type KeyboardEvent } from "react";
 
-interface DeleteDialogProps {
+interface CancelDeepResearchDialogProps {
   isOpen: boolean;
   active?: Chat;
   setIsOpen: (isOpen: boolean) => void;
@@ -13,13 +13,13 @@ interface DeleteDialogProps {
   t?: TFunction;
 }
 
-const DeleteDialog = ({
+const CancelDeepResearchDialog = ({
   isOpen,
   active,
   setIsOpen,
   handleRemove,
   t: tProp,
-}: DeleteDialogProps) => {
+}: CancelDeepResearchDialogProps) => {
   const { t: tOriginal } = useTranslation();
   const t = tProp || tOriginal;
 
@@ -40,7 +40,7 @@ const DeleteDialog = ({
       width={480}
       title={(
         <div className="text-16px text-[#333] dark:text-[#E5E7EB]">
-          {t("history_list.delete_modal.title")}
+          {t("deepResearch.cancelDialog.title")}
         </div>
       )}
       destroyOnHidden
@@ -51,12 +51,7 @@ const DeleteDialog = ({
     >
       <div className="flex flex-col justify-between">
         <div className="min-h-52px text-16px text-[#666] dark:text-white/80 mb-20px">
-          {t("history_list.delete_modal.description", {
-            item:
-              (active?._source?.title as string) ||
-              (active?._source?.message as string) ||
-              active?._id,
-          })}
+          {t("deepResearch.cancelDialog.description")}
         </div>
 
         <div className="flex gap-4 self-end">
@@ -70,11 +65,11 @@ const DeleteDialog = ({
               }}
               className="w-87px text-12px text-[#333] dark:text-[#E5E7EB] rounded-20px border-[#bbb] dark:border-[#333]"
             >
-              {t("history_list.delete_modal.button.cancel")}
+              {t("deepResearch.cancelDialog.cancel")}
             </Button>
 
           <Button
-              color="danger" 
+              color="primary" 
               variant="outlined"
               onClick={handleRemove}
               onKeyDown={(event) => {
@@ -82,7 +77,7 @@ const DeleteDialog = ({
               }}
               className="w-87px text-12px rounded-20px"
             >
-              {t("history_list.delete_modal.button.delete")}
+              {t("deepResearch.cancelDialog.confirm")}
             </Button>
         </div>
       </div>
@@ -90,4 +85,4 @@ const DeleteDialog = ({
   );
 };
 
-export default DeleteDialog;
+export default CancelDeepResearchDialog;

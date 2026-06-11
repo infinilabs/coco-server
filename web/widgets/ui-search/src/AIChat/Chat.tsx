@@ -14,6 +14,7 @@ import { type ChatMessageRef } from "./ChatMessage/components";
 import i18n from "../i18n";
 import { useChatStore, type IChatStore } from "./stores/chatStore";
 import { ChatContent } from "./ChatContent";
+import CancelDeepResearchDialog from "./CancelDeepResearchDialog";
 import type { Chat, ChatMessageItem, IChunkData } from "./types/chat";
 import { streamPost } from "./api/streamFetch";
 import { Get, Post } from "./api/axiosRequest";
@@ -69,8 +70,9 @@ export interface SendMessageParams {
 export interface ChatAIRef {
   init: (params: SendMessageParams) => void;
   cancelChat: () => void;
-  clearChat: () => void;
+  clearChat: (cb?: () => void, force?: boolean, onReject?: () => void) => void;
   onSelectChat: (chat: Chat) => void;
+  _isChatEnd: () => boolean;
 }
 
 /**
@@ -113,6 +115,7 @@ const InnerChatAI = memo(
       const [timedoutShow, setTimedoutShow] = useState(false); // 超时提示显示状态
       const [Question, setQuestion] = useState<string>(""); // 当前正在处理的问题文本
       const [activeMessageGen, setActiveMessageGen] = useState(0); // 用于强制 ActiveChatMessage 重新挂载
+      const [showCancelDialog, setShowCancelDialog] = useState(false); // 深度研究取消确认弹框
 
       // Refs 用于在闭包和异步操作中保持最新值
       const curIdRef = useRef(""); // 当前生成的消息 ID
@@ -121,6 +124,7 @@ const InnerChatAI = memo(
       const streamGenRef = useRef(0); // 流式请求的代次，用于切换后忽略旧流的渲染
       const generatingSessionRef = useRef<string | undefined>(undefined); // 当前正在生成回复的会话 ID
       const fetchHistoryRef = useRef<(chatId: string) => Promise<void>>(); // 避免 handleStreamMessage 的循环依赖
+      const pendingCancelActionRef = useRef<(() => void) | null>(null); // 深度研究取消确认后要执行的操作
 
       type ChatStreamSingle = {
         _id?: string;
@@ -415,8 +419,8 @@ const InnerChatAI = memo(
               headersProp,
             );
             if (res?.[1]?.found) {
-              incrementHistoryVersion();
               streamGenRef.current++;
+              generatingSessionRef.current = undefined;
               activeMessageRef.current?.reset();
               setActiveMessageGen((v) => v + 1);
               setCurChatEnd(true);
@@ -425,6 +429,7 @@ const InnerChatAI = memo(
               lastActiveChatIdRef.current = params.session_id;
               setActiveChat({ _id: params.session_id });
               await fetchHistory(params.session_id);
+              incrementHistoryVersion();
             }
           } catch (e) {
             console.error(e);
@@ -576,21 +581,36 @@ const InnerChatAI = memo(
         async (chat?: Chat) => {
           const generatingSession = generatingSessionRef.current;
           const curChatEndNow = useChatStore.getState().curChatEnd;
-          // 递增 generation，使旧流的回调不再渲染
-          streamGenRef.current++;
 
           // If a response is in progress, cancel it before switching.
-          // Use generatingSessionRef (not activeChat from closure) to get the
-          // correct session ID, because activeChat may have already been
-          // updated by the stream handler (e.g. backend created a new session).
           if (generatingSession && !curChatEndNow) {
-            generatingSessionRef.current = undefined;
-            Post(
-              `/chat/${generatingSession}/_cancel?message_id=${curIdRef.current}&lang=${locale || i18n.language}`,
-              undefined,
-              {},
-              headersProp,
-            ).catch(console.error);
+            const assistantType = (useChatStore.getState().currentAssistant?._source?.type as string) || "simple";
+            if (assistantType === "deep_research") {
+              pendingCancelActionRef.current = () => {
+                cancelChat();
+
+                activeMessageRef.current?.reset();
+                setActiveMessageGen((v) => v + 1);
+                setTimedoutShow(false);
+                setQuestion("");
+
+                setActiveChat(chat);
+                if (chat?._id) {
+                  lastActiveChatIdRef.current = chat._id;
+                  fetchHistory(chat._id);
+                } else {
+                  lastActiveChatIdRef.current = undefined;
+                }
+              };
+              setShowCancelDialog(true);
+              return;
+            }
+
+            // 非深度研究：直接取消
+            cancelChat();
+          } else {
+            // 递增 generation，使旧流的回调不再渲染
+            streamGenRef.current++;
           }
 
           activeMessageRef.current?.reset(); // 重置上一条消息的 UI 状态
@@ -607,41 +627,114 @@ const InnerChatAI = memo(
             lastActiveChatIdRef.current = undefined;
           }
         },
-        [setActiveChat, setCurChatEnd, fetchHistory, headersProp],
+        [setActiveChat, setCurChatEnd, fetchHistory, cancelChat],
       );
 
       /**
        * 清除当前选中的对话（返回初始状态）
+       * 如果深度研究正在进行，弹出确认框，确认后执行 cancel + 清空 + cb
+       * 否则直接执行清空 + cb
        */
-      const clearChat = useCallback(async () => {
-        if (!useChatStore.getState().curChatEnd) {
-          cancelChat();
+      const pendingRejectRef = useRef<(() => void) | null>(null);
+
+      const clearChat = useCallback(async (cb?: () => void, force?: boolean, onReject?: () => void) => {
+        const generatingSession = generatingSessionRef.current;
+        const curChatEndNow = useChatStore.getState().curChatEnd;
+        const assistantType = (useChatStore.getState().currentAssistant?._source?.type as string) || "simple";
+
+        if (!force && generatingSession && !curChatEndNow && assistantType === "deep_research") {
+          pendingCancelActionRef.current = () => {
+            cancelChat();
+
+            activeMessageRef.current?.reset();
+            setActiveMessageGen((v) => v + 1);
+            setTimedoutShow(false);
+            setQuestion("");
+
+            setActiveChat(undefined);
+            lastActiveChatIdRef.current = undefined;
+            cb?.();
+          };
+          pendingRejectRef.current = onReject || null;
+          setShowCancelDialog(true);
+          return;
         }
-        onSelectChat(undefined);
-      }, [onSelectChat, cancelChat]);
+
+        if (force) {
+          // force 模式：直接取消并清空，跳过 onSelectChat 的弹框逻辑
+          if (generatingSession && !curChatEndNow) {
+            cancelChat();
+          }
+          activeMessageRef.current?.reset();
+          setActiveMessageGen((v) => v + 1);
+          setCurChatEnd(true);
+          setTimedoutShow(false);
+          setQuestion("");
+          setActiveChat(undefined);
+          lastActiveChatIdRef.current = undefined;
+          cb?.();
+          return;
+        }
+
+        await onSelectChat(undefined);
+        cb?.();
+      }, [onSelectChat, cancelChat, setActiveChat, setCurChatEnd]);
 
       // Use a ref to track the last processed active chat ID
       const lastActiveChatIdRef = useRef<string | undefined>(undefined);
+      const lastActiveChatRef = useRef<Chat | undefined>(undefined);
+
+      // 在每次渲染时同步 lastActiveChatRef，确保包含最新的流式消息
+      // 只在 ID 仍匹配时更新，这样 ID 变化时 ref 保留的是旧会话的最新完整状态
+      if (activeChat?._id && activeChat._id === lastActiveChatIdRef.current) {
+        lastActiveChatRef.current = activeChat;
+      }
 
       useEffect(() => {
         if (activeChat?._id && activeChat._id !== lastActiveChatIdRef.current) {
-          lastActiveChatIdRef.current = activeChat._id;
-
           // Skip only if the generating session matches the new activeChat
           // (i.e. the stream handler updated the session ID, not a user click).
           // If the user clicked a different history item while generation is in
           // progress, we still need to call onSelectChat to cancel the stream.
           if (!generatingSessionRef.current || generatingSessionRef.current !== activeChat._id) {
+            // 深度研究进行中：回退 activeChat，弹出确认框，确认后再切换
+            const curChatEndNow = useChatStore.getState().curChatEnd;
+            const assistantType = (useChatStore.getState().currentAssistant?._source?.type as string) || "simple";
+            if (generatingSessionRef.current && !curChatEndNow && assistantType === "deep_research") {
+              const targetChat = activeChat;
+              // 回退到当前正在生成的会话，防止 UI 提前切换（保留完整的消息列表）
+              setActiveChat(lastActiveChatRef.current || { _id: lastActiveChatIdRef.current! });
+              pendingCancelActionRef.current = () => {
+                cancelChat();
+
+                activeMessageRef.current?.reset();
+                setActiveMessageGen((v) => v + 1);
+                setTimedoutShow(false);
+                setQuestion("");
+
+                lastActiveChatIdRef.current = targetChat._id;
+                setActiveChat(targetChat);
+                fetchHistory(targetChat._id);
+              };
+              setShowCancelDialog(true);
+              return;
+            }
+
+            lastActiveChatIdRef.current = activeChat._id;
+            lastActiveChatRef.current = activeChat;
             setTimeout(() => {
               onSelectChat(activeChat);
             }, 0);
+          } else {
+            lastActiveChatIdRef.current = activeChat._id;
+            lastActiveChatRef.current = activeChat;
           }
         } else if (!activeChat?._id && lastActiveChatIdRef.current) {
           // Active chat was cleared externally (e.g. deleted from history)
           lastActiveChatIdRef.current = undefined;
           onSelectChat(undefined);
         }
-      }, [activeChat?._id, onSelectChat]);
+      }, [activeChat?._id, onSelectChat, cancelChat, setActiveChat, fetchHistory]);
 
       // 生成文件预览 URL 的辅助函数
       const getFileUrl = useCallback(
@@ -717,11 +810,34 @@ const InnerChatAI = memo(
         },
         openChat,
         cancelChat: () => {
-          cancelChat();
+          const assistantType = (useChatStore.getState().currentAssistant?._source?.type as string) || "simple";
+          if (assistantType === "deep_research" && !useChatStore.getState().curChatEnd) {
+            pendingCancelActionRef.current = () => cancelChat();
+            setShowCancelDialog(true);
+          } else {
+            cancelChat();
+          }
         },
         clearChat,
         onSelectChat,
+        _isChatEnd: () => {
+          const state = useChatStore.getState();
+          if (state.curChatEnd) return true;
+          const assistantType = (state.currentAssistant?._source?.type as string) || "simple";
+          // 只有深度研究进行中才视为"未结束"，其他类型不阻拦
+          return assistantType !== "deep_research";
+        },
       }));
+
+      const handleCancelWithConfirm = useCallback(() => {
+        const assistantType = (currentAssistant?._source?.type as string) || "simple";
+        if (assistantType === "deep_research" && !curChatEnd) {
+          pendingCancelActionRef.current = () => cancelChat();
+          setShowCancelDialog(true);
+        } else {
+          cancelChat();
+        }
+      }, [currentAssistant, curChatEnd, cancelChat]);
 
       return (
         <div className="flex flex-col rounded-md h-full overflow-hidden relative">
@@ -742,7 +858,27 @@ const InnerChatAI = memo(
             t={t}
             currentAssistant={currentAssistant}
             theme={theme}
-            onCancel={cancelChat}
+            onCancel={handleCancelWithConfirm}
+          />
+
+          <CancelDeepResearchDialog
+            isOpen={showCancelDialog}
+            active={activeChat}
+            setIsOpen={(open) => {
+              setShowCancelDialog(open);
+              if (!open) {
+                pendingCancelActionRef.current = null;
+                pendingRejectRef.current?.();
+                pendingRejectRef.current = null;
+              }
+            }}
+            handleRemove={() => {
+              setShowCancelDialog(false);
+              pendingRejectRef.current = null;
+              pendingCancelActionRef.current?.();
+              pendingCancelActionRef.current = null;
+            }}
+            t={t}
           />
         </div>
       );

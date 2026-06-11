@@ -1,4 +1,4 @@
-import { Loader, Hammer, ChevronDown, ChevronUp, ChevronRight } from "lucide-react";
+import { Loader, ChevronDown, ChevronRight } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { type TFunction } from "i18next";

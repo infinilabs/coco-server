@@ -175,6 +175,12 @@ const resources = {
           optimizePlan: "Optimize research plan",
           reportTitle: "Generate research report",
         },
+        cancelDialog: {
+          title: "Cancel research?",
+          description: "Completed analysis will be kept in the conversation. Unfinished parts will be cancelled.",
+          confirm: "Yes",
+          cancel: "No",
+        },
       },
       sessionFiles: {
         labels: {
@@ -382,6 +388,12 @@ const resources = {
           searchTitle: "搜索资料",
           optimizePlan: "优化研究计划",
           reportTitle: "生成研究报告",
+        },
+        cancelDialog: {
+          title: "要取消研究吗？",
+          description: "已完成的分析会保留在对话中，未进行的部分将取消。",
+          confirm: "是",
+          cancel: "否",
         },
       },
       sessionFiles: {
