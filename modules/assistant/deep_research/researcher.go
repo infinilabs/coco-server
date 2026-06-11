@@ -64,7 +64,7 @@ func CreateResearcherGraph(ctx context.Context, config *core.DeepResearchConfig)
 
 		var msgs []llms.MessageContent
 		// Always start with system message
-		msgs = append(msgs, llms.TextParts(llms.ChatMessageTypeSystem, systemPrompt))
+		msgs = append(msgs, langchain.SystemTextParts(systemPrompt))
 		// Then add conversation history
 		msgs = append(msgs, messages...)
 

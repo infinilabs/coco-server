@@ -79,7 +79,7 @@ Respond in %s.`, s.Request.Query, maxSteps, depthHint, s.Config.ResearchDepth, r
 		}
 	}
 
-	completion, err := llms.GenerateFromSinglePrompt(ctx, llm, prompt)
+	completion, err := llms.GenerateFromSinglePrompt(ctx, llm, langchain.PromptWithCurrentTime(prompt))
 	if err != nil {
 		return nil, err
 	}
@@ -257,7 +257,7 @@ Generate a more specific search query to obtain more detailed or relevant inform
 				initialSearchCollection.FormatResultsForLLM(),
 				initialSearchCollection.Confidence*100)
 
-			refinementQuery, err := llms.GenerateFromSinglePrompt(ctx, llm, refinementPrompt)
+			refinementQuery, err := llms.GenerateFromSinglePrompt(ctx, llm, langchain.PromptWithCurrentTime(refinementPrompt))
 			if err == nil && strings.TrimSpace(refinementQuery) != "" {
 				stepSearchQueries = append(stepSearchQueries, refinementQuery)
 
@@ -295,7 +295,7 @@ Generate a more specific search query to obtain more detailed or relevant inform
 		// Step 5: Analyze and synthesize findings with chapter-aware context
 		findingsPrompt := s.generateChapterAwareAnalysisPrompt(step, allocatedMaterials, stepIndex)
 
-		completion, err := llms.GenerateFromSinglePrompt(ctx, synthesisLLM, findingsPrompt)
+		completion, err := llms.GenerateFromSinglePrompt(ctx, synthesisLLM, langchain.PromptWithCurrentTime(findingsPrompt))
 		if err != nil {
 			log.Warnf("Analysis failed for step '%s': %v", step, err)
 			errorResult := fmt.Sprintf("Step: %s\nFindings: Analysis failed: %v\n\nSearch results: %s",
@@ -394,7 +394,7 @@ Requirements:
 		strings.Join(s.Plan, "\n"),
 		reportLang(s.Config.ReportLang))
 
-	completion, err := llms.GenerateFromSinglePrompt(ctx, llm, prompt)
+	completion, err := llms.GenerateFromSinglePrompt(ctx, llm, langchain.PromptWithCurrentTime(prompt))
 	if err != nil {
 		return err
 	}
@@ -627,7 +627,7 @@ func (s *State) generateTraditionalReport(ctx context.Context, llm llms.Model) (
 	prompt := fmt.Sprintf("You are a senior report writer. Based on the following research results, write a comprehensive final report. Use Markdown format. Write the report in %s:\n\n%s\n\nOriginal query was: %s",
 		reportLang(s.Config.ReportLang), researchData, s.Request.Query)
 
-	completion, err := llms.GenerateFromSinglePrompt(ctx, llm, prompt)
+	completion, err := llms.GenerateFromSinglePrompt(ctx, llm, langchain.PromptWithCurrentTime(prompt))
 	if err != nil {
 		return nil, err
 	}
@@ -699,7 +699,7 @@ Generate the chapter content directly, do not add explanatory text.`,
 			materialsInfo,
 			reportLang(s.Config.ReportLang))
 
-		completion, err := llms.GenerateFromSinglePrompt(ctx, llm, prompt)
+		completion, err := llms.GenerateFromSinglePrompt(ctx, llm, langchain.PromptWithCurrentTime(prompt))
 		if err != nil {
 			log.Warnf("Failed to generate chapter content for %s: %v", chapterID, err)
 			content.Content = fmt.Sprintf("# %s\n\n"+i18n.GenerationFailed, content.Title, err)
@@ -763,7 +763,7 @@ Return format:
 
 Do not add other text. Respond in %s.`, content, reportLang(s.Config.ReportLang))
 
-	completion, err := llms.GenerateFromSinglePrompt(ctx, llm, prompt)
+	completion, err := llms.GenerateFromSinglePrompt(ctx, llm, langchain.PromptWithCurrentTime(prompt))
 	if err != nil {
 		return nil, err
 	}

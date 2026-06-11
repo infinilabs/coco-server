@@ -24,6 +24,15 @@ import (
 	"infini.sh/framework/core/util"
 )
 
+const conversationalToolPromptSuffix = `Begin!
+
+Previous conversation history:
+{{.history}}
+
+New input: {{.input}}
+
+Thought:{{.agent_scratchpad}}`
+
 func CallLLMTools(ctx context.Context, reqMsg *core.ChatMessage, replyMsg *core.ChatMessage, params *common2.RAGContext, inputValues map[string]any, sender core.MessageSender) (string, error) {
 	if params == nil || params.AssistantCfg == nil {
 		//return nil
@@ -270,6 +279,7 @@ func CallLLMTools(ctx context.Context, reqMsg *core.ChatMessage, replyMsg *core.
 		agents.ConversationalReactDescription,
 		//agents.WithReturnIntermediateSteps(),
 		agents.WithMaxIterations(params.AssistantCfg.MCPConfig.MaxIterations),
+		agents.WithPromptSuffix(conversationalToolPromptSuffixWithCurrentTime()),
 		agents.WithCallbacksHandler(&callback),
 		agents.WithMemory(buffer),
 		agents.WithParserErrorHandler(agents.NewParserErrorHandler(func(err string) string {
@@ -348,6 +358,14 @@ func wrapToolCallReporters(agentTools []langchaingoTools.Tool, onComplete func(t
 		})
 	}
 	return wrappedTools
+}
+
+// conversationalToolPromptSuffixWithCurrentTime mirrors langchaingo's default
+// conversational-agent suffix and prepends the shared current-time context. The
+// default suffix is unexported upstream, but overriding only the suffix keeps the
+// default tool descriptions and tool-use instructions intact.
+func conversationalToolPromptSuffixWithCurrentTime() string {
+	return langchain.PromptWithCurrentTime("") + "\n\n" + conversationalToolPromptSuffix
 }
 
 // formatToolCallChunk renders one tool invocation as a single Markdown bullet

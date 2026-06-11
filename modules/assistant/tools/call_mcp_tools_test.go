@@ -26,3 +26,20 @@ func TestFormatToolCallChunkIncludesOnlyToolFields(t *testing.T) {
 		}
 	}
 }
+
+func TestConversationalToolPromptSuffixIncludesCurrentTimeAndAgentInputs(t *testing.T) {
+	suffix := conversationalToolPromptSuffixWithCurrentTime()
+
+	for _, expected := range []string{
+		"The current time is ",
+		"Begin!",
+		"Previous conversation history:",
+		"{{.history}}",
+		"New input: {{.input}}",
+		"Thought:{{.agent_scratchpad}}",
+	} {
+		if !strings.Contains(suffix, expected) {
+			t.Fatalf("expected suffix to contain %q, got %q", expected, suffix)
+		}
+	}
+}
