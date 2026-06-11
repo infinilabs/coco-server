@@ -37,8 +37,10 @@ const (
 	// QueryIntent object is persisted as a ProcessingDetails entry.
 	QueryIntent = "query_intent"
 
-	// Tools is a streaming chunk type for LLM tool-call progress/output. The
-	// accumulated tools output is persisted as a ProcessingDetails entry.
+	// Tools is a streaming chunk type for tool-call records. Each message_chunk
+	// contains only the tool name, arguments, and output; the accumulated text is
+	// persisted as a ProcessingDetails entry whose Description carries the same
+	// content.
 	Tools = "tools"
 
 	// FetchSource is a streaming chunk type for fetched source previews. Candidate

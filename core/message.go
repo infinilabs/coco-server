@@ -37,6 +37,8 @@ type ChatMessage struct {
 	//     {"category":"", "intent":"", "query":[], "keyword":[], "suggestion":[],
 	//      "need_plan_tasks":bool, "need_call_tools":bool, "need_network_search":bool}
 	//
+	//   Type="tools"         (Order=15)  — Payload: nil; Description contains tool name, arguments, and output
+	//
 	//   Type="fetch_source"  (Order=20)  — Payload: array of candidate documents
 	//     [{"id":"", "title":"", "updated":"", "category":"", "summary":"(≤500 chars)", "url":""}]
 	//
@@ -73,8 +75,8 @@ type ChatMessage struct {
 // the full Type→Payload schema.
 type ProcessingDetails struct {
 	Order       int         `json:"order"`
-	Type        string      `json:"type"`        // One of: query_intent, fetch_source, pick_source, deep_read, think, deep_research, reply_end
-	Description string      `json:"description"` // Human-readable text (used by deep_read and think when Payload is nil)
+	Type        string      `json:"type"`        // One of: query_intent, tools, fetch_source, pick_source, deep_read, think, deep_research, reply_end
+	Description string      `json:"description"` // Human-readable text (used by tools, deep_read, and think when Payload is nil)
 	Payload     interface{} `json:"payload"`     // Structured data; concrete type depends on Type (see ChatMessage.Details doc)
 }
 

@@ -2,6 +2,7 @@ package tools
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -131,7 +132,6 @@ func CallLLMTools(ctx context.Context, reqMsg *core.ChatMessage, replyMsg *core.
 				}
 				continue
 			}
-			break
 		case common.SSE:
 			bytes := util.MustToJSONBytes(v.Config)
 			cfg := core.SSEConfig{}
@@ -157,7 +157,6 @@ func CallLLMTools(ctx context.Context, reqMsg *core.ChatMessage, replyMsg *core.
 				continue
 			}
 
-			break
 		case common.Stdio:
 			bytes := util.MustToJSONBytes(v.Config)
 
@@ -188,7 +187,6 @@ func CallLLMTools(ctx context.Context, reqMsg *core.ChatMessage, replyMsg *core.
 				}
 				continue
 			}
-			break
 		default:
 			if global.Env().IsDebug {
 				log.Errorf("invalid type: %v", v.Type)
@@ -230,19 +228,41 @@ func CallLLMTools(ctx context.Context, reqMsg *core.ChatMessage, replyMsg *core.
 		buffer.ChatHistory = params.ChatHistory
 	}
 
-	answerBuffer := strings.Builder{}
+	toolsOutputBuffer := strings.Builder{}
+	// Store tool-call records in Description because they are display-oriented
+	// Markdown text, while details.payload is mapped as an object in Elasticsearch.
+	persistToolsOutput := func() {
+		toolsOutput := toolsOutputBuffer.String()
+		if toolsOutput != "" {
+			replyMsg.Details = append(replyMsg.Details, core.ProcessingDetails{
+				Order:       15,
+				Type:        common.Tools,
+				Description: toolsOutput,
+			})
+		}
+	}
 	callback := langchain.LogHandler{}
 	toolsSeq := 0
-	callback.CustomWriteFunc = func(chunk string) {
-		if chunk != "" {
-			answerBuffer.WriteString(chunk)
-			err = sender.SendChunkMessage(core.MessageTypeAssistant, common.Tools, chunk, toolsSeq)
-			if err != nil {
-				panic(err)
-			}
+	emitToolCall := func(toolName, arguments, result string) {
+		chunk := formatToolCallChunk(toolName, arguments, result)
+		// The frontend appends tools chunks verbatim, so preserve the same blank-line
+		// separator that is later persisted in the accumulated Description.
+		if toolsOutputBuffer.Len() > 0 {
+			chunk = "\n\n" + chunk
+		}
+		toolsOutputBuffer.WriteString(chunk)
+
+		sendErr := sender.SendChunkMessage(core.MessageTypeAssistant, common.Tools, chunk, toolsSeq)
+		if sendErr != nil {
+			panic(sendErr)
 		}
 		toolsSeq++
 	}
+	// Wrap tools instead of forwarding LLM streaming tokens. Agent callback text can
+	// include Thought or final-answer content, and MCP tools do not consistently
+	// emit tool-end callbacks; wrapping Tool.Call keeps the stream limited to the
+	// actual tool name, arguments, and output.
+	agentTools = wrapToolCallReporters(agentTools, emitToolCall)
 
 	executor, err := agents.Initialize(
 		llm,
@@ -262,28 +282,131 @@ func CallLLMTools(ctx context.Context, reqMsg *core.ChatMessage, replyMsg *core.
 		})),
 	)
 	if err != nil {
-		return answerBuffer.String(), fmt.Errorf("error on executor: %w", err)
+		persistToolsOutput()
+		return toolsOutputBuffer.String(), fmt.Errorf("error on executor: %w", err)
 	}
 
 	log.Debugf("start call LLM tools")
 	answer, err := chains.Run(ctx, executor, reqMsg.Message)
 	if err != nil {
-		return answerBuffer.String(), fmt.Errorf("error running chains: %w", err)
+		persistToolsOutput()
+		return toolsOutputBuffer.String(), fmt.Errorf("error running chains: %w", err)
 	}
 
 	log.Debug("MCP call answer:", answer)
 
-	toolsOutput := answerBuffer.String()
-	if toolsOutput == "" {
-		toolsOutput = answer
-	}
-	if toolsOutput != "" {
-		replyMsg.Details = append(replyMsg.Details, core.ProcessingDetails{
-			Order:   15,
-			Type:    common.Tools,
-			Payload: toolsOutput,
-		})
-	}
+	persistToolsOutput()
 
 	return answer, nil
+}
+
+// toolCallReportingTool decorates a langchaingo tool with a completion callback
+// while preserving the original tool contract used by the agent executor.
+type toolCallReportingTool struct {
+	tool       langchaingoTools.Tool
+	onComplete func(toolName, arguments, result string)
+}
+
+// Name returns the wrapped tool name so agent planning still sees the original
+// tool identity.
+func (reportingTool toolCallReportingTool) Name() string {
+	return reportingTool.tool.Name()
+}
+
+// Description returns the wrapped tool description so prompt construction is not
+// changed by the reporting layer.
+func (reportingTool toolCallReportingTool) Description() string {
+	return reportingTool.tool.Description()
+}
+
+// Call executes the wrapped tool and reports a display record containing the
+// tool name, the raw input arguments, and either the output or the execution
+// error. The original output and error are returned unchanged to the agent.
+func (reportingTool toolCallReportingTool) Call(ctx context.Context, input string) (string, error) {
+	output, err := reportingTool.tool.Call(ctx, input)
+	result := output
+	if err != nil {
+		if result != "" {
+			result += "\n"
+		}
+		result += fmt.Sprintf("Error: %v", err)
+	}
+	if reportingTool.onComplete != nil {
+		reportingTool.onComplete(reportingTool.Name(), input, result)
+	}
+	return output, err
+}
+
+// wrapToolCallReporters applies toolCallReportingTool to every available tool so
+// built-in tools and MCP tools produce the same streaming and persistence shape.
+func wrapToolCallReporters(agentTools []langchaingoTools.Tool, onComplete func(toolName, arguments, result string)) []langchaingoTools.Tool {
+	wrappedTools := make([]langchaingoTools.Tool, 0, len(agentTools))
+	for _, agentTool := range agentTools {
+		wrappedTools = append(wrappedTools, toolCallReportingTool{
+			tool:       agentTool,
+			onComplete: onComplete,
+		})
+	}
+	return wrappedTools
+}
+
+// formatToolCallChunk renders one tool invocation as a single Markdown bullet
+// section that the frontend can append directly and persist as Description text.
+func formatToolCallChunk(toolName, arguments, result string) string {
+	argumentsLanguage, argumentsText := formatToolArguments(arguments)
+	resultText := strings.TrimSpace(result)
+	if resultText == "" {
+		resultText = "(empty)"
+	}
+
+	return fmt.Sprintf(
+		"* %s\n\n  Arguments:\n\n%s\n\n  Output:\n\n%s",
+		strings.TrimSpace(toolName),
+		indentMarkdownBlock(markdownCodeBlock(argumentsLanguage, argumentsText)),
+		indentMarkdownBlock(markdownCodeBlock("", resultText)),
+	)
+}
+
+// formatToolArguments normalizes the agent-provided tool input for display. JSON
+// arguments are pretty-printed and marked with the json language for Markdown;
+// non-JSON inputs are preserved as plain text.
+func formatToolArguments(arguments string) (string, string) {
+	argumentsText := strings.TrimSpace(arguments)
+	if argumentsText == "" {
+		return "", "(empty)"
+	}
+
+	var argumentsValue interface{}
+	if err := json.Unmarshal([]byte(argumentsText), &argumentsValue); err == nil {
+		formattedArguments, err := json.MarshalIndent(argumentsValue, "", "  ")
+		if err == nil {
+			return "json", string(formattedArguments)
+		}
+	}
+
+	return "", argumentsText
+}
+
+// markdownCodeBlock wraps arbitrary tool text in a fenced Markdown code block.
+// The fence is expanded when needed so nested backticks in tool output do not
+// prematurely close the block.
+func markdownCodeBlock(language, content string) string {
+	fence := "```"
+	for strings.Contains(content, fence) {
+		fence += "`"
+	}
+	if language == "" {
+		return fmt.Sprintf("%s\n%s\n%s", fence, content, fence)
+	}
+	return fmt.Sprintf("%s%s\n%s\n%s", fence, language, content, fence)
+}
+
+// indentMarkdownBlock nests a multi-line Markdown block under the current tool
+// call bullet, keeping arguments and output visually grouped as one invocation.
+func indentMarkdownBlock(content string) string {
+	lines := strings.Split(content, "\n")
+	for i, line := range lines {
+		lines[i] = "  " + line
+	}
+	return strings.Join(lines, "\n")
 }
