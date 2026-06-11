@@ -45,14 +45,21 @@ func (s *HTTPStreamSender) SendMessage(msg *core.MessageChunk) error {
 		return nil
 	}
 
-	select {
-	case <-s.Ctx.Done():
-		return fmt.Errorf("client disconnected")
-	default:
-		if err := s.Enc.Encode(msg); err != nil {
-			return err
+	// reply_end must always be delivered so the frontend knows the loop
+	// terminated, even after user cancellation. Skip the context check for
+	// this terminal chunk; if the connection is truly gone, Encode will fail
+	// with a write error which is acceptable.
+	if msg.ChunkType != common.ReplyEnd {
+		select {
+		case <-s.Ctx.Done():
+			return fmt.Errorf("client disconnected")
+		default:
 		}
-		s.Flusher.Flush()
-		return nil
 	}
+
+	if err := s.Enc.Encode(msg); err != nil {
+		return err
+	}
+	s.Flusher.Flush()
+	return nil
 }
