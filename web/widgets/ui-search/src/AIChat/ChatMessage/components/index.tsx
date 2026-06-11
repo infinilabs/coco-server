@@ -30,6 +30,7 @@ import { DeepResearch } from "./DeepResearch";
 import { PayloadCard } from "./PayloadCard";
 
 import { type TFunction } from "i18next";
+import { SendMessageParams } from "../../../AIChat/Chat";
 
 const DEEP_RESEARCH_CHUNK_TYPES = [
   "research_planner_start",
@@ -46,7 +47,7 @@ const DEEP_RESEARCH_CHUNK_TYPES = [
 export interface ChatMessageProps {
   message: IChatMessage;
   isTyping?: boolean;
-  onResend?: (value: string) => void;
+  onResend?: (params: SendMessageParams) => void;
   onCancel?: () => void;
   hide_assistant?: boolean;
   rootClassName?: string;
@@ -248,7 +249,7 @@ const InnerChatMessage = memo(
     const source = message?._source;
     const messageContent = source?.message || "";
 
-    
+
     const payload = source?.payload;
 
     const attachments = useMemo(() => source?.attachments ?? [], [source?.attachments]);
@@ -308,7 +309,7 @@ const InnerChatMessage = memo(
       (suggestion && suggestion.length > 0)
       || isCancelled
       || isError;
-    
+
     const isDeepResearching = useMemo(() => {
       return !!deepResearchDetail || deepResearch?.length > 0;
     }, [deepResearchDetail, deepResearch]);
@@ -418,7 +419,10 @@ const InnerChatMessage = memo(
               copyButtonId={copyButtonId}
               onResend={() => {
                 if (onResend) {
-                  onResend(question);
+                  onResend({
+                    message: question,
+                    attachments
+                  });
                 }
               }}
             />
@@ -427,7 +431,9 @@ const InnerChatMessage = memo(
           {!isTyping && (
             <SuggestionList
               suggestions={suggestion}
-              onSelect={(text) => onResend && onResend(text)}
+              onSelect={(text) => onResend && onResend({
+                message: text,
+              })}
             />
           )}
         </>
@@ -444,14 +450,12 @@ const InnerChatMessage = memo(
         )}
       >
         <div
-          className={`w-full flex gap-4 ${
-            isAssistant ? "w-full" : "flex-row-reverse"
-          }`}
+          className={`w-full flex gap-4 ${isAssistant ? "w-full" : "flex-row-reverse"
+            }`}
         >
           <div
-            className={`w-full space-y-2 ${
-              isAssistant ? "text-left" : "text-right"
-            }`}
+            className={`w-full space-y-2 ${isAssistant ? "text-left" : "text-right"
+              }`}
           >
             {!hide_assistant && hasContent && (
               <div className="w-full flex items-center gap-8px font-semibold text-sm text-[#333] dark:text-white">

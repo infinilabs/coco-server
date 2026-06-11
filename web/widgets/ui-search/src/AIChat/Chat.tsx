@@ -847,11 +847,12 @@ const InnerChatAI = memo(
             activeMessageGen={activeMessageGen}
             timedoutShow={timedoutShow}
             Question={Question}
-            handleSendMessage={(message) =>
+            handleSendMessage={(params) =>{
               handleSendMessage(activeChat, {
-                message: Array.isArray(message) ? message.join("") : String(message ?? ""),
-              })
-            }
+                ...params,
+                message: Array.isArray(params.message) ? params.message.join("") : String(params.message ?? "")
+              });
+            }}
             getFileUrl={getFileUrl}
             formatUrl={formatUrl}
             curIdRef={curIdRef}

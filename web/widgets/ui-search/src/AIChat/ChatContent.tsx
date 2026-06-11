@@ -11,13 +11,14 @@ import type { Chat, IChunkData } from "./types/chat";
 import { useConnectStore } from "./stores/connectStore";
 import ScrollToBottom from "./Common/ScrollToBottom";
 import { useChatStore, type Assistant } from "./stores/chatStore";
+import { SendMessageParams } from "./Chat";
 
 export interface ActiveChatMessageProps {
   activeMessageRef?: React.RefObject<ChatMessageRef>;
   activeChat?: Chat;
   curChatEnd: boolean;
   Question: string;
-  handleSendMessage: (content: string, newChat?: Chat) => void;
+  handleSendMessage: (params: SendMessageParams) => void;
   formatUrl?: (data: IChunkData) => string;
   assistantList?: Assistant[];
   currentAssistant?: Assistant;
@@ -73,7 +74,7 @@ interface ChatContentProps {
   activeMessageGen?: number;
   timedoutShow: boolean;
   Question: string;
-  handleSendMessage: (content: string, newChat?: Chat) => void;
+  handleSendMessage: (params: SendMessageParams) => void;
   getFileUrl: (path: string) => string;
   formatUrl?: (data: IChunkData) => string;
   curIdRef: React.MutableRefObject<string>;
@@ -163,33 +164,34 @@ export const ChatContent = ({
             <Greetings t={t} />
           )}
 
-          {activeChat?.messages?.map((message) => (
-            <ChatMessage
-              key={message._id}
-              message={{
-                ...message,
-                _source: {
-                  ...(message._source || {}),
-                  question:
-                    message._source?.type !== "user" &&
-                    !message._source?.question
-                      ? activeChat?.messages?.find(
-                          (m) =>
-                            m._id === message._source?.reply_to_message
-                        )?._source?.message || ""
-                      : message._source?.question || "",
-                },
-              }}
-              isTyping={false}
-              onResend={handleSendMessage}
-              onCancel={onCancel}
-              formatUrl={formatUrl}
-              assistantList={assistantList}
-              fetchAttachments={fetchAttachments}
-              theme={theme as any}
-              t={t}
-            />
-          ))}
+          {activeChat?.messages?.map((message) => {
+            const userMessage = message._source?.type !== "user" ? 
+              activeChat?.messages?.find((m) => m._id === message._source?.reply_to_message) 
+              : 
+              undefined;
+
+            return (
+              <ChatMessage
+                key={message._id}
+                message={{
+                  ...message,
+                  _source: {
+                    ...(message._source || {}),
+                    question: userMessage?._source?.message || "",
+                    attachments: userMessage?._source?.attachments || message._source?.attachments || [],
+                  },
+                }}
+                isTyping={false}
+                onResend={handleSendMessage}
+                onCancel={onCancel}
+                formatUrl={formatUrl}
+                assistantList={assistantList}
+                fetchAttachments={fetchAttachments}
+                theme={theme as any}
+                t={t}
+              />
+            )
+          })}
 
           {(activeChat || !curChatEnd) && (
             <ActiveChatMessage

@@ -3,7 +3,7 @@ export interface ChatMessageSource {
   assistant_id?: string;
   message: string;
   question?: string;
-  [key: string]: unknown;
+  [key: string]: any;
 }
 
 export interface ChatMessageItem {
