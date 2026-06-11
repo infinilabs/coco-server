@@ -166,7 +166,20 @@ export const ChatContent = ({
           {activeChat?.messages?.map((message) => (
             <ChatMessage
               key={message._id}
-              message={message}
+              message={{
+                ...message,
+                _source: {
+                  ...(message._source || {}),
+                  question:
+                    message._source?.type !== "user" &&
+                    !message._source?.question
+                      ? activeChat?.messages?.find(
+                          (m) =>
+                            m._id === message._source?.reply_to_message
+                        )?._source?.message || ""
+                      : message._source?.question || "",
+                },
+              }}
               isTyping={false}
               onResend={handleSendMessage}
               onCancel={onCancel}
