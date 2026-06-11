@@ -143,7 +143,7 @@ export function Component() {
       observer?.disconnect();
       window.removeEventListener('resize', updateRightMenuWidth);
     };
-  }, [isMobile]);
+  }, [isMobile, integration]);
 
   const onSearch = async (queryParams: { [key: string]: any }, callback: (data: any) => void, setLoading: (loading: boolean) => void) => {
     if (setLoading) setLoading(true)

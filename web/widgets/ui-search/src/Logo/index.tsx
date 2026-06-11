@@ -29,7 +29,7 @@ export const Logo: FC<LogoProps> = (props) => {
         <div className={`w-full h-full flex items-center justify-left max-w-inherit max-h-inherit object-contain`}>
             <img
                 src={isMobile && !isHome ? logos.mobile : logos.logo}
-                className="w-full cursor-pointer max-h-100%"
+                className={`${isMobile ? 'w-full h-full' : 'max-w-full max-h-full'} cursor-pointer object-contain`}
                 onClick={() => onLogoClick?.()}
                 alt="Logo"
             />
