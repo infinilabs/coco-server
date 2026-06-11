@@ -1,6 +1,14 @@
 @unocss;
 
 /*
+ * Fix truncate in flex containers: allow the element to shrink below
+ * its content width so overflow: hidden can take effect.
+ */
+.truncate {
+  min-width: 0;
+}
+
+/*
  * CSS Reset / Preflight
  * Ensures consistent base styles for all consumers of ui-search.
  * Based on Tailwind CSS preflight (modern-normalize).

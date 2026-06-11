@@ -31,7 +31,7 @@ export const init: Init = async currentFullPath => {
 
   const setupRequired = Boolean(result.data?.setup_required);
   const isManaged = Boolean(result?.data?.security?.managed);
-  const searchEnabled = Boolean(result?.data?.search_settings?.enabled);
+  const searchEnabled = Boolean(result?.data?.search_settings?.enabled) && Boolean(result?.data?.search_settings?.integration);
 
   const filterPaths: RoutePath[] = [];
   if (!setupRequired || isManaged) {
@@ -53,7 +53,7 @@ export const init: Init = async currentFullPath => {
 
   const { data: user, error } = await fetchGetUserInfo();
 
-  const isLogin = Boolean(user) && !user.error && !error;
+  const isLogin = Boolean(user) && !error;
 
   if (isLogin) {
     localStg.set('userInfo', user);
@@ -195,7 +195,7 @@ function handleRouteSwitch(to: RouteLocationNormalizedLoaded, NavigationGuardNex
 }
 
 export const afterEach: AfterEach = to => {
-  const { i18nKey, title } = to.meta;
+  const { i18nKey, title } = to.meta as any;
 
   const documentTitle = i18nKey ? $t(i18nKey) : title;
   document.title = documentTitle ?? 'React-Soybean';

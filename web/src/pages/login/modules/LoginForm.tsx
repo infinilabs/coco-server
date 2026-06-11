@@ -2,19 +2,13 @@ import { Button, Form, Input } from 'antd';
 
 import { Shield } from 'lucide-react';
 import { useLogin } from '@/hooks/common/login';
-import { localStg } from '@/utils/storage';
 import normalizeUrl from 'normalize-url';
 import { getApplicationSetting } from '@/store/slice/server';
 
-type AccountKey = 'admin' | 'super' | 'user';
-interface Account {
-  key: AccountKey;
-  label: string;
+interface LoginParams {
+  email: string;
   password: string;
-  userName: string;
 }
-
-type LoginParams = Pick<Account, 'password' | 'userName'>;
 
 function getOAuthProviders(applicationSetting: any) {
   const oauth = applicationSetting?.security?.auth?.oauth;

@@ -53,7 +53,9 @@ const SearchSettings = memo(() => {
       }
       await dispatch(setApplicationSetting(newApplicationSetting));
       await dispatch(updateRootRouteIfSearch(newApplicationSetting));
-      await dispatch(setFilterPaths(filterPaths.filter(path => path !== '/search')));
+      if (search_settings.enabled && search_settings.integration) {
+        await dispatch(setFilterPaths(filterPaths.filter(path => path !== '/search')));
+      }
       await dispatch(initConstantRoute());
       await dispatch(resetAuth());
       await dispatch(initAuthRoute());

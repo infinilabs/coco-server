@@ -64,12 +64,14 @@ declare namespace Api {
       email: string;
       id: string;
       name: string;
+      permissions?: string[];
       preferences: {
         language: string;
         theme: string;
       };
       roles: string[];
       updated: string;
+      [key: string]: any;
     }
   }
 
@@ -260,6 +262,10 @@ declare namespace Api {
       updated: string;
       version: {
         number: string;
+      };
+      search_settings?: {
+        enabled?: boolean;
+        integration?: string;
       };
       security?: {
         managed?: boolean;

@@ -62,6 +62,10 @@ function filterAuthRouteByPermissions(route: ElegantConstRoute, permissions: str
 
   if (filterRoute.children?.length) {
     filterRoute.children = filterRoute.children.flatMap(item => filterAuthRouteByPermissions(item, permissions));
+    // If all children were filtered out, remove the parent route as well
+    if (!filterRoute.children.length) {
+      return [];
+    }
   }
 
   return hasPermission || isEmptyPermissions ? [filterRoute] : [];

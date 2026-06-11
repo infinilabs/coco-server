@@ -258,7 +258,7 @@ const resources = {
         expandMore: "展开更多",
         collapse: "收起",
         resultsWithTime: "共找到 {{count}} 条记录（{{took}} 毫秒）",
-        openSource: "打开来源",
+        openSource: "打开原文",
         type: "类型",
         size: "大小",
         createdBy: "创建者",
