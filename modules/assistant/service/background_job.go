@@ -175,7 +175,10 @@ func ProcessMessageAsync(ctx context.Context, userID string, reqMsg, replyMsg *c
 	// request explicitly sets deep_thinking=true; otherwise fall through to
 	// simple mode so the user can get a fast answer without the full pipeline.
 	if params.AssistantCfg.Type == core.AssistantTypeDeepThink && params.DeepThink {
-		return deep_search.RunDeepSearchTask(
+		// The deferred finalizer reads this captured err variable to decide the
+		// reply_end reason. Assign before returning; a direct return would skip the
+		// local variable in this non-named-return function.
+		err = deep_search.RunDeepSearchTask(
 			ctx,
 			userID,
 			params,
@@ -184,6 +187,7 @@ func ProcessMessageAsync(ctx context.Context, userID string, reqMsg, replyMsg *c
 			replyMsg,
 			sender,
 		)
+		return err
 	}
 
 	switch params.AssistantCfg.Type {
