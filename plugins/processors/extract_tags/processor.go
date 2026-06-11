@@ -192,7 +192,7 @@ func extractTagsFromInsights(ctx context.Context, aiInsights string, config *Con
 	userPrompt := buildTagExtractionPrompt(aiInsights, config.LLMGenerationLang)
 
 	message := []llms.MessageContent{
-		llms.TextParts(llms.ChatMessageTypeSystem, systemPrompt),
+		langchain.SystemTextParts(systemPrompt),
 		llms.TextParts(llms.ChatMessageTypeHuman, userPrompt),
 	}
 

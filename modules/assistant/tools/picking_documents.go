@@ -42,10 +42,7 @@ func PickingDocuments(ctx context.Context, reqMsg, replyMsg *core.ChatMessage,
 		panic(err)
 	}
 	content := []llms.MessageContent{
-		llms.TextParts(
-			llms.ChatMessageTypeSystem,
-			finalPrompt,
-		),
+		langchain.SystemTextParts(finalPrompt),
 	}
 
 	log.Debug("start filtering documents")

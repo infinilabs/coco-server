@@ -81,7 +81,7 @@ func GenerateResponse(taskCtx context.Context, provider *core.ModelProvider, mod
 
 	// Prepare the system message
 	content := []llms.MessageContent{
-		llms.TextParts(llms.ChatMessageTypeSystem, rolePrompt),
+		SystemTextParts(rolePrompt),
 	}
 
 	//response
@@ -229,7 +229,7 @@ func GetPromptMessages(modelConfig *core.ModelConfig, systemPrompt, userPrompt s
 	content := []llms.MessageContent{}
 
 	if systemPrompt != "" {
-		content = append(content, llms.TextParts(llms.ChatMessageTypeSystem, systemPrompt))
+		content = append(content, SystemTextParts(systemPrompt))
 	}
 
 	// Create the prompt template
@@ -342,7 +342,7 @@ func GenerateFinalResponse(taskCtx context.Context, reqMsg, replyMsg *core.ChatM
 
 	// Prepare the system message
 	content := []llms.MessageContent{
-		llms.TextParts(llms.ChatMessageTypeSystem, params.AssistantCfg.RolePrompt),
+		SystemTextParts(params.AssistantCfg.RolePrompt),
 	}
 
 	//response

@@ -333,7 +333,7 @@ func summarizeDocumentMultiPasses(ctx context.Context, document *core.Document, 
 }
 
 func calculateContentBudget(systemPrompt, userPromptPrefix string, modelContextLength uint32) (int, error) {
-	promptLength := utf8.RuneCountInString(systemPrompt) + utf8.RuneCountInString(userPromptPrefix)
+	promptLength := utf8.RuneCountInString(langchain.SystemPromptWithCurrentTime(systemPrompt)) + utf8.RuneCountInString(userPromptPrefix)
 	budget := int(modelContextLength) - promptLength
 	if budget <= 0 {
 		return 0, fmt.Errorf("model context length is too small for prompts (%d)", promptLength)
@@ -407,7 +407,7 @@ func aggregateTexts(texts []string, budget int) []string {
 // Base/helper function to do summary generation.
 func generateSummaryFromPrompt(ctx context.Context, llm llms.Model, systemPrompt, userPrompt string, regexpToRemoveThink *regexp.Regexp) (string, error) {
 	message := []llms.MessageContent{
-		llms.TextParts(llms.ChatMessageTypeSystem, systemPrompt),
+		langchain.SystemTextParts(systemPrompt),
 		llms.TextParts(llms.ChatMessageTypeHuman, userPrompt),
 	}
 
@@ -458,7 +458,7 @@ func tryGenerateAIInsightsOnePass(ctx context.Context, document *core.Document, 
 	}
 
 	message := []llms.MessageContent{
-		llms.TextParts(llms.ChatMessageTypeSystem, systemPrompt),
+		langchain.SystemTextParts(systemPrompt),
 		llms.TextParts(llms.ChatMessageTypeHuman, userPrompt),
 	}
 
