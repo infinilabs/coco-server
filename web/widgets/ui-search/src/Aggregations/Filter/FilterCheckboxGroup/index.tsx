@@ -1,5 +1,5 @@
 import { useState, type FC } from "react";
-import { Checkbox } from "antd";
+import { Checkbox, Typography } from "antd";
 import { motion, AnimatePresence } from "motion/react";
 
 import type { FilterCollapseProps } from "../FilterCollapse";
@@ -43,9 +43,9 @@ const FilterCheckboxGroup: FC<FilterCheckboxGroupProps> = (props) => {
           const { label, value, icon, count } = item;
 
           return (
-            <div key={value} className="flex items-center justify-between">
+            <div key={value} className="flex min-w-0 items-center justify-between gap-2">
               <Checkbox
-                className="inline-flex items-center"
+                className="min-w-0 flex-1 items-center [&>span:last-child]:min-w-0 [&>span:last-child]:flex-1"
                 checked={propsValue.includes(value)}
                 onChange={(event) => {
                   const checked = event.target.checked;
@@ -57,29 +57,30 @@ const FilterCheckboxGroup: FC<FilterCheckboxGroupProps> = (props) => {
                   }
                 }}
               >
-                <div className="flex items-center gap-5px">
+                <div className="flex min-w-0 items-center gap-5px">
                   {icon && (
                     <img
                       src={icon}
                       alt={label}
-                      className={clsx("w-14px h-14px", classNames?.icon)}
+                      className={clsx("h-14px w-14px shrink-0", classNames?.icon)}
                     />
                   )}
 
-                  <span
+                  <Typography.Text
                     className={clsx(
-                      "text-[#666] dark:text-white/80",
+                      "min-w-0 max-w-full !text-[#666] dark:!text-white/80",
                       classNames?.label
                     )}
+                    ellipsis={{ tooltip: label }}
                   >
                     {label}
-                  </span>
+                  </Typography.Text>
                 </div>
               </Checkbox>
 
               <span
                 className={clsx(
-                  "text-[#666] dark:text-white/80",
+                  "shrink-0 text-[#666] dark:text-white/80",
                   classNames?.count
                 )}
               >
