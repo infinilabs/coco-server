@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback, type CSSProperties } from "react";
+import { useTranslation } from "react-i18next";
 import Markdown from "@infinilabs/markdown";
 import AIOverviewIcon from "../../icons/AIOverviewIcon";
 import clsx from "clsx";
@@ -24,6 +25,7 @@ export type AIAnswerProps = {
   headerStyle?: CSSProperties;
   titleStyle?: CSSProperties;
   loading?: boolean;
+  isReplyEnd?: boolean;
 };
 
 export function AIAnswer({
@@ -42,7 +44,9 @@ export function AIAnswer({
   headerStyle,
   titleStyle,
   loading = false,
+  isReplyEnd = false,
 }: AIAnswerProps) {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const [overflow, setOverflow] = useState(false);
@@ -151,7 +155,7 @@ export function AIAnswer({
         {showToggle ? (
           <AIExpandToggle
             collapsed={collapsed}
-            expandText={expandText}
+            expandText={collapsed && !isReplyEnd && content ? `${expandText}（${t("labels.generating")}）` : expandText}
             collapseText={collapseText}
             onToggle={() => {
               setUserInteracted(true);
@@ -159,7 +163,7 @@ export function AIAnswer({
             }}
           />
         ) : null}
-        {content && !loading ? (
+        {(
           <div className="mt-4 flex items-center justify-between">
             <AIAnswerActions
               copyText={content}
@@ -167,10 +171,11 @@ export function AIAnswer({
               onLike={() => { }}
               onDislike={() => { }}
               theme={theme}
+              disabled={!isReplyEnd}
             />
-            <AIContinueButton label={continueLabel} onClick={onContinue} />
+            <AIContinueButton label={continueLabel} onClick={onContinue} disabled={!isReplyEnd} />
           </div>
-        ) : null}
+        )}
       </div>
     </div>
   );

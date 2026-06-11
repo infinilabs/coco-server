@@ -38,6 +38,7 @@ const AIOverviewWrapper = (props: AIOverviewWrapperProps) => {
 
   const [data, setData] = useState<DataState>();
   const [loading, setLoading] = useState(false);
+  const [isReplyEnd, setIsReplyEnd] = useState(false);
   const [visible, setVisible] = useState(true);
   const sessionIdRef = useRef<string | undefined>(undefined);
 
@@ -53,6 +54,9 @@ const AIOverviewWrapper = (props: AIOverviewWrapperProps) => {
     } else {
       newMessage += data.message_chunk;
     }
+    if (data.chunk_type === "reply_end") {
+      setIsReplyEnd(true);
+    }
     return {
       ...(prevData || {}),
       [type]: {
@@ -66,6 +70,7 @@ const AIOverviewWrapper = (props: AIOverviewWrapperProps) => {
     if (message && config.assistant) {
       setData(undefined);
       setLoading(true);
+      setIsReplyEnd(false);
       onAsk(config.assistant, message, (res) => {
         setData((prev) => handleMessage(res, prev));
       }, setLoading);
@@ -91,6 +96,7 @@ const AIOverviewWrapper = (props: AIOverviewWrapperProps) => {
       setVisible={setVisible}
       theme={theme}
       onChatContinue={() => sessionIdRef.current && onChatContinue?.(sessionIdRef.current)}
+      isReplyEnd={isReplyEnd}
     />
   );
 };

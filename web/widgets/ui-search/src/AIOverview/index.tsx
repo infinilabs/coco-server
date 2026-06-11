@@ -21,10 +21,11 @@ interface AIOverviewProps {
     setVisible?: (visible: boolean) => void;
     theme?: "light" | "dark" | "auto";
     onChatContinue?: () => void;
+    isReplyEnd?: boolean;
 }
 
 const AIOverview = (props: AIOverviewProps) => {
-    const { config = {}, data, loading, visible, theme, onChatContinue } = props;
+    const { config = {}, data, loading, visible, theme, onChatContinue, isReplyEnd } = props;
     const { t } = useTranslation();
 
     if (!visible) return null;
@@ -41,6 +42,7 @@ const AIOverview = (props: AIOverviewProps) => {
             expandText={t("labels.expandMore")}
             collapseText={t("labels.collapse")}
             loading={loading}
+            isReplyEnd={isReplyEnd}
         />
     );
 };
