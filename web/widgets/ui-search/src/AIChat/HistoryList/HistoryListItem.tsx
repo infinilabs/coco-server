@@ -147,11 +147,6 @@ const HistoryListItem: FC<HistoryListItemProps> = ({
       onMouseLeave={() => setIsHovered(false)}
       onContextMenu={onContextMenu}
     >
-      <div
-        className={clsx("w-1 h-6 rounded-sm bg-[#0072FF]", {
-          "opacity-0": item._id !== active?._id,
-        })}
-      />
 
       <div className="flex-1 flex items-center justify-between gap-2 px-2 overflow-hidden">
         {isEdit || isRenaming ? (

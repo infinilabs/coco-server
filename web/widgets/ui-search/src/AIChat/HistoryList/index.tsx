@@ -105,7 +105,7 @@ const HistoryList: FC<HistoryListProps> = (props) => {
         </Button>
       </div>
 
-      <div className="flex-1 px-14px overflow-auto mt-8px">
+      <div className="flex-1 overflow-auto mt-8px mb-8px">
         <HistoryListContent
           chats={filteredChats}
           active={active}
