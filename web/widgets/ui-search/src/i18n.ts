@@ -51,6 +51,8 @@ const resources = {
         updatedAt: "Updated At",
         preview: "Preview",
         aiInterpretation: "AI Interpretation",
+        cancelled: "Generation Cancelled",
+        error: "Generation Error",
       },
       history_list: {
         search: {
@@ -258,6 +260,8 @@ const resources = {
         updatedAt: "更新时间",
         preview: "预览",
         aiInterpretation: "AI 解读",
+        cancelled: "回答已取消",
+        error: "回答出错",
       },
       history_list: {
         search: {

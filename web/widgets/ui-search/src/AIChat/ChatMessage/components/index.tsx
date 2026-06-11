@@ -308,6 +308,10 @@ const InnerChatMessage = memo(
       !!payload ||
       isTyping ||
       (suggestion && suggestion.length > 0);
+    
+    const isDeepResearching = useMemo(() => {
+      return !!deepResearchDetail || deepResearch?.length > 0;
+    }, [deepResearchDetail, deepResearch]);
 
     const renderContent = () => {
       if (!isAssistant) {
@@ -390,14 +394,14 @@ const InnerChatMessage = memo(
           {
             isCancelled && (
               <div className="mt-16px text-14px leading-20px text-[#999]">
-                {t("deepResearch.status.cancelled")}
+                {isDeepResearching ? t("deepResearch.status.cancelled") : t("labels.cancelled")}
               </div>
             )
           }
           {
             isError && (
               <div className="mt-16px text-14px leading-20px text-[#F04444]">
-                {t("deepResearch.status.error")}
+                {isDeepResearching ? t("deepResearch.status.error") : t("labels.error")}
               </div>
             )
           }
