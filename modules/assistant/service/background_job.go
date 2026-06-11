@@ -25,6 +25,7 @@ import (
 	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/orm"
+	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
 )
 
@@ -64,7 +65,7 @@ func CreateAssistantReplyMessage(sessionID, assistantID, requestMessageID string
 }
 
 // save response and send END signal to receiver
-func finalizeProcessing(ctx context.Context, sessionID string, msg *core.ChatMessage, sender core.MessageSender, reason string, processingErr error) {
+func finalizeProcessing(ctx context.Context, msg *core.ChatMessage, sender core.MessageSender, reason string, processingErr error) {
 	payloadMap := util.MapStr{"reason": reason}
 	if reason == common.ReplyEndReasonError && processingErr != nil {
 		payloadMap["error"] = processingErr.Error()
@@ -78,13 +79,12 @@ func finalizeProcessing(ctx context.Context, sessionID string, msg *core.ChatMes
 		Payload: payloadMap,
 	})
 
-	// Use a fresh background context with timeout for saving, so a cancelled
-	// request context (e.g. from Ctrl-C / graceful shutdown) does not prevent
-	// the reply message from being persisted.
-	saveCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	// Clone the security user onto a fresh background context so cancellation of
+	// the request does not block persistence while ORM owner hooks still work.
+	saveCtx := security.CloneContext(ctx)
+	saveCtx, cancel := context.WithTimeout(saveCtx, 10*time.Second)
 	defer cancel()
 	ctx1 := orm.NewContextWithParent(saveCtx)
-	ctx1.DirectAccess()
 	ctx1.Refresh = orm.ImmediatelyRefresh
 
 	if err := orm.Save(ctx1, msg); err != nil {
@@ -140,7 +140,7 @@ func ProcessMessageAsync(ctx context.Context, userID string, reqMsg, replyMsg *c
 		}
 
 		reason := determineExitReason(ctx, err, taskID)
-		finalizeProcessing(ctx, params.SessionID, replyMsg, sender, reason, err)
+		finalizeProcessing(ctx, replyMsg, sender, reason, err)
 		// clear the inflight message task
 		InflightMessages.Delete(taskID)
 
