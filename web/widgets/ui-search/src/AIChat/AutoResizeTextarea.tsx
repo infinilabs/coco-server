@@ -50,6 +50,7 @@ const AutoResizeTextarea = forwardRef<
     const t = tProp || tOriginal;
     const [isComposition, { setTrue, setFalse }] = useBoolean();
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const ghostRef = useRef<HTMLSpanElement>(null);
 
     // Expose methods to the parent via ref
     useImperativeHandle(ref, () => ({
@@ -69,10 +70,32 @@ const AutoResizeTextarea = forwardRef<
       handleKeyDown?.(event);
     };
 
+    // Sync font styles from textarea to ghost span for accurate measurement
+    useEffect(() => {
+      const textarea = textareaRef.current;
+      const ghost = ghostRef.current;
+      if (!textarea || !ghost) return;
+
+      const cs = getComputedStyle(textarea);
+      ghost.style.fontFamily = cs.fontFamily;
+      ghost.style.fontSize = cs.fontSize;
+      ghost.style.fontWeight = cs.fontWeight;
+      ghost.style.fontStyle = cs.fontStyle;
+      ghost.style.letterSpacing = cs.letterSpacing;
+      ghost.style.wordSpacing = cs.wordSpacing;
+      ghost.style.textTransform = cs.textTransform;
+      ghost.style.fontVariant = cs.fontVariant;
+      ghost.style.fontStretch = cs.fontStretch;
+    }, []);
+
     useEffect(() => {
       const textarea = textareaRef.current;
 
       if (!textarea) return;
+
+      if (!ghostRef.current) return;
+      const ghostWidth = ghostRef.current.offsetWidth;
+      const isMultiLine = ghostWidth > firstLineMaxWidth;
 
       textarea.style.height = "auto";
       textarea.style.minHeight = "auto";
@@ -84,7 +107,7 @@ const AutoResizeTextarea = forwardRef<
       let height = lineHeight;
       let minHeight = lineHeight;
 
-      if (scrollHeight > lineHeight) {
+      if (isMultiLine || scrollHeight > lineHeight) {
         minHeight = lineHeight * 2;
         height = Math.min(Math.max(minHeight, scrollHeight), MAX_HEIGHT);
       }
@@ -104,6 +127,20 @@ const AutoResizeTextarea = forwardRef<
 
     return (
       <>
+        <span
+          ref={ghostRef}
+          aria-hidden
+          style={{
+            position: "absolute",
+            visibility: "hidden",
+            whiteSpace: "nowrap",
+            pointerEvents: "none",
+            height: 0,
+            overflow: "hidden",
+          }}
+        >
+          {input || " "}
+        </span>
         <textarea
           ref={textareaRef}
           id="chat-textarea"

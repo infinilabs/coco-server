@@ -178,7 +178,9 @@ export default function ChatInput({
 
   const textareaRef = useRef<{ reset: () => void; focus: () => void }>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const iconRef = useRef<HTMLDivElement>(null);
   const containerSize = useSize(containerRef);
+  const iconSize = useSize(iconRef);
 
   const [lineCount, setLineCount] = useState(1);
   const committedRef = useRef("");
@@ -350,7 +352,7 @@ export default function ChatInput({
         chatPlaceholder={chatPlaceholder}
         lineCount={lineCount}
         onLineCountChange={setLineCount}
-        firstLineMaxWidth={containerSize?.width ?? 0}
+        firstLineMaxWidth={(containerSize?.width ?? 0) - (iconSize?.width ?? 0) - 32}
         disabled={disabled}
         t={t}
       />
@@ -373,7 +375,7 @@ export default function ChatInput({
   };
 
   const renderExtraIcon = () => (
-    <div className="flex items-center gap-2 w-fit">
+    <div ref={iconRef} className="flex items-center gap-2 w-fit">
       <ChatIcons
         curChatEnd={curChatEnd}
         inputValue={inputValue}
@@ -433,9 +435,20 @@ export default function ChatInput({
         }}
       >
         <div
-          className="min-h-[48px] w-full px-12px py-8px bg-transparent relative"
+          className={clsx("min-h-[48px] w-full px-12px py-8px bg-transparent", {
+            "flex items-center gap-2": lineCount === 1,
+          })}
         >
           {renderTextarea()}
+
+          {lineCount === 1 && renderExtraIcon()}
+
+          {lineCount > 1 && (
+            <div className="flex items-center">
+              <div className="flex-1"></div>
+              <div className="self-end">{renderExtraIcon()}</div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -461,7 +474,6 @@ export default function ChatInput({
           getMCPByServer={getMCPServers}
           t={t}
         />
-        {renderExtraIcon()}
       </div>
       )}
     </div>
