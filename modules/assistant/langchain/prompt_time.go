@@ -12,7 +12,7 @@ import (
 	"github.com/tmc/langchaingo/llms"
 )
 
-const currentTimePromptFormat = "The current time is %s."
+const currentTimePromptFormat = "The current time is %s. Use this value as the authoritative current date and time. If the user asks about the current date or time, answer directly from this value and ignore earlier conversation turns that claim the current time is unavailable."
 
 // PromptWithCurrentTime appends the current local time to a prompt so every LLM
 // call has a consistent temporal reference for time-sensitive questions and
