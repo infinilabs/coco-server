@@ -627,10 +627,11 @@ const InnerChatAI = memo(
         if (activeChat?._id && activeChat._id !== lastActiveChatIdRef.current) {
           lastActiveChatIdRef.current = activeChat._id;
 
-          // Skip if a stream is currently generating — the session change came
-          // from the stream handler (e.g. backend created a new session), not
-          // from a user click.  Otherwise, load history for the selected chat.
-          if (!generatingSessionRef.current) {
+          // Skip only if the generating session matches the new activeChat
+          // (i.e. the stream handler updated the session ID, not a user click).
+          // If the user clicked a different history item while generation is in
+          // progress, we still need to call onSelectChat to cancel the stream.
+          if (!generatingSessionRef.current || generatingSessionRef.current !== activeChat._id) {
             setTimeout(() => {
               onSelectChat(activeChat);
             }, 0);
