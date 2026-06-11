@@ -26,16 +26,16 @@ import (
 // and history, so deployments can tune the prompt budget without a code
 // change.
 const (
-	attachmentsSectionMaxChars = 4096 * 2
-	perAttachmentMaxChars      = 2048
-	maxAttachmentsInPrompt     = 8
+	attachmentsSectionMaxChars = 4096 * 4
+	perAttachmentMaxChars      = 4096
+	maxAttachmentsInPrompt     = 12
 )
 
-// formatAttachmentsSection renders the attachment metadata + extracted text
+// FormatAttachmentsSection renders the attachment metadata + extracted text
 // into a single prompt-ready string. It returns an empty string when there
 // is nothing to inject. Truncation is character-based (not token-aware) to
 // stay consistent with how references are clipped.
-func formatAttachmentsSection(value any) string {
+func FormatAttachmentsSection(value any) string {
 	atts, ok := value.([]*core.Attachment)
 	if !ok || len(atts) == 0 {
 		return ""
@@ -185,7 +185,7 @@ func GenerateResponse(taskCtx context.Context, provider *core.ModelProvider, mod
 	}
 
 	if v, ok := inputValues["attachments"]; ok {
-		contextPrompt += formatAttachmentsSection(v)
+		contextPrompt += FormatAttachmentsSection(v)
 	}
 
 	if v, ok := inputValues["tools_output"]; ok {
@@ -453,7 +453,7 @@ func GenerateFinalResponse(taskCtx context.Context, reqMsg, replyMsg *core.ChatM
 		}
 
 		if v, ok := inputValues["attachments"]; ok {
-			contextPrompt += formatAttachmentsSection(v)
+			contextPrompt += FormatAttachmentsSection(v)
 		}
 
 		if v, ok := inputValues["tools_output"]; ok {

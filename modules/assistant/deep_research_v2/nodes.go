@@ -57,26 +57,9 @@ Return the result in JSON format:
 
 Respond in %s.`, s.Request.Query, maxSteps, depthHint, s.Config.ResearchDepth, reportLang(s.Config.ReportLang))
 
-	// Prepend uploaded document content so the planner can treat them as primary source material.
-	if len(s.Attachments) > 0 {
-		var sb strings.Builder
-		for i, a := range s.Attachments {
-			if a == nil {
-				continue
-			}
-			text := strings.TrimSpace(a.Text)
-			if text == "" {
-				continue
-			}
-			name := a.Name
-			if name == "" {
-				name = a.ID
-			}
-			sb.WriteString(fmt.Sprintf("[%d] %s:\n%s\n\n", i+1, name, util.SubString(text, 0, 2048)))
-		}
-		if sb.Len() > 0 {
-			prompt = fmt.Sprintf("The user has uploaded the following documents. Treat them as primary source material when forming the research plan:\n<attachments>\n%s</attachments>\n\n%s", sb.String(), prompt)
-		}
+	// Prepend uploaded document content so the planner can treat it as primary source material.
+	if attachmentsSection := strings.TrimSpace(langchain.FormatAttachmentsSection(s.Attachments)); attachmentsSection != "" {
+		prompt = fmt.Sprintf("The user has uploaded the following documents. Treat them as primary source material when forming the research plan:\n%s\n\n%s", attachmentsSection, prompt)
 	}
 
 	completion, err := llms.GenerateFromSinglePrompt(ctx, llm, langchain.PromptWithCurrentTime(prompt))
