@@ -103,10 +103,10 @@ export const FetchSource = ({
     >
       <button
         onClick={() => setIsSourceExpanded((prev) => !prev)}
-        className={`text-[#101010] dark:text-[#F5F5F5] bg-transparent hover:bg-[#EDEDED] dark:hover:bg-[#3A3A3A] cursor-pointer inline-flex justify-between items-center gap-2 px-2 py-2px rounded-12px transition-colors whitespace-nowrap ${
+        className={`text-[#101010] dark:text-[#F5F5F5] bg-transparent hover:bg-[#EDEDED] dark:hover:bg-[#3A3A3A] cursor-pointer inline-flex justify-between items-center gap-2 px-2 py-2px transition-colors whitespace-nowrap ${
           isSourceExpanded
             ? "w-full"
-            : "border border-solid border-[#F0F0F0] dark:border-[#303030]"
+            : "rounded-12px border border-solid border-[#F0F0F0] dark:border-[#303030]"
         }`}
       >
         <div className="flex-1 min-w-0 flex items-center gap-2">
