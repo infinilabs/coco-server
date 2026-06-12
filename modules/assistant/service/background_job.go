@@ -38,11 +38,6 @@ var errAttachmentProcessingTimeout = errors.New("attachment processing timeout")
 // (explicit cancel button) from timeout, error, and normal completion.
 func determineExitReason(ctx context.Context, err error, taskID string) string {
 	if ctx.Err() != nil {
-		if v, ok := InflightMessages.Load(taskID); ok {
-			if task, ok := v.(common2.MessageTask); ok && task.CancelLang != "" {
-				return common.ReplyEndReasonUserCancelled
-			}
-		}
 		if ctx.Err() == context.DeadlineExceeded {
 			return common.ReplyEndReasonTimeout
 		}
