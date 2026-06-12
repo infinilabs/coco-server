@@ -6,7 +6,8 @@ weight: 4
 ## Face Extraction Processor
 
 Detects human faces in a document and attempts to identify each person using a
-vision model. Results are stored in `doc.Metadata["faces"]`.
+vision model. Detected faces and their identities are stored in the document
+metadata.
 
 ### Requirements/Dependencies
 
@@ -23,8 +24,8 @@ vision model. Results are stored in `doc.Metadata["faces"]`.
 | PDF, PPTX, DOCX | Faces detected in embedded images |
 
 > **Depends on** `document_text_attachment_extraction` — this processor must run after
-> `document_text_attachment_extraction` so that `doc.Chunks` is available for building context
-> for the vision model prompt.
+> `document_text_attachment_extraction` so that the extracted text is available
+> as context for the vision model.
 
 > **Note:** Face detection requires `pigo_facefinder_path` to be set. If
 > omitted, the processor exits silently without producing any output.
@@ -33,7 +34,7 @@ vision model. Results are stored in `doc.Metadata["faces"]`.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `message_field` | string | No | `messages` | Pipeline context key containing the `[]queue.Message` to process |
+| `message_field` | string | No | `messages` | Pipeline context key for the input messages |
 | `output_queue` | object | No | `null` | Queue to push processed documents to |
 | `tika_endpoint` | string | No | `http://127.0.0.1:9998` | Apache Tika server URL |
 | `tika_timeout_in_seconds` | int | No | `120` | Per-file Tika timeout |

@@ -31,7 +31,7 @@ as attachments. When it is disabled, the processor extracts text only.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `message_field` | string | No | `messages` | Pipeline context key containing the `[]queue.Message` to process |
+| `message_field` | string | No | `messages` | Pipeline context key for the input messages |
 | `output_queue` | object | No | `null` | Queue to push processed documents to |
 | `tika_endpoint` | string | No | `http://127.0.0.1:9998` | Apache Tika server URL |
 | `tika_timeout_in_seconds` | int | No | `120` | Per-file Tika timeout |

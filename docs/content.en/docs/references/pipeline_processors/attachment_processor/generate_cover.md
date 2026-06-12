@@ -7,10 +7,8 @@ weight: 1
 
 Generates a cover image and a thumbnail for an attachment.
 
-Result is stored in `attachment.metadata.cover` and `attachment.metadata.thumbnail`.
-
-The processor reads a serialized `core.Attachment` from the pipeline message
-and loads the attachment binary data from the blob store when processing it.
+The generated cover and thumbnail are stored in the attachment metadata and can
+be retrieved via the attachment API.
 
 | Supported format | Notes |
 |---|---|
@@ -31,7 +29,7 @@ and loads the attachment binary data from the blob store when processing it.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `message_field` | string | No | `messages` | Pipeline context key containing the `[]queue.Message` to process |
+| `message_field` | string | No | `messages` | Pipeline context key for the input messages |
 
 ### Example
 
