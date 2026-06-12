@@ -176,15 +176,7 @@ func (p *AttachmentTextExtractionProcessor) extractText(ctx context.Context, att
 		return "", fmt.Errorf("shutting down")
 	}
 
-	ext := strings.ToLower(filepath.Ext(localPath))
-
-	switch ext {
-	case ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".tiff", ".tif":
-		return p.extractTextFromImage(ctx, localPath)
-	default:
-		// Use Tika for PDF, DOCX, and other document types.
-		return p.extractTextWithTika(ctx, localPath)
-	}
+	return p.extractTextWithTika(ctx, localPath)
 }
 
 // extractTextWithTika uses Apache Tika to extract text from a document file.
