@@ -157,7 +157,7 @@ const DocDetail: FC<DocDetailProps> = (props) => {
       className={clsx("flex flex-col h-full overflow-hidden", className)}
       {...rest}
     >
-      <div className={clsx("text-20px text-[#1A0CAB] break-words", mode === "embedded" ? "pr-24px" : "")}>
+      <div className={clsx("text-20px text-[#1A0CAB] dark:text-[#8AB4F8] break-words", mode === "embedded" ? "pr-24px" : "")}>
         <AuthImage
           src={data?.icon}
           className={"w-20px h-20px inline-block align-middle mr-8px"}

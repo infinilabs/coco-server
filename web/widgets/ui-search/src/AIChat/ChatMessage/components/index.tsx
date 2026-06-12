@@ -70,6 +70,7 @@ export interface ChatMessageProps {
 export interface ChatMessageRef {
   addChunk: (chunk: IChunkData) => void;
   reset: () => void;
+  getResponseContent: () => string | undefined;
 }
 
 function resolveTheme(
@@ -221,6 +222,7 @@ const InnerChatMessage = memo(
         });
         inThinkRef.current = false;
       },
+      getResponseContent: () => response?.message_chunk,
     }));
 
     const isAssistant = message?._source?.type === "assistant";

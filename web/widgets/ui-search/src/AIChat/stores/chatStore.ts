@@ -48,6 +48,8 @@ export type IChatStore = {
   incrementHistoryVersion: () => void;
   attachmentCache: Map<string, AttachmentCacheItem>;
   cacheAttachments: (items: AttachmentCacheItem[]) => void;
+  onSelectChatHandler?: (chat?: Chat) => void;
+  setOnSelectChatHandler: (handler: (chat?: Chat) => void) => void;
 };
 
 export const useChatStore = create<IChatStore>()(
@@ -92,6 +94,9 @@ export const useChatStore = create<IChatStore>()(
           }
           return { attachmentCache: cache };
         }),
+      onSelectChatHandler: undefined,
+      setOnSelectChatHandler: (handler: (chat?: Chat) => void) =>
+        set(() => ({ onSelectChatHandler: handler })),
       updateLastMessage: (updates: Partial<ChatMessageSource>) =>
         set((state) => {
           if (!state.activeChat || !state.activeChat.messages) return {};

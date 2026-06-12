@@ -86,7 +86,12 @@ function InnerHistory({
 
   const onSelect = useCallback(
     async (chat: Chat) => {
-      setActiveChat(chat);
+      const handler = useChatStore.getState().onSelectChatHandler;
+      if (handler) {
+        handler(chat);
+      } else {
+        setActiveChat(chat);
+      }
     },
     [setActiveChat],
   );
