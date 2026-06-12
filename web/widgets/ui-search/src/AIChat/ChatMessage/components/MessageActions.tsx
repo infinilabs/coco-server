@@ -191,7 +191,7 @@ export const MessageActions = ({
           )}
         </button>
       )}
-      {handleResend && (
+      {onResend && (
         <button
           onClick={handleResend}
           className={`bg-transparent border-0 cursor-pointer p-4px hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors ${

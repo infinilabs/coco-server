@@ -223,7 +223,7 @@ export const ChatContent = ({
             )
           })}
 
-          {(activeChat || !curChatEnd) && (
+          {!curChatEnd && (
             <ActiveChatMessage
               key={activeMessageGen}
               activeMessageRef={activeMessageRef}

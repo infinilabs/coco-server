@@ -71,6 +71,7 @@ export interface ChatMessageRef {
   addChunk: (chunk: IChunkData) => void;
   reset: () => void;
   getResponseContent: () => string | undefined;
+  getDetails: () => any[];
 }
 
 function resolveTheme(
@@ -131,6 +132,7 @@ const InnerChatMessage = memo(
       },
       handlers,
       clearAllChunkData,
+      refs,
     } = useMessageChunkData();
 
     const [loadingStep, setLoadingStep] = useState<Record<string, boolean>>({
@@ -222,7 +224,72 @@ const InnerChatMessage = memo(
         });
         inThinkRef.current = false;
       },
-      getResponseContent: () => response?.message_chunk,
+      getResponseContent: () => refs.responseRef.current?.message_chunk,
+      getDetails: () => {
+        const details: any[] = [];
+        if (refs.queryIntentRef.current?.message_chunk) {
+          try {
+            const clean = refs.queryIntentRef.current.message_chunk.replace(/^"|"$/g, "");
+            const allMatches = clean.match(/<JSON>([\s\S]*?)<\/JSON>/g);
+            if (allMatches) {
+              const last = allMatches[allMatches.length - 1];
+              const jsonStr = last.replace(/<JSON>|<\/JSON>/g, "");
+              details.push({ type: "query_intent", payload: JSON.parse(jsonStr) });
+            }
+          } catch {}
+        }
+        if (refs.toolsRef.current?.message_chunk) {
+          details.push({ type: "tools", description: refs.toolsRef.current.message_chunk });
+        }
+        if (refs.fetchSourceRef.current?.message_chunk) {
+          try {
+            const jsonMatch = refs.fetchSourceRef.current.message_chunk.match(/\[([\s\S]*)\]/);
+            if (jsonMatch) {
+              details.push({ type: "fetch_source", payload: JSON.parse(jsonMatch[0]) });
+            }
+          } catch {}
+        }
+        if (refs.pickSourceRef.current?.message_chunk) {
+          try {
+            const clean = refs.pickSourceRef.current.message_chunk.replace(/^"|"$/g, "");
+            const allMatches = clean.match(/<JSON>([\s\S]*?)<\/JSON>/g);
+            if (allMatches) {
+              for (let i = allMatches.length - 1; i >= 0; i--) {
+                try {
+                  const jsonStr = allMatches[i].replace(/<JSON>|<\/JSON>|<think>|<\/think>/g, "");
+                  const parsed = JSON.parse(jsonStr.trim());
+                  if (Array.isArray(parsed)) {
+                    details.push({ type: "pick_source", payload: parsed });
+                    break;
+                  }
+                } catch { continue; }
+              }
+            }
+          } catch {}
+        }
+        if (refs.deepReadRef.current?.message_chunk) {
+          details.push({ type: "deep_read", description: refs.deepReadRef.current.message_chunk });
+        }
+        if (refs.thinkRef.current?.message_chunk) {
+          details.push({ type: "think", description: refs.thinkRef.current.message_chunk });
+        }
+        if (refs.deepResearchRef.current && refs.deepResearchRef.current.length > 0) {
+          details.push({ type: "deep_research", payload: refs.deepResearchRef.current });
+        }
+        if (refs.replyEndRef.current?.length > 0) {
+          const last = refs.replyEndRef.current[refs.replyEndRef.current.length - 1];
+          let payload;
+          if (typeof last.message_chunk === "string") {
+            try { payload = JSON.parse(last.message_chunk); } catch {}
+          } else {
+            payload = last.message_chunk;
+          }
+          if (payload) {
+            details.push({ type: "reply_end", payload });
+          }
+        }
+        return details;
+      },
     }));
 
     const isAssistant = message?._source?.type === "assistant";

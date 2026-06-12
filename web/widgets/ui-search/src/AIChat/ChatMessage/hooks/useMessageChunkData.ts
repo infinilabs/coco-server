@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 
 import type { IChunkData } from "../types/chat";
 
@@ -13,75 +13,69 @@ export default function useMessageChunkData() {
   const [deepResearch, setDeepResearch] = useState<IChunkData[]>([]);
   const [replyEnd, setReplyEnd] = useState<IChunkData[]>([]);
 
+  // Refs mirror state for synchronous access (e.g. getDetails/getResponseContent)
+  const queryIntentRef = useRef<IChunkData>();
+  const toolsRef = useRef<IChunkData>();
+  const fetchSourceRef = useRef<IChunkData>();
+  const pickSourceRef = useRef<IChunkData>();
+  const deepReadRef = useRef<IChunkData>();
+  const thinkRef = useRef<IChunkData>();
+  const responseRef = useRef<IChunkData>();
+  const deepResearchRef = useRef<IChunkData[]>([]);
+  const replyEndRef = useRef<IChunkData[]>([]);
+
   const handlers = {
     deal_query_intent: useCallback((data: IChunkData) => {
-      setQuery_intent((prev: IChunkData | undefined): IChunkData => {
-        if (!prev) return data;
-        return {
-          ...prev,
-          message_chunk: (prev.message_chunk || "") + (data.message_chunk || ""),
-        };
-      });
+      const prev = queryIntentRef.current;
+      const next = !prev ? data : { ...prev, message_chunk: (prev.message_chunk || "") + (data.message_chunk || "") };
+      queryIntentRef.current = next;
+      setQuery_intent(next);
     }, []),
     deal_tools: useCallback((data: IChunkData) => {
-      setTools((prev: IChunkData | undefined): IChunkData => {
-        if (!prev) return data;
-        return {
-          ...prev,
-          message_chunk: (prev.message_chunk || "") + (data.message_chunk || ""),
-        };
-      });
+      const prev = toolsRef.current;
+      const next = !prev ? data : { ...prev, message_chunk: (prev.message_chunk || "") + (data.message_chunk || "") };
+      toolsRef.current = next;
+      setTools(next);
     }, []),
     deal_fetch_source: useCallback((data: IChunkData) => {
-      setFetch_source((prev: IChunkData | undefined): IChunkData => {
-        if (!prev) return data;
-        return {
-          ...prev,
-          message_chunk: (prev.message_chunk || "") + (data.message_chunk || ""),
-        };
-      });
+      const prev = fetchSourceRef.current;
+      const next = !prev ? data : { ...prev, message_chunk: (prev.message_chunk || "") + (data.message_chunk || "") };
+      fetchSourceRef.current = next;
+      setFetch_source(next);
     }, []),
     deal_pick_source: useCallback((data: IChunkData) => {
-      setPick_source((prev: IChunkData | undefined): IChunkData => {
-        if (!prev) return data;
-        return {
-          ...prev,
-          message_chunk: (prev.message_chunk || "") + (data.message_chunk || ""),
-        };
-      });
+      const prev = pickSourceRef.current;
+      const next = !prev ? data : { ...prev, message_chunk: (prev.message_chunk || "") + (data.message_chunk || "") };
+      pickSourceRef.current = next;
+      setPick_source(next);
     }, []),
     deal_deep_read: useCallback((data: IChunkData) => {
-      setDeep_read((prev: IChunkData | undefined): IChunkData => {
-        if (!prev) return data;
-        return {
-          ...prev,
-          message_chunk: (prev.message_chunk || "") + "&" + (data.message_chunk || ""),
-        };
-      });
+      const prev = deepReadRef.current;
+      const next = !prev ? data : { ...prev, message_chunk: (prev.message_chunk || "") + "&" + (data.message_chunk || "") };
+      deepReadRef.current = next;
+      setDeep_read(next);
     }, []),
     deal_think: useCallback((data: IChunkData) => {
-      setThink((prev: IChunkData | undefined): IChunkData => {
-        if (!prev) return data;
-        return {
-          ...prev,
-          message_chunk: (prev.message_chunk || "") + (data.message_chunk || ""),
-        };
-      });
+      const prev = thinkRef.current;
+      const next = !prev ? data : { ...prev, message_chunk: (prev.message_chunk || "") + (data.message_chunk || "") };
+      thinkRef.current = next;
+      setThink(next);
     }, []),
     deal_response: useCallback((data: IChunkData) => {
-      setResponse((prev: IChunkData | undefined): IChunkData => {
-        if (!prev) return data;
-        return {
-          ...prev,
-          message_chunk: (prev.message_chunk || "") + (data.message_chunk || ""),
-        };
-      });
+      const prev = responseRef.current;
+      const next = !prev ? data : { ...prev, message_chunk: (prev.message_chunk || "") + (data.message_chunk || "") };
+      responseRef.current = next;
+      setResponse(next);
     }, []),
     deal_deep_research: useCallback((data: IChunkData) => {
-      setDeepResearch((prev) => [...prev, data]);
+      const next = [...deepResearchRef.current, data];
+      deepResearchRef.current = next;
+      setDeepResearch(next);
     }, []),
     deal_reply_end: useCallback((data: IChunkData) => {
-      setReplyEnd((prev) => [...prev, data]);
+      const next = [...replyEndRef.current, data];
+      replyEndRef.current = next;
+      setReplyEnd(next);
     }, []),
   };
 
@@ -96,6 +90,15 @@ export default function useMessageChunkData() {
       setResponse(undefined);
       setDeepResearch([]);
       setReplyEnd([]);
+      queryIntentRef.current = undefined;
+      toolsRef.current = undefined;
+      fetchSourceRef.current = undefined;
+      pickSourceRef.current = undefined;
+      deepReadRef.current = undefined;
+      thinkRef.current = undefined;
+      responseRef.current = undefined;
+      deepResearchRef.current = [];
+      replyEndRef.current = [];
       setTimeout(resolve, 0);
     });
   };
@@ -114,5 +117,16 @@ export default function useMessageChunkData() {
     },
     handlers,
     clearAllChunkData,
+    refs: {
+      queryIntentRef,
+      toolsRef,
+      fetchSourceRef,
+      pickSourceRef,
+      deepReadRef,
+      thinkRef,
+      responseRef,
+      deepResearchRef,
+      replyEndRef,
+    },
   };
 }
