@@ -114,7 +114,7 @@ func finalizeProcessing(ctx context.Context, msg *core.ChatMessage, sender core.
 	ctx1 := orm.NewContextWithParent(saveCtx)
 	ctx1.Refresh = orm.ImmediatelyRefresh
 
-	if err := orm.Save(ctx1, msg); err != nil {
+	if err := orm.Create(ctx1, msg); err != nil {
 		_ = log.Errorf("Failed to save assistant message: %v", err)
 	}
 
