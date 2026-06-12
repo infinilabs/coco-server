@@ -68,16 +68,17 @@ const ChatLayout: FC<ChatLayoutProps> = (props) => {
       style={{ overflow: 'hidden' }}
     >
 
-      {/* Sidebar - Hidden on mobile, or handled via Drawer by parent if needed */}
-      {!isMobile && !sidebarCollapsed && (
+      {/* Sidebar - Hidden on mobile, animated collapse/expand */}
+      {!isMobile && (
         <Sider
           breakpoint='md'
-          className='h-full border-r border-solid border-[var(--ant-color-border-secondary)] bg-[rgb(var(--ui-search--layout-bg-color))]'
-          collapsedWidth='0'
+          className='h-full border-r border-solid border-[var(--ant-color-border-secondary)] bg-[rgb(var(--ui-search--layout-bg-color))] !transition-all !duration-300 !ease-in-out overflow-hidden'
+          collapsed={sidebarCollapsed}
+          collapsedWidth={0}
           trigger={null}
           width={260}
         >
-          <div className='h-full flex flex-col'>
+          <div className='h-full flex flex-col w-[260px]'>
             <div className='h-16 flex shrink-0 items-center bg-[#F3F4F6] px-14px dark:bg-[#1F2937]'>{logoNode}</div>
             <div className='flex-1 overflow-y-hidden bg-[#F3F4F6] dark:bg-[#1F2937]'>{sidebar}</div>
           </div>
