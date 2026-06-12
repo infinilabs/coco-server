@@ -17,8 +17,10 @@ const (
 	// ReplyEnd is a streaming chunk type that marks the terminal chunk of an
 	// assistant loop. Its message_chunk is a JSON string:
 	// {"reason":"completed|user_cancelled|error|timeout"}. When reason is
-	// "error", it also includes {"error":"..."}. It is also persisted as a
-	// ProcessingDetails entry with Type=reply_end and the same structured payload.
+	// "error", it also includes {"error":"..."}; when reason is "timeout",
+	// it also includes {"type":"assistant_generation|attachment_processing"}.
+	// It is also persisted as a ProcessingDetails entry with Type=reply_end and
+	// the same structured payload.
 	ReplyEnd = "reply_end"
 
 	// ReplyEnd loop exit reasons carried in the reply_end payload.
@@ -27,6 +29,12 @@ const (
 	ReplyEndReasonUserCancelled = "user_cancelled"
 	ReplyEndReasonError         = "error"
 	ReplyEndReasonTimeout       = "timeout"
+
+	// ReplyEnd timeout types carried in the reply_end payload when
+	// reason=timeout. These values identify which part of the assistant loop
+	// exhausted its timeout budget.
+	ReplyEndTimeoutTypeAssistantGeneration  = "assistant_generation"
+	ReplyEndTimeoutTypeAttachmentProcessing = "attachment_processing"
 
 	// AttachmentWaiting is a streaming chunk type emitted as a heartbeat while
 	// waiting for attachment processing to finish. It is not persisted into

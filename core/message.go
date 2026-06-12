@@ -55,6 +55,7 @@ type ChatMessage struct {
 	//
 	//   Type="reply_end"     (Order=99)  — Payload: loop termination reason map
 	//     {"reason":"completed|user_cancelled|error|timeout"}
+	//     Timeout payloads also include {"type":"assistant_generation|attachment_processing"}.
 	//     Persisted so history replay can restore terminal state after refresh.
 	Details []ProcessingDetails `json:"details"`
 
