@@ -75,7 +75,7 @@ const CancelDeepResearchDialog = ({
 
             <Button
               color="primary"
-              variant="outlined"
+              variant="solid"
               onClick={handleRemove}
               onKeyDown={(event) => {
                 handleEnter(event, handleRemove);

@@ -80,7 +80,7 @@ const DeleteDialog = ({
 
             <Button
               color="danger"
-              variant="outlined"
+              variant="solid"
               onClick={handleRemove}
               onKeyDown={(event) => {
                 handleEnter(event, handleRemove);
