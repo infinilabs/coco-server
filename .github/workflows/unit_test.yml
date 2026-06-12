@@ -12,7 +12,7 @@ env:
     PNAME: coco
     GO_VERSION: 1.23.4
     NODEJS_VERSION: 22.13.0
-    PNPM_VERSION: 'latest'
+    PNPM_VERSION: '9.12.3'
 
 jobs:
     format_check:
@@ -53,7 +53,7 @@ jobs:
           - name: Check nodejs toolchain
             run: |
               if ! command -v pnpm >/dev/null 2>&1; then
-                npm install -g pnpm
+                npm install -g pnpm@${{ env.PNPM_VERSION }}
               fi
               node -v && npm -v && pnpm -v
 
@@ -227,7 +227,7 @@ jobs:
             - name: Check nodejs toolchain
               run: |
                 if ! command -v pnpm >/dev/null 2>&1; then
-                  npm install -g pnpm
+                  npm install -g pnpm@${{ env.PNPM_VERSION }}
                 fi
                 node -v && npm -v && pnpm -v
 
@@ -295,7 +295,7 @@ jobs:
         - name: Check nodejs toolchain
           run: |
             if ! command -v pnpm >/dev/null 2>&1; then
-              npm install -g pnpm
+              npm install -g pnpm@${{ env.PNPM_VERSION }}
             fi
             node -v && npm -v && pnpm -v
 
