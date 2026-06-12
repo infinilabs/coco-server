@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useRef } from "react";
 import type { FC } from "react";
 import clsx from "clsx";
 import { useAsyncEffect } from "ahooks";
@@ -41,15 +41,21 @@ export const UserMessage: FC<UserMessageProps> = (props) => {
     }
   };
 
+  // Use a content-based key so the effect doesn't re-run when only the array reference changes
+  const attachmentsKey = useMemo(() => attachments.join(","), [attachments]);
+  const fetchedKeyRef = useRef<string>("");
+
   useAsyncEffect(async () => {
     try {
       if (attachments.length === 0 || !fetchAttachments) return;
+      if (fetchedKeyRef.current === attachmentsKey) return;
+      fetchedKeyRef.current = attachmentsKey;
       const hits = await fetchAttachments(attachments);
       setAttachmentData(hits ?? []);
     } catch (error) {
       console.error("Get attachment failed:", String(error));
     }
-  }, [attachments, fetchAttachments]);
+  }, [attachmentsKey, fetchAttachments]);
 
   return (
     <>

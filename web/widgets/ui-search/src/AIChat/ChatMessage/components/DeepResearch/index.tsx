@@ -386,35 +386,31 @@ export const DeepResearch = ({
     return allHits;
   }, [deepResearchSearchMap]);
 
-  const plannerStatus: StepStatus = deepResearchPlans.length
-    ? "done"
-    : deepResearchPlannerStarted
-      ? "in_progress"
-      : "pending";
-
-  const executionStatus: StepStatus = useMemo(() => {
-    if (!steps.length) return "pending";
-    if (steps.some((step) => step.status === "in_progress")) {
-      return "in_progress";
-    }
-    if (steps.some((step) => step.status === "done")) {
-      return "done";
-    }
-    return "pending";
-  }, [steps]);
-
-  const reportStatus: StepStatus = deepResearchReporterFinished
-    ? "done"
-    : deepResearchReporterStarted
-      ? "in_progress"
-      : "pending";
-
   const normalizedProgress = useMemo(() => {
     if (typeof progress !== "number" || Number.isNaN(progress)) return 0;
     if (progress < 0) return 0;
     if (progress > 1) return 1;
     return progress;
   }, [progress]);
+
+  const isCompleted = useMemo(() => {
+    if (endChunk?.payload?.reason === "completed") {
+      return true;
+    }
+    return false;
+  }, [endChunk, normalizedProgress]);
+
+  const isCancelled = useMemo(() => {
+    return endChunk?.payload?.reason === "user_cancelled";
+  }, [endChunk]);
+
+  const isError = useMemo(() => {
+    return endChunk?.payload?.reason === "error";
+  }, [endChunk]);
+
+  const isTimeout = useMemo(() => {
+    return endChunk?.payload?.reason === "timeout";
+  }, [endChunk]);
 
   const displayStatus = useMemo(() => {
     if (statusText) return statusText;
@@ -432,20 +428,32 @@ export const DeepResearch = ({
     return t("deepResearch.status.preparing");
   }, [statusText, normalizedProgress, deepResearchResultCount, t]);
 
-  const isCompleted = useMemo(() => {
-    if (endChunk?.payload?.reason === "completed") {
-      return true;
+  const isEnd = useMemo(() => {
+    return isCompleted || isCancelled || isError || isTimeout;
+  }, [isCompleted, isCancelled, isError, isTimeout]);
+
+  const reportStatus: StepStatus = deepResearchReporterFinished
+    ? "done"
+    : deepResearchReporterStarted
+      ? "in_progress"
+      : "pending";
+
+  const plannerStatus: StepStatus = deepResearchPlans.length
+    ? "done"
+    : deepResearchPlannerStarted
+      ? "in_progress"
+      : "pending";
+
+  const executionStatus: StepStatus = useMemo(() => {
+    if (!steps.length) return "pending";
+    if (steps.some((step) => step.status === "in_progress")) {
+      return "in_progress";
     }
-    return false;
-  }, [endChunk, normalizedProgress]);
-
-  const isCancelled = useMemo(() => {
-    return endChunk?.payload?.reason === "user_cancelled";
-  }, [endChunk]);
-
-  const isError = useMemo(() => {
-    return endChunk?.payload?.reason === "error";
-  }, [endChunk]);
+    if (steps.some((step) => step.status === "done")) {
+      return "done";
+    }
+    return "pending";
+  }, [steps]);
 
   if (!allChunks.length) {
     return null;
@@ -472,7 +480,7 @@ export const DeepResearch = ({
                 </>
               ) : (
                 <>
-                  <Hourglass className={`h-4 w-4 text-[#148EFF] shrink-0 ${(isCancelled || isError) ? "" : "animate-spin"}`} />
+                  <Hourglass className={`h-4 w-4 text-[#148EFF] shrink-0 ${isEnd ? "" : "animate-spin"}`} />
                   <div className="text-sm font-medium text-[#333] dark:text-[#E5E7EB] truncate">
                     {stepTitle || "——"}
                   </div>
@@ -535,7 +543,7 @@ export const DeepResearch = ({
           <div className="mt-5 w-full flex items-center gap-2 overflow-hidden">
             <div className="h-2 rounded-full flex-1 items-center bg-white dark:bg-[#1F2937]">
               <div
-                className={`h-full rounded-full transition-all ${isCancelled ? "bg-[#999]" : isError ? "bg-[#F04444]" : normalizedProgress >= 1 ? "bg-[#00C868]" : "bg-[#1784FC]"
+                className={`h-full rounded-full transition-all ${isCancelled ? "bg-[#999]" : (isError || isTimeout) ? "bg-[#F04444]" : normalizedProgress >= 1 ? "bg-[#00C868]" : "bg-[#1784FC]"
                   }`}
                 style={{ width: `${normalizedProgress * 100}%` }}
               />
@@ -543,7 +551,7 @@ export const DeepResearch = ({
             <div className="flex items-center justify-center">
               {isCancelled ? (
                 <Ban className="h-4 w-4 text-[#999]" />
-              ) : isError ? (
+              ) : (isError || isTimeout) ? (
                 <CloseIcon className="h-4 w-4 text-[#F04444]" />
               ) : isCompleted && normalizedProgress >= 1 ? (
                 <CheckIcon className="h-4 w-4 text-[#22C55E]" />
@@ -581,6 +589,7 @@ export const DeepResearch = ({
         searchHits={searchHits}
         formatUrl={formatUrl}
         theme={theme}
+        isEnd={isEnd}
         t={t}
       />
     </>

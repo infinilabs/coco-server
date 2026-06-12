@@ -97,7 +97,7 @@ export const FetchSource = ({
     <div
       className={`mb-8px max-w-full w-full md:w-[610px] ${
         isSourceExpanded
-          ? "rounded-lg overflow-hidden border border-solid border-[#F0F0F0] dark:border-[#303030]"
+          ? "rounded-12px overflow-hidden border border-solid border-[#F0F0F0] dark:border-[#303030]"
           : ""
       }`}
     >

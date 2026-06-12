@@ -29,6 +29,7 @@ interface DeepResearchDrawerProps {
   theme?: "light" | "dark";
   showReportOnly?: boolean;
   t?: TFunction;
+  isEnd?: boolean;
 }
 
 export const DeepResearchDrawer = ({
@@ -45,6 +46,7 @@ export const DeepResearchDrawer = ({
   formatUrl,
   theme,
   showReportOnly = false,
+  isEnd,
   t: tProp,
 }: DeepResearchDrawerProps) => {
   const { t: tOriginal } = useTranslation();
@@ -173,6 +175,7 @@ export const DeepResearchDrawer = ({
                   plannerStatus={plannerStatus}
                   executionStatus={executionStatus}
                   reportStatus={reportStatus}
+                  isEnd={isEnd}
                   t={t}
                 />
               )}

@@ -16,7 +16,6 @@ import { copyToClipboard } from "../utils";
 interface MessageActionsProps {
   id: string;
   content: string;
-  question?: string;
   actionClassName?: string;
   actionIconSize?: number;
   copyButtonId?: string;
@@ -28,7 +27,6 @@ const RefreshOnlyIds = ["timedout", "error"];
 export const MessageActions = ({
   id,
   content,
-  question,
   actionClassName,
   actionIconSize,
   copyButtonId,
@@ -193,7 +191,7 @@ export const MessageActions = ({
           )}
         </button>
       )}
-      {question && (
+      {handleResend && (
         <button
           onClick={handleResend}
           className={`bg-transparent border-0 cursor-pointer p-4px hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors ${

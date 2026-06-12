@@ -54,6 +54,9 @@ const resources = {
         generating: "Generating...",
         cancelled: "Generation Cancelled",
         error: "Generation Error",
+        timeout: "Generation Timeout",
+        timeout_assistant_generation: "Assistant Generation Timeout",
+        timeout_attachment_processing: "Attachment Processing Timeout",
       },
       history_list: {
         search: {
@@ -145,6 +148,7 @@ const resources = {
           planningResearch: "Planning research",
           cancelled: "Research cancelled",
           error: "Research error",
+          timeout: "Research timeout",
           reportHeader: "Research Report",
           reportDescription: "The final research report has been generated for you",
         },
@@ -270,6 +274,9 @@ const resources = {
         generating: "生成中...",
         cancelled: "回答已取消",
         error: "回答出错",
+        timeout: "回答超时",
+        timeout_assistant_generation: "助手生成超时",
+        timeout_attachment_processing: "附件处理超时",
       },
       history_list: {
         search: {
@@ -360,6 +367,7 @@ const resources = {
           planningResearch: "正在规划研究计划",
           cancelled: "研究已取消",
           error: "研究出错",
+          timeout: "研究超时",
           reportHeader: "编写研究报告",
           reportDescription: "已为您生成最终的研究报告结果",
         },

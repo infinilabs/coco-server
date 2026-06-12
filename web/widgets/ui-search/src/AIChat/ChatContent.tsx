@@ -41,6 +41,9 @@ export const ActiveChatMessage = ({
   onCancel,
 }: ActiveChatMessageProps) => {
   const allMessages = activeChat?.messages || [];
+  const replyMessage = [...allMessages]
+    .reverse()
+    .find((item) => item?._source?.type === "user");
 
   return (
     <ChatMessage
@@ -56,6 +59,7 @@ export const ActiveChatMessage = ({
           question: Question,
         },
       }}
+      replyMessage={replyMessage}
       onResend={handleSendMessage}
       onCancel={onCancel}
       isTyping={!curChatEnd}
@@ -99,12 +103,42 @@ export const ChatContent = ({
   const { t: tOriginal } = useTranslation();
   const t = tProp || tOriginal;
 
+  const attachmentCacheRef = useRef<Map<string, { _id: string; _source: Record<string, unknown> }>>(new Map());
+  const ATTACHMENT_CACHE_MAX = 200;
+
   const fetchAttachments = useCallback(async (ids: string[]) => {
+    const cache = attachmentCacheRef.current;
+
+    if (cache.size >= ATTACHMENT_CACHE_MAX) {
+      cache.clear();
+    }
+
+    const cached: { _id: string; _source: Record<string, unknown> }[] = [];
+    const uncachedIds: string[] = [];
+
+    for (const id of ids) {
+      const hit = cache.get(id);
+      if (hit) {
+        cached.push(hit);
+      } else {
+        uncachedIds.push(id);
+      }
+    }
+
+    if (uncachedIds.length === 0) return cached;
+
     const [, res] = await Post<{ hits?: { hits?: unknown[] } }>(
       "/attachment/_search",
-      { attachments: ids },
+      { attachments: uncachedIds },
     );
-    return (res?.hits?.hits ?? []) as { _id: string; _source: Record<string, unknown> }[];
+    const freshHits = (res?.hits?.hits ?? []) as { _id: string; _source: Record<string, unknown> }[];
+
+    for (const hit of freshHits) {
+      cache.set(hit._id, hit);
+    }
+
+    // Return results in the same order as the input ids
+    return ids.map((id) => cache.get(id)).filter(Boolean) as { _id: string; _source: Record<string, unknown> }[];
   }, []);
 
   const setCurrentSessionId = useConnectStore(
@@ -173,14 +207,8 @@ export const ChatContent = ({
             return (
               <ChatMessage
                 key={message._id}
-                message={{
-                  ...message,
-                  _source: {
-                    ...(message._source || {}),
-                    question: userMessage?._source?.message || "",
-                    attachments: userMessage?._source?.attachments || message._source?.attachments || [],
-                  },
-                }}
+                message={message}
+                replyMessage={userMessage}
                 isTyping={false}
                 onResend={handleSendMessage}
                 onCancel={onCancel}

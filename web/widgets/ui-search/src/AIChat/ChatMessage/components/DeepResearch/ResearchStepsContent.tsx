@@ -89,6 +89,7 @@ interface ResearchStepsContentProps {
   executionStatus?: StepStatus;
   // 报告生成状态
   reportStatus?: StepStatus;
+  isEnd?: boolean;
   t?: TFunction;
 }
 
@@ -101,6 +102,7 @@ export const ResearchStepsContent = ({
   plannerStatus,
   executionStatus,
   reportStatus,
+  isEnd,
   t: tProp,
 }: ResearchStepsContentProps) => {
   const { t: tOriginal } = useTranslation();
@@ -172,7 +174,7 @@ export const ResearchStepsContent = ({
           }`}
         >
           {planner === "in_progress" ? (
-            <Hourglass className="w-5 h-5 text-[#1784FC] animate-spin" />
+            <Hourglass className={`w-5 h-5 text-[#1784FC] ${isEnd ? "" : "animate-spin"}`} />
           ) : (
             <EditIcon
               className={`w-5 h-5 ${
@@ -267,7 +269,7 @@ export const ResearchStepsContent = ({
 
               {/* 进行中状态图标 */}
               {step.status === "in_progress" && (
-                <Hourglass className="absolute left-0 top-2px w-4 h-4 text-[#1784FC] animate-spin" />
+                <Hourglass className={`absolute left-0 top-2px w-4 h-4 text-[#1784FC] ${isEnd ? "" : "animate-spin"}`} />
               )}
 
               {/* 等待中的简化展示 */}
@@ -423,7 +425,7 @@ export const ResearchStepsContent = ({
             }`}
           >
             {report === "in_progress" ? (
-             <Hourglass className="w-5 h-5 text-blue-500 animate-spin" />
+             <Hourglass className={`w-5 h-5 text-blue-500 ${isEnd ? "" : "animate-spin"}`} />
             ) : (
               <BookOpen
                 className={`w-5 h-5 ${

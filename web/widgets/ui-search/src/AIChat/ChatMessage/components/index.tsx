@@ -46,6 +46,7 @@ const DEEP_RESEARCH_CHUNK_TYPES = [
 
 export interface ChatMessageProps {
   message: IChatMessage;
+  replyMessage?: IChatMessage;
   isTyping?: boolean;
   onResend?: (params: SendMessageParams) => void;
   onCancel?: () => void;
@@ -90,6 +91,7 @@ const InnerChatMessage = memo(
   forwardRef<ChatMessageRef, ChatMessageProps>(function InnerChatMessage(
     {
       message,
+      replyMessage,
       isTyping,
       onResend,
       onCancel,
@@ -255,7 +257,9 @@ const InnerChatMessage = memo(
     const attachments = useMemo(() => source?.attachments ?? [], [source?.attachments]);
     const details = source?.details || [];
     const deepResearchDetail = details.find((item) => item.type === "deep_research")
-    const question = source?.question || "";
+    const replyQuestion = replyMessage?._source?.question || "";
+    const replyAttachments = replyMessage?._source?.attachments ?? [];
+    const canResendReply = !!replyQuestion || replyAttachments.length > 0;
 
     const endChunk = useMemo(() => {
       const endDetail = details.find((item) => item.type === "reply_end");
@@ -283,6 +287,10 @@ const InnerChatMessage = memo(
       return endChunk?.payload?.reason === "error";
     }, [endChunk]);
 
+    const isTimeout = useMemo(() => {
+      return endChunk?.payload?.reason === "timeout";
+    }, [endChunk]);
+
     const showActions =
       isTyping === false && (messageContent || response?.message_chunk);
 
@@ -308,7 +316,8 @@ const InnerChatMessage = memo(
       isTyping ||
       (suggestion && suggestion.length > 0)
       || isCancelled
-      || isError;
+      || isError
+      || isTimeout;
 
     const isDeepResearching = useMemo(() => {
       return !!deepResearchDetail || deepResearch?.length > 0;
@@ -382,7 +391,7 @@ const InnerChatMessage = memo(
             detail={deepResearchDetail}
             endChunk={endChunk}
             ChunkData={deepResearch}
-            question={question}
+            question={replyQuestion}
             formatUrl={formatUrl}
             theme={resolvedTheme}
             t={t}
@@ -413,6 +422,26 @@ const InnerChatMessage = memo(
               </div>
             )
           }
+          {
+            isTimeout && (
+              <div className="mt-16px px-12px rounded-8px border border-[#F0F0F0] dark:border-[#303030]">
+                <div className="h-38px leading-38px text-12px text-[#333] dark:text-[#E5E7EB] font-700">
+                  {
+                    endChunk?.payload?.type ? t(`labels.timeout_${endChunk.payload.type}`) : (
+                      isDeepResearching ? t("deepResearch.status.timeout") : t("labels.timeout")
+                    )
+                  }
+                </div>
+                {
+                  endChunk?.payload?.error && (
+                    <div className="py-8px h-42px border-t border-[#F0F0F0] dark:border-[#303030] leading-16px text-12px text-[#333] dark:text-[#E5E7EB]">
+                      {endChunk?.payload?.error}
+                    </div>
+                  )
+                }
+              </div>
+            )
+          }
 
           {deepResearch.length === 0 && isTyping && (
             <div className="inline-block w-1.5 h-5 ml-0.5 -mb-0.5 bg-[#666666] dark:bg-[#A3A3A3] rounded-sm animate-typing" />
@@ -422,18 +451,17 @@ const InnerChatMessage = memo(
             <MessageActions
               id={message._id ?? ""}
               content={messageContent || response?.message_chunk || ""}
-              question={question}
               actionClassName={actionClassName}
               actionIconSize={actionIconSize}
               copyButtonId={copyButtonId}
-              onResend={() => {
+              onResend={canResendReply ? () => {
                 if (onResend) {
                   onResend({
-                    message: question,
-                    attachments
+                    message: replyQuestion,
+                    attachments: replyAttachments,
                   });
                 }
-              }}
+              } : undefined}
             />
           )}
 
