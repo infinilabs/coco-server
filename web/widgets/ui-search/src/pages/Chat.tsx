@@ -6,11 +6,62 @@ import {
 } from "../AIChat";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from 'react-i18next';
-import { useBlocker } from 'react-router-dom';
 
 import ChatHeader from "../ChatHeader";
 import ChatLayout from "../Layout/ChatLayout";
-import Logo from "../Logo";
+
+type BlockerState = "idle" | "blocked";
+
+interface NavigationGuard {
+  state: BlockerState;
+  proceed: () => void;
+  reset: () => void;
+}
+
+function useNavigationGuard(shouldBlock: () => boolean): NavigationGuard {
+  const [state, setState] = useState<BlockerState>("idle");
+  const shouldBlockRef = useRef(shouldBlock);
+  shouldBlockRef.current = shouldBlock;
+  const allowNextRef = useRef(false);
+
+  const proceed = useCallback(() => {
+    setState("idle");
+    allowNextRef.current = true;
+    history.back();
+  }, []);
+
+  const reset = useCallback(() => {
+    setState("idle");
+  }, []);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (allowNextRef.current) {
+        allowNextRef.current = false;
+        return;
+      }
+      if (shouldBlockRef.current()) {
+        history.pushState(null, "", location.href);
+        setState("blocked");
+      }
+    };
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (shouldBlockRef.current()) {
+        e.preventDefault();
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, []);
+
+  return { state, proceed, reset };
+}
 
 interface ChatProps {
   commonProps?: Record<string, any>;
@@ -114,10 +165,7 @@ export default function Chat({
     return !chatInstance._isChatEnd?.();
   }, []);
 
-  const blocker = useBlocker(({ currentLocation, nextLocation }) => {
-    if (nextLocation.pathname.includes('/login')) return false;
-    return currentLocation.pathname !== nextLocation.pathname && isDeepResearchRunning();
-  });
+  const blocker = useNavigationGuard(() => isDeepResearchRunning());
 
   useEffect(() => {
     if (blocker.state === "blocked") {
