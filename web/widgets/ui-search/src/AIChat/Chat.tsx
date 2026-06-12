@@ -751,8 +751,20 @@ const InnerChatAI = memo(
           }
         } else if (!activeChat?._id && lastActiveChatIdRef.current) {
           // Active chat was cleared externally (e.g. deleted from history)
+          // Skip cancel dialog — force cancel directly since the chat is already removed
+          const generatingSession = generatingSessionRef.current;
+          const curChatEndNow = useChatStore.getState().curChatEnd;
+          if (generatingSession && !curChatEndNow) {
+            cancelChat();
+          }
+          streamGenRef.current++;
+          activeMessageRef.current?.reset();
+          setActiveMessageGen((v) => v + 1);
+          setCurChatEnd(true);
+          setTimedoutShow(false);
+          setQuestion("");
           lastActiveChatIdRef.current = undefined;
-          onSelectChat(undefined);
+          setActiveChat(undefined);
         }
       }, [activeChat?._id, onSelectChat, cancelChat, setActiveChat, fetchHistory]);
 
