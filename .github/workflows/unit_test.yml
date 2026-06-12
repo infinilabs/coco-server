@@ -158,27 +158,6 @@ jobs:
                 repository: infinilabs/framework-vendor
                 path: vendor
 
-            - name: Set up nodejs toolchain
-              uses: actions/setup-node@v4
-              with:
-                node-version: ${{ env.NODEJS_VERSION }}
-
-            - name: Cache dependencies
-              uses: actions/cache@v4
-              with:
-                path: |
-                  node_modules
-                key: ${{ runner.os }}-pnpm-${{ hashFiles('**/package.json') }}
-                restore-keys: |
-                  ${{ runner.os }}-pnpm-
-
-            - name: Check nodejs toolchain
-              run: |
-                if ! command -v pnpm >/dev/null 2>&1; then
-                  npm install -g pnpm
-                fi
-                node -v && npm -v && pnpm -v
-
             - name: Set up go toolchain
               uses: actions/setup-go@v5
               with:
@@ -189,38 +168,23 @@ jobs:
             - name: Check go toolchain
               run: go version
 
-            - name: Cache Build Output
-              uses: actions/cache@v4
-              with:
-                path: |
-                 ${{ env.PNAME }}/.public
-                key: ${{ runner.os }}-build-${{ hashFiles('**/package.json') }}-${{ github.sha }}
-                restore-keys: |
-                 ${{ runner.os }}-build-${{ hashFiles('**/package.json') }}-
-                 ${{ runner.os }}-build-
+            - name: Generate static package stub
+              run: |
+                export WORKBASE=$HOME/go/src/infini.sh
+                export WORK=$WORKBASE/$PNAME
+                mkdir -p $HOME/go/src/
+                ln -s $GITHUB_WORKSPACE $WORKBASE
+                mkdir -p $WORK/.public
+                touch $WORK/.public/index.html
+                cd $WORK && make update-vfs
 
             - name: Unit test
               env:
                 GOFLAGS: -tags=ci
               run: |
-                echo Home path is $HOME
                 export WORKBASE=$HOME/go/src/infini.sh
                 export WORK=$WORKBASE/$PNAME
 
-                # for test workspace
-                mkdir -p $HOME/go/src/
-                ln -s $GITHUB_WORKSPACE $WORKBASE
-
-                # for web build
-                echo "Build $PNAME web start..."
-                cd $WORK/web && sed -i '/prepare/d' package.json
-                pnpm install --registry=https://registry.npmjs.com --quiet && pnpm build -- --silent
-
-                # check work folder
-                ls -lrt $WORKBASE/
-                ls -alrt $WORK
-
-                # for unit test
                 cd $WORK
                 echo Testing code at $PWD ...
                 OFFLINE_BUILD=true CI=true make test
