@@ -15,6 +15,7 @@ import (
 	"infini.sh/coco/core"
 	common2 "infini.sh/coco/modules/assistant/common"
 	"infini.sh/coco/modules/assistant/service"
+	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/orm"
@@ -22,9 +23,7 @@ import (
 	"infini.sh/framework/core/util"
 )
 
-// resolveTimeout returns the request timeout for a given assistant.
-// For deep_research assistants the timeout comes from DeepResearchConfig.Timeout
-// (default 30 min). All other types default to 5 minutes.
+// helper function to choose the request timeout for an assistant.
 func resolveTimeout(assistant *core.Assistant) time.Duration {
 	const defaultTimeout = 5 * time.Minute
 	const deepResearchDefault = 30 * time.Minute
@@ -38,6 +37,74 @@ func resolveTimeout(assistant *core.Assistant) time.Duration {
 		}
 	}
 	return deepResearchDefault
+}
+
+type askPayloadContext struct {
+	// UserMessage is persisted to Elasticsearch as the user's chat message.
+	UserMessage string
+	// ModelMessage is sent to the LLM as the prompt content.
+	ModelMessage string
+	// FetchSource is the selected search result context.
+	FetchSource interface{}
+}
+
+type askPayload struct {
+	Query  string          `json:"query"`
+	Result json.RawMessage `json:"result"`
+}
+
+// helper function to split an _ask payload into the history message, model
+// prompt, and selected search sources.
+func parseAskPayload(message string) (*askPayloadContext, error) {
+	payload, err := decodeAskPayload(message)
+	if err != nil {
+		return nil, err
+	}
+	if payload.Query == "" {
+		return nil, errors.New("query is empty")
+	}
+
+	fetchSource, err := decodeAskFetchSource(payload.Result)
+	if err != nil {
+		return nil, err
+	}
+	return &askPayloadContext{UserMessage: payload.Query, ModelMessage: message, FetchSource: fetchSource}, nil
+}
+
+// helper function to read the _ask payload shape sent by search clients.
+func decodeAskPayload(message string) (*askPayload, error) {
+	rawMessage := []byte(message)
+	for range 2 {
+		var payload askPayload
+		if err := json.Unmarshal(rawMessage, &payload); err == nil {
+			return &payload, nil
+		}
+
+		var encodedMessage string
+		if err := json.Unmarshal(rawMessage, &encodedMessage); err != nil {
+			return nil, err
+		}
+		rawMessage = []byte(encodedMessage)
+	}
+	return nil, errors.New("ask payload is too deeply encoded")
+}
+
+// helper function to align selected search results with assistant reply details.
+func decodeAskFetchSource(raw json.RawMessage) (interface{}, error) {
+	if len(raw) == 0 || string(raw) == "null" {
+		return nil, nil
+	}
+
+	var result interface{}
+	if err := json.Unmarshal(raw, &result); err != nil {
+		return nil, err
+	}
+	if resultMap, ok := result.(map[string]interface{}); ok {
+		if hits, ok := resultMap["hits"]; ok {
+			return hits, nil
+		}
+	}
+	return result, nil
 }
 
 func (h APIHandler) getSession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -268,6 +335,13 @@ func (h APIHandler) createChatSession(w http.ResponseWriter, r *http.Request, ps
 	_ = service.ProcessMessageAsync(ctx, userInfo.MustGetUserID(), reqMsg, replyMsg, params, streamSender)
 }
 
+// askAssistant handles _ask requests from search surfaces.
+//
+// The incoming user message carries the query, selected search results, and
+// attachments as the prompt context. For chat history, this route persists only
+// the query as the user message, then records the selected results on the
+// assistant reply so the history reads like a search-backed answer even though
+// the search already happened before _ask was called.
 func (h *APIHandler) askAssistant(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("id")
 
@@ -292,6 +366,12 @@ func (h *APIHandler) askAssistant(w http.ResponseWriter, r *http.Request, ps htt
 		h.WriteError(w, "message is empty", 400)
 		return
 	}
+	askContext, err := parseAskPayload(request.Message)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	request.Message = askContext.UserMessage
 
 	session, err, reqMsg, finalResult := service.CreateAndSaveNewChatMessage(r, id, &request, false)
 	if err != nil || reqMsg == nil {
@@ -313,6 +393,9 @@ func (h *APIHandler) askAssistant(w http.ResponseWriter, r *http.Request, ps htt
 	_ = enc.Encode(finalResult)
 	flusher.Flush()
 
+	// Keep the model prompt aligned with the user's active search context.
+	reqMsg.Message = askContext.ModelMessage
+
 	params, err := common2.NewRagContext(r, assistant, session.ID)
 	if err != nil {
 		h.Error(w, err)
@@ -329,6 +412,9 @@ func (h *APIHandler) askAssistant(w http.ResponseWriter, r *http.Request, ps htt
 		CancelFunc: cancel,
 	})
 	replyMsg := service.CreateAssistantReplyMessage(params.SessionID, reqMsg.AssistantID, reqMsg.ID)
+	if askContext.FetchSource != nil {
+		replyMsg.Details = append(replyMsg.Details, core.ProcessingDetails{Order: 20, Type: common.FetchSource, Payload: askContext.FetchSource})
+	}
 
 	streamSender := &common2.HTTPStreamSender{
 		ReqMsg:   reqMsg,
