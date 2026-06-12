@@ -6,6 +6,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"runtime"
 	"strings"
@@ -43,6 +44,9 @@ func determineExitReason(ctx context.Context, err error, taskID string) string {
 			return common.ReplyEndReasonTimeout
 		}
 		return common.ReplyEndReasonUserCancelled
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return common.ReplyEndReasonTimeout
 	}
 	if err != nil {
 		return common.ReplyEndReasonError
@@ -340,10 +344,7 @@ func waitAndAttachAttachments(ctx context.Context, reqMsg *core.ChatMessage, par
 			// propagate so the caller's finalize flow can run.
 			return ctx.Err()
 		}
-		// Wait-scoped timeout.
-		msg := fmt.Sprintf("attachment processing timed out after %s", attachmentWaitTimeout)
-		_ = sender.SendChunkMessage(core.MessageTypeSystem, common.Response, msg, 0)
-		return fmt.Errorf("%s", msg)
+		return waitErr
 	}
 	if len(failedIDs) > 0 {
 		msg := fmt.Sprintf("attachment processing failed for: %s", strings.Join(failedIDs, ", "))
