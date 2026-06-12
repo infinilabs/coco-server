@@ -44,7 +44,7 @@ const HomeLayout: FC<HomeLayoutProps> = (props) => {
               {welcome}
             </div>
           )}
-          <div className={`${isMobile ? "w-full px-24px" : "w-720px"} mt-80px`}>
+          <div className={`${isMobile ? "w-full px-24px" : "w-720px"} mt-60px`}>
             {searchbox}
             <div className={`w-full mt-40px`}>
               {recommends}

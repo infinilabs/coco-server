@@ -3,8 +3,8 @@ import { type FC, type ReactNode } from 'react';
 
 import { DARK_CLASS } from '../theme/shared';
 import useNProgress from '../hooks/useNProgress';
-import logoTextDark from '../assets/images/logo-text-dark.svg';
-import logoTextLight from '../assets/images/logo-text-light.svg';
+import logoTextDark from '../icons/logo-text-dark.svg';
+import logoTextLight from '../icons/logo-text-light.svg';
 
 import styles from './index.module.less';
 import ChatIcon from '../icons/ChatIcon';
@@ -15,7 +15,13 @@ interface ChatLayoutProps {
   loading?: boolean;
   theme?: 'light' | 'dark';
   isMobile?: boolean;
-  logo?: ReactNode;
+  logo?: {
+    light?: string;
+    light_mobile?: string;
+    dark?: string;
+    dark_mobile?: string;
+  };
+  handleLogoClick?: () => void;
   sidebar?: ReactNode;
   sidebarCollapsed?: boolean;
   header?: ReactNode;
@@ -25,24 +31,24 @@ interface ChatLayoutProps {
 }
 
 const ChatLayout: FC<ChatLayoutProps> = (props) => {
-  const { loading, theme, isMobile, logo, sidebar, sidebarCollapsed, header, content, input, initContainer } = props;
+  const { loading, theme, isMobile, logo, handleLogoClick, sidebar, sidebarCollapsed, header, content, input, initContainer } = props;
 
   const themeClass = theme === 'dark' ? DARK_CLASS : 'light';
 
   useNProgress(loading);
 
-  const logoNode = logo ?? (
+  const logoNode = (
     <div className='flex items-center gap-16px'>
-      <div className='flex items-center'>
+      <div className='flex items-center cursor-pointer' onClick={() => handleLogoClick?.()}>
         <img
           alt='Coco'
           className='block h-10 w-auto dark:hidden'
-          src={logoTextLight}
+          src={logo?.light || logoTextLight}
         />
         <img
           alt='Coco'
           className='hidden h-10 w-auto dark:block'
-          src={logoTextDark}
+          src={logo?.dark || logoTextDark}
         />
       </div>
       <div className='flex items-center gap-1 rounded-9px px-2 py-1.5 bg-[#FFF] dark:bg-[#000]'>

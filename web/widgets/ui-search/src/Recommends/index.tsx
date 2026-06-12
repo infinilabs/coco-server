@@ -10,10 +10,11 @@ interface Recommendation {
 interface RecommendsProps {
     onRecommend?: (callback: (res: { recommendations?: Recommendation[] }) => void) => void;
     showTitle?: boolean;
+    onDataLoaded?: (hasData: boolean) => void;
 }
 
 export default function Recommends(props: RecommendsProps) {
-    const { onRecommend, showTitle = false } = props;
+    const { onRecommend, showTitle = false, onDataLoaded } = props;
     const [data, setData] = useState<Recommendation[]>([]);
     const { t } = useTranslation();
     const hasFetched = useRef(false);
@@ -23,10 +24,16 @@ export default function Recommends(props: RecommendsProps) {
         hasFetched.current = true;
         onRecommend?.(res => {
             if (Array.isArray(res?.recommendations)) {
-                setData(res?.recommendations.sort((a, b) => b.score - a.score));
+                const sorted = res.recommendations.sort((a, b) => b.score - a.score);
+                setData(sorted);
+                onDataLoaded?.(sorted.length > 0);
+            } else {
+                onDataLoaded?.(false);
             }
         });
     }, []);
+
+    if (data.length === 0) return null;
 
     return (
         <div className="recommends-container">

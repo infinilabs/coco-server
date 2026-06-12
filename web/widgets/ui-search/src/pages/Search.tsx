@@ -8,7 +8,7 @@ import SearchBox from "../SearchBox";
 import Recommends from "../Recommends";
 import { LIST_TYPES } from "../ResultList";
 import MediaLayout from "../Layout/MediaLayout";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 interface SearchProps {
   aggregations?: any;
@@ -87,6 +87,10 @@ export default function Search({
   const [detailCollapse, setDetailCollapse] = useState(true)
   const [recommendsCollapse, setRecommendsCollapse] = useState(true)
   const [filterFieldsMeta, setFilterFieldsMeta] = useState({})
+  const [hasRecommendsData, setHasRecommendsData] = useState(false)
+  const handleRecommendsDataLoaded = useCallback((hasData: boolean) => {
+    setHasRecommendsData(hasData);
+  }, []);
 
   const listType = useMemo(() => {
     if (!LIST_TYPES || LIST_TYPES.length === 0) return undefined;
@@ -287,7 +291,8 @@ export default function Search({
           }}
         />
       }
-      recommends={<Recommends showTitle={true} onRecommend={(callback) => onRecommend?.("hot_topics_for_search_result", callback)} />}
+      recommends={<Recommends showTitle={true} onRecommend={(callback) => onRecommend?.("hot_topics_for_search_result", callback)} onDataLoaded={handleRecommendsDataLoaded} />}
+      hasRecommendsData={hasRecommendsData}
     />
   );
 }

@@ -75,7 +75,7 @@ const HistoryList: FC<HistoryListProps> = (props) => {
       id={historyPanelId}
       className={clsx("flex flex-col h-full text-sm bg-transparent")}
     >
-      <div className="flex gap-6px px-14px mt-16px">
+      <div className="flex gap-6px px-14px mt-16px mb-8px">
         <div className="flex-1">
           <Input
             autoFocus
@@ -105,7 +105,7 @@ const HistoryList: FC<HistoryListProps> = (props) => {
         </Button>
       </div>
 
-      <div className="flex-1 overflow-auto mt-8px mb-8px">
+      <div className="flex-1 overflow-auto pb-8px">
         <HistoryListContent
           chats={filteredChats}
           active={active}

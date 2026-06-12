@@ -264,6 +264,8 @@ const Fullscreen = (props: FullscreenProps) => {
     return (
       <Chat
         commonProps={commonProps}
+        logo={logo}
+        handleLogoClick={handleLogoClick}
         apiConfig={apiConfig}
         queryParams={queryParams}
         onBackToSearch={() => {

@@ -10,9 +10,12 @@ import { useBlocker } from 'react-router-dom';
 
 import ChatHeader from "../ChatHeader";
 import ChatLayout from "../Layout/ChatLayout";
+import Logo from "../Logo";
 
 interface ChatProps {
   commonProps?: Record<string, any>;
+  logo?: Record<string, any>;
+  handleLogoClick?: () => void;
   apiConfig?: Record<string, any>;
   onBackToSearch?: () => void;
   defaultParams?: Record<string, any>;
@@ -23,6 +26,8 @@ interface ChatProps {
 
 export default function Chat({
   commonProps,
+  logo,
+  handleLogoClick,
   apiConfig,
   onBackToSearch,
   defaultParams,
@@ -61,15 +66,27 @@ export default function Chat({
   useEffect(() => {
     if (JSON.stringify(defaultParams) !== JSON.stringify(processedParams.current)) {
       processedParams.current = defaultParams || null;
-      if ((!defaultParams?.session_id || !defaultParams?.session_id.trim())
+      if ((!defaultParams?.session_id || !defaultParams?.session_id.trim()) 
+        && (!defaultParams?.query || !defaultParams?.query.trim()) 
+        && defaultParams?.attachments?.length === 0
         && !defaultParams?.assistant_id
       ) {
         return;
       }
-      chatRef.current?.openChat({
-        session_id: defaultParams?.session_id || '',
-        assistant_id: defaultParams?.assistant_id
-      });
+      if (defaultParams?.session_id) {
+        chatRef.current?.openChat({
+          session_id: defaultParams?.session_id || '',
+          assistant_id: defaultParams?.assistant_id
+        });
+      } else {
+        chatRef.current?.init({ 
+          message: defaultParams?.query || '',
+          attachments: (defaultParams?.attachments || [])
+          .filter((a: any) => a.status === "uploaded" && a.id)
+          .map((a: any) => a.id), 
+          assistant_id: defaultParams?.assistant_id
+        });
+      }
       setDefaultParams?.({})
       setAttachments?.([]);
     }
@@ -105,9 +122,9 @@ export default function Chat({
   useEffect(() => {
     if (blocker.state === "blocked") {
       (clearChatRef.current ?? chatRef.current?.clearChat)?.(
-        () => blocker.proceed?.(),   
+        () => blocker.proceed?.(),
         false,
-        () => blocker.reset?.(),     
+        () => blocker.reset?.(),
       );
     }
   }, [blocker.state]);
@@ -115,6 +132,8 @@ export default function Chat({
   return (
     <ChatLayout
       {...commonProps}
+      logo={logo}
+      handleLogoClick={handleLogoClick}
       content={
         <AIChat
           ref={chatRef}

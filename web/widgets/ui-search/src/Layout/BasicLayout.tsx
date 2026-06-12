@@ -21,6 +21,7 @@ interface BasicLayoutProps {
   aiOverview?: ReactNode;
   resultList?: ReactNode;
   recommends?: ReactNode;
+  hasRecommendsData?: boolean;
   isMobile?: boolean;
   theme?: string;
   siderCollapse?: boolean;
@@ -46,6 +47,7 @@ const BasicLayout: FC<BasicLayoutProps> = (props) => {
     aiOverview,
     resultList,
     recommends,
+    hasRecommendsData = true,
     isMobile,
     theme,
     siderCollapse,
@@ -121,7 +123,7 @@ const BasicLayout: FC<BasicLayoutProps> = (props) => {
 
       let targetLeftCollapse, targetRightCollapse;
 
-      if (fitsLeftAndRight && recommends) {
+      if (fitsLeftAndRight && recommends && hasRecommendsData) {
         targetLeftCollapse = false;
         targetRightCollapse = false;
       } else if (fitsLeftOnly ) {
@@ -141,7 +143,7 @@ const BasicLayout: FC<BasicLayoutProps> = (props) => {
           setSiderCollapse?.(targetLeftCollapse);
         }
       }
-      if (recommends && recommendsCollapseRef.current !== targetRightCollapse) {
+      if (recommends && hasRecommendsData && recommendsCollapseRef.current !== targetRightCollapse) {
         if (targetRightCollapse === false && userCollapsedRightRef.current) {
           // Don't auto-expand if user manually collapsed
         } else {
@@ -155,7 +157,7 @@ const BasicLayout: FC<BasicLayoutProps> = (props) => {
     observer.observe(container);
 
     return () => observer.disconnect();
-  }, [scrollContainer, isMobile, recommends, setSiderCollapse, setRecommendsCollapse]);
+  }, [scrollContainer, isMobile, recommends, hasRecommendsData, setSiderCollapse, setRecommendsCollapse]);
 
   // Close drawers when collapse state changes to collapsed
   useEffect(() => {
@@ -167,7 +169,7 @@ const BasicLayout: FC<BasicLayoutProps> = (props) => {
   }, [recommendsCollapse]);
 
   const showLeftSider = !siderCollapse && !isMobile;
-  const showRightSider = !!(recommends && !recommendsCollapse && !isMobile);
+  const showRightSider = !!(recommends && hasRecommendsData && !recommendsCollapse && !isMobile);
 
   const siderProps = {
     breakpoint: 'md' as const,
@@ -230,7 +232,7 @@ const BasicLayout: FC<BasicLayoutProps> = (props) => {
 
         {/* Center Column: Search/Tabs + Results */}
         <Content
-          className={`${bgClass} min-w-400px ${showLeftSider && showRightSider ? 'max-w-840px' : !showLeftSider && !showRightSider ? '' : 'max-w-1120px'}`}
+          className={`${bgClass} min-w-400px ${showLeftSider && showRightSider ? 'max-w-840px' : !showLeftSider && !showRightSider ? '' : 'max-w-840px'}`}
           style={{ overflow: 'visible' }}
         >
           {/* Content part */}
@@ -238,7 +240,7 @@ const BasicLayout: FC<BasicLayoutProps> = (props) => {
             {toolbar && <div className="pl-16px mb-16px">{toolbar}</div>}
             <div className="px-16px mb-16px">
               {resultHeader && cloneElement(resultHeader, {
-                hasRecommends: !!recommends,
+                hasRecommends: !!(recommends && hasRecommendsData),
                 userCollapsedLeft: userCollapsedLeftRef.current,
                 userCollapsedRight: userCollapsedRightRef.current,
                 setSiderCollapse: (v: boolean) => { userCollapsedLeftRef.current = !!v; setSiderCollapse?.(v); },
@@ -255,7 +257,7 @@ const BasicLayout: FC<BasicLayoutProps> = (props) => {
         </Content>
 
         {/* Right Column: Spacer + Recommends */}
-        {recommends && (
+        {recommends && hasRecommendsData && (
           isMobile || recommendsCollapse ? (
             <Drawer
               placement="right"
@@ -284,6 +286,8 @@ const BasicLayout: FC<BasicLayoutProps> = (props) => {
             </Sider>
           )
         )}
+        {/* Mount recommends hidden for data fetching when no data yet */}
+        {recommends && !hasRecommendsData && <div className="hidden">{recommends}</div>}
       </Layout>
 
       {scrollContainer && backTopShow && !loading && (
