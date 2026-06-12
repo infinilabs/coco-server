@@ -51,6 +51,7 @@ export default function SearchPopover({
   const [keyword, setKeyword] = useState("");
   const [isRefreshDataSource, setIsRefreshDataSource] = useState(false);
   const debouncedKeyword = useDebounce(keyword, { wait: 500 });
+  const hasAutoSelectedRef = useRef(false);
 
   const getDataSourceList = useCallback(async () => {
     try {
@@ -87,6 +88,14 @@ export default function SearchPopover({
   useEffect(() => {
     setTotalPage(Math.max(Math.ceil(dataSourceList.length / 10), 1));
   }, [dataSourceList]);
+
+  useEffect(() => {
+    if (isSearchActive && !hasAutoSelectedRef.current && dataSourceList.length > 1) {
+      const allIds = dataSourceList.slice(1).map((item) => item.id);
+      onSelectionChange(allIds);
+      hasAutoSelectedRef.current = true;
+    }
+  }, [isSearchActive, dataSourceList, onSelectionChange]);
 
   useEffect(() => {
     if (dataSourceList.length === 0) {

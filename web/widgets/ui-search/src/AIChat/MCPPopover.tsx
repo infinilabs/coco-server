@@ -52,6 +52,7 @@ export default function MCPPopover({
   const [keyword, setKeyword] = useState("");
   const debouncedKeyword = useDebounce(keyword, { wait: 500 });
   const [isRefreshDataSource, setIsRefreshDataSource] = useState(false);
+  const hasAutoSelectedRef = useRef(false);
 
   const getDataSourceList = useCallback(async () => {
     try {
@@ -88,6 +89,14 @@ export default function MCPPopover({
   useEffect(() => {
     setTotalPage(Math.max(Math.ceil(dataList.length / 10), 1));
   }, [dataList]);
+
+  useEffect(() => {
+    if (isMCPActive && !hasAutoSelectedRef.current && dataList.length > 1) {
+      const allIds = dataList.slice(1).map((item) => item.id);
+      onSelectionChange(allIds);
+      hasAutoSelectedRef.current = true;
+    }
+  }, [isMCPActive, dataList, onSelectionChange]);
 
   useEffect(() => {
     if (dataList.length === 0) {
