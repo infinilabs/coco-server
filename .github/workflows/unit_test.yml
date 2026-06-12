@@ -71,7 +71,7 @@ jobs:
             uses: actions/cache@v4
             with:
               path: |
-                .public
+                ${{ env.PNAME }}/.public
               key: ${{ runner.os }}-build-${{ hashFiles('**/package.json') }}-${{ github.sha }}
               restore-keys: |
                 ${{ runner.os }}-build-${{ hashFiles('**/package.json') }}-
@@ -193,7 +193,7 @@ jobs:
               uses: actions/cache@v4
               with:
                 path: |
-                 .public
+                 ${{ env.PNAME }}/.public
                 key: ${{ runner.os }}-build-${{ hashFiles('**/package.json') }}-${{ github.sha }}
                 restore-keys: |
                  ${{ runner.os }}-build-${{ hashFiles('**/package.json') }}-
@@ -281,7 +281,7 @@ jobs:
               uses: actions/cache@v4
               with:
                 path: |
-                 .public
+                 ${{ env.PNAME }}/.public
                 key: ${{ runner.os }}-build-${{ hashFiles('**/package.json') }}-${{ github.sha }}
                 restore-keys: |
                  ${{ runner.os }}-build-${{ hashFiles('**/package.json') }}-
