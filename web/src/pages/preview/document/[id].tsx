@@ -101,10 +101,6 @@ export function Component() {
 
             <div className='mt-1'>{t('page.preview.hints.externalLinkWarning')}</div>
 
-            <div className='mt-4'>
-              <Typography.Text type='secondary'>{url}</Typography.Text>
-            </div>
-
             <Button
               className='mt-10 min-w-100px'
               shape='round'
