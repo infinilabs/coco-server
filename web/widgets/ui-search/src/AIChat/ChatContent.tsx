@@ -44,7 +44,7 @@ export const ActiveChatMessage = ({
   const replyMessage = [...allMessages]
     .reverse()
     .find((item) => item?._source?.type === "user");
-
+  
   return (
     <ChatMessage
       key={"current"}
@@ -104,7 +104,8 @@ export const ChatContent = ({
   const t = tProp || tOriginal;
 
   const attachmentCacheRef = useRef<Map<string, { _id: string; _source: Record<string, unknown> }>>(new Map());
-  const ATTACHMENT_CACHE_MAX = 200;
+  const ATTACHMENT_CACHE_MAX = 1000;
+  const storeAttachmentCache = useChatStore((state) => state.attachmentCache);
 
   const fetchAttachments = useCallback(async (ids: string[]) => {
     const cache = attachmentCacheRef.current;
@@ -117,9 +118,10 @@ export const ChatContent = ({
     const uncachedIds: string[] = [];
 
     for (const id of ids) {
-      const hit = cache.get(id);
+      const hit = cache.get(id) || storeAttachmentCache.get(id);
       if (hit) {
         cached.push(hit);
+        cache.set(id, hit);
       } else {
         uncachedIds.push(id);
       }
@@ -139,7 +141,7 @@ export const ChatContent = ({
 
     // Return results in the same order as the input ids
     return ids.map((id) => cache.get(id)).filter(Boolean) as { _id: string; _source: Record<string, unknown> }[];
-  }, []);
+  }, [storeAttachmentCache]);
 
   const setCurrentSessionId = useConnectStore(
     (state) => state.setCurrentSessionId

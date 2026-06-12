@@ -31,6 +31,7 @@ import { PayloadCard } from "./PayloadCard";
 
 import { type TFunction } from "i18next";
 import { SendMessageParams } from "../../../AIChat/Chat";
+import { ErrorMessage } from "./ErrorMessage";
 
 const DEEP_RESEARCH_CHUNK_TYPES = [
   "research_planner_start",
@@ -257,7 +258,7 @@ const InnerChatMessage = memo(
     const attachments = useMemo(() => source?.attachments ?? [], [source?.attachments]);
     const details = source?.details || [];
     const deepResearchDetail = details.find((item) => item.type === "deep_research")
-    const replyQuestion = replyMessage?._source?.question || "";
+    const replyQuestion = replyMessage?._source?.message || "";
     const replyAttachments = replyMessage?._source?.attachments ?? [];
     const canResendReply = !!replyQuestion || replyAttachments.length > 0;
 
@@ -408,38 +409,20 @@ const InnerChatMessage = memo(
           }
           {
             isError && (
-              <div className="mt-16px px-12px rounded-8px border border-[#F0F0F0] dark:border-[#303030] ">
-                <div className="h-38px leading-38px text-12px text-[#333] dark:text-[#E5E7EB] font-700">
-                  {isDeepResearching ? t("deepResearch.status.error") : t("labels.error")}
-                </div>
-                {
-                  endChunk?.payload?.error && (
-                    <div className="py-8px h-42px border-t border-[#F0F0F0] dark:border-[#303030] leading-16px text-12px text-[#333] dark:text-[#E5E7EB]">
-                      {endChunk?.payload?.error}
-                    </div>
-                  )
-                }
-              </div>
+              <ErrorMessage
+                title={isDeepResearching ? t("deepResearch.status.error") : t("labels.error")}
+                error={"endChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.error"}
+              />
             )
           }
           {
             isTimeout && (
-              <div className="mt-16px px-12px rounded-8px border border-[#F0F0F0] dark:border-[#303030]">
-                <div className="h-38px leading-38px text-12px text-[#333] dark:text-[#E5E7EB] font-700">
-                  {
-                    endChunk?.payload?.type ? t(`labels.timeout_${endChunk.payload.type}`) : (
-                      isDeepResearching ? t("deepResearch.status.timeout") : t("labels.timeout")
-                    )
-                  }
-                </div>
-                {
-                  endChunk?.payload?.error && (
-                    <div className="py-8px h-42px border-t border-[#F0F0F0] dark:border-[#303030] leading-16px text-12px text-[#333] dark:text-[#E5E7EB]">
-                      {endChunk?.payload?.error}
-                    </div>
-                  )
-                }
-              </div>
+              <ErrorMessage
+                title={endChunk?.payload?.type ? t(`labels.timeout_${endChunk.payload.type}`) : (
+                  isDeepResearching ? t("deepResearch.status.timeout") : t("labels.timeout")
+                )}
+                error={endChunk?.payload?.error}
+              />
             )
           }
 

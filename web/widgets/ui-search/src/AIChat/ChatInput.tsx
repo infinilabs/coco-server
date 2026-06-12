@@ -246,6 +246,8 @@ export default function ChatInput({
     failedMessage: a.error,
   })), [attachments]);
 
+  const cacheAttachments = useChatStore((state) => state.cacheAttachments);
+
   const uploadFile = useCallback(
     async (file: File, localId: string) => {
       const [err, res] = await Upload<UploadResponse>(attachmentUploadUrl, [file]);
@@ -269,8 +271,20 @@ export default function ChatInput({
           return { ...a, status: "uploaded", id: serverIds[0] };
         })
       );
+      // Cache attachment metadata for user message rendering
+      if (!err && serverIds.length > 0) {
+        cacheAttachments(serverIds.map((id) => ({
+          _id: id,
+          _source: {
+            id,
+            name: file.name,
+            size: file.size,
+            icon: file.name.split(".").pop()?.toLowerCase() || "",
+          },
+        })));
+      }
     },
-    [attachmentUploadUrl, t]
+    [attachmentUploadUrl, t, cacheAttachments]
   );
 
   const handleFilesPicked = useCallback(

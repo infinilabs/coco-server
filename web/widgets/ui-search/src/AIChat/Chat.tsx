@@ -350,6 +350,7 @@ const InnerChatAI = memo(
             _source: {
               type: "user",
               message: text,
+              attachments: attachments || [],
             },
           };
           setActiveChat({
@@ -472,6 +473,7 @@ const InnerChatAI = memo(
               _source: {
                 type: "user",
                 message: text,
+                attachments: attachments || [],
               },
             };
             setActiveChat({

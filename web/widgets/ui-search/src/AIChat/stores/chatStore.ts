@@ -18,6 +18,8 @@ export interface Assistant {
   _source?: AssistantSource;
 }
 
+export type AttachmentCacheItem = { _id: string; _source: Record<string, unknown> };
+
 export type IChatStore = {
   baseUrl: string;
   setBaseUrl: (value: string) => void;
@@ -44,6 +46,8 @@ export type IChatStore = {
   updateLastMessage: (updates: Partial<ChatMessageSource>) => void;
   historyVersion: number;
   incrementHistoryVersion: () => void;
+  attachmentCache: Map<string, AttachmentCacheItem>;
+  cacheAttachments: (items: AttachmentCacheItem[]) => void;
 };
 
 export const useChatStore = create<IChatStore>()(
@@ -79,6 +83,15 @@ export const useChatStore = create<IChatStore>()(
       historyVersion: 0,
       incrementHistoryVersion: () =>
         set((state) => ({ historyVersion: state.historyVersion + 1 })),
+      attachmentCache: new Map(),
+      cacheAttachments: (items: AttachmentCacheItem[]) =>
+        set((state) => {
+          const cache = new Map(state.attachmentCache);
+          for (const item of items) {
+            cache.set(item._id, item);
+          }
+          return { attachmentCache: cache };
+        }),
       updateLastMessage: (updates: Partial<ChatMessageSource>) =>
         set((state) => {
           if (!state.activeChat || !state.activeChat.messages) return {};
