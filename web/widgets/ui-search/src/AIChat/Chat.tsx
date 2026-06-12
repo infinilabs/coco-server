@@ -275,11 +275,6 @@ const InnerChatAI = memo(
               // 标记回复结束
               if (chunkData.chunk_type === "reply_end") {
                 setCurChatEnd(true);
-                // 流式结束后，不立即 fetchHistory 加载到 messages，
-                // 让 AI 回答留在 ActiveChatMessage 的 chunk 数据中继续展示，
-                // 避免 messages 列表与 ActiveChatMessage 同时渲染导致重复。
-                // 下次 sendMessage 时 fetchHistory + reset 会正确完成内容切换。
-                incrementHistoryVersion();
               }
             }
           } catch (error) {
