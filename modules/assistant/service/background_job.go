@@ -30,6 +30,9 @@ import (
 	"infini.sh/framework/core/util"
 )
 
+// errAttachmentProcessingTimeout tags attachment parsing wait timeouts for reply_end typing.
+var errAttachmentProcessingTimeout = errors.New("attachment processing timeout")
+
 // determineExitReason classifies why the assistant processing loop ended.
 // It checks the context and task metadata to distinguish user cancellation
 // (explicit cancel button) from timeout, error, and normal completion.
@@ -45,6 +48,9 @@ func determineExitReason(ctx context.Context, err error, taskID string) string {
 		}
 		return common.ReplyEndReasonUserCancelled
 	}
+	if errors.Is(err, errAttachmentProcessingTimeout) {
+		return common.ReplyEndReasonTimeout
+	}
 	if errors.Is(err, context.DeadlineExceeded) {
 		return common.ReplyEndReasonTimeout
 	}
@@ -52,6 +58,26 @@ func determineExitReason(ctx context.Context, err error, taskID string) string {
 		return common.ReplyEndReasonError
 	}
 	return common.ReplyEndReasonCompleted
+}
+
+// determineReplyEndTimeoutType maps a timeout error to the reply_end timeout source.
+func determineReplyEndTimeoutType(err error) string {
+	if errors.Is(err, errAttachmentProcessingTimeout) {
+		return common.ReplyEndTimeoutTypeAttachmentProcessing
+	}
+	return common.ReplyEndTimeoutTypeAssistantGeneration
+}
+
+// buildReplyEndPayload shapes the shared persisted and streamed reply_end payload.
+func buildReplyEndPayload(reason string, processingErr error) util.MapStr {
+	payloadMap := util.MapStr{"reason": reason}
+	if reason == common.ReplyEndReasonError && processingErr != nil {
+		payloadMap["error"] = processingErr.Error()
+	}
+	if reason == common.ReplyEndReasonTimeout {
+		payloadMap["type"] = determineReplyEndTimeoutType(processingErr)
+	}
+	return payloadMap
 }
 
 func CreateAssistantReplyMessage(sessionID, assistantID, requestMessageID string) *core.ChatMessage {
@@ -70,10 +96,7 @@ func CreateAssistantReplyMessage(sessionID, assistantID, requestMessageID string
 
 // save response and send END signal to receiver
 func finalizeProcessing(ctx context.Context, msg *core.ChatMessage, sender core.MessageSender, reason string, processingErr error) {
-	payloadMap := util.MapStr{"reason": reason}
-	if reason == common.ReplyEndReasonError && processingErr != nil {
-		payloadMap["error"] = processingErr.Error()
-	}
+	payloadMap := buildReplyEndPayload(reason, processingErr)
 	payload := util.MustToJSON(payloadMap)
 
 	// Persist the termination reason so history replay knows how the loop ended.
@@ -307,7 +330,8 @@ const attachmentWaitHeartbeat = 5 * time.Second
 //     and abort the chat without calling the LLM.
 //   - context canceled (e.g. client disconnect): propagate the cancellation;
 //     finalize will not emit additional chunks on a broken stream.
-//   - wait timeout: surface a timeout system chunk and abort the chat.
+//   - wait timeout: abort the chat with reply_end reason=timeout and
+//     type=attachment_processing.
 func waitAndAttachAttachments(ctx context.Context, reqMsg *core.ChatMessage, params *common2.RAGContext, sender core.MessageSender) error {
 	if reqMsg == nil || len(reqMsg.Attachments) == 0 {
 		return nil
@@ -343,6 +367,10 @@ func waitAndAttachAttachments(ctx context.Context, reqMsg *core.ChatMessage, par
 			// Outer context canceled (client disconnect / explicit stop): just
 			// propagate so the caller's finalize flow can run.
 			return ctx.Err()
+		}
+		if errors.Is(waitErr, context.DeadlineExceeded) {
+			// Keep DeadlineExceeded semantics while tagging the timeout source.
+			return fmt.Errorf("%w: %w", errAttachmentProcessingTimeout, waitErr)
 		}
 		return waitErr
 	}
