@@ -182,6 +182,18 @@ export function Component() {
       title: t('page.mcpserver.labels.type'),
       dataIndex: 'type',
       minWidth: 50,
+      render: (value: string) => {
+        switch (value) {
+          case 'stdio':
+            return 'Stdio';
+          case 'streamable_http':
+            return 'Streamable HTTP';
+          case 'sse':
+            return 'SSE';
+          default:
+            return value;
+        }
+      }
     },
     {
       title: t('page.mcpserver.labels.category'),
