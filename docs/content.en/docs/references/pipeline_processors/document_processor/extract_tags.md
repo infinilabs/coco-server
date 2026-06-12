@@ -6,9 +6,10 @@ weight: 7
 ## Extract Tags Processor
 
 Extracts structured keyword tags from a document's content using a language
-model. Tags are stored in `doc.Tags`.
+model.
 
-Documents that have not yet been summarized (no `AiInsights`) are skipped.
+Documents that have not yet been summarized are skipped. Run
+`document_summarization` before this processor.
 
 ### Requirements
 
@@ -20,7 +21,7 @@ application settings.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `message_field` | string | No | `messages` | Pipeline context key containing the `[]queue.Message` to process |
+| `message_field` | string | No | `messages` | Pipeline context key for the input messages |
 | `output_queue` | object | No | `null` | Queue to push processed documents to |
 | `model_provider` | string | No | *(app default)* | Language model provider ID |
 | `model` | string | No | *(app default)* | Language model name |

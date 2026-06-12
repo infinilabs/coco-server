@@ -9,7 +9,8 @@ Generates a cover image and a thumbnail for a document.
 
 > **Note**: For attachment cover generation, use `generate_attachment_cover` instead.
 
-Result is stored in `doc.Cover` and `doc.Thumbnail`.
+The generated cover and thumbnail are stored with the document and can be
+retrieved via the document API.
 
 | Supported format | Notes |
 |---|---|
@@ -30,7 +31,7 @@ Result is stored in `doc.Cover` and `doc.Thumbnail`.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `message_field` | string | No | `messages` | Pipeline context key containing the `[]queue.Message` to process |
+| `message_field` | string | No | `messages` | Pipeline context key for the input messages |
 | `output_queue` | object | No | `null` | Queue to push processed documents to |
 
 ### Example

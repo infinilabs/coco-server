@@ -28,11 +28,10 @@ Processors are grouped by the type of input they expect.
 
 ### Document Processors
 
-Operate on **documents** (`core.Document`). Each pipeline message carries a
-serialized document. 
+Operate on **documents**. Each pipeline message carries a serialized document.
 
 ### Attachment Processors
 
-Operate on **attachments** (`core.Attachment`). Each pipeline message carries
-the serialized attachment metadata. Attachment processors load the binary
-content themselves when they need it.
+Operate on **attachments**. Each pipeline message carries the serialized
+attachment metadata. Attachment processors load the binary content themselves
+when they need it.

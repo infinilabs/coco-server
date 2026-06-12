@@ -5,7 +5,8 @@ weight: 1
 
 ## File Metadata Processor
 
-Extracts metadata from supported file types and stores the results in `doc.Metadata`.
+Extracts metadata from supported file types and stores the results in the
+document metadata.
 
 | File type | Extracted metadata |
 |---|---|
@@ -15,7 +16,7 @@ Extracts metadata from supported file types and stores the results in `doc.Metad
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `message_field` | string | No | `messages` | Pipeline context key containing the `[]queue.Message` to process |
+| `message_field` | string | No | `messages` | Pipeline context key for the input messages |
 | `output_queue` | object | No | `null` | Queue to push processed documents to |
 
 ### Example

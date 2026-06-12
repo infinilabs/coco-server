@@ -5,7 +5,8 @@ weight: 2
 
 ## Attachment Text Extraction Processor
 
-Extracts text content from an attachment and stores the result in `attachment.text`.
+Extracts text content from an attachment and stores the result as the
+attachment's searchable text.
 
 For image attachments, the processor uses a vision model to generate a text
 description. For document attachments, it uses Apache Tika text extraction.
@@ -33,7 +34,7 @@ are removed from the extracted text instead of being uploaded as child attachmen
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `message_field` | string | No | `messages` | Pipeline context key containing the `[]queue.Message` to process |
+| `message_field` | string | No | `messages` | Pipeline context key for the input messages |
 | `tika_endpoint` | string | No | `http://127.0.0.1:9998` | Apache Tika server URL |
 | `tika_timeout_in_seconds` | int | No | `120` | Per-file Tika timeout |
 | `vision_model_provider` | string | No | — | Provider ID for the vision model used to describe images |

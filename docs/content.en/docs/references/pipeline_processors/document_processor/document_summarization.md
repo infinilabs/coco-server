@@ -21,7 +21,7 @@ application settings.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `message_field` | string | No | `messages` | Pipeline context key containing the `[]queue.Message` to process |
+| `message_field` | string | No | `messages` | Pipeline context key for the input messages |
 | `output_queue` | object | No | `null` | Queue to push processed documents to |
 | `model_provider` | string | No | *(app default)* | Language model provider ID |
 | `model` | string | No | *(app default)* | Language model name |
