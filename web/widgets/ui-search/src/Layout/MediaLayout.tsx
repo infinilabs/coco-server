@@ -136,9 +136,9 @@ const MediaLayout: FC<MediaLayoutProps> = (props) => {
         tools={tools}
         isMobile={isMobile}
         showLeftSider={!isMobile && !siderCollapse && !!aggregations}
-        showRightSider={!isMobile}
+        showRightSider={false}
         leftWidth={280}
-        rightWidth={0}
+        rightWidth={isMobile ? 0 : (rightMenuWidth || 0)}
         centerPadding={isMobile ? 'px-16px' : 'pl-40px pr-112px'}
         centerMaxWidth="max-w-840px"
         rightMenuWidth={rightMenuWidth}

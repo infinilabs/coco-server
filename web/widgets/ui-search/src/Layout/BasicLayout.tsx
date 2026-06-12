@@ -193,7 +193,7 @@ const BasicLayout: FC<BasicLayoutProps> = (props) => {
         showLeftSider={showLeftSider}
         showRightSider={showRightSider}
         leftWidth={280}
-        rightWidth={isMobile ? 0 : 400}
+        rightWidth={showRightSider ? 400 : (isMobile ? 0 : (rightMenuWidth || 0))}
         centerPadding={isMobile ? 'px-16px' : 'pl-72px pr-112px'}
         centerMaxWidth={'max-w-840px'}
         rightMenuWidth={rightMenuWidth}
