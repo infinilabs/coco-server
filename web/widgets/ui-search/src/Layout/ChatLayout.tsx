@@ -92,7 +92,7 @@ const ChatLayout: FC<ChatLayoutProps> = (props) => {
           onClose={() => setSidebarCollapsed?.(true)}
           getContainer={getContainer}
           classNames={{
-            wrapper: '!left-0px !top-88px !bottom-24px',
+            wrapper: '!left-0px !top-64px !bottom-0px',
             body: '!p-0px',
           }}
         >

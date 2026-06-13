@@ -54,9 +54,9 @@ export const ResultDetail: FC<ResultDetailProps> = (props) => {
             size={isMobile ? undefined : 800}
             getContainer={getContainer}
             destroyOnHidden
-            clickOutsideToClose={false}
+            clickOutsideToClose={isMobile ? true : false}
             classNames={{
-                wrapper: `${isMobile ? '!left-0px !right-0px !w-full' : '!right-24px'} !top-146px !bottom-24px`,
+                wrapper: `${isMobile ? '!left-0px !right-0px !w-full !top-122px !bottom-0px' : '!right-24px !top-146px !bottom-24px'}`,
                 body: '!p-24px !overflow-hidden !h-full'
             }}
         >

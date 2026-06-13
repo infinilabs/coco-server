@@ -211,7 +211,7 @@ const BasicLayout: FC<BasicLayoutProps> = (props) => {
               onClose={() => setLeftDrawerOpen(false)}
               getContainer={getContainer}
               classNames={{
-                wrapper: '!left-0px !top-146px !bottom-24px',
+                wrapper: '!left-0px !top-122px !bottom-0px',
                 body: '!p-16px',
               }}
               size={280}
@@ -261,7 +261,7 @@ const BasicLayout: FC<BasicLayoutProps> = (props) => {
               onClose={() => setRightDrawerOpen(false)}
               getContainer={getContainer}
               classNames={{
-                wrapper: '!right-0px !top-146px !bottom-24px',
+                wrapper: '!right-0px !top-122px !bottom-0px',
                 body: '!p-16px',
               }}
               size={400}

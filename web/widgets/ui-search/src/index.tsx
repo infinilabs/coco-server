@@ -57,25 +57,28 @@ const Wrapper = (props: WrapperProps) => {
   }, []);
 
   useEffect(() => {
-    if (!shadow) return;
+    const root = shadow || document;
+    let style: HTMLStyleElement | null = null;
 
-    // Inject NProgress CSS into shadow container
-    const style = document.createElement("style");
-    style.setAttribute("data-nprogress", "");
-    style.textContent = nprogressCSS;
-    shadow.prepend(style);
+    if (shadow) {
+      // Inject NProgress CSS into shadow container
+      style = document.createElement("style");
+      style.setAttribute("data-nprogress", "");
+      style.textContent = nprogressCSS;
+      shadow.prepend(style);
+    }
 
-    // Patch NProgress to render inside shadow DOM instead of document
+    // Patch NProgress to render inside the .ui-search container
     const originalRender = NProgress.render;
     const originalRemove = NProgress.remove;
     const originalIsRendered = NProgress.isRendered;
 
     NProgress.isRendered = function () {
-      return !!shadow.querySelector("#nprogress");
+      return !!root.querySelector("#nprogress");
     };
 
     NProgress.render = function (fromStart?: boolean) {
-      if (NProgress.isRendered()) return shadow.querySelector("#nprogress") as HTMLDivElement;
+      if (NProgress.isRendered()) return root.querySelector("#nprogress") as HTMLDivElement;
 
       const progress = document.createElement("div");
       progress.id = "nprogress";
@@ -97,18 +100,18 @@ const Wrapper = (props: WrapperProps) => {
         if (spinner) spinner.remove();
       }
 
-      const container = shadow.querySelector('.ui-search') || shadow;
+      const container = root.querySelector('.ui-search') || (shadow ? shadow : document.body);
       container.appendChild(progress);
       return progress;
     };
 
     NProgress.remove = function () {
-      const progress = shadow.querySelector("#nprogress");
+      const progress = root.querySelector("#nprogress");
       if (progress) progress.remove();
     };
 
     return () => {
-      style.remove();
+      if (style) style.remove();
       NProgress.render = originalRender;
       NProgress.remove = originalRemove;
       NProgress.isRendered = originalIsRendered;

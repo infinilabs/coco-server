@@ -73,9 +73,9 @@ export const DeepResearchDrawer = ({
       open={open}
       onClose={onClose}
       size={800}
-      clickOutsideToClose={false}
+      clickOutsideToClose={isMobile ? true : false}
       classNames={{
-        wrapper: `${isMobile ? '!left-0px !right-0px !w-full' : '!right-24px'} !top-88px !bottom-24px`,
+        wrapper: `${isMobile ? '!left-0px !right-0px !w-full !top-64px !bottom-0px' : '!right-24px !top-88px !bottom-24px'}`,
         body: '!p-0px !overflow-hidden !h-full',
       }}
     >
