@@ -70,7 +70,7 @@ export interface SendMessageParams {
 export interface ChatAIRef {
   init: (params: SendMessageParams) => void;
   cancelChat: () => void;
-  clearChat: (cb?: () => void, force?: boolean, onReject?: () => void) => void;
+  clearChat: (cb?: () => void, force?: boolean, onReject?: () => void, keepAssistant?: boolean) => void;
   onSelectChat: (chat: Chat) => void;
   _isChatEnd: () => boolean;
 }
@@ -688,7 +688,7 @@ const InnerChatAI = memo(
        */
       const pendingRejectRef = useRef<(() => void) | null>(null);
 
-      const clearChat = useCallback(async (cb?: () => void, force?: boolean, onReject?: () => void) => {
+      const clearChat = useCallback(async (cb?: () => void, force?: boolean, onReject?: () => void, keepAssistant?: boolean) => {
         const generatingSession = generatingSessionRef.current;
         const curChatEndNow = useChatStore.getState().curChatEnd;
         const assistantType = (useChatStore.getState().currentAssistant?._source?.type as string) || "simple";
@@ -703,7 +703,7 @@ const InnerChatAI = memo(
             setQuestion("");
 
             setActiveChat(undefined);
-            setCurrentAssistant(undefined);
+            if (!keepAssistant) setCurrentAssistant(undefined);
             lastActiveChatIdRef.current = undefined;
             cb?.();
           };
@@ -723,14 +723,14 @@ const InnerChatAI = memo(
           setTimedoutShow(false);
           setQuestion("");
           setActiveChat(undefined);
-          setCurrentAssistant(undefined);
+          if (!keepAssistant) setCurrentAssistant(undefined);
           lastActiveChatIdRef.current = undefined;
           cb?.();
           return;
         }
 
         await onSelectChat(undefined);
-        setCurrentAssistant(undefined);
+        if (!keepAssistant) setCurrentAssistant(undefined);
         cb?.();
       }, [onSelectChat, cancelChat, setActiveChat, setCurChatEnd, setCurrentAssistant]);
 

@@ -151,7 +151,7 @@ export default function Chat({
 
   const handleNewChat = () => {
     if (chatRef.current) {
-      chatRef.current.clearChat();
+      chatRef.current.clearChat(undefined, undefined, undefined, true);
     }
   };
 
