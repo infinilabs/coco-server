@@ -130,10 +130,10 @@ function InnerAssistantList({ assistantIDs = [], locale = "en", t: tProp }: Assi
 
 
   return (
-    <div className="relative">
+    <div className="relative w-full">
       <Button
         shape="round"
-        className="!rounded-12px border-[#F0F0F0] dark:border-[#303030] !px-8px"
+        className=" w-full !rounded-12px border-[#F0F0F0] dark:border-[#303030] !px-8px"
         onClick={() => {
           setOpen((v) => !v);
           setTimeout(() => {
@@ -159,7 +159,7 @@ function InnerAssistantList({ assistantIDs = [], locale = "en", t: tProp }: Assi
             />
           )
         ) : null}
-        <span className="text-sm">
+        <span className="text-sm flex-1 truncate text-left">
           {currentAssistant?._source?.name || t("assistant_list.default_name")}
         </span>
         <ChevronDown className="h-4 w-4" />

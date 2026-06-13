@@ -1,4 +1,4 @@
-import { Layout } from 'antd';
+import { Drawer, Layout } from 'antd';
 import { type FC, type ReactNode } from 'react';
 
 import { DARK_CLASS } from '../theme/shared';
@@ -24,14 +24,16 @@ interface ChatLayoutProps {
   handleLogoClick?: () => void;
   sidebar?: ReactNode;
   sidebarCollapsed?: boolean;
+  setSidebarCollapsed?: (collapsed: boolean) => void;
   header?: ReactNode;
   content?: ReactNode;
   input?: ReactNode;
   initContainer?: ((ref: HTMLDivElement | null) => void) | React.Ref<HTMLDivElement>;
+  getContainer?: () => HTMLElement | null;
 }
 
 const ChatLayout: FC<ChatLayoutProps> = (props) => {
-  const { loading, theme, isMobile, logo, handleLogoClick, sidebar, sidebarCollapsed, header, content, input, initContainer } = props;
+  const { loading, theme, isMobile, logo, handleLogoClick, sidebar, sidebarCollapsed, setSidebarCollapsed, header, content, input, initContainer, getContainer } = props;
 
   const themeClass = theme === 'dark' ? DARK_CLASS : 'light';
 
@@ -69,7 +71,7 @@ const ChatLayout: FC<ChatLayoutProps> = (props) => {
     >
 
       {/* Sidebar - Hidden on mobile, animated collapse/expand */}
-      {!isMobile && (
+      {!isMobile ? (
         <Sider
           breakpoint='md'
           className='h-full border-r border-solid border-[var(--ant-color-border-secondary)] bg-[rgb(var(--ui-search--layout-bg-color))] !transition-all !duration-300 !ease-in-out overflow-hidden'
@@ -83,6 +85,26 @@ const ChatLayout: FC<ChatLayoutProps> = (props) => {
             <div className='flex-1 overflow-y-hidden bg-[#F3F4F6] dark:bg-[#1F2937]'>{sidebar}</div>
           </div>
         </Sider>
+      ) : (
+        <Drawer
+          placement="left"
+          open={!sidebarCollapsed}
+          onClose={() => setSidebarCollapsed?.(true)}
+          closeIcon={null}
+          getContainer={getContainer as (() => HTMLElement) | undefined}
+          push={false}
+          destroyOnHidden={false}
+          classNames={{
+            wrapper: `!overflow-hidden !left-0px !top-0px !bottom-0px !rounded-12px !shadow-[0_2px_20px_rgba(0,0,0,0.1)] !dark:shadow-[0_2px_20px_rgba(255,255,255,0.2)]`,
+            body: '!p-0px !rounded-12px',
+            mask: '!bg-transparent !backdrop-filter-none'
+          }}
+          maskClosable
+          size={280}
+          autoFocus={false}
+        >
+          {sidebar}
+        </Drawer>
       )}
 
       {/* Main Content Area */}

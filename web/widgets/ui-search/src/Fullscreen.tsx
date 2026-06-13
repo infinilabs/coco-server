@@ -275,6 +275,11 @@ const Fullscreen = (props: FullscreenProps) => {
         defaultParams={chatParams}
         setDefaultParams={setChatParams}
         setAttachments={setAttachments}
+        initContainer={(ref: HTMLDivElement | null) => {
+          containerRef.current = ref;
+        }}
+        getContainer={getContainer}
+        rightMenuWidth={rightMenuWidth}
       />
     )
   }

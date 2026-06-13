@@ -265,7 +265,6 @@ const BasicLayout: FC<BasicLayoutProps> = (props) => {
               onClose={() => setRightDrawerOpen(false)}
               closeIcon={null}
               getContainer={getContainer as (() => HTMLElement) | undefined}
-              destroyOnHidden
               push={false}
               classNames={{
                 wrapper: `!overflow-hidden !right-12px !top-146px !bottom-24px !rounded-12px !shadow-[0_2px_20px_rgba(0,0,0,0.1)] !dark:shadow-[0_2px_20px_rgba(255,255,255,0.2)]`,

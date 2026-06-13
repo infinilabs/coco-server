@@ -1,7 +1,8 @@
 import { type FC, type ReactNode } from "react";
-import { Button } from "antd";
+import { Button, Tooltip } from "antd";
 import { Search } from "lucide-react";
 import { useTranslation } from 'react-i18next';
+import logoMobileSvg from '../icons/coco.svg';
 
 const LeftSvg: FC<{ className?: string }> = ({ className }) => (
   <svg viewBox="0 0 48 48" width="1em" height="1em" filter="none" className={className}>
@@ -28,45 +29,77 @@ const NewChatSvg: FC<{ className?: string }> = ({ className }) => (
 )
 
 interface ChatHeaderProps {
+  isMobile?: boolean;
+  theme?: 'light' | 'dark';
+  logo?: {
+    light_mobile?: string;
+    dark_mobile?: string;
+  };
+  handleLogoClick?: () => void;
   isHistoryOpen?: boolean;
   onToggleHistory?: () => void;
   onNewChat?: () => void;
   onBackToSearch?: () => void;
   AssistantList?: ReactNode;
+  rightMenuWidth?: number;
 }
 
 const ChatHeader: FC<ChatHeaderProps> = (props) => {
-  const { isHistoryOpen, onToggleHistory, onNewChat, onBackToSearch, AssistantList } = props;
+  const { isMobile, rightMenuWidth, theme, logo, handleLogoClick, isHistoryOpen, onToggleHistory, onNewChat, onBackToSearch, AssistantList } = props;
   const { t } = useTranslation();
 
   return (
-    <div className="h-full w-full flex items-center justify-between px-4 border-b border-solid border-[var(--ant-color-border-secondary)] box-border">
-      <div className="min-w-0 flex items-center gap-2">
+    <div style={rightMenuWidth ? { paddingRight: rightMenuWidth + 12 } : undefined} className="h-full w-full flex items-center justify-between px-4 border-b border-solid border-[var(--ant-color-border-secondary)] box-border">
+      <div className="w-full flex items-center gap-2">
+        {isMobile && (
+          <div className='flex items-center cursor-pointer shrink-0' onClick={() => handleLogoClick?.()}>
+            <img
+              src={(theme === 'dark' ? logo?.dark_mobile : logo?.light_mobile) || logoMobileSvg}
+              width={40}
+              height={40}
+            />
+          </div>
+        )}
         <Button
           icon={isHistoryOpen ? <RightSvg className="h-4 w-4" /> : <LeftSvg className="h-4 w-4" />}
           onClick={onToggleHistory}
-          className="!rounded-12px border-[#F0F0F0] dark:border-[#303030]"
+          className="!rounded-12px border-[#F0F0F0] dark:border-[#303030] shrink-0"
         />
 
-        {AssistantList}
+        <div className="min-w-0 max-w-full flex-shrink flex-grow-0 basis-auto relative">
+          {AssistantList}
+        </div>
 
-        <Button
-          icon={<NewChatSvg className="h-4 w-4 !text-[var(--ant-color-primary)]" />}
-          onClick={onNewChat}
-          className="!rounded-12px border-[#F0F0F0] dark:border-[#303030]"
-        />
+        <Tooltip title={t('labels.newChat')}>
+          <Button
+            icon={<NewChatSvg className="h-4 w-4 !text-[var(--ant-color-primary)]" />}
+            onClick={onNewChat}
+            className="!rounded-12px border-[#F0F0F0] dark:border-[#303030] shrink-0"
+          />
+        </Tooltip>
 
-        <Button
-          shape="round"
-          icon={<Search className="h-4 w-4 !text-[var(--ant-color-primary)]" />}
-          onClick={onBackToSearch}
-          className="text-[#999] !rounded-12px border-[#F0F0F0] dark:border-[#303030] !px-8px"
-        >
-          {t('labels.backToSearch')}
-        </Button>
+        {
+          isMobile ? (
+            <Tooltip title={t('labels.backToSearch')}>
+              <Button
+                icon={<Search className="h-4 w-4 !text-[var(--ant-color-primary)]" />}
+                onClick={onBackToSearch}
+                className="!rounded-12px border-[#F0F0F0] dark:border-[#303030] shrink-0"
+              />
+            </Tooltip>
+          ) : (
+            <Button
+              shape="round"
+              icon={<Search className="h-4 w-4 !text-[var(--ant-color-primary)]" />}
+              onClick={onBackToSearch}
+              className="text-[#999] !rounded-12px border-[#F0F0F0] dark:border-[#303030] !px-8px shrink-0"
+            >
+              {t('labels.backToSearch')}
+            </Button>
+          )
+        }
       </div>
 
-      <div className="w-200px" />
     </div>
   );
 };

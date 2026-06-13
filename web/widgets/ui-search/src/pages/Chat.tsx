@@ -72,6 +72,8 @@ interface ChatProps {
   defaultParams?: Record<string, any>;
   setDefaultParams?: (params: any) => void;
   setAttachments?: (attachments: any[]) => void;
+  initContainer?: (ref: HTMLDivElement | null) => void;
+  getContainer?: () => HTMLElement | null;
   [key: string]: any;
 }
 
@@ -84,15 +86,22 @@ export default function Chat({
   defaultParams,
   setDefaultParams,
   setAttachments,
+  initContainer,
+  getContainer,
+  rightMenuWidth,
 }: ChatProps) {
-  const { BaseUrl, Token, endpoint, headers } = apiConfig || {};
-  const { language, theme } = commonProps || {};
+  const { BaseUrl, Token, headers } = apiConfig || {};
+  const { language, theme, isMobile } = commonProps || {};
 
   const chatRef = useRef<any>(null);
   const { t } = useTranslation();
 
-  const [isHistoryOpen, setIsHistoryOpen] = useState(true);
+  const [isHistoryOpen, setIsHistoryOpen] = useState<boolean | null>(null);
   const [inputValue, setInputValue] = useState("");
+
+  // null = user hasn't toggled, derive from isMobile
+  // only open when we're certain it's desktop (isMobile === false)
+  const effectiveHistoryOpen = isHistoryOpen ?? (isMobile === false);
 
   const clearChatRef = useRef<((cb?: () => void, force?: boolean) => void) | null>(null);
   useEffect(() => {
@@ -180,6 +189,8 @@ export default function Chat({
   return (
     <ChatLayout
       {...commonProps}
+      initContainer={initContainer}
+      getContainer={getContainer}
       logo={logo}
       handleLogoClick={handleLogoClick}
       content={
@@ -214,12 +225,18 @@ export default function Chat({
           disabled={false}
         />
       }
-      sidebarCollapsed={!isHistoryOpen}
+      sidebarCollapsed={!effectiveHistoryOpen}
+      setSidebarCollapsed={(open) => setIsHistoryOpen(!open)}
       header={
         <ChatHeader
+          isMobile={isMobile}
+          rightMenuWidth={rightMenuWidth}
+          theme={theme}
+          logo={logo}
+          handleLogoClick={handleLogoClick}
           onNewChat={handleNewChat}
-          isHistoryOpen={isHistoryOpen}
-          onToggleHistory={() => setIsHistoryOpen((open) => !open)}
+          isHistoryOpen={effectiveHistoryOpen}
+          onToggleHistory={() => setIsHistoryOpen(!effectiveHistoryOpen)}
           AssistantList={
             <AssistantList
               BaseUrl={BaseUrl}
