@@ -19,7 +19,7 @@ export interface DataSource {
     [key: string]: unknown;
 }
 
-interface DataSourcePopoverProps {
+interface CommonPopoverProps {
     visible?: boolean;
     selectedIds: string[];
     onSelectionChange: (ids: string[]) => void;
@@ -33,7 +33,7 @@ interface DataSourcePopoverProps {
     t?: TFunction;
 }
 
-export default function DataSourcePopover({
+export default function CommonPopover({
     visible,
     selectedIds,
     onSelectionChange,
@@ -45,7 +45,7 @@ export default function DataSourcePopover({
     title,
     showItemIcon = false,
     t: tProp,
-}: DataSourcePopoverProps) {
+}: CommonPopoverProps) {
     const { t: tOriginal } = useTranslation();
     const t = tProp || tOriginal;
 
@@ -264,37 +264,49 @@ export default function DataSourcePopover({
             style={{
                 backgroundColor: isActive
                     ? 'var(--ant-color-primary-bg)'
-                    : undefined,
+                    : 'transparent',
+                transition: 'background-color 0.3s ease',
             }}
             onClick={() => setIsActive(!isActive)}
             title={title || label}
         >
             {icon}
 
-            {isActive && (
-                <>
-                    <span className="text-xs" style={{ color: 'var(--ant-color-primary)' }}>
-                        {label}
-                    </span>
+            <div
+                className="flex items-center gap-1 overflow-hidden"
+                style={{
+                    maxWidth: isActive ? '200px' : '0px',
+                    opacity: isActive ? 1 : 0,
+                    transition: 'max-width 0.3s ease, opacity 0.2s ease',
+                }}
+            >
+                <span className="text-xs whitespace-nowrap" style={{ color: 'var(--ant-color-primary)' }}>
+                    {label}
+                </span>
 
-                    <div
-                        ref={triggerRef}
-                        role="button"
-                        tabIndex={0}
-                        className="text-[var(--ant-color-primary)] flex items-center justify-center size-4 rounded-sm hover:bg-black/5 dark:hover:bg-white/10"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setOpen(!open);
-                        }}
-                    >
-                        <ChevronDown size={14} />
-                    </div>
+                <div
+                    ref={triggerRef}
+                    role="button"
+                    tabIndex={0}
+                    className="text-[var(--ant-color-primary)] flex items-center justify-center size-4 shrink-0 rounded-sm hover:bg-black/5 dark:hover:bg-white/10"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setOpen(!open);
+                    }}
+                >
+                    <ChevronDown size={14} />
+                </div>
+            </div>
 
-                    {open && (
+            {isActive && open && (
                         <div
                             ref={panelRef}
                             className="absolute bottom-full mb-2 z-50 rounded-lg bg-[var(--ant-color-bg-elevated,#fff)] shadow-[0_6px_16px_0_rgba(0,0,0,0.08),0_3px_6px_-4px_rgba(0,0,0,0.12),0_9px_28px_8px_rgba(0,0,0,0.05)] p-3"
-                            style={panelStyle}
+                            style={{
+                                ...panelStyle,
+                                transformOrigin: 'bottom center',
+                                animation: 'expandUp 0.2s ease-out',
+                            }}
                             onClick={(e) => e.stopPropagation()}
                         >
                             <div className="flex flex-col gap-2">
@@ -388,8 +400,6 @@ export default function DataSourcePopover({
                             </div>
                         </div>
                     )}
-                </>
-            )}
         </div>
     );
 }

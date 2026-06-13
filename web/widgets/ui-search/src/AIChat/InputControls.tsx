@@ -4,6 +4,7 @@ import clsx from "clsx";
 
 import SearchPopover, { type DataSource } from "./SearchPopover";
 import MCPPopover from "./MCPPopover";
+import CommonLabel from "./CommonLabel";
 import type { TFunction } from "i18next";
 
 interface InputControlsProps {
@@ -68,49 +69,24 @@ const InputControls = ({
 
   return (
     <div className="flex items-center gap-2">
-      {showDeepResearch && (<div
-        className={clsx(
-          "flex items-center justify-center gap-1 h-6 px-2 rounded-full transition cursor-pointer",
-        )}
-        style={{
-          backgroundColor: isDeepResearchActive
-            ? 'var(--ant-color-primary-bg)'
-            : undefined,
-        }}
-        title={t("search.input.deepResearch") || "DeepResearch"}
-      >
-        <Telescope
-          className={clsx("size-4", isDeepResearchActive ? "text-[var(--ant-color-primary)]" : "text-#333 dark:text-#666")}
+      {showDeepResearch && (
+        <CommonLabel
+          isActive={isDeepResearchActive}
+          icon={<Telescope className={clsx("size-4", isDeepResearchActive ? "text-[var(--ant-color-primary)]" : "text-#333 dark:text-#666")} />}
+          label={t("search.input.deepResearch") || "DeepResearch"}
+          title={t("search.input.deepResearch") || "DeepResearch"}
         />
-        {isDeepResearchActive && (
-          <span className="text-xs" style={{ color: 'var(--ant-color-primary)' }}>
-            {t("search.input.deepResearch") || "DeepResearch"}
-          </span>
-        )}
-      </div>)}
+      )}
       
-      {showDeepThink && (<div
-        className={clsx(
-          "flex items-center justify-center gap-1 h-6 px-2 rounded-full transition cursor-pointer",
-          !isDeepThinkActive && "hover:bg-[#EDEDED] dark:hover:bg-[#202126]"
-        )}
-        style={{
-          backgroundColor: isDeepThinkActive
-            ? 'var(--ant-color-primary-bg)'
-            : undefined,
-        }}
-        onClick={() => setIsDeepThinkActive?.(!isDeepThinkActive)}
-        title={t("search.input.deepThink") || "DeepThink"}
-      >
-        <Brain
-          className={clsx("size-4", isDeepThinkActive ? "text-[var(--ant-color-primary)]" : "text-#333 dark:text-#666")}
+      {showDeepThink && (
+        <CommonLabel
+          isActive={isDeepThinkActive}
+          setIsActive={setIsDeepThinkActive}
+          icon={<Brain className={clsx("size-4", isDeepThinkActive ? "text-[var(--ant-color-primary)]" : "text-#333 dark:text-#666")} />}
+          label={t("search.input.deepThink") || "DeepThink"}
+          title={t("search.input.deepThink") || "DeepThink"}
         />
-        {isDeepThinkActive && (
-          <span className="text-xs" style={{ color: 'var(--ant-color-primary)' }}>
-            {t("search.input.deepThink") || "DeepThink"}
-          </span>
-        )}
-      </div>)}
+      )}
 
       <SearchPopover
         datasource={datasource || {}}

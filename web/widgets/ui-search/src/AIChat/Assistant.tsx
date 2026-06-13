@@ -173,6 +173,8 @@ function InnerAssistantList({ assistantIDs = [], locale = "en", t: tProp }: Assi
           style={{
             backgroundColor: 'var(--ant-color-bg-elevated)',
             color: 'var(--ant-color-text)',
+            transformOrigin: 'top center',
+            animation: 'expandDown 0.2s ease-out',
           }}
           onMouseMove={() => {
             // no-op

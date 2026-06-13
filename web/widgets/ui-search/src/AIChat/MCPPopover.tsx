@@ -3,7 +3,7 @@ import clsx from "clsx";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 
-import DataSourcePopover, { type DataSource } from "./DataSourcePopover";
+import CommonPopover, { type DataSource } from "./CommonPopover";
 
 export type { DataSource };
 
@@ -31,7 +31,7 @@ export default function MCPPopover({
   const t = tProp || tOriginal;
 
   return (
-    <DataSourcePopover
+    <CommonPopover
       visible={mcp_servers?.visible}
       selectedIds={selectedIds}
       onSelectionChange={onSelectionChange}

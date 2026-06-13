@@ -42,3 +42,25 @@ html.grayscale {
 .dark::view-transition-new(root) {
   z-index: 9999;
 }
+
+@keyframes expandDown {
+  from {
+    opacity: 0;
+    transform: scaleY(0.8) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1) translateY(0);
+  }
+}
+
+@keyframes expandUp {
+  from {
+    opacity: 0;
+    transform: scaleY(0.8) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1) translateY(0);
+  }
+}
