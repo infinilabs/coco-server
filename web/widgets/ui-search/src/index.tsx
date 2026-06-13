@@ -8,7 +8,8 @@ import { default as Modal } from "./FullscreenModal";
 export { DocDetail, ActionButton } from "./ResultDetail/DocDetail";
 
 import "./index.css";
-import nprogressCSS from "nprogress/nprogress.css?inline";
+import "./styles/css/global.css";
+import nprogressCSS from "./styles/css/nprogress.css?inline";
 import NProgress from "nprogress";
 import { ConfigProvider } from "antd";
 
@@ -45,6 +46,15 @@ const Wrapper = (props: WrapperProps) => {
   useEffect(() => {
     setupThemeVarsToHtml(colors, themeSettings.tokens, themeSettings.recommendColor, shadow);
   }, [colors, themeSettings]);
+
+  useEffect(() => {
+    const html = document.documentElement;
+    const originalFontSize = html.style.fontSize;
+    html.style.fontSize = '16px';
+    return () => {
+      html.style.fontSize = originalFontSize;
+    };
+  }, []);
 
   useEffect(() => {
     if (!shadow) return;
@@ -87,7 +97,8 @@ const Wrapper = (props: WrapperProps) => {
         if (spinner) spinner.remove();
       }
 
-      shadow.appendChild(progress);
+      const container = shadow.querySelector('.ui-search') || shadow;
+      container.appendChild(progress);
       return progress;
     };
 
