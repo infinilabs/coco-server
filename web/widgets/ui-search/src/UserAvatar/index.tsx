@@ -63,7 +63,7 @@ const UserAvatar: FC<UserAvatarProps> = (props) => {
                 <div className="flex justify-between items-center gap-3">
                   <div className="flex items-center gap-3">
                     <Button
-                      className="rounded-full"
+                      className="rounded-full border-[#F0F0F0] dark:border-[#303030]"
                       icon={<CircleUser size={16} className="!text-[var(--ant-color-text-secondary)]" />}
                     />
 
@@ -116,7 +116,7 @@ const UserAvatar: FC<UserAvatarProps> = (props) => {
         }}
       >
         <Button
-          className="rounded-12px"
+          className="rounded-12px border-[#F0F0F0] dark:border-[#303030]"
           icon={<CircleUser size={16} className="!text-[var(--ant-color-text-secondary)]" />}
         />
       </Popover>

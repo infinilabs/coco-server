@@ -49,7 +49,7 @@ const ChatHeader: FC<ChatHeaderProps> = (props) => {
   const { t } = useTranslation();
 
   return (
-    <div style={rightMenuWidth ? { paddingRight: rightMenuWidth + 12 } : undefined} className="h-full w-full flex items-center justify-between px-4 border-b border-solid border-[var(--ant-color-border-secondary)] box-border">
+    <div style={rightMenuWidth ? { paddingRight: rightMenuWidth + 16 } : undefined} className="h-full w-full flex items-center justify-between px-4 border-b border-solid border-[var(--ant-color-border-secondary)] box-border">
       <div className="w-full flex items-center gap-2">
         {isMobile && (
           <div className='flex items-center cursor-pointer shrink-0' onClick={() => handleLogoClick?.()}>
