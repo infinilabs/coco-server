@@ -56,6 +56,16 @@ export function AIAnswer({
   const collapsed = userInteracted ? collapsedState : overflow;
   const showToggle = overflow;
 
+  // Reset to collapsed when a new ask starts (loading becomes true)
+  const prevLoadingRef = useRef(loading);
+  useEffect(() => {
+    if (loading && !prevLoadingRef.current) {
+      setUserInteracted(false);
+      setCollapsedState(true);
+    }
+    prevLoadingRef.current = loading;
+  }, [loading]);
+
   const getFixedHeight = useCallback(() => {
     const container = containerRef.current;
     const body = bodyRef.current;
@@ -159,7 +169,14 @@ export function AIAnswer({
             collapseText={collapseText}
             onToggle={() => {
               setUserInteracted(true);
-              setCollapsedState(!collapsed);
+              const willCollapse = !collapsed;
+              setCollapsedState(willCollapse);
+              if (willCollapse && containerRef.current) {
+                const scrollParent = containerRef.current.closest('[class*="overflow-y-auto"], [class*="overflow-auto"]') as HTMLElement | null;
+                if (scrollParent) {
+                  scrollParent.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+              }
             }}
           />
         ) : null}
