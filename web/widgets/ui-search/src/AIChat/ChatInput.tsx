@@ -411,7 +411,7 @@ export default function ChatInput({
 
   return (
     <div
-      className={`w-full p-1 relative rounded-xl overflow-hidden border border-solid border-[#F0F0F0] dark:border-[#303030]`}
+      className={`w-full p-1 relative rounded-xl border border-solid border-[#F0F0F0] dark:border-[#303030]`}
       style={{
         backgroundColor: 'var(--ant-color-bg-container)',
       }}

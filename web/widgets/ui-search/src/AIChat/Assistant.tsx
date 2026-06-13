@@ -61,7 +61,7 @@ function InnerAssistantList({ assistantIDs = [], locale = "en", t: tProp }: Assi
   const [keyword, setKeyword] = useState("");
   const [inputValue, setInputValue] = useState("");
   const [total, setTotal] = useState(0);
-  
+
   const debouncedKeyword = useMemo(
     () => debounce((k: string) => {
       setKeyword(k);
@@ -141,24 +141,26 @@ function InnerAssistantList({ assistantIDs = [], locale = "en", t: tProp }: Assi
           }, 0);
         }}
       >
-        {currentAssistant?._source?.icon ? (
-          currentAssistant._source.icon.startsWith("font_") ? (
-            <FontIcon
-              name={currentAssistant._source.icon}
-              className="w-4 h-4 mr-1"
-            />
-          ) : (
-            <img
-              src={currentAssistant._source.icon}
-              className="w-4 h-4 mr-1"
-              alt="assistant"
-              onError={(e) => {
-                const el = e.currentTarget as HTMLImageElement;
-                el.style.display = "none";
-              }}
-            />
-          )
-        ) : null}
+        <div className="flex-shrink-0">
+          {currentAssistant?._source?.icon ? (
+            currentAssistant._source.icon.startsWith("font_") ? (
+              <FontIcon
+                name={currentAssistant._source.icon}
+                className="w-4 h-4 mr-1"
+              />
+            ) : (
+              <img
+                src={currentAssistant._source.icon}
+                className="w-4 h-4 mr-1"
+                alt="assistant"
+                onError={(e) => {
+                  const el = e.currentTarget as HTMLImageElement;
+                  el.style.display = "none";
+                }}
+              />
+            )
+          ) : null}
+        </div>
         <span className="text-sm flex-1 truncate text-left">
           {currentAssistant?._source?.name || t("assistant_list.default_name")}
         </span>
