@@ -1,7 +1,8 @@
-import { Drawer, Tooltip } from "antd";
+import { Tooltip } from "antd";
 import { SquareArrowOutUpRight, X } from "lucide-react";
 import { ActionButton, DocDetail } from "./DocDetail";
 import { type FC } from "react";
+import CommonDrawer from "../Layout/CommonDrawer";
 import { useTranslation } from "react-i18next";
 import { filesize } from 'filesize';
 import dayjs from "dayjs";
@@ -46,19 +47,18 @@ export const ResultDetail: FC<ResultDetailProps> = (props) => {
     const { t } = useTranslation();
 
     return (
-        <Drawer
+        <CommonDrawer
+            placement="right"
             onClose={onClose}
             open={open}
-            size={isMobile ? 'large' : 800}
-            closeIcon={null}
+            size={isMobile ? undefined : 800}
             getContainer={getContainer}
             destroyOnHidden
+            clickOutsideToClose={false}
             classNames={{
-                wrapper: `!overflow-hidden ${isMobile ? '!left-12px !right-12px !w-[calc(100%-24px)]' : '!right-24px'} !top-146px !bottom-24px !rounded-12px !shadow-[0_2px_20px_rgba(0,0,0,0.1)] !dark:shadow-[0_2px_20px_rgba(255,255,255,0.2)]`,
-                body: '!p-24px !rounded-12px !overflow-hidden !h-full'
+                wrapper: `${isMobile ? '!left-0px !right-0px !w-full' : '!right-24px'} !top-146px !bottom-24px`,
+                body: '!p-24px !overflow-hidden !h-full'
             }}
-            mask={false}
-            maskClosable={false}
         >
             <X className="color-[#bbb] cursor-pointer absolute right-24px top-24px z-1" onClick={onClose} />
             <DocDetail 
@@ -102,7 +102,7 @@ export const ResultDetail: FC<ResultDetailProps> = (props) => {
                     }
                 }}
             />
-        </Drawer>
+        </CommonDrawer>
     );
 }
 

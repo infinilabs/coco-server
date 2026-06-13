@@ -1,7 +1,6 @@
 import { FileText, SquareArrowOutUpRight } from "lucide-react";
-import { useState } from "react";
 
-import { DeepResearchDrawer } from "./DeepResearch/DeepResearchDrawer";
+import { useDeepResearchDrawer } from "./DeepResearch/DeepResearchDrawerContext";
 import { formatDate } from "../utils";
 
 interface PayloadCardProps {
@@ -17,7 +16,7 @@ interface PayloadCardProps {
 }
 
 export const PayloadCard = ({ payload, formatUrl }: PayloadCardProps) => {
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const { openDrawer } = useDeepResearchDrawer();
 
   if (!payload?.title || !payload?.url) return null;
 
@@ -26,7 +25,12 @@ export const PayloadCard = ({ payload, formatUrl }: PayloadCardProps) => {
       <div className="mt-16px">
         <div
           className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-[#202126] rounded-lg border border-gray-200 dark:border-gray-800 max-w-sm cursor-pointer transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
-          onClick={() => setIsDrawerOpen(true)}
+          onClick={() => openDrawer({
+            reportContent: payload.content,
+            reportData: payload as any,
+            formatUrl,
+            showReportOnly: true,
+          })}
         >
           <div className="shrink-0">
             <FileText className="w-6 h-6 text-blue-500" />
@@ -58,15 +62,6 @@ export const PayloadCard = ({ payload, formatUrl }: PayloadCardProps) => {
           )}
         </div>
       </div>
-
-      <DeepResearchDrawer
-        open={isDrawerOpen}
-        onClose={() => setIsDrawerOpen(false)}
-        reportContent={payload.content}
-        reportData={payload as any}
-        formatUrl={formatUrl}
-        showReportOnly={true}
-      />
     </>
   );
 };

@@ -1,9 +1,9 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { type TFunction } from "i18next";
 import { Hourglass, BookOpen, Search, Square, Ban } from "lucide-react";
 
-import { DeepResearchDrawer } from "./DeepResearchDrawer";
+import { useDeepResearchDrawer } from "./DeepResearchDrawerContext";
 import type {
   StepItem,
   StepStatus,
@@ -240,10 +240,7 @@ export const DeepResearch = ({
 }: DeepResearchProps) => {
   const { t: tOriginal } = useTranslation();
   const t = tProp || tOriginal;
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [drawerDefaultTab, setDrawerDefaultTab] = useState(
-    t("deepResearch.tab.steps"),
-  );
+  const { openDrawer } = useDeepResearchDrawer();
 
   // Merge persisted detail chunks (from ES history) with live streaming chunks.
   // detail.payload contains the saved chunks; ChunkData contains real-time ones.
@@ -464,8 +461,20 @@ export const DeepResearch = ({
       <div
         className="w-full my-3 cursor-pointer"
         onClick={() => {
-          setDrawerDefaultTab(isCompleted ? t("deepResearch.tab.report") : t("deepResearch.tab.steps"));
-          setIsDrawerOpen(true);
+          const tab = isCompleted ? t("deepResearch.tab.report") : t("deepResearch.tab.steps");
+          openDrawer({
+            defaultActiveTab: tab,
+            steps,
+            plannerStatus,
+            executionStatus,
+            reportStatus,
+            reportData: mergedPayload,
+            searchHits,
+            formatUrl,
+            theme,
+            isEnd,
+            t,
+          });
         }}
       >
         <div className="w-full rounded-8px border border-[#F0F0F0] dark:border-[#303030] bg-[#F3F4F6] dark:bg-[#020817] p-4">
@@ -530,8 +539,19 @@ export const DeepResearch = ({
                   className="px-3 py-1 text-xs font-medium rounded-full bg-[#E9F0FE] dark:bg-blue-900/30 text-[#1784FC] dark:text-blue-400 hover:bg-[#E0E9FD] dark:hover:bg-blue-900/50 cursor-pointer"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setDrawerDefaultTab(t("deepResearch.tab.report"));
-                    setIsDrawerOpen(true);
+                    openDrawer({
+                      defaultActiveTab: t("deepResearch.tab.report"),
+                      steps,
+                      plannerStatus,
+                      executionStatus,
+                      reportStatus,
+                      reportData: mergedPayload,
+                      searchHits,
+                      formatUrl,
+                      theme,
+                      isEnd,
+                      t,
+                    });
                   }}
                 >
                   {t("deepResearch.button.view")}
@@ -577,21 +597,6 @@ export const DeepResearch = ({
           </div>
         </div>
       </div>
-      <DeepResearchDrawer
-        open={isDrawerOpen}
-        onClose={() => setIsDrawerOpen(false)}
-        defaultActiveTab={drawerDefaultTab}
-        steps={steps}
-        plannerStatus={plannerStatus}
-        executionStatus={executionStatus}
-        reportStatus={reportStatus}
-        reportData={mergedPayload}
-        searchHits={searchHits}
-        formatUrl={formatUrl}
-        theme={theme}
-        isEnd={isEnd}
-        t={t}
-      />
     </>
   );
 };

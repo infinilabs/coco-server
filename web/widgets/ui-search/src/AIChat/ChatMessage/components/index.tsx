@@ -451,11 +451,11 @@ const InnerChatMessage = memo(
             dark={resolvedTheme === "dark"}
           />
 
-          {
+          {/* {
             !deepResearchDetail && (
               <PayloadCard payload={payload as any} formatUrl={formatUrl} />
             )
-          }
+          } */}
 
           <DeepResearch
             detail={deepResearchDetail}

@@ -12,6 +12,7 @@ import { useConnectStore } from "./stores/connectStore";
 import ScrollToBottom from "./Common/ScrollToBottom";
 import { useChatStore, type Assistant } from "./stores/chatStore";
 import { SendMessageParams } from "./Chat";
+import { DeepResearchDrawerProvider } from "./ChatMessage/components/DeepResearch/DeepResearchDrawerContext";
 
 export interface ActiveChatMessageProps {
   activeMessageRef?: React.RefObject<ChatMessageRef>;
@@ -85,6 +86,7 @@ interface ChatContentProps {
   t?: TFunction;
   currentAssistant?: Assistant;
   theme?: string;
+  isMobile?: boolean;
   onCancel?: () => void;
 }
 
@@ -98,6 +100,7 @@ export const ChatContent = ({
   formatUrl,
   t: tProp,
   theme,
+  isMobile,
   onCancel,
 }: ChatContentProps) => {
   const { t: tOriginal } = useTranslation();
@@ -189,6 +192,7 @@ export const ChatContent = ({
   };
 
   return (
+    <DeepResearchDrawerProvider isMobile={isMobile}>
     <div className="flex-1 overflow-hidden flex flex-col justify-between relative">
       <div
         ref={scrollRef}
@@ -264,5 +268,6 @@ export const ChatContent = ({
 
       <ScrollToBottom scrollRef={scrollRef} isAtBottom={isAtBottom} />
     </div>
+    </DeepResearchDrawerProvider>
   );
 };

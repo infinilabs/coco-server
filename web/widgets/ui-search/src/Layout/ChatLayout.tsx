@@ -1,4 +1,4 @@
-import { Drawer, Layout } from 'antd';
+import { Layout } from 'antd';
 import { type FC, type ReactNode } from 'react';
 
 import { DARK_CLASS } from '../theme/shared';
@@ -8,6 +8,7 @@ import logoTextLight from '../icons/logo-text-light.svg';
 
 import styles from './index.module.less';
 import ChatIcon from '../icons/ChatIcon';
+import CommonDrawer from './CommonDrawer';
 
 const { Content, Sider } = Layout;
 
@@ -86,25 +87,17 @@ const ChatLayout: FC<ChatLayoutProps> = (props) => {
           </div>
         </Sider>
       ) : (
-        <Drawer
-          placement="left"
+        <CommonDrawer
           open={!sidebarCollapsed}
           onClose={() => setSidebarCollapsed?.(true)}
-          closeIcon={null}
-          getContainer={getContainer as (() => HTMLElement) | undefined}
-          push={false}
-          destroyOnHidden={false}
+          getContainer={getContainer}
           classNames={{
-            wrapper: `!overflow-hidden !left-0px !top-0px !bottom-0px !rounded-12px !shadow-[0_2px_20px_rgba(0,0,0,0.1)] !dark:shadow-[0_2px_20px_rgba(255,255,255,0.2)]`,
-            body: '!p-0px !rounded-12px',
-            mask: '!bg-transparent !backdrop-filter-none'
+            wrapper: '!left-0px !top-88px !bottom-24px',
+            body: '!p-0px',
           }}
-          maskClosable
-          size={280}
-          autoFocus={false}
         >
           {sidebar}
-        </Drawer>
+        </CommonDrawer>
       )}
 
       {/* Main Content Area */}

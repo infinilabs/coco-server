@@ -57,7 +57,7 @@ export const ResearchSearchResultsContent = ({
   }, [hits]);
 
   return (
-    <div className="max-w-[730px]">
+    <div className="">
       <SearchResults
         section={records}
         theme={theme || "light"}

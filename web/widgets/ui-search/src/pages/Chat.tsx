@@ -197,6 +197,7 @@ export default function Chat({
         <AIChat
           ref={chatRef}
           theme={theme}
+          isMobile={isMobile}
           BaseUrl={BaseUrl}
           formatUrl={(data: any) => {
             if (!data.url) return "";

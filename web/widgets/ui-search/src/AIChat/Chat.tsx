@@ -36,6 +36,7 @@ interface ChatAIProps {
   locale?: string;
   t?: TFunction;
   theme?: string;
+  isMobile?: boolean;
 }
 
 /**
@@ -81,7 +82,7 @@ export interface ChatAIRef {
  */
 const InnerChatAI = memo(
   forwardRef<ChatAIRef, ChatAIProps>(
-    ({ BaseUrl, formatUrl, headers: headersProp = {}, locale, t: tProp, theme }, ref) => {
+    ({ BaseUrl, formatUrl, headers: headersProp = {}, locale, t: tProp, theme, isMobile }, ref) => {
       // 动态加载 iconfont 脚本
       useIconfontScript();
 
@@ -930,6 +931,7 @@ const InnerChatAI = memo(
             t={t}
             currentAssistant={currentAssistant}
             theme={theme}
+            isMobile={isMobile}
             onCancel={handleCancelWithConfirm}
           />
 

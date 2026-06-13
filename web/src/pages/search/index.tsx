@@ -366,7 +366,7 @@ export function Component() {
         queryParams={queryParams}
         setQueryParams={setQueryParams}
       />
-      <div ref={topActionsRef} style={{ top: (queryParams as any).mode === 'chat' ? 8 : 16 }} className="absolute right-8px h-48px z-1002 flex-y-center justify-end">
+      <div ref={topActionsRef} style={{ top: (queryParams as any).mode === 'chat' ? 8 : 16 }} className="absolute right-8px h-48px z-999 flex-y-center justify-end">
         <LangSwitch className="px-12px" />
         <ThemeSchemaSwitch className="px-12px" />
         <UserAvatar className="px-8px" showHome showName={!isMobile} />

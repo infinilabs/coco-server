@@ -1,8 +1,9 @@
-import { Drawer, FloatButton, Layout } from "antd";
+import { FloatButton, Layout } from "antd";
 import styles from "./index.module.less";
 import { DARK_CLASS } from "../theme/shared";
 import { cloneElement, useCallback, useEffect, useRef, useState, type ReactNode, type FC, type ReactElement } from "react";
 import useNProgress from "../hooks/useNProgress";
+import CommonDrawer from "./CommonDrawer";
 import SearchHeaderLayout from "./SearchHeaderLayout";
 
 const { Content, Sider } = Layout;
@@ -204,24 +205,19 @@ const BasicLayout: FC<BasicLayoutProps> = (props) => {
         {/* Left Column: Logo + Aggregations */}
         {(
           isMobile || siderCollapse ? (
-            <Drawer
+            <CommonDrawer
               placement="left"
               open={leftDrawerOpen}
               onClose={() => setLeftDrawerOpen(false)}
-              closeIcon={null}
-              getContainer={getContainer as (() => HTMLElement) | undefined}
-              push={false}
+              getContainer={getContainer}
               classNames={{
-                wrapper: `!overflow-hidden !left-12px !top-146px !bottom-24px !rounded-12px !shadow-[0_2px_20px_rgba(0,0,0,0.1)] !dark:shadow-[0_2px_20px_rgba(255,255,255,0.2)]`,
-                body: '!p-16px !rounded-12px',
-                mask: '!bg-transparent !backdrop-filter-none'
+                wrapper: '!left-0px !top-146px !bottom-24px',
+                body: '!p-16px',
               }}
-              maskClosable
               size={280}
-              autoFocus={false}
             >
               {aggregations}
-            </Drawer>
+            </CommonDrawer>
           ) : (
             <Sider width={280} {...siderProps} style={{ overflow: 'visible' }}>
               {/* Content part */}
@@ -259,23 +255,19 @@ const BasicLayout: FC<BasicLayoutProps> = (props) => {
         {/* Right Column: Spacer + Recommends */}
         {recommends && hasRecommendsData && (
           isMobile || recommendsCollapse ? (
-            <Drawer
+            <CommonDrawer
               placement="right"
               open={rightDrawerOpen}
               onClose={() => setRightDrawerOpen(false)}
-              closeIcon={null}
-              getContainer={getContainer as (() => HTMLElement) | undefined}
-              push={false}
+              getContainer={getContainer}
               classNames={{
-                wrapper: `!overflow-hidden !right-12px !top-146px !bottom-24px !rounded-12px !shadow-[0_2px_20px_rgba(0,0,0,0.1)] !dark:shadow-[0_2px_20px_rgba(255,255,255,0.2)]`,
-                body: '!p-16px !rounded-12px',
-                mask: '!bg-transparent !backdrop-filter-none'
+                wrapper: '!right-0px !top-146px !bottom-24px',
+                body: '!p-16px',
               }}
-              maskClosable
               size={400}
             >
               {recommends}
-            </Drawer>
+            </CommonDrawer>
           ) : (
             <Sider width={400} {...siderProps} style={{ overflow: 'visible' }}>
               {/* Content part */}
