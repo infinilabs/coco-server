@@ -1,13 +1,17 @@
 import { Button, type ButtonProps } from "antd";
-import { useState, type FC, type MouseEvent } from "react";
+import { useState, useMemo, type FC, type MouseEvent } from "react";
 import { motion } from "motion/react";
 
 export type ActionButtonProps = ButtonProps;
+
+const canHover = window.matchMedia("(hover: hover)").matches;
 
 const ActionButton: FC<ActionButtonProps> = (props) => {
   const { icon, children, onMouseOver, onMouseOut, className = '', ...rest } = props;
 
   const [hovered, setHovered] = useState(false);
+
+  const expanded = useMemo(() => !canHover || hovered, [hovered]);
 
   const handleMouseOver = (event: MouseEvent<HTMLButtonElement>) => {
     setHovered(true);
@@ -37,9 +41,9 @@ const ActionButton: FC<ActionButtonProps> = (props) => {
         className="overflow-hidden"
         initial={false}
         animate={{
-          width: hovered ? "auto" : 0,
-          opacity: Number(hovered),
-          paddingLeft: Number(hovered) * 8,
+          width: expanded ? "auto" : 0,
+          opacity: Number(expanded),
+          paddingLeft: Number(expanded) * 8,
         }}
       >
         {children}
