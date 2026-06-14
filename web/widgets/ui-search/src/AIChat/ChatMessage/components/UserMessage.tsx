@@ -73,7 +73,7 @@ export const UserMessage: FC<UserMessageProps> = (props) => {
             <CopyButton textToCopy={message} />
           </div>
           <div
-            className="max-w-[85%] overflow-auto text-left px-3 py-2 bg-[#EEF0F3] dark:bg-[#1E2229]! rounded-8px border border-[#F0F0F0] dark:border-[#303030] font-normal text-14px text-[#333333] dark:text-white cursor-pointer user-select-text whitespace-pre-wrap"
+            className="max-w-[85%] text-left px-3 py-2 bg-[#EEF0F3] dark:bg-[#1E2229]! rounded-8px border border-[#F0F0F0] dark:border-[#303030] font-normal text-14px text-[#333333] dark:text-white cursor-pointer user-select-text whitespace-pre-wrap break-all"
             onDoubleClick={handleDoubleClick}
           >
             {message}

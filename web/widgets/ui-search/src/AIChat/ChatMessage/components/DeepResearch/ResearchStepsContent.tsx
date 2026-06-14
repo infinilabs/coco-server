@@ -254,7 +254,7 @@ export const ResearchStepsContent = ({
             <div
               key={step.id}
               className={`relative ${
-                isSimplePending ? "pl-0 pb-4" : "pl-6 pb-8 last:pb-0"
+                isSimplePending ? "pl-6 pb-4" : "pl-6 pb-8 last:pb-0"
               }`}
             >
               {/* 步骤之间的连接虚线 */}
@@ -280,14 +280,19 @@ export const ResearchStepsContent = ({
                 <Hourglass className={`absolute left-0 top-2px w-4 h-4 text-[#1784FC] ${isEnd ? "" : "animate-spin"}`} />
               )}
 
+              {
+                isSimplePending && (
+                  <List className="absolute left-0 top-2px w-4 h-4 text-[#C8C8C8]" />
+                )
+              }
+
               {/* 等待中的简化展示 */}
               {isSimplePending ? (
-                <div className="flex items-center gap-2">
-                  <List className="w-4 h-4 text-[#C8C8C8]" />
+                <>
                   <div className="text-sm text-[#999999] dark:text-[#666]">
                     {step.title}
                   </div>
-                </div>
+                </>
               ) : (
                 <>
                   {/* 步骤标题 */}
