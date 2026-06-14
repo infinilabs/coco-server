@@ -68,6 +68,7 @@ const ListContainer = forwardRef<any, ListContainerProps>((props, ref) => {
   const loadingRef = useRef(false);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const keyDirectionRef = useRef('none');
+  const [isKeyboardNav, setIsKeyboardNav] = useState(false);
 
   const virtualizer = useVirtualizer({
     count: dataSource.length,
@@ -162,6 +163,8 @@ const ListContainer = forwardRef<any, ListContainerProps>((props, ref) => {
       // from also processing Enter and creating its own tag.
       e.stopPropagation();
 
+      setIsKeyboardNav(true);
+
       switch (e.keyCode) {
         case 40: 
           keyDirectionRef.current = 'down';
@@ -205,6 +208,9 @@ const ListContainer = forwardRef<any, ListContainerProps>((props, ref) => {
     getListLength: () => dataSource.length,
     scrollToActiveItem: (index: number, direction = 'none') => {
       keyDirectionRef.current = direction;
+      if (direction === 'up' || direction === 'down') {
+        setIsKeyboardNav(true);
+      }
       setActiveIndex(index);
     },
     setKeyDirection: (direction: string) => {
@@ -238,6 +244,9 @@ const ListContainer = forwardRef<any, ListContainerProps>((props, ref) => {
         style={{ 
           maxHeight: ITEM_HEIGHT * defaultRows,
         }}
+        onMouseMove={() => {
+          if (isKeyboardNav) setIsKeyboardNav(false);
+        }}
       >
         <div
           style={{
@@ -265,11 +274,12 @@ const ListContainer = forwardRef<any, ListContainerProps>((props, ref) => {
               >
                 <div
                   className={`${styles.listItem} ${isActive ? styles.active : ''} relative h-40px pl-8px flex flex-nowrap items-center rounded-8px 
-                  ${onItemClick ? 'cursor-pointer hover:bg-[rgba(233,240,254,1)] dark:hover:bg-[rgba(255,255,255,0.05)]' : " "} 
+                  ${onItemClick ? 'cursor-pointer' : ''} 
                   ${isActive ? "bg-[rgba(233,240,254,1)] dark:bg-[rgba(255,255,255,0.05)] pr-40px" : "pr-8px"}`}
                   onClick={() => handleItemClick(item, index)}
                   onMouseEnter={() => {
                     if (!onItemClick) return;
+                    if (isKeyboardNav) return;
                     keyDirectionRef.current = 'none';
                     if (useGlobalKeydown && onGlobalSelect) {
                       onGlobalSelect(index);
