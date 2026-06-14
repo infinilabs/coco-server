@@ -59,6 +59,12 @@ const MediaLayout: FC<MediaLayoutProps> = (props) => {
 
   useEffect(() => { siderCollapseRef.current = siderCollapse; }, [siderCollapse]);
 
+  // Collapse left sider on mount
+  useEffect(() => {
+    userCollapsedLeftRef.current = true;
+    setSiderCollapse?.(true);
+  }, []);
+
   // Auto-collapse/expand left sider based on container width
   useEffect(() => {
     const container = scrollContainer;

@@ -28,7 +28,7 @@ const NewChatSvg: FC<{ className?: string }> = ({ className }) => (
   </svg>
 )
 
-interface ChatHeaderProps {
+interface ChatHeaderLayoutProps {
   isMobile?: boolean;
   theme?: 'light' | 'dark';
   logo?: {
@@ -44,7 +44,7 @@ interface ChatHeaderProps {
   rightMenuWidth?: number;
 }
 
-const ChatHeader: FC<ChatHeaderProps> = (props) => {
+const ChatHeaderLayout: FC<ChatHeaderLayoutProps> = (props) => {
   const { isMobile, rightMenuWidth, theme, logo, handleLogoClick, isHistoryOpen, onToggleHistory, onNewChat, onBackToSearch, AssistantList } = props;
   const { t } = useTranslation();
 
@@ -104,4 +104,4 @@ const ChatHeader: FC<ChatHeaderProps> = (props) => {
   );
 };
 
-export default ChatHeader;
+export default ChatHeaderLayout;

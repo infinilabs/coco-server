@@ -7,7 +7,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from 'react-i18next';
 
-import ChatHeader from "../ChatHeader";
+import ChatHeaderLayout from "../Layout/ChatHeaderLayout";
 import ChatLayout from "../Layout/ChatLayout";
 
 type BlockerState = "idle" | "blocked";
@@ -229,7 +229,7 @@ export default function Chat({
       sidebarCollapsed={!effectiveHistoryOpen}
       setSidebarCollapsed={(open) => setIsHistoryOpen(!open)}
       header={
-        <ChatHeader
+        <ChatHeaderLayout
           isMobile={isMobile}
           rightMenuWidth={rightMenuWidth}
           theme={theme}
