@@ -57,6 +57,7 @@ export interface ChatMessageProps {
   actionIconSize?: number;
   copyButtonId?: string;
   formatUrl?: (data: IChunkData) => string;
+  requestHeaders?: Record<string, string>;
   theme?: "light" | "dark" | "system";
   locale?: string;
   report_content?: string;
@@ -104,6 +105,7 @@ const InnerChatMessage = memo(
       actionIconSize,
       copyButtonId,
       formatUrl,
+      requestHeaders,
       theme,
       assistantList,
       currentAssistant,
@@ -463,6 +465,7 @@ const InnerChatMessage = memo(
             ChunkData={deepResearch}
             question={replyQuestion}
             formatUrl={formatUrl}
+            requestHeaders={requestHeaders}
             theme={resolvedTheme}
             t={t}
             payload={payload as any}

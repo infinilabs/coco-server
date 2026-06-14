@@ -1020,6 +1020,7 @@ const InnerChatAI = memo(
             }}
             getFileUrl={getFileUrl}
             formatUrl={formatUrl}
+            requestHeaders={headersProp}
             curIdRef={curIdRef}
             t={t}
             currentAssistant={currentAssistant}

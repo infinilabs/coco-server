@@ -15,6 +15,7 @@ export interface DeepResearchDrawerData {
   reportContent?: string;
   searchHits?: StepSearchHit[];
   formatUrl?: (data: any) => string;
+  requestHeaders?: Record<string, string>;
   theme?: "light" | "dark";
   isMobile?: boolean;
   showReportOnly?: boolean;

@@ -27,6 +27,7 @@ interface DeepResearchProps {
   ChunkData?: IChunkData[];
   question?: string;
   formatUrl?: (data: any) => string;
+  requestHeaders?: Record<string, string>;
   theme?: "light" | "dark";
   t?: TFunction;
   payload?: any;
@@ -233,6 +234,7 @@ export const DeepResearch = ({
   ChunkData = [],
   question,
   formatUrl,
+  requestHeaders,
   theme,
   t: tProp,
   payload,
@@ -485,6 +487,7 @@ export const DeepResearch = ({
             reportData: mergedPayload,
             searchHits,
             formatUrl,
+            requestHeaders,
             theme,
             isEnd,
             t,
@@ -562,6 +565,7 @@ export const DeepResearch = ({
                       reportData: mergedPayload,
                       searchHits,
                       formatUrl,
+                      requestHeaders,
                       theme,
                       isEnd,
                       t,

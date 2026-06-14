@@ -21,6 +21,7 @@ export interface ActiveChatMessageProps {
   Question: string;
   handleSendMessage: (params: SendMessageParams) => void;
   formatUrl?: (data: IChunkData) => string;
+  requestHeaders?: Record<string, string>;
   assistantList?: Assistant[];
   currentAssistant?: Assistant;
   theme?: string;
@@ -35,6 +36,7 @@ export const ActiveChatMessage = ({
   Question,
   handleSendMessage,
   formatUrl,
+  requestHeaders,
   assistantList,
   currentAssistant,
   theme,
@@ -65,6 +67,7 @@ export const ActiveChatMessage = ({
       onCancel={onCancel}
       isTyping={!curChatEnd}
       formatUrl={formatUrl}
+      requestHeaders={requestHeaders}
       assistantList={assistantList}
       currentAssistant={currentAssistant}
       theme={theme as any}
@@ -82,6 +85,7 @@ interface ChatContentProps {
   handleSendMessage: (params: SendMessageParams) => void;
   getFileUrl: (path: string) => string;
   formatUrl?: (data: IChunkData) => string;
+  requestHeaders?: Record<string, string>;
   curIdRef: React.MutableRefObject<string>;
   t?: TFunction;
   currentAssistant?: Assistant;
@@ -98,6 +102,7 @@ export const ChatContent = ({
   Question,
   handleSendMessage,
   formatUrl,
+  requestHeaders,
   t: tProp,
   theme,
   isMobile,
@@ -219,6 +224,7 @@ export const ChatContent = ({
                 onResend={handleSendMessage}
                 onCancel={onCancel}
                 formatUrl={formatUrl}
+                requestHeaders={requestHeaders}
                 assistantList={assistantList}
                 fetchAttachments={fetchAttachments}
                 theme={theme as any}
@@ -236,6 +242,7 @@ export const ChatContent = ({
               Question={Question}
               handleSendMessage={handleSendMessage}
               formatUrl={formatUrl}
+              requestHeaders={requestHeaders}
               assistantList={assistantList}
               currentAssistant={currentAssistant}
               theme={theme}

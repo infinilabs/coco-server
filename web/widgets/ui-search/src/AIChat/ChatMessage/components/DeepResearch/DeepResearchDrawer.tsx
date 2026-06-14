@@ -27,6 +27,7 @@ interface DeepResearchDrawerProps {
   reportContent?: string;
   searchHits?: StepSearchHit[];
   formatUrl?: (data: any) => string;
+  requestHeaders?: Record<string, string>;
   theme?: "light" | "dark";
   isMobile?: boolean;
   showReportOnly?: boolean;
@@ -47,6 +48,7 @@ export const DeepResearchDrawer = ({
   reportContent,
   searchHits,
   formatUrl,
+  requestHeaders,
   theme,
   isMobile,
   showReportOnly = false,
@@ -154,6 +156,7 @@ export const DeepResearchDrawer = ({
             content={reportContent}
             data={reportData}
             formatUrl={formatUrl}
+            requestHeaders={requestHeaders}
             t={t}
           />
         )}

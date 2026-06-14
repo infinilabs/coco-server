@@ -17,6 +17,7 @@ export interface ResearchReportContentProps {
   content?: string;
   data?: ResearchReportData;
   formatUrl?: (data: any) => string;
+  requestHeaders?: Record<string, string>;
   t?: TFunction;
 }
 
@@ -24,6 +25,7 @@ export const ResearchReportContent = ({
   content,
   data,
   formatUrl,
+  requestHeaders,
   t: tProp,
 }: ResearchReportContentProps) => {
   const { t: tOriginal } = useTranslation();
@@ -96,7 +98,7 @@ export const ResearchReportContent = ({
             title="research-report"
           />
         ) : (
-          <Markdown url={formatUrl ? formatUrl({ url: data.url }) : data.url} />
+          <Markdown url={formatUrl ? formatUrl({ url: data.url }) : data.url} requestHeaders={requestHeaders} />
         )
       )}
     </div>
