@@ -314,7 +314,7 @@ export const DeepResearch = ({
       return t("deepResearch.status.completed");
     }
     if (deepResearchReporterStarted) {
-      return t("deepResearch.status.writingReport");
+      return t("deepResearch.report.generatingTitle");
     }
     if (deepResearchResearcherStarted) {
       return t("deepResearch.status.executingPlan");
@@ -508,16 +508,27 @@ export const DeepResearch = ({
         <div className="w-full rounded-8px border border-[#F0F0F0] dark:border-[#303030] bg-[#F3F4F6] dark:bg-[#020817] p-4">
           <div className="flex items-center gap-2 mb-4">
             {
-              isCompleted ? (
+              (isCompleted || deepResearchReporterFinished) ? (
                 <>
-                  <BookOpen className="h-4 w-4 text-[#148EFF] shrink-0" />
+                  <BookOpen className="h-4 w-4 text-[#1784FC] shrink-0" />
                   <div className="text-14px leading-24px font-medium text-[#333] dark:text-[#E5E7EB] truncate">
-                    {t("deepResearch.status.reportHeader")}
+                    {t("deepResearch.steps.reportTitle")}
+                  </div>
+                </>
+              ) : deepResearchReporterStarted ? (
+                <>
+                  <Hourglass className={`h-4 w-4 text-[#1784FC] shrink-0 ${isEnd ? "" : "animate-spin"}`} />
+                  <div className="text-sm font-medium text-[#333] dark:text-[#E5E7EB] truncate">
+                    {t("deepResearch.steps.reportTitle")}
                   </div>
                 </>
               ) : (
                 <>
-                  <Hourglass className={`h-4 w-4 text-[#148EFF] shrink-0 ${isEnd ? "" : "animate-spin"}`} />
+                  {deepResearchCurrentStepFinished ? (
+                    <CheckIcon className="h-4 w-4 text-[#1784FC] shrink-0" />
+                  ) : (
+                    <Hourglass className={`h-4 w-4 text-[#1784FC] shrink-0 ${isEnd ? "" : "animate-spin"}`} />
+                  )}
                   <div className="text-sm font-medium text-[#333] dark:text-[#E5E7EB] truncate">
                     {stepTitle || "——"}
                   </div>
@@ -535,10 +546,10 @@ export const DeepResearch = ({
           <div className="mt-2 flex items-center justify-between rounded-4px bg-white px-3 py-2 text-sm text-[#333] dark:bg-[#111827] dark:text-[#D1D5DB]">
             <div className="flex min-w-0 items-center gap-2 flex-1">
               {
-                isCompleted ? (
-                  <BookOpen className="h-4 w-4 shrink-0 text-[#148EFF]" />
+                isCompleted || deepResearchReporterStarted ? (
+                  <BookOpen className="h-4 w-4 shrink-0 text-[#1784FC]" />
                 ) : (
-                  <Search className="h-4 w-4 text-[#148EFF] shrink-0" />
+                  <Search className="h-4 w-4 text-[#1784FC] shrink-0" />
                 )
               }
               <div className="flex min-w-0 items-center flex-1">

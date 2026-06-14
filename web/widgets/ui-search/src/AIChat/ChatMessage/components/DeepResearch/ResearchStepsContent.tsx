@@ -438,7 +438,7 @@ export const ResearchStepsContent = ({
             }`}
           >
             {report === "in_progress" ? (
-             <Hourglass className={`w-5 h-5 text-blue-500 ${isEnd ? "" : "animate-spin"}`} />
+             <Hourglass className={`w-5 h-5 text-[#1784FC] ${isEnd ? "" : "animate-spin"}`} />
             ) : (
               <BookOpen
                 className={`w-5 h-5 ${
