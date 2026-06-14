@@ -92,12 +92,12 @@ export function SearchBox(props: SearchBoxProps) {
     resetKey: `${sb.suggestionType || ''}::${sb.colonFieldQuery || ''}::${sb.slashFieldQuery || ''}`
   };
 
-  const renderTextArea = (ref: any, className = "", onBlur?: any) => (
+  const renderTextArea = (ref: any, className = "", onBlur?: any, maxRows = 6) => (
     <Input.TextArea
       ref={ref}
       placeholder={placeholder}
-      autoSize={{ minRows: 1, maxRows: 6 }}
-      classNames={{ textarea: '!text-16px !bg-transparent' }}
+      autoSize={{ minRows: 1, maxRows }}
+      classNames={{ textarea: `!text-16px !bg-transparent ${maxRows === 1 ? '!overflow-hidden' : ''}` }}
       value={sb.query}
       onChange={sb.handleInputChange}
       onSelect={sb.handleCursorPositionChange}
@@ -159,7 +159,7 @@ export function SearchBox(props: SearchBoxProps) {
         <div className="py-12px">
           <div className="items-center w-full h-full flex gap-8px px-12px mb-14px">
             {sb.showExpandedPanel ? null : renderFilters()}
-            {renderTextArea(sb.textAreaRef, '!px-0')}
+            {renderTextArea(sb.textAreaRef, '!px-0', undefined, 1)}
           </div>
           <ActionBar {...actionBarProps} />
         </div>
