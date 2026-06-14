@@ -144,6 +144,10 @@ func QueryDocuments(ctx1 context.Context, builder *orm.QueryBuilder, query strin
 	//filter enabled doc
 	filters = append(filters, orm.BoolQuery(orm.Should, orm.TermQuery("disabled", false), orm.MustNotQuery(orm.ExistsQuery("disabled"))).Parameter("minimum_should_match", 1))
 
+	if searchType == "semantic" || searchType == "hybrid" {
+		filters = append(filters, orm.ExistsQuery("ai_insights.embedding.embedding1024"))
+	}
+
 	builder.Filter(filters...)
 
 	rules, err = sharingService.GetDirectResourceRulesByResourceCategoryAndUserID(userID, teamsID, "document", "datasource", checkingScopeDatasources, share.None)
