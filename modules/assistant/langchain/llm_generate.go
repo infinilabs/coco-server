@@ -127,9 +127,8 @@ func GenerateResponse(taskCtx context.Context, provider *core.ModelProvider, mod
 				if len(reasoningChunk) > 0 {
 					chunkSeq += 1
 					reasoningBuffer.Write(reasoningChunk)
-					err = sender.SendChunkMessage(core.MessageTypeAssistant, common.Think, string(reasoningChunk), chunkSeq)
-					if err != nil {
-						panic(err)
+					if sendErr := sender.SendChunkMessage(core.MessageTypeAssistant, common.Think, string(reasoningChunk), chunkSeq); sendErr != nil {
+						return sendErr
 					}
 					return nil
 				}
@@ -138,12 +137,10 @@ func GenerateResponse(taskCtx context.Context, provider *core.ModelProvider, mod
 				if len(chunk) > 0 {
 					chunkSeq += 1
 
-					err = sender.SendChunkMessage(core.MessageTypeAssistant, common.Response, string(chunk), chunkSeq)
-					if err != nil {
-						panic(err)
+					if sendErr := sender.SendChunkMessage(core.MessageTypeAssistant, common.Response, string(chunk), chunkSeq); sendErr != nil {
+						return sendErr
 					}
 
-					//log.Debug(msg)
 					messageBuffer.Write(chunk)
 				}
 
@@ -154,12 +151,16 @@ func GenerateResponse(taskCtx context.Context, provider *core.ModelProvider, mod
 	} else {
 		//this part works for ollama
 		options = append(options, llms.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
+			select {
+			case <-taskCtx.Done():
+				return taskCtx.Err()
+			default:
+			}
 			if len(chunk) > 0 {
 				log.Trace(string(chunk))
 				chunkSeq += 1
-				err = sender.SendChunkMessage(core.MessageTypeAssistant, common.Response, string(chunk), chunkSeq)
-				if err != nil {
-					panic(err)
+				if sendErr := sender.SendChunkMessage(core.MessageTypeAssistant, common.Response, string(chunk), chunkSeq); sendErr != nil {
+					return sendErr
 				}
 				messageBuffer.Write(chunk)
 			}
@@ -397,9 +398,8 @@ func GenerateFinalResponse(taskCtx context.Context, reqMsg, replyMsg *core.ChatM
 				if len(reasoningChunk) > 0 {
 					chunkSeq += 1
 					reasoningBuffer.Write(reasoningChunk)
-					err = sender.SendChunkMessage(core.MessageTypeAssistant, common.Think, string(reasoningChunk), chunkSeq)
-					if err != nil {
-						panic(err)
+					if sendErr := sender.SendChunkMessage(core.MessageTypeAssistant, common.Think, string(reasoningChunk), chunkSeq); sendErr != nil {
+						return sendErr
 					}
 					return nil
 				}
@@ -408,9 +408,8 @@ func GenerateFinalResponse(taskCtx context.Context, reqMsg, replyMsg *core.ChatM
 				if len(chunk) > 0 {
 					chunkSeq += 1
 
-					err = sender.SendChunkMessage(core.MessageTypeAssistant, common.Response, string(chunk), chunkSeq)
-					if err != nil {
-						panic(err)
+					if sendErr := sender.SendChunkMessage(core.MessageTypeAssistant, common.Response, string(chunk), chunkSeq); sendErr != nil {
+						return sendErr
 					}
 
 					messageBuffer.Write(chunk)
@@ -423,10 +422,17 @@ func GenerateFinalResponse(taskCtx context.Context, reqMsg, replyMsg *core.ChatM
 	} else {
 		//this part works for ollama
 		options = append(options, llms.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
+			select {
+			case <-taskCtx.Done():
+				return taskCtx.Err()
+			default:
+			}
 			if len(chunk) > 0 {
 				log.Trace(string(chunk))
 				chunkSeq += 1
-				err = sender.SendChunkMessage(core.MessageTypeAssistant, common.Response, string(chunk), chunkSeq)
+				if sendErr := sender.SendChunkMessage(core.MessageTypeAssistant, common.Response, string(chunk), chunkSeq); sendErr != nil {
+					return sendErr
+				}
 				messageBuffer.Write(chunk)
 			}
 			return nil

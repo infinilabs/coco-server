@@ -331,11 +331,20 @@ func (reportingTool toolCallReportingTool) Description() string {
 
 // Call executes the wrapped tool and reports a display record containing the
 // tool name, the raw input arguments, and either the output or the execution
-// error. The original output and error are returned unchanged to the agent.
+// error.
+// When the underlying tool returns an error, the error is converted into
+// an observation string and a nil error is returned so the agent loop continues
+// — the LLM sees the failure and can decide to retry, pick another tool, or
+// produce a final answer without aborting the conversation.
 func (reportingTool toolCallReportingTool) Call(ctx context.Context, input string) (string, error) {
 	output, err := reportingTool.tool.Call(ctx, input)
 	result := output
 	if err != nil {
+		// Context lifecycle errors must propagate so the agent loop stops
+		// immediately when the caller cancels or the deadline expires.
+		if ctx.Err() != nil {
+			return "", ctx.Err()
+		}
 		if result != "" {
 			result += "\n"
 		}
@@ -344,7 +353,9 @@ func (reportingTool toolCallReportingTool) Call(ctx context.Context, input strin
 	if reportingTool.onComplete != nil {
 		reportingTool.onComplete(reportingTool.Name(), input, result)
 	}
-	return output, err
+	// Return the error text as the observation instead of propagating it, so the
+	// agent executor does not abort and the LLM can react to the failure.
+	return result, nil
 }
 
 // wrapToolCallReporters applies toolCallReportingTool to every available tool so
