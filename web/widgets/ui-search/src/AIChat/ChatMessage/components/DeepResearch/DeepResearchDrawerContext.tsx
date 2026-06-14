@@ -24,12 +24,16 @@ export interface DeepResearchDrawerData {
 
 interface DeepResearchDrawerContextValue {
   openDrawer: (data: DeepResearchDrawerData) => void;
+  updateDrawer: (data: Partial<DeepResearchDrawerData>) => void;
   closeDrawer: () => void;
+  isOpen: boolean;
 }
 
 const DeepResearchDrawerContext = createContext<DeepResearchDrawerContextValue>({
   openDrawer: () => {},
+  updateDrawer: () => {},
   closeDrawer: () => {},
+  isOpen: false,
 });
 
 export const useDeepResearchDrawer = () => useContext(DeepResearchDrawerContext);
@@ -45,12 +49,16 @@ export const DeepResearchDrawerProvider: FC<{ children: ReactNode; isMobile?: bo
     setOpen(true);
   }, []);
 
+  const updateDrawer = useCallback((data: Partial<DeepResearchDrawerData>) => {
+    setDrawerData((prev) => ({ ...prev, ...data }));
+  }, []);
+
   const closeDrawer = useCallback(() => {
     setOpen(false);
   }, []);
 
   return (
-    <DeepResearchDrawerContext.Provider value={{ openDrawer, closeDrawer }}>
+    <DeepResearchDrawerContext.Provider value={{ openDrawer, updateDrawer, closeDrawer, isOpen: open }}>
       {children}
       <DeepResearchDrawer
         open={open}

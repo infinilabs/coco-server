@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { type TFunction } from "i18next";
 import { Hourglass, BookOpen, Search, Square, Ban } from "lucide-react";
@@ -240,7 +240,7 @@ export const DeepResearch = ({
 }: DeepResearchProps) => {
   const { t: tOriginal } = useTranslation();
   const t = tProp || tOriginal;
-  const { openDrawer } = useDeepResearchDrawer();
+  const { openDrawer, updateDrawer, isOpen } = useDeepResearchDrawer();
 
   // Merge persisted detail chunks (from ES history) with live streaming chunks.
   // detail.payload contains the saved chunks; ChunkData contains real-time ones.
@@ -451,6 +451,20 @@ export const DeepResearch = ({
     }
     return "pending";
   }, [steps]);
+
+  // Sync latest data to the drawer while it's open
+  useEffect(() => {
+    if (!isOpen) return;
+    updateDrawer({
+      steps,
+      plannerStatus,
+      executionStatus,
+      reportStatus,
+      reportData: mergedPayload,
+      searchHits,
+      isEnd,
+    });
+  }, [isOpen, steps, plannerStatus, executionStatus, reportStatus, mergedPayload, searchHits, isEnd]);
 
   if (!allChunks.length) {
     return null;
