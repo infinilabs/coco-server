@@ -41,6 +41,9 @@ POST $[[SETUP_INDEX_PREFIX]]pipelineconfigv2/$[[SETUP_DOC_TYPE]]/enrich_document
         "file_type_detection": {}
       },
       {
+        "generate_document_cover": {}
+      },
+      {
         "document_text_attachment_extraction": {
           "tika_endpoint": "http://127.0.0.1:9998",
           "tika_timeout_in_seconds": 360,
