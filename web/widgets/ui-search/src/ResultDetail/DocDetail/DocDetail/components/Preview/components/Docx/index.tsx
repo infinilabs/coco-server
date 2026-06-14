@@ -4,33 +4,40 @@ import { DocDetailProps } from "@/ResultDetail/DocDetail/DocDetail";
 
 interface DocxProps extends DocDetailProps {
   url: string;
+  onLoadingChange?: (loading: boolean) => void;
 }
 
 const Docx: FC<DocxProps> = (props) => {
-  const { url, requestHeaders } = props;
+  const { url, requestHeaders, onLoadingChange } = props;
 
   const containerRef = useRef<HTMLDivElement>(null);
 
   const renderDocx = async () => {
     if (!containerRef.current) return;
 
-    const response = await fetch(url, {
-      headers: requestHeaders,
-    });
+    onLoadingChange?.(true);
 
-    if (!response.ok) return;
+    try {
+      const response = await fetch(url, {
+        headers: requestHeaders,
+      });
 
-    const arrayBuffer = await response.arrayBuffer();
+      if (!response.ok) return;
 
-    if (arrayBuffer.byteLength === 0) return;
+      const arrayBuffer = await response.arrayBuffer();
 
-    containerRef.current.innerHTML = "";
+      if (arrayBuffer.byteLength === 0) return;
 
-    renderAsync(arrayBuffer, containerRef.current!, void 0, {
-      inWrapper: false,
-      ignoreWidth: true,
-      ignoreHeight: true,
-    });
+      containerRef.current.innerHTML = "";
+
+      renderAsync(arrayBuffer, containerRef.current!, void 0, {
+        inWrapper: false,
+        ignoreWidth: true,
+        ignoreHeight: true,
+      });
+    } finally {
+      onLoadingChange?.(false);
+    }
   };
 
   useEffect(() => {

@@ -1,6 +1,6 @@
 import { Button, Segmented } from "antd";
 import { Download, SquareArrowOutUpRight, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { type TFunction } from "i18next";
 
@@ -68,6 +68,8 @@ export const DeepResearchDrawer = ({
   const [activeTab, setActiveTab] = useState<TabKey>(
     (defaultActiveTab as TabKey) || TAB_KEYS.STEPS
   );
+  const userSwitchedTabRef = useRef(false);
+  const prevReportStatusRef = useRef(reportStatus);
 
   useEffect(() => {
     if (showReportOnly) {
@@ -77,7 +79,24 @@ export const DeepResearchDrawer = ({
     } else {
       setActiveTab(TAB_KEYS.STEPS);
     }
+    userSwitchedTabRef.current = false;
+    prevReportStatusRef.current = undefined;
   }, [revision]);
+
+  // Reset when drawer reopens
+  useEffect(() => {
+    if (open) {
+      userSwitchedTabRef.current = false;
+    }
+  }, [open]);
+
+  // Auto-switch to report tab when report completes (reportStatus transitions to "done")
+  useEffect(() => {
+    if (reportStatus === "done" && prevReportStatusRef.current !== "done" && !userSwitchedTabRef.current && !showReportOnly) {
+      setActiveTab(TAB_KEYS.REPORT);
+    }
+    prevReportStatusRef.current = reportStatus;
+  }, [reportStatus, showReportOnly]);
 
   return (
     <CommonDrawer
@@ -99,7 +118,10 @@ export const DeepResearchDrawer = ({
         ) : (
           <Segmented
             value={activeTab}
-            onChange={(val) => setActiveTab(val as TabKey)}
+            onChange={(val) => {
+              setActiveTab(val as TabKey);
+              userSwitchedTabRef.current = true;
+            }}
             options={[
               { label: t("deepResearch.tab.report"), value: TAB_KEYS.REPORT },
               { label: t("deepResearch.tab.steps"), value: TAB_KEYS.STEPS },

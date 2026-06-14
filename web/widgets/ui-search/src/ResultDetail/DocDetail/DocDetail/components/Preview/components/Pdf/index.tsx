@@ -7,10 +7,11 @@ pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.vers
 
 interface PdfProps extends DocDetailProps {
   url: string;
+  onLoadingChange?: (loading: boolean) => void;
 }
 
 const Pdf: FC<PdfProps> = (props) => {
-  const { url, requestHeaders } = props;
+  const { url, requestHeaders, onLoadingChange } = props;
 
   const [numPages, setNumPages] = useState(0);
   const [pageNumber, setPageNumber] = useState(1);
@@ -18,9 +19,12 @@ const Pdf: FC<PdfProps> = (props) => {
 
   useEffect(() => {
     if (requestHeaders) {
+      onLoadingChange?.(true);
       fetch(url, { headers: requestHeaders })
         .then((res) => res.arrayBuffer())
-        .then((data) => setFileData({ data }));
+        .then((data) => setFileData({ data }))
+        .catch(() => {})
+        .finally(() => onLoadingChange?.(false));
     } else {
       setFileData(url);
     }

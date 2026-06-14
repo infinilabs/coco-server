@@ -1,7 +1,9 @@
 import { FileText, SquareArrowOutUpRight } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { type TFunction } from "i18next";
 import Markdown from "@infinilabs/markdown";
+import { Spin } from "antd";
 
 import { formatDate } from "../../utils";
 
@@ -30,6 +32,7 @@ export const ResearchReportContent = ({
 }: ResearchReportContentProps) => {
   const { t: tOriginal } = useTranslation();
   const t = tProp || tOriginal;
+  const [loading, setLoading] = useState(false);
 
   if (!content && !data) {
     return (
@@ -45,7 +48,7 @@ export const ResearchReportContent = ({
   }
 
   return (
-    <div className="max-w-[730px]">
+    <div className="">
       {/* {data && (
         <div className="mb-6 p-4 border border-gray-200 dark:border-gray-800 rounded-xl bg-gray-50 dark:bg-gray-900 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -98,7 +101,9 @@ export const ResearchReportContent = ({
             title="research-report"
           />
         ) : (
-          <Markdown url={formatUrl ? formatUrl({ url: data.url }) : data.url} requestHeaders={requestHeaders} />
+          <Spin spinning={loading}>
+            <Markdown url={formatUrl ? formatUrl({ url: data.url }) : data.url} requestHeaders={requestHeaders} onLoadingChange={setLoading} />
+          </Spin>
         )
       )}
     </div>

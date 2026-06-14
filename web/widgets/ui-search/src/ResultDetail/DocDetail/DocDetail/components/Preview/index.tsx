@@ -1,5 +1,6 @@
-import { type FC } from "react";
+import { type FC, useState } from "react";
 import Markdown from "@infinilabs/markdown";
+import { Spin } from "antd";
 
 import Pdf from "./components/Pdf";
 import Docx from "./components/Docx";
@@ -10,22 +11,25 @@ import { DocDetailProps, MetadataContentType } from "../..";
 
 const Preview: FC<DocDetailProps> = (props) => {
   const { data } = props;
+  const [loading, setLoading] = useState(false);
 
   const renderFile = (type: MetadataContentType, url: string) => {
     if (type === "markdown") {
-      return <Markdown url={url} requestHeaders={props.requestHeaders} />;
+      return (
+        <Markdown url={url} requestHeaders={props.requestHeaders} onLoadingChange={setLoading} />
+      );
     }
 
     if (type === "pdf") {
-      return <Pdf url={url} {...props} />;
+      return <Pdf url={url} {...props} onLoadingChange={setLoading} />;
     }
 
     if (type === "docx") {
-      return <Docx url={url} {...props} />;
+      return <Docx url={url} {...props} onLoadingChange={setLoading} />;
     }
 
     if (type === "pptx") {
-      return <Pptx url={url} {...props} />;
+      return <Pptx url={url} {...props} onLoadingChange={setLoading} />;
     }
 
     return null;
@@ -41,10 +45,18 @@ const Preview: FC<DocDetailProps> = (props) => {
   }
 
   if (type === "video") {
-    return <Video url={url} requestHeaders={props.requestHeaders} />;
+    return (
+      <Spin spinning={loading}>
+        <Video url={url} requestHeaders={props.requestHeaders} onLoadingChange={setLoading} />
+      </Spin>
+    );
   }
 
-  return renderFile(type, url);
+  return (
+    <Spin spinning={loading}>
+      {renderFile(type, url)}
+    </Spin>
+  );
 };
 
 export default Preview;

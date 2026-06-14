@@ -5,37 +5,44 @@ import { DocDetailProps } from "@/ResultDetail/DocDetail/DocDetail";
 
 interface PptxProps extends DocDetailProps {
   url: string;
+  onLoadingChange?: (loading: boolean) => void;
 }
 
 const Pptx: FC<PptxProps> = (props) => {
-  const { url, requestHeaders } = props;
+  const { url, requestHeaders, onLoadingChange } = props;
 
   const containerRef = useRef<HTMLDivElement>(null);
 
   const renderPptx = async () => {
     if (!containerRef.current) return;
 
-    containerRef.current.innerHTML = "";
+    onLoadingChange?.(true);
 
-    const width = containerRef.current.clientWidth;
-    const height = Math.round(width * (9 / 16));
+    try {
+      containerRef.current.innerHTML = "";
 
-    const pptx = init(containerRef.current, {
-      width,
-      height,
-    });
+      const width = containerRef.current.clientWidth;
+      const height = Math.round(width * (9 / 16));
 
-    const response = await fetch(url, {
-      headers: requestHeaders,
-    });
+      const pptx = init(containerRef.current, {
+        width,
+        height,
+      });
 
-    if (!response.ok) return;
+      const response = await fetch(url, {
+        headers: requestHeaders,
+      });
 
-    const arrayBuffer = await response.arrayBuffer();
+      if (!response.ok) return;
 
-    if (arrayBuffer.byteLength === 0) return;
+      const arrayBuffer = await response.arrayBuffer();
 
-    pptx.preview(arrayBuffer);
+      if (arrayBuffer.byteLength === 0) return;
+
+      pptx.preview(arrayBuffer);
+    } finally {
+      onLoadingChange?.(false);
+    }
   };
 
   useEffect(() => {
