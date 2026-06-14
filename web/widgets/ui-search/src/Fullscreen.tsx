@@ -128,6 +128,12 @@ const Fullscreen = (props: FullscreenProps) => {
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
+  const handleCategoryChange = useCallback(() => {
+    setData([]);
+    setHasMore(false);
+    setResult(formatESResult());
+  }, []);
+
   useEffect(() => {
     if (queryParams.mode === 'chat' || !queryParams?.query && isEmpty(queryParams?.filter) && isEmpty(queryParams?.aggfilter)) return;
 
@@ -332,6 +338,7 @@ const Fullscreen = (props: FullscreenProps) => {
       settings={settings}
       config={config}
       data={data}
+      onCategoryChange={handleCategoryChange}
       filter={filter}
       getContainer={getContainer}
       handleLogoClick={handleLogoClick}

@@ -78,7 +78,8 @@ export default function Search({
   attachments,
   setAttachments,
   settings,
-  onLoadMore
+  onLoadMore,
+  onCategoryChange
 }: SearchProps) {
 
   const { query, filter, aggfilter = {} } = queryParams || {};
@@ -181,6 +182,7 @@ export default function Search({
           <Categories
             category={content_category}
             onChange={category => {
+              onCategoryChange?.();
               setQueryParams?.({
                 ...queryParams,
                 'metadata.content_category': category !== 'all' ? category : '',
@@ -279,8 +281,7 @@ export default function Search({
       tabs={
         <Categories
           category={content_category}
-          onChange={category => {
-            let shouldAgg = false
+          onChange={category => {            onCategoryChange?.();            let shouldAgg = false
             if (category !== content_category) {
               shouldAgg = true
             }

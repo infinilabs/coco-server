@@ -228,7 +228,7 @@ const BasicLayout: FC<BasicLayoutProps> = (props) => {
 
         {/* Center Column: Search/Tabs + Results */}
         <Content
-          className={`${bgClass} min-w-400px ${showLeftSider && showRightSider ? 'max-w-840px' : !showLeftSider && !showRightSider ? '' : 'max-w-840px'}`}
+          className={`${bgClass} min-w-400px ${showLeftSider && showRightSider ? 'max-w-840px' : !showLeftSider && !showRightSider ? 'max-w-1120px' : 'max-w-840px'}`}
           style={{ overflow: 'visible' }}
         >
           {/* Content part */}
