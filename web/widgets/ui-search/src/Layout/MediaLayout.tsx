@@ -168,7 +168,7 @@ const MediaLayout: FC<MediaLayoutProps> = (props) => {
             )
           )}
           <Content className={`bg-[rgb(var(--ui-search--layout-bg-color))] min-w-400px ${aggregations && !(isMobile || siderCollapse) ? 'w-[calc(100%-280px)]' : 'w-[calc(100%)]'}`} style={{ overflow: 'visible' }}>
-            <div className={`pt-32px ${isMobile ? 'px-16px' : 'pl-40px pr-24px'} ${detailCollapse || (isMobile || siderCollapse) ? 'w-full' : 'w-[calc(100%-820px)]'}`}>
+            <div className={`pt-32px transition-[width] duration-300 ease-in-out ${isMobile ? 'px-16px' : 'pl-40px pr-24px'} ${detailCollapse || (isMobile || siderCollapse) ? 'w-full' : 'w-[calc(100%-820px)]'}`}>
               {toolbar && <div className="pl-24px mb-16px">{toolbar}</div>}
               <div className={`mb-16px`}>
                 {resultHeader && cloneElement(resultHeader, {

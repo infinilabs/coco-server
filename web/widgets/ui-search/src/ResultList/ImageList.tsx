@@ -1,4 +1,4 @@
-import { memo, useMemo, useRef, useState, useEffect, type FC } from "react";
+import { memo, useMemo, useRef, useState, useEffect, useCallback, type FC } from "react";
 import { Masonry, Skeleton, Spin } from "antd";
 import { ChevronRight, ImageOff } from "lucide-react";
 import { useInViewport, useSize } from "ahooks";
@@ -15,17 +15,16 @@ interface MasonryItemProps {
 const MasonryItem: FC<MasonryItemProps> = (props) => {
   const { data, onItemClick, apiConfig } = props;
   const containerRef = useRef<HTMLDivElement>(null);
-  const containerSize = useSize(containerRef);
   const imgRef = useRef<HTMLImageElement>(null);
   const [inViewport] = useInViewport(imgRef);
   const [loaded, setLoaded] = useState(true);
   const [errored, setErrored] = useState(false);
 
-  const calcHeight = () => {
+  const aspectRatio = useMemo(() => {
     const { width, height } = data?.metadata ?? {};
-
-    return Math.round(((containerSize?.width || 0) * height) / width);
-  };
+    if (!width || !height) return 4 / 3;
+    return width / height;
+  }, [data?.metadata]);
 
   const imgSrc = useMemo(() => {
     if (loaded) return data?.thumbnail;
@@ -38,7 +37,7 @@ const MasonryItem: FC<MasonryItemProps> = (props) => {
       <div
         className="relative w-full rounded-lg overflow-hidden"
         style={{
-          height: calcHeight() || 0,
+          aspectRatio,
         }}
       >
         <Skeleton.Node
@@ -187,11 +186,11 @@ export function ImageList(props: ImageListProps) {
     setColumns(calculateColumns);
   }, [calculateColumns]);
 
-  const onOpen = (record: Record<string, any>) => {
+  const onOpen = useCallback((record: Record<string, any>) => {
     setRecord(record);
     setOpen(true);
     setDetailCollapse?.(false)
-  };
+  }, [setDetailCollapse]);
 
   const onClose = () => {
     setOpen(false);
@@ -199,14 +198,26 @@ export function ImageList(props: ImageListProps) {
     setDetailCollapse?.(true)
   };
 
+  const masonryItems = useMemo(() => {
+    return data.filter((item) => item.metadata?.content_category === 'image').map((item, index) => ({ key: item.id || index, data: item }));
+  }, [data]);
+
+  const itemRender = useCallback((item: any) => {
+    return <MasonryItem data={item.data} onItemClick={(item) => onOpen(item)} apiConfig={apiConfig} />;
+  }, [onOpen, apiConfig]);
+
   return (
     <>
       <div ref={masonryContainerRef} style={{ width: '100%' }}>
         <Masonry
           columns={columns}
           gutter={16}
-          items={data.filter((item) => item.metadata?.content_category === 'image').map((item, index) => ({ key: item.id || index, data: item }))}
-          itemRender={(item: any) => <MasonryItem data={item.data} onItemClick={(item) => onOpen(item)} apiConfig={apiConfig}/>}
+          items={masonryItems}
+          itemRender={itemRender}
+          fresh
+          styles={{
+            item: { transition: 'all 0.3s ease' },
+          }}
           style={{ width: '100%' }}
         />
         {loading && hasMore && (

@@ -28,7 +28,7 @@ const Image: FC<DocDetailProps> = (props) => {
     const { width, height } = data.metadata ?? {};
 
     if (!containerSize || !width || !height) {
-      return 0;
+      return undefined;
     }
 
     return Math.round((containerSize.width * height) / width);
