@@ -1,4 +1,4 @@
-import { useMemo, useEffect } from "react";
+import { useMemo, useEffect, useId } from "react";
 import { useTranslation } from "react-i18next";
 import { type TFunction } from "i18next";
 import { Hourglass, BookOpen, Search, Square, Ban } from "lucide-react";
@@ -242,7 +242,8 @@ export const DeepResearch = ({
 }: DeepResearchProps) => {
   const { t: tOriginal } = useTranslation();
   const t = tProp || tOriginal;
-  const { openDrawer, updateDrawer, isOpen } = useDeepResearchDrawer();
+  const { openDrawer, updateDrawer, isOpen, activeSourceId } = useDeepResearchDrawer();
+  const sourceId = useId();
 
   // Merge persisted detail chunks (from ES history) with live streaming chunks.
   // detail.payload contains the saved chunks; ChunkData contains real-time ones.
@@ -454,9 +455,10 @@ export const DeepResearch = ({
     return "pending";
   }, [steps]);
 
-  // Sync latest data to the drawer while it's open
+  // Sync latest data to the drawer while it's open (only if this instance owns it)
   useEffect(() => {
     if (!isOpen) return;
+    if (activeSourceId && activeSourceId !== sourceId) return;
     updateDrawer({
       steps,
       plannerStatus,
@@ -465,8 +467,8 @@ export const DeepResearch = ({
       reportData: mergedPayload,
       searchHits,
       isEnd,
-    });
-  }, [isOpen, steps, plannerStatus, executionStatus, reportStatus, mergedPayload, searchHits, isEnd]);
+    }, sourceId);
+  }, [isOpen, activeSourceId, sourceId, steps, plannerStatus, executionStatus, reportStatus, mergedPayload, searchHits, isEnd]);
 
   if (!allChunks.length) {
     return null;
@@ -477,7 +479,7 @@ export const DeepResearch = ({
       <div
         className="w-full my-3 cursor-pointer"
         onClick={() => {
-          const tab = isCompleted ? t("deepResearch.tab.report") : t("deepResearch.tab.steps");
+          const tab = isCompleted ? "report" : "steps";
           openDrawer({
             defaultActiveTab: tab,
             steps,
@@ -491,7 +493,7 @@ export const DeepResearch = ({
             theme,
             isEnd,
             t,
-          });
+          }, sourceId);
         }}
       >
         <div className="w-full rounded-8px border border-[#F0F0F0] dark:border-[#303030] bg-[#F3F4F6] dark:bg-[#020817] p-4">
@@ -557,7 +559,7 @@ export const DeepResearch = ({
                   onClick={(e) => {
                     e.stopPropagation();
                     openDrawer({
-                      defaultActiveTab: t("deepResearch.tab.report"),
+                      defaultActiveTab: "report",
                       steps,
                       plannerStatus,
                       executionStatus,
@@ -569,7 +571,7 @@ export const DeepResearch = ({
                       theme,
                       isEnd,
                       t,
-                    });
+                    }, sourceId);
                   }}
                 >
                   {t("deepResearch.button.view")}

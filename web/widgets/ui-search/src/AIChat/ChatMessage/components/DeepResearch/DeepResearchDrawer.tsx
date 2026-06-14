@@ -14,6 +14,14 @@ import { ResearchSearchResultsContent } from "./ResearchSearchResultsContent";
 import { ActionButton } from "../../../../ResultDetail/DocDetail";
 import CommonDrawer from "../../../../Layout/CommonDrawer";
 
+const TAB_KEYS = {
+  REPORT: "report",
+  STEPS: "steps",
+  SEARCH_RESULTS: "searchResults",
+} as const;
+
+type TabKey = (typeof TAB_KEYS)[keyof typeof TAB_KEYS];
+
 interface DeepResearchDrawerProps {
   open: boolean;
   onClose: () => void;
@@ -57,15 +65,17 @@ export const DeepResearchDrawer = ({
 }: DeepResearchDrawerProps) => {
   const { t: tOriginal } = useTranslation();
   const t = tProp || tOriginal;
-  const [activeTab, setActiveTab] = useState(defaultActiveTab || t("deepResearch.tab.steps"));
+  const [activeTab, setActiveTab] = useState<TabKey>(
+    (defaultActiveTab as TabKey) || TAB_KEYS.STEPS
+  );
 
   useEffect(() => {
     if (showReportOnly) {
-      setActiveTab(t("deepResearch.tab.report"));
+      setActiveTab(TAB_KEYS.REPORT);
     } else if (defaultActiveTab) {
-      setActiveTab(defaultActiveTab);
+      setActiveTab(defaultActiveTab as TabKey);
     } else {
-      setActiveTab(t("deepResearch.tab.steps"));
+      setActiveTab(TAB_KEYS.STEPS);
     }
   }, [revision]);
 
@@ -89,11 +99,11 @@ export const DeepResearchDrawer = ({
         ) : (
           <Segmented
             value={activeTab}
-            onChange={(val) => setActiveTab(val as string)}
+            onChange={(val) => setActiveTab(val as TabKey)}
             options={[
-              t("deepResearch.tab.report"),
-              t("deepResearch.tab.steps"),
-              t("deepResearch.tab.searchResults"),
+              { label: t("deepResearch.tab.report"), value: TAB_KEYS.REPORT },
+              { label: t("deepResearch.tab.steps"), value: TAB_KEYS.STEPS },
+              { label: t("deepResearch.tab.searchResults"), value: TAB_KEYS.SEARCH_RESULTS },
             ]}
             classNames={{
               root: "!p-4px !bg-transparent border border-[#F0F0F0] dark:border-[#303030] rounded-8px",
@@ -103,7 +113,7 @@ export const DeepResearchDrawer = ({
           />
         )}
         <div className="flex items-center gap-2">
-          {activeTab === t("deepResearch.tab.report") && (
+          {activeTab === TAB_KEYS.REPORT && (
             <>
               <ActionButton
                 className="bg-[#E9F0FE] dark:bg-blue-900/30"
@@ -150,8 +160,8 @@ export const DeepResearchDrawer = ({
         </div>
       </div>
 
-      <div className={`${activeTab === t("deepResearch.tab.searchResults") ? 'pb-8px px-8px' : 'px-24px pb-24px'} flex-1 overflow-y-auto bg-white dark:bg-black`}>
-        {activeTab === t("deepResearch.tab.report") && (
+      <div className={`${activeTab === TAB_KEYS.SEARCH_RESULTS ? 'pb-8px px-8px' : 'px-24px pb-24px'} flex-1 overflow-y-auto bg-white dark:bg-black`}>
+        {activeTab === TAB_KEYS.REPORT && (
           <ResearchReportContent
             content={reportContent}
             data={reportData}
@@ -160,7 +170,7 @@ export const DeepResearchDrawer = ({
             t={t}
           />
         )}
-        {activeTab === t("deepResearch.tab.steps") && (
+        {activeTab === TAB_KEYS.STEPS && (
           <ResearchStepsContent
             steps={steps}
             plannerStatus={plannerStatus}
@@ -170,7 +180,7 @@ export const DeepResearchDrawer = ({
             t={t}
           />
         )}
-        {activeTab === t("deepResearch.tab.searchResults") && (
+        {activeTab === TAB_KEYS.SEARCH_RESULTS && (
           <ResearchSearchResultsContent hits={searchHits} theme={theme} />
         )}
       </div>

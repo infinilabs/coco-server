@@ -24,10 +24,11 @@ export interface DeepResearchDrawerData {
 }
 
 interface DeepResearchDrawerContextValue {
-  openDrawer: (data: DeepResearchDrawerData) => void;
-  updateDrawer: (data: Partial<DeepResearchDrawerData>) => void;
+  openDrawer: (data: DeepResearchDrawerData, sourceId?: string) => void;
+  updateDrawer: (data: Partial<DeepResearchDrawerData>, sourceId?: string) => void;
   closeDrawer: () => void;
   isOpen: boolean;
+  activeSourceId: string | undefined;
 }
 
 const DeepResearchDrawerContext = createContext<DeepResearchDrawerContextValue>({
@@ -35,6 +36,7 @@ const DeepResearchDrawerContext = createContext<DeepResearchDrawerContextValue>(
   updateDrawer: () => {},
   closeDrawer: () => {},
   isOpen: false,
+  activeSourceId: undefined,
 });
 
 export const useDeepResearchDrawer = () => useContext(DeepResearchDrawerContext);
@@ -43,31 +45,43 @@ export const DeepResearchDrawerProvider: FC<{ children: ReactNode; isMobile?: bo
   const [open, setOpen] = useState(false);
   const [drawerData, setDrawerData] = useState<DeepResearchDrawerData>({});
   const [revision, setRevision] = useState(0);
+  const activeSourceIdRef = useRef<string | undefined>(undefined);
+  const [activeSourceId, setActiveSourceId] = useState<string | undefined>(undefined);
 
   const prevChatIdRef = useRef(chatId);
   useEffect(() => {
     if (prevChatIdRef.current !== chatId) {
       prevChatIdRef.current = chatId;
       setOpen(false);
+      activeSourceIdRef.current = undefined;
+      setActiveSourceId(undefined);
     }
   }, [chatId]);
 
-  const openDrawer = useCallback((data: DeepResearchDrawerData) => {
+  const openDrawer = useCallback((data: DeepResearchDrawerData, sourceId?: string) => {
     setDrawerData(data);
     setRevision((r) => r + 1);
     setOpen(true);
+    activeSourceIdRef.current = sourceId;
+    setActiveSourceId(sourceId);
   }, []);
 
-  const updateDrawer = useCallback((data: Partial<DeepResearchDrawerData>) => {
+  const updateDrawer = useCallback((data: Partial<DeepResearchDrawerData>, sourceId?: string) => {
+    // Only allow updates from the instance that opened the drawer
+    if (sourceId && activeSourceIdRef.current && sourceId !== activeSourceIdRef.current) {
+      return;
+    }
     setDrawerData((prev) => ({ ...prev, ...data }));
   }, []);
 
   const closeDrawer = useCallback(() => {
     setOpen(false);
+    activeSourceIdRef.current = undefined;
+    setActiveSourceId(undefined);
   }, []);
 
   return (
-    <DeepResearchDrawerContext.Provider value={{ openDrawer, updateDrawer, closeDrawer, isOpen: open }}>
+    <DeepResearchDrawerContext.Provider value={{ openDrawer, updateDrawer, closeDrawer, isOpen: open, activeSourceId }}>
       {children}
       <DeepResearchDrawer
         open={open}
