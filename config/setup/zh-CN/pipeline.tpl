@@ -41,6 +41,9 @@ POST $[[SETUP_INDEX_PREFIX]]pipelineconfigv2/$[[SETUP_DOC_TYPE]]/enrich_document
         "file_type_detection": {}
       },
       {
+        "file_metadata": {}
+      },
+      {
         "generate_document_cover": {}
       },
       {
