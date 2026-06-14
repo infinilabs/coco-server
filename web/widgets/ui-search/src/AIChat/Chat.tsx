@@ -1013,6 +1013,10 @@ const InnerChatAI = memo(
             timedoutShow={timedoutShow}
             Question={Question}
             handleSendMessage={(params) =>{
+              const appendFeatureParams = useChatStore.getState().appendFeatureParams;
+              if (appendFeatureParams) {
+                appendFeatureParams(params);
+              }
               handleSendMessage(activeChat, {
                 ...params,
                 message: Array.isArray(params.message) ? params.message.join("") : String(params.message ?? "")

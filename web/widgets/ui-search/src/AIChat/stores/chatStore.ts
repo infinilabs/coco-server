@@ -50,6 +50,8 @@ export type IChatStore = {
   cacheAttachments: (items: AttachmentCacheItem[]) => void;
   onSelectChatHandler?: (chat?: Chat) => void;
   setOnSelectChatHandler: (handler: (chat?: Chat) => void) => void;
+  appendFeatureParams?: (params: Record<string, any>) => void;
+  setAppendFeatureParams: (fn: (params: Record<string, any>) => void) => void;
 };
 
 export const useChatStore = create<IChatStore>()(
@@ -97,6 +99,9 @@ export const useChatStore = create<IChatStore>()(
       onSelectChatHandler: undefined,
       setOnSelectChatHandler: (handler: (chat?: Chat) => void) =>
         set(() => ({ onSelectChatHandler: handler })),
+      appendFeatureParams: undefined,
+      setAppendFeatureParams: (fn: (params: Record<string, any>) => void) =>
+        set(() => ({ appendFeatureParams: fn })),
       updateLastMessage: (updates: Partial<ChatMessageSource>) =>
         set((state) => {
           if (!state.activeChat || !state.activeChat.messages) return {};

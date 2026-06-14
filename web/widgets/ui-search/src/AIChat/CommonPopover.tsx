@@ -123,49 +123,66 @@ export default function CommonPopover({
         return () => root.removeEventListener("mousedown", handleClickOutside as EventListener);
     }, [open]);
 
+    const [allData, setAllData] = useState<DataSource[]>([]);
+
     const getDataList = useCallback(async () => {
         try {
             setPage(1);
-            const res: DataSource[] = await fetchData(debouncedKeyword);
+            const res: DataSource[] = await fetchData();
 
             if (!res || res.length === 0) {
+                setAllData([]);
                 setDataList([]);
                 return;
             }
-            const data = res.length
-                ? [
-                    {
-                        id: "all",
-                        name: "search.input.searchPopover.allScope",
-                    },
-                    ...res,
-                ]
-                : [];
+            const data = [
+                {
+                    id: "all",
+                    name: "search.input.searchPopover.allScope",
+                },
+                ...res,
+            ];
 
+            setAllData(data);
             setDataList(data);
         } catch (err) {
+            setAllData([]);
             setDataList([]);
             console.error("datasource_popover_fetch", err);
         }
-    }, [debouncedKeyword, fetchData]);
+    }, [fetchData]);
 
+    // Load data once when activated or opened for the first time
     useEffect(() => {
-        if (open) {
+        if ((open || isActive) && allData.length <= 1) {
             getDataList();
         }
-    }, [debouncedKeyword, open, getDataList]);
+    }, [open, isActive]);
+
+    // Frontend keyword filtering
+    useEffect(() => {
+        if (!debouncedKeyword) {
+            setDataList(allData);
+        } else {
+            const filtered = allData.slice(1).filter((item) =>
+                item.name?.toLowerCase().includes(debouncedKeyword.toLowerCase())
+            );
+            setDataList(filtered.length > 0 ? [allData[0], ...filtered] : []);
+        }
+        setPage(1);
+    }, [debouncedKeyword, allData]);
 
     useEffect(() => {
         setTotalPage(Math.max(Math.ceil(dataList.length / 10), 1));
     }, [dataList]);
 
     useEffect(() => {
-        if (isActive && !hasAutoSelectedRef.current && dataList.length > 1) {
-            const allIds = dataList.slice(1).map((item) => item.id);
+        if (isActive && !hasAutoSelectedRef.current && allData.length > 1) {
+            const allIds = allData.slice(1).map((item) => item.id);
             onSelectionChange(allIds);
             hasAutoSelectedRef.current = true;
         }
-    }, [isActive, dataList, onSelectionChange]);
+    }, [isActive, allData, onSelectionChange]);
 
     useEffect(() => {
         if (dataList.length === 0) {

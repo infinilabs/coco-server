@@ -197,7 +197,7 @@ export const ChatContent = ({
   };
 
   return (
-    <DeepResearchDrawerProvider isMobile={isMobile}>
+    <DeepResearchDrawerProvider isMobile={isMobile} chatId={activeChat?._id}>
     <div className="flex-1 overflow-hidden flex flex-col justify-between relative">
       <div
         ref={scrollRef}

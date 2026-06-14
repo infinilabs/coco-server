@@ -325,6 +325,11 @@ export default function ChatInput({
     }
   }, [deepResearchActive, isDeepThinkActive, searchEnabled, isSearchActive, selectedDataSourceIds, mcpEnabled, isMCPActive, selectedMCPIds]);
 
+  const setAppendFeatureParams = useChatStore((state) => state.setAppendFeatureParams);
+  useEffect(() => {
+    setAppendFeatureParams(appendFeatureParams);
+  }, [appendFeatureParams, setAppendFeatureParams]);
+
   const handleSubmit = useCallback(() => {
     const trimmedValue = inputValue.trim();
     if (uploadingCount > 0) return;

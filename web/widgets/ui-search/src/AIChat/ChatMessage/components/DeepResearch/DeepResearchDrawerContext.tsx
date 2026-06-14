@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useState, type FC, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type FC, type ReactNode } from "react";
 import { type TFunction } from "i18next";
 
 import { DeepResearchDrawer } from "./DeepResearchDrawer";
@@ -39,10 +39,18 @@ const DeepResearchDrawerContext = createContext<DeepResearchDrawerContextValue>(
 
 export const useDeepResearchDrawer = () => useContext(DeepResearchDrawerContext);
 
-export const DeepResearchDrawerProvider: FC<{ children: ReactNode; isMobile?: boolean }> = ({ children, isMobile }) => {
+export const DeepResearchDrawerProvider: FC<{ children: ReactNode; isMobile?: boolean; chatId?: string }> = ({ children, isMobile, chatId }) => {
   const [open, setOpen] = useState(false);
   const [drawerData, setDrawerData] = useState<DeepResearchDrawerData>({});
   const [revision, setRevision] = useState(0);
+
+  const prevChatIdRef = useRef(chatId);
+  useEffect(() => {
+    if (prevChatIdRef.current !== chatId) {
+      prevChatIdRef.current = chatId;
+      setOpen(false);
+    }
+  }, [chatId]);
 
   const openDrawer = useCallback((data: DeepResearchDrawerData) => {
     setDrawerData(data);

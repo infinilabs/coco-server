@@ -107,7 +107,15 @@ export const ResearchStepsContent = ({
 }: ResearchStepsContentProps) => {
   const { t: tOriginal } = useTranslation();
   const t = tProp || tOriginal;
-  const data = steps ?? [];
+  const rawData = steps ?? [];
+
+  // First step defaults to in_progress if not done and not ended
+  const data = rawData.map((step, index) => {
+    if (index === 0 && !isEnd && step.status !== "done") {
+      return { ...step, status: "in_progress" as StepStatus };
+    }
+    return step;
+  });
   // 控制展开的搜索结果集合
   const [expandedSearches, setExpandedSearches] = useState<Set<string>>(
     new Set(),

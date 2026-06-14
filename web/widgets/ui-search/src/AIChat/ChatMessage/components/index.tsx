@@ -483,7 +483,7 @@ const InnerChatMessage = memo(
             isError && (
               <ErrorMessage
                 title={isDeepResearching ? t("deepResearch.status.error") : t("labels.error")}
-                error={"endChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.errorendChunk?.payload?.error"}
+                error={endChunk?.payload?.error}
               />
             )
           }
