@@ -327,12 +327,6 @@ export function Component() {
         },
       }
     },
-    getRawContent: (item: any) => {
-      if (item.id && item.title) {
-        return `${getApiBaseUrl()}/document/${item.id}/raw_content/${item.title}`;
-      }
-      return ''
-    },
     apiConfig: {
       BaseUrl: getApiBaseUrl(),
       Token: import.meta.env.VITE_SERVICE_TOKEN,

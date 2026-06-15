@@ -8,21 +8,21 @@ const Image: FC<DocDetailProps> = (props) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const containerSize = useSize(containerRef);
   const [failed, setFailed] = useState(false);
-  const [imgSrc, setImgSrc] = useState<string | undefined>(data?.url);
+  const [imgSrc, setImgSrc] = useState<string | undefined>(data?.metadata?.raw_content);
 
   useEffect(() => {
-    if (!requestHeaders || !data?.url) {
-      setImgSrc(failed ? data?.thumbnail : data?.url);
+    if (!requestHeaders || !data?.metadata?.raw_content) {
+      setImgSrc(failed ? data?.thumbnail : data?.metadata?.raw_content);
       return;
     }
 
-    const targetUrl = failed ? data?.thumbnail : data?.url;
+    const targetUrl = failed ? data?.thumbnail : data?.metadata?.raw_content;
     if (!targetUrl) return;
 
     fetch(targetUrl, { headers: requestHeaders })
       .then((res) => res.blob())
       .then((blob) => setImgSrc(URL.createObjectURL(blob)));
-  }, [data?.url, data?.thumbnail, failed, requestHeaders]);
+  }, [data?.metadata?.raw_content, data?.thumbnail, failed, requestHeaders]);
 
   const calcHeight = useMemo(() => {
     const { width, height } = data.metadata ?? {};

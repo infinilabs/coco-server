@@ -26,7 +26,6 @@ interface FullscreenProps {
   language?: string;
   onSuggestion?: (...args: any[]) => void;
   onRecommend?: (...args: any[]) => void;
-  getRawContent?: (...args: any[]) => any;
   apiConfig?: Record<string, any>;
   getFieldsMeta?: (...args: any[]) => any;
   onUpload?: (...args: any[]) => void;
@@ -53,7 +52,6 @@ const Fullscreen = (props: FullscreenProps) => {
     language = 'en-US',
     onSuggestion,
     onRecommend,
-    getRawContent,
     apiConfig,
     getFieldsMeta,
     onUpload,
@@ -382,7 +380,6 @@ const Fullscreen = (props: FullscreenProps) => {
       onAsk={onAsk}
       onSuggestion={debouncedSuggestion}
       onRecommend={onRecommend}
-      getRawContent={getRawContent}
       onChatContinue={(session_id) => {
         onChat({
           query: queryParams.query || '',

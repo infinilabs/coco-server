@@ -32,24 +32,20 @@ const Preview: FC<DocDetailProps> = (props) => {
       return <Pptx url={url} {...props} onLoadingChange={setLoading} />;
     }
 
+    if (type === "video") {
+      return <Video url={url} requestHeaders={props.requestHeaders} onLoadingChange={setLoading} />
+    }
+
     return null;
   };
 
-  const { url } = data;
   const type = data?.metadata?.content_type;
+  const url = data?.metadata?.raw_content;
 
   if (!type || !url) return null;
 
   if (type === "image") {
     return <Image {...props} />;
-  }
-
-  if (type === "video") {
-    return (
-      <Spin spinning={loading}>
-        <Video url={url} requestHeaders={props.requestHeaders} onLoadingChange={setLoading} />
-      </Spin>
-    );
   }
 
   return (

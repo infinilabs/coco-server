@@ -461,12 +461,6 @@ export default (props) => {
                 }
             }
         },
-        "getRawContent": (item) => {
-            if (item?.id && item?.title) {
-                return `${server.replace(/\/$/, '')}/document/${item.id}/raw_content/${item.title}`
-            }
-            return ''
-        },
         "apiConfig": {
             "BaseUrl": server,
             "endpoint": server,

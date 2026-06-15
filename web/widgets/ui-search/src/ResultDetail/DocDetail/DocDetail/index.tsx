@@ -38,6 +38,7 @@ export interface DocDetailProps extends HTMLAttributes<HTMLDivElement> {
       mime_type?: string;
       users?: null | unknown;
       width?: number;
+      raw_content?: string;
     };
     source?: {
       type?: string;
@@ -114,7 +115,7 @@ const DocDetail: FC<DocDetailProps> = (props) => {
   const contentType = data?.metadata?.content_type;
   const isInlinePreview = contentType === "image" || contentType === "video";
   const hasCollapsiblePreview =
-    !!contentType && !!data?.url && !isInlinePreview;
+    !!contentType && !!data?.metadata?.raw_content && !isInlinePreview;
 
   const collapseItems = useMemo(() => {
     const items: { key: string; label: ReactNode | string; children: ReactNode }[] = [];

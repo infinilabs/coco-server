@@ -14,7 +14,6 @@ interface NormalListProps {
   hasMore?: boolean;
   onLoadMore?: () => void;
   setDetailCollapse?: (v: boolean) => void;
-  getRawContent?: (data: Record<string, any>) => string;
   apiConfig?: Record<string, any>;
   [key: string]: any;
 }
@@ -31,7 +30,6 @@ export function NormalList(props: NormalListProps) {
     hasMore,
     onLoadMore,
     setDetailCollapse,
-    getRawContent,
     apiConfig
   } = props;
 
@@ -115,7 +113,7 @@ export function NormalList(props: NormalListProps) {
                     section={{
                       ...item,
                       isActive,
-                      href: getRawContent ? getRawContent(item) : item?.url,
+                      href: item?.metadata?.raw_content,
                     } as any}
                     onRecordClick={(record: any) => {
                       onOpen(record);
@@ -143,7 +141,6 @@ export function NormalList(props: NormalListProps) {
         onClose={onClose}
         data={record || {}}
         isMobile={isMobile}
-        getRawContent={getRawContent}
         apiConfig={apiConfig}
       />
     </>

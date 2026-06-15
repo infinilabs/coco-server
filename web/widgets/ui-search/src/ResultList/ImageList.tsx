@@ -109,13 +109,12 @@ interface ImageListProps {
   hasMore?: boolean;
   onLoadMore?: () => void;
   setDetailCollapse?: (v: boolean) => void;
-  getRawContent?: (data: Record<string, any>) => string;
   apiConfig?: Record<string, any>;
   [key: string]: any;
 }
 
 export function ImageList(props: ImageListProps) {
-  const { getDetailContainer, data = [], isMobile, loading, hasMore, onLoadMore, setDetailCollapse, getRawContent, apiConfig } = props;
+  const { getDetailContainer, data = [], isMobile, loading, hasMore, onLoadMore, setDetailCollapse, apiConfig } = props;
 
   const [open, setOpen] = useState(false);
   const [record, setRecord] = useState<Record<string, any> | undefined>();
@@ -237,7 +236,6 @@ export function ImageList(props: ImageListProps) {
         onClose={onClose}
         data={record || {}}
         isMobile={isMobile}
-        getRawContent={getRawContent}
         apiConfig={apiConfig}
       />
     </>

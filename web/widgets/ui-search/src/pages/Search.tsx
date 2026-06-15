@@ -35,7 +35,6 @@ interface SearchProps {
   theme?: string;
   onSuggestion?: (...args: any[]) => void;
   onRecommend?: (...args: any[]) => void;
-  getRawContent?: (...args: any[]) => any;
   onChatContinue?: (session_id: string) => void;
   getFieldsMeta?: (...args: any[]) => any;
   onUpload?: (...args: any[]) => void;
@@ -71,7 +70,6 @@ export default function Search({
   theme,
   onSuggestion,
   onRecommend,
-  getRawContent,
   onChatContinue,
   getFieldsMeta,
   onUpload,
@@ -157,7 +155,6 @@ export default function Search({
               loading={loading}
               total={hits?.total || 0}
               setDetailCollapse={setDetailCollapse}
-              getRawContent={getRawContent}
               onLoadMore={onLoadMore}
             />
           ) : null
@@ -257,7 +254,6 @@ export default function Search({
             query={query}
             total={hits?.total || 0}
             setDetailCollapse={setDetailCollapse}
-            getRawContent={getRawContent}
             onLoadMore={onLoadMore}
           />
         ) : null

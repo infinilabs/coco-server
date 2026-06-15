@@ -14,7 +14,6 @@ interface ResultDetailProps {
     isMobile?: boolean;
     open?: boolean;
     onClose?: () => void;
-    getRawContent?: (data: Record<string, any>) => string;
     apiConfig?: Record<string, any>;
 }
 
@@ -43,7 +42,7 @@ export function DateTime(props: { value: string | number, showTooltip?: boolean 
 }
 
 export const ResultDetail: FC<ResultDetailProps> = (props) => {
-    const { getContainer, data = {}, isMobile, open, onClose, getRawContent, apiConfig } = props;
+    const { getContainer, data = {}, isMobile, open, onClose, apiConfig } = props;
     const { t } = useTranslation();
 
     return (
@@ -66,7 +65,6 @@ export const ResultDetail: FC<ResultDetailProps> = (props) => {
                 requestHeaders={apiConfig?.headers}
                 data={{
                     ...(data || {}),
-                    url: getRawContent ? getRawContent(data) : data?.url,
                     size: filesize(data?.size ?? 0),
                     created: data?.created ? (
                         <DateTime

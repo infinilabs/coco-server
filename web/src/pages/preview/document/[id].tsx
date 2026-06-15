@@ -40,7 +40,6 @@ export function Component() {
 
       setData({
         ...dataSource,
-        url: `/document/${id}/raw_content/${dataSource?.title}`,
         owner: ownerData
       });
     } catch (error) {
@@ -72,7 +71,7 @@ export function Component() {
           icon={<SquareArrowOutUpRight className='size-3.5 text-primary' />}
           key='openSource'
           onClick={() => {
-            openTauriUrl(data?.url);
+            openTauriUrl(data?.metadata?.raw_content);
           }}
         />
       ];
@@ -83,7 +82,7 @@ export function Component() {
         icon={<SquareArrowOutUpRight />}
         key='openSource'
         onClick={() => {
-          setSourceUrl(data?.url);
+          setSourceUrl(data?.metadata?.raw_content);
         }}
       >
         {t('page.preview.buttons.openSource')}
