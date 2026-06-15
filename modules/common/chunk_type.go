@@ -45,10 +45,27 @@ const (
 	// QueryIntent object is persisted as a ProcessingDetails entry.
 	QueryIntent = "query_intent"
 
-	// Tools is a streaming chunk type for tool-call records. Each message_chunk
-	// contains only the tool name, arguments, and output; the accumulated text is
-	// persisted as a ProcessingDetails entry whose Description carries the same
-	// content.
+	// Tools is a streaming chunk type for tool-call records. Each chunk carries
+	// one tool invocation with two fields populated:
+	//
+	//   MessageChunk (DEPRECATED): Markdown-formatted text (tool name, arguments
+	//       code block, output code block). The second chunk onward is prefixed
+	//       with "\n\n" so that concatenating all chunks reproduces the persisted
+	//       Description. Kept for backward compatibility with older clients.
+	//
+	//   ToolCallMessageChunk: A single JSON object with structured fields:
+	//       {"name":"<tool>","arguments":"<json_string>","result":"<output>"}
+	//       New frontend code should use this field exclusively.
+	//
+	// Persistence (ChatMessage.Details, Type="tools", Order=15):
+	//
+	//   Description (DEPRECATED): All MessageChunk values concatenated in
+	//       sequence order. Markdown representation kept for backward
+	//       compatibility with older clients.
+	//
+	//   Payload: JSON array of ToolCallItem objects, one per invocation:
+	//       [{"name":"...","arguments":"...","result":"..."}, ...]
+	//       New frontend code should use this field exclusively.
 	Tools = "tools"
 
 	// FetchSource is a streaming chunk type for fetched source previews. Candidate

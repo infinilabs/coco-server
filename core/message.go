@@ -81,6 +81,13 @@ type ProcessingDetails struct {
 	Payload     interface{} `json:"payload"`     // Structured data; concrete type depends on Type (see ChatMessage.Details doc)
 }
 
+// ToolCallItem represents a single tool invocation within a tool-call chunk.
+type ToolCallItem struct {
+	Name      string `json:"name"`
+	Arguments string `json:"arguments"`
+	Result    string `json:"result"`
+}
+
 // MessageChunk is a streaming fragment sent to the client over chunked HTTP.
 // The LLM response and system status updates are delivered as a sequence of these chunks in real time.
 type MessageChunk struct {
@@ -93,6 +100,11 @@ type MessageChunk struct {
 	MessageChunk   string `json:"message_chunk"`
 	Streaming      bool   `json:"streaming,omitempty"`
 	ContentType    string `json:"content_type,omitempty"`
+
+	// ToolCallMessageChunk is a JSON-encoded array of ToolCallItem objects,
+	// only populated for chunks with ChunkType="tools". Coexists with
+	// MessageChunk for backward compatibility with older clients.
+	ToolCallMessageChunk string `json:"tool_call_message_chunk,omitempty"`
 }
 
 func NewMessageChunk(sessionId, messageId, messageType, replyToMessage, chunkType, messageChunk string, chunkSequence int) *MessageChunk {
