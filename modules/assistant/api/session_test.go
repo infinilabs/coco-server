@@ -9,23 +9,23 @@ import (
 	"testing"
 )
 
-func TestParseAskPayloadKeepsQueryAndExtractsHits(t *testing.T) {
+func TestParseSearchResultPayloadKeepsQueryAndExtractsHits(t *testing.T) {
 	message := `{"query":"这是用户的查询","result":{"took":22,"total":160,"hits":[{"id":"doc-1","title":"First"}]},"unused":"value"}`
 
-	askContext, err := parseAskPayload(message)
+	searchCtx, err := parseSearchResultPayload(message)
 	if err != nil {
-		t.Fatalf("parseAskPayload returned error: %v", err)
+		t.Fatalf("parseSearchResultPayload returned error: %v", err)
 	}
-	if askContext.UserMessage != "这是用户的查询" {
-		t.Fatalf("unexpected user message: got %q", askContext.UserMessage)
+	if searchCtx.UserMessage != "这是用户的查询" {
+		t.Fatalf("unexpected user message: got %q", searchCtx.UserMessage)
 	}
-	if askContext.ModelMessage != message {
-		t.Fatalf("unexpected model message: got %q", askContext.ModelMessage)
+	if searchCtx.ModelMessage != message {
+		t.Fatalf("unexpected model message: got %q", searchCtx.ModelMessage)
 	}
 
-	hits, ok := askContext.FetchSource.([]interface{})
+	hits, ok := searchCtx.FetchSource.([]interface{})
 	if !ok {
-		t.Fatalf("unexpected fetch source type: %T", askContext.FetchSource)
+		t.Fatalf("unexpected fetch source type: %T", searchCtx.FetchSource)
 	}
 	if len(hits) != 1 {
 		t.Fatalf("unexpected hit count: got %d", len(hits))
@@ -39,51 +39,51 @@ func TestParseAskPayloadKeepsQueryAndExtractsHits(t *testing.T) {
 	}
 }
 
-func TestParseAskPayloadUsesArrayResultAsFetchSource(t *testing.T) {
+func TestParseSearchResultPayloadUsesArrayResultAsFetchSource(t *testing.T) {
 	message := `{"query":"search text","result":[{"id":"doc-1"},{"id":"doc-2"}]}`
 
-	askContext, err := parseAskPayload(message)
+	searchCtx, err := parseSearchResultPayload(message)
 	if err != nil {
-		t.Fatalf("parseAskPayload returned error: %v", err)
+		t.Fatalf("parseSearchResultPayload returned error: %v", err)
 	}
-	hits, ok := askContext.FetchSource.([]interface{})
+	hits, ok := searchCtx.FetchSource.([]interface{})
 	if !ok {
-		t.Fatalf("unexpected fetch source type: %T", askContext.FetchSource)
+		t.Fatalf("unexpected fetch source type: %T", searchCtx.FetchSource)
 	}
 	if len(hits) != 2 {
 		t.Fatalf("unexpected hit count: got %d", len(hits))
 	}
 }
 
-func TestParseAskPayloadAcceptsEncodedJSONString(t *testing.T) {
+func TestParseSearchResultPayloadAcceptsEncodedJSONString(t *testing.T) {
 	message := `{"query":"搜索","result":{"hits":[{"id":"doc-1"}]}}`
 	encodedMessage, err := json.Marshal(message)
 	if err != nil {
 		t.Fatalf("marshal message: %v", err)
 	}
 
-	askContext, err := parseAskPayload(string(encodedMessage))
+	searchCtx, err := parseSearchResultPayload(string(encodedMessage))
 	if err != nil {
-		t.Fatalf("parseAskPayload returned error: %v", err)
+		t.Fatalf("parseSearchResultPayload returned error: %v", err)
 	}
-	if askContext.UserMessage != "搜索" {
-		t.Fatalf("unexpected user message: got %q", askContext.UserMessage)
+	if searchCtx.UserMessage != "搜索" {
+		t.Fatalf("unexpected user message: got %q", searchCtx.UserMessage)
 	}
-	if askContext.ModelMessage != string(encodedMessage) {
-		t.Fatalf("unexpected model message: got %q", askContext.ModelMessage)
+	if searchCtx.ModelMessage != string(encodedMessage) {
+		t.Fatalf("unexpected model message: got %q", searchCtx.ModelMessage)
 	}
 
-	hits, ok := askContext.FetchSource.([]interface{})
+	hits, ok := searchCtx.FetchSource.([]interface{})
 	if !ok {
-		t.Fatalf("unexpected fetch source type: %T", askContext.FetchSource)
+		t.Fatalf("unexpected fetch source type: %T", searchCtx.FetchSource)
 	}
 	if len(hits) != 1 {
 		t.Fatalf("unexpected hit count: got %d", len(hits))
 	}
 }
 
-func TestParseAskPayloadRequiresQuery(t *testing.T) {
-	if _, err := parseAskPayload(`{"result":{"total":160}}`); err == nil {
-		t.Fatalf("expected error for ask payload without query")
+func TestParseSearchResultPayloadRequiresQuery(t *testing.T) {
+	if _, err := parseSearchResultPayload(`{"result":{"total":160}}`); err == nil {
+		t.Fatalf("expected error for search result payload without query")
 	}
 }
