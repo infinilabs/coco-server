@@ -123,6 +123,7 @@ func RefineDocument(ctx context.Context, doc *core.Document) {
 	RefineIcon(ctx, doc)
 	RefineCoverThumbnail(ctx, doc)
 	RefineURL(ctx, doc)
+	RefineRawContentURL(ctx, doc)
 }
 
 // ResolveIcon runs the icon fallback chain:
@@ -209,6 +210,20 @@ func RefineURL(ctx context.Context, doc *core.Document) {
 	baseEndpoint := appCfg.ServerInfo.Endpoint
 
 	doc.URL = fmt.Sprintf("%s/#/preview/document/%s", baseEndpoint, doc.ID)
+}
+
+// RefineRawContentURL adds a "raw_content" key to doc.Metadata with the
+// full URL to the document's raw content endpoint.
+func RefineRawContentURL(ctx context.Context, doc *core.Document) {
+	appCfg := common.AppConfig()
+	baseEndpoint := appCfg.ServerInfo.Endpoint
+
+	rawContentURL := fmt.Sprintf("%s/document/%s/raw_content/%s", baseEndpoint, doc.ID, url.PathEscape(doc.Title))
+
+	if doc.Metadata == nil {
+		doc.Metadata = make(map[string]interface{})
+	}
+	doc.Metadata["raw_content"] = rawContentURL
 }
 
 func searchAssistant(req *http.Request, query string, size int) []core.Assistant {
