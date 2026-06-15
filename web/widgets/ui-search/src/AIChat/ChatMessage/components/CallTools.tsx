@@ -44,9 +44,9 @@ export const CallTools = ({ Detail, ChunkData, loading, t: tProp }: CallToolsPro
       if (typeof parsed === 'object' && parsed !== null) {
         return <ExpandJson content={JSON.stringify(parsed, null, 2)} />;
       }
-      return <ExpandText>{text}</ExpandText>;
+      return <ExpandText content={text} />;
     } catch {
-      return <ExpandText>{text}</ExpandText>;
+      return <ExpandText content={text} />;
     }
   };
 

@@ -15,7 +15,7 @@ export const ErrorMessage = ({
             {
                 error && (
                     <div className="py-8px min-h-42px border-t border-[#F0F0F0] dark:border-[#303030]">
-                        <ExpandText>{error}</ExpandText>
+                        <ExpandText content={error} />
                     </div>
                 )
             }
