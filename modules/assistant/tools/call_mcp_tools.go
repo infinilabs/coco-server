@@ -238,8 +238,9 @@ func CallLLMTools(ctx context.Context, reqMsg *core.ChatMessage, replyMsg *core.
 	}
 
 	toolsOutputBuffer := strings.Builder{}
-	// Store tool-call records in Description because they are display-oriented
-	// Markdown text, while details.payload is mapped as an object in Elasticsearch.
+	toolCallItems := []core.ToolCallItem{}
+	// Store tool-call records in Description (Markdown) and Payload (structured
+	// ToolCallItem array) for backward compatibility with older clients.
 	persistToolsOutput := func() {
 		toolsOutput := toolsOutputBuffer.String()
 		if toolsOutput != "" {
@@ -247,6 +248,7 @@ func CallLLMTools(ctx context.Context, reqMsg *core.ChatMessage, replyMsg *core.
 				Order:       15,
 				Type:        common.Tools,
 				Description: toolsOutput,
+				Payload:     toolCallItems,
 			})
 		}
 	}
@@ -261,7 +263,12 @@ func CallLLMTools(ctx context.Context, reqMsg *core.ChatMessage, replyMsg *core.
 		}
 		toolsOutputBuffer.WriteString(chunk)
 
-		sendErr := sender.SendChunkMessage(core.MessageTypeAssistant, common.Tools, chunk, toolsSeq)
+		item := core.ToolCallItem{Name: toolName, Arguments: arguments, Result: result}
+		toolCallItems = append(toolCallItems, item)
+
+		msg := core.NewMessageChunk(reqMsg.SessionID, replyMsg.ID, core.MessageTypeAssistant, reqMsg.ID, common.Tools, chunk, toolsSeq)
+		msg.ToolCallMessageChunk = util.MustToJSON(item)
+		sendErr := sender.SendMessage(msg)
 		if sendErr != nil {
 			panic(sendErr)
 		}
