@@ -796,7 +796,7 @@ func (s *State) generateChapterBasedReport(ctx context.Context, llm llms.Model) 
 	}
 	reportBuilder.WriteString(fmt.Sprintf("## %s\n\n", i18n.TableOfContents))
 	for i, chapter := range s.ChapterOutline {
-		reportBuilder.WriteString(fmt.Sprintf("%d. [%s](#%s)\n", i+1, chapter.Title, strings.ToLower(strings.ReplaceAll(chapter.Title, " ", "-"))))
+		reportBuilder.WriteString(fmt.Sprintf("%d. %s\n", i+1, chapter.Title))
 	}
 	reportBuilder.WriteString("\n---\n\n")
 
