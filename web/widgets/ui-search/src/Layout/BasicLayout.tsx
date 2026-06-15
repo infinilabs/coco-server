@@ -1,10 +1,11 @@
-import { FloatButton, Layout } from "antd";
+import { Layout } from "antd";
 import styles from "./index.module.less";
 import { DARK_CLASS } from "../theme/shared";
-import { cloneElement, useCallback, useEffect, useRef, useState, type ReactNode, type FC, type ReactElement } from "react";
+import { cloneElement, useEffect, useRef, useState, type ReactNode, type FC, type ReactElement } from "react";
 import useNProgress from "../hooks/useNProgress";
 import CommonDrawer from "./CommonDrawer";
 import SearchHeaderLayout from "./SearchHeaderLayout";
+import BackTopButton from "./BackTopButton";
 
 const { Content, Sider } = Layout;
 
@@ -60,37 +61,8 @@ const BasicLayout: FC<BasicLayoutProps> = (props) => {
 
   const themeClass = theme === 'dark' ? DARK_CLASS : 'light';
   const scrollContainer = getContainer?.() ?? null;
-  const [backTopShow, setBackTopShow] = useState(false);
   const [leftDrawerOpen, setLeftDrawerOpen] = useState(false);
   const [rightDrawerOpen, setRightDrawerOpen] = useState(false);
-
-  const handleContainerScroll = useCallback(() => {
-    if (!scrollContainer || loading) return;
-
-    setBackTopShow(scrollContainer.scrollTop > 400);
-  }, [scrollContainer, loading]);
-
-  useEffect(() => {
-    if (!scrollContainer) {
-      setBackTopShow(false);
-      return;
-    }
-
-    scrollContainer.addEventListener("scroll", handleContainerScroll);
-    handleContainerScroll();
-
-    return () => {
-      scrollContainer.removeEventListener("scroll", handleContainerScroll);
-    };
-  }, [scrollContainer, handleContainerScroll]);
-
-  const handleBackTopClick = useCallback(() => {
-    if (!scrollContainer || loading) return;
-    scrollContainer.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
-  }, [scrollContainer, loading]);
 
   useNProgress(loading);
 
@@ -281,21 +253,7 @@ const BasicLayout: FC<BasicLayoutProps> = (props) => {
         {recommends && !hasRecommendsData && <div className="hidden">{recommends}</div>}
       </Layout>
 
-      {scrollContainer && backTopShow && !loading && (
-        <FloatButton.BackTop
-          target={() => scrollContainer}
-          visibilityHeight={0}
-          duration={300}
-          onClick={handleBackTopClick}
-          className="!border-[#F0F0F0] !dark:border-[#303030] "
-          style={{
-            right: 24,
-            bottom: 24,
-            zIndex: 999,
-            display: backTopShow ? 'flex' : 'none',
-          }}
-        />
-      )}
+      <BackTopButton getContainer={getContainer} loading={loading} />
     </Layout>
   );
 };

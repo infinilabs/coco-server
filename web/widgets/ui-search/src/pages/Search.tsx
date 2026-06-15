@@ -277,7 +277,9 @@ export default function Search({
       tabs={
         <Categories
           category={content_category}
-          onChange={category => {            onCategoryChange?.();            let shouldAgg = false
+          onChange={category => {
+            onCategoryChange?.();
+            let shouldAgg = false
             if (category !== content_category) {
               shouldAgg = true
             }

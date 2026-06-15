@@ -1,10 +1,11 @@
-import { FloatButton, Layout } from "antd";
+import { Layout } from "antd";
 import styles from "./index.module.less";
 import { DARK_CLASS } from "../theme/shared";
-import { cloneElement, useCallback, useEffect, useRef, useState, type ReactNode, type FC, type ReactElement } from "react";
+import { cloneElement, useEffect, useRef, useState, type ReactNode, type FC, type ReactElement } from "react";
 import useNProgress from "../hooks/useNProgress";
 import SearchHeaderLayout from "./SearchHeaderLayout";
 import CommonDrawer from "./CommonDrawer";
+import BackTopButton from "./BackTopButton";
 
 const { Content, Sider } = Layout;
 
@@ -52,7 +53,6 @@ const MediaLayout: FC<MediaLayoutProps> = (props) => {
 
   const themeClass = theme === 'dark' ? DARK_CLASS : 'light';
   const scrollContainer = getContainer?.() ?? null;
-  const [backTopShow, setBackTopShow] = useState(false);
   const [leftDrawerOpen, setLeftDrawerOpen] = useState(false);
   const userCollapsedLeftRef = useRef(false);
   const siderCollapseRef = useRef(siderCollapse);
@@ -98,34 +98,6 @@ const MediaLayout: FC<MediaLayoutProps> = (props) => {
   useEffect(() => {
     if (siderCollapse) setLeftDrawerOpen(false);
   }, [siderCollapse]);
-
-  const handleContainerScroll = useCallback(() => {
-    if (!scrollContainer || loading) return;
-
-    setBackTopShow(scrollContainer.scrollTop > 400);
-  }, [scrollContainer, loading]);
-
-  useEffect(() => {
-    if (!scrollContainer) {
-      setBackTopShow(false);
-      return;
-    }
-
-    scrollContainer.addEventListener("scroll", handleContainerScroll);
-    handleContainerScroll();
-
-    return () => {
-      scrollContainer.removeEventListener("scroll", handleContainerScroll);
-    };
-  }, [scrollContainer, handleContainerScroll]);
-
-  const handleBackTopClick = useCallback(() => {
-    if (!scrollContainer || loading) return;
-    scrollContainer.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
-  }, [scrollContainer, loading]);
 
   const headerHeight = '122px';
 
@@ -189,20 +161,7 @@ const MediaLayout: FC<MediaLayoutProps> = (props) => {
           </Content>
         </Layout>
       </Content>
-      {scrollContainer && backTopShow && !loading && (
-        <FloatButton.BackTop
-          target={() => scrollContainer}
-          visibilityHeight={0}
-          duration={300}
-          onClick={handleBackTopClick}
-          style={{
-            right: 24,
-            bottom: 24,
-            zIndex: 9999,
-            display: backTopShow ? "flex" : "none",
-          }}
-        />
-      )}
+      <BackTopButton getContainer={getContainer} loading={loading} zIndex={9999} />
     </Layout>
   );
 };
