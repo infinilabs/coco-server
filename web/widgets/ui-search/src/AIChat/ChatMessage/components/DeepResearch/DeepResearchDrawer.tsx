@@ -175,7 +175,7 @@ export const DeepResearchDrawer = ({
           <Button
             type="text"
             onClick={onClose}
-            className="!px-3px text-[#999] hover:text-gray-600 flex items-center justify-center"
+            className="!px-3px text-[#999] dark:text-[#666] hover:text-[#666] dark:hover:text-[#999] flex items-center justify-center"
           >
             <X className="w-24px h-24px" />
           </Button>

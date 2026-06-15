@@ -6,7 +6,7 @@ import { type FC } from "react";
 export const Toolbar: FC = () => {
   const { t } = useTranslation();
   return (
-    <div className="flex items-center w-full text-[#999] gap-16px">
+    <div className="flex items-center w-full text-[#999] dark:text-[#666] gap-16px">
       <PanelLeftClose className="w-16px h-16px text-16px"/>
       <Dropdown menu={{ items: [] }}>
           <Space size={4}>

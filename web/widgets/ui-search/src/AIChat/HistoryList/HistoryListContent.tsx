@@ -92,7 +92,7 @@ const HistoryListContent: FC<HistoryListContentProps> = ({
     <>
         {Object.entries(sortedList).map(([label, list]) => (
           <div key={label}>
-          <div className="text-14px text-[#999] py-8px px-14px ">{t(label)}</div>
+          <div className="text-14px text-[#999] dark:text-[#666] py-8px px-14px ">{t(label)}</div>
             <ul className="px-6px">
               {list.map((item) => (
                 <HistoryListItem

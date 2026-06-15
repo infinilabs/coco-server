@@ -36,7 +36,7 @@ const FilterCollapse: FC<FilterCollapseProps> = (props) => {
     <div>
       <div
         className={clsx(
-          "flex items-center justify-between cursor-pointer text-[#999]",
+          "flex items-center justify-between cursor-pointer text-[#999] dark:text-[#666]",
           classNames?.title
         )}
         onClick={toggleExpand}
@@ -47,14 +47,14 @@ const FilterCollapse: FC<FilterCollapseProps> = (props) => {
               initial={{ display: 'block' }}
               animate={{ display: expand ? 'none' : 'block' }}
             >
-              <PlusSquareOutlined className="text-[#999] text-16px"/>
+              <PlusSquareOutlined className="text-[#999] dark:text-[#666] text-16px"/>
             </motion.div>
 
             <motion.div
               initial={{ display: 'none' }}
               animate={{ display: expand ? 'block' : 'none' }}
             >
-              <MinusSquareOutlined className="text-[#999] text-16px" />
+              <MinusSquareOutlined className="text-[#999] dark:text-[#666] text-16px" />
             </motion.div>
           </div>
 

@@ -68,7 +68,7 @@ const CancelDeepResearchDialog = ({
                   setIsOpen(false);
                 });
               }}
-              className="w-87px text-12px text-[#333] dark:text-[#E5E7EB] rounded-20px border-[#bbb] dark:border-[#333]"
+              className="w-87px text-12px text-[#333] dark:text-[#E5E7EB] rounded-20px border-[#F0F0F0] dark:border-[#303030]"
             >
               {t("deepResearch.cancelDialog.cancel")}
             </Button>

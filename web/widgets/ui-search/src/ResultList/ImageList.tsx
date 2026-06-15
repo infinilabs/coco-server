@@ -77,7 +77,7 @@ const MasonryItem: FC<MasonryItemProps> = (props) => {
             },
           )}
         >
-          <ImageOff className="text-[#999]" />
+          <ImageOff className="text-[#999] dark:text-[#666]" />
         </div>
       </div>
 

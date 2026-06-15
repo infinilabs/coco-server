@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { type TFunction } from "i18next";
 
 import type { IChunkData } from "../types/chat";
-import CheckIcon from "../../../icons/CheckIcon";
+import ReadingIcon from "../icons/Reading";
 
 interface DeepReadeProps {
   Detail?: any;
@@ -53,11 +53,11 @@ export const DeepRead = ({
     <div className="space-y-2 mb-8px w-full">
       <button
         onClick={() => setIsThinkingExpanded((prev) => !prev)}
-        className="text-[#101010] dark:text-[#F5F5F5] cursor-pointer bg-transparent hover:bg-[#EDEDED] dark:hover:bg-[#3A3A3A] inline-flex items-center gap-2 px-2 py-2px rounded-12px transition-colors border border-solid border-[#F0F0F0] dark:border-[#303030]"
+        className="text-[12px] text-[#999] dark:text-[#666] cursor-pointer bg-transparent hover:bg-[#EDEDED] dark:hover:bg-[#3A3A3A] inline-flex items-center gap-2 px-2 py-2px rounded-12px transition-colors border border-solid border-[#F0F0F0] dark:border-[#303030]"
       >
         {loading ? (
           <>
-            <Loader className="w-14px h-14px animate-spin" />
+            <Loader className="w-14px h-14px animate-spin text-[#1784FC] shrink-0" />
             <span className="italic">
               {t(
                 `assistant.message.steps.${
@@ -68,7 +68,7 @@ export const DeepRead = ({
           </>
         ) : (
           <>
-            <CheckIcon className="w-14px h-14px" />
+            <ReadingIcon className="w-14px h-14px shrink-0" />
             <span className="">
               {t(
                 `assistant.message.steps.${
@@ -82,18 +82,18 @@ export const DeepRead = ({
           </>
         )}
         {isThinkingExpanded ? (
-          <ChevronDown className="w-4 h-4" />
+          <ChevronDown className="w-14px h-14px" />
         ) : (
-          <ChevronRight className="w-4 h-4" />
+          <ChevronRight className="w-14px h-14px" />
         )}
       </button>
       {isThinkingExpanded && data?.length > 0 && (
-        <div className="ml-15px pl-6px pt-1 border-l-1 border-[#bbb] dark:border-[#333]">
+        <div className="ml-8px pl-8px border-l-1 border-[#F0F0F0] dark:border-[#303030]">
           <div className="text-[#8b8b8b] dark:text-[#a6a6a6] space-y-2">
             <div className="mb-4 space-y-3 text-xs">
               {data?.map((item, index) => (
                 <div key={`${item}-${index}`} className="flex flex-col gap-2">
-                  <div className="text-xs text-[#999999] dark:text-[#808080]">
+                  <div className="text-xs text-[#999] dark:text-[#666]">
                     - {item}
                   </div>
                 </div>

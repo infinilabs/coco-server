@@ -3,6 +3,7 @@ import {
   SquareArrowOutUpRight,
   Globe,
   ChevronRight,
+  Loader,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -10,7 +11,7 @@ import { type TFunction } from "i18next";
 
 import { OpenURLWithBrowser } from "../utils/index";
 import type { IChunkData } from "../types/chat";
-import CheckIcon from "../../../icons/CheckIcon";
+import RetrieveIcon from "../icons/Retrieve";
 
 interface FetchSourceProps {
   Detail?: any;
@@ -103,14 +104,18 @@ export const FetchSource = ({
     >
       <button
         onClick={() => setIsSourceExpanded((prev) => !prev)}
-        className={`text-[#101010] dark:text-[#F5F5F5] bg-transparent hover:bg-[#EDEDED] dark:hover:bg-[#3A3A3A] cursor-pointer inline-flex justify-between items-center gap-2 px-2 py-2px transition-colors whitespace-nowrap ${
+        className={`text-[12px] text-[#999] dark:text-[#666] bg-transparent hover:bg-[#EDEDED] dark:hover:bg-[#3A3A3A] cursor-pointer inline-flex justify-between items-center gap-2 px-2 py-2px transition-colors whitespace-nowrap ${
           isSourceExpanded
             ? "w-full"
             : "rounded-12px border border-solid border-[#F0F0F0] dark:border-[#303030]"
         }`}
       >
         <div className="flex-1 min-w-0 flex items-center gap-2">
-          <CheckIcon className="w-14px h-14px shrink-0" />
+          {loading ? (
+            <Loader className="w-14px h-14px animate-spin text-[#1784FC] shrink-0" />
+          ) : (
+            <RetrieveIcon className="w-14px h-14px shrink-0" />
+          )}
           <span>
             {t(
               `assistant.message.steps.${ChunkData?.chunk_type || Detail.type}`,
@@ -121,9 +126,9 @@ export const FetchSource = ({
           </span>
         </div>
         {isSourceExpanded ? (
-          <ChevronDown className="w-4 h-4" />
+          <ChevronDown className="w-14px h-14px" />
         ) : (
-          <ChevronRight className="w-4 h-4" />
+          <ChevronRight className="w-14px h-14px" />
         )}
       </button>
 
@@ -145,10 +150,10 @@ export const FetchSource = ({
                 <div
                   className={`flex-1 mobile:hidden flex items-center justify-end gap-2`}
                 >
-                  <span className="text-xs text-[#999999] dark:text-[#999999] truncate">
+                  <span className="text-xs text-[#999] dark:text-[#666] truncate">
                     {item.source?.name || item?.category}
                   </span>
-                  <SquareArrowOutUpRight className="w-3 h-3 text-[#999999] dark:text-[#999999] shrink-0" />
+                  <SquareArrowOutUpRight className="w-3 h-3 text-[#999] dark:text-[#666] shrink-0" />
                 </div>
               </div>
             </div>

@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { type TFunction } from "i18next";
 
 import type { IChunkData } from "../types/chat";
-import CheckIcon from "../../../icons/CheckIcon";
+import SelectionIcon from "../icons/Selection";
 
 interface PickSourceProps {
   Detail?: any;
@@ -76,18 +76,18 @@ export const PickSource = ({
     <div className="space-y-2 mb-8px w-full">
       <button
         onClick={() => setIsThinkingExpanded((prev) => !prev)}
-        className="text-[#101010] dark:text-[#F5F5F5] cursor-pointer bg-transparent hover:bg-[#EDEDED] dark:hover:bg-[#3A3A3A] inline-flex items-center gap-2 px-2 py-2px rounded-12px transition-colors border border-solid border-[#F0F0F0] dark:border-[#303030]"
+        className="text-[12px] text-[#999] dark:text-[#666] cursor-pointer bg-transparent hover:bg-[#EDEDED] dark:hover:bg-[#3A3A3A] inline-flex items-center gap-2 px-2 py-2px rounded-12px transition-colors border border-solid border-[#F0F0F0] dark:border-[#303030]"
       >
         {loading ? (
           <>
-            <Loader className="w-14px h-14px animate-spin" />
+            <Loader className="w-14px h-14px animate-spin text-[#1784FC] shrink-0" />
             <span className="italic">
               {t(`assistant.message.steps.pick_source_start`)}
             </span>
           </>
         ) : (
           <>
-            <CheckIcon className="w-14px h-14px" />
+            <SelectionIcon className="w-14px h-14px shrink-0" />
             <span>
               {t(
                 `assistant.message.steps.${
@@ -101,25 +101,25 @@ export const PickSource = ({
           </>
         )}
         {isThinkingExpanded ? (
-          <ChevronDown className="w-4 h-4" />
+          <ChevronDown className="w-14px h-14px" />
         ) : (
-          <ChevronRight className="w-4 h-4" />
+          <ChevronRight className="w-14px h-14px" />
         )}
       </button>
       {isThinkingExpanded && data?.length > 0 && (
-        <div className="ml-15px pl-6px pt-1 border-l-1 border-[#bbb] dark:border-[#333]">
+        <div className="ml-8px pl-8px border-l-1 border-[#F0F0F0] dark:border-[#303030]">
           <div className="text-[#8b8b8b] dark:text-[#a6a6a6] space-y-2">
             <div className="mb-10px space-y-10px text-xs">
               {data?.map((item) => (
                 <div
                   key={item.id}
-                  className="p-3 rounded-8px border border-[#bbb] dark:border-[#333] bg-white dark:bg-[#1E1E1E] hover:bg-gray-50 dark:hover:bg-[#2C2C2C] transition-colors"
+                  className="p-3 rounded-8px border border-[#F0F0F0] dark:border-[#303030] bg-white dark:bg-[#1E1E1E] hover:bg-gray-50 dark:hover:bg-[#2C2C2C] transition-colors"
                 >
                   <div className="flex flex-col gap-2">
                     <div className="text-sm font-medium text-[#333] dark:text-[#D8D8D8]">
                       {item.title}
                     </div>
-                    <div className="text-xs text-[#999] dark:text-[#A3A3A3] line-clamp-2">
+                    <div className="text-xs text-[#999] dark:text-[#666] line-clamp-2">
                       {item.explain}
                     </div>
                   </div>

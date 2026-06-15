@@ -212,7 +212,7 @@ function InnerAssistantList({ assistantIDs = [], locale = "en", t: tProp }: Assi
               placeholder={t("assistant_list.search.placeholder")}
               className="h-8 border-[#F0F0F0] dark:border-[#303030] rounded-12px"
               style={{ backgroundColor: 'var(--ant-color-fill-quaternary)' }}
-              prefix={<Search className="text-[#999] h-4 w-4" />}
+              prefix={<Search className="text-[#999] dark:text-[#666] h-4 w-4" />}
               onChange={(event) => {
                 const val = event.target.value;
                 setInputValue(val);

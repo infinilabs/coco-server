@@ -186,13 +186,13 @@ export const ResearchStepsContent = ({
           ) : (
             <EditIcon
               className={`w-5 h-5 ${
-                planner === "pending" ? "text-[#999]" : "text-[#1784FC]"
+                planner === "pending" ? "text-[#999] dark:text-[#666]" : "text-[#1784FC]"
               }`}
             />
           )}
           {t("deepResearch.steps.planTitle")}
         </div>
-        <div className=" text-[#999] dark:text-[#A6A6A6] text-sm mb-2">
+        <div className=" text-[#999] dark:text-[#666] text-sm mb-2">
           {t("deepResearch.steps.planDescription")}
         </div>
 
@@ -217,7 +217,7 @@ export const ResearchStepsContent = ({
           <div className="mt-2 space-y-1 rounded-lg bg-transparent border border-[#F0F0F0] dark:border-[#303030] p-3">
             {data.map((step, index) => (
               <div key={step.id} className="flex items-start gap-2 text-sm">
-                <span className="text-[#999] dark:text-[#A6A6A6]">
+                <span className="text-[#999] dark:text-[#666]">
                   {index + 1}.
                 </span>
                 <span className="text-[#333] dark:text-[#E5E7EB]">
@@ -289,7 +289,7 @@ export const ResearchStepsContent = ({
               {/* 等待中的简化展示 */}
               {isSimplePending ? (
                 <>
-                  <div className="text-sm text-[#999999] dark:text-[#666]">
+                  <div className="text-sm text-[#999] dark:text-[#666]">
                     {step.title}
                   </div>
                 </>
@@ -299,8 +299,8 @@ export const ResearchStepsContent = ({
                   <h3
                     className={`text-sm font-bold mb-16px ${
                       step.status === "pending"
-                        ? "text-[#999999] dark:text-[#666]"
-                        : "text-[#333333] dark:text-[#E5E7EB]"
+                        ? "text-[#999] dark:text-[#666]"
+                        : "text-[#333] dark:text-[#E5E7EB]"
                     }`}
                   >
                     {step.title}
@@ -308,7 +308,7 @@ export const ResearchStepsContent = ({
 
                   {/* 步骤描述 */}
                   {step.description && (
-                    <p className="text-[#999] dark:text-[#A6A6A6] text-sm mb-8px">
+                    <p className="text-[#999] dark:text-[#666] text-sm mb-8px">
                       {step.description}
                     </p>
                   )}
@@ -330,7 +330,7 @@ export const ResearchStepsContent = ({
                               </span>
                               {
                                 search.query && (
-                                  <span className="text-[#999] dark:text-[#A6A6A6] truncate">
+                                  <span className="text-[#999] dark:text-[#666] truncate">
                                     ｜ {search.query}
                                   </span>
                                 )
@@ -351,7 +351,7 @@ export const ResearchStepsContent = ({
                                 </span>
                                 {
                                   search.query && (
-                                    <span className="text-[#999] dark:text-[#A6A6A6] truncate">
+                                    <span className="text-[#999] dark:text-[#666] truncate">
                                       ｜ {search.query}
                                     </span>
                                   )
@@ -363,9 +363,9 @@ export const ResearchStepsContent = ({
                                     {search.resultCount}
                                   </div>
                                   {expandedSearches.has(search.id) ? (
-                                    <ChevronUp className="w-4 h-4 text-[#999]" />
+                                    <ChevronUp className="w-4 h-4 text-[#999] dark:text-[#666]" />
                                   ) : (
-                                    <ChevronDown className="w-4 h-4 text-[#999]" />
+                                    <ChevronDown className="w-4 h-4 text-[#999] dark:text-[#666]" />
                                   )}
                                 </div>
                               )}
@@ -388,7 +388,7 @@ export const ResearchStepsContent = ({
                                           {hit.title}
                                         </div>
                                         {hit.content && (
-                                          <div className="text-xs text-[#999] dark:text-[#A6A6A6] mt-1 line-clamp-2">
+                                          <div className="text-xs text-[#999] dark:text-[#666] mt-1 line-clamp-2">
                                             {hit.content}
                                           </div>
                                         )}
@@ -400,7 +400,7 @@ export const ResearchStepsContent = ({
                             )}
 
                             {search.note && (
-                              <p className="text-[#999] dark:text-[#A6A6A6] text-sm mt-4 mb-2">
+                              <p className="text-[#999] dark:text-[#666] text-sm mt-4 mb-2">
                                 {search.note}
                               </p>
                             )}
@@ -417,7 +417,7 @@ export const ResearchStepsContent = ({
                               {t("deepResearch.steps.optimizePlan")}
                             </span>
                           </div>
-                          <ChevronDown className="w-4 h-4 text-[#999]" />
+                          <ChevronDown className="w-4 h-4 text-[#999] dark:text-[#666]" />
                         </div>
                       )}
                     </div>
@@ -442,7 +442,7 @@ export const ResearchStepsContent = ({
             ) : (
               <BookOpen
                 className={`w-5 h-5 ${
-                  report === "pending" ? "text-[#999]" : "text-[#1784FC]"
+                  report === "pending" ? "text-[#999] dark:text-[#666]" : "text-[#1784FC]"
                 }`}
               />
             )}

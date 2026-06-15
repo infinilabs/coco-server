@@ -69,7 +69,7 @@ const UserAvatar: FC<UserAvatarProps> = (props) => {
 
                     <div className="flex flex-col">
                       <span>{loginInfo?.name}</span>
-                      <span className="text-[#999]">{loginInfo?.email}</span>
+                      <span className="text-[#999] dark:text-[#666]">{loginInfo?.email}</span>
                     </div>
                   </div>
 
@@ -88,7 +88,7 @@ const UserAvatar: FC<UserAvatarProps> = (props) => {
                 </div>
               ) : (
                 <div className="flex flex-col items-center gap-3">
-                  <span className="text-[#999]">
+                  <span className="text-[#999] dark:text-[#666]">
                     {settings?.guest?.enabled ? t('labels.guestTip') : t('labels.pleaseLogin')}
                   </span>
 

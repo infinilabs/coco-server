@@ -92,7 +92,7 @@ const ChatHeaderLayout: FC<ChatHeaderLayoutProps> = (props) => {
               shape="round"
               icon={<Search className="h-4 w-4 !text-[var(--ant-color-primary)]" />}
               onClick={onBackToSearch}
-              className="text-[#999] !rounded-12px border-[#F0F0F0] dark:border-[#303030] !px-8px shrink-0"
+              className="text-[#999] dark:text-[#666] !rounded-12px border-[#F0F0F0] dark:border-[#303030] !px-8px shrink-0"
             >
               {t('labels.backToSearch')}
             </Button>

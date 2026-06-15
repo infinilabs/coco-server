@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { type TFunction } from "i18next";
 
 import type { IChunkData } from "../types/chat";
-import CheckIcon from "../../../icons/CheckIcon";
+import UnderstandIcon from "../icons/Understand";
 
 interface QueryIntentProps {
   Detail?: any;
@@ -79,13 +79,13 @@ export const QueryIntent = ({
     <div className="space-y-2 mb-8px w-full">
       <button
         onClick={() => setIsThinkingExpanded((prev) => !prev)}
-        className="text-[#101010] dark:text-[#F5F5F5] cursor-pointer bg-transparent hover:bg-[#EDEDED] dark:hover:bg-[#3A3A3A] inline-flex items-center gap-2 px-2 py-2px rounded-12px transition-colors border border-solid border-[#F0F0F0] dark:border-[#303030]"
+        className="text-[12px] text-[#999] dark:text-[#666] cursor-pointer bg-transparent hover:bg-[#EDEDED] dark:hover:bg-[#3A3A3A] inline-flex items-center gap-2 px-2 py-2px rounded-12px transition-colors border border-solid border-[#F0F0F0] dark:border-[#303030]"
       >
         <>
           {loading ? (
-            <Loader className="w-14px h-14px animate-spin" />
+            <Loader className="w-14px h-14px animate-spin text-[#1784FC] shrink-0" />
           ) : (
-            <CheckIcon className="w-14px h-14px" />
+            <UnderstandIcon className="w-14px h-14px shrink-0" />
           )}
           <span className={`${loading ? "italic" : ""}`}>
             {t(
@@ -96,18 +96,18 @@ export const QueryIntent = ({
           </span>
         </>
         {isThinkingExpanded ? (
-          <ChevronDown className="w-4 h-4" />
+          <ChevronDown className="w-14px h-14px" />
         ) : (
-          <ChevronRight className="w-4 h-4" />
+          <ChevronRight className="w-14px h-14px" />
         )}
       </button>
-      {isThinkingExpanded && (
-        <div className="ml-15px pl-6px pt-1 border-l-1 border-[#bbb] dark:border-[#333]">
+      {isThinkingExpanded && data && (
+        <div className="ml-8px pl-8px border-l-1 border-[#F0F0F0] dark:border-[#303030]">
           <div className="text-[#8b8b8b] dark:text-[#a6a6a6] space-y-2">
             <div className="mb-4 space-y-2 text-xs">
               {data?.keyword ? (
                 <div className="flex gap-1">
-                  <span className="text-[#999999]">
+                  <span className="text-[#999] dark:text-[#666]">
                     - {t("assistant.message.steps.keywords")}：
                   </span>
                   <div className="flex flex-wrap gap-1">
@@ -125,7 +125,7 @@ export const QueryIntent = ({
               ) : null}
               {data?.category ? (
                 <div className="flex items-center gap-1">
-                  <span className="text-[#999999]">
+                  <span className="text-[#999] dark:text-[#666]">
                     - {t("assistant.message.steps.questionType")}：
                   </span>
                   <span className="text-[#333333] dark:text-[#D8D8D8]">
@@ -135,7 +135,7 @@ export const QueryIntent = ({
               ) : null}
               {data?.intent ? (
                 <div className="flex items-start gap-1">
-                  <span className="text-[#999999]">
+                  <span className="text-[#999] dark:text-[#666]">
                     - {t("assistant.message.steps.userIntent")}：
                   </span>
                   <div className="flex-1 text-[#333333] dark:text-[#D8D8D8]">
@@ -145,7 +145,7 @@ export const QueryIntent = ({
               ) : null}
               {data?.query ? (
                 <div className="flex items-start gap-1">
-                  <span className="text-[#999999]">
+                  <span className="text-[#999] dark:text-[#666]">
                     - {t("assistant.message.steps.relatedQuestions")}：
                   </span>
                   <div className="flex-1 flex flex-col text-[#333333] dark:text-[#D8D8D8]">

@@ -81,7 +81,7 @@ const HistoryList: FC<HistoryListProps> = (props) => {
             autoFocus
             ref={searchInputRef}
             prefix={
-             <Search className="text-[#999] size-4" />
+             <Search className="text-[#999] dark:text-[#666] size-4" />
             }
             className="!px-8px w-full border-[#F0F0F0] dark:border-[#303030] rounded-12px"
             placeholder={t("history_list.search.placeholder")}

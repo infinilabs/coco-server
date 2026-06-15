@@ -1,11 +1,11 @@
-import { Loader, ChevronDown, ChevronRight } from "lucide-react";
+import { Loader, ChevronDown, ChevronRight, Hammer } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { type TFunction } from "i18next";
-import Markdown from '@infinilabs/markdown';
 
 import type { IChunkData } from "../types/chat";
-import CheckIcon from "../../../icons/CheckIcon";
+import { ExpandText } from "./ExpandText";
+import { ExpandJson } from "./ExpandJson";
 
 interface CallToolsProps {
   Detail?: any;
@@ -19,55 +19,82 @@ export const CallTools = ({ Detail, ChunkData, loading, t: tProp }: CallToolsPro
   const t = tProp || tOriginal;
   const [isThinkingExpanded, setIsThinkingExpanded] = useState(false);
 
-  const [data, setData] = useState("");
+  const [data, setData] = useState<{ arguments: string; name: string; result: string}[]>([]);
 
   useEffect(() => {
-    if (!Detail?.description) return;
-    setData(Detail?.description);
-  }, [Detail?.description]);
+    if (!Detail?.payload) return;
+    setData(Detail.payload);
+  }, [Detail?.payload]);
 
   useEffect(() => {
-    if (!ChunkData?.message_chunk) return;
-    setData(ChunkData?.message_chunk);
-  }, [ChunkData?.message_chunk, data]);
+    if (!ChunkData?.tool_call_message_chunk) return;
+    try {
+      const parsed = JSON.parse(ChunkData.tool_call_message_chunk);
+      setData((prev) => [...prev, parsed]);
+    } catch (e) {
+      console.error("Failed to parse tool_call_message_chunk:", e);
+    }
+  }, [ChunkData?.tool_call_message_chunk]);
 
-  // Must be after hooks !!!
   if (!ChunkData && !Detail) return null;
+
+  const renderContent = (text: string) => {
+    try {
+      const parsed = JSON.parse(text);
+      if (typeof parsed === 'object' && parsed !== null) {
+        return <ExpandJson content={JSON.stringify(parsed, null, 2)} />;
+      }
+      return <ExpandText>{text}</ExpandText>;
+    } catch {
+      return <ExpandText>{text}</ExpandText>;
+    }
+  };
 
   return (
     <div className="space-y-2 mb-8px w-full">
       <button
         onClick={() => setIsThinkingExpanded((prev) => !prev)}
-        className="text-[#101010] dark:text-[#F5F5F5] cursor-pointer bg-transparent hover:bg-[#EDEDED] dark:hover:bg-[#3A3A3A] inline-flex items-center gap-2 px-2 py-2px rounded-12px transition-colors border border-solid border-[#F0F0F0] dark:border-[#303030]"
+        className="text-[12px] text-[#999] dark:text-[#666] cursor-pointer bg-transparent hover:bg-[#EDEDED] dark:hover:bg-[#3A3A3A] inline-flex items-center gap-2 px-2 py-2px rounded-12px transition-colors border border-solid border-[#F0F0F0] dark:border-[#303030]"
       >
         <>
           {loading ? (
-            <Loader className="w-14px h-14px animate-spin" />
+            <Loader className="w-14px h-14px animate-spin text-[#1784FC] shrink-0" />
           ) : (
-            <CheckIcon className="w-14px h-14px" />
+            <Hammer className="w-14px h-14px shrink-0" />
           )}
-          <span className={`${loading ? "italic" : ""}`}>
-            {t(`assistant.message.steps.${Detail?.type || ChunkData?.chunk_type}`)}
+          <span>
+            {t(
+              `assistant.message.steps.${ChunkData?.chunk_type || Detail.type}`,
+              {
+                count: Number(data.length || 0),
+              }
+            )}
           </span>
         </>
         {isThinkingExpanded ? (
-          <ChevronDown className="w-4 h-4" />
+          <ChevronDown className="w-14px h-14px" />
         ) : (
-          <ChevronRight className="w-4 h-4" />
+          <ChevronRight className="w-14px h-14px" />
         )}
       </button>
-      {isThinkingExpanded && (
-        <div className="ml-15px pl-6px pt-1 border-l-1 border-[#bbb] dark:border-[#333]">
-          <div className="text-[#8b8b8b] dark:text-[#a6a6a6] space-y-2">
-            <Markdown content={data || ""} />
-            {/* {data?.split("\n").map(
-              (paragraph, idx) =>
-                paragraph.trim() && (
-                  <p key={idx} className="text-sm">
-                    {paragraph}
-                  </p>
-                )
-            )} */}
+      {isThinkingExpanded && data.length > 0 && (
+        <div className="ml-8px pl-8px border-l-1 border-[#F0F0F0] dark:border-[#303030]">
+          <div className="space-y-8px">
+            {
+              data.map((item, index) => (
+                <div key={index} className="text-[#333] dark:text-[#E5E7EB] text-12px rounded-8px border border-[#F0F0F0] dark:border-[#303030] p-12px">
+                  <div className="mb-12px font-semibold">{item.name}</div>
+                  <div className="mb-4px text-[#999] dark:text-[#666]">{t('labels.arguments')}</div>
+                  <div className="pb-8px mb-8px border-b border-[#F0F0F0] dark:border-[#303030]">
+                    {renderContent(item.arguments)}
+                  </div>
+                  <div className="mb-4px text-[#999] dark:text-[#666]">{t('labels.result')}</div>
+                  <div className="">
+                    {renderContent(item.result)}
+                  </div>
+                </div>
+              ))
+            }
           </div>
         </div>
       )}

@@ -253,7 +253,7 @@ const DocDetail: FC<DocDetailProps> = (props) => {
               body: "p-24px!",
               header: "px-16px! py-9px!",
               title: "flex items-center",
-              icon: "text-[#999]! [&_.ant-collapse-arrow]:text-16px!"
+              icon: "text-[#999]! dark:text-[#666]! [&_.ant-collapse-arrow]:text-16px!"
             }}
             items={collapseItems}
             expandIconPlacement="end"

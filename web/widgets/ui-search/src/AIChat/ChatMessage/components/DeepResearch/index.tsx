@@ -538,7 +538,7 @@ export const DeepResearch = ({
           </div>
           {
             isCompleted && (
-              <div className="flex items-center gap-2 mb-4 text-[#999] leading-20px">
+              <div className="flex items-center gap-2 mb-4 text-[#999] dark:text-[#666] leading-20px">
                 {t("deepResearch.status.reportDescription")}
               </div>
             )
@@ -558,7 +558,7 @@ export const DeepResearch = ({
                 </span>
                 {
                   !isCompleted && (deepResearchQuery || question) && (
-                    <span className="text-[#999] dark:text-[#A6A6A6] truncate ml-1">
+                    <span className="text-[#999] dark:text-[#666] truncate ml-1">
                       ｜ {deepResearchQuery || question}
                     </span>
                   )
@@ -612,7 +612,7 @@ export const DeepResearch = ({
             </div>
             <div className="flex items-center justify-center">
               {isCancelled ? (
-                <Ban className="h-4 w-4 text-[#999]" />
+                <Ban className="h-4 w-4 text-[#999] dark:text-[#666]" />
               ) : (isError || isTimeout) ? (
                 <CloseIcon className="h-4 w-4 text-[#F04444]" />
               ) : isCompleted && normalizedProgress >= 1 ? (

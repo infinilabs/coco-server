@@ -68,7 +68,7 @@ export const ResultHeader: FC<ResultHeaderProps> = (props) => {
   const RightToggleIcon = showRightToggle && !rightDrawerOpen ? PanelLeftOpen : PanelRightOpen;
 
   return (
-    <div className="flex gap-8px items-center w-full text-[#999]">
+    <div className="flex gap-8px items-center w-full text-[#999] dark:text-[#666]">
       {
         hasAggregations && (
           <LeftToggleIcon className="text-[#666] dark:text-white/80 w-16px h-16px cursor-pointer" onClick={handleLeftToggle} />

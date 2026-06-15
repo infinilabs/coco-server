@@ -40,7 +40,7 @@ export const ResearchReportContent = ({
         <div className="mb-2 text-base font-medium text-[#333333] dark:text-[#E5E7EB]">
           {t("deepResearch.report.generatingTitle")}
         </div>
-        <div className="text-sm text-[#999999] dark:text-[#A6A6A6] max-w-[520px] leading-relaxed">
+        <div className="text-sm text-[#999] dark:text-[#666] max-w-[520px] leading-relaxed">
           {t("deepResearch.report.generatingDescription")}
         </div>
       </div>

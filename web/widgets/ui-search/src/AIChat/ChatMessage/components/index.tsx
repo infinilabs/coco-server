@@ -474,7 +474,7 @@ const InnerChatMessage = memo(
 
           {
             isCancelled && (
-              <div className="mt-16px text-14px leading-20px text-[#999]">
+              <div className="mt-16px text-14px leading-20px text-[#999] dark:text-[#666]">
                 {isDeepResearching ? t("deepResearch.status.cancelled") : t("labels.cancelled")}
               </div>
             )
