@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import cloneDeep from "lodash/cloneDeep";
 
 import FilterDefaultSvg from "../icons/filter-default.svg"
@@ -34,6 +34,10 @@ export function Aggregations(props: AggregationsProps) {
   const { config = {}, aggregations = [], filter = {}, onSearch } = props;
 
   const [currentFilters, setCurrentFilters] = useState<Record<string, any>>(filter);
+
+  useEffect(() => {
+    setCurrentFilters(filter);
+  }, [JSON.stringify(filter)]);
 
   const onChange = (value: any, aggregation: Aggregation) => {
     const newFilters = cloneDeep(currentFilters);

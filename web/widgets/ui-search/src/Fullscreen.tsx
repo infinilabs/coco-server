@@ -105,6 +105,7 @@ const Fullscreen = (props: FullscreenProps) => {
     }
     setQueryParams?.({
       ...queryParams,
+      ...(shouldAgg ? { aggfilter: {} } : {}),
       t: new Date().valueOf()
     });
   };
@@ -145,84 +146,116 @@ const Fullscreen = (props: FullscreenProps) => {
       ...filter,
       'metadata.content_category': queryParams['metadata.content_category'] && queryParams['metadata.content_category'] !== 'all' ? [queryParams['metadata.content_category']] : undefined,
     }
-    const newFilter = { ...filterWithoutAgg };
-    Object.keys(aggfilter).forEach(key => {
-      if (newFilter[key] !== undefined && aggfilter[key] !== undefined) {
-        const filterVal = Array.isArray(newFilter[key]) ? newFilter[key] : [newFilter[key]];
-        const aggVal = Array.isArray(aggfilter[key]) ? aggfilter[key] : [aggfilter[key]];
-        newFilter[key] = [...new Set([...filterVal, ...aggVal])];
-      } else if (aggfilter[key] !== undefined) {
-        newFilter[key] = aggfilter[key];
-      }
-    });
-    onSearch?.(
-      {
-        ...rest,
-        filter: newFilter,
-        search_type: queryParams?.search_type || ACTION_TYPE_SEARCH_KEYWORD,
-        from: isScroll ? scrollRef.current : queryParams.from,
-        'metadata.content_category': undefined
-      },
-      (res: any) => {
-        loadLock.current = false;
-        setLoading(false);
 
-        let rs: any;
+    const doSearch = (validatedAggfilter: Record<string, any>) => {
+      const newFilter = { ...filterWithoutAgg };
+      Object.keys(validatedAggfilter).forEach(key => {
+        if (newFilter[key] !== undefined && validatedAggfilter[key] !== undefined) {
+          const filterVal = Array.isArray(newFilter[key]) ? newFilter[key] : [newFilter[key]];
+          const aggVal = Array.isArray(validatedAggfilter[key]) ? validatedAggfilter[key] : [validatedAggfilter[key]];
+          newFilter[key] = [...new Set([...filterVal, ...aggVal])];
+        } else if (validatedAggfilter[key] !== undefined) {
+          newFilter[key] = validatedAggfilter[key];
+        }
+      });
+      onSearch?.(
+        {
+          ...rest,
+          filter: newFilter,
+          search_type: queryParams?.search_type || ACTION_TYPE_SEARCH_KEYWORD,
+          from: isScroll ? scrollRef.current : queryParams.from,
+          'metadata.content_category': undefined
+        },
+        (res: any) => {
+          loadLock.current = false;
+          setLoading(false);
+
+          let rs: any;
+          if (res && !res.error) {
+            res = normalizeCoverIconUrl(res, apiConfig?.BaseUrl);
+            rs = formatESResult(res);
+            setResult(os => ({
+              ...rs,
+              aggregations: res?.aggregations ? rs.aggregations : os.aggregations
+            }));
+
+            const newData = isScroll ? [...data, ...(rs.hits?.hits || [])] : rs.hits?.hits || [];
+            setData(newData);
+            setHasMore(newData.length < (rs.hits.total || 0));
+            if (!isScroll) isHomeSearchRef.current = false;
+          } else {
+            if (!isScroll) {
+              setResult(formatESResult());
+              setData([]);
+            }
+            setHasMore(false);
+            isHomeSearchRef.current = false;
+          }
+
+          if (shouldAskRef.current) {
+            shouldAskRef.current = false;
+            setAskBody({
+              message: JSON.stringify({
+                query: queryParams.query,
+                result: rs?.hits
+              }),
+              t: new Date().valueOf()
+            });
+          }
+        },
+        (loadingState: boolean) => {
+          setLoading(loadingState);
+        }
+      );
+    };
+
+    if (onAggregation && shouldAggRef.current) {
+      shouldAggRef.current = false;
+      // Fetch aggregations first, validate aggfilter, then search
+      onAggregation({
+        query: queryParams.query,
+        search_type: queryParams?.search_type || ACTION_TYPE_SEARCH_KEYWORD,
+        filter: filterWithoutAgg
+      }, (res: any) => {
+        let validatedAggfilter: Record<string, any> = {};
         if (res && !res.error) {
-          res = normalizeCoverIconUrl(res, apiConfig?.BaseUrl);
-          rs = formatESResult(res);
+          const rs = formatESResult(res);
           setResult(os => ({
-            ...rs,
+            ...os,
             aggregations: res?.aggregations ? rs.aggregations : os.aggregations
           }));
-
-          const newData = isScroll ? [...data, ...(rs.hits?.hits || [])] : rs.hits?.hits || [];
-          setData(newData);
-          setHasMore(newData.length < (rs.hits.total || 0));
-          if (!isScroll) isHomeSearchRef.current = false;
-        } else {
-          if (!isScroll) {
-            setResult(formatESResult());
-            setData([]);
-          }
-          setHasMore(false);
-          isHomeSearchRef.current = false;
-        }
-
-        if (onAggregation && shouldAggRef.current) {
-          setLoading(true);
-          onAggregation({
-            query: queryParams.query,
-            search_type: queryParams?.search_type || ACTION_TYPE_SEARCH_KEYWORD,
-            filter: filterWithoutAgg
-          }, (res: any) => {
-            shouldAskRef.current = false
-            if (res && !res.error) {
-              rs = formatESResult(res);
-              setResult(os => ({
-                ...os,
-                aggregations: res?.aggregations ? rs.aggregations : os.aggregations
-              }));
+          // Validate aggfilter values against actual aggregation results
+          if (!isEmpty(aggfilter)) {
+            const aggKeys = new Map<string, Set<string>>();
+            (rs.aggregations || []).forEach((agg: any) => {
+              const values = new Set<string>();
+              (agg.list || []).forEach((item: any) => values.add(item.key));
+              aggKeys.set(agg.key, values);
+            });
+            Object.keys(aggfilter).forEach(key => {
+              const validValues = aggKeys.get(key);
+              if (validValues) {
+                const vals = Array.isArray(aggfilter[key]) ? aggfilter[key] : [aggfilter[key]];
+                const filtered = vals.filter((v: string) => validValues.has(v));
+                if (filtered.length > 0) {
+                  validatedAggfilter[key] = filtered;
+                }
+              }
+            });
+            // If aggfilter changed after validation, update URL and re-trigger
+            if (JSON.stringify(validatedAggfilter) !== JSON.stringify(aggfilter)) {
+              setQueryParams?.({ ...queryParams, aggfilter: validatedAggfilter, t: new Date().valueOf() });
+              setLoading(false);
+              return;
             }
-            setLoading(false);
-          })
+          }
         }
-
-        if (shouldAskRef.current) {
-          shouldAskRef.current = false;
-          setAskBody({
-            message: JSON.stringify({
-              query: queryParams.query,
-              result: rs?.hits
-            }),
-            t: new Date().valueOf()
-          });
-        }
-      },
-      (loadingState: boolean) => {
-        setLoading(loadingState);
-      }
-    );
+        doSearch(validatedAggfilter);
+      });
+    } else {
+      // No agg needed, search directly with aggfilter as-is
+      doSearch(aggfilter);
+    }
   }, [JSON.stringify(queryParams)]);
 
   useEffect(() => {
