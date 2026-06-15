@@ -10,48 +10,35 @@ import (
 	"infini.sh/framework/core/util"
 )
 
-// ParseAndGetIcon does the following processing to icon:
-//
-//  1. Convert it to a relative URL if it is a key. Since icon could be either an
-//     icon key or a absolute URL, after this step, it is guaranteed to be a URL.
-//  2. If appCfg.ServerInfo.EncodeIconToBase64 is true, request the URL to fetch
-//     the icon bytes, then encode them using base64, and return.
 func ParseAndGetIcon(connector *core.Connector, icon string) string {
 	appCfg := AppConfig()
 
-	// The returned icno could be either relative or absolute
-	icon = iconKeyToRelativeUrl(connector, icon)
-
+	icon = internalGetIcon(&appCfg, connector, icon)
 	if icon != "" && appCfg.ServerInfo.EncodeIconToBase64 {
-		// Convert it to the absoluteUrl URL if needed.
-		absoluteUrl := AutoGetFullIconURL(&appCfg, icon)
-		encoded := ConvertIconToBase64(&appCfg, absoluteUrl)
-		if util.PrefixStr(encoded, "data:") {
-			icon = encoded
-		}
+		icon = ConvertIconToBase64(&appCfg, icon)
 	}
 	return icon
 }
 
-// If icon is an icon key (e.g., folder), convert it to a relative URL.
-func iconKeyToRelativeUrl(connector *core.Connector, icon string) string {
+func internalGetIcon(appCfg *core.Config, connector *core.Connector, icon string) string {
 	link, ok := connector.Assets.Icons[icon]
 	if ok {
-		return link
+		return AutoGetFullIconURL(appCfg, link)
+	} else if appCfg.ServerInfo.Endpoint != "" {
+		return AutoGetFullIconURL(appCfg, icon)
 	}
 	return icon
 }
 
-// Concatenate app baseEndpoint and iconUrl to generate an absolute URL.
-func AutoGetFullIconURL(appCfg *core.Config, iconUrl string) string {
+func AutoGetFullIconURL(appCfg *core.Config, icon string) string {
 	baseEndpoint := appCfg.ServerInfo.Endpoint
-	if util.PrefixStr(iconUrl, "/") && baseEndpoint != "" {
-		link, err := url.JoinPath(baseEndpoint, iconUrl)
+	if util.PrefixStr(icon, "/") && baseEndpoint != "" {
+		link, err := url.JoinPath(baseEndpoint, icon)
 		if err == nil && link != "" {
 			return link
 		}
 	}
-	return iconUrl
+	return icon
 }
 
 func ConvertIconToBase64(appCfg *core.Config, icon string) string {
