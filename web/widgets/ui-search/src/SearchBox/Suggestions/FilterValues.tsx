@@ -11,6 +11,7 @@ interface FilterValuesProps {
     onItemClick?: (item: any) => void;
     language?: string;
     resetKey?: string;
+    loadNext?: () => void;
 }
 
 const FilterValues: FC<FilterValuesProps> = (props) => {

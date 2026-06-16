@@ -245,6 +245,8 @@ export default function useSearchBox({
       if (!f.field?.support_multi_select && f.value.length > 0) {
         setTimeout(() => {
           setFilterState({ type: 'none', index: -1 });
+          setMainInputActive(true);
+          if (expandedInputRef.current) expandedInputRef.current.focus();
           setSuggestions({});
         }, 100);
       }

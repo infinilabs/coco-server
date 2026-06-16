@@ -92,6 +92,7 @@ const Suggestions: FC<SuggestionsProps> = ({
           onItemClick={handleSuggestionItemClick(handleFilterValueToggle)}
           onComplete={handleFilterComplete}
           language={language}
+          loadNext={onLoadNext}
           resetKey={resetKey}
         />
       );
