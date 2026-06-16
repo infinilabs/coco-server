@@ -14,6 +14,13 @@ A configured embedding model provider is required. Set `model_provider` and
 `model` in the processor config, or configure a default embedding model in the
 application settings.
 
+The processor always produces vectors with a fixed dimension of `1024`, which
+is the only dimension supported by Coco semantic search. For OpenAI-compatible
+providers the processor requests `1024` dimensions from the API automatically.
+For other providers, such as Ollama, the configured model itself must output
+`1024`-dimensional vectors; otherwise the document is passed through without
+embeddings and its chunks will not appear in semantic search results.
+
 ### Configuration
 
 | Parameter | Type | Required | Default | Description |
@@ -22,7 +29,6 @@ application settings.
 | `output_queue` | object | No | `null` | Queue to push processed documents to |
 | `model_provider` | string | No | *(app default)* | Embedding model provider ID |
 | `model` | string | No | *(app default)* | Embedding model name |
-| `embedding_dimension` | int | **Yes** | — | Vector dimension; must match the model's output dimension |
 
 ### Example
 
@@ -30,7 +36,6 @@ application settings.
 - document_embedding:
     model_provider: openai
     model: text-embedding-3-small
-    embedding_dimension: 1536
     output_queue:
       name: "documents_embedded"
 ```

@@ -7,6 +7,7 @@ package document
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	log "github.com/cihub/seelog"
@@ -19,6 +20,13 @@ import (
 )
 
 var sharingService = share.NewSharingService()
+
+// helper function to build the Elasticsearch field path for the document-level
+// embedding used by semantic search. It must stay in sync with the
+// RequiredEmbeddingDimension constant.
+func documentEmbeddingField() string {
+	return "ai_insights.embedding.embedding" + strconv.Itoa(core.RequiredEmbeddingDimension)
+}
 
 //func QueryDocuments(ctx1 context.Context, builder *orm.QueryBuilder, query string, datasource, integrationID, category, subcategory, richCategory string, outputDocs *[]core.Document) (*orm.SimpleResult, error) {
 //	filters := BuildFilters(category, subcategory, richCategory)
@@ -45,13 +53,15 @@ func QueryDocuments(ctx1 context.Context, builder *orm.QueryBuilder, query strin
 	// Let framework skip the buildFuzzinessQuery() call as we did it here.
 	builder.SkipFuzziness()
 
+	semanticEmbeddingField := documentEmbeddingField()
+
 	/*
 		Search type support:
 	*/
 	// Modify the query based on search_type
 	switch searchType {
 	case "semantic":
-		semanticClause := orm.SemanticQuery("ai_insights.embedding.embedding1024", query, 0, "")
+		semanticClause := orm.SemanticQuery(semanticEmbeddingField, query, 0, "")
 		builder.Must(semanticClause)
 	case "hybrid":
 		textClauses, err := orm.BuildFuzzinessQueryClauses(query, fuzziness, defaultFields)
@@ -66,7 +76,7 @@ func QueryDocuments(ctx1 context.Context, builder *orm.QueryBuilder, query strin
 		}
 
 		// Semantic clause on ai_insights.embedding
-		semanticClause := orm.SemanticQuery("ai_insights.embedding.embedding1024", query, 0, "")
+		semanticClause := orm.SemanticQuery(semanticEmbeddingField, query, 0, "")
 
 		// Combine with HybridQuery
 		hybridClause := orm.HybridQuery(textClause, semanticClause)
@@ -145,7 +155,7 @@ func QueryDocuments(ctx1 context.Context, builder *orm.QueryBuilder, query strin
 	filters = append(filters, orm.BoolQuery(orm.Should, orm.TermQuery("disabled", false), orm.MustNotQuery(orm.ExistsQuery("disabled"))).Parameter("minimum_should_match", 1))
 
 	if searchType == "semantic" || searchType == "hybrid" {
-		filters = append(filters, orm.ExistsQuery("ai_insights.embedding.embedding1024"))
+		filters = append(filters, orm.ExistsQuery(semanticEmbeddingField))
 	}
 
 	builder.Filter(filters...)
