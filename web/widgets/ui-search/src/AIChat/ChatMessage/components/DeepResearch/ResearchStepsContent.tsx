@@ -167,7 +167,7 @@ export const ResearchStepsContent = ({
   const report = reportStatus ?? "pending";
 
   return (
-    <div className="space-y-6 pr-6">
+    <div className="space-y-6 pr-6 px-24px pb-24px">
       <div className="text-sm text-[#333] dark:text-[#E5E7EB]">
         {t("deepResearch.steps.intro")}
       </div>

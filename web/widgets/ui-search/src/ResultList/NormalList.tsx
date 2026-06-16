@@ -15,6 +15,7 @@ interface NormalListProps {
   onLoadMore?: () => void;
   setDetailCollapse?: (v: boolean) => void;
   apiConfig?: Record<string, any>;
+  theme?: "light" | "dark" | "auto";
   [key: string]: any;
 }
 
@@ -30,7 +31,8 @@ export function NormalList(props: NormalListProps) {
     hasMore,
     onLoadMore,
     setDetailCollapse,
-    apiConfig
+    apiConfig,
+    theme,
   } = props;
 
   const [open, setOpen] = useState(false);
@@ -142,6 +144,7 @@ export function NormalList(props: NormalListProps) {
         data={record || {}}
         isMobile={isMobile}
         apiConfig={apiConfig}
+        theme={theme}
       />
     </>
   );

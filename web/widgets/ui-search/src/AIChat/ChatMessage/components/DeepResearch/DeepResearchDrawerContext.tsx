@@ -41,7 +41,7 @@ const DeepResearchDrawerContext = createContext<DeepResearchDrawerContextValue>(
 
 export const useDeepResearchDrawer = () => useContext(DeepResearchDrawerContext);
 
-export const DeepResearchDrawerProvider: FC<{ children: ReactNode; isMobile?: boolean; chatId?: string }> = ({ children, isMobile, chatId }) => {
+export const DeepResearchDrawerProvider: FC<{ children: ReactNode; isMobile?: boolean; chatId?: string; theme?: string }> = ({ children, isMobile, chatId, theme }) => {
   const [open, setOpen] = useState(false);
   const [drawerData, setDrawerData] = useState<DeepResearchDrawerData>({});
   const [revision, setRevision] = useState(0);
@@ -76,6 +76,7 @@ export const DeepResearchDrawerProvider: FC<{ children: ReactNode; isMobile?: bo
         onClose={closeDrawer}
         revision={revision}
         isMobile={isMobile}
+        theme={theme}
         {...drawerData}
       />
     </DeepResearchDrawerContext.Provider>

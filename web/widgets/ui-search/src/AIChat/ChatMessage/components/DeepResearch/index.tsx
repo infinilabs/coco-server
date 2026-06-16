@@ -499,7 +499,6 @@ export const DeepResearch = ({
             searchHits,
             formatUrl,
             requestHeaders,
-            theme,
             isEnd,
             t,
           });
@@ -590,7 +589,6 @@ export const DeepResearch = ({
                       searchHits,
                       formatUrl,
                       requestHeaders,
-                      theme,
                       isEnd,
                       t,
                     });

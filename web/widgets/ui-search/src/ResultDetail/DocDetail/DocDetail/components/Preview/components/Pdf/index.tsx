@@ -1,5 +1,5 @@
 import { Document, Page, pdfjs } from "react-pdf";
-import { useState, useEffect, type FC } from "react";
+import { useState, useEffect, useRef, type FC } from "react";
 import { Pagination } from "antd";
 import { DocDetailProps } from "@/ResultDetail/DocDetail/DocDetail";
 
@@ -8,80 +8,122 @@ pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.vers
 interface PdfProps extends DocDetailProps {
   url: string;
   onLoadingChange?: (loading: boolean) => void;
+  onLoadError?: (error: any) => void;
+  className?: string;
 }
 
 const Pdf: FC<PdfProps> = (props) => {
-  const { url, requestHeaders, onLoadingChange } = props;
+  const { url, requestHeaders, onLoadingChange, onLoadError, className = '' } = props;
 
   const [numPages, setNumPages] = useState(0);
-  const [pageNumber, setPageNumber] = useState(1);
-  
+  const [currentPage, setCurrentPage] = useState(1);
   const [pdfUrl, setPdfUrl] = useState<string>("");
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const pageRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 
   useEffect(() => {
     let isCurrent = true;
     let generatedBlobUrl = "";
 
-    if (requestHeaders && url) {
+    if (url) {
       onLoadingChange?.(true);
-      
+
       fetch(url, { headers: requestHeaders })
-        .then((res) => res.blob()) 
+        .then((res) => {
+          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+          return res.blob();
+        })
         .then((blob) => {
           if (!isCurrent) return;
-          
           generatedBlobUrl = URL.createObjectURL(blob);
           setPdfUrl(generatedBlobUrl);
         })
         .catch((err) => {
+          onLoadingChange?.(false);
+          onLoadError?.(err);
+          setPdfUrl("");
         })
-        .finally(() => {
-          if (isCurrent) onLoadingChange?.(false);
-        });
-    } else {
-      setPdfUrl(url);
     }
 
     return () => {
       isCurrent = false;
       if (generatedBlobUrl) {
-        URL.revokeObjectURL(generatedBlobUrl); 
+        URL.revokeObjectURL(generatedBlobUrl);
       }
     };
-  }, [url, requestHeaders]);
+  }, [url, JSON.stringify(requestHeaders)]);
 
   useEffect(() => {
-    setPageNumber(1);
+    setCurrentPage(1);
+    pageRefs.current.clear();
   }, [pdfUrl]);
 
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    const pageElement = pageRefs.current.get(page);
+    if (pageElement) {
+      pageElement.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex justify-end">
+    <div className={`flex flex-col gap-2 h-full ${className}`}>
+      <div className="flex items-center justify-end px-24px">
         <Pagination
-          size="small"
+          simple
           pageSize={1}
           total={numPages}
-          current={pageNumber}
+          current={currentPage}
           showSizeChanger={false}
-          onChange={(page) => setPageNumber(page)}
+          onChange={handlePageChange}
+          classNames={{
+            root: "[&_.ant-pagination-prev]:!hidden [&_.ant-pagination-next]:!hidden",
+          }}
         />
       </div>
 
-      <div className="border border-[#F0F0F0] dark:border-[#303030] rounded-lg overflow-hidden">
+      <div
+        ref={containerRef}
+        className="pt-8px pb-24px px-24px overflow-y-auto w-full h-full flex flex-col gap-4 items-center rounded-lg"
+      >
         {pdfUrl && (
           <Document
             file={pdfUrl}
             onLoadSuccess={(pdf) => {
               setNumPages(pdf.numPages);
+              onLoadingChange?.(false);
             }}
-            onLoadError={(err) => console.error("PDF load error:", err)}
+            onLoadError={(err) => {
+              onLoadingChange?.(false);
+              onLoadError?.(err);
+              setPdfUrl("");
+            }}
+            className="flex flex-col gap-4 w-full items-center"
           >
-            <Page
-              className="children:(w-full! h-unset!)"
-              pageNumber={pageNumber}
-              renderTextLayer={false}
-              renderAnnotationLayer={false}
-            />
+            {Array.from(new Array(numPages), (_, index) => {
+              const pageNum = index + 1;
+              return (
+                <div
+                  key={pageNum}
+                  ref={(el) => {
+                    if (el) {
+                      pageRefs.current.set(pageNum, el);
+                    } else {
+                      pageRefs.current.delete(pageNum);
+                    }
+                  }}
+                  className="shadow-[0_0_12px_rgba(0,0,0,0.1)] rounded w-full max-w-full"
+                >
+                  <Page
+                    className="children:(w-full! h-unset!)"
+                    pageNumber={pageNum}
+                    renderTextLayer={false}
+                    renderAnnotationLayer={false}
+                  />
+                </div>
+              );
+            })}
           </Document>
         )}
       </div>

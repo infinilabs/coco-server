@@ -81,10 +81,11 @@ export interface DocDetailProps extends HTMLAttributes<HTMLDivElement> {
   requestHeaders?: Record<string, string>;
   actionButtons?: ReactNode[];
   mode?: "embedded" | "standalone";
+  theme?: "light" | "dark" | "auto";
 }
 
 const DocDetail: FC<DocDetailProps> = (props) => {
-  const { data, i18n, actionButtons, requestHeaders, className, mode, ...rest } =
+  const { data, i18n, actionButtons, requestHeaders, className, mode, theme, ...rest } =
     props;
 
   const [expandMore, setExpandMore] = useState(false);

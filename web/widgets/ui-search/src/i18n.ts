@@ -168,6 +168,8 @@ const resources = {
         },
         report: {
           generatingTitle: "Generating research report",
+          loadingTitle: "Loading research report...",
+          loadFailed: "Failed to load research report.",
           generatingDescription:
             "Running a complete research workflow based on your question and compiling a structured report. It will appear here once ready.",
           defaultTitle: "Research Report",
@@ -391,6 +393,8 @@ const resources = {
         },
         report: {
           generatingTitle: "研究报告生成中",
+          loadingTitle: "研究报告加载中...",
+          loadFailed: "研究报告加载失败。",
           generatingDescription:
             "我正在根据你的问题执行完整的研究流程，整理结构化的研究报告。研究完成后，报告会自动展示在这里。",
           defaultTitle: "研究报告",

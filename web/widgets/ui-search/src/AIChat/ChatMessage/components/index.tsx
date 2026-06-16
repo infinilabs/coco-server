@@ -490,10 +490,8 @@ const InnerChatMessage = memo(
           {
             isTimeout && (
               <ErrorMessage
-                title={endChunk?.payload?.type ? t(`labels.timeout_${endChunk.payload.type}`) : (
-                  isDeepResearching ? t("deepResearch.status.timeout") : t("labels.timeout")
-                )}
-                error={endChunk?.payload?.error}
+                title={isDeepResearching ? t("deepResearch.status.timeout") : t("labels.timeout")}
+                error={endChunk?.payload?.type ? t(`labels.timeout_${endChunk.payload.type}`) : undefined}
               />
             )
           }

@@ -10,18 +10,18 @@ import Video from "./components/Video";
 import { DocDetailProps, MetadataContentType } from "../..";
 
 const Preview: FC<DocDetailProps> = (props) => {
-  const { data } = props;
+  const { data, theme } = props;
   const [loading, setLoading] = useState(false);
 
   const renderFile = (type: MetadataContentType, url: string) => {
     if (type === "markdown") {
       return (
-        <Markdown url={url} requestHeaders={props.requestHeaders} onLoadingChange={setLoading} />
+        <Markdown url={url} requestHeaders={props.requestHeaders} onLoadingChange={setLoading} dark={theme === "dark"} />
       );
     }
 
     if (type === "pdf") {
-      return <Pdf url={url} {...props} onLoadingChange={setLoading} />;
+      return <Pdf url={url} {...props} onLoadingChange={setLoading} className="mx-[-24px]"/>;
     }
 
     if (type === "docx") {

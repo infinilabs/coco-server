@@ -15,6 +15,7 @@ interface ResultDetailProps {
     open?: boolean;
     onClose?: () => void;
     apiConfig?: Record<string, any>;
+    theme?: "light" | "dark" | "auto";
 }
 
 export const formatDate = (value: string | number) => {
@@ -42,7 +43,7 @@ export function DateTime(props: { value: string | number, showTooltip?: boolean 
 }
 
 export const ResultDetail: FC<ResultDetailProps> = (props) => {
-    const { getContainer, data = {}, isMobile, open, onClose, apiConfig } = props;
+    const { getContainer, data = {}, isMobile, open, onClose, apiConfig, theme } = props;
     const { t } = useTranslation();
 
     return (
@@ -62,6 +63,7 @@ export const ResultDetail: FC<ResultDetailProps> = (props) => {
             <X className="color-[#bbb] cursor-pointer absolute right-24px top-24px z-1" onClick={onClose} />
             <DocDetail 
                 mode="embedded"
+                theme={theme}
                 requestHeaders={apiConfig?.headers}
                 data={{
                     ...(data || {}),

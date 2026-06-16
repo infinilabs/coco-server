@@ -1,10 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { type TFunction } from "i18next";
 import Markdown from "@infinilabs/markdown";
-import { Spin } from "antd";
-
 import Pdf from "../../../../ResultDetail/DocDetail/DocDetail/components/Preview/components/Pdf";
+import HtmlDoc from "../../../../ResultDetail/DocDetail/DocDetail/components/Preview/components/HtmlDoc";
+import loadingSvg from "./loding.svg";
 
 export interface ResearchReportData {
   title?: string;
@@ -15,67 +15,82 @@ export interface ResearchReportData {
 }
 
 export interface ResearchReportContentProps {
-  content?: string;
   data?: ResearchReportData;
   formatUrl?: (data: any) => string;
   requestHeaders?: Record<string, string>;
   t?: TFunction;
+  theme?: string;
 }
 
 export const ResearchReportContent = ({
-  content,
   data,
   formatUrl,
   requestHeaders,
   t: tProp,
+  theme,
 }: ResearchReportContentProps) => {
   const { t: tOriginal } = useTranslation();
   const t = tProp || tOriginal;
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | undefined>();
+
+  useEffect(() => {
+    setError(undefined);
+  }, [data])
+
+  const onLoadingChange = (loading: boolean) => {
+    if (loading) {
+      setLoading(true);
+    } else {
+      setTimeout(() => {
+        setLoading(false);
+      }, 1000);
+    }
+  }
 
   const formatContent = useMemo(() => {
+    if (!data?.url) return null;
+    const finalUrl = formatUrl ? formatUrl({ url: data.url }) : data.url;
+
     if (data?.format === "html") {
-      return content ? (
-        <iframe
-          srcDoc={content}
-          className="w-full border-0 rounded-lg"
-          style={{ minHeight: 600 }}
-          sandbox="allow-same-origin"
-          title="research-report"
-        />
-      ) : (
-        <iframe
-          src={formatUrl ? formatUrl({ url: data.url }) : data.url}
-          className="w-full border-0 rounded-lg"
-          style={{ minHeight: 600 }}
-          sandbox="allow-same-origin allow-scripts"
-          title="research-report"
+      return (
+        <HtmlDoc 
+          data={{}}
+          url={finalUrl} 
+          requestHeaders={requestHeaders} 
+          onLoadingChange={onLoadingChange} 
+          onLoadError={(error) => {
+            setError(error);
+          }}
+          theme={(theme as any)}
         />
       )
     }
     if (data?.format === "markdown") {
-      return content ? (
-        <Markdown content={content} />
-      ) : (
-        <Markdown url={formatUrl ? formatUrl({ url: data.url }) : data.url} requestHeaders={requestHeaders} onLoadingChange={setLoading} />
+      return (
+        <Markdown url={finalUrl} requestHeaders={requestHeaders} onLoadingChange={onLoadingChange} dark={theme === "dark"} />
       );
     }
-    if (data?.format === "pdf" && data?.url) {
+    if (data?.format === "pdf") {
       return (
         <Pdf 
           data={{}}
-          url={formatUrl ? formatUrl({ url: data.url }) : data.url}
+          url={finalUrl}
           requestHeaders={requestHeaders}
-          onLoadingChange={setLoading}
+          onLoadingChange={onLoadingChange}
+          onLoadError={(error) => {
+            setError(error);
+          }}
         />
       )
     }
     return null;
-  }, [content, data, requestHeaders])
+  }, [data?.url, data?.format, requestHeaders, theme]);
 
-  if (!content && !data) {
+
+  if (!data?.url) {
     return (
-      <div className="px-6 max-w-[730px] h-full flex flex-col items-center justify-center text-center">
+      <div className="px-6 h-full flex flex-col items-center justify-center text-center">
         <div className="mb-2 text-base font-medium text-[#333333] dark:text-[#E5E7EB]">
           {t("deepResearch.report.generatingTitle")}
         </div>
@@ -86,41 +101,41 @@ export const ResearchReportContent = ({
     );
   }
 
-  console.log("report content data", data);
+  if (error && !loading) {
+    return (
+      <div className="px-6 h-full flex flex-col items-center justify-center text-center">
+        <div className="mb-2 text-base font-medium text-[#333333] dark:text-[#E5E7EB]">
+          {t("deepResearch.report.loadFailed")}
+        </div>
+        <div className="text-sm text-[#999] dark:text-[#666] max-w-[520px] leading-relaxed">
+          {error.toString()}
+        </div>
+      </div>
+    );
+  }
+
+  let classes = "px-24px pb-24px";
+
+  if (data?.format === "html") {
+    classes = "h-full";
+  } else if (data?.format === "pdf") {
+    classes = "overflow-hidden p-0";
+  }
 
   return (
-    <div className="">
-      {/* {data && (
-        <div className="mb-6 p-4 border border-gray-200 dark:border-gray-800 rounded-xl bg-gray-50 dark:bg-gray-900 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
-              <FileText className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="font-medium text-gray-900 dark:text-gray-100">
-                {data.title || t("deepResearch.report.defaultTitle")}
-              </div>
-              <div className="text-xs text-gray-500">
-                {data.created ? formatDate(data.created) : ""}
-              </div>
-            </div>
+    <div className={`w-full relative ${classes} ${loading ? "h-full" : ""}`}>
+      {loading && (
+        <div className="absolute inset-0 z-50 bg-white dark:bg-[#1f1f1f] flex flex-col items-center justify-center text-center">
+          <img className="mb-16px w-80px h-80px" src={loadingSvg}/>
+          <div className="text-sm text-[#999] dark:text-[#666] max-w-[520px] leading-relaxed">
+            {t("deepResearch.report.loadingTitle")}
           </div>
-          {data.url && (
-            <a
-              href={formatUrl ? formatUrl({ url: data.url }) : data.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-2 text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer"
-              title={t("deepResearch.button.view")}
-            >
-              <SquareArrowOutUpRight className="w-5 h-5" />
-            </a>
-          )}
         </div>
-      )} */}
-      <Spin spinning={loading}>
+      )}
+      
+      <div className={loading ? "invisible h-0 overflow-hidden" : "w-full h-full"}>
         {formatContent}
-      </Spin>
+      </div>
     </div>
   );
 };

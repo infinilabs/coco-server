@@ -6,7 +6,7 @@ import type { StepSearchHit } from "./ResearchStepsContent";
 
 interface ResearchSearchResultsContentProps {
   hits?: StepSearchHit[];
-  theme?: "light" | "dark";
+  theme?: string;
 }
 
 export const ResearchSearchResultsContent = ({
@@ -57,10 +57,10 @@ export const ResearchSearchResultsContent = ({
   }, [hits]);
 
   return (
-    <div className="">
+    <div className="pb-24px px-8px">
       <SearchResults
         section={records}
-        theme={theme || "light"}
+        theme={(theme as any)}
         hideHeader
         onRecordClick={(record) => {
           if (typeof record.url === "string") window.open(record.url, "_blank");
