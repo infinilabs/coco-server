@@ -1,15 +1,14 @@
 import { useRef, useEffect, useState, useCallback } from "react";
-import type { UIEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { type TFunction } from "i18next";
 import { ChatMessage, type ChatMessageRef } from "./ChatMessage/components";
+import type { IChatMessage } from "./ChatMessage/components";
 import { Post } from "./api/axiosRequest";
 
 import { Greetings } from "./Greetings";
-import { useChatScroll } from "./hooks/useChatScroll";
+import { VMsgList, useScrollManager, ScrollToBottomBtn } from "./VMsgList";
 import type { Chat, IChunkData } from "./types/chat";
 import { useConnectStore } from "./stores/connectStore";
-import ScrollToBottom from "./Common/ScrollToBottom";
 import { useChatStore, type Assistant } from "./stores/chatStore";
 import { SendMessageParams } from "./Chat";
 import { DeepResearchDrawerProvider } from "./ChatMessage/components/DeepResearch/DeepResearchDrawerContext";
@@ -162,15 +161,18 @@ export const ChatContent = ({
   const scrollRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const { scrollToBottom, resetUserScrolling } = useChatScroll(scrollRef);
+  // Strategy 3 & 4: Scroll manager with anchoring and bidirectional lock
+  const {
+    isAtBottom,
+    scrollToBottom,
+    resetScrollState,
+  } = useScrollManager(scrollRef);
 
-  const [isAtBottom, setIsAtBottom] = useState(true);
   const [prevChatId, setPrevChatId] = useState(activeChat?._id);
 
   if (activeChat?._id !== prevChatId) {
     setPrevChatId(activeChat?._id);
-    setIsAtBottom(true);
-    resetUserScrolling();
+    resetScrollState();
   }
 
   useEffect(() => {
@@ -179,22 +181,24 @@ export const ChatContent = ({
 
   useEffect(() => {
     scrollToBottom(true);
-  }, [activeChat?._id, activeChat?.messages?.length, scrollToBottom]);
+  }, [activeChat?._id, scrollToBottom]);
 
+  // When new messages arrive, only scroll if not manually scrolled away
   useEffect(() => {
-    return () => {
-      scrollToBottom.cancel();
-    };
-  }, [scrollToBottom]);
+    scrollToBottom(false);
+  }, [activeChat?.messages?.length, scrollToBottom]);
 
-  const handleScroll = (event: UIEvent<HTMLDivElement>) => {
-    const { scrollHeight, scrollTop, clientHeight } =
-      event.currentTarget as HTMLDivElement;
-
-    const isAtBottom = scrollHeight - scrollTop - clientHeight < 50;
-
-    setIsAtBottom(isAtBottom);
-  };
+  // When a new generation starts (curChatEnd: true → false), force scroll to bottom
+  // This covers both ChatInput send and resend/retry paths
+  const prevCurChatEndRef = useRef(curChatEnd);
+  useEffect(() => {
+    if (prevCurChatEndRef.current && !curChatEnd) {
+      // Generation just started
+      resetScrollState();
+      scrollToBottom(true);
+    }
+    prevCurChatEndRef.current = curChatEnd;
+  }, [curChatEnd, resetScrollState, scrollToBottom]);
 
   return (
     <DeepResearchDrawerProvider isMobile={isMobile} chatId={activeChat?._id}>
@@ -202,53 +206,66 @@ export const ChatContent = ({
       <div
         ref={scrollRef}
         className="flex-1 w-full overflow-x-hidden overflow-y-auto relative px-4"
-        onScroll={handleScroll}
+        style={{ overflowAnchor: "auto" }}
       >
         <div className="max-w-4xl mx-auto">
           {(!activeChat || activeChat?.messages?.length === 0) && (
             <Greetings t={t} />
           )}
 
-          {activeChat?.messages?.map((message) => {
-            const userMessage = message._source?.type !== "user" ? 
-              activeChat?.messages?.find((m) => m._id === message._source?.reply_to_message) 
-              : 
-              undefined;
+          {/* Node Consolidation: groups of off-screen messages
+              are collapsed into single spacer divs */}
+          <VMsgList
+            messages={activeChat?.messages || []}
+            scrollRoot={scrollRef.current}
+            renderMessage={(message) => {
+              const msg = message as unknown as IChatMessage;
+              const userMessage = msg._source?.type !== "user"
+                ? activeChat?.messages?.find(
+                    (m) => m._id === msg._source?.reply_to_message
+                  )
+                : undefined;
 
-            return (
-              <ChatMessage
-                key={message._id}
-                message={message}
-                replyMessage={userMessage}
-                isTyping={false}
-                onResend={handleSendMessage}
-                onCancel={onCancel}
+              return (
+                <ChatMessage
+                  message={msg}
+                  replyMessage={userMessage}
+                  isTyping={false}
+                  onResend={handleSendMessage}
+                  onCancel={onCancel}
+                  formatUrl={formatUrl}
+                  requestHeaders={requestHeaders}
+                  assistantList={assistantList}
+                  fetchAttachments={fetchAttachments}
+                  theme={theme as any}
+                  t={t}
+                />
+              );
+            }}
+          />
+
+          {/* Strategy 1: Active streaming message - isolated from history, 
+              rendered as plain DOM to avoid virtual list computation overhead */}
+          {!curChatEnd && (
+            <div data-message-id="current" style={{ overflowAnchor: "none" }}>
+              <ActiveChatMessage
+                key={activeMessageGen}
+                activeMessageRef={activeMessageRef}
+                activeChat={activeChat}
+                curChatEnd={curChatEnd}
+                Question={Question}
+                handleSendMessage={handleSendMessage}
                 formatUrl={formatUrl}
                 requestHeaders={requestHeaders}
                 assistantList={assistantList}
-                fetchAttachments={fetchAttachments}
-                theme={theme as any}
+                currentAssistant={currentAssistant}
+                theme={theme}
                 t={t}
+                onCancel={onCancel}
               />
-            )
-          })}
-
-          {!curChatEnd && (
-            <ActiveChatMessage
-              key={activeMessageGen}
-              activeMessageRef={activeMessageRef}
-              activeChat={activeChat}
-              curChatEnd={curChatEnd}
-              Question={Question}
-              handleSendMessage={handleSendMessage}
-              formatUrl={formatUrl}
-              requestHeaders={requestHeaders}
-              assistantList={assistantList}
-              currentAssistant={currentAssistant}
-              theme={theme}
-              t={t}
-              onCancel={onCancel}
-            />
+              {/* Bottom spacer: absorbs height jumps from streaming text reflow */}
+              <div style={{ height: 80, flexShrink: 0 }} aria-hidden />
+            </div>
           )}
 
           {timedoutShow ? (
@@ -273,7 +290,11 @@ export const ChatContent = ({
 
       </div>
 
-      <ScrollToBottom scrollRef={scrollRef} isAtBottom={isAtBottom} />
+      <ScrollToBottomBtn
+        scrollRef={scrollRef}
+        isAtBottom={isAtBottom}
+        onScrollToBottom={() => scrollToBottom(true)}
+      />
     </div>
     </DeepResearchDrawerProvider>
   );
