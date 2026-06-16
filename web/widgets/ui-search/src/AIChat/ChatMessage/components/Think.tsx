@@ -62,11 +62,11 @@ export const Think = ({ Detail, ChunkData, loading, t: tProp }: ThinkProps) => {
       </button>
       {isThinkingExpanded && data && (
         <div className="ml-8px pl-8px border-l-1 border-[#F0F0F0] dark:border-[#303030]">
-          <div className="text-[#8b8b8b] dark:text-[#a6a6a6] space-y-2">
+          <div className="space-y-2">
             {data?.split("\n").map(
               (paragraph, idx) =>
                 paragraph.trim() && (
-                  <p key={idx} className="text-sm">
+                  <p key={idx} className="text-xs text-[#999] dark:text-[#666]">
                     {paragraph}
                   </p>
                 )

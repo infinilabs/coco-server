@@ -69,7 +69,7 @@ const UserAvatar = memo((props: { className?: string; showHome?: boolean; showNa
     {
       key: 'password',
       label: (
-        <div className="flex-center gap-8px">
+        <div className="flex justify-left items-center gap-8px">
           <SvgIcon
             className="text-icon"
             icon="mdi:password"
@@ -84,7 +84,7 @@ const UserAvatar = memo((props: { className?: string; showHome?: boolean; showNa
     {
       key: 'logout',
       label: (
-        <div className="flex-center gap-8px">
+        <div className="flex justify-left items-center gap-8px">
           <SvgIcon
             className="text-icon"
             icon="ph:sign-out"
@@ -103,7 +103,7 @@ const UserAvatar = memo((props: { className?: string; showHome?: boolean; showNa
     items.unshift({
       key: 'home',
       label: (
-        <div className="flex-center gap-8px">
+        <div className="flex justify-left items-center gap-8px">
           <SvgIcon
             className="text-icon"
             icon="mdi:settings"

@@ -108,7 +108,7 @@ export const PickSource = ({
       </button>
       {isThinkingExpanded && data?.length > 0 && (
         <div className="ml-8px pl-8px border-l-1 border-[#F0F0F0] dark:border-[#303030]">
-          <div className="text-[#8b8b8b] dark:text-[#a6a6a6] space-y-2">
+          <div className="space-y-2">
             <div className="mb-10px space-y-10px text-xs">
               {data?.map((item) => (
                 <div
@@ -116,7 +116,7 @@ export const PickSource = ({
                   className="p-3 rounded-8px border border-[#F0F0F0] dark:border-[#303030] bg-white dark:bg-[#1E1E1E] hover:bg-gray-50 dark:hover:bg-[#2C2C2C] transition-colors"
                 >
                   <div className="flex flex-col gap-2">
-                    <div className="text-sm font-medium text-[#333] dark:text-[#D8D8D8]">
+                    <div className="text-xs font-medium text-[#333] dark:text-[#D8D8D8]">
                       {item.title}
                     </div>
                     <div className="text-xs text-[#999] dark:text-[#666] line-clamp-2">

@@ -103,7 +103,7 @@ export const QueryIntent = ({
       </button>
       {isThinkingExpanded && data && (
         <div className="ml-8px pl-8px border-l-1 border-[#F0F0F0] dark:border-[#303030]">
-          <div className="text-[#8b8b8b] dark:text-[#a6a6a6] space-y-2">
+          <div className="space-y-2">
             <div className="mb-4 space-y-2 text-xs">
               {data?.keyword ? (
                 <div className="flex gap-1">
