@@ -530,7 +530,9 @@ const page: App.I18n.Schema['translation']['page'] = {
       type: 'Type',
       created: 'Created At',
       createdBy: 'Created By',
-      updatedBy: 'Updated By'
+      updatedBy: 'Updated By',
+      deleteConfirm: 'Are you sure you want to delete this document?',
+      deleteAllConfirm: 'Are you sure you want to delete all selected documents?',
     },
     file: {
       title: 'Document Management'

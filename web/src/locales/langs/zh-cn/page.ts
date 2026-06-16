@@ -657,7 +657,9 @@ const page: App.I18n.Schema['translation']['page'] = {
       type: '类型',
       created: '创建时间',
       createdBy: '创建人',
-      updatedBy: '更新人'
+      updatedBy: '更新人',
+      deleteConfirm: '您确定要删除此文档吗？',
+      deleteAllConfirm: '您确定要删除所有选中的文档吗？',
     },
     file: {
       title: '文档管理'
