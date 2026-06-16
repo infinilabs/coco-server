@@ -920,7 +920,13 @@ func renderPDF(ctx context.Context, markdown string) []byte {
 	}
 	defer conv.Close()
 
-	result, err := conv.Convert(ctx, picoloom.Input{Markdown: markdown})
+	result, err := conv.Convert(ctx, picoloom.Input{
+		Markdown: markdown,
+		Footer: &picoloom.Footer{
+			Position:       "right",
+			ShowPageNumber: true,
+		},
+	})
 	if err != nil {
 		log.Errorf("failed to render PDF: %v", err)
 		return nil
