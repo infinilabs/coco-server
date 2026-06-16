@@ -25,7 +25,7 @@ export default function SVGWrap({
       title={title}
       onClick={handleClick}
       className={clsx(
-        "inline-flex items-center justify-center rounded-sm p-[2px] transition-all",
+        "inline-flex items-center justify-center rounded-sm transition-all",
         {
           "cursor-pointer": action,
         },

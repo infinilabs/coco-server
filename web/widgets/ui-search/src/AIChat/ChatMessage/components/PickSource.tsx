@@ -87,7 +87,7 @@ export const PickSource = ({
           </>
         ) : (
           <>
-            <SelectionIcon className="w-14px h-14px shrink-0" />
+            <SelectionIcon size={14} className="shrink-0" />
             <span>
               {t(
                 `assistant.message.steps.${

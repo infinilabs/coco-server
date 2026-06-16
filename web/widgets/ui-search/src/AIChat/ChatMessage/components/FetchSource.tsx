@@ -114,7 +114,7 @@ export const FetchSource = ({
           {loading ? (
             <Loader className="w-14px h-14px animate-spin text-[#1784FC] shrink-0" />
           ) : (
-            <RetrieveIcon className="w-14px h-14px shrink-0" />
+            <RetrieveIcon size={14} className="shrink-0" />
           )}
           <span>
             {t(

@@ -85,7 +85,7 @@ export const QueryIntent = ({
           {loading ? (
             <Loader className="w-14px h-14px animate-spin text-[#1784FC] shrink-0" />
           ) : (
-            <UnderstandIcon className="w-14px h-14px shrink-0" />
+            <UnderstandIcon size={14} className="shrink-0" />
           )}
           <span className={`${loading ? "italic" : ""}`}>
             {t(
