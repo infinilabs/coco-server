@@ -4,6 +4,8 @@ go 1.25.4
 
 replace infini.sh/framework => ../framework
 
+replace infini.sh/license => ../license
+
 replace github.com/cihub/seelog => ../framework/lib/seelog
 
 require (
@@ -23,6 +25,7 @@ require (
 	github.com/gomarkdown/markdown v0.0.0-20250810172220-2e2c11897d1a
 	github.com/google/go-github/v74 v74.0.0
 	github.com/hirochachacha/go-smb2 v1.1.0
+	github.com/infinilabs/picoloom/v2 v2.0.0-20260616121414-382e9f128149
 	github.com/lib/pq v1.10.9
 	github.com/lucasb-eyer/go-colorful v1.2.0
 	github.com/mark3labs/mcp-go v0.43.1
@@ -49,7 +52,6 @@ require (
 
 require (
 	github.com/alecthomas/chroma/v2 v2.2.0 // indirect
-	github.com/alnah/picoloom/v2 v2.1.3 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/go-rod/rod v0.116.2 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
@@ -248,6 +250,7 @@ require (
 	google.golang.org/protobuf v1.36.8 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/cheggaaa/pb.v1 v1.0.28 // indirect
+	infini.sh/license v0.0.0-00010101000000-000000000000 // indirect
 	nhooyr.io/websocket v1.8.7 // indirect
 )
 
