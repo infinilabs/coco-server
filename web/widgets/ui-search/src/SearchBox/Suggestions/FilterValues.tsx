@@ -25,6 +25,7 @@ const FilterValues: FC<FilterValuesProps> = (props) => {
             type={SUGGESTION_FILTER_VALUES}
             title="过滤条件"
             {...rest}
+            defaultRows={10}
             renderPrefix={(item) => {
                 if (!support_multi_select) return null;
                 return (

@@ -242,7 +242,7 @@ const ListContainer = forwardRef<any, ListContainerProps>((props, ref) => {
         ref={scrollContainerRef}
         className={`px-4px mb-12px overflow-auto ${className}`}
         style={{ 
-          maxHeight: ITEM_HEIGHT * defaultRows,
+          maxHeight: ITEM_HEIGHT * DEFAULT_SUGGESTIONS_SIZE,
         }}
         onMouseMove={() => {
           if (isKeyboardNav) setIsKeyboardNav(false);

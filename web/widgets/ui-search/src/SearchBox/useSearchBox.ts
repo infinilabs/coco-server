@@ -186,7 +186,7 @@ export default function useSearchBox({
   };
 
   const loadNextSuggestion = useCallback(() => {
-    setSuggestions((prev: any) => ({ ...prev, from: prev.from + DEFAULT_SUGGESTIONS_SIZE }));
+    setSuggestions((prev: any) => ({ ...prev, from: prev.type === SUGGESTION_FILTER_VALUES ? prev.from + 10 : prev.from + DEFAULT_SUGGESTIONS_SIZE }));
   }, []);
 
   const handleAddFilter = (item: any) => {
@@ -496,7 +496,7 @@ export default function useSearchBox({
       case SUGGESTION_FILTER_VALUES: {
         const f = filters[filterState.index];
         if (f?.field?.field_name) {
-          suggestionParams = { ...suggestionParams, field_name: f.field.field_name, query: filterSearchValue };
+          suggestionParams = { ...suggestionParams, field_name: f.field.field_name, query: filterSearchValue, size: 10 };
           onSuggestion(suggestionType, suggestionParams, (res: any) => handleSuggestionsResult(SUGGESTION_FILTER_VALUES, res));
         }
         break;
