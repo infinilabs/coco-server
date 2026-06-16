@@ -8,10 +8,10 @@ import (
 	"time"
 
 	log "github.com/cihub/seelog"
-	"github.com/infinilabs/picoloom/v2"
 	"github.com/gomarkdown/markdown"
 	"github.com/gomarkdown/markdown/html"
 	"github.com/gomarkdown/markdown/parser"
+	"github.com/infinilabs/picoloom/v2"
 	"github.com/tmc/langchaingo/llms"
 	"infini.sh/coco/modules/assistant/langchain"
 	"infini.sh/coco/modules/common"

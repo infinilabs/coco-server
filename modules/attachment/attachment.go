@@ -132,16 +132,22 @@ func (h APIHandler) getAttachments(w http.ResponseWriter, req *http.Request, ps 
 func (h APIHandler) getAttachment(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	fileID := ps.MustGetParameter("file_id")
 	data, err := kv.GetValue(core.AttachmentKVBucket, []byte(fileID))
-	if err != nil || len(data) == 0 {
-		panic("invalid attachment")
+	if err != nil {
+		panic(fmt.Errorf("failed to read attachment binary from KV store for ID %s: %w", fileID, err))
+	}
+	if len(data) == 0 {
+		panic(fmt.Errorf("attachment binary data is empty for ID %s", fileID))
 	}
 	attachment, exists, err := h.getAttachmentMetadata(req, fileID)
 	if !exists {
 		h.WriteGetMissingJSON(w, fileID)
 		return
 	}
-	if err != nil || attachment == nil {
-		panic(err)
+	if err != nil {
+		panic(fmt.Errorf("failed to read attachment metadata from DB for ID %s: %w", fileID, err))
+	}
+	if attachment == nil {
+		panic(fmt.Errorf("attachment metadata is nil for ID %s", fileID))
 	}
 
 	// Set headers
