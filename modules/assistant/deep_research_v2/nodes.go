@@ -910,7 +910,10 @@ func reportLang(lang string) string {
 const deepResearchBrowserRevision = 1625079
 
 func renderPDF(ctx context.Context, markdown string) []byte {
-	conv, err := picoloom.NewConverter(picoloom.WithBrowserRevision(deepResearchBrowserRevision))
+	conv, err := picoloom.NewConverter(
+		picoloom.WithBrowserRevision(deepResearchBrowserRevision),
+		picoloom.WithStyle("technical"),
+	)
 	if err != nil {
 		log.Errorf("failed to create PDF converter: %v", err)
 		return nil
