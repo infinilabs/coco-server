@@ -59,22 +59,14 @@ export function NormalList(props: NormalListProps) {
   });
 
   const virtualItems = virtualizer.getVirtualItems();
-  const lastItemIndex = virtualItems.at(-1)?.index ?? -1;
 
   useEffect(() => {
-    if (lastItemIndex < 0) return;
-    if (lastItemIndex < data.length - 3 || !hasMoreRef.current || loadingRef.current) return;
-    const el = getDetailContainer?.();
-    if (!el) return;
-    // If no scrollbar exists (content fits viewport), auto-load more
-    // If scrollbar exists, only load when user has scrolled near the bottom
-    const hasScrollbar = el.scrollHeight > el.clientHeight;
-    if (hasScrollbar) {
-      const scrollBottom = el.scrollTop + el.clientHeight;
-      if (el.scrollHeight - scrollBottom > ESTIMATED_ITEM_HEIGHT) return;
+    const lastItem = virtualizer.getVirtualItems().at(-1);
+    if (!lastItem) return;
+    if (lastItem.index >= data.length - 3 && hasMoreRef.current && !loadingRef.current) {
+      onLoadMore?.();
     }
-    onLoadMore?.();
-  }, [lastItemIndex, data.length, onLoadMore]);
+  }, [virtualizer.getVirtualItems(), data.length, onLoadMore]);
 
   const onOpen = (record: Record<string, any>) => {
     setRecord(record);
