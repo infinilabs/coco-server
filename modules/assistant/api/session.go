@@ -7,7 +7,9 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/smallnest/langgraphgo/log"
@@ -499,10 +501,78 @@ func (h APIHandler) getChatHistoryBySession(w http.ResponseWriter, req *http.Req
 		return
 	}
 
-	_, err = h.Write(w, res.Payload.([]byte))
+	rawBytes := res.Payload.([]byte)
+	refined, err := refineAttachmentURLs(rawBytes)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	_, err = h.Write(w, refined)
 	if err != nil {
 		h.Error(w, err)
 	}
+}
+
+// helper function to expand relative attachment URLs in deep research report
+// payloads to absolute URLs for frontend consumption.
+// It works on the raw ES response bytes so that no fields are omitted by
+// round-tripping through a typed struct.
+func refineAttachmentURLs(raw []byte) ([]byte, error) {
+	var response map[string]interface{}
+	if err := util.FromJSONBytes(raw, &response); err != nil {
+		return nil, err
+	}
+
+	appCfg := common.AppConfig()
+	baseEndpoint := appCfg.ServerInfo.Endpoint
+	if baseEndpoint == "" {
+		return raw, nil
+	}
+
+	hits, ok := response["hits"].(map[string]interface{})
+	if !ok {
+		return raw, nil
+	}
+	hitList, ok := hits["hits"].([]interface{})
+	if !ok {
+		return raw, nil
+	}
+
+	for _, hit := range hitList {
+		hitMap, ok := hit.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		source, ok := hitMap["_source"].(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		msgType, _ := source["type"].(string)
+		if msgType != "assistant" {
+			continue
+		}
+
+		payload, ok := source["payload"]
+		if !ok || payload == nil {
+			continue
+		}
+		p, ok := payload.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		if _, ok := p["attachment"].(string); !ok {
+			continue
+		}
+		urlStr, ok := p["url"].(string)
+		if !ok || !strings.HasPrefix(urlStr, "/") {
+			continue
+		}
+		p["url"] = fmt.Sprintf("%s%s", baseEndpoint, urlStr)
+	}
+
+	return util.MustToJSONBytes(response), nil
 }
 
 func (h APIHandler) cancelReplyMessage(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {

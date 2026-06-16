@@ -114,7 +114,18 @@ func RunDeepResearchV2(ctx context.Context, query string, config *core.DeepResea
 	report["created"] = attachment.Created
 	report["attachment"] = attachment.ID
 	report["format"] = reportFormat
+
+	// Build an absolute URL for the frontend so clients do not need to know
+	// the server endpoint. The URL is reverted back to the relative path
+	// immediately after sending, because the persistent ChatMessage.Payload
+	// must remain server-independent.
+	appCfg := common.AppConfig()
+	baseEndpoint := appCfg.ServerInfo.Endpoint
+	if baseEndpoint != "" && strings.HasPrefix(attachment.URL, "/") {
+		report["url"] = fmt.Sprintf("%s%s", baseEndpoint, attachment.URL)
+	}
 	finalState.sendAndCollect(common.ResearchReporterEnd, util.MustToJSON(report))
+	report["url"] = attachment.URL
 
 	log.Info("Report generation completed:")
 	switch reportFormat {
