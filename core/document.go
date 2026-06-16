@@ -131,6 +131,11 @@ type AiInsights struct {
 	Embedding Embedding `json:"embedding" elastic_mapping:"embedding:{type:object}"`
 }
 
+// RequiredEmbeddingDimension is the only vector dimension that Coco semantic
+// search supports. The embedding processor must produce vectors of this size,
+// and the search DSL queries the matching EmbeddingXXX field.
+const RequiredEmbeddingDimension = 1024
+
 // A `Embedding` stores a chunk's embedding.
 //
 // Only 1 field will be used, depending on the chosen embedding dimension, see

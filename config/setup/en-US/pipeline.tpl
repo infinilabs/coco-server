@@ -74,7 +74,6 @@ POST $[[SETUP_INDEX_PREFIX]]pipelineconfigv2/$[[SETUP_DOC_TYPE]]/enrich_document
       },
       {
         "document_embedding": {
-          "embedding_dimension": 1024
         }
       }
   ]

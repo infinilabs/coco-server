@@ -7,7 +7,6 @@ package embedding
 import (
 	"context"
 	"fmt"
-	"slices"
 
 	log "github.com/cihub/seelog"
 	"github.com/tmc/langchaingo/embeddings"
@@ -27,11 +26,10 @@ import (
 const ProcessorName = "document_embedding"
 
 type Config struct {
-	MessageField       param.ParaKey      `config:"message_field"`
-	OutputQueue        *queue.QueueConfig `config:"output_queue"`
-	ModelProviderID    string             `config:"model_provider"`
-	ModelName          string             `config:"model"`
-	EmbeddingDimension int32              `config:"embedding_dimension"`
+	MessageField    param.ParaKey      `config:"message_field"`
+	OutputQueue     *queue.QueueConfig `config:"output_queue"`
+	ModelProviderID string             `config:"model_provider"`
+	ModelName       string             `config:"model"`
 }
 
 type DocumentEmbeddingProcessor struct {
@@ -56,13 +54,6 @@ func New(c *config.Config) (pipeline.Processor, error) {
 	*/
 	if cfg.MessageField == "" {
 		cfg.MessageField = core.PipelineContextDocuments
-	}
-
-	if cfg.EmbeddingDimension == 0 {
-		panic("embedding_dimension is not specified or set to 0, which is not allowed")
-	}
-	if !slices.Contains(core.SupportedEmbeddingDimensions, cfg.EmbeddingDimension) {
-		panic(fmt.Sprintf("invalid embedding_dimension, available values %v", core.SupportedEmbeddingDimensions))
 	}
 
 	processor := DocumentEmbeddingProcessor{config: &cfg}
@@ -189,8 +180,12 @@ func generateEmbedding(ctx context.Context, document *core.Document, processorCo
 			finalErrs = append(finalErrs, err)
 		}
 		if len(embedding) > 0 {
-			document.AiInsights.Embedding.SetValue(embedding[0])
-			modified = true
+			if err := validateEmbeddingDimension(embedding[0], "ai_insights"); err != nil {
+				finalErrs = append(finalErrs, err)
+			} else {
+				document.AiInsights.Embedding.SetValue(embedding[0])
+				modified = true
+			}
 		}
 	}
 
@@ -227,6 +222,9 @@ func generateChunkEmbeddings(ctx context.Context, embedder embeddings.EmbedderCl
 
 		for relativeIdx, embedding := range embeddings {
 			idx := batchStart + relativeIdx
+			if err := validateEmbeddingDimension(embedding, "chunk"); err != nil {
+				return false, err
+			}
 			embeddingWrapper := core.Embedding{}
 			embeddingWrapper.SetValue(embedding)
 			chunks[idx].Embedding = embeddingWrapper
@@ -234,6 +232,16 @@ func generateChunkEmbeddings(ctx context.Context, embedder embeddings.EmbedderCl
 	}
 
 	return true, nil
+}
+
+// helper function to verify that an embedding vector has the dimension
+// required by Coco semantic search, so that documents with wrong-sized
+// vectors are rejected instead of being indexed silently.
+func validateEmbeddingDimension(embedding []float32, source string) error {
+	if len(embedding) != core.RequiredEmbeddingDimension {
+		return fmt.Errorf("embedding dimension mismatch for %s: got %d, want %d", source, len(embedding), core.RequiredEmbeddingDimension)
+	}
+	return nil
 }
 
 // According to the specified configuration, init the "EmbedderClient" and
@@ -249,7 +257,7 @@ func getEmbedderClient(cfg *Config) (embeddings.EmbedderClient, error) {
 		return nil, err
 	}
 
-	model := langchain.GetLLM(provider.BaseURL, provider.APIType, modelId.ID, provider.APIKey, "")
+	model := langchain.GetEmbeddingLLM(provider.BaseURL, provider.APIType, modelId.ID, provider.APIKey, core.RequiredEmbeddingDimension)
 	// Check if the LLM client supports embeddings
 	embedder, ok := model.(embeddings.EmbedderClient)
 
