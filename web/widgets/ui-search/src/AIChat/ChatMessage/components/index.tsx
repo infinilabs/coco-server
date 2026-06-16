@@ -240,8 +240,8 @@ const InnerChatMessage = memo(
             }
           } catch {}
         }
-        if (refs.toolsRef.current?.message_chunk) {
-          details.push({ type: "tools", description: refs.toolsRef.current.message_chunk });
+        if (refs.toolsRef.current?.message_chunk || (refs.toolsRef.current as any)?.tool_call_items?.length) {
+          details.push({ type: "tools", description: refs.toolsRef.current?.message_chunk, payload: (refs.toolsRef.current as any)?.tool_call_items || [] });
         }
         if (refs.fetchSourceRef.current?.message_chunk) {
           try {

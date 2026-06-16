@@ -33,7 +33,21 @@ export default function useMessageChunkData() {
     }, []),
     deal_tools: useCallback((data: IChunkData) => {
       const prev = toolsRef.current;
-      const next = !prev ? data : { ...prev, message_chunk: (prev.message_chunk || "") + (data.message_chunk || "") };
+      const prevItems = (prev as any)?.tool_call_items || [];
+      let newItems = prevItems;
+      if (data.tool_call_message_chunk) {
+        try {
+          newItems = [...prevItems, JSON.parse(data.tool_call_message_chunk)];
+        } catch {}
+      }
+      const next = !prev
+        ? { ...data, tool_call_items: newItems }
+        : {
+            ...prev,
+            message_chunk: (prev.message_chunk || "") + (data.message_chunk || ""),
+            tool_call_message_chunk: data.tool_call_message_chunk || prev.tool_call_message_chunk,
+            tool_call_items: newItems,
+          };
       toolsRef.current = next;
       setTools(next);
     }, []),

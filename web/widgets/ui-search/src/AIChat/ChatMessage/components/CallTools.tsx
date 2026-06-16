@@ -32,7 +32,7 @@ export const CallTools = ({ Detail, ChunkData, loading, t: tProp }: CallToolsPro
       const parsed = JSON.parse(ChunkData.tool_call_message_chunk);
       setData((prev) => [...prev, parsed]);
     } catch (e) {
-      console.error("Failed to parse tool_call_message_chunk:", e);
+      
     }
   }, [ChunkData?.tool_call_message_chunk]);
 
