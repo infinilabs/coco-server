@@ -14,7 +14,7 @@ type Attachment struct {
 	Icon        string `json:"icon,omitempty" elastic_mapping:"icon:{enabled:false}"`
 	MimeType    string `json:"mime_type,omitempty" elastic_mapping:"mime_type:{enabled:false}"`
 	URL         string `json:"url,omitempty" elastic_mapping:"url:{enabled:false}"`
-	Size        int    `json:"size,omitempty" elastic_mapping:"size:{type:long}"`
+	Size        int64  `json:"size,omitempty" elastic_mapping:"size:{type:long}"`
 	Text        string `json:"text,omitempty" elastic_mapping:"text:{type:text}"` // Extracted text content (e.g., via OCR)
 
 	Deleted       bool        `json:"deleted,omitempty" elastic_mapping:"deleted:{type:boolean}"`

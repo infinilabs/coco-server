@@ -95,13 +95,18 @@ func RunDeepResearchV2(ctx context.Context, query string, config *core.DeepResea
 	}
 
 	var reportContent string
-	if reportFormat == "html" {
-		reportContent = finalState.FinalReport
-	} else {
+	var reportBytes []byte
+
+	switch reportFormat {
+	case "html":
+		reportContent = finalState.HTMLReport
+	case "pdf":
+		reportBytes = finalState.PDFReport
+	default:
 		reportContent = finalState.MarkdownReport
 	}
 
-	attachment := saveReport(ctx, reportFormat, reportContent)
+	attachment := saveReport(ctx, reportFormat, reportContent, reportBytes)
 
 	report := util.MapStr{}
 	report["title"] = attachment.Name
@@ -112,8 +117,14 @@ func RunDeepResearchV2(ctx context.Context, query string, config *core.DeepResea
 	finalState.sendAndCollect(common.ResearchReporterEnd, util.MustToJSON(report))
 
 	log.Info("Report generation completed:")
-	log.Info("  MarkdownReport length: ", len(finalState.MarkdownReport))
-	log.Info("  FinalReport length: ", len(finalState.FinalReport))
+	switch reportFormat {
+	case "html":
+		log.Info("  HTMLReport length: ", len(finalState.HTMLReport))
+	case "pdf":
+		log.Info("  PDFReport length: ", len(finalState.PDFReport))
+	default:
+		log.Info("  MarkdownReport length: ", len(finalState.MarkdownReport))
+	}
 	log.Info("  ChapterOutline count: ", len(finalState.ChapterOutline))
 	log.Info("  ChapterOutline: ", util.ToJson(finalState.ChapterOutline, true))
 	log.Info("  ChapterContents count: ", len(finalState.ChapterContents))
@@ -128,27 +139,46 @@ func RunDeepResearchV2(ctx context.Context, query string, config *core.DeepResea
 	return nil
 }
 
-func saveReport(ctx context.Context, reportFormat, report string) core.Attachment {
+// saveReport persists a generated research report as an attachment.
+//
+// report is the text content (markdown or HTML) and reportBytes holds the
+// PDF binary. Exactly one is non-nil depending on reportFormat:
+//   - markdown/html → report is set, reportBytes is nil
+//   - pdf          → reportBytes is set, report is empty
+func saveReport(ctx context.Context, reportFormat, report string, reportBytes []byte) core.Attachment {
 	attachment := core.Attachment{}
 	attachment.ID = util.GetUUID()
-	if reportFormat == "html" {
+
+	var content []byte
+
+	switch reportFormat {
+	case "html":
 		attachment.Name = "Research-Report.html"
 		attachment.MimeType = "text/html; charset=UTF-8"
-	} else {
+		attachment.Text = report
+		attachment.Size = int64(len(report))
+		content = []byte(report)
+	case "pdf":
+		attachment.Name = "Research-Report.pdf"
+		attachment.MimeType = "application/pdf"
+		attachment.Size = int64(len(reportBytes))
+		content = reportBytes
+	default:
 		attachment.Name = "Research-Report.md"
 		attachment.MimeType = "text/markdown; charset=UTF-8"
+		attachment.Text = report
+		attachment.Size = int64(len(report))
+		content = []byte(report)
 	}
-	attachment.Size = len(report)
 	attachment.Icon = "book-open"
 	attachment.URL = fmt.Sprintf("/attachment/%v", attachment.ID)
-	attachment.Text = report
 	ctx1 := orm.NewContextWithParent(ctx)
 	err := orm.Save(ctx1, &attachment)
 	if err != nil {
 		panic(errors.Errorf("failed to save report: %v", err))
 	}
 
-	err = kv.AddValue(core.AttachmentKVBucket, []byte(attachment.ID), []byte(report))
+	err = kv.AddValue(core.AttachmentKVBucket, []byte(attachment.ID), content)
 	if err != nil {
 		panic(err)
 	}

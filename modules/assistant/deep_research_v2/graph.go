@@ -90,8 +90,14 @@ type State struct {
 	StepResults     []StepResult `json:"step_results"`     // Detailed results per step
 	ResearchResults []string     `json:"research_results"` // Legacy format for backward compatibility
 
-	MarkdownReport string `json:"markdown_report"`
-	FinalReport    string `json:"final_report"`
+	// MarkdownReport, HTMLReport and PDFReport hold the three rendering formats
+	// of the final report. All three are set inside the Reporter node (the last
+	// graph node) and are read only after graph.Invoke returns — no downstream
+	// node in the graph ever reads them. The json:"-" tag skips unnecessary
+	// serialization between node transitions.
+	MarkdownReport string `json:"-"`
+	HTMLReport     string `json:"-"`
+	PDFReport      []byte `json:"-"`
 
 	//Step            int          `json:"step"`
 	// Chapter Management

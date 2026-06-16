@@ -88,7 +88,8 @@ export const DeepResearchOutput = () => {
           className='max-w-600px'
           options={[
             { label: 'Markdown', value: 'markdown' },
-            { label: 'HTML', value: 'html' }
+            { label: 'HTML', value: 'html' },
+            { label: 'PDF', value: 'pdf' }
           ]}
         />
       </Form.Item>
