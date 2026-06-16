@@ -99,6 +99,11 @@ type State struct {
 	HTMLReport     string `json:"-"`
 	PDFReport      []byte `json:"-"`
 
+	// ReportTitle is the AI-generated title used for the attachment name and
+	// the PDF cover page. It is produced in the Reporter node and consumed
+	// after graph.Invoke returns, so it does not need to cross node boundaries.
+	ReportTitle string `json:"-"`
+
 	//Step            int          `json:"step"`
 	// Chapter Management
 	ChapterOutline   []ChapterOutline           `json:"chapter_outline"`         // Report chapter structure

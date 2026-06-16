@@ -336,13 +336,14 @@ func ReporterNode(ctx context.Context, state interface{}) (interface{}, error) {
 		return nil, err
 	}
 
-	// Strategy: Use the structured chapter approach if we have organized materials
-	if len(s.ChapterOutline) > 0 && len(s.ChapterContents) > 0 {
-		return s.generateChapterBasedReport(ctx, llm)
+	// Strategy: Use the structured chapter approach; require organized materials.
+	if len(s.ChapterOutline) == 0 {
+		return nil, fmt.Errorf("no chapter outline available for report generation")
 	}
-
-	// Fallback: Use traditional approach
-	return s.generateTraditionalReport(ctx, llm)
+	if len(s.ChapterContents) == 0 {
+		return nil, fmt.Errorf("no chapter content available for report generation")
+	}
+	return s.generateChapterBasedReport(ctx, llm)
 }
 
 // generateChapterOutline creates an intelligent chapter structure for the report
@@ -371,9 +372,11 @@ Generate JSON format chapter outline:
 
 Requirements:
 1. Generate 4-8 chapters
-2. Chapters should progress logically, from basic to in-depth
-3. Use %s for titles and descriptions
-4. Accurately relate to relevant research steps`,
+2. Each chapter must have a non-empty "title" and "description"
+3. The chapter array must not be empty
+4. Chapters should progress logically, from basic to in-depth
+5. Use %s for titles and descriptions
+6. Accurately relate to relevant research steps`,
 		s.Request.Query,
 		strings.Join(s.Plan, "\n"),
 		reportLang(s.Config.ReportLang))
@@ -604,44 +607,6 @@ func (s *State) updateChapterProgress(stepIndex int, materials []MaterialReferen
 	}
 }
 
-// generateTraditionalReport provides fallback report generation when chapter structure is not available
-func (s *State) generateTraditionalReport(ctx context.Context, llm llms.Model) (*State, error) {
-	researchData := strings.Join(s.ResearchResults, "\n\n")
-
-	prompt := fmt.Sprintf("You are a senior report writer. Based on the following research results, write a comprehensive final report. Use Markdown format. Write the report in %s:\n\n%s\n\nOriginal query was: %s",
-		reportLang(s.Config.ReportLang), researchData, s.Request.Query)
-
-	completion, err := llms.GenerateFromSinglePrompt(ctx, llm, langchain.PromptWithCurrentTime(prompt))
-	if err != nil {
-		return nil, err
-	}
-
-	// Clean up response
-	completion = strings.TrimSpace(completion)
-	completion = strings.TrimPrefix(completion, "```markdown")
-	completion = strings.TrimPrefix(completion, "```")
-	completion = strings.TrimSuffix(completion, "```")
-
-	s.MarkdownReport = completion
-
-	switch s.Config.ReportFormat {
-	case "html":
-		extensions := parser.CommonExtensions | parser.AutoHeadingIDs
-		p := parser.NewWithExtensions(extensions)
-		doc := p.Parse([]byte(completion))
-
-		htmlFlags := html.CommonFlags | html.HrefTargetBlank
-		opts := html.RendererOptions{Flags: htmlFlags}
-		renderer := html.NewRenderer(opts)
-
-		s.HTMLReport = string(markdown.Render(doc, renderer))
-	case "pdf":
-		s.PDFReport = renderPDF(ctx, s.MarkdownReport)
-	}
-
-	return s, nil
-}
-
 // generateChapterContent generates comprehensive chapter content for each chapter using allocated materials
 func (s *State) generateChapterContent(ctx context.Context, llm llms.Model) map[string]*ChapterContent {
 	log.Info("Starting chapter content generation...")
@@ -768,44 +733,44 @@ Do not add other text. Respond in %s.`, content, reportLang(s.Config.ReportLang)
 	return keyPoints, nil
 }
 
+// generateReportTitle produces a concise title based on the assembled report
+// body. It falls back to the original query if title generation fails.
+func (s *State) generateReportTitle(ctx context.Context, llm llms.Model, body string) string {
+	prompt := fmt.Sprintf(`You are a professional report title writer. Based on the following research report content, generate a concise, professional title (5-10 words). Return ONLY the title text, no quotes, no markdown, no extra explanation.
+
+Report content:
+%s
+
+Write the title in %s.`, body, reportLang(s.Config.ReportLang))
+
+	completion, err := llms.GenerateFromSinglePrompt(ctx, llm, langchain.PromptWithCurrentTime(prompt))
+	if err != nil {
+		log.Warnf("failed to generate report title: %v, falling back to query", err)
+		return s.Request.Query
+	}
+
+	title := strings.TrimSpace(completion)
+	title = strings.TrimPrefix(title, "#")
+	title = strings.TrimPrefix(title, "```markdown")
+	title = strings.TrimPrefix(title, "```")
+	title = strings.TrimSuffix(title, "```")
+	title = strings.TrimSpace(title)
+
+	if title == "" {
+		return s.Request.Query
+	}
+	return title
+}
+
 // generateChapterBasedReport creates a structured report based on the chapter outline and generated content
 func (s *State) generateChapterBasedReport(ctx context.Context, llm llms.Model) (*State, error) {
 
 	// Debug output for chapters
 
 	contents := s.ChapterContents
-	var reportBuilder strings.Builder
-
-	// Title
-	reportBuilder.WriteString(fmt.Sprintf("# %s\n\n", s.Request.Query))
-
-	// Summary section
 	i18n := getReportI18n(s.Config.ReportLang)
-	reportBuilder.WriteString(fmt.Sprintf("## %s\n\n", i18n.Summary))
-	allKeyPoints := []string{}
-	for _, chapter := range s.ChapterOutline {
-		if content, exists := contents[chapter.ID]; exists {
-			if len(content.KeyPoints) > 0 {
-				allKeyPoints = append(allKeyPoints, content.KeyPoints...)
-			}
-		}
-	}
 
-	if len(allKeyPoints) > 0 {
-		for _, point := range allKeyPoints {
-			reportBuilder.WriteString(fmt.Sprintf("- %s\n", point))
-		}
-		reportBuilder.WriteString("\n")
-	} else {
-		reportBuilder.WriteString(i18n.FallbackIntro + "\n\n")
-	}
-	reportBuilder.WriteString(fmt.Sprintf("## %s\n\n", i18n.TableOfContents))
-	for i, chapter := range s.ChapterOutline {
-		reportBuilder.WriteString(fmt.Sprintf("%d. %s\n", i+1, chapter.Title))
-	}
-	reportBuilder.WriteString("\n---\n\n")
-
-	// Step 1: Check if we need to generate chapter content
+	// Generate chapter content if needed
 	needsGeneration := false
 	for _, chapter := range s.ChapterOutline {
 		if content, exists := contents[chapter.ID]; exists {
@@ -815,34 +780,73 @@ func (s *State) generateChapterBasedReport(ctx context.Context, llm llms.Model) 
 			}
 		}
 	}
-
-	// Generate chapter content if needed
 	if needsGeneration {
 		contents = s.generateChapterContent(ctx, llm)
 	}
 
-	// Step 2: Generate each chapter content
+	// Build the summary section.
+	var summaryBuilder strings.Builder
+	summaryBuilder.WriteString(fmt.Sprintf("## %s\n\n", i18n.Summary))
+	allKeyPoints := []string{}
+	for _, chapter := range s.ChapterOutline {
+		if content, exists := contents[chapter.ID]; exists {
+			if len(content.KeyPoints) > 0 {
+				allKeyPoints = append(allKeyPoints, content.KeyPoints...)
+			}
+		}
+	}
+	if len(allKeyPoints) > 0 {
+		for _, point := range allKeyPoints {
+			summaryBuilder.WriteString(fmt.Sprintf("- %s\n", point))
+		}
+		summaryBuilder.WriteString("\n")
+	} else {
+		summaryBuilder.WriteString(i18n.FallbackIntro + "\n\n")
+	}
+	summary := summaryBuilder.String()
+
+	// Build the chapter contents section.
+	var chaptersBuilder strings.Builder
 	for _, chapter := range s.ChapterOutline {
 		if content, exists := contents[chapter.ID]; exists && content.Content != "" {
 
-			reportBuilder.WriteString(fmt.Sprintf("## %s\n\n", chapter.Title))
-			reportBuilder.WriteString(content.Content + "\n\n")
+			chaptersBuilder.WriteString(fmt.Sprintf("## %s\n\n", chapter.Title))
+			chaptersBuilder.WriteString(content.Content + "\n\n")
 
 			// Add references or source citations if configured
 			if s.Config != nil && s.Config.IncludeSources {
 				if len(content.Materials) > 0 {
-					reportBuilder.WriteString("### References\n\n")
+					chaptersBuilder.WriteString("### References\n\n")
 					for j, material := range content.Materials {
-						reportBuilder.WriteString(formatCitation(j+1, material.Title, material.URL, material.Source, s.Config.SourceFormat) + "\n")
+						chaptersBuilder.WriteString(formatCitation(j+1, material.Title, material.URL, material.Source, s.Config.SourceFormat) + "\n")
 					}
-					reportBuilder.WriteString("\n")
+					chaptersBuilder.WriteString("\n")
 				}
 			}
 		}
 	}
+	chapters := chaptersBuilder.String()
 
-	// Set the markdown report
+	// Body excludes the H1 title and the manual TOC; picoloom renders its own
+	// cover and table of contents for PDF output.
+	body := summary + chapters
+
+	// Generate the report title from the assembled content.
+	s.ReportTitle = s.generateReportTitle(ctx, llm, body)
+
+	// Build the full markdown report with an H1 title and a manual TOC for
+	// HTML/Markdown output.
+	var reportBuilder strings.Builder
+	reportBuilder.WriteString(fmt.Sprintf("# %s\n\n", s.ReportTitle))
+	reportBuilder.WriteString(summary)
+	reportBuilder.WriteString(fmt.Sprintf("## %s\n\n", i18n.TableOfContents))
+	for i, chapter := range s.ChapterOutline {
+		reportBuilder.WriteString(fmt.Sprintf("%d. %s\n", i+1, chapter.Title))
+	}
+	reportBuilder.WriteString("\n---\n\n")
+	reportBuilder.WriteString(chapters)
 	s.MarkdownReport = reportBuilder.String()
+
 	switch s.Config.ReportFormat {
 	case "html":
 		// Convert to HTML for final report
@@ -855,7 +859,7 @@ func (s *State) generateChapterBasedReport(ctx context.Context, llm llms.Model) 
 		renderer := html.NewRenderer(opts)
 		s.HTMLReport = string(markdown.Render(doc, renderer))
 	case "pdf":
-		s.PDFReport = renderPDF(ctx, s.MarkdownReport)
+		s.PDFReport = renderPDF(ctx, body, s.ReportTitle, i18n.TableOfContents)
 	}
 
 	return s, nil
@@ -909,7 +913,7 @@ func reportLang(lang string) string {
 // helper function to convert markdown content to a PDF byte slice using picoloom.
 const deepResearchBrowserRevision = 1625079
 
-func renderPDF(ctx context.Context, markdown string) []byte {
+func renderPDF(ctx context.Context, markdown string, title string, tocTitle string) []byte {
 	conv, err := picoloom.NewConverter(
 		picoloom.WithBrowserRevision(deepResearchBrowserRevision),
 		picoloom.WithStyle("technical"),
@@ -922,6 +926,13 @@ func renderPDF(ctx context.Context, markdown string) []byte {
 
 	result, err := conv.Convert(ctx, picoloom.Input{
 		Markdown: markdown,
+		Cover: &picoloom.Cover{
+			Title: title,
+			Date:  time.Now().Format("2006-01-02"),
+		},
+		TOC: &picoloom.TOC{
+			Title: tocTitle,
+		},
 		Footer: &picoloom.Footer{
 			Position:       "right",
 			ShowPageNumber: true,
