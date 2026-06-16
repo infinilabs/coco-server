@@ -1,11 +1,10 @@
-import { FileText, SquareArrowOutUpRight } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { type TFunction } from "i18next";
 import Markdown from "@infinilabs/markdown";
 import { Spin } from "antd";
 
-import { formatDate } from "../../utils";
+import Pdf from "../../../../ResultDetail/DocDetail/DocDetail/components/Preview/components/Pdf";
 
 export interface ResearchReportData {
   title?: string;
@@ -34,6 +33,46 @@ export const ResearchReportContent = ({
   const t = tProp || tOriginal;
   const [loading, setLoading] = useState(false);
 
+  const formatContent = useMemo(() => {
+    if (data?.format === "html") {
+      return content ? (
+        <iframe
+          srcDoc={content}
+          className="w-full border-0 rounded-lg"
+          style={{ minHeight: 600 }}
+          sandbox="allow-same-origin"
+          title="research-report"
+        />
+      ) : (
+        <iframe
+          src={formatUrl ? formatUrl({ url: data.url }) : data.url}
+          className="w-full border-0 rounded-lg"
+          style={{ minHeight: 600 }}
+          sandbox="allow-same-origin allow-scripts"
+          title="research-report"
+        />
+      )
+    }
+    if (data?.format === "markdown") {
+      return content ? (
+        <Markdown content={content} />
+      ) : (
+        <Markdown url={formatUrl ? formatUrl({ url: data.url }) : data.url} requestHeaders={requestHeaders} onLoadingChange={setLoading} />
+      );
+    }
+    if (data?.format === "pdf" && data?.url) {
+      return (
+        <Pdf 
+          data={{}}
+          url={formatUrl ? formatUrl({ url: data.url }) : data.url}
+          requestHeaders={requestHeaders}
+          onLoadingChange={setLoading}
+        />
+      )
+    }
+    return null;
+  }, [content, data, requestHeaders])
+
   if (!content && !data) {
     return (
       <div className="px-6 max-w-[730px] h-full flex flex-col items-center justify-center text-center">
@@ -46,6 +85,8 @@ export const ResearchReportContent = ({
       </div>
     );
   }
+
+  console.log("report content data", data);
 
   return (
     <div className="">
@@ -77,35 +118,9 @@ export const ResearchReportContent = ({
           )}
         </div>
       )} */}
-      {content && (
-        data?.format === "html" ? (
-          <iframe
-            srcDoc={content}
-            className="w-full border-0 rounded-lg"
-            style={{ minHeight: 600 }}
-            sandbox="allow-same-origin"
-            title="research-report"
-          />
-        ) : (
-          <Markdown content={content} />
-        )
-      )}
-
-      {!content && data?.url && (
-        data?.format === "html" ? (
-          <iframe
-            src={formatUrl ? formatUrl({ url: data.url }) : data.url}
-            className="w-full border-0 rounded-lg"
-            style={{ minHeight: 600 }}
-            sandbox="allow-same-origin allow-scripts"
-            title="research-report"
-          />
-        ) : (
-          <Spin spinning={loading}>
-            <Markdown url={formatUrl ? formatUrl({ url: data.url }) : data.url} requestHeaders={requestHeaders} onLoadingChange={setLoading} />
-          </Spin>
-        )
-      )}
+      <Spin spinning={loading}>
+        {formatContent}
+      </Spin>
     </div>
   );
 };

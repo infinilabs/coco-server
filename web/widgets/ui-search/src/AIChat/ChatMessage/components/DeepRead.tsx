@@ -44,8 +44,6 @@ export const DeepRead = ({
     } catch (e) {
     }
   }, [ChunkData?.message_chunk]);
-console.log("chunk data", ChunkData);
-console.log("Detail data", Detail);
   // Must be after hooks !!!
   if (!ChunkData && !Detail) return null;
 
