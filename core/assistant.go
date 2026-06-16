@@ -304,7 +304,7 @@ func (cfg *DeepResearchConfig) Validate() error {
 	}
 
 	// Validate report format
-	validFormats := []string{"markdown", "html"}
+	validFormats := []string{"markdown", "html", "pdf"}
 	if !slices.Contains(validFormats, cfg.ReportFormat) {
 		return fmt.Errorf("report_format must be one of: %v", validFormats)
 	}

@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alnah/picoloom/v2"
 	log "github.com/cihub/seelog"
 	"github.com/gomarkdown/markdown"
 	"github.com/gomarkdown/markdown/html"
@@ -623,21 +624,25 @@ func (s *State) generateTraditionalReport(ctx context.Context, llm llms.Model) (
 
 	s.MarkdownReport = completion
 
-	// Convert to HTML
-	extensions := parser.CommonExtensions | parser.AutoHeadingIDs
-	p := parser.NewWithExtensions(extensions)
-	doc := p.Parse([]byte(completion))
+	switch s.Config.ReportFormat {
+	case "html":
+		extensions := parser.CommonExtensions | parser.AutoHeadingIDs
+		p := parser.NewWithExtensions(extensions)
+		doc := p.Parse([]byte(completion))
 
-	htmlFlags := html.CommonFlags | html.HrefTargetBlank
-	opts := html.RendererOptions{Flags: htmlFlags}
-	renderer := html.NewRenderer(opts)
+		htmlFlags := html.CommonFlags | html.HrefTargetBlank
+		opts := html.RendererOptions{Flags: htmlFlags}
+		renderer := html.NewRenderer(opts)
 
-	s.FinalReport = string(markdown.Render(doc, renderer))
+		s.HTMLReport = string(markdown.Render(doc, renderer))
+	case "pdf":
+		s.PDFReport = renderPDF(ctx, s.MarkdownReport)
+	}
 
 	return s, nil
 }
 
-// generateChapterContent generates comprehensive content for each chapter using allocated materials
+// generateChapterContent generates comprehensive chapter content for each chapter using allocated materials
 func (s *State) generateChapterContent(ctx context.Context, llm llms.Model) map[string]*ChapterContent {
 	log.Info("Starting chapter content generation...")
 
@@ -838,17 +843,20 @@ func (s *State) generateChapterBasedReport(ctx context.Context, llm llms.Model) 
 
 	// Set the markdown report
 	s.MarkdownReport = reportBuilder.String()
+	switch s.Config.ReportFormat {
+	case "html":
+		// Convert to HTML for final report
+		extensions := parser.CommonExtensions | parser.AutoHeadingIDs
+		p := parser.NewWithExtensions(extensions)
+		doc := p.Parse([]byte(s.MarkdownReport))
 
-	// Convert to HTML for final report
-	extensions := parser.CommonExtensions | parser.AutoHeadingIDs
-	p := parser.NewWithExtensions(extensions)
-	doc := p.Parse([]byte(s.MarkdownReport))
-
-	htmlFlags := html.CommonFlags | html.HrefTargetBlank
-	opts := html.RendererOptions{Flags: htmlFlags}
-	renderer := html.NewRenderer(opts)
-
-	s.FinalReport = string(markdown.Render(doc, renderer))
+		htmlFlags := html.CommonFlags | html.HrefTargetBlank
+		opts := html.RendererOptions{Flags: htmlFlags}
+		renderer := html.NewRenderer(opts)
+		s.HTMLReport = string(markdown.Render(doc, renderer))
+	case "pdf":
+		s.PDFReport = renderPDF(ctx, s.MarkdownReport)
+	}
 
 	return s, nil
 }
@@ -896,6 +904,23 @@ func reportLang(lang string) string {
 		return "en-US"
 	}
 	return lang
+}
+
+// Helper function to converts markdown content to a PDF byte slice using picoloom.
+func renderPDF(ctx context.Context, markdown string) []byte {
+	conv, err := picoloom.NewConverter()
+	if err != nil {
+		log.Errorf("failed to create PDF converter: %v", err)
+		return nil
+	}
+	defer conv.Close()
+
+	result, err := conv.Convert(ctx, picoloom.Input{Markdown: markdown})
+	if err != nil {
+		log.Errorf("failed to render PDF: %v", err)
+		return nil
+	}
+	return result.PDF
 }
 
 // Utility functions

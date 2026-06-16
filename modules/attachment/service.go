@@ -47,7 +47,7 @@ func UploadToBlobStore(ctx *orm.Context, fileID string, file multipart.File, hea
 	if fileID == "" {
 		fileID = util.GetUUID()
 	}
-	fileSize := len(data)
+	fileSize := int64(len(data))
 	mimeType, err := DetectMimeType(fileName, file, header)
 
 	attachment := core.Attachment{}

@@ -265,8 +265,15 @@ func (h APIHandler) createChatSession(w http.ResponseWriter, r *http.Request, ps
 	userInfo := security.MustGetUserFromRequest(r)
 
 	assistant, exists, err := service.GetAssistant(r, id)
-	if !exists || err != nil {
-		h.WriteOpRecordNotFoundJSON(w, id)
+	if err != nil {
+		h.WriteError(w, "failed to get assistant", http.StatusInternalServerError)
+		return
+	}
+	if !exists {
+		h.WriteJSON(w, util.MapStr{
+			"_id":  id,
+			"open": true,
+		}, http.StatusOK)
 		return
 	}
 
@@ -346,7 +353,11 @@ func (h *APIHandler) askAssistant(w http.ResponseWriter, r *http.Request, ps htt
 	id := ps.MustGetParameter("id")
 
 	assistant, exists, err := service.GetAssistant(r, id)
-	if !exists || err != nil {
+	if err != nil {
+		h.WriteError(w, "failed to get assistant", http.StatusInternalServerError)
+		return
+	}
+	if !exists {
 		h.WriteOpRecordNotFoundJSON(w, id)
 		return
 	}
@@ -513,7 +524,11 @@ func (h APIHandler) sendChatMessageV2(w http.ResponseWriter, r *http.Request, ps
 	id := h.GetParameterOrDefault(r, "assistant_id", common2.DefaultAssistantID)
 
 	assistant, exists, err := service.GetAssistant(r, id)
-	if !exists || err != nil {
+	if err != nil {
+		h.WriteError(w, "failed to get assistant", http.StatusInternalServerError)
+		return
+	}
+	if !exists {
 		h.WriteOpRecordNotFoundJSON(w, id)
 		return
 	}
