@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alnah/picoloom/v2"
 	log "github.com/cihub/seelog"
+	"github.com/infinilabs/picoloom/v2"
 	"github.com/gomarkdown/markdown"
 	"github.com/gomarkdown/markdown/html"
 	"github.com/gomarkdown/markdown/parser"
@@ -906,9 +906,11 @@ func reportLang(lang string) string {
 	return lang
 }
 
-// Helper function to converts markdown content to a PDF byte slice using picoloom.
+// helper function to convert markdown content to a PDF byte slice using picoloom.
+const deepResearchBrowserRevision = 1625079
+
 func renderPDF(ctx context.Context, markdown string) []byte {
-	conv, err := picoloom.NewConverter()
+	conv, err := picoloom.NewConverter(picoloom.WithBrowserRevision(deepResearchBrowserRevision))
 	if err != nil {
 		log.Errorf("failed to create PDF converter: %v", err)
 		return nil
