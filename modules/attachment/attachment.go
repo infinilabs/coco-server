@@ -173,6 +173,14 @@ func (h APIHandler) getAttachment(w http.ResponseWriter, req *http.Request, ps h
 		w.Header().Set("Content-Type", mineType)
 	}
 
+	// Ensure the filename has an extension when the MIME type is known.
+	// Browsers rely on the extension for inline preview and download dialogs.
+	if attachment.Name != "" && filepath.Ext(attachment.Name) == "" && mineType != "" {
+		if exts, _ := m1.ExtensionsByType(mineType); len(exts) > 0 {
+			attachment.Name = attachment.Name + exts[0]
+		}
+	}
+
 	w.Header().Set("Content-Disposition", disposition+"; filename=\""+attachment.Name+"\"")
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(data)))
 
