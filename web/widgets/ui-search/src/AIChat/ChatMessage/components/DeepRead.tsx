@@ -101,7 +101,7 @@ console.log("Detail data", Detail);
               {description?.split("\n").map(
                 (paragraph, idx) =>
                   paragraph.trim() && (
-                    <p key={idx} className="text-sm">
+                    <p key={idx} className="text-xs">
                       {paragraph}
                     </p>
                   )
