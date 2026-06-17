@@ -2,6 +2,7 @@ import { Button } from "antd";
 import { Minus, Plus } from "lucide-react";
 import ListContainer from "./ListContainer";
 import { type FC } from "react";
+import { useTranslation } from "react-i18next";
 
 export const SUGGESTION_OPERATORS = "suggestion_operators"
 
@@ -39,21 +40,23 @@ interface OperatorsProps {
 }
 
 const Operators: FC<OperatorsProps> = ({ currentOperator, ...props }) => {
+    const { t } = useTranslation();
+    const conditionGroupLabel = t('labels.conditionGroup');
     const data = [
         {
             suggestion: 'and',
-            source: `满足全部条件`,
+            source: t('labels.satisfyAll'),
             icon: OPERATOR_ICONS['and'],
-            dividerTitle: '条件组合'
+            dividerTitle: conditionGroupLabel
         },
         // {
         //     suggestion: 'or',
-        //     source: `满足任一条件`,
+        //     source: t('labels.matchAnyCondition'),
         //     icon: OPERATOR_ICONS['or'],
         // },
         {
             suggestion: 'not',
-            source: `排除条件`,
+            source: t('labels.excludeCondition'),
             icon: OPERATOR_ICONS['not'],
         },
     ];
@@ -61,7 +64,7 @@ const Operators: FC<OperatorsProps> = ({ currentOperator, ...props }) => {
     return (
         <ListContainer
             type={SUGGESTION_OPERATORS}
-            title="条件组合"
+            title={conditionGroupLabel}
             data={data}
             defaultActiveIndex={defaultActiveIndex >= 0 ? defaultActiveIndex : 0}
             {...props}

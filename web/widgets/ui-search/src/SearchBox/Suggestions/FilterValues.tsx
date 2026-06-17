@@ -1,6 +1,7 @@
 import { Checkbox } from "antd";
 import ListContainer from "./ListContainer";
 import { type FC } from "react";
+import { useTranslation } from "react-i18next";
 
 export const SUGGESTION_FILTER_VALUES = "field_values"
 
@@ -16,6 +17,7 @@ interface FilterValuesProps {
 
 const FilterValues: FC<FilterValuesProps> = (props) => {
     const { filter = {}, onComplete, ...rest } = props;
+    const { t } = useTranslation();
 
     const { field = {}, value = [] } = filter || {}
     const { support_multi_select } = field || {}
@@ -23,7 +25,7 @@ const FilterValues: FC<FilterValuesProps> = (props) => {
     return (
         <ListContainer
             type={SUGGESTION_FILTER_VALUES}
-            title="过滤条件"
+            title={t('labels.filterTitle')}
             {...rest}
             defaultRows={10}
             renderPrefix={(item) => {
