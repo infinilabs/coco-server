@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-import SearchLogo from './icons/search-logo.svg';
+import SearchLogo from './icons/search-logo.svg?react';
 import { isAlt, isAppleDevice, isCtrl, isMeta } from './utils';
 
 const CTRL_KEY_DEFAULT = 'Ctrl';
@@ -9,12 +9,18 @@ const ALT_KEY_DEFAULT = 'Alt';
 const ALT_KEY_APPLE = '⌥';
 const META_KEY_APPLE = '⌘';
 
-export const DocSearchButton = ({ settings, hotKeys, onClick }) => {
-  const [ctrlKey, setCtrlKey] = useState(null);
-  const [altKey, setAltKey] = useState(null);
-  const [metaKey, setMetaKey] = useState(null);
-  const resizeObserverRef = useRef(null)
-  const btnRef = useRef(null)
+interface DocSearchButtonProps {
+  settings?: any;
+  hotKeys?: string[];
+  onClick?: () => void;
+}
+
+export const DocSearchButton: React.FC<DocSearchButtonProps> = ({ settings, hotKeys, onClick }) => {
+  const [ctrlKey, setCtrlKey] = useState<string | null>(null);
+  const [altKey, setAltKey] = useState<string | null>(null);
+  const [metaKey, setMetaKey] = useState<string | null>(null);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null)
+  const btnRef = useRef<HTMLButtonElement>(null)
   const [displayState, setDisplayState] = useState({
     key: true,
     placeholder: true,
@@ -36,19 +42,18 @@ export const DocSearchButton = ({ settings, hotKeys, onClick }) => {
   }, []);
 
   useEffect(() => {
-    if (resizeObserverRef.current) {
-      resizeObserverRef.current.disconnect();
-    }
+    resizeObserverRef.current?.disconnect();
     const element = btnRef.current;
     if (element) {
       resizeObserverRef.current = new ResizeObserver((entries) => {
         for (const entry of entries) {
-          if (entry.target.offsetWidth < 48) {
+          const target = entry.target as HTMLElement;
+          if (target.offsetWidth < 48) {
             setDisplayState({
               key: false,
               placeholder: false,
             })
-          } else if (entry.target.offsetWidth < 120) {
+          } else if (target.offsetWidth < 120) {
             setDisplayState({
               key: false,
               placeholder: true,
@@ -65,7 +70,7 @@ export const DocSearchButton = ({ settings, hotKeys, onClick }) => {
       resizeObserverRef.current.observe(element);
 
       return () => {
-        resizeObserverRef.current.disconnect();
+        resizeObserverRef.current?.disconnect();
       };
     }
   }, [options?.embedded_placeholder, hotKeys]);

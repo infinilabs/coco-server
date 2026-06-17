@@ -8,32 +8,43 @@ import { createRoot } from 'react-dom/client';
 const DEFAULT_HOTKEYS = ["ctrl+/"];
 const DARK_MODE_MEDIA_QUERY = '(prefers-color-scheme: dark)'
 
-export const DocSearch = (props) => {
+export interface DocSearchProps {
+  container?: string | Element;
+  environment?: Window;
+  hotKeys?: string[];
+  server?: string;
+  id?: string;
+  linkHref?: string;
+  trigger?: string;
+  formatUrl?: (url: string) => string;
+}
+
+export const DocSearch: React.FC<DocSearchProps> = (props) => {
   const { hotKeys = DEFAULT_HOTKEYS, server, id, linkHref, formatUrl } = props;
 
   const [isOpen, setIsOpen] = useState(false);
-  const [initialQuery, setInitialQuery] = useState();
-  const [settings, setSettings] = useState()
+  const [initialQuery, setInitialQuery] = useState<string | undefined>();
+  const [settings, setSettings] = useState<any>()
   const [theme, setTheme] = useState(window.matchMedia && window.matchMedia(DARK_MODE_MEDIA_QUERY).matches ? 'dark' : 'light')
 
   const [shadowLoading, setShadowLoading] = useState(true)
 
-  const [triggerBtnType, setTriggerBtnType] = useState('embedded');
+  const [triggerBtnType, setTriggerBtnType] = useState<string | undefined>('embedded');
   const onOpen = () => setIsOpen(true);
   const onClose = () => {
     setIsOpen(false);
-    setTriggerBtnType();
+    setTriggerBtnType(undefined);
   };
-  const onInput = query => setInitialQuery(query);
-  const onClick = type => {
+  const onInput = (query: string) => setInitialQuery(query);
+  const onClick = (type?: string) => {
     const selectedText = window.getSelection();
     if (selectedText) setInitialQuery(selectedText.toString());
     setTriggerBtnType(type);
     setIsOpen(true);
   };
 
-  function isEditingContent(event) {
-    const element = event.target;
+  function isEditingContent(event: KeyboardEvent) {
+    const element = event.target as HTMLElement;
     const tagName = element.tagName;
 
     return element.isContentEditable || tagName === 'INPUT' || tagName === 'SELECT' || tagName === 'TEXTAREA';
@@ -47,7 +58,7 @@ export const DocSearch = (props) => {
     return formatHotKey ? [formatHotKey] : hotKeys;
   }, [hotKeys, settings?.hotkey]);
 
-  function isHotKey(event) {
+  function isHotKey(event: KeyboardEvent) {
     const modsAndkeys = currentHotkeys && currentHotkeys.map(k => k.toLowerCase().split('+'));
 
     if (modsAndkeys) {
@@ -86,7 +97,7 @@ export const DocSearch = (props) => {
     return false;
   }
 
-  const onKeyDown = useCallback((e) => {
+  const onKeyDown = useCallback((e: KeyboardEvent) => {
     if ((e.key === "Escape" && isOpen) || isHotKey(e)) {
       e.preventDefault();
       if (isOpen) {
@@ -101,7 +112,7 @@ export const DocSearch = (props) => {
     }
   }, [isOpen, currentHotkeys])
 
-  async function fetchSettings(server, id) {
+  async function fetchSettings(server?: string, id?: string) {
     if (!server || !id) return;
     fetch(`${server}/integration/${id}`, {
       headers: {
@@ -120,13 +131,13 @@ export const DocSearch = (props) => {
       .catch(error => console.log('error', error));
   }
 
-  function renderShadow(linkHref) {
-    if (window[`${id}_shadow_container`]) window[`${id}_shadow_container`].remove()
+  function renderShadow(linkHref?: string) {
+    if ((window as any)[`${id}_shadow_container`]) (window as any)[`${id}_shadow_container`].remove()
     const container = document.createElement("div");
     document.body.appendChild(container)
-    window[`${id}_shadow_container`] = container;
+    ;(window as any)[`${id}_shadow_container`] = container;
     const shadow = container.attachShadow({ mode: "open" });
-    window[`${id}_shadow`] = shadow;
+    ;(window as any)[`${id}_shadow`] = shadow;
     
     const iconsElement = document.createElement("script");
     iconsElement.src = `${server}/assets/fonts/icons/iconfont.js`
@@ -135,7 +146,7 @@ export const DocSearch = (props) => {
       const svgElement = document.createElement("div");
       svgElement.style.height = "0";
       svgElement.style.overflow = "hidden";
-      svgElement.innerHTML = window._iconfont_svg_string_4878526
+      svgElement.innerHTML = (window as any)._iconfont_svg_string_4878526
       shadow.appendChild(svgElement);
     }
     const iconsAppElement = document.createElement("script");
@@ -145,7 +156,7 @@ export const DocSearch = (props) => {
       const svgElement = document.createElement("div");
       svgElement.style.height = "0";
       svgElement.style.overflow = "hidden";
-      svgElement.innerHTML = window._iconfont_svg_string_4934333
+      svgElement.innerHTML = (window as any)._iconfont_svg_string_4934333
       shadow.appendChild(svgElement);
     }
     if (linkHref) {
@@ -161,11 +172,11 @@ export const DocSearch = (props) => {
     }
   }
 
-  function renderModal(server, settings, triggerBtnType, theme, isOpen) {
-    if (!window[`${id}_shadow`]) return;
+  function renderModal(server: string | undefined, settings: any, triggerBtnType: string | undefined, theme: string, isOpen: boolean) {
+    if (!(window as any)[`${id}_shadow`]) return;
     
-    window[`${id}_modal_root`]?.unmount()
-    window[`${id}_modal_container`]?.remove()
+    ;(window as any)[`${id}_modal_root`]?.unmount()
+    ;(window as any)[`${id}_modal_container`]?.remove()
 
     if (!isOpen) {
       return;
@@ -177,22 +188,22 @@ export const DocSearch = (props) => {
       refreshSettings: () => fetchSettings(server, id),
       onClose,
       triggerBtnType,
-      theme,
+      theme: theme as 'auto' | 'light' | 'dark',
       isOpen,
       formatUrl
     }
     const wrapper = document.createElement("div");
-    window[`${id}_shadow`].appendChild(wrapper);
-    window[`${id}_modal_container`] = wrapper;
+    ;(window as any)[`${id}_shadow`].appendChild(wrapper);
+    ;(window as any)[`${id}_modal_container`] = wrapper;
     const root = createRoot(wrapper);
-    window[`${id}_modal_root`] = root;
+    ;(window as any)[`${id}_modal_root`] = root;
     root.render(<DocSearchModal {...props} />);
   }
 
-  function renderFloatButton(theme, settings) {
-    if (!window[`${id}_shadow`] || !['floating', 'all'].includes(settings?.type)) return;
+  function renderFloatButton(theme: string, settings: any) {
+    if (!(window as any)[`${id}_shadow`] || !['floating', 'all'].includes(settings?.type)) return;
 
-    if (window[`${id}_float_button`]) window[`${id}_float_button`].remove()
+    if ((window as any)[`${id}_float_button`]) (window as any)[`${id}_float_button`].remove()
 
     const props = {
       theme,
@@ -200,13 +211,13 @@ export const DocSearch = (props) => {
       onClick: () => onClick('floating')
     }
     const wrapper = document.createElement("div");
-    window[`${id}_shadow`].appendChild(wrapper);
-    window[`${id}_float_button`] = wrapper;
+    ;(window as any)[`${id}_shadow`].appendChild(wrapper);
+    ;(window as any)[`${id}_float_button`] = wrapper;
     const root = createRoot(wrapper);
     root.render(<DocSearchFloatButton {...props}/>);
   }
 
-  function renderButton(settings) {
+  function renderButton(settings: any) {
     const { type } = settings || {};
     if (!props.trigger && ['embedded', 'all'].includes(type)) {
       return (
@@ -220,7 +231,7 @@ export const DocSearch = (props) => {
     return null
   }
 
-  function onSystemThemeChange(e) {
+  function onSystemThemeChange(e: MediaQueryListEvent) {
     setTheme(e.matches ? 'dark' : 'light')
   }
 
@@ -275,13 +286,14 @@ export const DocSearch = (props) => {
   }, [shadowLoading, theme, theme])
 
   useEffect(() => {
-    let dom
+    let dom: HTMLElement | null = null;
     if (props.trigger) {
       dom = document.getElementById(props.trigger)
     }
-    dom?.addEventListener('click', onClick)
+    const handleClick = () => onClick();
+    dom?.addEventListener('click', handleClick)
     return () => {
-      dom?.removeEventListener('click', onClick)
+      dom?.removeEventListener('click', handleClick)
     }
   }, [props.trigger])
 

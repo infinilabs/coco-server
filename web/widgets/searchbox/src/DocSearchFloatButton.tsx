@@ -1,6 +1,12 @@
-import Logo from './icons/logo.svg';
+import Logo from './icons/logo.svg?react';
 
-export const DocSearchFloatButton = ({
+interface DocSearchFloatButtonProps {
+  theme?: string;
+  settings?: any;
+  onClick?: () => void;
+}
+
+export const DocSearchFloatButton: React.FC<DocSearchFloatButtonProps> = ({
   theme,
   settings,
   onClick,

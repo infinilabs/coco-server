@@ -1,7 +1,18 @@
 import SearchChat from '@infinilabs/search-chat';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
-export const DocSearchModal = ({
+interface DocSearchModalProps {
+  server?: string;
+  settings?: any;
+  refreshSettings?: () => Promise<void>;
+  onClose?: () => void;
+  triggerBtnType?: string;
+  theme?: 'auto' | 'light' | 'dark';
+  isOpen?: boolean;
+  formatUrl?: (url: string) => string;
+}
+
+export const DocSearchModal: React.FC<DocSearchModalProps> = ({
   server,
   settings,
   refreshSettings,
@@ -29,7 +40,7 @@ export const DocSearchModal = ({
     hasModules.push('chat');
   }
 
-  let defaultModule = 'search';
+  let defaultModule: 'search' | 'chat' = 'search';
   if (type === 'embedded') {
     defaultModule = 'search';
   } else if (type === 'floating') {
@@ -68,7 +79,7 @@ export const DocSearchModal = ({
             setIsPinned={setIsPinned}
             defaultModule={defaultModule}
             onCancel={() => {
-              onClose()
+              onClose?.()
             }}
             formatUrl={formatUrl}
             settings={settings}
