@@ -340,9 +340,6 @@ func ReporterNode(ctx context.Context, state interface{}) (interface{}, error) {
 	if len(s.ChapterOutline) == 0 {
 		return nil, fmt.Errorf("no chapter outline available for report generation")
 	}
-	if len(s.ChapterContents) == 0 {
-		return nil, fmt.Errorf("no chapter content available for report generation")
-	}
 	return s.generateChapterBasedReport(ctx, llm)
 }
 
@@ -611,12 +608,18 @@ func (s *State) updateChapterProgress(stepIndex int, materials []MaterialReferen
 func (s *State) generateChapterContent(ctx context.Context, llm llms.Model) map[string]*ChapterContent {
 	log.Info("Starting chapter content generation...")
 
-	for chapterID, content := range s.ChapterContents {
+	for _, chapter := range s.ChapterOutline {
+		chapterID := chapter.ID
+		content, exists := s.ChapterContents[chapterID]
+		if !exists {
+			s.initializeChapterContent(chapterID)
+			content = s.ChapterContents[chapterID]
+		}
 		content.Status = "generating"
 
 		i18n := getReportI18n(s.Config.ReportLang)
 		if len(content.Materials) == 0 {
-			content.Content = fmt.Sprintf("# %s\n\n%s", content.Title, i18n.NoMaterials)
+			content.Content = i18n.NoMaterials
 			content.Status = "completed"
 			s.ChapterContents[chapterID] = content
 			continue
@@ -655,7 +658,7 @@ Generate the chapter content directly, do not add explanatory text.`,
 		completion, err := llms.GenerateFromSinglePrompt(ctx, llm, langchain.PromptWithCurrentTime(prompt))
 		if err != nil {
 			log.Warnf("Failed to generate chapter content for %s: %v", chapterID, err)
-			content.Content = fmt.Sprintf("# %s\n\n"+i18n.GenerationFailed, content.Title, err)
+			content.Content = fmt.Sprintf(i18n.GenerationFailed, content.Title, err)
 			content.Status = "error"
 		} else {
 			completion = strings.TrimSpace(completion)
@@ -773,11 +776,9 @@ func (s *State) generateChapterBasedReport(ctx context.Context, llm llms.Model) 
 	// Generate chapter content if needed
 	needsGeneration := false
 	for _, chapter := range s.ChapterOutline {
-		if content, exists := contents[chapter.ID]; exists {
-			if content.Content == "" {
-				needsGeneration = true
-				break
-			}
+		if content, exists := contents[chapter.ID]; !exists || content.Content == "" {
+			needsGeneration = true
+			break
 		}
 	}
 	if needsGeneration {
@@ -871,7 +872,7 @@ type reportI18n struct {
 	TableOfContents  string
 	FallbackIntro    string
 	NoMaterials      string
-	GenerationFailed string // printf format — must contain one %v
+	GenerationFailed string // printf format — must contain %s for title and %v for error
 }
 
 // getReportI18n returns UI strings for the primary language subtag derived
@@ -888,7 +889,7 @@ func getReportI18n(lang string) reportI18n {
 			TableOfContents:  "目录",
 			FallbackIntro:    "本研究按照系统性分析方法，对主题进行了深入调研。",
 			NoMaterials:      "暂无可用的研究素材。",
-			GenerationFailed: "内容生成失败：%v",
+			GenerationFailed: "'%s' 内容生成失败：%v",
 		}
 	default:
 		return reportI18n{
@@ -896,7 +897,7 @@ func getReportI18n(lang string) reportI18n {
 			TableOfContents:  "Table of Contents",
 			FallbackIntro:    "This research conducted a systematic and in-depth analysis of the topic.",
 			NoMaterials:      "No research materials available.",
-			GenerationFailed: "Content generation failed: %v",
+			GenerationFailed: "Content generation failed for '%s': %v",
 		}
 	}
 }

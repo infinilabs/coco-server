@@ -70,7 +70,8 @@ func RunDeepSearchTask(ctx context.Context, userID string, params *common2.RAGCo
 		return err
 	}
 
-	params.InputValues["intent"] = util.MustToJSON(params.QueryIntent)
+	params.QueryIntent = queryIntent
+	params.InputValues["intent"] = util.MustToJSON(queryIntent)
 
 	var toolsMayHavePromisedResult = false
 	if params.MCP && ((params.AssistantCfg.MCPConfig.Enabled && len(params.MCPServers) > 0) || params.AssistantCfg.ToolsConfig.Enabled) {
