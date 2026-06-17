@@ -256,4 +256,4 @@ require (
 	nhooyr.io/websocket v1.8.7 // indirect
 )
 
-replace github.com/tmc/langchaingo => github.com/infinilabs/langchaingo v0.0.0-20260617065721-8228657516c5
+replace github.com/tmc/langchaingo => github.com/infinilabs/langchaingo v0.0.0-20260617092532-cab644a9995a
