@@ -65,7 +65,10 @@ export default function useMessageChunkData() {
     }, []),
     deal_deep_read: useCallback((data: IChunkData) => {
       const prev = deepReadRef.current;
-      const next = !prev ? data : { ...prev, message_chunk: (prev.message_chunk || "") + "&" + (data.message_chunk || "") };
+      const prevItems = (prev as any)?.deep_read_items || [];
+      const next = !prev
+        ? { ...data, deep_read_items: [data.message_chunk || ""] }
+        : { ...prev, deep_read_items: [...prevItems, data.message_chunk || ""] };
       deepReadRef.current = next;
       setDeep_read(next);
     }, []),

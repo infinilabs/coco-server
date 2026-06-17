@@ -33,17 +33,14 @@ export const DeepRead = ({
   }, [Detail?.description]);
 
   useEffect(() => {
-    if (!ChunkData?.message_chunk) return;
-    try {
-      if (ChunkData.message_chunk.includes("&")) {
-        const contentArray = ChunkData.message_chunk.split("&").filter(Boolean);
-        setData(contentArray);
-      } else {
-        setData([ChunkData.message_chunk]);
-      }
-    } catch (e) {
+    if (!ChunkData) return;
+    const items = (ChunkData as any)?.deep_read_items;
+    if (items && Array.isArray(items)) {
+      setData(items.filter(Boolean));
+    } else if (ChunkData.message_chunk) {
+      setData([ChunkData.message_chunk]);
     }
-  }, [ChunkData?.message_chunk]);
+  }, [ChunkData]);
   // Must be after hooks !!!
   if (!ChunkData && !Detail) return null;
 
@@ -96,13 +93,10 @@ export const DeepRead = ({
                   </div>
                 </div>
               ))}
-              {description?.split("\n").map(
-                (paragraph, idx) =>
-                  paragraph.trim() && (
-                    <p key={idx} className="text-xs text-[#999] dark:text-[#666]">
-                      {paragraph}
-                    </p>
-                  )
+              {description && (
+                <div className="text-xs text-[#999] dark:text-[#666] whitespace-pre-wrap">
+                  {description}
+                </div>
               )}
             </div>
           </div>

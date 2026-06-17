@@ -8,7 +8,7 @@ interface ExpandTextProps {
     className?: string;
 }
 
-export const ExpandText = ({ content, rows = 3, className = "!mb-0 leading-20px text-12px text-[#333] dark:text-[#E5E7EB]" }: ExpandTextProps) => {
+export const ExpandText = ({ content, rows = 3, className = "!mb-0 leading-20px text-12px text-[#333] dark:text-[#E5E7EB] whitespace-pre-wrap" }: ExpandTextProps) => {
     const [expanded, setExpanded] = useState(false);
     const [showButton, setShowButton] = useState(false);
     const { t } = useTranslation();

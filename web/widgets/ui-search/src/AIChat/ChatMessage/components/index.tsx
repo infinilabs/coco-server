@@ -270,7 +270,7 @@ const InnerChatMessage = memo(
           } catch {}
         }
         if (refs.deepReadRef.current?.message_chunk) {
-          details.push({ type: "deep_read", description: refs.deepReadRef.current.message_chunk });
+          details.push({ type: "deep_read", description: ((refs.deepReadRef.current as any)?.deep_read_items || []).join("") });
         }
         if (refs.thinkRef.current?.message_chunk) {
           details.push({ type: "think", description: refs.thinkRef.current.message_chunk });
