@@ -2,8 +2,9 @@ import { Document, Page, pdfjs } from "react-pdf";
 import { useState, useEffect, useRef, type FC } from "react";
 import { Pagination } from "antd";
 import { DocDetailProps } from "@/ResultDetail/DocDetail/DocDetail";
+import pdfjsWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
-pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorkerUrl;
 
 interface PdfProps extends DocDetailProps {
   url: string;

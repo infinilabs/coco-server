@@ -12,6 +12,11 @@ declare module "*.svg" {
   export default content;
 }
 
+declare module "*.mjs?url" {
+  const url: string;
+  export default url;
+}
+
 declare module '@infinilabs/attachments' {
   export const Attachments: any;
 }
