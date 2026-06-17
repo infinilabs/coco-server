@@ -3,6 +3,7 @@ package deep_research
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -109,7 +110,7 @@ func RunDeepResearchV2(ctx context.Context, query string, config *core.DeepResea
 	attachment := saveReport(ctx, reportFormat, reportContent, reportBytes, finalState.ReportTitle)
 
 	report := util.MapStr{}
-	report["title"] = attachment.Name
+	report["title"] = strings.TrimSuffix(attachment.Name, filepath.Ext(attachment.Name))
 	report["url"] = attachment.URL
 	report["created"] = attachment.Created
 	report["attachment"] = attachment.ID
@@ -157,26 +158,29 @@ func RunDeepResearchV2(ctx context.Context, query string, config *core.DeepResea
 //   - markdown/html → report is set, reportBytes is nil
 //   - pdf          → reportBytes is set, report is empty
 //
-// title is used as the attachment name without a file extension; the MIME type
-// header is set independently so clients can still identify the file type.
+// title is the base name used for the attachment; the file extension is
+// appended automatically based on reportFormat so the download handler
+// can serve the file with the correct Content-Disposition.
 func saveReport(ctx context.Context, reportFormat, report string, reportBytes []byte, title string) core.Attachment {
 	attachment := core.Attachment{}
 	attachment.ID = util.GetUUID()
-	attachment.Name = title
 
 	var content []byte
 
 	switch reportFormat {
 	case "html":
+		attachment.Name = title + ".html"
 		attachment.MimeType = "text/html; charset=UTF-8"
 		attachment.Text = report
 		attachment.Size = int64(len(report))
 		content = []byte(report)
 	case "pdf":
+		attachment.Name = title + ".pdf"
 		attachment.MimeType = "application/pdf"
 		attachment.Size = int64(len(reportBytes))
 		content = reportBytes
 	default:
+		attachment.Name = title + ".md"
 		attachment.MimeType = "text/markdown; charset=UTF-8"
 		attachment.Text = report
 		attachment.Size = int64(len(report))
