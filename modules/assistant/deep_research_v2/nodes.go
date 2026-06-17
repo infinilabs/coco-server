@@ -932,7 +932,8 @@ func renderPDF(ctx context.Context, markdown string, title string, tocTitle stri
 			Date:  time.Now().Format("2006-01-02"),
 		},
 		TOC: &picoloom.TOC{
-			Title: tocTitle,
+			Title:    tocTitle,
+			NoNumber: true,
 		},
 		Footer: &picoloom.Footer{
 			Position:       "right",
