@@ -27,7 +27,7 @@ require (
 	github.com/hirochachacha/go-smb2 v1.1.0
 	github.com/infinilabs/picoloom/v2 v2.0.0-20260617033303-f6890aaf7f88
 	github.com/lib/pq v1.10.9
-	github.com/lucasb-eyer/go-colorful v1.2.0
+	github.com/lucasb-eyer/go-colorful v1.4.0
 	github.com/mark3labs/mcp-go v0.43.1
 	github.com/microsoft/go-mssqldb v1.9.3
 	github.com/milvus-io/milvus-sdk-go/v2 v2.4.2
@@ -38,7 +38,7 @@ require (
 	github.com/smallnest/langgraphgo v0.5.1-0.20251208060332-cdde22ee1d77
 	github.com/stretchr/testify v1.11.1
 	github.com/tmc/langchaingo v0.1.14
-	github.com/yuin/goldmark v1.7.13
+	github.com/yuin/goldmark v1.8.2
 	gitlab.com/gitlab-org/api/client-go v0.142.4
 	go.mongodb.org/mongo-driver v1.14.0
 	golang.org/x/crypto v0.51.0
@@ -71,13 +71,15 @@ require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/42wim/httpsig v1.2.3 // indirect
 	github.com/AssemblyAI/assemblyai-go-sdk v1.3.0 // indirect
+	github.com/JohannesKaufmann/dom v0.3.1 // indirect
+	github.com/JohannesKaufmann/html-to-markdown/v2 v2.5.2 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.2.0 // indirect
 	github.com/Masterminds/sprig/v3 v3.2.3 // indirect
 	github.com/OneOfOne/xxhash v1.2.8 // indirect
 	github.com/RoaringBitmap/roaring v1.9.4 // indirect
 	github.com/andybalholm/brotli v1.1.1 // indirect
-	github.com/andybalholm/cascadia v1.3.3 // indirect
+	github.com/andybalholm/cascadia v1.3.4 // indirect
 	github.com/antchfx/htmlquery v1.3.0 // indirect
 	github.com/antchfx/xmlquery v1.3.17 // indirect
 	github.com/antchfx/xpath v1.2.4 // indirect
@@ -254,4 +256,4 @@ require (
 	nhooyr.io/websocket v1.8.7 // indirect
 )
 
-replace github.com/tmc/langchaingo => github.com/infinilabs/langchaingo v0.0.0-20260603083656-7933b3e0062c
+replace github.com/tmc/langchaingo => github.com/infinilabs/langchaingo v0.0.0-20260617065721-8228657516c5

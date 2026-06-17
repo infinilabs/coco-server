@@ -27,7 +27,7 @@ import (
 
 // helper function to choose the request timeout for an assistant.
 func resolveTimeout(assistant *core.Assistant) time.Duration {
-	const defaultTimeout = 5 * time.Minute
+	const defaultTimeout = 10 * time.Minute
 	const deepResearchDefault = 30 * time.Minute
 
 	if assistant == nil || assistant.Type != core.AssistantTypeDeepResearch {
