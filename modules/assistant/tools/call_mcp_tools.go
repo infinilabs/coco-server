@@ -85,7 +85,13 @@ func CallLLMTools(ctx context.Context, reqMsg *core.ChatMessage, replyMsg *core.
 		}
 
 		if params.AssistantCfg.ToolsConfig.BuiltinTools.Scraper {
-			scr, err := scraper.New()
+			scr, err := scraper.New(
+				scraper.WithUserAgent(webAgent),
+				scraper.WithMaxDepth(0),
+				scraper.WithMaxPages(1),
+				scraper.WithDelay(0),
+				scraper.WithAsync(false),
+			)
 			if err == nil && scr != nil {
 				agentTools = append(agentTools, scr)
 			}
