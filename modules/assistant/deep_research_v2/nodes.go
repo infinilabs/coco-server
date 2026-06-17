@@ -621,12 +621,6 @@ func (s *State) generateChapterContent(ctx context.Context, llm llms.Model, inde
 		content.Status = "generating"
 
 		i18n := getReportI18n(s.Config.ReportLang)
-		if len(content.Materials) == 0 {
-			content.Content = i18n.NoMaterials
-			content.Status = "completed"
-			s.ChapterContents[chapterID] = content
-			continue
-		}
 
 		// Build comprehensive material reference for this chapter
 		materialsInfo := s.buildMaterialsInfo(content.Materials, indexMap)
@@ -929,7 +923,6 @@ type reportI18n struct {
 	TableOfContents  string
 	References       string
 	FallbackIntro    string
-	NoMaterials      string
 	GenerationFailed string // printf format — must contain %s for title and %v for error
 }
 
@@ -947,7 +940,6 @@ func getReportI18n(lang string) reportI18n {
 			TableOfContents:  "目录",
 			References:       "参考文献",
 			FallbackIntro:    "本研究按照系统性分析方法，对主题进行了深入调研。",
-			NoMaterials:      "暂无可用的研究素材。",
 			GenerationFailed: "'%s' 内容生成失败：%v",
 		}
 	default:
@@ -956,7 +948,6 @@ func getReportI18n(lang string) reportI18n {
 			TableOfContents:  "Table of Contents",
 			References:       "References",
 			FallbackIntro:    "This research conducted a systematic and in-depth analysis of the topic.",
-			NoMaterials:      "No research materials available.",
 			GenerationFailed: "Content generation failed for '%s': %v",
 		}
 	}
