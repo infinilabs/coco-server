@@ -260,16 +260,6 @@ http_client:
           socket5_proxy: socks5://127.0.0.1:7890
 
 field_metadata:
-  "title.keyword":
-    field_icon: "font_docs"
-    field_label: "Title"
-    field_description:
-      en: "Document title"
-      zh: "文档标题"
-    field_name: "title.keyword"
-    field_data_type: "keyword"
-    support_multi_select: false
-
   type:
     field_icon: "font_filetype-txt"
     field_label: "Type"
