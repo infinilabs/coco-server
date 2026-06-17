@@ -15,6 +15,7 @@ import type { ResearchReportData } from "./ResearchReportContent";
 import type { IChunkData } from "../../types/chat";
 import CheckIcon from "../../../../icons/CheckIcon";
 import CloseIcon from "../../../../icons/CloseIcon";
+import EditIcon from "../../../../icons/EditIcon";
 
 interface DeepResearchProps {
   detail?: { type: string; payload?: IChunkData[] };
@@ -545,8 +546,10 @@ export const DeepResearch = ({
           <div className="mt-2 flex items-center justify-between rounded-4px bg-white px-3 py-2 text-sm text-[#333] dark:bg-[#111827] dark:text-[#D1D5DB]">
             <div className="flex min-w-0 items-center gap-2 flex-1">
               {
-                isCompleted || deepResearchReporterStarted ? (
+                isCompleted ? (
                   <BookOpen className="h-4 w-4 shrink-0 text-[#1784FC]" />
+                ) : deepResearchReporterStarted ? (
+                  <EditIcon className="h-4 w-4 shrink-0 text-[#1784FC]" />
                 ) : (
                   <Search className="h-4 w-4 text-[#1784FC] shrink-0" />
                 )
@@ -556,7 +559,7 @@ export const DeepResearch = ({
                   {displayStatus}
                 </span>
                 {
-                  !isCompleted && (deepResearchQuery || question) && (
+                  !isCompleted && !deepResearchReporterStarted && (deepResearchQuery || question) && (
                     <span className="text-[#999] dark:text-[#666] truncate ml-1">
                       ｜ {deepResearchQuery || question}
                     </span>

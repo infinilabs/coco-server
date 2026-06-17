@@ -372,8 +372,11 @@ const InnerChatMessage = memo(
       setSuggestion(suggestion);
     };
 
-    const hasContent =
-      !isAssistant ||
+    const hasUserContent =
+      !!messageContent?.trim() ||
+      attachments.length > 0;
+
+    const hasAssistantContent =
       (details && details.length > 0) ||
       !!query_intent ||
       !!tools ||
@@ -382,14 +385,17 @@ const InnerChatMessage = memo(
       !!deep_read ||
       !!think ||
       (deepResearch && deepResearch.length > 0) ||
-      !!messageContent ||
-      !!response?.message_chunk ||
+      !!messageContent?.trim() ||
+      !!response?.message_chunk?.trim() ||
       !!payload ||
       isTyping ||
-      (suggestion && suggestion.length > 0)
-      || isCancelled
-      || isError
-      || isTimeout;
+      (suggestion && suggestion.length > 0) ||
+      isCancelled ||
+      isError ||
+      isTimeout;
+
+    const hasContent = !isAssistant && hasUserContent;
+    const hasRenderableContent = hasContent || (isAssistant && hasAssistantContent);
 
     const isDeepResearching = useMemo(() => {
       return !!deepResearchDetail || deepResearch?.length > 0;
@@ -530,6 +536,10 @@ const InnerChatMessage = memo(
       );
     };
 
+    if (!hasRenderableContent) {
+      return null;
+    }
+
     return (
       <div
         className={clsx(
@@ -547,7 +557,7 @@ const InnerChatMessage = memo(
             className={`w-full space-y-2 ${isAssistant ? "text-left" : "text-right"
               }`}
           >
-            {!hide_assistant && hasContent && (
+            {!hide_assistant && isAssistant && hasAssistantContent && (
               <div className="w-full flex items-center gap-8px font-semibold text-sm text-[#333] dark:text-white">
                 {isAssistant ? (
                   <div className="w-32px h-32px flex justify-center items-center rounded-full bg-white dark:bg-[#2A2A2A] border border-[#F0F0F0] dark:border-[#303030]">

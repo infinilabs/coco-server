@@ -169,7 +169,7 @@ const resources = {
           searchResults: "Search Results",
         },
         report: {
-          generatingTitle: "Generating research report",
+          generatingTitle: "Generating research report...",
           loadingTitle: "Loading research report...",
           loadFailed: "Failed to load research report.",
           generatingDescription:
@@ -396,7 +396,7 @@ const resources = {
           searchResults: "搜索结果",
         },
         report: {
-          generatingTitle: "研究报告生成中",
+          generatingTitle: "研究报告生成中...",
           loadingTitle: "研究报告加载中...",
           loadFailed: "研究报告加载失败。",
           generatingDescription:
