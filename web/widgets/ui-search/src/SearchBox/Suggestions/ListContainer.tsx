@@ -144,10 +144,19 @@ const ListContainer = forwardRef<any, ListContainerProps>((props, ref) => {
   useEffect(() => {
     if (typeof resetKey === 'undefined') return;
     setDataSource([]);
+    // Reset activeIndex to defaultActiveIndex so that keyboard navigation
+    // starts from the correct position after the list is rebuilt. Previously
+    // activeIndex kept its stale value (e.g. 3) from the previous context,
+    // causing the highlight to start at the wrong row or point past the new
+    // (shorter) list. Also reset prevActiveIndexRef to avoid the scroll
+    // effect (line ~97) firing a needless scroll to the stale index.
+    setActiveIndex(defaultActiveIndex);
+    prevActiveIndexRef.current = defaultActiveIndex;
+    keyDirectionRef.current = 'none';
     hasMoreRefs.current = true;
     setHasMore(true);
     loadingRef.current = false;
-  }, [resetKey]);
+  }, [resetKey, defaultActiveIndex]);
 
   useEffect(() => {
     if (useGlobalKeydown || !onItemClick) return;

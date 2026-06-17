@@ -63,6 +63,12 @@ export default function useSearchBox({
   const inputRef = useRef<any>(null);
   const textAreaRef = useRef<any>(null);
   const expandedInputRef = useRef<any>(null);
+  // Root container ref of the SearchBox. Used as the reliable boundary for
+  // click-outside detection (replaces the fragile `[class*="searchbox"]`
+  // selector that depends on CSS-module hashed class names and breaks when
+  // the `.searchbox` class is renamed or when multiple instances exist).
+  // Typed as HTMLDivElement to match the root <div> it is attached to.
+  const rootRef = useRef<HTMLDivElement | null>(null);
 
   const showExpandedPanel = useMemo(() => {
     return mainInputActive || filterState.type !== 'none';
@@ -123,7 +129,11 @@ export default function useSearchBox({
     setCurrentQueryParams((prev: any) => ({ ...prev, [field]: value }));
   }, []);
 
-  const handleSearch = (searchQuery: any, searchFilters: any, actionType: any, searchType: any) => {
+  // Wrap handleSearch in useCallback so that consumers (triggerSearch,
+  // handleFilterComplete, etc.) always reference the latest version and
+  // stale-closure bugs are eliminated. Dependencies are only the values
+  // that can change between renders; refs and state setters are stable.
+  const handleSearch = useCallback((searchQuery: any, searchFilters: any, actionType: any, searchType: any) => {
     if (attachments.length > 0) {
       onSearch?.({
         query: searchQuery,
@@ -160,9 +170,11 @@ export default function useSearchBox({
     if (expandedInputRef.current?.resizableTextArea?.textArea) {
       expandedInputRef.current.resizableTextArea.textArea.blur();
     }
-  };
+  }, [attachments, onSearch]);
 
-  const triggerSearch = () => handleSearch(query, filters, action_type, search_type);
+  const triggerSearch = useCallback(() => {
+    handleSearch(query, filters, action_type, search_type);
+  }, [handleSearch, query, filters, action_type, search_type]);
 
   const handleAttachmentUpload = (files: File[], cb: (res: any) => void) => {
     if (onUpload) onUpload(files, cb);
@@ -255,7 +267,11 @@ export default function useSearchBox({
     });
   };
 
-  // Complete filter editing: close panel and trigger search
+  // Complete filter editing: close panel and trigger search.
+  // NOTE: handleSearch is included in the dependency array because it is now
+  // a useCallback whose identity can change (e.g. when `attachments` or
+  // `onSearch` changes). Without it, the setTimeout closure would capture a
+  // stale handleSearch, causing the search to use outdated attachments/filter.
   const handleFilterComplete = useCallback(() => {
     setFilterState({ type: 'none', index: -1 });
     setSuggestions({});
@@ -263,7 +279,7 @@ export default function useSearchBox({
     setTimeout(() => {
       handleSearch(query, filters, action_type, search_type);
     }, 50);
-  }, [query, filters, action_type, search_type]);
+  }, [query, filters, action_type, search_type, handleSearch]);
 
   // Delete a filter by index
   const handleFilterDelete = useCallback((index: number) => {
@@ -318,9 +334,12 @@ export default function useSearchBox({
     const eventTarget = rootNode === document ? document : rootNode;
 
     const handleClickOutside = (e: any) => {
-      // Find the searchbox root element
-      const searchboxEl = expandedInputRef.current?.resizableTextArea?.textArea?.closest('[class*="searchbox"]')
-        || (rootNode instanceof ShadowRoot ? rootNode : document).querySelector('[class*="searchbox"]');
+      // Use the stable rootRef as the click-outside boundary instead of the
+      // fragile `[class*="searchbox"]` selector. The previous selector relied
+      // on CSS-module hashed class names containing the substring "searchbox",
+      // which breaks silently if the class is renamed, and also matches the
+      // WRONG instance when multiple SearchBox widgets coexist on a page.
+      const searchboxEl = rootRef.current;
       // Use composedPath() to get the actual target inside Shadow DOM
       const actualTarget = e.composedPath ? e.composedPath()[0] : e.target;
       if (searchboxEl && !searchboxEl.contains(actualTarget) && !isClickingSearchAction.current) {
@@ -424,8 +443,24 @@ export default function useSearchBox({
     }
   };
 
-  // Sync queryParams prop to internal state
+  // Refs to cache the serialized form of queryParams / filterFieldsMeta,
+  // so we only reset internal state when their *content* actually changes.
+  // This avoids the anti-pattern of JSON.stringify inside the dependency
+  // array (which recomputes every render) and prevents spurious resets /
+  // potential update loops caused by new object references on each parent
+  // render (e.g. overwriting the query the user is currently typing).
+  const prevQueryParamsRef = useRef('');
+  const prevFilterMetaRef = useRef('');
+
+  // Sync queryParams prop to internal state only when content changes
   useEffect(() => {
+    const qpStr = JSON.stringify(queryParams);
+    const fmStr = JSON.stringify(filterFieldsMeta);
+    // Skip if neither the query params nor the filter meta actually changed
+    if (qpStr === prevQueryParamsRef.current && fmStr === prevFilterMetaRef.current) return;
+    prevQueryParamsRef.current = qpStr;
+    prevFilterMetaRef.current = fmStr;
+
     const fields = Object.keys(queryParams?.filter || {});
     setCurrentQueryParams({
       ...(queryParams || {}),
@@ -440,7 +475,7 @@ export default function useSearchBox({
         return undefined;
       }).filter(Boolean)
     });
-  }, [JSON.stringify(queryParams), JSON.stringify(filterFieldsMeta)]);
+  }, [queryParams, filterFieldsMeta]);
 
   // Reset suggestions when suggestion type or query context changes
   useEffect(() => {
@@ -528,7 +563,7 @@ export default function useSearchBox({
     showExpandedPanel, searchable,
     shouldFocusNewFilter,
     filterState, mainInputActive,
-    inputRef, textAreaRef, expandedInputRef,
+    inputRef, textAreaRef, expandedInputRef, rootRef,
     handleSearchActionClick,
     handleSearchActionDropdownClose,
     handleQueryParamsChange,

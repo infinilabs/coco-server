@@ -127,7 +127,9 @@ export function SearchBox(props: SearchBoxProps) {
   };
 
   return (
-    <div className={`
+    <div
+      ref={sb.rootRef}
+      className={`
       ${styles.searchbox}
       relative w-full rounded-12px 
       ${minimize ? 'border border-solid' : ''} 
@@ -165,7 +167,12 @@ export function SearchBox(props: SearchBoxProps) {
         </div>
       )}
       {/* Expanded Panel */}
-      <div className={`absolute left-0 top-0 z-100 w-full ${sb.showExpandedPanel ? '' : 'h-0 overflow-hidden'} `}>
+      {/* Keep `h-0 overflow-hidden` (NOT display:none) so the virtual scroller
+          inside Suggestions/ListContainer stays laid-out and keeps measuring
+          item sizes even when hidden. Add `pointer-events-none` when closed to
+          guarantee the zero-height absolutely-positioned panel can never
+          intercept clicks / block the real input underneath (focus anomaly). */}
+      <div className={`absolute left-0 top-0 z-100 w-full ${sb.showExpandedPanel ? '' : 'h-0 overflow-hidden pointer-events-none'} `}>
         <div className={`${styles.gradientBorder} rounded-12px overflow-visible`}> 
           <div className={`py-12px rounded-12px bg-[rgb(var(--ui-search--layout-bg-color))] overflow-hidden shadow-[0_2px_20px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_20px_rgba(255,255,255,0.2)]`}>
             {sb.attachments.length > 0 && (
