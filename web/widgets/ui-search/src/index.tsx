@@ -119,19 +119,17 @@ const Wrapper = (props: WrapperProps) => {
   }, [shadow]);
 
   return (
-    <React.StrictMode>
-      <StyleProvider container={shadow}>
-        <ConfigProvider
-          button={{ classNames: { icon: 'flex items-center' } }}
-          card={{ styles: { body: { flex: 1, overflow: 'hidden', padding: '12px 16px ' } } }}
-          locale={antdLocales[language]}
-          theme={antdTheme}
-        >
-          {children}
-        </ConfigProvider>
-      </StyleProvider>
-    </React.StrictMode>
-  )
+    <StyleProvider container={shadow}>
+      <ConfigProvider
+        button={{ classNames: { icon: 'flex items-center' } }}
+        card={{ styles: { body: { flex: 1, overflow: 'hidden', padding: '12px 16px ' } } }}
+        locale={antdLocales[language]}
+        theme={antdTheme}
+      >
+        {children}
+      </ConfigProvider>
+    </StyleProvider>
+  );
 }
 
 

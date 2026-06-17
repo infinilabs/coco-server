@@ -180,11 +180,14 @@ export default function Search({
             category={content_category}
             onChange={category => {
               onCategoryChange?.();
-              setQueryParams?.({
+              let shouldAgg = false;
+              if (category !== content_category) {
+                shouldAgg = true;
+              }
+              onSearch?.({
                 ...queryParams,
                 'metadata.content_category': category !== 'all' ? category : '',
-                t: new Date().valueOf()
-              });
+              }, false, shouldAgg);
             }}
           />
         }
