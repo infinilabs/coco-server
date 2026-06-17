@@ -2,22 +2,37 @@ import { Badge, Button, Space, Upload } from "antd";
 import { MessageCircle, Paperclip, Search } from "lucide-react";
 import { type FC } from "react";
 import { useTranslation } from "react-i18next";
+import { filesize } from "filesize";
 import DeepresearchIcon from "../../icons/DeepresearchIcon";
 
-export function getFileNameAndExt(fileName: string | undefined): string | undefined {
-    if (!fileName) return;
+/**
+ * Extract the file extension (without the leading dot) from a file name.
+ * Returns an empty string instead of `undefined` when the file has no
+ * extension (e.g. "Makefile", "README"), so downstream code that builds
+ * attachment objects always gets a stable string for the `extname` field
+ * (prevents icon/type-detection glitches caused by undefined values).
+ */
+export function getFileNameAndExt(fileName: string | undefined): string {
+    if (!fileName) return '';
 
     const lastDotIndex = fileName.lastIndexOf('.');
     if (lastDotIndex <= 0) {
-        return;
+        // No extension, or the filename itself starts with a dot (hidden file).
+        return '';
     }
     return fileName.slice(lastDotIndex + 1);
 }
 
+/**
+ * Human-readable byte size formatting via the `filesize` library (already a
+ * project dependency). The previous hand-rolled implementation only supported
+ * up to MB, so a 1GB file was shown as "1073.7 MB". Using the library gives
+ * us correct B/KB/MB/GB/TB handling, locale-aware output, and less code to
+ * maintain. `output: "string"` keeps the default "1.0 GB" format (with a
+ * space) that the attachment UI expects.
+ */
 function formatBytes(n: number): string {
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-  return `${(n / 1024 / 1024).toFixed(1)} MB`;
+  return filesize(Math.max(n, 0), { output: "string" }) as string;
 }
 
 interface OperationsProps {

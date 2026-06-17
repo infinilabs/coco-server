@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSize } from "ahooks";
 import clsx from "clsx";
+import { filesize } from "filesize";
 import { Attachments as AttachmentsList } from "@infinilabs/attachments";
 
 import { useSpeechRecognition } from "./hooks/useSpeechRecognition";
@@ -38,10 +39,16 @@ interface PendingAttachment {
   error?: string;
 }
 
+/**
+ * Human-readable byte size formatting via the `filesize` library (already a
+ * project dependency). The previous hand-rolled implementation only supported
+ * up to MB, so a 1GB file was shown as "1073.7 MB". Using the library gives
+ * us correct B/KB/MB/GB/TB handling, locale-aware output, and less code to
+ * maintain. `output: "string"` keeps the default "1.0 GB" format (with a
+ * space) that the attachment UI expects.
+ */
 function formatBytes(n: number): string {
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-  return `${(n / 1024 / 1024).toFixed(1)} MB`;
+  return filesize(Math.max(n, 0), { output: "string" }) as string;
 }
 
 type UploadResponse = {
@@ -237,14 +244,18 @@ export default function ChatInput({
     setAttachments((list) => list.filter((a) => a.localId !== id && a.id !== id));
   }, []);
 
-  const attachmentsData = useMemo(() => attachments.map((a) => ({
-    id: a.id ?? a.localId,
-    filename: a.name,
-    extname: a.name.split(".").pop()?.toLowerCase(),
-    size: formatBytes(a.size),
-    status: a.status === "error" ? ("failed" as const) : (a.status as "uploading" | "analyzing" | "uploaded"),
-    failedMessage: a.error,
-  })), [attachments]);
+  const attachmentsData = useMemo(() => attachments.map((a) => {
+    const dotIdx = a.name.lastIndexOf('.');
+    const ext = dotIdx > 0 ? a.name.slice(dotIdx + 1).toLowerCase() : '';
+    return {
+      id: a.id ?? a.localId,
+      filename: a.name,
+      extname: ext,
+      size: formatBytes(a.size),
+      status: a.status === "error" ? ("failed" as const) : (a.status as "uploading" | "analyzing" | "uploaded"),
+      failedMessage: a.error,
+    };
+  }), [attachments]);
 
   const cacheAttachments = useChatStore((state) => state.cacheAttachments);
 
@@ -271,15 +282,20 @@ export default function ChatInput({
           return { ...a, status: "uploaded", id: serverIds[0] };
         })
       );
-      // Cache attachment metadata for user message rendering
+      // Cache attachment metadata for user message rendering.
+      // Use lastIndexOf('.') > 0 guard so that files with no extension
+      // (e.g. "README", "Makefile") or dotfiles (".gitignore") produce an
+      // empty icon string instead of the whole filename as the "extension".
       if (!err && serverIds.length > 0) {
+        const dotIdx = file.name.lastIndexOf('.');
+        const ext = dotIdx > 0 ? file.name.slice(dotIdx + 1).toLowerCase() : "";
         cacheAttachments(serverIds.map((id) => ({
           _id: id,
           _source: {
             id,
             name: file.name,
             size: file.size,
-            icon: file.name.split(".").pop()?.toLowerCase() || "",
+            icon: ext,
           },
         })));
       }
