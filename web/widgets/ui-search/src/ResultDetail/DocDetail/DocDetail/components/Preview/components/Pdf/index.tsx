@@ -59,6 +59,51 @@ const Pdf: FC<PdfProps> = (props) => {
     pageRefs.current.clear();
   }, [pdfUrl]);
 
+  useEffect(() => {
+    if (numPages === 0) return;
+
+    const visiblePages = new Map<number, number>();
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const pageNum = Number(entry.target.getAttribute('data-page-num'));
+          if (!pageNum) return;
+
+          if (entry.isIntersecting) {
+            visiblePages.set(pageNum, entry.intersectionRatio);
+          } else {
+            visiblePages.delete(pageNum);
+          }
+        });
+
+        if (visiblePages.size > 0) {
+          let maxRatio = -1;
+          let topPage = 1;
+          visiblePages.forEach((ratio, pageNum) => {
+            if (ratio > maxRatio) {
+              maxRatio = ratio;
+              topPage = pageNum;
+            }
+          });
+          setCurrentPage(topPage);
+        }
+      },
+      {
+        root: containerRef.current,
+        threshold: [0, 0.25, 0.5, 0.75, 1],
+      }
+    );
+
+    pageRefs.current.forEach((el) => {
+      observer.observe(el);
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [numPages]);
+
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     const pageElement = pageRefs.current.get(page);
@@ -108,6 +153,7 @@ const Pdf: FC<PdfProps> = (props) => {
               return (
                 <div
                   key={pageNum}
+                  data-page-num={pageNum}
                   ref={(el) => {
                     if (el) {
                       pageRefs.current.set(pageNum, el);
