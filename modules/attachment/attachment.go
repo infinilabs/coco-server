@@ -150,9 +150,6 @@ func (h APIHandler) getAttachment(w http.ResponseWriter, req *http.Request, ps h
 		panic(fmt.Errorf("attachment metadata is nil for ID %s", fileID))
 	}
 
-	// Set headers
-	// Use inline for images, videos, audio and PDFs to allow browser preview
-	disposition := "attachment"
 	// Set MIME type and determine the disposition value
 	mineType := attachment.MimeType
 
@@ -163,16 +160,10 @@ func (h APIHandler) getAttachment(w http.ResponseWriter, req *http.Request, ps h
 	}
 
 	if mineType != "" {
-		if strings.HasPrefix(mineType, "image/") ||
-			strings.HasPrefix(mineType, "text/") ||
-			strings.HasPrefix(mineType, "video/") ||
-			strings.HasPrefix(mineType, "audio/") ||
-			mineType == "application/pdf" {
-			disposition = "inline"
-		}
 		w.Header().Set("Content-Type", mineType)
 	}
 
+	disposition := "attachment"
 	w.Header().Set("Content-Disposition", disposition+"; filename=\""+attachment.Name+"\"")
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(data)))
 
