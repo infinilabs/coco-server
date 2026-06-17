@@ -386,8 +386,8 @@ github.com/imkira/go-interpol v1.1.0/go.mod h1:z0h2/2T3XF8kyEPpRgJ3kmNv+C43p+I/C
 github.com/inconshreveable/mousetrap v1.0.0/go.mod h1:PxqpIevigyE2G7u3NXJIT2ANytuPF1OarO4DADm73n8=
 github.com/infinilabs/langchaingo v0.0.0-20260603083656-7933b3e0062c h1:QEyzJL8SJTk8Cpmf05g8M67AKKy23B2iGCkbwbBAa+s=
 github.com/infinilabs/langchaingo v0.0.0-20260603083656-7933b3e0062c/go.mod h1:aKKYXYoqhIDEv7WKdpnnCLRaqXic69cX9MnDUk72378=
-github.com/infinilabs/picoloom/v2 v2.0.0-20260617010352-90889445c80a h1:qXwIbBIzZvEqtcTdlpuYLA4ZiJz/Mv214A7KkWgVuy8=
-github.com/infinilabs/picoloom/v2 v2.0.0-20260617010352-90889445c80a/go.mod h1:unWl6hj4Cq+QUi8KP+6ymoCMhdzBNBJFSp5WCChBSRI=
+github.com/infinilabs/picoloom/v2 v2.0.0-20260617031033-1fa083511c0c h1:D+kda4/Nws4ooIW9S7jPWFVqBh9VU2a9FngKbb9R6zA=
+github.com/infinilabs/picoloom/v2 v2.0.0-20260617031033-1fa083511c0c/go.mod h1:unWl6hj4Cq+QUi8KP+6ymoCMhdzBNBJFSp5WCChBSRI=
 github.com/invopop/jsonschema v0.13.0 h1:KvpoAJWEjR3uD9Kbm2HWJmqsEaHt8lBUpd0qHcIi21E=
 github.com/invopop/jsonschema v0.13.0/go.mod h1:ffZ5Km5SWWRAIN6wbDXItl95euhFz2uON45H2qjYt+0=
 github.com/iris-contrib/blackfriday v2.0.0+incompatible/go.mod h1:UzZ2bDEoaSGPbkg6SAB4att1aAwTmVIx/5gCVqeyUdI=

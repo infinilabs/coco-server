@@ -917,6 +917,7 @@ func renderPDF(ctx context.Context, markdown string, title string, tocTitle stri
 	conv, err := picoloom.NewConverter(
 		picoloom.WithBrowserRevision(deepResearchBrowserRevision),
 		picoloom.WithStyle("academic"),
+		picoloom.WithKaTeXPath("./config/katex"),
 	)
 	if err != nil {
 		log.Errorf("failed to create PDF converter: %v", err)
