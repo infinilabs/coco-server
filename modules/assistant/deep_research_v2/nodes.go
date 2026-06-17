@@ -916,7 +916,7 @@ const deepResearchBrowserRevision = 1625079
 func renderPDF(ctx context.Context, markdown string, title string, tocTitle string) []byte {
 	conv, err := picoloom.NewConverter(
 		picoloom.WithBrowserRevision(deepResearchBrowserRevision),
-		picoloom.WithStyle("technical"),
+		picoloom.WithStyle("academic"),
 	)
 	if err != nil {
 		log.Errorf("failed to create PDF converter: %v", err)
