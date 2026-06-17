@@ -62,8 +62,10 @@ const Pdf: FC<PdfProps> = (props) => {
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     const pageElement = pageRefs.current.get(page);
-    if (pageElement) {
-      pageElement.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (pageElement && containerRef.current) {
+      const containerTop = containerRef.current.getBoundingClientRect().top;
+      const elementTop = pageElement.getBoundingClientRect().top;
+      containerRef.current.scrollTop += elementTop - containerTop - 8;
     }
   };
 

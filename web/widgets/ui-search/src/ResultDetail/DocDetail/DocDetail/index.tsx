@@ -132,7 +132,7 @@ const DocDetail: FC<DocDetailProps> = (props) => {
             </div>
           </div>
         ),
-        children: <Preview {...props} />,
+        children: <Preview {...props} loadingHeight="h-[calc(100cqh-394px)]"/>,
       });
     }
 
@@ -156,7 +156,7 @@ const DocDetail: FC<DocDetailProps> = (props) => {
 
   return (
     <div
-      className={clsx("flex flex-col h-full overflow-hidden", className)}
+      className={clsx("flex flex-col h-full overflow-hidden @container/detail", className)}
       {...rest}
     >
       <div className={clsx("text-20px text-[#1A0CAB] dark:text-[#8AB4F8] break-words", mode === "embedded" ? "pr-24px" : "")}>
@@ -244,7 +244,7 @@ const DocDetail: FC<DocDetailProps> = (props) => {
       </motion.div>
 
       <div className="flex flex-col gap-4 flex-1 overflow-auto">
-        {isInlinePreview && <Preview {...props} />}
+        {isInlinePreview && <Preview {...props} loadingHeight="aspect-4/3" />}
         {collapseItems.length > 0 && (
           <Collapse
             size="small"

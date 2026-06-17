@@ -5,10 +5,11 @@ import { DocDetailProps } from "@/ResultDetail/DocDetail/DocDetail";
 interface DocxProps extends DocDetailProps {
   url: string;
   onLoadingChange?: (loading: boolean) => void;
+  onLoadError?: (error: Error) => void;
 }
 
 const Docx: FC<DocxProps> = (props) => {
-  const { url, requestHeaders, onLoadingChange } = props;
+  const { url, requestHeaders, onLoadingChange, onLoadError } = props;
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -22,11 +23,16 @@ const Docx: FC<DocxProps> = (props) => {
         headers: requestHeaders,
       });
 
-      if (!response.ok) return;
+      if (!response.ok) {
+        onLoadError?.(new Error(`HTTP ${response.status}`));
+        return;
+      }
 
       const arrayBuffer = await response.arrayBuffer();
 
-      if (arrayBuffer.byteLength === 0) return;
+      if (arrayBuffer.byteLength === 0) {
+        return;
+      }
 
       containerRef.current.innerHTML = "";
 
@@ -35,6 +41,8 @@ const Docx: FC<DocxProps> = (props) => {
         ignoreWidth: true,
         ignoreHeight: true,
       });
+    } catch (e) {
+      onLoadError?.(e instanceof Error ? e : new Error(String(e)));
     } finally {
       onLoadingChange?.(false);
     }

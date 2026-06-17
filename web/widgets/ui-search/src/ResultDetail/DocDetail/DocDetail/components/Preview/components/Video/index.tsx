@@ -4,10 +4,11 @@ interface VideoProps {
   url: string;
   requestHeaders?: Record<string, string>;
   onLoadingChange?: (loading: boolean) => void;
+  onLoadError?: (error: Error) => void;
 }
 
 const Video: FC<VideoProps> = (props) => {
-  const { url, requestHeaders, onLoadingChange } = props;
+  const { url, requestHeaders, onLoadingChange, onLoadError } = props;
 
   const [src, setSrc] = useState<string>(url);
 
@@ -19,9 +20,14 @@ const Video: FC<VideoProps> = (props) => {
 
     onLoadingChange?.(true);
     fetch(url, { headers: requestHeaders })
-      .then((res) => res.blob())
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.blob();
+      })
       .then((blob) => setSrc(URL.createObjectURL(blob)))
-      .catch(() => {})
+      .catch((e) => {
+        onLoadError?.(e instanceof Error ? e : new Error(String(e)));
+      })
       .finally(() => onLoadingChange?.(false));
   }, [url, requestHeaders]);
 

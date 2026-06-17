@@ -142,34 +142,23 @@ export const DeepResearchDrawer = ({
               <>
                 <ActionButton
                   className="bg-[#E9F0FE] dark:bg-blue-900/30"
-                  onClick={() => {
+                  onClick={async () => {
                     const url = reportData?.url ? (formatUrl?.({ url: reportData.url }) || reportData.url) : undefined;
                     if (url) {
+                      const res = await fetch(url, { headers: requestHeaders });
+                      const blob = await res.blob();
+                      const blobUrl = URL.createObjectURL(blob);
                       const a = document.createElement('a');
-                      a.href = url;
+                      a.href = blobUrl;
                       a.download = (reportData?.title as string) || '';
-                      a.target = '_blank';
-                      a.rel = 'noopener noreferrer';
                       a.click();
+                      URL.revokeObjectURL(blobUrl);
                     }
                   }}
                   key="download"
                   icon={<Download className="w-4 h-4" />}
                 >
                   {t("deepResearch.button.download")}
-                </ActionButton>
-                <ActionButton
-                  className="bg-[#E9F0FE] dark:bg-blue-900/30"
-                  onClick={() => {
-                    const url = reportData?.url ? (formatUrl?.({ url: reportData.url }) || reportData.url) : undefined;
-                    if (url) {
-                      window.open(url, '_blank', 'noopener,noreferrer');
-                    }
-                  }}
-                  key="source"
-                  icon={<SquareArrowOutUpRight className="w-4 h-4" />}
-                >
-                  {t('labels.openSource')}
                 </ActionButton>
               </>
             )}

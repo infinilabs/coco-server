@@ -85,7 +85,10 @@ const HtmlDoc: FC<HtmlIframeProps> = (props) => {
       <iframe
         src={renderUrl}
         className="w-full border-0 h-full"
-        style={{ minHeight: 600 }}
+        style={{
+          minHeight: 600,
+          filter: theme === "dark" ? "invert(1) hue-rotate(180deg)" : undefined,
+        }}
         sandbox="allow-same-origin allow-scripts"
         title="research-report"
         onLoad={() => {

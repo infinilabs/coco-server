@@ -6,10 +6,11 @@ import { DocDetailProps } from "@/ResultDetail/DocDetail/DocDetail";
 interface PptxProps extends DocDetailProps {
   url: string;
   onLoadingChange?: (loading: boolean) => void;
+  onLoadError?: (error: Error) => void;
 }
 
 const Pptx: FC<PptxProps> = (props) => {
-  const { url, requestHeaders, onLoadingChange } = props;
+  const { url, requestHeaders, onLoadingChange, onLoadError } = props;
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -33,13 +34,20 @@ const Pptx: FC<PptxProps> = (props) => {
         headers: requestHeaders,
       });
 
-      if (!response.ok) return;
+      if (!response.ok) {
+        onLoadError?.(new Error(`HTTP ${response.status}`));
+        return;
+      }
 
       const arrayBuffer = await response.arrayBuffer();
 
-      if (arrayBuffer.byteLength === 0) return;
+      if (arrayBuffer.byteLength === 0) {
+        return;
+      }
 
       pptx.preview(arrayBuffer);
+    } catch (e) {
+      onLoadError?.(e instanceof Error ? e : new Error(String(e)));
     } finally {
       onLoadingChange?.(false);
     }

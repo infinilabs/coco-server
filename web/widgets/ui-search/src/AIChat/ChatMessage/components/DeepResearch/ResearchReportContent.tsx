@@ -4,7 +4,8 @@ import { type TFunction } from "i18next";
 import Markdown from "@infinilabs/markdown";
 import Pdf from "../../../../ResultDetail/DocDetail/DocDetail/components/Preview/components/Pdf";
 import HtmlDoc from "../../../../ResultDetail/DocDetail/DocDetail/components/Preview/components/HtmlDoc";
-import loadingSvg from "./loding.svg";
+import loadingSvg from "../../../../icons/file-loading.svg";
+import loadingFailedSvg from "../../../../icons/file-loading-failed.svg";
 
 export interface ResearchReportData {
   title?: string;
@@ -44,7 +45,7 @@ export const ResearchReportContent = ({
     } else {
       setTimeout(() => {
         setLoading(false);
-      }, 1000);
+      }, 500);
     }
   }
 
@@ -54,11 +55,11 @@ export const ResearchReportContent = ({
 
     if (data?.format === "html") {
       return (
-        <HtmlDoc 
+        <HtmlDoc
           data={{}}
-          url={finalUrl} 
-          requestHeaders={requestHeaders} 
-          onLoadingChange={onLoadingChange} 
+          url={finalUrl}
+          requestHeaders={requestHeaders}
+          onLoadingChange={onLoadingChange}
           onLoadError={(error) => {
             setError(error);
           }}
@@ -73,7 +74,7 @@ export const ResearchReportContent = ({
     }
     if (data?.format === "pdf") {
       return (
-        <Pdf 
+        <Pdf
           data={{}}
           url={finalUrl}
           requestHeaders={requestHeaders}
@@ -104,11 +105,9 @@ export const ResearchReportContent = ({
   if (error && !loading) {
     return (
       <div className="px-6 h-full flex flex-col items-center justify-center text-center">
-        <div className="mb-2 text-base font-medium text-[#333333] dark:text-[#E5E7EB]">
-          {t("deepResearch.report.loadFailed")}
-        </div>
+        <img className="mb-16px w-80px h-80px" src={loadingFailedSvg} />
         <div className="text-sm text-[#999] dark:text-[#666] max-w-[520px] leading-relaxed">
-          {error.toString()}
+          {t("deepResearch.report.loadFailed")}
         </div>
       </div>
     );
@@ -119,20 +118,20 @@ export const ResearchReportContent = ({
   if (data?.format === "html") {
     classes = "h-full";
   } else if (data?.format === "pdf") {
-    classes = "overflow-hidden p-0";
+    classes = "h-full overflow-hidden p-0";
   }
 
   return (
     <div className={`w-full relative ${classes} ${loading ? "h-full" : ""}`}>
       {loading && (
-        <div className="absolute inset-0 z-50 bg-white dark:bg-[#1f1f1f] flex flex-col items-center justify-center text-center">
-          <img className="mb-16px w-80px h-80px" src={loadingSvg}/>
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center text-center">
+          <img className="mb-16px w-80px h-80px" src={loadingSvg} />
           <div className="text-sm text-[#999] dark:text-[#666] max-w-[520px] leading-relaxed">
             {t("deepResearch.report.loadingTitle")}
           </div>
         </div>
       )}
-      
+
       <div className={loading ? "invisible h-0 overflow-hidden" : "w-full h-full"}>
         {formatContent}
       </div>
