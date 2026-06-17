@@ -1,10 +1,11 @@
 import { Layout } from 'antd';
-import { type FC, type ReactNode } from 'react';
+import { type FC, type ReactNode, useRef, useState, useEffect } from 'react';
 
 import { DARK_CLASS } from '../theme/shared';
 import useNProgress from '../hooks/useNProgress';
 import logoTextDark from '../icons/logo-text-dark.svg';
 import logoTextLight from '../icons/logo-text-light.svg';
+import { useChatStore } from '../AIChat/stores/chatStore';
 
 import styles from './index.module.less';
 import ChatIcon from '../icons/ChatIcon';
@@ -37,6 +38,22 @@ const ChatLayout: FC<ChatLayoutProps> = (props) => {
   const { loading, theme, isMobile, logo, handleLogoClick, sidebar, sidebarCollapsed, setSidebarCollapsed, header, content, input, initContainer, getContainer } = props;
 
   const themeClass = theme === 'dark' ? DARK_CLASS : 'light';
+  const deepResearchDrawerOpen = useChatStore((state) => state.deepResearchDrawerOpen);
+  const mainLayoutRef = useRef<HTMLDivElement>(null);
+  const [isWideEnough, setIsWideEnough] = useState(false);
+
+  useEffect(() => {
+    const el = mainLayoutRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => {
+      const wide = entry.contentRect.width >= 1400;
+      setIsWideEnough((prev) => prev !== wide ? wide : prev);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const shouldPushContent = deepResearchDrawerOpen && isWideEnough;
 
   useNProgress(loading);
 
@@ -101,7 +118,10 @@ const ChatLayout: FC<ChatLayoutProps> = (props) => {
       )}
 
       {/* Main Content Area */}
-      <Layout className='relative h-full flex flex-col bg-[rgb(var(--ui-search--layout-bg-color))]'>
+      <Layout
+        ref={mainLayoutRef}
+        className='relative h-full flex flex-col bg-[rgb(var(--ui-search--layout-bg-color))]'
+      >
         {/* Header */}
         {header && (
           <div className='z-10 h-16 flex shrink-0 items-center bg-[rgb(var(--ui-search--layout-bg-color))]'>
@@ -110,7 +130,10 @@ const ChatLayout: FC<ChatLayoutProps> = (props) => {
         )}
 
         {/* Chat Messages Area */}
-        <Content className='relative w-full flex-1 overflow-hidden'>
+        <Content
+          className='relative w-full flex-1 overflow-hidden transition-[padding] duration-300 ease-in-out'
+          style={shouldPushContent ? { paddingRight: 824 } : undefined}
+        >
           <div className='h-full w-full'>
             {content}
           </div>
@@ -118,8 +141,13 @@ const ChatLayout: FC<ChatLayoutProps> = (props) => {
 
         {/* Input Area - Fixed at bottom of the main layout column */}
         {input && (
-          <div className='w-full shrink-0 bg-[rgb(var(--ui-search--layout-bg-color))] px-4 pb-6 pt-2'>
-            <div className='mx-auto max-w-4xl'>{input}</div>
+          <div
+            className='w-full shrink-0 bg-[rgb(var(--ui-search--layout-bg-color))] transition-[padding] duration-300 ease-in-out'
+            style={shouldPushContent ? { paddingRight: 824 } : undefined}
+          >
+            <div className="px-4 pb-6 pt-2 ">
+              <div className='mx-auto max-w-4xl'>{input}</div>
+            </div>
           </div>
         )}
       </Layout>

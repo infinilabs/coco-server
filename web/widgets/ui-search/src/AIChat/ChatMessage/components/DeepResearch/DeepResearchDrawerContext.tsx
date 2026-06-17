@@ -4,6 +4,7 @@ import { type TFunction } from "i18next";
 import { DeepResearchDrawer } from "./DeepResearchDrawer";
 import type { StepItem, StepStatus, StepSearchHit } from "./ResearchStepsContent";
 import type { ResearchReportData } from "./ResearchReportContent";
+import { useChatStore } from "../../../stores/chatStore";
 
 export interface DeepResearchDrawerData {
   defaultActiveTab?: string;
@@ -45,6 +46,7 @@ export const DeepResearchDrawerProvider: FC<{ children: ReactNode; isMobile?: bo
   const [open, setOpen] = useState(false);
   const [drawerData, setDrawerData] = useState<DeepResearchDrawerData>({});
   const [revision, setRevision] = useState(0);
+  const setDeepResearchDrawerOpen = useChatStore((state) => state.setDeepResearchDrawerOpen);
 
   const prevChatIdRef = useRef(chatId);
   useEffect(() => {
@@ -53,6 +55,10 @@ export const DeepResearchDrawerProvider: FC<{ children: ReactNode; isMobile?: bo
       setOpen(false);
     }
   }, [chatId]);
+
+  useEffect(() => {
+    setDeepResearchDrawerOpen(open && !isMobile);
+  }, [open, isMobile, setDeepResearchDrawerOpen]);
 
   const openDrawer = useCallback((data: DeepResearchDrawerData) => {
     setDrawerData(data);

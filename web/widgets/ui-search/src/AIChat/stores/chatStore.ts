@@ -52,6 +52,8 @@ export type IChatStore = {
   setOnSelectChatHandler: (handler: (chat?: Chat) => void) => void;
   appendFeatureParams?: (params: Record<string, any>) => void;
   setAppendFeatureParams: (fn: (params: Record<string, any>) => void) => void;
+  deepResearchDrawerOpen: boolean;
+  setDeepResearchDrawerOpen: (value: boolean) => void;
 };
 
 export const useChatStore = create<IChatStore>()(
@@ -102,6 +104,9 @@ export const useChatStore = create<IChatStore>()(
       appendFeatureParams: undefined,
       setAppendFeatureParams: (fn: (params: Record<string, any>) => void) =>
         set(() => ({ appendFeatureParams: fn })),
+      deepResearchDrawerOpen: false,
+      setDeepResearchDrawerOpen: (value: boolean) =>
+        set(() => ({ deepResearchDrawerOpen: value })),
       updateLastMessage: (updates: Partial<ChatMessageSource>) =>
         set((state) => {
           if (!state.activeChat || !state.activeChat.messages) return {};

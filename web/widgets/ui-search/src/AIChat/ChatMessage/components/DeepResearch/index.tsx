@@ -554,18 +554,18 @@ export const DeepResearch = ({
                   <Search className="h-4 w-4 text-[#1784FC] shrink-0" />
                 )
               }
-              <div className="flex min-w-0 items-center flex-1">
-                <span className="whitespace-nowrap shrink-0">
+              <span className="min-w-0 flex-1 truncate">
+                <span>
                   {displayStatus}
                 </span>
                 {
                   !isCompleted && !deepResearchReporterStarted && (deepResearchQuery || question) && (
-                    <span className="text-[#999] dark:text-[#666] truncate ml-1">
+                    <span className="text-[#999] dark:text-[#666] ml-1">
                       ｜ {deepResearchQuery || question}
                     </span>
                   )
                 }
-              </div>
+              </span>
             </div>
             <div className="ml-2 flex items-center gap-2 shrink-0">
               {normalizedProgress < 1 &&
