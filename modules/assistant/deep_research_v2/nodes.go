@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -604,8 +605,10 @@ func (s *State) updateChapterProgress(stepIndex int, materials []MaterialReferen
 	}
 }
 
-// generateChapterContent generates comprehensive chapter content for each chapter using allocated materials
-func (s *State) generateChapterContent(ctx context.Context, llm llms.Model) map[string]*ChapterContent {
+// generateChapterContent generates comprehensive chapter content for each chapter using allocated materials.
+// The indexMap assigns global indices to materials so that LLM citations like [5] are
+// consistent with the unified References section at the end of the report.
+func (s *State) generateChapterContent(ctx context.Context, llm llms.Model, indexMap map[string]int) map[string]*ChapterContent {
 	log.Info("Starting chapter content generation...")
 
 	for _, chapter := range s.ChapterOutline {
@@ -626,7 +629,7 @@ func (s *State) generateChapterContent(ctx context.Context, llm llms.Model) map[
 		}
 
 		// Build comprehensive material reference for this chapter
-		materialsInfo := s.buildMaterialsInfo(content.Materials)
+		materialsInfo := s.buildMaterialsInfo(content.Materials, indexMap)
 		log.Infof("Generating content for chapter %s with %d materials", content.Title, len(content.Materials))
 
 		// Generate comprehensive chapter content from materials
@@ -648,6 +651,7 @@ Requirements:
 6. Cite relevant material sources after each key point (e.g., [1], [2])
 7. Word count: 1000-2000 words
 8. Write in %s
+9. Do NOT append a references or bibliography section at the end of the chapter; citations in the body are sufficient
 
 Generate the chapter content directly, do not add explanatory text.`,
 			s.Request.Query,
@@ -683,8 +687,30 @@ Generate the chapter content directly, do not add explanatory text.`,
 	return s.ChapterContents
 }
 
-// buildMaterialsInfo constructs a comprehensive description of all materials in a chapter
-func (s *State) buildMaterialsInfo(materials []MaterialReference) string {
+// buildMaterialIndexMap scans all chapter materials and assigns each unique URL a
+// global index [1]-[N] based on first appearance across the outline. The returned
+// map is used by buildMaterialsInfo so that LLM citations like [5] refer to the
+// same source in the unified References section at the end of the report.
+func (s *State) buildMaterialIndexMap() map[string]int {
+	indexMap := make(map[string]int)
+	idx := 1
+	for _, chapter := range s.ChapterOutline {
+		if content, exists := s.ChapterContents[chapter.ID]; exists {
+			for _, m := range content.Materials {
+				if _, ok := indexMap[m.URL]; !ok {
+					indexMap[m.URL] = idx
+					idx++
+				}
+			}
+		}
+	}
+	return indexMap
+}
+
+// buildMaterialsInfo constructs a comprehensive description of all materials in a chapter.
+// It uses the global indexMap so that Material[N] identifiers are consistent across
+// the entire report and match the unified References section.
+func (s *State) buildMaterialsInfo(materials []MaterialReference, indexMap map[string]int) string {
 	var builder strings.Builder
 
 	builder.WriteString("## Research Materials Summary\n\n")
@@ -694,7 +720,8 @@ func (s *State) buildMaterialsInfo(materials []MaterialReference) string {
 			break
 		}
 
-		builder.WriteString(fmt.Sprintf("### Material[%d]: %s\n", i+1, material.Title))
+		globalIdx := indexMap[material.URL]
+		builder.WriteString(fmt.Sprintf("### Material[%d]: %s\n", globalIdx, material.Title))
 		builder.WriteString(fmt.Sprintf("- Source: %s (Relevance: %.2f)\n", material.Source, material.Relevance))
 		if material.URL != "" {
 			builder.WriteString(fmt.Sprintf("- Link: %s\n", material.URL))
@@ -773,6 +800,10 @@ func (s *State) generateChapterBasedReport(ctx context.Context, llm llms.Model) 
 	contents := s.ChapterContents
 	i18n := getReportI18n(s.Config.ReportLang)
 
+	// Assign global material indices across all chapters before generating content
+	// so that LLM citations like [5] are consistent with the unified References section.
+	indexMap := s.buildMaterialIndexMap()
+
 	// Generate chapter content if needed
 	needsGeneration := false
 	for _, chapter := range s.ChapterOutline {
@@ -782,7 +813,7 @@ func (s *State) generateChapterBasedReport(ctx context.Context, llm llms.Model) 
 		}
 	}
 	if needsGeneration {
-		contents = s.generateChapterContent(ctx, llm)
+		contents = s.generateChapterContent(ctx, llm, indexMap)
 	}
 
 	// Build the summary section.
@@ -810,21 +841,40 @@ func (s *State) generateChapterBasedReport(ctx context.Context, llm llms.Model) 
 	var chaptersBuilder strings.Builder
 	for _, chapter := range s.ChapterOutline {
 		if content, exists := contents[chapter.ID]; exists && content.Content != "" {
-
 			chaptersBuilder.WriteString(fmt.Sprintf("## %s\n\n", chapter.Title))
 			chaptersBuilder.WriteString(content.Content + "\n\n")
+		}
+	}
 
-			// Add references or source citations if configured
-			if s.Config != nil && s.Config.IncludeSources {
-				if len(content.Materials) > 0 {
-					chaptersBuilder.WriteString("### References\n\n")
-					for j, material := range content.Materials {
-						chaptersBuilder.WriteString(formatCitation(j+1, material.Title, material.URL, material.Source, s.Config.SourceFormat) + "\n")
-					}
-					chaptersBuilder.WriteString("\n")
+	// Append a unified References section at the end of the report.
+	// Collect all unique materials and sort by their global index so that
+	// the order matches the [N] citations in the chapter bodies.
+	seen := make(map[string]bool)
+	var allMaterials []MaterialReference
+	for _, chapter := range s.ChapterOutline {
+		if content, exists := contents[chapter.ID]; exists {
+			for _, m := range content.Materials {
+				if !seen[m.URL] && indexMap[m.URL] > 0 {
+					seen[m.URL] = true
+					allMaterials = append(allMaterials, m)
 				}
 			}
 		}
+	}
+	if len(allMaterials) > 0 {
+		// Sort by global index to maintain citation order.
+		for i := 0; i < len(allMaterials); i++ {
+			for j := i + 1; j < len(allMaterials); j++ {
+				if indexMap[allMaterials[i].URL] > indexMap[allMaterials[j].URL] {
+					allMaterials[i], allMaterials[j] = allMaterials[j], allMaterials[i]
+				}
+			}
+		}
+		chaptersBuilder.WriteString(fmt.Sprintf("## %s\n\n", i18n.References))
+		for _, m := range allMaterials {
+			chaptersBuilder.WriteString(formatCitation(indexMap[m.URL], m.Title, m.URL) + "\n")
+		}
+		chaptersBuilder.WriteString("\n")
 	}
 	chapters := chaptersBuilder.String()
 
@@ -848,6 +898,13 @@ func (s *State) generateChapterBasedReport(ctx context.Context, llm llms.Model) 
 	reportBuilder.WriteString(chapters)
 	s.MarkdownReport = reportBuilder.String()
 
+	// DEBUG: write raw markdown to a temp file for inspection.
+	if tmpFile, err := os.CreateTemp("", "deep_research_*.md"); err == nil {
+		_, _ = tmpFile.WriteString(s.MarkdownReport)
+		_ = tmpFile.Close()
+		fmt.Printf("DBG markdown report written to %s\n\n", tmpFile.Name())
+	}
+
 	switch s.Config.ReportFormat {
 	case "html":
 		// Convert to HTML for final report
@@ -870,6 +927,7 @@ func (s *State) generateChapterBasedReport(ctx context.Context, llm llms.Model) 
 type reportI18n struct {
 	Summary          string
 	TableOfContents  string
+	References       string
 	FallbackIntro    string
 	NoMaterials      string
 	GenerationFailed string // printf format — must contain %s for title and %v for error
@@ -887,6 +945,7 @@ func getReportI18n(lang string) reportI18n {
 		return reportI18n{
 			Summary:          "摘要",
 			TableOfContents:  "目录",
+			References:       "参考文献",
 			FallbackIntro:    "本研究按照系统性分析方法，对主题进行了深入调研。",
 			NoMaterials:      "暂无可用的研究素材。",
 			GenerationFailed: "'%s' 内容生成失败：%v",
@@ -895,6 +954,7 @@ func getReportI18n(lang string) reportI18n {
 		return reportI18n{
 			Summary:          "Summary",
 			TableOfContents:  "Table of Contents",
+			References:       "References",
 			FallbackIntro:    "This research conducted a systematic and in-depth analysis of the topic.",
 			NoMaterials:      "No research materials available.",
 			GenerationFailed: "Content generation failed for '%s': %v",
@@ -965,26 +1025,12 @@ func min(a, b int) int {
 	return b
 }
 
-// formatCitation formats a reference citation based on the requested style.
-// Supports "APA" and "MLA"; defaults to Markdown link format.
-func formatCitation(n int, title, url, source, format string) string {
-	switch strings.ToUpper(format) {
-	case "APA":
-		if url != "" {
-			return fmt.Sprintf("[%d] %s. *%s*. %s", n, title, source, url)
-		}
-		return fmt.Sprintf("[%d] %s. *%s*.", n, title, source)
-	case "MLA":
-		if url != "" {
-			return fmt.Sprintf("[%d] \"%s.\" *%s*, %s.", n, title, source, url)
-		}
-		return fmt.Sprintf("[%d] \"%s.\" *%s*.", n, title, source)
-	default:
-		if url != "" {
-			return fmt.Sprintf("[%d] [%s](%s)", n, title, url)
-		}
-		return fmt.Sprintf("[%d] %s", n, title)
+// formatCitation returns a Markdown link citation for a reference.
+func formatCitation(n int, title, url string) string {
+	if url != "" {
+		return fmt.Sprintf("[%d] [%s](%s)", n, title, url)
 	}
+	return fmt.Sprintf("[%d] %s", n, title)
 }
 
 // GetChapterPreview returns a preview of chapter content

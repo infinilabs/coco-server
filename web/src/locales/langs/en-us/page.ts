@@ -126,8 +126,6 @@ const page: App.I18n.Schema['translation']['page'] = {
       research_depth_comprehensive: 'Comprehensive — Deep analysis, suitable for complex questions',
       research_depth_exhaustive: 'Exhaustive — Thorough research, suitable for in-depth topics',
       deep_research_output: 'Output Settings',
-      include_sources: 'Include Sources',
-      source_format: 'Citation Style',
       report_format: 'Report Format',
       report_lang: 'Report Language',
       report_lang_zh: 'Chinese',

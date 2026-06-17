@@ -133,11 +133,6 @@ type DeepResearchConfig struct {
 
 	// Output
 
-	// Optional. When true, appends a citations section to the report. Default: false.
-	IncludeSources bool `json:"include_sources"`
-	// Optional. Citation style: "APA", "MLA", or "" for plain Markdown links.
-	// Default: "".
-	SourceFormat string `json:"source_format"`
 	// Optional. Rendered output format: "markdown" or "html". Default: "markdown".
 	ReportFormat string `json:"report_format"`
 	// Optional. Report language as a BCP 47 tag, e.g. "en-US" or "zh-CN".
