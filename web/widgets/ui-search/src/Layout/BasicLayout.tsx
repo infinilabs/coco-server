@@ -63,6 +63,7 @@ const BasicLayout: FC<BasicLayoutProps> = (props) => {
   const scrollContainer = getContainer?.() ?? null;
   const [leftDrawerOpen, setLeftDrawerOpen] = useState(false);
   const [rightDrawerOpen, setRightDrawerOpen] = useState(false);
+  const [headerScrolled, setHeaderScrolled] = useState(false);
 
   useNProgress(loading);
 
@@ -155,6 +156,7 @@ const BasicLayout: FC<BasicLayoutProps> = (props) => {
     <Layout
       ref={initContainer}
       className={`${styles.uiSearch} relative w-full h-full overflow-x-hidden overflow-y-auto ${bgClass} ui-search ${themeClass}`}
+      onScroll={(event) => setHeaderScrolled(event.currentTarget.scrollTop > 0)}
     >
 
       <SearchHeaderLayout
@@ -170,6 +172,7 @@ const BasicLayout: FC<BasicLayoutProps> = (props) => {
         centerPadding={isMobile ? 'px-16px' : 'pl-72px pr-112px'}
         centerMaxWidth={'max-w-840px'}
         rightMenuWidth={rightMenuWidth}
+        scrolled={headerScrolled}
       />
 
       {/* Unified Left-Center-Right Layout */}

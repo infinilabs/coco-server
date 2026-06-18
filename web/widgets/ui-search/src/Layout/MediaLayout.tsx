@@ -54,6 +54,7 @@ const MediaLayout: FC<MediaLayoutProps> = (props) => {
   const themeClass = theme === 'dark' ? DARK_CLASS : 'light';
   const scrollContainer = getContainer?.() ?? null;
   const [leftDrawerOpen, setLeftDrawerOpen] = useState(false);
+  const [headerScrolled, setHeaderScrolled] = useState(false);
   const userCollapsedLeftRef = useRef(false);
   const siderCollapseRef = useRef(siderCollapse);
 
@@ -107,6 +108,7 @@ const MediaLayout: FC<MediaLayoutProps> = (props) => {
     <Layout
       ref={initContainer}
       className={`${styles.uiSearch} relative w-full h-full overflow-x-hidden overflow-y-auto bg-[rgb(var(--ui-search--layout-bg-color))] ui-search ${themeClass}`}
+      onScroll={(event) => setHeaderScrolled(event.currentTarget.scrollTop > 0)}
     >
       <SearchHeaderLayout
         logo={logo}
@@ -121,6 +123,7 @@ const MediaLayout: FC<MediaLayoutProps> = (props) => {
         centerPadding={isMobile ? 'px-16px' : 'pl-72px pr-112px'}
         centerMaxWidth="max-w-840px"
         rightMenuWidth={rightMenuWidth}
+        scrolled={headerScrolled}
       />
       <Content style={{ paddingTop: headerHeight }}>
         <Layout>

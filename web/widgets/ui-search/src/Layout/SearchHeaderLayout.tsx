@@ -18,6 +18,7 @@ interface SearchHeaderLayoutProps {
   centerPadding?: string;
   centerMaxWidth?: string;
   rightMenuWidth?: number;
+  scrolled?: boolean;
 }
 
 const SearchHeaderLayout: FC<SearchHeaderLayoutProps> = ({
@@ -33,13 +34,14 @@ const SearchHeaderLayout: FC<SearchHeaderLayoutProps> = ({
   centerPadding,
   centerMaxWidth,
   rightMenuWidth,
+  scrolled,
 }) => {
   const defaultCenterPadding = isMobile ? 'px-16px' : 'pl-56px pr-96px';
   const padding = centerPadding || defaultCenterPadding;
   const [showLogoInCenter, setShowLogoInCenter] = useState(false);
 
   return (
-    <div className={`fixed top-0 left-0 right-0 z-88 !p-0 h-auto ${BG_CLASS} border-b border-solid border-[var(--ant-color-border-secondary)]`}>
+    <div className={`fixed top-0 left-0 right-0 z-88 !p-0 h-auto ${BG_CLASS} border-b border-solid border-[var(--ant-color-border-secondary)] transition-shadow ${scrolled ? 'shadow-[0_2px_6px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_6px_rgba(255,255,255,0.1)]' : ''}`}>
       <Layout className={BG_CLASS}>
         <Sider onBreakpoint={(broken) => setShowLogoInCenter(broken)} width={leftWidth} breakpoint="md" collapsedWidth={0} trigger={null} className={BG_CLASS}>
           <div className={`pt-16px h-122px w-full pl-80px ${BG_CLASS}`}>
