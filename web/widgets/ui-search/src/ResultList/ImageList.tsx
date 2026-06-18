@@ -5,6 +5,7 @@ import { useInViewport, useSize } from "ahooks";
 import clsx from "clsx";
 import ResultDetail from "../ResultDetail";
 import { AuthImage } from "./AuthImage";
+import { EndList } from "./EndList";
 
 interface MasonryItemProps {
   data: Record<string, any>;
@@ -115,6 +116,7 @@ interface ImageListProps {
 
 export function ImageList(props: ImageListProps) {
   const { getDetailContainer, data = [], isMobile, loading, hasMore, onLoadMore, setDetailCollapse, apiConfig } = props;
+  const { total, settings, onGenerateAnswer } = props;
 
   const [open, setOpen] = useState(false);
   const [record, setRecord] = useState<Record<string, any> | undefined>();
@@ -227,6 +229,14 @@ export function ImageList(props: ImageListProps) {
           }}>
             <Spin />
           </div>
+        )}
+        {!loading && !hasMore && masonryItems.length > 0 && (
+          <EndList
+            total={total || masonryItems.length}
+            settings={settings}
+            onGenerateAnswer={onGenerateAnswer}
+            padded={false}
+          />
         )}
       </div>
       

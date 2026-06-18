@@ -7,6 +7,7 @@ import ResultHeader from "../ResultHeader";
 import SearchBox from "../SearchBox";
 import Recommends from "../Recommends";
 import { LIST_TYPES } from "../ResultList";
+import { EmptyList } from "../ResultList/EmptyList";
 import MediaLayout from "../Layout/MediaLayout";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -96,6 +97,50 @@ export default function Search({
     return LIST_TYPES.find(item => item.type === content_category) || LIST_TYPES[0];
   }, [content_category]);
 
+  const hasSearchParams = useMemo(() => {
+    return Boolean(query) || Object.keys(filter || {}).length > 0 || Object.keys(aggfilter || {}).length > 0;
+  }, [query, JSON.stringify(filter), JSON.stringify(aggfilter)]);
+
+  const hasAggFilter = useMemo(() => {
+    return Object.keys(aggfilter || {}).length > 0;
+  }, [JSON.stringify(aggfilter)]);
+
+  const isEmptyResult = hasSearchParams && !loading && (hits?.total || 0) === 0 && (data?.length || 0) === 0;
+
+  const handleGenerateAnswer = useCallback(() => {
+    onSearch?.({
+      query,
+      attachments,
+      mode: 'chat',
+      action: 'deepthink',
+      assistant_id: settings?.deep_think_assistant_entity?.id,
+    });
+  }, [onSearch, query, attachments, settings]);
+
+  const resultList = isEmptyResult ? (
+    <EmptyList
+      query={query}
+      settings={settings}
+      variant={hasAggFilter ? "filtered" : "search"}
+      onClearFilters={() => onSearchFilter?.({})}
+      onGenerateAnswer={handleGenerateAnswer}
+    />
+  ) : listType ? (
+    <listType.component
+      {...commonProps}
+      data={data}
+      getDetailContainer={getContainer as (() => HTMLElement) | undefined}
+      hasMore={hasMore}
+      loading={loading}
+      query={query}
+      total={hits?.total || 0}
+      settings={settings}
+      onGenerateAnswer={handleGenerateAnswer}
+      setDetailCollapse={setDetailCollapse}
+      onLoadMore={onLoadMore}
+    />
+  ) : null;
+
   useEffect(() => {
     const keys = Object.keys(filter)
     if (keys.length === 0) return;
@@ -145,20 +190,7 @@ export default function Search({
             setRecommendsCollapse={setRecommendsCollapse}
           />
         }
-        resultList={
-          listType ? (
-            <listType.component
-              {...commonProps}
-              data={data}
-              getDetailContainer={getContainer as (() => HTMLElement) | undefined}
-              hasMore={hasMore}
-              loading={loading}
-              total={hits?.total || 0}
-              setDetailCollapse={setDetailCollapse}
-              onLoadMore={onLoadMore}
-            />
-          ) : null
-        }
+        resultList={resultList}
         searchbox={
           <SearchBox
             {...commonProps}
@@ -246,21 +278,7 @@ export default function Search({
           setRecommendsCollapse={setRecommendsCollapse}
         />
       }
-      resultList={
-        listType ? (
-          <listType.component
-            {...commonProps}
-            data={data}
-            getDetailContainer={getContainer as (() => HTMLElement) | undefined}
-            hasMore={hasMore}
-            loading={loading}
-            query={query}
-            total={hits?.total || 0}
-            setDetailCollapse={setDetailCollapse}
-            onLoadMore={onLoadMore}
-          />
-        ) : null
-      }
+      resultList={resultList}
       searchbox={
         <SearchBox
           {...commonProps}

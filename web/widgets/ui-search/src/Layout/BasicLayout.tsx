@@ -220,7 +220,7 @@ const BasicLayout: FC<BasicLayoutProps> = (props) => {
               })}
             </div>
             {aiOverview}
-            <div className="mb-24px">{resultList}</div>
+            <div>{resultList}</div>
           </div>
         </Content>
 

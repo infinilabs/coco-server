@@ -3,6 +3,7 @@ import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import ResultDetail from "../ResultDetail";
 import styles from "./NormalList.module.less";
+import { EndList } from "./EndList";
 import SearchResults from "./SearchResults";
 
 interface NormalListProps {
@@ -34,6 +35,7 @@ export function NormalList(props: NormalListProps) {
     apiConfig,
     theme,
   } = props;
+  const { total, settings, onGenerateAnswer } = props;
 
   const [open, setOpen] = useState(false);
   const [record, setRecord] = useState<Record<string, any> | undefined>();
@@ -135,6 +137,13 @@ export function NormalList(props: NormalListProps) {
           }}>
             <Spin />
           </div>
+        )}
+        {!loading && !hasMore && data.length > 0 && (
+          <EndList
+            total={total || data.length}
+            settings={settings}
+            onGenerateAnswer={onGenerateAnswer}
+          />
         )}
       </div>
       <ResultDetail
