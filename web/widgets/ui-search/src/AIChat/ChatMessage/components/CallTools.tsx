@@ -1,17 +1,16 @@
-import { Loader, ChevronDown, ChevronRight, Hammer } from "lucide-react";
-import { useState, useEffect } from "react";
+import { ChevronDown, ChevronRight, Hammer, Loader } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { type TFunction } from "i18next";
 
 import type { IChunkData } from "../types/chat";
 import { ExpandText } from "./ExpandText";
-import { ExpandJson } from "./ExpandJson";
 
 interface CallToolsProps {
-  Detail?: any;
-  ChunkData?: IChunkData;
-  loading?: boolean;
-  t?: TFunction;
+  readonly Detail?: any;
+  readonly ChunkData?: IChunkData;
+  readonly loading?: boolean;
+  readonly t?: TFunction;
 }
 
 export const CallTools = ({ Detail, ChunkData, loading, t: tProp }: CallToolsProps) => {
@@ -31,7 +30,7 @@ export const CallTools = ({ Detail, ChunkData, loading, t: tProp }: CallToolsPro
     try {
       const parsed = JSON.parse(ChunkData.tool_call_message_chunk);
       setData((prev) => [...prev, parsed]);
-    } catch (e) {
+    } catch {
       
     }
   }, [ChunkData?.tool_call_message_chunk]);
@@ -42,7 +41,7 @@ export const CallTools = ({ Detail, ChunkData, loading, t: tProp }: CallToolsPro
     try {
       const parsed = JSON.parse(text);
       if (typeof parsed === 'object' && parsed !== null) {
-        return <ExpandJson content={JSON.stringify(parsed, null, 2)} />;
+        return <ExpandText content={JSON.stringify(parsed, null, 2)} variant="json" />;
       }
       return <ExpandText content={text} />;
     } catch {
