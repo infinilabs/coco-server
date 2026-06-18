@@ -141,7 +141,7 @@ export const DeepResearchDrawer = ({
             />
           )}
           <div className="flex items-center gap-2">
-            {activeTab === TAB_KEYS.REPORT && (
+            {activeTab === TAB_KEYS.REPORT && reportData?.url && endChunk?.payload?.reason === "completed" && (
               <>
                 <ActionButton
                   className="bg-[#E9F0FE] dark:bg-blue-900/30"
