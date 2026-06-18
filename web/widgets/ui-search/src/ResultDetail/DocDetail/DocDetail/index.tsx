@@ -1,5 +1,5 @@
-import { Collapse, Typography } from "antd";
-import { ChevronDown, ChevronRight, Dot, Minus } from "lucide-react";
+import { Button, Collapse, Typography } from "antd";
+import { ChevronDown, ChevronRight, Dot, Minus, SquareArrowOutUpRight } from "lucide-react";
 import { motion } from "motion/react";
 
 import { useMemo, useState, type FC, type HTMLAttributes, type ReactNode } from "react";
@@ -9,6 +9,7 @@ import { clsx } from "clsx";
 import PreviewIcon from "../../../icons/PreviewIcon";
 import AIInsightIcon from "../../../icons/AIInsightIcon";
 import { AuthImage } from "../../../ResultList/AuthImage";
+import loadingFailedSvg from "../../../icons/file-loading-failed.svg";
 
 const { Text } = Typography;
 
@@ -75,6 +76,9 @@ export interface DocDetailProps extends HTMLAttributes<HTMLDivElement> {
       createdAt?: string;
       updatedAt?: string;
       preview?: string;
+      previewUnavailableTitle?: string;
+      previewUnavailableDescription?: string;
+      openSource?: string;
       aiInterpretation?: string;
     };
   };
@@ -114,9 +118,10 @@ const DocDetail: FC<DocDetailProps> = (props) => {
   ];
 
   const contentType = data?.metadata?.content_type;
-  const isInlinePreview = contentType === "image" || contentType === "video";
+  const hasPreviewSource = !!contentType && !!data?.metadata?.raw_content;
+  const isInlinePreview = hasPreviewSource && (contentType === "image" || contentType === "video");
   const hasCollapsiblePreview =
-    !!contentType && !!data?.metadata?.raw_content && !isInlinePreview;
+    hasPreviewSource && (contentType === "markdown" || contentType === "pdf" || contentType === "docx" || contentType === "pptx");
 
   const collapseItems = useMemo(() => {
     const items: { key: string; label: ReactNode | string; children: ReactNode }[] = [];
@@ -153,6 +158,9 @@ const DocDetail: FC<DocDetailProps> = (props) => {
 
     return items;
   }, [hasCollapsiblePreview, data?.ai_insights?.text, i18n, props]);
+
+  const isContentEmpty = !isInlinePreview && collapseItems.length === 0;
+  const canOpenSource = data?.url?.startsWith("http");
 
   return (
     <div
@@ -259,6 +267,27 @@ const DocDetail: FC<DocDetailProps> = (props) => {
             items={collapseItems}
             expandIconPlacement="end"
           />
+        )}
+        {isContentEmpty && (
+          <div className="flex flex-1 min-h-360px items-center justify-center px-24px text-center">
+            <div className="flex flex-col items-center">
+              <img className="mb-16px w-80px h-80px" src={loadingFailedSvg} />
+              <div className="text-14px text-[#999] dark:text-[#666] leading-22px">
+                <div>{i18n?.labels?.previewUnavailableTitle ?? "This file can't be previewed"}</div>
+                <div>{i18n?.labels?.previewUnavailableDescription ?? "The file format may be unsupported or the content is temporarily unavailable"}</div>
+              </div>
+              {canOpenSource && (
+                <Button
+                  className="mt-24px rounded-20px min-w-120px"
+                  type="primary"
+                  icon={<SquareArrowOutUpRight className="size-14px" />}
+                  onClick={() => window.open(data.url)}
+                >
+                  {i18n?.labels?.openSource ?? "Open Source"}
+                </Button>
+              )}
+            </div>
+          </div>
         )}
       </div>
     </div>

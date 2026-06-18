@@ -11,6 +11,8 @@ import { SquareArrowOutUpRight } from 'lucide-react';
 import classNames from 'classnames';
 import type { ReactNode } from 'react';
 
+const previewContentTypes = ['image', 'video', 'markdown', 'pdf', 'docx', 'pptx'];
+
 export function Component() {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
@@ -42,6 +44,15 @@ export function Component() {
         ...dataSource,
         owner: ownerData
       });
+
+      const contentType = dataSource?.metadata?.content_type;
+      const rawContent = dataSource?.metadata?.raw_content;
+      const hasPreview = !!rawContent && previewContentTypes.includes(contentType);
+      const hasAIInsight = !!dataSource?.ai_insights?.text;
+
+      if (!embedded && !hasPreview && !hasAIInsight && rawContent) {
+        setSourceUrl(rawContent);
+      }
     } catch (error) {
       if (error instanceof Error) {
         setError(error.message);
@@ -51,7 +62,7 @@ export function Component() {
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [embedded, id]);
 
   const openTauriUrl = (url: string) => {
     window.parent.postMessage(
@@ -95,7 +106,7 @@ export function Component() {
       const url = sourceUrl.startsWith('http') ? sourceUrl : `${getApiBaseUrl()}${sourceUrl}`;
       return (
         <div className='mt-30 flex justify-center'>
-          <div className='max-w-640px border border-border-secondary rounded-lg bg-black/3 px-6 py-10 dark:bg-white/7'>
+          <div className='w-full min-w-0 border border-border-secondary rounded-lg bg-black/3 px-6 py-10 dark:bg-white/7 md:w-640px'>
             <div className='font-bold'>{t('page.preview.hints.leave')}</div>
 
             <div className='mt-1'>{t('page.preview.hints.externalLinkWarning')}</div>
@@ -198,7 +209,7 @@ export function Component() {
 
   return (
     <div className='h-screen bg-container'>
-      <div className={classNames('h-full flex flex-col', [embedded ? 'p-6' : 'max-w-240 m-auto'])}>
+      <div className={classNames('h-full flex flex-col', [embedded ? 'p-6' : 'p-16px max-w-240 m-auto'])}>
         {!embedded && (
           <div className='h-20 flex items-center justify-between border-b border-border-secondary'>
             <div className='children:h-10'>

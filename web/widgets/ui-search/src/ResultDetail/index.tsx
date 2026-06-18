@@ -98,6 +98,9 @@ export const ResultDetail: FC<ResultDetailProps> = (props) => {
                         createdAt: t('labels.createdAt'),
                         updatedAt: t('labels.updatedAt'),
                         preview: t('labels.preview'),
+                        previewUnavailableTitle: t('labels.previewUnavailableTitle'),
+                        previewUnavailableDescription: t('labels.previewUnavailableDescription'),
+                        openSource: t('labels.openSourceFromPreview'),
                         aiInterpretation: t('labels.aiInterpretation')
                     }
                 }}
