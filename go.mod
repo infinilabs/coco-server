@@ -3,9 +3,6 @@ module infini.sh/coco
 go 1.25.4
 
 replace infini.sh/framework => ../framework
-
-replace infini.sh/license => ../license
-
 replace github.com/cihub/seelog => ../framework/lib/seelog
 
 require (
@@ -252,7 +249,6 @@ require (
 	google.golang.org/protobuf v1.36.8 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/cheggaaa/pb.v1 v1.0.28 // indirect
-	infini.sh/license v0.0.0-00010101000000-000000000000 // indirect
 	nhooyr.io/websocket v1.8.7 // indirect
 )
 
