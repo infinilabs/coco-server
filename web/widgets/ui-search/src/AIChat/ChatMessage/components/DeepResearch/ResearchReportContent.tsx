@@ -108,9 +108,9 @@ export const ResearchReportContent = ({
   }, [data?.url, data?.format, requestHeaders, theme]);
 
   const endStatusMessageKeyMap: Partial<Record<Exclude<NonNullable<ResearchEndChunk["payload"]>["reason"], undefined>, string>> = {
-    user_cancelled: "deepResearch.report.cancelled",
-    error: "deepResearch.report.error",
-    timeout: "deepResearch.report.timeout",
+    user_cancelled: "deepResearch.status.cancelled",
+    error: "deepResearch.status.error",
+    timeout: "deepResearch.status.timeout",
   };
   const endStatusMessageKey = endStatusMessageKeyMap[endChunk?.payload?.reason || "completed"];
 
