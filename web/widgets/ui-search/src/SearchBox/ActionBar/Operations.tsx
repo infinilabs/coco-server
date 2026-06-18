@@ -106,7 +106,7 @@ const Operations: FC<OperationsProps> = (props) => {
                     <Button
                         style={btnStyle}
                         classNames={{ icon: `w-16px h-16px !text-16px flex items-center justify-center` }}
-                        icon={<Paperclip className="w-16px h-16px" />}
+                        icon={<Paperclip className="w-16px h-16px !text-[#666] dark:!text-white/80" />}
                         type="text"
                         shape="circle"
                         onMouseDown={(e) => e.preventDefault()}

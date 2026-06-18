@@ -203,7 +203,9 @@ export function SearchBox(props: SearchBoxProps) {
       border-[#F0F0F0] dark:border-[#303030] 
       ${minimize ? 'h-48px' : `h-103px ${sb.showExpandedPanel ? '' : 'shadow-[0_2px_20px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_20px_rgba(255,255,255,0.2)]'}`}
       ${!minimize && !sb.showExpandedPanel ? styles.gradientBorder : ''}
-      bg-[rgb(var(--ui-search--layout-bg-color))]
+      ${!minimize && !sb.showExpandedPanel ? styles.gradientBorder : ''}
+      ${minimize ? 'bg-[rgba(243,244,246,1)] dark:bg-[rgba(31,33,37,1)]' : 'bg-[rgb(var(--ui-search--layout-bg-color))]'}
+      
     `}>
       {minimize ? (
         <div className="px-12px items-center w-full h-full flex gap-8px">

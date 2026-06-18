@@ -463,9 +463,8 @@ export default function ChatInput({
       )}
       <div
         ref={containerRef}
-        className={`rounded-sm flex items-center transition-all relative`}
+        className={`rounded-4px flex items-center transition-all relative bg-[rgba(243,244,246,1)] dark:bg-[rgba(31,33,37,1)]`}
         style={{
-          backgroundColor: 'var(--ant-color-fill-quaternary)',
           color: 'var(--ant-color-text)',
         }}
       >
