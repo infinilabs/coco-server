@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useRef } from "react";
+import { useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { type TFunction } from "i18next";
 import { Hourglass, BookOpen, Search, Square, Ban } from "lucide-react";
@@ -28,6 +28,7 @@ interface DeepResearchProps {
   theme?: "light" | "dark";
   t?: TFunction;
   payload?: any;
+  sourceId?: string;
   onCancel?: () => void;
 }
 
@@ -235,20 +236,12 @@ export const DeepResearch = ({
   theme,
   t: tProp,
   payload,
+  sourceId,
   onCancel,
 }: DeepResearchProps) => {
   const { t: tOriginal } = useTranslation();
   const t = tProp || tOriginal;
-  const { openDrawer, updateDrawer, isOpen, revision } = useDeepResearchDrawer();
-  const isActiveRef = useRef(false);
-  const myRevisionRef = useRef(-1);
-
-  // If another item opened the drawer (revision changed), deactivate this instance
-  useEffect(() => {
-    if (myRevisionRef.current !== revision) {
-      isActiveRef.current = false;
-    }
-  }, [revision]);
+  const { openDrawer, updateDrawer, isOpen } = useDeepResearchDrawer();
 
   // Merge persisted detail chunks (from ES history) with live streaming chunks.
   // detail.payload contains the saved chunks; ChunkData contains real-time ones.
@@ -257,6 +250,20 @@ export const DeepResearch = ({
     if (ChunkData.length > 0) return ChunkData;
     return saved;
   }, [detail?.payload, ChunkData]);
+
+  const drawerSourceIds = useMemo(() => {
+    const ids = new Set<string>();
+    if (sourceId) ids.add(sourceId);
+    allChunks.forEach((chunk) => {
+      if (typeof chunk.message_id === "string" && chunk.message_id) {
+        ids.add(chunk.message_id);
+      }
+    });
+    if (typeof endChunk?.message_id === "string" && endChunk.message_id) {
+      ids.add(endChunk.message_id);
+    }
+    return Array.from(ids);
+  }, [sourceId, allChunks, endChunk]);
 
   const {
     deepResearchPlans,
@@ -460,9 +467,9 @@ export const DeepResearch = ({
     return "pending";
   }, [steps]);
 
-  // Sync latest data to the drawer while it's open and this instance is active
+  // Sync latest data to the drawer while it's open; the context keeps only the active source updated.
   useEffect(() => {
-    if (!isOpen || !isActiveRef.current) return;
+    if (!isOpen) return;
     updateDrawer({
       steps,
       plannerStatus,
@@ -472,8 +479,8 @@ export const DeepResearch = ({
       searchHits,
       isEnd,
       endChunk,
-    });
-  }, [isOpen, steps, plannerStatus, executionStatus, reportStatus, mergedPayload, searchHits, isEnd, endChunk]);
+    }, drawerSourceIds);
+  }, [isOpen, steps, plannerStatus, executionStatus, reportStatus, mergedPayload, searchHits, isEnd, endChunk, drawerSourceIds]);
 
   if (!allChunks.length) {
     return null;
@@ -485,8 +492,6 @@ export const DeepResearch = ({
         className="w-full my-3 cursor-pointer"
         onClick={() => {
           const tab = isCompleted ? "report" : "steps";
-          isActiveRef.current = true;
-          myRevisionRef.current = revision + 1;
           openDrawer({
             defaultActiveTab: tab,
             steps,
@@ -500,7 +505,7 @@ export const DeepResearch = ({
             isEnd,
             endChunk,
             t,
-          });
+          }, drawerSourceIds);
         }}
       >
         <div className="w-full rounded-8px border border-[#F0F0F0] dark:border-[#303030] bg-[#F3F4F6] dark:bg-[#020817] p-4">
@@ -578,8 +583,6 @@ export const DeepResearch = ({
                   className="px-3 py-1 text-xs font-medium rounded-full bg-[#E9F0FE] dark:bg-blue-900/30 text-[#1784FC] dark:text-blue-400 hover:bg-[#E0E9FD] dark:hover:bg-blue-900/50 cursor-pointer"
                   onClick={(e) => {
                     e.stopPropagation();
-                    isActiveRef.current = true;
-                    myRevisionRef.current = revision + 1;
                     openDrawer({
                       defaultActiveTab: "report",
                       steps,
@@ -593,7 +596,7 @@ export const DeepResearch = ({
                       isEnd,
                       endChunk,
                       t,
-                    });
+                    }, drawerSourceIds);
                   }}
                 >
                   {t("deepResearch.button.view")}

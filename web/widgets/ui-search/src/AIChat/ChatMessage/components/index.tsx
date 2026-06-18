@@ -347,6 +347,7 @@ const InnerChatMessage = memo(
       }
       return last ? {
         type: last.chunk_type,
+        message_id: last.message_id,
         payload
       } : undefined;
     }, [details, replyEnd])
@@ -475,6 +476,7 @@ const InnerChatMessage = memo(
             theme={resolvedTheme}
             t={t}
             payload={payload as any}
+            sourceId={message._id}
             onCancel={onCancel}
           />
 

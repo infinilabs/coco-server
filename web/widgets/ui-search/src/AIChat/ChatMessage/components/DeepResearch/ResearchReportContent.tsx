@@ -26,6 +26,7 @@ export interface ResearchReportData {
 
 export type ResearchEndChunk = {
   type: string;
+  message_id?: string;
   payload?: {
     reason?: "completed" | "user_cancelled" | "error" | "timeout";
   };
