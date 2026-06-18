@@ -59,6 +59,13 @@ export function AIAnswerActions({
   const activeBtnClass = "text-[#1677ff]";
 
   useEffect(() => {
+    setLiked(false);
+    setDisliked(false);
+    setLikePulse(false);
+    setDislikePulse(false);
+  }, [copyText]);
+
+  useEffect(() => {
     if (likePulse) {
       const t = setTimeout(() => setLikePulse(false), 220);
       return () => clearTimeout(t);
