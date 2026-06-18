@@ -1,7 +1,7 @@
 import { Button } from "antd";
 import { Minus, Plus } from "lucide-react";
 import ListContainer from "./ListContainer";
-import { type FC } from "react";
+import { type FC, type RefObject } from "react";
 import { useTranslation } from "react-i18next";
 
 export const SUGGESTION_OPERATORS = "suggestion_operators"
@@ -37,6 +37,7 @@ interface OperatorsProps {
     currentOperator?: string;
     onItemClick?: (item: any) => void;
     language?: string;
+    keyboardRootRef?: RefObject<HTMLElement | null>;
 }
 
 const Operators: FC<OperatorsProps> = ({ currentOperator, ...props }) => {

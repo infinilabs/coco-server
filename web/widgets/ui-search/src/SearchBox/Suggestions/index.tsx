@@ -4,7 +4,7 @@ import FilterFields, { SUGGESTION_FILTER_FIELDS } from "./FilterFields";
 import FilterValues, { SUGGESTION_FILTER_VALUES } from "./FilterValues";
 import Operators, { SUGGESTION_OPERATORS } from "./Operators";
 import { ACTION_TYPE_SEARCH } from "../ActionBar/SearchActions";
-import { memo, type FC } from "react";
+import { memo, type FC, type RefObject } from "react";
 
 interface SuggestionsProps {
   suggestions: { type?: string; data?: any[] };
@@ -26,6 +26,7 @@ interface SuggestionsProps {
   language?: string;
   settings?: Record<string, any>;
   resetKey?: string;
+  keyboardRootRef?: RefObject<HTMLElement | null>;
 }
 
 const Suggestions: FC<SuggestionsProps> = ({
@@ -47,7 +48,8 @@ const Suggestions: FC<SuggestionsProps> = ({
   turnToChat,
   language,
   settings,
-  resetKey
+  resetKey,
+  keyboardRootRef
 }) => {
 
   const { type, data = [] } = suggestions;
@@ -72,6 +74,7 @@ const Suggestions: FC<SuggestionsProps> = ({
             handleSearch(item.suggestion || query, filters, item.action || action_type, search_type || '')
           })}
           language={language}
+          keyboardRootRef={keyboardRootRef}
         />
       );
     case SUGGESTION_FILTER_FIELDS:
@@ -82,6 +85,7 @@ const Suggestions: FC<SuggestionsProps> = ({
           loadNext={onLoadNext}
           language={language}
           resetKey={resetKey}
+          keyboardRootRef={keyboardRootRef}
         />
       );
     case SUGGESTION_FILTER_VALUES:
@@ -94,10 +98,11 @@ const Suggestions: FC<SuggestionsProps> = ({
           language={language}
           loadNext={onLoadNext}
           resetKey={resetKey}
+          keyboardRootRef={keyboardRootRef}
         />
       );
     case SUGGESTION_OPERATORS:
-      return <Operators currentOperator={filters[filterState.index]?.operator} onItemClick={handleSuggestionItemClick(handleOperatorChange)} language={language} />;
+      return <Operators currentOperator={filters[filterState.index]?.operator} onItemClick={handleSuggestionItemClick(handleOperatorChange)} language={language} keyboardRootRef={keyboardRootRef} />;
     default:
       return null;
   }

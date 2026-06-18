@@ -117,6 +117,10 @@ export default function useSearchBox({
     return null;
   }, [mainInputActive, filterState.type, query, isSlashAtCursor, colonFieldQuery, slashFieldQuery]);
 
+  const activeFilterFieldName = useMemo(() => {
+    return filters[filterState.index]?.field?.field_name;
+  }, [filters, filterState.index]);
+
   const handleSearchActionClick = useCallback(() => {
     isClickingSearchAction.current = true;
   }, []);
@@ -508,6 +512,12 @@ export default function useSearchBox({
     });
   }, [queryParams, filterFieldsMeta]);
 
+  const suggestionResetContext = useMemo(() => {
+    if (suggestionType === SUGGESTION_FILTER_VALUES) return `${activeFilterFieldName || ''}::${filterSearchValue}`;
+    if (suggestionType === SUGGESTION_FILTER_FIELDS) return `${colonFieldQuery || ''}::${slashFieldQuery || ''}::${query || ''}`;
+    return query || '';
+  }, [suggestionType, activeFilterFieldName, filterSearchValue, colonFieldQuery, slashFieldQuery, query]);
+
   // Reset suggestions when suggestion type or query context changes
   useEffect(() => {
     if (!suggestionType) {
@@ -517,7 +527,7 @@ export default function useSearchBox({
       return;
     }
     setSuggestions({ type: suggestionType, from: 0, size: DEFAULT_SUGGESTIONS_SIZE });
-  }, [suggestionType, query]);
+  }, [suggestionType, suggestionResetContext]);
 
   // Clean empty filters when not actively editing
   useEffect(() => {
@@ -560,15 +570,14 @@ export default function useSearchBox({
         break;
       }
       case SUGGESTION_FILTER_VALUES: {
-        const f = filters[filterState.index];
-        if (f?.field?.field_name) {
-          suggestionParams = { ...suggestionParams, field_name: f.field.field_name, query: filterSearchValue, size: 10 };
+        if (activeFilterFieldName) {
+          suggestionParams = { ...suggestionParams, field_name: activeFilterFieldName, query: filterSearchValue, size: 10 };
           onSuggestion(suggestionType, suggestionParams, (res: any) => handleSuggestionsResult(SUGGESTION_FILTER_VALUES, res));
         }
         break;
       }
     }
-  }, [suggestionType, suggestions.from, suggestions.size, query, filterState.type, filterState.index, filters, onSuggestion, cursorPosition, colonFieldQuery, filterSearchValue]);
+  }, [suggestionType, suggestions.from, suggestions.size, query, filterState.type, filterState.index, activeFilterFieldName, onSuggestion, cursorPosition, colonFieldQuery, slashFieldQuery, filterSearchValue, handleSuggestionsResult]);
 
   // Global Tab key handler
   useEffect(() => {

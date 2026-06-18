@@ -69,8 +69,8 @@ export function SearchBox(props: SearchBoxProps) {
   }, [onSearch, attachments]);
 
   const suggestionResetKey = useMemo(() => {
-    return `${sb.suggestionType || ''}::${sb.colonFieldQuery || ''}::${sb.slashFieldQuery || ''}`;
-  }, [sb.suggestionType, sb.colonFieldQuery, sb.slashFieldQuery]);
+    return `${sb.suggestionType || ''}::${sb.colonFieldQuery || ''}::${sb.slashFieldQuery || ''}::${sb.filterSearchValue || ''}`;
+  }, [sb.suggestionType, sb.colonFieldQuery, sb.slashFieldQuery, sb.filterSearchValue]);
 
   const actionBarProps = useMemo(() => ({
     action_type: sb.action_type,
@@ -115,7 +115,8 @@ export function SearchBox(props: SearchBoxProps) {
     turnToChat,
     language,
     settings,
-    resetKey: suggestionResetKey
+    resetKey: suggestionResetKey,
+    keyboardRootRef: sb.rootRef
   }), [
     sb.suggestions,
     sb.loadNextSuggestion,
@@ -135,8 +136,15 @@ export function SearchBox(props: SearchBoxProps) {
     turnToChat,
     language,
     settings,
-    suggestionResetKey
+    suggestionResetKey,
+    sb.rootRef
   ]);
+
+  const handleTextAreaKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key !== 'Enter' || e.shiftKey) return;
+    e.preventDefault();
+    if (sb.searchable) sb.triggerSearch();
+  }, [sb.searchable, sb.triggerSearch]);
 
   const renderTextArea = (ref: any, className = "", onBlur?: any, maxRows = 6) => (
     <Input.TextArea
@@ -150,6 +158,7 @@ export function SearchBox(props: SearchBoxProps) {
       onClick={sb.handleCursorPositionChange}
       onFocus={sb.handleInputFocus}
       onBlur={onBlur}
+      onKeyDown={handleTextAreaKeyDown}
       className={`${styles.input} ${className}`}
     />
   );

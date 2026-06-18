@@ -1,6 +1,6 @@
 import { MessageCircle, Search } from "lucide-react";
 import ListContainer from "./ListContainer";
-import { useState, useEffect, useRef, useMemo, type FC } from "react";
+import { useState, useEffect, useRef, useMemo, type FC, type RefObject } from "react";
 import { useTranslation } from 'react-i18next';
 import DeepresearchIcon from "../../icons/DeepresearchIcon";
 
@@ -15,10 +15,11 @@ interface KeywordsProps {
     action_type?: string;
     settings?: Record<string, any>;
     language?: string;
+    keyboardRootRef?: RefObject<HTMLElement | null>;
 }
 
 const Keywords: FC<KeywordsProps> = (props) => {
-    const { keyword, data = [], onItemSelect, onItemClick, action_type, settings } = props;
+    const { keyword, data = [], onItemSelect, onItemClick, action_type, settings, keyboardRootRef } = props;
     const { t } = useTranslation();
 
     const actions = useMemo(() => [
@@ -85,6 +86,8 @@ const Keywords: FC<KeywordsProps> = (props) => {
     useEffect(() => {
         const hasMultipleLists = (actions.length > 0 && keywords.length > 0);
         if (!hasMultipleLists || !onItemClick) return;
+        const keyboardTarget = keyboardRootRef?.current;
+        if (!keyboardTarget) return;
 
         const handleKeyDown = (e: KeyboardEvent) => {
             if (![38, 40, 13].includes(e.keyCode)) return;
@@ -139,12 +142,12 @@ const Keywords: FC<KeywordsProps> = (props) => {
             }
         };
 
-        document.addEventListener("keydown", handleKeyDown);
+        keyboardTarget.addEventListener("keydown", handleKeyDown);
 
         return () => {
-            document.removeEventListener("keydown", handleKeyDown);
+            keyboardTarget.removeEventListener("keydown", handleKeyDown);
         };
-    }, [globalActiveIndex, onItemClick, actionsLength, actions.length, keywords.length]);
+    }, [globalActiveIndex, onItemClick, actionsLength, actions.length, keywords.length, keyboardRootRef]);
 
     const setListRef = (type: string, ref: any) => {
         listRefs.current[type] = ref;

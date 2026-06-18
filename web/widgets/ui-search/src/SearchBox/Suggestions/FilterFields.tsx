@@ -1,5 +1,5 @@
 import ListContainer from "./ListContainer";
-import { type FC } from "react";
+import { type FC, type RefObject } from "react";
 import { useTranslation } from "react-i18next";
 
 export const SUGGESTION_FILTER_FIELDS = "field_names";
@@ -10,6 +10,7 @@ interface FilterFieldsProps {
   loadNext?: () => void;
   language?: string;
   resetKey?: string;
+  keyboardRootRef?: RefObject<HTMLElement | null>;
 }
 
 const FilterFields: FC<FilterFieldsProps> = (props) => {

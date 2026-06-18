@@ -141,7 +141,7 @@ export default function Filters({
   };
 
   const handleKeyDown = (e: any, index: number) => {
-    // Prevent antd Select from creating tags on Enter;
+    // Prevent antd Select from consuming Enter;
     // value selection is handled by the suggestion ListContainer
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -197,7 +197,7 @@ export default function Filters({
                 </Space.Addon>
                 <Select
                   className="border-[#F0F0F0] dark:border-[#303030]"
-                  mode="tags"
+                  mode="multiple"
                   maxTagCount={3}
                   maxTagPlaceholder={() => '...'}
                   style={{ minWidth: 'auto' }}

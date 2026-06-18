@@ -1,5 +1,5 @@
 import { Button, Spin, Typography } from "antd";
-import { useState, useEffect, useRef, forwardRef, useImperativeHandle, useCallback, type ReactNode } from "react";
+import { useState, useEffect, useRef, forwardRef, useImperativeHandle, useCallback, type ReactNode, type RefObject } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 
 import styles from "./index.module.less";
@@ -22,6 +22,7 @@ interface ListContainerProps {
   defaultActiveIndex?: number;
   language?: string;
   resetKey?: string;
+  keyboardRootRef?: RefObject<HTMLElement | null>;
 }
 
 const ITEM_HEIGHT = 40;
@@ -41,7 +42,8 @@ const ListContainer = forwardRef<any, ListContainerProps>((props, ref) => {
     className = '',
     defaultActiveIndex = 0,
     language,
-    resetKey
+    resetKey,
+    keyboardRootRef
   } = props;
     
   const lang = language ? (language.startsWith('zh') ? 'zh' : 'en') : 'en';
@@ -153,13 +155,17 @@ const ListContainer = forwardRef<any, ListContainerProps>((props, ref) => {
     setActiveIndex(defaultActiveIndex);
     prevActiveIndexRef.current = defaultActiveIndex;
     keyDirectionRef.current = 'none';
+    scrollContainerRef.current?.scrollTo({ top: 0 });
+    virtualizer.scrollToOffset(0);
     hasMoreRefs.current = true;
     setHasMore(true);
     loadingRef.current = false;
-  }, [resetKey, defaultActiveIndex]);
+  }, [resetKey, defaultActiveIndex, virtualizer]);
 
   useEffect(() => {
     if (useGlobalKeydown || !onItemClick) return;
+    const keyboardTarget = keyboardRootRef?.current;
+    if (!keyboardTarget) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (![38, 40, 13].includes(e.keyCode)) return;
@@ -168,9 +174,6 @@ const ListContainer = forwardRef<any, ListContainerProps>((props, ref) => {
       if (totalItems === 0) return;
 
       e.preventDefault();
-      // Stop propagation in capture phase to prevent antd Select (in tags mode)
-      // from also processing Enter and creating its own tag.
-      e.stopPropagation();
 
       setIsKeyboardNav(true);
 
@@ -202,11 +205,9 @@ const ListContainer = forwardRef<any, ListContainerProps>((props, ref) => {
       }
     };
 
-    // Use capture phase so this handler fires BEFORE antd Select's internal
-    // keydown handler (which is attached to the input in bubble phase).
-    document.addEventListener("keydown", handleKeyDown, true);
-    return () => document.removeEventListener("keydown", handleKeyDown, true);
-  }, [useGlobalKeydown, dataSource, activeIndex, onItemClick]);
+    keyboardTarget.addEventListener("keydown", handleKeyDown);
+    return () => keyboardTarget.removeEventListener("keydown", handleKeyDown);
+  }, [useGlobalKeydown, dataSource, activeIndex, onItemClick, keyboardRootRef]);
 
   useImperativeHandle(ref, () => ({
     triggerItemClick: (index: number) => {

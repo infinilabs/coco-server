@@ -1,6 +1,6 @@
 import { Checkbox } from "antd";
 import ListContainer from "./ListContainer";
-import { type FC } from "react";
+import { type FC, type RefObject } from "react";
 import { useTranslation } from "react-i18next";
 
 export const SUGGESTION_FILTER_VALUES = "field_values"
@@ -13,6 +13,7 @@ interface FilterValuesProps {
     language?: string;
     resetKey?: string;
     loadNext?: () => void;
+    keyboardRootRef?: RefObject<HTMLElement | null>;
 }
 
 const FilterValues: FC<FilterValuesProps> = (props) => {
