@@ -108,8 +108,11 @@ export type SearchResultsRecord = {
   size?: number;
   owner?: {
     avatar?: string;
+    title?: string;
+    name?: string;
     username?: string;
     userid?: string;
+    id?: string;
   };
   metadata?: {
     last_reviewed?: string;

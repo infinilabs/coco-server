@@ -9,7 +9,7 @@ import Recommends from "../Recommends";
 import { LIST_TYPES } from "../ResultList";
 import { EmptyList } from "../ResultList/EmptyList";
 import MediaLayout from "../Layout/MediaLayout";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 interface SearchProps {
   aggregations?: any;
@@ -88,6 +88,10 @@ export default function Search({
   const [recommendsCollapse, setRecommendsCollapse] = useState(true)
   const [filterFieldsMeta, setFilterFieldsMeta] = useState({})
   const [hasRecommendsData, setHasRecommendsData] = useState(false)
+  const ownerCacheRef = useRef<Record<string, any>>({});
+  const pendingOwnerIdsRef = useRef<Set<string>>(new Set());
+  const [ownerVersion, setOwnerVersion] = useState(0);
+  const getUserEntities = commonProps?.getUserEntities as ((ids: string[], callback?: (data: any) => void) => any) | undefined;
   const handleRecommendsDataLoaded = useCallback((hasData: boolean) => {
     setHasRecommendsData(hasData);
   }, []);
@@ -106,6 +110,73 @@ export default function Search({
   }, [JSON.stringify(aggfilter)]);
 
   const isEmptyResult = hasSearchParams && !loading && (hits?.total || 0) === 0 && (data?.length || 0) === 0;
+
+  useEffect(() => {
+    if (!Array.isArray(data) || data.length === 0) return;
+
+    data.forEach((item) => {
+      const ownerId = item?._system?.owner_id;
+      if (ownerId && item?.owner && ownerCacheRef.current[ownerId] === undefined) {
+        ownerCacheRef.current[ownerId] = item.owner;
+      }
+    });
+
+    if (typeof getUserEntities !== 'function') return;
+
+    const ownerIds = Array.from(new Set(data.map((item) => item?._system?.owner_id).filter(Boolean)));
+    const missingOwnerIds = ownerIds.filter((id) => ownerCacheRef.current[id] === undefined && !pendingOwnerIdsRef.current.has(id));
+
+    if (missingOwnerIds.length === 0) return;
+
+    missingOwnerIds.forEach((id) => pendingOwnerIdsRef.current.add(id));
+
+    const markMissingOwnersAsLoaded = () => {
+      missingOwnerIds.forEach((id) => {
+        ownerCacheRef.current[id] = null;
+        pendingOwnerIdsRef.current.delete(id);
+      });
+      setOwnerVersion((prev) => prev + 1);
+    };
+
+    try {
+      const request = getUserEntities(missingOwnerIds, (res: any) => {
+        const entities = Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : [];
+        const entityMap = new Map<string, any>();
+        entities.forEach((entity: any) => {
+          if (entity?.id) {
+            entityMap.set(entity.id, entity);
+          }
+        });
+
+        missingOwnerIds.forEach((id) => {
+          ownerCacheRef.current[id] = entityMap.get(id) ?? null;
+          pendingOwnerIdsRef.current.delete(id);
+        });
+
+        setOwnerVersion((prev) => prev + 1);
+      });
+
+      Promise.resolve(request).catch(markMissingOwnersAsLoaded);
+    } catch {
+      markMissingOwnersAsLoaded();
+    }
+  }, [data, getUserEntities]);
+
+  const dataWithOwners = useMemo(() => {
+    if (!Array.isArray(data) || data.length === 0) return data;
+
+    return data.map((item) => {
+      const ownerId = item?._system?.owner_id;
+      const owner = ownerId ? ownerCacheRef.current[ownerId] : undefined;
+
+      if (!owner || item?.owner === owner) return item;
+
+      return {
+        ...item,
+        owner
+      };
+    });
+  }, [data, ownerVersion]);
 
   const handleGenerateAnswer = useCallback(() => {
     onSearch?.({
@@ -128,7 +199,7 @@ export default function Search({
   ) : listType ? (
     <listType.component
       {...commonProps}
-      data={data}
+      data={dataWithOwners}
       getDetailContainer={getContainer as (() => HTMLElement) | undefined}
       hasMore={hasMore}
       loading={loading}

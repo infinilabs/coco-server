@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { FullscreenModal } from 'ui-search';
 
-export default (props) => {
+type QueryParams = Record<string, any>;
+type FullscreenModalWrapperProps = Record<string, any>;
 
-    const [queryParamsState, setQueryParamsState] = useState({
+export default function FullscreenModalWrapper(props: FullscreenModalWrapperProps) {
+
+    const [queryParamsState, setQueryParamsState] = useState<QueryParams>({
         from: 0,
         size: 10,
     });

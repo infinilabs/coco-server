@@ -1,5 +1,5 @@
 import { Spin } from "antd";
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import ResultDetail from "../ResultDetail";
 import styles from "./NormalList.module.less";
@@ -42,6 +42,7 @@ export function NormalList(props: NormalListProps) {
   const listWrapperRef = useRef<HTMLDivElement>(null);
   const loadingRef = useRef(loading);
   const hasMoreRef = useRef(hasMore);
+  const dataIdentity = useMemo(() => data.map((item) => item?.id).join('|'), [data]);
 
   useEffect(() => { loadingRef.current = loading; }, [loading]);
   useEffect(() => { hasMoreRef.current = hasMore; }, [hasMore]);
@@ -50,7 +51,16 @@ export function NormalList(props: NormalListProps) {
     setOpen(false);
     setRecord(undefined);
     setDetailCollapse?.(false);
-  }, [data]);
+  }, [dataIdentity]);
+
+  useEffect(() => {
+    if (!record?.id) return;
+
+    const latestRecord = data.find((item) => item?.id === record.id);
+    if (latestRecord && latestRecord !== record) {
+      setRecord(latestRecord);
+    }
+  }, [data, record?.id]);
 
   const scrollElement = getDetailContainer?.() ?? null;
 

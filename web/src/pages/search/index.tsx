@@ -13,6 +13,7 @@ import queryString from 'query-string';
 import { getLocale } from '@/store/slice/app';
 import { getApplicationSetting } from '@/store/slice/server';
 import { searchAssistant } from '@/service/api/assistant';
+import { fetchBatchEntityLabels } from '@/service/api/entity';
 
 configResponsive({ sm: 640 });
 
@@ -151,7 +152,7 @@ export function Component() {
     const filterStr = Object.keys(filter).filter((key) => !!filter[key]).map((key) => `filter=${key}:any(${Array.isArray(filter[key]) ? filter[key].join(',') : filter[key]})`).join('&')
     const searchStr = `${filterStr ? filterStr + '&' : ''}${queryString.stringify(rest)}`
     const headers = { 'APP-INTEGRATION-ID': search_settings?.integration }
-    const res = await querySearch({}, searchStr, { headers })
+    const res = await querySearch({}, searchStr, { headers, ignoreError: true })
     if (callback) callback(res.data)
     if (setLoading) setLoading(false)
   }
@@ -163,7 +164,7 @@ export function Component() {
     const searchStr = `${filterStr ? filterStr + '&' : ''}${queryString.stringify({ query, search_type })}`
     const body = JSON.stringify(AGGS[queryParams['metadata.content_category']] || AGGS['all'])
     const headers = { 'APP-INTEGRATION-ID': search_settings?.integration }
-    const res = await querySearch(body, searchStr, { headers })
+    const res = await querySearch(body, searchStr, { headers, ignoreError: true })
     if (callback) callback(res.data)
     if (setLoading) setLoading(false)
   }
@@ -234,7 +235,7 @@ export function Component() {
 
   async function onSuggestion(tag: string | undefined, params: { [key: string]: any }, callback: (data: any) => void) {
     const headers = { 'APP-INTEGRATION-ID': search_settings?.integration }
-    const res = await fetchSuggestions(tag, params, { headers })
+    const res = await fetchSuggestions(tag, params, { headers, ignoreError: true })
     if (callback) callback(res.data)
   }
 
@@ -244,7 +245,7 @@ export function Component() {
       return;
     }
     const headers = { 'APP-INTEGRATION-ID': search_settings?.integration }
-    const res = await fetchFieldsMeta(fields, { headers })
+    const res = await fetchFieldsMeta(fields, { headers, ignoreError: true })
     if (res && !res.error) {
       callback?.(res.data)
     } else {
@@ -254,13 +255,27 @@ export function Component() {
 
   async function onRecommend(tag: string | undefined, callback: (data: any) => void) {
     const headers = { 'APP-INTEGRATION-ID': search_settings?.integration }
-    const res = await fetchRecommends(tag, { headers })
+    const res = await fetchRecommends(tag, { headers, ignoreError: true })
     if (callback) callback(res.data)
   }
 
   async function onUpload(files: any[], callback?: (data: any) => void) {
     const headers = { 'APP-INTEGRATION-ID': search_settings?.integration }
-    const res = await uploadAttachment(files, { headers })
+    const res = await uploadAttachment(files, { headers, ignoreError: true })
+    if (res && !res.error) {
+      callback?.(res.data)
+    } else {
+      callback?.({})
+    }
+  }
+
+  async function getUserEntities(ids: string[], callback?: (data: any) => void) {
+    const headers = { 'APP-INTEGRATION-ID': search_settings?.integration }
+    const body = [{
+      type: 'user',
+      id: ids
+    }]
+    const res = await fetchBatchEntityLabels(body, { headers, ignoreError: true });
     if (res && !res.error) {
       callback?.(res.data)
     } else {
@@ -343,7 +358,8 @@ export function Component() {
       history.replaceState(null, '', newUrl);
     },
     getFieldsMeta,
-    onUpload
+    onUpload,
+    getUserEntities
   }
 
   if (loading) {

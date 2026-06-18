@@ -29,6 +29,7 @@ interface FullscreenProps {
   apiConfig?: Record<string, any>;
   getFieldsMeta?: (...args: any[]) => any;
   onUpload?: (...args: any[]) => void;
+  getUserEntities?: (...args: any[]) => void;
   settings?: Record<string, any>;
   [key: string]: any;
 }
@@ -55,6 +56,7 @@ const Fullscreen = (props: FullscreenProps) => {
     apiConfig,
     getFieldsMeta,
     onUpload,
+    getUserEntities,
     settings
   } = props;
 
@@ -274,7 +276,7 @@ const Fullscreen = (props: FullscreenProps) => {
 
   const { query, filter, aggfilter, filters = [] } = queryParams;
 
-  const commonProps = { isMobile, theme, apiConfig, language };
+  const commonProps = { isMobile, theme, apiConfig, language, getUserEntities };
   const { hits, aggregations } = result;
 
   const handleLogoClick = () => {

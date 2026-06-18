@@ -13,7 +13,7 @@ export default defineConfig({
     },
     build: {
         lib: {
-            entry: path.resolve(__dirname, 'src/index.jsx'),
+            entry: path.resolve(__dirname, 'src/index.tsx'),
             name: "fullscreen",
             fileName: "index",
             formats: ["es"],

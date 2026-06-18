@@ -6,6 +6,18 @@ import FullscreenModal from './FullscreenModal';
 
 import 'ui-search/css';
 
+type AnyRecord = Record<string, any>;
+type DataCallback = (data?: any) => void;
+type LoadingSetter = (loading: boolean) => void;
+
+type FullscreenProps = AnyRecord & {
+    shadow?: ShadowRoot | HTMLElement;
+    id?: string;
+    server?: string;
+    enableQueryParams?: boolean;
+    parentTheme?: string;
+}
+
 const DARK_MODE_MEDIA_QUERY = '(prefers-color-scheme: dark)'
 
 const AGGS_DEFAULT = {
@@ -51,12 +63,12 @@ const AGGS_IMAGE = {
     },
 }
 
-const AGGS = {
+const AGGS: Record<string, any> = {
     all: AGGS_DEFAULT,
     image: AGGS_IMAGE,
 }
 
-function buildFilterString(filter = {}) {
+function buildFilterString(filter: AnyRecord = {}) {
     return Object.keys(filter)
         .filter((key) => filter[key] !== undefined && filter[key] !== null && filter[key] !== '')
         .map((key) => {
@@ -67,19 +79,19 @@ function buildFilterString(filter = {}) {
 }
 
 
-export default (props) => {
+export default function Fullscreen(props: FullscreenProps) {
     const { shadow, id, server, enableQueryParams = true, parentTheme } = props;
-    const [settings, setSettings] = useState()
+    const [settings, setSettings] = useState<AnyRecord>()
 
     const { payload = {}, enabled_module = {} } = settings || {}
 
     const [theme, setTheme] = useState(window.matchMedia && window.matchMedia(DARK_MODE_MEDIA_QUERY).matches ? 'dark' : 'light')
 
-    const apiHeaders = {
-        'APP-INTEGRATION-ID': id,
+    const apiHeaders: Record<string, string> = {
+        'APP-INTEGRATION-ID': id ?? '',
     }
 
-    async function fetchSettings(server, id) {
+    async function fetchSettings(server?: string, id?: string) {
         if (!server || !id) return;
         try {
             const response = await fetch(`${server}/integration/${id}`, {
@@ -107,7 +119,7 @@ export default (props) => {
                     });
                     const assistantData = await assistantRes.json();
                     if (assistantData?.hits?.hits?.length) {
-                        assistantData.hits.hits.forEach((item) => {
+                        assistantData.hits.hits.forEach((item: AnyRecord) => {
                             if (item._id === deep_research_assistant) {
                                 integrationData.deep_research_assistant_entity = item._source;
                             }
@@ -124,7 +136,7 @@ export default (props) => {
         }
     }
 
-    function search(query, callback, setLoading) {
+    function search(query: AnyRecord, callback: DataCallback, setLoading?: LoadingSetter, _shouldAgg = true) {
         if (setLoading) setLoading(true)
         const { filter = {}, ...rest } = query
         const filterStr = buildFilterString(filter)
@@ -134,21 +146,21 @@ export default (props) => {
             headers: apiHeaders,
             credentials: 'include',
         })
-        .then(response => {
-            if (!response.ok) throw new Error('response was not ok');
-            return response.json();
-        })
-        .then(data => {
-            callback(data)
-        })
-        .catch(error => {
-            callback({ error })
-        }).finally(() => {
-            if (setLoading) setLoading(false)
-        })
+            .then(response => {
+                if (!response.ok) throw new Error('response was not ok');
+                return response.json();
+            })
+            .then(data => {
+                callback(data)
+            })
+            .catch(error => {
+                callback({ error })
+            }).finally(() => {
+                if (setLoading) setLoading(false)
+            })
     }
 
-    function aggregate(query, callback, setLoading) {
+    function aggregate(query: AnyRecord, callback: DataCallback, setLoading?: LoadingSetter) {
         if (setLoading) setLoading(true)
         const { query: keyword, filter = {}, search_type, ...rest } = query
         const filterStr = buildFilterString(filter)
@@ -162,21 +174,21 @@ export default (props) => {
             credentials: 'include',
             body: JSON.stringify(AGGS[query['metadata.content_category']] || AGGS.all),
         })
-        .then(response => {
-            if (!response.ok) throw new Error('response was not ok');
-            return response.json();
-        })
-        .then(data => {
-            callback(data)
-        })
-        .catch(error => {
-            callback({ error })
-        }).finally(() => {
-            if (setLoading) setLoading(false)
-        })
+            .then(response => {
+                if (!response.ok) throw new Error('response was not ok');
+                return response.json();
+            })
+            .then(data => {
+                callback(data)
+            })
+            .catch(error => {
+                callback({ error })
+            }).finally(() => {
+                if (setLoading) setLoading(false)
+            })
     }
 
-    async function ask(assistantID, message, callback, setLoading) {
+    async function ask(assistantID: string, message: any, callback: DataCallback, setLoading: LoadingSetter) {
         setLoading(true)
         try {
             const response = await fetch(`${server}/assistant/${assistantID}/_ask`, {
@@ -209,48 +221,52 @@ export default (props) => {
                 }
             }
 
+            if (!response.body) {
+                throw new Error('response body is null')
+            }
+
             const reader = response.body.getReader();
             const decoder = new TextDecoder('utf-8');
             let lineBuffer = '';
 
             while (true) {
-            const { done, value } = await reader.read();
+                const { done, value } = await reader.read();
 
-            if (done) {
-                clearLoadingOnce()
-                break;
-            }
-
-            const chunk = decoder.decode(value, { stream: true });
-
-            lineBuffer += chunk;
-
-            const lines = lineBuffer.split('\n');
-            for (let i = 0; i < lines.length - 1; i++) {
-                try {
-                    const json = JSON.parse(lines[i]);
-                    if (json && !(json._id && json._source && json.result)) {
-                        // The first "response" chunk means content is flowing;
-                        // we can safely hand off the visual state to the
-                        // typing indicator owned by the chunk consumer.
-                        if (json?.chunk_type === 'response') {
-                            clearLoadingOnce()
-                        }
-                        callback(json)
-                    }
-                } catch (error) {
-                    console.log("error:", lines[i])
+                if (done) {
+                    clearLoadingOnce()
+                    break;
                 }
-            }
 
-            lineBuffer = lines[lines.length - 1];
+                const chunk = decoder.decode(value, { stream: true });
+
+                lineBuffer += chunk;
+
+                const lines = lineBuffer.split('\n');
+                for (let i = 0; i < lines.length - 1; i++) {
+                    try {
+                        const json = JSON.parse(lines[i]);
+                        if (json && !(json._id && json._source && json.result)) {
+                            // The first "response" chunk means content is flowing;
+                            // we can safely hand off the visual state to the
+                            // typing indicator owned by the chunk consumer.
+                            if (json?.chunk_type === 'response') {
+                                clearLoadingOnce()
+                            }
+                            callback(json)
+                        }
+                    } catch (error) {
+                        console.log("error:", lines[i])
+                    }
+                }
+
+                lineBuffer = lines[lines.length - 1];
             }
         } catch (error) {
             setLoading(false)
         }
     }
 
-    async function suggest(tag, params, callback) {
+    async function suggest(tag: string | undefined, params: AnyRecord | undefined, callback?: DataCallback) {
         try {
             const search = queryString.stringify(params || {})
             const response = await fetch(`${server}/query/_suggest${tag ? `/${tag}` : ''}${search ? `?${search}` : ''}`, {
@@ -270,7 +286,7 @@ export default (props) => {
         }
     }
 
-    async function recommend(tag, callback) {
+    async function recommend(tag: string | undefined, callback?: DataCallback) {
         try {
             const response = await fetch(`${server}/query/_recommend${tag ? `/${tag}` : ''}`, {
                 method: 'GET',
@@ -289,7 +305,7 @@ export default (props) => {
         }
     }
 
-    async function fetchProfile(callback) {
+    async function fetchProfile(callback?: DataCallback) {
         try {
             const response = await fetch(`${server}/account/profile`, {
                 method: 'GET',
@@ -308,7 +324,7 @@ export default (props) => {
         }
     }
 
-    async function onLogout(callback) {
+    async function onLogout(callback?: DataCallback) {
         try {
             const response = await fetch(`${server}/account/logout`, {
                 method: 'POST',
@@ -327,7 +343,7 @@ export default (props) => {
         }
     }
 
-    async function onUpload(files, callback) {
+    async function onUpload(files: File[], callback?: DataCallback) {
         try {
             const formData = new FormData();
             for (const f of files) {
@@ -351,7 +367,33 @@ export default (props) => {
         }
     }
 
-    async function getFieldsMeta(fields, callback) {
+    async function getUserEntities(ids: string[], callback?: DataCallback) {
+        try {
+            const response = await fetch(`${server}/entity/label/_batch_get`, {
+                method: 'POST',
+                headers: {
+                    ...apiHeaders,
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify([{
+                    type: 'user',
+                    id: ids,
+                }]),
+            })
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`)
+            }
+
+            const data = await response.json()
+            callback?.(data)
+        } catch (error) {
+            callback?.({})
+        }
+    }
+
+    async function getFieldsMeta(fields: string[], callback?: DataCallback) {
         if (!Array.isArray(fields) || fields.length === 0) {
             callback?.()
             return
@@ -379,7 +421,7 @@ export default (props) => {
         fetchSettings(server, id);
     }, [server, id]);
 
-    function onSystemThemeChange(e) {
+    function onSystemThemeChange(e: MediaQueryListEvent) {
         setTheme(e.matches ? 'dark' : 'light')
     }
 
@@ -417,19 +459,19 @@ export default (props) => {
             ...(payload?.ai_overview || {}),
             "showActions": true,
         },
-        "onSearch": (query, callback, setLoading, shouldAgg = true) => {
+        "onSearch": (query: AnyRecord, callback: DataCallback, setLoading?: LoadingSetter, shouldAgg = true) => {
             search(query, callback, setLoading, shouldAgg)
         },
-        "onAggregation": (query, callback, setLoading) => {
+        "onAggregation": (query: AnyRecord, callback: DataCallback, setLoading?: LoadingSetter) => {
             aggregate(query, callback, setLoading)
         },
-        "onAsk": (assistanID, message, callback, setLoading) => {
+        "onAsk": (assistanID: string, message: any, callback: DataCallback, setLoading: LoadingSetter) => {
             ask(assistanID, message, callback, setLoading)
         },
-        "onSuggestion": (tag, params, callback) => {
+        "onSuggestion": (tag: string | undefined, params: AnyRecord | undefined, callback?: DataCallback) => {
             suggest(tag, params, callback)
         },
-        "onRecommend": (tag, callback) => {
+        "onRecommend": (tag: string | undefined, callback?: DataCallback) => {
             recommend(tag, callback)
         },
         "config": {
@@ -476,12 +518,13 @@ export default (props) => {
         "getProfile": fetchProfile,
         "onLogout": onLogout,
         showTopAction: true,
-        onUpload
+        onUpload,
+        getUserEntities
     }
-    
+
     if (settings?.type === 'fullscreen' || settings?.type === 'page') {
         return (
-            <FullscreenPage {...componentProps} enableQueryParams={enableQueryParams}/>
+            <FullscreenPage {...componentProps} enableQueryParams={enableQueryParams} />
         )
     } else if (settings?.type === 'modal') {
         return <FullscreenModal {...componentProps} />

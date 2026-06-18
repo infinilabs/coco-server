@@ -1,7 +1,10 @@
 import queryString from 'query-string';
 import { useCallback, useMemo, useState } from 'react';
 
-export default function useQueryParams(defaultParams = {}) {
+type QueryParams = Record<string, any>;
+type SortTuple = [string, 'asc' | 'desc' | string];
+
+export default function useQueryParams(defaultParams: QueryParams = {}) {
 
     const getInitialParams = useCallback(() => {
         const currentUrl = new URL(window.location.href);
@@ -20,8 +23,8 @@ export default function useQueryParams(defaultParams = {}) {
             },
         });
 
-        const defaultSortStr = (defaultParams.sort || []).map(
-            ([field, order]) => `${field}:${order}`
+        const defaultSortStr = ((defaultParams.sort || []) as SortTuple[]).map(
+            ([field, order]: SortTuple) => `${field}:${order}`
         ).join(',');
 
         return {
@@ -33,13 +36,13 @@ export default function useQueryParams(defaultParams = {}) {
         };
     }, [defaultParams]);
 
-    const [searchParams, setSearchParams] = useState(getInitialParams);
+    const [searchParams, setSearchParams] = useState<QueryParams>(getInitialParams);
     
     const queryParams = useMemo(() => {
-        const filter = {}
+        const filter: Record<string, string[]> = {}
         if (searchParams.filter) {
             if (Array.isArray(searchParams.filter)) {
-                searchParams.filter.forEach((item) => {
+                searchParams.filter.forEach((item: string) => {
                     if (!item) return;
                     const arr = item.split(':')
                     if (arr.length === 2 && arr[0] && arr[1]) {
@@ -57,10 +60,10 @@ export default function useQueryParams(defaultParams = {}) {
                 }
             }
         }
-        const aggfilter = {}
+        const aggfilter: Record<string, string[]> = {}
         if (searchParams.aggfilter) {
             if (Array.isArray(searchParams.aggfilter)) {
-                searchParams.aggfilter.forEach((item) => {
+                searchParams.aggfilter.forEach((item: string) => {
                     if (!item) return;
                     const arr = item.split(':')
                     if (arr.length === 2 && arr[0] && arr[1]) {
@@ -78,10 +81,10 @@ export default function useQueryParams(defaultParams = {}) {
                 }
             }
         }
-        const sort = []
+        const sort: SortTuple[] = []
         if (searchParams.sort) {
             const arr = searchParams.sort.split(',')
-            arr.forEach((item) => {
+            arr.forEach((item: string) => {
                 const [field, order] = item.split(':')
                 if (field && order) {
                     sort.push([field,  order === 'asc' ? 'asc' : 'desc'])
@@ -96,8 +99,8 @@ export default function useQueryParams(defaultParams = {}) {
         }
     }, [searchParams])
 
-    const setQueryParams = useCallback((arg) => {
-        let newParams:any = {} 
+    const setQueryParams = useCallback((arg: QueryParams | ((params: QueryParams) => QueryParams)) => {
+        let newParams: QueryParams = {}
         if (typeof arg === 'function') {
             newParams = arg(queryParams)
         } else if (typeof arg === 'object' && arg !== null) {
@@ -106,7 +109,7 @@ export default function useQueryParams(defaultParams = {}) {
             });
         }
         const filter = newParams.filter;
-        const filters = [];
+        const filters: string[] = [];
         if (filter) {
             Object.entries(filter).forEach(([key, value]) => {
                 if (Array.isArray(value)) {
@@ -119,7 +122,7 @@ export default function useQueryParams(defaultParams = {}) {
         }
 
         const aggfilter = newParams.aggfilter;
-        const aggfilters = [];
+        const aggfilters: string[] = [];
         if (aggfilter) {
             Object.entries(aggfilter).forEach(([key, value]) => {
                 if (Array.isArray(value)) {
@@ -133,9 +136,9 @@ export default function useQueryParams(defaultParams = {}) {
 
         let sort = '';
         if (newParams.sort && Array.isArray(newParams.sort)) {
-            sort = newParams.sort.map(([field, order]) => `${field}:${order}`).join(',')
+            sort = (newParams.sort as SortTuple[]).map(([field, order]: SortTuple) => `${field}:${order}`).join(',')
         }
-        const newSearchParams = {
+        const newSearchParams: QueryParams = {
             ...newParams,
             filter: filters,
             aggfilter: aggfilters,

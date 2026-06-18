@@ -125,6 +125,7 @@ export function ImageList(props: ImageListProps) {
   const [columns, setColumns] = useState(2);
   const loadingRef = useRef(loading);
   const hasMoreRef = useRef(hasMore);
+  const dataIdentity = useMemo(() => data.map((item) => item?.id).join('|'), [data]);
 
   useEffect(() => { loadingRef.current = loading; }, [loading]);
   useEffect(() => { hasMoreRef.current = hasMore; }, [hasMore]);
@@ -133,7 +134,16 @@ export function ImageList(props: ImageListProps) {
     setOpen(false);
     setRecord(undefined);
     setDetailCollapse?.(true);
-  }, [data]);
+  }, [dataIdentity]);
+
+  useEffect(() => {
+    if (!record?.id) return;
+
+    const latestRecord = data.find((item) => item?.id === record.id);
+    if (latestRecord && latestRecord !== record) {
+      setRecord(latestRecord);
+    }
+  }, [data, record?.id]);
 
   useEffect(() => {
     const container = getDetailContainer?.();
