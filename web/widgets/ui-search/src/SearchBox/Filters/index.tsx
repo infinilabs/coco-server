@@ -1,6 +1,5 @@
 import { Button, Select, Space } from "antd";
 import { useRef, useEffect, useState, type KeyboardEvent } from "react"; 
-import cloneDeep from "lodash/cloneDeep";
 import { OPERATOR_ICONS } from "../Suggestions/Operators";
 import styles from "./index.module.less"
 import { X } from "lucide-react";
@@ -102,6 +101,12 @@ export default function Filters({
     }
   };
 
+  const handleFilterAddonMouseDown = (e: React.MouseEvent, index: number) => {
+    e.preventDefault();
+    handleFilterAddonClick(index);
+    filterRefs.current.forEach(ref => ref?.blur?.());
+  };
+
   const handleValueAreaClick = (index: number) => {
     if (onFilterValueEdit) {
       onFilterValueEdit(index);
@@ -185,7 +190,7 @@ export default function Filters({
               {showOperator && OPERATOR_ICONS[operator]}
               <Space.Compact className="cursor-pointer">
                 <Space.Addon 
-                  onClick={() => handleFilterAddonClick(index)}
+                  onMouseDown={(e) => handleFilterAddonMouseDown(e, index)}
                   className="border-[#F0F0F0] dark:border-[#303030]"
                 >
                   {filter.field?.field_label}
@@ -212,11 +217,13 @@ export default function Filters({
                   }}
                   onDeselect={(removedValue) => {
                     // Remove the deselected value and enter edit mode
-                    const newFilters = cloneDeep(filters);
-                    const f = newFilters[index];
-                    if (Array.isArray(f.value)) {
-                      f.value = f.value.filter(v => v !== removedValue);
-                    }
+                    const newFilters = filters.map((filterItem, filterIndex) => {
+                      if (filterIndex !== index) return filterItem;
+                      return {
+                        ...filterItem,
+                        value: Array.isArray(filterItem.value) ? filterItem.value.filter(v => v !== removedValue) : filterItem.value
+                      };
+                    });
                     onFiltersChange(newFilters);
                     if (onFilterValueEdit) {
                       onFilterValueEdit(index);
@@ -241,8 +248,7 @@ export default function Filters({
                       if (onFilterDelete) {
                         onFilterDelete(index);
                       } else {
-                        const newFilters = cloneDeep(filters);
-                        newFilters.splice(index, 1);
+                        const newFilters = filters.filter((_, filterIndex) => filterIndex !== index);
                         onFiltersChange(newFilters);
                         handleFilterAddonClick(-1);
                       }

@@ -6,7 +6,6 @@ import { SUGGESTION_FILTER_FIELDS } from "./Suggestions/FilterFields";
 import { SUGGESTION_FILTER_VALUES } from "./Suggestions/FilterValues";
 import { SUGGESTION_OPERATORS } from "./Suggestions/Operators";
 import { calculateCharLength } from "../utils/utils";
-import cloneDeep from "lodash/cloneDeep";
 import { isEmpty } from "lodash";
 
 export const DEFAULT_SUGGESTIONS_SIZE = 5;
@@ -60,6 +59,8 @@ export default function useSearchBox({
   const isSearchTriggered = useRef(false);
   const blurTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastClickOutsideTime = useRef(0);
+  const lastMouseDownInsideTime = useRef(0);
+  const filterStateRef = useRef(filterState);
   const inputRef = useRef<any>(null);
   const textAreaRef = useRef<any>(null);
   const expandedInputRef = useRef<any>(null);
@@ -73,6 +74,10 @@ export default function useSearchBox({
   const showExpandedPanel = useMemo(() => {
     return mainInputActive || filterState.type !== 'none';
   }, [mainInputActive, filterState.type]);
+
+  useEffect(() => {
+    filterStateRef.current = filterState;
+  }, [filterState]);
 
   const searchable = useMemo(() => {
     return (
@@ -112,9 +117,9 @@ export default function useSearchBox({
     return null;
   }, [mainInputActive, filterState.type, query, isSlashAtCursor, colonFieldQuery, slashFieldQuery]);
 
-  const handleSearchActionClick = () => {
+  const handleSearchActionClick = useCallback(() => {
     isClickingSearchAction.current = true;
-  };
+  }, []);
 
   const handleSearchActionDropdownClose = useCallback(() => {
     setTimeout(() => {
@@ -148,7 +153,8 @@ export default function useSearchBox({
           const field = item.field?.field_name;
           if (field && item.value) {
             const key = item.operator === 'not' ? `!${field}` : field;
-            newFilter[key] = Array.isArray(item.value) ? item.value : (item.value ? [item.value] : []);
+            const values = Array.isArray(item.value) ? item.value : [item.value];
+            newFilter[key] = Array.from(new Set([...(newFilter[key] || []), ...values]));
           }
         });
       }
@@ -176,34 +182,33 @@ export default function useSearchBox({
     handleSearch(query, filters, action_type, search_type);
   }, [handleSearch, query, filters, action_type, search_type]);
 
-  const handleAttachmentUpload = (files: File[], cb: (res: any) => void) => {
+  const handleAttachmentUpload = useCallback((files: File[], cb: (res: any) => void) => {
     if (onUpload) onUpload(files, cb);
-  }
+  }, [onUpload]);
 
-  const handleCursorPositionChange = (e: any) => {
+  const handleCursorPositionChange = useCallback((e: any) => {
     setCursorPosition(e.target.selectionStart);
-  };
+  }, []);
 
-  const handleInputChange = (e: any) => {
+  const handleInputChange = useCallback((e: any) => {
     handleQueryParamsChange('query', e.target.value);
     setCursorPosition(e.target.selectionStart);
-  };
+  }, [handleQueryParamsChange]);
 
-  const handleSuggestionItemClick = (handler: any) => {
+  const handleSuggestionItemClick = useCallback((handler: any) => {
     return (item: any) => {
       isClickingSuggestion.current = true;
       handler(item);
       setTimeout(() => (isClickingSuggestion.current = false), 200);
     };
-  };
+  }, []);
 
   const loadNextSuggestion = useCallback(() => {
     setSuggestions((prev: any) => ({ ...prev, from: prev.type === SUGGESTION_FILTER_VALUES ? prev.from + 10 : prev.from + DEFAULT_SUGGESTIONS_SIZE }));
   }, []);
 
-  const handleAddFilter = (item: any) => {
-    const newFilters = cloneDeep(filters);
-    newFilters.push({ field: item.payload, operator: 'and' });
+  const handleAddFilter = useCallback((item: any) => {
+    const newFilters = [...filters, { field: item.payload, operator: 'and' }];
     handleQueryParamsChange('filters', newFilters);
 
     // Remove the trigger text ("/" or "keyword:") from query
@@ -226,18 +231,20 @@ export default function useSearchBox({
     setShouldFocusNewFilter(true);
     setFilterState({ type: 'filterInput', index: newFilters.length - 1 });
     setMainInputActive(false);
-  };
+  }, [filters, colonFieldQuery, slashFieldQuery, query, cursorPosition, handleQueryParamsChange]);
 
-  const handleOperatorChange = (item: any) => {
+  const handleOperatorChange = useCallback((item: any) => {
     const { index } = filterState;
     if (filterState.type !== 'filterActive' || index === -1 || index >= filters.length) return;
 
-    const newFilters = cloneDeep(filters);
-    newFilters[index].operator = item.suggestion;
+    const newFilters = filters.map((filterItem: any, filterIndex: number) => {
+      if (filterIndex !== index) return filterItem;
+      return { ...filterItem, operator: item.suggestion };
+    });
     handleQueryParamsChange('filters', newFilters);
-  };
+  }, [filterState, filters, handleQueryParamsChange]);
 
-  const handleFilterValueToggle = (item: any) => {
+  const handleFilterValueToggle = useCallback((item: any) => {
     const { index } = filterState;
     if ((filterState.type !== 'filterInput' && filterState.type !== 'filterActive') || index === -1) return;
 
@@ -245,16 +252,22 @@ export default function useSearchBox({
       const prevFilters = prev.filters || [];
       if (index >= prevFilters.length) return prev;
 
-      const newFilters = cloneDeep(prevFilters);
-      const f = newFilters[index];
-      if (!f.value) f.value = [];
+      const currentFilter = prevFilters[index];
+      const currentValue = Array.isArray(currentFilter.value) ? currentFilter.value : [];
+      let nextValue;
 
-      const valueIndex = f.value.findIndex((v: any) => v === item.suggestion);
-      if (valueIndex === -1) f.value.push(item.suggestion);
-      else f.value.splice(valueIndex, 1);
+      const valueIndex = currentValue.findIndex((v: any) => v === item.suggestion);
+      if (valueIndex === -1) nextValue = [...currentValue, item.suggestion];
+      else nextValue = currentValue.filter((v: any) => v !== item.suggestion);
+
+      const nextFilter = { ...currentFilter, value: nextValue };
+      const newFilters = prevFilters.map((filterItem: any, filterIndex: number) => {
+        if (filterIndex !== index) return filterItem;
+        return nextFilter;
+      });
 
       // Single-select: auto-complete after selecting a value
-      if (!f.field?.support_multi_select && f.value.length > 0) {
+      if (!nextFilter.field?.support_multi_select && nextFilter.value.length > 0) {
         setTimeout(() => {
           setFilterState({ type: 'none', index: -1 });
           setMainInputActive(true);
@@ -265,7 +278,7 @@ export default function useSearchBox({
 
       return { ...prev, filters: newFilters };
     });
-  };
+  }, [filterState]);
 
   // Complete filter editing: close panel and trigger search.
   // NOTE: handleSearch is included in the dependency array because it is now
@@ -284,8 +297,7 @@ export default function useSearchBox({
   // Delete a filter by index
   const handleFilterDelete = useCallback((index: number) => {
     if (index < 0 || index >= filters.length) return;
-    const newFilters = cloneDeep(filters);
-    newFilters.splice(index, 1);
+    const newFilters = filters.filter((_: any, filterIndex: number) => filterIndex !== index);
     handleQueryParamsChange('filters', newFilters);
     if (filterState.index === index) {
       setFilterState({ type: 'none', index: -1 });
@@ -311,18 +323,30 @@ export default function useSearchBox({
     setMainInputActive(false);
   }, []);
 
-  const handleFilterActiveToggle = (index: number) => {
+  const handleFilterActiveToggle = useCallback((index: number) => {
+    lastMouseDownInsideTime.current = Date.now();
     if (index === -1) {
-      setFilterState({ type: 'none', index: -1 });
+      const nextFilterState = { type: 'none', index: -1 };
+      filterStateRef.current = nextFilterState;
+      setFilterState(nextFilterState);
       setSuggestions({});
       return;
     }
 
-    const isCurrentActive = (filterState.type === 'filterActive' || filterState.type === 'filterInput') && filterState.index === index;
-    // If the same filter is already active, do nothing (keep panel open)
-    if (isCurrentActive) return;
-    setFilterState({ type: 'filterActive', index });
-  };
+    const isCurrentActive = filterState.type === 'filterActive' && filterState.index === index;
+    if (isCurrentActive) {
+      const nextFilterState = { type: 'none', index: -1 };
+      filterStateRef.current = nextFilterState;
+      setFilterState(nextFilterState);
+      setSuggestions({});
+      setMainInputActive(true);
+      return;
+    }
+    const nextFilterState = { type: 'filterActive', index };
+    filterStateRef.current = nextFilterState;
+    setFilterState(nextFilterState);
+    setMainInputActive(false);
+  }, [filterState]);
 
   // Click outside to close expanded panel
   useEffect(() => {
@@ -342,7 +366,12 @@ export default function useSearchBox({
       const searchboxEl = rootRef.current;
       // Use composedPath() to get the actual target inside Shadow DOM
       const actualTarget = e.composedPath ? e.composedPath()[0] : e.target;
-      if (searchboxEl && !searchboxEl.contains(actualTarget) && !isClickingSearchAction.current) {
+      const isInsideSearchbox = !!searchboxEl && searchboxEl.contains(actualTarget);
+      if (isInsideSearchbox) {
+        lastMouseDownInsideTime.current = Date.now();
+        return;
+      }
+      if (searchboxEl && !isClickingSearchAction.current) {
         if (filterState.type !== 'none') {
           setFilterState({ type: 'none', index: -1 });
           setSuggestions({});
@@ -358,7 +387,7 @@ export default function useSearchBox({
     return () => eventTarget.removeEventListener('mousedown', handleClickOutside);
   }, [filterState.type, mainInputActive]);
 
-  const handleInputFocus = () => {
+  const handleInputFocus = useCallback(() => {
     if (isSearchTriggered.current) {
       isSearchTriggered.current = false;
       return;
@@ -386,27 +415,30 @@ export default function useSearchBox({
         setCursorPosition(len);
       }
     }, 0);
-  };
+  }, [filterState.type, filterState.index]);
 
-  const handleInputBlur = () => {
+  const handleInputBlur = useCallback(() => {
     blurTimeoutRef.current = setTimeout(() => {
       blurTimeoutRef.current = null;
       if (!document.hasFocus()) return;
+      if (Date.now() - lastMouseDownInsideTime.current < 200) return;
       if (!isClickingSuggestion.current && !isClickingSearchAction.current) {
         setMainInputActive(false);
       }
     }, 100);
-  };
+  }, []);
 
-  const handleFilterInputFocus = (index: number) => {
+  const handleFilterInputFocus = useCallback((index: number) => {
     setFilterState({ type: 'filterInput', index });
-  };
+  }, []);
 
-  const handleFilterInputBlur = () => {
+  const handleFilterInputBlur = useCallback(() => {
     setTimeout(() => {
+      if (filterStateRef.current.type === 'filterActive') return;
+      if (Date.now() - lastMouseDownInsideTime.current < 250) return;
       if (!isClickingSuggestion.current) setFilterState({ type: 'none', index: -1 });
     }, 100);
-  };
+  }, []);
 
   const handleSuggestionsResult = useCallback((expectedType: any, res: any) => {
     setSuggestions((prev: any) => {
@@ -419,16 +451,15 @@ export default function useSearchBox({
     });
   }, []);
 
-  const handleAttachmentsChange = (newAttachments: any) => {
+  const handleAttachmentsChange = useCallback((newAttachments: any) => {
     setAttachments?.(newAttachments);
     setMainInputActive(true);
-  };
+  }, [setAttachments]);
 
-  const handleAttachmentRemove = (item: any) => {
+  const handleAttachmentRemove = useCallback((item: any) => {
     const index = attachments.findIndex(a => a.id === item.id);
     if (index !== -1) {
-      const newAttachments = cloneDeep(attachments);
-      newAttachments.splice(index, 1);
+      const newAttachments = attachments.filter((_, attachmentIndex) => attachmentIndex !== index);
       setAttachments?.(newAttachments);
       // Cancel pending blur to prevent panel flicker
       if (blurTimeoutRef.current) {
@@ -441,7 +472,7 @@ export default function useSearchBox({
         if (expandedInputRef.current) expandedInputRef.current.focus();
       }, 50);
     }
-  };
+  }, [attachments, setAttachments]);
 
   // Refs to cache the serialized form of queryParams / filterFieldsMeta,
   // so we only reset internal state when their *content* actually changes.
@@ -491,7 +522,7 @@ export default function useSearchBox({
   // Clean empty filters when not actively editing
   useEffect(() => {
     if (filterState.type !== 'filterInput' && filterState.type !== 'filterActive') {
-      const cleanedFilters = cloneDeep(filters).filter((f: any) => {
+      const cleanedFilters = filters.filter((f: any) => {
         const value = f.value;
         return !!value && !(Array.isArray(value) && value.length === 0);
       });

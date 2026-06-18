@@ -1,4 +1,4 @@
-import { type FC } from "react";
+import { memo, type FC } from "react";
 import SearchActions from "./SearchActions";
 import Operations from "./Operations";
 
@@ -50,4 +50,4 @@ const ActionBar: FC<ActionBarProps> = ({
   );
 }
 
-export default ActionBar;
+export default memo(ActionBar);

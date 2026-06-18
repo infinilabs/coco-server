@@ -192,6 +192,7 @@ export default (props) => {
             });
 
             if (!response.ok) {
+                setLoading(false)
                 throw new Error(`HTTP error! Status: ${response.status}`);
             }
 

@@ -187,10 +187,12 @@ export function Component() {
       });
 
       if (!response.ok) {
+        setLoading(false)
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
 
       if (!response.body) {
+        setLoading(false)
         throw new Error(`response body is null!`);
       }
       const reader = response.body.getReader();

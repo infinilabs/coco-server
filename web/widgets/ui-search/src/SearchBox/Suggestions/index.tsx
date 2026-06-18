@@ -4,7 +4,7 @@ import FilterFields, { SUGGESTION_FILTER_FIELDS } from "./FilterFields";
 import FilterValues, { SUGGESTION_FILTER_VALUES } from "./FilterValues";
 import Operators, { SUGGESTION_OPERATORS } from "./Operators";
 import { ACTION_TYPE_SEARCH } from "../ActionBar/SearchActions";
-import { type FC } from "react";
+import { memo, type FC } from "react";
 
 interface SuggestionsProps {
   suggestions: { type?: string; data?: any[] };
@@ -103,4 +103,4 @@ const Suggestions: FC<SuggestionsProps> = ({
   }
 }
 
-export default Suggestions;
+export default memo(Suggestions);

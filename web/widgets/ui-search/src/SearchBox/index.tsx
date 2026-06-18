@@ -7,6 +7,7 @@ import useSearchBox from "./useSearchBox";
 import Suggestions from "./Suggestions";
 import ActionBar from "./ActionBar";
 import { ListFilter } from "lucide-react";
+import { useCallback, useMemo } from "react";
 
 interface SearchBoxProps {
   placeholder?: string;
@@ -49,10 +50,32 @@ export function SearchBox(props: SearchBoxProps) {
     setAttachments
   });
 
-  const actionBarProps = {
+  const handleSearchTypeChange = useCallback((type: string) => {
+    sb.handleQueryParamsChange('search_type', type);
+  }, [sb.handleQueryParamsChange]);
+
+  const handleFiltersChange = useCallback((filters: any) => {
+    sb.handleQueryParamsChange('filters', filters);
+  }, [sb.handleQueryParamsChange]);
+
+  const turnToChat = useCallback((item: any) => {
+    onSearch?.({
+      query: item.suggestion,
+      attachments: attachments,
+      mode: 'chat',
+      action: item.action,
+      assistant_id: item.assistant_id
+    })
+  }, [onSearch, attachments]);
+
+  const suggestionResetKey = useMemo(() => {
+    return `${sb.suggestionType || ''}::${sb.colonFieldQuery || ''}::${sb.slashFieldQuery || ''}`;
+  }, [sb.suggestionType, sb.colonFieldQuery, sb.slashFieldQuery]);
+
+  const actionBarProps = useMemo(() => ({
     action_type: sb.action_type,
     search_type: sb.search_type,
-    onSearchTypeChange: (type: string) => sb.handleQueryParamsChange('search_type', type),
+    onSearchTypeChange: handleSearchTypeChange,
     onSearchActionClick: sb.handleSearchActionClick,
     onSearchActionDropdownClose: sb.handleSearchActionDropdownClose,
     attachments: sb.attachments,
@@ -60,9 +83,20 @@ export function SearchBox(props: SearchBoxProps) {
     onSearch: sb.triggerSearch,
     searchable: sb.searchable,
     onAttachmentUpload: sb.handleAttachmentUpload
-  };
+  }), [
+    sb.action_type,
+    sb.search_type,
+    handleSearchTypeChange,
+    sb.handleSearchActionClick,
+    sb.handleSearchActionDropdownClose,
+    sb.attachments,
+    sb.handleAttachmentsChange,
+    sb.triggerSearch,
+    sb.searchable,
+    sb.handleAttachmentUpload
+  ]);
 
-  const suggestionProps = {
+  const suggestionProps = useMemo(() => ({
     suggestions: sb.suggestions,
     onLoadNext: sb.loadNextSuggestion,
     query: sb.query,
@@ -78,19 +112,31 @@ export function SearchBox(props: SearchBoxProps) {
     handleFilterValueToggle: sb.handleFilterValueToggle,
     handleOperatorChange: sb.handleOperatorChange,
     handleFilterComplete: sb.handleFilterComplete,
-    turnToChat: (item: any) => {
-      onSearch?.({
-        query: item.suggestion,
-        attachments: attachments,
-        mode: 'chat',
-        action: item.action,
-        assistant_id: item.assistant_id
-      })
-    },
+    turnToChat,
     language,
     settings,
-    resetKey: `${sb.suggestionType || ''}::${sb.colonFieldQuery || ''}::${sb.slashFieldQuery || ''}`
-  };
+    resetKey: suggestionResetKey
+  }), [
+    sb.suggestions,
+    sb.loadNextSuggestion,
+    sb.query,
+    sb.filters,
+    sb.action_type,
+    sb.search_type,
+    sb.filterState,
+    sb.mainInputActive,
+    sb.handleQueryParamsChange,
+    sb.handleSuggestionItemClick,
+    sb.handleSearch,
+    sb.handleAddFilter,
+    sb.handleFilterValueToggle,
+    sb.handleOperatorChange,
+    sb.handleFilterComplete,
+    turnToChat,
+    language,
+    settings,
+    suggestionResetKey
+  ]);
 
   const renderTextArea = (ref: any, className = "", onBlur?: any, maxRows = 6) => (
     <Input.TextArea
@@ -183,7 +229,7 @@ export function SearchBox(props: SearchBoxProps) {
             <Filters
               className="mb-14px px-12px"
               filters={sb.filters}
-              onFiltersChange={(filters) => sb.handleQueryParamsChange('filters', filters)}
+              onFiltersChange={handleFiltersChange}
               onFilterInputFocus={sb.handleFilterInputFocus}
               onFilterInputBlur={sb.handleFilterInputBlur}
               onFilterActiveToggle={sb.handleFilterActiveToggle}
