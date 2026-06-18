@@ -96,6 +96,7 @@ const Keywords: FC<KeywordsProps> = (props) => {
             if (totalItems === 0) return;
 
             e.preventDefault();
+            e.stopImmediatePropagation();
             let newIndex = -1
             switch (e.keyCode) {
                 case 40:
@@ -128,8 +129,6 @@ const Keywords: FC<KeywordsProps> = (props) => {
                     break;
                 case 13: 
                     if (globalActiveIndex >= 0 && globalActiveIndex < totalItems) {
-                        const item = combinedData.current[globalActiveIndex];
-                        onItemClick?.(item);
                         if (globalActiveIndex < actionsLength) {
                             listRefs.current[SUGGESTION_ACTIONS]?.triggerItemClick(globalActiveIndex);
                         } else {

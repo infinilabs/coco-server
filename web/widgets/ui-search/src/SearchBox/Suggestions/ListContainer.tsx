@@ -174,6 +174,7 @@ const ListContainer = forwardRef<any, ListContainerProps>((props, ref) => {
       if (totalItems === 0) return;
 
       e.preventDefault();
+      e.stopImmediatePropagation();
 
       setIsKeyboardNav(true);
 

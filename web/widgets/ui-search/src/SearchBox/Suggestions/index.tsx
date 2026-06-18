@@ -71,7 +71,9 @@ const Suggestions: FC<SuggestionsProps> = ({
               turnToChat?.(item);
               return;
             }
-            handleSearch(item.suggestion || query, filters, item.action || action_type, search_type || '')
+            const nextQuery = item.suggestion || query;
+            handleQueryParamsChange('query', nextQuery);
+            handleSearch(nextQuery, filters, item.action || action_type, search_type || '')
           })}
           language={language}
           keyboardRootRef={keyboardRootRef}

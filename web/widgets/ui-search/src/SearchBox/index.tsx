@@ -7,7 +7,8 @@ import useSearchBox from "./useSearchBox";
 import Suggestions from "./Suggestions";
 import ActionBar from "./ActionBar";
 import { ListFilter } from "lucide-react";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
+import { SUGGESTION_TIPS } from "./Suggestions/Tips";
 
 interface SearchBoxProps {
   placeholder?: string;
@@ -49,6 +50,7 @@ export function SearchBox(props: SearchBoxProps) {
     attachments: attachments as any,
     setAttachments
   });
+  const filtersRef = useRef<any>(null);
 
   const handleSearchTypeChange = useCallback((type: string) => {
     sb.handleQueryParamsChange('search_type', type);
@@ -71,6 +73,15 @@ export function SearchBox(props: SearchBoxProps) {
   const suggestionResetKey = useMemo(() => {
     return `${sb.suggestionType || ''}::${sb.colonFieldQuery || ''}::${sb.slashFieldQuery || ''}::${sb.filterSearchValue || ''}`;
   }, [sb.suggestionType, sb.colonFieldQuery, sb.slashFieldQuery, sb.filterSearchValue]);
+
+  const handleFilterValueToggle = useCallback((item: any) => {
+    const filterIndex = sb.filterState.index;
+    const filter = sb.filters[filterIndex];
+    sb.handleFilterValueToggle(item);
+    if (filter?.field?.support_multi_select) {
+      filtersRef.current?.focusFilterInput?.(filterIndex);
+    }
+  }, [sb.filterState.index, sb.filters, sb.handleFilterValueToggle]);
 
   const actionBarProps = useMemo(() => ({
     action_type: sb.action_type,
@@ -109,7 +120,7 @@ export function SearchBox(props: SearchBoxProps) {
     handleSuggestionItemClick: sb.handleSuggestionItemClick,
     handleSearch: sb.handleSearch,
     handleAddFilter: sb.handleAddFilter,
-    handleFilterValueToggle: sb.handleFilterValueToggle,
+    handleFilterValueToggle,
     handleOperatorChange: sb.handleOperatorChange,
     handleFilterComplete: sb.handleFilterComplete,
     turnToChat,
@@ -130,7 +141,7 @@ export function SearchBox(props: SearchBoxProps) {
     sb.handleSuggestionItemClick,
     sb.handleSearch,
     sb.handleAddFilter,
-    sb.handleFilterValueToggle,
+    handleFilterValueToggle,
     sb.handleOperatorChange,
     sb.handleFilterComplete,
     turnToChat,
@@ -143,8 +154,9 @@ export function SearchBox(props: SearchBoxProps) {
   const handleTextAreaKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key !== 'Enter' || e.shiftKey) return;
     e.preventDefault();
+    if (sb.showExpandedPanel && sb.suggestionType && sb.suggestionType !== SUGGESTION_TIPS) return;
     if (sb.searchable) sb.triggerSearch();
-  }, [sb.searchable, sb.triggerSearch]);
+  }, [sb.showExpandedPanel, sb.suggestionType, sb.searchable, sb.triggerSearch]);
 
   const renderTextArea = (ref: any, className = "", onBlur?: any, maxRows = 6) => (
     <Input.TextArea
@@ -236,6 +248,7 @@ export function SearchBox(props: SearchBoxProps) {
               </div>
             )}
             <Filters
+              ref={filtersRef}
               className="mb-14px px-12px"
               filters={sb.filters}
               onFiltersChange={handleFiltersChange}
@@ -246,6 +259,7 @@ export function SearchBox(props: SearchBoxProps) {
               onFilterValueEdit={sb.handleFilterValueEdit}
               onFilterComplete={sb.handleFilterComplete}
               onFilterSearch={sb.handleFilterSearchChange}
+              filterSearchValue={sb.filterSearchValue}
               focusIndex={sb.filterState.type === 'filterInput' ? sb.filterState.index : -1}
               activeIndex={sb.filterState.type === 'filterActive' ? sb.filterState.index : -1}
               shouldFocusNewFilter={sb.shouldFocusNewFilter}

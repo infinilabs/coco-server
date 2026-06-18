@@ -1,5 +1,5 @@
 import { Button, Select, Space } from "antd";
-import { useRef, useEffect, useState, type KeyboardEvent } from "react"; 
+import { forwardRef, useImperativeHandle, useRef, useEffect, useState, useCallback, type KeyboardEvent } from "react"; 
 import { OPERATOR_ICONS } from "../Suggestions/Operators";
 import styles from "./index.module.less"
 import { X } from "lucide-react";
@@ -20,6 +20,7 @@ interface FiltersProps {
   onFilterValueEdit?: (index: number) => void;
   onFilterComplete?: () => void;
   onFilterSearch?: (val: string) => void;
+  filterSearchValue?: string;
   focusIndex?: number;
   activeIndex?: number;
   className?: string;
@@ -27,7 +28,7 @@ interface FiltersProps {
   isHandlingSuggestion?: boolean;
 }
 
-export default function Filters({
+const Filters = forwardRef<any, FiltersProps>(({
   filters,
   onFiltersChange,
   onFilterInputFocus,
@@ -37,17 +38,38 @@ export default function Filters({
   onFilterValueEdit,
   onFilterComplete,
   onFilterSearch,
+  filterSearchValue = '',
   focusIndex,
   activeIndex,
   className = '',
   shouldFocusNewFilter = false,
   isHandlingSuggestion = false
-}: FiltersProps) {
+}, ref) => {
   const filterRefs = useRef<any[]>([]);
   const prevFilterCountRef = useRef(0);
   const [localShouldFocus, setLocalShouldFocus] = useState(false);
   const lastFilterCountRef = useRef(0);
   const autoFocusedIndexRef = useRef(-1);
+
+  const focusFilterInput = useCallback((index: number, autoFocus = false) => {
+    const inputRef = filterRefs.current[index];
+    if (!inputRef) return false;
+
+    if (autoFocus) autoFocusedIndexRef.current = index;
+    inputRef.focus();
+    onFilterInputFocus?.(index);
+    return true;
+  }, [onFilterInputFocus]);
+
+  const focusFilterInputOnNextFrame = useCallback((index: number, autoFocus = false) => {
+    requestAnimationFrame(() => {
+      focusFilterInput(index, autoFocus);
+    });
+  }, [focusFilterInput]);
+
+  useImperativeHandle(ref, () => ({
+    focusFilterInput: (index: number) => focusFilterInputOnNextFrame(index),
+  }), [focusFilterInputOnNextFrame]);
 
   useEffect(() => {
     if (shouldFocusNewFilter) {
@@ -61,39 +83,27 @@ export default function Filters({
     
     if (localShouldFocus && currentFilterCount > lastFilterCountRef.current && currentFilterCount > 0) {
       const newFilterIndex = currentFilterCount - 1;
-      setTimeout(() => {
-        const newInputRef = filterRefs.current[newFilterIndex];
-        if (newInputRef) {
-          autoFocusedIndexRef.current = newFilterIndex;
-          newInputRef.focus();
-          if (onFilterInputFocus) {
-            onFilterInputFocus(newFilterIndex);
-          }
+      requestAnimationFrame(() => {
+        if (focusFilterInput(newFilterIndex, true)) {
           setLocalShouldFocus(false);
           lastFilterCountRef.current = currentFilterCount;
         }
-      }, 0);
+      });
     }
     
     prevFilterCountRef.current = currentFilterCount;
-  }, [filters, onFilterInputFocus, localShouldFocus]); 
+  }, [filters, localShouldFocus, focusFilterInput]); 
 
   useEffect(() => {
     if (localShouldFocus && filters.length === lastFilterCountRef.current && filters.length > 0) {
       const newFilterIndex = filters.length - 1;
-      setTimeout(() => {
-        const newInputRef = filterRefs.current[newFilterIndex];
-        if (newInputRef) {
-          autoFocusedIndexRef.current = newFilterIndex;
-          newInputRef.focus();
-          if (onFilterInputFocus) {
-            onFilterInputFocus(newFilterIndex);
-          }
+      requestAnimationFrame(() => {
+        if (focusFilterInput(newFilterIndex, true)) {
           setLocalShouldFocus(false);
         }
-      }, 100);
+      });
     }
-  }, [localShouldFocus, filters.length, onFilterInputFocus]);
+  }, [localShouldFocus, filters.length, focusFilterInput]);
 
   const handleFilterAddonClick = (index: number) => {
     if (onFilterActiveToggle) {
@@ -112,10 +122,7 @@ export default function Filters({
       onFilterValueEdit(index);
     }
     // Focus the select input
-    setTimeout(() => {
-      const ref = filterRefs.current[index];
-      if (ref) ref.focus();
-    }, 0);
+    focusFilterInputOnNextFrame(index);
   };
 
   const handleInputFocus = (index: number) => {
@@ -126,17 +133,15 @@ export default function Filters({
 
   const handleInputBlur = (index: number) => {
     if (onFilterInputBlur) {
-      setTimeout(() => {
-        const shouldTriggerBlur = 
-          !isHandlingSuggestion && 
-          autoFocusedIndexRef.current !== index &&
-          focusIndex === index;
-        
-        if (shouldTriggerBlur) {
-          onFilterInputBlur();
-          autoFocusedIndexRef.current = -1;
-        }
-      }, 150); 
+      const shouldTriggerBlur = 
+        !isHandlingSuggestion && 
+        autoFocusedIndexRef.current !== index &&
+        focusIndex === index;
+      
+      if (shouldTriggerBlur) {
+        onFilterInputBlur();
+        autoFocusedIndexRef.current = -1;
+      }
     }
   };
 
@@ -204,6 +209,8 @@ export default function Filters({
                   styles={{ popup: { root: { display: 'none'} }, content: { flexWrap: 'nowrap' } }}
                   ref={(el) => setFilterRef(el, index)}
                   value={filter.value || []}
+                  searchValue={isFocused ? filterSearchValue : undefined}
+                  autoClearSearchValue={false}
                   onFocus={() => handleInputFocus(index)}
                   onBlur={() => handleInputBlur(index)}
                   onSearch={(val) => onFilterSearch && onFilterSearch(val)}
@@ -228,10 +235,7 @@ export default function Filters({
                     if (onFilterValueEdit) {
                       onFilterValueEdit(index);
                     }
-                    setTimeout(() => {
-                      const ref = filterRefs.current[index];
-                      if (ref) ref.focus();
-                    }, 0);
+                    focusFilterInputOnNextFrame(index);
                   }}
                   onInputKeyDown={(e) => handleKeyDown(e, index)}
                   options={[]}
@@ -260,4 +264,6 @@ export default function Filters({
         })}
     </div>
   );
-}
+});
+
+export default Filters;

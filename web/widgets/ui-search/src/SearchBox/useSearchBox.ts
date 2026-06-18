@@ -57,9 +57,9 @@ export default function useSearchBox({
   const isClickingSuggestion = useRef(false);
   const isClickingSearchAction = useRef(false);
   const isSearchTriggered = useRef(false);
-  const blurTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastClickOutsideTime = useRef(0);
   const lastMouseDownInsideTime = useRef(0);
+  const pendingInternalBlurRef = useRef(false);
   const filterStateRef = useRef(filterState);
   const inputRef = useRef<any>(null);
   const textAreaRef = useRef<any>(null);
@@ -121,18 +121,48 @@ export default function useSearchBox({
     return filters[filterState.index]?.field?.field_name;
   }, [filters, filterState.index]);
 
+  const focusExpandedInput = useCallback(() => {
+    const textareaDom = expandedInputRef.current?.resizableTextArea?.textArea;
+    if (!textareaDom) return false;
+
+    textareaDom.focus();
+    const len = textareaDom.value.length;
+    textareaDom.setSelectionRange(len, len);
+    setCursorPosition(len);
+    return true;
+  }, []);
+
+  const focusExpandedInputOnNextFrame = useCallback(() => {
+    requestAnimationFrame(() => {
+      focusExpandedInput();
+    });
+  }, [focusExpandedInput]);
+
+  const resetRefOnNextFrame = useCallback((targetRef: { current: boolean }) => {
+    requestAnimationFrame(() => {
+      targetRef.current = false;
+    });
+  }, []);
+
+  const blurSearchInputs = useCallback(() => {
+    inputRef.current?.input?.blur?.();
+    textAreaRef.current?.resizableTextArea?.textArea?.blur?.();
+    expandedInputRef.current?.resizableTextArea?.textArea?.blur?.();
+  }, []);
+
   const handleSearchActionClick = useCallback(() => {
     isClickingSearchAction.current = true;
   }, []);
 
   const handleSearchActionDropdownClose = useCallback(() => {
-    setTimeout(() => {
+    requestAnimationFrame(() => {
       isClickingSearchAction.current = false;
-      if (expandedInputRef.current) expandedInputRef.current.focus();
+      if (filterStateRef.current.type !== 'none') return;
+      if (focusExpandedInput()) return;
       else if (textAreaRef.current) textAreaRef.current.focus();
       else if (inputRef.current) inputRef.current.focus();
-    }, 50);
-  }, []);
+    });
+  }, [focusExpandedInput]);
 
   const handleQueryParamsChange = useCallback((field: string, value: any) => {
     setCurrentQueryParams((prev: any) => ({ ...prev, [field]: value }));
@@ -174,13 +204,13 @@ export default function useSearchBox({
     setFilterState({ type: 'none', index: -1 });
     setSuggestions({});
     isSearchTriggered.current = true;
-    setTimeout(() => { isSearchTriggered.current = false; }, 200);
+    resetRefOnNextFrame(isSearchTriggered);
     // Blur inputs to prevent re-triggering focus events
     if (inputRef.current?.input) inputRef.current.input.blur();
     if (expandedInputRef.current?.resizableTextArea?.textArea) {
       expandedInputRef.current.resizableTextArea.textArea.blur();
     }
-  }, [attachments, onSearch]);
+  }, [attachments, onSearch, resetRefOnNextFrame]);
 
   const triggerSearch = useCallback(() => {
     handleSearch(query, filters, action_type, search_type);
@@ -203,9 +233,9 @@ export default function useSearchBox({
     return (item: any) => {
       isClickingSuggestion.current = true;
       handler(item);
-      setTimeout(() => (isClickingSuggestion.current = false), 200);
+      resetRefOnNextFrame(isClickingSuggestion);
     };
-  }, []);
+  }, [resetRefOnNextFrame]);
 
   const loadNextSuggestion = useCallback(() => {
     setSuggestions((prev: any) => ({ ...prev, from: prev.type === SUGGESTION_FILTER_VALUES ? prev.from + 10 : prev.from + DEFAULT_SUGGESTIONS_SIZE }));
@@ -272,30 +302,21 @@ export default function useSearchBox({
 
       // Single-select: auto-complete after selecting a value
       if (!nextFilter.field?.support_multi_select && nextFilter.value.length > 0) {
-        setTimeout(() => {
-          setFilterState({ type: 'none', index: -1 });
-          setMainInputActive(true);
-          if (expandedInputRef.current) expandedInputRef.current.focus();
-          setSuggestions({});
-        }, 100);
+        setFilterState({ type: 'none', index: -1 });
+        setMainInputActive(true);
+        setSuggestions({});
+        focusExpandedInputOnNextFrame();
       }
 
       return { ...prev, filters: newFilters };
     });
-  }, [filterState]);
+  }, [filterState, focusExpandedInputOnNextFrame]);
 
-  // Complete filter editing: close panel and trigger search.
-  // NOTE: handleSearch is included in the dependency array because it is now
-  // a useCallback whose identity can change (e.g. when `attachments` or
-  // `onSearch` changes). Without it, the setTimeout closure would capture a
-  // stale handleSearch, causing the search to use outdated attachments/filter.
+  // Complete filter editing: close panel and trigger search with the current values.
   const handleFilterComplete = useCallback(() => {
     setFilterState({ type: 'none', index: -1 });
     setSuggestions({});
-    // Trigger search after a brief delay to allow state to settle
-    setTimeout(() => {
-      handleSearch(query, filters, action_type, search_type);
-    }, 50);
+    handleSearch(query, filters, action_type, search_type);
   }, [query, filters, action_type, search_type, handleSearch]);
 
   // Delete a filter by index
@@ -306,20 +327,13 @@ export default function useSearchBox({
     if (filterState.index === index) {
       setFilterState({ type: 'none', index: -1 });
       setSuggestions({});
-      // Cancel pending blur to prevent panel flicker
-      if (blurTimeoutRef.current) {
-        clearTimeout(blurTimeoutRef.current);
-        blurTimeoutRef.current = null;
-      }
       // Keep panel open by activating the main input
       setMainInputActive(true);
-      setTimeout(() => {
-        if (expandedInputRef.current) expandedInputRef.current.focus();
-      }, 50);
+      focusExpandedInputOnNextFrame();
     } else if (filterState.index > index) {
       setFilterState(prev => ({ ...prev, index: prev.index - 1 }));
     }
-  }, [filters, filterState, handleQueryParamsChange]);
+  }, [filters, filterState, handleQueryParamsChange, focusExpandedInputOnNextFrame]);
 
   // Re-enter filter value editing by clicking value area
   const handleFilterValueEdit = useCallback((index: number) => {
@@ -344,13 +358,15 @@ export default function useSearchBox({
       setFilterState(nextFilterState);
       setSuggestions({});
       setMainInputActive(true);
+      focusExpandedInputOnNextFrame();
       return;
     }
     const nextFilterState = { type: 'filterActive', index };
     filterStateRef.current = nextFilterState;
     setFilterState(nextFilterState);
     setMainInputActive(false);
-  }, [filterState]);
+    blurSearchInputs();
+  }, [filterState, focusExpandedInputOnNextFrame, blurSearchInputs]);
 
   // Click outside to close expanded panel
   useEffect(() => {
@@ -373,8 +389,10 @@ export default function useSearchBox({
       const isInsideSearchbox = !!searchboxEl && searchboxEl.contains(actualTarget);
       if (isInsideSearchbox) {
         lastMouseDownInsideTime.current = Date.now();
+        pendingInternalBlurRef.current = true;
         return;
       }
+      pendingInternalBlurRef.current = false;
       if (searchboxEl && !isClickingSearchAction.current) {
         if (filterState.type !== 'none') {
           setFilterState({ type: 'none', index: -1 });
@@ -387,8 +405,16 @@ export default function useSearchBox({
       }
     };
 
+    const handleMouseUp = () => {
+      pendingInternalBlurRef.current = false;
+    };
+
     eventTarget.addEventListener('mousedown', handleClickOutside);
-    return () => eventTarget.removeEventListener('mousedown', handleClickOutside);
+    eventTarget.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      eventTarget.removeEventListener('mousedown', handleClickOutside);
+      eventTarget.removeEventListener('mouseup', handleMouseUp);
+    };
   }, [filterState.type, mainInputActive]);
 
   const handleInputFocus = useCallback(() => {
@@ -400,36 +426,19 @@ export default function useSearchBox({
     if (Date.now() - lastClickOutsideTime.current < 200) {
       return;
     }
-    // Cancel any pending blur timeout to prevent race condition
-    if (blurTimeoutRef.current) {
-      clearTimeout(blurTimeoutRef.current);
-      blurTimeoutRef.current = null;
-    }
     setMainInputActive(true);
     if (filterState.type !== 'none' || filterState.index !== -1) {
       setFilterState({ type: 'none', index: -1 });
     }
-    setTimeout(() => {
-      if (isSearchTriggered.current) return;
-      const textareaDom = expandedInputRef.current?.resizableTextArea?.textArea;
-      if (textareaDom) {
-        textareaDom.focus();
-        const len = textareaDom.value.length;
-        textareaDom.setSelectionRange(len, len);
-        setCursorPosition(len);
-      }
-    }, 0);
-  }, [filterState.type, filterState.index]);
+    if (!isSearchTriggered.current) focusExpandedInputOnNextFrame();
+  }, [filterState.type, filterState.index, focusExpandedInputOnNextFrame]);
 
   const handleInputBlur = useCallback(() => {
-    blurTimeoutRef.current = setTimeout(() => {
-      blurTimeoutRef.current = null;
-      if (!document.hasFocus()) return;
-      if (Date.now() - lastMouseDownInsideTime.current < 200) return;
-      if (!isClickingSuggestion.current && !isClickingSearchAction.current) {
-        setMainInputActive(false);
-      }
-    }, 100);
+    if (!document.hasFocus()) return;
+    if (pendingInternalBlurRef.current) return;
+    if (!isClickingSuggestion.current && !isClickingSearchAction.current) {
+      setMainInputActive(false);
+    }
   }, []);
 
   const handleFilterInputFocus = useCallback((index: number) => {
@@ -437,11 +446,9 @@ export default function useSearchBox({
   }, []);
 
   const handleFilterInputBlur = useCallback(() => {
-    setTimeout(() => {
-      if (filterStateRef.current.type === 'filterActive') return;
-      if (Date.now() - lastMouseDownInsideTime.current < 250) return;
-      if (!isClickingSuggestion.current) setFilterState({ type: 'none', index: -1 });
-    }, 100);
+    if (filterStateRef.current.type === 'filterActive') return;
+    if (pendingInternalBlurRef.current) return;
+    if (!isClickingSuggestion.current) setFilterState({ type: 'none', index: -1 });
   }, []);
 
   const handleSuggestionsResult = useCallback((expectedType: any, res: any) => {
@@ -465,18 +472,11 @@ export default function useSearchBox({
     if (index !== -1) {
       const newAttachments = attachments.filter((_, attachmentIndex) => attachmentIndex !== index);
       setAttachments?.(newAttachments);
-      // Cancel pending blur to prevent panel flicker
-      if (blurTimeoutRef.current) {
-        clearTimeout(blurTimeoutRef.current);
-        blurTimeoutRef.current = null;
-      }
       // Keep panel open by activating the main input
       setMainInputActive(true);
-      setTimeout(() => {
-        if (expandedInputRef.current) expandedInputRef.current.focus();
-      }, 50);
+      focusExpandedInputOnNextFrame();
     }
-  }, [attachments, setAttachments]);
+  }, [attachments, setAttachments, focusExpandedInputOnNextFrame]);
 
   // Refs to cache the serialized form of queryParams / filterFieldsMeta,
   // so we only reset internal state when their *content* actually changes.
