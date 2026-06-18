@@ -16,6 +16,7 @@ import (
 	"github.com/tmc/langchaingo/llms"
 	"infini.sh/coco/modules/assistant/langchain"
 	"infini.sh/coco/modules/common"
+	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/util"
 )
 
@@ -893,11 +894,13 @@ func (s *State) generateChapterBasedReport(ctx context.Context, llm llms.Model) 
 	reportBuilder.WriteString(chapters)
 	s.MarkdownReport = reportBuilder.String()
 
-	// DEBUG: write raw markdown to a temp file for inspection.
-	if tmpFile, err := os.CreateTemp("", "deep_research_*.md"); err == nil {
-		_, _ = tmpFile.WriteString(s.MarkdownReport)
-		_ = tmpFile.Close()
-		fmt.Printf("DBG markdown report written to %s\n\n", tmpFile.Name())
+	// When running in debug mode, dump the raw markdown to a temp file for inspection.
+	if global.Env().IsDebug {
+		if tmpFile, err := os.CreateTemp("", "deep_research_*.md"); err == nil {
+			_, _ = tmpFile.WriteString(s.MarkdownReport)
+			_ = tmpFile.Close()
+			log.Debugf("markdown report written to %s", tmpFile.Name())
+		}
 	}
 
 	switch s.Config.ReportFormat {
