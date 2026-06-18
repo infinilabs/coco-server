@@ -41,7 +41,7 @@
   "dependencies": {
     "@ant-design/cssinjs": "^2.0.1",
     "@infinilabs/attachments": "^0.0.4",
-    "@infinilabs/markdown": "^0.0.13",
+    "@infinilabs/markdown": "^0.0.14",
     "@tanstack/react-virtual": "^3.14.2",
     "ahooks": "3.8.1",
     "axios": "1.7.7",
