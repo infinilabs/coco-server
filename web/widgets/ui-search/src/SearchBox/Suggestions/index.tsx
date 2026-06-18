@@ -4,29 +4,29 @@ import FilterFields, { SUGGESTION_FILTER_FIELDS } from "./FilterFields";
 import FilterValues, { SUGGESTION_FILTER_VALUES } from "./FilterValues";
 import Operators, { SUGGESTION_OPERATORS } from "./Operators";
 import { ACTION_TYPE_SEARCH } from "../ActionBar/SearchActions";
-import { memo, type FC, type RefObject } from "react";
+import { type FC, type RefObject, memo } from "react";
 
 interface SuggestionsProps {
-  suggestions: { type?: string; data?: any[] };
-  onLoadNext?: () => void;
-  query?: string;
-  filters?: any[];
-  action_type?: string;
-  search_type?: string;
-  filterState: { type: string; index: number };
-  mainInputActive: boolean;
-  handleQueryParamsChange: (field: string, value: any) => void;
-  handleSuggestionItemClick: (handler: (item: any) => void) => (item: any) => void;
-  handleSearch: (query: string, filters: any[], actionType: string | undefined, searchType: string) => void;
-  handleAddFilter: (item: any) => void;
-  handleFilterValueToggle: (item: any) => void;
-  handleOperatorChange: (item: any) => void;
-  handleFilterComplete: () => void;
-  turnToChat?: (item: any) => void;
-  language?: string;
-  settings?: Record<string, any>;
-  resetKey?: string;
-  keyboardRootRef?: RefObject<HTMLElement | null>;
+  readonly suggestions: { type?: string; data?: any[] };
+  readonly onLoadNext?: () => void;
+  readonly query?: string;
+  readonly filters?: any[];
+  readonly action_type?: string;
+  readonly search_type?: string;
+  readonly filterState: { type: string; index: number };
+  readonly mainInputActive: boolean;
+  readonly handleQueryParamsChange: (field: string, value: any) => void;
+  readonly handleSuggestionItemClick: (handler: (item: any) => void) => (item: any) => void;
+  readonly handleSearch: (query: string, filters: any[], actionType: string | undefined, searchType: string) => void;
+  readonly handleAddFilter: (item: any) => void;
+  readonly handleFilterValueToggle: (item: any) => void;
+  readonly handleOperatorChange: (item: any) => void;
+  readonly handleFilterComplete: () => void;
+  readonly turnToChat?: (item: any) => void;
+  readonly language?: string;
+  readonly settings?: Record<string, any>;
+  readonly resetKey?: string;
+  readonly keyboardRootRef?: RefObject<HTMLElement | null>;
 }
 
 const Suggestions: FC<SuggestionsProps> = ({

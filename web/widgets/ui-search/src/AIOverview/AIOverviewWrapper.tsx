@@ -20,17 +20,27 @@ interface ChunkData {
 
 type DataState = Record<string, { message_chunk: string }> | undefined;
 
+const getReplyEndErrorMessage = (messageChunk?: string) => {
+  if (!messageChunk) return undefined;
+  try {
+    const payload = JSON.parse(messageChunk);
+    return payload?.error || payload?.reason;
+  } catch {
+    return undefined;
+  }
+};
+
 interface AIOverviewWrapperProps {
-  askBody?: AskBody;
-  config: AIOverviewConfig;
-  onAsk: (
+  readonly askBody?: AskBody;
+  readonly config: AIOverviewConfig;
+  readonly onAsk: (
     assistant: string,
     message: string,
     onData: (res: ChunkData) => void,
     setLoading: (loading: boolean) => void
   ) => void;
-  theme?: "light" | "dark" | "auto";
-  onChatContinue?: (session_id: string) => void;
+  readonly theme?: "auto" | "dark" | "light";
+  readonly onChatContinue?: (session_id: string) => void;
 }
 
 const AIOverviewWrapper = (props: AIOverviewWrapperProps) => {
@@ -49,13 +59,25 @@ const AIOverviewWrapper = (props: AIOverviewWrapperProps) => {
     }
     const item = prevData?.[type];
     let newMessage = item ? item.message_chunk : '';
-    if (type === 'deep_read') {
-      newMessage += "&" + data.message_chunk;
-    } else {
-      newMessage += data.message_chunk;
-    }
+    newMessage += data.message_chunk;
     if (data.chunk_type === "reply_end") {
       setIsReplyEnd(true);
+      setLoading(false);
+      const errorMessage = getReplyEndErrorMessage(data.message_chunk);
+      if (errorMessage) {
+        const response = prevData?.response;
+        return {
+          ...(prevData || {}),
+          response: {
+            ...(response || {}),
+            message_chunk: response?.message_chunk || errorMessage
+          },
+          [type]: {
+            ...(item || {}),
+            message_chunk: newMessage
+          }
+        };
+      }
     }
     return {
       ...(prevData || {}),
