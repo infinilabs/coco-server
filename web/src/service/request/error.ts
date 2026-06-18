@@ -13,7 +13,7 @@ import { getRootRouteIfSearch } from '@/store/slice/server/shared';
 
 function handleLogout() {
   const currentPath = window.location.hash.replace('#', '') || '/';
-  if (['/search', '/login'].every((item) => !currentPath.startsWith(item))) {
+  if (['/search', '/login', '/preview'].every((item) => !currentPath.startsWith(item))) {
     const rootRoute = getRootRouteIfSearch(getApplicationSetting(store.getState()));
     if (rootRoute === 'search' && currentPath === '/') {
       window.location.href = `#/search`;

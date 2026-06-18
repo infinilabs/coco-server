@@ -4,6 +4,7 @@ import { useParams } from 'react-router-dom';
 import { filesize } from 'filesize';
 
 import { getApiBaseUrl, request } from '@/service/request';
+import { fetchEntityUser } from '@/service/api/entity';
 import logoLight from '@/assets/imgs/coco-logo-text-light.svg';
 import logoDark from '@/assets/imgs/coco-logo-text-dark.svg';
 import DateTime from '@/components/DateTime';
@@ -17,6 +18,7 @@ export function Component() {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const mode = searchParams.get('mode');
+  const appIntegrationId = searchParams.get('app-integration-id');
 
   const embedded = mode === 'embedded';
 
@@ -28,17 +30,22 @@ export function Component() {
 
   useAsyncEffect(async () => {
     try {
+      const headers = appIntegrationId ? { 'APP-INTEGRATION-ID': appIntegrationId } : undefined;
+
       const { data } = await request({
         method: 'get',
-        url: `/document/${id}`
+        url: `/document/${id}`,
+        headers
       });
 
       const dataSource = data._source;
 
-      const { data: ownerData } = await request({
-        method: 'post',
-        url: `/entity/card/user/${dataSource._system.owner_id}`
-      });
+      let ownerData;
+      const ownerId = dataSource?._system?.owner_id;
+      if (ownerId) {
+        const { data } = await fetchEntityUser({ id: ownerId }, { headers, ignoreError: true });
+        ownerData = data;
+      }
 
       setData({
         ...dataSource,
@@ -62,7 +69,7 @@ export function Component() {
     } finally {
       setLoading(false);
     }
-  }, [embedded, id]);
+  }, [appIntegrationId, embedded, id]);
 
   const openTauriUrl = (url: string) => {
     window.parent.postMessage(
@@ -117,13 +124,13 @@ export function Component() {
               size='large'
               type='primary'
               onClick={() => {
-                window.open(url);
+                window.open(appIntegrationId ? `${url}?app-integration-id=${appIntegrationId}` : url);
               }}
             >
               {t('page.preview.buttons.continueVisiting')}
             </Button>
             <Button
-              className='ml-12px mt-10 min-w-100px'
+              className='ml-12px mt-10 min-w-100px border-[#F0F0F0] dark:border-[#303030]'
               shape='round'
               size='large'
               onClick={() => {
@@ -209,7 +216,7 @@ export function Component() {
 
   return (
     <div className='h-screen bg-container'>
-      <div className={classNames('h-full flex flex-col', [embedded ? 'p-6' : 'p-16px max-w-240 m-auto'])}>
+      <div className={classNames('h-full flex flex-col', [embedded ? 'p-6' : 'px-16px max-w-240 m-auto'])}>
         {!embedded && (
           <div className='h-20 flex items-center justify-between border-b border-border-secondary'>
             <div className='children:h-10'>

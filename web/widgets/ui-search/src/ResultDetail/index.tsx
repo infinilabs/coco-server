@@ -1,7 +1,7 @@
 import { Tooltip } from "antd";
 import { SquareArrowOutUpRight, X } from "lucide-react";
 import { ActionButton, DocDetail } from "./DocDetail";
-import { type FC } from "react";
+import { type FC, useMemo } from "react";
 import CommonDrawer from "../Layout/CommonDrawer";
 import { useTranslation } from "react-i18next";
 import { filesize } from 'filesize';
@@ -45,6 +45,22 @@ export function DateTime(props: { value: string | number, showTooltip?: boolean 
 export const ResultDetail: FC<ResultDetailProps> = (props) => {
     const { getContainer, data = {}, isMobile, open, onClose, apiConfig, theme } = props;
     const { t } = useTranslation();
+    const detailData = useMemo<Record<string, any>>(() => ({
+        ...(data || {}),
+        size: filesize(data?.size ?? 0),
+        created: data?.created ? (
+            <DateTime
+                showTooltip={false}
+                value={data?.created}
+            />
+        ) : null,
+        updated: data?.updated ? (
+            <DateTime
+                showTooltip={false}
+                value={data?.updated}
+            />
+        ) : null
+    }), [data]);
 
     return (
         <CommonDrawer
@@ -65,26 +81,11 @@ export const ResultDetail: FC<ResultDetailProps> = (props) => {
                 mode="embedded"
                 theme={theme}
                 requestHeaders={apiConfig?.headers}
-                data={{
-                    ...(data || {}),
-                    size: filesize(data?.size ?? 0),
-                    created: data?.created ? (
-                        <DateTime
-                            showTooltip={false}
-                            value={data?.created}
-                        />
-                    ) : null,
-                    updated: data?.updated ? (
-                        <DateTime
-                            showTooltip={false}
-                            value={data?.updated}
-                        />
-                    ) : null
-                }} 
+                data={detailData} 
                 actionButtons={[
                     <ActionButton onClick={() => {
-                        if (data?.url?.startsWith('http')) {
-                            window.open(data.url)
+                        if (detailData?.url?.startsWith('http')) {
+                            window.open(detailData.url)
                         }
                     }} key="open" icon={<SquareArrowOutUpRight />}>
                         {t('labels.openSource')}

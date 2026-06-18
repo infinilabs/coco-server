@@ -125,7 +125,12 @@ export function ImageList(props: ImageListProps) {
   const [columns, setColumns] = useState(2);
   const loadingRef = useRef(loading);
   const hasMoreRef = useRef(hasMore);
-  const dataIdentity = useMemo(() => data.map((item) => item?.id).join('|'), [data]);
+  const appIntegrationId = apiConfig?.headers?.['APP-INTEGRATION-ID'] || apiConfig?.headers?.['app-integration-id'];
+  const listData = useMemo<Record<string, any>[]>(() => data.map((item) => ({
+    ...item,
+    url: appIntegrationId && item?.url ? `${item.url}?app-integration-id=${appIntegrationId}` : item?.url,
+  })), [appIntegrationId, data]);
+  const dataIdentity = useMemo(() => listData.map((item) => item?.id).join('|'), [listData]);
 
   useEffect(() => { loadingRef.current = loading; }, [loading]);
   useEffect(() => { hasMoreRef.current = hasMore; }, [hasMore]);
@@ -139,11 +144,11 @@ export function ImageList(props: ImageListProps) {
   useEffect(() => {
     if (!record?.id) return;
 
-    const latestRecord = data.find((item) => item?.id === record.id);
+    const latestRecord = listData.find((item) => item?.id === record.id);
     if (latestRecord && latestRecord !== record) {
       setRecord(latestRecord);
     }
-  }, [data, record?.id]);
+  }, [listData, record?.id]);
 
   useEffect(() => {
     const container = getDetailContainer?.();
@@ -174,7 +179,7 @@ export function ImageList(props: ImageListProps) {
     }, 200);
 
     return () => clearTimeout(timer);
-  }, [data.length, hasMore, loading, getDetailContainer, onLoadMore]);
+  }, [listData.length, hasMore, loading, getDetailContainer, onLoadMore]);
 
   const calculateColumns = useMemo(() => {
     if (!containerSize?.width) return isMobile ? 1 : 2;
@@ -210,8 +215,8 @@ export function ImageList(props: ImageListProps) {
   };
 
   const masonryItems = useMemo(() => {
-    return data.filter((item) => item.metadata?.content_category === 'image').map((item, index) => ({ key: item.id || index, data: item }));
-  }, [data]);
+    return listData.filter((item) => item.metadata?.content_category === 'image').map((item, index) => ({ key: item.id || index, data: item }));
+  }, [listData]);
 
   const itemRender = useCallback((item: any) => {
     return <MasonryItem data={item.data} onItemClick={(item) => onOpen(item)} apiConfig={apiConfig} />;

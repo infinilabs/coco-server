@@ -42,7 +42,12 @@ export function NormalList(props: NormalListProps) {
   const listWrapperRef = useRef<HTMLDivElement>(null);
   const loadingRef = useRef(loading);
   const hasMoreRef = useRef(hasMore);
-  const dataIdentity = useMemo(() => data.map((item) => item?.id).join('|'), [data]);
+  const appIntegrationId = apiConfig?.headers?.['APP-INTEGRATION-ID'] || apiConfig?.headers?.['app-integration-id'];
+  const listData = useMemo<Record<string, any>[]>(() => data.map((item) => ({
+    ...item,
+    url: appIntegrationId && item?.url ? `${item.url}?app-integration-id=${appIntegrationId}` : item?.url,
+  })), [appIntegrationId, data]);
+  const dataIdentity = useMemo(() => listData.map((item) => item?.id).join('|'), [listData]);
 
   useEffect(() => { loadingRef.current = loading; }, [loading]);
   useEffect(() => { hasMoreRef.current = hasMore; }, [hasMore]);
@@ -56,16 +61,16 @@ export function NormalList(props: NormalListProps) {
   useEffect(() => {
     if (!record?.id) return;
 
-    const latestRecord = data.find((item) => item?.id === record.id);
+    const latestRecord = listData.find((item) => item?.id === record.id);
     if (latestRecord && latestRecord !== record) {
       setRecord(latestRecord);
     }
-  }, [data, record?.id]);
+  }, [listData, record?.id]);
 
   const scrollElement = getDetailContainer?.() ?? null;
 
   const virtualizer = useVirtualizer({
-    count: data.length,
+    count: listData.length,
     getScrollElement: () => scrollElement,
     estimateSize: () => ESTIMATED_ITEM_HEIGHT,
     overscan: 5,
@@ -77,10 +82,10 @@ export function NormalList(props: NormalListProps) {
   useEffect(() => {
     const lastItem = virtualizer.getVirtualItems().at(-1);
     if (!lastItem) return;
-    if (lastItem.index >= data.length - 3 && hasMoreRef.current && !loadingRef.current) {
+    if (lastItem.index >= listData.length - 3 && hasMoreRef.current && !loadingRef.current) {
       onLoadMore?.();
     }
-  }, [virtualizer.getVirtualItems(), data.length, onLoadMore]);
+  }, [virtualizer.getVirtualItems(), listData.length, onLoadMore]);
 
   const onOpen = (record: Record<string, any>) => {
     setRecord(record);
@@ -114,7 +119,7 @@ export function NormalList(props: NormalListProps) {
             }}
           >
             {virtualItems.map((virtualRow) => {
-              const item = data[virtualRow.index];
+              const item = listData[virtualRow.index];
               if (!item) return null;
               const isActive = item.id === record?.id;
               return (
@@ -127,7 +132,7 @@ export function NormalList(props: NormalListProps) {
                     section={{
                       ...item,
                       isActive,
-                      href: item?.metadata?.raw_content,
+                      href: item?.url,
                     } as any}
                     onRecordClick={(record: any) => {
                       onOpen(record);
@@ -148,9 +153,9 @@ export function NormalList(props: NormalListProps) {
             <Spin />
           </div>
         )}
-        {!loading && !hasMore && data.length > 0 && (
+        {!loading && !hasMore && listData.length > 0 && (
           <EndList
-            total={total || data.length}
+            total={total || listData.length}
             settings={settings}
             onGenerateAnswer={onGenerateAnswer}
           />

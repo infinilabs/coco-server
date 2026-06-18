@@ -69,7 +69,7 @@ export const init: Init = async currentFullPath => {
     localStg.remove('userInfo');
     await store.dispatch(resetAuth());
     await store.dispatch(initAuthRoute());
-    if (['/search', '/login'].every(item => !currentFullPath.startsWith(item))) {
+    if (['/search', '/login', '/preview'].every(item => !currentFullPath.startsWith(item))) {
       const loginRoute: RouteKey = 'login';
       const routeHome = getRouteHome(store.getState());
 
