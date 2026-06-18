@@ -171,7 +171,10 @@ const resources = {
         report: {
           generatingTitle: "Generating research report...",
           loadingTitle: "Loading research report...",
-          loadFailed: "Failed to load research report.",
+          loadFailed: "Load research report failed.",
+          cancelled: "Research report generation cancelled.",
+          error: "Research report generation failed.",
+          timeout: "Research report generation timed out.",
           generatingDescription:
             "Running a complete research workflow based on your question and compiling a structured report. It will appear here once ready.",
           defaultTitle: "Research Report",
@@ -399,6 +402,9 @@ const resources = {
           generatingTitle: "研究报告生成中...",
           loadingTitle: "研究报告加载中...",
           loadFailed: "研究报告加载失败。",
+          cancelled: "研究报告生成已取消。",
+          error: "研究报告生成失败。",
+          timeout: "研究报告生成超时。",
           generatingDescription:
             "我正在根据你的问题执行完整的研究流程，整理结构化的研究报告。研究完成后，报告会自动展示在这里。",
           defaultTitle: "研究报告",

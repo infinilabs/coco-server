@@ -3,7 +3,7 @@ import { type TFunction } from "i18next";
 
 import { DeepResearchDrawer } from "./DeepResearchDrawer";
 import type { StepItem, StepStatus, StepSearchHit } from "./ResearchStepsContent";
-import type { ResearchReportData } from "./ResearchReportContent";
+import type { ResearchEndChunk, ResearchReportData } from "./ResearchReportContent";
 import { useChatStore } from "../../../stores/chatStore";
 
 export interface DeepResearchDrawerData {
@@ -22,6 +22,7 @@ export interface DeepResearchDrawerData {
   showReportOnly?: boolean;
   t?: TFunction;
   isEnd?: boolean;
+  endChunk?: ResearchEndChunk;
 }
 
 interface DeepResearchDrawerContextValue {

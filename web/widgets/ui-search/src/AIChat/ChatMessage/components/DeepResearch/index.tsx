@@ -12,6 +12,7 @@ import type {
   StepSearchHit,
 } from "./ResearchStepsContent";
 import type { ResearchReportData } from "./ResearchReportContent";
+import type { ResearchEndChunk } from "./ResearchReportContent";
 import type { IChunkData } from "../../types/chat";
 import CheckIcon from "../../../../icons/CheckIcon";
 import CloseIcon from "../../../../icons/CloseIcon";
@@ -19,12 +20,7 @@ import EditIcon from "../../../../icons/EditIcon";
 
 interface DeepResearchProps {
   detail?: { type: string; payload?: IChunkData[] };
-  endChunk?: {
-    type: string;
-    payload?: {
-      reason: "completed" | "user_cancelled" | "error" | "timeout"
-    }
-  };
+  endChunk?: ResearchEndChunk;
   ChunkData?: IChunkData[];
   question?: string;
   formatUrl?: (data: any) => string;
@@ -475,8 +471,9 @@ export const DeepResearch = ({
       reportData: mergedPayload,
       searchHits,
       isEnd,
+      endChunk,
     });
-  }, [isOpen, steps, plannerStatus, executionStatus, reportStatus, mergedPayload, searchHits, isEnd]);
+  }, [isOpen, steps, plannerStatus, executionStatus, reportStatus, mergedPayload, searchHits, isEnd, endChunk]);
 
   if (!allChunks.length) {
     return null;
@@ -501,6 +498,7 @@ export const DeepResearch = ({
             formatUrl,
             requestHeaders,
             isEnd,
+            endChunk,
             t,
           });
         }}
@@ -593,6 +591,7 @@ export const DeepResearch = ({
                       formatUrl,
                       requestHeaders,
                       isEnd,
+                      endChunk,
                       t,
                     });
                   }}

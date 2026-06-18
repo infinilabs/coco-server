@@ -8,6 +8,7 @@ import { ResearchStepsContent } from "./ResearchStepsContent";
 import type { StepItem, StepStatus, StepSearchHit } from "./ResearchStepsContent";
 import {
   ResearchReportContent,
+  type ResearchEndChunk,
   type ResearchReportData,
 } from "./ResearchReportContent";
 import { ResearchSearchResultsContent } from "./ResearchSearchResultsContent";
@@ -40,6 +41,7 @@ interface DeepResearchDrawerProps {
   showReportOnly?: boolean;
   t?: TFunction;
   isEnd?: boolean;
+  endChunk?: ResearchEndChunk;
 }
 
 export const DeepResearchDrawer = ({
@@ -59,6 +61,7 @@ export const DeepResearchDrawer = ({
   isMobile,
   showReportOnly = false,
   isEnd,
+  endChunk,
   t: tProp,
 }: DeepResearchDrawerProps) => {
   const { t: tOriginal } = useTranslation();
@@ -178,6 +181,7 @@ export const DeepResearchDrawer = ({
           <div className={activeTab === TAB_KEYS.REPORT ? "h-full" : "h-0 overflow-hidden"}>
             <ResearchReportContent
               data={reportData}
+              endChunk={endChunk}
               formatUrl={formatUrl}
               requestHeaders={requestHeaders}
               t={t}

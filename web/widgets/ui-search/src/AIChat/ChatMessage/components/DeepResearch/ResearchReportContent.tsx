@@ -24,8 +24,16 @@ export interface ResearchReportData {
   format?: string;
 }
 
+export type ResearchEndChunk = {
+  type: string;
+  payload?: {
+    reason?: "completed" | "user_cancelled" | "error" | "timeout";
+  };
+};
+
 export interface ResearchReportContentProps {
   data?: ResearchReportData;
+  endChunk?: ResearchEndChunk;
   formatUrl?: (data: any) => string;
   requestHeaders?: Record<string, string>;
   t?: TFunction;
@@ -34,6 +42,7 @@ export interface ResearchReportContentProps {
 
 export const ResearchReportContent = ({
   data,
+  endChunk,
   formatUrl,
   requestHeaders,
   t: tProp,
@@ -97,13 +106,28 @@ export const ResearchReportContent = ({
     return null;
   }, [data?.url, data?.format, requestHeaders, theme]);
 
+  const endStatusMessageKeyMap: Partial<Record<Exclude<NonNullable<ResearchEndChunk["payload"]>["reason"], undefined>, string>> = {
+    user_cancelled: "deepResearch.report.cancelled",
+    error: "deepResearch.report.error",
+    timeout: "deepResearch.report.timeout",
+  };
+  const endStatusMessageKey = endStatusMessageKeyMap[endChunk?.payload?.reason || "completed"];
 
-  if (!data?.url) {
-    return <StatusPlaceholder icon={loadingSvg} message={t("deepResearch.report.generatingTitle")} />;
+  if (endStatusMessageKey && !loading) {
+    return <StatusPlaceholder icon={loadingFailedSvg} message={t(endStatusMessageKey)} />;
   }
 
   if (error && !loading) {
     return <StatusPlaceholder icon={loadingFailedSvg} message={t("deepResearch.report.loadFailed")} />;
+  }
+
+  if (!data?.url) {
+    return (
+      <StatusPlaceholder
+        icon={loadingSvg}
+        message={t("deepResearch.report.generatingTitle")}
+      />
+    );
   }
 
   let classes = "px-24px pb-24px";
