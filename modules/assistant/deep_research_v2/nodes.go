@@ -640,12 +640,13 @@ Requirements:
 1. Content must be based on provided materials, do not add fictional information
 2. Maintain academic and professional style
 3. Integrate all relevant materials with in-depth analysis and insights
-4. Use clear Markdown format with reasonable hierarchy
+4. Use clear Markdown format with reasonable hierarchy (start from H3 ###, not H1 # or H2 ##)
 5. Organize content logically, from basic to in-depth
 6. Cite relevant material sources after each key point (e.g., [1], [2])
 7. Word count: 1000-2000 words
 8. Write in %s
 9. Do NOT append a references or bibliography section at the end of the chapter; citations in the body are sufficient
+10. Do NOT include the chapter title as a heading at the start of your output; the report formatter will add it
 
 Generate the chapter content directly, do not add explanatory text.`,
 			s.Request.Query,
