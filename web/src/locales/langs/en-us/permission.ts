@@ -147,6 +147,14 @@ const permission = {
   'license': 'License',
   'generic#license/apply': 'Apply License',
 
+  'pipeline': 'Pipeline',
+  'generic#pipeline/admin': 'Admin Pipeline',
+  'generic#pipeline/create': 'Create Pipeline',
+  'generic#pipeline/read': 'Read Pipeline',
+  'generic#pipeline/update': 'Update Pipeline',
+  'generic#pipeline/delete': 'Delete Pipeline',
+  'generic#pipeline/search': 'Search Pipeline',
+
   // 🧭 Others
   cancel_session: 'Cancel Session'
 };
