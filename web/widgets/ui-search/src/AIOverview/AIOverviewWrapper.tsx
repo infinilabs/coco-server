@@ -41,10 +41,11 @@ interface AIOverviewWrapperProps {
   ) => void;
   readonly theme?: "auto" | "dark" | "light";
   readonly onChatContinue?: (session_id: string) => void;
+  readonly requestHeaders?: Record<string, string>;
 }
 
 const AIOverviewWrapper = (props: AIOverviewWrapperProps) => {
-  const { askBody, config, onAsk, theme, onChatContinue } = props;
+  const { askBody, config, onAsk, theme, onChatContinue, requestHeaders } = props;
 
   const [data, setData] = useState<DataState>();
   const [loading, setLoading] = useState(false);
@@ -119,6 +120,7 @@ const AIOverviewWrapper = (props: AIOverviewWrapperProps) => {
       theme={theme}
       onChatContinue={() => sessionIdRef.current && onChatContinue?.(sessionIdRef.current)}
       isReplyEnd={isReplyEnd}
+      requestHeaders={requestHeaders}
     />
   );
 };

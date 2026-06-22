@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback, type CSSProperties } from "re
 import { useTranslation } from "react-i18next";
 import Markdown from "@infinilabs/markdown";
 import AIOverviewIcon from "../../icons/AIOverviewIcon";
+import { AuthImage } from "../../ResultList/AuthImage";
 import clsx from "clsx";
 import "./index.css";
 
@@ -12,6 +13,7 @@ import { AIAnswerActions } from "./AIAnswerActions";
 export type AIAnswerProps = {
   title?: string;
   content: string;
+  logo?: string;
   maxHeight?: number;
   expandText?: string;
   collapseText?: string;
@@ -26,6 +28,7 @@ export type AIAnswerProps = {
   titleStyle?: CSSProperties;
   loading?: boolean;
   isReplyEnd?: boolean;
+  requestHeaders?: Record<string, string>;
 };
 
 export function AIAnswer({
@@ -45,6 +48,8 @@ export function AIAnswer({
   titleStyle,
   loading = false,
   isReplyEnd = false,
+  logo,
+  requestHeaders,
 }: AIAnswerProps) {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -128,9 +133,18 @@ export function AIAnswer({
           className={clsx("mb-4 flex items-center gap-2", headerClass)}
           style={headerStyle}
         >
-          <AIOverviewIcon
-            className="flex-none text-24px text-[#1784FC]"
-          />
+          {logo ? (
+            <AuthImage
+              src={logo}
+              alt=""
+              className="h-24px w-24px flex-none object-contain"
+              requestHeaders={requestHeaders}
+            />
+          ) : (
+            <AIOverviewIcon
+              className="flex-none text-24px text-[#1784FC]"
+            />
+          )}
           <span
             className={clsx(
               "font-semibold text-base text-[#19191A] dark:text-white",

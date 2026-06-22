@@ -328,6 +328,7 @@ export default function Search({
             theme={theme as "light" | "dark" | "auto" | undefined}
             onAsk={onAsk!}
             onChatContinue={onChatContinue}
+            requestHeaders={commonProps?.apiConfig?.headers}
           />
         ) : null
       }

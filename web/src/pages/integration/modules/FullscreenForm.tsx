@@ -47,6 +47,7 @@ export const FullscreenForm = memo(props => {
         label={t('page.integration.form.labels.search_settings')}
     >
       <div className="mb-8px">
+        <span className="mr-4px text-[var(--ant-color-error)]">*</span>
         {t('page.integration.form.labels.datasource')}
       </div>
       <Form.Item
@@ -312,6 +313,7 @@ export const FullscreenForm = memo(props => {
               <InputNumber className={itemClassNames} min={0} step={1}/>
             </Form.Item>
             <div className="mb-8px">
+              <span className="mr-4px text-[var(--ant-color-error)]">*</span>
               {t('page.integration.form.labels.module_chat_ai_assistant')}
             </div>
             <Form.Item
@@ -330,7 +332,7 @@ export const FullscreenForm = memo(props => {
             >
               <Select className={itemClassNames}>
                 <Select.Option value="markdown">Markdown</Select.Option>
-                <Select.Option value="html">HTML</Select.Option>
+                {/* <Select.Option value="html">HTML</Select.Option> */}
                 <Select.Option value="text">Text</Select.Option>
               </Select>
             </Form.Item>
