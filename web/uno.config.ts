@@ -13,7 +13,7 @@ export default defineConfig<Theme>({
       exclude: ['node_modules', 'dist']
     }
   },
-  presets: [presetUno({ dark: 'class' }), presetSoybeanAdmin()],
+  presets: [presetUno({ dark: 'class', preflight: false }), presetSoybeanAdmin()],
   rules: [
     [
       /^h-calc\((.*)\)$/, // 匹配 h-clac(xxx) 的正则表达式

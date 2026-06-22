@@ -6,6 +6,7 @@ import { getLocale } from '@/store/slice/app';
 import { Form, Input } from 'antd';
 import { getServer } from '@/store/slice/server';
 import AvailableVariable from './AvailableVariable';
+import { cloneDeep } from 'lodash';
 
 const DefaultModelSettings = {
   temperature: 0.7,
@@ -112,28 +113,12 @@ Wrap the JSON result in <JSON></JSON> tags.
 };
 
 export default (props: any) => {
-  const { value: propsValue, onChange, providers = [], width, modelType, showTemplate = true, namePrefix = [] } = props;
-  let defaultPromptTpl = '';
-  if (DefaultPromptTemplates[modelType]) {
-    defaultPromptTpl = DefaultPromptTemplates[modelType];
-  }
-  const value = propsValue ?? {
-    settings: DefaultModelSettings,
-    prompt: {
-      template: defaultPromptTpl
-    }
-  };
+  const { showSettings = true, value: propsValue, onChange, providers = [], width, modelType, showTemplate = true, namePrefix = [], allowClear = false, placeholder = '', defaultModel, onRefresh } = props;
 
-  if (value?.provider_id && !value.id) {
-    value.id = `${value.provider_id}_${value.name}`;
-  }
-  if (!value.settings) {
-    value.settings = DefaultModelSettings;
-  }
-  if (!value.prompt) {
-    value.prompt = {
-      template: defaultPromptTpl
-    };
+  const { hasAuth } = useAuth()
+
+  const permissions = {
+    createModelProviders: hasAuth('coco#model_provider/create'),
   }
 
   const grps = useMemo(() => {
@@ -179,27 +164,67 @@ export default (props: any) => {
           type: `${item.id}_${item.name}`,
           provider_id: item.id,
           id: `${item.id}_${model.name}`,
-          name: model.name
+          name: model.name,
+          model: model,
         });
       });
     });
     return models;
   }, [providers]);
 
+  const defaultPromptTpl = useMemo(() => {
+    return DefaultPromptTemplates[modelType] || '';
+  }, [modelType]);
+
+  const formatValue = useMemo(() => {
+    const newValue = cloneDeep(propsValue) ?? {
+      settings: DefaultModelSettings,
+      prompt: {
+        template: defaultPromptTpl
+      }
+    };
+
+    const { provider_id, name } = newValue || {};
+
+    const provider = providers.find((p: any) => p.id === provider_id);
+    const model = provider?.models?.find((m: any) => m.name === name);
+
+    if (!newValue.id) {
+      newValue.id = provider_id && name ? `${provider_id}_${name}` : '';
+    }
+
+    if (!newValue.type) {
+      newValue.type = provider ? `${provider.id}_${provider.name}` : '';
+    }
+
+    if (!newValue.model) {
+      newValue.model = model;
+    }
+    if (!newValue.settings && showSettings) {
+      newValue.settings = DefaultModelSettings;
+    }
+    if (!newValue.prompt && showTemplate) {
+      newValue.prompt = {
+        template: defaultPromptTpl
+      };
+    }
+    return newValue;
+  }, [propsValue, providers, defaultPromptTpl, showSettings, showTemplate]);
+
   const filterOptions = useMemo(() => {
     return showGroup
       ? []
       : [
-          {
-            label: 'Type',
+        {
+          label: 'Type',
+          key: 'type',
+          list: providers.map((item: any) => ({
             key: 'type',
-            list: providers.map((item: any) => ({
-              key: 'type',
-              value: `${item.id}_${item.name}`,
-              label: renderProvider(item)
-            }))
-          }
-        ];
+            value: `${item.id}_${item.name}`,
+            label: renderProvider(item)
+          }))
+        }
+      ];
   }, [showGroup, providers]);
 
   const groupOptions = useMemo(() => {
@@ -217,7 +242,17 @@ export default (props: any) => {
   }, [grps]);
 
   const onSelectValueChange = (model: any) => {
-    onChange?.(model);
+    const {
+      settings,
+      prompt
+    } = propsValue || {};
+    const { name = '', provider_id = '' } = model || {};
+    onChange?.({
+      name,
+      provider_id,
+      settings,
+      prompt
+    });
   };
 
   const onSettingsChange = (values: any) => {
@@ -232,6 +267,7 @@ export default (props: any) => {
     <>
       <div className='flex items-center gap-2'>
         <DropdownList
+          allowClear={allowClear}
           data={formatData}
           defaultGroupVisible={true}
           dropdownWidth={width}
@@ -240,13 +276,13 @@ export default (props: any) => {
           groupOptions={groupOptions}
           groups={groups}
           locale={locale}
-          placeholder='Please select'
+          placeholder={placeholder}
           renderItem={item => item.name}
           rowKey='id'
           searchKey='name'
           sorter={sorter}
           sorterOptions={[{ label: 'Name', key: 'name' }]}
-          value={value}
+          value={formatValue}
           width={width || '100%'}
           renderLabel={item => {
             const provider = providers.find(p => p.id === item.provider_id);
@@ -278,13 +314,31 @@ export default (props: any) => {
               setFilters({ type: grps });
             }
           }}
+          onRefresh={onRefresh}
+          actions={permissions.createModelProviders ? [
+            <a
+              onClick={() => {
+                window.open(
+                  `#/model-provider/new`,
+                  "_blank"
+                );
+              }}
+            >
+              {t('common.create')}
+            </a>
+          ] : []}
         />
-        <div>
-          <ModelSettings
-            value={value || {}}
-            onChange={onSettingsChange}
-          />
-        </div>
+        {
+          showSettings && (
+            <div>
+              <ModelSettings
+                model={formatValue?.model || defaultModel}
+                value={formatValue || {}}
+                onChange={onSettingsChange}
+              />
+            </div>
+          )
+        }
       </div>
 
       {showTemplate && (

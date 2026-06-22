@@ -31,7 +31,7 @@ const PasswordModal = ({
 
   return (
     <Modal
-      destroyOnClose
+      destroyOnHidden
       open={open}
       title={t('common.modifyPassword')}
       width="560px"

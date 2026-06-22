@@ -105,10 +105,43 @@ const page: App.I18n.Schema['translation']['page'] = {
       toolList: 'Tool List',
       webSources: 'Network Sources List',
       detectedIntent: 'Detected Intent',
-      matchedDocs: 'Retrieved Documents'
+      matchedDocs: 'Retrieved Documents',
+      modelSelectPlaceholder: 'Use default model',
+      deep_research_models: 'Model Settings',
+      planning_model: 'Planning Model',
+      research_model: 'Research Model',
+      synthesis_model: 'Synthesis Model',
+      report_model: 'Report Model',
+      deep_research_limits: 'Research Settings',
+      max_steps: 'Max Steps',
+      max_steps_desc: 'Maximum number of steps in the research pipeline',
+      max_researcher_iterations: 'Max Researcher Iterations',
+      max_researcher_iterations_desc: 'Maximum retries per individual research step',
+      max_results: 'Max Results per Search',
+      timeout: 'Timeout',
+      timeout_desc: 'Total timeout for the research task (e.g. 30m, 1h)',
+      timeout_invalid: 'Invalid format, valid examples: 30m, 1h, 1h30m',
+      research_depth: 'Research Depth',
+      research_depth_basic: 'Basic — Quick overview, suitable for simple questions',
+      research_depth_comprehensive: 'Comprehensive — Deep analysis, suitable for complex questions',
+      research_depth_exhaustive: 'Exhaustive — Thorough research, suitable for in-depth topics',
+      deep_research_output: 'Output Settings',
+      report_format: 'Report Format',
+      report_lang: 'Report Language',
+      report_lang_zh: 'Chinese',
+      report_lang_en: 'English',
+      deep_research_search: 'Search Settings',
+      datasource_search: 'Datasource Search',
+      datasource_ids_placeholder: 'All accessible (leave empty)',
+      external_search_engine: 'Search Engine',
+      search_engine_wikipedia: 'Wikipedia',
+      external_search_api_key: 'API Key',
+      tavily_api_key_placeholder: 'Enter Tavily API Key',
+      internal_datasource_ids: 'Datasources'
     },
     mode: {
       deep_think: 'Deep Think',
+      deep_research: 'Deep Research',
       simple: 'Simple',
       workflow: 'External workflow'
     },
@@ -358,7 +391,8 @@ const page: App.I18n.Schema['translation']['page'] = {
         tags: 'Tags',
         type: 'Type',
         webhook: 'Webhook',
-        enrichment_pipeline: 'Enrichment Pipeline'
+        enrichment_pipeline: 'Enrichment Pipeline',
+        document_analysis: 'Document Analysis',
       },
       title: '{{connector}} Connection',
       tooltip: {
@@ -494,7 +528,9 @@ const page: App.I18n.Schema['translation']['page'] = {
       type: 'Type',
       created: 'Created At',
       createdBy: 'Created By',
-      updatedBy: 'Updated By'
+      updatedBy: 'Updated By',
+      deleteConfirm: 'Are you sure you want to delete this document?',
+      deleteAllConfirm: 'Are you sure you want to delete all selected documents?',
     },
     file: {
       title: 'Document Management'
@@ -504,11 +540,40 @@ const page: App.I18n.Schema['translation']['page'] = {
     }
   },
   guide: {
+    labels: {
+      modelProvider: 'Model Provider',
+      modelProviderName: 'Model Provider Name',
+      model: 'Model',
+      modelID: 'Model ID',
+      apiSecret: 'API Secret',
+      custom: 'Custom',
+      apiType: 'API Type',
+      baseUrl: 'Base URL',
+      tips: 'No default model is set. Built-in AI features will use the default model if no specific model is specified; if not configured, some features may not work properly.',
+      tipsSettings: 'Configure Now',
+      ignoreTips: 'Do not remind again',
+      tipsSuccess: 'All default models have been configured. Start experiencing the full AI capabilities.',
+      tipsSuccessButton: 'OK',
+    },
+    languageModel: {
+      title: 'Language Model',
+      desc: 'Used for core AI capabilities such as conversations, Q&A, and content generation.'
+    },
+    visionModel: {
+      title: 'Vision Model',
+      desc: 'Used for image understanding and analysis, supporting recognition, description generation, and multimodal processing.'
+    },
+    embeddingModel: {
+      title: 'Embedding Model',
+      desc: 'Used to convert content into vectors to support semantic search and similarity matching.'
+    },
     llm: {
-      desc: 'After integrating a large model, you will unlock the AI chat feature, providing intelligent search and an efficient work assistant.',
-      title: 'Connect to a Large Model'
+      desc: 'Choose the default AI model used for core capabilities such as conversations, image understanding, and semantic search. You can change this later in Settings.',
+      title: 'Configure Default Model'
     },
     setupLater: 'Set Up Later',
+    next: 'Next',
+    previous: 'Previous',
     user: {
       desc: 'Set up a new user account to manage access and permissions.',
       email: 'Email',
@@ -520,10 +585,8 @@ const page: App.I18n.Schema['translation']['page'] = {
     skipModal: {
       title: 'Skip setup?',
       hints: {
-        desc: 'If you choose to skip this step, the built-in AI features (e.g., AI assistants) will not be available immediately, as they will be in an unconfigured state without a model.',
-        stepDesc: 'You will need to:',
-        step1: 'Add and manage models in the “LLM Provider” section;',
-        step2: 'Individually configure and select a model for each built-in AI assistant.'
+        desc1: 'No default model is set. If you skip this step, some built-in AI features (e.g., AI Assistant, Document Processing Pipeline) will not function properly until a model is specified.',
+        desc2: 'You can add models later in the "Model Provider" section and set the default model in "System Configuration".',
       }
     }
   },
@@ -603,11 +666,14 @@ const page: App.I18n.Schema['translation']['page'] = {
           'please enter the allowed origins that start with http:// or https://, and separate with commas. Enter * to allow access from all origins.',
         appearance: 'Appearance',
         cors: 'CORS',
+        conversation_settings: 'Conversation Settings',
         datasource: 'Data Source',
+        deep_research_assistant: 'DeepResearch Assistant',
+        deep_think_assistant: 'DeepThink Assistant',
         description: 'Description',
         enable_auth: 'Enable Authentication',
         tourist_mode: 'Tourist Mode',
-        enable_module: 'Enable Module',
+        search_settings: 'Search Settings',
         enabled: 'Enabled',
         feature_chat_history: 'Chat History',
         feature_Control: 'Feature Control',
@@ -640,6 +706,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         module_chat: 'AI Chat',
         module_chat_ai_assistant: 'AI Assistant',
         module_chat_placeholder: 'Chat box placeholder text',
+        module_chat_start_page: 'Start Page',
         module_search: 'Search',
         module_search_placeholder: 'Search box placeholder text',
         module_search_welcome: 'Greeting message',
@@ -691,6 +758,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       confirm: 'Confirm',
       confirmPasswordPlaceholder: 'Please enter password again',
       loginOrRegister: 'Login / Register',
+      login: 'Login',
       loginSuccess: 'Login successfully',
       passwordPlaceholder: 'Please enter password',
       phonePlaceholder: 'Please enter phone number',
@@ -740,10 +808,15 @@ const page: App.I18n.Schema['translation']['page'] = {
       addModel: 'Add Model',
       modelID: 'Model ID',
       modelType: 'Model Type',
-      inferenceMode: 'Inference Mode'
+      inferenceMode: 'Inference Mode',
+      setAsDefaultModel: 'Set as Default Model'
     },
     options: {
-      dialogModel: 'Chat Model'
+      dialogModel: 'Chat Model',
+      chatModel: 'Chat Model',
+      languageModel: 'Language Model',
+      visionModel: 'Vision Model',
+      embeddingModel: 'Embedding Model'
     },
     hints: {
       selectOrInputModel: 'Select or input a model',
@@ -804,6 +877,29 @@ const page: App.I18n.Schema['translation']['page'] = {
         integration: 'Integration'
       },
       title: 'Search Settings'
+    },
+    default_model: {
+      labels: {
+        default_model: 'Default Model',
+        default_model_desc: 'This configuration will be applied as the default value for AI assistants and document processing pipelines that do not have a separately specified model.',
+        ai_assistant: 'AI Assistant',
+        ai_assistant_desc: 'Specify dedicated models for different stages of the AI assistant to optimize performance and cost. If not configured, the language model from the default model will be used.',
+        intent_analysis_model: 'Intent Analysis Model',
+        picking_doc_model: 'Picking Doc Model',
+        picking_tool_model: 'Picking Tool Model',
+        answering_model: 'Answering Model'
+      },
+      title: 'Default Model'
+    },
+    document_processing: {
+      labels: {
+        default_pipeline_for_attachment: 'Chat Attachment',
+        default_pipeline_for_document: 'Data Source Document',
+        output_language: 'Output Language',
+        processing_pipeline: 'Processing Pipeline',
+        output_language_desc: 'Controls the output language of AI-generated content in the pipeline, including summaries, tags, and analysis results.',
+      }, 
+      title: 'Document Processing',
     },
     setupLater: 'Set Up Later'
   },
@@ -919,7 +1015,8 @@ const page: App.I18n.Schema['translation']['page'] = {
     buttons: {
       openSource: 'Open Source',
       reload: 'Reload',
-      continueVisiting: 'Continue Visiting'
+      continueVisiting: 'Continue Visiting',
+      cancel: 'Cancel'
     },
     hints: {
       failed: 'Sorry, something went wrong',

@@ -61,6 +61,7 @@ type Document struct {
 
 	LastUpdatedBy *EditorInfo `json:"last_updated_by,omitempty" elastic_mapping:"last_updated_by:{type:object}"` // Struct containing last update information
 	Disabled      bool        `json:"disabled,omitempty" elastic_mapping:"disabled:{type:boolean}"`              // Whether the document is disabled or not
+	Processed     bool        `json:"processed" elastic_mapping:"processed:{type:boolean}"`                      // Whether the document was successfully processed by a pipeline
 }
 
 func (document *Document) GetAllCategories() string {
@@ -129,6 +130,11 @@ type AiInsights struct {
 	Text      string    `json:"text" elastic_mapping:"text:{type:text}"`
 	Embedding Embedding `json:"embedding" elastic_mapping:"embedding:{type:object}"`
 }
+
+// RequiredEmbeddingDimension is the only vector dimension that Coco semantic
+// search supports. The embedding processor must produce vectors of this size,
+// and the search DSL queries the matching EmbeddingXXX field.
+const RequiredEmbeddingDimension = 1024
 
 // A `Embedding` stores a chunk's embedding.
 //

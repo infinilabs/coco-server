@@ -1,0 +1,66 @@
+@import './reset.css';
+@import './nprogress.css';
+@import './scrollbar.css';
+html,
+body,
+#root {
+  font-size: 16px;
+  height: 100%;
+}
+
+html {
+  overflow-x: hidden;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.25) transparent;
+}
+
+.ant-table-header::-webkit-scrollbar {
+  background-color: transparent;
+}
+
+html.grayscale {
+  filter: grayscale(100%);
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-old(root) {
+  z-index: 9999;
+}
+::view-transition-new(root) {
+  z-index: 1;
+}
+.dark::view-transition-old(root) {
+  z-index: 1;
+}
+.dark::view-transition-new(root) {
+  z-index: 9999;
+}
+
+@keyframes expandDown {
+  from {
+    opacity: 0;
+    transform: scaleY(0.8) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1) translateY(0);
+  }
+}
+
+@keyframes expandUp {
+  from {
+    opacity: 0;
+    transform: scaleY(0.8) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1) translateY(0);
+  }
+}

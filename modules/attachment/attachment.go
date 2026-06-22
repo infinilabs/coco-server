@@ -24,6 +24,7 @@ import (
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/kv"
 	"infini.sh/framework/core/orm"
+	"infini.sh/framework/core/queue"
 	"infini.sh/framework/core/util"
 )
 
@@ -56,13 +57,24 @@ func (h APIHandler) uploadAttachment(w http.ResponseWriter, r *http.Request, ps 
 			h.WriteError(w, fmt.Sprintf("Failed to open file %s", fileHeader.Filename), http.StatusInternalServerError)
 			return
 		}
-		// Upload to S3
-		if fileID, err := UploadToBlobStore(ctx, "", file, fileHeader, fileHeader.Filename, "", nil, "", false); err != nil {
+		// Upload to blob store (ES metadata + KV binary data).
+		fileID, err := UploadToBlobStore(ctx, "", file, fileHeader, fileHeader.Filename, "", nil, "", false)
+		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
-		} else {
-			attachmentIDs = append(attachmentIDs, fileID)
 		}
+		attachmentIDs = append(attachmentIDs, fileID)
+
+		// Push the attachment ID to the processing queue so that the
+		// process_attachments pipeline processor can run post-upload pipelines.
+		if err := queue.Push(attachmentProcessingQueue, []byte(fileID)); err != nil {
+			log.Warnf("failed to push attachment [%s] to processing queue: %v", fileID, err)
+		}
+
+		// Mark the attachment as pending so callers can poll for processing progress.
+		UpdateAttachmentStats(fileID, util.MapStr{
+			core.AttachmentStageInitialParsing: core.StatusPending,
+		})
 	}
 
 	result := util.MapStr{}
@@ -120,21 +132,24 @@ func (h APIHandler) getAttachments(w http.ResponseWriter, req *http.Request, ps 
 func (h APIHandler) getAttachment(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	fileID := ps.MustGetParameter("file_id")
 	data, err := kv.GetValue(core.AttachmentKVBucket, []byte(fileID))
-	if err != nil || len(data) == 0 {
-		panic("invalid attachment")
+	if err != nil {
+		panic(fmt.Errorf("failed to read attachment binary from KV store for ID %s: %w", fileID, err))
+	}
+	if len(data) == 0 {
+		panic(fmt.Errorf("attachment binary data is empty for ID %s", fileID))
 	}
 	attachment, exists, err := h.getAttachmentMetadata(req, fileID)
 	if !exists {
 		h.WriteGetMissingJSON(w, fileID)
 		return
 	}
-	if err != nil || attachment == nil {
-		panic(err)
+	if err != nil {
+		panic(fmt.Errorf("failed to read attachment metadata from DB for ID %s: %w", fileID, err))
+	}
+	if attachment == nil {
+		panic(fmt.Errorf("attachment metadata is nil for ID %s", fileID))
 	}
 
-	// Set headers
-	// Use inline for images, videos, audio and PDFs to allow browser preview
-	disposition := "attachment"
 	// Set MIME type and determine the disposition value
 	mineType := attachment.MimeType
 
@@ -145,16 +160,10 @@ func (h APIHandler) getAttachment(w http.ResponseWriter, req *http.Request, ps h
 	}
 
 	if mineType != "" {
-		if strings.HasPrefix(mineType, "image/") ||
-			strings.HasPrefix(mineType, "text/") ||
-			strings.HasPrefix(mineType, "video/") ||
-			strings.HasPrefix(mineType, "audio/") ||
-			mineType == "application/pdf" {
-			disposition = "inline"
-		}
 		w.Header().Set("Content-Type", mineType)
 	}
 
+	disposition := "attachment"
 	w.Header().Set("Content-Disposition", disposition+"; filename=\""+attachment.Name+"\"")
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(data)))
 
@@ -230,6 +239,11 @@ func (h APIHandler) deleteAttachment(w http.ResponseWriter, req *http.Request, p
 	err = orm.Update(ctx, attachment)
 	if err != nil {
 		panic(err)
+	}
+
+	// Clean up the processing-status KV entry for this attachment.
+	if err := kv.DeleteKey(core.AttachmentStatsBucket, []byte(fileID)); err != nil {
+		log.Warnf("failed to delete attachment stats for [%s]: %v", fileID, err)
 	}
 
 	h.WriteDeletedOKJSON(w, fileID)

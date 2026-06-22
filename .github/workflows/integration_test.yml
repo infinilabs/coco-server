@@ -3,7 +3,7 @@ name: Integration test
 env:
     GO_VERSION: 1.23.4
     NODEJS_VERSION: 22.13.0
-    PNPM_VERSION: 'latest'
+    PNPM_VERSION: '9.12.3'
     ES_ADMIN_PASSWORD: 'F0r_test_ci'
 
 on:

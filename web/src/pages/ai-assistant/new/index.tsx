@@ -16,7 +16,7 @@ export function Component() {
       history_message: {
         compression_threshold: 1000,
         summary: true,
-        number: 5
+        number: 30
       }
     },
     model_settings: {

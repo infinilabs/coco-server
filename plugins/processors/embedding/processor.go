@@ -7,13 +7,13 @@ package embedding
 import (
 	"context"
 	"fmt"
-	"slices"
 
 	log "github.com/cihub/seelog"
 	"github.com/tmc/langchaingo/embeddings"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/assistant/langchain"
 	"infini.sh/coco/modules/common"
+	llmmodule "infini.sh/coco/modules/llm"
 	"infini.sh/framework/core/config"
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/global"
@@ -26,11 +26,10 @@ import (
 const ProcessorName = "document_embedding"
 
 type Config struct {
-	MessageField       param.ParaKey      `config:"message_field"`
-	OutputQueue        *queue.QueueConfig `config:"output_queue"`
-	ModelProviderID    string             `config:"model_provider"`
-	ModelName          string             `config:"model"`
-	EmbeddingDimension int32              `config:"embedding_dimension"`
+	MessageField    param.ParaKey      `config:"message_field"`
+	OutputQueue     *queue.QueueConfig `config:"output_queue"`
+	ModelProviderID string             `config:"model_provider"`
+	ModelName       string             `config:"model"`
 }
 
 type DocumentEmbeddingProcessor struct {
@@ -57,19 +56,6 @@ func New(c *config.Config) (pipeline.Processor, error) {
 		cfg.MessageField = core.PipelineContextDocuments
 	}
 
-	if cfg.ModelProviderID == "" {
-		panic("model_provider can't be empty")
-	}
-	if cfg.ModelName == "" {
-		panic("model can't be empty")
-	}
-	if cfg.EmbeddingDimension == 0 {
-		panic("embedding_dimension is not specified or set to 0, which is not allowed")
-	}
-	if !slices.Contains(core.SupportedEmbeddingDimensions, cfg.EmbeddingDimension) {
-		panic(fmt.Sprintf("invalid embedding_dimension, available values %v", core.SupportedEmbeddingDimensions))
-	}
-
 	processor := DocumentEmbeddingProcessor{config: &cfg}
 
 	if cfg.OutputQueue != nil {
@@ -87,11 +73,15 @@ func (processor *DocumentEmbeddingProcessor) Process(ctx *pipeline.Context) erro
 	obj := ctx.Get(processor.config.MessageField)
 
 	if obj == nil {
-		log.Warnf("processor [] receives an empty pipeline context", processor.Name())
+		log.Warnf("processor [%s] receives an empty pipeline context", processor.Name())
 		return nil
 	}
 
-	messages := obj.([]queue.Message)
+	messages, ok := obj.([]queue.Message)
+	if !ok {
+		log.Warnf("processor [%s] context value is not []queue.Message", processor.Name())
+		return nil
+	}
 	if global.Env().IsDebug {
 		log.Tracef("processor [%s] get %v messages from context", processor.Name(), len(messages))
 	}
@@ -190,8 +180,12 @@ func generateEmbedding(ctx context.Context, document *core.Document, processorCo
 			finalErrs = append(finalErrs, err)
 		}
 		if len(embedding) > 0 {
-			document.AiInsights.Embedding.SetValue(embedding[0])
-			modified = true
+			if err := validateEmbeddingDimension(embedding[0], "ai_insights"); err != nil {
+				finalErrs = append(finalErrs, err)
+			} else {
+				document.AiInsights.Embedding.SetValue(embedding[0])
+				modified = true
+			}
 		}
 	}
 
@@ -228,6 +222,9 @@ func generateChunkEmbeddings(ctx context.Context, embedder embeddings.EmbedderCl
 
 		for relativeIdx, embedding := range embeddings {
 			idx := batchStart + relativeIdx
+			if err := validateEmbeddingDimension(embedding, "chunk"); err != nil {
+				return false, err
+			}
 			embeddingWrapper := core.Embedding{}
 			embeddingWrapper.SetValue(embedding)
 			chunks[idx].Embedding = embeddingWrapper
@@ -237,16 +234,30 @@ func generateChunkEmbeddings(ctx context.Context, embedder embeddings.EmbedderCl
 	return true, nil
 }
 
+// helper function to verify that an embedding vector has the dimension
+// required by Coco semantic search, so that documents with wrong-sized
+// vectors are rejected instead of being indexed silently.
+func validateEmbeddingDimension(embedding []float32, source string) error {
+	if len(embedding) != core.RequiredEmbeddingDimension {
+		return fmt.Errorf("embedding dimension mismatch for %s: got %d, want %d", source, len(embedding), core.RequiredEmbeddingDimension)
+	}
+	return nil
+}
+
 // According to the specified configuration, init the "EmbedderClient" and
 // return it.
 func getEmbedderClient(cfg *Config) (embeddings.EmbedderClient, error) {
-	provider, err := common.GetModelProvider(cfg.ModelProviderID)
+	modelId := llmmodule.ResolveModel(core.LLMTypeEmbedding, &core.ModelId{ProviderID: cfg.ModelProviderID, ID: cfg.ModelName})
+	if modelId == nil {
+		return nil, fmt.Errorf("no embedding model configured: set model_provider/model in pipeline config or configure a default embedding model in settings")
+	}
+	provider, err := common.GetModelProvider(modelId.ProviderID)
 	if err != nil {
 		log.Error("failed to get model provider: ", err)
 		return nil, err
 	}
 
-	model := langchain.GetLLM(provider.BaseURL, provider.APIType, cfg.ModelName, provider.APIKey, "")
+	model := langchain.GetEmbeddingLLM(provider.BaseURL, provider.APIType, modelId.ID, provider.APIKey, core.RequiredEmbeddingDimension)
 	// Check if the LLM client supports embeddings
 	embedder, ok := model.(embeddings.EmbedderClient)
 

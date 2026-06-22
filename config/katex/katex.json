@@ -1,0 +1,11 @@
+{
+  "name": "KaTeX",
+  "version": "0.17.0",
+  "source": "https://github.com/KaTeX/KaTeX/releases/download/v0.17.0/katex.tar.gz",
+  "files": [
+    "katex.min.css",
+    "katex.min.js",
+    "contrib/auto-render.min.js"
+  ],
+  "fonts_dir": "fonts/"
+}

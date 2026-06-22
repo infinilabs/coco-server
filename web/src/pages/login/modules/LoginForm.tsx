@@ -2,21 +2,16 @@ import { Button, Form, Input } from 'antd';
 
 import { Shield } from 'lucide-react';
 import { useLogin } from '@/hooks/common/login';
-import { localStg } from '@/utils/storage';
 import normalizeUrl from 'normalize-url';
+import { getApplicationSetting } from '@/store/slice/server';
 
-type AccountKey = 'admin' | 'super' | 'user';
-interface Account {
-  key: AccountKey;
-  label: string;
+interface LoginParams {
+  email: string;
   password: string;
-  userName: string;
 }
 
-type LoginParams = Pick<Account, 'password' | 'userName'>;
-
-function getOAuthProviders(providerInfo: any) {
-  const oauth = providerInfo?.security?.auth?.oauth;
+function getOAuthProviders(applicationSetting: any) {
+  const oauth = applicationSetting?.security?.auth?.oauth;
   if (!oauth) return [];
   return Object.entries(oauth)
     .filter(([, v]: [string, any]) => v.url)
@@ -36,9 +31,9 @@ const LoginForm = memo(({ onProvider }: { onProvider?: () => void }) => {
   const { t } = useTranslation();
   const { defaultRequiredRule } = useFormRules();
 
-  const providerInfo = localStg.get('providerInfo');
-  const managed = Boolean(providerInfo?.security?.managed);
-  const oauthProviders = getOAuthProviders(providerInfo);
+  const applicationSetting = useAppSelector(getApplicationSetting);
+  const managed = Boolean(applicationSetting?.security?.managed);
+  const oauthProviders = getOAuthProviders(applicationSetting);
 
   async function handleSubmit() {
     const params = await form.validateFields();

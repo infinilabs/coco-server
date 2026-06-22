@@ -17,6 +17,8 @@ func (m *MessageRequest) IsEmpty() bool {
 	return m.Message == "" && len(m.Attachments) == 0
 }
 
+// ChatMessage is a persisted chat message stored in Elasticsearch.
+// Each user question or assistant reply is saved as one ChatMessage record.
 type ChatMessage struct {
 	orm.ORMObjectBase
 	MessageType string   `json:"type"` // user, assistant, system
@@ -26,22 +28,68 @@ type ChatMessage struct {
 	Message     string   `config:"message" json:"message,omitempty" elastic_mapping:"message:{type:text}"`
 	Attachments []string `config:"attachments" json:"attachments,omitempty"`
 
-	ReplyMessageID string              `config:"reply_to_message" json:"reply_to_message,omitempty" elastic_mapping:"reply_to_message:{type:keyword}"`
-	Details        []ProcessingDetails `json:"details"`
-	UpVote         int                 `json:"up_vote"`
-	DownVote       int                 `json:"down_vote"`
-	AssistantID    string              `json:"assistant_id"`
+	ReplyMessageID string `config:"reply_to_message" json:"reply_to_message,omitempty" elastic_mapping:"reply_to_message:{type:keyword}"`
 
+	// Details holds the ordered list of processing steps performed during an assistant reply.
+	// Each entry has a Type that determines the schema of its Payload. Known types:
+	//
+	//   Type="query_intent"  (Order=10)  — Payload: QueryIntent object
+	//     {"category":"", "intent":"", "query":[], "keyword":[], "suggestion":[],
+	//      "need_plan_tasks":bool, "need_call_tools":bool, "need_network_search":bool}
+	//
+	//   Type="tools"         (Order=15)  — Payload: nil; Description contains tool name, arguments, and output
+	//
+	//   Type="fetch_source"  (Order=20)  — Payload: array of candidate documents
+	//     [{"id":"", "title":"", "updated":"", "category":"", "summary":"(≤500 chars)", "url":""}]
+	//
+	//   Type="pick_source"   (Order=30)  — Payload: array of LLM-selected documents
+	//     [{"id":"", "title":"", "explain":""}]
+	//
+	//   Type="deep_read"     (Order=40)  — Payload: nil; Description contains "Analyzing: <title>\n" per doc
+	//
+	//   Type="think"         (Order=50)  — Payload: nil; Description contains the LLM reasoning trace text
+	//
+	//   Type="deep_research" (Order=10)  — Payload: array of ChunkRecord from deep research v2
+	//     [{"chunk_type":"research_planner_start|…|research_reporter_end", "message_chunk":"JSON string"}]
+	//     These are the serialized streaming chunks replayed by the frontend to reconstruct the research UI.
+	//
+	//   Type="reply_end"     (Order=99)  — Payload: loop termination reason map
+	//     {"reason":"completed|user_cancelled|error|timeout"}
+	//     Timeout payloads also include {"type":"assistant_generation|attachment_processing"}.
+	//     Persisted so history replay can restore terminal state after refresh.
+	Details []ProcessingDetails `json:"details"`
+
+	UpVote      int    `json:"up_vote"`
+	DownVote    int    `json:"down_vote"`
+	AssistantID string `json:"assistant_id"`
+
+	// Payload carries top-level structured data for the entire message.
+	// Currently only set by deep_research_v2 when a research report is generated:
+	//   {"title":"", "url":"", "created":"", "attachment":"<attachment_id>", "format":"md|html"}
+	// For all other message types this field is nil.
 	Payload interface{} `json:"payload"`
 }
 
+// ProcessingDetails is one step in the assistant's processing pipeline.
+// Order controls display/sort priority (lower = earlier). Type identifies the step kind.
+// Either Description or Payload (or both) carry the step's data — see ChatMessage.Details for
+// the full Type→Payload schema.
 type ProcessingDetails struct {
 	Order       int         `json:"order"`
-	Type        string      `json:"type"` //chunk_type
-	Description string      `json:"description"`
-	Payload     interface{} `json:"payload"` //<Payload>{JSON}</Payload>
+	Type        string      `json:"type"`        // One of: query_intent, tools, fetch_source, pick_source, deep_read, think, deep_research, reply_end
+	Description string      `json:"description"` // Human-readable text (used by tools, deep_read, and think when Payload is nil)
+	Payload     interface{} `json:"payload"`     // Structured data; concrete type depends on Type (see ChatMessage.Details doc)
 }
 
+// ToolCallItem represents a single tool invocation within a tool-call chunk.
+type ToolCallItem struct {
+	Name      string `json:"name"`
+	Arguments string `json:"arguments"`
+	Result    string `json:"result"`
+}
+
+// MessageChunk is a streaming fragment sent to the client over chunked HTTP.
+// The LLM response and system status updates are delivered as a sequence of these chunks in real time.
 type MessageChunk struct {
 	SessionId      string `json:"session_id"`
 	MessageId      string `json:"message_id"`
@@ -52,6 +100,11 @@ type MessageChunk struct {
 	MessageChunk   string `json:"message_chunk"`
 	Streaming      bool   `json:"streaming,omitempty"`
 	ContentType    string `json:"content_type,omitempty"`
+
+	// ToolCallMessageChunk is a JSON-encoded array of ToolCallItem objects,
+	// only populated for chunks with ChunkType="tools". Coexists with
+	// MessageChunk for backward compatibility with older clients.
+	ToolCallMessageChunk string `json:"tool_call_message_chunk,omitempty"`
 }
 
 func NewMessageChunk(sessionId, messageId, messageType, replyToMessage, chunkType, messageChunk string, chunkSequence int) *MessageChunk {

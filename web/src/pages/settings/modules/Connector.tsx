@@ -14,7 +14,8 @@ import Icon, { EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, Plus
 
 import { formatESSearchResult } from '@/service/request/es';
 import { Api } from '@/types/api';
-import { getServer } from '@/store/slice/server';
+import { getApplicationSetting, getServer } from '@/store/slice/server';
+import { isStoreEnabled } from '@/layouts/modules/global-header/components/Shop';
 
 type Connector = Api.Datasource.Connector;
 
@@ -28,6 +29,7 @@ const ConnectorSettings = memo(() => {
 
   const { addSharesToData, isEditorOwner, hasEdit, isResourceShare } = useResource();
   const resourceType = 'connector';
+  const applicationSetting = useAppSelector(getApplicationSetting);
 
   const { hasAuth } = useAuth();
 
@@ -289,8 +291,13 @@ const ConnectorSettings = memo(() => {
             icon={<PlusOutlined />}
             type='primary'
             onClick={() => {
-            integratedStoreModalRef.current?.open('connector');
-          }}
+              if (isStoreEnabled(applicationSetting)) {
+                integratedStoreModalRef.current?.open('connector')
+              } else {
+                nav('/connector/new');
+              }
+            }
+          }
           >
             {t('common.add')}
           </Button>

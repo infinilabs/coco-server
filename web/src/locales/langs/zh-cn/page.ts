@@ -100,10 +100,43 @@ const page: App.I18n.Schema['translation']['page'] = {
       toolList: '工具列表',
       webSources: '网络来源列表',
       detectedIntent: '识别到的意图',
-      matchedDocs: '匹配到的文档'
+      matchedDocs: '匹配到的文档',
+      modelSelectPlaceholder: '使用默认模型',
+      deep_research_models: '模型设置',
+      planning_model: '规划模型',
+      research_model: '研究模型',
+      synthesis_model: '综合模型',
+      report_model: '报告模型',
+      deep_research_limits: '研究设置',
+      max_steps: '最大研究步数',
+      max_steps_desc: '研究流程中的最大迭代步骤数',
+      max_researcher_iterations: '最大研究迭代',
+      max_researcher_iterations_desc: '单个研究步骤的最大重试次数',
+      max_results: '每次搜索最大结果数',
+      timeout: '超时时间',
+      timeout_desc: '研究任务的总超时时间（如 30m、1h）',
+      timeout_invalid: '格式非法，请输入合法格式，如 30m、1h、1h30m',
+      research_depth: '研究深度',
+      research_depth_basic: '基础 — 快速概览，适合简单问题',
+      research_depth_comprehensive: '综合 — 深度分析，适合复杂问题',
+      research_depth_exhaustive: '详尽 — 全面研究，适合深度主题',
+      deep_research_output: '输出设置',
+      report_format: '报告格式',
+      report_lang: '报告语言',
+      report_lang_zh: '中文',
+      report_lang_en: '英文',
+      deep_research_search: '搜索设置',
+      datasource_search: '数据源搜索',
+      datasource_ids_placeholder: '不限定（使用所有可访问数据源）',
+      external_search_engine: '搜索引擎',
+      search_engine_wikipedia: '维基百科',
+      external_search_api_key: 'API Key',
+      tavily_api_key_placeholder: '请输入 Tavily API Key',
+      internal_datasource_ids: '数据源'
     },
     mode: {
       deep_think: '深度思考',
+      deep_research: '深度研究',
       simple: '简单模式',
       workflow: '外部工作流'
     },
@@ -536,7 +569,8 @@ const page: App.I18n.Schema['translation']['page'] = {
         tags: '标签',
         type: '数据源类型',
         webhook: '启用 Webhook',
-        enrichment_pipeline: 'Enrichment Pipeline'
+        enrichment_pipeline: 'Enrichment Pipeline',
+        document_analysis: '文档分析',
       },
       title: '连接 {{connector}}',
       tooltip: {
@@ -621,7 +655,9 @@ const page: App.I18n.Schema['translation']['page'] = {
       type: '类型',
       created: '创建时间',
       createdBy: '创建人',
-      updatedBy: '更新人'
+      updatedBy: '更新人',
+      deleteConfirm: '您确定要删除此文档吗？',
+      deleteAllConfirm: '您确定要删除所有选中的文档吗？',
     },
     file: {
       title: '文档管理'
@@ -657,11 +693,40 @@ const page: App.I18n.Schema['translation']['page'] = {
     site_urls_add: '新增站点地址'
   },
   guide: {
+    labels: {
+      modelProvider: '模型提供商',
+      modelProviderName: '模型提供商名称',
+      model: '模型',
+      modelID: '模型 ID',
+      apiSecret: 'API 密钥',
+      custom: '自定义',
+      apiType: 'API 类型',
+      baseUrl: 'Base URL',
+      tips: '当前有默认模型未配置。内置 AI 功能在未单独指定模型时，将使用默认模型运行；如未配置，部分功能可能无法正常工作。',
+      tipsSettings: '立即配置',
+      ignoreTips: '不再提醒',
+      tipsSuccess: '默认模型已全部配置完成，开始体验完整 AI 能力',
+      tipsSuccessButton: '好的',
+    },
+    languageModel: {
+      title: '语言模型',
+      desc: '用于对话、问答、内容生成等基础 AI 能力'
+    },
+    visionModel: {
+      title: '视觉模型',
+      desc: '用于图像内容理解与解析，支持识别、描述生成与多模态处理'
+    },
+    embeddingModel: {
+      title: 'Embedding 模型',
+      desc: '用于将内容转换为向量，以支持语义搜索与相似度匹配'
+    },
     llm: {
-      desc: '集成大模型后，您将解锁人工智能聊天功能，还能获得智能搜索服务和高效的工作助手。',
-      title: '集成大模型'
+      desc: '选择默认使用的 AI 模型，用于对话、图像理解与语义搜索等基础能力。后续可在设置中随时调整。',
+      title: '配置默认模型'
     },
     setupLater: '稍后设置',
+    next: '下一步',
+    previous: '上一步',
     user: {
       desc: '设置一个新的账户以管理访问权限。',
       email: '邮箱',
@@ -673,10 +738,8 @@ const page: App.I18n.Schema['translation']['page'] = {
     skipModal: {
       title: '确认跳过？',
       hints: {
-        desc: '如果您选择跳过此步骤，进入系统后内置的 AI 功能（如 AI 助手）将无法立即使用。',
-        stepDesc: '您将需要：',
-        step1: '在 “模型提供商” 中添加并管理模型；',
-        step2: '为每个内置 AI 助手单独选择并配置所需的大模型。'
+        desc1: '当前未设置默认模型。如果跳过此步骤，部分内置 AI 功能（如 AI 助手、文档处理 Pipeline）在未单独指定模型前将无法正常运行。',
+        desc2: '您可以稍后在“模型提供商”中添加模型，并在“系统配置”中设置默认模型。',
       }
     }
   },
@@ -754,11 +817,14 @@ const page: App.I18n.Schema['translation']['page'] = {
           '请输入允许的 Origin，以 http:// 或 https:// 开头多个 Origin 间用英文逗号分隔，允许所有 Origin 访问则填 *',
         appearance: '外观设置',
         cors: '跨域设置',
+        conversation_settings: '对话设置',
         datasource: '数据源',
+        deep_research_assistant: '深度研究小助手',
+        deep_think_assistant: '深度思考小助手',
         description: '描述',
         enable_auth: '启用认证',
         tourist_mode: '游客模式',
-        enable_module: '启用模块',
+        search_settings: '搜索设置',
         enabled: '启用状态',
         feature_chat_history: '聊天历史',
         feature_Control: '功能控制',
@@ -771,7 +837,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         logo: '图标（浅色模式）',
         logo_mobile: '移动端图标（浅色模式）',
         logo_dark: '图标（深色模式）',
-        logo_mobile_dark: 'Mobile Logo（深色模式）',
+        logo_mobile_dark: '移动端图标（深色模式）',
         mode: '模式',
         mode_all: '内嵌和浮动',
         mode_embedded: '内嵌的',
@@ -791,6 +857,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         module_chat: 'AI 聊天',
         module_chat_ai_assistant: 'AI 助手',
         module_chat_placeholder: 'AI 聊天输入框提示文本',
+        module_chat_start_page: '开始页',
         module_search: '搜索',
         module_search_placeholder: '搜索输入框提示文本',
         module_search_welcome: '欢迎语',
@@ -840,6 +907,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       confirm: '确定',
       confirmPasswordPlaceholder: '请再次输入密码',
       loginOrRegister: '登录 / 注册',
+      login: '登录',
       loginSuccess: '登录成功',
       passwordPlaceholder: '请输入密码',
       phonePlaceholder: '请输入手机号',
@@ -924,6 +992,29 @@ const page: App.I18n.Schema['translation']['page'] = {
         integration: '组件'
       }
     },
+    default_model: {
+      labels: {
+        default_model: '默认模型',
+        default_model_desc: '该配置将作为默认值应用于未单独指定模型的 AI 助手和文档处理 Pipeline。',
+        ai_assistant: 'AI 助手',
+        ai_assistant_desc: '为 AI 助手不同阶段指定专用模型，以优化性能与成本，未配置时使用默认模型中的语言模型',
+        intent_analysis_model: '意图识别模型',
+        picking_doc_model: '文档预选模型',
+        picking_tool_model: '工具调用模型',
+        answering_model: '应答模型'
+      },
+      title: '默认模型'
+    },
+    document_processing: {
+      labels: {
+        default_pipeline_for_attachment: '聊天附件处理',
+        default_pipeline_for_document: '数据源文档处理',
+        output_language: '输出语言',
+        processing_pipeline: '处理 Pipeline',
+        output_language_desc: '控制 Pipeline 中 AI 生成内容的输出语言，包括摘要、标签与分析结果等。',
+      }, 
+      title: '文档处理',
+    },
     setupLater: '稍后设置'
   },
   webhook: {
@@ -971,13 +1062,18 @@ const page: App.I18n.Schema['translation']['page'] = {
       addModel: '添加模型',
       modelID: '模型ID',
       modelType: '模型类型',
-      inferenceMode: '推理模式'
+      inferenceMode: '推理模式',
+      setAsDefaultModel: '设为默认模型'
     },
     delete: {
       confirm: '您确定要删除这个模型提供商吗?'
     },
     options: {
-      dialogModel: '对话模型'
+      dialogModel: '对话模型',
+      chatModel: '对话模型',
+      languageModel: '语言模型',
+      visionModel: '视觉模型',
+      embeddingModel: 'Embedding 模型'
     },
     hints: {
       selectOrInputModel: '选择或输入一个模型',
@@ -1075,7 +1171,8 @@ const page: App.I18n.Schema['translation']['page'] = {
     buttons: {
       openSource: '打开来源',
       reload: '重新加载',
-      continueVisiting: '继续访问'
+      continueVisiting: '继续访问',
+      cancel: '取消'
     },
     hints: {
       failed: '抱歉，出错了',

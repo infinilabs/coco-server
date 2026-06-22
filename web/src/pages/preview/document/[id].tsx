@@ -1,9 +1,10 @@
-import { ActionButton, DocDetail } from '@infinilabs/doc-detail';
+import { ActionButton, DocDetail } from 'ui-search/source';
 import { Button, Result, Spin, Typography } from 'antd';
 import { useParams } from 'react-router-dom';
 import { filesize } from 'filesize';
 
-import { request } from '@/service/request';
+import { getApiBaseUrl, request } from '@/service/request';
+import { fetchEntityUser } from '@/service/api/entity';
 import logoLight from '@/assets/imgs/coco-logo-text-light.svg';
 import logoDark from '@/assets/imgs/coco-logo-text-dark.svg';
 import DateTime from '@/components/DateTime';
@@ -11,10 +12,13 @@ import { SquareArrowOutUpRight } from 'lucide-react';
 import classNames from 'classnames';
 import type { ReactNode } from 'react';
 
+const previewContentTypes = ['image', 'video', 'markdown', 'pdf', 'docx', 'pptx'];
+
 export function Component() {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const mode = searchParams.get('mode');
+  const appIntegrationId = searchParams.get('app-integration-id');
 
   const embedded = mode === 'embedded';
 
@@ -26,23 +30,36 @@ export function Component() {
 
   useAsyncEffect(async () => {
     try {
+      const headers = appIntegrationId ? { 'APP-INTEGRATION-ID': appIntegrationId } : undefined;
+
       const { data } = await request({
         method: 'get',
-        url: `/document/${id}`
+        url: `/document/${id}`,
+        headers
       });
 
       const dataSource = data._source;
 
-      const { data: ownerData } = await request({
-        method: 'post',
-        url: `/entity/card/user/${dataSource._system.owner_id}`
-      });
+      let ownerData;
+      const ownerId = dataSource?._system?.owner_id;
+      if (ownerId) {
+        const { data } = await fetchEntityUser({ id: ownerId }, { headers, ignoreError: true });
+        ownerData = data;
+      }
 
       setData({
         ...dataSource,
-        url: `/document/${id}/raw_content/${dataSource?.title}`,
         owner: ownerData
       });
+
+      const contentType = dataSource?.metadata?.content_type;
+      const rawContent = dataSource?.metadata?.raw_content;
+      const hasPreview = !!rawContent && previewContentTypes.includes(contentType);
+      const hasAIInsight = !!dataSource?.ai_insights?.text;
+
+      if (!embedded && !hasPreview && !hasAIInsight && rawContent) {
+        setSourceUrl(rawContent);
+      }
     } catch (error) {
       if (error instanceof Error) {
         setError(error.message);
@@ -52,7 +69,7 @@ export function Component() {
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [appIntegrationId, embedded, id]);
 
   const openTauriUrl = (url: string) => {
     window.parent.postMessage(
@@ -72,7 +89,7 @@ export function Component() {
           icon={<SquareArrowOutUpRight className='size-3.5 text-primary' />}
           key='openSource'
           onClick={() => {
-            openTauriUrl(data?.url);
+            openTauriUrl(data?.metadata?.raw_content);
           }}
         />
       ];
@@ -83,7 +100,7 @@ export function Component() {
         icon={<SquareArrowOutUpRight />}
         key='openSource'
         onClick={() => {
-          setSourceUrl(data?.url);
+          setSourceUrl(data?.metadata?.raw_content);
         }}
       >
         {t('page.preview.buttons.openSource')}
@@ -93,27 +110,34 @@ export function Component() {
 
   const renderContent = () => {
     if (sourceUrl) {
+      const url = sourceUrl.startsWith('http') ? sourceUrl : `${getApiBaseUrl()}${sourceUrl}`;
       return (
         <div className='mt-30 flex justify-center'>
-          <div className='max-w-150 border border-border-secondary rounded-lg bg-black/3 px-6 py-10 dark:bg-white/7'>
+          <div className='w-full min-w-0 border border-border-secondary rounded-lg bg-black/3 px-6 py-10 dark:bg-white/7 md:w-640px'>
             <div className='font-bold'>{t('page.preview.hints.leave')}</div>
 
             <div className='mt-1'>{t('page.preview.hints.externalLinkWarning')}</div>
 
-            <div className='mt-4'>
-              <Typography.Text type='secondary'>{sourceUrl}</Typography.Text>
-            </div>
-
             <Button
-              className='mt-10'
+              className='mt-10 min-w-100px'
               shape='round'
               size='large'
               type='primary'
               onClick={() => {
-                window.open(sourceUrl);
+                window.open(appIntegrationId ? `${url}?app-integration-id=${appIntegrationId}` : url);
               }}
             >
               {t('page.preview.buttons.continueVisiting')}
+            </Button>
+            <Button
+              className='ml-12px mt-10 min-w-100px border-[#F0F0F0] dark:border-[#303030]'
+              shape='round'
+              size='large'
+              onClick={() => {
+                setSourceUrl(undefined);
+              }}
+            >
+              {t('page.preview.buttons.cancel')}
             </Button>
           </div>
         </div>
@@ -159,16 +183,20 @@ export function Component() {
           ...data,
           size: filesize(data?.size ?? 0),
           created: (
-            <DateTime
-              showTooltip={false}
-              value={data?.created}
-            />
+            data?.created ? (
+              <DateTime
+                showTooltip={false}
+                value={data?.created}
+              />
+            ) : null
           ),
           updated: (
-            <DateTime
-              showTooltip={false}
-              value={data?.updated}
-            />
+            data?.updated ? (
+              <DateTime
+                showTooltip={false}
+                value={data?.updated}
+              />
+            ) : null
           )
         }}
         i18n={{
@@ -188,7 +216,7 @@ export function Component() {
 
   return (
     <div className='h-screen bg-container'>
-      <div className={classNames('h-full flex flex-col', [embedded ? 'p-6' : 'max-w-240 m-auto'])}>
+      <div className={classNames('h-full flex flex-col', [embedded ? 'p-6' : 'px-16px max-w-240 m-auto'])}>
         {!embedded && (
           <div className='h-20 flex items-center justify-between border-b border-border-secondary'>
             <div className='children:h-10'>

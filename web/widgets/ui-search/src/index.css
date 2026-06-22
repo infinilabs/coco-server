@@ -1,10 +1,9 @@
 @unocss;
 
-.animate-typing {
-    animation: typing 1.5s ease-in-out infinite;
-}
-
-@keyframes typing {
-    0%, 100% { opacity: 0.3; }
-    50% { opacity: 1; }
+/*
+ * Fix truncate in flex containers: allow the element to shrink below
+ * its content width so overflow: hidden can take effect.
+ */
+.truncate {
+  min-width: 0;
 }

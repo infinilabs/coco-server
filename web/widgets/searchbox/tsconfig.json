@@ -3,7 +3,7 @@
     "target": "ESNext",
     "jsx": "react-jsx",
     "module": "ESNext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "strict": true,
     "noEmit": true,
     "allowSyntheticDefaultImports": true,
@@ -11,5 +11,6 @@
     "isolatedModules": true,
     "skipLibCheck": true
   },
-  "include": ["src/**.ts", "src/**.tsx"]
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["node_modules"]
 }

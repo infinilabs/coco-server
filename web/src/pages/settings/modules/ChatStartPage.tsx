@@ -130,7 +130,7 @@ const ChatStartPage = memo((props) => {
                   setLogo((state) => ({
                     ...state,
                     lightLoading: false,
-                    light: undefined
+                    light: ''
                   }));
                 }}>{t('common.reset')}</Button>
               </div>
@@ -169,7 +169,7 @@ const ChatStartPage = memo((props) => {
                   setLogo((state) => ({
                     ...state,
                     darkLoading: false,
-                    dark: undefined
+                    dark: ''
                   }))
                 }}>{t('common.reset')}</Button>
               </div>

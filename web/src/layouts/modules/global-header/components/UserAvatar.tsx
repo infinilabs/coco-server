@@ -8,10 +8,11 @@ import { logout } from '@/service/api';
 import { store } from '@/store';
 import { resetStore, selectUserInfo } from '@/store/slice/auth';
 import { localStg } from '@/utils/storage';
+import { getApplicationSetting } from '@/store/slice/server';
 
 const PasswordModal = lazy(() => import('./PasswordModal'));
 
-const UserAvatar = memo((props) => {
+const UserAvatar = memo((props: { className?: string; showHome?: boolean; showName?: boolean }) => {
   const { className, showHome = false, showName = true } = props;
   const { t } = useTranslation();
   const userInfo = useAppSelector(selectUserInfo);
@@ -21,8 +22,8 @@ const UserAvatar = memo((props) => {
   const nav = useNavigate();
   const location = useLocation();
 
-  const providerInfo = localStg.get('providerInfo');
-  const managed = Boolean(providerInfo?.security?.managed);
+  const applicationSetting = useAppSelector(getApplicationSetting);
+  const managed = Boolean(applicationSetting?.security?.managed);
   const [passwordVisible, setPasswordVisible] = useState(false);
 
   async function handleLogout() {
@@ -68,7 +69,7 @@ const UserAvatar = memo((props) => {
     {
       key: 'password',
       label: (
-        <div className="flex-center gap-8px">
+        <div className="flex justify-left items-center gap-8px">
           <SvgIcon
             className="text-icon"
             icon="mdi:password"
@@ -83,7 +84,7 @@ const UserAvatar = memo((props) => {
     {
       key: 'logout',
       label: (
-        <div className="flex-center gap-8px">
+        <div className="flex justify-left items-center gap-8px">
           <SvgIcon
             className="text-icon"
             icon="ph:sign-out"
@@ -102,7 +103,7 @@ const UserAvatar = memo((props) => {
     items.unshift({
       key: 'home',
       label: (
-        <div className="flex-center gap-8px">
+        <div className="flex justify-left items-center gap-8px">
           <SvgIcon
             className="text-icon"
             icon="mdi:settings"
@@ -129,7 +130,7 @@ const UserAvatar = memo((props) => {
           </div>
         </Dropdown>
       ) : (
-        <Button className={`px-12px ${className}`} onClick={loginOrRegister}>{t('page.login.common.loginOrRegister')}</Button>
+        <Button className={`px-12px ${className}`} onClick={loginOrRegister}>{t('page.login.common.login')}</Button>
       )}
       <Suspense>
         <PasswordModal

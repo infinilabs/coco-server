@@ -123,6 +123,7 @@ func RefineDocument(ctx context.Context, doc *core.Document) {
 	RefineIcon(ctx, doc)
 	RefineCoverThumbnail(ctx, doc)
 	RefineURL(ctx, doc)
+	RefineRawContentURL(ctx, doc)
 }
 
 // ResolveIcon runs the icon fallback chain:
@@ -211,6 +212,20 @@ func RefineURL(ctx context.Context, doc *core.Document) {
 	doc.URL = fmt.Sprintf("%s/#/preview/document/%s", baseEndpoint, doc.ID)
 }
 
+// RefineRawContentURL adds a "raw_content" key to doc.Metadata with the
+// full URL to the document's raw content endpoint.
+func RefineRawContentURL(ctx context.Context, doc *core.Document) {
+	appCfg := common.AppConfig()
+	baseEndpoint := appCfg.ServerInfo.Endpoint
+
+	rawContentURL := fmt.Sprintf("%s/document/%s/raw_content/%s", baseEndpoint, doc.ID, url.PathEscape(doc.Title))
+
+	if doc.Metadata == nil {
+		doc.Metadata = make(map[string]interface{})
+	}
+	doc.Metadata["raw_content"] = rawContentURL
+}
+
 func searchAssistant(req *http.Request, query string, size int) []core.Assistant {
 	docs := []core.Assistant{}
 	if size <= 0 {
@@ -283,6 +298,17 @@ func GetDatasourceByIntegration(integrationID string) ([]string, bool, error) {
 	return ret, false, nil
 }
 
+// BuildDatasourceFilter computes the final set of datasource IDs a user is allowed to search,
+// by merging the user's own datasources, shared datasources, the query-requested datasources,
+// and the integration-scoped datasources.
+//
+// Returns:
+//   - checkingScopeDatasources: datasource IDs that require further document-level permission checks
+//     (e.g. datasources shared at category level where individual documents may still be denied).
+//   - finalDatasourceIDs: datasource IDs the user has full direct access to (user-owned + directly shared).
+//   - disabledIDs: datasource IDs that are currently disabled and should be excluded from search results.
+//
+// If the user has no accessible datasources at all, all three slices are returned as nil.
 func BuildDatasourceFilter(userID string, checkingScopeDatasources, directAccessDatasources []string, queryDatasourceIDs []string, integrationID string, filterDisabled bool) ([]string, []string, []string) {
 
 	//merge user's own datasource, other shareable datasource, within user's query datasource, within integration's datasource
@@ -326,7 +352,7 @@ func BuildDatasourceFilter(userID string, checkingScopeDatasources, directAccess
 	}
 
 	if len(finalDatasourceIDs) == 0 && len(checkingScopeDatasources) == 0 {
-		panic("empty datasource")
+		return nil, nil, nil
 	}
 
 	log.Trace("userID:", userID, "user's own", userOwnDatasourceIDs, ",queryDatasource:", queryDatasourceIDs, ",integrationID:", integrationID, ",final merged directAccess datasources:", finalDatasourceIDs)

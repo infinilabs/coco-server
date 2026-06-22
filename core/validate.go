@@ -4,10 +4,11 @@
 package core
 
 import (
+	"net/http"
+
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/security"
-	"net/http"
 )
 
 const (
@@ -15,7 +16,9 @@ const (
 )
 
 func init() {
-	security.RegisterHTTPAuthFilterProvider("app_integration_id", ValidateLoginByIntegrationHeader)
+	// priority 50: runs after session_token (10) and bearer_token (20),
+	// so integration guest auth only activates when no real login is present.
+	security.RegisterHTTPAuthFilterProviderWithPriority("app_integration_id", ValidateLoginByIntegrationHeader, 50)
 }
 
 func InternalGetIntegration(id string) (*Integration, error) {
@@ -50,11 +53,14 @@ func ValidateLoginByIntegrationHeader(w http.ResponseWriter, r *http.Request) (c
 			claims = security.NewUserClaims()
 			claims.SetUserID(cfg.Guest.RunAs)
 
-			claims.Provider = ProviderIntegration
+			claims.Provider = security.DefaultNativeAuthBackend
 			claims.Login = cfg.Guest.RunAs
 			claims.UserID = cfg.Guest.RunAs
-			claims.Permissions = security.GetAllPermissionsForUser(claims.UserSessionInfo)
-			//claims.Permissions = security.MustGetPermissionKeysByUser(r.Context(), cfg.Guest.RunAs)
+			// Mark this session as integration-authenticated so downstream handlers
+			// (e.g. /account/profile, enterprise tenant filter) can distinguish a
+			// real native-backend login from an integration guest run-as session.
+			claims.Set(UserSessionInfoKeyIntegration, integrationID)
+			claims.UserAssignedPermission = security.NewUserAssignedPermission(security.GetAllPermissionsForUser(claims.UserSessionInfo), nil)
 			//log.Info("integration:", integrationID, ", run as:", cfg.Guest.RunAs, ",permissions:", claims.Permissions)
 			return claims, nil
 		}

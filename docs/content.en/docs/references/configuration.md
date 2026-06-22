@@ -209,7 +209,6 @@ pipeline:
             - document_embedding:
                 model_provider: qianwen
                 model: text-embedding-v4
-                embedding_dimension: 1024
                 chunk_size: 7000
                 output_queue:
                   name: "enriched_documents"

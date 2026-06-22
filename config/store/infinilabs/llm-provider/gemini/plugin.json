@@ -41,9 +41,14 @@
     "base_url" : "https://generativelanguage.googleapis.com",
     "icon" : "font_gemini-ai",
     "models" : [
-      {"name": "gemini-2.0-flash", "settings":{"reasoning":false}},
-      {"name": "gemini-1.5-flash", "settings":{"reasoning":false}},
-      {"name": "gemini-1.5-pro", "settings":{"reasoning":true}}
+      {"name": "gemini-3.5-flash", "type":"language", "support_reasoning":true},
+      {"name": "gemini-3.1-pro-preview", "type":"language", "support_reasoning":true},
+      {"name": "gemini-3.1-flash-lite", "type":"language"},
+      {"name": "gemini-2.5-pro", "type":"language", "support_reasoning":true},
+      {"name": "gemini-2.5-flash", "type":"language", "support_reasoning":true},
+      {"name": "gemini-2.5-flash-lite", "type":"language"},
+      {"name": "gemini-embedding-2", "type":"embedding"},
+      {"name": "gemini-embedding-001", "type":"embedding"}
     ],
     "enabled" : false,
     "builtin" : true,

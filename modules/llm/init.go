@@ -18,13 +18,15 @@ type APIHandler struct {
 	api.Handler
 }
 
+var UpdateLLMPermission security.PermissionKey
+
 func init() {
 	createLLMPermission := security.GetSimplePermission(Category, Resource, string(security.Create))
-	updateLLMPermission := security.GetSimplePermission(Category, Resource, string(security.Update))
+	UpdateLLMPermission = security.GetSimplePermission(Category, Resource, string(security.Update))
 	readLLMPermission := security.GetSimplePermission(Category, Resource, string(security.Read))
 	deleteLLMPermission := security.GetSimplePermission(Category, Resource, string(security.Delete))
 	searchLLMPermission := security.GetSimplePermission(Category, Resource, string(security.Search))
-	security.GetOrInitPermissionKeys(createLLMPermission, updateLLMPermission, readLLMPermission, deleteLLMPermission, searchLLMPermission)
+	security.GetOrInitPermissionKeys(createLLMPermission, UpdateLLMPermission, readLLMPermission, deleteLLMPermission, searchLLMPermission)
 
 	createMCPServerPermission := security.GetSimplePermission(Category, MCPServerResource, string(security.Create))
 	updateMCPServerPermission := security.GetSimplePermission(Category, MCPServerResource, string(security.Update))
@@ -42,7 +44,7 @@ func init() {
 
 	api.HandleUIMethod(api.POST, "/model_provider/", handler.create, api.RequireLogin(), api.RequirePermission(createLLMPermission))
 	api.HandleUIMethod(api.GET, "/model_provider/:id", handler.get, api.RequireLogin(), api.RequirePermission(readLLMPermission))
-	api.HandleUIMethod(api.PUT, "/model_provider/:id", handler.update, api.RequireLogin(), api.RequirePermission(updateLLMPermission))
+	api.HandleUIMethod(api.PUT, "/model_provider/:id", handler.update, api.RequireLogin(), api.RequirePermission(UpdateLLMPermission))
 	api.HandleUIMethod(api.DELETE, "/model_provider/:id", handler.delete, api.RequireLogin(), api.RequirePermission(deleteLLMPermission))
 	api.HandleUIMethod(api.GET, "/model_provider/_search", handler.search, api.RequireLogin(), api.RequirePermission(searchLLMPermission), api.Feature(core.FeatureCORS), api.Feature(core.FeatureRemoveSensitiveField), api.Label(core.SensitiveFields, secretKeys))
 	api.HandleUIMethod(api.POST, "/model_provider/_search", handler.search, api.RequireLogin(), api.RequirePermission(searchLLMPermission), api.Feature(core.FeatureCORS), api.Feature(core.FeatureRemoveSensitiveField), api.Label(core.SensitiveFields, secretKeys))

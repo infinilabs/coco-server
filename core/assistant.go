@@ -12,27 +12,55 @@ import (
 	"golang.org/x/text/language"
 )
 
+// AssistantModelUse identifies a place in the assistant chat flow that needs
+// an LLM. Each value maps to a default model in Settings.DefaultModel; if that
+// is not configured, callers fall back to Settings.DefaultModel.LanguageModel.
+//
+// Unlike LLMType (which categorizes a model itself: language / vision /
+// embedding), AssistantModelUse describes a *use case* within the chat flow.
+type AssistantModelUse int
+
+const (
+	AssistantModelUseAnswering AssistantModelUse = iota
+	AssistantModelUseIntentAnalysis
+	AssistantModelUsePickingDoc
+	AssistantModelUsePickingTool
+)
+
 type Assistant struct {
 	CombinedFullText
+	Name         string       `json:"name" elastic_mapping:"name:{type:keyword,copy_to:combined_fulltext,fields:{text: {type: text}, pinyin: {type: text, analyzer: pinyin_analyzer}}}"`
+	Description  string       `json:"description" elastic_mapping:"description:{type:text,copy_to:combined_fulltext}"`
+	Icon         string       `json:"icon" elastic_mapping:"icon:{enabled:false}"`
+	Type         string       `json:"type" elastic_mapping:"type:{type:keyword}"` // assistant type, default value: "simple", possible values: "simple", "deep_think", "external_workflow", "deep_research"
+	Category     string       `json:"category,omitempty" elastic_mapping:"category:{type:keyword}"`
+	Tags         []string     `json:"tags,omitempty" elastic_mapping:"tags:{type:keyword}"`
+	Keepalive    string       `json:"keepalive" elastic_mapping:"keepalive:{type:keyword}"`
+	Enabled      bool         `json:"enabled" elastic_mapping:"enabled:{type:boolean}"`
+	Builtin      bool         `json:"builtin" elastic_mapping:"builtin:{type:boolean}"` // Whether the model provider is builtin
+	UploadConfig UploadConfig `json:"upload,omitempty" elastic_mapping:"upload:{type:object,enabled:false}"`
 
-	Name           string           `json:"name" elastic_mapping:"name:{type:keyword,copy_to:combined_fulltext,fields:{text: {type: text}, pinyin: {type: text, analyzer: pinyin_analyzer}}}"`
-	Description    string           `json:"description" elastic_mapping:"description:{type:text,copy_to:combined_fulltext}"`
-	Icon           string           `json:"icon" elastic_mapping:"icon:{enabled:false}"`
-	Type           string           `json:"type" elastic_mapping:"type:{type:keyword}"` // assistant type, default value: "simple", possible values: "simple", "deep_think", "external_workflow", "deep_research"
-	Category       string           `json:"category,omitempty" elastic_mapping:"category:{type:keyword}"`
-	Tags           []string         `json:"tags,omitempty" elastic_mapping:"tags:{type:keyword}"`
-	Config         interface{}      `json:"config,omitempty" elastic_mapping:"config:{enabled:false}"` // Assistant-specific configuration settings with type
-	AnsweringModel ModelConfig      `json:"answering_model" elastic_mapping:"answering_model:{type:object,enabled:false}"`
-	Datasource     DatasourceConfig `json:"datasource" elastic_mapping:"datasource:{type:object,enabled:false}"`
-	ToolsConfig    ToolsConfig      `json:"tools,omitempty" elastic_mapping:"tools:{type:object,enabled:false}"`
-	MCPConfig      MCPConfig        `json:"mcp_servers,omitempty" elastic_mapping:"mcp_servers:{type:object,enabled:false}"`
-	UploadConfig   UploadConfig     `json:"upload,omitempty" elastic_mapping:"upload:{type:object,enabled:false}"`
-	Keepalive      string           `json:"keepalive" elastic_mapping:"keepalive:{type:keyword}"`
-	Enabled        bool             `json:"enabled" elastic_mapping:"enabled:{type:boolean}"`
-	ChatSettings   ChatSettings     `json:"chat_settings" elastic_mapping:"chat_settings:{type:object,enabled:false}"`
-	Builtin        bool             `json:"builtin" elastic_mapping:"builtin:{type:boolean}"`          // Whether the model provider is builtin
-	RolePrompt     string           `json:"role_prompt" elastic_mapping:"role_prompt:{enabled:false}"` // Role prompt for the assistant
+	// This field contains assistant-specific configuration settings
+	//
+	// After loading, Config is decoded into the corresponding typed field:
+	// DeepThinkConfig or DeepResearchConfig (both tagged json:"-").
+	Config interface{} `json:"config,omitempty" elastic_mapping:"config:{enabled:false}"`
+	// used by  simple/deep_think
+	AnsweringModel ModelConfig `json:"answering_model" elastic_mapping:"answering_model:{type:object,enabled:false}"`
+	// used by simple/deep_think; deep_research uses InternalSearch.DatasourceIDs instead
+	Datasource DatasourceConfig `json:"datasource" elastic_mapping:"datasource:{type:object,enabled:false}"`
+	// used by simple/deep_think
+	ToolsConfig ToolsConfig `json:"tools,omitempty" elastic_mapping:"tools:{type:object,enabled:false}"`
+	// used by simple/deep_think
+	MCPConfig MCPConfig `json:"mcp_servers,omitempty" elastic_mapping:"mcp_servers:{type:object,enabled:false}"`
+	// used by simple/deep_think
+	ChatSettings ChatSettings `json:"chat_settings" elastic_mapping:"chat_settings:{type:object,enabled:false}"`
+	// used by simple/deep_think (passed as system prompt to GenerateFinalResponse)
+	RolePrompt string `json:"role_prompt" elastic_mapping:"role_prompt:{enabled:false}"`
 
+	// DeepThinkConfig and DeepResearchConfig are populated at load time by
+	// decoding Config into the appropriate type (based on Type). They are not
+	// persisted; json:"-" keeps them out of serialization.
 	DeepThinkConfig    *DeepThinkConfig    `json:"-"`
 	DeepResearchConfig *DeepResearchConfig `json:"-"`
 }
@@ -48,73 +76,76 @@ type DeepThinkConfig struct {
 	Visible bool `json:"visible"` // Whether the deep think mode is visible to the user
 }
 
+// DeepResearchInternalSearchConfig controls enterprise (internal) search behaviour.
+type DeepResearchInternalSearchConfig struct {
+	// Optional. Restricts internal search to these datasource IDs. Default: empty,
+	// which allows all accessible datasources.
+	DatasourceIDs []string `json:"datasource_ids,omitempty"`
+}
+
+// DeepResearchExternalSearchConfig controls external web search behaviour.
+type DeepResearchExternalSearchConfig struct {
+	// Optional. External search engine: "duckduckgo", "wikipedia", or "tavily".
+	// Default: "duckduckgo".
+	Engine string `json:"engine"`
+	// Required when Engine is "tavily"; otherwise optional. Default: "".
+	APIKey string `json:"api_key,omitempty"`
+}
+
 type DeepResearchConfig struct {
-	// Research Model Configuration
-	PlanningModel  ModelConfig `json:"planning_model"`  // For research planning and query decomposition
-	ResearchModel  ModelConfig `json:"research_model"`  // For individual research step analysis
-	SynthesisModel ModelConfig `json:"synthesis_model"` // For information synthesis across sources
-	ReportModel    ModelConfig `json:"report_model"`    // For final report generation
-	PodcastModel   ModelConfig `json:"podcast_model"`   // For podcast script generation
+	// Models — one per pipeline stage; each may point to a different provider/model.
+	// When a field is empty, the assistant's top-level AnsweringModel is used as
+	// a fallback for that stage.
 
-	// Research Execution Settings
-	MaxSteps                   int    `json:"max_steps"` // Maximum steps in research workflow
-	MaxResearcherIterations    int    `json:"max_researcher_iterations"`
-	MaxConcurrentResearchUnits int    `json:"max_concurrent_research_units"`
-	MaxResults                 int    `json:"max_results"`           // Maximum search results per query
-	Timeout                    string `json:"timeout"`               // Research timeout (e.g., "1h", "30m")
-	ResearchDepth              string `json:"research_depth"`        // "basic", "comprehensive", "exhaustive"
-	IncludeSources             bool   `json:"include_sources"`       // Include sources in final report
-	SourceFormat               string `json:"source_format"`         // "APA", "MLA", etc.
-	HandleContradictions       bool   `json:"handle_contradictions"` // Detect and handle conflicting information
+	// Optional. Model used to decompose the query into a step-by-step research
+	// plan. Default: empty, which falls back to the assistant's AnsweringModel.
+	PlanningModel ModelConfig `json:"planning_model"`
+	// Optional. Model used to analyze search results for each individual research
+	// step. Default: empty, which falls back to the assistant's AnsweringModel.
+	ResearchModel ModelConfig `json:"research_model"`
+	// Optional. Model used to synthesize findings across sources within a step.
+	// Default: empty, which falls back to the assistant's AnsweringModel.
+	SynthesisModel ModelConfig `json:"synthesis_model"`
+	// Optional. Model used to write the final structured report. Default: empty,
+	// which falls back to the assistant's AnsweringModel.
+	ReportModel ModelConfig `json:"report_model"`
 
-	// Search Configuration
-	SearchEngines      []string `json:"search_engines"` // Enabled search engines ["duckduckgo", "wikipedia", "bing"]
-	MaxSourcesPerQuery int      `json:"max_sources_per_query"`
-	QualityThreshold   float64  `json:"quality_threshold"` // Minimum quality score (0.0-1.0)
-	Language           string   `json:"language"`          // Target language ("zh-CN", "en" etc.)
-	TimeHorizon        string   `json:"time_horizon"`      // Time range for research ("recent", "last_year", "custom")
+	// Execution limits
 
-	// Output Configuration
-	ReportFormat    string `json:"report_format"`    // "markdown", "html", "pdf"
-	GeneratePodcast bool   `json:"generate_podcast"` // Enable podcast generation
-	IncludeImages   bool   `json:"include_images"`   // Include relevant images in report
-	VisualElements  bool   `json:"visual_elements"`  // Include charts, timelines, etc.
-	ReportLang      string `json:"report_lang"`      // Report language (BCP 47: "en-US", "zh-CN", etc.)
+	// Optional. Maximum number of research steps the planner may generate.
+	// Default: 5. If provided, it must be positive.
+	MaxSteps int `json:"max_steps"`
+	// Optional. Maximum number of researcher loop iterations over the plan.
+	// Default: 5.
+	MaxResearcherIterations int `json:"max_researcher_iterations"`
+	// Optional. Maximum number of parallel research workers (v1 pipeline only).
+	// Default: 5.
+	MaxConcurrentResearchUnits int `json:"max_concurrent_research_units"`
+	// Optional. Maximum number of search results fetched per query. Default: 5.
+	// If provided, it must be positive.
+	MaxResults int `json:"max_results"`
+	// Optional. Total research deadline as a Go duration string, e.g. "30m" or
+	// "1h". Default: "" (no timeout).
+	Timeout string `json:"timeout"`
+	// Optional. Effort level for the research pipeline: "basic", "comprehensive",
+	// or "exhaustive". Default: "basic".
+	ResearchDepth string `json:"research_depth"`
 
-	// Tool Integration Settings
-	ToolsConfig      ToolsConfig `json:"tools_config"`      // Tool availability settings
-	EnableFactCheck  bool        `json:"enable_fact_check"` // Cross-reference facts across sources
-	CitationTracking bool        `json:"citation_tracking"` // Track citations and references
-	TavilyAPIKey     string      `json:"tavily_api_key"`    // Tavily API key for external web search
+	// Output
 
-	// Advanced Settings
-	RetryAttempts             int                `json:"retry_attempts"`     // Number of retry attempts on failure
-	RateLimiting              RateLimitingConfig `json:"rate_limiting"`      // API rate limiting settings
-	ProgressReporting         bool               `json:"progress_reporting"` // Enable detailed progress reporting
-	Validation                ValidationConfig   `json:"validation"`         // Content validation settings
-	MaxToolCallIterations     int                `json:"max_tool_call_iterations"`
-	CompressionModelMaxTokens int                `json:"compression_model_max_tokens"`
-}
+	// Optional. Rendered output format: "markdown" or "html". Default: "markdown".
+	ReportFormat string `json:"report_format"`
+	// Optional. Report language as a BCP 47 tag, e.g. "en-US" or "zh-CN".
+	// Default: "" (inherits system locale).
+	ReportLang string `json:"report_lang"`
 
-// RateLimitingConfig defines rate limiting for external APIs
-type RateLimitingConfig struct {
-	WebSearchRequests int `json:"web_search_requests_per_minute"`
-	WikipediaRequests int `json:"wikipedia_requests_per_minute"`
-	LLMRequests       int `json:"llm_requests_per_minute"`
-	RetryDelayMs      int `json:"retry_delay_ms"`
-	MaxRetryAttempts  int `json:"max_retry_attempts"`
-}
+	// Search
 
-// ValidationConfig defines content validation settings
-type ValidationConfig struct {
-	MinSourceQuality     float64            `json:"min_source_quality"`     // Minimum source quality score
-	MinRelevanceScore    float64            `json:"min_relevance_score"`    // Minimum relevance score
-	ContentFreshnessDays int                `json:"content_freshness_days"` // Maximum age of research content in days
-	DomainCredentials    map[string]float64 `json:"domain_credentials"`     // Domain reputation scores
-}
-
-type WorkflowConfig struct {
-	// Workflow-specific configuration
+	// Optional. Internal enterprise search settings. Default: zero value, which
+	// allows all accessible datasources.
+	InternalSearch DeepResearchInternalSearchConfig `json:"internal_search"`
+	// Optional. External web search settings. Default: duckduckgo.
+	ExternalSearch DeepResearchExternalSearchConfig `json:"external_search"`
 }
 
 type UploadConfig struct {
@@ -159,9 +190,20 @@ type BuiltinToolsConfig struct {
 	Scraper    bool `json:"scraper"`
 }
 
+// ModelConfig is a runtime reference to a model, specifying which model to use
+// and how to use it. This is stored in assistant configurations.
+//
+// This is distinct from Model (in llm_provider.go), which describes a model's
+// static, immutable capabilities. ModelConfig references a Model by ProviderID
+// and Name, and adds runtime settings that control inference behavior.
 type ModelConfig struct {
-	ProviderID   string        `json:"provider_id,omitempty"`
-	Name         string        `json:"name"`
+	// --- Reference fields: identify the model ---
+
+	ProviderID string `json:"provider_id"` // references the ModelProvider
+	Name       string `json:"name"`        // references Model.Name within the provider
+
+	// --- Runtime fields: per-invocation behavior ---
+
 	Settings     ModelSettings `json:"settings"`
 	PromptConfig *PromptConfig `json:"prompt,omitempty"`
 	Keepalive    string        `json:"keepalive"`
@@ -173,6 +215,10 @@ type PromptConfig struct {
 }
 
 type ModelSettings struct {
+	// Reasoning controls whether reasoning mode is requested at inference time.
+	// This field is only meaningful when the model's SupportReasoning is true;
+	// if SupportReasoning is false, the backend will not read or act on this
+	// field even if it is set to true.
 	Reasoning        bool    `json:"reasoning"`
 	Temperature      float64 `json:"temperature"`
 	TopP             float64 `json:"top_p"`
@@ -218,127 +264,8 @@ func (cfg *MCPConfig) GetIDs() []string {
 	return cfg.IDs
 }
 
-// DefaultDeepResearchConfig returns default deep research configuration
-func DefaultDeepResearchConfig() *DeepResearchConfig {
-	return &DeepResearchConfig{
-		PlanningModel: ModelConfig{
-			ProviderID: "qianwen", // Default provider
-			Name:       "qwq-plus",
-			Settings: ModelSettings{
-				Temperature: 0.7,
-				TopP:        0.95,
-				MaxTokens:   2000,
-			},
-		},
-		ResearchModel: ModelConfig{
-			ProviderID: "qianwen",
-			Name:       "qwq-plus",
-			Settings: ModelSettings{
-				Temperature: 0.6,
-				TopP:        0.9,
-				MaxTokens:   1500,
-			},
-		},
-		SynthesisModel: ModelConfig{
-			ProviderID: "qianwen",
-			Name:       "qwq-plus",
-			Settings: ModelSettings{
-				Temperature: 0.5,
-				TopP:        0.95,
-				MaxTokens:   4000,
-			},
-		},
-		ReportModel: ModelConfig{
-			ProviderID: "qianwen",
-			Name:       "qwq-plus",
-			Settings: ModelSettings{
-				Temperature: 0.7,
-				TopP:        0.9,
-				MaxTokens:   10000,
-			},
-		},
-		PodcastModel: ModelConfig{
-			ProviderID: "qianwen",
-			Name:       "qwq-plus",
-			Settings: ModelSettings{
-				Temperature: 0.8, // Slightly more creative for podcast generation
-				TopP:        0.95,
-				MaxTokens:   2500,
-			},
-		},
-		MaxSteps:                   50,
-		MaxResearcherIterations:    10,
-		MaxConcurrentResearchUnits: 3,
-		MaxToolCallIterations:      20,
-		CompressionModelMaxTokens:  8192,
-		MaxResults:                 100,
-		Timeout:                    "1h",
-		ResearchDepth:              "comprehensive",
-		IncludeSources:             true,
-		SourceFormat:               "APA",
-		HandleContradictions:       true,
-		SearchEngines:              []string{"duckduckgo", "wikipedia", "bing"},
-		MaxSourcesPerQuery:         20,
-		QualityThreshold:           0.7,
-		Language:                   "zh-CN",
-		TimeHorizon:                "recent",
-		ReportLang:                 "en-US",
-		ReportFormat:               "html",
-		GeneratePodcast:            false, // Default to false - can be explicitly enabled
-		IncludeImages:              true,
-		VisualElements:             true,
-		ToolsConfig: ToolsConfig{
-			Enabled: true,
-			BuiltinTools: BuiltinToolsConfig{
-				Calculator: false,
-				Wikipedia:  true,
-				Duckduckgo: true,
-				Scraper:    true,
-			},
-		},
-		EnableFactCheck:   true,
-		CitationTracking:  true,
-		TavilyAPIKey:      "", // Empty by default, user must configure
-		RetryAttempts:     3,
-		ProgressReporting: true,
-		RateLimiting: RateLimitingConfig{
-			WebSearchRequests: 30,
-			WikipediaRequests: 60,
-			LLMRequests:       120,
-			RetryDelayMs:      1000,
-			MaxRetryAttempts:  3,
-		},
-		Validation: ValidationConfig{
-			MinSourceQuality:     0.5,
-			MinRelevanceScore:    0.3,
-			ContentFreshnessDays: 90,
-			DomainCredentials: map[string]float64{
-				"wikipedia.org":    0.9,
-				"academic.com":     0.85,
-				"researchgate.net": 0.8,
-				"medium.com":       0.6,
-				"blogspot.com":     0.5,
-			},
-		},
-	}
-}
-
 // Validate validates the deep research configuration
 func (cfg *DeepResearchConfig) Validate() error {
-	// Validate required models
-	if cfg.PlanningModel.Name == "" {
-		return fmt.Errorf("planning model name is required")
-	}
-	if cfg.ResearchModel.Name == "" {
-		return fmt.Errorf("research model name is required")
-	}
-	if cfg.SynthesisModel.Name == "" {
-		return fmt.Errorf("synthesis model name is required")
-	}
-	if cfg.ReportModel.Name == "" {
-		return fmt.Errorf("report model name is required")
-	}
-
 	// Validate report_lang if it is set
 	if cfg.ReportLang != "" {
 		_, err := language.Parse(cfg.ReportLang)
@@ -354,11 +281,15 @@ func (cfg *DeepResearchConfig) Validate() error {
 	if cfg.MaxResults <= 0 {
 		return fmt.Errorf("max_results must be positive")
 	}
-	if len(cfg.SearchEngines) == 0 {
-		return fmt.Errorf("at least one search engine must be enabled")
-	}
-	if cfg.QualityThreshold < 0 || cfg.QualityThreshold > 1 {
-		return fmt.Errorf("quality_threshold must be between 0 and 1")
+	// Validate external search engine if one is configured
+	if cfg.ExternalSearch.Engine != "" {
+		validEngines := []string{"duckduckgo", "wikipedia", "tavily"}
+		if !slices.Contains(validEngines, cfg.ExternalSearch.Engine) {
+			return fmt.Errorf("external_search.engine must be one of: %v", validEngines)
+		}
+		if cfg.ExternalSearch.Engine == "tavily" && cfg.ExternalSearch.APIKey == "" {
+			return fmt.Errorf("external_search.api_key is required when engine is \"tavily\"")
+		}
 	}
 
 	// Validate research depth
@@ -367,26 +298,10 @@ func (cfg *DeepResearchConfig) Validate() error {
 		return fmt.Errorf("research_depth must be one of: %v", validDepths)
 	}
 
-	// Validate language
-	if cfg.Language != "zh-CN" && cfg.Language != "en" {
-		return fmt.Errorf("language must be either zh-CN or en")
-	}
-
-	// Validate time horizon
-	validHorizons := []string{"recent", "last_year", "last_2_years", "custom"}
-	if !slices.Contains(validHorizons, cfg.TimeHorizon) {
-		return fmt.Errorf("time_horizon must be one of: %v", validHorizons)
-	}
-
 	// Validate report format
 	validFormats := []string{"markdown", "html", "pdf"}
 	if !slices.Contains(validFormats, cfg.ReportFormat) {
 		return fmt.Errorf("report_format must be one of: %v", validFormats)
-	}
-
-	// Validate Tavily API key
-	if cfg.TavilyAPIKey == "" {
-		return fmt.Errorf("tavily_api_key is required")
 	}
 
 	// Validate Timeout
@@ -399,63 +314,42 @@ func (cfg *DeepResearchConfig) Validate() error {
 	return nil
 }
 
-// MergeDeepResearchConfig merges user config with defaults
-func MergeDeepResearchConfig(userConfig, defaultConfig *DeepResearchConfig) *DeepResearchConfig {
+// MergeDeepResearchConfig fills zero-valued fields in userConfig with hardcoded
+// defaults. Fields whose zero value is already the intended default (e.g.
+// Timeout, ReportLang, model configs) are left untouched.
+func MergeDeepResearchConfig(userConfig *DeepResearchConfig) *DeepResearchConfig {
+	d := DeepResearchConfig{
+		MaxSteps:                   5,
+		MaxResearcherIterations:    5,
+		MaxConcurrentResearchUnits: 5,
+		MaxResults:                 5,
+		ResearchDepth:              "basic",
+		ReportFormat:               "markdown",
+		ExternalSearch:             DeepResearchExternalSearchConfig{Engine: "duckduckgo"},
+	}
 	if userConfig == nil {
-		return defaultConfig
-	}
-
-	if userConfig.PlanningModel.Name == "" {
-		userConfig.PlanningModel = defaultConfig.PlanningModel
-	}
-	if userConfig.ResearchModel.Name == "" {
-		userConfig.ResearchModel = defaultConfig.ResearchModel
-	}
-	if userConfig.SynthesisModel.Name == "" {
-		userConfig.SynthesisModel = defaultConfig.SynthesisModel
-	}
-	if userConfig.ReportModel.Name == "" {
-		userConfig.ReportModel = defaultConfig.ReportModel
-	}
-	if userConfig.PodcastModel.Name == "" {
-		userConfig.PodcastModel = defaultConfig.PodcastModel
+		return &d
 	}
 	if userConfig.MaxSteps == 0 {
-		userConfig.MaxSteps = defaultConfig.MaxSteps
+		userConfig.MaxSteps = d.MaxSteps
+	}
+	if userConfig.MaxResearcherIterations == 0 {
+		userConfig.MaxResearcherIterations = d.MaxResearcherIterations
+	}
+	if userConfig.MaxConcurrentResearchUnits == 0 {
+		userConfig.MaxConcurrentResearchUnits = d.MaxConcurrentResearchUnits
 	}
 	if userConfig.MaxResults == 0 {
-		userConfig.MaxResults = defaultConfig.MaxResults
-	}
-	if userConfig.Timeout == "" {
-		userConfig.Timeout = defaultConfig.Timeout
+		userConfig.MaxResults = d.MaxResults
 	}
 	if userConfig.ResearchDepth == "" {
-		userConfig.ResearchDepth = defaultConfig.ResearchDepth
-	}
-	if len(userConfig.SearchEngines) == 0 {
-		userConfig.SearchEngines = defaultConfig.SearchEngines
-	}
-	if userConfig.QualityThreshold == 0 {
-		userConfig.QualityThreshold = defaultConfig.QualityThreshold
-	}
-	if userConfig.Language == "" {
-		userConfig.Language = defaultConfig.Language
-	}
-	if userConfig.TimeHorizon == "" {
-		userConfig.TimeHorizon = defaultConfig.TimeHorizon
+		userConfig.ResearchDepth = d.ResearchDepth
 	}
 	if userConfig.ReportFormat == "" {
-		userConfig.ReportFormat = defaultConfig.ReportFormat
+		userConfig.ReportFormat = d.ReportFormat
 	}
-	if userConfig.RateLimiting.WebSearchRequests == 0 {
-		userConfig.RateLimiting = defaultConfig.RateLimiting
+	if userConfig.ExternalSearch.Engine == "" {
+		userConfig.ExternalSearch.Engine = d.ExternalSearch.Engine
 	}
-	if len(userConfig.Validation.DomainCredentials) == 0 {
-		userConfig.Validation.DomainCredentials = defaultConfig.Validation.DomainCredentials
-	}
-	if userConfig.ReportLang == "" {
-		userConfig.ReportLang = defaultConfig.ReportLang
-	}
-
 	return userConfig
 }

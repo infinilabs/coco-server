@@ -13,9 +13,16 @@ const DefaultUserPasswordKey = "default_user_password"
 const DefaultServerConfigKey = "default_server_config"
 const DefaultAppSettingsKey = "default_app_settings"
 const DefaultSearchSettingsKey = "default_search_settings"
+const DefaultModelKey = "default_model"
+const DefaultDocumentProcessingKey = "default_document_processing"
 
 const AttachmentKVBucket = "file_attachments"
 const AttachmentStatsBucket = "attachment_stats"
+
+// AttachmentProcessingQueue is the name of the queue that the attachment upload
+// handler pushes newly uploaded attachment IDs into. The process_attachments
+// pipeline processor consumes this queue to run post-upload processing pipelines.
+const AttachmentProcessingQueue = "attachment_processing"
 
 // attachment status,  `pending`, `processing`, `completed`, `canceled`, or `failed`.
 const AttachmentStageInitialParsing = "initial_parsing"
@@ -25,7 +32,13 @@ const StatusCompleted = "completed"
 const StatusCanceled = "canceled"
 const StatusFailed = "failed"
 
-const ProviderIntegration = "INTEGRATION"
+// UserSessionInfoKeyIntegration is a marker key stored on UserSessionInfo's
+// embedded param.Parameters by the integration auth backend. When this key is
+// present on a UserSessionInfo, the session was constructed by
+// ValidateLoginByIntegrationHeader (i.e. it is an integration-authenticated
+// guest run-as session, not a real user login). The associated value is the
+// originating integration ID (string).
+const UserSessionInfoKeyIntegration param.ParaKey = "integration"
 
 const WidgetRole = "widget"
 

@@ -1,0 +1,608 @@
+import {
+  memo,
+  useState,
+  useEffect,
+  forwardRef,
+  useImperativeHandle,
+  useRef,
+  useMemo,
+} from "react";
+import { useTranslation, I18nextProvider } from "react-i18next";
+import clsx from "clsx";
+import i18nInstance from "../../../i18n";
+import Markdown from "@infinilabs/markdown";
+
+import logoImg from "../assets/icon.svg";
+import type { IChatMessage, IChunkData } from "../types/chat";
+export type { IChatMessage, IChunkData };
+import { QueryIntent } from "./QueryIntent";
+import { CallTools } from "./CallTools";
+import { FetchSource } from "./FetchSource";
+import { PickSource } from "./PickSource";
+import { DeepRead } from "./DeepRead";
+import { Think } from "./Think";
+import { MessageActions } from "./MessageActions";
+import { SuggestionList } from "./SuggestionList";
+import { UserMessage, type AttachmentHit } from "./UserMessage";
+import FontIcon from "./Common/Icons/FontIcon";
+import useMessageChunkData from "../hooks/useMessageChunkData";
+import { DeepResearch } from "./DeepResearch";
+import { PayloadCard } from "./PayloadCard";
+
+import { type TFunction } from "i18next";
+import { SendMessageParams } from "../../../AIChat/Chat";
+import { ErrorMessage } from "./ErrorMessage";
+
+const DEEP_RESEARCH_CHUNK_TYPES = [
+  "research_planner_start",
+  "research_planner_progress",
+  "research_planner_end",
+  "research_researcher_start",
+  "research_researcher_step_start",
+  "research_researcher_step_end",
+  "research_researcher_end",
+  "research_reporter_start",
+  "research_reporter_end",
+];
+
+export interface ChatMessageProps {
+  message: IChatMessage;
+  replyMessage?: IChatMessage;
+  isTyping?: boolean;
+  onResend?: (params: SendMessageParams) => void;
+  onCancel?: () => void;
+  hide_assistant?: boolean;
+  rootClassName?: string;
+  actionClassName?: string;
+  actionIconSize?: number;
+  copyButtonId?: string;
+  formatUrl?: (data: IChunkData) => string;
+  requestHeaders?: Record<string, string>;
+  theme?: "light" | "dark" | "system";
+  locale?: string;
+  report_content?: string;
+  assistantList?: any[];
+  currentAssistant?: any;
+  /** Fetch attachment metadata by IDs for rendering in user messages. */
+  fetchAttachments?: (ids: string[]) => Promise<AttachmentHit[]>;
+  t?: TFunction;
+}
+
+export interface ChatMessageRef {
+  addChunk: (chunk: IChunkData) => void;
+  reset: () => void;
+  getResponseContent: () => string | undefined;
+  getDetails: () => any[];
+}
+
+function resolveTheme(
+  theme: "light" | "dark" | "system" | undefined,
+): "light" | "dark" | undefined {
+  if (!theme) return undefined;
+  if (theme === "light") return "light";
+  if (theme === "dark") return "dark";
+  if (
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-color-scheme: dark)").matches
+  ) {
+    return "dark";
+  }
+  return "light";
+}
+
+const InnerChatMessage = memo(
+  forwardRef<ChatMessageRef, ChatMessageProps>(function InnerChatMessage(
+    {
+      message,
+      replyMessage,
+      isTyping,
+      onResend,
+      onCancel,
+      hide_assistant = false,
+      rootClassName,
+      actionClassName,
+      actionIconSize,
+      copyButtonId,
+      formatUrl,
+      requestHeaders,
+      theme,
+      assistantList,
+      currentAssistant,
+      fetchAttachments,
+      t: tProp,
+    },
+    ref,
+  ) {
+    const { t: tOriginal } = useTranslation();
+    const t = tProp || tOriginal;
+    const resolvedTheme = resolveTheme(theme);
+
+    const [assistant, setAssistant] = useState<any>({});
+
+    const {
+      data: {
+        query_intent,
+        tools,
+        fetch_source,
+        pick_source,
+        deep_read,
+        think,
+        response,
+        deepResearch,
+        replyEnd,
+      },
+      handlers,
+      clearAllChunkData,
+      refs,
+    } = useMessageChunkData();
+
+    const [loadingStep, setLoadingStep] = useState<Record<string, boolean>>({
+      query_intent: false,
+      tools: false,
+      fetch_source: false,
+      pick_source: false,
+      deep_read: false,
+      think: false,
+      response: false,
+      deepResearch: false,
+      replyEnd: false,
+    });
+
+    const inThinkRef = useRef<boolean>(false);
+
+    useImperativeHandle(ref, () => ({
+      addChunk: (chunkData: IChunkData) => {
+        setLoadingStep(() => ({
+          query_intent: false,
+          tools: false,
+          fetch_source: false,
+          pick_source: false,
+          deep_read: false,
+          think: false,
+          response: false,
+          deepResearch: false,
+          [chunkData.chunk_type || ""]: true,
+        }));
+
+        if (chunkData.chunk_type === "reply_start") {
+          //
+        } else if (chunkData.chunk_type === "query_intent") {
+          handlers.deal_query_intent(chunkData);
+        } else if (chunkData.chunk_type === "tools") {
+          handlers.deal_tools(chunkData);
+        } else if (chunkData.chunk_type === "fetch_source") {
+          handlers.deal_fetch_source(chunkData);
+        } else if (chunkData.chunk_type === "pick_source") {
+          handlers.deal_pick_source(chunkData);
+        } else if (chunkData.chunk_type === "deep_read") {
+          handlers.deal_deep_read(chunkData);
+        } else if (chunkData.chunk_type === "think") {
+          handlers.deal_think(chunkData);
+        } else if (chunkData.chunk_type === "response") {
+          const message_chunk = chunkData.message_chunk;
+          if (typeof message_chunk === "string") {
+            if (
+              message_chunk.includes("\u003cthink\u003e") ||
+              message_chunk.includes("<think>")
+            ) {
+              inThinkRef.current = true;
+              return;
+            } else if (
+              message_chunk.includes("\u003c/think\u003e") ||
+              message_chunk.includes("</think>")
+            ) {
+              inThinkRef.current = false;
+              return;
+            }
+
+            if (inThinkRef.current) {
+              handlers.deal_think({ ...chunkData, chunk_type: "think" });
+            } else {
+              handlers.deal_response(chunkData);
+            }
+          }
+        } else if (
+          DEEP_RESEARCH_CHUNK_TYPES.includes(chunkData.chunk_type || "")
+        ) {
+          handlers.deal_deep_research(chunkData);
+        } else if (chunkData.chunk_type === "reply_end") {
+          handlers.deal_reply_end(chunkData);
+        }
+      },
+      reset: () => {
+        clearAllChunkData();
+        setSuggestion([]);
+        setLoadingStep({
+          query_intent: false,
+          tools: false,
+          fetch_source: false,
+          pick_source: false,
+          deep_read: false,
+          think: false,
+          response: false,
+          deepResearch: false,
+          replyEnd: false,
+        });
+        inThinkRef.current = false;
+      },
+      getResponseContent: () => refs.responseRef.current?.message_chunk,
+      getDetails: () => {
+        const details: any[] = [];
+        if (refs.queryIntentRef.current?.message_chunk) {
+          try {
+            const clean = refs.queryIntentRef.current.message_chunk.replace(/^"|"$/g, "");
+            const allMatches = clean.match(/<JSON>([\s\S]*?)<\/JSON>/g);
+            if (allMatches) {
+              const last = allMatches[allMatches.length - 1];
+              const jsonStr = last.replace(/<JSON>|<\/JSON>/g, "");
+              details.push({ type: "query_intent", payload: JSON.parse(jsonStr) });
+            }
+          } catch {}
+        }
+        if (refs.toolsRef.current?.message_chunk || (refs.toolsRef.current as any)?.tool_call_items?.length) {
+          details.push({ type: "tools", description: refs.toolsRef.current?.message_chunk, payload: (refs.toolsRef.current as any)?.tool_call_items || [] });
+        }
+        if (refs.fetchSourceRef.current?.message_chunk) {
+          try {
+            const jsonMatch = refs.fetchSourceRef.current.message_chunk.match(/\[([\s\S]*)\]/);
+            if (jsonMatch) {
+              details.push({ type: "fetch_source", payload: JSON.parse(jsonMatch[0]) });
+            }
+          } catch {}
+        }
+        if (refs.pickSourceRef.current?.message_chunk) {
+          try {
+            const clean = refs.pickSourceRef.current.message_chunk.replace(/^"|"$/g, "");
+            const allMatches = clean.match(/<JSON>([\s\S]*?)<\/JSON>/g);
+            if (allMatches) {
+              for (let i = allMatches.length - 1; i >= 0; i--) {
+                try {
+                  const jsonStr = allMatches[i].replace(/<JSON>|<\/JSON>|<think>|<\/think>/g, "");
+                  const parsed = JSON.parse(jsonStr.trim());
+                  if (Array.isArray(parsed)) {
+                    details.push({ type: "pick_source", payload: parsed });
+                    break;
+                  }
+                } catch { continue; }
+              }
+            }
+          } catch {}
+        }
+        if (refs.deepReadRef.current?.message_chunk) {
+          details.push({ type: "deep_read", description: ((refs.deepReadRef.current as any)?.deep_read_items || []).join("") });
+        }
+        if (refs.thinkRef.current?.message_chunk) {
+          details.push({ type: "think", description: refs.thinkRef.current.message_chunk });
+        }
+        if (refs.deepResearchRef.current && refs.deepResearchRef.current.length > 0) {
+          details.push({ type: "deep_research", payload: refs.deepResearchRef.current });
+        }
+        if (refs.replyEndRef.current?.length > 0) {
+          const last = refs.replyEndRef.current[refs.replyEndRef.current.length - 1];
+          let payload;
+          if (typeof last.message_chunk === "string") {
+            try { payload = JSON.parse(last.message_chunk); } catch {}
+          } else {
+            payload = last.message_chunk;
+          }
+          if (payload) {
+            details.push({ type: "reply_end", payload });
+          }
+        }
+        return details;
+      },
+    }));
+
+    const isAssistant = message?._source?.type === "assistant";
+    const assistant_id = message?._source?.assistant_id;
+    const assistant_item = message?._source?.assistant_item;
+
+    useEffect(() => {
+      if (assistant_item) {
+        setAssistant(assistant_item);
+        return;
+      }
+
+      if (isAssistant && assistant_id && Array.isArray(assistantList)) {
+        setAssistant(
+          assistantList.find((item) => item._id === assistant_id) ?? {},
+        );
+        return;
+      }
+
+      setAssistant(currentAssistant);
+    }, [
+      isAssistant,
+      assistant_item,
+      assistant_id,
+      assistantList,
+      currentAssistant,
+    ]);
+
+    const source = message?._source;
+    const messageContent = source?.message || "";
+
+
+    const payload = source?.payload;
+
+    const attachments = useMemo(() => source?.attachments ?? [], [source?.attachments]);
+    const details = source?.details || [];
+    const deepResearchDetail = details.find((item) => item.type === "deep_research")
+    const replyQuestion = replyMessage?._source?.message || "";
+    const replyAttachments = replyMessage?._source?.attachments ?? [];
+    const canResendReply = !!replyQuestion || replyAttachments.length > 0;
+
+    const endChunk = useMemo(() => {
+      const endDetail = details.find((item) => item.type === "reply_end");
+      if (endDetail) {
+        return endDetail;
+      }
+      const last = replyEnd?.length > 0 ? replyEnd[replyEnd.length - 1] : undefined;
+      let payload;
+      try {
+        payload = last && last.message_chunk ? JSON.parse(last.message_chunk) : undefined;
+      } catch (e) {
+
+      }
+      return last ? {
+        type: last.chunk_type,
+        message_id: last.message_id,
+        payload
+      } : undefined;
+    }, [details, replyEnd])
+
+    const isCancelled = useMemo(() => {
+      return endChunk?.payload?.reason === "user_cancelled";
+    }, [endChunk]);
+
+    const isError = useMemo(() => {
+      return endChunk?.payload?.reason === "error";
+    }, [endChunk]);
+
+    const isTimeout = useMemo(() => {
+      return endChunk?.payload?.reason === "timeout";
+    }, [endChunk]);
+
+    const showActions =
+      isTyping === false && (messageContent || response?.message_chunk);
+
+    const [suggestion, setSuggestion] = useState<string[]>([]);
+
+    const getSuggestion = (suggestion: string[]) => {
+      setSuggestion(suggestion);
+    };
+
+    const hasUserContent =
+      !!messageContent?.trim() ||
+      attachments.length > 0;
+
+    const hasAssistantContent =
+      (details && details.length > 0) ||
+      !!query_intent ||
+      !!tools ||
+      !!fetch_source ||
+      !!pick_source ||
+      !!deep_read ||
+      !!think ||
+      (deepResearch && deepResearch.length > 0) ||
+      !!messageContent?.trim() ||
+      !!response?.message_chunk?.trim() ||
+      !!payload ||
+      isTyping ||
+      (suggestion && suggestion.length > 0) ||
+      isCancelled ||
+      isError ||
+      isTimeout;
+
+    const hasContent = !isAssistant && hasUserContent;
+    const hasRenderableContent = hasContent || (isAssistant && hasAssistantContent);
+
+    const isDeepResearching = useMemo(() => {
+      return !!deepResearchDetail || deepResearch?.length > 0;
+    }, [deepResearchDetail, deepResearch]);
+
+    const renderContent = () => {
+      if (!isAssistant) {
+        return (
+          <UserMessage message={messageContent} attachments={attachments} fetchAttachments={fetchAttachments} />
+        );
+      }
+
+      return (
+        <>
+          <QueryIntent
+            Detail={details.find((item) => item.type === "query_intent")}
+            ChunkData={query_intent}
+            getSuggestion={getSuggestion}
+            loading={loadingStep?.query_intent}
+            t={t}
+          />
+
+          <CallTools
+            Detail={details.find((item) => item.type === "tools")}
+            ChunkData={tools}
+            loading={loadingStep?.tools}
+            t={t}
+          />
+
+          <FetchSource
+            Detail={details.find((item) => item.type === "fetch_source")}
+            ChunkData={fetch_source}
+            loading={loadingStep?.fetch_source}
+            formatUrl={formatUrl}
+            t={t}
+          />
+
+          <PickSource
+            Detail={details.find((item) => item.type === "pick_source")}
+            ChunkData={pick_source}
+            loading={loadingStep?.pick_source}
+            t={t}
+          />
+
+          <DeepRead
+            Detail={details.find((item) => item.type === "deep_read")}
+            ChunkData={deep_read}
+            loading={loadingStep?.deep_read}
+            t={t}
+          />
+
+          <Think
+            Detail={details.find((item) => item.type === "think")}
+            ChunkData={think}
+            loading={loadingStep?.think}
+            t={t}
+          />
+
+          <Markdown
+            content={messageContent || response?.message_chunk || ""}
+            dark={resolvedTheme === "dark"}
+          />
+
+          {/* {
+            !deepResearchDetail && (
+              <PayloadCard payload={payload as any} formatUrl={formatUrl} />
+            )
+          } */}
+
+          <DeepResearch
+            detail={deepResearchDetail}
+            endChunk={endChunk}
+            ChunkData={deepResearch}
+            question={replyQuestion}
+            formatUrl={formatUrl}
+            requestHeaders={requestHeaders}
+            theme={resolvedTheme}
+            t={t}
+            payload={payload as any}
+            sourceId={message._id}
+            onCancel={onCancel}
+          />
+
+          {
+            isCancelled && (
+              <div className="mt-16px text-14px leading-20px text-[#999] dark:text-[#666]">
+                {isDeepResearching ? t("deepResearch.status.cancelled") : t("labels.cancelled")}
+              </div>
+            )
+          }
+          {
+            isError && (
+              <ErrorMessage
+                title={isDeepResearching ? t("deepResearch.status.error") : t("labels.error")}
+                error={endChunk?.payload?.error}
+              />
+            )
+          }
+          {
+            isTimeout && (
+              <ErrorMessage
+                title={isDeepResearching ? t("deepResearch.status.timeout") : t("labels.timeout")}
+                error={endChunk?.payload?.type ? t(`labels.timeout_${endChunk.payload.type}`) : undefined}
+              />
+            )
+          }
+
+          {deepResearch.length === 0 && isTyping && (
+            <div className="inline-block w-1.5 h-5 ml-0.5 -mb-0.5 bg-[#666666] dark:bg-[#A3A3A3] rounded-sm animate-typing" />
+          )}
+
+          {(showActions || endChunk) && (
+            <MessageActions
+              id={message._id ?? ""}
+              content={messageContent || response?.message_chunk || ""}
+              actionClassName={actionClassName}
+              actionIconSize={actionIconSize}
+              copyButtonId={copyButtonId}
+              onResend={canResendReply ? () => {
+                if (onResend) {
+                  onResend({
+                    message: replyQuestion,
+                    attachments: replyAttachments,
+                  });
+                }
+              } : undefined}
+            />
+          )}
+
+          {!isTyping && (
+            <SuggestionList
+              suggestions={suggestion}
+              onSelect={(text) => onResend && onResend({
+                message: text,
+              })}
+            />
+          )}
+        </>
+      );
+    };
+
+    if (!hasRenderableContent) {
+      return null;
+    }
+
+    return (
+      <div
+        className={clsx(
+          "w-full py-8 flex",
+          [isAssistant ? "justify-start" : "justify-end"],
+          resolvedTheme === "dark" && "dark",
+          rootClassName,
+        )}
+      >
+        <div
+          className={`w-full flex gap-4 ${isAssistant ? "w-full" : "flex-row-reverse"
+            }`}
+        >
+          <div
+            className={`w-full space-y-2 ${isAssistant ? "text-left" : "text-right"
+              }`}
+          >
+            {!hide_assistant && isAssistant && hasAssistantContent && (
+              <div className="w-full flex items-center gap-8px font-semibold text-sm text-[#333] dark:text-white">
+                {isAssistant ? (
+                  <div className="w-32px h-32px flex justify-center items-center rounded-full bg-white dark:bg-[#2A2A2A] border border-[#F0F0F0] dark:border-[#303030]">
+                    {assistant?._source?.icon?.startsWith("font_") ? (
+                      <FontIcon
+                        name={assistant._source.icon}
+                        className="w-32px h-32px"
+                      />
+                    ) : (
+                      <img
+                        src={logoImg}
+                        className="w-32px h-32px"
+                        alt={t("assistant.message.logo")}
+                      />
+                    )}
+                  </div>
+                ) : null}
+                {isAssistant ? assistant?._source?.name || "Coco AI" : ""}
+              </div>
+            )}
+            <div className="w-full max-w-none">
+              <div
+                className={clsx(
+                  "w-full text-[#333] dark:text-white leading-relaxed",
+                  isAssistant && "pl-40px",
+                )}
+              >
+                {renderContent()}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }),
+);
+
+export const ChatMessage = memo(
+  forwardRef<ChatMessageRef, ChatMessageProps>((props, ref) => {
+    return (
+      <I18nextProvider i18n={i18nInstance}>
+        <InnerChatMessage {...props} ref={ref} />
+      </I18nextProvider>
+    );
+  }),
+);

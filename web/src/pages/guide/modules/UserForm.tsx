@@ -1,16 +1,31 @@
+import { setup } from '@/service/api/guide';
 import { Button, Form, Input, Select } from 'antd';
-import type { FormInstance } from 'antd/lib';
+import { useLoading } from '@sa/hooks';
 
-const UserForm = memo(({ form, onSubmit }: { form: FormInstance; onSubmit: () => void }) => {
+const UserForm = memo(() => {
+  const [form] = Form.useForm();
   const formItemClassNames = 'm-b-32px';
   const inputClassNames = 'h-40px';
   const { t } = useTranslation();
   const { defaultRequiredRule, formRules } = useFormRules();
+  const { endLoading, loading, startLoading } = useLoading();
+  const router = useRouterPush();
+
+  const handleSubmit = async () => {
+    const params = await form.validateFields();
+    const { confirm_password, ...rest } = params
+    startLoading();
+    const { error } = await setup(rest);
+    endLoading();
+    if (!error) {
+      router.routerPushByKey('login');
+    }
+  }
 
   return (
     <>
-      <div className="m-b-16px text-32px color-[var(--ant-color-text-heading)]">{t('page.guide.user.title')}</div>
-      <div className="m-b-64px text-16px color-[var(--ant-color-text)]">{t('page.guide.user.desc')}</div>
+      <div className="m-b-16px text-28px color-[var(--ant-color-text-heading)]">{t('page.guide.user.title')}</div>
+      <div className="m-b-64px text-14px color-[var(--ant-color-text-tertiary)]">{t('page.guide.user.desc')}</div>
       <Form
         form={form}
         layout="vertical"
@@ -70,7 +85,8 @@ const UserForm = memo(({ form, onSubmit }: { form: FormInstance; onSubmit: () =>
             className="h-56px w-56px text-24px"
             size="large"
             type="primary"
-            onClick={() => onSubmit()}
+            loading={loading}
+            onClick={() => handleSubmit()}
           >
             <SvgIcon icon="mdi:arrow-right" />
           </Button>

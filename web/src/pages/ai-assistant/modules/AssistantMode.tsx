@@ -4,8 +4,6 @@ interface AssistantModeProps {
 }
 
 export const AssistantMode = (props: AssistantModeProps) => {
-  console.log('AssistantMode props', props);
-
   const { t } = useTranslation();
   const { value, onChange } = props;
   const modes = [
@@ -16,6 +14,10 @@ export const AssistantMode = (props: AssistantModeProps) => {
     {
       label: t('page.assistant.mode.deep_think'),
       value: 'deep_think'
+    },
+    {
+      label: t('page.assistant.mode.deep_research'),
+      value: 'deep_research'
     }
     // {
     //   label: t('page.assistant.mode.workflow'),

@@ -48,8 +48,12 @@ func (h *APIHandler) getAssistant(w http.ResponseWriter, req *http.Request, ps h
 	id := ps.MustGetParameter("id")
 
 	obj, exists, err := service.GetAssistant(req, id)
-	if !exists || err != nil {
+	if err != nil {
 		_ = log.Error(err)
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if !exists {
 		h.WriteOpRecordNotFoundJSON(w, id)
 		return
 	}

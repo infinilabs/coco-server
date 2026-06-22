@@ -12,7 +12,15 @@ type Integration struct {
 	Hotkey  string      `json:"hotkey,omitempty" elastic_mapping:"hotkey:{type:keyword}"`                       // Hotkey for the integration
 	Name    string      `json:"name" elastic_mapping:"name:{type:keyword,copy_to:combined_fulltext,fields:{text: {type: text}, pinyin: {type: text, analyzer: pinyin_analyzer}}}"`
 
-	EnabledModule ModuleConfig        `json:"enabled_module,omitempty" elastic_mapping:"enabled_module:{type:object}"` // Enabled module configuration
+	EnabledModule ModuleConfig `json:"enabled_module,omitempty" elastic_mapping:"enabled_module:{type:object}"` // Enabled module configuration
+
+	// Optional: specify a dedicated assistant ID for DeepThink mode.
+	// If not set, the DeepThink option will not appear in the search dropdown when using this integration instance.
+	DeepThinkAssistant string `json:"deep_think_assistant" elastic_mapping:"deep_think_assistant:{type:keyword}"`
+	// Optional: specify a dedicated assistant ID for DeepResearch mode.
+	// If not set, the DeepResearch option will not appear in the search dropdown when using this integration instance.
+	DeepResearchAssistant string `json:"deep_research_assistant" elastic_mapping:"deep_research_assistant:{type:keyword}"`
+
 	AccessControl AccessControlConfig `json:"access_control,omitempty" elastic_mapping:"access_control:{type:object}"` // Access control configuration
 	Appearance    AppearanceConfig    `json:"appearance,omitempty" elastic_mapping:"appearance:{type:object}"`         // Appearance configuration
 	Cors          CorsConfig          `json:"cors,omitempty" elastic_mapping:"cors:{type:object}"`                     // CORS configuration

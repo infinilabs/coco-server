@@ -11,7 +11,7 @@ export function setupI18n() {
     interpolation: {
       escapeValue: false
     },
-    lng: localStg.get('lang') || 'zh-CN',
+    lng: localStg.get('lang') || 'en-US',
     resources: locales,
     nsSeparator: '___'
   });

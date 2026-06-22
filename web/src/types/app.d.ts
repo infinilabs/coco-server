@@ -463,6 +463,7 @@ declare namespace App {
               confirm: string;
               confirmPasswordPlaceholder: string;
               loginOrRegister: string;
+              login: string;
               loginSuccess: string;
               passwordPlaceholder: string;
               phonePlaceholder: string;

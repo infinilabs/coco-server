@@ -3,8 +3,9 @@ import '../index.scss';
 import { fetchSettings, updateSettings } from '@/service/api/server';
 import { useLoading, useRequest } from '@sa/hooks';
 import IntegrationSelect from '@/pages/integration/modules/IntegrationSelect';
-import { getProviderInfo, setProviderInfo, updateRootRouteIfSearch } from '@/store/slice/server';
-import { initConstantRoute } from '@/store/slice/route';
+import { getApplicationSetting, setApplicationSetting, updateRootRouteIfSearch } from '@/store/slice/server';
+import { initAuthRoute, initConstantRoute, selectFilterPaths, setFilterPaths } from '@/store/slice/route';
+import { resetAuth } from '@/store/slice/auth';
 
 const SearchSettings = memo(() => {
   const [form] = Form.useForm();
@@ -19,7 +20,8 @@ const SearchSettings = memo(() => {
   const { endLoading, loading, startLoading } = useLoading();
 
   const dispatch = useAppDispatch();
-  const providerInfo = useAppSelector(getProviderInfo);
+  const applicationSetting = useAppSelector(getApplicationSetting);
+  const filterPaths = useAppSelector(selectFilterPaths);
     
   const {
     data,
@@ -45,13 +47,18 @@ const SearchSettings = memo(() => {
        search_settings
     });
     if (result?.data?.acknowledged) {
-      const newProviderInfo = {
-        ...providerInfo,
+      const newApplicationSetting = {
+        ...applicationSetting,
         search_settings
       }
-      dispatch(setProviderInfo(newProviderInfo));
-      dispatch(updateRootRouteIfSearch(newProviderInfo));
-      dispatch(initConstantRoute());
+      await dispatch(setApplicationSetting(newApplicationSetting));
+      await dispatch(updateRootRouteIfSearch(newApplicationSetting));
+      if (search_settings.enabled && search_settings.integration) {
+        await dispatch(setFilterPaths(filterPaths.filter(path => path !== '/search')));
+      }
+      await dispatch(initConstantRoute());
+      await dispatch(resetAuth());
+      await dispatch(initAuthRoute());
       window.$message?.success(t('common.updateSuccess'));
     }
     endLoading();

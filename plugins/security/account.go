@@ -37,7 +37,7 @@ func (h APIHandler) Profile(w http.ResponseWriter, r *http.Request, ps httproute
 		return
 	}
 
-	if reqUser.Provider == core.ProviderIntegration {
+	if reqUser.Has(core.UserSessionInfoKeyIntegration) {
 		log.Trace("user login via INTEGRATION, guest user!")
 		api.WriteAuthRequiredError(w, "no profile for guest user")
 		return
@@ -58,7 +58,7 @@ func (h APIHandler) Profile(w http.ResponseWriter, r *http.Request, ps httproute
 	profile.Email = user.Email
 	profile.ID = user.ID
 	profile.Name = user.Name
-	profile.Permissions = reqUser.Permissions
+	profile.Permissions = reqUser.GetPermissionKeys()
 
 	h.WriteJSON(w, profile, 200)
 }

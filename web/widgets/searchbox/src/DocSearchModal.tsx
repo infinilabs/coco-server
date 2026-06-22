@@ -1,0 +1,93 @@
+import SearchChat from '@infinilabs/search-chat';
+import { useState } from 'react';
+
+interface DocSearchModalProps {
+  server?: string;
+  settings?: any;
+  refreshSettings?: () => Promise<void>;
+  onClose?: () => void;
+  triggerBtnType?: string;
+  theme?: 'auto' | 'light' | 'dark';
+  isOpen?: boolean;
+  formatUrl?: (url: string) => string;
+}
+
+export const DocSearchModal: React.FC<DocSearchModalProps> = ({
+  server,
+  settings,
+  refreshSettings,
+  onClose,
+  triggerBtnType,
+  theme,
+  isOpen,
+  formatUrl
+}) => {
+  // We rely on a CSS property to set the modal height to the full viewport height
+  // because all mobile browsers don't compute their height the same way.
+  // See https://css-tricks.com/the-trick-to-viewport-units-on-mobile/
+
+  const [isPinned, setIsPinned] = useState(false);
+
+  const { appearance = {}, enabled_module = {}, id, type } = settings || {};
+  const { ai_chat, features, search } = enabled_module;
+  const { language } = appearance
+
+  const hasModules = [];
+  if (search?.enabled) {
+    hasModules.push('search');
+  }
+  if (ai_chat?.enabled) {
+    hasModules.push('chat');
+  }
+
+  let defaultModule: 'search' | 'chat' = 'search';
+  if (type === 'embedded') {
+    defaultModule = 'search';
+  } else if (type === 'floating') {
+    defaultModule = 'chat';
+  } else if (type === 'all') {
+    if (triggerBtnType === 'embedded') {
+      defaultModule = 'search';
+    } else if (triggerBtnType === 'floating') {
+      defaultModule = 'chat';
+    }
+  }
+
+  return (
+    <div id="infini__searchbox" data-theme={theme}>
+      <div
+        className="infini__searchbox-modal-container"
+        role="button"
+        tabIndex={0}
+        onMouseDown={(e) => e.target === e.currentTarget && onClose && !isPinned && onClose()}
+      >
+        <div className="infini__searchbox-modal">
+          <SearchChat
+            serverUrl={server}
+            headers={{
+              "APP-INTEGRATION-ID": id
+            }}
+            width={680}
+            height={590}
+            assistantIDs={ai_chat?.assistants || []}
+            hasModules={hasModules}
+            searchPlaceholder={search?.placeholder || 'Search whatever you want...'}
+            chatPlaceholder={ai_chat?.placeholder || 'Ask whatever you want...'}
+            startPage={ai_chat?.start_page_config}
+            theme={theme}
+            showChatHistory={features?.includes('chat_history')}
+            setIsPinned={setIsPinned}
+            defaultModule={defaultModule}
+            onCancel={() => {
+              onClose?.()
+            }}
+            formatUrl={formatUrl}
+            settings={settings}
+            refreshSettings={refreshSettings}
+            language={language}
+          />
+        </div>
+      </div>
+    </div>
+  );
+};

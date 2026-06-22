@@ -148,13 +148,13 @@ export const SearchBoxForm = memo(props => {
       />
     </Form.Item>
     <Form.Item
-      label={t('page.integration.form.labels.enable_module')}
+      label={t('page.integration.form.labels.search_settings')}
       name="enabled_module"
     >
       <Form.Item
         className="mb-0px"
-        label={t('page.integration.form.labels.module_search')}
         name={['enabled_module', 'search', 'enabled']}
+        valuePropName="checked"
       >
         <Switch size="small" onChange={(checked) => setEnabledList((state) => ({ ...state, search: checked }))}/>
       </Form.Item>
@@ -162,7 +162,7 @@ export const SearchBoxForm = memo(props => {
     {
       enabledList?.search && (
         <>
-          <Form.Item label=" " >
+          <Form.Item label=" ">
             <div className="mb-8px">
               {t('page.integration.form.labels.datasource')}
             </div>

@@ -21,3 +21,17 @@ sophisticated document processing via pipelines:
 ```text
 [Doc input] --> [Processor A] --> [Processor B] --> [Processor C] --> [Doc output]
 ```
+
+## Processor categories
+
+Processors are grouped by the type of input they expect.
+
+### Document Processors
+
+Operate on **documents**. Each pipeline message carries a serialized document.
+
+### Attachment Processors
+
+Operate on **attachments**. Each pipeline message carries the serialized
+attachment metadata. Attachment processors load the binary content themselves
+when they need it.
