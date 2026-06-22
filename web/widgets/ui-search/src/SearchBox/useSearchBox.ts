@@ -451,17 +451,6 @@ export default function useSearchBox({
     if (!isClickingSuggestion.current) setFilterState({ type: 'none', index: -1 });
   }, []);
 
-  const handleSuggestionsResult = useCallback((expectedType: any, res: any) => {
-    setSuggestions((prev: any) => {
-      // Ignore stale results from a different suggestion type
-      if (prev.type !== expectedType) return prev;
-      return {
-        ...prev,
-        data: Array.isArray(res?.suggestions) ? res.suggestions : []
-      };
-    });
-  }, []);
-
   const handleAttachmentsChange = useCallback((newAttachments: any) => {
     setAttachments?.(newAttachments);
     setMainInputActive(true);
@@ -486,6 +475,9 @@ export default function useSearchBox({
   // render (e.g. overwriting the query the user is currently typing).
   const prevQueryParamsRef = useRef('');
   const prevFilterMetaRef = useRef('');
+  const buildSuggestionRequestKey = useCallback((type: any, context: string) => {
+    return `${type || ''}::${context || ''}`;
+  }, []);
 
   // Sync queryParams prop to internal state only when content changes
   useEffect(() => {
@@ -518,6 +510,20 @@ export default function useSearchBox({
     return query || '';
   }, [suggestionType, activeFilterFieldName, filterSearchValue, colonFieldQuery, slashFieldQuery, query]);
 
+  const suggestionRequestKey = useMemo(() => {
+    return buildSuggestionRequestKey(suggestionType, suggestionResetContext);
+  }, [buildSuggestionRequestKey, suggestionType, suggestionResetContext]);
+
+  const handleSuggestionsResult = useCallback((expectedType: any, expectedRequestKey: string, res: any) => {
+    setSuggestions((prev: any) => {
+      if (prev.type !== expectedType || prev.requestKey !== expectedRequestKey) return prev;
+      return {
+        ...prev,
+        data: Array.isArray(res?.suggestions) ? res.suggestions : []
+      };
+    });
+  }, []);
+
   // Reset suggestions when suggestion type or query context changes
   useEffect(() => {
     if (!suggestionType) {
@@ -526,8 +532,8 @@ export default function useSearchBox({
       setSuggestions({});
       return;
     }
-    setSuggestions({ type: suggestionType, from: 0, size: DEFAULT_SUGGESTIONS_SIZE });
-  }, [suggestionType, suggestionResetContext]);
+    setSuggestions({ type: suggestionType, from: 0, size: DEFAULT_SUGGESTIONS_SIZE, requestKey: suggestionRequestKey });
+  }, [suggestionType, suggestionRequestKey]);
 
   // Clean empty filters when not actively editing
   useEffect(() => {
@@ -546,13 +552,14 @@ export default function useSearchBox({
   useEffect(() => {
     const { from = 0, size = DEFAULT_SUGGESTIONS_SIZE } = suggestions;
     if (!suggestionType || !onSuggestion) return;
+    if (suggestions.type !== suggestionType || suggestions.requestKey !== suggestionRequestKey) return;
 
     let suggestionParams: any = { from, size };
     switch (suggestionType) {
       case SUGGESTION_KEYWORDS:
         if (calculateCharLength(query) < 40) {
           suggestionParams.query = query;
-          onSuggestion(undefined, suggestionParams, (res: any) => handleSuggestionsResult(SUGGESTION_KEYWORDS, res));
+          onSuggestion(undefined, suggestionParams, (res: any) => handleSuggestionsResult(SUGGESTION_KEYWORDS, suggestionRequestKey, res));
         }
         break;
       case SUGGESTION_FILTER_FIELDS: {
@@ -566,18 +573,18 @@ export default function useSearchBox({
           const queryBeforeCursor = query?.substring(0, cursorPosition);
           suggestionParams.query = queryBeforeCursor?.endsWith('/') ? queryBeforeCursor.slice(0, -1) : queryBeforeCursor;
         }
-        onSuggestion(suggestionType, suggestionParams, (res: any) => handleSuggestionsResult(SUGGESTION_FILTER_FIELDS, res));
+        onSuggestion(suggestionType, suggestionParams, (res: any) => handleSuggestionsResult(SUGGESTION_FILTER_FIELDS, suggestionRequestKey, res));
         break;
       }
       case SUGGESTION_FILTER_VALUES: {
         if (activeFilterFieldName) {
           suggestionParams = { ...suggestionParams, field_name: activeFilterFieldName, query: filterSearchValue, size: 10 };
-          onSuggestion(suggestionType, suggestionParams, (res: any) => handleSuggestionsResult(SUGGESTION_FILTER_VALUES, res));
+          onSuggestion(suggestionType, suggestionParams, (res: any) => handleSuggestionsResult(SUGGESTION_FILTER_VALUES, suggestionRequestKey, res));
         }
         break;
       }
     }
-  }, [suggestionType, suggestions.from, suggestions.size, query, filterState.type, filterState.index, activeFilterFieldName, onSuggestion, cursorPosition, colonFieldQuery, slashFieldQuery, filterSearchValue, handleSuggestionsResult]);
+  }, [suggestionType, suggestions.type, suggestions.requestKey, suggestions.from, suggestions.size, query, filterState.type, filterState.index, activeFilterFieldName, onSuggestion, cursorPosition, colonFieldQuery, slashFieldQuery, filterSearchValue, handleSuggestionsResult, suggestionRequestKey]);
 
   // Global Tab key handler
   useEffect(() => {
