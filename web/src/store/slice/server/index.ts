@@ -1,11 +1,10 @@
 import { createSlice } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 
-import { localStg } from '@/utils/storage';
 import { AppThunk } from '@/store';
 import { getRootRouteIfSearch } from './shared';
 import { handleUpdateRootRouteRedirect, setRouteHome } from '../route';
-import { isEmpty } from 'lodash';
+import { isPlainObject } from 'lodash';
 
 interface InitialStateType {
   applicationSetting: any;
@@ -33,7 +32,13 @@ export const serverSlice = createSlice({
     },
     setDefaultModel(state, { payload }: PayloadAction<any>) {
       state.defaultModel = payload;
-      state.defaultModelTips = isEmpty(payload);
+      state.defaultModelTips = ![
+        payload?.language_model,
+        payload?.vision_model,
+        payload?.embedding_model
+      ].every((model) => {
+        return isPlainObject(model) && !!model.id && !!model.provider_id;
+      });
     },
     setDefaultModelTips(state, { payload }: PayloadAction<any>) {
       state.defaultModelTips = payload;

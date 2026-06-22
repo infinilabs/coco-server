@@ -20,7 +20,7 @@ const DefaultModel = memo(() => {
   }
 
   const { endLoading, loading, startLoading } = useLoading();
-  const [modelProviderList, setModelProviderList] = useState([]);
+  const [modelProviderList, setModelProviderList] = useState<any[]>([]);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const dispatch = useAppDispatch();
@@ -92,6 +92,11 @@ const DefaultModel = memo(() => {
           return acc;
         }
 
+        if (!v.id && !v.name && !v.provider_id && !v.providerId && !v.provider) {
+          acc[key] = v;
+          return acc;
+        }
+
         // try find provider by provider_id
         let provider = modelProviderList.find((p: any) => p.id === v.provider_id || p.id === v.providerId || p.id === v.provider);
         let model = null;
@@ -143,7 +148,6 @@ const DefaultModel = memo(() => {
 
         return acc;
       }, {});
-
       form.setFieldsValue(mapped);
     }
   }, [JSON.stringify(data), modelProviderList]);
@@ -280,6 +284,7 @@ const ModelSelectItem = ({ label, desc, name, modelProviderList = [], type, onRe
           showSettings={false}
           showTemplate={false}
           onRefresh={onRefresh}
+          allowClear
         />
       </Form.Item>
     </Form.Item>

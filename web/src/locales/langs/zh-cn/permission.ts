@@ -145,6 +145,7 @@ const permission = {
   'generic#security:auth:api-token/search': '搜索 API Token',
 
   'license': '授权',
+  'generic#license/info': '查看授权信息',
   'generic#license/apply': '更新授权',
 
   'pipeline': 'Pipeline',

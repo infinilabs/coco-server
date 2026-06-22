@@ -248,6 +248,7 @@ export function Component() {
       }
     },
     {
+      title: t('common.operation'),
       fixed: 'right',
       width: '90px',
       hidden: !permissions.update && !permissions.delete,
@@ -274,7 +275,7 @@ export function Component() {
         if (items.length === 0) return null;
         return (
           <Dropdown menu={{ items, onClick: ({ key }) => onMenuClick({ key, record }) }}>
-            <EllipsisOutlined />
+            <EllipsisOutlined className='cursor-pointer'/>
           </Dropdown>
         );
       }

@@ -175,7 +175,7 @@ export default (props) => {
             content={content}
             className="flex w-fit cursor-pointer"
             rootClassName={"w-362px"}
-            destroyTooltipOnHide
+            destroyOnHidden
         >
             {
                 shares.length === 0 ? (
