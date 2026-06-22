@@ -219,7 +219,14 @@ export const SearchBoxForm = memo(props => {
             </div>
             <Form.Item
               name={['enabled_module', 'ai_chat', 'assistants']}
-              rules={[defaultRequiredRule]}
+              rules={[
+                {
+                  validator: (_rule: any, value: any) => {
+                    if (value?.id) return Promise.resolve();
+                    return Promise.reject((defaultRequiredRule as any).message);
+                  }
+                }
+              ]}
               className="mb-0px"
             >
               <AIAssistantSelect mode="multiple" className={itemClassNames} onChange={(as) => {
