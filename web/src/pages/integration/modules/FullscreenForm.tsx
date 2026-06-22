@@ -318,10 +318,17 @@ export const FullscreenForm = memo(props => {
             </div>
             <Form.Item
               name={['payload', 'ai_overview', 'assistant']}
-              rules={enabledList?.ai_overview ? [defaultRequiredRule] : []}
+              rules={[
+                {
+                  validator: (_rule: any, value: any) => {
+                    if (value?.id) return Promise.resolve();
+                    return Promise.reject((defaultRequiredRule as any).message);
+                  }
+                }
+              ]}
               className="mb-8px"
             >
-              <AIAssistantSelect className={itemClassNames}/>
+              <AIAssistantSelect className={itemClassNames} allowClear/>
             </Form.Item>
             <div className="mb-8px">
               {t('page.integration.form.labels.module_ai_overview_output')}
