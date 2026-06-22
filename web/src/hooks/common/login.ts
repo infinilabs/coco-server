@@ -26,7 +26,7 @@ export function useLogin() {
 
         if (userName) {
           await dispatch(updateRootRouteIfSearch(applicationSetting));
-          if (applicationSetting.search_settings.enabled && applicationSetting.search_settings.integration) {
+          if (applicationSetting.search_settings?.enabled && applicationSetting.search_settings?.integration) {
             await dispatch(setFilterPaths(filterPaths.filter(path => path !== '/search')));
           }
           await dispatch(initConstantRoute());
