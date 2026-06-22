@@ -164,6 +164,7 @@ export const SearchBoxForm = memo(props => {
         <>
           <Form.Item label=" ">
             <div className="mb-8px">
+              <span className="mr-4px text-[var(--ant-color-error)]">*</span>
               {t('page.integration.form.labels.datasource')}
             </div>
             <Form.Item
@@ -213,6 +214,7 @@ export const SearchBoxForm = memo(props => {
         <>
           <Form.Item label=" ">
             <div className="mb-8px">
+              <span className="mr-4px text-[var(--ant-color-error)]">*</span>
               {t('page.integration.form.labels.module_chat_ai_assistant')}
             </div>
             <Form.Item

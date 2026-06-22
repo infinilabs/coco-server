@@ -2,7 +2,11 @@ import { AIAnswer } from './AIAnswer';
 import { useTranslation } from 'react-i18next';
 
 interface AIOverviewConfig {
+    title?: string;
     height?: string | number;
+    logo?: {
+        light?: string;
+    };
     [key: string]: unknown;
 }
 
@@ -22,18 +26,20 @@ interface AIOverviewProps {
     theme?: "light" | "dark" | "auto";
     onChatContinue?: () => void;
     isReplyEnd?: boolean;
+    requestHeaders?: Record<string, string>;
 }
 
 const AIOverview = (props: AIOverviewProps) => {
-    const { config = {}, data, loading, visible, theme, onChatContinue, isReplyEnd } = props;
+    const { config = {}, data, loading, visible, theme, onChatContinue, isReplyEnd, requestHeaders } = props;
     const { t } = useTranslation();
 
     if (!visible) return null;
 
     return (
         <AIAnswer
-            title={t("labels.aiOverview")}
+            title={config?.title || t("labels.aiOverview")}
             content={data?.response?.message_chunk || ""}
+            logo={config?.logo?.light}
             onContinue={() => onChatContinue?.()}
             maxHeight={Number.isInteger(Number(config.height)) ? Number(config.height) : undefined}
             theme={theme}
@@ -43,6 +49,7 @@ const AIOverview = (props: AIOverviewProps) => {
             collapseText={t("labels.collapse")}
             loading={loading}
             isReplyEnd={isReplyEnd}
+            requestHeaders={requestHeaders}
         />
     );
 };
