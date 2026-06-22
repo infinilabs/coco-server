@@ -180,7 +180,7 @@ const Auth = () => {
               onClick: ({ key }) => onMenuClick({ key, record })
             }}
           >
-            <EllipsisOutlined />
+            <EllipsisOutlined className='cursor-pointer'/>
           </Dropdown>
         );
       },

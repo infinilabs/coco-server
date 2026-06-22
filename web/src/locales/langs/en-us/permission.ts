@@ -145,6 +145,7 @@ const permission = {
   'generic#security:auth:api-token/search': 'Search API Token',
 
   'license': 'License',
+  'generic#license/info': 'View License Info',
   'generic#license/apply': 'Apply License',
 
   'pipeline': 'Pipeline',
