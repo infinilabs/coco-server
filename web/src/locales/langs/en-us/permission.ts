@@ -148,7 +148,7 @@ const permission = {
   'generic#license/apply': 'Apply License',
 
   'pipeline': 'Pipeline',
-  'generic#pipeline/admin': 'Admin Pipeline',
+  'generic#pipeline/admin': 'Manage Pipeline Tasks',
   'generic#pipeline/create': 'Create Pipeline',
   'generic#pipeline/read': 'Read Pipeline',
   'generic#pipeline/update': 'Update Pipeline',

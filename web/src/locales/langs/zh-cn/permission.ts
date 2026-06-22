@@ -148,7 +148,7 @@ const permission = {
   'generic#license/apply': '更新授权',
 
   'pipeline': 'Pipeline',
-  'generic#pipeline/admin': '管理 Pipeline',
+  'generic#pipeline/admin': '管理 Pipeline 任务',
   'generic#pipeline/create': '创建 Pipeline',
   'generic#pipeline/read': '读取 Pipeline',
   'generic#pipeline/update': '更新 Pipeline',
