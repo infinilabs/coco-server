@@ -52,6 +52,7 @@ const AIOverviewWrapper = (props: AIOverviewWrapperProps) => {
   const [isReplyEnd, setIsReplyEnd] = useState(false);
   const [visible, setVisible] = useState(true);
   const sessionIdRef = useRef<string | undefined>(undefined);
+  const requestIdRef = useRef(0);
 
   const handleMessage = (data: ChunkData, prevData: DataState): DataState => {
     const type = data.chunk_type;
@@ -90,22 +91,32 @@ const AIOverviewWrapper = (props: AIOverviewWrapperProps) => {
   };
 
   const handleAsk = (message: string | undefined, config: AIOverviewConfig) => {
-    if (message && config.assistant) {
-      setData(undefined);
-      setLoading(true);
-      setIsReplyEnd(false);
-      onAsk(config.assistant, message, (res) => {
-        setData((prev) => handleMessage(res, prev));
-      }, setLoading);
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
+    sessionIdRef.current = undefined;
+    setData(undefined);
+    setIsReplyEnd(false);
+
+    if (!message || !config.assistant) {
+      setLoading(false);
+      return;
     }
+
+    const setCurrentLoading = (loading: boolean) => {
+      if (requestIdRef.current === requestId) {
+        setLoading(loading);
+      }
+    };
+
+    setCurrentLoading(true);
+    onAsk(config.assistant, message, (res) => {
+      if (requestIdRef.current !== requestId) return;
+      setData((prev) => requestIdRef.current === requestId ? handleMessage(res, prev) : prev);
+    }, setCurrentLoading);
   };
 
   useEffect(() => {
-    if (askBody?.message) {
-      handleAsk(askBody?.message, config);
-    } else {
-      setData(undefined);
-    }
+    handleAsk(askBody?.message, config);
   }, [askBody?.message, askBody?.t, JSON.stringify(config)]);
 
   useEffect(() => {
