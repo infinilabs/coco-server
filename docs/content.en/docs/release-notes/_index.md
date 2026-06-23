@@ -9,6 +9,12 @@ Information about release notes of Coco Server is provided here.
 
 ## Latest (In development)  
 ### ❌ Breaking changes  
+### 🚀 Features  
+### 🐛 Bug fix  
+### ✈️ Improvements  
+
+## 0.11.0 (2026-06-23)
+### ❌ Breaking changes  
 - refactor: change boolean fields to use boolean mappings
 
 ### 🚀 Features  
