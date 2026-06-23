@@ -88,7 +88,7 @@ export default function Search({
   const { query, filter, aggfilter = {}, search_type = ACTION_TYPE_SEARCH_KEYWORD } = queryParams || {};
   const fuzziness = normalizeSearchFuzziness(queryParams?.fuzziness);
   const sort = normalizeSearchSort(queryParams?.sort || DEFAULT_SEARCH_SORT);
-  const dateRange = typeof queryParams?.dateRange === 'string' ? queryParams.dateRange : 'all-time';
+  const dateRange = typeof queryParams?.date_range === 'string' ? queryParams.date_range : 'all-time';
   const start = typeof queryParams?.start === 'string' ? queryParams.start : undefined;
   const end = typeof queryParams?.end === 'string' ? queryParams.end : undefined;
   const content_category = queryParams?.['metadata.content_category']
@@ -98,12 +98,6 @@ export default function Search({
   const [toolbarVisible, setToolbarVisible] = useState(false)
   const [filterFieldsMeta, setFilterFieldsMeta] = useState({})
   const [hasRecommendsData, setHasRecommendsData] = useState(false)
-  const [currentSearchType, setCurrentSearchType] = useState(search_type)
-  const [currentFuzziness, setCurrentFuzziness] = useState(fuzziness)
-  const [currentSort, setCurrentSort] = useState(sort)
-  const [currentDateRange, setCurrentDateRange] = useState(dateRange)
-  const [currentStart, setCurrentStart] = useState(start)
-  const [currentEnd, setCurrentEnd] = useState(end)
   const ownerCacheRef = useRef<Record<string, any>>({});
   const pendingOwnerIdsRef = useRef<Set<string>>(new Set());
   const [ownerVersion, setOwnerVersion] = useState(0);
@@ -112,72 +106,53 @@ export default function Search({
     setHasRecommendsData(hasData);
   }, []);
 
-  useEffect(() => {
-    setCurrentSearchType(search_type);
-  }, [search_type]);
-
-  useEffect(() => {
-    setCurrentFuzziness(fuzziness);
-  }, [fuzziness]);
-
-  useEffect(() => {
-    setCurrentSort(sort);
-  }, [sort]);
-
-  useEffect(() => {
-    setCurrentDateRange(dateRange);
-  }, [dateRange]);
-
-  useEffect(() => {
-    setCurrentStart(start);
-    setCurrentEnd(end);
-  }, [start, end]);
-
-  const handleSearchTypeChange = useCallback((type: string) => {
-    setCurrentSearchType(type);
-  }, []);
-
-  const handleFuzzinessChange = useCallback((value: number) => {
-    const nextFuzziness = normalizeSearchFuzziness(value);
-    setCurrentFuzziness(nextFuzziness);
-  }, []);
-
-  const handleSortChange = useCallback((value: string) => {
-    const nextSort = normalizeSearchSort(value);
-    setCurrentSort(nextSort);
-  }, []);
-
-  const handleDateRangeChange = useCallback((value: string) => {
-    setCurrentDateRange(value);
-  }, []);
-
-  const handleCustomDateRangeChange = useCallback((range: { start?: string; end?: string }) => {
-    setCurrentStart(range.start);
-    setCurrentEnd(range.end);
-    if (range.start && range.end) {
-      setCurrentDateRange('all-time');
-    }
-  }, []);
-
   const handleSearch = useCallback((params: Record<string, any>, ...args: any[]) => {
     const nextParams = { ...params };
+    delete nextParams.dateRange;
+    const hasDateRangeParam = Object.prototype.hasOwnProperty.call(nextParams, 'date_range');
+    const hasStartParam = Object.prototype.hasOwnProperty.call(nextParams, 'start');
+    const hasEndParam = Object.prototype.hasOwnProperty.call(nextParams, 'end');
 
-    if (currentStart && currentEnd) {
-      nextParams.start = currentStart;
-      nextParams.end = currentEnd;
-      nextParams.dateRange = undefined;
+    if (!hasDateRangeParam && !hasStartParam && !hasEndParam) {
+      nextParams.date_range = queryParams?.date_range;
+      nextParams.start = queryParams?.start;
+      nextParams.end = queryParams?.end;
+    }
+
+    if (nextParams.start && nextParams.end) {
+      nextParams.date_range = undefined;
     } else {
       nextParams.start = undefined;
       nextParams.end = undefined;
-      if (currentDateRange === 'all-time') {
-        nextParams.dateRange = undefined;
-      } else {
-        nextParams.dateRange = currentDateRange;
+      if (nextParams.date_range === 'all-time') {
+        nextParams.date_range = undefined;
       }
     }
 
     onSearch?.(nextParams, ...args);
-  }, [currentDateRange, currentEnd, currentStart, onSearch]);
+  }, [onSearch, queryParams?.date_range, queryParams?.end, queryParams?.start]);
+
+  const handleSearchTypeChange = useCallback((type: string) => {
+    handleSearch({ ...(queryParams || {}), search_type: type, from: 0 }, false, true);
+  }, [handleSearch, queryParams]);
+
+  const handleFuzzinessChange = useCallback((value: number) => {
+    const nextFuzziness = normalizeSearchFuzziness(value);
+    handleSearch({ ...(queryParams || {}), fuzziness: nextFuzziness, from: 0 }, false, true);
+  }, [handleSearch, queryParams]);
+
+  const handleSortChange = useCallback((value: string) => {
+    const nextSort = normalizeSearchSort(value);
+    handleSearch({ ...(queryParams || {}), sort: nextSort, from: 0 }, false, false);
+  }, [handleSearch, queryParams]);
+
+  const handleDateRangeChange = useCallback((value: string) => {
+    handleSearch({ ...(queryParams || {}), date_range: value, start: undefined, end: undefined, from: 0 }, false, true);
+  }, [handleSearch, queryParams]);
+
+  const handleCustomDateRangeChange = useCallback((range: { start?: string; end?: string }) => {
+    handleSearch({ ...(queryParams || {}), start: range.start, end: range.end, date_range: undefined, from: 0 }, false, true);
+  }, [handleSearch, queryParams]);
 
   const listType = useMemo(() => {
     if (!LIST_TYPES || LIST_TYPES.length === 0) return undefined;
@@ -276,13 +251,13 @@ export default function Search({
       handleSearch({
         ...(queryParams || {}),
         aggfilter: nextAggFilter,
-        fuzziness: currentFuzziness,
-        sort: currentSort,
+        fuzziness,
+        sort,
       }, false, false);
       return;
     }
     onSearchFilter?.(nextAggFilter);
-  }, [currentFuzziness, currentSort, handleSearch, onSearch, onSearchFilter, queryParams]);
+  }, [fuzziness, handleSearch, onSearch, onSearchFilter, queryParams, sort]);
 
   const resultList = isEmptyResult ? (
     <EmptyList
@@ -357,16 +332,16 @@ export default function Search({
             setRecommendsCollapse={setRecommendsCollapse}
             toolbar={toolbarVisible ? (
               <Toolbar
-                searchType={currentSearchType}
+                searchType={search_type}
                 onSearchTypeChange={handleSearchTypeChange}
-                fuzziness={currentFuzziness}
+                fuzziness={fuzziness}
                 onFuzzinessChange={handleFuzzinessChange}
-                sort={currentSort}
+                sort={sort}
                 onSortChange={handleSortChange}
-                dateRange={currentDateRange}
+                dateRange={dateRange}
                 onDateRangeChange={handleDateRangeChange}
-                start={currentStart}
-                end={currentEnd}
+                start={start}
+                end={end}
                 onCustomDateRangeChange={handleCustomDateRangeChange}
               />
             ) : null}
@@ -380,10 +355,10 @@ export default function Search({
             placeholder={placeholder}
             queryParams={queryParams}
             setQueryParams={setQueryParams}
-            searchType={currentSearchType}
+            searchType={search_type}
             onSearchTypeChange={handleSearchTypeChange}
-            fuzziness={currentFuzziness}
-            sort={currentSort}
+            fuzziness={fuzziness}
+            sort={sort}
             onSearch={handleSearch}
             onSuggestion={onSuggestion}
             filterFieldsMeta={filterFieldsMeta}
@@ -404,8 +379,8 @@ export default function Search({
               }
               handleSearch({
                 ...queryParams,
-                fuzziness: currentFuzziness,
-                sort: currentSort,
+                fuzziness,
+                sort,
                 'metadata.content_category': category !== 'all' ? category : '',
               }, false, shouldAgg);
             }}
@@ -467,16 +442,16 @@ export default function Search({
           setRecommendsCollapse={setRecommendsCollapse}
           toolbar={toolbarVisible ? (
             <Toolbar
-              searchType={currentSearchType}
+              searchType={search_type}
               onSearchTypeChange={handleSearchTypeChange}
-              fuzziness={currentFuzziness}
+              fuzziness={fuzziness}
               onFuzzinessChange={handleFuzzinessChange}
-              sort={currentSort}
+              sort={sort}
               onSortChange={handleSortChange}
-              dateRange={currentDateRange}
+              dateRange={dateRange}
               onDateRangeChange={handleDateRangeChange}
-              start={currentStart}
-              end={currentEnd}
+              start={start}
+              end={end}
               onCustomDateRangeChange={handleCustomDateRangeChange}
             />
           ) : null}
@@ -490,10 +465,10 @@ export default function Search({
           placeholder={placeholder}
           queryParams={queryParams}
           setQueryParams={setQueryParams}
-          searchType={currentSearchType}
+          searchType={search_type}
           onSearchTypeChange={handleSearchTypeChange}
-          fuzziness={currentFuzziness}
-          sort={currentSort}
+          fuzziness={fuzziness}
+          sort={sort}
           onSearch={handleSearch}
           onSuggestion={onSuggestion}
           onUpload={onUpload}
@@ -514,8 +489,8 @@ export default function Search({
             }
             handleSearch({
               ...queryParams,
-              fuzziness: currentFuzziness,
-              sort: currentSort,
+              fuzziness,
+              sort,
               'metadata.content_category': category !== 'all' ? category : '',
             }, false, shouldAgg);
           }}

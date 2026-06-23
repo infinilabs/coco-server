@@ -1,7 +1,7 @@
 import { Button, DatePicker, Dropdown, Popover, Slider, Space, Tooltip } from "antd";
 import { BrushCleaning, Calendar, ChevronDown, ChevronRight, Crosshair, Heading, RotateCw } from "lucide-react";
 import { useTranslation } from 'react-i18next';
-import { type FC, useRef, useState } from "react";
+import { type FC, useEffect, useRef, useState } from "react";
 import ExchangeIcon from "../icons/Exchange";
 import { ACTION_TYPE_SEARCH_HYBRID, ACTION_TYPE_SEARCH_KEYWORD, ACTION_TYPE_SEARCH_SEMANTIC, DEFAULT_SEARCH_FUZZINESS, DEFAULT_SEARCH_SORT, MAX_SEARCH_FUZZINESS, MIN_SEARCH_FUZZINESS, SORT_BEST_MATCH, SORT_CREATED_ASC, SORT_CREATED_DESC, SORT_UPDATED_DESC } from "../SearchBox/ActionBar/SearchActions";
 
@@ -37,7 +37,12 @@ export const Toolbar: FC<ToolbarProps> = ({
   const [dateDropdownOpen, setDateDropdownOpen] = useState(false);
   const [filterPopoverOpen, setFilterPopoverOpen] = useState(false);
   const [filterDateRange, setFilterDateRange] = useState<any>(null);
+  const [localFuzziness, setLocalFuzziness] = useState(fuzziness);
   const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setLocalFuzziness(fuzziness);
+  }, [fuzziness]);
 
   const searchTypeItems = [
     {
@@ -73,6 +78,12 @@ export const Toolbar: FC<ToolbarProps> = ({
   ];
 
   const handleFuzzinessChange = (value: number | number[]) => {
+    if (typeof value === 'number') {
+      setLocalFuzziness(value);
+    }
+  };
+
+  const handleFuzzinessChangeComplete = (value: number | number[]) => {
     if (typeof value === 'number') {
       onFuzzinessChange?.(value);
     }
@@ -164,7 +175,6 @@ export const Toolbar: FC<ToolbarProps> = ({
           color="default"
           variant="link"
           className="!leading-none !h-18px !p-0 text-12px text-[#666] dark:text-[#999] flex items-center justify-center"
-          onClick={() => onFuzzinessChange?.(DEFAULT_SEARCH_FUZZINESS)}
         >
           <Space size={4}>
             <Heading className="w-16px h-16px text-16px" />
@@ -185,8 +195,9 @@ export const Toolbar: FC<ToolbarProps> = ({
           min={MIN_SEARCH_FUZZINESS}
           max={MAX_SEARCH_FUZZINESS}
           step={1}
-          value={fuzziness}
+          value={localFuzziness}
           onChange={handleFuzzinessChange}
+          onChangeComplete={handleFuzzinessChangeComplete}
         />
         <Button
           color="default"
@@ -227,7 +238,6 @@ export const Toolbar: FC<ToolbarProps> = ({
             }
             onDateRangeChange?.(key);
             setFilterDateRange(null);
-            onCustomDateRangeChange?.({});
             setFilterPopoverOpen(false);
             setDateDropdownOpen(false);
           },

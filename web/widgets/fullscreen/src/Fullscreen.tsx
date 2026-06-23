@@ -136,7 +136,7 @@ export default function Fullscreen(props: FullscreenProps) {
         }
     }
 
-    function search(query: AnyRecord, callback: DataCallback, setLoading?: LoadingSetter, _shouldAgg = true) {
+    function search(query: AnyRecord, callback: DataCallback, setLoading?: LoadingSetter) {
         if (setLoading) setLoading(true)
         const { filter = {}, start, end, ...rest } = query
         const filterStr = buildFilterString(filter)
@@ -149,6 +149,17 @@ export default function Fullscreen(props: FullscreenProps) {
             method: 'POST',
             headers: apiHeaders,
             credentials: 'include',
+            body: JSON.stringify({
+                "aggs": {
+                    "counts": {
+                        "auto_date_histogram": {
+                            "field": "updated",
+                            "buckets": 120,
+                            "time_zone": "Asia/Shanghai"
+                        }
+                    }
+                }
+            })
         })
             .then(response => {
                 if (!response.ok) throw new Error('response was not ok');
@@ -467,8 +478,8 @@ export default function Fullscreen(props: FullscreenProps) {
             ...(payload?.ai_overview || {}),
             "showActions": true,
         },
-        "onSearch": (query: AnyRecord, callback: DataCallback, setLoading?: LoadingSetter, shouldAgg = true) => {
-            search(query, callback, setLoading, shouldAgg)
+        "onSearch": (query: AnyRecord, callback: DataCallback, setLoading?: LoadingSetter) => {
+            search(query, callback, setLoading)
         },
         "onAggregation": (query: AnyRecord, callback: DataCallback, setLoading?: LoadingSetter) => {
             aggregate(query, callback, setLoading)

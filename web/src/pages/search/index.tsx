@@ -156,7 +156,17 @@ export function Component() {
     ].filter(Boolean).join('&')
     const searchStr = [filterStr, dateFilterStr, queryString.stringify(rest)].filter(Boolean).join('&')
     const headers = { 'APP-INTEGRATION-ID': search_settings?.integration }
-    const res = await querySearch({}, searchStr, { headers, ignoreError: true })
+    const res = await querySearch({
+      "aggs": {
+        "counts": {
+          "auto_date_histogram": {
+            "field":"updated",
+            "buckets":120,
+            "time_zone":"Asia/Shanghai"
+          }
+        }
+      }
+    }, searchStr, { headers, ignoreError: true })
     if (callback) callback(res.data)
     if (setLoading) setLoading(false)
   }

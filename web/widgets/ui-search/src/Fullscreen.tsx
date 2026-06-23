@@ -99,6 +99,7 @@ const Fullscreen = (props: FullscreenProps) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const getContainer = useCallback(() => containerRef.current, []);
   const [result, setResult] = useState(formatESResult());
+  const [aggregationResult, setAggregationResult] = useState<ReturnType<typeof formatESResult>['aggregations']>([]);
   const [askBody, setAskBody] = useState<any>();
   const [loading, setLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -150,8 +151,9 @@ const Fullscreen = (props: FullscreenProps) => {
       ...(shouldAgg ? { aggfilter: {} } : {}),
       t: new Date().valueOf()
     };
-    if (!nextQueryParams.dateRange || nextQueryParams.dateRange === 'all-time') {
-      delete nextQueryParams.dateRange;
+    delete nextQueryParams.dateRange;
+    if (!nextQueryParams.date_range || nextQueryParams.date_range === 'all-time') {
+      delete nextQueryParams.date_range;
     }
     if (!nextQueryParams.start) {
       delete nextQueryParams.start;
@@ -185,6 +187,7 @@ const Fullscreen = (props: FullscreenProps) => {
     setData([]);
     setHasMore(false);
     setResult(formatESResult());
+    setAggregationResult([]);
   }, []);
 
   useEffect(() => {
@@ -195,10 +198,10 @@ const Fullscreen = (props: FullscreenProps) => {
     loadLock.current = true;
     setLoading(true);
 
-    const { t, dateRange, start, end, filter = {}, aggfilter = {}, ...rest } = queryParams;
+    const { t, date_range, start, end, filter = {}, aggfilter = {}, ...rest } = queryParams;
     const fuzziness = normalizeSearchFuzziness(queryParams?.fuzziness);
     const sort = normalizeSearchSort(queryParams?.sort);
-    const dateRangeParams = start && end ? { start: formatDateRangeParam(start), end: formatDateRangeParam(end) } : getDateRangeParams(dateRange);
+    const dateRangeParams = start && end ? { start: formatDateRangeParam(start), end: formatDateRangeParam(end) } : getDateRangeParams(date_range);
     const filterWithoutAgg = {
       ...filter,
       'metadata.content_category': queryParams['metadata.content_category'] && queryParams['metadata.content_category'] !== 'all' ? [queryParams['metadata.content_category']] : undefined,
@@ -234,10 +237,7 @@ const Fullscreen = (props: FullscreenProps) => {
           if (res && !res.error) {
             res = normalizeCoverIconUrl(res, apiConfig?.BaseUrl);
             rs = formatESResult(res);
-            setResult(os => ({
-              ...rs,
-              aggregations: res?.aggregations ? rs.aggregations : os.aggregations
-            }));
+            setResult(rs);
 
             const newData = isScroll ? [...data, ...(rs.hits?.hits || [])] : rs.hits?.hits || [];
             setData(newData);
@@ -282,10 +282,7 @@ const Fullscreen = (props: FullscreenProps) => {
         let validatedAggfilter: Record<string, any> = {};
         if (res && !res.error) {
           const rs = formatESResult(res);
-          setResult(os => ({
-            ...os,
-            aggregations: res?.aggregations ? rs.aggregations : os.aggregations
-          }));
+          setAggregationResult(rs.aggregations || []);
           // Validate aggfilter values against actual aggregation results
           if (!isEmpty(aggfilter)) {
             const aggKeys = new Map<string, Set<string>>();
@@ -337,7 +334,7 @@ const Fullscreen = (props: FullscreenProps) => {
   const { query, filter, aggfilter, filters = [] } = queryParams;
 
   const commonProps = { isMobile, theme, apiConfig, language, getUserEntities };
-  const { hits, aggregations } = result;
+  const { hits } = result;
 
   const handleLogoClick = () => {
     setQueryParams?.({
@@ -350,6 +347,7 @@ const Fullscreen = (props: FullscreenProps) => {
     });
     setData([]);
     setHasMore(false);
+    setAggregationResult([]);
     resetScroll();
     isHomeSearchRef.current = true;
     if (onLogoClick) onLogoClick();
@@ -424,7 +422,7 @@ const Fullscreen = (props: FullscreenProps) => {
 
   return (
     <Search
-      aggregations={aggregations}
+      aggregations={aggregationResult}
       aiOverview={aiOverview}
       askBody={askBody}
       commonProps={commonProps}
