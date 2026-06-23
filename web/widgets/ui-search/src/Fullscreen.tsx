@@ -9,12 +9,11 @@ import Search from "./pages/Search";
 import { ACTION_TYPE_SEARCH_KEYWORD, DEFAULT_SEARCH_SORT, normalizeSearchFuzziness, normalizeSearchSort } from "./SearchBox/ActionBar/SearchActions";
 import Chat from "./pages/Chat";
 
-const DATE_RANGE_PARAM_FORMAT = 'YYYY-MM-DD[T]HH:mm:ss.SSSZ';
+const formatDateRangeParam = (value: number | string) => {
+  const timestamp = typeof value === 'number' ? value : Number(value);
+  const date = Number.isFinite(timestamp) ? dayjs(timestamp) : dayjs(value);
 
-const formatDateRangeParam = (value: string) => {
-  const date = dayjs(value);
-
-  return date.isValid() ? date.format(DATE_RANGE_PARAM_FORMAT) : value;
+  return date.isValid() ? date.valueOf() : value;
 };
 
 const getDateRangeParams = (dateRange?: string) => {
@@ -22,22 +21,22 @@ const getDateRangeParams = (dateRange?: string) => {
 
   if (dateRange === '7d') {
     return {
-      start: now.subtract(7, 'day').format(DATE_RANGE_PARAM_FORMAT),
-      end: now.format(DATE_RANGE_PARAM_FORMAT),
+      start: now.subtract(7, 'day').valueOf(),
+      end: now.valueOf(),
     };
   }
 
   if (dateRange === '90d') {
     return {
-      start: now.subtract(90, 'day').format(DATE_RANGE_PARAM_FORMAT),
-      end: now.format(DATE_RANGE_PARAM_FORMAT),
+      start: now.subtract(90, 'day').valueOf(),
+      end: now.valueOf(),
     };
   }
 
   if (dateRange === '1y') {
     return {
-      start: now.subtract(1, 'year').format(DATE_RANGE_PARAM_FORMAT),
-      end: now.format(DATE_RANGE_PARAM_FORMAT),
+      start: now.subtract(1, 'year').valueOf(),
+      end: now.valueOf(),
     };
   }
 

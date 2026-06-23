@@ -89,8 +89,8 @@ export default function Search({
   const fuzziness = normalizeSearchFuzziness(queryParams?.fuzziness);
   const sort = normalizeSearchSort(queryParams?.sort || DEFAULT_SEARCH_SORT);
   const dateRange = typeof queryParams?.date_range === 'string' ? queryParams.date_range : 'all-time';
-  const start = typeof queryParams?.start === 'string' ? queryParams.start : undefined;
-  const end = typeof queryParams?.end === 'string' ? queryParams.end : undefined;
+  const start = typeof queryParams?.start === 'string' || typeof queryParams?.start === 'number' ? String(queryParams.start) : undefined;
+  const end = typeof queryParams?.end === 'string' || typeof queryParams?.end === 'number' ? String(queryParams.end) : undefined;
   const content_category = queryParams?.['metadata.content_category']
   const [siderCollapse, setSiderCollapse] = useState(true)
   const [detailCollapse, setDetailCollapse] = useState(true)
@@ -143,7 +143,7 @@ export default function Search({
 
   const handleSortChange = useCallback((value: string) => {
     const nextSort = normalizeSearchSort(value);
-    handleSearch({ ...(queryParams || {}), sort: nextSort, from: 0 }, false, false);
+    handleSearch({ ...(queryParams || {}), sort: nextSort, from: 0 }, false, true);
   }, [handleSearch, queryParams]);
 
   const handleDateRangeChange = useCallback((value: string) => {

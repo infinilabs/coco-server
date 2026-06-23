@@ -1,4 +1,5 @@
 import { Button, DatePicker, Dropdown, Popover, Slider, Space, Tooltip } from "antd";
+import dayjs, { type Dayjs } from "dayjs";
 import { BrushCleaning, Calendar, ChevronDown, ChevronRight, Crosshair, Heading, RotateCw } from "lucide-react";
 import { useTranslation } from 'react-i18next';
 import { type FC, useEffect, useRef, useState } from "react";
@@ -19,6 +20,15 @@ interface ToolbarProps {
   onCustomDateRangeChange?: (range: { start?: string; end?: string }) => void;
 }
 
+const parseDatePickerValue = (value?: number | string) => {
+  if (value === undefined || value === null || value === '') return null;
+
+  const timestamp = typeof value === 'number' ? value : Number(value);
+  const date = Number.isFinite(timestamp) ? dayjs(timestamp) : dayjs(value);
+
+  return date.isValid() ? date : null;
+};
+
 export const Toolbar: FC<ToolbarProps> = ({
   searchType = ACTION_TYPE_SEARCH_KEYWORD,
   onSearchTypeChange,
@@ -36,13 +46,20 @@ export const Toolbar: FC<ToolbarProps> = ({
   const [sortKey] = sort.split(',');
   const [dateDropdownOpen, setDateDropdownOpen] = useState(false);
   const [filterPopoverOpen, setFilterPopoverOpen] = useState(false);
-  const [filterDateRange, setFilterDateRange] = useState<any>(null);
+  const [filterDateRange, setFilterDateRange] = useState<[Dayjs, Dayjs] | null>(null);
   const [localFuzziness, setLocalFuzziness] = useState(fuzziness);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setLocalFuzziness(fuzziness);
   }, [fuzziness]);
+
+  useEffect(() => {
+    const startDate = parseDatePickerValue(start);
+    const endDate = parseDatePickerValue(end);
+
+    setFilterDateRange(startDate && endDate ? [startDate, endDate] : null);
+  }, [start, end]);
 
   const searchTypeItems = [
     {
@@ -126,9 +143,11 @@ export const Toolbar: FC<ToolbarProps> = ({
     },
   ];
 
-  const hasCustomDateRange = Boolean(start && end);
+  const customStartDate = parseDatePickerValue(start);
+  const customEndDate = parseDatePickerValue(end);
+  const hasCustomDateRange = Boolean(customStartDate && customEndDate);
   const dateRangeLabel = hasCustomDateRange ? t('labels.custom') : dateMenuItems.find((item) => item.key === dateRange)?.label || t('labels.allTime');
-  const dateRangeTooltip = hasCustomDateRange ? `${start} - ${end}` : undefined;
+  const dateRangeTooltip = customStartDate && customEndDate ? `${customStartDate.format('YYYY/MM/DD')} - ${customEndDate.format('YYYY/MM/DD')}` : undefined;
 
   const filterPopoverContent = (
     <div className="w-320px text-14px text-[#666] dark:text-[#999]">
@@ -154,11 +173,13 @@ export const Toolbar: FC<ToolbarProps> = ({
         placeholder={[t("labels.selectDateRange"), t("labels.selectDateRange")]}
         getPopupContainer={getPopupContainer}
         format="YYYY/MM/DD"
-        onChange={(value, dateStrings) => {
-          setFilterDateRange(value);
+        onChange={(value) => {
+          const nextRange = value?.[0] && value?.[1] ? [value[0], value[1]] as [Dayjs, Dayjs] : null;
+
+          setFilterDateRange(nextRange);
           onCustomDateRangeChange?.({
-            start: dateStrings[0] || undefined,
-            end: dateStrings[1] || undefined,
+            start: nextRange ? String(nextRange[0].valueOf()) : undefined,
+            end: nextRange ? String(nextRange[1].valueOf()) : undefined,
           });
         }}
       />
