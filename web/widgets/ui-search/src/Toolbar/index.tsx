@@ -219,6 +219,9 @@ export const Toolbar: FC<ToolbarProps> = ({
           value={localFuzziness}
           onChange={handleFuzzinessChange}
           onChangeComplete={handleFuzzinessChangeComplete}
+          tooltip={{
+            getPopupContainer: getPopupContainer,
+          }}
         />
         <Button
           color="default"
