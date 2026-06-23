@@ -46,7 +46,6 @@ export function SearchBox(props: SearchBoxProps) {
     setAttachments,
     settings,
     searchType,
-    onSearchTypeChange,
     fuzziness,
     sort
   } = props;
@@ -60,11 +59,14 @@ export function SearchBox(props: SearchBoxProps) {
     setAttachments
   });
   const filtersRef = useRef<any>(null);
+  const lastSearchTypeRef = useRef(searchType);
 
   useEffect(() => {
-    if (!searchType || searchType === sb.search_type) return;
+    if (searchType === lastSearchTypeRef.current) return;
+    lastSearchTypeRef.current = searchType;
+    if (!searchType) return;
     sb.handleQueryParamsChange('search_type', searchType);
-  }, [searchType, sb.search_type, sb.handleQueryParamsChange]);
+  }, [searchType, sb.handleQueryParamsChange]);
 
   useEffect(() => {
     if (typeof fuzziness !== 'number' || fuzziness === sb.fuzziness) return;
@@ -78,10 +80,9 @@ export function SearchBox(props: SearchBoxProps) {
 
   const handleSearchTypeChange = useCallback((type: string) => {
     sb.handleQueryParamsChange('search_type', type);
-    onSearchTypeChange?.(type);
-  }, [onSearchTypeChange, sb.handleQueryParamsChange]);
+  }, [sb.handleQueryParamsChange]);
 
-  const effectiveSearchType = searchType || sb.search_type;
+  const effectiveSearchType = sb.search_type || searchType;
   const effectiveFuzziness = normalizeSearchFuzziness(typeof fuzziness === 'number' ? fuzziness : sb.fuzziness || DEFAULT_SEARCH_FUZZINESS);
   const effectiveSort = normalizeSearchSort(sort || sb.sort || DEFAULT_SEARCH_SORT);
 

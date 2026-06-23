@@ -101,7 +101,11 @@ const AIOverviewWrapper = (props: AIOverviewWrapperProps) => {
   };
 
   useEffect(() => {
-    handleAsk(askBody?.message, config);
+    if (askBody?.message) {
+      handleAsk(askBody?.message, config);
+    } else {
+      setData(undefined);
+    }
   }, [askBody?.message, askBody?.t, JSON.stringify(config)]);
 
   useEffect(() => {

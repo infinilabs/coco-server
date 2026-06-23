@@ -1,4 +1,4 @@
-import { Button, DatePicker, Dropdown, Popover, Slider, Space, Tooltip } from "antd";
+import { Button, DatePicker, Dropdown, Popover, Slider, Space } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
 import { BrushCleaning, Calendar, ChevronDown, ChevronRight, Crosshair, Heading, RotateCw } from "lucide-react";
 import { useTranslation } from 'react-i18next';
@@ -147,7 +147,7 @@ export const Toolbar: FC<ToolbarProps> = ({
   const customEndDate = parseDatePickerValue(end);
   const hasCustomDateRange = Boolean(customStartDate && customEndDate);
   const dateRangeLabel = hasCustomDateRange ? t('labels.custom') : dateMenuItems.find((item) => item.key === dateRange)?.label || t('labels.allTime');
-  const dateRangeTooltip = customStartDate && customEndDate ? `${customStartDate.format('YYYY/MM/DD')} - ${customEndDate.format('YYYY/MM/DD')}` : undefined;
+  const startAndEndLabel = customStartDate && customEndDate ? `${customStartDate.format('YYYY/MM/DD')} - ${customEndDate.format('YYYY/MM/DD')}` : undefined;
 
   const filterPopoverContent = (
     <div className="w-320px text-14px text-[#666] dark:text-[#999]">
@@ -263,6 +263,12 @@ export const Toolbar: FC<ToolbarProps> = ({
             setDateDropdownOpen(false);
           },
         }}
+        styles={{
+          root: {
+            width: 'max-content',
+            minWidth: 'max-content',
+          },
+        }}
       >
         <Popover
           getPopupContainer={getPopupContainer}
@@ -280,19 +286,17 @@ export const Toolbar: FC<ToolbarProps> = ({
             container: "!p-16px"
           }}
         >
-          <Tooltip getPopupContainer={getPopupContainer} title={dateRangeTooltip} open={dateRangeTooltip ? undefined : false}>
-            <Button
-              color="default"
-              variant="link"
-              className="!leading-none !h-18px !p-0 text-12px text-[#666] dark:text-[#999] flex items-center justify-center"
-            >
-              <Space size={4}>
-                <Calendar className="w-16px h-16px text-16px" />
-                {dateRangeLabel}
-                <ChevronDown className="w-16px h-16px text-16px" />
-              </Space>
-            </Button>
-          </Tooltip>
+          <Button
+            color="default"
+            variant="link"
+            className="!leading-none !h-18px !p-0 text-12px text-[#666] dark:text-[#999] flex items-center justify-center"
+          >
+            <Space size={4}>
+              <Calendar className="w-16px h-16px text-16px" />
+              {startAndEndLabel || dateRangeLabel}
+              <ChevronDown className="w-16px h-16px text-16px" />
+            </Space>
+          </Button>
         </Popover>
       </Dropdown>
     </div>

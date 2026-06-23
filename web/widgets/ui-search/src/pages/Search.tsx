@@ -133,25 +133,25 @@ export default function Search({
   }, [onSearch, queryParams?.date_range, queryParams?.end, queryParams?.start]);
 
   const handleSearchTypeChange = useCallback((type: string) => {
-    handleSearch({ ...(queryParams || {}), search_type: type, from: 0 }, false, true);
+    handleSearch({ ...(queryParams || {}), search_type: type, from: 0 }, true, true);
   }, [handleSearch, queryParams]);
 
   const handleFuzzinessChange = useCallback((value: number) => {
     const nextFuzziness = normalizeSearchFuzziness(value);
-    handleSearch({ ...(queryParams || {}), fuzziness: nextFuzziness, from: 0 }, false, true);
+    handleSearch({ ...(queryParams || {}), fuzziness: nextFuzziness, from: 0 }, true, true);
   }, [handleSearch, queryParams]);
 
   const handleSortChange = useCallback((value: string) => {
     const nextSort = normalizeSearchSort(value);
-    handleSearch({ ...(queryParams || {}), sort: nextSort, from: 0 }, false, true);
+    handleSearch({ ...(queryParams || {}), sort: nextSort, from: 0 }, true, true);
   }, [handleSearch, queryParams]);
 
   const handleDateRangeChange = useCallback((value: string) => {
-    handleSearch({ ...(queryParams || {}), date_range: value, start: undefined, end: undefined, from: 0 }, false, true);
+    handleSearch({ ...(queryParams || {}), date_range: value, start: undefined, end: undefined, from: 0 }, true, true);
   }, [handleSearch, queryParams]);
 
   const handleCustomDateRangeChange = useCallback((range: { start?: string; end?: string }) => {
-    handleSearch({ ...(queryParams || {}), start: range.start, end: range.end, date_range: undefined, from: 0 }, false, true);
+    handleSearch({ ...(queryParams || {}), start: range.start, end: range.end, date_range: undefined, from: 0 }, true, true);
   }, [handleSearch, queryParams]);
 
   const listType = useMemo(() => {
@@ -374,6 +374,7 @@ export default function Search({
             onChange={category => {
               onCategoryChange?.();
               let shouldAgg = false;
+              let shouldAsk = category !== 'image';
               if (category !== content_category) {
                 shouldAgg = true;
               }
@@ -382,7 +383,7 @@ export default function Search({
                 fuzziness,
                 sort,
                 'metadata.content_category': category !== 'all' ? category : '',
-              }, false, shouldAgg);
+              }, shouldAsk, shouldAgg);
             }}
           />
         }
@@ -483,7 +484,8 @@ export default function Search({
           category={content_category}
           onChange={category => {
             onCategoryChange?.();
-            let shouldAgg = false
+            let shouldAgg = false;
+            let shouldAsk = category !== 'image';
             if (category !== content_category) {
               shouldAgg = true
             }
@@ -492,7 +494,7 @@ export default function Search({
               fuzziness,
               sort,
               'metadata.content_category': category !== 'all' ? category : '',
-            }, false, shouldAgg);
+            }, shouldAsk, shouldAgg);
           }}
         />
       }

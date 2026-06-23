@@ -134,9 +134,9 @@ const Fullscreen = (props: FullscreenProps) => {
     }
   };
 
-  const handleSearch = (queryParams: Record<string, any>, shouldAsk: boolean, shouldAgg: boolean, isScroll = false) => {
-    const fuzziness = normalizeSearchFuzziness(queryParams?.fuzziness);
-    const sort = normalizeSearchSort(queryParams?.sort);
+  const handleSearch = (params: Record<string, any>, shouldAsk: boolean, shouldAgg: boolean, isScroll = false) => {
+    const fuzziness = normalizeSearchFuzziness(params?.fuzziness);
+    const sort = normalizeSearchSort(params?.sort);
     shouldAskRef.current = shouldAsk;
     shouldAggRef.current = shouldAgg;
     if (!isScroll) {
@@ -144,7 +144,7 @@ const Fullscreen = (props: FullscreenProps) => {
       isHomeSearchRef.current = true;
     }
     const nextQueryParams: Record<string, any> = {
-      ...queryParams,
+      ...params,
       fuzziness,
       sort,
       ...(shouldAgg ? { aggfilter: {} } : {}),
@@ -254,10 +254,10 @@ const Fullscreen = (props: FullscreenProps) => {
           if (shouldAskRef.current) {
             shouldAskRef.current = false;
             setAskBody({
-              message: JSON.stringify({
+              message: rs?.hits?.hits?.length > 0 ? JSON.stringify({
                 query: queryParams.query,
                 result: rs?.hits
-              }),
+              }) : '',
               t: new Date().valueOf()
             });
           }

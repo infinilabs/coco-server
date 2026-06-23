@@ -177,7 +177,7 @@ export function AIAnswer({
               content ? (
                 <Markdown content={content} dark={theme === "dark"} />
               ) : (
-                <span className="text-[#999] dark:text-[#666]">{t("labels.emptyResult")}</span>
+                <span className="text-[#999] dark:text-[#666]">{t("labels.emptyAIAnswer")}</span>
               )
             )
           }
