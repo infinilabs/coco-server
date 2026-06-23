@@ -307,6 +307,8 @@ const Fullscreen = (props: FullscreenProps) => {
               return;
             }
           }
+        } else {
+          setAggregationResult([]);
         }
         doSearch(validatedAggfilter);
       });
