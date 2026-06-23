@@ -292,16 +292,105 @@ export default function Search({
     })
   }, [JSON.stringify(filter)])
 
+  const toolbar = toolbarVisible ? (
+    <Toolbar
+      searchType={search_type}
+      onSearchTypeChange={handleSearchTypeChange}
+      fuzziness={fuzziness}
+      onFuzzinessChange={handleFuzzinessChange}
+      sort={sort}
+      onSortChange={handleSortChange}
+      dateRange={dateRange}
+      onDateRangeChange={handleDateRangeChange}
+      start={start}
+      end={end}
+      onCustomDateRangeChange={handleCustomDateRangeChange}
+    />
+  ) : null;
+
+  const layoutCommonProps = {
+    ...commonProps,
+    getContainer,
+    initContainer,
+    loading: showFullScreenSpin,
+    rightMenuWidth,
+    siderCollapse,
+    setSiderCollapse,
+    logo: (
+      <Logo
+        onLogoClick={handleLogoClick}
+        {...commonProps}
+        {...logo}
+      />
+    ),
+    resultHeader: (
+      <ResultHeader
+        {...commonProps}
+        hits={hits}
+        hasAggregations={aggregations?.length > 0}
+        siderCollapse={siderCollapse}
+        setSiderCollapse={setSiderCollapse}
+        recommendsCollapse={recommendsCollapse}
+        setRecommendsCollapse={setRecommendsCollapse}
+        toolbar={toolbar}
+      />
+    ),
+    resultList,
+    searchbox: (
+      <SearchBox
+        {...commonProps}
+        minimize={true}
+        placeholder={placeholder}
+        queryParams={queryParams}
+        setQueryParams={setQueryParams}
+        searchType={search_type}
+        onSearchTypeChange={handleSearchTypeChange}
+        fuzziness={fuzziness}
+        sort={sort}
+        onSearch={handleSearch}
+        onSuggestion={onSuggestion}
+        onUpload={onUpload}
+        filterFieldsMeta={filterFieldsMeta}
+        attachments={attachments}
+        setAttachments={setAttachments}
+        settings={settings}
+      />
+    ),
+    tabs: (
+      <Categories
+        category={content_category}
+        onChange={category => {
+          onCategoryChange?.();
+          let shouldAgg = false;
+          let shouldAsk = category !== 'image';
+          if (category !== content_category) {
+            shouldAgg = true;
+          }
+          handleSearch({
+            ...queryParams,
+            fuzziness,
+            sort,
+            'metadata.content_category': category !== 'all' ? category : '',
+          }, shouldAsk, shouldAgg);
+        }}
+      />
+    ),
+    tools: (
+      <Button
+        className={`px-0 ${toolbarVisible ? 'text-[var(--ant-color-primary)]' : 'text-[#333] dark:text-[#E5E7EB]'}`}
+        color="default"
+        variant="link"
+        onClick={() => setToolbarVisible((visible) => !visible)}
+      >
+        <FilterIcon size={16}/>
+      </Button>
+    )
+  };
+
   if (listType?.type === 'image') {
     return (
       <MediaLayout
-        {...commonProps}
-        getContainer={getContainer}
-        initContainer={initContainer}
-        loading={showFullScreenSpin}
-        rightMenuWidth={rightMenuWidth}
-        siderCollapse={siderCollapse}
-        setSiderCollapse={setSiderCollapse}
+        {...layoutCommonProps}
         detailCollapse={detailCollapse}
         aggregations={
           aggregations?.length > 0 ? (
@@ -314,92 +403,13 @@ export default function Search({
             />
           ) : null
         }
-        logo={
-          <Logo
-            onLogoClick={handleLogoClick}
-            {...commonProps}
-            {...logo}
-          />
-        }
-        resultHeader={
-          <ResultHeader
-            {...commonProps}
-            hits={hits}
-            hasAggregations={aggregations?.length > 0}
-            siderCollapse={siderCollapse}
-            setSiderCollapse={setSiderCollapse}
-            recommendsCollapse={recommendsCollapse}
-            setRecommendsCollapse={setRecommendsCollapse}
-            toolbar={toolbarVisible ? (
-              <Toolbar
-                searchType={search_type}
-                onSearchTypeChange={handleSearchTypeChange}
-                fuzziness={fuzziness}
-                onFuzzinessChange={handleFuzzinessChange}
-                sort={sort}
-                onSortChange={handleSortChange}
-                dateRange={dateRange}
-                onDateRangeChange={handleDateRangeChange}
-                start={start}
-                end={end}
-                onCustomDateRangeChange={handleCustomDateRangeChange}
-              />
-            ) : null}
-          />
-        }
-        resultList={resultList}
-        searchbox={
-          <SearchBox
-            {...commonProps}
-            minimize={true}
-            placeholder={placeholder}
-            queryParams={queryParams}
-            setQueryParams={setQueryParams}
-            searchType={search_type}
-            onSearchTypeChange={handleSearchTypeChange}
-            fuzziness={fuzziness}
-            sort={sort}
-            onSearch={handleSearch}
-            onSuggestion={onSuggestion}
-            filterFieldsMeta={filterFieldsMeta}
-            onUpload={onUpload}
-            attachments={attachments}
-            setAttachments={setAttachments}
-            settings={settings}
-          />
-        }
-        tabs={
-          <Categories
-            category={content_category}
-            onChange={category => {
-              onCategoryChange?.();
-              let shouldAgg = false;
-              let shouldAsk = category !== 'image';
-              if (category !== content_category) {
-                shouldAgg = true;
-              }
-              handleSearch({
-                ...queryParams,
-                fuzziness,
-                sort,
-                'metadata.content_category': category !== 'all' ? category : '',
-              }, shouldAsk, shouldAgg);
-            }}
-          />
-        }
       />
     );
   }
 
   return (
     <BasicLayout
-      {...commonProps}
-      getContainer={getContainer}
-      initContainer={initContainer}
-      loading={showFullScreenSpin}
-      rightMenuWidth={rightMenuWidth}
-      siderCollapse={siderCollapse}
-      setSiderCollapse={setSiderCollapse}
+      {...layoutCommonProps}
       recommendsCollapse={recommendsCollapse}
       setRecommendsCollapse={setRecommendsCollapse}
       aggregations={
@@ -424,89 +434,6 @@ export default function Search({
             requestHeaders={commonProps?.apiConfig?.headers}
           />
         ) : null
-      }
-      logo={
-        <Logo
-          onLogoClick={handleLogoClick}
-          {...commonProps}
-          {...logo}
-        />
-      }
-      resultHeader={
-        <ResultHeader
-          {...commonProps}
-          hits={hits}
-          siderCollapse={siderCollapse}
-          hasAggregations={aggregations?.length > 0}
-          setSiderCollapse={setSiderCollapse}
-          recommendsCollapse={recommendsCollapse}
-          setRecommendsCollapse={setRecommendsCollapse}
-          toolbar={toolbarVisible ? (
-            <Toolbar
-              searchType={search_type}
-              onSearchTypeChange={handleSearchTypeChange}
-              fuzziness={fuzziness}
-              onFuzzinessChange={handleFuzzinessChange}
-              sort={sort}
-              onSortChange={handleSortChange}
-              dateRange={dateRange}
-              onDateRangeChange={handleDateRangeChange}
-              start={start}
-              end={end}
-              onCustomDateRangeChange={handleCustomDateRangeChange}
-            />
-          ) : null}
-        />
-      }
-      resultList={resultList}
-      searchbox={
-        <SearchBox
-          {...commonProps}
-          minimize={true}
-          placeholder={placeholder}
-          queryParams={queryParams}
-          setQueryParams={setQueryParams}
-          searchType={search_type}
-          onSearchTypeChange={handleSearchTypeChange}
-          fuzziness={fuzziness}
-          sort={sort}
-          onSearch={handleSearch}
-          onSuggestion={onSuggestion}
-          onUpload={onUpload}
-          filterFieldsMeta={filterFieldsMeta}
-          attachments={attachments}
-          setAttachments={setAttachments}
-          settings={settings}
-        />
-      }
-      tabs={
-        <Categories
-          category={content_category}
-          onChange={category => {
-            onCategoryChange?.();
-            let shouldAgg = false;
-            let shouldAsk = category !== 'image';
-            if (category !== content_category) {
-              shouldAgg = true
-            }
-            handleSearch({
-              ...queryParams,
-              fuzziness,
-              sort,
-              'metadata.content_category': category !== 'all' ? category : '',
-            }, shouldAsk, shouldAgg);
-          }}
-        />
-      }
-      tools={
-        <Button
-          className={`px-0 ${toolbarVisible ? 'text-[var(--ant-color-primary)]' : 'text-[#333] dark:text-[#E5E7EB]'}`}
-          color="default"
-          variant="link"
-          onClick={() => setToolbarVisible((visible) => !visible)}
-        >
-          <FilterIcon size={16}/>
-        </Button>
       }
       recommends={<Recommends showTitle={true} onRecommend={(callback) => onRecommend?.("hot_topics_for_search_result", callback)} onDataLoaded={handleRecommendsDataLoaded} />}
       hasRecommendsData={hasRecommendsData}
