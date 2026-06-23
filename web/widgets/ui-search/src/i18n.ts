@@ -16,6 +16,9 @@ const resources = {
         inputPlaceholder: "Type a message...",
         fuzziness: "Fuzziness",
         bestMatch: "Best match",
+        newest: "Newest",
+        oldest: "Oldest",
+        recentlyUpdated: "Recently updated",
         pastYear: "Past year",
         backToSearch: "Back to search",
         newChat: "New Chat",
@@ -75,6 +78,16 @@ const resources = {
         timeout: "Generation Timeout",
         timeout_assistant_generation: "Assistant Generation Timeout",
         timeout_attachment_processing: "Attachment Processing Timeout",
+        allTime: "All Time",
+        past7Days: "Past 7 Days",
+        past90Days: "Past 90 Days",
+        past1year: "Past 1 Year",
+        custom: "Custom",
+        more: "More",
+        clear: "Clear",
+        updateTime: "Update Time",
+        selectDateRange: "Select Date Range",
+        filters: "Filters"
       },
       history_list: {
         search: {
@@ -260,6 +273,9 @@ const resources = {
         inputPlaceholder: "请输入问题...",
         fuzziness: "模糊程度",
         bestMatch: "最佳匹配",
+        newest: "最新创建",
+        oldest: "最早创建",
+        recentlyUpdated: "最近更新",
         pastYear: "最近一年",
         backToSearch: "返回搜索",
         newChat: "新对话",
@@ -318,6 +334,16 @@ const resources = {
         timeout: "回答超时",
         timeout_assistant_generation: "助手生成超时",
         timeout_attachment_processing: "附件处理超时",
+        allTime: "全部时间",
+        past7Days: "过去 7 天",
+        past90Days: "过去 90 天",
+        past1year: "过去 1 年",
+        custom: "自定义",
+        more: "更多",
+        clear: "清空",
+        updateTime: "更新时间",
+        selectDateRange: "选择日期范围",
+        filters: "筛选"
       },
       history_list: {
         search: {

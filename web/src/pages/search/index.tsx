@@ -148,9 +148,13 @@ export function Component() {
 
   const onSearch = async (queryParams: { [key: string]: any }, callback: (data: any) => void, setLoading: (loading: boolean) => void) => {
     if (setLoading) setLoading(true)
-    const { filter = {}, ...rest } = queryParams
+    const { filter = {}, start, end, ...rest } = queryParams
     const filterStr = Object.keys(filter).filter((key) => !!filter[key]).map((key) => `filter=${key}:any(${Array.isArray(filter[key]) ? filter[key].join(',') : filter[key]})`).join('&')
-    const searchStr = `${filterStr ? filterStr + '&' : ''}${queryString.stringify(rest)}`
+    const dateFilterStr = [
+      start ? `filter=updated>=${start}` : '',
+      end ? `filter=updated<=${end}` : '',
+    ].filter(Boolean).join('&')
+    const searchStr = [filterStr, dateFilterStr, queryString.stringify(rest)].filter(Boolean).join('&')
     const headers = { 'APP-INTEGRATION-ID': search_settings?.integration }
     const res = await querySearch({}, searchStr, { headers, ignoreError: true })
     if (callback) callback(res.data)
@@ -159,9 +163,13 @@ export function Component() {
 
   const onAggregation = async (queryParams: { [key: string]: any }, callback: (data: any) => void, setLoading: (loading: boolean) => void) => {
     if (setLoading) setLoading(true)
-    const { query, filter, search_type } = queryParams
+    const { query, filter, search_type, fuzziness, start, end } = queryParams
     const filterStr = Object.keys(filter).filter((key) => !!filter[key]).map((key) => `filter=${key}:any(${Array.isArray(filter[key]) ? filter[key].join(',') : filter[key]})`).join('&')
-    const searchStr = `${filterStr ? filterStr + '&' : ''}${queryString.stringify({ query, search_type })}`
+    const dateFilterStr = [
+      start ? `filter=updated>=${start}` : '',
+      end ? `filter=updated<=${end}` : '',
+    ].filter(Boolean).join('&')
+    const searchStr = [filterStr, dateFilterStr, queryString.stringify({ query, search_type, fuzziness })].filter(Boolean).join('&')
     const body = JSON.stringify(AGGS[queryParams['metadata.content_category']] || AGGS['all'])
     const headers = { 'APP-INTEGRATION-ID': search_settings?.integration }
     const res = await querySearch(body, searchStr, { headers, ignoreError: true })

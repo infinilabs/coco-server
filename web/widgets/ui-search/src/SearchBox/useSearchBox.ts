@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useRef, useCallback } from "react";
-import { ACTION_TYPE_SEARCH, ACTION_TYPE_SEARCH_KEYWORD } from "./ActionBar/SearchActions";
+import { ACTION_TYPE_SEARCH, ACTION_TYPE_SEARCH_KEYWORD, DEFAULT_SEARCH_FUZZINESS, DEFAULT_SEARCH_SORT, normalizeSearchFuzziness, normalizeSearchSort } from "./ActionBar/SearchActions";
 import { SUGGESTION_TIPS } from "./Suggestions/Tips";
 import { SUGGESTION_KEYWORDS } from "./Suggestions/Keywords";
 import { SUGGESTION_FILTER_FIELDS } from "./Suggestions/FilterFields";
@@ -46,7 +46,7 @@ export default function useSearchBox({
   setAttachments, 
 }: UseSearchBoxParams) {
   const [currentQueryParams, setCurrentQueryParams] = useState<any>(queryParams);
-  const { query, filter = {}, filters = [], action_type, search_type = ACTION_TYPE_SEARCH_KEYWORD } = currentQueryParams;
+  const { query, filter = {}, filters = [], action_type, search_type = ACTION_TYPE_SEARCH_KEYWORD, fuzziness = DEFAULT_SEARCH_FUZZINESS, sort = DEFAULT_SEARCH_SORT } = currentQueryParams;
   const [suggestions, setSuggestions] = useState<any>({});
   const [mainInputActive, setMainInputActive] = useState(false);
   const [filterState, setFilterState] = useState({ type: 'none', index: -1 });
@@ -172,7 +172,9 @@ export default function useSearchBox({
   // handleFilterComplete, etc.) always reference the latest version and
   // stale-closure bugs are eliminated. Dependencies are only the values
   // that can change between renders; refs and state setters are stable.
-  const handleSearch = useCallback((searchQuery: any, searchFilters: any, actionType: any, searchType: any) => {
+  const handleSearch = useCallback((searchQuery: any, searchFilters: any, actionType: any, searchType: any, searchFuzziness = DEFAULT_SEARCH_FUZZINESS, searchSort = DEFAULT_SEARCH_SORT) => {
+    const normalizedFuzziness = normalizeSearchFuzziness(searchFuzziness);
+    const normalizedSort = normalizeSearchSort(searchSort);
     if (attachments.length > 0) {
       onSearch?.({
         query: searchQuery,
@@ -197,6 +199,8 @@ export default function useSearchBox({
         filter: newFilter,
         action_type: actionType,
         search_type: searchType,
+        fuzziness: normalizedFuzziness,
+        sort: normalizedSort,
         mode: !actionType || actionType === ACTION_TYPE_SEARCH ? 'search' : 'chat'
       }, true, true);
     }
@@ -213,8 +217,8 @@ export default function useSearchBox({
   }, [attachments, onSearch, resetRefOnNextFrame]);
 
   const triggerSearch = useCallback(() => {
-    handleSearch(query, filters, action_type, search_type);
-  }, [handleSearch, query, filters, action_type, search_type]);
+    handleSearch(query, filters, action_type, search_type, fuzziness, sort);
+  }, [handleSearch, query, filters, action_type, search_type, fuzziness, sort]);
 
   const handleAttachmentUpload = useCallback((files: File[], cb: (res: any) => void) => {
     if (onUpload) onUpload(files, cb);
@@ -316,8 +320,8 @@ export default function useSearchBox({
   const handleFilterComplete = useCallback(() => {
     setFilterState({ type: 'none', index: -1 });
     setSuggestions({});
-    handleSearch(query, filters, action_type, search_type);
-  }, [query, filters, action_type, search_type, handleSearch]);
+    handleSearch(query, filters, action_type, search_type, fuzziness, sort);
+  }, [query, filters, action_type, search_type, fuzziness, sort, handleSearch]);
 
   // Delete a filter by index
   const handleFilterDelete = useCallback((index: number) => {
@@ -604,7 +608,7 @@ export default function useSearchBox({
   }, []);
 
   return {
-    query, filters, action_type, search_type,
+    query, filters, action_type, search_type, fuzziness, sort,
     suggestions, loadNextSuggestion,
     attachments,
     showExpandedPanel, searchable,

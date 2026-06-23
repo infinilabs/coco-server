@@ -7,8 +7,9 @@ import useSearchBox from "./useSearchBox";
 import Suggestions from "./Suggestions";
 import ActionBar from "./ActionBar";
 import { ListFilter } from "lucide-react";
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { SUGGESTION_TIPS } from "./Suggestions/Tips";
+import { DEFAULT_SEARCH_FUZZINESS, DEFAULT_SEARCH_SORT, normalizeSearchFuzziness, normalizeSearchSort } from "./ActionBar/SearchActions";
 
 interface SearchBoxProps {
   placeholder?: string;
@@ -23,6 +24,10 @@ interface SearchBoxProps {
   attachments?: any[];
   setAttachments?: (attachments: any[]) => void;
   settings?: Record<string, any>;
+  searchType?: string;
+  onSearchTypeChange?: (type: string) => void;
+  fuzziness?: number;
+  sort?: string;
   [key: string]: any;
 }
 
@@ -39,7 +44,11 @@ export function SearchBox(props: SearchBoxProps) {
     onUpload,
     attachments,
     setAttachments,
-    settings
+    settings,
+    searchType,
+    onSearchTypeChange,
+    fuzziness,
+    sort
   } = props;
   const sb = useSearchBox({ 
     queryParams, 
@@ -52,9 +61,37 @@ export function SearchBox(props: SearchBoxProps) {
   });
   const filtersRef = useRef<any>(null);
 
+  useEffect(() => {
+    if (!searchType || searchType === sb.search_type) return;
+    sb.handleQueryParamsChange('search_type', searchType);
+  }, [searchType, sb.search_type, sb.handleQueryParamsChange]);
+
+  useEffect(() => {
+    if (typeof fuzziness !== 'number' || fuzziness === sb.fuzziness) return;
+    sb.handleQueryParamsChange('fuzziness', fuzziness);
+  }, [fuzziness, sb.fuzziness, sb.handleQueryParamsChange]);
+
+  useEffect(() => {
+    if (!sort || sort === sb.sort) return;
+    sb.handleQueryParamsChange('sort', sort);
+  }, [sort, sb.sort, sb.handleQueryParamsChange]);
+
   const handleSearchTypeChange = useCallback((type: string) => {
     sb.handleQueryParamsChange('search_type', type);
-  }, [sb.handleQueryParamsChange]);
+    onSearchTypeChange?.(type);
+  }, [onSearchTypeChange, sb.handleQueryParamsChange]);
+
+  const effectiveSearchType = searchType || sb.search_type;
+  const effectiveFuzziness = normalizeSearchFuzziness(typeof fuzziness === 'number' ? fuzziness : sb.fuzziness || DEFAULT_SEARCH_FUZZINESS);
+  const effectiveSort = normalizeSearchSort(sort || sb.sort || DEFAULT_SEARCH_SORT);
+
+  const triggerSearch = useCallback(() => {
+    sb.handleSearch(sb.query, sb.filters, sb.action_type, effectiveSearchType, effectiveFuzziness, effectiveSort);
+  }, [effectiveFuzziness, effectiveSearchType, effectiveSort, sb.action_type, sb.filters, sb.handleSearch, sb.query]);
+
+  const handleSearch = useCallback((searchQuery: any, searchFilters: any, actionType: any, searchType: any) => {
+    sb.handleSearch(searchQuery, searchFilters, actionType, searchType, effectiveFuzziness, effectiveSort);
+  }, [effectiveFuzziness, effectiveSort, sb.handleSearch]);
 
   const handleFiltersChange = useCallback((filters: any) => {
     sb.handleQueryParamsChange('filters', filters);
@@ -85,24 +122,25 @@ export function SearchBox(props: SearchBoxProps) {
 
   const actionBarProps = useMemo(() => ({
     action_type: sb.action_type,
-    search_type: sb.search_type,
+    search_type: effectiveSearchType,
     onSearchTypeChange: handleSearchTypeChange,
     onSearchActionClick: sb.handleSearchActionClick,
     onSearchActionDropdownClose: sb.handleSearchActionDropdownClose,
     attachments: sb.attachments,
     onAttachmentsChange: sb.handleAttachmentsChange,
-    onSearch: sb.triggerSearch,
+    onSearch: triggerSearch,
     searchable: sb.searchable,
     onAttachmentUpload: sb.handleAttachmentUpload
   }), [
     sb.action_type,
     sb.search_type,
+    effectiveSearchType,
     handleSearchTypeChange,
     sb.handleSearchActionClick,
     sb.handleSearchActionDropdownClose,
     sb.attachments,
     sb.handleAttachmentsChange,
-    sb.triggerSearch,
+    triggerSearch,
     sb.searchable,
     sb.handleAttachmentUpload
   ]);
@@ -113,12 +151,12 @@ export function SearchBox(props: SearchBoxProps) {
     query: sb.query,
     filters: sb.filters,
     action_type: sb.action_type,
-    search_type: sb.search_type,
+    search_type: effectiveSearchType,
     filterState: sb.filterState,
     mainInputActive: sb.mainInputActive,
     handleQueryParamsChange: sb.handleQueryParamsChange,
     handleSuggestionItemClick: sb.handleSuggestionItemClick,
-    handleSearch: sb.handleSearch,
+    handleSearch,
     handleAddFilter: sb.handleAddFilter,
     handleFilterValueToggle,
     handleOperatorChange: sb.handleOperatorChange,
@@ -134,12 +172,12 @@ export function SearchBox(props: SearchBoxProps) {
     sb.query,
     sb.filters,
     sb.action_type,
-    sb.search_type,
+    effectiveSearchType,
     sb.filterState,
     sb.mainInputActive,
     sb.handleQueryParamsChange,
     sb.handleSuggestionItemClick,
-    sb.handleSearch,
+    handleSearch,
     sb.handleAddFilter,
     handleFilterValueToggle,
     sb.handleOperatorChange,
@@ -155,8 +193,8 @@ export function SearchBox(props: SearchBoxProps) {
     if (e.key !== 'Enter' || e.shiftKey) return;
     e.preventDefault();
     if (sb.showExpandedPanel && sb.suggestionType && sb.suggestionType !== SUGGESTION_TIPS) return;
-    if (sb.searchable) sb.triggerSearch();
-  }, [sb.showExpandedPanel, sb.suggestionType, sb.searchable, sb.triggerSearch]);
+    if (sb.searchable) triggerSearch();
+  }, [sb.showExpandedPanel, sb.suggestionType, sb.searchable, triggerSearch]);
 
   const renderTextArea = (ref: any, className = "", onBlur?: any, maxRows = 6) => (
     <Input.TextArea
@@ -218,7 +256,7 @@ export function SearchBox(props: SearchBoxProps) {
               onChange={sb.handleInputChange}
               onSelect={sb.handleCursorPositionChange}
               onClick={sb.handleCursorPositionChange}
-              suffix={<Operations size={24} onSearch={sb.triggerSearch} disabled={!sb.searchable} attachments={sb.attachments} setAttachments={sb.handleAttachmentsChange} onAttachmentUpload={sb.handleAttachmentUpload} action_type={sb.action_type}/>}
+              suffix={<Operations size={24} onSearch={triggerSearch} disabled={!sb.searchable} attachments={sb.attachments} setAttachments={sb.handleAttachmentsChange} onAttachmentUpload={sb.handleAttachmentUpload} action_type={sb.action_type}/>} 
               placeholder={placeholder}
               className="flex-1 w-full"
               onFocus={sb.handleInputFocus}

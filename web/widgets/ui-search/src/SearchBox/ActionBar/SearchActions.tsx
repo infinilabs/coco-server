@@ -9,6 +9,28 @@ export const ACTION_TYPE_SEARCH_KEYWORD = 'keyword'
 export const ACTION_TYPE_SEARCH_SEMANTIC = 'semantic'
 export const ACTION_TYPE_DEEPTHINK = 'deepthink'
 export const ACTION_TYPE_DEEPSEARCH = 'deepresearch'
+export const DEFAULT_SEARCH_FUZZINESS = 3
+export const MIN_SEARCH_FUZZINESS = 0
+export const MAX_SEARCH_FUZZINESS = 5
+export const SORT_BEST_MATCH = '_score:desc'
+export const SORT_CREATED_DESC = 'created:desc'
+export const SORT_CREATED_ASC = 'created:asc'
+export const SORT_UPDATED_DESC = 'updated:desc'
+export const DEFAULT_SEARCH_SORT = SORT_BEST_MATCH
+
+const SEARCH_SORTS = new Set([SORT_BEST_MATCH, SORT_CREATED_DESC, SORT_CREATED_ASC, SORT_UPDATED_DESC])
+
+export const normalizeSearchFuzziness = (value: unknown) => {
+    const fuzziness = Number(value);
+    if (!Number.isFinite(fuzziness)) return DEFAULT_SEARCH_FUZZINESS;
+    return Math.min(MAX_SEARCH_FUZZINESS, Math.max(MIN_SEARCH_FUZZINESS, Math.round(fuzziness)));
+}
+
+export const normalizeSearchSort = (value: unknown): string => {
+    if (typeof value !== 'string') return DEFAULT_SEARCH_SORT;
+    const sorts = value.split(',').filter((item) => SEARCH_SORTS.has(item));
+    return sorts.length > 0 ? sorts.join(',') : DEFAULT_SEARCH_SORT;
+}
 
 interface SearchActionsProps {
     actionType?: string;

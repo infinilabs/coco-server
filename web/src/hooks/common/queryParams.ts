@@ -1,6 +1,6 @@
 import queryString from 'query-string';
 
-export default function useQueryParams(defaultParams = {}) {
+export default function useQueryParams(defaultParams: any = {}) {
   
   const getInitialParams = useCallback(() => {
     const currentUrl = new URL(window.location.href);
@@ -16,12 +16,13 @@ export default function useQueryParams(defaultParams = {}) {
         sort: 'string',
         filter: 'string[]',
         aggfilter: 'string[]',
-        mode: 'string',
       }
     });
 
-    const defaultSortStr = (defaultParams.sort || []).map(
-            ([field, order]) => `${field}:${order}`
+    const defaultSortStr = typeof defaultParams.sort === 'string'
+      ? defaultParams.sort
+      : (defaultParams.sort || []).map(
+            ([field, order]: any[]) => `${field}:${order}`
         ).join(',');
 
     return {
@@ -33,13 +34,13 @@ export default function useQueryParams(defaultParams = {}) {
     };
   }, [defaultParams]);
 
-  const [searchParams, setSearchParams] = useState(getInitialParams);
+  const [searchParams, setSearchParams] = useState<any>(getInitialParams);
 
   const queryParams = useMemo(() => {
-    const filter = {};
+    const filter: Record<string, any[]> = {};
     if (searchParams.filter) {
       if (Array.isArray(searchParams.filter)) {
-        searchParams.filter.forEach(item => {
+        searchParams.filter.forEach((item: any) => {
           if (!item) return;
           const arr = item.split(':');
           if (arr.length === 2 && arr[0] && arr[1]) {
@@ -57,10 +58,10 @@ export default function useQueryParams(defaultParams = {}) {
         }
       }
     }
-    const aggfilter = {};
+    const aggfilter: Record<string, any[]> = {};
     if (searchParams.aggfilter) {
       if (Array.isArray(searchParams.aggfilter)) {
-        searchParams.aggfilter.forEach(item => {
+        searchParams.aggfilter.forEach((item: any) => {
           if (!item) return;
           const arr = item.split(':');
           if (arr.length === 2 && arr[0] && arr[1]) {
@@ -78,25 +79,15 @@ export default function useQueryParams(defaultParams = {}) {
         }
       }
     }
-    const sort = [];
-    if (searchParams.sort) {
-      const arr = searchParams.sort.split(',');
-      arr.forEach(item => {
-        const [field, order] = item.split(':');
-        if (field && order) {
-          sort.push([field, order === 'asc' ? 'asc' : 'desc']);
-        }
-      });
-    }
     return {
       ...(searchParams || {}),
       filter,
       aggfilter,
-      sort
+      sort: searchParams.sort || ''
     };
   }, [searchParams]);
 
-  const setQueryParams = useCallback(arg => {
+  const setQueryParams = useCallback((arg: any) => {
     let newParams: any = {};
     if (typeof arg === 'function') {
       newParams = arg(queryParams);
@@ -106,7 +97,7 @@ export default function useQueryParams(defaultParams = {}) {
       });
     }
     const filter = newParams.filter;
-    const filters = [];
+    const filters: any[] = [];
     if (filter) {
       Object.entries(filter).forEach(([key, value]) => {
         if (Array.isArray(value)) {
@@ -119,7 +110,7 @@ export default function useQueryParams(defaultParams = {}) {
     }
 
     const aggfilter = newParams.aggfilter;
-    const aggfilters = [];
+    const aggfilters: any[] = [];
     if (aggfilter) {
       Object.entries(aggfilter).forEach(([key, value]) => {
         if (Array.isArray(value)) {
@@ -131,10 +122,7 @@ export default function useQueryParams(defaultParams = {}) {
       });
     }
 
-    let sort = '';
-    if (newParams.sort && Array.isArray(newParams.sort)) {
-      sort = newParams.sort.map(([field, order]) => `${field}:${order}`).join(',');
-    }
+    const sort = typeof newParams.sort === 'string' ? newParams.sort : '';
     const newSearchParams = {
       ...newParams,
       filter: filters,

@@ -138,9 +138,13 @@ export default function Fullscreen(props: FullscreenProps) {
 
     function search(query: AnyRecord, callback: DataCallback, setLoading?: LoadingSetter, _shouldAgg = true) {
         if (setLoading) setLoading(true)
-        const { filter = {}, ...rest } = query
+        const { filter = {}, start, end, ...rest } = query
         const filterStr = buildFilterString(filter)
-        const searchStr = `${filterStr ? filterStr + '&' : ''}${queryString.stringify(rest)}`
+        const dateFilterStr = [
+            start ? `filter=updated>=${start}` : '',
+            end ? `filter=updated<=${end}` : '',
+        ].filter(Boolean).join('&')
+        const searchStr = [filterStr, dateFilterStr, queryString.stringify(rest)].filter(Boolean).join('&')
         fetch(`${server}/query/_search?${searchStr}`, {
             method: 'POST',
             headers: apiHeaders,
@@ -162,9 +166,13 @@ export default function Fullscreen(props: FullscreenProps) {
 
     function aggregate(query: AnyRecord, callback: DataCallback, setLoading?: LoadingSetter) {
         if (setLoading) setLoading(true)
-        const { query: keyword, filter = {}, search_type, ...rest } = query
+        const { query: keyword, filter = {}, search_type, fuzziness, start, end, ...rest } = query
         const filterStr = buildFilterString(filter)
-        const searchStr = `${filterStr ? filterStr + '&' : ''}${queryString.stringify({ query: keyword, search_type })}`
+        const dateFilterStr = [
+            start ? `filter=updated>=${start}` : '',
+            end ? `filter=updated<=${end}` : '',
+        ].filter(Boolean).join('&')
+        const searchStr = [filterStr, dateFilterStr, queryString.stringify({ query: keyword, search_type, fuzziness })].filter(Boolean).join('&')
         fetch(`${server}/query/_search?${searchStr}`, {
             method: 'POST',
             headers: {

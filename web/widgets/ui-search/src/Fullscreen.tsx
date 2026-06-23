@@ -1,12 +1,48 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import dayjs from "dayjs";
 import { formatESResult } from "./utils/es";
 import { normalizeCoverIconUrl } from "./utils/utils";
 
 import { debounce, isEmpty } from 'lodash';
 import Home from "./pages/Home";
 import Search from "./pages/Search";
-import { ACTION_TYPE_SEARCH_KEYWORD } from "./SearchBox/ActionBar/SearchActions";
+import { ACTION_TYPE_SEARCH_KEYWORD, DEFAULT_SEARCH_SORT, normalizeSearchFuzziness, normalizeSearchSort } from "./SearchBox/ActionBar/SearchActions";
 import Chat from "./pages/Chat";
+
+const DATE_RANGE_PARAM_FORMAT = 'YYYY-MM-DD[T]HH:mm:ss.SSSZ';
+
+const formatDateRangeParam = (value: string) => {
+  const date = dayjs(value);
+
+  return date.isValid() ? date.format(DATE_RANGE_PARAM_FORMAT) : value;
+};
+
+const getDateRangeParams = (dateRange?: string) => {
+  const now = dayjs();
+
+  if (dateRange === '7d') {
+    return {
+      start: now.subtract(7, 'day').format(DATE_RANGE_PARAM_FORMAT),
+      end: now.format(DATE_RANGE_PARAM_FORMAT),
+    };
+  }
+
+  if (dateRange === '90d') {
+    return {
+      start: now.subtract(90, 'day').format(DATE_RANGE_PARAM_FORMAT),
+      end: now.format(DATE_RANGE_PARAM_FORMAT),
+    };
+  }
+
+  if (dateRange === '1y') {
+    return {
+      start: now.subtract(1, 'year').format(DATE_RANGE_PARAM_FORMAT),
+      end: now.format(DATE_RANGE_PARAM_FORMAT),
+    };
+  }
+
+  return {};
+};
 
 interface FullscreenProps {
   logo?: Record<string, any>;
@@ -99,16 +135,32 @@ const Fullscreen = (props: FullscreenProps) => {
   };
 
   const handleSearch = (queryParams: Record<string, any>, shouldAsk: boolean, shouldAgg: boolean, isScroll = false) => {
+    const fuzziness = normalizeSearchFuzziness(queryParams?.fuzziness);
+    const sort = normalizeSearchSort(queryParams?.sort);
     shouldAskRef.current = shouldAsk;
     shouldAggRef.current = shouldAgg;
     if (!isScroll) {
       resetScroll();
       isHomeSearchRef.current = true;
     }
-    setQueryParams?.({
+    const nextQueryParams: Record<string, any> = {
       ...queryParams,
+      fuzziness,
+      sort,
       ...(shouldAgg ? { aggfilter: {} } : {}),
       t: new Date().valueOf()
+    };
+    if (!nextQueryParams.dateRange || nextQueryParams.dateRange === 'all-time') {
+      delete nextQueryParams.dateRange;
+    }
+    if (!nextQueryParams.start) {
+      delete nextQueryParams.start;
+    }
+    if (!nextQueryParams.end) {
+      delete nextQueryParams.end;
+    }
+    setQueryParams?.({
+      ...nextQueryParams,
     });
   };
 
@@ -143,7 +195,10 @@ const Fullscreen = (props: FullscreenProps) => {
     loadLock.current = true;
     setLoading(true);
 
-    const { t, filter = {}, aggfilter = {}, ...rest } = queryParams;
+    const { t, dateRange, start, end, filter = {}, aggfilter = {}, ...rest } = queryParams;
+    const fuzziness = normalizeSearchFuzziness(queryParams?.fuzziness);
+    const sort = normalizeSearchSort(queryParams?.sort);
+    const dateRangeParams = start && end ? { start: formatDateRangeParam(start), end: formatDateRangeParam(end) } : getDateRangeParams(dateRange);
     const filterWithoutAgg = {
       ...filter,
       'metadata.content_category': queryParams['metadata.content_category'] && queryParams['metadata.content_category'] !== 'all' ? [queryParams['metadata.content_category']] : undefined,
@@ -163,8 +218,11 @@ const Fullscreen = (props: FullscreenProps) => {
       onSearch?.(
         {
           ...rest,
+          ...dateRangeParams,
           filter: newFilter,
           search_type: queryParams?.search_type || ACTION_TYPE_SEARCH_KEYWORD,
+          fuzziness,
+          sort,
           from: isScroll ? scrollRef.current : queryParams.from,
           'metadata.content_category': undefined
         },
@@ -217,6 +275,8 @@ const Fullscreen = (props: FullscreenProps) => {
       onAggregation({
         query: queryParams.query,
         search_type: queryParams?.search_type || ACTION_TYPE_SEARCH_KEYWORD,
+        fuzziness,
+        ...dateRangeParams,
         filter: filterWithoutAgg
       }, (res: any) => {
         let validatedAggfilter: Record<string, any> = {};
@@ -286,7 +346,7 @@ const Fullscreen = (props: FullscreenProps) => {
       query: '',
       filter: {},
       aggfilter: {},
-      sort: ''
+      sort: DEFAULT_SEARCH_SORT
     });
     setData([]);
     setHasMore(false);
