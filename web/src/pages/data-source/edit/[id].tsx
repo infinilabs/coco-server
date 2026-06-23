@@ -1,5 +1,5 @@
 import type { FormProps } from 'antd';
-import { Button, Form, Input, Spin, Switch, Typography, message } from 'antd';
+import { Button, Form, Input, Select, Spin, Switch, Typography, message } from 'antd';
 import { useForm } from 'antd/es/form/Form';
 import { useEffect, useState } from 'react';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -42,6 +42,8 @@ import LinkSVG from '@/assets/svg-icon/link.svg';
 import Neo4j from "@/pages/data-source/new/neo4j.tsx";
 import { getServer } from '@/store/slice/server';
 import normalizeUrl from 'normalize-url';
+import { getEnablePipelines } from '@/service/api/pipeline';
+import { formatESSearchResult } from '@/service/request/es';
 
 // eslint-disable-next-line complexity
 export function Component() {
@@ -55,6 +57,7 @@ export function Component() {
   });
   const [form] = useForm();
   const server = useAppSelector(getServer);
+  const [pipelineList, setPipelineList] = useState<any[]>([]);
 
   const [webhookEnabled, setWebhookEnabled] = useState(false)
   const webhookUrl = useMemo(() => {
@@ -64,6 +67,18 @@ export function Component() {
   useEffect(() => {
     setWebhookEnabled(datasource?.webhook?.enabled)
   }, [datasource?.webhook?.enabled])
+
+  const fetchPipelines = async () => {
+    const res = await getEnablePipelines()
+    if (res?.data) {
+      const newResult = formatESSearchResult(res?.data);
+      setPipelineList(newResult.data as any);
+    }
+  }
+
+  useEffect(() => {
+    fetchPipelines();
+  }, [])
 
   useEffect(() => {
     if (!datasourceID) return;
@@ -301,7 +316,8 @@ export function Component() {
       },
       type: 'connector',
        webhook: values.webhook,
-      enrichment_pipeline: values.enrichment_pipeline || null
+      enrichment_pipeline: values.enrichment_pipeline || null,
+      document_processing_config: values.document_processing_config
     };
     updateDatasource(datasourceID, sValues).then(res => {
       if (res.data?.result === 'updated') {
@@ -626,7 +642,35 @@ export function Component() {
               }}
             </Form.Item>
 
+            <Form.Item
+              label={t('page.datasource.new.labels.document_analysis')}
+              name={['document_processing_config', 'enabled']}
+            >
+              <Switch size='small' />
+            </Form.Item>
 
+            <Form.Item
+              shouldUpdate={(prev, curr) => prev.document_processing_config?.enabled !== curr.document_processing_config?.enabled}
+              noStyle
+            >
+              {({ getFieldValue }) => {
+                const isDocumentProcessingEnabled = getFieldValue(['document_processing_config', 'enabled']);
+                return (
+                  <Form.Item
+                    label="Pipeline"
+                    name={['document_processing_config', 'pipeline']}
+                    style={{ display: isDocumentProcessingEnabled ? 'block' : 'none' }}
+                  >
+                    <Select
+                      options={pipelineList.map(item => ({
+                        label: item.name,
+                        value: item.id
+                      }))}
+                    />
+                  </Form.Item>
+                );
+              }}
+            </Form.Item>
 
             <Form.Item
               label={t('page.datasource.new.labels.enabled')}

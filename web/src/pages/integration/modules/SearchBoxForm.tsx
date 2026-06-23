@@ -148,13 +148,13 @@ export const SearchBoxForm = memo(props => {
       />
     </Form.Item>
     <Form.Item
-      label={t('page.integration.form.labels.enable_module')}
+      label={t('page.integration.form.labels.search_settings')}
       name="enabled_module"
     >
       <Form.Item
         className="mb-0px"
-        label={t('page.integration.form.labels.module_search')}
         name={['enabled_module', 'search', 'enabled']}
+        valuePropName="checked"
       >
         <Switch size="small" onChange={(checked) => setEnabledList((state) => ({ ...state, search: checked }))}/>
       </Form.Item>
@@ -162,8 +162,9 @@ export const SearchBoxForm = memo(props => {
     {
       enabledList?.search && (
         <>
-          <Form.Item label=" " >
+          <Form.Item label=" ">
             <div className="mb-8px">
+              <span className="mr-4px text-[var(--ant-color-error)]">*</span>
               {t('page.integration.form.labels.datasource')}
             </div>
             <Form.Item
@@ -213,14 +214,22 @@ export const SearchBoxForm = memo(props => {
         <>
           <Form.Item label=" ">
             <div className="mb-8px">
+              <span className="mr-4px text-[var(--ant-color-error)]">*</span>
               {t('page.integration.form.labels.module_chat_ai_assistant')}
             </div>
             <Form.Item
               name={['enabled_module', 'ai_chat', 'assistants']}
-              rules={[defaultRequiredRule]}
+              rules={[
+                {
+                  validator: (_rule: any, value: any) => {
+                    if (value?.some((item: any) => item?.id)) return Promise.resolve();
+                    return Promise.reject((defaultRequiredRule as any).message);
+                  }
+                }
+              ]}
               className="mb-0px"
             >
-              <AIAssistantSelect mode="multiple" className={itemClassNames} onChange={(as) => {
+              <AIAssistantSelect allowClear mode="multiple" className={itemClassNames} onChange={(as) => {
                 setAssistants(as)
                 const startPageSettings = form.getFieldValue('start_page') || {}
                 const { display_assistants = [] } = startPageSettings 

@@ -57,7 +57,7 @@ export const UploadConfig = (props: UploadConfigProps) => {
 
   return (
     <Space
-      direction='vertical'
+      orientation='vertical'
       className={classNames('w-600px', {
         'mt-[5px]': value.enabled
       })}
@@ -72,7 +72,7 @@ export const UploadConfig = (props: UploadConfigProps) => {
         <>
           <Space
             className='w-full'
-            direction='vertical'
+            orientation='vertical'
           >
             <p className='mt-10px text-[#999]'>{t('page.assistant.labels.allowed_file_extensions')}</p>
             <Input
@@ -88,7 +88,7 @@ export const UploadConfig = (props: UploadConfigProps) => {
             />
           </Space>
 
-          <Space direction='vertical'>
+          <Space orientation='vertical'>
             <p className='mt-10px text-[#999]'>{t('page.assistant.labels.max_file_size_in_bytes')}</p>
             <InputNumber
               className='w-148px'
@@ -129,7 +129,7 @@ export const UploadConfig = (props: UploadConfigProps) => {
             />
           </Space>
 
-          <Space direction='vertical'>
+          <Space orientation='vertical'>
             <p className='mt-10px text-[#999]'>{t('page.assistant.labels.max_file_count')}</p>
             <InputNumber
               max={100}

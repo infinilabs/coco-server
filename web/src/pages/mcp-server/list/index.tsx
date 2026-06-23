@@ -9,7 +9,8 @@ import useQueryParams from '@/hooks/common/queryParams';
 import { deleteMCPServer, searchMCPServer, updateMCPServer } from '@/service/api/mcp-server';
 import { formatESSearchResult } from '@/service/request/es';
 import { Api } from '@/types/api';
-import { getServer } from '@/store/slice/server';
+import { getApplicationSetting, getServer } from '@/store/slice/server';
+import { isStoreEnabled } from '@/layouts/modules/global-header/components/Shop';
 
 type MCPServer = Api.LLM.MCPServer;
 
@@ -23,6 +24,7 @@ export function Component() {
 
   const { hasAuth } = useAuth();
   const server = useAppSelector(getServer);
+  const applicationSetting = useAppSelector(getApplicationSetting);
 
   const permissions = {
     read: hasAuth('coco#mcp_server/read'),
@@ -180,6 +182,18 @@ export function Component() {
       title: t('page.mcpserver.labels.type'),
       dataIndex: 'type',
       minWidth: 50,
+      render: (value: string) => {
+        switch (value) {
+          case 'stdio':
+            return 'Stdio';
+          case 'streamable_http':
+            return 'Streamable HTTP';
+          case 'sse':
+            return 'SSE';
+          default:
+            return value;
+        }
+      }
     },
     {
       title: t('page.mcpserver.labels.category'),
@@ -209,6 +223,7 @@ export function Component() {
       }
     },
     {
+      title: t('common.operation'),
       fixed: 'right',
       width: '90px',
       hidden: !permissions.update && !permissions.delete,
@@ -229,7 +244,7 @@ export function Component() {
         if (items.length === 0) return null;
         return (
           <Dropdown menu={{ items, onClick: ({ key }) => onMenuClick({ key, record }) }}>
-            <EllipsisOutlined />
+            <EllipsisOutlined className='cursor-pointer'/>
           </Dropdown>
         );
       }
@@ -326,7 +341,13 @@ export function Component() {
             <Button
               icon={<PlusOutlined />}
               type='primary'
-              onClick={() => integratedStoreModalRef.current?.open('mcp-server')}
+              onClick={() => {
+                if (isStoreEnabled(applicationSetting)) {
+                  integratedStoreModalRef.current?.open('mcp-server')
+                } else {
+                  nav('/mcp-server/new');
+                }
+              }}
             >
               {t('common.add')}
             </Button>

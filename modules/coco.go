@@ -5,8 +5,10 @@
 package modules
 
 import (
+	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
 	_ "infini.sh/coco/modules/assistant"
+	assistantservice "infini.sh/coco/modules/assistant/service"
 	_ "infini.sh/coco/modules/attachment"
 	"infini.sh/coco/modules/common"
 	_ "infini.sh/coco/modules/connector"
@@ -43,6 +45,10 @@ func (this *Coco) Start() error {
 }
 
 func (this *Coco) Stop() error {
+	cancelled := assistantservice.StopAllMessageReplyTasks()
+	if cancelled > 0 {
+		log.Infof("cancelled %d inflight assistant tasks during shutdown", cancelled)
+	}
 	return nil
 }
 

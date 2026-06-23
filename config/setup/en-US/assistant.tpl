@@ -11,10 +11,10 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
   "icon" : "font_Robot-outlined",
   "type" : "simple",
   "answering_model": {
-    "provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
-    "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
+    "provider_id": "",
+    "name": "",
     "settings": {
-      "reasoning": $[[SETUP_LLM_REASONING]],
+      "reasoning": false,
       "temperature": 0,
       "top_p": 0,
       "presence_penalty": 0,
@@ -51,7 +51,7 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
     },
     "input_preprocess_tpl" : "",
     "history_message" : {
-      "number" : 5,
+      "number": 30,
       "compression_threshold" : 1000,
       "summary" : true
     }
@@ -73,10 +73,10 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
       "icon": "font_coco",
        "type": "simple",
     "answering_model": {
-    "provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
-    "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
+    "provider_id": "",
+    "name": "",
        "settings": {
-         "reasoning": $[[SETUP_LLM_REASONING]],
+         "reasoning": false,
            "temperature": 0.7,
        "top_p": 0.9,
        "presence_penalty": 0,
@@ -113,7 +113,7 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
     },
     "input_preprocess_tpl": "",
     "history_message": {
-      "number": 5,
+      "number": 30,
       "compression_threshold": 1000,
       "summary": true
     }
@@ -135,10 +135,10 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/a
     "icon": "font_Brain02",
     "type": "simple",
     "answering_model": {
-      "provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
-      "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
+      "provider_id": "",
+      "name": "",
       "settings": {
-        "reasoning": $[[SETUP_LLM_REASONING]],
+        "reasoning": false,
         "temperature": 0,
         "top_p": 0,
         "presence_penalty": 0,
@@ -188,7 +188,7 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/a
       },
       "input_preprocess_tpl": "",
       "history_message": {
-        "number": 5,
+        "number": 30,
         "compression_threshold": 1000,
         "summary": true
       }
@@ -210,10 +210,10 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
       "icon": "font_coco",
        "type": "simple",
     "answering_model": {
-    "provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
-    "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
+    "provider_id": "",
+    "name": "",
        "settings": {
-         "reasoning": $[[SETUP_LLM_REASONING]],
+         "reasoning": false,
            "temperature": 0.7,
        "top_p": 0.9,
        "presence_penalty": 0,
@@ -250,10 +250,10 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
     ],
   "visible": false,
     "model": {
-"provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
-    "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
+"provider_id": "",
+    "name": "",
        "settings": {
-         "reasoning": $[[SETUP_LLM_REASONING]],
+         "reasoning": false,
           "temperature": 0.7,
         "top_p": 0.9,
       "presence_penalty": 0,
@@ -288,7 +288,7 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
     "input_preprocess_tpl": "",
     "placeholder": "",
     "history_message": {
-      "number": 5,
+      "number": 30,
       "compression_threshold": 1000,
       "summary": true
     }
@@ -308,10 +308,10 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
   "icon": "font_coco",
   "type": "simple",
   "answering_model": {
-    "provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
-    "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
+    "provider_id": "",
+    "name": "",
     "settings": {
-      "reasoning": $[[SETUP_LLM_REASONING]],
+      "reasoning": false,
       "temperature": 0.7,
       "top_p": 0.9,
       "presence_penalty": 0,
@@ -344,10 +344,10 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
     "ids": ["*"],
     "visible": false,
     "model": {
-      "provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
-      "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
+      "provider_id": "",
+      "name": "",
       "settings": {
-        "reasoning": $[[SETUP_LLM_REASONING]],
+        "reasoning": false,
         "temperature": 0.7,
         "top_p": 0.9,
         "presence_penalty": 0,
@@ -377,7 +377,7 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
     "input_preprocess_tpl": "",
     "placeholder": "",
     "history_message": {
-      "number": 5,
+      "number": 30,
       "compression_threshold": 1000,
       "summary": true
     }
@@ -398,10 +398,10 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
   "icon": "font_coco",
   "type": "simple",
   "answering_model": {
-    "provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
-    "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
+    "provider_id": "",
+    "name": "",
     "settings": {
-      "reasoning": $[[SETUP_LLM_REASONING]],
+      "reasoning": false,
       "temperature": 0.7,
       "top_p": 0.9,
       "presence_penalty": 0,
@@ -434,10 +434,10 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
     "ids": ["*"],
     "visible": false,
     "model": {
-      "provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
-      "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
+      "provider_id": "",
+      "name": "",
       "settings": {
-        "reasoning": $[[SETUP_LLM_REASONING]],
+        "reasoning": false,
         "temperature": 0.7,
         "top_p": 0.9,
         "presence_penalty": 0,
@@ -467,7 +467,7 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
     "input_preprocess_tpl": "",
     "placeholder": "",
     "history_message": {
-      "number": 5,
+      "number": 30,
       "compression_threshold": 1000,
       "summary": true
     }
@@ -487,10 +487,10 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
   "icon": "font_coco",
   "type": "simple",
   "answering_model": {
-    "provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
-    "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
+    "provider_id": "",
+    "name": "",
     "settings": {
-      "reasoning": $[[SETUP_LLM_REASONING]],
+      "reasoning": false,
       "temperature": 0.7,
       "top_p": 0.9,
       "presence_penalty": 0,
@@ -523,10 +523,10 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
     "ids": ["*"],
     "visible": false,
     "model": {
-      "provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
-      "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
+      "provider_id": "",
+      "name": "",
       "settings": {
-        "reasoning": $[[SETUP_LLM_REASONING]],
+        "reasoning": false,
         "temperature": 0.7,
         "top_p": 0.9,
         "presence_penalty": 0,
@@ -556,7 +556,7 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
     "input_preprocess_tpl": "",
     "placeholder": "",
     "history_message": {
-      "number": 5,
+      "number": 30,
       "compression_threshold": 1000,
       "summary": true
     }
@@ -576,10 +576,10 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
   "icon": "font_coco",
   "type": "simple",
   "answering_model": {
-    "provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
-    "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
+    "provider_id": "",
+    "name": "",
     "settings": {
-      "reasoning": $[[SETUP_LLM_REASONING]],
+      "reasoning": false,
       "temperature": 0.7,
       "top_p": 0.9,
       "presence_penalty": 0,
@@ -612,10 +612,10 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
     "ids": ["*"],
     "visible": false,
     "model": {
-      "provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
-      "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
+      "provider_id": "",
+      "name": "",
       "settings": {
-        "reasoning": $[[SETUP_LLM_REASONING]],
+        "reasoning": false,
         "temperature": 0.7,
         "top_p": 0.9,
         "presence_penalty": 0,
@@ -645,7 +645,7 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
     "input_preprocess_tpl": "",
     "placeholder": "",
     "history_message": {
-      "number": 5,
+      "number": 30,
       "compression_threshold": 1000,
       "summary": true
     }
@@ -665,10 +665,10 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
   "icon": "font_coco",
   "type": "simple",
   "answering_model": {
-    "provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
-    "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
+    "provider_id": "",
+    "name": "",
     "settings": {
-      "reasoning": $[[SETUP_LLM_REASONING]],
+      "reasoning": false,
       "temperature": 0.7,
       "top_p": 0.9,
       "presence_penalty": 0,
@@ -701,10 +701,10 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
     "ids": ["*"],
     "visible": false,
     "model": {
-      "provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
-      "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
+      "provider_id": "",
+      "name": "",
       "settings": {
-        "reasoning": $[[SETUP_LLM_REASONING]],
+        "reasoning": false,
         "temperature": 0.7,
         "top_p": 0.9,
         "presence_penalty": 0,
@@ -734,11 +734,71 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
     "input_preprocess_tpl": "",
     "placeholder": "",
     "history_message": {
-      "number": 5,
+      "number": 30,
       "compression_threshold": 1000,
       "summary": true
     }
   },
   "builtin": false,
   "role_prompt": "You are a \"Senior JavaScript/TypeScript Expert\" covering Node.js backend and modern frontend frameworks (React, Vue). You maintain professional, cutting-edge style with deep ES6+/TypeScript knowledge.\n\nYour tasks based on user's JS/TS code:\n\n1. Async/Promise Issues:\n   - Async/await pitfalls: Detect unhandle promise rejection, uncaught rejections, improper async function usage\n   - Promise chains: Suggest async/await over .then/.catch, avoid mixing styles\n   - Race conditions: Identify concurrent async operations, recommend Promise.race, proper null/undefined guards\n   - Event loop: Detect blocking operations, suggest setImmediate vs setTimeout vs process.nextTick\n\n2. Browser/DOM Security:\n   - XSS prevention: Avoid innerHTML, encode user input, use textContent properly\n   - Input validation: Implement proper sanitization, Content Security Policy headers\n   - Event delegation: Use event delegation for dynamic content, prevent default behavior\n   - fetch/axios patterns: CSRF protection, proper error handling, timeout configuration\n\n3. Modern Language Features:\n   - TypeScript types: Use proper generic constraints, avoid any types, implement correct interfaces/extends\n   - ES6+ syntax: Prefer destructuring, template literals, optional chaining, nullish coalescing\n   - Module system: Use ES modules properly, avoid CommonJS/ESM mixing, circular dependency detection\n   - React optimization: Use React.memo, useCallback, useMemo correctly, prevent unnecessary re-renders\n\n4. Node.js Patterns:\n   - Error handling: Create custom error classes, proper try-catch for async operations\n   - Testing: Use Jest properly, implement mocking patterns, coverage reporting\n   - Stream handling: Use readable/writable streams correctly, backpressure handling\n\nInteraction Rules:\n- Framework completeness: Cover React/Vue specifics, Angular when clear\n- Standards adherence: Follow eslint-config-airbnb, formatting with prettier\n- Security priority: Always mention security implications and best practices\n- Structured output: Sections (Async ⏩, Security 🔐, Modern 🚀, Node.js 🟢)"
+}
+
+POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/deep_research
+{
+  "_system": {
+    "owner_id": "$[[SETUP_OWNER_ID]]"
+  },
+  "id": "deep_research",
+  "created": "2026-06-22T00:00:00.000000+08:00",
+  "updated": "2026-06-22T00:00:00.000000+08:00",
+  "name": "Deep Research",
+  "description": "Conducts comprehensive multi-step research across web and internal data sources, producing a structured report.",
+  "icon": "font_Search01",
+  "type": "deep_research",
+  "answering_model": {
+    "provider_id": "",
+    "name": "",
+    "settings": {
+      "reasoning": false,
+      "temperature": 0,
+      "top_p": 0,
+      "presence_penalty": 0,
+      "frequency_penalty": 0,
+      "max_tokens": 0,
+      "max_length": 0
+    },
+    "prompt": {
+      "template": "",
+      "input_vars": null
+    }
+  },
+  "keepalive": "30m",
+  "enabled": true,
+  "chat_settings": {
+    "greeting_message": "I can conduct deep research across web and internal data sources. What topic would you like me to research?",
+    "suggested": {
+      "enabled": false,
+      "questions": []
+    },
+    "input_preprocess_tpl": "",
+    "history_message": {
+      "number": 30,
+      "compression_threshold": 1000,
+      "summary": true
+    }
+  },
+  "builtin": false,
+  "config": {
+    "max_steps": 5,
+    "max_researcher_iterations": 5,
+    "max_concurrent_research_units": 5,
+    "max_results": 5,
+    "timeout": "30m",
+    "research_depth": "basic",
+    "report_format": "markdown",
+    "external_search": {
+      "engine": "duckduckgo"
+    }
+  },
+  "role_prompt": "You are a Deep Research AI assistant.\n\nYour role is to help users conduct comprehensive, multi-step research on complex topics. You gather information from available sources and structure findings into organized reports.\n\nGuidelines:\n- Help users formulate clear, well-scoped research questions\n- If a query is too vague, ask clarifying questions to narrow the scope\n- For simple factual questions that don't need multi-step research, directly answer without triggering the research pipeline\n- Always communicate in the same language as the user's query"
 }

@@ -115,7 +115,7 @@ export function Component() {
         if (items.length === 0) return null;
         return (
           <Dropdown menu={{ items, onClick: ({ key }) => onMenuClick({ key, record }) }}>
-            <EllipsisOutlined />
+            <EllipsisOutlined className='cursor-pointer'/>
           </Dropdown>
         );
       },
@@ -323,7 +323,7 @@ export function Component() {
           )}
           onCancel={onModalCancel}
           onOk={onModalOkClick}
-          destroyOnClose
+          destroyOnHidden
         >
           <Spin spinning={createState.loading}>
             {createState.step === 1 && (
@@ -431,7 +431,7 @@ const EditComponent = ({ onCancelClick = () => {}, onOkClick = () => {}, open = 
       title={`${t('common.edit')} API Token`}
       onCancel={onCancelClick}
       onOk={onModalOkClick}
-      destroyOnClose
+      destroyOnHidden
     >
       <Spin spinning={loading}>
         <Form

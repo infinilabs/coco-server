@@ -42,10 +42,8 @@
     "icon" : "font_openai",
     "models" : [
       {
-        "name" : "deepseek-r1",
-        "settings" : {
-          "reasoning" : true
-        }
+        "name" : "deepseek-r1", "type":"language",
+        "support_reasoning" : true
       }
     ],
     "base_url" : "",

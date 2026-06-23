@@ -11,27 +11,27 @@ import type {
 
 import { $t } from '@/locales';
 import { getRouteName, getRoutePath } from '@/router/elegant/transform';
-import { fetchServer } from '@/service/api/server';
+import { fetchApplicationSetting } from '@/service/api/server';
 import { store } from '@/store';
 import { isStaticSuper, resetAuth, selectUserInfo } from '@/store/slice/auth';
 import { getRouteHome, initAuthRoute, initConstantRoute, setFilterPaths } from '@/store/slice/route';
 import { localStg } from '@/utils/storage';
 import { fetchGetUserInfo } from '@/service/api';
-import { setProviderInfo, updateRootRouteIfSearch } from '@/store/slice/server';
+import { setApplicationSetting, updateRootRouteIfSearch } from '@/store/slice/server';
 
 function shouldRedirectLogin(path: string) {
   return ['provider', 'request_id', 'product'].every(keyword => !path.includes(keyword));
 }
 
 export const init: Init = async currentFullPath => {
-  const result = await fetchServer();
+  const result = await fetchApplicationSetting();
 
-  await store.dispatch(setProviderInfo(result.data));
+  await store.dispatch(setApplicationSetting(result.data));
   await store.dispatch(updateRootRouteIfSearch(result.data));
 
   const setupRequired = Boolean(result.data?.setup_required);
   const isManaged = Boolean(result?.data?.security?.managed);
-  const searchEnabled = Boolean(result?.data?.search_settings?.enabled);
+  const searchEnabled = Boolean(result?.data?.search_settings?.enabled) && Boolean(result?.data?.search_settings?.integration);
 
   const filterPaths: RoutePath[] = [];
   if (!setupRequired || isManaged) {
@@ -53,7 +53,7 @@ export const init: Init = async currentFullPath => {
 
   const { data: user, error } = await fetchGetUserInfo();
 
-  const isLogin = Boolean(user) && !user.error && !error;
+  const isLogin = Boolean(user) && !error;
 
   if (isLogin) {
     localStg.set('userInfo', user);
@@ -69,7 +69,7 @@ export const init: Init = async currentFullPath => {
     localStg.remove('userInfo');
     await store.dispatch(resetAuth());
     await store.dispatch(initAuthRoute());
-    if (['/search', '/login'].every(item => !currentFullPath.startsWith(item))) {
+    if (['/search', '/login', '/preview'].every(item => !currentFullPath.startsWith(item))) {
       const loginRoute: RouteKey = 'login';
       const routeHome = getRouteHome(store.getState());
 
@@ -195,7 +195,7 @@ function handleRouteSwitch(to: RouteLocationNormalizedLoaded, NavigationGuardNex
 }
 
 export const afterEach: AfterEach = to => {
-  const { i18nKey, title } = to.meta;
+  const { i18nKey, title } = to.meta as any;
 
   const documentTitle = i18nKey ? $t(i18nKey) : title;
   document.title = documentTitle ?? 'React-Soybean';

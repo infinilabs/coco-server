@@ -9,7 +9,8 @@ import useQueryParams from '@/hooks/common/queryParams';
 import { cloneAssistant, deleteAssistant, searchAssistant, updateAssistant } from '@/service/api/assistant';
 import { formatESSearchResult } from '@/service/request/es';
 import { Api } from '@/types/api';
-import { getServer } from '@/store/slice/server';
+import { getApplicationSetting, getServer } from '@/store/slice/server';
+import { isStoreEnabled } from '@/layouts/modules/global-header/components/Shop';
 
 type Assistant = Api.LLM.Assistant;
 
@@ -34,6 +35,8 @@ export function Component() {
 
   const { scrollConfig, tableWrapperRef } = useTableScroll();
 
+  const applicationSetting = useAppSelector(getApplicationSetting);
+
   const nav = useNavigate();
 
   const onMenuClick = ({ key, record }: any) => {
@@ -42,7 +45,7 @@ export function Component() {
         window?.$modal?.confirm({
           content: t('page.assistant.delete.confirm', { name: record.name }),
           icon: <ExclamationCircleOutlined />,
-          onCancel() {},
+          onCancel() { },
           onOk() {
             deleteAssistant(record.id).then(res => {
               if (res.data?.result === 'deleted') {
@@ -200,6 +203,9 @@ export function Component() {
       title: t('page.assistant.labels.type'),
       dataIndex: 'type',
       minWidth: 50,
+      render: (value: string, record: Assistant) => {
+        return ['simple', 'deep_think', 'deep_research'].includes(value) ? t(`page.assistant.mode.${value}`) : '-';
+      }
     },
     {
       title: t('page.assistant.labels.datasource'),
@@ -242,6 +248,7 @@ export function Component() {
       }
     },
     {
+      title: t('common.operation'),
       fixed: 'right',
       width: '90px',
       hidden: !permissions.update && !permissions.delete,
@@ -268,7 +275,7 @@ export function Component() {
         if (items.length === 0) return null;
         return (
           <Dropdown menu={{ items, onClick: ({ key }) => onMenuClick({ key, record }) }}>
-            <EllipsisOutlined />
+            <EllipsisOutlined className='cursor-pointer'/>
           </Dropdown>
         );
       }
@@ -277,7 +284,7 @@ export function Component() {
 
   // rowSelection object indicates the need for row selection
   const rowSelection: TableProps<Assistant>['rowSelection'] = {
-    onChange: (selectedRowKeys: React.Key[], selectedRows: Assistant[]) => {},
+    onChange: (selectedRowKeys: React.Key[], selectedRows: Assistant[]) => { },
     getCheckboxProps: (record: Assistant) => ({
       name: record.name
     })
@@ -367,7 +374,13 @@ export function Component() {
             <Button
               icon={<PlusOutlined />}
               type='primary'
-              onClick={() => integratedStoreModalRef.current?.open('ai-assistant')}
+              onClick={() => {
+                if (isStoreEnabled(applicationSetting)) {
+                  integratedStoreModalRef.current?.open('ai-assistant')
+                } else {
+                  nav('/ai-assistant/new');
+                }
+              }}
             >
               {t('common.add')}
             </Button>

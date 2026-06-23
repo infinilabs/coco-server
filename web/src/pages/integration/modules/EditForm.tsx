@@ -62,8 +62,6 @@ export const EditForm = memo(props => {
     light: undefined
   });
 
-  const [widgetsLogo, setWidgetsLogo] = useState([]);
-
   const {
     data: result,
     loading: dataSourceLoading,
@@ -93,11 +91,25 @@ export const EditForm = memo(props => {
 
   const handleSubmit = async () => {
     const params = await form.validateFields();
-    const { searchbox_mode, fullscreen_mode, cors = {}, enabled_module = {}, start_page = {}, payload = {}, guest = {} } = params;
+    const hasDeepThinkAssistantField = Object.prototype.hasOwnProperty.call(params, 'deep_think_assistant');
+    const hasDeepResearchAssistantField = Object.prototype.hasOwnProperty.call(params, 'deep_research_assistant');
+    const {
+      searchbox_mode,
+      fullscreen_mode,
+      cors = {},
+      enabled_module = {},
+      start_page = {},
+      payload = {},
+      guest = {},
+      deep_think_assistant,
+      deep_research_assistant
+    } = params;
     const { search = {}, ai_chat = {} } = enabled_module;
     const { datasource = [] } = search;
     const { assistants = [] } = ai_chat;
-    const { ai_overview = {}, ai_widgets = {} } = payload;
+    const { ai_overview = {} } = payload;
+    const normalizedDeepThinkAssistant = hasDeepThinkAssistantField ? deep_think_assistant?.id : record?.deep_think_assistant;
+    const normalizedDeepResearchAssistant = hasDeepResearchAssistantField ? deep_research_assistant?.id : record?.deep_research_assistant;
     const formatGuest = {
       ...guest,
       run_as: guest.enabled && guest.run_as?.id ? guest.run_as?.id : undefined
@@ -106,6 +118,8 @@ export const EditForm = memo(props => {
       type === 'fullscreen'
         ? {
           ...params,
+          deep_think_assistant: normalizedDeepThinkAssistant,
+          deep_research_assistant: normalizedDeepResearchAssistant,
           guest: formatGuest,
           enabled_module: {
             search: {
@@ -118,28 +132,16 @@ export const EditForm = memo(props => {
             ...payload,
             ai_overview: {
               ...ai_overview,
-              assistant: ai_overview?.assistant?.id,
+              assistant: ai_overview?.assistant?.id || '',
               logo: {
-                light: aiOverviewLogo?.light
+                light: aiOverviewLogo?.light || '',
               }
             },
-            ai_widgets: {
-              ...ai_widgets,
-              widgets: ai_widgets.widgets
-                ? ai_widgets.widgets.map((item, index) => ({
-                  ...item,
-                  assistant: item.assistant?.id,
-                  logo: {
-                    light: widgetsLogo[index]?.light
-                  }
-                }))
-                : []
-            },
             logo: {
-              light: searchLogos?.light,
-              light_mobile: searchLogos?.light_mobile,
-              dark: searchLogos?.dark,
-              dark_mobile: searchLogos?.dark_mobile
+              light: searchLogos?.light || '',
+              light_mobile: searchLogos?.light_mobile || '',
+              dark: searchLogos?.dark || '',
+              dark_mobile: searchLogos?.dark_mobile || ''
             }
           },
           cors: {
@@ -150,6 +152,8 @@ export const EditForm = memo(props => {
         }
         : {
           ...params,
+          deep_think_assistant: normalizedDeepThinkAssistant,
+          deep_research_assistant: normalizedDeepResearchAssistant,
           guest: formatGuest,
           enabled_module: {
             ...enabled_module,
@@ -164,8 +168,8 @@ export const EditForm = memo(props => {
                 ...start_page,
                 display_assistants: start_page?.display_assistants?.map(item => item.id),
                 logo: {
-                  light: startPagelogos.light,
-                  dark: startPagelogos.dark
+                  light: startPagelogos.light || '',
+                  dark: startPagelogos.dark || ''
                 }
               }
             }
@@ -188,6 +192,8 @@ export const EditForm = memo(props => {
           ...(record.cors || {}),
           allowed_origins: record.cors?.allowed_origins ? record.cors?.allowed_origins.join(',') : ''
         },
+        deep_research_assistant: record.deep_research_assistant ? { id: record.deep_research_assistant } : undefined,
+        deep_think_assistant: record.deep_think_assistant ? { id: record.deep_think_assistant } : undefined,
         guest: {
           ...(record.guest || {}),
           run_as: record.guest?.enabled && record.guest?.run_as ? { id: record.guest?.run_as } : undefined
@@ -201,9 +207,6 @@ export const EditForm = memo(props => {
     if (type === 'fullscreen') {
       setSearchLogos(state => ({ ...state, ...(record.payload?.logo || {}) }));
       setAIOverviewLogo(state => ({ ...state, ...(record.payload?.ai_overview?.logo || {}) }));
-      setWidgetsLogo(
-        record.payload?.ai_widgets?.widgets ? record.payload?.ai_widgets?.widgets.map(item => item.logo) : []
-      );
       const initValue = {
         ...record,
         ...commonValues,
@@ -236,20 +239,6 @@ export const EditForm = memo(props => {
               height: 200,
               output: 'markdown'
             },
-          ai_widgets: record.payload?.ai_widgets
-            ? {
-              ...record.payload.ai_widgets,
-              widgets: record.payload?.ai_widgets.widgets
-                ? record.payload?.ai_widgets.widgets.map(item => ({
-                  ...item,
-                  assistant: { id: item.assistant }
-                }))
-                : []
-            }
-            : {
-              enabled: true,
-              widgets: []
-            }
         },
         type: 'fullscreen',
         fullscreen_mode: FULLSCREEN_TYPES.includes(record?.type) ? record?.type : FULLSCREEN_TYPES[0],
@@ -257,7 +246,6 @@ export const EditForm = memo(props => {
       setEnabledList({
         search: true,
         ai_overview: initValue.payload?.ai_overview?.enabled,
-        ai_widgets: initValue.payload?.ai_widgets?.enabled
       });
       form.setFieldsValue(initValue);
     } else {
@@ -348,12 +336,8 @@ export const EditForm = memo(props => {
             ai_overview: {
               enabled: true,
               title: 'AI Overview',
-              height: 200
+              height: 320
             },
-            ai_widgets: {
-              enabled: true,
-              widgets: []
-            }
           },
           name: `widget-${generateRandomString(8)}`,
           enabled: true,
@@ -363,7 +347,6 @@ export const EditForm = memo(props => {
         setEnabledList({
           search: true,
           ai_overview: initValue.payload?.ai_overview?.enabled,
-          ai_widgets: initValue.payload?.ai_widgets?.enabled
         });
         form.setFieldsValue(initValue);
       } else {
@@ -486,8 +469,6 @@ export const EditForm = memo(props => {
             setAIOverviewLogo={setAIOverviewLogo}
             setEnabledList={setEnabledList}
             setSearchLogos={setSearchLogos}
-            setWidgetsLogo={setWidgetsLogo}
-            widgetsLogo={widgetsLogo}
           />
         )}
         <Form.Item

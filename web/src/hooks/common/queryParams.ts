@@ -14,7 +14,9 @@ export default function useQueryParams(defaultParams = {}) {
         from: 'number',
         size: 'number',
         sort: 'string',
-        filter: 'string[]'
+        filter: 'string[]',
+        aggfilter: 'string[]',
+        mode: 'string',
       }
     });
 
@@ -55,6 +57,27 @@ export default function useQueryParams(defaultParams = {}) {
         }
       }
     }
+    const aggfilter = {};
+    if (searchParams.aggfilter) {
+      if (Array.isArray(searchParams.aggfilter)) {
+        searchParams.aggfilter.forEach(item => {
+          if (!item) return;
+          const arr = item.split(':');
+          if (arr.length === 2 && arr[0] && arr[1]) {
+            if (Array.isArray(aggfilter[arr[0]])) {
+              aggfilter[arr[0]].push(arr[1]);
+            } else {
+              aggfilter[arr[0]] = [arr[1]];
+            }
+          }
+        });
+      } else {
+        const arr = searchParams.aggfilter.split(':');
+        if (arr.length === 2 && arr[0] && arr[1]) {
+          aggfilter[arr[0]] = [arr[1]];
+        }
+      }
+    }
     const sort = [];
     if (searchParams.sort) {
       const arr = searchParams.sort.split(',');
@@ -68,6 +91,7 @@ export default function useQueryParams(defaultParams = {}) {
     return {
       ...(searchParams || {}),
       filter,
+      aggfilter,
       sort
     };
   }, [searchParams]);
@@ -94,6 +118,19 @@ export default function useQueryParams(defaultParams = {}) {
       });
     }
 
+    const aggfilter = newParams.aggfilter;
+    const aggfilters = [];
+    if (aggfilter) {
+      Object.entries(aggfilter).forEach(([key, value]) => {
+        if (Array.isArray(value)) {
+          value.forEach(item => {
+            if (!item) return;
+            aggfilters.push(`${key}:${item}`);
+          });
+        }
+      });
+    }
+
     let sort = '';
     if (newParams.sort && Array.isArray(newParams.sort)) {
       sort = newParams.sort.map(([field, order]) => `${field}:${order}`).join(',');
@@ -101,6 +138,7 @@ export default function useQueryParams(defaultParams = {}) {
     const newSearchParams = {
       ...newParams,
       filter: filters,
+      aggfilter: aggfilters,
       sort
     };
     if (!newSearchParams.sort) {

@@ -458,6 +458,7 @@ export const generatedRoutes: GeneratedRoute[] = [
     meta: {
       i18nKey: 'route.preview',
       title: 'preview',
+      constant: true,
       hideInMenu: true
     },
     children: [
@@ -467,7 +468,9 @@ export const generatedRoutes: GeneratedRoute[] = [
         component: 'view.preview_document',
         meta: {
           i18nKey: 'route.preview_document',
-          title: 'preview_document'
+          title: 'preview_document',
+          constant: true,
+          hideInMenu: true
         }
       }
     ]

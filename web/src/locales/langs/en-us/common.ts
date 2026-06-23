@@ -75,7 +75,8 @@ const common: App.I18n.Schema['translation']['common'] = {
     yes: 'Yes'
   },
   operateSuccess: 'Operation Success',
-  operateFailed: 'Operation Failed'
+  operateFailed: 'Operation Failed',
+  status: 'Status',
 };
 
 export default common;

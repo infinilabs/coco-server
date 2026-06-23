@@ -6,6 +6,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"runtime"
 	"strings"
@@ -16,6 +17,7 @@ import (
 	deep_research2 "infini.sh/coco/modules/assistant/deep_research_v2"
 	"infini.sh/coco/modules/assistant/deep_search"
 	"infini.sh/coco/modules/assistant/tools"
+	attachmentmod "infini.sh/coco/modules/attachment"
 
 	log "github.com/cihub/seelog"
 	"github.com/tmc/langchaingo/llms"
@@ -24,8 +26,54 @@ import (
 	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/orm"
+	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
 )
+
+// errAttachmentProcessingTimeout tags attachment parsing wait timeouts for reply_end typing.
+var errAttachmentProcessingTimeout = errors.New("attachment processing timeout")
+
+// determineExitReason classifies why the assistant processing loop ended.
+// It checks the context and task metadata to distinguish user cancellation
+// (explicit cancel button) from timeout, error, and normal completion.
+func determineExitReason(ctx context.Context, err error, taskID string) string {
+	if ctx.Err() != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			return common.ReplyEndReasonTimeout
+		}
+		return common.ReplyEndReasonUserCancelled
+	}
+	if errors.Is(err, errAttachmentProcessingTimeout) {
+		return common.ReplyEndReasonTimeout
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return common.ReplyEndReasonTimeout
+	}
+	if err != nil {
+		return common.ReplyEndReasonError
+	}
+	return common.ReplyEndReasonCompleted
+}
+
+// determineReplyEndTimeoutType maps a timeout error to the reply_end timeout source.
+func determineReplyEndTimeoutType(err error) string {
+	if errors.Is(err, errAttachmentProcessingTimeout) {
+		return common.ReplyEndTimeoutTypeAttachmentProcessing
+	}
+	return common.ReplyEndTimeoutTypeAssistantGeneration
+}
+
+// buildReplyEndPayload shapes the shared persisted and streamed reply_end payload.
+func buildReplyEndPayload(reason string, processingErr error) util.MapStr {
+	payloadMap := util.MapStr{"reason": reason}
+	if reason == common.ReplyEndReasonError && processingErr != nil {
+		payloadMap["error"] = processingErr.Error()
+	}
+	if reason == common.ReplyEndReasonTimeout {
+		payloadMap["type"] = determineReplyEndTimeoutType(processingErr)
+	}
+	return payloadMap
+}
 
 func CreateAssistantReplyMessage(sessionID, assistantID, requestMessageID string) *core.ChatMessage {
 	msg := &core.ChatMessage{
@@ -42,16 +90,31 @@ func CreateAssistantReplyMessage(sessionID, assistantID, requestMessageID string
 }
 
 // save response and send END signal to receiver
-func finalizeProcessing(ctx context.Context, sessionID string, msg *core.ChatMessage, sender core.MessageSender) {
+func finalizeProcessing(ctx context.Context, msg *core.ChatMessage, sender core.MessageSender, reason string, processingErr error) {
+	payloadMap := buildReplyEndPayload(reason, processingErr)
+	payload := util.MustToJSON(payloadMap)
 
-	ctx1 := orm.NewContextWithParent(ctx)
+	// Persist the termination reason so history replay knows how the loop ended.
+	msg.Details = append(msg.Details, core.ProcessingDetails{
+		Order:   99,
+		Type:    common.ReplyEnd,
+		Payload: payloadMap,
+	})
 
-	if err := orm.Save(ctx1, msg); err != nil {
+	// Clone the security user onto a fresh background context so cancellation of
+	// the request does not block persistence while ORM owner hooks still work.
+	saveCtx := security.CloneContext(ctx)
+	saveCtx, cancel := context.WithTimeout(saveCtx, 10*time.Second)
+	defer cancel()
+	ctx1 := orm.NewContextWithParent(saveCtx)
+	ctx1.Refresh = orm.ImmediatelyRefresh
+
+	if err := orm.Create(ctx1, msg); err != nil {
 		_ = log.Errorf("Failed to save assistant message: %v", err)
 	}
 
 	_ = sender.SendChunkMessage(core.MessageTypeSystem,
-		common.ReplyEnd, "Processing completed", 0,
+		common.ReplyEnd, payload, 0,
 	)
 }
 
@@ -65,6 +128,8 @@ func ProcessMessageAsync(ctx context.Context, userID string, reqMsg, replyMsg *c
 	)
 
 	defer func() {
+		taskID := GetReplyMessageTaskID(params.SessionID, reqMsg.ID)
+
 		if !global.Env().IsDebug {
 			if r := recover(); r != nil {
 				var v string
@@ -76,26 +141,29 @@ func ProcessMessageAsync(ctx context.Context, userID string, reqMsg, replyMsg *c
 				case string:
 					v = r.(string)
 				}
-				msg := fmt.Sprintf("⚠️ error in async processing message reply, %v", v)
-				if replyMsg.Message != "" {
-					replyMsg.Message += "\n\n"
+
+				// If the context was cancelled (user switched chat or clicked cancel),
+				// treat it as a graceful stop — no error message to the user.
+				if ctx.Err() != nil || strings.Contains(v, "context canceled") || strings.Contains(v, "context deadline exceeded") {
+					log.Infof("async processing cancelled by user: %v", v)
+				} else {
+					_ = log.Errorf("panic in async processing: %v", v)
+					err = fmt.Errorf("%s", v)
 				}
-				replyMsg.Message += msg
-				_ = sender.SendChunkMessage(core.MessageTypeSystem,
-					common.Response, msg, 0,
-				)
-				_ = log.Error(msg)
 			}
 		}
 
 		if err != nil {
-			log.Errorf("Failed to process message reply: %v", err)
-			replyMsg.Message += err.Error()
+			if ctx.Err() != nil || strings.Contains(err.Error(), "context canceled") || strings.Contains(err.Error(), "context deadline exceeded") {
+				log.Infof("async processing cancelled: %v", err)
+			} else {
+				log.Errorf("Failed to process message reply: %v", err)
+			}
 		}
 
-		finalizeProcessing(ctx, params.SessionID, replyMsg, sender)
+		reason := determineExitReason(ctx, err, taskID)
+		finalizeProcessing(ctx, replyMsg, sender, reason, err)
 		// clear the inflight message task
-		taskID := GetReplyMessageTaskID(params.SessionID, reqMsg.ID)
 		InflightMessages.Delete(taskID)
 
 		log.Info("finished async processing message")
@@ -108,6 +176,14 @@ func ProcessMessageAsync(ctx context.Context, userID string, reqMsg, replyMsg *c
 		params.InputValues = map[string]any{}
 	}
 
+	// Wait for any attachments referenced by this request to finish their
+	// initial parsing before invoking the LLM. The stream stays open during
+	// the wait; the client remains in "thinking" state until either the
+	// attachments are ready or the wait fails/times out.
+	if err = waitAndAttachAttachments(ctx, reqMsg, params, sender); err != nil {
+		return err
+	}
+
 	params.InputValues["query"] = reqMsg.Message
 
 	// Processing pipeline
@@ -117,9 +193,14 @@ func ProcessMessageAsync(ctx context.Context, userID string, reqMsg, replyMsg *c
 		params.InputValues["history"] = "</empty>"
 	}
 
-	switch params.AssistantCfg.Type {
-	case core.AssistantTypeDeepThink:
-		return deep_search.RunDeepSearchTask(
+	// For deep_think assistants, only activate deep-think mode when the
+	// request explicitly sets deep_thinking=true; otherwise fall through to
+	// simple mode so the user can get a fast answer without the full pipeline.
+	if params.AssistantCfg.Type == core.AssistantTypeDeepThink && params.DeepThink {
+		// The deferred finalizer reads this captured err variable to decide the
+		// reply_end reason. Assign before returning; a direct return would skip the
+		// local variable in this non-named-return function.
+		err = deep_search.RunDeepSearchTask(
 			ctx,
 			userID,
 			params,
@@ -128,14 +209,19 @@ func ProcessMessageAsync(ctx context.Context, userID string, reqMsg, replyMsg *c
 			replyMsg,
 			sender,
 		)
+		return err
+	}
+
+	switch params.AssistantCfg.Type {
 	case core.AssistantTypeDeepResearch:
 		log.Info("start running deep research")
+		var attachments []*core.Attachment
+		if v, ok := params.InputValues["attachments"]; ok {
+			attachments, _ = v.([]*core.Attachment)
+		}
 		err = deep_research2.RunDeepResearchV2(ctx, reqMsg.Message, params.AssistantCfg.DeepResearchConfig, reqMsg,
-			replyMsg,
+			replyMsg, attachments,
 			sender)
-		//err = deep_research.RunDeepResearch(ctx, reqMsg.Message, params.AssistantCfg.DeepResearchConfig, reqMsg,
-		//	replyMsg,
-		//	sender)
 		log.Info("end running deep research")
 	default:
 		//simple mode
@@ -163,7 +249,6 @@ func ProcessMessageAsync(ctx context.Context, userID string, reqMsg, replyMsg *c
 
 		err = langchain.GenerateFinalResponse(ctx, reqMsg, replyMsg, params, params.InputValues, sender)
 		log.Info("async reply task done for query:", reqMsg.Message)
-		break
 	}
 	return err
 }
@@ -215,4 +300,91 @@ func FetchSessionHistory(ctx context.Context, reqMsg *core.ChatMessage, size int
 	historyStr.WriteString("</conversation>")
 
 	return chatHistory, historyStr.String(), nil
+}
+
+// attachmentWaitTimeout bounds how long ProcessMessageAsync will block waiting
+// for attachment initial-parsing to complete before failing the chat. The
+// outer HTTP context (e.g. sendChatMessageV2) currently uses a 5 minute total
+// budget; keeping the wait well below that leaves room for the actual LLM call.
+const attachmentWaitTimeout = 90 * time.Second
+
+// attachmentWaitHeartbeat controls how frequently a keepalive chunk is emitted
+// while waiting. This is the cap of the underlying polling backoff so the UI
+// receives a steady-but-not-noisy progress signal.
+const attachmentWaitHeartbeat = 5 * time.Second
+
+// waitAndAttachAttachments blocks until every attachment referenced by reqMsg
+// reaches a terminal initial_parsing state. On success it stores the loaded
+// attachments into params.InputValues["attachments"] so downstream prompt
+// assembly can inject their text.
+//
+// Behavior:
+//   - empty / missing attachment list: no-op.
+//   - all referenced attachments missing-or-deleted: skip wait, no-op.
+//   - any attachment in failed/canceled state: surface a system error chunk
+//     and abort the chat without calling the LLM.
+//   - context canceled (e.g. client disconnect): propagate the cancellation;
+//     finalize will not emit additional chunks on a broken stream.
+//   - wait timeout: abort the chat with reply_end reason=timeout and
+//     type=attachment_processing.
+func waitAndAttachAttachments(ctx context.Context, reqMsg *core.ChatMessage, params *common2.RAGContext, sender core.MessageSender) error {
+	if reqMsg == nil || len(reqMsg.Attachments) == 0 {
+		return nil
+	}
+
+	// Filter out deleted / missing attachments up front so we don't block on
+	// IDs that will never have stats written for them.
+	live := attachmentmod.LoadAttachmentsForChat(reqMsg.Attachments)
+	if len(live) == 0 {
+		log.Debugf("attachment wait: no live attachments to wait for in session [%s]", params.SessionID)
+		return nil
+	}
+	liveIDs := make([]string, 0, len(live))
+	for _, a := range live {
+		if a != nil {
+			liveIDs = append(liveIDs, a.ID)
+		}
+	}
+
+	heartbeat := func(pending []string) {
+		// The chunk content is informational; the main signal is its arrival,
+		// which keeps reverse proxies from idling out the chunked response.
+		_ = sender.SendChunkMessage(core.MessageTypeSystem,
+			common.AttachmentWaiting,
+			fmt.Sprintf("waiting for %d attachment(s) to finish processing", len(pending)),
+			0,
+		)
+	}
+
+	failedIDs, waitErr := attachmentmod.WaitForAttachmentsCompletion(ctx, liveIDs, attachmentWaitTimeout, heartbeat)
+	if waitErr != nil {
+		if ctx.Err() != nil {
+			// Outer context canceled (client disconnect / explicit stop): just
+			// propagate so the caller's finalize flow can run.
+			return ctx.Err()
+		}
+		if errors.Is(waitErr, context.DeadlineExceeded) {
+			// Keep DeadlineExceeded semantics while tagging the timeout source.
+			return fmt.Errorf("%w: %w", errAttachmentProcessingTimeout, waitErr)
+		}
+		return waitErr
+	}
+	if len(failedIDs) > 0 {
+		msg := fmt.Sprintf("attachment processing failed for: %s", strings.Join(failedIDs, ", "))
+		_ = sender.SendChunkMessage(core.MessageTypeSystem, common.Response, msg, 0)
+		return fmt.Errorf("%s", msg)
+	}
+
+	// Re-read metadata so that Attachment.Text reflects whatever the processor
+	// wrote during the wait. The underlying store is eventually consistent;
+	// a missing Text at this point is not an error, the prompt formatter will
+	// substitute a placeholder.
+	refreshed := attachmentmod.LoadAttachmentsForChat(liveIDs)
+	if len(refreshed) == 0 {
+		// Attachments disappeared (deleted between wait start and now): fall
+		// back to whatever we loaded up front rather than failing the chat.
+		refreshed = live
+	}
+	params.InputValues["attachments"] = refreshed
+	return nil
 }

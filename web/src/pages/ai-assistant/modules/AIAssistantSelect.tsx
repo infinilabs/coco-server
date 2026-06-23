@@ -6,7 +6,7 @@ import { useRequest } from '@sa/hooks';
 import { getLocale } from '@/store/slice/app';
 
 export default props => {
-  const { value, onChange, width, className, mode, assistants, excluded = [] } = props;
+  const { value, onChange, width, className, mode, assistants, excluded = [], allowClear = false, filter = {} } = props;
 
   const { t } = useTranslation();
   const locale = useAppSelector(getLocale);
@@ -56,11 +56,14 @@ export default props => {
       fetchData({
         ...queryParams,
         sort: sorter.map(item => `${item[0]}:${item[1]}`).join(',') || 'created:desc',
-        filter: assistants
-          ? {
-              id: assistants.map(item => item.id)
-            }
-          : {}
+        filter: {
+          ...filter,
+          ...(assistants
+            ? {
+                id: assistants.map(item => item.id)
+              }
+            : {})
+        }
       });
     }
   };
@@ -76,6 +79,7 @@ export default props => {
       if (value && value.some(item => Boolean(item?.id && !item?.name)) && permissions.search) {
         fetchItems({
           filter: {
+            ...filter,
             id: value.map(item => item.id)
           },
           from: 0,
@@ -85,7 +89,7 @@ export default props => {
     } else if (value?.id && !value?.name && permissions.read) {
       fetchItem(value.id);
     }
-  }, [JSON.stringify(value), mode, permissions.search, permissions.read]);
+  }, [JSON.stringify(value), mode, permissions.search, permissions.read, JSON.stringify(filter)]);
 
   const result = useMemo(() => {
     const rs = formatESSearchResult(res);
@@ -116,6 +120,7 @@ export default props => {
   return (
     <div className='flex items-center gap-2'>
       <DropdownList
+        allowClear={allowClear}
         className={`ai-assistant-select ${className}`}
         data={data}
         dropdownWidth={width}

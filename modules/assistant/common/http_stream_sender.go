@@ -8,10 +8,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/smallnest/langgraphgo/log"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
-	"infini.sh/framework/core/util"
 )
 
 // Heavily based on Kubernetes' (https://github.com/GoogleCloudPlatform/kubernetes) detection code.
@@ -43,19 +41,25 @@ func (s *HTTPStreamSender) SendChunkMessage(messageType, chunkType, messageChunk
 }
 
 func (s *HTTPStreamSender) SendMessage(msg *core.MessageChunk) error {
-	log.Info(util.MustToJSON(msg))
 	if msg == nil || (msg.MessageType == common.Response && strings.TrimSpace(msg.MessageChunk) == "") {
 		return nil
 	}
 
-	select {
-	case <-s.Ctx.Done():
-		return fmt.Errorf("client disconnected")
-	default:
-		if err := s.Enc.Encode(msg); err != nil {
-			return err
+	// reply_end must always be delivered so the frontend knows the loop
+	// terminated, even after user cancellation. Skip the context check for
+	// this terminal chunk; if the connection is truly gone, Encode will fail
+	// with a write error which is acceptable.
+	if msg.ChunkType != common.ReplyEnd {
+		select {
+		case <-s.Ctx.Done():
+			return fmt.Errorf("client disconnected")
+		default:
 		}
-		s.Flusher.Flush()
-		return nil
 	}
+
+	if err := s.Enc.Encode(msg); err != nil {
+		return err
+	}
+	s.Flusher.Flush()
+	return nil
 }

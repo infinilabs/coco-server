@@ -41,7 +41,9 @@ const AdminLayout: FC<AdminLayoutProps> = ({
   tabClass,
   tabHeight = 44,
   tabVisible = true,
-  updateSiderCollapse
+  updateSiderCollapse,
+  topBanner = null,
+  topBannerHeight = 0
 }) => {
   const cssVar = createLayoutCssVars({
     footerHeight,
@@ -107,136 +109,139 @@ const AdminLayout: FC<AdminLayoutProps> = ({
   const footerDisplay = !fullContent && fixedFooter ? 'block' : 'none';
 
   return (
-    <section
-      className={classNames('relative h-full', commonClass)}
-      style={cssVar}
-    >
+    <section className="h-full" style={cssVar}>
+      {topBanner}
       <section
-        id={isWrapperScroll ? scrollElId : ''}
-        className={classNames('h-full flex flex-col', scrollWrapperClass, commonClass, {
-          'overflow-y-auto': isWrapperScroll
-        })}
+        className={classNames('relative', commonClass)}
+        style={{ height: topBanner && topBannerHeight ? `calc(100% - ${topBannerHeight}px)` : '100%' }}
       >
-        {/* Header */}
-        {showHeader && (
-          <>
-            <header
-              style={{ display: fullContent ? 'none' : 'block' }}
-              className={classNames(
-                'flex-shrink-0',
-                style['layout-header'],
-                commonClass,
-                headerClass,
-                headerLeftGapClass,
-                { 'absolute top-0 left-0 w-full': fixedHeaderAndTab }
-              )}
-            >
-              {Header}
-            </header>
-            <div
-              className={classNames('flex-shrink-0 overflow-hidden', style['layout-header-placement'])}
-              style={{ display: headerDisplay }}
-            />
-          </>
-        )}
+        <section
+          id={isWrapperScroll ? scrollElId : ''}
+          className={classNames('h-full flex flex-col', scrollWrapperClass, commonClass, {
+            'overflow-y-auto': isWrapperScroll
+          })}
+        >
+          {/* Header */}
+          {showHeader && (
+            <>
+              <header
+                style={{ display: fullContent ? 'none' : 'block' }}
+                className={classNames(
+                  'flex-shrink-0',
+                  style['layout-header'],
+                  commonClass,
+                  headerClass,
+                  headerLeftGapClass,
+                  { 'absolute top-0 left-0 w-full': fixedHeaderAndTab }
+                )}
+              >
+                {Header}
+              </header>
+              <div
+                className={classNames('flex-shrink-0 overflow-hidden', style['layout-header-placement'])}
+                style={{ display: headerDisplay }}
+              />
+            </>
+          )}
 
-        {/* Tab */}
-        {showTab && (
-          <>
-            <div
-              className={classNames(
-                'flex-shrink-0',
-                style['layout-tab'],
-                commonClass,
-                tabClass,
-                { 'top-0!': fullContent || !showHeader },
-                leftGapClass(),
-                { 'absolute left-0 w-full': fixedHeaderAndTab }
-              )}
-            >
-              {Tab}
-            </div>
+          {/* Tab */}
+          {showTab && (
+            <>
+              <div
+                className={classNames(
+                  'flex-shrink-0',
+                  style['layout-tab'],
+                  commonClass,
+                  tabClass,
+                  { 'top-0!': fullContent || !showHeader },
+                  leftGapClass(),
+                  { 'absolute left-0 w-full': fixedHeaderAndTab }
+                )}
+              >
+                {Tab}
+              </div>
 
-            <div
-              className={classNames('flex-shrink-0 overflow-hidden', [style['layout-tab-placement']])}
-              style={{ display: fixedHeaderAndTab || fullContent ? 'block' : 'none' }}
-            />
-          </>
-        )}
+              <div
+                className={classNames('flex-shrink-0 overflow-hidden', [style['layout-tab-placement']])}
+                style={{ display: fixedHeaderAndTab || fullContent ? 'block' : 'none' }}
+              />
+            </>
+          )}
 
-        {/* Sider */}
-        {showSider && (
-          <aside
-            style={{ display: siderDisplay }}
-            className={classNames(
-              'absolute left-0 top-0 h-full',
-              commonClass,
-              siderClass,
-              siderPaddingClass(),
-              siderCollapse ? style['layout-sider_collapsed'] : style['layout-sider']
-            )}
-          >
-            {Sider}
-          </aside>
-        )}
-
-        {/* Mobile Sider */}
-        {showMobileSider && (
-          <>
+          {/* Sider */}
+          {showSider && (
             <aside
-              className={classNames('absolute left-0 top-0 h-full w-0 bg-white', [
+              style={{ display: siderDisplay }}
+              className={classNames(
+                'absolute left-0 top-0 h-full',
                 commonClass,
                 siderClass,
-                mobileSiderClass,
-                style['layout-mobile-sider'],
-                siderCollapse ? 'overflow-hidden' : style['layout-sider']
-              ])}
+                siderPaddingClass(),
+                siderCollapse ? style['layout-sider_collapsed'] : style['layout-sider']
+              )}
             >
               {Sider}
             </aside>
-            <div
-              style={{ display: mobileSider }}
-              className={classNames('absolute left-0 top-0 h-full w-full bg-[rgba(0,0,0,0.2)]', [
-                style['layout-mobile-sider-mask']
-              ])}
-              onClick={() => updateSiderCollapse()}
-            />
-          </>
-        )}
+          )}
 
-        {/*  Main Content  */}
-        <main
-          id={isContentScroll ? scrollElId : ''}
-          className={classNames('flex flex-col  flex-grow bg-layout', commonClass, contentClass, leftGapClass(), {
-            'overflow-y-auto': isContentScroll
-          })}
-        >
-          {Breadcrumb}
-          {children}
-        </main>
+          {/* Mobile Sider */}
+          {showMobileSider && (
+            <>
+              <aside
+                className={classNames('absolute left-0 top-0 h-full w-0 bg-white', [
+                  commonClass,
+                  siderClass,
+                  mobileSiderClass,
+                  style['layout-mobile-sider'],
+                  siderCollapse ? 'overflow-hidden' : style['layout-sider']
+                ])}
+              >
+                {Sider}
+              </aside>
+              <div
+                style={{ display: mobileSider }}
+                className={classNames('absolute left-0 top-0 h-full w-full bg-[rgba(0,0,0,0.2)]', [
+                  style['layout-mobile-sider-mask']
+                ])}
+                onClick={() => updateSiderCollapse()}
+              />
+            </>
+          )}
 
-        {/* Footer */}
-        {showFooter && (
-          <>
-            <footer
-              style={{ display: siderDisplay }}
-              className={classNames(
-                'flex-shrink-0',
-                style['layout-footer'],
-                commonClass,
-                footerClass,
-                footerLeftGapClass(),
-                { 'absolute left-0 bottom-0 w-full': fixedFooter }
-              )}
-            >
-              {Footer}
-            </footer>
-            <div
-              className={classNames('flex-shrink-0 overflow-hidden', style['layout-footer-placement'])}
-              style={{ display: footerDisplay }}
-            />
-          </>
-        )}
+          {/*  Main Content  */}
+          <main
+            id={isContentScroll ? scrollElId : ''}
+            className={classNames('flex flex-col  flex-grow bg-layout', commonClass, contentClass, leftGapClass(), {
+              'overflow-y-auto': isContentScroll
+            })}
+          >
+            {Breadcrumb}
+            {children}
+          </main>
+
+          {/* Footer */}
+          {showFooter && (
+            <>
+              <footer
+                style={{ display: siderDisplay }}
+                className={classNames(
+                  'flex-shrink-0',
+                  style['layout-footer'],
+                  commonClass,
+                  footerClass,
+                  footerLeftGapClass(),
+                  { 'absolute left-0 bottom-0 w-full': fixedFooter }
+                )}
+              >
+                {Footer}
+              </footer>
+              <div
+                className={classNames('flex-shrink-0 overflow-hidden', style['layout-footer-placement'])}
+                style={{ display: footerDisplay }}
+              />
+            </>
+          )}
+        </section>
       </section>
     </section>
   );

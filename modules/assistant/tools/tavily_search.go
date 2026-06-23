@@ -28,7 +28,8 @@ type TavilySearchResponse struct {
 
 // TavilySearchTool implements web search using Tavily API
 type TavilySearchTool struct {
-	APIKey string
+	APIKey     string
+	MaxResults int // 0 means use default (5)
 }
 
 // Name returns the tool name
@@ -49,11 +50,16 @@ func (t *TavilySearchTool) Call(ctx context.Context, input string) (string, erro
 		return "", fmt.Errorf("TAVILY_API_KEY not set")
 	}
 
+	maxResults := t.MaxResults
+	if maxResults <= 0 {
+		maxResults = 5
+	}
+
 	// Prepare request
 	reqBody := map[string]interface{}{
 		"api_key":     t.APIKey,
 		"query":       input,
-		"max_results": 5,
+		"max_results": maxResults,
 	}
 
 	jsonData, err := json.Marshal(reqBody)

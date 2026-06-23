@@ -9,10 +9,10 @@
   </head>
 
   <body>
-    <div id="fullscreen"></div>
-    <link rel="stylesheet" href="./index.css">
+    <div id="fullscreen" style="height: 100vh;"></div>
+    <link rel="stylesheet" href="./dist/index.css">
     <script type="module" >
-        import { fullscreen } from "./index.js";
+        import { fullscreen } from "./dist/index.js";
         const urlParams = new URLSearchParams(window.location.search);
         const id = urlParams.get('id');
         const token = urlParams.get('token');
@@ -22,7 +22,7 @@
           id,
           token,
           server,
-          linkHref: "./index.css",
+          linkHref: "./dist/index.css",
         });
     </script>
   </body>

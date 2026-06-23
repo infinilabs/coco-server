@@ -41,14 +41,15 @@
     "base_url" : "https://api.hunyuan.cloud.tencent.com",
     "icon" : "font_hunyuan",
     "models" : [
-      {"name": "hunyuan-pro", "settings":{"reasoning":false}},
-      {"name": "hunyuan-standard", "settings":{"reasoning":false}},
-      {"name": "hunyuan-lite", "settings":{"reasoning":false}},
-      {"name": "hunyuan-standard-256k", "settings":{"reasoning":false}},
-      {"name": "hunyuan-vision", "settings":{"reasoning":false}},
-      {"name": "hunyuan-code", "settings":{"reasoning":false}},
-      {"name": "hunyuan-role", "settings":{"reasoning":false}},
-      {"name": "hunyuan-turbo", "settings":{"reasoning":false}}
+      {"name": "hy3-preview", "type":"language", "support_reasoning":true},
+      {"name": "hunyuan-t1-latest", "type":"language", "support_reasoning":true},
+      {"name": "hunyuan-a13b", "type":"language", "support_reasoning":true},
+      {"name": "hunyuan-turbos-latest", "type":"language"},
+      {"name": "hunyuan-lite", "type":"language"},
+      {"name": "hunyuan-role-latest", "type":"language"},
+      {"name": "hy-mt2-pro", "type":"language"},
+      {"name": "hunyuan-vision-1.5-instruct", "type":"vision"},
+      {"name": "hunyuan-t1-vision-20250916", "type":"vision", "support_reasoning":true}
     ],
     "enabled" : false,
     "builtin" : true,

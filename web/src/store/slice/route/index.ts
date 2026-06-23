@@ -13,7 +13,6 @@ import type { AppThunk } from '../..';
 import { createAppSlice } from '../../createAppSlice';
 
 import { filterAuthRoutesByPermissions, getCacheRouteNames, sortRoutesByOrder } from './shared';
-import { getProviderInfo } from '../server';
 
 interface InitialStateType {
   authRoutes: ElegantConstRoute[];

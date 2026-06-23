@@ -11,6 +11,7 @@ import { AssistantMode } from './AssistantMode';
 import { DatasourceConfig } from './DatasourceConfig';
 import { MCPConfig } from './MCPConfig';
 import { DeepThink } from './DeepThink';
+import { DeepResearchLimits, DeepResearchOutput, DeepResearchSearch, DeepResearchModels } from './DeepResearch';
 import { formatESSearchResult } from '@/service/request/es';
 import ModelSelect, { DefaultPromptTemplates } from './ModelSelect';
 import { ToolsConfig } from './ToolsConfig';
@@ -20,6 +21,7 @@ import { getAssistantCategory } from '@/service/api/assistant';
 import { UploadConfig } from './UploadConfig';
 import classNames from 'classnames';
 import AvailableVariable from './AvailableVariable';
+import { fetchSettings } from '@/service/api/server';
 
 interface AssistantFormProps {
   initialValues: any;
@@ -37,8 +39,21 @@ export const EditForm = memo((props: AssistantFormProps) => {
   const permissions = {
     fetchModelProviders: hasAuth('coco#model_provider/search'),
     fetchMCPServers: hasAuth('coco#mcp_server/search'),
-    fetchDataSources: hasAuth('coco#datasource/search')
+    fetchDataSources: hasAuth('coco#datasource/search'),
+    fetchSettings: hasAuth('coco#system/read')
   };
+
+  const [defaultModelSettings, setDefaultModelSettings] = useState<any>();
+
+  useEffect(() => {
+    if (permissions.fetchSettings) {
+      fetchSettings().then(res => {
+        if (res.data?.default_model) {
+          setDefaultModelSettings(res.data?.default_model?.language_model);
+        }
+      })
+    }
+  }, []);
 
   useEffect(() => {
     if (initialValues) {
@@ -121,8 +136,24 @@ export const EditForm = memo((props: AssistantFormProps) => {
   const modelProviders = useMemo(() => {
     if (!modelsResult) return [];
     const res = formatESSearchResult(modelsResult);
-    return res.data;
+    return res.data.map((item: any) => ({
+      ...item,
+      models: item.models?.filter((model: any) => model.type === 'language') || []
+    }));
   }, [JSON.stringify(modelsResult)]);
+
+  const defaultModel = useMemo(() => {
+    if (!defaultModelSettings || modelProviders.length === 0) return null;
+    const provider = modelProviders.find((item: any) => item.id === defaultModelSettings.provider_id);
+    if (!provider) return null;
+    return provider.models.find((model: any) => model.name === defaultModelSettings.id);
+  }, [defaultModelSettings, modelProviders]);
+
+  const onModelRefresh = useMemo(() => {
+    if (!permissions.fetchModelProviders) return;
+    return () => fetchModelProviders(10000);
+  }, [permissions.fetchModelProviders]);
+
   useEffect(() => {
     if (permissions.fetchModelProviders) {
       fetchModelProviders(10000);
@@ -195,7 +226,7 @@ export const EditForm = memo((props: AssistantFormProps) => {
             forceRender: true,
             children: (
               <Form.Item className='mb-0!'>
-                <DeepThink providers={modelProviders} />
+                <DeepThink providers={modelProviders} defaultModel={defaultModel} onModelRefresh={onModelRefresh}/>
               </Form.Item>
             )
           }
@@ -248,23 +279,15 @@ export const EditForm = memo((props: AssistantFormProps) => {
                       label={t('page.settings.llm.picking_doc_model')}
                       layout='vertical'
                       name={['config', 'picking_doc_model']}
-                      rules={[
-                        {
-                          required: true,
-                          validator: (_, value) => {
-                            if (!value || !value.id) {
-                              return Promise.reject(new Error(t('page.assistant.hints.selectModel')));
-                            }
-
-                            return Promise.resolve();
-                          }
-                        }
-                      ]}
                     >
                       <ModelSelect
                         modelType='picking_doc_model'
                         namePrefix={['config', 'picking_doc_model']}
                         providers={modelProviders}
+                        allowClear={true}
+                        placeholder={t('page.assistant.labels.modelSelectPlaceholder')}
+                        defaultModel={defaultModel}
+                        onRefresh={onModelRefresh}
                       />
                     </Form.Item>
                   </>
@@ -359,6 +382,8 @@ export const EditForm = memo((props: AssistantFormProps) => {
                         value: item.id
                       }))
                     )}
+                    defaultModel={defaultModel}
+                    onModelRefresh={onModelRefresh}
                   >
                     <ToolsConfig />
                   </MCPConfig>
@@ -388,22 +413,15 @@ export const EditForm = memo((props: AssistantFormProps) => {
                 label={t('page.assistant.labels.answering_model')}
                 layout='vertical'
                 name={['answering_model']}
-                rules={[
-                  {
-                    required: true,
-                    validator: (_, value) => {
-                      if (!value || !value.id) {
-                        return Promise.reject(new Error(t('page.assistant.hints.selectModel')));
-                      }
-                      return Promise.resolve();
-                    }
-                  }
-                ]}
               >
                 <ModelSelect
                   modelType='answering_model'
                   namePrefix={['answering_model']}
                   providers={modelProviders}
+                  allowClear={true}
+                  placeholder={t('page.assistant.labels.modelSelectPlaceholder')}
+                  defaultModel={defaultModel}
+                  onRefresh={onModelRefresh}
                 />
               </Form.Item>
             )
@@ -542,21 +560,44 @@ export const EditForm = memo((props: AssistantFormProps) => {
           </>
         )}
 
+        {assistantMode === 'deep_research' && (
+          <>
+            <Form.Item
+              label={t('page.assistant.labels.deep_research_limits')}
+            >
+              <DeepResearchLimits />
+            </Form.Item>
+            <Form.Item
+              label={t('page.assistant.labels.deep_research_output')}
+            >
+              <DeepResearchOutput />
+            </Form.Item>
+            <Form.Item
+              label={t('page.assistant.labels.deep_research_search')}
+            >
+              <DeepResearchSearch
+                datasourceOptions={dataSource.map((item: any) => ({
+                  label: item.name,
+                  value: item.id
+                }))}
+              />
+            </Form.Item>
+            <Form.Item
+              label={t('page.assistant.labels.deep_research_models')}
+            >
+              <DeepResearchModels
+                providers={modelProviders}
+                defaultModel={defaultModel}
+                onModelRefresh={onModelRefresh}
+              />
+            </Form.Item>
+          </>
+        )}
+
         {assistantMode === 'simple' && (
           <Form.Item
             label={t('page.assistant.labels.answering_model')}
             name={['answering_model']}
-            rules={[
-              {
-                required: true,
-                validator: (_, value) => {
-                  if (!value || !value.id) {
-                    return Promise.reject(new Error(t('page.assistant.hints.selectModel')));
-                  }
-                  return Promise.resolve();
-                }
-              }
-            ]}
           >
             <ModelSelect
               modelType='answering_model'
@@ -564,6 +605,10 @@ export const EditForm = memo((props: AssistantFormProps) => {
               providers={modelProviders}
               showTemplate={false}
               width='600px'
+              allowClear={true}
+              placeholder={t('page.assistant.labels.modelSelectPlaceholder')}
+              defaultModel={defaultModel}
+              onRefresh={onModelRefresh}
             />
           </Form.Item>
         )}
@@ -644,6 +689,9 @@ export const EditForm = memo((props: AssistantFormProps) => {
                 <Input.TextArea className='w-600px' />
               </Form.Item>
             </div>
+            {/* history_message fields are only relevant for simple / deep_think modes;
+                deep_research does not use chat history context */}
+            {assistantMode !== 'deep_research' && (
             <div className='flex items-center justify-between'>
               <div>
                 <p>{t('page.assistant.labels.history_message_number')}</p>
@@ -658,6 +706,8 @@ export const EditForm = memo((props: AssistantFormProps) => {
                 />
               </Form.Item>
             </div>
+            )}
+            {assistantMode !== 'deep_research' && (
             <div className='flex items-center justify-between'>
               <div>
                 <p>{t('page.assistant.labels.history_message_compression_threshold')}</p>
@@ -672,6 +722,8 @@ export const EditForm = memo((props: AssistantFormProps) => {
                 />
               </Form.Item>
             </div>
+            )}
+            {assistantMode !== 'deep_research' && (
             <div className='flex items-center justify-between'>
               <div>
                 <p>{t('page.assistant.labels.history_summary')}</p>
@@ -681,6 +733,7 @@ export const EditForm = memo((props: AssistantFormProps) => {
                 <Switch size='small' />
               </Form.Item>
             </div>
+            )}
           </div>
         </Form.Item>
 

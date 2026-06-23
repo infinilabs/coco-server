@@ -41,12 +41,16 @@
     "base_url" : "https://qianfan.baidubce.com/v2/",
     "icon" : "font_Qianfan",
     "models" : [
-      {"name": "ERNIE-4.0", "settings":{"reasoning":false}},
-      {"name": "ERNIE 4.0 Trubo", "settings":{"reasoning":false}},
-      {"name": "ERNlE Speed", "settings":{"reasoning":false}},
-      {"name": "ERNIE Lite", "settings":{"reasoning":false}},
-      {"name": "BGE Large ZH", "settings":{"reasoning":false}},
-      {"name": "BGE Large EN", "settings":{"reasoning":false}}
+      {"name": "ernie-5.1", "type":"language", "support_reasoning":true},
+      {"name": "ernie-5.0", "type":"language", "support_reasoning":true},
+      {"name": "ernie-x1.1", "type":"language", "support_reasoning":true},
+      {"name": "ernie-x1-turbo", "type":"language", "support_reasoning":true},
+      {"name": "ernie-4.5-turbo", "type":"language"},
+      {"name": "ernie-4.5-turbo-vl", "type":"vision"},
+      {"name": "ernie-4.5", "type":"language"},
+      {"name": "bge-large-zh", "type":"embedding"},
+      {"name": "bge-large-en", "type":"embedding"},
+      {"name": "embedding", "type":"embedding"}
     ],
     "enabled" : false,
     "builtin" : true,

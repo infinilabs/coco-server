@@ -145,7 +145,16 @@ const permission = {
   'generic#security:auth:api-token/search': '搜索 API Token',
 
   'license': '授权',
+  'generic#license/info': '查看授权信息',
   'generic#license/apply': '更新授权',
+
+  'pipeline': 'Pipeline',
+  'generic#pipeline/admin': '管理 Pipeline 任务',
+  'generic#pipeline/create': '创建 Pipeline',
+  'generic#pipeline/read': '读取 Pipeline',
+  'generic#pipeline/update': '更新 Pipeline',
+  'generic#pipeline/delete': '删除 Pipeline',
+  'generic#pipeline/search': '搜索 Pipeline',
 
   // 🧭 其他
   cancel_session: '取消会话'

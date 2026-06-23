@@ -55,6 +55,20 @@ func GetLLMByConfig(model core.ModelConfig) (llms.Model, error) {
 }
 
 func GetLLM(endpoint, apiType, model, token string, keepalive string) llms.Model {
+	return getLLMInternal(endpoint, apiType, model, token, keepalive, 0)
+}
+
+// GetEmbeddingLLM creates an LLM client optimized for embedding generation.
+// For OpenAI-compatible providers it requests the specified embedding dimension
+// from the model; for Ollama the dimension is ignored because the API does not
+// support changing output dimensions.
+func GetEmbeddingLLM(endpoint, apiType, model, token string, dimensions int) llms.Model {
+	return getLLMInternal(endpoint, apiType, model, token, "", dimensions)
+}
+
+// helper function to build an LLM client, optionally requesting a specific
+// embedding dimension for OpenAI-compatible providers.
+func getLLMInternal(endpoint, apiType, model, token, keepalive string, embeddingDimensions int) llms.Model {
 	if model == "" {
 		panic("model is empty")
 	}
@@ -71,100 +85,55 @@ func GetLLM(endpoint, apiType, model, token string, keepalive string) llms.Model
 		}
 		return llm
 
-	} else {
-
-		var llm llms.Model
-		var err error
-
-		if global.Env().IsDebug {
-			customClient := &http.Client{
-				Transport: &LoggingRoundTripper{original: http.DefaultTransport},
-			}
-			llm, err = openai.New(
-				openai.WithHTTPClient(customClient),
-				openai.WithToken(token),
-				openai.WithBaseURL(endpoint),
-				openai.WithModel(model),
-				openai.WithEmbeddingModel(model),
-			)
-		} else {
-			llm, err = openai.New(
-				openai.WithToken(token),
-				openai.WithBaseURL(endpoint),
-				openai.WithModel(model),
-				openai.WithEmbeddingModel(model),
-			)
-		}
-
-		if err != nil {
-			panic(err)
-		}
-		return llm
 	}
+
+	var llm llms.Model
+	var err error
+
+	opts := []openai.Option{
+		openai.WithToken(token),
+		openai.WithBaseURL(endpoint),
+		openai.WithModel(model),
+		openai.WithEmbeddingModel(model),
+	}
+	if embeddingDimensions > 0 {
+		opts = append(opts, openai.WithEmbeddingDimensions(embeddingDimensions))
+	}
+
+	if global.Env().IsDebug {
+		customClient := &http.Client{
+			Transport: &LoggingRoundTripper{original: http.DefaultTransport},
+		}
+		opts = append([]openai.Option{openai.WithHTTPClient(customClient)}, opts...)
+	}
+
+	llm, err = openai.New(opts...)
+
+	if err != nil {
+		panic(err)
+	}
+	return llm
 }
 
 func GetTemperature(model *core.ModelConfig, defaultValue float64) float64 {
-	temperature := 0.0
 	if model.Settings.Temperature > 0 {
-		temperature = model.Settings.Temperature
+		return model.Settings.Temperature
 	}
-	if temperature == 0 {
-		modelProvider, err := common.GetModelProvider(model.ProviderID)
-		if err != nil {
-			panic(err)
-		}
-		v := modelProvider.GetModelConfig(model.Name)
-		if v != nil {
-			temperature = v.Settings.Temperature
-		}
-	}
-	if temperature == 0 {
-		temperature = defaultValue
-	}
-	return temperature
+	return defaultValue
 }
 
 func GetMaxLength(model *core.ModelConfig, defaultValue int) int {
-	maxLength := 0
 	if model.Settings.MaxLength > 0 {
-		maxLength = model.Settings.MaxLength
+		return model.Settings.MaxLength
 	}
-	if maxLength == 0 {
-		modelProvider, err := common.GetModelProvider(model.ProviderID)
-		if err != nil {
-			panic(err)
-		}
-		v := modelProvider.GetModelConfig(model.Name)
-		if v != nil {
-			maxLength = v.Settings.MaxLength
-		}
-	}
-	if maxLength == 0 {
-		maxLength = defaultValue
-	}
-	return maxLength
+	return defaultValue
 }
 
 func GetMaxTokens(model *core.ModelConfig, defaultValue int) int {
-	var maxTokens int = 0
 	if model.Settings.MaxTokens > 0 {
-		maxTokens = model.Settings.MaxTokens
+		return model.Settings.MaxTokens
 	}
-	if maxTokens == 0 {
-		modelProvider, err := common.GetModelProvider(model.ProviderID)
-		if err != nil {
-			panic(err)
-		}
-
-		v := modelProvider.GetModelConfig(model.Name)
-		if v != nil {
-			maxTokens = v.Settings.MaxTokens
-		}
-	}
-	if maxTokens == 0 {
-		maxTokens = defaultValue
-	}
-	return maxTokens
+	return defaultValue
 }
 
 func GetLLOptions(model *core.ModelConfig) []llms.CallOption {
@@ -175,5 +144,12 @@ func GetLLOptions(model *core.ModelConfig) []llms.CallOption {
 	options = append(options, llms.WithMaxTokens(maxTokens))
 	//options = append(options, llms.WithMaxLength(maxLength))
 	options = append(options, llms.WithTemperature(temperature))
+	// Check if the model supports reasoning and reasoning is enabled in settings
+	if common.ModelSupportsReasoning(model.ProviderID, model.Name) && model.Settings.Reasoning {
+		options = append(options, llms.WithThinking(&llms.ThinkingConfig{
+			Mode:           llms.ThinkingModeAuto,
+			StreamThinking: true,
+		}))
+	}
 	return options
 }

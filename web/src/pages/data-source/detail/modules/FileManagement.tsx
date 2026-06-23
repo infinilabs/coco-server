@@ -1,6 +1,6 @@
-import { DownOutlined, EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined } from '@ant-design/icons';
+import { CheckCircleFilled, CloseCircleFilled, DownOutlined, EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined } from '@ant-design/icons';
 import type { MenuProps, TableColumnsType, TableProps } from 'antd';
-import { Avatar, Dropdown, Switch, Table, message } from 'antd';
+import { Avatar, Button, Dropdown, Table, message } from 'antd';
 import Search from 'antd/es/input/Search';
 
 import FontIcon from '@/components/common/font_icon';
@@ -79,13 +79,13 @@ const FileManagement = props => {
     switch (key) {
       case '1':
         window?.$modal?.confirm({
-          content: 'Are you sure you want to delete this document?',
+          content: t('page.datasource.labels.deleteConfirm'),
           icon: <ExclamationCircleOutlined />,
           onCancel() {},
           onOk() {
             deleteDocument(record.id).then(res => {
               if (res.data?.result === 'deleted') {
-                message.success('deleted success');
+                message.success(t('common.deleteSuccess'));
               }
               // reload data
               setQueryParams(old => {
@@ -126,7 +126,7 @@ const FileManagement = props => {
     record.disabled = !checked;
     updateDocument(record.id, record).then(res => {
       if (res.data?.result === 'updated') {
-        message.success('updated success');
+        message.success(t('common.updateSuccess'));
       }
       // reload data
       setQueryParams(old => {
@@ -148,12 +148,11 @@ const FileManagement = props => {
       switch (key) {
         case '1':
           window?.$modal?.confirm({
-            content: 'Are you sure you want to delete theses documents?',
+            content: t('page.datasource.labels.deleteAllConfirm'),
             icon: <ExclamationCircleOutlined />,
             onCancel() {},
             onOk() {
               if (state.selectedRowKeys?.length === 0) {
-                message.error('Please select at least one document');
                 return;
               }
               setLoading(true);
@@ -166,7 +165,7 @@ const FileManagement = props => {
                         selectedRowKeys: []
                       };
                     });
-                    message.success('submit success');
+                    message.success(t('common.deleteSuccess'));
                   }
                   // reload data
                   setTimeout(() => {
@@ -362,13 +361,20 @@ const FileManagement = props => {
     //   title: t('page.datasource.columns.searchable')
     // },
     {
+      title: t('common.status'),
+      dataIndex: 'processed',
+      render: (processed: boolean) => {
+        return processed === true ? <CheckCircleFilled className='text-[var(--ant-color-success)]' /> : <CloseCircleFilled className='text-[var(--ant-color-error)]' />
+      }
+    },
+    {
       fixed: 'right',
       hidden: !permissions.delete,
       render: (_, record) => {
         if (!isEditorOwner(record)) return null;
         return (
           <Dropdown menu={{ items, onClick: ({ key }) => onMenuClick({ key, record }) }}>
-            <EllipsisOutlined />
+            <EllipsisOutlined className='cursor-pointer'/>
           </Dropdown>
         );
       },
@@ -510,13 +516,16 @@ const FileManagement = props => {
         />
         {permissions.delete && (
           <div>
-            <Dropdown.Button
-              icon={<DownOutlined />}
-              menu={{ items, onClick: onBatchMenuClick }}
-              type='primary'
+            <Dropdown 
+              menu={{ items: items.map((item) => ({
+                ...item,
+                disabled: state.selectedRowKeys?.length === 0
+              })), onClick: onBatchMenuClick }}
             >
-              {t('common.operation')}
-            </Dropdown.Button>
+              <Button type='primary' icon={<DownOutlined />} iconPlacement="end">
+                {t('common.operation')}
+              </Button>
+            </Dropdown>
           </div>
         )}
       </div>

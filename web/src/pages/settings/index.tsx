@@ -4,6 +4,8 @@ import './index.scss';
 import AppSettings from './modules/AppSettings';
 import ConnectorSettings from './modules/Connector';
 import SearchSettings from './modules/SearchSettings';
+import DefaultModel from './modules/DefaultModel';
+import DocProcessing from './modules/DocProcessing';
 
 export function Component() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -40,6 +42,16 @@ export function Component() {
       component: SearchSettings,
       key: 'search_settings',
       label: t(`page.settings.search_settings.title`),
+    })
+    items.push({
+      component: DefaultModel,
+      key: 'default_model',
+      label: t(`page.settings.default_model.title`),
+    })
+    items.push({
+      component: DocProcessing,
+      key: 'document_processing',
+      label: t(`page.settings.document_processing.title`),
     })
   }
 

@@ -11,10 +11,10 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
   "icon" : "font_Robot-outlined",
   "type" : "simple",
   "answering_model": {
-      "provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
-      "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
+      "provider_id": "",
+      "name": "",
       "settings": {
-        "reasoning": $[[SETUP_LLM_REASONING]],
+        "reasoning": false,
         "temperature": 0,
         "top_p": 0,
         "presence_penalty": 0,
@@ -51,7 +51,7 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
     },
     "input_preprocess_tpl" : "",
     "history_message" : {
-      "number" : 5,
+      "number": 30,
       "compression_threshold" : 1000,
       "summary" : true
     }
@@ -73,10 +73,10 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/a
     "icon": "font_Brain02",
     "type": "simple",
     "answering_model": {
-      "provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
-      "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
+      "provider_id": "",
+      "name": "",
       "settings": {
-        "reasoning": $[[SETUP_LLM_REASONING]],
+        "reasoning": false,
         "temperature": 0,
         "top_p": 0,
         "presence_penalty": 0,
@@ -126,7 +126,7 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/a
       },
       "input_preprocess_tpl": "",
       "history_message": {
-        "number": 5,
+        "number": 30,
         "compression_threshold": 1000,
         "summary": true
       }
@@ -149,10 +149,10 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
           "icon": "font_coco",
           "type": "simple",
           "answering_model": {
-      "provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
-      "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
+      "provider_id": "",
+      "name": "",
        "settings": {
-        "reasoning": $[[SETUP_LLM_REASONING]],
+        "reasoning": false,
               "temperature": 0.7,
               "top_p": 0.9,
               "presence_penalty": 0,
@@ -189,10 +189,10 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
             ],
             "visible": false,
             "model": {
-"provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
-      "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
+"provider_id": "",
+      "name": "",
        "settings": {
-        "reasoning": $[[SETUP_LLM_REASONING]],
+        "reasoning": false,
                 "temperature": 0.7,
                 "top_p": 0.9,
                 "presence_penalty": 0,
@@ -227,7 +227,7 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
             "input_preprocess_tpl": "",
             "placeholder": "",
             "history_message": {
-              "number": 5,
+              "number": 30,
               "compression_threshold": 1000,
               "summary": true
             }
@@ -249,10 +249,10 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
           "icon": "font_coco",
           "type": "simple",
           "answering_model": {
-"provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
-      "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
+"provider_id": "",
+      "name": "",
        "settings": {
-        "reasoning": $[[SETUP_LLM_REASONING]],
+        "reasoning": false,
               "temperature": 0.7,
               "top_p": 0.9,
               "presence_penalty": 0,
@@ -289,10 +289,10 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
             ],
             "visible": false,
             "model": {
-"provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
-      "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
+"provider_id": "",
+      "name": "",
        "settings": {
-        "reasoning": $[[SETUP_LLM_REASONING]],
+        "reasoning": false,
                 "temperature": 0.7,
                 "top_p": 0.9,
                 "presence_penalty": 0,
@@ -327,7 +327,7 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
             "input_preprocess_tpl": "",
             "placeholder": "",
             "history_message": {
-              "number": 5,
+              "number": 30,
               "compression_threshold": 1000,
               "summary": true
             }
@@ -350,10 +350,10 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
           "icon": "font_coco",
           "type": "simple",
           "answering_model": {
-"provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
-      "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
+"provider_id": "",
+      "name": "",
        "settings": {
-        "reasoning": $[[SETUP_LLM_REASONING]],
+        "reasoning": false,
               "temperature": 0.7,
               "top_p": 0.9,
               "presence_penalty": 0,
@@ -390,10 +390,10 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
             ],
             "visible": false,
             "model": {
-"provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
-      "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
+"provider_id": "",
+      "name": "",
        "settings": {
-        "reasoning": $[[SETUP_LLM_REASONING]],
+        "reasoning": false,
                 "temperature": 0.7,
                 "top_p": 0.9,
                 "presence_penalty": 0,
@@ -428,7 +428,7 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
             "input_preprocess_tpl": "",
             "placeholder": "",
             "history_message": {
-              "number": 5,
+              "number": 30,
               "compression_threshold": 1000,
               "summary": true
             }
@@ -450,10 +450,10 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
           "icon": "font_coco",
           "type": "simple",
           "answering_model": {
-         "provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
-               "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
+         "provider_id": "",
+               "name": "",
                 "settings": {
-                 "reasoning": $[[SETUP_LLM_REASONING]],
+                 "reasoning": false,
               "temperature": 0.7,
               "top_p": 0.9,
               "presence_penalty": 0,
@@ -512,7 +512,7 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
             "input_preprocess_tpl": "",
             "placeholder": "",
             "history_message": {
-              "number": 5,
+              "number": 30,
               "compression_threshold": 1000,
               "summary": true
             }
@@ -534,10 +534,10 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
           "icon": "font_coco",
           "type": "simple",
           "answering_model": {
-           "provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
-                         "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
+           "provider_id": "",
+                         "name": "",
                           "settings": {
-                           "reasoning": $[[SETUP_LLM_REASONING]],
+                           "reasoning": false,
               "temperature": 0.7,
               "top_p": 0.9,
               "presence_penalty": 0,
@@ -574,10 +574,10 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
             ],
             "visible": false,
             "model": {
-            "provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
-                          "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
+            "provider_id": "",
+                          "name": "",
                            "settings": {
-                            "reasoning": $[[SETUP_LLM_REASONING]],
+                            "reasoning": false,
                 "temperature": 0.7,
                 "top_p": 0.9,
                 "presence_penalty": 0,
@@ -612,7 +612,7 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
             "input_preprocess_tpl": "",
             "placeholder": "",
             "history_message": {
-              "number": 5,
+              "number": 30,
               "compression_threshold": 1000,
               "summary": true
             }
@@ -634,10 +634,10 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
           "icon": "font_coco",
           "type": "simple",
           "answering_model": {
-            "provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
-                          "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
+            "provider_id": "",
+                          "name": "",
                            "settings": {
-                            "reasoning": $[[SETUP_LLM_REASONING]],
+                            "reasoning": false,
               "temperature": 0.7,
               "top_p": 0.9,
               "presence_penalty": 0,
@@ -674,10 +674,10 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
             ],
             "visible": false,
             "model": {
-            "provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
-                          "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
+            "provider_id": "",
+                          "name": "",
                            "settings": {
-                            "reasoning": $[[SETUP_LLM_REASONING]],
+                            "reasoning": false,
                 "temperature": 0.7,
                 "top_p": 0.9,
                 "presence_penalty": 0,
@@ -712,7 +712,7 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
             "input_preprocess_tpl": "",
             "placeholder": "",
             "history_message": {
-              "number": 5,
+              "number": 30,
               "compression_threshold": 1000,
               "summary": true
             }
@@ -734,10 +734,10 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
           "icon": "font_coco",
           "type": "simple",
           "answering_model": {
-            "provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
-                          "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
+            "provider_id": "",
+                          "name": "",
                            "settings": {
-                            "reasoning": $[[SETUP_LLM_REASONING]],
+                            "reasoning": false,
               "temperature": 0.7,
               "top_p": 0.9,
               "presence_penalty": 0,
@@ -774,10 +774,10 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
             ],
             "visible": false,
             "model": {
-            "provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
-                          "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
+            "provider_id": "",
+                          "name": "",
                            "settings": {
-                            "reasoning": $[[SETUP_LLM_REASONING]],
+                            "reasoning": false,
                 "temperature": 0.7,
                 "top_p": 0.9,
                 "presence_penalty": 0,
@@ -812,7 +812,7 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
             "input_preprocess_tpl": "",
             "placeholder": "",
             "history_message": {
-              "number": 5,
+              "number": 30,
               "compression_threshold": 1000,
               "summary": true
             }
@@ -834,10 +834,10 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
           "icon": "font_coco",
           "type": "simple",
           "answering_model": {
-           "provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
-                                    "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
+           "provider_id": "",
+                                    "name": "",
                                      "settings": {
-                                      "reasoning": $[[SETUP_LLM_REASONING]],
+                                      "reasoning": false,
               "temperature": 0.7,
               "top_p": 0.9,
               "presence_penalty": 0,
@@ -874,10 +874,10 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
             ],
             "visible": false,
             "model": {
-            "provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
-              "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
+            "provider_id": "",
+              "name": "",
                "settings": {
-                "reasoning": $[[SETUP_LLM_REASONING]],
+                "reasoning": false,
                 "temperature": 0.7,
                 "top_p": 0.9,
                 "presence_penalty": 0,
@@ -912,7 +912,7 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
             "input_preprocess_tpl": "",
             "placeholder": "",
             "history_message": {
-              "number": 5,
+              "number": 30,
               "compression_threshold": 1000,
               "summary": true
             }
@@ -934,10 +934,10 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
           "icon": "font_Search01",
           "type": "simple",
           "answering_model": {
-         "provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
-                       "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
+         "provider_id": "",
+                       "name": "",
                         "settings": {
-                         "reasoning": $[[SETUP_LLM_REASONING]],
+                         "reasoning": false,
               "temperature": 0.7,
               "top_p": 0.9,
               "presence_penalty": 0,
@@ -974,10 +974,10 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
             ],
             "visible": false,
             "model": {
-            "provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
-                          "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
+            "provider_id": "",
+                          "name": "",
                            "settings": {
-                            "reasoning": $[[SETUP_LLM_REASONING]],
+                            "reasoning": false,
                 "temperature": 0.7,
                 "top_p": 0.9,
                 "presence_penalty": 0,
@@ -1012,7 +1012,7 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
             "input_preprocess_tpl": "",
             "placeholder": "",
             "history_message": {
-              "number": 5,
+              "number": 30,
               "compression_threshold": 1000,
               "summary": true
             }
@@ -1034,10 +1034,10 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
           "icon": "font_code",
           "type": "simple",
           "answering_model": {
-            "provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
-                                    "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
+            "provider_id": "",
+                                    "name": "",
                                      "settings": {
-                                      "reasoning": $[[SETUP_LLM_REASONING]],
+                                      "reasoning": false,
               "temperature": 0.7,
               "top_p": 0.9,
               "presence_penalty": 0,
@@ -1083,8 +1083,8 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
                 "temperature": 0.7,
                 "max_length": 0
               },
-              "name": "deepseek-chat",
-              "provider_id": "d46s8uh4d9v4iq94qlfg",
+              "name": "",
+              "provider_id": "",
               "prompt": {
                 "template": "",
                 "input_vars": null
@@ -1112,7 +1112,7 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/d
             "input_preprocess_tpl": "",
             "placeholder": "",
             "history_message": {
-              "number": 5,
+              "number": 30,
               "compression_threshold": 1000,
               "summary": true
             }
@@ -1135,10 +1135,10 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
     "icon": "font_Robot-outlined",
     "type": "simple",
     "answering_model": {
-     "provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
-                              "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
+     "provider_id": "",
+                              "name": "",
                                "settings": {
-                                "reasoning": $[[SETUP_LLM_REASONING]],
+                                "reasoning": false,
         "temperature": 0.7,
         "top_p": 0.9,
         "presence_penalty": 0,
@@ -1195,7 +1195,7 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
       "input_preprocess_tpl": "",
       "placeholder": "",
       "history_message": {
-        "number": 5,
+        "number": 30,
         "compression_threshold": 1000,
         "summary": true
       }
@@ -1219,10 +1219,10 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
      "icon": "font_Robot-outlined",
      "type": "simple",
      "answering_model": {
-      "provider_id": "$[[SETUP_LLM_PROVIDER_ID]]",
-      "name": "$[[SETUP_LLM_DEFAULT_MODEL_ID]]",
+      "provider_id": "",
+      "name": "",
        "settings": {
-        "reasoning": $[[SETUP_LLM_REASONING]],
+        "reasoning": false,
          "temperature": 0.7,
          "top_p": 0.9,
          "presence_penalty": 0,
@@ -1279,11 +1279,71 @@ POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/g
        "input_preprocess_tpl": "",
        "placeholder": "",
        "history_message": {
-         "number": 5,
+         "number": 30,
          "compression_threshold": 1000,
          "summary": true
        }
      },
      "builtin": true,
      "role_prompt": "你是 Coco AI（https://coco.rs￼）开发的 AI 助手，由 极限科技 / INFINI Labs（https://infinilabs.com￼）的技术团队驱动。"
+}
+
+POST $[[SETUP_INDEX_PREFIX]]assistant$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/deep_research
+{
+  "_system": {
+    "owner_id": "$[[SETUP_OWNER_ID]]"
+  },
+  "id": "deep_research",
+  "created": "2026-06-22T00:00:00.000000+08:00",
+  "updated": "2026-06-22T00:00:00.000000+08:00",
+  "name": "深度研究",
+  "description": "跨网络和企业内部数据源进行全面的多步骤研究，生成结构化报告。",
+  "icon": "font_Search01",
+  "type": "deep_research",
+  "answering_model": {
+    "provider_id": "",
+    "name": "",
+    "settings": {
+      "reasoning": false,
+      "temperature": 0,
+      "top_p": 0,
+      "presence_penalty": 0,
+      "frequency_penalty": 0,
+      "max_tokens": 0,
+      "max_length": 0
+    },
+    "prompt": {
+      "template": "",
+      "input_vars": null
+    }
+  },
+  "keepalive": "30m",
+  "enabled": true,
+  "chat_settings": {
+    "greeting_message": "我可以跨网络和企业数据源进行深度研究。您希望我研究什么话题？",
+    "suggested": {
+      "enabled": false,
+      "questions": []
+    },
+    "input_preprocess_tpl": "",
+    "history_message": {
+      "number": 30,
+      "compression_threshold": 1000,
+      "summary": true
+    }
+  },
+  "builtin": false,
+  "config": {
+    "max_steps": 5,
+    "max_researcher_iterations": 5,
+    "max_concurrent_research_units": 5,
+    "max_results": 5,
+    "timeout": "30m",
+    "research_depth": "basic",
+    "report_format": "markdown",
+    "external_search": {
+      "engine": "duckduckgo"
+    }
+  },
+  "role_prompt": "你是一个深度研究（Deep Research）AI 助手。\n\n你的职责是帮助用户对复杂话题进行全面的、多步骤的深入研究。你可以从多种来源收集信息，并将发现结果整理成结构化的报告。\n\n指引：\n- 帮助用户提出清晰、范围明确的研究问题\n- 如果用户的查询过于宽泛，请通过追问来帮助收窄研究范围\n- 对于不需要多步骤研究的简单事实性问题，直接回答即可，无需触发研究流程\n- 始终使用与用户提问相同的语言进行交流"
 }

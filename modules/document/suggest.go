@@ -29,16 +29,14 @@ func (h *APIHandler) getFieldMeta(w http.ResponseWriter, req *http.Request, ps h
 	if fieldName != "" && h.fieldMetadata != nil {
 		if util.ContainStr(fieldName, ",") {
 			fieldNames := strings.Split(fieldName, ",")
-			for _, fieldName := range fieldNames {
-				v, ok := h.fieldMetadata[fieldName]
-				if ok {
-					out[fieldName] = v
+			for _, fn := range fieldNames {
+				if v, ok := h.fieldMetadata.Get(fn); ok {
+					out[fn] = v.(FieldMetadata)
 				}
 			}
 		} else {
-			v, ok := h.fieldMetadata[fieldName]
-			if ok {
-				out[fieldName] = v
+			if v, ok := h.fieldMetadata.Get(fieldName); ok {
+				out[fieldName] = v.(FieldMetadata)
 			}
 		}
 	}
@@ -54,6 +52,14 @@ func (h *APIHandler) suggest(w http.ResponseWriter, req *http.Request, ps httpro
 		size  = h.GetIntOrDefault(req, "size", 10)
 	)
 
+	// Ensure non-negative values
+	if from < 0 {
+		from = 0
+	}
+	if size < 0 {
+		size = 10
+	}
+
 	var response interface{}
 	tag := ps.ByName("tag")
 	log.Trace("suggest tag:", tag)
@@ -61,10 +67,8 @@ func (h *APIHandler) suggest(w http.ResponseWriter, req *http.Request, ps httpro
 	switch tag {
 	case core.SuggestTagFieldNames:
 		response = h.suggestFieldNames(w, req, query, from, size)
-		break
 	case core.SuggestTagFieldValues:
 		response = h.suggestFieldValues(w, req, query, from, size)
-		break
 	default:
 		response = h.suggestDocuments(w, req, query, from, size)
 	}
@@ -74,32 +78,47 @@ func (h *APIHandler) suggest(w http.ResponseWriter, req *http.Request, ps httpro
 }
 
 type FieldMetadata struct {
-	FieldIcon          string `json:"field_icon" config:"field_icon"`
-	FieldLabel         string `json:"field_label" config:"field_label"`
-	FieldDescription   string `json:"field_description" config:"field_description"`
-	FieldName          string `json:"field_name" config:"field_name"`
-	FieldDataType      string `json:"field_data_type" config:"field_data_type"`
-	SupportMultiSelect bool   `json:"support_multi_select" config:"support_multi_select"`
+	FieldIcon          string            `json:"field_icon" config:"field_icon"`
+	FieldLabel         string            `json:"field_label" config:"field_label"`
+	FieldDescription   map[string]string `json:"field_description" config:"field_description"`
+	FieldName          string            `json:"field_name" config:"field_name"`
+	FieldDataType      string            `json:"field_data_type" config:"field_data_type"`
+	SupportMultiSelect bool              `json:"support_multi_select" config:"support_multi_select"`
 }
 
 func (h *APIHandler) suggestFieldNames(w http.ResponseWriter, req *http.Request, query string, from int, size int) *core.SuggestResponse[FieldMetadata] {
 	response := &core.SuggestResponse[FieldMetadata]{}
 
-	out := []core.Suggestion[FieldMetadata]{}
+	all := []core.Suggestion[FieldMetadata]{}
 	if h.fieldMetadata != nil {
-		for k, v := range h.fieldMetadata {
-			if util.PrefixStr(k, query) || util.ContainStr(k, query) || util.PrefixStr(v.FieldName, query) || util.ContainStr(v.FieldName, query) {
+		it := h.fieldMetadata.Iterator()
+		for it.Next() {
+			k := it.Key().(string)
+			v := it.Value().(FieldMetadata)
+			if util.PrefixStr(k, query) || util.ContainStr(k, query) ||
+				util.PrefixStr(v.FieldName, query) || util.ContainStr(v.FieldName, query) ||
+				util.PrefixStr(v.FieldLabel, query) || util.ContainStr(v.FieldLabel, query) {
 				i := core.Suggestion[FieldMetadata]{}
 				i.Suggestion = v.FieldLabel
 				i.Icon = v.FieldIcon
-				i.Source = v.FieldDescription
 				i.Payload = v
-				out = append(out, i)
+				all = append(all, i)
 			}
 		}
 	}
 
-	response.Suggestions = out
+	// Apply pagination
+	total := len(all)
+	if from >= total {
+		response.Suggestions = []core.Suggestion[FieldMetadata]{}
+	} else {
+		end := from + size
+		if end > total {
+			end = total
+		}
+		response.Suggestions = all[from:end]
+	}
+
 	response.Query = query
 
 	return response
@@ -174,7 +193,6 @@ func (h *APIHandler) suggestDocuments(w http.ResponseWriter, req *http.Request, 
 }
 
 func (h *APIHandler) suggestFieldValues(w http.ResponseWriter, req *http.Request, query string, from int, size int) *core.SuggestResponse[interface{}] {
-
 	fieldName := h.MustGetParameter(w, req, "field_name")
 
 	builder := orm.NewQuery()
@@ -183,11 +201,17 @@ func (h *APIHandler) suggestFieldValues(w http.ResponseWriter, req *http.Request
 	builder.Fuzziness(5)
 	builder.Size(0)
 
+	// Fetch from + size buckets to support pagination
+	aggSize := from + size
+	if aggSize < 10 {
+		aggSize = 10
+	}
+
 	rootAggs := map[string]orm.Aggregation{
 		"suggestions": (&orm.TermsAggregation{
 			Field:   fieldName,
 			Include: query + ".*",
-			Size:    10,
+			Size:    aggSize,
 		}),
 	}
 	builder.SetAggregations(rootAggs)
@@ -201,7 +225,7 @@ func (h *APIHandler) suggestFieldValues(w http.ResponseWriter, req *http.Request
 	if err != nil {
 		panic(err)
 	}
-	out := []core.Suggestion[interface{}]{}
+	all := []core.Suggestion[interface{}]{}
 
 	bytes, ok := res.Payload.([]byte)
 	if ok {
@@ -209,13 +233,23 @@ func (h *APIHandler) suggestFieldValues(w http.ResponseWriter, req *http.Request
 		util.MustFromJSONBytes(bytes, &resp)
 		if v, ok := resp.Aggregations["suggestions"]; ok {
 			for _, bucket := range v.Buckets {
-				out = append(out, core.Suggestion[interface{}]{Suggestion: bucket.Key})
+				all = append(all, core.Suggestion[interface{}]{Suggestion: bucket.Key})
 			}
 		}
 	}
 
+	// Apply pagination
 	response := &core.SuggestResponse[interface{}]{}
-	response.Suggestions = out
+	total := len(all)
+	if from >= total {
+		response.Suggestions = []core.Suggestion[interface{}]{}
+	} else {
+		end := from + size
+		if end > total {
+			end = total
+		}
+		response.Suggestions = all[from:end]
+	}
 	response.Query = query
 
 	return response

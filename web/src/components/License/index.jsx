@@ -49,12 +49,15 @@ const LicenseModal = forwardRef((props, ref) => {
   return (
     <Modal
       closable
-      destroyOnClose
+      destroyOnHidden
       footer={null}
       open={visible}
       width={560}
       wrapClassName={styles.systemLicense}
       onCancel={onClose}
+      classNames={{
+        container: '!p-0'
+      }}
     >
       <Tabs
         defaultActiveKey='version'

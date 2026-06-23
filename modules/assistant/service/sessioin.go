@@ -104,6 +104,21 @@ func StopMessageReplyTask(taskID string) {
 	}
 }
 
+func StopAllMessageReplyTasks() int {
+	count := 0
+	InflightMessages.Range(func(key, value any) bool {
+		task, ok := value.(common.MessageTask)
+		if !ok || task.CancelFunc == nil {
+			return true
+		}
+		seelog.Debug("stop inflight task:", key)
+		task.CancelFunc()
+		count++
+		return true
+	})
+	return count
+}
+
 func GetReplyMessageTaskID(sessionID, messageID string) string {
 	if messageID == "" {
 		return sessionID

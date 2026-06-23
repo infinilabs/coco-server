@@ -145,7 +145,16 @@ const permission = {
   'generic#security:auth:api-token/search': 'Search API Token',
 
   'license': 'License',
+  'generic#license/info': 'View License Info',
   'generic#license/apply': 'Apply License',
+
+  'pipeline': 'Pipeline',
+  'generic#pipeline/admin': 'Manage Pipeline Tasks',
+  'generic#pipeline/create': 'Create Pipeline',
+  'generic#pipeline/read': 'Read Pipeline',
+  'generic#pipeline/update': 'Update Pipeline',
+  'generic#pipeline/delete': 'Delete Pipeline',
+  'generic#pipeline/search': 'Search Pipeline',
 
   // 🧭 Others
   cancel_session: 'Cancel Session'

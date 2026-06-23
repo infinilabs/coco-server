@@ -6,6 +6,7 @@ package document
 
 import (
 	log "github.com/cihub/seelog"
+	"github.com/emirpasic/gods/maps/treemap"
 	"infini.sh/coco/core"
 	"infini.sh/framework/core/api"
 	"infini.sh/framework/core/env"
@@ -17,7 +18,7 @@ import (
 type APIHandler struct {
 	api.Handler
 	recommendConfigs map[string]core.RecommendResponse
-	fieldMetadata    map[string]FieldMetadata
+	fieldMetadata    *treemap.Map
 }
 
 const Category = "coco"
@@ -39,7 +40,7 @@ func init() {
 	//for internal document management, security should be enabled
 	api.HandleUIMethod(api.POST, "/document/", handler.createDoc, api.RequirePermission(createPermission))
 	api.HandleUIMethod(api.GET, "/document/:doc_id", handler.getDoc, api.RequirePermission(readPermission))
-	api.HandleUIMethod(api.GET, "/document/:doc_id/raw_content/:hint", handler.getDocRawContent, api.RequirePermission(readPermission))
+	api.HandleUIMethod(api.GET, "/document/:doc_id/raw_content/:hint", handler.getDocRawContent, api.RequirePermission(readPermission), api.AllowOPTIONSS(), api.Feature(core.FeatureCORS))
 	api.HandleUIMethod(api.PUT, "/document/:doc_id", handler.updateDoc, api.RequirePermission(updatePermission))
 	api.HandleUIMethod(api.DELETE, "/document/:doc_id", handler.deleteDoc, api.RequirePermission(deletePermission))
 	api.HandleUIMethod(api.GET, "/document/_search", handler.searchDocs, api.RequirePermission(searchPermission))
@@ -72,13 +73,17 @@ func init() {
 
 	global.RegisterFuncAfterSetup(func() {
 
-		fieldMetadata := map[string]FieldMetadata{}
-		ok, err := env.ParseConfig("field_metadata", &fieldMetadata)
+		fieldMetadataMap := map[string]FieldMetadata{}
+		ok, err := env.ParseConfig("field_metadata", &fieldMetadataMap)
 		if ok && err != nil && global.Env().SystemConfig.Configs.PanicOnConfigError {
 			panic(err)
 		}
-		handler.fieldMetadata = fieldMetadata
-		log.Trace(util.ToJson(fieldMetadata, true))
+		// Convert to TreeMap for sorted iteration by key
+		handler.fieldMetadata = treemap.NewWithStringComparator()
+		for k, v := range fieldMetadataMap {
+			handler.fieldMetadata.Put(k, v)
+		}
+		log.Trace(util.ToJson(fieldMetadataMap, true))
 
 		cfg1 := map[string]string{}
 		ok, err = env.ParseConfig("recommend", &cfg1)

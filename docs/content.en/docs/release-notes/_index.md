@@ -12,6 +12,12 @@ Information about release notes of Coco Server is provided here.
 - refactor: change boolean fields to use boolean mappings
 
 ### 🚀 Features  
+- feat: AI search with semantic search and hybrid search support #676
+- feat: add deep research assistant type for in-depth research tasks #676
+- feat: implement file upload support for assistants #676
+- feat: add default model configuration so assistants can fall back to system defaults without explicit model assignment #676
+- feat: update model provider templates and builtin model lists with model type attribute (language, vision, and embedding) #676
+- feat: implement chat functionality, now one can talk to assistants directly in Core Server #676
 - feat: add dropbox connector #614
 - feat: add simple stats module #622
 - feat: support team for authorization
@@ -38,6 +44,7 @@ Information about release notes of Coco Server is provided here.
 - fix(web): persist access token to localStorage and inject Authorization header on subsequent requests #682
 - fix(mssql connector): detect silent fallback to master when the configured database is missing or inaccessible #682
 - fix(datasource form): drop placeholder-as-initialValue so example strings are no longer submitted as real values #682
+- fix: return 404 instead of 500 when assistant does not exist in get assistant API #676
 
 ### ✈️ Improvements  
 - refactor: refactoring attachment API #636

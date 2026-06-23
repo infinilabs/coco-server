@@ -1,12 +1,13 @@
 import { request } from '../request';
 import { formatSearchFilter } from '../request/es';
 
-export function searchAssistant(params?: any) {
+export function searchAssistant(params?: any, option?: any) {
   const { filter = {}, ...rest } = params || {}
   return request({
     method: 'get',
     params: rest,
-    url: `/assistant/_search?${formatSearchFilter(filter)}`
+    url: `/assistant/_search?${formatSearchFilter(filter)}`,
+    ...(option || {})
   })
 }
 

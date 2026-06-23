@@ -13,6 +13,8 @@ import { request } from '@/service/request';
 import { formatESSearchResult } from '@/service/request/es';
 import { localStg } from '@/utils/storage';
 import { getDarkMode } from '@/store/slice/theme';
+import { getProviderInfo } from '@/store/slice/server';
+import { isStoreEnabled } from '@/layouts/modules/global-header/components/Shop';
 
 type Category = 'ai-assistant' | 'connector' | 'data-source' | 'mcp-server' | 'model-provider';
 
@@ -77,6 +79,15 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
   const [clipboardData, setClipboardData] = useState<DataSource>();
   const darkMode = useAppSelector(getDarkMode);
 
+  const providerInfo = useAppSelector(getProviderInfo);
+
+  const storeEndpoint = useMemo(() => {
+    if (isStoreEnabled(providerInfo)) {
+      return providerInfo?.store?.endpoint?.endsWith('/') ? providerInfo.store.endpoint.slice(0, -1) : providerInfo.store.endpoint;
+    }
+    return '';
+  }, [providerInfo]);
+
   useImperativeHandle(ref, () => ({
     async open(category) {
       setOpen(true);
@@ -87,9 +98,11 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
 
         const { id } = JSON.parse(text);
 
+        if (!id) return;
+
         const { data } = await request({
           method: 'get',
-          url: `/store/server/${id}`
+          url: `${storeEndpoint}/store/server/${id}`
         });
 
         const dataSource = data._source;
@@ -157,13 +170,7 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
       requestParams.sort = 'created:desc';
     }
 
-    const providerInfo = localStg.get('providerInfo');
-
-    let storeUrl = `/store/server/_search?filter=type:${requestType}`;
-
-    if (providerInfo.store?.local === false) {
-      storeUrl = providerInfo.store.endpoint + storeUrl;
-    }
+    let storeUrl = `${storeEndpoint}/store/server/_search?filter=type:${requestType}`;
 
     const searchParams = new URLSearchParams();
     Object.entries(requestParams).forEach(([key, value]) => {
@@ -258,7 +265,7 @@ const IntegratedStoreModal = forwardRef<IntegratedStoreModalRef>((_, ref) => {
 
       const res = await request({
         method: 'post',
-        url: `/store/server/${id}/_install`
+        url: `${storeEndpoint}/store/server/${id}/_install`
       });
 
       if (res?.data?.acknowledged) {

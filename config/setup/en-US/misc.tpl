@@ -42,6 +42,8 @@ POST $[[SETUP_INDEX_PREFIX]]integration$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]
               }
             }
           },
+          "deep_think_assistant": "",
+          "deep_research_assistant": "",
           "access_control": {
             "authentication": false,
             "chat_history": false
@@ -57,7 +59,7 @@ POST $[[SETUP_INDEX_PREFIX]]integration$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]
             ]
           },
           "guest": {
-            "enabled": false,
+            "enabled": true,
             "run_as": "5f67d03147dfce10ed51feafd346c8ce"
           },
           "enabled": true

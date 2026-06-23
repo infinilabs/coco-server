@@ -15,6 +15,7 @@ import (
 )
 
 type EnterpriseSearchTool struct {
+	DatasourceIDs []string // Restrict search to these datasource IDs; empty = all accessible.
 }
 
 // Name returns the tool name
@@ -40,7 +41,8 @@ func (t *EnterpriseSearchTool) Call(ctx context.Context, input string) (string, 
 
 	builder := orm.NewQuery()
 	output := []core.Document{}
-	_, err := document.QueryDocuments(ctx, builder, input, "", "", "", "", "", "keyword", 3, &output)
+	datasource := strings.Join(t.DatasourceIDs, ",")
+	_, err := document.QueryDocuments(ctx, builder, input, datasource, "", "", "", "", "keyword", 3, &output)
 	if err != nil {
 		panic(err)
 	}
