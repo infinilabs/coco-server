@@ -146,7 +146,7 @@ export function Component() {
     };
   }, [isMobile, integration]);
 
-  const onSearch = async (queryParams: { [key: string]: any }, callback: (data: any) => void, setLoading: (loading: boolean) => void) => {
+  const onSearch = async (queryParams: { [key: string]: any }, body: any = {}, callback: (data: any) => void, setLoading: (loading: boolean) => void) => {
     if (setLoading) setLoading(true)
     const { filter = {}, start, end, ...rest } = queryParams
     const filterStr = Object.keys(filter).filter((key) => !!filter[key]).map((key) => `filter=${key}:any(${Array.isArray(filter[key]) ? filter[key].join(',') : filter[key]})`).join('&')
@@ -156,17 +156,7 @@ export function Component() {
     ].filter(Boolean).join('&')
     const searchStr = [filterStr, dateFilterStr, queryString.stringify(rest)].filter(Boolean).join('&')
     const headers = { 'APP-INTEGRATION-ID': search_settings?.integration }
-    const res = await querySearch({
-      "aggs": {
-        "counts": {
-          "auto_date_histogram": {
-            "field":"updated",
-            "buckets":120,
-            "time_zone":"Asia/Shanghai"
-          }
-        }
-      }
-    }, searchStr, { headers, ignoreError: true })
+    const res = await querySearch(body, searchStr, { headers, ignoreError: true })
     if (callback) callback(res.data)
     if (setLoading) setLoading(false)
   }

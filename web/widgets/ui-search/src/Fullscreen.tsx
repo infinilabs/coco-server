@@ -8,12 +8,14 @@ import Home from "./pages/Home";
 import Search from "./pages/Search";
 import { ACTION_TYPE_SEARCH_KEYWORD, DEFAULT_SEARCH_SORT, normalizeSearchFuzziness, normalizeSearchSort } from "./SearchBox/ActionBar/SearchActions";
 import Chat from "./pages/Chat";
+import { calcFixedBucketCount } from "./utils/date";
 
-const formatDateRangeParam = (value: number | string) => {
+const formatDateRangeParam = (value: number | string, endOfDay = false) => {
   const timestamp = typeof value === 'number' ? value : Number(value);
   const date = Number.isFinite(timestamp) ? dayjs(timestamp) : dayjs(value);
 
-  return date.isValid() ? date.valueOf() : value;
+  if (!date.isValid()) return value;
+  return endOfDay ? date.endOf('day').valueOf() : date.startOf('day').valueOf();
 };
 
 const getDateRangeParams = (dateRange?: string) => {
@@ -21,22 +23,22 @@ const getDateRangeParams = (dateRange?: string) => {
 
   if (dateRange === '7d') {
     return {
-      start: now.subtract(7, 'day').valueOf(),
-      end: now.valueOf(),
+      start: now.subtract(7, 'day').startOf('day').valueOf(),
+      end: now.endOf('day').valueOf(),
     };
   }
 
   if (dateRange === '90d') {
     return {
-      start: now.subtract(90, 'day').valueOf(),
-      end: now.valueOf(),
+      start: now.subtract(90, 'day').startOf('day').valueOf(),
+      end: now.endOf('day').valueOf(),
     };
   }
 
   if (dateRange === '1y') {
     return {
-      start: now.subtract(1, 'year').valueOf(),
-      end: now.valueOf(),
+      start: now.subtract(1, 'year').startOf('day').valueOf(),
+      end: now.endOf('day').valueOf(),
     };
   }
 
@@ -200,7 +202,7 @@ const Fullscreen = (props: FullscreenProps) => {
     const { t, date_range, start, end, filter = {}, aggfilter = {}, ...rest } = queryParams;
     const fuzziness = normalizeSearchFuzziness(queryParams?.fuzziness);
     const sort = normalizeSearchSort(queryParams?.sort);
-    const dateRangeParams = start && end ? { start: formatDateRangeParam(start), end: formatDateRangeParam(end) } : getDateRangeParams(date_range);
+    const dateRangeParams = start && end ? { start: formatDateRangeParam(start), end: formatDateRangeParam(end, true) } : getDateRangeParams(date_range);
     const filterWithoutAgg = {
       ...filter,
       'metadata.content_category': queryParams['metadata.content_category'] && queryParams['metadata.content_category'] !== 'all' ? [queryParams['metadata.content_category']] : undefined,
@@ -227,6 +229,17 @@ const Fullscreen = (props: FullscreenProps) => {
           sort,
           from: isScroll ? scrollRef.current : queryParams.from,
           'metadata.content_category': undefined
+        },
+        {
+          "aggs": {
+            "counts": {
+              "auto_date_histogram": {
+                "field": "updated",
+                "buckets": calcFixedBucketCount(dateRangeParams.start as number, dateRangeParams.end as number),
+                "time_zone": "Asia/Shanghai"
+              }
+            }
+          }
         },
         (res: any) => {
           loadLock.current = false;
@@ -355,6 +368,18 @@ const Fullscreen = (props: FullscreenProps) => {
   };
 
   const showFullScreenSpin = loading && isHomeSearchRef.current;
+
+  const histogramData = useMemo(() => {
+    const countsAgg = result?.aggregations?.find((agg: any) => agg?.key === 'counts');
+    if (!countsAgg) return undefined;
+
+    const points = (countsAgg.list || []).map((item: any) => ({
+      date: dayjs(item.key).format('YYYY-MM-DD HH:mm:ss'),
+      count: Number.isInteger(item.count) ? item.count : 0,
+    }));
+
+    return points;
+  }, [result?.aggregations]);
 
   const { mode = 'search' } = queryParams
 
@@ -486,6 +511,7 @@ const Fullscreen = (props: FullscreenProps) => {
       onUpload={onUpload}
       attachments={attachments}
       setAttachments={setAttachments}
+      histogramData={histogramData}
     />
   )
 };

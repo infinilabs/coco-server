@@ -18,7 +18,7 @@ export function recordToListItem(
   const breadcrumbs = [sourceName, categoryText].filter(Boolean) as string[];
 
   const author = record.owner?.title ?? record.owner?.username ?? record.owner?.name ?? record.last_updated_by?.user?.username;
-  const date = formatDate(record.last_updated_by?.timestamp ?? record.metadata?.last_reviewed);
+  const date = formatDate(record.last_updated_by?.timestamp ?? record.metadata?.last_reviewed ?? record.updated ?? record.created);
 
   const typeIconUrl = record.metadata?.icon_link ?? record.icon;
   const typeIcon = typeIconUrl ? (

@@ -11,8 +11,10 @@ import { EmptyList } from "../ResultList/EmptyList";
 import MediaLayout from "../Layout/MediaLayout";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import FilterIcon from "../icons/FilterIcon";
+import HistogramIcon from "../icons/HistogramIcon";
 import { Button } from "antd";
 import Toolbar from "../Toolbar";
+import Histogram from "../Histogram";
 import { ACTION_TYPE_SEARCH_KEYWORD, DEFAULT_SEARCH_SORT, normalizeSearchFuzziness, normalizeSearchSort } from "../SearchBox/ActionBar/SearchActions";
 
 interface SearchProps {
@@ -47,6 +49,7 @@ interface SearchProps {
   setAttachments?: (attachments: any[]) => void;
   settings?: Record<string, any>;
   onLoadMore?: () => void;
+  histogramData?: { date: string; count: number }[];
   [key: string]: any;
 }
 
@@ -82,7 +85,8 @@ export default function Search({
   setAttachments,
   settings,
   onLoadMore,
-  onCategoryChange
+  onCategoryChange,
+  histogramData
 }: SearchProps) {
 
   const { query, filter, aggfilter = {}, search_type = ACTION_TYPE_SEARCH_KEYWORD } = queryParams || {};
@@ -96,6 +100,7 @@ export default function Search({
   const [detailCollapse, setDetailCollapse] = useState(true)
   const [recommendsCollapse, setRecommendsCollapse] = useState(true)
   const [toolbarVisible, setToolbarVisible] = useState(false)
+  const [histogramVisible, setHistogramVisible] = useState(false)
   const [filterFieldsMeta, setFilterFieldsMeta] = useState({})
   const [hasRecommendsData, setHasRecommendsData] = useState(false)
   const ownerCacheRef = useRef<Record<string, any>>({});
@@ -308,6 +313,10 @@ export default function Search({
     />
   ) : null;
 
+  const histogram = histogramData && histogramVisible ? (
+    <Histogram data={histogramData} theme={theme} onCustomDateRangeChange={handleCustomDateRangeChange}/>
+  ) : null;
+
   const layoutCommonProps = {
     ...commonProps,
     getContainer,
@@ -376,15 +385,28 @@ export default function Search({
       />
     ),
     tools: (
-      <Button
-        className={`px-0 ${toolbarVisible ? 'text-[var(--ant-color-primary)]' : 'text-[#333] dark:text-[#E5E7EB]'}`}
-        color="default"
-        variant="link"
-        onClick={() => setToolbarVisible((visible) => !visible)}
-      >
-        <FilterIcon size={16}/>
-      </Button>
-    )
+      <div className="flex items-center gap-8px">
+        <Button
+          className={`px-0 ${toolbarVisible ? 'text-[var(--ant-color-primary)]' : 'text-[#333] dark:text-[#E5E7EB]'}`}
+          color="default"
+          variant="link"
+          onClick={() => setToolbarVisible((visible) => !visible)}
+        >
+          <FilterIcon size={16} />
+        </Button>
+        {histogramData ? (
+          <Button
+            className={`px-0 ${histogramVisible ? 'text-[var(--ant-color-primary)]' : 'text-[#333] dark:text-[#E5E7EB]'}`}
+            color="default"
+            variant="link"
+            onClick={() => setHistogramVisible((visible) => !visible)}
+          >
+            <HistogramIcon size={16} />
+          </Button>
+        ) : null}
+      </div>
+    ),
+    histogram
   };
 
   if (listType?.type === 'image') {

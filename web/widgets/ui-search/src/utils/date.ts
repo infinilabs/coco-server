@@ -13,3 +13,12 @@ export const formatDate = (date: ConfigType) => {
     const targetDate = dayjs(date);
     return isWithin7Days(date) ? targetDate.fromNow() : targetDate.format('YYYY-MM-DD HH:mm:ss')
 }
+
+export const calcFixedBucketCount = (start: number, end: number) => {
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
+    return 60;
+  }
+
+  const duration = end - start;
+  return duration >= 7 * 24 * 60 * 60 * 1000 ? 30 : 60;
+};
