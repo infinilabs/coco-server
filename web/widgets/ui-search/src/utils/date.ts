@@ -9,9 +9,27 @@ export const isWithin7Days = (date: ConfigType) => {
     return diffInMs <= 7 * 24 * 60 * 60 * 1000; 
 }
 
+export const formatDateWithRelative = (date: ConfigType) => {
+    const targetDate = dayjs(date);
+    if (!targetDate.isValid()) {
+        return undefined;
+    }
+    if (isWithin7Days(date)) {
+        return targetDate.fromNow();
+    }
+    const dateTime = targetDate.format('YYYY-MM-DD HH:mm:ss');
+    const timezone = `(GMT${targetDate.format('ZZ')})`;
+    return `${dateTime} ${timezone}`;
+}
+
 export const formatDate = (date: ConfigType) => {
     const targetDate = dayjs(date);
-    return isWithin7Days(date) ? targetDate.fromNow() : targetDate.format('YYYY-MM-DD HH:mm:ss')
+    if (!targetDate.isValid()) {
+        return undefined;
+    }
+    const dateTime = targetDate.format('YYYY-MM-DD HH:mm:ss');
+    const timezone = `(GMT${targetDate.format('ZZ')})`;
+    return `${dateTime} ${timezone}`;
 }
 
 export const calcFixedBucketCount = (start: number, end: number) => {

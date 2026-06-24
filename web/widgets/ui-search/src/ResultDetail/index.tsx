@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { filesize } from 'filesize';
 import dayjs from "dayjs";
 import { isString } from "lodash";
+import { formatDate } from "../utils/date";
 
 interface ResultDetailProps {
     getContainer?: () => HTMLElement;
@@ -16,13 +17,6 @@ interface ResultDetailProps {
     onClose?: () => void;
     apiConfig?: Record<string, any>;
     theme?: "light" | "dark" | "auto";
-}
-
-export const formatDate = (value: string | number) => {
-    const targetDate = dayjs(value);
-    const dateTime = targetDate.format('YYYY-MM-DD HH:mm:ss');
-    const timezone = `(GMT${targetDate.format('ZZ')})`;
-    return `${dateTime} ${timezone}`;
 }
 
 export function DateTime(props: { value: string | number, showTooltip?: boolean }) {
