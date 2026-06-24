@@ -168,13 +168,19 @@ export function AIAnswer({
               : undefined,
           }}
         >
-          {content && !loading ? (
-            <Markdown content={content} dark={theme === "dark"} />
-          ) : (
-            <span
-              className="animate-typing inline-block w-1.5 h-5 ml-0.5 -mb-0.5 bg-[#666666] dark:bg-[#A3A3A3] rounded-sm "
-            />
-          )}
+          {
+            loading ? (
+              <span
+                className="animate-typing inline-block w-1.5 h-5 ml-0.5 -mb-0.5 bg-[#666666] dark:bg-[#A3A3A3] rounded-sm "
+              />
+            ) : (
+              content ? (
+                <Markdown content={content} dark={theme === "dark"} />
+              ) : (
+                <span className="text-[#999] dark:text-[#666]">{t("labels.emptyAIAnswer")}</span>
+              )
+            )
+          }
         </div>
         {showToggle ? (
           <AIExpandToggle

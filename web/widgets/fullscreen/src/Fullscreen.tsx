@@ -136,15 +136,30 @@ export default function Fullscreen(props: FullscreenProps) {
         }
     }
 
-    function search(query: AnyRecord, callback: DataCallback, setLoading?: LoadingSetter, _shouldAgg = true) {
+    function search(query: AnyRecord, callback: DataCallback, setLoading?: LoadingSetter) {
         if (setLoading) setLoading(true)
-        const { filter = {}, ...rest } = query
+        const { filter = {}, start, end, ...rest } = query
         const filterStr = buildFilterString(filter)
-        const searchStr = `${filterStr ? filterStr + '&' : ''}${queryString.stringify(rest)}`
+        const dateFilterStr = [
+            start ? `filter=updated>=${start}` : '',
+            end ? `filter=updated<=${end}` : '',
+        ].filter(Boolean).join('&')
+        const searchStr = [filterStr, dateFilterStr, queryString.stringify(rest)].filter(Boolean).join('&')
         fetch(`${server}/query/_search?${searchStr}`, {
             method: 'POST',
             headers: apiHeaders,
             credentials: 'include',
+            body: JSON.stringify({
+                "aggs": {
+                    "counts": {
+                        "auto_date_histogram": {
+                            "field": "updated",
+                            "buckets": 120,
+                            "time_zone": "Asia/Shanghai"
+                        }
+                    }
+                }
+            })
         })
             .then(response => {
                 if (!response.ok) throw new Error('response was not ok');
@@ -162,9 +177,13 @@ export default function Fullscreen(props: FullscreenProps) {
 
     function aggregate(query: AnyRecord, callback: DataCallback, setLoading?: LoadingSetter) {
         if (setLoading) setLoading(true)
-        const { query: keyword, filter = {}, search_type, ...rest } = query
+        const { query: keyword, filter = {}, search_type, fuzziness, start, end, ...rest } = query
         const filterStr = buildFilterString(filter)
-        const searchStr = `${filterStr ? filterStr + '&' : ''}${queryString.stringify({ query: keyword, search_type })}`
+        const dateFilterStr = [
+            start ? `filter=updated>=${start}` : '',
+            end ? `filter=updated<=${end}` : '',
+        ].filter(Boolean).join('&')
+        const searchStr = [filterStr, dateFilterStr, queryString.stringify({ query: keyword, search_type, fuzziness })].filter(Boolean).join('&')
         fetch(`${server}/query/_search?${searchStr}`, {
             method: 'POST',
             headers: {
@@ -459,8 +478,8 @@ export default function Fullscreen(props: FullscreenProps) {
             ...(payload?.ai_overview || {}),
             "showActions": true,
         },
-        "onSearch": (query: AnyRecord, callback: DataCallback, setLoading?: LoadingSetter, shouldAgg = true) => {
-            search(query, callback, setLoading, shouldAgg)
+        "onSearch": (query: AnyRecord, callback: DataCallback, setLoading?: LoadingSetter) => {
+            search(query, callback, setLoading)
         },
         "onAggregation": (query: AnyRecord, callback: DataCallback, setLoading?: LoadingSetter) => {
             aggregate(query, callback, setLoading)

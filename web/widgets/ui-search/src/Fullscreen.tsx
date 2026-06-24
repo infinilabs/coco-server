@@ -1,12 +1,47 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import dayjs from "dayjs";
 import { formatESResult } from "./utils/es";
 import { normalizeCoverIconUrl } from "./utils/utils";
 
 import { debounce, isEmpty } from 'lodash';
 import Home from "./pages/Home";
 import Search from "./pages/Search";
-import { ACTION_TYPE_SEARCH_KEYWORD } from "./SearchBox/ActionBar/SearchActions";
+import { ACTION_TYPE_SEARCH_KEYWORD, DEFAULT_SEARCH_SORT, normalizeSearchFuzziness, normalizeSearchSort } from "./SearchBox/ActionBar/SearchActions";
 import Chat from "./pages/Chat";
+
+const formatDateRangeParam = (value: number | string) => {
+  const timestamp = typeof value === 'number' ? value : Number(value);
+  const date = Number.isFinite(timestamp) ? dayjs(timestamp) : dayjs(value);
+
+  return date.isValid() ? date.valueOf() : value;
+};
+
+const getDateRangeParams = (dateRange?: string) => {
+  const now = dayjs();
+
+  if (dateRange === '7d') {
+    return {
+      start: now.subtract(7, 'day').valueOf(),
+      end: now.valueOf(),
+    };
+  }
+
+  if (dateRange === '90d') {
+    return {
+      start: now.subtract(90, 'day').valueOf(),
+      end: now.valueOf(),
+    };
+  }
+
+  if (dateRange === '1y') {
+    return {
+      start: now.subtract(1, 'year').valueOf(),
+      end: now.valueOf(),
+    };
+  }
+
+  return {};
+};
 
 interface FullscreenProps {
   logo?: Record<string, any>;
@@ -63,6 +98,7 @@ const Fullscreen = (props: FullscreenProps) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const getContainer = useCallback(() => containerRef.current, []);
   const [result, setResult] = useState(formatESResult());
+  const [aggregationResult, setAggregationResult] = useState<ReturnType<typeof formatESResult>['aggregations']>([]);
   const [askBody, setAskBody] = useState<any>();
   const [loading, setLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -98,17 +134,34 @@ const Fullscreen = (props: FullscreenProps) => {
     }
   };
 
-  const handleSearch = (queryParams: Record<string, any>, shouldAsk: boolean, shouldAgg: boolean, isScroll = false) => {
+  const handleSearch = (params: Record<string, any>, shouldAsk: boolean, shouldAgg: boolean, isScroll = false) => {
+    const fuzziness = normalizeSearchFuzziness(params?.fuzziness);
+    const sort = normalizeSearchSort(params?.sort);
     shouldAskRef.current = shouldAsk;
     shouldAggRef.current = shouldAgg;
     if (!isScroll) {
       resetScroll();
       isHomeSearchRef.current = true;
     }
-    setQueryParams?.({
-      ...queryParams,
+    const nextQueryParams: Record<string, any> = {
+      ...params,
+      fuzziness,
+      sort,
       ...(shouldAgg ? { aggfilter: {} } : {}),
       t: new Date().valueOf()
+    };
+    delete nextQueryParams.dateRange;
+    if (!nextQueryParams.date_range || nextQueryParams.date_range === 'all-time') {
+      delete nextQueryParams.date_range;
+    }
+    if (!nextQueryParams.start) {
+      delete nextQueryParams.start;
+    }
+    if (!nextQueryParams.end) {
+      delete nextQueryParams.end;
+    }
+    setQueryParams?.({
+      ...nextQueryParams,
     });
   };
 
@@ -133,6 +186,7 @@ const Fullscreen = (props: FullscreenProps) => {
     setData([]);
     setHasMore(false);
     setResult(formatESResult());
+    setAggregationResult([]);
   }, []);
 
   useEffect(() => {
@@ -143,7 +197,10 @@ const Fullscreen = (props: FullscreenProps) => {
     loadLock.current = true;
     setLoading(true);
 
-    const { t, filter = {}, aggfilter = {}, ...rest } = queryParams;
+    const { t, date_range, start, end, filter = {}, aggfilter = {}, ...rest } = queryParams;
+    const fuzziness = normalizeSearchFuzziness(queryParams?.fuzziness);
+    const sort = normalizeSearchSort(queryParams?.sort);
+    const dateRangeParams = start && end ? { start: formatDateRangeParam(start), end: formatDateRangeParam(end) } : getDateRangeParams(date_range);
     const filterWithoutAgg = {
       ...filter,
       'metadata.content_category': queryParams['metadata.content_category'] && queryParams['metadata.content_category'] !== 'all' ? [queryParams['metadata.content_category']] : undefined,
@@ -163,8 +220,11 @@ const Fullscreen = (props: FullscreenProps) => {
       onSearch?.(
         {
           ...rest,
+          ...dateRangeParams,
           filter: newFilter,
           search_type: queryParams?.search_type || ACTION_TYPE_SEARCH_KEYWORD,
+          fuzziness,
+          sort,
           from: isScroll ? scrollRef.current : queryParams.from,
           'metadata.content_category': undefined
         },
@@ -176,10 +236,7 @@ const Fullscreen = (props: FullscreenProps) => {
           if (res && !res.error) {
             res = normalizeCoverIconUrl(res, apiConfig?.BaseUrl);
             rs = formatESResult(res);
-            setResult(os => ({
-              ...rs,
-              aggregations: res?.aggregations ? rs.aggregations : os.aggregations
-            }));
+            setResult(rs);
 
             const newData = isScroll ? [...data, ...(rs.hits?.hits || [])] : rs.hits?.hits || [];
             setData(newData);
@@ -197,10 +254,10 @@ const Fullscreen = (props: FullscreenProps) => {
           if (shouldAskRef.current) {
             shouldAskRef.current = false;
             setAskBody({
-              message: JSON.stringify({
+              message: rs?.hits?.hits?.length > 0 ? JSON.stringify({
                 query: queryParams.query,
                 result: rs?.hits
-              }),
+              }) : '',
               t: new Date().valueOf()
             });
           }
@@ -217,15 +274,14 @@ const Fullscreen = (props: FullscreenProps) => {
       onAggregation({
         query: queryParams.query,
         search_type: queryParams?.search_type || ACTION_TYPE_SEARCH_KEYWORD,
+        fuzziness,
+        ...dateRangeParams,
         filter: filterWithoutAgg
       }, (res: any) => {
         let validatedAggfilter: Record<string, any> = {};
         if (res && !res.error) {
           const rs = formatESResult(res);
-          setResult(os => ({
-            ...os,
-            aggregations: res?.aggregations ? rs.aggregations : os.aggregations
-          }));
+          setAggregationResult(rs.aggregations || []);
           // Validate aggfilter values against actual aggregation results
           if (!isEmpty(aggfilter)) {
             const aggKeys = new Map<string, Set<string>>();
@@ -251,6 +307,8 @@ const Fullscreen = (props: FullscreenProps) => {
               return;
             }
           }
+        } else {
+          setAggregationResult([]);
         }
         doSearch(validatedAggfilter);
       });
@@ -277,7 +335,7 @@ const Fullscreen = (props: FullscreenProps) => {
   const { query, filter, aggfilter, filters = [] } = queryParams;
 
   const commonProps = { isMobile, theme, apiConfig, language, getUserEntities };
-  const { hits, aggregations } = result;
+  const { hits } = result;
 
   const handleLogoClick = () => {
     setQueryParams?.({
@@ -286,10 +344,11 @@ const Fullscreen = (props: FullscreenProps) => {
       query: '',
       filter: {},
       aggfilter: {},
-      sort: ''
+      sort: DEFAULT_SEARCH_SORT
     });
     setData([]);
     setHasMore(false);
+    setAggregationResult([]);
     resetScroll();
     isHomeSearchRef.current = true;
     if (onLogoClick) onLogoClick();
@@ -364,7 +423,7 @@ const Fullscreen = (props: FullscreenProps) => {
 
   return (
     <Search
-      aggregations={aggregations}
+      aggregations={aggregationResult}
       aiOverview={aiOverview}
       askBody={askBody}
       commonProps={commonProps}

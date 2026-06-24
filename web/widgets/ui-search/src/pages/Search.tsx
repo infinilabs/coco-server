@@ -10,6 +10,10 @@ import { LIST_TYPES } from "../ResultList";
 import { EmptyList } from "../ResultList/EmptyList";
 import MediaLayout from "../Layout/MediaLayout";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import FilterIcon from "../icons/FilterIcon";
+import { Button } from "antd";
+import Toolbar from "../Toolbar";
+import { ACTION_TYPE_SEARCH_KEYWORD, DEFAULT_SEARCH_SORT, normalizeSearchFuzziness, normalizeSearchSort } from "../SearchBox/ActionBar/SearchActions";
 
 interface SearchProps {
   aggregations?: any;
@@ -81,11 +85,17 @@ export default function Search({
   onCategoryChange
 }: SearchProps) {
 
-  const { query, filter, aggfilter = {} } = queryParams || {};
+  const { query, filter, aggfilter = {}, search_type = ACTION_TYPE_SEARCH_KEYWORD } = queryParams || {};
+  const fuzziness = normalizeSearchFuzziness(queryParams?.fuzziness);
+  const sort = normalizeSearchSort(queryParams?.sort || DEFAULT_SEARCH_SORT);
+  const dateRange = typeof queryParams?.date_range === 'string' ? queryParams.date_range : 'all-time';
+  const start = typeof queryParams?.start === 'string' || typeof queryParams?.start === 'number' ? String(queryParams.start) : undefined;
+  const end = typeof queryParams?.end === 'string' || typeof queryParams?.end === 'number' ? String(queryParams.end) : undefined;
   const content_category = queryParams?.['metadata.content_category']
   const [siderCollapse, setSiderCollapse] = useState(true)
   const [detailCollapse, setDetailCollapse] = useState(true)
   const [recommendsCollapse, setRecommendsCollapse] = useState(true)
+  const [toolbarVisible, setToolbarVisible] = useState(false)
   const [filterFieldsMeta, setFilterFieldsMeta] = useState({})
   const [hasRecommendsData, setHasRecommendsData] = useState(false)
   const ownerCacheRef = useRef<Record<string, any>>({});
@@ -95,6 +105,54 @@ export default function Search({
   const handleRecommendsDataLoaded = useCallback((hasData: boolean) => {
     setHasRecommendsData(hasData);
   }, []);
+
+  const handleSearch = useCallback((params: Record<string, any>, ...args: any[]) => {
+    const nextParams = { ...params };
+    delete nextParams.dateRange;
+    const hasDateRangeParam = Object.prototype.hasOwnProperty.call(nextParams, 'date_range');
+    const hasStartParam = Object.prototype.hasOwnProperty.call(nextParams, 'start');
+    const hasEndParam = Object.prototype.hasOwnProperty.call(nextParams, 'end');
+
+    if (!hasDateRangeParam && !hasStartParam && !hasEndParam) {
+      nextParams.date_range = queryParams?.date_range;
+      nextParams.start = queryParams?.start;
+      nextParams.end = queryParams?.end;
+    }
+
+    if (nextParams.start && nextParams.end) {
+      nextParams.date_range = undefined;
+    } else {
+      nextParams.start = undefined;
+      nextParams.end = undefined;
+      if (nextParams.date_range === 'all-time') {
+        nextParams.date_range = undefined;
+      }
+    }
+
+    onSearch?.(nextParams, ...args);
+  }, [onSearch, queryParams?.date_range, queryParams?.end, queryParams?.start]);
+
+  const handleSearchTypeChange = useCallback((type: string) => {
+    handleSearch({ ...(queryParams || {}), search_type: type, from: 0 }, true, true);
+  }, [handleSearch, queryParams]);
+
+  const handleFuzzinessChange = useCallback((value: number) => {
+    const nextFuzziness = normalizeSearchFuzziness(value);
+    handleSearch({ ...(queryParams || {}), fuzziness: nextFuzziness, from: 0 }, true, true);
+  }, [handleSearch, queryParams]);
+
+  const handleSortChange = useCallback((value: string) => {
+    const nextSort = normalizeSearchSort(value);
+    handleSearch({ ...(queryParams || {}), sort: nextSort, from: 0 }, true, true);
+  }, [handleSearch, queryParams]);
+
+  const handleDateRangeChange = useCallback((value: string) => {
+    handleSearch({ ...(queryParams || {}), date_range: value, start: undefined, end: undefined, from: 0 }, true, true);
+  }, [handleSearch, queryParams]);
+
+  const handleCustomDateRangeChange = useCallback((range: { start?: string; end?: string }) => {
+    handleSearch({ ...(queryParams || {}), start: range.start, end: range.end, date_range: undefined, from: 0 }, true, true);
+  }, [handleSearch, queryParams]);
 
   const listType = useMemo(() => {
     if (!LIST_TYPES || LIST_TYPES.length === 0) return undefined;
@@ -188,12 +246,25 @@ export default function Search({
     });
   }, [onSearch, query, attachments, settings]);
 
+  const handleSearchFilter = useCallback((nextAggFilter: Record<string, any>) => {
+    if (onSearch) {
+      handleSearch({
+        ...(queryParams || {}),
+        aggfilter: nextAggFilter,
+        fuzziness,
+        sort,
+      }, false, false);
+      return;
+    }
+    onSearchFilter?.(nextAggFilter);
+  }, [fuzziness, handleSearch, onSearch, onSearchFilter, queryParams, sort]);
+
   const resultList = isEmptyResult ? (
     <EmptyList
       query={query}
       settings={settings}
       variant={hasAggFilter ? "filtered" : "search"}
-      onClearFilters={() => onSearchFilter?.({})}
+      onClearFilters={() => handleSearchFilter({})}
       onGenerateAnswer={handleGenerateAnswer}
     />
   ) : listType ? (
@@ -221,16 +292,105 @@ export default function Search({
     })
   }, [JSON.stringify(filter)])
 
+  const toolbar = toolbarVisible ? (
+    <Toolbar
+      searchType={search_type}
+      onSearchTypeChange={handleSearchTypeChange}
+      fuzziness={fuzziness}
+      onFuzzinessChange={handleFuzzinessChange}
+      sort={sort}
+      onSortChange={handleSortChange}
+      dateRange={dateRange}
+      onDateRangeChange={handleDateRangeChange}
+      start={start}
+      end={end}
+      onCustomDateRangeChange={handleCustomDateRangeChange}
+    />
+  ) : null;
+
+  const layoutCommonProps = {
+    ...commonProps,
+    getContainer,
+    initContainer,
+    loading: showFullScreenSpin,
+    rightMenuWidth,
+    siderCollapse,
+    setSiderCollapse,
+    logo: (
+      <Logo
+        onLogoClick={handleLogoClick}
+        {...commonProps}
+        {...logo}
+      />
+    ),
+    resultHeader: (
+      <ResultHeader
+        {...commonProps}
+        hits={hits}
+        hasAggregations={aggregations?.length > 0}
+        siderCollapse={siderCollapse}
+        setSiderCollapse={setSiderCollapse}
+        recommendsCollapse={recommendsCollapse}
+        setRecommendsCollapse={setRecommendsCollapse}
+        toolbar={toolbar}
+      />
+    ),
+    resultList,
+    searchbox: (
+      <SearchBox
+        {...commonProps}
+        minimize={true}
+        placeholder={placeholder}
+        queryParams={queryParams}
+        setQueryParams={setQueryParams}
+        searchType={search_type}
+        onSearchTypeChange={handleSearchTypeChange}
+        fuzziness={fuzziness}
+        sort={sort}
+        onSearch={handleSearch}
+        onSuggestion={onSuggestion}
+        onUpload={onUpload}
+        filterFieldsMeta={filterFieldsMeta}
+        attachments={attachments}
+        setAttachments={setAttachments}
+        settings={settings}
+      />
+    ),
+    tabs: (
+      <Categories
+        category={content_category}
+        onChange={category => {
+          onCategoryChange?.();
+          let shouldAgg = false;
+          let shouldAsk = category !== 'image';
+          if (category !== content_category) {
+            shouldAgg = true;
+          }
+          handleSearch({
+            ...queryParams,
+            fuzziness,
+            sort,
+            'metadata.content_category': category !== 'all' ? category : '',
+          }, shouldAsk, shouldAgg);
+        }}
+      />
+    ),
+    tools: (
+      <Button
+        className={`px-0 ${toolbarVisible ? 'text-[var(--ant-color-primary)]' : 'text-[#333] dark:text-[#E5E7EB]'}`}
+        color="default"
+        variant="link"
+        onClick={() => setToolbarVisible((visible) => !visible)}
+      >
+        <FilterIcon size={16}/>
+      </Button>
+    )
+  };
+
   if (listType?.type === 'image') {
     return (
       <MediaLayout
-        {...commonProps}
-        getContainer={getContainer}
-        initContainer={initContainer}
-        loading={showFullScreenSpin}
-        rightMenuWidth={rightMenuWidth}
-        siderCollapse={siderCollapse}
-        setSiderCollapse={setSiderCollapse}
+        {...layoutCommonProps}
         detailCollapse={detailCollapse}
         aggregations={
           aggregations?.length > 0 ? (
@@ -239,60 +399,9 @@ export default function Search({
               aggregations={aggregations}
               config={config?.aggregations}
               filter={filter}
-              onSearch={onSearchFilter}
+              onSearch={handleSearchFilter}
             />
           ) : null
-        }
-        logo={
-          <Logo
-            onLogoClick={handleLogoClick}
-            {...commonProps}
-            {...logo}
-          />
-        }
-        resultHeader={
-          <ResultHeader
-            {...commonProps}
-            hits={hits}
-            hasAggregations={aggregations?.length > 0}
-            siderCollapse={siderCollapse}
-            setSiderCollapse={setSiderCollapse}
-            recommendsCollapse={recommendsCollapse}
-            setRecommendsCollapse={setRecommendsCollapse}
-          />
-        }
-        resultList={resultList}
-        searchbox={
-          <SearchBox
-            {...commonProps}
-            minimize={true}
-            placeholder={placeholder}
-            queryParams={queryParams}
-            setQueryParams={setQueryParams}
-            onSearch={onSearch}
-            onSuggestion={onSuggestion}
-            filterFieldsMeta={filterFieldsMeta}
-            onUpload={onUpload}
-            attachments={attachments}
-            setAttachments={setAttachments}
-            settings={settings}
-          />
-        }
-        tabs={
-          <Categories
-            category={content_category}
-            onChange={category => {
-              onCategoryChange?.();
-              let shouldAgg = false;
-              if (category !== content_category) {
-                shouldAgg = true;
-              }
-              onSearch?.({
-                ...queryParams,
-                'metadata.content_category': category !== 'all' ? category : '',
-              }, false, shouldAgg);
-            }}
-          />
         }
       />
     );
@@ -300,13 +409,7 @@ export default function Search({
 
   return (
     <BasicLayout
-      {...commonProps}
-      getContainer={getContainer}
-      initContainer={initContainer}
-      loading={showFullScreenSpin}
-      rightMenuWidth={rightMenuWidth}
-      siderCollapse={siderCollapse}
-      setSiderCollapse={setSiderCollapse}
+      {...layoutCommonProps}
       recommendsCollapse={recommendsCollapse}
       setRecommendsCollapse={setRecommendsCollapse}
       aggregations={
@@ -316,7 +419,7 @@ export default function Search({
             aggregations={aggregations}
             config={config?.aggregations}
             filter={aggfilter}
-            onSearch={onSearchFilter}
+            onSearch={handleSearchFilter}
           />
         ) : null
       }
@@ -331,57 +434,6 @@ export default function Search({
             requestHeaders={commonProps?.apiConfig?.headers}
           />
         ) : null
-      }
-      logo={
-        <Logo
-          onLogoClick={handleLogoClick}
-          {...commonProps}
-          {...logo}
-        />
-      }
-      resultHeader={
-        <ResultHeader
-          {...commonProps}
-          hits={hits}
-          siderCollapse={siderCollapse}
-          hasAggregations={aggregations?.length > 0}
-          setSiderCollapse={setSiderCollapse}
-          recommendsCollapse={recommendsCollapse}
-          setRecommendsCollapse={setRecommendsCollapse}
-        />
-      }
-      resultList={resultList}
-      searchbox={
-        <SearchBox
-          {...commonProps}
-          minimize={true}
-          placeholder={placeholder}
-          queryParams={queryParams}
-          setQueryParams={setQueryParams}
-          onSearch={onSearch}
-          onSuggestion={onSuggestion}
-          onUpload={onUpload}
-          filterFieldsMeta={filterFieldsMeta}
-          attachments={attachments}
-          setAttachments={setAttachments}
-          settings={settings}
-        />
-      }
-      tabs={
-        <Categories
-          category={content_category}
-          onChange={category => {
-            onCategoryChange?.();
-            let shouldAgg = false
-            if (category !== content_category) {
-              shouldAgg = true
-            }
-            onSearch?.({
-              ...queryParams,
-              'metadata.content_category': category !== 'all' ? category : '',
-            }, false, shouldAgg);
-          }}
-        />
       }
       recommends={<Recommends showTitle={true} onRecommend={(callback) => onRecommend?.("hot_topics_for_search_result", callback)} onDataLoaded={handleRecommendsDataLoaded} />}
       hasRecommendsData={hasRecommendsData}

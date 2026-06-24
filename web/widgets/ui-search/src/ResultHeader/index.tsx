@@ -1,6 +1,7 @@
 import { PanelLeftOpen, PanelRightOpen } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { useTranslation } from 'react-i18next';
-import { type FC } from "react";
+import { type FC, type ReactNode } from "react";
 
 interface ResultHeaderProps {
   hits?: { total?: number; took?: number };
@@ -17,6 +18,7 @@ interface ResultHeaderProps {
   setLeftDrawerOpen?: (v: boolean) => void;
   rightDrawerOpen?: boolean;
   setRightDrawerOpen?: (v: boolean) => void;
+  toolbar?: ReactNode;
 }
 
 export const ResultHeader: FC<ResultHeaderProps> = (props) => {
@@ -28,7 +30,8 @@ export const ResultHeader: FC<ResultHeaderProps> = (props) => {
     recommendsCollapse, setRecommendsCollapse,
     userCollapsedLeft, userCollapsedRight,
     leftDrawerOpen, setLeftDrawerOpen,
-    rightDrawerOpen, setRightDrawerOpen
+    rightDrawerOpen, setRightDrawerOpen,
+    toolbar
   } = props;
 
   const { t } = useTranslation();
@@ -68,17 +71,31 @@ export const ResultHeader: FC<ResultHeaderProps> = (props) => {
   const RightToggleIcon = showRightToggle && !rightDrawerOpen ? PanelLeftOpen : PanelRightOpen;
 
   return (
-    <div className="flex gap-8px items-center w-full text-[#999] dark:text-[#666]">
+    <div className="flex gap-8px items-start w-full text-[#999] dark:text-[#666]">
       {
         hasAggregations && (
-          <LeftToggleIcon className="text-[#666] dark:text-white/80 w-16px h-16px cursor-pointer" onClick={handleLeftToggle} />
+          <span className="h-18px flex flex-none items-center">
+            <LeftToggleIcon className="text-[#666] dark:text-white/80 w-16px h-16px cursor-pointer" onClick={handleLeftToggle} />
+          </span>
         )
       }
-      <div className="text-12px flex-1">
-        {t('labels.resultsWithTime', { count: hits?.total || 0, took: hits?.took || 0 })}
+      <div className={`text-12px flex-1 overflow-hidden`}>
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={toolbar ? 'toolbar' : 'summary'}
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            transition={{ duration: 0.16, ease: 'easeOut' }}
+          >
+            {toolbar || t('labels.resultsWithTime', { count: hits?.total || 0, took: hits?.took || 0 })}
+          </motion.div>
+        </AnimatePresence>
       </div>
       {showRightToggle && (
-        <RightToggleIcon className="text-[#666] dark:text-white/80 w-16px h-16px cursor-pointer" onClick={handleRightToggle} />
+        <span className="h-18px flex flex-none items-center">
+          <RightToggleIcon className="text-[#666] dark:text-white/80 w-16px h-16px cursor-pointer" onClick={handleRightToggle} />
+        </span>
       )}
     </div>
   );

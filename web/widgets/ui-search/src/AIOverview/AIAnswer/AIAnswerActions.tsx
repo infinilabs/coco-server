@@ -55,6 +55,7 @@ export function AIAnswerActions({
     "bg-transparent border-0 inline-flex items-center justify-center p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 dark:focus-visible:ring-slate-600 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none";
   const defaultBtnClass =
     "text-[#666] hover:bg-slate-50 dark:text-white/80 dark:hover:bg-slate-800";
+  const actionDisabled = disabled || !copyText;
 
   const activeBtnClass = "text-[#1677ff]";
 
@@ -114,7 +115,7 @@ export function AIAnswerActions({
               onCopy?.(copyText);
             }
           }}
-          disabled={disabled}
+          disabled={actionDisabled}
         >
           {copied ? <Check className="h-4 w-4 text-[#1677ff]" /> : <Copy className="h-4 w-4" />}
         </button>
@@ -131,7 +132,7 @@ export function AIAnswerActions({
             setLikePulse(true);
             onLike?.(next);
           }}
-          disabled={disabled}
+          disabled={actionDisabled}
         >
           <ThumbsUp className="h-4 w-4" />
         </button>
@@ -148,7 +149,7 @@ export function AIAnswerActions({
             setDislikePulse(true);
             onDislike?.(next);
           }}
-          disabled={disabled}
+          disabled={actionDisabled}
         >
           <ThumbsDown className="h-4 w-4" />
         </button>
@@ -215,7 +216,7 @@ export function AIAnswerActions({
               setSpeaking(false);
             }
           }}
-          disabled={disabled}
+          disabled={actionDisabled}
         >
           {speaking
             ? [<Volume className="h-4 w-4" />, <Volume1 className="h-4 w-4" />, <Volume2 className="h-4 w-4" />][volumeFrame]
