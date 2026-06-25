@@ -1,17 +1,24 @@
 import { useEffect } from "react";
-import NProgress from "nprogress";
+import scopedNProgress from "../utils/nprogress";
 
-NProgress.configure({ easing: 'ease', speed: 500 });
+scopedNProgress.configure({ easing: 'ease', speed: 500 });
 
+/**
+ * Toggle the widget's own scoped progress bar based on a `loading` flag.
+ *
+ * This intentionally does NOT use the `nprogress` package. See
+ * `src/utils/nprogress.ts` for why (the host app also uses `nprogress`, and the
+ * shared module/CSS would otherwise break the host's top-of-page bar).
+ */
 export default function useNProgress(loading?: boolean) {
   useEffect(() => {
     if (loading) {
-      NProgress.start();
+      scopedNProgress.start();
     } else {
-      NProgress.done();
+      scopedNProgress.done();
     }
     return () => {
-      NProgress.done();
+      scopedNProgress.done();
     };
   }, [loading]);
 }

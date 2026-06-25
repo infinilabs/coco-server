@@ -9,8 +9,7 @@ export { DocDetail, ActionButton } from "./ResultDetail/DocDetail";
 
 import "./index.css";
 import "./styles/css/global.css";
-import nprogressCSS from "./styles/css/nprogress.css?inline";
-import NProgress from "nprogress";
+import { setNProgressRoot } from "./utils/nprogress";
 import { ConfigProvider } from "antd";
 
 import enUS from 'antd/es/locale/en_US';
@@ -57,65 +56,12 @@ const Wrapper = (props: WrapperProps) => {
   }, []);
 
   useEffect(() => {
-    const root = shadow || document;
-    let style: HTMLStyleElement | null = null;
-
-    if (shadow) {
-      // Inject NProgress CSS into shadow container
-      style = document.createElement("style");
-      style.setAttribute("data-nprogress", "");
-      style.textContent = nprogressCSS;
-      shadow.prepend(style);
-    }
-
-    // Patch NProgress to render inside the .ui-search container
-    const originalRender = NProgress.render;
-    const originalRemove = NProgress.remove;
-    const originalIsRendered = NProgress.isRendered;
-
-    NProgress.isRendered = function () {
-      return !!root.querySelector("#nprogress");
-    };
-
-    NProgress.render = function (fromStart?: boolean) {
-      if (NProgress.isRendered()) return root.querySelector("#nprogress") as HTMLDivElement;
-
-      const progress = document.createElement("div");
-      progress.id = "nprogress";
-      progress.innerHTML = NProgress.settings.template;
-
-      const bar = progress.querySelector(
-        NProgress.settings.barSelector
-      ) as HTMLElement;
-      const perc = fromStart
-        ? "-100"
-        : String(((NProgress.status ?? 0) - 1) * 100);
-      if (bar) {
-        bar.style.transition = "all 0 linear";
-        bar.style.transform = "translate3d(" + perc + "%,0,0)";
-      }
-
-      if (!NProgress.settings.showSpinner) {
-        const spinner = progress.querySelector(NProgress.settings.spinnerSelector);
-        if (spinner) spinner.remove();
-      }
-
-      const container = root.querySelector('.ui-search') || (shadow ? shadow : document.body);
-      container.appendChild(progress);
-      return progress;
-    };
-
-    NProgress.remove = function () {
-      const progress = root.querySelector("#nprogress");
-      if (progress) progress.remove();
-    };
-
-    return () => {
-      if (style) style.remove();
-      NProgress.render = originalRender;
-      NProgress.remove = originalRemove;
-      NProgress.isRendered = originalIsRendered;
-    };
+    // Point the widget's scoped progress bar at this container (the shadow
+    // root when used in a Shadow DOM, otherwise the document). The widget's
+    // progress bar uses a *unique* DOM id (`nprogress-ui-search`) and its own
+    // CSS, so it is fully independent of any host's `nprogress` instance and
+    // will no longer override / break the host's `#nprogress` styles.
+    setNProgressRoot(() => shadow || document);
   }, [shadow]);
 
   return (
