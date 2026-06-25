@@ -6,6 +6,7 @@ import useNProgress from "../hooks/useNProgress";
 import SearchHeaderLayout from "./SearchHeaderLayout";
 import CommonDrawer from "./CommonDrawer";
 import BackTopButton from "./BackTopButton";
+import { AnimatePresence, motion } from "motion/react";
 
 const { Content, Sider } = Layout;
 
@@ -27,6 +28,7 @@ interface MediaLayoutProps {
   setSiderCollapse?: (v: boolean) => void;
   detailCollapse?: boolean;
   rightMenuWidth?: number;
+  histogram: ReactNode;
   [key: string]: any;
 }
 
@@ -48,7 +50,8 @@ const MediaLayout: FC<MediaLayoutProps> = (props) => {
     siderCollapse,
     setSiderCollapse,
     detailCollapse,
-    rightMenuWidth
+    rightMenuWidth,
+    histogram
   } = props;
 
   const themeClass = theme === 'dark' ? DARK_CLASS : 'light';
@@ -150,7 +153,6 @@ const MediaLayout: FC<MediaLayoutProps> = (props) => {
           )}
           <Content className={`bg-[rgb(var(--ui-search--layout-bg-color))] min-w-400px ${aggregations && !(isMobile || siderCollapse) ? 'w-[calc(100%-280px)]' : 'w-[calc(100%)]'}`} style={{ overflow: 'visible' }}>
             <div className={`py-32px transition-[width] duration-300 ease-in-out ${isMobile ? 'px-16px' : siderCollapse ? 'pl-24px' : 'pl-72px'} pr-24px ${detailCollapse || (isMobile || siderCollapse) ? 'w-full' : 'w-[calc(100%-820px)]'}`}>
-              {toolbar && <div className="pl-24px mb-16px">{toolbar}</div>}
               <div className={`mb-16px`}>
                 {resultHeader && cloneElement(resultHeader, {
                   userCollapsedLeft: userCollapsedLeftRef.current,
@@ -159,6 +161,21 @@ const MediaLayout: FC<MediaLayoutProps> = (props) => {
                   setLeftDrawerOpen
                 })}
               </div>
+              <AnimatePresence initial={false}>
+                {histogram ? (
+                  <motion.div
+                    key="histogram"
+                    initial={{ opacity: 0, height: 0, y: -8 }}
+                    animate={{ opacity: 1, height: 'auto', y: 0 }}
+                    exit={{ opacity: 0, height: 0, y: -8 }}
+                    transition={{ duration: 0.16, ease: 'easeOut' }}
+                  >
+                    <div className="mb-16px">
+                      {histogram}
+                    </div>
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
               <div>{resultList}</div>
             </div>
           </Content>

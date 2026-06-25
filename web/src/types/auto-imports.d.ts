@@ -138,7 +138,6 @@ declare global {
   const useDrag: typeof import('ahooks')['useDrag']
   const useDrop: typeof import('ahooks')['useDrop']
   const useDynamicList: typeof import('ahooks')['useDynamicList']
-  const useEcharts: typeof import('../hooks/common/echarts')['useEcharts']
   const useEffect: typeof import('react')['useEffect']
   const useEventEmitter: typeof import('ahooks')['useEventEmitter']
   const useEventListener: typeof import('ahooks')['useEventListener']

@@ -1,12 +1,26 @@
+/*
+ * IMPORTANT: this file targets `#nprogress-ui-search` (NOT `#nprogress`).
+ *
+ * The ui-search widget renders its progress bar under the unique id
+ * `nprogress-ui-search` (see src/utils/nprogress.ts) so that it can coexist
+ * with a host application that also uses the `nprogress` library (which
+ * hard-codes the `#nprogress` id). By using a distinct id, these styles never
+ * collide with / override the host's `#nprogress` CSS, which was previously
+ * causing the host's top-of-page bar to lose its color.
+ *
+ * The color variable `--ui-search--nprogress-color` is defined by the widget's
+ * theme setup, scoped under the `.ui-search` container.
+ */
+
 /* Make clicks pass-through */
-#nprogress {
+#nprogress-ui-search {
   pointer-events: none;
 }
 
-#nprogress .bar {
+#nprogress-ui-search .bar {
   background: rgb(var(--ui-search--nprogress-color));
 
-  position: fixed;
+  position: absolute;
   z-index: 1031;
   top: 0;
   left: 0;
@@ -16,7 +30,7 @@
 }
 
 /* Fancy blur effect */
-#nprogress .peg {
+#nprogress-ui-search .peg {
   display: block;
   position: absolute;
   right: 0px;
@@ -33,7 +47,7 @@
 }
 
 /* Remove these to get rid of the spinner */
-#nprogress .spinner {
+#nprogress-ui-search .spinner {
   display: block;
   position: fixed;
   z-index: 1031;
@@ -41,7 +55,7 @@
   right: 15px;
 }
 
-#nprogress .spinner-icon {
+#nprogress-ui-search .spinner-icon {
   width: 18px;
   height: 18px;
   box-sizing: border-box;
@@ -51,21 +65,11 @@
   border-left-color: rgb(var(--ui-search--nprogress-color));
   border-radius: 50%;
 
-  -webkit-animation: nprogress-spinner 400ms linear infinite;
-  animation: nprogress-spinner 400ms linear infinite;
+  -webkit-animation: nprogress-ui-search-spinner 400ms linear infinite;
+  animation: nprogress-ui-search-spinner 400ms linear infinite;
 }
 
-.nprogress-custom-parent {
-  overflow: hidden;
-  position: relative;
-}
-
-.nprogress-custom-parent #nprogress .spinner,
-.nprogress-custom-parent #nprogress .bar {
-  position: absolute;
-}
-
-@-webkit-keyframes nprogress-spinner {
+@-webkit-keyframes nprogress-ui-search-spinner {
   0% {
     -webkit-transform: rotate(0deg);
   }
@@ -73,7 +77,7 @@
     -webkit-transform: rotate(360deg);
   }
 }
-@keyframes nprogress-spinner {
+@keyframes nprogress-ui-search-spinner {
   0% {
     transform: rotate(0deg);
   }

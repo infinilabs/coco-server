@@ -131,6 +131,8 @@ export type SearchResultsRecord = {
     };
     timestamp?: string;
   };
+  updated?: string;
+  created?: string;
 } & Record<string, unknown>;
 
 export type SearchResultsItem =

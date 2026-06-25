@@ -88,7 +88,8 @@ const resources = {
         clear: "Clear",
         updateTime: "Update Time",
         selectDateRange: "Select Date Range",
-        filters: "Filters"
+        filters: "Filters",
+        count: "Count"
       },
       history_list: {
         search: {
@@ -345,7 +346,8 @@ const resources = {
         clear: "清空",
         updateTime: "更新时间",
         selectDateRange: "选择日期范围",
-        filters: "筛选"
+        filters: "筛选",
+        count: "数量"
       },
       history_list: {
         search: {

@@ -147,7 +147,9 @@ export const Toolbar: FC<ToolbarProps> = ({
   const customEndDate = parseDatePickerValue(end);
   const hasCustomDateRange = Boolean(customStartDate && customEndDate);
   const dateRangeLabel = hasCustomDateRange ? t('labels.custom') : dateMenuItems.find((item) => item.key === dateRange)?.label || t('labels.allTime');
-  const startAndEndLabel = customStartDate && customEndDate ? `${customStartDate.format('YYYY/MM/DD')} - ${customEndDate.format('YYYY/MM/DD')}` : undefined;
+  const startLabel = customStartDate ? customStartDate.format('YYYY/MM/DD') : undefined;
+  const endLabel = customEndDate ? customEndDate.format('YYYY/MM/DD') : undefined;
+  const startAndEndLabel = startLabel && endLabel ? (startLabel === endLabel ? startLabel : `${startLabel} - ${endLabel}`) : undefined;
 
   const filterPopoverContent = (
     <div className="w-320px text-14px text-[#666] dark:text-[#999]">

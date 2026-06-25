@@ -63,6 +63,8 @@ export interface DocDetailProps extends HTMLAttributes<HTMLDivElement> {
       title?: string;
       subtitle?: string;
       cover?: string;
+      username?: string;
+      name?: string;
     };
     ai_insights?: {
       text?: string;
@@ -94,6 +96,8 @@ const DocDetail: FC<DocDetailProps> = (props) => {
 
   const [expandMore, setExpandMore] = useState(false);
 
+  const ownerName = data?.owner?.title ?? data?.owner?.username ?? data?.owner?.name;
+
   const moreInfo = [
     {
       label: i18n?.labels?.type ?? "Type",
@@ -105,7 +109,7 @@ const DocDetail: FC<DocDetailProps> = (props) => {
     },
     {
       label: i18n?.labels?.createdBy ?? "Created By",
-      value: data?.owner?.title,
+      value: ownerName,
     },
     {
       label: i18n?.labels?.createdAt ?? "Created At",
@@ -185,15 +189,15 @@ const DocDetail: FC<DocDetailProps> = (props) => {
             data?.category && (
               <>
                 <ChevronRight className="size-3" />
-                <div>{data?.category ?? "-"}</div>
+                <div>{data?.category}</div>
               </>
             )
           }
           {
-            data?.owner?.title && (
+            ownerName && (
               <>
                 <Minus className="size-3 rotate-90" />
-                <div>{data?.owner?.title ?? "-"}</div>
+                <div>{ownerName}</div>
               </>
             )
           }
@@ -201,7 +205,7 @@ const DocDetail: FC<DocDetailProps> = (props) => {
             data?.updated && (
               <>
                 <Dot className="size-3" />
-                <div>{data?.updated ?? "-"}</div>
+                <div>{data?.updated}</div>
               </>
             )
           }

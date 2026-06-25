@@ -39,6 +39,7 @@
     "react-dom": "18.3.1"
   },
   "dependencies": {
+    "@ant-design/charts": "^2.6.7",
     "@ant-design/cssinjs": "^2.0.1",
     "@infinilabs/attachments": "^0.0.4",
     "@infinilabs/markdown": "^0.0.14",

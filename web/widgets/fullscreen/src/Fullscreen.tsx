@@ -136,7 +136,7 @@ export default function Fullscreen(props: FullscreenProps) {
         }
     }
 
-    function search(query: AnyRecord, callback: DataCallback, setLoading?: LoadingSetter) {
+    function search(query: AnyRecord, body: any = {}, callback: DataCallback, setLoading?: LoadingSetter) {
         if (setLoading) setLoading(true)
         const { filter = {}, start, end, ...rest } = query
         const filterStr = buildFilterString(filter)
@@ -149,17 +149,7 @@ export default function Fullscreen(props: FullscreenProps) {
             method: 'POST',
             headers: apiHeaders,
             credentials: 'include',
-            body: JSON.stringify({
-                "aggs": {
-                    "counts": {
-                        "auto_date_histogram": {
-                            "field": "updated",
-                            "buckets": 120,
-                            "time_zone": "Asia/Shanghai"
-                        }
-                    }
-                }
-            })
+            body: JSON.stringify(body)
         })
             .then(response => {
                 if (!response.ok) throw new Error('response was not ok');
