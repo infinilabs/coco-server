@@ -4,6 +4,7 @@ import { formatESSearchResult } from "@/service/request/es";
 import { useRequest } from "@sa/hooks";
 import { fetchPrincipals } from "@/service/api/share";
 import { getLocale } from "@/store/slice/app";
+import { getApplicationSetting } from "@/store/slice/server";
 
 export default (props) => {
 
@@ -11,6 +12,15 @@ export default (props) => {
 
     const { t } = useTranslation();
       const locale = useAppSelector(getLocale);
+    // The /security/principal/_search endpoint targets different indexes depending on whether
+    // the deployment is in managed mode. In managed mode it searches the principals-cache index,
+    // where the principal identifier is stored under principal.id, so filters must target that
+    // nested field. In non-managed mode it searches the app-users index directly, where the
+    // identifier is stored at the top-level id field. The API response normalizes both cases
+    // so the returned _source always exposes id/name/description at the top level.
+    const applicationSetting = useAppSelector(getApplicationSetting);
+    const isManaged = Boolean(applicationSetting?.security?.managed);
+    const idFilterField = isManaged ? 'principal.id' : 'id';
 
     const { hasAuth } = useAuth()
 
@@ -44,23 +54,23 @@ export default (props) => {
         ...queryParams,
         sort: sorter.map((item) => `${item[0]}:${item[1]}`).join(',') || 'created:desc',
         filter: Array.isArray(excluded) ? {
-            '!id': excluded
+            [`!${idFilterField}`]: excluded
           } : {}
       })
     }
 
     useEffect(() => {
       fetchFilterData(queryParams, sorter, excluded)
-    }, [JSON.stringify(queryParams), JSON.stringify(sorter), JSON.stringify(excluded)])
+    }, [JSON.stringify(queryParams), JSON.stringify(sorter), JSON.stringify(excluded), idFilterField])
 
     useEffect(() => {
       if (mode === 'multiple') {
         if (value && value.some((item) => !!(item?.id && !item?.name))) {
           fetchItems({
             filter: {
-              id: value.map((item) => item.id)
+              [idFilterField]: value.map((item) => item.id)
             },
-            from: 0, 
+            from: 0,
             size: 10000,
           })
         }
@@ -68,14 +78,14 @@ export default (props) => {
         if (value?.id && !value?.name) {
           fetchItems({
             filter: {
-              id: [value?.id]
+              [idFilterField]: [value?.id]
             },
-            from: 0, 
+            from: 0,
             size: 10000,
           })
         }
       }
-    }, [JSON.stringify(value), mode])
+    }, [JSON.stringify(value), mode, idFilterField])
 
     const result = useMemo(() => {
       const rs = formatESSearchResult(res)
