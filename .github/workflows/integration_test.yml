@@ -15,7 +15,7 @@ jobs:
 
     steps:
       - name: Checkout current repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with: 
           path: coco
       
@@ -48,7 +48,7 @@ jobs:
           git clone https://github.com/infinilabs/framework-vendor.git ~/go/src/infini.sh/vendor
 
       - name: Clone framework enterprise plugin
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with: 
           repository: infinilabs/framework-enterprise-plugins
           # We cannot directly clone into the ~/go dir as that is not under the runner work dir
@@ -64,7 +64,7 @@ jobs:
           mv ./framework-enterprise-plugin ~/go/src/infini.sh/framework/plugins/enterprise
 
       - name: Checkout license repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: infinilabs/license
           path: license
