@@ -12,6 +12,7 @@ Information about release notes of Coco Server is provided here.
 ### 🚀 Features  
 ### 🐛 Bug fix  
 - fix: principal search filter field for managed mode #696
+- fix: default model provider mismatch in settings #698
 ### ✈️ Improvements  
 
 ## 0.11.0 (2026-06-23)

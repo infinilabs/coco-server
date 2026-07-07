@@ -97,36 +97,14 @@ const DefaultModel = memo(() => {
           return acc;
         }
 
-        // try find provider by provider_id
-        let provider = modelProviderList.find((p: any) => p.id === v.provider_id || p.id === v.providerId || p.id === v.provider);
-        let model = null;
-
-        if (provider) {
-          model = (provider.models || []).find((m: any) => m.name === v.name || m.id === v.id || `${provider.id}_${m.name}` === v.id);
-        }
-
-        // try parse id like 'provider_modelName' to find provider/model
-        if (!provider && v.id && typeof v.id === 'string' && v.id.includes('_')) {
-          const parts = v.id.split('_');
-          const pId = parts[0];
-          provider = modelProviderList.find((p: any) => p.id === pId);
-          if (provider) {
-            const modelName = parts.slice(1).join('_');
-            model = (provider.models || []).find((m: any) => m.name === modelName || m.id === v.id || m.name === v.name);
-          }
-        }
-
-        // global search fallback
-        if (!provider || !model) {
-          for (const p of modelProviderList) {
-            const m = (p.models || []).find((mm: any) => mm.id === v.id || mm.name === v.name || mm.name === v.id);
-            if (m) {
-              provider = p;
-              model = m;
-              break;
-            }
-          }
-        }
+        // Match provider by provider_id, then match model within that provider.
+        // The backend stores the model name in `id`; model names are unique only
+        // within a single provider's model list.
+        const provider = modelProviderList.find((p: any) => p.id === v.provider_id || p.id === v.providerId || p.id === v.provider);
+        const modelName = v.id;
+        const model = provider
+          ? (provider.models || []).find((m: any) => m.name === modelName || m.id === modelName)
+          : null;
 
         if (provider && model) {
           acc[key] = {
@@ -135,12 +113,12 @@ const DefaultModel = memo(() => {
             name: model.name,
           };
         } else if (v.provider_id && v.id) {
-          // best-effort: extract name from id if it contains '_'
-          const name = typeof v.id === 'string' && v.id.includes('_') ? v.id.split('_').slice(1).join('_') : v.name || undefined;
+          // Preserve the original value when the provider or model cannot be
+          // resolved; do not fall back to a different provider.
           acc[key] = {
             provider_id: v.provider_id,
             id: v.id,
-            ...(name ? { name } : {}),
+            ...(v.name ? { name: v.name } : {}),
           };
         } else {
           acc[key] = v;
