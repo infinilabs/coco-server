@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type FC } from "react";
 import { Image as AntdImage, Skeleton } from "antd";
 import { useSize } from "ahooks";
 import { DocDetailProps } from "@/ResultDetail/DocDetail/DocDetail";
+import { isBlobUrl } from "../../utils";
 
 interface ImageProps extends DocDetailProps {
   onLoadingChange?: (loading: boolean) => void;
@@ -18,17 +19,34 @@ const Image: FC<ImageProps> = (props) => {
     const targetUrl = data?.metadata?.raw_content || data?.thumbnail;
     if (!targetUrl) return;
 
+    if (isBlobUrl(targetUrl)) {
+      setImgSrc(targetUrl);
+      onLoadingChange?.(false);
+      return;
+    }
+
     onLoadingChange?.(true);
+    let objectUrl = "";
+
     fetch(targetUrl, { headers: requestHeaders })
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.blob();
       })
-      .then((blob) => setImgSrc(URL.createObjectURL(blob)))
+      .then((blob) => {
+        objectUrl = URL.createObjectURL(blob);
+        setImgSrc(objectUrl);
+      })
       .catch((e) => {
         onLoadError?.(e instanceof Error ? e : new Error(String(e)));
       })
       .finally(() => onLoadingChange?.(false));
+
+    return () => {
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
   }, [data?.metadata?.raw_content, data?.thumbnail, requestHeaders]);
 
   const calcHeight = useMemo(() => {

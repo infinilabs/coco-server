@@ -1,18 +1,26 @@
-import { ActionButton, DocDetail } from 'ui-search/source';
-import { Button, Result, Spin, Typography } from 'antd';
+import { Button, Result, Spin } from 'antd';
 import { useParams } from 'react-router-dom';
-import { filesize } from 'filesize';
 
-import { getApiBaseUrl, request } from '@/service/request';
+import { request } from '@/service/request';
 import { fetchEntityUser } from '@/service/api/entity';
 import logoLight from '@/assets/imgs/coco-logo-text-light.svg';
 import logoDark from '@/assets/imgs/coco-logo-text-dark.svg';
-import DateTime from '@/components/DateTime';
-import { SquareArrowOutUpRight } from 'lucide-react';
+import { getDarkMode } from '@/store/slice/theme';
+import { useAppSelector } from '@/hooks/business/useStore';
 import classNames from 'classnames';
-import type { ReactNode } from 'react';
 
-const previewContentTypes = ['image', 'video', 'markdown', 'pdf', 'docx', 'pptx'];
+import PreviewContent from './components/PreviewContent';
+
+// Helper function to extract a filename from a Content-Disposition header.
+// Supported forms include:
+//   attachment; filename="example.pdf"
+//   inline; filename="example.pdf"
+function parseFilenameFromContentDisposition(header: string | null, fallback: string): string {
+  if (!header) return fallback;
+  const match = header.match(/filename="([^"]+)"/);
+  if (match?.[1]) return match[1];
+  return fallback;
+}
 
 export function Component() {
   const { id } = useParams();
@@ -21,21 +29,81 @@ export function Component() {
   const appIntegrationId = searchParams.get('app-integration-id');
 
   const embedded = mode === 'embedded';
+  const darkMode = useAppSelector(getDarkMode);
+  const theme = darkMode ? 'dark' : 'light';
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>();
   const [error, setError] = useState<any>();
-  const [sourceUrl, setSourceUrl] = useState<string>();
+  const [redirectUrl, setRedirectUrl] = useState<string>();
+  const [contentBlobUrl, setContentBlobUrl] = useState<string>();
+  const [downloadFilename, setDownloadFilename] = useState<string>();
+  const [rawContentError, setRawContentError] = useState<string>();
   const { t } = useTranslation();
+
+  // requestHeaders is used by the Preview sub-components when fetching the
+  // raw_content URL. We pass the app-integration-id header so embedded/widget
+  // preview works consistently.
+  const requestHeaders = useMemo(() => {
+    return appIntegrationId ? { 'APP-INTEGRATION-ID': appIntegrationId } : undefined;
+  }, [appIntegrationId]);
+
+  // Inspect the raw_content endpoint to decide whether the document is an
+  // external link or a file stream. The endpoint returns a JSON wrapper with the
+  // external URL for redirects, and a file stream for raw content. We use the
+  // X-Document-Redirect header to distinguish the two without relying on a 302
+  // status, which is opaque and unreadable in cross-origin contexts.
+  const inspectRawContent = async (docData: any) => {
+    const rawContent: string | undefined = docData?.metadata?.raw_content;
+    if (!rawContent) return;
+
+    try {
+      const res = await fetch(rawContent, {
+        headers: requestHeaders
+      });
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+
+      if (res.headers.get('X-Document-Redirect')) {
+        const payload = await res.json();
+        setRedirectUrl(payload.url);
+        return;
+      }
+
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const filename = parseFilenameFromContentDisposition(
+        res.headers.get('Content-Disposition'),
+        docData.title || 'download'
+      );
+
+      setContentBlobUrl(blobUrl);
+      setDownloadFilename(filename);
+
+      // Overwrite the raw_content URL with the Blob URL. The Preview
+      // sub-components read metadata.raw_content and fetch from it; by giving
+      // them a Blob URL we avoid a second network request and ensure the
+      // rendered content is exactly what raw_content returned.
+      setData((prev: any) => ({
+        ...prev,
+        metadata: {
+          ...prev?.metadata,
+          raw_content: blobUrl
+        }
+      }));
+    } catch (err) {
+      setRawContentError(err instanceof Error ? err.message : String(err));
+    }
+  };
 
   useAsyncEffect(async () => {
     try {
-      const headers = appIntegrationId ? { 'APP-INTEGRATION-ID': appIntegrationId } : undefined;
-
       const { data } = await request({
         method: 'get',
         url: `/document/${id}`,
-        headers
+        headers: requestHeaders
       });
 
       const dataSource = data._source;
@@ -43,23 +111,23 @@ export function Component() {
       let ownerData;
       const ownerId = dataSource?._system?.owner_id;
       if (ownerId) {
-        const { data } = await fetchEntityUser({ id: ownerId }, { headers, ignoreError: true });
+        const { data } = await fetchEntityUser({ id: ownerId }, { headers: requestHeaders, ignoreError: true });
         ownerData = data;
       }
 
-      setData({
+      const enrichedData = {
         ...dataSource,
         owner: ownerData
-      });
+      };
 
-      const contentType = dataSource?.metadata?.content_type;
-      const rawContent = dataSource?.metadata?.raw_content;
-      const hasPreview = !!rawContent && previewContentTypes.includes(contentType);
-      const hasAIInsight = !!dataSource?.ai_insights?.text;
+      setData(enrichedData);
 
-      if (!embedded && !hasPreview && !hasAIInsight && rawContent) {
-        setSourceUrl(rawContent);
-      }
+      // We must inspect the raw_content endpoint before rendering the preview,
+      // because the endpoint returns either a file stream or a JSON wrapper with
+      // the external URL. Replacing metadata.raw_content with a Blob URL is the
+      // cleanest way to let the Preview components render the fetched content
+      // without extra fetch logic.
+      await inspectRawContent(enrichedData);
     } catch (error) {
       if (error instanceof Error) {
         setError(error.message);
@@ -69,81 +137,18 @@ export function Component() {
     } finally {
       setLoading(false);
     }
-  }, [appIntegrationId, embedded, id]);
+  }, [appIntegrationId, embedded, id, requestHeaders]);
 
-  const openTauriUrl = (url: string) => {
-    window.parent.postMessage(
-      {
-        type: 'OPEN_TAURI_URL',
-        payload: { url }
-      },
-      '*'
-    );
-  };
-
-  const renderActionButtons = (): ReactNode[] => {
-    if (embedded) {
-      return [
-        <Button
-          className='size-6!'
-          icon={<SquareArrowOutUpRight className='size-3.5 text-primary' />}
-          key='openSource'
-          onClick={() => {
-            openTauriUrl(data?.metadata?.raw_content);
-          }}
-        />
-      ];
-    }
-
-    return [
-      <ActionButton
-        icon={<SquareArrowOutUpRight />}
-        key='openSource'
-        onClick={() => {
-          setSourceUrl(data?.metadata?.raw_content);
-        }}
-      >
-        {t('page.preview.buttons.openSource')}
-      </ActionButton>
-    ];
-  };
+  // Revoke the Blob URL on unmount to avoid leaking memory.
+  useEffect(() => {
+    return () => {
+      if (contentBlobUrl) {
+        URL.revokeObjectURL(contentBlobUrl);
+      }
+    };
+  }, [contentBlobUrl]);
 
   const renderContent = () => {
-    if (sourceUrl) {
-      const url = sourceUrl.startsWith('http') ? sourceUrl : `${getApiBaseUrl()}${sourceUrl}`;
-      return (
-        <div className='mt-30 flex justify-center'>
-          <div className='w-full min-w-0 border border-border-secondary rounded-lg bg-black/3 px-6 py-10 dark:bg-white/7 md:w-640px'>
-            <div className='font-bold'>{t('page.preview.hints.leave')}</div>
-
-            <div className='mt-1'>{t('page.preview.hints.externalLinkWarning')}</div>
-
-            <Button
-              className='mt-10 min-w-100px'
-              shape='round'
-              size='large'
-              type='primary'
-              onClick={() => {
-                window.open(appIntegrationId ? `${url}?app-integration-id=${appIntegrationId}` : url);
-              }}
-            >
-              {t('page.preview.buttons.continueVisiting')}
-            </Button>
-            <Button
-              className='ml-12px mt-10 min-w-100px border-[#F0F0F0] dark:border-[#303030]'
-              shape='round'
-              size='large'
-              onClick={() => {
-                setSourceUrl(undefined);
-              }}
-            >
-              {t('page.preview.buttons.cancel')}
-            </Button>
-          </div>
-        </div>
-      );
-    }
-
     if (loading) {
       return (
         <Spin
@@ -176,49 +181,48 @@ export function Component() {
       );
     }
 
+    // When raw_content inspection failed but we still have document metadata,
+    // show a non-fatal warning so the user can retry.
+    if (rawContentError && !contentBlobUrl && !redirectUrl) {
+      return (
+        <div className='h-full flex flex-col justify-center'>
+          <Result
+            status='warning'
+            subTitle={rawContentError}
+            title={t('page.preview.hints.failed')}
+            extra={
+              <Button
+                type='primary'
+                onClick={() => {
+                  setRawContentError(undefined);
+                  inspectRawContent(data);
+                }}
+              >
+                {t('page.preview.buttons.reload')}
+              </Button>
+            }
+          />
+        </div>
+      );
+    }
+
     return (
-      <DocDetail
-        actionButtons={renderActionButtons()}
-        data={{
-          ...data,
-          size: filesize(data?.size ?? 0),
-          created: (
-            data?.created ? (
-              <DateTime
-                showTooltip={false}
-                value={data?.created}
-              />
-            ) : null
-          ),
-          updated: (
-            data?.updated ? (
-              <DateTime
-                showTooltip={false}
-                value={data?.updated}
-              />
-            ) : null
-          )
-        }}
-        i18n={{
-          labels: {
-            type: t('page.preview.labels.type'),
-            size: t('page.preview.labels.size'),
-            createdBy: t('page.preview.labels.createdBy'),
-            createdAt: t('page.preview.labels.createdAt'),
-            updatedAt: t('page.preview.labels.updatedAt'),
-            preview: t('page.preview.labels.preview'),
-            aiInterpretation: t('page.preview.labels.aiInterpretation')
-          }
-        }}
+      <PreviewContent
+        contentBlobUrl={contentBlobUrl}
+        data={data}
+        downloadFilename={downloadFilename}
+        redirectUrl={redirectUrl}
+        requestHeaders={requestHeaders}
+        theme={theme}
       />
     );
   };
 
   return (
-    <div className='h-screen bg-container'>
+    <div className='h-screen bg-white dark:bg-black'>
       <div className={classNames('h-full flex flex-col', [embedded ? 'p-6' : 'px-16px max-w-240 m-auto'])}>
         {!embedded && (
-          <div className='h-20 flex items-center justify-between border-b border-border-secondary'>
+          <div className='h-20 flex items-center border-b border-border-secondary'>
             <div className='children:h-10'>
               <img
                 className='dark:hidden'
@@ -230,8 +234,6 @@ export function Component() {
                 src={logoDark}
               />
             </div>
-
-            <span className='text-xl font-bold'>{t('page.preview.title')}</span>
           </div>
         )}
 

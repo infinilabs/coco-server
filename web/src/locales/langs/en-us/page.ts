@@ -392,7 +392,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         type: 'Type',
         webhook: 'Webhook',
         enrichment_pipeline: 'Enrichment Pipeline',
-        document_analysis: 'Document Analysis',
+        document_analysis: 'Document Analysis'
       },
       title: '{{connector}} Connection',
       tooltip: {
@@ -530,7 +530,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       createdBy: 'Created By',
       updatedBy: 'Updated By',
       deleteConfirm: 'Are you sure you want to delete this document?',
-      deleteAllConfirm: 'Are you sure you want to delete all selected documents?',
+      deleteAllConfirm: 'Are you sure you want to delete all selected documents?'
     },
     file: {
       title: 'Document Management'
@@ -553,7 +553,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       tipsSettings: 'Configure Now',
       ignoreTips: 'Do not remind again',
       tipsSuccess: 'All default models have been configured. Start experiencing the full AI capabilities.',
-      tipsSuccessButton: 'OK',
+      tipsSuccessButton: 'OK'
     },
     languageModel: {
       title: 'Language Model',
@@ -585,8 +585,10 @@ const page: App.I18n.Schema['translation']['page'] = {
     skipModal: {
       title: 'Skip setup?',
       hints: {
-        desc1: 'No default model is set. If you skip this step, some built-in AI features (e.g., AI Assistant, Document Processing Pipeline) will not function properly until a model is specified.',
-        desc2: 'You can add models later in the "Model Provider" section and set the default model in "System Configuration".',
+        desc1:
+          'No default model is set. If you skip this step, some built-in AI features (e.g., AI Assistant, Document Processing Pipeline) will not function properly until a model is specified.',
+        desc2:
+          'You can add models later in the "Model Provider" section and set the default model in "System Configuration".'
       }
     }
   },
@@ -881,9 +883,11 @@ const page: App.I18n.Schema['translation']['page'] = {
     default_model: {
       labels: {
         default_model: 'Default Model',
-        default_model_desc: 'This configuration will be applied as the default value for AI assistants and document processing pipelines that do not have a separately specified model.',
+        default_model_desc:
+          'This configuration will be applied as the default value for AI assistants and document processing pipelines that do not have a separately specified model.',
         ai_assistant: 'AI Assistant',
-        ai_assistant_desc: 'Specify dedicated models for different stages of the AI assistant to optimize performance and cost. If not configured, the language model from the default model will be used.',
+        ai_assistant_desc:
+          'Specify dedicated models for different stages of the AI assistant to optimize performance and cost. If not configured, the language model from the default model will be used.',
         intent_analysis_model: 'Intent Analysis Model',
         picking_doc_model: 'Picking Doc Model',
         picking_tool_model: 'Picking Tool Model',
@@ -897,9 +901,10 @@ const page: App.I18n.Schema['translation']['page'] = {
         default_pipeline_for_document: 'Data Source Document',
         output_language: 'Output Language',
         processing_pipeline: 'Processing Pipeline',
-        output_language_desc: 'Controls the output language of AI-generated content in the pipeline, including summaries, tags, and analysis results.',
-      }, 
-      title: 'Document Processing',
+        output_language_desc:
+          'Controls the output language of AI-generated content in the pipeline, including summaries, tags, and analysis results.'
+      },
+      title: 'Document Processing'
     },
     setupLater: 'Set Up Later'
   },
@@ -1016,7 +1021,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       openSource: 'Open Source',
       reload: 'Reload',
       continueVisiting: 'Continue Visiting',
-      cancel: 'Cancel'
+      cancel: 'Cancel',
+      download: 'Download'
     },
     hints: {
       failed: 'Sorry, something went wrong',

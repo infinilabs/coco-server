@@ -6,6 +6,7 @@ import { default as Page } from "./FullscreenPage";
 import { default as Modal } from "./FullscreenModal";
 
 export { DocDetail, ActionButton } from "./ResultDetail/DocDetail";
+export { default as Preview } from "./ResultDetail/DocDetail/DocDetail/components/Preview";
 
 import "./index.css";
 import "./styles/css/global.css";

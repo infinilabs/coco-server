@@ -134,7 +134,7 @@ func (h *APIHandler) getDocRawContent(w http.ResponseWriter, req *http.Request, 
 	}
 
 	// Check if URL is raw content or external URL
-	if obj.Metadata["url_is_raw_content"] == true {
+	if obj.Metadata["raw_content_returns_file"] == true {
 		datasourceID := obj.Source.ID
 		datasource, err := common.GetDatasourceConfig(ctx, datasourceID)
 		if err != nil {
@@ -298,8 +298,14 @@ func (h *APIHandler) getDocRawContent(w http.ResponseWriter, req *http.Request, 
 		http.ServeContent(w, req, fileName, modTime, reader)
 
 	} else {
-		// Redirect to external URL
-		http.Redirect(w, req, obj.URL, http.StatusFound)
+		// The document URL points to an external resource. Instead of issuing a
+		// 302 redirect (which becomes opaque and unreadable cross-origin), return
+		// the target URL as JSON so the caller can decide how to open it.
+		w.Header().Set("X-Document-Redirect", "true")
+		w.Header().Set("Access-Control-Expose-Headers", "X-Document-Redirect")
+		h.WriteJSON(w, util.MapStr{
+			"url": obj.URL,
+		}, http.StatusOK)
 	}
 }
 

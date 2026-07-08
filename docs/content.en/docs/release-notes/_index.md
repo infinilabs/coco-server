@@ -14,6 +14,7 @@ Information about release notes of Coco Server is provided here.
 - fix: principal search filter field for managed mode #696
 - fix: default model provider mismatch in settings #698
 ### ✈️ Improvements
+- refactor: document preview page to handle raw_content streams and external links #699
 - refactor: include document create time in LLM prompt #700
 - chore: correct moonshot base url #701
 
