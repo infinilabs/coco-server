@@ -2,16 +2,22 @@ import { Button, type ButtonProps } from "antd";
 import { useState, useMemo, type FC, type MouseEvent } from "react";
 import { motion } from "motion/react";
 
-export type ActionButtonProps = ButtonProps;
+export type ActionButtonProps = ButtonProps & {
+  /**
+   * Always show the label text, regardless of hover state.
+   * By default the label is only shown on touch devices or when hovered.
+   */
+  alwaysExpanded?: boolean;
+};
 
 const canHover = window.matchMedia("(hover: hover)").matches;
 
 const ActionButton: FC<ActionButtonProps> = (props) => {
-  const { icon, children, onMouseOver, onMouseOut, className = '', ...rest } = props;
+  const { icon, children, alwaysExpanded, onMouseOver, onMouseOut, className = '', ...rest } = props;
 
   const [hovered, setHovered] = useState(false);
 
-  const expanded = useMemo(() => !canHover || hovered, [hovered]);
+  const expanded = useMemo(() => alwaysExpanded || !canHover || hovered, [alwaysExpanded, hovered]);
 
   const handleMouseOver = (event: MouseEvent<HTMLButtonElement>) => {
     setHovered(true);
@@ -35,7 +41,9 @@ const ActionButton: FC<ActionButtonProps> = (props) => {
       onMouseOver={handleMouseOver}
       onMouseOut={handleMouseOut}
     >
-      <span className="inline-flex items-center children:size-4">{icon}</span>
+      {icon && (
+        <span className="inline-flex items-center children:size-4">{icon}</span>
+      )}
 
       <motion.span
         className="overflow-hidden"
@@ -43,7 +51,7 @@ const ActionButton: FC<ActionButtonProps> = (props) => {
         animate={{
           width: expanded ? "auto" : 0,
           opacity: Number(expanded),
-          paddingLeft: Number(expanded) * 8,
+          paddingLeft: Number(expanded && icon) * 8,
         }}
       >
         {children}

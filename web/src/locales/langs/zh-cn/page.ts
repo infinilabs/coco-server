@@ -570,7 +570,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         type: '数据源类型',
         webhook: '启用 Webhook',
         enrichment_pipeline: 'Enrichment Pipeline',
-        document_analysis: '文档分析',
+        document_analysis: '文档分析'
       },
       title: '连接 {{connector}}',
       tooltip: {
@@ -657,7 +657,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       createdBy: '创建人',
       updatedBy: '更新人',
       deleteConfirm: '您确定要删除此文档吗？',
-      deleteAllConfirm: '您确定要删除所有选中的文档吗？',
+      deleteAllConfirm: '您确定要删除所有选中的文档吗？'
     },
     file: {
       title: '文档管理'
@@ -706,7 +706,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       tipsSettings: '立即配置',
       ignoreTips: '不再提醒',
       tipsSuccess: '默认模型已全部配置完成，开始体验完整 AI 能力',
-      tipsSuccessButton: '好的',
+      tipsSuccessButton: '好的'
     },
     languageModel: {
       title: '语言模型',
@@ -738,8 +738,9 @@ const page: App.I18n.Schema['translation']['page'] = {
     skipModal: {
       title: '确认跳过？',
       hints: {
-        desc1: '当前未设置默认模型。如果跳过此步骤，部分内置 AI 功能（如 AI 助手、文档处理 Pipeline）在未单独指定模型前将无法正常运行。',
-        desc2: '您可以稍后在“模型提供商”中添加模型，并在“系统配置”中设置默认模型。',
+        desc1:
+          '当前未设置默认模型。如果跳过此步骤，部分内置 AI 功能（如 AI 助手、文档处理 Pipeline）在未单独指定模型前将无法正常运行。',
+        desc2: '您可以稍后在“模型提供商”中添加模型，并在“系统配置”中设置默认模型。'
       }
     }
   },
@@ -1011,9 +1012,9 @@ const page: App.I18n.Schema['translation']['page'] = {
         default_pipeline_for_document: '数据源文档处理',
         output_language: '输出语言',
         processing_pipeline: '处理 Pipeline',
-        output_language_desc: '控制 Pipeline 中 AI 生成内容的输出语言，包括摘要、标签与分析结果等。',
-      }, 
-      title: '文档处理',
+        output_language_desc: '控制 Pipeline 中 AI 生成内容的输出语言，包括摘要、标签与分析结果等。'
+      },
+      title: '文档处理'
     },
     setupLater: '稍后设置'
   },
@@ -1172,7 +1173,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       openSource: '打开来源',
       reload: '重新加载',
       continueVisiting: '继续访问',
-      cancel: '取消'
+      cancel: '取消',
+      download: '下载'
     },
     hints: {
       failed: '抱歉，出错了',

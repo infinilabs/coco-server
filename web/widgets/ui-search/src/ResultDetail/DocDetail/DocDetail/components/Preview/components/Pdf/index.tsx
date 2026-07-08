@@ -2,6 +2,7 @@ import { Document, Page, pdfjs } from "react-pdf";
 import { useState, useEffect, useRef, type FC } from "react";
 import { Pagination } from "antd";
 import { DocDetailProps } from "@/ResultDetail/DocDetail/DocDetail";
+import { isBlobUrl } from "../../utils";
 import pdfjsWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorkerUrl;
@@ -29,6 +30,12 @@ const Pdf: FC<PdfProps> = (props) => {
 
     if (url) {
       onLoadingChange?.(true);
+
+      if (isBlobUrl(url)) {
+        setPdfUrl(url);
+        onLoadingChange?.(false);
+        return;
+      }
 
       fetch(url, { headers: requestHeaders })
         .then((res) => {

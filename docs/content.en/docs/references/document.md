@@ -208,8 +208,17 @@ curl -H 'Content-Type: application/json' -XDELETE http://localhost:9000/document
 //request
 curl -XGET http://localhost:9000/document/cso9vr3q50k38nobvmcg/raw_content/text
 
-//response
-(Raw document content is returned based on the hint parameter)
+//response when the document stores raw content
+(Raw document content is returned with the appropriate Content-Type)
+
+//response when the document URL points to an external resource
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Document-Redirect: true
+
+{
+  "url": "https://example.com/path/to/document.pdf"
+}
 ```
 
 | Parameter | Type   | Description                                              |

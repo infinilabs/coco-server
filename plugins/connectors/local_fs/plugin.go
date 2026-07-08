@@ -196,7 +196,7 @@ func (p *Plugin) saveDocument(ctx *pipeline.Context, currentPath, basePath strin
 	if doc.Metadata == nil {
 		doc.Metadata = make(map[string]interface{})
 	}
-	doc.Metadata["url_is_raw_content"] = true
+	doc.Metadata["raw_content_returns_file"] = true
 
 	doc.ID = util.MD5digest(fmt.Sprintf("%s-%s", datasource.ID, currentPath))
 

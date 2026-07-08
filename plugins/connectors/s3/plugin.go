@@ -103,7 +103,7 @@ func (p *Plugin) Fetch(ctx *pipeline.Context, connector *core.Connector, datasou
 			doc.Metadata[k] = v
 		}
 
-		doc.Metadata["url_is_raw_content"] = true
+		doc.Metadata["raw_content_returns_file"] = true
 
 		doc.Owner = &core.UserInfo{
 			UserID:   obj.Owner.ID,

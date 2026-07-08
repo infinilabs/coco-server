@@ -359,4 +359,5 @@ declare module 'ui-search/source' {
   export const FullscreenModal: any;
   export const DocDetail: any;
   export const ActionButton: any;
+  export const Preview: any;
 }
