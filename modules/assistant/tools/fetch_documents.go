@@ -32,7 +32,7 @@ func FetchDocumentInDepth(ctx context.Context, reqMsg, replyMsg *core.ChatMessag
 		detail := core.ProcessingDetails{Order: 40, Type: common.DeepRead, Description: strBuilder.String()}
 		replyMsg.Details = append(replyMsg.Details, detail)
 
-		inputValues["references"] = formatDocumentForReplyReferences(pickedFullDoc)
+		inputValues["references"] = FormatDocumentForReplyReferences(pickedFullDoc)
 	}
 	return nil
 }

@@ -119,18 +119,19 @@ func GetTeamsIDByUserID(ctx context.Context, userID string) []string {
 	return []string{}
 }
 
-func formatDocumentForReplyReferences(docs []core.Document) string {
+func FormatDocumentForReplyReferences(docs []core.Document) string {
 	var sb strings.Builder
 	sb.WriteString("<REFERENCES>\n")
 	for i, doc := range docs {
-		sb.WriteString(fmt.Sprintf("<Doc>"))
+		sb.WriteString("<Doc>")
 		sb.WriteString(fmt.Sprintf("ID #%d - %v\n", i+1, doc.ID))
 		sb.WriteString(fmt.Sprintf("Title: %s\n", doc.Title))
 		sb.WriteString(fmt.Sprintf("Source: %s\n", doc.Source))
+		sb.WriteString(fmt.Sprintf("Created: %s\n", doc.Created))
 		sb.WriteString(fmt.Sprintf("Updated: %s\n", doc.Updated))
 		sb.WriteString(fmt.Sprintf("Category: %s\n", doc.GetAllCategories()))
 		sb.WriteString(fmt.Sprintf("Content: %s\n", doc.Content))
-		sb.WriteString(fmt.Sprintf("</Doc>\n"))
+		sb.WriteString("</Doc>\n")
 
 	}
 	sb.WriteString("</REFERENCES>")
@@ -161,6 +162,7 @@ func formatDocumentForPick(docs []core.Document) []util.MapStr {
 		item := util.MapStr{}
 		item["id"] = doc.ID
 		item["title"] = doc.Title
+		item["created"] = doc.Created
 		item["updated"] = doc.Updated
 		item["category"] = doc.Category
 		item["summary"] = util.SubString(doc.Summary, 0, 500)
