@@ -255,7 +255,7 @@ POST $[[SETUP_INDEX_PREFIX]]model-provider$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYP
   "name" : "Moonshot",
   "api_key" : "",
   "api_type" : "openai",
-  "base_url" : "https://api.moonshot.cn",
+  "base_url" : "https://api.moonshot.cn/v1",
   "icon" : "font_Moonshot",
   "models" : [
     {"name": "kimi-k2.6", "type":"language", "support_reasoning":true},
