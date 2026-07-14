@@ -20,6 +20,7 @@ type Plugin struct {
 
 func init() {
 	pipeline.RegisterProcessorPlugin(ConnectorName, New)
+	core.RegisterConnectionTester(ConnectorName, &connectionTester{})
 }
 
 // New creates a new instance of the Milvus connector plugin.

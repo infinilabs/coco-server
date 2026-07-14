@@ -17,6 +17,7 @@ type Plugin struct {
 
 func init() {
 	pipeline.RegisterProcessorPlugin(ConnectorName, New)
+	core.RegisterConnectionTester(ConnectorName, &connectionTester{})
 }
 
 func New(c *config.Config) (pipeline.Processor, error) {

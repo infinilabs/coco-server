@@ -20,10 +20,17 @@ const Icon = ({ className, src, style, server, ...rest }) => {
       />
     );
   }
-  let formatSrc = src
+
+  let formatSrc = src;
   if (!src.startsWith('http')) {
-    formatSrc = normalizeUrl(`${getProxyEndpoint() || server}/${src}`)
+    if (src.startsWith('/')) {
+      formatSrc = src;
+    } else {
+      const base = getProxyEndpoint() || server || window.location.origin;
+      formatSrc = normalizeUrl(`${base}/${src}`);
+    }
   }
+
   return (
     <Image
       src={formatSrc}

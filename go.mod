@@ -9,9 +9,7 @@ require (
 	code.gitea.io/sdk/gitea v0.22.0
 	github.com/EdlinOrg/prominentcolor v1.0.0
 	github.com/PuerkitoBio/goquery v1.11.0
-	github.com/WqyJh/go-openai-realtime v0.6.1
 	github.com/andygrunwald/go-jira v1.16.0
-	github.com/buger/jsonparser v1.1.2
 	github.com/chromedp/cdproto v0.0.0-20241003230502-a4a8f7c660df
 	github.com/chromedp/chromedp v0.11.0
 	github.com/cihub/seelog v0.0.0-00010101000000-000000000000
@@ -85,6 +83,7 @@ require (
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/bits-and-blooms/bitset v1.12.0 // indirect
 	github.com/bkaradzic/go-lz4 v1.0.0 // indirect
+	github.com/buger/jsonparser v1.1.2 // indirect
 	github.com/caddyserver/certmagic v0.25.3 // indirect
 	github.com/caddyserver/zerossl v0.1.5 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
@@ -95,7 +94,6 @@ require (
 	github.com/cockroachdb/errors v1.9.1 // indirect
 	github.com/cockroachdb/logtags v0.0.0-20211118104740-dabe8e521a4f // indirect
 	github.com/cockroachdb/redact v1.1.3 // indirect
-	github.com/coder/websocket v1.8.12 // indirect
 	github.com/davidmz/go-pageant v1.0.2 // indirect
 	github.com/dgraph-io/badger/v4 v4.7.0 // indirect
 	github.com/dgraph-io/ristretto v0.2.0 // indirect

@@ -58,6 +58,9 @@ func (h APIHandler) Profile(w http.ResponseWriter, r *http.Request, ps httproute
 	profile.Email = user.Email
 	profile.ID = user.ID
 	profile.Name = user.Name
+	if reqUser.UserAssignedPermission == nil || reqUser.UserAssignedPermission.NeedRefresh() {
+		reqUser.UserAssignedPermission = security.GetUserPermissions(reqUser)
+	}
 	profile.Permissions = reqUser.GetPermissionKeys()
 
 	h.WriteJSON(w, profile, 200)

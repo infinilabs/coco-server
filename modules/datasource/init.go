@@ -51,6 +51,9 @@ func init() {
 		api.Feature(core.FeatureRemoveSensitiveField),
 		api.Label(core.SensitiveFields, secretKeys))
 
+	//test connection with provided config
+	api.HandleUIMethod(api.POST, "/datasource/_test_connection", handler.testConnection, api.RequirePermission(createPermission))
+
 	//shortcut to indexing docs into this datasource
 	api.HandleUIMethod(api.POST, "/datasource/:id/_doc", handler.createDocInDatasource, api.RequirePermission(createPermission))
 	api.HandleUIMethod(api.POST, "/datasource/:id/_doc/:doc_id", handler.createDocInDatasourceWithID, api.RequirePermission(createPermission))

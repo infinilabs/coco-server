@@ -58,6 +58,8 @@ const common: App.I18n.Schema['translation']['common'] = {
   search: '搜索',
   switch: '切换',
   testConnection: '测试连接',
+  testConnectionFailed: '连接失败',
+  testConnectionSuccess: '连接成功',
   tip: '提示',
   trigger: '触发',
   tryAgain: '刷新重试',

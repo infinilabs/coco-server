@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 // @ts-expect-error
 import { MultiFilePathInput } from '@/components/datasource/type/file_paths';
 
+import TestConnectionButton from '../modules/TestConnectionButton';
 import { createExtensionValidator } from './validators';
 
 const createEndpointValidator = (t: (key: string, defaultVal: string) => string) => async (_: any, value: string) => {
@@ -48,7 +49,7 @@ const createPathValidator = (t: (key: string, defaultVal: string) => string) => 
 };
 
 // eslint-disable-next-line react/display-name,react-refresh/only-export-components
-export default () => {
+export default ({ form }: { readonly form?: any }) => {
   const { t } = useTranslation();
   const endpointValidator = createEndpointValidator(t);
   const pathValidator = createPathValidator(t);
@@ -119,6 +120,15 @@ export default () => {
           style={{ width: 500 }}
         />
       </Form.Item>
+      {form && (
+        <Form.Item colon={false} label=' '>
+          <TestConnectionButton
+            configFields={[['config', 'endpoint'], ['config', 'share'], ['config', 'username']]}
+            connectorId="network_drive"
+            form={form}
+          />
+        </Form.Item>
+      )}
       <Form.Item
         label={t('page.datasource.network_drive.labels.folder_paths', 'Folder Paths')}
         name={['config', 'paths']}

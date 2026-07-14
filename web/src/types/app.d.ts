@@ -336,6 +336,8 @@ declare namespace App {
           search: string;
           switch: string;
           testConnection: string;
+          testConnectionFailed: string;
+          testConnectionSuccess: string;
           tip: string;
           trigger: string;
           tryAgain: string;
