@@ -26,6 +26,10 @@ export const Preview = memo(props => {
 
   const htmlContent = useMemo(() => {
     if (!params.id || !widgetType) return ''
+    // Prefer the stable alias URL when the (tenant, alias) pair is set
+    const widgetUrl = params.tenant && params.alias
+      ? `${server}/integration/${params.tenant}:${params.alias}/widget`
+      : `${server}/integration/${params.id}/widget`;
     return `
       <!DOCTYPE html>
       <html>
@@ -44,13 +48,13 @@ export const Preview = memo(props => {
       <body>
         <div id="${widgetType}" style="margin: ${mode === 'page' ? '0' : '10px'} 0; outline: none; ${widgetType === 'fullscreen' ? 'height: 100%;' : ''}"></div>
         <script type="module" >
-            import { ${widgetType} } from "${normalizeUrl(`${server}/integration/${params.id}/widget`)}";
+            import { ${widgetType} } from "${normalizeUrl(widgetUrl)}";
             ${widgetType}({container: "#${widgetType}", enableQueryParams: false });
         </script>
       </body>
       </html>
     `
-  }, [params.id, widgetType, mode, server]);
+  }, [params.id, params.tenant, params.alias, widgetType, mode, server]);
 
   return (
     <>

@@ -12,6 +12,18 @@ type Integration struct {
 	Hotkey  string      `json:"hotkey,omitempty" elastic_mapping:"hotkey:{type:keyword}"`                       // Hotkey for the integration
 	Name    string      `json:"name" elastic_mapping:"name:{type:keyword,copy_to:combined_fulltext,fields:{text: {type: text}, pinyin: {type: text, analyzer: pinyin_analyzer}}}"`
 
+	// Optional, user-defined stable identifier for public embed URLs, e.g.
+	// tenant "infinilabs" + alias "coco-website-searchbox" makes the widget
+	// reachable at /integration/infinilabs:coco-website-searchbox/widget, so
+	// embed codes survive ID changes. The (tenant, alias) pair must be unique
+	// across all integrations, and neither part may contain ":" (the separator
+	// in the public URL). This is unrelated to managed-mode tenancy stored in
+	// _system.tenant_id.
+	// No omitempty: updates are ES partial docs, so an omitted empty string
+	// would leave a previously stored alias untouched instead of clearing it.
+	Tenant string `json:"tenant" elastic_mapping:"tenant:{type:keyword}"`
+	Alias  string `json:"alias" elastic_mapping:"alias:{type:keyword}"`
+
 	EnabledModule ModuleConfig `json:"enabled_module,omitempty" elastic_mapping:"enabled_module:{type:object}"` // Enabled module configuration
 
 	// Optional: specify a dedicated assistant ID for DeepThink mode.

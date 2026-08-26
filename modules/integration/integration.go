@@ -5,13 +5,16 @@
 package integration
 
 import (
+	"fmt"
+	"net/http"
+	"regexp"
+	"sync"
+
 	"infini.sh/coco/core"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/elastic"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
-	"net/http"
-	"sync"
 )
 
 func (h *APIHandler) create(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -23,6 +26,11 @@ func (h *APIHandler) create(w http.ResponseWriter, req *http.Request, ps httprou
 	err := h.DecodeJSON(req, obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	err = validateAlias(obj.Tenant, obj.Alias, "")
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	err = orm.Create(ctx, obj)
@@ -67,6 +75,14 @@ func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprou
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+	_, tenantInDelta := delta["tenant"]
+	_, aliasInDelta := delta["alias"]
+	if tenantInDelta || aliasInDelta {
+		if err := validateAliasDelta(req, id, delta); err != nil {
+			h.WriteError(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 	}
 	ctx.Set(orm.SharingEnabled, true)
 	ctx.Set(orm.SharingResourceType, "integration")
@@ -198,4 +214,69 @@ func stringArrayToMap(arr []string) map[string]struct{} {
 		ret[v] = struct{}{}
 	}
 	return ret
+}
+
+// aliasSegmentPattern constrains each part of the (tenant, alias) pair so both
+// can be safely embedded in the public URL path segment "tenant:alias"; ":"
+// itself is excluded so the separator cannot be ambiguous.
+var aliasSegmentPattern = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]*$`)
+
+// Helper function to validate the (tenant, alias) pair of an integration:
+// format-check both parts, require them to be set or cleared together, and
+// reject a pair that is already used by another integration. excludeID is
+// skipped so re-saving a document does not trip the check on its own alias.
+func validateAlias(tenant, alias, excludeID string) error {
+	if tenant == "" && alias == "" {
+		return nil
+	}
+	if tenant == "" || alias == "" {
+		return fmt.Errorf("tenant and alias must be set together")
+	}
+	if !aliasSegmentPattern.MatchString(tenant) {
+		return fmt.Errorf("invalid tenant [%s]: must start with a letter or digit, and only contain letters, digits, dot, underscore or hyphen", tenant)
+	}
+	if !aliasSegmentPattern.MatchString(alias) {
+		return fmt.Errorf("invalid alias [%s]: must start with a letter or digit, and only contain letters, digits, dot, underscore or hyphen", alias)
+	}
+	integrations := []core.Integration{}
+	err, _ := orm.SearchWithJSONMapper(&integrations, &orm.Query{
+		Size:  10,
+		Conds: orm.And(orm.Eq("tenant", tenant), orm.Eq("alias", alias)),
+	})
+	if err != nil {
+		return err
+	}
+	for _, item := range integrations {
+		if item.ID != excludeID {
+			return fmt.Errorf("alias [%s:%s] is already taken", tenant, alias)
+		}
+	}
+	return nil
+}
+
+// Helper function to validate the effective (tenant, alias) pair of a partial
+// update: merges the delta over the stored document first, because the request
+// body may carry only one of the two fields.
+func validateAliasDelta(req *http.Request, id string, delta util.MapStr) error {
+	obj := core.Integration{}
+	obj.ID = id
+	ctx := orm.NewContextWithParent(req.Context())
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "integration")
+	ctx.DirectReadAccess()
+	exists, err := orm.GetV2(ctx, &obj)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return fmt.Errorf("integration [%s] not found", id)
+	}
+	tenant, alias := obj.Tenant, obj.Alias
+	if v, ok := delta["tenant"].(string); ok {
+		tenant = v
+	}
+	if v, ok := delta["alias"].(string); ok {
+		alias = v
+	}
+	return validateAlias(tenant, alias, id)
 }

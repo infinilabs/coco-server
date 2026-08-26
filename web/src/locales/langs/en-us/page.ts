@@ -647,6 +647,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       title: 'Add the widget to your website'
     },
     columns: {
+      alias: 'Alias',
       datasource: 'Data Source',
       description: 'Description',
       enabled: 'Enabled',
@@ -713,6 +714,9 @@ const page: App.I18n.Schema['translation']['page'] = {
         module_search_placeholder: 'Search box placeholder text',
         module_search_welcome: 'Greeting message',
         name: 'Name',
+        alias: 'Alias',
+        tenant_placeholder: 'Tenant',
+        alias_placeholder: 'Alias',
         theme: 'Theme',
         theme_auto: 'Auto',
         theme_dark: 'Dark',
@@ -727,7 +731,9 @@ const page: App.I18n.Schema['translation']['page'] = {
         new: 'New Integration'
       },
       hints: {
-        tourist_mode: 'Unlogged users will access as this user'
+        tourist_mode: 'Unlogged users will access as this user',
+        alias_pair: 'Tenant and alias must be set or cleared together',
+        alias_format: 'Only letters, digits, dot, underscore and hyphen are allowed, and it must start with a letter or digit'
       }
     },
     topics: {

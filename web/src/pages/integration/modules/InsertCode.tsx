@@ -8,9 +8,16 @@ import { getServer } from '@/store/slice/server';
 import normalizeUrl from 'normalize-url';
 
 export const InsertCode = memo(props => {
-  const { id, type, enabled } = props;
-    
+  const { id, tenant, alias, type, enabled } = props;
+
   const server = useAppSelector(getServer);
+
+  // Prefer the stable alias URL when the (tenant, alias) pair is set, so the
+  // embed code keeps working even if the widget's ID changes.
+  const widgetUrl = useMemo(() => {
+    if (tenant && alias) return `${server}/integration/${tenant}:${alias}/widget`;
+    return `${server}/integration/${id}/widget`;
+  }, [server, id, tenant, alias]);
 
   const widgetType = useMemo(() => {
     return isFullscreen(type) ? 'fullscreen': 'searchbox'
@@ -42,10 +49,10 @@ export const InsertCode = memo(props => {
     if (!id || !widgetType) return undefined
     return `<div id="${widgetType}" style="margin: ${mode === 'page' ? '0' : '10px'} 0; outline: none; ${widgetType === 'fullscreen' ? 'height: 100%;' : ''}"></div>
 <script type="module" >
-    import { ${widgetType} } from "${normalizeUrl(`${server}/integration/${id}/widget`)}";
+    import { ${widgetType} } from "${normalizeUrl(widgetUrl)}";
     ${widgetType}({container: "#${widgetType}"});
 </script>`;
-  }, [id, widgetType, mode, server]);
+  }, [id, widgetType, mode, widgetUrl]);
 
   useEffect(() => {
     if (copyRef.current) {

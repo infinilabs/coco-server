@@ -797,6 +797,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       title: '添加组件到你的网站'
     },
     columns: {
+      alias: '别名',
       datasource: '数据源',
       description: '描述',
       enabled: '启用状态',
@@ -863,6 +864,9 @@ const page: App.I18n.Schema['translation']['page'] = {
         module_search_placeholder: '搜索输入框提示文本',
         module_search_welcome: '欢迎语',
         name: '名称',
+        alias: '别名',
+        tenant_placeholder: '租户',
+        alias_placeholder: '别名',
         theme: '主题',
         theme_auto: '自动',
         theme_dark: '深色',
@@ -877,7 +881,9 @@ const page: App.I18n.Schema['translation']['page'] = {
         new: '新增嵌入组件'
       },
       hints: {
-        tourist_mode: '未登录用户将以该用户的身份进行访问'
+        tourist_mode: '未登录用户将以该用户的身份进行访问',
+        alias_pair: '租户名和别名必须同时填写或同时留空',
+        alias_format: '仅支持字母、数字、点、下划线和中划线，且以字母或数字开头'
       }
     },
     topics: {

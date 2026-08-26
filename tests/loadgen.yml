@@ -114,3 +114,9 @@ env:
   WIDGET_B_ID: 'd4cnk8a8sig62phqkaf0'
   WIDGET_C_ID: 'd4cnkbi8sig62phqkag0'
   WIDGET_D_ID: 'd4cnkf28sig62phqkahg'
+
+  # Built-in fullscreen widget (seeded), used by scenario4 to exercise the
+  # by-ID and by-alias public wrapper APIs
+  WIDGET_FS_ID: 'full-screen-widget-default'
+  WIDGET_FS_TENANT: 'infinilabs'
+  WIDGET_FS_ALIAS: 'coco-website-searchbox'
