@@ -5,9 +5,7 @@
 package security
 
 import (
-	"fmt"
 	"net/http"
-	"strings"
 
 	log "github.com/cihub/seelog"
 	"infini.sh/framework/core/global"
@@ -17,7 +15,6 @@ import (
 	"infini.sh/coco/core"
 	"infini.sh/framework/core/api"
 	httprouter "infini.sh/framework/core/api/router"
-	"infini.sh/framework/core/kv"
 	"infini.sh/framework/core/security"
 )
 
@@ -105,114 +102,6 @@ func (h APIHandler) UpdatePassword(w http.ResponseWriter, r *http.Request, ps ht
 	return
 }
 
-func (h APIHandler) Login(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-
-	if global.Env().SystemConfig.WebAppConfig.Security.Managed {
-		panic("should not be invoked as in managed mode")
-	}
-
-	var req struct {
-		Email    string `json:"email,omitempty"`
-		Password string `json:"password"`
-	}
-
-	var fromForm = false
-	var requestID = h.GetParameter(r, "request_id")
-
-	// Check content type and parse accordingly
-	contentType := r.Header.Get("Content-Type")
-	switch {
-	case strings.HasPrefix(contentType, "application/json"):
-		// Handle JSON input
-		err := h.DecodeJSON(r, &req)
-		if err != nil {
-			h.ErrorInternalServer(w, "invalid JSON format")
-			return
-		}
-
-	case strings.HasPrefix(contentType, "application/x-www-form-urlencoded"),
-		strings.HasPrefix(contentType, "multipart/form-data"):
-		// Handle form input
-		if err := r.ParseForm(); err != nil {
-			h.ErrorInternalServer(w, "failed to parse form data")
-			return
-		}
-		fromForm = true
-		req.Password = r.PostFormValue("password")
-
-	default:
-		h.WriteError(w, "unsupported content type", http.StatusUnsupportedMediaType)
-		return
-	}
-
-	// Validate password exists
-	if req.Password == "" {
-		h.WriteError(w, "password is required", http.StatusBadRequest)
-		return
-	}
-
-	sessionInfo := security.UserSessionInfo{}
-
-	if req.Email == "" {
-		err, success := h.checkPassword(req.Password)
-		if err != nil {
-			panic(err)
-		}
-		if !success {
-			h.WriteError(w, "failed to login", http.StatusForbidden)
-			return
-		}
-
-		sessionInfo.Provider = core.DefaultSimpleAuthBackend
-		sessionInfo.Login = core.DefaultSimpleAuthUserLogin
-		sessionInfo.Roles = []string{security.RoleAdmin}
-		sessionInfo.SetUserID(core.DefaultSimpleAuthUserLogin)
-	} else {
-		err, account, success := h.checkPasswordForEmail(req.Email, req.Password)
-		if err != nil {
-			panic(err)
-		}
-		if !success {
-			h.WriteError(w, "failed to login", http.StatusForbidden)
-			return
-		}
-
-		sessionInfo.Provider = security.DefaultNativeAuthBackend
-		sessionInfo.Login = account.Email
-		sessionInfo.Roles = account.Roles
-		sessionInfo.SetUserID(account.ID)
-	}
-
-	err, token := security.AddUserToSession(w, r, &sessionInfo)
-	if err != nil {
-		h.ErrorInternalServer(w, "failed to authorize user")
-		return
-	}
-
-	if fromForm {
-		h.Redirect(w, r, fmt.Sprintf("/login/success?request_id=%v&code=%v", requestID, token["access_token"]))
-	} else {
-		h.WriteOKJSON(w, token)
-	}
-}
-
-func (h APIHandler) checkPasswordForEmail(email, password string) (error, *security.UserAccount, bool) {
-
-	exists, account, err := security.MustGetAuthenticationProvider(security.DefaultNativeAuthBackend).GetUserByLogin(email)
-	if err != nil {
-		return err, nil, false
-	}
-	if !exists || account == nil || account.Password == "" {
-		//user not exists
-		return nil, nil, false
-	}
-	err = bcrypt.CompareHashAndPassword([]byte(account.Password), []byte(password))
-	if err == nil {
-		return nil, account, true
-	}
-	return nil, nil, false
-}
-
 func (h APIHandler) checkPasswordForUserID(id, password string) (error, *security.UserAccount, bool) {
 
 	_, account, err := security.GetUserByID(id)
@@ -228,21 +117,4 @@ func (h APIHandler) checkPasswordForUserID(id, password string) (error, *securit
 		return nil, account, true
 	}
 	return nil, nil, false
-}
-
-func (h APIHandler) checkPassword(password string) (error, bool) {
-	savedPassword, err := kv.GetValue(core.DefaultSettingBucketKey, []byte(core.DefaultUserPasswordKey))
-	if err != nil {
-		return err, false
-	}
-
-	if savedPassword == nil || len(savedPassword) == 0 {
-		panic("previous password was not set")
-	}
-
-	err = bcrypt.CompareHashAndPassword([]byte(savedPassword), []byte(password))
-	if err != nil {
-		return err, false
-	}
-	return nil, true
 }
