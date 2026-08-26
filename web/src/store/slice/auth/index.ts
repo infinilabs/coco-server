@@ -20,7 +20,7 @@ export const authSlice = createAppSlice({
   name: "auth",
   reducers: (create) => ({
     login: create.asyncThunk(
-      async (params: { password: string; email: string }) => {
+      async (params: { password: string; login: string }) => {
         const { data, error } = await fetchLogin(params);
         // 1. stored in the localStorage, the later requests need it in headers
         if (!error) {

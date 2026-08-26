@@ -12,6 +12,40 @@ export function isFullscreen(type) {
   return ['page', 'modal', 'fullscreen'].includes(type);
 }
 
+const aliasPattern = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/;
+
+// Helper function to build format rules for one alias input: value is
+// optional but, when set, must be safe to embed in the public URL path
+// segment "tenant:alias".
+const aliasFormatRules = t => [
+  {
+    validator(_, value) {
+      if (value && !aliasPattern.test(value)) {
+        return Promise.reject(new Error(t('page.integration.form.hints.alias_format')));
+      }
+      return Promise.resolve();
+    }
+  }
+];
+
+// Helper function to build pair rules for the tenant input: tenant and
+// alias must be set or cleared together. Only this input carries the pair
+// check so the message renders once under the row instead of under both
+// inputs.
+const aliasFieldRules = (t, otherField) => [
+  ({ getFieldValue }) => ({
+    validator(_, value) {
+      if (!value && getFieldValue(otherField)) {
+        return Promise.reject(new Error(t('page.integration.form.hints.alias_pair')));
+      }
+      if (value && !aliasPattern.test(value)) {
+        return Promise.reject(new Error(t('page.integration.form.hints.alias_format')));
+      }
+      return Promise.resolve();
+    }
+  })
+];
+
 export const EditForm = memo(props => {
   const { defaultType, actionText, record, onSubmit } = props;
   const [type, setType] = useState();
@@ -416,6 +450,26 @@ export const EditForm = memo(props => {
           rules={[defaultRequiredRule]}
         >
           <Input className={itemClassNames} />
+        </Form.Item>
+        <Form.Item label={t('page.integration.form.labels.alias')}>
+          <div className='flex w-496px items-start gap-8px'>
+            <Form.Item
+              className='mb-0px flex-1'
+              dependencies={['alias']}
+              name='tenant'
+              rules={aliasFieldRules(t, 'alias')}
+            >
+              <Input placeholder={t('page.integration.form.labels.tenant_placeholder')} />
+            </Form.Item>
+            <span className='text-16px leading-32px'>:</span>
+            <Form.Item
+              className='mb-0px flex-1'
+              name='alias'
+              rules={aliasFormatRules(t)}
+            >
+              <Input placeholder={t('page.integration.form.labels.alias_placeholder')} />
+            </Form.Item>
+          </div>
         </Form.Item>
         <Form.Item
           label={t('page.integration.form.labels.enabled')}

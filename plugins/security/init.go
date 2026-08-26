@@ -23,7 +23,6 @@ func init() {
 		if !global.Env().SystemConfig.WebAppConfig.Security.Managed {
 			api.HandleUIMethod(api.GET, "/account/profile", apiHandler.Profile, api.RequireLogin(), api.Feature(core.FeatureCORS))
 			api.HandleUIMethod(api.OPTIONS, "/account/profile", apiHandler.Profile, api.RequireLogin(), api.Feature(core.FeatureCORS))
-			api.HandleUIMethod(api.POST, "/account/login", apiHandler.Login)
 			api.HandleUIMethod(api.PUT, "/account/password", apiHandler.UpdatePassword, api.RequireLogin())
 		}
 	})

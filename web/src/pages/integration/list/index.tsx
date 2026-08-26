@@ -154,6 +154,15 @@ export function Component() {
       title: t('page.integration.columns.name')
     },
     {
+      dataIndex: 'alias',
+      ellipsis: true,
+      render: (_, record) => {
+        if (!record.tenant || !record.alias) return '-';
+        return `${record.tenant}:${record.alias}`;
+      },
+      title: t('page.integration.columns.alias')
+    },
+    {
       dataIndex: 'owner',
       title: t('page.datasource.labels.owner'),
       render: (value, record) => {

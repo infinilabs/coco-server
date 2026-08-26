@@ -6,7 +6,7 @@ import normalizeUrl from 'normalize-url';
 import { getApplicationSetting } from '@/store/slice/server';
 
 interface LoginParams {
-  email: string;
+  login: string;
   password: string;
 }
 
@@ -96,7 +96,7 @@ const LoginForm = memo(({ onProvider }: { onProvider?: () => void }) => {
           <Form.Item
             className='m-b-32px'
             label={t('page.login.email')}
-            name='email'
+            name='login'
             rules={[defaultRequiredRule]}
           >
             <Input className='h-40px' />
