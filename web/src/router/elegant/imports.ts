@@ -55,4 +55,7 @@ export const pages: Record<LastLevelRouteKey, LazyRouteFunction<CustomRouteObjec
   user_new: () => import("@/pages/user/new/index.tsx"),
   webhook_edit: () => import("@/pages/webhook/edit/[id].tsx"),
   webhook_new: () => import("@/pages/webhook/new/index.tsx"),
+  wiki_article: () => import("@/pages/wiki/article/[id].tsx"),
+  wiki_kb: () => import("@/pages/wiki/kb/[id].tsx"),
+  wiki_list: () => import("@/pages/wiki/list/index.tsx"),
 };

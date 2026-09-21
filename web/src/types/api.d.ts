@@ -352,6 +352,104 @@ declare namespace Api {
       description: string;
     }
   }
+
+  namespace Wiki {
+    type Visibility = 'public' | 'private' | 'team';
+    type SyncStrategy = 'realtime' | 'scheduled' | 'manual';
+    type AiStatus = 'ready' | 'processing' | 'queued' | 'updating';
+    type PageType = 'entity' | 'concept' | 'source';
+    type ArticleStatus = 'draft' | 'reviewed' | 'published' | 'archived';
+    type Confidence = 'high' | 'medium' | 'low';
+    type MemberRole = 'owner' | 'editor' | 'viewer' | 'agent';
+    type ChangeType = 'ai-generated' | 'human-edited' | 'auto-updated';
+
+    interface Member {
+      id: string;
+      name: string;
+      avatar: string;
+      role: MemberRole;
+      email?: string;
+    }
+
+    interface DatasourceInfo {
+      id: string;
+      type: string;
+      name: string;
+      status: 'connected' | 'syncing' | 'error' | 'disconnected';
+      last_synced: string;
+      document_count: number;
+    }
+
+    interface Kb {
+      id: string;
+      name: string;
+      description: string;
+      icon: string;
+      visibility: Visibility;
+      workspace_id: string;
+      datasource_ids: string[];
+      assistant_id?: string;
+      sync_strategy?: SyncStrategy;
+      article_count: number;
+      last_updated: string;
+      members: Member[];
+      datasources: DatasourceInfo[];
+      ai_status?: AiStatus;
+    }
+
+    interface SourceRef {
+      doc_id: string;
+      source_type: string;
+      source_name: string;
+      title: string;
+      url?: string;
+      excerpt: string;
+      locator?: string;
+    }
+
+    interface Article {
+      id: string;
+      kb_id: string;
+      toc_node_id?: string;
+      title: string;
+      summary: string;
+      /** structured markdown (Obsidian wiki format), see pages/wiki/shared/content.ts */
+      content: string;
+      page_type?: PageType;
+      subtype?: string;
+      aliases?: string[];
+      tags: string[];
+      status: ArticleStatus;
+      ai_generated: boolean;
+      confidence?: Confidence;
+      sources: SourceRef[];
+      entity_id?: string;
+      created_by: Member;
+      contributors: Member[];
+      created_at: string;
+      updated_at: string;
+    }
+
+    interface Version {
+      id: string;
+      article_id: string;
+      version: number;
+      change_type: ChangeType;
+      change_summary?: string;
+      content: string;
+      created_by: string;
+      created_at: string;
+    }
+
+    interface TocNode {
+      id: string;
+      title: string;
+      type: 'folder' | 'article';
+      article_id?: string;
+      icon?: string;
+      children?: TocNode[];
+    }
+  }
 }
 
 declare module 'ui-search/source' {

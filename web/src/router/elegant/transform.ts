@@ -262,7 +262,11 @@ const routeMap: RouteMap = {
   "user_new": "new",
   "webhook": "/webhook",
   "webhook_edit": "edit/:id",
-  "webhook_new": "new"
+  "webhook_new": "new",
+  "wiki": "/wiki",
+  "wiki_article": "article/:id",
+  "wiki_kb": "kb/:id",
+  "wiki_list": "list"
 };
 
 /**

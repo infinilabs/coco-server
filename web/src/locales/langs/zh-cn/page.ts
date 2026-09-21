@@ -1,4 +1,85 @@
 const page: App.I18n.Schema['translation']['page'] = {
+  wiki: {
+    hub: {
+      title: '知识中心',
+      subtitle: '由 KM Agent 生成并维护、带引用溯源的知识库',
+      newKb: '新建知识库',
+      search: '搜索文章与知识库',
+      empty: '还没有知识库',
+      articlesUnit: '篇文章',
+      membersUnit: '位成员',
+      lastUpdated: '更新于',
+      deleteKbConfirm: '确定删除知识库「{{name}}」？其下文章将一并移除。'
+    },
+    createKb: {
+      title: '新建知识库',
+      name: '名称',
+      description: '描述',
+      icon: '图标',
+      visibility: '可见性',
+      assistant: 'KM Agent',
+      datasources: '数据源',
+      datasourcesPlaceholder: '选择要绑定的已同步数据源'
+    },
+    createArticle: {
+      title: '标题',
+      pageType: '页面类型',
+      summary: '摘要'
+    },
+    visibility: { public: '公开', private: '私有', team: '团队' },
+    aiStatus: { ready: 'AI 就绪', processing: 'AI 处理中', queued: 'AI 排队中', updating: 'AI 更新中' },
+    pageType: { concept: '概念', entity: '实体', source: '来源' },
+    status: { draft: '草稿', reviewed: '已审核', published: '已发布', archived: '已归档' },
+    confidence: { high: '高', medium: '中', low: '低' },
+    role: { owner: '所有者', editor: '编辑者', viewer: '查看者', agent: '智能体' },
+    changeType: { 'ai-generated': 'AI 生成', 'human-edited': '人工编辑', 'auto-updated': '自动更新' },
+    kb: {
+      newArticle: '新建文章',
+      toc: '目录',
+      notFound: '知识库不存在',
+      docsUnit: '篇文档',
+      lastSynced: '同步于',
+      human: '人工',
+      tabs: { articles: '文章', datasources: '数据源', members: '成员' },
+      columns: {
+        title: '标题',
+        status: '状态',
+        pageType: '页面类型',
+        tags: '标签',
+        ai: '来源',
+        updatedAt: '更新时间'
+      }
+    },
+    article: {
+      notFound: '文章不存在',
+      edit: '编辑',
+      versions: '版本历史',
+      versionView: '查看',
+      submitReview: '提交审核',
+      publish: '发布',
+      archive: '归档',
+      statusFlowHint: '状态流转（草稿 → 已审核 → 已发布）',
+      contentEditor: '正文（结构化 Markdown）',
+      preview: '预览',
+      openSource: '打开来源',
+      sections: {
+        definition: '定义',
+        characteristics: '关键特征',
+        applications: '应用场景',
+        relatedConcepts: '关联概念',
+        relatedEntities: '关联实体',
+        mentions: '来源引用',
+        sources: '来源文献'
+      }
+    },
+    search: {
+      title: '知识搜索',
+      placeholder: '搜索文章与知识库…',
+      empty: '没有匹配结果',
+      articles: '文章',
+      kbs: '知识库'
+    }
+  },
   apitoken: {
     columns: {
       expire_in: '过期时间',

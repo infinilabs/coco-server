@@ -631,5 +631,52 @@ export const generatedRoutes: GeneratedRoute[] = [
         }
       }
     ]
+  },
+  {
+    name: 'wiki',
+    path: '/wiki',
+    component: 'layout.base',
+    redirect: 'list',
+    meta: {
+      i18nKey: 'route.wiki',
+      title: 'wiki',
+      order: 12,
+      localIcon: 'wiki'
+    },
+    children: [
+      {
+        name: 'wiki_article',
+        path: 'article/:id',
+        component: 'view.wiki_article',
+        meta: {
+          i18nKey: 'route.wiki_article',
+          title: 'wiki_article',
+          hideInMenu: true,
+          activeMenu: 'wiki'
+        }
+      },
+      {
+        name: 'wiki_kb',
+        path: 'kb/:id',
+        component: 'view.wiki_kb',
+        meta: {
+          i18nKey: 'route.wiki_kb',
+          title: 'wiki_kb',
+          hideInMenu: true,
+          activeMenu: 'wiki'
+        }
+      },
+      {
+        name: 'wiki_list',
+        path: 'list',
+        component: 'view.wiki_list',
+        meta: {
+          i18nKey: 'route.wiki_list',
+          title: 'wiki_list',
+          hideInMenu: true,
+          activeMenu: 'wiki'
+        }
+      }
+    ]
   }
 ];

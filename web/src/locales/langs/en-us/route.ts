@@ -86,7 +86,11 @@ const route: App.I18n.Schema['translation']['route'] = {
   user_edit: 'Edit User',
   connector_new: 'New Connector',
   connector_edit: 'Edit Connector',
-  preview_document: 'Document Preview'
+  preview_document: 'Document Preview',
+  wiki: 'Wiki',
+  wiki_list: 'Knowledge Hub',
+  wiki_kb: 'Knowledge Base',
+  wiki_article: 'Wiki Article'
 };
 
 export default route;

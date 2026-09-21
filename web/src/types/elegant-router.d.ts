@@ -82,6 +82,10 @@ declare module "@elegant-router/types" {
     "webhook": "/webhook";
     "webhook_edit": "edit/:id";
     "webhook_new": "new";
+    "wiki": "/wiki";
+    "wiki_article": "article/:id";
+    "wiki_kb": "kb/:id";
+    "wiki_list": "list";
   };
 
   /**
@@ -147,6 +151,7 @@ declare module "@elegant-router/types" {
     | "settings"
     | "user"
     | "webhook"
+    | "wiki"
   >;
 
   /**
@@ -204,6 +209,9 @@ declare module "@elegant-router/types" {
     | "user_new"
     | "webhook_edit"
     | "webhook_new"
+    | "wiki_article"
+    | "wiki_kb"
+    | "wiki_list"
   >;
 
   /**

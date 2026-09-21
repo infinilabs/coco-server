@@ -1,4 +1,85 @@
 const page: App.I18n.Schema['translation']['page'] = {
+  wiki: {
+    hub: {
+      title: 'Knowledge Hub',
+      subtitle: 'Curated, citation-backed knowledge bases generated and maintained with the KM agent',
+      newKb: 'New Knowledge Base',
+      search: 'Search articles & knowledge bases',
+      empty: 'No knowledge base yet',
+      articlesUnit: 'articles',
+      membersUnit: 'members',
+      lastUpdated: 'Updated',
+      deleteKbConfirm: 'Delete knowledge base "{{name}}"? Its articles will be removed.'
+    },
+    createKb: {
+      title: 'Create Knowledge Base',
+      name: 'Name',
+      description: 'Description',
+      icon: 'Icon',
+      visibility: 'Visibility',
+      assistant: 'KM Agent',
+      datasources: 'Datasources',
+      datasourcesPlaceholder: 'Select synced datasources to bind'
+    },
+    createArticle: {
+      title: 'Title',
+      pageType: 'Page Type',
+      summary: 'Summary'
+    },
+    visibility: { public: 'Public', private: 'Private', team: 'Team' },
+    aiStatus: { ready: 'AI Ready', processing: 'AI Processing', queued: 'AI Queued', updating: 'AI Updating' },
+    pageType: { concept: 'Concept', entity: 'Entity', source: 'Source' },
+    status: { draft: 'Draft', reviewed: 'Reviewed', published: 'Published', archived: 'Archived' },
+    confidence: { high: 'High', medium: 'Medium', low: 'Low' },
+    role: { owner: 'Owner', editor: 'Editor', viewer: 'Viewer', agent: 'Agent' },
+    changeType: { 'ai-generated': 'AI Generated', 'human-edited': 'Human Edited', 'auto-updated': 'Auto Updated' },
+    kb: {
+      newArticle: 'New Article',
+      toc: 'Contents',
+      notFound: 'Knowledge base not found',
+      docsUnit: 'docs',
+      lastSynced: 'Synced',
+      human: 'Human',
+      tabs: { articles: 'Articles', datasources: 'Datasources', members: 'Members' },
+      columns: {
+        title: 'Title',
+        status: 'Status',
+        pageType: 'Page Type',
+        tags: 'Tags',
+        ai: 'Origin',
+        updatedAt: 'Updated At'
+      }
+    },
+    article: {
+      notFound: 'Article not found',
+      edit: 'Edit',
+      versions: 'Versions',
+      versionView: 'View',
+      submitReview: 'Submit Review',
+      publish: 'Publish',
+      archive: 'Archive',
+      statusFlowHint: 'Status transition (draft → reviewed → published)',
+      contentEditor: 'Content (structured markdown)',
+      preview: 'Preview',
+      openSource: 'Open Source',
+      sections: {
+        definition: 'Definition',
+        characteristics: 'Key Characteristics',
+        applications: 'Applications',
+        relatedConcepts: 'Related Concepts',
+        relatedEntities: 'Related Entities',
+        mentions: 'Mentions in Source',
+        sources: 'Source References'
+      }
+    },
+    search: {
+      title: 'Search Knowledge',
+      placeholder: 'Search articles and knowledge bases…',
+      empty: 'No results',
+      articles: 'Articles',
+      kbs: 'Knowledge Bases'
+    }
+  },
   apitoken: {
     columns: {
       expire_in: 'Expire In',
