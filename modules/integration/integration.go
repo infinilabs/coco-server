@@ -128,32 +128,15 @@ func (h *APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprou
 		return
 	}
 
-	bytes := res.Payload.([]byte)
-	searchRes := elastic.SearchResponse{}
-	if bytes != nil {
-		err := util.FromJSONBytes(bytes, &searchRes)
-		if err != nil {
-			panic(err)
-		}
-
-		// NOTICE: i don't think we should modify anything when do search!
-
-		//for _, hit := range searchRes.Hits.Hits {
-		//	if token, ok := hit.Source["token"].(string); ok && token != "" {
-		//		tokenObj, err := security.GetToken(token)
-		//		if tokenObj == nil && err == nil {
-		//			// token is not found in the kv, here we set it as expired
-		//			hit.Source["token_expire_in"] = time.Time{}.Unix()
-		//		}
-		//		if tokenObj != nil {
-		//			hit.Source["token_expire_in"] = tokenObj.ExpireIn
-		//		}
-		//	}
-		//}
-
+	// Typed decode via the framework helper (P1 contract; replaces the
+	// Payload.([]byte) assertion + hand parse).
+	searchRes, err := elastic.DecodeSearchResult(res)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
-	h.WriteJSON(w, searchRes, http.StatusOK)
+	h.WriteJSON(w, *searchRes, http.StatusOK)
 }
 
 func IntegrationAllowOrigin(origin string, req *http.Request) bool {
