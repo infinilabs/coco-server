@@ -45,3 +45,9 @@ docs/.hugo_build.lock
 
 CLAUDE.md
 AGENTS.md
+
+# local build artifacts & tool sessions
+/coco
+/coco.yml.bak*
+/.claw/
+/.licensure.yml.bak*

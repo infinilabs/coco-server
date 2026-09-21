@@ -1,0 +1,121 @@
+change_in_place: true
+
+# Regexes which if matched by a file path will always be excluded from
+# getting a license header
+excludes:
+  - NOTICE
+  - .gitmodules
+  - Makefile
+  - justfile
+  - \.gitignore
+  - .*lock
+  - \.git/.*
+  - \.licensure\.yml
+  - README.*
+  - LICENSE.*
+  - .*\.(nix|toml|yml|md|rst|txt)
+  - config/.*
+  - lib/.*
+  - script/.*
+  - tests/.*
+  - website/.*
+  - data/.*
+  - docs/.*
+  - src/gen/.*
+  - gen/.*
+  - distribution/.*
+  - contrib/.*
+  - bin/.*
+  - benches/.*
+  - assets/.*
+  - /config/.*
+  - \..*/.*
+# Definition of the licenses used on this project and to what files
+# they should apply.
+#
+# No default license configuration is provided. This section must be
+# configured by the user.
+#
+# Make sure to delete the [] below when you add your configs.
+licenses:
+  - files: any
+    ident: AGPL-3.0-or-later
+    authors:
+      - name: INFINI Labs Team
+        email: hello@infini.ltd
+    auto_template: false
+    template: |
+      Coco Server is a truly open-source project, licensed under the [GNU Affero General Public License v3.0](https://opensource.org/licenses/AGPL-3.0).
+
+    unwrap_text: false
+    commenter:
+      type: line
+      comment_char: "//"
+      trailing_lines: 1
+# Define type of comment characters to apply based on file extensions.
+comments:
+  # The extensions (or singular store) field defines which file
+  # extensions to apply the commenter to.
+  - extensions:
+      - js
+      - rs
+      - go
+    # The commenter field defines the kind of commenter to
+    # generate. There are two types of commenters: line and block.
+    #
+    # This demonstrates a line commenter configuration. A line
+    # commenter type will apply the comment_char to the beginning of
+    # each line in the license header. It will then apply a number of
+    # empty newlines to the end of the header equal to trailing_lines.
+    #
+    # If trailing_lines is omitted it is assumed to be 0.
+    commenter:
+      type: line
+      comment_char: "//"
+      trailing_lines: 1
+  - extensions:
+      - css
+      - cpp
+      - c
+    # This demonstrates a block commenter configuration. A block
+    # commenter type will add start_block_char as the first character
+    # in the license header and add end_block_char as the last character
+    # in the license header. If per_line_char is provided each line of
+    # the header between the block start and end characters will be
+    # line commented with the per_line_char
+    #
+    # trailing_lines works the same for both block and line commenter
+    # types
+    commenter:
+      type: block
+      start_block_char: "/*\n"
+      end_block_char: "*/"
+      per_line_char: "*"
+      trailing_lines: 0
+  # In this case store is singular and a single string store is provided.
+  - extension: html
+    commenter:
+      type: block
+      start_block_char: "<!--\n"
+      end_block_char: "-->"
+  - extensions:
+      - el
+      - lisp
+    commenter:
+      type: line
+      comment_char: ";;;"
+      trailing_lines: 0
+  # The store string "any" is special and so will match any file
+  # extensions. Commenter configurations are always checked in the
+  # order they are defined, so if any is used it should be the last
+  # commenter configuration or else it will override all others.
+  #
+  # In this configuration if we can't match the file store we fall
+  # back to the popular '#' line comment used in most scripting
+  # languages.
+  - extension: any
+    commenter:
+      type: line
+      comment_char: '#'
+      trailing_lines: 0
+
