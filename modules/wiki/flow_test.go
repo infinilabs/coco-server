@@ -79,6 +79,7 @@ func setupFlow(t *testing.T) (crud.Handlers, crud.Handlers, APIHandler) {
 			{core.WikiToc{}, "wiki-toc-flow"},
 			{core.WikiVersion{}, "wiki-version-flow"},
 			{core.WikiEntity{}, "wiki-entity-flow"},
+			{core.Document{}, "document-flow"},
 		} {
 			if err := handler.RegisterSchemaWithName(s.model, s.index); err != nil {
 				panic(err)

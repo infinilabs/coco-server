@@ -73,4 +73,15 @@ func init() {
 	api.HandleUIMethod(api.GET, "/wiki/entity/:id/neighbors", handler.entityNeighbors,
 		api.RequireLogin(), api.RequirePermission(readEntityPermission),
 		api.MCPTool("entity_neighbors", "One-hop traversal of an entity's relations; returns edges and the expanded neighbor entities"))
+
+	// KM agent generation, SSE (design doc §5.1, stage C): the event
+	// contract is progress/article/done; output stops at draft — the
+	// review gate stays on PUT /wiki/article/:id/status (D1)
+	api.HandleUIMethod(api.POST, "/wiki/kb/:id/ai/generate", handler.aiGenerate,
+		api.RequireLogin(), api.RequirePermission(updateKbPermission))
+
+	// instruction-based AI edit, SSE (design doc §6.1/C4): rewrites content
+	// and records an ai-generated version, status machine untouched
+	api.HandleUIMethod(api.POST, "/wiki/article/:id/ai/edit", handler.aiEdit,
+		api.RequireLogin(), api.RequirePermission(updateArticlePermission))
 }
