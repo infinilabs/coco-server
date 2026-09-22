@@ -1,12 +1,13 @@
 /* Wiki (knowledge hub) API layer.
  *
- * The backend /wiki/* endpoints come with WS10 (knowledge-hub design doc §4:
- * crud.RegisterCRUD five-piece + custom endpoints). Until they land, every
- * function serves the ported prototype fixtures behind USE_WIKI_MOCK so the
- * migrated UI is demo-able end to end. Flip the flag and delete the fixture
- * import when wiring the real server.
+ * The backend /wiki/* endpoints ship with WS10 (knowledge-hub design doc §4:
+ * crud.RegisterCRUD five-piece + custom endpoints in modules/wiki). While
+ * end-to-end wiring is verified, every function serves the ported prototype
+ * fixtures behind USE_WIKI_MOCK; the real-mode branches already match the
+ * server envelopes, so the switchover is a one-line flag flip.
  */
 import { request } from '../request';
+import { formatESSearchResult } from '../request/es';
 import {
   wikiArticles,
   wikiAssistants,
@@ -24,6 +25,16 @@ const delay = <T>(value: T, ms = 120): Promise<T> =>
     setTimeout(() => resolve(value), ms);
   });
 
+/* server envelopes (framework crud conventions):
+ *   search  -> ES-shaped {hits:{hits:[{_id,_source}],total}} -> formatESSearchResult
+ *   get     -> {found,_id,_source}
+ *   create  -> {_id,result:"created"}   update -> {_id,result:"updated"}
+ *   toc get -> {found,_id,_source:{kb_id,nodes}}
+ *   versions-> {data,total} (already normalized server-side)
+ */
+
+const unwrapSource = <T>(res: any): T | null => res?.data?._source ?? null;
+
 /* ---------------- KBs ---------------- */
 
 export function searchWikiKbs(params?: { query?: string }) {
@@ -34,14 +45,19 @@ export function searchWikiKbs(params?: { query?: string }) {
       : wikiKbs;
     return delay({ data, total: { value: data.length } });
   }
-  return request({ method: 'get', url: '/wiki/kb/_search' });
+  const searchParams = new URLSearchParams();
+  if (params?.query) searchParams.set('query', params.query);
+  const qs = searchParams.toString();
+  return request<{ hits: any }>({ method: 'get', url: `/wiki/kb/_search${qs ? `?${qs}` : ''}` }).then(res =>
+    formatESSearchResult(res?.data)
+  );
 }
 
 export function getWikiKb(id: string) {
   if (USE_WIKI_MOCK) {
     return delay(wikiKbs.find(kb => kb.id === id) ?? null);
   }
-  return request({ method: 'get', url: `/wiki/kb/${id}` });
+  return request({ method: 'get', url: `/wiki/kb/${id}` }).then(res => unwrapSource<Api.Wiki.Kb>(res));
 }
 
 export function createWikiKb(body: Partial<Api.Wiki.Kb>) {
@@ -66,7 +82,7 @@ export function createWikiKb(body: Partial<Api.Wiki.Kb>) {
     wikiTocs[kb.id] = [];
     return delay(kb);
   }
-  return request({ method: 'post', data: body, url: '/wiki/kb/' });
+  return request<{ _id: string }>({ method: 'post', data: body, url: '/wiki/kb/' }).then(res => res?.data);
 }
 
 export function updateWikiKb(id: string, body: Partial<Api.Wiki.Kb>) {
@@ -75,7 +91,7 @@ export function updateWikiKb(id: string, body: Partial<Api.Wiki.Kb>) {
     if (kb) Object.assign(kb, body);
     return delay(kb ?? null);
   }
-  return request({ method: 'put', data: body, url: `/wiki/kb/${id}` });
+  return request({ method: 'put', data: body, url: `/wiki/kb/${id}` }).then(res => res?.data);
 }
 
 export function deleteWikiKb(id: string) {
@@ -101,16 +117,19 @@ export function searchWikiArticles(params: { kbId?: string; query?: string }) {
     return delay({ data, total: { value: data.length } });
   }
   const searchParams = new URLSearchParams();
-  if (params.kbId) searchParams.set('kb_id', params.kbId);
-  if (params.query) searchParams.set('q', params.query);
-  return request({ method: 'get', url: `/wiki/article/_search?${searchParams.toString()}` });
+  if (params.kbId) searchParams.set('filter', `kb_id:${params.kbId}`);
+  if (params.query) searchParams.set('query', params.query);
+  return request<{ hits: any }>({
+    method: 'get',
+    url: `/wiki/article/_search?${searchParams.toString()}`
+  }).then(res => formatESSearchResult(res?.data));
 }
 
 export function getWikiArticle(id: string) {
   if (USE_WIKI_MOCK) {
     return delay(wikiArticles.find(a => a.id === id) ?? null);
   }
-  return request({ method: 'get', url: `/wiki/article/${id}` });
+  return request({ method: 'get', url: `/wiki/article/${id}` }).then(res => unwrapSource<Api.Wiki.Article>(res));
 }
 
 export function createWikiArticle(body: Partial<Api.Wiki.Article>) {
@@ -139,7 +158,7 @@ export function createWikiArticle(body: Partial<Api.Wiki.Article>) {
     if (kb) kb.article_count += 1;
     return delay(article);
   }
-  return request({ method: 'post', data: body, url: '/wiki/article/' });
+  return request<{ _id: string }>({ method: 'post', data: body, url: '/wiki/article/' }).then(res => res?.data);
 }
 
 export function updateWikiArticle(id: string, body: Partial<Api.Wiki.Article>) {
@@ -151,12 +170,15 @@ export function updateWikiArticle(id: string, body: Partial<Api.Wiki.Article>) {
     }
     return delay(article ?? null);
   }
-  return request({ method: 'put', data: body, url: `/wiki/article/${id}` });
+  return request({ method: 'put', data: body, url: `/wiki/article/${id}` }).then(res => res?.data);
 }
 
 /** status machine transition: draft → reviewed → published (→ archived) */
 export function updateWikiArticleStatus(id: string, status: Api.Wiki.ArticleStatus) {
-  return updateWikiArticle(id, { status });
+  if (USE_WIKI_MOCK) {
+    return updateWikiArticle(id, { status });
+  }
+  return request({ method: 'put', data: { status }, url: `/wiki/article/${id}/status` }).then(res => res?.data);
 }
 
 /* ---------------- Versions ---------------- */
@@ -165,7 +187,10 @@ export function getWikiArticleVersions(articleId: string) {
   if (USE_WIKI_MOCK) {
     return delay(wikiVersions.filter(v => v.article_id === articleId));
   }
-  return request({ method: 'get', url: `/wiki/article/${articleId}/versions` });
+  return request<{ data: Api.Wiki.Version[] }>({
+    method: 'get',
+    url: `/wiki/article/${articleId}/versions`
+  }).then(res => res?.data?.data ?? []);
 }
 
 /* ---------------- TOC ---------------- */
@@ -174,7 +199,10 @@ export function getWikiToc(kbId: string) {
   if (USE_WIKI_MOCK) {
     return delay(wikiTocs[kbId] || []);
   }
-  return request({ method: 'get', url: `/wiki/kb/${kbId}/toc` });
+  return request<{ _source?: { nodes?: Api.Wiki.TocNode[] } }>({
+    method: 'get',
+    url: `/wiki/kb/${kbId}/toc`
+  }).then(res => res?.data?._source?.nodes ?? []);
 }
 
 export function updateWikiToc(kbId: string, toc: Api.Wiki.TocNode[]) {
@@ -182,7 +210,7 @@ export function updateWikiToc(kbId: string, toc: Api.Wiki.TocNode[]) {
     wikiTocs[kbId] = toc;
     return delay(toc);
   }
-  return request({ method: 'put', data: toc, url: `/wiki/kb/${kbId}/toc` });
+  return request({ method: 'put', data: toc, url: `/wiki/kb/${kbId}/toc` }).then(() => toc);
 }
 
 /* ---------------- misc ---------------- */
