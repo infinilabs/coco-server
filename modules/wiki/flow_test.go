@@ -257,7 +257,7 @@ func TestWikiFlow_EntityLifecycle(t *testing.T) {
 	kbID, _ := out["_id"].(string)
 
 	content := "## Definition\n\nStore page linking [[campaign:Autumn Promo]] and [[Unknown Concept]]."
-	w, out = call(t, artH.Create, "POST", "/wiki/article/", `{"kb_id":"`+kbID+`","title":"Store 001","page_type":"entity","entity_id":"`+store.ID+`","content":`+ jsonString(content) +`}`)
+	w, out = call(t, artH.Create, "POST", "/wiki/article/", `{"kb_id":"`+kbID+`","title":"Store 001","page_type":"entity","entity_id":"`+store.ID+`","content":`+jsonString(content)+`}`)
 	require.Equal(t, http.StatusOK, w.Code)
 	artID, _ := out["_id"].(string)
 
@@ -312,7 +312,7 @@ func TestWikiFlow_EntityLifecycle(t *testing.T) {
 	require.Equal(t, http.StatusOK, w2.Code)
 	var nb struct {
 		Entity    core.WikiEntity   `json:"entity"`
-		Relations []map[string]any `json:"relations"`
+		Relations []map[string]any  `json:"relations"`
 		Neighbors []core.WikiEntity `json:"neighbors"`
 	}
 	require.NoError(t, json.Unmarshal(w2.Body.Bytes(), &nb))
@@ -328,9 +328,9 @@ func assertEntityLookup(t *testing.T, h APIHandler, name, wantID string) {
 	h.entityLookup(w, req, httprouter.Params{})
 	require.Equal(t, http.StatusOK, w.Code)
 	var out struct {
-		Found  bool             `json:"found"`
-		ID     string           `json:"_id"`
-		Source core.WikiEntity  `json:"_source"`
+		Found  bool            `json:"found"`
+		ID     string          `json:"_id"`
+		Source core.WikiEntity `json:"_source"`
 	}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &out))
 	require.True(t, out.Found)
