@@ -36,7 +36,7 @@ const route: App.I18n.Schema['translation']['route'] = {
   function_tab: '标签页',
   'function_toggle-auth': '切换权限',
   guide: '初始化向导',
-  home: '首页',
+  home: '快速开始',
   'iframe-page': '外链页面',
   integration: '嵌入组件',
   integration_edit: '编辑嵌入组件',

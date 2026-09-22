@@ -47,7 +47,7 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.ai-assistant',
       title: 'ai-assistant',
       localIcon: 'robot',
-      order: 2,
+      order: 3,
       permissions: ['coco#assistant/search']
     },
     children: [
@@ -96,7 +96,7 @@ export const generatedRoutes: GeneratedRoute[] = [
     meta: {
       i18nKey: 'route.api-token',
       title: 'api-token',
-      order: 4,
+      order: 9,
       localIcon: 'security',
       permissions: ['generic#security:auth:api-token/search']
     },
@@ -199,7 +199,7 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.data-source',
       title: 'data-source',
       localIcon: 'folder',
-      order: 3,
+      order: 5,
       permissions: ['coco#datasource/search']
     },
     children: [
@@ -284,7 +284,7 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.home',
       title: 'home',
       localIcon: 'home',
-      order: 1
+      order: 4
     }
   },
   {
@@ -296,7 +296,7 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.integration',
       title: 'integration',
       localIcon: 'puzzle',
-      order: 5,
+      order: 8,
       permissions: ['coco#integration/search']
     },
     children: [
@@ -356,7 +356,7 @@ export const generatedRoutes: GeneratedRoute[] = [
     meta: {
       i18nKey: 'route.mcp-server',
       title: 'mcp-server',
-      order: 2,
+      order: 6,
       localIcon: 'mcp',
       permissions: ['coco#mcp_server/search']
     },
@@ -408,7 +408,7 @@ export const generatedRoutes: GeneratedRoute[] = [
     meta: {
       i18nKey: 'route.model-provider',
       title: 'model-provider',
-      order: 2,
+      order: 7,
       localIcon: 'model-provider',
       permissions: ['coco#model_provider/search']
     },
@@ -523,7 +523,8 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.search',
       title: 'search',
       constant: true,
-      hideInMenu: true
+      localIcon: 'search',
+      order: 1
     }
   },
   {
@@ -640,7 +641,7 @@ export const generatedRoutes: GeneratedRoute[] = [
     meta: {
       i18nKey: 'route.wiki',
       title: 'wiki',
-      order: 12,
+      order: 2,
       localIcon: 'wiki'
     },
     children: [

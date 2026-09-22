@@ -3,6 +3,7 @@ import type { RouteRecordNormalized } from '@sa/simple-router';
 import type { MenuProps } from 'antd';
 import type { MenuInfo } from 'rc-menu/lib/interface';
 
+import { getSectionedMenuItems } from '@/layouts/base-layout/MenuUtil';
 import { getSiderCollapse } from '@/store/slice/app';
 import { getThemeSettings } from '@/store/slice/theme';
 
@@ -110,7 +111,7 @@ const VerticalMenu = memo(() => {
         className="size-full transition-300 border-0!"
         inlineCollapsed={isVerticalMix ? false : inlineCollapsed}
         inlineIndent={18}
-        items={isMix ? childLevelMenus : allMenus}
+        items={isMix ? childLevelMenus : getSectionedMenuItems(allMenus)}
         mode="inline"
         openKeys={stateOpenKeys}
         selectedKeys={selectKey}

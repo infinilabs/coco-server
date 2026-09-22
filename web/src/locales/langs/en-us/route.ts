@@ -36,7 +36,7 @@ const route: App.I18n.Schema['translation']['route'] = {
   function_tab: 'Tab',
   'function_toggle-auth': 'Toggle Auth',
   guide: 'Guide',
-  home: 'Home',
+  home: 'Getting Started',
   'iframe-page': 'Iframe',
   integration: 'Integration',
   integration_edit: 'Edit Integration',

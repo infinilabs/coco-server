@@ -508,6 +508,9 @@ declare namespace App {
           refreshToken: string;
           tokenExpired: string;
         };
+        menu: {
+          administration: string;
+        };
         route: Record<I18nRouteKey, string>;
         system: {
           errorReason: string;
