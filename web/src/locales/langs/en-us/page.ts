@@ -33,8 +33,42 @@ const page: App.I18n.Schema['translation']['page'] = {
     confidence: { high: 'High', medium: 'Medium', low: 'Low' },
     role: { owner: 'Owner', editor: 'Editor', viewer: 'Viewer', agent: 'Agent' },
     changeType: { 'ai-generated': 'AI Generated', 'human-edited': 'Human Edited', 'auto-updated': 'Auto Updated' },
+    generate: {
+      title: 'Generate with KM Agent',
+      hintPlaceholder: 'Focus hint (optional), e.g. supplier policies for Maxim\'s HK stores',
+      start: 'Generate',
+      cancel: 'Stop',
+      phase: {
+        scope: 'Scoping sources',
+        cluster: 'Planning pages',
+        outline: 'Outlining',
+        draft: 'Drafting',
+        deliver: 'Delivering'
+      },
+      generatedArticles: 'Generated drafts',
+      done: '{{count}} page(s) generated as drafts',
+      failed: 'Failed pages (skipped)'
+    },
+    aiEdit: {
+      title: 'AI Edit',
+      start: 'Apply',
+      instruction: 'Instruction',
+      instructionPlaceholder: 'e.g. tighten the wording, keep the citations and wikilinks',
+      selection: 'Selected fragment (optional)',
+      selectionPlaceholder: 'Paste the exact fragment to rewrite; leave empty to rewrite the whole article',
+      stream: 'AI output',
+      done: 'Applied as version v{{version}}'
+    },
+    bookmark: { add: 'Bookmark this article', remove: 'Bookmarked' },
+    diff: {
+      view: 'Diff',
+      vsPrev: 'Changes v{{older}} → v{{newer}}',
+      added: '{{count}} lines added',
+      removed: '{{count}} lines removed'
+    },
     kb: {
       newArticle: 'New Article',
+      aiGenerate: 'AI Generate',
       toc: 'Contents',
       notFound: 'Knowledge base not found',
       docsUnit: 'docs',

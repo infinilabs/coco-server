@@ -1,4 +1,4 @@
-import { ArrowLeftOutlined, FileAddOutlined, ReloadOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, FileAddOutlined, ReloadOutlined, RobotOutlined } from '@ant-design/icons';
 import {
   Avatar,
   Button,
@@ -26,6 +26,7 @@ import {
   updateWikiToc
 } from '@/service/api';
 import { findNode, moveNode, toAntdTreeData, dropPositionFromAntd } from '../shared/toc';
+import { GenerateModal } from '../components/GenerateModal';
 
 const STATUS_COLOR: Record<string, string> = {
   draft: 'default',
@@ -61,9 +62,11 @@ function NewArticleModal({
       setLoading(true);
       createWikiArticle({ ...values, kb_id: kbId }).then(res => {
         setLoading(false);
+        const id = ((res as any)?._id as string) || ((res as any)?.id as string) || '';
+        if (!id) return; // request layer already surfaced the error toast
         form.resetFields();
         window.$message?.success(t('common.addSuccess'));
-        onCreated(((res as any)?.id as string) || '');
+        onCreated(id);
         onClose();
       });
     });
@@ -109,6 +112,7 @@ export function Component() {
   const [articles, setArticles] = useState<Api.Wiki.Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [newOpen, setNewOpen] = useState(false);
+  const [generateOpen, setGenerateOpen] = useState(false);
   const selectedTocId = searchParams.get('toc') || '';
 
   const fetchAll = () => {
@@ -174,9 +178,12 @@ export function Component() {
         extra={
           <Space>
             <Button icon={<ReloadOutlined />} onClick={fetchAll} />
+            <Button icon={<RobotOutlined />} onClick={() => setGenerateOpen(true)}>
+              {t('page.wiki.kb.aiGenerate')}
+            </Button>
             <Button
               icon={<FileAddOutlined />}
-              type='primary'
+              type="primary"
               onClick={() => {
                 setNewOpen(true);
               }}
@@ -310,6 +317,16 @@ export function Component() {
           else fetchAll();
         }}
         open={newOpen}
+      />
+
+      <GenerateModal
+        kbId={id || ''}
+        open={generateOpen}
+        onClose={() => {
+          setGenerateOpen(false);
+        }}
+        onGenerated={fetchAll}
+        onOpenArticle={goArticle}
       />
     </div>
   );

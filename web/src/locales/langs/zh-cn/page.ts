@@ -33,8 +33,42 @@ const page: App.I18n.Schema['translation']['page'] = {
     confidence: { high: '高', medium: '中', low: '低' },
     role: { owner: '所有者', editor: '编辑者', viewer: '查看者', agent: '智能体' },
     changeType: { 'ai-generated': 'AI 生成', 'human-edited': '人工编辑', 'auto-updated': '自动更新' },
+    generate: {
+      title: 'KM Agent 生成',
+      hintPlaceholder: '聚焦提示（可选），如：美心港店供应商政策',
+      start: '开始生成',
+      cancel: '停止',
+      phase: {
+        scope: '圈定语料',
+        cluster: '规划页面',
+        outline: '生成大纲',
+        draft: '逐章撰写',
+        deliver: '落库交付'
+      },
+      generatedArticles: '已生成草稿',
+      done: '已生成 {{count}} 篇草稿页',
+      failed: '失败页面（已跳过）'
+    },
+    aiEdit: {
+      title: 'AI 编辑',
+      start: '应用',
+      instruction: '编辑指令',
+      instructionPlaceholder: '如：精简措辞，保留引用与双链',
+      selection: '选中片段（可选）',
+      selectionPlaceholder: '粘贴要改写的原文片段；留空则改写全文',
+      stream: 'AI 输出',
+      done: '已应用为版本 v{{version}}'
+    },
+    bookmark: { add: '收藏该文章', remove: '已收藏' },
+    diff: {
+      view: '对比',
+      vsPrev: '版本变更 v{{older}} → v{{newer}}',
+      added: '新增 {{count}} 行',
+      removed: '删除 {{count}} 行'
+    },
     kb: {
       newArticle: '新建文章',
+      aiGenerate: 'AI 生成',
       toc: '目录',
       notFound: '知识库不存在',
       docsUnit: '篇文档',

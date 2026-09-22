@@ -57,8 +57,11 @@ function CreateKbModal({ open, onClose, onCreated }: { open: boolean; onClose: (
   const onOk = () => {
     form.validateFields().then(values => {
       setLoading(true);
-      createWikiKb(values as Partial<Api.Wiki.Kb>).then(() => {
+      createWikiKb(values as Partial<Api.Wiki.Kb>).then(res => {
         setLoading(false);
+        // the request layer already surfaced the error toast; a failed
+        // create resolves without an _id
+        if (!(res as any)?._id) return;
         form.resetFields();
         window.$message?.success(t('common.addSuccess'));
         onCreated();

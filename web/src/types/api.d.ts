@@ -449,6 +449,23 @@ declare namespace Api {
       icon?: string;
       children?: TocNode[];
     }
+
+    interface Bookmark {
+      id: string;
+      article_id: string;
+      created_at?: string;
+    }
+
+    interface Notification {
+      id: string;
+      user_id: string;
+      target_type: 'article' | 'kb' | 'version' | string;
+      target_id: string;
+      action?: string;
+      message?: string;
+      read: boolean;
+      created_at?: string;
+    }
   }
 }
 

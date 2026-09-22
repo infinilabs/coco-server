@@ -4,7 +4,10 @@ import {
   EditOutlined,
   EyeOutlined,
   HistoryOutlined,
+  RobotOutlined,
   SendOutlined,
+  StarFilled,
+  StarOutlined,
   TagsOutlined
 } from '@ant-design/icons';
 import {
@@ -29,8 +32,18 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import Markdown from '@/components/DocumentDrawer/Markdown';
-import { getWikiArticle, getWikiArticleVersions, updateWikiArticle } from '@/service/api';
+import {
+  createWikiBookmark,
+  deleteWikiBookmark,
+  getWikiArticle,
+  getWikiArticleVersions,
+  searchWikiBookmarks,
+  updateWikiArticle,
+  updateWikiArticleStatus
+} from '@/service/api';
 import { parseStructuredContent, parseWikiLink } from '../shared/content';
+import { diffLines } from '../shared/diff';
+import { AIEditModal } from '../components/AIEditModal';
 
 const STATUS_COLOR: Record<string, string> = {
   draft: 'default',
@@ -91,6 +104,9 @@ export function Component() {
   const [versionsOpen, setVersionsOpen] = useState(false);
   const [versions, setVersions] = useState<Api.Wiki.Version[]>([]);
   const [versionView, setVersionView] = useState<Api.Wiki.Version | null>(null);
+  const [diffPair, setDiffPair] = useState<{ older: Api.Wiki.Version; newer: Api.Wiki.Version } | null>(null);
+  const [aiEditOpen, setAiEditOpen] = useState(false);
+  const [bookmarkId, setBookmarkId] = useState<string | null>(null);
 
   // edit form state (kept flat — the form is a single record)
   const [draft, setDraft] = useState<Partial<Api.Wiki.Article>>({});
@@ -107,9 +123,31 @@ export function Component() {
 
   useEffect(fetchArticle, [id]);
 
+  useEffect(() => {
+    if (!id) return;
+    searchWikiBookmarks().then(res => {
+      const hit = (((res as any)?.data || []) as any[]).find(b => b.article_id === id);
+      setBookmarkId(hit?.id ?? null);
+    });
+  }, [id]);
+
+  const toggleBookmark = () => {
+    if (!id) return;
+    if (bookmarkId) {
+      deleteWikiBookmark(bookmarkId).then(() => setBookmarkId(null));
+    } else {
+      createWikiBookmark(id).then(res => setBookmarkId(((res as any)?._id as string) || null));
+    }
+  };
+
   const structured = useMemo(
     () => (article ? parseStructuredContent(article.content) : null),
     [article?.content]
+  );
+
+  const currentDiff = useMemo(
+    () => (diffPair ? diffLines(diffPair.older.content, diffPair.newer.content) : []),
+    [diffPair]
   );
 
   const openVersions = () => {
@@ -138,7 +176,9 @@ export function Component() {
 
   const transitionStatus = (to: string) => {
     if (!id) return;
-    updateWikiArticle(id, { status: to as Api.Wiki.ArticleStatus }).then(() => {
+    // status is protected on PUT /wiki/article/:id — transitions go
+    // through the dedicated status-machine endpoint
+    updateWikiArticleStatus(id, to as Api.Wiki.ArticleStatus).then(() => {
       window.$message?.success(t('common.updateSuccess'));
       fetchArticle();
     });
@@ -166,6 +206,12 @@ export function Component() {
           article && (
             <Space>
               {article.status && <Tag color={STATUS_COLOR[article.status]}>{t(`page.wiki.status.${article.status}`)}</Tag>}
+              <Tooltip title={bookmarkId ? t('page.wiki.bookmark.remove') : t('page.wiki.bookmark.add')}>
+                <Button
+                  icon={bookmarkId ? <StarFilled style={{ color: '#faad14' }} /> : <StarOutlined />}
+                  onClick={toggleBookmark}
+                />
+              </Tooltip>
               {(NEXT_STATUS[article.status] || []).map(({ to, labelKey }) => (
                 <Tooltip key={to} title={t('page.wiki.article.statusFlowHint')}>
                   <Button icon={<SendOutlined />} onClick={() => transitionStatus(to)}>
@@ -176,7 +222,10 @@ export function Component() {
               <Button icon={<HistoryOutlined />} onClick={openVersions}>
                 {t('page.wiki.article.versions')}
               </Button>
-              <Button icon={<EditOutlined />} type='primary' onClick={startEdit}>
+              <Button icon={<RobotOutlined />} onClick={() => setAiEditOpen(true)}>
+                {t('page.wiki.aiEdit.title')}
+              </Button>
+              <Button icon={<EditOutlined />} type="primary" onClick={startEdit}>
                 {t('page.wiki.article.edit')}
               </Button>
             </Space>
@@ -372,7 +421,7 @@ export function Component() {
       >
         <List
           dataSource={versions}
-          renderItem={v => (
+          renderItem={(v, idx) => (
             <List.Item
               actions={[
                 <Button
@@ -384,7 +433,19 @@ export function Component() {
                   }}
                 >
                   {t('page.wiki.article.versionView')}
-                </Button>
+                </Button>,
+                idx < versions.length - 1 ? (
+                  <Button
+                    key='diff'
+                    size='small'
+                    type='link'
+                    onClick={() => {
+                      setDiffPair({ older: versions[idx + 1], newer: v });
+                    }}
+                  >
+                    {t('page.wiki.diff.view')}
+                  </Button>
+                ) : null
               ]}
             >
               <List.Item.Meta
@@ -416,6 +477,67 @@ export function Component() {
       >
         {versionView && <Markdown content={versionView.content} />}
       </Modal>
+
+      <Modal
+        footer={null}
+        open={!!diffPair}
+        title={
+          diffPair
+            ? t('page.wiki.diff.vsPrev', { older: diffPair.older.version, newer: diffPair.newer.version })
+            : ''
+        }
+        width={720}
+        onCancel={() => setDiffPair(null)}
+      >
+        {diffPair && (
+          <div className='font-mono text-xs'>
+            <div className='mb-2 flex gap-4 text-gray-400'>
+              <span>
+                <span className='mr-1 inline-block h-10px w-10px bg-[var(--ant-color-success)]' />
+                {t('page.wiki.diff.added', { count: currentDiff.filter(l => l.type === 'add').length })}
+              </span>
+              <span>
+                <span className='mr-1 inline-block h-10px w-10px bg-[var(--ant-color-error)]' />
+                {t('page.wiki.diff.removed', { count: currentDiff.filter(l => l.type === 'del').length })}
+              </span>
+            </div>
+            <div className='max-h-480px overflow-auto rounded border border-solid' style={{ borderColor: 'var(--ant-color-border)' }}>
+              {currentDiff.map((line, i) => (
+                <div
+                  className='whitespace-pre-wrap px-2'
+                  key={i}
+                  style={{
+                    background:
+                      line.type === 'add'
+                        ? 'var(--ant-color-success-bg)'
+                        : line.type === 'del'
+                          ? 'var(--ant-color-error-bg)'
+                          : undefined,
+                    color:
+                      line.type === 'add'
+                        ? 'var(--ant-color-success)'
+                        : line.type === 'del'
+                          ? 'var(--ant-color-error)'
+                          : undefined
+                  }}
+                >
+                  {line.type === 'add' ? '+ ' : line.type === 'del' ? '- ' : '  '}
+                  {line.text}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <AIEditModal
+        articleId={id || ''}
+        open={aiEditOpen}
+        onClose={() => {
+          setAiEditOpen(false);
+        }}
+        onApplied={fetchArticle}
+      />
     </div>
   );
 }
