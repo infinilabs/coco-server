@@ -36,7 +36,7 @@ func validateArticleStatus(status string) error {
 /* ---------------- TOC ---------------- */
 
 func (h *APIHandler) getToc(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	kbID := ps.ByName("kbId")
+	kbID := ps.ByName("id")
 
 	ctx := orm.NewContextWithParent(req.Context())
 	orm.WithModel(ctx, &core.WikiToc{})
@@ -54,7 +54,7 @@ func (h *APIHandler) getToc(w http.ResponseWriter, req *http.Request, ps httprou
 }
 
 func (h *APIHandler) updateToc(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	kbID := ps.ByName("kbId")
+	kbID := ps.ByName("id")
 
 	var nodes []core.WikiTocNode
 	if err := h.DecodeJSON(req, &nodes); err != nil {

@@ -220,7 +220,7 @@ func callTocGet(t *testing.T, h APIHandler, kbID string) (*httptest.ResponseReco
 	t.Helper()
 	req := httptest.NewRequest("GET", "/wiki/kb/"+kbID+"/toc", nil)
 	w := httptest.NewRecorder()
-	h.getToc(w, req, httprouter.Params{{Key: "kbId", Value: kbID}})
+	h.getToc(w, req, httprouter.Params{{Key: "id", Value: kbID}})
 	out := map[string]interface{}{}
 	_ = json.Unmarshal(w.Body.Bytes(), &out)
 	return w, out
@@ -231,7 +231,7 @@ func callTocPut(t *testing.T, h APIHandler, kbID, body string) (*httptest.Respon
 	req := httptest.NewRequest("PUT", "/wiki/kb/"+kbID+"/toc", bytes.NewReader([]byte(body)))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
-	h.updateToc(w, req, httprouter.Params{{Key: "kbId", Value: kbID}})
+	h.updateToc(w, req, httprouter.Params{{Key: "id", Value: kbID}})
 	out := map[string]interface{}{}
 	_ = json.Unmarshal(w.Body.Bytes(), &out)
 	return w, out

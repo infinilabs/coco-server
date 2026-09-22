@@ -48,10 +48,11 @@ func init() {
 
 	handler := APIHandler{}
 
-	// TOC tree, one per KB (kb-level permissions guard the object)
-	api.HandleUIMethod(api.GET, "/wiki/kb/:kbId/toc", handler.getToc,
+	// TOC tree, one per KB (kb-level permissions guard the object); the
+	// param name must match the crud-generated :id of /wiki/kb/:id
+	api.HandleUIMethod(api.GET, "/wiki/kb/:id/toc", handler.getToc,
 		api.RequireLogin(), api.RequirePermission(readKbPermission))
-	api.HandleUIMethod(api.PUT, "/wiki/kb/:kbId/toc", handler.updateToc,
+	api.HandleUIMethod(api.PUT, "/wiki/kb/:id/toc", handler.updateToc,
 		api.RequireLogin(), api.RequirePermission(updateKbPermission))
 
 	// read-only version history (article-level read)

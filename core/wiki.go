@@ -104,12 +104,15 @@ type WikiArticle struct {
 
 // WikiTocNode is one node of a KB's table of contents tree.
 type WikiTocNode struct {
-	ID        string        `json:"id"`
-	Title     string        `json:"title"`
-	Type      string        `json:"type"` // folder | article
-	ArticleID string        `json:"article_id,omitempty"`
-	Icon      string        `json:"icon,omitempty"`
-	Children  []WikiTocNode `json:"children,omitempty"`
+	ID        string `json:"id"`
+	Title     string `json:"title"`
+	Type      string `json:"type"` // folder | article
+	ArticleID string `json:"article_id,omitempty"`
+	Icon      string `json:"icon,omitempty"`
+	// Children is self-referential; the tag walker cannot recurse it
+	// (stack overflow) and the tree is stored under the parent's
+	// nodes:{enabled:false} mapping anyway
+	Children []WikiTocNode `json:"children,omitempty" elastic_mapping:"-"`
 }
 
 // WikiToc stores one document tree per KB (single object, updated wholesale).
