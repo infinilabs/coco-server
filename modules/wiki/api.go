@@ -67,6 +67,7 @@ func (h *APIHandler) updateToc(w http.ResponseWriter, req *http.Request, ps http
 	}
 
 	ctx := orm.NewContext()
+	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
 	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
 	orm.WithModel(ctx, &core.WikiToc{})
 
@@ -214,6 +215,7 @@ func (h *APIHandler) updateArticleStatus(w http.ResponseWriter, req *http.Reques
 	// permission is enforced at the route; direct write skips the ORM-level
 	// owner check so shared-KB editors can transition status too
 	ctx := orm.NewContext()
+	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
 	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
 	orm.WithModel(ctx, &core.WikiArticle{})
 

@@ -53,6 +53,9 @@ func parseWikilinks(content string) []core.WikiLinkedPage {
 func persistLinkedPages(article *core.WikiArticle) {
 	resolveLinkedPages(article)
 	ctx := orm.NewContext()
+	// Update internally re-reads the object (GetPrevObject) through the
+	// OpGet hook, so both direct flags are required in a userless context.
+	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
 	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
 	orm.WithModel(ctx, &core.WikiArticle{})
 	if err := orm.Update(ctx, article); err != nil {
@@ -84,6 +87,7 @@ func syncEntityMentions(article *core.WikiArticle) {
 		return
 	}
 	ctx := orm.NewContext()
+	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
 	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
 
 	var entity core.WikiEntity
@@ -141,6 +145,7 @@ func syncEntityStatus(article *core.WikiArticle, status string) {
 	}
 
 	ctx := orm.NewContext()
+	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
 	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
 
 	var entity core.WikiEntity

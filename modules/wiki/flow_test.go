@@ -108,6 +108,10 @@ func TestWikiFlow_ArticleLifecycle(t *testing.T) {
 	w, _ = call(t, kbH.Create, "POST", "/wiki/kb/", `{"name":"x","visibility":"everyone"}`)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 
+	// explicit team visibility is accepted (regression: the form sends it)
+	w, _ = call(t, kbH.Create, "POST", "/wiki/kb/", `{"name":"Explicit Team","visibility":"team"}`)
+	assert.Equal(t, http.StatusOK, w.Code)
+
 	// article create: draft default + version 1 snapshot + kb count bump
 	w, out = call(t, artH.Create, "POST", "/wiki/article/", `{"kb_id":"`+kbID+`","title":"RAG Overview","content":"## Definition\n\nretrieval"}`)
 	require.Equal(t, http.StatusOK, w.Code)

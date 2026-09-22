@@ -68,7 +68,7 @@ func kbConfig() crud.Config[core.WikiKnowledgeBase] {
 				return fmt.Errorf("name is required")
 			}
 			switch obj.Visibility {
-			case core.WikiVisibilityPublic, core.WikiVisibilityPrivate:
+			case core.WikiVisibilityPublic, core.WikiVisibilityPrivate, core.WikiVisibilityTeam:
 			case "":
 				obj.Visibility = core.WikiVisibilityTeam
 			default:
@@ -205,6 +205,7 @@ func registerEntityCRUD() {
 // their owners).
 func deleteKbChildren(kbID string) error {
 	ctx := orm.NewContext()
+	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
 	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
 
 	articles, err := findIDs(ctx, &core.WikiArticle{}, orm.TermQuery("kb_id", kbID))
@@ -243,6 +244,7 @@ func bumpKbArticleCount(kbID string, delta int) error {
 		return nil
 	}
 	ctx := orm.NewContext()
+	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
 	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
 	orm.WithModel(ctx, &core.WikiKnowledgeBase{})
 

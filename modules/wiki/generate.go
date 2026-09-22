@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -656,6 +657,15 @@ func (h *APIHandler) aiGenerate(w http.ResponseWriter, req *http.Request, ps htt
 	fail := func(reason string) {
 		_ = stream.emit("done", doneEvent{Reason: reason, Usage: usage})
 	}
+	// Once streaming has started the API router's recover middleware can no
+	// longer report a panic to the client — without this guard a panic
+	// strands the browser on an open SSE connection forever.
+	defer func() {
+		if r := recover(); r != nil {
+			log.Errorf("wiki: generation panicked: %v\n%s", r, debug.Stack())
+			_ = stream.emit("done", doneEvent{Reason: fmt.Sprintf("internal error: %v", r), Usage: usage})
+		}
+	}()
 
 	if err := stream.emit("progress", progressEvent{Phase: "scope", PhaseCurrent: 1, PhaseTotal: 1, Progress: 0.05}); err != nil {
 		return
@@ -897,6 +907,14 @@ func (h *APIHandler) aiEdit(w http.ResponseWriter, req *http.Request, ps httprou
 	}
 
 	usage := &llmUsage{}
+	// Guard mirrors aiGenerate: report a panic as a terminal done event
+	// instead of stranding the client on an open SSE connection.
+	defer func() {
+		if r := recover(); r != nil {
+			log.Errorf("wiki: AI edit panicked: %v\n%s", r, debug.Stack())
+			_ = stream.emit("done", doneEvent{Reason: fmt.Sprintf("internal error: %v", r), Usage: usage})
+		}
+	}()
 	message := []llms.MessageContent{
 		langchain.SystemTextParts(system),
 		llms.TextParts(llms.ChatMessageTypeHuman, userPrompt),
@@ -928,6 +946,7 @@ func (h *APIHandler) aiEdit(w http.ResponseWriter, req *http.Request, ps httprou
 	}
 
 	writeCtx := orm.NewContext()
+	writeCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
 	writeCtx.Set(orm.DirectWriteWithoutPermissionCheck, true)
 	orm.WithModel(writeCtx, &core.WikiArticle{})
 	article.Content = newContent
