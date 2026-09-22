@@ -7,6 +7,8 @@ import { getSectionedMenuItems } from '@/layouts/base-layout/MenuUtil';
 import { getSiderCollapse } from '@/store/slice/app';
 import { getThemeSettings } from '@/store/slice/theme';
 
+import '../style.css';
+
 interface LevelKeysProps {
   children?: LevelKeysProps[];
   key?: string;
@@ -53,6 +55,9 @@ const VerticalMenu = memo(() => {
   const isVerticalMix = themeSettings.layout.mode === 'vertical-mix';
 
   const inlineCollapsed = useAppSelector(getSiderCollapse);
+
+  // icon-only sider has no room for a section label — fall back to the flat list
+  const sectioned = !(inlineCollapsed && !isVerticalMix);
 
   const [stateOpenKeys, setStateOpenKeys] = useState<string[]>(
     inlineCollapsed ? [] : getSelectedMenuKeyPath(route.matched)
@@ -108,10 +113,10 @@ const VerticalMenu = memo(() => {
   return (
     <SimpleScrollbar>
       <AMenu
-        className="size-full transition-300 border-0!"
+        className={`size-full transition-300 border-0! ${sectioned ? 'console-sectioned-menu' : ''}`}
         inlineCollapsed={isVerticalMix ? false : inlineCollapsed}
         inlineIndent={18}
-        items={isMix ? childLevelMenus : getSectionedMenuItems(allMenus)}
+        items={isMix ? childLevelMenus : getSectionedMenuItems(allMenus, sectioned)}
         mode="inline"
         openKeys={stateOpenKeys}
         selectedKeys={selectKey}

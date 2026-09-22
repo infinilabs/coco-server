@@ -4,9 +4,8 @@ import type { MenuProps } from 'antd';
 import { $t } from '@/locales';
 
 /**
- * Route keys rendered in the primary "workspace" section of the sider —
- * the user-facing applications. Everything else falls into the trailing
- * administration group.
+ * Route keys rendered in the primary "workspace" section of the sider — the user-facing applications. Everything else
+ * falls into the trailing administration group.
  */
 const WORKSPACE_MENU_KEYS: readonly string[] = ['search', 'wiki', 'ai-assistant'];
 
@@ -34,23 +33,24 @@ export function getGlobalMenusByAuthRoutes(routes: ElegantConstRoute[]) {
 }
 
 /**
- * Split top-level menus into the workspace section and the administration
- * group, so the sider reads "apps first, console settings after" instead of
- * one flat admin list.
+ * Split top-level menus into the workspace section and the administration group, so the sider reads "apps first,
+ * console settings after" instead of one flat admin list. The group label alone carries the section boundary (no
+ * divider); pass `sectioned: false` for icon-only contexts such as the collapsed sider, where a truncated group title
+ * would be noise.
  *
  * @param menus Top-level global menus
+ * @param sectioned Whether to render the administration group label
  */
-export function getSectionedMenuItems(menus: App.Global.Menu[]): MenuProps['items'] {
+export function getSectionedMenuItems(menus: App.Global.Menu[], sectioned = true): MenuProps['items'] {
   const workspace = menus.filter(menu => WORKSPACE_MENU_KEYS.includes(menu.key));
   const administration = menus.filter(menu => !WORKSPACE_MENU_KEYS.includes(menu.key));
 
-  if (!administration.length) {
-    return workspace as unknown as MenuProps['items'];
+  if (!sectioned || !administration.length) {
+    return [...workspace, ...administration] as unknown as MenuProps['items'];
   }
 
   return [
     ...workspace,
-    { type: 'divider', key: 'menu-section-divider' },
     {
       type: 'group',
       key: 'menu-section-administration',
