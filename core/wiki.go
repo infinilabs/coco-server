@@ -30,6 +30,16 @@ const (
 	WikiPageTypeEntity  = "entity"
 	WikiPageTypeConcept = "concept"
 	WikiPageTypeSource  = "source"
+
+	// entity lifecycle (design doc D1): extraction proposes, humans
+	// review/publish — the AI pipeline never publishes directly
+	WikiEntityProposed  = "proposed"
+	WikiEntityReviewed  = "reviewed"
+	WikiEntityPublished = "published"
+
+	// relation written by the wikilink parser when an entity page links to
+	// another entity without an explicit typed relation
+	WikiRelationMentions = "mentions"
 )
 
 // WikiWorkspace groups knowledge bases per team or tenant.
@@ -88,6 +98,8 @@ type WikiArticle struct {
 	Confidence  string                `json:"confidence,omitempty" elastic_mapping:"confidence:{type:keyword}"` // high | medium | low
 	Sources     []WikiSourceReference `json:"sources,omitempty" elastic_mapping:"sources:{type:object,enabled:false}"`
 	EntityID    string                `json:"entity_id,omitempty" elastic_mapping:"entity_id:{type:keyword}"` // set when page_type=entity
+	// wikilinks parsed from content at save time (design doc B3)
+	LinkedPages []WikiLinkedPage `json:"linked_pages,omitempty" elastic_mapping:"linked_pages:{type:object,enabled:false}"`
 }
 
 // WikiTocNode is one node of a KB's table of contents tree.
@@ -140,8 +152,17 @@ type WikiNotification struct {
 type WikiEntityRelation struct {
 	TargetID   string `json:"target_id"`
 	TargetType string `json:"target_type,omitempty"`
-	Relation   string `json:"relation"`             // belongs_to | promotes | leases | ...
-	Provenance string `json:"provenance,omitempty"` // source doc_id
+	Relation   string `json:"relation"`             // belongs_to | promotes | leases | mentions | ...
+	Provenance string `json:"provenance,omitempty"` // source doc_id or article_id
+}
+
+// WikiLinkedPage is a wikilink [[type:name]] parsed out of article content
+// at save time (design doc B3): stored redundantly so rendering and graph
+// walks don't re-parse full content.
+type WikiLinkedPage struct {
+	Type     string `json:"type"`
+	Name     string `json:"name"`
+	EntityID string `json:"entity_id,omitempty"` // resolved against coco entities, empty when unknown
 }
 
 // WikiEntity is the ontology query face; the curated page (WikiArticle,
@@ -157,6 +178,9 @@ type WikiEntity struct {
 	Status     string                 `json:"status" elastic_mapping:"status:{type:keyword}"` // proposed | reviewed | published
 	Confidence float64                `json:"confidence,omitempty" elastic_mapping:"confidence:{type:float}"`
 	ArticleID  string                 `json:"article_id,omitempty" elastic_mapping:"article_id:{type:keyword}"`
+	// documents this entity was extracted from (bidirectional with
+	// Document.EntityIDs, design doc B3)
+	Sources []WikiSourceReference `json:"sources,omitempty" elastic_mapping:"sources:{type:object,enabled:false}"`
 }
 
 // WikiOntologySchema defines the entity/relation vocabulary for a KB or

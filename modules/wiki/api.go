@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"infini.sh/coco/core"
 	httprouter "infini.sh/framework/core/api/router"
@@ -245,11 +246,86 @@ func (h *APIHandler) updateArticleStatus(w http.ResponseWriter, req *http.Reques
 		return
 	}
 
+	// entity pages mirror their workflow onto the ontology (B4)
+	syncEntityStatus(&article, body.Status)
+
 	// audit trail: record the workflow transition alongside the content
 	_ = writeVersionSnapshot(&article, nextVersionNumber(article.ID), core.WikiChangeHumanEdited,
 		fmt.Sprintf("status: %s -> %s", prev, body.Status))
 
 	h.WriteUpdatedOKJSON(w, article.ID)
+}
+
+/* ---------------- ontology: lookup & neighbors ---------------- */
+
+// entityLookup resolves a name (or alias) to an entity — the MCP-facing
+// exact-match counterpart of entity search (design doc §4.3).
+func (h *APIHandler) entityLookup(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	name := strings.TrimSpace(req.URL.Query().Get("name"))
+	entityType := strings.TrimSpace(req.URL.Query().Get("type"))
+	if name == "" {
+		h.Error400(w, "name is required")
+		return
+	}
+
+	ctx := orm.NewContextWithParent(req.Context())
+
+	if entity := FindEntityByNameOrAlias(ctx, name, entityType); entity != nil {
+		h.WriteGetOKJSON(w, entity.ID, entity)
+		return
+	}
+	h.WriteGetMissingJSON(w, name)
+}
+
+// entityNeighbors walks one hop over the entity's relations and expands the
+// target entities (design doc B5).
+func (h *APIHandler) entityNeighbors(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	id := ps.ByName("id")
+
+	ctx := orm.NewContextWithParent(req.Context())
+	orm.WithModel(ctx, &core.WikiEntity{})
+
+	var entity core.WikiEntity
+	entity.SetID(id)
+	exists, err := orm.GetV2(ctx, &entity)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if !exists {
+		h.WriteOpRecordNotFoundJSON(w, id)
+		return
+	}
+
+	targetIDs := make([]string, 0, len(entity.Relations))
+	for _, r := range entity.Relations {
+		if r.TargetID != "" && r.TargetID != entity.ID {
+			targetIDs = append(targetIDs, r.TargetID)
+		}
+	}
+
+	neighbors := []core.WikiEntity{}
+	if len(targetIDs) > 0 {
+		builder := orm.NewQuery().
+			Size(len(targetIDs)).
+			Filter(orm.TermsQuery("id", targetIDs))
+		res, err := orm.SearchV2(ctx, builder)
+		if err != nil {
+			h.WriteError(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		neighbors, _, err = elastic.DecodeHits[core.WikiEntity](res)
+		if err != nil {
+			h.WriteError(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	h.WriteOKJSON(w, util.MapStr{
+		"entity":    entity,
+		"relations": entity.Relations,
+		"neighbors": neighbors,
+	})
 }
 
 /* ---------------- version helpers ---------------- */

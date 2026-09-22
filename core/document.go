@@ -56,8 +56,12 @@ type Document struct {
 	Owner *UserInfo `json:"owner,omitempty" elastic_mapping:"owner:{type:object}"` // Document author or owner
 
 	Tags []string `json:"tags,omitempty" elastic_mapping:"tags:{type:keyword,copy_to:combined_fulltext}"` // Tags or keywords associated with the document, for easier retrieval
-	URL  string   `json:"url,omitempty" elastic_mapping:"url:{enabled:false}"`                            // Direct link to the document, if available
-	Size int      `json:"size,omitempty" elastic_mapping:"size:{type:long}"`                              // File size in bytes, if applicable
+	// Ontology entities this document mentions, resolved by the
+	// extract_entities processor (design doc B2); enables entity-scoped
+	// document filtering
+	EntityIDs []string `json:"entity_ids,omitempty" elastic_mapping:"entity_ids:{type:keyword}"` // Linked wiki entity ids
+	URL       string   `json:"url,omitempty" elastic_mapping:"url:{enabled:false}"`              // Direct link to the document, if available
+	Size      int      `json:"size,omitempty" elastic_mapping:"size:{type:long}"`                // File size in bytes, if applicable
 
 	LastUpdatedBy *EditorInfo `json:"last_updated_by,omitempty" elastic_mapping:"last_updated_by:{type:object}"` // Struct containing last update information
 	Disabled      bool        `json:"disabled,omitempty" elastic_mapping:"disabled:{type:boolean}"`              // Whether the document is disabled or not

@@ -21,6 +21,8 @@ var (
 	updateKbPermission      = security.GetSimplePermission(Category, kbResource, string(security.Update))
 	readArticlePermission   = security.GetSimplePermission(Category, articleResource, string(security.Read))
 	updateArticlePermission = security.GetSimplePermission(Category, articleResource, string(security.Update))
+	readEntityPermission    = security.GetSimplePermission(Category, entityResource, string(security.Read))
+	searchEntityPermission  = security.GetSimplePermission(Category, entityResource, string(security.Search))
 )
 
 func simplePermissionFn(resource string) func(action string) api.PermissionKey {
@@ -113,18 +115,24 @@ func articleConfig() crud.Config[core.WikiArticle] {
 		},
 		// status is protected on this route: transitions go through
 		// PUT /wiki/article/:id/status only (silently stripped per the
-		// crud ProtectedFields contract, like created)
-		ProtectedFields: []string{"created", "status"},
+		// crud ProtectedFields contract, like created); linked_pages is
+		// server-computed from content wikilinks (B3)
+		ProtectedFields: []string{"created", "status", "linked_pages"},
 		PostCreate: func(obj *core.WikiArticle) error {
 			if err := writeVersionSnapshot(obj, 1, changeTypeFor(obj), ""); err != nil {
 				return err
 			}
+			persistLinkedPages(obj)
 			return bumpKbArticleCount(obj.KbID, 1)
 		},
 		// versions are content snapshots: metadata-only updates don't
 		// create history entries
 		PostUpdate: func(obj *core.WikiArticle) error {
-			return writeVersionIfChanged(obj)
+			if err := writeVersionIfChanged(obj); err != nil {
+				return err
+			}
+			persistLinkedPages(obj)
+			return nil
 		},
 		PostDelete: func(obj *core.WikiArticle) error {
 			return bumpKbArticleCount(obj.KbID, -1)
@@ -179,11 +187,16 @@ func registerEntityCRUD() {
 				return fmt.Errorf("name is required")
 			}
 			if obj.Status == "" {
-				obj.Status = core.WikiArticleDraft
+				obj.Status = core.WikiEntityProposed
+			}
+			switch obj.Status {
+			case core.WikiEntityProposed, core.WikiEntityReviewed, core.WikiEntityPublished:
+			default:
+				return fmt.Errorf("invalid entity status: %s", obj.Status)
 			}
 			return nil
 		},
-		ProtectedFields: []string{"created"},
+		ProtectedFields: []string{"created", "sources"}, // sources are pipeline provenance (B2/B3)
 	})
 }
 

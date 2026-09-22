@@ -87,3 +87,32 @@ func TestChangeTypeFor(t *testing.T) {
 		t.Errorf("expected %s, got %s", core.WikiChangeHumanEdited, got)
 	}
 }
+
+func TestParseWikilinks(t *testing.T) {
+	content := "## Definition\n\nSee [[campaign:Autumn Promo]] and [[Autumn Promo]] again.\n" +
+		"Plain [[entity:Maxim's HK Store 001]], bare [[Unknown Concept]], empty [[]], malformed [[x]]."
+	pages := parseWikilinks(content)
+
+	// dedup: typed and bare forms of the same name collapse
+	if len(pages) != 4 {
+		t.Fatalf("expected 4 unique links, got %d: %v", len(pages), pages)
+	}
+	if pages[0].Type != "campaign" || pages[0].Name != "Autumn Promo" {
+		t.Errorf("unexpected first link: %+v", pages[0])
+	}
+	if pages[1].Type != "entity" || pages[1].Name != "Maxim's HK Store 001" {
+		t.Errorf("unexpected second link: %+v", pages[1])
+	}
+	if pages[2].Type != "" || pages[2].Name != "Unknown Concept" {
+		t.Errorf("bare link should have empty type: %+v", pages[2])
+	}
+	if pages[2].Name == "x" {
+		t.Errorf("placeholder link leaked: %+v", pages[2])
+	}
+}
+
+func TestParseWikilinksSkipsJunk(t *testing.T) {
+	if pages := parseWikilinks("no links here [[ ]] [[:x]] [[:]]"); len(pages) != 0 {
+		t.Errorf("expected no links, got %v", pages)
+	}
+}

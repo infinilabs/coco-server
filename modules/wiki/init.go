@@ -63,4 +63,13 @@ func init() {
 	// status machine, see statusTransitions
 	api.HandleUIMethod(api.PUT, "/wiki/article/:id/status", handler.updateArticleStatus,
 		api.RequireLogin(), api.RequirePermission(updateArticlePermission))
+
+	// ontology query face (design doc B5): exact-name resolution and
+	// one-hop graph traversal, exposed as MCP tools for assistants
+	api.HandleUIMethod(api.GET, "/wiki/entity/lookup", handler.entityLookup,
+		api.RequireLogin(), api.RequirePermission(searchEntityPermission),
+		api.MCPTool("entity_lookup", "Resolve an ontology entity by exact name or alias; returns the entity with relations, or not_found"))
+	api.HandleUIMethod(api.GET, "/wiki/entity/:id/neighbors", handler.entityNeighbors,
+		api.RequireLogin(), api.RequirePermission(readEntityPermission),
+		api.MCPTool("entity_neighbors", "One-hop traversal of an entity's relations; returns edges and the expanded neighbor entities"))
 }
