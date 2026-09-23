@@ -44,6 +44,7 @@ declare module "@elegant-router/types" {
     "auth": "/auth";
     "auth_edit": "edit/:id";
     "auth_new": "new";
+    "chat": "/chat";
     "connector": "/connector";
     "connector_edit": "edit/:id";
     "connector_new": "new";
@@ -138,6 +139,7 @@ declare module "@elegant-router/types" {
     | "ai-assistant"
     | "api-token"
     | "auth"
+    | "chat"
     | "connector"
     | "data-source"
     | "guide"
@@ -183,6 +185,7 @@ declare module "@elegant-router/types" {
     | "api-token_list"
     | "auth_edit"
     | "auth_new"
+    | "chat"
     | "connector_edit"
     | "connector_new"
     | "data-source_detail"

@@ -4,10 +4,11 @@ import type { MenuProps } from 'antd';
 import { $t } from '@/locales';
 
 /**
- * Route keys rendered in the primary "workspace" section of the sider — the user-facing applications. Everything else
+ * Route keys rendered in the primary "workspace" section of the sider — the three first-class applications
+ * (AI search / AI chat / AI knowledge base). Everything else is settings and data support for those apps and
  * falls into the trailing administration group.
  */
-const WORKSPACE_MENU_KEYS: readonly string[] = ['search', 'wiki', 'ai-assistant'];
+const WORKSPACE_MENU_KEYS: readonly string[] = ['search', 'chat', 'wiki'];
 
 /**
  * Get global menus by auth routes
@@ -42,7 +43,7 @@ export function getGlobalMenusByAuthRoutes(routes: ElegantConstRoute[]) {
  * @param sectioned Whether to render the administration group label
  */
 export function getSectionedMenuItems(menus: App.Global.Menu[], sectioned = true): MenuProps['items'] {
-  const workspace = menus.filter(menu => WORKSPACE_MENU_KEYS.includes(menu.key));
+  const workspace = WORKSPACE_MENU_KEYS.map(key => menus.find(menu => menu.key === key)).filter(Boolean) as App.Global.Menu[];
   const administration = menus.filter(menu => !WORKSPACE_MENU_KEYS.includes(menu.key));
 
   if (!sectioned || !administration.length) {

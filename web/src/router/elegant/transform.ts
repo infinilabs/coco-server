@@ -225,6 +225,7 @@ const routeMap: RouteMap = {
   "auth": "/auth",
   "auth_edit": "edit/:id",
   "auth_new": "new",
+  "chat": "/chat",
   "connector": "/connector",
   "connector_edit": "edit/:id",
   "connector_new": "new",

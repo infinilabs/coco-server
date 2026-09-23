@@ -47,7 +47,7 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.ai-assistant',
       title: 'ai-assistant',
       localIcon: 'robot',
-      order: 3,
+      order: 5,
       permissions: ['coco#assistant/search']
     },
     children: [
@@ -96,7 +96,7 @@ export const generatedRoutes: GeneratedRoute[] = [
     meta: {
       i18nKey: 'route.api-token',
       title: 'api-token',
-      order: 10,
+      order: 12,
       localIcon: 'security',
       permissions: ['generic#security:auth:api-token/search']
     },
@@ -151,6 +151,24 @@ export const generatedRoutes: GeneratedRoute[] = [
     ]
   },
   {
+    name: 'chat',
+    path: '/chat',
+    component: 'layout.blank$view.chat',
+    meta: {
+      i18nKey: 'route.chat',
+      title: 'chat',
+      constant: true,
+      localIcon: 'chat',
+      order: 2,
+      query: [
+        {
+          key: 'mode',
+          value: 'chat'
+        }
+      ]
+    }
+  },
+  {
     name: 'connector',
     path: '/connector',
     component: 'layout.base',
@@ -199,7 +217,7 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.data-source',
       title: 'data-source',
       localIcon: 'folder',
-      order: 5,
+      order: 6,
       permissions: ['coco#datasource/search']
     },
     children: [
@@ -296,7 +314,7 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.integration',
       title: 'integration',
       localIcon: 'puzzle',
-      order: 9,
+      order: 11,
       permissions: ['coco#integration/search']
     },
     children: [
@@ -356,7 +374,7 @@ export const generatedRoutes: GeneratedRoute[] = [
     meta: {
       i18nKey: 'route.mcp-server',
       title: 'mcp-server',
-      order: 6,
+      order: 8,
       localIcon: 'mcp',
       permissions: ['coco#mcp_server/search']
     },
@@ -408,7 +426,7 @@ export const generatedRoutes: GeneratedRoute[] = [
     meta: {
       i18nKey: 'route.model-provider',
       title: 'model-provider',
-      order: 8,
+      order: 10,
       localIcon: 'model-provider',
       permissions: ['coco#model_provider/search']
     },
@@ -535,7 +553,7 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.security',
       title: 'security',
       localIcon: 'user',
-      order: 11,
+      order: 13,
       permissions: [
         'generic#security:authorization/search',
         'generic#security:user/search',
@@ -552,7 +570,7 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.settings',
       title: 'settings',
       localIcon: 'settings',
-      order: 12,
+      order: 14,
       permissions: ['coco#system/read', 'coco#connector/search'],
       permissionLogic: 'or'
     }
@@ -564,7 +582,7 @@ export const generatedRoutes: GeneratedRoute[] = [
     meta: {
       i18nKey: 'route.skill',
       title: 'skill',
-      order: 7,
+      order: 9,
       localIcon: 'skill',
       permissions: ['coco#skill/search']
     },
@@ -631,7 +649,7 @@ export const generatedRoutes: GeneratedRoute[] = [
     meta: {
       i18nKey: 'route.webhook',
       title: 'webhook',
-      order: 5,
+      order: 7,
       localIcon: 'link',
       hideInMenu: true
     },
@@ -668,7 +686,7 @@ export const generatedRoutes: GeneratedRoute[] = [
     meta: {
       i18nKey: 'route.wiki',
       title: 'wiki',
-      order: 2,
+      order: 3,
       localIcon: 'wiki'
     },
     children: [
