@@ -6,9 +6,11 @@ package datasource
 
 import (
 	"infini.sh/coco/core"
+	"infini.sh/coco/modules/common"
 	"infini.sh/coco/modules/document"
 	"infini.sh/framework/core/api"
 	"infini.sh/framework/core/security"
+	"infini.sh/framework/core/util"
 )
 
 type APIHandler struct {
@@ -44,7 +46,13 @@ func init() {
 
 	api.HandleUIMethod(api.GET, "/datasource/_search", handler.searchDatasource, api.RequirePermission(searchPermission),
 		api.Feature(core.FeatureCORS), api.Feature(core.FeatureMaskSensitiveField), api.Feature(core.FeatureRemoveSensitiveField),
-		api.Label(core.SensitiveFields, secretKeys))
+		api.Label(core.SensitiveFields, secretKeys),
+		api.MCPTool("search_datasources", "List or search the indexed data sources of Coco AI (one connector usually creates several datasources). A datasource ID can be passed to search_documents to restrict a search."),
+		api.Label(api.MCPToolInputSchema, common.MCPQueryEnvelopeSchema(util.MapStr{
+			"query": util.MapStr{"type": "string", "description": "Optional keyword to filter datasources by name."},
+			"size":  util.MapStr{"type": "integer", "description": "Page size, default 10."},
+			"from":  util.MapStr{"type": "integer", "description": "Pagination offset."},
+		}, nil)))
 	api.HandleUIMethod(api.POST, "/datasource/_search", handler.searchDatasource, api.RequirePermission(searchPermission),
 		api.Feature(core.FeatureCORS),
 		api.Feature(core.FeatureMaskSensitiveField),

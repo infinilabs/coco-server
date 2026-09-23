@@ -8,6 +8,7 @@ import (
 	log "github.com/cihub/seelog"
 	"github.com/emirpasic/gods/maps/treemap"
 	"infini.sh/coco/core"
+	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/api"
 	"infini.sh/framework/core/env"
 	"infini.sh/framework/core/global"
@@ -56,7 +57,15 @@ func init() {
 	api.HandleUIMethod(api.POST, "/field_meta/:field_name", handler.getFieldMeta, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
 
 	api.HandleUIMethod(api.OPTIONS, "/query/_search", handler.search, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
-	api.HandleUIMethod(api.GET, "/query/_search", handler.search, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
+	api.HandleUIMethod(api.GET, "/query/_search", handler.search, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS),
+		api.MCPTool("search_documents", "Search the enterprise content indexed by Coco AI — files, wiki pages, chat messages, web pages and more, across all connected data sources. Returns matched documents with title, summary, source and deep link."),
+		api.Label(api.MCPToolInputSchema, common.MCPQueryEnvelopeSchema(util.MapStr{
+			"query":      util.MapStr{"type": "string", "description": "Keywords to search for; Lucene query_string syntax is supported."},
+			"datasource": util.MapStr{"type": "string", "description": "Restrict the search to one datasource ID (list IDs with search_datasources)."},
+			"category":   util.MapStr{"type": "string", "description": "Document category filter, e.g. file, page, message."},
+			"size":       util.MapStr{"type": "integer", "description": "Page size, default 10."},
+			"from":       util.MapStr{"type": "integer", "description": "Pagination offset."},
+		}, []string{"query"})))
 	api.HandleUIMethod(api.POST, "/query/_search", handler.search, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
 
 	api.HandleUIMethod(api.GET, "/query/_suggest", handler.suggest, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
