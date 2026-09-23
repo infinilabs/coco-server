@@ -19,9 +19,9 @@ import (
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/modules/sqlite"
 
-	httprouter "infini.sh/framework/core/api/router"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	httprouter "infini.sh/framework/core/api/router"
 )
 
 func commentCall(t *testing.T, h crud.HandlerFunc, method, target, body string) (*httptest.ResponseRecorder, map[string]interface{}) {
