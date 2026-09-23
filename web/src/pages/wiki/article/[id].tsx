@@ -44,7 +44,9 @@ import {
 import { parseStructuredContent, parseWikiLink } from '../shared/content';
 import { diffLines } from '../shared/diff';
 import { AIEditModal } from '../components/AIEditModal';
+import { ArticleComments } from '../components/ArticleComments';
 import { ArticleOutline } from '../components/ArticleOutline';
+import { selectUserInfo } from '@/store/slice/auth';
 import { WikiShell } from '../components/WikiShell';
 
 const STATUS_COLOR: Record<string, string> = {
@@ -97,6 +99,7 @@ export function Component() {
   const nav = useNavigate();
   const [searchParams] = useSearchParams();
   const kbId = searchParams.get('kb') || '';
+  const userInfo = useAppSelector(selectUserInfo);
 
   const [article, setArticle] = useState<Api.Wiki.Article | null>(null);
   const [loading, setLoading] = useState(true);
@@ -412,6 +415,12 @@ export function Component() {
                   )}
                 </>
               )}
+              <Divider />
+              <ArticleComments
+                articleId={article.id}
+                currentUserId={userInfo?.id || ''}
+                currentUserName={userInfo?.name || ''}
+              />
             </div>
             <ArticleOutline content={article.content} />
             </div>

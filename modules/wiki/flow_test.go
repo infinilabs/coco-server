@@ -78,6 +78,7 @@ func setupFlow(t *testing.T) (crud.Handlers, crud.Handlers, APIHandler) {
 			{core.WikiArticle{}, "wiki-article-flow"},
 			{core.WikiToc{}, "wiki-toc-flow"},
 			{core.WikiVersion{}, "wiki-version-flow"},
+			{core.WikiComment{}, "wiki-comment-flow"},
 			{core.WikiEntity{}, "wiki-entity-flow"},
 			{core.Document{}, "document-flow"},
 		} {

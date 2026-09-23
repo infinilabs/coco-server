@@ -46,6 +46,7 @@ func (this *Coco) Setup() {
 	orm.MustRegisterSchemaWithIndexName(core.WikiToc{}, "wiki-toc"+suffix)
 	orm.MustRegisterSchemaWithIndexName(core.WikiVersion{}, "wiki-version"+suffix)
 	orm.MustRegisterSchemaWithIndexName(core.WikiBookmark{}, "wiki-bookmark"+suffix)
+	orm.MustRegisterSchemaWithIndexName(core.WikiComment{}, "wiki-comment"+suffix)
 	orm.MustRegisterSchemaWithIndexName(core.WikiNotification{}, "wiki-notification"+suffix)
 	orm.MustRegisterSchemaWithIndexName(core.WikiEntity{}, "wiki-entity"+suffix)
 	orm.MustRegisterSchemaWithIndexName(core.WikiOntologySchema{}, "wiki-ontology-schema"+suffix)

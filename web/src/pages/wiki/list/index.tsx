@@ -15,14 +15,23 @@ import {
   Empty,
   Input,
   List,
+  Modal,
+  Select,
   Skeleton,
   Tag,
   Tooltip
 } from 'antd';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { deleteWikiKb, searchWikiKbs } from '@/service/api';
+import {
+  createWikiWorkspace,
+  deleteWikiKb,
+  searchWikiArticles,
+  searchWikiBookmarks,
+  searchWikiKbs,
+  searchWikiWorkspaces
+} from '@/service/api';
 import { CreateKbModal } from '../components/CreateKbModal';
 import { SearchModal } from '../components/SearchModal';
 import { WikiShell } from '../components/WikiShell';
@@ -42,6 +51,12 @@ export function Component() {
   const [keyword, setKeyword] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [workspaces, setWorkspaces] = useState<{ id: string; name: string }[]>([]);
+  const [workspaceId, setWorkspaceId] = useState<string>('all');
+  const [wsCreateOpen, setWsCreateOpen] = useState(false);
+  const [wsName, setWsName] = useState('');
+  const [bookmarks, setBookmarks] = useState<Api.Wiki.Bookmark[]>([]);
+  const [articles, setArticles] = useState<Api.Wiki.Article[]>([]);
 
   const fetchData = (query?: string) => {
     setLoading(true);
@@ -53,7 +68,31 @@ export function Component() {
 
   useEffect(() => {
     fetchData();
+    searchWikiWorkspaces().then(res => setWorkspaces((res as any) || []));
+    searchWikiBookmarks().then(res => setBookmarks(((res as any).data || []) as Api.Wiki.Bookmark[]));
+    searchWikiArticles({}).then(res => setArticles(((res as any).data || []) as Api.Wiki.Article[]));
   }, []);
+
+  const visibleKbs = useMemo(
+    () => (workspaceId === 'all' ? kbs : kbs.filter(kb => kb.workspace_id === workspaceId)),
+    [kbs, workspaceId]
+  );
+
+  const bookmarkedArticles = useMemo(() => {
+    const ids = new Set(bookmarks.map(b => b.article_id));
+    return articles.filter(a => ids.has(a.id));
+  }, [bookmarks, articles]);
+
+  const onCreateWorkspace = () => {
+    if (!wsName.trim()) return;
+    createWikiWorkspace(wsName.trim()).then(res => {
+      if ((res as any)?._id) {
+        setWsName('');
+        setWsCreateOpen(false);
+        searchWikiWorkspaces().then(r => setWorkspaces((r as any) || []));
+      }
+    });
+  };
 
   const onSearch = (value: string) => {
     setKeyword(value);
@@ -82,6 +121,24 @@ export function Component() {
             <div className='mt-1 text-gray-500'>{t('page.wiki.hub.subtitle')}</div>
           </div>
           <div className='flex items-center gap-3'>
+            <Select
+              className="w-180px"
+              showSearch={false}
+              value={workspaceId}
+              onChange={setWorkspaceId}
+              options={[
+                { value: 'all', label: t('page.wiki.workspace.all') },
+                ...workspaces.map(w => ({ value: w.id, label: w.name }))
+              ]}
+              suffixIcon={
+                <PlusOutlined
+                  onClick={e => {
+                    e.stopPropagation();
+                    setWsCreateOpen(true);
+                  }}
+                />
+              }
+            />
             <Input.Search
               allowClear
               className='w-260px'
@@ -103,12 +160,12 @@ export function Component() {
           <Card.Grid className='w-full'>
             <Skeleton active />
           </Card.Grid>
-        ) : kbs.length === 0 ? (
+        ) : visibleKbs.length === 0 ? (
           <Empty description={t('page.wiki.hub.empty')} image={Empty.PRESENTED_IMAGE_SIMPLE} />
         ) : (
           <List
             grid={{ gutter: 16, column: 3, xs: 1, sm: 2 }}
-            dataSource={kbs}
+            dataSource={visibleKbs}
             renderItem={kb => (
               <List.Item>
                 <Card
@@ -177,6 +234,37 @@ export function Component() {
           />
         )}
       </Card>
+
+      {bookmarkedArticles.length > 0 && (
+        <Card bordered={false} className='card-wrapper mt-12px' title={t('page.wiki.bookmarks.title')}>
+          <List
+            dataSource={bookmarkedArticles}
+            grid={{ gutter: 16, column: 3, xs: 1, sm: 2 }}
+            renderItem={article => (
+              <List.Item>
+                <Card hoverable onClick={() => nav(`/wiki/article/${article.id}`)} size="small">
+                  <Card.Meta description={article.summary?.slice(0, 60)} title={article.title} />
+                </Card>
+              </List.Item>
+            )}
+          />
+        </Card>
+      )}
+
+      <Modal
+        cancelText={t('common.cancel')}
+        okText={t('common.create')}
+        open={wsCreateOpen}
+        title={t('page.wiki.workspace.create')}
+        onCancel={() => setWsCreateOpen(false)}
+        onOk={onCreateWorkspace}
+      >
+        <Input
+          placeholder={t('page.wiki.workspace.namePlaceholder')}
+          value={wsName}
+          onChange={e => setWsName(e.target.value)}
+        />
+      </Modal>
 
       <CreateKbModal onClose={() => setCreateOpen(false)} onCreated={() => fetchData(keyword)} open={createOpen} />
       <SearchModal onClose={() => setSearchOpen(false)} open={searchOpen} />

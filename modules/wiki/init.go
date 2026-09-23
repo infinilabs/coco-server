@@ -19,6 +19,7 @@ var (
 	bookmarkResource  = "wiki_bookmark"
 	notificationRes   = "wiki_notification"
 	entityResource    = "wiki_entity"
+	commentResource   = "wiki_comment"
 )
 
 type APIHandler struct {
@@ -28,7 +29,7 @@ type APIHandler struct {
 func init() {
 
 	permKeys := make([]security.PermissionKey, 0, 30)
-	for _, resource := range []string{workspaceResource, kbResource, articleResource, bookmarkResource, notificationRes, entityResource} {
+	for _, resource := range []string{workspaceResource, kbResource, articleResource, bookmarkResource, notificationRes, entityResource, commentResource} {
 		permKeys = append(permKeys,
 			security.GetSimplePermission(Category, resource, string(security.Create)),
 			security.GetSimplePermission(Category, resource, string(security.Update)),
@@ -45,6 +46,7 @@ func init() {
 	registerBookmarkCRUD()
 	registerNotificationCRUD()
 	registerEntityCRUD()
+	registerCommentCRUD()
 
 	handler := APIHandler{}
 

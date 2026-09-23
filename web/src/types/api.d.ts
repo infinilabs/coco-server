@@ -381,6 +381,8 @@ declare namespace Api {
     }
 
     interface Kb {
+      /** raw ES system fields passthrough (owner_id powers the share popover) */
+      _system?: { owner_id?: string };
       id: string;
       name: string;
       description: string;
@@ -447,6 +449,17 @@ declare namespace Api {
       type: string;
       name: string;
       entity_id?: string;
+    }
+
+    interface Comment {
+      id: string;
+      article_id: string;
+      user_id: string;
+      user_name: string;
+      content: string;
+      created_at?: string;
+      /** client-side: whether the current user may delete */
+      own?: boolean;
     }
 
     interface EntityInfo {

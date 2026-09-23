@@ -140,6 +140,16 @@ type WikiBookmark struct {
 	ArticleID string `json:"article_id" elastic_mapping:"article_id:{type:keyword}"`
 }
 
+// WikiComment is a user comment on an article (discussion stays in the wiki;
+// only article *content* goes through the review status machine).
+type WikiComment struct {
+	orm.ORMObjectBase
+	ArticleID string `json:"article_id" elastic_mapping:"article_id:{type:keyword}"`
+	UserID    string `json:"user_id" elastic_mapping:"user_id:{type:keyword}"`
+	UserName  string `json:"user_name" elastic_mapping:"user_name:{type:keyword}"`
+	Content   string `json:"content" elastic_mapping:"content:{type:text,copy_to:combined_fulltext}"`
+}
+
 // WikiNotification records wiki events targeted at a user.
 type WikiNotification struct {
 	orm.ORMObjectBase

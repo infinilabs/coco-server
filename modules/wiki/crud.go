@@ -6,6 +6,7 @@ package wiki
 
 import (
 	"fmt"
+	"strings"
 
 	"infini.sh/coco/core"
 	"infini.sh/framework/core/api"
@@ -135,6 +136,12 @@ func articleConfig() crud.Config[core.WikiArticle] {
 			return nil
 		},
 		PostDelete: func(obj *core.WikiArticle) error {
+			ctx := orm.NewContext()
+			ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+			ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+			if err := deleteArticleChildren(ctx, obj.ID); err != nil {
+				return err
+			}
 			return bumpKbArticleCount(obj.KbID, -1)
 		},
 	}
@@ -154,6 +161,35 @@ func registerBookmarkCRUD() {
 			return nil
 		},
 	})
+}
+
+func registerCommentCRUD() {
+	crud.RegisterCRUD(commentConfig())
+}
+
+func commentConfig() crud.Config[core.WikiComment] {
+	return crud.Config[core.WikiComment]{
+		Prefix:             "/wiki/comment",
+		Resource:           commentResource,
+		Permission:         simplePermissionFn(commentResource),
+		DefaultQueryFields: []string{"content", "combined_fulltext"},
+		MCP:                false,
+		PrepareCreate: func(obj *core.WikiComment) error {
+			if obj.ArticleID == "" {
+				return fmt.Errorf("article_id is required")
+			}
+			if strings.TrimSpace(obj.Content) == "" {
+				return fmt.Errorf("content is required")
+			}
+			if len([]rune(obj.Content)) > 4000 {
+				return fmt.Errorf("content is too long")
+			}
+			return nil
+		},
+		// identity comes from the payload on create and locked afterwards;
+		// author-only edit/delete is the UI contract
+		ProtectedFields: []string{"user_id", "user_name"},
+	}
 }
 
 func registerNotificationCRUD() {
@@ -216,14 +252,8 @@ func deleteKbChildren(kbID string) error {
 		if err := deleteByID(ctx, &core.WikiArticle{}, id); err != nil {
 			return err
 		}
-		versions, err := findIDs(ctx, &core.WikiVersion{}, orm.TermQuery("article_id", id))
-		if err != nil {
+		if err := deleteArticleChildren(ctx, id); err != nil {
 			return err
-		}
-		for _, vid := range versions {
-			if err := deleteByID(ctx, &core.WikiVersion{}, vid); err != nil {
-				return err
-			}
 		}
 	}
 
@@ -233,6 +263,29 @@ func deleteKbChildren(kbID string) error {
 	}
 	for _, id := range tocs {
 		if err := deleteByID(ctx, &core.WikiToc{}, id); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// deleteArticleChildren removes the versions and comments of an article.
+func deleteArticleChildren(ctx *orm.Context, articleID string) error {
+	versions, err := findIDs(ctx, &core.WikiVersion{}, orm.TermQuery("article_id", articleID))
+	if err != nil {
+		return err
+	}
+	for _, vid := range versions {
+		if err := deleteByID(ctx, &core.WikiVersion{}, vid); err != nil {
+			return err
+		}
+	}
+	comments, err := findIDs(ctx, &core.WikiComment{}, orm.TermQuery("article_id", articleID))
+	if err != nil {
+		return err
+	}
+	for _, cid := range comments {
+		if err := deleteByID(ctx, &core.WikiComment{}, cid); err != nil {
 			return err
 		}
 	}

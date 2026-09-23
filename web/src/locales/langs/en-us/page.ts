@@ -30,6 +30,24 @@ const page: App.I18n.Schema['translation']['page'] = {
       empty: 'No notifications'
     },
     outline: { title: 'On this page' },
+    comments: {
+      title: 'Comments',
+      placeholder: 'Add a comment…',
+      submit: 'Comment',
+      empty: 'No comments yet',
+      deleteConfirm: 'Delete this comment?',
+      anonymous: 'Anonymous'
+    },
+    members: {
+      hint: 'Collaboration is managed through shares: grant view / edit / share permissions per user or role.',
+      ownerOnly: 'Only the owner or a share manager can edit collaborators (owner: {{owner}}).'
+    },
+    workspace: {
+      all: 'All Workspaces',
+      create: 'New Workspace',
+      namePlaceholder: 'Workspace name'
+    },
+    bookmarks: { title: 'My Bookmarks' },
     hub: {
       title: 'Knowledge Hub',
       subtitle: 'Curated, citation-backed knowledge bases generated and maintained with the KM agent',

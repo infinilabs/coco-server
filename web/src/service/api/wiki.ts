@@ -31,6 +31,7 @@ const fmtDate = (iso?: string): string => {
 /* ---------------- normalization (server _source -> UI types) ---------------- */
 
 const normalizeKb = (src: any): Api.Wiki.Kb => ({
+  _system: src?._system,
   id: src?.id ?? '',
   name: src?.name ?? '',
   description: src?.description ?? '',
@@ -230,6 +231,45 @@ export function searchWikiEntities(ids?: string[]) {
       relations: (e?.relations || []) as { target_id: string; relation: string }[]
     })) as Api.Wiki.EntityInfo[];
   });
+}
+
+/* ---------------- comments ---------------- */
+
+export function searchWikiComments(articleId: string) {
+  const searchParams = new URLSearchParams();
+  searchParams.set('filter', `article_id:${articleId}`);
+  return request<{ hits: any }>({ method: 'get', url: `/wiki/comment/_search?${searchParams.toString()}` }).then(res => {
+    const es = formatESSearchResult(res?.data);
+    return ((es.data || []) as any[]).map(c => ({
+      id: c?.id ?? '',
+      article_id: c?.article_id ?? '',
+      user_id: c?.user_id ?? '',
+      user_name: c?.user_name ?? '',
+      content: c?.content ?? '',
+      created_at: fmtDate(c?.created)
+    })) as Api.Wiki.Comment[];
+  });
+}
+
+export function createWikiComment(body: { article_id: string; user_id: string; user_name: string; content: string }) {
+  return request({ method: 'post', data: body, url: '/wiki/comment/' }).then(res => res?.data);
+}
+
+export function deleteWikiComment(id: string) {
+  return request({ method: 'delete', url: `/wiki/comment/${id}` }).then(res => res?.data);
+}
+
+/* ---------------- workspaces ---------------- */
+
+export function searchWikiWorkspaces() {
+  return request<{ hits: any }>({ method: 'get', url: '/wiki/workspace/_search' }).then(res => {
+    const es = formatESSearchResult(res?.data);
+    return ((es.data || []) as any[]).map(w => ({ id: w?.id ?? '', name: w?.name ?? '' }));
+  });
+}
+
+export function createWikiWorkspace(name: string) {
+  return request({ method: 'post', data: { name }, url: '/wiki/workspace/' }).then(res => res?.data);
 }
 
 /* ---------------- misc ---------------- */

@@ -30,6 +30,24 @@ const page: App.I18n.Schema['translation']['page'] = {
       empty: '暂无消息'
     },
     outline: { title: '本页目录' },
+    comments: {
+      title: '评论',
+      placeholder: '写下你的评论…',
+      submit: '发表评论',
+      empty: '暂无评论',
+      deleteConfirm: '删除这条评论？',
+      anonymous: '匿名'
+    },
+    members: {
+      hint: '协作通过共享管理：可按用户或角色授予查看 / 编辑 / 分享权限。',
+      ownerOnly: '仅所有者或分享管理员可管理协作者（所有者：{{owner}}）。'
+    },
+    workspace: {
+      all: '全部工作区',
+      create: '新建工作区',
+      namePlaceholder: '工作区名称'
+    },
+    bookmarks: { title: '我的收藏' },
     hub: {
       title: '知识中心',
       subtitle: '由 KM Agent 生成并维护、带引用溯源的知识库',

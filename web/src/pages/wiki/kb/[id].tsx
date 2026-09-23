@@ -1,6 +1,5 @@
 import { ArrowLeftOutlined, FileAddOutlined, ReloadOutlined, RobotOutlined } from '@ant-design/icons';
 import {
-  Avatar,
   Button,
   Card,
   Empty,
@@ -22,6 +21,9 @@ import { KbGraph } from '../components/KbGraph';
 import { KbOverview } from '../components/KbOverview';
 import { KbSettings } from '../components/KbSettings';
 import { WikiShell } from '../components/WikiShell';
+import Shares from '@/components/Resource/Shares';
+import useResource from '@/components/Resource/hooks/useResource';
+import { selectUserInfo } from '@/store/slice/auth';
 
 const STATUS_COLOR: Record<string, string> = {
   draft: 'default',
@@ -107,11 +109,26 @@ export function Component() {
   const [newOpen, setNewOpen] = useState(false);
   const [generateOpen, setGenerateOpen] = useState(false);
 
+  const { addSharesToData } = useResource();
+  const userInfo = useAppSelector(selectUserInfo);
+
   const fetchAll = () => {
     if (!id) return;
     setLoading(true);
-    Promise.all([getWikiKb(id), searchWikiArticles({ kbId: id })]).then(([kbRes, artRes]) => {
-      setKb((kbRes as any) as Api.Wiki.Kb);
+    Promise.all([getWikiKb(id), searchWikiArticles({ kbId: id })]).then(async ([kbRes, artRes]) => {
+      let kbObj = (kbRes as any) as Api.Wiki.Kb | null;
+      const kbAny = kbObj as any;
+      if (kbAny) {
+        // attach owner/shares so the collaboration popover has real data
+        kbObj = ((await addSharesToData([kbAny], [{ resource_id: kbAny.id, resource_type: 'wiki_kb' }]))?.[0] as Api.Wiki.Kb) || kbObj;
+        // the share popover keys off owner/editor identity — guarantee the
+        // basics even when the label service is unavailable
+        const enriched = kbObj as any;
+        enriched.shares = enriched.shares || [];
+        enriched.owner = enriched.owner || (enriched._system?.owner_id ? { id: enriched._system.owner_id } : undefined);
+        enriched.editor = enriched.editor || (userInfo?.id ? { id: userInfo.id } : undefined);
+      }
+      setKb(kbObj);
       setArticles(((artRes as any)?.data || []) as Api.Wiki.Article[]);
       setLoading(false);
     });
@@ -252,24 +269,26 @@ export function Component() {
                     key: 'members',
                     label: t('page.wiki.kb.tabs.members'),
                     children: (
-                      <List
-                        dataSource={kb?.members || []}
-                        renderItem={member => (
-                          <List.Item
-                            actions={[
-                              <Tag key='role' color={member.role === 'owner' ? 'gold' : member.role === 'agent' ? 'purple' : 'default'}>
-                                {t(`page.wiki.role.${member.role}`)}
-                              </Tag>
-                            ]}
-                          >
-                            <List.Item.Meta
-                              avatar={<Avatar>{member.avatar}</Avatar>}
-                              description={member.email}
-                              title={member.name}
+                      <div className="max-w-640px">
+                        <div className="mb-12px text-13px color-[var(--ant-color-text-tertiary)]">
+                          {t('page.wiki.members.hint')}
+                        </div>
+                        {kb && (
+                          <>
+                            <Shares
+                              record={kb as any}
+                              resource={{ resource_type: 'wiki_kb', resource_id: kb.id }}
+                              title={kb.name}
+                              onSuccess={fetchAll}
                             />
-                          </List.Item>
+                            {(!(kb as any).owner || (kb as any).owner?.id === (kb as any).editor?.id) === false && (kb as any).shares?.length === 0 && (
+                              <div className="text-13px color-[var(--ant-color-text-tertiary)]">
+                                {t('page.wiki.members.ownerOnly', { owner: (kb as any).owner?.title || (kb as any).owner?.id || '' })}
+                              </div>
+                            )}
+                          </>
                         )}
-                      />
+                      </div>
                     )
                   },
                   {
