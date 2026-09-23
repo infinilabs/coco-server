@@ -257,6 +257,8 @@ const routeMap: RouteMap = {
   "search": "/search",
   "security": "/security",
   "settings": "/settings",
+  "skill": "/skill",
+  "skill_list": "list",
   "user": "/user",
   "user_edit": "edit/:id",
   "user_new": "new",

@@ -889,6 +889,13 @@ const page: App.I18n.Schema['translation']['page'] = {
     title: 'Welcome'
   },
   mcpserver: {
+    server: {
+      title: 'Coco MCP Server',
+      help: 'Connection guide',
+      copyConfig: 'Copy client config',
+      copied: 'MCP client config copied to clipboard'
+    },
+
     delete: {
       confirm: 'Are you sure you want to delete this ai MCP server "{{name}}"?'
     },
@@ -904,6 +911,38 @@ const page: App.I18n.Schema['translation']['page'] = {
       icon: 'Icon',
       name: 'Name',
       type: 'Type'
+    }
+  },
+  skill: {
+    title: 'Skills',
+    subtitle: 'Managed prompt overlays injected into every assistant when enabled — toggles apply to the next message, no restart needed',
+    search: 'Search skills',
+    empty: 'No skills yet',
+    builtin: 'Built-in',
+    create: 'Create Skill',
+    edit: 'Edit Skill',
+    delete: {
+      confirm: 'Delete this skill?'
+    },
+    export: {
+      copied: 'MCP client config copied to clipboard'
+    },
+    name: {
+      readonly: 'Locked for built-in skills'
+    },
+    instructions: {
+      hint: 'Markdown instructions injected into the system prompt. Describe HOW the assistant should work (persona, method steps, guardrails) — not new tools.'
+    },
+    labels: {
+      title: 'Title',
+      name: 'Name',
+      description: 'Description',
+      category: 'Category',
+      instructions: 'Instructions',
+      enabled: 'Enabled'
+    },
+    toast: {
+      updated: 'Skill updated'
     }
   },
   modelprovider: {

@@ -1,5 +1,5 @@
 import { EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, PlusOutlined } from '@ant-design/icons';
-import { Avatar, Button, Dropdown, Switch, Table, message } from 'antd';
+import { Avatar, Button, Dropdown, Switch, Table, Tag, message } from 'antd';
 import type { MenuProps, TableColumnsType, TableProps } from 'antd';
 import Search from 'antd/es/input/Search';
 
@@ -321,8 +321,60 @@ export function Component() {
 
   const integratedStoreModalRef = useRef<IntegratedStoreModalRef>(null);
 
+  // inbound MCP server endpoint — coco exposing ITS capabilities to external
+  // agents (the table below is the outbound client registry)
+  const mcpEndpoint = `${window.location.origin}/mcp`;
+  const mcpClientConfig = JSON.stringify(
+    {
+      mcpServers: {
+        coco: {
+          url: mcpEndpoint,
+          headers: { 'X-API-TOKEN': '<your-api-token>' }
+        }
+      }
+    },
+    null,
+    2
+  );
+
+  const onCopyMCPConfig = async () => {
+    await navigator.clipboard.writeText(mcpClientConfig);
+    message.success(t('page.mcpserver.server.copied'));
+  };
+
   return (
     <ListContainer>
+      <ACard
+        bordered={false}
+        className='mb-12px card-wrapper'
+        size='small'
+      >
+        <div className='flex flex-wrap items-center justify-between gap-12px py-4px'>
+          <div className='flex flex-wrap items-center gap-8px'>
+            <span className='font-500'>{t('page.mcpserver.server.title')}</span>
+            <Tag
+              bordered={false}
+              color='blue'
+            >
+              streamable-http
+            </Tag>
+            <code className='rounded-4px bg-[var(--ant-color-fill-tertiary)] px-6px py-2px text-13px'>{mcpEndpoint}</code>
+            <a
+              href='/mcp'
+              rel='noreferrer'
+              target='_blank'
+            >
+              {t('page.mcpserver.server.help')}
+            </a>
+          </div>
+          <Button
+            size='small'
+            onClick={onCopyMCPConfig}
+          >
+            {t('page.mcpserver.server.copyConfig')}
+          </Button>
+        </div>
+      </ACard>
       <ACard
         bordered={false}
         className='flex-col-stretch sm:flex-1-hidden card-wrapper'

@@ -96,7 +96,7 @@ export const generatedRoutes: GeneratedRoute[] = [
     meta: {
       i18nKey: 'route.api-token',
       title: 'api-token',
-      order: 9,
+      order: 10,
       localIcon: 'security',
       permissions: ['generic#security:auth:api-token/search']
     },
@@ -296,7 +296,7 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.integration',
       title: 'integration',
       localIcon: 'puzzle',
-      order: 8,
+      order: 9,
       permissions: ['coco#integration/search']
     },
     children: [
@@ -408,7 +408,7 @@ export const generatedRoutes: GeneratedRoute[] = [
     meta: {
       i18nKey: 'route.model-provider',
       title: 'model-provider',
-      order: 7,
+      order: 8,
       localIcon: 'model-provider',
       permissions: ['coco#model_provider/search']
     },
@@ -535,7 +535,7 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.security',
       title: 'security',
       localIcon: 'user',
-      order: 10,
+      order: 11,
       permissions: [
         'generic#security:authorization/search',
         'generic#security:user/search',
@@ -552,10 +552,37 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.settings',
       title: 'settings',
       localIcon: 'settings',
-      order: 11,
+      order: 12,
       permissions: ['coco#system/read', 'coco#connector/search'],
       permissionLogic: 'or'
     }
+  },
+  {
+    name: 'skill',
+    path: '/skill',
+    component: 'layout.base',
+    meta: {
+      i18nKey: 'route.skill',
+      title: 'skill',
+      order: 7,
+      localIcon: 'skill',
+      permissions: ['coco#skill/search']
+    },
+    redirect: 'list',
+    children: [
+      {
+        name: 'skill_list',
+        path: 'list',
+        component: 'view.skill_list',
+        meta: {
+          i18nKey: 'route.skill_list',
+          title: 'skill_list',
+          hideInMenu: true,
+          activeMenu: 'skill',
+          permissions: ['coco#skill/search']
+        }
+      }
+    ]
   },
   {
     name: 'user',

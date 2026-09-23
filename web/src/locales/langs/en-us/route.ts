@@ -65,6 +65,8 @@ const route: App.I18n.Schema['translation']['route'] = {
   'ai-assistant_new': 'New AI Assistant',
   'ai-assistant_edit': 'Edit AI Assistant',
   settings: 'Settings',
+  skill: 'Skills',
+  skill_list: 'Skills',
   security: 'Security',
   'model-provider': 'LLM Provider',
   'model-provider_list': 'LLM Provider',

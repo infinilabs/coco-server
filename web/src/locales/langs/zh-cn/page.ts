@@ -1037,6 +1037,13 @@ const page: App.I18n.Schema['translation']['page'] = {
     title: '欢迎'
   },
   mcpserver: {
+    server: {
+      title: 'Coco MCP 服务端',
+      help: '接入指南',
+      copyConfig: '复制客户端配置',
+      copied: 'MCP 客户端配置已复制到剪贴板'
+    },
+
     delete: {
       confirm: 'Are you sure you want to delete this ai MCP server "{{name}}"?'
     },
@@ -1160,6 +1167,38 @@ const page: App.I18n.Schema['translation']['page'] = {
       name: '请输入',
       payload_url: '请输入',
       secret: '请输入'
+    }
+  },
+  skill: {
+    title: '技能管理',
+    subtitle: '启用后注入所有助手系统提示词的可管理技能片段 —— 开关下一条消息即生效，无需重启',
+    search: '搜索技能',
+    empty: '暂无技能',
+    builtin: '内置',
+    create: '新建技能',
+    edit: '编辑技能',
+    delete: {
+      confirm: '确定删除该技能？'
+    },
+    export: {
+      copied: 'MCP 客户端配置已复制到剪贴板'
+    },
+    name: {
+      readonly: '内置技能的名称不可修改'
+    },
+    instructions: {
+      hint: '注入系统提示词的 Markdown 指令。描述助手应该“如何工作”（角色、方法步骤、守则），而不是新增工具。'
+    },
+    labels: {
+      title: '标题',
+      name: '标识名',
+      description: '描述',
+      category: '分类',
+      instructions: '指令',
+      enabled: '启用'
+    },
+    toast: {
+      updated: '技能已更新'
     }
   },
   modelprovider: {

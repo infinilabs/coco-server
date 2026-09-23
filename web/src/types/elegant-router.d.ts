@@ -76,6 +76,8 @@ declare module "@elegant-router/types" {
     "search": "/search";
     "security": "/security";
     "settings": "/settings";
+    "skill": "/skill";
+    "skill_list": "list";
     "user": "/user";
     "user_edit": "edit/:id";
     "user_new": "new";
@@ -149,6 +151,7 @@ declare module "@elegant-router/types" {
     | "search"
     | "security"
     | "settings"
+    | "skill"
     | "user"
     | "webhook"
     | "wiki"
@@ -205,6 +208,7 @@ declare module "@elegant-router/types" {
     | "search"
     | "security"
     | "settings"
+    | "skill_list"
     | "user_edit"
     | "user_new"
     | "webhook_edit"

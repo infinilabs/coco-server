@@ -64,6 +64,8 @@ const route: App.I18n.Schema['translation']['route'] = {
   'ai-assistant_new': '新增 AI 助手',
   'ai-assistant_edit': '编辑 AI 助手',
   settings: '设置',
+  skill: '技能管理',
+  skill_list: '技能管理',
   security: '用户角色',
   'model-provider': '模型提供商',
   'model-provider_list': '模型提供商',
