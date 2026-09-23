@@ -17,6 +17,7 @@ import (
 	"infini.sh/coco/modules/integration"
 	_ "infini.sh/coco/modules/integration"
 	_ "infini.sh/coco/modules/llm"
+	_ "infini.sh/coco/modules/skill"
 	_ "infini.sh/coco/modules/system"
 	_ "infini.sh/coco/modules/wiki"
 	"infini.sh/framework/core/orm"
@@ -38,6 +39,7 @@ func (this *Coco) Setup() {
 	orm.MustRegisterSchemaWithIndexName(core.ModelProvider{}, "model-provider"+suffix)
 	orm.MustRegisterSchemaWithIndexName(core.Assistant{}, "assistant"+suffix)
 	orm.MustRegisterSchemaWithIndexName(core.MCPServer{}, "mcp-server"+suffix)
+	orm.MustRegisterSchemaWithIndexName(core.Skill{}, "skill"+suffix)
 	orm.MustRegisterSchemaWithIndexName(core.WikiWorkspace{}, "wiki-workspace"+suffix)
 	orm.MustRegisterSchemaWithIndexName(core.WikiKnowledgeBase{}, "wiki-kb"+suffix)
 	orm.MustRegisterSchemaWithIndexName(core.WikiArticle{}, "wiki-article"+suffix)
