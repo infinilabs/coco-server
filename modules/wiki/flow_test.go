@@ -351,3 +351,43 @@ func jsonString(s string) string {
 func urlQueryEscape(s string) string {
 	return strings.ReplaceAll(s, " ", "%20")
 }
+
+func TestTocAutoMaintenance(t *testing.T) {
+	kbH, artH, h := setupFlow(t)
+
+	w, out := call(t, kbH.Create, "POST", "/wiki/kb/", `{"name":"Toc Sync KB"}`)
+	require.Equal(t, http.StatusOK, w.Code)
+	kbID, _ := out["_id"].(string)
+	require.NotEmpty(t, kbID)
+
+	// creating an article places it at the tree root
+	w, out = call(t, artH.Create, "POST", "/wiki/article/", `{"kb_id":"`+kbID+`","title":"First Draft","content":"x"}`)
+	require.Equal(t, http.StatusOK, w.Code)
+	artID, _ := out["_id"].(string)
+
+	_, out2 := callTocGet(t, h, kbID)
+	nodesAny, _ := out2["_source"].(map[string]interface{})["nodes"].([]interface{})
+	nodes := nodesAny
+	require.Len(t, nodes, 1)
+	require.NotEmpty(t, nodes, "article should have joined the toc")
+	node := nodes[0].(map[string]interface{})
+	assert.Equal(t, artID, node["article_id"])
+	assert.Equal(t, "First Draft", node["title"])
+
+	// renaming the article relabels its node
+	w, _ = call(t, artH.Update, "PUT", "/wiki/article/"+artID, `{"title":"Renamed Draft"}`)
+	require.Equal(t, http.StatusOK, w.Code)
+	_, out = callTocGet(t, h, kbID)
+	nodesAny, _ = out["_source"].(map[string]interface{})["nodes"].([]interface{})
+	nodes = nodesAny
+	require.Len(t, nodes, 1)
+	assert.Equal(t, "Renamed Draft", nodes[0].(map[string]interface{})["title"])
+
+	// deleting the article leaves no dangling node
+	w, _ = call(t, artH.Delete, "DELETE", "/wiki/article/"+artID, "")
+	require.Equal(t, http.StatusOK, w.Code)
+	_, out = callTocGet(t, h, kbID)
+	nodesAny, _ = out["_source"].(map[string]interface{})["nodes"].([]interface{})
+	nodes = nodesAny
+	assert.Empty(t, nodes)
+}

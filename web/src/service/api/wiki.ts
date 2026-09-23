@@ -145,6 +145,10 @@ export function updateWikiArticle(id: string, body: Partial<Api.Wiki.Article>) {
 }
 
 /** status machine transition: draft → reviewed → published (→ archived) */
+export function deleteWikiArticle(id: string) {
+  return request({ method: 'delete', url: `/wiki/article/${id}` }).then(res => res?.data);
+}
+
 export function updateWikiArticleStatus(id: string, status: Api.Wiki.ArticleStatus) {
   return request({ method: 'put', data: { status }, url: `/wiki/article/${id}/status` }).then(res => res?.data);
 }

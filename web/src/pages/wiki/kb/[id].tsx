@@ -1,4 +1,4 @@
-import { ArrowLeftOutlined, FileAddOutlined, ReloadOutlined, RobotOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, DeleteOutlined, FileAddOutlined, ReloadOutlined, RobotOutlined, SearchOutlined } from '@ant-design/icons';
 import {
   Button,
   Card,
@@ -7,6 +7,7 @@ import {
   Input,
   List,
   Modal,
+  Popconfirm,
   Select,
   Space,
   Tabs,
@@ -15,7 +16,7 @@ import {
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { createWikiArticle, getWikiKb, searchWikiArticles } from '@/service/api';
+import { createWikiArticle, deleteWikiArticle, getWikiKb, searchWikiArticles } from '@/service/api';
 import { GenerateModal } from '../components/GenerateModal';
 import { KbGraph } from '../components/KbGraph';
 import { KbOverview } from '../components/KbOverview';
@@ -108,6 +109,8 @@ export function Component() {
   const [loading, setLoading] = useState(true);
   const [newOpen, setNewOpen] = useState(false);
   const [generateOpen, setGenerateOpen] = useState(false);
+  const [artKeyword, setArtKeyword] = useState('');
+  const [artStatus, setArtStatus] = useState<string>('all');
 
   const { addSharesToData } = useResource();
   const userInfo = useAppSelector(selectUserInfo);
@@ -137,6 +140,19 @@ export function Component() {
   useEffect(fetchAll, [id]);
 
   const goArticle = (articleId: string) => nav(`/wiki/article/${articleId}?kb=${id}`);
+
+  const visibleArticles = articles.filter(
+    a =>
+      (artStatus === 'all' || a.status === artStatus) &&
+      (!artKeyword || a.title.toLowerCase().includes(artKeyword.toLowerCase()) || a.summary?.toLowerCase().includes(artKeyword.toLowerCase()))
+  );
+
+  const onDeleteArticle = (articleId: string) => {
+    deleteWikiArticle(articleId).then(() => {
+      window.$message?.success(t('common.deleteSuccess'));
+      fetchAll();
+    });
+  };
 
   if (!loading && !kb) {
     return <Empty description={t('page.wiki.kb.notFound')} />;
@@ -202,13 +218,51 @@ export function Component() {
                     key: 'articles',
                     label: t('page.wiki.kb.tabs.articles'),
                     children: (
+                      <div>
+                      <div className='mb-12px flex items-center gap-8px'>
+                        <Input
+                          allowClear
+                          className='w-240px'
+                          placeholder={t('page.wiki.articles.filterPlaceholder')}
+                          prefix={<SearchOutlined />}
+                          value={artKeyword}
+                          onChange={e => setArtKeyword(e.target.value)}
+                        />
+                        <Select
+                          className='w-140px'
+                          value={artStatus}
+                          onChange={setArtStatus}
+                          options={[
+                            { value: 'all', label: t('page.wiki.articles.allStatuses') },
+                            ...['draft', 'reviewed', 'published', 'archived'].map(st => ({
+                              value: st,
+                              label: t(`page.wiki.status.${st}`)
+                            }))
+                          ]}
+                        />
+                      </div>
                       <List
-                        dataSource={articles}
+                        dataSource={visibleArticles}
                         loading={loading}
                         pagination={{ pageSize: 10, hideOnSinglePage: true }}
                         renderItem={article => (
                           <List.Item
                             className='cursor-pointer'
+                            actions={[
+                              <Popconfirm
+                                key='delete'
+                                title={t('page.wiki.articles.deleteConfirm')}
+                                onConfirm={() => onDeleteArticle(article.id)}
+                              >
+                                <Button
+                                  danger
+                                  icon={<DeleteOutlined />}
+                                  onClick={e => e.stopPropagation()}
+                                  size='small'
+                                  type='text'
+                                />
+                              </Popconfirm>
+                            ]}
                             extra={
                               <Space>
                                 <Tag color={STATUS_COLOR[article.status]}>
@@ -233,6 +287,7 @@ export function Component() {
                           </List.Item>
                         )}
                       />
+                      </div>
                     )
                   },
                   {

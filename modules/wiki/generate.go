@@ -569,6 +569,9 @@ func deliverPage(kb *core.WikiKnowledgeBase, page *draftedPage) (*core.WikiArtic
 		fmt.Sprintf("KM agent generated from %d source documents", len(page.sources))); err != nil {
 		return nil, err
 	}
+	if err := addArticleToToc(kb.ID, article.ID, article.Title); err != nil {
+		return nil, err
+	}
 	persistLinkedPages(article)
 	if err := bumpKbArticleCount(kb.ID, 1); err != nil {
 		return nil, err

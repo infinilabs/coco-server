@@ -117,6 +117,116 @@ func validateTocNodes(nodes []core.WikiTocNode) error {
 	return nil
 }
 
+// tocMutate loads a KB's toc, applies the mutation and persists the result.
+// Creating the WikiToc record lazily keeps new KBs clean of empty shells.
+func tocMutate(kbID string, mutate func(nodes []core.WikiTocNode) ([]core.WikiTocNode, bool)) error {
+	ctx := orm.NewContext()
+	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	// back-to-back mutations (create → rename → delete) must read their own
+	// writes, otherwise near-real-time search can resurrect stale nodes
+	ctx.Refresh = orm.WaitForRefresh
+	orm.WithModel(ctx, &core.WikiToc{})
+
+	toc, found, err := findToc(ctx, kbID)
+	if err != nil {
+		return err
+	}
+	nodes, changed := mutate(toc.Nodes)
+	if !changed {
+		return nil
+	}
+	if !found {
+		toc = &core.WikiToc{KbID: kbID}
+	}
+	toc.Nodes = nodes
+	if found {
+		return orm.Update(ctx, toc)
+	}
+	return orm.Create(ctx, toc)
+}
+
+// addArticleToToc appends an article node at the tree root unless it is
+// already placed somewhere (the user may have moved it).
+func addArticleToToc(kbID, articleID, title string) error {
+	if kbID == "" || articleID == "" {
+		return nil
+	}
+	return tocMutate(kbID, func(nodes []core.WikiTocNode) ([]core.WikiTocNode, bool) {
+		if nodeForArticle(nodes, articleID) != nil {
+			return nodes, false
+		}
+		return append(nodes, core.WikiTocNode{ID: "toc-" + articleID, Title: title, Type: "article", ArticleID: articleID}), true
+	})
+}
+
+// syncArticleTitleInToc keeps the tree label aligned with the article.
+func syncArticleTitleInToc(kbID, articleID, title string) error {
+	if kbID == "" || articleID == "" || title == "" {
+		return nil
+	}
+	return tocMutate(kbID, func(nodes []core.WikiTocNode) ([]core.WikiTocNode, bool) {
+		changed := false
+		var rename func(list []core.WikiTocNode) []core.WikiTocNode
+		rename = func(list []core.WikiTocNode) []core.WikiTocNode {
+			for i := range list {
+				if list[i].ArticleID == articleID && list[i].Title != title {
+					list[i].Title = title
+					changed = true
+				}
+				if len(list[i].Children) > 0 {
+					list[i].Children = rename(list[i].Children)
+				}
+			}
+			return list
+		}
+		next := rename(nodes)
+		return next, changed
+	})
+}
+
+// removeArticleFromToc drops the article's node so deletes leave no
+// dangling tree entry.
+func removeArticleFromToc(kbID, articleID string) error {
+	if kbID == "" || articleID == "" {
+		return nil
+	}
+	return tocMutate(kbID, func(nodes []core.WikiTocNode) ([]core.WikiTocNode, bool) {
+		removed := false
+		var strip func(list []core.WikiTocNode) []core.WikiTocNode
+		strip = func(list []core.WikiTocNode) []core.WikiTocNode {
+			out := make([]core.WikiTocNode, 0, len(list))
+			for _, n := range list {
+				if n.ArticleID == articleID {
+					removed = true
+					continue
+				}
+				if len(n.Children) > 0 {
+					n.Children = strip(n.Children)
+				}
+				out = append(out, n)
+			}
+			return out
+		}
+		next := strip(nodes)
+		return next, removed
+	})
+}
+
+func nodeForArticle(nodes []core.WikiTocNode, articleID string) *core.WikiTocNode {
+	for i := range nodes {
+		if nodes[i].ArticleID == articleID {
+			return &nodes[i]
+		}
+		if len(nodes[i].Children) > 0 {
+			if found := nodeForArticle(nodes[i].Children, articleID); found != nil {
+				return found
+			}
+		}
+	}
+	return nil
+}
+
 func findToc(ctx *orm.Context, kbID string) (*core.WikiToc, bool, error) {
 	builder := orm.NewQuery().
 		Size(1).

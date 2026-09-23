@@ -124,6 +124,9 @@ func articleConfig() crud.Config[core.WikiArticle] {
 				return err
 			}
 			persistLinkedPages(obj)
+			if err := addArticleToToc(obj.KbID, obj.ID, obj.Title); err != nil {
+				return err
+			}
 			return bumpKbArticleCount(obj.KbID, 1)
 		},
 		// versions are content snapshots: metadata-only updates don't
@@ -133,13 +136,16 @@ func articleConfig() crud.Config[core.WikiArticle] {
 				return err
 			}
 			persistLinkedPages(obj)
-			return nil
+			return syncArticleTitleInToc(obj.KbID, obj.ID, obj.Title)
 		},
 		PostDelete: func(obj *core.WikiArticle) error {
 			ctx := orm.NewContext()
 			ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
 			ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
 			if err := deleteArticleChildren(ctx, obj.ID); err != nil {
+				return err
+			}
+			if err := removeArticleFromToc(obj.KbID, obj.ID); err != nil {
 				return err
 			}
 			return bumpKbArticleCount(obj.KbID, -1)

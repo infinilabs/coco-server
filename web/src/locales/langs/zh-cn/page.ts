@@ -48,6 +48,12 @@ const page: App.I18n.Schema['translation']['page'] = {
       namePlaceholder: '工作区名称'
     },
     bookmarks: { title: '我的收藏' },
+    recent: { title: '最近浏览' },
+    articles: {
+      filterPlaceholder: '按标题或摘要筛选',
+      allStatuses: '全部状态',
+      deleteConfirm: '删除这篇文章？版本、评论及其目录条目将一并移除。'
+    },
     hub: {
       title: '知识中心',
       subtitle: '由 KM Agent 生成并维护、带引用溯源的知识库',
@@ -144,6 +150,9 @@ const page: App.I18n.Schema['translation']['page'] = {
       contentEditor: '正文（结构化 Markdown）',
       preview: '预览',
       openSource: '打开来源',
+      copyLink: '复制链接',
+      linkCopied: '链接已复制',
+      exportMd: '导出 Markdown',
       sections: {
         definition: '定义',
         characteristics: '关键特征',

@@ -48,6 +48,12 @@ const page: App.I18n.Schema['translation']['page'] = {
       namePlaceholder: 'Workspace name'
     },
     bookmarks: { title: 'My Bookmarks' },
+    recent: { title: 'Recently Viewed' },
+    articles: {
+      filterPlaceholder: 'Filter by title or summary',
+      allStatuses: 'All statuses',
+      deleteConfirm: 'Delete this article? Versions, comments and its TOC entry are removed too.'
+    },
     hub: {
       title: 'Knowledge Hub',
       subtitle: 'Curated, citation-backed knowledge bases generated and maintained with the KM agent',
@@ -144,6 +150,9 @@ const page: App.I18n.Schema['translation']['page'] = {
       contentEditor: 'Content (structured markdown)',
       preview: 'Preview',
       openSource: 'Open Source',
+      copyLink: 'Copy link',
+      linkCopied: 'Link copied',
+      exportMd: 'Export as Markdown',
       sections: {
         definition: 'Definition',
         characteristics: 'Key Characteristics',

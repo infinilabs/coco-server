@@ -34,6 +34,7 @@ import {
 } from '@/service/api';
 import { CreateKbModal } from '../components/CreateKbModal';
 import { SearchModal } from '../components/SearchModal';
+import { getRecentArticles } from '../shared/recent';
 import { WikiShell } from '../components/WikiShell';
 
 const AI_STATUS_COLOR: Record<string, string> = {
@@ -57,6 +58,7 @@ export function Component() {
   const [wsName, setWsName] = useState('');
   const [bookmarks, setBookmarks] = useState<Api.Wiki.Bookmark[]>([]);
   const [articles, setArticles] = useState<Api.Wiki.Article[]>([]);
+  const [recents] = useState(() => getRecentArticles());
 
   const fetchData = (query?: string) => {
     setLoading(true);
@@ -234,6 +236,18 @@ export function Component() {
           />
         )}
       </Card>
+
+      {recents.length > 0 && (
+        <Card bordered={false} className='card-wrapper mt-12px' title={t('page.wiki.recent.title')}>
+          <div className='flex flex-wrap gap-8px'>
+            {recents.map(r => (
+              <Button key={r.id} onClick={() => nav(`/wiki/article/${r.id}${r.kb_id ? `?kb=${r.kb_id}` : ''}`)}>
+                {r.title}
+              </Button>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {bookmarkedArticles.length > 0 && (
         <Card bordered={false} className='card-wrapper mt-12px' title={t('page.wiki.bookmarks.title')}>

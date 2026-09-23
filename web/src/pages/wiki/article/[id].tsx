@@ -1,6 +1,8 @@
 import {
   ArrowLeftOutlined,
   CheckOutlined,
+  CopyOutlined,
+  DownloadOutlined,
   EditOutlined,
   EyeOutlined,
   HistoryOutlined,
@@ -45,6 +47,7 @@ import { parseStructuredContent, parseWikiLink } from '../shared/content';
 import { diffLines } from '../shared/diff';
 import { AIEditModal } from '../components/AIEditModal';
 import { ArticleComments } from '../components/ArticleComments';
+import { recordRecentArticle } from '../shared/recent';
 import { ArticleOutline } from '../components/ArticleOutline';
 import { selectUserInfo } from '@/store/slice/auth';
 import { WikiShell } from '../components/WikiShell';
@@ -104,6 +107,17 @@ export function Component() {
   const [article, setArticle] = useState<Api.Wiki.Article | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
+
+  const onExportMarkdown = () => {
+    if (!article) return;
+    const blob = new Blob([article.content || ''], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${article.title || 'article'}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
   const [saving, setSaving] = useState(false);
   const [preview, setPreview] = useState(false);
   const [versionsOpen, setVersionsOpen] = useState(false);
@@ -127,6 +141,12 @@ export function Component() {
   };
 
   useEffect(fetchArticle, [id]);
+
+  useEffect(() => {
+    if (article?.id) {
+      recordRecentArticle({ id: article.id, title: article.title, kb_id: kbId || article.kb_id });
+    }
+  }, [article?.id]);
 
   useEffect(() => {
     if (!id) return;
@@ -228,6 +248,18 @@ export function Component() {
               <Button icon={<HistoryOutlined />} onClick={openVersions}>
                 {t('page.wiki.article.versions')}
               </Button>
+              <Tooltip title={t('page.wiki.article.copyLink')}>
+                <Button
+                  icon={<CopyOutlined />}
+                  onClick={() => {
+                    navigator.clipboard?.writeText(window.location.href);
+                    window.$message?.success(t('page.wiki.article.linkCopied'));
+                  }}
+                />
+              </Tooltip>
+              <Tooltip title={t('page.wiki.article.exportMd')}>
+                <Button icon={<DownloadOutlined />} onClick={onExportMarkdown} />
+              </Tooltip>
               <Button icon={<RobotOutlined />} onClick={() => setAiEditOpen(true)}>
                 {t('page.wiki.aiEdit.title')}
               </Button>
