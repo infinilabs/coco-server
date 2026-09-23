@@ -55,7 +55,7 @@ export function ArticleOutline({ content }: { content: string }) {
   };
 
   return (
-    <div className="hidden w-200px shrink-0 xl:block" ref={rootRef}>
+    <div className="hidden w-200px shrink-0 xl:!block" ref={rootRef}>
       <div className="sticky top-12px">
         <div className="mb-8px text-xs font-500 uppercase color-[var(--ant-color-text-tertiary)]">
           {t('page.wiki.outline.title')}

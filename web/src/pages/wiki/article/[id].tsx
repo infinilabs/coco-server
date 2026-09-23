@@ -359,7 +359,7 @@ export function Component() {
                   {t('page.wiki.article.preview')}
                 </Button>
               </div>
-              <div className={preview ? 'flex flex-col gap-8px xl:flex-row' : ''}>
+              <div className={preview ? 'flex flex-col gap-8px xl:!flex-row' : ''}>
                 <Input.TextArea
                   autoSize={{ minRows: 18, maxRows: 36 }}
                   className={`font-mono ${preview ? 'min-w-0 flex-1' : ''}`}

@@ -186,7 +186,7 @@ export function Component() {
         {data.length === 0 && !loading ? (
           <Empty description={t('page.skill.empty')} />
         ) : (
-          <div className="grid grid-cols-1 gap-12px sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-12px sm:!grid-cols-2 xl:!grid-cols-3">
             {data.map(skill => (
               <Card
                 key={skill.id}

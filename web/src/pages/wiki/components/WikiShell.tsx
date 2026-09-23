@@ -338,9 +338,9 @@ export function WikiShell({ kbId, articleId, children }: Props) {
   };
 
   return (
-    <div className='flex h-full min-h-0 flex-col gap-12px p-12px lg:flex-row'>
+    <div className='flex h-full min-h-0 flex-col gap-12px p-12px lg:!flex-row'>
       <Card
-        className='w-full shrink-0 lg:w-264px'
+        className='w-full shrink-0 lg:!w-264px'
         size='small'
         title={t('route.wiki')}
         extra={
@@ -388,7 +388,9 @@ export function WikiShell({ kbId, articleId, children }: Props) {
           />
         )}
       </Card>
-      <div className='min-w-0 flex-1 overflow-auto'>{children}</div>
+      <div className='min-w-0 flex-1 overflow-auto'>
+        <div className='mx-auto h-full w-full max-w-1280px'>{children}</div>
+      </div>
       {renameDialog}
 
       <CreateKbModal

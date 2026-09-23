@@ -33,7 +33,7 @@ export function KbOverview({
 
   return (
     <div className="flex flex-col gap-12px">
-      <div className="grid grid-cols-2 gap-12px sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-12px sm:!grid-cols-4">
         <Card bordered={false} className="card-wrapper">
           <Statistic title={t('page.wiki.overview.articles')} value={articles.length} />
         </Card>
