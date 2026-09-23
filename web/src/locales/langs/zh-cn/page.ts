@@ -1,5 +1,35 @@
 const page: App.I18n.Schema['translation']['page'] = {
   wiki: {
+    overview: {
+      articles: '文章数',
+      aiGenerated: 'AI 生成',
+      datasources: '数据源',
+      recent: '最近更新',
+      search: '搜索知识'
+    },
+    graph: { empty: '暂无可绘制的文章与实体', articles: '文章', entities: '实体', reset: '重置缩放' },
+    settings: {
+      basic: '基本信息',
+      agent: 'AI 智能体',
+      danger: '危险操作',
+      deleteKb: '删除知识库',
+      saved: '设置已保存'
+    },
+    tree: {
+      newFolder: '新建文件夹',
+      addFolder: '在当前知识库新建文件夹',
+      rename: '重命名',
+      addSubfolder: '新建子文件夹',
+      delete: '从目录移除'
+    },
+    notification: {
+      title: '消息中心',
+      markAll: '全部已读',
+      all: '全部',
+      unread: '未读',
+      empty: '暂无消息'
+    },
+    outline: { title: '本页目录' },
     hub: {
       title: '知识中心',
       subtitle: '由 KM Agent 生成并维护、带引用溯源的知识库',
@@ -74,7 +104,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       docsUnit: '篇文档',
       lastSynced: '同步于',
       human: '人工',
-      tabs: { articles: '文章', datasources: '数据源', members: '成员' },
+      tabs: { articles: '文章', datasources: '数据源', members: '成员', overview: '概览', graph: '图谱', settings: '设置' },
       columns: {
         title: '标题',
         status: '状态',

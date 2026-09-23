@@ -64,6 +64,7 @@ const normalizeArticle = (src: any): Api.Wiki.Article => ({
   confidence: src?.confidence,
   sources: src?.sources ?? [],
   entity_id: src?.entity_id,
+  linked_pages: src?.linked_pages ?? [],
   created_by: { id: '', name: src?.created_by ?? '', avatar: 'U', role: 'owner' },
   contributors: [],
   created_at: fmtDate(src?.created),
@@ -209,6 +210,26 @@ export function searchWikiNotifications() {
 
 export function markWikiNotificationRead(id: string) {
   return request({ method: 'put', data: { read: true }, url: `/wiki/notification/${id}` }).then(res => res?.data);
+}
+
+/* ---------------- entities (knowledge graph) ---------------- */
+
+export function searchWikiEntities(ids?: string[]) {
+  const searchParams = new URLSearchParams();
+  if (ids?.length) searchParams.set('filter', `id:${ids.join(',')}`);
+  return request<{ hits: any }>({ method: 'get', url: `/wiki/entity/_search?${searchParams.toString()}` }).then(res => {
+    const es = formatESSearchResult(res?.data);
+    return ((es.data || []) as any[]).map(e => ({
+      id: e?.id ?? '',
+      type: e?.type ?? '',
+      subtype: e?.subtype,
+      name: e?.name ?? '',
+      aliases: e?.aliases ?? [],
+      status: e?.status,
+      article_id: e?.article_id,
+      relations: (e?.relations || []) as { target_id: string; relation: string }[]
+    })) as Api.Wiki.EntityInfo[];
+  });
 }
 
 /* ---------------- misc ---------------- */

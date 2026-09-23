@@ -424,6 +424,8 @@ declare namespace Api {
       confidence?: Confidence;
       sources: SourceRef[];
       entity_id?: string;
+      /** wikilinks [[type:name]] parsed out of the content at save time */
+      linked_pages?: LinkedPage[];
       created_by: Member;
       contributors: Member[];
       created_at: string;
@@ -439,6 +441,23 @@ declare namespace Api {
       content: string;
       created_by: string;
       created_at: string;
+    }
+
+    interface LinkedPage {
+      type: string;
+      name: string;
+      entity_id?: string;
+    }
+
+    interface EntityInfo {
+      id: string;
+      type: string;
+      subtype?: string;
+      name: string;
+      aliases?: string[];
+      status?: string;
+      article_id?: string;
+      relations?: { target_id: string; relation: string }[];
     }
 
     interface TocNode {

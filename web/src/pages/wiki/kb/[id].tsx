@@ -18,6 +18,9 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { createWikiArticle, getWikiKb, searchWikiArticles } from '@/service/api';
 import { GenerateModal } from '../components/GenerateModal';
+import { KbGraph } from '../components/KbGraph';
+import { KbOverview } from '../components/KbOverview';
+import { KbSettings } from '../components/KbSettings';
 import { WikiShell } from '../components/WikiShell';
 
 const STATUS_COLOR: Record<string, string> = {
@@ -167,6 +170,18 @@ export function Component() {
               <Tabs
                 items={[
                   {
+                    key: 'overview',
+                    label: t('page.wiki.kb.tabs.overview'),
+                    children: (
+                      <KbOverview
+                        articles={articles}
+                        kb={kb as Api.Wiki.Kb}
+                        onAiGenerate={() => setGenerateOpen(true)}
+                        onNewArticle={() => setNewOpen(true)}
+                      />
+                    )
+                  },
+                  {
                     key: 'articles',
                     label: t('page.wiki.kb.tabs.articles'),
                     children: (
@@ -202,6 +217,11 @@ export function Component() {
                         )}
                       />
                     )
+                  },
+                  {
+                    key: 'graph',
+                    label: t('page.wiki.kb.tabs.graph'),
+                    children: <KbGraph kbId={id || ''} />
                   },
                   {
                     key: 'datasources',
@@ -251,6 +271,11 @@ export function Component() {
                         )}
                       />
                     )
+                  },
+                  {
+                    key: 'settings',
+                    label: t('page.wiki.kb.tabs.settings'),
+                    children: <KbSettings kb={kb as Api.Wiki.Kb} onSaved={fetchAll} />
                   }
                 ]}
               />

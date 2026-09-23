@@ -44,6 +44,7 @@ import {
 import { parseStructuredContent, parseWikiLink } from '../shared/content';
 import { diffLines } from '../shared/diff';
 import { AIEditModal } from '../components/AIEditModal';
+import { ArticleOutline } from '../components/ArticleOutline';
 import { WikiShell } from '../components/WikiShell';
 
 const STATUS_COLOR: Record<string, string> = {
@@ -193,7 +194,7 @@ export function Component() {
 
   return (
     <WikiShell kbId={kbId} articleId={id}>
-    <div className='min-h-500px'>
+    <div className='wiki-article-page min-h-500px'>
       <Card
         bordered={false}
         className='card-wrapper'
@@ -297,7 +298,8 @@ export function Component() {
               </Space>
             </div>
           ) : (
-            <div className='mx-auto max-w-860px'>
+            <div className='flex flex-row gap-4'>
+            <div className='wiki-article-body mx-auto min-w-0 max-w-860px flex-1'>
               <div className='mb-4 flex flex-wrap items-center gap-2 text-xs text-gray-400'>
                 {article.page_type && <Tag>{t(`page.wiki.pageType.${article.page_type}`)}</Tag>}
                 {article.ai_generated && (
@@ -410,6 +412,8 @@ export function Component() {
                   )}
                 </>
               )}
+            </div>
+            <ArticleOutline content={article.content} />
             </div>
           )}
         </Spin>

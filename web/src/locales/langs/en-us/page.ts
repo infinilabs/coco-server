@@ -1,5 +1,35 @@
 const page: App.I18n.Schema['translation']['page'] = {
   wiki: {
+    overview: {
+      articles: 'Articles',
+      aiGenerated: 'AI Generated',
+      datasources: 'Datasources',
+      recent: 'Recently Updated',
+      search: 'Search Knowledge'
+    },
+    graph: { empty: 'No articles or entities to plot yet', articles: 'Articles', entities: 'Entities', reset: 'Reset zoom' },
+    settings: {
+      basic: 'Basic Info',
+      agent: 'AI Agent',
+      danger: 'Danger Zone',
+      deleteKb: 'Delete Knowledge Base',
+      saved: 'Settings saved'
+    },
+    tree: {
+      newFolder: 'New Folder',
+      addFolder: 'New folder in this KB',
+      rename: 'Rename',
+      addSubfolder: 'New subfolder',
+      delete: 'Remove from TOC'
+    },
+    notification: {
+      title: 'Notifications',
+      markAll: 'Mark all read',
+      all: 'All',
+      unread: 'Unread',
+      empty: 'No notifications'
+    },
+    outline: { title: 'On this page' },
     hub: {
       title: 'Knowledge Hub',
       subtitle: 'Curated, citation-backed knowledge bases generated and maintained with the KM agent',
@@ -74,7 +104,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       docsUnit: 'docs',
       lastSynced: 'Synced',
       human: 'Human',
-      tabs: { articles: 'Articles', datasources: 'Datasources', members: 'Members' },
+      tabs: { articles: 'Articles', datasources: 'Datasources', members: 'Members', overview: 'Overview', graph: 'Graph', settings: 'Settings' },
       columns: {
         title: 'Title',
         status: 'Status',
