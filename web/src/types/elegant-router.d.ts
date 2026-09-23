@@ -11,7 +11,7 @@ declare module "@elegant-router/types" {
   /**
    * route layout
    */
-  export type RouteLayout = "base" | "blank";
+  export type RouteLayout = "app" | "base" | "blank";
 
   /**
    * route map
@@ -289,7 +289,7 @@ declare module "@elegant-router/types" {
         path: RouteMap[K];
         component: `layout.${RouteLayout}$view.${K}`| `view.${LastLevelRouteKey}`|`layout.${RouteLayout}`;
         children?:ElegantConstRoute[] ;
-        layout?:"base" | "blank"
+        layout?:"app" | "base" | "blank"
       }
     : never;
 
@@ -324,7 +324,7 @@ declare module "@elegant-router/types" {
         path: RouteMap[K];
         component: `layout.${RouteLayout}`| `view.${LastLevelRouteKey}`;
         children: (CenterLevelRoute<GetChildRouteKey<K>> | LastLevelRoute<GetChildRouteKey<K>>)[];
-        layout?:"base" | "blank"
+        layout?:"app" | "base" | "blank"
       }
     : never;
   
@@ -336,7 +336,7 @@ declare module "@elegant-router/types" {
         name: K;
         path: RouteMap[K];
         component?: `layout.${RouteLayout}$view.${LastLevelRouteKey}`| `view.${LastLevelRouteKey}`| `$view.${LastLevelRouteKey}`;
-        layout?:"base" | "blank"
+        layout?:"app" | "base" | "blank"
       }
     : never;
 
@@ -348,7 +348,7 @@ declare module "@elegant-router/types" {
         name: K;
         path: RouteMap[K];
         component?: `view.${LastLevelRouteKey}`;
-        layout?:"base" | "blank"
+        layout?:"app" | "base" | "blank"
       }
     : never;
 
@@ -373,7 +373,7 @@ declare module "@elegant-router/types" {
           path: RouteMap[K];
           component: `layout.${RouteLayout}`| `view.${LastLevelRouteKey}`;
           children: (CustomCenterLevelRoute<GetChildRouteKey<K>> | CustomLastLevelRoute<GetChildRouteKey<K>>)[];
-          layout?:"base" | "blank"
+          layout?:"app" | "base" | "blank"
         }
       : never;
 

@@ -44,6 +44,7 @@ import {
 import { parseStructuredContent, parseWikiLink } from '../shared/content';
 import { diffLines } from '../shared/diff';
 import { AIEditModal } from '../components/AIEditModal';
+import { WikiShell } from '../components/WikiShell';
 
 const STATUS_COLOR: Record<string, string> = {
   draft: 'default',
@@ -191,6 +192,7 @@ export function Component() {
   const backTo = () => nav(kbId ? `/wiki/kb/${kbId}` : '/wiki/list');
 
   return (
+    <WikiShell kbId={kbId} articleId={id}>
     <div className='min-h-500px'>
       <Card
         bordered={false}
@@ -539,5 +541,6 @@ export function Component() {
         onApplied={fetchArticle}
       />
     </div>
+    </WikiShell>
   );
 }

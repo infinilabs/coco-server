@@ -298,6 +298,7 @@ declare namespace App {
           batchDelete: string;
           cancel: string;
           check: string;
+          console: string;
           close: string;
           columnSetting: string;
           comingSoon: string;

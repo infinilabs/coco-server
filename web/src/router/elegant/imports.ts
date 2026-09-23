@@ -12,6 +12,7 @@ type CustomRouteObject = Omit<RouteObject, 'Component'|'index'> & {
 };
 
 export const layouts: Record<RouteLayout, LazyRouteFunction<CustomRouteObject>> = {
+  app: () => import("@/layouts/app-layout/index.tsx"),
   base: () => import("@/layouts/base-layout/index.tsx"),
   blank: () => import("@/layouts/blank-layout/index.tsx"),
 };

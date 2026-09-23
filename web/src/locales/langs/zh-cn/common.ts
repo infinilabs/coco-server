@@ -8,6 +8,7 @@ const common: App.I18n.Schema['translation']['common'] = {
   cancel: '取消',
   ok: '确定',
   check: '勾选',
+  console: '管理后台',
   clone: '克隆',
   close: '关闭',
   columnSetting: '列设置',

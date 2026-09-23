@@ -11,22 +11,14 @@ import {
   Select,
   Space,
   Tabs,
-  Tag,
-  Tree
+  Tag
 } from 'antd';
-import type { DataNode } from 'antd/es/tree';
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import {
-  createWikiArticle,
-  getWikiKb,
-  getWikiToc,
-  searchWikiArticles,
-  updateWikiToc
-} from '@/service/api';
-import { findNode, moveNode, toAntdTreeData, dropPositionFromAntd } from '../shared/toc';
+import { createWikiArticle, getWikiKb, searchWikiArticles } from '@/service/api';
 import { GenerateModal } from '../components/GenerateModal';
+import { WikiShell } from '../components/WikiShell';
 
 const STATUS_COLOR: Record<string, string> = {
   draft: 'default',
@@ -106,21 +98,17 @@ export function Component() {
   const { t } = useTranslation();
   const { id } = useParams();
   const nav = useNavigate();
-  const [searchParams] = useSearchParams();
   const [kb, setKb] = useState<Api.Wiki.Kb | null>(null);
-  const [toc, setToc] = useState<Api.Wiki.TocNode[]>([]);
   const [articles, setArticles] = useState<Api.Wiki.Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [newOpen, setNewOpen] = useState(false);
   const [generateOpen, setGenerateOpen] = useState(false);
-  const selectedTocId = searchParams.get('toc') || '';
 
   const fetchAll = () => {
     if (!id) return;
     setLoading(true);
-    Promise.all([getWikiKb(id), getWikiToc(id), searchWikiArticles({ kbId: id })]).then(([kbRes, tocRes, artRes]) => {
+    Promise.all([getWikiKb(id), searchWikiArticles({ kbId: id })]).then(([kbRes, artRes]) => {
       setKb((kbRes as any) as Api.Wiki.Kb);
-      setToc(((tocRes as any) || []) as Api.Wiki.TocNode[]);
       setArticles(((artRes as any)?.data || []) as Api.Wiki.Article[]);
       setLoading(false);
     });
@@ -130,32 +118,12 @@ export function Component() {
 
   const goArticle = (articleId: string) => nav(`/wiki/article/${articleId}?kb=${id}`);
 
-  const onTreeSelect = (keys: React.Key[]) => {
-    const key = String(keys[0] || '');
-    const node = findNode(toc, key);
-    if (node?.type === 'article' && node.article_id) goArticle(node.article_id);
-  };
-
-  const onTreeDrop = (info: {
-    node: DataNode;
-    dragNode: DataNode;
-    dropToGap: boolean;
-    dropPosition: number;
-  }) => {
-    const draggedId = String(info.dragNode.key);
-    const targetId = String(info.node.key);
-    const target = findNode(toc, targetId);
-    const position = dropPositionFromAntd(info.dropToGap, info.dropPosition, target?.type === 'folder');
-    const next = moveNode(toc, draggedId, targetId, position);
-    setToc(next);
-    if (id) updateWikiToc(id, next);
-  };
-
   if (!loading && !kb) {
     return <Empty description={t('page.wiki.kb.notFound')} />;
   }
 
   return (
+    <WikiShell kbId={id}>
     <div className='min-h-500px'>
       <Card
         bordered={false}
@@ -194,24 +162,8 @@ export function Component() {
         }
       >
         {!loading && (
-          <div className='flex flex-col gap-4 lg:flex-row'>
-            <Card
-              className='w-full shrink-0 lg:w-260px'
-              size='small'
-              title={t('page.wiki.kb.toc')}
-              styles={{ body: { maxHeight: 500, overflow: 'auto' } }}
-            >
-              <Tree
-                blockNode
-                defaultExpandAll
-                draggable
-                selectedKeys={selectedTocId ? [selectedTocId] : []}
-                treeData={toAntdTreeData(toc)}
-                onDrop={onTreeDrop as any}
-                onSelect={onTreeSelect}
-              />
-            </Card>
-            <div className='min-w-0 flex-1'>
+          <div className='min-w-0'>
+            <div>
               <Tabs
                 items={[
                   {
@@ -329,5 +281,6 @@ export function Component() {
         onOpenArticle={goArticle}
       />
     </div>
+    </WikiShell>
   );
 }

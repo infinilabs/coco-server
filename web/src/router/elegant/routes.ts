@@ -153,7 +153,7 @@ export const generatedRoutes: GeneratedRoute[] = [
   {
     name: 'chat',
     path: '/chat',
-    component: 'layout.blank$view.chat',
+    component: 'layout.app$view.chat',
     meta: {
       i18nKey: 'route.chat',
       title: 'chat',
@@ -536,7 +536,7 @@ export const generatedRoutes: GeneratedRoute[] = [
   {
     name: 'search',
     path: '/search',
-    component: 'layout.blank$view.search',
+    component: 'layout.app$view.search',
     meta: {
       i18nKey: 'route.search',
       title: 'search',
@@ -681,7 +681,7 @@ export const generatedRoutes: GeneratedRoute[] = [
   {
     name: 'wiki',
     path: '/wiki',
-    component: 'layout.base',
+    component: 'layout.app',
     redirect: 'list',
     meta: {
       i18nKey: 'route.wiki',
