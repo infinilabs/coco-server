@@ -49,6 +49,17 @@ const page: App.I18n.Schema['translation']['page'] = {
     },
     bookmarks: { title: 'My Bookmarks' },
     recent: { title: 'Recently Viewed' },
+    editor: {
+      heading: 'Section heading',
+      bold: 'Bold',
+      list: 'Bullet list',
+      link: 'Link',
+      wikilink: 'Wikilink [[type:name]]',
+      sectionTitle: 'Section title',
+      text: 'text',
+      item: 'item',
+      linkText: 'link text'
+    },
     articles: {
       filterPlaceholder: 'Filter by title or summary',
       allStatuses: 'All statuses',

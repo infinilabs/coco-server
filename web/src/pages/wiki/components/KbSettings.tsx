@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useAuth } from '@/hooks/business/auth';
 import { Button, Card, Form, Input, Modal, Select, Space, message } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -18,6 +19,9 @@ export function KbSettings({ kb, onSaved }: { kb: Api.Wiki.Kb; onSaved: () => vo
   const [assistants, setAssistants] = useState<{ id: string; name: string }[]>([]);
   const [datasources, setDatasources] = useState<Api.Wiki.DatasourceInfo[]>([]);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const { hasAuth } = useAuth();
+  const canUpdate = hasAuth('coco#wiki_kb/update');
+  const canDelete = hasAuth('coco#wiki_kb/delete');
 
   useEffect(() => {
     listWikiAssistants().then(list => setAssistants(((list as any) || []).map((a: any) => ({ id: a.id, name: a.name }))));
@@ -91,18 +95,22 @@ export function KbSettings({ kb, onSaved }: { kb: Api.Wiki.Kb; onSaved: () => vo
             />
           </Form.Item>
           <Form.Item className="mb-0" wrapperCol={{ offset: 5 }}>
-            <Button loading={saving} type="primary" onClick={onSave}>
-              {t('common.save')}
-            </Button>
+            {canUpdate && (
+              <Button loading={saving} type="primary" onClick={onSave}>
+                {t('common.save')}
+              </Button>
+            )}
           </Form.Item>
         </Form>
       </Card>
 
       <Card bordered={false} className="card-wrapper" title={t('page.wiki.settings.danger')}>
         <Space>
-          <Button danger onClick={() => setDeleteOpen(true)}>
-            {t('page.wiki.settings.deleteKb')}
-          </Button>
+          {canDelete && (
+            <Button danger onClick={() => setDeleteOpen(true)}>
+              {t('page.wiki.settings.deleteKb')}
+            </Button>
+          )}
         </Space>
       </Card>
 

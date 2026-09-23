@@ -10,6 +10,7 @@ import {
 import { Badge, Button, Card, Dropdown, Empty, Input, Modal, Tooltip, Tree } from 'antd';
 import type { DataNode } from 'antd/es/tree';
 import { useEffect, useMemo, useState } from 'react';
+import { useAuth } from '@/hooks/business/auth';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -99,6 +100,9 @@ export function WikiShell({ kbId, articleId, children }: Props) {
   const [notifOpen, setNotifOpen] = useState(false);
   const [unread, setUnread] = useState(0);
   const [renaming, setRenaming] = useState<{ key: string; value: string } | null>(null);
+  const { hasAuth } = useAuth();
+  const canCreateKb = hasAuth('coco#wiki_kb/create');
+  const canUpdateKb = hasAuth('coco#wiki_kb/update');
 
   const persist = (next: Partial<typeof wikiNav>) => {
     Object.assign(wikiNav, next);
@@ -348,7 +352,7 @@ export function WikiShell({ kbId, articleId, children }: Props) {
             </Tooltip>
             <Tooltip title={t('page.wiki.tree.addFolder')}>
               <Button
-                disabled={!kbId || !tocs[kbId]}
+                disabled={!kbId || !tocs[kbId] || !canUpdateKb}
                 icon={<FolderAddOutlined />}
                 onClick={() => addFolder(null)}
                 size="small"
@@ -359,7 +363,9 @@ export function WikiShell({ kbId, articleId, children }: Props) {
               <Button icon={<ReloadOutlined />} onClick={onRefresh} size="small" type="text" />
             </Tooltip>
             <Tooltip title={t('page.wiki.hub.newKb')}>
-              <Button icon={<PlusOutlined />} onClick={() => setCreateOpen(true)} size="small" type="text" />
+              {canCreateKb && (
+                <Button icon={<PlusOutlined />} onClick={() => setCreateOpen(true)} size="small" type="text" />
+              )}
             </Tooltip>
           </div>
         }

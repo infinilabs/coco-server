@@ -49,6 +49,17 @@ const page: App.I18n.Schema['translation']['page'] = {
     },
     bookmarks: { title: '我的收藏' },
     recent: { title: '最近浏览' },
+    editor: {
+      heading: '章节标题',
+      bold: '粗体',
+      list: '无序列表',
+      link: '链接',
+      wikilink: '维基链接 [[type:name]]',
+      sectionTitle: '章节标题',
+      text: '文本',
+      item: '条目',
+      linkText: '链接文字'
+    },
     articles: {
       filterPlaceholder: '按标题或摘要筛选',
       allStatuses: '全部状态',

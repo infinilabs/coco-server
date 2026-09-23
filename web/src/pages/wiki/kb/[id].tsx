@@ -16,7 +16,7 @@ import {
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { createWikiArticle, deleteWikiArticle, getWikiKb, searchWikiArticles } from '@/service/api';
+import { createWikiArticle, deleteWikiArticle, getWikiKb, listWikiDatasources, searchWikiArticles } from '@/service/api';
 import { GenerateModal } from '../components/GenerateModal';
 import { KbGraph } from '../components/KbGraph';
 import { KbOverview } from '../components/KbOverview';
@@ -25,6 +25,7 @@ import { WikiShell } from '../components/WikiShell';
 import Shares from '@/components/Resource/Shares';
 import useResource from '@/components/Resource/hooks/useResource';
 import { selectUserInfo } from '@/store/slice/auth';
+import { useAuth } from '@/hooks/business/auth';
 
 const STATUS_COLOR: Record<string, string> = {
   draft: 'default',
@@ -111,14 +112,22 @@ export function Component() {
   const [generateOpen, setGenerateOpen] = useState(false);
   const [artKeyword, setArtKeyword] = useState('');
   const [artStatus, setArtStatus] = useState<string>('all');
+  const [dsList, setDsList] = useState<Api.Wiki.DatasourceInfo[]>([]);
 
   const { addSharesToData } = useResource();
   const userInfo = useAppSelector(selectUserInfo);
+  const { hasAuth } = useAuth();
+  const canCreateArticle = hasAuth('coco#wiki_article/create');
+  const canDeleteArticle = hasAuth('coco#wiki_article/delete');
+  const canUpdateKb = hasAuth('coco#wiki_kb/update');
+  const canDeleteKb = hasAuth('coco#wiki_kb/delete');
 
   const fetchAll = () => {
     if (!id) return;
     setLoading(true);
-    Promise.all([getWikiKb(id), searchWikiArticles({ kbId: id })]).then(async ([kbRes, artRes]) => {
+    Promise.all([getWikiKb(id), searchWikiArticles({ kbId: id }), listWikiDatasources()]).then(async ([kbRes, artRes, dsRes]) => {
+      const all = ((dsRes as any) || []) as Api.Wiki.DatasourceInfo[];
+      setDsList(all.filter(ds => (kbRes as any)?.datasource_ids?.includes(ds.id)));
       let kbObj = (kbRes as any) as Api.Wiki.Kb | null;
       const kbAny = kbObj as any;
       if (kbAny) {
@@ -182,18 +191,22 @@ export function Component() {
         extra={
           <Space>
             <Button icon={<ReloadOutlined />} onClick={fetchAll} />
-            <Button icon={<RobotOutlined />} onClick={() => setGenerateOpen(true)}>
-              {t('page.wiki.kb.aiGenerate')}
-            </Button>
-            <Button
-              icon={<FileAddOutlined />}
-              type="primary"
-              onClick={() => {
-                setNewOpen(true);
-              }}
-            >
-              {t('page.wiki.kb.newArticle')}
-            </Button>
+            {canCreateArticle && (
+              <Button icon={<RobotOutlined />} onClick={() => setGenerateOpen(true)}>
+                {t('page.wiki.kb.aiGenerate')}
+              </Button>
+            )}
+            {canCreateArticle && (
+              <Button
+                icon={<FileAddOutlined />}
+                type="primary"
+                onClick={() => {
+                  setNewOpen(true);
+                }}
+              >
+                {t('page.wiki.kb.newArticle')}
+              </Button>
+            )}
           </Space>
         }
       >
@@ -248,21 +261,25 @@ export function Component() {
                         renderItem={article => (
                           <List.Item
                             className='cursor-pointer'
-                            actions={[
-                              <Popconfirm
-                                key='delete'
-                                title={t('page.wiki.articles.deleteConfirm')}
-                                onConfirm={() => onDeleteArticle(article.id)}
-                              >
-                                <Button
-                                  danger
-                                  icon={<DeleteOutlined />}
-                                  onClick={e => e.stopPropagation()}
-                                  size='small'
-                                  type='text'
-                                />
-                              </Popconfirm>
-                            ]}
+                            actions={
+                              canDeleteArticle
+                                ? [
+                                    <Popconfirm
+                                      key='delete'
+                                      title={t('page.wiki.articles.deleteConfirm')}
+                                      onConfirm={() => onDeleteArticle(article.id)}
+                                    >
+                                      <Button
+                                        danger
+                                        icon={<DeleteOutlined />}
+                                        onClick={e => e.stopPropagation()}
+                                        size='small'
+                                        type='text'
+                                      />
+                                    </Popconfirm>
+                                  ]
+                                : undefined
+                            }
                             extra={
                               <Space>
                                 <Tag color={STATUS_COLOR[article.status]}>
@@ -300,7 +317,7 @@ export function Component() {
                     label: t('page.wiki.kb.tabs.datasources'),
                     children: (
                       <List
-                        dataSource={kb?.datasources || []}
+                        dataSource={dsList}
                         renderItem={ds => (
                           <List.Item
                             actions={[

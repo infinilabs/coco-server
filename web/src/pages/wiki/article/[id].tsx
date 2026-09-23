@@ -1,9 +1,14 @@
 import {
   ArrowLeftOutlined,
+  BoldOutlined,
   CheckOutlined,
+  ClusterOutlined,
   CopyOutlined,
   DownloadOutlined,
   EditOutlined,
+  LineOutlined,
+  LinkOutlined,
+  UnorderedListOutlined,
   EyeOutlined,
   HistoryOutlined,
   RobotOutlined,
@@ -30,7 +35,7 @@ import {
   Tooltip,
   Typography
 } from 'antd';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import Markdown from '@/components/DocumentDrawer/Markdown';
@@ -50,6 +55,7 @@ import { ArticleComments } from '../components/ArticleComments';
 import { recordRecentArticle } from '../shared/recent';
 import { ArticleOutline } from '../components/ArticleOutline';
 import { selectUserInfo } from '@/store/slice/auth';
+import { useAuth } from '@/hooks/business/auth';
 import { WikiShell } from '../components/WikiShell';
 
 const STATUS_COLOR: Record<string, string> = {
@@ -103,10 +109,29 @@ export function Component() {
   const [searchParams] = useSearchParams();
   const kbId = searchParams.get('kb') || '';
   const userInfo = useAppSelector(selectUserInfo);
+  const canEditArticle = useAuth().hasAuth('coco#wiki_article/update');
 
   const [article, setArticle] = useState<Api.Wiki.Article | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
+  const contentRef = useRef<any>(null);
+
+  // wrap the selection (or drop a placeholder at the cursor) in the given markers
+  const insertAround = (before: string, after: string, placeholder: string) => {
+    const el = contentRef.current?.resizableTextArea?.textArea as HTMLTextAreaElement | undefined;
+    if (!el) return;
+    const start = el.selectionStart ?? draft.content?.length ?? 0;
+    const end = el.selectionEnd ?? start;
+    const selected = draft.content?.slice(start, end) || '';
+    const inserted = `${before}${selected || placeholder}${after}`;
+    const next = `${draft.content?.slice(0, start) ?? ''}${inserted}${draft.content?.slice(end) ?? ''}`;
+    setDraft(d => ({ ...d, content: next }));
+    requestAnimationFrame(() => {
+      el.focus();
+      const caret = start + before.length + (selected || placeholder).length;
+      el.setSelectionRange(caret, caret);
+    });
+  };
 
   const onExportMarkdown = () => {
     if (!article) return;
@@ -238,13 +263,14 @@ export function Component() {
                   onClick={toggleBookmark}
                 />
               </Tooltip>
-              {(NEXT_STATUS[article.status] || []).map(({ to, labelKey }) => (
-                <Tooltip key={to} title={t('page.wiki.article.statusFlowHint')}>
-                  <Button icon={<SendOutlined />} onClick={() => transitionStatus(to)}>
-                    {t(labelKey)}
-                  </Button>
-                </Tooltip>
-              ))}
+              {canEditArticle &&
+                (NEXT_STATUS[article.status] || []).map(({ to, labelKey }) => (
+                  <Tooltip key={to} title={t('page.wiki.article.statusFlowHint')}>
+                    <Button icon={<SendOutlined />} onClick={() => transitionStatus(to)}>
+                      {t(labelKey)}
+                    </Button>
+                  </Tooltip>
+                ))}
               <Button icon={<HistoryOutlined />} onClick={openVersions}>
                 {t('page.wiki.article.versions')}
               </Button>
@@ -260,12 +286,16 @@ export function Component() {
               <Tooltip title={t('page.wiki.article.exportMd')}>
                 <Button icon={<DownloadOutlined />} onClick={onExportMarkdown} />
               </Tooltip>
-              <Button icon={<RobotOutlined />} onClick={() => setAiEditOpen(true)}>
-                {t('page.wiki.aiEdit.title')}
-              </Button>
+              {canEditArticle && (
+                <Button icon={<RobotOutlined />} onClick={() => setAiEditOpen(true)}>
+                  {t('page.wiki.aiEdit.title')}
+                </Button>
+              )}
+{canEditArticle && (
               <Button icon={<EditOutlined />} type="primary" onClick={startEdit}>
                 {t('page.wiki.article.edit')}
               </Button>
+              )}
             </Space>
           )
         }
@@ -296,8 +326,30 @@ export function Component() {
                 value={draft.tags || []}
                 onChange={tags => setDraft(d => ({ ...d, tags }))}
               />
-              <div className='flex items-center justify-between'>
-                <span className='font-medium'>{t('page.wiki.article.contentEditor')}</span>
+              <div className='flex flex-wrap items-center justify-between gap-8px'>
+                <div className='flex items-center gap-4px'>
+                  <span className='font-medium'>{t('page.wiki.article.contentEditor')}</span>
+                  <Tooltip title={t('page.wiki.editor.heading')}>
+                    <Button icon={<LineOutlined />} onClick={() => insertAround('\n## ', '', t('page.wiki.editor.sectionTitle'))} size='small' type='text' />
+                  </Tooltip>
+                  <Tooltip title={t('page.wiki.editor.bold')}>
+                    <Button icon={<BoldOutlined />} onClick={() => insertAround('**', '**', t('page.wiki.editor.text'))} size='small' type='text' />
+                  </Tooltip>
+                  <Tooltip title={t('page.wiki.editor.list')}>
+                    <Button icon={<UnorderedListOutlined />} onClick={() => insertAround('\n- ', '', t('page.wiki.editor.item'))} size='small' type='text' />
+                  </Tooltip>
+                  <Tooltip title={t('page.wiki.editor.link')}>
+                    <Button icon={<LinkOutlined />} onClick={() => insertAround('[', '](url)', t('page.wiki.editor.linkText'))} size='small' type='text' />
+                  </Tooltip>
+                  <Tooltip title={t('page.wiki.editor.wikilink')}>
+                    <Button
+                      icon={<ClusterOutlined />}
+                      onClick={() => insertAround('[[', ']]', 'type:name')}
+                      size='small'
+                      type='text'
+                    />
+                  </Tooltip>
+                </div>
                 <Button
                   icon={<EyeOutlined />}
                   size='small'
@@ -307,18 +359,23 @@ export function Component() {
                   {t('page.wiki.article.preview')}
                 </Button>
               </div>
-              {preview ? (
-                <div className='min-h-300px rounded border border-solid p-4' style={{ borderColor: 'var(--ant-color-border)' }}>
-                  <Markdown content={draft.content || ''} />
-                </div>
-              ) : (
+              <div className={preview ? 'flex flex-col gap-8px xl:flex-row' : ''}>
                 <Input.TextArea
                   autoSize={{ minRows: 18, maxRows: 36 }}
-                  className='font-mono'
+                  className={`font-mono ${preview ? 'min-w-0 flex-1' : ''}`}
+                  ref={contentRef}
                   value={draft.content}
                   onChange={e => setDraft(d => ({ ...d, content: e.target.value }))}
                 />
-              )}
+                {preview && (
+                  <div
+                    className='min-h-300px min-w-0 flex-1 overflow-auto rounded border border-solid p-4'
+                    style={{ borderColor: 'var(--ant-color-border)' }}
+                  >
+                    <Markdown content={draft.content || ''} />
+                  </div>
+                )}
+              </div>
               <Space>
                 <Button icon={<CheckOutlined />} loading={saving} type='primary' onClick={save}>
                   {t('common.confirm')}
