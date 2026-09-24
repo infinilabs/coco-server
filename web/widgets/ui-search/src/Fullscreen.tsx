@@ -46,7 +46,8 @@ const getDateRangeParams = (dateRange?: string) => {
 };
 
 interface FullscreenProps {
-  logo?: Record<string, any>;
+  /** pass null to hide the widget's own logo (host app already shows its brand) */
+  logo?: Record<string, any> | null;
   placeholder?: string;
   welcome?: string;
   aiOverview?: { enabled?: boolean };

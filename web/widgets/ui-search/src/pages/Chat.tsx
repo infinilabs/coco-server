@@ -65,7 +65,8 @@ function useNavigationGuard(shouldBlock: () => boolean): NavigationGuard {
 
 interface ChatProps {
   commonProps?: Record<string, any>;
-  logo?: Record<string, any>;
+  /** pass null to hide the widget's own logo (host app already shows its brand) */
+  logo?: Record<string, any> | null;
   handleLogoClick?: () => void;
   apiConfig?: Record<string, any>;
   onBackToSearch?: () => void;

@@ -30,7 +30,8 @@ interface SearchProps {
   hasMore?: boolean;
   initContainer?: (ref: HTMLDivElement | null) => void;
   loading?: boolean;
-  logo?: Record<string, any>;
+  /** pass null to hide the widget's own logo (host app already shows its brand) */
+  logo?: Record<string, any> | null;
   onAsk?: (...args: any[]) => void;
   onSearchFilter?: (aggfilter: Record<string, any>) => void;
   onSearch?: (...args: any[]) => void;
@@ -325,7 +326,8 @@ export default function Search({
     rightMenuWidth,
     siderCollapse,
     setSiderCollapse,
-    logo: (
+    // logo === null hides the banner entirely (host app already shows its brand)
+    logo: logo === null ? null : (
       <Logo
         onLogoClick={handleLogoClick}
         {...commonProps}

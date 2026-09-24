@@ -269,12 +269,9 @@ export function Component() {
     id: search_settings?.integration,
     theme: darkMode ? 'dark' : 'light',
     language: locale,
-    "logo": {
-      "light": payload?.logo?.light,
-      "light_mobile": payload?.logo?.light_mobile,
-      "dark": payload?.logo?.dark,
-      "dark_mobile": payload?.logo?.dark_mobile,
-    },
+    // the app shell header carries the brand; null tells the widget to hide
+    // its own banner logo instead of falling back to the bundled one
+    "logo": null,
     "placeholder": enabled_module?.search?.placeholder,
     "welcome": payload?.welcome || "",
     rightMenuWidth,

@@ -4,7 +4,8 @@ import { useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
-import cocoIcon from '@/assets/svg-icon/coco.svg';
+import logoTextDark from '@/assets/imgs/coco-logo-text-dark.svg';
+import logoTextLight from '@/assets/imgs/coco-logo-text-light.svg';
 import UserAvatar from '../modules/global-header/components/UserAvatar';
 import GlobalContent from '../modules/global-content';
 
@@ -40,8 +41,9 @@ export function Component() {
             className="flex cursor-pointer items-center gap-8px"
             onClick={() => goApp('search')}
           >
-            <img alt="Coco AI" className="h-30px w-30px" src={cocoIcon} />
-            <span className="text-16px font-bold text-primary">{t('system.title') || 'Coco AI'}</span>
+            {/* the wordmark banner previously used by the chat app; light/dark variants swap with the theme */}
+            <img alt="Coco AI" className="block h-26px w-auto dark:hidden" src={logoTextLight} />
+            <img alt="Coco AI" className="hidden h-26px w-auto dark:block" src={logoTextDark} />
           </div>
           <Segmented
             value={activeApp}
