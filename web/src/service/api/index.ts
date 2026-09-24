@@ -1,4 +1,5 @@
 export * from './api-token';
+export * from './assistant';
 export * from './auth';
 export * from './connector';
 export * from './data-source';

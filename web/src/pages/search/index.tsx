@@ -10,6 +10,7 @@ import { getLocale } from '@/store/slice/app';
 import { getApplicationSetting } from '@/store/slice/server';
 import { searchAssistant } from '@/service/api/assistant';
 import { fetchBatchEntityLabels } from '@/service/api/entity';
+import { SaveToWikiModal, type SaveToWikiPayload } from './components/SaveToWikiModal';
 
 const AGGS_DEFAULT = {
   "aggs": {
@@ -69,6 +70,9 @@ export function Component() {
 
   // the app shell header owns the top-right controls (lang/theme/avatar/console)
   const rightMenuWidth = 0;
+
+  // knowledge execution: answer -> knowledge-base draft (D1 server-side)
+  const [saveToWikiPayload, setSaveToWikiPayload] = useState<SaveToWikiPayload | null>(null);
 
   const applicationSetting = useAppSelector(getApplicationSetting);
 
@@ -280,6 +284,7 @@ export function Component() {
       "showActions": true,
     },
     "onSearch": onSearch,
+    "onSaveToWiki": (payload: SaveToWikiPayload) => setSaveToWikiPayload(payload),
     "onAggregation": onAggregation,
     "onAsk": onAsk,
     "onSuggestion": onSuggestion,
@@ -341,11 +346,22 @@ export function Component() {
   if (!integration) return null;
 
   return (
-    <FullscreenPage
-      {...componentProps}
-      enableQueryParams={true}
-      queryParams={queryParams}
-      setQueryParams={setQueryParams}
-    />
+    <>
+      <FullscreenPage
+        {...componentProps}
+        enableQueryParams={true}
+        queryParams={queryParams}
+        setQueryParams={setQueryParams}
+      />
+      <SaveToWikiModal
+        payload={saveToWikiPayload}
+        onClose={() => setSaveToWikiPayload(null)}
+        onSaved={(articleId, kbId) => {
+          // jump straight into the draft for a human review pass (D1)
+          setQueryParams({ ...queryParams, mode: 'search' });
+          window.location.hash = `#/wiki/article/${articleId}?kb=${kbId}`;
+        }}
+      />
+    </>
   );
 }

@@ -48,8 +48,11 @@ func (this *Coco) Setup() {
 	orm.MustRegisterSchemaWithIndexName(core.WikiBookmark{}, "wiki-bookmark"+suffix)
 	orm.MustRegisterSchemaWithIndexName(core.WikiComment{}, "wiki-comment"+suffix)
 	orm.MustRegisterSchemaWithIndexName(core.WikiNotification{}, "wiki-notification"+suffix)
+	orm.MustRegisterSchemaWithIndexName(core.WikiGovernanceProposal{}, "wiki-governance"+suffix)
+	orm.MustRegisterSchemaWithIndexName(core.WikiLike{}, "wiki-like"+suffix)
 	orm.MustRegisterSchemaWithIndexName(core.WikiEntity{}, "wiki-entity"+suffix)
 	orm.MustRegisterSchemaWithIndexName(core.WikiOntologySchema{}, "wiki-ontology-schema"+suffix)
+	orm.MustRegisterSchemaWithIndexName(core.AssistantTemplate{}, "assistant-template"+suffix)
 }
 
 func (this *Coco) Start() error {

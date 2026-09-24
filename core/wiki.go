@@ -5,6 +5,8 @@
 package core
 
 import (
+	"time"
+
 	"infini.sh/framework/core/orm"
 )
 
@@ -40,6 +42,19 @@ const (
 	// relation written by the wikilink parser when an entity page links to
 	// another entity without an explicit typed relation
 	WikiRelationMentions = "mentions"
+
+	// governance proposal lifecycle: the scanner only proposes, a human
+	// resolves or dismisses (D1 applies to knowledge governance too)
+	WikiGovernanceOpen      = "open"
+	WikiGovernanceResolved  = "resolved"
+	WikiGovernanceDismissed = "dismissed"
+
+	// governance proposal types
+	WikiGovernanceStale      = "stale"       // cited docs changed / pending auto-updated version
+	WikiGovernanceDuplicate  = "duplicate"   // near-identical article in the same KB
+	WikiGovernanceConflict   = "conflict"    // regenerated version contradicts live content
+	WikiGovernanceLowQuality = "low_quality" // low confidence or zero citations while published
+	WikiGovernanceOrphan     = "orphan"      // article missing from the KB TOC tree
 )
 
 // WikiWorkspace groups knowledge bases per team or tenant.
@@ -159,6 +174,32 @@ type WikiNotification struct {
 	Action     string `json:"action,omitempty" elastic_mapping:"action:{type:keyword}"` // ai-draft | status-change | ...
 	Message    string `json:"message,omitempty" elastic_mapping:"message:{type:text}"`
 	Read       bool   `json:"read" elastic_mapping:"read:{type:boolean}"`
+}
+
+// WikiGovernanceProposal is one AI-spotted knowledge-governance item: the
+// background scanner detects stale / duplicate / conflicting / low-quality /
+// orphaned articles and files a proposal; applying any fix stays a human
+// decision on the governance queue (D1).
+type WikiGovernanceProposal struct {
+	orm.ORMObjectBase
+	KbID         string                 `json:"kb_id" elastic_mapping:"kb_id:{type:keyword}"`
+	ArticleID    string                 `json:"article_id" elastic_mapping:"article_id:{type:keyword}"`
+	ArticleTitle string                 `json:"article_title,omitempty" elastic_mapping:"article_title:{type:keyword}"`
+	Type         string                 `json:"type" elastic_mapping:"type:{type:keyword}"` // stale | duplicate | conflict | low_quality | orphan
+	Status       string                 `json:"status" elastic_mapping:"status:{type:keyword}"`
+	Reason       string                 `json:"reason,omitempty" elastic_mapping:"reason:{type:text}"`
+	Evidence     map[string]interface{} `json:"evidence,omitempty" elastic_mapping:"evidence:{type:object,enabled:false}"`
+	ResolvedBy   string                 `json:"resolved_by,omitempty" elastic_mapping:"resolved_by:{type:keyword}"`
+	ResolvedAt   *time.Time             `json:"resolved_at,omitempty" elastic_mapping:"resolved_at:{type:date}"`
+}
+
+// WikiLike is a user's thumbs-up on an article; one row per (article, user),
+// toggled by create/delete only.
+type WikiLike struct {
+	orm.ORMObjectBase
+	ArticleID string `json:"article_id" elastic_mapping:"article_id:{type:keyword}"`
+	UserID    string `json:"user_id" elastic_mapping:"user_id:{type:keyword}"`
+	UserName  string `json:"user_name,omitempty" elastic_mapping:"user_name:{type:keyword}"`
 }
 
 // WikiEntityRelation is a typed edge to another entity.

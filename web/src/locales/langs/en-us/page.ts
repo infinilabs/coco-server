@@ -124,7 +124,35 @@ const page: App.I18n.Schema['translation']['page'] = {
       stream: 'AI output',
       done: 'Applied as version v{{version}}'
     },
+    like: { add: 'Like', remove: 'Unlike' },
     bookmark: { add: 'Bookmark this article', remove: 'Bookmarked' },
+    governance: {
+      title: 'Knowledge Governance',
+      subtitle: 'AI scans the knowledge bases and files proposals: stale, duplicate, conflicting, low-quality or orphaned pages. Every fix stays a human decision.',
+      statusOpen: 'Open',
+      statusResolved: 'Resolved',
+      statusDismissed: 'Dismissed',
+      statusAll: 'All',
+      resolve: 'Mark resolved',
+      dismiss: 'Dismiss',
+      resolveConfirm: 'Mark this proposal resolved? Apply the actual fix on the article page.',
+      dismissConfirm: 'Dismiss this proposal? The scanner will not re-file it unless things change.',
+      duplicateOf: 'Possible duplicate of, click to view',
+      pendingVersion: 'Auto-updated version v{version} awaiting review',
+      empty: 'Queue is clean, nothing to review',
+      type: { stale: 'Stale', duplicate: 'Duplicate', conflict: 'Conflict', low_quality: 'Low quality', orphan: 'Orphaned' },
+      hint: '{count} proposal(s) waiting'
+    },
+    saveFromChat: {
+      title: 'Save to knowledge base',
+      ok: 'Save as draft',
+      kb: 'Target knowledge base',
+      kbPlaceholder: 'Pick the knowledge base to land into',
+      articleTitle: 'Article title',
+      summary: 'Summary (optional)',
+      success: 'Saved as a draft — review and publish in the wiki',
+      draftHint: 'The answer lands as an AI draft; publishing stays a human review.'
+    },
     diff: {
       view: 'Diff',
       vsPrev: 'Changes v{{older}} → v{{newer}}',
@@ -980,6 +1008,20 @@ const page: App.I18n.Schema['translation']['page'] = {
       name: 'Name',
       type: 'Type'
     }
+  },
+  assistantTemplate: {
+    title: 'Assistant Templates',
+    subtitle: 'Turn a scenario preset (curated role prompt + suggested questions) into a working assistant in one click, optionally bound to a knowledge base.',
+    use: 'Use template',
+    useTitle: 'Use template: {title}',
+    name: 'Assistant name',
+    bindKb: 'Bind knowledge base (optional)',
+    bindKbPlaceholder: 'Pick a knowledge base; the assistant will search its datasources',
+    bindHint: 'When bound: the assistant data scope becomes the KB datasources, and the KB records the assistant for "ask this KB".',
+    create: 'Create and chat',
+    created: 'Assistant created, opening chat',
+    empty: 'No templates yet',
+    category: { support: 'Support', sales: 'Sales', hr: 'HR', it: 'IT', productivity: 'Productivity' }
   },
   skill: {
     title: 'Skills',

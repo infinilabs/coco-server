@@ -75,6 +75,7 @@ interface FullscreenProps {
 const Fullscreen = (props: FullscreenProps) => {
   const {
     logo = {},
+    onSaveToWiki,
     placeholder,
     welcome,
     aiOverview,
@@ -390,6 +391,7 @@ const Fullscreen = (props: FullscreenProps) => {
         commonProps={commonProps}
         logo={logo}
         handleLogoClick={handleLogoClick}
+        onSaveToWiki={onSaveToWiki}
         apiConfig={apiConfig}
         queryParams={queryParams}
         onBackToSearch={() => {

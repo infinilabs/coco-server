@@ -546,17 +546,29 @@ func confidenceFor(citations, distinctDocs, scopedDocs int) string {
 // deliverPage persists a drafted page as a draft article with its first
 // version snapshot, linked pages and KB counters (§5.1 phase 6).
 func deliverPage(kb *core.WikiKnowledgeBase, page *draftedPage) (*core.WikiArticle, error) {
+	return createDraftArticle(kb, page.candidate.Title, page.summary, page.content,
+		page.candidate.PageType, page.candidate.Subtype, page.sources, page.confidence,
+		fmt.Sprintf("KM agent generated from %d source documents", len(page.sources)),
+		fmt.Sprintf("AI generated draft page %q for knowledge base %s", page.candidate.Title, kb.Name))
+}
+
+// createDraftArticle is the single delivery path for AI-produced content:
+// draft status, first version snapshot, TOC entry, linked pages, KB counter
+// and owner notification (D1: every AI origin stops at draft — publish stays
+// on PUT /wiki/article/:id/status).
+func createDraftArticle(kb *core.WikiKnowledgeBase, title, summary, content, pageType, subtype string,
+	sources []core.WikiSourceReference, confidence, versionNote, notificationMsg string) (*core.WikiArticle, error) {
 	article := &core.WikiArticle{
 		KbID:        kb.ID,
-		Title:       page.candidate.Title,
-		Summary:     page.summary,
-		Content:     page.content,
-		PageType:    page.candidate.PageType,
-		Subtype:     page.candidate.Subtype,
+		Title:       title,
+		Summary:     summary,
+		Content:     content,
+		PageType:    pageType,
+		Subtype:     subtype,
 		Status:      core.WikiArticleDraft, // D1: generation stops at draft
 		AIGenerated: true,
-		Confidence:  page.confidence,
-		Sources:     page.sources,
+		Confidence:  confidence,
+		Sources:     sources,
 	}
 
 	ctx := orm.NewContext()
@@ -565,8 +577,7 @@ func deliverPage(kb *core.WikiKnowledgeBase, page *draftedPage) (*core.WikiArtic
 	if err := orm.Create(ctx, article); err != nil {
 		return nil, err
 	}
-	if err := writeVersionSnapshot(article, 1, core.WikiChangeAIGenerated,
-		fmt.Sprintf("KM agent generated from %d source documents", len(page.sources))); err != nil {
+	if err := writeVersionSnapshot(article, 1, core.WikiChangeAIGenerated, versionNote); err != nil {
 		return nil, err
 	}
 	if err := addArticleToToc(kb.ID, article.ID, article.Title); err != nil {
@@ -576,8 +587,7 @@ func deliverPage(kb *core.WikiKnowledgeBase, page *draftedPage) (*core.WikiArtic
 	if err := bumpKbArticleCount(kb.ID, 1); err != nil {
 		return nil, err
 	}
-	notifyOwner(kb.GetOwnerID(), "article", article.ID, "ai-draft",
-		fmt.Sprintf("AI generated draft page %q for knowledge base %s", article.Title, kb.Name))
+	notifyOwner(kb.GetOwnerID(), "article", article.ID, "ai-draft", notificationMsg)
 	return article, nil
 }
 

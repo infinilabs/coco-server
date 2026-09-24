@@ -222,6 +222,8 @@ const routeMap: RouteMap = {
   "ai-assistant_new": "new",
   "api-token": "/api-token",
   "api-token_list": "list",
+  "assistant-template": "/assistant-template",
+  "assistant-template_list": "list",
   "auth": "/auth",
   "auth_edit": "edit/:id",
   "auth_new": "new",
@@ -268,6 +270,7 @@ const routeMap: RouteMap = {
   "webhook_new": "new",
   "wiki": "/wiki",
   "wiki_article": "article/:id",
+  "wiki_governance": "governance",
   "wiki_kb": "kb/:id",
   "wiki_list": "list"
 };

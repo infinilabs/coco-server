@@ -124,7 +124,35 @@ const page: App.I18n.Schema['translation']['page'] = {
       stream: 'AI 输出',
       done: '已应用为版本 v{{version}}'
     },
+    like: { add: '点赞', remove: '取消点赞' },
     bookmark: { add: '收藏该文章', remove: '已收藏' },
+    governance: {
+      title: '知识治理',
+      subtitle: 'AI 定期巡检知识库并提交提议:过期、重复、冲突、低质量、未入树。处理动作始终由人工确认。',
+      statusOpen: '待处理',
+      statusResolved: '已处理',
+      statusDismissed: '已忽略',
+      statusAll: '全部',
+      resolve: '标记已处理',
+      dismiss: '忽略',
+      resolveConfirm: '确认已处理该提议?处理动作请在文章页完成。',
+      dismissConfirm: '忽略该提议?扫描器在情况变化前不会重复提交。',
+      duplicateOf: '疑似重复于,点击查看',
+      pendingVersion: '有待审的自动更新版本 v{version}',
+      empty: '队列干净,没有待处理的提议',
+      type: { stale: '内容过期', duplicate: '疑似重复', conflict: '内容冲突', low_quality: '低质量', orphan: '未入目录树' },
+      hint: '{count} 条提议等待处理'
+    },
+    saveFromChat: {
+      title: '保存到知识库',
+      ok: '保存为草稿',
+      kb: '目标知识库',
+      kbPlaceholder: '选择要沉淀到的知识库',
+      articleTitle: '文章标题',
+      summary: '摘要(可选)',
+      success: '已保存为草稿,可在知识库中审阅发布',
+      draftHint: '回答将以 AI 草稿形式进入知识库,发布仍需人工审阅。'
+    },
     diff: {
       view: '对比',
       vsPrev: '版本变更 v{{older}} → v{{newer}}',
@@ -1236,6 +1264,20 @@ const page: App.I18n.Schema['translation']['page'] = {
       payload_url: '请输入',
       secret: '请输入'
     }
+  },
+  assistantTemplate: {
+    title: '智能体模板',
+    subtitle: '一键将场景预设(角色提示词 + 建议问题)实例化为可用的 AI 助手,可选绑定知识库。',
+    use: '使用模板',
+    useTitle: '使用模板:{title}',
+    name: '助手名称',
+    bindKb: '绑定知识库(可选)',
+    bindKbPlaceholder: '选择要绑定的知识库,助手将检索其数据源',
+    bindHint: '绑定后:助手的数据范围 = 该知识库的数据源,知识库也会记录此助手,便于"询问本知识库"。',
+    create: '创建并开始对话',
+    created: '助手已创建,正在前往对话',
+    empty: '暂无模板',
+    category: { support: '客服', sales: '销售', hr: '人力资源', it: 'IT 支持', productivity: '效率' }
   },
   skill: {
     title: '技能管理',

@@ -1,5 +1,6 @@
 import {
   BellOutlined,
+  SafetyCertificateOutlined,
   DeleteOutlined,
   EditOutlined,
   FolderAddOutlined,
@@ -15,6 +16,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   getWikiToc,
+  searchWikiGovernance,
   searchWikiKbs,
   searchWikiNotifications,
   updateWikiToc
@@ -99,6 +101,7 @@ export function WikiShell({ kbId, articleId, children }: Props) {
   const [createOpen, setCreateOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [unread, setUnread] = useState(0);
+  const [openGovernance, setOpenGovernance] = useState(0);
   const [renaming, setRenaming] = useState<{ key: string; value: string } | null>(null);
   const { hasAuth } = useAuth();
   const canCreateKb = hasAuth('coco#wiki_kb/create');
@@ -135,9 +138,16 @@ export function WikiShell({ kbId, articleId, children }: Props) {
     });
   };
 
+  const fetchGovernanceCount = () => {
+    searchWikiGovernance({ status: 'open' }).then(res => {
+      setOpenGovernance(((res as any)?.total as number) || 0);
+    });
+  };
+
   useEffect(() => {
     fetchKbs();
     fetchUnread();
+    fetchGovernanceCount();
     if (kbId) fetchToc(kbId);
   }, [kbId]);
 
@@ -327,6 +337,7 @@ export function WikiShell({ kbId, articleId, children }: Props) {
     setTocs({});
     fetchKbs(true);
     fetchUnread();
+    fetchGovernanceCount();
     if (kbId) {
       getWikiToc(kbId).then(res => {
         const toc = ((res as any) || []) as Api.Wiki.TocNode[];
@@ -345,6 +356,11 @@ export function WikiShell({ kbId, articleId, children }: Props) {
         title={t('route.wiki')}
         extra={
           <div className='flex items-center gap-4px'>
+            <Tooltip title={t('page.wiki.governance.title')}>
+              <Badge count={openGovernance} offset={[-2, 2]} size="small">
+                <Button icon={<SafetyCertificateOutlined />} onClick={() => nav('/wiki/governance')} size="small" type="text" />
+              </Badge>
+            </Tooltip>
             <Tooltip title={t('page.wiki.notification.title')}>
               <Badge count={unread} offset={[-2, 2]} size="small">
                 <Button icon={<BellOutlined />} onClick={() => setNotifOpen(true)} size="small" type="text" />

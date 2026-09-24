@@ -15,6 +15,8 @@ import {
   SendOutlined,
   StarFilled,
   StarOutlined,
+  LikeFilled,
+  LikeOutlined,
   TagsOutlined
 } from '@ant-design/icons';
 import {
@@ -44,7 +46,10 @@ import {
   deleteWikiBookmark,
   getWikiArticle,
   getWikiArticleVersions,
+  createWikiLike,
+  deleteWikiLike,
   searchWikiBookmarks,
+  searchWikiLikes,
   updateWikiArticle,
   updateWikiArticleStatus
 } from '@/service/api';
@@ -151,6 +156,8 @@ export function Component() {
   const [diffPair, setDiffPair] = useState<{ older: Api.Wiki.Version; newer: Api.Wiki.Version } | null>(null);
   const [aiEditOpen, setAiEditOpen] = useState(false);
   const [bookmarkId, setBookmarkId] = useState<string | null>(null);
+  const [likeId, setLikeId] = useState<string | null>(null);
+  const [likeCount, setLikeCount] = useState(0);
 
   // edit form state (kept flat — the form is a single record)
   const [draft, setDraft] = useState<Partial<Api.Wiki.Article>>({});
@@ -179,6 +186,12 @@ export function Component() {
       const hit = (((res as any)?.data || []) as any[]).find(b => b.article_id === id);
       setBookmarkId(hit?.id ?? null);
     });
+    searchWikiLikes(id).then(res => {
+      const likes = ((res as any)?.data || []) as any[];
+      setLikeCount(likes.length);
+      const mine = likes.find(l => l.user_id && l.user_id === userInfo?.id);
+      setLikeId(mine?.id ?? null);
+    });
   }, [id]);
 
   const toggleBookmark = () => {
@@ -187,6 +200,24 @@ export function Component() {
       deleteWikiBookmark(bookmarkId).then(() => setBookmarkId(null));
     } else {
       createWikiBookmark(id).then(res => setBookmarkId(((res as any)?._id as string) || null));
+    }
+  };
+
+  const toggleLike = () => {
+    if (!id) return;
+    if (likeId) {
+      deleteWikiLike(likeId).then(() => {
+        setLikeId(null);
+        setLikeCount(c => Math.max(0, c - 1));
+      });
+    } else {
+      createWikiLike(id).then(res => {
+        const newId = ((res as any)?._id as string) || null;
+        if (newId) {
+          setLikeId(newId);
+          setLikeCount(c => c + 1);
+        }
+      });
     }
   };
 
@@ -257,6 +288,11 @@ export function Component() {
           article && (
             <Space>
               {article.status && <Tag color={STATUS_COLOR[article.status]}>{t(`page.wiki.status.${article.status}`)}</Tag>}
+              <Tooltip title={likeId ? t('page.wiki.like.remove') : t('page.wiki.like.add')}>
+                <Button icon={likeId ? <LikeFilled style={{ color: '#1990ff' }} /> : <LikeOutlined />} onClick={toggleLike}>
+                  {likeCount > 0 ? likeCount : ''}
+                </Button>
+              </Tooltip>
               <Tooltip title={bookmarkId ? t('page.wiki.bookmark.remove') : t('page.wiki.bookmark.add')}>
                 <Button
                   icon={bookmarkId ? <StarFilled style={{ color: '#faad14' }} /> : <StarOutlined />}

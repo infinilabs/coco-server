@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import clsx from "clsx";
 import {
+  BookmarkPlus,
   Check,
   Copy,
   ThumbsUp,
@@ -10,6 +11,7 @@ import {
   Volume2,
   RotateCcw,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { copyToClipboard } from "../utils";
 
@@ -20,6 +22,8 @@ interface MessageActionsProps {
   actionIconSize?: number;
   copyButtonId?: string;
   onResend?: () => void;
+  /** host hook: persist this answer into a knowledge base as a draft article */
+  onSaveToWiki?: (payload: { content: string; id: string }) => void;
 }
 
 const RefreshOnlyIds = ["timedout", "error"];
@@ -31,7 +35,9 @@ export const MessageActions = ({
   actionIconSize,
   copyButtonId,
   onResend,
+  onSaveToWiki,
 }: MessageActionsProps) => {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const [liked, setLiked] = useState(false);
   const [disliked, setDisliked] = useState(false);
@@ -189,6 +195,21 @@ export const MessageActions = ({
               }}
             />
           )}
+        </button>
+      )}
+      {!isRefreshOnly && content && onSaveToWiki && (
+        <button
+          onClick={() => onSaveToWiki({ content, id })}
+          title={t("labels.saveToWiki")}
+          className="bg-transparent border-0 cursor-pointer p-4px hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
+        >
+          <BookmarkPlus
+            className="w-4 h-4 text-[#666666] dark:text-[#A3A3A3] hover:text-[#1990FF] dark:hover:text-[#1990FF]"
+            style={{
+              width: actionIconSize,
+              height: actionIconSize,
+            }}
+          />
         </button>
       )}
       {onResend && (

@@ -13,13 +13,15 @@ const Category = "coco"
 
 // resources and their permission keys (design doc §4.1)
 var (
-	workspaceResource = "wiki_workspace"
-	kbResource        = "wiki_kb"
-	articleResource   = "wiki_article"
-	bookmarkResource  = "wiki_bookmark"
-	notificationRes   = "wiki_notification"
-	entityResource    = "wiki_entity"
-	commentResource   = "wiki_comment"
+	workspaceResource  = "wiki_workspace"
+	kbResource         = "wiki_kb"
+	articleResource    = "wiki_article"
+	bookmarkResource   = "wiki_bookmark"
+	notificationRes    = "wiki_notification"
+	entityResource     = "wiki_entity"
+	commentResource    = "wiki_comment"
+	governanceResource = "wiki_governance"
+	likeResource       = "wiki_like"
 )
 
 type APIHandler struct {
@@ -29,7 +31,7 @@ type APIHandler struct {
 func init() {
 
 	permKeys := make([]security.PermissionKey, 0, 30)
-	for _, resource := range []string{workspaceResource, kbResource, articleResource, bookmarkResource, notificationRes, entityResource, commentResource} {
+	for _, resource := range []string{workspaceResource, kbResource, articleResource, bookmarkResource, notificationRes, entityResource, commentResource, governanceResource, likeResource} {
 		permKeys = append(permKeys,
 			security.GetSimplePermission(Category, resource, string(security.Create)),
 			security.GetSimplePermission(Category, resource, string(security.Update)),
@@ -47,6 +49,8 @@ func init() {
 	registerNotificationCRUD()
 	registerEntityCRUD()
 	registerCommentCRUD()
+	registerGovernanceCRUD()
+	registerLikeCRUD()
 
 	handler := APIHandler{}
 
@@ -86,4 +90,15 @@ func init() {
 	// and records an ai-generated version, status machine untouched
 	api.HandleUIMethod(api.POST, "/wiki/article/:id/ai/edit", handler.aiEdit,
 		api.RequireLogin(), api.RequirePermission(updateArticlePermission))
+
+	// knowledge execution: land a chat answer into a KB as a draft article
+	// (D1 inherited from createDraftArticle — publish stays human)
+	api.HandleUIMethod(api.POST, "/wiki/article/_from_chat", handler.createArticleFromChat,
+		api.RequireLogin(), api.RequirePermission(createArticlePermission),
+		api.MCPTool("save_chat_answer_to_wiki", "Save an assistant answer (content + citations) into a knowledge base as a draft article; returns the new article id"))
+
+	// governance queue: the human gate — resolving/dismissing records the
+	// decision, fixes themselves happen on the article face (D1)
+	api.HandleUIMethod(api.PUT, "/wiki/governance/:id/status", handler.updateGovernanceStatus,
+		api.RequireLogin(), api.RequirePermission(security.GetSimplePermission(Category, governanceResource, string(security.Update))))
 }

@@ -22,6 +22,7 @@ var (
 	updateKbPermission      = security.GetSimplePermission(Category, kbResource, string(security.Update))
 	readArticlePermission   = security.GetSimplePermission(Category, articleResource, string(security.Read))
 	updateArticlePermission = security.GetSimplePermission(Category, articleResource, string(security.Update))
+	createArticlePermission = security.GetSimplePermission(Category, articleResource, string(security.Create))
 	readEntityPermission    = security.GetSimplePermission(Category, entityResource, string(security.Read))
 	searchEntityPermission  = security.GetSimplePermission(Category, entityResource, string(security.Search))
 )
@@ -318,4 +319,45 @@ func bumpKbArticleCount(kbID string, delta int) error {
 		kb.ArticleCount = 0
 	}
 	return orm.Update(ctx, &kb)
+}
+
+func registerGovernanceCRUD() {
+	crud.RegisterCRUD[core.WikiGovernanceProposal](crud.Config[core.WikiGovernanceProposal]{
+		Prefix:             "/wiki/governance",
+		Resource:           governanceResource,
+		Permission:         simplePermissionFn(governanceResource),
+		DefaultQueryFields: []string{"article_title", "reason"},
+		MCP:                true,
+		MCPDescs: map[string]string{
+			crud.ActionSearch: "Search knowledge-governance proposals (stale/duplicate/conflict/low-quality/orphan) by status or type",
+			crud.ActionRead:   "Get one governance proposal by id",
+		},
+		// the scanner is the only writer; humans resolve or dismiss via
+		// PUT /wiki/governance/:id/status (D1: queue is propose-only)
+		SkipActions: []string{crud.ActionCreate, crud.ActionUpdate, crud.ActionDelete},
+	})
+}
+
+func registerLikeCRUD() {
+	crud.RegisterCRUD(likeConfig())
+}
+
+func likeConfig() crud.Config[core.WikiLike] {
+	return crud.Config[core.WikiLike]{
+		Prefix:             "/wiki/like",
+		Resource:           likeResource,
+		Permission:         simplePermissionFn(likeResource),
+		DefaultQueryFields: []string{"article_id"},
+		MCP:                false,
+		// likes are create/delete only — no edit semantics
+		SkipActions: []string{crud.ActionUpdate},
+		PrepareCreate: func(obj *core.WikiLike) error {
+			if obj.ArticleID == "" {
+				return fmt.Errorf("article_id is required")
+			}
+			return nil
+		},
+		// identity comes from the session; the payload copy is convenience
+		ProtectedFields: []string{"user_id", "user_name"},
+	}
 }

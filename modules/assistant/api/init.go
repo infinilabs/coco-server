@@ -114,4 +114,11 @@ func init() {
 	api.HandleUIMethod(api.OPTIONS, "/assistant/_search", handler.searchAssistant, api.RequirePermission(searchAssistantPermission), api.Feature(core.FeatureCORS))
 	api.HandleUIMethod(api.POST, "/assistant/_search", handler.searchAssistant, api.RequirePermission(searchAssistantPermission), api.Feature(core.FeatureCORS))
 	api.HandleUIMethod(api.POST, "/assistant/:id/_clone", handler.cloneAssistant, api.RequirePermission(createAssistantPermission))
+
+	// scenario templates: read/search + one-click instantiate (copies into a
+	// real assistant; optional kb_id binds it to a wiki knowledge base)
+	registerTemplateCRUD()
+	scheduleSeedTemplates()
+	api.HandleUIMethod(api.POST, "/assistant-template/:id/_instantiate", handler.instantiateTemplate, api.RequirePermission(createAssistantPermission),
+		api.MCPTool("instantiate_assistant_template", "Create a working assistant from a scenario template (support/sales/HR/IT presets); optionally bind it to a wiki knowledge base by kb_id. Returns the new assistant id."))
 }

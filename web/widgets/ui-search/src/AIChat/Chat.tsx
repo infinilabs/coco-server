@@ -37,6 +37,8 @@ interface ChatAIProps {
   t?: TFunction;
   theme?: string;
   isMobile?: boolean;
+  /** Host hook: persist an assistant answer into a knowledge base (draft). */
+  onSaveToWiki?: (payload: { content: string; question: string; id: string }) => void;
 }
 
 /**
@@ -82,7 +84,7 @@ export interface ChatAIRef {
  */
 const InnerChatAI = memo(
   forwardRef<ChatAIRef, ChatAIProps>(
-    ({ BaseUrl, formatUrl, headers: headersProp = {}, locale, t: tProp, theme, isMobile }, ref) => {
+    ({ BaseUrl, formatUrl, headers: headersProp = {}, locale, t: tProp, theme, isMobile, onSaveToWiki }, ref) => {
       // 动态加载 iconfont 脚本
       useIconfontScript();
 
@@ -1031,6 +1033,7 @@ const InnerChatAI = memo(
             theme={theme}
             isMobile={isMobile}
             onCancel={handleCancelWithConfirm}
+            onSaveToWiki={onSaveToWiki}
           />
 
           <CancelDeepResearchDialog

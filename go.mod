@@ -65,7 +65,7 @@ require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/42wim/httpsig v1.2.3 // indirect
 	github.com/AssemblyAI/assemblyai-go-sdk v1.3.0 // indirect
-	github.com/Dreamacro/clash v1.18.0 // indirect
+	github.com/Dreamacro/clash v1.18.1-0.20230817150358-e5f2396f810a // indirect
 	github.com/Dreamacro/protobytes v0.0.0-20230617041236-6500a9f4f158 // indirect
 	github.com/JohannesKaufmann/dom v0.3.1 // indirect
 	github.com/JohannesKaufmann/html-to-markdown/v2 v2.5.2 // indirect
@@ -289,3 +289,4 @@ replace github.com/tmc/langchaingo => github.com/infinilabs/langchaingo v0.0.0-2
 
 replace infini.sh/framework => ../framework
 
+replace infini.sh/license => ../license

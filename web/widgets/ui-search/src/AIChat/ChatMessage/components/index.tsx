@@ -65,6 +65,8 @@ export interface ChatMessageProps {
   currentAssistant?: any;
   /** Fetch attachment metadata by IDs for rendering in user messages. */
   fetchAttachments?: (ids: string[]) => Promise<AttachmentHit[]>;
+  /** Host hook: persist an assistant answer into a knowledge base (draft). */
+  onSaveToWiki?: (payload: { content: string; question: string; id: string }) => void;
   t?: TFunction;
 }
 
@@ -110,6 +112,7 @@ const InnerChatMessage = memo(
       assistantList,
       currentAssistant,
       fetchAttachments,
+      onSaveToWiki,
       t: tProp,
     },
     ref,
@@ -515,6 +518,11 @@ const InnerChatMessage = memo(
               actionClassName={actionClassName}
               actionIconSize={actionIconSize}
               copyButtonId={copyButtonId}
+              onSaveToWiki={
+                onSaveToWiki
+                  ? (p) => onSaveToWiki({ ...p, question: replyQuestion, id: message._id ?? "" })
+                  : undefined
+              }
               onResend={canResendReply ? () => {
                 if (onResend) {
                   onResend({

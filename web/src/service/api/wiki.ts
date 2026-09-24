@@ -114,6 +114,20 @@ export function deleteWikiKb(id: string) {
   return request({ method: 'delete', url: `/wiki/kb/${id}` });
 }
 
+/* Knowledge execution: land a chat answer into a KB as a draft article
+ * (server keeps the D1 gate — the result is always a draft). */
+export function createWikiArticleFromChat(body: {
+  kb_id: string;
+  title: string;
+  content: string;
+  summary?: string;
+  sources?: { doc_id: string; title?: string; url?: string; excerpt?: string }[];
+  message_id?: string;
+  session_id?: string;
+}) {
+  return request<{ _id: string }>({ method: 'post', data: body, url: '/wiki/article/_from_chat' }).then(res => res?.data);
+}
+
 /* ---------------- Articles ---------------- */
 
 export function searchWikiArticles(params: { kbId?: string; query?: string }) {
@@ -192,6 +206,73 @@ export function createWikiBookmark(articleId: string) {
 
 export function deleteWikiBookmark(id: string) {
   return request({ method: 'delete', url: `/wiki/bookmark/${id}` });
+}
+
+/* ---------------- likes ---------------- */
+
+export function searchWikiLikes(articleId?: string) {
+  const qs = articleId ? `?filter=article_id:${articleId}` : '';
+  return request<{ hits: any }>({ method: 'get', url: `/wiki/like/_search${qs}` }).then(res => {
+    const es = formatESSearchResult(res?.data);
+    return { data: es.data || [], total: es.total };
+  });
+}
+
+export function createWikiLike(articleId: string) {
+  return request<{ _id: string }>({ method: 'post', data: { article_id: articleId }, url: '/wiki/like/' }).then(
+    res => res?.data
+  );
+}
+
+export function deleteWikiLike(id: string) {
+  return request({ method: 'delete', url: `/wiki/like/${id}` });
+}
+
+/* ---------------- governance queue ---------------- */
+
+export interface GovernanceProposal {
+  id: string;
+  kb_id: string;
+  article_id: string;
+  article_title: string;
+  type: string;
+  status: string;
+  reason: string;
+  evidence?: Record<string, any>;
+  resolved_by?: string;
+  created_at?: string;
+}
+
+export function searchWikiGovernance(params?: { status?: string; type?: string; kbId?: string }) {
+  const searchParams = new URLSearchParams();
+  const filters: string[] = [];
+  if (params?.status) filters.push(`status:${params.status}`);
+  if (params?.type) filters.push(`type:${params.type}`);
+  if (params?.kbId) filters.push(`kb_id:${params.kbId}`);
+  if (filters.length) searchParams.set('filter', filters.join(' AND '));
+  const qs = searchParams.toString();
+  return request<{ hits: any }>({ method: 'get', url: `/wiki/governance/_search${qs ? `?${qs}` : ''}` }).then(res => {
+    const es = formatESSearchResult(res?.data);
+    return {
+      data: (es.data || []).map((p: any) => ({
+        id: p.id ?? '',
+        kb_id: p.kb_id ?? '',
+        article_id: p.article_id ?? '',
+        article_title: p.article_title ?? '',
+        type: p.type ?? '',
+        status: p.status ?? '',
+        reason: p.reason ?? '',
+        evidence: p.evidence,
+        resolved_by: p.resolved_by,
+        created_at: fmtDate(p.created)
+      })) as GovernanceProposal[],
+      total: es.total
+    };
+  });
+}
+
+export function updateWikiGovernanceStatus(id: string, status: string) {
+  return request({ method: 'put', data: { status }, url: `/wiki/governance/${id}/status` }).then(res => res?.data);
 }
 
 export function searchWikiNotifications() {

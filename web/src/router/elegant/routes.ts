@@ -116,6 +116,33 @@ export const generatedRoutes: GeneratedRoute[] = [
     ]
   },
   {
+    name: 'assistant-template',
+    path: '/assistant-template',
+    component: 'layout.base',
+    meta: {
+      i18nKey: 'route.assistantTemplate',
+      title: 'assistant-template',
+      order: 10,
+      localIcon: 'robot',
+      permissions: ['coco#assistant_template/search']
+    },
+    redirect: 'list',
+    children: [
+      {
+        name: 'assistant-template_list',
+        path: 'list',
+        component: 'view.assistant-template_list',
+        meta: {
+          i18nKey: 'route.assistant-template_list',
+          title: 'assistant-template_list',
+          hideInMenu: true,
+          activeMenu: 'assistant-template',
+          permissions: ['coco#assistant_template/search']
+        }
+      }
+    ]
+  },
+  {
     name: 'auth',
     path: '/auth',
     component: 'layout.base',
@@ -697,6 +724,17 @@ export const generatedRoutes: GeneratedRoute[] = [
         meta: {
           i18nKey: 'route.wiki_article',
           title: 'wiki_article',
+          hideInMenu: true,
+          activeMenu: 'wiki'
+        }
+      },
+      {
+        name: 'wiki_governance',
+        path: 'governance',
+        component: 'view.wiki_governance',
+        meta: {
+          i18nKey: 'route.wiki_governance',
+          title: 'wiki_governance',
           hideInMenu: true,
           activeMenu: 'wiki'
         }
