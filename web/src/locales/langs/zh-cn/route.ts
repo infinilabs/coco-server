@@ -65,6 +65,7 @@ const route: App.I18n.Schema['translation']['route'] = {
   'ai-assistant_new': '新增 AI 助手',
   'ai-assistant_edit': '编辑 AI 助手',
   settings: '设置',
+  ontology: '本体词表',
   assistantTemplate: '智能体模板',
   'assistant-template_list': '智能体模板',
   assistantTemplateList: '智能体模板',

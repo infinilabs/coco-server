@@ -275,6 +275,46 @@ export function updateWikiGovernanceStatus(id: string, status: string) {
   return request({ method: 'put', data: { status }, url: `/wiki/governance/${id}/status` }).then(res => res?.data);
 }
 
+/* ---------------- ontology vocabulary (phase O1) ---------------- */
+
+export interface OntologyPropertyDef {
+  key: string;
+  label?: string;
+  type: string;
+  required?: boolean;
+  enum?: string[];
+}
+
+export interface OntologyRelationDef {
+  name: string;
+  label?: string;
+  target_type: string;
+  cardinality?: string;
+  inverse?: string;
+}
+
+export interface OntologyEntityTypeDef {
+  name: string;
+  label?: string;
+  icon?: string;
+  properties?: OntologyPropertyDef[];
+  relations?: OntologyRelationDef[];
+}
+
+export function getOntologySchema(kbId?: string) {
+  const qs = kbId ? `?kb=${kbId}` : '';
+  return request<{ _source: any }>({ method: 'get', url: `/wiki/ontology/schema${qs}` }).then(res => {
+    const src = res?.data?._source || {};
+    return { kb_id: src.kb_id || '', entity_types: (src.entity_types || []) as OntologyEntityTypeDef[] };
+  });
+}
+
+export function putOntologySchema(entityTypes: OntologyEntityTypeDef[], kbId?: string) {
+  return request({ method: 'put', data: { kb_id: kbId || '', schema: { entity_types: entityTypes } }, url: '/wiki/ontology/schema' }).then(
+    res => res?.data
+  );
+}
+
 export function searchWikiNotifications() {
   return request<{ hits: any }>({ method: 'get', url: '/wiki/notification/_search' }).then(res => {
     const es = formatESSearchResult(res?.data);

@@ -1009,6 +1009,29 @@ const page: App.I18n.Schema['translation']['page'] = {
       type: 'Type'
     }
   },
+  ontology: {
+    title: 'Ontology Vocabulary',
+    subtitle: 'Declared entity types, typed properties and the relation vocabulary entity writes validate against. Tenant schema is the default; a knowledge base may override.',
+    tenantScope: 'Tenant schema (default)',
+    addType: 'Add type',
+    save: 'Save schema',
+    saved: 'Schema saved',
+    typeName: 'Type name',
+    typeLabel: 'Label',
+    removeType: 'Remove type',
+    removeTypeConfirm: 'Remove type {name}? Existing entities are untouched, but new ones will be rejected.',
+    properties: 'Properties',
+    relations: 'Relations',
+    propKey: 'Property key',
+    propLabel: 'Label',
+    enumHint: 'Enum values, comma separated',
+    required: 'Required',
+    relName: 'Relation',
+    cardinality: 'Cardinality',
+    inverse: 'Inverse',
+    bareType: 'No properties or relations yet',
+    empty: 'No schema on file — start by adding a type'
+  },
   assistantTemplate: {
     title: 'Assistant Templates',
     subtitle: 'Turn a scenario preset (curated role prompt + suggested questions) into a working assistant in one click, optionally bound to a knowledge base.',

@@ -497,6 +497,18 @@ export const generatedRoutes: GeneratedRoute[] = [
     ]
   },
   {
+    name: 'ontology',
+    path: '/ontology',
+    component: 'layout.base$view.ontology',
+    meta: {
+      i18nKey: 'route.ontology',
+      title: 'ontology',
+      order: 11,
+      localIcon: 'skill',
+      permissions: ['coco#wiki_entity/search']
+    }
+  },
+  {
     name: 'preview',
     path: '/preview',
     component: 'layout.blank',

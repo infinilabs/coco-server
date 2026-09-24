@@ -5,6 +5,7 @@
 package wiki
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -13,6 +14,7 @@ import (
 	"infini.sh/framework/core/api/crud"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/security"
+	"infini.sh/framework/core/util"
 )
 
 // permission keys shared between the generated CRUD routes and the
@@ -24,6 +26,7 @@ var (
 	updateArticlePermission = security.GetSimplePermission(Category, articleResource, string(security.Update))
 	createArticlePermission = security.GetSimplePermission(Category, articleResource, string(security.Create))
 	readEntityPermission    = security.GetSimplePermission(Category, entityResource, string(security.Read))
+	updateEntityPermission  = security.GetSimplePermission(Category, entityResource, string(security.Update))
 	searchEntityPermission  = security.GetSimplePermission(Category, entityResource, string(security.Search))
 )
 
@@ -237,7 +240,13 @@ func registerEntityCRUD() {
 			default:
 				return fmt.Errorf("invalid entity status: %s", obj.Status)
 			}
-			return nil
+			// vocabulary gate (ontology phase O1): declared types, typed
+			// properties and the relation vocabulary are enforced; without a
+			// schema on file validation stays lenient
+			return validateEntityAgainstSchema(context.Background(), obj)
+		},
+		PrepareUpdate: func(obj *core.WikiEntity, _ util.MapStr) error {
+			return validateEntityAgainstSchema(context.Background(), obj)
 		},
 		ProtectedFields: []string{"created", "sources"}, // sources are pipeline provenance (B2/B3)
 	})

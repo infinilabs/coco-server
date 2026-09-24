@@ -71,6 +71,7 @@ declare module "@elegant-router/types" {
     "model-provider_edit": "edit/:id";
     "model-provider_list": "list";
     "model-provider_new": "new";
+    "ontology": "/ontology";
     "preview": "/preview";
     "preview_document": "document/:id";
     "role": "/role";
@@ -152,6 +153,7 @@ declare module "@elegant-router/types" {
     | "login"
     | "mcp-server"
     | "model-provider"
+    | "ontology"
     | "preview"
     | "role"
     | "search"
@@ -210,6 +212,7 @@ declare module "@elegant-router/types" {
     | "model-provider_edit"
     | "model-provider_list"
     | "model-provider_new"
+    | "ontology"
     | "preview_document"
     | "role_edit"
     | "role_new"

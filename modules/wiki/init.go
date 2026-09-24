@@ -101,4 +101,15 @@ func init() {
 	// decision, fixes themselves happen on the article face (D1)
 	api.HandleUIMethod(api.PUT, "/wiki/governance/:id/status", handler.updateGovernanceStatus,
 		api.RequireLogin(), api.RequirePermission(security.GetSimplePermission(Category, governanceResource, string(security.Update))))
+
+	// ontology vocabulary (phase O1): the declared entity types, typed
+	// properties and relation vocabulary entity writes validate against;
+	// one schema per scope (tenant default, kb:<id> override)
+	api.HandleUIMethod(api.GET, "/wiki/ontology/schema", handler.getOntologySchema,
+		api.RequireLogin(), api.RequirePermission(readEntityPermission),
+		api.MCPTool("get_ontology_schema", "Get the ontology vocabulary this knowledge base validates against: declared entity types, their typed properties and relation definitions"))
+	api.HandleUIMethod(api.PUT, "/wiki/ontology/schema", handler.putOntologySchema,
+		api.RequireLogin(), api.RequirePermission(updateEntityPermission))
+
+	scheduleSeedOntologySchema()
 }

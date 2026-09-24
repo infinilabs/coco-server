@@ -1265,6 +1265,29 @@ const page: App.I18n.Schema['translation']['page'] = {
       secret: '请输入'
     }
   },
+  ontology: {
+    title: '本体词表',
+    subtitle: '声明实体类型、类型化属性与关系词表;实体写入按此校验。全局词表为默认,知识库可覆盖。',
+    tenantScope: '全局词表(默认)',
+    addType: '新增类型',
+    save: '保存词表',
+    saved: '词表已保存',
+    typeName: '类型名',
+    typeLabel: '显示名',
+    removeType: '删除该类型',
+    removeTypeConfirm: '确认删除类型 {name}?已存在该类型的实体不受影响,但将无法新建。',
+    properties: '属性',
+    relations: '关系',
+    propKey: '属性键',
+    propLabel: '显示名',
+    enumHint: '枚举值,逗号分隔',
+    required: '必填',
+    relName: '关系名',
+    cardinality: '基数',
+    inverse: '逆关系',
+    bareType: '该类型暂无属性与关系',
+    empty: '暂无词表,点击"新增类型"开始定义本体'
+  },
   assistantTemplate: {
     title: '智能体模板',
     subtitle: '一键将场景预设(角色提示词 + 建议问题)实例化为可用的 AI 助手,可选绑定知识库。',

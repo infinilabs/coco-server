@@ -66,6 +66,7 @@ const route: App.I18n.Schema['translation']['route'] = {
   'ai-assistant_new': 'New AI Assistant',
   'ai-assistant_edit': 'Edit AI Assistant',
   settings: 'Settings',
+  ontology: 'Ontology Vocabulary',
   assistantTemplate: 'Assistant Templates',
   'assistant-template_list': 'Assistant Templates',
   assistantTemplateList: 'Assistant Templates',

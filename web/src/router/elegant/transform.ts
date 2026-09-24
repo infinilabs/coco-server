@@ -252,6 +252,7 @@ const routeMap: RouteMap = {
   "model-provider_edit": "edit/:id",
   "model-provider_list": "list",
   "model-provider_new": "new",
+  "ontology": "/ontology",
   "preview": "/preview",
   "preview_document": "document/:id",
   "role": "/role",
