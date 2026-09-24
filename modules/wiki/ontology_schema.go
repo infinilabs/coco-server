@@ -518,3 +518,148 @@ func (h *APIHandler) putOntologySchema(w http.ResponseWriter, req *http.Request,
 	}
 	h.WriteUpdatedOKJSON(w, scope)
 }
+
+/* ---------------- exports for the extraction pipeline ---------------- */
+
+// ResolveOntologySchema is the pipeline-facing resolver: kb-scoped override
+// first, tenant schema as the default vocabulary.
+func ResolveOntologySchema(ctx context.Context, kbID string) *OntologySchemaDoc {
+	return loadOntologySchemaForKB(ctx, kbID)
+}
+
+// SanitizeEntityAgainstSchema strips what the vocabulary rejects from a
+// pipeline-produced entity before it is persisted: undeclared relations,
+// cardinality-one overflow and declared properties whose value type does not
+// conform. Dropped items are reported as human-readable strings for logging.
+// Untyped entities or types missing from the schema pass through untouched
+// (lenient by design — extraction proposes, the vocabulary constrains what
+// it knows about).
+func SanitizeEntityAgainstSchema(entity *core.WikiEntity, doc *OntologySchemaDoc) []string {
+	if doc == nil || entity == nil {
+		return nil
+	}
+	typeDef := doc.typeDef(entity.Type)
+	if typeDef == nil {
+		return nil
+	}
+
+	var dropped []string
+
+	keptProps := make(map[string]interface{}, len(entity.Properties))
+	for key, value := range entity.Properties {
+		def := findPropertyDef(typeDef, key)
+		if def == nil {
+			keptProps[key] = value // free-form attributes survive (lenient)
+			continue
+		}
+		if err := checkOntologyValueType(*def, value); err != nil {
+			dropped = append(dropped, fmt.Sprintf("property %s: %v", key, err))
+			continue
+		}
+		keptProps[key] = value
+	}
+	entity.Properties = keptProps
+
+	keptRels := make([]core.WikiEntityRelation, 0, len(entity.Relations))
+	seenCardinality := map[string]bool{}
+	for _, rel := range entity.Relations {
+		def := findRelationDef(typeDef, rel.Relation)
+		if def == nil {
+			dropped = append(dropped, fmt.Sprintf("relation %s: not declared for type %s", rel.Relation, typeDef.Name))
+			continue
+		}
+		if def.Cardinality == ontologyCardinalityOne {
+			if seenCardinality[rel.Relation] {
+				dropped = append(dropped, fmt.Sprintf("relation %s: cardinality one, extra target dropped", rel.Relation))
+				continue
+			}
+			seenCardinality[rel.Relation] = true
+		}
+		if def.TargetType != "*" && rel.TargetID != "" {
+			if targetType := entityTypeByID(context.Background(), rel.TargetID); targetType != "" && targetType != def.TargetType {
+				dropped = append(dropped, fmt.Sprintf("relation %s: target type %s != %s", rel.Relation, targetType, def.TargetType))
+				continue
+			}
+		}
+		keptRels = append(keptRels, rel)
+	}
+	entity.Relations = keptRels
+	return dropped
+}
+
+func findPropertyDef(typeDef *OntologyEntityTypeDef, key string) *OntologyPropertyDef {
+	for i := range typeDef.Properties {
+		if typeDef.Properties[i].Key == key {
+			return &typeDef.Properties[i]
+		}
+	}
+	return nil
+}
+
+// FileEntityGovernanceProposal files an entity-dimension governance proposal
+// (extraction conflicts and duplicates). Idempotent per open (entity, type);
+// the KB owner gets a notification. Best-effort — returns false when the
+// proposal could not be recorded.
+func FileEntityGovernanceProposal(kbID string, entity *core.WikiEntity, pType, reason string, evidence util.MapStr) bool {
+	if entity == nil || entity.ID == "" {
+		return false
+	}
+	ctx := context.Background()
+	open := openProposalKeys(ctx)
+	key := entity.ID + "|" + pType
+	if open[key] {
+		return false
+	}
+
+	wctx := orm.NewContext()
+	wctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	wctx.Refresh = orm.WaitForRefresh
+	orm.WithModel(wctx, &core.WikiGovernanceProposal{})
+
+	proposal := &core.WikiGovernanceProposal{
+		KbID:         kbID,
+		ArticleID:    entity.ID,
+		ArticleTitle: entity.Name,
+		Type:         pType,
+		Status:       core.WikiGovernanceOpen,
+		Reason:       reason,
+		Evidence:     evidence,
+	}
+	if err := orm.Create(wctx, proposal); err != nil {
+		log.Warnf("wiki: entity governance proposal create failed: %v", err)
+		return false
+	}
+	notifyOwner(entity.GetOwnerID(), "kb", kbID, "governance",
+		fmt.Sprintf("Governance: %s — entity %q (%s)", governanceTypeLabel(pType), entity.Name, reason))
+	return true
+}
+
+/* ---------------- POST /wiki/article/:id/_relink ---------------- */
+
+// relinkArticle re-resolves the article's wikilinks against the (possibly
+// just-extended) entity set — the companion of the dangling-link repair
+// flow: after proposed entities are created from unresolved links, a relink
+// binds them without touching any content.
+func (h *APIHandler) relinkArticle(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	articleID := ps.ByName("id")
+
+	ctx := orm.NewContextWithParent(req.Context())
+	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	orm.WithModel(ctx, &core.WikiArticle{})
+
+	var article core.WikiArticle
+	article.SetID(articleID)
+	exists, err := orm.GetV2(ctx, &article)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if !exists {
+		h.WriteOpRecordNotFoundJSON(w, articleID)
+		return
+	}
+
+	persistLinkedPages(&article)
+	h.WriteGetOKJSON(w, article.ID, util.MapStr{"linked_pages": article.LinkedPages})
+}

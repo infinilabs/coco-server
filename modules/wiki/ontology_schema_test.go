@@ -17,9 +17,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	httprouter "infini.sh/framework/core/api/router"
+	"infini.sh/framework/core/elastic"
 
 	"infini.sh/coco/core"
 	"infini.sh/framework/core/orm"
+	"infini.sh/framework/core/util"
 	"infini.sh/framework/modules/sqlite"
 )
 
@@ -42,6 +44,8 @@ func ontologySetup(t *testing.T) APIHandler {
 			{core.WikiOntologySchema{}, "wiki-ontology-schema-test"},
 			{core.WikiEntity{}, "wiki-entity-onto"},
 			{core.WikiKnowledgeBase{}, "wiki-kb-onto"},
+			{core.WikiGovernanceProposal{}, "wiki-governance-onto"},
+			{core.WikiNotification{}, "wiki-notification-onto"},
 		} {
 			if err := handler.RegisterSchemaWithName(s.model, s.index); err != nil {
 				panic(err)
@@ -234,4 +238,71 @@ func jsonUnmarshal(b []byte, out interface{}) error {
 
 func httptestBody(s string) *bytes.Reader {
 	return bytes.NewReader([]byte(s))
+}
+
+func TestSanitizeEntityAgainstSchema(t *testing.T) {
+	ontologySetup(t)
+	doc := schemaFixture(t) // product: enum status, number rank, string code(required); relations made_by(one, org) / depends_on(product)
+
+	entity := &core.WikiEntity{Type: "product", Name: "X",
+		Properties: map[string]interface{}{"code": "c1", "status": "beta", "rank": 2.0, "note": "free-form kept"},
+		Relations: []core.WikiEntityRelation{
+			{Relation: "depends_on", TargetID: "e1"},
+			{Relation: "made_by", TargetID: "e2"},
+			{Relation: "made_by", TargetID: "e3"}, // cardinality overflow
+			{Relation: "hates", TargetID: "e4"},   // undeclared
+		}}
+	dropped := SanitizeEntityAgainstSchema(entity, doc)
+	assert.Len(t, entity.Relations, 2, "keeps depends_on + first made_by")
+	assert.Equal(t, "e2", entity.Relations[1].TargetID)
+	assert.Equal(t, "c1", entity.Properties["code"])
+	assert.Equal(t, "free-form kept", entity.Properties["note"], "undeclared properties survive")
+	assert.Len(t, dropped, 2)
+	assert.Contains(t, dropped[0], "cardinality")
+	assert.Contains(t, dropped[1], "hates")
+
+	// value-type violations are stripped
+	entity = &core.WikiEntity{Type: "product", Name: "Y",
+		Properties: map[string]interface{}{"code": "c", "rank": "high"}}
+	dropped = SanitizeEntityAgainstSchema(entity, doc)
+	assert.NotContains(t, entity.Properties, "rank")
+	assert.NotEmpty(t, dropped)
+
+	// untyped / unknown-type entities pass untouched
+	entity = &core.WikiEntity{Type: "legacy_free", Name: "Z",
+		Relations: []core.WikiEntityRelation{{Relation: "whatever"}}}
+	assert.Nil(t, SanitizeEntityAgainstSchema(entity, doc))
+	assert.Len(t, entity.Relations, 1)
+	assert.Nil(t, SanitizeEntityAgainstSchema(entity, nil))
+}
+
+func TestFileEntityGovernanceProposal(t *testing.T) {
+	ontologySetup(t)
+
+	entity := &core.WikiEntity{Type: "product", Name: "Coco Server"}
+	ctx := orm.NewContext()
+	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.Refresh = orm.WaitForRefresh
+	orm.WithModel(ctx, &core.WikiEntity{})
+	require.NoError(t, orm.Create(ctx, entity))
+
+	assert.True(t, FileEntityGovernanceProposal("kb-1", entity, core.WikiGovernanceEntityConflict,
+		"mentioned as person in doc-2", util.MapStr{"doc_id": "doc-2"}))
+
+	// idempotent: same open (entity, type) is not filed twice
+	assert.False(t, FileEntityGovernanceProposal("kb-1", entity, core.WikiGovernanceEntityConflict,
+		"again", nil))
+
+	listCtx := orm.NewContext()
+	listCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	orm.WithModel(listCtx, &core.WikiGovernanceProposal{})
+	res, err := orm.SearchV2(listCtx, orm.NewQuery().Size(10))
+	require.NoError(t, err)
+	proposals, _, err := elastic.DecodeHits[core.WikiGovernanceProposal](res)
+	require.NoError(t, err)
+	require.Len(t, proposals, 1)
+	assert.Equal(t, entity.ID, proposals[0].ArticleID)
+	assert.Equal(t, entity.Name, proposals[0].ArticleTitle)
+	assert.Equal(t, core.WikiGovernanceEntityConflict, proposals[0].Type)
+	assert.Equal(t, core.WikiGovernanceOpen, proposals[0].Status)
 }

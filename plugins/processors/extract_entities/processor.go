@@ -160,6 +160,10 @@ func (processor *ExtractEntitiesProcessor) Process(ctx *pipeline.Context) error 
 	llmCtx, cancelFunc := context.WithCancel(ctx.Context)
 	defer cancelFunc()
 
+	// ontology vocabulary (phase O2): schema-constrained extraction — kb
+	// override first, tenant default as fallback; nil means free-form POC list
+	schema := wiki.ResolveOntologySchema(ctx.Context, processor.config.WikiKbID)
+
 	enqueued := make(map[int]bool)
 
 	for i := range messages {
@@ -179,7 +183,7 @@ func (processor *ExtractEntitiesProcessor) Process(ctx *pipeline.Context) error 
 		} else {
 			log.Infof("processor [%s] start extracting entities for document [%s/%s]", processor.Name(), doc.Title, doc.ID)
 			start := time.Now()
-			entityIDs, err := processor.extractAndLink(llmCtx, llm, &doc, material)
+			entityIDs, err := processor.extractAndLink(llmCtx, llm, &doc, material, schema)
 			if err != nil {
 				log.Errorf("[%s] failed to extract entities for document [%s/%s], error [%s]", processor.Name(), doc.Title, doc.ID, err)
 			} else if len(entityIDs) > 0 {
@@ -230,8 +234,8 @@ func buildExtractionMaterial(doc *core.Document) string {
 // extractAndLink runs the LLM extraction, disambiguates against existing
 // entities, proposes the unknown ones and returns the linked entity ids
 // (also back-linking the document onto each entity's sources).
-func (processor *ExtractEntitiesProcessor) extractAndLink(ctx context.Context, llm llms.Model, doc *core.Document, material string) ([]string, error) {
-	result, err := extractEntitiesFromText(ctx, llm, material, processor.config, processor.removeThinkPattern)
+func (processor *ExtractEntitiesProcessor) extractAndLink(ctx context.Context, llm llms.Model, doc *core.Document, material string, schema *wiki.OntologySchemaDoc) ([]string, error) {
+	result, err := extractEntitiesFromText(ctx, llm, material, processor.config, schema, processor.removeThinkPattern)
 	if err != nil {
 		return nil, err
 	}
@@ -253,7 +257,7 @@ func (processor *ExtractEntitiesProcessor) extractAndLink(ctx context.Context, l
 		if e.Name == "" {
 			continue
 		}
-		entity, created, err := resolveOrCreateEntity(ormCtx, e, doc, processor.config.EntityTypes)
+		entity, created, err := resolveOrCreateEntity(ormCtx, e, doc, processor.config.EntityTypes, schema, processor.config.WikiKbID)
 		if err != nil {
 			log.Warnf("[%s] failed to resolve entity %q: %v", ProcessorName, e.Name, err)
 			continue
@@ -289,10 +293,18 @@ func (processor *ExtractEntitiesProcessor) extractAndLink(ctx context.Context, l
 // resolveOrCreateEntity disambiguates by exact name, then alias match
 // (case-insensitive retry); unmatched extractions become proposed entities
 // with the document recorded as provenance (design doc B2).
-func resolveOrCreateEntity(ctx *orm.Context, extracted *extractedEntity, doc *core.Document, allowedTypes []string) (*core.WikiEntity, bool, error) {
+func resolveOrCreateEntity(ctx *orm.Context, extracted *extractedEntity, doc *core.Document, allowedTypes []string, schema *wiki.OntologySchemaDoc, kbID string) (*core.WikiEntity, bool, error) {
 	orm.WithModel(ctx, &core.WikiEntity{})
 
+	extractedType := strings.ToLower(strings.TrimSpace(extracted.Type))
 	if existing := findEntityByName(ctx, extracted.Name); existing != nil {
+		// same name, conflicting types: keep merging the provenance but let
+		// the governance queue ask the human whether to split (O2)
+		if existing.Type != "" && extractedType != "" && existing.Type != extractedType {
+			wiki.FileEntityGovernanceProposal(kbID, existing, core.WikiGovernanceEntityConflict,
+				fmt.Sprintf("document %q mentions %q as %q, existing entity is %q", doc.Title, extracted.Name, extractedType, existing.Type),
+				util.MapStr{"doc_id": doc.ID, "existing_type": existing.Type, "extracted_type": extractedType})
+		}
 		appendEntitySource(existing, extracted, doc)
 		if err := orm.Update(ctx, existing); err != nil {
 			return nil, false, err
@@ -305,6 +317,11 @@ func resolveOrCreateEntity(ctx *orm.Context, extracted *extractedEntity, doc *co
 			continue
 		}
 		if existing := findEntityByName(ctx, alias); existing != nil {
+			if existing.Type != "" && extractedType != "" && existing.Type != extractedType {
+				wiki.FileEntityGovernanceProposal(kbID, existing, core.WikiGovernanceEntityConflict,
+					fmt.Sprintf("document %q mentions alias %q of %q as %q, existing entity is %q", doc.Title, alias, extracted.Name, extractedType, existing.Type),
+					util.MapStr{"doc_id": doc.ID, "alias": alias, "existing_type": existing.Type, "extracted_type": extractedType})
+			}
 			appendEntitySource(existing, extracted, doc)
 			if err := orm.Update(ctx, existing); err != nil {
 				return nil, false, err
@@ -313,7 +330,13 @@ func resolveOrCreateEntity(ctx *orm.Context, extracted *extractedEntity, doc *co
 		}
 	}
 
-	entityType := strings.ToLower(strings.TrimSpace(extracted.Type))
+	if schema != nil && len(schema.EntityTypes) > 0 {
+		allowedTypes = make([]string, 0, len(schema.EntityTypes))
+		for i := range schema.EntityTypes {
+			allowedTypes = append(allowedTypes, schema.EntityTypes[i].Name)
+		}
+	}
+	entityType := extractedType
 	if !util.AnyInArrayEquals(lowerAll(allowedTypes), entityType) || entityType == "" {
 		entityType = "concept" // unknown vocabulary: degrade instead of dropping
 	}
@@ -325,6 +348,11 @@ func resolveOrCreateEntity(ctx *orm.Context, extracted *extractedEntity, doc *co
 		Properties: extracted.Properties,
 		Status:     core.WikiEntityProposed, // human review required (D1)
 		Sources:    []core.WikiSourceReference{documentSourceRef(doc, extracted.Evidence)},
+	}
+	if schema != nil {
+		if dropped := wiki.SanitizeEntityAgainstSchema(entity, schema); len(dropped) > 0 {
+			log.Debugf("[%s] schema sanitize dropped from %q: %v", ProcessorName, extracted.Name, dropped)
+		}
 	}
 	if err := orm.Create(ctx, entity); err != nil {
 		return nil, false, err
@@ -489,11 +517,11 @@ func normalizeAliases(aliases []string) []string {
 	return out
 }
 
-func extractEntitiesFromText(ctx context.Context, llm llms.Model, material string, config *Config, regexpToRemoveThink *regexp.Regexp) (*extractionResult, error) {
+func extractEntitiesFromText(ctx context.Context, llm llms.Model, material string, config *Config, schema *wiki.OntologySchemaDoc, regexpToRemoveThink *regexp.Regexp) (*extractionResult, error) {
 	systemPrompt := fmt.Sprintf(
 		"You are an expert ontology extractor. Extract entities and typed relations from documents. Your response MUST be in %s.",
 		config.LLMGenerationLang)
-	userPrompt := buildExtractionPrompt(material, config)
+	userPrompt := buildExtractionPrompt(material, config, schema)
 
 	message := []llms.MessageContent{
 		langchain.SystemTextParts(systemPrompt),
@@ -517,11 +545,11 @@ func extractEntitiesFromText(ctx context.Context, llm llms.Model, material strin
 	return parseEntitiesFromResponse(response)
 }
 
-func buildExtractionPrompt(material string, config *Config) string {
-	typesJSON, _ := json.Marshal(config.EntityTypes)
+func buildExtractionPrompt(material string, config *Config, schema *wiki.OntologySchemaDoc) string {
+	vocabulary, constraints := vocabularySection(config, schema)
 	return fmt.Sprintf(
 		"Extract entities and relations from the following document.\n\n"+
-			"Allowed entity types: %s\n\n"+
+			"Allowed entity types with their vocabulary:\n%s\n\n"+
 			"Requirements:\n"+
 			"- Return ONLY a valid JSON object, no markdown fences\n"+
 			"- Extract at most %d entities, only clearly mentioned ones\n"+
@@ -530,16 +558,65 @@ func buildExtractionPrompt(material string, config *Config) string {
 			"- \"properties\": up to 5 short factual attributes as {\"key\": \"value\"}\n"+
 			"- \"relations\": links to OTHER entities extracted from the same document as {\"relation\": \"verb_phrase\", \"target\": \"<entity name>\"}\n"+
 			"- \"evidence\": one short sentence quoting the mention (in %s)\n"+
-			"- Names and aliases MUST be in their original language as they appear\n\n"+
+			"- Names and aliases MUST be in their original language as they appear\n%s\n"+
 			"Format:\n"+
 			`{"entities":[{"name":"","type":"","aliases":[],"properties":{},"relations":[{"relation":"","target":""}],"evidence":""}]}`+"\n\n"+
 			"Document:\n%s\n\n"+
 			"Generate the JSON object now.",
-		string(typesJSON),
+		vocabulary,
 		config.MaxEntities,
 		config.LLMGenerationLang,
+		constraints,
 		material,
 	)
+}
+
+// vocabularySection renders the allowed types for the prompt. With a live
+// ontology schema every type carries its declared property keys and relation
+// vocabulary (phase O2); without one the flat config list is the POC
+// fallback.
+func vocabularySection(config *Config, schema *wiki.OntologySchemaDoc) (string, string) {
+	if schema == nil || len(schema.EntityTypes) == 0 {
+		typesJSON, _ := json.Marshal(config.EntityTypes)
+		return string(typesJSON), ""
+	}
+
+	var b strings.Builder
+	var constraints []string
+	for i := range schema.EntityTypes {
+		t := &schema.EntityTypes[i]
+		fmt.Fprintf(&b, "- %s", t.Name)
+		if len(t.Label) > 0 {
+			fmt.Fprintf(&b, " (%s)", t.Label)
+		}
+		if len(t.Properties) > 0 {
+			keys := make([]string, 0, len(t.Properties))
+			for _, p := range t.Properties {
+				if p.Required {
+					keys = append(keys, p.Key+"!")
+				} else {
+					keys = append(keys, p.Key)
+				}
+			}
+			fmt.Fprintf(&b, " | properties: %s", strings.Join(keys, ", "))
+		}
+		if len(t.Relations) > 0 {
+			rels := make([]string, 0, len(t.Relations))
+			for _, r := range t.Relations {
+				rel := r.Name + "->" + r.TargetType
+				if r.Cardinality == "one" {
+					rel += " (single)"
+				}
+				rels = append(rels, rel)
+			}
+			fmt.Fprintf(&b, " | relations: %s", strings.Join(rels, ", "))
+		}
+		b.WriteString("\n")
+	}
+	constraints = append(constraints,
+		"- Prefer the listed property keys for \"properties\" when they fit; unknown keys are kept as free-form",
+		"- Use ONLY the listed relation names for \"relations\" of each type when possible")
+	return b.String(), strings.Join(constraints, "\n")
 }
 
 func parseEntitiesFromResponse(response string) (*extractionResult, error) {

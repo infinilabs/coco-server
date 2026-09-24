@@ -5,9 +5,11 @@
 package extract_entities
 
 import (
+	"strings"
 	"testing"
 
 	"infini.sh/coco/core"
+	"infini.sh/coco/modules/wiki"
 )
 
 func TestParseEntitiesFromResponse(t *testing.T) {
@@ -61,5 +63,42 @@ func TestBuildExtractionMaterial(t *testing.T) {
 	empty := core.Document{}
 	if got := buildExtractionMaterial(&empty); got != "" {
 		t.Errorf("expected empty material, got %q", got)
+	}
+}
+
+func TestBuildExtractionPromptWithSchema(t *testing.T) {
+	schema := &wiki.OntologySchemaDoc{EntityTypes: []wiki.OntologyEntityTypeDef{
+		{
+			Name: "product", Label: "产品",
+			Properties: []wiki.OntologyPropertyDef{
+				{Key: "code", Type: "string", Required: true},
+				{Key: "status", Type: "enum", Enum: []string{"active", "beta"}},
+			},
+			Relations: []wiki.OntologyRelationDef{
+				{Name: "made_by", TargetType: "organization", Cardinality: "one"},
+				{Name: "depends_on", TargetType: "product"},
+			},
+		},
+	}}
+	cfg := &Config{EntityTypes: []string{"legacy"}, MaxEntities: 5, LLMGenerationLang: "zh-CN"}
+	prompt := buildExtractionPrompt("doc body", cfg, schema)
+
+	if !strings.Contains(prompt, "product (产品)") {
+		t.Errorf("prompt missing typed vocabulary: %s", prompt)
+	}
+	if !strings.Contains(prompt, "properties: code!, status") {
+		t.Errorf("prompt missing declared properties: %s", prompt)
+	}
+	if !strings.Contains(prompt, "relations: made_by->organization (single), depends_on->product") {
+		t.Errorf("prompt missing relation vocabulary: %s", prompt)
+	}
+	if !strings.Contains(prompt, "Use ONLY the listed relation names") {
+		t.Errorf("prompt missing schema constraint line")
+	}
+
+	// without a schema the flat POC list stays
+	prompt = buildExtractionPrompt("doc body", cfg, nil)
+	if !strings.Contains(prompt, "[\"legacy\"]") {
+		t.Errorf("flat fallback missing: %s", prompt)
 	}
 }

@@ -46,8 +46,14 @@ export function Component() {
     });
   };
 
-  const goArticle = (proposal: GovernanceProposal) =>
+  const goArticle = (proposal: GovernanceProposal) => {
+    // entity-dimension proposals have no article page — land on the KB
+    if (proposal.type.startsWith('entity_')) {
+      nav(proposal.kb_id ? `/wiki/kb/${proposal.kb_id}` : '/wiki/list');
+      return;
+    }
     nav(`/wiki/article/${proposal.article_id}?kb=${proposal.kb_id}`);
+  };
 
   const openCount = proposals.length;
 

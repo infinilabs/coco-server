@@ -203,6 +203,42 @@ export function Component() {
     }
   };
 
+  // dangling wikilink repair (phase O2): unresolved [[type:name]] links can
+  // be turned into proposed entities in one click, then relinked
+  const unresolvedLinks = useMemo(
+    () => (article?.linked_pages || []).filter(lp => !lp.entity_id),
+    [article?.linked_pages]
+  );
+  const [repairOpen, setRepairOpen] = useState(false);
+  const [repairing, setRepairing] = useState(false);
+
+  const runRepair = async () => {
+    if (!article?.id || unresolvedLinks.length === 0) return;
+    setRepairing(true);
+    let okCount = 0;
+    try {
+      const results = await Promise.all(
+        unresolvedLinks.map(lp =>
+          createWikiEntity({ name: lp.name, type: lp.type || 'concept' })
+            .then(res => ({ name: lp.name, ok: !!(res as any)?._id }))
+            .catch(() => ({ name: lp.name, ok: false }))
+        )
+      );
+      okCount = results.filter(r => r.ok).length;
+      await relinkWikiArticle(article.id);
+    } finally {
+      // always release the modal — a failed relink must not wedge the button
+      setRepairing(false);
+    }
+    setRepairOpen(false);
+    if (okCount > 0) {
+      window.$message?.success(t('page.wiki.repair.success', { count: String(okCount) }));
+      fetchArticle();
+    } else {
+      window.$message?.error(t('page.wiki.repair.failed'));
+    }
+  };
+
   const toggleLike = () => {
     if (!id) return;
     if (likeId) {
@@ -337,6 +373,22 @@ export function Component() {
         }
       >
         <Spin spinning={loading}>
+          {!article || editing || unresolvedLinks.length === 0 ? null : (
+            <div className='mb-3 flex items-center justify-between rounded-6px border border-dashed border-gray-300 px-12px py-8px dark:border-gray-600'>
+              <span className='text-13px text-gray-500'>
+                {t('page.wiki.repair.hint', { count: String(unresolvedLinks.length) })}
+                {unresolvedLinks.slice(0, 5).map(lp => (
+                  <Tag className='ml-2' key={lp.name}>
+                    {lp.type ? `${lp.type}:` : ''}
+                    {lp.name}
+                  </Tag>
+                ))}
+              </span>
+              <Button loading={repairing} onClick={() => setRepairOpen(true)} size='small' type='primary' ghost>
+                {t('page.wiki.repair.action')}
+              </Button>
+            </div>
+          )}
           {!article ? null : editing ? (
             <div className='flex flex-col gap-4'>
               <Input
@@ -552,6 +604,24 @@ export function Component() {
           )}
         </Spin>
       </Card>
+
+      <Modal
+        cancelText={t('common.cancel')}
+        okText={t('page.wiki.repair.confirm')}
+        confirmLoading={repairing}
+        onCancel={() => setRepairOpen(false)}
+        onOk={runRepair}
+        open={repairOpen}
+        title={t('page.wiki.repair.title')}
+      >
+        <p className='mb-2 text-gray-500'>{t('page.wiki.repair.description')}</p>
+        {unresolvedLinks.map(lp => (
+          <Tag key={`${lp.type}:${lp.name}`}>
+            {lp.type ? `${lp.type}:` : ''}
+            {lp.name}
+          </Tag>
+        ))}
+      </Modal>
 
       <Drawer
         open={versionsOpen}

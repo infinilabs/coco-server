@@ -124,6 +124,15 @@ const page: App.I18n.Schema['translation']['page'] = {
       stream: 'AI output',
       done: 'Applied as version v{{version}}'
     },
+    repair: {
+      hint: '{{count}} knowledge link(s) resolve to no entity',
+      action: 'Propose entities',
+      title: 'Propose entities',
+      description: 'Create proposed entities for the unresolved links below, then rebind them automatically. Publishing stays a human review.',
+      confirm: 'Create and relink',
+      success: 'Created {{count}} proposed entities and relinked',
+      failed: 'Failed to create entities — check the ontology vocabulary'
+    },
     like: { add: 'Like', remove: 'Unlike' },
     bookmark: { add: 'Bookmark this article', remove: 'Bookmarked' },
     governance: {
@@ -138,10 +147,10 @@ const page: App.I18n.Schema['translation']['page'] = {
       resolveConfirm: 'Mark this proposal resolved? Apply the actual fix on the article page.',
       dismissConfirm: 'Dismiss this proposal? The scanner will not re-file it unless things change.',
       duplicateOf: 'Possible duplicate of, click to view',
-      pendingVersion: 'Auto-updated version v{version} awaiting review',
+      pendingVersion: 'Auto-updated version v{{version}} awaiting review',
       empty: 'Queue is clean, nothing to review',
-      type: { stale: 'Stale', duplicate: 'Duplicate', conflict: 'Conflict', low_quality: 'Low quality', orphan: 'Orphaned' },
-      hint: '{count} proposal(s) waiting'
+      type: { stale: 'Stale', duplicate: 'Duplicate', conflict: 'Conflict', low_quality: 'Low quality', orphan: 'Orphaned', entity_duplicate: 'Entity duplicate', entity_conflict: 'Entity type conflict' },
+      hint: '{{count}} proposal(s) waiting'
     },
     saveFromChat: {
       title: 'Save to knowledge base',
@@ -1019,7 +1028,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     typeName: 'Type name',
     typeLabel: 'Label',
     removeType: 'Remove type',
-    removeTypeConfirm: 'Remove type {name}? Existing entities are untouched, but new ones will be rejected.',
+    removeTypeConfirm: 'Remove type {{name}}? Existing entities are untouched, but new ones will be rejected.',
     properties: 'Properties',
     relations: 'Relations',
     propKey: 'Property key',
@@ -1036,7 +1045,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     title: 'Assistant Templates',
     subtitle: 'Turn a scenario preset (curated role prompt + suggested questions) into a working assistant in one click, optionally bound to a knowledge base.',
     use: 'Use template',
-    useTitle: 'Use template: {title}',
+    useTitle: 'Use template: {{title}}',
     name: 'Assistant name',
     bindKb: 'Bind knowledge base (optional)',
     bindKbPlaceholder: 'Pick a knowledge base; the assistant will search its datasources',

@@ -124,6 +124,15 @@ const page: App.I18n.Schema['translation']['page'] = {
       stream: 'AI 输出',
       done: '已应用为版本 v{{version}}'
     },
+    repair: {
+      hint: '{{count}} 个知识链接未解析到实体',
+      action: '一键提议实体',
+      title: '提议创建实体',
+      description: '将以下未解析的知识链接创建为待审实体(默认状态 proposed),随后自动重新绑定链接。发布仍需人工审阅。',
+      confirm: '创建并重绑',
+      success: '已创建 {{count}} 个待审实体并重新绑定链接',
+      failed: '创建实体失败,请检查类型是否在本体词表中'
+    },
     like: { add: '点赞', remove: '取消点赞' },
     bookmark: { add: '收藏该文章', remove: '已收藏' },
     governance: {
@@ -138,10 +147,10 @@ const page: App.I18n.Schema['translation']['page'] = {
       resolveConfirm: '确认已处理该提议?处理动作请在文章页完成。',
       dismissConfirm: '忽略该提议?扫描器在情况变化前不会重复提交。',
       duplicateOf: '疑似重复于,点击查看',
-      pendingVersion: '有待审的自动更新版本 v{version}',
+      pendingVersion: '有待审的自动更新版本 v{{version}}',
       empty: '队列干净,没有待处理的提议',
-      type: { stale: '内容过期', duplicate: '疑似重复', conflict: '内容冲突', low_quality: '低质量', orphan: '未入目录树' },
-      hint: '{count} 条提议等待处理'
+      type: { stale: '内容过期', duplicate: '疑似重复', conflict: '内容冲突', low_quality: '低质量', orphan: '未入目录树', entity_duplicate: '实体疑似重复', entity_conflict: '实体类型冲突' },
+      hint: '{{count}} 条提议等待处理'
     },
     saveFromChat: {
       title: '保存到知识库',
@@ -1275,7 +1284,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     typeName: '类型名',
     typeLabel: '显示名',
     removeType: '删除该类型',
-    removeTypeConfirm: '确认删除类型 {name}?已存在该类型的实体不受影响,但将无法新建。',
+    removeTypeConfirm: '确认删除类型 {{name}}?已存在该类型的实体不受影响,但将无法新建。',
     properties: '属性',
     relations: '关系',
     propKey: '属性键',
@@ -1292,7 +1301,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     title: '智能体模板',
     subtitle: '一键将场景预设(角色提示词 + 建议问题)实例化为可用的 AI 助手,可选绑定知识库。',
     use: '使用模板',
-    useTitle: '使用模板:{title}',
+    useTitle: '使用模板:{{title}}',
     name: '助手名称',
     bindKb: '绑定知识库(可选)',
     bindKbPlaceholder: '选择要绑定的知识库,助手将检索其数据源',

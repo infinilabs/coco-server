@@ -55,6 +55,11 @@ const (
 	WikiGovernanceConflict   = "conflict"    // regenerated version contradicts live content
 	WikiGovernanceLowQuality = "low_quality" // low confidence or zero citations while published
 	WikiGovernanceOrphan     = "orphan"      // article missing from the KB TOC tree
+
+	// entity-dimension proposals filed by the extraction pipeline: the same
+	// human gate, different subject
+	WikiGovernanceEntityDuplicate = "entity_duplicate" // same name/alias, looks like one entity
+	WikiGovernanceEntityConflict  = "entity_conflict"  // same name/alias but conflicting types
 )
 
 // WikiWorkspace groups knowledge bases per team or tenant.

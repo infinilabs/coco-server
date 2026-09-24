@@ -315,6 +315,17 @@ export function putOntologySchema(entityTypes: OntologyEntityTypeDef[], kbId?: s
   );
 }
 
+export function relinkWikiArticle(id: string) {
+  return request<{ _source: any }>({ method: 'post', url: `/wiki/article/${id}/_relink` }).then(res => {
+    const src = res?.data?._source || {};
+    return (src.linked_pages || []) as Api.Wiki.LinkedPage[];
+  });
+}
+
+export function createWikiEntity(body: { name: string; type?: string; aliases?: string[]; status?: string }) {
+  return request<{ _id: string }>({ method: 'post', data: body, url: '/wiki/entity/' }).then(res => res?.data);
+}
+
 export function searchWikiNotifications() {
   return request<{ hits: any }>({ method: 'get', url: '/wiki/notification/_search' }).then(res => {
     const es = formatESSearchResult(res?.data);

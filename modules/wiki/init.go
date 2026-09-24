@@ -111,5 +111,10 @@ func init() {
 	api.HandleUIMethod(api.PUT, "/wiki/ontology/schema", handler.putOntologySchema,
 		api.RequireLogin(), api.RequirePermission(updateEntityPermission))
 
+	// dangling-wikilink repair (phase O2): after entities are proposed from
+	// unresolved links, relink binds them without touching the content
+	api.HandleUIMethod(api.POST, "/wiki/article/:id/_relink", handler.relinkArticle,
+		api.RequireLogin(), api.RequirePermission(updateArticlePermission))
+
 	scheduleSeedOntologySchema()
 }
