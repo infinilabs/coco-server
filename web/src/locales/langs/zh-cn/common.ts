@@ -51,6 +51,7 @@ const common: App.I18n.Schema['translation']['common'] = {
   operation: '操作',
   password: '密码',
   pleaseCheckValue: '请检查输入的值是否合法',
+  totalItems: '共 {{total}} 条',
   refresh: '刷新',
   rename: '重命名',
   renew_token: '刷新令牌',

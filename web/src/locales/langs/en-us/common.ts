@@ -53,6 +53,7 @@ const common: App.I18n.Schema['translation']['common'] = {
   operation: 'Operation',
   password: 'Password',
   pleaseCheckValue: 'Please check whether the value is valid',
+  totalItems: '{{total}} item(s)',
   refresh: 'Refresh',
   rename: 'Rename',
   renew_token: 'Renew Token',
