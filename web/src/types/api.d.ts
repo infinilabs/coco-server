@@ -462,6 +462,31 @@ declare namespace Api {
       own?: boolean;
     }
 
+    interface GraphNode {
+      id: string;
+      kind: 'article' | 'entity' | 'unresolved';
+      label: string;
+      type?: string;
+      type_label?: string;
+      status?: string;
+      page_type?: string;
+      article_id?: string;
+      aliases?: string[];
+      properties?: Record<string, unknown>;
+      confidence?: number;
+      via_relation?: boolean;
+    }
+
+    interface GraphEdge {
+      source: string;
+      target: string;
+      kind: 'wikilink' | 'relation';
+      relation?: string;
+      label?: string;
+      inverse?: string;
+      inverse_label?: string;
+    }
+
     interface EntityInfo {
       id: string;
       type: string;

@@ -351,6 +351,18 @@ export function markWikiNotificationRead(id: string) {
 
 /* ---------------- entities (knowledge graph) ---------------- */
 
+/** Whole-KB knowledge graph: article/entity nodes, wikilink and typed-relation edges with schema labels (O3). */
+export function fetchWikiKbGraph(kbId: string) {
+  return request<{ hits: any }>({ method: 'get', url: `/wiki/kb/${kbId}/_graph` }).then(res => {
+    const d = (res as any)?.data ?? res ?? {};
+    return {
+      nodes: ((d as any).nodes || []) as Api.Wiki.GraphNode[],
+      edges: ((d as any).edges || []) as Api.Wiki.GraphEdge[],
+      entity_types: ((d as any).entity_types || {}) as Record<string, { label?: string; icon?: string }>
+    };
+  });
+}
+
 export function searchWikiEntities(ids?: string[]) {
   const searchParams = new URLSearchParams();
   if (ids?.length) searchParams.set('filter', `id:${ids.join(',')}`);

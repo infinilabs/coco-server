@@ -433,10 +433,46 @@ func (h *APIHandler) entityNeighbors(w http.ResponseWriter, req *http.Request, p
 		}
 	}
 
+	// schema-resolved labels for both directions (O3): forward relations
+	// carry the declared label, incoming ones the declared inverse
+	schema := loadOntologySchemaForKB(req.Context(), "")
+	typeDefs := map[string]*OntologyEntityTypeDef{}
+	if schema != nil {
+		for i := range schema.EntityTypes {
+			typeDefs[schema.EntityTypes[i].Name] = &schema.EntityTypes[i]
+		}
+	}
+	neighborByID := map[string]core.WikiEntity{}
+	for _, n := range neighbors {
+		neighborByID[n.ID] = n
+	}
+	relationsDetailed := make([]util.MapStr, 0, len(entity.Relations))
+	for _, r := range entity.Relations {
+		if r.TargetID == "" || r.TargetID == entity.ID || neighborByID[r.TargetID].ID == "" {
+			continue
+		}
+		edge := GraphEdge{Label: r.Relation}
+		decorateRelationEdge(&edge, typeDefs, entity.Type, r.Relation)
+		entry := util.MapStr{
+			"target_id":   r.TargetID,
+			"target_name": neighborByID[r.TargetID].Name,
+			"target_type": neighborByID[r.TargetID].Type,
+			"relation":    r.Relation,
+			"label":       edge.Label,
+		}
+		if edge.Inverse != "" {
+			entry["inverse"] = edge.Inverse
+			entry["inverse_label"] = edge.InverseLabel
+		}
+		relationsDetailed = append(relationsDetailed, entry)
+	}
+
 	h.WriteOKJSON(w, util.MapStr{
-		"entity":    entity,
-		"relations": entity.Relations,
-		"neighbors": neighbors,
+		"entity":             entity,
+		"relations":          entity.Relations,
+		"relations_detailed": relationsDetailed,
+		"incoming":           entityInverseEdges(req.Context(), &entity),
+		"neighbors":          neighbors,
 	})
 }
 

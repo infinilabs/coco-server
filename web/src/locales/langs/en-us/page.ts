@@ -7,7 +7,21 @@ const page: App.I18n.Schema['translation']['page'] = {
       recent: 'Recently Updated',
       search: 'Search Knowledge'
     },
-    graph: { empty: 'No articles or entities to plot yet', articles: 'Articles', entities: 'Entities', reset: 'Reset zoom' },
+    graph: {
+      empty: 'No articles or entities to plot yet',
+      articles: 'Articles',
+      entities: 'Entities',
+      reset: 'Reset zoom',
+      unresolved: 'Unresolved link',
+      viaRelation: 'Expanded by relation',
+      properties: 'Properties',
+      relations: 'Outgoing relations',
+      incoming: 'Incoming relations',
+      noRelations: 'No relations yet',
+      openArticle: 'Open entity page',
+      confidence: 'Confidence',
+      clickArticleHint: 'Click an article node to open it'
+    },
     settings: {
       basic: 'Basic Info',
       agent: 'AI Agent',

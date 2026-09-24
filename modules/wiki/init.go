@@ -80,6 +80,13 @@ func init() {
 		api.RequireLogin(), api.RequirePermission(readEntityPermission),
 		api.MCPTool("entity_neighbors", "One-hop traversal of an entity's relations; returns edges and the expanded neighbor entities"))
 
+	// whole-KB knowledge graph (ontology phase O3): articles, wikilink-
+	// resolved entities, one-hop relation expansion and schema-resolved
+	// edge labels — one request feeding the KbGraph canvas and cards
+	api.HandleUIMethod(api.GET, "/wiki/kb/:id/_graph", handler.kbGraph,
+		api.RequireLogin(), api.RequirePermission(readKbPermission),
+		api.MCPTool("kb_graph", "Get the knowledge graph of a knowledge base: article and entity nodes, wikilink and typed-relation edges with schema labels"))
+
 	// KM agent generation, SSE (design doc §5.1, stage C): the event
 	// contract is progress/article/done; output stops at draft — the
 	// review gate stays on PUT /wiki/article/:id/status (D1)

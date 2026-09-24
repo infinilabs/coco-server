@@ -7,7 +7,21 @@ const page: App.I18n.Schema['translation']['page'] = {
       recent: '最近更新',
       search: '搜索知识'
     },
-    graph: { empty: '暂无可绘制的文章与实体', articles: '文章', entities: '实体', reset: '重置缩放' },
+    graph: {
+      empty: '暂无可绘制的文章与实体',
+      articles: '文章',
+      entities: '实体',
+      reset: '重置缩放',
+      unresolved: '未解析链接',
+      viaRelation: '关系扩展',
+      properties: '属性',
+      relations: '出向关系',
+      incoming: '入向关系',
+      noRelations: '暂无关系',
+      openArticle: '打开实体页面',
+      confidence: '置信度',
+      clickArticleHint: '点击文章节点可跳转'
+    },
     settings: {
       basic: '基本信息',
       agent: 'AI 智能体',
