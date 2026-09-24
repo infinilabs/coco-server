@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
-import SystemLogo from '@/components/stateless/common/SystemLogo';
+import cocoIcon from '@/assets/svg-icon/coco.svg';
 import UserAvatar from '../modules/global-header/components/UserAvatar';
 import GlobalContent from '../modules/global-content';
 
@@ -37,11 +37,11 @@ export function Component() {
       <header className="h-48px flex-y-center shrink-0 justify-between border-b border-gray-200 bg-white px-12px dark:border-gray-700 dark:bg-[#141414]">
         <div className="flex items-center gap-4">
           <div
-            className="flex cursor-pointer items-center"
+            className="flex cursor-pointer items-center gap-8px"
             onClick={() => goApp('search')}
           >
-            <SystemLogo className="text-32px" />
-            <span className="pl-8px text-16px font-bold text-primary">{t('system.title')}</span>
+            <img alt="Coco AI" className="h-30px w-30px" src={cocoIcon} />
+            <span className="text-16px font-bold text-primary">{t('system.title') || 'Coco AI'}</span>
           </div>
           <Segmented
             value={activeApp}
