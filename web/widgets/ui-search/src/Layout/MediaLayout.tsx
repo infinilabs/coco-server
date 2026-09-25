@@ -94,6 +94,9 @@ const MediaLayout: FC<MediaLayoutProps> = (props) => {
 
     const observer = new ResizeObserver(handleResize);
     observer.observe(container);
+    // converge synchronously — see BasicLayout for why the observer's initial
+    // delivery alone cannot be relied upon
+    handleResize();
 
     return () => observer.disconnect();
   }, [scrollContainer, isMobile, aggregations, setSiderCollapse]);
@@ -147,7 +150,7 @@ const MediaLayout: FC<MediaLayoutProps> = (props) => {
               </CommonDrawer>
             ) : (
               <Sider width={280} className="bg-[rgb(var(--ui-search--layout-bg-color))]" breakpoint="md" collapsedWidth={0} trigger={null}>
-                <div className="w-full pl-80px pt-32px">{aggregations}</div>
+                <div className="w-full pl-72px pt-32px">{aggregations}</div>
               </Sider>
             )
           )}

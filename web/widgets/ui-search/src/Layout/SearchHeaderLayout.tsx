@@ -44,14 +44,16 @@ const SearchHeaderLayout: FC<SearchHeaderLayoutProps> = ({
     <div className={`fixed top-0 left-0 right-0 z-88 !p-0 h-auto ${BG_CLASS} border-b border-solid border-[var(--ant-color-border-secondary)] transition-shadow ${scrolled ? 'shadow-[0_2px_6px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_6px_rgba(255,255,255,0.1)]' : ''}`}>
       <Layout className={BG_CLASS}>
         {/* keep the header's left column in lockstep with the body sider, so the
-            search box stays aligned with the result list when the sider collapses */}
-        <Sider onBreakpoint={(broken) => setShowLogoInCenter(broken)} width={showLeftSider === false ? 0 : leftWidth} breakpoint="md" collapsedWidth={0} trigger={null} className={BG_CLASS}>
-          {showLeftSider !== false && (
+            search box stays aligned with the result list when the sider collapses.
+            Mount/unmount instead of animating the width — Sider's width transition
+            can stall mid-frame in embedded webviews and leave the column at 0. */}
+        {showLeftSider !== false && (
+          <Sider onBreakpoint={(broken) => setShowLogoInCenter(broken)} width={leftWidth} breakpoint="md" collapsedWidth={0} trigger={null} className={BG_CLASS}>
             <div className={`pt-16px h-122px w-full pl-72px ${BG_CLASS}`}>
               <div className="h-48px w-full">{logo}</div>
             </div>
-          )}
-        </Sider>
+          </Sider>
+        )}
         <Content
           className={`${BG_CLASS} min-w-400px ${centerMaxWidth || ''}`}
           style={{ overflow: 'visible' }}
@@ -76,9 +78,15 @@ const SearchHeaderLayout: FC<SearchHeaderLayoutProps> = ({
             )}
           </div>
         </Content>
-        <Sider width={rightWidth} className={BG_CLASS} breakpoint="md" collapsedWidth={0} trigger={null}>
-          <div className={`pt-16px h-122px ${BG_CLASS}`} />
-        </Sider>
+        {/* same mount/unmount rationale as the left column — width transitions
+            on a fixed-position sider can stall in embedded webviews */}
+        {showRightSider ? (
+          <Sider width={rightWidth} className={BG_CLASS} breakpoint="md" collapsedWidth={0} trigger={null}>
+            <div className={`pt-16px h-122px ${BG_CLASS}`} />
+          </Sider>
+        ) : rightMenuWidth ? (
+          <div style={{ flex: `0 0 ${rightMenuWidth}px`, width: rightMenuWidth }} className={BG_CLASS} />
+        ) : null}
       </Layout>
     </div>
   );
