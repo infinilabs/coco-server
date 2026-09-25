@@ -154,7 +154,7 @@ const MediaLayout: FC<MediaLayoutProps> = (props) => {
               </Sider>
             )
           )}
-          <Content className={`bg-[rgb(var(--ui-search--layout-bg-color))] min-w-400px ${aggregations && !(isMobile || siderCollapse) ? 'w-[calc(100%-280px)]' : 'w-[calc(100%)]'}`} style={{ overflow: 'visible' }}>
+          <Content className={`bg-[rgb(var(--ui-search--layout-bg-color))] ${isMobile ? 'min-w-0' : 'min-w-400px'} ${aggregations && !(isMobile || siderCollapse) ? 'w-[calc(100%-280px)]' : 'w-[calc(100%)]'}`} style={{ overflow: 'visible' }}>
             <div className={`py-32px transition-[width] duration-300 ease-in-out ${isMobile ? 'px-16px' : siderCollapse ? 'pl-24px' : 'pl-72px'} pr-24px ${detailCollapse || (isMobile || siderCollapse) ? 'w-full' : 'w-[calc(100%-820px)]'}`}>
               <div className={`mb-16px`}>
                 {resultHeader && cloneElement(resultHeader, {

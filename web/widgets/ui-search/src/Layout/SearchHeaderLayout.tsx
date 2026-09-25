@@ -55,7 +55,7 @@ const SearchHeaderLayout: FC<SearchHeaderLayoutProps> = ({
           </Sider>
         )}
         <Content
-          className={`${BG_CLASS} min-w-400px ${centerMaxWidth || ''}`}
+          className={`${BG_CLASS} ${isMobile ? 'min-w-0' : 'min-w-400px'} ${centerMaxWidth || ''}`}
           style={{ overflow: 'visible' }}
         >
           <div className={`pt-16px h-122px ${padding}`}>

@@ -225,7 +225,7 @@ const BasicLayout: FC<BasicLayoutProps> = (props) => {
 
         {/* Center Column: Search/Tabs + Results */}
         <Content
-          className={`${bgClass} min-w-400px ${showLeftSider && showRightSider ? 'max-w-840px' : !showLeftSider && !showRightSider ? 'max-w-1120px' : 'max-w-840px'}`}
+          className={`${bgClass} ${isMobile ? 'min-w-0' : 'min-w-400px'} ${showLeftSider && showRightSider ? 'max-w-840px' : !showLeftSider && !showRightSider ? 'max-w-1120px' : 'max-w-840px'}`}
           style={{ overflow: 'visible' }}
         >
           {/* Content part */}
@@ -262,7 +262,7 @@ const BasicLayout: FC<BasicLayoutProps> = (props) => {
               ) : null}
             </AnimatePresence>
             {aiOverview}
-            <div>{resultList}</div>
+            <div className={isMobile ? 'px-16px' : ''}>{resultList}</div>
           </div>
         </Content>
 
