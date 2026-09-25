@@ -355,6 +355,8 @@ export function KbGraph({ kbId }: { kbId: string }) {
                   stroke="var(--ant-color-bg-container)"
                   strokeWidth={3}
                   textAnchor="middle"
+                  x={n.x}
+                  y={n.y}
                 >
                   {n.label.length > 14 ? `${n.label.slice(0, 13)}…` : n.label}
                 </text>
