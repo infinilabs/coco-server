@@ -3,6 +3,7 @@ import { normalizeFileType } from "./normalizeFileType";
 
 import type { SearchResultListItem, SearchResultsRecord } from "../types";
 import { formatDateWithRelative } from "../../../utils/date";
+import { decodeHtmlEntities } from "../../../utils/utils";
 
 export function recordToListItem(
   record: SearchResultsRecord,
@@ -10,11 +11,12 @@ export function recordToListItem(
   onClick?: () => void
 ): SearchResultListItem {
   const cover = record.thumbnail ?? record.cover ?? record.metadata?.thumbnail_link;
-  const summary = record.summary ?? record.content;
+  // indexed text can carry escaped entities (`&rsquo;`, `&#39;` …) — decode for display
+  const summary = decodeHtmlEntities(record.summary ?? record.content);
   const fileType = normalizeFileType(record.metadata?.file_extension ?? record.type);
 
   const sourceName = record.source?.name;
-  const categoryText = record.category ?? record.categories?.join(" / ") ?? "Categories";
+  const categoryText = record.category ?? record.categories?.join(" / ");
   const breadcrumbs = [sourceName, categoryText].filter(Boolean) as string[];
 
   const author = record.owner?.title ?? record.owner?.username ?? record.owner?.name ?? record.last_updated_by?.user?.username;
@@ -28,7 +30,7 @@ export function recordToListItem(
   return {
     type: "result",
     id: `${record.source?.id ?? record.url ?? record.title}-${index}`,
-    title: record.title,
+    title: decodeHtmlEntities(record.title),
     href: record.url,
     summary,
     cover,

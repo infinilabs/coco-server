@@ -290,31 +290,27 @@ export function Component() {
     "onSuggestion": onSuggestion,
     "onRecommend": onRecommend,
     "config": {
+      // labels are resolved by the widget's i18n (labels.source / labels.type / …);
+      // only the widget-specific render type is configured here
       "aggregations": {
         "source.id": {
-          "label": "source",
           "payload": { field_name: 'source.id', field_data_type: 'keyword', support_multi_select: true }
         },
         "lang": {
-          "label": "language",
           "payload": { field_name: 'lang', field_data_type: 'keyword', support_multi_select: true }
         },
         "color": {
-          'label': 'color',
           'type': 'color',
           "payload": { field_name: 'color', field_data_type: 'keyword', support_multi_select: true }
         },
         "tags": {
-          'label': 'tag',
           'type': 'tag',
           "payload": { field_name: 'tags', field_data_type: 'keyword', support_multi_select: true }
         },
         "category": {
-          'label': 'category',
           "payload": { field_name: 'category', field_data_type: 'keyword', support_multi_select: true }
         },
         "type": {
-          'label': 'type',
           "payload": { field_name: 'type', field_data_type: 'keyword', support_multi_select: true }
         },
       }

@@ -55,6 +55,59 @@ export function normalizeCoverIconUrl(data: EsSearchResult, baseUrl: string) {
   };
 }
 
+// Crawled documents routinely carry pre-escaped HTML entities in their
+// indexed text (`&rsquo;`, `&quot;`, `&#39;` …). Rendering them raw leaks
+// markup noise into titles and snippets, so decode the common set before
+// display. Each replace pass scans its input once; replacements are not
+// re-scanned, so `&amp;lt;` safely decodes to `&lt;` and stops there.
+const NAMED_ENTITIES: Record<string, string> = {
+  amp: "&",
+  lt: "<",
+  gt: ">",
+  quot: '"',
+  apos: "'",
+  nbsp: " ",
+  rsquo: "\u2019",
+  lsquo: "\u2018",
+  rdquo: "\u201D",
+  ldquo: "\u201C",
+  mdash: "\u2014",
+  ndash: "\u2013",
+  hellip: "\u2026",
+  middot: "\u00B7",
+  copy: "\u00A9",
+  reg: "\u00AE",
+  trade: "\u2122",
+  deg: "\u00B0",
+  euro: "\u20AC",
+  pound: "\u00A3",
+  eacute: "\u00E9",
+  egrave: "\u00E8",
+  agrave: "\u00E0",
+  ccedil: "\u00E7",
+  auml: "\u00E4",
+  ouml: "\u00F6",
+  uuml: "\u00FC",
+  szlig: "\u00DF",
+};
+
+export function decodeHtmlEntities(input?: string): string | undefined {
+  if (typeof input !== "string" || !input.includes("&")) return input;
+
+  return input
+    .replace(/&#(\d+);/g, (match, code: string) => {
+      const num = Number(code);
+      return num > 0 && num <= 0x10ffff ? String.fromCodePoint(num) : match;
+    })
+    .replace(/&#x([0-9a-fA-F]+);/g, (match, hex: string) => {
+      const num = Number.parseInt(hex, 16);
+      return num > 0 && num <= 0x10ffff ? String.fromCodePoint(num) : match;
+    })
+    .replace(/&([a-zA-Z][a-zA-Z0-9]*);/g, (match, name: string) => {
+      return NAMED_ENTITIES[name.toLowerCase()] ?? match;
+    });
+}
+
 export function generateRandomString(size: number) {
   const characters =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";

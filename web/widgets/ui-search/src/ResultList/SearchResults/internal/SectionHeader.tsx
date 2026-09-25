@@ -52,7 +52,7 @@ export function SectionHeader({
         titleAction?.href ? (
           <a
             className={clsx(
-              "min-w-0 cursor-pointer text-xl",
+              "min-w-0 cursor-pointer text-18px leading-26px font-medium",
               titleClassName
             )}
             href={titleAction.href}
@@ -66,7 +66,7 @@ export function SectionHeader({
           <button
             type="button"
             className={clsx(
-              "min-w-0 cursor-pointer border-0 bg-transparent p-0 text-left text-xl",
+              "min-w-0 cursor-pointer border-0 bg-transparent p-0 text-left text-18px leading-26px font-medium",
               titleClassName
             )}
             onClick={titleAction.onClick}
@@ -76,7 +76,7 @@ export function SectionHeader({
         ) : (
           <span
             className={clsx(
-              "min-w-0 text-xl",
+              "min-w-0 text-18px leading-26px font-medium",
               titleClassName
             )}
           >

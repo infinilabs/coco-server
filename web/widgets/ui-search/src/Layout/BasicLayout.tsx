@@ -198,8 +198,8 @@ const BasicLayout: FC<BasicLayoutProps> = (props) => {
             </CommonDrawer>
           ) : (
             <Sider width={280} {...siderProps} style={{ overflow: 'visible' }}>
-              {/* Content part */}
-              <div className="w-full pl-80px pt-32px">{aggregations}</div>
+              {/* align the facet rail with the result cards' left edge (72px = 56px column padding + 16px card padding) */}
+              <div className="w-full pl-72px pt-32px">{aggregations}</div>
             </Sider>
           )
         )}

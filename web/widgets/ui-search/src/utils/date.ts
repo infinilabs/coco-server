@@ -10,6 +10,12 @@ export const isWithin7Days = (date: ConfigType) => {
 }
 
 export const formatDateWithRelative = (date: ConfigType) => {
+    // dayjs(undefined) resolves to *now*, which would stamp every record with
+    // "a few seconds ago" when the index simply has no date fields — treat
+    // missing values as absent instead.
+    if (date === undefined || date === null || date === '') {
+        return undefined;
+    }
     const targetDate = dayjs(date);
     if (!targetDate.isValid()) {
         return undefined;

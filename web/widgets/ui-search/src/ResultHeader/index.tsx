@@ -71,7 +71,7 @@ export const ResultHeader: FC<ResultHeaderProps> = (props) => {
   const RightToggleIcon = showRightToggle && !rightDrawerOpen ? PanelLeftOpen : PanelRightOpen;
 
   return (
-    <div className="flex gap-8px items-start w-full text-[#999] dark:text-[#666]">
+    <div className="flex gap-8px items-start w-full text-[#6B7280] dark:text-[#9AA0A6]">
       {
         hasAggregations && (
           <span className="h-18px flex flex-none items-center">
@@ -88,7 +88,7 @@ export const ResultHeader: FC<ResultHeaderProps> = (props) => {
             exit={{ opacity: 0, y: 4 }}
             transition={{ duration: 0.16, ease: 'easeOut' }}
           >
-            {toolbar || t('labels.resultsWithTime', { count: hits?.total || 0, took: hits?.took || 0 })}
+            {toolbar || t('labels.results', { count: hits?.total || 0 })}
           </motion.div>
         </AnimatePresence>
       </div>
