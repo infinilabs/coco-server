@@ -510,6 +510,54 @@ export const generatedRoutes: GeneratedRoute[] = [
     }
   },
   {
+    name: 'pipeline',
+    path: '/pipeline',
+    component: 'layout.base',
+    meta: {
+      i18nKey: 'route.pipeline',
+      title: 'pipeline',
+      order: 7,
+      localIcon: 'pipeline',
+      permissions: ['generic#pipeline/search']
+    },
+    redirect: 'list',
+    children: [
+      {
+        name: 'pipeline_edit',
+        path: 'edit/:id',
+        component: 'view.pipeline_edit',
+        meta: {
+          i18nKey: 'route.pipeline_edit',
+          title: 'pipeline_edit',
+          hideInMenu: true,
+          activeMenu: 'pipeline'
+        }
+      },
+      {
+        name: 'pipeline_list',
+        path: 'list',
+        component: 'view.pipeline_list',
+        meta: {
+          i18nKey: 'route.pipeline_list',
+          title: 'pipeline_list',
+          hideInMenu: true,
+          activeMenu: 'pipeline'
+        }
+      },
+      {
+        name: 'pipeline_new',
+        path: 'new',
+        component: 'view.pipeline_new',
+        meta: {
+          i18nKey: 'route.pipeline_new',
+          title: 'pipeline_new',
+          hideInMenu: true,
+          activeMenu: 'pipeline'
+        }
+      }
+    ]
+  },
+  {
     name: 'preview',
     path: '/preview',
     component: 'layout.blank',
