@@ -187,6 +187,7 @@ export const generatedRoutes: GeneratedRoute[] = [
       constant: true,
       localIcon: 'chat',
       order: 2,
+      hideInMenu: true,
       query: [
         {
           key: 'mode',
@@ -581,7 +582,8 @@ export const generatedRoutes: GeneratedRoute[] = [
       title: 'search',
       constant: true,
       localIcon: 'search',
-      order: 1
+      order: 1,
+      hideInMenu: true
     }
   },
   {
@@ -726,7 +728,8 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.wiki',
       title: 'wiki',
       order: 3,
-      localIcon: 'wiki'
+      localIcon: 'wiki',
+      hideInMenu: true
     },
     children: [
       {

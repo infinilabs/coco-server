@@ -9,6 +9,7 @@ const common: App.I18n.Schema['translation']['common'] = {
   ok: 'OK',
   check: 'Check',
   console: 'Console',
+  backToApp: 'Back to app',
   clone: 'Clone',
   close: 'Close',
   columnSetting: 'Column Setting',
