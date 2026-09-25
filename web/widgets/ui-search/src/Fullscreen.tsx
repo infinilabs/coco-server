@@ -9,6 +9,7 @@ import Search from "./pages/Search";
 import { ACTION_TYPE_SEARCH_KEYWORD, DEFAULT_SEARCH_SORT, normalizeSearchFuzziness, normalizeSearchSort } from "./SearchBox/ActionBar/SearchActions";
 import Chat from "./pages/Chat";
 import { calcFixedBucketCount } from "./utils/date";
+import { pushRecentSearch } from "./utils/recentSearches";
 
 const formatDateRangeParam = (value: number | string, endOfDay = false) => {
   const timestamp = typeof value === 'number' ? value : Number(value);
@@ -197,6 +198,13 @@ const Fullscreen = (props: FullscreenProps) => {
     if (queryParams.mode === 'chat' || !queryParams?.query && isEmpty(queryParams?.filter) && isEmpty(queryParams?.aggfilter)) return;
 
     const isScroll = Number.isInteger(scrollRef.current) && scrollRef.current > 0;
+
+    // record the executed query for the recent-searches dropdown; scrolling
+    // deeper re-enters with the same query, and re-recording is a no-op
+    // anyway thanks to move-to-front dedupe, but skipping keeps intent clear
+    if (!isScroll && (queryParams.query || '').trim()) {
+      pushRecentSearch(queryParams.query);
+    }
 
     loadLock.current = true;
     setLoading(true);
