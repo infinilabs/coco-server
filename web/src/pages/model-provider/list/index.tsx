@@ -44,6 +44,8 @@ export function Component() {
 
   const { hasAuth } = useAuth();
 
+  const { scrollConfig, tableWrapperRef } = useTableScroll();
+
   const permissions = {
     read: hasAuth('coco#model_provider/read'),
     create: hasAuth('coco#model_provider/create'),
@@ -353,6 +355,7 @@ export function Component() {
       <ACard
         bordered={false}
         className='flex-col-stretch sm:flex-1-hidden card-wrapper'
+        ref={tableWrapperRef}
       >
         <div className='mb-4 mt-4 flex flex-wrap items-center justify-between gap-12px'>
           <Search
