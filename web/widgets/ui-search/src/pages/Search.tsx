@@ -1,4 +1,4 @@
-import Aggregations from "../Aggregations";
+import Aggregations, { FIELD_LABEL_KEYS } from "../Aggregations";
 import AIOverviewWrapper from "../AIOverview/AIOverviewWrapper";
 import Categories from "../Categories";
 import BasicLayout from "../Layout/BasicLayout";
@@ -10,6 +10,8 @@ import { LIST_TYPES } from "../ResultList";
 import { EmptyList } from "../ResultList/EmptyList";
 import MediaLayout from "../Layout/MediaLayout";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { X } from "lucide-react";
 import FilterIcon from "../icons/FilterIcon";
 import HistogramIcon from "../icons/HistogramIcon";
 import { Button } from "antd";
@@ -91,6 +93,7 @@ export default function Search({
 }: SearchProps) {
 
   const { query, filter, aggfilter = {}, search_type = ACTION_TYPE_SEARCH_KEYWORD } = queryParams || {};
+  const { t } = useTranslation();
   const fuzziness = normalizeSearchFuzziness(queryParams?.fuzziness);
   const sort = normalizeSearchSort(queryParams?.sort || DEFAULT_SEARCH_SORT);
   const dateRange = typeof queryParams?.date_range === 'string' ? queryParams.date_range : 'all-time';
@@ -265,6 +268,58 @@ export default function Search({
     onSearchFilter?.(nextAggFilter);
   }, [fuzziness, handleSearch, onSearch, onSearchFilter, queryParams, sort]);
 
+  // selected facet values, surfaced in the center column as removable chips so
+  // active filters stay visible even with the facet rail collapsed (mobile)
+  const removeFilterValue = useCallback((field: string, value: string) => {
+    const values = aggfilter[field];
+    const rest = (Array.isArray(values) ? values : [values]).filter((v: any) => String(v) !== String(value));
+    const next = { ...aggfilter };
+    if (rest.length > 0) next[field] = rest;
+    else delete next[field];
+    handleSearchFilter(next);
+  }, [aggfilter, handleSearchFilter]);
+
+  const filterChips = useMemo(() => {
+    const entries = Object.entries(aggfilter || {}).flatMap(([field, values]) =>
+      (Array.isArray(values) ? values : [values]).filter(Boolean).map((value) => ({ field, value: String(value) }))
+    );
+    if (entries.length === 0) return null;
+
+    const valueName = (field: string, value: string) => {
+      const agg = (aggregations || []).find((a: any) => a?.key === field);
+      const item = agg?.list?.find((i: any) => String(i?.key) === value);
+      return item?.name || item?.key || value;
+    };
+    const fieldLabel = (field: string) =>
+      FIELD_LABEL_KEYS[field] ? t(FIELD_LABEL_KEYS[field], { defaultValue: field }) : field;
+
+    return (
+      <div className="flex flex-wrap items-center gap-8px">
+        {entries.map(({ field, value }) => (
+          <span
+            key={`${field}:${value}`}
+            className="group inline-flex max-w-full items-center gap-4px rounded-14px bg-[#F1F3F4] dark:bg-white/10 py-3px pl-10px pr-4px text-12px text-[#3C4043] dark:text-white/80"
+            title={`${fieldLabel(field)}: ${valueName(field, value)}`}
+          >
+            <span className="truncate">{fieldLabel(field)}: {valueName(field, value)}</span>
+            <span
+              className="flex-none cursor-pointer rounded-50% p-2px text-[#5F6368] dark:text-white/60 hover:bg-black/10 dark:hover:bg-white/15 hover:text-black dark:hover:text-white"
+              onClick={() => removeFilterValue(field, value)}
+            >
+              <X size={11} />
+            </span>
+          </span>
+        ))}
+        <span
+          className="cursor-pointer px-4px text-12px text-[var(--ant-color-primary)] hover:underline"
+          onClick={() => handleSearchFilter({})}
+        >
+          {t('labels.clearFilters')}
+        </span>
+      </div>
+    );
+  }, [JSON.stringify(aggfilter), aggregations, removeFilterValue, handleSearchFilter, t]);
+
   const resultList = isEmptyResult ? (
     <EmptyList
       query={query}
@@ -434,6 +489,7 @@ export default function Search({
   return (
     <BasicLayout
       {...layoutCommonProps}
+      filterChips={filterChips}
       recommendsCollapse={recommendsCollapse}
       setRecommendsCollapse={setRecommendsCollapse}
       aggregations={

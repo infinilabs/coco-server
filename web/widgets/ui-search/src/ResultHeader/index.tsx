@@ -88,7 +88,7 @@ export const ResultHeader: FC<ResultHeaderProps> = (props) => {
             exit={{ opacity: 0, y: 4 }}
             transition={{ duration: 0.16, ease: 'easeOut' }}
           >
-            {toolbar || t('labels.results', { count: hits?.total || 0 })}
+            {toolbar || String(t('labels.results', { count: hits?.total || 0 }))}
           </motion.div>
         </AnimatePresence>
       </div>

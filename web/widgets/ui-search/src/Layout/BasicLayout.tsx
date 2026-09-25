@@ -20,6 +20,8 @@ interface BasicLayoutProps {
   tools?: ReactNode;
   toolbar?: ReactNode;
   aggregations?: ReactNode;
+  /** removable chips for the active facet selection, shown above the result header */
+  filterChips?: ReactNode;
   resultHeader?: ReactElement;
   aiOverview?: ReactNode;
   resultList?: ReactNode;
@@ -47,6 +49,7 @@ const BasicLayout: FC<BasicLayoutProps> = (props) => {
     tools,
     toolbar,
     aggregations,
+    filterChips,
     resultHeader,
     aiOverview,
     resultList,
@@ -227,8 +230,11 @@ const BasicLayout: FC<BasicLayoutProps> = (props) => {
         >
           {/* Content part */}
           <div className={`py-32px ${isMobile ? 'px-0px' : 'pl-56px pr-96px'}`}>
+            {filterChips ? (
+              <div className="px-16px mb-12px">{filterChips}</div>
+            ) : null}
             <div className="px-16px mb-16px">
-              {resultHeader && cloneElement(resultHeader, {
+              {resultHeader && cloneElement(resultHeader as ReactElement<Record<string, any>>, {
                 hasRecommends: !!(recommends && hasRecommendsData),
                 userCollapsedLeft: userCollapsedLeftRef.current,
                 userCollapsedRight: userCollapsedRightRef.current,

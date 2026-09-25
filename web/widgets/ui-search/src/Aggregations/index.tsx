@@ -33,7 +33,7 @@ interface AggregationsProps {
 
 // well-known aggregation fields get a localized title; anything else falls
 // back to the host-provided label, then the raw field key
-const FIELD_LABEL_KEYS: Record<string, string> = {
+export const FIELD_LABEL_KEYS: Record<string, string> = {
   'source.id': 'labels.source',
   source: 'labels.source',
   type: 'labels.type',
