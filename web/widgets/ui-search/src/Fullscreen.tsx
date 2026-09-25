@@ -241,6 +241,19 @@ const Fullscreen = (props: FullscreenProps) => {
                 "time_zone": "Asia/Shanghai"
               }
             }
+          },
+          // mark matched terms so the result list can highlight the query —
+          // fragments come back as plain text with literal <em> wrappers,
+          // rendered by splitting the string (never as raw HTML)
+          "highlight": {
+            "pre_tags": ["<em>"],
+            "post_tags": ["</em>"],
+            "require_field_match": false,
+            "fields": {
+              "title": { "number_of_fragments": 0 },
+              "summary": { "fragment_size": 200, "number_of_fragments": 1 },
+              "content": { "fragment_size": 200, "number_of_fragments": 1 }
+            }
           }
         },
         (res: any) => {

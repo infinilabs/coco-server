@@ -11,8 +11,10 @@ export function recordToListItem(
   onClick?: () => void
 ): SearchResultListItem {
   const cover = record.thumbnail ?? record.cover ?? record.metadata?.thumbnail_link;
-  // indexed text can carry escaped entities (`&rsquo;`, `&#39;` …) — decode for display
-  const summary = decodeHtmlEntities(record.summary ?? record.content);
+  // prefer the ES highlight fragments (they carry <em> markers around the
+  // matched terms); fall back to raw _source, decoded for display
+  const hl = record.highlight as Record<string, string[]> | undefined;
+  const summary = hl?.content?.[0] ?? hl?.summary?.[0] ?? decodeHtmlEntities(record.summary ?? record.content);
   const fileType = normalizeFileType(record.metadata?.file_extension ?? record.type);
 
   const sourceName = record.source?.name;
@@ -27,10 +29,12 @@ export function recordToListItem(
     <AuthImage src={typeIconUrl} alt="" className="h-5 w-5 rounded-sm object-contain" />
   ) : undefined;
 
+  const rawTitle = hl?.title?.[0] ?? record.title;
+
   return {
     type: "result",
     id: `${record.source?.id ?? record.url ?? record.title}-${index}`,
-    title: decodeHtmlEntities(record.title),
+    title: rawTitle,
     href: record.url,
     summary,
     cover,

@@ -4,6 +4,7 @@ import { SquareArrowOutUpRight } from "lucide-react";
 import { AuthImage } from "./AuthImage";
 import { AuthorDate } from "./AuthorDate";
 import { BreadcrumbsLine } from "./BreadcrumbsLine";
+import { HighlightText } from "./HighlightText";
 import { ItemInteractive } from "./ItemInteractive";
 import { MetaLine } from "./MetaLine";
 import { SectionHeader } from "./SectionHeader";
@@ -59,7 +60,7 @@ export function ListItem({
         <div className="min-w-0 flex-1 flex flex-col justify-between overflow-hidden">
           {item.summary ? (
             <div className="line-clamp-3 text-14px leading-22px text-[#4B5563] dark:text-[#C4C9CF]">
-              {item.summary}
+              <HighlightText text={item.summary} />
             </div>
           ) : null}
 

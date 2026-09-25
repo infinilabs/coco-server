@@ -2,6 +2,8 @@ import clsx from "clsx";
 
 import type React from "react";
 
+import { HighlightText } from "./HighlightText";
+
 // function getSourceBadgeText(source: string) {
 //   const normalized = source.trim().toLowerCase();
 //   if (!normalized) return "";
@@ -60,7 +62,7 @@ export function SectionHeader({
             rel={titleAction.rel}
             onClick={() => titleAction.onClick?.()}
           >
-            {title}
+            <HighlightText text={title} />
           </a>
         ) : titleAction?.onClick ? (
           <button
@@ -71,7 +73,7 @@ export function SectionHeader({
             )}
             onClick={titleAction.onClick}
           >
-            {title}
+            <HighlightText text={title} />
           </button>
         ) : (
           <span
@@ -80,7 +82,7 @@ export function SectionHeader({
               titleClassName
             )}
           >
-            {title}
+            <HighlightText text={title} />
           </span>
         )
       ) : null}
