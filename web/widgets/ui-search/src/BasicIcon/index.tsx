@@ -1,47 +1,22 @@
-import { useEffect, useState, type ReactNode, type FC } from 'react';
+import type { ReactNode, FC } from 'react';
 import type { LucideProps } from 'lucide-react';
+
+import { DefaultLucideIcon, lookupLucideIcon } from './lucideIcons';
 
 interface AsyncLucideIconProps extends LucideProps {
   className?: string;
   iconKey?: string;
 }
 
+// Synchronous since the registry switch: the old dynamic barrel import made
+// every lucide icon load-lazy (a blank first frame) while dragging the whole
+// library into the bundle.
 export const AsyncLucideIcon: FC<AsyncLucideIconProps> = ({
   className,
   iconKey,
   ...props
 }) => {
-  const [IconComponent, setIconComponent] = useState<FC<LucideProps> | null>(null);
-
-  useEffect(() => {
-    setIconComponent(null);
-
-    const loadIcon = async () => {
-      if (!iconKey) return;
-
-      try {
-        const pascalCaseKey = iconKey
-          .split(/[-_]/)
-          .map(part => part.charAt(0).toUpperCase() + part.slice(1))
-          .join('');
-
-        /* @vite-ignore */  
-        const lucideModule = await import('lucide-react');
-        const Icon = (lucideModule as any)[pascalCaseKey];
-
-        if (Icon) {
-          setIconComponent(() => Icon);
-        }
-      } catch (error) {
-      }
-    };
-
-    loadIcon();
-  }, [iconKey]);
-
-  if (!IconComponent) {
-    return null
-  };
+  const IconComponent = (iconKey && lookupLucideIcon(iconKey)) || DefaultLucideIcon;
 
   return (
     <div className={className}>
