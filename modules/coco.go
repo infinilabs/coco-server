@@ -17,6 +17,7 @@ import (
 	"infini.sh/coco/modules/integration"
 	_ "infini.sh/coco/modules/integration"
 	_ "infini.sh/coco/modules/llm"
+	_ "infini.sh/coco/modules/pipeline"
 	_ "infini.sh/coco/modules/skill"
 	_ "infini.sh/coco/modules/system"
 	_ "infini.sh/coco/modules/wiki"
