@@ -36,7 +36,8 @@ interface GEdge {
 
 const W = 880;
 const H = 560;
-const ITERATIONS = 320;
+const ITERATIONS = 420;
+const MIN_NODE_GAP = 58;
 
 const ARTICLE_COLOR = '#1677ff';
 const UNRESOLVED_COLOR = '#bfbfbf';
@@ -80,24 +81,42 @@ export function KbGraph({ kbId }: { kbId: string }) {
     setCardOpen(false);
     fetchWikiKbGraph(kbId)
       .then(({ nodes: gNodes, edges: gEdges }) => {
-        const laid: GNode[] = gNodes.map((n, i) => ({
-          id: n.id,
-          label: n.label,
-          kind: n.kind,
-          x: W / 2 + Math.cos((i / Math.max(gNodes.length, 1)) * Math.PI * 2) * 240,
-          y: H / 2 + Math.sin((i / Math.max(gNodes.length, 1)) * Math.PI * 2) * 170,
-          vx: 0,
-          vy: 0,
-          color: n.kind === 'article' ? ARTICLE_COLOR : n.kind === 'unresolved' ? UNRESOLVED_COLOR : typeColor(n.type),
-          articleId: n.article_id,
-          type: n.type,
-          typeLabel: n.type_label,
-          status: n.status,
-          confidence: n.confidence,
-          aliases: n.aliases,
-          properties: n.properties,
-          viaRelation: n.via_relation
-        }));
+        // seed positions in two halves — articles on the left, entities and
+        // unresolved links on the right — so the two families start apart
+        // and the relaxation keeps them apart
+        const articleSeeds = gNodes.filter(n => n.kind === 'article');
+        const otherSeeds = gNodes.filter(n => n.kind !== 'article');
+        let ai = 0;
+        let ei = 0;
+        const seedPos = (n: Api.Wiki.GraphNode) => {
+          if (n.kind === 'article') {
+            const a = Math.PI / 2 + (ai++ / Math.max(articleSeeds.length, 1)) * Math.PI;
+            return { x: W / 2 + Math.cos(a) * 250, y: H / 2 + Math.sin(a) * 190 };
+          }
+          const a = -Math.PI / 2 + (ei++ / Math.max(otherSeeds.length, 1)) * Math.PI;
+          return { x: W / 2 + Math.cos(a) * 250, y: H / 2 + Math.sin(a) * 190 };
+        };
+        const laid: GNode[] = gNodes.map(n => {
+          const { x, y } = seedPos(n);
+          return {
+            id: n.id,
+            label: n.label,
+            kind: n.kind,
+            x,
+            y,
+            vx: 0,
+            vy: 0,
+            color: n.kind === 'article' ? ARTICLE_COLOR : n.kind === 'unresolved' ? UNRESOLVED_COLOR : typeColor(n.type),
+            articleId: n.article_id,
+            type: n.type,
+            typeLabel: n.type_label,
+            status: n.status,
+            confidence: n.confidence,
+            aliases: n.aliases,
+            properties: n.properties,
+            viaRelation: n.via_relation
+          };
+        });
         const byId = new Map(laid.map(n => [n.id, n]));
         const kept = gEdges.filter(e => byId.has(e.source) && byId.has(e.target));
 
@@ -115,8 +134,12 @@ export function KbGraph({ kbId }: { kbId: string }) {
                 dy = Math.random() - 0.5;
                 d2 = 1;
               }
-              const f = 24000 / d2;
               const d = Math.sqrt(d2);
+              // weak repulsion + strong springs + real centering settle
+              // into connected clusters (calibrated by simulation: pairs
+              // land ~130px apart, nothing pinned against the walls)
+              let f = 5000 / d2;
+              if (d < MIN_NODE_GAP) f += (MIN_NODE_GAP - d) * 0.4;
               a.vx -= (dx / d) * f;
               a.vy -= (dy / d) * f;
               b.vx += (dx / d) * f;
@@ -130,22 +153,22 @@ export function KbGraph({ kbId }: { kbId: string }) {
             const dx = b.x - a.x;
             const dy = b.y - a.y;
             const d = Math.max(Math.sqrt(dx * dx + dy * dy), 1);
-            const target = a.kind === 'article' && b.kind === 'article' ? 190 : 110;
-            const f = (d - target) * 0.02;
+            const target = a.kind === 'article' && b.kind === 'article' ? 240 : 140;
+            const f = (d - target) * 0.05;
             a.vx += (dx / d) * f;
             a.vy += (dy / d) * f;
             b.vx -= (dx / d) * f;
             b.vy -= (dy / d) * f;
           });
           laid.forEach(n => {
-            n.vx += (W / 2 - n.x) * 0.002;
-            n.vy += (H / 2 - n.y) * 0.002;
-            n.vx *= 0.82;
-            n.vy *= 0.82;
-            n.x += Math.max(-14, Math.min(14, n.vx));
-            n.y += Math.max(-14, Math.min(14, n.vy));
-            n.x = Math.max(40, Math.min(W - 40, n.x));
-            n.y = Math.max(30, Math.min(H - 30, n.y));
+            n.vx += (W / 2 - n.x) * 0.004;
+            n.vy += (H / 2 - n.y) * 0.004;
+            n.vx *= 0.85;
+            n.vy *= 0.85;
+            n.x += Math.max(-10, Math.min(10, n.vx));
+            n.y += Math.max(-10, Math.min(10, n.vy));
+            n.x = Math.max(56, Math.min(W - 56, n.x));
+            n.y = Math.max(40, Math.min(H - 36, n.y));
           });
         }
 
@@ -266,6 +289,10 @@ export function KbGraph({ kbId }: { kbId: string }) {
             if (!a || !b) return null;
             const dimmed = neighbors && !(neighbors.has(e.source) && neighbors.has(e.target));
             const isRelation = e.kind === 'relation';
+            // labels only when zoomed in or when the edge touches the
+            // selection — at fit zoom they pile up into noise
+            const touchesSelected = selected === e.source || selected === e.target;
+            const showLabel = scale > 1.4 || (touchesSelected && scale > 1);
             return (
               <g key={i} opacity={dimmed ? 0.18 : 1}>
                 <line
@@ -278,8 +305,17 @@ export function KbGraph({ kbId }: { kbId: string }) {
                   x2={b.x}
                   y2={b.y}
                 />
-                {(isRelation || scale > 1.4) && (
-                  <text fill="var(--ant-color-text-tertiary)" fontSize={9} textAnchor="middle" x={(a.x + b.x) / 2} y={(a.y + b.y) / 2 - 3}>
+                {showLabel && (
+                  <text
+                    fill="var(--ant-color-text-secondary)"
+                    fontSize={9}
+                    paintOrder="stroke"
+                    stroke="var(--ant-color-bg-container)"
+                    strokeWidth={3}
+                    textAnchor="middle"
+                    x={(a.x + b.x) / 2}
+                    y={(a.y + b.y) / 2 - 3}
+                  >
                     {e.label || e.relation}
                   </text>
                 )}
@@ -311,7 +347,15 @@ export function KbGraph({ kbId }: { kbId: string }) {
                     strokeWidth={2}
                   />
                 )}
-                <text dy={n.kind === 'article' ? 22 : 17} fill="var(--ant-color-text)" fontSize={11} textAnchor="middle">
+                <text
+                  dy={n.kind === 'article' ? 22 : 17}
+                  fill="var(--ant-color-text)"
+                  fontSize={11}
+                  paintOrder="stroke"
+                  stroke="var(--ant-color-bg-container)"
+                  strokeWidth={3}
+                  textAnchor="middle"
+                >
                   {n.label.length > 14 ? `${n.label.slice(0, 13)}…` : n.label}
                 </text>
               </g>
