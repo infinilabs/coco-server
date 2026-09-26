@@ -48,8 +48,8 @@ func QueryDocuments(ctx1 context.Context, builder *orm.QueryBuilder, query strin
 	builder.Query(query)
 	builder.DefaultQueryField(defaultFields...)
 	// Omit these fields. The frontend does not need them, and they are large enough
-	// to slow us down.
-	builder.Exclude("payload.*", "document_chunk", "ai_insights.embedding")
+	// to slow us down. Role-based field restrictions stack on top (field_access.go).
+	builder.Exclude(documentSourceExcludes(reqUser.Roles)...)
 	// Let framework skip the buildFuzzinessQuery() call as we did it here.
 	builder.SkipFuzziness()
 

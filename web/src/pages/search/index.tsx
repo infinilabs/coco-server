@@ -1,21 +1,16 @@
 import { Spin } from 'antd';
-
-import UserAvatar from '@/layouts/modules/global-header/components/UserAvatar';
-import { getDarkMode } from '@/store/slice/theme';
-import { configResponsive } from 'ahooks';
 import { fetchIntegration } from '@/service/api/integration';
-import { useRequest } from '@sa/hooks';
 import useQueryParams from '@/hooks/common/queryParams';
 import { FullscreenPage } from 'ui-search/source';
 import { querySearch, fetchSuggestions, fetchRecommends, fetchFieldsMeta, uploadAttachment } from '@/service/api/ai-search';
 import { getApiBaseUrl } from '@/service/request';
 import queryString from 'query-string';
+import { getDarkMode } from '@/store/slice/theme';
 import { getLocale } from '@/store/slice/app';
 import { getApplicationSetting } from '@/store/slice/server';
 import { searchAssistant } from '@/service/api/assistant';
 import { fetchBatchEntityLabels } from '@/service/api/entity';
-
-configResponsive({ sm: 640 });
+import { SaveToWikiModal, type SaveToWikiPayload } from './components/SaveToWikiModal';
 
 const AGGS_DEFAULT = {
   "aggs": {
@@ -66,9 +61,6 @@ const AGGS: any = {
 }
 
 export function Component() {
-  const topActionsRef = useRef<HTMLDivElement | null>(null)
-
-  const responsive = useResponsive();
 
   const [queryParams, setQueryParams] = useQueryParams({ mode: 'search' });
 
@@ -76,13 +68,15 @@ export function Component() {
 
   const locale = useAppSelector(getLocale);
 
-  const [rightMenuWidth, setRightMenuWidth] = useState(0);
+  // the app shell header owns the top-right controls (lang/theme/avatar/console)
+  const rightMenuWidth = 0;
+
+  // knowledge execution: answer -> knowledge-base draft (D1 server-side)
+  const [saveToWikiPayload, setSaveToWikiPayload] = useState<SaveToWikiPayload | null>(null);
 
   const applicationSetting = useAppSelector(getApplicationSetting);
 
   const { search_settings } = applicationSetting || {};
-
-  const isMobile = !responsive.sm;
 
   const [integration, setIntegration] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -120,31 +114,6 @@ export function Component() {
     }
     setLoading(false)
   }
-
-  useEffect(() => {
-    const element = topActionsRef.current;
-
-    if (!element) {
-      return;
-    }
-
-    const updateRightMenuWidth = () => {
-      const width = Math.ceil(element.getBoundingClientRect().width);
-      setRightMenuWidth(width > 0 ? width : 0);
-    };
-
-    updateRightMenuWidth();
-
-    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(updateRightMenuWidth) : null;
-
-    observer?.observe(element);
-    window.addEventListener('resize', updateRightMenuWidth);
-
-    return () => {
-      observer?.disconnect();
-      window.removeEventListener('resize', updateRightMenuWidth);
-    };
-  }, [isMobile, integration]);
 
   const onSearch = async (queryParams: { [key: string]: any }, body: any = {}, callback: (data: any) => void, setLoading: (loading: boolean) => void) => {
     if (setLoading) setLoading(true)
@@ -304,12 +273,9 @@ export function Component() {
     id: search_settings?.integration,
     theme: darkMode ? 'dark' : 'light',
     language: locale,
-    "logo": {
-      "light": payload?.logo?.light,
-      "light_mobile": payload?.logo?.light_mobile,
-      "dark": payload?.logo?.dark,
-      "dark_mobile": payload?.logo?.dark_mobile,
-    },
+    // the app shell header carries the brand; null tells the widget to hide
+    // its own banner logo instead of falling back to the bundled one
+    "logo": null,
     "placeholder": enabled_module?.search?.placeholder,
     "welcome": payload?.welcome || "",
     rightMenuWidth,
@@ -318,36 +284,33 @@ export function Component() {
       "showActions": true,
     },
     "onSearch": onSearch,
+    "onSaveToWiki": (payload: SaveToWikiPayload) => setSaveToWikiPayload(payload),
     "onAggregation": onAggregation,
     "onAsk": onAsk,
     "onSuggestion": onSuggestion,
     "onRecommend": onRecommend,
     "config": {
+      // labels are resolved by the widget's i18n (labels.source / labels.type / …);
+      // only the widget-specific render type is configured here
       "aggregations": {
         "source.id": {
-          "label": "source",
           "payload": { field_name: 'source.id', field_data_type: 'keyword', support_multi_select: true }
         },
         "lang": {
-          "label": "language",
           "payload": { field_name: 'lang', field_data_type: 'keyword', support_multi_select: true }
         },
         "color": {
-          'label': 'color',
           'type': 'color',
           "payload": { field_name: 'color', field_data_type: 'keyword', support_multi_select: true }
         },
         "tags": {
-          'label': 'tag',
           'type': 'tag',
           "payload": { field_name: 'tags', field_data_type: 'keyword', support_multi_select: true }
         },
         "category": {
-          'label': 'category',
           "payload": { field_name: 'category', field_data_type: 'keyword', support_multi_select: true }
         },
         "type": {
-          'label': 'type',
           "payload": { field_name: 'type', field_data_type: 'keyword', support_multi_select: true }
         },
       }
@@ -386,11 +349,15 @@ export function Component() {
         queryParams={queryParams}
         setQueryParams={setQueryParams}
       />
-      <div ref={topActionsRef} style={{ top: (queryParams as any).mode === 'chat' ? 8 : 16 }} className="absolute right-8px h-48px z-999 flex-y-center justify-end">
-        <LangSwitch className="px-12px" />
-        <ThemeSchemaSwitch className="px-12px" />
-        <UserAvatar className="px-8px" showHome showName={!isMobile} />
-      </div>
+      <SaveToWikiModal
+        payload={saveToWikiPayload}
+        onClose={() => setSaveToWikiPayload(null)}
+        onSaved={(articleId, kbId) => {
+          // jump straight into the draft for a human review pass (D1)
+          setQueryParams({ ...queryParams, mode: 'search' });
+          window.location.hash = `#/wiki/article/${articleId}?kb=${kbId}`;
+        }}
+      />
     </>
   );
 }

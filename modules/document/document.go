@@ -98,10 +98,20 @@ func (h *APIHandler) getDoc(w http.ResponseWriter, req *http.Request, ps httprou
 
 	RefineDocument(req.Context(), &obj)
 
+	// Field-level tier for the detail path: the response here is a decoded
+	// object, not an ES _source exclude, so restricted fields are stripped
+	// from the map instead — same policy definition as documentSourceExcludes
+	// (see field_access.go).
+	source := util.MapStr{}
+	util.MustFromJSONBytes(util.MustToJSONBytes(obj), &source)
+	if reqUser, err := security.GetUserFromRequest(req); err == nil && reqUser != nil {
+		common.RemoveRestrictedFields(source, reqUser.Roles)
+	}
+
 	h.WriteJSON(w, util.MapStr{
 		"found":   true,
 		"_id":     id,
-		"_source": obj,
+		"_source": source,
 	}, 200)
 }
 
@@ -368,8 +378,12 @@ func (h *APIHandler) searchDocs(w http.ResponseWriter, req *http.Request, ps htt
 		return
 	}
 	// Omit these fields. The frontend does not need them, and they are large enough
-	// to slow us down.
-	builder.Exclude("payload.*", "document_chunk", "ai_insights.embedding")
+	// to slow us down. Role-based field restrictions stack on top (field_access.go).
+	if reqUser, err := security.GetUserFromRequest(req); err == nil && reqUser != nil {
+		builder.Exclude(documentSourceExcludes(reqUser.Roles)...)
+	} else {
+		builder.Exclude(documentSourceExcludes(nil)...)
+	}
 	builder.EnableBodyBytes()
 	if len(builder.Sorts()) == 0 {
 		builder.SortBy(orm.Sort{Field: "created", SortType: orm.DESC})

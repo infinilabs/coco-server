@@ -31,10 +31,11 @@ const NewChatSvg: FC<{ className?: string }> = ({ className }) => (
 interface ChatHeaderLayoutProps {
   isMobile?: boolean;
   theme?: 'light' | 'dark';
+  /** pass null to render no logo image at all (e.g. when the host app already shows its brand) */
   logo?: {
     light_mobile?: string;
     dark_mobile?: string;
-  };
+  } | null;
   handleLogoClick?: () => void;
   isHistoryOpen?: boolean;
   onToggleHistory?: () => void;
@@ -51,7 +52,7 @@ const ChatHeaderLayout: FC<ChatHeaderLayoutProps> = (props) => {
   return (
     <div style={rightMenuWidth ? { paddingRight: rightMenuWidth + 16 } : undefined} className="h-full w-full flex items-center justify-between px-4 border-b border-solid border-[var(--ant-color-border-secondary)] box-border">
       <div className="w-full flex items-center gap-2">
-        {isMobile && (
+        {isMobile && logo !== null && (
           <div className='flex items-center cursor-pointer shrink-0' onClick={() => handleLogoClick?.()}>
             <img
               src={(theme === 'dark' ? logo?.dark_mobile : logo?.light_mobile) || logoMobileSvg}

@@ -105,6 +105,7 @@ declare global {
   const isWithin7Days: typeof import('../components/DateTime/index')['isWithin7Days']
   const lazy: typeof import('react')['lazy']
   const localFs: typeof import('../components/icons/local_fs.jsx')['default']
+  const markdownD: typeof import('../components/DocumentDrawer/Markdown.d')['default']
   const memo: typeof import('react')['memo']
   const notion: typeof import('../components/icons/notion.jsx')['default']
   const queryParams: typeof import('../hooks/common/queryParams')['default']

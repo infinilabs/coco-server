@@ -7,6 +7,8 @@ package system
 import (
 	"fmt"
 	"net/http"
+	"regexp"
+	"strings"
 
 	log "github.com/cihub/seelog"
 	"golang.org/x/text/language"
@@ -24,6 +26,88 @@ func (h *APIHandler) getServerSettings(w http.ResponseWriter, req *http.Request,
 	h.WriteJSON(w, appConfig, http.StatusOK)
 }
 
+// mergeSection merges one settings section: incoming over old, writing the
+// result back via writeBack. A nil old section is seeded with an empty value —
+// util.MergeFields is a no-op against a nil destination map, which would
+// otherwise silently drop the first save of a section.
+func mergeSection[T any](old, incoming *T, writeBack func(*T)) error {
+	if incoming == nil {
+		return nil
+	}
+	base := old
+	if base == nil {
+		base = new(T)
+	}
+	merged := new(T)
+	if err := mergeSettings(base, incoming, merged); err != nil {
+		return err
+	}
+	writeBack(merged)
+	return nil
+}
+
+// settingsSections lists every mergeable section of the server settings.
+// Adding a section is one entry here: optional validation, then the merge.
+var settingsSections = []struct {
+	name  string
+	apply func(incoming, old *core.Config) error
+}{
+	{
+		name: "server",
+		apply: func(incoming, old *core.Config) error {
+			return mergeSection(old.ServerInfo, incoming.ServerInfo, func(v *core.ServerInfo) { old.ServerInfo = v })
+		},
+	},
+	{
+		name: "app_settings",
+		apply: func(incoming, old *core.Config) error {
+			return mergeSection(old.AppSettings, incoming.AppSettings, func(v *core.AppSettings) { old.AppSettings = v })
+		},
+	},
+	{
+		name: "search_settings",
+		apply: func(incoming, old *core.Config) error {
+			return mergeSection(old.SearchSettings, incoming.SearchSettings, func(v *core.SearchSettings) { old.SearchSettings = v })
+		},
+	},
+	{
+		name: "default_model",
+		apply: func(incoming, old *core.Config) error {
+			if incoming.DefaultModel != nil {
+				if err := validateDefaultModel(incoming.DefaultModel); err != nil {
+					return err
+				}
+			}
+			return mergeSection(old.DefaultModel, incoming.DefaultModel, func(v *core.DefaultModel) { old.DefaultModel = v })
+		},
+	},
+	{
+		name: "document_processing",
+		apply: func(incoming, old *core.Config) error {
+			if incoming.DocumentProcessing != nil {
+				// Validate language settings.
+				if lang := incoming.DocumentProcessing.LLMGenerationLanguage; lang != "" {
+					if _, err := language.Parse(lang); err != nil {
+						return fmt.Errorf("invalid llm_generation_language %q: %v", lang, err)
+					}
+				}
+			}
+			return mergeSection(old.DocumentProcessing, incoming.DocumentProcessing, func(v *core.DocumentProcessing) { old.DocumentProcessing = v })
+		},
+	},
+	{
+		name: "data_security",
+		apply: func(incoming, old *core.Config) error {
+			if incoming.DataSecurity != nil {
+				if err := validateDataSecurity(incoming.DataSecurity); err != nil {
+					return err
+				}
+			}
+			return mergeSection(old.DataSecurity, incoming.DataSecurity, func(v *core.DataSecurity) { old.DataSecurity = v })
+		},
+	},
+}
+
 func (h *APIHandler) updateServerSettings(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	appConfig := core.Config{}
 	if err := h.DecodeJSON(req, &appConfig); err != nil {
@@ -32,86 +116,58 @@ func (h *APIHandler) updateServerSettings(w http.ResponseWriter, req *http.Reque
 		return
 	}
 	oldAppConfig := common.AppConfig()
-	if appConfig.ServerInfo != nil {
-		//merge settings
-		serverCfg := core.ServerInfo{}
-		err := mergeSettings(oldAppConfig.ServerInfo, appConfig.ServerInfo, &serverCfg)
-		if err != nil {
+	for _, section := range settingsSections {
+		if err := section.apply(&appConfig, &oldAppConfig); err != nil {
 			_ = log.Error(err)
-			h.WriteError(w, err.Error(), http.StatusBadRequest)
+			h.WriteError(w, fmt.Sprintf("%s: %v", section.name, err), http.StatusBadRequest)
 			return
 		}
-		oldAppConfig.ServerInfo = &serverCfg
-	}
-	if appConfig.AppSettings != nil {
-		//merge settings
-		appSettings := core.AppSettings{}
-		err := mergeSettings(oldAppConfig.AppSettings, appConfig.AppSettings, &appSettings)
-		if err != nil {
-			_ = log.Error(err)
-			h.WriteError(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		oldAppConfig.AppSettings = &appSettings
-	}
-	if appConfig.SearchSettings != nil {
-		//merge settings
-		searchSettings := core.SearchSettings{}
-		err := mergeSettings(oldAppConfig.SearchSettings, appConfig.SearchSettings, &searchSettings)
-		if err != nil {
-			_ = log.Error(err)
-			h.WriteError(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		oldAppConfig.SearchSettings = &searchSettings
-	}
-	if appConfig.DefaultModel != nil {
-		// validate that role-specific models are language models
-		for _, check := range []struct {
-			model *core.ModelId
-			name  string
-		}{
-			{appConfig.DefaultModel.AnsweringModel, "answering_model"},
-			{appConfig.DefaultModel.PickingToolModel, "picking_tool_model"},
-			{appConfig.DefaultModel.PickingDocModel, "picking_doc_model"},
-			{appConfig.DefaultModel.IntentAnalysisModel, "intent_analysis_model"},
-		} {
-			if err := validateLanguageModelType(check.model, check.name); err != nil {
-				h.WriteError(w, err.Error(), http.StatusBadRequest)
-				return
-			}
-		}
-
-		//merge settings
-		defaultModel := core.DefaultModel{}
-		err := mergeSettings(oldAppConfig.DefaultModel, appConfig.DefaultModel, &defaultModel)
-		if err != nil {
-			_ = log.Error(err)
-			h.WriteError(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		oldAppConfig.DefaultModel = &defaultModel
-	}
-	if appConfig.DocumentProcessing != nil {
-		// Validate language settings.
-		if lang := appConfig.DocumentProcessing.LLMGenerationLanguage; lang != "" {
-			if _, err := language.Parse(lang); err != nil {
-				h.WriteError(w, fmt.Sprintf("invalid llm_generation_language %q: %v", lang, err), http.StatusBadRequest)
-				return
-			}
-		}
-		//merge settings
-		docProcessing := core.DocumentProcessing{}
-		err := mergeSettings(oldAppConfig.DocumentProcessing, appConfig.DocumentProcessing, &docProcessing)
-		if err != nil {
-			_ = log.Error(err)
-			h.WriteError(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		oldAppConfig.DocumentProcessing = &docProcessing
 	}
 	common.SetAppConfig(&oldAppConfig)
 	h.WriteAckOKJSON(w)
+}
+
+// validateDefaultModel checks that role-specific models resolve to language
+// models. Vision and embedding models are rejected.
+func validateDefaultModel(cfg *core.DefaultModel) error {
+	for _, check := range []struct {
+		model *core.ModelId
+		name  string
+	}{
+		{cfg.AnsweringModel, "answering_model"},
+		{cfg.PickingToolModel, "picking_tool_model"},
+		{cfg.PickingDocModel, "picking_doc_model"},
+		{cfg.IntentAnalysisModel, "intent_analysis_model"},
+	} {
+		if err := validateLanguageModelType(check.model, check.name); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// validateDataSecurity rejects masking rules whose pattern cannot compile
+// before they are persisted — a broken regex must never take the masking
+// pipeline down at recall time.
+func validateDataSecurity(cfg *core.DataSecurity) error {
+	if cfg.Masking != nil {
+		for i, rule := range cfg.Masking.Rules {
+			if rule.Pattern == "" {
+				continue
+			}
+			if _, err := regexp.Compile(rule.Pattern); err != nil {
+				return fmt.Errorf("masking rule #%d (%s): invalid pattern %q: %v", i+1, rule.Name, rule.Pattern, err)
+			}
+		}
+	}
+	if cfg.FieldAccess != nil {
+		for i, restriction := range cfg.FieldAccess.Restrictions {
+			if strings.TrimSpace(restriction.Role) == "" {
+				return fmt.Errorf("field restriction #%d: role is required", i+1)
+			}
+		}
+	}
+	return nil
 }
 
 // validateLanguageModelType checks that the given model (if specified) resolves

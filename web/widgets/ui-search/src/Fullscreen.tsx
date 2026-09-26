@@ -9,6 +9,7 @@ import Search from "./pages/Search";
 import { ACTION_TYPE_SEARCH_KEYWORD, DEFAULT_SEARCH_SORT, normalizeSearchFuzziness, normalizeSearchSort } from "./SearchBox/ActionBar/SearchActions";
 import Chat from "./pages/Chat";
 import { calcFixedBucketCount } from "./utils/date";
+import { pushRecentSearch } from "./utils/recentSearches";
 
 const formatDateRangeParam = (value: number | string, endOfDay = false) => {
   const timestamp = typeof value === 'number' ? value : Number(value);
@@ -46,7 +47,8 @@ const getDateRangeParams = (dateRange?: string) => {
 };
 
 interface FullscreenProps {
-  logo?: Record<string, any>;
+  /** pass null to hide the widget's own logo (host app already shows its brand) */
+  logo?: Record<string, any> | null;
   placeholder?: string;
   welcome?: string;
   aiOverview?: { enabled?: boolean };
@@ -74,6 +76,7 @@ interface FullscreenProps {
 const Fullscreen = (props: FullscreenProps) => {
   const {
     logo = {},
+    onSaveToWiki,
     placeholder,
     welcome,
     aiOverview,
@@ -196,6 +199,13 @@ const Fullscreen = (props: FullscreenProps) => {
 
     const isScroll = Number.isInteger(scrollRef.current) && scrollRef.current > 0;
 
+    // record the executed query for the recent-searches dropdown; scrolling
+    // deeper re-enters with the same query, and re-recording is a no-op
+    // anyway thanks to move-to-front dedupe, but skipping keeps intent clear
+    if (!isScroll && (queryParams.query || '').trim()) {
+      pushRecentSearch(queryParams.query);
+    }
+
     loadLock.current = true;
     setLoading(true);
 
@@ -238,6 +248,19 @@ const Fullscreen = (props: FullscreenProps) => {
                 "buckets": calcFixedBucketCount(dateRangeParams.start as number, dateRangeParams.end as number),
                 "time_zone": "Asia/Shanghai"
               }
+            }
+          },
+          // mark matched terms so the result list can highlight the query —
+          // fragments come back as plain text with literal <em> wrappers,
+          // rendered by splitting the string (never as raw HTML)
+          "highlight": {
+            "pre_tags": ["<em>"],
+            "post_tags": ["</em>"],
+            "require_field_match": false,
+            "fields": {
+              "title": { "number_of_fragments": 0 },
+              "summary": { "fragment_size": 200, "number_of_fragments": 1 },
+              "content": { "fragment_size": 200, "number_of_fragments": 1 }
             }
           }
         },
@@ -389,6 +412,7 @@ const Fullscreen = (props: FullscreenProps) => {
         commonProps={commonProps}
         logo={logo}
         handleLogoClick={handleLogoClick}
+        onSaveToWiki={onSaveToWiki}
         apiConfig={apiConfig}
         queryParams={queryParams}
         onBackToSearch={() => {

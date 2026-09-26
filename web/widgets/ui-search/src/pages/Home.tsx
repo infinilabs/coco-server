@@ -7,7 +7,8 @@ import HomeLayout from "../Layout/HomeLayout";
 interface HomeProps {
   commonProps?: Record<string, any>;
   loading?: boolean;
-  logo?: Record<string, any>;
+  /** pass null to hide the banner logo (host app already shows its brand) */
+  logo?: Record<string, any> | null;
   onSearch?: (...args: any[]) => void;
   placeholder?: string;
   welcome?: string;
@@ -42,13 +43,13 @@ export default function Home({
     <HomeLayout
       {...commonProps}
       loading={loading}
-      logo={
+      logo={logo === null ? null : (
         <Logo
           isHome={true}
           {...commonProps}
           {...logo}
         />
-      }
+      )}
       searchbox={
         <SearchBox
           {...commonProps}

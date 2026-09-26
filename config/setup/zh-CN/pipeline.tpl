@@ -75,6 +75,11 @@ POST $[[SETUP_INDEX_PREFIX]]pipelineconfigv2/$[[SETUP_DOC_TYPE]]/enrich_document
       {
         "document_embedding": {
         }
+      },
+      {
+        "extract_entities": {
+          "model_context_length": 128000
+        }
       }
   ]
 }

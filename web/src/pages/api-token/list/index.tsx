@@ -251,10 +251,10 @@ export function Component() {
         bordered={false}
         className="flex-col-stretch sm:flex-1-hidden card-wrapper"
       >
-        <div className="mb-4 mt-4 flex items-center justify-between">
+        <div className="mb-4 mt-4 flex flex-wrap items-center justify-between gap-12px">
           <Search
             addonBefore={<FilterOutlined />}
-            className="max-w-500px"
+            className="w-full max-w-360px sm:!w-300px"
             enterButton={t('common.refresh')}
             onSearch={onSearchClick}
             value={keyword}
@@ -277,9 +277,10 @@ export function Component() {
           dataSource={data.data}
           loading={loading}
           rowKey="id"
+          scroll={{ x: 'max-content' }}
           size="middle"
           pagination={{
-            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+            showTotal: total => t('common.totalItems', { total: String(total) }),
             pageSize: queryParams.size,
             current: Math.floor(queryParams.from / queryParams.size) + 1,
             total: data.total?.value || data?.total,

@@ -90,22 +90,22 @@
   --color-danger-fg: #f85149;
 }
 
+// The app's theme store is the single source of truth: it toggles the
+// `dark` class on <html> from the user setting or the OS preference. A
+// prefers-color-scheme media query here used to override that explicit
+// choice (same specificity, later in the file), washing out markdown text
+// in light mode whenever macOS ran dark — so the class rules must come
+// after :root and the media query is gone.
+:root {
+  @include light;
+}
+
 .light {
   @include light;
 }
 
 .dark {
   @include dark;
-}
-
-:root {
-  @include light;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    @include dark;
-  }
 }
 
 .coco-chat {

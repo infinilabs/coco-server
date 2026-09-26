@@ -10,6 +10,7 @@ type Config struct {
 	SearchSettings     *SearchSettings     `config:"search_settings" json:"search_settings,omitempty"`
 	DefaultModel       *DefaultModel       `config:"default_model" json:"default_model,omitempty"`
 	DocumentProcessing *DocumentProcessing `config:"document_processing" json:"document_processing,omitempty"`
+	DataSecurity       *DataSecurity       `config:"data_security" json:"data_security,omitempty"`
 }
 
 type AppSettings struct {
@@ -67,4 +68,38 @@ type DocumentProcessing struct {
 	// content (summaries, tags, etc.) when no per-pipeline override is set.
 	// Expected to be a BCP 47 tag, e.g. "en-US", "zh-CN".
 	LLMGenerationLanguage string `config:"llm_generation_language" json:"llm_generation_language,omitempty"`
+}
+
+// Settings under the "Data Security" tab: dynamic content masking before
+// recalled documents are handed to a model, and field-level access
+// restrictions layered on top of the existing index/document sharing.
+type DataSecurity struct {
+	Masking     *MaskingSettings     `config:"masking" json:"masking,omitempty"`
+	FieldAccess *FieldAccessSettings `config:"field_access" json:"field_access,omitempty"`
+}
+
+type MaskingSettings struct {
+	Enabled bool          `json:"enabled"`
+	Rules   []MaskingRule `json:"rules,omitempty"`
+}
+
+// MaskingRule is one regex substitution applied to document content on its
+// way into a model prompt. Patterns use Go's RE2 syntax.
+type MaskingRule struct {
+	ID          string `json:"id,omitempty"`
+	Name        string `json:"name,omitempty"`
+	Pattern     string `json:"pattern"`
+	Replacement string `json:"replacement,omitempty"`
+	Enabled     bool   `json:"enabled"`
+}
+
+type FieldAccessSettings struct {
+	// One entry per role; a user matching several roles gets the union of
+	// the excluded fields.
+	Restrictions []FieldRestriction `json:"restrictions,omitempty"`
+}
+
+type FieldRestriction struct {
+	Role          string   `json:"role"`
+	ExcludeFields []string `json:"exclude_fields,omitempty"`
 }

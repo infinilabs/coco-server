@@ -22,6 +22,7 @@ export function setupElegantRouter() {
       ]
     },
     layouts: {
+      app: 'src/layouts/app-layout/index.tsx',
       base: 'src/layouts/base-layout/index.tsx',
       blank: 'src/layouts/blank-layout/index.tsx'
     },

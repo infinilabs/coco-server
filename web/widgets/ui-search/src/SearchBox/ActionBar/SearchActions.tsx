@@ -5,6 +5,7 @@ import { type FC } from "react";
 
 export const ACTION_TYPE_SEARCH = 'search'
 export const ACTION_TYPE_SEARCH_HYBRID = 'hybrid'
+export const ACTION_TYPE_SEARCH_HYBRID_RRF = 'hybrid_rrf'
 export const ACTION_TYPE_SEARCH_KEYWORD = 'keyword'
 export const ACTION_TYPE_SEARCH_SEMANTIC = 'semantic'
 export const ACTION_TYPE_DEEPTHINK = 'deepthink'
@@ -99,6 +100,10 @@ const SearchActions: FC<SearchActionsProps> = (props) => {
             {
                 key: ACTION_TYPE_SEARCH_HYBRID,
                 label: t('labels.hybrid'),
+            },
+            {
+                key: ACTION_TYPE_SEARCH_HYBRID_RRF,
+                label: t('labels.hybridRRF'),
             },
             {
                 key: ACTION_TYPE_SEARCH_KEYWORD,

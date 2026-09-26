@@ -65,7 +65,8 @@ function useNavigationGuard(shouldBlock: () => boolean): NavigationGuard {
 
 interface ChatProps {
   commonProps?: Record<string, any>;
-  logo?: Record<string, any>;
+  /** pass null to hide the widget's own logo (host app already shows its brand) */
+  logo?: Record<string, any> | null;
   handleLogoClick?: () => void;
   apiConfig?: Record<string, any>;
   onBackToSearch?: () => void;
@@ -74,6 +75,8 @@ interface ChatProps {
   setAttachments?: (attachments: any[]) => void;
   initContainer?: (ref: HTMLDivElement | null) => void;
   getContainer?: () => HTMLElement | null;
+  /** Host hook: persist an assistant answer into a knowledge base (draft). */
+  onSaveToWiki?: (payload: { content: string; question: string; id: string }) => void;
   [key: string]: any;
 }
 
@@ -89,6 +92,7 @@ export default function Chat({
   initContainer,
   getContainer,
   rightMenuWidth,
+  onSaveToWiki,
 }: ChatProps) {
   const { BaseUrl, Token, headers } = apiConfig || {};
   const { language, theme, isMobile } = commonProps || {};
@@ -198,6 +202,7 @@ export default function Chat({
           ref={chatRef}
           theme={theme}
           isMobile={isMobile}
+          onSaveToWiki={onSaveToWiki}
           BaseUrl={BaseUrl}
           formatUrl={(data: any) => {
             if (!data.url) return "";

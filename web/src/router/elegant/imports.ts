@@ -12,6 +12,7 @@ type CustomRouteObject = Omit<RouteObject, 'Component'|'index'> & {
 };
 
 export const layouts: Record<RouteLayout, LazyRouteFunction<CustomRouteObject>> = {
+  app: () => import("@/layouts/app-layout/index.tsx"),
   base: () => import("@/layouts/base-layout/index.tsx"),
   blank: () => import("@/layouts/blank-layout/index.tsx"),
 };
@@ -24,8 +25,10 @@ export const pages: Record<LastLevelRouteKey, LazyRouteFunction<CustomRouteObjec
   "ai-assistant_list": () => import("@/pages/ai-assistant/list/index.tsx"),
   "ai-assistant_new": () => import("@/pages/ai-assistant/new/index.tsx"),
   "api-token_list": () => import("@/pages/api-token/list/index.tsx"),
+  "assistant-template_list": () => import("@/pages/assistant-template/list/index.tsx"),
   auth_edit: () => import("@/pages/auth/edit/[id].tsx"),
   auth_new: () => import("@/pages/auth/new/index.tsx"),
+  chat: () => import("@/pages/chat/index.tsx"),
   connector_edit: () => import("@/pages/connector/edit/[id].tsx"),
   connector_new: () => import("@/pages/connector/new/index.tsx"),
   "data-source_detail": () => import("@/pages/data-source/detail/[id].tsx"),
@@ -45,14 +48,24 @@ export const pages: Record<LastLevelRouteKey, LazyRouteFunction<CustomRouteObjec
   "model-provider_edit": () => import("@/pages/model-provider/edit/[id].tsx"),
   "model-provider_list": () => import("@/pages/model-provider/list/index.tsx"),
   "model-provider_new": () => import("@/pages/model-provider/new/index.tsx"),
+  ontology: () => import("@/pages/ontology/index.tsx"),
+  pipeline_edit: () => import("@/pages/pipeline/edit/[id].tsx"),
+  pipeline_list: () => import("@/pages/pipeline/list/index.tsx"),
+  pipeline_new: () => import("@/pages/pipeline/new/index.tsx"),
   preview_document: () => import("@/pages/preview/document/[id].tsx"),
   role_edit: () => import("@/pages/role/edit/[id].tsx"),
   role_new: () => import("@/pages/role/new/index.tsx"),
+  "search-studio": () => import("@/pages/search-studio/index.tsx"),
   search: () => import("@/pages/search/index.tsx"),
   security: () => import("@/pages/security/index.tsx"),
   settings: () => import("@/pages/settings/index.tsx"),
+  skill_list: () => import("@/pages/skill/list/index.tsx"),
   user_edit: () => import("@/pages/user/edit/[id].tsx"),
   user_new: () => import("@/pages/user/new/index.tsx"),
   webhook_edit: () => import("@/pages/webhook/edit/[id].tsx"),
   webhook_new: () => import("@/pages/webhook/new/index.tsx"),
+  wiki_article: () => import("@/pages/wiki/article/[id].tsx"),
+  wiki_governance: () => import("@/pages/wiki/governance/index.tsx"),
+  wiki_kb: () => import("@/pages/wiki/kb/[id].tsx"),
+  wiki_list: () => import("@/pages/wiki/list/index.tsx"),
 };

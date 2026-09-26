@@ -119,6 +119,12 @@ web:
 #  base_path: "/coco"
   enabled: true
   embedding_api: false
+  # expose coco capabilities (search, wiki, assistants, ...) to external agents over MCP
+  mcp:
+    enabled: true
+    base_path: "/mcp"
+    name: "Coco AI"
+    stateless: true
   network:
     binding: $[[env.WEB_BINDING]]
   tls:

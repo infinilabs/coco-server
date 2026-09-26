@@ -1,0 +1,440 @@
+/* Copyright © INFINI Ltd. All rights reserved.
+ * Web: https://infinilabs.com
+ * Email: hello#infini.ltd */
+
+package wiki
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+	"strings"
+
+	"infini.sh/coco/core"
+	"infini.sh/framework/core/api"
+	"infini.sh/framework/core/api/crud"
+	httprouter "infini.sh/framework/core/api/router"
+	"infini.sh/framework/core/orm"
+	"infini.sh/framework/core/security"
+	"infini.sh/framework/core/util"
+)
+
+// permission keys shared between the generated CRUD routes and the
+// hand-written endpoints in init.go
+var (
+	readKbPermission        = security.GetSimplePermission(Category, kbResource, string(security.Read))
+	updateKbPermission      = security.GetSimplePermission(Category, kbResource, string(security.Update))
+	readArticlePermission   = security.GetSimplePermission(Category, articleResource, string(security.Read))
+	updateArticlePermission = security.GetSimplePermission(Category, articleResource, string(security.Update))
+	createArticlePermission = security.GetSimplePermission(Category, articleResource, string(security.Create))
+	readEntityPermission    = security.GetSimplePermission(Category, entityResource, string(security.Read))
+	updateEntityPermission  = security.GetSimplePermission(Category, entityResource, string(security.Update))
+	searchEntityPermission  = security.GetSimplePermission(Category, entityResource, string(security.Search))
+	createEntityPermission  = security.GetSimplePermission(Category, entityResource, string(security.Create))
+)
+
+func simplePermissionFn(resource string) func(action string) api.PermissionKey {
+	return func(action string) api.PermissionKey {
+		return security.GetSimplePermission(Category, resource, action)
+	}
+}
+
+func registerWorkspaceCRUD() {
+	crud.RegisterCRUD[core.WikiWorkspace](crud.Config[core.WikiWorkspace]{
+		Prefix:             "/wiki/workspace",
+		Resource:           workspaceResource,
+		Permission:         simplePermissionFn(workspaceResource),
+		DefaultQueryFields: []string{"name", "name.pinyin", "combined_fulltext"},
+		MCP:                true,
+		PrepareCreate: func(obj *core.WikiWorkspace) error {
+			if obj.Name == "" {
+				return fmt.Errorf("name is required")
+			}
+			return nil
+		},
+	})
+}
+
+func registerKbCRUD() {
+	crud.RegisterCRUD(kbConfig())
+}
+
+func kbConfig() crud.Config[core.WikiKnowledgeBase] {
+	return crud.Config[core.WikiKnowledgeBase]{
+		Prefix:             "/wiki/kb",
+		Resource:           kbResource,
+		Permission:         simplePermissionFn(kbResource),
+		DefaultQueryFields: []string{"name", "name.pinyin", "combined_fulltext"},
+		SharingResource:    kbResource, // visibility=team goes through the share module (D3)
+		MCP:                true,
+		MCPDescs: map[string]string{
+			crud.ActionSearch: "Search knowledge bases",
+			crud.ActionRead:   "Get a knowledge base by id",
+		},
+		PrepareCreate: func(obj *core.WikiKnowledgeBase) error {
+			if obj.Name == "" {
+				return fmt.Errorf("name is required")
+			}
+			switch obj.Visibility {
+			case core.WikiVisibilityPublic, core.WikiVisibilityPrivate, core.WikiVisibilityTeam:
+			case "":
+				obj.Visibility = core.WikiVisibilityTeam
+			default:
+				return fmt.Errorf("invalid visibility: %s", obj.Visibility)
+			}
+			return nil
+		},
+		ProtectedFields: []string{"article_count"},
+		PostDelete: func(obj *core.WikiKnowledgeBase) error {
+			return deleteKbChildren(obj.ID)
+		},
+	}
+}
+
+func registerArticleCRUD() {
+	crud.RegisterCRUD(articleConfig())
+}
+
+func articleConfig() crud.Config[core.WikiArticle] {
+	return crud.Config[core.WikiArticle]{
+		Prefix:             "/wiki/article",
+		Resource:           articleResource,
+		Permission:         simplePermissionFn(articleResource),
+		DefaultQueryFields: []string{"title", "title.pinyin", "summary", "tags", "combined_fulltext"},
+		MCP:                true,
+		MCPDescs: map[string]string{
+			crud.ActionSearch: "Search wiki articles",
+			crud.ActionRead:   "Get a wiki article by id, returns structured markdown content",
+		},
+		PrepareCreate: func(obj *core.WikiArticle) error {
+			if obj.KbID == "" {
+				return fmt.Errorf("kb_id is required")
+			}
+			if obj.Title == "" {
+				return fmt.Errorf("title is required")
+			}
+			if obj.Status == "" {
+				obj.Status = core.WikiArticleDraft
+			}
+			if err := validateArticleStatus(obj.Status); err != nil {
+				return err
+			}
+			return nil
+		},
+		// status is protected on this route: transitions go through
+		// PUT /wiki/article/:id/status only (silently stripped per the
+		// crud ProtectedFields contract, like created); linked_pages is
+		// server-computed from content wikilinks (B3)
+		ProtectedFields: []string{"created", "status", "linked_pages"},
+		PostCreate: func(obj *core.WikiArticle) error {
+			if err := writeVersionSnapshot(obj, 1, changeTypeFor(obj), ""); err != nil {
+				return err
+			}
+			persistLinkedPages(obj)
+			if err := addArticleToToc(obj.KbID, obj.ID, obj.Title); err != nil {
+				return err
+			}
+			return bumpKbArticleCount(obj.KbID, 1)
+		},
+		// versions are content snapshots: metadata-only updates don't
+		// create history entries
+		PostUpdate: func(obj *core.WikiArticle) error {
+			if err := writeVersionIfChanged(obj); err != nil {
+				return err
+			}
+			persistLinkedPages(obj)
+			return syncArticleTitleInToc(obj.KbID, obj.ID, obj.Title)
+		},
+		PostDelete: func(obj *core.WikiArticle) error {
+			ctx := orm.NewContext()
+			ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+			ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+			if err := deleteArticleChildren(ctx, obj.ID); err != nil {
+				return err
+			}
+			if err := removeArticleFromToc(obj.KbID, obj.ID); err != nil {
+				return err
+			}
+			return bumpKbArticleCount(obj.KbID, -1)
+		},
+	}
+}
+
+func registerBookmarkCRUD() {
+	crud.RegisterCRUD[core.WikiBookmark](crud.Config[core.WikiBookmark]{
+		Prefix:             "/wiki/bookmark",
+		Resource:           bookmarkResource,
+		Permission:         simplePermissionFn(bookmarkResource),
+		DefaultQueryFields: []string{"article_id"},
+		MCP:                false,
+		PrepareCreate: func(obj *core.WikiBookmark) error {
+			if obj.ArticleID == "" {
+				return fmt.Errorf("article_id is required")
+			}
+			return nil
+		},
+	})
+}
+
+func registerCommentCRUD() {
+	crud.RegisterCRUD(commentConfig())
+}
+
+func commentConfig() crud.Config[core.WikiComment] {
+	return crud.Config[core.WikiComment]{
+		Prefix:             "/wiki/comment",
+		Resource:           commentResource,
+		Permission:         simplePermissionFn(commentResource),
+		DefaultQueryFields: []string{"content", "combined_fulltext"},
+		MCP:                false,
+		PrepareCreate: func(obj *core.WikiComment) error {
+			if obj.ArticleID == "" {
+				return fmt.Errorf("article_id is required")
+			}
+			if strings.TrimSpace(obj.Content) == "" {
+				return fmt.Errorf("content is required")
+			}
+			if len([]rune(obj.Content)) > 4000 {
+				return fmt.Errorf("content is too long")
+			}
+			return nil
+		},
+		// identity comes from the payload on create and locked afterwards;
+		// author-only edit/delete is the UI contract
+		ProtectedFields: []string{"user_id", "user_name"},
+	}
+}
+
+func registerNotificationCRUD() {
+	crud.RegisterCRUD[core.WikiNotification](crud.Config[core.WikiNotification]{
+		Prefix:             "/wiki/notification",
+		Resource:           notificationRes,
+		Permission:         simplePermissionFn(notificationRes),
+		DefaultQueryFields: []string{"message"},
+		MCP:                false,
+		// update is only used to flip read=true
+		ProtectedFields: []string{"user_id", "target_id", "target_type", "action", "message"},
+	})
+}
+
+func registerEntityCRUD() {
+	crud.RegisterCRUD[core.WikiEntity](crud.Config[core.WikiEntity]{
+		Prefix:             "/wiki/entity",
+		Resource:           entityResource,
+		Permission:         simplePermissionFn(entityResource),
+		DefaultQueryFields: []string{"name", "name.pinyin", "aliases", "combined_fulltext"},
+		SharingResource:    entityResource,
+		MCP:                true,
+		MCPDescs: map[string]string{
+			crud.ActionSearch: "Search ontology entities by name, alias or type",
+			crud.ActionRead:   "Get an entity by id, includes relations",
+		},
+		// entities are retired via status, not deletion (design doc §4.1);
+		// create is hand-registered in init.go to accept the kb_id
+		// passthrough that selects the KB-scoped vocabulary (W3)
+		SkipActions:     []string{crud.ActionDelete, crud.ActionCreate},
+		PrepareUpdate:   prepareEntityUpdate,
+		ProtectedFields: []string{"created", "sources"}, // sources are pipeline provenance (B2/B3)
+	})
+}
+
+// applyEntityCreateDefaults applies the required-field and status defaults
+// shared by every create path.
+func applyEntityCreateDefaults(obj *core.WikiEntity) error {
+	if obj.Name == "" {
+		return fmt.Errorf("name is required")
+	}
+	if obj.Status == "" {
+		obj.Status = core.WikiEntityProposed
+	}
+	switch obj.Status {
+	case core.WikiEntityProposed, core.WikiEntityReviewed, core.WikiEntityPublished:
+	default:
+		return fmt.Errorf("invalid entity status: %s", obj.Status)
+	}
+	return nil
+}
+
+// prepareEntityUpdate validates a partial/full update against the vocabulary.
+// delta may carry a kb_id passthrough selecting the KB-scoped schema (kb
+// override first, tenant fallback) — it is consumed here and stripped so it
+// never reaches the persisted document (W3).
+func prepareEntityUpdate(obj *core.WikiEntity, delta util.MapStr) error {
+	kbID := ""
+	if v, ok := delta["kb_id"]; ok {
+		kbID, _ = v.(string)
+		delete(delta, "kb_id")
+	}
+	return validateEntityForKB(context.Background(), obj, kbID)
+}
+
+// createEntity is the hand-written create endpoint: identical to the
+// generated one except the body may carry a kb_id passthrough that validates
+// against that KB's ontology vocabulary. kb_id itself is never persisted.
+func (h APIHandler) createEntity(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	body := util.MapStr{}
+	if err := h.DecodeJSON(req, &body); err != nil {
+		h.WriteError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	kbID, _ := body["kb_id"].(string)
+	delete(body, "kb_id")
+
+	obj := &core.WikiEntity{}
+	raw, err := util.ToJSONBytes(body)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if err := util.FromJSONBytes(raw, obj); err != nil {
+		h.WriteError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if err := applyEntityCreateDefaults(obj); err != nil {
+		h.WriteError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	// vocabulary gate (ontology phase O1): declared types, typed properties
+	// and the relation vocabulary are enforced; without a schema on file
+	// validation stays lenient. A kb_id passthrough selects the KB-scoped
+	// vocabulary instead of the tenant one (W3) — it must REPLACE the tenant
+	// check, not run after it, or KB-only types still die on the tenant gate.
+	if kbID != "" {
+		if err := validateEntityForKB(req.Context(), obj, kbID); err != nil {
+			h.WriteError(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+	} else if err := validateEntityAgainstSchema(req.Context(), obj); err != nil {
+		h.WriteError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	ctx := orm.NewContextWithParent(req.Context())
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, entityResource)
+	ctx.Refresh = orm.WaitForRefresh
+	if err := orm.Create(ctx, obj); err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	h.WriteCreatedOKJSON(w, obj.GetID())
+}
+
+// deleteKbChildren removes the articles, their versions and the toc
+// belonging to a deleted KB (bookmark/notification records are left for
+// their owners).
+func deleteKbChildren(kbID string) error {
+	ctx := orm.NewContext()
+	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+
+	articles, err := findIDs(ctx, &core.WikiArticle{}, orm.TermQuery("kb_id", kbID))
+	if err != nil {
+		return err
+	}
+	for _, id := range articles {
+		if err := deleteByID(ctx, &core.WikiArticle{}, id); err != nil {
+			return err
+		}
+		if err := deleteArticleChildren(ctx, id); err != nil {
+			return err
+		}
+	}
+
+	tocs, err := findIDs(ctx, &core.WikiToc{}, orm.TermQuery("kb_id", kbID))
+	if err != nil {
+		return err
+	}
+	for _, id := range tocs {
+		if err := deleteByID(ctx, &core.WikiToc{}, id); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// deleteArticleChildren removes the versions and comments of an article.
+func deleteArticleChildren(ctx *orm.Context, articleID string) error {
+	versions, err := findIDs(ctx, &core.WikiVersion{}, orm.TermQuery("article_id", articleID))
+	if err != nil {
+		return err
+	}
+	for _, vid := range versions {
+		if err := deleteByID(ctx, &core.WikiVersion{}, vid); err != nil {
+			return err
+		}
+	}
+	comments, err := findIDs(ctx, &core.WikiComment{}, orm.TermQuery("article_id", articleID))
+	if err != nil {
+		return err
+	}
+	for _, cid := range comments {
+		if err := deleteByID(ctx, &core.WikiComment{}, cid); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func bumpKbArticleCount(kbID string, delta int) error {
+	if kbID == "" {
+		return nil
+	}
+	ctx := orm.NewContext()
+	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	orm.WithModel(ctx, &core.WikiKnowledgeBase{})
+
+	var kb core.WikiKnowledgeBase
+	kb.SetID(kbID)
+	exists, err := orm.GetV2(ctx, &kb)
+	if err != nil || !exists {
+		return err
+	}
+	kb.ArticleCount += delta
+	if kb.ArticleCount < 0 {
+		kb.ArticleCount = 0
+	}
+	return orm.Update(ctx, &kb)
+}
+
+func registerGovernanceCRUD() {
+	crud.RegisterCRUD[core.WikiGovernanceProposal](crud.Config[core.WikiGovernanceProposal]{
+		Prefix:             "/wiki/governance",
+		Resource:           governanceResource,
+		Permission:         simplePermissionFn(governanceResource),
+		DefaultQueryFields: []string{"article_title", "reason"},
+		MCP:                true,
+		MCPDescs: map[string]string{
+			crud.ActionSearch: "Search knowledge-governance proposals (stale/duplicate/conflict/low-quality/orphan) by status or type",
+			crud.ActionRead:   "Get one governance proposal by id",
+		},
+		// the scanner is the only writer; humans resolve or dismiss via
+		// PUT /wiki/governance/:id/status (D1: queue is propose-only)
+		SkipActions: []string{crud.ActionCreate, crud.ActionUpdate, crud.ActionDelete},
+	})
+}
+
+func registerLikeCRUD() {
+	crud.RegisterCRUD(likeConfig())
+}
+
+func likeConfig() crud.Config[core.WikiLike] {
+	return crud.Config[core.WikiLike]{
+		Prefix:             "/wiki/like",
+		Resource:           likeResource,
+		Permission:         simplePermissionFn(likeResource),
+		DefaultQueryFields: []string{"article_id"},
+		MCP:                false,
+		// likes are create/delete only — no edit semantics
+		SkipActions: []string{crud.ActionUpdate},
+		PrepareCreate: func(obj *core.WikiLike) error {
+			if obj.ArticleID == "" {
+				return fmt.Errorf("article_id is required")
+			}
+			return nil
+		},
+		// identity comes from the session; the payload copy is convenience
+		ProtectedFields: []string{"user_id", "user_name"},
+	}
+}

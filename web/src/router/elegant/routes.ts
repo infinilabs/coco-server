@@ -47,7 +47,7 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.ai-assistant',
       title: 'ai-assistant',
       localIcon: 'robot',
-      order: 2,
+      order: 5,
       permissions: ['coco#assistant/search']
     },
     children: [
@@ -96,7 +96,7 @@ export const generatedRoutes: GeneratedRoute[] = [
     meta: {
       i18nKey: 'route.api-token',
       title: 'api-token',
-      order: 4,
+      order: 12,
       localIcon: 'security',
       permissions: ['generic#security:auth:api-token/search']
     },
@@ -111,6 +111,33 @@ export const generatedRoutes: GeneratedRoute[] = [
           hideInMenu: true,
           activeMenu: 'api-token',
           permissions: ['generic#security:auth:api-token/search']
+        }
+      }
+    ]
+  },
+  {
+    name: 'assistant-template',
+    path: '/assistant-template',
+    component: 'layout.base',
+    meta: {
+      i18nKey: 'route.assistantTemplate',
+      title: 'assistant-template',
+      order: 10,
+      localIcon: 'robot',
+      permissions: ['coco#assistant_template/search']
+    },
+    redirect: 'list',
+    children: [
+      {
+        name: 'assistant-template_list',
+        path: 'list',
+        component: 'view.assistant-template_list',
+        meta: {
+          i18nKey: 'route.assistant-template_list',
+          title: 'assistant-template_list',
+          hideInMenu: true,
+          activeMenu: 'assistant-template',
+          permissions: ['coco#assistant_template/search']
         }
       }
     ]
@@ -149,6 +176,25 @@ export const generatedRoutes: GeneratedRoute[] = [
         }
       }
     ]
+  },
+  {
+    name: 'chat',
+    path: '/chat',
+    component: 'layout.app$view.chat',
+    meta: {
+      i18nKey: 'route.chat',
+      title: 'chat',
+      constant: true,
+      localIcon: 'chat',
+      order: 2,
+      hideInMenu: true,
+      query: [
+        {
+          key: 'mode',
+          value: 'chat'
+        }
+      ]
+    }
   },
   {
     name: 'connector',
@@ -199,7 +245,7 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.data-source',
       title: 'data-source',
       localIcon: 'folder',
-      order: 3,
+      order: 6,
       permissions: ['coco#datasource/search']
     },
     children: [
@@ -284,7 +330,7 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.home',
       title: 'home',
       localIcon: 'home',
-      order: 1
+      order: 4
     }
   },
   {
@@ -296,7 +342,7 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.integration',
       title: 'integration',
       localIcon: 'puzzle',
-      order: 5,
+      order: 11,
       permissions: ['coco#integration/search']
     },
     children: [
@@ -356,7 +402,7 @@ export const generatedRoutes: GeneratedRoute[] = [
     meta: {
       i18nKey: 'route.mcp-server',
       title: 'mcp-server',
-      order: 2,
+      order: 8,
       localIcon: 'mcp',
       permissions: ['coco#mcp_server/search']
     },
@@ -408,7 +454,7 @@ export const generatedRoutes: GeneratedRoute[] = [
     meta: {
       i18nKey: 'route.model-provider',
       title: 'model-provider',
-      order: 2,
+      order: 10,
       localIcon: 'model-provider',
       permissions: ['coco#model_provider/search']
     },
@@ -447,6 +493,66 @@ export const generatedRoutes: GeneratedRoute[] = [
           hideInMenu: true,
           activeMenu: 'model-provider',
           permissions: ['coco#model_provider/create']
+        }
+      }
+    ]
+  },
+  {
+    name: 'ontology',
+    path: '/ontology',
+    component: 'layout.base$view.ontology',
+    meta: {
+      i18nKey: 'route.ontology',
+      title: 'ontology',
+      order: 11,
+      localIcon: 'skill',
+      permissions: ['coco#wiki_entity/search']
+    }
+  },
+  {
+    name: 'pipeline',
+    path: '/pipeline',
+    component: 'layout.base',
+    meta: {
+      i18nKey: 'route.pipeline',
+      title: 'pipeline',
+      order: 7,
+      localIcon: 'pipeline',
+      permissions: ['generic#pipeline/search']
+    },
+    redirect: 'list',
+    children: [
+      {
+        name: 'pipeline_edit',
+        path: 'edit/:id',
+        component: 'view.pipeline_edit',
+        meta: {
+          i18nKey: 'route.pipeline_edit',
+          title: 'pipeline_edit',
+          hideInMenu: true,
+          activeMenu: 'pipeline'
+        }
+      },
+      {
+        name: 'pipeline_list',
+        path: 'list',
+        component: 'view.pipeline_list',
+        meta: {
+          i18nKey: 'route.pipeline_list',
+          title: 'pipeline_list',
+          hideInMenu: true,
+          activeMenu: 'pipeline'
+        }
+      },
+      {
+        name: 'pipeline_new',
+        path: 'new',
+        component: 'view.pipeline_new',
+        meta: {
+          i18nKey: 'route.pipeline_new',
+          title: 'pipeline_new',
+          hideInMenu: true,
+          activeMenu: 'pipeline'
         }
       }
     ]
@@ -518,12 +624,26 @@ export const generatedRoutes: GeneratedRoute[] = [
   {
     name: 'search',
     path: '/search',
-    component: 'layout.blank$view.search',
+    component: 'layout.app$view.search',
     meta: {
       i18nKey: 'route.search',
       title: 'search',
       constant: true,
+      localIcon: 'search',
+      order: 1,
       hideInMenu: true
+    }
+  },
+  {
+    name: 'search-studio',
+    path: '/search-studio',
+    component: 'layout.base$view.search-studio',
+    meta: {
+      i18nKey: 'route.search-studio',
+      title: 'search-studio',
+      localIcon: 'search',
+      order: 8,
+      permissions: ['coco#search/studio']
     }
   },
   {
@@ -534,7 +654,7 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.security',
       title: 'security',
       localIcon: 'user',
-      order: 10,
+      order: 13,
       permissions: [
         'generic#security:authorization/search',
         'generic#security:user/search',
@@ -551,10 +671,37 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.settings',
       title: 'settings',
       localIcon: 'settings',
-      order: 11,
+      order: 14,
       permissions: ['coco#system/read', 'coco#connector/search'],
       permissionLogic: 'or'
     }
+  },
+  {
+    name: 'skill',
+    path: '/skill',
+    component: 'layout.base',
+    meta: {
+      i18nKey: 'route.skill',
+      title: 'skill',
+      order: 9,
+      localIcon: 'skill',
+      permissions: ['coco#skill/search']
+    },
+    redirect: 'list',
+    children: [
+      {
+        name: 'skill_list',
+        path: 'list',
+        component: 'view.skill_list',
+        meta: {
+          i18nKey: 'route.skill_list',
+          title: 'skill_list',
+          hideInMenu: true,
+          activeMenu: 'skill',
+          permissions: ['coco#skill/search']
+        }
+      }
+    ]
   },
   {
     name: 'user',
@@ -603,7 +750,7 @@ export const generatedRoutes: GeneratedRoute[] = [
     meta: {
       i18nKey: 'route.webhook',
       title: 'webhook',
-      order: 5,
+      order: 7,
       localIcon: 'link',
       hideInMenu: true
     },
@@ -628,6 +775,65 @@ export const generatedRoutes: GeneratedRoute[] = [
           title: 'webhook_new',
           hideInMenu: true,
           activeMenu: 'webhook'
+        }
+      }
+    ]
+  },
+  {
+    name: 'wiki',
+    path: '/wiki',
+    component: 'layout.app',
+    redirect: 'list',
+    meta: {
+      i18nKey: 'route.wiki',
+      title: 'wiki',
+      order: 3,
+      localIcon: 'wiki',
+      hideInMenu: true
+    },
+    children: [
+      {
+        name: 'wiki_article',
+        path: 'article/:id',
+        component: 'view.wiki_article',
+        meta: {
+          i18nKey: 'route.wiki_article',
+          title: 'wiki_article',
+          hideInMenu: true,
+          activeMenu: 'wiki'
+        }
+      },
+      {
+        name: 'wiki_governance',
+        path: 'governance',
+        component: 'view.wiki_governance',
+        meta: {
+          i18nKey: 'route.wiki_governance',
+          title: 'wiki_governance',
+          hideInMenu: true,
+          activeMenu: 'wiki'
+        }
+      },
+      {
+        name: 'wiki_kb',
+        path: 'kb/:id',
+        component: 'view.wiki_kb',
+        meta: {
+          i18nKey: 'route.wiki_kb',
+          title: 'wiki_kb',
+          hideInMenu: true,
+          activeMenu: 'wiki'
+        }
+      },
+      {
+        name: 'wiki_list',
+        path: 'list',
+        component: 'view.wiki_list',
+        meta: {
+          i18nKey: 'route.wiki_list',
+          title: 'wiki_list',
+          hideInMenu: true,
+          activeMenu: 'wiki'
         }
       }
     ]

@@ -47,6 +47,10 @@ func init() {
 	//list all icons for connectors
 	api.HandleUIMethod(api.GET, "/icons/list", handler.getIcons, api.AllowPublicAccess())
 
+	//browser-friendly guide for the MCP endpoint; the JSON-RPC protocol itself
+	//is served by the framework streamable-HTTP server on the same path (POST)
+	api.HandleUIMethod(api.GET, "/mcp", handler.serveMCPHelpPage, api.RequireLogin())
+
 	api.RegisterAppSetting("setup_required", func() interface{} {
 		return !isSetupDone()
 	})
