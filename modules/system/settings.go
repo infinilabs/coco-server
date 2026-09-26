@@ -7,6 +7,8 @@ package system
 import (
 	"fmt"
 	"net/http"
+	"regexp"
+	"strings"
 
 	log "github.com/cihub/seelog"
 	"golang.org/x/text/language"
@@ -110,8 +112,53 @@ func (h *APIHandler) updateServerSettings(w http.ResponseWriter, req *http.Reque
 		}
 		oldAppConfig.DocumentProcessing = &docProcessing
 	}
+	if appConfig.DataSecurity != nil {
+		if err := validateDataSecurity(appConfig.DataSecurity); err != nil {
+			_ = log.Error(err)
+			h.WriteError(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		//merge settings; a nil old section would make MergeFields a no-op,
+		//so seed it with an empty struct on first save
+		oldDataSecurity := oldAppConfig.DataSecurity
+		if oldDataSecurity == nil {
+			oldDataSecurity = &core.DataSecurity{}
+		}
+		dataSecurity := core.DataSecurity{}
+		err := mergeSettings(oldDataSecurity, appConfig.DataSecurity, &dataSecurity)
+		if err != nil {
+			_ = log.Error(err)
+			h.WriteError(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		oldAppConfig.DataSecurity = &dataSecurity
+	}
 	common.SetAppConfig(&oldAppConfig)
 	h.WriteAckOKJSON(w)
+}
+
+// validateDataSecurity rejects masking rules whose pattern cannot compile
+// before they are persisted — a broken regex must never take the masking
+// pipeline down at recall time.
+func validateDataSecurity(cfg *core.DataSecurity) error {
+	if cfg.Masking != nil {
+		for i, rule := range cfg.Masking.Rules {
+			if rule.Pattern == "" {
+				continue
+			}
+			if _, err := regexp.Compile(rule.Pattern); err != nil {
+				return fmt.Errorf("masking rule #%d (%s): invalid pattern %q: %v", i+1, rule.Name, rule.Pattern, err)
+			}
+		}
+	}
+	if cfg.FieldAccess != nil {
+		for i, restriction := range cfg.FieldAccess.Restrictions {
+			if strings.TrimSpace(restriction.Role) == "" {
+				return fmt.Errorf("field restriction #%d: role is required", i+1)
+			}
+		}
+	}
+	return nil
 }
 
 // validateLanguageModelType checks that the given model (if specified) resolves
