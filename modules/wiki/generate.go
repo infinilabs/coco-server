@@ -47,6 +47,34 @@ var citationPattern = regexp.MustCompile(`\[(\d+)\]`)
 
 var removeThinkPattern = regexp.MustCompile(`(?s)<think>.*?</think>`)
 
+// aiArtifactLine matches a standalone JS-style filler line ("undefined",
+// "null", "NaN") — models occasionally emit these before the real markdown,
+// observed as literal "undefined\n\n## …" article bodies.
+var aiArtifactLine = regexp.MustCompile(`(?i)^\s*(undefined|null|nan)\s*$`)
+
+// sanitizeAIArtifactDebris strips leading filler lines from model output.
+// Only standalone leading lines are touched — the words stay legitimate
+// anywhere else in the content, and an all-artifact body is returned
+// unchanged rather than emptied.
+func sanitizeAIArtifactDebris(content string) string {
+	trimmed := strings.TrimLeft(content, " \t\r\n")
+	for trimmed != "" {
+		idx := strings.IndexByte(trimmed, '\n')
+		if idx < 0 {
+			break // no more lines to strip
+		}
+		if !aiArtifactLine.MatchString(trimmed[:idx]) {
+			break
+		}
+		next := strings.TrimLeft(trimmed[idx+1:], " \t\r\n")
+		if next == "" {
+			break // never reduce to empty
+		}
+		trimmed = next
+	}
+	return strings.TrimSpace(trimmed)
+}
+
 // resolveLanguageLLM resolves the model used by KM generation: explicit
 // provider/model, else the server default language model. Package var so
 // tests can stub the LLM.
@@ -561,8 +589,8 @@ func createDraftArticle(kb *core.WikiKnowledgeBase, title, summary, content, pag
 	article := &core.WikiArticle{
 		KbID:        kb.ID,
 		Title:       title,
-		Summary:     summary,
-		Content:     content,
+		Summary:     sanitizeAIArtifactDebris(summary),
+		Content:     sanitizeAIArtifactDebris(content),
 		PageType:    pageType,
 		Subtype:     subtype,
 		Status:      core.WikiArticleDraft, // D1: generation stops at draft
@@ -962,7 +990,7 @@ func (h *APIHandler) aiEdit(w http.ResponseWriter, req *http.Request, ps httprou
 	writeCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
 	writeCtx.Set(orm.DirectWriteWithoutPermissionCheck, true)
 	orm.WithModel(writeCtx, &core.WikiArticle{})
-	article.Content = newContent
+	article.Content = sanitizeAIArtifactDebris(newContent)
 	if err := orm.Update(writeCtx, &article); err != nil {
 		_ = stream.emit("done", doneEvent{Reason: fmt.Sprintf("failed to persist edit: %v", err), Usage: usage})
 		return

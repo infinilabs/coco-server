@@ -387,3 +387,21 @@ func TestWikiFlow_Freshness(t *testing.T) {
 	assert.Contains(t, latest["content"], "## Overview")
 	assert.Contains(t, latest["change_summary"], "freshness")
 }
+
+func TestSanitizeAIArtifactDebris(t *testing.T) {
+	cases := []struct {
+		in   string
+		want string
+	}{
+		{"undefined\n\n## 相关实体\n\n- [[origin:巴西]]", "## 相关实体\n\n- [[origin:巴西]]"},
+		{"  null\nNaN\n\n## 正文\n内容", "## 正文\n内容"},
+		{"正常内容开头", "正常内容开头"},
+		{"the value is undefined here", "the value is undefined here"},
+		{" undefined ", "undefined"},  // standalone artifact only -> returned trimmed, never emptied
+		{"undefined\n\nnull", "null"}, // strips leading, keeps the rest even if artifact-y
+		{"\n\n直接正文", "直接正文"},
+	}
+	for _, c := range cases {
+		assert.Equal(t, c.want, sanitizeAIArtifactDebris(c.in), "input: %q", c.in)
+	}
+}
