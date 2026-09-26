@@ -149,6 +149,25 @@ const page: App.I18n.Schema['translation']['page'] = {
           relationCount: '{{forward}} outgoing · {{inverse}} incoming relations'
         },
 
+        entityManager: {
+          title: 'Entities',
+          searchPlaceholder: 'Search name or alias…',
+          typeFilter: 'Type',
+          statusFilter: 'Status',
+          columns: { name: 'Name', type: 'Type', status: 'Status', relations: 'Relations' },
+          newTitle: 'New Entity',
+          editTitle: 'Edit Entity — {{name}}',
+          subtype: 'Subtype',
+          aliases: 'Aliases',
+          properties: 'Properties',
+          relations: 'Relations',
+          addRelation: '+ Add relation (pick a relation type)…',
+          pickTarget: 'Pick target entity',
+          noTargets: 'No candidates',
+          advance: 'Mark {{status}}',
+          advanceConfirm: 'Advance the status to {{status}}?'
+        },
+
     wikiLink: {
       unresolved: 'Unresolved link — click to propose an entity'
     },
@@ -204,7 +223,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       docsUnit: 'docs',
       lastSynced: 'Synced',
       human: 'Human',
-      tabs: { articles: 'Articles', datasources: 'Datasources', members: 'Members', overview: 'Overview', graph: 'Graph', settings: 'Settings' },
+      tabs: { articles: 'Articles', datasources: 'Datasources', members: 'Members', overview: 'Overview', graph: 'Graph', entities: 'Entities', settings: 'Settings' },
       columns: {
         title: 'Title',
         status: 'Status',
@@ -1047,6 +1066,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     }
   },
   ontology: {
+    viewEntities: 'View entities',
     title: 'Ontology Vocabulary',
     subtitle: 'Declared entity types, typed properties and the relation vocabulary entity writes validate against. Tenant schema is the default; a knowledge base may override.',
     tenantScope: 'Tenant schema (default)',

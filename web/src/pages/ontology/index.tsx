@@ -23,6 +23,7 @@ export function Component() {
   const [types, setTypes] = useState<OntologyEntityTypeDef[]>([]);
   const [kbs, setKbs] = useState<Api.Wiki.Kb[]>([]);
   const [kbId, setKbId] = useState<string>('');
+  const nav = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -108,6 +109,9 @@ export function Component() {
               placeholder={t('page.ontology.tenantScope')}
               value={kbId || undefined}
             />
+            {kbId && (
+              <Button onClick={() => nav(`/wiki/kb/${kbId}?tab=entities`)}>{t('page.ontology.viewEntities')}</Button>
+            )}
             <Button icon={<PlusOutlined />} onClick={addType}>
               {t('page.ontology.addType')}
             </Button>

@@ -322,7 +322,7 @@ export function relinkWikiArticle(id: string) {
   });
 }
 
-export function createWikiEntity(body: { name: string; type?: string; aliases?: string[]; status?: string }) {
+export function createWikiEntity(body: { name: string; type?: string; subtype?: string; aliases?: string[]; status?: string; properties?: Record<string, unknown>; relations?: { relation: string; target_id: string }[]; kb_id?: string }) {
   return request<{ _id: string }>({ method: 'post', data: body, url: '/wiki/entity/' }).then(res => res?.data);
 }
 
@@ -363,6 +363,26 @@ export function fetchWikiEntityNeighbors(id: string) {
     method: 'get',
     url: `/wiki/entity/${id}/neighbors`
   }).then(res => (res?.data ?? {}) as WikiEntityNeighbor);
+}
+
+export function searchWikiEntityPage(params: { query?: string; type?: string; status?: string; from?: number; size?: number }) {
+  const searchParams = new URLSearchParams();
+  if (params.query) searchParams.set('query', params.query);
+  const filters: string[] = [];
+  if (params.type) filters.push(`type:${params.type}`);
+  if (params.status) filters.push(`status:${params.status}`);
+  if (filters.length > 0) searchParams.set('filter', filters.join(','));
+  searchParams.set('from', String(params.from ?? 0));
+  searchParams.set('size', String(params.size ?? 20));
+  searchParams.set('sort', 'updated:desc');
+  return request<{ hits: any }>({ method: 'get', url: `/wiki/entity/_search?${searchParams.toString()}` }).then(res => {
+    const es = formatESSearchResult(res?.data);
+    return { data: (es.data || []) as Api.Wiki.EntityInfo[], total: es.total ?? 0 };
+  });
+}
+
+export function updateWikiEntity(id: string, body: Partial<Api.Wiki.EntityInfo> & { kb_id?: string; properties?: Record<string, unknown> }) {
+  return request({ method: 'put', data: body, url: `/wiki/entity/${id}` }).then(res => res?.data);
 }
 
 export function getWikiEntity(id: string) {

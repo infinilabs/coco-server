@@ -149,6 +149,25 @@ const page: App.I18n.Schema['translation']['page'] = {
           relationCount: '{{forward}} 条正向 · {{inverse}} 条逆向关系'
         },
 
+        entityManager: {
+          title: '实体管理',
+          searchPlaceholder: '搜索名称或别名…',
+          typeFilter: '按类型',
+          statusFilter: '按状态',
+          columns: { name: '名称', type: '类型', status: '状态', relations: '关系数' },
+          newTitle: '新建实体',
+          editTitle: '编辑实体 — {{name}}',
+          subtype: '子类型',
+          aliases: '别名',
+          properties: '属性',
+          relations: '关系',
+          addRelation: '+ 添加关系(先选关系类型)…',
+          pickTarget: '选择目标实体',
+          noTargets: '没有候选实体',
+          advance: '转为 {{status}}',
+          advanceConfirm: '将状态流转为 {{status}}?'
+        },
+
     wikiLink: {
       unresolved: '未解析链接 —— 点击可提议实体'
     },
@@ -204,7 +223,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       docsUnit: '篇文档',
       lastSynced: '同步于',
       human: '人工',
-      tabs: { articles: '文章', datasources: '数据源', members: '成员', overview: '概览', graph: '图谱', settings: '设置' },
+      tabs: { articles: '文章', datasources: '数据源', members: '成员', overview: '概览', graph: '图谱', entities: '实体', settings: '设置' },
       columns: {
         title: '标题',
         status: '状态',
@@ -1303,6 +1322,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     }
   },
   ontology: {
+    viewEntities: '查看实体',
     title: '本体词表',
     subtitle: '声明实体类型、类型化属性与关系词表;实体写入按此校验。全局词表为默认,知识库可覆盖。',
     tenantScope: '全局词表(默认)',

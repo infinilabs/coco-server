@@ -497,6 +497,7 @@ declare namespace Api {
       article_id?: string;
       properties?: Record<string, unknown>;
       relations?: { target_id: string; relation: string }[];
+      updated?: string;
     }
 
     interface TocNode {

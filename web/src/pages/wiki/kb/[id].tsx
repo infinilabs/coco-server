@@ -19,6 +19,7 @@ import { useTranslation } from 'react-i18next';
 import { createWikiArticle, deleteWikiArticle, getWikiKb, listWikiDatasources, searchWikiArticles } from '@/service/api';
 import { GenerateModal } from '../components/GenerateModal';
 import { KbGraph } from '../components/KbGraph';
+import { WikiEntityManager } from '../components/WikiEntityManager';
 import { KbOverview } from '../components/KbOverview';
 import { KbSettings } from '../components/KbSettings';
 import { WikiShell } from '../components/WikiShell';
@@ -319,6 +320,11 @@ export function Component() {
                     key: 'graph',
                     label: t('page.wiki.kb.tabs.graph'),
                     children: <KbGraph focusEntityId={focusEntityId} kbId={id || ''} />
+                  },
+                  {
+                    key: 'entities',
+                    label: t('page.wiki.kb.tabs.entities'),
+                    children: <WikiEntityManager kbId={id || ''} />
                   },
                   {
                     key: 'datasources',
