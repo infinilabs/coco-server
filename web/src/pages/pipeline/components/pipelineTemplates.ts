@@ -22,6 +22,10 @@ export const PIPELINE_TEMPLATES: PipelineTemplate[] = [
     id: 'general-enrich',
     icon: 'file-text',
     suggestedName: 'enrich-documents',
+    // the full knowledge-processing chain: parse, chunk, enrich, entity
+    // extraction, vectorize — the document lands in the store with both the
+    // inverted-index text fields and the knn vector fields (dual-write), so
+    // every search engine can recall it
     processor: [
       { file_type_detection: {} },
       { file_metadata: {} },
@@ -29,6 +33,7 @@ export const PIPELINE_TEMPLATES: PipelineTemplate[] = [
       { document_text_attachment_extraction: { chunk_size: 7000, extract_attachments: true, ...TIKA } },
       { document_summarization: { ai_insights_max_length: 500, model_context_length: 128000 } },
       { extract_tags: { model_context_length: 128000 } },
+      { extract_entities: { model_context_length: 128000, max_entities: 20 } },
       { document_embedding: {} }
     ]
   },
@@ -85,8 +90,13 @@ export const PIPELINE_TEMPLATES: PipelineTemplate[] = [
   {
     id: 'attachment',
     icon: 'paperclip',
-    suggestedName: 'attachment-text-extraction',
-    processor: [{ attachment_text_extraction: { ...TIKA } }]
+    suggestedName: 'attachment-processing',
+    // the attachment side of the 8+2 story: extract the text, then give the
+    // attachment a cover — two nodes, runs as the attachment pipeline
+    processor: [
+      { attachment_text_extraction: { ...TIKA } },
+      { generate_attachment_cover: {} }
+    ]
   }
 ];
 
