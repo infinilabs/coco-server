@@ -56,6 +56,7 @@ import {
 } from '@/service/api';
 import { parseStructuredContent, parseWikiLink } from '../shared/content';
 import { WikiLinkTag, renderInlineWikiLinks } from '../shared/WikiLinkTag';
+import { EntityArticleSections } from '../components/EntityArticleSections';
 import { diffLines } from '../shared/diff';
 import { AIEditModal } from '../components/AIEditModal';
 import { ArticleComments } from '../components/ArticleComments';
@@ -661,6 +662,9 @@ export function Component() {
                     </>
                   )}
                 </>
+              )}
+              {article.page_type === 'entity' && article.entity_id && (
+                <EntityArticleSections entityId={article.entity_id} kbId={kbId || article.kb_id || ''} />
               )}
               <Divider />
               <ArticleComments

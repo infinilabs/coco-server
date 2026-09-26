@@ -138,6 +138,17 @@ const page: App.I18n.Schema['translation']['page'] = {
       stream: 'AI output',
       done: 'Applied as version v{{version}}'
     },
+        entity: {
+          properties: 'Properties',
+          relations: 'Relations',
+          forward: '→',
+          inverse: '←',
+          noRelations: 'No relations recorded',
+          backlinks: 'Cited by',
+          noBacklinks: 'No articles reference this entity yet',
+          relationCount: '{{forward}} outgoing · {{inverse}} incoming relations'
+        },
+
     wikiLink: {
       unresolved: 'Unresolved link — click to propose an entity'
     },

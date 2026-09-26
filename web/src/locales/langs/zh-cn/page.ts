@@ -138,6 +138,17 @@ const page: App.I18n.Schema['translation']['page'] = {
       stream: 'AI 输出',
       done: '已应用为版本 v{{version}}'
     },
+        entity: {
+          properties: '属性',
+          relations: '关系',
+          forward: '→',
+          inverse: '←',
+          noRelations: '暂无关系记录',
+          backlinks: '被引用',
+          noBacklinks: '暂无文章引用此实体',
+          relationCount: '{{forward}} 条正向 · {{inverse}} 条逆向关系'
+        },
+
     wikiLink: {
       unresolved: '未解析链接 —— 点击可提议实体'
     },

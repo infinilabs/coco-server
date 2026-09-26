@@ -495,6 +495,7 @@ declare namespace Api {
       aliases?: string[];
       status?: string;
       article_id?: string;
+      properties?: Record<string, unknown>;
       relations?: { target_id: string; relation: string }[];
     }
 

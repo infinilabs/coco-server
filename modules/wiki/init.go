@@ -80,6 +80,11 @@ func init() {
 		api.RequireLogin(), api.RequirePermission(readEntityPermission),
 		api.MCPTool("entity_neighbors", "One-hop traversal of an entity's relations; returns edges and the expanded neighbor entities"))
 
+	// wikilink back-references (ontology O4): which articles cite an entity
+	api.HandleUIMethod(api.GET, "/wiki/entity/:id/backlinks", handler.entityBacklinks,
+		api.RequireLogin(), api.RequirePermission(readEntityPermission),
+		api.MCPTool("entity_backlinks", "List the articles that reference an entity through wikilinks, with a context snippet per article"))
+
 	// entity create is hand-registered (not the generated CRUD route) so the
 	// body may carry a kb_id passthrough that validates against that KB's
 	// ontology vocabulary — KB-specific types become usable from the UI (W3)

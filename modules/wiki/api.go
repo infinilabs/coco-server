@@ -389,6 +389,80 @@ func (h *APIHandler) entityLookup(w http.ResponseWriter, req *http.Request, _ ht
 	h.WriteGetMissingJSON(w, name)
 }
 
+// entityBacklinks lists the articles whose wikilinks resolved to this
+// entity (ontology O4: the entity's "who references me" face). linked_pages
+// is stored unmapped (enabled:false), so the scan runs in memory over a
+// recency-bounded window — the same trade-off kbGraph makes.
+func (h *APIHandler) entityBacklinks(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	id := ps.ByName("id")
+
+	ctx := orm.NewContextWithParent(req.Context())
+	orm.WithModel(ctx, &core.WikiArticle{})
+
+	builder := orm.NewQuery().Size(graphMaxArticles).
+		SortBy(orm.Sort{Field: "updated", SortType: orm.DESC})
+	res, err := orm.SearchV2(ctx, builder)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	articles, _, err := elastic.DecodeHits[core.WikiArticle](res)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	items := []util.MapStr{}
+	for _, article := range articles {
+		for _, lp := range article.LinkedPages {
+			if lp.EntityID != id {
+				continue
+			}
+			items = append(items, util.MapStr{
+				"article_id": article.ID,
+				"title":      article.Title,
+				"kb_id":      article.KbID,
+				"status":     article.Status,
+				"updated":    article.Updated,
+				"link_type":  lp.Type,
+				"link_name":  lp.Name,
+				"snippet":    backlinkSnippet(article.Content, lp.Name),
+			})
+			break // one row per article, even when it links twice
+		}
+	}
+
+	h.WriteOKJSON(w, util.MapStr{"items": items, "total": len(items)})
+}
+
+// backlinkSnippet extracts a short window around the first wikilink
+// occurrence of the linked name, so the backlink row shows context.
+func backlinkSnippet(content string, name string) string {
+	idx := strings.Index(content, name)
+	if idx < 0 {
+		if len(content) > 120 {
+			return content[:120] + "…"
+		}
+		return content
+	}
+	start := idx - 40
+	if start < 0 {
+		start = 0
+	}
+	end := idx + len(name) + 60
+	if end > len(content) {
+		end = len(content)
+	}
+	snippet := content[start:end]
+	if start > 0 {
+		snippet = "…" + snippet
+	}
+	if end < len(content) {
+		snippet += "…"
+	}
+	return snippet
+}
+
 // entityNeighbors walks one hop over the entity's relations and expands the
 // target entities (design doc B5).
 func (h *APIHandler) entityNeighbors(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {

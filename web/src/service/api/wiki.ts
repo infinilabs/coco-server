@@ -326,6 +326,45 @@ export function createWikiEntity(body: { name: string; type?: string; aliases?: 
   return request<{ _id: string }>({ method: 'post', data: body, url: '/wiki/entity/' }).then(res => res?.data);
 }
 
+export interface WikiEntityBacklink {
+  article_id: string;
+  title: string;
+  kb_id: string;
+  status?: string;
+  updated?: string;
+  link_type?: string;
+  link_name?: string;
+  snippet?: string;
+}
+
+export function fetchWikiEntityBacklinks(id: string) {
+  return request<{ items?: WikiEntityBacklink[]; total?: number }>({ method: 'get', url: `/wiki/entity/${id}/backlinks` }).then(
+    res => (res?.data?.items ?? []) as WikiEntityBacklink[]
+  );
+}
+
+export interface WikiEntityNeighbor {
+  entity: Api.Wiki.EntityInfo | null;
+  relations_detailed?: Array<{
+    target_id: string;
+    target_name: string;
+    target_type?: string;
+    relation: string;
+    label?: string;
+    inverse?: string;
+    inverse_label?: string;
+  }>;
+  incoming?: Array<{ source_id?: string; source_name?: string; source_type?: string; relation?: string; label?: string; inverse?: string; inverse_label?: string }>;
+  neighbors?: Api.Wiki.EntityInfo[];
+}
+
+export function fetchWikiEntityNeighbors(id: string) {
+  return request<{ entity?: Api.Wiki.EntityInfo; relations_detailed?: WikiEntityNeighbor['relations_detailed']; incoming?: WikiEntityNeighbor['incoming']; neighbors?: Api.Wiki.EntityInfo[] }>({
+    method: 'get',
+    url: `/wiki/entity/${id}/neighbors`
+  }).then(res => (res?.data ?? {}) as WikiEntityNeighbor);
+}
+
 export function getWikiEntity(id: string) {
   return request<{ _id: string; _source: Api.Wiki.EntityInfo | null }>({ method: 'get', url: `/wiki/entity/${id}` }).then(
     res => (res?.data?._source ?? null) as Api.Wiki.EntityInfo | null
