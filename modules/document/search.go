@@ -49,22 +49,30 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 
 	//try to collect assistants
 	if query != "" || h.GetParameter(req, "filter") != "" {
-		builder, err := orm.NewQueryBuilderFromRequest(req)
-
-		if err != nil {
-			panic(err)
-		}
-		builder.EnableBodyBytes()
-
 		reqUser := security.MustGetUserFromRequest(req)
 		integrationID := req.Header.Get(core.HeaderIntegrationID)
 
 		result := elastic.SearchResponseWithMeta[core.Document]{}
-		resp, err := QueryDocuments(req.Context(), builder, query, datasource, integrationID, category, subcategory, richCategory, searchType, fuzziness, nil)
-		if err != nil {
-			panic(err)
+		if searchType == "hybrid_rrf" {
+			fused, err := h.queryWithRRF(req, query, datasource, integrationID, category, subcategory, richCategory, fuzziness)
+			if err != nil {
+				panic(err)
+			}
+			result = *fused
+		} else {
+			builder, err := orm.NewQueryBuilderFromRequest(req)
+
+			if err != nil {
+				panic(err)
+			}
+			builder.EnableBodyBytes()
+
+			resp, err := QueryDocuments(req.Context(), builder, query, datasource, integrationID, category, subcategory, richCategory, searchType, fuzziness, nil)
+			if err != nil {
+				panic(err)
+			}
+			util.MustFromJSONBytes(resp.Raw, &result)
 		}
-		util.MustFromJSONBytes(resp.Raw, &result)
 
 		docsSize := len(result.Hits.Hits)
 		//update icon

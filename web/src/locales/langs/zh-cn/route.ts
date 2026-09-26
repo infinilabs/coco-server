@@ -86,6 +86,7 @@ const route: App.I18n.Schema['translation']['route'] = {
   'mcp-server_edit': '编辑 MCP 服务器',
   'user-center': '个人中心',
   search: 'AI 搜索',
+  search_studio: '检索实验室',
   webhook: 'Webhook',
   webhook_new: '新增 Webhook',
   webhook_edit: '编辑 Webhook',

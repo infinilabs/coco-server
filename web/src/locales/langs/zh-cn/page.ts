@@ -258,6 +258,32 @@ const page: App.I18n.Schema['translation']['page'] = {
         sources: '来源文献'
       }
     },
+    searchStudio: {
+      title: '检索实验室',
+      subtitle: 'BM25 与 kNN 双路召回,RRF 融合参数现场可调',
+      queryPlaceholder: '输入查询,同时跑 BM25 与 kNN 两路召回',
+      queryRequired: '请输入查询词',
+      run: '试跑',
+      rerun: '重跑',
+      runFailed: '试跑失败',
+      datasource: '数据源',
+      datasourceAll: '全部可访问数据源',
+      size: '返回条数',
+      fuzziness: '模糊度',
+      textWeight: 'BM25 权重',
+      semanticWeight: 'kNN 权重',
+      formula: '融合公式:score = text_weight/(k+rank_bm25) + semantic_weight/(k+rank_knn),排名从 1 开始,未召回的路由不计分',
+      docTitle: '标题',
+      docSource: '数据源',
+      rawScore: '原始分',
+      contribution: '各路贡献',
+      textRoute: 'BM25 路',
+      semanticRoute: 'kNN 路',
+      fusedTitle: 'RRF 融合结果',
+      noResults: '无结果',
+      empty: '输入查询并点「试跑」,查看两路召回的排名、原始分与融合得分'
+    },
+
     search: {
       title: '知识搜索',
       placeholder: '搜索文章与知识库…',
@@ -1280,6 +1306,27 @@ const page: App.I18n.Schema['translation']['page'] = {
       },
       title: '默认模型'
     },
+    data_security: {
+      title: '数据安全',
+      maskingTitle: '动态脱敏',
+      maskingEnabled: '召回内容交模型前脱敏',
+      maskingDesc: '命中规则的内容在拼入模型上下文(RAG 引用、企业搜索工具)前按正则替换;规则按顺序应用,身份证等长号码规则应排在手机号之前',
+      noRules: '暂无规则',
+      addRule: '添加规则',
+      addPresets: '常用预设',
+      tryIt: '试一试',
+      tryPlaceholder: '粘贴一段样例文本,例如:联系 13812345678 或 user@example.com',
+      tryOutput: '脱敏后的文本(实时预览)',
+      name: '名称',
+      pattern: '正则(RE2)',
+      replacement: '替换为',
+      enabled: '启用',
+      fieldTitle: '字段级访问控制',
+      fieldDesc: '按角色收敛返回字段,叠加在数据源与文档权限之上;支持 ES _source 排除语法,如 payload.*(清空对象)、raw_content(整个移除);admin 不受限',
+      rolePlaceholder: '选择角色',
+      addRestriction: '添加角色限制'
+    },
+
     document_processing: {
       labels: {
         default_pipeline_for_attachment: '聊天附件处理',
@@ -1364,8 +1411,8 @@ const page: App.I18n.Schema['translation']['page'] = {
           title: '从常规任务开始',
           use: '使用此模板',
           'general-enrich': {
-            title: '通用文档富化',
-            description: '文件类型识别、元数据、封面生成、正文与附件抽取、AI 摘要、标签与向量化的完整链'
+            title: '知识加工全链路(8 节)',
+            description: '类型识别 → 元数据 → 封面 → 解析切分 → AI 摘要 → 标签 → 实体抽取 → 向量化,文档一次入库即含倒排与向量双字段'
           },
           pdf: {
             title: 'PDF 文档处理',
@@ -1384,8 +1431,8 @@ const page: App.I18n.Schema['translation']['page'] = {
             description: '视频文件的类型识别、元数据与 AI 摘要(暂无转写/抽帧处理器)'
           },
           attachment: {
-            title: '附件文本抽取',
-            description: '上传附件(管线走附件通道)的 Tika 全文抽取'
+            title: '附件处理(2 节)',
+            description: '附件通道的全文抽取与封面生成'
           }
         },
 

@@ -48,9 +48,14 @@ func init() {
 	api.HandleUIMethod(api.DELETE, "/document/", handler.batchDeleteDoc, api.RequirePermission(deletePermission))
 
 	querySearchPermission := security.GetSimplePermission(Category, Search, string(security.Search))
-	assistantSearchPermission := security.GetSimplePermission(Category, Assistant, string(QuickAISearchAction))
-	security.GetOrInitPermissionKeys(querySearchPermission, assistantSearchPermission)
+	assistantSearchPermission := security.GetSimplePermission(Category, Assistant, QuickAISearchAction)
+	searchStudioPermission := security.GetSimplePermission(Category, Search, "studio")
+	security.GetOrInitPermissionKeys(querySearchPermission, assistantSearchPermission, searchStudioPermission)
 	security.AssignPermissionsToRoles(querySearchPermission, core.WidgetRole)
+
+	//live tuning surface for the dual-engine recall: runs both routes and
+	//returns the RRF fusion math behind the hybrid_rrf search mode
+	api.HandleUIMethod(api.POST, "/search/studio/test", handler.searchStudioTest, api.RequirePermission(searchStudioPermission))
 
 	api.HandleUIMethod(api.OPTIONS, "/field_meta/:field_name", handler.getFieldMeta, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
 	api.HandleUIMethod(api.GET, "/field_meta/:field_name", handler.getFieldMeta, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))

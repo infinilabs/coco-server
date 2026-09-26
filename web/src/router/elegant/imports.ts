@@ -55,6 +55,7 @@ export const pages: Record<LastLevelRouteKey, LazyRouteFunction<CustomRouteObjec
   preview_document: () => import("@/pages/preview/document/[id].tsx"),
   role_edit: () => import("@/pages/role/edit/[id].tsx"),
   role_new: () => import("@/pages/role/new/index.tsx"),
+  "search-studio": () => import("@/pages/search-studio/index.tsx"),
   search: () => import("@/pages/search/index.tsx"),
   security: () => import("@/pages/security/index.tsx"),
   settings: () => import("@/pages/settings/index.tsx"),

@@ -86,6 +86,7 @@ const route: App.I18n.Schema['translation']['route'] = {
   'mcp-server_new': 'New MCP Server',
   'mcp-server_edit': 'Edit MCP Server',
   search: 'AI Search',
+  search_studio: 'Search Lab',
   webhook: 'Webhook',
   webhook_new: 'New Webhook',
   webhook_edit: 'Edit Webhook',

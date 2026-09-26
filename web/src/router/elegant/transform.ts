@@ -263,6 +263,7 @@ const routeMap: RouteMap = {
   "role_edit": "edit/:id",
   "role_new": "new",
   "search": "/search",
+  "search-studio": "/search-studio",
   "security": "/security",
   "settings": "/settings",
   "skill": "/skill",

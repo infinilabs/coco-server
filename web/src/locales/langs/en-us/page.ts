@@ -258,6 +258,32 @@ const page: App.I18n.Schema['translation']['page'] = {
         sources: 'Source References'
       }
     },
+    searchStudio: {
+      title: 'Search Lab',
+      subtitle: 'BM25 + kNN dual recall with live-tunable RRF fusion',
+      queryPlaceholder: 'Enter a query to run both recall routes',
+      queryRequired: 'Please enter a query',
+      run: 'Run',
+      rerun: 'Rerun',
+      runFailed: 'Run failed',
+      datasource: 'Datasource',
+      datasourceAll: 'All accessible datasources',
+      size: 'Size',
+      fuzziness: 'Fuzziness',
+      textWeight: 'BM25 weight',
+      semanticWeight: 'kNN weight',
+      formula: 'score = text_weight/(k+rank_bm25) + semantic_weight/(k+rank_knn); ranks are 1-based, a route that missed the doc contributes nothing',
+      docTitle: 'Title',
+      docSource: 'Datasource',
+      rawScore: 'Raw score',
+      contribution: 'Contributions',
+      textRoute: 'BM25 route',
+      semanticRoute: 'kNN route',
+      fusedTitle: 'RRF fused results',
+      noResults: 'No results',
+      empty: 'Enter a query and hit Run to see per-route ranks, raw scores and fused scores'
+    },
+
     search: {
       title: 'Search Knowledge',
       placeholder: 'Search articles and knowledge bases…',
@@ -1108,8 +1134,8 @@ const page: App.I18n.Schema['translation']['page'] = {
           title: 'Start from a common task',
           use: 'Use this template',
           'general-enrich': {
-            title: 'General Document Enrichment',
-            description: 'Full chain: type detection, metadata, cover, body & attachment extraction, AI summary, tags and embedding'
+            title: 'Knowledge Processing Chain (8 stages)',
+            description: 'Type detection → metadata → cover → parse & chunk → AI summary → tags → entity extraction → embedding; one write lands the document with both inverted and vector fields'
           },
           pdf: {
             title: 'PDF Processing',
@@ -1128,8 +1154,8 @@ const page: App.I18n.Schema['translation']['page'] = {
             description: 'Type detection, metadata and AI summary for video files (no transcription/frame extraction processor yet)'
           },
           attachment: {
-            title: 'Attachment Text Extraction',
-            description: 'Tika full-text extraction for uploaded attachments (attachment pipeline channel)'
+            title: 'Attachment Processing (2 stages)',
+            description: 'Full-text extraction and cover generation for the attachment pipeline channel'
           }
         },
 
@@ -1326,6 +1352,27 @@ const page: App.I18n.Schema['translation']['page'] = {
       },
       title: 'Default Model'
     },
+    data_security: {
+      title: 'Data Security',
+      maskingTitle: 'Dynamic Masking',
+      maskingEnabled: 'Mask recalled content before models',
+      maskingDesc: 'Content matching a rule is regex-replaced before it is assembled into model context (RAG references, enterprise search tool); rules apply in order — put long-number rules like ID cards before the phone rule',
+      noRules: 'No rules yet',
+      addRule: 'Add rule',
+      addPresets: 'Common presets',
+      tryIt: 'Try it',
+      tryPlaceholder: 'Paste sample text, e.g. call 13812345678 or user@example.com',
+      tryOutput: 'Masked text (live preview)',
+      name: 'Name',
+      pattern: 'Pattern (RE2)',
+      replacement: 'Replacement',
+      enabled: 'Enabled',
+      fieldTitle: 'Field-level Access Control',
+      fieldDesc: 'Narrow returned fields by role, stacked on top of datasource and document permissions; ES _source exclude syntax is supported, e.g. payload.* (empties the object), raw_content (removes it entirely); admin is never restricted',
+      rolePlaceholder: 'Select role',
+      addRestriction: 'Add role restriction'
+    },
+
     document_processing: {
       labels: {
         default_pipeline_for_attachment: 'Chat Attachment',
