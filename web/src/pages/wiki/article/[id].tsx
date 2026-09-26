@@ -46,6 +46,7 @@ import {
   deleteWikiBookmark,
   getWikiArticle,
   getWikiArticleVersions,
+  getWikiEntity,
   createWikiLike,
   deleteWikiLike,
   searchWikiBookmarks,
@@ -54,6 +55,7 @@ import {
   updateWikiArticleStatus
 } from '@/service/api';
 import { parseStructuredContent, parseWikiLink } from '../shared/content';
+import { WikiLinkTag, renderInlineWikiLinks } from '../shared/WikiLinkTag';
 import { diffLines } from '../shared/diff';
 import { AIEditModal } from '../components/AIEditModal';
 import { ArticleComments } from '../components/ArticleComments';
@@ -92,14 +94,25 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function RelatedList({ items, color }: { items: string[]; color: string }) {
+function RelatedList({ items, color, resolve, onOpen }: { items: string[]; color: string; resolve: (type: string, name: string) => boolean; onOpen: (type: string, name: string) => void }) {
   return (
     <Space size={4} wrap>
       {items.map(entry => {
         const link = parseWikiLink(entry);
+        if (link) {
+          return (
+            <WikiLinkTag
+              key={entry}
+              type={link.type}
+              label={link.label}
+              resolved={resolve(link.type, link.label)}
+              onClick={() => onOpen(link.type, link.label)}
+            />
+          );
+        }
         return (
           <Tag color={color} key={entry}>
-            {link ? `${link.type}:${link.label}` : entry}
+            {entry}
           </Tag>
         );
       })}
@@ -260,6 +273,63 @@ export function Component() {
   const structured = useMemo(
     () => (article ? parseStructuredContent(article.content) : null),
     [article?.content]
+  );
+
+  // wikilink capsules (ontology O4): [[type:name]] in the content resolves
+  // against linked_pages saved with the article — resolved links render as
+  // colored capsules, unresolved ones as dashed gray with a repair hint
+  const linkIndex = useMemo(() => {
+    const m = new Map<string, Api.Wiki.LinkedPage>();
+    for (const lp of article?.linked_pages || []) {
+      m.set(`${lp.type}:${lp.name}`, lp);
+    }
+    return m;
+  }, [article?.linked_pages]);
+
+  const resolveWikiLink = useCallback((type: string, name: string) => !!linkIndex.get(`${type}:${name}`)?.entity_id, [linkIndex]);
+
+  const openWikiLink = useCallback(
+    (type: string, name: string) => {
+      const lp = linkIndex.get(`${type}:${name}`);
+      if (!lp?.entity_id) {
+        // unresolved: offer the existing one-click repair flow
+        setRepairOpen(true);
+        return;
+      }
+      getWikiEntity(lp.entity_id).then(entity => {
+        if (entity?.article_id) {
+          nav(`/wiki/article/${entity.article_id}?kb=${kbId || article?.kb_id || ''}`);
+        } else {
+          const targetKb = kbId || article?.kb_id || '';
+          nav(`/wiki/kb/${targetKb}?tab=graph&entity=${lp.entity_id}`);
+        }
+      });
+    },
+    [linkIndex, kbId, article?.kb_id, nav]
+  );
+
+  // rewrite wikilinks into #wikilink anchors so they survive the markdown
+  // pipeline; renderLink turns them back into capsules at render time
+  const mainContent = useMemo(() => {
+    const raw = structured?.mainContent ?? '';
+    return raw.replace(/\[\[([^:\[\]]+):([^\[\]]+)]]/g, (_m, t: string, n: string) => {
+      const type = String(t).trim();
+      const label = String(n).trim();
+      return `[${label}](#wikilink?t=${encodeURIComponent(type)}&n=${encodeURIComponent(label)})`;
+    });
+  }, [structured?.mainContent]);
+
+  const renderWikiLink = useCallback(
+    (href: string) => {
+      if (!href.startsWith('#wikilink?')) return undefined;
+      const params = new URLSearchParams(href.slice('#wikilink?'.length));
+      const type = params.get('t') || '';
+      const label = params.get('n') || '';
+      return (
+        <WikiLinkTag type={type} label={label} resolved={resolveWikiLink(type, label)} onClick={() => openWikiLink(type, label)} />
+      );
+    },
+    [resolveWikiLink, openWikiLink]
   );
 
   const currentDiff = useMemo(
@@ -504,14 +574,14 @@ export function Component() {
                 <>
                   {structured.definition && (
                     <Section title={t('page.wiki.article.sections.definition')}>
-                      <Typography.Paragraph>{structured.definition}</Typography.Paragraph>
+                      <Typography.Paragraph>{renderInlineWikiLinks(structured.definition, resolveWikiLink, openWikiLink)}</Typography.Paragraph>
                     </Section>
                   )}
                   {structured.keyCharacteristics.length > 0 && (
                     <Section title={t('page.wiki.article.sections.characteristics')}>
                       <ul className='ml-5 list-disc'>
                         {structured.keyCharacteristics.map(item => (
-                          <li key={item}>{item}</li>
+                          <li key={item}>{renderInlineWikiLinks(item, resolveWikiLink, openWikiLink)}</li>
                         ))}
                       </ul>
                     </Section>
@@ -520,19 +590,19 @@ export function Component() {
                     <Section title={t('page.wiki.article.sections.applications')}>
                       <ul className='ml-5 list-disc'>
                         {structured.applications.map(item => (
-                          <li key={item}>{item}</li>
+                          <li key={item}>{renderInlineWikiLinks(item, resolveWikiLink, openWikiLink)}</li>
                         ))}
                       </ul>
                     </Section>
                   )}
                   {structured.relatedConcepts.length > 0 && (
                     <Section title={t('page.wiki.article.sections.relatedConcepts')}>
-                      <RelatedList color='geekblue' items={structured.relatedConcepts} />
+                      <RelatedList color='geekblue' items={structured.relatedConcepts} resolve={resolveWikiLink} onOpen={openWikiLink} />
                     </Section>
                   )}
                   {structured.relatedEntities.length > 0 && (
                     <Section title={t('page.wiki.article.sections.relatedEntities')}>
-                      <RelatedList color='cyan' items={structured.relatedEntities} />
+                      <RelatedList color='cyan' items={structured.relatedEntities} resolve={resolveWikiLink} onOpen={openWikiLink} />
                     </Section>
                   )}
                   {structured.mentions.length > 0 && (
@@ -544,7 +614,7 @@ export function Component() {
                             key={mention}
                             style={{ borderColor: 'var(--ant-color-border)' }}
                           >
-                            {mention}
+                            {renderInlineWikiLinks(mention, resolveWikiLink, openWikiLink)}
                           </blockquote>
                         ))}
                       </div>
@@ -553,7 +623,7 @@ export function Component() {
                   {structured.mainContent.trim() && (
                     <>
                       <Divider />
-                      <Markdown content={structured.mainContent} />
+                      <Markdown content={mainContent} renderLink={renderWikiLink} />
                     </>
                   )}
                   {article.sources.length > 0 && (

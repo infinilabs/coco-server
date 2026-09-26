@@ -326,6 +326,12 @@ export function createWikiEntity(body: { name: string; type?: string; aliases?: 
   return request<{ _id: string }>({ method: 'post', data: body, url: '/wiki/entity/' }).then(res => res?.data);
 }
 
+export function getWikiEntity(id: string) {
+  return request<{ _id: string; _source: Api.Wiki.EntityInfo | null }>({ method: 'get', url: `/wiki/entity/${id}` }).then(
+    res => (res?.data?._source ?? null) as Api.Wiki.EntityInfo | null
+  );
+}
+
 export function searchWikiNotifications() {
   return request<{ hits: any }>({ method: 'get', url: '/wiki/notification/_search' }).then(res => {
     const es = formatESSearchResult(res?.data);

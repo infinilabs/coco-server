@@ -14,7 +14,7 @@ import {
   Tag
 } from 'antd';
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { createWikiArticle, deleteWikiArticle, getWikiKb, listWikiDatasources, searchWikiArticles } from '@/service/api';
 import { GenerateModal } from '../components/GenerateModal';
@@ -113,6 +113,12 @@ export function Component() {
   const [artKeyword, setArtKeyword] = useState('');
   const [artStatus, setArtStatus] = useState<string>('all');
   const [dsList, setDsList] = useState<Api.Wiki.DatasourceInfo[]>([]);
+  // deep link from an article capsule: /wiki/kb/:id?tab=graph&entity=<id>
+  // selects the entity and opens its card on the canvas
+  const [searchParams] = useSearchParams();
+  const deepTab = searchParams.get('tab') || 'overview';
+  const focusEntityId = searchParams.get('entity') || undefined;
+  const [activeTab, setActiveTab] = useState(deepTab);
 
   const { addSharesToData } = useResource();
   const userInfo = useAppSelector(selectUserInfo);
@@ -214,6 +220,8 @@ export function Component() {
           <div className='min-w-0'>
             <div>
               <Tabs
+                activeKey={activeTab}
+                onChange={setActiveTab}
                 items={[
                   {
                     key: 'overview',
@@ -310,7 +318,7 @@ export function Component() {
                   {
                     key: 'graph',
                     label: t('page.wiki.kb.tabs.graph'),
-                    children: <KbGraph kbId={id || ''} />
+                    children: <KbGraph focusEntityId={focusEntityId} kbId={id || ''} />
                   },
                   {
                     key: 'datasources',

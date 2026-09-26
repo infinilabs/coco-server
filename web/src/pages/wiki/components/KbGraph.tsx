@@ -63,7 +63,7 @@ const STATUS_COLOR: Record<string, string> = {
  * expansion with schema-resolved labels and inverse relation names.
  * Clicking an entity opens its card; article nodes navigate.
  */
-export function KbGraph({ kbId }: { kbId: string }) {
+export function KbGraph({ kbId, focusEntityId }: { kbId: string; focusEntityId?: string }) {
   const { t } = useTranslation();
   const nav = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -189,6 +189,16 @@ export function KbGraph({ kbId }: { kbId: string }) {
   }, [kbId]);
 
   const nodeById = useMemo(() => new Map(nodes.map(n => [n.id, n])), [nodes]);
+
+  // deep link from an article capsule: select the requested entity and open
+  // its card once the graph has loaded (ignored when the id is not on canvas)
+  useEffect(() => {
+    if (!focusEntityId || loading || selected) return;
+    if (nodeById.has(focusEntityId)) {
+      setSelected(focusEntityId);
+      setCardOpen(true);
+    }
+  }, [focusEntityId, loading, nodeById, selected]);
 
   // neighbours of the selected node stay bright, everything else dims
   const neighbors = useMemo(() => {

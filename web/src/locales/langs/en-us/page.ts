@@ -138,6 +138,9 @@ const page: App.I18n.Schema['translation']['page'] = {
       stream: 'AI output',
       done: 'Applied as version v{{version}}'
     },
+    wikiLink: {
+      unresolved: 'Unresolved link — click to propose an entity'
+    },
     repair: {
       hint: '{{count}} knowledge link(s) resolve to no entity',
       action: 'Propose entities',

@@ -138,6 +138,9 @@ const page: App.I18n.Schema['translation']['page'] = {
       stream: 'AI 输出',
       done: '已应用为版本 v{{version}}'
     },
+    wikiLink: {
+      unresolved: '未解析链接 —— 点击可提议实体'
+    },
     repair: {
       hint: '{{count}} 个知识链接未解析到实体',
       action: '一键提议实体',
