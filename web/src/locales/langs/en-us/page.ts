@@ -1104,6 +1104,35 @@ const page: App.I18n.Schema['translation']['page'] = {
     category: { support: 'Support', sales: 'Sales', hr: 'HR', it: 'IT', productivity: 'Productivity' }
   },
   pipeline: {
+        templates: {
+          title: 'Start from a common task',
+          use: 'Use this template',
+          'general-enrich': {
+            title: 'General Document Enrichment',
+            description: 'Full chain: type detection, metadata, cover, body & attachment extraction, AI summary, tags and embedding'
+          },
+          pdf: {
+            title: 'PDF Processing',
+            description: 'Extract PDF body and embedded attachments; AI summary, tags and embedding'
+          },
+          word: {
+            title: 'Word Processing',
+            description: 'Extract Word document body; AI summary and tags'
+          },
+          image: {
+            title: 'Image Processing',
+            description: 'Image metadata, cover generation, vision-model description with OCR, face detection'
+          },
+          video: {
+            title: 'Video Processing',
+            description: 'Type detection, metadata and AI summary for video files (no transcription/frame extraction processor yet)'
+          },
+          attachment: {
+            title: 'Attachment Text Extraction',
+            description: 'Tika full-text extraction for uploaded attachments (attachment pipeline channel)'
+          }
+        },
+
     title: 'Processing Pipelines',
     deleteConfirm: 'Delete pipeline "{{name}}"?',
     columns: {

@@ -1,10 +1,11 @@
-import { BookOpen, Boxes, Braces, Check, ChevronDown, ChevronUp, FlaskConical, Pencil, Rocket, Sparkles, Trash } from 'lucide-react';
+import { BookOpen, Boxes, Braces, Check, ChevronDown, ChevronUp, File, FileText, FlaskConical, Image, Paperclip, Pencil, Rocket, Sparkles, Trash, Video } from 'lucide-react';
 import { Button, Card, Col, Collapse, Drawer, Form, Input, InputNumber, Popconfirm, Row, Select, Space, Switch, Tag, Typography, message } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
 import { aiGeneratePipelineChain, createPipeline, getPipelineProcessors, testPipelineChain, updatePipeline } from '@/service/api/pipeline';
+import { availableTemplates, templateEntryNames, type PipelineTemplate } from './pipelineTemplates';
 
 export interface PipelineDoc {
   id?: string;
@@ -342,6 +343,47 @@ function StepDebugger({ steps }: { steps: StepSnapshot[][] }) {
   );
 }
 
+const TEMPLATE_ICONS: Record<PipelineTemplate['icon'], React.ReactNode> = {
+  'file-text': <FileText size={18} />,
+  file: <File size={18} />,
+  image: <Image size={18} />,
+  video: <Video size={18} />,
+  paperclip: <Paperclip size={18} />
+};
+
+/** One-click starter chains for common document tasks; shown when creating. */
+function TemplateGallery({ templates, onPick }: { templates: PipelineTemplate[]; onPick: (t: PipelineTemplate) => void }) {
+  const { t } = useTranslation();
+  if (templates.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-12px">
+      {templates.map(tpl => (
+        <div
+          key={tpl.id}
+          className="w-220px rounded-8px border border-solid border-[var(--ant-color-border-secondary)] p-12px flex flex-col gap-8px hover:border-[var(--ant-color-primary)] transition-colors"
+        >
+          <div className="flex items-center gap-8px text-[var(--ant-color-primary)]">
+            {TEMPLATE_ICONS[tpl.icon]}
+            <span className="text-13px font-medium text-[var(--ant-color-text)]">{t(`page.pipeline.templates.${tpl.id}.title`)}</span>
+          </div>
+          <span className="text-12px text-[var(--ant-color-text-tertiary)] leading-snug min-h-32px">{t(`page.pipeline.templates.${tpl.id}.description`)}</span>
+          <div className="flex flex-wrap gap-4px">
+            {templateEntryNames(tpl).slice(0, 4).map(n => (
+              <span key={n} className="font-mono text-10px px-4px py-1px rounded-4px bg-[var(--ant-color-fill-tertiary)]">
+                {n}
+              </span>
+            ))}
+            {templateEntryNames(tpl).length > 4 && <span className="text-10px text-[var(--ant-color-text-tertiary)]">+{templateEntryNames(tpl).length - 4}</span>}
+          </div>
+          <Button size="small" block onClick={() => onPick(tpl)}>
+            {t('page.pipeline.templates.use')}
+          </Button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ── main editor ──────────────────────────────────────────────────────
 
 export function PipelineEditor({ initial }: { initial?: PipelineDoc }) {
@@ -363,6 +405,10 @@ export function PipelineEditor({ initial }: { initial?: PipelineDoc }) {
   const [jsonError, setJsonError] = useState<string | null>(null);
 
   const [catalog, setCatalog] = useState<ProcessorEntry[]>([]);
+  const templates = useMemo(() => {
+    const installed = new Set(catalog.map(p => p.name));
+    return availableTemplates(installed);
+  }, [catalog]);
   const [catalogOpen, setCatalogOpen] = useState(false);
 
   const [documentsJSON, setDocumentsJSON] = useState(() => JSON.stringify(DOCUMENT_TEMPLATE, null, 2));
@@ -403,6 +449,13 @@ export function PipelineEditor({ initial }: { initial?: PipelineDoc }) {
       }
     }
     setView(v);
+  };
+
+  const applyTemplate = (tpl: PipelineTemplate) => {
+    setChain(tpl.processor);
+    setChainJSON(JSON.stringify(tpl.processor, null, 2));
+    form.setFieldsValue({ name: tpl.suggestedName, description: t(`page.pipeline.templates.${tpl.id}.description`) });
+    setView('cards');
   };
 
   const parseDocuments = (): Record<string, any>[] | null => {
@@ -568,6 +621,15 @@ export function PipelineEditor({ initial }: { initial?: PipelineDoc }) {
           ]}
         />
       </Card>
+
+      {!initial?.id && (
+        <Card
+          className="card-wrapper"
+          title={<span className="flex items-center gap-8px"><Sparkles size={16} />{t('page.pipeline.templates.title')}</span>}
+        >
+          <TemplateGallery templates={templates} onPick={applyTemplate} />
+        </Card>
+      )}
 
       <Card
         className="card-wrapper"

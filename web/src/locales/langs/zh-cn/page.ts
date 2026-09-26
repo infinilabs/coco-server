@@ -1360,6 +1360,35 @@ const page: App.I18n.Schema['translation']['page'] = {
     category: { support: '客服', sales: '销售', hr: '人力资源', it: 'IT 支持', productivity: '效率' }
   },
   pipeline: {
+        templates: {
+          title: '从常规任务开始',
+          use: '使用此模板',
+          'general-enrich': {
+            title: '通用文档富化',
+            description: '文件类型识别、元数据、封面生成、正文与附件抽取、AI 摘要、标签与向量化的完整链'
+          },
+          pdf: {
+            title: 'PDF 文档处理',
+            description: '抽取 PDF 正文与内嵌附件,AI 摘要、标签提取并生成向量'
+          },
+          word: {
+            title: 'Word 文档处理',
+            description: '抽取 Word 文档正文,AI 摘要与标签提取'
+          },
+          image: {
+            title: '图片处理',
+            description: '图片元数据、封面生成、视觉模型描述与 OCR、人脸检测'
+          },
+          video: {
+            title: '视频处理',
+            description: '视频文件的类型识别、元数据与 AI 摘要(暂无转写/抽帧处理器)'
+          },
+          attachment: {
+            title: '附件文本抽取',
+            description: '上传附件(管线走附件通道)的 Tika 全文抽取'
+          }
+        },
+
     title: '解析管道',
     deleteConfirm: '确定删除管道 "{{name}}"?',
     columns: {
