@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -305,4 +306,70 @@ func TestFileEntityGovernanceProposal(t *testing.T) {
 	assert.Equal(t, entity.Name, proposals[0].ArticleTitle)
 	assert.Equal(t, core.WikiGovernanceEntityConflict, proposals[0].Type)
 	assert.Equal(t, core.WikiGovernanceOpen, proposals[0].Status)
+}
+
+// W3: entity writes accept a kb_id passthrough that selects the KB-scoped
+// ontology vocabulary (kb override first, tenant schema fallback); without
+// it interactive creation is stuck on the tenant vocabulary and KB-specific
+// types are unusable from the UI.
+func TestValidateEntityForKBScopedSchema(t *testing.T) {
+	ontologySetup(t)
+	ctx := context.Background()
+
+	kbDoc := &OntologySchemaDoc{EntityTypes: []OntologyEntityTypeDef{
+		{
+			Name: "coffee_variety",
+			Properties: []OntologyPropertyDef{
+				{Key: "origin", Type: "string", Required: true},
+			},
+		},
+	}}
+	require.NoError(t, kbDoc.normalize())
+	kbScope := fmt.Sprintf(ontologyKBScopeFmt, "kb-w3")
+	require.NoError(t, saveOntologySchema(ctx, kbScope, kbDoc))
+	t.Cleanup(func() {
+		delCtx := orm.NewContextWithParent(ctx)
+		delCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
+		delCtx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+		orm.WithModel(delCtx, &core.WikiOntologySchema{})
+		builder := orm.NewQuery().Size(1).Filter(orm.TermQuery("scope", kbScope))
+		res, err := orm.SearchV2(delCtx, builder)
+		if err != nil {
+			return
+		}
+		docs, _, err := elastic.DecodeHits[core.WikiOntologySchema](res)
+		if err != nil || len(docs) == 0 {
+			return
+		}
+		_ = orm.Delete(delCtx, &docs[0])
+	})
+
+	// with kb_id the KB vocabulary accepts the KB-only type
+	assert.NoError(t, validateEntityForKB(ctx, &core.WikiEntity{
+		Type:       "coffee_variety",
+		Name:       "geisha",
+		Properties: map[string]interface{}{"origin": "Ethiopia"},
+	}, "kb-w3"))
+
+	// KB required properties are still enforced
+	err := validateEntityForKB(ctx, &core.WikiEntity{Type: "coffee_variety", Name: "g"}, "kb-w3")
+	assert.ErrorContains(t, err, "is required")
+}
+
+func TestPrepareEntityUpdateStripsKbIDPassthrough(t *testing.T) {
+	ontologySetup(t)
+
+	// kb_id must be consumed by validation and never reach the persisted
+	// delta; the untyped entity stays lenient under any tenant schema, so
+	// only the strip behavior is under test here
+	delta := util.MapStr{"kb_id": "kb-never-configured", "name": "renamed"}
+	obj := &core.WikiEntity{Name: "x"}
+	assert.NoError(t, prepareEntityUpdate(obj, delta))
+	assert.NotContains(t, delta, "kb_id", "kb_id must be stripped before persistence")
+	assert.Equal(t, "renamed", delta["name"], "real field changes survive the strip")
+
+	// non-string kb_id values are ignored, not fatal
+	delta = util.MapStr{"kb_id": 42}
+	assert.NoError(t, prepareEntityUpdate(obj, delta))
+	assert.NotContains(t, delta, "kb_id")
 }

@@ -224,12 +224,23 @@ func saveOntologySchema(ctx context.Context, scope string, doc *OntologySchemaDo
 
 /* ---------------- validation ---------------- */
 
-// validateEntityAgainstSchema enforces the vocabulary on entity writes.
+// validateEntityAgainstSchema enforces the tenant vocabulary on entity writes.
 // Without a schema (or a type not covered by one) validation is lenient:
 // the ontology constrains what it knows about, it never blocks legacy or
 // exploratory data.
 func validateEntityAgainstSchema(ctx context.Context, entity *core.WikiEntity) error {
-	doc := loadOntologySchema(ctx, ontologyTenantScope)
+	return validateEntityWithDoc(ctx, entity, loadOntologySchema(ctx, ontologyTenantScope))
+}
+
+// validateEntityForKB enforces the KB-scoped vocabulary: kb:<id> override
+// first, tenant schema as the default. Interactive creation from a KB
+// context passes the kb_id through so KB-specific vocabularies are usable
+// in the UI (schema ownership fix, W3).
+func validateEntityForKB(ctx context.Context, entity *core.WikiEntity, kbID string) error {
+	return validateEntityWithDoc(ctx, entity, loadOntologySchemaForKB(ctx, kbID))
+}
+
+func validateEntityWithDoc(ctx context.Context, entity *core.WikiEntity, doc *OntologySchemaDoc) error {
 	if doc == nil {
 		return nil
 	}

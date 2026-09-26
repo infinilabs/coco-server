@@ -80,6 +80,13 @@ func init() {
 		api.RequireLogin(), api.RequirePermission(readEntityPermission),
 		api.MCPTool("entity_neighbors", "One-hop traversal of an entity's relations; returns edges and the expanded neighbor entities"))
 
+	// entity create is hand-registered (not the generated CRUD route) so the
+	// body may carry a kb_id passthrough that validates against that KB's
+	// ontology vocabulary — KB-specific types become usable from the UI (W3)
+	api.HandleUIMethod(api.POST, "/wiki/entity/", handler.createEntity,
+		api.RequireLogin(), api.RequirePermission(createEntityPermission),
+		api.MCPTool("wiki_entity_create", "Create an ontology entity; optional kb_id validates against that KB's vocabulary"))
+
 	// whole-KB knowledge graph (ontology phase O3): articles, wikilink-
 	// resolved entities, one-hop relation expansion and schema-resolved
 	// edge labels — one request feeding the KbGraph canvas and cards

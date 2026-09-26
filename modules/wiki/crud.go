@@ -7,11 +7,13 @@ package wiki
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"infini.sh/coco/core"
 	"infini.sh/framework/core/api"
 	"infini.sh/framework/core/api/crud"
+	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
@@ -28,6 +30,7 @@ var (
 	readEntityPermission    = security.GetSimplePermission(Category, entityResource, string(security.Read))
 	updateEntityPermission  = security.GetSimplePermission(Category, entityResource, string(security.Update))
 	searchEntityPermission  = security.GetSimplePermission(Category, entityResource, string(security.Search))
+	createEntityPermission  = security.GetSimplePermission(Category, entityResource, string(security.Create))
 )
 
 func simplePermissionFn(resource string) func(action string) api.PermissionKey {
@@ -226,30 +229,95 @@ func registerEntityCRUD() {
 			crud.ActionSearch: "Search ontology entities by name, alias or type",
 			crud.ActionRead:   "Get an entity by id, includes relations",
 		},
-		// entities are retired via status, not deletion (design doc §4.1)
-		SkipActions: []string{crud.ActionDelete},
-		PrepareCreate: func(obj *core.WikiEntity) error {
-			if obj.Name == "" {
-				return fmt.Errorf("name is required")
-			}
-			if obj.Status == "" {
-				obj.Status = core.WikiEntityProposed
-			}
-			switch obj.Status {
-			case core.WikiEntityProposed, core.WikiEntityReviewed, core.WikiEntityPublished:
-			default:
-				return fmt.Errorf("invalid entity status: %s", obj.Status)
-			}
-			// vocabulary gate (ontology phase O1): declared types, typed
-			// properties and the relation vocabulary are enforced; without a
-			// schema on file validation stays lenient
-			return validateEntityAgainstSchema(context.Background(), obj)
-		},
-		PrepareUpdate: func(obj *core.WikiEntity, _ util.MapStr) error {
-			return validateEntityAgainstSchema(context.Background(), obj)
-		},
+		// entities are retired via status, not deletion (design doc §4.1);
+		// create is hand-registered in init.go to accept the kb_id
+		// passthrough that selects the KB-scoped vocabulary (W3)
+		SkipActions:     []string{crud.ActionDelete, crud.ActionCreate},
+		PrepareUpdate:   prepareEntityUpdate,
 		ProtectedFields: []string{"created", "sources"}, // sources are pipeline provenance (B2/B3)
 	})
+}
+
+// applyEntityCreateDefaults applies the required-field and status defaults
+// shared by every create path.
+func applyEntityCreateDefaults(obj *core.WikiEntity) error {
+	if obj.Name == "" {
+		return fmt.Errorf("name is required")
+	}
+	if obj.Status == "" {
+		obj.Status = core.WikiEntityProposed
+	}
+	switch obj.Status {
+	case core.WikiEntityProposed, core.WikiEntityReviewed, core.WikiEntityPublished:
+	default:
+		return fmt.Errorf("invalid entity status: %s", obj.Status)
+	}
+	return nil
+}
+
+// prepareEntityUpdate validates a partial/full update against the vocabulary.
+// delta may carry a kb_id passthrough selecting the KB-scoped schema (kb
+// override first, tenant fallback) — it is consumed here and stripped so it
+// never reaches the persisted document (W3).
+func prepareEntityUpdate(obj *core.WikiEntity, delta util.MapStr) error {
+	kbID := ""
+	if v, ok := delta["kb_id"]; ok {
+		kbID, _ = v.(string)
+		delete(delta, "kb_id")
+	}
+	return validateEntityForKB(context.Background(), obj, kbID)
+}
+
+// createEntity is the hand-written create endpoint: identical to the
+// generated one except the body may carry a kb_id passthrough that validates
+// against that KB's ontology vocabulary. kb_id itself is never persisted.
+func (h APIHandler) createEntity(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	body := util.MapStr{}
+	if err := h.DecodeJSON(req, &body); err != nil {
+		h.WriteError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	kbID, _ := body["kb_id"].(string)
+	delete(body, "kb_id")
+
+	obj := &core.WikiEntity{}
+	raw, err := util.ToJSONBytes(body)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if err := util.FromJSONBytes(raw, obj); err != nil {
+		h.WriteError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if err := applyEntityCreateDefaults(obj); err != nil {
+		h.WriteError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	// vocabulary gate (ontology phase O1): declared types, typed properties
+	// and the relation vocabulary are enforced; without a schema on file
+	// validation stays lenient. A kb_id passthrough selects the KB-scoped
+	// vocabulary instead of the tenant one (W3) — it must REPLACE the tenant
+	// check, not run after it, or KB-only types still die on the tenant gate.
+	if kbID != "" {
+		if err := validateEntityForKB(req.Context(), obj, kbID); err != nil {
+			h.WriteError(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+	} else if err := validateEntityAgainstSchema(req.Context(), obj); err != nil {
+		h.WriteError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	ctx := orm.NewContextWithParent(req.Context())
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, entityResource)
+	ctx.Refresh = orm.WaitForRefresh
+	if err := orm.Create(ctx, obj); err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	h.WriteCreatedOKJSON(w, obj.GetID())
 }
 
 // deleteKbChildren removes the articles, their versions and the toc
