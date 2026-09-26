@@ -12,7 +12,6 @@ import (
 
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
-	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/elastic"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/security"
@@ -49,12 +48,8 @@ func QueryDocuments(ctx1 context.Context, builder *orm.QueryBuilder, query strin
 	builder.Query(query)
 	builder.DefaultQueryField(defaultFields...)
 	// Omit these fields. The frontend does not need them, and they are large enough
-	// to slow us down.
-	excludedFields := []string{"payload.*", "document_chunk", "ai_insights.embedding"}
-	// Field-level tier: role-based restrictions stack on top of the fixed
-	// performance excludes.
-	excludedFields = append(excludedFields, common.RestrictedFieldsForRoles(reqUser.Roles)...)
-	builder.Exclude(excludedFields...)
+	// to slow us down. Role-based field restrictions stack on top (field_access.go).
+	builder.Exclude(documentSourceExcludes(reqUser.Roles)...)
 	// Let framework skip the buildFuzzinessQuery() call as we did it here.
 	builder.SkipFuzziness()
 
