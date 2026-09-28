@@ -258,31 +258,6 @@ const page: App.I18n.Schema['translation']['page'] = {
         sources: 'Source References'
       }
     },
-    searchStudio: {
-      title: 'Search Lab',
-      subtitle: 'BM25 + kNN dual recall with live-tunable RRF fusion',
-      queryPlaceholder: 'Enter a query to run both recall routes',
-      queryRequired: 'Please enter a query',
-      run: 'Run',
-      rerun: 'Rerun',
-      runFailed: 'Run failed',
-      datasource: 'Datasource',
-      datasourceAll: 'All accessible datasources',
-      size: 'Size',
-      fuzziness: 'Fuzziness',
-      textWeight: 'BM25 weight',
-      semanticWeight: 'kNN weight',
-      formula: 'score = text_weight/(k+rank_bm25) + semantic_weight/(k+rank_knn); ranks are 1-based, a route that missed the doc contributes nothing',
-      docTitle: 'Title',
-      docSource: 'Datasource',
-      rawScore: 'Raw score',
-      contribution: 'Contributions',
-      textRoute: 'BM25 route',
-      semanticRoute: 'kNN route',
-      fusedTitle: 'RRF fused results',
-      noResults: 'No results',
-      empty: 'Enter a query and hit Run to see per-route ranks, raw scores and fused scores'
-    },
 
     search: {
       title: 'Search Knowledge',
@@ -291,6 +266,31 @@ const page: App.I18n.Schema['translation']['page'] = {
       articles: 'Articles',
       kbs: 'Knowledge Bases'
     }
+  },
+  searchStudio: {
+    title: 'Search Lab',
+    subtitle: 'BM25 + kNN dual recall with live-tunable RRF fusion',
+    queryPlaceholder: 'Enter a query to run both recall routes',
+    queryRequired: 'Please enter a query',
+    run: 'Run',
+    rerun: 'Rerun',
+    runFailed: 'Run failed',
+    datasource: 'Datasource',
+    datasourceAll: 'All accessible datasources',
+    size: 'Size',
+    fuzziness: 'Fuzziness',
+    textWeight: 'BM25 weight',
+    semanticWeight: 'kNN weight',
+    formula: 'score = text_weight/(k+rank_bm25) + semantic_weight/(k+rank_knn); ranks are 1-based, a route that missed the doc contributes nothing',
+    docTitle: 'Title',
+    docSource: 'Datasource',
+    rawScore: 'Raw score',
+    contribution: 'Contributions',
+    textRoute: 'BM25 route',
+    semanticRoute: 'kNN route',
+    fusedTitle: 'RRF fused results',
+    noResults: 'No results',
+    empty: 'Enter a query and hit Run to see per-route ranks, raw scores and fused scores'
   },
   apitoken: {
     columns: {
