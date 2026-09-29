@@ -14,11 +14,11 @@ func TestNormalizeFingerprintText(t *testing.T) {
 		want string
 	}{
 		{"  Hello   World  ", "hello world"},
-		{"ＡＢＣ１２３", "abc123"},             // full-width folds to half-width
-		{"ｆｏｏ　ｂａｒ", "foo bar"},           // full-width space
-		{"CAFE\u0045", "cafee"},               // NFKC keeps it simple
-		{"ｶﾀｶﾅ", "カタカナ"},                // half-width katakana folds to full-width
-		{"\n\t\rMix\r\n", "mix"},             // all whitespace collapses
+		{"ＡＢＣ１２３", "abc123"},     // full-width folds to half-width
+		{"ｆｏｏ　ｂａｒ", "foo bar"},   // full-width space
+		{"CAFE\u0045", "cafee"},  // NFKC keeps it simple
+		{"ｶﾀｶﾅ", "カタカナ"},         // half-width katakana folds to full-width
+		{"\n\t\rMix\r\n", "mix"}, // all whitespace collapses
 	}
 	for _, c := range cases {
 		if got := normalizeFingerprintText(c.in); got != c.want {
