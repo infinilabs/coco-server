@@ -87,6 +87,7 @@ const route: App.I18n.Schema['translation']['route'] = {
   'user-center': '个人中心',
   search: 'AI 搜索',
   'search-studio': '检索实验室',
+  'search-ops': '检索运营',
   auth: '登录',
   connector: '连接器',
   preview: '预览',

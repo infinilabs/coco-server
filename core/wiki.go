@@ -56,6 +56,12 @@ const (
 	WikiGovernanceLowQuality = "low_quality" // low confidence or zero citations while published
 	WikiGovernanceOrphan     = "orphan"      // article missing from the KB TOC tree
 
+	// Work-side signals (D5/D7): not tied to one article — ArticleID carries
+	// the query hash (knowledge_gap) or the chat message id / content hash
+	// (correction) so the scanner-style idempotency key still dedups.
+	WikiGovernanceKnowledgeGap = "knowledge_gap" // query keeps returning zero hits
+	WikiGovernanceCorrection   = "correction"    // user corrected an answer from work
+
 	// entity-dimension proposals filed by the extraction pipeline: the same
 	// human gate, different subject
 	WikiGovernanceEntityDuplicate = "entity_duplicate" // same name/alias, looks like one entity

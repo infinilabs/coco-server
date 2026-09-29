@@ -196,7 +196,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       duplicateOf: 'Possible duplicate of, click to view',
       pendingVersion: 'Auto-updated version v{{version}} awaiting review',
       empty: 'Queue is clean, nothing to review',
-      type: { stale: 'Stale', duplicate: 'Duplicate', conflict: 'Conflict', low_quality: 'Low quality', orphan: 'Orphaned', entity_duplicate: 'Entity duplicate', entity_conflict: 'Entity type conflict' },
+      type: { stale: 'Stale', duplicate: 'Duplicate', conflict: 'Conflict', low_quality: 'Low quality', orphan: 'Orphaned', entity_duplicate: 'Entity duplicate', entity_conflict: 'Entity type conflict', knowledge_gap: 'Knowledge gap', correction: 'Correction' },
       hint: '{{count}} proposal(s) waiting'
     },
     saveFromChat: {
@@ -290,10 +290,35 @@ const page: App.I18n.Schema['translation']['page'] = {
     semanticRoute: 'kNN route',
     wikiRoute: 'Curated wiki',
     graphRoute: 'Graph route',
+    rerankTitle: 'Rerank',
+    rrfRank: 'RRF rank',
+    rerankRank: 'Rerank rank',
+    relevance: 'Relevance',
     weightOf: '{{route}} weight',
     fusedTitle: 'RRF fused results',
     noResults: 'No results',
     empty: 'Enter a query and hit Run to see per-route ranks, raw scores and fused scores'
+  },
+  searchOps: {
+    title: 'Search Ops',
+    subtitle: 'What people searched, which strategies ran, where recall came up empty and what it cost — the data face of the iteration loop',
+    refresh: 'Refresh',
+    loadFailed: 'Load failed',
+    totalSearches: 'Searches',
+    zeroHitRate: 'Zero-hit rate',
+    avgTook: 'Avg latency',
+    maxTook: 'Max latency',
+    strategies: 'Strategy distribution',
+    strategy: 'Strategy',
+    searches: 'Count',
+    zeroHits: 'Zero hits',
+    lowRecall: 'Low-recall board',
+    query: 'Query',
+    misses: 'Misses',
+    lastSeen: 'Last seen',
+    gapFiled: 'gap proposal filed',
+    noData: 'No data',
+    lowRecallHint: 'A query with ≥3 zero-hit searches files a knowledge-gap proposal in the governance queue; a human decides what page to add.'
   },
   apitoken: {
     columns: {
@@ -862,6 +887,10 @@ const page: App.I18n.Schema['translation']['page'] = {
     embeddingModel: {
       title: 'Embedding Model',
       desc: 'Used to convert content into vectors to support semantic search and similarity matching.'
+    },
+    rerankModel: {
+      title: 'Rerank Model',
+      desc: 'Re-scores fused hybrid candidates after fusion (OpenAI-compatible /rerank endpoint, e.g. Qwen3-Reranker); falls back to RRF order when unset.'
     },
     llm: {
       desc: 'Choose the default AI model used for core capabilities such as conversations, image understanding, and semantic search. You can change this later in Settings.',

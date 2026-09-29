@@ -196,7 +196,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       duplicateOf: '疑似重复于,点击查看',
       pendingVersion: '有待审的自动更新版本 v{{version}}',
       empty: '队列干净,没有待处理的提议',
-      type: { stale: '内容过期', duplicate: '疑似重复', conflict: '内容冲突', low_quality: '低质量', orphan: '未入目录树', entity_duplicate: '实体疑似重复', entity_conflict: '实体类型冲突' },
+      type: { stale: '内容过期', duplicate: '疑似重复', conflict: '内容冲突', low_quality: '低质量', orphan: '未入目录树', entity_duplicate: '实体疑似重复', entity_conflict: '实体类型冲突', knowledge_gap: '知识缺口', correction: '答案纠正' },
       hint: '{{count}} 条提议等待处理'
     },
     saveFromChat: {
@@ -290,10 +290,35 @@ const page: App.I18n.Schema['translation']['page'] = {
     semanticRoute: 'kNN 路',
     wikiRoute: '策展 Wiki',
     graphRoute: '图谱路',
+    rerankTitle: 'Rerank 重排',
+    rrfRank: 'RRF 位次',
+    rerankRank: '重排名次',
+    relevance: '相关度',
     weightOf: '{{route}} 权重',
     fusedTitle: 'RRF 融合结果',
     noResults: '无结果',
     empty: '输入查询并点「试跑」,查看各路召回的排名、原始分与融合得分'
+  },
+  searchOps: {
+    title: '检索运营',
+    subtitle: '大家在搜什么、哪条策略在跑、哪里召回落空、花了多少毫秒——迭代回路的数据面',
+    refresh: '刷新',
+    loadFailed: '加载失败',
+    totalSearches: '检索次数',
+    zeroHitRate: '零命中率',
+    avgTook: '平均耗时',
+    maxTook: '最大耗时',
+    strategies: '策略分布',
+    strategy: '策略',
+    searches: '次数',
+    zeroHits: '零命中',
+    lowRecall: '低召回榜',
+    query: '查询',
+    misses: '未命中次数',
+    lastSeen: '最近出现',
+    gapFiled: '已提交缺口提议',
+    noData: '暂无数据',
+    lowRecallHint: '同一查询零命中 ≥3 次会自动提交「知识缺口」提议到治理队列,由人工决定补什么页。'
   },
   apitoken: {
     columns: {
@@ -1015,6 +1040,10 @@ const page: App.I18n.Schema['translation']['page'] = {
     embeddingModel: {
       title: 'Embedding 模型',
       desc: '用于将内容转换为向量，以支持语义搜索与相似度匹配'
+    },
+    rerankModel: {
+      title: 'Rerank 模型',
+      desc: '混合检索融合后对候选重排序(OpenAI 兼容 /rerank 接口,如 Qwen3-Reranker);未配置时保持 RRF 顺序'
     },
     llm: {
       desc: '选择默认使用的 AI 模型，用于对话、图像理解与语义搜索等基础能力。后续可在设置中随时调整。',

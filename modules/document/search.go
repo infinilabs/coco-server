@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
@@ -46,6 +47,7 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 	}
 
 	query = util.CleanUserQuery(query)
+	searchStarted := time.Now()
 
 	//try to collect assistants
 	if query != "" || h.GetParameter(req, "filter") != "" {
@@ -53,12 +55,14 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		integrationID := req.Header.Get(core.HeaderIntegrationID)
 
 		result := elastic.SearchResponseWithMeta[core.Document]{}
+		rerankNote := ""
 		if searchType == "hybrid_rrf" {
-			fused, err := h.queryWithRRF(req, query, datasource, integrationID, category, subcategory, richCategory, fuzziness)
+			fused, note, err := h.queryWithRRF(req, query, datasource, integrationID, category, subcategory, richCategory, fuzziness)
 			if err != nil {
 				panic(err)
 			}
 			result = *fused
+			rerankNote = note
 		} else {
 			builder, err := orm.NewQueryBuilderFromRequest(req)
 
@@ -117,8 +121,10 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 				writeResult(resp)
 			}
 
-			if note != "" {
-				w.Header().Set("Warning", note)
+			for _, n := range []string{note, rerankNote} {
+				if n != "" {
+					w.Header().Add("Warning", n)
+				}
 			}
 		}
 
@@ -173,6 +179,12 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 				result.Hits.Hits = append(newHits, result.Hits.Hits...)
 			}
 		}
+
+		// telemetry (P2/D5): what was asked, which strategy ran, what came
+		// back and how long it took — the overview and the knowledge-gap
+		// loop are built on it; async so the search never waits on it
+		go recordSearchLog(req.Context(), query, searchType, reqUser.UserID,
+			result.GetTotal(), time.Since(searchStarted))
 
 		api.WriteJSON(w, result, 200)
 	} else {

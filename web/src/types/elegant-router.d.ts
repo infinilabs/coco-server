@@ -82,6 +82,7 @@ declare module "@elegant-router/types" {
     "role_edit": "edit/:id";
     "role_new": "new";
     "search": "/search";
+    "search-ops": "/search-ops";
     "search-studio": "/search-studio";
     "security": "/security";
     "settings": "/settings";
@@ -163,6 +164,7 @@ declare module "@elegant-router/types" {
     | "preview"
     | "role"
     | "search"
+    | "search-ops"
     | "search-studio"
     | "security"
     | "settings"
@@ -226,6 +228,7 @@ declare module "@elegant-router/types" {
     | "preview_document"
     | "role_edit"
     | "role_new"
+    | "search-ops"
     | "search-studio"
     | "search"
     | "security"

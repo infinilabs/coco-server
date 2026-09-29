@@ -87,6 +87,7 @@ const route: App.I18n.Schema['translation']['route'] = {
   'mcp-server_edit': 'Edit MCP Server',
   search: 'AI Search',
   'search-studio': 'Search Lab',
+  'search-ops': 'Search Ops',
   auth: 'Auth',
   connector: 'Connector',
   preview: 'Preview',

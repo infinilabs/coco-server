@@ -635,6 +635,18 @@ export const generatedRoutes: GeneratedRoute[] = [
     }
   },
   {
+    name: 'search-ops',
+    path: '/search-ops',
+    component: 'layout.base$view.search-ops',
+    meta: {
+      i18nKey: 'route.search-ops',
+      title: 'search-ops',
+      localIcon: 'search',
+      order: 9,
+      permissions: ['coco#search/ops']
+    }
+  },
+  {
     name: 'search-studio',
     path: '/search-studio',
     component: 'layout.base$view.search-studio',

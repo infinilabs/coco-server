@@ -80,6 +80,7 @@ func setupFlow(t *testing.T) (crud.Handlers, crud.Handlers, APIHandler) {
 			{core.WikiVersion{}, "wiki-version-flow"},
 			{core.WikiComment{}, "wiki-comment-flow"},
 			{core.WikiEntity{}, "wiki-entity-flow"},
+			{core.WikiGovernanceProposal{}, "wiki-governance-flow"},
 			{core.Document{}, "document-flow"},
 		} {
 			if err := handler.RegisterSchemaWithName(s.model, s.index); err != nil {

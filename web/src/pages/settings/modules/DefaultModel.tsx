@@ -172,6 +172,14 @@ const DefaultModel = memo(() => {
             type="embedding"
             onRefresh={onModelRefresh}
           />
+          <ModelSelectItem
+            label={t('page.guide.rerankModel.title')}
+            desc={t('page.guide.rerankModel.desc')}
+            name="rerank_model"
+            modelProviderList={modelProviderList}
+            type="rerank"
+            onRefresh={onModelRefresh}
+          />
           <Form.Item label=' '>
             <Button
               className='p-0'

@@ -59,7 +59,7 @@ func (h *APIHandler) parseRRFParams(req *http.Request) RRFConfig {
 // unlike the engine-side hybrid query where the merge is opaque. Routes:
 // BM25 over documents, the semantic leg (engine query or client rerank per
 // the capability plan), the curated wiki layer, and the ontology graph leg.
-func (h *APIHandler) queryWithRRF(req *http.Request, query, datasource, integrationID, category, subcategory, richCategory string, fuzziness int) (*elastic.SearchResponseWithMeta[core.Document], error) {
+func (h *APIHandler) queryWithRRF(req *http.Request, query, datasource, integrationID, category, subcategory, richCategory string, fuzziness int) (*elastic.SearchResponseWithMeta[core.Document], string, error) {
 	cfg := h.parseRRFParams(req)
 
 	from := h.GetIntOrDefault(req, "from", 0)
@@ -109,10 +109,11 @@ func (h *APIHandler) queryWithRRF(req *http.Request, query, datasource, integrat
 	// One failing route (e.g. no embedding service for the query text)
 	// degrades to fewer-route fusion; only all failing is an error.
 	if len(routes) == 0 {
-		return nil, lastErr
+		return nil, "", lastErr
 	}
 
 	fused, _ := rrfFuseMulti(routes, cfg)
+	fused, rerankNote := applyRerank(req.Context(), query, fused)
 
 	out := &elastic.SearchResponseWithMeta[core.Document]{
 		Took:         took,
@@ -131,7 +132,7 @@ func (h *APIHandler) queryWithRRF(req *http.Request, query, datasource, integrat
 	if len(out.Hits.Hits) > 0 {
 		out.Hits.MaxScore = out.Hits.Hits[0].Score
 	}
-	return out, nil
+	return out, rerankNote, nil
 }
 
 // rrfRoute runs one recall route. util.ReadBody restores the request body, so

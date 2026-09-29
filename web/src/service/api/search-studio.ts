@@ -34,12 +34,30 @@ export interface SearchStudioFusedHit {
   score: number;
 }
 
+export interface SearchStudioRerankRow {
+  id: string;
+  title: string;
+  rrf_rank: number;
+  rerank_rank: number;
+  delta: number;
+  relevance_score: number;
+}
+
+export interface SearchStudioRerank {
+  applied: boolean;
+  model?: string;
+  note?: string;
+  took_ms?: number;
+  hits?: SearchStudioRerankRow[];
+}
+
 export interface SearchStudioResult {
   query: string;
   size: number;
   fuzziness: number;
   rrf: SearchStudioRRFConfig;
   routes: SearchStudioRouteResult[];
+  rerank?: SearchStudioRerank;
   fused: {
     took_ms: number;
     total: number;

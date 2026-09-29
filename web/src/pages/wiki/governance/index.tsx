@@ -11,7 +11,9 @@ const TYPE_COLOR: Record<string, string> = {
   duplicate: 'purple',
   conflict: 'error',
   low_quality: 'default',
-  orphan: 'cyan'
+  orphan: 'cyan',
+  knowledge_gap: 'volcano',
+  correction: 'geekblue'
 };
 
 /**
@@ -47,8 +49,10 @@ export function Component() {
   };
 
   const goArticle = (proposal: GovernanceProposal) => {
-    // entity-dimension proposals have no article page — land on the KB
-    if (proposal.type.startsWith('entity_')) {
+    // entity-dimension proposals have no article page — land on the KB;
+    // work-side signals (knowledge_gap/correction) anchor on a query or a
+    // chat message, not an article either
+    if (proposal.type.startsWith('entity_') || proposal.type === 'knowledge_gap' || proposal.type === 'correction') {
       nav(proposal.kb_id ? `/wiki/kb/${proposal.kb_id}` : '/wiki/list');
       return;
     }

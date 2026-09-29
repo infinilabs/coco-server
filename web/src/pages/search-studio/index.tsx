@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { fetchDataSourceList } from '@/service/api/data-source';
 import {
   SearchStudioFusedHit,
+  SearchStudioRerankRow,
   SearchStudioResult,
   SearchStudioRouteResult,
   testSearchStudio
@@ -136,6 +137,31 @@ export function Component() {
     return cols;
   }, [t]);
 
+  const rerankColumns = useMemo(
+    () => [
+      { title: '#', width: 44, render: (_: any, __: any, index: number) => index + 1 },
+      { title: t('page.searchStudio.docTitle'), dataIndex: 'title', ellipsis: true, render: (v: string, r: SearchStudioRerankRow) => <Tooltip title={r.id}>{v || r.id}</Tooltip> },
+      { title: t('page.searchStudio.rrfRank'), dataIndex: 'rrf_rank', width: 90 },
+      {
+        title: t('page.searchStudio.rerankRank'),
+        dataIndex: 'rerank_rank',
+        width: 100,
+        render: (_: any, r: SearchStudioRerankRow) => (
+          <Space size={4}>
+            <span>{r.rerank_rank}</span>
+            {r.delta !== 0 && (
+              <span className={r.delta > 0 ? 'text-[#52C41A]' : 'text-[#FF4D4F]'}>
+                {r.delta > 0 ? `↑${r.delta}` : `↓${-r.delta}`}
+              </span>
+            )}
+          </Space>
+        )
+      },
+      { title: t('page.searchStudio.relevance'), dataIndex: 'relevance_score', width: 110, render: fmtScore }
+    ],
+    [t]
+  );
+
   const routePanel = (meta: (typeof ROUTE_META)[number], route: SearchStudioRouteResult | undefined) => (
     <Card
       size="small"
@@ -245,6 +271,38 @@ export function Component() {
                 return <Col span={8} key={meta.name}>{routePanel(meta, route)}</Col>;
               })}
             </Row>
+            {result.rerank && (
+              <Card
+                size="small"
+                title={
+                  <Space size={6}>
+                    <span className="inline-block w-8px h-8px rounded-4px bg-[#FAAD14]" />
+                    {t('page.searchStudio.rerankTitle')}
+                    {result.rerank.applied ? (
+                      <Tag color="gold">{result.rerank.model}</Tag>
+                    ) : (
+                      <Tag>off</Tag>
+                    )}
+                  </Space>
+                }
+                extra={result.rerank.applied ? <span className="text-12px text-gray-400">{fmtMs(result.rerank.took_ms)}</span> : null}
+              >
+                {result.rerank.note && (
+                  <div className="mb-8px">
+                    <Typography.Text type="secondary" className="text-12px">{result.rerank.note}</Typography.Text>
+                  </div>
+                )}
+                <Table
+                  rowKey="id"
+                  size="small"
+                  pagination={false}
+                  scroll={{ y: 240 }}
+                  columns={rerankColumns}
+                  dataSource={result.rerank.hits ?? []}
+                  locale={{ emptyText: t('page.searchStudio.noResults') }}
+                />
+              </Card>
+            )}
             <Card
               size="small"
               title={

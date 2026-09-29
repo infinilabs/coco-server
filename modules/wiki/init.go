@@ -118,6 +118,11 @@ func init() {
 
 	// governance queue: the human gate — resolving/dismissing records the
 	// decision, fixes themselves happen on the article face (D1)
+	// correction capture (D7): any logged-in user can report a wrong answer
+	// from work; it lands in the same human-gated queue as scanner proposals
+	api.HandleUIMethod(api.POST, "/wiki/governance/_correction", handler.createCorrection,
+		api.RequireLogin())
+
 	api.HandleUIMethod(api.PUT, "/wiki/governance/:id/status", handler.updateGovernanceStatus,
 		api.RequireLogin(), api.RequirePermission(security.GetSimplePermission(Category, governanceResource, string(security.Update))))
 

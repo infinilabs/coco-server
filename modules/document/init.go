@@ -55,7 +55,8 @@ func init() {
 	querySearchPermission := security.GetSimplePermission(Category, Search, string(security.Search))
 	assistantSearchPermission := security.GetSimplePermission(Category, Assistant, QuickAISearchAction)
 	searchStudioPermission := security.GetSimplePermission(Category, Search, "studio")
-	security.GetOrInitPermissionKeys(querySearchPermission, assistantSearchPermission, searchStudioPermission)
+	searchOpsPermission := security.GetSimplePermission(Category, Search, "ops")
+	security.GetOrInitPermissionKeys(querySearchPermission, assistantSearchPermission, searchStudioPermission, searchOpsPermission)
 	security.AssignPermissionsToRoles(querySearchPermission, core.WidgetRole)
 
 	//live tuning surface for the dual-engine recall: runs both routes and
@@ -64,6 +65,9 @@ func init() {
 	//what the search stack can do right now: resolved semantic route, engine
 	//probe verdict, embedding model, vectorized document coverage
 	api.HandleUIMethod(api.GET, "/search/engine-capability", handler.engineCapabilityReport, api.RequirePermission(searchStudioPermission))
+	//operator's view of the iteration loop: what people searched, where
+	//recall came up empty, what it cost in latency (P2/D5)
+	api.HandleUIMethod(api.GET, "/search/ops/overview", handler.searchOpsOverview, api.RequirePermission(searchOpsPermission))
 	//engine AI curation: read back the managed pipelines and their drift, and
 	//push the current config to the engine on demand
 	api.HandleUIMethod(api.GET, "/search/engine-ai", handler.engineAIStatus, api.RequirePermission(searchStudioPermission))

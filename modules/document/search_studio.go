@@ -5,6 +5,7 @@
 package document
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -228,7 +229,7 @@ func (h *APIHandler) searchStudioTest(w http.ResponseWriter, req *http.Request, 
 
 	// --- fuse ---
 	started := nowMilli()
-	_, breakdowns := rrfFuseMulti(routes, cfg)
+	fusedHitsList, breakdowns := rrfFuseMulti(routes, cfg)
 	fusedHits := make([]studioFusedHit, 0, len(breakdowns))
 	for _, b := range breakdowns {
 		hit := sourceByID[b.ID]
@@ -236,12 +237,45 @@ func (h *APIHandler) searchStudioTest(w http.ResponseWriter, req *http.Request, 
 	}
 	tookMS := nowMilli() - started
 
+	// --- rerank leg (applies to the fused order; reported separately so the
+	// RRF card stays the pure-RRF baseline for comparison) ---
+	rerankInfo := util.MapStr{"applied": false}
+	if plan := planRerank(); plan.Model != nil {
+		started := nowMilli()
+		_, changes, err := rerankFusedHits(req.Context(), plan, query, fusedHitsList)
+		if err != nil {
+			rerankInfo["note"] = fmt.Sprintf("rerank degraded: %v", err)
+		} else {
+			titleByID := map[string]string{}
+			for i := range fusedHitsList {
+				titleByID[fusedHitsList[i].ID] = fusedHitsList[i].Source.Title
+			}
+			rows := make([]util.MapStr, 0, len(changes))
+			for _, c := range changes {
+				rows = append(rows, util.MapStr{
+					"id": c.ID, "title": titleByID[c.ID],
+					"rrf_rank": c.RRFRank, "rerank_rank": c.RerankRank,
+					"delta": c.RRFRank - c.RerankRank, "relevance_score": c.RelevanceScore,
+				})
+			}
+			rerankInfo = util.MapStr{
+				"applied": true,
+				"model":   fmt.Sprintf("%s/%s", plan.Model.ProviderID, plan.Model.ID),
+				"took_ms": nowMilli() - started,
+				"hits":    rows,
+			}
+		}
+	} else {
+		rerankInfo["note"] = plan.Note
+	}
+
 	h.WriteJSON(w, util.MapStr{
 		"query":     query,
 		"size":      size,
 		"fuzziness": fuzziness,
 		"rrf":       cfg,
 		"routes":    routeResults,
+		"rerank":    rerankInfo,
 		"fused": util.MapStr{
 			"took_ms": tookMS,
 			"total":   len(fusedHits),

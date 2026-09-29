@@ -42,6 +42,7 @@ type DefaultModel struct {
 	LanguageModel  *ModelId `config:"language_model" json:"language_model,omitempty"`
 	VisionModel    *ModelId `config:"vision_model" json:"vision_model,omitempty"`
 	EmbeddingModel *ModelId `config:"embedding_model" json:"embedding_model,omitempty"`
+	RerankModel    *ModelId `config:"rerank_model" json:"rerank_model,omitempty"`
 
 	/*
 	 * Models used during chatting with various assistants.
