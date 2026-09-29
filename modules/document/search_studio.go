@@ -27,6 +27,7 @@ type searchStudioBody struct {
 		K              float64 `json:"k"`
 		TextWeight     float64 `json:"text_weight"`
 		SemanticWeight float64 `json:"semantic_weight"`
+		WikiWeight     float64 `json:"wiki_weight"`
 	} `json:"rrf"`
 }
 
@@ -39,6 +40,7 @@ type studioRouteHit struct {
 }
 
 type studioRouteResult struct {
+	Name   string           `json:"name"`
 	TookMS int64            `json:"took_ms"`
 	Total  int64            `json:"total"`
 	Hits   []studioRouteHit `json:"hits"`
@@ -56,11 +58,25 @@ type studioFusedHit struct {
 	Datasource string `json:"datasource"`
 }
 
-// searchStudioTest is the live tuning surface for the dual-engine recall:
-// it runs the BM25 route and the kNN route on the caller's own permissions,
-// then fuses them with the submitted RRF parameters and returns every
-// document's rank, raw score and per-route contribution — the exact numbers
-// the production hybrid_rrf search computes.
+func studioRouteResultFromHits(name string, hits []elastic.DocumentWithMeta[core.Document], total int64) *studioRouteResult {
+	result := &studioRouteResult{Name: name, Total: total, Hits: make([]studioRouteHit, 0, len(hits))}
+	for i, hit := range hits {
+		result.Hits = append(result.Hits, studioRouteHit{
+			ID:         hit.ID,
+			Title:      hit.Source.Title,
+			Datasource: hit.Source.Source.Name,
+			Rank:       i + 1,
+			Score:      float64(hit.Score),
+		})
+	}
+	return result
+}
+
+// searchStudioTest is the live tuning surface for the multi-route recall:
+// it runs every route (BM25 documents, the semantic leg, the curated wiki
+// layer) on the caller's own permissions, then fuses them with the submitted
+// RRF parameters and returns every hit's per-route rank, raw score and
+// contribution — the exact numbers the production hybrid_rrf search computes.
 func (h *APIHandler) searchStudioTest(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	body := searchStudioBody{Fuzziness: 3, Size: 10}
 	if err := h.DecodeJSON(req, &body); err != nil {
@@ -85,100 +101,115 @@ func (h *APIHandler) searchStudioTest(w http.ResponseWriter, req *http.Request, 
 	if fuzziness < 0 || fuzziness > 5 {
 		fuzziness = 3
 	}
-	cfg := RRFConfig{K: body.RRF.K, TextWeight: body.RRF.TextWeight, SemanticWeight: body.RRF.SemanticWeight}.normalized()
+	cfg := RRFConfig{K: body.RRF.K, Weights: map[string]float64{
+		rrfRouteText:     body.RRF.TextWeight,
+		rrfRouteSemantic: body.RRF.SemanticWeight,
+		rrfRouteWiki:     body.RRF.WikiWeight,
+	}}.normalized()
 
-	runRoute := func(searchType string) (*elastic.SearchResponseWithMeta[core.Document], *studioRouteResult) {
-		builder := orm.NewQuery()
-		builder.From(0)
-		builder.Size(size)
-		result := &studioRouteResult{}
-		started := nowMilli()
-
-		if searchType == "semantic" {
-			// Show the truth about the semantic leg: which route ran, or why
-			// none could — the studio is where tuning decisions get made.
-			switch plan := planSemantic(req.Context()); plan.Route {
-			case semanticRouteEngine:
-				result.Route = "engine"
-			case semanticRouteClient:
-				result.Route = "client"
-				out, note, err := clientSemanticRecall(req.Context(), builder, query, body.Datasource, "", body.Category, body.Subcategory, body.RichCategory, fuzziness)
-				result.TookMS = nowMilli() - started
-				result.Note = note
-				if err != nil {
-					result.Error = err.Error()
-					result.Hits = []studioRouteHit{}
-					return nil, result
-				}
-				result.Total = out.GetTotal()
-				result.Hits = make([]studioRouteHit, 0, len(out.Hits.Hits))
-				for i, hit := range out.Hits.Hits {
-					result.Hits = append(result.Hits, studioRouteHit{
-						ID:         hit.ID,
-						Title:      hit.Source.Title,
-						Datasource: hit.Source.Source.Name,
-						Rank:       i + 1,
-						Score:      float64(hit.Score),
-					})
-				}
-				return out, result
-			default:
-				result.Route = "skipped"
-				result.Error = "skipped: " + plan.Reason
-				result.Hits = []studioRouteHit{}
-				result.TookMS = nowMilli() - started
-				return nil, result
+	routes := []rrfRouteHits{}
+	routeResults := []*studioRouteResult{}
+	sourceByID := map[string]elastic.DocumentWithMeta[core.Document]{}
+	collect := func(name string, hits []elastic.DocumentWithMeta[core.Document], result *studioRouteResult) {
+		routeResults = append(routeResults, result)
+		if len(hits) == 0 {
+			return
+		}
+		routes = append(routes, rrfRouteHits{Name: name, Hits: hits})
+		for _, hit := range hits {
+			if _, ok := sourceByID[hit.ID]; !ok {
+				sourceByID[hit.ID] = hit
 			}
 		}
+	}
 
-		resp, err := QueryDocuments(req.Context(), builder, query, body.Datasource, "", body.Category, body.Subcategory, body.RichCategory, searchType, fuzziness, nil)
+	// --- text route ---
+	{
+		builder := orm.NewQuery().From(0).Size(size)
+		result := &studioRouteResult{Name: rrfRouteText, Hits: []studioRouteHit{}}
+		started := nowMilli()
+		resp, err := QueryDocuments(req.Context(), builder, query, body.Datasource, "", body.Category, body.Subcategory, body.RichCategory, "keyword", fuzziness, nil)
 		result.TookMS = nowMilli() - started
 		if err != nil {
 			result.Error = err.Error()
-			result.Hits = []studioRouteHit{}
-			return nil, result
+			collect(rrfRouteText, nil, result)
+		} else {
+			out := &elastic.SearchResponseWithMeta[core.Document]{}
+			if len(resp.Raw) > 0 {
+				util.MustFromJSONBytes(resp.Raw, out)
+			}
+			*result = *studioRouteResultFromHits(rrfRouteText, out.Hits.Hits, out.GetTotal())
+			result.TookMS = nowMilli() - started
+			collect(rrfRouteText, out.Hits.Hits, result)
 		}
-		out := &elastic.SearchResponseWithMeta[core.Document]{}
-		if len(resp.Raw) > 0 {
-			util.MustFromJSONBytes(resp.Raw, out)
-		}
-		result.Total = out.GetTotal()
-		result.Hits = make([]studioRouteHit, 0, len(out.Hits.Hits))
-		for i, hit := range out.Hits.Hits {
-			result.Hits = append(result.Hits, studioRouteHit{
-				ID:         hit.ID,
-				Title:      hit.Source.Title,
-				Datasource: hit.Source.Source.Name,
-				Rank:       i + 1,
-				Score:      float64(hit.Score),
-			})
-		}
-		return out, result
 	}
 
-	textResp, textResult := runRoute("keyword")
-	semanticResp, semanticResult := runRoute("semantic")
-
-	var textHits, semanticHits []elastic.DocumentWithMeta[core.Document]
-	if textResp != nil {
-		textHits = textResp.Hits.Hits
+	// --- semantic route (capability-plan aware) ---
+	{
+		builder := orm.NewQuery().From(0).Size(size)
+		result := &studioRouteResult{Name: rrfRouteSemantic, Hits: []studioRouteHit{}}
+		started := nowMilli()
+		switch plan := planSemantic(req.Context()); plan.Route {
+		case semanticRouteEngine:
+			result.Route = "engine"
+			resp, err := QueryDocuments(req.Context(), builder, query, body.Datasource, "", body.Category, body.Subcategory, body.RichCategory, "semantic", fuzziness, nil)
+			result.TookMS = nowMilli() - started
+			if err != nil {
+				result.Error = err.Error()
+				collect(rrfRouteSemantic, nil, result)
+			} else {
+				out := &elastic.SearchResponseWithMeta[core.Document]{}
+				if len(resp.Raw) > 0 {
+					util.MustFromJSONBytes(resp.Raw, out)
+				}
+				*result = *studioRouteResultFromHits(rrfRouteSemantic, out.Hits.Hits, out.GetTotal())
+				result.Route = "engine"
+				result.TookMS = nowMilli() - started
+				collect(rrfRouteSemantic, out.Hits.Hits, result)
+			}
+		case semanticRouteClient:
+			result.Route = "client"
+			out, note, err := clientSemanticRecall(req.Context(), builder, query, body.Datasource, "", body.Category, body.Subcategory, body.RichCategory, fuzziness)
+			result.TookMS = nowMilli() - started
+			result.Note = note
+			if err != nil {
+				result.Error = err.Error()
+				collect(rrfRouteSemantic, nil, result)
+			} else {
+				*result = *studioRouteResultFromHits(rrfRouteSemantic, out.Hits.Hits, out.GetTotal())
+				result.Route = "client"
+				result.Note = note
+				result.TookMS = nowMilli() - started
+				collect(rrfRouteSemantic, out.Hits.Hits, result)
+			}
+		default:
+			result.Route = "skipped"
+			result.Error = "skipped: " + plan.Reason
+			result.TookMS = nowMilli() - started
+			collect(rrfRouteSemantic, nil, result)
+		}
 	}
-	if semanticResp != nil {
-		semanticHits = semanticResp.Hits.Hits
-	}
-	_, breakdowns := rrfFuse(textHits, semanticHits, cfg)
 
+	// --- wiki route ---
+	{
+		result := &studioRouteResult{Name: rrfRouteWiki, Hits: []studioRouteHit{}}
+		started := nowMilli()
+		resp, err := h.wikiRoute(req, query, size)
+		result.TookMS = nowMilli() - started
+		if err != nil {
+			result.Error = err.Error()
+			collect(rrfRouteWiki, nil, result)
+		} else {
+			*result = *studioRouteResultFromHits(rrfRouteWiki, resp.Hits.Hits, resp.GetTotal())
+			result.TookMS = nowMilli() - started
+			collect(rrfRouteWiki, resp.Hits.Hits, result)
+		}
+	}
+
+	// --- fuse ---
 	started := nowMilli()
+	_, breakdowns := rrfFuseMulti(routes, cfg)
 	fusedHits := make([]studioFusedHit, 0, len(breakdowns))
-	sourceByID := make(map[string]elastic.DocumentWithMeta[core.Document], len(textHits)+len(semanticHits))
-	for _, hit := range textHits {
-		sourceByID[hit.ID] = hit
-	}
-	for _, hit := range semanticHits {
-		if _, ok := sourceByID[hit.ID]; !ok {
-			sourceByID[hit.ID] = hit
-		}
-	}
 	for _, b := range breakdowns {
 		hit := sourceByID[b.ID]
 		fusedHits = append(fusedHits, studioFusedHit{rrfBreakdown: b, Title: hit.Source.Title, Datasource: hit.Source.Source.Name})
@@ -190,8 +221,7 @@ func (h *APIHandler) searchStudioTest(w http.ResponseWriter, req *http.Request, 
 		"size":      size,
 		"fuzziness": fuzziness,
 		"rrf":       cfg,
-		"text":      textResult,
-		"semantic":  semanticResult,
+		"routes":    routeResults,
 		"fused": util.MapStr{
 			"took_ms": tookMS,
 			"total":   len(fusedHits),

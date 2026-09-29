@@ -21,24 +21,42 @@ import (
 // parseRRFParams reads the fusion knobs from query parameters so the tuned
 // values travel with the request, not with server state.
 func (h *APIHandler) parseRRFParams(req *http.Request) RRFConfig {
-	cfg := RRFConfig{K: defaultRRFK, TextWeight: defaultRRFWeight, SemanticWeight: defaultRRFWeight}
-	parse := func(name string, dst *float64) {
+	cfg := RRFConfig{
+		K: defaultRRFK,
+		Weights: map[string]float64{
+			rrfRouteText:     defaultRRFWeight,
+			rrfRouteSemantic: defaultRRFWeight,
+			rrfRouteWiki:     defaultRRFWeight,
+		},
+	}
+	parse := func(name string) float64 {
+		var out float64
 		if v := h.GetParameterOrDefault(req, name, ""); v != "" {
 			if f, err := strconv.ParseFloat(strings.TrimSpace(v), 64); err == nil {
-				*dst = f
+				out = f
 			}
 		}
+		return out
 	}
-	parse("rrf_k", &cfg.K)
-	parse("text_weight", &cfg.TextWeight)
-	parse("semantic_weight", &cfg.SemanticWeight)
+	cfg.K = parse("rrf_k")
+	if w := parse("text_weight"); w != 0 {
+		cfg.Weights[rrfRouteText] = w
+	}
+	if w := parse("semantic_weight"); w != 0 {
+		cfg.Weights[rrfRouteSemantic] = w
+	}
+	if w := parse("wiki_weight"); w != 0 {
+		cfg.Weights[rrfRouteWiki] = w
+	}
 	return cfg.normalized()
 }
 
-// queryWithRRF executes the BM25 and kNN routes as two independent searches
-// (each carrying the full permission/document filters) and fuses the ranked
-// lists client-side, so the fusion is transparent and its parameters tunable
-// — unlike the engine-side hybrid query where the merge is opaque.
+// queryWithRRF executes every recall route as an independent search (each
+// carrying the full permission/document filters) and fuses the ranked lists
+// client-side, so the fusion is transparent and its parameters tunable —
+// unlike the engine-side hybrid query where the merge is opaque. Routes:
+// BM25 over documents, the semantic leg (engine query or client rerank per
+// the capability plan), and the curated wiki layer.
 func (h *APIHandler) queryWithRRF(req *http.Request, query, datasource, integrationID, category, subcategory, richCategory string, fuzziness int) (*elastic.SearchResponseWithMeta[core.Document], error) {
 	cfg := h.parseRRFParams(req)
 
@@ -52,36 +70,49 @@ func (h *APIHandler) queryWithRRF(req *http.Request, query, datasource, integrat
 	}
 	window := rrfRecallWindow(from, size)
 
-	textResp, err := h.rrfRoute(req, "keyword", query, datasource, integrationID, category, subcategory, richCategory, fuzziness, window)
-	if err != nil {
-		log.Warnf("hybrid_rrf: BM25 route failed: %v", err)
+	routes := []rrfRouteHits{}
+	var lastErr error
+	var total int64
+	var took int
+	var aggregations map[string]elastic.AggregationResponse
+
+	addRoute := func(name string, resp *elastic.SearchResponseWithMeta[core.Document], err error) {
+		if err != nil {
+			log.Warnf("hybrid_rrf: %s route failed: %v", name, err)
+			lastErr = err
+			return
+		}
+		if resp == nil {
+			return
+		}
+		if resp.GetTotal() > total {
+			total = resp.GetTotal()
+		}
+		took += resp.Took
+		if aggregations == nil && resp.Aggregations != nil {
+			aggregations = resp.Aggregations
+		}
+		routes = append(routes, rrfRouteHits{Name: name, Hits: resp.Hits.Hits})
 	}
-	semanticResp, err := h.rrfRoute(req, "semantic", query, datasource, integrationID, category, subcategory, richCategory, fuzziness, window)
-	if err != nil {
-		log.Warnf("hybrid_rrf: kNN route failed: %v", err)
-	}
+
+	resp, err := h.rrfRoute(req, "keyword", query, datasource, integrationID, category, subcategory, richCategory, fuzziness, window)
+	addRoute(rrfRouteText, resp, err)
+	resp, err = h.rrfRoute(req, "semantic", query, datasource, integrationID, category, subcategory, richCategory, fuzziness, window)
+	addRoute(rrfRouteSemantic, resp, err)
+	resp, err = h.wikiRoute(req, query, window)
+	addRoute(rrfRouteWiki, resp, err)
+
 	// One failing route (e.g. no embedding service for the query text)
-	// degrades to single-route fusion; only both failing is an error.
-	if textResp == nil && semanticResp == nil {
-		return nil, err
-	}
-	if textResp == nil {
-		textResp = &elastic.SearchResponseWithMeta[core.Document]{}
-	}
-	if semanticResp == nil {
-		semanticResp = &elastic.SearchResponseWithMeta[core.Document]{}
+	// degrades to fewer-route fusion; only all failing is an error.
+	if len(routes) == 0 {
+		return nil, lastErr
 	}
 
-	fused, _ := rrfFuse(textResp.Hits.Hits, semanticResp.Hits.Hits, cfg)
-
-	total := textResp.GetTotal()
-	if semanticResp.GetTotal() > total {
-		total = semanticResp.GetTotal()
-	}
+	fused, _ := rrfFuseMulti(routes, cfg)
 
 	out := &elastic.SearchResponseWithMeta[core.Document]{
-		Took:         textResp.Took + semanticResp.Took,
-		Aggregations: textResp.Aggregations,
+		Took:         took,
+		Aggregations: aggregations,
 	}
 	out.Hits.Total = elastic.NewGeneralTotal(total)
 

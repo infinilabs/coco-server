@@ -288,6 +288,8 @@ const page: App.I18n.Schema['translation']['page'] = {
     contribution: '各路贡献',
     textRoute: 'BM25 路',
     semanticRoute: 'kNN 路',
+    wikiRoute: '策展 Wiki',
+    weightOf: '{{route}} 权重',
     fusedTitle: 'RRF 融合结果',
     noResults: '无结果',
     empty: '输入查询并点「试跑」,查看两路召回的排名、原始分与融合得分'

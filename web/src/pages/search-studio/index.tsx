@@ -7,6 +7,7 @@ import { fetchDataSourceList } from '@/service/api/data-source';
 import {
   SearchStudioFusedHit,
   SearchStudioResult,
+  SearchStudioRouteResult,
   testSearchStudio
 } from '@/service/api/search-studio';
 
@@ -18,6 +19,13 @@ const fmtScore = (v: number | undefined) => {
 };
 
 const fmtMs = (v: number | undefined) => `${v ?? 0} ms`;
+
+// canonical route presentation: name, color, weight key and label key
+const ROUTE_META: { name: string; color: string; bg: string; weightKey: string; labelKey: string }[] = [
+  { name: 'text', color: 'blue', bg: 'bg-[#1784FC]', weightKey: 'text_weight', labelKey: 'page.searchStudio.textRoute' },
+  { name: 'semantic', color: 'purple', bg: 'bg-[#722ED1]', weightKey: 'semantic_weight', labelKey: 'page.searchStudio.semanticRoute' },
+  { name: 'wiki', color: 'green', bg: 'bg-[#52C41A]', weightKey: 'wiki_weight', labelKey: 'page.searchStudio.wikiRoute' }
+];
 
 export function Component() {
   const { t } = useTranslation();
@@ -32,8 +40,7 @@ export function Component() {
   const [size, setSize] = useState(10);
   const [fuzziness, setFuzziness] = useState(3);
   const [rrfK, setRrfK] = useState(60);
-  const [textWeight, setTextWeight] = useState(1);
-  const [semanticWeight, setSemanticWeight] = useState(1);
+  const [weights, setWeights] = useState<Record<string, number>>({ text: 1, semantic: 1, wiki: 1 });
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<SearchStudioResult | null>(null);
 
@@ -64,7 +71,12 @@ export function Component() {
         datasource: datasource.join(','),
         size,
         fuzziness,
-        rrf: { k: rrfK, text_weight: textWeight, semantic_weight: semanticWeight }
+        rrf: {
+          k: rrfK,
+          text_weight: weights.text,
+          semantic_weight: weights.semantic,
+          wiki_weight: weights.wiki
+        }
       });
       setResult((res?.data as SearchStudioResult) ?? null);
     } catch (e: any) {
@@ -72,7 +84,7 @@ export function Component() {
     } finally {
       setRunning(false);
     }
-  }, [query, datasource, size, fuzziness, rrfK, textWeight, semanticWeight, t]);
+  }, [query, datasource, size, fuzziness, rrfK, weights, t]);
 
   const routeColumns = useMemo(
     () => [
@@ -84,71 +96,74 @@ export function Component() {
     [t]
   );
 
-  const fusedColumns = useMemo(
-    () => [
+  const fusedColumns = useMemo(() => {
+    const cols: any[] = [
       { title: '#', width: 44, render: (_: any, __: any, index: number) => index + 1 },
-      { title: t('page.searchStudio.docTitle'), dataIndex: 'title', ellipsis: true, render: (v: string, r: SearchStudioFusedHit) => <Tooltip title={r.id}>{v || r.id}</Tooltip> },
-      {
-        title: 'BM25',
-        width: 150,
+      { title: t('page.searchStudio.docTitle'), dataIndex: 'title', ellipsis: true, render: (v: string, r: SearchStudioFusedHit) => <Tooltip title={r.id}>{v || r.id}</Tooltip> }
+    ];
+    for (const meta of ROUTE_META) {
+      cols.push({
+        title: t(meta.labelKey),
+        width: 130,
         render: (_: any, r: SearchStudioFusedHit) => (
           <Space size={4}>
-            <Tag color={r.text_rank ? 'blue' : 'default'}>#{r.text_rank || '—'}</Tag>
-            <span className="text-12px">{fmtScore(r.text_score)}</span>
+            <Tag color={r.ranks?.[meta.name] ? meta.color : 'default'}>#{r.ranks?.[meta.name] || '—'}</Tag>
           </Space>
         )
-      },
-      {
-        title: 'kNN',
-        width: 150,
-        render: (_: any, r: SearchStudioFusedHit) => (
-          <Space size={4}>
-            <Tag color={r.semantic_rank ? 'purple' : 'default'}>#{r.semantic_rank || '—'}</Tag>
-            <span className="text-12px">{fmtScore(r.semantic_score)}</span>
-          </Space>
-        )
-      },
-      {
-        title: t('page.searchStudio.contribution'),
-        width: 220,
-        render: (_: any, r: SearchStudioFusedHit) => (
-          <Tooltip title={`${t('page.searchStudio.textRoute')}: ${fmtScore(r.text_contribution)} · ${t('page.searchStudio.semanticRoute')}: ${fmtScore(r.semantic_contribution)}`}>
-            <div className="flex items-center gap-4px w-180px">
-              <div className="h-6px rounded-3px bg-[#1784FC] flex-none" style={{ width: `${(r.text_contribution / (r.score || 1)) * 100}%` }} />
-              <div className="h-6px rounded-3px bg-[#722ed1] flex-none" style={{ width: `${(r.semantic_contribution / (r.score || 1)) * 100}%` }} />
+      });
+    }
+    cols.push({
+      title: t('page.searchStudio.contribution'),
+      width: 240,
+      render: (_: any, r: SearchStudioFusedHit) => {
+        const total = r.score || 1;
+        return (
+          <Tooltip
+            title={ROUTE_META.filter((m) => r.contributions?.[m.name]).map((m) => `${t(m.labelKey)}: ${fmtScore(r.contributions[m.name])}`).join(' · ')}
+          >
+            <div className="flex items-center gap-2px w-200px">
+              {ROUTE_META.filter((m) => (r.contributions?.[m.name] ?? 0) > 0).map((m) => (
+                <div key={m.name} className={`h-6px rounded-3px ${m.bg} flex-none`} style={{ width: `${((r.contributions[m.name] ?? 0) / total) * 100}%` }} />
+              ))}
             </div>
           </Tooltip>
-        )
-      },
-      { title: 'RRF', dataIndex: 'score', width: 120, render: (v: number) => <strong>{fmtScore(v)}</strong> }
-    ],
-    [t]
-  );
+        );
+      }
+    });
+    cols.push({ title: 'RRF', dataIndex: 'score', width: 120, render: (v: number) => <strong>{fmtScore(v)}</strong> });
+    return cols;
+  }, [t]);
 
-  const routePanel = (title: string, color: string, route: SearchStudioResult['text'] | undefined) => (
+  const routePanel = (meta: (typeof ROUTE_META)[number], route: SearchStudioRouteResult | undefined) => (
     <Card
       size="small"
       title={
         <Space size={6}>
-          <span className={`inline-block w-8px h-8px rounded-4px ${color}`} />
-          {title}
+          <span className={`inline-block w-8px h-8px rounded-4px ${meta.bg}`} />
+          {t(meta.labelKey)}
+          {route?.route && (
+            <Tag color={route.route === 'engine' ? 'geekblue' : route.route === 'client' ? 'cyan' : 'default'}>{route.route}</Tag>
+          )}
         </Space>
       }
       extra={route ? <span className="text-12px text-gray-400">{fmtMs(route.took_ms)} · {route.total}</span> : null}
     >
       {route?.error ? (
         <Typography.Text type="danger">{route.error}</Typography.Text>
-      ) : (
-        <Table
-          rowKey="id"
-          size="small"
-          pagination={false}
-          scroll={{ y: 360 }}
-          columns={routeColumns}
-          dataSource={route?.hits ?? []}
-          locale={{ emptyText: t('page.searchStudio.noResults') }}
-        />
-      )}
+      ) : route?.note ? (
+        <div className="mb-8px">
+          <Typography.Text type="secondary" className="text-12px">{route.note}</Typography.Text>
+        </div>
+      ) : null}
+      <Table
+        rowKey="id"
+        size="small"
+        pagination={false}
+        scroll={{ y: 360 }}
+        columns={routeColumns}
+        dataSource={route?.hits ?? []}
+        locale={{ emptyText: t('page.searchStudio.noResults') }}
+      />
     </Card>
   );
 
@@ -204,18 +219,14 @@ export function Component() {
             <div className="text-13px mb-4px">RRF k</div>
             <InputNumber min={1} max={1000} style={{ width: '100%' }} value={rrfK} onChange={(v) => setRrfK(v ?? 60)} />
           </Col>
-          <Col span={12}>
-            <div className="text-13px mb-4px">
-              {t('page.searchStudio.textWeight')} <span className="text-[#1784FC]">{textWeight}</span>
-            </div>
-            <Slider min={0} max={5} step={0.1} value={textWeight} onChange={(v) => setTextWeight(v)} />
-          </Col>
-          <Col span={12}>
-            <div className="text-13px mb-4px">
-              {t('page.searchStudio.semanticWeight')} <span className="text-[#722ed1]">{semanticWeight}</span>
-            </div>
-            <Slider min={0} max={5} step={0.1} value={semanticWeight} onChange={(v) => setSemanticWeight(v)} />
-          </Col>
+          {ROUTE_META.map((meta) => (
+            <Col span={8} key={meta.name}>
+              <div className="text-13px mb-4px">
+                {t('page.searchStudio.weightOf', { route: t(meta.labelKey) })} <span className={meta.bg.replace('bg-[', 'text-[')}>{weights[meta.name] ?? 1}</span>
+              </div>
+              <Slider min={0} max={5} step={0.1} value={weights[meta.name] ?? 1} onChange={(v) => setWeights({ ...weights, [meta.name]: v })} />
+            </Col>
+          ))}
         </Row>
 
         <Typography.Text type="secondary" className="text-12px">
@@ -227,8 +238,10 @@ export function Component() {
         {result ? (
           <div className="flex flex-col gap-16px">
             <Row gutter={16}>
-              <Col span={12}>{routePanel(`BM25 · ${t('page.searchStudio.textRoute')}`, 'bg-[#1784FC]', result.text)}</Col>
-              <Col span={12}>{routePanel(`kNN · ${t('page.searchStudio.semanticRoute')}`, 'bg-[#722ed1]', result.semantic)}</Col>
+              {ROUTE_META.map((meta) => {
+                const route = result.routes?.find((r) => r.name === meta.name);
+                return <Col span={8} key={meta.name}>{routePanel(meta, route)}</Col>;
+              })}
             </Row>
             <Card
               size="small"
@@ -237,8 +250,11 @@ export function Component() {
                   <ArrowRight className="w-14px h-14px" />
                   {t('page.searchStudio.fusedTitle')}
                   <Tag color="gold">k={result.rrf.k}</Tag>
-                  <Tag color="blue">w={result.rrf.text_weight}</Tag>
-                  <Tag color="purple">w={result.rrf.semantic_weight}</Tag>
+                  {ROUTE_META.map((meta) => (
+                    <Tag key={meta.name} color={meta.color}>
+                      w={result.rrf.weights?.[meta.name] ?? 1}
+                    </Tag>
+                  ))}
                 </Space>
               }
               extra={

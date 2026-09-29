@@ -288,6 +288,8 @@ const page: App.I18n.Schema['translation']['page'] = {
     contribution: 'Contributions',
     textRoute: 'BM25 route',
     semanticRoute: 'kNN route',
+    wikiRoute: 'Curated wiki',
+    weightOf: '{{route}} weight',
     fusedTitle: 'RRF fused results',
     noResults: 'No results',
     empty: 'Enter a query and hit Run to see per-route ranks, raw scores and fused scores'

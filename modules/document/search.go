@@ -126,6 +126,11 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		//update icon
 		if docsSize > 0 {
 			for i := range result.Hits.Hits {
+				// wiki hits are curated pages: they carry their own article
+				// URL and provenance, the document refinement would clobber both
+				if result.Hits.Hits[i].Source.Source.ID == "wiki" {
+					continue
+				}
 				RefineDocument(req.Context(), &result.Hits.Hits[i].Source)
 			}
 		}

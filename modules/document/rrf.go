@@ -12,28 +12,77 @@ import (
 	"infini.sh/framework/core/elastic"
 )
 
-// RRFConfig controls how the BM25 route and the kNN route are fused with
-// Reciprocal Rank Fusion:
+// Route names in the multi-route fusion. Adding a route is: a name here, a
+// weight in RRFConfig.Weights, and hits from the route runner — the math
+// treats them all the same.
+const (
+	rrfRouteText     = "text"
+	rrfRouteSemantic = "semantic"
+	rrfRouteWiki     = "wiki"
+)
+
+// rrfRouteNames is the canonical order routes are listed and rendered in.
+var rrfRouteNames = []string{rrfRouteText, rrfRouteSemantic, rrfRouteWiki}
+
+// RRFConfig controls how the recall routes are fused with Reciprocal Rank
+// Fusion:
 //
-//	score(d) = text_weight/(k+rank_text(d)) + semantic_weight/(k+rank_semantic(d))
+//	score(d) = Σ_route weight_route/(k+rank_route(d))
 //
-// Ranks are 1-based; a document recalled by only one route simply gets no
-// contribution from the other. k smooths the influence of top ranks — the
-// classic default is 60.
+// Ranks are 1-based; a document recalled by only some routes simply gets no
+// contribution from the others. k smooths the influence of top ranks — the
+// classic default is 60. A weight of 0 deliberately mutes a route while
+// still returning its documents (zero contribution).
 type RRFConfig struct {
-	K              float64 `json:"k"`
-	TextWeight     float64 `json:"text_weight"`
-	SemanticWeight float64 `json:"semantic_weight"`
+	K       float64            `json:"k"`
+	Weights map[string]float64 `json:"weights"`
 }
 
 const (
 	defaultRRFK      = 60.0
 	defaultRRFWeight = 1.0
 	// maxRRFWindow bounds how many candidates each route fetches before
-	// fusion, so a hostile from/size cannot turn one search into two
+	// fusion, so a hostile from/size cannot turn one search into several
 	// unbounded scans.
 	maxRRFWindow = 200
 )
+
+func (c RRFConfig) normalized() RRFConfig {
+	if c.K < 1 {
+		c.K = defaultRRFK
+	}
+	if c.Weights == nil {
+		c.Weights = map[string]float64{}
+	}
+	for name, w := range c.Weights {
+		if w < 0 {
+			c.Weights[name] = defaultRRFWeight
+		}
+	}
+	allZero := len(c.Weights) > 0
+	for _, w := range c.Weights {
+		if w != 0 {
+			allZero = false
+			break
+		}
+	}
+	if len(c.Weights) == 0 || allZero {
+		c.Weights = map[string]float64{}
+		for _, name := range rrfRouteNames {
+			c.Weights[name] = defaultRRFWeight
+		}
+	}
+	return c
+}
+
+// weight returns the route's weight; routes absent from the map default to
+// the neutral weight so new routes join without touching every caller.
+func (c RRFConfig) weight(route string) float64 {
+	if w, ok := c.Weights[route]; ok {
+		return w
+	}
+	return defaultRRFWeight
+}
 
 // rrfRecallWindow returns how many candidates a fused route should fetch for
 // a page: the page span, capped by maxRRFWindow.
@@ -51,106 +100,93 @@ func rrfRecallWindow(from, size int) int {
 	return window
 }
 
-func (c RRFConfig) normalized() RRFConfig {
-	if c.K < 1 {
-		c.K = defaultRRFK
-	}
-	if c.TextWeight < 0 {
-		c.TextWeight = defaultRRFWeight
-	}
-	if c.SemanticWeight < 0 {
-		c.SemanticWeight = defaultRRFWeight
-	}
-	if c.TextWeight == 0 && c.SemanticWeight == 0 {
-		c.TextWeight = defaultRRFWeight
-		c.SemanticWeight = defaultRRFWeight
-	}
-	return c
-}
-
-// rrfBreakdown carries the per-route rank/score of one document plus its RRF
-// components; shared by the production fused search and the studio endpoint
-// so the numbers users tune with are the numbers production computes.
+// rrfBreakdown carries one document's per-route rank, raw score and RRF
+// contribution; shared by the production fused search and the studio
+// endpoint so the numbers users tune with are the numbers production
+// computes.
 type rrfBreakdown struct {
-	ID                   string  `json:"id"`
-	TextRank             int     `json:"text_rank"`     // 1-based, 0 = not recalled by BM25
-	SemanticRank         int     `json:"semantic_rank"` // 1-based, 0 = not recalled by kNN
-	TextScore            float64 `json:"text_score"`
-	SemanticScore        float64 `json:"semantic_score"`
-	TextContribution     float64 `json:"text_contribution"`
-	SemanticContribution float64 `json:"semantic_contribution"`
-	Score                float64 `json:"score"`
+	ID            string             `json:"id"`
+	Ranks         map[string]int     `json:"ranks"`         // route → 1-based rank; absent = not recalled
+	RouteScores   map[string]float64 `json:"route_scores"`  // route → the route's own score
+	Contributions map[string]float64 `json:"contributions"` // route → weight/(k+rank)
+	Score         float64            `json:"score"`
 }
 
-// rrfFuse ranks the two routes' hit lists with RRF. The returned hits keep
-// the _source of the better-ranked occurrence (text route wins ties), with
-// _score replaced by the fused score; the breakdown slice is parallel and
-// sorted identically.
-func rrfFuse(textHits, semanticHits []elastic.DocumentWithMeta[core.Document], cfg RRFConfig) ([]elastic.DocumentWithMeta[core.Document], []rrfBreakdown) {
+// rrfRouteHits is one route's ranked list.
+type rrfRouteHits struct {
+	Name string
+	Hits []elastic.DocumentWithMeta[core.Document]
+}
+
+// rrfFuseMulti ranks the routes' hit lists with RRF. The returned hits keep
+// the _source of the first route (in route order) that recalled the
+// document, with _score replaced by the fused score; the breakdown slice is
+// parallel and sorted identically. Ties break toward documents recalled by
+// more routes, then by the best rank any route gave, then by ID for
+// deterministic output.
+func rrfFuseMulti(routes []rrfRouteHits, cfg RRFConfig) ([]elastic.DocumentWithMeta[core.Document], []rrfBreakdown) {
 	cfg = cfg.normalized()
 
 	type entry struct {
 		breakdown rrfBreakdown
 		hit       elastic.DocumentWithMeta[core.Document]
 	}
-	byID := make(map[string]*entry, len(textHits)+len(semanticHits))
-	order := make([]*entry, 0, len(textHits)+len(semanticHits))
+	byID := map[string]*entry{}
+	order := make([]*entry, 0)
 
-	get := func(hit elastic.DocumentWithMeta[core.Document]) *entry {
-		if e, ok := byID[hit.ID]; ok {
-			return e
-		}
-		e := &entry{}
-		byID[hit.ID] = e
-		order = append(order, e)
-		return e
-	}
-
-	for i, hit := range textHits {
-		e := get(hit)
-		e.breakdown.ID = hit.ID
-		e.breakdown.TextRank = i + 1
-		e.breakdown.TextScore = float64(hit.Score)
-		e.hit = hit
-	}
-	for i, hit := range semanticHits {
-		e := get(hit)
-		e.breakdown.ID = hit.ID
-		e.breakdown.SemanticRank = i + 1
-		e.breakdown.SemanticScore = float64(hit.Score)
-		if e.hit.ID == "" {
-			e.hit = hit
+	for _, route := range routes {
+		for i, hit := range route.Hits {
+			e, ok := byID[hit.ID]
+			if !ok {
+				e = &entry{}
+				e.breakdown = rrfBreakdown{
+					ID:            hit.ID,
+					Ranks:         map[string]int{},
+					RouteScores:   map[string]float64{},
+					Contributions: map[string]float64{},
+				}
+				byID[hit.ID] = e
+				order = append(order, e)
+			}
+			e.breakdown.Ranks[route.Name] = i + 1
+			e.breakdown.RouteScores[route.Name] = float64(hit.Score)
+			if e.hit.ID == "" {
+				e.hit = hit
+			}
 		}
 	}
 
 	for _, e := range order {
-		if e.breakdown.TextRank > 0 {
-			e.breakdown.TextContribution = cfg.TextWeight / (cfg.K + float64(e.breakdown.TextRank))
+		for route, rank := range e.breakdown.Ranks {
+			w := cfg.weight(route)
+			e.breakdown.Contributions[route] = w / (cfg.K + float64(rank))
 		}
-		if e.breakdown.SemanticRank > 0 {
-			e.breakdown.SemanticContribution = cfg.SemanticWeight / (cfg.K + float64(e.breakdown.SemanticRank))
+		e.breakdown.Score = 0
+		for _, c := range e.breakdown.Contributions {
+			e.breakdown.Score += c
 		}
-		e.breakdown.Score = e.breakdown.TextContribution + e.breakdown.SemanticContribution
 		e.hit.Score = float32(e.breakdown.Score)
 	}
 
-	// Sort by fused score; prefer documents recalled by both routes, then
-	// by the better text rank, then by ID for deterministic output.
 	sort.SliceStable(order, func(i, j int) bool {
 		a, b := order[i].breakdown, order[j].breakdown
 		if a.Score != b.Score {
 			return a.Score > b.Score
 		}
-		aBoth := a.TextRank > 0 && a.SemanticRank > 0
-		bBoth := b.TextRank > 0 && b.SemanticRank > 0
-		if aBoth != bBoth {
-			return aBoth
+		if len(a.Ranks) != len(b.Ranks) {
+			return len(a.Ranks) > len(b.Ranks) // recalled by more routes wins
 		}
-		if (a.TextRank > 0) != (b.TextRank > 0) {
-			return a.TextRank > 0
+		bestRank := func(r map[string]int) int {
+			best := 0
+			for _, rank := range r {
+				if best == 0 || rank < best {
+					best = rank
+				}
+			}
+			return best
 		}
-		if a.TextRank != b.TextRank {
-			return a.TextRank < b.TextRank
+		if ba, bb := bestRank(a.Ranks), bestRank(b.Ranks); ba != bb {
+			return ba < bb
 		}
 		return a.ID < b.ID
 	})
