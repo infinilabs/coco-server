@@ -213,7 +213,7 @@ func (h *APIHandler) graphRoute(req *http.Request, query string, window int) (*e
 	seeds := recognizeGraphSeeds(query, entities)
 	if len(seeds) == 0 {
 		out := &elastic.SearchResponseWithMeta[core.Document]{}
-		out.Hits.Total = elastic.NewGeneralTotal(0)
+		out.Hits.Total = map[string]interface{}{"value": int64(0), "relation": "eq"}
 		return out, "no entity recognized in query", nil
 	}
 
@@ -268,7 +268,7 @@ func (h *APIHandler) graphRoute(req *http.Request, query string, window int) (*e
 
 	out := &elastic.SearchResponseWithMeta[core.Document]{}
 	if len(refs) == 0 {
-		out.Hits.Total = elastic.NewGeneralTotal(0)
+		out.Hits.Total = map[string]interface{}{"value": int64(0), "relation": "eq"}
 		return out, graphRouteNote(seeds), nil
 	}
 
@@ -305,7 +305,7 @@ func (h *APIHandler) graphRoute(req *http.Request, query string, window int) (*e
 		out.Hits.Hits = append(out.Hits.Hits, hit)
 		rank++
 	}
-	out.Hits.Total = elastic.NewGeneralTotal(int64(len(out.Hits.Hits)))
+	out.Hits.Total = map[string]interface{}{"value": int64(len(out.Hits.Hits)), "relation": "eq"}
 	return out, graphRouteNote(seeds), nil
 }
 

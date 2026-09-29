@@ -133,6 +133,9 @@ func (h *APIHandler) wikiRoute(req *http.Request, query string, window int) (*el
 		}
 		out.Hits.Hits = append(out.Hits.Hits, wikiArticleToHit(&articles[i], float32(window-i)))
 	}
-	out.Hits.Total = elastic.NewGeneralTotal(int64(len(out.Hits.Hits)))
+	// a plain map, not util.MapStr: GetTotal's type switch matches
+	// map[string]interface{} only, a named type would read as zero and the
+	// route's count would vanish from the fused total
+	out.Hits.Total = map[string]interface{}{"value": int64(len(out.Hits.Hits)), "relation": "eq"}
 	return out, nil
 }

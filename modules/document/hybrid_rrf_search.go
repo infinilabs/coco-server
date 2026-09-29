@@ -119,7 +119,9 @@ func (h *APIHandler) queryWithRRF(req *http.Request, query, datasource, integrat
 		Took:         took,
 		Aggregations: aggregations,
 	}
-	out.Hits.Total = elastic.NewGeneralTotal(total)
+	// plain map: GetTotal's type switch does not recognize util.MapStr, a
+	// named type would read as -1 and break the zero-hit telemetry
+	out.Hits.Total = map[string]interface{}{"value": total, "relation": "eq"}
 
 	end := from + size
 	if end > len(fused) {

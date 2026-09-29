@@ -469,6 +469,10 @@ func (h *APIHandler) searchDocs(w http.ResponseWriter, req *http.Request, ps htt
 	result := elastic.SearchResponseWithMeta[core.Document]{}
 	util.MustFromJSONBytes(res.Payload.([]byte), &result)
 
+	// same-content copies collapse onto the highest-ranked hit with a
+	// "N more copies" note (D1.5), same as the app-search path
+	result.Hits.Hits = foldDuplicateHits(result.Hits.Hits)
+
 	nDocs := len(result.Hits.Hits)
 	if nDocs > 0 {
 		for i := range result.Hits.Hits {

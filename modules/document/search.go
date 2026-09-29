@@ -56,6 +56,9 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 
 		result := elastic.SearchResponseWithMeta[core.Document]{}
 		rerankNote := ""
+		// note travels to the client in the Warning header: the semantic
+		// leg is transparent about which route actually ran.
+		note := ""
 		if searchType == "hybrid_rrf" {
 			fused, note, err := h.queryWithRRF(req, query, datasource, integrationID, category, subcategory, richCategory, fuzziness)
 			if err != nil {
@@ -71,9 +74,6 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 			}
 			builder.EnableBodyBytes()
 
-			// note travels to the client in the Warning header: the semantic
-			// leg is transparent about which route actually ran.
-			note := ""
 			writeResult := func(resp *orm.SimpleResult) {
 				util.MustFromJSONBytes(resp.Raw, &result)
 			}
@@ -121,10 +121,13 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 				writeResult(resp)
 			}
 
-			for _, n := range []string{note, rerankNote} {
-				if n != "" {
-					w.Header().Add("Warning", n)
-				}
+		}
+
+		// both branches may carry a note: the semantic plan (which route
+		// actually ran) and the rerank verdict (applied/degraded)
+		for _, n := range []string{note, rerankNote} {
+			if n != "" {
+				w.Header().Add("Warning", n)
 			}
 		}
 
@@ -186,8 +189,10 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 
 		// telemetry (P2/D5): what was asked, which strategy ran, what came
 		// back and how long it took — the overview and the knowledge-gap
-		// loop are built on it; async so the search never waits on it
-		go recordSearchLog(req.Context(), query, searchType, reqUser.UserID,
+		// loop are built on it; async so the search never waits on it.
+		// WithoutCancel: the goroutine outlives the request, a canceled
+		// request context would kill the log write and the gap check
+		go recordSearchLog(context.WithoutCancel(req.Context()), query, searchType, reqUser.UserID,
 			result.GetTotal(), time.Since(searchStarted))
 
 		api.WriteJSON(w, result, 200)
