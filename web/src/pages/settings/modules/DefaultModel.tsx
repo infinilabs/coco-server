@@ -240,7 +240,7 @@ const DefaultModel = memo(() => {
 
 export default DefaultModel;
 
-const ModelSelectItem = ({ label, desc, name, modelProviderList = [], type, onRefresh }: { label: string, desc?: string, name: string, modelProviderList?: any[], type?: string, onRefresh?: () => void }) => {
+export const ModelSelectItem = ({ label, desc, name, modelProviderList = [], type, onRefresh }: { label: string, desc?: string, name: string, modelProviderList?: any[], type?: string, onRefresh?: () => void }) => {
 
   const providers = useMemo(() => {
     if (!type) return modelProviderList;

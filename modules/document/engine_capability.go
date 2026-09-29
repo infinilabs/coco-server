@@ -14,6 +14,7 @@ import (
 	log "github.com/cihub/seelog"
 
 	"infini.sh/coco/core"
+	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/elastic"
 	"infini.sh/framework/core/orm"
@@ -56,6 +57,8 @@ func classifyEngineSemanticError(errText string) (EngineVectorCapability, bool) 
 		return EngineVectorCapability{Available: false, Reason: "engine embedding service is not configured"}, true
 	case strings.Contains(l, "[semantic]"), strings.Contains(l, "query does not support"), strings.Contains(l, "parsing_exception"), strings.Contains(l, "unknown token"):
 		return EngineVectorCapability{Available: false, Reason: "engine rejected the semantic query"}, true
+	case strings.Contains(l, "is not defined"):
+		return EngineVectorCapability{Available: false, Reason: "engine search pipeline is not defined (sync the Engine AI settings)"}, true
 	default:
 		return EngineVectorCapability{Available: false, Reason: trimReason(errText)}, false
 	}
@@ -69,14 +72,33 @@ func trimReason(s string) string {
 	return s
 }
 
+// engineSearchPipelineName returns the search pipeline the semantic leg
+// should run through: set only when Engine AI is enabled and its model
+// resolves — an enabled-but-unsynced config would fail every semantic query
+// with "pipeline is not defined", which the probe then reports honestly.
+func engineSearchPipelineName() string {
+	cfg := common.AppConfig().EngineAI
+	if cfg == nil || !cfg.Enabled {
+		return ""
+	}
+	if plan, err := common.ResolveEngineAIPlan(cfg); err == nil && plan.Model != nil {
+		return core.EngineSearchPipelineName
+	}
+	return ""
+}
+
 // probeEngineSemantic runs a size-0 semantic query against the document index
 // and reports what the engine said. It bypasses document permission filters:
 // no hits are fetched and no user data is returned, this is a pure engine
-// capability check.
+// capability check. When Engine AI is enabled the canary runs through the
+// managed search pipeline, matching how production searches execute.
 func probeEngineSemantic(ctx context.Context) EngineVectorCapability {
 	octx := orm.NewContextWithParent(ctx)
 	octx.DirectReadAccess()
 	orm.WithModel(octx, &core.Document{})
+	if name := engineSearchPipelineName(); name != "" {
+		orm.WithQueryArgs(octx, &[]util.KV{{Key: "search_pipeline", Value: name}})
+	}
 
 	builder := orm.NewQuery().Size(0)
 	builder.Must(orm.SemanticQuery(documentEmbeddingField(), "coco engine capability probe", 0, ""))
@@ -128,6 +150,15 @@ func isDefinitiveCapability(cap EngineVectorCapability) bool {
 	return false
 }
 
+// resetEngineCapabilityCache drops the cached probe verdict so the next
+// search re-probes immediately (used after a pipeline sync).
+func resetEngineCapabilityCache() {
+	engineCapabilityMu.Lock()
+	engineCapabilityCached = nil
+	engineCapabilityUntil = time.Time{}
+	engineCapabilityMu.Unlock()
+}
+
 // engineSemanticReady tells whether the engine-side semantic query can run.
 func engineSemanticReady(ctx context.Context) bool {
 	return engineVectorCapability(ctx).Available
@@ -153,12 +184,93 @@ func (h *APIHandler) engineCapabilityReport(w http.ResponseWriter, req *http.Req
 			"engine":          plan.Engine,
 			"embedding_model": model,
 		},
-		"vector_field": documentEmbeddingField(),
+		"vector_field":    documentEmbeddingField(),
+		"search_pipeline": engineSearchPipelineName(),
 		"documents": util.MapStr{
 			"total":        total,
 			"with_vectors": withVectors,
 		},
 	}, http.StatusOK)
+}
+
+// engineAIStatusResponse is the read-back (回显) surface: what Coco wants,
+// what the engine actually has, and whether they match.
+func (h *APIHandler) engineAIStatusResponse(ctx context.Context) util.MapStr {
+	cfg := common.AppConfig().EngineAI
+	plan, err := common.ResolveEngineAIPlan(cfg)
+	if err != nil {
+		return util.MapStr{"error": err.Error(), "enabled": cfg != nil && cfg.Enabled}
+	}
+	actual := common.ReadEnginePipelines(ctx, plan)
+	drift := common.CompareEnginePipelines(plan, actual)
+
+	status := util.MapStr{
+		"enabled":  plan.Enabled,
+		"config":   plan.Config,
+		"warnings": plan.Warnings,
+		"ingest_pipeline": util.MapStr{
+			"name":    core.EngineIngestPipelineName,
+			"desired": common.MaskEngineAISecret(plan.IngestPipeline),
+			"actual":  actual.IngestPipeline,
+			"in_sync": drift.IngestInSync,
+		},
+		"search_pipeline": util.MapStr{
+			"name":    core.EngineSearchPipelineName,
+			"desired": common.MaskEngineAISecret(plan.SearchPipeline),
+			"actual":  actual.SearchPipeline,
+			"in_sync": drift.SearchInSync,
+		},
+		"document_index": util.MapStr{
+			"name":             plan.DocumentIndex,
+			"default_pipeline": actual.DefaultPipeline,
+			"expected":         core.EngineIngestPipelineName,
+			"in_sync":          drift.DefaultInSync,
+		},
+		"in_sync": drift.Applied,
+	}
+	if len(actual.Errors) > 0 {
+		status["engine_errors"] = actual.Errors
+	}
+	if plan.Model != nil {
+		status["model"] = util.MapStr{
+			"provider_id":  plan.Model.ProviderID,
+			"id":           plan.Model.ID,
+			"vendor":       plan.Vendor,
+			"url":          plan.EmbeddingURL,
+			"text_field":   plan.TextField,
+			"vector_field": plan.VectorField,
+		}
+	}
+	return status
+}
+
+// engineAIStatus answers "what is deployed and does it match the config".
+func (h *APIHandler) engineAIStatus(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	h.WriteJSON(w, h.engineAIStatusResponse(req.Context()), http.StatusOK)
+}
+
+// engineAISync pushes the resolved plan to the engine and answers with the
+// fresh status — configure, update and echo-back in one call.
+func (h *APIHandler) engineAISync(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	cfg := common.AppConfig().EngineAI
+	plan, err := common.ResolveEngineAIPlan(cfg)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if plan.Model == nil {
+		h.WriteError(w, "no embedding model configured", http.StatusBadRequest)
+		return
+	}
+	if err := common.ApplyEnginePipelines(req.Context(), plan); err != nil {
+		log.Warnf("engine_ai: manual sync failed: %v", err)
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	// The probe caches a verdict for up to a minute; a fresh sync flips the
+	// engine to available immediately, so drop the cache.
+	resetEngineCapabilityCache()
+	h.WriteJSON(w, h.engineAIStatusResponse(req.Context()), http.StatusOK)
 }
 
 // countDocuments returns the document total and how many carry the semantic

@@ -59,6 +59,10 @@ func init() {
 	//what the search stack can do right now: resolved semantic route, engine
 	//probe verdict, embedding model, vectorized document coverage
 	api.HandleUIMethod(api.GET, "/search/engine-capability", handler.engineCapabilityReport, api.RequirePermission(searchStudioPermission))
+	//engine AI curation: read back the managed pipelines and their drift, and
+	//push the current config to the engine on demand
+	api.HandleUIMethod(api.GET, "/search/engine-ai", handler.engineAIStatus, api.RequirePermission(searchStudioPermission))
+	api.HandleUIMethod(api.POST, "/search/engine-ai/sync", handler.engineAISync, api.RequirePermission(searchStudioPermission))
 
 	api.HandleUIMethod(api.OPTIONS, "/field_meta/:field_name", handler.getFieldMeta, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
 	api.HandleUIMethod(api.GET, "/field_meta/:field_name", handler.getFieldMeta, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))

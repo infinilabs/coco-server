@@ -7,6 +7,7 @@ import SearchSettings from './modules/SearchSettings';
 import DefaultModel from './modules/DefaultModel';
 import DocProcessing from './modules/DocProcessing';
 import DataSecurity from './modules/DataSecurity';
+import EngineAI from './modules/EngineAI';
 
 export function Component() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -58,6 +59,11 @@ export function Component() {
       component: DataSecurity,
       key: 'data_security',
       label: t(`page.settings.data_security.title`),
+    })
+    items.push({
+      component: EngineAI,
+      key: 'engine_ai',
+      label: t(`page.settings.engine_ai.title`),
     })
   }
 

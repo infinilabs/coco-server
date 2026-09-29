@@ -5,6 +5,7 @@
 package system
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -106,6 +107,17 @@ var settingsSections = []struct {
 			return mergeSection(old.DataSecurity, incoming.DataSecurity, func(v *core.DataSecurity) { old.DataSecurity = v })
 		},
 	},
+	{
+		name: "engine_ai",
+		apply: func(incoming, old *core.Config) error {
+			if incoming.EngineAI != nil {
+				if err := validateEngineAI(incoming.EngineAI); err != nil {
+					return err
+				}
+			}
+			return mergeSection(old.EngineAI, incoming.EngineAI, func(v *core.EngineAI) { old.EngineAI = v })
+		},
+	},
 }
 
 func (h *APIHandler) updateServerSettings(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -124,7 +136,49 @@ func (h *APIHandler) updateServerSettings(w http.ResponseWriter, req *http.Reque
 		}
 	}
 	common.SetAppConfig(&oldAppConfig)
+
+	// Engine AI is save-then-sync: the settings persist regardless of engine
+	// state, and the pipelines are pushed best-effort in the background —
+	// /search/engine-ai reports drift if this push does not land.
+	if cfg := oldAppConfig.EngineAI; cfg != nil && cfg.Enabled {
+		go func(cfg *core.EngineAI) {
+			plan, err := common.ResolveEngineAIPlan(cfg)
+			if err != nil {
+				log.Warnf("engine_ai: resolve failed: %v", err)
+				return
+			}
+			if err := common.ApplyEnginePipelines(context.Background(), plan); err != nil {
+				log.Warnf("engine_ai: pipeline sync failed: %v", err)
+			} else {
+				log.Info("engine_ai: engine pipelines synced")
+			}
+		}(cfg)
+	}
+
 	h.WriteAckOKJSON(w)
+}
+
+// validateEngineAI checks that an enabled EngineAI section can actually be
+// turned into engine pipelines: the model must resolve to an existing
+// provider, and the knobs must stay in sane ranges.
+func validateEngineAI(cfg *core.EngineAI) error {
+	if !cfg.Enabled {
+		return nil
+	}
+	if cfg.BatchSize < 0 || cfg.BatchSize > 100 {
+		return fmt.Errorf("batch_size must be between 0 and 100")
+	}
+	if cfg.RankConstant < 0 || cfg.RankConstant > 1000 {
+		return fmt.Errorf("rank_constant must be between 0 and 1000")
+	}
+	plan, err := common.ResolveEngineAIPlan(cfg)
+	if err != nil {
+		return err
+	}
+	if plan.Model == nil {
+		return fmt.Errorf("no embedding model: set engine_ai.embedding_model or default_model.embedding_model")
+	}
+	return nil
 }
 
 // validateDefaultModel checks that role-specific models resolve to language

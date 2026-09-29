@@ -116,6 +116,15 @@ func reloadConfig() {
 			}
 		}
 
+		buf, _ = kv.GetValue(core.DefaultSettingBucketKey, []byte(core.DefaultEngineAIKey))
+		if buf != nil {
+			engineAI := &core.EngineAI{}
+			err := util.FromJSONBytes(buf, engineAI)
+			if err == nil {
+				config.EngineAI = engineAI
+			}
+		}
+
 		filebasedConfig, _ := AppConfigFromFile()
 		if filebasedConfig != nil {
 			//protect fields on managed mode
@@ -166,6 +175,7 @@ func SetAppConfig(c *core.Config) {
 	}
 	//save data-security config
 	err = kv.AddValue(core.DefaultSettingBucketKey, []byte(core.DefaultDataSecurityKey), util.MustToJSONBytes(c.DataSecurity))
+	err = kv.AddValue(core.DefaultSettingBucketKey, []byte(core.DefaultEngineAIKey), util.MustToJSONBytes(c.EngineAI))
 	if err != nil {
 		panic(err)
 	}

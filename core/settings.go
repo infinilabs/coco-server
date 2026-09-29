@@ -11,6 +11,7 @@ type Config struct {
 	DefaultModel       *DefaultModel       `config:"default_model" json:"default_model,omitempty"`
 	DocumentProcessing *DocumentProcessing `config:"document_processing" json:"document_processing,omitempty"`
 	DataSecurity       *DataSecurity       `config:"data_security" json:"data_security,omitempty"`
+	EngineAI           *EngineAI           `config:"engine_ai" json:"engine_ai,omitempty"`
 }
 
 type AppSettings struct {
@@ -102,4 +103,36 @@ type FieldAccessSettings struct {
 type FieldRestriction struct {
 	Role          string   `json:"role"`
 	ExcludeFields []string `json:"exclude_fields,omitempty"`
+}
+
+// Names of the engine pipelines Coco manages. Stable so operators can find
+// them on the engine; the description marks them Coco-managed.
+const (
+	EngineIngestPipelineName = "coco-embedding"
+	EngineSearchPipelineName = "coco-semantic-rrf"
+	// EngineAITextFieldDefault is the field the text_embedding processor reads.
+	EngineAITextFieldDefault = "ai_insights.text"
+)
+
+// Settings under the "Engine AI" tab: the AI capabilities Coco curates onto
+// the backing engine. Coco generates the engine's ingest pipeline
+// (text_embedding) and search pipeline (semantic_query_enricher +
+// hybrid_ranker_processor) from these values plus the referenced model
+// provider, keeps them in sync, and passes the search pipeline on
+// semantic/hybrid searches — one model config in Coco, applied at both
+// ingest time and query time on the engine.
+type EngineAI struct {
+	Enabled bool `json:"enabled"`
+	// EmbeddingModel selects the Coco model provider used for both engine
+	// pipelines. Falls back to DefaultModel.EmbeddingModel when empty.
+	EmbeddingModel *ModelId `config:"embedding_model" json:"embedding_model,omitempty"`
+	// TextField is what the ingest-side text_embedding processor embeds.
+	TextField string `config:"text_field" json:"text_field,omitempty"`
+	// VectorField is where the ingest processor writes vectors; defaults to
+	// the semantic search field derived from RequiredEmbeddingDimension.
+	VectorField string `config:"vector_field" json:"vector_field,omitempty"`
+	// BatchSize batches inputs per embedding call at ingest time.
+	BatchSize int `config:"batch_size" json:"batch_size,omitempty"`
+	// RankConstant is the k of the engine-side RRF fusion.
+	RankConstant int `config:"rank_constant" json:"rank_constant,omitempty"`
 }

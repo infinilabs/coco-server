@@ -16,6 +16,7 @@ const DefaultSearchSettingsKey = "default_search_settings"
 const DefaultModelKey = "default_model"
 const DefaultDocumentProcessingKey = "default_document_processing"
 const DefaultDataSecurityKey = "default_data_security"
+const DefaultEngineAIKey = "default_engine_ai"
 
 const AttachmentKVBucket = "file_attachments"
 const AttachmentStatsBucket = "attachment_stats"

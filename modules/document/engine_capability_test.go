@@ -8,19 +8,9 @@ import (
 	"context"
 	"strings"
 	"testing"
-	"time"
 
 	"infini.sh/coco/core"
 )
-
-// resetEngineCapabilityCache clears the probe cache so test scenarios are
-// independent of each other's cached verdicts.
-func resetEngineCapabilityCache() {
-	engineCapabilityMu.Lock()
-	engineCapabilityCached = nil
-	engineCapabilityUntil = time.Time{}
-	engineCapabilityMu.Unlock()
-}
 
 func TestClassifyEngineSemanticError(t *testing.T) {
 	cases := []struct {

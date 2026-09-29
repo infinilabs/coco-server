@@ -16,6 +16,22 @@ export function fetchProviderInfo() {
 }
 
 /** Get settings */
+/** Read back the engine AI pipelines Coco manages: desired vs deployed + drift */
+export function fetchEngineAIStatus() {
+  return request({
+    method: 'get',
+    url: '/search/engine-ai'
+  });
+}
+
+/** Push the Engine AI settings to the engine and return the fresh status */
+export function syncEngineAI() {
+  return request({
+    method: 'post',
+    url: '/search/engine-ai/sync'
+  });
+}
+
 export function fetchSettings() {
   return request({
     method: 'get',

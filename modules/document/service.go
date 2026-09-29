@@ -202,6 +202,15 @@ func QueryDocuments(ctx1 context.Context, builder *orm.QueryBuilder, query strin
 	ctx := orm.NewContextWithParent(ctx1)
 	ctx.DirectReadAccess()
 
+	// The engine-side semantic leg runs through the Coco-managed search
+	// pipeline (query enrichment + RRF fusion); attach it whenever that leg
+	// is actually taken.
+	if effectiveSearchType == "semantic" || effectiveSearchType == "hybrid" {
+		if name := engineSearchPipelineName(); name != "" {
+			orm.WithQueryArgs(ctx, &[]util.KV{{Key: "search_pipeline", Value: name}})
+		}
+	}
+
 	orm.WithModel(ctx, &core.Document{})
 	log.Trace(builder.ToString())
 

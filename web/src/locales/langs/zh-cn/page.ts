@@ -1306,6 +1306,35 @@ const page: App.I18n.Schema['translation']['page'] = {
       },
       title: '默认模型'
     },
+    engine_ai: {
+      title: '引擎 AI',
+      labels: {
+        engine_ai: '引擎 AI 能力',
+        engine_ai_desc: 'Coco 统一策展引擎的 AI 管道:文档入库时由引擎向量化,语义/混合检索由引擎完成融合——模型在此配置一次,写入与查询两侧同时生效',
+        enabled: '启用引擎 AI',
+        embedding_model: 'Embedding 模型',
+        embedding_model_desc: '两条引擎管道共用;留空时回落到默认 Embedding 模型',
+        batch_size: '入库批量',
+        batch_size_desc: '入库时每次嵌入调用合并的输入数',
+        rank_constant: 'RRF 融合常数',
+        rank_constant_desc: '引擎侧 RRF 融合的 k 值(得分 = 1/(k+排名))',
+        text_field: '文本字段',
+        vector_field: '向量字段'
+      },
+      status: {
+        title: '引擎同步状态',
+        in_sync: '已同步',
+        out_of_sync: '未同步',
+        desired: '期望配置(Coco 生成)',
+        actual: '引擎已部署',
+        ingest_pipeline: '入库管道',
+        search_pipeline: '检索管道',
+        document_index: '文档索引',
+        callout: '引擎调用地址',
+        sync_now: '立即同步到引擎',
+        synced: '引擎管道已同步'
+      }
+    },
     data_security: {
       title: '数据安全',
       maskingTitle: '动态脱敏',
