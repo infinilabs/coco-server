@@ -1,4 +1,5 @@
 import Tips, { SUGGESTION_TIPS } from "./Tips";
+import RecentSearches from "./RecentSearches";
 import Keywords, { SUGGESTION_KEYWORDS } from "./Keywords";
 import FilterFields, { SUGGESTION_FILTER_FIELDS } from "./FilterFields";
 import FilterValues, { SUGGESTION_FILTER_VALUES } from "./FilterValues";
@@ -57,7 +58,17 @@ const Suggestions: FC<SuggestionsProps> = ({
 
   switch (type) {
     case SUGGESTION_TIPS:
-      return <Tips />;
+      return (
+        <>
+          <RecentSearches
+            onSelect={(query) => {
+              handleQueryParamsChange('query', query);
+              handleSearch(query, filters, action_type, search_type || '');
+            }}
+          />
+          <Tips />
+        </>
+      );
     case SUGGESTION_KEYWORDS:
       return (
         <Keywords

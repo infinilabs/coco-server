@@ -10,6 +10,8 @@ type Config struct {
 	SearchSettings     *SearchSettings     `config:"search_settings" json:"search_settings,omitempty"`
 	DefaultModel       *DefaultModel       `config:"default_model" json:"default_model,omitempty"`
 	DocumentProcessing *DocumentProcessing `config:"document_processing" json:"document_processing,omitempty"`
+	DataSecurity       *DataSecurity       `config:"data_security" json:"data_security,omitempty"`
+	EngineAI           *EngineAI           `config:"engine_ai" json:"engine_ai,omitempty"`
 }
 
 type AppSettings struct {
@@ -40,6 +42,7 @@ type DefaultModel struct {
 	LanguageModel  *ModelId `config:"language_model" json:"language_model,omitempty"`
 	VisionModel    *ModelId `config:"vision_model" json:"vision_model,omitempty"`
 	EmbeddingModel *ModelId `config:"embedding_model" json:"embedding_model,omitempty"`
+	RerankModel    *ModelId `config:"rerank_model" json:"rerank_model,omitempty"`
 
 	/*
 	 * Models used during chatting with various assistants.
@@ -67,4 +70,70 @@ type DocumentProcessing struct {
 	// content (summaries, tags, etc.) when no per-pipeline override is set.
 	// Expected to be a BCP 47 tag, e.g. "en-US", "zh-CN".
 	LLMGenerationLanguage string `config:"llm_generation_language" json:"llm_generation_language,omitempty"`
+}
+
+// Settings under the "Data Security" tab: dynamic content masking before
+// recalled documents are handed to a model, and field-level access
+// restrictions layered on top of the existing index/document sharing.
+type DataSecurity struct {
+	Masking     *MaskingSettings     `config:"masking" json:"masking,omitempty"`
+	FieldAccess *FieldAccessSettings `config:"field_access" json:"field_access,omitempty"`
+}
+
+type MaskingSettings struct {
+	Enabled bool          `json:"enabled"`
+	Rules   []MaskingRule `json:"rules,omitempty"`
+}
+
+// MaskingRule is one regex substitution applied to document content on its
+// way into a model prompt. Patterns use Go's RE2 syntax.
+type MaskingRule struct {
+	ID          string `json:"id,omitempty"`
+	Name        string `json:"name,omitempty"`
+	Pattern     string `json:"pattern"`
+	Replacement string `json:"replacement,omitempty"`
+	Enabled     bool   `json:"enabled"`
+}
+
+type FieldAccessSettings struct {
+	// One entry per role; a user matching several roles gets the union of
+	// the excluded fields.
+	Restrictions []FieldRestriction `json:"restrictions,omitempty"`
+}
+
+type FieldRestriction struct {
+	Role          string   `json:"role"`
+	ExcludeFields []string `json:"exclude_fields,omitempty"`
+}
+
+// Names of the engine pipelines Coco manages. Stable so operators can find
+// them on the engine; the description marks them Coco-managed.
+const (
+	EngineIngestPipelineName = "coco-embedding"
+	EngineSearchPipelineName = "coco-semantic-rrf"
+	// EngineAITextFieldDefault is the field the text_embedding processor reads.
+	EngineAITextFieldDefault = "ai_insights.text"
+)
+
+// Settings under the "Engine AI" tab: the AI capabilities Coco curates onto
+// the backing engine. Coco generates the engine's ingest pipeline
+// (text_embedding) and search pipeline (semantic_query_enricher +
+// hybrid_ranker_processor) from these values plus the referenced model
+// provider, keeps them in sync, and passes the search pipeline on
+// semantic/hybrid searches — one model config in Coco, applied at both
+// ingest time and query time on the engine.
+type EngineAI struct {
+	Enabled bool `json:"enabled"`
+	// EmbeddingModel selects the Coco model provider used for both engine
+	// pipelines. Falls back to DefaultModel.EmbeddingModel when empty.
+	EmbeddingModel *ModelId `config:"embedding_model" json:"embedding_model,omitempty"`
+	// TextField is what the ingest-side text_embedding processor embeds.
+	TextField string `config:"text_field" json:"text_field,omitempty"`
+	// VectorField is where the ingest processor writes vectors; defaults to
+	// the semantic search field derived from RequiredEmbeddingDimension.
+	VectorField string `config:"vector_field" json:"vector_field,omitempty"`
+	// BatchSize batches inputs per embedding call at ingest time.
+	BatchSize int `config:"batch_size" json:"batch_size,omitempty"`
+	// RankConstant is the k of the engine-side RRF fusion.
+	RankConstant int `config:"rank_constant" json:"rank_constant,omitempty"`
 }

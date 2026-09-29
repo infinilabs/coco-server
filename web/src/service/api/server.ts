@@ -16,6 +16,49 @@ export function fetchProviderInfo() {
 }
 
 /** Get settings */
+/** Run (or fetch cached) the content dedup scan */
+export function fetchDedupReport(refresh = false) {
+  return request({
+    method: 'get',
+    url: '/document/dedup/report',
+    params: refresh ? { refresh: 1 } : {}
+  });
+}
+
+/** Mark a pair (or whole group) as NOT duplicates — never reported again */
+export function dismissDedupGroup(ids: string[]) {
+  return request({
+    method: 'post',
+    url: '/document/dedup/dismiss',
+    data: { ids }
+  });
+}
+
+/** Apply a reviewer decision to whole documents: exclude (disable) | delete */
+export function actDedupGroup(ids: string[], action: 'exclude' | 'delete') {
+  return request({
+    method: 'post',
+    url: '/document/dedup/action',
+    data: { ids, action }
+  });
+}
+
+/** Read back the engine AI pipelines Coco manages: desired vs deployed + drift */
+export function fetchEngineAIStatus() {
+  return request({
+    method: 'get',
+    url: '/search/engine-ai'
+  });
+}
+
+/** Push the Engine AI settings to the engine and return the fresh status */
+export function syncEngineAI() {
+  return request({
+    method: 'post',
+    url: '/search/engine-ai/sync'
+  });
+}
+
 export function fetchSettings() {
   return request({
     method: 'get',

@@ -352,6 +352,180 @@ declare namespace Api {
       description: string;
     }
   }
+
+  namespace Wiki {
+    type Visibility = 'public' | 'private' | 'team';
+    type SyncStrategy = 'realtime' | 'scheduled' | 'manual';
+    type AiStatus = 'ready' | 'processing' | 'queued' | 'updating';
+    type PageType = 'entity' | 'concept' | 'source';
+    type ArticleStatus = 'draft' | 'reviewed' | 'published' | 'archived';
+    type Confidence = 'high' | 'medium' | 'low';
+    type MemberRole = 'owner' | 'editor' | 'viewer' | 'agent';
+    type ChangeType = 'ai-generated' | 'human-edited' | 'auto-updated';
+
+    interface Member {
+      id: string;
+      name: string;
+      avatar: string;
+      role: MemberRole;
+      email?: string;
+    }
+
+    interface DatasourceInfo {
+      id: string;
+      type: string;
+      name: string;
+      status: 'connected' | 'syncing' | 'error' | 'disconnected';
+      last_synced: string;
+      document_count: number;
+    }
+
+    interface Kb {
+      /** raw ES system fields passthrough (owner_id powers the share popover) */
+      _system?: { owner_id?: string };
+      id: string;
+      name: string;
+      description: string;
+      icon: string;
+      visibility: Visibility;
+      workspace_id: string;
+      datasource_ids: string[];
+      assistant_id?: string;
+      sync_strategy?: SyncStrategy;
+      article_count: number;
+      last_updated: string;
+      members: Member[];
+      datasources: DatasourceInfo[];
+      ai_status?: AiStatus;
+    }
+
+    interface SourceRef {
+      doc_id: string;
+      source_type: string;
+      source_name: string;
+      title: string;
+      url?: string;
+      excerpt: string;
+      locator?: string;
+    }
+
+    interface Article {
+      id: string;
+      kb_id: string;
+      toc_node_id?: string;
+      title: string;
+      summary: string;
+      /** structured markdown (Obsidian wiki format), see pages/wiki/shared/content.ts */
+      content: string;
+      page_type?: PageType;
+      subtype?: string;
+      aliases?: string[];
+      tags: string[];
+      status: ArticleStatus;
+      ai_generated: boolean;
+      confidence?: Confidence;
+      sources: SourceRef[];
+      entity_id?: string;
+      /** wikilinks [[type:name]] parsed out of the content at save time */
+      linked_pages?: LinkedPage[];
+      created_by: Member;
+      contributors: Member[];
+      created_at: string;
+      updated_at: string;
+    }
+
+    interface Version {
+      id: string;
+      article_id: string;
+      version: number;
+      change_type: ChangeType;
+      change_summary?: string;
+      content: string;
+      created_by: string;
+      created_at: string;
+    }
+
+    interface LinkedPage {
+      type: string;
+      name: string;
+      entity_id?: string;
+    }
+
+    interface Comment {
+      id: string;
+      article_id: string;
+      user_id: string;
+      user_name: string;
+      content: string;
+      created_at?: string;
+      /** client-side: whether the current user may delete */
+      own?: boolean;
+    }
+
+    interface GraphNode {
+      id: string;
+      kind: 'article' | 'entity' | 'unresolved';
+      label: string;
+      type?: string;
+      type_label?: string;
+      status?: string;
+      page_type?: string;
+      article_id?: string;
+      aliases?: string[];
+      properties?: Record<string, unknown>;
+      confidence?: number;
+      via_relation?: boolean;
+    }
+
+    interface GraphEdge {
+      source: string;
+      target: string;
+      kind: 'wikilink' | 'relation';
+      relation?: string;
+      label?: string;
+      inverse?: string;
+      inverse_label?: string;
+    }
+
+    interface EntityInfo {
+      id: string;
+      type: string;
+      subtype?: string;
+      name: string;
+      aliases?: string[];
+      status?: string;
+      article_id?: string;
+      properties?: Record<string, unknown>;
+      relations?: { target_id: string; relation: string }[];
+      updated?: string;
+    }
+
+    interface TocNode {
+      id: string;
+      title: string;
+      type: 'folder' | 'article';
+      article_id?: string;
+      icon?: string;
+      children?: TocNode[];
+    }
+
+    interface Bookmark {
+      id: string;
+      article_id: string;
+      created_at?: string;
+    }
+
+    interface Notification {
+      id: string;
+      user_id: string;
+      target_type: 'article' | 'kb' | 'version' | string;
+      target_id: string;
+      action?: string;
+      message?: string;
+      read: boolean;
+      created_at?: string;
+    }
+  }
 }
 
 declare module 'ui-search/source' {

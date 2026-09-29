@@ -1,0 +1,22 @@
+/*
+ * Sectioned sider menu (VerticalMenu). antd renders item-group titles like
+ * regular menu items (14px / weight 400 / item padding), which makes the
+ * "Administration" section label read as a disabled entry. Restyle it as a
+ * quiet overline header — the label alone marks the workspace/administration
+ * boundary, so no divider is rendered.
+ */
+.console-sectioned-menu .ant-menu-item-group-title {
+  padding: 16px 18px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Latin overline tracking is lost on CJK — keep the label readable at 12px. */
+.console-sectioned-menu:lang(zh-CN) .ant-menu-item-group-title,
+.console-sectioned-menu:lang(zh) .ant-menu-item-group-title {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+}

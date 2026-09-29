@@ -72,3 +72,16 @@ export function getAssistantCategory() {
     url: '/assistant/_search'
   });
 }
+
+export function searchAssistantTemplates() {
+  return request<{ hits: any }>({ method: 'get', url: '/assistant-template/_search?size=100' }).then(res => {
+    const raw = (res?.data?.hits?.hits || []) as any[];
+    return raw.map(h => ({ id: h._id, ...(h._source || {}) }));
+  });
+}
+
+export function instantiateAssistantTemplate(id: string, body: { name?: string; kb_id?: string }) {
+  return request<{ _id: string }>({ method: 'post', data: body, url: `/assistant-template/${id}/_instantiate` }).then(
+    res => res?.data
+  );
+}

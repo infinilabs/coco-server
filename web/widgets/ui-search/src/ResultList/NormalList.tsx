@@ -127,6 +127,7 @@ export function NormalList(props: NormalListProps) {
                   key={item.id}
                   data-index={virtualRow.index}
                   ref={virtualizer.measureElement}
+                  className="border-0 border-b border-solid border-slate-200/70 dark:border-slate-700/50 last:border-b-0"
                 >
                   <SearchResults
                     section={{

@@ -17,12 +17,13 @@ interface ChatLayoutProps {
   loading?: boolean;
   theme?: 'light' | 'dark';
   isMobile?: boolean;
+  /** pass null to render no logo image at all (e.g. when the host app already shows its brand) */
   logo?: {
     light?: string;
     light_mobile?: string;
     dark?: string;
     dark_mobile?: string;
-  };
+  } | null;
   handleLogoClick?: () => void;
   sidebar?: ReactNode;
   sidebarCollapsed?: boolean;
@@ -59,18 +60,20 @@ const ChatLayout: FC<ChatLayoutProps> = (props) => {
 
   const logoNode = (
     <div className='flex items-center gap-16px'>
-      <div className='flex items-center cursor-pointer' onClick={() => handleLogoClick?.()}>
-        <img
-          alt='Coco'
-          className='block h-10 w-auto dark:hidden'
-          src={logo?.light || logoTextLight}
-        />
-        <img
-          alt='Coco'
-          className='hidden h-10 w-auto dark:block'
-          src={logo?.dark || logoTextDark}
-        />
-      </div>
+      {logo !== null && (
+        <div className='flex items-center cursor-pointer' onClick={() => handleLogoClick?.()}>
+          <img
+            alt='Coco'
+            className='block h-10 w-auto dark:hidden'
+            src={logo?.light || logoTextLight}
+          />
+          <img
+            alt='Coco'
+            className='hidden h-10 w-auto dark:block'
+            src={logo?.dark || logoTextDark}
+          />
+        </div>
+      )}
       <div className='flex items-center gap-1 rounded-9px px-2 py-1.5 bg-[#FFF] dark:bg-[#000]'>
         <ChatIcon
           className='h-4 w-4 text-[#7C3AED]'

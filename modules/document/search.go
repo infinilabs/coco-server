@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
@@ -46,30 +47,103 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 	}
 
 	query = util.CleanUserQuery(query)
+	searchStarted := time.Now()
 
 	//try to collect assistants
 	if query != "" || h.GetParameter(req, "filter") != "" {
-		builder, err := orm.NewQueryBuilderFromRequest(req)
-
-		if err != nil {
-			panic(err)
-		}
-		builder.EnableBodyBytes()
-
 		reqUser := security.MustGetUserFromRequest(req)
 		integrationID := req.Header.Get(core.HeaderIntegrationID)
 
 		result := elastic.SearchResponseWithMeta[core.Document]{}
-		resp, err := QueryDocuments(req.Context(), builder, query, datasource, integrationID, category, subcategory, richCategory, searchType, fuzziness, nil)
-		if err != nil {
-			panic(err)
+		rerankNote := ""
+		// note travels to the client in the Warning header: the semantic
+		// leg is transparent about which route actually ran.
+		note := ""
+		if searchType == "hybrid_rrf" {
+			fused, note, err := h.queryWithRRF(req, query, datasource, integrationID, category, subcategory, richCategory, fuzziness)
+			if err != nil {
+				panic(err)
+			}
+			result = *fused
+			rerankNote = note
+		} else {
+			builder, err := orm.NewQueryBuilderFromRequest(req)
+
+			if err != nil {
+				panic(err)
+			}
+			builder.EnableBodyBytes()
+
+			writeResult := func(resp *orm.SimpleResult) {
+				util.MustFromJSONBytes(resp.Raw, &result)
+			}
+
+			if searchType == "semantic" || searchType == "hybrid" {
+				from := h.GetIntOrDefault(req, "from", 0)
+				if from < 0 {
+					from = 0
+				}
+				size := h.GetIntOrDefault(req, "size", 10)
+				if size < 1 {
+					size = 10
+				}
+
+				switch plan := planSemantic(req.Context()); plan.Route {
+				case semanticRouteEngine:
+					resp, err := QueryDocuments(req.Context(), builder, query, datasource, integrationID, category, subcategory, richCategory, searchType, fuzziness, nil)
+					if err != nil {
+						panic(err)
+					}
+					writeResult(resp)
+				case semanticRouteClient:
+					builder.From(0)
+					builder.Size(rrfRecallWindow(from, size))
+					reranked, clientNote, err := clientSemanticRecall(req.Context(), builder, query, datasource, integrationID, category, subcategory, richCategory, fuzziness)
+					if err != nil {
+						panic(err)
+					}
+					paginateHits(reranked, from, size)
+					result = *reranked
+					note = clientNote
+				default:
+					note = plan.Reason
+					resp, err := QueryDocuments(req.Context(), builder, query, datasource, integrationID, category, subcategory, richCategory, "keyword", fuzziness, nil)
+					if err != nil {
+						panic(err)
+					}
+					writeResult(resp)
+				}
+			} else {
+				resp, err := QueryDocuments(req.Context(), builder, query, datasource, integrationID, category, subcategory, richCategory, searchType, fuzziness, nil)
+				if err != nil {
+					panic(err)
+				}
+				writeResult(resp)
+			}
+
 		}
-		util.MustFromJSONBytes(resp.Raw, &result)
+
+		// both branches may carry a note: the semantic plan (which route
+		// actually ran) and the rerank verdict (applied/degraded)
+		for _, n := range []string{note, rerankNote} {
+			if n != "" {
+				w.Header().Add("Warning", n)
+			}
+		}
+
+		// same-content copies collapse onto the highest-ranked hit with a
+		// "N more copies" note (D1.5); deep cleanup stays in the dedup report
+		result.Hits.Hits = foldDuplicateHits(result.Hits.Hits)
 
 		docsSize := len(result.Hits.Hits)
 		//update icon
 		if docsSize > 0 {
 			for i := range result.Hits.Hits {
+				// wiki hits are curated pages: they carry their own article
+				// URL and provenance, the document refinement would clobber both
+				if result.Hits.Hits[i].Source.Source.ID == "wiki" {
+					continue
+				}
 				RefineDocument(req.Context(), &result.Hits.Hits[i].Source)
 			}
 		}
@@ -112,6 +186,14 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 				result.Hits.Hits = append(newHits, result.Hits.Hits...)
 			}
 		}
+
+		// telemetry (P2/D5): what was asked, which strategy ran, what came
+		// back and how long it took — the overview and the knowledge-gap
+		// loop are built on it; async so the search never waits on it.
+		// WithoutCancel: the goroutine outlives the request, a canceled
+		// request context would kill the log write and the gap check
+		go recordSearchLog(context.WithoutCancel(req.Context()), query, searchType, reqUser.UserID,
+			result.GetTotal(), time.Since(searchStarted))
 
 		api.WriteJSON(w, result, 200)
 	} else {

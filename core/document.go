@@ -44,10 +44,14 @@ type Document struct {
 
 	Summary string `json:"summary,omitempty" elastic_mapping:"summary:{type:text,copy_to:combined_fulltext}"` // Brief summary or description of the document
 
-	Lang        string          `json:"lang,omitempty" elastic_mapping:"lang:{type:keyword,copy_to:combined_fulltext}"`    // Language code (e.g., "en", "fr")
-	Content     string          `json:"content,omitempty" elastic_mapping:"content:{type:text,copy_to:combined_fulltext}"` // Document content for full-text indexing
-	Chunks      []DocumentChunk `json:"document_chunk,omitempty" elastic_mapping:"document_chunk:{type:nested}"`
-	Attachments []string        `json:"attachments,omitempty" elastic_mapping:"attachments:{type:keyword}"` // IDs of core.Attachment objects associated with this document
+	Lang    string `json:"lang,omitempty" elastic_mapping:"lang:{type:keyword,copy_to:combined_fulltext}"`    // Language code (e.g., "en", "fr")
+	Content string `json:"content,omitempty" elastic_mapping:"content:{type:text,copy_to:combined_fulltext}"` // Document content for full-text indexing
+	// content fingerprint written at every save (D1.5): the dedup engine
+	// and retrieval-time duplicate folding key on it
+	ContentHash    string          `json:"content_hash,omitempty" elastic_mapping:"content_hash:{type:keyword}"`
+	ContentSimhash uint64          `json:"content_simhash,omitempty" elastic_mapping:"content_simhash:{type:long}"`
+	Chunks         []DocumentChunk `json:"document_chunk,omitempty" elastic_mapping:"document_chunk:{type:nested}"`
+	Attachments    []string        `json:"attachments,omitempty" elastic_mapping:"attachments:{type:keyword}"` // IDs of core.Attachment objects associated with this document
 
 	Icon      string `json:"icon,omitempty" elastic_mapping:"icon:{enabled:false}"`           // Icon Key, need work with datasource's assets to get the icon url, if it is a full url, then use it directly
 	Thumbnail string `json:"thumbnail,omitempty" elastic_mapping:"thumbnail:{enabled:false}"` // Thumbnail image URL, for preview purposes
@@ -56,8 +60,12 @@ type Document struct {
 	Owner *UserInfo `json:"owner,omitempty" elastic_mapping:"owner:{type:object}"` // Document author or owner
 
 	Tags []string `json:"tags,omitempty" elastic_mapping:"tags:{type:keyword,copy_to:combined_fulltext}"` // Tags or keywords associated with the document, for easier retrieval
-	URL  string   `json:"url,omitempty" elastic_mapping:"url:{enabled:false}"`                            // Direct link to the document, if available
-	Size int      `json:"size,omitempty" elastic_mapping:"size:{type:long}"`                              // File size in bytes, if applicable
+	// Ontology entities this document mentions, resolved by the
+	// extract_entities processor (design doc B2); enables entity-scoped
+	// document filtering
+	EntityIDs []string `json:"entity_ids,omitempty" elastic_mapping:"entity_ids:{type:keyword}"` // Linked wiki entity ids
+	URL       string   `json:"url,omitempty" elastic_mapping:"url:{enabled:false}"`              // Direct link to the document, if available
+	Size      int      `json:"size,omitempty" elastic_mapping:"size:{type:long}"`                // File size in bytes, if applicable
 
 	LastUpdatedBy *EditorInfo `json:"last_updated_by,omitempty" elastic_mapping:"last_updated_by:{type:object}"` // Struct containing last update information
 	Disabled      bool        `json:"disabled,omitempty" elastic_mapping:"disabled:{type:boolean}"`              // Whether the document is disabled or not

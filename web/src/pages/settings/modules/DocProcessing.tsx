@@ -8,6 +8,7 @@ import { createPipeline, getEnablePipelines } from '@/service/api/pipeline';
 const DocProcessing = memo(() => {
   const [form] = Form.useForm();
   const { t } = useTranslation();
+  const navigate = useNavigate();
 
   const { hasAuth } = useAuth()
 
@@ -87,6 +88,13 @@ const DocProcessing = memo(() => {
               name="default_pipeline_for_attachment"
               pipelineList={pipelineList}
             />
+            <Button
+              type="link"
+              className='!px-0'
+              onClick={() => navigate('/pipeline/list')}
+            >
+              {t('page.pipeline.manageLink')}
+            </Button>
           </Form.Item>
           <Form.Item
             label={(

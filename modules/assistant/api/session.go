@@ -441,6 +441,45 @@ func (h *APIHandler) askAssistant(w http.ResponseWriter, r *http.Request, ps htt
 
 }
 
+// askAssistantSync is the non-streaming twin of askAssistant: it runs the same
+// RAG pipeline but collects the reply in memory and returns a single JSON
+// response. It backs the ask_assistant MCP tool — SSE chunks do not fit the
+// tools/call request/response shape.
+func (h *APIHandler) askAssistantSync(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	id := ps.MustGetParameter("id")
+
+	var request core.MessageRequest
+	if err := h.DecodeJSON(r, &request); err != nil {
+		h.WriteError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if request.Message == "" {
+		h.WriteError(w, "message is empty", http.StatusBadRequest)
+		return
+	}
+
+	userInfo := security.MustGetUserFromRequest(r)
+
+	// cancel with the caller: a disconnected MCP client should stop the LLM work
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Minute)
+	defer cancel()
+
+	answer, err := service.AskAssistantSync(ctx, userInfo.MustGetUserID(), id, request.Message, nil)
+	if err != nil {
+		status := http.StatusInternalServerError
+		if ctx.Err() != nil {
+			status = http.StatusGatewayTimeout
+		}
+		h.WriteError(w, err.Error(), status)
+		return
+	}
+
+	h.WriteJSON(w, util.MapStr{
+		"assistant_id": id,
+		"answer":       answer,
+	}, http.StatusOK)
+}
+
 func (h APIHandler) openChatSession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("session_id")
 

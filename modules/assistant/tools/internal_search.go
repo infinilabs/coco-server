@@ -130,7 +130,8 @@ func FormatDocumentForReplyReferences(docs []core.Document) string {
 		sb.WriteString(fmt.Sprintf("Created: %s\n", doc.Created))
 		sb.WriteString(fmt.Sprintf("Updated: %s\n", doc.Updated))
 		sb.WriteString(fmt.Sprintf("Category: %s\n", doc.GetAllCategories()))
-		sb.WriteString(fmt.Sprintf("Content: %s\n", doc.Content))
+		// dynamic masking: scrub sensitive values before the content leaves for a model
+		sb.WriteString(fmt.Sprintf("Content: %s\n", common.MaskContent(doc.Content)))
 		sb.WriteString("</Doc>\n")
 
 	}
@@ -165,7 +166,7 @@ func formatDocumentForPick(docs []core.Document) []util.MapStr {
 		item["created"] = doc.Created
 		item["updated"] = doc.Updated
 		item["category"] = doc.Category
-		item["summary"] = util.SubString(doc.Summary, 0, 500)
+		item["summary"] = common.MaskContent(util.SubString(doc.Summary, 0, 500))
 		item["url"] = doc.URL
 		outDocs = append(outDocs, item)
 	}

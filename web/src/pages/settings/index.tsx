@@ -6,6 +6,9 @@ import ConnectorSettings from './modules/Connector';
 import SearchSettings from './modules/SearchSettings';
 import DefaultModel from './modules/DefaultModel';
 import DocProcessing from './modules/DocProcessing';
+import DataSecurity from './modules/DataSecurity';
+import EngineAI from './modules/EngineAI';
+import Dedup from './modules/Dedup';
 
 export function Component() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -22,7 +25,7 @@ export function Component() {
     setSearchParams({ tab: key });
   };
 
-  const items = [];
+  const items: { component: any; key: string; label: string }[] = [];
 
   if (permissions.viewConnector) {
     items.push({
@@ -52,6 +55,21 @@ export function Component() {
       component: DocProcessing,
       key: 'document_processing',
       label: t(`page.settings.document_processing.title`),
+    })
+    items.push({
+      component: DataSecurity,
+      key: 'data_security',
+      label: t(`page.settings.data_security.title`),
+    })
+    items.push({
+      component: EngineAI,
+      key: 'engine_ai',
+      label: t(`page.settings.engine_ai.title`),
+    })
+    items.push({
+      component: Dedup,
+      key: 'dedup',
+      label: t(`page.settings.dedup.title`),
     })
   }
 

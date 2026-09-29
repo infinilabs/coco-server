@@ -107,6 +107,23 @@ func reloadConfig() {
 				config.DocumentProcessing = docProcessing
 			}
 		}
+		buf, _ = kv.GetValue(core.DefaultSettingBucketKey, []byte(core.DefaultDataSecurityKey))
+		if buf != nil {
+			dataSecurity := &core.DataSecurity{}
+			err := util.FromJSONBytes(buf, dataSecurity)
+			if err == nil {
+				config.DataSecurity = dataSecurity
+			}
+		}
+
+		buf, _ = kv.GetValue(core.DefaultSettingBucketKey, []byte(core.DefaultEngineAIKey))
+		if buf != nil {
+			engineAI := &core.EngineAI{}
+			err := util.FromJSONBytes(buf, engineAI)
+			if err == nil {
+				config.EngineAI = engineAI
+			}
+		}
 
 		filebasedConfig, _ := AppConfigFromFile()
 		if filebasedConfig != nil {
@@ -153,6 +170,12 @@ func SetAppConfig(c *core.Config) {
 	}
 	//save document-processing config
 	err = kv.AddValue(core.DefaultSettingBucketKey, []byte(core.DefaultDocumentProcessingKey), util.MustToJSONBytes(c.DocumentProcessing))
+	if err != nil {
+		panic(err)
+	}
+	//save data-security config
+	err = kv.AddValue(core.DefaultSettingBucketKey, []byte(core.DefaultDataSecurityKey), util.MustToJSONBytes(c.DataSecurity))
+	err = kv.AddValue(core.DefaultSettingBucketKey, []byte(core.DefaultEngineAIKey), util.MustToJSONBytes(c.EngineAI))
 	if err != nil {
 		panic(err)
 	}

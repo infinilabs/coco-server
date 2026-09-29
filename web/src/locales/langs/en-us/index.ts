@@ -32,6 +32,9 @@ const local: App.I18n.Schema['translation'] = {
     unpin: 'Unpin',
     about: 'About'
   },
+  menu: {
+    administration: 'Administration'
+  },
   page,
   request,
   route,

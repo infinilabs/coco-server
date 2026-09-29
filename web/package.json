@@ -46,7 +46,9 @@
     "preview": "vite preview",
     "release": "sa release",
     "typecheck": "tsc --noEmit --skipLibCheck",
-    "update-pkg": "sa update-pkg"
+    "update-pkg": "sa update-pkg",
+    "typecheck:gate": "node scripts/typecheck-gate.mjs",
+    "typecheck:update-baseline": "node scripts/update-typecheck-baseline.mjs"
   },
   "dependencies": {
     "@ant-design/icons": "~5.6.1",

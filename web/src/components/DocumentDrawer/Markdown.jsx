@@ -228,6 +228,10 @@ function _MarkDownContent(props) {
     return tryWrapHtmlCode(escapeBrackets(props.content));
   }, [props.content]);
 
+  // renderLink, when provided, gets first refusal on every link — returning
+  // anything non-undefined replaces the anchor entirely (wiki capsules).
+  const renderLink = props.renderLink;
+
   return (
     <ReactMarkdown
       remarkPlugins={[RemarkMath, RemarkGfm, RemarkBreaks]}
@@ -247,6 +251,10 @@ function _MarkDownContent(props) {
         code: CustomCode,
         p: (pProps) => <p {...pProps} dir="auto" />,
         a: (aProps) => {
+          if (renderLink) {
+            const replaced = renderLink(aProps.href || "", aProps.children);
+            if (replaced !== undefined) return replaced;
+          }
           const href = aProps.href || "";
           if (/\.(aac|mp3|opus|wav)$/.test(href)) {
             return (
@@ -293,7 +301,7 @@ export default function Markdown(props) {
         onDoubleClickCapture={props.onDoubleClickCapture}
         dir="auto"
       >
-        { props.content ? <MarkdownContent content={props.content} /> : null}
+        { props.content ? <MarkdownContent content={props.content} renderLink={props.renderLink} /> : null}
       </div>
     </div>
   );

@@ -20,6 +20,8 @@ interface BasicLayoutProps {
   tools?: ReactNode;
   toolbar?: ReactNode;
   aggregations?: ReactNode;
+  /** removable chips for the active facet selection, shown above the result header */
+  filterChips?: ReactNode;
   resultHeader?: ReactElement;
   aiOverview?: ReactNode;
   resultList?: ReactNode;
@@ -47,6 +49,7 @@ const BasicLayout: FC<BasicLayoutProps> = (props) => {
     tools,
     toolbar,
     aggregations,
+    filterChips,
     resultHeader,
     aiOverview,
     resultList,
@@ -89,7 +92,10 @@ const BasicLayout: FC<BasicLayoutProps> = (props) => {
 
     const LEFT_WIDTH = 280;
     const RIGHT_WIDTH = 400;
-    const MIN_CENTER = 450;
+    // a center column narrower than this reads as squeezed between the two
+    // side columns — rather show the recommends pane behind its toggle
+    // (1440px+ keeps all three columns; below that, facets + a wide center)
+    const MIN_CENTER = 640;
 
     const handleResize = () => {
       const totalWidth = container.clientWidth;
@@ -97,15 +103,22 @@ const BasicLayout: FC<BasicLayoutProps> = (props) => {
       // Calculate what fits
       const fitsLeftAndRight = totalWidth - LEFT_WIDTH - RIGHT_WIDTH >= MIN_CENTER;
       const fitsLeftOnly = totalWidth - LEFT_WIDTH >= MIN_CENTER;
+      const fitsRightOnly = totalWidth - RIGHT_WIDTH >= MIN_CENTER;
+      const hasRecommendsPane = !!(recommends && hasRecommendsData);
 
+      // no facet data → the left column has nothing to show; collapse it so
+      // the center column (search box + empty state) gets the full width
       let targetLeftCollapse, targetRightCollapse;
 
-      if (fitsLeftAndRight && recommends && hasRecommendsData) {
+      if (fitsLeftAndRight && aggregations && hasRecommendsPane) {
         targetLeftCollapse = false;
         targetRightCollapse = false;
-      } else if (fitsLeftOnly) {
+      } else if (fitsLeftOnly && aggregations) {
         targetLeftCollapse = false;
         targetRightCollapse = true;
+      } else if (fitsRightOnly && hasRecommendsPane) {
+        targetLeftCollapse = true;
+        targetRightCollapse = false;
       } else {
         targetLeftCollapse = true;
         targetRightCollapse = true;
@@ -120,7 +133,7 @@ const BasicLayout: FC<BasicLayoutProps> = (props) => {
           setSiderCollapse?.(targetLeftCollapse);
         }
       }
-      if (recommends && hasRecommendsData && recommendsCollapseRef.current !== targetRightCollapse) {
+      if (hasRecommendsPane && recommendsCollapseRef.current !== targetRightCollapse) {
         if (targetRightCollapse === false && userCollapsedRightRef.current) {
           // Don't auto-expand if user manually collapsed
         } else {
@@ -132,9 +145,14 @@ const BasicLayout: FC<BasicLayoutProps> = (props) => {
 
     const observer = new ResizeObserver(handleResize);
     observer.observe(container);
+    // the observer's initial delivery is not guaranteed to arrive (or may fire
+    // before the facet/recommend data lands, e.g. triggered by a scrollbar
+    // appearing) — converge synchronously on every effect run so the columns
+    // settle even when the container never resizes again
+    handleResize();
 
     return () => observer.disconnect();
-  }, [scrollContainer, isMobile, recommends, hasRecommendsData, setSiderCollapse, setRecommendsCollapse]);
+  }, [scrollContainer, isMobile, aggregations, recommends, hasRecommendsData, setSiderCollapse, setRecommendsCollapse]);
 
   // Close drawers when collapse state changes to collapsed
   useEffect(() => {
@@ -145,7 +163,7 @@ const BasicLayout: FC<BasicLayoutProps> = (props) => {
     if (recommendsCollapse) setRightDrawerOpen(false);
   }, [recommendsCollapse]);
 
-  const showLeftSider = !siderCollapse && !isMobile;
+  const showLeftSider = !siderCollapse && !isMobile && !!aggregations;
   const showRightSider = !!(recommends && hasRecommendsData && !recommendsCollapse && !isMobile);
 
   const siderProps = {
@@ -180,8 +198,8 @@ const BasicLayout: FC<BasicLayoutProps> = (props) => {
 
       {/* Unified Left-Center-Right Layout */}
       <Layout className={bgClass} style={{ minHeight: '100%', paddingTop: '122px' }}>
-        {/* Left Column: Logo + Aggregations */}
-        {(
+        {/* Left Column: Logo + Aggregations — entirely absent when there are no facets */}
+        {aggregations ? (
           isMobile || siderCollapse ? (
             <CommonDrawer
               placement="left"
@@ -198,21 +216,25 @@ const BasicLayout: FC<BasicLayoutProps> = (props) => {
             </CommonDrawer>
           ) : (
             <Sider width={280} {...siderProps} style={{ overflow: 'visible' }}>
-              {/* Content part */}
-              <div className="w-full pl-80px pt-32px">{aggregations}</div>
+              {/* 72px aligns the facet rail with the result cards' text edge
+                  (56px column padding + 16px card padding) */}
+              <div className="w-full pl-72px pt-32px">{aggregations}</div>
             </Sider>
           )
-        )}
+        ) : null}
 
         {/* Center Column: Search/Tabs + Results */}
         <Content
-          className={`${bgClass} min-w-400px ${showLeftSider && showRightSider ? 'max-w-840px' : !showLeftSider && !showRightSider ? 'max-w-1120px' : 'max-w-840px'}`}
+          className={`${bgClass} ${isMobile ? 'min-w-0' : 'min-w-400px'} ${showLeftSider && showRightSider ? 'max-w-840px' : !showLeftSider && !showRightSider ? 'max-w-1120px' : 'max-w-840px'}`}
           style={{ overflow: 'visible' }}
         >
           {/* Content part */}
           <div className={`py-32px ${isMobile ? 'px-0px' : 'pl-56px pr-96px'}`}>
+            {filterChips ? (
+              <div className="px-16px mb-12px">{filterChips}</div>
+            ) : null}
             <div className="px-16px mb-16px">
-              {resultHeader && cloneElement(resultHeader, {
+              {resultHeader && cloneElement(resultHeader as ReactElement<Record<string, any>>, {
                 hasRecommends: !!(recommends && hasRecommendsData),
                 userCollapsedLeft: userCollapsedLeftRef.current,
                 userCollapsedRight: userCollapsedRightRef.current,
@@ -240,7 +262,7 @@ const BasicLayout: FC<BasicLayoutProps> = (props) => {
               ) : null}
             </AnimatePresence>
             {aiOverview}
-            <div>{resultList}</div>
+            <div className={isMobile ? 'px-16px' : ''}>{resultList}</div>
           </div>
         </Content>
 

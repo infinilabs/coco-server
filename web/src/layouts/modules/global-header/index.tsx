@@ -3,6 +3,7 @@ import ThemeSchemaSwitch from '@/components/stateful/ThemeSchemaSwitch';
 import DarkModeContainer from '@/components/stateless/common/DarkModeContainer';
 import { GLOBAL_HEADER_MENU_ID } from '@/constants/app';
 import { getApplicationSetting } from '@/store/slice/server';
+import { AppstoreOutlined } from '@ant-design/icons';
 
 import GlobalBreadcrumb from '../global-breadcrumb';
 import GlobalLogo from '../global-logo';
@@ -78,6 +79,15 @@ const GlobalHeader: FC<Props> = memo(({ isMobile, mode, reverse, siderWidth }) =
       <div className="h-full flex-y-center justify-end">
         <Shop />
 
+        {/* back to the unified app shell (search/chat/wiki live there;
+            their entries no longer pollute the console menu) */}
+        <ButtonIcon
+          className="px-12px"
+          tooltipContent={t('common.backToApp')}
+          onClick={() => nav(search_settings?.enabled && search_settings?.integration ? `/search` : `/wiki/list`)}
+        >
+          <AppstoreOutlined />
+        </ButtonIcon>
         {search_settings?.enabled && search_settings?.integration && (
           <ButtonIcon
             className="px-12px"
