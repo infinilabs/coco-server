@@ -87,8 +87,15 @@ jobs:
 
       - name: Set up Easysearch
         run: |
-          mkdir ~/es_install_dir
-          curl -sSL http://get.infini.cloud | bash -s -- -p easysearch -d ~/es_install_dir -v 2.1.2
+          # the installer has no retry of its own and the download server
+          # flakes (truncated transfers, hangs); retry the whole install
+          for i in 1 2 3; do
+            rm -rf ~/es_install_dir && mkdir ~/es_install_dir
+            curl -sSL http://get.infini.cloud | bash -s -- -p easysearch -d ~/es_install_dir -v 2.1.2 && break
+            echo "::warning::easysearch install attempt $i failed, retrying in 30s"
+            sleep 30
+          done
+          test -x ~/es_install_dir/bin/easysearch || (echo "::error::easysearch download failed after 3 attempts"; exit 1)
 
           # Use our config file, which disables security setting
           cd ~/es_install_dir && rm ./config/easysearch.yml
