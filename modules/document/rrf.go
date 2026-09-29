@@ -19,10 +19,11 @@ const (
 	rrfRouteText     = "text"
 	rrfRouteSemantic = "semantic"
 	rrfRouteWiki     = "wiki"
+	rrfRouteGraph    = "graph"
 )
 
 // rrfRouteNames is the canonical order routes are listed and rendered in.
-var rrfRouteNames = []string{rrfRouteText, rrfRouteSemantic, rrfRouteWiki}
+var rrfRouteNames = []string{rrfRouteText, rrfRouteSemantic, rrfRouteWiki, rrfRouteGraph}
 
 // RRFConfig controls how the recall routes are fused with Reciprocal Rank
 // Fusion:

@@ -24,7 +24,8 @@ const fmtMs = (v: number | undefined) => `${v ?? 0} ms`;
 const ROUTE_META: { name: string; color: string; bg: string; weightKey: string; labelKey: string }[] = [
   { name: 'text', color: 'blue', bg: 'bg-[#1784FC]', weightKey: 'text_weight', labelKey: 'page.searchStudio.textRoute' },
   { name: 'semantic', color: 'purple', bg: 'bg-[#722ED1]', weightKey: 'semantic_weight', labelKey: 'page.searchStudio.semanticRoute' },
-  { name: 'wiki', color: 'green', bg: 'bg-[#52C41A]', weightKey: 'wiki_weight', labelKey: 'page.searchStudio.wikiRoute' }
+  { name: 'wiki', color: 'green', bg: 'bg-[#52C41A]', weightKey: 'wiki_weight', labelKey: 'page.searchStudio.wikiRoute' },
+  { name: 'graph', color: 'orange', bg: 'bg-[#FA8C16]', weightKey: 'graph_weight', labelKey: 'page.searchStudio.graphRoute' }
 ];
 
 export function Component() {
@@ -40,7 +41,7 @@ export function Component() {
   const [size, setSize] = useState(10);
   const [fuzziness, setFuzziness] = useState(3);
   const [rrfK, setRrfK] = useState(60);
-  const [weights, setWeights] = useState<Record<string, number>>({ text: 1, semantic: 1, wiki: 1 });
+  const [weights, setWeights] = useState<Record<string, number>>({ text: 1, semantic: 1, wiki: 1, graph: 1 });
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<SearchStudioResult | null>(null);
 
@@ -75,7 +76,8 @@ export function Component() {
           k: rrfK,
           text_weight: weights.text,
           semantic_weight: weights.semantic,
-          wiki_weight: weights.wiki
+          wiki_weight: weights.wiki,
+          graph_weight: weights.graph
         }
       });
       setResult((res?.data as SearchStudioResult) ?? null);

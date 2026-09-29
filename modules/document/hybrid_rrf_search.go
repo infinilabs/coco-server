@@ -19,7 +19,9 @@ import (
 )
 
 // parseRRFParams reads the fusion knobs from query parameters so the tuned
-// values travel with the request, not with server state.
+// values travel with the request, not with server state. A weight parameter
+// set to 0 explicitly mutes its route (zero contribution, per RRFConfig);
+// an absent parameter leaves the default.
 func (h *APIHandler) parseRRFParams(req *http.Request) RRFConfig {
 	cfg := RRFConfig{
 		K: defaultRRFK,
@@ -27,27 +29,27 @@ func (h *APIHandler) parseRRFParams(req *http.Request) RRFConfig {
 			rrfRouteText:     defaultRRFWeight,
 			rrfRouteSemantic: defaultRRFWeight,
 			rrfRouteWiki:     defaultRRFWeight,
+			rrfRouteGraph:    defaultRRFWeight,
 		},
 	}
-	parse := func(name string) float64 {
-		var out float64
-		if v := h.GetParameterOrDefault(req, name, ""); v != "" {
-			if f, err := strconv.ParseFloat(strings.TrimSpace(v), 64); err == nil {
-				out = f
-			}
+	if v := h.GetParameterOrDefault(req, "rrf_k", ""); v != "" {
+		if f, err := strconv.ParseFloat(strings.TrimSpace(v), 64); err == nil {
+			cfg.K = f
 		}
-		return out
 	}
-	cfg.K = parse("rrf_k")
-	if w := parse("text_weight"); w != 0 {
-		cfg.Weights[rrfRouteText] = w
+	setWeight := func(route, param string) {
+		v := h.GetParameterOrDefault(req, param, "")
+		if v == "" {
+			return
+		}
+		if f, err := strconv.ParseFloat(strings.TrimSpace(v), 64); err == nil {
+			cfg.Weights[route] = f
+		}
 	}
-	if w := parse("semantic_weight"); w != 0 {
-		cfg.Weights[rrfRouteSemantic] = w
-	}
-	if w := parse("wiki_weight"); w != 0 {
-		cfg.Weights[rrfRouteWiki] = w
-	}
+	setWeight(rrfRouteText, "text_weight")
+	setWeight(rrfRouteSemantic, "semantic_weight")
+	setWeight(rrfRouteWiki, "wiki_weight")
+	setWeight(rrfRouteGraph, "graph_weight")
 	return cfg.normalized()
 }
 
@@ -56,7 +58,7 @@ func (h *APIHandler) parseRRFParams(req *http.Request) RRFConfig {
 // client-side, so the fusion is transparent and its parameters tunable —
 // unlike the engine-side hybrid query where the merge is opaque. Routes:
 // BM25 over documents, the semantic leg (engine query or client rerank per
-// the capability plan), and the curated wiki layer.
+// the capability plan), the curated wiki layer, and the ontology graph leg.
 func (h *APIHandler) queryWithRRF(req *http.Request, query, datasource, integrationID, category, subcategory, richCategory string, fuzziness int) (*elastic.SearchResponseWithMeta[core.Document], error) {
 	cfg := h.parseRRFParams(req)
 
@@ -101,6 +103,8 @@ func (h *APIHandler) queryWithRRF(req *http.Request, query, datasource, integrat
 	addRoute(rrfRouteSemantic, resp, err)
 	resp, err = h.wikiRoute(req, query, window)
 	addRoute(rrfRouteWiki, resp, err)
+	graphResp, _, err := h.graphRoute(req, query, window)
+	addRoute(rrfRouteGraph, graphResp, err)
 
 	// One failing route (e.g. no embedding service for the query text)
 	// degrades to fewer-route fusion; only all failing is an error.

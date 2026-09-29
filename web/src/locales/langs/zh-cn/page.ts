@@ -269,8 +269,8 @@ const page: App.I18n.Schema['translation']['page'] = {
   },
   searchStudio: {
     title: '检索实验室',
-    subtitle: 'BM25 与 kNN 双路召回,RRF 融合参数现场可调',
-    queryPlaceholder: '输入查询,同时跑 BM25 与 kNN 两路召回',
+    subtitle: '多路召回与 RRF 融合,参数现场可调',
+    queryPlaceholder: '输入查询,同时跑文本、语义、Wiki、图谱多路召回',
     queryRequired: '请输入查询词',
     run: '试跑',
     rerun: '重跑',
@@ -281,7 +281,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     fuzziness: '模糊度',
     textWeight: 'BM25 权重',
     semanticWeight: 'kNN 权重',
-    formula: '融合公式:score = text_weight/(k+rank_bm25) + semantic_weight/(k+rank_knn),排名从 1 开始,未召回的路由不计分',
+    formula: '融合公式:score = Σ weight_route/(k+rank_route),排名从 1 开始,未召回的路由不计分',
     docTitle: '标题',
     docSource: '数据源',
     rawScore: '原始分',
@@ -289,10 +289,11 @@ const page: App.I18n.Schema['translation']['page'] = {
     textRoute: 'BM25 路',
     semanticRoute: 'kNN 路',
     wikiRoute: '策展 Wiki',
+    graphRoute: '图谱路',
     weightOf: '{{route}} 权重',
     fusedTitle: 'RRF 融合结果',
     noResults: '无结果',
-    empty: '输入查询并点「试跑」,查看两路召回的排名、原始分与融合得分'
+    empty: '输入查询并点「试跑」,查看各路召回的排名、原始分与融合得分'
   },
   apitoken: {
     columns: {

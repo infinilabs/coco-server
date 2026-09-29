@@ -47,7 +47,7 @@ export interface SearchStudioResult {
   };
 }
 
-/** run every recall route (BM25 / semantic / wiki) and return the RRF fusion breakdown */
+/** run every recall route (BM25 / semantic / wiki / graph) and return the RRF fusion breakdown */
 export function testSearchStudio(data: {
   query: string;
   datasource?: string;
@@ -56,7 +56,7 @@ export function testSearchStudio(data: {
   rich_category?: string;
   fuzziness?: number;
   size?: number;
-  rrf?: Partial<{ k: number; text_weight: number; semantic_weight: number; wiki_weight: number }>;
+  rrf?: Partial<{ k: number; text_weight: number; semantic_weight: number; wiki_weight: number; graph_weight: number }>;
 }) {
   return request({
     data,

@@ -28,6 +28,7 @@ type searchStudioBody struct {
 		TextWeight     float64 `json:"text_weight"`
 		SemanticWeight float64 `json:"semantic_weight"`
 		WikiWeight     float64 `json:"wiki_weight"`
+		GraphWeight    float64 `json:"graph_weight"`
 	} `json:"rrf"`
 }
 
@@ -74,9 +75,10 @@ func studioRouteResultFromHits(name string, hits []elastic.DocumentWithMeta[core
 
 // searchStudioTest is the live tuning surface for the multi-route recall:
 // it runs every route (BM25 documents, the semantic leg, the curated wiki
-// layer) on the caller's own permissions, then fuses them with the submitted
-// RRF parameters and returns every hit's per-route rank, raw score and
-// contribution — the exact numbers the production hybrid_rrf search computes.
+// layer, the ontology graph leg) on the caller's own permissions, then fuses
+// them with the submitted RRF parameters and returns every hit's per-route
+// rank, raw score and contribution — the exact numbers the production
+// hybrid_rrf search computes.
 func (h *APIHandler) searchStudioTest(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	body := searchStudioBody{Fuzziness: 3, Size: 10}
 	if err := h.DecodeJSON(req, &body); err != nil {
@@ -105,6 +107,7 @@ func (h *APIHandler) searchStudioTest(w http.ResponseWriter, req *http.Request, 
 		rrfRouteText:     body.RRF.TextWeight,
 		rrfRouteSemantic: body.RRF.SemanticWeight,
 		rrfRouteWiki:     body.RRF.WikiWeight,
+		rrfRouteGraph:    body.RRF.GraphWeight,
 	}}.normalized()
 
 	routes := []rrfRouteHits{}
@@ -203,6 +206,23 @@ func (h *APIHandler) searchStudioTest(w http.ResponseWriter, req *http.Request, 
 			*result = *studioRouteResultFromHits(rrfRouteWiki, resp.Hits.Hits, resp.GetTotal())
 			result.TookMS = nowMilli() - started
 			collect(rrfRouteWiki, resp.Hits.Hits, result)
+		}
+	}
+
+	// --- graph route (ontology expansion; note says which entities fired) ---
+	{
+		result := &studioRouteResult{Name: rrfRouteGraph, Hits: []studioRouteHit{}}
+		started := nowMilli()
+		resp, note, err := h.graphRoute(req, query, size)
+		result.TookMS = nowMilli() - started
+		if err != nil {
+			result.Error = err.Error()
+			collect(rrfRouteGraph, nil, result)
+		} else {
+			*result = *studioRouteResultFromHits(rrfRouteGraph, resp.Hits.Hits, resp.GetTotal())
+			result.Note = note
+			result.TookMS = nowMilli() - started
+			collect(rrfRouteGraph, resp.Hits.Hits, result)
 		}
 	}
 
