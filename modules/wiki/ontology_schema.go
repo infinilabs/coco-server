@@ -74,9 +74,11 @@ type OntologyEntityTypeDef struct {
 	Relations  []OntologyRelationDef `json:"relations,omitempty"`
 }
 
-// OntologySchemaDoc is the stored schema document.
+// OntologySchemaDoc is the stored schema document: the entity/relation
+// vocabulary plus the compile rules (D6).
 type OntologySchemaDoc struct {
 	EntityTypes []OntologyEntityTypeDef `json:"entity_types"`
+	Rules       *core.WikiCompileRules  `json:"rules,omitempty"`
 }
 
 // normalize fills defaults and rejects self-contradictory declarations.
@@ -84,6 +86,7 @@ func (doc *OntologySchemaDoc) normalize() error {
 	if doc == nil {
 		return nil
 	}
+	doc.Rules = doc.Rules.Normalized()
 	seen := map[string]bool{}
 	for i := range doc.EntityTypes {
 		t := &doc.EntityTypes[i]
@@ -185,9 +188,12 @@ func loadOntologySchema(ctx context.Context, scope string) *OntologySchemaDoc {
 		return nil
 	}
 	var doc OntologySchemaDoc
-	if err := util.FromJSONBytes(raw, &doc); err != nil || len(doc.EntityTypes) == 0 {
+	// a rules-only schema (no entity types) is still a schema: the compile
+	// rules are meaningful on their own
+	if err := util.FromJSONBytes(raw, &doc); err != nil || (len(doc.EntityTypes) == 0 && doc.Rules == nil) {
 		return nil
 	}
+	doc.Rules = doc.Rules.Normalized()
 	return &doc
 }
 
@@ -482,6 +488,7 @@ func (h *APIHandler) getOntologySchema(w http.ResponseWriter, req *http.Request,
 	h.WriteGetOKJSON(w, "schema", util.MapStr{
 		"kb_id":        kbID,
 		"entity_types": doc.EntityTypes,
+		"rules":        doc.Rules.Normalized(),
 	})
 }
 

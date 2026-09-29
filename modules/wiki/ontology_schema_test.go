@@ -47,6 +47,7 @@ func ontologySetup(t *testing.T) APIHandler {
 			{core.WikiKnowledgeBase{}, "wiki-kb-onto"},
 			{core.WikiGovernanceProposal{}, "wiki-governance-onto"},
 			{core.WikiNotification{}, "wiki-notification-onto"},
+			{core.Document{}, "document-onto"},
 		} {
 			if err := handler.RegisterSchemaWithName(s.model, s.index); err != nil {
 				panic(err)

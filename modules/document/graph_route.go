@@ -287,10 +287,11 @@ func (h *APIHandler) graphRoute(req *http.Request, query string, window int) (*e
 		})
 	}
 
+	rules := loadCompileRules(req.Context())
 	rank := 0
 	for _, ref := range refs {
 		article := articles[ref.articleID]
-		if article == nil || !passesWikiNoiseGate(article) {
+		if article == nil || !passesWikiNoiseGate(article, rules.ConceptMinSources) {
 			continue
 		}
 		hit := wikiArticleToHit(article, float32(window-rank))

@@ -40,11 +40,13 @@ func init() {
 
 	//for internal document management, security should be enabled
 	api.HandleUIMethod(api.POST, "/document/", handler.createDoc, api.RequirePermission(createPermission))
-	api.HandleUIMethod(api.GET, "/document/:doc_id", handler.getDoc, api.RequirePermission(readPermission))
+	api.HandleUIMethod(api.GET, "/document/:doc_id", handler.getDoc, api.RequirePermission(readPermission),
+		api.MCPTool("get_document", "Get one document by id, including its content — the end of the citation chain: search hits and wiki pages carry source doc ids, this tool reads them."))
 	api.HandleUIMethod(api.GET, "/document/:doc_id/raw_content/:hint", handler.getDocRawContent, api.RequirePermission(readPermission), api.AllowOPTIONSS(), api.Feature(core.FeatureCORS))
 	api.HandleUIMethod(api.PUT, "/document/:doc_id", handler.updateDoc, api.RequirePermission(updatePermission))
 	api.HandleUIMethod(api.DELETE, "/document/:doc_id", handler.deleteDoc, api.RequirePermission(deletePermission))
-	api.HandleUIMethod(api.GET, "/document/_search", handler.searchDocs, api.RequirePermission(searchPermission))
+	api.HandleUIMethod(api.GET, "/document/_search", handler.searchDocs, api.RequirePermission(searchPermission),
+		api.MCPTool("search_documents", "Search documents (BM25). Pass query, optional filters and size; returns ids, titles, summaries — then get_document reads the full content."))
 	api.HandleUIMethod(api.DELETE, "/document/", handler.batchDeleteDoc, api.RequirePermission(deletePermission))
 
 	//content dedup: deterministic fingerprints, human review, no auto-delete
@@ -68,6 +70,8 @@ func init() {
 	//operator's view of the iteration loop: what people searched, where
 	//recall came up empty, what it cost in latency (P2/D5)
 	api.HandleUIMethod(api.GET, "/search/ops/overview", handler.searchOpsOverview, api.RequirePermission(searchOpsPermission))
+	//index health sweep (P4): every knowledge-hub store, one count each
+	api.HandleUIMethod(api.GET, "/search/ops/index-health", handler.indexHealthHandler, api.RequirePermission(searchOpsPermission))
 	//engine AI curation: read back the managed pipelines and their drift, and
 	//push the current config to the engine on demand
 	api.HandleUIMethod(api.GET, "/search/engine-ai", handler.engineAIStatus, api.RequirePermission(searchStudioPermission))

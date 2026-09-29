@@ -301,18 +301,31 @@ export interface OntologyEntityTypeDef {
   relations?: OntologyRelationDef[];
 }
 
+/** knowledge compile rules (D6): concept source floor, conflict strategy, source priority */
+export interface OntologyCompileRules {
+  concept_min_sources?: number;
+  conflict_strategy?: string;
+  source_priority?: string[];
+}
+
 export function getOntologySchema(kbId?: string) {
   const qs = kbId ? `?kb=${kbId}` : '';
   return request<{ _source: any }>({ method: 'get', url: `/wiki/ontology/schema${qs}` }).then(res => {
     const src = res?.data?._source || {};
-    return { kb_id: src.kb_id || '', entity_types: (src.entity_types || []) as OntologyEntityTypeDef[] };
+    return {
+      kb_id: src.kb_id || '',
+      entity_types: (src.entity_types || []) as OntologyEntityTypeDef[],
+      rules: (src.rules || {}) as OntologyCompileRules
+    };
   });
 }
 
-export function putOntologySchema(entityTypes: OntologyEntityTypeDef[], kbId?: string) {
-  return request({ method: 'put', data: { kb_id: kbId || '', schema: { entity_types: entityTypes } }, url: '/wiki/ontology/schema' }).then(
-    res => res?.data
-  );
+export function putOntologySchema(entityTypes: OntologyEntityTypeDef[], kbId?: string, rules?: OntologyCompileRules) {
+  return request({
+    method: 'put',
+    data: { kb_id: kbId || '', schema: { entity_types: entityTypes, ...(rules ? { rules } : {}) } },
+    url: '/wiki/ontology/schema'
+  }).then(res => res?.data);
 }
 
 export function relinkWikiArticle(id: string) {

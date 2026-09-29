@@ -61,8 +61,10 @@ func init() {
 	api.HandleUIMethod(api.PUT, "/wiki/kb/:id/toc", handler.updateToc,
 		api.RequireLogin(), api.RequirePermission(updateKbPermission))
 
-	// read-only version history (article-level read)
+	// read-only version history (article-level read); exposed to agents so
+	// they can see how a page's knowledge evolved (P3)
 	api.HandleUIMethod(api.GET, "/wiki/article/:id/versions", handler.articleVersions,
+		api.MCPTool("list_article_versions", "List the version history of a wiki article: version, change_type (ai-generated | human-edited | auto-updated), change_summary, when. Use it to see how the knowledge on a page evolved."),
 		api.RequireLogin(), api.RequirePermission(readArticlePermission))
 	api.HandleUIMethod(api.GET, "/wiki/article/:id/versions/:version", handler.articleVersionDetail,
 		api.RequireLogin(), api.RequirePermission(readArticlePermission))
@@ -118,9 +120,16 @@ func init() {
 
 	// governance queue: the human gate — resolving/dismissing records the
 	// decision, fixes themselves happen on the article face (D1)
+	// company map (D6): the agent entry page; read-first ritual for
+	// external agents (get_company_map MCP tool)
+	api.HandleUIMethod(api.GET, "/wiki/company-map", handler.getCompanyMap,
+		api.MCPTool("get_company_map", "Get the company map — the hand-maintained entry page (what we do, current priorities, source priority, navigation). Read this before deeper research: it says where knowledge lives and which source wins on conflicts. kb query param optional."),
+		api.RequireLogin())
+
 	// correction capture (D7): any logged-in user can report a wrong answer
 	// from work; it lands in the same human-gated queue as scanner proposals
 	api.HandleUIMethod(api.POST, "/wiki/governance/_correction", handler.createCorrection,
+		api.MCPTool("report_correction", "Report that an answer was wrong or outdated so the knowledge base can learn: pass the query, an answer excerpt, cited doc ids, a route_hint (fact_missing | fact_outdated | preference | technique | source_conflict) and the correction. A human reviews it before anything changes."),
 		api.RequireLogin())
 
 	api.HandleUIMethod(api.PUT, "/wiki/governance/:id/status", handler.updateGovernanceStatus,

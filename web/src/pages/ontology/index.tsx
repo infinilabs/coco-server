@@ -1,11 +1,12 @@
 import { DeleteOutlined, PlusOutlined, SaveOutlined, ClusterOutlined } from '@ant-design/icons';
-import { Button, Card, Empty, Input, Modal, Select, Space, Switch, Tag, Tooltip, message } from 'antd';
+import { Button, Card, Col, Empty, Input, InputNumber, Modal, Row, Select, Space, Switch, Tag, Tooltip, message } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   getOntologySchema,
   putOntologySchema,
   searchWikiKbs,
+  type OntologyCompileRules,
   type OntologyEntityTypeDef,
   type OntologyPropertyDef,
   type OntologyRelationDef
@@ -21,6 +22,7 @@ const PROP_TYPES = ['string', 'text', 'number', 'boolean', 'date', 'url', 'enum'
 export function Component() {
   const { t } = useTranslation();
   const [types, setTypes] = useState<OntologyEntityTypeDef[]>([]);
+  const [rules, setRules] = useState<OntologyCompileRules>({});
   const [kbs, setKbs] = useState<Api.Wiki.Kb[]>([]);
   const [kbId, setKbId] = useState<string>('');
   const nav = useNavigate();
@@ -31,6 +33,7 @@ export function Component() {
     setLoading(true);
     getOntologySchema(scopeKb || undefined).then(res => {
       setTypes(((res as any)?.entity_types || []) as OntologyEntityTypeDef[]);
+      setRules(((res as any)?.rules || {}) as OntologyCompileRules);
       setLoading(false);
     });
   };
@@ -47,7 +50,7 @@ export function Component() {
 
   const save = () => {
     setSaving(true);
-    putOntologySchema(types, kbId || undefined)
+    putOntologySchema(types, kbId || undefined, rules)
       .then(res => {
         setSaving(false);
         if ((res as any)?._id || (res as any)?.result === 'updated') {
@@ -122,6 +125,47 @@ export function Component() {
         }
       >
         <div className='mb-4 text-gray-500'>{t('page.ontology.subtitle')}</div>
+
+        <Card size='small' className='mb-16px' title={t('page.ontology.rules.title')}>
+          <div className='mb-8px text-gray-500'>{t('page.ontology.rules.desc')}</div>
+          <Row gutter={[16, 8]}>
+            <Col span={6}>
+              <div className='mb-4px'>{t('page.ontology.rules.conceptMinSources')}</div>
+              <InputNumber
+                min={1}
+                max={10}
+                style={{ width: '100%' }}
+                value={rules.concept_min_sources ?? 2}
+                onChange={v => setRules({ ...rules, concept_min_sources: v ?? 2 })}
+              />
+            </Col>
+            <Col span={6}>
+              <div className='mb-4px'>{t('page.ontology.rules.conflictStrategy')}</div>
+              <Select
+                style={{ width: '100%' }}
+                value={rules.conflict_strategy || 'mark'}
+                onChange={v => setRules({ ...rules, conflict_strategy: v })}
+                options={[
+                  { value: 'mark', label: t('page.ontology.rules.strategyMark') },
+                  { value: 'isolate', label: t('page.ontology.rules.strategyIsolate') }
+                ]}
+              />
+            </Col>
+            <Col span={12}>
+              <div className='mb-4px'>{t('page.ontology.rules.sourcePriority')}</div>
+              <Select
+                mode='tags'
+                allowClear
+                style={{ width: '100%' }}
+                open={false}
+                tokenSeparators={[',']}
+                placeholder={t('page.ontology.rules.sourcePriorityPlaceholder')}
+                value={rules.source_priority || []}
+                onChange={v => setRules({ ...rules, source_priority: v })}
+              />
+            </Col>
+          </Row>
+        </Card>
 
         {!loading && types.length === 0 && (
           <Empty description={t('page.ontology.empty')} image={Empty.PRESENTED_IMAGE_SIMPLE} />

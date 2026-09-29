@@ -90,6 +90,7 @@ function NewArticleModal({
             options={[
               { value: 'concept', label: t('page.wiki.pageType.concept') },
               { value: 'entity', label: t('page.wiki.pageType.entity') },
+              { value: 'map', label: t('page.wiki.pageType.map') },
               { value: 'source', label: t('page.wiki.pageType.source') }
             ]}
           />

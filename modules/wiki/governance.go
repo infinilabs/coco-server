@@ -177,8 +177,11 @@ func governanceSweep(ctx context.Context, llm llms.Model) governanceStats {
 				if open[key] {
 					continue
 				}
-				if fileProposal(kb, &pair[0], core.WikiGovernanceDuplicate, reason,
-					util.MapStr{"duplicate_of": util.MapStr{"id": pair[1].ID, "title": pair[1].Title}}) {
+				evidence := util.MapStr{"duplicate_of": util.MapStr{"id": pair[1].ID, "title": pair[1].Title}}
+				if hint := duplicatePriorityHint(ctx, &pair[0], &pair[1]); hint != "" {
+					evidence["priority_hint"] = hint
+				}
+				if fileProposal(kb, &pair[0], core.WikiGovernanceDuplicate, reason, evidence) {
 					open[key] = true
 					stats.filed++
 					stats.duplicates++
@@ -553,4 +556,81 @@ func (h *APIHandler) updateGovernanceStatus(w http.ResponseWriter, req *http.Req
 		return
 	}
 	h.WriteUpdatedOKJSON(w, proposal.ID)
+}
+
+// duplicatePriorityHint recommends which side of a duplicate pair to keep
+// when the compile rules order sources (D6): resolve both articles' cited
+// documents to their datasources and compare the best-ranked source each
+// side cites. Empty when no priority list is configured or the sides tie —
+// a recommendation, never an action (the human gate decides).
+func duplicatePriorityHint(ctx context.Context, a, b *core.WikiArticle) string {
+	schema := loadOntologySchema(ctx, ontologyTenantScope)
+	if schema == nil || schema.Rules == nil || len(schema.Rules.SourcePriority) == 0 {
+		return ""
+	}
+	rules := schema.Rules
+
+	docIDs := map[string]bool{}
+	for _, article := range []*core.WikiArticle{a, b} {
+		for _, src := range article.Sources {
+			if src.DocID != "" {
+				docIDs[src.DocID] = true
+			}
+		}
+	}
+	datasourceByDoc := docDatasources(ctx, docIDs)
+	best := func(article *core.WikiArticle) (int, string) {
+		best, key := 1<<30, ""
+		for _, src := range article.Sources {
+			ds := datasourceByDoc[src.DocID]
+			if rank := rules.SourcePriorityRank(ds); rank < best {
+				best, key = rank, ds
+			}
+		}
+		return best, key
+	}
+	rankA, keyA := best(a)
+	rankB, keyB := best(b)
+	if rankA == rankB {
+		return ""
+	}
+	if rankA < rankB {
+		return fmt.Sprintf("prefer %q — cites higher-priority source %q", a.Title, keyA)
+	}
+	return fmt.Sprintf("prefer %q — cites higher-priority source %q", b.Title, keyB)
+}
+
+// docDatasources resolves document ids to their datasource ids (bounded,
+// best-effort: unknown ids simply stay unresolved).
+func docDatasources(ctx context.Context, docIDs map[string]bool) map[string]string {
+	out := map[string]string{}
+	if len(docIDs) == 0 {
+		return out
+	}
+	ids := make([]string, 0, len(docIDs))
+	for id := range docIDs {
+		ids = append(ids, id)
+	}
+	if len(ids) > 200 {
+		ids = ids[:200]
+	}
+	octx := orm.NewContextWithParent(ctx)
+	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	orm.WithModel(octx, &core.Document{})
+	res, err := orm.SearchV2(octx, orm.NewQuery().Size(len(ids)).
+		Filter(orm.TermsQuery("id", ids)).
+		Include("id", "source.id"))
+	if err != nil {
+		return out
+	}
+	docs, _, err := elastic.DecodeHits[core.Document](res)
+	if err != nil {
+		return out
+	}
+	for i := range docs {
+		if docs[i].Source.ID != "" {
+			out[docs[i].ID] = docs[i].Source.ID
+		}
+	}
+	return out
 }

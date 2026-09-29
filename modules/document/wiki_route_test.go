@@ -13,17 +13,17 @@ import (
 
 func TestPassesWikiNoiseGate(t *testing.T) {
 	published := &core.WikiArticle{Status: core.WikiArticlePublished}
-	if !passesWikiNoiseGate(published) {
+	if !passesWikiNoiseGate(published, core.DefaultConceptMinSources) {
 		t.Fatal("published page should pass")
 	}
 
 	draft := &core.WikiArticle{Status: core.WikiArticleDraft}
-	if passesWikiNoiseGate(draft) {
+	if passesWikiNoiseGate(draft, core.DefaultConceptMinSources) {
 		t.Fatal("draft must not enter retrieval")
 	}
 
 	lowConfidence := &core.WikiArticle{Status: core.WikiArticlePublished, Confidence: "low"}
-	if passesWikiNoiseGate(lowConfidence) {
+	if passesWikiNoiseGate(lowConfidence, core.DefaultConceptMinSources) {
 		t.Fatal("low-confidence page must not enter retrieval")
 	}
 
@@ -33,7 +33,7 @@ func TestPassesWikiNoiseGate(t *testing.T) {
 		PageType: core.WikiPageTypeConcept,
 		Sources:  []core.WikiSourceReference{{DocID: "d1"}},
 	}
-	if passesWikiNoiseGate(oneSource) {
+	if passesWikiNoiseGate(oneSource, core.DefaultConceptMinSources) {
 		t.Fatal("single-source concept page must not enter retrieval")
 	}
 	twoSources := &core.WikiArticle{
@@ -41,13 +41,13 @@ func TestPassesWikiNoiseGate(t *testing.T) {
 		PageType: core.WikiPageTypeConcept,
 		Sources:  []core.WikiSourceReference{{DocID: "d1"}, {DocID: "d2"}},
 	}
-	if !passesWikiNoiseGate(twoSources) {
+	if !passesWikiNoiseGate(twoSources, core.DefaultConceptMinSources) {
 		t.Fatal("two-source concept page should pass")
 	}
 
 	// entity/source pages carry their own provenance, no extra source floor
 	entity := &core.WikiArticle{Status: core.WikiArticlePublished, PageType: core.WikiPageTypeEntity}
-	if !passesWikiNoiseGate(entity) {
+	if !passesWikiNoiseGate(entity, core.DefaultConceptMinSources) {
 		t.Fatal("entity page should pass without the concept source floor")
 	}
 }

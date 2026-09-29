@@ -42,17 +42,18 @@ func wikiSearchPermission(req *http.Request) bool {
 }
 
 // passesWikiNoiseGate is the curated-layer noise gate: only published pages
-// enter retrieval, and concept pages need at least two independent sources —
-// a single-source concept is a hypothesis, not knowledge (the same rule the
-// governance queue enforces on the write side).
-func passesWikiNoiseGate(article *core.WikiArticle) bool {
+// enter retrieval, and concept pages need the configured minimum of
+// independent sources — a single-source concept is a hypothesis, not
+// knowledge (the same rule the governance queue enforces on the write
+// side). conceptMinSources comes from the compile rules (D6).
+func passesWikiNoiseGate(article *core.WikiArticle, conceptMinSources int) bool {
 	if article.Status != core.WikiArticlePublished {
 		return false
 	}
 	if article.Confidence == "low" {
 		return false
 	}
-	if article.PageType == core.WikiPageTypeConcept && len(article.Sources) < 2 {
+	if article.PageType == core.WikiPageTypeConcept && len(article.Sources) < conceptMinSources {
 		return false
 	}
 	return true
@@ -125,8 +126,9 @@ func (h *APIHandler) wikiRoute(req *http.Request, query string, window int) (*el
 	}
 
 	out := &elastic.SearchResponseWithMeta[core.Document]{}
+	rules := loadCompileRules(req.Context())
 	for i := range articles {
-		if !passesWikiNoiseGate(&articles[i]) {
+		if !passesWikiNoiseGate(&articles[i], rules.ConceptMinSources) {
 			continue
 		}
 		out.Hits.Hits = append(out.Hits.Hits, wikiArticleToHit(&articles[i], float32(window-i)))

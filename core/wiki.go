@@ -32,6 +32,7 @@ const (
 	WikiPageTypeEntity  = "entity"
 	WikiPageTypeConcept = "concept"
 	WikiPageTypeSource  = "source"
+	WikiPageTypeMap     = "map" // hand-maintained company map: the agent entry page (D6)
 
 	// entity lifecycle (design doc D1): extraction proposes, humans
 	// review/publish — the AI pipeline never publishes directly
@@ -246,6 +247,62 @@ type WikiEntity struct {
 	// documents this entity was extracted from (bidirectional with
 	// Document.EntityIDs, design doc B3)
 	Sources []WikiSourceReference `json:"sources,omitempty" elastic_mapping:"sources:{type:object,enabled:false}"`
+}
+
+// WikiCompileRules is the "knowledge compile rules" layer of the ontology
+// schema (D6): how the curated layer is compiled and how its disputes are
+// decided. It lives in core so both the wiki module (editor, governance)
+// and the document module (the retrieval noise gate) read the same rules
+// without an import cycle.
+type WikiCompileRules struct {
+	// ConceptMinSources is how many independent sources a concept page
+	// needs before it enters retrieval (a single-source concept is a
+	// hypothesis, not knowledge). Zero means the default of 2.
+	ConceptMinSources int `json:"concept_min_sources,omitempty"`
+	// ConflictStrategy says what the compiler does with contradictory
+	// claims: mark (file a proposal, both sides stay visible) or isolate
+	// (keep the lower-priority side out of retrieval). Default mark.
+	ConflictStrategy string `json:"conflict_strategy,omitempty"`
+	// SourcePriority orders sources (datasource ids or category keys,
+	// highest first); conflicts resolve toward the higher-priority side.
+	SourcePriority []string `json:"source_priority,omitempty"`
+}
+
+const (
+	WikiConflictStrategyMark    = "mark"
+	WikiConflictStrategyIsolate = "isolate"
+
+	// DefaultConceptMinSources is the concept-page source floor when the
+	// rules don't override it.
+	DefaultConceptMinSources = 2
+)
+
+// Normalized clamps the rules to sane values and fills defaults.
+func (r *WikiCompileRules) Normalized() *WikiCompileRules {
+	if r == nil {
+		r = &WikiCompileRules{}
+	}
+	if r.ConceptMinSources < 1 || r.ConceptMinSources > 10 {
+		r.ConceptMinSources = DefaultConceptMinSources
+	}
+	if r.ConflictStrategy != WikiConflictStrategyIsolate {
+		r.ConflictStrategy = WikiConflictStrategyMark
+	}
+	return r
+}
+
+// SourcePriorityRank returns the priority position of a source key (lower
+// rank = higher priority); keys absent from the list rank lowest.
+func (r *WikiCompileRules) SourcePriorityRank(source string) int {
+	if r == nil {
+		return 1 << 30
+	}
+	for i, key := range r.SourcePriority {
+		if key == source {
+			return i
+		}
+	}
+	return 1 << 30
 }
 
 // WikiOntologySchema defines the entity/relation vocabulary for a KB or
