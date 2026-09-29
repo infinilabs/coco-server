@@ -199,6 +199,22 @@ const page: App.I18n.Schema['translation']['page'] = {
       type: { stale: 'Stale', duplicate: 'Duplicate', conflict: 'Conflict', low_quality: 'Low quality', orphan: 'Orphaned', entity_duplicate: 'Entity duplicate', entity_conflict: 'Entity type conflict', knowledge_gap: 'Knowledge gap', correction: 'Correction' },
       hint: '{{count}} proposal(s) waiting'
     },
+    correction: {
+      title: 'Report a correction',
+      ok: 'Submit correction',
+      routeHint: 'What kind of issue',
+      hints: {
+        fact_missing: 'Missing fact (should be covered)',
+        fact_outdated: 'Outdated fact',
+        preference: 'Recurring preference',
+        technique: 'Validated technique',
+        source_conflict: 'Sources disagree'
+      },
+      comment: 'Correction',
+      commentPlaceholder: 'What is correct? Sources welcome.',
+      success: 'Filed to the governance queue; a human review updates the knowledge base',
+      reviewHint: 'Corrections become governance proposals for human review — nothing changes directly.'
+    },
     saveFromChat: {
       title: 'Save to knowledge base',
       ok: 'Save as draft',
@@ -318,7 +334,11 @@ const page: App.I18n.Schema['translation']['page'] = {
     lastSeen: 'Last seen',
     gapFiled: 'gap proposal filed',
     noData: 'No data',
-    lowRecallHint: 'A query with ≥3 zero-hit searches files a knowledge-gap proposal in the governance queue; a human decides what page to add.'
+    lowRecallHint: 'A query with ≥3 zero-hit searches files a knowledge-gap proposal in the governance queue; a human decides what page to add.',
+    indexHealth: 'Index health',
+    indexName: 'Store',
+    indexStatus: 'Status',
+    indexDocs: 'Docs',
   },
   apitoken: {
     columns: {

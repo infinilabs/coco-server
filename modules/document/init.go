@@ -38,6 +38,10 @@ func init() {
 	searchPermission := security.GetSimplePermission(Category, Resource, string(security.Search))
 	security.GetOrInitPermissionKeys(createPermission, updatePermission, readPermission, deletePermission, searchPermission)
 
+	// stamp content fingerprints on every document write, whichever path
+	// it takes (document API, datasource API, pipeline, MCP) — D1.5
+	registerFingerprintHook()
+
 	//for internal document management, security should be enabled
 	api.HandleUIMethod(api.POST, "/document/", handler.createDoc, api.RequirePermission(createPermission))
 	api.HandleUIMethod(api.GET, "/document/:doc_id", handler.getDoc, api.RequirePermission(readPermission),

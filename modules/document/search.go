@@ -128,6 +128,10 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 			}
 		}
 
+		// same-content copies collapse onto the highest-ranked hit with a
+		// "N more copies" note (D1.5); deep cleanup stays in the dedup report
+		result.Hits.Hits = foldDuplicateHits(result.Hits.Hits)
+
 		docsSize := len(result.Hits.Hits)
 		//update icon
 		if docsSize > 0 {

@@ -46,6 +46,10 @@ type Document struct {
 
 	Lang        string          `json:"lang,omitempty" elastic_mapping:"lang:{type:keyword,copy_to:combined_fulltext}"`    // Language code (e.g., "en", "fr")
 	Content     string          `json:"content,omitempty" elastic_mapping:"content:{type:text,copy_to:combined_fulltext}"` // Document content for full-text indexing
+	// content fingerprint written at every save (D1.5): the dedup engine
+	// and retrieval-time duplicate folding key on it
+	ContentHash    string `json:"content_hash,omitempty" elastic_mapping:"content_hash:{type:keyword}"`
+	ContentSimhash uint64 `json:"content_simhash,omitempty" elastic_mapping:"content_simhash:{type:long}"`
 	Chunks      []DocumentChunk `json:"document_chunk,omitempty" elastic_mapping:"document_chunk:{type:nested}"`
 	Attachments []string        `json:"attachments,omitempty" elastic_mapping:"attachments:{type:keyword}"` // IDs of core.Attachment objects associated with this document
 

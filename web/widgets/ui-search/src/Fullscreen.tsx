@@ -55,6 +55,8 @@ interface FullscreenProps {
   onSearch?: (...args: any[]) => void;
   onAggregation?: (...args: any[]) => void;
   onAsk?: (...args: any[]) => void;
+  /** host hook: report an assistant answer as wrong/outdated (correction loop) */
+  onCorrectAnswer?: (payload: { content: string; question: string; id: string }) => void;
   config?: Record<string, any>;
   isHome?: boolean;
   rightMenuWidth?: number;
@@ -77,6 +79,7 @@ const Fullscreen = (props: FullscreenProps) => {
   const {
     logo = {},
     onSaveToWiki,
+    onCorrectAnswer,
     placeholder,
     welcome,
     aiOverview,
@@ -413,6 +416,7 @@ const Fullscreen = (props: FullscreenProps) => {
         logo={logo}
         handleLogoClick={handleLogoClick}
         onSaveToWiki={onSaveToWiki}
+        onCorrectAnswer={onCorrectAnswer}
         apiConfig={apiConfig}
         queryParams={queryParams}
         onBackToSearch={() => {

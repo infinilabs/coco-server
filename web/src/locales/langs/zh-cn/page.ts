@@ -199,6 +199,22 @@ const page: App.I18n.Schema['translation']['page'] = {
       type: { stale: '内容过期', duplicate: '疑似重复', conflict: '内容冲突', low_quality: '低质量', orphan: '未入目录树', entity_duplicate: '实体疑似重复', entity_conflict: '实体类型冲突', knowledge_gap: '知识缺口', correction: '答案纠正' },
       hint: '{{count}} 条提议等待处理'
     },
+    correction: {
+      title: '报告纠正',
+      ok: '提交纠正',
+      routeHint: '问题类型',
+      hints: {
+        fact_missing: '缺事实(该写的没写)',
+        fact_outdated: '事实过期(内容已过时)',
+        preference: '偏好(反复出现的偏好)',
+        technique: '技术(验证过的做法)',
+        source_conflict: '来源冲突(两个来源说法不一)'
+      },
+      comment: '纠正内容',
+      commentPlaceholder: '正确的情况是什么?引用来源更好。',
+      success: '已提交到治理队列,人工审核后会更新知识库',
+      reviewHint: '纠正会作为治理提议进入人工审核队列,不会直接改知识。'
+    },
     saveFromChat: {
       title: '保存到知识库',
       ok: '保存为草稿',
@@ -318,7 +334,11 @@ const page: App.I18n.Schema['translation']['page'] = {
     lastSeen: '最近出现',
     gapFiled: '已提交缺口提议',
     noData: '暂无数据',
-    lowRecallHint: '同一查询零命中 ≥3 次会自动提交「知识缺口」提议到治理队列,由人工决定补什么页。'
+    lowRecallHint: '同一查询零命中 ≥3 次会自动提交「知识缺口」提议到治理队列,由人工决定补什么页。',
+    indexHealth: '索引体检',
+    indexName: '存储',
+    indexStatus: '状态',
+    indexDocs: '文档数',
   },
   apitoken: {
     columns: {

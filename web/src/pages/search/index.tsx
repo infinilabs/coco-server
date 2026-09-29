@@ -10,6 +10,7 @@ import { getLocale } from '@/store/slice/app';
 import { getApplicationSetting } from '@/store/slice/server';
 import { searchAssistant } from '@/service/api/assistant';
 import { fetchBatchEntityLabels } from '@/service/api/entity';
+import { CorrectionModal, type CorrectionPayload } from './components/CorrectionModal';
 import { SaveToWikiModal, type SaveToWikiPayload } from './components/SaveToWikiModal';
 
 const AGGS_DEFAULT = {
@@ -73,6 +74,9 @@ export function Component() {
 
   // knowledge execution: answer -> knowledge-base draft (D1 server-side)
   const [saveToWikiPayload, setSaveToWikiPayload] = useState<SaveToWikiPayload | null>(null);
+
+  // correction loop (D7): answer -> governance proposal, human gate stays
+  const [correctionPayload, setCorrectionPayload] = useState<CorrectionPayload | null>(null);
 
   const applicationSetting = useAppSelector(getApplicationSetting);
 
@@ -285,6 +289,7 @@ export function Component() {
     },
     "onSearch": onSearch,
     "onSaveToWiki": (payload: SaveToWikiPayload) => setSaveToWikiPayload(payload),
+    "onCorrectAnswer": (payload: CorrectionPayload) => setCorrectionPayload(payload),
     "onAggregation": onAggregation,
     "onAsk": onAsk,
     "onSuggestion": onSuggestion,
@@ -358,6 +363,7 @@ export function Component() {
           window.location.hash = `#/wiki/article/${articleId}?kb=${kbId}`;
         }}
       />
+      <CorrectionModal payload={correctionPayload} onClose={() => setCorrectionPayload(null)} />
     </>
   );
 }

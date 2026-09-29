@@ -120,3 +120,23 @@ func TestCompanyMapNotFound(t *testing.T) {
 	assert.Equal(t, false, out["found"])
 	assert.Contains(t, out["note"], "page_type=map")
 }
+
+func TestCompanyMapTemplateSeeded(t *testing.T) {
+	mapSetup(t)
+	cfg := articleConfig()
+
+	// empty map page starts from the navigation skeleton
+	mapArticle := &core.WikiArticle{KbID: "kb", Title: "Map", PageType: core.WikiPageTypeMap}
+	require.NoError(t, cfg.PrepareCreate(mapArticle))
+	assert.Contains(t, mapArticle.Content, "Source priority")
+
+	// an author's own content is never clobbered
+	custom := &core.WikiArticle{KbID: "kb", Title: "M", PageType: core.WikiPageTypeMap, Content: "my own map"}
+	require.NoError(t, cfg.PrepareCreate(custom))
+	assert.Equal(t, "my own map", custom.Content)
+
+	// non-map pages stay untouched
+	concept := &core.WikiArticle{KbID: "kb", Title: "C"}
+	require.NoError(t, cfg.PrepareCreate(concept))
+	assert.Empty(t, concept.Content)
+}

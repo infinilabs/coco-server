@@ -67,6 +67,8 @@ export interface ChatMessageProps {
   fetchAttachments?: (ids: string[]) => Promise<AttachmentHit[]>;
   /** Host hook: persist an assistant answer into a knowledge base (draft). */
   onSaveToWiki?: (payload: { content: string; question: string; id: string }) => void;
+  /** Host hook: report an assistant answer as wrong/outdated (correction loop). */
+  onCorrectAnswer?: (payload: { content: string; question: string; id: string }) => void;
   t?: TFunction;
 }
 
@@ -113,6 +115,7 @@ const InnerChatMessage = memo(
       currentAssistant,
       fetchAttachments,
       onSaveToWiki,
+      onCorrectAnswer,
       t: tProp,
     },
     ref,
@@ -521,6 +524,11 @@ const InnerChatMessage = memo(
               onSaveToWiki={
                 onSaveToWiki
                   ? (p) => onSaveToWiki({ ...p, question: replyQuestion, id: message._id ?? "" })
+                  : undefined
+              }
+              onCorrectAnswer={
+                onCorrectAnswer
+                  ? (p) => onCorrectAnswer({ ...p, question: replyQuestion, id: message._id ?? "" })
                   : undefined
               }
               onResend={canResendReply ? () => {

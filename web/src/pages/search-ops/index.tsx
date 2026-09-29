@@ -1,9 +1,16 @@
 import { Activity, AlertTriangle, Search, Timer } from 'lucide-react';
-import { Button, Card, Col, Row, Space, Statistic, Table, Tag, Typography, message } from 'antd';
+import { Button, Card, Col, Row, Space, Statistic, Table, Tag, Tooltip, Typography, message } from 'antd';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { fetchSearchOpsOverview, SearchOpsLowMiss, SearchOpsOverview, SearchOpsRow } from '@/service/api/search-ops';
+import {
+  fetchIndexHealth,
+  fetchSearchOpsOverview,
+  IndexHealthEntry,
+  SearchOpsLowMiss,
+  SearchOpsOverview,
+  SearchOpsRow
+} from '@/service/api/search-ops';
 
 /**
  * Search operations overview (P2): what people searched, which strategies
@@ -20,6 +27,7 @@ export function Component() {
   };
 
   const [data, setData] = useState<SearchOpsOverview | null>(null);
+  const [health, setHealth] = useState<IndexHealthEntry[] | null>(null);
   const [loading, setLoading] = useState(false);
 
   const load = useCallback(async () => {
@@ -27,6 +35,8 @@ export function Component() {
     try {
       const res: any = await fetchSearchOpsOverview();
       setData((res?.data as SearchOpsOverview) ?? null);
+      const healthRes: any = await fetchIndexHealth();
+      setHealth((healthRes?.data?.indices as IndexHealthEntry[]) ?? null);
     } catch (e: any) {
       message.error(e?.response?.data?.message ?? e?.message ?? t('page.searchOps.loadFailed'));
     } finally {
@@ -69,6 +79,22 @@ export function Component() {
     }
   ];
 
+  const healthColumns = [
+    { title: t('page.searchOps.indexName'), dataIndex: 'name', width: 180 },
+    {
+      title: t('page.searchOps.indexStatus'),
+      dataIndex: 'status',
+      width: 120,
+      render: (v: string, r: IndexHealthEntry) =>
+        v === 'ok' ? <Tag color="green">ok</Tag> : (
+          <Tooltip title={r.note}>
+            <Tag color="red">unavailable</Tag>
+          </Tooltip>
+        )
+    },
+    { title: t('page.searchOps.indexDocs'), dataIndex: 'docs', width: 120, render: (v: number) => (v < 0 ? '-' : v) }
+  ];
+
   return (
     <div className="flex flex-col gap-16px">
       <Card
@@ -107,6 +133,18 @@ export function Component() {
             <Statistic title={t('page.searchOps.maxTook')} value={data?.max_took_ms ?? 0} suffix="ms" />
           </Col>
         </Row>
+      </Card>
+
+      <Card size="small" title={t('page.searchOps.indexHealth')}>
+        <Table<IndexHealthEntry>
+          rowKey="name"
+          size="small"
+          pagination={false}
+          loading={loading}
+          columns={healthColumns}
+          dataSource={health ?? []}
+          locale={{ emptyText: t('page.searchOps.noData') }}
+        />
       </Card>
 
       <Row gutter={16}>

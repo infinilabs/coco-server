@@ -95,6 +95,41 @@ func registerArticleCRUD() {
 	crud.RegisterCRUD(articleConfig())
 }
 
+// companyMapTemplate is the skeleton every company map starts from: what
+// we do, current priorities, the source-priority table, navigation and the
+// ground rules. The map is navigation, not storage — the sections are the
+// ritual, the content is human-maintained.
+const companyMapTemplate = `# Company Map
+
+> The entry page for people and agents: read this first. This page is navigation, not storage — it says where knowledge lives and which source wins on conflicts.
+
+## What we do
+
+(one paragraph)
+
+## Current priorities
+
+1. (what matters now, in order)
+
+## Source priority (highest wins)
+
+1. (datasource id)
+2. (datasource id)
+
+## Navigation
+
+- Decisions: [[concept:Decision Log]]
+- Policies: [[concept:Policies]]
+- How-tos and techniques: search skills
+- Governance queue: /wiki/governance
+
+## Rules
+
+- Use the newest approved information.
+- On conflicts, the higher-priority source wins.
+- Say what is missing instead of guessing — file a correction or a gap.
+`
+
 func articleConfig() crud.Config[core.WikiArticle] {
 	return crud.Config[core.WikiArticle]{
 		Prefix:             "/wiki/article",
@@ -118,6 +153,11 @@ func articleConfig() crud.Config[core.WikiArticle] {
 			}
 			if err := validateArticleStatus(obj.Status); err != nil {
 				return err
+			}
+			// the company map starts from the navigation skeleton so authors
+			// fill a structure instead of staring at an empty page (D6)
+			if obj.PageType == core.WikiPageTypeMap && strings.TrimSpace(obj.Content) == "" {
+				obj.Content = companyMapTemplate
 			}
 			return nil
 		},

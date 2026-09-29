@@ -4,6 +4,7 @@ import {
   BookmarkPlus,
   Check,
   Copy,
+  Flag,
   ThumbsUp,
   ThumbsDown,
   Volume,
@@ -24,6 +25,8 @@ interface MessageActionsProps {
   onResend?: () => void;
   /** host hook: persist this answer into a knowledge base as a draft article */
   onSaveToWiki?: (payload: { content: string; id: string }) => void;
+  /** host hook: report this answer as wrong/outdated (governance correction) */
+  onCorrectAnswer?: (payload: { content: string; id: string }) => void;
 }
 
 const RefreshOnlyIds = ["timedout", "error"];
@@ -36,6 +39,7 @@ export const MessageActions = ({
   copyButtonId,
   onResend,
   onSaveToWiki,
+  onCorrectAnswer,
 }: MessageActionsProps) => {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
@@ -205,6 +209,21 @@ export const MessageActions = ({
         >
           <BookmarkPlus
             className="w-4 h-4 text-[#666666] dark:text-[#A3A3A3] hover:text-[#1990FF] dark:hover:text-[#1990FF]"
+            style={{
+              width: actionIconSize,
+              height: actionIconSize,
+            }}
+          />
+        </button>
+      )}
+      {!isRefreshOnly && content && onCorrectAnswer && (
+        <button
+          onClick={() => onCorrectAnswer({ content, id })}
+          title={t("labels.correctAnswer")}
+          className="bg-transparent border-0 cursor-pointer p-4px hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
+        >
+          <Flag
+            className="w-4 h-4 text-[#666666] dark:text-[#A3A3A3] hover:text-[#FA8C16] dark:hover:text-[#FA8C16]"
             style={{
               width: actionIconSize,
               height: actionIconSize,

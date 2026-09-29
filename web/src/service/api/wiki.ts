@@ -335,6 +335,19 @@ export function relinkWikiArticle(id: string) {
   });
 }
 
+/** report a wrong/outdated answer into the governance queue (D7) */
+export function reportWikiCorrection(body: {
+  query?: string;
+  answer?: string;
+  message_id?: string;
+  cited_doc_ids?: string[];
+  route_hint: string;
+  comment: string;
+  kb_id?: string;
+}) {
+  return request({ data: body, method: 'post', url: '/wiki/governance/_correction' });
+}
+
 export function createWikiEntity(body: { name: string; type?: string; subtype?: string; aliases?: string[]; status?: string; properties?: Record<string, unknown>; relations?: { relation: string; target_id: string }[]; kb_id?: string }) {
   return request<{ _id: string }>({ method: 'post', data: body, url: '/wiki/entity/' }).then(res => res?.data);
 }
