@@ -87,6 +87,12 @@ jobs:
 
       - name: Set up Easysearch
         run: |
+          # every curl in this job reads this file, including the
+          # installer's internal downloads: resume partial transfers
+          # instead of restarting, retry transient errors, and abort
+          # stalls (<1KB/s for 60s) so retries actually fire
+          printf '%s\n' '--retry 8' '--retry-all-errors' '--continue-at -' '--speed-limit 1024' '--speed-time 60' > ~/.curlrc
+
           # the installer has no retry of its own and the download server
           # flakes (truncated transfers, hangs); retry the whole install
           for i in 1 2 3; do
