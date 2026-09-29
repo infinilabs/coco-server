@@ -91,8 +91,10 @@ jobs:
           # flakes (truncated transfers, hangs); retry the whole install
           for i in 1 2 3; do
             rm -rf ~/es_install_dir && mkdir ~/es_install_dir
-            curl -sSL http://get.infini.cloud | bash -s -- -p easysearch -d ~/es_install_dir -v 2.1.2 && break
-            echo "::warning::easysearch install attempt $i failed, retrying in 30s"
+            # timeout guards the hang mode: the installer's own curl has no
+            # deadline, so without this a stalled transfer blocks the retry
+            timeout 600 bash -c "curl -sSL http://get.infini.cloud | bash -s -- -p easysearch -d $HOME/es_install_dir -v 2.1.2" && break
+            echo "::warning::easysearch install attempt $i failed or timed out, retrying in 30s"
             sleep 30
           done
           test -x ~/es_install_dir/bin/easysearch || (echo "::error::easysearch download failed after 3 attempts"; exit 1)
